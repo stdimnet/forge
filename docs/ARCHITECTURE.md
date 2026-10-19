@@ -26,6 +26,7 @@ app/ui/            SolidJS UI
   - `registerToolWindow` (`src/features/registry.ts`) — panels on the left/right/bottom stripes.
   - `registerStatusItem` (`src/features/statusItems.ts`) — status bar widgets.
   - `registerCommand` (`src/state/commands.ts`) — actions with PHPStorm-style ids, bindable to keys.
+  - `registerSettingsPage` (`src/features/settingsPages.ts`) — pages in the Settings dialog.
   - `registerEditorExtension` (`src/editor/extensions.ts`) — CodeMirror extensions per file.
 - A feature is a folder `src/features/<name>/` with an `index.ts` that registers its
   contributions; add one import line to `src/features/index.ts`. Browser mocks go to
@@ -38,3 +39,9 @@ app/ui/            SolidJS UI
 - Layout, wording and shortcuts follow PHPStorm; colors are Forge's own.
 - Every UI change is checked with `pnpm screenshots`.
 - Commits: small, imperative subject lines, no co-author trailers.
+
+## Shared IPC contracts
+
+- `ai_complete({ request: { system?: string, messages: { role: "user" | "assistant", content: string }[], provider?: string, model?: string, maxTokens?: number } }) -> string`
+  — one-shot completion with the default (or given) provider. Used by e.g. AI commit messages.
+- `ai_stream({ request, streamId })` emits `ai://stream/<streamId>` events `{ delta?: string, done?: boolean, error?: string }`.
