@@ -1159,8 +1159,10 @@ dependencies = [
 name = "forge-app"
 version = "0.1.0"
 dependencies = [
+ "forge-ai",
  "forge-core",
  "forge-plugin-api",
+ "futures-util",
  "serde",
  "serde_json",
  "tauri",
