@@ -8,3 +8,4 @@ app/src-tauri/gen/
 .vscode/
 /test-results
 /playwright-report
+.claude/worktrees/
