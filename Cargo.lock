@@ -836,6 +836,7 @@ name = "forge-app"
 version = "0.1.0"
 dependencies = [
  "forge-core",
+ "forge-lsp",
  "forge-plugin-api",
  "serde",
  "serde_json",
