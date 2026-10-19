@@ -1,0 +1,170 @@
+# WebForge, LuaForge and AIForge plugins. Each table is one plugin.
+
+[[plugin]]
+id = "forge.web"
+name = "HTML, CSS & JavaScript"
+version = "0.1.0"
+pack = "webforge"
+vendor = "Forge"
+description = "HTML, CSS, JavaScript and TypeScript editing with language servers."
+
+[plugin.contributions]
+languages = ["html", "css", "scss", "js", "mjs", "ts", "tsx", "jsx", "json"]
+
+[[plugin.contributions.lspServers]]
+id = "typescript-language-server"
+languageId = "typescript"
+command = "typescript-language-server"
+args = ["--stdio"]
+fileExtensions = ["js", "mjs", "cjs", "jsx", "ts", "tsx"]
+
+[[plugin.contributions.lspServers]]
+id = "vscode-css-language-server"
+languageId = "css"
+command = "vscode-css-language-server"
+args = ["--stdio"]
+fileExtensions = ["css", "scss", "less"]
+
+[[plugin.contributions.lspServers]]
+id = "vscode-html-language-server"
+languageId = "html"
+command = "vscode-html-language-server"
+args = ["--stdio"]
+fileExtensions = ["html", "htm"]
+
+[[plugin.contributions.runConfigurationTypes]]
+id = "npm"
+name = "npm"
+description = "Run a package.json script."
+icon = "package"
+
+[[plugin]]
+id = "forge.vue"
+name = "Vue.js"
+version = "0.1.0"
+pack = "webforge"
+vendor = "Forge"
+depends = ["forge.web"]
+description = "Single-file components via the Vue language server."
+
+[plugin.contributions]
+languages = ["vue"]
+
+[[plugin.contributions.lspServers]]
+id = "vue-language-server"
+languageId = "vue"
+command = "vue-language-server"
+args = ["--stdio"]
+fileExtensions = ["vue"]
+
+[[plugin]]
+id = "forge.lua"
+name = "Lua"
+version = "0.1.0"
+pack = "luaforge"
+vendor = "Forge"
+description = "Lua 5.1–5.4 and LuaJIT support via lua-language-server."
+
+[plugin.contributions]
+languages = ["lua"]
+
+[[plugin.contributions.lspServers]]
+id = "lua-language-server"
+languageId = "lua"
+command = "lua-language-server"
+fileExtensions = ["lua"]
+initializationOptions = { runtime = { version = "Lua 5.4" } }
+
+[[plugin.contributions.runConfigurationTypes]]
+id = "lua-script"
+name = "Lua Script"
+description = "Run a Lua file with the configured interpreter."
+icon = "moon"
+
+[[plugin]]
+id = "forge.ai"
+name = "AI Assistant"
+version = "0.1.0"
+pack = "aiforge"
+vendor = "Forge"
+description = "Chat, inline completions and code generation with your own model providers."
+
+[[plugin.contributions.toolWindows]]
+id = "ai-chat"
+title = "AI Chat"
+anchor = "right"
+icon = "sparkles"
+
+[[plugin.contributions.aiProviders]]
+id = "anthropic"
+name = "Anthropic"
+kind = "anthropic"
+baseUrl = "https://api.anthropic.com"
+requiresApiKey = true
+
+[[plugin.contributions.aiProviders]]
+id = "openai-compatible"
+name = "OpenAI-compatible"
+kind = "openai-compatible"
+requiresApiKey = true
+
+[[plugin.contributions.aiProviders]]
+id = "gemini"
+name = "Google Gemini"
+kind = "gemini"
+requiresApiKey = true
+
+[[plugin.contributions.chatAgents]]
+id = "assistant"
+name = "Assistant"
+description = "General chat about the open project."
+
+[[plugin.contributions.codeGenerators]]
+id = "ai.generateTests"
+title = "Tests with AI"
+languages = ["php", "typescript", "lua"]
+
+[[plugin.contributions.codeGenerators]]
+id = "ai.generateDocs"
+title = "Documentation with AI"
+languages = ["php", "typescript", "lua"]
+
+[[plugin]]
+id = "forge.claude-code"
+name = "Claude Code"
+version = "0.1.0"
+pack = "aiforge"
+vendor = "Forge"
+depends = ["forge.ai"]
+description = "Run Claude Code agents in the IDE, several in parallel."
+
+[[plugin.contributions.aiProviders]]
+id = "claude-code"
+name = "Claude Code CLI"
+kind = "cli"
+
+[[plugin.contributions.chatAgents]]
+id = "claude-code"
+name = "Claude Code"
+description = "Agentic coding in your project, using the local `claude` CLI."
+provider = "claude-code"
+
+[[plugin]]
+id = "forge.gemini-cli"
+name = "Gemini CLI"
+version = "0.1.0"
+pack = "aiforge"
+vendor = "Forge"
+depends = ["forge.ai"]
+description = "Run Gemini CLI agents in the IDE."
+
+[[plugin.contributions.aiProviders]]
+id = "gemini-cli"
+name = "Gemini CLI"
+kind = "cli"
+
+[[plugin.contributions.chatAgents]]
+id = "gemini-cli"
+name = "Gemini CLI"
+description = "Agentic coding with the local `gemini` CLI."
+provider = "gemini-cli"

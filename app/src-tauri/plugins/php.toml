@@ -1,0 +1,258 @@
+id = "forge.php"
+name = "PHP"
+version = "0.1.0"
+pack = "phpforge"
+vendor = "Forge"
+description = "PHP language support: completion, inspections, navigation and refactorings via Intelephense."
+
+[contributions]
+languages = ["php", "phtml"]
+
+[[contributions.commands]]
+id = "php.runFile"
+title = "Run PHP Script"
+category = "Run"
+
+[[contributions.lspServers]]
+id = "intelephense"
+languageId = "php"
+command = "intelephense"
+args = ["--stdio"]
+fileExtensions = ["php", "phtml"]
+initializationOptions = { storagePath = ".forge/intelephense", clearCache = false }
+
+[[contributions.runConfigurationTypes]]
+id = "php-script"
+name = "PHP Script"
+description = "Run a PHP file with the CLI interpreter."
+icon = "file-code"
+debuggable = true
+
+[[contributions.runConfigurationTypes]]
+id = "php-builtin-server"
+name = "PHP Built-in Web Server"
+description = "Serve a document root with `php -S`."
+icon = "globe"
+debuggable = true
+
+[[contributions.codeGenerators]]
+id = "php.constructor"
+title = "Constructor"
+languages = ["php"]
+
+[[contributions.codeGenerators]]
+id = "php.gettersSetters"
+title = "Getters and Setters"
+languages = ["php"]
+
+[[contributions.codeGenerators]]
+id = "php.phpdoc"
+title = "PHPDoc Blocks"
+languages = ["php"]
+
+[[contributions.codeGenerators]]
+id = "php.implementMethods"
+title = "Implement Methods…"
+languages = ["php"]
+
+# ---- Languages & Frameworks > PHP ----------------------------------------------------
+
+[[contributions.settings]]
+key = "php.languageLevel"
+title = "PHP language level"
+description = "Inspections and completion follow the syntax of this version."
+type = "enum"
+options = [
+  { value = "7.4", label = "7.4 (arrow functions, typed properties)" },
+  { value = "8.0", label = "8.0 (named arguments, match, union types)" },
+  { value = "8.1", label = "8.1 (enums, readonly properties)" },
+  { value = "8.2", label = "8.2 (readonly classes, DNF types)" },
+  { value = "8.3", label = "8.3 (typed class constants)" },
+  { value = "8.4", label = "8.4 (property hooks, asymmetric visibility)" },
+]
+default = "8.3"
+group = "lang.php"
+section = "Development Environment"
+project = true
+order = 0
+
+[[contributions.settings]]
+key = "php.interpreter"
+title = "CLI Interpreter"
+description = "Path to the php executable used to run scripts and tests."
+type = "path"
+default = "php"
+group = "lang.php"
+section = "Development Environment"
+project = true
+order = 1
+
+[[contributions.settings]]
+key = "php.includePaths"
+title = "Include path"
+description = "Extra directories indexed as libraries (e.g. global PEAR or framework stubs)."
+type = "list"
+default = []
+group = "lang.php"
+section = "Include Path"
+project = true
+order = 10
+
+[[contributions.settings]]
+key = "php.lsp.maxFileSize"
+title = "Max indexed file size (KB)"
+type = "int"
+min = 100
+max = 100000
+default = 5000
+group = "lang.php"
+section = "Language Server"
+order = 20
+
+[[contributions.settings]]
+key = "php.lsp.licenceKey"
+title = "Intelephense licence key"
+description = "Optional; unlocks rename, code actions and more."
+type = "string"
+default = ""
+group = "lang.php"
+section = "Language Server"
+order = 21
+
+# ---- Editor > Code Style > PHP -------------------------------------------------------
+
+[[contributions.settings]]
+key = "php.codeStyle.useTabs"
+title = "Use tab character"
+type = "bool"
+default = false
+group = "editor.code-style.php"
+section = "Tabs and Indents"
+project = true
+order = 0
+
+[[contributions.settings]]
+key = "php.codeStyle.tabSize"
+title = "Tab size"
+type = "int"
+min = 1
+max = 16
+default = 4
+group = "editor.code-style.php"
+section = "Tabs and Indents"
+project = true
+order = 1
+
+[[contributions.settings]]
+key = "php.codeStyle.indent"
+title = "Indent"
+type = "int"
+min = 0
+max = 16
+default = 4
+group = "editor.code-style.php"
+section = "Tabs and Indents"
+project = true
+order = 2
+
+[[contributions.settings]]
+key = "php.codeStyle.continuationIndent"
+title = "Continuation indent"
+type = "int"
+min = 0
+max = 16
+default = 4
+group = "editor.code-style.php"
+section = "Tabs and Indents"
+project = true
+order = 3
+
+[[contributions.settings]]
+key = "php.codeStyle.braces.classes"
+title = "In class declaration"
+type = "enum"
+options = [
+  { value = "endOfLine", label = "End of line" },
+  { value = "nextLine", label = "Next line" },
+]
+default = "nextLine"
+group = "editor.code-style.php"
+section = "Braces Placement"
+project = true
+order = 10
+
+[[contributions.settings]]
+key = "php.codeStyle.braces.functions"
+title = "In function declaration"
+type = "enum"
+options = [
+  { value = "endOfLine", label = "End of line" },
+  { value = "nextLine", label = "Next line" },
+]
+default = "nextLine"
+group = "editor.code-style.php"
+section = "Braces Placement"
+project = true
+order = 11
+
+[[contributions.settings]]
+key = "php.codeStyle.braces.other"
+title = "Other"
+type = "enum"
+options = [
+  { value = "endOfLine", label = "End of line" },
+  { value = "nextLine", label = "Next line" },
+]
+default = "endOfLine"
+group = "editor.code-style.php"
+section = "Braces Placement"
+project = true
+order = 12
+
+[[contributions.settings]]
+key = "php.codeStyle.blankLines.keepMax"
+title = "Keep maximum blank lines in code"
+type = "int"
+min = 0
+max = 10
+default = 2
+group = "editor.code-style.php"
+section = "Blank Lines"
+project = true
+order = 20
+
+[[contributions.settings]]
+key = "php.codeStyle.blankLines.afterNamespace"
+title = "After namespace"
+type = "int"
+min = 0
+max = 10
+default = 1
+group = "editor.code-style.php"
+section = "Blank Lines"
+project = true
+order = 21
+
+[[contributions.settings]]
+key = "php.codeStyle.blankLines.afterImports"
+title = "After imports"
+type = "int"
+min = 0
+max = 10
+default = 1
+group = "editor.code-style.php"
+section = "Blank Lines"
+project = true
+order = 22
+
+[[contributions.settings]]
+key = "php.codeStyle.blankLines.aroundMethods"
+title = "Around method"
+type = "int"
+min = 0
+max = 10
+default = 1
+group = "editor.code-style.php"
+section = "Blank Lines"
+project = true
+order = 23
