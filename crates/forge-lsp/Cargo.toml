@@ -1,0 +1,24 @@
+[package]
+name = "forge-lsp"
+description = "Forge IDE: generic Language Server Protocol client and server manager"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+forge-core.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+lsp-types = "0.95.1"
+
+[dev-dependencies]
+tempfile.workspace = true
+
+# Minimal language server used by the integration tests (never shipped with the app).
+[[bin]]
+name = "forge-lsp-fake-server"
+path = "tests/support/fake_server.rs"
+test = false
+doc = false
