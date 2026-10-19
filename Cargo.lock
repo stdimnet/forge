@@ -847,6 +847,7 @@ dependencies = [
 name = "forge-app"
 version = "0.1.0"
 dependencies = [
+ "forge-agent-cli",
  "forge-core",
  "forge-plugin-api",
  "serde",
