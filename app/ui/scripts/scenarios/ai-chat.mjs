@@ -41,6 +41,24 @@ export default {
     await page.click('.chat-tool-card[data-tool="Edit"] .chat-tool-actions button');
     await page.waitForSelector(".chat-dialog");
   },
+  "ai-chat-agent-picker": async (page) => {
+    await openChat(page);
+    await page.click(".chat-toolbar .chat-dropdown:first-child .chat-dropdown-trigger");
+    await page.waitForSelector(".chat-dropdown-menu");
+  },
+  "ai-chat-attach": async (page) => {
+    await openChat(page);
+    await page.click(".chat-input");
+    await page.keyboard.type("Explain this @");
+    await page.waitForSelector(".chat-attach-menu");
+  },
+  "ai-chat-interrupted": async (page) => {
+    await openChat(page);
+    await ask(page, "Add a scope for paid orders to Order model");
+    await page.waitForSelector('.chat-tool-card[data-tool="Read"]', { timeout: 30000 });
+    await page.click(".chat-send.stop");
+    await page.waitForSelector(".chat-turn-note");
+  },
   "ai-chat-light": async (page) => {
     await page.evaluate(() => (document.documentElement.dataset.theme = "light"));
     await page.click('[data-path="app/Models/Order.php"]');
