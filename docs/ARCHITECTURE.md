@@ -45,3 +45,11 @@ app/ui/            SolidJS UI
 - `ai_complete({ request: { system?: string, messages: { role: "user" | "assistant", content: string }[], provider?: string, model?: string, maxTokens?: number } }) -> string`
   — one-shot completion with the default (or given) provider. Used by e.g. AI commit messages.
 - `ai_stream({ request, streamId })` emits `ai://stream/<streamId>` events `{ delta?: string, done?: boolean, error?: string }`.
+  Subscribe before invoking; `ai_cancel({ streamId })` stops it (a final `{ done: true }` follows).
+  Requests may also carry `temperature?`, `stop?: string[]` and `feature?: "chat" | "commitMessages" | "completion"`
+  (picks the model configured for that feature). Use the typed client `src/ipc/ai.ts` (`aiApi`).
+- Provider management (Settings | Tools | AI Providers): `ai_providers_list`, `ai_provider_save({ config, apiKey? })`,
+  `ai_provider_delete({ id })`, `ai_provider_test({ id }) -> { ok, latencyMs, error?, modelCount? }`,
+  `ai_models({ providerId })`, `ai_set_default({ providerId, model?, feature? })`. Config lives in
+  `<config dir>/forge/ai.toml`; API keys in the OS keychain (service `forge-ai`) with
+  `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` / `OPENROUTER_API_KEY` as fallback. Backend: `crates/forge-ai`.

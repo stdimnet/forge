@@ -19,6 +19,8 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 forge-core.workspace = true
 forge-plugin-api.workspace = true
+forge-ai.workspace = true
+futures-util = "0.3"
 tauri = { version = "2", features = [] }
 serde.workspace = true
 serde_json.workspace = true
