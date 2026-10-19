@@ -1,9 +1,8 @@
 name: CI
 
+# Manual only for now: CI must not run automatically until the project owner enables it.
 on:
-  push:
-    branches: [main, "dev/**", "feat/**"]
-  pull_request:
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.ref }}
