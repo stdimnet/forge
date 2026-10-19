@@ -24,6 +24,7 @@ pub fn run() {
             commands::workspace::fs_list_dir,
             commands::workspace::fs_read_file,
             commands::workspace::fs_write_file,
+            commands::workspace::fs_find_files,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Forge");
