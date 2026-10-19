@@ -408,7 +408,7 @@ async function blame(path: string, contents?: string | null): Promise<Blame> {
 
 function mockCommitMessage(content: string): string {
   if (content.includes("totalSpent") || content.includes("app/Models/User.php"))
-    return "Add totalSpent helper and tighten User attributes\n\nSum paid orders in User::totalSpent() for the account page, allow\nmass-assigning the password and drop the unused is_admin cast.\nAuthorize order access in OrderController::show and register the\nnamed orders.show route.";
+    return "Add totalSpent helper and tighten User attributes\n\nSum paid orders in User::totalSpent() for the account page.\nAllow mass-assigning the password, drop the is_admin cast\nand authorize order access in OrderController::show.";
   if (content.includes("Checkout")) return "Add Checkout service with currency and tax rate";
   return "Update project files";
 }
