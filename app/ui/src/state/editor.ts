@@ -63,3 +63,11 @@ export async function saveFile(path: string): Promise<void> {
 export async function saveAll(): Promise<void> {
   await Promise.all(editor.tabs.filter(isDirty).map((t) => saveFile(t.path)));
 }
+
+/** Re-read an open file from disk after an external change (unless it has unsaved edits). */
+export async function reloadFile(path: string): Promise<void> {
+  const tab = editor.tabs.find((t) => t.path === path);
+  if (!tab || isDirty(tab)) return;
+  const content = await workspaceApi.readFile(path);
+  setEditor("tabs", (t) => t.path === path, { content, saved: content });
+}

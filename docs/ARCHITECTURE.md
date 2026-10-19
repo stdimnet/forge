@@ -53,3 +53,10 @@ app/ui/            SolidJS UI
   `ai_models({ providerId })`, `ai_set_default({ providerId, model?, feature? })`. Config lives in
   `<config dir>/forge/ai.toml`; API keys in the OS keychain (service `forge-ai`) with
   `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` / `OPENROUTER_API_KEY` as fallback. Backend: `crates/forge-ai`.
+- Agent CLIs (`forge-agent-cli`, AI Chat tool window): `agent_list({ executables? }) -> AgentInfo[]`,
+  `agent_start({ agentId, options: { model?, permissionMode?, resume?, allowedTools?, executable? } }) -> sessionId`,
+  `agent_send({ sessionId, text, context?: { files, selection? } })`, `agent_interrupt({ sessionId })`,
+  `agent_stop({ sessionId })`. Events arrive on `agent://<sessionId>` as `AgentEvent` JSON
+  (`{ type: "sessionStarted" | "assistantText" | "thinking" | "toolUse" | "toolResult" | "usage" |
+  "permissionRequest" | "turnFinished" | "interrupted" | "error" | "exited", ... }`, see `app/ui/src/ipc/agent.ts`).
+  New CLIs implement the `AgentCli` trait in Rust and call `registerChatAgent` in the UI.

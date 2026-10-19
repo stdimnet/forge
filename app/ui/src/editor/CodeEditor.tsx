@@ -1,4 +1,4 @@
-import { onCleanup, onMount } from "solid-js";
+import { createEffect, onCleanup, onMount } from "solid-js";
 import { EditorState } from "@codemirror/state";
 import {
   EditorView,
@@ -18,11 +18,13 @@ import { forgeEditorTheme, forgeHighlight } from "./forgeTheme";
 import { languageFor } from "./languages";
 import { extensionsFor } from "./extensions";
 import { updateContent, updateCursor, saveFile, type EditorTab } from "@/state/editor";
+import { registerView } from "./views";
 
 /** One CodeMirror instance per open tab; kept alive while the tab exists. */
 export function CodeEditor(props: { tab: EditorTab }) {
   let host!: HTMLDivElement;
   let view: EditorView | undefined;
+  let unregister: (() => void) | undefined;
 
   onMount(() => {
     const path = props.tab.path;
@@ -67,9 +69,21 @@ export function CodeEditor(props: { tab: EditorTab }) {
         ],
       }),
     });
+    unregister = registerView(path, view);
   });
 
-  onCleanup(() => view?.destroy());
+  // Content replaced from outside (e.g. reloaded after an AI agent edited the file).
+  createEffect(() => {
+    const content = props.tab.content;
+    if (view && content !== view.state.doc.toString()) {
+      view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: content } });
+    }
+  });
+
+  onCleanup(() => {
+    unregister?.();
+    view?.destroy();
+  });
 
   return <div class="code-editor" ref={host} />;
 }

@@ -20,6 +20,7 @@ pub fn run() {
     tauri::Builder::default()
         .manage(app_state)
         .manage(commands::ai::AiState::load())
+        .manage(commands::agent::AgentState::default())
         .invoke_handler(tauri::generate_handler![
             commands::workspace::workspace_open,
             commands::workspace::fs_list_dir,
@@ -34,6 +35,11 @@ pub fn run() {
             commands::ai::ai_provider_test,
             commands::ai::ai_models,
             commands::ai::ai_set_default,
+            commands::agent::agent_list,
+            commands::agent::agent_start,
+            commands::agent::agent_send,
+            commands::agent::agent_interrupt,
+            commands::agent::agent_stop,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Forge");
