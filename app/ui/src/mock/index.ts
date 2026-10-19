@@ -2,3 +2,4 @@
 import "./workspaceMock";
 import "./aiMock";
 import "./agentMock";
+import "./settingsMock";

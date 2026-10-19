@@ -1,0 +1,1737 @@
+[
+  {
+    "id": "forge.core",
+    "name": "Forge Platform",
+    "version": "0.1.0",
+    "pack": "core",
+    "description": "Workbench, editor, settings and the plugin system.",
+    "vendor": "Forge",
+    "depends": [],
+    "required": true,
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "commands": [
+        {
+          "id": "settings.open",
+          "title": "Settings…",
+          "category": "File"
+        },
+        {
+          "id": "file.saveAll",
+          "title": "Save All",
+          "category": "File"
+        }
+      ],
+      "keybindings": [
+        {
+          "command": "settings.open",
+          "key": "Ctrl+Alt+S"
+        },
+        {
+          "command": "settings.open",
+          "key": "Meta+,",
+          "keymap": "macos"
+        },
+        {
+          "command": "file.saveAll",
+          "key": "Ctrl+S"
+        }
+      ],
+      "toolWindows": [
+        {
+          "id": "project",
+          "title": "Project",
+          "anchor": "left",
+          "icon": "folder",
+          "order": 0
+        }
+      ],
+      "settings": [
+        {
+          "key": "appearance.theme",
+          "title": "Theme",
+          "type": "enum",
+          "options": [
+            {
+              "value": "dark",
+              "label": "Forge Ember (Dark)"
+            },
+            {
+              "value": "light",
+              "label": "Forge Anvil (Light)"
+            }
+          ],
+          "default": "dark",
+          "group": "appearance",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "appearance.uiFont.family",
+          "title": "Font",
+          "description": "Font used for menus, tool windows and dialogs.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "Inter",
+              "label": "Inter"
+            },
+            {
+              "value": "system-ui",
+              "label": "System default"
+            },
+            {
+              "value": "Segoe UI",
+              "label": "Segoe UI"
+            },
+            {
+              "value": "Roboto",
+              "label": "Roboto"
+            }
+          ],
+          "default": "Inter",
+          "group": "appearance",
+          "section": "Font",
+          "project": false,
+          "order": 10
+        },
+        {
+          "key": "appearance.uiFont.size",
+          "title": "Size",
+          "type": "int",
+          "min": 10,
+          "max": 20,
+          "default": 13,
+          "group": "appearance",
+          "section": "Font",
+          "project": false,
+          "order": 11
+        },
+        {
+          "key": "appearance.compactMode",
+          "title": "Compact mode",
+          "description": "Reduces paddings and the height of toolbars and tool window headers.",
+          "type": "bool",
+          "default": false,
+          "group": "appearance",
+          "section": "UI Options",
+          "project": false,
+          "order": 20
+        },
+        {
+          "key": "appearance.showToolWindowBars",
+          "title": "Show tool window bars",
+          "description": "The stripes with tool window buttons along the window edges.",
+          "type": "bool",
+          "default": true,
+          "group": "appearance",
+          "section": "Tool Windows",
+          "project": false,
+          "order": 30
+        },
+        {
+          "key": "appearance.showToolWindowNumbers",
+          "title": "Show tool window numbers",
+          "type": "bool",
+          "default": true,
+          "group": "appearance",
+          "section": "Tool Windows",
+          "project": false,
+          "order": 31
+        },
+        {
+          "key": "appearance.smoothScrolling",
+          "title": "Smooth scrolling",
+          "description": "Animate scrolling in lists and trees.",
+          "type": "bool",
+          "default": true,
+          "group": "appearance",
+          "section": "UI Options",
+          "project": false,
+          "order": 21
+        },
+        {
+          "key": "system.reopenLastProject",
+          "title": "Reopen projects on startup",
+          "type": "bool",
+          "default": true,
+          "group": "system",
+          "section": "Project",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "system.confirmExit",
+          "title": "Confirm before exiting the IDE",
+          "type": "bool",
+          "default": true,
+          "group": "system",
+          "section": "Project",
+          "project": false,
+          "order": 1
+        },
+        {
+          "key": "system.openProjectIn",
+          "title": "Open project in",
+          "type": "enum",
+          "options": [
+            {
+              "value": "new",
+              "label": "New window"
+            },
+            {
+              "value": "same",
+              "label": "Current window"
+            },
+            {
+              "value": "ask",
+              "label": "Ask"
+            }
+          ],
+          "default": "ask",
+          "group": "system",
+          "section": "Project",
+          "project": false,
+          "order": 2
+        },
+        {
+          "key": "system.autosave.onFrameDeactivation",
+          "title": "Save files if the IDE is switched to a different application",
+          "type": "bool",
+          "default": true,
+          "group": "system",
+          "section": "Autosave",
+          "project": false,
+          "order": 10
+        },
+        {
+          "key": "system.autosave.onIdle",
+          "title": "Save files if the IDE is idle",
+          "type": "bool",
+          "default": false,
+          "group": "system",
+          "section": "Autosave",
+          "project": false,
+          "order": 11
+        },
+        {
+          "key": "system.autosave.idleSeconds",
+          "title": "Idle time (seconds)",
+          "type": "int",
+          "min": 1,
+          "max": 600,
+          "default": 15,
+          "group": "system",
+          "section": "Autosave",
+          "project": false,
+          "order": 12
+        },
+        {
+          "key": "system.syncExternalChanges",
+          "title": "Synchronize external changes when switching to the IDE window",
+          "type": "bool",
+          "default": true,
+          "group": "system",
+          "section": "Synchronization",
+          "project": false,
+          "order": 20
+        },
+        {
+          "key": "editor.smoothScrolling",
+          "title": "Enable smooth scrolling",
+          "type": "bool",
+          "default": true,
+          "group": "editor.general",
+          "section": "Scrolling",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "editor.caret.blinking",
+          "title": "Caret blinking",
+          "type": "bool",
+          "default": true,
+          "group": "editor.general",
+          "section": "Caret",
+          "project": false,
+          "order": 10
+        },
+        {
+          "key": "editor.caret.blinkPeriod",
+          "title": "Blink period (ms)",
+          "type": "int",
+          "min": 100,
+          "max": 2000,
+          "default": 500,
+          "group": "editor.general",
+          "section": "Caret",
+          "project": false,
+          "order": 11
+        },
+        {
+          "key": "editor.softWraps",
+          "title": "Soft-wrap files",
+          "description": "Wrap long lines visually in files matching the patterns below.",
+          "type": "bool",
+          "default": false,
+          "group": "editor.general",
+          "section": "Soft Wraps",
+          "project": false,
+          "order": 20
+        },
+        {
+          "key": "editor.softWrapFiles",
+          "title": "File patterns",
+          "type": "string",
+          "default": "*.md; *.txt; *.rst; *.adoc",
+          "group": "editor.general",
+          "section": "Soft Wraps",
+          "project": false,
+          "order": 21
+        },
+        {
+          "key": "editor.showWhitespace",
+          "title": "Show whitespaces",
+          "type": "bool",
+          "default": false,
+          "group": "editor.general",
+          "section": "Appearance",
+          "project": false,
+          "order": 30
+        },
+        {
+          "key": "editor.showLineNumbers",
+          "title": "Show line numbers",
+          "type": "bool",
+          "default": true,
+          "group": "editor.general",
+          "section": "Appearance",
+          "project": false,
+          "order": 31
+        },
+        {
+          "key": "editor.highlightCurrentLine",
+          "title": "Highlight caret row",
+          "type": "bool",
+          "default": true,
+          "group": "editor.general",
+          "section": "Appearance",
+          "project": false,
+          "order": 32
+        },
+        {
+          "key": "editor.stripTrailingSpaces",
+          "title": "Remove trailing spaces on",
+          "type": "enum",
+          "options": [
+            {
+              "value": "none",
+              "label": "None"
+            },
+            {
+              "value": "modified",
+              "label": "Modified lines"
+            },
+            {
+              "value": "all",
+              "label": "All lines"
+            }
+          ],
+          "default": "modified",
+          "group": "editor.general",
+          "section": "On Save",
+          "project": false,
+          "order": 40
+        },
+        {
+          "key": "editor.ensureNewlineAtEof",
+          "title": "Ensure every saved file ends with a line break",
+          "type": "bool",
+          "default": true,
+          "group": "editor.general",
+          "section": "On Save",
+          "project": false,
+          "order": 41
+        },
+        {
+          "key": "editor.font.family",
+          "title": "Font",
+          "type": "enum",
+          "options": [
+            {
+              "value": "JetBrains Mono",
+              "label": "JetBrains Mono"
+            },
+            {
+              "value": "Fira Code",
+              "label": "Fira Code"
+            },
+            {
+              "value": "Cascadia Code",
+              "label": "Cascadia Code"
+            },
+            {
+              "value": "Source Code Pro",
+              "label": "Source Code Pro"
+            },
+            {
+              "value": "Menlo",
+              "label": "Menlo"
+            },
+            {
+              "value": "Consolas",
+              "label": "Consolas"
+            },
+            {
+              "value": "monospace",
+              "label": "System monospace"
+            }
+          ],
+          "default": "JetBrains Mono",
+          "group": "editor.font",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "editor.font.size",
+          "title": "Size",
+          "type": "number",
+          "min": 6.0,
+          "max": 72.0,
+          "step": 0.5,
+          "default": 13.5,
+          "group": "editor.font",
+          "project": false,
+          "order": 1
+        },
+        {
+          "key": "editor.font.lineHeight",
+          "title": "Line height",
+          "type": "number",
+          "min": 1.0,
+          "max": 3.0,
+          "step": 0.1,
+          "default": 1.6,
+          "group": "editor.font",
+          "project": false,
+          "order": 2
+        },
+        {
+          "key": "editor.font.ligatures",
+          "title": "Enable ligatures",
+          "description": "Render character sequences like -> and !== as a single glyph if the font supports it.",
+          "type": "bool",
+          "default": true,
+          "group": "editor.font",
+          "project": false,
+          "order": 3
+        },
+        {
+          "key": "editor.codeStyle.lineSeparator",
+          "title": "Line separator",
+          "type": "enum",
+          "options": [
+            {
+              "value": "lf",
+              "label": "Unix and macOS (\\n)"
+            },
+            {
+              "value": "crlf",
+              "label": "Windows (\\r\\n)"
+            },
+            {
+              "value": "system",
+              "label": "System-dependent"
+            }
+          ],
+          "default": "lf",
+          "group": "editor.code-style",
+          "project": true,
+          "order": 0
+        },
+        {
+          "key": "editor.codeStyle.hardWrapAt",
+          "title": "Hard wrap at (columns)",
+          "type": "int",
+          "min": 40,
+          "max": 400,
+          "default": 120,
+          "group": "editor.code-style",
+          "project": true,
+          "order": 1
+        },
+        {
+          "key": "editor.codeStyle.visualGuides",
+          "title": "Visual guides",
+          "description": "Comma-separated column numbers, e.g. 80, 120.",
+          "type": "string",
+          "default": "120",
+          "group": "editor.code-style",
+          "project": true,
+          "order": 2
+        },
+        {
+          "key": "editor.codeStyle.useEditorConfig",
+          "title": "Enable EditorConfig support",
+          "type": "bool",
+          "default": true,
+          "group": "editor.code-style",
+          "project": true,
+          "order": 3
+        },
+        {
+          "key": "editor.inlayHints.parameterNames",
+          "title": "Parameter names",
+          "description": "Show parameter names at call sites for literal and null arguments.",
+          "type": "bool",
+          "default": true,
+          "group": "editor.inlay-hints",
+          "section": "Parameters",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "editor.inlayHints.types",
+          "title": "Inferred variable types",
+          "type": "bool",
+          "default": false,
+          "group": "editor.inlay-hints",
+          "section": "Types",
+          "project": false,
+          "order": 10
+        },
+        {
+          "key": "editor.inlayHints.returnTypes",
+          "title": "Return types of closures",
+          "type": "bool",
+          "default": true,
+          "group": "editor.inlay-hints",
+          "section": "Types",
+          "project": false,
+          "order": 11
+        },
+        {
+          "key": "editor.inlayHints.chainedCalls",
+          "title": "Types in method chains",
+          "type": "bool",
+          "default": true,
+          "group": "editor.inlay-hints",
+          "section": "Types",
+          "project": false,
+          "order": 12
+        },
+        {
+          "key": "editor.inlayHints.usages",
+          "title": "Usages",
+          "description": "Show the number of usages above classes and methods (Code Vision).",
+          "type": "bool",
+          "default": true,
+          "group": "editor.inlay-hints",
+          "section": "Code Vision",
+          "project": false,
+          "order": 20
+        },
+        {
+          "key": "editor.inlayHints.implementations",
+          "title": "Implementations and inheritors",
+          "type": "bool",
+          "default": true,
+          "group": "editor.inlay-hints",
+          "section": "Code Vision",
+          "project": false,
+          "order": 21
+        }
+      ],
+      "lspServers": [],
+      "runConfigurationTypes": [],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": []
+    }
+  },
+  {
+    "id": "forge.git",
+    "name": "Git",
+    "version": "0.1.0",
+    "pack": "core",
+    "description": "Commit, branches, log, diff and merge conflicts for Git repositories.",
+    "vendor": "Forge",
+    "depends": [],
+    "required": false,
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "commands": [
+        {
+          "id": "git.commit",
+          "title": "Commit…",
+          "category": "Git"
+        },
+        {
+          "id": "git.branches",
+          "title": "Branches…",
+          "category": "Git"
+        }
+      ],
+      "keybindings": [
+        {
+          "command": "git.commit",
+          "key": "Ctrl+K"
+        }
+      ],
+      "toolWindows": [
+        {
+          "id": "commit",
+          "title": "Commit",
+          "anchor": "left",
+          "icon": "git-commit-horizontal",
+          "order": 10
+        },
+        {
+          "id": "git",
+          "title": "Git",
+          "anchor": "bottom",
+          "icon": "layers",
+          "order": 60
+        }
+      ],
+      "settings": [
+        {
+          "key": "vcs.git.path",
+          "title": "Path to Git executable",
+          "description": "Leave as `git` to use the one on PATH.",
+          "type": "path",
+          "default": "git",
+          "group": "vcs.git",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "vcs.git.updateMethod",
+          "title": "Update method",
+          "type": "enum",
+          "options": [
+            {
+              "value": "merge",
+              "label": "Merge"
+            },
+            {
+              "value": "rebase",
+              "label": "Rebase"
+            },
+            {
+              "value": "branchDefault",
+              "label": "Branch default"
+            }
+          ],
+          "default": "merge",
+          "group": "vcs.git",
+          "project": false,
+          "order": 1
+        },
+        {
+          "key": "vcs.git.autoFetch",
+          "title": "Fetch remotes automatically",
+          "type": "bool",
+          "default": true,
+          "group": "vcs.git",
+          "project": false,
+          "order": 2
+        },
+        {
+          "key": "vcs.git.commit.subjectMaxLength",
+          "title": "Limit subject line length",
+          "type": "int",
+          "min": 20,
+          "max": 200,
+          "default": 72,
+          "group": "vcs.git",
+          "section": "Commit Message Inspections",
+          "project": false,
+          "order": 10
+        },
+        {
+          "key": "vcs.git.commit.blankLineAfterSubject",
+          "title": "Require blank line between subject and body",
+          "type": "bool",
+          "default": true,
+          "group": "vcs.git",
+          "section": "Commit Message Inspections",
+          "project": false,
+          "order": 11
+        },
+        {
+          "key": "vcs.git.commit.bodyRightMargin",
+          "title": "Right margin for body (columns)",
+          "type": "int",
+          "min": 40,
+          "max": 200,
+          "default": 72,
+          "group": "vcs.git",
+          "section": "Commit Message Inspections",
+          "project": false,
+          "order": 12
+        },
+        {
+          "key": "vcs.git.commit.warnOnCrlf",
+          "title": "Warn if CRLF line separators are about to be committed",
+          "type": "bool",
+          "default": true,
+          "group": "vcs.git",
+          "section": "Commit",
+          "project": false,
+          "order": 20
+        },
+        {
+          "key": "vcs.git.commit.signOff",
+          "title": "Sign-off commits",
+          "type": "bool",
+          "default": false,
+          "group": "vcs.git",
+          "section": "Commit",
+          "project": false,
+          "order": 21
+        }
+      ],
+      "lspServers": [],
+      "runConfigurationTypes": [],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": []
+    }
+  },
+  {
+    "id": "forge.terminal",
+    "name": "Terminal",
+    "version": "0.1.0",
+    "pack": "core",
+    "description": "Integrated terminal emulator with shell integration.",
+    "vendor": "Forge",
+    "depends": [],
+    "required": false,
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "commands": [
+        {
+          "id": "terminal.open",
+          "title": "Terminal",
+          "category": "View"
+        }
+      ],
+      "keybindings": [
+        {
+          "command": "terminal.open",
+          "key": "Alt+F12"
+        }
+      ],
+      "toolWindows": [
+        {
+          "id": "terminal",
+          "title": "Terminal",
+          "anchor": "bottom",
+          "icon": "square-terminal",
+          "order": 40
+        }
+      ],
+      "settings": [
+        {
+          "key": "terminal.shellPath",
+          "title": "Shell path",
+          "description": "Leave empty to use the system default shell.",
+          "type": "path",
+          "default": "",
+          "group": "tools.terminal",
+          "section": "Application Settings",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "terminal.tabName",
+          "title": "Default tab name",
+          "type": "string",
+          "default": "Local",
+          "group": "tools.terminal",
+          "section": "Application Settings",
+          "project": false,
+          "order": 1
+        },
+        {
+          "key": "terminal.audibleBell",
+          "title": "Audible bell",
+          "type": "bool",
+          "default": false,
+          "group": "tools.terminal",
+          "section": "Application Settings",
+          "project": false,
+          "order": 2
+        },
+        {
+          "key": "terminal.copyOnSelection",
+          "title": "Copy to clipboard on selection",
+          "type": "bool",
+          "default": false,
+          "group": "tools.terminal",
+          "section": "Application Settings",
+          "project": false,
+          "order": 3
+        },
+        {
+          "key": "terminal.shellIntegration",
+          "title": "Shell integration",
+          "description": "Track the working directory and command boundaries of supported shells.",
+          "type": "bool",
+          "default": true,
+          "group": "tools.terminal",
+          "section": "Application Settings",
+          "project": false,
+          "order": 4
+        },
+        {
+          "key": "terminal.startDirectory",
+          "title": "Start directory",
+          "description": "Leave empty to start in the project root.",
+          "type": "path",
+          "default": "",
+          "group": "tools.terminal",
+          "section": "Project Settings",
+          "project": true,
+          "order": 10
+        },
+        {
+          "key": "terminal.environment",
+          "title": "Environment variables",
+          "description": "One NAME=value pair per entry.",
+          "type": "list",
+          "default": [],
+          "group": "tools.terminal",
+          "section": "Project Settings",
+          "project": true,
+          "order": 11
+        }
+      ],
+      "lspServers": [],
+      "runConfigurationTypes": [],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": []
+    }
+  },
+  {
+    "id": "forge.php",
+    "name": "PHP",
+    "version": "0.1.0",
+    "pack": "phpforge",
+    "description": "PHP language support: completion, inspections, navigation and refactorings via Intelephense.",
+    "vendor": "Forge",
+    "depends": [],
+    "required": false,
+    "enabled": true,
+    "contributions": {
+      "languages": [
+        "php",
+        "phtml"
+      ],
+      "commands": [
+        {
+          "id": "php.runFile",
+          "title": "Run PHP Script",
+          "category": "Run"
+        }
+      ],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [
+        {
+          "key": "php.languageLevel",
+          "title": "PHP language level",
+          "description": "Inspections and completion follow the syntax of this version.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "7.4",
+              "label": "7.4 (arrow functions, typed properties)"
+            },
+            {
+              "value": "8.0",
+              "label": "8.0 (named arguments, match, union types)"
+            },
+            {
+              "value": "8.1",
+              "label": "8.1 (enums, readonly properties)"
+            },
+            {
+              "value": "8.2",
+              "label": "8.2 (readonly classes, DNF types)"
+            },
+            {
+              "value": "8.3",
+              "label": "8.3 (typed class constants)"
+            },
+            {
+              "value": "8.4",
+              "label": "8.4 (property hooks, asymmetric visibility)"
+            }
+          ],
+          "default": "8.3",
+          "group": "lang.php",
+          "section": "Development Environment",
+          "project": true,
+          "order": 0
+        },
+        {
+          "key": "php.interpreter",
+          "title": "CLI Interpreter",
+          "description": "Path to the php executable used to run scripts and tests.",
+          "type": "path",
+          "default": "php",
+          "group": "lang.php",
+          "section": "Development Environment",
+          "project": true,
+          "order": 1
+        },
+        {
+          "key": "php.includePaths",
+          "title": "Include path",
+          "description": "Extra directories indexed as libraries (e.g. global PEAR or framework stubs).",
+          "type": "list",
+          "default": [],
+          "group": "lang.php",
+          "section": "Include Path",
+          "project": true,
+          "order": 10
+        },
+        {
+          "key": "php.lsp.maxFileSize",
+          "title": "Max indexed file size (KB)",
+          "type": "int",
+          "min": 100,
+          "max": 100000,
+          "default": 5000,
+          "group": "lang.php",
+          "section": "Language Server",
+          "project": false,
+          "order": 20
+        },
+        {
+          "key": "php.lsp.licenceKey",
+          "title": "Intelephense licence key",
+          "description": "Optional; unlocks rename, code actions and more.",
+          "type": "string",
+          "default": "",
+          "group": "lang.php",
+          "section": "Language Server",
+          "project": false,
+          "order": 21
+        },
+        {
+          "key": "php.codeStyle.useTabs",
+          "title": "Use tab character",
+          "type": "bool",
+          "default": false,
+          "group": "editor.code-style.php",
+          "section": "Tabs and Indents",
+          "project": true,
+          "order": 0
+        },
+        {
+          "key": "php.codeStyle.tabSize",
+          "title": "Tab size",
+          "type": "int",
+          "min": 1,
+          "max": 16,
+          "default": 4,
+          "group": "editor.code-style.php",
+          "section": "Tabs and Indents",
+          "project": true,
+          "order": 1
+        },
+        {
+          "key": "php.codeStyle.indent",
+          "title": "Indent",
+          "type": "int",
+          "min": 0,
+          "max": 16,
+          "default": 4,
+          "group": "editor.code-style.php",
+          "section": "Tabs and Indents",
+          "project": true,
+          "order": 2
+        },
+        {
+          "key": "php.codeStyle.continuationIndent",
+          "title": "Continuation indent",
+          "type": "int",
+          "min": 0,
+          "max": 16,
+          "default": 4,
+          "group": "editor.code-style.php",
+          "section": "Tabs and Indents",
+          "project": true,
+          "order": 3
+        },
+        {
+          "key": "php.codeStyle.braces.classes",
+          "title": "In class declaration",
+          "type": "enum",
+          "options": [
+            {
+              "value": "endOfLine",
+              "label": "End of line"
+            },
+            {
+              "value": "nextLine",
+              "label": "Next line"
+            }
+          ],
+          "default": "nextLine",
+          "group": "editor.code-style.php",
+          "section": "Braces Placement",
+          "project": true,
+          "order": 10
+        },
+        {
+          "key": "php.codeStyle.braces.functions",
+          "title": "In function declaration",
+          "type": "enum",
+          "options": [
+            {
+              "value": "endOfLine",
+              "label": "End of line"
+            },
+            {
+              "value": "nextLine",
+              "label": "Next line"
+            }
+          ],
+          "default": "nextLine",
+          "group": "editor.code-style.php",
+          "section": "Braces Placement",
+          "project": true,
+          "order": 11
+        },
+        {
+          "key": "php.codeStyle.braces.other",
+          "title": "Other",
+          "type": "enum",
+          "options": [
+            {
+              "value": "endOfLine",
+              "label": "End of line"
+            },
+            {
+              "value": "nextLine",
+              "label": "Next line"
+            }
+          ],
+          "default": "endOfLine",
+          "group": "editor.code-style.php",
+          "section": "Braces Placement",
+          "project": true,
+          "order": 12
+        },
+        {
+          "key": "php.codeStyle.blankLines.keepMax",
+          "title": "Keep maximum blank lines in code",
+          "type": "int",
+          "min": 0,
+          "max": 10,
+          "default": 2,
+          "group": "editor.code-style.php",
+          "section": "Blank Lines",
+          "project": true,
+          "order": 20
+        },
+        {
+          "key": "php.codeStyle.blankLines.afterNamespace",
+          "title": "After namespace",
+          "type": "int",
+          "min": 0,
+          "max": 10,
+          "default": 1,
+          "group": "editor.code-style.php",
+          "section": "Blank Lines",
+          "project": true,
+          "order": 21
+        },
+        {
+          "key": "php.codeStyle.blankLines.afterImports",
+          "title": "After imports",
+          "type": "int",
+          "min": 0,
+          "max": 10,
+          "default": 1,
+          "group": "editor.code-style.php",
+          "section": "Blank Lines",
+          "project": true,
+          "order": 22
+        },
+        {
+          "key": "php.codeStyle.blankLines.aroundMethods",
+          "title": "Around method",
+          "type": "int",
+          "min": 0,
+          "max": 10,
+          "default": 1,
+          "group": "editor.code-style.php",
+          "section": "Blank Lines",
+          "project": true,
+          "order": 23
+        }
+      ],
+      "lspServers": [
+        {
+          "id": "intelephense",
+          "languageId": "php",
+          "command": "intelephense",
+          "args": [
+            "--stdio"
+          ],
+          "fileExtensions": [
+            "php",
+            "phtml"
+          ],
+          "initializationOptions": {
+            "clearCache": false,
+            "storagePath": ".forge/intelephense"
+          }
+        }
+      ],
+      "runConfigurationTypes": [
+        {
+          "id": "php-script",
+          "name": "PHP Script",
+          "description": "Run a PHP file with the CLI interpreter.",
+          "icon": "file-code",
+          "debuggable": true
+        },
+        {
+          "id": "php-builtin-server",
+          "name": "PHP Built-in Web Server",
+          "description": "Serve a document root with `php -S`.",
+          "icon": "globe",
+          "debuggable": true
+        }
+      ],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": [
+        {
+          "id": "php.constructor",
+          "title": "Constructor",
+          "languages": [
+            "php"
+          ]
+        },
+        {
+          "id": "php.gettersSetters",
+          "title": "Getters and Setters",
+          "languages": [
+            "php"
+          ]
+        },
+        {
+          "id": "php.phpdoc",
+          "title": "PHPDoc Blocks",
+          "languages": [
+            "php"
+          ]
+        },
+        {
+          "id": "php.implementMethods",
+          "title": "Implement Methods…",
+          "languages": [
+            "php"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "forge.composer",
+    "name": "Composer",
+    "version": "0.1.0",
+    "pack": "phpforge",
+    "description": "composer.json support, dependency install/update and autoload-aware indexing.",
+    "vendor": "Forge",
+    "depends": [
+      "forge.php"
+    ],
+    "required": false,
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "commands": [
+        {
+          "id": "composer.install",
+          "title": "Composer Install",
+          "category": "Tools"
+        },
+        {
+          "id": "composer.update",
+          "title": "Composer Update",
+          "category": "Tools"
+        }
+      ],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [
+        {
+          "key": "php.composer.executable",
+          "title": "Path to composer",
+          "description": "A composer executable or composer.phar.",
+          "type": "path",
+          "default": "composer",
+          "group": "lang.php.composer",
+          "project": true,
+          "order": 0
+        },
+        {
+          "key": "php.composer.json",
+          "title": "Path to composer.json",
+          "type": "path",
+          "default": "composer.json",
+          "group": "lang.php.composer",
+          "project": true,
+          "order": 1
+        },
+        {
+          "key": "php.composer.syncWithComposerJson",
+          "title": "Synchronize IDE settings with composer.json",
+          "description": "Language level and source roots follow `require.php` and `autoload`.",
+          "type": "bool",
+          "default": true,
+          "group": "lang.php.composer",
+          "project": true,
+          "order": 2
+        },
+        {
+          "key": "php.composer.addPackagesAsLibraries",
+          "title": "Add packages as libraries",
+          "type": "bool",
+          "default": true,
+          "group": "lang.php.composer",
+          "project": true,
+          "order": 3
+        },
+        {
+          "key": "php.composer.checkUpdates",
+          "title": "Check for package updates on project open",
+          "type": "bool",
+          "default": false,
+          "group": "lang.php.composer",
+          "project": false,
+          "order": 4
+        }
+      ],
+      "lspServers": [],
+      "runConfigurationTypes": [],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": []
+    }
+  },
+  {
+    "id": "forge.phpunit",
+    "name": "PHPUnit",
+    "version": "0.1.0",
+    "pack": "phpforge",
+    "description": "Run, debug and navigate PHPUnit and Pest tests.",
+    "vendor": "Forge",
+    "depends": [
+      "forge.php"
+    ],
+    "required": false,
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "commands": [],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [],
+      "lspServers": [],
+      "runConfigurationTypes": [
+        {
+          "id": "phpunit",
+          "name": "PHPUnit",
+          "description": "Run a test class, method, directory or phpunit.xml configuration.",
+          "icon": "flask-conical",
+          "debuggable": true
+        }
+      ],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": [
+        {
+          "id": "phpunit.testMethod",
+          "title": "Test Method",
+          "languages": [
+            "php"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "forge.xdebug",
+    "name": "Xdebug",
+    "version": "0.1.0",
+    "pack": "phpforge",
+    "description": "Step debugging with Xdebug 3 via DBGp.",
+    "vendor": "Forge",
+    "depends": [
+      "forge.php"
+    ],
+    "required": false,
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "commands": [],
+      "keybindings": [],
+      "toolWindows": [
+        {
+          "id": "debug",
+          "title": "Debug",
+          "anchor": "bottom",
+          "icon": "bug",
+          "order": 20
+        }
+      ],
+      "settings": [],
+      "lspServers": [],
+      "runConfigurationTypes": [
+        {
+          "id": "php-remote-debug",
+          "name": "PHP Remote Debug",
+          "description": "Listen for incoming Xdebug connections.",
+          "icon": "bug",
+          "debuggable": true
+        }
+      ],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": []
+    }
+  },
+  {
+    "id": "forge.laravel",
+    "name": "Laravel",
+    "version": "0.1.0",
+    "pack": "phpforge",
+    "description": "Routes, Blade, Eloquent and artisan integration.",
+    "vendor": "Forge",
+    "depends": [
+      "forge.php",
+      "forge.composer"
+    ],
+    "required": false,
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "commands": [
+        {
+          "id": "laravel.artisan",
+          "title": "Run Artisan Command…",
+          "category": "Tools"
+        }
+      ],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [],
+      "lspServers": [],
+      "runConfigurationTypes": [],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": [
+        {
+          "id": "laravel.model",
+          "title": "Eloquent Model",
+          "languages": [
+            "php"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "forge.symfony",
+    "name": "Symfony",
+    "version": "0.1.0",
+    "pack": "phpforge",
+    "description": "Services, routing, Twig templates and console commands.",
+    "vendor": "Forge",
+    "depends": [
+      "forge.php",
+      "forge.composer"
+    ],
+    "required": false,
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "commands": [],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [],
+      "lspServers": [],
+      "runConfigurationTypes": [],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": []
+    }
+  },
+  {
+    "id": "forge.doctrine",
+    "name": "Doctrine",
+    "version": "0.1.0",
+    "pack": "phpforge",
+    "description": "Entity mapping, repositories and DQL completion.",
+    "vendor": "Forge",
+    "depends": [
+      "forge.php"
+    ],
+    "required": false,
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "commands": [],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [],
+      "lspServers": [],
+      "runConfigurationTypes": [],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": []
+    }
+  },
+  {
+    "id": "forge.web",
+    "name": "HTML, CSS & JavaScript",
+    "version": "0.1.0",
+    "pack": "webforge",
+    "description": "HTML, CSS, JavaScript and TypeScript editing with language servers.",
+    "vendor": "Forge",
+    "depends": [],
+    "required": false,
+    "enabled": true,
+    "contributions": {
+      "languages": [
+        "html",
+        "css",
+        "scss",
+        "js",
+        "mjs",
+        "ts",
+        "tsx",
+        "jsx",
+        "json"
+      ],
+      "commands": [],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [],
+      "lspServers": [
+        {
+          "id": "typescript-language-server",
+          "languageId": "typescript",
+          "command": "typescript-language-server",
+          "args": [
+            "--stdio"
+          ],
+          "fileExtensions": [
+            "js",
+            "mjs",
+            "cjs",
+            "jsx",
+            "ts",
+            "tsx"
+          ]
+        },
+        {
+          "id": "vscode-css-language-server",
+          "languageId": "css",
+          "command": "vscode-css-language-server",
+          "args": [
+            "--stdio"
+          ],
+          "fileExtensions": [
+            "css",
+            "scss",
+            "less"
+          ]
+        },
+        {
+          "id": "vscode-html-language-server",
+          "languageId": "html",
+          "command": "vscode-html-language-server",
+          "args": [
+            "--stdio"
+          ],
+          "fileExtensions": [
+            "html",
+            "htm"
+          ]
+        }
+      ],
+      "runConfigurationTypes": [
+        {
+          "id": "npm",
+          "name": "npm",
+          "description": "Run a package.json script.",
+          "icon": "package",
+          "debuggable": false
+        }
+      ],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": []
+    }
+  },
+  {
+    "id": "forge.vue",
+    "name": "Vue.js",
+    "version": "0.1.0",
+    "pack": "webforge",
+    "description": "Single-file components via the Vue language server.",
+    "vendor": "Forge",
+    "depends": [
+      "forge.web"
+    ],
+    "required": false,
+    "enabled": true,
+    "contributions": {
+      "languages": [
+        "vue"
+      ],
+      "commands": [],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [],
+      "lspServers": [
+        {
+          "id": "vue-language-server",
+          "languageId": "vue",
+          "command": "vue-language-server",
+          "args": [
+            "--stdio"
+          ],
+          "fileExtensions": [
+            "vue"
+          ]
+        }
+      ],
+      "runConfigurationTypes": [],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": []
+    }
+  },
+  {
+    "id": "forge.lua",
+    "name": "Lua",
+    "version": "0.1.0",
+    "pack": "luaforge",
+    "description": "Lua 5.1–5.4 and LuaJIT support via lua-language-server.",
+    "vendor": "Forge",
+    "depends": [],
+    "required": false,
+    "enabled": true,
+    "contributions": {
+      "languages": [
+        "lua"
+      ],
+      "commands": [],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [],
+      "lspServers": [
+        {
+          "id": "lua-language-server",
+          "languageId": "lua",
+          "command": "lua-language-server",
+          "args": [],
+          "fileExtensions": [
+            "lua"
+          ],
+          "initializationOptions": {
+            "runtime": {
+              "version": "Lua 5.4"
+            }
+          }
+        }
+      ],
+      "runConfigurationTypes": [
+        {
+          "id": "lua-script",
+          "name": "Lua Script",
+          "description": "Run a Lua file with the configured interpreter.",
+          "icon": "moon",
+          "debuggable": false
+        }
+      ],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": []
+    }
+  },
+  {
+    "id": "forge.ai",
+    "name": "AI Assistant",
+    "version": "0.1.0",
+    "pack": "aiforge",
+    "description": "Chat, inline completions and code generation with your own model providers.",
+    "vendor": "Forge",
+    "depends": [],
+    "required": false,
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "commands": [],
+      "keybindings": [],
+      "toolWindows": [
+        {
+          "id": "ai-chat",
+          "title": "AI Chat",
+          "anchor": "right",
+          "icon": "sparkles",
+          "order": 0
+        }
+      ],
+      "settings": [],
+      "lspServers": [],
+      "runConfigurationTypes": [],
+      "aiProviders": [
+        {
+          "id": "anthropic",
+          "name": "Anthropic",
+          "kind": "anthropic",
+          "baseUrl": "https://api.anthropic.com",
+          "models": [],
+          "requiresApiKey": true
+        },
+        {
+          "id": "openai-compatible",
+          "name": "OpenAI-compatible",
+          "kind": "openai-compatible",
+          "models": [],
+          "requiresApiKey": true
+        },
+        {
+          "id": "gemini",
+          "name": "Google Gemini",
+          "kind": "gemini",
+          "models": [],
+          "requiresApiKey": true
+        }
+      ],
+      "chatAgents": [
+        {
+          "id": "assistant",
+          "name": "Assistant",
+          "description": "General chat about the open project."
+        }
+      ],
+      "codeGenerators": [
+        {
+          "id": "ai.generateTests",
+          "title": "Tests with AI",
+          "languages": [
+            "php",
+            "typescript",
+            "lua"
+          ]
+        },
+        {
+          "id": "ai.generateDocs",
+          "title": "Documentation with AI",
+          "languages": [
+            "php",
+            "typescript",
+            "lua"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "forge.claude-code",
+    "name": "Claude Code",
+    "version": "0.1.0",
+    "pack": "aiforge",
+    "description": "Run Claude Code agents in the IDE, several in parallel.",
+    "vendor": "Forge",
+    "depends": [
+      "forge.ai"
+    ],
+    "required": false,
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "commands": [],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [],
+      "lspServers": [],
+      "runConfigurationTypes": [],
+      "aiProviders": [
+        {
+          "id": "claude-code",
+          "name": "Claude Code CLI",
+          "kind": "cli",
+          "models": [],
+          "requiresApiKey": false
+        }
+      ],
+      "chatAgents": [
+        {
+          "id": "claude-code",
+          "name": "Claude Code",
+          "description": "Agentic coding in your project, using the local `claude` CLI.",
+          "provider": "claude-code"
+        }
+      ],
+      "codeGenerators": []
+    }
+  },
+  {
+    "id": "forge.gemini-cli",
+    "name": "Gemini CLI",
+    "version": "0.1.0",
+    "pack": "aiforge",
+    "description": "Run Gemini CLI agents in the IDE.",
+    "vendor": "Forge",
+    "depends": [
+      "forge.ai"
+    ],
+    "required": false,
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "commands": [],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [],
+      "lspServers": [],
+      "runConfigurationTypes": [],
+      "aiProviders": [
+        {
+          "id": "gemini-cli",
+          "name": "Gemini CLI",
+          "kind": "cli",
+          "models": [],
+          "requiresApiKey": false
+        }
+      ],
+      "chatAgents": [
+        {
+          "id": "gemini-cli",
+          "name": "Gemini CLI",
+          "description": "Agentic coding with the local `gemini` CLI.",
+          "provider": "gemini-cli"
+        }
+      ],
+      "codeGenerators": []
+    }
+  }
+]

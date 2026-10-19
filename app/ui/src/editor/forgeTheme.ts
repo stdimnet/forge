@@ -5,7 +5,11 @@ import { tags as t } from "@lezer/highlight";
 /** Editor chrome built on the theme CSS variables, so it follows dark/light switching. */
 export const forgeEditorTheme = EditorView.theme({
   "&": { height: "100%", backgroundColor: "var(--bg-editor)", color: "var(--fg)", fontSize: "var(--fs-editor)" },
-  ".cm-scroller": { fontFamily: "var(--font-mono)", lineHeight: "1.6" },
+  ".cm-scroller": {
+    fontFamily: "var(--font-mono)",
+    lineHeight: "var(--editor-line-height, 1.6)",
+    fontVariantLigatures: "var(--editor-ligatures, normal)",
+  },
   ".cm-content": { caretColor: "var(--accent)", padding: "6px 0" },
   ".cm-cursor, .cm-dropCursor": { borderLeftColor: "var(--accent)", borderLeftWidth: "2px" },
   "&.cm-focused .cm-selectionBackground, .cm-selectionBackground, ::selection": {

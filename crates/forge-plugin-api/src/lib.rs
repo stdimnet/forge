@@ -1,12 +1,22 @@
 //! The contract between Forge and its plugins.
 //!
 //! A plugin (a language pack like PHPForge, or a feature like Git) describes itself with a
-//! [`PluginManifest`] and contributes capabilities through [`Contributions`]. The full
-//! registry and extension points live here so packs never depend on app internals.
+//! [`PluginManifest`] and contributes capabilities through [`Contributions`]: commands,
+//! keybindings, tool windows, typed settings, language servers, run configuration types and
+//! AI providers/agents/generators. The [`PluginRegistry`] tracks installed plugins, their
+//! enablement, and answers lookups over the contributions of enabled plugins. Packs depend
+//! only on this crate, never on app internals.
+
+pub mod contributions;
+pub mod registry;
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub use contributions::*;
+pub use registry::{PluginDescriptor, PluginInfo, PluginRegistry};
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
 pub struct PluginManifest {
     /// Reverse-DNS style id, e.g. `forge.php` or `forge.git`.
     pub id: String,
@@ -16,14 +26,14 @@ pub struct PluginManifest {
     pub pack: String,
     #[serde(default)]
     pub description: String,
-}
-
-/// Everything a plugin adds to the IDE. Grows as extension points are added.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
-pub struct Contributions {
-    /// File extensions this plugin provides language support for (without dot).
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub vendor: String,
+    /// Ids of plugins this one needs; they are enabled with it and it is disabled with them.
     #[serde(default)]
-    pub languages: Vec<String>,
+    pub depends: Vec<String>,
+    /// Required plugins (the IDE core) cannot be disabled.
+    #[serde(default)]
+    pub required: bool,
 }
 
 pub trait Plugin: Send + Sync {

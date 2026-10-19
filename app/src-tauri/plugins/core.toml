@@ -1,0 +1,443 @@
+# The IDE platform itself: appearance, system and editor settings.
+id = "forge.core"
+name = "Forge Platform"
+version = "0.1.0"
+pack = "core"
+vendor = "Forge"
+required = true
+description = "Workbench, editor, settings and the plugin system."
+
+[[contributions.commands]]
+id = "settings.open"
+title = "Settings…"
+category = "File"
+
+[[contributions.commands]]
+id = "file.saveAll"
+title = "Save All"
+category = "File"
+
+[[contributions.keybindings]]
+command = "settings.open"
+key = "Ctrl+Alt+S"
+
+[[contributions.keybindings]]
+command = "settings.open"
+key = "Meta+,"
+keymap = "macos"
+
+[[contributions.keybindings]]
+command = "file.saveAll"
+key = "Ctrl+S"
+
+[[contributions.toolWindows]]
+id = "project"
+title = "Project"
+anchor = "left"
+icon = "folder"
+
+# ---- Appearance & Behavior > Appearance ----------------------------------------------
+
+[[contributions.settings]]
+key = "appearance.theme"
+title = "Theme"
+type = "enum"
+options = [
+  { value = "dark", label = "Forge Ember (Dark)" },
+  { value = "light", label = "Forge Anvil (Light)" },
+]
+default = "dark"
+group = "appearance"
+order = 0
+
+[[contributions.settings]]
+key = "appearance.uiFont.family"
+title = "Font"
+description = "Font used for menus, tool windows and dialogs."
+type = "enum"
+options = [
+  { value = "Inter", label = "Inter" },
+  { value = "system-ui", label = "System default" },
+  { value = "Segoe UI", label = "Segoe UI" },
+  { value = "Roboto", label = "Roboto" },
+]
+default = "Inter"
+group = "appearance"
+section = "Font"
+order = 10
+
+[[contributions.settings]]
+key = "appearance.uiFont.size"
+title = "Size"
+type = "int"
+min = 10
+max = 20
+default = 13
+group = "appearance"
+section = "Font"
+order = 11
+
+[[contributions.settings]]
+key = "appearance.compactMode"
+title = "Compact mode"
+description = "Reduces paddings and the height of toolbars and tool window headers."
+type = "bool"
+default = false
+group = "appearance"
+section = "UI Options"
+order = 20
+
+[[contributions.settings]]
+key = "appearance.showToolWindowBars"
+title = "Show tool window bars"
+description = "The stripes with tool window buttons along the window edges."
+type = "bool"
+default = true
+group = "appearance"
+section = "Tool Windows"
+order = 30
+
+[[contributions.settings]]
+key = "appearance.showToolWindowNumbers"
+title = "Show tool window numbers"
+type = "bool"
+default = true
+group = "appearance"
+section = "Tool Windows"
+order = 31
+
+[[contributions.settings]]
+key = "appearance.smoothScrolling"
+title = "Smooth scrolling"
+description = "Animate scrolling in lists and trees."
+type = "bool"
+default = true
+group = "appearance"
+section = "UI Options"
+order = 21
+
+# ---- Appearance & Behavior > System Settings ----------------------------------------
+
+[[contributions.settings]]
+key = "system.reopenLastProject"
+title = "Reopen projects on startup"
+type = "bool"
+default = true
+group = "system"
+section = "Project"
+order = 0
+
+[[contributions.settings]]
+key = "system.confirmExit"
+title = "Confirm before exiting the IDE"
+type = "bool"
+default = true
+group = "system"
+section = "Project"
+order = 1
+
+[[contributions.settings]]
+key = "system.openProjectIn"
+title = "Open project in"
+type = "enum"
+options = [
+  { value = "new", label = "New window" },
+  { value = "same", label = "Current window" },
+  { value = "ask", label = "Ask" },
+]
+default = "ask"
+group = "system"
+section = "Project"
+order = 2
+
+[[contributions.settings]]
+key = "system.autosave.onFrameDeactivation"
+title = "Save files if the IDE is switched to a different application"
+type = "bool"
+default = true
+group = "system"
+section = "Autosave"
+order = 10
+
+[[contributions.settings]]
+key = "system.autosave.onIdle"
+title = "Save files if the IDE is idle"
+type = "bool"
+default = false
+group = "system"
+section = "Autosave"
+order = 11
+
+[[contributions.settings]]
+key = "system.autosave.idleSeconds"
+title = "Idle time (seconds)"
+type = "int"
+min = 1
+max = 600
+default = 15
+group = "system"
+section = "Autosave"
+order = 12
+
+[[contributions.settings]]
+key = "system.syncExternalChanges"
+title = "Synchronize external changes when switching to the IDE window"
+type = "bool"
+default = true
+group = "system"
+section = "Synchronization"
+order = 20
+
+# ---- Editor > General ---------------------------------------------------------------
+
+[[contributions.settings]]
+key = "editor.smoothScrolling"
+title = "Enable smooth scrolling"
+type = "bool"
+default = true
+group = "editor.general"
+section = "Scrolling"
+order = 0
+
+[[contributions.settings]]
+key = "editor.caret.blinking"
+title = "Caret blinking"
+type = "bool"
+default = true
+group = "editor.general"
+section = "Caret"
+order = 10
+
+[[contributions.settings]]
+key = "editor.caret.blinkPeriod"
+title = "Blink period (ms)"
+type = "int"
+min = 100
+max = 2000
+default = 500
+group = "editor.general"
+section = "Caret"
+order = 11
+
+[[contributions.settings]]
+key = "editor.softWraps"
+title = "Soft-wrap files"
+description = "Wrap long lines visually in files matching the patterns below."
+type = "bool"
+default = false
+group = "editor.general"
+section = "Soft Wraps"
+order = 20
+
+[[contributions.settings]]
+key = "editor.softWrapFiles"
+title = "File patterns"
+type = "string"
+default = "*.md; *.txt; *.rst; *.adoc"
+group = "editor.general"
+section = "Soft Wraps"
+order = 21
+
+[[contributions.settings]]
+key = "editor.showWhitespace"
+title = "Show whitespaces"
+type = "bool"
+default = false
+group = "editor.general"
+section = "Appearance"
+order = 30
+
+[[contributions.settings]]
+key = "editor.showLineNumbers"
+title = "Show line numbers"
+type = "bool"
+default = true
+group = "editor.general"
+section = "Appearance"
+order = 31
+
+[[contributions.settings]]
+key = "editor.highlightCurrentLine"
+title = "Highlight caret row"
+type = "bool"
+default = true
+group = "editor.general"
+section = "Appearance"
+order = 32
+
+[[contributions.settings]]
+key = "editor.stripTrailingSpaces"
+title = "Remove trailing spaces on"
+type = "enum"
+options = [
+  { value = "none", label = "None" },
+  { value = "modified", label = "Modified lines" },
+  { value = "all", label = "All lines" },
+]
+default = "modified"
+group = "editor.general"
+section = "On Save"
+order = 40
+
+[[contributions.settings]]
+key = "editor.ensureNewlineAtEof"
+title = "Ensure every saved file ends with a line break"
+type = "bool"
+default = true
+group = "editor.general"
+section = "On Save"
+order = 41
+
+# ---- Editor > Font -------------------------------------------------------------------
+
+[[contributions.settings]]
+key = "editor.font.family"
+title = "Font"
+type = "enum"
+options = [
+  { value = "JetBrains Mono", label = "JetBrains Mono" },
+  { value = "Fira Code", label = "Fira Code" },
+  { value = "Cascadia Code", label = "Cascadia Code" },
+  { value = "Source Code Pro", label = "Source Code Pro" },
+  { value = "Menlo", label = "Menlo" },
+  { value = "Consolas", label = "Consolas" },
+  { value = "monospace", label = "System monospace" },
+]
+default = "JetBrains Mono"
+group = "editor.font"
+order = 0
+
+[[contributions.settings]]
+key = "editor.font.size"
+title = "Size"
+type = "number"
+min = 6
+max = 72
+step = 0.5
+default = 13.5
+group = "editor.font"
+order = 1
+
+[[contributions.settings]]
+key = "editor.font.lineHeight"
+title = "Line height"
+type = "number"
+min = 1.0
+max = 3.0
+step = 0.1
+default = 1.6
+group = "editor.font"
+order = 2
+
+[[contributions.settings]]
+key = "editor.font.ligatures"
+title = "Enable ligatures"
+description = "Render character sequences like -> and !== as a single glyph if the font supports it."
+type = "bool"
+default = true
+group = "editor.font"
+order = 3
+
+# ---- Editor > Code Style -------------------------------------------------------------
+
+[[contributions.settings]]
+key = "editor.codeStyle.lineSeparator"
+title = "Line separator"
+type = "enum"
+options = [
+  { value = "lf", label = "Unix and macOS (\\n)" },
+  { value = "crlf", label = "Windows (\\r\\n)" },
+  { value = "system", label = "System-dependent" },
+]
+default = "lf"
+group = "editor.code-style"
+project = true
+order = 0
+
+[[contributions.settings]]
+key = "editor.codeStyle.hardWrapAt"
+title = "Hard wrap at (columns)"
+type = "int"
+min = 40
+max = 400
+default = 120
+group = "editor.code-style"
+project = true
+order = 1
+
+[[contributions.settings]]
+key = "editor.codeStyle.visualGuides"
+title = "Visual guides"
+description = "Comma-separated column numbers, e.g. 80, 120."
+type = "string"
+default = "120"
+group = "editor.code-style"
+project = true
+order = 2
+
+[[contributions.settings]]
+key = "editor.codeStyle.useEditorConfig"
+title = "Enable EditorConfig support"
+type = "bool"
+default = true
+group = "editor.code-style"
+project = true
+order = 3
+
+# ---- Editor > Inlay Hints ------------------------------------------------------------
+
+[[contributions.settings]]
+key = "editor.inlayHints.parameterNames"
+title = "Parameter names"
+description = "Show parameter names at call sites for literal and null arguments."
+type = "bool"
+default = true
+group = "editor.inlay-hints"
+section = "Parameters"
+order = 0
+
+[[contributions.settings]]
+key = "editor.inlayHints.types"
+title = "Inferred variable types"
+type = "bool"
+default = false
+group = "editor.inlay-hints"
+section = "Types"
+order = 10
+
+[[contributions.settings]]
+key = "editor.inlayHints.returnTypes"
+title = "Return types of closures"
+type = "bool"
+default = true
+group = "editor.inlay-hints"
+section = "Types"
+order = 11
+
+[[contributions.settings]]
+key = "editor.inlayHints.chainedCalls"
+title = "Types in method chains"
+type = "bool"
+default = true
+group = "editor.inlay-hints"
+section = "Types"
+order = 12
+
+[[contributions.settings]]
+key = "editor.inlayHints.usages"
+title = "Usages"
+description = "Show the number of usages above classes and methods (Code Vision)."
+type = "bool"
+default = true
+group = "editor.inlay-hints"
+section = "Code Vision"
+order = 20
+
+[[contributions.settings]]
+key = "editor.inlayHints.implementations"
+title = "Implementations and inheritors"
+type = "bool"
+default = true
+group = "editor.inlay-hints"
+section = "Code Vision"
+order = 21

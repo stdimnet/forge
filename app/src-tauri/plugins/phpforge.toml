@@ -1,0 +1,147 @@
+# Smaller PHPForge plugins that build on forge.php. Each table is one plugin.
+
+[[plugin]]
+id = "forge.composer"
+name = "Composer"
+version = "0.1.0"
+pack = "phpforge"
+vendor = "Forge"
+depends = ["forge.php"]
+description = "composer.json support, dependency install/update and autoload-aware indexing."
+
+[[plugin.contributions.commands]]
+id = "composer.install"
+title = "Composer Install"
+category = "Tools"
+
+[[plugin.contributions.commands]]
+id = "composer.update"
+title = "Composer Update"
+category = "Tools"
+
+[[plugin.contributions.settings]]
+key = "php.composer.executable"
+title = "Path to composer"
+description = "A composer executable or composer.phar."
+type = "path"
+default = "composer"
+group = "lang.php.composer"
+project = true
+order = 0
+
+[[plugin.contributions.settings]]
+key = "php.composer.json"
+title = "Path to composer.json"
+type = "path"
+default = "composer.json"
+group = "lang.php.composer"
+project = true
+order = 1
+
+[[plugin.contributions.settings]]
+key = "php.composer.syncWithComposerJson"
+title = "Synchronize IDE settings with composer.json"
+description = "Language level and source roots follow `require.php` and `autoload`."
+type = "bool"
+default = true
+group = "lang.php.composer"
+project = true
+order = 2
+
+[[plugin.contributions.settings]]
+key = "php.composer.addPackagesAsLibraries"
+title = "Add packages as libraries"
+type = "bool"
+default = true
+group = "lang.php.composer"
+project = true
+order = 3
+
+[[plugin.contributions.settings]]
+key = "php.composer.checkUpdates"
+title = "Check for package updates on project open"
+type = "bool"
+default = false
+group = "lang.php.composer"
+order = 4
+
+[[plugin]]
+id = "forge.phpunit"
+name = "PHPUnit"
+version = "0.1.0"
+pack = "phpforge"
+vendor = "Forge"
+depends = ["forge.php"]
+description = "Run, debug and navigate PHPUnit and Pest tests."
+
+[[plugin.contributions.runConfigurationTypes]]
+id = "phpunit"
+name = "PHPUnit"
+description = "Run a test class, method, directory or phpunit.xml configuration."
+icon = "flask-conical"
+debuggable = true
+
+[[plugin.contributions.codeGenerators]]
+id = "phpunit.testMethod"
+title = "Test Method"
+languages = ["php"]
+
+[[plugin]]
+id = "forge.xdebug"
+name = "Xdebug"
+version = "0.1.0"
+pack = "phpforge"
+vendor = "Forge"
+depends = ["forge.php"]
+description = "Step debugging with Xdebug 3 via DBGp."
+
+[[plugin.contributions.toolWindows]]
+id = "debug"
+title = "Debug"
+anchor = "bottom"
+icon = "bug"
+order = 20
+
+[[plugin.contributions.runConfigurationTypes]]
+id = "php-remote-debug"
+name = "PHP Remote Debug"
+description = "Listen for incoming Xdebug connections."
+icon = "bug"
+debuggable = true
+
+[[plugin]]
+id = "forge.laravel"
+name = "Laravel"
+version = "0.1.0"
+pack = "phpforge"
+vendor = "Forge"
+depends = ["forge.php", "forge.composer"]
+description = "Routes, Blade, Eloquent and artisan integration."
+
+[[plugin.contributions.commands]]
+id = "laravel.artisan"
+title = "Run Artisan Command…"
+category = "Tools"
+
+[[plugin.contributions.codeGenerators]]
+id = "laravel.model"
+title = "Eloquent Model"
+languages = ["php"]
+
+[[plugin]]
+id = "forge.symfony"
+name = "Symfony"
+version = "0.1.0"
+pack = "phpforge"
+vendor = "Forge"
+depends = ["forge.php", "forge.composer"]
+description = "Services, routing, Twig templates and console commands."
+
+[[plugin]]
+id = "forge.doctrine"
+name = "Doctrine"
+version = "0.1.0"
+pack = "phpforge"
+vendor = "Forge"
+depends = ["forge.php"]
+description = "Entity mapping, repositories and DQL completion."

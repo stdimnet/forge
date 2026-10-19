@@ -12,6 +12,16 @@ app/ui/            SolidJS UI
 
 - `forge-core` — workspace (sandboxed path resolution), file system, settings, events.
 - `forge-plugin-api` — `Plugin` trait, `PluginManifest`, `Contributions`. Packs depend only on this.
+- Plugins declare contributions (commands, keybindings, tool windows, typed settings, LSP
+  servers, run configuration types, AI providers, chat agents, code generators) as serde data;
+  `PluginRegistry` tracks enablement (cascading over `depends`) and answers lookups. Built-in
+  manifests are TOML files in `app/src-tauri/plugins/`; `app/ui/src/mock/builtinPlugins.json`
+  is their browser-mode snapshot (regenerate with `FORGE_UPDATE_SNAPSHOTS=1 cargo test -p forge-app`).
+- Settings (`forge_core::Settings`) are layered: schema defaults < user
+  (`<config dir>/forge/settings.toml`) < project (`<root>/.forge/settings.toml`), keyed by dotted
+  names. IPC: `settings_get_all`, `settings_set(key, value, scope)`, `settings_schema`,
+  `plugins_list`, `plugin_set_enabled`; changes are emitted as `settings://changed`. In the UI read
+  them with `getSetting(key)` from `src/state/settings.ts`.
 - Feature crates (`forge-lsp`, `forge-vcs`, `forge-ai`, `forge-agent-cli`, ...) are plain libraries
   with their own tests; `app/src-tauri` wires them to IPC.
 - IPC commands live in `app/src-tauri/src/commands/<area>.rs`, are registered in `lib.rs`, and
