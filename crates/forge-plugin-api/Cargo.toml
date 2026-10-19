@@ -1,0 +1,12 @@
+[package]
+name = "forge-plugin-api"
+description = "Stable plugin API for Forge language packs and feature plugins"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+forge-core.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true

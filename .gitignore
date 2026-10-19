@@ -1,0 +1,10 @@
+/target
+node_modules/
+dist/
+app/src-tauri/gen/
+*.log
+.DS_Store
+.idea/
+.vscode/
+/test-results
+/playwright-report
