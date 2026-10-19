@@ -1,0 +1,246 @@
+/*
+ * Forge theme tokens. Layout mirrors PHPStorm's New UI; the palette is Forge's own
+ * ("Ember" dark / "Anvil" light) with a warm forge-orange accent.
+ */
+:root,
+:root[data-theme="dark"] {
+  --bg-app: #131316;
+  --bg-toolbar: #1a1a1f;
+  --bg-panel: #18181c;
+  --bg-editor: #141417;
+  --bg-elevated: #222228;
+  --bg-hover: #26262d;
+  --bg-active: #2d2d35;
+  --bg-selection: #3a2a1e;
+  --bg-input: #1f1f25;
+  --border: #26262c;
+  --border-strong: #34343c;
+
+  --fg: #d9d9df;
+  --fg-strong: #f2f2f5;
+  --fg-muted: #8c8c98;
+  --fg-faint: #5f5f6a;
+
+  --accent: #ff7a1a;
+  --accent-strong: #ff8f3d;
+  --accent-soft: rgba(255, 122, 26, 0.14);
+  --accent-fg: #1a0f06;
+
+  --success: #5fbf77;
+  --warning: #e5b449;
+  --danger: #ef5f5f;
+  --info: #5ea4ff;
+
+  /* VCS file status colors (project tree, tabs, commit window) */
+  --vcs-modified: #6aa7ff;
+  --vcs-added: #73c48a;
+  --vcs-deleted: #8a8a94;
+  --vcs-untracked: #e0806a;
+  --vcs-conflict: #ef5f5f;
+
+  /* Syntax */
+  --syn-keyword: #ff9a57;
+  --syn-string: #a5d17f;
+  --syn-number: #7cc5e8;
+  --syn-comment: #6b6b78;
+  --syn-variable: #c9a6ff;
+  --syn-function: #ffd479;
+  --syn-type: #6fd2c4;
+  --syn-attribute: #d0c070;
+  --syn-operator: #c4c4cc;
+  --syn-tag: #ff9a57;
+
+  --shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+  color-scheme: dark;
+}
+
+:root[data-theme="light"] {
+  --bg-app: #eceef2;
+  --bg-toolbar: #f3f4f7;
+  --bg-panel: #f7f8fa;
+  --bg-editor: #ffffff;
+  --bg-elevated: #ffffff;
+  --bg-hover: #e6e8ee;
+  --bg-active: #dcdfe7;
+  --bg-selection: #ffe3cc;
+  --bg-input: #ffffff;
+  --border: #dfe1e6;
+  --border-strong: #cdd0d7;
+
+  --fg: #26272b;
+  --fg-strong: #0f1012;
+  --fg-muted: #6b6e78;
+  --fg-faint: #9a9da6;
+
+  --accent: #e8620c;
+  --accent-strong: #d45608;
+  --accent-soft: rgba(232, 98, 12, 0.12);
+  --accent-fg: #ffffff;
+
+  --vcs-modified: #2463c7;
+  --vcs-added: #2f8a46;
+  --vcs-deleted: #8a8a94;
+  --vcs-untracked: #b5492f;
+
+  --syn-keyword: #b8460b;
+  --syn-string: #3c7d24;
+  --syn-number: #1b6fa0;
+  --syn-comment: #8c8f99;
+  --syn-variable: #7a3fc4;
+  --syn-function: #8a5a00;
+  --syn-type: #157a6e;
+  --syn-attribute: #806a00;
+  --syn-operator: #3a3c42;
+  --syn-tag: #b8460b;
+
+  --shadow: 0 8px 24px rgba(20, 22, 30, 0.14);
+  color-scheme: light;
+}
+
+:root {
+  --font-ui: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", "Cascadia Code", Menlo, Consolas, monospace;
+  --fs-ui: 13px;
+  --fs-small: 12px;
+  --fs-editor: 13.5px;
+  --radius: 6px;
+  --radius-sm: 4px;
+  --toolbar-h: 40px;
+  --statusbar-h: 26px;
+  --stripe-w: 40px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--bg-app);
+  color: var(--fg);
+  font-family: var(--font-ui);
+  font-size: var(--fs-ui);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+  user-select: none;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+input,
+textarea,
+select {
+  font: inherit;
+  color: var(--fg);
+  background: var(--bg-input);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  outline: none;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Shared small building blocks */
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius);
+  color: var(--fg-muted);
+}
+.icon-btn:hover {
+  background: var(--bg-hover);
+  color: var(--fg);
+}
+.icon-btn.active {
+  background: var(--bg-active);
+  color: var(--fg-strong);
+}
+
+.pill-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 8px;
+  border-radius: var(--radius);
+  color: var(--fg);
+  white-space: nowrap;
+}
+.pill-btn:hover {
+  background: var(--bg-hover);
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: var(--radius);
+  background: var(--accent);
+  color: var(--accent-fg);
+  font-weight: 600;
+}
+.btn-primary:hover {
+  background: var(--accent-strong);
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-strong);
+  color: var(--fg);
+}
+.btn-secondary:hover {
+  background: var(--bg-hover);
+}
+
+.muted {
+  color: var(--fg-muted);
+}
+
+.vcs-modified { color: var(--vcs-modified); }
+.vcs-added { color: var(--vcs-added); }
+.vcs-deleted { color: var(--vcs-deleted); text-decoration: line-through; }
+.vcs-untracked { color: var(--vcs-untracked); }
+.vcs-conflict { color: var(--vcs-conflict); }

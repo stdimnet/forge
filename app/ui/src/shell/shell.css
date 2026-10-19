@@ -1,0 +1,394 @@
+/* Workbench layout: mirrors PHPStorm's New UI geometry. */
+.workbench {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.workbench-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+.workbench-center {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--bg-panel);
+}
+
+.workbench-main {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+/* ---------- Main toolbar ---------- */
+.main-toolbar {
+  height: var(--toolbar-h);
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  background: var(--bg-toolbar);
+  border-bottom: 1px solid var(--border);
+  gap: 4px;
+  flex-shrink: 0;
+}
+.toolbar-left,
+.toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.toolbar-center {
+  flex: 1;
+  height: 100%;
+}
+.toolbar-sep {
+  width: 1px;
+  height: 18px;
+  background: var(--border-strong);
+  margin: 0 6px;
+}
+.project-widget {
+  font-weight: 600;
+}
+.project-badge {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, #ffb347, #ff5a1f);
+}
+.run-config {
+  border: 1px solid var(--border-strong);
+  margin-right: 2px;
+}
+.run-config-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  font-size: 9px;
+  font-weight: 800;
+  background: var(--success);
+  color: #0d1a10;
+}
+.run-btn {
+  color: var(--success);
+}
+.debug-btn {
+  color: var(--success);
+}
+
+/* ---------- Tool stripes ---------- */
+.tool-stripe {
+  width: var(--stripe-w);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  background: var(--bg-toolbar);
+}
+.tool-stripe-left {
+  border-right: 1px solid var(--border);
+}
+.tool-stripe-right {
+  border-left: 1px solid var(--border);
+  justify-content: flex-start;
+}
+.stripe-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+}
+.stripe-btn {
+  width: 30px;
+  height: 30px;
+}
+.stripe-btn.active {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+/* ---------- Tool windows ---------- */
+.side-panel,
+.bottom-panel {
+  flex-shrink: 0;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  background: var(--bg-panel);
+}
+.bottom-panel {
+  border-top: 1px solid var(--border);
+}
+.tool-window {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+.tool-window-header {
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 6px 0 12px;
+  flex-shrink: 0;
+}
+.tool-window-title {
+  font-weight: 600;
+  color: var(--fg-strong);
+}
+.tool-window-actions {
+  display: flex;
+  gap: 2px;
+}
+.tool-window-actions .icon-btn {
+  width: 24px;
+  height: 24px;
+}
+.tool-window-body {
+  flex: 1;
+  overflow: auto;
+  min-height: 0;
+}
+.placeholder-panel {
+  padding: 16px;
+  color: var(--fg-muted);
+}
+
+.splitter {
+  flex-shrink: 0;
+  background: var(--border);
+  position: relative;
+  z-index: 2;
+}
+.splitter-v {
+  width: 1px;
+  cursor: col-resize;
+}
+.splitter-h {
+  height: 1px;
+  cursor: row-resize;
+}
+.splitter::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+}
+.splitter:hover {
+  background: var(--accent);
+}
+
+/* ---------- Project tree ---------- */
+.project-tree {
+  padding: 2px 0 12px;
+}
+.tree-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 24px;
+  padding-right: 8px;
+  white-space: nowrap;
+  cursor: default;
+  border-radius: 0;
+}
+.tree-row:hover {
+  background: var(--bg-hover);
+}
+.tree-row.selected {
+  background: var(--bg-active);
+}
+.tree-chevron {
+  width: 14px;
+  display: inline-flex;
+  color: var(--fg-muted);
+  flex-shrink: 0;
+}
+.tree-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tree-label.strong {
+  font-weight: 600;
+}
+.tree-hint {
+  color: var(--fg-faint);
+  font-size: var(--fs-small);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---------- Editor ---------- */
+.editor-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--bg-editor);
+}
+.editor-tabs {
+  display: flex;
+  height: 36px;
+  flex-shrink: 0;
+  overflow-x: auto;
+  background: var(--bg-editor);
+  border-bottom: 1px solid var(--border);
+}
+.editor-tabs::-webkit-scrollbar {
+  height: 0;
+}
+.editor-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 6px 0 12px;
+  white-space: nowrap;
+  color: var(--fg-muted);
+  border-bottom: 2px solid transparent;
+  cursor: default;
+}
+.editor-tab:hover {
+  background: var(--bg-hover);
+}
+.editor-tab.active {
+  color: var(--fg-strong);
+  border-bottom-color: var(--accent);
+}
+.tab-close {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  color: var(--fg-faint);
+}
+.tab-close > * {
+  grid-area: 1 / 1;
+}
+.tab-close:hover {
+  background: var(--bg-active);
+  color: var(--fg);
+}
+.tab-close .dirty-dot {
+  display: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--fg-muted);
+}
+.tab-close.dirty .dirty-dot {
+  display: block;
+}
+.tab-close.dirty svg {
+  visibility: hidden;
+}
+.tab-close.dirty:hover .dirty-dot {
+  display: none;
+}
+.tab-close.dirty:hover svg {
+  visibility: visible;
+}
+.breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 26px;
+  padding: 0 14px;
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
+}
+.editor-stack {
+  flex: 1;
+  position: relative;
+  min-height: 0;
+}
+.editor-slot {
+  position: absolute;
+  inset: 0;
+}
+.editor-slot.hidden {
+  display: none;
+}
+.code-editor {
+  height: 100%;
+  user-select: text;
+}
+.editor-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  color: var(--fg-muted);
+}
+.editor-empty-logo {
+  width: 72px;
+  height: 72px;
+  opacity: 0.35;
+  filter: grayscale(0.4);
+}
+.editor-empty-rows {
+  display: grid;
+  gap: 10px;
+}
+.editor-empty-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 32px;
+  min-width: 300px;
+}
+.kbd-hint {
+  color: var(--accent);
+}
+
+/* ---------- Status bar ---------- */
+.status-bar {
+  height: var(--statusbar-h);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 8px;
+  background: var(--bg-toolbar);
+  border-top: 1px solid var(--border);
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+  flex-shrink: 0;
+}
+.status-left,
+.status-right {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+.status-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+}
+button.status-item:hover {
+  background: var(--bg-hover);
+  color: var(--fg);
+}
