@@ -837,6 +837,7 @@ version = "0.1.0"
 dependencies = [
  "forge-core",
  "forge-plugin-api",
+ "forge-vcs",
  "serde",
  "serde_json",
  "tauri",
