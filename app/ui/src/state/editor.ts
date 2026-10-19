@@ -53,11 +53,22 @@ export function updateCursor(path: string, line: number, col: number): void {
   setEditor("tabs", (t) => t.path === path, "cursor", { line, col });
 }
 
+type SaveListener = (path: string, content: string) => void;
+const saveListeners = new Set<SaveListener>();
+
+/** Notified after a file was written (e.g. to send `didSave` to language servers). */
+export function onFileSaved(cb: SaveListener): () => void {
+  saveListeners.add(cb);
+  return () => saveListeners.delete(cb);
+}
+
 export async function saveFile(path: string): Promise<void> {
   const tab = editor.tabs.find((t) => t.path === path);
   if (!tab) return;
-  await workspaceApi.writeFile(path, tab.content);
-  setEditor("tabs", (t) => t.path === path, "saved", tab.content);
+  const content = tab.content;
+  await workspaceApi.writeFile(path, content);
+  setEditor("tabs", (t) => t.path === path, "saved", content);
+  saveListeners.forEach((l) => l(path, content));
 }
 
 export async function saveAll(): Promise<void> {
