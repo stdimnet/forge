@@ -4,3 +4,5 @@
  */
 import "./placeholders";
 import "./project";
+import "./navigation";
+import "./keymapSettings";
