@@ -78,7 +78,12 @@ function info(p: ProviderConfig): ProviderInfo {
 function checkReachable(p: ProviderConfig): void {
   const preset = presetFor(p.kind);
   if (p.kind === "lmstudio" || p.kind === "llamacpp" || p.kind === "custom") {
-    const hint = p.kind === "lmstudio" ? "is LM Studio running? Start the local server in LM Studio's Developer tab" : "is the server running and the base URL correct?";
+    const hint =
+      p.kind === "lmstudio"
+        ? "is LM Studio running? Start the local server in LM Studio's Developer tab"
+        : p.kind === "llamacpp"
+          ? "is llama.cpp running? Start it with `llama-server -m <model.gguf>`"
+          : "is the server running and the base URL correct?";
     throw new Error(`${p.name}: cannot connect to ${p.baseUrl} — ${hint}`);
   }
   if (preset.needsKey && !info(p).hasApiKey) {
