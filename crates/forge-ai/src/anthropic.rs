@@ -131,7 +131,10 @@ impl Provider for AnthropicProvider {
             .filter_map(|m| {
                 Some(ModelInfo {
                     id: m.get("id")?.as_str()?.into(),
-                    name: m.get("display_name").and_then(Value::as_str).map(Into::into),
+                    name: m
+                        .get("display_name")
+                        .and_then(Value::as_str)
+                        .map(Into::into),
                 })
             })
             .collect())

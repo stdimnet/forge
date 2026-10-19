@@ -69,7 +69,10 @@ impl AiService {
         })
     }
 
-    pub fn with_env(mut self, env: impl Fn(&str) -> Option<String> + Send + Sync + 'static) -> Self {
+    pub fn with_env(
+        mut self,
+        env: impl Fn(&str) -> Option<String> + Send + Sync + 'static,
+    ) -> Self {
         self.env = Arc::new(env);
         self
     }
@@ -119,12 +122,19 @@ impl AiService {
 
     /// Create or update a provider. `api_key`: `Some("")` removes the stored key,
     /// `None` leaves it unchanged. An empty id gets a fresh one derived from the name.
-    pub fn save_provider(&self, mut cfg: ProviderConfig, api_key: Option<&str>) -> AiResult<ProviderConfig> {
+    pub fn save_provider(
+        &self,
+        mut cfg: ProviderConfig,
+        api_key: Option<&str>,
+    ) -> AiResult<ProviderConfig> {
         if cfg.name.trim().is_empty() {
             return Err(AiError::Config("provider name must not be empty".into()));
         }
         if !(cfg.base_url.starts_with("http://") || cfg.base_url.starts_with("https://")) {
-            return Err(AiError::Config(format!("invalid base URL: {}", cfg.base_url)));
+            return Err(AiError::Config(format!(
+                "invalid base URL: {}",
+                cfg.base_url
+            )));
         }
         if cfg.id.trim().is_empty() {
             cfg.id = self.config().unique_id(&cfg.name);
@@ -159,7 +169,12 @@ impl AiService {
 
     /// Set the default provider (and its default model), or a feature's model when
     /// `feature` is given.
-    pub fn set_default(&self, provider: &str, model: Option<&str>, feature: Option<AiFeature>) -> AiResult<()> {
+    pub fn set_default(
+        &self,
+        provider: &str,
+        model: Option<&str>,
+        feature: Option<AiFeature>,
+    ) -> AiResult<()> {
         self.update(|c| {
             let p = c
                 .providers
@@ -207,7 +222,11 @@ impl AiService {
             kind: cfg.kind,
             base_url: cfg.base_url.clone(),
             api_key,
-            headers: cfg.headers.iter().map(|(k, v)| (k.clone(), v.clone())).collect(),
+            headers: cfg
+                .headers
+                .iter()
+                .map(|(k, v)| (k.clone(), v.clone()))
+                .collect(),
             default_model: cfg.default_model.clone(),
             client: self.client.clone(),
         };

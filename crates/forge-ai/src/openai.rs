@@ -70,7 +70,10 @@ fn usage(v: &Value) -> Option<Usage> {
     let u = v.get("usage").filter(|u| u.is_object())?;
     Some(Usage {
         input_tokens: u.get("prompt_tokens").and_then(Value::as_u64).unwrap_or(0) as u32,
-        output_tokens: u.get("completion_tokens").and_then(Value::as_u64).unwrap_or(0) as u32,
+        output_tokens: u
+            .get("completion_tokens")
+            .and_then(Value::as_u64)
+            .unwrap_or(0) as u32,
     })
 }
 

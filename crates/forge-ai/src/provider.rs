@@ -87,7 +87,11 @@ pub struct Endpoint {
 
 impl Endpoint {
     pub fn url(&self, path: &str) -> String {
-        format!("{}/{}", self.base_url.trim_end_matches('/'), path.trim_start_matches('/'))
+        format!(
+            "{}/{}",
+            self.base_url.trim_end_matches('/'),
+            path.trim_start_matches('/')
+        )
     }
 
     pub fn model_for(&self, req: &CompletionRequest) -> AiResult<String> {

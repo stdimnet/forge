@@ -16,10 +16,14 @@ pub mod service;
 pub mod sse;
 pub mod types;
 
-pub use config::{AiConfig, AiFeature, FeatureModels, ModelSelection, ProviderConfig, ProviderKind};
+pub use config::{
+    AiConfig, AiFeature, FeatureModels, ModelSelection, ProviderConfig, ProviderKind,
+};
 pub use error::{AiError, AiResult};
 pub use provider::{cancellable, collect_text, DeltaStream, Endpoint, Provider};
 pub use secrets::{KeySource, KeyringStore, MemoryStore, SecretStore};
 pub use service::{AiService, ProviderInfo, ProvidersState, TestResult};
 pub use tokio_util::sync::CancellationToken;
-pub use types::{Completion, CompletionRequest, ContentPart, Delta, Message, ModelInfo, Role, Usage};
+pub use types::{
+    Completion, CompletionRequest, ContentPart, Delta, Message, ModelInfo, Role, Usage,
+};

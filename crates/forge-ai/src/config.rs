@@ -107,7 +107,10 @@ impl ProviderKind {
     pub fn default_headers(self) -> BTreeMap<String, String> {
         let mut h = BTreeMap::new();
         if self == ProviderKind::OpenRouter {
-            h.insert("HTTP-Referer".into(), "https://github.com/Reeperk/PHPForge".into());
+            h.insert(
+                "HTTP-Referer".into(),
+                "https://github.com/Reeperk/PHPForge".into(),
+            );
             h.insert("X-Title".into(), "Forge IDE".into());
         }
         h
@@ -226,7 +229,9 @@ impl AiConfig {
     /// Load from `path`; a missing file yields the default config.
     pub fn load(path: &Path) -> AiResult<Self> {
         match std::fs::read_to_string(path) {
-            Ok(s) => toml::from_str(&s).map_err(|e| AiError::Config(format!("{}: {e}", path.display()))),
+            Ok(s) => {
+                toml::from_str(&s).map_err(|e| AiError::Config(format!("{}: {e}", path.display())))
+            }
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(Self::default()),
             Err(e) => Err(AiError::Config(format!("{}: {e}", path.display()))),
         }
@@ -261,7 +266,11 @@ impl AiConfig {
         self.providers.retain(|p| p.id != id);
         self.features.retain(|s| s.provider != id);
         if self.default_provider.as_deref() == Some(id) {
-            self.default_provider = self.providers.iter().find(|p| p.enabled).map(|p| p.id.clone());
+            self.default_provider = self
+                .providers
+                .iter()
+                .find(|p| p.enabled)
+                .map(|p| p.id.clone());
         }
         before != self.providers.len()
     }
@@ -307,7 +316,10 @@ mod tests {
 
         let mut cfg = AiConfig::default();
         cfg.upsert(ProviderConfig::preset(ProviderKind::Anthropic, "anthropic"));
-        cfg.upsert(ProviderConfig::preset(ProviderKind::OpenRouter, "openrouter"));
+        cfg.upsert(ProviderConfig::preset(
+            ProviderKind::OpenRouter,
+            "openrouter",
+        ));
         cfg.features.set(
             AiFeature::CommitMessages,
             Some(ModelSelection {

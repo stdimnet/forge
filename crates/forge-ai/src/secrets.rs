@@ -23,7 +23,8 @@ pub struct KeyringStore;
 
 impl KeyringStore {
     fn entry(provider_id: &str) -> AiResult<keyring::Entry> {
-        keyring::Entry::new(KEYCHAIN_SERVICE, provider_id).map_err(|e| AiError::Keychain(e.to_string()))
+        keyring::Entry::new(KEYCHAIN_SERVICE, provider_id)
+            .map_err(|e| AiError::Keychain(e.to_string()))
     }
 }
 
@@ -120,6 +121,9 @@ mod tests {
             (Some("kc-key".into()), KeySource::Keychain)
         );
         let local = ProviderConfig::preset(ProviderKind::Ollama, "ollama");
-        assert_eq!(resolve_api_key(&store, &local, env), (None, KeySource::None));
+        assert_eq!(
+            resolve_api_key(&store, &local, env),
+            (None, KeySource::None)
+        );
     }
 }
