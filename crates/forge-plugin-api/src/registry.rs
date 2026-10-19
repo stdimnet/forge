@@ -210,8 +210,11 @@ impl PluginRegistry {
 
     /// The language server for a file extension (without dot), first registered wins.
     pub fn lsp_server_for_extension(&self, ext: &str) -> Option<&LspServerSpec> {
-        self.lsp_servers()
-            .find(|s| s.file_extensions.iter().any(|e| e.eq_ignore_ascii_case(ext)))
+        self.lsp_servers().find(|s| {
+            s.file_extensions
+                .iter()
+                .any(|e| e.eq_ignore_ascii_case(ext))
+        })
     }
 }
 
@@ -252,7 +255,8 @@ mod tests {
         .unwrap();
         r.register_descriptor(descriptor("forge.laravel", &["forge.php"], ""))
             .unwrap();
-        r.register_descriptor(descriptor("forge.lua", &[], "")).unwrap();
+        r.register_descriptor(descriptor("forge.lua", &[], ""))
+            .unwrap();
         r
     }
 
