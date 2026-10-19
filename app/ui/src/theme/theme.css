@@ -38,6 +38,30 @@
   --vcs-untracked: #e0806a;
   --vcs-conflict: #ef5f5f;
 
+  /* Git blame annotation age (newest -> oldest) and diff viewer */
+  --blame-age-0: #ff9a4d;
+  --blame-age-1: #d98a52;
+  --blame-age-2: #a87a5c;
+  --blame-age-3: #7a6a60;
+  --blame-age-4: #4f4c52;
+  --blame-bg-0: rgba(255, 122, 26, 0.1);
+  --blame-bg-1: rgba(255, 122, 26, 0.05);
+  --diff-inserted-bg: rgba(95, 191, 119, 0.13);
+  --diff-inserted-text: rgba(95, 191, 119, 0.28);
+  --diff-deleted-bg: rgba(239, 95, 95, 0.12);
+  --diff-deleted-text: rgba(239, 95, 95, 0.3);
+  --diff-changed-bg: rgba(94, 164, 255, 0.12);
+  --graph-0: #ff8a3d;
+  --graph-1: #5ea4ff;
+  --graph-2: #73c48a;
+  --graph-3: #c9a6ff;
+  --graph-4: #e5b449;
+  --graph-5: #6fd2c4;
+  --graph-6: #ef7f9f;
+  --ref-local: #ff9a57;
+  --ref-remote: #b48cff;
+  --ref-tag: #e5b449;
+
   /* Syntax */
   --syn-keyword: #ff9a57;
   --syn-string: #a5d17f;
@@ -81,6 +105,29 @@
   --vcs-added: #2f8a46;
   --vcs-deleted: #8a8a94;
   --vcs-untracked: #b5492f;
+
+  --blame-age-0: #e8620c;
+  --blame-age-1: #e48a4a;
+  --blame-age-2: #d6a67e;
+  --blame-age-3: #c9bcae;
+  --blame-age-4: #dcd8d4;
+  --blame-bg-0: rgba(232, 98, 12, 0.09);
+  --blame-bg-1: rgba(232, 98, 12, 0.04);
+  --diff-inserted-bg: rgba(47, 138, 70, 0.1);
+  --diff-inserted-text: rgba(47, 138, 70, 0.24);
+  --diff-deleted-bg: rgba(200, 60, 60, 0.09);
+  --diff-deleted-text: rgba(200, 60, 60, 0.24);
+  --diff-changed-bg: rgba(36, 99, 199, 0.08);
+  --graph-0: #e8620c;
+  --graph-1: #2463c7;
+  --graph-2: #2f8a46;
+  --graph-3: #7a3fc4;
+  --graph-4: #b58a00;
+  --graph-5: #157a6e;
+  --graph-6: #c43f6a;
+  --ref-local: #d45608;
+  --ref-remote: #7a3fc4;
+  --ref-tag: #9a7400;
 
   --syn-keyword: #b8460b;
   --syn-string: #3c7d24;
