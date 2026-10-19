@@ -1,0 +1,17 @@
+[package]
+name = "forge-agent-cli"
+description = "Runs AI coding agent CLIs (Claude Code, Gemini CLI) headless and normalizes their output"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+forge-core.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio = { workspace = true, features = ["process", "io-util", "sync", "rt", "macros", "time"] }
+tracing.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+tokio = { workspace = true, features = ["full"] }
