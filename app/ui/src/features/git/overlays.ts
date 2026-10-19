@@ -1,0 +1,59 @@
+/** Signals for git popups rendered by `GitOverlays` (diff viewer, branches popup, cards). */
+import { createSignal } from "solid-js";
+import type { BlameCommit } from "./api";
+
+export interface DiffSide {
+  title: string;
+  content: string;
+}
+
+export interface DiffRequest {
+  path: string;
+  left: DiffSide;
+  right: DiffSide;
+  /** Right side is the working copy: editable, saved back on close. */
+  editable: boolean;
+  /** Other files the viewer can step through (Commit window selection). */
+  files?: string[];
+}
+
+const [diffRequest, setDiffRequest] = createSignal<DiffRequest | null>(null);
+export { diffRequest, setDiffRequest };
+
+const [branchesOpen, setBranchesOpen] = createSignal(false);
+export { branchesOpen, setBranchesOpen };
+
+export interface BlameCard {
+  x: number;
+  y: number;
+  commit: BlameCommit;
+  path: string;
+}
+const [blameCard, setBlameCard] = createSignal<BlameCard | null>(null);
+export { blameCard, setBlameCard };
+
+export interface InputDialog {
+  title: string;
+  label: string;
+  value: string;
+  okLabel: string;
+  /** Confirmation only, no text field. */
+  noInput?: boolean;
+  checkbox?: { label: string; checked: boolean };
+  onOk: (value: string, checked: boolean) => void | Promise<void>;
+}
+const [inputDialog, setInputDialog] = createSignal<InputDialog | null>(null);
+export { inputDialog, setInputDialog };
+
+/** Paths with "Annotate with Git Blame" switched on. */
+const [annotated, setAnnotated] = createSignal<Set<string>>(new Set());
+export { annotated };
+export function toggleAnnotate(path: string, on?: boolean): void {
+  setAnnotated((prev) => {
+    const next = new Set(prev);
+    const enable = on ?? !next.has(path);
+    if (enable) next.add(path);
+    else next.delete(path);
+    return next;
+  });
+}
