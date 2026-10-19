@@ -1,11 +1,11 @@
 /**
  * Captures UI screenshots from the Vite dev server (browser mode with mocked backend).
  * Usage: pnpm dev &  then  pnpm screenshots [scenario...]
- * Scenarios are defined below; each opens the app, performs steps and writes
+ * Scenarios live in scripts/scenarios/*.mjs; each opens the app, performs steps and writes
  * docs/screenshots/<name>.png. Set FORGE_URL / CHROMIUM_PATH to override defaults.
  */
 import { chromium } from "playwright-core";
-import { existsSync, mkdirSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 
 const url = process.env.FORGE_URL ?? "http://localhost:1420";
@@ -14,13 +14,11 @@ const executablePath =
   process.env.CHROMIUM_PATH ??
   ["/opt/pw-browsers/chromium-1194/chrome-linux/chrome"].find((p) => existsSync(p));
 
-/** @type {Record<string, (page: import("playwright-core").Page) => Promise<void>>} */
-const scenarios = {
-  "workbench-dark": async () => {},
-  "workbench-light": async (page) => {
-    await page.evaluate(() => (document.documentElement.dataset.theme = "light"));
-  },
-};
+// Each feature adds its own scenarios file in scripts/scenarios/ (default export: name -> steps).
+const scenarios = {};
+for (const file of readdirSync(resolve(import.meta.dirname, "scenarios")).sort()) {
+  if (file.endsWith(".mjs")) Object.assign(scenarios, (await import(`./scenarios/${file}`)).default);
+}
 
 const wanted = process.argv.slice(2);
 mkdirSync(outDir, { recursive: true });
