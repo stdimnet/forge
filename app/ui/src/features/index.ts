@@ -4,3 +4,4 @@
  */
 import "./placeholders";
 import "./project";
+import "./ai-chat";
