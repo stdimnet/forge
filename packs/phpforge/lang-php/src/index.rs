@@ -241,7 +241,12 @@ impl ProjectIndex {
 
     /// Collect indexable files (relative path, size, mtime).
     fn scan(&self) -> Vec<(String, u64, u64)> {
-        let exclude: HashSet<&str> = self.config.exclude_dirs.iter().map(String::as_str).collect();
+        let exclude: HashSet<&str> = self
+            .config
+            .exclude_dirs
+            .iter()
+            .map(String::as_str)
+            .collect();
         let vendor = self.config.vendor;
         let root = self.root.clone();
         walkdir::WalkDir::new(&self.root)
@@ -266,9 +271,8 @@ impl ProjectIndex {
             })
             .filter_map(|e| {
                 let meta = e.metadata().ok()?;
-                (meta.len() <= self.config.max_file_size).then(|| {
-                    (to_rel(&root, e.path()), meta.len(), mtime_ms(&meta))
-                })
+                (meta.len() <= self.config.max_file_size)
+                    .then(|| (to_rel(&root, e.path()), meta.len(), mtime_ms(&meta)))
             })
             .collect()
     }
@@ -301,7 +305,7 @@ impl ProjectIndex {
                     .unwrap_or_default();
                 let index = parser::index_with(p, rel, &src);
                 let n = done.fetch_add(1, Ordering::Relaxed) + 1;
-                if n % 25 == 0 || n == total {
+                if n.is_multiple_of(25) || n == total {
                     progress(n, total);
                 }
                 (
@@ -489,7 +493,11 @@ impl ProjectIndex {
             for c in &e.index.classes {
                 let deprecated = c.doc.as_ref().is_some_and(|d| d.is_deprecated());
                 if class_q.is_none() {
-                    let target: &str = if member_q.contains('\\') { &c.fqn } else { &c.name };
+                    let target: &str = if member_q.contains('\\') {
+                        &c.fqn
+                    } else {
+                        &c.name
+                    };
                     if let Some(m) = fuzzy_match(member_q, target) {
                         let positions = if member_q.contains('\\') {
                             let off = c.fqn.chars().count() - c.name.chars().count();
@@ -610,7 +618,9 @@ fn load_psr4(root: &Path) -> Vec<(String, PathBuf)> {
                 for (prefix, dirs) in map {
                     let dirs: Vec<&str> = match dirs {
                         serde_json::Value::String(s) => vec![s.as_str()],
-                        serde_json::Value::Array(a) => a.iter().filter_map(|v| v.as_str()).collect(),
+                        serde_json::Value::Array(a) => {
+                            a.iter().filter_map(|v| v.as_str()).collect()
+                        }
                         _ => continue,
                     };
                     for d in dirs {
@@ -652,7 +662,7 @@ fn load_psr4(root: &Path) -> Vec<(String, PathBuf)> {
             }
         }
     }
-    out.sort_by(|a, b| b.0.len().cmp(&a.0.len()));
+    out.sort_by_key(|b| std::cmp::Reverse(b.0.len()));
     out
 }
 
@@ -663,7 +673,10 @@ fn psr4_candidates(psr4: &[(String, PathBuf)], fqn: &str) -> Vec<PathBuf> {
         })
         .map(|(prefix, dir)| {
             let rest = &fqn[prefix.len()..];
-            dir.join(format!("{}.php", rest.trim_start_matches('\\').replace('\\', "/")))
+            dir.join(format!(
+                "{}.php",
+                rest.trim_start_matches('\\').replace('\\', "/")
+            ))
         })
         .collect()
 }
@@ -712,7 +725,11 @@ mod tests {
             "app/Models/HasAttributes.php",
             "<?php\nnamespace App\\Models;\ntrait HasAttributes { protected array $attributes = []; public function getAttribute($k) {} }\n",
         );
-        write(r, "node_modules/x/evil.php", "<?php class ShouldNotIndex {}");
+        write(
+            r,
+            "node_modules/x/evil.php",
+            "<?php class ShouldNotIndex {}",
+        );
         write(
             r,
             "vendor/composer/installed.json",
@@ -748,7 +765,10 @@ mod tests {
         let dir = project();
         let mut idx = ProjectIndex::new(dir.path(), IndexConfig::default());
         idx.index_workspace(|_, _| {});
-        let ctrl = idx.find_class("App\\Http\\Controllers\\OrderController").unwrap().clone();
+        let ctrl = idx
+            .find_class("App\\Http\\Controllers\\OrderController")
+            .unwrap()
+            .clone();
         let anc = idx.ancestors(&ctrl);
         assert_eq!(anc.len(), 1);
         assert_eq!(anc[0].fqn, "Illuminate\\Routing\\Controller");
@@ -763,7 +783,10 @@ mod tests {
             .into_iter()
             .map(|(_, m)| m.name)
             .collect();
-        assert_eq!(inherited, vec!["save", "table", "attributes", "getAttribute"]);
+        assert_eq!(
+            inherited,
+            vec!["save", "table", "attributes", "getAttribute"]
+        );
     }
 
     #[test]
@@ -775,7 +798,9 @@ mod tests {
         };
         let mut idx = ProjectIndex::new(dir.path(), cfg);
         idx.index_workspace(|_, _| {});
-        assert!(idx.resolve_class("Illuminate\\Routing\\Controller").is_none());
+        assert!(idx
+            .resolve_class("Illuminate\\Routing\\Controller")
+            .is_none());
     }
 
     #[test]
@@ -857,7 +882,8 @@ mod tests {
         let hits = idx.search("order_help", SearchKind::Symbol, 10);
         assert_eq!(hits[0].kind, SymbolKind::Function);
 
-        assert!(idx.search("PAID", SearchKind::Symbol, 10)
+        assert!(idx
+            .search("PAID", SearchKind::Symbol, 10)
             .iter()
             .any(|h| h.kind == SymbolKind::Constant));
         assert!(idx.search("save", SearchKind::Class, 10).is_empty());

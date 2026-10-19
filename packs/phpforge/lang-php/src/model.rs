@@ -495,8 +495,7 @@ impl FileIndex {
     pub fn namespace_at(&self, offset: usize) -> &str {
         self.namespaces
             .iter()
-            .filter(|n| n.range.start <= offset)
-            .next_back()
+            .rfind(|n| n.range.start <= offset)
             .map(|n| n.name.as_str())
             .unwrap_or("")
     }

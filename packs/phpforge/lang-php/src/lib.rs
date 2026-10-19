@@ -11,11 +11,17 @@
 
 pub mod docblock;
 pub mod fuzzy;
+pub mod generate;
+pub mod hover;
+pub mod index;
+pub mod lsp;
 pub mod model;
 pub mod offsets;
 pub mod parser;
 pub mod resolve;
+pub mod structure;
 
+pub use index::{IndexConfig, IndexStats, ProjectIndex};
 pub use model::*;
 
 /// Errors of this crate. The app maps them to `forge_core::ForgeError::Other`.

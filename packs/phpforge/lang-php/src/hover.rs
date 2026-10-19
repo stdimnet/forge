@@ -325,7 +325,9 @@ fn hover_markdown(
         .rsplit(|c: char| !(c.is_alphanumeric() || c == '_'))
         .next()
         .unwrap_or("");
-    if is_call && !prev_word.eq_ignore_ascii_case("new") && !prev_word.eq_ignore_ascii_case("function")
+    if is_call
+        && !prev_word.eq_ignore_ascii_case("new")
+        && !prev_word.eq_ignore_ascii_case("function")
     {
         let ns = file.namespace_at(start);
         let bare = word.trim_start_matches('\\');
@@ -454,10 +456,14 @@ class OrderController
         let (_d, mut idx) = setup();
         let h = hover_on(&mut idx, "Order $order", 2).unwrap();
         assert!(h.markdown.contains("`App\\Models`"));
-        assert!(h.markdown.contains("```php\n#[ORM\\Table(name: 'orders')]\nclass Order extends Model\n```"));
+        assert!(h
+            .markdown
+            .contains("```php\n#[ORM\\Table(name: 'orders')]\nclass Order extends Model\n```"));
         assert!(h.markdown.contains("A customer order."));
         assert!(h.markdown.contains("`int $id` *(read-only)*"));
-        assert!(h.markdown.contains("`@ORM\\Entity(repositoryClass=\"OrderRepository\")`"));
+        assert!(h
+            .markdown
+            .contains("`@ORM\\Entity(repositoryClass=\"OrderRepository\")`"));
         assert_eq!(&USER[h.start..h.end], "Order");
     }
 
@@ -498,7 +504,9 @@ class OrderController
         assert!(h.markdown.contains("**Deprecated:** Use pay()"));
         assert!(h.markdown.contains("- `string` `$ref` — Payment reference"));
         assert!(h.markdown.contains("**Returns:** `static`"));
-        assert!(h.markdown.contains("**Throws:** `\\LogicException` — When already paid"));
+        assert!(h
+            .markdown
+            .contains("**Throws:** `\\LogicException` — When already paid"));
 
         let off = src.find("save").unwrap();
         let h = hover(&mut idx, "x.php", src, off).unwrap();
