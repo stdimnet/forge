@@ -862,6 +862,7 @@ version = "0.1.0"
 dependencies = [
  "forge-core",
  "forge-plugin-api",
+ "phpforge-lang-php",
  "serde",
  "serde_json",
  "tauri",
