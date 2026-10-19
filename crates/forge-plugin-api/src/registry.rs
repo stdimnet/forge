@@ -24,6 +24,24 @@ impl PluginDescriptor {
     pub fn from_toml(src: &str) -> Result<Self> {
         toml::from_str(src).map_err(|e| ForgeError::Other(format!("invalid plugin manifest: {e}")))
     }
+
+    /// Parse a manifest file holding either one plugin, or several as `[[plugin]]` tables.
+    pub fn parse_many(src: &str) -> Result<Vec<Self>> {
+        #[derive(Deserialize)]
+        struct Many {
+            plugin: Vec<PluginDescriptor>,
+        }
+        let table: toml::Table = toml::from_str(src)
+            .map_err(|e| ForgeError::Other(format!("invalid plugin manifest: {e}")))?;
+        if table.contains_key("plugin") {
+            let many: Many = table
+                .try_into()
+                .map_err(|e| ForgeError::Other(format!("invalid plugin manifest: {e}")))?;
+            Ok(many.plugin)
+        } else {
+            Self::from_toml(src).map(|d| vec![d])
+        }
+    }
 }
 
 /// A registered plugin with its enablement state, as listed in the Plugins settings page.
@@ -307,6 +325,23 @@ mod tests {
         r.register_descriptor(core).unwrap();
         assert!(r.set_enabled("forge.core", false).is_err());
         assert!(r.set_enabled("forge.unknown", true).is_err());
+    }
+
+    #[test]
+    fn parses_single_and_multi_plugin_files() {
+        let one = PluginDescriptor::parse_many(
+            "id = \"a\"\nname = \"A\"\nversion = \"1\"\npack = \"core\"",
+        )
+        .unwrap();
+        assert_eq!(one.len(), 1);
+        let many = PluginDescriptor::parse_many(
+            "[[plugin]]\nid = \"a\"\nname = \"A\"\nversion = \"1\"\npack = \"core\"\n\
+             [[plugin.contributions.commands]]\nid = \"x\"\ntitle = \"X\"\n\
+             [[plugin]]\nid = \"b\"\nname = \"B\"\nversion = \"1\"\npack = \"core\"",
+        )
+        .unwrap();
+        assert_eq!(many.len(), 2);
+        assert_eq!(many[0].contributions.commands[0].id, "x");
     }
 
     struct RustPlugin;
