@@ -45,3 +45,15 @@ app/ui/            SolidJS UI
 - `ai_complete({ request: { system?: string, messages: { role: "user" | "assistant", content: string }[], provider?: string, model?: string, maxTokens?: number } }) -> string`
   — one-shot completion with the default (or given) provider. Used by e.g. AI commit messages.
 - `ai_stream({ request, streamId })` emits `ai://stream/<streamId>` events `{ delta?: string, done?: boolean, error?: string }`.
+
+## Language servers (`forge-lsp`)
+
+- Packs contribute `LspServerConfig { id, name?, languageIds, fileExtensions, command, args,
+  initializationOptions, settings }`; Rust code calls `LspState::register_server`, the UI or a
+  plugin calls `lsp_register_server({ config })`. Servers start lazily for the first matching file
+  and are routed by extension (longest match wins, e.g. `blade.php` over `php`).
+- `lsp_did_open|did_change|did_save({ path, text })`, `lsp_did_close({ path })`,
+  `lsp_hover|lsp_completion|lsp_definition|lsp_references|lsp_signature_help({ path, line, character })`,
+  `lsp_document_symbols({ path })`, `lsp_format({ path, tabSize?, insertSpaces? })`, `lsp_status()`.
+  Paths are workspace relative, positions 0-based line / UTF-16 character.
+- Events: `lsp://diagnostics` `{ path, diagnostics }` and `lsp://status` `ServerStatus[]`.
