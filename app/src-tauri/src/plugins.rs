@@ -1,0 +1,88 @@
+//! Built-in plugins. Their manifests are TOML files in `app/src-tauri/plugins/`, compiled
+//! into the binary. A test keeps `app/ui/src/mock/builtinPlugins.json` (the browser-mode
+//! copy) in sync with them.
+
+use forge_core::Result;
+use forge_plugin_api::{PluginDescriptor, PluginRegistry};
+
+const MANIFESTS: &[(&str, &str)] = &[
+    ("core.toml", include_str!("../plugins/core.toml")),
+    ("git.toml", include_str!("../plugins/git.toml")),
+    ("terminal.toml", include_str!("../plugins/terminal.toml")),
+    ("php.toml", include_str!("../plugins/php.toml")),
+    ("phpforge.toml", include_str!("../plugins/phpforge.toml")),
+    ("packs.toml", include_str!("../plugins/packs.toml")),
+];
+
+/// Setting holding the ids of plugins the user disabled.
+pub const DISABLED_PLUGINS_KEY: &str = "plugins.disabled";
+
+pub fn builtin_descriptors() -> Result<Vec<PluginDescriptor>> {
+    let mut out = Vec::new();
+    for (name, src) in MANIFESTS {
+        let parsed = PluginDescriptor::parse_many(src).map_err(|e| {
+            forge_core::ForgeError::Other(format!("built-in plugin manifest {name}: {e}"))
+        })?;
+        out.extend(parsed);
+    }
+    Ok(out)
+}
+
+pub fn builtin_registry() -> Result<PluginRegistry> {
+    let mut registry = PluginRegistry::new();
+    for d in builtin_descriptors()? {
+        registry.register_descriptor(d)?;
+    }
+    Ok(registry)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::HashSet;
+    use std::path::PathBuf;
+
+    #[test]
+    fn manifests_are_consistent() {
+        let registry = builtin_registry().unwrap();
+        assert!(registry.get("forge.core").unwrap().manifest.required);
+
+        let mut keys = HashSet::new();
+        for spec in registry.all_settings() {
+            assert!(keys.insert(&spec.key), "duplicate setting {}", spec.key);
+            spec.kind
+                .validate(&spec.default)
+                .unwrap_or_else(|e| panic!("default of {}: {e}", spec.key));
+        }
+        for p in registry.list() {
+            for dep in &p.manifest.depends {
+                assert!(registry.get(dep).is_some(), "{} needs {dep}", p.manifest.id);
+            }
+        }
+        assert_eq!(
+            registry
+                .lsp_server_for_extension("php")
+                .map(|s| s.id.as_str()),
+            Some("intelephense")
+        );
+    }
+
+    /// The UI's browser mode serves the same plugins from a JSON copy. Run with
+    /// `FORGE_UPDATE_SNAPSHOTS=1 cargo test -p forge-app` after editing a manifest.
+    #[test]
+    fn browser_mock_snapshot_is_current() {
+        let registry = builtin_registry().unwrap();
+        let json = serde_json::to_string_pretty(registry.list()).unwrap() + "\n";
+        let path =
+            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../ui/src/mock/builtinPlugins.json");
+        if std::env::var_os("FORGE_UPDATE_SNAPSHOTS").is_some() {
+            std::fs::write(&path, &json).unwrap();
+        }
+        let current = std::fs::read_to_string(&path).unwrap_or_default();
+        assert!(
+            current.replace("\r\n", "\n") == json,
+            "{} is out of date; rerun with FORGE_UPDATE_SNAPSHOTS=1",
+            path.display()
+        );
+    }
+}
