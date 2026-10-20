@@ -12,6 +12,7 @@ pub mod config;
 pub mod pty;
 pub mod runner;
 pub mod shell;
+pub mod termenv;
 mod utf8;
 
 pub use args::{quote_arg, split_args};
@@ -22,4 +23,5 @@ pub use config::{
 pub use pty::{PtyEvent, PtyOptions, PtySession, PtySink};
 pub use runner::{CommandLine, OutputStream, RunEvent, RunSink, RunningProcess};
 pub use shell::default_shell;
+pub use termenv::{terminal_env, utf8_locale_fallback};
 pub use utf8::Utf8Decoder;

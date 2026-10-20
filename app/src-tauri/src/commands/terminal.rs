@@ -113,6 +113,7 @@ pub fn terminal_open(
             args: None,
             cwd: cwd.clone(),
             env,
+            version: env!("CARGO_PKG_VERSION").to_string(),
             cols: options.cols,
             rows: options.rows,
         },
