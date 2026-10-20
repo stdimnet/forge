@@ -1,0 +1,21 @@
+{
+  "name": "@forge/browser-companion",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Forge Companion: click a component in the browser to open its source in the Forge IDE.",
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "watch": "node scripts/build.mjs --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "demo": "node scripts/demo-server.mjs"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.326",
+    "esbuild": "^0.25.0",
+    "jsdom": "^26.0.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.0"
+  }
+}
