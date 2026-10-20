@@ -1,5 +1,5 @@
 ---
-title: Remote development (SSH)
+title: Remote development
 description: Open a project on a Linux server over SSH - connections, authentication, host keys, the Forge agent, what runs on the host, reconnects and current limitations.
 order: 200
 tags: [remote, ssh, agent, gateway]

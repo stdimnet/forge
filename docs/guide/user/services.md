@@ -1,5 +1,5 @@
 ---
-title: Services (Docker, Compose, Kubernetes)
+title: Services
 description: The Services tool window - Docker containers, images, volumes and networks, Docker Compose projects, Kubernetes workloads, logs, exec terminals, image pulls, registries and gutter run icons.
 order: 190
 tags: [docker, compose, kubernetes, services, containers]

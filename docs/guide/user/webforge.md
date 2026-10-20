@@ -1,5 +1,5 @@
 ---
-title: WebForge (JavaScript, TypeScript, React, Vue, Angular)
+title: WebForge
 description: The WebForge pack - npm scripts and package managers, the npm tool window, Node.js and TypeScript settings, and React, Vue and Angular component navigation and line markers.
 order: 100
 tags: [webforge, javascript, typescript, npm, react, vue, angular]

@@ -1,5 +1,5 @@
 ---
-title: LuaForge (Lua, LÖVE, Neovim)
+title: LuaForge
 description: The LuaForge pack - Lua index with EmmyLua/LuaLS annotations, navigation, structure, hover, lua-language-server, StyLua and Lua Script run configurations.
 order: 110
 tags: [lua, luaforge, love, neovim, stylua]

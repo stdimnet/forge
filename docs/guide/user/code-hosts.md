@@ -1,5 +1,5 @@
 ---
-title: Code hosts (GitHub, GitLab, Forgejo/Gitea)
+title: Code hosts
 description: Review pull and merge requests with inline threads, browse issues and CI pipelines for GitHub, GitLab and Forgejo/Gitea, including self-hosted servers.
 order: 130
 tags: [github, gitlab, forgejo, gitea, pull requests, merge requests, code review, ci]
