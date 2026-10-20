@@ -17,7 +17,7 @@ mod utf8;
 pub use args::{quote_arg, split_args};
 pub use config::{
     BeforeLaunchTask, BuildContext, KindRegistry, RunConfiguration, RunConfigurationKind,
-    RunConfigurations,
+    RunConfigurations, TemplateKind,
 };
 pub use pty::{PtyEvent, PtyOptions, PtySession, PtySink};
 pub use runner::{CommandLine, OutputStream, RunEvent, RunSink, RunningProcess};

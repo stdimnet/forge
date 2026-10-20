@@ -495,6 +495,52 @@ impl RunConfigurationKind for NpmScript {
     }
 }
 
+/// A kind declared by a plugin manifest: a command template such as
+/// `["${interpreter}", "${interpreterOptions}", "${file}", "${arguments}"]`.
+pub struct TemplateKind {
+    pub id: String,
+    pub command: Vec<String>,
+    pub default_interpreter: Option<String>,
+    /// Option keys that must be set (labels for the error message).
+    pub required: Vec<(String, String)>,
+}
+
+impl RunConfigurationKind for TemplateKind {
+    fn id(&self) -> &str {
+        &self.id
+    }
+
+    fn build(&self, cfg: &RunConfiguration, ctx: &BuildContext) -> Result<CommandLine> {
+        for (key, label) in &self.required {
+            required(cfg, key, label)?;
+        }
+        let interpreter = match cfg.interpreter.trim() {
+            "" => self.default_interpreter.clone().unwrap_or_default(),
+            i => i.to_string(),
+        };
+        let mut parts: Vec<String> = Vec::new();
+        for entry in &self.command {
+            match entry.strip_prefix("${").and_then(|e| e.strip_suffix('}')) {
+                Some("interpreter") => parts.push(interpreter.clone()),
+                Some("interpreterOptions") => parts.extend(split_args(&cfg.interpreter_options)),
+                Some("arguments") => parts.extend(split_args(&cfg.arguments)),
+                Some(key) => parts.push(cfg.option(key).to_string()),
+                None => parts.push(entry.clone()),
+            }
+        }
+        parts.retain(|p| !p.is_empty());
+        if parts.is_empty() {
+            return Err(ForgeError::Other(format!(
+                "run configuration type `{}` has no command",
+                self.id
+            )));
+        }
+        let mut cmd = CommandLine::new(parts.remove(0)).args(parts);
+        cmd.cwd = ctx.working_dir(cfg, "");
+        Ok(cmd)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -677,6 +723,31 @@ mod tests {
             .build(&cfg("lua-script", &[("file", "main.lua")]), &ctx())
             .unwrap();
         assert_eq!(cmd.display(), "lua main.lua");
+    }
+
+    #[test]
+    fn template_kinds_expand_placeholders() {
+        let mut r = KindRegistry::builtin();
+        r.register(Box::new(TemplateKind {
+            id: "lua-script".into(),
+            command: vec![
+                "${interpreter}".into(),
+                "${interpreterOptions}".into(),
+                "${file}".into(),
+                "${arguments}".into(),
+            ],
+            default_interpreter: Some("lua".into()),
+            required: vec![("file".into(), "File".into())],
+        }));
+        let mut c = cfg("lua-script", &[("file", "main.lua")]);
+        c.arguments = "a 'b c'".into();
+        let cmd = r.build(&c, &ctx()).unwrap();
+        assert_eq!(cmd.program, "lua");
+        assert_eq!(cmd.args, ["main.lua", "a", "b c"]);
+        c.interpreter = "luajit".into();
+        assert_eq!(r.build(&c, &ctx()).unwrap().program, "luajit");
+        let err = r.build(&cfg("lua-script", &[]), &ctx()).unwrap_err();
+        assert_eq!(err.to_string(), "File is not specified");
     }
 
     #[test]
