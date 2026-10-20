@@ -81,13 +81,13 @@ pub fn parse(xml: &str) -> DebugResult<Element> {
     let mut reader = Reader::from_str(xml);
     let mut stack: Vec<Element> = Vec::new();
     let mut root: Option<Element> = None;
-    let push_done = |stack: &mut Vec<Element>, root: &mut Option<Element>, el: Element| {
-        match stack.last_mut() {
-            Some(parent) => parent.children.push(el),
-            None => {
-                if root.is_none() {
-                    *root = Some(el);
-                }
+    let push_done = |stack: &mut Vec<Element>, root: &mut Option<Element>, el: Element| match stack
+        .last_mut()
+    {
+        Some(parent) => parent.children.push(el),
+        None => {
+            if root.is_none() {
+                *root = Some(el);
             }
         }
     };

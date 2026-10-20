@@ -42,7 +42,10 @@ fn yes() -> bool {
 
 impl Breakpoint {
     pub fn condition(&self) -> Option<&str> {
-        self.condition.as_deref().map(str::trim).filter(|c| !c.is_empty())
+        self.condition
+            .as_deref()
+            .map(str::trim)
+            .filter(|c| !c.is_empty())
     }
 }
 
@@ -168,7 +171,14 @@ impl BreakpointStore {
                 }
             }
         }
-        let id = self.data.breakpoints.iter().map(|b| b.id).max().unwrap_or(0) + 1;
+        let id = self
+            .data
+            .breakpoints
+            .iter()
+            .map(|b| b.id)
+            .max()
+            .unwrap_or(0)
+            + 1;
         let bp = Breakpoint {
             id,
             kind: spec.kind,

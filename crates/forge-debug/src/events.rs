@@ -88,7 +88,11 @@ pub struct SessionInfo {
 /// Everything the debugger reports to the UI. The IPC layer emits each on
 /// [`DebugEvent::channel`].
 #[derive(Debug, Clone, PartialEq, Serialize)]
-#[serde(tag = "type", rename_all = "camelCase", rename_all_fields = "camelCase")]
+#[serde(
+    tag = "type",
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase"
+)]
 pub enum DebugEvent {
     Listening {
         listening: bool,
@@ -97,17 +101,25 @@ pub enum DebugEvent {
         error: Option<String>,
     },
     /// A session started or changed state (running, paused at a location, ...).
-    Session { session: SessionInfo },
+    Session {
+        session: SessionInfo,
+    },
     /// A connection from an unknown server waits for "Accept" or "Ignore".
-    Incoming { session: SessionInfo },
-    Ended { session_id: String },
+    Incoming {
+        session: SessionInfo,
+    },
+    Ended {
+        session_id: String,
+    },
     /// Script output (`stdout` copy).
     Output {
         session_id: String,
         stream: String,
         text: String,
     },
-    Breakpoints { snapshot: BreakpointsSnapshot },
+    Breakpoints {
+        snapshot: BreakpointsSnapshot,
+    },
     /// A failure worth a notification.
     Error {
         session_id: Option<String>,

@@ -41,7 +41,12 @@ fn quote_arg(v: &str) -> String {
 }
 
 /// Encode one command, including the trailing NUL byte.
-pub fn encode_command(name: &str, tid: u32, args: &[(char, String)], data: Option<&str>) -> Vec<u8> {
+pub fn encode_command(
+    name: &str,
+    tid: u32,
+    args: &[(char, String)],
+    data: Option<&str>,
+) -> Vec<u8> {
     let mut s = format!("{name} -i {tid}");
     for (flag, value) in args {
         s.push_str(&format!(" -{flag} {}", quote_arg(value)));
@@ -202,7 +207,9 @@ impl InitPacket {
             language: a("language"),
             protocol_version: a("protocol_version"),
             file_uri: a("fileuri"),
-            engine_name: engine.map(|e| e.text.trim().to_string()).unwrap_or_default(),
+            engine_name: engine
+                .map(|e| e.text.trim().to_string())
+                .unwrap_or_default(),
             engine_version: engine
                 .and_then(|e| e.attr("version"))
                 .unwrap_or_default()

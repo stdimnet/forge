@@ -80,7 +80,10 @@ pub fn parse_ide_config(value: &str) -> Option<String> {
 }
 
 /// The configured server a connection belongs to.
-pub fn find_server<'a>(servers: &'a [ServerConfig], id: &ServerIdentity) -> Option<&'a ServerConfig> {
+pub fn find_server<'a>(
+    servers: &'a [ServerConfig],
+    id: &ServerIdentity,
+) -> Option<&'a ServerConfig> {
     if let Some(name) = &id.server_name {
         return servers.iter().find(|s| s.name.eq_ignore_ascii_case(name));
     }
@@ -89,7 +92,7 @@ pub fn find_server<'a>(servers: &'a [ServerConfig], id: &ServerIdentity) -> Opti
     servers
         .iter()
         .filter(by_host)
-        .find(|s| id.port.map_or(true, |p| p == s.port))
+        .find(|s| id.port.is_none_or(|p| p == s.port))
         .or_else(|| servers.iter().find(by_host))
 }
 
@@ -153,7 +156,10 @@ mod tests {
         };
         assert_eq!(find_server(&servers, &by_host).unwrap().id, "docker");
         assert!(find_server(&servers, &ServerIdentity::default()).is_none());
-        assert_eq!(parse_ide_config("serverName=shop.test").as_deref(), Some("shop.test"));
+        assert_eq!(
+            parse_ide_config("serverName=shop.test").as_deref(),
+            Some("shop.test")
+        );
         assert_eq!(parse_ide_config("foo=1"), None);
         assert_eq!(by_host.display_name(), "localhost:8080");
     }

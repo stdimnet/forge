@@ -41,7 +41,11 @@ impl Connection {
 
     /// Read packets until the engine disconnects. Answers resolve their pending command;
     /// everything else is passed to `on_message`.
-    pub async fn read_loop<R: AsyncBufRead + Unpin>(&self, mut reader: R, on_message: impl Fn(Element)) {
+    pub async fn read_loop<R: AsyncBufRead + Unpin>(
+        &self,
+        mut reader: R,
+        on_message: impl Fn(Element),
+    ) {
         loop {
             match read_packet(&mut reader).await {
                 Ok(Some(text)) => match xml::parse(&text) {
@@ -77,7 +81,12 @@ impl Connection {
         self.pending.lock().expect("pending lock").clear();
     }
 
-    async fn write(&self, name: &str, args: &[(char, String)], data: Option<&str>) -> DebugResult<oneshot::Receiver<Element>> {
+    async fn write(
+        &self,
+        name: &str,
+        args: &[(char, String)],
+        data: Option<&str>,
+    ) -> DebugResult<oneshot::Receiver<Element>> {
         if self.is_closed() {
             return Err(DebugError::Closed);
         }
@@ -99,7 +108,12 @@ impl Connection {
     }
 
     /// Send a command and wait for its answer (bounded by the connection timeout).
-    pub async fn send(&self, name: &str, args: &[(char, String)], data: Option<&str>) -> DebugResult<Element> {
+    pub async fn send(
+        &self,
+        name: &str,
+        args: &[(char, String)],
+        data: Option<&str>,
+    ) -> DebugResult<Element> {
         self.send_with_timeout(name, args, data, self.timeout).await
     }
 

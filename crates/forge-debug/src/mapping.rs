@@ -38,8 +38,7 @@ fn percent_decode(s: &str) -> String {
     let mut out = Vec::with_capacity(bytes.len());
     let mut i = 0;
     while i < bytes.len() {
-        if bytes[i] == b'%' && i + 2 < bytes.len() && is_hex(bytes[i + 1]) && is_hex(bytes[i + 2])
-        {
+        if bytes[i] == b'%' && i + 2 < bytes.len() && is_hex(bytes[i + 1]) && is_hex(bytes[i + 2]) {
             let hex = std::str::from_utf8(&bytes[i + 1..i + 3]).unwrap_or("00");
             out.push(u8::from_str_radix(hex, 16).unwrap_or(b'?'));
             i += 3;
@@ -80,7 +79,11 @@ pub fn uri_to_path(uri: &str) -> Option<String> {
 /// Absolute path → `file://` URI.
 pub fn path_to_uri(path: &str) -> String {
     let p = path.replace('\\', "/");
-    let p = if p.starts_with('/') { p } else { format!("/{p}") };
+    let p = if p.starts_with('/') {
+        p
+    } else {
+        format!("/{p}")
+    };
     format!("file://{}", percent_encode(&p))
 }
 
@@ -195,9 +198,15 @@ mod tests {
             uri_to_path("file:///var/www/my%20app/a.php").as_deref(),
             Some("/var/www/my app/a.php")
         );
-        assert_eq!(uri_to_path("file:///C:/www/a.php").as_deref(), Some("C:/www/a.php"));
+        assert_eq!(
+            uri_to_path("file:///C:/www/a.php").as_deref(),
+            Some("C:/www/a.php")
+        );
         assert_eq!(uri_to_path("dbgp://3"), None);
-        assert_eq!(path_to_uri("/var/www/my app/ä.php"), "file:///var/www/my%20app/%C3%A4.php");
+        assert_eq!(
+            path_to_uri("/var/www/my app/ä.php"),
+            "file:///var/www/my%20app/%C3%A4.php"
+        );
         assert_eq!(path_to_uri("C:\\www\\a.php"), "file:///C:/www/a.php");
     }
 
@@ -205,7 +214,8 @@ mod tests {
     fn local_mapper_uses_project_root() {
         let m = PathMapper::local("/home/me/shop");
         assert_eq!(
-            m.to_local("file:///home/me/shop/app/Models/User.php").as_deref(),
+            m.to_local("file:///home/me/shop/app/Models/User.php")
+                .as_deref(),
             Some("app/Models/User.php")
         );
         assert_eq!(m.to_local("file:///usr/share/php/x.php"), None);

@@ -138,7 +138,11 @@ impl DebugServer {
     // ---- listening ----------------------------------------------------------------------
 
     pub fn listening_port(&self) -> Option<u16> {
-        self.listener.lock().expect("listener lock").as_ref().map(|l| l.port)
+        self.listener
+            .lock()
+            .expect("listener lock")
+            .as_ref()
+            .map(|l| l.port)
     }
 
     /// Listen on `port` on all interfaces (0 picks a free port). Returns the bound port.

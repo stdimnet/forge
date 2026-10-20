@@ -9,14 +9,12 @@ use serde::{Deserialize, Serialize};
 use crate::breakpoints::{Breakpoint, BreakpointKind};
 use crate::connection::Connection;
 use crate::error::{DebugError, DebugResult};
-use crate::events::{
-    BreakReason, DebugEvent, ExceptionInfo, Location, SessionInfo, SessionStatus,
-};
+use crate::events::{BreakReason, DebugEvent, ExceptionInfo, Location, SessionInfo, SessionStatus};
 use crate::mapping::PathMapper;
 use crate::protocol::{
     b64_decode, check_error, parse_breakpoints, parse_context_names, parse_properties,
-    parse_property, parse_stack, ContextName, EngineStatus, InitPacket, Property,
-    RemoteBreakpoint, StatusResponse,
+    parse_property, parse_stack, ContextName, EngineStatus, InitPacket, Property, RemoteBreakpoint,
+    StatusResponse,
 };
 use crate::server::Shared;
 use crate::servers::{find_server, parse_ide_config, ServerConfig, ServerIdentity};
@@ -86,7 +84,13 @@ const SHORT: Duration = Duration::from_millis(1500);
 const MAX_AUTO_SKIPS: u32 = 32;
 
 impl Session {
-    pub(crate) fn new(id: String, init: InitPacket, peer: String, conn: Connection, shared: Arc<Shared>) -> Self {
+    pub(crate) fn new(
+        id: String,
+        init: InitPacket,
+        peer: String,
+        conn: Connection,
+        shared: Arc<Shared>,
+    ) -> Self {
         let mapper = PathMapper::local(shared.root().unwrap_or_default());
         Self {
             id,
@@ -234,7 +238,9 @@ impl Session {
         {
             let mut st = self.state();
             if st.status != SessionStatus::AwaitingAcceptance {
-                return Err(DebugError::Other("the connection was already handled".into()));
+                return Err(DebugError::Other(
+                    "the connection was already handled".into(),
+                ));
             }
             st.mapper = server.mapper(&root);
             st.server_id = Some(server.id.clone());
@@ -283,7 +289,10 @@ impl Session {
 
     /// Engine feature value (`feature_get`).
     pub async fn feature(&self, name: &str) -> DebugResult<Option<String>> {
-        let el = self.conn.send("feature_get", &[('n', name.into())], None).await?;
+        let el = self
+            .conn
+            .send("feature_get", &[('n', name.into())], None)
+            .await?;
         check_error(&el)?;
         Ok((el.attr("supported") != Some("0")).then(|| el.text.trim().to_string()))
     }
@@ -412,7 +421,12 @@ impl Session {
     async fn suspended(self: &Arc<Self>, status: StatusResponse) {
         let (file_uri, line) = match (status.file_uri.clone(), status.line) {
             (Some(f), Some(l)) => (f, l),
-            _ => match self.stack_raw(Some(0)).await.ok().and_then(|f| f.into_iter().next()) {
+            _ => match self
+                .stack_raw(Some(0))
+                .await
+                .ok()
+                .and_then(|f| f.into_iter().next())
+            {
                 Some(top) => (top.file_uri, top.line),
                 None => (self.init.file_uri.clone(), 0),
             },
@@ -480,7 +494,10 @@ impl Session {
         if self.status() != SessionStatus::Running {
             return Ok(());
         }
-        let el = self.conn.send_with_timeout("break", &[], None, SHORT).await?;
+        let el = self
+            .conn
+            .send_with_timeout("break", &[], None, SHORT)
+            .await?;
         check_error(&el)
     }
 
@@ -495,7 +512,10 @@ impl Session {
 
     /// Let the script run to its end without the debugger.
     pub async fn detach(&self) {
-        let _ = self.conn.send_with_timeout("detach", &[], None, SHORT).await;
+        let _ = self
+            .conn
+            .send_with_timeout("detach", &[], None, SHORT)
+            .await;
         self.conn.shutdown().await;
         self.end();
     }
@@ -673,7 +693,13 @@ impl Session {
     }
 
     /// One variable with a page of its children (`fullname` as reported by the engine).
-    pub async fn property(&self, fullname: &str, depth: u32, context: u32, page: u32) -> DebugResult<Property> {
+    pub async fn property(
+        &self,
+        fullname: &str,
+        depth: u32,
+        context: u32,
+        page: u32,
+    ) -> DebugResult<Property> {
         self.require_paused()?;
         let el = self
             .conn

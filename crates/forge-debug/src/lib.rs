@@ -20,7 +20,9 @@ pub mod servers;
 pub mod session;
 pub mod xml;
 
-pub use breakpoints::{Breakpoint, BreakpointKind, BreakpointSpec, BreakpointStore, BreakpointsSnapshot};
+pub use breakpoints::{
+    Breakpoint, BreakpointKind, BreakpointSpec, BreakpointStore, BreakpointsSnapshot,
+};
 pub use config::DebugConfig;
 pub use error::{DebugError, DebugResult};
 pub use events::{BreakReason, DebugEvent, EventSink, Location, SessionInfo, SessionStatus};
