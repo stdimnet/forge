@@ -2,8 +2,14 @@
 //! the open project, the Language Servers settings page, installs with streamed output,
 //! project-wide symbol search and the Intelephense licence key.
 //!
+//! npm servers (Intelephense, typescript-language-server, …) are installed by Forge itself
+//! (`forge_langservers::managed`): Node.js and the packages are downloaded and verified
+//! into Forge's data directory, so nothing has to be installed first.
+//!
 //! Events:
 //! - `langservers://install-output` `{ id, stream, line }`
+//! - `langservers://install-progress` `{ id, label, done, total }` (downloads, for the
+//!   status bar)
 //! - `langservers://changed` (rows changed after an apply or an install)
 
 use std::collections::HashMap;
@@ -13,6 +19,7 @@ use std::sync::{Arc, Mutex};
 use forge_core::{ForgeError, Result};
 use forge_langservers::install::{self, InstallOutcome, Stream};
 use forge_langservers::licence::{self, KeyringStore, Licence, LicenceStatus};
+use forge_langservers::managed::{self, Event, Installer, PackageUpdate, Sources};
 use forge_langservers::plan::current_platform;
 use forge_langservers::{
     plan, rows, scan_project, Catalog, ConfigContext, Detector, LiveState, Prefs, ProjectScan,
@@ -22,7 +29,7 @@ use forge_lsp::model::EditorWorkspaceSymbol;
 use forge_lsp::{LspManager, LspServerConfig, ServerState};
 use serde::Serialize;
 use serde_json::Value;
-use tauri::{AppHandle, Emitter, State};
+use tauri::{AppHandle, Emitter, Manager, State};
 
 use crate::commands::lsp::LspState;
 use crate::state::AppState;
@@ -258,6 +265,88 @@ struct InstallLine {
     line: String,
 }
 
+#[derive(Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+struct InstallProgress {
+    id: String,
+    label: String,
+    done: u64,
+    total: Option<u64>,
+}
+
+/// Download sources from the settings (`langservers.download.*`).
+fn sources(ws: &AppState) -> Sources {
+    let settings = ws.read_settings();
+    let get = |k: &str| settings.get(k).and_then(Value::as_str).map(str::to_owned);
+    Sources::new(
+        get("langservers.download.npmRegistry").as_deref(),
+        get("langservers.download.nodeMirror").as_deref(),
+    )
+}
+
+/// Install npm `packages` with Forge's managed installer, streaming its steps as output
+/// lines of `id` and its downloads as progress events.
+async fn managed_install(
+    app: &AppHandle,
+    ws: &AppState,
+    id: &str,
+    packages: &[String],
+    cancel: Arc<tokio::sync::Notify>,
+) -> std::result::Result<InstallOutcome, String> {
+    let installer = Installer::system(sources(ws))?;
+    let mut last_step: Option<(String, u64)> = None;
+    let mut on = |e: Event| match e {
+        Event::Step { message } => emit_line(app, id, Stream::Info, message),
+        Event::Output { stream, line } => emit_line(app, id, stream, line),
+        Event::Progress { label, done, total } => {
+            // One event per percent (or per MB without a length) is plenty for a progress bar.
+            let step = total.map_or(done >> 20, |t| done * 100 / t.max(1));
+            if last_step.as_ref() == Some(&(label.clone(), step)) {
+                return;
+            }
+            last_step = Some((label.clone(), step));
+            let _ = app.emit(
+                "langservers://install-progress",
+                InstallProgress {
+                    id: id.to_string(),
+                    label,
+                    done,
+                    total,
+                },
+            );
+        }
+    };
+    tokio::select! {
+        r = installer.install(packages, Arc::new(tokio::sync::Notify::new()), &mut on) => r,
+        _ = cancel.notified() => Ok(InstallOutcome::Cancelled),
+    }
+}
+
+fn emit_line(app: &AppHandle, id: &str, stream: Stream, line: String) {
+    let _ = app.emit(
+        "langservers://install-output",
+        InstallLine {
+            id: id.to_string(),
+            stream,
+            line,
+        },
+    );
+}
+
+/// Register what was just installed: catalog servers and the PHP pack's Intelephense.
+async fn register_installed(app: &AppHandle) {
+    let handle = app.clone();
+    let _ = tauri::async_runtime::spawn_blocking(move || {
+        let lsp = handle.state::<LspState>();
+        let ws = handle.state::<AppState>();
+        if let Ok(manager) = lsp.manager(&handle, &ws) {
+            apply(&manager, &ws, false);
+        }
+        crate::commands::php::sync_lsp_server(&handle, None);
+    })
+    .await;
+}
+
 /// Run install option `index` of server `id` (catalog commands only, after the user
 /// confirmed it in the UI). Output streams as `langservers://install-output`.
 #[tauri::command]
@@ -266,6 +355,7 @@ pub async fn langservers_install(
     index: usize,
     app: AppHandle,
     state: State<'_, LangServersState>,
+    ws: State<'_, AppState>,
 ) -> Result<InstallOutcome> {
     let spec = Catalog::builtin()
         .server(&id)
@@ -276,7 +366,14 @@ pub async fn langservers_install(
         .get(index)
         .ok_or_else(|| other("unknown install option"))?;
     let detector = Detector::system();
-    let (program, args) = install::resolve_command(option, &detector).map_err(other)?;
+    // npm packages: Forge's own installer (no Node.js or npm needed on the machine).
+    let packages = detector
+        .managed_dir()
+        .and_then(|_| managed::npm_packages(option));
+    let resolved = match packages {
+        Some(_) => None,
+        None => Some(install::resolve_command(option, &detector).map_err(other)?),
+    };
     let cancel = Arc::new(tokio::sync::Notify::new());
     {
         let mut installs = state.installs.lock().expect("installs lock");
@@ -285,6 +382,25 @@ pub async fn langservers_install(
         }
         installs.insert(id.clone(), cancel.clone());
     }
+    let Some((program, args)) = resolved else {
+        let packages = packages.unwrap_or_default();
+        let outcome = managed_install(&app, &ws, &id, &packages, cancel).await;
+        state.installs.lock().expect("installs lock").remove(&id);
+        let outcome = match outcome {
+            Ok(o) => o,
+            Err(e) => {
+                emit_line(&app, &id, Stream::Info, e.clone());
+                let _ = app.emit("langservers://changed", ());
+                return Err(other(e));
+            }
+        };
+        emit_line(&app, &id, Stream::Info, outcome_line(&outcome, &spec.name));
+        if outcome == InstallOutcome::Succeeded {
+            register_installed(&app).await;
+        }
+        let _ = app.emit("langservers://changed", ());
+        return Ok(outcome);
+    };
     let emit = |stream: Stream, line: String| {
         let _ = app.emit(
             "langservers://install-output",
@@ -300,16 +416,83 @@ pub async fn langservers_install(
         format!("$ {}", install::display_command(option, &detector)),
     );
     let outcome = install::run(program, args, detector.dirs().to_vec(), cancel, &emit).await;
-    emit(
-        Stream::Info,
-        match &outcome {
-            InstallOutcome::Succeeded => format!("{} installed.", spec.name),
-            InstallOutcome::Failed { code: Some(c) } => format!("Failed with exit code {c}."),
-            InstallOutcome::Failed { code: None } => "Failed.".into(),
-            InstallOutcome::Cancelled => "Cancelled.".into(),
-        },
-    );
+    emit(Stream::Info, outcome_line(&outcome, &spec.name));
     state.installs.lock().expect("installs lock").remove(&id);
+    let _ = app.emit("langservers://changed", ());
+    Ok(outcome)
+}
+
+fn outcome_line(outcome: &InstallOutcome, name: &str) -> String {
+    match outcome {
+        InstallOutcome::Succeeded => format!("{name} installed."),
+        InstallOutcome::Failed { code: Some(c) } => format!("Failed with exit code {c}."),
+        InstallOutcome::Failed { code: None } => "Failed.".into(),
+        InstallOutcome::Cancelled => "Cancelled.".into(),
+    }
+}
+
+/// Newer versions of the npm servers Forge installed. Asks the registry at most once a
+/// day unless `force`; `None` when it did not ask (or checks are off in the settings).
+#[tauri::command]
+pub async fn langservers_check_updates(
+    force: Option<bool>,
+    ws: State<'_, AppState>,
+) -> Result<Option<Vec<PackageUpdate>>> {
+    let force = force.unwrap_or(false);
+    let enabled = ws
+        .read_settings()
+        .get("langservers.updates.check")
+        .and_then(Value::as_bool)
+        .unwrap_or(true);
+    if !enabled && !force {
+        return Ok(None);
+    }
+    let installer = Installer::system(sources(&ws)).map_err(other)?;
+    Ok(installer
+        .check_updates(force, managed::updates::now_secs())
+        .await)
+}
+
+/// Update one package Forge installed to its latest version, then restart the servers so
+/// they run the new files. Output streams under the package name.
+#[tauri::command]
+pub async fn langservers_update(
+    package: String,
+    app: AppHandle,
+    state: State<'_, LangServersState>,
+    ws: State<'_, AppState>,
+) -> Result<InstallOutcome> {
+    let cancel = Arc::new(tokio::sync::Notify::new());
+    {
+        let mut installs = state.installs.lock().expect("installs lock");
+        if installs.contains_key(&package) {
+            return Err(other(format!("{package} is already being updated")));
+        }
+        installs.insert(package.clone(), cancel.clone());
+    }
+    let outcome =
+        managed_install(&app, &ws, &package, std::slice::from_ref(&package), cancel).await;
+    state
+        .installs
+        .lock()
+        .expect("installs lock")
+        .remove(&package);
+    let outcome = outcome.map_err(other)?;
+    emit_line(
+        &app,
+        &package,
+        Stream::Info,
+        outcome_line(&outcome, &package),
+    );
+    if outcome == InstallOutcome::Succeeded {
+        if let Ok(manager) = app.state::<LspState>().manager(&app, &ws) {
+            // Registering again stops a running server; it restarts on next use.
+            for config in manager.configs() {
+                manager.register_server(config);
+            }
+        }
+        register_installed(&app).await;
+    }
     let _ = app.emit("langservers://changed", ());
     Ok(outcome)
 }

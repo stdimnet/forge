@@ -193,6 +193,8 @@ pub fn run() {
             commands::langservers::langservers_apply,
             commands::langservers::langservers_install,
             commands::langservers::langservers_cancel_install,
+            commands::langservers::langservers_check_updates,
+            commands::langservers::langservers_update,
             commands::langservers::lsp_workspace_symbols,
             commands::langservers::intelephense_licence_status,
             commands::langservers::intelephense_set_licence,

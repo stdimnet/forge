@@ -42,6 +42,9 @@ pub struct PhpLspSettings {
     pub include_paths: Vec<String>,
     /// Explicit executable paths (skip PATH detection).
     pub intelephense_path: Option<PathBuf>,
+    /// Run `intelephense_path` (then Intelephense's JavaScript entry point) with this
+    /// Node.js: Forge's managed install needs no Node.js on `PATH`.
+    pub intelephense_node: Option<PathBuf>,
     pub phpactor_path: Option<PathBuf>,
     /// Where Intelephense stores its cache; defaults to `<cache dir>/forge/intelephense`.
     pub storage_path: Option<PathBuf>,
@@ -57,6 +60,7 @@ impl Default for PhpLspSettings {
             extra_stubs: Vec::new(),
             include_paths: Vec::new(),
             intelephense_path: None,
+            intelephense_node: None,
             phpactor_path: None,
             storage_path: None,
         }
@@ -387,11 +391,20 @@ pub fn intelephense_config(
         "telemetry": { "enabled": false },
     });
     init["globalStoragePath"] = json!(storage.to_string_lossy());
+    // A managed install: `node <dir>/node_modules/intelephense/lib/intelephense.js --stdio`.
+    let node = settings
+        .intelephense_node
+        .clone()
+        .filter(|_| settings.intelephense_path.as_ref() == Some(&command));
+    let (command, args) = match node {
+        Some(node) => (node, vec![command.display().to_string(), "--stdio".into()]),
+        None => (command, vec!["--stdio".into()]),
+    };
     LspServerConfig {
         kind: ServerKind::Intelephense,
         name: "Intelephense".into(),
         command,
-        args: vec!["--stdio".into()],
+        args,
         language_ids: vec!["php".into()],
         file_extensions: vec!["php".into(), "phtml".into()],
         initialization_options: init,
@@ -508,6 +521,31 @@ mod tests {
             ..Default::default()
         };
         assert_eq!(detect(&settings, &[], &probe).intelephense, Some(custom));
+    }
+
+    #[test]
+    fn managed_intelephense_runs_with_forges_node() {
+        let script =
+            PathBuf::from("/data/forge/langservers/node_modules/intelephense/lib/intelephense.js");
+        let node = PathBuf::from("/data/forge/runtimes/node-v22.11.0/bin/node");
+        let settings = PhpLspSettings {
+            intelephense_path: Some(script.clone()),
+            intelephense_node: Some(node.clone()),
+            ..Default::default()
+        };
+        let cfg = intelephense_config(script.clone(), &settings, None);
+        assert_eq!(cfg.command, node);
+        assert_eq!(
+            cfg.args,
+            vec![script.display().to_string(), "--stdio".into()]
+        );
+        // An executable found elsewhere starts on its own.
+        let other = PathBuf::from("/usr/bin/intelephense");
+        let cfg = intelephense_config(other.clone(), &settings, None);
+        assert_eq!(
+            (cfg.command, cfg.args),
+            (other, vec!["--stdio".to_string()])
+        );
     }
 
     #[test]
