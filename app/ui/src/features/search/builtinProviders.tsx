@@ -48,8 +48,12 @@ registerSearchProvider({
   order: 0,
   search(query) {
     if (!query.trim()) return [];
-    return allActions()
-      .filter((a) => !a.native)
+    const actions = allActions();
+    // A command that implements a PHPStorm action (an alias like `git.commit` for
+    // `CheckinProject`) is listed once, under the PHPStorm action.
+    const aliasTargets = new Set(actions.flatMap((a) => a.aliases ?? []));
+    return actions
+      .filter((a) => !a.native && !aliasTargets.has(a.id))
       .map((a): SearchItem => {
         const available = isActionAvailable(a.id);
         return {
