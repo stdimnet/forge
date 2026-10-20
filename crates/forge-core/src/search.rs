@@ -3,6 +3,7 @@
 //! The matchers live in the pure `forge-fuzzy` and `forge-find` crates (also compiled to
 //! WebAssembly for the browser-mode UI); this module walks the workspace.
 
+pub use forge_find::todo::{TodoRequest, TodoResult};
 pub use forge_find::{FindRequest, FindResult};
 pub use forge_fuzzy::{
     fuzzy_match, fuzzy_match_with, match_file, FileMatch, FuzzyMatch, MatchOptions,
@@ -58,21 +59,84 @@ impl Workspace {
         } else {
             self.resolve(finder.directory())?
         };
+        let mut collector = forge_find::Collector::new(&finder);
+        self.walk_text_files(
+            &start,
+            |rel| finder.wants(rel),
+            |rel, text| {
+                collector.add(rel, text);
+                !collector.full()
+            },
+        );
+        Ok(collector.finish())
+    }
+
+    /// TODO tool window: TODO patterns in the comments of every project file (or only of
+    /// `req.paths`), `.gitignore` and the default excludes respected. An invalid pattern is
+    /// reported in [`TodoResult::error`].
+    pub fn find_todos(&self, req: &TodoRequest) -> Result<TodoResult> {
+        let scanner = match forge_find::todo::TodoScanner::new(req) {
+            Ok(s) => s,
+            Err(e) => {
+                return Ok(TodoResult {
+                    error: Some(e),
+                    ..TodoResult::default()
+                })
+            }
+        };
+        let mut collector = forge_find::todo::TodoCollector::new(&scanner);
+        match &req.paths {
+            Some(paths) => {
+                for rel in paths {
+                    let Ok(abs) = self.resolve(rel) else { continue };
+                    if !scanner.wants(rel)
+                        || !std::fs::metadata(&abs)
+                            .is_ok_and(|m| m.is_file() && m.len() <= forge_find::MAX_FILE_SIZE)
+                    {
+                        continue;
+                    }
+                    let Ok(bytes) = std::fs::read(&abs) else {
+                        continue;
+                    };
+                    if !forge_find::is_binary(&bytes) {
+                        collector.add(rel, &String::from_utf8_lossy(&bytes));
+                    }
+                }
+            }
+            None => {
+                let root = self.root().to_path_buf();
+                self.walk_text_files(
+                    &root,
+                    |rel| scanner.wants(rel),
+                    |rel, text| {
+                        collector.add(rel, text);
+                        !collector.full()
+                    },
+                );
+            }
+        }
+        Ok(collector.finish())
+    }
+
+    /// Visit the text files under `start` that `wants` accepts (`.gitignore`/`.ignore` and the
+    /// default excludes respected, binary and huge files skipped) until `visit` returns false.
+    fn walk_text_files(
+        &self,
+        start: &std::path::Path,
+        wants: impl Fn(&str) -> bool,
+        mut visit: impl FnMut(&str, &str) -> bool,
+    ) {
         let walker = ignore::WalkBuilder::new(start)
             .hidden(false)
             .require_git(false)
             .filter_entry(|e| !DEFAULT_EXCLUDES.contains(&e.file_name().to_string_lossy().as_ref()))
             .build();
-        let mut collector = forge_find::Collector::new(&finder);
         for entry in walker.filter_map(|e| e.ok()).take(MAX_WALKED_FILES) {
-            if collector.full() {
-                break;
-            }
             if !entry.file_type().is_some_and(|t| t.is_file()) {
                 continue;
             }
             let rel = self.relative(entry.path());
-            if !finder.wants(&rel)
+            if !wants(&rel)
                 || entry
                     .metadata()
                     .is_ok_and(|m| m.len() > forge_find::MAX_FILE_SIZE)
@@ -85,9 +149,10 @@ impl Workspace {
             if forge_find::is_binary(&bytes) {
                 continue;
             }
-            collector.add(&rel, &String::from_utf8_lossy(&bytes));
+            if !visit(&rel, &String::from_utf8_lossy(&bytes)) {
+                break;
+            }
         }
-        Ok(collector.finish())
     }
 }
 
@@ -153,5 +218,36 @@ mod tests {
         let mut bad = req("(");
         bad.regex = true;
         assert!(ws.find_in_files(&bad).unwrap().error.is_some());
+    }
+
+    #[test]
+    fn find_todos_scans_comments_and_respects_gitignore() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        fs::create_dir_all(root.join("app")).unwrap();
+        fs::create_dir_all(root.join("vendor/x")).unwrap();
+        fs::write(root.join(".gitignore"), "vendor/\n").unwrap();
+        fs::write(
+            root.join("app/Order.php"),
+            "<?php\n// TODO: ship it\n$s = 'todo';\n",
+        )
+        .unwrap();
+        fs::write(root.join("app/b.js"), "/* FIXME */\n").unwrap();
+        fs::write(root.join("vendor/x/Lib.php"), "<?php // TODO vendor\n").unwrap();
+        let ws = Workspace::open(root).unwrap();
+
+        let r = ws.find_todos(&TodoRequest::default()).unwrap();
+        let paths: Vec<_> = r.files.iter().map(|f| f.path.as_str()).collect();
+        assert_eq!(paths, vec!["app/Order.php", "app/b.js"]);
+        assert_eq!(r.files[0].items[0].text, "TODO: ship it");
+        assert_eq!(r.count, 2);
+
+        let only = TodoRequest {
+            paths: Some(vec!["app/b.js".into(), "missing.php".into(), "../x".into()]),
+            ..TodoRequest::default()
+        };
+        let r = ws.find_todos(&only).unwrap();
+        assert_eq!(r.files.len(), 1);
+        assert_eq!(r.files[0].items[0].text, "FIXME");
     }
 }

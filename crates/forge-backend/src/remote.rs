@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, Weak};
 use std::time::Duration;
 
-use forge_core::search::{FindRequest, FindResult};
+use forge_core::search::{FindRequest, FindResult, TodoRequest, TodoResult};
 use forge_core::{FileEntry, FileMatch, Result};
 use forge_lsp::launch::{ServerIo, ServerProcess};
 use forge_lsp::{LspServerConfig as LspConfig, ServerLauncher};
@@ -449,6 +449,11 @@ impl Backend for RemoteBackend {
     fn find_in_files(&self, req: &FindRequest) -> Result<FindResult> {
         self.shared
             .call(Call::FindInFiles(req.clone()), GIT_NETWORK_TIMEOUT)
+    }
+
+    fn find_todos(&self, req: &TodoRequest) -> Result<TodoResult> {
+        self.shared
+            .call(Call::FindTodos(req.clone()), GIT_NETWORK_TIMEOUT)
     }
 
     fn git(&self) -> Arc<dyn GitExec> {
