@@ -28,3 +28,4 @@ import "./debug/runIntegration";
 import "./database";
 import "./scratches";
 import "./services";
+import "./webforge";

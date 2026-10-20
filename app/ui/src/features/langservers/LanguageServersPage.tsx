@@ -153,21 +153,26 @@ function Details(props: { row: ServerRow; onInstall: () => void }) {
   );
 }
 
-export function LanguageServersPage() {
+/**
+ * `groups` limits the page to some catalog groups (e.g. "Vue"), for language pages that embed
+ * the servers of their languages.
+ */
+export function LanguageServersPage(props: { groups?: string[] } = {}) {
   const [filter, setFilter] = createSignal("");
   const [projectOnly, setProjectOnly] = createSignal(false);
   const [selectedId, setSelectedId] = createSignal<string | null>(null);
   const [installing, setInstalling] = createSignal<ServerRow | null>(null);
   onMount(() => void refreshRows());
 
-  const groups = createMemo(() => groupRows(rows(), { filter: filter(), projectOnly: projectOnly() }));
-  const selected = createMemo(() => rows().find((r) => r.id === selectedId()) ?? groups()[0]?.rows[0]);
+  const ownRows = createMemo(() => (props.groups ? rows().filter((r) => props.groups!.includes(r.group)) : rows()));
+  const groups = createMemo(() => groupRows(ownRows(), { filter: filter(), projectOnly: projectOnly() }));
+  const selected = createMemo(() => ownRows().find((r) => r.id === selectedId()) ?? groups()[0]?.rows[0]);
   const generalSpecs = createMemo(() =>
     settingsState.schema.filter((s) => s.group === "lang.servers").sort((a, b) => a.order - b.order),
   );
   const enabled = (r: ServerRow) => serverValue<boolean>(r.id, "enabled", r.enabled);
   const counts = createMemo(() => {
-    const all = rows();
+    const all = ownRows();
     return {
       running: all.filter((r) => r.status === "running").length,
       installed: all.filter((r) => r.path).length,
@@ -177,11 +182,13 @@ export function LanguageServersPage() {
 
   return (
     <div class="ls-page" data-testid="language-servers-page">
+      <Show when={!props.groups}>
       <p class="ls-intro muted">
         Language servers are separate programs. Forge looks in the project's node_modules, in its own server directory
         (~/.local/share/forge/langservers), on PATH and in pip, cargo, go and Mason directories. npm servers are
         installed into that directory only, never globally.
       </p>
+      </Show>
       <Show when={generalSpecs().length}>
         <div class="set-section-body ls-general">
           <For each={generalSpecs()}>{(spec) => <SettingRow spec={spec} />}</For>

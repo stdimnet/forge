@@ -7,14 +7,20 @@ import { createIgnoreMatcher } from "./gitignoreMatcher";
 import { trackedPaths } from "./gitMock";
 import { recentPrimaries } from "./projectMock";
 import { isSymfonyDemo, symfonyDemoFiles, symfonyDemoName } from "./demoSymfonyProject";
+import { webDemo } from "./demoWebProjects";
 
 /** The in-memory project (demo files plus whatever the UI saved); read by other mocks. */
-// `?project=symfony` opens the Symfony demo project instead of the Laravel one.
+// `?project=symfony` opens the Symfony demo project instead of the Laravel one,
+// `?project=react|vue|angular` a WebForge demo (demoWebProjects.ts).
 export const mockFiles: Record<string, string> = isSymfonyDemo()
   ? { ...symfonyDemoFiles }
-  : { ...demoFiles, ...demoLaravelFiles, ...demoConfigFiles };
+  : webDemo()
+    ? { ...webDemo()!.files }
+    : { ...demoFiles, ...demoLaravelFiles, ...demoConfigFiles };
 const files = mockFiles;
-const openName = isSymfonyDemo() ? symfonyDemoName : demoProjectName;
+/** Name of the open demo project. */
+export const mockProjectName = isSymfonyDemo() ? symfonyDemoName : (webDemo()?.name ?? demoProjectName);
+const openName = mockProjectName;
 const ignores = createIgnoreMatcher((dir) => files[dir ? `${dir}/.gitignore` : ".gitignore"]);
 
 /** Ignored means matched by `.gitignore` and not tracked (a file or a folder with tracked files). */
