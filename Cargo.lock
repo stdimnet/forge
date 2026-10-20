@@ -6379,6 +6379,37 @@ dependencies = [
 ]
 
 [[package]]
+name = "webforge-fw-angular"
+version = "0.1.0"
+dependencies = [
+ "webforge-lang-web",
+]
+
+[[package]]
+name = "webforge-fw-react"
+version = "0.1.0"
+dependencies = [
+ "webforge-lang-web",
+]
+
+[[package]]
+name = "webforge-fw-vue"
+version = "0.1.0"
+dependencies = [
+ "webforge-lang-web",
+]
+
+[[package]]
+name = "webforge-lang-web"
+version = "0.1.0"
+dependencies = [
+ "ignore",
+ "serde",
+ "serde_json",
+ "tempfile",
+]
+
+[[package]]
 name = "webkit2gtk"
 version = "2.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"

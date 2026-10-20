@@ -1,0 +1,19 @@
+[package]
+name = "webforge-lang-web"
+description = "WebForge: package.json, npm scripts, package managers and the shared JavaScript/TypeScript/HTML scanning used by the framework plugins"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[features]
+default = ["fs"]
+# Load project files from disk (left out of the WebAssembly build).
+fs = ["dep:ignore"]
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+ignore = { workspace = true, optional = true }
+
+[dev-dependencies]
+tempfile.workspace = true
