@@ -86,6 +86,27 @@ fn short_hash(s: &str) -> String {
 }
 
 /// Build the config for `spec`, started from `executable`.
+/// The Lua environment to configure: `Auto` looks at the project root (LÖVE: `conf.lua` or a
+/// `main.lua` using `love.`; Neovim: `init.lua` next to `lua/`, or a `lua/` + `plugin/` plugin).
+pub fn lua_environment(env: LuaEnvironment, root: &Path) -> LuaEnvironment {
+    if env != LuaEnvironment::Auto {
+        return env;
+    }
+    let main_uses_love = || {
+        std::fs::read_to_string(root.join("main.lua"))
+            .map(|s| s.contains("love."))
+            .unwrap_or(false)
+    };
+    if root.join("conf.lua").is_file() || main_uses_love() {
+        return LuaEnvironment::Love;
+    }
+    let lua_dir = root.join("lua").is_dir();
+    if lua_dir && (root.join("init.lua").is_file() || root.join("plugin").is_dir()) {
+        return LuaEnvironment::Neovim;
+    }
+    LuaEnvironment::Plain
+}
+
 pub fn build_config(
     catalog: &Catalog,
     spec: &ServerSpec,
@@ -176,8 +197,10 @@ pub fn build_config(
             );
         }
         "lua-language-server" => {
-            let lua = match ctx.prefs.lua_environment {
-                LuaEnvironment::Plain => json!({"runtime": {"version": ctx.prefs.lua_version}}),
+            let lua = match lua_environment(ctx.prefs.lua_environment, ctx.root) {
+                LuaEnvironment::Plain | LuaEnvironment::Auto => {
+                    json!({"runtime": {"version": ctx.prefs.lua_version}})
+                }
                 LuaEnvironment::Love => json!({
                     "runtime": {"version": "LuaJIT"},
                     "diagnostics": {"globals": ["love"]},
@@ -196,6 +219,32 @@ pub fn build_config(
                 }
             };
             merge_json(&mut settings, &json!({ "Lua": lua }));
+            // The user's library folders come after the environment's.
+            if !ctx.prefs.lua_libraries.is_empty() {
+                let home = std::env::var_os("HOME").map(PathBuf::from);
+                let extra: Vec<Value> = ctx
+                    .prefs
+                    .lua_libraries
+                    .iter()
+                    .map(|l| match (l.strip_prefix("~/"), &home) {
+                        (Some(rest), Some(h)) => json!(h.join(rest).display().to_string()),
+                        _ => json!(l),
+                    })
+                    .collect();
+                let lua = settings
+                    .as_object_mut()
+                    .and_then(|s| s.get_mut("Lua"))
+                    .and_then(Value::as_object_mut);
+                if let Some(lua) = lua {
+                    let workspace = lua.entry("workspace").or_insert_with(|| json!({}));
+                    if let Some(ws) = workspace.as_object_mut() {
+                        let library = ws.entry("library").or_insert_with(|| json!([]));
+                        if let Some(list) = library.as_array_mut() {
+                            list.extend(extra);
+                        }
+                    }
+                }
+            }
         }
         "jdtls" => {
             let name = ctx
@@ -462,6 +511,17 @@ mod tests {
         assert_eq!(lua.settings["Lua"]["runtime"]["version"], "LuaJIT");
         assert_eq!(lua.settings["Lua"]["diagnostics"]["globals"][0], "love");
         assert_eq!(lua.settings["Lua"]["telemetry"]["enable"], false);
+        // Detected from the project: a LÖVE game has conf.lua.
+        prefs.lua_environment = LuaEnvironment::Auto;
+        std::fs::write(root.join("conf.lua"), "function love.conf(t) end").unwrap();
+        let lua = build_config(
+            c,
+            c.server("lua-language-server").unwrap(),
+            Path::new("l"),
+            &ctx(&root, &d, &prefs, &scan),
+        );
+        assert_eq!(lua.settings["Lua"]["diagnostics"]["globals"][0], "love");
+        std::fs::remove_file(root.join("conf.lua")).unwrap();
         prefs.lua_environment = LuaEnvironment::Neovim;
         let lua = build_config(
             c,
@@ -470,6 +530,18 @@ mod tests {
             &ctx(&root, &d, &prefs, &scan),
         );
         assert_eq!(lua.settings["Lua"]["diagnostics"]["globals"][0], "vim");
+        prefs.lua_environment = LuaEnvironment::Love;
+        prefs.lua_libraries = vec!["vendor/lua".into()];
+        let lua = build_config(
+            c,
+            c.server("lua-language-server").unwrap(),
+            Path::new("l"),
+            &ctx(&root, &d, &prefs, &scan),
+        );
+        assert_eq!(
+            lua.settings["Lua"]["workspace"]["library"],
+            json!(["${3rd}/love2d/library", "vendor/lua"])
+        );
     }
 
     #[test]

@@ -177,6 +177,37 @@ export function keymap_set_override(json: string): string;
 export function keymap_stroke_of_event(event_json: string): string;
 
 /**
+ * `{ path, content? }` -> `FileStructure | null`.
+ */
+export function lua_file_structure(request_json: string): string;
+
+/**
+ * `{ path, offset, content? }` -> `Location[]`.
+ */
+export function lua_goto(request_json: string): string;
+
+/**
+ * `{ path, offset, content? }` -> `Hover | null`.
+ */
+export function lua_hover(request_json: string): string;
+
+/**
+ * Replace the indexed files: `{ files: { path: text }, requirePaths?, name? }` -> stats.
+ * Files other than `.lua` are ignored, except `.luarc.json`.
+ */
+export function lua_index_files(request_json: string): string;
+
+/**
+ * `{ path, content? }` -> `RunMarker[]`.
+ */
+export function lua_run_markers(request_json: string): string;
+
+/**
+ * `{ query, kind: "class" | "symbol", limit? }` -> `SymbolHit[]`.
+ */
+export function lua_search_symbols(request_json: string): string;
+
+/**
  * `{ markdown }` → `HoverDoc`.
  */
 export function markdown_hover(request_json: string): string;
@@ -394,6 +425,12 @@ export interface InitOutput {
     readonly keymap_resolve: (a: number, b: number, c: number) => void;
     readonly keymap_set_override: (a: number, b: number, c: number) => void;
     readonly keymap_stroke_of_event: (a: number, b: number, c: number) => void;
+    readonly lua_file_structure: (a: number, b: number, c: number) => void;
+    readonly lua_goto: (a: number, b: number, c: number) => void;
+    readonly lua_hover: (a: number, b: number, c: number) => void;
+    readonly lua_index_files: (a: number, b: number, c: number) => void;
+    readonly lua_run_markers: (a: number, b: number, c: number) => void;
+    readonly lua_search_symbols: (a: number, b: number, c: number) => void;
     readonly markdown_hover: (a: number, b: number, c: number) => void;
     readonly markdown_parse: (a: number, b: number, c: number) => void;
     readonly output_file_links: (a: number, b: number, c: number) => void;

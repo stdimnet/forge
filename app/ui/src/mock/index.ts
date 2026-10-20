@@ -21,6 +21,7 @@ import "./debugMock";
 import "./dbMock";
 import "./laravelMock";
 import "./symfonyMock";
+import "./luaMock";
 import "./doctrineMock";
 import "./forgesMock";
 import "./markdownMock";

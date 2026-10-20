@@ -15,7 +15,22 @@ export function applyTextEdits(view: EditorView, edits: TextEdit[], userEvent = 
   view.dispatch({ changes, userEvent, scrollIntoView: false });
 }
 
+/**
+ * A formatter that a language pack puts before the language server (StyLua for Lua).
+ * Returns true when it handled the file.
+ */
+export type FormatProvider = (path: string, view: EditorView) => Promise<boolean>;
+
+const formatProviders: FormatProvider[] = [];
+
+export function registerFormatProvider(provider: FormatProvider): void {
+  formatProviders.push(provider);
+}
+
 export async function reformat(path: string, view: EditorView): Promise<void> {
+  for (const provider of formatProviders) {
+    if (await provider(path, view).catch(() => false)) return;
+  }
   await syncNow(path);
   const edits = await lspApi.format(path).catch(() => [] as TextEdit[]);
   applyTextEdits(view, edits);

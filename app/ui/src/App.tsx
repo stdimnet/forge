@@ -17,6 +17,7 @@ export function App() {
     await openWorkspace("demo");
     const INITIAL: Record<string, string> = {
       symfony: "src/Controller/OrderController.php",
+      lua: "main.lua",
       react: "src/App.tsx",
       vue: "src/views/DashboardView.vue",
       angular: "src/app/users/user-card.component.ts",

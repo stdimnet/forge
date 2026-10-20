@@ -14,7 +14,11 @@ export type SymbolKind =
   | "method"
   | "property"
   | "constant"
-  | "function";
+  | "function"
+  // Kinds of other languages shown in the Structure tool window (Lua).
+  | "module"
+  | "alias"
+  | "variable";
 
 export type Visibility = "public" | "protected" | "private";
 
@@ -64,6 +68,8 @@ export interface StructureNode {
   offset: number;
   /** 0-based line. */
   line: number;
+  /** UTF-16 column, when the provider knows it. */
+  column?: number;
   deprecated?: boolean;
   inheritedFrom?: string;
   path?: string;

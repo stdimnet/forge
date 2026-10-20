@@ -1794,6 +1794,7 @@ dependencies = [
  "forge-scratches",
  "forge-vcs",
  "futures-util",
+ "luaforge-lang-lua",
  "phpforge-dql",
  "phpforge-fw-laravel",
  "phpforge-fw-symfony",
@@ -2145,6 +2146,7 @@ dependencies = [
  "forge-remote",
  "forge-scratches",
  "forge-sql",
+ "luaforge-lang-lua",
  "phpforge-dql",
  "serde",
  "serde_json",
@@ -3475,6 +3477,16 @@ dependencies = [
  "serde_json",
  "serde_repr",
  "url",
+]
+
+[[package]]
+name = "luaforge-lang-lua"
+version = "0.1.0"
+dependencies = [
+ "forge-fuzzy",
+ "forge-markdown",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

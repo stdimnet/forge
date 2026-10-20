@@ -1,37 +1,4 @@
-# LuaForge plugins, plus the AI plugins that ship with the core. Each table is one plugin.
-
-[[plugin]]
-id = "forge.lua"
-name = "Lua"
-version = "0.1.0"
-pack = "luaforge"
-vendor = "Forge"
-description = "Lua 5.1–5.4 and LuaJIT support via lua-language-server."
-projectTypes = ["luaforge"]
-
-[plugin.contributions]
-languages = ["lua"]
-
-[[plugin.contributions.lspServers]]
-id = "lua-language-server"
-languageId = "lua"
-command = "lua-language-server"
-fileExtensions = ["lua"]
-initializationOptions = { runtime = { version = "Lua 5.4" } }
-
-[[plugin.contributions.runConfigurationTypes]]
-id = "lua-script"
-name = "Lua Script"
-description = "Run a Lua file with the configured interpreter."
-icon = "moon"
-defaultInterpreter = "lua"
-command = ["${interpreter}", "${interpreterOptions}", "${file}", "${arguments}"]
-
-[[plugin.contributions.runConfigurationTypes.fields]]
-key = "file"
-label = "File"
-kind = "path"
-required = true
+# The AI plugins that ship with the core. Each table is one plugin.
 
 [[plugin]]
 id = "forge.ai"

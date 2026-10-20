@@ -15,18 +15,25 @@ import { trackedPaths } from "./gitMock";
 import { recentPrimaries } from "./projectMock";
 import { isSymfonyDemo, symfonyDemoFiles, symfonyDemoName } from "./demoSymfonyProject";
 import { webDemo } from "./demoWebProjects";
+import { isLuaDemo, luaDemoFiles, luaDemoName } from "./demoLuaProject";
 
 /** The in-memory project (demo files plus whatever the UI saved); read by other mocks. */
 // `?project=symfony` opens the Symfony demo project instead of the Laravel one,
-// `?project=react|vue|angular` a WebForge demo (demoWebProjects.ts).
+// `?project=react|vue|angular` a WebForge demo (demoWebProjects.ts), `?project=lua` the LÖVE game.
 export const mockFiles: Record<string, string> = isSymfonyDemo()
   ? { ...symfonyDemoFiles }
-  : webDemo()
-    ? { ...webDemo()!.files }
-    : { ...demoFiles, ...demoLaravelFiles, ...demoConfigFiles };
+  : isLuaDemo()
+    ? { ...luaDemoFiles }
+    : webDemo()
+      ? { ...webDemo()!.files }
+      : { ...demoFiles, ...demoLaravelFiles, ...demoConfigFiles };
 const files = mockFiles;
 /** Name of the open demo project. */
-export const mockProjectName = isSymfonyDemo() ? symfonyDemoName : (webDemo()?.name ?? demoProjectName);
+export const mockProjectName = isSymfonyDemo()
+  ? symfonyDemoName
+  : isLuaDemo()
+    ? luaDemoName
+    : (webDemo()?.name ?? demoProjectName);
 const openName = mockProjectName;
 // The remote demo host serves the same project as `/var/www/shop`.
 setRemoteProjectFiles(Object.keys(files));

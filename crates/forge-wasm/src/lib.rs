@@ -24,6 +24,7 @@ mod agents;
 mod containers;
 mod filetypes;
 mod keymap;
+mod lua;
 mod scratches;
 mod search;
 mod settings;

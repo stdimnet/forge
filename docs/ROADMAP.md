@@ -18,6 +18,7 @@
 - [x] Doctrine plugin: entity mapping (attributes, annotations, XML, YAML), DQL highlighting, completion and inspections in `createQuery()` and QueryBuilder strings
 - [x] Code hosts: GitLab, Forgejo/Gitea and GitHub pull/merge requests with inline review threads, issues, pipelines
 - [x] WebForge pack: npm tool window and package.json run icons (npm, pnpm, yarn, bun), React/Vue/Angular component navigation, Angular template and style line markers, Node.js and TypeScript settings with the web language servers
+- [x] LuaForge: Lua index in Rust (functions, tables, modules, `require` resolution, EmmyLua/LuaLS annotations), Structure, Go to Class/Symbol, Go to Declaration, annotation hover, lua-language-server settings, "Lua Script" run configurations with gutter run icons (lua, luajit, LÖVE), StyLua as Reformat Code
 
 ## Next branches
 
@@ -29,5 +30,4 @@
 | `feat/docker-kubernetes` | Services tool window: containers, compose, pods, logs |
 | `feat/remote-sessions` | SSH remote backend with remote indexing & LSP |
 | `feat/gemini-cli-plugin` | Gemini CLI as a chat agent |
-| `feat/luaforge` | Lua pack |
 | `feat/scratch-files` | Scratches & consoles (Ctrl+Alt+Shift+Insert) |

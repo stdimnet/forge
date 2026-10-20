@@ -4,6 +4,7 @@
  * `dbEngine.ts`. The demo project's `.env` suggests `shop@localhost`.
  */
 import { emitMock, registerMock } from "@/ipc";
+import { isLuaDemo } from "./demoLuaProject";
 import {
   DATA_SOURCES_EVENT,
   SESSION_EVENT,
@@ -384,8 +385,8 @@ registerMock("db_rollback", (a) => {
 registerMock("db_cancel", () => undefined);
 
 registerMock("db_detect_env", (): DetectedDataSource[] => {
-  // The WebForge demos have no .env with a database.
-  if (webDemo()) return [];
+  // The WebForge demos and the Lua demo game have no .env with a database.
+  if (webDemo() || isLuaDemo()) return [];
   const ds = envSource();
   if (sources.some((s) => s.source.driver === "mysql" && s.source.database === ds.database)) return [];
   return [{ source: ds, hasPassword: true, origin: ".env" }];

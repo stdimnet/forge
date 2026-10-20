@@ -306,7 +306,20 @@ fn scan_dir(dir: &Path, rel: &str, c: &mut Collector) {
     }
 
     // ---- Lua
-    if has_ext(".lua") || has(".luarc.json") {
+    // A lone helper script in a subfolder of another project does not make it a Lua project;
+    // Lua files in the root, several of them, or a Lua tool's config file do.
+    let lua_files = files.iter().filter(|f| f.ends_with(".lua")).count();
+    let lua_config = [
+        ".luarc.json",
+        ".luarc.jsonc",
+        ".luacheckrc",
+        "stylua.toml",
+        ".stylua.toml",
+        "selene.toml",
+    ]
+    .iter()
+    .any(|f| has(f));
+    if lua_config || lua_files >= 2 || (rel.is_empty() && lua_files > 0) {
         c.language("lua");
     }
     if has_ext(".rockspec") {
@@ -321,8 +334,15 @@ fn scan_dir(dir: &Path, rel: &str, c: &mut Collector) {
     if has("conf.lua") || (has("main.lua") && main_uses_love()) {
         c.framework("love", "LÖVE", "lua", None, rel);
     }
+    // Neovim: a config (`init.lua` next to `lua/`, or one that uses `vim.`) or a plugin.
     let neovim_plugin = dir.join("lua").is_dir() && dir.join("plugin").is_dir();
-    if (has("init.lua") && !has("main.lua")) || neovim_plugin {
+    let neovim_config = has("init.lua")
+        && !has("main.lua")
+        && (dir.join("lua").is_dir()
+            || fs::read_to_string(dir.join("init.lua"))
+                .map(|s| s.contains("vim."))
+                .unwrap_or(false));
+    if neovim_config || neovim_plugin {
         c.framework("neovim", "Neovim", "lua", None, rel);
     }
 
@@ -743,6 +763,33 @@ mod tests {
 
         let dir = tempfile::tempdir().unwrap();
         write(dir.path(), "init.lua", "vim.opt.number = true");
+        assert_eq!(detect(dir.path()).primary.unwrap().id, "neovim");
+    }
+
+    #[test]
+    fn lua_markers_and_stray_scripts() {
+        // A helper script one level down does not turn a PHP project into a Lua one.
+        let dir = tempfile::tempdir().unwrap();
+        write(dir.path(), "composer.json", "{}");
+        write(dir.path(), "scripts/build.lua", "print(1)");
+        assert!(!detect(dir.path()).languages.contains(&"lua".to_string()));
+        // Config files and several Lua files do.
+        write(dir.path(), "scripts/deploy.lua", "print(2)");
+        assert!(detect(dir.path()).packs.contains(&"luaforge".to_string()));
+        let dir = tempfile::tempdir().unwrap();
+        write(dir.path(), "game/stylua.toml", "");
+        assert!(detect(dir.path()).languages.contains(&"lua".to_string()));
+        // A module folder with `init.lua` is not a Neovim config.
+        let dir = tempfile::tempdir().unwrap();
+        write(dir.path(), "init.lua", "return require('mylib.core')");
+        write(dir.path(), "app.lua", "");
+        let info = detect(dir.path());
+        assert!(info.framework("neovim").is_none());
+        assert_eq!(info.primary.unwrap().name, "Lua");
+        // `init.lua` next to `lua/` is.
+        let dir = tempfile::tempdir().unwrap();
+        write(dir.path(), "init.lua", "require('config.options')");
+        write(dir.path(), "lua/config/options.lua", "");
         assert_eq!(detect(dir.path()).primary.unwrap().id, "neovim");
     }
 
