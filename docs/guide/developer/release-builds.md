@@ -44,7 +44,7 @@ The workflow needs, once, in the repository settings:
 | --- | --- | --- |
 | `TAURI_SIGNING_PRIVATE_KEY` | secret | private key from `pnpm tauri signer generate` |
 | `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | secret | its password |
-| `FORGE_UPDATER_PUBKEY` | variable | the matching public key, built into the app |
+| `FORGE_UPDATER_PUBKEY` | secret or variable | the matching public key, built into the app |
 
 Keep the private key offline as well: losing it means installed copies can no longer verify
 updates.

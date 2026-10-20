@@ -7,7 +7,8 @@ name: Release
 # Needs these repository settings:
 #   secrets.TAURI_SIGNING_PRIVATE_KEY           private key from `pnpm tauri signer generate`
 #   secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD  its password
-#   vars.FORGE_UPDATER_PUBKEY                   the matching public key (built into the app)
+#   FORGE_UPDATER_PUBKEY                        the matching public key (built into the app);
+#                                               a secret or a repository variable
 on:
   release:
     types: [published]
@@ -91,7 +92,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-          FORGE_UPDATER_PUBKEY: ${{ vars.FORGE_UPDATER_PUBKEY }}
+          FORGE_UPDATER_PUBKEY: ${{ secrets.FORGE_UPDATER_PUBKEY || vars.FORGE_UPDATER_PUBKEY }}
         with:
           projectPath: app/ui
           tauriScript: pnpm tauri
