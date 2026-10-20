@@ -146,7 +146,7 @@ key = "Ctrl+Shift+X"
 [[plugin.contributions.settings]]
 key = "laravel.routes.source"
 title = "Read routes from"
-description = "`php artisan route:list` sees routes registered by packages but needs a bootable application."
+description = "php artisan route:list also sees routes registered by packages, but needs a bootable application."
 type = "enum"
 options = [
   { value = "auto", label = "artisan route:list when available, else route files" },
@@ -171,7 +171,7 @@ order = 10
 [[plugin.contributions.settings]]
 key = "laravel.completion.columns"
 title = "Complete database columns in query builder calls"
-description = "`where('…')`, `orderBy('…')`, `pluck('…')` and similar, from migrations."
+description = "where(), orderBy(), pluck() and similar, with columns read from the migrations."
 type = "bool"
 default = true
 group = "lang.php.laravel"
@@ -199,7 +199,7 @@ order = 21
 [[plugin.contributions.settings]]
 key = "laravel.blade.customDirectives"
 title = "Additional Blade directives"
-description = "Directive names without `@`, e.g. `datetime`, highlighted and completed like built-in ones."
+description = "Directive names without @, e.g. datetime. They are highlighted and completed like built-in ones."
 type = "list"
 default = []
 group = "lang.php.laravel"
