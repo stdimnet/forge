@@ -33,6 +33,9 @@ impl TerminalState {
 #[derive(Debug, Default, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TerminalOpenOptions {
+    /// Id chosen by the UI so it can subscribe to `terminal://<id>` before the shell starts;
+    /// generated when missing.
+    pub id: Option<String>,
     /// Start directory, relative to the project root or absolute.
     pub cwd: Option<String>,
     pub shell: Option<String>,
@@ -91,8 +94,10 @@ pub fn terminal_open(
         .collect();
     env.extend(options.env);
 
-    let n = terminals.next_id.fetch_add(1, Ordering::SeqCst) + 1;
-    let id = format!("term-{n}");
+    let id = options.id.clone().unwrap_or_else(|| {
+        let n = terminals.next_id.fetch_add(1, Ordering::SeqCst) + 1;
+        format!("term-{n}")
+    });
     let event = format!("terminal://{id}");
     let sink: PtySink = Arc::new(move |e: PtyEvent| {
         if let Err(err) = app.emit(&event, &e) {

@@ -86,6 +86,9 @@ pub fn run_configurations_save(
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RunRequest {
+    /// Id chosen by the UI so it can subscribe to `run://<runId>` before the start;
+    /// generated when missing.
+    pub run_id: Option<String>,
     pub configuration: Option<RunConfiguration>,
     pub command: Option<CommandLine>,
     /// Extra environment, e.g. `XDEBUG_SESSION` from a debug launcher.
@@ -159,9 +162,11 @@ pub fn run_start(
     state: State<'_, AppState>,
     runs: State<'_, RunState>,
 ) -> Result<RunStarted> {
+    let run_id = request.run_id.clone().unwrap_or_else(|| {
+        let n = runs.next_id.fetch_add(1, Ordering::SeqCst) + 1;
+        format!("run-{n}")
+    });
     let cmd = build(&state, &runs, request)?;
-    let n = runs.next_id.fetch_add(1, Ordering::SeqCst) + 1;
-    let run_id = format!("run-{n}");
     let event = format!("run://{run_id}");
     let sink: RunSink = Arc::new(move |e: RunEvent| {
         if let Err(err) = app.emit(&event, &e) {
