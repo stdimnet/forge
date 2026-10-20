@@ -42,7 +42,7 @@ describe("Lua mock (Rust index through WebAssembly)", () => {
       kind: "property",
       column: 2,
     });
-    const hit = { name: "M", kind: "module", container: "util", path: "util.lua", offset: 0, line: 0, column: 0, score: 1, positions: [] } as const;
+    const hit: LuaSymbolHit = { name: "M", kind: "module", container: "util", path: "util.lua", offset: 0, line: 0, column: 0, score: 1, positions: [] };
     expect(hitDetail(hit)).toBe('require("util")');
     expect(markerConfiguration({ line: 0, kind: "love", name: "game", file: ".", interpreter: "love" })).toMatchObject({
       type: "lua-script",
