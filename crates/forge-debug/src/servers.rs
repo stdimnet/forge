@@ -2,6 +2,7 @@
 //! comes from and how its paths map into the project. Stored per project in
 //! `<project>/.forge/php-servers.json`.
 
+use forge_core::ProjectFiles;
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
@@ -96,30 +97,40 @@ pub fn find_server<'a>(
         .or_else(|| servers.iter().find(by_host))
 }
 
+/// The servers file relative to the project root.
+pub const SERVERS_FILE: &str = ".forge/php-servers.json";
+
 pub fn servers_path(root: &Path) -> PathBuf {
-    root.join(".forge").join("php-servers.json")
+    root.join(SERVERS_FILE)
 }
 
 pub fn load_servers(root: &Path) -> Vec<ServerConfig> {
-    let path = servers_path(root);
-    std::fs::read_to_string(&path)
+    load_servers_from(&forge_core::LocalFiles::new(root))
+}
+
+pub fn save_servers(root: &Path, servers: &[ServerConfig]) -> DebugResult<()> {
+    save_servers_to(&forge_core::LocalFiles::new(root), servers)
+}
+
+/// The project's servers read through `files`.
+pub fn load_servers_from(files: &dyn ProjectFiles) -> Vec<ServerConfig> {
+    files
+        .read(SERVERS_FILE)
         .ok()
+        .flatten()
         .and_then(|s| serde_json::from_str(&s).ok())
         .unwrap_or_default()
 }
 
-pub fn save_servers(root: &Path, servers: &[ServerConfig]) -> DebugResult<()> {
-    let path = servers_path(root);
-    if servers.is_empty() && !path.exists() {
+/// Save the servers through `files`; an empty list creates no file.
+pub fn save_servers_to(files: &dyn ProjectFiles, servers: &[ServerConfig]) -> DebugResult<()> {
+    let other = |e: forge_core::ForgeError| DebugError::Other(e.to_string());
+    if servers.is_empty() && files.read(SERVERS_FILE).map_err(other)?.is_none() {
         return Ok(());
-    }
-    if let Some(dir) = path.parent() {
-        std::fs::create_dir_all(dir)?;
     }
     let json =
         serde_json::to_string_pretty(servers).map_err(|e| DebugError::Other(e.to_string()))?;
-    std::fs::write(path, json + "\n")?;
-    Ok(())
+    files.write(SERVERS_FILE, &(json + "\n")).map_err(other)
 }
 
 #[cfg(test)]

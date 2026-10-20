@@ -2,6 +2,8 @@
 
 use std::path::{Path, PathBuf};
 
+use forge_core::{LocalFiles, SharedFiles};
+
 use serde::{Deserialize, Serialize};
 
 use crate::error::{DebugError, DebugResult};
@@ -75,15 +77,21 @@ pub struct BreakpointsSnapshot {
     pub muted: bool,
 }
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 pub struct BreakpointStore {
-    path: Option<PathBuf>,
+    /// Where the project's files are (`None`: memory only).
+    files: Option<SharedFiles>,
+    /// The file existed when loaded (an empty store is not written otherwise).
+    existed: bool,
     data: BreakpointsSnapshot,
 }
 
+/// The breakpoints file relative to the project root.
+pub const BREAKPOINTS_FILE: &str = ".forge/breakpoints.json";
+
 /// File holding a project's breakpoints.
 pub fn breakpoints_path(root: &Path) -> PathBuf {
-    root.join(".forge").join("breakpoints.json")
+    root.join(BREAKPOINTS_FILE)
 }
 
 impl BreakpointStore {
@@ -94,36 +102,48 @@ impl BreakpointStore {
 
     /// Load `<root>/.forge/breakpoints.json` (missing file = no breakpoints).
     pub fn load(root: &Path) -> Self {
-        let path = breakpoints_path(root);
-        let data = std::fs::read_to_string(&path)
-            .ok()
+        Self::load_files(LocalFiles::shared(root))
+    }
+
+    /// Load the project's breakpoints through `files` (a remote project's live on its host).
+    pub fn load_files(files: SharedFiles) -> Self {
+        let text = files.read(BREAKPOINTS_FILE).unwrap_or_else(|e| {
+            tracing::warn!("cannot read {}: {e}", files.describe(BREAKPOINTS_FILE));
+            None
+        });
+        let existed = text.is_some();
+        let data = text
             .and_then(|s| match serde_json::from_str::<BreakpointsSnapshot>(&s) {
                 Ok(d) => Some(d),
                 Err(e) => {
-                    tracing::warn!("ignoring malformed {}: {e}", path.display());
+                    tracing::warn!(
+                        "ignoring malformed {}: {e}",
+                        files.describe(BREAKPOINTS_FILE)
+                    );
                     None
                 }
             })
             .unwrap_or_default();
         Self {
-            path: Some(path),
+            files: Some(files),
+            existed,
             data,
         }
     }
 
-    fn save(&self) -> DebugResult<()> {
-        let Some(path) = &self.path else {
+    fn save(&mut self) -> DebugResult<()> {
+        let Some(files) = &self.files else {
             return Ok(());
         };
-        if self.data.breakpoints.is_empty() && !self.data.muted && !path.exists() {
+        if self.data.breakpoints.is_empty() && !self.data.muted && !self.existed {
             return Ok(());
-        }
-        if let Some(dir) = path.parent() {
-            std::fs::create_dir_all(dir)?;
         }
         let json = serde_json::to_string_pretty(&self.data)
             .map_err(|e| DebugError::Other(e.to_string()))?;
-        std::fs::write(path, json + "\n")?;
+        files
+            .write(BREAKPOINTS_FILE, &(json + "\n"))
+            .map_err(|e| DebugError::Other(e.to_string()))?;
+        self.existed = true;
         Ok(())
     }
 
