@@ -8,3 +8,5 @@ import "./lspMock";
 import "./searchMock";
 import "./gitMock";
 import "./phpMock";
+import "./symfonyMock";
+import "./doctrineMock";
