@@ -290,8 +290,9 @@ export function mockDqlDiagnostics(path: string, src: string): { start: number; 
     for (const t of tokens) {
       if (t.kind !== "identifier" || !t.text.includes(".") || t.text.includes("\\")) continue;
       const parts = t.text.split(".");
-      let e = aliases.get(parts[0]);
-      if (!e) continue;
+      const first = aliases.get(parts[0]);
+      if (!first) continue;
+      let e: DoctrineEntity = first;
       let offset = parts[0].length + 1;
       for (const part of parts.slice(1)) {
         if (!part) break;
@@ -302,7 +303,7 @@ export function mockDqlDiagnostics(path: string, src: string): { start: number; 
           if (start != null) out.push({ start, end: start + part.length, message: `Field '${part}' not found in ${e.name}` });
           break;
         }
-        const next = a ? byName(a.target) : f?.embedded ? byName(f.type) : undefined;
+        const next: DoctrineEntity | undefined = a ? byName(a.target) : f?.embedded ? byName(f.type) : undefined;
         if (!next) break;
         e = next;
         offset += part.length + 1;
