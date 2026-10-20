@@ -25,6 +25,7 @@ pub fn run() {
         .manage(app_state)
         .manage(commands::ai::AiState::load())
         .manage(commands::agent::AgentState::default())
+        .manage(commands::db::DbState::load())
         .setup(|app| {
             // Forward settings changes to the UI.
             let handle = app.handle().clone();
@@ -35,6 +36,13 @@ pub fn run() {
                         tracing::warn!("cannot emit settings change: {e}");
                     }
                 });
+            // Data sources of the project passed on the command line.
+            if let Ok(root) = app
+                .state::<AppState>()
+                .with_workspace(|ws| Ok(ws.root().to_path_buf()))
+            {
+                commands::db::project_opened(app.handle(), root);
+            }
             Ok(())
         })
         .manage(commands::lsp::LspState::default())
@@ -115,6 +123,28 @@ pub fn run() {
             commands::project::project_plan,
             commands::project::project_create,
             commands::project::project_create_cancel,
+            commands::db::db_data_sources_list,
+            commands::db::db_data_source_save,
+            commands::db::db_data_source_delete,
+            commands::db::db_test_connection,
+            commands::db::db_disconnect,
+            commands::db::db_schemas,
+            commands::db::db_introspect,
+            commands::db::db_table_info,
+            commands::db::db_table_ddl,
+            commands::db::db_table_data,
+            commands::db::db_apply_changes,
+            commands::db::db_session_open,
+            commands::db::db_session_close,
+            commands::db::db_execute,
+            commands::db::db_fetch,
+            commands::db::db_set_auto_commit,
+            commands::db::db_commit,
+            commands::db::db_rollback,
+            commands::db::db_cancel,
+            commands::db::db_detect_env,
+            commands::db::db_add_from_env,
+            commands::db::db_export,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Forge");

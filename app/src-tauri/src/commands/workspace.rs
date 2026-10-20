@@ -19,6 +19,7 @@ pub fn workspace_open(
 ) -> Result<WorkspaceInfo> {
     let ws = Workspace::open(&path)?;
     crate::commands::project::emit_detection(&app, ws.root());
+    crate::commands::db::project_opened(&app, ws.root().to_path_buf());
     let info = WorkspaceInfo {
         name: ws.name(),
         root: ws.root().display().to_string(),
