@@ -6,13 +6,81 @@
  */
 export function bridge_version(): string;
 
+/**
+ * `{settings, hostPlatform}` → `KeymapSnapshot`.
+ */
+export function keymap_actions(json: string): string;
+
+/**
+ * `{settings, hostPlatform, shortcut, actionId?}` → `ShortcutCheck`.
+ */
+export function keymap_conflicts(json: string): string;
+
+/**
+ * `{settings, hostPlatform, shortcut}` → action ids.
+ */
+export function keymap_find_by_shortcut(json: string): string;
+
+/**
+ * `{text, platform}` → display string ("Ctrl+K, Ctrl+C" / "⇧⌘A").
+ */
+export function keymap_format(json: string): string;
+
+/**
+ * Resolve one `KeyInput` with the sync resolver → `Resolution`.
+ */
+export function keymap_handle_key(input_json: string): string;
+
+/**
+ * `{active, overrides}` (raw localStorage strings) → `SettingWrite[]`.
+ */
+export function keymap_legacy_changes(json: string): string;
+
+/**
+ * Load the bindings of a `KeymapSnapshot` into the sync resolver; returns their count.
+ */
+export function keymap_load_bindings(snapshot_json: string): string;
+
+/**
+ * `{settings, hostPlatform, actions?, commands?}` → `KeymapSnapshot`.
+ */
+export function keymap_register_actions(json: string): string;
+
+/**
+ * `{settings, hostPlatform, event}` → `Resolution` (resolver state kept between calls).
+ */
+export function keymap_resolve(json: string): string;
+
+/**
+ * `{settings, hostPlatform, change}` → `SettingWrite[]`.
+ */
+export function keymap_set_override(json: string): string;
+
+/**
+ * DOM key event → canonical keystroke (for "press a shortcut" fields).
+ */
+export function keymap_stroke_of_event(event_json: string): string;
+
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
     readonly bridge_version: (a: number) => void;
+    readonly keymap_actions: (a: number, b: number, c: number) => void;
+    readonly keymap_conflicts: (a: number, b: number, c: number) => void;
+    readonly keymap_find_by_shortcut: (a: number, b: number, c: number) => void;
+    readonly keymap_format: (a: number, b: number, c: number) => void;
+    readonly keymap_handle_key: (a: number, b: number, c: number) => void;
+    readonly keymap_legacy_changes: (a: number, b: number, c: number) => void;
+    readonly keymap_load_bindings: (a: number, b: number, c: number) => void;
+    readonly keymap_register_actions: (a: number, b: number, c: number) => void;
+    readonly keymap_resolve: (a: number, b: number, c: number) => void;
+    readonly keymap_set_override: (a: number, b: number, c: number) => void;
+    readonly keymap_stroke_of_event: (a: number, b: number, c: number) => void;
     readonly __wbindgen_add_to_stack_pointer: (a: number) => number;
     readonly __wbindgen_export: (a: number, b: number, c: number) => void;
+    readonly __wbindgen_export2: (a: number, b: number) => number;
+    readonly __wbindgen_export3: (a: number, b: number, c: number, d: number) => number;
 }
 
 export type SyncInitInput = BufferSource | WebAssembly.Module;

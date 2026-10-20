@@ -17,6 +17,8 @@
 
 use wasm_bindgen::prelude::*;
 
+mod keymap;
+
 /// Version of the bridge, used by the UI to check that the bundle is current.
 #[wasm_bindgen]
 pub fn bridge_version() -> String {

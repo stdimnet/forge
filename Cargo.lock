@@ -1604,6 +1604,7 @@ dependencies = [
 name = "forge-wasm"
 version = "0.1.0"
 dependencies = [
+ "forge-keymap",
  "serde",
  "serde_json",
  "wasm-bindgen",
