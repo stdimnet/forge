@@ -518,9 +518,7 @@ impl Step {
                 }
                 s
             }
-            Step::Template { template, .. } => {
-                format!("Create files from the \"{template}\" template in {name}/")
-            }
+            Step::Template { .. } => format!("Create {name}/ from the built-in template"),
             Step::GitInit => "git init".into(),
         }
     }
@@ -535,6 +533,9 @@ pub struct Plan {
     pub steps: Vec<Step>,
     /// Command lines as shown in the preview, one per step.
     pub preview: Vec<String>,
+    /// Files a built-in template writes (relative, `/`-separated), for the preview.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub files: Vec<String>,
     /// Tools that are needed but not installed; the plan cannot run while non-empty.
     pub missing_tools: Vec<String>,
     /// Offline generator id the UI can offer instead.
@@ -733,6 +734,24 @@ pub fn plan(req: &CreateRequest, has_tool: &dyn Fn(&str) -> bool) -> Result<Plan
     }
 
     let preview = steps.iter().map(|s| s.display(n)).collect();
+    let mut files = Vec::new();
+    for step in &steps {
+        if let Step::Template {
+            template,
+            options,
+            sample,
+        } = step
+        {
+            let vars = crate::templates::TemplateVars::new(n, options);
+            let rendered = crate::templates::render_template(template, &vars, *sample)?;
+            files.extend(
+                rendered
+                    .files
+                    .iter()
+                    .map(|(p, _)| p.to_string_lossy().replace('\\', "/")),
+            );
+        }
+    }
     let fallback = if missing.iter().any(|m| m != "git") {
         gen.fallback.clone()
     } else {
@@ -742,6 +761,7 @@ pub fn plan(req: &CreateRequest, has_tool: &dyn Fn(&str) -> bool) -> Result<Plan
         target,
         steps,
         preview,
+        files,
         missing_tools: missing,
         fallback,
         error,
@@ -891,6 +911,8 @@ mod tests {
         // Without a "sample" option the template is written in full.
         let p = plan(&req("wordpress-plugin", &[]), &|_| false).unwrap();
         assert!(matches!(&p.steps[0], Step::Template { sample: true, .. }));
+        assert_eq!(p.preview, vec!["Create demo/ from the built-in template"]);
+        assert!(p.files.contains(&"includes/class-demo.php".to_string()));
     }
 
     #[test]
