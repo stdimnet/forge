@@ -18,6 +18,7 @@ use crate::error::{DbError, DbResult};
 use crate::introspect::{self, SchemaInfo, SchemaName, TableInfo};
 use crate::secrets::SecretStore;
 use crate::split::{is_query, split_statements, transaction_control};
+use crate::tunnel::{DbTunnel, ProjectContext, TunnelEndpoint};
 
 pub const DEFAULT_PAGE_SIZE: usize = 500;
 
@@ -30,6 +31,10 @@ pub struct DataSourceInfo {
     pub scope: Scope,
     pub has_password: bool,
     pub summary: String,
+    /// Set when the data source is reached through the remote project's SSH connection
+    /// (`deploy@shop.example.com`).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub via: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -145,6 +150,10 @@ impl Session {
 #[derive(Default)]
 struct Sources {
     root: Option<PathBuf>,
+    /// Project files read through the project backend (remote projects); `None` reads the
+    /// files below `root` directly.
+    files: Option<forge_core::SharedFiles>,
+    tunnel: Option<Arc<dyn DbTunnel>>,
     list: Vec<DataSource>,
     /// Passwords of data sources with "Save: Never", kept for this run only.
     transient: HashMap<String, String>,
@@ -155,6 +164,8 @@ pub struct DbService {
     secrets: Arc<dyn SecretStore>,
     sources: Mutex<Sources>,
     pools: tokio::sync::Mutex<HashMap<String, DbPool>>,
+    /// Tunnels of the open pools of a remote project.
+    tunnels: Mutex<HashMap<String, TunnelEndpoint>>,
     sessions: Mutex<HashMap<String, Arc<Session>>>,
     next_session: AtomicU64,
 }
@@ -175,6 +186,7 @@ impl DbService {
             secrets,
             sources: Mutex::default(),
             pools: tokio::sync::Mutex::default(),
+            tunnels: Mutex::default(),
             sessions: Mutex::default(),
             next_session: AtomicU64::new(1),
         };
@@ -190,9 +202,59 @@ impl DbService {
 
     /// Switch to another project (or none) and load its data sources.
     pub async fn set_project(&self, root: Option<PathBuf>) -> DbResult<()> {
-        self.lock().root = root;
+        {
+            let mut s = self.lock();
+            s.root = root;
+            s.files = None;
+            s.tunnel = None;
+        }
         self.close_all().await;
         self.reload()
+    }
+
+    /// Switch to a project whose files (and databases) are reached through `ctx`, e.g. a
+    /// project on a remote host.
+    pub async fn set_project_context(&self, ctx: ProjectContext) -> DbResult<()> {
+        {
+            let mut s = self.lock();
+            s.root = Some(ctx.root);
+            s.files = Some(ctx.files);
+            s.tunnel = ctx.tunnel;
+        }
+        self.close_all().await;
+        self.reload()
+    }
+
+    fn project_files(&self) -> Option<forge_core::SharedFiles> {
+        self.lock().files.clone()
+    }
+
+    fn tunnel(&self) -> Option<Arc<dyn DbTunnel>> {
+        self.lock().tunnel.clone()
+    }
+
+    /// Where the pool of `ds` connects: a project data source of a remote project goes
+    /// through a tunnel to its host and port as the remote host sees them.
+    async fn endpoint(&self, ds: &DataSource) -> DbResult<(DataSource, Option<TunnelEndpoint>)> {
+        let Some(tunnel) = self.tunnel().filter(|_| ds.scope == Scope::Project) else {
+            return Ok((ds.clone(), None));
+        };
+        if ds.driver == config::Driver::Sqlite {
+            return Err(DbError::Config(format!(
+                "SQLite files on {} cannot be opened yet; use a global data source with a local copy",
+                tunnel.label()
+            )));
+        }
+        let host = if ds.host.trim().is_empty() {
+            "localhost".to_string()
+        } else {
+            ds.host.trim().to_string()
+        };
+        let end = tunnel.open(host, ds.port_or_default()).await?;
+        let mut local = ds.clone();
+        local.host = "127.0.0.1".into();
+        local.port = Some(end.port);
+        Ok((local, Some(end)))
     }
 
     pub fn project_root(&self) -> Option<PathBuf> {
@@ -204,7 +266,23 @@ impl DbService {
         let root = self.project_root();
         let mut list = Vec::new();
         let mut first_err = None;
-        if let Some(root) = &root {
+        if let Some(files) = self.project_files() {
+            let loaded = files
+                .read(config::PROJECT_FILE)
+                .map_err(|e| DbError::Io(e.to_string()))
+                .and_then(|text| match text {
+                    Some(t) => config::parse_text(
+                        &t,
+                        Scope::Project,
+                        &files.describe(config::PROJECT_FILE),
+                    ),
+                    None => Ok(Vec::new()),
+                });
+            match loaded {
+                Ok(l) => list.extend(l),
+                Err(e) => first_err = Some(e),
+            }
+        } else if let Some(root) = &root {
             match config::load_file(&config::project_file(root), Scope::Project) {
                 Ok(l) => list.extend(l),
                 Err(e) => first_err = Some(e),
@@ -226,10 +304,15 @@ impl DbService {
     }
 
     fn info(&self, ds: DataSource) -> DataSourceInfo {
+        let via = self
+            .tunnel()
+            .filter(|_| ds.scope == Scope::Project)
+            .map(|t| t.label());
         DataSourceInfo {
             scope: ds.scope,
             has_password: ds.driver != config::Driver::Sqlite && self.has_password(&ds),
             summary: ds.summary(),
+            via,
             source: ds,
         }
     }
@@ -249,6 +332,18 @@ impl DbService {
     }
 
     fn persist(&self, scope: Scope) -> DbResult<()> {
+        if let (Scope::Project, Some(files)) = (scope, self.project_files()) {
+            let items: Vec<_> = self
+                .lock()
+                .list
+                .iter()
+                .filter(|d| d.scope == scope)
+                .cloned()
+                .collect();
+            return files
+                .write(config::PROJECT_FILE, &config::to_text(&items)?)
+                .map_err(|e| DbError::Io(e.to_string()));
+        }
         let (path, items) = {
             let s = self.lock();
             let items: Vec<_> = s
@@ -359,7 +454,8 @@ impl DbService {
         let password = password.or_else(|| self.password(ds));
         let root = self.project_root();
         let res = async {
-            let pool = DbPool::connect(ds, password.as_deref(), root.as_deref()).await?;
+            let (ds, _tunnel) = self.endpoint(ds).await?;
+            let pool = DbPool::connect(&ds, password.as_deref(), root.as_deref()).await?;
             let mut conn = pool.acquire().await?;
             let v = conn.server_version().await;
             drop(conn);
@@ -381,6 +477,7 @@ impl DbService {
         if let Some(p) = pool {
             p.close().await;
         }
+        self.tunnels.lock().expect("poisoned").remove(id);
         self.sessions
             .lock()
             .expect("poisoned")
@@ -394,6 +491,7 @@ impl DbService {
         for p in pools {
             p.close().await;
         }
+        self.tunnels.lock().expect("poisoned").clear();
     }
 
     /// The pool of a data source, connecting on first use.
@@ -404,7 +502,12 @@ impl DbService {
             return Ok(p.clone());
         }
         let root = self.project_root();
-        let pool = DbPool::connect(&ds, self.password(&ds).as_deref(), root.as_deref()).await?;
+        let (target, tunnel) = self.endpoint(&ds).await?;
+        let pool =
+            DbPool::connect(&target, self.password(&ds).as_deref(), root.as_deref()).await?;
+        if let Some(t) = tunnel {
+            self.tunnels.lock().expect("poisoned").insert(id.into(), t);
+        }
         pools.insert(id.into(), pool.clone());
         Ok(pool)
     }
@@ -767,11 +870,13 @@ impl DbService {
 
     /// Data sources described in the project's `.env` that are not configured yet.
     pub fn detect_env(&self) -> Vec<DetectedDataSource> {
-        let Some(root) = self.project_root() else {
-            return Vec::new();
+        let detected = match (self.project_files(), self.project_root()) {
+            (Some(files), _) => env::detect_with(|name| files.read(name).ok().flatten()),
+            (None, Some(root)) => env::detect(&root),
+            (None, None) => return Vec::new(),
         };
         let list = self.lock().list.clone();
-        env::detect(&root)
+        detected
             .into_iter()
             .filter(|d| !list.iter().any(|ds| ds.same_target(&d.source)))
             .collect()

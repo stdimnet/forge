@@ -249,6 +249,9 @@ pub fn global_file() -> Option<PathBuf> {
     dirs::config_dir().map(|d| d.join("forge").join("dataSources.toml"))
 }
 
+/// The project data sources file relative to the project root.
+pub const PROJECT_FILE: &str = ".forge/dataSources.toml";
+
 /// Read a data sources file; a missing file is an empty list.
 pub fn load_file(path: &Path, scope: Scope) -> DbResult<Vec<DataSource>> {
     let text = match std::fs::read_to_string(path) {
@@ -256,8 +259,13 @@ pub fn load_file(path: &Path, scope: Scope) -> DbResult<Vec<DataSource>> {
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
         Err(e) => return Err(DbError::Io(format!("{}: {e}", path.display()))),
     };
+    parse_text(&text, scope, &path.display().to_string())
+}
+
+/// Data sources of a file's text (`origin` names it in errors).
+pub fn parse_text(text: &str, scope: Scope, origin: &str) -> DbResult<Vec<DataSource>> {
     let file: DataSourcesFile =
-        toml::from_str(&text).map_err(|e| DbError::Config(format!("{}: {e}", path.display())))?;
+        toml::from_str(text).map_err(|e| DbError::Config(format!("{origin}: {e}")))?;
     Ok(file
         .data_sources
         .into_iter()
@@ -266,6 +274,17 @@ pub fn load_file(path: &Path, scope: Scope) -> DbResult<Vec<DataSource>> {
             d
         })
         .collect())
+}
+
+/// The text of a data sources file.
+pub fn to_text(sources: &[DataSource]) -> DbResult<String> {
+    let file = DataSourcesFile {
+        data_sources: sources.to_vec(),
+    };
+    let text = toml::to_string_pretty(&file).map_err(|e| DbError::Config(e.to_string()))?;
+    Ok(format!(
+        "# Forge data sources. Passwords are kept in the system keychain.\n\n{text}"
+    ))
 }
 
 /// Write a data sources file (creating `.forge/`); an empty list removes the file.
@@ -280,12 +299,7 @@ pub fn save_file(path: &Path, sources: &[DataSource]) -> DbResult<()> {
     if let Some(dir) = path.parent() {
         std::fs::create_dir_all(dir).map_err(|e| DbError::Io(format!("{}: {e}", dir.display())))?;
     }
-    let file = DataSourcesFile {
-        data_sources: sources.to_vec(),
-    };
-    let text = toml::to_string_pretty(&file).map_err(|e| DbError::Config(e.to_string()))?;
-    let text =
-        format!("# Forge data sources. Passwords are kept in the system keychain.\n\n{text}");
+    let text = to_text(sources)?;
     std::fs::write(path, text).map_err(|e| DbError::Io(format!("{}: {e}", path.display())))
 }
 
