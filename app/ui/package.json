@@ -12,7 +12,8 @@
     "screenshots": "node scripts/screenshots.mjs",
     "tauri": "cd .. && tauri",
     "wasm": "node scripts/build-wasm.mjs",
-    "agents": "node scripts/build-agents.mjs"
+    "agents": "node scripts/build-agents.mjs",
+    "release": "node scripts/build-agents.mjs && cd .. && tauri build --config src-tauri/tauri.agents.conf.json"
   },
   "dependencies": {
     "@codemirror/autocomplete": "^6.18.0",
