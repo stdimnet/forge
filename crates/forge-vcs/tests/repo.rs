@@ -347,3 +347,90 @@ fn tracked_among_uses_workspace_relative_paths() {
         vec!["b.php"]
     );
 }
+
+#[test]
+fn add_to_gitignore_writes_anchored_patterns_once() {
+    let tmp = fixture();
+    let d = tmp.path();
+    write(d, ".gitignore", "/vendor/");
+    write(d, "app/debug.log", "x\n");
+    write(d, "build/out.js", "x\n");
+    let repo = Repo::open(d).unwrap();
+
+    let added = repo
+        .add_to_gitignore(&["app/debug.log".into(), "build".into()])
+        .unwrap();
+    assert_eq!(added, vec!["/app/debug.log", "/build/"]);
+    repo.add_to_gitignore(&["app/debug.log".into()]).unwrap();
+    assert_eq!(
+        fs::read_to_string(d.join(".gitignore")).unwrap(),
+        "/vendor/\n/app/debug.log\n/build/\n"
+    );
+    let st = repo.status().unwrap();
+    assert!(st.entries.iter().all(|e| e.path == ".gitignore"));
+
+    assert!(repo.add_to_gitignore(&["../outside".into()]).is_err());
+}
+
+#[test]
+fn add_to_gitignore_from_workspace_subdirectory() {
+    let tmp = fixture();
+    let d = tmp.path();
+    write(d, "src/tmp.txt", "x\n");
+    let repo = Repo::open(d.join("src")).unwrap();
+    repo.add_to_gitignore(&["tmp.txt".into()]).unwrap();
+    assert_eq!(
+        fs::read_to_string(d.join(".gitignore")).unwrap(),
+        "/src/tmp.txt\n"
+    );
+}
+
+#[test]
+fn tags_stashes_and_remotes() {
+    let tmp = fixture();
+    let d = tmp.path();
+    let repo = Repo::open(d).unwrap();
+
+    repo.create_tag("v1.0.0", None, None).unwrap();
+    repo.create_tag("v1.0.1", Some("HEAD"), Some("Release 1.0.1"))
+        .unwrap();
+    let tags: Vec<String> = repo
+        .branches()
+        .unwrap()
+        .tags
+        .into_iter()
+        .map(|t| t.name)
+        .collect();
+    assert!(tags.contains(&"v1.0.0".to_string()) && tags.contains(&"v1.0.1".to_string()));
+    assert!(repo.create_tag("-bad", None, None).is_err());
+
+    assert!(repo.stash_list().unwrap().is_empty());
+    write(d, "a.php", "stashed\n");
+    write(d, "new.php", "untracked\n");
+    repo.stash("Half-done work", false, true).unwrap();
+    assert!(repo.status().unwrap().entries.is_empty());
+    let list = repo.stash_list().unwrap();
+    assert_eq!(list.len(), 1);
+    assert_eq!(list[0].index, 0);
+    assert_eq!(list[0].branch.as_deref(), Some("main"));
+    assert_eq!(list[0].message, "Half-done work");
+
+    repo.unstash(0, true, false).unwrap();
+    assert_eq!(fs::read_to_string(d.join("a.php")).unwrap(), "stashed\n");
+    assert!(d.join("new.php").exists());
+    assert!(repo.stash_list().unwrap().is_empty());
+
+    repo.stash("", false, false).unwrap();
+    repo.drop_stash(0).unwrap();
+    assert!(repo.stash_list().unwrap().is_empty());
+
+    assert!(repo.remote_list().unwrap().is_empty());
+    repo.add_remote("origin", "https://example.com/acme/shop.git")
+        .unwrap();
+    let remotes = repo.remote_list().unwrap();
+    assert_eq!(remotes.len(), 1);
+    assert_eq!(remotes[0].fetch_url, "https://example.com/acme/shop.git");
+    assert!(repo.add_remote("other", "--upload-pack=evil").is_err());
+    repo.remove_remote("origin").unwrap();
+    assert!(repo.remote_list().unwrap().is_empty());
+}
