@@ -580,9 +580,10 @@ pub fn merge(
 }
 
 /// The `kernel.*` parameters every Symfony application has.
-pub fn add_kernel_parameters(parameters: &mut Vec<Parameter>) {
+pub fn add_kernel_parameters(parameters: &mut Vec<Parameter>, root: &Path) {
+    let project_dir = root.display().to_string();
     for (name, value) in [
-        ("kernel.project_dir", "%kernel.project_dir%"),
+        ("kernel.project_dir", project_dir.as_str()),
         ("kernel.environment", "dev"),
         ("kernel.debug", "true"),
         ("kernel.cache_dir", "%kernel.project_dir%/var/cache/dev"),

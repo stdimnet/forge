@@ -318,7 +318,7 @@ pub fn scan(root: &Path, config: &Config) -> Snapshot {
             container::merge(&mut services, s, &mut parameters, p);
         }
     }
-    container::add_kernel_parameters(&mut parameters);
+    container::add_kernel_parameters(&mut parameters, root);
     services.sort_by(|a, b| a.id.cmp(&b.id));
     parameters.sort_by(|a, b| a.name.cmp(&b.name));
 

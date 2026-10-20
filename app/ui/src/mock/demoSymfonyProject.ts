@@ -417,10 +417,13 @@ class OrderRepository extends ServiceEntityRepository
             'SELECT c.email, SUM(o.total) AS revenue
              FROM App\\Entity\\Order o
              JOIN o.customer c
-             WHERE o.paidAt >= :since AND o.status = 'paid'
+             WHERE o.paidAt >= :since AND o.status = :status
              GROUP BY c.email
              ORDER BY revenue DESC'
-        )->setParameter('since', $since)->getResult();
+        )
+            ->setParameter('since', $since)
+            ->setParameter('status', 'paid')
+            ->getResult();
     }
 }
 `,
