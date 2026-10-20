@@ -5,14 +5,14 @@ use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 
 use forge_lsp::LspServerConfig;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
 use crate::catalog::{Catalog, ServerSpec};
 use crate::config::{build_config, ConfigContext};
 
 /// Why a catalog server is not started for the project.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "reason", rename_all = "camelCase")]
 pub enum Skip {
     AutoStartOff,
@@ -114,7 +114,7 @@ fn decide(
 }
 
 /// Install option as shown in the UI.
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct InstallRow {
     /// Index into the server's `install` list (what `langservers_install` takes).
@@ -130,7 +130,7 @@ pub struct InstallRow {
 }
 
 /// Status chip on the settings page.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum RowStatus {
     Running,
@@ -140,7 +140,7 @@ pub enum RowStatus {
 }
 
 /// One row of Settings > Languages & Frameworks > Language Servers.
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ServerRow {
     pub id: String,

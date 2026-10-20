@@ -9,26 +9,33 @@
 //!   [`protocol`]. [`rpc::RpcClient`] multiplexes calls, events and byte channels over any
 //!   stream (SSH in `crates/forge-remote`, an in-memory pipe in tests).
 
+pub mod frameworks;
+pub mod langservers;
 pub mod local;
 pub mod paths;
 pub mod php;
+pub mod process_io;
 pub mod protocol;
 pub mod remote;
 pub mod rpc;
+pub mod tunnels;
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use forge_core::{FileEntry, FileMatch, FsChanges, Result};
+use forge_core::{FileEntry, FileMatch, FsChanges, ProjectFiles, Result};
 use forge_lsp::ServerLauncher;
 use forge_process::{CommandLine, PtySink, RunSink};
 use forge_project::ProjectInfo;
 use forge_vcs::{GitExec, Repo};
 use serde::{Deserialize, Serialize};
 
+pub use frameworks::{framework_call, FrameworkCall};
+pub use langservers::{LangServersAnswer, LangServersRequest};
 pub use local::LocalBackend;
 pub use php::PhpBackend;
 pub use remote::RemoteBackend;
+pub use tunnels::{PortForward, Tunnels};
 
 /// The machine a remote project lives on.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -111,6 +118,8 @@ pub trait Terminal: Send + Sync {
 /// A started process (run configurations, tools).
 pub trait Process: Send + Sync {
     fn write_stdin(&self, data: &[u8]) -> Result<()>;
+    /// End of input (programs that read their whole stdin, like a CLI reading a prompt).
+    fn close_stdin(&self) -> Result<()>;
     /// Stop the process tree: terminate, then kill after `grace`.
     fn kill(&self, grace: std::time::Duration);
 }
@@ -136,6 +145,8 @@ pub trait Backend: Send + Sync {
     /// One directory level: folders first, `.gitignore`d entries flagged (unless tracked).
     fn list_dir(&self, rel: &str) -> Result<Vec<FileEntry>>;
     fn read_file(&self, rel: &str) -> Result<String>;
+    /// The file's text, `None` when it does not exist (one round trip for remote projects).
+    fn read_optional(&self, rel: &str) -> Result<Option<String>>;
     fn write_file(&self, rel: &str, contents: &str) -> Result<()>;
     /// New empty file (parent folders included); never replaces an existing path.
     fn create_file(&self, rel: &str) -> Result<()>;
@@ -173,6 +184,46 @@ pub trait Backend: Send + Sync {
 
     /// The project's PHP index and PHP language server lookup.
     fn php(&self) -> &dyn PhpBackend;
+
+    /// Laravel, Symfony and Doctrine analysis, run next to the files. The reply is the
+    /// MessagePack encoding of the call's reply type; use [`framework_call`].
+    fn framework(&self, call: FrameworkCall) -> Result<Vec<u8>>;
+
+    /// Plan the catalog language servers of the project on the machine that has its files
+    /// and the installed servers.
+    fn langservers(&self, req: LangServersRequest) -> Result<LangServersAnswer>;
+
+    /// Full path of the first of `names` found on the backend's machine (`PATH` plus the
+    /// usual package manager directories). An existing `custom` path wins.
+    fn find_executable(&self, names: &[String], custom: Option<&str>) -> Result<Option<PathBuf>>;
+
+    /// SSH tunnels to the project's host; `None` for local projects.
+    fn tunnels(&self) -> Option<Arc<dyn Tunnels>> {
+        None
+    }
+}
+
+/// [`ProjectFiles`] of the project a backend serves (settings, data sources, breakpoints of
+/// a remote project live on its host).
+pub struct BackendFiles(pub Arc<dyn Backend>);
+
+impl ProjectFiles for BackendFiles {
+    fn read(&self, rel: &str) -> Result<Option<String>> {
+        self.0.read_optional(rel)
+    }
+
+    fn write(&self, rel: &str, text: &str) -> Result<()> {
+        self.0.write_file(rel, text)
+    }
+
+    fn describe(&self, rel: &str) -> String {
+        let info = self.0.info();
+        let path = info.root.join(rel).to_string_lossy().into_owned();
+        match &info.remote {
+            Some(r) => r.display_path(&path),
+            None => path,
+        }
+    }
 }
 
 /// Name of a project folder (last path component).

@@ -160,6 +160,7 @@ impl Agent {
             }
             Call::ListDir { path } => reply(self.backend()?.list_dir(&path)?),
             Call::ReadFile { path } => reply(self.backend()?.read_file(&path)?),
+            Call::ReadOptional { path } => reply(self.backend()?.read_optional(&path)?),
             Call::WriteFile { path, contents } => {
                 reply(self.backend()?.write_file(&path, &contents)?)
             }
@@ -223,7 +224,14 @@ impl Agent {
                 });
                 let process = self.backend()?.start_process(&cmd, sink)?;
                 let writer = process.clone();
-                let input = Self::input_pump(move |d| writer.write_stdin(d));
+                // An empty chunk is the end of input (queued after the data before it).
+                let input = Self::input_pump(move |d| {
+                    if d.is_empty() {
+                        writer.close_stdin()
+                    } else {
+                        writer.write_stdin(d)
+                    }
+                });
                 self.add_channel(channel, Channel::Process(process, input));
                 reply(())
             }
@@ -237,6 +245,29 @@ impl Agent {
                 }
                 reply(())
             }
+            Call::ProcessCloseStdin { channel } => {
+                if let Some(Channel::Process(_, input)) =
+                    self.channels.lock().expect("channels lock").get(&channel)
+                {
+                    let _ = input.send(Vec::new());
+                }
+                reply(())
+            }
+            Call::FindExecutable { names, custom } => {
+                // Works before a project is open, too (the home directory is the root).
+                let root = match self.backend() {
+                    Ok(b) => b.info().root.clone(),
+                    Err(_) => dirs::home_dir().unwrap_or_default(),
+                };
+                reply(forge_backend::local::find_executable(
+                    &root,
+                    &names,
+                    custom.as_deref(),
+                ))
+            }
+            // Already encoded with the call's reply type.
+            Call::Framework(call) => self.backend()?.framework(call),
+            Call::LangServers(req) => reply(self.backend()?.langservers(req)?),
             Call::LspStart {
                 channel,
                 command,
@@ -354,6 +385,9 @@ impl Agent {
     }
 
     fn on_data(&self, channel: u32, data: Vec<u8>) {
+        if data.is_empty() {
+            return;
+        }
         if let Some(c) = self.channels.lock().expect("channels lock").get(&channel) {
             let _ = c.input().send(data);
         }
