@@ -229,6 +229,17 @@
           "order": 21
         },
         {
+          "key": "appearance.showSplash",
+          "title": "Show splash screen on startup",
+          "description": "The Forge wordmark fills with molten metal while the IDE loads, and offers updates.",
+          "type": "bool",
+          "default": true,
+          "group": "appearance",
+          "section": "UI Options",
+          "project": false,
+          "order": 22
+        },
+        {
           "key": "appearance.windowControls",
           "title": "Window controls",
           "description": "Look of the title bar buttons of the main window and dialogs. \"Native\" lets the operating system draw the title bar.",
@@ -408,6 +419,49 @@
           "section": "Synchronization",
           "project": false,
           "order": 20
+        },
+        {
+          "key": "updates.checkOnStartup",
+          "title": "Check for updates on startup",
+          "description": "The splash screen checks at most once a day. Help | Check for Updates… checks at any time.",
+          "type": "bool",
+          "default": true,
+          "group": "system.updates",
+          "section": "Automatic Checks",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "updates.channel",
+          "title": "Update channel",
+          "description": "Beta also offers pre-releases.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "stable",
+              "label": "Stable releases"
+            },
+            {
+              "value": "beta",
+              "label": "Beta releases"
+            }
+          ],
+          "default": "stable",
+          "group": "system.updates",
+          "section": "Automatic Checks",
+          "project": false,
+          "order": 1
+        },
+        {
+          "key": "updates.endpoint",
+          "title": "Update feed URL",
+          "description": "The latest.json of the update feed. Empty: the GitHub releases of Forge for the selected channel. Updates must be signed with the key this build was made with.",
+          "type": "string",
+          "default": "",
+          "group": "system.updates",
+          "section": "Advanced",
+          "project": false,
+          "order": 10
         },
         {
           "key": "editor.smoothScrolling",

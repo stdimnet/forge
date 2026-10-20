@@ -27,6 +27,7 @@ Forge uses the platform's standard folders (Rust's `dirs` crate):
 | `dataSources.toml` | global database data sources (no passwords) |
 | `browser-companion.json` | paired browsers (SHA-256 hashes of their tokens only) |
 | `dialog-windows.json` | size and position of dialog windows |
+| `updates.json` | update checks: time of the last check, the skipped version and a postponed ("Later") version |
 | `scratches/` | scratch files and buffers |
 | `scratches.json` | per-scratch options (the data source of SQL scratches) |
 

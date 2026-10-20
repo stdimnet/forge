@@ -74,6 +74,7 @@ To change shortcuts see [Keymap](../user/keymap.md).
 | --- | --- | --- | --- | --- |
 | Find Action… | `GotoAction` | `Ctrl+Shift+A` | `Cmd+Shift+A` | yes |
 | Keymap Reference | `Help.KeymapReference` |  |  | yes |
+| Check for Updates… | `CheckForUpdate` |  |  | yes |
 | About | `About` |  |  | yes |
 
 ### Code

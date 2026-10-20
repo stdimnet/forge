@@ -48,6 +48,9 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 
 ## Recently added
 
+- **Splash screen and updates**: the wordmark fills with molten metal while Forge loads, the
+  last project reopens, and signed updates are offered on startup or with Help | Check for
+  Updates… ([First start](getting-started/first-start.md#the-splash-screen)).
 - **Main menu**: PHPStorm's menus behind ☰, merged into the toolbar or as a menu bar
   ([Workbench](user/workbench.md#main-menu)).
 - **Find in Files** (`Ctrl+Shift+F`) and the **Choose Declaration** popup
