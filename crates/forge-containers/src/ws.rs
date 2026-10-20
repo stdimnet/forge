@@ -108,6 +108,15 @@ pub enum Message {
     Close(Option<u16>, String),
 }
 
+/// One frame off the wire, unmasked.
+struct RawFrame {
+    fin: bool,
+    opcode: u8,
+    payload: Vec<u8>,
+    /// Bytes of the buffer the frame used.
+    used: usize,
+}
+
 /// Incremental decoder: push bytes as they arrive, take complete messages.
 #[derive(Debug, Default)]
 pub struct Decoder {
@@ -129,7 +138,13 @@ impl Decoder {
     #[allow(clippy::should_implement_trait)]
     pub fn next(&mut self) -> Result<Option<Message>> {
         loop {
-            let Some((fin, opcode, payload, used)) = self.frame()? else {
+            let Some(RawFrame {
+                fin,
+                opcode,
+                payload,
+                used,
+            }) = self.frame()?
+            else {
                 return Ok(None);
             };
             self.buf.drain(..used);
@@ -169,8 +184,8 @@ impl Decoder {
         }
     }
 
-    /// Parse one frame from the buffer: `(fin, opcode, unmasked payload, bytes used)`.
-    fn frame(&self) -> Result<Option<(bool, u8, Vec<u8>, usize)>> {
+    /// Parse one frame from the buffer.
+    fn frame(&self) -> Result<Option<RawFrame>> {
         let b = &self.buf;
         if b.len() < 2 {
             return Ok(None);
@@ -218,7 +233,12 @@ impl Decoder {
                 *x ^= k[i % 4];
             }
         }
-        Ok(Some((fin, opcode, payload, end)))
+        Ok(Some(RawFrame {
+            fin,
+            opcode,
+            payload,
+            used: end,
+        }))
     }
 }
 

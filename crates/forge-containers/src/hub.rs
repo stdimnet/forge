@@ -1966,7 +1966,7 @@ mod tests {
             .unwrap()
             .remove(0);
         assert!(f.local_port > 0);
-        assert_eq!(hub.input().port_forwards, [f.clone()]);
+        assert_eq!(hub.input().port_forwards, std::slice::from_ref(&f));
         let mut tcp = tokio::net::TcpStream::connect(("127.0.0.1", f.local_port))
             .await
             .unwrap();
