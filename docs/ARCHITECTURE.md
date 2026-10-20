@@ -175,9 +175,13 @@ app/ui/            SolidJS UI
   (`AppState::backend()`): `list_dir`, `read_file`, `write_file`, `find_files`, `git()` (a
   `forge_vcs::GitExec`; `Backend::repo()` = `Repo::open_with`), `detect_project`, `watch`,
   `open_terminal`, `start_process`, `lsp_launcher()` (a `forge_lsp::ServerLauncher`; the app's
-  `LspManager` is created with `LspManager::with_launcher`) and `php()` (the PHP index and the
-  Intelephense / phpactor lookup, `forge_backend::PhpBackend`). Methods block; commands call
-  them on blocking threads (`commands::workspace::blocking`).
+  `LspManager` is created with `LspManager::with_launcher`), `php()` (the PHP index and the
+  Intelephense / phpactor lookup, `forge_backend::PhpBackend`), `read_optional` (a file or
+  `None`, one round trip), `framework(FrameworkCall)` (Laravel / Symfony / Doctrine analysis,
+  see below), `langservers(LangServersRequest)` (catalog server planning), `find_executable`
+  (agent CLIs and tools on the project's machine) and `tunnels()` (SSH port forwarding,
+  `None` for local projects). Methods block; commands call them on blocking threads
+  (`commands::workspace::blocking`).
 - `LocalBackend` serves a folder on this machine (the desktop app's own projects).
   `RemoteBackend` serves a folder on another machine through the **Forge agent**
   (`crates/forge-remote-agent`): a headless `LocalBackend` behind the agent protocol on
@@ -185,13 +189,47 @@ app/ui/            SolidJS UI
   servers run on the host with their stdio proxied over a byte channel (Intelephense indexes
   the remote files itself; its config is resolved on the host), the PHP index, file watcher,
   terminals and processes live in the agent.
-- Features that only work locally use `AppState::with_workspace`, which fails for remote
-  projects with "not available in remote projects yet" (Laravel/Symfony/Doctrine analysis,
-  database tools, the Xdebug listener, AI agent CLIs, Browser Companion).
+- Remote projects have the features of local ones; whatever reads many project files runs
+  next to them:
+  - **Frameworks** (`forge_backend::frameworks`): `LocalFrameworks` scans and caches Laravel
+    (fingerprint recheck every 2 s), Symfony and Doctrine (10 s, keyed by their settings)
+    where the files are: in the app for local projects, in the agent for remote ones
+    (`Call::Framework`). Editor requests carry the buffer, so completion, Go to Declaration,
+    gutter marks and DQL highlighting cost one round trip; `framework_call::<T>` decodes the
+    typed reply. Artisan and `bin/console` run through `Backend::start_process`
+    (`process_io::run_lines`: lines, stderr flag, cancel), so they run on the host.
+  - **Catalog language servers** (`forge_backend::langservers`): the project scan, server
+    detection (`node_modules/.bin`, PATH, npm/nvm/volta, …) and config building run on the
+    project's machine (`Call::LangServers` with the `langservers.*` settings, disabled
+    plugins and the running servers' states); the servers then start there through the LSP
+    byte channel. Installing from the settings page is refused for remote projects (install
+    on the host from the terminal).
+  - **Project settings and `.forge/` files** go through `forge_core::ProjectFiles`
+    (`LocalFiles`, `forge_backend::BackendFiles`): `.forge/settings.toml`
+    (`Settings::load_project_files`), `.forge/dataSources.toml` and `.env` (database tools),
+    `.forge/breakpoints.json` and `.forge/php-servers.json` (debugger).
+  - **Databases**: project data sources of a remote project connect through an SSH
+    `direct-tcpip` tunnel to their host and port as the remote host sees them
+    (`forge_db::DbTunnel`, `DbService::set_project_context`; `DataSourceInfo.via` names the
+    host); SQLite files on the host are refused; global data sources connect directly.
+  - **Xdebug**: "Start Listening" listens on a free local port and asks the host to listen
+    on `127.0.0.1:<php.debug.port>` (`tcpip-forward`, requested again after reconnects;
+    `DebugServer::listen_with`). Xdebug's paths are the host's, which are the project's, so
+    no path mappings are needed. `debug_status` reports `via`.
+  - **AI agent CLIs** run on the host: `forge_agent_cli::AgentHost` (the app's
+    `BackendHost`) finds them with `Backend::find_executable` and starts them with
+    `process_io::spawn_stdio` (async stdin/stdout/stderr over the process API;
+    `Call::ProcessCloseStdin` ends the input of per-turn CLIs).
+  - The Browser Companion's project profile and `.env` edits use the backend; opening files
+    from the browser still targets local projects. `AppState::with_workspace` is left for
+    WebForge sources, StyLua, code hosts, Docker services and HTTP scratch environments,
+    which fail for remote projects with "not available in remote projects yet".
 - Protocol (`forge_backend::protocol`, version `PROTOCOL_VERSION`): frames are a big-endian
   `u32` length + a MessagePack map (`rmp_serde::to_vec_named`). `Request { id, call }` /
   `Response { id, result }` (answers in any order; the result is the MessagePack encoding of
-  the call's reply type), `Event` (`FsChanged`, `Pty`, `Run`, `PhpIndexProgress`), `Data` /
+  the call's reply type; protocol 2 added `ReadOptional`, `ProcessCloseStdin`,
+  `FindExecutable`, `Framework` and `LangServers`), `Event` (`FsChanged`, `Pty`, `Run`,
+  `PhpIndexProgress`), `Data` /
   `Close { channel }` (language server stdio, terminal and process input; channel ids are chosen
   by the client). The connection starts with `Call::Hello`. `forge_backend::rpc::RpcClient`
   is the client (async `call`, `call_blocking`, events, channels); `forge_remote_agent::serve`
@@ -199,12 +237,16 @@ app/ui/            SolidJS UI
 - SSH (`crates/forge-remote`, russh with ring): `session` (password, key file with passphrase,
   ssh-agent plus `IdentityFile`s; `known_hosts` check: unknown or changed keys fail with
   `ConnectError::HostKey` and are trusted after the user confirmed the fingerprint, which
-  updates `~/.ssh/known_hosts`), `agent` (probe with one shell command, upload the bundled
+  updates `~/.ssh/known_hosts`; `Route::Jump` connects through `ProxyJump` hosts, each hop
+  tunnelled through the previous one with a `direct-tcpip` channel and asked about its own
+  host key, `Route::Command` runs a `ProxyCommand` with `%h %p %r %n` expanded; port forwards
+  `open_direct_tcpip` / `forward_remote`), `agent` (probe with one shell command, upload the bundled
   agent through `cat` into `~/.cache/forge-agent/<version>/` when missing or different by
   SHA-256, start it in a login shell; output before the `FORGE-AGENT-READY` line is skipped),
   `connection` (pings every 5 s for the latency, reconnects with backoff 1–30 s after a
   dropped connection and calls `RemoteBackend::reattach`; host key and authentication errors
-  stop retrying), `store` (saved configurations in `<config dir>/forge/ssh.toml`, passwords
+  stop retrying; `forward_local` / `forward_remote` and the `forge_backend::Tunnels` it hands
+  to `RemoteBackend`), `store` (saved configurations in `<config dir>/forge/ssh.toml`, passwords
   and passphrases in the OS keychain, service `forge-ssh`, account = configuration id;
   `~/.ssh/config` with `Include`). The pure modules (`ssh_config`, `known_hosts`, `deploy`,
   `config`) build without the `client` feature and back the browser mocks through
@@ -478,8 +520,9 @@ app/ui/            SolidJS UI
   groups with prefix/name/middleware/controller, included files, the `api` prefix), views and
   Blade components (anonymous, class based, Livewire), custom directives (`Blade::directive`,
   `Blade::if`), config and `.env` keys, Eloquent models (columns from migrations, `$fillable`,
-  casts, relations with the related model, scopes, accessors) and translations. The app caches
-  it per workspace and reloads when the files change.
+  casts, relations with the related model, scopes, accessors) and translations. The project
+  backend caches it (`forge_backend::frameworks`, in the agent for remote projects) and
+  reloads when the files change.
 - `laravel_detect() -> LaravelInfo { detected, version?, routes, views, components, models,
   configKeys, translations, directives }`.
 - `laravel_routes() -> { routes: Route[], source: "static" | "artisan" }`. With the setting
