@@ -172,7 +172,14 @@ app/ui/            SolidJS UI
   `.cmd` shims.
 - Per-server settings: `langservers.servers.<id>.enabled|path|settings` (settings = JSON string
   merged into the server settings; `initializationOptions` key for startup options). Global:
-  `langservers.autoStart`, `langservers.scanLimit`, `langservers.lua.environment|version`.
+  `langservers.autoStart`, `langservers.scanLimit`, `langservers.lua.environment|version`,
+  `langservers.hints.enabled|dismissed`.
+- Install hint: files that use a feature only a server provides (a JSON `"$schema"`, a YAML
+  `# yaml-language-server: $schema=` modeline) get a banner above the editor when that server is
+  not installed (`src/features/langservers/hints.ts`, `serverHint.ts`). Add an entry to
+  `SERVER_HINTS` for another server. "Install…" opens the install dialog (`requestInstall`),
+  "Not now" hides it until Forge restarts, "Don't show again" stores the server id in
+  `langservers.hints.dismissed`.
 - IPC: `langservers_list() -> ServerRow[]`, `langservers_apply() -> ServerRow[]` (re-plan after
   settings changed), `langservers_install({ id, index }) -> InstallOutcome` with output on
   `langservers://install-output` `{ id, stream, line }`, `langservers_cancel_install({ id })`,
