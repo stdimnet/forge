@@ -3,7 +3,7 @@
  * timers so the AI chat can be explored and screenshotted without the CLI.
  */
 import { emitMock, invoke, registerMock } from "@/ipc";
-import type { AgentEvent, MessageContext } from "@/ipc/agent";
+import type { AgentEvent, MessageContext, PermissionDecision, PermissionMode } from "@/ipc/agent";
 
 const CWD = "/home/dev/Projects/acme-shop";
 const abs = (p: string) => `${CWD}/${p}`;
@@ -14,10 +14,29 @@ interface MockSession {
   /** Bumped on interrupt so a running script stops at its next step. */
   generation: number;
   running: boolean;
+  mode: PermissionMode;
+  /** Open permission requests by id. */
+  pending: Map<string, { resolve: (d: PermissionDecision) => void; reject: (e: Error) => void }>;
+  /** "Allow for this session" rules (tool name, or Bash with its exact command). */
+  allowed: Set<string>;
 }
 
 const sessions = new Map<string, MockSession>();
 let counter = 0;
+let permN = 0;
+
+const DENIED = "The user doesn't want to proceed with this tool use. The tool use was rejected.";
+
+/** Tools Claude Code asks about in each permission mode (read-only tools never ask). */
+export function needsPermission(mode: PermissionMode, tool: string): boolean {
+  const edit = ["Edit", "MultiEdit", "Write", "NotebookEdit"].includes(tool);
+  if (mode === "bypassPermissions" || mode === "plan") return false;
+  if (mode === "acceptEdits") return tool === "Bash";
+  return edit || tool === "Bash";
+}
+
+const ruleOf = (tool: string, input: Record<string, unknown>) =>
+  tool === "Bash" ? `Bash(${String(input.command ?? "").trim()})` : tool;
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -38,12 +57,30 @@ function runner(s: MockSession) {
     }
   };
   let toolN = 0;
+  /** Ask like Claude Code's `can_use_tool` control request; resolves with the answer. */
+  const ask = async (toolName: string, input: Record<string, unknown>, toolUseId: string): Promise<boolean> => {
+    if (!needsPermission(s.mode, toolName) || s.allowed.has(ruleOf(toolName, input))) return true;
+    const requestId = `perm_mock_${++permN}`;
+    const answer = new Promise<PermissionDecision>((resolve, reject) => s.pending.set(requestId, { resolve, reject }));
+    emit({ type: "permissionRequest", requestId, toolName, input, toolUseId });
+    const decision = await answer;
+    if (s.generation !== gen) throw new Cancelled();
+    if (decision.behavior === "allow" && decision.scope === "session") s.allowed.add(ruleOf(toolName, input));
+    return decision.behavior === "allow";
+  };
+  /** Run a tool; returns false when the user denied it. */
   const tool = async (name: string, input: Record<string, unknown>, run: () => Promise<string> | string, ms = 350, isError = false) => {
     const id = `toolu_mock_${++toolN}`;
     emit({ type: "toolUse", id, name, input });
+    if (!(await ask(name, input, id))) {
+      emit({ type: "toolResult", toolUseId: id, content: DENIED, isError: true });
+      await wait(200);
+      return false;
+    }
     await wait(ms);
     emit({ type: "toolResult", toolUseId: id, content: await run(), isError });
     await wait(120);
+    return true;
   };
   return { emit, wait, stream, tool };
 }
@@ -124,16 +161,27 @@ async function paidScopeScript(s: MockSession) {
   await tool("Grep", { pattern: "OrderStatus::Paid", output_mode: "content", "-n": true }, () => "app/Models/User.php:36:            ->where('status', OrderStatus::Paid)\n", 300);
   await stream("assistantText", "`OrderStatus` is a backed enum with a `Paid` case, so the scope can compare against it directly. Adding the scope:");
   await wait(250);
-  await tool(
+  const stopped = async (text: string) => {
+    await stream("assistantText", text);
+    emit({ type: "turnFinished", result: text, isError: false, durationMs: 9120, numTurns: 6, costUsd: 0.0214, usage: { inputTokens: 24, outputTokens: 410 } });
+  };
+  const edited = await tool(
     "Edit",
     { file_path: abs("app/Models/Order.php"), old_string: ORDER_OLD, new_string: ORDER_NEW },
     () => applyEdit("app/Models/Order.php", [{ old_string: ORDER_OLD, new_string: ORDER_NEW }]),
     600,
   );
+  if (!edited) return stopped("Understood, I left `Order.php` unchanged. Tell me how you'd like the scope to look instead.");
   await tool("TodoWrite", todos(["completed", "in_progress", "pending"]), () => "Todos have been modified successfully.", 150);
-  await tool("MultiEdit", { file_path: abs("tests/Feature/OrderTest.php"), edits: TEST_EDITS }, () => applyEdit("tests/Feature/OrderTest.php", TEST_EDITS), 500);
+  const tested = await tool(
+    "MultiEdit",
+    { file_path: abs("tests/Feature/OrderTest.php"), edits: TEST_EDITS },
+    () => applyEdit("tests/Feature/OrderTest.php", TEST_EDITS),
+    500,
+  );
+  if (!tested) return stopped("OK, no test added. The `paid` scope is in place in `app/Models/Order.php`.");
   await tool("TodoWrite", todos(["completed", "completed", "in_progress"]), () => "Todos have been modified successfully.", 150);
-  await tool(
+  const ran = await tool(
     "Bash",
     { command: "php artisan test --filter=OrderTest", description: "Run the order tests" },
     () =>
@@ -148,6 +196,7 @@ async function paidScopeScript(s: MockSession) {
       ].join("\n"),
     3200,
   );
+  if (!ran) return stopped("I didn't run the tests. Run `php artisan test --filter=OrderTest` when you're ready; the scope and its test are in place.");
   await tool("TodoWrite", todos(["completed", "completed", "completed"]), () => "Todos have been modified successfully.", 120);
   await stream(
     "assistantText",
@@ -191,16 +240,36 @@ async function genericScript(s: MockSession, text: string, ctx: MessageContext |
   emit({ type: "turnFinished", result: null, isError: false, durationMs: 1800, numTurns: 1, costUsd: 0.0021, usage: { inputTokens: 12, outputTokens: 96 } });
 }
 
-registerMock("agent_list", () => [
-  { id: "claude-code", name: "Claude Code", supported: true, installed: true, path: "/usr/local/bin/claude", models: ["default", "sonnet", "opus", "haiku"] },
-  { id: "gemini-cli", name: "Gemini CLI", supported: false, installed: false, path: null, models: ["gemini-2.5-pro", "gemini-2.5-flash"] },
-]);
+/** Demo machine: Claude Code is installed, Gemini CLI is not. */
+const DEMO_AGENTS = [
+  { id: "claude-code", name: "Claude Code", supported: true, exe: "claude", found: "/usr/local/bin/claude", models: ["default", "sonnet", "opus", "haiku"] },
+  { id: "gemini-cli", name: "Gemini CLI", supported: false, exe: "gemini", found: null, models: ["gemini-2.5-pro", "gemini-2.5-flash"] },
+];
 
-registerMock("agent_start", ({ agentId }) => {
+registerMock("agent_list", ({ executables }) => {
+  const explicit = (executables ?? {}) as Record<string, string>;
+  return DEMO_AGENTS.map(({ exe, found, ...a }) => {
+    const custom = explicit[a.id]?.trim();
+    // A configured path counts as installed when it names the CLI's executable.
+    const path = custom ? (/^(\/|[A-Za-z]:\\)/.test(custom) && custom.replace(/\\/g, "/").split("/").pop() === exe ? custom : null) : found;
+    return { ...a, installed: !!path, path };
+  });
+});
+
+registerMock("agent_start", ({ agentId, options }) => {
   if (agentId !== "claude-code") throw new Error(`${String(agentId)} is not yet supported in Forge`);
   const id = `mock-${++counter}`;
-  sessions.set(id, { id, started: false, generation: 0, running: false });
+  const mode = ((options as { permissionMode?: PermissionMode } | undefined)?.permissionMode ?? "default") as PermissionMode;
+  sessions.set(id, { id, started: false, generation: 0, running: false, mode, pending: new Map(), allowed: new Set() });
   return id;
+});
+
+registerMock("agent_respond_permission", ({ sessionId, requestId, decision }) => {
+  const s = sessions.get(String(sessionId));
+  const pending = s?.pending.get(String(requestId));
+  if (!s || !pending) throw new Error(`no pending permission request ${String(requestId)}`);
+  s.pending.delete(String(requestId));
+  pending.resolve(decision as PermissionDecision);
 });
 
 registerMock("agent_send", ({ sessionId, text, context }) => {
@@ -232,6 +301,8 @@ registerMock("agent_send", ({ sessionId, text, context }) => {
 
 function kill(s: MockSession, interrupted: boolean) {
   s.generation++;
+  for (const p of s.pending.values()) p.reject(new Cancelled());
+  s.pending.clear();
   const emit = (e: AgentEvent) => emitMock(`agent://${s.id}`, e);
   if (interrupted && s.running) emit({ type: "interrupted" });
   emit({ type: "exited", code: null });

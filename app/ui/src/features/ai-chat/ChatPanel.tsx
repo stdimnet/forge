@@ -34,7 +34,7 @@ function ChatToolbar() {
           badge: a.comingSoon ? "Soon" : undefined,
           disabled: a.comingSoon,
         }))}
-        onSelect={(id) => void setAgent(id, findChatAgent(id)?.models[0]?.id)}
+        onSelect={(id) => void setAgent(id)}
         trigger={
           <>
             <span class="chat-agent-icon">

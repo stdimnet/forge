@@ -40,6 +40,7 @@ registerChatAgent({
   comingSoon: true,
   tagline: "Gemini works in your project using your own Gemini CLI login.",
   models: [
+    { id: "default", label: "Default", hint: "Use the CLI's configured model" },
     { id: "gemini-2.5-pro", label: "Gemini 2.5 Pro" },
     { id: "gemini-2.5-flash", label: "Gemini 2.5 Flash" },
   ],

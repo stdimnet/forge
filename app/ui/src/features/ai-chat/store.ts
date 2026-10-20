@@ -1,8 +1,17 @@
 /** AI chat state: selected agent/model/mode, the current conversation and history. */
+import { createEffect, createRoot, untrack } from "solid-js";
 import { createStore, produce } from "solid-js/store";
-import { agentApi, type AgentEvent, type AgentInfo, type MessageContext, type PermissionMode } from "@/ipc/agent";
+import { getSetting } from "@/state/settings";
+import {
+  agentApi,
+  type AgentEvent,
+  type AgentInfo,
+  type MessageContext,
+  type PermissionDecision,
+  type PermissionMode,
+} from "@/ipc/agent";
 import { reloadFile } from "@/state/editor";
-import { addTurn, applyEvent, emptyConversation, type Conversation } from "./model";
+import { addTurn, applyEvent, emptyConversation, findPermission, type Conversation, type PermissionStatus } from "./model";
 
 export interface HistoryEntry {
   id: number;
@@ -37,6 +46,23 @@ const [chat, setChat] = createStore<ChatState>({
 });
 
 export { chat };
+
+const PERMISSION_MODES: PermissionMode[] = ["default", "acceptEdits", "plan", "bypassPermissions"];
+
+/** Default model and permission mode of an agent (Settings > Tools > AI Agents). */
+export function agentDefaults(agentId: string): { model: string; mode: PermissionMode } {
+  const model = getSetting<string>(`agents.${agentId}.model`, "default") || "default";
+  const mode = getSetting<string>(`agents.${agentId}.permissionMode`, "default") as PermissionMode;
+  return { model, mode: PERMISSION_MODES.includes(mode) ? mode : "default" };
+}
+
+// A fresh chat follows the configured defaults (also once settings have loaded).
+createRoot(() =>
+  createEffect(() => {
+    const d = agentDefaults(chat.agentId);
+    if (untrack(() => !chat.sessionId && !chat.conv.turns.length)) setChat({ model: d.model, mode: d.mode });
+  }),
+);
 
 let unlisten: (() => void) | undefined;
 let historyId = 1;
@@ -96,6 +122,27 @@ export async function sendMessage(text: string, context: MessageContext): Promis
   }
 }
 
+/** Answer a permission request shown in the chat (Allow once / for the session / Deny). */
+export async function answerPermission(requestId: string, answer: "once" | "session" | "deny"): Promise<void> {
+  const id = chat.sessionId;
+  if (!id || findPermission(chat.conv, requestId)?.status !== "pending") return;
+  const decision: PermissionDecision =
+    answer === "deny" ? { behavior: "deny", message: "The user denied this tool call." } : { behavior: "allow", scope: answer };
+  const status: PermissionStatus = answer === "deny" ? "denied" : answer === "session" ? "allowedForSession" : "allowed";
+  setChat(
+    "conv",
+    produce((conv) => {
+      const p = findPermission(conv, requestId);
+      if (p) p.status = status;
+    }),
+  );
+  try {
+    await agentApi.respondPermission(id, requestId, decision);
+  } catch (e) {
+    onEvent({ type: "error", message: String(e instanceof Error ? e.message : e) });
+  }
+}
+
 export async function interrupt(): Promise<void> {
   if (chat.sessionId && chat.running) await agentApi.interrupt(chat.sessionId);
 }
@@ -137,10 +184,10 @@ export async function openHistory(id: number): Promise<void> {
   setChat("history", (h) => h.filter((x) => x.id !== id));
 }
 
-export async function setAgent(agentId: string, defaultModel = "default"): Promise<void> {
+export async function setAgent(agentId: string): Promise<void> {
   if (agentId === chat.agentId) return;
   await newChat();
-  setChat({ agentId, model: defaultModel });
+  setChat({ agentId, ...agentDefaults(agentId) });
 }
 
 export async function setModel(model: string): Promise<void> {

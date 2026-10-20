@@ -842,8 +842,7 @@
 }
 
 /* errors, notices, footer */
-.chat-error,
-.chat-permission {
+.chat-error {
   display: flex;
   gap: 8px;
   align-items: flex-start;
@@ -858,18 +857,95 @@
   white-space: pre-wrap;
   word-break: break-word;
 }
-.chat-permission {
-  color: var(--fg);
-  background: color-mix(in srgb, var(--warning) 10%, transparent);
-  border: 1px solid color-mix(in srgb, var(--warning) 35%, transparent);
-}
-.chat-permission svg,
 .chat-error svg {
   flex-shrink: 0;
   margin-top: 2px;
 }
-.chat-permission svg {
+/* permission prompt */
+.chat-permission-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--warning) 7%, var(--bg-panel));
+  border: 1px solid color-mix(in srgb, var(--warning) 45%, transparent);
+}
+.chat-permission-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--fg-strong);
+}
+.chat-permission-head svg {
+  flex-shrink: 0;
   color: var(--warning);
+}
+.chat-permission-head strong {
+  font-weight: 600;
+  word-break: break-word;
+}
+.chat-permission-command {
+  border-radius: var(--radius);
+  background: var(--bg-editor);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+.chat-permission-command pre,
+.chat-permission-input {
+  margin: 0;
+  padding: 8px 10px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.chat-permission-input {
+  max-height: 160px;
+  overflow: auto;
+  border-radius: var(--radius);
+  background: var(--bg-editor);
+  border: 1px solid var(--border);
+}
+.chat-permission-prompt {
+  color: var(--fg-faint);
+  user-select: none;
+}
+.chat-permission-desc {
+  padding: 5px 10px;
+  border-top: 1px solid var(--border);
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+.chat-permission-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.chat-permission-actions button {
+  height: 26px;
+}
+.chat-permission-spacer {
+  flex: 1;
+}
+.chat-permission-done {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: var(--fs-small);
+  color: var(--fg-muted);
+}
+.chat-permission-done svg {
+  flex-shrink: 0;
+}
+.chat-permission-done[data-status^="allowed"] svg {
+  color: var(--success);
+}
+.chat-permission-done[data-status="denied"] svg {
+  color: var(--danger);
 }
 .chat-working {
   display: flex;

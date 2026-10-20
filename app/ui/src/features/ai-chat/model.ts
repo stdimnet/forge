@@ -22,7 +22,19 @@ export type Block =
   | { kind: "thinking"; text: string; streaming: boolean; startedAt: number; durationMs?: number }
   | ToolBlock
   | { kind: "error"; message: string }
-  | { kind: "permission"; toolName: string; input: Record<string, unknown> };
+  | PermissionBlock;
+
+/** Pending: waiting for the user. Expired: the turn ended before an answer. */
+export type PermissionStatus = "pending" | "allowed" | "allowedForSession" | "denied" | "expired";
+
+export interface PermissionBlock {
+  kind: "permission";
+  requestId: string;
+  toolName: string;
+  input: Record<string, unknown>;
+  toolUseId?: string;
+  status: PermissionStatus;
+}
 
 export type TurnStatus = "running" | "done" | "error" | "interrupted";
 
@@ -166,7 +178,14 @@ export function applyEvent(conv: Conversation, ev: AgentEvent, now = Date.now())
     }
     case "permissionRequest":
       settle(turn, now);
-      turn.blocks.push({ kind: "permission", toolName: ev.toolName, input: ev.input ?? {} });
+      turn.blocks.push({
+        kind: "permission",
+        requestId: ev.requestId,
+        toolName: ev.toolName,
+        input: ev.input ?? {},
+        toolUseId: ev.toolUseId,
+        status: "pending",
+      });
       return {};
     case "usage":
       return {};
@@ -203,8 +222,22 @@ export function applyEvent(conv: Conversation, ev: AgentEvent, now = Date.now())
 }
 
 function finishTools(turn: Turn, status: ToolStatus): void {
-  for (const b of turn.blocks) if (b.kind === "tool" && b.status === "running") b.status = status;
+  for (const b of turn.blocks) {
+    if (b.kind === "tool" && b.status === "running") b.status = status;
+    // Unanswered requests can no longer be answered once the turn is over.
+    if (b.kind === "permission" && b.status === "pending") b.status = "expired";
+  }
 }
+
+/** The permission request with this id, if any. */
+export function findPermission(conv: Conversation, requestId: string): PermissionBlock | undefined {
+  for (const t of conv.turns) for (const b of t.blocks) if (b.kind === "permission" && b.requestId === requestId) return b;
+  return undefined;
+}
+
+/** Whether the agent is waiting for the user to answer a permission request. */
+export const awaitingPermission = (conv: Conversation): boolean =>
+  !!conv.turns[conv.turns.length - 1]?.blocks.some((b) => b.kind === "permission" && b.status === "pending");
 
 /** Files edited during a turn, in order of first edit. */
 export function changedFilesOf(turn: Turn, cwd: string | null): string[] {

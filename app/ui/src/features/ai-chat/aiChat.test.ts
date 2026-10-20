@@ -1,6 +1,17 @@
 import { describe, expect, it } from "vitest";
 import type { AgentEvent } from "@/ipc/agent";
-import { addTurn, applyEvent, changedFilesOf, emptyConversation, formatDuration, formatTokens, relativePath } from "./model";
+import {
+  addTurn,
+  applyEvent,
+  awaitingPermission,
+  changedFilesOf,
+  emptyConversation,
+  findPermission,
+  formatDuration,
+  formatTokens,
+  relativePath,
+} from "./model";
+import { permissionSummary } from "./PermissionCard";
 import { parseInline, parseMarkdown } from "./markdown";
 import { diffLines, diffStats, editHunks } from "./diff";
 import { highlight } from "./highlight";
@@ -14,6 +25,28 @@ function conversation(events: AgentEvent[]) {
   const results = events.map((e) => applyEvent(conv, e, (t += 1000)));
   return { conv, turn: conv.turns[0], results };
 }
+
+describe("permission requests", () => {
+  it("show as pending blocks that expire with the turn", () => {
+    const { conv, turn } = conversation([
+      { type: "toolUse", id: "t1", name: "Bash", input: { command: "php artisan test" } },
+      { type: "permissionRequest", requestId: "r1", toolName: "Bash", input: { command: "php artisan test" }, toolUseId: "t1" },
+    ]);
+    expect(awaitingPermission(conv)).toBe(true);
+    expect(findPermission(conv, "r1")).toMatchObject({ kind: "permission", status: "pending", toolUseId: "t1" });
+    applyEvent(conv, { type: "turnFinished", result: null, isError: false, durationMs: 1, numTurns: 1, costUsd: null, usage: null });
+    expect(findPermission(conv, "r1")?.status).toBe("expired");
+    expect(awaitingPermission(conv)).toBe(false);
+    expect(turn.status).toBe("done");
+  });
+
+  it("summarizes what is asked", () => {
+    expect(permissionSummary({ toolName: "Bash", input: { command: "ls" } }, CWD)).toEqual({ action: "run this command", subject: "ls" });
+    expect(permissionSummary({ toolName: "Edit", input: { file_path: `${CWD}/app/Order.php` } }, CWD).action).toBe("edit Order.php");
+    expect(permissionSummary({ toolName: "Write", input: { file_path: `${CWD}/a/New.php` } }, CWD).action).toBe("create New.php");
+    expect(permissionSummary({ toolName: "mcp__db__query", input: {} }, CWD).action).toBe("use mcp__db__query");
+  });
+});
 
 describe("conversation model", () => {
   it("folds a streamed turn into blocks", () => {
