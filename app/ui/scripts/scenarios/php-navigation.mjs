@@ -107,6 +107,13 @@ export default {
     await page.waitForSelector(".decl-chooser-row");
     await quiet(page);
   },
+  "php-nav-main-menu": async (page) => {
+    await page.click("[data-main-menu-button]");
+    await page.waitForSelector(".context-menu.main-menu-popup");
+    await page.locator(".context-menu-label", { hasText: /^Navigate$/ }).last().hover();
+    await page.waitForTimeout(150);
+    await quiet(page);
+  },
   "php-nav-find-window": async (page) => {
     await openFile(page, "Order.php");
     const { x, y } = await coordsOf(page, "Order extends");
