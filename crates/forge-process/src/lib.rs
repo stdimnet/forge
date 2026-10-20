@@ -6,6 +6,8 @@
 //! - [`config`]: Run/Debug configurations, their persistence in
 //!   `<project>/.forge/runConfigurations.toml` and the registry of configuration kinds that
 //!   turns a configuration into a command line.
+//! - [`output`]: the pure output models of the `forge-output` crate (ANSI, console lines,
+//!   file links, TeamCity test trees), re-exported for the run backend.
 
 pub mod args;
 pub mod config;
@@ -13,6 +15,8 @@ pub mod pty;
 pub mod runner;
 pub mod shell;
 mod utf8;
+
+pub use forge_output as output;
 
 pub use args::{quote_arg, split_args};
 pub use config::{

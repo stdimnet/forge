@@ -7,9 +7,8 @@ import { FitAddon } from "@xterm/addon-fit";
 import { WebLinksAddon } from "@xterm/addon-web-links";
 import { terminalApi } from "@/ipc/terminal";
 import { getSetting } from "@/state/settings";
-import { workspace } from "@/state/workspace";
+import { runApi } from "@/ipc/run";
 import { revealLocation } from "@/features/lsp/navigation";
-import { findFileLinks, toWorkspacePath } from "@/features/run/fileLinks";
 import { showBalloon } from "@/keymap";
 import { closeTab } from "./store";
 
@@ -60,9 +59,7 @@ export function applyThemeToAll(): void {
   for (const s of sessions.values()) s.term.options.theme = theme;
 }
 
-async function openFileLink(path: string, line?: number, column?: number): Promise<void> {
-  const rel = toWorkspacePath(path, workspace()?.root);
-  if (!rel) return;
+async function openFileLink(rel: string, line?: number, column?: number): Promise<void> {
   const ok = await revealLocation(rel, { line: Math.max(0, (line ?? 1) - 1), character: Math.max(0, (column ?? 1) - 1) });
   if (!ok) showBalloon(`Cannot open ${rel}`);
 }
@@ -129,18 +126,23 @@ export function attachSession(id: string, host: HTMLElement, cwd?: string): void
   term.registerLinkProvider({
     provideLinks(y, callback) {
       const line = term.buffer.active.getLine(y - 1)?.translateToString(true) ?? "";
-      const root = workspace()?.root;
-      const links = findFileLinks(line).filter((l) => toWorkspacePath(l.path, root) !== null);
-      callback(
-        links.length
-          ? links.map((l) => ({
-              range: { start: { x: l.start + 1, y }, end: { x: l.end, y } },
-              text: line.slice(l.start, l.end),
-              decorations: { underline: true, pointerCursor: true },
-              activate: () => void openFileLink(l.path, l.line, l.column),
-            }))
-          : undefined,
-      );
+      // File references are found by the backend (`forge-output`); only lines that could hold one are sent.
+      if (!/[\\/.]/.test(line)) return callback(undefined);
+      runApi
+        .fileLinks(line)
+        .catch(() => [])
+        .then((links) =>
+          callback(
+            links.length
+              ? links.map((l) => ({
+                  range: { start: { x: l.start + 1, y }, end: { x: l.end, y } },
+                  text: line.slice(l.start, l.end),
+                  decorations: { underline: true, pointerCursor: true },
+                  activate: () => void openFileLink(l.target ?? l.path, l.line, l.column),
+                }))
+              : undefined,
+          ),
+        );
     },
   });
   // Terminal-local clipboard keys (PHPStorm: Ctrl+Shift+C / Ctrl+Shift+V, Ctrl+C with a

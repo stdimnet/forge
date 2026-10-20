@@ -7,6 +7,7 @@ license.workspace = true
 
 [dependencies]
 phpforge-lang-php = { path = "../lang-php" }
+phpforge-dql = { path = "../dql" }
 serde.workspace = true
 serde_json.workspace = true
 walkdir = "2.5"

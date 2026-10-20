@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::config::Dialect;
+use crate::dialect::Dialect;
 use crate::value::{display, row_object, sql_literal};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

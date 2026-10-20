@@ -9,8 +9,7 @@ pub mod lexer;
 
 use serde::{Deserialize, Serialize};
 
-use crate::mapping::{AssociationKind, Entity};
-use crate::Snapshot;
+use crate::model::{AssociationKind, Entity, Snapshot};
 use lexer::{significant, tokenize, Token, TokenKind, FUNCTIONS};
 
 /// What a DQL text is.
@@ -73,7 +72,7 @@ pub enum PathTarget<'a> {
     /// An entity or embeddable (alias, association or embedded field).
     Entity(&'a Entity),
     /// A scalar field.
-    Field(&'a Entity, &'a crate::Field),
+    Field(&'a Entity, &'a crate::model::Field),
     Unknown,
 }
 

@@ -28,7 +28,7 @@ import {
   Zap,
 } from "lucide-solid";
 import { lspApi, type EditorCompletionItem } from "@/ipc/lsp";
-import { buildHoverDom } from "./hoverDoc";
+import { buildHoverDom, hoverDocOf } from "./hoverDoc";
 import { syncNow } from "./sync";
 import { fromLsp, h, iconNode, toLsp } from "./util";
 
@@ -119,7 +119,8 @@ function toOption(path: string, item: EditorCompletionItem, rank: number): Compl
     info: async () => {
       let doc = item.documentation;
       if (!doc && item.raw) doc = (await lspApi.completionResolve(path, item.raw).catch(() => null))?.documentation;
-      return doc ? buildHoverDom(doc) : null;
+      const parsed = await hoverDocOf(doc);
+      return parsed ? buildHoverDom(parsed) : null;
     },
   };
   if (item.deprecated) deprecatedOptions.add(option);

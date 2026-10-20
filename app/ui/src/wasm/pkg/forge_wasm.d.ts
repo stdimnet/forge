@@ -7,6 +7,48 @@
 export function bridge_version(): string;
 
 /**
+ * `{ handle, event: AgentEvent, now }` → `ChatUpdate`.
+ */
+export function chat_apply(request_json: string): string;
+
+/**
+ * `{ handle, turnId, prompt, context }` → `ChatUpdate`.
+ */
+export function chat_begin_turn(request_json: string): string;
+
+export function chat_drop(request_json: string): string;
+
+/**
+ * A new conversation → its handle (a number).
+ */
+export function chat_new(): string;
+
+/**
+ * `{ handle, requestId, status }` → `ChatUpdate | null`.
+ */
+export function chat_set_permission(request_json: string): string;
+
+/**
+ * Mirrors `doctrine_complete`: `{ path, content, offset, snapshot }` → `DqlCompletion | null`.
+ */
+export function dql_complete(request_json: string): string;
+
+/**
+ * Mirrors `doctrine_diagnostics`: `{ path, content, snapshot }` → `SourceDiagnostic[]`.
+ */
+export function dql_diagnostics(request_json: string): string;
+
+/**
+ * Mirrors `doctrine_goto`: `{ path, content, offset, snapshot }` → `Location[]`.
+ */
+export function dql_goto(request_json: string): string;
+
+/**
+ * Mirrors `doctrine_highlight`: `{ path, content, snapshot }` → `SourceHighlight`.
+ */
+export function dql_highlight(request_json: string): string;
+
+/**
  * `DetectRequest` → `FileTypeInfo[]`.
  */
 export function filetypes_detect(request_json: string): string;
@@ -78,6 +120,33 @@ export function keymap_set_override(json: string): string;
 export function keymap_stroke_of_event(event_json: string): string;
 
 /**
+ * `{ markdown }` → `HoverDoc`.
+ */
+export function markdown_hover(request_json: string): string;
+
+/**
+ * `{ text, flavor? }` → `Block[]`.
+ */
+export function markdown_parse(request_json: string): string;
+
+/**
+ * Mirrors the `output_file_links` command: `{ text, root }` → `FileLink[]`.
+ */
+export function output_file_links(request_json: string): string;
+
+export function run_output_drop(request_json: string): string;
+
+/**
+ * `{ handle, input: RunInput }` → `OutputEvent[]`.
+ */
+export function run_output_handle(request_json: string): string;
+
+/**
+ * `RunOutputOptions` → handle (a number) for [`run_output_handle`].
+ */
+export function run_output_new(options_json: string): string;
+
+/**
  * `{ query, paths, limit }` → `FileMatch[]`: "Go to File" over a list of paths (the
  * browser-mode demo project instead of a file walk).
  */
@@ -98,11 +167,45 @@ export function settings_search(request_json: string): string;
  */
 export function settings_validate(request_json: string): string;
 
+/**
+ * `{ dialect, schema, table, pk, changes }` → the statements, or `{ error }`.
+ */
+export function sql_change_statements(request_json: string): string;
+
+/**
+ * Mirrors `db_export`: `{ format, dialect, table, columns, rows }` → the text.
+ */
+export function sql_export(request_json: string): string;
+
+/**
+ * `{ statements: string[] }` → their leading keywords, upper-cased.
+ */
+export function sql_leading_keywords(request_json: string): string;
+
+/**
+ * `{ sql, dialect }` → `Statement[]` (byte offsets, like `db_execute`).
+ */
+export function sql_split(request_json: string): string;
+
+/**
+ * Mirrors `db_statement_at`: `{ sql, from, to, dialect }` → `Statement | null`.
+ */
+export function sql_statement_at(request_json: string): string;
+
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
     readonly bridge_version: (a: number) => void;
+    readonly chat_apply: (a: number, b: number, c: number) => void;
+    readonly chat_begin_turn: (a: number, b: number, c: number) => void;
+    readonly chat_drop: (a: number, b: number, c: number) => void;
+    readonly chat_new: (a: number) => void;
+    readonly chat_set_permission: (a: number, b: number, c: number) => void;
+    readonly dql_complete: (a: number, b: number, c: number) => void;
+    readonly dql_diagnostics: (a: number, b: number, c: number) => void;
+    readonly dql_goto: (a: number, b: number, c: number) => void;
+    readonly dql_highlight: (a: number, b: number, c: number) => void;
     readonly filetypes_detect: (a: number, b: number, c: number) => void;
     readonly filetypes_load: (a: number, b: number, c: number) => void;
     readonly fuzzy_filter: (a: number, b: number, c: number) => void;
@@ -117,10 +220,21 @@ export interface InitOutput {
     readonly keymap_resolve: (a: number, b: number, c: number) => void;
     readonly keymap_set_override: (a: number, b: number, c: number) => void;
     readonly keymap_stroke_of_event: (a: number, b: number, c: number) => void;
+    readonly markdown_hover: (a: number, b: number, c: number) => void;
+    readonly markdown_parse: (a: number, b: number, c: number) => void;
+    readonly output_file_links: (a: number, b: number, c: number) => void;
+    readonly run_output_drop: (a: number, b: number, c: number) => void;
+    readonly run_output_handle: (a: number, b: number, c: number) => void;
+    readonly run_output_new: (a: number, b: number, c: number) => void;
     readonly search_match_files: (a: number, b: number, c: number) => void;
     readonly search_rank: (a: number, b: number, c: number) => void;
     readonly settings_search: (a: number, b: number, c: number) => void;
     readonly settings_validate: (a: number, b: number, c: number) => void;
+    readonly sql_change_statements: (a: number, b: number, c: number) => void;
+    readonly sql_export: (a: number, b: number, c: number) => void;
+    readonly sql_leading_keywords: (a: number, b: number, c: number) => void;
+    readonly sql_split: (a: number, b: number, c: number) => void;
+    readonly sql_statement_at: (a: number, b: number, c: number) => void;
     readonly __wbindgen_add_to_stack_pointer: (a: number) => number;
     readonly __wbindgen_export: (a: number, b: number, c: number) => void;
     readonly __wbindgen_export2: (a: number, b: number) => number;

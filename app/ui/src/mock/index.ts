@@ -21,6 +21,7 @@ import "./laravelMock";
 import "./symfonyMock";
 import "./doctrineMock";
 import "./forgesMock";
+import "./markdownMock";
 
 // File types answer synchronously once the WebAssembly build is loaded; wait for it so the
 // first editors do not start as plain text.

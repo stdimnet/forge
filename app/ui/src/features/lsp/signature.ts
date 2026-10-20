@@ -5,11 +5,12 @@
 import { StateEffect, StateField, type Extension } from "@codemirror/state";
 import { EditorView, keymap, showTooltip, ViewPlugin, type Tooltip, type ViewUpdate } from "@codemirror/view";
 import { lspApi, type EditorSignatureHelp } from "@/ipc/lsp";
-import { renderMarkdown } from "./markdown";
+import { markdownApi, type MdBlock } from "@/ipc/markdown";
+import { appendBlocks } from "./MarkdownDoc";
 import { syncNow } from "./sync";
 import { h, toLsp } from "./util";
 
-const setSignature = StateEffect.define<{ pos: number; help: EditorSignatureHelp } | null>();
+const setSignature = StateEffect.define<{ pos: number; help: EditorSignatureHelp; paramDoc: MdBlock[] | null } | null>();
 
 const signatureField = StateField.define<Tooltip | null>({
   create: () => null,
@@ -17,8 +18,8 @@ const signatureField = StateField.define<Tooltip | null>({
     for (const e of tr.effects) {
       if (e.is(setSignature)) {
         if (!e.value) return null;
-        const { pos, help } = e.value;
-        return { pos, above: true, strictSide: true, create: () => ({ dom: buildSignatureDom(help) }) };
+        const { pos, help, paramDoc } = e.value;
+        return { pos, above: true, strictSide: true, create: () => ({ dom: buildSignatureDom(help, paramDoc) }) };
       }
     }
     if (tip && tr.docChanged) return { ...tip, pos: tr.changes.mapPos(tip.pos) };
@@ -39,7 +40,14 @@ function paramsSpan(label: string): [number, number] {
   return [open + 1, label.length];
 }
 
-export function buildSignatureDom(help: EditorSignatureHelp): HTMLElement {
+/** Documentation of the active parameter, if any. */
+function activeParamDoc(help: EditorSignatureHelp): string | undefined {
+  const current = help.signatures[help.activeSignature];
+  return current?.parameters[current.activeParameter ?? help.activeParameter]?.documentation ?? undefined;
+}
+
+/** `paramDoc`: the active parameter's documentation, parsed by the backend. */
+export function buildSignatureDom(help: EditorSignatureHelp, paramDoc: MdBlock[] | null = null): HTMLElement {
   const root = h("div", "cm-lsp-signature");
   help.signatures.forEach((sig, idx) => {
     const active = sig.activeParameter ?? help.activeParameter;
@@ -62,11 +70,9 @@ export function buildSignatureDom(help: EditorSignatureHelp): HTMLElement {
     }
     root.append(row);
   });
-  const current = help.signatures[help.activeSignature];
-  const paramDoc = current?.parameters[current.activeParameter ?? help.activeParameter]?.documentation;
-  if (paramDoc) {
+  if (paramDoc?.length) {
     const doc = h("div", "cm-lsp-signature-doc md");
-    doc.append(renderMarkdown(paramDoc));
+    appendBlocks(doc, paramDoc);
     root.append(doc);
   }
   return root;
@@ -76,8 +82,10 @@ async function requestSignature(path: string, view: EditorView, explicit: boolea
   const pos = view.state.selection.main.head;
   await syncNow(path);
   const help = await lspApi.signatureHelp(path, toLsp(view.state.doc, pos)).catch(() => null);
+  const docText = help?.signatures.length ? activeParamDoc(help) : undefined;
+  const paramDoc = docText ? await markdownApi.parse(docText, "docs").catch(() => null) : null;
   if (view.state.selection.main.head !== pos && !explicit) return false;
-  view.dispatch({ effects: setSignature.of(help?.signatures.length ? { pos, help } : null) });
+  view.dispatch({ effects: setSignature.of(help?.signatures.length ? { pos, help, paramDoc } : null) });
   return !!help;
 }
 

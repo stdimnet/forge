@@ -7,7 +7,7 @@ import { gutter, GutterMarker, ViewPlugin, type EditorView } from "@codemirror/v
 import { StateEffect, type Extension } from "@codemirror/state";
 import { Bug, Play, Settings2 } from "lucide-solid";
 import { shortcutLabel } from "@/keymap";
-import type { TestStatus } from "./teamcity";
+import type { TestStatus } from "./tests";
 import { onTestResults } from "./testResults";
 import { findTests, testConfiguration, type TestTarget } from "./phpTests";
 import { openMenu } from "./PopupMenu";

@@ -12,6 +12,11 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 serde.workspace = true
 serde_json.workspace = true
+forge-output.workspace = true
+forge-sql.workspace = true
+forge-markdown.workspace = true
+forge-agent-cli = { path = "../forge-agent-cli", default-features = false }
+phpforge-dql = { path = "../../packs/phpforge/dql" }
 forge-keymap.workspace = true
 wasm-bindgen = "=0.2.129"
 forge-fuzzy.workspace = true

@@ -2,143 +2,19 @@
 //!
 //! A [`Site`] is one DQL text assembled from the string literals of a call argument
 //! (concatenations, heredocs, `Entity::class`), with a mapping back to source offsets.
-
-use std::sync::OnceLock;
+//! Sites are found with the tree-sitter PHP parser ([`TreeSitter`]); completion,
+//! navigation, diagnostics and highlighting over sites live in `phpforge_dql::site`.
 
 use phpforge_lang_php::{parser, ClassLike, FileIndex, SymbolKind};
-use regex::Regex;
 use serde::{Deserialize, Serialize};
 use tree_sitter::Node;
 
-use crate::dql::{self, lexer, Mode, PathTarget};
+pub use phpforge_dql::site::{
+    mode_for, Segment, Site, SiteFinder, SourceDiagnostic, SourceHighlight, SourceSpan,
+};
+
+use crate::dql::{self, Mode};
 use crate::{line_col, Location, Snapshot};
-
-/// One literal piece of the DQL text and where it is in the PHP source.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Segment {
-    pub dql_start: usize,
-    pub src_start: usize,
-    pub len: usize,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Site {
-    pub dql: String,
-    pub mode: Mode,
-    /// Aliases declared by the QueryBuilder chain (alias, entity class).
-    pub preset: Vec<(String, String)>,
-    pub segments: Vec<Segment>,
-    /// Method the argument belongs to (`createQuery`, `andWhere`, ...).
-    pub method: String,
-}
-
-impl Site {
-    pub fn to_dql(&self, src: usize) -> Option<usize> {
-        self.segments
-            .iter()
-            .find(|s| s.src_start <= src && src <= s.src_start + s.len)
-            .map(|s| s.dql_start + (src - s.src_start))
-    }
-
-    pub fn to_src(&self, dql: usize) -> Option<usize> {
-        self.segments
-            .iter()
-            .find(|s| s.dql_start <= dql && dql <= s.dql_start + s.len)
-            .map(|s| s.src_start + (dql - s.dql_start))
-    }
-}
-
-const QB_EXPR: &[&str] = &[
-    "select",
-    "addSelect",
-    "where",
-    "andWhere",
-    "orWhere",
-    "having",
-    "andHaving",
-    "orHaving",
-    "orderBy",
-    "addOrderBy",
-    "groupBy",
-    "addGroupBy",
-    "set",
-    "distinct",
-];
-const QB_JOIN: &[&str] = &["join", "innerJoin", "leftJoin"];
-const QB_ENTITY: &[&str] = &["from", "update", "delete"];
-const EXPR_METHODS: &[&str] = &[
-    "eq",
-    "neq",
-    "lt",
-    "lte",
-    "gt",
-    "gte",
-    "isNull",
-    "isNotNull",
-    "in",
-    "notIn",
-    "like",
-    "notLike",
-    "between",
-    "andX",
-    "orX",
-    "not",
-    "count",
-    "countDistinct",
-    "max",
-    "min",
-    "avg",
-    "sum",
-    "abs",
-    "lower",
-    "upper",
-    "length",
-    "concat",
-    "trim",
-    "isMemberOf",
-    "isInstanceOf",
-    "exists",
-    "all",
-    "some",
-    "any",
-    "asc",
-    "desc",
-    "literal",
-    "diff",
-    "prod",
-    "quot",
-    "sqrt",
-    "mod",
-];
-
-fn mode_for(method: &str, arg: usize, object: &str) -> Option<Mode> {
-    if method == "createQuery" && arg == 0 {
-        return Some(Mode::Full);
-    }
-    if QB_EXPR.contains(&method) {
-        let ok = match method {
-            "orderBy" | "addOrderBy" | "set" => arg == 0,
-            _ => true,
-        };
-        return ok.then_some(Mode::Expression);
-    }
-    if QB_JOIN.contains(&method) {
-        return match arg {
-            0 => Some(Mode::Join),
-            3 => Some(Mode::Expression),
-            _ => None,
-        };
-    }
-    if QB_ENTITY.contains(&method) && arg == 0 {
-        return Some(Mode::Entity);
-    }
-    if EXPR_METHODS.contains(&method) && object.contains("expr()") {
-        return Some(Mode::Expression);
-    }
-    None
-}
 
 struct Builder<'a> {
     src: &'a str,
@@ -236,10 +112,6 @@ fn call_of<'t>(src: &str, argument: Node<'t>) -> Option<(String, String, usize, 
     Some((name, object, index, call))
 }
 
-fn re(cell: &'static OnceLock<Regex>, p: &str) -> &'static Regex {
-    cell.get_or_init(|| Regex::new(p).expect("valid regex"))
-}
-
 /// Aliases the QueryBuilder chain in the enclosing method declares.
 fn builder_aliases(
     snap: &Snapshot,
@@ -247,11 +119,6 @@ fn builder_aliases(
     src: &str,
     offset: usize,
 ) -> Vec<(String, String)> {
-    static CREATE: OnceLock<Regex> = OnceLock::new();
-    static REPO_CREATE: OnceLock<Regex> = OnceLock::new();
-    static FROM: OnceLock<Regex> = OnceLock::new();
-    static ENTITY_JOIN: OnceLock<Regex> = OnceLock::new();
-    static PATH_JOIN: OnceLock<Regex> = OnceLock::new();
     let class: Option<&ClassLike> = index.class_at(offset);
     let body = class
         .and_then(|c| {
@@ -262,64 +129,8 @@ fn builder_aliases(
         .map(|m| &src[m.range.start..m.range.end.min(src.len())])
         .unwrap_or(src);
     let resolve = |name: &str| index.resolve_class(name, offset);
-    let mut out: Vec<(String, String)> = Vec::new();
-    for c in re(
-        &REPO_CREATE,
-        r#"getRepository\(\s*([\w\\]+)::class\s*\)\s*->\s*createQueryBuilder\(\s*['"](\w+)['"]"#,
-    )
-    .captures_iter(body)
-    {
-        out.push((c[2].to_string(), resolve(&c[1])));
-    }
-    if let Some(entity) = class.and_then(|c| snap.entity_of_repository(&c.fqn)) {
-        for c in re(
-            &CREATE,
-            r#"\$this\s*->\s*createQueryBuilder\(\s*['"](\w+)['"]"#,
-        )
-        .captures_iter(body)
-        {
-            out.push((c[1].to_string(), entity.class.clone()));
-        }
-    }
-    for c in re(&FROM, r#"->\s*(?:from|update|delete)\(\s*(?:([\w\\]+)::class|['"]([\w\\:]+)['"])\s*,\s*['"](\w+)['"]"#).captures_iter(body) {
-        let entity = c.get(1).map(|m| resolve(m.as_str())).or_else(|| c.get(2).map(|m| m.as_str().replace("\\\\", "\\")));
-        if let Some(e) = entity {
-            out.push((c[3].to_string(), e));
-        }
-    }
-    for c in re(
-        &ENTITY_JOIN,
-        r#"->\s*(?:join|innerJoin|leftJoin)\(\s*([\w\\]+)::class\s*,\s*['"](\w+)['"]"#,
-    )
-    .captures_iter(body)
-    {
-        out.push((c[2].to_string(), resolve(&c[1])));
-    }
-    // Path joins depend on earlier aliases; resolve until nothing changes.
-    let joins: Vec<(String, String, String)> = re(
-        &PATH_JOIN,
-        r#"->\s*(?:join|innerJoin|leftJoin)\(\s*['"](\w+)\.(\w+)['"]\s*,\s*['"](\w+)['"]"#,
-    )
-    .captures_iter(body)
-    .map(|c| (c[1].to_string(), c[2].to_string(), c[3].to_string()))
-    .collect();
-    for _ in 0..3 {
-        for (alias, assoc, new_alias) in &joins {
-            if out.iter().any(|(a, _)| a == new_alias) {
-                continue;
-            }
-            let target = out
-                .iter()
-                .find(|(a, _)| a == alias)
-                .and_then(|(_, e)| snap.entity(e))
-                .and_then(|e| e.association(assoc))
-                .map(|a| a.target.clone());
-            if let Some(t) = target {
-                out.push((new_alias.clone(), t));
-            }
-        }
-    }
-    out
+    let this_entity = class.and_then(|c| snap.entity_of_repository(&c.fqn));
+    phpforge_dql::site::builder_aliases(snap, body, &resolve, this_entity)
 }
 
 fn site_for_argument(
@@ -357,7 +168,7 @@ fn site_for_argument(
 }
 
 /// The DQL site whose string literal contains `offset`.
-pub fn site_at(snap: &Snapshot, path: &str, src: &str, offset: usize) -> Option<Site> {
+fn tree_site_at(snap: &Snapshot, path: &str, src: &str, offset: usize) -> Option<Site> {
     let mut p = parser::new_parser();
     let tree = parser::parse_tree(&mut p, src)?;
     let index = parser::index_source(path, src);
@@ -391,7 +202,7 @@ pub fn site_at(snap: &Snapshot, path: &str, src: &str, offset: usize) -> Option<
 }
 
 /// Every DQL site in a file.
-pub fn sites(snap: &Snapshot, path: &str, src: &str) -> Vec<Site> {
+fn tree_sites(snap: &Snapshot, path: &str, src: &str) -> Vec<Site> {
     let mut p = parser::new_parser();
     let Some(tree) = parser::parse_tree(&mut p, src) else {
         return Vec::new();
@@ -412,6 +223,29 @@ pub fn sites(snap: &Snapshot, path: &str, src: &str) -> Vec<Site> {
     out
 }
 
+/// Finds sites with the tree-sitter PHP parser.
+pub struct TreeSitter;
+
+impl SiteFinder for TreeSitter {
+    fn sites(&self, snap: &Snapshot, path: &str, src: &str) -> Vec<Site> {
+        tree_sites(snap, path, src)
+    }
+
+    fn site_at(&self, snap: &Snapshot, path: &str, src: &str, offset: usize) -> Option<Site> {
+        tree_site_at(snap, path, src, offset)
+    }
+}
+
+/// The DQL site whose string literal contains `offset`.
+pub fn site_at(snap: &Snapshot, path: &str, src: &str, offset: usize) -> Option<Site> {
+    TreeSitter.site_at(snap, path, src, offset)
+}
+
+/// Every DQL site in a file.
+pub fn sites(snap: &Snapshot, path: &str, src: &str) -> Vec<Site> {
+    TreeSitter.sites(snap, path, src)
+}
+
 /// Completion in PHP source; `from` is a source byte offset.
 pub fn complete(
     snap: &Snapshot,
@@ -419,97 +253,22 @@ pub fn complete(
     src: &str,
     offset: usize,
 ) -> Option<(usize, dql::Completion)> {
-    let site = site_at(snap, path, src, offset)?;
-    let cursor = site.to_dql(offset)?;
-    let c = dql::complete(snap, &site.dql, cursor, site.mode, &site.preset);
-    let from = site.to_src(c.from).unwrap_or(offset);
-    Some((from, c))
+    phpforge_dql::site::complete(&TreeSitter, snap, path, src, offset)
 }
 
 /// Declarations of the entity, field or association under the cursor.
 pub fn goto(snap: &Snapshot, path: &str, src: &str, offset: usize) -> Vec<Location> {
-    let Some(site) = site_at(snap, path, src, offset) else {
-        return Vec::new();
-    };
-    let Some(cursor) = site.to_dql(offset) else {
-        return Vec::new();
-    };
-    let query = dql::parse(snap, &site.dql, &site.preset);
-    let Some(tok) = lexer::tokenize(&site.dql)
-        .into_iter()
-        .find(|t| t.kind == lexer::TokenKind::Identifier && t.start <= cursor && cursor <= t.end)
-    else {
-        return Vec::new();
-    };
-    let entity_ref = query.entity_refs.contains(&(tok.start, tok.end))
-        || (site.mode == Mode::Entity && !tok.text.contains('.'));
-    if entity_ref {
-        return snap
-            .entity(&tok.text)
-            .map(|e| e.location())
-            .into_iter()
-            .collect();
-    }
-    // Path prefix up to the part under the cursor.
-    let rel = cursor - tok.start;
-    let end = tok.text[rel..]
-        .find('.')
-        .map(|i| rel + i)
-        .unwrap_or(tok.text.len());
-    let path_expr = &tok.text[..end];
-    let parts: Vec<&str> = path_expr.split('.').collect();
-    if parts.len() == 1 {
-        return query
-            .alias(parts[0])
-            .and_then(|a| a.entity.as_deref())
-            .and_then(|e| snap.entity(e))
-            .map(|e| e.location())
-            .into_iter()
-            .collect();
-    }
-    let parent = parts[..parts.len() - 1].join(".");
-    let last = parts[parts.len() - 1];
-    match dql::resolve_path(snap, &query, &parent).0 {
-        PathTarget::Entity(e) => {
-            let line = e
-                .field(last)
-                .map(|f| f.line)
-                .or_else(|| e.association(last).map(|a| a.line));
-            line.map(|l| Location::new(&e.path, l, 0))
-                .into_iter()
-                .collect()
-        }
-        _ => Vec::new(),
-    }
-}
-
-/// A diagnostic in source byte offsets.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct SourceDiagnostic {
-    pub start: usize,
-    pub end: usize,
-    pub message: String,
+    phpforge_dql::site::goto(&TreeSitter, snap, path, src, offset)
 }
 
 /// DQL problems in a PHP file.
 pub fn diagnostics(snap: &Snapshot, path: &str, src: &str) -> Vec<SourceDiagnostic> {
-    let mut out = Vec::new();
-    for site in sites(snap, path, src) {
-        if site.mode != Mode::Full && site.preset.is_empty() {
-            continue;
-        }
-        for d in dql::diagnostics(snap, &site.dql, &site.preset) {
-            if let (Some(start), Some(end)) = (site.to_src(d.start), site.to_src(d.end)) {
-                out.push(SourceDiagnostic {
-                    start,
-                    end,
-                    message: d.message,
-                });
-            }
-        }
-    }
-    out
+    phpforge_dql::site::diagnostics(&TreeSitter, snap, path, src)
+}
+
+/// DQL injection highlighting (string pieces and semantic spans).
+pub fn highlight(snap: &Snapshot, path: &str, src: &str) -> SourceHighlight {
+    phpforge_dql::site::highlight(&TreeSitter, snap, path, src)
 }
 
 /// Gutter marks for entities (go to repository) and repositories (go to entity).
@@ -660,6 +419,30 @@ function f($em) {
             .any(|s| s.mode == Mode::Full && s.dql.contains("o.nope")));
         let d = diagnostics(&snap, "src/X.php", &src);
         assert!(d.iter().any(|x| &src[x.start..x.end] == "nope"));
+    }
+
+    #[test]
+    fn highlights_dql_in_source() {
+        let snap = fixture::snapshot();
+        let src = fixture::ORDER_REPOSITORY;
+        let h = highlight(&snap, REPO, src);
+        let (a, b) = (src.find("andWhere").unwrap(), src.find("orderBy").unwrap());
+        let kinds: Vec<(&str, dql::SpanKind)> = h
+            .spans
+            .iter()
+            .filter(|s| s.from >= a && s.to <= b)
+            .map(|s| (&src[s.from..s.to], s.kind))
+            .collect();
+        assert_eq!(
+            kinds,
+            [
+                ("o", dql::SpanKind::Alias),
+                ("status", dql::SpanKind::Field),
+                ("=", dql::SpanKind::Operator),
+                (":status", dql::SpanKind::Parameter)
+            ]
+        );
+        assert!(h.injected.iter().all(|(a, b)| a < b));
     }
 
     #[test]

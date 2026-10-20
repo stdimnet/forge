@@ -15,6 +15,8 @@
 //!
 //! Rebuild the bundle with `pnpm --dir app/ui wasm` (output: `app/ui/src/wasm/pkg`).
 
+mod parsers;
+
 use wasm_bindgen::prelude::*;
 
 mod filetypes;

@@ -3,7 +3,7 @@ import type { Extension, Text } from "@codemirror/state";
 import { hoverTooltip, type EditorView } from "@codemirror/view";
 import { lspApi, type EditorHover } from "@/ipc/lsp";
 import { diagnosticsAt } from "./diagnostics";
-import { buildHoverDom } from "./hoverDoc";
+import { buildHoverDom, hoverDocOf } from "./hoverDoc";
 import { syncNow } from "./sync";
 import { fromLsp, toLsp } from "./util";
 
@@ -45,6 +45,7 @@ export function lspHover(path: string): Extension {
       const problems = diagnosticsAt(view.state, pos);
       const hover = await hoverAt(path, view, pos);
       if (!hover?.contents.trim() && !problems.length) return null;
+      const doc = await hoverDocOf(hover?.contents);
       const word = view.state.wordAt(pos);
       const from = hover?.range ? fromLsp(view.state.doc, hover.range.start) : (word?.from ?? pos);
       const to = hover?.range ? fromLsp(view.state.doc, hover.range.end) : (word?.to ?? pos);
@@ -52,7 +53,7 @@ export function lspHover(path: string): Extension {
         pos: from,
         end: to,
         above: false,
-        create: () => ({ dom: buildHoverDom(hover?.contents, problems) }),
+        create: () => ({ dom: buildHoverDom(doc, problems) }),
       };
     },
     { hoverTime: 450 },

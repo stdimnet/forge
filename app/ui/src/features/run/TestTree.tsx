@@ -3,11 +3,9 @@ import { createMemo, For, Show } from "solid-js";
 import { Dynamic } from "solid-js/web";
 import { Ban, ChevronDown, ChevronRight, CircleCheck, CircleX, LoaderCircle } from "lucide-solid";
 import { workspaceApi } from "@/ipc/workspace";
-import { workspace } from "@/state/workspace";
 import { revealLocation } from "@/features/lsp/navigation";
 import { showBalloon } from "@/keymap";
-import { formatDuration, suiteStatus, type TestNode, type TestStatus } from "./teamcity";
-import { toWorkspacePath } from "./fileLinks";
+import type { TestNode, TestStatus } from "./tests";
 
 export interface TreeView {
   showPassed: boolean;
@@ -17,7 +15,8 @@ export interface TreeView {
   collapsed: Set<number>;
 }
 
-export const statusOf = (n: TestNode): TestStatus => (n.kind === "test" ? n.status : n.children.length ? suiteStatus(n) : n.status);
+/** Status shown for a node; the backend derives suite statuses from their children. */
+export const statusOf = (n: TestNode): TestStatus => n.status;
 
 export function StatusIcon(props: { status: TestStatus; size?: number }) {
   const icon = () =>
@@ -63,7 +62,7 @@ export function flattenTree(root: TestNode, view: TreeView): FlatRow[] {
 export async function navigateToTest(node: TestNode): Promise<void> {
   const loc = node.location ?? node.parent?.location;
   if (!loc) return;
-  const rel = toWorkspacePath(loc.path, workspace()?.root);
+  const rel = loc.workspacePath;
   if (!rel) return void showBalloon(`${loc.path} is outside the project`);
   let line = loc.line ? loc.line - 1 : 0;
   let character = 0;
@@ -133,7 +132,7 @@ export function TestTree(props: {
             </span>
             <StatusIcon status={statusOf(row.node)} />
             <span class="test-name">{row.node.kind === "root" ? "Test Results" : row.node.name}</span>
-            <span class="test-duration">{formatDuration(row.node.duration)}</span>
+            <span class="test-duration">{row.node.durationText}</span>
           </div>
         )}
       </For>

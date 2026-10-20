@@ -1,9 +1,11 @@
 /**
  * Browser-mode agent backend: replays a scripted, realistic Claude Code session with
- * timers so the AI chat can be explored and screenshotted without the CLI.
+ * timers so the AI chat can be explored and screenshotted without the CLI. The `chat`
+ * updates come from the Rust conversation model (WebAssembly), like in the desktop app.
  */
 import { emitMock, invoke, registerMock } from "@/ipc";
-import type { AgentEvent, MessageContext, PermissionDecision, PermissionMode } from "@/ipc/agent";
+import type { AgentEvent, ChatUpdate, MessageContext, PermissionDecision, PermissionMode } from "@/ipc/agent";
+import { forgeWasm, type ForgeWasm } from "@/wasm";
 
 const CWD = "/home/dev/Projects/acme-shop";
 const abs = (p: string) => `${CWD}/${p}`;
@@ -19,11 +21,22 @@ interface MockSession {
   pending: Map<string, { resolve: (d: PermissionDecision) => void; reject: (e: Error) => void }>;
   /** "Allow for this session" rules (tool name, or Bash with its exact command). */
   allowed: Set<string>;
+  /** Handle of the session's conversation model in the WebAssembly module. */
+  chat: number;
 }
 
 const sessions = new Map<string, MockSession>();
 let counter = 0;
 let permN = 0;
+let wasm: ForgeWasm | undefined;
+
+/** Emit an agent event and the conversation update the Rust model computes from it. */
+function emitAgent(s: MockSession, e: AgentEvent): void {
+  emitMock(`agent://${s.id}`, e);
+  if (!wasm) return;
+  const update = JSON.parse(wasm.chat_apply(JSON.stringify({ handle: s.chat, event: e, now: Date.now() }))) as ChatUpdate;
+  emitMock(`agent://${s.id}`, { type: "chat", ...update });
+}
 
 const DENIED = "The user doesn't want to proceed with this tool use. The tool use was rejected.";
 
@@ -44,7 +57,7 @@ class Cancelled extends Error {}
 
 function runner(s: MockSession) {
   const gen = s.generation;
-  const emit = (e: AgentEvent) => emitMock(`agent://${s.id}`, e);
+  const emit = (e: AgentEvent) => emitAgent(s, e);
   const wait = async (ms: number) => {
     await sleep(ms);
     if (s.generation !== gen) throw new Cancelled();
@@ -256,11 +269,13 @@ registerMock("agent_list", ({ executables }) => {
   });
 });
 
-registerMock("agent_start", ({ agentId, options }) => {
+registerMock("agent_start", async ({ agentId, options }) => {
   if (agentId !== "claude-code") throw new Error(`${String(agentId)} is not yet supported in Forge`);
   const id = `mock-${++counter}`;
   const mode = ((options as { permissionMode?: PermissionMode } | undefined)?.permissionMode ?? "default") as PermissionMode;
-  sessions.set(id, { id, started: false, generation: 0, running: false, mode, pending: new Map(), allowed: new Set() });
+  wasm ??= await forgeWasm();
+  const chat = Number(wasm.chat_new());
+  sessions.set(id, { id, started: false, generation: 0, running: false, mode, pending: new Map(), allowed: new Set(), chat });
   return id;
 });
 
@@ -269,13 +284,21 @@ registerMock("agent_respond_permission", ({ sessionId, requestId, decision }) =>
   const pending = s?.pending.get(String(requestId));
   if (!s || !pending) throw new Error(`no pending permission request ${String(requestId)}`);
   s.pending.delete(String(requestId));
-  pending.resolve(decision as PermissionDecision);
+  const d = decision as PermissionDecision;
+  const status = d.behavior === "deny" ? "denied" : d.scope === "session" ? "allowedForSession" : "allowed";
+  const update = wasm && (JSON.parse(wasm.chat_set_permission(JSON.stringify({ handle: s.chat, requestId, status }))) as ChatUpdate | null);
+  if (update) emitMock(`agent://${s.id}`, { type: "chat", ...update });
+  pending.resolve(d);
 });
 
-registerMock("agent_send", ({ sessionId, text, context }) => {
+registerMock("agent_send", ({ sessionId, text, context, turnId }) => {
   const s = sessions.get(String(sessionId));
   if (!s) throw new Error(`no agent session ${sessionId}`);
-  const emit = (e: AgentEvent) => emitMock(`agent://${s.id}`, e);
+  const emit = (e: AgentEvent) => emitAgent(s, e);
+  if (wasm) {
+    const begin = { handle: s.chat, turnId: Number(turnId ?? 0), prompt: String(text), context: context ?? { files: [] } };
+    emitMock(`agent://${s.id}`, { type: "chat", ...(JSON.parse(wasm.chat_begin_turn(JSON.stringify(begin))) as ChatUpdate) });
+  }
   if (!s.started) {
     s.started = true;
     setTimeout(() =>
@@ -303,7 +326,7 @@ function kill(s: MockSession, interrupted: boolean) {
   s.generation++;
   for (const p of s.pending.values()) p.reject(new Cancelled());
   s.pending.clear();
-  const emit = (e: AgentEvent) => emitMock(`agent://${s.id}`, e);
+  const emit = (e: AgentEvent) => emitAgent(s, e);
   if (interrupted && s.running) emit({ type: "interrupted" });
   emit({ type: "exited", code: null });
   s.started = false;
@@ -318,6 +341,7 @@ registerMock("agent_stop", ({ sessionId }) => {
   const s = sessions.get(String(sessionId));
   if (s) {
     kill(s, false);
+    wasm?.chat_drop(JSON.stringify({ handle: s.chat }));
     sessions.delete(s.id);
   }
 });

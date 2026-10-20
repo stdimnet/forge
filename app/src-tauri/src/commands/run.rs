@@ -2,7 +2,9 @@
 //!
 //! Configurations are stored in `<project>/.forge/runConfigurations.toml` (shared) and
 //! `.forge/runConfigurations.local.toml`. A started run streams `RunEvent`s on
-//! `run://<runId>`: `started`, `output` (stdout/stderr) and `exited`.
+//! `run://<runId>`: the raw `started`, `output` (stdout/stderr) and `exited` events, plus what
+//! the UI renders, computed by `forge_process::output`: `console` (styled console lines with
+//! file links) and, for test runners, `tests` (test tree node updates).
 
 use std::collections::{BTreeMap, HashMap};
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -10,17 +12,23 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use forge_core::{ForgeError, Result};
+use forge_process::output::{RunInput, RunOutput, RunOutputOptions};
 use forge_process::{
-    BuildContext, CommandLine, KindRegistry, RunConfiguration, RunConfigurations, RunEvent,
-    RunSink, RunningProcess, TemplateKind,
+    BuildContext, CommandLine, KindRegistry, OutputStream, RunConfiguration, RunConfigurations,
+    RunEvent, RunSink, RunningProcess, TemplateKind,
 };
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, State};
 
 use crate::state::AppState;
 
+struct Run {
+    process: Arc<RunningProcess>,
+    output: Arc<Mutex<RunOutput>>,
+}
+
 pub struct RunState {
-    runs: Mutex<HashMap<String, Arc<RunningProcess>>>,
+    runs: Mutex<HashMap<String, Run>>,
     next_id: AtomicU64,
     /// Configuration kinds known to the backend; plugins register more at startup.
     pub kinds: KindRegistry,
@@ -54,12 +62,12 @@ impl RunState {
         }
     }
 
-    fn get(&self, id: &str) -> Result<Arc<RunningProcess>> {
+    fn get(&self, id: &str) -> Result<(Arc<RunningProcess>, Arc<Mutex<RunOutput>>)> {
         self.runs
             .lock()
             .expect("runs poisoned")
             .get(id)
-            .cloned()
+            .map(|r| (r.process.clone(), r.output.clone()))
             .ok_or_else(|| ForgeError::Other(format!("no run {id}")))
     }
 }
@@ -97,6 +105,9 @@ pub struct RunRequest {
     /// Extra interpreter arguments placed right after the program (e.g. `-dxdebug.mode=debug`).
     #[serde(default)]
     pub interpreter_args: Vec<String>,
+    /// Build a test tree from TeamCity service messages on stdout.
+    #[serde(default)]
+    pub test_runner: bool,
 }
 
 #[derive(Debug, Serialize)]
@@ -166,18 +177,56 @@ pub fn run_start(
         let n = runs.next_id.fetch_add(1, Ordering::SeqCst) + 1;
         format!("run-{n}")
     });
+    let test_runner = request.test_runner;
     let cmd = build(&state, &runs, request)?;
+    let output = Arc::new(Mutex::new(RunOutput::new(&RunOutputOptions {
+        test_runner,
+        root: Some(root(&state)?.display().to_string()),
+        cwd: Some(cmd.cwd.display().to_string()),
+    })));
     let event = format!("run://{run_id}");
+    let sink_output = output.clone();
     let sink: RunSink = Arc::new(move |e: RunEvent| {
-        if let Err(err) = app.emit(&event, &e) {
-            tracing::warn!("cannot emit {event}: {err}");
+        let input = match &e {
+            RunEvent::Started { command_line, .. } => RunInput::Started {
+                command_line: command_line.clone(),
+            },
+            RunEvent::Output { stream, text } => RunInput::Output {
+                stream: match stream {
+                    OutputStream::Stderr => "stderr",
+                    _ => "stdout",
+                }
+                .into(),
+                text: text.clone(),
+            },
+            RunEvent::Exited { code, signal } => RunInput::Exited {
+                code: *code,
+                signal: *signal,
+            },
+        };
+        let rendered = sink_output
+            .lock()
+            .expect("run output poisoned")
+            .handle(&input);
+        let exited = matches!(e, RunEvent::Exited { .. });
+        if !exited {
+            emit(&app, &event, &e);
+        }
+        for r in &rendered {
+            emit(&app, &event, r);
+        }
+        if exited {
+            emit(&app, &event, &e);
         }
     });
     let process = RunningProcess::start(&cmd, sink)?;
-    runs.runs
-        .lock()
-        .expect("runs poisoned")
-        .insert(run_id.clone(), Arc::new(process));
+    runs.runs.lock().expect("runs poisoned").insert(
+        run_id.clone(),
+        Run {
+            process: Arc::new(process),
+            output,
+        },
+    );
     Ok(RunStarted {
         run_id,
         command_line: cmd.display(),
@@ -187,22 +236,41 @@ pub fn run_start(
 /// Stop a run and its child processes (SIGTERM, then SIGKILL after two seconds).
 #[tauri::command]
 pub fn run_stop(run_id: String, runs: State<'_, RunState>) -> Result<()> {
-    runs.get(&run_id)?.kill(Duration::from_secs(2));
+    runs.get(&run_id)?.0.kill(Duration::from_secs(2));
     Ok(())
 }
 
-/// Send console input to a run's stdin.
+/// Send console input to a run's stdin and echo it in the console.
 #[tauri::command]
-pub fn run_write(run_id: String, data: String, runs: State<'_, RunState>) -> Result<()> {
-    runs.get(&run_id)?.write_stdin(data.as_bytes())
+pub fn run_write(
+    run_id: String,
+    data: String,
+    app: AppHandle,
+    runs: State<'_, RunState>,
+) -> Result<()> {
+    let (process, output) = runs.get(&run_id)?;
+    let echo = output
+        .lock()
+        .expect("run output poisoned")
+        .handle(&RunInput::Input { text: data.clone() });
+    for e in &echo {
+        emit(&app, &format!("run://{run_id}"), e);
+    }
+    process.write_stdin(data.as_bytes())
 }
 
 /// Forget a finished run (its tab was closed); a running one is stopped first.
 #[tauri::command]
 pub fn run_dispose(run_id: String, runs: State<'_, RunState>) -> Result<()> {
     let removed = runs.runs.lock().expect("runs poisoned").remove(&run_id);
-    if let Some(p) = removed {
-        p.kill(Duration::from_secs(2));
+    if let Some(r) = removed {
+        r.process.kill(Duration::from_secs(2));
     }
     Ok(())
+}
+
+fn emit<T: Serialize>(app: &AppHandle, event: &str, payload: &T) {
+    if let Err(err) = app.emit(event, payload) {
+        tracing::warn!("cannot emit {event}: {err}");
+    }
 }

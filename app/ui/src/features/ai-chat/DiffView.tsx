@@ -3,38 +3,28 @@ import { Portal } from "solid-js/web";
 import { ExternalLink, X } from "lucide-solid";
 import { openFile } from "@/state/editor";
 import { FileIcon } from "@/shell/FileIcon";
-import { diffLines, type DiffLine } from "./diff";
+import type { DiffLine, EditDiff } from "@/ipc/agent";
 import { highlight, langOfPath } from "./highlight";
 import { HighlightedCode } from "./Markdown";
 
-export interface Hunk {
-  oldText: string;
-  newText: string;
-}
-
-/** Keep changed lines plus `context` lines around them; gaps become separators. */
-function trimContext(lines: DiffLine[], context: number): (DiffLine | null)[] {
-  const keep = lines.map(() => false);
-  lines.forEach((l, i) => {
-    if (l.type === "ctx") return;
-    for (let k = Math.max(0, i - context); k <= Math.min(lines.length - 1, i + context); k++) keep[k] = true;
-  });
+/** Lines within `context` of a change (computed by the backend); skipped runs become gaps. */
+function visibleLines(lines: DiffLine[], context: number): (DiffLine | null)[] {
   const out: (DiffLine | null)[] = [];
-  lines.forEach((l, i) => {
-    if (keep[i]) out.push(l);
+  for (const l of lines) {
+    if (l.near <= context) out.push(l);
     else if (out.length && out[out.length - 1] !== null) out.push(null);
-  });
+  }
   if (out[out.length - 1] === null) out.pop();
   return out;
 }
 
-export function DiffView(props: { hunks: Hunk[]; path: string; maxLines?: number; context?: number }) {
+export function DiffView(props: { diff: EditDiff; path: string; maxLines?: number; context?: number }) {
   const lang = () => langOfPath(props.path);
   const rows = createMemo(() => {
     const all: (DiffLine | null)[] = [];
-    props.hunks.forEach((h, i) => {
+    props.diff.hunks.forEach((h, i) => {
       if (i > 0) all.push(null);
-      all.push(...trimContext(diffLines(h.oldText, h.newText), props.context ?? 2));
+      all.push(...visibleLines(h, props.context ?? 2));
     });
     return all;
   });
@@ -64,7 +54,7 @@ export function DiffView(props: { hunks: Hunk[]; path: string; maxLines?: number
 }
 
 /** Full-size diff dialog ("Open diff"). */
-export function DiffDialog(props: { path: string; hunks: Hunk[]; onClose: () => void }) {
+export function DiffDialog(props: { path: string; diff: EditDiff; onClose: () => void }) {
   const name = () => props.path.split("/").pop() ?? props.path;
   const onKey = (e: KeyboardEvent) => e.key === "Escape" && props.onClose();
   document.addEventListener("keydown", onKey);
@@ -92,7 +82,7 @@ export function DiffDialog(props: { path: string; hunks: Hunk[]; onClose: () => 
             </button>
           </header>
           <div class="chat-dialog-body">
-            <DiffView hunks={props.hunks} path={props.path} context={4} />
+            <DiffView diff={props.diff} path={props.path} context={4} />
           </div>
         </div>
       </div>

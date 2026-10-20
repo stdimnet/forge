@@ -7,11 +7,9 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use forge_core::{ForgeError, Result};
-use phpforge_lang_php::offsets::{byte_to_utf16, utf16_to_byte};
-use phpforge_orm_doctrine::dql::Item;
-use phpforge_orm_doctrine::php::{self, GutterMark, SourceDiagnostic};
+use phpforge_dql::editor::{self, DqlCompletion};
+use phpforge_orm_doctrine::php::{self, GutterMark, SourceDiagnostic, SourceHighlight, TreeSitter};
 use phpforge_orm_doctrine::{Config, Entity, Location, Snapshot};
-use serde::Serialize;
 use tauri::State;
 
 use crate::state::AppState;
@@ -74,13 +72,6 @@ pub async fn doctrine_entities(
         .clone())
 }
 
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct DqlCompletion {
-    pub from: usize,
-    pub items: Vec<Item>,
-}
-
 /// DQL completion inside `createQuery()` and QueryBuilder strings.
 #[tauri::command]
 pub async fn doctrine_complete(
@@ -91,13 +82,13 @@ pub async fn doctrine_complete(
     ds: State<'_, DoctrineState>,
 ) -> Result<Option<DqlCompletion>> {
     let snap = snapshot(&state, &ds, false).await?;
-    let byte = utf16_to_byte(&content, offset);
-    Ok(
-        php::complete(&snap, &path, &content, byte).map(|(from, c)| DqlCompletion {
-            from: byte_to_utf16(&content, from),
-            items: c.items,
-        }),
-    )
+    Ok(editor::complete(
+        &TreeSitter,
+        &snap,
+        &path,
+        &content,
+        offset,
+    ))
 }
 
 /// Entity, field or association declaration under the cursor in a DQL string.
@@ -110,12 +101,7 @@ pub async fn doctrine_goto(
     ds: State<'_, DoctrineState>,
 ) -> Result<Vec<Location>> {
     let snap = snapshot(&state, &ds, false).await?;
-    Ok(php::goto(
-        &snap,
-        &path,
-        &content,
-        utf16_to_byte(&content, offset),
-    ))
+    Ok(editor::goto(&TreeSitter, &snap, &path, &content, offset))
 }
 
 /// Unknown entities, aliases and fields in the file's DQL.
@@ -127,14 +113,19 @@ pub async fn doctrine_diagnostics(
     ds: State<'_, DoctrineState>,
 ) -> Result<Vec<SourceDiagnostic>> {
     let snap = snapshot(&state, &ds, false).await?;
-    Ok(php::diagnostics(&snap, &path, &content)
-        .into_iter()
-        .map(|mut d| {
-            d.start = byte_to_utf16(&content, d.start);
-            d.end = byte_to_utf16(&content, d.end);
-            d
-        })
-        .collect())
+    Ok(editor::diagnostics(&TreeSitter, &snap, &path, &content))
+}
+
+/// DQL injection highlighting of a PHP file: the DQL string pieces and semantic spans.
+#[tauri::command]
+pub async fn doctrine_highlight(
+    path: String,
+    content: String,
+    state: State<'_, AppState>,
+    ds: State<'_, DoctrineState>,
+) -> Result<SourceHighlight> {
+    let snap = snapshot(&state, &ds, false).await?;
+    Ok(editor::highlight(&TreeSitter, &snap, &path, &content))
 }
 
 /// Entity <-> repository line markers.

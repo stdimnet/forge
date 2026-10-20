@@ -1,30 +1,59 @@
+/**
+ * Renders the Markdown AST of assistant messages (computed by `forge-markdown`, `chat`
+ * flavor) with Solid components; model output never becomes HTML. Only `http(s)` links
+ * are clickable.
+ */
 import { createMemo, createSignal, For, Match, Show, Switch } from "solid-js";
 import { Check, Copy, TextCursorInput } from "lucide-solid";
 import { insertAtCaret } from "@/editor/views";
-import { parseMarkdown, type Inline, type MdBlock } from "./markdown";
+import type { MdBlock, MdInline, MdListItem } from "@/ipc/markdown";
 import { highlight, type HighlightedLines } from "./highlight";
 
-export function Inlines(props: { items: Inline[] }) {
+export function Inlines(props: { items: MdInline[] }) {
   return (
     <For each={props.items}>
       {(i) => (
-        <Switch fallback={i.text}>
-          <Match when={i.t === "code"}>
-            <code class="md-code">{i.text}</code>
+        <Switch>
+          <Match when={i.t === "text" && i}>{(x) => x().text}</Match>
+          <Match when={(i.t === "url" || i.t === "fqcn") && i}>{(x) => x().text}</Match>
+          <Match when={i.t === "code" && i}>{(x) => <code class="md-code">{x().text}</code>}</Match>
+          <Match when={i.t === "strong" && i}>
+            {(x) => (
+              <strong>
+                <Inlines items={x().children} />
+              </strong>
+            )}
           </Match>
-          <Match when={i.t === "strong"}>
-            <strong>{i.text}</strong>
+          <Match when={i.t === "em" && i}>
+            {(x) => (
+              <em>
+                <Inlines items={x().children} />
+              </em>
+            )}
           </Match>
-          <Match when={i.t === "em"}>
-            <em>{i.text}</em>
+          <Match when={i.t === "del" && i}>
+            {(x) => (
+              <del>
+                <Inlines items={x().children} />
+              </del>
+            )}
           </Match>
-          <Match when={i.t === "link" && /^https?:\/\//.test(i.href)}>
-            <a class="md-link" href={i.t === "link" ? i.href : undefined} target="_blank" rel="noreferrer noopener">
-              {i.text}
-            </a>
+          <Match when={i.t === "link" && /^https?:\/\//.test(i.href) && i}>
+            {(x) => (
+              <a class="md-link" href={x().href} target="_blank" rel="noreferrer noopener">
+                <Inlines items={x().children} />
+              </a>
+            )}
           </Match>
-          <Match when={i.t === "link"}>
-            <span class="md-link">{i.text}</span>
+          <Match when={i.t === "link" && i}>
+            {(x) => (
+              <span class="md-link">
+                <Inlines items={x().children} />
+              </span>
+            )}
+          </Match>
+          <Match when={i.t === "break"}>
+            <br />
           </Match>
         </Switch>
       )}
@@ -77,6 +106,25 @@ export function CodeBlock(props: { lang: string; text: string }) {
   );
 }
 
+/** Inline content of blocks (paragraphs of a list item or quote), joined by spaces. */
+function inlineOf(blocks: MdBlock[]): MdInline[] {
+  const out: MdInline[] = [];
+  for (const b of blocks) {
+    if (b.t !== "paragraph" && b.t !== "plain" && b.t !== "heading") continue;
+    if (out.length) out.push({ t: "text", text: " " });
+    out.push(...b.inline);
+  }
+  return out;
+}
+
+/** Nested list items as one flat list with indentation depth (max 3), like a chat message. */
+function flatItems(items: MdListItem[], depth = 0): { item: MdListItem; depth: number }[] {
+  return items.flatMap((item) => [
+    { item, depth: Math.min(3, depth) },
+    ...item.blocks.flatMap((b) => (b.t === "list" ? flatItems(b.items, depth + 1) : [])),
+  ]);
+}
+
 function Block(props: { block: MdBlock }) {
   const b = props.block;
   switch (b.t) {
@@ -87,6 +135,7 @@ function Block(props: { block: MdBlock }) {
         </div>
       );
     case "paragraph":
+    case "plain":
       return (
         <p class="md-p">
           <Inlines items={b.inline} />
@@ -95,7 +144,7 @@ function Block(props: { block: MdBlock }) {
     case "quote":
       return (
         <blockquote class="md-quote">
-          <Inlines items={b.inline} />
+          <Inlines items={inlineOf(b.blocks)} />
         </blockquote>
       );
     case "hr":
@@ -104,9 +153,9 @@ function Block(props: { block: MdBlock }) {
       return <CodeBlock lang={b.lang} text={b.text} />;
     case "list": {
       const items = (
-        <For each={b.items}>
-          {(item) => (
-            <li class="md-li" classList={{ task: item.checked !== undefined }} style={{ "margin-left": `${item.depth * 16}px` }}>
+        <For each={flatItems(b.items)}>
+          {({ item, depth }) => (
+            <li class="md-li" classList={{ task: item.checked !== undefined }} style={{ "margin-left": `${depth * 16}px` }}>
               <Show when={item.checked !== undefined}>
                 <span class="md-check" classList={{ done: item.checked }}>
                   <Show when={item.checked}>
@@ -115,7 +164,7 @@ function Block(props: { block: MdBlock }) {
                 </span>
               </Show>
               <span>
-                <Inlines items={item.inline} />
+                <Inlines items={inlineOf(item.blocks)} />
               </span>
             </li>
           )}
@@ -132,11 +181,10 @@ function Block(props: { block: MdBlock }) {
   }
 }
 
-export function Markdown(props: { text: string; streaming?: boolean }) {
-  const blocks = createMemo(() => parseMarkdown(props.text));
+export function Markdown(props: { blocks: MdBlock[]; streaming?: boolean }) {
   return (
     <div class="md" classList={{ streaming: props.streaming }}>
-      <For each={blocks()}>{(b) => <Block block={b} />}</For>
+      <For each={props.blocks}>{(b) => <Block block={b} />}</For>
     </div>
   );
 }

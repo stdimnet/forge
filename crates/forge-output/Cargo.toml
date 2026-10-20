@@ -1,0 +1,11 @@
+[package]
+name = "forge-output"
+description = "Forge process output: ANSI styling, console lines, file links and TeamCity test trees (pure, also built to WebAssembly)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+regex-lite = "0.1"

@@ -7,7 +7,7 @@
 //! - [`introspect`], [`ddl`]: schemas, tables, columns, keys, indexes, routines, DDL.
 //! - [`service::DbService`]: consoles with transactions and cancel, table paging, row
 //!   editing ([`edit`]) and export ([`export`]).
-//! - [`value`]: cell values as JavaScript-safe JSON.
+//! - [`value`], [`split`], [`export`]: re-exported from the pure `forge-sql` crate.
 
 pub mod config;
 pub mod conn;
@@ -15,19 +15,19 @@ pub mod ddl;
 pub mod edit;
 pub mod env;
 pub mod error;
-pub mod export;
 pub mod introspect;
 pub mod secrets;
 pub mod service;
-pub mod split;
-pub mod value;
+
+/// Pure SQL text handling lives in `forge-sql` (also used by the browser-mode UI).
+pub use forge_sql::{export, split, value};
 
 pub use config::{DataSource, DataSourceOptions, Dialect, Driver, Scope, SslMode};
 pub use conn::{ColumnMeta, DbPool, RawResult};
 pub use edit::{ChangeKind, RowChange};
 pub use env::DetectedDataSource;
 pub use error::{DbError, DbResult};
-pub use export::{export, ExportFormat};
+pub use forge_sql::ExportFormat;
 pub use introspect::{
     ColumnInfo, ForeignKey, IndexInfo, RoutineInfo, SchemaInfo, SchemaName, TableInfo, TableKind,
 };

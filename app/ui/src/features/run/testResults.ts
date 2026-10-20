@@ -1,6 +1,5 @@
 /** Test results of finished runs, for listeners such as the gutter icons. */
-import type { TestNode, TestStatus } from "./teamcity";
-import { statusOf } from "./TestTree";
+import type { TestNode, TestStatus } from "./tests";
 
 type Listener = (entries: [string, TestStatus][]) => void;
 const listeners: Listener[] = [];
@@ -15,7 +14,7 @@ export function publishTestResults(root: TestNode): void {
   const walk = (n: TestNode, suite: string | undefined) => {
     if (n.kind === "suite") {
       const fqcn = n.location?.member ?? (n.name.includes("\\") || /Test$/.test(n.name) ? n.name : undefined);
-      if (fqcn) entries.push([fqcn, statusOf(n)]);
+      if (fqcn) entries.push([fqcn, n.status]);
       n.children.forEach((c) => walk(c, fqcn ?? suite));
     } else if (n.kind === "test") {
       if (suite) entries.push([`${suite}::${n.location?.member ?? n.name}`, n.status]);

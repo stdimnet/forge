@@ -2,8 +2,14 @@
  * Data grid model, free of DOM and Solid: column kinds, cell rendering, parsing typed input
  * and turning pending edits into row changes.
  */
-import type { Cell, ColumnInfo, ColumnMeta, RowChange, TableInfo } from "@/ipc/db";
-import { cellText, isBinary } from "./sqlText";
+import { isBinary, type Cell, type ColumnInfo, type ColumnMeta, type RowChange, type TableInfo } from "@/ipc/db";
+
+/** Plain text of a cell (editing, clipboard): NULL as empty, binary as `0x…`. */
+export function cellText(v: Cell): string {
+  if (v === null) return "";
+  if (isBinary(v)) return `0x${v.$hex.toUpperCase()}`;
+  return String(v);
+}
 
 export type ColumnKind = "number" | "bool" | "date" | "binary" | "json" | "text";
 

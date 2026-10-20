@@ -1,28 +1,22 @@
 /**
- * Run console: ANSI-styled lines, clickable file references (stack traces, `file:line`),
- * stdin input typed directly into the console, scroll-to-end and soft wraps.
+ * Run console: styled lines with clickable file references and URLs (computed by the
+ * backend), stdin input typed directly into the console, scroll-to-end and soft wraps.
  */
 import { createEffect, createSignal, For, on, Show, type JSX } from "solid-js";
-import { workspace } from "@/state/workspace";
 import { revealLocation } from "@/features/lsp/navigation";
 import { showBalloon } from "@/keymap";
-import { lineText, type AnsiStyle, type ConsoleLine, type Segment } from "./ansi";
-import { findLinks, toWorkspacePath, type FileLink } from "./fileLinks";
+import type { AnsiStyle, ConsoleLine, SpanLink } from "@/ipc/run";
 
-export async function openFileLink(link: Pick<FileLink, "path" | "line" | "column" | "url">, cwd?: string): Promise<void> {
+export async function openFileLink(link: SpanLink): Promise<void> {
   if (link.url) {
-    window.open(link.path, "_blank", "noopener");
+    window.open(link.target, "_blank", "noopener");
     return;
   }
-  const root = workspace()?.root;
-  const cwdRel = cwd ? (toWorkspacePath(cwd, root) ?? "") : "";
-  const rel = toWorkspacePath(link.path, root, cwdRel);
-  if (!rel) {
-    showBalloon(`${link.path} is outside the project`);
-    return;
-  }
-  const ok = await revealLocation(rel, { line: Math.max(0, (link.line ?? 1) - 1), character: Math.max(0, (link.column ?? 1) - 1) });
-  if (!ok) showBalloon(`Cannot open ${rel}`);
+  const ok = await revealLocation(link.target, {
+    line: Math.max(0, (link.line ?? 1) - 1),
+    character: Math.max(0, (link.column ?? 1) - 1),
+  });
+  if (!ok) showBalloon(`Cannot open ${link.target}`);
 }
 
 export function styleOf(s: AnsiStyle): JSX.CSSProperties | undefined {
@@ -39,44 +33,12 @@ export function styleOf(s: AnsiStyle): JSX.CSSProperties | undefined {
   return css;
 }
 
-interface Piece {
-  text: string;
-  style: AnsiStyle;
-  link?: FileLink;
-}
-
-/** Split a line's segments at link boundaries (file links that resolve into the project, URLs). */
-export function linePieces(line: ConsoleLine, cwd?: string): Piece[] {
-  const text = lineText(line);
-  const root = workspace()?.root;
-  const cwdRel = cwd ? (toWorkspacePath(cwd, root) ?? "") : "";
-  const links = /[\\/.]/.test(text) ? findLinks(text, (p) => toWorkspacePath(p, root, cwdRel) !== null) : [];
-  if (!links.length) return line.segments;
-  const out: Piece[] = [];
-  let pos = 0;
-  for (const seg of line.segments as Segment[]) {
-    const segEnd = pos + seg.text.length;
-    let cursor = pos;
-    while (cursor < segEnd) {
-      const link = links.find((l) => l.start <= cursor && cursor < l.end);
-      const next = link
-        ? Math.min(link.end, segEnd)
-        : Math.min(segEnd, ...links.filter((l) => l.start > cursor).map((l) => l.start), segEnd);
-      out.push({ text: seg.text.slice(cursor - pos, next - pos), style: seg.style, link });
-      cursor = next;
-    }
-    pos = segEnd;
-  }
-  return out;
-}
-
 export interface ConsoleProps {
   lines: () => ConsoleLine[];
   /** Changes whenever lines change (lines are mutated in place). */
   version: () => number;
   softWrap: boolean;
   scrollToEnd: boolean;
-  cwd?: string;
   /** Stdin: called with text including the trailing newline; omitted when not running. */
   onInput?: (text: string) => void;
   /** Extra content after the lines (e.g. a failure block). */
@@ -121,13 +83,13 @@ export function Console(props: ConsoleProps) {
       <For each={snapshot()}>
         {(line, i) => (
           <div class="run-line">
-            <For each={linePieces(line, props.cwd)}>
+            <For each={line.segments}>
               {(p) =>
                 p.link ? (
                   <a
                     class="run-link"
                     style={styleOf(p.style)}
-                    onClick={() => void openFileLink(p.link!, props.cwd)}
+                    onClick={() => void openFileLink(p.link!)}
                     title={p.link!.url ? "Open in browser" : "Open in editor"}
                   >
                     {p.text}

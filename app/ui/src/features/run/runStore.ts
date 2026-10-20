@@ -1,15 +1,15 @@
 /**
- * Runs shown in the Run tool window: one tab per run, its console (ANSI-styled lines), the
- * test tree for test runners, and Run / Debug / Stop / Rerun.
+ * Runs shown in the Run tool window: one tab per run, its console and, for test runners, the
+ * test tree (both computed by the backend and streamed as `console` / `tests` run events),
+ * and Run / Debug / Stop / Rerun.
  */
 import { batch, createSignal } from "solid-js";
 import { createStore, produce } from "solid-js/store";
-import { runApi, type RunConfiguration, type RunEvent, type RunRequest } from "@/ipc/run";
+import { runApi, type ConsoleLine, type RunConfiguration, type RunEvent, type RunRequest } from "@/ipc/run";
 import { showBalloon } from "@/keymap";
 import { saveAll } from "@/state/editor";
 import { showToolWindow } from "@/state/layout";
-import { AnsiParser, appendSegments, type AnsiStyle, type ConsoleLine } from "./ansi";
-import { parseServiceMessage, TestTreeBuilder, type TestNode } from "./teamcity";
+import { applyConsoleDelta, applyTestUpdates, emptyTestTree, type TestNode, type TestTreeState } from "./tests";
 import { debugLauncherFor, findType, validateConfiguration, type RunHandle } from "./types";
 import { findConfiguration, selectedConfiguration } from "./configStore";
 import { openRunConfigurations } from "./dialogState";
@@ -38,12 +38,7 @@ export interface RunSession {
 
 interface SessionData {
   lines: ConsoleLine[];
-  parser: AnsiParser;
-  /** Incomplete stdout line of a test run (service messages are line based). */
-  partial: string;
-  tests?: TestTreeBuilder;
-  /** Test that is currently running; output is attributed to it. */
-  currentTest?: TestNode;
+  tests?: TestTreeState;
   exited?: (code: number | null) => void;
   unlisten?: () => void;
   extra?: Pick<RunRequest, "env" | "interpreterArgs">;
@@ -64,11 +59,6 @@ export const setActiveSession = (id: string) => setState("active", id);
 
 const [softWrap, setSoftWrap] = createSignal(false);
 export { softWrap, setSoftWrap };
-
-const STYLE: Record<string, AnsiStyle | undefined> = {
-  stderr: { fg: "var(--danger)" },
-  system: { fg: "var(--fg-muted)" },
-};
 
 function bump(id: string) {
   setState("sessions", (s) => s.id === id, "version", (v) => v + 1);
@@ -91,50 +81,17 @@ function scheduleBump(id: string) {
   else setTimeout(flush, 16);
 }
 
-function write(id: string, text: string, stream: "stdout" | "stderr" | "system") {
+function trim(d: SessionData) {
+  if (d.lines.length > MAX_LINES) d.lines.splice(0, d.lines.length - MAX_LINES);
+}
+
+/** A message from the UI itself (e.g. a failed start). */
+function writeError(id: string, text: string) {
   const d = data.get(id);
   if (!d) return;
-  appendSegments(d.lines, d.parser.feed(text), STYLE[stream]);
-  if (d.currentTest && stream !== "system") d.currentTest.output += text;
-  if (d.lines.length > MAX_LINES) d.lines.splice(0, d.lines.length - MAX_LINES);
+  d.lines.push({ segments: [{ text, style: { fg: "var(--danger)" } }] });
+  trim(d);
   scheduleBump(id);
-}
-
-/** Test output: route `##teamcity[...]` lines to the tree and the rest to the console. */
-function writeTestOutput(id: string, text: string, flushAll = false) {
-  const d = data.get(id)!;
-  const all = d.partial + text;
-  const parts = all.split("\n");
-  d.partial = flushAll ? "" : parts.pop()!;
-  if (flushAll && parts[parts.length - 1] === "") parts.pop();
-  let consoleText = "";
-  const flushConsole = () => {
-    if (consoleText) write(id, consoleText, "stdout");
-    consoleText = "";
-  };
-  for (const line of parts) {
-    const msg = parseServiceMessage(line);
-    if (!msg) {
-      consoleText += `${line}\n`;
-      continue;
-    }
-    flushConsole();
-    d.tests!.apply(msg);
-    if (msg.name === "testStarted") d.currentTest = lastRunningTest(d.tests!.root);
-    if (msg.name === "testFinished") d.currentTest = undefined;
-    scheduleBump(id);
-  }
-  flushConsole();
-}
-
-function lastRunningTest(n: TestNode): TestNode | undefined {
-  for (let i = n.children.length - 1; i >= 0; i--) {
-    const c = n.children[i];
-    if (c.kind === "test" && c.status === "running") return c;
-    const inner = lastRunningTest(c);
-    if (inner) return inner;
-  }
-  return undefined;
 }
 
 function onEvent(id: string, runId: string, e: RunEvent) {
@@ -144,26 +101,18 @@ function onEvent(id: string, runId: string, e: RunEvent) {
   switch (e.type) {
     case "started":
       setState("sessions", (x) => x.id === id, "status", "running");
-      write(id, `${e.commandLine}\n`, "system");
       break;
-    case "output":
-      if (d.tests && e.stream === "stdout") writeTestOutput(id, e.text);
-      else write(id, e.text, e.stream);
+    case "console":
+      applyConsoleDelta(d.lines, e);
+      trim(d);
+      scheduleBump(id);
+      break;
+    case "tests":
+      if (d.tests) applyTestUpdates(d.tests, e.nodes, e.summary);
+      scheduleBump(id);
       break;
     case "exited": {
-      if (d.tests) {
-        if (d.partial) writeTestOutput(id, "", true);
-        d.tests.finish(e.code);
-        publishTestResults(d.tests.root);
-      }
-      d.currentTest = undefined;
-      const how =
-        e.code !== null
-          ? `exit code ${e.code}`
-          : e.signal !== null
-            ? `exit code ${128 + e.signal} (interrupted by signal ${e.signal}${e.signal === 15 ? ": SIGTERM" : e.signal === 9 ? ": SIGKILL" : ""})`
-            : "an unknown exit code";
-      write(id, `\nProcess finished with ${how}\n`, "system");
+      if (d.tests) publishTestResults(d.tests.root);
       setState("sessions", (x) => x.id === id, { status: "finished", exitCode: e.code ?? (e.signal ? 128 + e.signal : null), endedAt: Date.now() });
       d.unlisten?.();
       d.exited?.(e.code);
@@ -176,7 +125,7 @@ function onEvent(id: string, runId: string, e: RunEvent) {
 /** Build the backend request for a configuration. */
 function requestFor(cfg: RunConfiguration, runId: string, extra?: SessionData["extra"]): RunRequest {
   const type = findType(cfg.type);
-  const req: RunRequest = { runId, env: extra?.env, interpreterArgs: extra?.interpreterArgs };
+  const req: RunRequest = { runId, env: extra?.env, interpreterArgs: extra?.interpreterArgs, testRunner: !!type?.testRunner };
   if (type?.buildCommand) {
     const cmd = type.buildCommand(cfg);
     req.command = { ...cmd, cwd: cmd.cwd || cfg.workingDirectory || "", env: { ...(cmd.env ?? {}), ...(cfg.env ?? {}) } };
@@ -197,7 +146,7 @@ async function startProcess(id: string, extra?: SessionData["extra"]): Promise<R
     return { started, exited };
   } catch (err) {
     d.unlisten?.();
-    write(id, `Error running '${s.name}': ${String(err)}\n`, "stderr");
+    writeError(id, `Error running '${s.name}': ${String(err)}`);
     setState("sessions", (x) => x.id === id, { status: "failed", endedAt: Date.now() });
     d.exited?.(null);
     return null;
@@ -210,9 +159,7 @@ function resetSession(id: string, cfg: RunConfiguration, debug: boolean) {
   const type = findType(cfg.type);
   data.set(id, {
     lines: [],
-    parser: new AnsiParser(),
-    partial: "",
-    tests: type?.testRunner ? new TestTreeBuilder(`Test Results`) : undefined,
+    tests: type?.testRunner ? emptyTestTree() : undefined,
     extra: old?.extra,
   });
   setState("sessions", (x) => x.id === id, { config: cfg, name: cfg.name, debug, version: 0 });
@@ -400,6 +347,6 @@ export async function closeSession(id: string): Promise<void> {
 export async function sendInput(id: string, text: string): Promise<void> {
   const s = state.sessions.find((x) => x.id === id);
   if (!s?.runId || !isRunning(s)) return;
-  write(id, text, "stdout");
+  // The backend echoes the input in the console.
   await runApi.write(s.runId, text).catch((err) => showBalloon("Cannot send input", String(err)));
 }

@@ -267,6 +267,9 @@ pub fn run() {
             commands::run::run_stop,
             commands::run::run_write,
             commands::run::run_dispose,
+            commands::output::output_file_links,
+            commands::markdown::markdown_parse,
+            commands::markdown::markdown_hover,
             commands::debug::debug_status,
             commands::debug::debug_listen_start,
             commands::debug::debug_listen_stop,
@@ -317,6 +320,7 @@ pub fn run() {
             commands::db::db_detect_env,
             commands::db::db_add_from_env,
             commands::db::db_export,
+            commands::db::db_statement_at,
             commands::symfony::symfony_detect,
             commands::symfony::symfony_refresh,
             commands::symfony::symfony_routes,
@@ -334,6 +338,7 @@ pub fn run() {
             commands::doctrine::doctrine_goto,
             commands::doctrine::doctrine_diagnostics,
             commands::doctrine::doctrine_gutter,
+            commands::doctrine::doctrine_highlight,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Forge");

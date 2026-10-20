@@ -29,10 +29,9 @@ import { shortcutLabel } from "@/keymap";
 import { getSetting } from "@/state/settings";
 import { openMenu } from "./PopupMenu";
 import { Console } from "./Console";
-import { countTests, formatDuration, type TestNode } from "./teamcity";
-import { lineText, type ConsoleLine } from "./ansi";
+import { lineText, type TestNode } from "./tests";
 import { findType } from "./types";
-import { navigateToTest, statusOf, StatusIcon, TestTree, type TreeView } from "./TestTree";
+import { navigateToTest, StatusIcon, TestTree, type TreeView } from "./TestTree";
 import {
   activeSession,
   activeSessionId,
@@ -52,8 +51,6 @@ import {
 import { openRunConfigurations } from "./dialogState";
 import { saveTemporary, isTemporary } from "./configStore";
 import { setDiffRequest } from "@/features/git/overlays";
-import { toWorkspacePath } from "./fileLinks";
-import { workspace } from "@/state/workspace";
 
 interface SessionUi {
   scrollToEnd: boolean;
@@ -179,48 +176,8 @@ export function RunTabs() {
   );
 }
 
-function statusText(root: TestNode, running: boolean): { text: string; failed: boolean; done: number; total: number } {
-  const c = countTests(root);
-  const finished = c.passed + c.failed + c.ignored;
-  // PHPStorm: "Tests failed: 1, passed: 3 of 4 tests – 51 ms", "Tests passed: 4 of 4 tests".
-  const parts: string[] = [];
-  const prefix = running ? "Running tests" : c.failed ? "Tests failed" : c.passed ? "Tests passed" : c.ignored ? "Tests ignored" : "No tests were found";
-  if (c.failed) parts.push(running ? `failed: ${c.failed}` : String(c.failed));
-  if (c.passed) parts.push(c.failed || running ? `passed: ${c.passed}` : String(c.passed));
-  if (c.ignored) parts.push(c.failed || c.passed || running ? `ignored: ${c.ignored}` : String(c.ignored));
-  const tail = c.total ? ` of ${c.total} test${c.total === 1 ? "" : "s"}` : "";
-  const time = root.duration !== undefined ? ` – ${formatDuration(root.duration)}` : "";
-  const text = parts.length ? `${prefix}: ${parts.join(", ")}${tail}${running ? "" : time}` : `${prefix}${running ? "…" : ""}`;
-  return { text, failed: c.failed > 0, done: finished, total: c.total };
-}
-
-/** Console content for a selected test: its output plus the failure with expected/actual. */
-function testConsoleLines(n: TestNode): ConsoleLine[] {
-  const lines: ConsoleLine[] = [];
-  const add = (text: string, fg?: string) =>
-    text.split("\n").forEach((t) => lines.push({ segments: t ? [{ text: t, style: fg ? { fg } : {} }] : [] }));
-  const collect = (x: TestNode) => {
-    if (x.output) add(x.output.replace(/\n$/, ""));
-    if (x.status === "failed" && x.message !== undefined) {
-      add(x.message, "var(--danger)");
-      if (x.expected !== undefined || x.actual !== undefined) {
-        add(`Expected :${x.expected ?? ""}`, "var(--danger)");
-        add(`Actual   :${x.actual ?? ""}`, "var(--danger)");
-      }
-    }
-    if (x.status === "ignored" && x.message) add(`Test ignored: ${x.message}`, "var(--fg-muted)");
-    if (x.details) {
-      add("");
-      add(x.details.replace(/^\s+|\s+$/g, ""), "var(--danger)");
-    }
-    x.children.forEach(collect);
-  };
-  collect(n);
-  return lines;
-}
-
 function showComparison(n: TestNode) {
-  const path = (n.location && toWorkspacePath(n.location.path, workspace()?.root)) || "Comparison Failure";
+  const path = n.location?.workspacePath || "Comparison Failure";
   setDiffRequest({
     path,
     left: { title: "Expected", content: n.expected ?? "" },
@@ -263,7 +220,7 @@ function SessionView(props: { session: RunSession }) {
   });
   const consoleLines = () => {
     const n = selectedNode();
-    if (n && n.kind === "test") return testConsoleLines(n);
+    if (n && n.kind === "test") return n.console;
     return d()?.lines ?? [];
   };
   const stepFailed = (delta: number) => {
@@ -321,7 +278,7 @@ function SessionView(props: { session: RunSession }) {
           <ToolButton
             title="Rerun Failed Tests"
             icon={<RefreshCcwDot size={15} />}
-            disabled={running() || !tests() || countTests(tests()!.root).failed === 0}
+            disabled={running() || !tests() || tests()!.summary.counts.failed === 0}
             onClick={() => void rerunFailedTests(id())}
           />
         </Show>
@@ -351,7 +308,6 @@ function SessionView(props: { session: RunSession }) {
               version={() => props.session.version}
               softWrap={wrap()}
               scrollToEnd={u().scrollToEnd}
-              cwd={props.session.config.workingDirectory}
               onInput={running() ? (t) => void sendInput(id(), t) : undefined}
             />
           }
@@ -359,7 +315,7 @@ function SessionView(props: { session: RunSession }) {
           {(t) => {
             const status = createMemo(() => {
               props.session.version;
-              return statusText(t().root, running());
+              return t().summary;
             });
             const view = () => u().view;
             const toggleView = (k: "showPassed" | "showIgnored") => setUi(id(), "view", k, (v) => !v);
@@ -401,7 +357,7 @@ function SessionView(props: { session: RunSession }) {
                     <ToolButton title="Next Failed Test" icon={<ArrowDown size={15} />} onClick={() => stepFailed(1)} />
                   </div>
                   <div class="run-tests-status" classList={{ failed: status().failed }}>
-                    <StatusIcon status={running() ? "running" : statusOf(t().root)} />
+                    <StatusIcon status={running() ? "running" : t().root.status} />
                     <span>{status().text}</span>
                   </div>
                   <div
@@ -434,7 +390,6 @@ function SessionView(props: { session: RunSession }) {
                     version={() => props.session.version + (u().selected ?? -1) * 1e6}
                     softWrap={wrap()}
                     scrollToEnd={u().scrollToEnd && (!selectedNode() || selectedNode()!.kind === "root")}
-                    cwd={props.session.config.workingDirectory}
                     onInput={running() ? (text) => void sendInput(id(), text) : undefined}
                     footer={footer()}
                   />

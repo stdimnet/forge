@@ -1,12 +1,17 @@
 /**
  * Browser-mode run backend: configurations live in memory (never in a real project) and
  * runs replay canned output, including PHPUnit TeamCity messages with one failing test.
+ * Console lines and the test tree are computed by the Rust `forge-output` crate (WebAssembly),
+ * exactly like the desktop backend.
  */
 import { emitMock, registerMock } from "@/ipc";
 import type { CommandLine, RunConfiguration, RunConfigurations, RunEvent, RunRequest } from "@/ipc/run";
+import { forgeWasm, type ForgeWasm } from "@/wasm";
 import { demoProjectName } from "./demoProject";
+import { isSymfonyDemo, symfonyDemoName } from "./demoSymfonyProject";
 
 const ROOT = `~/Projects/${demoProjectName}`;
+const projectRoot = () => `~/Projects/${isSymfonyDemo() ? symfonyDemoName : demoProjectName}`;
 
 let stored: RunConfigurations = {
   selected: "UserTest",
@@ -83,16 +88,35 @@ registerMock("run_command_line", ({ request }) => {
 interface MockRun {
   timers: ReturnType<typeof setTimeout>[];
   done: boolean;
+  /** Handle of the run's `RunOutput` in the WebAssembly module. */
+  output: number;
 }
 const runs = new Map<string, MockRun>();
 let seq = 0;
+let wasm: ForgeWasm | undefined;
+
+/** Emit a raw event and what `forge-output` renders from it (console lines, test nodes). */
+function emitRun(runId: string, e: RunEvent): void {
+  const run = runs.get(runId);
+  const input =
+    e.type === "started"
+      ? { type: "started", commandLine: e.commandLine }
+      : e.type === "output"
+        ? { type: "output", stream: e.stream, text: e.text }
+        : e.type === "exited"
+          ? { type: "exited", code: e.code, signal: e.signal }
+          : null;
+  const rendered: RunEvent[] = run && input && wasm ? JSON.parse(wasm.run_output_handle(JSON.stringify({ handle: run.output, input }))) : [];
+  if (e.type !== "exited") emitMock(`run://${runId}`, e);
+  rendered.forEach((r) => emitMock(`run://${runId}`, r));
+  if (e.type === "exited") emitMock(`run://${runId}`, e);
+}
 
 type Step = [delayMs: number, text: string, stream?: "stdout" | "stderr"] | [delayMs: number, exit: { code: number }];
 
 function play(runId: string, steps: Step[]): void {
-  const run: MockRun = { timers: [], done: false };
-  runs.set(runId, run);
-  const emit = (e: RunEvent) => emitMock(`run://${runId}`, e);
+  const run = runs.get(runId)!;
+  const emit = (e: RunEvent) => emitRun(runId, e);
   let at = 0;
   for (const step of steps) {
     at += step[0];
@@ -285,12 +309,17 @@ function stepsFor(cfg: RunConfiguration | undefined, cmd: CommandLine): Step[] {
   }
 }
 
-registerMock("run_start", ({ request }) => {
+registerMock("run_start", async ({ request }) => {
+  wasm ??= await forgeWasm();
   const r = request as RunRequest;
   const runId = r.runId ?? `mock-run-${++seq}`;
   const cmd = r.command ?? mockCommandLine(r.configuration!);
   const commandLine = display({ ...cmd, args: [...(r.interpreterArgs ?? []), ...cmd.args] });
-  setTimeout(() => emitMock(`run://${runId}`, { type: "started", pid: 40000 + seq, commandLine } satisfies RunEvent), 0);
+  const options = { testRunner: !!r.testRunner, root: projectRoot(), cwd: cmd.cwd || undefined };
+  const old = runs.get(runId);
+  if (old) wasm.run_output_drop(JSON.stringify({ handle: old.output }));
+  runs.set(runId, { timers: [], done: false, output: Number(wasm.run_output_new(JSON.stringify(options))) });
+  setTimeout(() => emitRun(runId, { type: "started", pid: 40000 + seq, commandLine }), 0);
   play(runId, stepsFor(r.configuration, cmd));
   return { runId, commandLine };
 });
@@ -300,12 +329,24 @@ function stop(runId: string): void {
   if (!run || run.done) return;
   run.done = true;
   run.timers.forEach(clearTimeout);
-  setTimeout(() => emitMock(`run://${runId}`, { type: "exited", code: null, signal: 15 } satisfies RunEvent), 30);
+  setTimeout(() => emitRun(runId, { type: "exited", code: null, signal: 15 }), 30);
 }
 
 registerMock("run_stop", ({ runId }) => stop(String(runId)));
 registerMock("run_dispose", ({ runId }) => {
   stop(String(runId));
+  const run = runs.get(String(runId));
+  // Drop after the final `exited` event was rendered.
+  if (run) setTimeout(() => wasm?.run_output_drop(JSON.stringify({ handle: run.output })), 100);
   runs.delete(String(runId));
 });
-registerMock("run_write", () => undefined);
+registerMock("run_write", ({ runId, data }) => {
+  const run = runs.get(String(runId));
+  if (!run || !wasm) return;
+  const echo: RunEvent[] = JSON.parse(wasm.run_output_handle(JSON.stringify({ handle: run.output, input: { type: "input", text: String(data) } })));
+  echo.forEach((e) => emitMock(`run://${runId}`, e));
+});
+registerMock("output_file_links", async ({ text }) => {
+  wasm ??= await forgeWasm();
+  return JSON.parse(wasm.output_file_links(JSON.stringify({ text, root: projectRoot() })));
+});

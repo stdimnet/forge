@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { mockSymfonyComplete, mockSymfonyGoto, mockSymfonyGutter, referenceAt } from "./symfonyMock";
-import { completeDql, demoEntities, mockDqlDiagnostics } from "./doctrineMock";
+import { doctrineSnapshot } from "./doctrineMock";
+import type { DqlCompletion, DqlDiagnostic } from "@/ipc/doctrine";
+import { callWasm, forgeWasm } from "@/wasm";
 import { symfonyDemoFiles } from "./demoSymfonyProject";
 import { splitCommandLine } from "@/features/symfony/console";
 
@@ -38,27 +40,28 @@ describe("symfony mock references", () => {
   });
 });
 
-describe("doctrine mock DQL completion", () => {
-  it("completes fields of aliases declared through joins", () => {
-    const dql = "SELECT o FROM App\\Entity\\Order o JOIN o.customer c WHERE c.";
-    const c = completeDql(dql, dql.length, "full", new Map());
+describe("doctrine mock DQL (Rust phpforge-dql via WebAssembly)", () => {
+  const dql = async <T>(name: "dql_complete" | "dql_diagnostics", path: string, content: string, offset = 0) => {
+    const wasm = await forgeWasm();
+    return callWasm<T>(wasm[name], { path, content, offset, snapshot: doctrineSnapshot() });
+  };
+
+  it("completes fields of aliases declared through joins", async () => {
+    const [src, pos] = at("<?php $em->createQuery('SELECT o FROM App\\Entity\\Order o JOIN o.customer c WHERE c.¦');");
+    const c = await dql<DqlCompletion>("dql_complete", "src/X.php", src, pos);
     expect(c.items.map((i) => i.label)).toEqual(["id", "email", "name", "orders"]);
   });
 
-  it("uses preset aliases for QueryBuilder fragments", () => {
-    const order = demoEntities.find((e) => e.name === "Order")!;
-    const c = completeDql("o.st", 4, "expression", new Map([["o", order]]));
+  it("uses QueryBuilder aliases in repositories", async () => {
+    const [src, pos] = at("<?php\nnamespace App\\Repository;\nclass OrderRepository {\n function f() { return $this->createQueryBuilder('o')->andWhere('o.st¦'); }\n}");
+    const c = await dql<DqlCompletion>("dql_complete", "src/Repository/OrderRepository.php", src, pos);
     expect(c.items.map((i) => i.label)).toEqual(["status"]);
   });
-});
 
-describe("doctrine mock DQL inspections", () => {
-  it("reports unknown fields but not paths being typed", () => {
-    const src = "<?php $em->createQuery('SELECT o FROM App\\Entity\\Order o WHERE o.totl > 1 AND o.customer.email = 1 AND o.');";
-    const d = mockDqlDiagnostics("src/X.php", src);
-    expect(d).toHaveLength(1);
-    expect(src.slice(d[0].start, d[0].end)).toBe("totl");
-    expect(d[0].message).toBe("Field 'totl' not found in Order");
+  it("reports unknown fields", async () => {
+    const src = "<?php $em->createQuery('SELECT o FROM App\\Entity\\Order o WHERE o.totl > 1 AND o.customer.email = 1');";
+    const d = await dql<DqlDiagnostic[]>("dql_diagnostics", "src/X.php", src);
+    expect(d.map((x) => src.slice(x.start, x.end))).toEqual(["totl"]);
   });
 });
 

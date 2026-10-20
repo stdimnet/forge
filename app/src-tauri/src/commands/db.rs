@@ -280,3 +280,15 @@ pub async fn db_export(
     }
     Ok(text)
 }
+
+/// What Ctrl+Enter runs in a console: the selection, or the statement at the caret (or the
+/// closest one before it). Offsets in and out are editor positions (UTF-16).
+#[tauri::command]
+pub fn db_statement_at(
+    sql: String,
+    from: usize,
+    to: usize,
+    dialect: Dialect,
+) -> Option<forge_db::split::Statement> {
+    forge_db::split::statement_at(&sql, from, to, dialect)
+}

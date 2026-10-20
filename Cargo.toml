@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/*", "packs/phpforge/lang-php", "packs/phpforge/fw-laravel", "packs/phpforge/fw-symfony", "packs/phpforge/orm-doctrine", "app/src-tauri"]
+members = ["crates/*", "packs/phpforge/lang-php", "packs/phpforge/fw-laravel", "packs/phpforge/fw-symfony", "packs/phpforge/orm-doctrine", "packs/phpforge/dql", "app/src-tauri"]
 
 [workspace.package]
 version = "0.1.0"
@@ -23,8 +23,11 @@ forge-vcs = { path = "crates/forge-vcs" }
 forge-project = { path = "crates/forge-project" }
 forge-open = { path = "crates/forge-open" }
 forge-process = { path = "crates/forge-process" }
+forge-output = { path = "crates/forge-output" }
+forge-markdown = { path = "crates/forge-markdown" }
 forge-debug = { path = "crates/forge-debug" }
 forge-db = { path = "crates/forge-db" }
+forge-sql = { path = "crates/forge-sql" }
 forge-forges = { path = "crates/forge-forges" }
 forge-keymap = { path = "crates/forge-keymap" }
 serde = { version = "1", features = ["derive"] }
