@@ -1,3 +1,4 @@
+import type { Framework } from "./project";
 import { invoke } from "./index";
 
 export type FileKind = "file" | "dir";
@@ -16,6 +17,8 @@ export interface WorkspaceInfo {
 export interface RecentProject {
   name: string;
   root: string;
+  /** Detected framework (or language) for the Welcome screen badge. */
+  primary?: Framework;
 }
 
 export const workspaceApi = {
