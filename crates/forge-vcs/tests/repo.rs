@@ -295,3 +295,43 @@ fn open_outside_repository_fails() {
     let tmp = TempDir::new().unwrap();
     assert!(Repo::open(tmp.path()).is_err());
 }
+
+#[test]
+fn tracked_among_lists_tracked_files_even_when_ignored() {
+    let tmp = fixture();
+    let d = tmp.path();
+    write(d, ".gitignore", "vendor/\n*.log\n");
+    write(d, "vendor/forced.php", "<?php\n");
+    write(d, "vendor/other.php", "<?php\n");
+    write(d, "debug.log", "x\n");
+    sh(d, &["add", ".gitignore"]);
+    sh(d, &["add", "-f", "vendor/forced.php"]);
+    sh(d, &["commit", "-q", "-m", "Force add"]);
+
+    let repo = Repo::open(d).unwrap();
+    let paths: Vec<String> = [
+        "vendor",
+        "vendor/forced.php",
+        "vendor/other.php",
+        "debug.log",
+        "a.php",
+    ]
+    .iter()
+    .map(|s| s.to_string())
+    .collect();
+    let mut tracked = repo.tracked_among(&paths).unwrap();
+    tracked.sort();
+    assert_eq!(tracked, vec!["a.php", "vendor/forced.php"]);
+    assert!(repo.tracked_among(&[]).unwrap().is_empty());
+}
+
+#[test]
+fn tracked_among_uses_workspace_relative_paths() {
+    let tmp = fixture();
+    let d = tmp.path();
+    let repo = Repo::open(d.join("src")).unwrap();
+    assert_eq!(
+        repo.tracked_among(&["b.php".to_string()]).unwrap(),
+        vec!["b.php"]
+    );
+}

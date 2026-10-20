@@ -232,6 +232,13 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.tree-row.ignored .tree-label,
+.tree-row.ignored .tree-label[class*="vcs-"] {
+  color: var(--vcs-ignored);
+}
+.tree-row.ignored .file-icon {
+  opacity: 0.6;
+}
 .tree-label.strong {
   font-weight: 600;
 }

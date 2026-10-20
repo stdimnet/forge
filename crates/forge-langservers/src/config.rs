@@ -46,10 +46,11 @@ fn file_uri(path: &Path) -> String {
         .unwrap_or_else(|_| format!("file://{}", path.display()))
 }
 
-/// `node_modules` directories to look in for npm packages: the project's, then the
-/// global one next to the given executable.
+/// `node_modules` directories to look in for npm packages: the project's, Forge's managed
+/// one, then the one next to the given executable.
 fn node_modules_dirs(ctx: &ConfigContext, executable: Option<&Path>) -> Vec<PathBuf> {
     let mut dirs = vec![ctx.root.join("node_modules")];
+    dirs.extend(ctx.detector.managed_node_modules());
     if let Some(global) = executable.and_then(|e| ctx.detector.global_node_modules(e)) {
         dirs.push(global);
     }

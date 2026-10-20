@@ -21,7 +21,7 @@ const toggle = (path: string) => setOpen(path, !expanded().has(path));
 /** Tree selection, independent of the active editor tab (like PHPStorm). */
 const [selected, setSelected] = createSignal<string | null>(null);
 
-const singleClickOpens = () => getSetting<boolean>("projectView.openFilesWithSingleClick", false);
+const singleClickOpens = () => getSetting<boolean>("projectView.openFilesWithSingleClick", true);
 
 /** Double click (or single click with the setting on): expand/collapse folders, open files. */
 function activate(entry: FileEntry): void {
@@ -37,7 +37,7 @@ function TreeNode(props: { entry: FileEntry; depth: number }) {
     <>
       <div
         class="tree-row"
-        classList={{ selected: selected() === props.entry.path, "active-file": editor.active === props.entry.path }}
+        classList={{ selected: selected() === props.entry.path, "active-file": editor.active === props.entry.path, ignored: !!props.entry.ignored }}
         style={{ "padding-left": `${8 + props.depth * 16}px` }}
         data-path={props.entry.path}
         data-dir={isDir() ? "" : undefined}
@@ -63,7 +63,7 @@ function TreeNode(props: { entry: FileEntry; depth: number }) {
         >
           <Show when={isDir()}>{isOpen() ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</Show>
         </span>
-        <FileIcon name={props.entry.name} dir={isDir()} open={isOpen()} />
+        <FileIcon name={props.entry.name} dir={isDir()} open={isOpen()} dimmed={props.entry.ignored} />
         <span class={`tree-label ${status() ? `vcs-${status()}` : ""}`}>{props.entry.name}</span>
       </div>
       <Show when={isDir() && isOpen()}>

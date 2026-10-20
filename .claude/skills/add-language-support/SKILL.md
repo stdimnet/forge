@@ -39,6 +39,22 @@ File types are mapped to CodeMirror languages in `app/ui/src/editor/languages.ts
    `app/ui/src/mock/demoConfigFiles.ts`. Then add a scenario to
    `app/ui/scripts/scenarios/syntax.mjs` and check the screenshot.
 
+## Packs with editor features
+
+Languages that need more than colors (completion, hover docs, folding, checks) live in
+`app/ui/src/features/languages/<name>.ts`; see `bash.ts`, `postfix.ts` or `compose.ts` for
+examples. Each file calls `registerLanguage` and `registerEditorExtension`.
+
+- `registerLanguage` also takes `shebang` (detect extensionless scripts) and `indent`; `fileNames`
+  may contain `*` anywhere and `/` to match a path suffix (`config/services*.yaml`).
+- Use `streamLanguage` from `src/editor/tokens.ts` for stream parsers: it maps the shared token
+  names (`keyword`, `def`, `builtin`, `variable`, `option`, ...) to Lezer tags.
+- `syntaxDiagnostics` (`features/languages/shared.ts`) feeds checks into the Problems view and is
+  skipped while a language server for the file is running.
+- Declare the file type again in `app/src-tauri/plugins/langs.toml` (`[[contributions.fileTypes]]`),
+  then run `FORGE_UPDATE_SNAPSHOTS=1 cargo test -p forge-app`.
+- Parsers are unit-tested without an editor, see `features/languages/testkit.ts`.
+
 ## Template data languages
 
 Template languages (Twig, Smarty, Latte, Jinja, Handlebars, Go templates) highlight the content between their

@@ -111,6 +111,24 @@ impl Repo {
         })
     }
 
+    /// The tracked files among `paths`, as workspace-relative paths. A directory in `paths`
+    /// stands for every tracked file below it, so callers can tell a folder that holds
+    /// tracked files from one that does not. Paths are matched literally.
+    pub fn tracked_among(&self, paths: &[String]) -> Result<Vec<String>> {
+        if paths.is_empty() {
+            return Ok(Vec::new());
+        }
+        let specs = self.pathspecs(paths);
+        let mut args = vec!["--literal-pathspecs", "ls-files", "-z", "--cached", "--"];
+        args.extend(specs.iter().map(String::as_str));
+        Ok(self
+            .git(&args)?
+            .split('\0')
+            .filter(|p| !p.is_empty() && self.in_workspace(p))
+            .map(|p| self.repo_to_ws(p))
+            .collect())
+    }
+
     /// Workspace-relative path to a repository path.
     fn ws_to_repo(&self, path: &str) -> String {
         format!("{}{}", self.prefix, path.trim_start_matches("./"))

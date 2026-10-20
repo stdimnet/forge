@@ -21,6 +21,7 @@ import type {
 } from "@/features/git/api";
 import { lineDiff, unifiedDiff } from "@/features/git/textDiff";
 import { demoFiles } from "./demoProject";
+import { createIgnoreMatcher } from "./gitignoreMatcher";
 
 const DAY = 86400;
 const now = Math.floor(Date.now() / 1000);
@@ -153,7 +154,15 @@ const routesHead = replaceOnce(
 const DELETED = "app/Http/Middleware/RedirectIfGuest.php";
 const UNTRACKED_EXTRA = "tests/Unit/CheckoutTest.php";
 
-const head: Record<string, string> = { ...demoFiles };
+/** Ignored by `.gitignore` but committed with `git add -f`. */
+const FORCE_ADDED = new Set(["forced.log"]);
+const ignores = createIgnoreMatcher((dir) => demoFiles[dir ? `${dir}/.gitignore` : ".gitignore"]);
+const isUntrackedIgnored = (path: string) => !FORCE_ADDED.has(path) && ignores.isIgnored(path, false);
+
+// HEAD holds what a real repository would: ignored files (.env, vendor/, logs) are not in it.
+const head: Record<string, string> = Object.fromEntries(
+  Object.entries(demoFiles).filter(([path]) => !isUntrackedIgnored(path)),
+);
 delete head["app/Services/Checkout.php"];
 delete head["tests/Feature/OrderTest.php"];
 head["app/Models/User.php"] = userHead;
@@ -578,3 +587,6 @@ registerMock("ai_complete", async ({ request }) => {
   await delay(900);
   return mockCommitMessage(req.messages?.map((m) => m.content).join("\n") ?? "");
 });
+
+/** Paths git tracks in the demo repository (HEAD plus the index), for the file tree. */
+export const trackedPaths = (): string[] => [...new Set([...Object.keys(head), ...Object.keys(index)])];

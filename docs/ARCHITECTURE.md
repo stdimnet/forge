@@ -60,6 +60,10 @@ app/ui/            SolidJS UI
 
 ## Shared IPC contracts
 
+- `fs_list_dir({ path }) -> { name, path, kind, ignored }[]` — `ignored` is set for entries matched by
+  `.gitignore`, `.git/info/exclude` or the global excludes file (ignored folders ignore their
+  content); the Project view grays them out. The browser mock mirrors this with
+  `src/mock/gitignoreMatcher.ts`.
 - `fs_find_files({ query, limit? }) -> { path, name, score, positions, matchedPath }[]` — fuzzy
   "Go to File" (camel humps, respects `.gitignore`).
 
@@ -167,12 +171,27 @@ app/ui/            SolidJS UI
   project (honouring `.gitignore`, capped by `langservers.scanLimit`) and registers every enabled
   and installed server whose languages occur (and whose `when` markers exist, e.g. an ESLint config).
   Servers in the same `alternative` group (vtsls / typescript-language-server, pyright /
-  basedpyright) are exclusive. Detection looks at PATH, npm/nvm/volta/fnm, `~/.local/bin`,
-  composer, cargo, go, dotnet, gem dirs, Mason (`~/.local/share/nvim/mason/bin`) and Windows
-  `.cmd` shims.
+  basedpyright) are exclusive. Detection looks, in this order, at the project's
+  `node_modules/.bin`, Forge's own server directory (`<user data dir>/forge/langservers/node_modules/.bin`,
+  e.g. `~/.local/share/forge/langservers`), PATH, npm/nvm/volta/fnm, `~/.local/bin`, composer,
+  cargo, go, dotnet, gem dirs, Mason (`~/.local/share/nvim/mason/bin`) and Windows `.cmd` shims.
+  The `node_modules` of the project and of Forge's directory are also searched for packages a
+  server needs (TypeScript SDK, `@vue/typescript-plugin`).
+- npm servers are never installed globally: a catalog option `npm install -g <packages>` runs as
+  `npm install --prefix <Forge's server directory> --no-fund --no-audit <packages>` (`install::managed_command`;
+  the dialog shows that command). Other tools (brew, pipx, go, cargo, dotnet, ...) run as listed in
+  the catalog. npm and Node must be installed on the machine; a server's `#!/usr/bin/env node` script
+  needs `node` on the PATH Forge was started with.
 - Per-server settings: `langservers.servers.<id>.enabled|path|settings` (settings = JSON string
   merged into the server settings; `initializationOptions` key for startup options). Global:
-  `langservers.autoStart`, `langservers.scanLimit`, `langservers.lua.environment|version`.
+  `langservers.autoStart`, `langservers.scanLimit`, `langservers.lua.environment|version`,
+  `langservers.hints.enabled|dismissed`.
+- Install hint: files that use a feature only a server provides (a JSON `"$schema"`, a YAML
+  `# yaml-language-server: $schema=` modeline) get a banner above the editor when that server is
+  not installed (`src/features/langservers/hints.ts`, `serverHint.ts`). Add an entry to
+  `SERVER_HINTS` for another server. "Install…" opens the install dialog (`requestInstall`),
+  "Not now" hides it until Forge restarts, "Don't show again" stores the server id in
+  `langservers.hints.dismissed`.
 - IPC: `langservers_list() -> ServerRow[]`, `langservers_apply() -> ServerRow[]` (re-plan after
   settings changed), `langservers_install({ id, index }) -> InstallOutcome` with output on
   `langservers://install-output` `{ id, stream, line }`, `langservers_cancel_install({ id })`,
@@ -184,3 +203,22 @@ app/ui/            SolidJS UI
   changes; pack code building Intelephense configs can call
   `commands::langservers::with_intelephense_licence(&mut config)`. A plaintext
   `php.lsp.licenceKey` setting (or the PHP page's old localStorage value) is migrated once.
+
+## Scripting and config language packs
+
+- `app/ui/src/features/languages/` holds the packs for Bash, Python, YAML, JSON, INI, `.conf`,
+  dotenv, ignore files, Dockerfile, Docker Compose, Postfix (`main.cf`, `master.cf`), E-Mail and
+  Symfony services. Each file calls `registerLanguage` (same ids replace the built-in entries in
+  `src/editor/languages.ts`) and `registerEditorExtension`; `shared.ts` has the stream parser token
+  vocabulary (`src/editor/tokens.ts`), hover docs, folding and `syntaxDiagnostics`, which feeds the
+  Problems view unless one of the listed language servers (ids from the catalog) runs for the
+  file. `yamlSchema.ts` completes and documents keys of YAML files from a schema tree (Compose,
+  Symfony services).
+- `registerLanguage` also takes `shebang` (extensionless scripts) and `indent`; `fileNames` may
+  contain `*` anywhere and `/` to match a path suffix (`config/services*.yaml`).
+- The manifests `app/src-tauri/plugins/langs.toml` declare the same file types
+  (`[[contributions.fileTypes]]`); keep them in sync with the registrations. Language servers for
+  these languages come from the catalog (`forge-langservers`), not from the manifests.
+- `forge.symfony-services` only applies to Symfony projects (`projectTypes = ["symfony"]`); in other
+  projects `config/services*.yaml` is plain YAML.
+

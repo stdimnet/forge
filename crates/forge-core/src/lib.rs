@@ -1,6 +1,7 @@
 //! Forge core: the language-agnostic foundation every pack builds on.
 
 pub mod error;
+pub(crate) mod gitignore;
 pub mod search;
 pub mod settings;
 pub mod workspace;

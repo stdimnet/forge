@@ -213,7 +213,7 @@ const ROWS: Row[] = [
   ...Array.from({ length: 10 }, (_, i): Row => [`ToggleBookmark${i}`, `Toggle Bookmark ${i}`, G.bookmarks, `Ctrl+Shift+${i}`, `Ctrl+Shift+${i}`]),
 
   // ---- Code
-  ["CodeCompletion", "Basic Completion", G.code, "Ctrl+Space", "Ctrl+Space", E],
+  ["CodeCompletion", "Basic Completion", G.code, "Ctrl+Space | Shift+Space", "Ctrl+Space | Shift+Space", E],
   ["SmartTypeCompletion", "Type-Matching Completion", G.code, "Ctrl+Shift+Space", "Ctrl+Shift+Space", E],
   ["HippieCompletion", "Cyclic Expand Word", G.code, "Alt+/", "Alt+/", E],
   ["HippieBackwardCompletion", "Cyclic Expand Word (Backward)", G.code, "Alt+Shift+/", "Alt+Shift+/", E],

@@ -7,12 +7,29 @@ import { listen } from "@/ipc";
 import { langserversApi, type InstallLine, type LicenceStatus, type ServerRow } from "@/ipc/langservers";
 import { lspApi } from "@/ipc/lsp";
 import { SETTINGS_CHANGED_EVENT, type SettingsChange } from "@/ipc/settings";
+import { getSetting, saveSetting } from "@/state/settings";
 
 const [rows, setRows] = createSignal<ServerRow[]>([]);
 const [loading, setLoading] = createSignal(false);
 const [licence, setLicence] = createSignal<LicenceStatus | null>(null);
 
 export { rows, loading, licence };
+
+/** The server the user asked to install from outside the settings page (editor hints). */
+const [installRequest, setInstallRequest] = createSignal<ServerRow | null>(null);
+export { installRequest };
+export const requestInstall = (row: ServerRow) => setInstallRequest(row);
+export const closeInstallRequest = () => setInstallRequest(null);
+
+export const HINTS_ENABLED_KEY = "langservers.hints.enabled";
+export const HINTS_DISMISSED_KEY = "langservers.hints.dismissed";
+
+export const hintsEnabled = () => getSetting<boolean>(HINTS_ENABLED_KEY, true);
+export const dismissedHints = () => getSetting<string[]>(HINTS_DISMISSED_KEY, []);
+
+/** Never suggest installing this server again (undo it in Settings | Language Servers). */
+export const dismissHint = (serverId: string) =>
+  saveSetting(HINTS_DISMISSED_KEY, [...new Set([...dismissedHints(), serverId])]);
 
 let pending: Promise<void> | null = null;
 

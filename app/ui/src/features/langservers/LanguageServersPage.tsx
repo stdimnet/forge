@@ -178,7 +178,9 @@ export function LanguageServersPage() {
   return (
     <div class="ls-page" data-testid="language-servers-page">
       <p class="ls-intro muted">
-        Language servers are separate programs. Forge finds them on PATH and in npm, pip, cargo, go and Mason directories.
+        Language servers are separate programs. Forge looks in the project's node_modules, in its own server directory
+        (~/.local/share/forge/langservers), on PATH and in pip, cargo, go and Mason directories. npm servers are
+        installed into that directory only, never globally.
       </p>
       <Show when={generalSpecs().length}>
         <div class="set-section-body ls-general">

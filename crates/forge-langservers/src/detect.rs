@@ -1,7 +1,8 @@
 //! Finding installed language servers: `PATH` plus the places package managers put
 //! executables that are often missing from `PATH` in a desktop session (npm global prefix,
 //! nvm/fnm/volta, `~/.local/bin` for pip/pipx, `~/.cargo/bin`, `~/go/bin`, `~/.dotnet/tools`,
-//! gem user dirs and Neovim's Mason directory).
+//! gem user dirs and Neovim's Mason directory). The open project's `node_modules/.bin` and
+//! Forge's own directory for npm servers (`<data dir>/forge/langservers`) come first.
 
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
@@ -21,6 +22,16 @@ pub struct DetectEnv {
     pub appdata: Option<PathBuf>,
     pub local_appdata: Option<PathBuf>,
     pub windows: bool,
+    /// The open project; its `node_modules/.bin` is searched first.
+    pub project_root: Option<PathBuf>,
+    /// Where Forge installs npm language servers (`npm install --prefix <dir>`); its
+    /// `node_modules/.bin` is searched right after the project's.
+    pub managed_dir: Option<PathBuf>,
+}
+
+/// Forge's own directory for npm language servers: `<user data dir>/forge/langservers`.
+pub fn default_managed_dir() -> Option<PathBuf> {
+    dirs::data_dir().map(|d| d.join("forge").join("langservers"))
 }
 
 fn env_path(key: &str) -> Option<PathBuf> {
@@ -42,16 +53,28 @@ impl DetectEnv {
             appdata: env_path("APPDATA"),
             local_appdata: env_path("LOCALAPPDATA"),
             windows: cfg!(windows),
+            project_root: None,
+            managed_dir: default_managed_dir(),
         }
     }
 
-    /// Directories searched for executables, most specific first, without duplicates.
+    /// Directories searched for executables, most specific first, without duplicates: the
+    /// project's `node_modules/.bin`, Forge's managed servers, `PATH`, then the usual
+    /// package manager directories.
     pub fn search_dirs(&self) -> Vec<PathBuf> {
-        let mut dirs: Vec<PathBuf> = self
-            .path
-            .as_ref()
-            .map(|p| std::env::split_paths(p).collect())
-            .unwrap_or_default();
+        let mut dirs: Vec<PathBuf> = Vec::new();
+        if let Some(root) = &self.project_root {
+            dirs.push(root.join("node_modules").join(".bin"));
+        }
+        if let Some(managed) = &self.managed_dir {
+            dirs.push(managed.join("node_modules").join(".bin"));
+        }
+        dirs.extend(
+            self.path
+                .as_ref()
+                .map(|p| std::env::split_paths(p).collect::<Vec<_>>())
+                .unwrap_or_default(),
+        );
         let home = self.home.as_deref();
         let data_home = self
             .xdg_data_home
@@ -206,6 +229,24 @@ impl Detector {
         Self::new(DetectEnv::from_system())
     }
 
+    /// Like [`system`](Self::system), also looking in the project's `node_modules/.bin`.
+    pub fn for_project(root: &Path) -> Self {
+        Self::new(DetectEnv {
+            project_root: Some(root.to_path_buf()),
+            ..DetectEnv::from_system()
+        })
+    }
+
+    /// Forge's own directory for npm servers, the `--prefix` of managed installs.
+    pub fn managed_dir(&self) -> Option<&Path> {
+        self.env.managed_dir.as_deref()
+    }
+
+    /// `node_modules` of the managed directory (packages next to the managed servers).
+    pub fn managed_node_modules(&self) -> Option<PathBuf> {
+        self.managed_dir().map(|d| d.join("node_modules"))
+    }
+
     pub fn dirs(&self) -> &[PathBuf] {
         &self.dirs
     }
@@ -240,6 +281,12 @@ impl Detector {
     /// `<prefix>/node_modules`).
     pub fn global_node_modules(&self, executable: &Path) -> Option<PathBuf> {
         let bin = executable.parent()?;
+        // `<dir>/node_modules/.bin/x` (project or managed install) → `<dir>/node_modules`.
+        if bin.file_name().is_some_and(|n| n == ".bin") {
+            if let Some(modules) = bin.parent().filter(|p| p.is_dir()) {
+                return Some(modules.to_path_buf());
+            }
+        }
         let candidates = [
             bin.parent().map(|p| p.join("lib/node_modules")),
             Some(bin.join("node_modules")),
@@ -381,6 +428,66 @@ pub(crate) mod tests {
             Some(local.join("nvim-data/mason/bin/gopls.exe"))
         );
         assert!(!d.dirs().contains(&PathBuf::from("/usr/local/bin")));
+    }
+
+    #[test]
+    fn project_then_managed_then_path() {
+        let tmp = tempfile::tempdir().unwrap();
+        let project = tmp.path().join("project");
+        let managed = tmp.path().join("data/forge/langservers");
+        let usr = tmp.path().join("usr/bin");
+        for dir in [
+            project.join("node_modules/.bin"),
+            managed.join("node_modules/.bin"),
+            usr.clone(),
+        ] {
+            fake_bin(&dir.join("yaml-language-server"));
+        }
+        fake_bin(&managed.join("node_modules/.bin/vscode-json-language-server"));
+        fake_bin(&usr.join("vscode-json-language-server"));
+        fake_bin(&usr.join("gopls"));
+
+        let d = Detector::new(DetectEnv {
+            path: Some(std::env::join_paths([&usr]).unwrap()),
+            project_root: Some(project.clone()),
+            managed_dir: Some(managed.clone()),
+            ..Default::default()
+        });
+        assert_eq!(
+            d.find("yaml-language-server"),
+            Some(project.join("node_modules/.bin/yaml-language-server")),
+            "the project's own server wins"
+        );
+        assert_eq!(
+            d.find("vscode-json-language-server"),
+            Some(managed.join("node_modules/.bin/vscode-json-language-server")),
+            "Forge's managed install beats PATH"
+        );
+        assert_eq!(d.find("gopls"), Some(usr.join("gopls")));
+        assert_eq!(d.managed_dir(), Some(managed.as_path()));
+        assert_eq!(d.managed_node_modules(), Some(managed.join("node_modules")));
+
+        // Without a project or managed directory only PATH and the fallbacks remain.
+        let plain = Detector::new(DetectEnv {
+            path: Some(std::env::join_paths([&usr]).unwrap()),
+            ..Default::default()
+        });
+        assert_eq!(
+            plain.find("yaml-language-server"),
+            Some(usr.join("yaml-language-server"))
+        );
+    }
+
+    #[test]
+    fn node_modules_next_to_a_local_bin_directory() {
+        let tmp = tempfile::tempdir().unwrap();
+        let bin = tmp.path().join("langservers/node_modules/.bin");
+        fake_bin(&bin.join("pyright"));
+        let d = Detector::new(DetectEnv::default());
+        assert_eq!(
+            d.global_node_modules(&bin.join("pyright")),
+            Some(tmp.path().join("langservers/node_modules"))
+        );
     }
 
     #[test]

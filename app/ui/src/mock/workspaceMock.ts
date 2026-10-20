@@ -2,11 +2,21 @@ import { registerMock } from "@/ipc";
 import type { FileEntry } from "@/ipc/workspace";
 import { demoFiles, demoProjectName } from "./demoProject";
 import { demoConfigFiles } from "./demoConfigFiles";
+import { createIgnoreMatcher } from "./gitignoreMatcher";
+import { trackedPaths } from "./gitMock";
 import { recentPrimaries } from "./projectMock";
 
 const files: Record<string, string> = { ...demoFiles, ...demoConfigFiles };
+const ignores = createIgnoreMatcher((dir) => files[dir ? `${dir}/.gitignore` : ".gitignore"]);
+
+/** Ignored means matched by `.gitignore` and not tracked (a file or a folder with tracked files). */
+function isIgnored(path: string, isDir: boolean, tracked: string[]): boolean {
+  if (!ignores.isIgnored(path, isDir)) return false;
+  return !tracked.some((t) => t === path || t.startsWith(`${path}/`));
+}
 
 function listDir(dir: string): FileEntry[] {
+  const tracked = trackedPaths();
   const prefix = dir ? `${dir}/` : "";
   const seen = new Map<string, FileEntry>();
   for (const path of Object.keys(files)) {
@@ -14,7 +24,9 @@ function listDir(dir: string): FileEntry[] {
     const rest = path.slice(prefix.length);
     const [head, ...tail] = rest.split("/");
     const full = prefix + head;
-    if (!seen.has(full)) seen.set(full, { name: head, path: full, kind: tail.length ? "dir" : "file" });
+    if (seen.has(full)) continue;
+    const kind = tail.length ? "dir" : "file";
+    seen.set(full, { name: head, path: full, kind, ignored: isIgnored(full, kind === "dir", tracked) });
   }
   return [...seen.values()].sort(
     (a, b) =>
