@@ -12,6 +12,10 @@ const MANIFESTS: &[(&str, &str)] = &[
     ("php.toml", include_str!("../plugins/php.toml")),
     ("phpforge.toml", include_str!("../plugins/phpforge.toml")),
     ("packs.toml", include_str!("../plugins/packs.toml")),
+    (
+        "browser-companion.toml",
+        include_str!("../plugins/browser-companion.toml"),
+    ),
 ];
 
 /// Setting holding the ids of plugins the user disabled.
