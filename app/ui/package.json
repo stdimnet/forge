@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "screenshots": "node scripts/screenshots.mjs",
+    "docs:llms": "node ../../docs/scripts/build-llms.mjs",
     "tauri": "cd .. && tauri",
     "wasm": "node scripts/build-wasm.mjs",
     "agents": "node scripts/build-agents.mjs",
