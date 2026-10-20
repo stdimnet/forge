@@ -279,6 +279,39 @@ function gutter(path: string): DoctrineGutterMark[] {
 registerMock("doctrine_entities", () => (isSymfonyDemo() ? structuredClone(demoEntities) : []));
 registerMock("doctrine_complete", ({ path, content, offset }) => complete(String(path), String(content), Number(offset)));
 registerMock("doctrine_goto", ({ path, content, offset }) => gotoDecl(String(path), String(content), Number(offset)));
-registerMock("doctrine_diagnostics", () => []);
+/** Unknown fields in `alias.field` paths, like `phpforge_orm_doctrine::dql::diagnostics`. */
+export function mockDqlDiagnostics(path: string, src: string): { start: number; end: number; message: string }[] {
+  const out: { start: number; end: number; message: string }[] = [];
+  for (const site of findDqlSites(src)) {
+    const aliases = site.mode === "full" ? new Map<string, DoctrineEntity>() : presetAliases(path, src);
+    const tokens = tokenizeDql(site.dql);
+    dqlAliases(tokens, aliases);
+    if (!aliases.size) continue;
+    for (const t of tokens) {
+      if (t.kind !== "identifier" || !t.text.includes(".") || t.text.includes("\\")) continue;
+      const parts = t.text.split(".");
+      let e = aliases.get(parts[0]);
+      if (!e) continue;
+      let offset = parts[0].length + 1;
+      for (const part of parts.slice(1)) {
+        if (!part) break;
+        const a = e.associations.find((x) => x.name === part);
+        const f = e.fields.find((x) => x.name === part);
+        if (!a && !f) {
+          const start = dqlToSource(site, t.start + offset);
+          if (start != null) out.push({ start, end: start + part.length, message: `Field '${part}' not found in ${e.name}` });
+          break;
+        }
+        const next = a ? byName(a.target) : f?.embedded ? byName(f.type) : undefined;
+        if (!next) break;
+        e = next;
+        offset += part.length + 1;
+      }
+    }
+  }
+  return out;
+}
+
+registerMock("doctrine_diagnostics", ({ path, content }) => (isSymfonyDemo() ? mockDqlDiagnostics(String(path), String(content)) : []));
 registerMock("doctrine_gutter", ({ path }) => (isSymfonyDemo() ? gutter(String(path)) : []));
 

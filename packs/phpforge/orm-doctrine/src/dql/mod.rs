@@ -713,6 +713,10 @@ pub fn diagnostics(snap: &Snapshot, dql: &str, preset: &[(String, String)]) -> V
         let parts: Vec<&str> = t.text.split('.').collect();
         if matches!(target, PathTarget::Unknown) || resolved < parts.len() {
             let bad = parts.get(resolved).copied().unwrap_or("");
+            if bad.is_empty() {
+                // `o.` while typing.
+                continue;
+            }
             let start = t.start + parts[..resolved].iter().map(|p| p.len() + 1).sum::<usize>();
             let owner = match resolve_path(snap, &query, &parts[..resolved].join(".")).0 {
                 PathTarget::Entity(e) => e.name.clone(),
@@ -920,5 +924,7 @@ mod tests {
         assert_eq!(d[0].message, "Field 'nme' not found in Customer");
         assert_eq!(&dql[d[0].start..d[0].end], "nme");
         assert!(diagnostics(&snap, Q, &[]).is_empty());
+        // A path still being typed is not a problem yet.
+        assert!(diagnostics(&snap, "SELECT o FROM App\\Entity\\Order o WHERE o.", &[]).is_empty());
     }
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { mockSymfonyComplete, mockSymfonyGoto, mockSymfonyGutter, referenceAt } from "./symfonyMock";
-import { completeDql, demoEntities } from "./doctrineMock";
+import { completeDql, demoEntities, mockDqlDiagnostics } from "./doctrineMock";
 import { symfonyDemoFiles } from "./demoSymfonyProject";
 import { splitCommandLine } from "@/features/symfony/console";
 
@@ -49,6 +49,16 @@ describe("doctrine mock DQL completion", () => {
     const order = demoEntities.find((e) => e.name === "Order")!;
     const c = completeDql("o.st", 4, "expression", new Map([["o", order]]));
     expect(c.items.map((i) => i.label)).toEqual(["status"]);
+  });
+});
+
+describe("doctrine mock DQL inspections", () => {
+  it("reports unknown fields but not paths being typed", () => {
+    const src = "<?php $em->createQuery('SELECT o FROM App\\Entity\\Order o WHERE o.totl > 1 AND o.customer.email = 1 AND o.');";
+    const d = mockDqlDiagnostics("src/X.php", src);
+    expect(d).toHaveLength(1);
+    expect(src.slice(d[0].start, d[0].end)).toBe("totl");
+    expect(d[0].message).toBe("Field 'totl' not found in Order");
   });
 });
 
