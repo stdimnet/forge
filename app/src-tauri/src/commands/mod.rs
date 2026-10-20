@@ -13,6 +13,7 @@ pub mod git;
 pub mod keymap;
 pub mod langservers;
 pub mod laravel;
+pub mod library;
 pub mod lsp;
 pub mod lua;
 pub mod markdown;

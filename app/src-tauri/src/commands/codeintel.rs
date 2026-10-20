@@ -21,11 +21,14 @@ use forge_lsp::forge_codeintel::{
 };
 use forge_lsp::model::{EditorCodeAction, EditorLocation};
 use forge_lsp::{lsp_types, Feature, LspManager};
-use phpforge_lang_php::navigate::{NavKind, NavTarget};
+use phpforge_lang_php::navigate::{NavKind, NavTarget, PhpLineMarker};
+use phpforge_lang_php::offsets::{byte_to_utf16, utf16_to_byte};
+use phpforge_lang_php::stubs::StubTarget;
 use serde::Serialize;
 use serde_json::Value;
 use tauri::{AppHandle, State};
 
+use crate::commands::library::{stub_path, LibraryState, LIBRARY_PREFIX, STUBS_PREFIX};
 use crate::commands::lsp::{to_ui_path, LspState};
 use crate::commands::workspace::blocking;
 use crate::state::AppState;
@@ -132,12 +135,46 @@ impl Ctx {
         edit
     }
 
+    /// Locations inside the project, workspace-relative (usages outside it, e.g. in a
+    /// server's own stubs, are not the project's).
     fn relative_locations(&self, locs: Vec<EditorLocation>) -> Vec<UsageLocation> {
         locs.into_iter()
+            .filter(|l| Path::new(&l.path).starts_with(self.manager.root()))
             .map(|l| UsageLocation {
                 path: self.ui_path(&l.path),
                 range: lsp_range(l.range),
                 kind: None,
+            })
+            .collect()
+    }
+
+    /// Navigation targets: project files workspace-relative, files outside the project
+    /// (a server's stubs, global libraries) as read-only `library://file/…` paths when they
+    /// are on this machine. Remote hosts' files are left out (the index and Forge's own
+    /// stubs answer instead).
+    fn nav_targets(
+        &self,
+        locs: Vec<EditorLocation>,
+        lib: &LibraryState,
+        remote: bool,
+    ) -> Vec<NavTarget> {
+        locs.into_iter()
+            .filter_map(|l| {
+                let abs = Path::new(&l.path);
+                let path = if abs.starts_with(self.manager.root()) {
+                    self.ui_path(&l.path)
+                } else if !remote && abs.is_file() {
+                    lib.grant(abs)
+                } else {
+                    return None;
+                };
+                Some(NavTarget {
+                    path,
+                    line: l.range.start.line,
+                    column: l.range.start.character,
+                    name: String::new(),
+                    container: None,
+                })
             })
             .collect()
     }
@@ -256,6 +293,7 @@ pub struct NavigateAnswer {
 /// Go to Implementation (`implementation`), Type Declaration (`typeDeclaration`) and Super
 /// Method (`superMethod`, PHP index only): the language servers first, then the PHP index.
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 pub async fn code_navigate(
     path: String,
     line: u32,
@@ -265,6 +303,7 @@ pub async fn code_navigate(
     app: AppHandle,
     lsp: State<'_, LspState>,
     ws: State<'_, AppState>,
+    lib: State<'_, LibraryState>,
 ) -> Result<NavigateAnswer> {
     let c = Ctx::new(&path, &app, &lsp, &ws)?;
     let pos = lsp_types::Position::new(line, character);
@@ -281,17 +320,7 @@ pub async fn code_navigate(
             _ => c.manager.type_definition(&c.abs, pos).await,
         }
         .unwrap_or_default();
-        targets = c
-            .relative_locations(locs)
-            .into_iter()
-            .map(|l| NavTarget {
-                path: l.path,
-                line: l.range.start.line,
-                column: l.range.start.character,
-                name: String::new(),
-                container: None,
-            })
-            .collect();
+        targets = c.nav_targets(locs, &lib, ws.is_remote());
         missing = c
             .manager
             .missing_feature(&c.abs, feature)
@@ -311,6 +340,257 @@ pub async fn code_navigate(
         })
     })
     .await
+}
+
+// ---- Go to Declaration ----
+
+#[derive(Debug, Clone, Default, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DeclarationAnswer {
+    /// The caret is on a declaration: the UI shows its usages (PHPStorm's "Declaration or
+    /// Usages").
+    pub on_declaration: bool,
+    /// `User`, `Throwable`, `User::orders()`.
+    pub title: Option<String>,
+    /// Workspace-relative paths, or `library://…` for read-only library files.
+    pub targets: Vec<NavTarget>,
+    /// `lsp`, `index`, `stubs` or `none`.
+    pub source: String,
+    /// Why nothing was found ("Cannot find declaration to go to", a stub download error).
+    pub message: Option<String>,
+}
+
+fn stub_targets(found: Vec<StubTarget>) -> Vec<NavTarget> {
+    found
+        .into_iter()
+        .map(|t| NavTarget {
+            path: stub_path(&t.path),
+            line: t.line,
+            column: t.column,
+            name: t.name,
+            container: Some(t.extension),
+        })
+        .collect()
+}
+
+/// Go to Declaration in a library file: PHP stubs resolve their names in the stubs.
+async fn library_declaration(
+    path: &str,
+    line: u32,
+    character: u32,
+    content: Option<String>,
+    app: &AppHandle,
+    ws: &AppState,
+    lib: &LibraryState,
+) -> DeclarationAnswer {
+    let not_found = || DeclarationAnswer {
+        source: "none".into(),
+        message: Some("Cannot find declaration to go to".into()),
+        ..Default::default()
+    };
+    let (Some(rel), Some(text)) = (path.strip_prefix(STUBS_PREFIX), content) else {
+        return not_found();
+    };
+    let Ok(index) = lib.stubs(app, ws, false).await else {
+        return not_found();
+    };
+    let offset = utf16_to_byte(
+        &text,
+        codeintel::utf16_offset(&text, Position::new(line, character)),
+    );
+    match index.definition_in(rel, &text, offset) {
+        Some((_, found)) if !found.is_empty() => DeclarationAnswer {
+            title: found.first().map(|t| t.name.clone()),
+            targets: stub_targets(found),
+            source: "stubs".into(),
+            ..Default::default()
+        },
+        _ => not_found(),
+    }
+}
+
+/// Go to Declaration (Ctrl+B, Ctrl+Click, middle click): the language servers' definition
+/// first, the PHP index when they have none, and PHP's own symbols in the PHP stubs
+/// (downloaded on first use). On a declaration the answer says so, and the UI shows the
+/// usages instead.
+#[tauri::command]
+#[allow(clippy::too_many_arguments)]
+pub async fn code_goto_declaration(
+    path: String,
+    line: u32,
+    character: u32,
+    content: Option<String>,
+    app: AppHandle,
+    lsp: State<'_, LspState>,
+    ws: State<'_, AppState>,
+    lib: State<'_, LibraryState>,
+) -> Result<DeclarationAnswer> {
+    if path.starts_with(LIBRARY_PREFIX) {
+        return Ok(library_declaration(&path, line, character, content, &app, &ws, &lib).await);
+    }
+    let c = Ctx::new(&path, &app, &lsp, &ws)?;
+    let pos = lsp_types::Position::new(line, character);
+    let locs = c.manager.definition(&c.abs, pos).await.unwrap_or_default();
+    let on_declaration = locs.iter().any(|l| {
+        Path::new(&l.path) == c.abs
+            && (l.range.start.line, l.range.start.character) <= (line, character)
+            && (line, character) <= (l.range.end.line, l.range.end.character)
+    });
+    if on_declaration {
+        return Ok(DeclarationAnswer {
+            on_declaration: true,
+            source: "lsp".into(),
+            ..Default::default()
+        });
+    }
+    let targets = c.nav_targets(locs, &lib, ws.is_remote());
+    if !targets.is_empty() {
+        return Ok(DeclarationAnswer {
+            targets,
+            source: "lsp".into(),
+            ..Default::default()
+        });
+    }
+    let mut answer = DeclarationAnswer {
+        source: "none".into(),
+        message: Some("Cannot find declaration to go to".into()),
+        ..Default::default()
+    };
+    if !is_php(&path) {
+        return Ok(answer);
+    }
+    let backend = c.backend.clone();
+    let def = blocking(move || {
+        let text = current_text(&backend, &path, &content);
+        let offset = codeintel::utf16_offset(&text, Position::new(line, character));
+        backend.php().definition(&path, offset, Some(text))
+    })
+    .await?;
+    answer.title = def.title.clone();
+    if def.on_declaration {
+        answer.on_declaration = true;
+        answer.source = "index".into();
+        answer.message = None;
+    } else if !def.targets.is_empty() {
+        answer.targets = def.targets;
+        answer.source = "index".into();
+        answer.message = None;
+    } else if let Some(external) = def.external {
+        match lib.stubs(&app, &ws, true).await {
+            Ok(index) => {
+                let found = index.lookup(&external);
+                if !found.is_empty() {
+                    answer.targets = stub_targets(found);
+                    answer.source = "stubs".into();
+                    answer.message = None;
+                }
+            }
+            Err(e) => answer.message = Some(e),
+        }
+    }
+    Ok(answer)
+}
+
+/// What Ctrl+hover shows: the reference to underline and a short description.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SymbolHover {
+    pub range: Range,
+    /// Namespace or class; empty for globals.
+    pub container: String,
+    /// The declaration's signature; empty when only the name is known.
+    pub signature: String,
+}
+
+/// The Ctrl+hover link at a position: from the PHP index (and the loaded PHP stubs), so it
+/// answers quickly; `null` where nothing is navigable. Other languages answer `null` and
+/// the UI underlines the word for the language server.
+#[tauri::command]
+pub async fn code_symbol_info(
+    path: String,
+    line: u32,
+    character: u32,
+    content: Option<String>,
+    ws: State<'_, AppState>,
+    lib: State<'_, LibraryState>,
+) -> Result<Option<SymbolHover>> {
+    let stubs = lib.stubs_ready();
+    if let Some(rel) = path.strip_prefix(STUBS_PREFIX) {
+        let (Some(index), Some(text)) = (stubs, content) else {
+            return Ok(None);
+        };
+        let offset = utf16_to_byte(
+            &text,
+            codeintel::utf16_offset(&text, Position::new(line, character)),
+        );
+        return Ok(index
+            .definition_in(rel, &text, offset)
+            .and_then(|((s, e), t)| {
+                let t = t.into_iter().next()?;
+                Some(SymbolHover {
+                    range: Range::new(
+                        codeintel::position_at(&text, byte_to_utf16(&text, s)),
+                        codeintel::position_at(&text, byte_to_utf16(&text, e)),
+                    ),
+                    container: t.info.container,
+                    signature: t.info.signature,
+                })
+            }));
+    }
+    if !is_php(&path) {
+        return Ok(None);
+    }
+    let backend = ws.backend()?;
+    blocking(move || {
+        let text = current_text(&backend, &path, &content);
+        let offset = codeintel::utf16_offset(&text, Position::new(line, character));
+        let def = backend.php().definition(&path, offset, Some(text))?;
+        let Some(range) = def.range else {
+            return Ok(None);
+        };
+        if let Some(info) = def.info {
+            return Ok(Some(SymbolHover {
+                range,
+                container: info.container,
+                signature: info.signature,
+            }));
+        }
+        let Some(external) = def.external else {
+            return Ok(None);
+        };
+        // PHP's own symbols: underline only what the stubs know (once they are loaded).
+        Ok(match stubs {
+            Some(index) => index
+                .lookup(&external)
+                .into_iter()
+                .next()
+                .map(|t| SymbolHover {
+                    range,
+                    container: t.info.container,
+                    signature: t.info.signature,
+                }),
+            None => Some(SymbolHover {
+                range,
+                container: String::new(),
+                signature: String::new(),
+            }),
+        })
+    })
+    .await
+}
+
+/// The implemented / overridden gutter markers of a PHP file (PHP index).
+#[tauri::command]
+pub async fn code_line_markers(
+    path: String,
+    content: Option<String>,
+    ws: State<'_, AppState>,
+) -> Result<Vec<PhpLineMarker>> {
+    if !is_php(&path) {
+        return Ok(vec![]);
+    }
+    let backend = ws.backend()?;
+    blocking(move || backend.php().line_markers(&path, content)).await
 }
 
 // ---- Rename ----

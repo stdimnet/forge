@@ -57,9 +57,12 @@ fn extension_of(path: &str) -> String {
         .to_string()
 }
 
+/// A `define()` call: name, byte offset of the name, value.
+type Define = (String, usize, Option<String>);
+
 /// `define('NAME', value)` calls (most of the stubs' constants), as (name, byte offset of
 /// the name, value).
-fn defines(src: &str) -> Vec<(String, usize, Option<String>)> {
+fn defines(src: &str) -> Vec<Define> {
     let mut out = Vec::new();
     for (i, _) in src.match_indices("define") {
         if src[..i]
@@ -148,12 +151,7 @@ impl StubIndex {
 
     /// Index stub sources given as `(relative path, content)`.
     pub fn from_sources(root: &Path, sources: Vec<(String, String)>) -> Self {
-        let parsed: Vec<(
-            String,
-            FileIndex,
-            Vec<(String, usize, Option<String>)>,
-            String,
-        )> = sources
+        let parsed: Vec<(String, FileIndex, Vec<Define>, String)> = sources
             .into_par_iter()
             .map(|(rel, src)| {
                 let file = parser::index_source(&rel, &src);
