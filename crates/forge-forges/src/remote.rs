@@ -75,8 +75,12 @@ pub fn guess_kind(host: &str) -> Option<HostKind> {
     let host = host.to_lowercase();
     match host.as_str() {
         "github.com" | "www.github.com" => return Some(HostKind::Github),
-        "gitlab.com" | "www.gitlab.com" | "salsa.debian.org" | "invent.kde.org"
-        | "gitlab.gnome.org" | "gitlab.freedesktop.org" => return Some(HostKind::Gitlab),
+        "gitlab.com"
+        | "www.gitlab.com"
+        | "salsa.debian.org"
+        | "invent.kde.org"
+        | "gitlab.gnome.org"
+        | "gitlab.freedesktop.org" => return Some(HostKind::Gitlab),
         "codeberg.org" | "gitea.com" | "next.forgejo.org" | "code.forgejo.org" => {
             return Some(HostKind::Forgejo)
         }
@@ -105,7 +109,11 @@ fn server_parts(server: &str) -> Option<(String, Option<u16>, String)> {
         Some((h, p)) => (h, p.parse().ok()),
         None => (authority, None),
     };
-    Some((host.to_lowercase(), port, path.trim_matches('/').to_string()))
+    Some((
+        host.to_lowercase(),
+        port,
+        path.trim_matches('/').to_string(),
+    ))
 }
 
 /// Normalize a server URL: scheme added, no trailing slash.
@@ -212,13 +220,25 @@ mod tests {
     #[test]
     fn parses_remote_forms() {
         let r = parse_remote_url("https://gitlab.com/acme/backend/api.git").unwrap();
-        assert_eq!((r.host.as_str(), r.path.as_str(), r.ssh), ("gitlab.com", "acme/backend/api", false));
+        assert_eq!(
+            (r.host.as_str(), r.path.as_str(), r.ssh),
+            ("gitlab.com", "acme/backend/api", false)
+        );
         let r = parse_remote_url("git@github.com:Reeperk/Forge.git").unwrap();
-        assert_eq!((r.host.as_str(), r.path.as_str(), r.ssh), ("github.com", "Reeperk/Forge", true));
+        assert_eq!(
+            (r.host.as_str(), r.path.as_str(), r.ssh),
+            ("github.com", "Reeperk/Forge", true)
+        );
         let r = parse_remote_url("ssh://git@git.acme.dev:2222/acme/acme-shop.git").unwrap();
-        assert_eq!((r.host.as_str(), r.port, r.path.as_str()), ("git.acme.dev", Some(2222), "acme/acme-shop"));
+        assert_eq!(
+            (r.host.as_str(), r.port, r.path.as_str()),
+            ("git.acme.dev", Some(2222), "acme/acme-shop")
+        );
         let r = parse_remote_url("https://oauth2:secret@code.example.org:8443/a/b/").unwrap();
-        assert_eq!((r.host.as_str(), r.port, r.path.as_str()), ("code.example.org", Some(8443), "a/b"));
+        assert_eq!(
+            (r.host.as_str(), r.port, r.path.as_str()),
+            ("code.example.org", Some(8443), "a/b")
+        );
         assert!(parse_remote_url("/local/path/repo").is_none());
         assert!(parse_remote_url("https://github.com/only-owner").is_none());
     }
@@ -241,12 +261,33 @@ mod tests {
             acc(HostKind::Forgejo, "https://git.acme.dev"),
             acc(HostKind::Gitlab, "https://example.com/gitlab/"),
         ];
-        let r = resolve_remote("origin", "ssh://git@git.acme.dev:2222/acme/acme-shop.git", &accounts).unwrap();
-        assert_eq!((r.kind, r.server.as_str(), r.path.as_str()), (HostKind::Forgejo, "https://git.acme.dev", "acme/acme-shop"));
-        let r = resolve_remote("upstream", "https://example.com/gitlab/team/app.git", &accounts).unwrap();
-        assert_eq!((r.kind, r.server.as_str(), r.path.as_str()), (HostKind::Gitlab, "https://example.com/gitlab", "team/app"));
+        let r = resolve_remote(
+            "origin",
+            "ssh://git@git.acme.dev:2222/acme/acme-shop.git",
+            &accounts,
+        )
+        .unwrap();
+        assert_eq!(
+            (r.kind, r.server.as_str(), r.path.as_str()),
+            (HostKind::Forgejo, "https://git.acme.dev", "acme/acme-shop")
+        );
+        let r = resolve_remote(
+            "upstream",
+            "https://example.com/gitlab/team/app.git",
+            &accounts,
+        )
+        .unwrap();
+        assert_eq!(
+            (r.kind, r.server.as_str(), r.path.as_str()),
+            (HostKind::Gitlab, "https://example.com/gitlab", "team/app")
+        );
         // HTTP port is part of the server identity.
-        let r = resolve_remote("origin", "http://localhost:3000/me/repo.git", &[acc(HostKind::Forgejo, "http://localhost:3000")]).unwrap();
+        let r = resolve_remote(
+            "origin",
+            "http://localhost:3000/me/repo.git",
+            &[acc(HostKind::Forgejo, "http://localhost:3000")],
+        )
+        .unwrap();
         assert_eq!(r.server, "http://localhost:3000");
     }
 

@@ -173,7 +173,8 @@ impl Http {
         let next_page = header_num(&headers, "x-next-page")
             .map(|n| n as u32)
             .or_else(|| next_url.as_deref().and_then(page_param));
-        let total = header_num(&headers, "x-total").or_else(|| header_num(&headers, "x-total-count"));
+        let total =
+            header_num(&headers, "x-total").or_else(|| header_num(&headers, "x-total-count"));
         Ok(Paged {
             items,
             next_url,
@@ -330,7 +331,12 @@ pub fn next_link(h: &HeaderMap) -> Option<String> {
         params
             .split(';')
             .any(|p| p.trim().replace(' ', "") == "rel=\"next\"")
-            .then(|| url.trim().trim_start_matches('<').trim_end_matches('>').to_string())
+            .then(|| {
+                url.trim()
+                    .trim_start_matches('<')
+                    .trim_end_matches('>')
+                    .to_string()
+            })
     })
 }
 
@@ -422,7 +428,11 @@ mod tests {
         assert_eq!(enc("acme/shop"), "acme%2Fshop");
         assert_eq!(enc_path("app/My File.php"), "app/My%20File.php");
         assert_eq!(
-            query(&[("state", Some("opened".into())), ("search", None), ("q", Some("a b".into()))]),
+            query(&[
+                ("state", Some("opened".into())),
+                ("search", None),
+                ("q", Some("a b".into()))
+            ]),
             "?state=opened&q=a%20b"
         );
     }

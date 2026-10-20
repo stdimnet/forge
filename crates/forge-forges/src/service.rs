@@ -81,7 +81,10 @@ impl ForgeService {
     }
 
     /// Replace the environment lookup (tests).
-    pub fn with_env(mut self, env: impl Fn(&str) -> Option<String> + Send + Sync + 'static) -> Self {
+    pub fn with_env(
+        mut self,
+        env: impl Fn(&str) -> Option<String> + Send + Sync + 'static,
+    ) -> Self {
         self.env = Box::new(env);
         self
     }

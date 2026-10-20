@@ -176,10 +176,22 @@ mod tests {
 
     #[test]
     fn api_roots() {
-        assert_eq!(api_base(HostKind::Github, "github.com"), "https://api.github.com");
-        assert_eq!(api_base(HostKind::Github, "https://ghe.acme.dev/"), "https://ghe.acme.dev/api/v3");
-        assert_eq!(api_base(HostKind::Gitlab, "https://example.com/gitlab"), "https://example.com/gitlab/api/v4");
-        assert_eq!(api_base(HostKind::Forgejo, "https://codeberg.org"), "https://codeberg.org/api/v1");
+        assert_eq!(
+            api_base(HostKind::Github, "github.com"),
+            "https://api.github.com"
+        );
+        assert_eq!(
+            api_base(HostKind::Github, "https://ghe.acme.dev/"),
+            "https://ghe.acme.dev/api/v3"
+        );
+        assert_eq!(
+            api_base(HostKind::Gitlab, "https://example.com/gitlab"),
+            "https://example.com/gitlab/api/v4"
+        );
+        assert_eq!(
+            api_base(HostKind::Forgejo, "https://codeberg.org"),
+            "https://codeberg.org/api/v1"
+        );
     }
 
     #[test]
@@ -192,7 +204,10 @@ mod tests {
             api_url: None,
         };
         assert_eq!(a.id, "gitlab-gitlab.com");
-        assert_eq!(account_id(HostKind::Gitlab, "gitlab.com", &[a]), "gitlab-gitlab.com-2");
+        assert_eq!(
+            account_id(HostKind::Gitlab, "gitlab.com", &[a]),
+            "gitlab-gitlab.com-2"
+        );
     }
 
     #[test]

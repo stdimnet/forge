@@ -317,10 +317,7 @@ impl CodeHost for GitLab {
             Ok(d) => d,
             // GitLab < 15.7 has no /diffs endpoint.
             Err(HostError::NotFound { .. }) => {
-                let v: Value = self
-                    .http
-                    .get(&format!("{path}/changes"), "changes")
-                    .await?;
+                let v: Value = self.http.get(&format!("{path}/changes"), "changes").await?;
                 arr(&v, "changes").to_vec()
             }
             Err(e) => return Err(e),
@@ -525,7 +522,11 @@ impl CodeHost for GitLab {
             "squash": squash,
             "should_remove_source_branch": opts.delete_source_branch,
         });
-        if let Some(m) = opts.commit_message.as_deref().filter(|m| !m.trim().is_empty()) {
+        if let Some(m) = opts
+            .commit_message
+            .as_deref()
+            .filter(|m| !m.trim().is_empty())
+        {
             body[if squash {
                 "squash_commit_message"
             } else {

@@ -102,7 +102,7 @@ impl MockServer {
                     let route = routes.iter().rev().find(|r| {
                         r.method == req.method
                             && r.path == req.path
-                            && r.query.map_or(true, |q| req.query.contains(q))
+                            && r.query.is_none_or(|q| req.query.contains(q))
                     });
                     let Some(route) = route else {
                         let _ = sock

@@ -130,11 +130,7 @@ impl Forgejo {
     async fn combined_status(&self, repo: &RepoRef, git_ref: &str) -> HostResult<Option<Value>> {
         self.http
             .get_optional(
-                &format!(
-                    "{}/commits/{}/status",
-                    Self::repo_path(repo),
-                    enc(git_ref)
-                ),
+                &format!("{}/commits/{}/status", Self::repo_path(repo), enc(git_ref)),
                 "commit status",
             )
             .await
@@ -286,8 +282,10 @@ impl CodeHost for Forgejo {
                     .into_iter()
                     .map(|u| u.username)
                     .collect();
-                let assignees: Vec<String> =
-                    users(v, "assignees").into_iter().map(|u| u.username).collect();
+                let assignees: Vec<String> = users(v, "assignees")
+                    .into_iter()
+                    .map(|u| u.username)
+                    .collect();
                 filter.matches(&mr, &reviewers, &assignees)
             })
             .collect();
@@ -297,7 +295,9 @@ impl CodeHost for Forgejo {
                 return None;
             }
             match self.combined_status(repo, &sha).await {
-                Ok(Some(st)) if !arr(&st, "statuses").is_empty() => CiStatus::parse(&s(&st, "state")),
+                Ok(Some(st)) if !arr(&st, "statuses").is_empty() => {
+                    CiStatus::parse(&s(&st, "state"))
+                }
                 _ => None,
             }
         }))
@@ -316,7 +316,10 @@ impl CodeHost for Forgejo {
     async fn merge_request(&self, repo: &RepoRef, number: u64) -> HostResult<MergeRequestDetails> {
         let v: Value = self
             .http
-            .get(&Self::pr_path(repo, number), &format!("pull request #{number}"))
+            .get(
+                &Self::pr_path(repo, number),
+                &format!("pull request #{number}"),
+            )
             .await?;
         let reviews = self.reviews(repo, number).await.unwrap_or_default();
         // Latest decisive review per user.
@@ -383,10 +386,7 @@ impl CodeHost for Forgejo {
             conflicts: mergeable == Some(false) && !b(&v, "merged"),
             start_sha: base_sha.clone(),
             base_sha,
-            merged_by: v
-                .get("merged_by")
-                .filter(|u| u.is_object())
-                .map(user),
+            merged_by: v.get("merged_by").filter(|u| u.is_object()).map(user),
         })
     }
 
@@ -397,7 +397,10 @@ impl CodeHost for Forgejo {
     ) -> HostResult<Vec<ChangedFile>> {
         let diff = self
             .http
-            .get_text(&format!("{}.diff", Self::pr_path(repo, number)), Some("text/plain"))
+            .get_text(
+                &format!("{}.diff", Self::pr_path(repo, number)),
+                Some("text/plain"),
+            )
             .await?
             .ok_or_else(|| HostError::NotFound {
                 host: "Forgejo".into(),
@@ -453,20 +456,17 @@ impl CodeHost for Forgejo {
 
         let reviews = self.reviews(repo, number).await?;
         let pr = Self::pr_path(repo, number);
-        let review_comments = join_all(
-            reviews
-                .iter()
-                .filter(|r| u(r, "comments_count") > 0)
-                .map(|r| {
-                    let path = format!("{pr}/reviews/{}/comments", s(r, "id"));
-                    async move {
-                        self.http
-                            .get::<Vec<Value>>(&path, "review comments")
-                            .await
-                            .unwrap_or_default()
-                    }
-                }),
-        )
+        let review_comments = join_all(reviews.iter().filter(|r| u(r, "comments_count") > 0).map(
+            |r| {
+                let path = format!("{pr}/reviews/{}/comments", s(r, "id"));
+                async move {
+                    self.http
+                        .get::<Vec<Value>>(&path, "review comments")
+                        .await
+                        .unwrap_or_default()
+                }
+            },
+        ))
         .await;
 
         // Review summaries ("approved", "requested changes") as timeline entries.
@@ -630,7 +630,11 @@ impl CodeHost for Forgejo {
             },
             "delete_branch_after_merge": opts.delete_source_branch,
         });
-        if let Some(m) = opts.commit_message.as_deref().filter(|m| !m.trim().is_empty()) {
+        if let Some(m) = opts
+            .commit_message
+            .as_deref()
+            .filter(|m| !m.trim().is_empty())
+        {
             let (title, rest) = m.split_once('\n').unwrap_or((m, ""));
             body["MergeTitleField"] = json!(title.trim());
             body["MergeMessageField"] = json!(rest.trim());
@@ -674,13 +678,16 @@ impl CodeHost for Forgejo {
         ]);
         let page = self
             .http
-            .get_page::<Value>(&format!("{}/issues{q}", Self::repo_path(repo)), "repository")
+            .get_page::<Value>(
+                &format!("{}/issues{q}", Self::repo_path(repo)),
+                "repository",
+            )
             .await?;
         Ok(Page {
             items: page
                 .items
                 .iter()
-                .filter(|v| v.get("pull_request").map_or(true, Value::is_null))
+                .filter(|v| v.get("pull_request").is_none_or(Value::is_null))
                 .map(issue_from)
                 .collect(),
             next_page: page.next_page,
@@ -724,7 +731,7 @@ impl CodeHost for Forgejo {
         match res {
             Ok(Some(v)) => Ok(arr(&v, "workflow_runs")
                 .iter()
-                .filter(|r| branch.map_or(true, |b| s(r, "head_branch") == b))
+                .filter(|r| branch.is_none_or(|b| s(r, "head_branch") == b))
                 .filter_map(|r| {
                     Some(Pipeline {
                         id: s(r, "id"),
@@ -815,7 +822,10 @@ mod tests {
         let (id, pos) = thread_key(&c).unwrap();
         assert_eq!(id, "n42:app/Models/User.php");
         assert_eq!(pos.new_line, Some(42));
-        assert_eq!(parse_thread_id(&id), Some((true, 42, "app/Models/User.php")));
+        assert_eq!(
+            parse_thread_id(&id),
+            Some((true, 42, "app/Models/User.php"))
+        );
         let c = json!({ "path": "a:b.txt", "position": 0, "original_position": 7 });
         let (id, _) = thread_key(&c).unwrap();
         assert_eq!(parse_thread_id(&id), Some((false, 7, "a:b.txt")));

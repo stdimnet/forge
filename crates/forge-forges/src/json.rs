@@ -56,7 +56,10 @@ pub fn user(v: &Value) -> User {
 }
 
 pub fn user_at(v: &Value, key: &str) -> User {
-    v.get(key).filter(|u| u.is_object()).map(user).unwrap_or_default()
+    v.get(key)
+        .filter(|u| u.is_object())
+        .map(user)
+        .unwrap_or_default()
 }
 
 pub fn users(v: &Value, key: &str) -> Vec<User> {

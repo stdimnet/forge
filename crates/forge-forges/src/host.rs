@@ -16,11 +16,17 @@ pub trait CodeHost: Send + Sync {
     /// The token owner (used to verify a token).
     async fn current_user(&self) -> HostResult<User>;
 
-    async fn merge_requests(&self, repo: &RepoRef, filter: &MrFilter)
-        -> HostResult<Page<MergeRequest>>;
+    async fn merge_requests(
+        &self,
+        repo: &RepoRef,
+        filter: &MrFilter,
+    ) -> HostResult<Page<MergeRequest>>;
     async fn merge_request(&self, repo: &RepoRef, number: u64) -> HostResult<MergeRequestDetails>;
-    async fn merge_request_files(&self, repo: &RepoRef, number: u64)
-        -> HostResult<Vec<ChangedFile>>;
+    async fn merge_request_files(
+        &self,
+        repo: &RepoRef,
+        number: u64,
+    ) -> HostResult<Vec<ChangedFile>>;
     /// General comments and inline review threads, oldest first.
     async fn discussions(&self, repo: &RepoRef, number: u64) -> HostResult<Vec<Discussion>>;
     async fn create_merge_request(

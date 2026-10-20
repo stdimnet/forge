@@ -142,7 +142,11 @@ impl GitHub {
     }
 
     /// Review threads: root comment database id -> (thread node id, resolved).
-    async fn review_threads(&self, repo: &RepoRef, number: u64) -> HostResult<Vec<(u64, String, bool)>> {
+    async fn review_threads(
+        &self,
+        repo: &RepoRef,
+        number: u64,
+    ) -> HostResult<Vec<(u64, String, bool)>> {
         let (owner, name) = repo.owner_repo();
         let data = self
             .graphql(
@@ -221,8 +225,10 @@ impl CodeHost for GitHub {
                     .into_iter()
                     .map(|u| u.username)
                     .collect();
-                let assignees: Vec<String> =
-                    users(v, "assignees").into_iter().map(|u| u.username).collect();
+                let assignees: Vec<String> = users(v, "assignees")
+                    .into_iter()
+                    .map(|u| u.username)
+                    .collect();
                 filter.matches(&mr, &reviewers, &assignees)
             })
             .collect();
@@ -271,10 +277,12 @@ impl CodeHost for GitHub {
             if user.username == author {
                 continue;
             }
-            match reviewers.iter_mut().find(|x| x.user.username == user.username) {
+            match reviewers
+                .iter_mut()
+                .find(|x| x.user.username == user.username)
+            {
                 Some(existing) => {
-                    if state != ReviewState::Commented || existing.state == ReviewState::Commented
-                    {
+                    if state != ReviewState::Commented || existing.state == ReviewState::Commented {
                         existing.state = state;
                     }
                 }
@@ -589,7 +597,9 @@ impl CodeHost for GitHub {
         } else {
             "mutation($id:ID!){unresolveReviewThread(input:{threadId:$id}){thread{isResolved}}}"
         };
-        self.graphql(mutation, json!({ "id": thread.1 })).await.map(drop)
+        self.graphql(mutation, json!({ "id": thread.1 }))
+            .await
+            .map(drop)
     }
 
     async fn approve(&self, repo: &RepoRef, number: u64) -> HostResult<()> {
@@ -611,7 +621,11 @@ impl CodeHost for GitHub {
                 MergeMethod::Rebase => "rebase",
             },
         });
-        if let Some(m) = opts.commit_message.as_deref().filter(|m| !m.trim().is_empty()) {
+        if let Some(m) = opts
+            .commit_message
+            .as_deref()
+            .filter(|m| !m.trim().is_empty())
+        {
             let (title, rest) = m.split_once('\n').unwrap_or((m, ""));
             body["commit_title"] = json!(title.trim());
             body["commit_message"] = json!(rest.trim());
@@ -633,7 +647,7 @@ impl CodeHost for GitHub {
             let same_repo = head
                 .pointer("/repo/full_name")
                 .and_then(Value::as_str)
-                .map_or(true, |n| n.eq_ignore_ascii_case(&repo.path));
+                .is_none_or(|n| n.eq_ignore_ascii_case(&repo.path));
             if same_repo {
                 self.http
                     .send_unit(
@@ -711,7 +725,10 @@ impl CodeHost for GitHub {
         ]);
         let page = self
             .http
-            .get_page::<Value>(&format!("{}/issues{q}", Self::repo_path(repo)), "repository")
+            .get_page::<Value>(
+                &format!("{}/issues{q}", Self::repo_path(repo)),
+                "repository",
+            )
             .await?;
         Ok(Page {
             items: page

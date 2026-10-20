@@ -37,7 +37,11 @@ async fn host(routes: Vec<Route>) -> (MockServer, GitLab) {
 
 #[tokio::test]
 async fn lists_merge_requests_with_filters_pagination_and_ci() {
-    let list = format!("[{},{}]", mr_json(7, "Draft: Add checkout", "aaa"), mr_json(5, "Fix cart", "bbb"));
+    let list = format!(
+        "[{},{}]",
+        mr_json(7, "Draft: Add checkout", "aaa"),
+        mr_json(5, "Fix cart", "bbb")
+    );
     let (server, gl) = host(vec![
         Route::json("GET", &format!("{P}/merge_requests"), &list)
             .header("X-Next-Page", "2")
@@ -68,7 +72,10 @@ async fn lists_merge_requests_with_filters_pagination_and_ci() {
     assert_eq!(page.items[1].ci, Some(CiStatus::Failed));
 
     let req = server.find("GET", &format!("{P}/merge_requests"));
-    assert_eq!(req.headers.get("private-token").map(String::as_str), Some("glpat-secret"));
+    assert_eq!(
+        req.headers.get("private-token").map(String::as_str),
+        Some("glpat-secret")
+    );
     assert!(req.query.contains("state=opened"));
     assert!(req.query.contains("author_username=anna"));
     assert!(req.query.contains("search=cart%20flow"));
@@ -110,7 +117,10 @@ async fn merge_request_details_with_approvals_pipeline_and_jobs() {
     let p = d.pipeline.unwrap();
     assert_eq!(p.status, CiStatus::Failed);
     assert_eq!(p.jobs.len(), 2);
-    assert_eq!(p.jobs[0].name, "composer", "jobs are listed in pipeline order");
+    assert_eq!(
+        p.jobs[0].name, "composer",
+        "jobs are listed in pipeline order"
+    );
     assert_eq!(d.summary.ci, Some(CiStatus::Failed));
 }
 
@@ -132,7 +142,10 @@ async fn files_follow_link_pagination() {
     ])
     .await;
     let files = gl.merge_request_files(&repo(), 7).await.unwrap();
-    assert_eq!(server.count("GET", &format!("{P}/merge_requests/7/diffs")), 2);
+    assert_eq!(
+        server.count("GET", &format!("{P}/merge_requests/7/diffs")),
+        2
+    );
     assert_eq!(files.len(), 3);
     assert_eq!((files[0].additions, files[0].deletions), (2, 1));
     assert_eq!(files[0].hunks[0].new_start, 10);
@@ -165,7 +178,10 @@ async fn discussions_comments_replies_and_resolving() {
     assert!(ds[0].resolvable && ds[0].resolved);
     assert_eq!(ds[0].notes.len(), 2);
     let pos = ds[0].position.as_ref().unwrap();
-    assert_eq!((pos.path.as_str(), pos.new_line, pos.old_line), ("app/Models/User.php", Some(12), None));
+    assert_eq!(
+        (pos.path.as_str(), pos.new_line, pos.old_line),
+        ("app/Models/User.php", Some(12), None)
+    );
     assert!(ds[1].notes[0].system);
 
     let at = Position {
@@ -174,25 +190,44 @@ async fn discussions_comments_replies_and_resolving() {
         new_line: Some(14),
         old_line: None,
     };
-    gl.add_comment(&repo(), 7, "Nit: order", Some(&at)).await.unwrap();
-    let body = server.find("POST", &format!("{P}/merge_requests/7/discussions")).json();
+    gl.add_comment(&repo(), 7, "Nit: order", Some(&at))
+        .await
+        .unwrap();
+    let body = server
+        .find("POST", &format!("{P}/merge_requests/7/discussions"))
+        .json();
     assert_eq!(body["position"]["start_sha"], "s");
     assert_eq!(body["position"]["new_line"], 14);
     assert_eq!(body["position"]["old_path"], "app/Models/User.php");
     assert!(body["position"].get("old_line").is_none());
 
     gl.add_comment(&repo(), 7, "LGTM", None).await.unwrap();
-    assert_eq!(server.find("POST", &format!("{P}/merge_requests/7/notes")).json()["body"], "LGTM");
+    assert_eq!(
+        server
+            .find("POST", &format!("{P}/merge_requests/7/notes"))
+            .json()["body"],
+        "LGTM"
+    );
     gl.reply(&repo(), 7, "d1", "Thanks").await.unwrap();
     gl.resolve(&repo(), 7, "d1", true).await.unwrap();
-    assert_eq!(server.find("PUT", &format!("{P}/merge_requests/7/discussions/d1")).query, "resolved=true");
+    assert_eq!(
+        server
+            .find("PUT", &format!("{P}/merge_requests/7/discussions/d1"))
+            .query,
+        "resolved=true"
+    );
 }
 
 #[tokio::test]
 async fn creates_draft_with_reviewers_and_merges() {
     let (server, gl) = host(vec![
         Route::json("GET", "/api/v4/users", r#"[{"id":42,"username":"ben"}]"#),
-        Route::json("POST", &format!("{P}/merge_requests"), &mr_json(8, "Draft: Payment retries", "c")).status(201),
+        Route::json(
+            "POST",
+            &format!("{P}/merge_requests"),
+            &mr_json(8, "Draft: Payment retries", "c"),
+        )
+        .status(201),
         Route::json("PUT", &format!("{P}/merge_requests/8/merge"), "{}"),
         Route::json("POST", &format!("{P}/merge_requests/8/approve"), "{}").status(201),
         Route::json("PUT", &format!("{P}/merge_requests/8"), "{}"),
@@ -233,12 +268,17 @@ async fn creates_draft_with_reviewers_and_merges() {
     )
     .await
     .unwrap();
-    let body = server.find("PUT", &format!("{P}/merge_requests/8/merge")).json();
+    let body = server
+        .find("PUT", &format!("{P}/merge_requests/8/merge"))
+        .json();
     assert_eq!(body["squash"], true);
     assert_eq!(body["should_remove_source_branch"], true);
     assert_eq!(body["squash_commit_message"], "Payment retries");
     gl.close(&repo(), 8).await.unwrap();
-    assert_eq!(server.find("PUT", &format!("{P}/merge_requests/8")).json()["state_event"], "close");
+    assert_eq!(
+        server.find("PUT", &format!("{P}/merge_requests/8")).json()["state_event"],
+        "close"
+    );
 }
 
 #[tokio::test]
@@ -268,15 +308,29 @@ async fn issues_pipelines_members_and_files() {
     let ci = gl.ci_status(&repo(), "main").await.unwrap().unwrap();
     assert_eq!(ci.status, CiStatus::Success);
     assert_eq!(ci.jobs[0].name, "lint");
-    assert!(server.find("GET", &format!("{P}/pipelines")).query.contains("ref=main"));
+    assert!(server
+        .find("GET", &format!("{P}/pipelines"))
+        .query
+        .contains("ref=main"));
     gl.ci_status(&repo(), "0123456789abcdef").await.unwrap();
-    assert!(server.find("GET", &format!("{P}/pipelines")).query.contains("sha=0123456789abcdef"));
+    assert!(server
+        .find("GET", &format!("{P}/pipelines"))
+        .query
+        .contains("sha=0123456789abcdef"));
 
     let members = gl.members(&repo()).await.unwrap();
     assert_eq!(members.len(), 1);
-    let text = gl.file_content(&repo(), "app/Models/User.php", "abc").await.unwrap();
+    let text = gl
+        .file_content(&repo(), "app/Models/User.php", "abc")
+        .await
+        .unwrap();
     assert_eq!(text.as_deref(), Some("<?php\n"));
-    assert_eq!(gl.file_content(&repo(), "missing.php", "abc").await.unwrap(), None);
+    assert_eq!(
+        gl.file_content(&repo(), "missing.php", "abc")
+            .await
+            .unwrap(),
+        None
+    );
 }
 
 #[tokio::test]
@@ -292,8 +346,14 @@ async fn errors_are_friendly() {
     .await;
     let e = gl.current_user().await.unwrap_err().to_string();
     assert!(e.contains("token was rejected"), "{e}");
-    let e = gl.merge_requests(&repo(), &MrFilter::default()).await.unwrap_err();
-    assert!(matches!(e, HostError::RateLimited { reset: Some(_), .. }), "{e}");
+    let e = gl
+        .merge_requests(&repo(), &MrFilter::default())
+        .await
+        .unwrap_err();
+    assert!(
+        matches!(e, HostError::RateLimited { reset: Some(_), .. }),
+        "{e}"
+    );
     assert!(e.to_string().contains("rate limit"));
     let e = gl.merge_request(&repo(), 1).await.unwrap_err().to_string();
     assert_eq!(e, "GitLab: merge request !1 not found");
@@ -302,5 +362,8 @@ async fn errors_are_friendly() {
         .await
         .unwrap_err()
         .to_string();
-    assert!(e.contains("Another open merge request already exists"), "{e}");
+    assert!(
+        e.contains("Another open merge request already exists"),
+        "{e}"
+    );
 }

@@ -106,12 +106,18 @@ impl CiStatus {
     pub fn parse(s: &str) -> Option<Self> {
         Some(match s.to_ascii_lowercase().as_str() {
             "success" | "passed" | "completed" | "neutral" => Self::Success,
-            "failed" | "failure" | "error" | "timed_out" | "action_required" | "startup_failure" => {
-                Self::Failed
-            }
+            "failed" | "failure" | "error" | "timed_out" | "action_required"
+            | "startup_failure" => Self::Failed,
             "running" | "in_progress" => Self::Running,
-            "pending" | "created" | "queued" | "waiting" | "waiting_for_resource" | "preparing"
-            | "scheduled" | "requested" | "blocked" => Self::Pending,
+            "pending"
+            | "created"
+            | "queued"
+            | "waiting"
+            | "waiting_for_resource"
+            | "preparing"
+            | "scheduled"
+            | "requested"
+            | "blocked" => Self::Pending,
             "canceled" | "cancelled" | "stale" => Self::Canceled,
             "skipped" => Self::Skipped,
             "manual" => Self::Manual,
