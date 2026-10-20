@@ -7,6 +7,8 @@ export interface EditorTab {
   content: string;
   /** Content as last loaded/saved; used for the dirty marker. */
   saved: string;
+  /** Line ending of the file on disk. Buffers always use `\n`; saving converts back. */
+  eol: Eol;
   cursor: { line: number; col: number };
 }
 
@@ -14,6 +16,17 @@ interface EditorState {
   tabs: EditorTab[];
   active: string | null;
 }
+
+export type Eol = "\n" | "\r\n";
+
+/** Split a file's text into `\n`-only text (what the editor holds) and its line ending. */
+export function normalizeEol(raw: string): { text: string; eol: Eol } {
+  const crlf = (raw.match(/\r\n/g) ?? []).length;
+  const lf = (raw.match(/(?<!\r)\n/g) ?? []).length;
+  return { text: raw.replace(/\r\n?/g, "\n"), eol: crlf > lf ? "\r\n" : "\n" };
+}
+
+const withEol = (text: string, eol: Eol) => (eol === "\r\n" ? text.replaceAll("\n", "\r\n") : text);
 
 const [editor, setEditor] = createStore<EditorState>({ tabs: [], active: null });
 
@@ -24,11 +37,11 @@ export const isDirty = (t: EditorTab) => t.content !== t.saved;
 
 export async function openFile(path: string): Promise<void> {
   if (!editor.tabs.some((t) => t.path === path)) {
-    const content = await workspaceApi.readFile(path);
+    const { text: content, eol } = normalizeEol(await workspaceApi.readFile(path));
     const name = path.split("/").pop() ?? path;
     setEditor("tabs", (tabs) => [
       ...tabs,
-      { path, name, content, saved: content, cursor: { line: 1, col: 1 } },
+      { path, name, content, saved: content, eol, cursor: { line: 1, col: 1 } },
     ]);
   }
   setEditor("active", path);
@@ -66,7 +79,7 @@ export async function saveFile(path: string): Promise<void> {
   const tab = editor.tabs.find((t) => t.path === path);
   if (!tab) return;
   const content = tab.content;
-  await workspaceApi.writeFile(path, content);
+  await workspaceApi.writeFile(path, withEol(content, tab.eol));
   setEditor("tabs", (t) => t.path === path, "saved", content);
   saveListeners.forEach((l) => l(path, content));
 }
@@ -79,11 +92,16 @@ export async function saveAll(): Promise<void> {
 export async function reloadFile(path: string): Promise<void> {
   const tab = editor.tabs.find((t) => t.path === path);
   if (!tab || isDirty(tab)) return;
-  const content = await workspaceApi.readFile(path);
-  setEditor("tabs", (t) => t.path === path, { content, saved: content });
+  const { text: content, eol } = normalizeEol(await workspaceApi.readFile(path));
+  setEditor("tabs", (t) => t.path === path, { content, saved: content, eol });
 }
 
 /** Close every tab, e.g. when switching projects. */
 export function closeAllTabs(): void {
   setEditor({ tabs: [], active: null });
+}
+
+/** Adopt the line ending of a file that was rewritten on disk (rollback, checkout, ...). */
+export function setTabEol(path: string, eol: Eol): void {
+  setEditor("tabs", (t) => t.path === path, "eol", eol);
 }
