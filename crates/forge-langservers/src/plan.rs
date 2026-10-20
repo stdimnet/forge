@@ -160,7 +160,8 @@ pub struct ServerRow {
     /// Detected or custom executable.
     pub path: Option<String>,
     pub custom_path: Option<String>,
-    /// One of its languages occurs in the open project.
+    /// One of its languages occurs in the open project (and its config files or
+    /// packages, when it needs them).
     pub in_project: bool,
     /// Why it is not running in this project (when it is not).
     pub skip: Option<Skip>,
@@ -261,7 +262,8 @@ pub fn rows(
                 in_project: spec
                     .languages
                     .iter()
-                    .any(|l| ctx.scan.languages.contains(l)),
+                    .any(|l| ctx.scan.languages.contains(l))
+                    && !matches!(decision.map(|d| &d.outcome), Some(Err(Skip::NotUsed))),
                 skip: decision.and_then(|d| d.outcome.clone().err()),
                 install,
                 defaults: json!({
@@ -482,6 +484,7 @@ mod tests {
         let ts = row("typescript-language-server");
         assert_eq!(ts.languages, vec!["TypeScript", "JavaScript"]);
         assert_eq!(ts.skip, Some(Skip::NotInProject));
+        assert!(!ts.in_project);
         let npm = ts.install.iter().find(|i| i.tool == "npm").unwrap();
         assert!(npm.runnable && npm.available);
         let brew = ts.install.iter().find(|i| i.tool == "brew").unwrap();
