@@ -124,6 +124,71 @@ impl Workspace {
         }
         fs::write(&p, contents).map_err(|e| ForgeError::io(&p, e))
     }
+
+    /// Resolve a path the project tree may change: not the project root itself.
+    fn resolve_entry(&self, rel: &str) -> Result<PathBuf> {
+        let p = self.resolve(rel)?;
+        if p == self.root {
+            return Err(ForgeError::Other(
+                "the project root cannot be changed".into(),
+            ));
+        }
+        Ok(p)
+    }
+
+    /// Create an empty file (and missing parent folders). Fails if the path exists.
+    pub fn create_file(&self, rel: &str) -> Result<()> {
+        let p = self.resolve_entry(rel)?;
+        if p.exists() {
+            return Err(ForgeError::Other(format!("{rel} already exists")));
+        }
+        if let Some(parent) = p.parent() {
+            fs::create_dir_all(parent).map_err(|e| ForgeError::io(parent, e))?;
+        }
+        fs::File::create_new(&p)
+            .map(|_| ())
+            .map_err(|e| ForgeError::io(&p, e))
+    }
+
+    /// Create a folder (and missing parents). Fails if the path exists.
+    pub fn create_dir(&self, rel: &str) -> Result<()> {
+        let p = self.resolve_entry(rel)?;
+        if p.exists() {
+            return Err(ForgeError::Other(format!("{rel} already exists")));
+        }
+        fs::create_dir_all(&p).map_err(|e| ForgeError::io(&p, e))
+    }
+
+    /// Rename or move a file or folder inside the project. Never replaces an existing path.
+    pub fn rename(&self, from: &str, to: &str) -> Result<()> {
+        let src = self.resolve_entry(from)?;
+        let dst = self.resolve_entry(to)?;
+        if !src.exists() {
+            return Err(ForgeError::NotFound(src));
+        }
+        if dst.exists() {
+            return Err(ForgeError::Other(format!("{to} already exists")));
+        }
+        if dst.starts_with(&src) {
+            return Err(ForgeError::Other(format!("cannot move {from} into itself")));
+        }
+        if let Some(parent) = dst.parent() {
+            fs::create_dir_all(parent).map_err(|e| ForgeError::io(parent, e))?;
+        }
+        fs::rename(&src, &dst).map_err(|e| ForgeError::io(&src, e))
+    }
+
+    /// Delete a file, or a folder with everything in it.
+    pub fn delete(&self, rel: &str) -> Result<()> {
+        let p = self.resolve_entry(rel)?;
+        let meta = fs::symlink_metadata(&p).map_err(|e| ForgeError::io(&p, e))?;
+        // A symlink to a folder is removed as a link, never followed.
+        if meta.is_dir() {
+            fs::remove_dir_all(&p).map_err(|e| ForgeError::io(&p, e))
+        } else {
+            fs::remove_file(&p).map_err(|e| ForgeError::io(&p, e))
+        }
+    }
 }
 
 #[cfg(test)]
@@ -195,5 +260,41 @@ mod tests {
         ws.write_file("src/new/Thing.php", "<?php // hi").unwrap();
         assert_eq!(ws.read_file("src/new/Thing.php").unwrap(), "<?php // hi");
         assert_eq!(ws.list_dir("src").unwrap()[0].path, "src/new");
+    }
+
+    #[test]
+    fn creates_files_and_folders_with_missing_parents() {
+        let (dir, ws) = ws();
+        ws.create_file("src/Models/Order.php").unwrap();
+        ws.create_dir("storage/cache").unwrap();
+        assert!(dir.path().join("src/Models/Order.php").is_file());
+        assert!(dir.path().join("storage/cache").is_dir());
+        assert!(ws.create_file("src/User.php").is_err());
+        assert!(ws.create_dir("src").is_err());
+    }
+
+    #[test]
+    fn renames_without_replacing_or_escaping() {
+        let (dir, ws) = ws();
+        ws.rename("src/User.php", "src/Account.php").unwrap();
+        assert!(dir.path().join("src/Account.php").is_file());
+        assert!(!dir.path().join("src/User.php").exists());
+        ws.create_file("src/Other.php").unwrap();
+        assert!(ws.rename("src/Other.php", "src/Account.php").is_err());
+        assert!(ws.rename("src", "src/inner").is_err());
+        assert!(ws.rename("src/Other.php", "../outside.php").is_err());
+        assert!(ws.rename("missing.php", "x.php").is_err());
+    }
+
+    #[test]
+    fn deletes_files_and_folders_but_not_the_root() {
+        let (dir, ws) = ws();
+        ws.delete("src/User.php").unwrap();
+        assert!(!dir.path().join("src/User.php").exists());
+        ws.delete("src").unwrap();
+        assert!(!dir.path().join("src").exists());
+        assert!(ws.delete("").is_err());
+        assert!(ws.delete("../x").is_err());
+        assert!(ws.delete("nope").is_err());
     }
 }

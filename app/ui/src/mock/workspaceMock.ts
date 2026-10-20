@@ -45,10 +45,19 @@ function isIgnored(path: string, isDir: boolean, tracked: string[]): boolean {
   return !tracked.some((t) => t === path || t.startsWith(`${path}/`));
 }
 
+/** Folders created in the UI that have no file yet (the file map only knows folders by their files). */
+const emptyDirs = new Set<string>();
+
 function listDir(dir: string): FileEntry[] {
   const tracked = trackedPaths();
   const prefix = dir ? `${dir}/` : "";
   const seen = new Map<string, FileEntry>();
+  for (const d of emptyDirs) {
+    if (!d.startsWith(prefix)) continue;
+    const head = d.slice(prefix.length).split("/")[0];
+    const full = prefix + head;
+    seen.set(full, { name: head, path: full, kind: "dir", ignored: isIgnored(full, true, tracked) });
+  }
   for (const path of Object.keys(files)) {
     if (!path.startsWith(prefix)) continue;
     const rest = path.slice(prefix.length);
@@ -93,4 +102,41 @@ registerMock("fs_read_file", ({ path }) => {
 });
 registerMock("fs_write_file", ({ path, contents }) => {
   files[String(path)] = String(contents);
+});
+
+const exists = (path: string) =>
+  path in files || [...emptyDirs, ...Object.keys(files)].some((p) => p === path || p.startsWith(`${path}/`));
+
+registerMock("fs_create_file", ({ path }) => {
+  const p = String(path);
+  if (exists(p)) throw new Error(`${p} already exists`);
+  files[p] = "";
+});
+registerMock("fs_create_dir", ({ path }) => {
+  const p = String(path);
+  if (exists(p)) throw new Error(`${p} already exists`);
+  emptyDirs.add(p);
+});
+registerMock("fs_rename", ({ from, to }) => {
+  const src = String(from);
+  const dst = String(to);
+  if (!exists(src)) throw new Error(`not found: ${src}`);
+  if (exists(dst)) throw new Error(`${dst} already exists`);
+  if (dst.startsWith(`${src}/`)) throw new Error(`cannot move ${src} into itself`);
+  const move = (path: string) => (path === src ? dst : `${dst}${path.slice(src.length)}`);
+  const under = (path: string) => path === src || path.startsWith(`${src}/`);
+  for (const f of Object.keys(files).filter(under)) {
+    files[move(f)] = files[f];
+    delete files[f];
+  }
+  for (const d of [...emptyDirs].filter(under)) {
+    emptyDirs.delete(d);
+    emptyDirs.add(move(d));
+  }
+});
+registerMock("fs_delete", ({ path }) => {
+  const p = String(path);
+  if (!exists(p)) throw new Error(`not found: ${p}`);
+  for (const f of Object.keys(files)) if (f === p || f.startsWith(`${p}/`)) delete files[f];
+  for (const d of [...emptyDirs]) if (d === p || d.startsWith(`${p}/`)) emptyDirs.delete(d);
 });

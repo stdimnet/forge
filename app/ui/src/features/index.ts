@@ -31,3 +31,4 @@ import "./lua";
 import "./services";
 import "./remote";
 import "./webforge";
+import "./contextMenu";
