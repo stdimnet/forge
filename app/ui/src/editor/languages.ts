@@ -12,7 +12,7 @@ import { xml } from "@codemirror/lang-xml";
 import { properties } from "@codemirror/legacy-modes/mode/properties";
 import { dotenv } from "./dotenv";
 import { streamLanguage } from "./tokens";
-import { jinjaSyntax, latteSyntax, mustacheSyntax, templateParser, twigSyntax, type TemplateSyntax } from "./templates";
+import { latteSyntax, mustacheSyntax, templateParser, type TemplateSyntax } from "./templates";
 import { dataLanguageFor, dataLanguageSupport } from "./templateData";
 import { CONFIGURABLE_TEMPLATES, templateSyntaxFor } from "./templateDelimiters";
 import { templateOverlay } from "./templateOverlay";
@@ -135,11 +135,11 @@ const languages: LanguageDef[] = [
   { id: "stylus", label: "Stylus", extensions: ["styl", "stylus"], load: stream(stylus) },
   { id: "html", label: "HTML", extensions: ["html", "htm", "xhtml", "svelte", "astro"], load: () => html() },
   { id: "vue", label: "Vue", extensions: ["vue"], load: () => vue() },
-  template("twig", "Twig", ["twig", "html.twig"], () => twigSyntax),
+  template("twig", "Twig", ["twig", "html.twig"], (path) => templateSyntaxFor(CONFIGURABLE_TEMPLATES.twig, path)),
   template("smarty", "Smarty", ["tpl", "smarty"], (path) => templateSyntaxFor(CONFIGURABLE_TEMPLATES.smarty, path)),
   template("latte", "Latte", ["latte"], () => latteSyntax),
   template("gotemplate", "Go Template", ["tmpl", "gotmpl", "gohtml"], (path) => templateSyntaxFor(CONFIGURABLE_TEMPLATES.gotemplate, path)),
-  template("jinja", "Jinja2", ["j2", "jinja", "jinja2", "njk", "nunjucks"], () => jinjaSyntax),
+  template("jinja", "Jinja2", ["j2", "jinja", "jinja2", "njk", "nunjucks"], (path) => templateSyntaxFor(CONFIGURABLE_TEMPLATES.jinja, path)),
   template("handlebars", "Handlebars", ["hbs", "handlebars", "mustache"], () => mustacheSyntax),
   { id: "velocity", label: "Velocity", extensions: ["vm", "vtl"], load: stream(velocity) },
   { id: "pug", label: "Pug", extensions: ["pug", "jade"], load: stream(pug) },

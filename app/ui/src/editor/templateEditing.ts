@@ -78,9 +78,16 @@ export function templateTagCompletion(ctx: CompletionContext): CompletionResult 
     };
   }
   if (!word && !ctx.explicit) return null;
+  // `{% end…` closes the innermost open block first (`endfor`, then `endif`).
+  const ends = syntax.endPrefix
+    ? [...new Set(openBlocksAt(scanDoc(ctx.state.doc, syntax).tags, from).reverse())].map((n) => syntax.endPrefix + n)
+    : [];
   return {
     from,
-    options: syntax.keywords.map((label) => ({ label, type: "keyword" })),
+    options: [
+      ...ends.map((label, i) => ({ label, type: "keyword", boost: 50 - i })),
+      ...syntax.keywords.filter((k) => !ends.includes(k)).map((label) => ({ label, type: "keyword" })),
+    ],
     validFor: /^\w*$/,
   };
 }

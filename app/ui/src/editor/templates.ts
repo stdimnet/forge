@@ -34,6 +34,11 @@ export interface TemplateSyntax {
    * tag that ends it, built from the configured delimiters (`<</literal>>`).
    */
   literalBlocks?: Record<string, string>;
+  /**
+   * Block tags that start with this prefix close the block of the same name (`{% endif %}`
+   * closes `{% if %}`), for folding and matching.
+   */
+  endPrefix?: string;
 }
 
 interface TemplateState {
@@ -305,21 +310,44 @@ const JINJA_KEYWORDS = [
   "endmacro", "call", "endcall", "filter", "endfilter", "raw", "endraw", "autoescape", "endautoescape",
 ];
 
-export const twigSyntax: TemplateSyntax = {
-  name: "twig",
-  delimiters: [
-    ["{#", "#}", "comment"],
-    ["{{", "}}", "expr"],
-    ["{%", "%}", "block"],
-  ],
-  keywords: [
-    ...JINJA_KEYWORDS, "embed", "endembed", "use", "only", "ignore", "missing", "apply", "endapply",
-    "verbatim", "endverbatim", "sandbox", "endsandbox", "spaceless", "endspaceless", "trans", "endtrans",
-    "form_theme", "matches", "starts", "ends", "with", "defined", "empty", "same", "divisible", "by",
-  ],
-};
+const TWIG_KEYWORDS = [
+  ...JINJA_KEYWORDS, "embed", "endembed", "use", "only", "ignore", "missing", "apply", "endapply",
+  "verbatim", "endverbatim", "sandbox", "endsandbox", "spaceless", "endspaceless", "trans", "endtrans",
+  "form_theme", "matches", "starts", "ends", "with", "defined", "empty", "same", "divisible", "by",
+];
 
-export const jinjaSyntax: TemplateSyntax = { ...twigSyntax, name: "jinja", keywords: JINJA_KEYWORDS };
+/** Twig's `tag_variable`, `tag_block` and `tag_comment` (Jinja's `*_start_string` / `*_end_string`). */
+export interface TwigDelimiters {
+  variableStart?: string;
+  variableEnd?: string;
+  blockStart?: string;
+  blockEnd?: string;
+  commentStart?: string;
+  commentEnd?: string;
+}
+
+function twigDelimiters(d: TwigDelimiters): TemplateSyntax["delimiters"] {
+  const list: TemplateSyntax["delimiters"] = [
+    [d.commentStart || "{#", d.commentEnd || "#}", "comment"],
+    [d.variableStart || "{{", d.variableEnd || "}}", "expr"],
+    [d.blockStart || "{%", d.blockEnd || "%}", "block"],
+  ];
+  // Longest openers first, so a longer opener is not taken for a shorter one.
+  return list.sort((a, b) => b[0].length - a[0].length);
+}
+
+/** Twig with the given delimiters, e.g. `\VAR{ }`, `\BLOCK{ }` and `\#{ }` for LaTeX. */
+export function twigSyntaxWith(d: TwigDelimiters = {}): TemplateSyntax {
+  return { name: "twig", delimiters: twigDelimiters(d), keywords: TWIG_KEYWORDS, endPrefix: "end" };
+}
+
+export function jinjaSyntaxWith(d: TwigDelimiters = {}): TemplateSyntax {
+  return { name: "jinja", delimiters: twigDelimiters(d), keywords: JINJA_KEYWORDS, endPrefix: "end" };
+}
+
+export const twigSyntax: TemplateSyntax = twigSyntaxWith();
+
+export const jinjaSyntax: TemplateSyntax = jinjaSyntaxWith();
 
 const SMARTY_KEYWORDS = [
   "if", "elseif", "else", "foreach", "foreachelse", "for", "while", "section", "sectionelse", "include",

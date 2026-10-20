@@ -175,69 +175,20 @@ project = true
 order = 0
 
 [[contributions.settings]]
-key = "templates.smarty.leftDelimiter"
-title = "Left delimiter"
-description = "Smarty's `left_delimiter` for all templates without an override below."
-type = "string"
-default = "{"
+key = "templates.delimiters"
+title = "Template delimiters"
+description = "Delimiters of a template language in a data language, e.g. Smarty in LaTeX, where `{` is part of the content. Templates without an entry use the language's default delimiters. Applies to open editors."
+type = "objects"
+unique = ["template", "language"]
+default = [
+  { template = "smarty", language = "latex", left = "<<", right = ">>" },
+  { template = "twig", language = "latex", variableStart = '\VAR{', variableEnd = "}", blockStart = '\BLOCK{', blockEnd = "}", commentStart = '\#{', commentEnd = "}" },
+  { template = "jinja", language = "latex", variableStart = '\VAR{', variableEnd = "}", blockStart = '\BLOCK{', blockEnd = "}", commentStart = '\#{', commentEnd = "}" },
+]
 group = "lang.templates"
-section = "Smarty"
+section = "Delimiters"
 project = true
 order = 10
-
-[[contributions.settings]]
-key = "templates.smarty.rightDelimiter"
-title = "Right delimiter"
-description = "Smarty's `right_delimiter`."
-type = "string"
-default = "}"
-group = "lang.templates"
-section = "Smarty"
-project = true
-order = 11
-
-[[contributions.settings]]
-key = "templates.smarty.delimiterOverrides"
-title = "Delimiters per data language or file"
-description = "`<data language or file pattern>=<left> <right>`, e.g. `latex=<< >>` (the default, as `{` is part of LaTeX) or `legacy/pdf/*.tpl=[[ ]]`. File patterns win over data languages. Comments and closing tags follow: `<<* *>>`, `<</if>>`."
-type = "list"
-default = ["latex=<< >>"]
-group = "lang.templates"
-section = "Smarty"
-project = true
-order = 12
-
-[[contributions.settings]]
-key = "templates.gotemplate.leftDelimiter"
-title = "Left delimiter"
-description = "The left action delimiter set with `Template.Delims`."
-type = "string"
-default = "{{"
-group = "lang.templates"
-section = "Go Templates"
-project = true
-order = 20
-
-[[contributions.settings]]
-key = "templates.gotemplate.rightDelimiter"
-title = "Right delimiter"
-type = "string"
-default = "}}"
-group = "lang.templates"
-section = "Go Templates"
-project = true
-order = 21
-
-[[contributions.settings]]
-key = "templates.gotemplate.delimiterOverrides"
-title = "Delimiters per data language or file"
-description = "`<data language or file pattern>=<left> <right>`, e.g. `latex=[[ ]]` or `deploy/*.yaml.tmpl=<< >>`. File patterns win over data languages."
-type = "list"
-default = []
-group = "lang.templates"
-section = "Go Templates"
-project = true
-order = 22
 
 # ---- Appearance & Behavior > System Settings ----------------------------------------
 

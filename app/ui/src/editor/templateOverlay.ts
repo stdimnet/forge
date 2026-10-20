@@ -55,7 +55,14 @@ export function scanTemplate(text: string, syntax: TemplateSyntax): { ranges: Te
       } else if (before && !state.inTag && open) {
         const to = offset + stream.pos;
         const closeStart = before.kind === "comment" ? to - before.close.length : offset + stream.start;
-        tags.push({ ...open, closeStart, to, name: before.name });
+        const tag: TemplateTag = { ...open, closeStart, to, name: before.name };
+        // `{% endif %}` closes `{% if %}` like Smarty's `{/if}`.
+        const prefix = syntax.endPrefix;
+        if (prefix && tag.kind === "block" && tag.name?.startsWith(prefix) && tag.name.length > prefix.length) {
+          tag.kind = "end";
+          tag.name = tag.name.slice(prefix.length);
+        }
+        tags.push(tag);
         open = null;
       }
     }

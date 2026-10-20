@@ -8,7 +8,7 @@ import builtinPlugins from "@/mock/builtinPlugins.json";
 import { setLocalSetting } from "@/state/settings";
 import { smartySyntaxWith, templateParser } from "./templates";
 import { DATA_LANGUAGES } from "./templateData";
-import { CONFIGURABLE_TEMPLATES, delimitersFor, parseDelimiterRule, resolveDelimiters } from "./templateDelimiters";
+import { CONFIGURABLE_TEMPLATES, DELIMITERS_KEY, delimitersFor, invalidEntries, resolveDelimiters } from "./templateDelimiters";
 import { scanTemplate, templateOverlay, templateRanges, templateSyntaxField } from "./templateOverlay";
 import { matchingDelimiters, openBlocksAt, templateEditing, templateTagCompletion } from "./templateEditing";
 import { languageFor } from "./languages";
@@ -40,38 +40,35 @@ function manifestDefault(key: string): unknown {
   return undefined;
 }
 
+const twig = CONFIGURABLE_TEMPLATES.twig;
+const smartyLatex = { template: "smarty", language: "latex", left: "<<", right: ">>" };
+const twigLatex = { template: "twig", language: "latex", variableStart: "\\VAR{", variableEnd: "}", blockStart: "\\BLOCK{", blockEnd: "}", commentStart: "\\#{", commentEnd: "}" };
+
 describe("delimiter resolution", () => {
-  const defaults = { left: "{", right: "}" };
-
-  it("parses override rules and skips malformed ones", () => {
-    expect(parseDelimiterRule("latex=<< >>")).toEqual({ target: "latex", left: "<<", right: ">>" });
-    expect(parseDelimiterRule(" legacy/pdf/*.tpl = [[  ]] ")).toEqual({ target: "legacy/pdf/*.tpl", left: "[[", right: "]]" });
-    expect(parseDelimiterRule("css={= =}")).toEqual({ target: "css", left: "{=", right: "=}" });
-    expect(parseDelimiterRule("latex=<<")).toBeUndefined();
-    expect(parseDelimiterRule("=<< >>")).toBeUndefined();
+  it("uses the language defaults without an entry", () => {
+    expect(resolveDelimiters(smarty, [], "html")).toEqual({ left: "{", right: "}" });
+    expect(resolveDelimiters(twig, [smartyLatex], "latex")).toMatchObject({ variableStart: "{{", blockStart: "{%", commentStart: "{#" });
   });
 
-  it("uses the language defaults without settings", () => {
-    expect(resolveDelimiters(defaults, {}, "cart.tpl", "html")).toEqual(defaults);
-    expect(resolveDelimiters(defaults, { left: "", right: " " }, "cart.tpl", "html")).toEqual(defaults);
+  it("applies the entry of the (template, data language) pair", () => {
+    expect(resolveDelimiters(smarty, [smartyLatex, twigLatex], "latex")).toEqual({ left: "<<", right: ">>" });
+    expect(resolveDelimiters(smarty, [smartyLatex], "html")).toEqual({ left: "{", right: "}" });
+    expect(resolveDelimiters(twig, [smartyLatex, twigLatex], "latex")).toMatchObject({ variableStart: "\\VAR{", blockStart: "\\BLOCK{", commentEnd: "}" });
   });
 
-  it("applies the rule of the file's data language", () => {
-    const settings = { overrides: ["latex=<< >>"] };
-    expect(resolveDelimiters(defaults, settings, "invoice.tex.tpl", "latex")).toEqual({ left: "<<", right: ">>" });
-    expect(resolveDelimiters(defaults, settings, "cart.tpl", "html")).toEqual(defaults);
+  it("fills fields an entry leaves out or empty from the defaults", () => {
+    expect(resolveDelimiters(twig, [{ template: "twig", language: "sql", blockStart: "<%", blockEnd: "" }], "sql")).toEqual({
+      variableStart: "{{", variableEnd: "}}", blockStart: "<%", blockEnd: "%}", commentStart: "{#", commentEnd: "#}",
+    });
   });
 
-  it("lets user settings override the defaults, and file patterns win over data languages", () => {
-    const settings = { left: "<{", right: "}>", overrides: ["latex=<< >>", "legacy/pdf/*.tpl=[[ ]]"] };
-    expect(resolveDelimiters(defaults, settings, "cart.tpl", "html")).toEqual({ left: "<{", right: "}>" });
-    expect(resolveDelimiters(defaults, settings, "letter.tex.tpl", "latex")).toEqual({ left: "<<", right: ">>" });
-    expect(resolveDelimiters(defaults, settings, "legacy/pdf/letter.tex.tpl", "latex")).toEqual({ left: "[[", right: "]]" });
+  it("finds entries without a pair and duplicate pairs", () => {
+    expect(invalidEntries([smartyLatex, twigLatex])).toEqual([]);
+    expect(invalidEntries([smartyLatex, { ...smartyLatex, left: "[[" }, { template: "twig", language: "" }])).toEqual([1, 2]);
   });
 
-  it("ships the Smarty + LaTeX rule as manifest data, not as code", () => {
-    expect(manifestDefault("templates.smarty.delimiterOverrides")).toEqual(["latex=<< >>"]);
-    expect(manifestDefault("templates.smarty.leftDelimiter")).toBe("{");
+  it("ships the LaTeX entries as manifest data, not as code", () => {
+    expect(manifestDefault(DELIMITERS_KEY)).toEqual([smartyLatex, twigLatex, { ...twigLatex, template: "jinja" }].map((e) => expect.objectContaining(e)));
     // Without settings (no schema loaded) LaTeX gets no special treatment.
     expect(delimitersFor(smarty, "invoice.tex.tpl")).toEqual({ left: "{", right: "}" });
   });
@@ -128,8 +125,8 @@ describe("Smarty with LaTeX and << >>", () => {
     expect(ranges).not.toContainEqual(["b", "variableName"]);
   });
 
-  it("works with a custom rule for another data language", () => {
-    const d = resolveDelimiters(smarty.defaults, { overrides: ["sql=[[ ]]"] }, "report.sql.tpl", "sql");
+  it("works with a custom entry for another data language", () => {
+    const d = resolveDelimiters(smarty, [{ template: "smarty", language: "sql", left: "[[", right: "]]" }], "sql");
     const t = tokens(templateParser(smarty.syntax(d), dataParser("sql")), "SELECT * FROM [[$table]] WHERE x = '{a}'");
     expect(t[0]).toEqual(["SELECT", "keyword"]);
     expect(t).toContainEqual(["[[", "meta"]);
@@ -139,9 +136,54 @@ describe("Smarty with LaTeX and << >>", () => {
 
   it("applies to Go templates too", () => {
     const go = CONFIGURABLE_TEMPLATES.gotemplate;
-    const d = resolveDelimiters(go.defaults, { overrides: ["latex=[[ ]]"] }, "doc.tex.tmpl", "latex");
+    const d = resolveDelimiters(go, [{ template: "gotemplate", language: "latex", left: "[[", right: "]]" }], "latex");
     const ranges = templateRanges("{{x}} [[ .Name ]] [[/* c */]]", go.syntax(d)).map((r) => r.style);
     expect(ranges).toEqual(["meta", "propertyName", "meta", "comment", "comment"]);
+  });
+});
+
+describe("Twig with LaTeX and \\VAR{ } / \\BLOCK{ } / \\#{ }", () => {
+  const syntax = twig.syntax(resolveDelimiters(twig, [twigLatex], "latex"));
+  const latex = dataParser("latex");
+  const doc = [
+    "\\#{ invoice }",
+    "\\section*{Invoice \\VAR{invoice.number|upper}}",
+    "\\BLOCK{for line in lines}",
+    "  \\VAR{line.name} & \\amount{\\VAR{line.total}} \\\\",
+    "\\BLOCK{endfor}",
+  ].join("\n");
+
+  it("keeps LaTeX braces LaTeX and styles only the configured tags", () => {
+    const t = tokens(templateParser(syntax, latex), doc);
+    expect(t).toContainEqual(["\\VAR{", "meta"]);
+    expect(t).toContainEqual(["\\BLOCK{", "meta"]);
+    expect(t).toContainEqual(["for", "keyword"]);
+    expect(t).toContainEqual(["|upper", "variableName.function"]);
+    expect(t).toContainEqual(["\\section", "tag"]);
+    expect(t).toContainEqual(["\\amount", "tag"]);
+    expect(t.filter(([text, style]) => text === "{" && style === "meta")).toEqual([]);
+  });
+
+  it("pairs blocks with their end tags and toggles \\#{ } comments", () => {
+    const { tags } = scanTemplate(doc, syntax);
+    expect(tags.map((tag) => [tag.kind, tag.name ?? null])).toEqual([
+      ["comment", null],
+      ["expr", null],
+      ["block", "for"],
+      ["expr", null],
+      ["expr", null],
+      ["end", "for"],
+    ]);
+    let state = EditorState.create({ doc: "\\section{A}", extensions: [templateOverlay(syntax), templateEditing()] });
+    toggleComment({ state, dispatch: (tr) => (state = tr.state) });
+    expect(state.doc.toString()).toBe("\\#{ \\section{A} }");
+    expect(foldable(EditorState.create({ doc, extensions: [templateOverlay(syntax), templateEditing()] }), doc.indexOf("\\BLOCK"), doc.indexOf("}\n  ") + 1)).not.toBeNull();
+  });
+
+  it("still uses {{ }} for Twig with HTML", () => {
+    const html = twig.syntax(resolveDelimiters(twig, [twigLatex], "html"));
+    const t = templateRanges("<p>{{ name }}</p>{% if a %}{% endif %}", html).map((r) => r.style);
+    expect(t).toEqual(["meta", "variableName", "meta", "meta", "keyword", "variableName", "meta", "meta", "keyword", "meta"]);
   });
 });
 
@@ -149,7 +191,7 @@ describe("template editing", () => {
   const views: EditorView[] = [];
   afterEach(() => {
     views.splice(0).forEach((v) => v.destroy());
-    setLocalSetting("templates.smarty.delimiterOverrides", []);
+    setLocalSetting(DELIMITERS_KEY, []);
   });
 
   const stateWith = (doc: string, sel = 0) =>
@@ -205,7 +247,7 @@ describe("template editing", () => {
     });
     views.push(view);
     expect(view.state.field(templateSyntaxField)?.delimiters[2][0]).toBe("{");
-    setLocalSetting("templates.smarty.delimiterOverrides", ["latex=[[ ]]"]);
+    setLocalSetting(DELIMITERS_KEY, [{ template: "smarty", language: "latex", left: "[[", right: "]]" }]);
     await new Promise((r) => setTimeout(r, 0));
     expect(view.state.field(templateSyntaxField)?.delimiters[2][0]).toBe("[[");
     expect(view.contentDOM.querySelector(".cm-tpl-variableName")?.textContent).toBe("$x");

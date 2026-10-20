@@ -226,71 +226,46 @@
           "order": 0
         },
         {
-          "key": "templates.smarty.leftDelimiter",
-          "title": "Left delimiter",
-          "description": "Smarty's `left_delimiter` for all templates without an override below.",
-          "type": "string",
-          "default": "{",
-          "group": "lang.templates",
-          "section": "Smarty",
-          "project": true,
-          "order": 10
-        },
-        {
-          "key": "templates.smarty.rightDelimiter",
-          "title": "Right delimiter",
-          "description": "Smarty's `right_delimiter`.",
-          "type": "string",
-          "default": "}",
-          "group": "lang.templates",
-          "section": "Smarty",
-          "project": true,
-          "order": 11
-        },
-        {
-          "key": "templates.smarty.delimiterOverrides",
-          "title": "Delimiters per data language or file",
-          "description": "`<data language or file pattern>=<left> <right>`, e.g. `latex=<< >>` (the default, as `{` is part of LaTeX) or `legacy/pdf/*.tpl=[[ ]]`. File patterns win over data languages. Comments and closing tags follow: `<<* *>>`, `<</if>>`.",
-          "type": "list",
+          "key": "templates.delimiters",
+          "title": "Template delimiters",
+          "description": "Delimiters of a template language in a data language, e.g. Smarty in LaTeX, where `{` is part of the content. Templates without an entry use the language's default delimiters. Applies to open editors.",
+          "type": "objects",
+          "unique": [
+            "template",
+            "language"
+          ],
           "default": [
-            "latex=<< >>"
+            {
+              "language": "latex",
+              "left": "<<",
+              "right": ">>",
+              "template": "smarty"
+            },
+            {
+              "blockEnd": "}",
+              "blockStart": "\\BLOCK{",
+              "commentEnd": "}",
+              "commentStart": "\\#{",
+              "language": "latex",
+              "template": "twig",
+              "variableEnd": "}",
+              "variableStart": "\\VAR{"
+            },
+            {
+              "blockEnd": "}",
+              "blockStart": "\\BLOCK{",
+              "commentEnd": "}",
+              "commentStart": "\\#{",
+              "language": "latex",
+              "template": "jinja",
+              "variableEnd": "}",
+              "variableStart": "\\VAR{"
+            }
           ],
           "group": "lang.templates",
-          "section": "Smarty",
+          "section": "Delimiters",
           "project": true,
-          "order": 12
-        },
-        {
-          "key": "templates.gotemplate.leftDelimiter",
-          "title": "Left delimiter",
-          "description": "The left action delimiter set with `Template.Delims`.",
-          "type": "string",
-          "default": "{{",
-          "group": "lang.templates",
-          "section": "Go Templates",
-          "project": true,
-          "order": 20
-        },
-        {
-          "key": "templates.gotemplate.rightDelimiter",
-          "title": "Right delimiter",
-          "type": "string",
-          "default": "}}",
-          "group": "lang.templates",
-          "section": "Go Templates",
-          "project": true,
-          "order": 21
-        },
-        {
-          "key": "templates.gotemplate.delimiterOverrides",
-          "title": "Delimiters per data language or file",
-          "description": "`<data language or file pattern>=<left> <right>`, e.g. `latex=[[ ]]` or `deploy/*.yaml.tmpl=<< >>`. File patterns win over data languages.",
-          "type": "list",
-          "default": [],
-          "group": "lang.templates",
-          "section": "Go Templates",
-          "project": true,
-          "order": 22
+          "order": 10
         },
         {
           "key": "system.reopenLastProject",
