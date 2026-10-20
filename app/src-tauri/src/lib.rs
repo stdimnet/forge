@@ -50,9 +50,16 @@ pub fn run() {
                 });
             // A project passed on the command line is already open.
             commands::php::spawn_sync_lsp_server(app.handle());
+            let root = app
+                .state::<AppState>()
+                .with_workspace(|ws| Ok(ws.root().to_path_buf()));
+            if let Ok(root) = root {
+                commands::workspace::start_watching(app.handle(), &root);
+            }
             Ok(())
         })
         .manage(commands::lsp::LspState::default())
+        .manage(commands::workspace::WatchState::default())
         .manage(commands::php::PhpState::default())
         .manage(commands::project::CreateState::default())
         .invoke_handler(tauri::generate_handler![

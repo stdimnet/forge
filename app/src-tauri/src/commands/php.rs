@@ -221,6 +221,29 @@ pub fn php_lsp_config(
     Ok(lsp::resolve_for_workspace(&settings, &root))
 }
 
+/// Keep the PHP index current when files change on disk (file watcher). Only an index
+/// that already exists for the open project is updated; the next full index picks up
+/// everything else.
+pub fn apply_fs_changes(app: &AppHandle, changes: &forge_core::FsChanges) {
+    if changes.changed.is_empty() && changes.removed.is_empty() {
+        return;
+    }
+    let state = app.state::<AppState>();
+    let php = app.state::<PhpState>();
+    let Ok(root) = workspace_root(&state) else {
+        return;
+    };
+    let Ok(mut guard) = php.index.lock() else {
+        return;
+    };
+    if let Some(idx) = guard.as_mut().filter(|i| i.root() == root) {
+        let n = idx.apply_changes(&changes.changed, &changes.removed);
+        if n > 0 {
+            tracing::debug!("PHP index: {n} files updated from disk");
+        }
+    }
+}
+
 /// Id under which the PHP language server (Intelephense or phpactor) is registered.
 pub const PHP_SERVER_ID: &str = "php";
 

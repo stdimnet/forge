@@ -40,7 +40,7 @@ impl LspState {
     pub fn register_server(&self, config: LspServerConfig) {
         {
             let mut registered = self.registered.lock().expect("lsp lock");
-            if registered.iter().any(|c| *c == config) {
+            if registered.contains(&config) {
                 return;
             }
             registered.retain(|c| c.id != config.id);
