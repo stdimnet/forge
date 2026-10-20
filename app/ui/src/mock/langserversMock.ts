@@ -33,7 +33,8 @@ interface MockServer {
 }
 
 const HOME = "/home/marlon";
-const npm = (pkgs: string): Install => ["npm", `npm install -g ${pkgs}`];
+const MANAGED = `${HOME}/.local/share/forge/langservers`;
+const npm = (pkgs: string): Install => ["npm", `npm install --prefix ${MANAGED} --no-fund --no-audit ${pkgs}`];
 const brew = (pkg: string): Install => ["brew", `brew install ${pkg}`];
 const pacman = (pkg: string): Install => ["pacman", `sudo pacman -S ${pkg}`, false];
 const download = (url: string): Install => ["download", url, false];
@@ -173,7 +174,7 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 function fakeOutput(s: MockServer, command: string): [stream: "stdout" | "stderr", line: string, delay: number][] {
   if (command.startsWith("npm")) {
-    const pkg = command.split(" ").slice(3).join(" ");
+    const pkg = command.split(" ").slice(6).join(" ");
     return [
       ["stderr", "npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory.", 350],
       ["stderr", "npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported", 250],
@@ -211,7 +212,7 @@ registerMock("langservers_install", async ({ id, index }) => {
     return "cancelled";
   }
   s.status = "installed";
-  s.path = tool === "npm" ? `${HOME}/.npm-global/bin/${s.command}` : `${HOME}/.local/bin/${s.command}`;
+  s.path = tool === "npm" ? `${MANAGED}/node_modules/.bin/${s.command}` : `${HOME}/.local/bin/${s.command}`;
   emit("info", `${s.name} installed.`);
   emitMock("langservers://changed", null);
   return "succeeded";
