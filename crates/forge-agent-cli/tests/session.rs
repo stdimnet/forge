@@ -46,9 +46,26 @@ async fn start(dir: &tempfile::TempDir) -> (AgentSession, mpsc::UnboundedReceive
         model: Some("opus".into()),
         ..Default::default()
     };
-    let session = AgentSession::start(Arc::new(ClaudeCode), dir.path().into(), opts, sink)
+    // A freshly written script can briefly fail with "Text file busy" (ETXTBSY) when another
+    // test thread forks while the file is still open for writing, so retry a few times.
+    let mut attempt = 0;
+    let session = loop {
+        match AgentSession::start(
+            Arc::new(ClaudeCode),
+            dir.path().into(),
+            opts.clone(),
+            sink.clone(),
+        )
         .await
-        .unwrap();
+        {
+            Ok(s) => break s,
+            Err(e) if attempt < 5 && e.to_string().to_lowercase().contains("busy") => {
+                attempt += 1;
+                tokio::time::sleep(Duration::from_millis(50)).await;
+            }
+            Err(e) => panic!("cannot start the fake CLI: {e}"),
+        }
+    };
     (session, rx)
 }
 
