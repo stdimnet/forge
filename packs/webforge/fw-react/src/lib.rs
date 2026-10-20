@@ -1,6 +1,6 @@
-//! WebForge React plugin (`forge.react`): function and class components with their props,
-//! JSX tag resolution through imports (relative paths, path aliases, barrel re-exports)
-//! and usages. Go to Declaration on `<UserCard` opens the component, on `title=` the prop,
+//! WebForge React plugin (`forge.react`): function and class components with their props
+//! (also anonymous default exports, named after their file), JSX tag resolution through
+//! imports (relative paths, path aliases, barrel re-exports, workspace packages) and usages. Go to Declaration on `<UserCard` opens the component, on `title=` the prop,
 //! and on a component's own name lists the JSX tags that use it, like WebStorm.
 
 use std::collections::HashMap;
@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use webforge_lang_web::imports::{self, Import, Imported};
 use webforge_lang_web::js::{self, fields, ident, matching, skip_trivia};
 use webforge_lang_web::markup::{self, scan_tags, TagHit};
-use webforge_lang_web::text::{ident_at, utf16_to_byte};
+use webforge_lang_web::text::{file_stem, ident_at, parent_dir, pascal_case, utf16_to_byte};
 use webforge_lang_web::{
     Component, ComponentKind, Framework, FrameworkIndex, GutterMark, Location, Member, Sources,
 };
@@ -84,8 +84,78 @@ pub fn scan_file(path: &str, content: &str) -> Vec<Component> {
             });
         }
     }
+    if let Some(c) = anonymous_default(path, content) {
+        if !out.iter().any(|o| o.name == c.name) {
+            out.push(c);
+        }
+    }
     out.sort_by_key(|c| (c.location.line, c.location.column));
     out
+}
+
+/// The component name of an anonymous default export: the file name in PascalCase
+/// (`user-card.tsx` -> `UserCard`), for `index.tsx` the folder's name.
+pub fn name_from_file(path: &str) -> String {
+    let stem = file_stem(path);
+    let stem = stem.split('.').next().unwrap_or(stem);
+    let base = if stem == "index" {
+        file_stem(parent_dir(path))
+    } else {
+        stem
+    };
+    pascal_case(base)
+}
+
+/// `export default () => …`, `export default function (props) {}`,
+/// `export default memo((…) => …)` and `export default class extends Component {}`.
+fn anonymous_default(path: &str, content: &str) -> Option<Component> {
+    let mut from = 0;
+    while let Some(found) = content[from..].find("export default") {
+        let at = from + found;
+        from = at + "export default".len();
+        let boundary = content[..at]
+            .chars()
+            .last()
+            .is_none_or(|c| !webforge_lang_web::text::is_ident_char(c));
+        if !boundary {
+            continue;
+        }
+        let mut i = skip_trivia(content, from);
+        let found = if content[i..].starts_with("function") {
+            i = skip_trivia(content, i + "function".len());
+            // A named function is found by the named scan.
+            (!content[i..].starts_with(|c: char| c.is_alphanumeric() || c == '_'))
+                .then(|| function_component(content, i))
+                .flatten()
+        } else if content[i..].starts_with("class") {
+            i = skip_trivia(content, i + "class".len());
+            content[i..]
+                .starts_with("extends")
+                .then(|| class_component(content, i))
+                .flatten()
+        } else {
+            initializer_component(content, i, None)
+        };
+        let (kind, props) = found?;
+        let name = name_from_file(path);
+        if !is_component_name(&name) {
+            return None;
+        }
+        return Some(Component {
+            name,
+            framework: Framework::React,
+            kind,
+            selector: None,
+            location: Location::at(path, content, at),
+            props: props.into_members(path, content),
+            events: Vec::new(),
+            template: None,
+            styles: Vec::new(),
+            default_export: true,
+            usages: 0,
+        });
+    }
+    None
 }
 
 /// Where the props of a component come from.
@@ -181,7 +251,16 @@ fn variable_component(content: &str, after_name: usize) -> Option<(ComponentKind
     if !content[i..].starts_with('=') || content[i..].starts_with("==") {
         return None;
     }
-    i = skip_trivia(content, i + 1);
+    initializer_component(content, skip_trivia(content, i + 1), annotated)
+}
+
+/// The value at `i` of a component variable or default export: an arrow function, a
+/// function expression, or one wrapped in `memo(…)` / `forwardRef(…)`.
+fn initializer_component(
+    content: &str,
+    mut i: usize,
+    annotated: Option<usize>,
+) -> Option<(ComponentKind, Props)> {
     // Unwrap `memo(`, `React.memo(`, `forwardRef(`, `React.forwardRef<Ref, Props>(`.
     let mut wrapper_props: Option<usize> = None;
     for _ in 0..2 {
@@ -562,9 +641,11 @@ impl FrameworkIndex for ReactIndex<'_> {
                     return Vec::new();
                 };
                 let here = Location::at(path, content, s);
+                let word = &content[s..e];
                 local
                     .iter()
-                    .find(|c| c.location == here && c.name == content[s..e])
+                    // An anonymous default export is named after its file; it sits at `export`.
+                    .find(|c| c.location == here && (c.name == word || word == "export"))
                     .map(|c| self.usages(c, Some((path, content))))
                     .unwrap_or_default()
             }
