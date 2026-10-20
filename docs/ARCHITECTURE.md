@@ -205,7 +205,9 @@ app/ui/            SolidJS UI
   `config`) build without the `client` feature and back the browser mocks through
   `crates/forge-wasm/src/remote.rs`.
 - Agent binaries: `pnpm --dir app/ui agents` builds static musl agents into
-  `target/agents/forge-remote-agent-<arch>-linux` (x86_64, aarch64). Forge looks in
+  `target/agents/forge-remote-agent-<arch>-linux.gz` (x86_64, aarch64; compressed because
+  AppImage tools patch ELF files in the bundle), and `pnpm release` ships them as the bundle's
+  `agents/` resources. Plain or `.gz` binaries are accepted; Forge looks in
   `FORGE_REMOTE_AGENT_DIR`, the bundle's `agents/` resources, `agents/` next to its executable
   and `target/agents`; a development build of `forge-remote-agent` next to the executable serves
   hosts of the same architecture. Remote hosts must run Linux.

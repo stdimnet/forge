@@ -19,12 +19,14 @@ client = [
     "dep:dirs",
     "dep:keyring",
     "dep:toml",
+    "dep:flate2",
 ]
 
 [dependencies]
 serde.workspace = true
 serde_json.workspace = true
 sha2 = "0.10"
+flate2 = { version = "1", optional = true }
 sha1 = "0.10"
 hmac = "0.12"
 base64 = "0.22"

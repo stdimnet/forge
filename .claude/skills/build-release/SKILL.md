@@ -30,7 +30,7 @@ Linux agents before packaging (`rustup target add x86_64-unknown-linux-musl` fir
 also needs a cross compiler, see the script):
 
 ```sh
-pnpm --dir app/ui agents            # target/agents/forge-remote-agent-{x86_64,aarch64}-linux
+pnpm --dir app/ui agents            # target/agents/forge-remote-agent-{x86_64,aarch64}-linux.gz
 ```
 
 `pnpm release` builds the agents and then the bundles with `src-tauri/tauri.agents.conf.json`,
