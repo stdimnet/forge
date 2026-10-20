@@ -1248,8 +1248,8 @@
             }
           ],
           "default": "plain",
-          "group": "lang.servers",
-          "section": "Lua",
+          "group": "lang.lua",
+          "section": "Lua Language Server",
           "project": false,
           "order": 10
         },
@@ -1281,8 +1281,8 @@
             }
           ],
           "default": "Lua 5.4",
-          "group": "lang.servers",
-          "section": "Lua",
+          "group": "lang.lua",
+          "section": "Lua Language Server",
           "project": false,
           "order": 11
         }

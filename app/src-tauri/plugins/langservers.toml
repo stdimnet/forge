@@ -47,8 +47,8 @@ options = [
   { value = "neovim", label = "Neovim plugin / config" },
 ]
 default = "plain"
-group = "lang.servers"
-section = "Lua"
+group = "lang.lua"
+section = "Lua Language Server"
 order = 10
 
 [[contributions.settings]]
@@ -64,6 +64,6 @@ options = [
   { value = "LuaJIT", label = "LuaJIT" },
 ]
 default = "Lua 5.4"
-group = "lang.servers"
-section = "Lua"
+group = "lang.lua"
+section = "Lua Language Server"
 order = 11
