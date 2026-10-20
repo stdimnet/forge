@@ -9,7 +9,7 @@ import { settingsPages } from "@/features/settingsPages";
 import { openSettings } from "@/features/settings/dialogState";
 import { registerCommand } from "@/state/commands";
 import { getSetting, saveSetting, settingsState } from "@/state/settings";
-import { frameworkLabel, onProjectDetected, projectInfo, refreshProjectInfo, trackProjectInfo } from "@/state/project";
+import { frameworkLabel, isPluginActive, onProjectDetected, projectInfo, refreshProjectInfo, trackProjectInfo } from "@/state/project";
 import { showBalloon } from "@/keymap";
 import { ProjectTypeIcon } from "@/shell/ProjectTypeIcon";
 import type { ProjectInfo } from "@/ipc/project";
@@ -18,8 +18,21 @@ import { announcement } from "./announce";
 /** User setting holding `<root>#<framework>` pairs already announced. */
 export const ANNOUNCED_KEY = "project.announcedFrameworks";
 
+/**
+ * Frameworks whose plugin shows its own status bar widget (e.g. "Symfony 7.2 · dev");
+ * the generic widget then stays hidden for them.
+ */
+const claimed = new Set<string>();
+
+export function claimFrameworkStatus(frameworkId: string): void {
+  claimed.add(frameworkId);
+}
+
 function ProjectTypeStatus() {
-  const primary = () => projectInfo()?.primary;
+  const primary = () => {
+    const p = projectInfo()?.primary;
+    return p && !(claimed.has(p.id) && isPluginActive(`forge.${p.id}`)) ? p : undefined;
+  };
   const others = () =>
     (projectInfo()?.frameworks ?? [])
       .filter((f) => f.id !== primary()?.id)
