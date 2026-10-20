@@ -114,3 +114,24 @@ app/ui/            SolidJS UI
   `lsp_document_symbols({ path })`, `lsp_format({ path, tabSize?, insertSpaces? })`, `lsp_status()`.
   Paths are workspace relative, positions 0-based line / UTF-16 character.
 - Events: `lsp://diagnostics` `{ path, diagnostics }` and `lsp://status` `ServerStatus[]`.
+
+## Database tools (`forge-db`)
+
+- Data sources live in `<root>/.forge/dataSources.toml` (project) and
+  `<config dir>/forge/dataSources.toml` (global) as `[[dataSource]]` tables; passwords go to the
+  OS keychain (service `forge-db`, account = data source id). MySQL/MariaDB, PostgreSQL and SQLite
+  via `sqlx`; SQL is sent as raw text, values come back as JSON-safe cells (`null`, booleans,
+  numbers within ±2^53, everything else as strings, binary as `{ "$hex": "…" }`).
+- IPC (`app/ui/src/ipc/db.ts`): `db_data_sources_list`, `db_data_source_save({ source, password? })`,
+  `db_data_source_delete({ id })`, `db_test_connection({ source, password? })`, `db_disconnect`,
+  `db_schemas`, `db_introspect({ id, schema })`, `db_table_info`, `db_table_ddl`,
+  `db_table_data({ id, request: { schema, table, filter?, order?, offset?, limit? } })`,
+  `db_apply_changes({ id, schema, table, changes })` (one transaction, refused without a primary key),
+  consoles `db_session_open|close`, `db_execute({ sessionId, sql, pageSize? })`, `db_fetch`,
+  `db_set_auto_commit`, `db_commit`, `db_rollback`, `db_cancel`, `.env` suggestions
+  `db_detect_env` / `db_add_from_env`, and `db_export({ format: "csv"|"json"|"sql", dialect, table?, columns, rows, path? })`.
+- Events: `db://dataSources` (full list after changes and after a project's sources were loaded),
+  `db://session` (`SessionInfo` when a console starts/stops running or its transaction changes).
+- UI: non-file editor tabs are registered with `registerEditorView` (`src/shell/editorViews.ts`) and
+  opened with `openViewTab`; consoles and table editors use it. Editor-area panels can opt into the
+  tool-window key context with `data-focus-context="toolwindow"`.
