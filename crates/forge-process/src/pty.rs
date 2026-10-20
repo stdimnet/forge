@@ -6,7 +6,7 @@ use std::sync::{Arc, Mutex};
 
 use forge_core::{ForgeError, Result};
 use portable_pty::{native_pty_system, ChildKiller, CommandBuilder, MasterPty, PtySize};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::shell::{default_shell, shell_args};
 use crate::utf8::Utf8Decoder;
@@ -26,7 +26,7 @@ pub struct PtyOptions {
 }
 
 /// Something that happened in a terminal session.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "camelCase")]
 pub enum PtyEvent {
     /// Terminal output (UTF-8, including escape sequences).

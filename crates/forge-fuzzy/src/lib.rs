@@ -150,7 +150,7 @@ pub fn fuzzy_match_with(query: &str, candidate: &str, opts: MatchOptions) -> Opt
 }
 
 /// One "Go to File" hit.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FileMatch {
     /// Workspace-relative path with `/` separators.

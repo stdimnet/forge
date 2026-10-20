@@ -13,13 +13,13 @@ use std::time::{Duration, Instant};
 
 use ignore::gitignore::{Gitignore, GitignoreBuilder};
 use notify::{RecursiveMode, Watcher};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::workspace::DEFAULT_EXCLUDES;
 use crate::{ForgeError, Result};
 
 /// One debounced batch of changes; paths are workspace-relative with `/` separators.
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FsChanges {
     /// Created or modified files and directories (they exist now).
