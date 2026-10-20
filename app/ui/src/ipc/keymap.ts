@@ -103,6 +103,63 @@ export interface Resolution {
   pending?: "chord" | "doubleTap";
 }
 
+/** An entry of a main menu definition (`MenuEntry` in `forge-keymap`). */
+export type MainMenuEntry =
+  /** `label` replaces the action title, `_` marks its mnemonic ("Save _All"). */
+  | { type: "action"; id: string; label?: string; mnemonic?: string; checkable?: boolean }
+  | { type: "group"; label: string; items: MainMenuEntry[] }
+  | { type: "separator" }
+  | { type: "dynamic"; source: string };
+
+/** Entries added to a main menu path ("Tools", "View/Tool Windows"). */
+export interface MainMenuContribution {
+  path: string;
+  items: MainMenuEntry[];
+  /** Insert before / after the entry with this action id or submenu label. */
+  before?: string;
+  after?: string;
+}
+
+/** An item of a dynamic list (recent projects, tool windows). */
+export interface MainMenuDynamicItem {
+  key: string;
+  label: string;
+  /** Action whose shortcut is shown. */
+  action?: string;
+  detail?: string;
+  enabled?: boolean;
+  checked?: boolean;
+}
+
+export interface MainMenuRequest {
+  contributions: MainMenuContribution[];
+  dynamic: Record<string, MainMenuDynamicItem[]>;
+  /** Checkable actions that are on. */
+  checked: string[];
+  git: boolean;
+}
+
+/** A resolved menu item. */
+export interface MainMenuItem {
+  kind: "action" | "submenu" | "separator";
+  label?: string;
+  /** Character index of the mnemonic in `label`. */
+  mnemonic?: number;
+  action?: string;
+  /** Key of a dynamic item. */
+  key?: string;
+  shortcut?: string;
+  detail?: string;
+  enabled: boolean;
+  checkable?: boolean;
+  checked?: boolean;
+  items?: MainMenuItem[];
+}
+
+export interface MainMenu {
+  menus: MainMenuItem[];
+}
+
 export const keymapApi = {
   actions: () => invoke<KeymapSnapshot>("keymap_actions"),
   registerActions: (args: { actions?: ActionRegistration[]; commands?: CommandInfo[] }) =>
@@ -112,6 +169,7 @@ export const keymapApi = {
     invoke<ShortcutCheck>("keymap_conflicts", { shortcut, actionId }),
   findByShortcut: (shortcut: string) => invoke<string[]>("keymap_find_by_shortcut", { shortcut }),
   resolve: (event: KeyInput) => invoke<Resolution>("keymap_resolve", { event }),
+  mainMenu: (request: MainMenuRequest) => invoke<MainMenu>("keymap_main_menu", { request }),
   importLegacy: (active: string | null, overrides: string | null) =>
     invoke<string[]>("keymap_import_legacy", { active, overrides }),
 };

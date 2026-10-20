@@ -45,6 +45,23 @@ registerCommand({ id: "Laravel.RunArtisan", title: "Run Artisan Command…", run
 Shortcut syntax: `Ctrl+Shift+A`, `Alt+Insert`, chords `Ctrl+K Ctrl+C`, double taps `Shift Shift`,
 macOS `Cmd`/`Opt`. Physical key codes are used, so keyboard layouts work.
 
+## Put it in the main menu
+
+The main menu (☰, `Alt+\`) is PHPStorm's structure in `crates/forge-keymap/src/menu.rs`; an
+action listed there is enabled as soon as a command implements it. Plugins add entries in their
+manifest or from the UI:
+
+```toml
+[[plugin.contributions.mainMenu]]
+path = "Tools/_Laravel"          # "_" marks the mnemonic; missing submenus are created
+items = [{ type = "action", id = "Laravel.RunArtisan", label = "Run _Artisan Command..." }]
+```
+
+```ts
+registerMainMenuEntries("Run", [action("PhpListenDebugAction")], { after: "XDebugger.MuteBreakpoints" });
+registerMainMenuToggle("PhpListenDebugAction", listening); // check mark for checkable entries
+```
+
 ## Check
 
 - `cargo test -p forge-keymap`: the keymap tests detect unexpected conflicts.

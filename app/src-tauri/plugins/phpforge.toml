@@ -123,6 +123,14 @@ id = "PhpListenDebugAction"
 title = "Start Listening for PHP Debug Connections"
 category = "Run"
 
+[[plugin.contributions.mainMenu]]
+path = "Run"
+after = "XDebugger.MuteBreakpoints"
+items = [
+  { type = "separator" },
+  { type = "action", id = "PhpListenDebugAction", label = "Start _Listening for PHP Debug Connections", checkable = true },
+]
+
 # ---- Languages & Frameworks > PHP > Debug ----------------------------------------------
 
 [[plugin.contributions.settings]]
@@ -225,6 +233,13 @@ projectTypes = ["laravel"]
 id = "Laravel.RunArtisan"
 title = "Run Artisan Command…"
 category = "Tools"
+
+[[plugin.contributions.mainMenu]]
+path = "Tools/_Laravel"
+items = [
+  { type = "action", id = "Laravel.RunArtisan", label = "Run _Artisan Command..." },
+  { type = "action", id = "Laravel.ShowRoutes", label = "Show _Routes" },
+]
 
 [[plugin.contributions.runConfigurationTypes]]
 id = "artisan"
@@ -332,6 +347,15 @@ category = "Tools"
 id = "symfony.refresh"
 title = "Refresh Symfony Index"
 category = "Tools"
+
+[[plugin.contributions.mainMenu]]
+path = "Tools/_Symfony"
+items = [
+  { type = "action", id = "Symfony.RunConsoleCommand", label = "Run _Console Command..." },
+  { type = "action", id = "Symfony.ShowRoutes", label = "Show _Routes" },
+  { type = "separator" },
+  { type = "action", id = "symfony.refresh", label = "Re_fresh Symfony Index" },
+]
 
 [[plugin.contributions.toolWindows]]
 id = "symfony"

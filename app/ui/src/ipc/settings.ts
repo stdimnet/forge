@@ -3,6 +3,7 @@
  * `settings_*` / `plugin*` commands in `app/src-tauri/src/commands/settings.rs`.
  */
 import { invoke } from "./index";
+import type { MainMenuContribution } from "./keymap";
 
 export type SettingValue = boolean | number | string | string[];
 export type SettingsScope = "user" | "project";
@@ -134,6 +135,8 @@ export interface Contributions {
   aiProviders: AiProviderContribution[];
   chatAgents: ChatAgentContribution[];
   codeGenerators: CodeGeneratorContribution[];
+  /** Main menu entries (`[[contributions.mainMenu]]`). */
+  mainMenu?: MainMenuContribution[];
 }
 
 export type PackId = "core" | "phpforge" | "webforge" | "luaforge" | "scriptforge" | "configforge";

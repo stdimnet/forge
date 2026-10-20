@@ -8,7 +8,8 @@ use tauri::State;
 use forge_core::{Result, SettingsScope};
 use forge_keymap::{
     legacy_changes, ActionRegistration, CommandInfo, KeyInput, KeymapChange, KeymapService,
-    KeymapSettings, KeymapSnapshot, Platform, Resolution, SettingWrite, ShortcutCheck,
+    KeymapSettings, KeymapSnapshot, MainMenu, MainMenuRequest, Platform, Resolution, SettingWrite,
+    ShortcutCheck,
 };
 
 use crate::state::AppState;
@@ -103,6 +104,17 @@ pub fn keymap_find_by_shortcut(
     app: State<'_, AppState>,
 ) -> Vec<String> {
     with_service(&keymap, &app, |s| s.find_by_shortcut(&shortcut))
+}
+
+/// The main menu (hamburger menu / menu bar) with plugin contributions and the dynamic lists
+/// the UI sends; labels, shortcuts and enabled states come from the keymap.
+#[tauri::command]
+pub fn keymap_main_menu(
+    request: MainMenuRequest,
+    keymap: State<'_, KeymapState>,
+    app: State<'_, AppState>,
+) -> MainMenu {
+    with_service(&keymap, &app, |s| s.main_menu(&request))
 }
 
 /// Feed one key event to the resolver. The UI normally resolves keys synchronously with the
