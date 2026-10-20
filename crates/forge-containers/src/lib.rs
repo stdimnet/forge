@@ -14,7 +14,7 @@
 //! With the `runtime` feature: an HTTP/1.1 client over Unix sockets, Windows named pipes and
 //! TCP (+TLS) ([`http`]), the Docker Engine client ([`engine`]), the Kubernetes API client
 //! ([`kubeclient`]), compose / CLI processes ([`cli`]) and registry credentials in the OS
-//! keychain ([`secrets`]).
+//! keychain ([`secrets`]), and the [`hub`] that holds the Services state for the app.
 
 pub mod compose;
 pub mod docker;
@@ -33,6 +33,8 @@ pub mod cli;
 pub mod engine;
 #[cfg(feature = "runtime")]
 pub mod http;
+#[cfg(feature = "runtime")]
+pub mod hub;
 #[cfg(feature = "runtime")]
 pub mod kubeclient;
 #[cfg(feature = "runtime")]
