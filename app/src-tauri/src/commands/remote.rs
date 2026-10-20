@@ -89,10 +89,16 @@ pub async fn remote_ssh_config_save(
         if !problems.is_empty() {
             return Err(ForgeError::Other(problems.join("\n")));
         }
-        if config.id.trim().is_empty() {
-            config.id = new_config_id(&config);
-        }
         let mut all = store::load();
+        if config.id.trim().is_empty() {
+            // The same account again: update its configuration instead of adding another.
+            config.id = all
+                .configurations
+                .iter()
+                .find(|c| c.same_target(&config))
+                .map(|c| c.id.clone())
+                .unwrap_or_else(|| new_config_id(&config));
+        }
         all.upsert(config.clone());
         store::save(&all)?;
         if config.dont_save_secret {
@@ -121,6 +127,12 @@ fn new_config_id(config: &SshConfiguration) -> String {
         })
         .collect();
     format!("{slug}-{millis:x}")
+}
+
+/// Problems with a configuration, worded for the dialog (empty when it can be used).
+#[tauri::command]
+pub fn remote_validate_config(config: SshConfiguration) -> Vec<String> {
+    config.validate()
 }
 
 #[tauri::command]

@@ -7,6 +7,13 @@ import { createIgnoreMatcher } from "./gitignoreMatcher";
 import { trackedPaths } from "./gitMock";
 import { recentPrimaries } from "./projectMock";
 import { isSymfonyDemo, symfonyDemoFiles, symfonyDemoName } from "./demoSymfonyProject";
+import {
+  adoptRemoteProject,
+  closeRemoteProject,
+  isRemoteDemo,
+  remoteWorkspace,
+  setRemoteProjectFiles,
+} from "./remoteMock";
 
 /** The in-memory project (demo files plus whatever the UI saved); read by other mocks. */
 // `?project=symfony` opens the Symfony demo project instead of the Laravel one.
@@ -15,6 +22,8 @@ export const mockFiles: Record<string, string> = isSymfonyDemo()
   : { ...demoFiles, ...demoLaravelFiles, ...demoConfigFiles };
 const files = mockFiles;
 const openName = isSymfonyDemo() ? symfonyDemoName : demoProjectName;
+// The remote demo host serves the same project as `/var/www/shop`.
+setRemoteProjectFiles(Object.keys(files));
 const ignores = createIgnoreMatcher((dir) => files[dir ? `${dir}/.gitignore` : ".gitignore"]);
 
 /** Ignored means matched by `.gitignore` and not tracked (a file or a folder with tracked files). */
@@ -47,14 +56,22 @@ registerMock("workspace_current", () => null);
 registerMock("workspace_recent", () =>
   [
     { name: demoProjectName, root: `~/Projects/${demoProjectName}` },
+    { ...remoteWorkspace(), primaryOf: demoProjectName },
     { name: "symfony-api", root: "~/Projects/symfony-api" },
     { name: "storefront-ui", root: "~/Projects/storefront-ui" },
     { name: "pixel-dungeon", root: "~/Games/pixel-dungeon" },
     { name: "dotfiles.nvim", root: "~/.config/nvim" },
     { name: "legacy-crm", root: "~/Work/legacy-crm" },
-  ].map((p) => ({ ...p, primary: recentPrimaries[p.name] })),
+  ].map(({ primaryOf, ...p }: { name: string; root: string; primaryOf?: string }) => ({
+    ...p,
+    primary: recentPrimaries[primaryOf ?? p.name],
+  })),
 );
-registerMock("workspace_open", () => ({ name: openName, root: `~/Projects/${openName}` }));
+registerMock("workspace_open", () => {
+  if (isRemoteDemo()) return adoptRemoteProject(remoteWorkspace());
+  closeRemoteProject();
+  return { name: openName, root: `~/Projects/${openName}` };
+});
 registerMock("fs_list_dir", ({ path }) => listDir(String(path ?? "")));
 registerMock("fs_read_file", ({ path }) => {
   const content = files[String(path)];

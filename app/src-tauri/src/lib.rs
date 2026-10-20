@@ -340,6 +340,7 @@ pub fn run() {
             commands::remote::remote_ssh_config_save,
             commands::remote::remote_ssh_config_delete,
             commands::remote::remote_ssh_hosts,
+            commands::remote::remote_validate_config,
             commands::remote::remote_test_connection,
             commands::remote::remote_connect,
             commands::remote::remote_browse,

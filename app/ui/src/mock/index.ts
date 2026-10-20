@@ -3,6 +3,7 @@ import "./settingsMock";
 import "./keymapMock";
 import { fileTypesReady } from "./filetypesMock";
 import "./projectMock";
+import "./remoteMock";
 import "./workspaceMock";
 import "./aiMock";
 import "./agentMock";
