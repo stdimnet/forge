@@ -2183,6 +2183,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "forge-text"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "forge-vcs"
 version = "0.1.0"
 dependencies = [
