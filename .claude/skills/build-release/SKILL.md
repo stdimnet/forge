@@ -10,7 +10,8 @@ description: Build a release binary or installer of Forge (AppImage, deb, rpm, d
 From `app/ui`:
 
 ```sh
-pnpm tauri build --bundles appimage   # Linux, runs on Arch/EndeavourOS/Ubuntu/Fedora
+pnpm release --bundles appimage      # Linux AppImage with the remote agents (see below)
+pnpm tauri build --bundles appimage   # Linux AppImage without them
 pnpm tauri build --bundles deb,rpm    # Linux packages
 pnpm tauri build                      # all bundles for the current OS (dmg on macOS, msi/nsis on Windows)
 ```
@@ -32,8 +33,12 @@ also needs a cross compiler, see the script):
 pnpm --dir app/ui agents            # target/agents/forge-remote-agent-{x86_64,aarch64}-linux
 ```
 
-Ship them in an `agents/` folder next to the `forge` binary (or set `FORGE_REMOTE_AGENT_DIR`);
-Forge uploads the matching one to `~/.cache/forge-agent/<version>/` on the host.
+`pnpm release` builds the agents and then the bundles with `src-tauri/tauri.agents.conf.json`,
+which ships `target/agents/` as the bundle's `agents/` resource folder (arguments go to
+`tauri build`, e.g. `pnpm release --bundles appimage`). Architectures whose musl target is not
+installed are skipped. Without bundled agents, put them in an `agents/` folder next to the
+`forge` binary or set `FORGE_REMOTE_AGENT_DIR`. Forge uploads the matching one to
+`~/.cache/forge-agent/<version>/` on the host.
 
 ## Smoke test on a headless Linux box
 
