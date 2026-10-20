@@ -7,6 +7,7 @@ import { createRoot, createSignal, createEffect, on } from "solid-js";
 import { listen } from "@/ipc";
 import { setCurrentBranch, setFileStatuses, type FileStatus } from "@/state/vcs";
 import { editor } from "@/state/editor";
+import { onFsChanged } from "@/state/fsWatch";
 import { workspaceApi } from "@/ipc/workspace";
 import { gitApi, displayStatus, GIT_CHANGED_EVENT, type RepoStatus } from "./api";
 
@@ -125,11 +126,12 @@ export function startGitStore(): void {
   void listen(GIT_CHANGED_EVENT, () => void repositoryChanged());
   if (typeof window !== "undefined") {
     window.addEventListener("focus", () => void repositoryChanged());
-    // Cheap safety net for changes made outside Forge (terminal, other tools).
-    setInterval(() => {
-      if (document.visibilityState === "visible") void refreshStatus();
-    }, 8000);
   }
+  // Changes made outside Forge (terminal, other tools) arrive from the file watcher.
+  onFsChanged((c) => {
+    if (c.git) void repositoryChanged();
+    else void refreshStatus();
+  });
   createRoot(() => {
     // Refresh after saves: watch the saved snapshot of every tab.
     createEffect(

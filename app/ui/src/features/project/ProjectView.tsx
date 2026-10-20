@@ -73,8 +73,25 @@ function TreeNode(props: { entry: FileEntry; depth: number }) {
   );
 }
 
+/** Bumped per directory when its listing changed on disk, so the tree re-reads it. */
+const [dirRevisions, setDirRevisions] = createSignal<Record<string, number>>({});
+
+/** Re-read the listings of these directories ("" is the project root). */
+export function refreshDirs(dirs: string[]): void {
+  if (!dirs.length) return;
+  setDirRevisions((prev) => {
+    const next = { ...prev };
+    for (const d of dirs) next[d] = (next[d] ?? 0) + 1;
+    return next;
+  });
+}
+
 function DirChildren(props: { path: string; depth: number }) {
-  const [entries] = createResource(() => props.path, (p) => workspaceApi.listDir(p));
+  const [entries] = createResource(
+    // A string key, so a change elsewhere in the tree does not refetch this directory.
+    () => `${dirRevisions()[props.path] ?? 0}:${props.path}`,
+    () => workspaceApi.listDir(props.path),
+  );
   return <For each={entries() ?? []}>{(e) => <TreeNode entry={e} depth={props.depth} />}</For>;
 }
 

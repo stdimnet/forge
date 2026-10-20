@@ -2,7 +2,12 @@ import { Folder } from "lucide-solid";
 import { registerCommand } from "@/state/commands";
 import { closeWorkspace, pickAndOpenWorkspace } from "@/state/workspace";
 import { registerToolWindow } from "@/features/registry";
-import { ProjectView } from "./ProjectView";
+import { affectedDirs, onFsChanged, startReloadingChangedTabs } from "@/state/fsWatch";
+import { ProjectView, refreshDirs } from "./ProjectView";
+
+// Files changed outside the editor: refresh the tree and reload unmodified open tabs.
+onFsChanged((c) => refreshDirs(affectedDirs(c)));
+startReloadingChangedTabs();
 
 registerToolWindow({
   id: "project",
