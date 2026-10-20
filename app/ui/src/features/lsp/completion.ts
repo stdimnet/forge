@@ -7,6 +7,7 @@ import {
   type Completion,
   type CompletionContext,
   type CompletionResult,
+  snippet,
 } from "@codemirror/autocomplete";
 import {
   Box,
@@ -107,14 +108,41 @@ function applyCall(name: string) {
   };
 }
 
-function toOption(path: string, item: EditorCompletionItem, rank: number): Completion {
+const SNIPPET_FORMAT = 2;
+
+/** LSP snippet syntax to CodeMirror's: `$1` becomes `${1}`, the final stop `$0` an empty field. */
+export function toCodeMirrorSnippet(text: string): string {
+  return text.replace(/\$\{0\}|\$0/g, "${}").replace(/\$(\d+)/g, "${$1}");
+}
+
+/** Apply the server's `textEdit`: its range may reach past the caret (e.g. the closing quote of a JSON key). */
+function applyEdit(item: EditorCompletionItem) {
+  const raw = item.raw as { insertTextFormat?: number } | null | undefined;
+  const isSnippet = raw?.insertTextFormat === SNIPPET_FORMAT;
+  const text = item.insertText ?? item.label;
+  return (view: EditorView, completion: Completion, from: number, to: number) => {
+    const end = item.replaceRange ? Math.max(fromLsp(view.state.doc, item.replaceRange.end), to) : to;
+    if (isSnippet) return snippet(toCodeMirrorSnippet(text))(view, completion, from, end);
+    view.dispatch({
+      changes: { from, to: end, insert: text },
+      selection: { anchor: from + text.length },
+      userEvent: "input.complete",
+    });
+  };
+}
+
+export function toOption(path: string, item: EditorCompletionItem, rank: number): Completion {
   const callable = CALLABLE.has(item.kind) && (item.insertText ?? item.label) === item.label;
+  // Options are matched on `label`; servers whose edit replaces more than the word (JSON keys
+  // include the quotes) send the text to match as `filterText`.
+  const filter = item.filterText && item.filterText !== item.label ? item.filterText : undefined;
+  const needsEdit = item.replaceRange || (item.raw as { insertTextFormat?: number } | null)?.insertTextFormat === SNIPPET_FORMAT;
   const option: Completion = {
-    label: item.label,
-    displayLabel: callable ? `${item.label}()` : undefined,
+    label: filter ?? item.label,
+    displayLabel: callable ? `${item.label}()` : filter ? item.label : undefined,
     type: item.kind,
     detail: item.detail ?? undefined,
-    apply: callable ? applyCall(item.label) : (item.insertText ?? item.label),
+    apply: callable ? applyCall(item.label) : needsEdit ? applyEdit(item) : (item.insertText ?? item.label),
     boost: Math.max(-99, 99 - rank),
     info: async () => {
       let doc = item.documentation;
