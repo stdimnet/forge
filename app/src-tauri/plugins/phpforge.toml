@@ -112,6 +112,99 @@ description = "Listen for incoming Xdebug connections."
 icon = "bug"
 debuggable = true
 
+[[plugin.contributions.commands]]
+id = "PhpListenDebugAction"
+title = "Start Listening for PHP Debug Connections"
+category = "Run"
+
+# ---- Languages & Frameworks > PHP > Debug ----------------------------------------------
+
+[[plugin.contributions.settings]]
+key = "php.debug.port"
+title = "Debug port"
+description = "Forge listens here for Xdebug (xdebug.client_port, 9003 by default)."
+type = "int"
+min = 1
+max = 65535
+default = 9003
+group = "lang.php.debug"
+section = "Xdebug"
+order = 0
+
+[[plugin.contributions.settings]]
+key = "php.debug.ignoreExternalConnections"
+title = "Ignore external connections through unregistered server configurations"
+description = "Connections that match no server and no project file are detached silently."
+type = "bool"
+default = false
+group = "lang.php.debug"
+section = "Xdebug"
+order = 1
+
+[[plugin.contributions.settings]]
+key = "php.debug.breakAtFirstLine"
+title = "Break at first line in PHP scripts"
+type = "bool"
+default = false
+group = "lang.php.debug"
+section = "Settings"
+order = 10
+
+[[plugin.contributions.settings]]
+key = "php.debug.ignoreUnmappedFiles"
+title = "Step out of files that are not mapped into the project"
+description = "Stepping never stops in code without a local file (e.g. PHAR internals or eval'd code)."
+type = "bool"
+default = true
+group = "lang.php.debug"
+section = "Settings"
+order = 11
+
+[[plugin.contributions.settings]]
+key = "php.debug.showInlineValues"
+title = "Show variable values in editor while debugging"
+type = "bool"
+default = true
+group = "lang.php.debug"
+section = "Settings"
+order = 12
+
+[[plugin.contributions.settings]]
+key = "php.debug.maxChildren"
+title = "Max. children"
+description = "Array elements and object properties loaded per page."
+type = "int"
+min = 1
+max = 10000
+default = 100
+group = "lang.php.debug"
+section = "Evaluation"
+order = 20
+
+[[plugin.contributions.settings]]
+key = "php.debug.maxDepth"
+title = "Max. depth"
+description = "Nesting levels fetched at once; deeper levels load when expanded."
+type = "int"
+min = 1
+max = 16
+default = 1
+group = "lang.php.debug"
+section = "Evaluation"
+order = 21
+
+[[plugin.contributions.settings]]
+key = "php.debug.maxData"
+title = "Max. string length"
+description = "Bytes of string data fetched per value."
+type = "int"
+min = 128
+max = 10485760
+default = 65536
+group = "lang.php.debug"
+section = "Evaluation"
+order = 22
+
 [[plugin]]
 id = "forge.laravel"
 name = "Laravel"

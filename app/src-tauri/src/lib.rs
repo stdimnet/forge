@@ -26,6 +26,7 @@ pub fn run() {
         .manage(commands::ai::AiState::load())
         .manage(commands::agent::AgentState::default())
         .setup(|app| {
+            app.manage(commands::debug::DebugState::new(app.handle().clone()));
             // Forward settings changes to the UI.
             let handle = app.handle().clone();
             app.state::<AppState>()
@@ -115,6 +116,34 @@ pub fn run() {
             commands::project::project_plan,
             commands::project::project_create,
             commands::project::project_create_cancel,
+            commands::debug::debug_status,
+            commands::debug::debug_listen_start,
+            commands::debug::debug_listen_stop,
+            commands::debug::debug_sessions,
+            commands::debug::debug_accept_connection,
+            commands::debug::debug_ignore_connection,
+            commands::debug::debug_step,
+            commands::debug::debug_pause,
+            commands::debug::debug_stop,
+            commands::debug::debug_detach,
+            commands::debug::debug_run_to_cursor,
+            commands::debug::debug_stack,
+            commands::debug::debug_contexts,
+            commands::debug::debug_variables,
+            commands::debug::debug_property,
+            commands::debug::debug_eval,
+            commands::debug::debug_set_value,
+            commands::debug::debug_breakpoints,
+            commands::debug::debug_breakpoint_add,
+            commands::debug::debug_breakpoint_update,
+            commands::debug::debug_breakpoint_remove,
+            commands::debug::debug_breakpoint_toggle,
+            commands::debug::debug_breakpoints_mute,
+            commands::debug::debug_watches,
+            commands::debug::debug_watches_set,
+            commands::debug::debug_servers,
+            commands::debug::debug_servers_save,
+            commands::debug::debug_launch_env,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Forge");

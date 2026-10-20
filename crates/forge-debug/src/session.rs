@@ -202,7 +202,18 @@ impl Session {
             return;
         };
         let servers = self.shared.servers();
-        let server = find_server(&servers, &identity).cloned();
+        // CLI scripts carry no server name: fall back to a server whose mappings cover the
+        // script.
+        let server = find_server(&servers, &identity)
+            .or_else(|| {
+                servers.iter().find(|s| {
+                    s.use_path_mappings
+                        && s.mapper(&root).to_local(&self.init.file_uri).is_some()
+                        && identity.host.is_none()
+                        && identity.server_name.is_none()
+                })
+            })
+            .cloned();
         let local = crate::mapping::PathMapper::local(&root);
         {
             let mut st = self.state();
