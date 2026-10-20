@@ -1,5 +1,13 @@
 //! Artisan commands: the list from `php artisan list --format=json` (with a built-in
-//! fallback when PHP is not available) and command line splitting for running them.
+//! fallback when PHP is not available), command line splitting, and running commands with
+//! streamed output.
+
+use std::io::{BufRead, BufReader, Read};
+use std::path::Path;
+use std::process::{Command, Stdio};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::mpsc;
+use std::time::{Duration, Instant};
 
 use serde::{Deserialize, Serialize};
 
@@ -273,6 +281,148 @@ pub fn split_command_line(line: &str) -> Vec<String> {
     out
 }
 
+/// Progress of a running artisan command.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "type", rename_all = "camelCase")]
+pub enum ArtisanEvent {
+    Started { command_line: String },
+    Output { text: String, stderr: bool },
+    Exit { code: i32 },
+    Error { message: String },
+}
+
+fn artisan_command(root: &Path, php: &str, args: &[String]) -> Command {
+    let mut cmd = Command::new(php);
+    cmd.arg("artisan")
+        .args(args)
+        .current_dir(root)
+        .env("NO_COLOR", "1")
+        .stdin(Stdio::null());
+    cmd
+}
+
+/// Whether artisan can run at all (`artisan` and `vendor/autoload.php` exist).
+pub fn is_runnable(root: &Path) -> bool {
+    root.join("artisan").is_file() && root.join("vendor/autoload.php").is_file()
+}
+
+/// Run `php artisan <args>` and return stdout, or `None` on failure or timeout.
+pub fn capture(root: &Path, php: &str, args: &[&str], timeout: Duration) -> Option<String> {
+    let args: Vec<String> = args.iter().map(|a| a.to_string()).collect();
+    let mut child = artisan_command(root, php, &args)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .spawn()
+        .ok()?;
+    let mut stdout = child.stdout.take()?;
+    let reader = std::thread::spawn(move || {
+        let mut s = String::new();
+        let _ = stdout.read_to_string(&mut s);
+        s
+    });
+    let start = Instant::now();
+    loop {
+        match child.try_wait() {
+            Ok(Some(status)) => {
+                let out = reader.join().ok()?;
+                return status.success().then_some(out);
+            }
+            Ok(None) if start.elapsed() < timeout => std::thread::sleep(Duration::from_millis(20)),
+            _ => {
+                let _ = child.kill();
+                let _ = child.wait();
+                return None;
+            }
+        }
+    }
+}
+
+/// Commands of the project, or the built-in list when artisan cannot run.
+pub fn list_commands(root: &Path, php: &str) -> (Vec<ArtisanCommand>, bool) {
+    if is_runnable(root) {
+        if let Some(cmds) = capture(
+            root,
+            php,
+            &["list", "--format=json"],
+            Duration::from_secs(20),
+        )
+        .and_then(|json| parse_list_json(&json))
+        {
+            return (cmds, true);
+        }
+    }
+    (builtin_commands(), false)
+}
+
+/// Run `php artisan <line>`, streaming output line by line until it exits or `cancel` is
+/// set. Returns the exit code (`-1` when it could not start or was cancelled).
+pub fn run(
+    root: &Path,
+    php: &str,
+    line: &str,
+    cancel: &AtomicBool,
+    on_event: &mut dyn FnMut(ArtisanEvent),
+) -> i32 {
+    let args = split_command_line(line);
+    on_event(ArtisanEvent::Started {
+        command_line: format!("php artisan {}", args.join(" ")),
+    });
+    let mut child = match artisan_command(root, php, &args)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+    {
+        Ok(c) => c,
+        Err(e) => {
+            on_event(ArtisanEvent::Error {
+                message: format!("Cannot run {php}: {e}"),
+            });
+            on_event(ArtisanEvent::Exit { code: -1 });
+            return -1;
+        }
+    };
+    let (tx, rx) = mpsc::channel::<(String, bool)>();
+    let mut readers = Vec::new();
+    if let Some(out) = child.stdout.take() {
+        let tx = tx.clone();
+        readers.push(std::thread::spawn(move || {
+            for l in BufReader::new(out).lines().map_while(|l| l.ok()) {
+                let _ = tx.send((l, false));
+            }
+        }));
+    }
+    if let Some(err) = child.stderr.take() {
+        let tx = tx.clone();
+        readers.push(std::thread::spawn(move || {
+            for l in BufReader::new(err).lines().map_while(|l| l.ok()) {
+                let _ = tx.send((l, true));
+            }
+        }));
+    }
+    drop(tx);
+    let code = loop {
+        while let Ok((text, stderr)) = rx.recv_timeout(Duration::from_millis(30)) {
+            on_event(ArtisanEvent::Output { text, stderr });
+        }
+        if cancel.load(Ordering::Relaxed) {
+            let _ = child.kill();
+            let _ = child.wait();
+            break -1;
+        }
+        if let Ok(Some(status)) = child.try_wait() {
+            for r in readers.drain(..) {
+                let _ = r.join();
+            }
+            for (text, stderr) in rx.try_iter() {
+                on_event(ArtisanEvent::Output { text, stderr });
+            }
+            break status.code().unwrap_or(-1);
+        }
+    };
+    on_event(ArtisanEvent::Exit { code });
+    code
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -307,6 +457,54 @@ mod tests {
         assert_eq!(cmds[1].arguments, vec!["name"]);
         assert_eq!(cmds[1].options, vec!["factory", "migration"]);
         assert!(cmds[0].arguments.is_empty());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn runs_and_streams_output() {
+        // A fake "php" that prints its arguments; artisan is just the first argument.
+        let dir = tempfile::tempdir().unwrap();
+        let script = dir.path().join("fake-php");
+        std::fs::write(
+            &script,
+            "#!/bin/sh\necho \"args: $*\"\necho oops >&2\nexit 3\n",
+        )
+        .unwrap();
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o755)).unwrap();
+        let mut events = Vec::new();
+        let code = run(
+            dir.path(),
+            script.to_str().unwrap(),
+            "php artisan route:list --json",
+            &AtomicBool::new(false),
+            &mut |e| events.push(e),
+        );
+        assert_eq!(code, 3);
+        assert_eq!(
+            events[0],
+            ArtisanEvent::Started {
+                command_line: "php artisan route:list --json".into()
+            }
+        );
+        assert!(events.contains(&ArtisanEvent::Output {
+            text: "args: artisan route:list --json".into(),
+            stderr: false
+        }));
+        assert!(events.contains(&ArtisanEvent::Output {
+            text: "oops".into(),
+            stderr: true
+        }));
+        assert_eq!(events.last(), Some(&ArtisanEvent::Exit { code: 3 }));
+        assert_eq!(
+            capture(
+                dir.path(),
+                script.to_str().unwrap(),
+                &["x"],
+                Duration::from_secs(5)
+            ),
+            None
+        );
     }
 
     #[test]
