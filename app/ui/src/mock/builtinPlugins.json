@@ -60,6 +60,14 @@
             {
               "value": "light",
               "label": "Forge Anvil (Light)"
+            },
+            {
+              "value": "solarized-dark",
+              "label": "Solarized Dark"
+            },
+            {
+              "value": "solarized-light",
+              "label": "Solarized Light"
             }
           ],
           "default": "dark",
