@@ -6,13 +6,59 @@
  */
 export function bridge_version(): string;
 
+/**
+ * `DetectRequest` → `FileTypeInfo[]`.
+ */
+export function filetypes_detect(request_json: string): string;
+
+/**
+ * Register the file types of plugins (`PluginInfo[]` JSON) on top of the bundled ones.
+ * Returns the number of known file types.
+ */
+export function filetypes_load(plugins_json: string): string;
+
+/**
+ * `FilterRequest` → `FilterHit[]`.
+ */
+export function fuzzy_filter(request_json: string): string;
+
+/**
+ * `{ query, paths, limit }` → `FileMatch[]`: "Go to File" over a list of paths (the
+ * browser-mode demo project instead of a file walk).
+ */
+export function search_match_files(request_json: string): string;
+
+/**
+ * `RankRequest` → `RankResponse`.
+ */
+export function search_rank(request_json: string): string;
+
+/**
+ * `SearchRequest` → `SearchResponse`.
+ */
+export function settings_search(request_json: string): string;
+
+/**
+ * `{ spec, value }` → the problem with the value, or `null` when it is valid.
+ */
+export function settings_validate(request_json: string): string;
+
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
     readonly bridge_version: (a: number) => void;
+    readonly filetypes_detect: (a: number, b: number, c: number) => void;
+    readonly filetypes_load: (a: number, b: number, c: number) => void;
+    readonly fuzzy_filter: (a: number, b: number, c: number) => void;
+    readonly search_match_files: (a: number, b: number, c: number) => void;
+    readonly search_rank: (a: number, b: number, c: number) => void;
+    readonly settings_search: (a: number, b: number, c: number) => void;
+    readonly settings_validate: (a: number, b: number, c: number) => void;
     readonly __wbindgen_add_to_stack_pointer: (a: number) => number;
     readonly __wbindgen_export: (a: number, b: number, c: number) => void;
+    readonly __wbindgen_export2: (a: number, b: number) => number;
+    readonly __wbindgen_export3: (a: number, b: number, c: number, d: number) => number;
 }
 
 export type SyncInitInput = BufferSource | WebAssembly.Module;

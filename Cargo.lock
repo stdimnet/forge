@@ -1614,6 +1614,9 @@ dependencies = [
 name = "forge-wasm"
 version = "0.1.0"
 dependencies = [
+ "forge-filetypes",
+ "forge-fuzzy",
+ "forge-plugin-api",
  "serde",
  "serde_json",
  "wasm-bindgen",
