@@ -3,7 +3,7 @@ import { StringStream, foldable, type StreamParser } from "@codemirror/language"
 import { EditorSelection, EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { toggleComment } from "@codemirror/commands";
-import { CompletionContext } from "@codemirror/autocomplete";
+import { CompletionContext, closeBrackets } from "@codemirror/autocomplete";
 import builtinPlugins from "@/mock/builtinPlugins.json";
 import { setLocalSetting } from "@/state/settings";
 import { smartySyntaxWith, templateParser } from "./templates";
@@ -41,7 +41,7 @@ function manifestDefault(key: string): unknown {
 }
 
 const twig = CONFIGURABLE_TEMPLATES.twig;
-const smartyLatex = { template: "smarty", language: "latex", left: "<<", right: ">>" };
+const smartyLatex = { template: "smarty", language: "latex", left: "[[", right: "]]" };
 const twigLatex = { template: "twig", language: "latex", variableStart: "\\VAR{", variableEnd: "}", blockStart: "\\BLOCK{", blockEnd: "}", commentStart: "\\#{", commentEnd: "}" };
 
 describe("delimiter resolution", () => {
@@ -51,7 +51,7 @@ describe("delimiter resolution", () => {
   });
 
   it("applies the entry of the (template, data language) pair", () => {
-    expect(resolveDelimiters(smarty, [smartyLatex, twigLatex], "latex")).toEqual({ left: "<<", right: ">>" });
+    expect(resolveDelimiters(smarty, [smartyLatex, twigLatex], "latex")).toEqual({ left: "[[", right: "]]" });
     expect(resolveDelimiters(smarty, [smartyLatex], "html")).toEqual({ left: "{", right: "}" });
     expect(resolveDelimiters(twig, [smartyLatex, twigLatex], "latex")).toMatchObject({ variableStart: "\\VAR{", blockStart: "\\BLOCK{", commentEnd: "}" });
   });
@@ -64,7 +64,7 @@ describe("delimiter resolution", () => {
 
   it("finds entries without a pair and duplicate pairs", () => {
     expect(invalidEntries([smartyLatex, twigLatex])).toEqual([]);
-    expect(invalidEntries([smartyLatex, { ...smartyLatex, left: "[[" }, { template: "twig", language: "" }])).toEqual([1, 2]);
+    expect(invalidEntries([smartyLatex, { ...smartyLatex, left: "<<" }, { template: "twig", language: "" }])).toEqual([1, 2]);
   });
 
   it("ships the LaTeX entries as manifest data, not as code", () => {
@@ -74,36 +74,43 @@ describe("delimiter resolution", () => {
   });
 });
 
-describe("Smarty with LaTeX and << >>", () => {
-  const syntax = smartySyntaxWith("<<", ">>");
+describe("Smarty with LaTeX and [[ ]]", () => {
+  const syntax = smartySyntaxWith("[[", "]]");
   const latex = dataParser("latex");
 
-  it("keeps LaTeX braces LaTeX and styles only << >> tags", () => {
-    const t = tokens(templateParser(syntax, latex), "\\textbf{<<$name|upper>>} \\amount{#1}");
+  it("keeps LaTeX braces LaTeX and styles only [[ ]] tags", () => {
+    const t = tokens(templateParser(syntax, latex), "\\textbf{[[$name|upper]]} \\amount{#1}");
     expect(t).toContainEqual(["\\textbf", "tag"]);
-    expect(t).toContainEqual(["<<", "meta"]);
+    expect(t).toContainEqual(["[[", "meta"]);
     expect(t).toContainEqual(["$name", "variableName"]);
     expect(t).toContainEqual(["|upper", "variableName.function"]);
-    expect(t).toContainEqual([">>", "meta"]);
+    expect(t).toContainEqual(["]]", "meta"]);
     // The braces belong to LaTeX, not to Smarty.
     const braces = t.filter(([text]) => text === "{" || text === "}");
     expect(braces.length).toBe(4);
     expect(braces.every(([, style]) => style !== "meta")).toBe(true);
   });
 
+  it("leaves single LaTeX brackets and `[[ ` (auto_literal) alone, like Smarty", () => {
+    const doc = "\\\\[2pt] \\item[a] \\includegraphics[width=2cm]{x} [[ not a tag ]] \\item[[$label]]";
+    const tags = scanTemplate(doc, syntax).tags.map((t) => doc.slice(t.from, t.to));
+    // Only the last one is a tag, as Smarty itself would see it: `\item[[a]]` needs `\item[{[a]}]`.
+    expect(tags).toEqual(["[[$label]]"]);
+  });
+
   it("does not let a `%` inside a tag start a LaTeX comment", () => {
-    const t = tokens(templateParser(syntax, latex), '\\amount{<<$total|string_format:"%.2f">>} \\\\ % note');
+    const t = tokens(templateParser(syntax, latex), '\\amount{[[$total|string_format:"%.2f"]]} \\\\ % note');
     expect(t).toContainEqual(['"%.2f"', "string"]);
     expect(t.find(([text]) => text === "}")?.[1]).not.toBe("comment");
     expect(t[t.length - 1]).toEqual(["% note", "comment"]);
   });
 
   it("follows the delimiters for comments, closing tags and literal blocks", () => {
-    const doc = "<<* note {x} *>>\n<<if $a>>x<</if>>\n<<literal>><<$no>><</literal>>";
+    const doc = "[[* note {x} *]]\n[[if $a]]x[[/if]]\n[[literal]][[$no]][[/literal]]";
     const ranges = templateRanges(doc, syntax).map((r) => [doc.slice(r.from, r.to), r.style]);
-    expect(ranges).toContainEqual([" note {x} *>>", "comment"]);
+    expect(ranges).toContainEqual([" note {x} *]]", "comment"]);
     expect(ranges).toContainEqual(["if", "keyword"]);
-    expect(ranges).toContainEqual(["<</", "meta"]);
+    expect(ranges).toContainEqual(["[[/", "meta"]);
     expect(ranges).not.toContainEqual(["$no", "variableName"]);
     const { tags } = scanTemplate(doc, syntax);
     expect(tags.map((t) => [t.kind, t.name ?? null])).toEqual([
@@ -195,61 +202,81 @@ describe("template editing", () => {
   });
 
   const stateWith = (doc: string, sel = 0) =>
-    EditorState.create({ doc, selection: EditorSelection.cursor(sel), extensions: [templateOverlay(smartySyntaxWith("<<", ">>")), templateEditing()] });
+    EditorState.create({ doc, selection: EditorSelection.cursor(sel), extensions: [templateOverlay(smartySyntaxWith("[[", "]]")), templateEditing()] });
 
-  it("toggles <<* *>> comments", () => {
+  it("toggles [[* *]] comments", () => {
     let state = stateWith("\\section{A}");
     toggleComment({ state, dispatch: (tr) => (state = tr.state) });
-    expect(state.doc.toString()).toBe("<<* \\section{A} *>>");
+    expect(state.doc.toString()).toBe("[[* \\section{A} *]]");
   });
 
   it("folds blocks and matches delimiters", () => {
-    const doc = "<<foreach $items as $i>>\n  <<$i>>\n<</foreach>>";
+    const doc = "[[foreach $items as $i]]\n  [[$i]]\n[[/foreach]]";
     const state = stateWith(doc);
-    expect(foldable(state, 0, state.doc.line(1).to)).toEqual({ from: doc.indexOf(">>") + 2, to: doc.indexOf("<</") });
+    expect(foldable(state, 0, state.doc.line(1).to)).toEqual({ from: doc.indexOf("]]") + 2, to: doc.indexOf("[[/") });
     const tags = scanTemplate(doc, state.field(templateSyntaxField)!).tags;
-    const end = doc.indexOf("<</");
+    const end = doc.indexOf("[[/");
     expect(matchingDelimiters(tags, 1)).toEqual([
       [0, 2],
-      [doc.indexOf(">>"), doc.indexOf(">>") + 2],
+      [doc.indexOf("]]"), doc.indexOf("]]") + 2],
       [end, end + 3],
       [doc.length - 2, doc.length],
     ]);
   });
 
   it("completes the open block after the closing-tag opener", () => {
-    const doc = "<<if $a>><<foreach $b as $c>>x<</";
-    expect(openBlocksAt(scanTemplate(doc, smartySyntaxWith("<<", ">>")).tags, doc.length)).toEqual(["if", "foreach"]);
+    const doc = "[[if $a]][[foreach $b as $c]]x[[/";
+    expect(openBlocksAt(scanTemplate(doc, smartySyntaxWith("[[", "]]")).tags, doc.length)).toEqual(["if", "foreach"]);
     const result = templateTagCompletion(new CompletionContext(stateWith(doc, doc.length), doc.length, false));
-    expect(result?.options[0]).toMatchObject({ label: "foreach", apply: "foreach>>" });
+    expect(result?.options[0]).toMatchObject({ label: "foreach", apply: "foreach]]" });
   });
 
-  it("auto-closes multi-character delimiters and comments", () => {
-    const view = new EditorView({ state: stateWith("<"), parent: document.body });
+  /** An editor with `syntax` and closeBrackets, and a function that types like the keyboard. */
+  function typingView(syntax: ReturnType<typeof smartySyntaxWith>) {
+    const view = new EditorView({
+      state: EditorState.create({ extensions: [templateOverlay(syntax), templateEditing(), closeBrackets()] }),
+      parent: document.body,
+    });
     views.push(view);
-    view.dispatch({ selection: { anchor: 1 } });
-    const type = (text: string) => {
-      const { from, to } = view.state.selection.main;
-      const handled = view.state.facet(EditorView.inputHandler).some((h) => h(view, from, to, text, () => view.state.update({ changes: { from, to, insert: text } })));
-      if (!handled) view.dispatch({ changes: { from, to, insert: text }, selection: { anchor: from + text.length } });
+    return {
+      view,
+      type(text: string) {
+        for (const ch of text) {
+          const { from, to } = view.state.selection.main;
+          const handled = view.state.facet(EditorView.inputHandler).some((h) => h(view, from, to, ch, () => view.state.update({ changes: { from, to, insert: ch } })));
+          if (!handled) view.dispatch({ changes: { from, to, insert: ch }, selection: { anchor: from + ch.length } });
+        }
+      },
     };
-    type("<");
-    expect(view.state.doc.toString()).toBe("<<>>");
+  }
+
+  it("auto-closes [[ ]] tags and [[* *]] comments", () => {
+    const { view, type } = typingView(smartySyntaxWith("[[", "]]"));
+    type("[[");
+    expect(view.state.doc.toString()).toBe("[[]]");
     type("*");
-    expect(view.state.doc.toString()).toBe("<<**>>");
+    expect(view.state.doc.toString()).toBe("[[**]]");
     expect(view.state.selection.main.head).toBe(3);
+  });
+
+  it("auto-closes multi-character delimiters that are not brackets", () => {
+    const { view, type } = typingView(smartySyntaxWith("<%", "%>"));
+    type("<%");
+    expect(view.state.doc.toString()).toBe("<%%>");
+    type("*");
+    expect(view.state.doc.toString()).toBe("<%**%>");
   });
 
   it("re-highlights open editors when the delimiter settings change", async () => {
     const view = new EditorView({
-      state: EditorState.create({ doc: "\\textbf{[[$x]]}", extensions: languageFor("invoice.tex.tpl") }),
+      state: EditorState.create({ doc: "\\textbf{<%$x%>}", extensions: languageFor("invoice.tex.tpl") }),
       parent: document.body,
     });
     views.push(view);
     expect(view.state.field(templateSyntaxField)?.delimiters[2][0]).toBe("{");
-    setLocalSetting(DELIMITERS_KEY, [{ template: "smarty", language: "latex", left: "[[", right: "]]" }]);
+    setLocalSetting(DELIMITERS_KEY, [{ template: "smarty", language: "latex", left: "<%", right: "%>" }]);
     await new Promise((r) => setTimeout(r, 0));
-    expect(view.state.field(templateSyntaxField)?.delimiters[2][0]).toBe("[[");
+    expect(view.state.field(templateSyntaxField)?.delimiters[2][0]).toBe("<%");
     expect(view.contentDOM.querySelector(".cm-tpl-variableName")?.textContent).toBe("$x");
   });
 });

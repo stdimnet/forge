@@ -31,7 +31,7 @@ export interface TemplateSyntax {
   autoLiteral?: boolean;
   /**
    * Blocks whose content is not parsed, like Smarty's `{literal}`: block name → the closing
-   * tag that ends it, built from the configured delimiters (`<</literal>>`).
+   * tag that ends it, built from the configured delimiters (`[[/literal]]`).
    */
   literalBlocks?: Record<string, string>;
   /**
@@ -357,8 +357,8 @@ const SMARTY_KEYWORDS = [
 
 /**
  * Smarty with the given delimiters (`$smarty->left_delimiter` / `right_delimiter`). Comments,
- * closing tags and `{literal}` follow them: with `<<` `>>` they are `<<* *>>`, `<</if>>` and
- * `<<literal>>…<</literal>>`.
+ * closing tags and `{literal}` follow them: with `[[` `]]` they are `[[* *]]`, `[[/if]]` and
+ * `[[literal]]…[[/literal]]`.
  */
 export function smartySyntaxWith(left = "{", right = "}"): TemplateSyntax {
   return {

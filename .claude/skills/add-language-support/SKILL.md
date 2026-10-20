@@ -91,7 +91,7 @@ from them (comments, end tags, literal blocks).
 
 One setting, `templates.delimiters` (type `objects`, page `lang.templates`, declared in
 `app/src-tauri/plugins/core.toml`), holds the differences: one entry per (template language,
-data language) pair, e.g. `{ template = "smarty", language = "latex", left = "<<", right = ">>" }`.
+data language) pair, e.g. `{ template = "smarty", language = "latex", left = "[[", right = "]]" }`.
 The LaTeX entries ship as default *data*; never add a code path for a specific pair. Files
 without an entry use the language's defaults. The settings page edits the entries with
 `TemplateDelimitersEditor` (a table plus a form with the template's fields); duplicate pairs

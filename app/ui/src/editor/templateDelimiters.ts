@@ -5,7 +5,7 @@
  * Each configurable template language declares its delimiter fields with their built-in
  * defaults. The `templates.delimiters` setting holds only the differences, one entry per pair:
  *
- *   { template = "smarty", language = "latex", left = "<<", right = ">>" }
+ *   { template = "smarty", language = "latex", left = "[[", right = "]]" }
  *   { template = "twig", language = "latex", variableStart = "\VAR{", variableEnd = "}", … }
  *
  * Nothing here knows about a particular pair: the LaTeX entries ship as default data in the

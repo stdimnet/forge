@@ -178,7 +178,7 @@ jobs:
 </div>
 {/block}
 `,
-  "legacy/templates/invoice.tex.tpl": `<<* Invoice PDF, rendered with pdflatex. LaTeX templates use << >> as Smarty delimiters. *>>
+  "legacy/templates/invoice.tex.tpl": `[[* Invoice PDF, rendered with pdflatex. LaTeX templates use double square brackets as Smarty delimiters. *]]
 \\documentclass[11pt,a4paper]{article}
 \\usepackage[utf8]{inputenc}
 \\usepackage{booktabs}
@@ -186,28 +186,28 @@ jobs:
 \\newcommand{\\amount}[1]{\\textbf{#1}~EUR}
 
 \\begin{document}
-\\section*{Invoice <<$invoice.number|escape:'latex'>>}
+\\section*{Invoice [[$invoice.number|escape:'latex']]}
 
-<<if $customer.company>>
-  \\textbf{<<$customer.company>>}\\\\
-<</if>>
-<<$customer.name>>\\\\
-<<$customer.street>>, <<$customer.city>>
+[[if $customer.company]]
+  \\textbf{[[$customer.company]]}\\\\
+[[/if]]
+[[$customer.name]]\\\\[2pt]
+[[$customer.street]], [[$customer.city]]
 
 \\begin{tabular}{lrr}
   \\toprule
   Item & Qty & Total \\\\
   \\midrule
-<<foreach $invoice.items as $item>>
-  <<$item.name>> & <<$item.quantity>> & \\amount{<<$item.total|string_format:"%.2f">>} \\\\
-<</foreach>>
+[[foreach $invoice.items as $item]]
+  [[$item.name]] & [[$item.quantity]] & \\amount{[[$item.total|string_format:"%.2f"]]} \\\\
+[[/foreach]]
   \\bottomrule
 \\end{tabular}
 
 % Plain LaTeX comment: {braces} stay LaTeX.
-<<literal>>\\verb|<<not a tag>>|<</literal>>
+[[literal]]\\verb|[[not a tag]]|[[/literal]]
 
-Total: \\amount{<<$invoice.total|string_format:"%.2f">>}
+Total: \\amount{[[$invoice.total|string_format:"%.2f"]]}
 \\end{document}
 `,
   "legacy/templates/letter.tex.twig": `\\#{ Dunning letter, rendered with pdflatex. Twig tags in LaTeX: VAR, BLOCK and # with braces. }

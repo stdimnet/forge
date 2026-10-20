@@ -1,6 +1,6 @@
 /**
  * Editing support for template tags that follows the file's delimiters (`templateSyntaxField`):
- * comment toggling (`{* *}` or `<<* *>>`), folding of blocks and comments, highlighting of the
+ * comment toggling (`{* *}` or `[[* *]]`), folding of blocks and comments, highlighting of the
  * matching delimiter and block tag, auto-closing of tags and completion of tag names.
  */
 import type { CompletionContext, CompletionResult } from "@codemirror/autocomplete";
@@ -32,7 +32,7 @@ export function templateBlocks(tags: TemplateTag[]): TemplateBlock[] {
   return blocks;
 }
 
-/** The comment delimiters of a syntax: the first comment pair, e.g. `<<*` `*>>`. */
+/** The comment delimiters of a syntax: the first comment pair, e.g. `[[*` `*]]`. */
 export function commentDelimiters(syntax: TemplateSyntax): { open: string; close: string } | undefined {
   const d = syntax.delimiters.find(([, , kind]) => kind === "comment");
   return d && { open: d[0], close: d[1] };
@@ -55,7 +55,7 @@ export function openBlocksAt(tags: TemplateTag[], pos: number): string[] {
   return stack;
 }
 
-/** Completion of tag names after an opener (`<<fo` → `foreach`) and of end tags (`<</` → `if>>`). */
+/** Completion of tag names after an opener (`[[fo` → `foreach`) and of end tags (`[[/` → `if]]`). */
 export function templateTagCompletion(ctx: CompletionContext): CompletionResult | null {
   const syntax = syntaxOf(ctx.state);
   if (!syntax) return null;
@@ -93,9 +93,9 @@ export function templateTagCompletion(ctx: CompletionContext): CompletionResult 
 }
 
 /**
- * Typing the last character of an opener inserts the closer (`<<` → `<<|>>`), and turning
- * `<<|>>` into a comment opener completes the comment (`<<*|*>>`). Openers made of brackets
- * (`{`, `{{`, `[[`) are left to `closeBrackets`.
+ * Typing the last character of an opener inserts the closer (`<%` → `<%|%>`), and turning
+ * `[[|]]` into a comment opener completes the comment (`[[*|*]]`). Openers made of brackets
+ * (`{`, `{{`, `[[`) get their closer from `closeBrackets`, one bracket at a time.
  */
 export const templateAutoClose = EditorView.inputHandler.of((view, from, to, text) => {
   const syntax = syntaxOf(view.state);
@@ -107,7 +107,7 @@ export const templateAutoClose = EditorView.inputHandler.of((view, from, to, tex
     if (!before.endsWith(open)) continue;
     const plain = syntax.delimiters.find(([o, , k]) => k !== "comment" && o.length < open.length && open.startsWith(o));
     if (kind === "comment" && plain && after.startsWith(plain[1]) && close.endsWith(plain[1])) {
-      // `<<|>>` + `*` → `<<*|*>>`: the plain closer becomes the comment closer.
+      // `[[|]]` + `*` → `[[*|*]]`: the plain closer becomes the comment closer.
       const insert = text + close.slice(0, close.length - plain[1].length);
       view.dispatch({ changes: { from, insert }, selection: { anchor: from + 1 }, userEvent: "input.type" });
       return true;
@@ -122,7 +122,7 @@ export const templateAutoClose = EditorView.inputHandler.of((view, from, to, tex
   return false;
 });
 
-/** Folds block tags (`<<foreach …>>` … `<</foreach>>`) and comments that span lines. */
+/** Folds block tags (`[[foreach …]]` … `[[/foreach]]`) and comments that span lines. */
 export const templateFolding = foldService.of((state, lineStart, lineEnd) => {
   const syntax = syntaxOf(state);
   if (!syntax) return null;
@@ -175,7 +175,7 @@ const templateMatching = ViewPlugin.fromClass(
   { decorations: (v) => v.decorations },
 );
 
-/** Comment tokens of the template (`<<* *>>`) take precedence over the data language's. */
+/** Comment tokens of the template (`[[* *]]`) take precedence over the data language's. */
 const templateLanguageData = Prec.highest(
   EditorState.languageData.of((state) => {
     const syntax = syntaxOf(state);

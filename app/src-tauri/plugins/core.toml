@@ -181,7 +181,7 @@ description = "Delimiters of a template language in a data language, e.g. Smarty
 type = "objects"
 unique = ["template", "language"]
 default = [
-  { template = "smarty", language = "latex", left = "<<", right = ">>" },
+  { template = "smarty", language = "latex", left = "[[", right = "]]" },
   { template = "twig", language = "latex", variableStart = '\VAR{', variableEnd = "}", blockStart = '\BLOCK{', blockEnd = "}", commentStart = '\#{', commentEnd = "}" },
   { template = "jinja", language = "latex", variableStart = '\VAR{', variableEnd = "}", blockStart = '\BLOCK{', blockEnd = "}", commentStart = '\#{', commentEnd = "}" },
 ]
