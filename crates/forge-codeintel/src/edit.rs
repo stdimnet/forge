@@ -344,9 +344,9 @@ pub fn apply_workspace_edit(
         match change {
             DocumentChange::Edit { path, edits } => {
                 let f = slot(&mut files, store, path)?;
-                let current = f.2.as_deref().ok_or_else(|| EditError::Missing {
-                    path: path.clone(),
-                })?;
+                let current =
+                    f.2.as_deref()
+                        .ok_or_else(|| EditError::Missing { path: path.clone() })?;
                 let next = apply_text_edits(current, edits)
                     .ok_or_else(|| EditError::Overlap { path: path.clone() })?;
                 f.2 = Some(next);
@@ -358,9 +358,10 @@ pub fn apply_workspace_edit(
                 }
             }
             DocumentChange::Rename { from, to } => {
-                let content = slot(&mut files, store, from)?.2.take().ok_or_else(|| {
-                    EditError::Missing { path: from.clone() }
-                })?;
+                let content = slot(&mut files, store, from)?
+                    .2
+                    .take()
+                    .ok_or_else(|| EditError::Missing { path: from.clone() })?;
                 let target = slot(&mut files, store, to)?;
                 if target.2.is_some() {
                     return Err(EditError::Conflict { path: to.clone() });
@@ -502,7 +503,10 @@ pub fn preview_workspace_edit(
                         shift += added - removed;
                     }
                 }
-                match out.iter_mut().find(|f| f.path == *path && f.operation == "edit") {
+                match out
+                    .iter_mut()
+                    .find(|f| f.path == *path && f.operation == "edit")
+                {
                     Some(f) => f.rows.extend(rows),
                     None => out.push(FilePreview {
                         path: path.clone(),
@@ -551,10 +555,7 @@ mod tests {
         let text = "<?php\n$ü = new User();\nUser::find(1);\n";
         let out = apply_text_edits(
             text,
-            &[
-                edit(1, 9, 1, 13, "Customer"),
-                edit(2, 0, 2, 4, "Customer"),
-            ],
+            &[edit(1, 9, 1, 13, "Customer"), edit(2, 0, 2, 4, "Customer")],
         )
         .unwrap();
         assert_eq!(out, "<?php\n$ü = new Customer();\nCustomer::find(1);\n");
@@ -566,10 +567,11 @@ mod tests {
 
     #[test]
     fn keeps_insert_order_and_refuses_overlaps() {
-        let out =
-            apply_text_edits("ab", &[edit(0, 1, 0, 1, "1"), edit(0, 1, 0, 1, "2")]).unwrap();
+        let out = apply_text_edits("ab", &[edit(0, 1, 0, 1, "1"), edit(0, 1, 0, 1, "2")]).unwrap();
         assert_eq!(out, "a12b");
-        assert!(apply_text_edits("abcdef", &[edit(0, 0, 0, 3, "x"), edit(0, 2, 0, 4, "y")]).is_none());
+        assert!(
+            apply_text_edits("abcdef", &[edit(0, 0, 0, 3, "x"), edit(0, 2, 0, 4, "y")]).is_none()
+        );
     }
 
     #[test]
@@ -622,10 +624,13 @@ mod tests {
         assert_eq!(applied.len(), 3);
 
         revert_applied(&applied, &mut s).unwrap();
-        assert_eq!(s, store(&[
-            ("app/User.php", "class User {}\n"),
-            ("app/Order.php", "new User();\nUser::class;\n"),
-        ]));
+        assert_eq!(
+            s,
+            store(&[
+                ("app/User.php", "class User {}\n"),
+                ("app/Order.php", "new User();\nUser::class;\n"),
+            ])
+        );
     }
 
     #[test]
@@ -636,7 +641,9 @@ mod tests {
         e.add_edits("b.php", vec![edit(0, 0, 0, 3, "x"), edit(0, 2, 0, 4, "y")]);
         assert_eq!(
             apply_workspace_edit(&e, &mut s),
-            Err(EditError::Overlap { path: "b.php".into() })
+            Err(EditError::Overlap {
+                path: "b.php".into()
+            })
         );
         assert_eq!(s.0.get("a.php").unwrap(), "abc");
 
@@ -657,7 +664,9 @@ mod tests {
         s.0.insert("a.php".into(), "edited by hand".into());
         assert_eq!(
             revert_applied(&applied, &mut s),
-            Err(EditError::Conflict { path: "a.php".into() })
+            Err(EditError::Conflict {
+                path: "a.php".into()
+            })
         );
         assert_eq!(s.0.get("a.php").unwrap(), "edited by hand");
     }
@@ -677,7 +686,8 @@ mod tests {
 
     #[test]
     fn preview_lists_changed_lines() {
-        let text = "<?php\nclass User\n{\n    public function x(User $u) { return new User(); }\n}\n";
+        let text =
+            "<?php\nclass User\n{\n    public function x(User $u) { return new User(); }\n}\n";
         let mut e = WorkspaceEdit::default();
         e.add_edits(
             "User.php",

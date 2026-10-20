@@ -117,7 +117,9 @@ fn is_assignment(after: &str) -> bool {
     if a.starts_with("++") || a.starts_with("--") {
         return true;
     }
-    let ops = ["??=", ".=", "+=", "-=", "*=", "/=", "%=", "|=", "&=", "^=", "**="];
+    let ops = [
+        "??=", ".=", "+=", "-=", "*=", "/=", "%=", "|=", "&=", "^=", "**=",
+    ];
     if ops.iter().any(|op| a.starts_with(op)) {
         return true;
     }
@@ -159,7 +161,9 @@ pub fn classify_usage(line: &str, start: u32, end: u32) -> UsageKind {
             UsageKind::TraitUse
         };
     }
-    if trimmed_line.starts_with("import ") || (trimmed_line.starts_with("export ") && line.contains(" from ")) {
+    if trimmed_line.starts_with("import ")
+        || (trimmed_line.starts_with("export ") && line.contains(" from "))
+    {
         return UsageKind::Import;
     }
     if b.ends_with("#[") || (b.ends_with(',') && lead.starts_with("#[")) {
@@ -379,29 +383,92 @@ mod tests {
     #[test]
     fn classifies_php_usages() {
         assert_eq!(kind("use App\\Models\\User;", "User"), UsageKind::Import);
-        assert_eq!(kind("    use HasFactory, Notifiable;", "Notifiable"), UsageKind::TraitUse);
-        assert_eq!(kind("class Admin extends User implements Auth", "User"), UsageKind::Extends);
-        assert_eq!(kind("class Admin extends User implements Auth", "Auth"), UsageKind::Extends);
-        assert_eq!(kind("        $u = new User();", "User"), UsageKind::NewInstance);
-        assert_eq!(kind("        $user->orders()->get();", "orders"), UsageKind::MethodCall);
-        assert_eq!(kind("        return $this->orders", "orders"), UsageKind::Read);
+        assert_eq!(
+            kind("    use HasFactory, Notifiable;", "Notifiable"),
+            UsageKind::TraitUse
+        );
+        assert_eq!(
+            kind("class Admin extends User implements Auth", "User"),
+            UsageKind::Extends
+        );
+        assert_eq!(
+            kind("class Admin extends User implements Auth", "Auth"),
+            UsageKind::Extends
+        );
+        assert_eq!(
+            kind("        $u = new User();", "User"),
+            UsageKind::NewInstance
+        );
+        assert_eq!(
+            kind("        $user->orders()->get();", "orders"),
+            UsageKind::MethodCall
+        );
+        assert_eq!(
+            kind("        return $this->orders", "orders"),
+            UsageKind::Read
+        );
         assert_eq!(kind("        $this->total = 5;", "total"), UsageKind::Write);
-        assert_eq!(kind("        $this->total += 5;", "total"), UsageKind::Write);
-        assert_eq!(kind("        if ($this->total == 5)", "total"), UsageKind::Read);
-        assert_eq!(kind("        User::find(1);", "User"), UsageKind::StaticAccess);
-        assert_eq!(kind("        return $this->hasMany(Order::class);", "Order"), UsageKind::StaticAccess);
-        assert_eq!(kind("        OrderStatus::Paid", "Paid"), UsageKind::StaticAccess);
-        assert_eq!(kind("    public function show(Request $r, Order $order): JsonResponse", "Order"), UsageKind::TypeHint);
-        assert_eq!(kind("    public function show(Request $r, Order $order): JsonResponse", "JsonResponse"), UsageKind::TypeHint);
-        assert_eq!(kind("    private ?User $owner;", "User"), UsageKind::TypeHint);
-        assert_eq!(kind("        if ($x instanceof User) {", "User"), UsageKind::Instanceof);
-        assert_eq!(kind("    #[Route('/orders')]", "Route"), UsageKind::Attribute);
+        assert_eq!(
+            kind("        $this->total += 5;", "total"),
+            UsageKind::Write
+        );
+        assert_eq!(
+            kind("        if ($this->total == 5)", "total"),
+            UsageKind::Read
+        );
+        assert_eq!(
+            kind("        User::find(1);", "User"),
+            UsageKind::StaticAccess
+        );
+        assert_eq!(
+            kind("        return $this->hasMany(Order::class);", "Order"),
+            UsageKind::StaticAccess
+        );
+        assert_eq!(
+            kind("        OrderStatus::Paid", "Paid"),
+            UsageKind::StaticAccess
+        );
+        assert_eq!(
+            kind(
+                "    public function show(Request $r, Order $order): JsonResponse",
+                "Order"
+            ),
+            UsageKind::TypeHint
+        );
+        assert_eq!(
+            kind(
+                "    public function show(Request $r, Order $order): JsonResponse",
+                "JsonResponse"
+            ),
+            UsageKind::TypeHint
+        );
+        assert_eq!(
+            kind("    private ?User $owner;", "User"),
+            UsageKind::TypeHint
+        );
+        assert_eq!(
+            kind("        if ($x instanceof User) {", "User"),
+            UsageKind::Instanceof
+        );
+        assert_eq!(
+            kind("    #[Route('/orders')]", "Route"),
+            UsageKind::Attribute
+        );
         assert_eq!(kind(" * @return User the owner", "User"), UsageKind::Doc);
         assert_eq!(kind("    // the User model", "User"), UsageKind::Comment);
-        assert_eq!(kind("        $x = 'User';", "User"), UsageKind::StringLiteral);
-        assert_eq!(kind("        $user = $request->user();", "$user"), UsageKind::Write);
+        assert_eq!(
+            kind("        $x = 'User';", "User"),
+            UsageKind::StringLiteral
+        );
+        assert_eq!(
+            kind("        $user = $request->user();", "$user"),
+            UsageKind::Write
+        );
         assert_eq!(kind("        return $user;", "$user"), UsageKind::Read);
-        assert_eq!(kind("        response()->json([]);", "response"), UsageKind::FunctionCall);
+        assert_eq!(
+            kind("        response()->json([]);", "response"),
+            UsageKind::FunctionCall
+        );
         assert_eq!(kind("import { ref } from 'vue';", "ref"), UsageKind::Import);
     }
 
@@ -416,7 +483,8 @@ mod tests {
     #[test]
     fn groups_by_type_and_file_without_the_declaration() {
         let user = "<?php\nclass User\n{\n}\n";
-        let ctrl = "<?php\nuse App\\Models\\User;\n\nfunction a(User $u) {\n    return new User();\n}\n";
+        let ctrl =
+            "<?php\nuse App\\Models\\User;\n\nfunction a(User $u) {\n    return new User();\n}\n";
         let req = GroupRequest {
             usages: vec![
                 loc("app/Http/Ctrl.php", 4, 15, 19),
@@ -439,7 +507,11 @@ mod tests {
         let labels: Vec<&str> = tree.groups.iter().map(|g| g.label.as_str()).collect();
         assert_eq!(
             labels,
-            vec!["Usage in import", "New instance creation", "Usage in type declaration"]
+            vec![
+                "Usage in import",
+                "New instance creation",
+                "Usage in type declaration"
+            ]
         );
         let row = &tree.groups[1].files[0].usages[0];
         assert_eq!(row.text, "return new User();");
@@ -455,7 +527,11 @@ mod tests {
         );
         assert_eq!(flat.groups.len(), 1);
         assert_eq!(flat.groups[0].kind, None);
-        let lines: Vec<u32> = flat.groups[0].files[0].usages.iter().map(|u| u.line).collect();
+        let lines: Vec<u32> = flat.groups[0].files[0]
+            .usages
+            .iter()
+            .map(|u| u.line)
+            .collect();
         assert_eq!(lines, vec![1, 3, 4], "sorted by position");
     }
 
