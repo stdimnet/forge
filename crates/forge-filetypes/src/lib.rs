@@ -250,7 +250,11 @@ fn score(spec: &FileTypeSpec, path: &str, name: &str) -> usize {
     }
     for ext in &spec.extensions {
         let ext = ext.to_lowercase();
-        if name == ext || name.strip_suffix(ext.as_str()).is_some_and(|s| s.ends_with('.')) {
+        if name == ext
+            || name
+                .strip_suffix(ext.as_str())
+                .is_some_and(|s| s.ends_with('.'))
+        {
             best = best.max(ext.len() + 1);
         }
     }

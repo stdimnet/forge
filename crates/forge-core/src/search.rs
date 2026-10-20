@@ -3,7 +3,9 @@
 //! The matcher itself lives in the pure `forge-fuzzy` crate (also compiled to WebAssembly
 //! for the browser-mode UI); this module walks the workspace and ranks its files.
 
-pub use forge_fuzzy::{fuzzy_match, fuzzy_match_with, match_file, FileMatch, FuzzyMatch, MatchOptions};
+pub use forge_fuzzy::{
+    fuzzy_match, fuzzy_match_with, match_file, FileMatch, FuzzyMatch, MatchOptions,
+};
 
 use crate::workspace::{Workspace, DEFAULT_EXCLUDES};
 use crate::Result;

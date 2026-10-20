@@ -123,8 +123,14 @@ mod tests {
             id(data_language_from_name("templates/invoice.tex.twig")),
             Some("latex")
         );
-        assert_eq!(id(data_language_from_name("reports/top.sql.twig")), Some("sql"));
-        assert_eq!(id(data_language_from_name("theme/style.css.tpl")), Some("css"));
+        assert_eq!(
+            id(data_language_from_name("reports/top.sql.twig")),
+            Some("sql")
+        );
+        assert_eq!(
+            id(data_language_from_name("theme/style.css.tpl")),
+            Some("css")
+        );
         assert_eq!(id(data_language_from_name("base.html.twig")), Some("html"));
         assert_eq!(id(data_language_from_name("cart.tpl")), None);
         assert_eq!(id(data_language_from_name("cmd/main.go.tmpl")), Some("go"));
@@ -132,13 +138,19 @@ mod tests {
             id(data_language_from_name("deploy/config.yaml.tmpl")),
             Some("yaml")
         );
-        assert_eq!(id(data_language_from_name("views/index.html.tmpl")), Some("html"));
+        assert_eq!(
+            id(data_language_from_name("views/index.html.tmpl")),
+            Some("html")
+        );
         assert_eq!(id(data_language_from_name("deploy.tmpl")), None);
     }
 
     #[test]
     fn applies_pattern_mappings_before_file_names() {
-        let m = vec!["legacy/latex/*=latex".to_string(), "*.mail.twig=text".to_string()];
+        let m = vec![
+            "legacy/latex/*=latex".to_string(),
+            "*.mail.twig=text".to_string(),
+        ];
         assert_eq!(
             id(data_language_from_mappings("legacy/latex/letter.tpl", &m)),
             Some("latex")
@@ -147,8 +159,14 @@ mod tests {
             id(data_language_from_mappings("emails/welcome.mail.twig", &m)),
             Some("text")
         );
-        assert_eq!(id(data_language_from_mappings("templates/base.html.twig", &m)), None);
-        assert_eq!(data_language_for("legacy/latex/a.html.twig", &m).id, "latex");
+        assert_eq!(
+            id(data_language_from_mappings("templates/base.html.twig", &m)),
+            None
+        );
+        assert_eq!(
+            data_language_for("legacy/latex/a.html.twig", &m).id,
+            "latex"
+        );
         assert_eq!(data_language_for("index.html.tmpl", &[]).id, "html");
         assert_eq!(data_language_for("query.sql.tmpl", &[]).id, "sql");
         assert_eq!(data_language_for("plain.twig", &[]).id, "html");
@@ -156,7 +174,11 @@ mod tests {
 
     #[test]
     fn ignores_malformed_mappings() {
-        let m = vec!["=latex".into(), "*.tpl=klingon".into(), "*.tpl= LaTeX ".into()];
+        let m = vec![
+            "=latex".into(),
+            "*.tpl=klingon".into(),
+            "*.tpl= LaTeX ".into(),
+        ];
         assert_eq!(id(data_language_from_mappings("a.tpl", &m)), Some("latex"));
     }
 }

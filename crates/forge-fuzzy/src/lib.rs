@@ -336,7 +336,10 @@ mod tests {
 
     #[test]
     fn separators_are_word_starts() {
-        assert_eq!(positions("cot", "create_orders_table"), Some(vec![0, 7, 14]));
+        assert_eq!(
+            positions("cot", "create_orders_table"),
+            Some(vec![0, 7, 14])
+        );
     }
 
     #[test]

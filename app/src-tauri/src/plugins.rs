@@ -120,9 +120,8 @@ mod tests {
     #[test]
     fn file_types_detect_like_phpstorm() {
         let types = builtin_registry().unwrap().file_type_registry();
-        let id = |path: &str, first: Option<&str>| {
-            types.detect(path, first, &[]).map(|t| t.id.as_str())
-        };
+        let id =
+            |path: &str, first: Option<&str>| types.detect(path, first, &[]).map(|t| t.id.as_str());
         for (path, expected) in [
             ("src/app.py", "python"),
             ("scripts/deploy.sh", "shell"),
@@ -167,7 +166,10 @@ mod tests {
         ] {
             assert_eq!(id(path, None), Some(expected), "{path}");
         }
-        assert_eq!(id("bin/run", Some("#!/usr/bin/env python3")), Some("python"));
+        assert_eq!(
+            id("bin/run", Some("#!/usr/bin/env python3")),
+            Some("python")
+        );
         assert_eq!(id("bin/run", Some("#!/bin/bash")), Some("shell"));
         assert_eq!(id("bin/run", Some("#!/bin/sh")), Some("shell"));
         assert_eq!(id("bin/run", Some("#!/usr/bin/php")), None);

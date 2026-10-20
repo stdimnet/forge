@@ -99,10 +99,22 @@ fn plugins_override_bundled_types_and_fall_back_when_inactive() {
     };
     assert_eq!(id("symfony.lock", &[]).as_deref(), Some("json"));
     assert_eq!(id("symfony.lock", &["forge.json"]).as_deref(), Some("json"));
-    assert_eq!(id("config/services.yaml", &[]).as_deref(), Some("symfony-services"));
-    assert_eq!(id("config/services_test.yaml", &[]).as_deref(), Some("symfony-services"));
-    assert_eq!(id("app/config/services/api.yaml", &[]).as_deref(), Some("symfony-services"));
-    assert_eq!(id("config/packages/twig.yaml", &[]).as_deref(), Some("yaml"));
+    assert_eq!(
+        id("config/services.yaml", &[]).as_deref(),
+        Some("symfony-services")
+    );
+    assert_eq!(
+        id("config/services_test.yaml", &[]).as_deref(),
+        Some("symfony-services")
+    );
+    assert_eq!(
+        id("app/config/services/api.yaml", &[]).as_deref(),
+        Some("symfony-services")
+    );
+    assert_eq!(
+        id("config/packages/twig.yaml", &[]).as_deref(),
+        Some("yaml")
+    );
     assert_eq!(
         id("config/services.yaml", &["forge.symfony-services"]).as_deref(),
         Some("yaml")
@@ -134,7 +146,9 @@ fn registering_the_same_id_from_the_same_source_replaces_it() {
     );
     assert_eq!(r.specs().count(), before);
     assert_eq!(
-        r.detect("templates/base.html.twig", None, &[]).unwrap().name,
+        r.detect("templates/base.html.twig", None, &[])
+            .unwrap()
+            .name,
         "Twig (Symfony)"
     );
 }
@@ -143,14 +157,19 @@ fn registering_the_same_id_from_the_same_source_replaces_it() {
 fn detects_scripts_by_shebang_only_without_a_known_type() {
     let mut r = FileTypeRegistry::with_builtins();
     let mut sh = spec("shell", "Shell Script", &["sh"], &[]);
-    sh.interpreters = ["sh", "bash", "zsh", "ksh", "dash", "ash"].map(String::from).to_vec();
+    sh.interpreters = ["sh", "bash", "zsh", "ksh", "dash", "ash"]
+        .map(String::from)
+        .to_vec();
     r.register(sh, Some("forge.bash"));
     let mut py = spec("python", "Python", &["py"], &[]);
     py.interpreters = vec!["python".into()];
     r.register(py, Some("forge.python"));
     let id = |first: &str| r.detect("bin/run", Some(first), &[]).map(|t| t.id.clone());
     assert_eq!(id("#!/usr/bin/env python3").as_deref(), Some("python"));
-    assert_eq!(id("#!/usr/bin/env -S python3.12 -u").as_deref(), Some("python"));
+    assert_eq!(
+        id("#!/usr/bin/env -S python3.12 -u").as_deref(),
+        Some("python")
+    );
     assert_eq!(id("#!/bin/bash").as_deref(), Some("shell"));
     assert_eq!(id("#!/bin/sh -e").as_deref(), Some("shell"));
     assert_eq!(id("#!/usr/bin/php"), None);

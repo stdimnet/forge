@@ -243,7 +243,11 @@ mod tests {
         g.items
             .iter()
             .map(|i| {
-                let s = req.sources.iter().find(|s| s.provider == i.provider).unwrap();
+                let s = req
+                    .sources
+                    .iter()
+                    .find(|s| s.provider == i.provider)
+                    .unwrap();
                 s.items[i.index].id.clone()
             })
             .collect()

@@ -112,10 +112,8 @@ pub fn build_tree(pages: &[PageInput]) -> Vec<TreeNode> {
         .map(|(group, page)| match page {
             Some(p) => (group, node(p, &children)),
             None => {
-                let kids: Vec<TreeNode> = grouped[group]
-                    .iter()
-                    .map(|p| node(p, &children))
-                    .collect();
+                let kids: Vec<TreeNode> =
+                    grouped[group].iter().map(|p| node(p, &children)).collect();
                 let pages = kids.iter().flat_map(|k| k.pages.iter().cloned()).collect();
                 let n = TreeNode {
                     id: group_node_id(group),
@@ -444,7 +442,13 @@ mod tests {
         let titles: Vec<_> = tree.iter().map(|n| n.title.as_str()).collect();
         assert_eq!(
             titles,
-            vec!["Appearance & Behavior", "Editor", "Plugins", "Tools", "Zeta"]
+            vec![
+                "Appearance & Behavior",
+                "Editor",
+                "Plugins",
+                "Tools",
+                "Zeta"
+            ]
         );
         assert_eq!(tree[2].id, "plugins");
         assert!(tree[2].page);
@@ -460,7 +464,10 @@ mod tests {
             vec!["group:Editor", "editor.code-style", "editor.code-style.php"]
         );
         assert_eq!(flatten(&tree).len(), pages().len() + 4);
-        assert_eq!(tree[1].pages, vec!["editor.code-style", "editor.code-style.php"]);
+        assert_eq!(
+            tree[1].pages,
+            vec!["editor.code-style", "editor.code-style.php"]
+        );
     }
 
     #[test]
@@ -468,7 +475,11 @@ mod tests {
         let req = SearchRequest {
             query: "braces".into(),
             pages: pages(),
-            settings: vec![spec("php.braces", "Braces placement", "editor.code-style.php")],
+            settings: vec![spec(
+                "php.braces",
+                "Braces placement",
+                "editor.code-style.php",
+            )],
             ..Default::default()
         };
         let res = search(&req);
@@ -485,7 +496,10 @@ mod tests {
             ..req.clone()
         });
         assert_eq!(
-            res.visible.iter().map(|n| n.id.as_str()).collect::<Vec<_>>(),
+            res.visible
+                .iter()
+                .map(|n| n.id.as_str())
+                .collect::<Vec<_>>(),
             vec!["plugins"]
         );
 
@@ -518,7 +532,12 @@ mod tests {
         assert_eq!(highlight("abc", ""), vec![seg("abc", false)]);
         assert_eq!(
             highlight("Größe größer", "GRÖ"),
-            vec![seg("Grö", true), seg("ße ", false), seg("grö", true), seg("ßer", false)]
+            vec![
+                seg("Grö", true),
+                seg("ße ", false),
+                seg("grö", true),
+                seg("ßer", false)
+            ]
         );
     }
 
@@ -558,7 +577,10 @@ mod tests {
             })
         };
         assert_eq!(check(json!(13)), None);
-        assert_eq!(check(json!(100)).as_deref(), Some("Font size: must be at most 72"));
+        assert_eq!(
+            check(json!(100)).as_deref(),
+            Some("Font size: must be at most 72")
+        );
         assert!(check(json!("13")).is_some());
     }
 }
