@@ -17,6 +17,6 @@ registerLanguage({
 
 registerEditorExtension(({ path }) =>
   languageIdFor(path) === "python"
-    ? syntaxDiagnostics(path, { source: "Python", serverIds: ["python-language-server"] }, (s) => lezerProblems(s))
+    ? syntaxDiagnostics(path, { source: "Python", serverIds: ["pyright", "basedpyright"] }, (s) => lezerProblems(s))
     : null,
 );

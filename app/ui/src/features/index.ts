@@ -15,4 +15,5 @@ import "./git";
 import "./php";
 import "./project-type";
 import "./new-project";
+import "./languages";
 import "./browserCompanion";
