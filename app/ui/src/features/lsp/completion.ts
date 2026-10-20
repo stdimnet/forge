@@ -57,8 +57,20 @@ const kindIcons: Record<string, Parameters<typeof iconNode>[0]> = {
   reference: Braces,
 };
 
+const extraGroups: Record<string, string> = {};
+
+/**
+ * Let other completion sources (e.g. a framework plugin) use their own kinds with an icon
+ * and a color group (`function`, `property`, `type`, `constant`, `variable`, `keyword`).
+ */
+export function registerCompletionKind(kind: string, icon: Parameters<typeof iconNode>[0], group: string): void {
+  kindIcons[kind] = icon;
+  extraGroups[kind] = group;
+}
+
 /** Short kind group used for colors. */
 export function kindGroup(kind: string): string {
+  if (extraGroups[kind]) return extraGroups[kind];
   if (["method", "function", "constructor"].includes(kind)) return "function";
   if (["field", "property"].includes(kind)) return "property";
   if (["class", "struct", "interface", "enum", "typeParameter", "module"].includes(kind)) return "type";
