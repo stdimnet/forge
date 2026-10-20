@@ -15,6 +15,7 @@ pub mod lsp;
 pub mod php;
 pub mod project;
 pub mod run;
+pub mod search;
 pub mod settings;
 pub mod symfony;
 pub mod terminal;
