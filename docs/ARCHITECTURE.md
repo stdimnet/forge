@@ -196,3 +196,22 @@ app/ui/            SolidJS UI
   changes; pack code building Intelephense configs can call
   `commands::langservers::with_intelephense_licence(&mut config)`. A plaintext
   `php.lsp.licenceKey` setting (or the PHP page's old localStorage value) is migrated once.
+
+## Scripting and config language packs
+
+- `app/ui/src/features/languages/` holds the packs for Bash, Python, YAML, JSON, INI, `.conf`,
+  dotenv, ignore files, Dockerfile, Docker Compose, Postfix (`main.cf`, `master.cf`), E-Mail and
+  Symfony services. Each file calls `registerLanguage` (same ids replace the built-in entries in
+  `src/editor/languages.ts`) and `registerEditorExtension`; `shared.ts` has the stream parser token
+  vocabulary (`src/editor/tokens.ts`), hover docs, folding and `syntaxDiagnostics`, which feeds the
+  Problems view unless one of the listed language servers (ids from the catalog) runs for the
+  file. `yamlSchema.ts` completes and documents keys of YAML files from a schema tree (Compose,
+  Symfony services).
+- `registerLanguage` also takes `shebang` (extensionless scripts) and `indent`; `fileNames` may
+  contain `*` anywhere and `/` to match a path suffix (`config/services*.yaml`).
+- The manifests `app/src-tauri/plugins/langs.toml` declare the same file types
+  (`[[contributions.fileTypes]]`); keep them in sync with the registrations. Language servers for
+  these languages come from the catalog (`forge-langservers`), not from the manifests.
+- `forge.symfony-services` only applies to Symfony projects (`projectTypes = ["symfony"]`); in other
+  projects `config/services*.yaml` is plain YAML.
+

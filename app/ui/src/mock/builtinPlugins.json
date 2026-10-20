@@ -11,6 +11,7 @@
     "enabled": true,
     "contributions": {
       "languages": [],
+      "fileTypes": [],
       "commands": [
         {
           "id": "settings.open",
@@ -624,6 +625,7 @@
     "enabled": true,
     "contributions": {
       "languages": [],
+      "fileTypes": [],
       "commands": [
         {
           "id": "git.commit",
@@ -775,6 +777,7 @@
     "enabled": true,
     "contributions": {
       "languages": [],
+      "fileTypes": [],
       "commands": [
         {
           "id": "terminal.open",
@@ -898,6 +901,7 @@
         "php",
         "phtml"
       ],
+      "fileTypes": [],
       "commands": [
         {
           "id": "php.runFile",
@@ -1216,6 +1220,7 @@
     "enabled": true,
     "contributions": {
       "languages": [],
+      "fileTypes": [],
       "commands": [
         {
           "id": "langservers.settings",
@@ -1333,6 +1338,7 @@
     "enabled": true,
     "contributions": {
       "languages": [],
+      "fileTypes": [],
       "commands": [
         {
           "id": "composer.install",
@@ -1421,6 +1427,7 @@
     "enabled": true,
     "contributions": {
       "languages": [],
+      "fileTypes": [],
       "commands": [],
       "keybindings": [],
       "toolWindows": [],
@@ -1465,6 +1472,7 @@
     "enabled": true,
     "contributions": {
       "languages": [],
+      "fileTypes": [],
       "commands": [],
       "keybindings": [],
       "toolWindows": [
@@ -1510,6 +1518,7 @@
     "enabled": true,
     "contributions": {
       "languages": [],
+      "fileTypes": [],
       "commands": [
         {
           "id": "laravel.artisan",
@@ -1553,6 +1562,48 @@
     "enabled": true,
     "contributions": {
       "languages": [],
+      "fileTypes": [],
+      "commands": [],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [],
+      "lspServers": [],
+      "runConfigurationTypes": [],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": []
+    }
+  },
+  {
+    "id": "forge.symfony-services",
+    "name": "Symfony Services",
+    "version": "0.1.0",
+    "pack": "phpforge",
+    "description": "services.yaml: service, parameter and tag completion, @service and %parameter% highlighting.",
+    "vendor": "Forge",
+    "depends": [
+      "forge.yaml"
+    ],
+    "required": false,
+    "projectTypes": [
+      "symfony"
+    ],
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "fileTypes": [
+        {
+          "id": "symfony-services",
+          "name": "Symfony Services",
+          "extensions": [],
+          "fileNames": [
+            "config/services*.yaml",
+            "config/services*.yml",
+            "config/services/*.yaml",
+            "config/services/*.yml"
+          ]
+        }
+      ],
       "commands": [],
       "keybindings": [],
       "toolWindows": [],
@@ -1581,6 +1632,7 @@
     "enabled": true,
     "contributions": {
       "languages": [],
+      "fileTypes": [],
       "commands": [],
       "keybindings": [],
       "toolWindows": [],
@@ -1614,9 +1666,9 @@
         "mjs",
         "ts",
         "tsx",
-        "jsx",
-        "json"
+        "jsx"
       ],
+      "fileTypes": [],
       "commands": [],
       "keybindings": [],
       "toolWindows": [],
@@ -1698,6 +1750,7 @@
       "languages": [
         "vue"
       ],
+      "fileTypes": [],
       "commands": [],
       "keybindings": [],
       "toolWindows": [],
@@ -1738,6 +1791,7 @@
       "languages": [
         "lua"
       ],
+      "fileTypes": [],
       "commands": [],
       "keybindings": [],
       "toolWindows": [],
@@ -1784,6 +1838,7 @@
     "enabled": true,
     "contributions": {
       "languages": [],
+      "fileTypes": [],
       "commands": [],
       "keybindings": [],
       "toolWindows": [
@@ -1865,6 +1920,7 @@
     "enabled": true,
     "contributions": {
       "languages": [],
+      "fileTypes": [],
       "commands": [],
       "keybindings": [],
       "toolWindows": [],
@@ -1905,6 +1961,7 @@
     "enabled": true,
     "contributions": {
       "languages": [],
+      "fileTypes": [],
       "commands": [],
       "keybindings": [],
       "toolWindows": [],
@@ -1932,6 +1989,519 @@
     }
   },
   {
+    "id": "forge.bash",
+    "name": "Bash",
+    "version": "0.1.0",
+    "pack": "scriptforge",
+    "description": "Shell scripts and dotfiles: highlighting, completion of builtins, functions and variables, and folding. bash-language-server comes from Settings > Language Servers.",
+    "vendor": "Forge",
+    "depends": [],
+    "required": false,
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "fileTypes": [
+        {
+          "id": "shell",
+          "name": "Shell Script",
+          "extensions": [
+            "sh",
+            "bash",
+            "zsh",
+            "ksh",
+            "bats"
+          ],
+          "fileNames": [
+            ".bashrc",
+            ".bash_profile",
+            ".bash_login",
+            ".bash_logout",
+            ".bash_aliases",
+            ".profile",
+            ".zshrc",
+            ".zprofile",
+            ".envrc",
+            "PKGBUILD",
+            ".xinitrc",
+            ".xprofile"
+          ]
+        }
+      ],
+      "commands": [],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [],
+      "lspServers": [],
+      "runConfigurationTypes": [],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": []
+    }
+  },
+  {
+    "id": "forge.python",
+    "name": "Python",
+    "version": "0.1.0",
+    "pack": "scriptforge",
+    "description": "Python editing with scope-aware completion and and syntax checks. Pyright and other servers come from Settings > Language Servers.",
+    "vendor": "Forge",
+    "depends": [],
+    "required": false,
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "fileTypes": [
+        {
+          "id": "python",
+          "name": "Python",
+          "extensions": [
+            "py",
+            "pyw",
+            "pyi",
+            "pyx",
+            "pxd",
+            "gyp"
+          ],
+          "fileNames": [
+            "SConstruct",
+            "SConscript",
+            "wscript",
+            ".pythonstartup",
+            ".pythonrc"
+          ]
+        }
+      ],
+      "commands": [],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [],
+      "lspServers": [],
+      "runConfigurationTypes": [],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": []
+    }
+  },
+  {
+    "id": "forge.yaml",
+    "name": "YAML",
+    "version": "0.1.0",
+    "pack": "configforge",
+    "description": "YAML editing with folding and syntax checks. yaml-language-server comes from Settings > Language Servers.",
+    "vendor": "Forge",
+    "depends": [],
+    "required": false,
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "fileTypes": [
+        {
+          "id": "yaml",
+          "name": "YAML",
+          "extensions": [
+            "yml",
+            "yaml",
+            "neon"
+          ],
+          "fileNames": [
+            ".clang-format",
+            ".clang-tidy",
+            ".yamllint",
+            ".gemrc",
+            "CITATION.cff",
+            ".sops.yaml"
+          ]
+        }
+      ],
+      "commands": [],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [],
+      "lspServers": [],
+      "runConfigurationTypes": [],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": []
+    }
+  },
+  {
+    "id": "forge.json",
+    "name": "JSON",
+    "version": "0.1.0",
+    "pack": "configforge",
+    "description": "JSON and JSON with comments: highlighting, folding and syntax checks. With vscode-json-language-server (Settings > Language Servers), `$schema` (local file or URL) drives validation, completion and hover.",
+    "vendor": "Forge",
+    "depends": [],
+    "required": false,
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "fileTypes": [
+        {
+          "id": "json",
+          "name": "JSON",
+          "extensions": [
+            "json",
+            "jsonc",
+            "json5",
+            "lock",
+            "webmanifest",
+            "geojson",
+            "har",
+            "code-workspace",
+            "ipynb",
+            "avsc",
+            "mcmeta"
+          ],
+          "fileNames": [
+            ".babelrc",
+            ".eslintrc",
+            ".prettierrc",
+            ".stylelintrc",
+            ".jshintrc",
+            ".swcrc",
+            ".watchmanconfig",
+            ".lintstagedrc",
+            ".htmlhintrc",
+            ".remarkrc",
+            "composer.lock",
+            ".php-cs-fixer.cache",
+            ".php-cs-fixer.json",
+            "symfony.lock"
+          ]
+        }
+      ],
+      "commands": [],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [],
+      "lspServers": [],
+      "runConfigurationTypes": [],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": []
+    }
+  },
+  {
+    "id": "forge.dotenv",
+    "name": ".env",
+    "version": "0.1.0",
+    "pack": "configforge",
+    "description": "dotenv files: keys, quoted values and ${VAR} interpolation, with checks for unquoted spaces, unterminated quotes and duplicate keys.",
+    "vendor": "Forge",
+    "depends": [],
+    "required": false,
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "fileTypes": [
+        {
+          "id": "dotenv",
+          "name": "Dotenv",
+          "extensions": [
+            "env"
+          ],
+          "fileNames": [
+            ".env",
+            ".env.local",
+            ".env.*.local",
+            ".env.dist",
+            ".env.*.dist",
+            ".env.example",
+            ".env.sample",
+            ".env.template",
+            ".env.defaults",
+            ".env.dev",
+            ".env.development",
+            ".env.prod",
+            ".env.production",
+            ".env.stage",
+            ".env.staging",
+            ".env.test",
+            ".env.testing"
+          ]
+        }
+      ],
+      "commands": [],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [],
+      "lspServers": [],
+      "runConfigurationTypes": [],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": []
+    }
+  },
+  {
+    "id": "forge.ignore",
+    "name": "Ignore Files",
+    "version": "0.1.0",
+    "pack": "configforge",
+    "description": ".gitignore, .dockerignore, .npmignore and friends. Files ignored by git are grayed out in the Project view.",
+    "vendor": "Forge",
+    "depends": [],
+    "required": false,
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "fileTypes": [
+        {
+          "id": "ignore",
+          "name": "Ignore File",
+          "extensions": [
+            "gitignore",
+            "dockerignore",
+            "npmignore",
+            "ignore"
+          ],
+          "fileNames": [
+            ".*ignore",
+            ".gitignore_global",
+            ".git/info/exclude"
+          ]
+        }
+      ],
+      "commands": [],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [],
+      "lspServers": [],
+      "runConfigurationTypes": [],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": []
+    }
+  },
+  {
+    "id": "forge.docker",
+    "name": "Docker",
+    "version": "0.1.0",
+    "pack": "configforge",
+    "description": "Dockerfile and Docker Compose: instruction and Compose Specification completion, hover documentation and checks.",
+    "vendor": "Forge",
+    "depends": [],
+    "required": false,
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "fileTypes": [
+        {
+          "id": "dockerfile",
+          "name": "Dockerfile",
+          "extensions": [
+            "dockerfile",
+            "containerfile"
+          ],
+          "fileNames": [
+            "Dockerfile",
+            "Dockerfile.*",
+            "Containerfile",
+            "Containerfile.*"
+          ]
+        },
+        {
+          "id": "docker-compose",
+          "name": "Docker Compose",
+          "extensions": [],
+          "fileNames": [
+            "docker-compose.yml",
+            "docker-compose.yaml",
+            "docker-compose.*.yml",
+            "docker-compose.*.yaml",
+            "compose.yml",
+            "compose.yaml",
+            "compose.*.yml",
+            "compose.*.yaml"
+          ]
+        }
+      ],
+      "commands": [],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [],
+      "lspServers": [],
+      "runConfigurationTypes": [],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": []
+    }
+  },
+  {
+    "id": "forge.postfix",
+    "name": "Postfix",
+    "version": "0.1.0",
+    "pack": "configforge",
+    "description": "Postfix main.cf and master.cf: parameter and restriction completion with documentation, lookup table types and checks.",
+    "vendor": "Forge",
+    "depends": [],
+    "required": false,
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "fileTypes": [
+        {
+          "id": "postfix",
+          "name": "Postfix main.cf",
+          "extensions": [
+            "cf"
+          ],
+          "fileNames": [
+            "main.cf",
+            "main.cf.proto",
+            "dynamicmaps.cf"
+          ]
+        },
+        {
+          "id": "postfix-master",
+          "name": "Postfix master.cf",
+          "extensions": [],
+          "fileNames": [
+            "master.cf",
+            "master.cf.proto"
+          ]
+        }
+      ],
+      "commands": [],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [],
+      "lspServers": [],
+      "runConfigurationTypes": [],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": []
+    }
+  },
+  {
+    "id": "forge.eml",
+    "name": "E-Mail",
+    "version": "0.1.0",
+    "pack": "configforge",
+    "description": "RFC 5322 messages (.eml): headers, MIME parts, encoded words and quoted replies.",
+    "vendor": "Forge",
+    "depends": [],
+    "required": false,
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "fileTypes": [
+        {
+          "id": "eml",
+          "name": "E-Mail",
+          "extensions": [
+            "eml"
+          ],
+          "fileNames": []
+        }
+      ],
+      "commands": [],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [],
+      "lspServers": [],
+      "runConfigurationTypes": [],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": []
+    }
+  },
+  {
+    "id": "forge.ini",
+    "name": "INI",
+    "version": "0.1.0",
+    "pack": "configforge",
+    "description": "INI files (php.ini, .editorconfig, .gitconfig, systemd units): sections, keys, values, folding and checks for broken sections and duplicate keys.",
+    "vendor": "Forge",
+    "depends": [],
+    "required": false,
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "fileTypes": [
+        {
+          "id": "ini",
+          "name": "INI",
+          "extensions": [
+            "ini",
+            "cfg",
+            "inf",
+            "desktop",
+            "service",
+            "socket",
+            "timer",
+            "mount",
+            "target"
+          ],
+          "fileNames": [
+            "php.ini",
+            "php.ini-*",
+            ".editorconfig",
+            ".gitconfig",
+            ".gitmodules",
+            ".npmrc",
+            ".pylintrc",
+            ".flake8",
+            "tox.ini",
+            "setup.cfg",
+            "pytest.ini",
+            "my.cnf",
+            "*.cnf",
+            "supervisord.conf",
+            "*.ini.*",
+            "pip.conf"
+          ]
+        }
+      ],
+      "commands": [],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [],
+      "lspServers": [],
+      "runConfigurationTypes": [],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": []
+    }
+  },
+  {
+    "id": "forge.conf",
+    "name": "Config Files",
+    "version": "0.1.0",
+    "pack": "configforge",
+    "description": "Generic .conf files: key/value pairs, comments, interpolation and nginx-style blocks.",
+    "vendor": "Forge",
+    "depends": [],
+    "required": false,
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "fileTypes": [
+        {
+          "id": "conf",
+          "name": "Config",
+          "extensions": [
+            "conf",
+            "config",
+            "cnf"
+          ],
+          "fileNames": [
+            "*.conf.*"
+          ]
+        }
+      ],
+      "commands": [],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [],
+      "lspServers": [],
+      "runConfigurationTypes": [],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": []
+    }
+  },
+  {
     "id": "forge.browser-companion",
     "name": "Browser Companion",
     "version": "0.1.0",
@@ -1943,6 +2513,7 @@
     "enabled": true,
     "contributions": {
       "languages": [],
+      "fileTypes": [],
       "commands": [
         {
           "id": "BrowserCompanion.Settings",

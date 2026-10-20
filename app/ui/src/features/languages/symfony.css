@@ -1,0 +1,17 @@
+/* Symfony service references layered over the YAML highlighting. */
+.cm-line .cm-sf-service,
+.cm-line .cm-sf-service span {
+  color: var(--syn-type);
+}
+.cm-line .cm-sf-param,
+.cm-line .cm-sf-param span {
+  color: var(--syn-variable);
+}
+.cm-line .cm-sf-env,
+.cm-line .cm-sf-env span {
+  color: var(--syn-attribute);
+}
+.cm-line .cm-sf-tag,
+.cm-line .cm-sf-tag span {
+  color: var(--syn-keyword);
+}
