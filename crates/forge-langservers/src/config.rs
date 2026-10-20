@@ -274,12 +274,14 @@ pub fn build_config(
     }
 
     let empty = |v: &Value| v.as_object().is_some_and(|o| o.is_empty());
+    // npm servers in Forge's directory run with Forge's (or the machine's) Node.js.
+    let (command, args) = ctx.detector.launch(executable, &args);
     LspServerConfig {
         id: spec.id.clone(),
         name: Some(spec.name.clone()),
         language_ids,
         file_extensions,
-        command: executable.display().to_string(),
+        command,
         args,
         initialization_options: if empty(&init) { Value::Null } else { init },
         settings: if empty(&settings) {

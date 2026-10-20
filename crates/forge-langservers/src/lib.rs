@@ -18,6 +18,7 @@ pub mod config;
 pub mod detect;
 pub mod install;
 pub mod licence;
+pub mod managed;
 pub mod plan;
 pub mod prefs;
 pub mod scan;
