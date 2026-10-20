@@ -12,3 +12,5 @@ import "./navigation";
 import "./keymapSettings";
 import "./git";
 import "./php";
+import "./project-type";
+import "./new-project";

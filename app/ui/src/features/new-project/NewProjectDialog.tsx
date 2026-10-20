@@ -1,0 +1,388 @@
+/**
+ * New Project dialog, laid out like PHPStorm's: generators grouped by pack on the left,
+ * the form for the selected one on the right, Create / Cancel at the bottom. While a
+ * project is created the form turns into a progress view with the tool output.
+ */
+import { createEffect, For, Match, Show, Switch } from "solid-js";
+import {
+  CircleAlert,
+  CircleCheck,
+  CircleHelp,
+  Folder,
+  LoaderCircle,
+  TerminalSquare,
+  TriangleAlert,
+  X,
+} from "lucide-solid";
+import { isTauri } from "@/ipc";
+import type { GeneratorOption } from "@/ipc/project";
+import { ProjectTypeIcon } from "@/shell/ProjectTypeIcon";
+import {
+  browseLocation,
+  canCreate,
+  cancelCreation,
+  closeNewProject,
+  createProject,
+  generators,
+  isOpen,
+  loadError,
+  location,
+  name,
+  options,
+  plan,
+  progress,
+  running,
+  selectGenerator,
+  selected,
+  selectedId,
+  setLocation,
+  setName,
+  setOption,
+  useFallback,
+} from "./store";
+import { groupGenerators, joinPath, previewLines, progressPercent, toolName, validateName } from "./wizard";
+
+function OptionField(props: { option: GeneratorOption }) {
+  const value = () => options()[props.option.id] ?? props.option.default;
+  const segmented = () =>
+    (props.option.choices?.length ?? 0) <= 4 && (props.option.choices ?? []).every((c) => c.label.length <= 14);
+  return (
+    <Switch>
+      <Match when={props.option.kind === "bool"}>
+        <label class="np-check">
+          <input
+            type="checkbox"
+            checked={value() === true}
+            onChange={(e) => setOption(props.option.id, e.currentTarget.checked)}
+          />
+          <span>
+            {props.option.label}
+            <Show when={props.option.description}>
+              <span class="np-check-hint">{props.option.description}</span>
+            </Show>
+          </span>
+        </label>
+      </Match>
+      <Match when={props.option.kind === "enum"}>
+        <div class="np-row">
+          <span class="np-label">{props.option.label}:</span>
+          <Show
+            when={segmented()}
+            fallback={
+              <select
+                class="np-select"
+                value={String(value())}
+                onChange={(e) => setOption(props.option.id, e.currentTarget.value)}
+              >
+                <For each={props.option.choices}>{(c) => <option value={c.value}>{c.label}</option>}</For>
+              </select>
+            }
+          >
+            <div class="np-segmented" role="radiogroup" aria-label={props.option.label}>
+              <For each={props.option.choices}>
+                {(c) => (
+                  <button
+                    role="radio"
+                    aria-checked={value() === c.value}
+                    classList={{ active: value() === c.value }}
+                    onClick={() => setOption(props.option.id, c.value)}
+                  >
+                    {c.label}
+                  </button>
+                )}
+              </For>
+            </div>
+          </Show>
+        </div>
+      </Match>
+      <Match when={props.option.kind === "string"}>
+        <div class="np-row">
+          <span class="np-label">{props.option.label}:</span>
+          <input
+            class="np-input"
+            value={String(value())}
+            spellcheck={false}
+            onInput={(e) => setOption(props.option.id, e.currentTarget.value)}
+          />
+        </div>
+      </Match>
+    </Switch>
+  );
+}
+
+function Form() {
+  const nameError = () => validateName(name());
+  const formError = () => nameError() ?? plan()?.error;
+  const checks = () => selected()?.options.filter((o) => o.kind === "bool") ?? [];
+  const fields = () => selected()?.options.filter((o) => o.kind !== "bool") ?? [];
+  const missing = () => plan()?.missingTools ?? [];
+  const fallbackName = () => generators().find((g) => g.id === plan()?.fallback)?.name;
+  let nameEl!: HTMLInputElement;
+  createEffect(() => {
+    if (isOpen() && selectedId()) queueMicrotask(() => nameEl?.focus());
+  });
+  return (
+    <div class="np-form">
+      <div class="np-heading">
+        <ProjectTypeIcon type={selected()?.icon ?? "folder"} size={30} />
+        <div>
+          <div class="np-title">{selected()?.name}</div>
+          <div class="np-desc">{selected()?.description}</div>
+        </div>
+      </div>
+
+      <div class="np-row">
+        <span class="np-label">Name:</span>
+        <input
+          ref={nameEl}
+          class="np-input"
+          classList={{ invalid: !!nameError() }}
+          value={name()}
+          spellcheck={false}
+          onInput={(e) => setName(e.currentTarget.value)}
+        />
+      </div>
+      <div class="np-row">
+        <span class="np-label">Location:</span>
+        <div class="np-path">
+          <input
+            class="np-input"
+            value={location()}
+            spellcheck={false}
+            onInput={(e) => setLocation(e.currentTarget.value)}
+          />
+          <button
+            class="np-browse"
+            title={isTauri() ? "Browse… (Shift+Enter)" : "Folder chooser is available in the desktop app"}
+            disabled={!isTauri()}
+            onClick={() => void browseLocation()}
+          >
+            <Folder size={15} />
+          </button>
+        </div>
+      </div>
+      <div class="np-row np-hint-row">
+        <span class="np-label" />
+        <Show
+          when={formError()}
+          fallback={
+            <span class="np-hint">
+              Project will be created in: <span class="np-hint-path">{joinPath(location(), name())}</span>
+            </span>
+          }
+        >
+          <span class="np-hint np-error">
+            <CircleAlert size={13} /> {formError()}
+          </span>
+        </Show>
+      </div>
+
+      <Show when={fields().length || checks().length}>
+        <div class="np-sep" />
+        <For each={fields()}>{(o) => <OptionField option={o} />}</For>
+        <Show when={checks().length}>
+          <div class="np-row np-checks-row">
+            <span class="np-label" />
+            <div class="np-checks">
+              <For each={checks()}>{(o) => <OptionField option={o} />}</For>
+            </div>
+          </div>
+        </Show>
+      </Show>
+
+      <Show when={missing().length}>
+        <div class="np-warning">
+          <TriangleAlert size={15} class="np-warning-icon" />
+          <div>
+            <div>
+              {missing().map(toolName).join(", ")} {missing().length > 1 ? "are" : "is"} not installed or not on the
+              PATH. Install {missing().length > 1 ? "them" : "it"} to use this generator
+              <Show when={fallbackName()} fallback=".">
+                , or create an offline project instead.
+              </Show>
+            </div>
+            <Show when={fallbackName()}>
+              <button class="np-link" onClick={useFallback}>
+                Create {fallbackName()} instead
+              </button>
+            </Show>
+          </div>
+        </div>
+      </Show>
+
+      <div class="np-preview">
+        <div class="np-preview-title">
+          <TerminalSquare size={13} /> {selected()?.tools.length ? "Commands to run" : "Steps"}
+        </div>
+        <pre class="np-preview-body">
+          <For each={previewLines(plan(), location())}>
+            {(line) => (
+              <div class={`np-preview-${line.kind}`}>
+                <Show when={line.kind !== "file"} fallback={<span class="np-file-indent">{"  "}</span>}>
+                  <span class="np-prompt">{line.kind === "template" ? "+" : "$"}</span>{" "}
+                </Show>
+                {line.text}
+              </div>
+            )}
+          </For>
+        </pre>
+      </div>
+    </div>
+  );
+}
+
+function ProgressView() {
+  const p = () => progress()!;
+  let log!: HTMLDivElement;
+  createEffect(() => {
+    void p().lines.length;
+    queueMicrotask(() => log && (log.scrollTop = log.scrollHeight));
+  });
+  return (
+    <div class="np-progress">
+      <div class="np-progress-head">
+        <Switch>
+          <Match when={p().phase === "running"}>
+            <LoaderCircle size={18} class="np-spin" />
+          </Match>
+          <Match when={p().phase === "done"}>
+            <CircleCheck size={18} class="np-ok" />
+          </Match>
+          <Match when={p().phase === "failed"}>
+            <CircleAlert size={18} class="np-fail" />
+          </Match>
+        </Switch>
+        <div class="np-progress-title">
+          {p().phase === "failed"
+            ? `Could not create ${name()}`
+            : p().phase === "done"
+              ? `${name()} is ready`
+              : `Creating ${name()}…`}
+        </div>
+      </div>
+      <div class="np-progress-step">
+        <Show when={p().total > 1}>
+          <span class="muted">
+            Step {Math.min(p().step + 1, p().total)} of {p().total}:{" "}
+          </span>
+        </Show>
+        <span class="np-progress-label">{p().label}</span>
+      </div>
+      <div class="np-bar" classList={{ failed: p().phase === "failed" }}>
+        <div class="np-bar-fill" style={{ width: `${progressPercent(p())}%` }} />
+      </div>
+      <div class="np-log" ref={log}>
+        <For each={p().lines}>
+          {(l) => <div classList={{ "np-log-cmd": l.text.startsWith("$ "), "np-log-err": l.stderr }}>{l.text}</div>}
+        </For>
+      </div>
+      <Show when={p().phase === "failed"}>
+        <div class="np-error np-progress-error">
+          <CircleAlert size={13} /> {p().error}
+        </div>
+      </Show>
+    </div>
+  );
+}
+
+export function NewProjectDialog() {
+  const groups = () => groupGenerators(generators());
+  const onKeyDown = (e: KeyboardEvent) => {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      e.stopPropagation();
+      if (progress()) cancelCreation();
+      else closeNewProject();
+    } else if (e.key === "Enter" && !progress() && !(e.target instanceof HTMLButtonElement)) {
+      e.preventDefault();
+      if (e.shiftKey) void browseLocation();
+      else void createProject();
+    }
+  };
+  return (
+    <Show when={isOpen()}>
+      <div class="np-overlay" onMouseDown={(e) => e.target === e.currentTarget && closeNewProject()}>
+        <div class="np-dialog" role="dialog" aria-label="New Project" onKeyDown={onKeyDown}>
+          <header class="np-titlebar">
+            <span>New Project</span>
+            <button class="icon-btn" title="Close" disabled={running()} onClick={closeNewProject}>
+              <X size={15} />
+            </button>
+          </header>
+          <div class="np-body">
+            <aside class="np-sidebar">
+              <For each={groups()}>
+                {(g) => (
+                  <div class="np-group">
+                    <div class="np-group-title">{g.group}</div>
+                    <For each={g.items}>
+                      {(gen) => (
+                        <button
+                          class="np-item"
+                          classList={{ selected: gen.id === selectedId() }}
+                          data-generator={gen.id}
+                          disabled={!!progress() && gen.id !== selectedId()}
+                          onClick={() => selectGenerator(gen.id)}
+                        >
+                          <ProjectTypeIcon type={gen.icon} size={18} />
+                          <span class="np-item-name">{gen.name}</span>
+                        </button>
+                      )}
+                    </For>
+                  </div>
+                )}
+              </For>
+            </aside>
+            <main class="np-main">
+              <Show when={!loadError()} fallback={<div class="np-error np-load-error">{loadError()}</div>}>
+                <Show when={progress()} fallback={<Form />}>
+                  <ProgressView />
+                </Show>
+              </Show>
+            </main>
+          </div>
+          <footer class="np-footer">
+            <button class="icon-btn" title="Help">
+              <CircleHelp size={16} />
+            </button>
+            <div class="np-footer-buttons">
+              <Show
+                when={progress()}
+                fallback={
+                  <>
+                    <button class="btn-primary np-btn" disabled={!canCreate()} onClick={() => void createProject()}>
+                      Create
+                    </button>
+                    <button class="btn-secondary np-btn" onClick={closeNewProject}>
+                      Cancel
+                    </button>
+                  </>
+                }
+              >
+                <Show
+                  when={progress()?.phase === "failed"}
+                  fallback={
+                    <button
+                      class="btn-secondary np-btn"
+                      disabled={progress()?.phase !== "running"}
+                      onClick={cancelCreation}
+                    >
+                      Cancel
+                    </button>
+                  }
+                >
+                  <button class="btn-secondary np-btn" onClick={cancelCreation}>
+                    Back
+                  </button>
+                  <button class="btn-secondary np-btn" onClick={closeNewProject}>
+                    Close
+                  </button>
+                </Show>
+              </Show>
+            </div>
+          </footer>
+        </div>
+      </div>
+    </Show>
+  );
+}
