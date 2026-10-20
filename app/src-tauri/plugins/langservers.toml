@@ -37,6 +37,26 @@ section = "General"
 order = 1
 
 [[contributions.settings]]
+key = "langservers.hints.enabled"
+title = "Suggest installing missing language servers"
+description = "Shows a banner in files that use a feature only a language server provides, such as a JSON $schema, when that server is not installed."
+type = "bool"
+default = true
+group = "lang.servers"
+section = "General"
+order = 2
+
+[[contributions.settings]]
+key = "langservers.hints.dismissed"
+title = "Servers not suggested again"
+description = "Server ids whose banner was turned off with \"Don't show again\". Remove an entry to get the suggestion back."
+type = "list"
+default = []
+group = "lang.servers"
+section = "General"
+order = 3
+
+[[contributions.settings]]
 key = "langservers.lua.environment"
 title = "Lua environment"
 description = "Adds the APIs and globals of LÖVE (love.*) or Neovim (vim.*) to lua-language-server."

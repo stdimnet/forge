@@ -85,7 +85,7 @@ pub fn register_enabled(manager: &LspManager, ws: &AppState) {
 fn apply(manager: &LspManager, ws: &AppState, refresh_scan: bool) {
     let prefs = load_prefs(ws);
     let scan = project_scan(manager.root(), prefs.scan_limit, refresh_scan);
-    let detector = Detector::system();
+    let detector = Detector::for_project(manager.root());
     let ctx = ConfigContext {
         root: manager.root(),
         cache_dir: cache_dir(),
@@ -191,7 +191,9 @@ fn build_rows(manager: Option<&LspManager>, ws: &AppState) -> Vec<ServerRow> {
         .as_deref()
         .map(|r| project_scan(r, prefs.scan_limit, false))
         .unwrap_or_default();
-    let detector = Detector::system();
+    let detector = root
+        .as_deref()
+        .map_or_else(Detector::system, Detector::for_project);
     let fallback_root = PathBuf::new();
     let ctx = ConfigContext {
         root: root.as_deref().unwrap_or(&fallback_root),
@@ -293,7 +295,10 @@ pub async fn langservers_install(
             },
         );
     };
-    emit(Stream::Info, format!("$ {}", option.display()));
+    emit(
+        Stream::Info,
+        format!("$ {}", install::display_command(option, &detector)),
+    );
     let outcome = install::run(program, args, detector.dirs().to_vec(), cancel, &emit).await;
     emit(
         Stream::Info,

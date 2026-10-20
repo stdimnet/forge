@@ -1,0 +1,167 @@
+# Language packs for scripts and configuration formats. Each table is one plugin; the
+# `fileTypes` mirror the language registrations in app/ui/src/features/languages.
+
+# ---- ScriptForge ----------------------------------------------------------------------
+
+[[plugin]]
+id = "forge.bash"
+name = "Bash"
+version = "0.1.0"
+pack = "scriptforge"
+vendor = "Forge"
+description = "Shell scripts and dotfiles: highlighting, completion of builtins, functions and variables, and folding. bash-language-server comes from Settings > Language Servers."
+
+[[plugin.contributions.fileTypes]]
+id = "shell"
+name = "Shell Script"
+extensions = ["sh", "bash", "zsh", "ksh", "bats"]
+fileNames = [".bashrc", ".bash_profile", ".bash_login", ".bash_logout", ".bash_aliases", ".profile", ".zshrc", ".zprofile", ".envrc", "PKGBUILD", ".xinitrc", ".xprofile"]
+
+[[plugin]]
+id = "forge.python"
+name = "Python"
+version = "0.1.0"
+pack = "scriptforge"
+vendor = "Forge"
+description = "Python editing with scope-aware completion and and syntax checks. Pyright and other servers come from Settings > Language Servers."
+
+[[plugin.contributions.fileTypes]]
+id = "python"
+name = "Python"
+extensions = ["py", "pyw", "pyi", "pyx", "pxd", "gyp"]
+fileNames = ["SConstruct", "SConscript", "wscript", ".pythonstartup", ".pythonrc"]
+
+[[plugin]]
+id = "forge.yaml"
+name = "YAML"
+version = "0.1.0"
+pack = "configforge"
+vendor = "Forge"
+description = "YAML editing with folding and syntax checks. yaml-language-server comes from Settings > Language Servers."
+
+[[plugin.contributions.fileTypes]]
+id = "yaml"
+name = "YAML"
+extensions = ["yml", "yaml", "neon"]
+fileNames = [".clang-format", ".clang-tidy", ".yamllint", ".gemrc", "CITATION.cff", ".sops.yaml"]
+
+[[plugin]]
+id = "forge.json"
+name = "JSON"
+version = "0.1.0"
+pack = "configforge"
+vendor = "Forge"
+description = "JSON and JSON with comments: highlighting, folding and syntax checks. With vscode-json-language-server (Settings > Language Servers), `$schema` (local file or URL) drives validation, completion and hover."
+
+[[plugin.contributions.fileTypes]]
+id = "json"
+name = "JSON"
+extensions = ["json", "jsonc", "json5", "lock", "webmanifest", "geojson", "har", "code-workspace", "ipynb", "avsc", "mcmeta"]
+fileNames = [".babelrc", ".eslintrc", ".prettierrc", ".stylelintrc", ".jshintrc", ".swcrc", ".watchmanconfig", ".lintstagedrc", ".htmlhintrc", ".remarkrc", "composer.lock", ".php-cs-fixer.cache", ".php-cs-fixer.json", "symfony.lock"]
+
+[[plugin]]
+id = "forge.dotenv"
+name = ".env"
+version = "0.1.0"
+pack = "configforge"
+vendor = "Forge"
+description = "dotenv files: keys, quoted values and ${VAR} interpolation, with checks for unquoted spaces, unterminated quotes and duplicate keys."
+
+[[plugin.contributions.fileTypes]]
+id = "dotenv"
+name = "Dotenv"
+extensions = ["env"]
+fileNames = [".env", ".env.local", ".env.*.local", ".env.dist", ".env.*.dist", ".env.example", ".env.sample", ".env.template", ".env.defaults", ".env.dev", ".env.development", ".env.prod", ".env.production", ".env.stage", ".env.staging", ".env.test", ".env.testing"]
+
+[[plugin]]
+id = "forge.ignore"
+name = "Ignore Files"
+version = "0.1.0"
+pack = "configforge"
+vendor = "Forge"
+description = ".gitignore, .dockerignore, .npmignore and friends. Files ignored by git are grayed out in the Project view."
+
+[[plugin.contributions.fileTypes]]
+id = "ignore"
+name = "Ignore File"
+extensions = ["gitignore", "dockerignore", "npmignore", "ignore"]
+fileNames = [".*ignore", ".gitignore_global", ".git/info/exclude"]
+
+[[plugin]]
+id = "forge.docker"
+name = "Docker"
+version = "0.1.0"
+pack = "configforge"
+vendor = "Forge"
+description = "Dockerfile and Docker Compose: instruction and Compose Specification completion, hover documentation and checks."
+
+[[plugin.contributions.fileTypes]]
+id = "dockerfile"
+name = "Dockerfile"
+extensions = ["dockerfile", "containerfile"]
+fileNames = ["Dockerfile", "Dockerfile.*", "Containerfile", "Containerfile.*"]
+
+[[plugin.contributions.fileTypes]]
+id = "docker-compose"
+name = "Docker Compose"
+fileNames = ["docker-compose.yml", "docker-compose.yaml", "docker-compose.*.yml", "docker-compose.*.yaml", "compose.yml", "compose.yaml", "compose.*.yml", "compose.*.yaml"]
+
+[[plugin]]
+id = "forge.postfix"
+name = "Postfix"
+version = "0.1.0"
+pack = "configforge"
+vendor = "Forge"
+description = "Postfix main.cf and master.cf: parameter and restriction completion with documentation, lookup table types and checks."
+
+[[plugin.contributions.fileTypes]]
+id = "postfix"
+name = "Postfix main.cf"
+extensions = ["cf"]
+fileNames = ["main.cf", "main.cf.proto", "dynamicmaps.cf"]
+
+[[plugin.contributions.fileTypes]]
+id = "postfix-master"
+name = "Postfix master.cf"
+fileNames = ["master.cf", "master.cf.proto"]
+
+[[plugin]]
+id = "forge.eml"
+name = "E-Mail"
+version = "0.1.0"
+pack = "configforge"
+vendor = "Forge"
+description = "RFC 5322 messages (.eml): headers, MIME parts, encoded words and quoted replies."
+
+[[plugin.contributions.fileTypes]]
+id = "eml"
+name = "E-Mail"
+extensions = ["eml"]
+
+[[plugin]]
+id = "forge.ini"
+name = "INI"
+version = "0.1.0"
+pack = "configforge"
+vendor = "Forge"
+description = "INI files (php.ini, .editorconfig, .gitconfig, systemd units): sections, keys, values, folding and checks for broken sections and duplicate keys."
+
+[[plugin.contributions.fileTypes]]
+id = "ini"
+name = "INI"
+extensions = ["ini", "cfg", "inf", "desktop", "service", "socket", "timer", "mount", "target"]
+fileNames = ["php.ini", "php.ini-*", ".editorconfig", ".gitconfig", ".gitmodules", ".npmrc", ".pylintrc", ".flake8", "tox.ini", "setup.cfg", "pytest.ini", "my.cnf", "*.cnf", "supervisord.conf", "*.ini.*", "pip.conf"]
+
+[[plugin]]
+id = "forge.conf"
+name = "Config Files"
+version = "0.1.0"
+pack = "configforge"
+vendor = "Forge"
+description = "Generic .conf files: key/value pairs, comments, interpolation and nginx-style blocks."
+
+[[plugin.contributions.fileTypes]]
+id = "conf"
+name = "Config"
+extensions = ["conf", "config", "cnf"]
+fileNames = ["*.conf.*"]

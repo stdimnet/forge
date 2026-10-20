@@ -11,8 +11,10 @@ import { html } from "@codemirror/lang-html";
 import { xml } from "@codemirror/lang-xml";
 import { properties } from "@codemirror/legacy-modes/mode/properties";
 import { dotenv } from "./dotenv";
-import { jinjaSyntax, latteSyntax, mustacheSyntax, smartySyntaxWith, templateParser, twigSyntax, type TemplateSyntax } from "./templates";
-import { dataLanguageFor } from "./templateData";
+import { streamLanguage } from "./tokens";
+import { goTemplateSyntax, jinjaSyntax, latteSyntax, mustacheSyntax, smartySyntaxWith, twigSyntax, type TemplateSyntax } from "./templates";
+import { dataLanguageFor, dataLanguageSupport } from "./templateData";
+import { templateOverlay } from "./templateOverlay";
 import { getSetting } from "@/state/settings";
 import { less } from "@codemirror/lang-less";
 import { sass } from "@codemirror/lang-sass";
@@ -80,7 +82,13 @@ export interface LanguageDef {
   load: (path: string) => Extension;
   /** Status bar label for a concrete file, e.g. "Twig (LaTeX)". Defaults to `label`. */
   labelFor?: (path: string) => string;
+  /** Detects extensionless scripts from their first line (`#!/usr/bin/env python3`). */
+  shebang?: RegExp;
+  /** Indentation inserted by Tab / auto-indent. Defaults to four spaces. */
+  indent?: string;
 }
+
+export const DEFAULT_INDENT = "    ";
 
 const stream = (parser: StreamParser<unknown>) => () => StreamLanguage.define(parser);
 
@@ -90,7 +98,7 @@ function template(id: string, label: string, extensions: string[], syntax: () =>
     id,
     label,
     extensions,
-    load: (path) => StreamLanguage.define(templateParser(syntax(), dataLanguageFor(path).parser)),
+    load: (path) => [dataLanguageSupport(dataLanguageFor(path)), templateOverlay(syntax())],
     labelFor: (path) => {
       const data = dataLanguageFor(path);
       return data.id === "html" ? label : `${label} (${data.label})`;
@@ -121,6 +129,7 @@ const languages: LanguageDef[] = [
     smartySyntaxWith(getSetting<string>("templates.smarty.leftDelimiter", "{"), getSetting<string>("templates.smarty.rightDelimiter", "}")),
   ),
   template("latte", "Latte", ["latte"], () => latteSyntax),
+  template("gotemplate", "Go Template", ["tmpl", "gotmpl", "gohtml"], () => goTemplateSyntax),
   template("jinja", "Jinja2", ["j2", "jinja", "jinja2", "njk", "nunjucks"], () => jinjaSyntax),
   template("handlebars", "Handlebars", ["hbs", "handlebars", "mustache"], () => mustacheSyntax),
   { id: "velocity", label: "Velocity", extensions: ["vm", "vtl"], load: stream(velocity) },
@@ -131,7 +140,7 @@ const languages: LanguageDef[] = [
     label: "Dotenv",
     extensions: ["env"],
     fileNames: [".env*", "*.env"],
-    load: () => StreamLanguage.define(dotenv),
+    load: () => streamLanguage(dotenv),
   },
   { id: "properties", label: "Properties", extensions: ["properties", "ini", "cfg", "conf", "editorconfig"], fileNames: [".editorconfig", ".gitattributes"], load: stream(properties) },
   { id: "shell", label: "Shell Script", extensions: ["sh", "bash", "zsh"], fileNames: [".bashrc", ".zshrc", ".profile", "artisan.sh"], load: stream(shell) },
@@ -197,38 +206,68 @@ export function registerLanguage(def: LanguageDef): void {
   languages.push(def);
 }
 
-const baseName = (path: string) => (path.split("/").pop() ?? path).toLowerCase();
+/** `*` matches any run of characters; everything else is literal. */
+export function wildcardMatch(pattern: string, text: string): boolean {
+  const parts = pattern.split("*");
+  if (!text.startsWith(parts[0])) return false;
+  let tail = text.slice(parts[0].length);
+  if (parts.length === 1) return tail === "";
+  for (const part of parts.slice(1, -1)) {
+    const i = tail.indexOf(part);
+    if (i < 0) return false;
+    tail = tail.slice(i + part.length);
+  }
+  return tail.endsWith(parts[parts.length - 1]);
+}
 
-function nameMatches(name: string, pattern: string): boolean {
-  if (pattern.endsWith("*")) return name.startsWith(pattern.slice(0, -1));
-  if (pattern.startsWith("*")) return name.endsWith(pattern.slice(1));
-  return name === pattern;
+/** How specifically `def` claims a file: higher wins, 0 means no match. */
+function score(def: LanguageDef, path: string, name: string): number {
+  let best = 0;
+  for (const raw of def.fileNames ?? []) {
+    const pattern = raw.toLowerCase();
+    const isPath = pattern.includes("/");
+    if (!(isPath ? wildcardMatch(`*/${pattern}`, `/${path}`) : wildcardMatch(pattern, name))) continue;
+    // A path pattern beats a file name, an exact name beats a wildcard pattern.
+    const literal = pattern.replaceAll("*", "").length;
+    best = Math.max(best, 1000 + literal + (pattern.includes("*") ? 0 : 500) + (isPath ? 500 : 0));
+  }
+  for (const ext of def.extensions ?? []) {
+    if (name.endsWith(`.${ext}`) || name === ext) best = Math.max(best, ext.length + 1);
+  }
+  return best;
 }
 
 /**
- * Language for a file: exact/pattern file names first, then the longest matching
- * extension (so `x.blade.php` beats `php`). Later registrations win ties.
+ * Language for a file: file names and path patterns first, then the longest matching
+ * extension (so `x.blade.php` beats `php`), then the shebang of `firstLine`. Later
+ * registrations win ties.
  */
-export function detectLanguage(path: string): LanguageDef | undefined {
-  const name = baseName(path);
+export function detectLanguage(path: string, firstLine?: string): LanguageDef | undefined {
+  const lower = path.toLowerCase();
+  const name = lower.split("/").pop() ?? lower;
   let best: { def: LanguageDef; score: number } | undefined;
   for (const def of languages) {
-    let score = 0;
-    if (def.fileNames?.some((p) => nameMatches(name, p))) score = 1000;
-    for (const ext of def.extensions ?? []) {
-      if (name.endsWith(`.${ext}`) || name === ext) score = Math.max(score, ext.length + 1);
-    }
-    if (score > 0 && (!best || score >= best.score)) best = { def, score };
+    const s = score(def, lower, name);
+    if (s > 0 && (!best || s >= best.score)) best = { def, score: s };
   }
-  return best?.def;
+  if (best) return best.def;
+  if (firstLine?.startsWith("#!")) return [...languages].reverse().find((l) => l.shebang?.test(firstLine));
+  return undefined;
 }
 
-export function languageFor(path: string): Extension[] {
-  const def = detectLanguage(path);
+const firstLineOf = (content?: string) => content?.slice(0, content.search(/\r?\n|$/));
+
+export function languageFor(path: string, content?: string): Extension[] {
+  const def = detectLanguage(path, firstLineOf(content));
   return def ? [def.load(path)] : [];
 }
 
-export function languageLabel(path: string): string {
-  const def = detectLanguage(path);
+export function languageLabel(path: string, content?: string): string {
+  const def = detectLanguage(path, firstLineOf(content));
   return def ? (def.labelFor?.(path) ?? def.label) : "Plain text";
 }
+
+export const languageIdFor = (path: string, content?: string) => detectLanguage(path, firstLineOf(content))?.id;
+
+export const indentFor = (path: string, content?: string) =>
+  detectLanguage(path, firstLineOf(content))?.indent ?? DEFAULT_INDENT;

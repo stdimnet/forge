@@ -3,9 +3,9 @@
 /** @param {import("playwright-core").Page} page */
 async function openController(page) {
   for (const dir of ["app/Http", "app/Http/Controllers"]) {
-    await page.dblclick(`.tree-row[data-path="${dir}"]`);
+    await page.click(`.tree-row[data-path="${dir}"]`);
   }
-  await page.dblclick('.tree-row[data-path="app/Http/Controllers/OrderController.php"]');
+  await page.click('.tree-row[data-path="app/Http/Controllers/OrderController.php"]');
   await page.waitForSelector(".cm-bp-dot");
 }
 

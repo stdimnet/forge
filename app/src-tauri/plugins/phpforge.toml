@@ -418,6 +418,21 @@ section = "Editor"
 order = 21
 
 [[plugin]]
+id = "forge.symfony-services"
+name = "Symfony Services"
+version = "0.1.0"
+pack = "phpforge"
+vendor = "Forge"
+depends = ["forge.yaml"]
+description = "services.yaml: service, parameter and tag completion, @service and %parameter% highlighting."
+projectTypes = ["symfony"]
+
+[[plugin.contributions.fileTypes]]
+id = "symfony-services"
+name = "Symfony Services"
+fileNames = ["config/services*.yaml", "config/services*.yml", "config/services/*.yaml", "config/services/*.yml"]
+
+[[plugin]]
 id = "forge.doctrine"
 name = "Doctrine"
 version = "0.1.0"

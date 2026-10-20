@@ -22,6 +22,7 @@ const MANIFESTS: &[(&str, &str)] = &[
     ),
     ("phpforge.toml", include_str!("../plugins/phpforge.toml")),
     ("packs.toml", include_str!("../plugins/packs.toml")),
+    ("langs.toml", include_str!("../plugins/langs.toml")),
     (
         "browser-companion.toml",
         include_str!("../plugins/browser-companion.toml"),
@@ -79,6 +80,40 @@ mod tests {
                 .map(|s| s.id.as_str()),
             Some("intelephense")
         );
+    }
+
+    #[test]
+    fn file_types_are_sane() {
+        let registry = builtin_registry().unwrap();
+        let mut ids = HashSet::new();
+        for t in registry.file_types() {
+            assert!(ids.insert(&t.id), "duplicate file type {}", t.id);
+            assert!(
+                !t.extensions.is_empty() || !t.file_names.is_empty(),
+                "file type {} matches nothing",
+                t.id
+            );
+            assert!(t
+                .extensions
+                .iter()
+                .all(|e| !e.starts_with('.') && *e == e.to_lowercase()));
+        }
+        for id in [
+            "shell",
+            "python",
+            "yaml",
+            "json",
+            "dotenv",
+            "ignore",
+            "dockerfile",
+            "docker-compose",
+            "postfix",
+            "postfix-master",
+            "eml",
+            "symfony-services",
+        ] {
+            assert!(ids.contains(&id.to_string()), "missing file type {id}");
+        }
     }
 
     /// The UI's browser mode serves the same plugins from a JSON copy. Run with

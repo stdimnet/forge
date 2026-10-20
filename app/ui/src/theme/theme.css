@@ -36,6 +36,7 @@
   --vcs-added: #73c48a;
   --vcs-deleted: #8a8a94;
   --vcs-untracked: #e0806a;
+  --vcs-ignored: #80808a;
   --vcs-conflict: #ef5f5f;
 
   /* Git blame annotation age (newest -> oldest) and diff viewer */
@@ -123,6 +124,7 @@
   --vcs-added: #2f8a46;
   --vcs-deleted: #8a8a94;
   --vcs-untracked: #b5492f;
+  --vcs-ignored: #9a9aa3;
 
   --blame-age-0: #e8620c;
   --blame-age-1: #e48a4a;
@@ -177,6 +179,154 @@
   --ansi-bright-white: #3a3c42;
 
   --shadow: 0 8px 24px rgba(20, 22, 30, 0.14);
+  color-scheme: light;
+}
+
+/* Solarized by Ethan Schoonover, adapted to Forge's tokens. */
+:root[data-theme="solarized-dark"] {
+  --bg-app: #00212b;
+  --bg-toolbar: #00252f;
+  --bg-panel: #00252f;
+  --bg-editor: #002b36;
+  --bg-elevated: #073642;
+  --bg-hover: #073642;
+  --bg-active: #0b4351;
+  --bg-selection: #0b4a5a;
+  --bg-input: #00303c;
+  --border: #0a3b48;
+  --border-strong: #16505f;
+
+  --fg: #93a1a1;
+  --fg-strong: #eee8d5;
+  --fg-muted: #7c9195;
+  --fg-faint: #586e75;
+
+  --accent: #268bd2;
+  --accent-strong: #4aa3e3;
+  --accent-soft: rgba(38, 139, 210, 0.18);
+  --accent-fg: #fdf6e3;
+
+  --success: #859900;
+  --warning: #b58900;
+  --danger: #dc322f;
+  --info: #268bd2;
+
+  /* VCS file status colors (project tree, tabs, commit window) */
+  --vcs-modified: #268bd2;
+  --vcs-added: #859900;
+  --vcs-deleted: #657b83;
+  --vcs-untracked: #cb4b16;
+  --vcs-conflict: #dc322f;
+
+  /* Git blame annotation age (newest -> oldest) and diff viewer */
+  --blame-age-0: #cb4b16;
+  --blame-age-1: #a8581f;
+  --blame-age-2: #7d5a3a;
+  --blame-age-3: #4f5a52;
+  --blame-age-4: #2c4a52;
+  --blame-bg-0: rgba(203, 75, 22, 0.12);
+  --blame-bg-1: rgba(203, 75, 22, 0.06);
+  --diff-inserted-bg: rgba(133, 153, 0, 0.16);
+  --diff-inserted-text: rgba(133, 153, 0, 0.32);
+  --diff-deleted-bg: rgba(220, 50, 47, 0.14);
+  --diff-deleted-text: rgba(220, 50, 47, 0.32);
+  --diff-changed-bg: rgba(38, 139, 210, 0.14);
+  --graph-0: #cb4b16;
+  --graph-1: #268bd2;
+  --graph-2: #859900;
+  --graph-3: #6c71c4;
+  --graph-4: #b58900;
+  --graph-5: #2aa198;
+  --graph-6: #d33682;
+  --ref-local: #cb4b16;
+  --ref-remote: #6c71c4;
+  --ref-tag: #b58900;
+
+  /* Syntax */
+  --syn-keyword: #859900;
+  --syn-string: #2aa198;
+  --syn-number: #d33682;
+  --syn-comment: #586e75;
+  --syn-variable: #268bd2;
+  --syn-function: #b58900;
+  --syn-type: #cb4b16;
+  --syn-attribute: #6c71c4;
+  --syn-operator: #93a1a1;
+  --syn-tag: #268bd2;
+
+  --shadow: 0 8px 28px rgba(0, 20, 26, 0.55);
+  color-scheme: dark;
+}
+
+:root[data-theme="solarized-light"] {
+  --bg-app: #eee8d5;
+  --bg-toolbar: #f5eedb;
+  --bg-panel: #f5eedb;
+  --bg-editor: #fdf6e3;
+  --bg-elevated: #fdf6e3;
+  --bg-hover: #eae3cc;
+  --bg-active: #e1dac2;
+  --bg-selection: #e6dfc5;
+  --bg-input: #fdf6e3;
+  --border: #e3dcc4;
+  --border-strong: #d3cbb0;
+
+  --fg: #586e75;
+  --fg-strong: #073642;
+  --fg-muted: #738489;
+  --fg-faint: #93a1a1;
+
+  --success: #859900;
+  --warning: #b58900;
+  --danger: #dc322f;
+  --info: #268bd2;
+  --vcs-conflict: #dc322f;
+
+  --accent: #268bd2;
+  --accent-strong: #1f78b8;
+  --accent-soft: rgba(38, 139, 210, 0.14);
+  --accent-fg: #fdf6e3;
+
+  --vcs-modified: #268bd2;
+  --vcs-added: #859900;
+  --vcs-deleted: #93a1a1;
+  --vcs-untracked: #cb4b16;
+
+  --blame-age-0: #cb4b16;
+  --blame-age-1: #d98a5a;
+  --blame-age-2: #d6b690;
+  --blame-age-3: #e0d3ba;
+  --blame-age-4: #eadfc6;
+  --blame-bg-0: rgba(203, 75, 22, 0.10);
+  --blame-bg-1: rgba(203, 75, 22, 0.05);
+  --diff-inserted-bg: rgba(133, 153, 0, 0.14);
+  --diff-inserted-text: rgba(133, 153, 0, 0.30);
+  --diff-deleted-bg: rgba(220, 50, 47, 0.10);
+  --diff-deleted-text: rgba(220, 50, 47, 0.26);
+  --diff-changed-bg: rgba(38, 139, 210, 0.12);
+  --graph-0: #cb4b16;
+  --graph-1: #268bd2;
+  --graph-2: #859900;
+  --graph-3: #6c71c4;
+  --graph-4: #b58900;
+  --graph-5: #2aa198;
+  --graph-6: #d33682;
+  --ref-local: #cb4b16;
+  --ref-remote: #6c71c4;
+  --ref-tag: #b58900;
+
+  --syn-keyword: #859900;
+  --syn-string: #2aa198;
+  --syn-number: #d33682;
+  --syn-comment: #93a1a1;
+  --syn-variable: #268bd2;
+  --syn-function: #b58900;
+  --syn-type: #cb4b16;
+  --syn-attribute: #6c71c4;
+  --syn-operator: #586e75;
+  --syn-tag: #268bd2;
+
+  --shadow: 0 8px 24px rgba(88, 110, 117, 0.22);
   color-scheme: light;
 }
 

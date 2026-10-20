@@ -10,7 +10,7 @@ description = "HTML, CSS, JavaScript and TypeScript editing with language server
 projectTypes = ["webforge"]
 
 [plugin.contributions]
-languages = ["html", "css", "scss", "js", "mjs", "ts", "tsx", "jsx", "json"]
+languages = ["html", "css", "scss", "js", "mjs", "ts", "tsx", "jsx"]
 
 [[plugin.contributions.lspServers]]
 id = "typescript-language-server"

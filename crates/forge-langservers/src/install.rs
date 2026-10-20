@@ -1,7 +1,11 @@
-//! Running an install command (`npm install -g …`, `pipx install …`) with streamed
-//! output. Commands come from the catalog only and run without a shell.
+//! Running an install command (`npm install …`, `pipx install …`) with streamed output.
+//! Commands come from the catalog only and run without a shell.
+//!
+//! npm servers are never installed globally: the catalog's `npm install -g <packages>` is
+//! run as `npm install --prefix <Forge's langservers dir> <packages>`, so nothing outside
+//! Forge's own directory changes and the servers are found again by [`Detector`].
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use std::sync::Arc;
 
@@ -10,7 +14,7 @@ use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command;
 use tokio::sync::{mpsc, Notify};
 
-use crate::catalog::InstallOption;
+use crate::catalog::{display_args, InstallOption};
 use crate::detect::Detector;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -30,8 +34,54 @@ pub enum InstallOutcome {
     Cancelled,
 }
 
+/// `npm install -g <packages>` as an install into `dir`:
+/// `npm install --prefix <dir> --no-fund --no-audit <packages>`. `None` for anything that is
+/// not a global npm install, which then runs unchanged.
+pub fn managed_command(option: &InstallOption, dir: &Path) -> Option<Vec<String>> {
+    if option.tool != "npm" {
+        return None;
+    }
+    let (program, rest) = option.command.split_first()?;
+    let (verb, rest) = rest.split_first()?;
+    let global = |a: &String| a == "-g" || a == "--global";
+    if program != "npm"
+        || !matches!(verb.as_str(), "install" | "i" | "add")
+        || !rest.iter().any(global)
+    {
+        return None;
+    }
+    let mut out = vec![
+        program.clone(),
+        "install".into(),
+        "--prefix".into(),
+        dir.display().to_string(),
+        "--no-fund".into(),
+        "--no-audit".into(),
+    ];
+    out.extend(rest.iter().filter(|a| !global(a)).cloned());
+    Some(out)
+}
+
+/// The command that actually runs: the managed form of a global npm install when the
+/// detector knows Forge's directory, otherwise the catalog command.
+pub fn effective_command(option: &InstallOption, detector: &Detector) -> Vec<String> {
+    detector
+        .managed_dir()
+        .and_then(|dir| managed_command(option, dir))
+        .unwrap_or_else(|| option.command.clone())
+}
+
+/// [`effective_command`] as one line, for the install dialog and its output.
+pub fn display_command(option: &InstallOption, detector: &Detector) -> String {
+    if option.command.is_empty() {
+        return option.display();
+    }
+    display_args(&effective_command(option, detector))
+}
+
 /// The program and arguments to run: the program is resolved like a language server
-/// (npm, pipx and go are often outside a desktop session's `PATH`).
+/// (npm, pipx and go are often outside a desktop session's `PATH`). The managed directory
+/// of an npm install is created here.
 pub fn resolve_command(
     option: &InstallOption,
     detector: &Detector,
@@ -42,13 +92,19 @@ pub fn resolve_command(
             option.tool
         ));
     }
-    let (program, args) = option
-        .command
+    let command = effective_command(option, detector);
+    let (program, args) = command
         .split_first()
         .ok_or_else(|| "empty install command".to_string())?;
     let path = detector.find(program).ok_or_else(|| {
         format!("{program} was not found. Install it first or run the command in a terminal.")
     })?;
+    if command != option.command {
+        if let Some(dir) = detector.managed_dir() {
+            std::fs::create_dir_all(dir)
+                .map_err(|e| format!("cannot create {}: {e}", dir.display()))?;
+        }
+    }
     Ok((path, args.to_vec()))
 }
 
@@ -188,6 +244,108 @@ mod tests {
         .await;
         assert_eq!(outcome, InstallOutcome::Cancelled);
         assert!(started.elapsed() < std::time::Duration::from_secs(10));
+    }
+
+    fn npm_option(args: &[&str]) -> InstallOption {
+        InstallOption {
+            tool: "npm".into(),
+            command: args.iter().map(|a| a.to_string()).collect(),
+            url: None,
+            platforms: vec![],
+        }
+    }
+
+    #[test]
+    fn global_npm_installs_become_installs_into_the_managed_directory() {
+        let dir = Path::new("/data/forge/langservers");
+        let rewritten = managed_command(
+            &npm_option(&[
+                "npm",
+                "install",
+                "-g",
+                "typescript-language-server",
+                "typescript",
+            ]),
+            dir,
+        )
+        .unwrap();
+        assert_eq!(
+            rewritten,
+            [
+                "npm",
+                "install",
+                "--prefix",
+                "/data/forge/langservers",
+                "--no-fund",
+                "--no-audit",
+                "typescript-language-server",
+                "typescript"
+            ]
+        );
+        // The flag may come anywhere and in its long form.
+        let long = managed_command(&npm_option(&["npm", "i", "pyright", "--global"]), dir).unwrap();
+        assert_eq!(long.last().map(String::as_str), Some("pyright"));
+        assert!(!long.iter().any(|a| a == "--global" || a == "-g"));
+        // Local installs, other programs and other tools are left alone.
+        assert_eq!(
+            managed_command(&npm_option(&["npm", "install", "x"]), dir),
+            None
+        );
+        assert_eq!(
+            managed_command(&npm_option(&["npm", "view", "-g", "x"]), dir),
+            None
+        );
+        let brew = InstallOption {
+            tool: "brew".into(),
+            ..npm_option(&["brew", "install", "-g", "x"])
+        };
+        assert_eq!(managed_command(&brew, dir), None);
+        assert_eq!(managed_command(&npm_option(&[]), dir), None);
+    }
+
+    #[test]
+    fn display_and_resolution_use_the_managed_form_and_create_the_directory() {
+        let tmp = tempfile::tempdir().unwrap();
+        crate::detect::tests::fake_bin(&tmp.path().join("bin/npm"));
+        let managed = tmp.path().join("data dir/forge/langservers");
+        let d = Detector::new(DetectEnv {
+            path: Some(tmp.path().join("bin").into_os_string()),
+            managed_dir: Some(managed.clone()),
+            ..Default::default()
+        });
+        let option = npm_option(&["npm", "install", "-g", "yaml-language-server"]);
+        let line = display_command(&option, &d);
+        assert_eq!(
+            line,
+            format!(
+                "npm install --prefix \"{}\" --no-fund --no-audit yaml-language-server",
+                managed.display()
+            )
+        );
+        assert!(!managed.exists(), "displaying changes nothing on disk");
+
+        let (program, args) = resolve_command(&option, &d).unwrap();
+        assert_eq!(program, tmp.path().join("bin/npm"));
+        assert_eq!(args[..2], ["install", "--prefix"]);
+        assert_eq!(args[2], managed.display().to_string());
+        assert!(managed.is_dir(), "the managed directory is created");
+
+        // Without a managed directory the catalog command runs as it is.
+        let plain = Detector::new(DetectEnv {
+            path: Some(tmp.path().join("bin").into_os_string()),
+            ..Default::default()
+        });
+        assert_eq!(
+            display_command(&option, &plain),
+            "npm install -g yaml-language-server"
+        );
+        let brew = InstallOption {
+            tool: "brew".into(),
+            command: vec!["brew".into(), "install".into(), "x".into()],
+            url: None,
+            platforms: vec![],
+        };
+        assert_eq!(display_command(&brew, &d), "brew install x");
     }
 
     #[test]

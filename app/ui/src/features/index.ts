@@ -19,6 +19,7 @@ import "./symfony";
 import "./doctrine";
 import "./project-type";
 import "./new-project";
+import "./languages";
 import "./browserCompanion";
 import "./terminal";
 import "./run";

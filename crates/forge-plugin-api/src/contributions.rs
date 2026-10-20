@@ -14,6 +14,9 @@ pub struct Contributions {
     /// File extensions this plugin provides language support for (without dot).
     #[serde(default)]
     pub languages: Vec<String>,
+    /// File types the plugin recognises, with the extensions and names that select them.
+    #[serde(default)]
+    pub file_types: Vec<FileTypeContribution>,
     #[serde(default)]
     pub commands: Vec<CommandContribution>,
     #[serde(default)]
@@ -33,6 +36,23 @@ pub struct Contributions {
     pub chat_agents: Vec<ChatAgentContribution>,
     #[serde(default)]
     pub code_generators: Vec<CodeGeneratorContribution>,
+}
+
+/// A file type (PHPStorm's Settings | Editor | File Types): how files are recognised and
+/// what the status bar calls them. Syntax highlighting is registered by the UI under the
+/// same `id`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FileTypeContribution {
+    /// Stable id, also the LSP language id when a server handles the type, e.g. `yaml`.
+    pub id: String,
+    pub name: String,
+    /// Extensions without the dot; compound ones such as `env.local` are allowed.
+    #[serde(default)]
+    pub extensions: Vec<String>,
+    /// Exact file names (`Dockerfile`) or name patterns with `*` wildcards (`.env.*`).
+    #[serde(default)]
+    pub file_names: Vec<String>,
 }
 
 /// An action with a PHPStorm-style id (e.g. `settings.open`), invokable from Find Action.

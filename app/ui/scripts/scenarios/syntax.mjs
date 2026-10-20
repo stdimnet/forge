@@ -7,9 +7,9 @@ async function openPath(page, path) {
     const dir = parts.slice(0, i).join("/");
     const row = page.locator(`.tree-row[data-path="${dir}"]`);
     // Expand only collapsed directories (their child rows are not rendered yet).
-    if ((await page.locator(`.tree-row[data-path^="${dir}/"]`).count()) === 0) await row.dblclick();
+    if ((await page.locator(`.tree-row[data-path^="${dir}/"]`).count()) === 0) await row.click();
   }
-  await page.dblclick(`.tree-row[data-path="${path}"]`);
+  await page.click(`.tree-row[data-path="${path}"]`);
   await page.waitForTimeout(400);
 }
 
@@ -31,4 +31,5 @@ export default {
   "syntax-css": scenario("resources/css/app.css"),
   "syntax-twig-latex": scenario("templates/invoice/invoice.tex.twig"),
   "syntax-twig-sql": scenario("templates/reports/top_customers.sql.twig"),
+  "syntax-go-template": scenario("templates/mail/welcome.html.tmpl"),
 };

@@ -25,9 +25,9 @@ async function openFile(page, path) {
   for (let i = 1; i < parts.length; i++) {
     const dir = parts.slice(0, i).join("/");
     const child = page.locator(`.tree-row[data-path^="${dir}/"]`).first();
-    if (!(await child.isVisible().catch(() => false))) await page.locator(`.tree-row[data-path="${dir}"]`).dblclick();
+    if (!(await child.isVisible().catch(() => false))) await page.locator(`.tree-row[data-path="${dir}"]`).click();
   }
-  await page.locator(`.tree-row[data-path="${path}"]`).dblclick();
+  await page.locator(`.tree-row[data-path="${path}"]`).click();
   await page.waitForSelector(`.editor-tab.active[title="${path}"]`);
   await page.waitForTimeout(150);
 }
