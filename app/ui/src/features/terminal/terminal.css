@@ -1,0 +1,88 @@
+/* Terminal tool window. Colors come from theme.css variables only. */
+
+.terminal-view {
+  position: relative;
+  height: 100%;
+  background: var(--bg-panel);
+}
+.term-host {
+  position: absolute;
+  inset: 2px 4px 0 12px;
+}
+.term-host.hidden {
+  visibility: hidden;
+  pointer-events: none;
+}
+.term-host .xterm {
+  height: 100%;
+}
+.term-host .xterm-viewport {
+  background: transparent !important;
+}
+.term-host .xterm-viewport::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+}
+
+/* Tabs in the tool window header */
+.term-tabs {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  height: 100%;
+  overflow: hidden;
+}
+.term-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 26px;
+  padding: 0 4px 0 10px;
+  border-radius: var(--radius);
+  color: var(--fg-muted);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.term-tab:hover {
+  background: var(--bg-hover);
+  color: var(--fg);
+}
+.term-tab.active {
+  color: var(--fg-strong);
+  background: var(--bg-active);
+}
+.term-tab-title {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.term-tab-input {
+  width: 120px;
+  height: 20px;
+  padding: 0 4px;
+  font-size: var(--fs-small);
+}
+.term-tab-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: var(--radius-sm);
+  color: var(--fg-faint);
+  visibility: hidden;
+}
+.term-tab.active .term-tab-close,
+.term-tab:hover .term-tab-close {
+  visibility: visible;
+}
+.term-tab-close:hover {
+  background: var(--bg-hover);
+  color: var(--fg);
+}
+.term-tabs .term-new {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}

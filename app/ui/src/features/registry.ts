@@ -18,8 +18,10 @@ export interface ToolWindow {
   component: Component;
   /** PHPStorm-style shortcut hint shown in tooltips, e.g. "Alt+1". */
   shortcut?: string;
-  /** Optional header actions rendered right of the title. */
+  /** Optional header actions rendered at the right end of the header. */
   actions?: () => JSX.Element;
+  /** Optional content right after the title, e.g. tabs (Terminal, Run). */
+  headerContent?: () => JSX.Element;
 }
 
 const [toolWindows, setToolWindows] = createSignal<ToolWindow[]>([]);

@@ -74,6 +74,24 @@
   --syn-operator: #c4c4cc;
   --syn-tag: #ff9a57;
 
+  /* ANSI palette (terminal, Run console) */
+  --ansi-black: #2a2a31;
+  --ansi-red: #ef6b6b;
+  --ansi-green: #7ccf8e;
+  --ansi-yellow: #e5b449;
+  --ansi-blue: #6aa7ff;
+  --ansi-magenta: #c9a6ff;
+  --ansi-cyan: #6fd2c4;
+  --ansi-white: #c4c4cc;
+  --ansi-bright-black: #6b6b78;
+  --ansi-bright-red: #ff8a8a;
+  --ansi-bright-green: #9be3aa;
+  --ansi-bright-yellow: #ffd479;
+  --ansi-bright-blue: #8fbcff;
+  --ansi-bright-magenta: #dcc2ff;
+  --ansi-bright-cyan: #94e6da;
+  --ansi-bright-white: #f2f2f5;
+
   --shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
   color-scheme: dark;
 }
@@ -139,6 +157,24 @@
   --syn-attribute: #806a00;
   --syn-operator: #3a3c42;
   --syn-tag: #b8460b;
+
+  /* ANSI palette (terminal, Run console) */
+  --ansi-black: #26272b;
+  --ansi-red: #c43c3c;
+  --ansi-green: #2f8a46;
+  --ansi-yellow: #9a7400;
+  --ansi-blue: #2463c7;
+  --ansi-magenta: #7a3fc4;
+  --ansi-cyan: #157a6e;
+  --ansi-white: #8c8f99;
+  --ansi-bright-black: #6b6e78;
+  --ansi-bright-red: #e04f4f;
+  --ansi-bright-green: #3aa55a;
+  --ansi-bright-yellow: #b58a00;
+  --ansi-bright-blue: #3a7be0;
+  --ansi-bright-magenta: #9455d8;
+  --ansi-bright-cyan: #1d9686;
+  --ansi-bright-white: #3a3c42;
 
   --shadow: 0 8px 24px rgba(20, 22, 30, 0.14);
   color-scheme: light;

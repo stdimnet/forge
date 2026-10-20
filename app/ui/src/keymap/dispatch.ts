@@ -64,6 +64,7 @@ export async function runAction(actionId: string): Promise<void> {
 /** Classify the focused element for context-sensitive bindings. */
 export function focusContextOf(el: Element | null): FocusContext {
   if (!el || !(el instanceof Element)) return "global";
+  if (el.closest(".xterm")) return "terminal";
   const textInput =
     el.matches("textarea, select, [contenteditable=''], [contenteditable='true']") ||
     (el.matches("input") && !/^(checkbox|radio|button|submit|range|color)$/.test((el as HTMLInputElement).type));

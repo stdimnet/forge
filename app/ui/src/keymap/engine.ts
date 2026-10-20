@@ -20,7 +20,7 @@ import {
 import type { ActionContext } from "./phpstormKeymap";
 
 /** Where keyboard focus currently is. */
-export type FocusContext = "editor" | "input" | "toolwindow" | "global";
+export type FocusContext = "editor" | "input" | "terminal" | "toolwindow" | "global";
 
 export interface Binding {
   actionId: string;
@@ -64,11 +64,25 @@ export function allowedInInput(s: KeyStroke): boolean {
   return s.ctrl || s.alt || s.meta;
 }
 
+/**
+ * Whether a keystroke may trigger an action while the terminal has focus. Like PHPStorm's
+ * "Override IDE shortcuts", plain Ctrl+letter, Alt+letter, Escape and editing keys go to the
+ * shell; function keys, Alt+digit (tool windows) and Ctrl+Shift / Ctrl+Alt combinations
+ * stay with the IDE (except Ctrl+Shift+C/V, the terminal's copy and paste).
+ */
+export function allowedInTerminal(s: KeyStroke): boolean {
+  if (/^F\d+$/.test(s.key)) return true;
+  if (s.alt && !s.ctrl && /^\d$/.test(s.key)) return true;
+  if (s.meta) return !["C", "V"].includes(s.key);
+  if (s.ctrl && s.shift && ["C", "V"].includes(s.key)) return false;
+  return s.ctrl && (s.shift || s.alt);
+}
+
 /** Whether an action with `context` may fire under `focus`. */
 export function contextMatches(context: ActionContext, focus: FocusContext): boolean {
   if (context === "any") return true;
   if (context === "editor") return focus === "editor";
-  return focus === "toolwindow";
+  return focus === "toolwindow" || focus === "terminal";
 }
 
 /** Build bindings from an action → shortcut strings map. Unparsable strings are skipped. */
@@ -217,6 +231,7 @@ export class KeymapEngine {
     }
 
     if (focus === "input" && !allowedInInput(stroke)) return { consumed: false };
+    if (focus === "terminal" && !allowedInTerminal(stroke)) return { consumed: false };
     const entry = this.index.get(sid);
     if (!entry) return { consumed: false };
     const hasChord = [...entry.chords.values()].some((l) => l.some((b) => contextMatches(b.context, focus)));

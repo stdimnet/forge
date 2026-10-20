@@ -12,6 +12,7 @@ export function ToolWindowPanel(props: { anchor: ToolWindowAnchor }) {
         <section class={`tool-window tool-window-${props.anchor}`} data-tool-window-panel={w().id}>
           <header class="tool-window-header">
             <span class="tool-window-title">{w().title}</span>
+            <div class="tool-window-header-content">{w().headerContent?.()}</div>
             <div class="tool-window-actions">
               {w().actions?.()}
               <button class="icon-btn" title="Hide" onClick={() => toggleToolWindow(props.anchor, w().id)}>

@@ -33,7 +33,7 @@ const emit = (id: string, e: TerminalEvent) => emitMock(`terminal://${id}`, e);
 const out = (id: string, data: string) => emit(id, { type: "output", data: data.replace(/\n/g, "\r\n") });
 
 const prompt = (s: FakeShell) =>
-  `${C.green}${C.bold}dev@forge${C.reset} ${C.blue}${C.bold}${s.cwd}${C.reset} ${C.magenta}(main)${C.reset} $ `;
+  `${C.green}${C.bold}dev@forge${C.reset} ${C.blue}${C.bold}${s.cwd}${C.reset} ${C.magenta}(feature/order-totals)${C.reset} $ `;
 
 const LS_ROOT = [
   ["app", "dir"],
@@ -81,8 +81,8 @@ const COMMANDS: Record<string, (args: string[], s: FakeShell) => string> = {
   git: (a) => {
     if (a[0] === "status")
       return [
-        "On branch main",
-        "Your branch is up to date with 'origin/main'.",
+        "On branch feature/order-totals",
+        "Your branch is up to date with 'origin/feature/order-totals'.",
         "",
         "Changes not staged for commit:",
         '  (use "git add <file>..." to update what will be committed)',
@@ -97,9 +97,9 @@ const COMMANDS: Record<string, (args: string[], s: FakeShell) => string> = {
         'no changes added to commit (use "git add" and/or "git commit -a")',
         "",
       ].join("\n");
-    if (a[0] === "branch") return `* ${C.green}main${C.reset}\n  feature/invoices\n`;
+    if (a[0] === "branch") return `  main\n* ${C.green}feature/order-totals${C.reset}\n`;
     if (a[0] === "log")
-      return `${C.yellow}3f9c2a1${C.reset} (${C.cyan}HEAD -> ${C.green}main${C.reset}) Add order invoices\n${C.yellow}b81e0d4${C.reset} Normalize customer e-mails\n`;
+      return `${C.yellow}3f9c2a1${C.reset} (${C.cyan}HEAD -> ${C.green}feature/order-totals${C.reset}) Add order invoices\n${C.yellow}b81e0d4${C.reset} Normalize customer e-mails\n`;
     return "usage: git [-v | --version] [-h | --help] <command> [<args>]\n";
   },
   grep: (a) =>
