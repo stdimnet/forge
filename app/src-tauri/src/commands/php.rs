@@ -215,10 +215,10 @@ pub fn php_lsp_config(
     state: State<'_, AppState>,
 ) -> Result<Option<LspServerConfig>> {
     let root = workspace_root(&state)?;
-    Ok(lsp::resolve_for_workspace(
-        &settings.unwrap_or_default(),
-        &root,
-    ))
+    let mut settings = settings.unwrap_or_default();
+    // The licence key lives in the OS keychain only; free mode sends none.
+    settings.licence_key = crate::commands::langservers::intelephense_licence_key();
+    Ok(lsp::resolve_for_workspace(&settings, &root))
 }
 
 fn dirs_home() -> Option<PathBuf> {

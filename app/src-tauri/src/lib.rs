@@ -39,6 +39,7 @@ pub fn run() {
         })
         .manage(commands::lsp::LspState::default())
         .manage(commands::php::PhpState::default())
+        .manage(commands::langservers::LangServersState::default())
         .invoke_handler(tauri::generate_handler![
             commands::workspace::workspace_open,
             commands::workspace::workspace_current,
@@ -79,6 +80,13 @@ pub fn run() {
             commands::lsp::lsp_format,
             commands::lsp::lsp_status,
             commands::lsp::lsp_register_server,
+            commands::langservers::langservers_list,
+            commands::langservers::langservers_apply,
+            commands::langservers::langservers_install,
+            commands::langservers::langservers_cancel_install,
+            commands::langservers::lsp_workspace_symbols,
+            commands::langservers::intelephense_licence_status,
+            commands::langservers::intelephense_set_licence,
             commands::workspace::fs_find_files,
             commands::git::git_info,
             commands::git::git_status,
