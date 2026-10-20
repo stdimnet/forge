@@ -11,7 +11,7 @@ import {
   type PermissionMode,
 } from "@/ipc/agent";
 import { reloadFile } from "@/state/editor";
-import { addTurn, applyEvent, emptyConversation, findPermission, type Conversation, type PermissionStatus } from "./model";
+import { addTurn, applyChatUpdate, emptyConversation, failTurn, findPermission, type Conversation } from "./model";
 
 export interface HistoryEntry {
   id: number;
@@ -77,24 +77,18 @@ export async function detectAgents(): Promise<void> {
 }
 
 function onEvent(ev: AgentEvent): void {
-  let changed: string[] = [];
-  let ended = false;
-  setChat(
-    "conv",
-    produce((conv) => {
-      const r = applyEvent(conv, ev);
-      changed = r.changedFiles ?? [];
-      ended = !!r.turnEnded;
-    }),
-  );
-  if (ended) setChat("running", false);
+  if (ev.type === "chat") {
+    setChat("conv", produce((conv) => applyChatUpdate(conv, ev)));
+    if (ev.turnEnded) setChat("running", false);
+    for (const path of ev.changedFiles) void reloadFile(path);
+    return;
+  }
   if (ev.type === "exited") {
     // The process is gone; the next message starts (and resumes) a new one.
     unlisten?.();
     unlisten = undefined;
     setChat("sessionId", null);
   }
-  for (const path of changed) void reloadFile(path);
 }
 
 async function ensureSession(): Promise<string> {
@@ -111,14 +105,15 @@ async function ensureSession(): Promise<string> {
 
 export async function sendMessage(text: string, context: MessageContext): Promise<void> {
   if (chat.running || !text.trim()) return;
-  setChat("conv", produce((conv) => void addTurn(conv, text.trim(), context)));
+  let turnId = 0;
+  setChat("conv", produce((conv) => void (turnId = addTurn(conv, text.trim(), context).id)));
   setChat("running", true);
   try {
     const id = await ensureSession();
-    await agentApi.send(id, text.trim(), context);
+    await agentApi.send(id, text.trim(), context, turnId);
   } catch (e) {
-    onEvent({ type: "error", message: String(e instanceof Error ? e.message : e) });
-    onEvent({ type: "turnFinished", result: null, isError: true, durationMs: null, numTurns: null, costUsd: null, usage: null });
+    setChat("conv", produce((conv) => failTurn(conv, String(e instanceof Error ? e.message : e))));
+    setChat("running", false);
   }
 }
 
@@ -128,18 +123,12 @@ export async function answerPermission(requestId: string, answer: "once" | "sess
   if (!id || findPermission(chat.conv, requestId)?.status !== "pending") return;
   const decision: PermissionDecision =
     answer === "deny" ? { behavior: "deny", message: "The user denied this tool call." } : { behavior: "allow", scope: answer };
-  const status: PermissionStatus = answer === "deny" ? "denied" : answer === "session" ? "allowedForSession" : "allowed";
-  setChat(
-    "conv",
-    produce((conv) => {
-      const p = findPermission(conv, requestId);
-      if (p) p.status = status;
-    }),
-  );
+  // The backend marks the request answered in its next `chat` update.
   try {
     await agentApi.respondPermission(id, requestId, decision);
   } catch (e) {
-    onEvent({ type: "error", message: String(e instanceof Error ? e.message : e) });
+    const message = String(e instanceof Error ? e.message : e);
+    setChat("conv", produce((conv) => void conv.turns[conv.turns.length - 1]?.blocks.push({ kind: "error", message })));
   }
 }
 

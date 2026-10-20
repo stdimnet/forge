@@ -7,6 +7,28 @@
 export function bridge_version(): string;
 
 /**
+ * `{ handle, event: AgentEvent, now }` → `ChatUpdate`.
+ */
+export function chat_apply(request_json: string): string;
+
+/**
+ * `{ handle, turnId, prompt, context }` → `ChatUpdate`.
+ */
+export function chat_begin_turn(request_json: string): string;
+
+export function chat_drop(request_json: string): string;
+
+/**
+ * A new conversation → its handle (a number).
+ */
+export function chat_new(): string;
+
+/**
+ * `{ handle, requestId, status }` → `ChatUpdate | null`.
+ */
+export function chat_set_permission(request_json: string): string;
+
+/**
  * Mirrors `doctrine_complete`: `{ path, content, offset, snapshot }` → `DqlCompletion | null`.
  */
 export function dql_complete(request_json: string): string;
@@ -83,6 +105,11 @@ export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembl
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
     readonly bridge_version: (a: number) => void;
+    readonly chat_apply: (a: number, b: number, c: number) => void;
+    readonly chat_begin_turn: (a: number, b: number, c: number) => void;
+    readonly chat_drop: (a: number, b: number, c: number) => void;
+    readonly chat_new: (a: number) => void;
+    readonly chat_set_permission: (a: number, b: number, c: number) => void;
     readonly dql_complete: (a: number, b: number, c: number) => void;
     readonly dql_diagnostics: (a: number, b: number, c: number) => void;
     readonly dql_goto: (a: number, b: number, c: number) => void;

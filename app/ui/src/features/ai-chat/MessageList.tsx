@@ -3,19 +3,14 @@ import { Brain, ChevronRight, CircleStop, FileText, TextSelect, TriangleAlert } 
 import { FileIcon } from "@/shell/FileIcon";
 import { openFile } from "@/state/editor";
 import { chat } from "./store";
-import { changedFilesOf, formatDuration, formatTokens, type Block, type Turn } from "./model";
+import type { Block, Turn } from "./model";
 import { Markdown } from "./Markdown";
 import { ToolCard } from "./ToolCard";
 import { PermissionCard } from "./PermissionCard";
 
 function Thinking(props: { block: Block & { kind: "thinking" } }) {
   const [open, setOpen] = createSignal(false);
-  const label = () =>
-    props.block.streaming
-      ? "Thinking…"
-      : props.block.durationMs
-        ? `Thought for ${Math.max(1, Math.round(props.block.durationMs / 1000))}s`
-        : "Thought";
+  const label = () => props.block.label;
   return (
     <div class="chat-thinking" classList={{ open: open(), streaming: props.block.streaming }}>
       <button class="chat-thinking-toggle" onClick={() => setOpen(!open())}>
@@ -61,12 +56,8 @@ function UserMessage(props: { turn: Turn }) {
 }
 
 function TurnFooter(props: { turn: Turn }) {
-  const files = () => changedFilesOf(props.turn, chat.conv.cwd);
+  const files = () => props.turn.changedFiles;
   const s = () => props.turn.summary;
-  const tokens = () => {
-    const u = s()?.usage;
-    return u ? u.inputTokens + u.outputTokens + (u.cacheReadTokens ?? 0) + (u.cacheWriteTokens ?? 0) : 0;
-  };
   return (
     <>
       <Show when={props.turn.status !== "running" && files().length}>
@@ -93,14 +84,14 @@ function TurnFooter(props: { turn: Turn }) {
       </Show>
       <Show when={s()}>
         <div class="chat-turn-footer">
-          <Show when={s()!.durationMs != null}>
-            <span>{formatDuration(s()!.durationMs!)}</span>
+          <Show when={s()!.durationText}>
+            <span>{s()!.durationText}</span>
           </Show>
-          <Show when={tokens()}>
-            <span>{formatTokens(tokens())} tokens</span>
+          <Show when={s()!.tokensText}>
+            <span>{s()!.tokensText}</span>
           </Show>
-          <Show when={s()!.costUsd != null}>
-            <span>${s()!.costUsd!.toFixed(s()!.costUsd! < 0.1 ? 3 : 2)}</span>
+          <Show when={s()!.costText}>
+            <span>{s()!.costText}</span>
           </Show>
         </div>
       </Show>
@@ -108,13 +99,13 @@ function TurnFooter(props: { turn: Turn }) {
   );
 }
 
-function BlockView(props: { block: Block; superseded: boolean }) {
+function BlockView(props: { block: Block }) {
   const b = props.block;
   return (
     <Switch>
-      <Match when={b.kind === "text" && b}>{(t) => <Markdown text={t().text} streaming={t().streaming} />}</Match>
+      <Match when={b.kind === "text" && b}>{(t) => <Markdown blocks={t().markdown} streaming={t().streaming} />}</Match>
       <Match when={b.kind === "thinking" && b}>{(t) => <Thinking block={t()} />}</Match>
-      <Match when={b.kind === "tool" && b}>{(t) => <ToolCard block={t()} cwd={chat.conv.cwd} superseded={props.superseded} />}</Match>
+      <Match when={b.kind === "tool" && b}>{(t) => <ToolCard block={t()} />}</Match>
       <Match when={b.kind === "error" && b}>
         {(e) => (
           <div class="chat-error">
@@ -127,14 +118,6 @@ function BlockView(props: { block: Block; superseded: boolean }) {
     </Switch>
   );
 }
-
-const lastTodoIndex = (turn: Turn) => {
-  for (let i = turn.blocks.length - 1; i >= 0; i--) {
-    const b = turn.blocks[i];
-    if (b.kind === "tool" && b.name === "TodoWrite") return i;
-  }
-  return -1;
-};
 
 export function MessageList() {
   let scroller!: HTMLDivElement;
@@ -155,13 +138,8 @@ export function MessageList() {
           <div class="chat-turn" data-status={turn.status}>
             <UserMessage turn={turn} />
             <div class="chat-assistant">
-              <For each={turn.blocks}>{(b, i) => <BlockView block={b} superseded={i() < lastTodoIndex(turn)} />}</For>
-              <Show
-                when={
-                  turn.status === "running" &&
-                  !turn.blocks.some((b) => (b.kind === "text" && b.streaming) || (b.kind === "permission" && b.status === "pending"))
-                }
-              >
+              <For each={turn.blocks}>{(b) => <BlockView block={b} />}</For>
+              <Show when={turn.working}>
                 <div class="chat-working">
                   <span class="chat-dots">
                     <i />

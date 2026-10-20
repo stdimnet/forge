@@ -2,6 +2,11 @@
 /* eslint-disable */
 export const memory: WebAssembly.Memory;
 export const bridge_version: (a: number) => void;
+export const chat_apply: (a: number, b: number, c: number) => void;
+export const chat_begin_turn: (a: number, b: number, c: number) => void;
+export const chat_drop: (a: number, b: number, c: number) => void;
+export const chat_new: (a: number) => void;
+export const chat_set_permission: (a: number, b: number, c: number) => void;
 export const dql_complete: (a: number, b: number, c: number) => void;
 export const dql_diagnostics: (a: number, b: number, c: number) => void;
 export const dql_goto: (a: number, b: number, c: number) => void;

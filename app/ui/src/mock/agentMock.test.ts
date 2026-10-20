@@ -25,7 +25,7 @@ describe("agent mock", () => {
     });
     await agentApi.send(id, "Add a scope for paid orders to Order model", { files: [] });
     await done;
-    expect(events[0].type).toBe("sessionStarted");
+    expect(events.filter((e) => e.type !== "chat")[0].type).toBe("sessionStarted");
     const tools = events.flatMap((e) => (e.type === "toolUse" ? [e.name] : []));
     expect(tools).toEqual(expect.arrayContaining(["Read", "Edit", "MultiEdit", "Bash", "TodoWrite"]));
     expect(await invoke<string>("fs_read_file", { path: "app/Models/Order.php" })).toContain("scopePaid");

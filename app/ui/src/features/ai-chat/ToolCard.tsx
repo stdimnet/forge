@@ -22,8 +22,7 @@ import {
 } from "lucide-solid";
 import { openFile } from "@/state/editor";
 import { FileIcon } from "@/shell/FileIcon";
-import { relativePath, toolPath, type ToolBlock } from "./model";
-import { diffLines, diffStats, editHunks } from "./diff";
+import type { ToolBlock } from "./model";
 import { DiffDialog, DiffView } from "./DiffView";
 
 type Icon = Component<{ size?: number; "stroke-width"?: number }>;
@@ -31,19 +30,19 @@ type Icon = Component<{ size?: number; "stroke-width"?: number }>;
 interface ToolView {
   icon: Icon;
   verb: string;
-  subject?: (b: ToolBlock, cwd: string | null) => JSX.Element;
+  subject?: (b: ToolBlock) => JSX.Element;
   meta?: (b: ToolBlock) => JSX.Element;
-  body?: Component<{ block: ToolBlock; cwd: string | null }>;
+  body?: Component<{ block: ToolBlock }>;
   /** Body always visible (no collapse), e.g. todo lists. */
   inline?: boolean;
 }
 
 const str = (v: unknown) => (typeof v === "string" ? v : "");
-const nonEmptyLines = (s: string | undefined) => (s ? s.split("\n").filter((l) => l.trim()).length : 0);
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
-export function FileChip(props: { path: string; cwd: string | null }) {
-  const rel = () => relativePath(props.path, props.cwd);
+/** A workspace-relative file that opens on click. */
+export function FileChip(props: { path: string }) {
+  const rel = () => props.path;
   const name = () => rel().split("/").pop() || rel();
   return (
     <button
@@ -84,13 +83,15 @@ function ResultBody(props: { block: ToolBlock }) {
   );
 }
 
-function EditBody(props: { block: ToolBlock; cwd: string | null }) {
+const noDiff = { hunks: [], added: 0, removed: 0 };
+
+function EditBody(props: { block: ToolBlock }) {
   const [open, setOpen] = createSignal(false);
-  const path = () => relativePath(toolPath(props.block.input) ?? "", props.cwd);
-  const hunks = () => editHunks(props.block.name, props.block.input);
+  const path = () => props.block.path ?? "";
+  const diff = () => props.block.diff ?? noDiff;
   return (
     <>
-      <DiffView hunks={hunks()} path={path()} maxLines={16} />
+      <DiffView diff={diff()} path={path()} maxLines={16} />
       <Show when={props.block.status === "error" && props.block.result}>
         <Output text={props.block.result!} error lines={4} />
       </Show>
@@ -105,7 +106,7 @@ function EditBody(props: { block: ToolBlock; cwd: string | null }) {
         </button>
       </div>
       <Show when={open()}>
-        <DiffDialog path={path()} hunks={hunks()} onClose={() => setOpen(false)} />
+        <DiffDialog path={path()} diff={diff()} onClose={() => setOpen(false)} />
       </Show>
     </>
   );
@@ -135,7 +136,7 @@ function TodoBody(props: { block: ToolBlock }) {
   );
 }
 
-function TaskBody(props: { block: ToolBlock; cwd: string | null }) {
+function TaskBody(props: { block: ToolBlock }) {
   return (
     <div class="chat-subtools">
       <For each={props.block.children}>
@@ -143,7 +144,7 @@ function TaskBody(props: { block: ToolBlock; cwd: string | null }) {
           <div class="chat-subtool">
             <StatusIcon status={c.status} />
             <span class="chat-subtool-name">{c.name}</span>
-            <span class="muted chat-ellipsis">{relativePath(toolPath(c.input) ?? str(c.input.pattern ?? c.input.command), props.cwd)}</span>
+            <span class="muted chat-ellipsis">{c.subject}</span>
           </div>
         )}
       </For>
@@ -154,15 +155,10 @@ function TaskBody(props: { block: ToolBlock; cwd: string | null }) {
   );
 }
 
-const fileSubject = (b: ToolBlock, cwd: string | null) => {
-  const p = toolPath(b.input);
-  return p ? <FileChip path={p} cwd={cwd} /> : null;
-};
+const fileSubject = (b: ToolBlock) => (b.path !== undefined ? <FileChip path={b.path} /> : null);
 
 const editMeta = (b: ToolBlock) => {
-  const s = editHunks(b.name, b.input)
-    .map((h) => diffStats(diffLines(h.oldText, h.newText)))
-    .reduce((a, x) => ({ added: a.added + x.added, removed: a.removed + x.removed }), { added: 0, removed: 0 });
+  const s = b.diff ?? noDiff;
   return (
     <span class="chat-diffstat">
       <span class="add">+{s.added}</span>
@@ -178,7 +174,7 @@ const VIEWS: Record<string, ToolView> = {
     icon: FileText,
     verb: "Read",
     subject: fileSubject,
-    meta: (b) => (b.result !== undefined && b.status === "done" ? plural(nonEmptyLines(b.result), "line") : null),
+    meta: (b) => (b.result !== undefined && b.status === "done" ? plural(b.resultLines, "line") : null),
     body: ResultBody,
   },
   Edit: { icon: FilePen, verb: "Edit", subject: fileSubject, meta: editMeta, body: EditBody },
@@ -194,14 +190,14 @@ const VIEWS: Record<string, ToolView> = {
     icon: Search,
     verb: "Grep",
     subject: (b) => <code class="chat-tool-cmd">{str(b.input.pattern)}</code>,
-    meta: (b) => (b.result !== undefined ? plural(nonEmptyLines(b.result), "result") : null),
+    meta: (b) => (b.result !== undefined ? plural(b.resultLines, "result") : null),
     body: ResultBody,
   },
   Glob: {
     icon: FolderSearch,
     verb: "Glob",
     subject: (b) => <code class="chat-tool-cmd">{str(b.input.pattern)}</code>,
-    meta: (b) => (b.result !== undefined ? plural(nonEmptyLines(b.result), "file") : null),
+    meta: (b) => (b.result !== undefined ? plural(b.resultLines, "file") : null),
     body: ResultBody,
   },
   TodoWrite: {
@@ -253,11 +249,11 @@ function StatusIcon(props: { status: ToolBlock["status"] }) {
   );
 }
 
-export function ToolCard(props: { block: ToolBlock; cwd: string | null; defaultOpen?: boolean; superseded?: boolean }) {
+export function ToolCard(props: { block: ToolBlock; defaultOpen?: boolean }) {
   const view = () => {
     const v = VIEWS[props.block.name] ?? fallbackView(props.block.name);
     // Older todo lists collapse once a newer one exists, like a live checklist.
-    return props.superseded && v.inline ? { ...v, inline: false } : v;
+    return props.block.superseded && v.inline ? { ...v, inline: false } : v;
   };
   const [open, setOpen] = createSignal(props.defaultOpen ?? false);
   const expanded = () => view().inline || open();
@@ -284,13 +280,13 @@ export function ToolCard(props: { block: ToolBlock; cwd: string | null; defaultO
         <Show when={view().verb}>
           <span class="chat-tool-verb">{view().verb}</span>
         </Show>
-        <span class="chat-tool-subject">{view().subject?.(props.block, props.cwd)}</span>
+        <span class="chat-tool-subject">{view().subject?.(props.block)}</span>
         <span class="chat-tool-meta">{view().meta?.(props.block)}</span>
         <StatusIcon status={props.block.status} />
       </div>
       <Show when={expanded() && view().body}>
         <div class="chat-tool-body">
-          <Dynamic component={view().body} block={props.block} cwd={props.cwd} />
+          <Dynamic component={view().body} block={props.block} />
         </div>
       </Show>
     </div>
