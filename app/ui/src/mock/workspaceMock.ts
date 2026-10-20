@@ -3,8 +3,11 @@ import type { FileEntry } from "@/ipc/workspace";
 import { demoFiles, demoProjectName } from "./demoProject";
 import { demoConfigFiles } from "./demoConfigFiles";
 import { recentPrimaries } from "./projectMock";
+import { isSymfonyDemo, symfonyDemoFiles, symfonyDemoName } from "./demoSymfonyProject";
 
-const files: Record<string, string> = { ...demoFiles, ...demoConfigFiles };
+// `?project=symfony` opens the Symfony demo project instead of the Laravel one.
+const files: Record<string, string> = isSymfonyDemo() ? { ...symfonyDemoFiles } : { ...demoFiles, ...demoConfigFiles };
+const openName = isSymfonyDemo() ? symfonyDemoName : demoProjectName;
 
 function listDir(dir: string): FileEntry[] {
   const prefix = dir ? `${dir}/` : "";
@@ -34,7 +37,7 @@ registerMock("workspace_recent", () =>
     { name: "legacy-crm", root: "~/Work/legacy-crm" },
   ].map((p) => ({ ...p, primary: recentPrimaries[p.name] })),
 );
-registerMock("workspace_open", () => ({ name: demoProjectName, root: `~/Projects/${demoProjectName}` }));
+registerMock("workspace_open", () => ({ name: openName, root: `~/Projects/${openName}` }));
 registerMock("fs_list_dir", ({ path }) => listDir(String(path ?? "")));
 registerMock("fs_read_file", ({ path }) => {
   const content = files[String(path)];
