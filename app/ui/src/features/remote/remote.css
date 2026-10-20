@@ -166,12 +166,13 @@ select.ssh-input {
 }
 .ssh-secret-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 12px;
+  gap: 6px 12px;
   min-width: 0;
 }
 .ssh-secret-row .ssh-input {
-  flex: 1;
+  flex: 1 1 160px;
 }
 .ssh-check {
   display: inline-flex;
@@ -227,6 +228,10 @@ select.ssh-input {
   gap: 12px;
   min-height: 28px;
   margin-left: 160px;
+}
+.ssh-test-row > .btn-secondary {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 .ssh-test-result {
   display: flex;
@@ -449,7 +454,7 @@ select.ssh-input {
 }
 .remote-popup {
   position: absolute;
-  right: 0;
+  left: 0;
   bottom: calc(100% + 6px);
   z-index: 60;
   width: 340px;
@@ -509,7 +514,7 @@ select.ssh-input {
 }
 .ssh-master-detail {
   display: grid;
-  grid-template-columns: 230px minmax(0, 1fr);
+  grid-template-columns: 190px minmax(0, 1fr);
   min-height: 360px;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius);
@@ -572,6 +577,16 @@ select.ssh-input {
   gap: 12px;
   padding: 14px 16px;
   min-width: 0;
+}
+.ssh-detail-pane .ssh-form,
+.ssh-detail-pane .ssh-name-row {
+  grid-template-columns: 116px minmax(0, 1fr);
+}
+.ssh-detail-pane .ssh-test-row {
+  margin-left: 126px;
+}
+.ssh-detail-pane .ssh-port {
+  width: 64px;
 }
 .ssh-detail-actions {
   display: flex;

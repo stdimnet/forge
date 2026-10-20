@@ -87,7 +87,7 @@ export function SshConfigurationsPage() {
   return (
     <div class="ssh-settings">
       <p class="ssh-settings-intro muted">
-        SSH connections for remote development. Passwords and key passphrases are stored in the system keychain;
+        SSH connections for remote development. Passwords and key passphrases are stored in the system keychain;{" "}
         <code>~/.ssh/config</code> hosts can be used by their alias.
       </p>
       <div class="ssh-master-detail">

@@ -4,9 +4,6 @@ import { demoFiles, demoProjectName } from "./demoProject";
 import { demoConfigFiles } from "./demoConfigFiles";
 import { demoLaravelFiles } from "./demoLaravel";
 import { createIgnoreMatcher } from "./gitignoreMatcher";
-import { trackedPaths } from "./gitMock";
-import { recentPrimaries } from "./projectMock";
-import { isSymfonyDemo, symfonyDemoFiles, symfonyDemoName } from "./demoSymfonyProject";
 import {
   adoptRemoteProject,
   closeRemoteProject,
@@ -14,6 +11,9 @@ import {
   remoteWorkspace,
   setRemoteProjectFiles,
 } from "./remoteMock";
+import { trackedPaths } from "./gitMock";
+import { recentPrimaries } from "./projectMock";
+import { isSymfonyDemo, symfonyDemoFiles, symfonyDemoName } from "./demoSymfonyProject";
 
 /** The in-memory project (demo files plus whatever the UI saved); read by other mocks. */
 // `?project=symfony` opens the Symfony demo project instead of the Laravel one.

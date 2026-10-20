@@ -12,6 +12,7 @@ import { registerCommand } from "@/state/commands";
 import { isRemoteProject, workspace } from "@/state/workspace";
 import { remoteApi } from "@/ipc/remote";
 import { showBalloon } from "@/keymap";
+import { openSettings } from "@/features/settings/dialogState";
 import { HostKeyDialog } from "./HostKeyDialog";
 import { RemoteFolderChooser } from "./RemoteFolderChooser";
 import { RemoteStatusItem } from "./RemoteStatusItem";
@@ -38,6 +39,13 @@ registerCommand({
   title: "New SSH Connection…",
   category: "File",
   run: () => openNewSshConnection(),
+});
+
+registerCommand({
+  id: "remote.settings",
+  title: "SSH Configurations…",
+  category: "Settings",
+  run: () => openSettings("tools.ssh"),
 });
 
 registerCommand({

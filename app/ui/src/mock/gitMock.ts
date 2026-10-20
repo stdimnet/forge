@@ -189,12 +189,12 @@ const index: Record<string, string> = { ...head };
 index["app/Services/Checkout.php"] = demoFiles["app/Services/Checkout.php"];
 index["app/Http/Controllers/OrderController.php"] = controllerWorking;
 
-// Extra untracked file, written into the workspace mock.
+// Extra untracked file, written into the workspace mock (absent in some unit tests).
 void Promise.resolve().then(() =>
   invoke("fs_write_file", {
     path: UNTRACKED_EXTRA,
     contents: `<?php\n\nnamespace Tests\\Unit;\n\nuse App\\Services\\Checkout;\nuse PHPUnit\\Framework\\TestCase;\n\nclass CheckoutTest extends TestCase\n{\n    public function test_default_currency_is_euro(): void\n    {\n        $this->assertInstanceOf(Checkout::class, new Checkout());\n    }\n}\n`,
-  }),
+  }).catch(() => undefined),
 );
 
 async function listAll(dir = ""): Promise<string[]> {
