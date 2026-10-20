@@ -26,6 +26,18 @@ GitHub release, builds Linux, Windows and macOS bundles with the remote agents, 
 updater artifacts and uploads them together with `latest.json`, the feed Forge's updater reads.
 Agents never publish releases or trigger workflows.
 
+## Signed updates
+
+`pnpm tauri` / `pnpm release` go through `app/ui/scripts/tauri.mjs`:
+
+- `TAURI_SIGNING_PRIVATE_KEY` (+ `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`) set: updater artifacts
+  (`.sig` next to each bundle) are built. Not set: they are turned off and the build still works.
+- `FORGE_UPDATER_PUBKEY` set: the public key is built into the app. Not set: the build never
+  checks for updates ("Updates are not configured in this build").
+
+Create keys with `pnpm tauri signer generate -w ~/.tauri/forge.key`; never commit them.
+Details: `docs/guide/developer/release-builds.md#updates-and-signing`.
+
 ## Remote development agents
 
 Remote projects need the headless Forge agent for the host's architecture. Build the static

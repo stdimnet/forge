@@ -49,6 +49,98 @@ The workflow needs, once, in the repository settings:
 Keep the private key offline as well: losing it means installed copies can no longer verify
 updates.
 
+## Updates and signing
+
+Forge updates itself with `tauri-plugin-updater`: it reads `latest.json`, downloads the bundle
+for its platform, verifies the bundle's minisign signature against the public key built into
+the app, installs it and restarts. When and what to offer (once a day, skipped versions,
+channel, version compare) is decided in [`forge-update`](crates/forge-update.md); the shell side
+is `app/src-tauri/src/commands/updates.rs` and the splash steps are in
+`app/src-tauri/src/startup.rs`.
+
+### Create the key pair (once)
+
+```sh
+cd app/ui
+pnpm tauri signer generate -w ~/.tauri/forge.key   # asks for a password
+```
+
+This writes the private key `~/.tauri/forge.key` and the public key `~/.tauri/forge.key.pub`.
+
+- Store the private key and its password as the secrets `TAURI_SIGNING_PRIVATE_KEY` and
+  `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` (repository settings), and in a password manager.
+- Store the public key (the contents of `forge.key.pub`) as the variable `FORGE_UPDATER_PUBKEY`.
+- Never commit either file. The public key is not secret, but it lives in the build
+  environment, not in the repository, so forks and local builds do not pretend to be official.
+
+### How the keys reach a build
+
+`pnpm tauri` runs `app/ui/scripts/tauri.mjs`, which passes everything to the Tauri CLI and adds
+one `--config` to `tauri build` (applied last):
+
+| Build environment | Effect |
+| --- | --- |
+| `TAURI_SIGNING_PRIVATE_KEY` set | `bundle.createUpdaterArtifacts` on: every bundle gets a signed `.sig` next to it |
+| `TAURI_SIGNING_PRIVATE_KEY` not set | `createUpdaterArtifacts` off, so the build succeeds without the key (even though `tauri.agents.conf.json` turns it on for releases) |
+| `FORGE_UPDATER_PUBKEY` set | written to `plugins.updater.pubkey`; the Rust code also compiles it in (`option_env!`) |
+| `FORGE_UPDATER_PUBKEY` not set | the app never checks for updates: it logs "update checks are disabled: this build has no updater public key" and the Updates settings page says "Updates are not configured in this build" |
+
+The release workflow's call `pnpm tauri build --config src-tauri/tauri.agents.conf.json` goes
+through the same script, as does `pnpm release`. A local signed build:
+
+```sh
+export TAURI_SIGNING_PRIVATE_KEY="$(cat ~/.tauri/forge.key)"
+export TAURI_SIGNING_PRIVATE_KEY_PASSWORD='…'
+export FORGE_UPDATER_PUBKEY="$(cat ~/.tauri/forge.key.pub)"
+pnpm release --bundles appimage   # Forge_0.1.0_amd64.AppImage + Forge_0.1.0_amd64.AppImage.sig
+```
+
+### latest.json
+
+The workflow's `tauri-action` (`includeUpdaterJson: true`) writes `latest.json` from the `.sig`
+files and attaches it to the release. Its format, for a feed you publish yourself:
+
+```json
+{
+  "version": "0.2.0",
+  "notes": "What changed.",
+  "pub_date": "2026-11-02T10:00:00Z",
+  "platforms": {
+    "linux-x86_64": { "signature": "<contents of the .AppImage.sig>", "url": "https://…/Forge_0.2.0_amd64.AppImage" },
+    "windows-x86_64": { "signature": "…", "url": "https://…/Forge_0.2.0_x64-setup.exe" },
+    "darwin-aarch64": { "signature": "…", "url": "https://…/Forge.app.tar.gz" }
+  }
+}
+```
+
+Keys are `{os}-{arch}` or `{os}-{arch}-{installer}` (`linux-x86_64-deb`); the more specific one
+wins. Forge also sends a `HEAD` request to the download to show its size.
+
+| Setting | Feed |
+| --- | --- |
+| `updates.channel = stable` (default) | `https://github.com/Reeperk/Forge/releases/latest/download/latest.json` |
+| `updates.channel = beta` | `https://github.com/Reeperk/Forge/releases/download/beta/latest.json` (a release tagged `beta` whose `latest.json` is replaced for each pre-release) |
+| `updates.endpoint` | any other URL; release builds require `https` |
+
+On the stable channel versions with a pre-release part (`0.3.0-beta.1`) are never offered.
+
+> **Note:** the release workflow publishes the stable feed only; nothing maintains the `beta`
+> release yet, so the beta channel finds no feed (the check reports an error) until one exists.
+
+### Trying the update flow without a release
+
+Development builds never check for real updates. Simulate one instead; it shows the update
+panel with a fake 94 MB download and installs nothing:
+
+```sh
+FORGE_SIMULATE_UPDATE=0.2.0 pnpm tauri dev
+```
+
+In browser mode: `http://localhost:1420/?splash&simulateUpdate=0.2.0` (the splash, then the
+workbench) or `?simulateUpdate=0.2.0` with Help | Check for Updates…. To test a real update,
+build a signed release of the old version, publish a feed with a newer signed build on a local
+`https` server and point `updates.endpoint` at it.
+
 ## Remote agents
 
 Remote projects need the headless agent (`forge-remote-agent`) for the host's architecture. Build
@@ -82,8 +174,9 @@ APPIMAGE_EXTRACT_AND_RUN=1 xvfb-run -a -s "-screen 0 1440x900x24" \
   sh -c './Forge_0.1.0_amd64.AppImage /path/to/project & sleep 15; import -window root shot.png'
 ```
 
-Check the screenshot: without a project argument the Welcome screen appears; with one, the
-workbench, file tree and Git branch. Make sure the run created no files in the project
+Check the screenshot: the splash appears first; then, without a project argument, the last
+project or the Welcome screen; with one, the workbench, file tree and Git branch. Use a throwaway
+`HOME` (or `XDG_CONFIG_HOME`) so the run does not reopen your own last project. Make sure the run created no files in the project
 (`git status` stays clean).
 
 ## Versioning
