@@ -1,7 +1,7 @@
 ---
 title: forge-output
 description: "Forge process output: ANSI styling, console lines, file links and TeamCity test trees (pure, also built to WebAssembly)."
-order: 160
+order: 170
 tags: [crate, rust]
 ---
 

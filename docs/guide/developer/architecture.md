@@ -86,11 +86,16 @@ the OS keychain. See [Settings](settings.md).
 ## Project backends and remote development
 
 Every project command goes through the open project's `forge_backend::Backend`: files, search,
-git, watching, terminals, processes, language server launching and the PHP index.
+git, watching, terminals, processes, language server launching, the PHP index, Find in Files,
+framework analysis (`framework(FrameworkCall)` for Laravel, Symfony and Doctrine), catalog
+language server planning (`langservers`), executable lookup (`find_executable`, used for the AI
+agent CLIs) and SSH port forwarding (`tunnels()`, used for database tunnels and the Xdebug
+reverse tunnel). Project `.forge/` files go through `forge_core::ProjectFiles`.
 `LocalBackend` serves a local folder; `RemoteBackend` talks to `forge-remote-agent` over SSH
-with a length-prefixed MessagePack protocol (calls, events and byte channels). Features that
-only work locally use `AppState::with_workspace`, which fails for remote projects with "not
-available in remote projects yet".
+with a length-prefixed MessagePack protocol (calls, events and byte channels; protocol 2). The
+few features that still only work locally (WebForge sources, StyLua, code hosts, Docker
+services, HTTP scratch environments) use `AppState::with_workspace`, which fails for remote
+projects with "not available in remote projects yet".
 
 ## Keymap
 

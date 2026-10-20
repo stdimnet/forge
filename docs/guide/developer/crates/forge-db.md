@@ -35,6 +35,7 @@ Forge database tools (the DataGrip part of Forge).
 | `introspect.rs` | Database metadata: schemas, tables, views, columns, keys, indexes and routines. |
 | `secrets.rs` | Data source passwords: the OS keychain (service `forge-db`, account = data source id). |
 | `service.rs` | `DbService`: data sources of the open project plus global ones, their pools, console sessions with transaction state, table data paging and row editing. |
+| `tunnel.rs` | Data sources of a project on a remote host connect through its SSH connection: the database host and port are as the remote host sees them (`localhost` is the remote machine), reached through a local port forwarded with a `direct-tcpip` channel. |
 
 ## Main public items
 
@@ -50,6 +51,7 @@ pub use introspect::{…};
 pub use secrets::{KeyringStore, MemoryStore, SecretStore};
 pub use service::{…};
 pub use split::{split_statements, Statement};
+pub use tunnel::{DbTunnel, ProjectContext, TunnelEndpoint};
 ```
 
 ## Used by
@@ -65,7 +67,7 @@ pub use split::{split_statements, Statement};
 
 ## Tests
 
-10 source files, about 2838 lines; 11 unit tests and 11 integration tests in `tests/` (`sqlite.rs`).
+11 source files, about 3008 lines; 11 unit tests and 12 integration tests in `tests/` (`remote.rs`, `sqlite.rs`).
 
 ```sh
 cargo test -p forge-db

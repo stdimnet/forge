@@ -49,6 +49,22 @@ double-click the project folder, or type its path, then **Open Project**.
 
 ![Project step](../../screenshots/remote-project-step.png)
 
+### Jump hosts and proxy commands
+
+Hosts from `~/.ssh/config` keep their `ProxyJump` and `ProxyCommand`:
+
+- **ProxyJump**: Forge connects through each hop in turn, tunnelling the next connection
+  through the previous one; every hop's host key is checked like the target's.
+- **ProxyCommand**: Forge runs the command (with `%h`, `%p`, `%r` and `%n` expanded) and speaks
+  SSH over its input and output.
+
+```text
+Host shop
+    HostName 10.0.0.12
+    User deploy
+    ProxyJump bastion.example.com
+```
+
 ### Host keys
 
 Host keys are checked against `~/.ssh/known_hosts`. An **Unknown Host** shows the key type and
@@ -81,18 +97,25 @@ The project's root is shown as `user@host:/path`. Recent Projects keeps remote p
 | Project view, editing, saving, file operations, file watching | yes |
 | Go to File, Search Everywhere | yes |
 | Git (status, commit, diff, blame, branches, log) | yes; output is parsed locally |
+| Find in Files | yes, searched on the host |
 | PHP index, Structure, Generate, Intelephense/Phpactor | yes; Intelephense indexes the remote files itself |
+| Catalog language servers (TypeScript, YAML, Python, …) | yes: scan, detection and the servers run on the host (install them there) |
+| Laravel, Symfony and Doctrine analysis | yes, in the agent; artisan and `bin/console` run on the host |
 | LuaForge index | yes |
+| Project settings (`.forge/settings.toml`) and other `.forge/` files | yes, read and written on the host |
 | Terminal | yes, a shell on the host |
 | Run/Debug configurations (run) | yes, processes run on the host |
+| Database tools | project data sources connect through an SSH tunnel, see [Database](database.md#remote-projects) |
+| Xdebug | through a reverse SSH tunnel, see [Xdebug](debugging.md#remote-projects) |
+| AI Chat (Claude Code, Gemini CLI) | the CLI runs on the host |
 
 ![Remote terminal](../../screenshots/remote-terminal.png)
 
-> **Note:** not available in remote projects yet: Laravel, Symfony and Doctrine analysis,
-> WebForge (npm tool window, component navigation), catalog language servers other than PHP's,
-> StyLua formatting, database tools, the Xdebug listener, AI agent CLIs (Claude Code, Gemini
-> CLI), code hosts (pull requests) and the Browser Companion. They report "not available in
-> remote projects yet". Full remote parity is being worked on.
+> **Note:** still local-only, reporting "not available in remote projects yet": WebForge's npm
+> tool window and component navigation, StyLua formatting, code hosts (pull requests), the
+> Services tool window's project compose files, and HTTP request environments. Installing
+> language servers from the settings page is refused (install on the host). The Browser
+> Companion opens files of local projects only.
 
 ## Connection status and reconnects
 

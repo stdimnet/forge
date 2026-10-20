@@ -138,6 +138,18 @@ A session finds its server from `PHP_IDE_CONFIG=serverName=<name>`, otherwise fr
 | Max. depth (levels fetched at once) | `php.debug.maxDepth` | 1 |
 | Max. string length (bytes) | `php.debug.maxData` | 65536 |
 
-> **Note:** the Xdebug listener runs on this machine; it is not available in
-> [remote projects](remote-development.md) yet. JavaScript and Node.js debugging are not built
-> in; see [WebForge](webforge.md#debugging-scripts).
+## Remote projects
+
+In a [remote project](remote-development.md), **Start Listening** listens on a free local port
+and asks the remote host, over SSH, to listen on `127.0.0.1:<php.debug.port>` (9003) and forward
+connections to Forge (a reverse tunnel, re-established after reconnects). Configure Xdebug on
+the host with `xdebug.client_host=127.0.0.1`. Xdebug's paths are the host's paths, which are the
+project's, so no path mappings are needed. The status bar shows that the listener goes through
+the host.
+
+![Listening through the host](../../screenshots/remote-parity-debug-listening.png)
+
+![Remote debug session](../../screenshots/remote-parity-debug-session.png)
+
+> **Note:** JavaScript and Node.js debugging are not built in; see
+> [WebForge](webforge.md#debugging-scripts).

@@ -1,7 +1,7 @@
 ---
 title: phpforge-lang-php
 description: "PHPForge: PHP language support (tree-sitter index, docblocks, hover, code generation, language server config)."
-order: 310
+order: 320
 tags: [crate, rust, pack]
 ---
 
@@ -60,7 +60,7 @@ pub enum PhpError { … }
 
 ## Tests
 
-13 source files, about 6648 lines; 63 unit tests.
+13 source files, about 6686 lines; 64 unit tests.
 
 ```sh
 cargo test -p phpforge-lang-php

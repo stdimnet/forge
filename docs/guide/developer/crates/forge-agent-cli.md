@@ -36,6 +36,7 @@ pure; the adapters and sessions need the `runtime` feature (default).
 | `diff.rs` | Line diffs of edit tool calls (`Edit`, `MultiEdit`, `Write`) for the chat's edit cards and permission previews. |
 | `event.rs` | The normalized event stream every agent adapter produces. The UI only knows these events, so adding a new CLI never touches the chat UI. |
 | `gemini.rs` | Gemini CLI adapter: `gemini --output-format stream-json`, one process per turn. |
+| `host.rs` | Where an agent CLI runs: this machine (`LocalHost`) or, for a project on a remote host, that host (the app implements `AgentHost` over the project backend's process API, so the CLI sees the project's files and its own login there). |
 | `profile.rs` | Static descriptions of the built-in agent CLIs: models, permission modes as each CLI understands them, and how to install it. Pure, so the browser-mode mock shows the same picker entries as the desktop app. |
 | `prompt.rs` | Turns a chat message plus editor context (attached files, selection) into the prompt text sent to the agent. |
 | `session.rs` | Runs agent CLI processes for a conversation and streams their normalized events: one long-running process (`Transport::Persistent`) or one process per message (`Transport::PerTurn`). |
@@ -48,6 +49,7 @@ pub use cli::{…};
 pub use conversation::{Chat, ChatUpdate, PermissionStatus};
 pub use event::{AgentEvent, EventParser, Usage};
 pub use gemini::GeminiCli;
+pub use host::{AgentHost, LocalHost, SpawnedAgent};
 pub use profile::{AgentProfile, PermissionMode, PermissionModeInfo};
 pub use prompt::{compose_prompt, MessageContext, Selection};
 pub use session::{AgentSession, EventSink};
@@ -70,7 +72,7 @@ pub fn pure_parser(agent_id: &str) -> Option<Box<dyn EventParser>> { … }
 
 ## Tests
 
-10 source files, about 3354 lines; 27 unit tests and 14 integration tests in `tests/` (`gemini_session.rs`, `parse_fixtures.rs`, `session.rs`).
+11 source files, about 3477 lines; 27 unit tests and 15 integration tests in `tests/` (`gemini_session.rs`, `parse_fixtures.rs`, `session.rs`).
 
 ```sh
 cargo test -p forge-agent-cli

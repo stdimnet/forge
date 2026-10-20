@@ -1,7 +1,7 @@
 ---
 title: forge-forges
 description: "Forge IDE code hosts: GitLab, Forgejo/Gitea and GitHub merge requests, issues and pipelines."
-order: 90
+order: 100
 tags: [crate, rust]
 ---
 

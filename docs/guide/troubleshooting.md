@@ -84,7 +84,7 @@ The deb/rpm packages install it. For the AppImage, link it into your `PATH`
    volta, fnm, `~/.local/bin` and Composer paths are often only set in shell profiles). Forge
    searches the usual places itself, but if it still fails, set the server's **Executable** to
    the full path, or start Forge from a terminal.
-3. Node-based servers need `node` on Forge's `PATH`, even when the server itself was found.
+3. Servers you installed yourself and that run on Node need `node` on Forge's `PATH`; servers installed by Forge use its own Node.js.
 4. Install with the **Install…** button: npm servers go to Forge's own folder
    (`~/.local/share/forge/langservers` on Linux) and are found there.
 5. The server must be **Enabled**, its plugin active (e.g. `forge.vue` for Volar), and for
@@ -99,7 +99,7 @@ available, the key cannot be stored (see below).
 ### No completion in PHP at all
 
 Check Settings | Languages & Frameworks | PHP | **Language server**: with "None (built-in index
-only)" no server runs. With "Auto", install Intelephense (`npm install -g intelephense`) or
+only)" no server runs. With "Auto", install Intelephense (**Install Intelephense** on the PHP page) or
 Phpactor.
 
 ## Keychain on Linux
@@ -147,8 +147,15 @@ fingerprints. Confirm only if you know why it changed (reinstalled server).
 
 ### Feature says "not available in remote projects yet"
 
-Expected for Laravel/Symfony/Doctrine analysis, WebForge, database tools, Xdebug, AI chat, code
-hosts and the Browser Companion. See [Remote development](user/remote-development.md).
+Expected for WebForge's npm tool window and component navigation, StyLua, code hosts, HTTP
+request environments and project compose files in Services. See
+[Remote development](user/remote-development.md).
+
+### Language server missing in a remote project
+
+Catalog servers and Intelephense must be installed **on the host** (the settings page refuses to
+install for remote projects). Install them there, e.g. `npm install -g intelephense`, then
+reopen the project.
 
 ## Git
 
@@ -164,7 +171,7 @@ hosts and the Browser Companion. See [Remote development](user/remote-developmen
   or rootless Docker, Forge looks at `~/.docker/run/docker.sock` and
   `$XDG_RUNTIME_DIR/docker.sock`; otherwise set the socket path in Settings | Build, Execution,
   Deployment | Docker and use **Test Connection**.
-- **`ssh://` DOCKER_HOST**: not supported yet; use a socket or TCP.
+- **Docker over SSH fails**: the host key must be in `~/.ssh/known_hosts` (connect once with `ssh` to accept it) and your key must be in ssh-agent or `~/.ssh`; the Docker socket on the host must be readable by that user.
 
 ## Xdebug
 

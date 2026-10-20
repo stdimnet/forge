@@ -82,13 +82,16 @@ scripts** (`web.npm.debugArguments`, default `--inspect`). Attach Chrome DevTool
 ## Component navigation
 
 `Ctrl+B` / `Ctrl+Click` resolves components through your imports (relative paths,
-`tsconfig`/`jsconfig` `paths` aliases, index files and barrel re-exports) before the language
-server is asked. Turn it off with Settings | Languages & Frameworks | TypeScript | **Navigate
+`tsconfig`/`jsconfig` `paths` aliases, index files, barrel re-exports and **workspace
+packages** imported by name — resolved through their `package.json` `exports`, `module`, `main`
+or `types`, falling back to the sources when `dist/` is not built) before the language server
+is asked. Several targets open the **Choose Declaration** popup. Turn it off with Settings | Languages & Frameworks | TypeScript | **Navigate
 from JSX and template tags to components, props and events** (`web.navigation.components`).
 
 ### React
 
-- On `<UserCard` in JSX: opens the component (function or class component).
+- On `<UserCard` in JSX: opens the component (function or class component, also anonymous
+  default exports such as `export default () => …`, which are named after their file).
 - On a prop (`title=`): opens the prop's declaration.
 - On a component's own name: lists the JSX tags that use it (**Usages of …**).
 

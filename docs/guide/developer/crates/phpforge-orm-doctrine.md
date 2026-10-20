@@ -1,7 +1,7 @@
 ---
 title: phpforge-orm-doctrine
 description: "PHPForge: Doctrine ORM support (entity mapping, repositories, DQL parsing and completion)."
-order: 320
+order: 330
 tags: [crate, rust, pack]
 ---
 

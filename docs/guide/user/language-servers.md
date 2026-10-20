@@ -62,16 +62,30 @@ Mason (`~/.local/share/nvim/mason/bin`) and Windows `.cmd` shims. TypeScript SDK
 
 ### Installing a server
 
-Click **Install…** in a row (or in an install banner, see below). The dialog shows the
-command and its output while it runs.
+**npm servers install with one click.** Their rows have an **Install** button; Forge downloads
+everything itself, nothing else needs to be installed first:
+
+1. **Node.js**: a `node` 18 or newer on the machine is used; otherwise Forge downloads the
+   official Node.js LTS build from `langservers.download.nodeMirror`
+   (default `https://nodejs.org/dist`), checks it against the release's `SHASUMS256.txt` and
+   keeps it in `<data dir>/forge/runtimes/`.
+2. **The package**: packages without dependencies (Intelephense) come straight from the npm
+   registry (`langservers.download.npmRegistry`, default `https://registry.npmjs.org`) and are
+   checked against the registry's sha512 integrity hash; others are installed with the npm that
+   belongs to that Node.js, into Forge's server folder — never globally.
+3. Servers in Forge's folder are started with Forge's Node.js, so no `node` on your `PATH` is
+   needed.
+
+Progress shows in the status bar ("Installing Intelephense: Downloading Node.js … 45%") and in
+the row. Afterwards the server starts with the next matching file, without reopening the
+project.
+
+![Install buttons](../../screenshots/language-servers-install-buttons.png)
+
+Other servers keep **Install…**, which opens a dialog with the command and its output:
 
 ![Install dialog](../../screenshots/language-servers-install-output.png)
 
-- **npm servers are never installed globally.** A catalog entry such as
-  `npm install -g typescript-language-server typescript` runs as
-  `npm install --prefix <Forge's server folder> --no-fund --no-audit typescript-language-server typescript`.
-  Node.js and npm must be installed; a server started through `#!/usr/bin/env node` needs
-  `node` on the `PATH` Forge was started with.
 - Other tools (`brew`, `pipx`, `go install`, `cargo install`, `dotnet tool`, `gem`,
   `composer global require`) run exactly as listed in the catalog, without a shell.
 - Commands that need root (`apt`, `pacman`) are only shown with **Copy Command**; run them in a
@@ -80,6 +94,24 @@ command and its output while it runs.
 
 The full list of servers, their commands and install options is in the
 [language servers reference](../reference/language-servers.md).
+
+### Updates
+
+Once a day Forge asks the npm registry whether the servers it installed have newer versions
+(**Check for updates of servers installed by Forge once a day**, `langservers.updates.check`).
+A balloon "Language server update available" offers **Update** / **Not now**; updating
+restarts the server.
+
+![Update offer](../../screenshots/language-server-update-offer.png)
+
+| Option | Setting | Default |
+| --- | --- | --- |
+| Check for updates once a day | `langservers.updates.check` | on |
+| npm registry | `langservers.download.npmRegistry` | `https://registry.npmjs.org` |
+| Node.js download mirror | `langservers.download.nodeMirror` | `https://nodejs.org/dist` |
+
+For development there is also a command-line installer (`pnpm langservers` in `app/ui`, binary
+`forge-langservers`): `install [--accept-intelephense-licence] [package…]`, `updates`, `where`.
 
 ### Alternatives
 
@@ -123,8 +155,30 @@ PHP servers are configured by the PHP pack, on Settings | Languages & Frameworks
 | None (built-in index only) | no language server; completion and diagnostics from a server are missing, Forge's index still gives structure, search, hover and Generate |
 
 The server starts when a PHP project opens and restarts when these settings change. Its cache
-goes to `<cache dir>/forge/intelephense`, never into your project. Install Intelephense with
-`npm install -g intelephense` or the **Install…** button on the Language Servers page.
+goes to `<cache dir>/forge/intelephense`, never into your project.
+
+### Installing Intelephense
+
+Intelephense is never bundled with Forge (its licence forbids redistribution), but Forge
+downloads it for you from the npm registry. When a local PHP project opens without it, a
+balloon says "PHP language server Intelephense is not installed" with **Install**, **Not now**
+and **Don't ask again**. The PHP settings page and the Language Servers page have an
+**Install Intelephense** button as well.
+
+![Install offer](../../screenshots/intelephense-install-offer.png)
+
+The first install asks you to accept the Intelephense licence (stored as
+`php.intelephense.licenceAccepted`). Forge then installs it as described in
+[Installing a server](#installing-a-server) (with Node.js if needed) and starts it right away.
+
+![Installing](../../screenshots/intelephense-install-progress.png)
+
+| Option (Settings \| Languages & Frameworks \| PHP) | Setting | Default |
+| --- | --- | --- |
+| When Intelephense is not installed: Ask when a PHP project opens, Install automatically, Do not install | `php.intelephense.autoInstall` | `ask` |
+| I accept the Intelephense licence | `php.intelephense.licenceAccepted` | off |
+
+You can still install it yourself (`npm install -g intelephense`); Forge finds it on the `PATH`.
 
 ### Intelephense licence key (premium)
 
@@ -153,17 +207,20 @@ Frameworks | Lua | **Lua environment**. See [LuaForge](luaforge.md#lua-language-
 
 ## Remote projects
 
-In a [remote project](remote-development.md) the PHP language server runs on the remote host,
-next to the files, and indexes them there; the Forge agent finds Intelephense or Phpactor on
-the host.
+In a [remote project](remote-development.md) language servers run on the remote host, next to
+the files: the PHP server (the Forge agent finds Intelephense or Phpactor on the host) and the
+catalog servers, whose project scan, detection (`node_modules/.bin`, `PATH`, npm/nvm/volta, …)
+and configuration happen on the host too.
 
-> **Note:** servers from the catalog (TypeScript, Python, YAML, …) are not started for remote
-> projects yet; only the PHP pack's servers are.
+> **Note:** installing servers from the settings page is refused for remote projects; install
+> them on the host from the terminal. The Intelephense install offer is shown for local projects
+> only.
 
 ## Troubleshooting
 
 - **"Not found" although it is installed**: Forge may have been started from a desktop launcher
   with a shorter `PATH` than your shell. Set **Executable** to the full path, or start Forge
   from a terminal.
-- **A Node-based server fails to start**: `node` must be on Forge's `PATH`.
+- **A Node-based server fails to start**: servers you installed yourself need `node` on Forge's
+  `PATH`; servers installed by Forge use Forge's Node.js.
 - More in [Troubleshooting](../troubleshooting.md#language-server-not-found).

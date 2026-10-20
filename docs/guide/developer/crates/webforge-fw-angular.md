@@ -1,7 +1,7 @@
 ---
 title: webforge-fw-angular
 description: "WebForge: Angular support (components, directives, pipes, templates and styles)."
-order: 330
+order: 340
 tags: [crate, rust, pack]
 ---
 

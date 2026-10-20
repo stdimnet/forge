@@ -1,7 +1,7 @@
 ---
 title: forge-window
 description: "Forge window chrome: desktop detection, title bar button layouts and dialog window geometry (pure, also built to WebAssembly)."
-order: 260
+order: 270
 tags: [crate, rust]
 ---
 

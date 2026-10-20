@@ -54,8 +54,8 @@ The toolbar and the context menu offer what applies to the selected node:
 | Volume, network | Delete |
 | Compose project | Up (Run all services), Stop, Restart, Down (`docker compose down`), Show Log |
 | Compose service | Up, Stop, Restart, Down, Show Log, Exec |
-| Pod | Delete, Show Log, Exec (`kubectl exec`) |
-| Deployment | Restart Rollout, Show Log |
+| Pod | Delete, Show Log, Exec (`kubectl exec`), Forward Ports… |
+| Deployment | Restart Rollout, Show Log (all pods and containers) |
 
 **Exec** opens a terminal tab in the Terminal tool window running `docker exec -it` (or
 `kubectl exec -it`) with bash when the container has it, else sh. Containers started with a
@@ -66,6 +66,34 @@ TTY also offer an attached console (`docker attach`).
 ![Compose](../../screenshots/services-compose.png)
 
 ![Kubernetes pod log](../../screenshots/services-kubernetes-pod-log.png)
+
+## Kubernetes pods and deployments
+
+- **Container picker**: a pod with several containers (including init containers) shows a
+  container selector on its details. Log, Exec and the Attached Console use the picked container;
+  the default is the one named by the `kubectl.kubernetes.io/default-container` annotation, else
+  the first container. The Dashboard lists the containers' declared ports.
+- **Deployment logs** follow every container of every pod that matches the deployment's
+  selector, each line prefixed like `kubectl logs --prefix` (`[pod/<pod>/<container>]`).
+
+![Container picker](../../screenshots/services-container-picker.png)
+
+![Deployment logs](../../screenshots/services-deployment-logs.png)
+
+### Port forwarding
+
+**Forward Ports…** on a pod opens a dialog: enter `local:pod` pairs separated by commas, for
+example `8080:80, 9000, :5432` (a single port forwards the same port; `:80` picks a free local
+port). The pod's declared container ports are offered.
+
+![Forward Ports dialog](../../screenshots/services-port-forward-dialog.png)
+
+Forge listens on `127.0.0.1:<local>` and opens one connection to the pod per accepted
+connection (the Kubernetes port-forward API over WebSocket, no `kubectl` needed). Active
+forwards appear in the tree (`⇄ 8080→80`) and on the pod and Kubernetes details, under **Port
+Forwarding**, each with **Stop Port Forwarding**.
+
+![Port forwards](../../screenshots/services-port-forwards.png)
 
 ## Compose files and Dockerfiles in the editor
 
@@ -100,7 +128,10 @@ anonymously.
 
 | Option | Setting | Default |
 | --- | --- | --- |
-| Connect to Docker daemon with (`auto`, `unix`, `pipe`, `tcp`) | `docker.connection` | `auto` |
+| Connect to Docker daemon with (`auto`, `unix`, `pipe`, `tcp`, `ssh`, `context`) | `docker.connection` | `auto` |
+| SSH host: `ssh://user@host[:port]` or a `Host` alias of `~/.ssh/config` | `docker.ssh.url` | empty |
+| Docker socket on the host (empty: `/var/run/docker.sock`) | `docker.ssh.socketPath` | empty |
+| Docker context (`docker context ls`) | `docker.context` | empty |
 | Socket path (Unix socket or named pipe; empty: the first existing default) | `docker.socketPath` | empty |
 | Engine API URL (TCP) | `docker.tcp.url` | `tcp://localhost:2375` |
 | Use TLS (verify the daemon certificate) | `docker.tcp.tls` | off |
@@ -108,11 +139,24 @@ anonymously.
 | Docker executable (compose, builds, exec) | `docker.cliPath` | `docker` |
 | Show the last log lines | `docker.logs.tail` | 500 |
 
-With `auto`, Forge uses `DOCKER_HOST` when set, else the platform default socket
-(`/var/run/docker.sock`, Docker Desktop's `~/.docker/run/docker.sock`, rootless
+With `auto`, Forge uses `DOCKER_HOST` when set (also `ssh://` hosts), else the current Docker
+context (`DOCKER_CONTEXT` or `currentContext` in `~/.docker/config.json`), else the platform
+default socket (`/var/run/docker.sock`, Docker Desktop's `~/.docker/run/docker.sock`, rootless
 `$XDG_RUNTIME_DIR/docker.sock` or Podman's socket; `\\.\pipe\docker_engine` on Windows).
-`ssh://` Docker hosts are not supported yet. **Test Connection** checks
-the settings.
+**Test Connection** checks the settings.
+
+**Docker over SSH** (`ssh`): Forge connects with its own SSH client (keys from ssh-agent and
+`~/.ssh`, `~/.ssh/config` aliases) and talks to the remote Docker socket through the SSH
+connection; nothing is installed on the host. The host key must already be in `known_hosts`;
+unknown keys are refused with their fingerprint. Compose, builds and terminals use the docker
+CLI, which reaches `ssh://` hosts itself.
+
+![Docker over SSH](../../screenshots/settings-docker-ssh.png)
+
+**Docker contexts** (`context`): the page lists the contexts of the Docker CLI
+(`~/.docker/contexts`) with **Use**; Forge then connects to that context's endpoint.
+
+![Docker contexts](../../screenshots/settings-docker-contexts.png)
 
 ### Build, Execution, Deployment | Kubernetes
 
@@ -128,6 +172,6 @@ the settings.
 Kubernetes authentication supports CA certificates, bearer tokens, client certificates, basic
 auth and exec credential plugins (as used by EKS, GKE and AKS).
 
-> **Note:** port forwarding is not available yet (it is being built). The Services tool window
-> always talks to the Docker daemon and cluster reachable from this machine, also when a
-> remote project is open.
+> **Note:** the Services tool window always talks to the Docker daemon and cluster configured
+> on this machine, also when a remote project is open; use Docker over SSH to reach the remote
+> host's daemon. Port forwarding is available for Kubernetes pods, not for Docker containers.

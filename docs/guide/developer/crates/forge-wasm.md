@@ -1,7 +1,7 @@
 ---
 title: forge-wasm
 description: "WebAssembly build of Forge's pure Rust logic for the browser-mode UI."
-order: 250
+order: 260
 tags: [crate, rust]
 ---
 
@@ -44,7 +44,7 @@ Rebuild the bundle with `pnpm --dir app/ui wasm` (output: `app/ui/src/wasm/pkg`)
 | `parsers/output.rs` | Run output (`forge-output`) for the browser-mode run backend and terminal: the mock feeds process events into a `RunOutput` and emits the rendered events like the desktop app. |
 | `parsers/sql.rs` | SQL text (`forge-sql`) for the browser-mode database backend and console. |
 | `remote.rs` | Remote development (`forge-remote` without its SSH client): `~/.ssh/config` hosts, SSH configuration validation and `known_hosts` checks, mirroring `remote_ssh_hosts`, `remote_validate_config` and the host key step of `remote_connect`. |
-| `scratches.rs` | Scratch files (`forge-scratches`), mirroring the pure parts of the `scratches_*` IPC commands for the browser-mode mock: the language list, naming, gutter markers, run command lines and the `.http` parser and response rendering. |
+| `scratches.rs` | Scratch files (`forge-scratches`), mirroring the pure parts of the `scratches_*` IPC commands for the browser-mode mock: the language list, naming, gutter markers, run command lines and the `.http` parser, request resolution (variables, dynamic variables, body files), response handlers and rendering. |
 | `search.rs` | Fuzzy matching and Search Everywhere ranking (`forge-fuzzy`), mirroring the `fuzzy_filter`, `search_rank` and `fs_find_files` IPC commands. |
 | `settings.rs` | The Settings dialog model (`forge_plugin_api::settings_model`), mirroring the `settings_search` and `settings_validate` IPC commands. |
 | `web.rs` | WebForge (`packs/webforge/*`) for the browser-mode mock: npm packages and scripts, package manager detection, and React/Vue/Angular component navigation over the demo project's files, mirroring the `npm_*` and `web_*` IPC commands. |
@@ -64,12 +64,12 @@ pub fn bridge_version() -> String { … }
 
 ## Dependencies
 
-- Workspace crates: [`forge-agent-cli`](forge-agent-cli.md), [`forge-containers`](forge-containers.md), [`forge-filetypes`](forge-filetypes.md), [`forge-fuzzy`](forge-fuzzy.md), [`forge-keymap`](forge-keymap.md), [`forge-markdown`](forge-markdown.md), [`forge-output`](forge-output.md), [`forge-plugin-api`](forge-plugin-api.md), [`forge-remote`](forge-remote.md), [`forge-scratches`](forge-scratches.md), [`forge-sql`](forge-sql.md), [`forge-window`](forge-window.md), [`luaforge-lang-lua`](luaforge-lang-lua.md), [`phpforge-dql`](phpforge-dql.md), [`webforge-fw-angular`](webforge-fw-angular.md), [`webforge-fw-react`](webforge-fw-react.md), [`webforge-fw-vue`](webforge-fw-vue.md), [`webforge-lang-web`](webforge-lang-web.md)
+- Workspace crates: [`forge-agent-cli`](forge-agent-cli.md), [`forge-containers`](forge-containers.md), [`forge-filetypes`](forge-filetypes.md), [`forge-find`](forge-find.md), [`forge-fuzzy`](forge-fuzzy.md), [`forge-keymap`](forge-keymap.md), [`forge-markdown`](forge-markdown.md), [`forge-output`](forge-output.md), [`forge-plugin-api`](forge-plugin-api.md), [`forge-remote`](forge-remote.md), [`forge-scratches`](forge-scratches.md), [`forge-sql`](forge-sql.md), [`forge-window`](forge-window.md), [`luaforge-lang-lua`](luaforge-lang-lua.md), [`phpforge-dql`](phpforge-dql.md), [`webforge-fw-angular`](webforge-fw-angular.md), [`webforge-fw-react`](webforge-fw-react.md), [`webforge-fw-vue`](webforge-fw-vue.md), [`webforge-lang-web`](webforge-lang-web.md)
 - External: `serde`, `serde_json`, `wasm-bindgen`
 
 ## Tests
 
-18 source files, about 2142 lines; 21 unit tests.
+18 source files, about 2393 lines; 23 unit tests.
 
 ```sh
 cargo test -p forge-wasm

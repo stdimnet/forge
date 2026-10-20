@@ -20,7 +20,7 @@ script and config language plugins.
 | --- | --- | --- | --- | --- | --- |
 | Browser Companion | `forge.browser-companion` | core |  | always | 1 commands; 3 settings |
 | GitLab, Forgejo and GitHub | `forge.code-hosts` | core | `forge.git` | always | tool windows: Pull Requests; 2 commands; 2 settings |
-| Forge Platform (required) | `forge.core` | core |  | always | tool windows: Project; 2 commands; 47 settings; 3 keybindings |
+| Forge Platform (required) | `forge.core` | core |  | always | tool windows: Project; 2 commands; 49 settings; 3 keybindings |
 | Database Tools and SQL | `forge.database` | core |  | always | tool windows: Database; 2 commands; 3 settings |
 | Git | `forge.git` | core |  | always | tool windows: Commit, Git; 2 commands; 8 settings; 1 keybindings |
 | Bash | `forge.bash` | scriptforge |  | always | file types: Shell Script |
@@ -34,27 +34,26 @@ script and config language plugins.
 | E-Mail | `forge.eml` | configforge |  | always | file types: E-Mail |
 | INI | `forge.ini` | configforge |  | always | file types: INI |
 | Config Files | `forge.conf` | configforge |  | always | file types: Config |
-| Language Servers | `forge.langservers` | core | `forge.core` | always | 1 commands; 6 settings |
+| Language Servers | `forge.langservers` | core | `forge.core` | always | 1 commands; 9 settings |
 | Lua | `forge.lua` | luaforge |  | `luaforge` | 1 commands; 6 settings; file types: Lua; 1 LSP servers; run types: Lua Script |
 | AI Assistant | `forge.ai` | core |  | always | tool windows: AI Chat; 3 AI providers; 1 chat agents; 2 code generators |
 | Claude Code | `forge.claude-code` | core | `forge.ai` | always | 3 settings; 1 AI providers; 1 chat agents |
 | Gemini CLI | `forge.gemini-cli` | core | `forge.ai` | always | 3 settings; 1 AI providers; 1 chat agents |
-| PHP | `forge.php` | phpforge |  | `php` | 1 commands; 16 settings; 1 LSP servers; run types: PHP Script, PHP Built-in Web Server; 4 code generators |
+| PHP | `forge.php` | phpforge |  | `php` | 1 commands; 18 settings; 1 LSP servers; run types: PHP Script, PHP Built-in Web Server; 4 code generators |
 | Composer | `forge.composer` | phpforge | `forge.php` | `composer` | 2 commands; 5 settings; run types: Composer Script |
 | PHPUnit | `forge.phpunit` | phpforge | `forge.php` | `phpunit`, `pest` | run types: PHPUnit; 1 code generators |
-| Xdebug | `forge.xdebug` | phpforge | `forge.php` | `php` | tool windows: Debug; 1 commands; 8 settings; run types: PHP Remote Debug |
-| Laravel | `forge.laravel` | phpforge | `forge.php`, `forge.composer` | `laravel` | tool windows: Routes; 1 commands; 6 settings; run types: Artisan; 1 code generators; 1 keybindings |
-| Symfony | `forge.symfony` | phpforge | `forge.php`, `forge.composer` | `symfony` | tool windows: Symfony; 2 commands; 7 settings |
+| Xdebug | `forge.xdebug` | phpforge | `forge.php` | `php` | tool windows: Debug; 1 commands; 8 settings; run types: PHP Remote Debug; 1 main menu entries |
+| Laravel | `forge.laravel` | phpforge | `forge.php`, `forge.composer` | `laravel` | tool windows: Routes; 1 commands; 6 settings; run types: Artisan; 1 code generators; 1 keybindings; 1 main menu entries |
+| Symfony | `forge.symfony` | phpforge | `forge.php`, `forge.composer` | `symfony` | tool windows: Symfony; 2 commands; 7 settings; 1 main menu entries |
 | Symfony Services | `forge.symfony-services` | phpforge | `forge.yaml` | `symfony` | file types: Symfony Services |
 | Doctrine | `forge.doctrine` | phpforge | `forge.php` | `doctrine` | tool windows: Doctrine; 1 commands; 6 settings |
 | Run/Debug | `forge.run` | core |  | always | tool windows: Run; 3 commands; 2 settings; run types: Shell Script |
-| Docker and Kubernetes | `forge.services` | core |  | always | tool windows: Services; 2 commands; 12 settings |
+| Docker and Kubernetes | `forge.services` | core |  | always | tool windows: Services; 2 commands; 15 settings; 1 main menu entries |
 | Terminal | `forge.terminal` | core |  | always | tool windows: Terminal; 1 commands; 7 settings; 1 keybindings |
 | HTML, CSS & JavaScript | `forge.web` | webforge |  | `webforge` | tool windows: npm; 2 commands; 4 settings; 3 LSP servers; run types: npm |
 | React | `forge.react` | webforge | `forge.web` | `react`, `next` |  |
 | Vue.js | `forge.vue` | webforge | `forge.web` | `vue`, `nuxt` | 1 LSP servers |
 | Angular | `forge.angular` | webforge | `forge.web` | `angular` | 1 settings; 1 LSP servers |
-
 
 > **Note:** some contributions are declared ahead of their implementation: the "PHP Built-in
 > Web Server" and "PHP Remote Debug" run configuration types, the "Google Gemini" AI provider

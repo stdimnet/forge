@@ -1,7 +1,7 @@
 ---
 title: forge-markdown
 description: "Forge Markdown: a safe AST (no raw HTML) for chat messages and documentation popups, built with pulldown-cmark (pure, also built to WebAssembly)."
-order: 140
+order: 150
 tags: [crate, rust]
 ---
 

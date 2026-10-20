@@ -26,6 +26,9 @@ On the Rust side, plugins contribute **data** through their manifest (see
 | `registerCommand` | `state/commands.ts` | an action with an id (Find Action, keymap, menus) |
 | `registerKeymapActions` | `keymap/store.ts` | plugin actions with default shortcuts |
 | `registerSettingsPage` | `features/settingsPages.ts` | a page in the Settings dialog |
+| `registerMainMenuEntries` | `features/mainMenu` | entries in the main menu (`"Tools"`, `"Tools/_Laravel"`, `"View/Tool Windows"`) with `before`/`after`/`when` |
+| `registerMainMenuDynamic` / `registerMainMenuToggle` | `features/mainMenu` | dynamic lists (`recentProjects`, `toolWindows`) and check marks |
+| `chooseDeclarationAt` | `features/navigation/chooseDeclaration.ts` | the shared "Choose Declaration" popup for several targets |
 | `registerStatusItem` | `features/statusItems.ts` | a status bar widget |
 | `registerToolbarItem` | `features/toolbarItems.ts` | a main toolbar widget left of the run widget |
 | `registerEditorExtension` | `editor/extensions.ts` | CodeMirror extensions per file |
@@ -139,6 +142,34 @@ registerDeclarationProvider(async (path, view, pos) => {
 
 registerFormatProvider(async (path, view) => path.endsWith(".lua") && (await formatWithStyLua(path, view)));
 ```
+
+When a provider finds several targets, show the shared popup instead of guessing:
+
+```ts
+import { chooseDeclarationAt } from "@/features/navigation/chooseDeclaration";
+
+chooseDeclarationAt(view, pos, targets /* { path, line, column?, preview? }[], 0-based */,
+  { title: "Choose Declaration" });
+```
+
+## Main menu
+
+The menu structure, labels, mnemonics (`_` before the letter), shortcuts and enabled states are
+computed in Rust (`forge-keymap::menu`, IPC `keymap_main_menu`); an entry is enabled when some
+command implements its action. Add entries from a manifest:
+
+```toml
+[[plugin.contributions.mainMenu]]
+path = "Tools/_Laravel"            # submenus are created as needed
+items = [
+  { type = "action", id = "Laravel.RunArtisan", label = "Run _Artisan Command..." },
+  { type = "separator" },
+]
+# optional: before = "<action id>", after = "<action id>"; items may be checkable = true
+```
+
+or from the UI with `registerMainMenuEntries(path, entries, { before?, after?, when? })`.
+`registerMainMenuToggle(actionId, isOn)` reports the check mark of a checkable item.
 
 ## Search Everywhere
 

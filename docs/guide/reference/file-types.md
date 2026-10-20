@@ -122,7 +122,6 @@ Active only while their plugin is active; a plugin type with the id of a bundled
 | `lua` | Lua | `forge.lua` | `.lua`, `.rockspec` | `.luacheckrc`, `.busted` | `lua`, `luajit`, `lua5.1`, `lua5.2`, `lua5.3`, `lua5.4`, `tarantool` | 4 |
 | `symfony-services` | Symfony Services | `forge.symfony-services` |  | `config/services*.yaml`, `config/services*.yml`, `config/services/*.yaml`, `config/services/*.yml` |  | 4 |
 
-
 ## Template data languages
 
 Template types (marked *Template* above) highlight the content between their tags in a data

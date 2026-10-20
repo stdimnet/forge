@@ -1,7 +1,7 @@
 ---
 title: webforge-fw-react
 description: "WebForge: React support (JSX components, props and usages)."
-order: 340
+order: 350
 tags: [crate, rust, pack]
 ---
 
@@ -11,9 +11,9 @@ tags: [crate, rust, pack]
 
 ## Purpose
 
-WebForge React plugin (`forge.react`): function and class components with their props,
-JSX tag resolution through imports (relative paths, path aliases, barrel re-exports)
-and usages. Go to Declaration on `<UserCard` opens the component, on `title=` the prop,
+WebForge React plugin (`forge.react`): function and class components with their props
+(also anonymous default exports, named after their file), JSX tag resolution through
+imports (relative paths, path aliases, barrel re-exports, workspace packages) and usages. Go to Declaration on `<UserCard` opens the component, on `title=` the prop,
 and on a component's own name lists the JSX tags that use it, like WebStorm.
 
 ## Main public items
@@ -21,6 +21,7 @@ and on a component's own name lists the JSX tags that use it, like WebStorm.
 ```rust
 pub fn is_script(path: &str) -> bool { … }
 pub fn scan_file(path: &str, content: &str) -> Vec<Component> { … }
+pub fn name_from_file(path: &str) -> String { … }
 pub struct ReactIndex<'a> { … }
 ```
 
@@ -37,7 +38,7 @@ pub struct ReactIndex<'a> { … }
 
 ## Tests
 
-2 source files, about 829 lines; 6 unit tests.
+2 source files, about 1050 lines; 8 unit tests.
 
 ```sh
 cargo test -p webforge-fw-react

@@ -1,7 +1,7 @@
 ---
 title: forge-fuzzy
 description: "PHPStorm-style fuzzy matching and Search Everywhere ranking (pure, WebAssembly-friendly)."
-order: 100
+order: 110
 tags: [crate, rust]
 ---
 

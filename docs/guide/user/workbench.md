@@ -22,11 +22,7 @@ The workbench is the main window of an open project. It follows PHPStorm's New U
 
 From left to right:
 
-- **☰ Main Menu** (`Alt+\`).
-
-  > **Note:** the main menu is not implemented on this version; the button has no menu yet.
-  > Every action is reachable through [Find Action](search-everywhere.md#find-action)
-  > (`Ctrl+Shift+A`) and its shortcut.
+- **☰ Main Menu** (`Alt+\`), see [Main menu](#main-menu) below.
 
 - **Project widget**: the badge and name of the open project; click it to open another
   project.
@@ -41,6 +37,38 @@ From left to right:
 Empty parts of the toolbar move the window; a double click maximizes it. The window buttons
 sit at the toolbar's ends, styled for your desktop (see
 [Window controls](settings-and-themes.md#window-controls)).
+
+## Main menu
+
+The main menu has PHPStorm's menus: **File, Edit, View, Navigate, Code, Refactor, Run, Tools,
+Git** (**VCS** in projects without Git), **Window** and **Help**. Every entry shows its shortcut;
+actions Forge has not implemented yet stay visible but disabled. Plugins add their own entries,
+for example Tools | Laravel (Run Artisan Command…, Show Routes), Tools | Symfony and
+Run | Start Listening for PHP Debug Connections. File | Open Recent and View | Tool Windows are
+filled with your recent projects and the available tool windows.
+
+![Main menu](../../screenshots/main-menu-file.png)
+
+Where the menu appears is chosen with Settings | Appearance & Behavior | Appearance | UI
+Options | **Main menu** (`appearance.mainMenu`), as in PHPStorm's New UI:
+
+| Value | Look |
+| --- | --- |
+| `hamburger` (default) — Hamburger menu | behind the ☰ button at the left of the main toolbar |
+| `merged` — Merged with main toolbar | the menu names (File, Edit, …) directly in the main toolbar |
+| `toolbar` — Show in separate toolbar | a classic menu bar above the main toolbar |
+
+View | Appearance | **Show Main Menu in Separate Toolbar** switches to the last mode from the
+menu itself; **Compact Mode** and **Tool Window Bars** are toggles in the same submenu.
+
+![Merged with the main toolbar](../../screenshots/main-menu-merged.png)
+
+Keyboard: `Alt+\` opens the menu; the underlined letter (mnemonic) picks an entry, alone or with
+`Alt`; arrow keys move, `Right`/`Left` open and close submenus and switch between the menus of
+the menu bar; `Escape` closes. **Help | About** shows the version; **Help | Keymap Reference**
+opens Settings | Keymap.
+
+![Main menu in a separate toolbar](../../screenshots/main-menu-bar.png)
 
 ## Tool windows
 
@@ -117,7 +145,7 @@ Right-click a file, a folder or the empty area below the tree:
 | --- | --- |
 | New > File / Directory | Creates a file or folder in the selected folder (or the file's folder). The name may contain `/` to create nested folders, e.g. `app/Models/Order.php`. A new file opens in the editor. |
 | Copy Path/Reference > Absolute Path (`Ctrl+Shift+C`), Path From Project Root, File Name | Copies to the clipboard |
-| Find in Files… | not available yet |
+| Find in Files… | searches the folder (or the project), see [Find in Files](search-everywhere.md#find-in-files) |
 | Rename… | Renames the file or folder. Unsaved changes in open tabs are saved first and the tabs follow the new name. |
 | Delete… | Deletes after a confirmation; folders with all their content. This cannot be undone. |
 | Reload from Disk | Re-reads the folder |

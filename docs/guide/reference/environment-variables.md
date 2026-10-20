@@ -41,7 +41,7 @@ tags: [environment, variables, reference]
 | `HOME`, `USERPROFILE`, `APPDATA` | home and config folders |
 | `NPM_CONFIG_PREFIX` | npm's global folder when looking for language servers |
 | `VIMRUNTIME` | Neovim runtime for lua-language-server's Neovim environment |
-| `DOCKER_HOST` | the Docker daemon when `docker.connection` is `auto` |
+| `DOCKER_HOST`, `DOCKER_CONTEXT` | the Docker daemon (also `ssh://` hosts) or Docker context when `docker.connection` is `auto` |
 | `XDG_RUNTIME_DIR` | rootless Docker socket |
 | `KUBECONFIG` | kubeconfig when `kubernetes.kubeconfig` is empty |
 | `GIT_SSH_COMMAND` | kept if set; otherwise Forge runs git with `ssh -o BatchMode=yes` |

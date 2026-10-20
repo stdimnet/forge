@@ -63,9 +63,11 @@ query console of that data source with execution, results and transactions. See
 
 ## HTTP client (`.http` files)
 
-An HTTP scratch holds one or more requests in PHPStorm's `.http` format. Each request gets a ▶
-icon; click it to send the request. The response (status, headers, body) appears in the Run
-tool window.
+`.http` files hold one or more requests in PHPStorm's HTTP Client format. They work as
+scratches (New Scratch File → HTTP Request) and as files in your project. Each request gets a ▶
+icon in the gutter; click it to send the request. The response (status, headers, body) appears
+in the Run tool window, followed by the report of its response handler. Project `.http` files
+run as an `http-request` run configuration.
 
 ![HTTP request](../../screenshots/scratches-http-request.png)
 
@@ -83,8 +85,22 @@ Accept: application/json
 POST http://{{host}}/api/users
 Content-Type: application/json
 Authorization: Bearer {{token}}
+X-Request-Id: {{$uuid}}
 
-{ "name": "Ada" }
+{ "name": "Ada", "age": {{$random.integer(18, 99)}} }
+
+> {%
+  client.global.set("userId", response.body.id);
+  client.test("User was created", function () {
+    client.assert(response.status === 201, "Expected 201 but got " + response.status);
+  });
+%}
+
+### Body from a file
+POST http://{{host}}/api/import
+Content-Type: application/json
+
+< ./import.json
 
 ### Long query strings can continue on indented lines
 GET https://{{host}}/search
@@ -98,7 +114,21 @@ GET https://{{host}}/search
   query string, headers, a blank line and the body.
 - `@name = value` defines a file variable; `{{name}}` uses it in the URL, headers and body.
   Variables may refer to other variables. Unknown variables are left as they are.
+- **Body files**: a body line `< ./file.json` inserts the file as it is, `<@ ./file.json` also
+  substitutes variables in it. Paths are relative to the `.http` file.
 - Comments start with `#` or `//`.
+
+![Body from a file](../../screenshots/editor-polish-http-body-file.png)
+
+### Dynamic variables
+
+| Variable | Value |
+| --- | --- |
+| `{{$uuid}}`, `{{$random.uuid}}` | a random UUID |
+| `{{$timestamp}}` | Unix time in seconds |
+| `{{$isoTimestamp}}` | the current time in ISO 8601 |
+| `{{$randomInt}}` | a random integer 0–1000 |
+| `{{$random.integer(from, to)}}` | a random integer in the range |
 
 ### Environments
 
@@ -119,11 +149,39 @@ Put environment files in the project root, as in PHPStorm:
 }
 ```
 
-Values from the private file win over the public one, and file variables (`@name = …`) win over
-both. The environment `dev` is used, or the first one in the file when there is no `dev`.
+Every `.http` editor has a toolbar with an **environment selector** listing the environments of
+these files. The choice is stored per project in `httpClient.environment` (Settings | Tools |
+**HTTP Client**): empty means `dev`, else the first environment; `$none` runs without an
+environment. Private values win over public ones.
 
-> **Note:** choosing another environment, response handler scripts (`> {% … %}`,
-> `> handler.js`), response references (`<> file`) and dynamic variables such as
-> `{{$uuid}}`, `{{$timestamp}}` or `{{$randomInt}}` are not supported yet: handlers and
-> references are skipped, and dynamic variables are sent literally. `.http` files are run
-> from scratches; `.http` files inside the project are highlighted but have no ▶ icons yet.
+![Environment selector](../../screenshots/editor-polish-http-environments.png)
+
+Variable precedence, lowest first: environment < `client.global` (set by handlers) < in-file
+`@name = value`.
+
+### Response handlers
+
+A handler after a request, inline `> {% … %}` or in a file `> ./handler.js`, runs when the
+response arrives. Forge implements a safe subset of PHPStorm's HTTP Client API without a
+JavaScript engine:
+
+- `client.global.set(name, value)`, `get`, `clear`, `clearAll`, `isEmpty` — globals live for
+  the IDE session and can be used as `{{name}}` in later requests;
+- `client.test(name, function () { … })`, `client.assert(condition, message?)`,
+  `client.log(…)`;
+- `response.status`, `response.body` (parsed JSON, else text) with `.a.b`, `["a"]`, `[0]`,
+  `response.headers.valueOf(name)` / `valuesOf(name)`, `response.contentType.mimeType` /
+  `charset`;
+- `JSON.stringify` / `JSON.parse`, string and array helpers (`length`, `includes`,
+  `startsWith`, `endsWith`, `indexOf`, `toLowerCase`, `toUpperCase`, `trim`);
+- `var`/`let`/`const`, `if`/`else`, `return`, functions and arrow functions, literals,
+  arithmetic, comparisons, `&&`, `||`, `??` and `?:`.
+
+Loops and anything else stop the script with an error that names the unsupported construct.
+Test results and log lines are printed after the response.
+
+![Handler report](../../screenshots/editor-polish-http-handler.png)
+
+> **Note:** response references (`<> file`) are skipped. HTTP requests read the environment
+> files through the local project; they are not available in
+> [remote projects](remote-development.md) yet.

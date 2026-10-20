@@ -1,7 +1,7 @@
 ---
 title: forge-open
 description: "Forge IDE open requests: forge:// links, the CLI launcher and the Browser Companion local server."
-order: 150
+order: 160
 tags: [crate, rust]
 ---
 
@@ -56,7 +56,7 @@ pub fn open_event(
 
 ## Tests
 
-9 source files, about 2847 lines; 40 unit tests.
+9 source files, about 2862 lines; 40 unit tests.
 
 ```sh
 cargo test -p forge-open

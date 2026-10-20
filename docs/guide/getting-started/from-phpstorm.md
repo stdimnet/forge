@@ -19,7 +19,8 @@ what is not there yet.
   `Ctrl+Shift+A`, `Ctrl+N`, `Ctrl+Shift+N`, `Ctrl+E`, `Ctrl+B`, `Alt+Insert`, `Ctrl+K`,
   `Shift+F10`, `Alt+1` … `Alt+0` and `Alt+F12` do what you expect. See the
   [keymap reference](../reference/keymap.md).
-- **Workbench.** Main toolbar with project and branch widgets, run widget and search; tool
+- **Workbench.** Main menu (☰, merged or as a menu bar), main toolbar with project and branch
+  widgets, run widget and search; tool
   window stripes on the left, right and bottom; editor tabs with breadcrumbs; status bar.
 - **Tool windows** with the same names and shortcuts: Project (`Alt+1`), Run (`Alt+4`), Debug
   (`Alt+5`), Problems (`Alt+6`), Structure (`Alt+7`), Services (`Alt+8`), Git (`Alt+9`), Commit
@@ -57,9 +58,8 @@ The following PHPStorm features are not implemented on this version. Their short
 bound and show "*Action* is not available yet" so you are not surprised by something else
 happening.
 
-- Main menu (the ☰ button in the toolbar does nothing yet), Get from VCS
-- Find in Files / Replace in Files (`Ctrl+Shift+F`, `Ctrl+Shift+R`), Find Usages (`Alt+F7`),
-  Find tool window
+- Get from VCS
+- Replace in Files (`Ctrl+Shift+R`), Find Usages (`Alt+F7`), Find tool window
 - Refactorings: Rename (`Shift+F6`), Extract/Introduce, Move, Change Signature, Safe Delete
 - Show Context Actions / quick-fixes (`Alt+Enter`), Quick Documentation popup (`Ctrl+Q`; hover
   documentation works with the mouse), File Structure popup (`Ctrl+F12`)
@@ -76,8 +76,8 @@ The [keymap reference](../reference/keymap.md) marks every action as implemented
 
 1. Open the project folder in Forge. The `.idea/` folder is ignored; nothing is converted.
 2. Install the language servers you need from Settings | Languages & Frameworks |
-   Language Servers. For PHP install Intelephense (`npm install -g intelephense` or the
-   **Install** button) and, if you own a licence, enter the key on the same page.
+   Language Servers. For PHP, accept the offer "Intelephense is not installed" (or click **Install
+   Intelephense**) and, if you own a licence, enter the key on the same page.
 3. Set the PHP interpreter and language level in Settings | Languages & Frameworks | PHP.
 4. Recreate run configurations in Run | Edit Configurations (the run widget in the toolbar).
    PHPStorm's `.run/` XML files are not imported.

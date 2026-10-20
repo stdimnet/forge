@@ -1,7 +1,7 @@
 ---
 title: forge-sql
 description: "Forge SQL text: dialects, statement splitting, literals, row changes and export (pure, also built to WebAssembly)."
-order: 230
+order: 240
 tags: [crate, rust]
 ---
 

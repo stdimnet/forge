@@ -62,11 +62,16 @@ resolve: Laravel route names, views, config keys and Eloquent attributes; Symfon
 routes and Twig templates; Doctrine entities and DQL fields; React/Vue/Angular components and
 props; Lua modules. Then it asks the language server.
 
-When a framework provider finds several targets (for example a view that exists in two
-places, or a component used in many templates), a **chooser** lists them; pick one with the
-arrow keys and `Enter`.
+When there are several targets — from a framework provider (a view that exists in two places, a
+component used in many templates) or from the language server — the **Choose Declaration**
+popup lists them at the caret with file, line and the code of each target, as in PHPStorm. Pick
+one with the arrow keys and `Enter`, or `Escape` to cancel. The same popup is used by line
+markers with several targets, in every language pack (PHP and its frameworks, WebForge,
+LuaForge).
 
-![Go to Declaration chooser](../../screenshots/laravel-goto-chooser.png)
+![Choose Declaration in React](../../screenshots/editor-polish-choose-declaration-react.png)
+
+![Choose Declaration in Lua](../../screenshots/editor-polish-choose-declaration-lua.png)
 
 If nothing is found, a hint "Cannot find declaration to go to" appears at the caret.
 
@@ -152,9 +157,10 @@ whole word options. **Find Next**
 `F3` and **Find Previous** `Shift+F3` (macOS `Cmd+G` / `Cmd+Shift+G`) move between matches.
 Other occurrences of the selected text are highlighted automatically.
 
-> **Note:** Find in Files (`Ctrl+Shift+F`), Replace in Files and the Find tool window are not
-> available yet. To search the whole project, use [Search Everywhere](search-everywhere.md)
-> for files, classes and symbols, or `grep`/`rg` in the [terminal](terminal.md).
+To search the whole project, use [Find in Files](search-everywhere.md#find-in-files)
+(`Ctrl+Shift+F`, macOS `Cmd+Shift+F`).
+
+> **Note:** Replace in Files (`Ctrl+Shift+R`) and the Find tool window are not available yet.
 
 ## Gutter
 

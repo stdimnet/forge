@@ -58,6 +58,7 @@ real file system, git, language servers, PTYs, databases and Docker.
 | `pnpm screenshots [scenario…]` | Playwright screenshots into `docs/screenshots/` |
 | `pnpm wasm` | rebuild `crates/forge-wasm` into `src/wasm/pkg` |
 | `pnpm agents [x86_64\|aarch64]` | build the static remote agents into `target/agents/` |
+| `pnpm langservers install [--accept-intelephense-licence] [package…]` | pre-install npm language servers (and Node.js if missing) into Forge's data directory, like the IDE does; also `updates`, `where` |
 | `pnpm release …` | agents + `tauri build` with bundled agents |
 | `pnpm tauri …` | the Tauri CLI (runs from `app/`) |
 

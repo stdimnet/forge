@@ -103,6 +103,16 @@ or SQL **INSERT** statements for the dialect.
 | Show NULL as | `database.showNullAs` | `<null>` |
 | Suggest data sources from .env files | `database.suggestFromEnv` | on |
 
-> **Note:** database tools are not available in [remote projects](remote-development.md) yet.
-> Connect to a remote database through an SSH tunnel (`ssh -L 3306:localhost:3306 host`) and
-> a local data source.
+## Remote projects
+
+In a [remote project](remote-development.md), project data sources (and the `.env`
+suggestions) are read from the host, and Forge connects to them through an SSH tunnel to their
+host and port **as the remote host sees them** — `localhost:3306` means the database on the
+server. The data source shows which host it goes through. Global data sources connect directly
+from your machine.
+
+![Remote data source](../../screenshots/remote-parity-data-source-dialog.png)
+
+![Remote database](../../screenshots/remote-parity-database.png)
+
+> **Note:** SQLite files on the remote host cannot be opened.

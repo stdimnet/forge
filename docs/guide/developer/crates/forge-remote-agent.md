@@ -1,7 +1,7 @@
 ---
 title: forge-remote-agent
 description: "Headless Forge agent: serves a project's files, git, processes, language servers and PHP index over stdio for remote development."
-order: 210
+order: 220
 tags: [crate, rust]
 ---
 
@@ -47,7 +47,7 @@ pub async fn serve<R, W>(reader: R, writer: W) -> Result<()>
 
 ## Tests
 
-3 source files, about 633 lines; 2 unit tests and 9 integration tests in `tests/` (`agent.rs`, `binary.rs`).
+3 source files, about 668 lines; 2 unit tests and 13 integration tests in `tests/` (`agent.rs`, `binary.rs`).
 
 ```sh
 cargo test -p forge-remote-agent

@@ -132,5 +132,10 @@ See [Database tools](database.md).
 | Show view icons for `view()` calls and Blade includes | `laravel.gutter.views` | on |
 | Additional Blade directives | `laravel.blade.customDirectives` | empty |
 
-> **Note:** Laravel analysis needs the project on this machine; it is not available in
-> [remote projects](remote-development.md) yet.
+## Remote projects
+
+In [remote projects](remote-development.md) the analysis runs in the Forge agent on the host
+(completion, navigation and gutter icons cost one round trip), and artisan commands run on the
+host.
+
+![Laravel routes in a remote project](../../screenshots/remote-parity-laravel-routes.png)

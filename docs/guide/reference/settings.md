@@ -38,6 +38,7 @@ Page id `appearance`.
 | `appearance.theme` | enum: `dark`, `light`, `solarized-dark`, `solarized-light` | `dark` | user |  | Theme |
 | `appearance.uiFont.family` | enum: `Inter`, `system-ui`, `Segoe UI`, `Roboto` | `Inter` | user | Font | Font — Font used for menus, tool windows and dialogs. |
 | `appearance.uiFont.size` | int (10–20) | `13` | user | Font | Size |
+| `appearance.mainMenu` | enum: `hamburger`, `merged`, `toolbar` | `hamburger` | user | UI Options | Main menu — Hamburger menu: behind the button at the left of the main toolbar. Merged: the menu names in the main toolbar. Separate toolbar: a classic menu bar above the main toolbar. |
 | `appearance.compactMode` | bool | `false` | user | UI Options | Compact mode — Reduces paddings and the height of toolbars and tool window headers. |
 | `appearance.smoothScrolling` | bool | `true` | user *(not applied yet)* | UI Options | Smooth scrolling — Animate scrolling in lists and trees. |
 | `appearance.windowControls` | enum: `auto`, `windows`, `macos`, `gnome`, `kde`, `linux`, `native` | `auto` | user | Window | Window controls — Look of the title bar buttons of the main window and dialogs. "Native" lets the operating system draw the title bar. |
@@ -177,6 +178,8 @@ Page id `lang.php`.
 | `php.includePaths` | list | `[]` | user, project | Include Path | Include path — Extra directories indexed as libraries (e.g. global PEAR or framework stubs). |
 | `php.lsp.server` | enum: `auto`, `intelephense`, `phpactor`, `none` | `auto` | user | Language Server | Language server — Started automatically when a PHP project opens. |
 | `php.lsp.maxFileSize` | int (100–100000) | `5000` | user | Language Server | Max indexed file size (KB) |
+| `php.intelephense.autoInstall` | enum: `ask`, `always`, `never` | `ask` | user | Language Server | When Intelephense is not installed — Forge downloads Intelephense from the npm registry into its own directory (and Node.js when none is installed). Intelephense is not bundled with Forge. |
+| `php.intelephense.licenceAccepted` | bool | `false` | user | Language Server | I accept the Intelephense licence — Asked once before Forge downloads Intelephense for you. Its licence (LICENSE.txt in the npm package, intelephense.com) applies to your copy. |
 
 ### Languages & Frameworks | PHP | Composer
 
@@ -265,6 +268,9 @@ Page id `lang.servers`.
 | `langservers.scanLimit` | int (100–1000000) | `20000` | user | General | Files scanned to detect languages — Ignored files (.gitignore), node_modules and vendor are skipped. |
 | `langservers.hints.enabled` | bool | `true` | user | General | Suggest installing missing language servers — Shows a banner in files that use a feature only a language server provides, such as a JSON $schema, when that server is not installed. |
 | `langservers.hints.dismissed` | list | `[]` | user | General | Servers not suggested again — Server ids whose banner was turned off with "Don't show again". Remove an entry to get the suggestion back. |
+| `langservers.updates.check` | bool | `true` | user | Downloads | Check for updates of servers installed by Forge once a day — Offers an update when the npm registry has a newer version of a server in Forge's server directory. |
+| `langservers.download.npmRegistry` | string | `https://registry.npmjs.org` | user | Downloads | npm registry — Where Forge downloads npm language servers from. Every tarball is checked against the registry's sha512 integrity hash. |
+| `langservers.download.nodeMirror` | string | `https://nodejs.org/dist` | user | Downloads | Node.js download mirror — Used only when no Node.js 18 or newer is installed. Downloads are checked against the release's SHASUMS256.txt. |
 
 ### Languages & Frameworks | Lua
 
@@ -347,17 +353,28 @@ Page id `tools.browser-companion`.
 | `browserCompanion.port` | int (1024–65535) | `63342` | user | Built-in Server | Port — If the port is taken (for example by PhpStorm), the next 9 ports are tried. The extension finds Forge in this range. |
 | `browserCompanion.focusWindow` | bool | `true` | user | Built-in Server | Bring Forge to the front when a file is opened |
 
+### Tools | HTTP Client
+
+Page id `tools.http-client`.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `httpClient.environment` | string | `""` | user, project |  | Environment — Environment of http-client.env.json (and http-client.private.env.json) that requests of .http files run with. Empty: dev, else the first one; $none: no environment. Chosen in the toolbar of .http editors. |
+
 ### Build, Execution, Deployment | Docker
 
 Page id `build.docker`.
 
 | Key | Type | Default | Scope | Section | Title and description |
 | --- | --- | --- | --- | --- | --- |
-| `docker.connection` | enum: `auto`, `unix`, `pipe`, `tcp` | `auto` | user | Connection | Connect to Docker daemon with |
+| `docker.connection` | enum: `auto`, `unix`, `pipe`, `tcp`, `ssh`, `context` | `auto` | user | Connection | Connect to Docker daemon with |
 | `docker.socketPath` | path | `""` | user | Connection | Socket path — Unix socket (e.g. /var/run/docker.sock, ~/.docker/run/docker.sock) or named pipe (\\.\pipe\docker_engine). Empty: the first existing default. |
 | `docker.tcp.url` | string | `tcp://localhost:2375` | user | Connection | Engine API URL — For TCP connections, e.g. tcp://192.168.1.20:2376. |
 | `docker.tcp.tls` | bool | `false` | user | Connection | Use TLS (verify the daemon certificate) |
 | `docker.tcp.certPath` | path | `""` | user | Connection | Certificates folder — Folder with ca.pem, cert.pem and key.pem (like DOCKER_CERT_PATH). |
+| `docker.ssh.url` | string | `""` | user | Connection | SSH host — For SSH connections: ssh://user@host[:port] or a Host alias of ~/.ssh/config. Keys come from the ssh-agent and ~/.ssh; the host key must be in known_hosts. |
+| `docker.ssh.socketPath` | string | `""` | user | Connection | Docker socket on the host — Empty: /var/run/docker.sock (rootless: /run/user/<uid>/docker.sock). |
+| `docker.context` | string | `""` | user | Connection | Docker context — For Docker context connections: a context of `docker context ls` (~/.docker/contexts). |
 | `docker.cliPath` | path | `docker` | user | Tools | Docker executable — Used for docker compose, image builds and exec terminals. |
 | `docker.logs.tail` | int (10–100000) | `500` | user | Tools | Show the last log lines — Lines loaded when a Log tab opens; new lines follow. |
 

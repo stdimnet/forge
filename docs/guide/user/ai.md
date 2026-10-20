@@ -137,8 +137,9 @@ the CLI reports them.
 
 ![Finished turn](../../screenshots/ai-chat-finished.png)
 
-> **Note:** the AI Chat runs the CLI on this machine; it is not available in
-> [remote projects](remote-development.md) yet.
+In [remote projects](remote-development.md) the agent CLI runs **on the host**: install and log
+in to `claude` or `gemini` there. Forge finds the executable on the host and the agent works
+next to the files.
 
 ## Privacy
 

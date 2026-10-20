@@ -1,7 +1,7 @@
 ---
 title: phpforge-fw-symfony
 description: "PHPForge: Symfony support (service container, routes, Twig templates, console commands)."
-order: 300
+order: 310
 tags: [crate, rust, pack]
 ---
 

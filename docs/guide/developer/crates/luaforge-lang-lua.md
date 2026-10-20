@@ -1,7 +1,7 @@
 ---
 title: luaforge-lang-lua
 description: "LuaForge: Lua language support (lexer, structural parser, EmmyLua/LuaLS annotations, project index, require resolution, hover, navigation; pure, also built to WebAssembly)."
-order: 270
+order: 280
 tags: [crate, rust, pack]
 ---
 
@@ -59,7 +59,7 @@ pub use project::{IndexStats, Location, ProjectIndex, SearchKind, SymbolHit, Sym
 
 ## Tests
 
-11 source files, about 4472 lines; 33 unit tests.
+11 source files, about 4516 lines; 34 unit tests.
 
 ```sh
 cargo test -p luaforge-lang-lua

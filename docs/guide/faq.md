@@ -18,8 +18,8 @@ Forge is MIT-licensed. Third-party tools you connect keep their own terms: Intel
 needs your own licence, AI providers need your own API key or subscription.
 
 **Which version is this guide for?**
-Forge 0.1.0 as on the branch that contains this guide. Features under construction are listed on
-the [start page](index.md#coming-soon).
+Forge 0.1.0 as on the branch that contains this guide. Recent additions and what is not available
+yet are listed on the [start page](index.md#recently-added).
 
 **Which platforms are supported?**
 Windows 10/11, Linux (x86_64; WebKitGTK 4.1) and macOS. Remote development needs a Linux host
@@ -37,7 +37,7 @@ No. Forge keeps its own data in `.forge/` and ignores `.idea/`.
 **Is PHP support as deep as PHPStorm's?**
 Not yet. Completion, diagnostics and navigation come from Intelephense (or Phpactor); Forge adds
 its own index, Generate actions, Laravel, Symfony and Doctrine support. Refactorings, inspections
-with quick-fixes, Find Usages and Find in Files are not implemented yet. See
+with quick-fixes, Find Usages and Replace in Files are not implemented yet. See
 [Coming from PHPStorm](getting-started/from-phpstorm.md).
 
 **Why does a shortcut say "not available yet"?**
@@ -58,8 +58,8 @@ No. They are separate programs you install, from the Language Servers settings p
 click or with your package manager. Forge never bundles paid tools or keys.
 
 **Do I need Node.js?**
-Only for npm-based language servers (Intelephense, TypeScript, Vue, HTML/CSS/JSON, YAML, …), npm
-scripts and web project generators.
+Only for npm scripts and web project generators. npm-based language servers (Intelephense, TypeScript, Vue, …) do not need it: Forge
+downloads an official Node.js build for them when none (18 or newer) is installed.
 
 ## AI
 
@@ -90,8 +90,8 @@ One project per window. Opening another project replaces the current one; multip
 available yet.
 
 **Can I work on a server over SSH?**
-Yes, see [Remote development](user/remote-development.md). Several framework features still
-need a local project.
+Yes, see [Remote development](user/remote-development.md). Frameworks, language servers,
+databases (through SSH tunnels), Xdebug and the AI agents work there; a few features are still local-only.
 
 ## Contributing
 
