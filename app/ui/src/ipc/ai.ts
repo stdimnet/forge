@@ -195,7 +195,7 @@ export interface ProviderPreset {
 export const providerPresets: ProviderPreset[] = [
   { kind: "anthropic", name: "Anthropic", description: "Claude models via the Anthropic API", baseUrl: "https://api.anthropic.com/v1", defaultModel: "claude-sonnet-5-5", needsKey: true, envVar: "ANTHROPIC_API_KEY", local: false },
   { kind: "openai", name: "OpenAI", description: "GPT models via the OpenAI API", baseUrl: "https://api.openai.com/v1", defaultModel: "gpt-4.1", needsKey: true, envVar: "OPENAI_API_KEY", local: false },
-  { kind: "openrouter", name: "OpenRouter", description: "Hundreds of models through one API key", baseUrl: "https://openrouter.ai/api/v1", defaultModel: "anthropic/claude-sonnet-5.5", needsKey: true, envVar: "OPENROUTER_API_KEY", local: false, headers: { "HTTP-Referer": "https://github.com/Reeperk/PHPForge", "X-Title": "Forge IDE" } },
+  { kind: "openrouter", name: "OpenRouter", description: "Hundreds of models through one API key", baseUrl: "https://openrouter.ai/api/v1", defaultModel: "anthropic/claude-sonnet-5.5", needsKey: true, envVar: "OPENROUTER_API_KEY", local: false, headers: { "HTTP-Referer": "https://github.com/Reeperk/Forge", "X-Title": "Forge IDE" } },
   { kind: "ollama", name: "Ollama", description: "Local models served by Ollama", baseUrl: "http://localhost:11434/v1", needsKey: false, local: true },
   { kind: "lmstudio", name: "LM Studio", description: "Local models served by LM Studio", baseUrl: "http://localhost:1234/v1", needsKey: false, local: true },
   { kind: "llamacpp", name: "llama.cpp", description: "llama-server with an OpenAI-compatible API", baseUrl: "http://localhost:8080/v1", needsKey: false, local: true },

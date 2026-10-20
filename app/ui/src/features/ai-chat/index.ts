@@ -1,5 +1,5 @@
 /**
- * AI Chat (AIForge): CLI coding agents rendered as a native chat. Forge runs the user's
+ * AI Chat: CLI coding agents rendered as a native chat. Forge runs the user's
  * installed CLI headless (`forge-agent-cli`) and renders its structured event stream.
  */
 import { Gem, Sparkles } from "lucide-solid";

@@ -22,7 +22,7 @@ pub struct PluginManifest {
     pub id: String,
     pub name: String,
     pub version: String,
-    /// Pack this plugin belongs to (`phpforge`, `luaforge`, `webforge`, `aiforge`, or `core`).
+    /// Pack this plugin belongs to (`phpforge`, `luaforge`, `webforge`, or `core`).
     pub pack: String,
     #[serde(default)]
     pub description: String,

@@ -1,7 +1,8 @@
 # Forge – notes for coding agents
 
 Forge is a PHPStorm-style IDE: Rust + Tauri 2 backend, SolidJS + CodeMirror 6 UI.
-Packs: PHPForge (PHP/Laravel/Symfony/Doctrine), WebForge, LuaForge, AIForge (AI agents).
+Packs: PHPForge (PHP/Laravel/Symfony/Doctrine), WebForge, LuaForge. AI (providers, Claude Code /
+Gemini CLI chat) is part of the core.
 
 ## Layout
 

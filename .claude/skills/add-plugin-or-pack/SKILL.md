@@ -5,7 +5,7 @@ description: Create a new Forge plugin or language/framework pack (e.g. LuaForge
 
 # Add a plugin or pack
 
-A **pack** groups plugins (`phpforge`, `webforge`, `luaforge`, `aiforge`, `core`). A **plugin**
+A **pack** groups plugins (`phpforge`, `webforge`, `luaforge`, `core`; AI plugins live in `core`). A **plugin**
 is a manifest plus optional Rust crate plus optional UI feature.
 
 ## 1. Manifest

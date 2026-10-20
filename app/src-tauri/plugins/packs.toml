@@ -1,4 +1,4 @@
-# WebForge, LuaForge and AIForge plugins. Each table is one plugin.
+# WebForge and LuaForge plugins, plus the AI plugins that ship with the core. Each table is one plugin.
 
 [[plugin]]
 id = "forge.web"
@@ -85,7 +85,7 @@ icon = "moon"
 id = "forge.ai"
 name = "AI Assistant"
 version = "0.1.0"
-pack = "aiforge"
+pack = "core"
 vendor = "Forge"
 description = "Chat, inline completions and code generation with your own model providers."
 
@@ -133,7 +133,7 @@ languages = ["php", "typescript", "lua"]
 id = "forge.claude-code"
 name = "Claude Code"
 version = "0.1.0"
-pack = "aiforge"
+pack = "core"
 vendor = "Forge"
 depends = ["forge.ai"]
 description = "Run Claude Code agents in the IDE, several in parallel."
@@ -153,7 +153,7 @@ provider = "claude-code"
 id = "forge.gemini-cli"
 name = "Gemini CLI"
 version = "0.1.0"
-pack = "aiforge"
+pack = "core"
 vendor = "Forge"
 depends = ["forge.ai"]
 description = "Run Gemini CLI agents in the IDE."
