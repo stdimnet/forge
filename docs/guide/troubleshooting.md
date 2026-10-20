@@ -164,7 +164,7 @@ hosts and the Browser Companion. See [Remote development](user/remote-developmen
   or rootless Docker, Forge looks at `~/.docker/run/docker.sock` and
   `$XDG_RUNTIME_DIR/docker.sock`; otherwise set the socket path in Settings | Build, Execution,
   Deployment | Docker and use **Test Connection**.
-- **`ssh://` DOCKER_HOST**: not supported yet; use a socket or TCP.
+- **Docker over SSH fails**: the host key must be in `~/.ssh/known_hosts` (connect once with `ssh` to accept it) and your key must be in ssh-agent or `~/.ssh`; the Docker socket on the host must be readable by that user.
 
 ## Xdebug
 
