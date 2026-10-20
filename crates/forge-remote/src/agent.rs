@@ -46,6 +46,10 @@ impl AgentBinaries {
             .and_then(|p| p.parent().map(Path::to_path_buf))
         {
             dirs.push(dir.join("agents"));
+            // `pnpm agents` writes to `target/agents`, next to `target/debug`.
+            if let Some(parent) = dir.parent() {
+                dirs.push(parent.join("agents"));
+            }
             dirs.push(dir);
         }
         Self { dirs }
@@ -139,7 +143,9 @@ pub async fn start_agent(
         DeployPlan::Upload { arch, reason } => {
             let path = local.ok_or_else(|| {
                 other(format!(
-                    "The Forge agent for Linux {arch} is not part of this build ({reason})"
+                    "The Forge agent for Linux {arch} is not part of this build ({reason}). \
+                     Build it with `pnpm --dir app/ui agents` or point FORGE_REMOTE_AGENT_DIR \
+                     at a folder with forge-remote-agent-{arch}-linux."
                 ))
             })?;
             let bytes = std::fs::read(&path)
