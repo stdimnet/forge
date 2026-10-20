@@ -177,7 +177,7 @@ order = 0
 [[contributions.settings]]
 key = "templates.smarty.leftDelimiter"
 title = "Left delimiter"
-description = "Smarty's left_delimiter. Use e.g. `<{` for LaTeX templates, where `{` is part of the content."
+description = "Smarty's `left_delimiter` for all templates without an override below."
 type = "string"
 default = "{"
 group = "lang.templates"
@@ -188,12 +188,56 @@ order = 10
 [[contributions.settings]]
 key = "templates.smarty.rightDelimiter"
 title = "Right delimiter"
+description = "Smarty's `right_delimiter`."
 type = "string"
 default = "}"
 group = "lang.templates"
 section = "Smarty"
 project = true
 order = 11
+
+[[contributions.settings]]
+key = "templates.smarty.delimiterOverrides"
+title = "Delimiters per data language or file"
+description = "One entry per rule: `<data language or file pattern>=<left> <right>`, e.g. `latex=<< >>` or `legacy/pdf/*.tpl=[[ ]]`. File patterns win over data languages. LaTeX templates use `<< >>` by default, because `{` is part of the content. Comments, closing tags and `literal` follow the delimiters: `<<* *>>`, `<</if>>`. Applies to open editors."
+type = "list"
+default = ["latex=<< >>"]
+group = "lang.templates"
+section = "Smarty"
+project = true
+order = 12
+
+[[contributions.settings]]
+key = "templates.gotemplate.leftDelimiter"
+title = "Left delimiter"
+description = "The left action delimiter set with `Template.Delims`."
+type = "string"
+default = "{{"
+group = "lang.templates"
+section = "Go Templates"
+project = true
+order = 20
+
+[[contributions.settings]]
+key = "templates.gotemplate.rightDelimiter"
+title = "Right delimiter"
+type = "string"
+default = "}}"
+group = "lang.templates"
+section = "Go Templates"
+project = true
+order = 21
+
+[[contributions.settings]]
+key = "templates.gotemplate.delimiterOverrides"
+title = "Delimiters per data language or file"
+description = "One entry per rule: `<data language or file pattern>=<left> <right>`, e.g. `latex=[[ ]]` or `deploy/*.yaml.tmpl=<< >>`. File patterns win over data languages."
+type = "list"
+default = []
+group = "lang.templates"
+section = "Go Templates"
+project = true
+order = 22
 
 # ---- Appearance & Behavior > System Settings ----------------------------------------
 

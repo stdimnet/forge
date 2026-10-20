@@ -12,10 +12,11 @@ import { xml } from "@codemirror/lang-xml";
 import { properties } from "@codemirror/legacy-modes/mode/properties";
 import { dotenv } from "./dotenv";
 import { streamLanguage } from "./tokens";
-import { goTemplateSyntax, jinjaSyntax, latteSyntax, mustacheSyntax, smartySyntaxWith, twigSyntax, type TemplateSyntax } from "./templates";
+import { jinjaSyntax, latteSyntax, mustacheSyntax, twigSyntax, type TemplateSyntax } from "./templates";
 import { dataLanguageFor, dataLanguageSupport } from "./templateData";
+import { CONFIGURABLE_TEMPLATES, templateSyntaxFor } from "./templateDelimiters";
 import { templateOverlay } from "./templateOverlay";
-import { getSetting } from "@/state/settings";
+import { templateEditing } from "./templateEditing";
 import { less } from "@codemirror/lang-less";
 import { sass } from "@codemirror/lang-sass";
 import { vue } from "@codemirror/lang-vue";
@@ -92,13 +93,16 @@ export const DEFAULT_INDENT = "    ";
 
 const stream = (parser: StreamParser<unknown>) => () => StreamLanguage.define(parser);
 
-/** A template language whose content is highlighted in the file's data language. */
-function template(id: string, label: string, extensions: string[], syntax: () => TemplateSyntax): LanguageDef {
+/**
+ * A template language whose content is highlighted in the file's data language. `syntax` is
+ * re-read when the settings it uses change (delimiters), so open editors follow them.
+ */
+function template(id: string, label: string, extensions: string[], syntax: (path: string) => TemplateSyntax): LanguageDef {
   return {
     id,
     label,
     extensions,
-    load: (path) => [dataLanguageSupport(dataLanguageFor(path)), templateOverlay(syntax())],
+    load: (path) => [dataLanguageSupport(dataLanguageFor(path)), templateOverlay(() => syntax(path)), templateEditing()],
     labelFor: (path) => {
       const data = dataLanguageFor(path);
       return data.id === "html" ? label : `${label} (${data.label})`;
@@ -125,11 +129,9 @@ const languages: LanguageDef[] = [
   { id: "html", label: "HTML", extensions: ["html", "htm", "xhtml", "svelte", "astro"], load: () => html() },
   { id: "vue", label: "Vue", extensions: ["vue"], load: () => vue() },
   template("twig", "Twig", ["twig", "html.twig"], () => twigSyntax),
-  template("smarty", "Smarty", ["tpl", "smarty"], () =>
-    smartySyntaxWith(getSetting<string>("templates.smarty.leftDelimiter", "{"), getSetting<string>("templates.smarty.rightDelimiter", "}")),
-  ),
+  template("smarty", "Smarty", ["tpl", "smarty"], (path) => templateSyntaxFor(CONFIGURABLE_TEMPLATES.smarty, path)),
   template("latte", "Latte", ["latte"], () => latteSyntax),
-  template("gotemplate", "Go Template", ["tmpl", "gotmpl", "gohtml"], () => goTemplateSyntax),
+  template("gotemplate", "Go Template", ["tmpl", "gotmpl", "gohtml"], (path) => templateSyntaxFor(CONFIGURABLE_TEMPLATES.gotemplate, path)),
   template("jinja", "Jinja2", ["j2", "jinja", "jinja2", "njk", "nunjucks"], () => jinjaSyntax),
   template("handlebars", "Handlebars", ["hbs", "handlebars", "mustache"], () => mustacheSyntax),
   { id: "velocity", label: "Velocity", extensions: ["vm", "vtl"], load: stream(velocity) },

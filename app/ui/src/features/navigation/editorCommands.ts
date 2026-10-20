@@ -16,7 +16,7 @@ import {
   selectParentSyntax,
   splitLine,
   toggleBlockComment,
-  toggleLineComment,
+  toggleComment,
 } from "@codemirror/commands";
 import { foldAll, foldCode, unfoldAll, unfoldCode } from "@codemirror/language";
 import {
@@ -161,7 +161,8 @@ export const EDITOR_COMMANDS: Record<string, CmCommand> = {
   // Statement-aware moving needs a language model; line moving is the closest fallback.
   MoveStatementUp: moveLineUp,
   MoveStatementDown: moveLineDown,
-  CommentByLineComment: toggleLineComment,
+  // Line comments where the language has them, else block comments per line (CSS, Smarty), as in PHPStorm.
+  CommentByLineComment: toggleComment,
   CommentByBlockComment: toggleBlockComment,
   EditorSelectWord: extendSelection,
   EditorUnSelectWord: shrinkSelection,
