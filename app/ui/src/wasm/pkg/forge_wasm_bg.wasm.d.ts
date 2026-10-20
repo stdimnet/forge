@@ -3,6 +3,7 @@
 export const memory: WebAssembly.Memory;
 export const agent_parse_lines: (a: number, b: number, c: number) => void;
 export const agent_profiles: (a: number) => void;
+export const bookmarks_apply: (a: number, b: number, c: number) => void;
 export const bridge_version: (a: number) => void;
 export const chat_apply: (a: number, b: number, c: number) => void;
 export const chat_begin_turn: (a: number, b: number, c: number) => void;
@@ -80,6 +81,7 @@ export const sql_export: (a: number, b: number, c: number) => void;
 export const sql_leading_keywords: (a: number, b: number, c: number) => void;
 export const sql_split: (a: number, b: number, c: number) => void;
 export const sql_statement_at: (a: number, b: number, c: number) => void;
+export const todo_scan: (a: number, b: number, c: number) => void;
 export const web_components: (a: number, b: number, c: number) => void;
 export const web_goto: (a: number, b: number, c: number) => void;
 export const web_gutter: (a: number, b: number, c: number) => void;
