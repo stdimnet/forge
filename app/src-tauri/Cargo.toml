@@ -44,6 +44,10 @@ phpforge-fw-laravel = { path = "../../packs/phpforge/fw-laravel" }
 phpforge-fw-symfony = { path = "../../packs/phpforge/fw-symfony" }
 phpforge-orm-doctrine = { path = "../../packs/phpforge/orm-doctrine" }
 phpforge-dql = { path = "../../packs/phpforge/dql" }
+webforge-lang-web = { path = "../../packs/webforge/lang-web" }
+webforge-fw-react = { path = "../../packs/webforge/fw-react" }
+webforge-fw-vue = { path = "../../packs/webforge/fw-vue" }
+webforge-fw-angular = { path = "../../packs/webforge/fw-angular" }
 tauri = { version = "2", features = [] }
 tauri-plugin-dialog = "2"
 tauri-plugin-deep-link = "2"

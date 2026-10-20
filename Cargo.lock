@@ -1809,6 +1809,10 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
+ "webforge-fw-angular",
+ "webforge-fw-react",
+ "webforge-fw-vue",
+ "webforge-lang-web",
 ]
 
 [[package]]
@@ -2145,6 +2149,10 @@ dependencies = [
  "serde",
  "serde_json",
  "wasm-bindgen",
+ "webforge-fw-angular",
+ "webforge-fw-react",
+ "webforge-fw-vue",
+ "webforge-lang-web",
 ]
 
 [[package]]
@@ -7509,6 +7517,37 @@ dependencies = [
  "phf_codegen",
  "string_cache",
  "string_cache_codegen",
+]
+
+[[package]]
+name = "webforge-fw-angular"
+version = "0.1.0"
+dependencies = [
+ "webforge-lang-web",
+]
+
+[[package]]
+name = "webforge-fw-react"
+version = "0.1.0"
+dependencies = [
+ "webforge-lang-web",
+]
+
+[[package]]
+name = "webforge-fw-vue"
+version = "0.1.0"
+dependencies = [
+ "webforge-lang-web",
+]
+
+[[package]]
+name = "webforge-lang-web"
+version = "0.1.0"
+dependencies = [
+ "ignore",
+ "serde",
+ "serde_json",
+ "tempfile",
 ]
 
 [[package]]

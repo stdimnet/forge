@@ -1,0 +1,9 @@
+[package]
+name = "webforge-fw-angular"
+description = "WebForge: Angular support (components, directives, pipes, templates and styles)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+webforge-lang-web = { path = "../lang-web", default-features = false }

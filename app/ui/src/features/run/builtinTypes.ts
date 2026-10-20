@@ -171,6 +171,7 @@ registerRunConfigurationType({
   color: "var(--danger)",
   pluginId: "forge.web",
   argumentsLabel: "Arguments",
+  debuggable: true,
   fields: [
     { key: "packageJson", label: "package.json", kind: "path", default: "package.json" },
     {
@@ -192,7 +193,7 @@ registerRunConfigurationType({
       label: "Package manager",
       kind: "enum",
       default: "npm",
-      options: ["npm", "pnpm", "yarn"].map((v) => ({ value: v, label: v })),
+      options: ["npm", "pnpm", "yarn", "bun"].map((v) => ({ value: v, label: v })),
     },
   ],
   suggestName: (cfg) => opt(cfg, "script") || opt(cfg, "command") || undefined,

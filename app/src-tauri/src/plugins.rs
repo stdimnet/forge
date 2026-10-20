@@ -22,6 +22,7 @@ const MANIFESTS: &[(&str, &str)] = &[
         include_str!("../plugins/langservers.toml"),
     ),
     ("phpforge.toml", include_str!("../plugins/phpforge.toml")),
+    ("webforge.toml", include_str!("../plugins/webforge.toml")),
     ("packs.toml", include_str!("../plugins/packs.toml")),
     ("langs.toml", include_str!("../plugins/langs.toml")),
     (

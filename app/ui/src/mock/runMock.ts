@@ -9,10 +9,11 @@ import type { CommandLine, RunConfiguration, RunConfigurations, RunEvent, RunReq
 import { forgeWasm, type ForgeWasm } from "@/wasm";
 import { demoProjectName } from "./demoProject";
 import { isSymfonyDemo, symfonyDemoName } from "./demoSymfonyProject";
+import { webDemo } from "./demoWebProjects";
 import { scratchCommandLine, scratchRunSteps } from "./scratchesMock";
 
 const ROOT = `~/Projects/${demoProjectName}`;
-const projectRoot = () => `~/Projects/${isSymfonyDemo() ? symfonyDemoName : demoProjectName}`;
+const projectRoot = () => `~/Projects/${isSymfonyDemo() ? symfonyDemoName : (webDemo()?.name ?? demoProjectName)}`;
 
 let stored: RunConfigurations = {
   selected: "UserTest",
@@ -35,6 +36,9 @@ let stored: RunConfigurations = {
     },
   ],
 };
+
+// The WebForge demos start without configurations; npm scripts add temporary ones.
+if (webDemo()) stored = { configurations: [] };
 
 const clone = <T>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
 
@@ -262,6 +266,35 @@ function phpunitSteps(cfg: RunConfiguration): Step[] {
   return steps;
 }
 
+/** Output of a package.json script in a WebForge demo: the script line, then a dev server or a quick finish. */
+function webNpmSteps(cfg: RunConfiguration): Step[] {
+  const o = cfg.options ?? {};
+  let pkg: { name?: string; version?: string; scripts?: Record<string, string> } = {};
+  try {
+    pkg = JSON.parse(webDemo()!.files[o.packageJson || "package.json"] ?? "{}");
+  } catch {
+    // An unsaved, broken package.json still runs.
+  }
+  const script = o.script ?? "";
+  const command = pkg.scripts?.[script] ?? script;
+  const header = `\n> ${pkg.name ?? "app"}@${pkg.version ?? "0.0.0"} ${script}\n> ${command}\n\n`;
+  const debug = cfg.env?.NODE_OPTIONS
+    ? "Debugger listening on ws://127.0.0.1:9229/3f1c2d8e-5b7a-4e0f-9a61-2c4d7b8e1f30\nFor help, see: https://nodejs.org/en/docs/inspector\n\n"
+    : "";
+  if (/^(vite|ng serve|nuxt dev)/.test(command))
+    return [
+      [150, header + debug],
+      [500, "  \x1b[32m\x1b[1mVITE\x1b[22m v6.3.5\x1b[39m  ready in \x1b[1m388\x1b[22m ms\n\n"],
+      [20, "  \x1b[32m➜\x1b[39m  \x1b[1mLocal\x1b[22m:   \x1b[36mhttp://localhost:\x1b[1m5173\x1b[22m/\x1b[39m\n"],
+      [10, "  \x1b[32m➜\x1b[39m  \x1b[2mNetwork\x1b[22m: use \x1b[1m--host\x1b[22m to expose\n"],
+    ];
+  return [
+    [150, header + debug],
+    [400, `\x1b[32m✓\x1b[39m ${script} finished in 1.82s\n`],
+    [20, { code: 0 }],
+  ];
+}
+
 function stepsFor(cfg: RunConfiguration | undefined, cmd: CommandLine): Step[] {
   if (!cfg) return [[50, `${cmd.program} finished.\n`], [10, { code: 0 }]];
   const o = cfg.options ?? {};
@@ -285,6 +318,7 @@ function stepsFor(cfg: RunConfiguration | undefined, cmd: CommandLine): Step[] {
         ];
       return [[200, `\n   \x1b[44;37m INFO \x1b[0m Command [${o.command}] finished.\n\n`], [50, { code: 0 }]];
     case "npm":
+      if (webDemo()) return webNpmSteps(cfg);
       return [
         [150, `\n> dev\n> vite\n\n`],
         [500, "\n  \x1b[32m\x1b[1mVITE\x1b[22m v7.0.4\x1b[39m  ready in \x1b[1m412\x1b[22m ms\n\n"],
@@ -325,7 +359,7 @@ registerMock("run_start", async ({ request }) => {
   if (old) wasm.run_output_drop(JSON.stringify({ handle: old.output }));
   runs.set(runId, { timers: [], done: false, output: Number(wasm.run_output_new(JSON.stringify(options))) });
   setTimeout(() => emitRun(runId, { type: "started", pid: 40000 + seq, commandLine }), 0);
-  play(runId, stepsFor(r.configuration, cmd));
+  play(runId, stepsFor(r.configuration && r.env ? { ...r.configuration, env: { ...r.configuration.env, ...r.env } } : r.configuration, cmd));
   return { runId, commandLine };
 });
 

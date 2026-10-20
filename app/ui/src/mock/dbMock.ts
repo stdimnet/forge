@@ -22,6 +22,7 @@ import {
 import { callWasm, forgeWasm } from "@/wasm";
 import { createDemoDatabase, type DemoDatabase } from "./dbDemoData";
 import { cloneDatabase, runStatement } from "./dbEngine";
+import { webDemo } from "./demoWebProjects";
 
 const DEFAULT_PAGE = 500;
 
@@ -383,6 +384,8 @@ registerMock("db_rollback", (a) => {
 registerMock("db_cancel", () => undefined);
 
 registerMock("db_detect_env", (): DetectedDataSource[] => {
+  // The WebForge demos have no .env with a database.
+  if (webDemo()) return [];
   const ds = envSource();
   if (sources.some((s) => s.source.driver === "mysql" && s.source.database === ds.database)) return [];
   return [{ source: ds, hasPassword: true, origin: ".env" }];

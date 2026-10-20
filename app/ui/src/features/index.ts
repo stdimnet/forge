@@ -29,3 +29,4 @@ import "./database";
 import "./scratches";
 import "./services";
 import "./remote";
+import "./webforge";

@@ -131,6 +131,7 @@ pub fn run() {
         .manage(commands::terminal::TerminalState::default())
         .manage(run_state)
         .manage(commands::symfony::SymfonyState::default())
+        .manage(commands::web::WebState::default())
         .manage(commands::doctrine::DoctrineState::default())
         .manage(commands::keymap::KeymapState::default())
         .invoke_handler(tauri::generate_handler![
@@ -356,6 +357,11 @@ pub fn run() {
             commands::symfony::symfony_gutter,
             commands::symfony::symfony_console_run,
             commands::symfony::symfony_console_cancel,
+            commands::web::npm_packages,
+            commands::web::npm_gutter,
+            commands::web::web_components,
+            commands::web::web_goto,
+            commands::web::web_gutter,
             commands::doctrine::doctrine_entities,
             commands::doctrine::doctrine_complete,
             commands::doctrine::doctrine_goto,

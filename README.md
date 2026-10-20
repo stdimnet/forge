@@ -8,7 +8,7 @@ Forge is the core. Languages and big feature sets ship as **packs** of plugins:
 | Pack | Focus |
 | --- | --- |
 | **PHPForge** | PHP, Laravel, Symfony, Doctrine (DQL), Composer, PHPUnit, Xdebug |
-| **WebForge** | HTML, CSS, JavaScript/TypeScript, Vue/React, Node |
+| **WebForge** | HTML, CSS, JavaScript/TypeScript, npm/pnpm/yarn/bun scripts, React, Vue, Angular |
 | **LuaForge** | Lua |
 
 AI is built into the core: chat with Claude Code or Gemini CLI rendered natively (no terminal),

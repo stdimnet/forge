@@ -302,7 +302,8 @@ app/ui/            SolidJS UI
   Windows), `run_write({ runId, data })` (stdin), `run_dispose({ runId })`,
   `run_command_line({ request })` (preview).
 - Configuration types: the backend's `KindRegistry` builds command lines for `php-script`,
-  `phpunit` (always `--teamcity`), `artisan`, `composer`, `shell` and `npm`; the PHP interpreter
+  `phpunit` (always `--teamcity`), `artisan`, `composer`, `shell` and `npm` (npm, pnpm, yarn or
+  bun; `--` before script arguments only for npm); the PHP interpreter
   defaults to the setting `php.interpreter`. A manifest `runConfigurationTypes` entry can declare
   `fields` and a `command` template (`["${interpreter}", "${file}", "${arguments}"]`, see
   `lua-script`) and works without code. In the UI, `registerRunConfigurationType({ id, name, icon,
@@ -598,6 +599,40 @@ app/ui/            SolidJS UI
   `docker.tcp.url|tls|certPath`, `docker.cliPath`, `docker.logs.tail`), | Docker | Docker
   Registry (`docker.registries`: `server<TAB>user`), | Kubernetes (`kubernetes.kubeconfig`,
   `kubernetes.defaultContext`, `kubernetes.defaultNamespace`, `kubernetes.kubectlPath`).
+
+## WebForge (`packs/webforge/*`)
+
+- Plugins (`app/src-tauri/plugins/webforge.toml`): `forge.web` (HTML, CSS, JavaScript and
+  TypeScript, npm, project type `webforge`), `forge.react` (`react`, `next`), `forge.vue` (`vue`,
+  `nuxt`) and `forge.angular` (`angular`); frameworks are detected from `package.json` /
+  `angular.json` by `forge-project`. The web language servers (TypeScript, Vue/Volar, Angular
+  `ngserver`, HTML/CSS, ESLint) come from the `forge-langservers` catalog; their paths, enablement
+  and auto-start are shown on Settings | Languages & Frameworks | TypeScript
+  (`LanguageServersPage groups=…`) next to `web.navigation.components` and `angular.gutterIcons`.
+  Node.js settings: `web.packageManager` (`auto` or a manager), `web.npm.gutterIcons`,
+  `web.npm.debugArguments` (NODE_OPTIONS for Debug).
+- Crates: `webforge-lang-web` (pure; `fs` feature for loading from disk): position-keeping JSON,
+  `package.json` (scripts with lines, dependencies, workspaces, `packageManager`), package manager
+  detection (setting > `packageManager` field > lock file in the package's or a parent directory >
+  npm), the npm package list and gutter, ES imports/re-exports, module resolution (relative,
+  `tsconfig`/`jsconfig` `paths`, index files) and HTML/JSX tag scanning. `webforge-fw-react`,
+  `webforge-fw-vue` and `webforge-fw-angular` implement `FrameworkIndex { components, goto,
+  gutter }` over `Sources`.
+- IPC (`app/ui/src/ipc/web.ts`): `npm_packages({ refresh? }) -> NpmPackage[]` (`{ path, dir, name?,
+  version?, packageManager: { manager, version?, reason }, scripts: { name, command, line, column }[] }`),
+  `npm_gutter({ path, content }) -> GutterMark[]`, `web_components({ framework })`,
+  `web_goto({ framework, path, content, offset }) -> { path, line, column }[]` (component tags,
+  props/inputs, events/outputs, Angular selectors and pipes, `templateUrl`/`styleUrls`; on a
+  component's own name, selector or Vue block tag: its usages) and `web_gutter({ framework, path,
+  content }) -> { line, kind: "template" | "styles" | "component" | "usages" | "run", title,
+  targets }[]`. `framework` is `react`, `vue` or `angular`; offsets UTF-16, lines 0-based. The
+  backend reads the project at most every 5 s. Browser mode runs the same crates as WebAssembly
+  (`crates/forge-wasm/src/web.rs`); `?project=react|vue|angular` opens a demo project.
+- UI (`app/ui/src/features/webforge`): the npm tool window (`ActivatenpmToolWindow`; double-click
+  runs a script as a temporary `npm` run configuration), run/debug icons in `package.json`, a
+  declaration provider per framework (several targets open a chooser), Angular line markers and
+  the Node.js / TypeScript settings pages. Debug on an `npm` configuration sets `NODE_OPTIONS`
+  (`--inspect` by default) for an external inspector client.
 
 ## Scripting and config language packs
 

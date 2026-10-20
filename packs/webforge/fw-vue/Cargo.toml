@@ -1,0 +1,9 @@
+[package]
+name = "webforge-fw-vue"
+description = "WebForge: Vue.js support (single-file components, props, emits and usages)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+webforge-lang-web = { path = "../lang-web", default-features = false }
