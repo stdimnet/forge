@@ -11,7 +11,7 @@ import { findToolWindow, type ToolWindowAnchor } from "@/features/registry";
 import { closeTab, editor, isDirty, openFile, saveAll } from "@/state/editor";
 import { workspace } from "@/state/workspace";
 import { toggleTheme } from "@/state/theme";
-import { actionById, installKeymap, runAction, showBalloon } from "@/keymap";
+import { actionById, installKeymap, migrateLegacyKeymap, runAction, showBalloon } from "@/keymap";
 import { openSearchEverywhere } from "@/features/search/state";
 import "@/features/search/builtinProviders";
 import { EDITOR_COMMANDS, activeView, runInEditor } from "./editorCommands";
@@ -193,6 +193,7 @@ for (const [id, cmd] of Object.entries(EDITOR_COMMANDS)) action(id, () => runInE
 // ---- Mount popups and start listening for shortcuts
 if (typeof document !== "undefined") {
   installKeymap();
+  migrateLegacyKeymap();
   const host = document.createElement("div");
   host.id = "forge-popups";
   document.body.appendChild(host);

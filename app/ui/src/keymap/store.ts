@@ -2,11 +2,13 @@
  * Reactive keymap state: the selected keymap, user overrides layered on top of the
  * PHPStorm defaults, and the action catalog (PHPStorm actions + plugin actions).
  *
- * Overrides are kept in localStorage for now; once a settings backend exists it can
- * replace `loadOverrides`/`saveOverrides` without touching callers.
+ * The selected keymap and the overrides are user settings (`keymap.active`,
+ * `keymap.overrides.<keymap>`, declared in `plugins/core.toml`); see `encodeOverrides`
+ * for the stored format.
  */
-import { createMemo, createRoot, createSignal } from "solid-js";
+import { createEffect, createMemo, createRoot, createSignal, on } from "solid-js";
 import { commands } from "@/state/commands";
+import { getSetting, saveSetting, setLocalSetting, settingsState } from "@/state/settings";
 import {
   DEFAULT_KEYMAPS,
   PHPSTORM_ACTIONS,
@@ -24,37 +26,48 @@ import {
   type Platform,
 } from "./shortcut";
 
-const KEYMAP_KEY = "forge.keymap.active";
-const OVERRIDES_KEY = "forge.keymap.overrides";
-
 export type Overrides = Partial<Record<KeymapId, Record<string, string[]>>>;
 
-function loadJson<T>(key: string, fallback: T): T {
-  try {
-    const raw = localStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as T) : fallback;
-  } catch {
-    return fallback;
-  }
+/** Settings keys. */
+export const KEYMAP_SETTING = "keymap.active";
+export const overridesSetting = (km: KeymapId) => `keymap.overrides.${km === "macOS" ? "macOS" : "default"}`;
+const KEYMAPS: KeymapId[] = ["$default", "macOS"];
+
+/**
+ * Overrides of one keymap as a settings list: one entry per action, the action id followed
+ * by its shortcuts, tab separated (shortcuts may contain commas and spaces). An entry
+ * with only the id removes all shortcuts of the action.
+ */
+export function encodeOverrides(map: Record<string, string[]>): string[] {
+  return Object.entries(map)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([id, shortcuts]) => [id, ...shortcuts].join("\t"));
 }
 
-function saveJson(key: string, value: unknown): void {
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-  } catch {
-    /* storage unavailable: overrides still apply for this session */
+export function decodeOverrides(list: unknown): Record<string, string[]> {
+  const out: Record<string, string[]> = {};
+  if (!Array.isArray(list)) return out;
+  for (const entry of list) {
+    if (typeof entry !== "string" || !entry) continue;
+    const [id, ...shortcuts] = entry.split("\t");
+    if (id) out[id] = shortcuts.filter(Boolean);
   }
+  return out;
 }
 
 const defaultKeymap = (): KeymapId => (detectPlatform() === "mac" ? "macOS" : "$default");
 
-const [keymapId, setKeymapIdSignal] = createSignal<KeymapId>(
-  (() => {
-    const v = loadJson<string | null>(KEYMAP_KEY, null);
-    return v === "$default" || v === "macOS" ? v : defaultKeymap();
-  })(),
-);
-const [overrides, setOverridesSignal] = createSignal<Overrides>(loadJson<Overrides>(OVERRIDES_KEY, {}));
+const keymapId = (): KeymapId => {
+  const v = getSetting<string>(KEYMAP_SETTING, "auto");
+  return v === "$default" || v === "macOS" ? v : defaultKeymap();
+};
+
+/** Store a keymap setting: applied at once, persisted in the background. */
+function persist(key: string, value: string | string[]): void {
+  setLocalSetting(key, value);
+  saveSetting(key, value, "user").catch((e) => console.warn(`could not save ${key}`, e));
+}
+
 const [extraActions, setExtraActions] = createSignal<ActionDef[]>([]);
 const [extraDefaults, setExtraDefaults] = createSignal<Record<KeymapId, Record<string, string[]>>>({
   $default: {},
@@ -67,9 +80,12 @@ export { keymapId, overrides };
 export const keymapPlatform = (): Platform => (keymapId() === "macOS" ? "mac" : "other");
 
 export function setKeymapId(id: KeymapId): void {
-  setKeymapIdSignal(id);
-  saveJson(KEYMAP_KEY, id);
+  persist(KEYMAP_SETTING, id);
 }
+
+/** User overrides of every keymap. */
+const overrides = (): Overrides =>
+  Object.fromEntries(KEYMAPS.map((km) => [km, decodeOverrides(getSetting<string[]>(overridesSetting(km), []))]));
 
 const phpstormById = new Map(PHPSTORM_ACTIONS.map((a) => [a.id, a]));
 
@@ -139,8 +155,66 @@ export const shortcutLabel = (actionId: string): string => {
 export const formatForKeymap = (text: string) => formatShortcutText(text, keymapPlatform());
 
 function writeOverrides(next: Overrides): void {
-  setOverridesSignal(next);
-  saveJson(OVERRIDES_KEY, next);
+  const before = overrides();
+  for (const km of KEYMAPS) {
+    const list = encodeOverrides(next[km] ?? {});
+    if (JSON.stringify(list) !== JSON.stringify(encodeOverrides(before[km] ?? {}))) persist(overridesSetting(km), list);
+  }
+}
+
+/** Where earlier versions kept the keymap in the browser storage. */
+export const LEGACY_KEYS = { active: "forge.keymap.active", overrides: "forge.keymap.overrides" };
+
+/** Settings to write for a keymap saved by an earlier version in localStorage. */
+export function legacyKeymapChanges(active: string | null, rawOverrides: string | null): Record<string, string | string[]> {
+  const out: Record<string, string | string[]> = {};
+  try {
+    const id = active ? (JSON.parse(active) as unknown) : null;
+    if (id === "$default" || id === "macOS") out[KEYMAP_SETTING] = id;
+  } catch {
+    /* ignore a corrupt value */
+  }
+  try {
+    const old = rawOverrides ? (JSON.parse(rawOverrides) as Overrides) : {};
+    for (const km of KEYMAPS) {
+      const map = old[km];
+      if (map && Object.keys(map).length) out[overridesSetting(km)] = encodeOverrides(map);
+    }
+  } catch {
+    /* ignore a corrupt value */
+  }
+  return out;
+}
+
+/** Move a keymap from localStorage into the settings backend once settings are loaded. */
+export function migrateLegacyKeymap(): void {
+  let active: string | null = null;
+  let raw: string | null = null;
+  try {
+    active = localStorage.getItem(LEGACY_KEYS.active);
+    raw = localStorage.getItem(LEGACY_KEYS.overrides);
+  } catch {
+    return;
+  }
+  if (active === null && raw === null) return;
+  createRoot((dispose) =>
+    createEffect(
+      on(
+        () => settingsState.loaded,
+        (loaded) => {
+          if (!loaded) return;
+          dispose();
+          const changes = Object.entries(legacyKeymapChanges(active, raw)).filter(([k]) => !(k in settingsState.user));
+          void Promise.all(changes.map(([k, v]) => saveSetting(k, v, "user")))
+            .then(() => {
+              localStorage.removeItem(LEGACY_KEYS.active);
+              localStorage.removeItem(LEGACY_KEYS.overrides);
+            })
+            .catch((e) => console.warn("keymap could not be migrated", e));
+        },
+      ),
+    ),
+  );
 }
 
 /** Replace all shortcuts of an action in the active keymap. */
