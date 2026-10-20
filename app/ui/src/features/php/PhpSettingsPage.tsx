@@ -1,6 +1,7 @@
 /** Settings > Languages & Frameworks > PHP */
 import { createResource, createSignal, For, Show } from "solid-js";
-import { Eye, EyeOff, Minus, Plus } from "lucide-solid";
+import { Minus, Plus } from "lucide-solid";
+import { IntelephenseLicence } from "@/features/langservers/Licence";
 import { phpApi, type DetectedServers, type ServerChoice } from "./api";
 import { LANGUAGE_LEVELS, phpSettings, toLspSettings, updatePhpSettings } from "./settings";
 
@@ -8,7 +9,6 @@ const levelLabel = (v: string) =>
   ({ "7.4": "7.4 (arrow functions, typed properties)", "8.0": "8.0 (union types, attributes, match)", "8.1": "8.1 (enums, readonly properties)", "8.2": "8.2 (readonly classes, DNF types)", "8.3": "8.3 (typed class constants, #[\\Override])", "8.4": "8.4 (property hooks, asymmetric visibility)" } as Record<string, string>)[v] ?? v;
 
 export function PhpSettingsPage() {
-  const [reveal, setReveal] = createSignal(false);
   const [newPath, setNewPath] = createSignal("");
   const [detected] = createResource(() => phpApi.detectServers(toLspSettings()).catch((): DetectedServers => ({})));
   const servers: { id: ServerChoice; label: string; hint: () => string }[] = [
@@ -55,24 +55,13 @@ export function PhpSettingsPage() {
             </label>
           )}
         </For>
-        <div class="php-field">
-          <label for="php-licence">Intelephense licence key:</label>
-          <div class="php-secret">
-            <input
-              id="php-licence"
-              type={reveal() ? "text" : "password"}
-              autocomplete="off"
-              placeholder="Optional, enables premium features"
-              value={phpSettings.licenceKey}
-              disabled={phpSettings.server !== "intelephense"}
-              onChange={(e) => updatePhpSettings({ licenceKey: e.currentTarget.value.trim() })}
-            />
-            <button class="icon-btn" title={reveal() ? "Hide" : "Show"} onClick={() => setReveal((v) => !v)}>
-              {reveal() ? <EyeOff size={14} /> : <Eye size={14} />}
-            </button>
-          </div>
+        <div class="php-licence">
+          <IntelephenseLicence />
         </div>
-        <p class="php-hint">Bring your own licence from intelephense.com. It is stored locally and passed to the server as licenceKey.</p>
+        <p class="php-hint">
+          Premium features need your own licence from intelephense.com. The key is kept in the system keychain and passed
+          to the server as licenceKey.
+        </p>
       </section>
       <section>
         <h3>Include Path</h3>
