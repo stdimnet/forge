@@ -27,7 +27,7 @@ app/src-tauri/          Tauri shell: IPC commands (src/commands/<area>.rs, regis
 app/ui/                 SolidJS UI
   src/features/<name>/  UI features (tool windows, dialogs, editor extensions)
   src/editor/           CodeMirror setup, languages, template data languages, theme
-  src/keymap/           PHPStorm keymap engine and data
+  src/keymap/           key capture and dispatch (the engine is crates/forge-keymap)
   src/ipc/              typed clients for IPC commands
   src/mock/             browser-mode backend (mocks + demo projects)
   scripts/scenarios/    Playwright screenshot scenarios
@@ -83,8 +83,9 @@ Use the matching skill in `.claude/skills/<name>/SKILL.md` before starting a tas
 - Features plug in through contribution points: `registerToolWindow`, `registerCommand`,
   `registerSettingsPage`, `registerStatusItem`, `registerEditorExtension`,
   `registerSearchProvider`, `registerLanguage`, `registerKeymapActions`.
-- **Shortcuts only through the keymap** (`app/ui/src/keymap/`). Use PHPStorm action ids or
-  `ACTION_ALIASES`. Never add your own `keydown` listeners for shortcuts.
+- **Shortcuts only through the keymap** (`crates/forge-keymap`, UI in `app/ui/src/keymap/`).
+  Use PHPStorm action ids or `ACTION_ALIASES`. Never add your own `keydown` listeners for
+  shortcuts.
 - **Every IPC command needs a browser mock** in `app/ui/src/mock/`. Mocks load only in browser
   mode and must never write into real projects.
 - Persistent options go into **settings**: a schema in the plugin manifests, read with
