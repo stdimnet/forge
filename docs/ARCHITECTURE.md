@@ -171,9 +171,17 @@ app/ui/            SolidJS UI
   project (honouring `.gitignore`, capped by `langservers.scanLimit`) and registers every enabled
   and installed server whose languages occur (and whose `when` markers exist, e.g. an ESLint config).
   Servers in the same `alternative` group (vtsls / typescript-language-server, pyright /
-  basedpyright) are exclusive. Detection looks at PATH, npm/nvm/volta/fnm, `~/.local/bin`,
-  composer, cargo, go, dotnet, gem dirs, Mason (`~/.local/share/nvim/mason/bin`) and Windows
-  `.cmd` shims.
+  basedpyright) are exclusive. Detection looks, in this order, at the project's
+  `node_modules/.bin`, Forge's own server directory (`<user data dir>/forge/langservers/node_modules/.bin`,
+  e.g. `~/.local/share/forge/langservers`), PATH, npm/nvm/volta/fnm, `~/.local/bin`, composer,
+  cargo, go, dotnet, gem dirs, Mason (`~/.local/share/nvim/mason/bin`) and Windows `.cmd` shims.
+  The `node_modules` of the project and of Forge's directory are also searched for packages a
+  server needs (TypeScript SDK, `@vue/typescript-plugin`).
+- npm servers are never installed globally: a catalog option `npm install -g <packages>` runs as
+  `npm install --prefix <Forge's server directory> --no-fund --no-audit <packages>` (`install::managed_command`;
+  the dialog shows that command). Other tools (brew, pipx, go, cargo, dotnet, ...) run as listed in
+  the catalog. npm and Node must be installed on the machine; a server's `#!/usr/bin/env node` script
+  needs `node` on the PATH Forge was started with.
 - Per-server settings: `langservers.servers.<id>.enabled|path|settings` (settings = JSON string
   merged into the server settings; `initializationOptions` key for startup options). Global:
   `langservers.autoStart`, `langservers.scanLimit`, `langservers.lua.environment|version`.

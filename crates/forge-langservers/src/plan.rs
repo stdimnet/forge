@@ -236,7 +236,7 @@ pub fn rows(
                     InstallRow {
                         index,
                         tool: o.tool.clone(),
-                        command: o.display(),
+                        command: crate::install::display_command(o, ctx.detector),
                         runnable: o.runnable(),
                         available,
                         url: o.url.clone(),
@@ -327,6 +327,68 @@ mod tests {
 
     fn outcome<'a>(d: &'a [Decision], id: &str) -> &'a Result<LspServerConfig, Skip> {
         &d.iter().find(|x| x.id == id).unwrap().outcome
+    }
+
+    #[test]
+    fn servers_installed_by_forge_or_in_the_project_are_found_and_shown_as_managed_installs() {
+        let tmp = tempfile::tempdir().unwrap();
+        let root = tmp.path().join("project");
+        let managed = tmp.path().join("data/forge/langservers");
+        fake_bin(&tmp.path().join("bin/npm"));
+        fake_bin(&managed.join("node_modules/.bin/yaml-language-server"));
+        fake_bin(&root.join("node_modules/.bin/vscode-json-language-server"));
+        let detector = Detector::new(DetectEnv {
+            path: Some(tmp.path().join("bin").into_os_string()),
+            project_root: Some(root.clone()),
+            managed_dir: Some(managed.clone()),
+            ..Default::default()
+        });
+        let prefs = Prefs::default();
+        let s = scan(&["json", "yaml"]);
+        let ctx = ConfigContext {
+            root: &root,
+            cache_dir: tmp.path().join("cache"),
+            detector: &detector,
+            prefs: &prefs,
+            scan: &s,
+        };
+        let c = Catalog::builtin();
+        let d = plan(c, &ctx, |_| true);
+        let rows = rows(c, &ctx, &d, &HashMap::new(), "linux");
+        let row = |id: &str| rows.iter().find(|r| r.id == id).unwrap();
+
+        assert_eq!(row("yaml-language-server").status, RowStatus::Installed);
+        assert_eq!(
+            row("yaml-language-server").path.as_deref(),
+            Some(
+                managed
+                    .join("node_modules/.bin/yaml-language-server")
+                    .to_str()
+                    .unwrap()
+            )
+        );
+        assert_eq!(
+            row("vscode-json-language-server").path.as_deref(),
+            Some(
+                root.join("node_modules/.bin/vscode-json-language-server")
+                    .to_str()
+                    .unwrap()
+            )
+        );
+        let npm = row("pyright")
+            .install
+            .iter()
+            .find(|i| i.tool == "npm")
+            .unwrap();
+        assert!(npm.command.contains("--prefix"), "{}", npm.command);
+        assert!(npm.command.contains(managed.to_str().unwrap()));
+        assert!(!npm.command.contains(" -g"), "{}", npm.command);
+        let brew = row("yaml-language-server")
+            .install
+            .iter()
+            .find(|i| i.tool == "brew")
+            .unwrap();
+        assert_eq!(brew.command, "brew install yaml-language-server");
     }
 
     #[test]
