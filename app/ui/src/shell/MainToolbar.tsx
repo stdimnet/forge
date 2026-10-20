@@ -4,6 +4,9 @@ import { theme, toggleTheme } from "@/state/theme";
 import { showToolWindow } from "@/state/layout";
 import { currentBranch } from "@/state/vcs";
 import { runCommand } from "@/state/commands";
+import { For } from "solid-js";
+import { Dynamic } from "solid-js/web";
+import { toolbarItems } from "@/features/toolbarItems";
 
 /** Top toolbar, laid out like PHPStorm's New UI main toolbar. */
 export function MainToolbar() {
@@ -36,6 +39,7 @@ export function MainToolbar() {
         <button class="icon-btn" title="Build Project (Ctrl+F9)">
           <Hammer size={16} />
         </button>
+        <For each={toolbarItems()}>{(item) => <Dynamic component={item.component} />}</For>
         <button class="pill-btn run-config" title="Run/Debug Configurations" onClick={() => runCommand("run.editConfigurations")}>
           <span class="run-config-icon">P</span>
           <span>PHPUnit: tests</span>

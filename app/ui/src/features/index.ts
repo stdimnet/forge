@@ -14,3 +14,4 @@ import "./git";
 import "./php";
 import "./project-type";
 import "./new-project";
+import "./debug";

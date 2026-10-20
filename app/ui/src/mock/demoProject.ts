@@ -99,17 +99,35 @@ enum OrderStatus: string
 namespace App\\Http\\Controllers;
 
 use App\\Models\\Order;
+use App\\Services\\InvoiceService;
 use Illuminate\\Http\\JsonResponse;
+use Illuminate\\Http\\Request;
 use Symfony\\Component\\Routing\\Attribute\\Route;
 
 final class OrderController extends Controller
 {
+    public function __construct(private readonly InvoiceService $invoices)
+    {
+    }
+
     #[Route('/orders/{order}', name: 'orders.show', methods: ['GET'])]
-    public function show(Order $order): JsonResponse
+    public function show(Request $request, Order $order): JsonResponse
     {
         $this->authorize('view', $order);
 
-        return response()->json($order->load('user'));
+        $user = $request->user();
+        $lines = $order->lines()->with('product')->get();
+        $total = $lines->sum(fn ($line) => $line->price * $line->quantity);
+        $discount = $user->isVip() ? 0.1 : 0.0;
+
+        if ($order->isPayable()) {
+            $this->invoices->settle($order);
+        }
+
+        return response()->json([
+            'order' => $order->load('user'),
+            'total' => round($total * (1 - $discount), 2),
+        ]);
     }
 }
 `,
