@@ -571,3 +571,36 @@ async fn busy_port_reports_an_error() {
     ide.server.stop_listening();
     assert_eq!(ide.server.listening_port(), None);
 }
+
+#[tokio::test]
+async fn cli_scripts_use_the_server_whose_mappings_cover_them() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path().canonicalize().unwrap();
+    let mut ide = Ide::start(&root, DebugConfig::default()).await;
+    ide.server
+        .save_servers(vec![ServerConfig {
+            id: "docker-cli".into(),
+            name: "docker-cli".into(),
+            host: "localhost".into(),
+            port: 80,
+            debugger: "Xdebug".into(),
+            use_path_mappings: true,
+            mappings: vec![PathMapping {
+                local: String::new(),
+                remote: "/app".into(),
+            }],
+        }])
+        .unwrap();
+    let mut engine = Engine::connect(ide.port, "file:///app/bin/console").await;
+    engine.answer_identity(&[]).await;
+    let (run, _) = engine.setup().await;
+    engine
+        .reply_break(&run, "file:///app/src/Kernel.php", 9)
+        .await;
+    let paused = ide.paused().await;
+    assert_eq!(paused.server_id.as_deref(), Some("docker-cli"));
+    assert_eq!(
+        paused.location.unwrap().file.as_deref(),
+        Some("src/Kernel.php")
+    );
+}
