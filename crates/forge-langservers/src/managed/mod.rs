@@ -10,6 +10,9 @@
 //!    `<data dir>/forge/langservers`, never globally,
 //! 3. a daily check for newer versions of what Forge installed ([`updates`]).
 //!
+//! [`stubs`] downloads JetBrains' phpstorm-stubs (pinned, SHA-256 checked) for Go to
+//! Declaration on PHP's own symbols.
+//!
 //! Nothing is bundled with Forge: servers whose licence forbids redistribution
 //! (Intelephense) are downloaded by each user, with their consent, from the official source.
 
@@ -17,6 +20,7 @@ pub mod archive;
 pub mod http;
 pub mod node;
 pub mod npm;
+pub mod stubs;
 pub mod updates;
 
 #[cfg(test)]
