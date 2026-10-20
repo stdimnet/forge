@@ -346,6 +346,23 @@ impl Index {
         }
     }
 
+    /// Paths of the live content files that may contain every literal set.
+    pub fn candidate_paths(&self, literal_sets: &[Vec<Vec<u8>>]) -> Vec<&str> {
+        self.candidates(literal_sets)
+            .into_iter()
+            .filter_map(|id| self.rec(id))
+            .map(|r| r.path.as_str())
+            .collect()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.files.is_empty()
+    }
+
+    pub fn file_count(&self) -> usize {
+        self.files.len() - self.files.iter().filter(|f| f.is_none()).count()
+    }
+
     fn trigram_ids(&self, gram: u32) -> RoaringBitmap {
         let mut ids = self.head.get(&gram).cloned().unwrap_or_default();
         for seg in &self.segments {

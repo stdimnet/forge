@@ -1834,6 +1834,8 @@ dependencies = [
  "forge-lsp",
  "forge-process",
  "forge-project",
+ "forge-search",
+ "forge-search-core",
  "forge-vcs",
  "futures-util",
  "phpforge-lang-php",
@@ -2139,7 +2141,10 @@ dependencies = [
 name = "forge-search"
 version = "0.1.0"
 dependencies = [
+ "dirs 6.0.0",
  "forge-core",
+ "forge-find",
+ "forge-fuzzy",
  "forge-search-core",
  "ignore",
  "notify",

@@ -262,12 +262,12 @@ pub(crate) struct SymbolTable {
     recs: Vec<SymRec>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SymbolHit {
     pub name: String,
     /// UI kind: class, interface, trait, enum, function, method, property or constant.
-    pub kind: &'static str,
+    pub kind: String,
     pub path: String,
     pub line: u32,
     pub container: Option<String>,
@@ -374,7 +374,7 @@ impl SymbolTable {
                 });
                 SymbolHit {
                     name: name.to_string(),
-                    kind: r.kind.ui_name(),
+                    kind: r.kind.ui_name().to_string(),
                     path: files[r.file as usize]
                         .as_ref()
                         .map(|f| f.path.clone())

@@ -6,9 +6,13 @@ use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{mpsc, Arc, Mutex, RwLock, Weak};
 use std::time::{Duration, Instant};
 
-use forge_core::{ForgeError, Result};
+use forge_core::search::{FileMatch, FindRequest, FindResult};
+use forge_core::{ForgeError, FsChanges, Result};
+use forge_find::{Finder, LineMatch};
 use forge_search_core::{FileHit, Index, Outcome, Query, RefreshStats, Scope, SymbolHit};
 use notify::{RecommendedWatcher, RecursiveMode, Watcher};
+
+use rayon::prelude::*;
 
 use crate::index::{self, EXCLUDED_DIRS};
 
@@ -24,6 +28,8 @@ pub struct SearchService {
     /// Serialises refreshes; searches never take it.
     gate: Mutex<()>,
     indexing: AtomicBool,
+    /// True once the index holds a complete listing (cache loaded or first refresh done).
+    ready: AtomicBool,
     watcher: Mutex<Option<RecommendedWatcher>>,
 }
 
@@ -35,6 +41,7 @@ impl SearchService {
             .and_then(|p| fs::File::open(p).ok())
             .and_then(|f| Index::read_from(BufReader::new(f)))
             .unwrap_or_default();
+        let ready = !index.is_empty();
         Self {
             root: root.into(),
             cache,
@@ -42,8 +49,48 @@ impl SearchService {
             generation: AtomicU64::new(0),
             gate: Mutex::new(()),
             indexing: AtomicBool::new(false),
+            ready: AtomicBool::new(ready),
             watcher: Mutex::new(None),
         }
+    }
+
+    /// Where the index of the project at `root` is cached between runs.
+    pub fn cache_path(root: &Path) -> Option<PathBuf> {
+        use std::hash::{Hash, Hasher};
+        let mut hasher = std::collections::hash_map::DefaultHasher::new();
+        root.hash(&mut hasher);
+        dirs::cache_dir().map(|d| {
+            d.join("Forge")
+                .join("search")
+                .join(format!("{:016x}.bin", hasher.finish()))
+        })
+    }
+
+    /// Whether the index covers the project, so it can answer instead of a directory walk.
+    pub fn ready(&self) -> bool {
+        self.ready.load(Ordering::Relaxed)
+    }
+
+    pub fn indexing(&self) -> bool {
+        self.indexing.load(Ordering::Relaxed)
+    }
+
+    pub fn file_count(&self) -> usize {
+        self.index
+            .read()
+            .expect("search index lock poisoned")
+            .file_count()
+    }
+
+    /// Apply a debounced file watcher batch (workspace-relative paths).
+    pub fn apply_changes(&self, changes: &FsChanges) {
+        let paths: Vec<PathBuf> = changes
+            .changed
+            .iter()
+            .chain(&changes.removed)
+            .map(|p| self.root.join(p))
+            .collect();
+        self.update_paths(&paths);
     }
 
     pub fn root(&self) -> &Path {
@@ -59,6 +106,7 @@ impl SearchService {
         if stats != RefreshStats::default() || missing {
             self.save();
         }
+        self.ready.store(true, Ordering::Relaxed);
         self.indexing.store(false, Ordering::Relaxed);
         stats
     }
@@ -181,6 +229,91 @@ impl SearchService {
         );
         outcome.indexing = self.indexing.load(Ordering::Relaxed);
         Ok(outcome)
+    }
+
+    /// Find in Files with `forge-find` semantics: the trigram index narrows the files, `forge-find`
+    /// reads the lines, so results match a directory walk exactly.
+    pub fn find_text(&self, req: &FindRequest) -> Result<FindResult> {
+        let finder = match Finder::new(req) {
+            Ok(f) => f,
+            Err(e) => {
+                return Ok(FindResult {
+                    error: Some(e),
+                    ..FindResult::default()
+                })
+            }
+        };
+        let literals = Query {
+            pattern: req.query.clone(),
+            regex: req.regex,
+            case_sensitive: req.case_sensitive,
+            whole_words: req.whole_words,
+            ..Query::default()
+        }
+        .literals();
+        let mut paths: Vec<String> = self
+            .index
+            .read()
+            .expect("search index lock poisoned")
+            .candidate_paths(&literals)
+            .into_iter()
+            .filter(|p| finder.wants(p))
+            .map(str::to_string)
+            .collect();
+        paths.sort_unstable();
+
+        let limit = finder.limit();
+        let found = std::sync::atomic::AtomicUsize::new(0);
+        let per_file: Vec<(String, Vec<LineMatch>, usize, bool)> = paths
+            .par_iter()
+            .filter_map(|path| {
+                if found.load(Ordering::Relaxed) >= limit {
+                    return None;
+                }
+                let text = self.read_text(path)?;
+                let (matches, count, cut) = finder.search(&text, limit);
+                if matches.is_empty() {
+                    return None;
+                }
+                found.fetch_add(count, Ordering::Relaxed);
+                Some((path.clone(), matches, count, cut))
+            })
+            .collect();
+
+        let mut result = FindResult::default();
+        for (path, matches, count, cut) in per_file {
+            let remaining = limit - result.match_count;
+            if count <= remaining {
+                result.match_count += count;
+                result.files.push(forge_find::FileMatches { path, matches });
+                if cut {
+                    result.truncated = true;
+                    break;
+                }
+                continue;
+            }
+            result.truncated = true;
+            if let Some(text) = self.read_text(&path) {
+                let (matches, count, _) = finder.search(&text, remaining);
+                if !matches.is_empty() {
+                    result.match_count += count;
+                    result.files.push(forge_find::FileMatches { path, matches });
+                }
+            }
+            break;
+        }
+        Ok(result)
+    }
+
+    fn read_text(&self, rel: &str) -> Option<String> {
+        let bytes = std::fs::read(self.root.join(rel)).ok()?;
+        (!forge_find::is_binary(&bytes)).then(|| String::from_utf8_lossy(&bytes).into_owned())
+    }
+
+    /// "Go to File" over the indexed paths, ranked like `Workspace::find_files`.
+    pub fn find_ranked(&self, query: &str, limit: usize) -> Vec<FileMatch> {
+        let index = self.index.read().expect("search index lock poisoned");
+        forge_fuzzy::rank_files(query, index.live().map(|r| r.path.as_str()), limit)
     }
 
     /// Fuzzy search over declared classes (`types_only`) or every declared symbol, leaving out

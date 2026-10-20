@@ -27,6 +27,7 @@ use forge_project::ProjectInfo;
 use forge_vcs::{GitExec, Repo};
 use serde::{Deserialize, Serialize};
 
+pub use forge_search_core::SymbolHit;
 pub use local::LocalBackend;
 pub use php::PhpBackend;
 pub use remote::RemoteBackend;
@@ -79,6 +80,18 @@ impl BackendInfo {
             None => root.into_owned(),
         }
     }
+}
+
+/// State of a backend's search index.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SearchStatus {
+    /// The backend keeps a search index at all.
+    pub enabled: bool,
+    /// The index is being built or refreshed; results may be incomplete.
+    pub indexing: bool,
+    /// Files the index knows about.
+    pub files: usize,
 }
 
 /// How to start a terminal session on the backend.
@@ -150,6 +163,24 @@ pub trait Backend: Send + Sync {
     fn find_files(&self, query: &str, limit: usize) -> Result<Vec<FileMatch>>;
     /// Find in Files: text search over the project honoring `.gitignore`.
     fn find_in_files(&self, req: &FindRequest) -> Result<FindResult>;
+
+    /// Classes (`types_only`) or every declared symbol matching `query`, best first. Files with
+    /// one of `skip_extensions` are left out (languages a language server answers for).
+    /// Backends without a search index return nothing.
+    fn find_symbols(
+        &self,
+        _query: &str,
+        _types_only: bool,
+        _limit: usize,
+        _skip_extensions: &[String],
+    ) -> Result<Vec<SymbolHit>> {
+        Ok(Vec::new())
+    }
+
+    /// Whether the search index is ready or still building.
+    fn search_status(&self) -> Result<SearchStatus> {
+        Ok(SearchStatus::default())
+    }
 
     /// Where git runs for this project.
     fn git(&self) -> Arc<dyn GitExec>;

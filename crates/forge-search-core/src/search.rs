@@ -72,25 +72,11 @@ pub struct Compiled {
 }
 
 impl Query {
-    pub fn compile(&self) -> Result<Compiled> {
-        if self.pattern.is_empty() {
-            return Err(Error("empty search pattern".into()));
-        }
-        let mut pat = if self.regex {
-            self.pattern.clone()
-        } else {
-            regex::escape(&self.pattern)
-        };
-        if self.whole_words {
-            pat = format!(r"\b(?:{pat})\b");
-        }
-        let re = RegexBuilder::new(&pat)
-            .case_insensitive(!self.case_sensitive)
-            .multi_line(true)
-            .build()
-            .map_err(|e| Error(format!("invalid pattern: {e}")))?;
-
-        let literals = regex_syntax::ParserBuilder::new()
+    /// Literal sets for the trigram prefilter: every match contains one literal of each set.
+    /// Empty when the pattern gives no usable bound (or does not parse).
+    pub fn literals(&self) -> Vec<Vec<Vec<u8>>> {
+        let pat = self.effective_pattern();
+        regex_syntax::ParserBuilder::new()
             .case_insensitive(!self.case_sensitive)
             .multi_line(true)
             .build()
@@ -101,7 +87,33 @@ impl Query {
                     .filter_map(|k| required_literals(&hir, k))
                     .collect()
             })
-            .unwrap_or_default();
+            .unwrap_or_default()
+    }
+
+    fn effective_pattern(&self) -> String {
+        let pat = if self.regex {
+            self.pattern.clone()
+        } else {
+            regex::escape(&self.pattern)
+        };
+        if self.whole_words {
+            format!(r"\b(?:{pat})\b")
+        } else {
+            pat
+        }
+    }
+
+    pub fn compile(&self) -> Result<Compiled> {
+        if self.pattern.is_empty() {
+            return Err(Error("empty search pattern".into()));
+        }
+        let pat = self.effective_pattern();
+        let re = RegexBuilder::new(&pat)
+            .case_insensitive(!self.case_sensitive)
+            .multi_line(true)
+            .build()
+            .map_err(|e| Error(format!("invalid pattern: {e}")))?;
+        let literals = self.literals();
 
         let (include, exclude) = parse_mask(&self.file_mask)?;
         Ok(Compiled {

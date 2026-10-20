@@ -282,11 +282,11 @@ fn symbols_are_found_with_kind_container_and_line() {
     );
     assert!(classes
         .iter()
-        .all(|h| ["class", "interface"].contains(&h.kind)));
+        .all(|h| ["class", "interface"].contains(&h.kind.as_str())));
 
     let show = &svc.find_symbols("show", false, 5, &[])[0];
     assert_eq!(
-        (show.name.as_str(), show.kind, show.line),
+        (show.name.as_str(), show.kind.as_str(), show.line),
         ("show", "method", 7)
     );
     assert_eq!(show.container.as_deref(), Some("OrderController"));
@@ -295,7 +295,7 @@ fn symbols_are_found_with_kind_container_and_line() {
     let kinds = |q: &str| {
         svc.find_symbols(q, false, 5, &[])
             .iter()
-            .map(|h| h.kind)
+            .map(|h| h.kind.clone())
             .collect::<Vec<_>>()
     };
     assert_eq!(kinds("LIMIT")[0], "constant");
@@ -321,4 +321,52 @@ fn symbols_are_found_with_kind_container_and_line() {
     let mut left = names("order");
     left.sort_unstable();
     assert_eq!(left, ["OrderBook", "OrderDto"]);
+}
+
+#[test]
+fn find_text_matches_a_directory_walk() {
+    use forge_core::search::FindRequest;
+    use forge_core::Workspace;
+
+    let (d, svc) = project();
+    write(d.path(), "src/Many.php", "x\nx\nx\nx\nx\n");
+    write(d.path(), "src/Wide.php", "<?php // $user and $userId\n");
+    svc.refresh();
+    let ws = Workspace::open(d.path()).unwrap();
+    let req = |query: &str| FindRequest {
+        query: query.into(),
+        ..FindRequest::default()
+    };
+    let mut cases = vec![
+        req("userrepository"),
+        req("function"),
+        req("zzzz"),
+        req("("),
+        req("x"),
+    ];
+    let mut sensitive = req("UserRepository");
+    sensitive.case_sensitive = true;
+    cases.push(sensitive);
+    let mut words = req("$user");
+    words.whole_words = true;
+    cases.push(words);
+    let mut regex = req(r"class \w+Repository");
+    regex.regex = true;
+    cases.push(regex);
+    let mut mask = req("class");
+    mask.file_mask = "*.php".into();
+    cases.push(mask);
+    let mut dir = req("UserRepository");
+    dir.directory = "web".into();
+    cases.push(dir);
+    for limit in [1, 2, 3, 5, 6] {
+        let mut capped = req("x");
+        capped.limit = limit;
+        cases.push(capped);
+    }
+    for case in cases {
+        let walked = ws.find_in_files(&case).unwrap();
+        let indexed = svc.find_text(&case).unwrap();
+        assert_eq!(indexed, walked, "{case:?}");
+    }
 }
