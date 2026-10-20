@@ -1,8 +1,9 @@
 import { registerMock } from "@/ipc";
 import type { FileEntry } from "@/ipc/workspace";
 import { demoFiles, demoProjectName } from "./demoProject";
+import { demoConfigFiles } from "./demoConfigFiles";
 
-const files = { ...demoFiles };
+const files: Record<string, string> = { ...demoFiles, ...demoConfigFiles };
 
 function listDir(dir: string): FileEntry[] {
   const prefix = dir ? `${dir}/` : "";
