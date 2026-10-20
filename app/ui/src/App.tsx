@@ -4,9 +4,12 @@ import { WelcomeScreen } from "./shell/welcome/WelcomeScreen";
 import { openWorkspace, restoreWorkspace, workspace } from "./state/workspace";
 import { openFile } from "./state/editor";
 import { isTauri } from "./ipc";
+import { drawsControls, trackMaximized } from "./shell/window/chrome";
+import { ResizeEdges, WindowTitleBar } from "./shell/window/WindowFrame";
 
 export function App() {
   onMount(async () => {
+    trackMaximized();
     if (isTauri()) {
       await restoreWorkspace();
       return;
@@ -24,9 +27,20 @@ export function App() {
     };
     await openFile(INITIAL[new URLSearchParams(location.search).get("project") ?? ""] ?? "app/Models/User.php");
   });
-  return (
-    <Show when={workspace()} fallback={<WelcomeScreen />}>
-      <Workbench />
+  const welcome = () => (
+    <Show when={drawsControls()} fallback={<WelcomeScreen />}>
+      <div class="welcome-window">
+        <WindowTitleBar title="Welcome to Forge" />
+        <WelcomeScreen />
+      </div>
     </Show>
+  );
+  return (
+    <>
+      <Show when={workspace()} fallback={welcome()}>
+        <Workbench />
+      </Show>
+      <ResizeEdges />
+    </>
   );
 }
