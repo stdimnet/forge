@@ -122,7 +122,12 @@ fn apply_intelephense_licence(manager: &LspManager) {
     let Some(mut config) = manager
         .configs()
         .into_iter()
-        .find(|c| c.id == licence::INTELEPHENSE_ACCOUNT)
+        // The PHP pack registers Intelephense under the generic PHP server id.
+        .find(|c| {
+            c.id == licence::INTELEPHENSE_ACCOUNT
+                || (c.id == crate::commands::php::PHP_SERVER_ID
+                    && c.command.contains("intelephense"))
+        })
     else {
         return;
     };

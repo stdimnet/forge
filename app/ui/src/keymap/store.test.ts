@@ -3,8 +3,11 @@ import {
   addActionShortcut,
   allActions,
   bindings,
+  decodeOverrides,
+  encodeOverrides,
   isModified,
   keymapId,
+  legacyKeymapChanges,
   registerKeymapActions,
   removeActionShortcut,
   resetAction,
@@ -14,7 +17,24 @@ import {
   shortcutsOf,
 } from "./store";
 import { registerCommand } from "@/state/commands";
+import { getSetting } from "@/state/settings";
 import { shortcutId } from "./shortcut";
+
+describe("keymap settings format", () => {
+  it("round-trips overrides, including removed shortcuts and commas", () => {
+    const map = { GotoClass: ["Ctrl+N", "Ctrl+K Ctrl+C"], ShowSettings: ["Meta+,"], Cut: [] };
+    const list = encodeOverrides(map);
+    expect(list).toEqual(["Cut", "GotoClass\tCtrl+N\tCtrl+K Ctrl+C", "ShowSettings\tMeta+,"]);
+    expect(decodeOverrides(list)).toEqual(map);
+    expect(decodeOverrides("nope")).toEqual({});
+  });
+
+  it("migrates the old localStorage keymap", () => {
+    const changes = legacyKeymapChanges('"macOS"', JSON.stringify({ macOS: { GotoClass: ["Cmd+O"] }, $default: {} }));
+    expect(changes).toEqual({ "keymap.active": "macOS", "keymap.overrides.macOS": ["GotoClass\tCmd+O"] });
+    expect(legacyKeymapChanges("garbage", "{")).toEqual({});
+  });
+});
 
 describe("keymap store", () => {
   beforeEach(() => {
@@ -34,7 +54,7 @@ describe("keymap store", () => {
     addActionShortcut("GotoClass", "Ctrl+Alt+Shift+K");
     expect(shortcutsOf("GotoClass")).toEqual(["Ctrl+N", "Ctrl+Alt+Shift+K"]);
     expect(isModified("GotoClass")).toBe(true);
-    expect(JSON.parse(localStorage.getItem("forge.keymap.overrides")!).$default.GotoClass).toHaveLength(2);
+    expect(getSetting<string[]>("keymap.overrides.default")).toEqual(["GotoClass\tCtrl+N\tCtrl+Alt+Shift+K"]);
     // Overrides are per keymap.
     setKeymapId("macOS");
     expect(shortcutsOf("GotoClass")).toEqual(["Cmd+O"]);

@@ -56,6 +56,20 @@ pub fn run() {
                 });
             companion::apply_server_settings(app.handle());
 
+            // Reconfigure (restart) the PHP language server when its settings or the
+            // enabled plugins change. Listeners run under the settings lock, so the work
+            // happens on another thread.
+            let handle = app.handle().clone();
+            app.state::<AppState>()
+                .write_settings()
+                .subscribe(move |change| {
+                    if phpforge_lang_php::lsp::affects_server(&change.key)
+                        || change.key == plugins::DISABLED_PLUGINS_KEY
+                    {
+                        commands::php::spawn_sync_lsp_server(&handle);
+                    }
+                });
+
             // forge:// links. Installers register the scheme; dev builds and AppImages
             // register it at runtime.
             #[cfg(any(windows, target_os = "linux"))]
@@ -77,9 +91,19 @@ pub fn run() {
             // `forge path/to/project`, `forge src/App.tsx:12` or a forge:// link at startup.
             let cwd = std::env::current_dir().unwrap_or_default();
             companion::handle_launch_args(app.handle(), std::env::args().skip(1), &cwd, true);
+
+            // A project passed on the command line is already open.
+            commands::php::spawn_sync_lsp_server(app.handle());
+            let root = app
+                .state::<AppState>()
+                .with_workspace(|ws| Ok(ws.root().to_path_buf()));
+            if let Ok(root) = root {
+                commands::workspace::start_watching(app.handle(), &root);
+            }
             Ok(())
         })
         .manage(commands::lsp::LspState::default())
+        .manage(commands::workspace::WatchState::default())
         .manage(commands::php::PhpState::default())
         .manage(commands::project::CreateState::default())
         .manage(commands::langservers::LangServersState::default())
@@ -103,6 +127,7 @@ pub fn run() {
             commands::agent::agent_start,
             commands::agent::agent_send,
             commands::agent::agent_interrupt,
+            commands::agent::agent_respond_permission,
             commands::agent::agent_stop,
             commands::settings::settings_get_all,
             commands::settings::settings_set,

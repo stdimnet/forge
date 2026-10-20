@@ -374,6 +374,62 @@ impl ProjectIndex {
         }
     }
 
+    /// Whether a workspace-relative path is a file the workspace scan would index.
+    pub fn is_indexable(&self, rel: &str) -> bool {
+        let parts: Vec<&str> = rel.split('/').collect();
+        let Some(name) = parts.last() else {
+            return false;
+        };
+        let ext_ok = name
+            .rsplit_once('.')
+            .is_some_and(|(_, ext)| self.config.extensions.iter().any(|e| e == ext));
+        let dirs = &parts[..parts.len() - 1];
+        ext_ok
+            && !dirs
+                .iter()
+                .any(|d| self.config.exclude_dirs.iter().any(|x| x == d))
+            && !(dirs.first() == Some(&"vendor") && self.config.vendor != VendorMode::Eager)
+    }
+
+    /// Update the index after files changed on disk (from the file watcher). Removed
+    /// paths may be files or whole directories. Returns the number of files touched.
+    pub fn apply_changes(&mut self, changed: &[String], removed: &[String]) -> usize {
+        let mut touched = 0;
+        for dir_or_file in removed {
+            let prefix = format!("{dir_or_file}/");
+            let gone: Vec<String> = self
+                .files
+                .keys()
+                .filter(|k| *k == dir_or_file || k.starts_with(&prefix))
+                .cloned()
+                .collect();
+            for rel in gone {
+                self.files.remove(&rel);
+                touched += 1;
+            }
+        }
+        if touched > 0 {
+            self.rebuild_maps();
+        }
+        for rel in changed {
+            if !self.is_indexable(rel) {
+                continue;
+            }
+            let path = self.root.join(rel);
+            let too_big = std::fs::metadata(&path)
+                .map(|m| !m.is_file() || m.len() > self.config.max_file_size)
+                .unwrap_or(true);
+            if too_big {
+                continue;
+            }
+            if let Ok(source) = std::fs::read_to_string(&path) {
+                self.update_file(rel, &source);
+                touched += 1;
+            }
+        }
+        touched
+    }
+
     /// Class by FQN from what is already indexed.
     pub fn find_class(&self, fqn: &str) -> Option<&ClassLike> {
         let fqn = fqn.trim_start_matches('\\');
@@ -761,6 +817,40 @@ mod tests {
             "<?php\nnamespace Illuminate\\Routing;\nabstract class Controller { public function middleware($m) {} public function callAction($method, $parameters) {} }\n",
         );
         dir
+    }
+
+    #[test]
+    fn applies_watched_changes_incrementally() {
+        let dir = project();
+        let r = dir.path();
+        let mut idx = ProjectIndex::new(r, IndexConfig::default());
+        idx.index_workspace(|_, _| {});
+        assert!(idx.is_indexable("app/Models/Order.php"));
+        assert!(!idx.is_indexable("node_modules/x/evil.php"));
+        assert!(!idx.is_indexable("vendor/a/B.php"));
+        assert!(!idx.is_indexable("composer.json"));
+
+        write(
+            r,
+            "app/Models/Invoice.php",
+            "<?php\nnamespace App\\Models;\nclass Invoice {}\n",
+        );
+        fs::remove_file(r.join("app/Models/Order.php")).unwrap();
+        let touched = idx.apply_changes(
+            &[
+                "app/Models/Invoice.php".into(),
+                "node_modules/x/evil.php".into(),
+            ],
+            &["app/Models/Order.php".into()],
+        );
+        assert_eq!(touched, 2);
+        assert!(idx.find_class("App\\Models\\Invoice").is_some());
+        assert!(idx.find_class("App\\Models\\Order").is_none());
+        assert!(idx.find_class("ShouldNotIndex").is_none());
+
+        // A removed directory drops every file below it.
+        assert_eq!(idx.apply_changes(&[], &["app/Models".into()]), 3);
+        assert!(idx.find_class("App\\Models\\Invoice").is_none());
     }
 
     #[test]

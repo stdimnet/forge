@@ -48,11 +48,90 @@ pub struct StartOptions {
     pub executable: Option<String>,
     /// Stream partial text deltas (smoother UI, more events).
     pub partial_messages: Option<bool>,
+    /// Ask Forge (instead of failing the tool call) when a tool needs permission. On by
+    /// default; the UI answers with [`PermissionDecision`]s.
+    pub permission_prompts: Option<bool>,
 }
 
 impl StartOptions {
     pub fn partial(&self) -> bool {
         self.partial_messages.unwrap_or(true)
+    }
+
+    /// Whether permission requests are routed to Forge. Pointless when nothing is asked.
+    pub fn prompts_for_permissions(&self) -> bool {
+        self.permission_prompts.unwrap_or(true)
+            && self.permission_mode != PermissionMode::BypassPermissions
+    }
+
+    /// Fill the executable and model from the user's settings (Settings > Tools >
+    /// AI Agents) where the caller left them open. `get` returns a setting's value.
+    pub fn with_settings(mut self, agent_id: &str, get: impl Fn(&str) -> Option<String>) -> Self {
+        let non_empty = |key: String| get(&key).filter(|v| !v.trim().is_empty());
+        if self.executable.is_none() {
+            self.executable = configured_executable(agent_id, &get);
+        }
+        if self.model.is_none() {
+            self.model = non_empty(setting_key(agent_id, "model"));
+        }
+        self
+    }
+}
+
+/// Settings key of an agent option, e.g. `agents.claude-code.path`.
+pub fn setting_key(agent_id: &str, field: &str) -> String {
+    format!("agents.{agent_id}.{field}")
+}
+
+/// The executable path configured in settings for an agent, if any.
+pub fn configured_executable(
+    agent_id: &str,
+    get: impl Fn(&str) -> Option<String>,
+) -> Option<String> {
+    get(&setting_key(agent_id, "path"))
+        .map(|p| p.trim().to_string())
+        .filter(|p| !p.is_empty())
+}
+
+/// How long an "allow" answer to a permission request applies.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum AllowScope {
+    /// Only this tool call.
+    #[default]
+    Once,
+    /// Every matching call for the rest of the session (see [`session_rule`]).
+    Session,
+}
+
+/// The user's answer to a permission request.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(
+    tag = "behavior",
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase"
+)]
+pub enum PermissionDecision {
+    Allow {
+        /// Tool input to run with; `None` keeps the requested input.
+        #[serde(default)]
+        updated_input: Option<serde_json::Value>,
+        #[serde(default)]
+        scope: AllowScope,
+    },
+    Deny {
+        /// Told to the agent, e.g. "The user denied this edit".
+        #[serde(default)]
+        message: Option<String>,
+    },
+}
+
+/// Key under which an "allow for session" answer is remembered. Shell commands are only
+/// allowed again verbatim; other tools by name.
+pub fn session_rule(tool_name: &str, input: &serde_json::Value) -> String {
+    match input.get("command").and_then(|c| c.as_str()) {
+        Some(cmd) if tool_name == "Bash" => format!("Bash({})", cmd.trim()),
+        _ => tool_name.to_string(),
     }
 }
 
@@ -103,6 +182,20 @@ pub trait AgentCli: Send + Sync {
     fn encode_user_message(&self, text: &str) -> Result<String>;
     /// A fresh output parser for one session.
     fn parser(&self, opts: &StartOptions) -> Box<dyn EventParser>;
+
+    /// Encode the answer to a permission request as a stdin line (without newline).
+    /// `input` is the tool input of the request.
+    fn encode_permission_response(
+        &self,
+        _request_id: &str,
+        _input: &serde_json::Value,
+        _decision: &PermissionDecision,
+    ) -> Result<String> {
+        Err(forge_core::ForgeError::Other(format!(
+            "{} does not support permission prompts",
+            self.name()
+        )))
+    }
 
     /// Locate the executable: explicit override first, then `PATH` and well-known
     /// install locations.
@@ -215,6 +308,50 @@ mod tests {
             find_in_dirs(&["gemini"], &[dir.path().to_path_buf()], &exts),
             None
         );
+    }
+
+    #[test]
+    fn decisions_and_session_rules() {
+        let d: PermissionDecision =
+            serde_json::from_str(r#"{"behavior":"allow","scope":"session"}"#).unwrap();
+        assert_eq!(
+            d,
+            PermissionDecision::Allow {
+                updated_input: None,
+                scope: AllowScope::Session
+            }
+        );
+        let d: PermissionDecision = serde_json::from_str(r#"{"behavior":"deny"}"#).unwrap();
+        assert_eq!(d, PermissionDecision::Deny { message: None });
+        let bash = serde_json::json!({"command": " ls -la "});
+        assert_eq!(session_rule("Bash", &bash), "Bash(ls -la)");
+        assert_eq!(session_rule("Edit", &bash), "Edit");
+        let bypass = StartOptions {
+            permission_mode: PermissionMode::BypassPermissions,
+            ..Default::default()
+        };
+        assert!(!bypass.prompts_for_permissions());
+        assert!(StartOptions::default().prompts_for_permissions());
+    }
+
+    #[test]
+    fn options_from_settings() {
+        let get = |k: &str| match k {
+            "agents.claude-code.path" => Some(" /opt/claude ".to_string()),
+            "agents.claude-code.model" => Some("opus".to_string()),
+            _ => None,
+        };
+        let opts = StartOptions::default().with_settings("claude-code", get);
+        assert_eq!(opts.executable.as_deref(), Some("/opt/claude"));
+        assert_eq!(opts.model.as_deref(), Some("opus"));
+        // Explicit options win.
+        let opts = StartOptions {
+            model: Some("haiku".into()),
+            ..Default::default()
+        }
+        .with_settings("claude-code", get);
+        assert_eq!(opts.model.as_deref(), Some("haiku"));
+        assert_eq!(configured_executable("gemini-cli", get), None);
     }
 
     #[test]

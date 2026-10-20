@@ -4,6 +4,8 @@
  */
 import { Gem, Sparkles } from "lucide-solid";
 import { registerToolWindow } from "@/features/registry";
+import { registerSettingsPage } from "@/features/settingsPages";
+import { AgentsSettingsPage } from "./AgentsSettingsPage";
 import { registerCommand } from "@/state/commands";
 import { showToolWindow } from "@/state/layout";
 import { registerChatAgent } from "./agents";
@@ -40,6 +42,7 @@ registerChatAgent({
   comingSoon: true,
   tagline: "Gemini works in your project using your own Gemini CLI login.",
   models: [
+    { id: "default", label: "Default", hint: "Use the CLI's configured model" },
     { id: "gemini-2.5-pro", label: "Gemini 2.5 Pro" },
     { id: "gemini-2.5-flash", label: "Gemini 2.5 Flash" },
   ],
@@ -63,6 +66,15 @@ registerCommand({
     showToolWindow("right", "ai-chat");
     queueMicrotask(focusChatInput);
   },
+});
+
+registerSettingsPage({
+  id: "tools.ai-agents",
+  title: "AI Agents",
+  group: "Tools",
+  order: 5,
+  keywords: ["claude", "claude code", "gemini", "agent", "cli", "permission", "model"],
+  component: AgentsSettingsPage,
 });
 
 registerCommand({ id: "AIChat.NewChat", title: "New AI Chat", category: "AI", run: () => newChat() });

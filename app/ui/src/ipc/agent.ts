@@ -57,7 +57,7 @@ export type AgentEvent =
   | { type: "toolUse"; id: string; name: string; input: Record<string, unknown>; parentToolUseId?: string }
   | { type: "toolResult"; toolUseId: string; content: string; isError: boolean }
   | { type: "usage"; usage: Usage; costUsd: number | null }
-  | { type: "permissionRequest"; requestId: string; toolName: string; input: Record<string, unknown> }
+  | { type: "permissionRequest"; requestId: string; toolName: string; input: Record<string, unknown>; toolUseId?: string }
   | {
       type: "turnFinished";
       result: string | null;
@@ -71,11 +71,18 @@ export type AgentEvent =
   | { type: "error"; message: string }
   | { type: "exited"; code: number | null };
 
+/** Answer to a permission request (mirrors `forge_agent_cli::PermissionDecision`). */
+export type PermissionDecision =
+  | { behavior: "allow"; scope?: "once" | "session"; updatedInput?: Record<string, unknown> }
+  | { behavior: "deny"; message?: string };
+
 export const agentApi = {
   list: (executables?: Record<string, string>) => invoke<AgentInfo[]>("agent_list", { executables }),
   start: (agentId: string, options: StartOptions) => invoke<string>("agent_start", { agentId, options }),
   send: (sessionId: string, text: string, context?: MessageContext) =>
     invoke<void>("agent_send", { sessionId, text, context }),
+  respondPermission: (sessionId: string, requestId: string, decision: PermissionDecision) =>
+    invoke<void>("agent_respond_permission", { sessionId, requestId, decision }),
   interrupt: (sessionId: string) => invoke<void>("agent_interrupt", { sessionId }),
   stop: (sessionId: string) => invoke<void>("agent_stop", { sessionId }),
   onEvent: (sessionId: string, cb: (e: AgentEvent) => void) => listen<AgentEvent>(`agent://${sessionId}`, cb),

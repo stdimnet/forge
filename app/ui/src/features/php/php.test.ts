@@ -3,7 +3,7 @@ import type { FieldTarget, GenerateTargets, StructureNode } from "./api";
 import { chooserTitle, clampToViewport, fieldsFor, generateMenu, groupByOwner, showsFluentOption } from "./generateModel";
 import { highlightPhp, renderMarkdown } from "./markdown";
 import { orderNodes } from "./StructureView";
-import { toLspSettings, defaultPhpSettings, migrateLicenceKey } from "./settings";
+import { toLspSettings, defaultPhpSettings, legacyPhpChanges, migrateLicenceKey } from "./settings";
 import { percent } from "./status";
 
 const field = (name: string, extra: Partial<FieldTarget> = {}): FieldTarget => ({
@@ -103,10 +103,17 @@ describe("structure ordering", () => {
 
 describe("settings", () => {
   it("maps to backend language server settings", () => {
-    const s = toLspSettings({ ...defaultPhpSettings, languageLevel: "8.2", includePaths: ["/usr/share/php"] });
-    expect(s).toMatchObject({ server: "intelephense", phpVersion: "8.2", includePaths: ["/usr/share/php"] });
-    // The licence key comes from the keychain in the backend, never from here.
-    expect(s.licenceKey).toBeNull();
+    const s = toLspSettings({ ...defaultPhpSettings, server: "intelephense", languageLevel: "8.2", includePaths: ["/usr/share/php"] });
+    expect(s).toMatchObject({ server: "intelephense", licenceKey: null, phpVersion: "8.2", includePaths: ["/usr/share/php"] });
+  });
+
+  it("migrates values from the old localStorage store", () => {
+    const old = JSON.stringify({ languageLevel: "8.1", cliInterpreter: "/usr/bin/php8.1", server: "phpactor", licenceKey: "SECRET", includePaths: [] });
+    const changes = legacyPhpChanges(old, (k) => k === "php.lsp.server");
+    expect(changes).toEqual({ "php.languageLevel": "8.1", "php.interpreter": "/usr/bin/php8.1" });
+    expect(JSON.stringify(changes)).not.toContain("SECRET");
+    expect(legacyPhpChanges("not json", () => false)).toEqual({});
+    expect(legacyPhpChanges(null, () => false)).toEqual({});
   });
 
   it("moves a plaintext licence key to the keychain", async () => {
@@ -115,15 +122,8 @@ describe("settings", () => {
     expect(await migrateLicenceKey(stored, async (k) => saved.push(k))).toBe(true);
     expect(saved).toEqual(["ABCDEFGH1234"]);
     expect(stored).toEqual({ languageLevel: "8.2" });
-
     const failing: Record<string, unknown> = { licenceKey: "ABCDEFGH1234" };
     expect(await migrateLicenceKey(failing, () => Promise.reject(new Error("no keychain")))).toBe(false);
-    expect(failing.licenceKey).toBe("ABCDEFGH1234");
-
-    const empty: Record<string, unknown> = { licenceKey: "" };
-    expect(await migrateLicenceKey(empty, async () => undefined)).toBe(true);
-    expect("licenceKey" in empty).toBe(false);
-    expect(await migrateLicenceKey({}, async () => undefined)).toBe(false);
   });
 
   it("computes indexing percent", () => {

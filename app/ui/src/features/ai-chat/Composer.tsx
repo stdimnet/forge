@@ -5,6 +5,7 @@ import { activeTab, editor } from "@/state/editor";
 import { activeSelection, type EditorSelection } from "@/editor/views";
 import { FileIcon } from "@/shell/FileIcon";
 import { chat, interrupt, newChat, sendMessage } from "./store";
+import { awaitingPermission } from "./model";
 import { findChatAgent } from "./agents";
 
 const [draft, setDraft] = createSignal("");
@@ -194,7 +195,7 @@ export function Composer() {
           class="chat-input"
           rows={1}
           value={draft()}
-          placeholder={chat.running ? `${agent()?.name ?? "The agent"} is working…` : `Ask ${agent()?.name ?? "the agent"}…  @ to add context, / for commands`}
+          placeholder={chat.running ? (awaitingPermission(chat.conv) ? `${agent()?.name ?? "The agent"} is waiting for your answer…` : `${agent()?.name ?? "The agent"} is working…`) : `Ask ${agent()?.name ?? "the agent"}…  @ to add context, / for commands`}
           onInput={onInput}
           onKeyDown={onKeyDown}
           onBlur={() => setTimeout(() => setMenu(null), 120)}

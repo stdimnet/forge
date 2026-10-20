@@ -1,9 +1,38 @@
-use serde::Serialize;
-use tauri::{AppHandle, State};
+use std::path::Path;
+use std::sync::Mutex;
 
-use forge_core::{FileEntry, FileMatch, Result, Workspace};
+use serde::Serialize;
+use tauri::{AppHandle, Emitter, Manager, State};
+
+use forge_core::{FileEntry, FileMatch, FsChanges, ProjectWatcher, Result, Workspace};
 
 use crate::state::AppState;
+
+/// Emitted with [`FsChanges`] when files change outside the editor.
+pub const FS_CHANGED_EVENT: &str = "fs://changed";
+
+/// The file watcher of the open project.
+#[derive(Default)]
+pub struct WatchState(Mutex<Option<ProjectWatcher>>);
+
+/// Watch `root` (replacing the previous project's watcher): changes go to the UI as
+/// `fs://changed` and into the PHP index.
+pub fn start_watching(app: &AppHandle, root: &Path) {
+    let handle = app.clone();
+    let watcher = ProjectWatcher::start(root, move |changes: FsChanges| {
+        crate::commands::php::apply_fs_changes(&handle, &changes);
+        if let Err(e) = handle.emit(FS_CHANGED_EVENT, &changes) {
+            tracing::warn!("cannot emit {FS_CHANGED_EVENT}: {e}");
+        }
+    });
+    let state = app.state::<WatchState>();
+    let mut current = state.0.lock().expect("watch lock");
+    *current = None; // stop the old watcher first
+    match watcher {
+        Ok(w) => *current = Some(w),
+        Err(e) => tracing::warn!("{e}"),
+    }
+}
 
 #[derive(Serialize)]
 pub struct WorkspaceInfo {
@@ -18,12 +47,15 @@ pub fn workspace_open(
     state: State<'_, AppState>,
 ) -> Result<WorkspaceInfo> {
     let ws = Workspace::open(&path)?;
-    crate::commands::project::emit_detection(&app, ws.root());
+    let root = ws.root().to_path_buf();
     let info = WorkspaceInfo {
         name: ws.name(),
-        root: ws.root().display().to_string(),
+        root: root.display().to_string(),
     };
     state.set_workspace(ws);
+    // After `set_workspace`: detection also registers the project's language servers.
+    crate::commands::project::emit_detection(&app, &root);
+    start_watching(&app, &root);
     crate::recent::remember(crate::recent::RecentProject {
         name: info.name.clone(),
         root: info.root.clone(),

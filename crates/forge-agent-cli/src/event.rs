@@ -59,12 +59,15 @@ pub enum AgentEvent {
     },
     /// Intermediate token usage / cost report.
     Usage { usage: Usage, cost_usd: Option<f64> },
-    /// The CLI asks whether a tool may run. Answering is not wired up yet; the event is
-    /// surfaced so the UI can show what was requested.
+    /// The CLI asks whether a tool may run. Answer with `AgentSession::respond_permission`;
+    /// the CLI waits until then.
     PermissionRequest {
         request_id: String,
         tool_name: String,
         input: Value,
+        /// The tool call this request is about, when the CLI reports it.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        tool_use_id: Option<String>,
     },
     /// A turn completed (successfully or not).
     TurnFinished {

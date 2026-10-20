@@ -15,9 +15,12 @@ import { registerCommand } from "@/state/commands";
 import { toggleToolWindow } from "@/state/layout";
 import { workspace } from "@/state/workspace";
 import { isPluginActive } from "@/state/project";
-import { activeView, viewTracker } from "./editorViews";
+import { lspClaimsHover } from "@/features/lsp/hover";
+import { activeView, viewFor, viewTracker } from "./editorViews";
 import { GenerateOverlay, openGeneratePopup, startGenerate } from "./GenerateOverlay";
-import { indexHover } from "./indexHover";
+import { indexHover, setOtherHoverProvider } from "./indexHover";
+import { registerPhpSearchProviders } from "./search";
+import { migrateLegacyPhpSettings } from "./settings";
 import { StructureActions, StructureView } from "./StructureView";
 import { IndexingStatus, PhpVersionStatus, indexWorkspace } from "./status";
 import { PhpSettingsPage } from "./PhpSettingsPage";
@@ -40,6 +43,16 @@ registerEditorExtension(({ path }) =>
       ]
     : null,
 );
+
+// One hover only: the language server's (docs or problems) wins; the index hover fills in
+// where the server has nothing (not running, vendor-less project, unknown symbol).
+setOtherHoverProvider(async (path, pos) => {
+  const view = viewFor(path);
+  return !!view && (await lspClaimsHover(path, view, pos));
+});
+
+registerPhpSearchProviders();
+migrateLegacyPhpSettings();
 
 const withActive = (fn: (path: string, view: NonNullable<ReturnType<typeof activeView>>["view"]) => void) => () => {
   const a = activeView();

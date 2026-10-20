@@ -34,6 +34,7 @@ pub fn emit_detection(app: &AppHandle, root: &Path) {
             root: root.display().to_string(),
             info: forge_project::detect(&root),
         };
+        crate::commands::php::sync_lsp_server(&app, Some((&root, &payload.info)));
         if let Err(e) = app.emit(DETECTED_EVENT, payload) {
             tracing::warn!("could not emit {DETECTED_EVENT}: {e}");
         }

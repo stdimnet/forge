@@ -66,6 +66,16 @@ app/ui/            SolidJS UI
 - `ai_complete({ request: { system?: string, messages: { role: "user" | "assistant", content: string }[], provider?: string, model?: string, maxTokens?: number } }) -> string`
   — one-shot completion with the default (or given) provider. Used by e.g. AI commit messages.
 - `ai_stream({ request, streamId })` emits `ai://stream/<streamId>` events `{ delta?: string, done?: boolean, error?: string }`.
+- `fs://changed` `{ changed: string[], removed: string[], git: boolean }` — debounced file watcher
+  batches (workspace-relative paths, ignored and excluded paths filtered out; `git` = index,
+  HEAD or refs changed). Subscribe with `onFsChanged` (`src/state/fsWatch.ts`); the backend
+  already updates the PHP index from it.
+- `agent_respond_permission({ sessionId, requestId, decision })` answers an agent's
+  `permissionRequest` event; `decision` is `{ behavior: "allow", scope?: "once" | "session",
+  updatedInput? }` or `{ behavior: "deny", message? }`.
+- Language servers of language packs are registered in Rust with `LspState::register_server`
+  (PHP: `commands::php::sync_lsp_server`, run after project detection and on PHP settings
+  changes); there are no built-in fallback servers.
   Subscribe before invoking; `ai_cancel({ streamId })` stops it (a final `{ done: true }` follows).
   Requests may also carry `temperature?`, `stop?: string[]` and `feature?: "chat" | "commitMessages" | "completion"`
   (picks the model configured for that feature). Use the typed client `src/ipc/ai.ts` (`aiApi`).

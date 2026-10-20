@@ -36,6 +36,39 @@ title = "Project"
 anchor = "left"
 icon = "folder"
 
+# ---- Keymap (edited on the Keymap page) ------------------------------------------------
+
+[[contributions.settings]]
+key = "keymap.active"
+title = "Keymap"
+type = "enum"
+options = [
+  { value = "auto", label = "Platform default" },
+  { value = "$default", label = "Windows / Linux" },
+  { value = "macOS", label = "macOS" },
+]
+default = "auto"
+group = "keymap"
+order = 0
+
+[[contributions.settings]]
+key = "keymap.overrides.default"
+title = "Changed shortcuts (Windows / Linux)"
+description = "One entry per action: the action id, then its shortcuts, separated by tabs."
+type = "list"
+default = []
+group = "keymap"
+order = 1
+
+[[contributions.settings]]
+key = "keymap.overrides.macOS"
+title = "Changed shortcuts (macOS)"
+description = "One entry per action: the action id, then its shortcuts, separated by tabs."
+type = "list"
+default = []
+group = "keymap"
+order = 2
+
 # ---- Appearance & Behavior > Appearance ----------------------------------------------
 
 [[contributions.settings]]

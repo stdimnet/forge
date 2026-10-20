@@ -10,7 +10,7 @@ use std::path::Path;
 use forge_core::Result;
 use serde_json::{json, Value};
 
-use crate::cli::{AgentCli, CommandSpec, EventParser, StartOptions};
+use crate::cli::{AgentCli, CommandSpec, EventParser, PermissionDecision, StartOptions};
 use crate::event::{AgentEvent, Usage};
 
 pub struct ClaudeCode;
@@ -58,6 +58,11 @@ impl AgentCli for ClaudeCode {
         if let Some(mode) = opts.permission_mode.as_cli_arg() {
             args.extend(["--permission-mode".into(), mode.into()]);
         }
+        if opts.prompts_for_permissions() {
+            // Permission prompts arrive as `control_request`s on stdout and are answered
+            // with `control_response`s on stdin.
+            args.extend(["--permission-prompt-tool".into(), "stdio".into()]);
+        }
         if let Some(id) = opts.resume.as_deref().filter(|s| !s.is_empty()) {
             args.extend(["--resume".into(), id.into()]);
         }
@@ -81,6 +86,29 @@ impl AgentCli for ClaudeCode {
 
     fn parser(&self, _opts: &StartOptions) -> Box<dyn EventParser> {
         Box::new(ClaudeParser::default())
+    }
+
+    fn encode_permission_response(
+        &self,
+        request_id: &str,
+        input: &Value,
+        decision: &PermissionDecision,
+    ) -> Result<String> {
+        let result = match decision {
+            PermissionDecision::Allow { updated_input, .. } => json!({
+                "behavior": "allow",
+                "updatedInput": updated_input.as_ref().unwrap_or(input),
+            }),
+            PermissionDecision::Deny { message } => json!({
+                "behavior": "deny",
+                "message": message.as_deref().unwrap_or("The user denied this tool call."),
+            }),
+        };
+        Ok(json!({
+            "type": "control_response",
+            "response": { "subtype": "success", "request_id": request_id, "response": result }
+        })
+        .to_string())
     }
 }
 
@@ -245,6 +273,7 @@ fn permission_request(v: &Value) -> Vec<AgentEvent> {
         request_id: str_at(v, "request_id").unwrap_or_default().into(),
         tool_name: str_at(req, "tool_name").unwrap_or_default().into(),
         input: req["input"].clone(),
+        tool_use_id: str_at(req, "tool_use_id").map(String::from),
     }]
 }
 
@@ -296,7 +325,58 @@ mod tests {
             spec.args.join(" "),
             "-p --output-format stream-json --input-format stream-json --verbose \
              --include-partial-messages --model opus --permission-mode acceptEdits \
-             --resume abc --allowedTools Read"
+             --permission-prompt-tool stdio --resume abc --allowedTools Read"
+        );
+    }
+
+    #[test]
+    fn encodes_permission_responses() {
+        let input = json!({"command": "ls"});
+        let allow = PermissionDecision::Allow {
+            updated_input: None,
+            scope: Default::default(),
+        };
+        let v: Value = serde_json::from_str(
+            &ClaudeCode
+                .encode_permission_response("r1", &input, &allow)
+                .unwrap(),
+        )
+        .unwrap();
+        assert_eq!(v["type"], "control_response");
+        assert_eq!(v["response"]["subtype"], "success");
+        assert_eq!(v["response"]["request_id"], "r1");
+        assert_eq!(v["response"]["response"]["behavior"], "allow");
+        assert_eq!(v["response"]["response"]["updatedInput"], input);
+
+        let deny = PermissionDecision::Deny {
+            message: Some("no".into()),
+        };
+        let v: Value = serde_json::from_str(
+            &ClaudeCode
+                .encode_permission_response("r2", &input, &deny)
+                .unwrap(),
+        )
+        .unwrap();
+        assert_eq!(
+            v["response"]["response"],
+            json!({"behavior": "deny", "message": "no"})
+        );
+    }
+
+    #[test]
+    fn parses_permission_request() {
+        let mut p = ClaudeParser::default();
+        let ev = p.parse_line(
+            r#"{"type":"control_request","request_id":"r9","request":{"subtype":"can_use_tool","tool_name":"Bash","input":{"command":"ls"},"tool_use_id":"toolu_1"}}"#,
+        );
+        assert_eq!(
+            ev,
+            vec![AgentEvent::PermissionRequest {
+                request_id: "r9".into(),
+                tool_name: "Bash".into(),
+                input: json!({"command": "ls"}),
+                tool_use_id: Some("toolu_1".into()),
+            }]
         );
     }
 

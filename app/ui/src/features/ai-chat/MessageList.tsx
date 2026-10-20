@@ -1,11 +1,12 @@
 import { createEffect, createSignal, For, Match, Show, Switch } from "solid-js";
-import { Brain, ChevronRight, CircleStop, FileText, ShieldAlert, TextSelect, TriangleAlert } from "lucide-solid";
+import { Brain, ChevronRight, CircleStop, FileText, TextSelect, TriangleAlert } from "lucide-solid";
 import { FileIcon } from "@/shell/FileIcon";
 import { openFile } from "@/state/editor";
 import { chat } from "./store";
 import { changedFilesOf, formatDuration, formatTokens, type Block, type Turn } from "./model";
 import { Markdown } from "./Markdown";
 import { ToolCard } from "./ToolCard";
+import { PermissionCard } from "./PermissionCard";
 
 function Thinking(props: { block: Block & { kind: "thinking" } }) {
   const [open, setOpen] = createSignal(false);
@@ -122,17 +123,7 @@ function BlockView(props: { block: Block; superseded: boolean }) {
           </div>
         )}
       </Match>
-      <Match when={b.kind === "permission" && b}>
-        {(p) => (
-          <div class="chat-permission">
-            <ShieldAlert size={14} />
-            <span>
-              {p().toolName} needs permission. Switch the mode to <strong>Auto-accept edits</strong> or allow it in the
-              CLI settings.
-            </span>
-          </div>
-        )}
-      </Match>
+      <Match when={b.kind === "permission" && b}>{(p) => <PermissionCard block={p()} />}</Match>
     </Switch>
   );
 }
@@ -165,7 +156,12 @@ export function MessageList() {
             <UserMessage turn={turn} />
             <div class="chat-assistant">
               <For each={turn.blocks}>{(b, i) => <BlockView block={b} superseded={i() < lastTodoIndex(turn)} />}</For>
-              <Show when={turn.status === "running" && !turn.blocks.some((b) => b.kind === "text" && b.streaming)}>
+              <Show
+                when={
+                  turn.status === "running" &&
+                  !turn.blocks.some((b) => (b.kind === "text" && b.streaming) || (b.kind === "permission" && b.status === "pending"))
+                }
+              >
                 <div class="chat-working">
                   <span class="chat-dots">
                     <i />

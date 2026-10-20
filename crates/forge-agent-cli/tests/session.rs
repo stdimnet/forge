@@ -6,7 +6,9 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
-use forge_agent_cli::{AgentEvent, AgentSession, ClaudeCode, EventSink, StartOptions};
+use forge_agent_cli::{
+    AgentEvent, AgentSession, AllowScope, ClaudeCode, EventSink, PermissionDecision, StartOptions,
+};
 use tokio::sync::mpsc;
 
 fn fake_cli(dir: &tempfile::TempDir) -> PathBuf {
@@ -95,6 +97,78 @@ async fn interrupt_then_resume() {
     let events = next_matching(&mut rx, |e| matches!(e, AgentEvent::TurnFinished { .. })).await;
     assert!(events.iter().any(|e| matches!(e,
         AgentEvent::AssistantText { text, .. } if text.contains("--resume fake-session"))));
+    session.stop().await;
+}
+
+fn permission_request(events: &[AgentEvent]) -> String {
+    events
+        .iter()
+        .find_map(|e| match e {
+            AgentEvent::PermissionRequest {
+                request_id,
+                tool_name,
+                ..
+            } if tool_name == "Bash" => Some(request_id.clone()),
+            _ => None,
+        })
+        .expect("permission request")
+}
+
+fn said(events: &[AgentEvent], text: &str) -> bool {
+    events
+        .iter()
+        .any(|e| matches!(e, AgentEvent::AssistantText { text: t, .. } if t == text))
+}
+
+#[tokio::test]
+async fn answers_permission_requests() {
+    let dir = tempfile::tempdir().unwrap();
+    let (session, mut rx) = start(&dir).await;
+
+    // Deny once.
+    session.send("needs-permission").await.unwrap();
+    let events = next_matching(&mut rx, |e| {
+        matches!(e, AgentEvent::PermissionRequest { .. })
+    })
+    .await;
+    let id = permission_request(&events);
+    session
+        .respond_permission(&id, PermissionDecision::Deny { message: None })
+        .await
+        .unwrap();
+    let events = next_matching(&mut rx, |e| matches!(e, AgentEvent::TurnFinished { .. })).await;
+    assert!(said(&events, "permission: deny"));
+    assert!(
+        events.iter().any(|e| matches!(e,
+        AgentEvent::AssistantText { text, .. } if text.contains("--permission-prompt-tool stdio")))
+    );
+    // Answered requests cannot be answered twice.
+    assert!(session
+        .respond_permission(&id, PermissionDecision::Deny { message: None })
+        .await
+        .is_err());
+
+    // Allow for the session: the next identical request is answered without asking.
+    session.send("needs-permission").await.unwrap();
+    let events = next_matching(&mut rx, |e| {
+        matches!(e, AgentEvent::PermissionRequest { .. })
+    })
+    .await;
+    let id = permission_request(&events);
+    let allow = PermissionDecision::Allow {
+        updated_input: None,
+        scope: AllowScope::Session,
+    };
+    session.respond_permission(&id, allow).await.unwrap();
+    let events = next_matching(&mut rx, |e| matches!(e, AgentEvent::TurnFinished { .. })).await;
+    assert!(said(&events, "permission: allow"));
+
+    session.send("needs-permission").await.unwrap();
+    let events = next_matching(&mut rx, |e| matches!(e, AgentEvent::TurnFinished { .. })).await;
+    assert!(said(&events, "permission: allow"));
+    assert!(!events
+        .iter()
+        .any(|e| matches!(e, AgentEvent::PermissionRequest { .. })));
     session.stop().await;
 }
 
