@@ -151,7 +151,7 @@ impl FileTypeRegistry {
             .filter(|e| {
                 e.plugin
                     .as_ref()
-                    .map_or(true, |p| !inactive_plugins.contains(p))
+                    .is_none_or(|p| !inactive_plugins.contains(p))
             })
             .map(|e| &e.spec)
             .collect();
@@ -167,7 +167,7 @@ impl FileTypeRegistry {
         let mut best: Option<(&FileTypeSpec, usize)> = None;
         for spec in &active {
             let s = score(spec, &lower, name);
-            if s > 0 && best.map_or(true, |(_, b)| s >= b) {
+            if s > 0 && best.is_none_or(|(_, b)| s >= b) {
                 best = Some((spec, s));
             }
         }

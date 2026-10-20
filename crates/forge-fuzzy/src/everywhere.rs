@@ -198,7 +198,7 @@ pub fn rank(req: &RankRequest) -> RankResponse {
             if !req.include_dimmed && g.items.iter().any(|(_, c)| !c.dimmed) {
                 g.items.retain(|(_, c)| !c.dimmed);
             }
-            g.items.sort_by(|(a, _), (b, _)| b.score.cmp(&a.score));
+            g.items.sort_by_key(|(i, _)| std::cmp::Reverse(i.score));
             let more = g.items.len() > req.per_group;
             let items: Vec<RankedItem> = g
                 .items
