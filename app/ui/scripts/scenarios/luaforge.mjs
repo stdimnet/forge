@@ -70,6 +70,14 @@ export default {
     await page.waitForSelector(".cm-tooltip-hover .lsp-hover");
     await page.waitForTimeout(300);
   }),
+  "lua-hover-light": scenario(async (page) => {
+    await page.evaluate(() => (document.documentElement.dataset.theme = "light"));
+    await page.waitForTimeout(400);
+    const p = await textPoint(page, "player:move", 0, 0.85);
+    await page.mouse.move(p.x, p.y);
+    await page.waitForSelector(".cm-tooltip-hover .lsp-hover");
+    await page.waitForTimeout(300);
+  }),
   "lua-hover-class": scenario(async (page) => {
     await openFile(page, "src/player.lua");
     const p = await textPoint(page, "local Player", 0, 0.8);
