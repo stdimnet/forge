@@ -1480,6 +1480,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "forge-filetypes"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "forge-forges"
 version = "0.1.0"
 dependencies = [
@@ -1559,6 +1567,7 @@ name = "forge-plugin-api"
 version = "0.1.0"
 dependencies = [
  "forge-core",
+ "forge-filetypes",
  "serde",
  "serde_json",
  "thiserror 2.0.21",

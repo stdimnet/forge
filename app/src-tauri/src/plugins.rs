@@ -116,6 +116,74 @@ mod tests {
         }
     }
 
+    /// File type detection over the real manifests (bundled types plus language packs).
+    #[test]
+    fn file_types_detect_like_phpstorm() {
+        let types = builtin_registry().unwrap().file_type_registry();
+        let id = |path: &str, first: Option<&str>| {
+            types.detect(path, first, &[]).map(|t| t.id.as_str())
+        };
+        for (path, expected) in [
+            ("src/app.py", "python"),
+            ("scripts/deploy.sh", "shell"),
+            ("config/a.yml", "yaml"),
+            ("composer.json", "json"),
+            ("Dockerfile", "dockerfile"),
+            ("docker/Dockerfile.prod", "dockerfile"),
+            ("docker-compose.override.yml", "docker-compose"),
+            ("compose.yaml", "docker-compose"),
+            ("composer.yml", "yaml"),
+            ("/etc/postfix/main.cf", "postfix"),
+            ("/etc/postfix/master.cf", "postfix-master"),
+            ("pgsql-aliases.cf", "postfix"),
+            ("mail/msg.eml", "eml"),
+            ("a.EML", "eml"),
+            ("src/Kernel.php", "php"),
+            ("templates/x.blade.php", "blade"),
+            (".env", "dotenv"),
+            (".env.local", "dotenv"),
+            (".env.test.local", "dotenv"),
+            (".env.dist", "dotenv"),
+            ("prod.env", "dotenv"),
+            (".env.local.php", "php"),
+            (".gitignore", "ignore"),
+            (".dockerignore", "ignore"),
+            ("app/.npmignore", "ignore"),
+            (".prettierignore", "ignore"),
+            (".ignore", "ignore"),
+            ("config/services.yaml", "symfony-services"),
+            ("config/services_test.yaml", "symfony-services"),
+            ("app/config/services_dev.yml", "symfony-services"),
+            ("app/config/services/api.yml", "symfony-services"),
+            ("config/services/mail.yaml", "symfony-services"),
+            ("config/packages/framework.yaml", "yaml"),
+            ("php.ini", "ini"),
+            ("/etc/mysql/my.cnf", "ini"),
+            (".editorconfig", "ini"),
+            ("nginx.conf", "nginx"),
+            ("sysctl.conf", "conf"),
+            ("supervisord.conf", "ini"),
+            ("a.PY", "python"),
+        ] {
+            assert_eq!(id(path, None), Some(expected), "{path}");
+        }
+        assert_eq!(id("bin/run", Some("#!/usr/bin/env python3")), Some("python"));
+        assert_eq!(id("bin/run", Some("#!/bin/bash")), Some("shell"));
+        assert_eq!(id("bin/run", Some("#!/bin/sh")), Some("shell"));
+        assert_eq!(id("bin/run", Some("#!/usr/bin/php")), None);
+        assert_eq!(id("bin/run", None), None);
+        assert_eq!(id("notes.txt", None), None);
+
+        // Outside Symfony projects the services files are plain YAML.
+        let inactive = ["forge.symfony-services".to_string()];
+        assert_eq!(
+            types
+                .detect("config/services.yaml", None, &inactive)
+                .map(|t| t.name.as_str()),
+            Some("YAML")
+        );
+    }
+
     /// The UI's browser mode serves the same plugins from a JSON copy. Run with
     /// `FORGE_UPDATE_SNAPSHOTS=1 cargo test -p forge-app` after editing a manifest.
     #[test]
