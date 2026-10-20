@@ -58,9 +58,16 @@ app/ui/            SolidJS UI
   - `openCustomTab({ id: "forge:<kind>/<id>", title, icon?, component })` (`src/state/editor.ts`) —
     editor tabs that show a feature view instead of a file (merge requests, issues). `activeTab()`
     stays file-only; use `isCustomTab(id)` where an id may belong to such a tab.
-- Keymap (`src/keymap/`): PHPStorm's default keymaps (Windows/Linux and macOS) as data, keyed by
-  PHPStorm action ids that double as command ids. Implementing an action is just
-  `registerCommand({ id: "GotoClass", ... })`; unimplemented actions show "not available yet".
+- Keymap: the engine is the Rust crate `crates/forge-keymap` (shortcut parsing and display,
+  PHPStorm's default keymaps for Windows/Linux and macOS in `data/phpstorm.json`, action
+  aliases, plugin actions, user overrides from the `keymap.*` settings, conflicts and the
+  resolver state machine for chords, double taps and focus contexts). Action ids are PHPStorm's
+  and double as command ids: implementing an action is just `registerCommand({ id: "GotoClass",
+  ... })`; unimplemented actions show "not available yet". `src/keymap/` is a thin client: it
+  captures DOM key events, classifies the focus context, forwards the event to the resolver and
+  runs the returned action. Key events are resolved synchronously by the same Rust code compiled
+  to WebAssembly (desktop and browser), because the handler must decide on `preventDefault`
+  before it returns; the keymap data and all changes go through the `keymap_*` commands.
 - A feature is a folder `src/features/<name>/` with an `index.ts` that registers its
   contributions; add one import line to `src/features/index.ts`. Browser mocks go to
   `src/mock/<name>Mock.ts` and are imported from `src/mock/index.ts`.
@@ -80,6 +87,17 @@ app/ui/            SolidJS UI
 - Commits: small, imperative subject lines, no co-author trailers.
 
 ## Shared IPC contracts
+
+- Keymap (`src/ipc/keymap.ts`, `forge-keymap`): `keymap_actions() -> KeymapSnapshot` (selected
+  keymap, platform, every action with its shortcuts, display strings, `modified` and aliases);
+  `keymap_register_actions({ actions?, commands? }) -> KeymapSnapshot`;
+  `keymap_set_override({ change }) -> KeymapSnapshot` where `change` is `{ op: "selectKeymap" |
+  "set" | "add" | "remove" | "reset" | "resetAll", … }` and is stored in the user settings;
+  `keymap_conflicts({ shortcut, actionId? }) -> ShortcutCheck`;
+  `keymap_find_by_shortcut({ shortcut }) -> string[]`; `keymap_resolve({ event }) -> Resolution`
+  (`{ consumed, action?, pending?: "chord" | "doubleTap" }`, the IPC fallback of the in-process
+  resolver); `keymap_import_legacy({ active, overrides })` moves a pre-settings keymap from
+  localStorage into the settings.
 
 - `fs_list_dir({ path }) -> { name, path, kind, ignored }[]` — `ignored` is set for entries matched by
   `.gitignore`, `.git/info/exclude` or the global excludes file (ignored folders ignore their

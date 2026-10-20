@@ -5,27 +5,30 @@ description: Bind a keyboard shortcut or add an action to Forge's PHPStorm-compa
 
 # Add a keymap action
 
-All shortcuts go through the keymap engine in `app/ui/src/keymap/`. It uses PHPStorm's default
-keymaps (Windows/Linux and macOS) keyed by **PHPStorm action ids**, which are also Forge
-command ids.
+All shortcuts go through the keymap engine in Rust (`crates/forge-keymap`); `app/ui/src/keymap/`
+only captures key events and runs the resolved action. It uses PHPStorm's default keymaps
+(Windows/Linux and macOS) keyed by **PHPStorm action ids**, which are also Forge command ids.
 
 **Never** add your own `window.addEventListener("keydown", ...)` for shortcuts. It breaks user
 overrides, focus contexts and conflict detection, and causes double toggles.
 
 ## Implement an existing PHPStorm action
 
-Most actions already exist in `app/ui/src/keymap/phpstormKeymap.ts` with the correct default
+Most actions already exist in `crates/forge-keymap/data/phpstorm.json` with the correct default
 keys. Just register a command with that id:
 
 ```ts
 registerCommand({ id: "ActivateStructureToolWindow", title: "Structure", run: () => toggleToolWindow("left", "structure") });
 ```
 
-If your feature already uses another id (e.g. `php.generate`), alias it in `ACTION_ALIASES`:
+If your feature already uses another id (e.g. `php.generate`), alias it in `ACTION_ALIASES`
+(`crates/forge-keymap/src/catalog.rs`):
 
-```ts
-Generate: ["php.generate"],
+```rust
+("Generate", &["php.generate"]),
 ```
+
+After changing the Rust keymap, rebuild the browser-mode bundle: `pnpm --dir app/ui wasm`.
 
 ## Add a new action
 
@@ -44,6 +47,6 @@ macOS `Cmd`/`Opt`. Physical key codes are used, so keyboard layouts work.
 
 ## Check
 
-- `pnpm test`: keymap tests detect unexpected conflicts.
+- `cargo test -p forge-keymap`: the keymap tests detect unexpected conflicts.
 - Find Action (Ctrl+Shift+A) lists the action with its shortcut.
 - Settings → Keymap shows it and lets users rebind it.

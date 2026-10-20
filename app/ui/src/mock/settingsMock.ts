@@ -45,6 +45,12 @@ function resolve(key: string): { value: SettingValue | null; scope: "default" | 
   return { value: defaults[key] ?? null, scope: "default" };
 }
 
+/** Effective value of a setting (for other mocks). */
+export const mockSettingValue = (key: string): SettingValue | null => resolve(key).value;
+
+/** Whether the user layer stores `key`. */
+export const hasUserSetting = (key: string): boolean => key in layers.user;
+
 const kindOf = (v: unknown) => (Array.isArray(v) ? "array" : typeof v);
 
 export function setSetting(key: string, value: SettingValue | null, scope: SettingsScope): void {

@@ -1404,6 +1404,7 @@ dependencies = [
  "forge-db",
  "forge-debug",
  "forge-forges",
+ "forge-keymap",
  "forge-langservers",
  "forge-lsp",
  "forge-open",
@@ -1496,6 +1497,14 @@ dependencies = [
  "tokio",
  "toml 0.8.23",
  "tracing",
+]
+
+[[package]]
+name = "forge-keymap"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -1596,6 +1605,7 @@ dependencies = [
 name = "forge-wasm"
 version = "0.1.0"
 dependencies = [
+ "forge-keymap",
  "serde",
  "serde_json",
  "wasm-bindgen",

@@ -1,13 +1,18 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it } from "vitest";
+import "@/mock/settingsMock";
+import "@/mock/keymapMock";
+import { mockSettingValue } from "@/mock/settingsMock";
+import { registerCommand } from "@/state/commands";
+import { loadKeymapCore } from "./core";
 import {
+  actionById,
   addActionShortcut,
   allActions,
-  bindings,
-  decodeOverrides,
-  encodeOverrides,
+  checkShortcut,
+  findActionsByShortcut,
+  formatForKeymap,
   isModified,
   keymapId,
-  legacyKeymapChanges,
   registerKeymapActions,
   removeActionShortcut,
   resetAction,
@@ -15,85 +20,59 @@ import {
   setKeymapId,
   shortcutLabel,
   shortcutsOf,
+  startKeymap,
 } from "./store";
-import { registerCommand } from "@/state/commands";
-import { getSetting } from "@/state/settings";
-import { shortcutId } from "./shortcut";
 
-describe("keymap settings format", () => {
-  it("round-trips overrides, including removed shortcuts and commas", () => {
-    const map = { GotoClass: ["Ctrl+N", "Ctrl+K Ctrl+C"], ShowSettings: ["Meta+,"], Cut: [] };
-    const list = encodeOverrides(map);
-    expect(list).toEqual(["Cut", "GotoClass\tCtrl+N\tCtrl+K Ctrl+C", "ShowSettings\tMeta+,"]);
-    expect(decodeOverrides(list)).toEqual(map);
-    expect(decodeOverrides("nope")).toEqual({});
+/** Let queued registrations reach the backend. */
+const settle = () => new Promise((r) => setTimeout(r, 20));
+
+describe("keymap client", () => {
+  beforeAll(async () => {
+    await Promise.all([loadKeymapCore(), startKeymap()]);
+  });
+  beforeEach(async () => {
+    await setKeymapId("$default");
+    await resetKeymap();
   });
 
-  it("migrates the old localStorage keymap", () => {
-    const changes = legacyKeymapChanges('"macOS"', JSON.stringify({ macOS: { GotoClass: ["Cmd+O"] }, $default: {} }));
-    expect(changes).toEqual({ "keymap.active": "macOS", "keymap.overrides.macOS": ["GotoClass\tCmd+O"] });
-    expect(legacyKeymapChanges("garbage", "{")).toEqual({});
-  });
-});
-
-describe("keymap store", () => {
-  beforeEach(() => {
-    setKeymapId("$default");
-    resetKeymap();
-  });
-
-  it("serves PHPStorm defaults per keymap", () => {
+  it("serves the PHPStorm defaults computed in Rust", async () => {
+    expect(allActions().length).toBeGreaterThan(250);
     expect(shortcutsOf("GotoAction")).toEqual(["Ctrl+Shift+A"]);
     expect(shortcutLabel("GotoAction")).toBe("Ctrl+Shift+A");
-    setKeymapId("macOS");
+    expect(actionById("Run")?.aliases).toEqual(["run.run"]);
+    await setKeymapId("macOS");
     expect(keymapId()).toBe("macOS");
     expect(shortcutLabel("GotoAction")).toBe("⇧⌘A");
+    expect(formatForKeymap("Ctrl+Alt+S")).toBe("⌃⌥S");
   });
 
-  it("layers overrides on top and persists them", () => {
-    addActionShortcut("GotoClass", "Ctrl+Alt+Shift+K");
+  it("stores overrides in the settings", async () => {
+    await addActionShortcut("GotoClass", "Ctrl+Alt+Shift+K");
     expect(shortcutsOf("GotoClass")).toEqual(["Ctrl+N", "Ctrl+Alt+Shift+K"]);
     expect(isModified("GotoClass")).toBe(true);
-    expect(getSetting<string[]>("keymap.overrides.default")).toEqual(["GotoClass\tCtrl+N\tCtrl+Alt+Shift+K"]);
-    // Overrides are per keymap.
-    setKeymapId("macOS");
-    expect(shortcutsOf("GotoClass")).toEqual(["Cmd+O"]);
-  });
-
-  it("does not add the same shortcut twice in another spelling", () => {
-    addActionShortcut("GotoClass", "ctrl+n");
-    expect(shortcutsOf("GotoClass")).toEqual(["Ctrl+N"]);
-  });
-
-  it("removes shortcuts by canonical form and resets", () => {
-    removeActionShortcut("GotoClass", "ctrl+n");
-    expect(shortcutsOf("GotoClass")).toEqual([]);
-    resetAction("GotoClass");
+    expect(mockSettingValue("keymap.overrides.default")).toEqual(["GotoClass\tCtrl+N\tCtrl+Alt+Shift+K"]);
+    await removeActionShortcut("GotoClass", "ctrl+n");
+    expect(shortcutsOf("GotoClass")).toEqual(["Ctrl+Alt+Shift+K"]);
+    await resetAction("GotoClass");
     expect(shortcutsOf("GotoClass")).toEqual(["Ctrl+N"]);
     expect(isModified("GotoClass")).toBe(false);
   });
 
-  it("feeds overrides into the engine bindings", () => {
-    const has = (id: string, sc: string) => bindings().some((b) => b.actionId === id && shortcutId(b.shortcut) === sc);
-    expect(has("GotoClass", "Ctrl+N")).toBe(true);
-    removeActionShortcut("GotoClass", "Ctrl+N");
-    expect(has("GotoClass", "Ctrl+N")).toBe(false);
+  it("checks conflicts and finds actions by shortcut", async () => {
+    const check = await checkShortcut("ctrl+n", "GotoFile");
+    expect(check.valid).toBe(true);
+    expect(check.conflicts.map((c) => [c.actionId, c.kind])).toEqual([["GotoClass", "same"]]);
+    expect(await findActionsByShortcut("Ctrl+N")).toContain("GotoClass");
   });
 
-  it("leaves native actions out of the bindings", () => {
-    expect(bindings().some((b) => b.actionId === "$Copy")).toBe(false);
-  });
-
-  it("accepts plugin actions with default shortcuts", () => {
+  it("accepts plugin actions and lists bare commands", async () => {
     registerKeymapActions([
-      { id: "php.RunComposer", title: "Run Composer", group: "Plugins/PHP", shortcuts: { $default: ["Ctrl+Alt+Shift+R"], macOS: ["Cmd+Alt+Shift+R"] } },
+      { id: "php.RunComposer", title: "Run Composer", group: "Plugins/PHP", shortcuts: { $default: ["Ctrl+Alt+Shift+R"] } },
     ]);
-    expect(allActions().find((a) => a.id === "php.RunComposer")?.context).toBe("any");
-    expect(shortcutsOf("php.RunComposer")).toEqual(["Ctrl+Alt+Shift+R"]);
-  });
-
-  it("lists registered commands that have no keymap entry", () => {
     registerCommand({ id: "demo.hello", title: "Say Hello", category: "Demo", run: () => {} });
-    expect(allActions().find((a) => a.id === "demo.hello")?.group).toBe("Plugins/Demo");
+    await settle();
+    expect(actionById("php.RunComposer")?.context).toBe("any");
+    expect(shortcutsOf("php.RunComposer")).toEqual(["Ctrl+Alt+Shift+R"]);
+    expect(actionById("demo.hello")?.group).toBe("Plugins/Demo");
   });
 });
