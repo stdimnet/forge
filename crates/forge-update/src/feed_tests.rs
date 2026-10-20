@@ -146,9 +146,9 @@ fn summaries_mention_size_and_simulation() {
     let s = summary("0.1.0", Some(94 * 1024 * 1024), false);
     assert_eq!(
         s,
-        "You have 0.1.0. The download is 94 MB and is checked against Forge's signing key before it installs."
+        "You have 0.1.0. The 94 MB download is checked against Forge's signing key."
     );
-    assert!(summary("0.1.0", None, true).contains("simulated"));
+    assert!(summary("0.1.0", None, true).contains("Simulated update"));
     let offer = UpdateOffer::new("0.2.0", "0.1.0", Some("  ".into()), None, None, false);
     assert_eq!(offer.notes, None);
 }

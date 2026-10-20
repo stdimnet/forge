@@ -94,24 +94,18 @@ impl UpdateOffer {
         }
     }
 }
-
-/// "You have 0.1.0. The download is 94 MB and is checked against Forge's signing key before
-/// it installs."
+/// The one line under the title: "You have 0.1.0. The 94 MB download is checked against
+/// Forge's signing key."
 pub fn summary(current: &str, size: Option<u64>, simulated: bool) -> String {
-    let size = size.map(format_size);
-    match (simulated, size) {
-        (true, Some(s)) => format!(
-            "You have {current}. This update is simulated: the {s} download is fake and nothing is installed."
-        ),
-        (true, None) => format!(
-            "You have {current}. This update is simulated: the download is fake and nothing is installed."
-        ),
-        (false, Some(s)) => format!(
-            "You have {current}. The download is {s} and is checked against Forge's signing key before it installs."
-        ),
-        (false, None) => format!(
-            "You have {current}. The download is checked against Forge's signing key before it installs."
-        ),
+    let size = size
+        .map(|s| format!("{} ", format_size(s)))
+        .unwrap_or_default();
+    if simulated {
+        format!(
+            "You have {current}. Simulated update: a fake {size}download, nothing is installed."
+        )
+    } else {
+        format!("You have {current}. The {size}download is checked against Forge's signing key.")
     }
 }
 

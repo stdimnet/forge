@@ -6,12 +6,15 @@ import { openFile } from "./state/editor";
 import { isTauri } from "./ipc";
 import { drawsControls, trackMaximized } from "./shell/window/chrome";
 import { ResizeEdges, WindowTitleBar } from "./shell/window/WindowFrame";
+import { reportWorkbenchReady } from "./features/updates";
 
 export function App() {
   onMount(async () => {
     trackMaximized();
     if (isTauri()) {
       await restoreWorkspace();
+      // The window is shown (and the splash closed) once the first screen has rendered.
+      requestAnimationFrame(() => void reportWorkbenchReady());
       return;
     }
     // In browser mode open the demo project so the IDE is explorable without a backend,

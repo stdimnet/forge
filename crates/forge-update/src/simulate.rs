@@ -72,7 +72,7 @@ mod tests {
         assert_eq!(o.version, "0.2.0");
         assert!(o.simulated);
         assert_eq!(o.size, Some(SIMULATED_SIZE));
-        assert!(o.summary.contains("simulated"));
+        assert!(o.summary.contains("Simulated update"));
         assert!(offer("soon", "0.1.0").is_err());
     }
 

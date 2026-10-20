@@ -1,0 +1,186 @@
+/* Startup splash (640×400 window): the wordmark is the progress bar. Colors come from the
+   --splash-* tokens in theme/theme.css (Ember and Anvil). */
+@font-face {
+  font-family: "Unbounded";
+  font-style: normal;
+  font-weight: 800;
+  font-display: block;
+  src: url("./fonts/unbounded-latin-800.woff2") format("woff2");
+}
+
+html[data-window="splash"],
+html[data-window="splash"] body {
+  background: transparent;
+}
+
+.splash-stage {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+/* Browser preview: the window on a dim desk. */
+.splash-stage.preview {
+  background: var(--splash-desk);
+  padding: 16px;
+}
+
+.splash {
+  --u: 1cqw;
+  position: relative;
+  width: min(640px, 100vw);
+  aspect-ratio: 640 / 400;
+  max-height: 100vh;
+  background: radial-gradient(
+    120% 90% at 50% 120%,
+    color-mix(in srgb, var(--splash-molten-1) calc(var(--heat, 0) * 14%), var(--splash-bg)) 0%,
+    var(--splash-bg) 60%
+  );
+  border: 1px solid var(--splash-edge);
+  border-radius: 10px;
+  overflow: hidden;
+  container-type: inline-size;
+  color: var(--fg);
+  font-family: var(--font-ui);
+  cursor: default;
+}
+.splash-stage.preview .splash {
+  box-shadow: var(--splash-shadow);
+}
+
+.splash-sparks {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* The wordmark: cold steel underneath, molten metal clipped to the progress on top. */
+.splash-mark {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 24%;
+  display: grid;
+  place-items: center;
+}
+.splash-word {
+  position: relative;
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 17cqw;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+.splash-word .cold {
+  display: block;
+  color: transparent;
+  padding: 0 0.06em 0.12em;
+  background: linear-gradient(180deg, var(--splash-steel-hi) 0%, var(--splash-steel) 55%, var(--splash-steel-hi) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+.splash-word .hot {
+  position: absolute;
+  inset: 0;
+  display: block;
+  color: transparent;
+  padding: 0 0.06em 0.12em;
+  background: linear-gradient(180deg, var(--splash-molten-3) 0%, var(--splash-molten-2) 45%, var(--splash-molten-1) 100%);
+  background-size: 100% 200%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  clip-path: inset(-20% calc(100% - var(--p, 0%)) -20% 0);
+  filter: drop-shadow(0 0 1.2cqw color-mix(in srgb, var(--splash-molten-2) 70%, transparent));
+  animation: splash-flow 2.4s ease-in-out infinite alternate;
+}
+@keyframes splash-flow {
+  to {
+    background-position: 0 100%;
+  }
+}
+/* The glowing front where cold meets hot. */
+.splash-word .front {
+  position: absolute;
+  top: 4%;
+  bottom: 4%;
+  width: 1.2cqw;
+  left: calc(var(--p, 0%) - 0.6cqw);
+  background: radial-gradient(closest-side, var(--splash-molten-3), transparent);
+  opacity: var(--front, 0);
+  transition: opacity 0.4s;
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+.splash-version {
+  margin-top: 1.6cqw;
+  font-family: var(--font-mono);
+  font-size: 2.2cqw;
+  letter-spacing: 0.32em;
+  color: var(--fg-muted);
+  text-transform: uppercase;
+  padding-left: 0.32em;
+}
+.splash-version b {
+  color: var(--fg);
+  font-weight: 500;
+}
+
+.splash-status {
+  position: absolute;
+  left: 6cqw;
+  right: 6cqw;
+  bottom: 5.5cqw;
+  display: flex;
+  justify-content: space-between;
+  gap: 2cqw;
+  font-size: 2.1cqw;
+  color: var(--fg-muted);
+  transition: opacity 0.3s;
+}
+.splash-status.hidden {
+  opacity: 0;
+}
+.splash-status b {
+  color: var(--fg);
+  font-weight: 500;
+}
+.splash-status .detail {
+  font-family: var(--font-mono);
+  font-size: 1.8cqw;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+/* The update offer slides up over the lower part. */
+.splash .splash-update {
+  --u: 1cqw;
+  position: absolute;
+  left: 4cqw;
+  right: 4cqw;
+  bottom: 4cqw;
+  transform: translateY(130%);
+  opacity: 0;
+  transition:
+    transform 0.55s cubic-bezier(0.2, 0.9, 0.2, 1.04),
+    opacity 0.3s;
+}
+.splash .splash-update.show {
+  transform: none;
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .splash-word .hot {
+    animation: none;
+  }
+  .splash-word .front,
+  .splash-status,
+  .splash .splash-update {
+    transition: none;
+  }
+}
