@@ -20,6 +20,8 @@ pub fn run() {
         }
     }
 
+    let run_state = commands::run::RunState::new(&app_state);
+
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .manage(app_state)
@@ -41,7 +43,7 @@ pub fn run() {
         .manage(commands::php::PhpState::default())
         .manage(commands::project::CreateState::default())
         .manage(commands::terminal::TerminalState::default())
-        .manage(commands::run::RunState::default())
+        .manage(run_state)
         .invoke_handler(tauri::generate_handler![
             commands::workspace::workspace_open,
             commands::workspace::workspace_current,

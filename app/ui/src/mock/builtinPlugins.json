@@ -873,6 +873,84 @@
     }
   },
   {
+    "id": "forge.run",
+    "name": "Run/Debug",
+    "version": "0.1.0",
+    "pack": "core",
+    "description": "Run/Debug configurations, the Run tool window and shell script configurations.",
+    "vendor": "Forge",
+    "depends": [],
+    "required": false,
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "commands": [
+        {
+          "id": "run.run",
+          "title": "Run",
+          "category": "Run"
+        },
+        {
+          "id": "run.debug",
+          "title": "Debug",
+          "category": "Run"
+        },
+        {
+          "id": "run.editConfigurations",
+          "title": "Edit Configurations…",
+          "category": "Run"
+        }
+      ],
+      "keybindings": [],
+      "toolWindows": [
+        {
+          "id": "run",
+          "title": "Run",
+          "anchor": "bottom",
+          "icon": "play",
+          "order": 10
+        }
+      ],
+      "settings": [
+        {
+          "key": "run.console.softWrap",
+          "title": "Use soft wraps in console",
+          "type": "bool",
+          "default": false,
+          "group": "editor.general",
+          "section": "Console",
+          "project": false,
+          "order": 90
+        },
+        {
+          "key": "run.console.cycleBufferKb",
+          "title": "Override console cycle buffer size (KB)",
+          "type": "int",
+          "min": 100,
+          "max": 100000,
+          "default": 1024,
+          "group": "editor.general",
+          "section": "Console",
+          "project": false,
+          "order": 91
+        }
+      ],
+      "lspServers": [],
+      "runConfigurationTypes": [
+        {
+          "id": "shell",
+          "name": "Shell Script",
+          "description": "Run a script file or a script text with a shell.",
+          "icon": "square-terminal",
+          "debuggable": false
+        }
+      ],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": []
+    }
+  },
+  {
     "id": "forge.php",
     "name": "PHP",
     "version": "0.1.0",
@@ -1286,7 +1364,15 @@
         }
       ],
       "lspServers": [],
-      "runConfigurationTypes": [],
+      "runConfigurationTypes": [
+        {
+          "id": "composer",
+          "name": "Composer Script",
+          "description": "Run a script from composer.json.",
+          "icon": "package",
+          "debuggable": false
+        }
+      ],
       "aiProviders": [],
       "chatAgents": [],
       "codeGenerators": []
@@ -1410,7 +1496,15 @@
       "toolWindows": [],
       "settings": [],
       "lspServers": [],
-      "runConfigurationTypes": [],
+      "runConfigurationTypes": [
+        {
+          "id": "artisan",
+          "name": "Artisan",
+          "description": "Run an artisan command of a Laravel application.",
+          "icon": "terminal",
+          "debuggable": true
+        }
+      ],
       "aiProviders": [],
       "chatAgents": [],
       "codeGenerators": [
@@ -1653,7 +1747,22 @@
           "name": "Lua Script",
           "description": "Run a Lua file with the configured interpreter.",
           "icon": "moon",
-          "debuggable": false
+          "debuggable": false,
+          "fields": [
+            {
+              "key": "file",
+              "label": "File",
+              "kind": "path",
+              "required": true
+            }
+          ],
+          "command": [
+            "${interpreter}",
+            "${interpreterOptions}",
+            "${file}",
+            "${arguments}"
+          ],
+          "defaultInterpreter": "lua"
         }
       ],
       "aiProviders": [],

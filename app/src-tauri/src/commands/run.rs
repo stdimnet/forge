@@ -12,7 +12,7 @@ use std::time::Duration;
 use forge_core::{ForgeError, Result};
 use forge_process::{
     BuildContext, CommandLine, KindRegistry, RunConfiguration, RunConfigurations, RunEvent,
-    RunSink, RunningProcess,
+    RunSink, RunningProcess, TemplateKind,
 };
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, State};
@@ -26,17 +26,34 @@ pub struct RunState {
     pub kinds: KindRegistry,
 }
 
-impl Default for RunState {
-    fn default() -> Self {
+impl RunState {
+    /// Built-in kinds plus the manifest-declared ones (types with a `command` template).
+    pub fn new(app: &AppState) -> Self {
+        let mut kinds = KindRegistry::builtin();
+        let plugins = app.plugins.read().expect("plugins lock poisoned");
+        for t in plugins.run_configuration_types() {
+            if t.command.is_empty() {
+                continue;
+            }
+            kinds.register(Box::new(TemplateKind {
+                id: t.id.clone(),
+                command: t.command.clone(),
+                default_interpreter: t.default_interpreter.clone(),
+                required: t
+                    .fields
+                    .iter()
+                    .filter(|f| f.required)
+                    .map(|f| (f.key.clone(), f.label.clone()))
+                    .collect(),
+            }));
+        }
         Self {
             runs: Mutex::default(),
             next_id: AtomicU64::new(0),
-            kinds: KindRegistry::builtin(),
+            kinds,
         }
     }
-}
 
-impl RunState {
     fn get(&self, id: &str) -> Result<Arc<RunningProcess>> {
         self.runs
             .lock()
@@ -97,14 +114,23 @@ fn build(state: &AppState, runs: &RunState, req: RunRequest) -> Result<CommandLi
             }
             cmd
         }
-        (Some(cfg), None) => {
+        (Some(mut cfg), None) => {
+            let settings = state.read_settings();
+            if cfg.type_id == "composer" && cfg.option("composerPath").trim().is_empty() {
+                if let Some(composer) = settings
+                    .get_as::<String>("php.composer.executable")
+                    .filter(|c| !c.trim().is_empty() && c != "composer")
+                {
+                    cfg.options.insert("composerPath".into(), composer);
+                }
+            }
             let ctx = BuildContext {
-                php_interpreter: state
-                    .read_settings()
+                php_interpreter: settings
                     .get_as::<String>("php.interpreter")
                     .unwrap_or_else(|| "php".into()),
                 root,
             };
+            drop(settings);
             runs.kinds.build(&cfg, &ctx)?
         }
         (None, None) => return Err(ForgeError::Other("nothing to run".into())),

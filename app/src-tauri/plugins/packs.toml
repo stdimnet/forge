@@ -83,6 +83,14 @@ id = "lua-script"
 name = "Lua Script"
 description = "Run a Lua file with the configured interpreter."
 icon = "moon"
+defaultInterpreter = "lua"
+command = ["${interpreter}", "${interpreterOptions}", "${file}", "${arguments}"]
+
+[[plugin.contributions.runConfigurationTypes.fields]]
+key = "file"
+label = "File"
+kind = "path"
+required = true
 
 [[plugin]]
 id = "forge.ai"
