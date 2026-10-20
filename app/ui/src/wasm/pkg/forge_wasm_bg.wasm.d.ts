@@ -78,6 +78,7 @@ export const web_goto: (a: number, b: number, c: number) => void;
 export const web_gutter: (a: number, b: number, c: number) => void;
 export const web_npm_gutter: (a: number, b: number, c: number) => void;
 export const web_npm_packages: (a: number, b: number, c: number) => void;
+export const window_chrome: (a: number, b: number, c: number) => void;
 export const __wbindgen_add_to_stack_pointer: (a: number) => number;
 export const __wbindgen_export: (a: number, b: number) => number;
 export const __wbindgen_export2: (a: number, b: number, c: number, d: number) => number;
