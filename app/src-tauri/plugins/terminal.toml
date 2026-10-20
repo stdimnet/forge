@@ -89,3 +89,117 @@ group = "tools.terminal"
 section = "Project Settings"
 project = true
 order = 11
+
+[[contributions.settings]]
+key = "terminal.showApplicationTitle"
+title = "Show application title"
+description = "Name terminal tabs after the title the running program sets, e.g. Claude Code's current task."
+type = "bool"
+default = true
+group = "tools.terminal"
+section = "Application Settings"
+order = 5
+
+[[contributions.settings]]
+key = "terminal.showProgressInStatusBar"
+title = "Show progress in the status bar"
+description = "Programs such as Claude Code, winget and systemd report progress (OSC 9;4). It is always shown on the terminal tab."
+type = "bool"
+default = true
+group = "tools.terminal"
+section = "Application Settings"
+order = 6
+
+[[contributions.settings]]
+key = "terminal.optionAsMeta"
+title = "Use Option as Meta key"
+description = "macOS only."
+type = "bool"
+default = true
+group = "tools.terminal"
+section = "Application Settings"
+order = 7
+
+[[contributions.settings]]
+key = "terminal.cursorShape"
+title = "Cursor shape"
+type = "enum"
+options = [
+  { value = "block", label = "Block" },
+  { value = "underline", label = "Underline" },
+  { value = "vertical", label = "Vertical" },
+]
+default = "block"
+group = "tools.terminal"
+section = "Application Settings"
+order = 8
+
+[[contributions.settings]]
+key = "terminal.cursorBlink"
+title = "Blinking cursor"
+type = "bool"
+default = true
+group = "tools.terminal"
+section = "Application Settings"
+order = 9
+
+[[contributions.settings]]
+key = "terminal.font.family"
+title = "Font"
+description = "Leave empty to use the editor font. Missing symbols fall back to installed Nerd Fonts and emoji fonts."
+type = "string"
+default = ""
+group = "tools.terminal"
+section = "Font"
+order = 20
+
+[[contributions.settings]]
+key = "terminal.font.size"
+title = "Size"
+type = "number"
+min = 6
+max = 72
+step = 0.5
+default = 13
+group = "tools.terminal"
+section = "Font"
+order = 21
+
+[[contributions.settings]]
+key = "terminal.font.lineHeight"
+title = "Line height"
+type = "number"
+min = 1.0
+max = 3.0
+step = 0.1
+default = 1.2
+group = "tools.terminal"
+section = "Font"
+order = 22
+
+[[contributions.settings]]
+key = "terminal.renderer"
+title = "Renderer"
+description = "WebGL draws on the GPU and is the fastest. Automatic falls back to DOM when WebGL is unavailable."
+type = "enum"
+options = [
+  { value = "auto", label = "Automatic" },
+  { value = "webgl", label = "WebGL" },
+  { value = "dom", label = "DOM" },
+]
+default = "auto"
+group = "tools.terminal"
+section = "Rendering"
+order = 30
+
+[[contributions.settings]]
+key = "terminal.scrollback"
+title = "Scrollback buffer"
+description = "Number of lines kept above the visible area."
+type = "int"
+min = 0
+max = 1000000
+default = 10000
+group = "tools.terminal"
+section = "Rendering"
+order = 31
