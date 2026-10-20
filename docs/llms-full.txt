@@ -6051,8 +6051,8 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Cyclic Expand Word (Backward) | `HippieBackwardCompletion` | `Alt+Shift+/` | `Alt+Shift+/` | — |
 | Complete Current Statement | `EditorCompleteStatement` | `Ctrl+Shift+Enter` | `Cmd+Shift+Enter` | — |
 | Generate… | `Generate` | `Alt+Insert` | `Cmd+N` | yes |
-| Override Methods… | `OverrideMethods` | `Ctrl+O` | `Ctrl+O` | PHP editors¹ |
-| Implement Methods… | `ImplementMethods` | `Ctrl+I` | `Ctrl+I` | PHP editors¹ |
+| Override Methods… | `OverrideMethods` | `Ctrl+O` | `Ctrl+O` | PHP editors |
+| Implement Methods… | `ImplementMethods` | `Ctrl+I` | `Ctrl+I` | PHP editors |
 | Surround With… | `SurroundWith` | `Ctrl+Alt+T` | `Cmd+Alt+T` | — |
 | Unwrap/Remove… | `Unwrap` | `Ctrl+Shift+Delete` | `Cmd+Shift+Delete` | — |
 | Insert Live Template… | `InsertLiveTemplate` | `Ctrl+J` | `Cmd+J` | — |
@@ -6443,8 +6443,6 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Show Context Menu | `ShowPopupMenu` | `ContextMenu` |  | yes |
 | Main Menu | `MainMenuButton.ShowMenu` | `Alt+\` |  | yes |
 
-¹ `Ctrl+O` and `Ctrl+I` open Override/Implement Methods in PHP editors through the PHP pack's
-editor keys; elsewhere they are not available yet.
 
 ## Plugins
 
@@ -6764,8 +6762,8 @@ Completion, Generate, folding, comments, formatting and moving lines. Open it wi
 | Code Completion › Type-Matching Completion | `Ctrl+Shift+Space` | `Ctrl+Shift+Space` | not yet | Not available yet; the entry is disabled. |
 | Code Completion › Cyclic Expand Word | `Alt+/` | `Alt+/` | not yet | Not available yet; the entry is disabled. |
 | Code Completion › Cyclic Expand Word (Backward) | `Alt+Shift+/` | `Alt+Shift+/` | not yet | Not available yet; the entry is disabled. |
-| Override Methods… | `Ctrl+O` | `Ctrl+O` | not yet | Not available yet; the entry is disabled. |
-| Implement Methods… | `Ctrl+I` | `Ctrl+I` | not yet | Not available yet; the entry is disabled. |
+| Override Methods… | `Ctrl+O` | `Ctrl+O` | yes | In PHP editors: pick inherited methods to override; Forge writes the stubs. |
+| Implement Methods… | `Ctrl+I` | `Ctrl+I` | yes | In PHP editors: pick interface or abstract methods to implement; Forge writes the stubs. |
 | Generate… | `Alt+Insert` | `Cmd+N` | yes | In PHP files: generates a constructor, getters, setters, overrides, `__toString()` or a PHPDoc block. [More](docs/guide/user/php.md#generate) ([screenshot](docs/screenshots/docs-generate.png)) |
 | Surround With… | `Ctrl+Alt+T` | `Cmd+Alt+T` | not yet | Not available yet; the entry is disabled. |
 | Unwrap/Remove… | `Ctrl+Shift+Delete` | `Cmd+Shift+Delete` | not yet | Not available yet; the entry is disabled. |
@@ -9464,7 +9462,7 @@ The workflow needs, once, in the repository settings:
 | --- | --- | --- |
 | `TAURI_SIGNING_PRIVATE_KEY` | secret | private key from `pnpm tauri signer generate` |
 | `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | secret | its password |
-| `FORGE_UPDATER_PUBKEY` | variable | the matching public key, built into the app |
+| `FORGE_UPDATER_PUBKEY` | secret or variable | the matching public key, built into the app |
 
 Keep the private key offline as well: losing it means installed copies can no longer verify
 updates.

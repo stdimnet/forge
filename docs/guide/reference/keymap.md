@@ -100,8 +100,8 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Cyclic Expand Word (Backward) | `HippieBackwardCompletion` | `Alt+Shift+/` | `Alt+Shift+/` | — |
 | Complete Current Statement | `EditorCompleteStatement` | `Ctrl+Shift+Enter` | `Cmd+Shift+Enter` | — |
 | Generate… | `Generate` | `Alt+Insert` | `Cmd+N` | yes |
-| Override Methods… | `OverrideMethods` | `Ctrl+O` | `Ctrl+O` | PHP editors¹ |
-| Implement Methods… | `ImplementMethods` | `Ctrl+I` | `Ctrl+I` | PHP editors¹ |
+| Override Methods… | `OverrideMethods` | `Ctrl+O` | `Ctrl+O` | PHP editors |
+| Implement Methods… | `ImplementMethods` | `Ctrl+I` | `Ctrl+I` | PHP editors |
 | Surround With… | `SurroundWith` | `Ctrl+Alt+T` | `Cmd+Alt+T` | — |
 | Unwrap/Remove… | `Unwrap` | `Ctrl+Shift+Delete` | `Cmd+Shift+Delete` | — |
 | Insert Live Template… | `InsertLiveTemplate` | `Ctrl+J` | `Cmd+J` | — |
@@ -492,8 +492,6 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Show Context Menu | `ShowPopupMenu` | `ContextMenu` |  | yes |
 | Main Menu | `MainMenuButton.ShowMenu` | `Alt+\` |  | yes |
 
-¹ `Ctrl+O` and `Ctrl+I` open Override/Implement Methods in PHP editors through the PHP pack's
-editor keys; elsewhere they are not available yet.
 
 ## Plugins
 

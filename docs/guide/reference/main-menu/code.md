@@ -21,8 +21,8 @@ Completion, Generate, folding, comments, formatting and moving lines. Open it wi
 | Code Completion › Type-Matching Completion | `Ctrl+Shift+Space` | `Ctrl+Shift+Space` | not yet | Not available yet; the entry is disabled. |
 | Code Completion › Cyclic Expand Word | `Alt+/` | `Alt+/` | not yet | Not available yet; the entry is disabled. |
 | Code Completion › Cyclic Expand Word (Backward) | `Alt+Shift+/` | `Alt+Shift+/` | not yet | Not available yet; the entry is disabled. |
-| Override Methods… | `Ctrl+O` | `Ctrl+O` | not yet | Not available yet; the entry is disabled. |
-| Implement Methods… | `Ctrl+I` | `Ctrl+I` | not yet | Not available yet; the entry is disabled. |
+| Override Methods… | `Ctrl+O` | `Ctrl+O` | yes | In PHP editors: pick inherited methods to override; Forge writes the stubs. |
+| Implement Methods… | `Ctrl+I` | `Ctrl+I` | yes | In PHP editors: pick interface or abstract methods to implement; Forge writes the stubs. |
 | Generate… | `Alt+Insert` | `Cmd+N` | yes | In PHP files: generates a constructor, getters, setters, overrides, `__toString()` or a PHPDoc block. [More](../../user/php.md#generate) ([screenshot](../../../screenshots/docs-generate.png)) |
 | Surround With… | `Ctrl+Alt+T` | `Cmd+Alt+T` | not yet | Not available yet; the entry is disabled. |
 | Unwrap/Remove… | `Ctrl+Shift+Delete` | `Cmd+Shift+Delete` | not yet | Not available yet; the entry is disabled. |
