@@ -87,7 +87,6 @@ function PackageNode(props: { pkg: NpmPackage }) {
         <Hexagon size={14} class="npm-icon-package" />
         <span class="tree-label">package.json</span>
         <span class="tree-hint">{[props.pkg.dir, props.pkg.name].filter(Boolean).join(" · ")}</span>
-        <span class="npm-spacer" />
         <span class={`npm-pm npm-pm-${pm().manager}`} title={`${pm().manager}${pm().version ? ` ${pm().version}` : ""}: ${reasonText(pm().reason)}`}>
           {pm().manager}
         </span>

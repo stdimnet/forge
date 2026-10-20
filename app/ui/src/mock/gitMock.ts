@@ -4,6 +4,7 @@
  * merges and tags, blame data, and a mock for the shared `ai_complete` command.
  */
 import { invoke, registerMock, emitMock } from "@/ipc";
+import { webDemo } from "./demoWebProjects";
 import type { FileEntry } from "@/ipc/workspace";
 import type {
   Blame,
@@ -189,9 +190,18 @@ const index: Record<string, string> = { ...head };
 index["app/Services/Checkout.php"] = demoFiles["app/Services/Checkout.php"];
 index["app/Http/Controllers/OrderController.php"] = controllerWorking;
 
+// The WebForge demos (`?project=react|vue|angular`) are committed as they are.
+const web = webDemo();
+if (web) {
+  for (const snapshot of [head, index]) {
+    for (const k of Object.keys(snapshot)) delete snapshot[k];
+    Object.assign(snapshot, web.files);
+  }
+}
+
 // Extra untracked file, written into the workspace mock (absent in tests that load only
 // the git mock).
-void Promise.resolve().then(() =>
+if (!web) void Promise.resolve().then(() =>
   invoke("fs_write_file", {
     path: UNTRACKED_EXTRA,
     contents: `<?php\n\nnamespace Tests\\Unit;\n\nuse App\\Services\\Checkout;\nuse PHPUnit\\Framework\\TestCase;\n\nclass CheckoutTest extends TestCase\n{\n    public function test_default_currency_is_euro(): void\n    {\n        $this->assertInstanceOf(Checkout::class, new Checkout());\n    }\n}\n`,

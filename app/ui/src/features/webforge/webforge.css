@@ -35,8 +35,12 @@
   font-family: var(--font-mono);
   font-size: var(--fs-small);
 }
-.npm-spacer {
+.npm-row .tree-label {
+  flex-shrink: 0;
+}
+.npm-row .tree-hint {
   flex: 1;
+  min-width: 0;
 }
 .npm-pm {
   flex-shrink: 0;
