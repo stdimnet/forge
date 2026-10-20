@@ -113,8 +113,17 @@
   align-items: center;
 }
 .stripe-btn {
+  position: relative;
   width: 30px;
   height: 30px;
+}
+/* Small state marker of a hidden tool window, e.g. terminal progress */
+.stripe-badge {
+  position: absolute;
+  right: 1px;
+  bottom: 1px;
+  display: flex;
+  pointer-events: none;
 }
 .stripe-btn.active {
   color: var(--accent);

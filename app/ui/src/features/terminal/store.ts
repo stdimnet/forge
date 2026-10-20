@@ -2,6 +2,7 @@
 import { createSignal } from "solid-js";
 import { getSetting } from "@/state/settings";
 import { layout, toggleToolWindow } from "@/state/layout";
+import type { Progress } from "./osc";
 
 export interface TerminalTab {
   /** UI id, also used as the backend session id. */
@@ -11,15 +12,36 @@ export interface TerminalTab {
   renamed?: boolean;
   /** Start directory relative to the project root (empty = default). */
   cwd?: string;
+  /** Title set by the running program (OSC 0 / OSC 2). */
+  appTitle?: string;
+  /** Progress reported by the running program (OSC 9;4). */
+  progress?: Progress;
+  /** The program rang the bell while the tab was not visible. */
+  bell?: boolean;
+  /** Current directory reported by the shell (OSC 7), absolute. */
+  liveCwd?: string;
 }
 
 const [tabs, setTabs] = createSignal<TerminalTab[]>([]);
-const [activeTab, setActiveTab] = createSignal<string | null>(null);
+const [activeTab, setActiveTabSignal] = createSignal<string | null>(null);
 const [renaming, setRenaming] = createSignal<string | null>(null);
 
-export { tabs, activeTab, setActiveTab, renaming, setRenaming };
+export { tabs, activeTab, renaming, setRenaming };
+
+/**
+ * Tab ids in order. Tabs are replaced on every update (title, progress), so lists render by
+ * id; rendering by tab object would recreate a tab's DOM, including its terminal host.
+ */
+export const tabIds = () => tabs().map((t) => t.id);
+export const tabById = (id: string) => tabs().find((t) => t.id === id);
 
 let seq = 0;
+
+/** Activate a tab; this also clears its bell marker. */
+export function setActiveTab(id: string | null): void {
+  setActiveTabSignal(id);
+  if (id && tabs().some((t) => t.id === id && t.bell)) updateTab(id, { bell: false });
+}
 
 /** "Local", then "Local (2)", "Local (3)", ... for the next free number. */
 export function nextTitle(existing: string[], base: string): string {
@@ -40,6 +62,16 @@ export function newTab(cwd?: string): TerminalTab {
   setTabs((t) => [...t, tab]);
   setActiveTab(tab.id);
   return tab;
+}
+
+/** New tab in the directory the active tab's shell is in (OSC 7), like kitty's new_tab_with_cwd. */
+export function newTabHere(): TerminalTab {
+  const cur = tabs().find((t) => t.id === activeTab());
+  return newTab(cur?.liveCwd ?? cur?.cwd);
+}
+
+export function updateTab(id: string, patch: Partial<TerminalTab>): void {
+  setTabs((list) => list.map((t) => (t.id === id ? { ...t, ...patch } : t)));
 }
 
 export function closeTab(id: string): void {
@@ -66,4 +98,34 @@ export function closeOtherTabs(id: string): string[] {
   setTabs((list) => list.filter((t) => t.id === id));
   setActiveTab(id);
   return others;
+}
+
+/**
+ * The name shown on a tab: the user's name if renamed, else the program's title (PHPStorm's
+ * "Show application title"), else "Local (n)".
+ */
+export function tabLabel(tab: TerminalTab, showAppTitle = true): string {
+  if (tab.renamed || !showAppTitle) return tab.title;
+  return tab.appTitle?.trim() || tab.title;
+}
+
+export const displayTitle = (tab: TerminalTab) =>
+  tabLabel(tab, getSetting<boolean>("terminal.showApplicationTitle", true));
+
+/** Tab whose progress the status bar shows: the active tab if it reports one, else the first. */
+export function progressTab(list: TerminalTab[], active: string | null): TerminalTab | undefined {
+  return list.find((t) => t.id === active && t.progress) ?? list.find((t) => t.progress);
+}
+
+/** Combined progress of all tabs for the stripe icon: errors win, then paused, then the slowest. */
+export function overallProgress(list: TerminalTab[]): Progress | undefined {
+  const all = list.map((t) => t.progress).filter((p): p is Progress => !!p);
+  if (!all.length) return undefined;
+  for (const state of ["error", "paused"] as const) {
+    const p = all.find((x) => x.state === state);
+    if (p) return p;
+  }
+  const determinate = all.filter((p) => p.state === "normal");
+  if (!determinate.length) return all[0];
+  return { state: "normal", percent: Math.min(...determinate.map((p) => p.percent)) };
 }
