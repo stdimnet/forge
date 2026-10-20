@@ -28,6 +28,9 @@ Cross-compiling is not supported: build Windows and macOS bundles on those syste
 
 ## Official releases
 
+Versions follow Pride Versioning and are bumped with `pnpm version:bump`; see
+[Versioning](versioning.md).
+
 Publishing a GitHub release runs `.github/workflows/release.yml`, and nothing else does. It:
 
 1. builds the static remote agents on Linux,
