@@ -32,6 +32,7 @@ export const keymap_format: (a: number, b: number, c: number) => void;
 export const keymap_handle_key: (a: number, b: number, c: number) => void;
 export const keymap_legacy_changes: (a: number, b: number, c: number) => void;
 export const keymap_load_bindings: (a: number, b: number, c: number) => void;
+export const keymap_main_menu: (a: number, b: number, c: number) => void;
 export const keymap_register_actions: (a: number, b: number, c: number) => void;
 export const keymap_resolve: (a: number, b: number, c: number) => void;
 export const keymap_set_override: (a: number, b: number, c: number) => void;

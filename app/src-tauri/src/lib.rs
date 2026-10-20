@@ -171,6 +171,7 @@ pub fn run() {
             commands::keymap::keymap_conflicts,
             commands::keymap::keymap_find_by_shortcut,
             commands::keymap::keymap_resolve,
+            commands::keymap::keymap_main_menu,
             commands::keymap::keymap_import_legacy,
             commands::settings::plugin_set_enabled,
             commands::settings::settings_search,

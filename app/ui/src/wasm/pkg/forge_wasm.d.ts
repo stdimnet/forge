@@ -157,6 +157,11 @@ export function keymap_legacy_changes(json: string): string;
 export function keymap_load_bindings(snapshot_json: string): string;
 
 /**
+ * `{settings, hostPlatform, request}` → `MainMenu`.
+ */
+export function keymap_main_menu(json: string): string;
+
+/**
  * `{settings, hostPlatform, actions?, commands?}` → `KeymapSnapshot`.
  */
 export function keymap_register_actions(json: string): string;
@@ -421,6 +426,7 @@ export interface InitOutput {
     readonly keymap_handle_key: (a: number, b: number, c: number) => void;
     readonly keymap_legacy_changes: (a: number, b: number, c: number) => void;
     readonly keymap_load_bindings: (a: number, b: number, c: number) => void;
+    readonly keymap_main_menu: (a: number, b: number, c: number) => void;
     readonly keymap_register_actions: (a: number, b: number, c: number) => void;
     readonly keymap_resolve: (a: number, b: number, c: number) => void;
     readonly keymap_set_override: (a: number, b: number, c: number) => void;
