@@ -96,11 +96,16 @@ pub fn bins(package_json: &Value) -> Vec<(String, String)> {
     match package_json.get("bin") {
         Some(Value::String(path)) => {
             let command = name.rsplit('/').next().unwrap_or(name);
-            vec![(command.to_string(), path.clone())]
+            vec![(
+                command.to_string(),
+                path.trim_start_matches("./").to_string(),
+            )]
         }
         Some(Value::Object(map)) => map
             .iter()
-            .filter_map(|(k, v)| Some((k.clone(), v.as_str()?.to_string())))
+            .filter_map(|(k, v)| {
+                Some((k.clone(), v.as_str()?.trim_start_matches("./").to_string()))
+            })
             .collect(),
         _ => vec![],
     }

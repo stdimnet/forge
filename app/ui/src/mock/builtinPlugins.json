@@ -1463,6 +1463,42 @@
           "order": 19
         },
         {
+          "key": "php.intelephense.autoInstall",
+          "title": "When Intelephense is not installed",
+          "description": "Forge downloads Intelephense from the npm registry into its own directory (and Node.js when none is installed). Intelephense is not bundled with Forge.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "ask",
+              "label": "Ask when a PHP project opens"
+            },
+            {
+              "value": "always",
+              "label": "Install automatically"
+            },
+            {
+              "value": "never",
+              "label": "Do not install"
+            }
+          ],
+          "default": "ask",
+          "group": "lang.php",
+          "section": "Language Server",
+          "project": false,
+          "order": 21
+        },
+        {
+          "key": "php.intelephense.licenceAccepted",
+          "title": "I accept the Intelephense licence",
+          "description": "Asked once before Forge downloads Intelephense for you. Its licence (LICENSE.txt in the npm package, intelephense.com) applies to your copy.",
+          "type": "bool",
+          "default": false,
+          "group": "lang.php",
+          "section": "Language Server",
+          "project": false,
+          "order": 22
+        },
+        {
           "key": "php.lsp.maxFileSize",
           "title": "Max indexed file size (KB)",
           "type": "int",
@@ -1829,6 +1865,39 @@
           "section": "Lua Language Server",
           "project": false,
           "order": 11
+        },
+        {
+          "key": "langservers.updates.check",
+          "title": "Check for updates of servers installed by Forge once a day",
+          "description": "Offers an update when the npm registry has a newer version of a server in Forge's server directory.",
+          "type": "bool",
+          "default": true,
+          "group": "lang.servers",
+          "section": "Downloads",
+          "project": false,
+          "order": 20
+        },
+        {
+          "key": "langservers.download.npmRegistry",
+          "title": "npm registry",
+          "description": "Where Forge downloads npm language servers from. Every tarball is checked against the registry's sha512 integrity hash.",
+          "type": "string",
+          "default": "https://registry.npmjs.org",
+          "group": "lang.servers",
+          "section": "Downloads",
+          "project": false,
+          "order": 21
+        },
+        {
+          "key": "langservers.download.nodeMirror",
+          "title": "Node.js download mirror",
+          "description": "Used only when no Node.js 18 or newer is installed. Downloads are checked against the release's SHASUMS256.txt.",
+          "type": "string",
+          "default": "https://nodejs.org/dist",
+          "group": "lang.servers",
+          "section": "Downloads",
+          "project": false,
+          "order": 22
         }
       ],
       "lspServers": [],

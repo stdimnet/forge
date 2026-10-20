@@ -33,7 +33,29 @@ pnpm install
 Browser mode is the fastest loop: every IPC command has a mock in `app/ui/src/mock/`.
 Use it for UI work and screenshots; use `pnpm tauri dev` to test real file system, git, LSP, PTY.
 
-## 4. Where things live
+## 4. Language servers (Intelephense and other npm servers)
+
+Nothing to install by hand. Browser mode needs no servers at all (the mock behaves like
+Intelephense; `?intelephense=missing` shows the install flow). In `pnpm tauri dev`, opening a
+PHP project without Intelephense shows "PHP language server Intelephense is not installed —
+Install": Forge downloads it (and Node.js when no Node.js 18+ is found) into
+`<data dir>/forge/langservers` (`~/.local/share/forge/...` on Linux) and starts it. Other npm
+servers get a one-click Install on Settings | Languages & Frameworks | Language Servers.
+
+To pre-install with the same Rust installer (`crates/forge-langservers/src/bin/forge-langservers.rs`):
+
+```sh
+cd app/ui
+pnpm langservers install --accept-intelephense-licence   # Intelephense (agrees to its licence)
+pnpm langservers install yaml-language-server             # any npm server
+pnpm langservers updates                                  # newer versions?
+pnpm langservers where                                    # directories, Node.js, launch command
+```
+
+`FORGE_NPM_REGISTRY` / `FORGE_NODE_MIRROR` override the download sources. Never commit or
+bundle Intelephense: its licence forbids redistribution; each user downloads it.
+
+## 5. Where things live
 
 - `crates/forge-*` – Rust libraries (core, plugin API, lsp, vcs, ai, agent-cli, ...)
 - `packs/<pack>/<plugin>` – language/framework packs (PHPForge, ...)

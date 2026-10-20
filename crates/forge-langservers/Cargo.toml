@@ -14,7 +14,7 @@ dirs.workspace = true
 ignore.workspace = true
 tokio.workspace = true
 tracing.workspace = true
-reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "http2"] }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "rustls-tls-native-roots", "http2"] }
 sha2 = "0.10"
 base64 = "0.22"
 flate2 = "1"

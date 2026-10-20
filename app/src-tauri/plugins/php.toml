@@ -133,7 +133,7 @@ order = 21
 [[contributions.settings]]
 key = "php.intelephense.licenceAccepted"
 title = "I accept the Intelephense licence"
-description = "Asked once before Forge installs Intelephense for you (https://intelephense.com/legal)."
+description = "Asked once before Forge downloads Intelephense for you. Its licence (LICENSE.txt in the npm package, intelephense.com) applies to your copy."
 type = "bool"
 default = false
 group = "lang.php"
