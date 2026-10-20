@@ -68,7 +68,7 @@ pub fn browse(path: &str) -> Result<BrowseResult> {
             }
         })
         .collect();
-    entries.sort_by(|a, b| (!a.dir, a.name.to_lowercase()).cmp(&(!b.dir, b.name.to_lowercase())));
+    entries.sort_by_key(|a| (!a.dir, a.name.to_lowercase()));
     for e in entries.iter_mut().filter(|e| e.dir).take(MARKER_CHECKS) {
         let p = Path::new(&e.path);
         e.project = PROJECT_MARKERS.iter().any(|m| p.join(m).exists());
