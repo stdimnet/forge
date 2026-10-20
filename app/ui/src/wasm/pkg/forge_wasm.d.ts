@@ -134,6 +134,22 @@ export function markdown_parse(request_json: string): string;
  */
 export function output_file_links(request_json: string): string;
 
+/**
+ * `{ knownHosts, host, port, keyType, key, accept? }` → `{ status, fingerprint, ..., knownHosts? }`
+ * (the verdict, and the updated file when a confirmed key was added).
+ */
+export function remote_check_host_key(request_json: string): string;
+
+/**
+ * `{ text, home, user }` → the concrete `Host` aliases (`HostEntry[]`).
+ */
+export function remote_ssh_hosts(request_json: string): string;
+
+/**
+ * `SshConfiguration` → problems worded for the dialog (`string[]`, empty when valid).
+ */
+export function remote_validate_config(config_json: string): string;
+
 export function run_output_drop(request_json: string): string;
 
 /**
@@ -223,6 +239,9 @@ export interface InitOutput {
     readonly markdown_hover: (a: number, b: number, c: number) => void;
     readonly markdown_parse: (a: number, b: number, c: number) => void;
     readonly output_file_links: (a: number, b: number, c: number) => void;
+    readonly remote_check_host_key: (a: number, b: number, c: number) => void;
+    readonly remote_ssh_hosts: (a: number, b: number, c: number) => void;
+    readonly remote_validate_config: (a: number, b: number, c: number) => void;
     readonly run_output_drop: (a: number, b: number, c: number) => void;
     readonly run_output_handle: (a: number, b: number, c: number) => void;
     readonly run_output_new: (a: number, b: number, c: number) => void;
