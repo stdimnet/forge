@@ -6,24 +6,35 @@ import { createMemo, createSignal, For, Show } from "solid-js";
 import { Plus } from "lucide-solid";
 import type { ChangedFile, Discussion, LineKind, Position } from "@/ipc/forges";
 import { CommentEditor, ThreadView } from "./Thread";
+import { highlightLines, parserFor, type Segment } from "./highlight";
 
 interface Row {
   kind: LineKind | "hunk";
   text: string;
   oldNo: number | null;
   newNo: number | null;
+  segs?: Segment[];
 }
 
-export function diffRows(file: ChangedFile): Row[] {
+/** Table rows of a file diff; with `highlight`, code lines carry syntax-colored segments. */
+export function diffRows(file: ChangedFile, highlight = false): Row[] {
   const rows: Row[] = [];
+  const parser = highlight ? parserFor(file.path) : null;
   for (const h of file.hunks) {
     rows.push({ kind: "hunk", text: `@@ -${h.oldStart},${h.oldLines} +${h.newStart},${h.newLines} @@ ${h.header}`.trimEnd(), oldNo: null, newNo: null });
     let o = h.oldStart;
     let n = h.newStart;
+    const oldSide = highlightLines(h.lines.filter((l) => l.kind !== "added").map((l) => l.text), parser);
+    const newSide = highlightLines(h.lines.filter((l) => l.kind !== "removed").map((l) => l.text), parser);
+    let oi = 0;
+    let ni = 0;
     for (const l of h.lines) {
-      if (l.kind === "added") rows.push({ kind: l.kind, text: l.text, oldNo: null, newNo: n++ });
-      else if (l.kind === "removed") rows.push({ kind: l.kind, text: l.text, oldNo: o++, newNo: null });
-      else rows.push({ kind: l.kind, text: l.text, oldNo: o++, newNo: n++ });
+      if (l.kind === "added") rows.push({ kind: l.kind, text: l.text, oldNo: null, newNo: n++, segs: newSide[ni++] });
+      else if (l.kind === "removed") rows.push({ kind: l.kind, text: l.text, oldNo: o++, newNo: null, segs: oldSide[oi++] });
+      else {
+        rows.push({ kind: l.kind, text: l.text, oldNo: o++, newNo: n++, segs: newSide[ni++] });
+        oi++;
+      }
     }
   }
   return rows;
@@ -56,7 +67,7 @@ export function ReviewDiff(props: {
   onReply: (d: Discussion, body: string) => Promise<boolean>;
   onResolve?: (d: Discussion, resolved: boolean) => Promise<void>;
 }) {
-  const rows = createMemo(() => diffRows(props.file));
+  const rows = createMemo(() => diffRows(props.file, true));
   const threads = createMemo(() => props.discussions.filter((d) => onFile(d, props.file)));
   const placed = createMemo(() => new Set(threads().filter((d) => rows().some((r) => threadOnRow(d, r))).map((d) => d.id)));
   const outside = () => threads().filter((d) => !placed().has(d.id));
@@ -103,7 +114,11 @@ export function ReviewDiff(props: {
                         </Show>
                         <span class="fg-dl-sign">{row.kind === "added" ? "+" : row.kind === "removed" ? "-" : " "}</span>
                       </td>
-                      <td class="fg-dl-code">{row.text || " "}</td>
+                      <td class="fg-dl-code">
+                        <Show when={row.segs && row.text} fallback={row.text || " "}>
+                          <For each={row.segs}>{(s) => (s.cls ? <span class={s.cls}>{s.text}</span> : s.text)}</For>
+                        </Show>
+                      </td>
                     </Show>
                   </tr>
                   <For each={threads().filter((d) => threadOnRow(d, row))}>

@@ -7,7 +7,6 @@ import { createStore } from "solid-js/store";
 import { ChevronDown, CloudOff, ExternalLink, Filter, KeyRound, MessageSquare, Plus, RefreshCw, Search, X } from "lucide-solid";
 import {
   forgesApi,
-  hostNames,
   type Issue,
   type IssueFilter,
   type MergeRequest,
@@ -127,6 +126,7 @@ function RequestRow(props: { mr: MergeRequest }) {
       classList={{ selected: selected() === mr().number }}
       data-mr={mr().number}
       tabindex="-1"
+      title={`${mr().title}\n${mr().sourceBranch} → ${mr().targetBranch}`}
       onClick={() => {
         setSelected(mr().number);
         openMergeRequest(mr().number, mr().title);
@@ -138,13 +138,12 @@ function RequestRow(props: { mr: MergeRequest }) {
           <span class="fg-row-title-text" classList={{ draft: mr().draft }}>
             {mr().title}
           </span>
-          <For each={mr().labels.slice(0, 2)}>{(l) => <LabelPill label={l} />}</For>
         </div>
         <div class="fg-row-sub muted">
-          {ref(mr().number)} by {displayName(mr().author)} · updated {ago(mr().updatedAt)}
-          <span class="fg-row-branch">
-            <BranchPill name={mr().sourceBranch} />
+          <span class="fg-row-sub-text">
+            {ref(mr().number)} {displayName(mr().author)} · {ago(mr().updatedAt)}
           </span>
+          <For each={mr().labels.slice(0, 2)}>{(l) => <LabelPill label={l} />}</For>
         </div>
       </div>
       <div class="fg-row-meta">
@@ -157,9 +156,7 @@ function RequestRow(props: { mr: MergeRequest }) {
             {mr().comments}
           </span>
         </Show>
-        <span class="fg-row-avatar">
-          <Avatar user={mr().author} size={18} />
-        </span>
+        <Avatar user={mr().author} size={18} />
       </div>
     </div>
   );
@@ -421,8 +418,21 @@ function PipelineRow(props: { pipeline: Pipeline }) {
   );
 }
 
+/** Header buttons of the tool window. */
+export function PanelActions() {
+  return (
+    <>
+      <button class="icon-btn" title="Refresh" onClick={() => void refreshAll()}>
+        <RefreshCw size={14} />
+      </button>
+      <button class="icon-btn" title={`Create ${requestName()}…`} disabled={!context()?.account} onClick={openCreateDialog}>
+        <Plus size={15} />
+      </button>
+    </>
+  );
+}
+
 export function MergeRequestsPanel() {
-  const repoName = () => context()?.repo.path ?? "";
   return (
     <div class="fg-panel">
       <div class="fg-tabs">
@@ -434,18 +444,6 @@ export function MergeRequestsPanel() {
         </button>
         <button class="git-tab" classList={{ active: tab() === "pipelines" }} onClick={() => setTab("pipelines")}>
           Pipelines
-        </button>
-        <span class="spacer" />
-        <Show when={context()}>
-          <span class="fg-repo muted" title={`${hostNames[context()!.repo.kind]}: ${context()!.repo.server}/${repoName()}`}>
-            {repoName()}
-          </span>
-        </Show>
-        <button class="icon-btn" title="Refresh" onClick={() => void refreshAll()}>
-          <RefreshCw size={14} />
-        </button>
-        <button class="icon-btn" title={`Create ${requestName()}…`} disabled={!context()?.account} onClick={openCreateDialog}>
-          <Plus size={15} />
         </button>
       </div>
       <Show when={context()?.account} fallback={<NotConnected />}>

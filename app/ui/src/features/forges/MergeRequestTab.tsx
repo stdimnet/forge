@@ -10,6 +10,7 @@ import {
   ChevronRight,
   CircleAlert,
   CircleCheck,
+  Clock,
   Columns2,
   ExternalLink,
   Folder,
@@ -41,8 +42,8 @@ export function MergeRequestTab(props: { number: number }) {
   const [view, setView] = createSignal<View>("overview");
   const [mr, { refetch: refetchMr }] = createResource(() => props.number, forgesApi.mergeRequest);
   const [discussions, { refetch: refetchDiscussions }] = createResource(() => props.number, forgesApi.discussions);
-  const [files] = createResource(() => (view() === "files" || filesWanted() ? props.number : false), forgesApi.files);
   const [filesWanted, setFilesWanted] = createSignal(false);
+  const [files] = createResource(() => (view() === "files" || filesWanted() ? props.number : false), forgesApi.files);
   const [selectedFile, setSelectedFile] = createSignal<string | null>(null);
 
   const reload = () => {
@@ -260,6 +261,9 @@ function Overview(props: {
                       </Match>
                       <Match when={r.state === "commented"}>
                         <MessageSquare size={13} />
+                      </Match>
+                      <Match when={r.state === "requested"}>
+                        <Clock size={13} />
                       </Match>
                     </Switch>
                   </span>

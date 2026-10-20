@@ -11,7 +11,7 @@ import { registerSettingsPage } from "@/features/settingsPages";
 import { registerStatusItem } from "@/features/statusItems";
 import { registerCommand } from "@/state/commands";
 import { showToolWindow } from "@/state/layout";
-import { MergeRequestsPanel } from "./MergeRequestsPanel";
+import { MergeRequestsPanel, PanelActions } from "./MergeRequestsPanel";
 import { AccountsPage } from "./AccountsPage";
 import { ForgeDialogs } from "./Dialogs";
 import { openCreateDialog } from "./actions";
@@ -27,6 +27,7 @@ const toolWindow = (title: string) =>
     anchor: "left",
     order: 20,
     component: MergeRequestsPanel,
+    actions: PanelActions,
   });
 toolWindow("Pull Requests");
 
@@ -66,7 +67,7 @@ function PipelineStatus() {
           onClick={() => (p().webUrl ? window.open(p().webUrl!, "_blank") : showToolWindow("left", "pull-requests"))}
         >
           <CiIcon status={p().status} size={12} />
-          {ciLabels[p().status]}
+          CI: {ciLabels[p().status]}
         </button>
       )}
     </Show>

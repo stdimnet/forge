@@ -120,8 +120,10 @@ export function ThreadView(props: {
       <Show when={props.showLocation && d().position}>
         <div class="fg-thread-loc" onClick={() => props.onOpenFile?.()}>
           <FileCode size={13} />
-          <span>{d().position!.path}</span>
-          <span class="muted">:{line()}</span>
+          <span>
+            {d().position!.path}
+            <span class="muted">:{line()}</span>
+          </span>
         </div>
       </Show>
       <Show

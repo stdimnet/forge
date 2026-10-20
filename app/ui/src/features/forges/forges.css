@@ -169,6 +169,8 @@
 }
 .fg-tabs .git-tab {
   height: 100%;
+  white-space: nowrap;
+  padding: 0 8px;
 }
 .fg-tabs .icon-btn {
   width: 24px;
@@ -312,11 +314,14 @@
   white-space: nowrap;
   overflow: hidden;
 }
-.fg-row-branch {
-  min-width: 0;
+.fg-row-sub-text {
+  flex-shrink: 0;
+}
+.fg-row-sub .fg-label {
+  flex-shrink: 1;
+  min-width: 24px;
   overflow: hidden;
-  display: inline-flex;
-  margin-left: 2px;
+  text-overflow: ellipsis;
 }
 .fg-row-meta {
   display: flex;
@@ -581,7 +586,7 @@
   background: var(--bg-elevated);
   cursor: pointer;
 }
-.fg-thread-loc:hover span:first-of-type {
+.fg-thread-loc:hover > span {
   text-decoration: underline;
 }
 .fg-thread-notes {
@@ -1158,6 +1163,10 @@
   display: flex;
   align-items: center;
   gap: 8px;
+}
+.fg-login-actions button {
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 /* ---------- status bar ---------- */
