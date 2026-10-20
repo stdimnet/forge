@@ -12,3 +12,4 @@ import "./navigation";
 import "./keymapSettings";
 import "./git";
 import "./php";
+import "./browserCompanion";
