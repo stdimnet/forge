@@ -17,6 +17,45 @@
   min-width: 0;
 }
 
+/* ---------- Settings > Tools > AI Agents ---------- */
+.ai-agent-status {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 14px;
+  padding: 2px 0 6px;
+  font-size: var(--fs-small);
+}
+.ai-agent-status > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.ai-agent-status svg {
+  flex-shrink: 0;
+}
+.ai-agent-status code {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--fg);
+}
+.ai-agent-found svg {
+  color: var(--success);
+}
+.ai-agent-missing svg {
+  color: var(--danger);
+}
+.ai-agent-note {
+  color: var(--fg-muted);
+}
+.ai-agent-note svg {
+  color: var(--info);
+}
+.ai-agent-refresh {
+  margin-left: auto;
+}
+
 /* ---------- toolbar + dropdowns ---------- */
 .chat-toolbar {
   display: flex;

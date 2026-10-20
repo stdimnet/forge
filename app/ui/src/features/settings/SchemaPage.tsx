@@ -2,7 +2,7 @@
  * A settings page generated from the plugin settings schema: every setting whose `group`
  * is the page id, grouped by `section` under PHPStorm-style titled separators.
  */
-import { createMemo, createSignal, For, Index, Match, Show, Switch } from "solid-js";
+import { createMemo, createSignal, For, Index, Match, Show, Switch, type JSX } from "solid-js";
 import { ArrowDown, ArrowUp, Minus, Plus } from "lucide-solid";
 import type { SettingSpec } from "@/ipc/settings";
 import { settingsState } from "@/state/settings";
@@ -199,7 +199,11 @@ function SettingRow(props: { spec: SettingSpec }) {
   );
 }
 
-export function SchemaPage(props: { pageId: string }) {
+export function SchemaPage(props: {
+  pageId: string;
+  /** Extra content at the top of a section (by section title), e.g. a detection status. */
+  sectionHeader?: (section: string) => JSX.Element;
+}) {
   const specs = createMemo(() =>
     settingsState.schema.filter((s) => s.group === props.pageId).sort((a, b) => a.order - b.order),
   );
@@ -236,6 +240,7 @@ export function SchemaPage(props: { pageId: string }) {
                 </div>
               </Show>
               <div class="set-section-body" classList={{ indented: !!section.title }}>
+                <Show when={section.title ? props.sectionHeader : undefined}>{(header) => header()(section.title!)}</Show>
                 <For each={section.specs}>{(spec) => <SettingRow spec={spec} />}</For>
               </div>
             </section>

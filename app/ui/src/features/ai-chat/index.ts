@@ -4,6 +4,8 @@
  */
 import { Gem, Sparkles } from "lucide-solid";
 import { registerToolWindow } from "@/features/registry";
+import { registerSettingsPage } from "@/features/settingsPages";
+import { AgentsSettingsPage } from "./AgentsSettingsPage";
 import { registerCommand } from "@/state/commands";
 import { showToolWindow } from "@/state/layout";
 import { registerChatAgent } from "./agents";
@@ -64,6 +66,15 @@ registerCommand({
     showToolWindow("right", "ai-chat");
     queueMicrotask(focusChatInput);
   },
+});
+
+registerSettingsPage({
+  id: "tools.ai-agents",
+  title: "AI Agents",
+  group: "Tools",
+  order: 5,
+  keywords: ["claude", "claude code", "gemini", "agent", "cli", "permission", "model"],
+  component: AgentsSettingsPage,
 });
 
 registerCommand({ id: "AIChat.NewChat", title: "New AI Chat", category: "AI", run: () => newChat() });
