@@ -154,22 +154,11 @@ export const confSupport = () => [streamLanguage(confParser), sectionFolding()];
 
 registerLanguage({
   id: "ini",
-  label: "INI",
-  extensions: ["ini", "cfg", "inf", "desktop", "service", "socket", "timer", "mount", "target"],
-  fileNames: [
-    "php.ini", "php.ini-*", ".editorconfig", ".gitconfig", ".gitmodules", ".npmrc", ".pylintrc", ".flake8", "tox.ini",
-    "setup.cfg", "pytest.ini", "my.cnf", "*.cnf", "supervisord.conf", "*.ini.*", "pip.conf",
-  ],
-  indent: "    ",
   load: iniSupport,
 });
 
 registerLanguage({
   id: "conf",
-  label: "Config",
-  extensions: ["conf", "config", "cnf"],
-  fileNames: ["*.conf.*"],
-  indent: "    ",
   load: confSupport,
 });
 

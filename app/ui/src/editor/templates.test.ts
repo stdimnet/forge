@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { StringStream, type StreamParser } from "@codemirror/language";
 import { goTemplateSyntax, smartySyntaxWith, templateParser, twigSyntax } from "./templates";
-import { dataLanguageFromMappings, dataLanguageFromName, DATA_LANGUAGES } from "./templateData";
+import { DATA_LANGUAGES } from "./templateData";
 
 /** Tokenize a document and return `[text, style]` pairs, skipping whitespace-only tokens. */
 function tokens<S>(parser: StreamParser<S>, doc: string): [string, string | null][] {
@@ -43,20 +43,6 @@ describe("template data languages", () => {
     expect(t).toContainEqual(["\\textbf", "tag"]);
   });
 
-  it("detects the data language from compound extensions", () => {
-    expect(dataLanguageFromName("templates/invoice.tex.twig")?.id).toBe("latex");
-    expect(dataLanguageFromName("reports/top.sql.twig")?.id).toBe("sql");
-    expect(dataLanguageFromName("theme/style.css.tpl")?.id).toBe("css");
-    expect(dataLanguageFromName("base.html.twig")?.id).toBe("html");
-    expect(dataLanguageFromName("cart.tpl")).toBeUndefined();
-  });
-
-  it("applies pattern mappings before file names", () => {
-    const m = ["legacy/latex/*=latex", "*.mail.twig=text"];
-    expect(dataLanguageFromMappings("legacy/latex/letter.tpl", m)?.id).toBe("latex");
-    expect(dataLanguageFromMappings("emails/welcome.mail.twig", m)?.id).toBe("text");
-    expect(dataLanguageFromMappings("templates/base.html.twig", m)).toBeUndefined();
-  });
 });
 
 describe("Go templates", () => {
@@ -138,13 +124,5 @@ describe("Go templates", () => {
     expect(sql).toContainEqual([".Table", "propertyName"]);
     const yaml = tokens(templateParser(goTemplateSyntax, dataLang("yaml")), "image: {{ .Image }}");
     expect(yaml).toContainEqual([".Image", "propertyName"]);
-  });
-
-  it("detects the data language from compound .tmpl names", () => {
-    expect(dataLanguageFromName("cmd/main.go.tmpl")?.id).toBe("go");
-    expect(dataLanguageFromName("deploy/config.yaml.tmpl")?.id).toBe("yaml");
-    expect(dataLanguageFromName("db/query.sql.tmpl")?.id).toBe("sql");
-    expect(dataLanguageFromName("views/index.html.tmpl")?.id).toBe("html");
-    expect(dataLanguageFromName("deploy.tmpl")).toBeUndefined();
   });
 });

@@ -11,7 +11,10 @@ import {
   type SettingSpec,
   type SettingValue,
 } from "@/ipc/settings";
+import { callWasmSync, forgeWasm } from "@/wasm";
 import builtinPlugins from "./builtinPlugins.json";
+
+const wasm = await forgeWasm();
 
 const STORAGE_KEY = "forge.mock.settings.user";
 const DISABLED_KEY = "plugins.disabled";
@@ -45,14 +48,16 @@ function resolve(key: string): { value: SettingValue | null; scope: "default" | 
   return { value: defaults[key] ?? null, scope: "default" };
 }
 
-const kindOf = (v: unknown) => (Array.isArray(v) ? "array" : typeof v);
+/** The schema check of `settings_set`, run by the same Rust code. */
+function validate(key: string, value: SettingValue): string | null {
+  const spec = allSpecs().find((s) => s.key === key);
+  return spec ? callWasmSync<string | null>(wasm.settings_validate, { spec, value }) : null;
+}
 
 export function setSetting(key: string, value: SettingValue | null, scope: SettingsScope): void {
   if (!key || key.split(".").some((p) => !p)) throw new Error(`invalid settings key \`${key}\``);
-  const def = defaults[key];
-  if (value !== null && def !== undefined && kindOf(def) !== kindOf(value)) {
-    throw new Error(`\`${key}\` expects a value like ${JSON.stringify(def)}, got ${JSON.stringify(value)}`);
-  }
+  const problem = value === null ? null : validate(key, value);
+  if (problem) throw new Error(problem);
   const before = JSON.stringify(resolve(key).value);
   if (value === null) delete layers[scope][key];
   else layers[scope][key] = value;
@@ -103,4 +108,6 @@ registerMock("settings_set", ({ key, value, scope }) =>
 );
 registerMock("settings_schema", () => plugins.filter((p) => p.enabled).flatMap((p) => p.contributions.settings));
 registerMock("plugins_list", () => structuredClone(plugins));
+registerMock("settings_search", ({ request }) => callWasmSync(wasm.settings_search, request));
+registerMock("settings_validate", ({ key, value }) => validate(String(key), value as SettingValue));
 registerMock("plugin_set_enabled", ({ id, enabled }) => setPluginEnabled(String(id), Boolean(enabled)));

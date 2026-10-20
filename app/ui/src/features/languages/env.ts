@@ -30,32 +30,8 @@ export function envSupport() {
   return [lang, lang.data.of({ autocomplete: completions }), markerFolding()];
 }
 
-export const ENV_FILE_NAMES = [
-  ".env",
-  ".env.local",
-  ".env.*.local",
-  ".env.dist",
-  ".env.*.dist",
-  ".env.example",
-  ".env.sample",
-  ".env.template",
-  ".env.defaults",
-  ".env.dev",
-  ".env.development",
-  ".env.prod",
-  ".env.production",
-  ".env.stage",
-  ".env.staging",
-  ".env.test",
-  ".env.testing",
-];
-
 registerLanguage({
   id: "dotenv",
-  label: "Dotenv",
-  extensions: ["env"],
-  fileNames: ENV_FILE_NAMES,
-  indent: "  ",
   load: envSupport,
 });
 

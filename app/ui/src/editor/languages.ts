@@ -13,9 +13,10 @@ import { properties } from "@codemirror/legacy-modes/mode/properties";
 import { dotenv } from "./dotenv";
 import { streamLanguage } from "./tokens";
 import { goTemplateSyntax, jinjaSyntax, latteSyntax, mustacheSyntax, smartySyntaxWith, twigSyntax, type TemplateSyntax } from "./templates";
-import { dataLanguageFor, dataLanguageSupport } from "./templateData";
 import { templateOverlay } from "./templateOverlay";
 import { getSetting } from "@/state/settings";
+import { dataLanguageSupport } from "./templateData";
+import { fileTypeOf, type FileTypeInfo } from "./fileTypes";
 import { less } from "@codemirror/lang-less";
 import { sass } from "@codemirror/lang-sass";
 import { vue } from "@codemirror/lang-vue";
@@ -67,207 +68,136 @@ import { lua } from "@codemirror/legacy-modes/mode/lua";
 import { diff } from "@codemirror/legacy-modes/mode/diff";
 
 /**
- * Syntax modes, matched by file name. Packs can add or override languages with
- * `registerLanguage`; later registrations win, so e.g. a Blade or Twig mode replaces
- * the generic HTML one for its files.
+ * Syntax modes by file type id. Which file type a file has (names, extensions, shebangs,
+ * template data languages, labels, indentation) is decided in Rust
+ * (`crates/forge-filetypes`, fed by the plugin manifests' `fileTypes`); this module only
+ * maps the id to CodeMirror support. Packs add or replace modes with `registerLanguage`.
  */
 export interface LanguageDef {
+  /** File type id, as in the manifests (`yaml`, `docker-compose`). */
   id: string;
-  /** Name shown in the status bar, as in PHPStorm ("PHP", "YAML", "Dotenv"). */
-  label: string;
-  /** Lower-case extensions without dot (`yml`), matched against the end of the name. */
-  extensions?: string[];
-  /** Exact lower-case file names (`dockerfile`) or name prefixes ending in `*` (`.env*`). */
-  fileNames?: string[];
-  load: (path: string) => Extension;
-  /** Status bar label for a concrete file, e.g. "Twig (LaTeX)". Defaults to `label`. */
-  labelFor?: (path: string) => string;
-  /** Detects extensionless scripts from their first line (`#!/usr/bin/env python3`). */
-  shebang?: RegExp;
-  /** Indentation inserted by Tab / auto-indent. Defaults to four spaces. */
-  indent?: string;
+  load: (path: string, info: FileTypeInfo) => Extension;
 }
 
 export const DEFAULT_INDENT = "    ";
 
 const stream = (parser: StreamParser<unknown>) => () => StreamLanguage.define(parser);
 
-/** A template language whose content is highlighted in the file's data language. */
-function template(id: string, label: string, extensions: string[], syntax: () => TemplateSyntax): LanguageDef {
-  return {
-    id,
-    label,
-    extensions,
-    load: (path) => [dataLanguageSupport(dataLanguageFor(path)), templateOverlay(syntax())],
-    labelFor: (path) => {
-      const data = dataLanguageFor(path);
-      return data.id === "html" ? label : `${label} (${data.label})`;
-    },
-  };
-}
-
-const languages: LanguageDef[] = [
-  { id: "php", label: "PHP", extensions: ["php", "phtml", "inc"], load: () => php() },
-  { id: "blade", label: "Blade", extensions: ["blade.php"], load: () => php({ plain: false }) },
-  { id: "json", label: "JSON", extensions: ["json", "jsonc", "json5", "lock", "webmanifest", "geojson", "har"], fileNames: [".prettierrc", ".babelrc", ".eslintrc", "composer.lock", ".php-cs-fixer.cache"], load: () => json() },
-  { id: "yaml", label: "YAML", extensions: ["yml", "yaml", "neon"], load: () => yaml() },
-  { id: "sql", label: "SQL", extensions: ["sql", "ddl"], load: () => sql({ dialect: MySQL }) },
-  { id: "markdown", label: "Markdown", extensions: ["md", "markdown"], load: () => markdown() },
-  { id: "javascript", label: "JavaScript", extensions: ["js", "mjs", "cjs", "es6"], load: () => javascript() },
-  { id: "jsx", label: "JavaScript React", extensions: ["jsx"], load: () => javascript({ jsx: true }) },
-  { id: "typescript", label: "TypeScript", extensions: ["ts", "mts", "cts"], load: () => javascript({ typescript: true }) },
-  { id: "tsx", label: "TypeScript React", extensions: ["tsx"], load: () => javascript({ typescript: true, jsx: true }) },
-  { id: "css", label: "CSS", extensions: ["css", "pcss", "postcss"], load: () => css() },
-  { id: "scss", label: "SCSS", extensions: ["scss"], load: () => sass() },
-  { id: "sass", label: "Sass", extensions: ["sass"], load: () => sass({ indented: true }) },
-  { id: "less", label: "Less", extensions: ["less"], load: () => less() },
-  { id: "stylus", label: "Stylus", extensions: ["styl", "stylus"], load: stream(stylus) },
-  { id: "html", label: "HTML", extensions: ["html", "htm", "xhtml", "svelte", "astro"], load: () => html() },
-  { id: "vue", label: "Vue", extensions: ["vue"], load: () => vue() },
-  template("twig", "Twig", ["twig", "html.twig"], () => twigSyntax),
-  template("smarty", "Smarty", ["tpl", "smarty"], () =>
-    smartySyntaxWith(getSetting<string>("templates.smarty.leftDelimiter", "{"), getSetting<string>("templates.smarty.rightDelimiter", "}")),
-  ),
-  template("latte", "Latte", ["latte"], () => latteSyntax),
-  template("gotemplate", "Go Template", ["tmpl", "gotmpl", "gohtml"], () => goTemplateSyntax),
-  template("jinja", "Jinja2", ["j2", "jinja", "jinja2", "njk", "nunjucks"], () => jinjaSyntax),
-  template("handlebars", "Handlebars", ["hbs", "handlebars", "mustache"], () => mustacheSyntax),
-  { id: "velocity", label: "Velocity", extensions: ["vm", "vtl"], load: stream(velocity) },
-  { id: "pug", label: "Pug", extensions: ["pug", "jade"], load: stream(pug) },
-  { id: "xml", label: "XML", extensions: ["xml", "xsd", "xsl", "svg", "dist", "xliff", "xlf"], load: () => xml() },
-  {
-    id: "dotenv",
-    label: "Dotenv",
-    extensions: ["env"],
-    fileNames: [".env*", "*.env"],
-    load: () => streamLanguage(dotenv),
-  },
-  { id: "properties", label: "Properties", extensions: ["properties", "ini", "cfg", "conf", "editorconfig"], fileNames: [".editorconfig", ".gitattributes"], load: stream(properties) },
-  { id: "shell", label: "Shell Script", extensions: ["sh", "bash", "zsh"], fileNames: [".bashrc", ".zshrc", ".profile", "artisan.sh"], load: stream(shell) },
-  { id: "dockerfile", label: "Dockerfile", extensions: ["dockerfile"], fileNames: ["dockerfile", "containerfile", "dockerfile.*"], load: stream(dockerFile) },
-  { id: "toml", label: "TOML", extensions: ["toml"], load: stream(toml) },
-  { id: "nginx", label: "Nginx", extensions: ["nginx"], fileNames: ["nginx.conf"], load: stream(nginx) },
-  { id: "lua", label: "Lua", extensions: ["lua"], load: stream(lua) },
-  { id: "diff", label: "Diff", extensions: ["diff", "patch"], load: stream(diff) },
-  { id: "python", label: "Python", extensions: ["py", "pyw", "pyi"], load: () => pythonLang() },
-  { id: "go", label: "Go", extensions: ["go"], load: () => goLang() },
-  { id: "rust", label: "Rust", extensions: ["rs"], load: () => rustLang() },
-  { id: "java", label: "Java", extensions: ["java"], load: () => java() },
-  { id: "cpp", label: "C++", extensions: ["cpp", "cc", "cxx", "hpp", "hh", "hxx", "ino"], load: () => cpp() },
-  { id: "c", label: "C", extensions: ["c", "h"], load: stream(c) },
-  { id: "csharp", label: "C#", extensions: ["cs", "csx"], load: stream(csharp) },
-  { id: "kotlin", label: "Kotlin", extensions: ["kt", "kts"], load: stream(kotlin) },
-  { id: "scala", label: "Scala", extensions: ["scala", "sc"], load: stream(scala) },
-  { id: "dart", label: "Dart", extensions: ["dart"], load: stream(dart) },
-  { id: "objc", label: "Objective-C", extensions: ["m", "mm"], load: stream(objectiveC) },
-  { id: "swift", label: "Swift", extensions: ["swift"], load: stream(swift) },
-  { id: "ruby", label: "Ruby", extensions: ["rb", "rake", "gemspec", "ru"], fileNames: ["gemfile", "rakefile", "vagrantfile"], load: stream(ruby) },
-  { id: "perl", label: "Perl", extensions: ["pl", "pm", "t"], load: stream(perl) },
-  { id: "powershell", label: "PowerShell", extensions: ["ps1", "psm1", "psd1"], load: stream(powerShell) },
-  { id: "batch", label: "Batch", extensions: ["bat", "cmd"], load: stream(properties) },
-  { id: "groovy", label: "Groovy", extensions: ["groovy", "gradle", "gvy"], fileNames: ["jenkinsfile"], load: stream(groovy) },
-  { id: "haskell", label: "Haskell", extensions: ["hs", "lhs"], load: stream(haskell) },
-  { id: "erlang", label: "Erlang", extensions: ["erl", "hrl"], load: stream(erlang) },
-  { id: "elixir", label: "Elixir", extensions: ["ex", "exs"], load: stream(ruby) },
-  { id: "clojure", label: "Clojure", extensions: ["clj", "cljs", "cljc", "edn"], load: stream(clojure) },
-  { id: "r", label: "R", extensions: ["r"], load: stream(r) },
-  { id: "julia", label: "Julia", extensions: ["jl"], load: stream(julia) },
-  { id: "elm", label: "Elm", extensions: ["elm"], load: stream(elm) },
-  { id: "crystal", label: "Crystal", extensions: ["cr"], load: stream(crystal) },
-  { id: "ocaml", label: "OCaml", extensions: ["ml", "mli"], load: stream(oCaml) },
-  { id: "fsharp", label: "F#", extensions: ["fs", "fsi", "fsx"], load: stream(fSharp) },
-  { id: "coffeescript", label: "CoffeeScript", extensions: ["coffee"], load: stream(coffeeScript) },
-  { id: "lisp", label: "Common Lisp", extensions: ["lisp", "lsp", "cl"], load: stream(commonLisp) },
-  { id: "scheme", label: "Scheme", extensions: ["scm", "ss", "rkt"], load: stream(scheme) },
-  { id: "tcl", label: "Tcl", extensions: ["tcl"], load: stream(tcl) },
-  { id: "vb", label: "Visual Basic", extensions: ["vb", "vbs"], load: stream(vb) },
-  { id: "pascal", label: "Pascal", extensions: ["pas", "pp"], load: stream(pascal) },
-  { id: "fortran", label: "Fortran", extensions: ["f", "f90", "f95", "for"], load: stream(fortran) },
-  { id: "verilog", label: "Verilog", extensions: ["v", "sv", "svh"], load: stream(verilog) },
-  { id: "vhdl", label: "VHDL", extensions: ["vhd", "vhdl"], load: stream(vhdl) },
-  { id: "octave", label: "MATLAB/Octave", extensions: ["matlab", "oct"], load: stream(octave) },
-  { id: "asm", label: "Assembly", extensions: ["asm", "s"], load: stream(gas) },
-  { id: "latex", label: "LaTeX", extensions: ["tex", "sty", "cls", "bib"], load: stream(stex) },
-  { id: "textile", label: "Textile", extensions: ["textile"], load: stream(textile) },
-  { id: "protobuf", label: "Protocol Buffers", extensions: ["proto"], load: stream(protobuf) },
-  { id: "cmake", label: "CMake", extensions: ["cmake"], fileNames: ["cmakelists.txt"], load: stream(cmake) },
-  { id: "gherkin", label: "Gherkin", extensions: ["feature"], load: stream(gherkin) },
-  { id: "http", label: "HTTP Request", extensions: ["http", "rest"], load: stream(http) },
-  { id: "puppet", label: "Puppet", extensions: ["pp.puppet"], load: stream(puppet) },
-  { id: "makefile", label: "Makefile", extensions: ["mk", "make"], fileNames: ["makefile", "gnumakefile"], load: stream(shell) },
-  { id: "htaccess", label: "Apache Config", fileNames: [".htaccess", "httpd.conf", "apache2.conf"], load: stream(properties) },
-  { id: "log", label: "Log", extensions: ["log"], load: stream(properties) },
-  { id: "ignore", label: "Ignore File", fileNames: [".gitignore", ".dockerignore", ".npmignore"], load: stream(properties) },
+/** A template language: the data language's highlighting with the template tags on top. */
+const template = (syntax: () => TemplateSyntax) => (_path: string, info: FileTypeInfo) => [
+  dataLanguageSupport(info.dataLanguage?.id),
+  templateOverlay(syntax()),
 ];
 
+const loaders = new Map<string, LanguageDef["load"]>(
+  Object.entries({
+    php: () => php(),
+    blade: () => php({ plain: false }),
+    json: () => json(),
+    yaml: () => yaml(),
+    sql: () => sql({ dialect: MySQL }),
+    markdown: () => markdown(),
+    javascript: () => javascript(),
+    jsx: () => javascript({ jsx: true }),
+    typescript: () => javascript({ typescript: true }),
+    tsx: () => javascript({ typescript: true, jsx: true }),
+    css: () => css(),
+    scss: () => sass(),
+    sass: () => sass({ indented: true }),
+    less: () => less(),
+    stylus: stream(stylus),
+    html: () => html(),
+    vue: () => vue(),
+    twig: template(() => twigSyntax),
+    smarty: template(() =>
+      smartySyntaxWith(getSetting<string>("templates.smarty.leftDelimiter", "{"), getSetting<string>("templates.smarty.rightDelimiter", "}")),
+    ),
+    latte: template(() => latteSyntax),
+    gotemplate: template(() => goTemplateSyntax),
+    jinja: template(() => jinjaSyntax),
+    handlebars: template(() => mustacheSyntax),
+    velocity: stream(velocity),
+    pug: stream(pug),
+    xml: () => xml(),
+    dotenv: () => streamLanguage(dotenv),
+    properties: stream(properties),
+    shell: stream(shell),
+    dockerfile: stream(dockerFile),
+    toml: stream(toml),
+    nginx: stream(nginx),
+    lua: stream(lua),
+    diff: stream(diff),
+    python: () => pythonLang(),
+    go: () => goLang(),
+    rust: () => rustLang(),
+    java: () => java(),
+    cpp: () => cpp(),
+    c: stream(c),
+    csharp: stream(csharp),
+    kotlin: stream(kotlin),
+    scala: stream(scala),
+    dart: stream(dart),
+    objc: stream(objectiveC),
+    swift: stream(swift),
+    ruby: stream(ruby),
+    perl: stream(perl),
+    powershell: stream(powerShell),
+    batch: stream(properties),
+    groovy: stream(groovy),
+    haskell: stream(haskell),
+    erlang: stream(erlang),
+    elixir: stream(ruby),
+    clojure: stream(clojure),
+    r: stream(r),
+    julia: stream(julia),
+    elm: stream(elm),
+    crystal: stream(crystal),
+    ocaml: stream(oCaml),
+    fsharp: stream(fSharp),
+    coffeescript: stream(coffeeScript),
+    lisp: stream(commonLisp),
+    scheme: stream(scheme),
+    tcl: stream(tcl),
+    vb: stream(vb),
+    pascal: stream(pascal),
+    fortran: stream(fortran),
+    verilog: stream(verilog),
+    vhdl: stream(vhdl),
+    octave: stream(octave),
+    asm: stream(gas),
+    latex: stream(stex),
+    textile: stream(textile),
+    protobuf: stream(protobuf),
+    cmake: stream(cmake),
+    gherkin: stream(gherkin),
+    http: stream(http),
+    puppet: stream(puppet),
+    makefile: stream(shell),
+    htaccess: stream(properties),
+    log: stream(properties),
+    ignore: stream(properties),
+  } satisfies Record<string, LanguageDef["load"]>),
+);
+
+/** Register (or replace) the syntax mode of a file type. */
 export function registerLanguage(def: LanguageDef): void {
-  const idx = languages.findIndex((l) => l.id === def.id);
-  if (idx >= 0) languages.splice(idx, 1);
-  languages.push(def);
+  loaders.set(def.id, def.load);
 }
 
-/** `*` matches any run of characters; everything else is literal. */
-export function wildcardMatch(pattern: string, text: string): boolean {
-  const parts = pattern.split("*");
-  if (!text.startsWith(parts[0])) return false;
-  let tail = text.slice(parts[0].length);
-  if (parts.length === 1) return tail === "";
-  for (const part of parts.slice(1, -1)) {
-    const i = tail.indexOf(part);
-    if (i < 0) return false;
-    tail = tail.slice(i + part.length);
-  }
-  return tail.endsWith(parts[parts.length - 1]);
-}
-
-/** How specifically `def` claims a file: higher wins, 0 means no match. */
-function score(def: LanguageDef, path: string, name: string): number {
-  let best = 0;
-  for (const raw of def.fileNames ?? []) {
-    const pattern = raw.toLowerCase();
-    const isPath = pattern.includes("/");
-    if (!(isPath ? wildcardMatch(`*/${pattern}`, `/${path}`) : wildcardMatch(pattern, name))) continue;
-    // A path pattern beats a file name, an exact name beats a wildcard pattern.
-    const literal = pattern.replaceAll("*", "").length;
-    best = Math.max(best, 1000 + literal + (pattern.includes("*") ? 0 : 500) + (isPath ? 500 : 0));
-  }
-  for (const ext of def.extensions ?? []) {
-    if (name.endsWith(`.${ext}`) || name === ext) best = Math.max(best, ext.length + 1);
-  }
-  return best;
-}
-
-/**
- * Language for a file: file names and path patterns first, then the longest matching
- * extension (so `x.blade.php` beats `php`), then the shebang of `firstLine`. Later
- * registrations win ties.
- */
-export function detectLanguage(path: string, firstLine?: string): LanguageDef | undefined {
-  const lower = path.toLowerCase();
-  const name = lower.split("/").pop() ?? lower;
-  let best: { def: LanguageDef; score: number } | undefined;
-  for (const def of languages) {
-    const s = score(def, lower, name);
-    if (s > 0 && (!best || s >= best.score)) best = { def, score: s };
-  }
-  if (best) return best.def;
-  if (firstLine?.startsWith("#!")) return [...languages].reverse().find((l) => l.shebang?.test(firstLine));
-  return undefined;
-}
-
-const firstLineOf = (content?: string) => content?.slice(0, content.search(/\r?\n|$/));
-
+/** The editor extensions for a file's language (empty for plain text). */
 export function languageFor(path: string, content?: string): Extension[] {
-  const def = detectLanguage(path, firstLineOf(content));
-  return def ? [def.load(path)] : [];
+  const info = fileTypeOf(path, content);
+  const load = info.id ? loaders.get(info.id) : undefined;
+  return load ? [load(path, info)] : [];
 }
 
-export function languageLabel(path: string, content?: string): string {
-  const def = detectLanguage(path, firstLineOf(content));
-  return def ? (def.labelFor?.(path) ?? def.label) : "Plain text";
-}
+/** Status bar label, e.g. "PHP", "Twig (LaTeX)" or "Plain text". */
+export const languageLabel = (path: string, content?: string): string => fileTypeOf(path, content).label;
 
-export const languageIdFor = (path: string, content?: string) => detectLanguage(path, firstLineOf(content))?.id;
+export const languageIdFor = (path: string, content?: string): string | undefined =>
+  fileTypeOf(path, content).id ?? undefined;
 
-export const indentFor = (path: string, content?: string) =>
-  detectLanguage(path, firstLineOf(content))?.indent ?? DEFAULT_INDENT;
+export const indentFor = (path: string, content?: string): string => fileTypeOf(path, content).indent || DEFAULT_INDENT;
+
+/** Whether the file's lines wrap softly (Settings | Editor | General | Soft Wraps). */
+export const softWrapFor = (path: string): boolean => fileTypeOf(path).softWrap;

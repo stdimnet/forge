@@ -7,11 +7,6 @@ import { lezerProblems, syntaxDiagnostics } from "./shared";
 
 registerLanguage({
   id: "python",
-  label: "Python",
-  extensions: ["py", "pyw", "pyi", "pyx", "pxd", "gyp"],
-  fileNames: ["SConstruct", "SConscript", "wscript", ".pythonstartup", ".pythonrc"],
-  shebang: /^#!.*\bpython/,
-  indent: "    ",
   load: () => python(),
 });
 

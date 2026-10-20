@@ -32,6 +32,14 @@ export function forgeWasm(): Promise<ForgeWasm> {
 /** Call a JSON-in/JSON-out bridge function and parse the result. */
 export async function callWasm<T>(fn: (json: string) => string, input: unknown): Promise<T> {
   await forgeWasm();
+  return callWasmSync(fn, input);
+}
+
+/**
+ * Synchronous variant for code that cannot wait (e.g. editor setup); only valid once
+ * `forgeWasm()` has resolved, which browser-mode mocks await at startup.
+ */
+export function callWasmSync<T>(fn: (json: string) => string, input: unknown): T {
   const out = JSON.parse(fn(JSON.stringify(input))) as T | { error: string };
   if (out && typeof out === "object" && "error" in (out as object) && Object.keys(out as object).length === 1) {
     throw new Error((out as { error: string }).error);

@@ -7,7 +7,7 @@ import { createEffect, createRoot } from "solid-js";
 import { showPanel, type EditorView, type Panel, type ViewUpdate } from "@codemirror/view";
 import type { Extension } from "@codemirror/state";
 import { Download } from "lucide-solid";
-import { detectLanguage } from "@/editor/languages";
+import { languageIdFor } from "@/editor/languages";
 import { h, iconNode } from "@/features/lsp/util";
 import { activeHint, HINT_HEAD_CHARS, SERVER_HINTS } from "./hints";
 import { dismissedHints, dismissHint, hintsEnabled, refreshRows, requestInstall, rows } from "./store";
@@ -19,7 +19,7 @@ const hintLanguages = new Set(SERVER_HINTS.flatMap((x) => x.languageIds));
 
 /** Editor extension for `path`, or null for file types no hint applies to. */
 export function serverHintPanel(path: string): Extension | null {
-  const languageId = detectLanguage(path)?.id;
+  const languageId = languageIdFor(path);
   if (!languageId || !hintLanguages.has(languageId)) return null;
 
   return showPanel.of((view: EditorView): Panel => {

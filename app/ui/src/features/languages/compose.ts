@@ -271,17 +271,6 @@ const completion = schemaCompletion({
   },
 });
 
-export const COMPOSE_FILE_NAMES = [
-  "docker-compose.yml",
-  "docker-compose.yaml",
-  "docker-compose.*.yml",
-  "docker-compose.*.yaml",
-  "compose.yml",
-  "compose.yaml",
-  "compose.*.yml",
-  "compose.*.yaml",
-];
-
 export function composeSupport() {
   const lang = yaml();
   return [lang, lang.language.data.of({ autocomplete: completion }), schemaHover(composeSchema)];
@@ -289,8 +278,5 @@ export function composeSupport() {
 
 registerLanguage({
   id: "docker-compose",
-  label: "Docker Compose",
-  fileNames: COMPOSE_FILE_NAMES,
-  indent: "  ",
   load: composeSupport,
 });

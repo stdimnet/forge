@@ -8,13 +8,13 @@ import { EditorView, highlightWhitespace } from "@codemirror/view";
 import { registerCommand } from "@/state/commands";
 import { registerSettingsPage, type SettingsPage } from "@/features/settingsPages";
 import { registerEditorExtension } from "@/editor/extensions";
-import { getSetting, loadSettings } from "@/state/settings";
+import { loadSettings } from "@/state/settings";
 import { closeSettings, isOpen, openSettings } from "./dialogState";
 import { SettingsDialog } from "./SettingsDialog";
 import { SchemaPage } from "./SchemaPage";
 import { PluginsPage } from "./PluginsPage";
 import { applySettingsToDocument } from "./apply";
-import { matchesGlobList } from "./globs";
+import { softWrapFor } from "@/editor/languages";
 import "./settings.css";
 
 export { openSettings, closeSettings };
@@ -70,11 +70,7 @@ window.addEventListener(
 // Whitespace markers are always rendered and shown via CSS, so the setting applies live.
 registerEditorExtension(() => highlightWhitespace());
 // Soft wraps apply to files opened after the change.
-registerEditorExtension(({ path }) =>
-  getSetting<boolean>("editor.softWraps") && matchesGlobList(path, getSetting<string>("editor.softWrapFiles"))
-    ? EditorView.lineWrapping
-    : null,
-);
+registerEditorExtension(({ path }) => (softWrapFor(path) ? EditorView.lineWrapping : null));
 
 applySettingsToDocument();
 void loadSettings().catch((e) => console.error("settings could not be loaded", e));

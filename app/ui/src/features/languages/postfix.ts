@@ -424,18 +424,11 @@ export function postfixMasterSupport() {
 
 registerLanguage({
   id: "postfix",
-  label: "Postfix main.cf",
-  extensions: ["cf"],
-  fileNames: ["main.cf", "main.cf.proto", "dynamicmaps.cf"],
-  indent: "    ",
   load: postfixMainSupport,
 });
 
 registerLanguage({
   id: "postfix-master",
-  label: "Postfix master.cf",
-  fileNames: ["master.cf", "master.cf.proto"],
-  indent: "    ",
   load: postfixMasterSupport,
 });
 

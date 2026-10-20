@@ -29,8 +29,6 @@ import "./laravel.css";
 
 registerLanguage({
   id: "blade",
-  label: "Blade",
-  extensions: ["blade.php"],
   load: () =>
     StreamLanguage.define(
       bladeParser({

@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { SettingsPage } from "@/features/settingsPages";
 import { breadcrumb, buildTree, filterTree, flatten, groupNodeId, highlight, matchesQuery } from "./model";
-import { matchesGlobList } from "./globs";
 import { cssVars, fontStack, rootFlags } from "./apply";
 
 const component = () => null;
@@ -54,11 +53,6 @@ describe("search helpers", () => {
       { text: "Font", hit: true },
     ]);
     expect(highlight("abc", "")).toEqual([{ text: "abc", hit: false }]);
-  });
-
-  it("matches soft-wrap file patterns", () => {
-    expect(matchesGlobList("docs/README.md", "*.md; *.txt")).toBe(true);
-    expect(matchesGlobList("src/App.php", "*.md; *.txt")).toBe(false);
   });
 });
 

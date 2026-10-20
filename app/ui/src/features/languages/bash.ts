@@ -328,10 +328,5 @@ export function bashSupport() {
 
 registerLanguage({
   id: "shell",
-  label: "Shell Script",
-  extensions: ["sh", "bash", "zsh", "ksh", "bats"],
-  fileNames: [".bashrc", ".bash_profile", ".bash_login", ".bash_logout", ".bash_aliases", ".profile", ".zshrc", ".zprofile", ".envrc", "PKGBUILD", ".xinitrc", ".xprofile"],
-  shebang: /^#!.*\b(?:ba|z|k|da|a)?sh\b/,
-  indent: "  ",
   load: bashSupport,
 });
