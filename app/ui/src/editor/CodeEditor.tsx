@@ -10,7 +10,7 @@ import {
   highlightSpecialChars,
   rectangularSelection,
 } from "@codemirror/view";
-import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
+import { defaultKeymap, historyKeymap, indentWithTab } from "@codemirror/commands";
 import { bracketMatching, foldGutter, indentOnInput, indentUnit } from "@codemirror/language";
 import { closeBrackets, autocompletion } from "@codemirror/autocomplete";
 import { highlightSelectionMatches, searchKeymap } from "@codemirror/search";
@@ -19,6 +19,7 @@ import { languageFor } from "./languages";
 import { extensionsFor } from "./extensions";
 import { updateContent, updateCursor, saveFile, type EditorTab } from "@/state/editor";
 import { registerView } from "./views";
+import { replaceDocument, undoHistory } from "./reload";
 
 /** One CodeMirror instance per open tab; kept alive while the tab exists. */
 export function CodeEditor(props: { tab: EditorTab }) {
@@ -40,7 +41,7 @@ export function CodeEditor(props: { tab: EditorTab }) {
           highlightSpecialChars(),
           drawSelection(),
           rectangularSelection(),
-          history(),
+          undoHistory(),
           indentOnInput(),
           indentUnit.of("    "),
           bracketMatching(),
@@ -75,9 +76,7 @@ export function CodeEditor(props: { tab: EditorTab }) {
   // Content replaced from outside (e.g. reloaded after an AI agent edited the file).
   createEffect(() => {
     const content = props.tab.content;
-    if (view && content !== view.state.doc.toString()) {
-      view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: content } });
-    }
+    if (view && content !== view.state.doc.toString()) replaceDocument(view, content);
   });
 
   onCleanup(() => {
