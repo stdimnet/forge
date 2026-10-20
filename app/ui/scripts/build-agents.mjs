@@ -37,7 +37,7 @@ for (const arch of wanted) {
     env[`CC_${key}`] = "gcc";
     env[`CFLAGS_${key}`] ??= "-U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=0";
   }
-  execFileSync("cargo", ["build", "--release", "-p", "forge-remote-agent", "--target", triple], {
+  execFileSync("cargo", ["build", "--release", "-p", "forge-remote-agent", "--bin", "forge-remote-agent", "--target", triple], {
     cwd: root,
     stdio: "inherit",
     env,

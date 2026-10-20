@@ -22,7 +22,15 @@ tokio = { workspace = true, features = ["full"] }
 tracing.workspace = true
 tracing-subscriber.workspace = true
 dirs.workspace = true
+serde_json.workspace = true
 
 [dev-dependencies]
 tempfile.workspace = true
-serde_json.workspace = true
+
+# forge-lsp's fake language server, to test language servers started through the agent
+# (never shipped: `pnpm agents` builds only `forge-remote-agent`).
+[[bin]]
+name = "forge-remote-agent-fake-lsp"
+path = "../forge-lsp/tests/support/fake_server.rs"
+test = false
+doc = false

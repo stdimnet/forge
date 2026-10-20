@@ -359,6 +359,56 @@ async fn language_server_stdio_is_proxied() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn language_servers_run_on_the_agent() {
+    let dir = project();
+    let root = dir.path().canonicalize().unwrap();
+    let root_str = root.to_string_lossy().into_owned();
+    let client = connect();
+    let backend =
+        blocking(move || RemoteBackend::open(Arc::new(client), host(), &root_str).unwrap()).await;
+    let manager =
+        forge_lsp::LspManager::with_launcher(backend.info().root.clone(), backend.lsp_launcher());
+    manager.register_server(LspServerConfig {
+        id: "fake".into(),
+        name: Some("Fake LS".into()),
+        language_ids: vec!["php".into()],
+        file_extensions: vec!["php".into()],
+        command: env!("CARGO_BIN_EXE_forge-remote-agent-fake-lsp").into(),
+        args: vec![],
+        initialization_options: serde_json::json!({}),
+        settings: serde_json::json!({}),
+    });
+    let file = backend.resolve("app/Models/Order.php").unwrap();
+    let mut events = manager.subscribe();
+    manager
+        .did_open(&file, "<?php\n// TODO remote\n")
+        .await
+        .unwrap();
+    // Diagnostics computed by the server on the agent's machine arrive here.
+    let (uri, diagnostics) = tokio::time::timeout(T, async {
+        loop {
+            if let Ok(forge_lsp::LspEvent::Diagnostics {
+                uri, diagnostics, ..
+            }) = events.recv().await
+            {
+                return (uri, diagnostics);
+            }
+        }
+    })
+    .await
+    .unwrap();
+    assert_eq!(forge_lsp::uri_to_path(&uri).unwrap(), file);
+    assert_eq!(diagnostics.len(), 1);
+    let hover = manager
+        .hover(&file, forge_lsp::lsp_types::Position::new(1, 3))
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(hover.contents, "**hover** 1:3");
+    manager.shutdown_all().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn calls_fail_once_the_connection_is_gone() {
     let client = connect();
     client.call::<()>(Call::Ping, T).await.unwrap();
