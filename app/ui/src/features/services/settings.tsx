@@ -55,48 +55,53 @@ function DockerContexts() {
   const inUse = (name: string) => draftValue<string>("docker.connection") === "context" && draftValue<string>("docker.context") === name;
   return (
     <Show when={contexts()?.length}>
-      <div class="svc-contexts" data-testid="docker-contexts">
-        <h4 class="svc-section-title">Docker Contexts</h4>
-        <table class="svc-table">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Docker endpoint</th>
-              <th>Description</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            <For each={contexts()}>
-              {(c) => (
-                <tr>
-                  <td>
-                    {c.name}
-                    <Show when={c.current}>
-                      <span class="muted"> (current)</span>
-                    </Show>
-                  </td>
-                  <td>{c.host}</td>
-                  <td class="muted">{c.description ?? ""}</td>
-                  <td class="svc-cell-actions">
-                    <Show when={!inUse(c.name)} fallback={<span class="svc-in-use">In use</span>}>
-                      <button
-                        class="btn-secondary svc-small-btn"
-                        onClick={() => {
-                          setDraft("docker.connection", "context");
-                          setDraft("docker.context", c.name);
-                        }}
-                      >
-                        Use
-                      </button>
-                    </Show>
-                  </td>
-                </tr>
-              )}
-            </For>
-          </tbody>
-        </table>
-      </div>
+      <section class="set-section svc-contexts" data-testid="docker-contexts">
+        <div class="set-section-title">
+          <span>Docker Contexts</span>
+        </div>
+        <div class="set-section-body indented">
+          <p class="muted">Contexts of the Docker CLI (docker context ls). Use connects through one of them.</p>
+          <table class="svc-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Docker endpoint</th>
+                <th>Description</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              <For each={contexts()}>
+                {(c) => (
+                  <tr>
+                    <td>
+                      {c.name}
+                      <Show when={c.current}>
+                        <span class="muted"> (current)</span>
+                      </Show>
+                    </td>
+                    <td>{c.host}</td>
+                    <td class="muted">{c.description ?? ""}</td>
+                    <td class="svc-cell-actions">
+                      <Show when={!inUse(c.name)} fallback={<span class="svc-in-use">In use</span>}>
+                        <button
+                          class="btn-secondary svc-small-btn"
+                          onClick={() => {
+                            setDraft("docker.connection", "context");
+                            setDraft("docker.context", c.name);
+                          }}
+                        >
+                          Use
+                        </button>
+                      </Show>
+                    </td>
+                  </tr>
+                )}
+              </For>
+            </tbody>
+          </table>
+        </div>
+      </section>
     </Show>
   );
 }

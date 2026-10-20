@@ -435,6 +435,11 @@ h4.svc-section-title {
   padding-right: 0;
   text-align: right;
 }
+.svc-stop-forward {
+  width: 20px;
+  height: 20px;
+  color: var(--danger);
+}
 .svc-forward-pod {
   margin-bottom: 10px;
 }
@@ -462,7 +467,13 @@ h4.svc-section-title {
   background: var(--bg-hover);
 }
 .svc-contexts {
-  padding: 0 20px 16px;
+  max-width: 620px;
+}
+.svc-contexts .set-section-body > * {
+  grid-column: 1 / -1;
+}
+.svc-contexts p {
+  margin: 0 0 6px;
 }
 .svc-small-btn {
   height: 22px;

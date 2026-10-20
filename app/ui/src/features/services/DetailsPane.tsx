@@ -78,8 +78,8 @@ function PortForwards(props: { d: ServiceDetails }) {
                     {f.error ?? "Forwarding"}
                   </td>
                   <td class="svc-cell-actions">
-                    <button class="icon-btn" title="Stop Port Forwarding" data-testid="stop-forward" onClick={() => void stopForward(f.id)}>
-                      <Square size={12} />
+                    <button class="icon-btn svc-stop-forward" title="Stop Port Forwarding" data-testid="stop-forward" onClick={() => void stopForward(f.id)}>
+                      <Square size={11} stroke-width={0} fill="currentColor" />
                     </button>
                   </td>
                 </tr>
