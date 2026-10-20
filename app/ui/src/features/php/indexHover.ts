@@ -8,7 +8,7 @@
 import { hoverTooltip, type Tooltip } from "@codemirror/view";
 import type { Extension } from "@codemirror/state";
 import { phpApi } from "./api";
-import { renderMarkdown } from "./markdown";
+import { renderMarkdown } from "@/features/lsp/markdown";
 
 type OtherHover = (path: string, offset: number) => Promise<boolean> | boolean;
 
@@ -37,7 +37,7 @@ export function indexHover(path: string): Extension {
         create: () => {
           const dom = document.createElement("div");
           dom.className = "php-hover";
-          dom.innerHTML = renderMarkdown(hover.markdown);
+          dom.append(renderMarkdown(hover.markdown));
           return { dom };
         },
       };

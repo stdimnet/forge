@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { FieldTarget, GenerateTargets, StructureNode } from "./api";
 import { chooserTitle, clampToViewport, fieldsFor, generateMenu, groupByOwner, showsFluentOption } from "./generateModel";
-import { highlightPhp, renderMarkdown } from "./markdown";
 import { orderNodes } from "./StructureView";
 import { toLspSettings, defaultPhpSettings, legacyPhpChanges, migrateLicenceKey } from "./settings";
 import { percent } from "./status";
@@ -74,21 +73,6 @@ describe("generate menu", () => {
   it("keeps popups inside the viewport", () => {
     expect(clampToViewport({ x: 990, y: 790 }, { width: 200, height: 100 }, { width: 1000, height: 800 })).toEqual({ x: 792, y: 692 });
     expect(clampToViewport({ x: -5, y: 3 }, { width: 10, height: 10 }, { width: 1000, height: 800 })).toEqual({ x: 8, y: 8 });
-  });
-});
-
-describe("markdown", () => {
-  it("renders fences, inline code, bold and lists safely", () => {
-    const html = renderMarkdown("`App\\Models`\n\n```php\n#[Route('/x')]\npublic function show(): string\n```\n\n**Returns:** `<b>`\n\n- one\n- *two*");
-    expect(html).toContain("<p><code>App\\Models</code></p>");
-    expect(html).toContain('<span class="md-attr">#[</span>Route(<span class="md-str">\'/x\'</span>)<span class="md-attr">]</span>');
-    expect(html).toContain('<span class="md-kw">public</span> <span class="md-kw">function</span> show(): string');
-    expect(html).toContain("<strong>Returns:</strong> <code>&lt;b&gt;</code>");
-    expect(html).toContain("<ul><li>one</li><li><em>two</em></li></ul>");
-  });
-
-  it("highlights variables", () => {
-    expect(highlightPhp("$x = 1")).toBe('<span class="md-var">$x</span> = 1');
   });
 });
 
