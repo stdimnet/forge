@@ -1,6 +1,7 @@
 //! SSH sessions with russh: host key verification against `known_hosts` (unknown and
 //! changed keys need the user's confirmation of the fingerprint), password, key file and
-//! ssh-agent authentication, command execution and streams.
+//! ssh-agent authentication, command execution and streams, and forwarded Unix sockets (the
+//! Docker API over SSH).
 
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
@@ -492,6 +493,22 @@ impl SshSession {
     ) -> std::result::Result<ChannelStream<client::Msg>, ConnectError> {
         let channel = self.handle.channel_open_session().await.map_err(other)?;
         channel.exec(true, command).await.map_err(other)?;
+        Ok(channel.into_stream())
+    }
+
+    /// A stream to a Unix socket on the host (`direct-streamlocal@openssh.com`, like
+    /// `ssh -L local:/var/run/docker.sock`).
+    pub async fn open_streamlocal(
+        &self,
+        socket_path: &str,
+    ) -> std::result::Result<ChannelStream<client::Msg>, ConnectError> {
+        let channel = self
+            .handle
+            .channel_open_direct_streamlocal(socket_path)
+            .await
+            .map_err(|e| ConnectError::Other {
+                message: format!("Cannot open {socket_path} on the host: {e}"),
+            })?;
         Ok(channel.into_stream())
     }
 

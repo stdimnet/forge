@@ -13,9 +13,10 @@
 //! - [`portforward`]: the Kubernetes port-forward channel protocol and active forwards.
 //! - [`ws`]: WebSocket handshake and framing (Kubernetes streaming subresources).
 //!
-//! With the `runtime` feature: an HTTP/1.1 client over Unix sockets, Windows named pipes and
-//! TCP (+TLS) ([`http`]), the Docker Engine client ([`engine`]), the Kubernetes API client
-//! ([`kubeclient`]), port-forward connections ([`forward`]), compose / CLI processes ([`cli`]) and registry credentials in the OS
+//! With the `runtime` feature: an HTTP/1.1 client over Unix sockets, Windows named pipes,
+//! TCP (+TLS) and SSH-forwarded sockets ([`http`], [`ssh`]), the Docker Engine client
+//! ([`engine`]), the Kubernetes API client ([`kubeclient`]), port-forward connections
+//! ([`forward`]), compose / CLI processes ([`cli`]) and registry credentials in the OS
 //! keychain ([`secrets`]), and the [`hub`] that holds the Services state for the app.
 
 pub mod compose;
@@ -45,6 +46,8 @@ pub mod hub;
 pub mod kubeclient;
 #[cfg(feature = "runtime")]
 pub mod secrets;
+#[cfg(feature = "runtime")]
+pub mod ssh;
 
 /// Errors of this crate, worded for balloons.
 #[derive(Debug, Clone, PartialEq, Eq)]

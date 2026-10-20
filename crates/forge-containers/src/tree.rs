@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::compose::ComposeFile;
 use crate::docker::{Container, ContainerState, DockerSnapshot};
+use crate::endpoint::{context_endpoint, DockerContext};
 use crate::kube::{age, encode_query, ContainerPort, KubeConfig, Workloads};
 use crate::portforward::PortForward;
 use crate::time::{format_size, format_utc, long_age};
@@ -36,6 +37,9 @@ pub struct DockerInput {
     pub error: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub snapshot: Option<DockerSnapshot>,
+    /// Docker CLI contexts, listed on the Docker node.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub contexts: Vec<DockerContext>,
 }
 
 /// Something loaded on demand: the value, the error, or still loading.
@@ -1317,6 +1321,32 @@ pub fn details(input: &ServicesInput, node_id: &str) -> Option<Details> {
                 rows.push(row("Networks", s.networks.len().to_string()));
             }
             d.sections.push(section("Docker", rows));
+            if !dk.contexts.is_empty() {
+                let active =
+                    |c: &DockerContext| context_endpoint(c).is_ok_and(|e| e.label() == dk.endpoint);
+                d.sections.push(table_section(
+                    "Docker Contexts",
+                    &["Name", "Docker endpoint", "Description"],
+                    dk.contexts
+                        .iter()
+                        .map(|c| {
+                            vec![
+                                if c.current {
+                                    format!("{} (current)", c.name)
+                                } else {
+                                    c.name.clone()
+                                },
+                                c.host.clone(),
+                                c.description.clone().unwrap_or_default(),
+                            ]
+                        })
+                        .collect(),
+                    dk.contexts
+                        .iter()
+                        .map(|c| active(c).then_some(Status::Running))
+                        .collect(),
+                ));
+            }
         }
         Target::DockerGroup { group } => {
             let s = snapshot?;
@@ -2040,6 +2070,14 @@ mod tests {
                 endpoint: "unix:///var/run/docker.sock".into(),
                 error: None,
                 snapshot: Some(raw.parse()),
+                contexts: vec![DockerContext {
+                    name: "buildbox".into(),
+                    description: Some("CI builder".into()),
+                    host: "ssh://ci@buildbox".into(),
+                    skip_tls_verify: false,
+                    tls_dir: None,
+                    current: false,
+                }],
             },
             compose_files: vec![compose],
             kube,
@@ -2146,6 +2184,7 @@ mod tests {
             endpoint: "unix:///var/run/docker.sock".into(),
             error: Some("No such file or directory".into()),
             snapshot: None,
+            contexts: vec![],
         };
         let tree = build_tree(&i);
         assert_eq!(
@@ -2156,6 +2195,18 @@ mod tests {
         let d = details(&i, "docker").unwrap();
         assert!(d.message.unwrap().contains("Cannot connect"));
         assert_eq!(d.actions, [Action::Connect, Action::Refresh]);
+        let d = details(&input(), "docker").unwrap();
+        let contexts = d
+            .sections
+            .iter()
+            .find(|s| s.title == "Docker Contexts")
+            .and_then(|s| s.table.as_ref())
+            .unwrap();
+        assert_eq!(
+            contexts.rows[0],
+            ["buildbox", "ssh://ci@buildbox", "CI builder"]
+        );
+        assert_eq!(contexts.status, [None]);
     }
 
     #[test]

@@ -99,6 +99,15 @@ impl DockerClient {
                 },
                 server_name: None,
             },
+            Endpoint::Ssh {
+                user,
+                host,
+                port,
+                socket,
+            } => Transport::Ssh(std::sync::Arc::new(crate::ssh::SshTunnel::new(
+                crate::ssh::connect_params(user.as_deref(), host, *port),
+                socket.clone(),
+            ))),
         };
         Ok(DockerClient {
             transport,

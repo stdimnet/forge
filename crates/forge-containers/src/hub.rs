@@ -131,7 +131,46 @@ pub fn process_environment() -> endpoint::Environment {
         #[cfg(not(unix))]
         uid: None,
         windows: cfg!(windows),
+        contexts: docker_config_dir()
+            .map(|d| load_contexts(&d, var("DOCKER_CONTEXT").as_deref()))
+            .unwrap_or_default(),
     }
+}
+
+/// The Docker CLI's configuration directory: `$DOCKER_CONFIG` or `~/.docker`.
+pub fn docker_config_dir() -> Option<PathBuf> {
+    std::env::var_os("DOCKER_CONFIG")
+        .filter(|v| !v.is_empty())
+        .map(PathBuf::from)
+        .or_else(|| dirs::home_dir().map(|h| h.join(".docker")))
+}
+
+/// Docker contexts of `<dir>/contexts/meta/*/meta.json` sorted by name, with their TLS
+/// folders; the current one (`DOCKER_CONTEXT`, else `currentContext` of `config.json`) is
+/// marked.
+pub fn load_contexts(dir: &Path, docker_context: Option<&str>) -> Vec<endpoint::DockerContext> {
+    let current = docker_context.map(str::to_string).or_else(|| {
+        std::fs::read_to_string(dir.join("config.json"))
+            .ok()
+            .and_then(|t| endpoint::current_context_of_config(&t))
+    });
+    let mut out: Vec<endpoint::DockerContext> = std::fs::read_dir(dir.join("contexts/meta"))
+        .into_iter()
+        .flatten()
+        .flatten()
+        .filter_map(|e| {
+            let text = std::fs::read_to_string(e.path().join("meta.json")).ok()?;
+            let mut ctx = endpoint::parse_context_meta(&text)?;
+            let tls = dir.join("contexts/tls").join(e.file_name()).join("docker");
+            if tls.is_dir() {
+                ctx.tls_dir = Some(tls.to_string_lossy().into_owned());
+            }
+            ctx.current = current.as_deref() == Some(ctx.name.as_str());
+            Some(ctx)
+        })
+        .collect();
+    out.sort_by(|a, b| a.name.cmp(&b.name));
+    out
 }
 
 #[cfg(unix)]
@@ -440,9 +479,8 @@ impl Hub {
             }
             s.generation += 1;
             s.client = None;
-            let endpoint = endpoint::resolve(&s.settings.docker, &process_environment(), &|p| {
-                Path::new(p).exists()
-            });
+            let env = process_environment();
+            let endpoint = endpoint::resolve(&s.settings.docker, &env, &|p| Path::new(p).exists());
             match endpoint {
                 Ok(ep) => {
                     s.docker = tree::DockerInput {
@@ -450,6 +488,7 @@ impl Hub {
                         endpoint: ep.label(),
                         error: None,
                         snapshot: None,
+                        contexts: env.contexts,
                     };
                     match DockerClient::new(&ep) {
                         Ok(c) => s.client = Some(c),
@@ -465,6 +504,7 @@ impl Hub {
                         endpoint: String::new(),
                         error: Some(e.0),
                         snapshot: None,
+                        contexts: env.contexts,
                     };
                 }
             }
@@ -1727,6 +1767,41 @@ mod tests {
         assert!(files[0].service("mailpit").is_some());
         assert_eq!(files[1].path, "worker/compose.yaml");
         assert_eq!(files[1].project, "jobs");
+    }
+
+    #[test]
+    fn loads_docker_contexts() {
+        let dir = tempfile::tempdir().unwrap();
+        let d = dir.path();
+        for (id, meta) in [
+            (
+                "aa11",
+                r#"{"Name":"remote","Endpoints":{"docker":{"Host":"tcp://10.0.0.9:2376"}}}"#,
+            ),
+            (
+                "bb22",
+                r#"{"Name":"buildbox","Endpoints":{"docker":{"Host":"ssh://ci@buildbox"}}}"#,
+            ),
+            ("cc33", "not json"),
+        ] {
+            std::fs::create_dir_all(d.join("contexts/meta").join(id)).unwrap();
+            std::fs::write(d.join("contexts/meta").join(id).join("meta.json"), meta).unwrap();
+        }
+        std::fs::create_dir_all(d.join("contexts/tls/aa11/docker")).unwrap();
+        std::fs::write(d.join("config.json"), r#"{"currentContext":"remote"}"#).unwrap();
+        let contexts = load_contexts(d, None);
+        let names: Vec<_> = contexts.iter().map(|c| c.name.as_str()).collect();
+        assert_eq!(names, ["buildbox", "remote"]);
+        assert!(contexts[1].current);
+        assert!(contexts[1]
+            .tls_dir
+            .as_deref()
+            .unwrap()
+            .ends_with("contexts/tls/aa11/docker"));
+        assert!(contexts[0].tls_dir.is_none());
+        let contexts = load_contexts(d, Some("buildbox"));
+        assert!(contexts[0].current && !contexts[1].current);
+        assert!(load_contexts(&d.join("missing"), None).is_empty());
     }
 
     #[test]

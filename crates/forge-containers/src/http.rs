@@ -28,6 +28,8 @@ pub enum Transport {
         /// SNI / certificate name (defaults to `host`).
         server_name: Option<String>,
     },
+    /// A Unix socket on an SSH host (`ssh://` Docker hosts).
+    Ssh(Arc<crate::ssh::SshTunnel>),
 }
 
 impl std::fmt::Debug for Transport {
@@ -44,6 +46,7 @@ impl std::fmt::Debug for Transport {
                     if tls.is_some() { "https" } else { "tcp" }
                 )
             }
+            Transport::Ssh(t) => write!(f, "{t:?}"),
         }
     }
 }
@@ -66,6 +69,7 @@ impl Transport {
 
     pub async fn connect(&self) -> Result<BoxIo> {
         match self {
+            Transport::Ssh(tunnel) => tunnel.open().await,
             #[cfg(unix)]
             Transport::Unix(path) => {
                 let s = tokio::net::UnixStream::connect(path)
