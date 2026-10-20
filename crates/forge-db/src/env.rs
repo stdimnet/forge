@@ -123,10 +123,16 @@ pub fn from_symfony(vars: &BTreeMap<String, String>) -> Option<(DataSource, Opti
 /// Look at `.env` and `.env.local` in the project root. `.env.local` overrides `.env`, as in
 /// Symfony; Laravel only reads `.env`.
 pub fn detect(root: &Path) -> Vec<DetectedDataSource> {
+    detect_with(|name| std::fs::read_to_string(root.join(name)).ok())
+}
+
+/// Like [`detect`], reading the project's files with `read` (a remote project's `.env` is
+/// read on its host).
+pub fn detect_with(read: impl Fn(&str) -> Option<String>) -> Vec<DetectedDataSource> {
     let mut vars = BTreeMap::new();
     let mut origin = String::new();
     for name in [".env", ".env.local"] {
-        if let Ok(text) = std::fs::read_to_string(root.join(name)) {
+        if let Some(text) = read(name) {
             let parsed = parse_dotenv(&text);
             if parsed.contains_key("DB_CONNECTION") || parsed.contains_key("DATABASE_URL") {
                 origin = name.to_string();

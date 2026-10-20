@@ -23,15 +23,18 @@ pub trait SecretStore: Send + Sync {
 }
 
 /// The platform keychain (macOS Keychain, Windows Credential Manager, Secret Service).
+#[cfg(feature = "keychain")]
 #[derive(Debug, Default)]
 pub struct KeyringStore;
 
+#[cfg(feature = "keychain")]
 impl KeyringStore {
     fn entry(account: &str) -> Result<keyring::Entry, String> {
         keyring::Entry::new(KEYCHAIN_SERVICE, account).map_err(|e| e.to_string())
     }
 }
 
+#[cfg(feature = "keychain")]
 impl SecretStore for KeyringStore {
     fn get(&self, account: &str) -> Result<Option<String>, String> {
         match Self::entry(account)?.get_password() {

@@ -68,20 +68,31 @@ pub fn companion_open_link(url: String, app: AppHandle) -> Result<()> {
     }
 }
 
-/// Packages, dotenv values and config files of the open project, to rank snippets.
+/// Packages, dotenv values and config files of the open project, to rank snippets (read
+/// through the project backend, on the host for remote projects).
 #[tauri::command]
-pub fn companion_project_profile(
+pub async fn companion_project_profile(
     env_keys: Vec<String>,
     files: Vec<String>,
     state: State<'_, AppState>,
 ) -> Result<ProjectProfile> {
-    state.with_workspace(|ws| Ok(project::profile(ws.root(), &env_keys, &files)))
+    let backend = state.backend()?;
+    crate::commands::workspace::blocking(move || {
+        let read = |name: &str| backend.read_optional(name).ok().flatten();
+        Ok(project::profile_with(
+            read,
+            |name| read(name).is_some(),
+            &env_keys,
+            &files,
+        ))
+    })
+    .await
 }
 
 /// Set `key=value` in `.env` or `.env.local` of the open project ("Apply" buttons, after
 /// the user confirmed).
 #[tauri::command]
-pub fn companion_set_env_var(
+pub async fn companion_set_env_var(
     file: String,
     key: String,
     value: String,
@@ -93,12 +104,10 @@ pub fn companion_set_env_var(
     if !project::is_valid_env_key(&key) || value.contains(['\n', '\r', '\0']) {
         return Err(ForgeError::Other("invalid environment variable".into()));
     }
-    state.with_workspace(|ws| {
-        let current = if ws.resolve(&file)?.exists() {
-            ws.read_file(&file)?
-        } else {
-            String::new()
-        };
-        ws.write_file(&file, &project::upsert_env_var(&current, &key, &value))
+    let backend = state.backend()?;
+    crate::commands::workspace::blocking(move || {
+        let current = backend.read_optional(&file)?.unwrap_or_default();
+        backend.write_file(&file, &project::upsert_env_var(&current, &key, &value))
     })
+    .await
 }

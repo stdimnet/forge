@@ -2,23 +2,87 @@
 //! Events of a session are emitted as `agent://<sessionId>`: the raw `AgentEvent` JSON and,
 //! after each, a `chat` update (`forge_agent_cli::ChatUpdate`) with the rendered blocks of the
 //! current turn that the UI shows.
+//!
+//! For a project on a remote host the CLI runs on that host (found there, started through
+//! the project backend's process API), so it works on the project's files with the login
+//! it has there.
 
 use std::collections::HashMap;
+use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use forge_agent_cli::cli::AllowScope;
+use forge_agent_cli::host::SpawnFuture;
 use forge_agent_cli::{
-    agent_by_id, builtin_agents, compose_prompt, configured_executable, AgentEvent, AgentInfo,
-    AgentSession, Chat, ChatUpdate, EventSink, MessageContext, PermissionDecision,
-    PermissionStatus, StartOptions,
+    agent_by_id, builtin_agents, compose_prompt, configured_executable, AgentCli, AgentEvent,
+    AgentHost, AgentInfo, AgentSession, Chat, ChatUpdate, CommandSpec, EventSink, LocalHost,
+    MessageContext, PermissionDecision, PermissionStatus, SpawnedAgent, StartOptions,
 };
+use forge_backend::process_io::spawn_stdio;
+use forge_backend::Backend;
 use forge_core::{ForgeError, Result};
+use forge_process::CommandLine;
 use tauri::{AppHandle, Emitter, State};
 use tokio::sync::Mutex;
 
+use crate::commands::workspace::blocking;
 use crate::state::AppState;
+
+/// Runs agent CLIs where a remote project lives, through its backend.
+struct BackendHost {
+    backend: Arc<dyn Backend>,
+}
+
+impl AgentHost for BackendHost {
+    fn detect(&self, adapter: &dyn AgentCli, override_path: Option<&str>) -> Option<PathBuf> {
+        let names: Vec<String> = adapter
+            .executable_names()
+            .iter()
+            .map(|n| n.to_string())
+            .collect();
+        self.backend
+            .find_executable(&names, override_path)
+            .unwrap_or_else(|e| {
+                tracing::warn!("cannot look for {} on the host: {e}", adapter.name());
+                None
+            })
+    }
+
+    fn spawn(&self, spec: CommandSpec, cwd: PathBuf) -> SpawnFuture {
+        let backend = self.backend.clone();
+        Box::pin(async move {
+            let mut cmd = CommandLine::new(spec.program.to_string_lossy()).args(spec.args);
+            cmd.cwd = cwd;
+            let p = blocking(move || spawn_stdio(backend.as_ref(), &cmd)).await?;
+            let process = p.process.clone();
+            let exit = p.exit;
+            Ok(SpawnedAgent {
+                stdin: Box::new(p.stdin),
+                stdout: Box::new(p.stdout),
+                stderr: Box::new(p.stderr),
+                exit: Box::pin(async move { exit.await.ok().flatten() }),
+                kill: Box::new(move || {
+                    // Remote kills wait for the host.
+                    std::thread::spawn(move || process.kill(Duration::from_secs(2)));
+                }),
+            })
+        })
+    }
+
+    fn remote_label(&self) -> Option<String> {
+        self.backend.info().remote.as_ref().map(|r| r.label())
+    }
+}
+
+/// Where agent CLIs of the open project run.
+fn host(state: &AppState) -> Arc<dyn AgentHost> {
+    match state.backend() {
+        Ok(backend) if backend.info().remote.is_some() => Arc::new(BackendHost { backend }),
+        _ => Arc::new(LocalHost),
+    }
+}
 
 struct Session {
     agent: Arc<AgentSession>,
@@ -68,24 +132,30 @@ fn setting(state: &AppState, key: &str) -> Option<String> {
     state.read_settings().get_str(key).map(String::from)
 }
 
-/// Available agent CLIs and whether they are installed. `executables` maps agent ids to
-/// executable paths to check (e.g. unsaved values in the Settings dialog); otherwise the
-/// paths from Settings > Tools > AI Agents are used.
+/// Available agent CLIs and whether they are installed (on the remote host for a remote
+/// project). `executables` maps agent ids to executable paths to check (e.g. unsaved values
+/// in the Settings dialog); otherwise the paths from Settings > Tools > AI Agents are used.
 #[tauri::command]
-pub fn agent_list(
+pub async fn agent_list(
     executables: Option<HashMap<String, String>>,
     state: State<'_, AppState>,
-) -> Vec<AgentInfo> {
-    builtin_agents()
+) -> Result<Vec<AgentInfo>> {
+    let host = host(&state);
+    let paths: Vec<Option<String>> = builtin_agents()
         .iter()
-        .map(|a| {
-            let path = match &executables {
-                Some(map) => map.get(a.id()).cloned(),
-                None => configured_executable(a.id(), |k| setting(&state, k)),
-            };
-            a.info(path.as_deref())
+        .map(|a| match &executables {
+            Some(map) => map.get(a.id()).cloned(),
+            None => configured_executable(a.id(), |k| setting(&state, k)),
         })
-        .collect()
+        .collect();
+    blocking(move || {
+        Ok(builtin_agents()
+            .iter()
+            .zip(paths)
+            .map(|(a, path)| a.info_with(host.detect(a.as_ref(), path.as_deref())))
+            .collect())
+    })
+    .await
 }
 
 /// Start a session in the open project; returns the id used for events and later calls.
@@ -99,7 +169,8 @@ pub async fn agent_start(
 ) -> Result<String> {
     let adapter = agent_by_id(&agent_id)
         .ok_or_else(|| ForgeError::Other(format!("unknown agent {agent_id}")))?;
-    let cwd = state.with_workspace(|ws| Ok(ws.root().to_path_buf()))?;
+    let cwd = state.project_root()?;
+    let host = host(&state);
     let n = agents.next_id.fetch_add(1, Ordering::SeqCst);
     let session_id = format!("{agent_id}-{n}");
     let event_name = format!("agent://{session_id}");
@@ -115,7 +186,11 @@ pub async fn agent_start(
     let options = options
         .unwrap_or_default()
         .with_settings(&agent_id, |k| setting(&state, k));
-    let agent = AgentSession::start(adapter, cwd, options, sink).await?;
+    let executable = {
+        let (host, adapter, path) = (host.clone(), adapter.clone(), options.executable.clone());
+        blocking(move || Ok(host.detect(adapter.as_ref(), path.as_deref()))).await?
+    };
+    let agent = AgentSession::start_on(host, adapter, executable, cwd, options, sink).await?;
     let session = Session {
         agent: Arc::new(agent),
         chat,

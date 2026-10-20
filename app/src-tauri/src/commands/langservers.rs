@@ -1,6 +1,8 @@
 //! Language servers for many languages (catalog in `forge-langservers`): activation for
 //! the open project, the Language Servers settings page, installs with streamed output,
-//! project-wide symbol search and the Intelephense licence key.
+//! project-wide symbol search and the Intelephense licence key. Which servers start is
+//! planned where the project's files are (`forge_backend::langservers`): on the remote host
+//! for remote projects, whose servers then run there.
 //!
 //! npm servers (Intelephense, typescript-language-server, …) are installed by Forge itself
 //! (`forge_langservers::managed`): Node.js and the packages are downloaded and verified
@@ -13,18 +15,16 @@
 //! - `langservers://changed` (rows changed after an apply or an install)
 
 use std::collections::HashMap;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::{Arc, Mutex};
 
+use forge_backend::langservers::{system_rows, LiveServer, SETTINGS_PREFIX};
+use forge_backend::LangServersRequest;
 use forge_core::{ForgeError, Result};
 use forge_langservers::install::{self, InstallOutcome, Stream};
 use forge_langservers::licence::{self, KeyringStore, Licence, LicenceStatus};
 use forge_langservers::managed::{self, Event, Installer, PackageUpdate, Sources};
-use forge_langservers::plan::current_platform;
-use forge_langservers::{
-    plan, rows, scan_project, Catalog, ConfigContext, Detector, LiveState, Prefs, ProjectScan,
-    ServerRow,
-};
+use forge_langservers::{Catalog, Detector, ServerRow};
 use forge_lsp::model::EditorWorkspaceSymbol;
 use forge_lsp::{LspManager, LspServerConfig, ServerState};
 use serde::Serialize;
@@ -40,84 +40,72 @@ pub struct LangServersState {
     installs: Mutex<HashMap<String, Arc<tokio::sync::Notify>>>,
 }
 
-/// Last project scan; scanning is cheap but not free.
-static SCAN: Mutex<Option<(PathBuf, ProjectScan)>> = Mutex::new(None);
-
 fn other(e: impl std::fmt::Display) -> ForgeError {
     ForgeError::Other(e.to_string())
 }
 
-fn cache_dir() -> PathBuf {
-    dirs::cache_dir()
-        .unwrap_or_else(std::env::temp_dir)
-        .join("forge")
-}
-
-fn load_prefs(ws: &AppState) -> Prefs {
-    let settings = ws.read_settings();
-    let ids = Catalog::builtin().servers.iter().map(|s| s.id.as_str());
-    Prefs::load(|k| settings.get(k).cloned(), ids)
-}
-
-fn project_scan(root: &Path, limit: usize, refresh: bool) -> ProjectScan {
-    let mut cache = SCAN.lock().expect("scan lock");
-    if !refresh {
-        if let Some((r, scan)) = cache.as_ref() {
-            if r == root {
-                return scan.clone();
-            }
-        }
-    }
-    let scan = scan_project(root, Catalog::builtin(), limit);
-    *cache = Some((root.to_path_buf(), scan.clone()));
-    scan
-}
-
-fn plugin_enabled(ws: &AppState) -> impl Fn(&str) -> bool + '_ {
-    move |id: &str| {
-        let plugins = ws.plugins.read().expect("plugins lock poisoned");
-        // Unknown plugins (none registered yet) do not block a server.
-        plugins.get(id).is_none_or(|p| p.enabled)
+/// What the planner needs from the app: the `langservers.*` settings, disabled plugins and
+/// the running servers.
+fn request(ws: &AppState, manager: Option<&LspManager>, rescan: bool) -> LangServersRequest {
+    let settings = ws
+        .read_settings()
+        .effective()
+        .into_iter()
+        .filter(|(k, _)| k.starts_with(SETTINGS_PREFIX))
+        .collect();
+    let disabled_plugins = ws
+        .plugins
+        .read()
+        .expect("plugins lock poisoned")
+        .list()
+        .iter()
+        .filter(|p| !p.enabled)
+        .map(|p| p.manifest.id.clone())
+        .collect();
+    LangServersRequest {
+        settings,
+        disabled_plugins,
+        live: live_states(manager),
+        rescan,
     }
 }
 
 /// Register the enabled and installed catalog servers for the languages of the manager's
 /// project and unregister the ones no longer wanted. Called when the LSP manager of a
 /// project is created and after settings change. Also applies the Intelephense licence
-/// key to a registered Intelephense config.
+/// key to a registered Intelephense config. Blocks while a remote host plans.
 pub fn register_enabled(manager: &LspManager, ws: &AppState) {
     apply(manager, ws, true);
 }
 
-fn apply(manager: &LspManager, ws: &AppState, refresh_scan: bool) {
-    let prefs = load_prefs(ws);
-    let scan = project_scan(manager.root(), prefs.scan_limit, refresh_scan);
-    let detector = Detector::for_project(manager.root());
-    let ctx = ConfigContext {
-        root: manager.root(),
-        cache_dir: cache_dir(),
-        detector: &detector,
-        prefs: &prefs,
-        scan: &scan,
+fn apply(manager: &LspManager, ws: &AppState, rescan: bool) {
+    let answer = ws
+        .backend()
+        .and_then(|b| b.langservers(request(ws, Some(manager), rescan)));
+    let answer = match answer {
+        Ok(a) => a,
+        Err(e) => {
+            tracing::warn!("language servers not planned: {e}");
+            return;
+        }
     };
-    let decisions = plan(Catalog::builtin(), &ctx, plugin_enabled(ws));
     let registered: HashMap<String, LspServerConfig> = manager
         .configs()
         .into_iter()
         .map(|c| (c.id.clone(), c))
         .collect();
-    for d in decisions {
-        match d.outcome {
-            Ok(config) => {
+    for planned in answer.servers {
+        match planned.config {
+            Some(config) => {
                 if registered.get(&config.id) != Some(&config) {
                     tracing::info!("language server {} registered", config.id);
                     manager.register_server(config);
                 }
             }
-            Err(_) if registered.contains_key(&d.id) => {
-                manager.unregister_server(&d.id);
+            None if registered.contains_key(&planned.id) => {
+                manager.unregister_server(&planned.id);
             }
-            Err(_) => {}
+            None => {}
         }
     }
     apply_intelephense_licence(manager);
@@ -160,9 +148,9 @@ pub fn intelephense_licence_key() -> Option<String> {
     Licence::new(&KeyringStore).key().ok().flatten()
 }
 
-fn live_states(manager: Option<&LspManager>) -> HashMap<String, LiveState> {
+fn live_states(manager: Option<&LspManager>) -> Vec<LiveServer> {
     let Some(manager) = manager else {
-        return HashMap::new();
+        return Vec::new();
     };
     manager
         .statuses()
@@ -184,78 +172,56 @@ fn live_states(manager: Option<&LspManager>) -> HashMap<String, LiveState> {
                 ServerState::Failed { error } => (false, Some(error)),
                 ServerState::NotStarted | ServerState::Stopped => (false, None),
             };
-            (s.id, LiveState { running, detail })
+            LiveServer {
+                id: s.id,
+                running,
+                detail,
+            }
         })
         .collect()
 }
 
 fn build_rows(manager: Option<&LspManager>, ws: &AppState) -> Vec<ServerRow> {
-    let prefs = load_prefs(ws);
-    let root = manager
-        .map(|m| m.root().to_path_buf())
-        .or_else(|| ws.with_workspace(|w| Ok(w.root().to_path_buf())).ok());
-    let scan = root
-        .as_deref()
-        .map(|r| project_scan(r, prefs.scan_limit, false))
-        .unwrap_or_default();
-    let detector = root
-        .as_deref()
-        .map_or_else(Detector::system, Detector::for_project);
-    let fallback_root = PathBuf::new();
-    let ctx = ConfigContext {
-        root: root.as_deref().unwrap_or(&fallback_root),
-        cache_dir: cache_dir(),
-        detector: &detector,
-        prefs: &prefs,
-        scan: &scan,
-    };
-    let live = live_states(manager);
-    let platform = current_platform();
-    let decisions = if root.is_some() {
-        plan(Catalog::builtin(), &ctx, plugin_enabled(ws))
-    } else {
-        vec![]
-    };
-    let mut out = rows(Catalog::builtin(), &ctx, &decisions, &live, platform);
-    // Servers the PHP pack starts itself: listed for status and install hints only.
-    let packs = rows(Catalog::pack_servers(), &ctx, &[], &live, platform);
-    out.extend(packs.into_iter().map(|mut r| {
-        r.source = "php".into();
-        r.enabled = true;
-        r.status = match r.status {
-            forge_langservers::RowStatus::Disabled => forge_langservers::RowStatus::Installed,
-            s => s,
-        };
-        r
-    }));
-    out
+    let req = request(ws, manager, false);
+    match ws.backend() {
+        Ok(backend) => backend
+            .langservers(req)
+            .map(|a| a.rows)
+            .unwrap_or_else(|e| {
+                tracing::warn!("language servers not listed: {e}");
+                Vec::new()
+            }),
+        Err(_) => system_rows(&req),
+    }
 }
 
 /// Rows of Settings > Languages & Frameworks > Language Servers.
 #[tauri::command]
-pub fn langservers_list(
-    app: AppHandle,
-    lsp: State<'_, LspState>,
-    ws: State<'_, AppState>,
-) -> Vec<ServerRow> {
-    let manager = lsp.manager(&app, &ws).ok();
-    build_rows(manager.as_deref(), &ws)
+pub async fn langservers_list(app: AppHandle) -> Result<Vec<ServerRow>> {
+    crate::commands::workspace::blocking(move || {
+        let lsp = app.state::<LspState>();
+        let ws = app.state::<AppState>();
+        let manager = lsp.manager(&app, &ws).ok();
+        Ok(build_rows(manager.as_deref(), &ws))
+    })
+    .await
 }
 
 /// Re-plan after settings changed: start newly enabled servers, stop disabled ones.
 #[tauri::command]
-pub fn langservers_apply(
-    app: AppHandle,
-    lsp: State<'_, LspState>,
-    ws: State<'_, AppState>,
-) -> Vec<ServerRow> {
-    let manager = lsp.manager(&app, &ws).ok();
-    if let Some(m) = manager.as_deref() {
-        apply(m, &ws, true);
-    }
-    let rows = build_rows(manager.as_deref(), &ws);
-    let _ = app.emit("langservers://changed", ());
-    rows
+pub async fn langservers_apply(app: AppHandle) -> Result<Vec<ServerRow>> {
+    crate::commands::workspace::blocking(move || {
+        let lsp = app.state::<LspState>();
+        let ws = app.state::<AppState>();
+        let manager = lsp.manager(&app, &ws).ok();
+        if let Some(m) = manager.as_deref() {
+            apply(m, &ws, true);
+        }
+        let rows = build_rows(manager.as_deref(), &ws);
+        let _ = app.emit("langservers://changed", ());
+        Ok(rows)
+    })
+    .await
 }
 
 #[derive(Serialize, Clone)]
@@ -357,6 +323,12 @@ pub async fn langservers_install(
     state: State<'_, LangServersState>,
     ws: State<'_, AppState>,
 ) -> Result<InstallOutcome> {
+    if let Some(host) = ws.project_info().and_then(|i| i.remote) {
+        return Err(other(format!(
+            "Language servers of this project run on {}. Install them there from the terminal (Alt+F12).",
+            host.label()
+        )));
+    }
     let spec = Catalog::builtin()
         .server(&id)
         .or_else(|| Catalog::pack_servers().server(&id))

@@ -37,7 +37,7 @@ pub struct ResolvedHost {
     /// `IdentityFile`s with `~` and `%` tokens expanded.
     pub identity_files: Vec<String>,
     pub identities_only: bool,
-    /// Set when the host needs a jump host (not supported by Forge yet; shown as a hint).
+    /// `ProxyJump` hops (see [`parse_proxy_jump`]); the session connects through them.
     pub proxy_jump: Option<String>,
     pub proxy_command: Option<String>,
 }
@@ -225,6 +225,82 @@ impl SshConfig {
     }
 }
 
+/// One hop of a `ProxyJump` list.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct JumpHost {
+    pub user: Option<String>,
+    /// Host name or a `Host` alias of the config.
+    pub host: String,
+    pub port: Option<u16>,
+}
+
+/// Parse a `ProxyJump` value: comma separated `[user@]host[:port]` or
+/// `ssh://[user@]host[:port]` hops, in the order they are connected.
+pub fn parse_proxy_jump(value: &str) -> Vec<JumpHost> {
+    value
+        .split(',')
+        .map(str::trim)
+        .filter(|h| !h.is_empty() && !h.eq_ignore_ascii_case("none"))
+        .map(|hop| {
+            let hop = hop.strip_prefix("ssh://").unwrap_or(hop);
+            let (user, rest) = match hop.rsplit_once('@') {
+                Some((u, r)) => (Some(u.to_string()), r),
+                None => (None, hop),
+            };
+            // `[::1]:2222` or `host:2222`.
+            let (host, port) = if let Some(inner) = rest.strip_prefix('[') {
+                match inner.split_once(']') {
+                    Some((h, p)) => (h, p.strip_prefix(':').and_then(|p| p.parse().ok())),
+                    None => (inner, None),
+                }
+            } else {
+                match rest.rsplit_once(':') {
+                    Some((h, p)) if p.chars().all(|c| c.is_ascii_digit()) => (h, p.parse().ok()),
+                    _ => (rest, None),
+                }
+            };
+            JumpHost {
+                user,
+                host: host.to_string(),
+                port,
+            }
+        })
+        .collect()
+}
+
+/// A `ProxyCommand` with its tokens expanded: `%h` host, `%p` port, `%r` remote user,
+/// `%n` the alias as given, `%%` a percent sign.
+pub fn expand_proxy_command(
+    command: &str,
+    alias: &str,
+    host: &str,
+    port: u16,
+    user: &str,
+) -> String {
+    let mut out = String::new();
+    let mut chars = command.chars();
+    while let Some(c) = chars.next() {
+        if c != '%' {
+            out.push(c);
+            continue;
+        }
+        match chars.next() {
+            Some('h') => out.push_str(host),
+            Some('p') => out.push_str(&port.to_string()),
+            Some('r') => out.push_str(user),
+            Some('n') => out.push_str(alias),
+            Some('%') => out.push('%'),
+            Some(other) => {
+                out.push('%');
+                out.push(other);
+            }
+            None => out.push('%'),
+        }
+    }
+    out
+}
+
 /// Whether `alias` matches a `Host` line: some pattern matches and no negated one does.
 pub fn host_matches(patterns: &[String], alias: &str) -> bool {
     if patterns.is_empty() {
@@ -339,6 +415,41 @@ Host *
         assert_eq!(prod.proxy_jump.as_deref(), Some("bastion"));
         // `Match` blocks are skipped rather than guessed.
         assert_ne!(prod.user.as_deref(), Some("nobody"));
+    }
+
+    #[test]
+    fn proxy_jump_hops_and_proxy_commands() {
+        assert_eq!(
+            parse_proxy_jump("bastion, ops@gw.example.com:2222,ssh://root@[::1]:22"),
+            vec![
+                JumpHost {
+                    user: None,
+                    host: "bastion".into(),
+                    port: None
+                },
+                JumpHost {
+                    user: Some("ops".into()),
+                    host: "gw.example.com".into(),
+                    port: Some(2222)
+                },
+                JumpHost {
+                    user: Some("root".into()),
+                    host: "::1".into(),
+                    port: Some(22)
+                },
+            ]
+        );
+        assert!(parse_proxy_jump("none").is_empty());
+        assert_eq!(
+            expand_proxy_command(
+                "ssh -W %h:%p -l %r gw # %n 100%%",
+                "shop",
+                "10.0.0.5",
+                2222,
+                "deploy"
+            ),
+            "ssh -W 10.0.0.5:2222 -l deploy gw # shop 100%"
+        );
     }
 
     #[test]

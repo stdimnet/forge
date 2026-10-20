@@ -194,6 +194,11 @@ impl RpcClient {
 
     /// Call the agent from a thread that may block (never from an async task).
     pub fn call_blocking<T: DeserializeOwned>(&self, call: Call, timeout: Duration) -> Result<T> {
+        decode_value(&self.call_raw_blocking(call, timeout)?)
+    }
+
+    /// Like [`call_blocking`](Self::call_blocking), returning the encoded reply.
+    pub fn call_raw_blocking(&self, call: Call, timeout: Duration) -> Result<Vec<u8>> {
         let (tx, rx) = std::sync::mpsc::channel();
         let id = self.register(Waiter::Blocking(tx));
         if let Err(e) = self.send(Frame::Request { id, call }) {
@@ -201,7 +206,7 @@ impl RpcClient {
             return Err(e);
         }
         match rx.recv_timeout(timeout) {
-            Ok(answer) => decode_answer(answer),
+            Ok(answer) => answer.map_err(ForgeError::Other),
             Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
                 self.forget(id);
                 Err(ForgeError::Other(

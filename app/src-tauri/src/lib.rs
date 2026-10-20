@@ -149,7 +149,6 @@ pub fn run() {
         .manage(run_state)
         .manage(commands::symfony::SymfonyState::default())
         .manage(commands::web::WebState::default())
-        .manage(commands::doctrine::DoctrineState::default())
         .manage(commands::keymap::KeymapState::default())
         .invoke_handler(tauri::generate_handler![
             commands::workspace::workspace_open,

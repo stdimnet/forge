@@ -12,6 +12,13 @@ forge-process.workspace = true
 forge-lsp.workspace = true
 forge-project.workspace = true
 phpforge-lang-php = { path = "../../packs/phpforge/lang-php" }
+phpforge-fw-laravel = { path = "../../packs/phpforge/fw-laravel" }
+phpforge-fw-symfony = { path = "../../packs/phpforge/fw-symfony" }
+phpforge-orm-doctrine = { path = "../../packs/phpforge/orm-doctrine" }
+phpforge-dql = { path = "../../packs/phpforge/dql" }
+# Without the keychain: the remote agent embeds this crate and is linked statically.
+forge-langservers = { path = "../forge-langservers", default-features = false }
+dirs.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 tokio = { workspace = true, features = ["io-util", "sync", "rt", "macros", "time", "process"] }

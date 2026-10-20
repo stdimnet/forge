@@ -18,6 +18,7 @@ pub mod error;
 pub mod introspect;
 pub mod secrets;
 pub mod service;
+pub mod tunnel;
 
 /// Pure SQL text handling lives in `forge-sql` (also used by the browser-mode UI).
 pub use forge_sql::{export, split, value};
@@ -37,3 +38,4 @@ pub use service::{
     TableDataRequest, TestResult,
 };
 pub use split::{split_statements, Statement};
+pub use tunnel::{DbTunnel, ProjectContext, TunnelEndpoint};

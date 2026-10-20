@@ -203,3 +203,96 @@ async fn missing_executable_is_a_clear_error() {
         .unwrap();
     assert!(err.to_string().contains("Claude Code was not found"));
 }
+
+/// A host that runs processes on this machine but counts them, like a remote host would
+/// run them through the project backend.
+#[derive(Default)]
+struct CountingHost {
+    spawned: std::sync::Mutex<Vec<(PathBuf, PathBuf)>>,
+}
+
+impl forge_agent_cli::AgentHost for CountingHost {
+    fn detect(
+        &self,
+        _adapter: &dyn forge_agent_cli::AgentCli,
+        override_path: Option<&str>,
+    ) -> Option<PathBuf> {
+        override_path.map(PathBuf::from)
+    }
+
+    fn spawn(
+        &self,
+        spec: forge_agent_cli::CommandSpec,
+        cwd: PathBuf,
+    ) -> forge_agent_cli::host::SpawnFuture {
+        self.spawned
+            .lock()
+            .unwrap()
+            .push((spec.program.clone(), cwd.clone()));
+        forge_agent_cli::LocalHost.spawn(spec, cwd)
+    }
+
+    fn remote_label(&self) -> Option<String> {
+        Some("deploy@shop.example.com".into())
+    }
+}
+
+#[tokio::test]
+async fn sessions_run_on_the_project_host() {
+    use forge_agent_cli::AgentHost;
+
+    let dir = tempfile::tempdir().unwrap();
+    let host = Arc::new(CountingHost::default());
+    let (tx, mut rx) = mpsc::unbounded_channel();
+    let sink: EventSink = Arc::new(move |e| {
+        let _ = tx.send(e);
+    });
+    let missing = AgentSession::start_on(
+        host.clone(),
+        Arc::new(ClaudeCode),
+        None,
+        dir.path().into(),
+        StartOptions::default(),
+        sink.clone(),
+    )
+    .await
+    .err()
+    .unwrap();
+    assert!(
+        missing
+            .to_string()
+            .contains("Claude Code was not found on deploy@shop.example.com"),
+        "{missing}"
+    );
+
+    let exe = fake_cli(&dir);
+    let found = host.detect(&ClaudeCode, Some(&exe.display().to_string()));
+    let mut attempt = 0;
+    let session = loop {
+        match AgentSession::start_on(
+            host.clone(),
+            Arc::new(ClaudeCode),
+            found.clone(),
+            dir.path().into(),
+            StartOptions::default(),
+            sink.clone(),
+        )
+        .await
+        {
+            Ok(s) => break s,
+            Err(e) if attempt < 5 && e.to_string().to_lowercase().contains("busy") => {
+                attempt += 1;
+                tokio::time::sleep(Duration::from_millis(50)).await;
+            }
+            Err(e) => panic!("cannot start the fake CLI: {e}"),
+        }
+    };
+    session.send("hello").await.unwrap();
+    next_matching(&mut rx, |e| matches!(e, AgentEvent::TurnFinished { .. })).await;
+    assert_eq!(
+        host.spawned.lock().unwrap().clone(),
+        vec![(exe, dir.path().to_path_buf())]
+    );
+    session.stop().await;
+    next_matching(&mut rx, |e| matches!(e, AgentEvent::Exited { .. })).await;
+}

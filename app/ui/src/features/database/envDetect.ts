@@ -17,8 +17,8 @@ const announced = new Set<string>();
 
 /** Look for an unconfigured `.env` database; `announce` shows the notification once. */
 export async function checkEnv(announce = true): Promise<void> {
-  // Remote projects: databases would need an SSH tunnel, which Forge does not open yet.
-  if (!workspace() || workspace()?.remote || getSetting<boolean>("database.suggestFromEnv", true) === false) {
+  // A remote project's `.env` is read on its host; its databases connect through SSH.
+  if (!workspace() || getSetting<boolean>("database.suggestFromEnv", true) === false) {
     setDetected([]);
     return;
   }

@@ -19,6 +19,7 @@
 - [x] Code hosts: GitLab, Forgejo/Gitea and GitHub pull/merge requests with inline review threads, issues, pipelines
 - [x] WebForge pack: npm tool window and package.json run icons (npm, pnpm, yarn, bun), React/Vue/Angular component navigation, Angular template and style line markers, Node.js and TypeScript settings with the web language servers
 - [x] LuaForge: Lua index in Rust (functions, tables, modules, `require` resolution, EmmyLua/LuaLS annotations), Structure, Go to Class/Symbol, Go to Declaration, annotation hover, lua-language-server settings, "Lua Script" run configurations with gutter run icons (lua, luajit, LÖVE), StyLua as Reformat Code
+- [x] Remote development parity: Laravel/Symfony/Doctrine analysis in the agent, catalog language servers on the host, `.forge/settings.toml` on the host, data sources through SSH tunnels, Xdebug through a remote port forward, Claude Code / Gemini CLI on the host, `ProxyJump` / `ProxyCommand`
 
 ## Next branches
 

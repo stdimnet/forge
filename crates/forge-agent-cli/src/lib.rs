@@ -21,6 +21,8 @@ pub mod conversation;
 pub mod diff;
 pub mod event;
 pub mod gemini;
+#[cfg(feature = "runtime")]
+pub mod host;
 pub mod profile;
 pub mod prompt;
 #[cfg(feature = "runtime")]
@@ -40,6 +42,8 @@ pub use conversation::{Chat, ChatUpdate, PermissionStatus};
 pub use event::{AgentEvent, EventParser, Usage};
 #[cfg(feature = "runtime")]
 pub use gemini::GeminiCli;
+#[cfg(feature = "runtime")]
+pub use host::{AgentHost, LocalHost, SpawnedAgent};
 pub use profile::{AgentProfile, PermissionMode, PermissionModeInfo};
 pub use prompt::{compose_prompt, MessageContext, Selection};
 #[cfg(feature = "runtime")]

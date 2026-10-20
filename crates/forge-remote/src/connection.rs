@@ -1,15 +1,20 @@
 //! A live connection to the Forge agent on a host: connects (SSH + agent start), measures
 //! latency, notices a dead connection and reconnects with backoff. Projects use it as the
-//! [`Connection`] of their [`forge_backend::RemoteBackend`].
+//! [`Connection`] of their [`forge_backend::RemoteBackend`], including its SSH tunnels
+//! ([`forge_backend::Tunnels`]: databases through `direct-tcpip` channels, Xdebug through a
+//! remote listener that is requested again after every reconnect).
 
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex};
+use std::collections::HashMap;
+use std::future::Future;
+use std::pin::Pin;
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::{Arc, Mutex, Weak};
 use std::time::{Duration, Instant};
 
 use forge_backend::protocol::{BrowseResult, Call, Hello};
 use forge_backend::remote::Connection;
 use forge_backend::rpc::{connection_lost, RpcClient};
-use forge_backend::RemoteHost;
+use forge_backend::{PortForward, RemoteHost, Tunnels};
 use serde::{Deserialize, Serialize};
 use tokio::sync::watch;
 
@@ -55,6 +60,7 @@ struct Live {
 
 /// A connection to one host's agent.
 pub struct RemoteConnection {
+    me: Weak<RemoteConnection>,
     host: RemoteHost,
     params: Mutex<ConnectParams>,
     binaries: AgentBinaries,
@@ -63,6 +69,9 @@ pub struct RemoteConnection {
     on_reconnect: Mutex<Vec<Hook>>,
     on_lost: Mutex<Vec<Hook>>,
     closing: AtomicBool,
+    /// Remote listeners to request again after a reconnect: id -> (remote, local port).
+    remote_forwards: Mutex<HashMap<u64, (u16, u16)>>,
+    next_forward: AtomicU64,
 }
 
 impl RemoteConnection {
@@ -74,7 +83,8 @@ impl RemoteConnection {
         binaries: AgentBinaries,
         progress: &(dyn Fn(&str) + Send + Sync),
     ) -> Result<Arc<Self>, ConnectError> {
-        let conn = Arc::new(Self {
+        let conn = Arc::new_cyclic(|me| Self {
+            me: me.clone(),
             host,
             params: Mutex::new(params),
             binaries,
@@ -86,6 +96,8 @@ impl RemoteConnection {
             on_reconnect: Mutex::new(Vec::new()),
             on_lost: Mutex::new(Vec::new()),
             closing: AtomicBool::new(false),
+            remote_forwards: Mutex::new(HashMap::new()),
+            next_forward: AtomicU64::new(1),
         });
         conn.connect_once(progress).await?;
         // A confirmed fingerprint is in known_hosts now; reconnects must not skip the check.
@@ -105,6 +117,18 @@ impl RemoteConnection {
         });
         progress(&format!("Connecting to {}…", self.host.label()));
         let session = Arc::new(SshSession::connect(&params).await?);
+        let forwards: Vec<(u16, u16)> = self
+            .remote_forwards
+            .lock()
+            .expect("forwards lock")
+            .values()
+            .copied()
+            .collect();
+        for (remote, local) in forwards {
+            if let Err(e) = session.forward_remote(remote, local).await {
+                tracing::warn!("port {remote} is not forwarded after reconnecting: {e}");
+            }
+        }
         let started = start_agent(&session, &self.binaries, &|m: &str| {
             let _ = self.status.send(ConnectionStatus::Connecting {
                 message: m.to_string(),
@@ -155,6 +179,82 @@ impl RemoteConnection {
     /// Run `f` (on a blocking thread) when the connection drops.
     pub fn on_lost(&self, f: impl Fn() + Send + Sync + 'static) {
         self.on_lost.lock().expect("hooks lock").push(Arc::new(f));
+    }
+
+    /// The SSH session of the current connection.
+    pub fn session(&self) -> Option<Arc<SshSession>> {
+        self.live
+            .lock()
+            .expect("live lock")
+            .as_ref()
+            .map(|l| l.session.clone())
+            .filter(|s| !s.is_closed())
+    }
+
+    /// Listen on `127.0.0.1:<free port>` here and forward every connection to `host:port`
+    /// as the remote host sees it, through the current session (`ssh -L`). Stops when the
+    /// returned guard is dropped.
+    pub async fn forward_local(&self, host: String, port: u16) -> forge_core::Result<PortForward> {
+        let listener = tokio::net::TcpListener::bind(("127.0.0.1", 0))
+            .await
+            .map_err(|e| forge_core::ForgeError::Other(format!("cannot open a local port: {e}")))?;
+        let local = listener
+            .local_addr()
+            .map_err(|e| forge_core::ForgeError::Other(e.to_string()))?
+            .port();
+        let me = self.me.clone();
+        let target = format!("{host}:{port}");
+        let task = tokio::spawn(async move {
+            while let Ok((mut socket, _)) = listener.accept().await {
+                let Some(session) = me.upgrade().and_then(|c| c.session()) else {
+                    // Connection lost: refuse until it is back.
+                    continue;
+                };
+                let host = host.clone();
+                tokio::spawn(async move {
+                    let _ = socket.set_nodelay(true);
+                    match session.open_direct_tcpip(&host, port).await {
+                        Ok(mut stream) => {
+                            let _ = tokio::io::copy_bidirectional(&mut socket, &mut stream).await;
+                        }
+                        Err(e) => tracing::warn!("tunnel to {host}:{port} failed: {e}"),
+                    }
+                });
+            }
+        });
+        tracing::info!(
+            "forwarding 127.0.0.1:{local} to {target} via {}",
+            self.host.label()
+        );
+        Ok(PortForward::new(
+            local,
+            self.host.label(),
+            AbortOnDrop(task),
+        ))
+    }
+
+    /// Ask the host to listen on `127.0.0.1:remote_port` and forward its connections to
+    /// `127.0.0.1:local_port` here (`ssh -R`); requested again after reconnects until the
+    /// returned guard is dropped.
+    pub async fn forward_remote(
+        &self,
+        remote_port: u16,
+        local_port: u16,
+    ) -> forge_core::Result<PortForward> {
+        let session = self.session().ok_or_else(connection_lost)?;
+        let bound = session.forward_remote(remote_port, local_port).await?;
+        let id = self.next_forward.fetch_add(1, Ordering::SeqCst);
+        self.remote_forwards
+            .lock()
+            .expect("forwards lock")
+            .insert(id, (bound, local_port));
+        let guard = RemoteForwardGuard {
+            conn: self.me.clone(),
+            id,
+            port: bound,
+            runtime: tokio::runtime::Handle::current(),
+        };
+        Ok(PortForward::new(bound, self.host.label(), guard))
     }
 
     fn current(&self) -> Option<RpcClient> {
@@ -223,6 +323,71 @@ impl RemoteConnection {
 impl Connection for RemoteConnection {
     fn client(&self) -> forge_core::Result<RpcClient> {
         self.current().ok_or_else(connection_lost)
+    }
+
+    fn tunnels(&self) -> Option<Arc<dyn Tunnels>> {
+        Some(Arc::new(SshTunnels {
+            conn: self.me.clone(),
+        }))
+    }
+}
+
+/// Aborts a task when dropped.
+struct AbortOnDrop(tokio::task::JoinHandle<()>);
+
+impl Drop for AbortOnDrop {
+    fn drop(&mut self) {
+        self.0.abort();
+    }
+}
+
+/// Stops a remote listener when dropped.
+struct RemoteForwardGuard {
+    conn: Weak<RemoteConnection>,
+    id: u64,
+    port: u16,
+    runtime: tokio::runtime::Handle,
+}
+
+impl Drop for RemoteForwardGuard {
+    fn drop(&mut self) {
+        let Some(conn) = self.conn.upgrade() else {
+            return;
+        };
+        conn.remote_forwards
+            .lock()
+            .expect("forwards lock")
+            .remove(&self.id);
+        if let Some(session) = conn.session() {
+            let port = self.port;
+            self.runtime
+                .spawn(async move { session.cancel_forward(port).await });
+        }
+    }
+}
+
+type ForwardFuture = Pin<Box<dyn Future<Output = forge_core::Result<PortForward>> + Send>>;
+
+/// [`Tunnels`] of a project's connection.
+struct SshTunnels {
+    conn: Weak<RemoteConnection>,
+}
+
+impl Tunnels for SshTunnels {
+    fn forward_local(&self, host: String, port: u16) -> ForwardFuture {
+        let conn = self.conn.clone();
+        Box::pin(async move {
+            let conn = conn.upgrade().ok_or_else(connection_lost)?;
+            conn.forward_local(host, port).await
+        })
+    }
+
+    fn forward_remote(&self, remote_port: u16, local_port: u16) -> ForwardFuture {
+        let conn = self.conn.clone();
+        Box::pin(async move {
+            let conn = conn.upgrade().ok_or_else(connection_lost)?;
+            conn.forward_remote(remote_port, local_port).await
+        })
     }
 }
 

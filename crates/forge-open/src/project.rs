@@ -39,7 +39,22 @@ fn package_names(json: &str, sections: &[&str]) -> Vec<String> {
 
 /// Read the project's manifests, the given dotenv keys and which `probe_files` exist.
 pub fn profile(root: &Path, env_keys: &[String], probe_files: &[String]) -> ProjectProfile {
-    let read = |name: &str| std::fs::read_to_string(root.join(name)).ok();
+    profile_with(
+        |name| std::fs::read_to_string(root.join(name)).ok(),
+        |name| root.join(name).is_file(),
+        env_keys,
+        probe_files,
+    )
+}
+
+/// Like [`profile`], reading the project's files with `read` and checking them with
+/// `is_file` (a remote project's files are on its host).
+pub fn profile_with(
+    read: impl Fn(&str) -> Option<String>,
+    is_file: impl Fn(&str) -> bool,
+    env_keys: &[String],
+    probe_files: &[String],
+) -> ProjectProfile {
     let mut env = BTreeMap::new();
     for file in WRITABLE_ENV_FILES {
         if let Some(content) = read(file) {
@@ -60,7 +75,7 @@ pub fn profile(root: &Path, env_keys: &[String], probe_files: &[String]) -> Proj
         env,
         files: probe_files
             .iter()
-            .filter(|f| is_plain_relative(f) && root.join(f).is_file())
+            .filter(|f| is_plain_relative(f) && is_file(f))
             .cloned()
             .collect(),
     }
