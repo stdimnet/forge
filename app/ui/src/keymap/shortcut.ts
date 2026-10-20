@@ -331,11 +331,15 @@ const CODE_KEYS: Record<string, string> = {
 const MODIFIER_KEYS = new Set(["Shift", "Control", "Alt", "Meta", "AltGraph", "OS", "Hyper", "Super"]);
 
 /**
- * Key name of an event. Uses the physical `code` for letters/digits/punctuation so that
- * shortcuts work regardless of layout and of Alt/Option producing special characters.
+ * Key name of an event. Letters are the character the layout produces, as in PHPStorm: on a
+ * German keyboard the key labelled Z gives Ctrl+Z (undo), not the Ctrl+Y of the US key in
+ * that position. Layouts without Latin letters (Cyrillic, Greek) and Alt/Option combinations
+ * that produce special characters fall back to the physical key, so the shortcuts keep working.
+ * Digits and punctuation use the physical key.
  */
 export function eventKey(e: KeyEventLike): string {
   if (MODIFIER_KEYS.has(e.key)) return "";
+  if (/^[A-Za-z]$/.test(e.key)) return e.key.toUpperCase();
   const c = e.code ?? "";
   if (/^Key[A-Z]$/.test(c)) return c.slice(3);
   if (/^Digit\d$/.test(c)) return c.slice(5);
