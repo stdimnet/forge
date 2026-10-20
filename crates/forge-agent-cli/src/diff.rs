@@ -57,13 +57,11 @@ pub fn diff_lines(old: &str, new: &str) -> Vec<DiffLine> {
         new_no,
         near: 0,
     };
+    let del = |k: usize| line(LineKind::Del, a[k], Some(k + 1), None);
+    let add = |k: usize| line(LineKind::Add, b[k], None, Some(k + 1));
     let mut out = Vec::new();
     let mut adds = Vec::new();
     let mut dels = Vec::new();
-    let flush = |out: &mut Vec<DiffLine>, adds: &mut Vec<DiffLine>, dels: &mut Vec<DiffLine>| {
-        out.append(adds);
-        out.append(dels);
-    };
     for op in capture_diff_slices(Algorithm::Myers, &a, &b) {
         match op {
             DiffOp::Equal {
@@ -71,62 +69,57 @@ pub fn diff_lines(old: &str, new: &str) -> Vec<DiffLine> {
                 new_index,
                 len,
             } => {
-                flush(&mut out, &mut adds, &mut dels);
-                for k in 0..len {
-                    out.push(line(
+                out.append(&mut adds);
+                out.append(&mut dels);
+                out.extend((0..len).map(|k| {
+                    line(
                         LineKind::Ctx,
                         a[old_index + k],
                         Some(old_index + k + 1),
                         Some(new_index + k + 1),
-                    ));
-                }
+                    )
+                }));
             }
             DiffOp::Delete {
                 old_index, old_len, ..
-            } => {
-                for k in old_index..old_index + old_len {
-                    dels.push(line(LineKind::Del, a[k], Some(k + 1), None));
-                }
-            }
+            } => dels.extend((old_index..old_index + old_len).map(del)),
             DiffOp::Insert {
                 new_index, new_len, ..
-            } => {
-                for k in new_index..new_index + new_len {
-                    adds.push(line(LineKind::Add, b[k], None, Some(k + 1)));
-                }
-            }
+            } => adds.extend((new_index..new_index + new_len).map(add)),
             DiffOp::Replace {
                 old_index,
                 old_len,
                 new_index,
                 new_len,
             } => {
-                for k in old_index..old_index + old_len {
-                    dels.push(line(LineKind::Del, a[k], Some(k + 1), None));
-                }
-                for k in new_index..new_index + new_len {
-                    adds.push(line(LineKind::Add, b[k], None, Some(k + 1)));
-                }
+                dels.extend((old_index..old_index + old_len).map(del));
+                adds.extend((new_index..new_index + new_len).map(add));
             }
         }
     }
-    flush(&mut out, &mut adds, &mut dels);
+    out.append(&mut adds);
+    out.append(&mut dels);
     // Distance to the nearest change, forwards and backwards.
     let mut last: Option<usize> = None;
-    for i in 0..out.len() {
-        if out[i].kind != LineKind::Ctx {
+    for (i, l) in out.iter_mut().enumerate() {
+        if l.kind != LineKind::Ctx {
             last = Some(i);
         }
-        out[i].near = last.map_or(usize::MAX, |l| i - l);
+        // Without any change every line is "far" (more than the whole diff away).
+        l.near = last.map_or(usize::MAX, |c| i - c);
     }
     last = None;
-    for i in (0..out.len()).rev() {
-        if out[i].kind != LineKind::Ctx {
+    for (i, l) in out.iter_mut().enumerate().rev() {
+        if l.kind != LineKind::Ctx {
             last = Some(i);
         }
-        if let Some(l) = last {
-            out[i].near = out[i].near.min(l - i);
+        if let Some(c) = last {
+            l.near = l.near.min(c - i);
         }
+    }
+    let far = out.len();
+    for l in &mut out {
+        l.near = l.near.min(far);
     }
     out
 }
