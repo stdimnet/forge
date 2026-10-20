@@ -4,7 +4,7 @@ import { ChevronRight, GitBranch, Lock } from "lucide-solid";
 import { activeTab } from "@/state/editor";
 import { workspace } from "@/state/workspace";
 import { currentBranch } from "@/state/vcs";
-import { statusItems } from "@/features/statusItems";
+import { visibleStatusItems } from "@/features/statusItems";
 import { languageLabel } from "@/editor/languages";
 
 export function StatusBar() {
@@ -21,10 +21,10 @@ export function StatusBar() {
             </>
           )}
         </For>
-        <For each={statusItems().filter((s) => s.align === "left")}>{(s) => <Dynamic component={s.component} />}</For>
+        <For each={visibleStatusItems("left")}>{(s) => <Dynamic component={s.component} />}</For>
       </div>
       <div class="status-right">
-        <For each={statusItems().filter((s) => s.align === "right")}>{(s) => <Dynamic component={s.component} />}</For>
+        <For each={visibleStatusItems("right")}>{(s) => <Dynamic component={s.component} />}</For>
         {tab() && (
           <>
             <button class="status-item">

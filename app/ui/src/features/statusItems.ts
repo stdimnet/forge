@@ -7,6 +7,8 @@ export interface StatusItem {
   align: "left" | "right";
   order: number;
   component: Component;
+  /** Render only while this is true. */
+  when?: () => boolean;
 }
 
 const [statusItems, setStatusItems] = createSignal<StatusItem[]>([]);
@@ -16,3 +18,7 @@ export function registerStatusItem(item: StatusItem): void {
 }
 
 export { statusItems };
+
+/** Items to render on one side, in order. */
+export const visibleStatusItems = (align: StatusItem["align"]) =>
+  statusItems().filter((s) => s.align === align && (s.when?.() ?? true));
