@@ -1,0 +1,59 @@
+---
+name: add-ipc-command
+description: Add a backend command that the Forge UI can call (Rust Tauri command + typed TypeScript client + browser-mode mock). Use whenever a UI feature needs data or actions from the Rust side, or when adding events streamed from Rust to the UI.
+---
+
+# Add an IPC command
+
+Every command has three parts: the Rust handler, a typed UI client and a browser mock.
+
+## 1. Rust
+
+- Put logic in a library crate (`crates/forge-<area>` or `packs/<pack>/<plugin>`) with unit
+  tests; keep `app/src-tauri` thin.
+- Add the handler to `app/src-tauri/src/commands/<area>.rs` (create the module and add
+  `pub mod <area>;` to `commands/mod.rs`):
+
+  ```rust
+  #[tauri::command]
+  pub fn routes_list(state: State<'_, AppState>) -> Result<Vec<Route>> {
+      state.with_workspace(|ws| forge_laravel::routes(ws.root()))
+  }
+  ```
+
+  - Return `forge_core::Result<T>`; errors serialize to strings.
+  - Resolve user paths with `Workspace::resolve`, which rejects paths outside the project.
+  - Long work: make the command `async` or spawn a task; stream progress with
+    `app.emit("<area>://<event>", payload)`.
+  - Feature state: a separate struct managed with `.manage(...)` instead of growing `AppState`.
+- Register it in `app/src-tauri/src/lib.rs` inside `tauri::generate_handler![...]`.
+- Arguments arrive camelCased from JS (`fooBar` → `foo_bar`).
+
+## 2. TypeScript client
+
+`app/ui/src/ipc/<area>.ts`:
+
+```ts
+import { invoke, listen } from "./index";
+export interface Route { method: string; uri: string; name?: string }
+export const routesApi = {
+  list: () => invoke<Route[]>("routes_list"),
+  onChanged: (cb: (r: Route[]) => void) => listen<Route[]>("routes://changed", cb),
+};
+```
+
+## 3. Browser mock
+
+`app/ui/src/mock/<area>Mock.ts`, imported from `app/ui/src/mock/index.ts`:
+
+```ts
+import { registerMock, emitMock } from "@/ipc";
+registerMock("routes_list", () => [{ method: "GET", uri: "/orders/{order}", name: "orders.show" }]);
+```
+
+Mocks only load in browser mode and must never write to a real project. Use the demo files in
+`mock/demoProject.ts` / `mock/demoConfigFiles.ts` so screenshots look realistic.
+
+## 4. Document
+
+Shared or cross-feature contracts go into `docs/ARCHITECTURE.md` → "Shared IPC contracts".
