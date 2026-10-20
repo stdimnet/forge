@@ -15,8 +15,8 @@ use std::sync::Arc;
 
 pub use claude::ClaudeCode;
 pub use cli::{
-    session_rule, AgentCli, AgentInfo, AllowScope, CommandSpec, EventParser, PermissionDecision,
-    PermissionMode, StartOptions,
+    configured_executable, session_rule, setting_key, AgentCli, AgentInfo, AllowScope, CommandSpec,
+    EventParser, PermissionDecision, PermissionMode, StartOptions,
 };
 pub use event::{AgentEvent, Usage};
 pub use gemini::GeminiCli;

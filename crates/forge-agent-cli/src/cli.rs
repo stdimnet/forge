@@ -63,6 +63,34 @@ impl StartOptions {
         self.permission_prompts.unwrap_or(true)
             && self.permission_mode != PermissionMode::BypassPermissions
     }
+
+    /// Fill the executable and model from the user's settings (Settings > Tools >
+    /// AI Agents) where the caller left them open. `get` returns a setting's value.
+    pub fn with_settings(mut self, agent_id: &str, get: impl Fn(&str) -> Option<String>) -> Self {
+        let non_empty = |key: String| get(&key).filter(|v| !v.trim().is_empty());
+        if self.executable.is_none() {
+            self.executable = configured_executable(agent_id, &get);
+        }
+        if self.model.is_none() {
+            self.model = non_empty(setting_key(agent_id, "model"));
+        }
+        self
+    }
+}
+
+/// Settings key of an agent option, e.g. `agents.claude-code.path`.
+pub fn setting_key(agent_id: &str, field: &str) -> String {
+    format!("agents.{agent_id}.{field}")
+}
+
+/// The executable path configured in settings for an agent, if any.
+pub fn configured_executable(
+    agent_id: &str,
+    get: impl Fn(&str) -> Option<String>,
+) -> Option<String> {
+    get(&setting_key(agent_id, "path"))
+        .map(|p| p.trim().to_string())
+        .filter(|p| !p.is_empty())
 }
 
 /// How long an "allow" answer to a permission request applies.
@@ -304,6 +332,26 @@ mod tests {
         };
         assert!(!bypass.prompts_for_permissions());
         assert!(StartOptions::default().prompts_for_permissions());
+    }
+
+    #[test]
+    fn options_from_settings() {
+        let get = |k: &str| match k {
+            "agents.claude-code.path" => Some(" /opt/claude ".to_string()),
+            "agents.claude-code.model" => Some("opus".to_string()),
+            _ => None,
+        };
+        let opts = StartOptions::default().with_settings("claude-code", get);
+        assert_eq!(opts.executable.as_deref(), Some("/opt/claude"));
+        assert_eq!(opts.model.as_deref(), Some("opus"));
+        // Explicit options win.
+        let opts = StartOptions {
+            model: Some("haiku".into()),
+            ..Default::default()
+        }
+        .with_settings("claude-code", get);
+        assert_eq!(opts.model.as_deref(), Some("haiku"));
+        assert_eq!(configured_executable("gemini-cli", get), None);
     }
 
     #[test]

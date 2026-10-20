@@ -49,6 +49,49 @@
       ],
       "settings": [
         {
+          "key": "keymap.active",
+          "title": "Keymap",
+          "type": "enum",
+          "options": [
+            {
+              "value": "auto",
+              "label": "Platform default"
+            },
+            {
+              "value": "$default",
+              "label": "Windows / Linux"
+            },
+            {
+              "value": "macOS",
+              "label": "macOS"
+            }
+          ],
+          "default": "auto",
+          "group": "keymap",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "keymap.overrides.default",
+          "title": "Changed shortcuts (Windows / Linux)",
+          "description": "One entry per action: the action id, then its shortcuts, separated by tabs.",
+          "type": "list",
+          "default": [],
+          "group": "keymap",
+          "project": false,
+          "order": 1
+        },
+        {
+          "key": "keymap.overrides.macOS",
+          "title": "Changed shortcuts (macOS)",
+          "description": "One entry per action: the action id, then its shortcuts, separated by tabs.",
+          "type": "list",
+          "default": [],
+          "group": "keymap",
+          "project": false,
+          "order": 2
+        },
+        {
           "key": "appearance.theme",
           "title": "Theme",
           "type": "enum",
@@ -1786,7 +1829,76 @@
       "commands": [],
       "keybindings": [],
       "toolWindows": [],
-      "settings": [],
+      "settings": [
+        {
+          "key": "agents.claude-code.path",
+          "title": "Claude Code executable",
+          "description": "Leave empty to find `claude` on PATH.",
+          "type": "path",
+          "default": "",
+          "group": "tools.ai-agents",
+          "section": "Claude Code",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "agents.claude-code.model",
+          "title": "Default model",
+          "type": "enum",
+          "options": [
+            {
+              "value": "default",
+              "label": "Default (CLI setting)"
+            },
+            {
+              "value": "sonnet",
+              "label": "Sonnet"
+            },
+            {
+              "value": "opus",
+              "label": "Opus"
+            },
+            {
+              "value": "haiku",
+              "label": "Haiku"
+            }
+          ],
+          "default": "default",
+          "group": "tools.ai-agents",
+          "section": "Claude Code",
+          "project": false,
+          "order": 1
+        },
+        {
+          "key": "agents.claude-code.permissionMode",
+          "title": "Default permission mode",
+          "description": "How much the agent may do before asking. Can be changed per chat.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "default",
+              "label": "Ask before edits and commands"
+            },
+            {
+              "value": "acceptEdits",
+              "label": "Auto-accept edits"
+            },
+            {
+              "value": "plan",
+              "label": "Plan mode (read-only)"
+            },
+            {
+              "value": "bypassPermissions",
+              "label": "Bypass permissions"
+            }
+          ],
+          "default": "default",
+          "group": "tools.ai-agents",
+          "section": "Claude Code",
+          "project": false,
+          "order": 2
+        }
+      ],
       "lspServers": [],
       "runConfigurationTypes": [],
       "aiProviders": [
@@ -1826,7 +1938,71 @@
       "commands": [],
       "keybindings": [],
       "toolWindows": [],
-      "settings": [],
+      "settings": [
+        {
+          "key": "agents.gemini-cli.path",
+          "title": "Gemini CLI executable",
+          "description": "Leave empty to find `gemini` on PATH.",
+          "type": "path",
+          "default": "",
+          "group": "tools.ai-agents",
+          "section": "Gemini CLI",
+          "project": false,
+          "order": 10
+        },
+        {
+          "key": "agents.gemini-cli.model",
+          "title": "Default model",
+          "type": "enum",
+          "options": [
+            {
+              "value": "default",
+              "label": "Default (CLI setting)"
+            },
+            {
+              "value": "gemini-2.5-pro",
+              "label": "Gemini 2.5 Pro"
+            },
+            {
+              "value": "gemini-2.5-flash",
+              "label": "Gemini 2.5 Flash"
+            }
+          ],
+          "default": "default",
+          "group": "tools.ai-agents",
+          "section": "Gemini CLI",
+          "project": false,
+          "order": 11
+        },
+        {
+          "key": "agents.gemini-cli.permissionMode",
+          "title": "Default permission mode",
+          "type": "enum",
+          "options": [
+            {
+              "value": "default",
+              "label": "Ask before edits and commands"
+            },
+            {
+              "value": "acceptEdits",
+              "label": "Auto-accept edits"
+            },
+            {
+              "value": "plan",
+              "label": "Plan mode (read-only)"
+            },
+            {
+              "value": "bypassPermissions",
+              "label": "Bypass permissions"
+            }
+          ],
+          "default": "default",
+          "group": "tools.ai-agents",
+          "section": "Gemini CLI",
+          "project": false,
+          "order": 12
+        }
+      ],
       "lspServers": [],
       "runConfigurationTypes": [],
       "aiProviders": [

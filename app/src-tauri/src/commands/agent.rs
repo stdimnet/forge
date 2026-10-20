@@ -6,8 +6,8 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 
 use forge_agent_cli::{
-    agent_by_id, builtin_agents, compose_prompt, AgentEvent, AgentInfo, AgentSession, EventSink,
-    MessageContext, PermissionDecision, StartOptions,
+    agent_by_id, builtin_agents, compose_prompt, configured_executable, AgentEvent, AgentInfo,
+    AgentSession, EventSink, MessageContext, PermissionDecision, StartOptions,
 };
 use forge_core::{ForgeError, Result};
 use tauri::{AppHandle, Emitter, State};
@@ -33,14 +33,28 @@ impl AgentState {
     }
 }
 
+/// A string setting's effective value.
+fn setting(state: &AppState, key: &str) -> Option<String> {
+    state.read_settings().get_str(key).map(String::from)
+}
+
 /// Available agent CLIs and whether they are installed. `executables` maps agent ids to
-/// user-configured executable paths.
+/// executable paths to check (e.g. unsaved values in the Settings dialog); otherwise the
+/// paths from Settings > Tools > AI Agents are used.
 #[tauri::command]
-pub fn agent_list(executables: Option<HashMap<String, String>>) -> Vec<AgentInfo> {
-    let executables = executables.unwrap_or_default();
+pub fn agent_list(
+    executables: Option<HashMap<String, String>>,
+    state: State<'_, AppState>,
+) -> Vec<AgentInfo> {
     builtin_agents()
         .iter()
-        .map(|a| a.info(executables.get(a.id()).map(String::as_str)))
+        .map(|a| {
+            let path = match &executables {
+                Some(map) => map.get(a.id()).cloned(),
+                None => configured_executable(a.id(), |k| setting(&state, k)),
+            };
+            a.info(path.as_deref())
+        })
         .collect()
 }
 
@@ -64,7 +78,10 @@ pub async fn agent_start(
             tracing::warn!("could not emit {event_name}: {e}");
         }
     });
-    let session = AgentSession::start(adapter, cwd, options.unwrap_or_default(), sink).await?;
+    let options = options
+        .unwrap_or_default()
+        .with_settings(&agent_id, |k| setting(&state, k));
+    let session = AgentSession::start(adapter, cwd, options, sink).await?;
     agents
         .sessions
         .lock()
