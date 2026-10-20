@@ -266,7 +266,9 @@ const methodLabels: Record<MergeMethod, string> = {
 };
 
 function MergeDialog(props: { d: Extract<Dialog, { kind: "merge" }> }) {
+  // Captured up front: the dialog prop goes stale once the dialog closes.
   const mr: MergeRequestDetails = props.d.mr;
+  const onDone = props.d.onDone;
   const [method, setMethod] = createSignal<MergeMethod>(caps().mergeMethods[0] ?? "merge");
   const [deleteBranch, setDeleteBranch] = createSignal(true);
   const defaultMessage = (m: MergeMethod) =>
@@ -284,7 +286,7 @@ function MergeDialog(props: { d: Extract<Dialog, { kind: "merge" }> }) {
       await forgesApi.merge(mr.number, { method: method(), deleteSourceBranch: deleteBranch(), commitMessage: method() === "rebase" ? null : message() });
       close();
       notify("success", `Merged ${ref(mr.number)}`, `${mr.sourceBranch} into ${mr.targetBranch}`);
-      props.d.onDone();
+      onDone();
       void refreshAll();
     } catch (e) {
       setError(errorText(e));
@@ -367,6 +369,7 @@ function MergeDialog(props: { d: Extract<Dialog, { kind: "merge" }> }) {
 
 function ConfirmDialog(props: { d: Extract<Dialog, { kind: "confirm" }> }) {
   const [busy, setBusy] = createSignal(false);
+  const action = props.d.run;
   return (
     <Frame title={props.d.title} onClose={close}>
       <div class="git-dialog-body">{props.d.text}</div>
@@ -382,7 +385,7 @@ function ConfirmDialog(props: { d: Extract<Dialog, { kind: "confirm" }> }) {
           onClick={async () => {
             setBusy(true);
             try {
-              await props.d.run();
+              await action();
             } finally {
               setBusy(false);
               close();
