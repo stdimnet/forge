@@ -1,0 +1,38 @@
+[package]
+name = "forge-containers"
+description = "Forge IDE containers: Docker Engine API, Docker Compose and Kubernetes for the Services tool window"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[features]
+default = ["runtime"]
+# Clients (Docker socket / named pipe / TCP+TLS, Kubernetes API server), compose processes
+# and the keychain. Without it only the pure models, parsers and the tree are built
+# (e.g. for WebAssembly).
+runtime = [
+  "dep:tokio",
+  "dep:rustls",
+  "dep:tokio-rustls",
+  "dep:webpki-roots",
+  "dep:keyring",
+  "dep:dirs",
+  "dep:tracing",
+]
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+yaml-rust2 = { version = "0.10", default-features = false }
+base64 = "0.22"
+tokio = { workspace = true, optional = true, features = ["net", "io-util", "process", "sync", "rt", "macros", "time", "fs"] }
+rustls = { version = "0.23", optional = true, default-features = false, features = ["ring", "std", "tls12", "logging"] }
+tokio-rustls = { version = "0.26", optional = true, default-features = false, features = ["ring", "tls12", "logging"] }
+webpki-roots = { version = "1", optional = true }
+keyring = { version = "3", optional = true, features = ["apple-native", "windows-native", "sync-secret-service", "crypto-rust"] }
+dirs = { workspace = true, optional = true }
+tracing = { workspace = true, optional = true }
+
+[dev-dependencies]
+tempfile.workspace = true
+tokio = { workspace = true, features = ["full"] }
