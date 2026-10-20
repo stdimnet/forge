@@ -1,0 +1,529 @@
+[
+  {
+    "id": "empty-php",
+    "name": "Empty PHP Project",
+    "group": "PHP",
+    "pack": "phpforge",
+    "description": "A Composer project with PSR-4 autoloading, src/, tests/ and PHPUnit.",
+    "icon": "php",
+    "defaultName": "untitled",
+    "tools": [],
+    "options": [
+      {
+        "id": "phpVersion",
+        "label": "PHP version",
+        "kind": "enum",
+        "default": "8.3",
+        "choices": [
+          {
+            "value": "8.4",
+            "label": "8.4"
+          },
+          {
+            "value": "8.3",
+            "label": "8.3"
+          },
+          {
+            "value": "8.2",
+            "label": "8.2"
+          },
+          {
+            "value": "8.1",
+            "label": "8.1"
+          }
+        ]
+      },
+      {
+        "id": "sample",
+        "label": "Create sample code",
+        "kind": "bool",
+        "default": true,
+        "description": "Adds a small example to start from."
+      },
+      {
+        "id": "git",
+        "label": "Create Git repository",
+        "kind": "bool",
+        "default": false
+      }
+    ]
+  },
+  {
+    "id": "laravel",
+    "name": "Laravel",
+    "group": "PHP",
+    "pack": "phpforge",
+    "description": "A new Laravel application, optionally with a starter kit.",
+    "icon": "laravel",
+    "defaultName": "laravel-app",
+    "tools": [
+      "composer"
+    ],
+    "fallback": "empty-php",
+    "options": [
+      {
+        "id": "starterKit",
+        "label": "Starter kit",
+        "kind": "enum",
+        "default": "none",
+        "choices": [
+          {
+            "value": "none",
+            "label": "None"
+          },
+          {
+            "value": "react",
+            "label": "React"
+          },
+          {
+            "value": "vue",
+            "label": "Vue"
+          },
+          {
+            "value": "livewire",
+            "label": "Livewire"
+          }
+        ]
+      },
+      {
+        "id": "git",
+        "label": "Create Git repository",
+        "kind": "bool",
+        "default": false
+      }
+    ]
+  },
+  {
+    "id": "symfony",
+    "name": "Symfony",
+    "group": "PHP",
+    "pack": "phpforge",
+    "description": "A Symfony skeleton (microservice, console app, API) or a full web application.",
+    "icon": "symfony",
+    "defaultName": "symfony-app",
+    "tools": [
+      "composer"
+    ],
+    "fallback": "empty-php",
+    "options": [
+      {
+        "id": "variant",
+        "label": "Project type",
+        "kind": "enum",
+        "default": "webapp",
+        "choices": [
+          {
+            "value": "webapp",
+            "label": "Web application"
+          },
+          {
+            "value": "skeleton",
+            "label": "Skeleton (microservice, console, API)"
+          }
+        ]
+      },
+      {
+        "id": "git",
+        "label": "Create Git repository",
+        "kind": "bool",
+        "default": false
+      }
+    ]
+  },
+  {
+    "id": "composer-package",
+    "name": "Composer Package",
+    "group": "PHP",
+    "pack": "phpforge",
+    "description": "A reusable library for Packagist with PHPUnit, README and MIT license.",
+    "icon": "composer",
+    "defaultName": "my-package",
+    "tools": [],
+    "options": [
+      {
+        "id": "vendor",
+        "label": "Vendor",
+        "kind": "string",
+        "default": "acme"
+      },
+      {
+        "id": "phpVersion",
+        "label": "PHP version",
+        "kind": "enum",
+        "default": "8.3",
+        "choices": [
+          {
+            "value": "8.4",
+            "label": "8.4"
+          },
+          {
+            "value": "8.3",
+            "label": "8.3"
+          },
+          {
+            "value": "8.2",
+            "label": "8.2"
+          },
+          {
+            "value": "8.1",
+            "label": "8.1"
+          }
+        ]
+      },
+      {
+        "id": "sample",
+        "label": "Create sample code",
+        "kind": "bool",
+        "default": true,
+        "description": "Adds a small example to start from."
+      },
+      {
+        "id": "git",
+        "label": "Create Git repository",
+        "kind": "bool",
+        "default": false
+      }
+    ]
+  },
+  {
+    "id": "wordpress-plugin",
+    "name": "WordPress Plugin",
+    "group": "PHP",
+    "pack": "phpforge",
+    "description": "A plugin with header, main class, shortcode, readme.txt and uninstall hook.",
+    "icon": "wordpress",
+    "defaultName": "my-plugin",
+    "tools": [],
+    "options": [
+      {
+        "id": "phpVersion",
+        "label": "PHP version",
+        "kind": "enum",
+        "default": "8.3",
+        "choices": [
+          {
+            "value": "8.4",
+            "label": "8.4"
+          },
+          {
+            "value": "8.3",
+            "label": "8.3"
+          },
+          {
+            "value": "8.2",
+            "label": "8.2"
+          },
+          {
+            "value": "8.1",
+            "label": "8.1"
+          }
+        ]
+      },
+      {
+        "id": "git",
+        "label": "Create Git repository",
+        "kind": "bool",
+        "default": false
+      }
+    ]
+  },
+  {
+    "id": "empty-web",
+    "name": "Empty HTML/CSS/JS",
+    "group": "Web",
+    "pack": "webforge",
+    "description": "A static website: index.html, a stylesheet and a script.",
+    "icon": "html",
+    "defaultName": "website",
+    "tools": [],
+    "options": [
+      {
+        "id": "sample",
+        "label": "Create sample code",
+        "kind": "bool",
+        "default": true,
+        "description": "Adds a small example to start from."
+      },
+      {
+        "id": "git",
+        "label": "Create Git repository",
+        "kind": "bool",
+        "default": false
+      }
+    ]
+  },
+  {
+    "id": "vite",
+    "name": "Vite + TypeScript",
+    "group": "Web",
+    "pack": "webforge",
+    "description": "A framework-free Vite app with TypeScript.",
+    "icon": "vite",
+    "defaultName": "vite-project",
+    "tools": [
+      "npm"
+    ],
+    "fallback": "empty-web",
+    "options": [
+      {
+        "id": "install",
+        "label": "Install dependencies",
+        "kind": "bool",
+        "default": true,
+        "description": "Runs npm install after the project is created."
+      },
+      {
+        "id": "git",
+        "label": "Create Git repository",
+        "kind": "bool",
+        "default": false
+      }
+    ]
+  },
+  {
+    "id": "react",
+    "name": "React",
+    "group": "Web",
+    "pack": "webforge",
+    "description": "A React app built with Vite.",
+    "icon": "react",
+    "defaultName": "react-app",
+    "tools": [
+      "npm"
+    ],
+    "fallback": "empty-web",
+    "options": [
+      {
+        "id": "typescript",
+        "label": "TypeScript",
+        "kind": "bool",
+        "default": true
+      },
+      {
+        "id": "install",
+        "label": "Install dependencies",
+        "kind": "bool",
+        "default": true,
+        "description": "Runs npm install after the project is created."
+      },
+      {
+        "id": "git",
+        "label": "Create Git repository",
+        "kind": "bool",
+        "default": false
+      }
+    ]
+  },
+  {
+    "id": "vue",
+    "name": "Vue.js",
+    "group": "Web",
+    "pack": "webforge",
+    "description": "A Vue 3 app built with Vite.",
+    "icon": "vue",
+    "defaultName": "vue-app",
+    "tools": [
+      "npm"
+    ],
+    "fallback": "empty-web",
+    "options": [
+      {
+        "id": "typescript",
+        "label": "TypeScript",
+        "kind": "bool",
+        "default": true
+      },
+      {
+        "id": "install",
+        "label": "Install dependencies",
+        "kind": "bool",
+        "default": true,
+        "description": "Runs npm install after the project is created."
+      },
+      {
+        "id": "git",
+        "label": "Create Git repository",
+        "kind": "bool",
+        "default": false
+      }
+    ]
+  },
+  {
+    "id": "angular",
+    "name": "Angular",
+    "group": "Web",
+    "pack": "webforge",
+    "description": "An Angular workspace created with the Angular CLI.",
+    "icon": "angular",
+    "defaultName": "angular-app",
+    "tools": [
+      "npx"
+    ],
+    "fallback": "empty-web",
+    "options": [
+      {
+        "id": "install",
+        "label": "Install dependencies",
+        "kind": "bool",
+        "default": true,
+        "description": "Runs npm install after the project is created."
+      },
+      {
+        "id": "git",
+        "label": "Create Git repository",
+        "kind": "bool",
+        "default": false
+      }
+    ]
+  },
+  {
+    "id": "svelte",
+    "name": "Svelte",
+    "group": "Web",
+    "pack": "webforge",
+    "description": "A SvelteKit app created with the Svelte CLI (sv).",
+    "icon": "svelte",
+    "defaultName": "svelte-app",
+    "tools": [
+      "npx"
+    ],
+    "fallback": "empty-web",
+    "options": [
+      {
+        "id": "typescript",
+        "label": "TypeScript",
+        "kind": "bool",
+        "default": true
+      },
+      {
+        "id": "install",
+        "label": "Install dependencies",
+        "kind": "bool",
+        "default": true,
+        "description": "Runs npm install after the project is created."
+      },
+      {
+        "id": "git",
+        "label": "Create Git repository",
+        "kind": "bool",
+        "default": false
+      }
+    ]
+  },
+  {
+    "id": "lua-script",
+    "name": "Lua Script",
+    "group": "Lua",
+    "pack": "luaforge",
+    "description": "A Lua script with a module and a LuaLS configuration.",
+    "icon": "lua",
+    "defaultName": "lua-script",
+    "tools": [],
+    "options": [
+      {
+        "id": "luaVersion",
+        "label": "Lua version",
+        "kind": "enum",
+        "default": "5.4",
+        "choices": [
+          {
+            "value": "5.4",
+            "label": "Lua 5.4"
+          },
+          {
+            "value": "5.3",
+            "label": "Lua 5.3"
+          },
+          {
+            "value": "5.1",
+            "label": "Lua 5.1"
+          },
+          {
+            "value": "luajit",
+            "label": "LuaJIT"
+          }
+        ]
+      },
+      {
+        "id": "sample",
+        "label": "Create sample code",
+        "kind": "bool",
+        "default": true,
+        "description": "Adds a small example to start from."
+      },
+      {
+        "id": "git",
+        "label": "Create Git repository",
+        "kind": "bool",
+        "default": false
+      }
+    ]
+  },
+  {
+    "id": "love-game",
+    "name": "LÖVE Game",
+    "group": "Lua",
+    "pack": "luaforge",
+    "description": "A LÖVE 11 game with main.lua, conf.lua and LÖVE API completion.",
+    "icon": "love",
+    "defaultName": "love-game",
+    "tools": [],
+    "options": [
+      {
+        "id": "sample",
+        "label": "Create sample code",
+        "kind": "bool",
+        "default": true,
+        "description": "Adds a small example to start from."
+      },
+      {
+        "id": "git",
+        "label": "Create Git repository",
+        "kind": "bool",
+        "default": false
+      }
+    ]
+  },
+  {
+    "id": "neovim-plugin",
+    "name": "Neovim Plugin",
+    "group": "Lua",
+    "pack": "luaforge",
+    "description": "A Neovim plugin with setup(), a user command and a help file.",
+    "icon": "neovim",
+    "defaultName": "my-plugin.nvim",
+    "tools": [],
+    "options": [
+      {
+        "id": "vendor",
+        "label": "GitHub user",
+        "kind": "string",
+        "default": "me"
+      },
+      {
+        "id": "git",
+        "label": "Create Git repository",
+        "kind": "bool",
+        "default": false
+      }
+    ]
+  },
+  {
+    "id": "empty",
+    "name": "Empty Project",
+    "group": "Other",
+    "pack": "core",
+    "description": "An empty folder. Language support activates for the files you add.",
+    "icon": "folder",
+    "defaultName": "untitled",
+    "tools": [],
+    "options": [
+      {
+        "id": "git",
+        "label": "Create Git repository",
+        "kind": "bool",
+        "default": false
+      }
+    ]
+  }
+]

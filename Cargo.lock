@@ -1212,6 +1212,7 @@ dependencies = [
  "forge-core",
  "forge-lsp",
  "forge-plugin-api",
+ "forge-project",
  "forge-vcs",
  "futures-util",
  "phpforge-lang-php",

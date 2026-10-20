@@ -1,5 +1,5 @@
 use serde::Serialize;
-use tauri::State;
+use tauri::{AppHandle, State};
 
 use forge_core::{FileEntry, FileMatch, Result, Workspace};
 
@@ -12,8 +12,13 @@ pub struct WorkspaceInfo {
 }
 
 #[tauri::command]
-pub fn workspace_open(path: String, state: State<'_, AppState>) -> Result<WorkspaceInfo> {
+pub fn workspace_open(
+    path: String,
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> Result<WorkspaceInfo> {
     let ws = Workspace::open(&path)?;
+    crate::commands::project::emit_detection(&app, ws.root());
     let info = WorkspaceInfo {
         name: ws.name(),
         root: ws.root().display().to_string(),
@@ -39,13 +44,31 @@ pub fn workspace_current(state: State<'_, AppState>) -> Option<WorkspaceInfo> {
         .ok()
 }
 
+/// A recent project with its detected framework or language for the Welcome screen badge.
+#[derive(Serialize)]
+pub struct RecentProjectInfo {
+    pub name: String,
+    pub root: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub primary: Option<forge_project::Framework>,
+}
+
 /// Recently opened projects that still exist on disk.
 #[tauri::command]
-pub fn workspace_recent() -> Vec<crate::recent::RecentProject> {
-    crate::recent::load()
-        .into_iter()
-        .filter(|p| std::path::Path::new(&p.root).is_dir())
-        .collect()
+pub async fn workspace_recent() -> Vec<RecentProjectInfo> {
+    tauri::async_runtime::spawn_blocking(|| {
+        crate::recent::load()
+            .into_iter()
+            .filter(|p| std::path::Path::new(&p.root).is_dir())
+            .map(|p| RecentProjectInfo {
+                primary: forge_project::detect(std::path::Path::new(&p.root)).primary,
+                name: p.name,
+                root: p.root,
+            })
+            .collect()
+    })
+    .await
+    .unwrap_or_default()
 }
 
 #[tauri::command]
