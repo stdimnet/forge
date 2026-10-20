@@ -1,7 +1,7 @@
 ---
 title: forge-remote
 description: "Forge IDE remote development: SSH connections, host keys, ~/.ssh/config and the Forge agent deployment."
-order: 200
+order: 210
 tags: [crate, rust]
 ---
 
@@ -35,10 +35,10 @@ With `client` (the default):
 | --- | --- |
 | `agent.rs` | Installing and starting the Forge agent over an SSH session. |
 | `config.rs` | Saved SSH configurations (Settings \| Tools \| SSH Configurations), stored in `<config dir>/forge/ssh.toml`. Passwords and key passphrases never go there: they live in the OS keychain. |
-| `connection.rs` | A live connection to the Forge agent on a host: connects (SSH + agent start), measures latency, notices a dead connection and reconnects with backoff. Projects use it as the `Connection` of their `forge_backend::RemoteBackend`. |
+| `connection.rs` | A live connection to the Forge agent on a host: connects (SSH + agent start), measures latency, notices a dead connection and reconnects with backoff. |
 | `deploy.rs` | Installing the Forge agent on a remote host: probe the host with one shell command, decide whether the agent must be uploaded, upload it through `cat` (no SFTP needed) and start it. |
 | `known_hosts.rs` | OpenSSH `known_hosts`: which host keys are trusted. |
-| `session.rs` | SSH sessions with russh: host key verification against `known_hosts` (unknown and changed keys need the user's confirmation of the fingerprint), password, key file and ssh-agent authentication, command execution and streams. |
+| `session.rs` | SSH sessions with russh: host key verification against `known_hosts` (unknown and changed keys need the user's confirmation of the fingerprint), password, key file and ssh-agent authentication, command execution and streams, jump hosts (`ProxyJump`, one session tunnelled through the previous one) and `ProxyCommand`, port forwarding (`direct-tcpip` channels and remote `tcpip-forward` listeners) and forwarded Unix sockets (the Docker API over SSH). |
 | `ssh_config.rs` | OpenSSH client configuration (`~/.ssh/config`): host blocks with patterns and the keywords Forge uses to connect. Like `ssh`, the first value obtained for a keyword wins and `IdentityFile` accumulates. |
 | `store.rs` | Saved SSH configurations on disk (`<config dir>/forge/ssh.toml`), their passwords and passphrases in the OS keychain (service `forge-ssh`, account = configuration id), and the user's OpenSSH files (`~/.ssh/config`, `~/.ssh/known_hosts`). |
 
@@ -63,7 +63,7 @@ pub use known_hosts::HostKeyStatus;
 
 ## Tests
 
-9 source files, about 2631 lines; 30 unit tests and 3 integration tests in `tests/` (`ssh.rs`).
+9 source files, about 3257 lines; 32 unit tests and 5 integration tests in `tests/` (`ssh.rs`).
 
 ```sh
 cargo test -p forge-remote

@@ -1,7 +1,7 @@
 ---
 title: forge-lsp
 description: "Forge IDE: generic Language Server Protocol client and server manager."
-order: 130
+order: 140
 tags: [crate, rust]
 ---
 

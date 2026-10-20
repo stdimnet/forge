@@ -1,7 +1,7 @@
 ---
 title: phpforge-dql
 description: "PHPForge: Doctrine DQL tokenizer, parser, highlighting, completion and diagnostics, and DQL sites in PHP source (pure, also built to WebAssembly)."
-order: 280
+order: 290
 tags: [crate, rust, pack]
 ---
 

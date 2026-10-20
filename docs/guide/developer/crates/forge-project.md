@@ -1,7 +1,7 @@
 ---
 title: forge-project
 description: "Forge IDE projects: project type detection and New Project generators."
-order: 190
+order: 200
 tags: [crate, rust]
 ---
 

@@ -19,7 +19,8 @@ Forge core: the language-agnostic foundation every pack builds on.
 | --- | --- |
 | `error.rs` |  |
 | `gitignore.rs` | Which project files git ignores, so the project tree can gray them out like PHPStorm. |
-| `search.rs` | Fuzzy file search for "Go to File" / Search Everywhere. |
+| `project_files.rs` | Project-relative files that Forge itself keeps in a project (`.forge/settings.toml`, `.forge/dataSources.toml`, `.forge/breakpoints.json`, ...) and project files it reads (`.env`), wherever the project lives: `LocalFiles` for a folder on this machine, the project backend (`forge_backend::BackendFiles`) for a project on a remote host. |
+| `search.rs` | Fuzzy file search for "Go to File" / Search Everywhere, and Find in Files. |
 | `settings.rs` | Layered settings: built-in defaults < user < project. |
 | `watch.rs` | Watches the open project for changes made outside the editor (git checkouts, composer, code generators, other editors) and reports them in debounced batches. |
 | `workspace.rs` |  |
@@ -28,6 +29,7 @@ Forge core: the language-agnostic foundation every pack builds on.
 
 ```rust
 pub use error::{ForgeError, Result};
+pub use project_files::{LocalFiles, MemoryFiles, ProjectFiles, SharedFiles};
 pub use search::{fuzzy_match, fuzzy_match_with, FileMatch, FuzzyMatch, MatchOptions};
 pub use settings::{Settings, SettingsChange, SettingsScope};
 pub use watch::{FsChanges, ProjectWatcher};
@@ -42,12 +44,12 @@ pub use workspace::{FileEntry, FileKind, Workspace};
 
 ## Dependencies
 
-- Workspace crates: [`forge-fuzzy`](forge-fuzzy.md)
+- Workspace crates: [`forge-find`](forge-find.md), [`forge-fuzzy`](forge-fuzzy.md)
 - External: `dirs`, `ignore`, `notify`, `serde`, `serde_json`, `thiserror`, `toml`, `tracing`
 
 ## Tests
 
-7 source files, about 1406 lines; 24 unit tests.
+8 source files, about 1689 lines; 27 unit tests.
 
 ```sh
 cargo test -p forge-core

@@ -1,7 +1,7 @@
 ---
 title: webforge-fw-vue
 description: "WebForge: Vue.js support (single-file components, props, emits and usages)."
-order: 350
+order: 360
 tags: [crate, rust, pack]
 ---
 

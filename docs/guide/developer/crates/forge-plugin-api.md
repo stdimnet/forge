@@ -1,7 +1,7 @@
 ---
 title: forge-plugin-api
 description: "Stable plugin API for Forge language packs and feature plugins."
-order: 170
+order: 180
 tags: [crate, rust]
 ---
 
@@ -45,12 +45,12 @@ pub trait Plugin: Send + Sync { … }
 
 ## Dependencies
 
-- Workspace crates: [`forge-core`](forge-core.md), [`forge-filetypes`](forge-filetypes.md)
+- Workspace crates: [`forge-core`](forge-core.md), [`forge-filetypes`](forge-filetypes.md), [`forge-keymap`](forge-keymap.md)
 - External: `serde`, `serde_json`, `thiserror`, `toml`
 
 ## Tests
 
-4 source files, about 1480 lines; 18 unit tests.
+4 source files, about 1495 lines; 18 unit tests.
 
 ```sh
 cargo test -p forge-plugin-api

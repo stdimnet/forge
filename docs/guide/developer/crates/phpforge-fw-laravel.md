@@ -1,7 +1,7 @@
 ---
 title: phpforge-fw-laravel
 description: "PHPForge: Laravel support (routes, views, Blade components, config/env, Eloquent, translations, artisan)."
-order: 290
+order: 300
 tags: [crate, rust, pack]
 ---
 

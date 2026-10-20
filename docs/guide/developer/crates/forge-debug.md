@@ -65,7 +65,7 @@ pub fn launch_env(port: u16, server_name: Option<&str>) -> Vec<(String, String)>
 
 ## Tests
 
-12 source files, about 3005 lines; 15 unit tests and 7 integration tests in `tests/` (`dbgp_server.rs`).
+12 source files, about 3082 lines; 15 unit tests and 8 integration tests in `tests/` (`dbgp_server.rs`).
 
 ```sh
 cargo test -p forge-debug

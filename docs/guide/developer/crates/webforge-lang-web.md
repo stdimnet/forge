@@ -1,7 +1,7 @@
 ---
 title: webforge-lang-web
 description: "WebForge: package.json, npm scripts, package managers and the shared JavaScript/TypeScript/HTML scanning used by the framework plugins."
-order: 360
+order: 370
 tags: [crate, rust, pack]
 ---
 
@@ -31,7 +31,7 @@ WebAssembly (`crates/forge-wasm/src/web.rs`).
 | `npm.rs` | The npm tool window and `package.json` gutter: every `package.json` of the project with its scripts and package manager. |
 | `package_json.rs` | `package.json`: name, scripts with their positions, dependencies, workspaces and the `packageManager` field. |
 | `pm.rs` | Package manager detection, like WebStorm's "Package manager: auto": the `packageManager` field (Corepack), else the lock file next to the `package.json` or in a parent directory (workspaces), else npm. |
-| `source.rs` | The project files the framework indexes read, and module resolution between them (relative specifiers, `tsconfig.json`/`jsconfig.json` path aliases, index files). |
+| `source.rs` | The project files the framework indexes read, and module resolution between them (relative specifiers, `tsconfig.json`/`jsconfig.json` path aliases, index files and workspace packages imported by their package name). |
 | `text.rs` | Offsets and positions. Scanners work in UTF-8 byte offsets; the UI (CodeMirror, JS strings) uses UTF-16 code units and 0-based lines/columns. Convert at the boundary. |
 
 ## Main public items
@@ -60,7 +60,7 @@ pub trait FrameworkIndex { … }
 
 ## Tests
 
-12 source files, about 2387 lines; 28 unit tests.
+12 source files, about 2546 lines; 29 unit tests.
 
 ```sh
 cargo test -p webforge-lang-web

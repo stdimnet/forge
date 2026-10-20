@@ -1,7 +1,7 @@
 ---
 title: forge-vcs
 description: "Forge IDE version control: drives the git CLI and parses its output."
-order: 240
+order: 250
 tags: [crate, rust]
 ---
 
