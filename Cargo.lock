@@ -1210,6 +1210,7 @@ dependencies = [
  "forge-agent-cli",
  "forge-ai",
  "forge-core",
+ "forge-forges",
  "forge-lsp",
  "forge-plugin-api",
  "forge-project",

@@ -8,6 +8,10 @@ use forge_plugin_api::{PluginDescriptor, PluginRegistry};
 const MANIFESTS: &[(&str, &str)] = &[
     ("core.toml", include_str!("../plugins/core.toml")),
     ("git.toml", include_str!("../plugins/git.toml")),
+    (
+        "code-hosts.toml",
+        include_str!("../plugins/code-hosts.toml"),
+    ),
     ("terminal.toml", include_str!("../plugins/terminal.toml")),
     ("php.toml", include_str!("../plugins/php.toml")),
     ("phpforge.toml", include_str!("../plugins/phpforge.toml")),
