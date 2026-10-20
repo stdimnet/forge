@@ -137,7 +137,7 @@ function TerminalHost(props: { tab: TerminalTab }) {
   let host!: HTMLDivElement;
   const visible = () => activeTab() === props.tab.id && layout.active.bottom === "terminal";
   onMount(() => {
-    attachSession(props.tab.id, host, props.tab.cwd);
+    attachSession(props.tab.id, host, props.tab.cwd, props.tab.command);
     const ro = new ResizeObserver(() => visible() && fitSession(props.tab.id));
     ro.observe(host);
     onCleanup(() => ro.disconnect());

@@ -484,6 +484,49 @@ app/ui/            SolidJS UI
 - Errors are worded for balloons: rejected tokens, missing permissions, rate limits (with the reset
   time), unreachable servers.
 
+## Services: Docker, Docker Compose and Kubernetes (`forge-containers`)
+
+- Pure modules (also in `forge-wasm`, `crates/forge-wasm/src/containers.rs`): Engine API JSON
+  into models (`docker`), compose files with profiles, env files, `${VAR}` interpolation from
+  the project's `.env`, overrides and the `docker compose` command lines (`compose`), kubeconfig
+  files and pods / deployments / services (`kube`), the multiplexed log stream (`logs`), pull
+  progress (`pull`), the daemon endpoint from settings, `DOCKER_HOST` or the platform default
+  (`endpoint`), exec / attach / `kubectl exec` command lines (`exec`), gutter markers
+  (`gutter`) and the whole Services tree, details pane and toolbar state (`tree`).
+- Runtime (`runtime` feature): a small HTTP/1.1 client over Unix sockets, Windows named pipes
+  and TCP with rustls (`http`), the Engine client (`engine`: snapshot, lifecycle, inspect,
+  logs, pulls with `X-Registry-Auth`, `/events`), the Kubernetes client (`kubeclient`: CA,
+  bearer tokens, client certificates, basic auth, exec credential plugins), `docker compose` /
+  `docker build` processes (`cli`) and registry passwords in the OS keychain (service
+  `forge-containers`, account `registry:<server>`; `secrets`). Only compose, builds and the
+  interactive terminals use the docker CLI.
+- `Hub` holds the state: a watcher connects, follows `/events` (debounced refresh) and retries
+  every 10 s; compose files are read from the project root and one level below; contexts load
+  their namespaces and the default namespace's workloads when expanded.
+- Node ids: `docker`, `docker/containers|images|networks|volumes`, `docker/container/<id>`,
+  `docker/image/<id>`, `docker/volume/<name>`, `docker/network/<id>`, `compose/<project>`,
+  `compose/<project>/<service>`, `kube/<context>/<namespace>/pods|deployments|services/<name>`
+  (segments percent-encoded).
+- IPC (`app/ui/src/ipc/services.ts`): `services_tree() -> Node[]`, `services_refresh()`,
+  `services_expand({ nodeId })`, `services_details({ nodeId }) -> Details | null` (title, status,
+  tabs `dashboard | log | console | inspection`, Dashboard sections with rows and tables,
+  available actions), `services_action({ nodeId, action: "start" | "stop" | "restart" | "remove"
+  | "pull" | "up" | "down" | "connect" | "refresh" })`, `services_inspect({ nodeId }) -> string`,
+  `services_logs_start({ nodeId }) -> key`, `services_logs_stop`, `services_console({ key }) ->
+  ConsoleLine[]`, `services_terminal({ nodeId, attach }) -> { title, program, args, env }`
+  (opened with `openTerminalWith`; `terminal_open` takes `args`), `services_pull({ image })`,
+  `services_compose_up({ path, service? })`, `services_dockerfile_run({ path })`,
+  `services_gutter({ path, content })`, `services_compose_changed()`, `services_status()`,
+  `docker_test_connection({ settings? })`, `docker_registry_login|logout|status`.
+- Events on `services://event`: `{ type: "tree", nodes }`, `{ type: "console", key, delta, reset? }`
+  (keys `log:<nodeId>` for followed logs, `run:<nodeId>` for compose, build and pull output;
+  deltas are `forge-output` console lines), `{ type: "ended", key }`, `{ type: "status", state,
+  endpoint, error?, version? }`.
+- Settings: Build, Execution, Deployment | Docker (`docker.connection`, `docker.socketPath`,
+  `docker.tcp.url|tls|certPath`, `docker.cliPath`, `docker.logs.tail`), | Docker | Docker
+  Registry (`docker.registries`: `server<TAB>user`), | Kubernetes (`kubernetes.kubeconfig`,
+  `kubernetes.defaultContext`, `kubernetes.defaultNamespace`, `kubernetes.kubectlPath`).
+
 ## Scripting and config language packs
 
 - `app/ui/src/features/languages/` holds the packs for Bash, Python, YAML, JSON, INI, `.conf`,

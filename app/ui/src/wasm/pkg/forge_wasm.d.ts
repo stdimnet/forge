@@ -29,6 +29,52 @@ export function chat_new(): string;
 export function chat_set_permission(request_json: string): string;
 
 /**
+ * `ComposeCommand` → arguments after `docker`.
+ */
+export function containers_compose_args(request_json: string): string;
+
+/**
+ * `{ path, content, env?, project? }` → `ComposeFile`.
+ */
+export function containers_compose_parse(request_json: string): string;
+
+/**
+ * Engine API responses (`RawSnapshot`) → `DockerSnapshot`.
+ */
+export function containers_docker_snapshot(raw_json: string): string;
+
+/**
+ * `{ path, project, content }` → `DockerfileRun`.
+ */
+export function containers_dockerfile_plan(request_json: string): string;
+
+/**
+ * `{ content, baseDir }` → `KubeConfig`.
+ */
+export function containers_kubeconfig_parse(request_json: string): string;
+
+/**
+ * `{ image }` → handle for [`containers_pull_push`].
+ */
+export function containers_pull_new(request_json: string): string;
+
+/**
+ * `{ handle, text }` → `{ lines, state }`; `text: null` finishes and drops the handle.
+ */
+export function containers_pull_push(request_json: string): string;
+
+/**
+ * Exec / attach / kubectl exec command lines (`TerminalCommand`), mirroring
+ * `services_terminal`.
+ */
+export function containers_terminal_command(request_json: string): string;
+
+/**
+ * `RawWorkloads` (API lists) → `Workloads`.
+ */
+export function containers_workloads_parse(raw_json: string): string;
+
+/**
  * Mirrors `doctrine_complete`: `{ path, content, offset, snapshot }` → `DqlCompletion | null`.
  */
 export function dql_complete(request_json: string): string;
@@ -208,6 +254,21 @@ export function search_match_files(request_json: string): string;
 export function search_rank(request_json: string): string;
 
 /**
+ * `{ input, nodeId }` → `Details | null`, mirroring `services_details`.
+ */
+export function services_details(request_json: string): string;
+
+/**
+ * `{ path, content }` → `GutterMarker[]`, mirroring `services_gutter`.
+ */
+export function services_gutter(request_json: string): string;
+
+/**
+ * `ServicesInput` → `Node[]`, mirroring `services_tree`.
+ */
+export function services_tree(input_json: string): string;
+
+/**
  * `SearchRequest` → `SearchResponse`.
  */
 export function settings_search(request_json: string): string;
@@ -252,6 +313,15 @@ export interface InitOutput {
     readonly chat_drop: (a: number, b: number, c: number) => void;
     readonly chat_new: (a: number) => void;
     readonly chat_set_permission: (a: number, b: number, c: number) => void;
+    readonly containers_compose_args: (a: number, b: number, c: number) => void;
+    readonly containers_compose_parse: (a: number, b: number, c: number) => void;
+    readonly containers_docker_snapshot: (a: number, b: number, c: number) => void;
+    readonly containers_dockerfile_plan: (a: number, b: number, c: number) => void;
+    readonly containers_kubeconfig_parse: (a: number, b: number, c: number) => void;
+    readonly containers_pull_new: (a: number, b: number, c: number) => void;
+    readonly containers_pull_push: (a: number, b: number, c: number) => void;
+    readonly containers_terminal_command: (a: number, b: number, c: number) => void;
+    readonly containers_workloads_parse: (a: number, b: number, c: number) => void;
     readonly dql_complete: (a: number, b: number, c: number) => void;
     readonly dql_diagnostics: (a: number, b: number, c: number) => void;
     readonly dql_goto: (a: number, b: number, c: number) => void;
@@ -288,6 +358,9 @@ export interface InitOutput {
     readonly scratches_validate_name: (a: number, b: number, c: number) => void;
     readonly search_match_files: (a: number, b: number, c: number) => void;
     readonly search_rank: (a: number, b: number, c: number) => void;
+    readonly services_details: (a: number, b: number, c: number) => void;
+    readonly services_gutter: (a: number, b: number, c: number) => void;
+    readonly services_tree: (a: number, b: number, c: number) => void;
     readonly settings_search: (a: number, b: number, c: number) => void;
     readonly settings_validate: (a: number, b: number, c: number) => void;
     readonly sql_change_statements: (a: number, b: number, c: number) => void;

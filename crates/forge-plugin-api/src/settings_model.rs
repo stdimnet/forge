@@ -18,6 +18,7 @@ pub const GROUP_ORDER: &[&str] = &[
     "Editor",
     "Plugins",
     "Version Control",
+    "Build, Execution, Deployment",
     "Languages & Frameworks",
     "Tools",
     "AI",

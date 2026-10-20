@@ -23,6 +23,7 @@ import "./symfonyMock";
 import "./doctrineMock";
 import "./forgesMock";
 import "./markdownMock";
+import "./servicesMock";
 
 // File types answer synchronously once the WebAssembly build is loaded; wait for it so the
 // first editors do not start as plain text.

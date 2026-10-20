@@ -10,7 +10,7 @@ import { getSetting } from "@/state/settings";
 import { runApi } from "@/ipc/run";
 import { revealLocation } from "@/features/lsp/navigation";
 import { showBalloon } from "@/keymap";
-import { closeTab } from "./store";
+import { closeTab, type TerminalProgram } from "./store";
 
 interface Session {
   term: Terminal;
@@ -102,7 +102,7 @@ export function fitSession(id: string): void {
 }
 
 /** Create the xterm instance for a tab inside `host` and start its shell. */
-export function attachSession(id: string, host: HTMLElement, cwd?: string): void {
+export function attachSession(id: string, host: HTMLElement, cwd?: string, command?: TerminalProgram): void {
   const existing = sessions.get(id);
   if (existing) {
     if (existing.term.element && existing.term.element.parentElement !== host) host.appendChild(existing.term.element);
@@ -177,10 +177,10 @@ export function attachSession(id: string, host: HTMLElement, cwd?: string): void
   term.onData((data) => {
     if (session.opened && !session.exited) void terminalApi.write(id, data).catch(() => undefined);
   });
-  void start(id, session, cwd);
+  void start(id, session, cwd, command);
 }
 
-async function start(id: string, s: Session, cwd?: string): Promise<void> {
+async function start(id: string, s: Session, cwd?: string, command?: TerminalProgram): Promise<void> {
   s.unlisten = await terminalApi.onEvent(id, (e) => {
     if (e.type === "output") s.term.write(e.data);
     else {
@@ -192,7 +192,13 @@ async function start(id: string, s: Session, cwd?: string): Promise<void> {
     }
   });
   try {
-    await terminalApi.open({ id, cwd, cols: s.term.cols, rows: s.term.rows });
+    await terminalApi.open({
+      id,
+      cwd,
+      cols: s.term.cols,
+      rows: s.term.rows,
+      ...(command && { shell: command.program, args: command.args, env: Object.fromEntries(command.env ?? []) }),
+    });
     s.opened = true;
     s.lastSize = `${s.term.cols}x${s.term.rows}`;
   } catch (err) {

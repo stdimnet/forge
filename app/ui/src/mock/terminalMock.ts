@@ -5,12 +5,18 @@
 import { emitMock, registerMock } from "@/ipc";
 import type { TerminalEvent, TerminalOpenOptions } from "@/ipc/terminal";
 import { demoProjectName } from "./demoProject";
+import { initialLogs } from "./servicesDemoData";
+import { mockContainerFor } from "./servicesMock";
 
 interface FakeShell {
   line: string;
   cwd: string;
   history: string[];
   historyPos: number;
+  /** A shell inside a container or pod (`docker exec -it`, `kubectl exec -it`). */
+  container?: { host: string; service: string };
+  /** `docker attach`: output only, no prompt. */
+  attached?: boolean;
 }
 
 const shells = new Map<string, FakeShell>();
@@ -33,7 +39,7 @@ const emit = (id: string, e: TerminalEvent) => emitMock(`terminal://${id}`, e);
 const out = (id: string, data: string) => emit(id, { type: "output", data: data.replace(/\n/g, "\r\n") });
 
 const prompt = (s: FakeShell) =>
-  `${C.green}${C.bold}dev@forge${C.reset} ${C.blue}${C.bold}${s.cwd}${C.reset} ${C.magenta}(feature/order-totals)${C.reset} $ `;
+  s.attached ? "" : s.container ? `root@${s.container.host}:${s.cwd}# ` : `${C.green}${C.bold}dev@forge${C.reset} ${C.blue}${C.bold}${s.cwd}${C.reset} ${C.magenta}(feature/order-totals)${C.reset} $ `;
 
 const LS_ROOT = [
   ["app", "dir"],
@@ -110,9 +116,29 @@ const COMMANDS: Record<string, (args: string[], s: FakeShell) => string> = {
     `This is Forge's browser-mode terminal. Try ${C.bold}ls${C.reset}, ${C.bold}php -v${C.reset}, ${C.bold}git status${C.reset}, ${C.bold}grep -rn orders app${C.reset}, ${C.bold}clear${C.reset}.\n`,
 };
 
+const CONTAINER_COMMANDS: Record<string, (args: string[], s: FakeShell) => string> = {
+  ls: (_a, s) =>
+    s.cwd === "/var/www/html"
+      ? `${C.blue}${C.bold}app${C.reset}  artisan  ${C.blue}${C.bold}bootstrap${C.reset}  composer.json  ${C.blue}${C.bold}config${C.reset}  ${C.blue}${C.bold}database${C.reset}  ${C.blue}${C.bold}public${C.reset}  ${C.blue}${C.bold}resources${C.reset}  ${C.blue}${C.bold}routes${C.reset}  ${C.blue}${C.bold}storage${C.reset}  ${C.blue}${C.bold}vendor${C.reset}\n`
+      : `${C.blue}${C.bold}bin${C.reset}  ${C.blue}${C.bold}data${C.reset}  ${C.blue}${C.bold}etc${C.reset}  ${C.blue}${C.bold}usr${C.reset}  ${C.blue}${C.bold}var${C.reset}\n`,
+  pwd: (_a, s) => `${s.cwd}\n`,
+  hostname: (_a, s) => `${s.container!.host}\n`,
+  whoami: () => "root\n",
+  php: (a) => (a[0] === "-v" ? "PHP 8.3.12 (cli) (built: Oct  1 2026 21:30:11) (NTS)\nCopyright (c) The PHP Group\nZend Engine v4.3.12, Copyright (c) Zend Technologies\n" : COMMANDS.php(a, {} as FakeShell)),
+  env: (_a, s) => (s.container!.service === "app" ? "HOSTNAME=4f2a9c1be8d3\nDB_HOST=mysql\nXDEBUG_MODE=debug\nPHP_VERSION=8.3.12\nHOME=/root\n" : "HOME=/root\n"),
+  ps: () => "PID   USER     TIME  COMMAND\n    1 root      0:04 php artisan serve --host=0.0.0.0\n   42 root      0:00 sh\n   48 root      0:00 ps\n",
+  echo: (a) => `${a.join(" ")}\n`,
+  help: () => "Shell inside the container (browser-mode demo). Try ls, php -v, env, ps, exit.\n",
+};
+
 function run(id: string, s: FakeShell, line: string): void {
   const [cmd, ...args] = line.trim().split(/\s+/);
   if (!cmd) return;
+  if (s.container && cmd !== "exit" && cmd !== "clear" && cmd !== "cd") {
+    const handler = CONTAINER_COMMANDS[cmd];
+    out(id, handler ? handler(args, s) : `sh: ${cmd}: not found\n`);
+    return;
+  }
   if (cmd === "clear") {
     out(id, "\x1b[2J\x1b[3J\x1b[H");
     return;
@@ -137,15 +163,37 @@ registerMock("terminal_open", ({ options }) => {
   const o = options as TerminalOpenOptions;
   const id = o.id ?? `mock-term-${++seq}`;
   const s: FakeShell = { line: "", cwd: `~/Projects/${demoProjectName}${o.cwd ? `/${o.cwd}` : ""}`, history: [], historyPos: 0 };
+  // `docker exec -it <id> sh …`, `docker attach <id>`, `kubectl … exec -it <pod> …`.
+  const args = o.args ?? [];
+  if (o.shell === "docker" || o.shell === "kubectl") {
+    const execAt = args.indexOf("exec");
+    // exec -it <id> … / attach --sig-proxy=false <id> / kubectl … exec -it <pod> …
+    const ref = o.shell === "kubectl" ? args[execAt + 2] : args[2];
+    const c = o.shell === "docker" ? mockContainerFor(ref ?? "") : null;
+    const host = o.shell === "kubectl" ? (ref ?? "pod") : (c?.name ? (ref ?? "").slice(0, 12) : "container");
+    s.container = { host, service: c?.service ?? "app" };
+    s.cwd = c?.service === "app" || o.shell === "kubectl" ? "/var/www/html" : "/data";
+    if (args[0] === "attach") {
+      s.attached = true;
+      shells.set(id, s);
+      setTimeout(() => out(id, initialLogs(c?.service ?? "app").slice(-6).join("")), 30);
+      return { id, shell: o.shell, cwd: s.cwd };
+    }
+  }
   shells.set(id, s);
   setTimeout(() => out(id, prompt(s)), 30);
-  return { id, shell: "/bin/bash", cwd: s.cwd };
+  return { id, shell: o.shell === "docker" || o.shell === "kubectl" ? o.shell : "/bin/bash", cwd: s.cwd };
 });
 
 registerMock("terminal_write", ({ id, data }) => {
   const key = String(id);
   const s = shells.get(key);
   if (!s) return;
+  if (s.attached) {
+    // Attached consoles only forward Ctrl+C (detach keys) in the demo.
+    if (String(data).includes("\x03")) out(key, "^C\n");
+    return;
+  }
   for (const ch of String(data).match(/\x1b\[[A-D]|[\s\S]/g) ?? []) {
     if (ch === "\r") {
       out(key, "\n");

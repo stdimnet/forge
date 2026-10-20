@@ -30,6 +30,7 @@ MAIL_FROM_ADDRESS="hello@acme.test"
       XDEBUG_MODE: debug
     depends_on:
       - mysql
+      - redis
 
   mysql:
     image: mysql:8.4
@@ -38,6 +39,11 @@ MAIL_FROM_ADDRESS="hello@acme.test"
       MYSQL_ROOT_PASSWORD: secret # local only
     volumes:
       - db-data:/var/lib/mysql
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
 
 volumes:
   db-data: {}

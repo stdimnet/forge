@@ -58,6 +58,7 @@ pub fn workspace_open(
     crate::commands::project::emit_detection(&app, &root);
     start_watching(&app, &root);
     crate::commands::db::project_opened(&app, root.clone());
+    crate::commands::services::reconfigure(&app);
     crate::recent::remember(crate::recent::RecentProject {
         name: info.name.clone(),
         root: info.root.clone(),

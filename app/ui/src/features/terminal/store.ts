@@ -11,6 +11,14 @@ export interface TerminalTab {
   renamed?: boolean;
   /** Start directory relative to the project root (empty = default). */
   cwd?: string;
+  /** Run this program instead of the shell (e.g. `docker exec -it …` from Services). */
+  command?: TerminalProgram;
+}
+
+export interface TerminalProgram {
+  program: string;
+  args: string[];
+  env?: [string, string][];
 }
 
 const [tabs, setTabs] = createSignal<TerminalTab[]>([]);
@@ -27,8 +35,8 @@ export function nextTitle(existing: string[], base: string): string {
   for (let i = 2; ; i++) if (!existing.includes(`${base} (${i})`)) return `${base} (${i})`;
 }
 
-export function newTab(cwd?: string): TerminalTab {
-  const base = getSetting<string>("terminal.tabName", "Local") || "Local";
+export function newTab(cwd?: string, command?: TerminalProgram & { title?: string }): TerminalTab {
+  const base = command?.title || getSetting<string>("terminal.tabName", "Local") || "Local";
   const tab: TerminalTab = {
     id: `term-${Date.now().toString(36)}-${++seq}`,
     title: nextTitle(
@@ -36,6 +44,7 @@ export function newTab(cwd?: string): TerminalTab {
       base,
     ),
     cwd,
+    command: command && { program: command.program, args: command.args, env: command.env },
   };
   setTabs((t) => [...t, tab]);
   setActiveTab(tab.id);
