@@ -364,6 +364,9 @@ async fn reconnects_after_the_connection_dropped() {
             .unwrap(),
     );
     let reattached = Arc::new(Mutex::new(false));
+    // Set by the callbacks: the status channel only keeps the latest state, so a fast
+    // reconnect can skip `Reconnecting` there.
+    let lost = Arc::new(Mutex::new(false));
     {
         let b = backend.clone();
         let flag = reattached.clone();
@@ -372,9 +375,14 @@ async fn reconnects_after_the_connection_dropped() {
             *flag.lock().unwrap() = true;
         });
         let b = backend.clone();
-        conn.on_lost(move || b.connection_lost());
+        let lost = lost.clone();
+        conn.on_lost(move || {
+            b.connection_lost();
+            *lost.lock().unwrap() = true;
+        });
     }
 
+    let mut status = conn.subscribe();
     // The host drops every session (e.g. a network change).
     let handles = std::mem::take(&mut server.state.lock().unwrap().handles);
     for h in handles {
@@ -382,20 +390,18 @@ async fn reconnects_after_the_connection_dropped() {
             .disconnect(russh::Disconnect::ByApplication, "bye".into(), "en".into())
             .await;
     }
-    let mut status = conn.subscribe();
     let start = Instant::now();
-    let mut saw_reconnecting = false;
     loop {
         let s = status.borrow_and_update().clone();
-        if matches!(s, ConnectionStatus::Reconnecting { .. }) {
-            saw_reconnecting = true;
-        }
-        if saw_reconnecting && *reattached.lock().unwrap() {
+        if *lost.lock().unwrap() && *reattached.lock().unwrap() {
+            assert!(matches!(s, ConnectionStatus::Connected { .. }), "{s:?}");
             break;
         }
         assert!(
             start.elapsed() < Duration::from_secs(20),
-            "no reconnect: {s:?}"
+            "no reconnect: {s:?}, lost: {}, reattached: {}",
+            *lost.lock().unwrap(),
+            *reattached.lock().unwrap()
         );
         let _ = tokio::time::timeout(Duration::from_millis(200), status.changed()).await;
     }
