@@ -1,6 +1,7 @@
 import { For, Show } from "solid-js";
+import { Dynamic } from "solid-js/web";
 import { ChevronRight, X } from "lucide-solid";
-import { editor, activeTab, closeTab, isDirty } from "@/state/editor";
+import { editor, activeTab, closeTab, customTabs, isCustomTab, isDirty, openFile } from "@/state/editor";
 import { statusOf } from "@/state/vcs";
 import { CodeEditor } from "@/editor/CodeEditor";
 import { FileIcon } from "./FileIcon";
@@ -39,6 +40,36 @@ function Tabs() {
             </div>
           );
         }}
+      </For>
+      <For each={customTabs()}>
+        {(tab) => (
+          <div
+            class="editor-tab"
+            classList={{ active: editor.active === tab.id }}
+            role="tab"
+            title={tab.tooltip ?? tab.title}
+            data-tab-id={tab.id}
+            onClick={() => void openFile(tab.id)}
+            onAuxClick={(e) => e.button === 1 && closeTab(tab.id)}
+          >
+            <Show when={tab.icon}>
+              <span class="editor-tab-icon">
+                <Dynamic component={tab.icon} size={14} />
+              </span>
+            </Show>
+            <span>{tab.title}</span>
+            <button
+              class="tab-close"
+              title="Close (Ctrl+F4)"
+              onClick={(e) => {
+                e.stopPropagation();
+                closeTab(tab.id);
+              }}
+            >
+              <X size={13} />
+            </button>
+          </div>
+        )}
       </For>
     </div>
   );
@@ -90,14 +121,23 @@ function Welcome() {
 export function EditorArea() {
   return (
     <main class="editor-area">
-      <Show when={editor.tabs.length > 0} fallback={<Welcome />}>
+      <Show when={editor.tabs.length + customTabs().length > 0} fallback={<Welcome />}>
         <Tabs />
-        <Breadcrumbs />
+        <Show when={!isCustomTab(editor.active)}>
+          <Breadcrumbs />
+        </Show>
         <div class="editor-stack">
           <For each={editor.tabs}>
             {(tab) => (
               <div class="editor-slot" classList={{ hidden: editor.active !== tab.path }}>
                 <CodeEditor tab={tab} />
+              </div>
+            )}
+          </For>
+          <For each={customTabs()}>
+            {(tab) => (
+              <div class="editor-slot editor-slot-custom" classList={{ hidden: editor.active !== tab.id }}>
+                <Dynamic component={tab.component} />
               </div>
             )}
           </For>

@@ -3,7 +3,7 @@
  * switches (Ctrl+Alt+Left/Right) and recently closed tabs.
  */
 import { createEffect, createRoot, createSignal, on } from "solid-js";
-import { editor, isDirty, openFile } from "@/state/editor";
+import { editor, isCustomTab, isDirty, openFile } from "@/state/editor";
 
 const MAX_RECENT = 50;
 
@@ -23,9 +23,9 @@ createRoot(() => {
     on(
       () => editor.active,
       (path, prev) => {
-        if (!path) return;
+        if (!path || isCustomTab(path)) return;
         setRecentFiles((l) => bump(l, path));
-        if (!navigating && prev && prev !== path) {
+        if (!navigating && prev && prev !== path && !isCustomTab(prev)) {
           back.push(prev);
           forward.length = 0;
         }
