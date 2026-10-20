@@ -20,7 +20,8 @@ use lsp_types::{
     ReferenceContext, ReferenceParams, ServerCapabilities, SignatureHelp, SignatureHelpParams,
     TextDocumentContentChangeEvent, TextDocumentIdentifier, TextDocumentItem,
     TextDocumentPositionParams, TextDocumentSyncSaveOptions, TextEdit, Url,
-    VersionedTextDocumentIdentifier, WorkspaceFolder,
+    VersionedTextDocumentIdentifier, WorkspaceFolder, WorkspaceSymbolParams,
+    WorkspaceSymbolResponse,
 };
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
@@ -763,6 +764,40 @@ impl LspClient {
         .await
     }
 
+    /// Project-wide symbol search (`workspace/symbol`).
+    pub async fn workspace_symbols(&self, query: &str) -> Result<Option<WorkspaceSymbolResponse>> {
+        self.request::<req::WorkspaceSymbolRequest>(WorkspaceSymbolParams {
+            query: query.to_string(),
+            work_done_progress_params: Default::default(),
+            partial_result_params: Default::default(),
+        })
+        .await
+    }
+
+    /// Whether the server announced `workspaceSymbolProvider`.
+    pub fn supports_workspace_symbols(&self) -> bool {
+        match self
+            .capabilities()
+            .and_then(|c| c.workspace_symbol_provider.as_ref())
+        {
+            Some(lsp_types::OneOf::Left(enabled)) => *enabled,
+            Some(lsp_types::OneOf::Right(_)) => true,
+            None => false,
+        }
+    }
+
+    /// Whether the server announced `documentFormattingProvider`.
+    pub fn supports_formatting(&self) -> bool {
+        match self
+            .capabilities()
+            .and_then(|c| c.document_formatting_provider.as_ref())
+        {
+            Some(lsp_types::OneOf::Left(enabled)) => *enabled,
+            Some(lsp_types::OneOf::Right(_)) => true,
+            None => false,
+        }
+    }
+
     pub async fn code_action(
         &self,
         path: &Path,
@@ -793,7 +828,10 @@ fn client_capabilities() -> Value {
             "configuration": true,
             "workspaceFolders": true,
             "didChangeConfiguration": { "dynamicRegistration": false },
-            "applyEdit": false
+            "applyEdit": false,
+            "symbol": {
+                "symbolKind": { "valueSet": [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26] }
+            }
         },
         "window": { "workDoneProgress": true },
         "general": { "positionEncodings": ["utf-16"] },
