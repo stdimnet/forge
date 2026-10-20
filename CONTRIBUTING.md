@@ -28,7 +28,8 @@ System requirements and details: [.claude/skills/forge-dev-setup](.claude/skills
 | build an AppImage / installer | [build-release](.claude/skills/build-release/SKILL.md) |
 
 These guides are also [Claude Code skills](https://code.claude.com/docs/en/skills), so a
-coding agent in this repo picks them up automatically.
+coding agent in this repo picks them up automatically. Rules for coding agents (and a compact
+overview for humans) are in [AGENTS.md](AGENTS.md).
 
 ## Ground rules
 
