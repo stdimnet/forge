@@ -184,4 +184,13 @@ export interface DialogRequest {
 const [dialog, setDialog] = createSignal<DialogRequest | null>(null);
 export { dialog, setDialog };
 
-export const openDataSources = (req: DialogRequest = {}) => setDialog(req);
+export function openDataSources(req: DialogRequest = {}): void {
+  setDialog(req);
+}
+
+/** Data source of the selected tree node, else the first one. */
+export function selectedSourceId(): string | undefined {
+  const key = selectedNode();
+  const id = key ? key.slice(key.indexOf(":") + 1).split("/")[0] : undefined;
+  return sourceById(id)?.id ?? sources()[0]?.id;
+}
