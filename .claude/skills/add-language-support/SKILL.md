@@ -82,16 +82,24 @@ register it with the `template(...)` helper in `languages.ts`.
 
 ### Configurable delimiters
 
-Engines whose delimiters can change (Smarty's `left_delimiter`, Go's `Template.Delims`) are
-listed in `CONFIGURABLE_TEMPLATES` (`app/ui/src/editor/templateDelimiters.ts`) with their
-default delimiters and a `syntax(delimiters)` builder. Their settings, declared in
-`app/src-tauri/plugins/core.toml` (page `lang.templates`), are
-`templates.<id>.leftDelimiter` / `rightDelimiter` and `templates.<id>.delimiterOverrides`, a
-list of `<data language or file pattern>=<left> <right>` rules (a file pattern wins over a
-data language, which wins over the plain delimiters). Smarty ships `latex=<< >>` as a
-default *value*; never add a code path for a specific engine + data language pair. To make
-another engine configurable, add it to `CONFIGURABLE_TEMPLATES`, build its delimiters from
-`left` / `right` (comments, end tags, literal blocks too) and add the three settings.
+Engines whose delimiters can change (Smarty's `left_delimiter`, Twig's and Jinja's
+`tag_variable` / `tag_block` / `tag_comment`, Go's `Template.Delims`) are listed in
+`CONFIGURABLE_TEMPLATES` (`app/ui/src/editor/templateDelimiters.ts`). Each declares its
+delimiter `fields` with their built-in defaults (`left`/`right`, or `variableStart`,
+`variableEnd`, `blockStart`, ...) and a `syntax(values)` builder that derives everything else
+from them (comments, end tags, literal blocks).
+
+One setting, `templates.delimiters` (type `objects`, page `lang.templates`, declared in
+`app/src-tauri/plugins/core.toml`), holds the differences: one entry per (template language,
+data language) pair, e.g. `{ template = "smarty", language = "latex", left = "<<", right = ">>" }`.
+The LaTeX entries ship as default *data*; never add a code path for a specific pair. Files
+without an entry use the language's defaults. The settings page edits the entries with
+`TemplateDelimitersEditor` (a table plus a form with the template's fields); duplicate pairs
+are rejected by the `unique` fields of the schema. To make another engine configurable, add it
+to `CONFIGURABLE_TEMPLATES` and use `templateSyntaxFor` in its `template(...)` registration.
+
+`objects` settings (lists of tables) are generic: declare `type = "objects"` with optional
+`unique` fields, and register an editor with `registerObjectSettingEditor(key, Component)`.
 
 Everything tag-related reads the resolved syntax from `templateSyntaxField`: the overlay,
 comment toggling, folding, matching delimiters, auto-closing and tag completion
