@@ -69,23 +69,23 @@
 .run-config {
   border: 1px solid var(--border-strong);
   margin-right: 2px;
+  max-width: 260px;
 }
-.run-config-icon {
-  display: inline-grid;
-  place-items: center;
-  width: 16px;
-  height: 16px;
-  border-radius: 4px;
-  font-size: 9px;
-  font-weight: 800;
-  background: var(--success);
-  color: #0d1a10;
+.run-config.open {
+  background: var(--bg-active);
+}
+.run-config-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .run-btn {
   color: var(--success);
 }
 .debug-btn {
   color: var(--success);
+}
+.stop-btn {
+  color: var(--danger);
 }
 
 /* ---------- Tool stripes ---------- */
@@ -151,6 +151,15 @@
 .tool-window-title {
   font-weight: 600;
   color: var(--fg-strong);
+  flex-shrink: 0;
+}
+.tool-window-header-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  align-self: stretch;
+  margin-left: 10px;
 }
 .tool-window-actions {
   display: flex;

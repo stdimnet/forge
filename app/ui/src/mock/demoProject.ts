@@ -171,4 +171,62 @@ Route::get('/orders/{order}', [OrderController::class, 'show'])->name('orders.sh
   "resources/views/welcome.blade.php": "<x-layout>\n    <h1>{{ config('app.name') }}</h1>\n</x-layout>\n",
   "database/migrations/2026_01_01_000000_create_orders_table.php": "<?php\n\nreturn new class extends Migration {\n    public function up(): void\n    {\n        Schema::create('orders', function (Blueprint $table) {\n            $table->id();\n            $table->foreignId('user_id')->constrained();\n            $table->string('status');\n            $table->decimal('total', 10, 2);\n            $table->timestamps();\n        });\n    }\n};\n",
   "tests/Feature/OrderTest.php": "<?php\n\nnamespace Tests\\Feature;\n\nuse Tests\\TestCase;\n\nclass OrderTest extends TestCase\n{\n    public function test_user_can_view_order(): void\n    {\n        $this->assertTrue(true);\n    }\n}\n",
+  "tests/Unit/UserTest.php": `<?php
+
+namespace Tests\\Unit;
+
+use App\\Models\\User;
+use PHPUnit\\Framework\\Attributes\\Test;
+use PHPUnit\\Framework\\TestCase;
+
+class UserTest extends TestCase
+{
+    public function test_full_name_joins_first_and_last_name(): void
+    {
+        $user = new User(['first_name' => 'Ada', 'last_name' => 'Lovelace']);
+
+        $this->assertSame('Ada Lovelace', $user->fullName());
+    }
+
+    public function test_display_name_prefers_nickname(): void
+    {
+        $user = new User(['first_name' => 'Grace', 'nickname' => 'Amazing Grace']);
+
+        $this->assertSame('Amazing Grace', $user->displayName());
+    }
+
+    #[Test]
+    public function email_is_normalized(): void
+    {
+        $user = new User(['email' => ' Ada@Example.COM ']);
+
+        $this->assertSame('ada@example.com', $user->email);
+    }
+
+    public function test_orders_relation_is_empty_for_new_users(): void
+    {
+        $this->assertCount(0, (new User())->orders);
+    }
+}
+`,
+  "tests/Unit/CheckoutTest.php": `<?php
+
+namespace Tests\\Unit;
+
+use App\\Services\\Checkout;
+use PHPUnit\\Framework\\TestCase;
+
+class CheckoutTest extends TestCase
+{
+    public function test_total_includes_tax(): void
+    {
+        $this->assertSame(119.0, (new Checkout())->total(100.0, 0.19));
+    }
+
+    public function test_empty_cart_cannot_be_checked_out(): void
+    {
+        $this->markTestSkipped('Cart rules move to the Cart service.');
+    }
+}
+`,
 };

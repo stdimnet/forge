@@ -37,7 +37,8 @@ describe("focusContextOf", () => {
     document.body.innerHTML = `
       <div class="cm-editor"><div class="cm-content" contenteditable="true"></div><input id="cm-search" /></div>
       <input id="text" /><input id="check" type="checkbox" />
-      <section class="tool-window"><button id="tw">x</button></section>
+      <section class="tool-window"><button id="tw">x</button>
+        <div class="xterm"><textarea id="term"></textarea></div></section>
       <button id="plain">y</button>`;
     const q = (s: string) => document.querySelector(s);
     expect(focusContextOf(q(".cm-content"))).toBe("editor");
@@ -45,6 +46,7 @@ describe("focusContextOf", () => {
     expect(focusContextOf(q("#text"))).toBe("input");
     expect(focusContextOf(q("#check"))).toBe("global");
     expect(focusContextOf(q("#tw"))).toBe("toolwindow");
+    expect(focusContextOf(q("#term"))).toBe("terminal");
     expect(focusContextOf(q("#plain"))).toBe("global");
     expect(focusContextOf(null)).toBe("global");
   });

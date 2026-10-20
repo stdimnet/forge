@@ -42,6 +42,12 @@ app/ui/            SolidJS UI
   - `registerSearchProvider` (`src/features/search/providers.ts`) — Search Everywhere tabs
     (Classes, Files, Symbols, Actions, Text); language packs plug in class/symbol indexes.
   - `registerKeymapActions` (`src/keymap/store.ts`) — plugin actions with default shortcuts.
+  - `registerRunConfigurationType` / `registerDebugLauncher` (`src/features/run`) — Run/Debug
+    configuration types and debuggers (see "Terminal and Run/Debug" below).
+- Tool windows may render tabs next to their title with `headerContent` (Terminal, Run).
+- Keymap focus contexts: `editor`, `input`, `toolwindow`, `global` and `terminal` (xterm.js has
+  focus). In the terminal plain Ctrl+letter, Alt+letter and Escape go to the shell; function
+  keys, Alt+digit, Ctrl+Shift and Ctrl+Alt combinations still reach the IDE.
 - Keymap (`src/keymap/`): PHPStorm's default keymaps (Windows/Linux and macOS) as data, keyed by
   PHPStorm action ids that double as command ids. Implementing an action is just
   `registerCommand({ id: "GotoClass", ... })`; unimplemented actions show "not available yet".
@@ -139,6 +145,41 @@ app/ui/            SolidJS UI
   offline templates embedded from `crates/forge-project/templates/`. The browser copy of the generator
   list is `app/ui/src/mock/projectGenerators.json` (`FORGE_UPDATE_SNAPSHOTS=1 cargo test -p forge-app`).
 - The default location is the setting `system.defaultProjectDirectory` (`~/Projects`).
+
+## Terminal and Run/Debug (`forge-process`)
+
+- Terminal: `terminal_open({ options: { id?, cwd?, shell?, env?, cols, rows } }) -> { id, shell, cwd }`,
+  `terminal_write({ id, data })`, `terminal_resize({ id, cols, rows })`, `terminal_close({ id })`.
+  Output arrives on `terminal://<id>` as `{ type: "output", data } | { type: "exited", code }`; pass
+  your own `id` to subscribe before the shell starts. Defaults: `terminal.shellPath` or `$SHELL` /
+  pwsh / `%ComSpec%`, start directory `terminal.startDirectory` or the project root, extra
+  variables from `terminal.environment`.
+- Configurations: `run_configurations_load() -> { configurations, selected?, templates? }` and
+  `run_configurations_save({ configurations })`. Shared ones ("Store as project file") are written
+  to `<project>/.forge/runConfigurations.toml`, local ones, the selection and templates to
+  `.forge/runConfigurations.local.toml`. A configuration is `{ name, type, storeAsProjectFile?,
+  workingDirectory?, env?, interpreter?, interpreterOptions?, arguments?, options?: Record<string,
+  string>, beforeLaunch?: { type: "runConfiguration" | "shell", value }[] }`.
+- Runs: `run_start({ request: { runId?, configuration? | command?, env?, interpreterArgs? } }) ->
+  { runId, commandLine }` streams `run://<runId>`: `{ type: "started", pid, commandLine }`,
+  `{ type: "output", stream: "stdout" | "stderr", text }`, `{ type: "exited", code, signal }`.
+  `run_stop({ runId })` (SIGTERM to the process group, SIGKILL after 2 s; `taskkill /T` on
+  Windows), `run_write({ runId, data })` (stdin), `run_dispose({ runId })`,
+  `run_command_line({ request })` (preview).
+- Configuration types: the backend's `KindRegistry` builds command lines for `php-script`,
+  `phpunit` (always `--teamcity`), `artisan`, `composer`, `shell` and `npm`; the PHP interpreter
+  defaults to the setting `php.interpreter`. A manifest `runConfigurationTypes` entry can declare
+  `fields` and a `command` template (`["${interpreter}", "${file}", "${arguments}"]`, see
+  `lua-script`) and works without code. In the UI, `registerRunConfigurationType({ id, name, icon,
+  fields, interpreter?, argumentsLabel?, testRunner?, buildCommand? })` adds the form to the
+  Run/Debug Configurations dialog; `buildCommand` builds the command in the UI instead.
+- Debugging: Debug (Shift+F9) calls the first `registerDebugLauncher({ id, canDebug(cfg, type),
+  launch(cfg, ctx) })` that accepts the configuration; `ctx.run({ env, interpreterArgs })` starts it
+  in the Run tool window (e.g. with `XDEBUG_SESSION` and `-dxdebug.mode=debug`) and returns
+  `{ started, exited }`.
+- Test runners parse TeamCity service messages (`src/features/run/teamcity.ts`) into the test
+  tree; PHPUnit test classes and methods get gutter run icons that create temporary
+  configurations.
 
 ## Language servers (`forge-lsp`)
 

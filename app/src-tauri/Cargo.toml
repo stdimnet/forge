@@ -27,6 +27,7 @@ forge-langservers.workspace = true
 forge-vcs.workspace = true
 forge-project.workspace = true
 forge-open.workspace = true
+forge-process.workspace = true
 phpforge-lang-php = { path = "../../packs/phpforge/lang-php" }
 tauri = { version = "2", features = [] }
 tauri-plugin-dialog = "2"

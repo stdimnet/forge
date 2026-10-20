@@ -1,0 +1,371 @@
+//! Non-interactive processes for run configurations: piped stdout/stderr streamed as text,
+//! stdin for input typed into the Run console, the exit code, and kill of the whole
+//! process tree (so `composer run` or `npm run` children stop too).
+
+use std::collections::BTreeMap;
+use std::io::{Read, Write};
+use std::path::PathBuf;
+use std::process::{Child, ChildStdin, Command, Stdio};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
+use std::time::Duration;
+
+use forge_core::{ForgeError, Result};
+use serde::{Deserialize, Serialize};
+
+use crate::args::quote_arg;
+use crate::utf8::Utf8Decoder;
+
+/// A fully resolved command: what the Run tool window shows on its first line.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CommandLine {
+    pub program: String,
+    #[serde(default)]
+    pub args: Vec<String>,
+    /// Working directory (absolute).
+    #[serde(default)]
+    pub cwd: PathBuf,
+    /// Extra environment variables on top of the inherited environment.
+    #[serde(default)]
+    pub env: BTreeMap<String, String>,
+}
+
+impl CommandLine {
+    pub fn new(program: impl Into<String>) -> Self {
+        Self {
+            program: program.into(),
+            ..Self::default()
+        }
+    }
+
+    pub fn arg(mut self, a: impl Into<String>) -> Self {
+        self.args.push(a.into());
+        self
+    }
+
+    pub fn args<I: IntoIterator<Item = S>, S: Into<String>>(mut self, a: I) -> Self {
+        self.args.extend(a.into_iter().map(Into::into));
+        self
+    }
+
+    /// Shell-like display form, e.g. `/usr/bin/php vendor/bin/phpunit --teamcity`.
+    pub fn display(&self) -> String {
+        std::iter::once(&self.program)
+            .chain(&self.args)
+            .map(|a| quote_arg(a))
+            .collect::<Vec<_>>()
+            .join(" ")
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum OutputStream {
+    Stdout,
+    Stderr,
+    /// Messages from Forge itself ("Process finished with exit code 0").
+    System,
+}
+
+/// Lifecycle of a run, streamed to the UI.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(tag = "type", rename_all = "camelCase")]
+pub enum RunEvent {
+    #[serde(rename_all = "camelCase")]
+    Started {
+        pid: u32,
+        command_line: String,
+    },
+    Output {
+        stream: OutputStream,
+        text: String,
+    },
+    /// The process ended; `signal` is set when it was killed by one (Unix).
+    Exited {
+        code: Option<i32>,
+        signal: Option<i32>,
+    },
+}
+
+pub type RunSink = Arc<dyn Fn(RunEvent) + Send + Sync>;
+
+/// A started process. Dropping it does not stop the process; call [`RunningProcess::kill`].
+pub struct RunningProcess {
+    pid: u32,
+    stdin: Mutex<Option<ChildStdin>>,
+    exited: Arc<AtomicBool>,
+}
+
+impl RunningProcess {
+    /// Spawn `cmd`. Events go to `sink`: `Started`, then `Output`s, then exactly one `Exited`
+    /// after all output has been delivered.
+    pub fn start(cmd: &CommandLine, sink: RunSink) -> Result<Self> {
+        let mut command = Command::new(&cmd.program);
+        command
+            .args(&cmd.args)
+            .envs(&cmd.env)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped());
+        if !cmd.cwd.as_os_str().is_empty() {
+            if !cmd.cwd.is_dir() {
+                return Err(ForgeError::Other(format!(
+                    "working directory {} does not exist",
+                    cmd.cwd.display()
+                )));
+            }
+            command.current_dir(&cmd.cwd);
+        }
+        #[cfg(unix)]
+        {
+            use std::os::unix::process::CommandExt;
+            // Own process group, so Stop can signal the whole tree.
+            command.process_group(0);
+        }
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+            command.creation_flags(CREATE_NO_WINDOW);
+        }
+        let mut child = command
+            .spawn()
+            .map_err(|e| ForgeError::Other(format!("cannot run {}: {e}", cmd.program)))?;
+        let pid = child.id();
+        sink(RunEvent::Started {
+            pid,
+            command_line: cmd.display(),
+        });
+        let stdin = child.stdin.take();
+        let readers = [
+            pump(child.stdout.take(), OutputStream::Stdout, sink.clone()),
+            pump(child.stderr.take(), OutputStream::Stderr, sink.clone()),
+        ];
+        let exited = Arc::new(AtomicBool::new(false));
+        let flag = exited.clone();
+        std::thread::Builder::new()
+            .name(format!("run-wait-{pid}"))
+            .spawn(move || {
+                let (code, signal) = wait(&mut child);
+                for r in readers.into_iter().flatten() {
+                    let _ = r.join();
+                }
+                flag.store(true, Ordering::SeqCst);
+                sink(RunEvent::Exited { code, signal });
+            })
+            .map_err(|e| ForgeError::Other(e.to_string()))?;
+        Ok(Self {
+            pid,
+            stdin: Mutex::new(stdin),
+            exited,
+        })
+    }
+
+    pub fn pid(&self) -> u32 {
+        self.pid
+    }
+
+    pub fn has_exited(&self) -> bool {
+        self.exited.load(Ordering::SeqCst)
+    }
+
+    /// Write to the process's stdin (input typed into the Run console).
+    pub fn write_stdin(&self, data: &[u8]) -> Result<()> {
+        let mut guard = self.stdin.lock().expect("stdin poisoned");
+        let stdin = guard
+            .as_mut()
+            .ok_or_else(|| ForgeError::Other("stdin is closed".into()))?;
+        stdin
+            .write_all(data)
+            .and_then(|_| stdin.flush())
+            .map_err(|e| ForgeError::Other(e.to_string()))
+    }
+
+    /// Close stdin (Ctrl+D in the console).
+    pub fn close_stdin(&self) {
+        self.stdin.lock().expect("stdin poisoned").take();
+    }
+
+    /// Stop the process and its children. On Unix the group gets SIGTERM and, if it is still
+    /// running after `grace`, SIGKILL; on Windows the tree is killed with `taskkill /T /F`.
+    pub fn kill(&self, grace: Duration) {
+        if self.has_exited() {
+            return;
+        }
+        kill_tree(self.pid, grace, self.exited.clone());
+    }
+}
+
+fn pump(
+    stream: Option<impl Read + Send + 'static>,
+    kind: OutputStream,
+    sink: RunSink,
+) -> Option<std::thread::JoinHandle<()>> {
+    let mut stream = stream?;
+    std::thread::Builder::new()
+        .name("run-pump".into())
+        .spawn(move || {
+            let mut decoder = Utf8Decoder::new();
+            let mut buf = [0u8; 8192];
+            loop {
+                match stream.read(&mut buf) {
+                    Ok(0) | Err(_) => break,
+                    Ok(n) => {
+                        let text = decoder.decode(&buf[..n]);
+                        if !text.is_empty() {
+                            sink(RunEvent::Output { stream: kind, text });
+                        }
+                    }
+                }
+            }
+            let text = decoder.finish();
+            if !text.is_empty() {
+                sink(RunEvent::Output { stream: kind, text });
+            }
+        })
+        .ok()
+}
+
+fn wait(child: &mut Child) -> (Option<i32>, Option<i32>) {
+    match child.wait() {
+        Ok(status) => {
+            #[cfg(unix)]
+            {
+                use std::os::unix::process::ExitStatusExt;
+                (status.code(), status.signal())
+            }
+            #[cfg(not(unix))]
+            {
+                (status.code(), None)
+            }
+        }
+        Err(_) => (None, None),
+    }
+}
+
+#[cfg(unix)]
+fn kill_tree(pid: u32, grace: Duration, exited: Arc<AtomicBool>) {
+    let pgid = -(pid as libc::pid_t);
+    // SAFETY: plain syscall on a process group we created.
+    unsafe {
+        libc::kill(pgid, libc::SIGTERM);
+    }
+    std::thread::spawn(move || {
+        let step = Duration::from_millis(50);
+        let mut waited = Duration::ZERO;
+        while waited < grace {
+            if exited.load(Ordering::SeqCst) {
+                return;
+            }
+            std::thread::sleep(step);
+            waited += step;
+        }
+        // SAFETY: as above.
+        unsafe {
+            libc::kill(pgid, libc::SIGKILL);
+        }
+    });
+}
+
+#[cfg(windows)]
+fn kill_tree(pid: u32, _grace: Duration, _exited: Arc<AtomicBool>) {
+    use std::os::windows::process::CommandExt;
+    let _ = Command::new("taskkill")
+        .args(["/T", "/F", "/PID", &pid.to_string()])
+        .creation_flags(0x0800_0000)
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status();
+}
+
+#[cfg(all(test, unix))]
+mod tests {
+    use super::*;
+    use std::sync::mpsc;
+
+    fn run(cmd: CommandLine) -> (RunningProcess, mpsc::Receiver<RunEvent>) {
+        let (tx, rx) = mpsc::channel();
+        let tx = Mutex::new(tx);
+        let sink: RunSink = Arc::new(move |e| {
+            let _ = tx.lock().unwrap().send(e);
+        });
+        (RunningProcess::start(&cmd, sink).expect("start"), rx)
+    }
+
+    type Exit = Option<(Option<i32>, Option<i32>)>;
+
+    fn drain(rx: &mpsc::Receiver<RunEvent>) -> (String, String, Exit) {
+        let (mut out, mut err) = (String::new(), String::new());
+        while let Ok(e) = rx.recv_timeout(Duration::from_secs(10)) {
+            match e {
+                RunEvent::Output {
+                    stream: OutputStream::Stdout,
+                    text,
+                } => out += &text,
+                RunEvent::Output { text, .. } => err += &text,
+                RunEvent::Exited { code, signal } => return (out, err, Some((code, signal))),
+                RunEvent::Started { .. } => {}
+            }
+        }
+        (out, err, None)
+    }
+
+    #[test]
+    fn streams_output_env_cwd_and_exit_code() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut cmd = CommandLine::new("/bin/sh")
+            .args(["-c", "echo out:$FORGE_VAR; pwd; echo oops >&2; exit 7"]);
+        cmd.cwd = dir.path().to_path_buf();
+        cmd.env.insert("FORGE_VAR".into(), "42".into());
+        let (_p, rx) = run(cmd);
+        match rx.recv_timeout(Duration::from_secs(5)).unwrap() {
+            RunEvent::Started { command_line, .. } => {
+                assert!(command_line.starts_with("/bin/sh -c '"))
+            }
+            e => panic!("expected Started, got {e:?}"),
+        }
+        let (out, err, exit) = drain(&rx);
+        assert!(out.contains("out:42"), "{out}");
+        let canonical = dir.path().canonicalize().unwrap();
+        assert!(out.contains(canonical.to_str().unwrap()), "{out}");
+        assert_eq!(err.trim(), "oops");
+        assert_eq!(exit, Some((Some(7), None)));
+    }
+
+    #[test]
+    fn stdin_reaches_the_process() {
+        let (p, rx) = run(CommandLine::new("/bin/sh").args(["-c", "read x; echo got:$x"]));
+        p.write_stdin(b"forge\n").unwrap();
+        let (out, _, exit) = drain(&rx);
+        assert!(out.contains("got:forge"), "{out}");
+        assert_eq!(exit, Some((Some(0), None)));
+    }
+
+    #[test]
+    fn kill_stops_the_whole_tree() {
+        // The shell starts a grandchild that would outlive a plain kill of the shell.
+        let (p, rx) = run(CommandLine::new("/bin/sh").args(["-c", "sleep 30 & sleep 30; wait"]));
+        std::thread::sleep(Duration::from_millis(200));
+        let started = std::time::Instant::now();
+        p.kill(Duration::from_millis(500));
+        let (_, _, exit) = drain(&rx);
+        let (code, signal) = exit.expect("process exited");
+        assert!(code.is_none() && signal.is_some(), "{code:?} {signal:?}");
+        assert!(started.elapsed() < Duration::from_secs(5));
+        assert!(p.has_exited());
+    }
+
+    #[test]
+    fn missing_program_and_cwd_are_errors() {
+        let sink: RunSink = Arc::new(|_| {});
+        assert!(
+            RunningProcess::start(&CommandLine::new("/no/such/forge-binary"), sink.clone())
+                .is_err()
+        );
+        let mut cmd = CommandLine::new("/bin/true");
+        cmd.cwd = "/no/such/dir".into();
+        let err = RunningProcess::start(&cmd, sink).err().unwrap();
+        assert!(err.to_string().contains("does not exist"));
+    }
+}

@@ -16,3 +16,5 @@ import "./php";
 import "./project-type";
 import "./new-project";
 import "./browserCompanion";
+import "./terminal";
+import "./run";

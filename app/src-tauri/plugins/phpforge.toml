@@ -20,6 +20,12 @@ id = "composer.update"
 title = "Composer Update"
 category = "Tools"
 
+[[plugin.contributions.runConfigurationTypes]]
+id = "composer"
+name = "Composer Script"
+description = "Run a script from composer.json."
+icon = "package"
+
 [[plugin.contributions.settings]]
 key = "php.composer.executable"
 title = "Path to composer"
@@ -126,6 +132,13 @@ projectTypes = ["laravel"]
 id = "laravel.artisan"
 title = "Run Artisan Command…"
 category = "Tools"
+
+[[plugin.contributions.runConfigurationTypes]]
+id = "artisan"
+name = "Artisan"
+description = "Run an artisan command of a Laravel application."
+icon = "terminal"
+debuggable = true
 
 [[plugin.contributions.codeGenerators]]
 id = "laravel.model"

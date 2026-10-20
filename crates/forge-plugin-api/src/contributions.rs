@@ -224,6 +224,50 @@ pub struct RunConfigurationType {
     /// Whether configurations of this type can be started with the debugger.
     #[serde(default)]
     pub debuggable: bool,
+    /// Form fields of the type, shown in the Run/Debug Configurations dialog and stored in
+    /// the configuration's `options`. Types with a UI registration may leave this empty.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub fields: Vec<RunConfigurationField>,
+    /// Command line for manifest-only types. Each entry is a literal or a placeholder:
+    /// `${interpreter}`, `${interpreterOptions}`, `${arguments}` or `${<field key>}`.
+    /// Placeholders of the list-valued fields (`interpreterOptions`, `arguments`) expand to
+    /// several arguments; empty values are dropped.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub command: Vec<String>,
+    /// Interpreter used when a configuration does not set one (e.g. `lua`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub default_interpreter: Option<String>,
+}
+
+/// Value type of a [`RunConfigurationField`].
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum RunConfigurationFieldKind {
+    #[default]
+    String,
+    /// A file or directory (rendered with a browse button).
+    Path,
+    /// Multi-line text, e.g. an inline script.
+    Text,
+    Enum,
+    Bool,
+}
+
+/// One form field of a run configuration type.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RunConfigurationField {
+    /// Key in the configuration's `options`.
+    pub key: String,
+    pub label: String,
+    #[serde(default)]
+    pub kind: RunConfigurationFieldKind,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub options: Vec<EnumOption>,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub default: String,
+    #[serde(default)]
+    pub required: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -357,7 +401,32 @@ mod tests {
         )
         .unwrap();
         assert_eq!(c.commands[0].id, "php.run");
+        assert!(c.run_configuration_types.is_empty());
         assert!(c.settings[0].project);
         assert_eq!(c.lsp_servers[0].args, vec!["--stdio"]);
+    }
+
+    #[test]
+    fn run_configuration_types_declare_fields_and_command() {
+        let c: Contributions = toml::from_str(
+            r#"
+            [[runConfigurationTypes]]
+            id = "lua-script"
+            name = "Lua Script"
+            defaultInterpreter = "lua"
+            command = ["${interpreter}", "${interpreterOptions}", "${file}", "${arguments}"]
+            [[runConfigurationTypes.fields]]
+            key = "file"
+            label = "File"
+            kind = "path"
+            required = true
+            "#,
+        )
+        .unwrap();
+        let t = &c.run_configuration_types[0];
+        assert_eq!(t.default_interpreter.as_deref(), Some("lua"));
+        assert_eq!(t.command.len(), 4);
+        assert_eq!(t.fields[0].kind, RunConfigurationFieldKind::Path);
+        assert!(t.fields[0].required);
     }
 }

@@ -10,3 +10,5 @@ import "./searchMock";
 import "./gitMock";
 import "./phpMock";
 import "./companionMock";
+import "./terminalMock";
+import "./runMock";
