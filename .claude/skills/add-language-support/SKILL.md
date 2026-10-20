@@ -14,7 +14,7 @@ File types are mapped to CodeMirror languages in `app/ui/src/editor/languages.ts
    - a legacy mode from `@codemirror/legacy-modes/mode/<x>` wrapped with `StreamLanguage.define`;
    - your own `StreamParser` (see `app/ui/src/editor/dotenv.ts`), or for HTML-based templates
      a `TemplateSyntax` for the shared template parser in `app/ui/src/editor/templates.ts`
-     (Twig, Smarty, Latte, Jinja, Handlebars use it).
+     (Twig, Smarty, Latte, Jinja, Handlebars, Go templates use it).
 2. Add an entry to the `languages` list, or call `registerLanguage` from a pack:
 
    ```ts
@@ -40,7 +40,7 @@ File types are mapped to CodeMirror languages in `app/ui/src/editor/languages.ts
 
 ## Template data languages
 
-Template languages (Twig, Smarty, Latte, Jinja, Handlebars) highlight the content between their
+Template languages (Twig, Smarty, Latte, Jinja, Handlebars, Go templates) highlight the content between their
 tags in a *data language*, as PHPStorm does. The data language is chosen in
 `app/ui/src/editor/templateData.ts`, from the first of these that applies:
 

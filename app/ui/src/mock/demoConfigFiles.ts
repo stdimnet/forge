@@ -226,4 +226,28 @@ GROUP BY u.id
 ORDER BY revenue DESC
 LIMIT {{ limit|default(10) }};
 `,
+  "templates/mail/welcome.html.tmpl": `{{/* Welcome mail, rendered with html/template */}}
+{{- define "greeting" -}}Hello, {{ .Name | html }}!{{- end -}}
+<h1>{{ template "greeting" . }}</h1>
+{{ if and .Orders (gt (len .Orders) 0) }}
+  <ul class="orders">
+  {{- range $i, $o := .Orders }}
+    <li class="{{ if eq $o.Status "paid" }}ok{{ else }}open{{ end }}">#{{ $o.ID }}: {{ printf "%.2f" $o.Total }}</li>
+  {{- end }}
+  </ul>
+{{ else }}
+  <p>No orders yet.</p>
+{{ end }}
+<pre>{{ \`raw {{ text }}\` }}</pre>
+`,
+  "deploy/config.yaml.tmpl": `# Rendered by the release tool
+image: {{ .Image }}:{{ .Tag }}
+replicas: {{ .Replicas | default 2 }}
+{{- with .Env }}
+env:
+  {{- range $key, $value := . }}
+  {{ $key }}: {{ $value | quote }}
+  {{- end }}
+{{- end }}
+`,
 };
