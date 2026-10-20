@@ -61,6 +61,7 @@ export default {
   "database-grid-edit": async (page) => {
     await addShop(page);
     await page.dblclick(`.db-row[data-key="table:${DS}/shop/users"]`);
+    await page.click('[data-tool-window="project"]');
     await page.waitForSelector(".db-editor .dg-row");
     // Edit two cells and mark a row for deletion.
     const cell = (row, col) => page.locator(`.db-editor .dg-row >> nth=${row}`).locator(".dg-td").nth(col);
@@ -74,7 +75,7 @@ export default {
     await page.keyboard.press("Enter");
     await page.locator(`.db-editor .dg-row >> nth=6`).locator(".dg-rownum").click();
     await page.keyboard.press("Control+y");
-    await cell(4, 6).click();
+    await cell(4, 1).click();
     await page.mouse.move(900, 700);
   },
 };
