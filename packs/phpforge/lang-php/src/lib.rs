@@ -19,6 +19,7 @@ pub mod model;
 pub mod offsets;
 pub mod parser;
 pub mod resolve;
+pub mod service;
 pub mod structure;
 
 pub use index::{IndexConfig, IndexStats, ProjectIndex};
