@@ -24,8 +24,30 @@ pnpm tauri build                      # all bundles for this OS (dmg on macOS, m
 `target/release/bundle/<type>/` (e.g. `Forge_0.1.0_amd64.AppImage`) and the plain binary
 `target/release/forge`. A build from scratch takes about six minutes.
 
-Cross-compiling is not supported: build Windows and macOS bundles on those systems (or with the
-manual CI workflow, which the project owner starts).
+Cross-compiling is not supported: build Windows and macOS bundles on those systems.
+
+## Official releases
+
+Publishing a GitHub release runs `.github/workflows/release.yml`, and nothing else does. It:
+
+1. builds the static remote agents on Linux,
+2. builds the bundles on Ubuntu (AppImage, deb, rpm), Windows (NSIS, MSI) and macOS (Apple
+   Silicon and Intel) with `pnpm tauri build --config src-tauri/tauri.agents.conf.json`,
+3. signs the updater artifacts and uploads everything plus `latest.json` to the release.
+
+Forge's updater reads `https://github.com/Reeperk/Forge/releases/latest/download/latest.json`,
+so a published (not draft, not pre-release) release is what users get offered.
+
+The workflow needs, once, in the repository settings:
+
+| Name | Kind | Value |
+| --- | --- | --- |
+| `TAURI_SIGNING_PRIVATE_KEY` | secret | private key from `pnpm tauri signer generate` |
+| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | secret | its password |
+| `FORGE_UPDATER_PUBKEY` | variable | the matching public key, built into the app |
+
+Keep the private key offline as well: losing it means installed copies can no longer verify
+updates.
 
 ## Remote agents
 
