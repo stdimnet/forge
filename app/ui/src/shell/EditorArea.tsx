@@ -5,6 +5,7 @@ import { statusOf } from "@/state/vcs";
 import { CodeEditor } from "@/editor/CodeEditor";
 import { FileIcon } from "./FileIcon";
 import { setEditorActive } from "./editorActions";
+import { editorViewFor } from "./editorViews";
 
 function Tabs() {
   return (
@@ -22,7 +23,12 @@ function Tabs() {
               onClick={() => setEditorActive(tab.path)}
               onAuxClick={(e) => e.button === 1 && closeTab(tab.path)}
             >
-              <FileIcon name={tab.name} size={14} />
+              <Show when={editorViewFor(tab)?.icon} fallback={<FileIcon name={tab.name} size={14} />}>
+                {(Icon) => {
+                  const I = Icon();
+                  return <I size={14} tab={tab} />;
+                }}
+              </Show>
               <span class={status() ? `vcs-${status()}` : ""}>{tab.name}</span>
               <button
                 class="tab-close"
@@ -45,7 +51,13 @@ function Tabs() {
 }
 
 function Breadcrumbs() {
-  const parts = () => activeTab()?.path.split("/") ?? [];
+  const parts = () => {
+    const tab = activeTab();
+    if (!tab) return [];
+    const view = editorViewFor(tab);
+    if (view) return view.breadcrumbs?.(tab) ?? [tab.name];
+    return tab.path.split("/");
+  };
   return (
     <div class="breadcrumbs">
       <For each={parts()}>
@@ -97,7 +109,12 @@ export function EditorArea() {
           <For each={editor.tabs}>
             {(tab) => (
               <div class="editor-slot" classList={{ hidden: editor.active !== tab.path }}>
-                <CodeEditor tab={tab} />
+                <Show when={editorViewFor(tab)} fallback={<CodeEditor tab={tab} />}>
+                  {(view) => {
+                    const View = view().component;
+                    return <View tab={tab} />;
+                  }}
+                </Show>
               </div>
             )}
           </For>
