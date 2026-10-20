@@ -2,6 +2,7 @@
 import { createSignal, Show } from "solid-js";
 import { listen } from "@/ipc";
 import { runCommand } from "@/state/commands";
+import { isPluginActive } from "@/state/project";
 import { phpApi, type IndexProgress, type IndexStats } from "./api";
 import { phpSettings } from "./settings";
 
@@ -59,12 +60,14 @@ export function IndexingStatus() {
 
 export function PhpVersionStatus() {
   return (
-    <button
-      class="status-item"
-      title={`PHP language level: ${phpSettings.languageLevel}. Click to configure`}
-      onClick={() => void runCommand("settings.open")}
-    >
-      PHP {phpSettings.languageLevel}
-    </button>
+    <Show when={isPluginActive("forge.php")}>
+      <button
+        class="status-item"
+        title={`PHP language level: ${phpSettings.languageLevel}. Click to configure`}
+        onClick={() => void runCommand("settings.open")}
+      >
+        PHP {phpSettings.languageLevel}
+      </button>
+    </Show>
   );
 }
