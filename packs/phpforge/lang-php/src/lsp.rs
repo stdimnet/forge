@@ -26,7 +26,7 @@ pub enum ServerKind {
 }
 
 /// User settings relevant to the PHP language server (Settings > Languages & Frameworks > PHP).
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct PhpLspSettings {
     pub server: ServerChoice,

@@ -1,0 +1,196 @@
+//! Project backends: where an open project's files, git, processes, language servers and
+//! PHP index live.
+//!
+//! - [`Backend`] is what the app's workspace, file system, git, terminal, run, LSP and PHP
+//!   commands talk to. The UI never knows which implementation answers.
+//! - [`LocalBackend`] serves a folder on this machine.
+//! - [`RemoteBackend`] serves a folder on another machine through the Forge agent
+//!   (`crates/forge-remote-agent`), which is itself a [`LocalBackend`] behind the
+//!   [`protocol`]. [`rpc::RpcClient`] multiplexes calls, events and byte channels over any
+//!   stream (SSH in `crates/forge-remote`, an in-memory pipe in tests).
+
+pub mod local;
+pub mod paths;
+pub mod php;
+pub mod protocol;
+pub mod remote;
+pub mod rpc;
+
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
+
+use forge_core::{FileEntry, FileMatch, FsChanges, Result};
+use forge_lsp::ServerLauncher;
+use forge_process::{CommandLine, PtySink, RunSink};
+use forge_project::ProjectInfo;
+use forge_vcs::{GitExec, Repo};
+use serde::{Deserialize, Serialize};
+
+pub use local::LocalBackend;
+pub use php::PhpBackend;
+pub use remote::RemoteBackend;
+
+/// The machine a remote project lives on.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RemoteHost {
+    pub host: String,
+    pub port: u16,
+    pub user: String,
+    /// Id of the saved SSH configuration, if the connection came from one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub config_id: Option<String>,
+}
+
+impl RemoteHost {
+    /// `user@host` (`user@host:2222` for a non-default port), as shown in the UI.
+    pub fn label(&self) -> String {
+        if self.port == 22 {
+            format!("{}@{}", self.user, self.host)
+        } else {
+            format!("{}@{}:{}", self.user, self.host, self.port)
+        }
+    }
+
+    /// A project path on this host as the UI shows it: `user@host:/var/www/shop`.
+    pub fn display_path(&self, path: &str) -> String {
+        format!("{}@{}:{}", self.user, self.host, path)
+    }
+}
+
+/// What a backend serves.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BackendInfo {
+    /// Project name (the root folder's name).
+    pub name: String,
+    /// Absolute project root on the machine that serves it.
+    pub root: PathBuf,
+    /// Set for projects on another machine.
+    pub remote: Option<RemoteHost>,
+}
+
+impl BackendInfo {
+    /// The root as the UI shows it: a local path, or `user@host:/path`.
+    pub fn display_root(&self) -> String {
+        let root = self.root.to_string_lossy();
+        match &self.remote {
+            Some(r) => r.display_path(&root),
+            None => root.into_owned(),
+        }
+    }
+}
+
+/// How to start a terminal session on the backend.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TerminalSpec {
+    /// Shell executable; `None` uses the host's default shell.
+    #[serde(default)]
+    pub shell: Option<String>,
+    /// Absolute start directory on the backend's machine; the project root when it does not
+    /// exist.
+    pub cwd: PathBuf,
+    #[serde(default)]
+    pub env: Vec<(String, String)>,
+    pub cols: u16,
+    pub rows: u16,
+}
+
+/// A running terminal session.
+pub trait Terminal: Send + Sync {
+    fn shell(&self) -> String;
+    fn cwd(&self) -> PathBuf;
+    fn write(&self, data: &[u8]) -> Result<()>;
+    fn resize(&self, cols: u16, rows: u16) -> Result<()>;
+    fn kill(&self) -> Result<()>;
+}
+
+/// A started process (run configurations, tools).
+pub trait Process: Send + Sync {
+    fn write_stdin(&self, data: &[u8]) -> Result<()>;
+    /// Stop the process tree: terminate, then kill after `grace`.
+    fn kill(&self, grace: std::time::Duration);
+}
+
+/// Receives debounced file system changes of the project.
+pub type FsSink = Arc<dyn Fn(FsChanges) + Send + Sync>;
+
+/// Keeps a file watcher alive; dropping it stops watching.
+pub type WatchGuard = Box<dyn Send + Sync>;
+
+/// Everything the app needs from the place where a project lives. Methods block (remote
+/// calls wait for the answer), so call them off the UI thread. Paths are workspace-relative
+/// with `/` separators unless stated otherwise.
+pub trait Backend: Send + Sync {
+    fn info(&self) -> &BackendInfo;
+
+    /// Absolute path on the backend's machine for a workspace-relative path, refusing `..`
+    /// escapes and absolute paths.
+    fn resolve(&self, rel: &str) -> Result<PathBuf> {
+        paths::resolve(&self.info().root, rel)
+    }
+
+    /// One directory level: folders first, `.gitignore`d entries flagged (unless tracked).
+    fn list_dir(&self, rel: &str) -> Result<Vec<FileEntry>>;
+    fn read_file(&self, rel: &str) -> Result<String>;
+    fn write_file(&self, rel: &str, contents: &str) -> Result<()>;
+    /// "Go to File": fuzzy file-name search honoring `.gitignore`.
+    fn find_files(&self, query: &str, limit: usize) -> Result<Vec<FileMatch>>;
+
+    /// Where git runs for this project.
+    fn git(&self) -> Arc<dyn GitExec>;
+
+    /// The git repository containing the project.
+    fn repo(&self) -> Result<Repo> {
+        Repo::open_with(&self.info().root, self.git())
+    }
+
+    /// Languages, frameworks and tools of the project.
+    fn detect_project(&self) -> Result<ProjectInfo>;
+
+    /// Watch the project; `sink` gets every debounced batch (the PHP index is already
+    /// updated when it runs).
+    fn watch(&self, sink: FsSink) -> Result<WatchGuard>;
+
+    fn open_terminal(&self, spec: TerminalSpec, sink: PtySink) -> Result<Arc<dyn Terminal>>;
+
+    /// Start `cmd` (its `cwd` is a path on the backend's machine).
+    fn start_process(&self, cmd: &CommandLine, sink: RunSink) -> Result<Arc<dyn Process>>;
+
+    /// Starts language servers next to the project's files.
+    fn lsp_launcher(&self) -> Arc<dyn ServerLauncher>;
+
+    /// The project's PHP index and PHP language server lookup.
+    fn php(&self) -> &dyn PhpBackend;
+}
+
+/// Name of a project folder (last path component).
+pub fn folder_name(root: &Path) -> String {
+    root.file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_else(|| root.display().to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn remote_paths_are_shown_with_user_and_host() {
+        let host = RemoteHost {
+            host: "shop.example.com".into(),
+            port: 22,
+            user: "deploy".into(),
+            config_id: None,
+        };
+        let info = BackendInfo {
+            name: "shop".into(),
+            root: PathBuf::from("/var/www/shop"),
+            remote: Some(host.clone()),
+        };
+        assert_eq!(info.display_root(), "deploy@shop.example.com:/var/www/shop");
+        assert_eq!(host.label(), "deploy@shop.example.com");
+        let other = RemoteHost { port: 2222, ..host };
+        assert_eq!(other.label(), "deploy@shop.example.com:2222");
+    }
+}
