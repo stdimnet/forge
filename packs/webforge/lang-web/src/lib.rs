@@ -9,6 +9,7 @@ pub mod component;
 #[cfg(feature = "fs")]
 pub mod fs;
 pub mod imports;
+pub mod js;
 pub mod json;
 pub mod markup;
 pub mod npm;
