@@ -130,6 +130,36 @@ class Checkout
     }
 }
 `,
+  "app/Services/InvoiceService.php": `<?php
+
+declare(strict_types=1);
+
+namespace App\\Services;
+
+use App\\Models\\Order;
+use App\\Models\\OrderStatus;
+use Illuminate\\Support\\Carbon;
+use Illuminate\\Support\\Facades\\Log;
+
+final class InvoiceService
+{
+    public function __construct(private readonly Checkout $checkout)
+    {
+    }
+
+    public function settle(Order $order): void
+    {
+        if ($order->status === OrderStatus::Paid) {
+            return;
+        }
+
+        $order->markAsPaid();
+        $lines = array_map(fn ($line) => $line->price * $line->quantity, $order->lines);
+
+        Log::info(utf8_encode('Order settled'), ['order' => $order->id]);
+    }
+}
+`,
   "routes/web.php": `<?php
 
 use App\\Http\\Controllers\\OrderController;

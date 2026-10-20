@@ -70,3 +70,15 @@ app/ui/            SolidJS UI
   (`{ type: "sessionStarted" | "assistantText" | "thinking" | "toolUse" | "toolResult" | "usage" |
   "permissionRequest" | "turnFinished" | "interrupted" | "error" | "exited", ... }`, see `app/ui/src/ipc/agent.ts`).
   New CLIs implement the `AgentCli` trait in Rust and call `registerChatAgent` in the UI.
+
+## Language servers (`forge-lsp`)
+
+- Packs contribute `LspServerConfig { id, name?, languageIds, fileExtensions, command, args,
+  initializationOptions, settings }`; Rust code calls `LspState::register_server`, the UI or a
+  plugin calls `lsp_register_server({ config })`. Servers start lazily for the first matching file
+  and are routed by extension (longest match wins, e.g. `blade.php` over `php`).
+- `lsp_did_open|did_change|did_save({ path, text })`, `lsp_did_close({ path })`,
+  `lsp_hover|lsp_completion|lsp_definition|lsp_references|lsp_signature_help({ path, line, character })`,
+  `lsp_document_symbols({ path })`, `lsp_format({ path, tabSize?, insertSpaces? })`, `lsp_status()`.
+  Paths are workspace relative, positions 0-based line / UTF-16 character.
+- Events: `lsp://diagnostics` `{ path, diagnostics }` and `lsp://status` `ServerStatus[]`.
