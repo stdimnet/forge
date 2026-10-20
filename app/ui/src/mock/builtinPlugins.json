@@ -958,17 +958,6 @@
           "order": 20
         },
         {
-          "key": "php.lsp.licenceKey",
-          "title": "Intelephense licence key",
-          "description": "Optional; unlocks rename, code actions and more.",
-          "type": "string",
-          "default": "",
-          "group": "lang.php",
-          "section": "Language Server",
-          "project": false,
-          "order": 21
-        },
-        {
           "key": "php.codeStyle.useTabs",
           "title": "Use tab character",
           "type": "bool",
@@ -1189,6 +1178,120 @@
           ]
         }
       ]
+    }
+  },
+  {
+    "id": "forge.langservers",
+    "name": "Language Servers",
+    "version": "0.1.0",
+    "pack": "core",
+    "description": "Detects, installs and starts language servers for JavaScript/TypeScript, Vue, Python, Go, Rust, Lua, YAML and 25 more languages.",
+    "vendor": "Forge",
+    "depends": [
+      "forge.core"
+    ],
+    "required": false,
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "commands": [
+        {
+          "id": "langservers.settings",
+          "title": "Language Servers…",
+          "category": "Languages & Frameworks"
+        }
+      ],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [
+        {
+          "key": "langservers.autoStart",
+          "title": "Start language servers for languages found in the project",
+          "description": "Servers start lazily when the first matching file is opened.",
+          "type": "bool",
+          "default": true,
+          "group": "lang.servers",
+          "section": "General",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "langservers.scanLimit",
+          "title": "Files scanned to detect languages",
+          "description": "Ignored files (.gitignore), node_modules and vendor are skipped.",
+          "type": "int",
+          "min": 100,
+          "max": 1000000,
+          "default": 20000,
+          "group": "lang.servers",
+          "section": "General",
+          "project": false,
+          "order": 1
+        },
+        {
+          "key": "langservers.lua.environment",
+          "title": "Lua environment",
+          "description": "Adds the APIs and globals of LÖVE (love.*) or Neovim (vim.*) to lua-language-server.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "plain",
+              "label": "Plain Lua"
+            },
+            {
+              "value": "love",
+              "label": "LÖVE 2D"
+            },
+            {
+              "value": "neovim",
+              "label": "Neovim plugin / config"
+            }
+          ],
+          "default": "plain",
+          "group": "lang.servers",
+          "section": "Lua",
+          "project": false,
+          "order": 10
+        },
+        {
+          "key": "langservers.lua.version",
+          "title": "Lua version",
+          "description": "Used with Plain Lua; LÖVE and Neovim run LuaJIT.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "Lua 5.1",
+              "label": "Lua 5.1"
+            },
+            {
+              "value": "Lua 5.2",
+              "label": "Lua 5.2"
+            },
+            {
+              "value": "Lua 5.3",
+              "label": "Lua 5.3"
+            },
+            {
+              "value": "Lua 5.4",
+              "label": "Lua 5.4"
+            },
+            {
+              "value": "LuaJIT",
+              "label": "LuaJIT"
+            }
+          ],
+          "default": "Lua 5.4",
+          "group": "lang.servers",
+          "section": "Lua",
+          "project": false,
+          "order": 11
+        }
+      ],
+      "lspServers": [],
+      "runConfigurationTypes": [],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": []
     }
   },
   {

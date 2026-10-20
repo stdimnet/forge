@@ -1,0 +1,69 @@
+# Language servers for many languages (catalog in crates/forge-langservers/catalog.toml).
+# Per-server choices (enabled, custom path, extra JSON settings) are stored under
+# `langservers.servers.<id>.*` by the Language Servers settings page.
+id = "forge.langservers"
+name = "Language Servers"
+version = "0.1.0"
+pack = "core"
+vendor = "Forge"
+description = "Detects, installs and starts language servers for JavaScript/TypeScript, Vue, Python, Go, Rust, Lua, YAML and 25 more languages."
+depends = ["forge.core"]
+
+[[contributions.commands]]
+id = "langservers.settings"
+title = "Language Servers…"
+category = "Languages & Frameworks"
+
+[[contributions.settings]]
+key = "langservers.autoStart"
+title = "Start language servers for languages found in the project"
+description = "Servers start lazily when the first matching file is opened."
+type = "bool"
+default = true
+group = "lang.servers"
+section = "General"
+order = 0
+
+[[contributions.settings]]
+key = "langservers.scanLimit"
+title = "Files scanned to detect languages"
+description = "Ignored files (.gitignore), node_modules and vendor are skipped."
+type = "int"
+min = 100
+max = 1000000
+default = 20000
+group = "lang.servers"
+section = "General"
+order = 1
+
+[[contributions.settings]]
+key = "langservers.lua.environment"
+title = "Lua environment"
+description = "Adds the APIs and globals of LÖVE (love.*) or Neovim (vim.*) to lua-language-server."
+type = "enum"
+options = [
+  { value = "plain", label = "Plain Lua" },
+  { value = "love", label = "LÖVE 2D" },
+  { value = "neovim", label = "Neovim plugin / config" },
+]
+default = "plain"
+group = "lang.servers"
+section = "Lua"
+order = 10
+
+[[contributions.settings]]
+key = "langservers.lua.version"
+title = "Lua version"
+description = "Used with Plain Lua; LÖVE and Neovim run LuaJIT."
+type = "enum"
+options = [
+  { value = "Lua 5.1", label = "Lua 5.1" },
+  { value = "Lua 5.2", label = "Lua 5.2" },
+  { value = "Lua 5.3", label = "Lua 5.3" },
+  { value = "Lua 5.4", label = "Lua 5.4" },
+  { value = "LuaJIT", label = "LuaJIT" },
+]
+default = "Lua 5.4"
+group = "lang.servers"
+section = "Lua"
+order = 11

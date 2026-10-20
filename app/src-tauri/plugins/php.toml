@@ -109,16 +109,6 @@ group = "lang.php"
 section = "Language Server"
 order = 20
 
-[[contributions.settings]]
-key = "php.lsp.licenceKey"
-title = "Intelephense licence key"
-description = "Optional; unlocks rename, code actions and more."
-type = "string"
-default = ""
-group = "lang.php"
-section = "Language Server"
-order = 21
-
 # ---- Editor > Code Style > PHP -------------------------------------------------------
 
 [[contributions.settings]]
