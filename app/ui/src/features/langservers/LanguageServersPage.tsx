@@ -13,7 +13,7 @@ import { SettingRow } from "@/features/settings/SchemaPage";
 import { InstallDialog } from "./InstallDialog";
 import { IntelephenseLicence } from "./Licence";
 import { groupRows, jsonError, shortenHome, skipText, STATUS_LABEL } from "./model";
-import { loading, refreshRows, rows } from "./store";
+import { applyServers, loading, refreshRows, rows } from "./store";
 
 /** Draft-aware value of a per-server setting. */
 function serverValue<T>(id: string, field: "enabled" | "path" | "settings", fallback: T): T {
@@ -206,7 +206,7 @@ export function LanguageServersPage() {
         <span class="ls-counts muted">
           {counts().running} running · {counts().installed} installed
         </span>
-        <button class="icon-btn" title="Detect Again" onClick={() => void refreshRows()}>
+        <button class="icon-btn" title="Detect Again" onClick={() => void applyServers()}>
           <RefreshCw size={14} classList={{ "lsp-spin": loading() }} />
         </button>
       </div>
