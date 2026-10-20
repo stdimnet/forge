@@ -7,6 +7,7 @@ use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, State};
 
 use forge_backend::{BackendInfo, WatchGuard};
+use forge_core::search::{FindRequest, FindResult};
 use forge_core::{FileEntry, FileMatch, ForgeError, FsChanges, Result, Workspace};
 
 use crate::recent::{RecentProject, RecentRemote};
@@ -246,4 +247,12 @@ pub async fn fs_find_files(
 ) -> Result<Vec<FileMatch>> {
     let backend = state.backend()?;
     blocking(move || backend.find_files(&query, limit.unwrap_or(100))).await
+}
+
+/// Find in Files (Ctrl+Shift+F): text search over the project through its backend, so
+/// remote projects are searched on their host (logic in `forge-find`).
+#[tauri::command]
+pub async fn find_in_files(request: FindRequest, state: State<'_, AppState>) -> Result<FindResult> {
+    let backend = state.backend()?;
+    blocking(move || backend.find_in_files(&request)).await
 }

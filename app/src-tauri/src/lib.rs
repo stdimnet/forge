@@ -197,6 +197,7 @@ pub fn run() {
             commands::langservers::intelephense_licence_status,
             commands::langservers::intelephense_set_licence,
             commands::workspace::fs_find_files,
+            commands::workspace::find_in_files,
             commands::search::fuzzy_filter,
             commands::search::search_rank,
             commands::search::filetypes_detect,

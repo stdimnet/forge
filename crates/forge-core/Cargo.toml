@@ -9,6 +9,7 @@ license.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 forge-fuzzy.workspace = true
+forge-find.workspace = true
 thiserror.workspace = true
 toml.workspace = true
 dirs.workspace = true
