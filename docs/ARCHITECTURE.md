@@ -42,6 +42,13 @@ app/ui/            SolidJS UI
   - `registerSearchProvider` (`src/features/search/providers.ts`) — Search Everywhere tabs
     (Classes, Files, Symbols, Actions, Text); language packs plug in class/symbol indexes.
   - `registerKeymapActions` (`src/keymap/store.ts`) — plugin actions with default shortcuts.
+  - `registerLineMarkerProvider` (`src/editor/lineMarkers.ts`) — gutter icons per line (route on a
+    controller action, "go to template", entity <-> repository), recomputed after edits.
+  - `registerDeclarationProvider` (`src/features/lsp/goto.ts`) — framework targets for Ctrl+B /
+    Ctrl+Click that a language server cannot resolve (route names, service ids, DQL fields); tried
+    before the LSP.
+  - `claimFrameworkStatus` (`src/features/project-type`) — a framework plugin with its own status
+    widget hides the generic "Laravel 12" / "Symfony 7" one.
 - Keymap (`src/keymap/`): PHPStorm's default keymaps (Windows/Linux and macOS) as data, keyed by
   PHPStorm action ids that double as command ids. Implementing an action is just
   `registerCommand({ id: "GotoClass", ... })`; unimplemented actions show "not available yet".
@@ -114,3 +121,39 @@ app/ui/            SolidJS UI
   `lsp_document_symbols({ path })`, `lsp_format({ path, tabSize?, insertSpaces? })`, `lsp_status()`.
   Paths are workspace relative, positions 0-based line / UTF-16 character.
 - Events: `lsp://diagnostics` `{ path, diagnostics }` and `lsp://status` `ServerStatus[]`.
+
+## Symfony (`phpforge-fw-symfony`) and Doctrine (`phpforge-orm-doctrine`)
+
+- Both plugins activate only for projects whose detection reports `symfony` / `doctrine`.
+  Settings live under Languages & Frameworks | PHP | Symfony (`symfony.*`) and | Doctrine
+  (`doctrine.*`). In browser mode `?project=symfony` opens the Symfony demo project.
+- `symfony_detect() -> SymfonyInfo | null` (`{ version, environment, consolePath, hasConsole,
+  containerXml?, kernelClass?, routes, services, templates, commands }`), `symfony_refresh()`.
+  The backend caches a project snapshot for 10 s; refresh rescans.
+- `symfony_routes() -> Route[]` (`{ name, path, methods?, controller?, host?, source:
+  "attribute" | "annotation" | "yaml", location? }`), `symfony_services() -> Service[]` (`{ id,
+  class?, alias?, public, autowire, autoconfigure, tags?, source: "yaml" | "resource" |
+  "container", location? }`), `symfony_parameters()`, `symfony_templates()`,
+  `symfony_console_commands()` (application commands first, then framework/bundle ones). Services
+  and parameters merge `config/services*.yaml` with `var/cache/<env>/*Container.xml` when present.
+- `symfony_complete({ path, content, offset }) -> { from, items: { label, kind: "route" | "service"
+  | "template" | "parameter" | "tag" | "filter" | "function" | "test" | "variable", detail?, info?,
+  apply? }[] } | null` and `symfony_goto({ path, content, offset }) -> Location[]` for PHP, Twig and
+  YAML files. `symfony_gutter({ path, content }) -> { line, kind: "route" | "template" | "controller"
+  | "command", title, targets?, command? }[]`. Offsets are UTF-16, `Location` is `{ path, line,
+  column }` (0-based).
+- `symfony_console_run({ command, args, runId })` streams `symfony://console` events `{ type:
+  "started", runId, commandLine } | { type: "output", runId, text, stderr } | { type: "exit", runId,
+  code }`; `symfony_console_cancel({ runId })`.
+- `doctrine_entities({ refresh? }) -> Entity[]` (`{ class, name, table?, repositoryClass?, path,
+  line, source: "attribute" | "annotation" | "xml" | "yaml", embeddable?, mappedSuperclass?,
+  fields: { name, type, column?, length?, nullable?, unique?, id?, generated?, embedded?, line }[],
+  associations: { name, kind: "manyToOne" | "oneToMany" | "manyToMany" | "oneToOne", target,
+  mappedBy?, inversedBy?, line }[] }`).
+- DQL inside PHP (`createQuery()` incl. concatenations, heredocs and `Entity::class`, QueryBuilder
+  `select/where/join/orderBy/...` and `expr()` fragments with the aliases of the builder chain):
+  `doctrine_complete({ path, content, offset }) -> { from, items: { label, kind: "keyword" |
+  "function" | "entity" | "alias" | "field" | "association" | "embedded", detail?, apply? }[] } |
+  null`, `doctrine_goto`, `doctrine_diagnostics({ path, content }) -> { start, end, message }[]`,
+  `doctrine_gutter({ path, content })`. The UI highlights DQL itself (`features/doctrine/dql.ts`,
+  same token rules as the Rust lexer).

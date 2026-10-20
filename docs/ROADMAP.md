@@ -11,14 +11,14 @@
 - [x] AI chat: Claude Code rendered as chat (no terminal), tool calls & diffs as cards
 - [ ] PHPStorm keymap 1:1, Find Action, Search Everywhere
 - [x] Project type detection (packs activate per project) and New Project wizard with PHP, Web and Lua generators
+- [x] Symfony plugin: services/parameters (YAML + compiled container), routes, Twig completion & navigation, console commands, line markers
+- [x] Doctrine plugin: entity mapping (attributes, annotations, XML, YAML), DQL highlighting, completion and inspections in `createQuery()` and QueryBuilder strings
 
 ## Next branches
 
 | Branch | Scope |
 | --- | --- |
 | `feat/laravel-plugin` | Routes, Blade, Eloquent, artisan runner |
-| `feat/symfony-plugin` | Container/services, Twig, routes, console |
-| `feat/doctrine-dql` | DQL highlighting & completion, entity mapping |
 | `feat/database-tools` | SQL editor, schema browser, data grid (MySQL, PostgreSQL, SQLite) |
 | `feat/xdebug-run-configs` | Xdebug via DAP, custom run/debug configuration types |
 | `feat/docker-kubernetes` | Services tool window: containers, compose, pods, logs |

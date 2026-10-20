@@ -28,6 +28,7 @@ Requirements: Rust (stable), Node 22 + pnpm, and on Linux the
 cd app/ui && pnpm install
 pnpm tauri dev            # desktop app
 pnpm dev                  # UI only in the browser, backed by a mocked demo project
+                          # (Laravel; open /?project=symfony for the Symfony + Doctrine demo)
 pnpm screenshots          # capture docs/screenshots (needs `pnpm dev` running)
 cargo test --workspace && cargo clippy --workspace --all-targets -- -D warnings
 ```
