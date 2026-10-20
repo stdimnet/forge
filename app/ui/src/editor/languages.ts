@@ -11,7 +11,9 @@ import { html } from "@codemirror/lang-html";
 import { xml } from "@codemirror/lang-xml";
 import { properties } from "@codemirror/legacy-modes/mode/properties";
 import { dotenv } from "./dotenv";
-import { jinjaSyntax, latteSyntax, mustacheSyntax, smartySyntax, templateParser, twigSyntax } from "./templates";
+import { jinjaSyntax, latteSyntax, mustacheSyntax, smartySyntaxWith, templateParser, twigSyntax, type TemplateSyntax } from "./templates";
+import { dataLanguageFor } from "./templateData";
+import { getSetting } from "@/state/settings";
 import { less } from "@codemirror/lang-less";
 import { sass } from "@codemirror/lang-sass";
 import { vue } from "@codemirror/lang-vue";
@@ -75,10 +77,26 @@ export interface LanguageDef {
   extensions?: string[];
   /** Exact lower-case file names (`dockerfile`) or name prefixes ending in `*` (`.env*`). */
   fileNames?: string[];
-  load: () => Extension;
+  load: (path: string) => Extension;
+  /** Status bar label for a concrete file, e.g. "Twig (LaTeX)". Defaults to `label`. */
+  labelFor?: (path: string) => string;
 }
 
 const stream = (parser: StreamParser<unknown>) => () => StreamLanguage.define(parser);
+
+/** A template language whose content is highlighted in the file's data language. */
+function template(id: string, label: string, extensions: string[], syntax: () => TemplateSyntax): LanguageDef {
+  return {
+    id,
+    label,
+    extensions,
+    load: (path) => StreamLanguage.define(templateParser(syntax(), dataLanguageFor(path).parser)),
+    labelFor: (path) => {
+      const data = dataLanguageFor(path);
+      return data.id === "html" ? label : `${label} (${data.label})`;
+    },
+  };
+}
 
 const languages: LanguageDef[] = [
   { id: "php", label: "PHP", extensions: ["php", "phtml", "inc"], load: () => php() },
@@ -98,11 +116,13 @@ const languages: LanguageDef[] = [
   { id: "stylus", label: "Stylus", extensions: ["styl", "stylus"], load: stream(stylus) },
   { id: "html", label: "HTML", extensions: ["html", "htm", "xhtml", "svelte", "astro"], load: () => html() },
   { id: "vue", label: "Vue", extensions: ["vue"], load: () => vue() },
-  { id: "twig", label: "Twig", extensions: ["twig", "html.twig"], load: () => StreamLanguage.define(templateParser(twigSyntax)) },
-  { id: "smarty", label: "Smarty", extensions: ["tpl", "smarty"], load: () => StreamLanguage.define(templateParser(smartySyntax)) },
-  { id: "latte", label: "Latte", extensions: ["latte"], load: () => StreamLanguage.define(templateParser(latteSyntax)) },
-  { id: "jinja", label: "Jinja2", extensions: ["j2", "jinja", "jinja2", "njk", "nunjucks"], load: () => StreamLanguage.define(templateParser(jinjaSyntax)) },
-  { id: "handlebars", label: "Handlebars", extensions: ["hbs", "handlebars", "mustache"], load: () => StreamLanguage.define(templateParser(mustacheSyntax)) },
+  template("twig", "Twig", ["twig", "html.twig"], () => twigSyntax),
+  template("smarty", "Smarty", ["tpl", "smarty"], () =>
+    smartySyntaxWith(getSetting<string>("templates.smarty.leftDelimiter", "{"), getSetting<string>("templates.smarty.rightDelimiter", "}")),
+  ),
+  template("latte", "Latte", ["latte"], () => latteSyntax),
+  template("jinja", "Jinja2", ["j2", "jinja", "jinja2", "njk", "nunjucks"], () => jinjaSyntax),
+  template("handlebars", "Handlebars", ["hbs", "handlebars", "mustache"], () => mustacheSyntax),
   { id: "velocity", label: "Velocity", extensions: ["vm", "vtl"], load: stream(velocity) },
   { id: "pug", label: "Pug", extensions: ["pug", "jade"], load: stream(pug) },
   { id: "xml", label: "XML", extensions: ["xml", "xsd", "xsl", "svg", "dist", "xliff", "xlf"], load: () => xml() },
@@ -205,9 +225,10 @@ export function detectLanguage(path: string): LanguageDef | undefined {
 
 export function languageFor(path: string): Extension[] {
   const def = detectLanguage(path);
-  return def ? [def.load()] : [];
+  return def ? [def.load(path)] : [];
 }
 
 export function languageLabel(path: string): string {
-  return detectLanguage(path)?.label ?? "Plain text";
+  const def = detectLanguage(path);
+  return def ? (def.labelFor?.(path) ?? def.label) : "Plain text";
 }

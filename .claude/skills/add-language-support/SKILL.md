@@ -38,5 +38,23 @@ File types are mapped to CodeMirror languages in `app/ui/src/editor/languages.ts
    `app/ui/src/mock/demoConfigFiles.ts`. Then add a scenario to
    `app/ui/scripts/scenarios/syntax.mjs` and check the screenshot.
 
+## Template data languages
+
+Template languages (Twig, Smarty, Latte, Jinja, Handlebars) highlight the content between their
+tags in a *data language*, as PHPStorm does. The data language is chosen in
+`app/ui/src/editor/templateData.ts`, from the first of these that applies:
+
+1. the `templates.dataLanguages` setting (Settings → Languages & Frameworks → Template Data
+   Languages), with entries like `legacy/latex/*=latex`;
+2. a compound file name: `invoice.tex.twig` is LaTeX, `report.sql.twig` is SQL,
+   `style.css.tpl` is CSS;
+3. HTML.
+
+To support another data language, add it to `DATA_LANGUAGES` with a stream parser, and add its
+inner extension to `COMPOUND`. The template parser (`templateParser(syntax, dataParser)`) cuts
+each line at the next template opener, so template tags also work inside strings of the data
+language. Smarty delimiters are configurable (`templates.smarty.leftDelimiter`), which helps for
+LaTeX, where `{` is part of the content.
+
 Smarter features for a language (completion, hover, diagnostics) belong to a language server
 (`forge-lsp`, see the PHP pack) or a pack-specific editor extension (`registerEditorExtension`).

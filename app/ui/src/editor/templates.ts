@@ -1,10 +1,12 @@
 import type { StreamParser, StringStream } from "@codemirror/language";
 
 /**
- * Template languages that embed tags in HTML: Twig, Smarty, Jinja, Latte, Mustache,
- * Handlebars, Nunjucks. One configurable stream parser handles the HTML around the template
- * tags (elements, attributes, comments) and the tags themselves (keywords, variables,
- * filters, strings, numbers, operators).
+ * Template languages: Twig, Smarty, Jinja, Latte, Mustache, Handlebars, Nunjucks. One
+ * configurable stream parser handles the template tags (keywords, variables, filters,
+ * strings, numbers, operators) and hands everything between them to the template's *data
+ * language*: HTML by default (built in, so template tags inside attribute values work), or
+ * any other stream parser such as LaTeX, SQL, CSS, JavaScript, YAML (PHPStorm's "Template
+ * Data Languages").
  */
 export interface TemplateSyntax {
   name: string;
@@ -20,12 +22,58 @@ interface TemplateState {
   html: "text" | "tag" | "comment" | "attrValue";
   quote: string | null;
   tagName: boolean;
+  /** State of the data language parser, when it is not the built-in HTML. */
+  data: unknown;
 }
 
 const OPERATORS = /^(==|!=|<=|>=|\?\?|\?:|\.\.|\*\*|\/\/|[-+*/%~<>=!?:|.])/;
 
-export function templateParser(syntax: TemplateSyntax): StreamParser<TemplateState> {
+/** Same as CodeMirror's default state copy for stream parsers without `copyState`. */
+function copyState<T>(parser: StreamParser<T>, state: T): T {
+  if (parser.copyState) return parser.copyState(state);
+  if (typeof state !== "object" || state === null) return state;
+  const copy = {} as Record<string, unknown>;
+  for (const [k, v] of Object.entries(state as Record<string, unknown>)) copy[k] = Array.isArray(v) ? v.slice() : v;
+  return copy as T;
+}
+
+/**
+ * @param data Data language between template tags; `undefined` uses the built-in HTML
+ *   tokenizer, `null` treats the content as plain text.
+ */
+export function templateParser(syntax: TemplateSyntax, data?: StreamParser<unknown> | null): StreamParser<TemplateState> {
   const keywords = new Set(syntax.keywords);
+  const opens = syntax.delimiters.map(([open]) => open);
+
+  /** Position of the next template opener at or after `from`, or the line end. */
+  function nextOpen(line: string, from: number): number {
+    let next = line.length;
+    for (const open of opens) {
+      const i = line.indexOf(open, from);
+      if (i >= 0 && i < next) next = i;
+    }
+    return next;
+  }
+
+  /** Tokenize data-language content, stopping at the next template tag (CM5's multiplex). */
+  function dataToken(stream: StringStream, state: TemplateState): string | null {
+    const end = nextOpen(stream.string, stream.pos);
+    if (!data) {
+      stream.pos = Math.max(end, stream.pos + 1);
+      return null;
+    }
+    const full = stream.string;
+    stream.string = full.slice(0, end);
+    const start = stream.pos;
+    let style: string | null = null;
+    try {
+      style = (data.token(stream, state.data) as string | null) ?? null;
+    } finally {
+      stream.string = full;
+    }
+    if (stream.pos === start) stream.next();
+    return style;
+  }
 
   function openTag(stream: StringStream, state: TemplateState): string | null {
     for (const [open, close, kind] of syntax.delimiters) {
@@ -150,15 +198,24 @@ export function templateParser(syntax: TemplateSyntax): StreamParser<TemplateSta
 
   return {
     name: syntax.name,
-    startState: () => ({ inTag: null, html: "text", quote: null, tagName: false }),
-    copyState: (s) => ({ ...s, inTag: s.inTag && { ...s.inTag } }),
+    startState: (indentUnit) => ({
+      inTag: null,
+      html: "text",
+      quote: null,
+      tagName: false,
+      data: data ? data.startState?.(indentUnit) ?? {} : null,
+    }),
+    copyState: (s) => ({ ...s, inTag: s.inTag && { ...s.inTag }, data: data ? copyState(data, s.data) : null }),
     token(stream, state) {
       if (state.inTag) return inTemplateTag(stream, state);
-      if (state.html !== "comment") {
+      if (data !== undefined || state.html !== "comment") {
         const style = openTag(stream, state);
         if (style) return style;
       }
-      return html(stream, state);
+      return data === undefined ? html(stream, state) : dataToken(stream, state);
+    },
+    blankLine(state, indentUnit) {
+      if (!state.inTag && data?.blankLine) data.blankLine(state.data, indentUnit);
     },
   };
 }
@@ -188,6 +245,18 @@ export const twigSyntax: TemplateSyntax = {
 };
 
 export const jinjaSyntax: TemplateSyntax = { ...twigSyntax, name: "jinja", keywords: JINJA_KEYWORDS };
+
+/** Smarty with configurable delimiters (`$smarty->left_delimiter`), e.g. `<{ }>` for LaTeX. */
+export function smartySyntaxWith(left = "{", right = "}"): TemplateSyntax {
+  return {
+    ...smartySyntax,
+    delimiters: [
+      [`${left}*`, `*${right}`, "comment"],
+      [`${left}/`, right, "block"],
+      [left, right, "block"],
+    ],
+  };
+}
 
 export const smartySyntax: TemplateSyntax = {
   name: "smarty",

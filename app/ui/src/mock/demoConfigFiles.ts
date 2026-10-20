@@ -192,4 +192,38 @@ jobs:
   </body>
 </html>
 `,
+  "templates/invoice/invoice.tex.twig": `{# Rendered to PDF with pdflatex #}
+\\documentclass[11pt]{article}
+\\usepackage[utf8]{inputenc}
+\\usepackage{booktabs}
+
+\\begin{document}
+\\section*{Invoice {{ invoice.number }}}
+% Customer block
+\\textbf{ {{ customer.name|latex_escape }} } \\\\
+{{ customer.address|nl2br }}
+
+\\begin{tabular}{lrr}
+  \\toprule
+  Item & Qty & Total \\\\ \\midrule
+{% for line in invoice.lines %}
+  {{ line.name }} & {{ line.quantity }} & {{ line.total|number_format(2) }} \\\\
+{% endfor %}
+  \\bottomrule
+\\end{tabular}
+
+\\end{document}
+`,
+  "templates/reports/top_customers.sql.twig": `-- Generated report query
+SELECT u.id, u.name, SUM(o.total) AS revenue
+FROM users u
+    JOIN orders o ON o.user_id = u.id
+WHERE o.created_at >= '{{ from|date('Y-m-d') }}'
+{% if onlyPaid %}
+  AND o.status = 'paid'
+{% endif %}
+GROUP BY u.id
+ORDER BY revenue DESC
+LIMIT {{ limit|default(10) }};
+`,
 };
