@@ -163,7 +163,10 @@ export function appendSegments(lines: ConsoleLine[], segments: Segment[], extra?
     const style = extra ? { ...extra, ...seg.style } : seg.style;
     seg.text.split("\n").forEach((part, idx) => {
       if (idx > 0) lines.push({ segments: [] });
-      const current = lines[lines.length - 1];
+      // Lines are replaced, not mutated, so keyed renderers redraw exactly the changed ones.
+      const last = lines[lines.length - 1];
+      const current: ConsoleLine = { segments: [...last.segments], cr: last.cr };
+      lines[lines.length - 1] = current;
       part.split("\r").forEach((piece, k) => {
         if (k > 0) current.cr = true;
         if (!piece) return;

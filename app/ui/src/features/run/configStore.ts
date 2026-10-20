@@ -14,8 +14,11 @@ const [configurations, setConfigurations] = createSignal<RunConfiguration[]>([])
 const [temporary, setTemporary] = createSignal<RunConfiguration[]>([]);
 const [selectedName, setSelectedName] = createSignal<string | null>(null);
 const [loaded, setLoaded] = createSignal(false);
+const [templates, setTemplates] = createSignal<RunConfiguration[]>([]);
 
-export { configurations, temporary, selectedName, loaded };
+export { configurations, temporary, selectedName, loaded, templates };
+
+export const templateFor = (typeId: string) => templates().find((t) => t.type === typeId);
 
 export const isTemporary = (cfg: RunConfiguration) => temporary().some((t) => t.name === cfg.name);
 
@@ -37,6 +40,7 @@ export async function loadConfigurations(): Promise<void> {
   try {
     const file = await runApi.loadConfigurations();
     setConfigurations(file.configurations);
+    setTemplates(file.templates ?? []);
     setSelectedName(file.selected ?? file.configurations[0]?.name ?? null);
   } catch (err) {
     showBalloon("Run configurations could not be loaded", String(err));
@@ -52,6 +56,7 @@ async function persist(): Promise<void> {
       configurations: configurations(),
       // Temporary configurations are not saved; neither is selecting one.
       selected: selected && configurations().some((c) => c.name === selected) ? selected : undefined,
+      templates: templates(),
     });
   } catch (err) {
     showBalloon("Run configurations could not be saved", String(err));
@@ -59,8 +64,13 @@ async function persist(): Promise<void> {
 }
 
 /** Replace all saved configurations (Run/Debug Configurations dialog: OK / Apply). */
-export async function saveConfigurations(list: RunConfiguration[], selected?: string | null): Promise<void> {
+export async function saveConfigurations(
+  list: RunConfiguration[],
+  selected?: string | null,
+  newTemplates?: RunConfiguration[],
+): Promise<void> {
   setConfigurations(list);
+  if (newTemplates) setTemplates(newTemplates);
   // A temporary configuration that was edited and saved becomes permanent.
   setTemporary((t) => t.filter((x) => !list.some((c) => c.name === x.name)));
   if (selected !== undefined) setSelectedName(selected);

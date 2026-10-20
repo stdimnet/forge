@@ -78,6 +78,10 @@ pub struct RunConfigurations {
     pub configurations: Vec<RunConfiguration>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub selected: Option<String>,
+    /// Per-type defaults for new configurations ("Edit configuration templates…"); kept in
+    /// the local file. Their `name` is ignored.
+    #[serde(default)]
+    pub templates: Vec<RunConfiguration>,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize)]
@@ -86,6 +90,8 @@ struct FileFormat {
     selected: Option<String>,
     #[serde(default, rename = "configuration")]
     configurations: Vec<RunConfiguration>,
+    #[serde(default, rename = "template", skip_serializing_if = "Vec::is_empty")]
+    templates: Vec<RunConfiguration>,
 }
 
 fn read_file(path: &Path) -> Result<FileFormat> {
@@ -99,7 +105,7 @@ fn read_file(path: &Path) -> Result<FileFormat> {
 }
 
 fn write_file(path: &Path, file: &FileFormat) -> Result<()> {
-    if file.configurations.is_empty() && file.selected.is_none() {
+    if file.configurations.is_empty() && file.selected.is_none() && file.templates.is_empty() {
         // Do not leave empty files behind in the project.
         return match std::fs::remove_file(path) {
             Err(e) if e.kind() != std::io::ErrorKind::NotFound => Err(ForgeError::io(path, e)),
@@ -130,6 +136,7 @@ impl RunConfigurations {
         Ok(Self {
             configurations,
             selected: local.selected.or(shared.selected),
+            templates: local.templates,
         })
     }
 
@@ -157,6 +164,7 @@ impl RunConfigurations {
             &FileFormat {
                 selected: None,
                 configurations: shared,
+                templates: Vec::new(),
             },
         )?;
         write_file(
@@ -164,6 +172,18 @@ impl RunConfigurations {
             &FileFormat {
                 selected: self.selected.clone(),
                 configurations: local,
+                templates: self
+                    .templates
+                    .iter()
+                    .map(|t| RunConfiguration {
+                        name: if t.name.is_empty() {
+                            t.type_id.clone()
+                        } else {
+                            t.name.clone()
+                        },
+                        ..t.clone()
+                    })
+                    .collect(),
             },
         )
     }
@@ -771,6 +791,11 @@ mod tests {
         let all = RunConfigurations {
             configurations: vec![shared.clone(), local.clone()],
             selected: Some("serve".into()),
+            templates: vec![{
+                let mut t = cfg("phpunit", &[("scope", "directory"), ("directory", "tests")]);
+                t.name = "phpunit".into();
+                t
+            }],
         };
         all.save(root).unwrap();
         let text = std::fs::read_to_string(root.join(PROJECT_FILE)).unwrap();
@@ -793,6 +818,7 @@ mod tests {
         let dup = RunConfigurations {
             configurations: vec![a.clone(), a.clone()],
             selected: None,
+            templates: Vec::new(),
         };
         assert!(dup.save(dir.path()).is_err());
         let mut empty = a;
@@ -800,6 +826,7 @@ mod tests {
         let bad = RunConfigurations {
             configurations: vec![empty],
             selected: None,
+            templates: Vec::new(),
         };
         assert!(bad.save(dir.path()).is_err());
     }

@@ -30,6 +30,8 @@ export interface RunConfiguration {
 export interface RunConfigurations {
   configurations: RunConfiguration[];
   selected?: string;
+  /** Per-type defaults for new configurations (one per type). */
+  templates?: RunConfiguration[];
 }
 
 export interface CommandLine {

@@ -1,4 +1,5 @@
-import { ChevronDown, GitBranch, Menu, Play, Bug, Search, Settings, Sparkles, Hammer, Sun, Moon } from "lucide-solid";
+import { ChevronDown, GitBranch, Menu, Search, Settings, Sparkles, Hammer, Sun, Moon } from "lucide-solid";
+import { RunWidget } from "@/features/run/RunWidget";
 import { workspace } from "@/state/workspace";
 import { theme, toggleTheme } from "@/state/theme";
 import { showToolWindow } from "@/state/layout";
@@ -36,17 +37,7 @@ export function MainToolbar() {
         <button class="icon-btn" title="Build Project (Ctrl+F9)">
           <Hammer size={16} />
         </button>
-        <button class="pill-btn run-config" title="Run/Debug Configurations" onClick={() => runCommand("run.editConfigurations")}>
-          <span class="run-config-icon">P</span>
-          <span>PHPUnit: tests</span>
-          <ChevronDown size={14} class="muted" />
-        </button>
-        <button class="icon-btn run-btn" title="Run (Shift+F10)" onClick={() => runCommand("run.run")}>
-          <Play size={16} fill="currentColor" />
-        </button>
-        <button class="icon-btn debug-btn" title="Debug (Shift+F9)" onClick={() => runCommand("run.debug")}>
-          <Bug size={16} />
-        </button>
+        <RunWidget />
         <div class="toolbar-sep" />
         <button class="icon-btn" title="AI Chat" onClick={() => showToolWindow("right", "ai-chat")}>
           <Sparkles size={16} />
