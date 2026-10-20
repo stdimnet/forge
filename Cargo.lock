@@ -2149,6 +2149,7 @@ dependencies = [
  "forge-agent-cli",
  "forge-containers",
  "forge-filetypes",
+ "forge-find",
  "forge-fuzzy",
  "forge-keymap",
  "forge-markdown",

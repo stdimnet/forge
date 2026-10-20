@@ -104,32 +104,5 @@ if (!isTauri()) {
       return symbols.map((s) => toItem(s, -2));
     },
   });
-
-  registerSearchProvider({
-    id: "demo.text",
-    tab: "text",
-    title: "Text",
-    search(query, { limit }) {
-      const q = query.trim().toLowerCase();
-      if (q.length < 2) return [];
-      const out: SearchItem[] = [];
-      for (const [path, src] of Object.entries(projectFiles)) {
-        src.split("\n").forEach((text, i) => {
-          const at = text.toLowerCase().indexOf(q);
-          if (at < 0 || out.length >= limit) return;
-          const trimmed = text.trimStart();
-          const shift = text.length - trimmed.length;
-          out.push({
-            id: `${path}:${i + 1}`,
-            label: trimmed,
-            matches: Array.from({ length: q.length }, (_, k) => at - shift + k),
-            hint: `${path.split("/").pop()} ${i + 1}`,
-            kind: "text",
-            run: () => openFile(path),
-          });
-        });
-      }
-      return out;
-    },
-  });
+  // The Text tab is served by Find in Files (`features/find`, `find_in_files` mock).
 }
