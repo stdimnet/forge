@@ -11,8 +11,9 @@ import { html } from "@codemirror/lang-html";
 import { xml } from "@codemirror/lang-xml";
 import { properties } from "@codemirror/legacy-modes/mode/properties";
 import { dotenv } from "./dotenv";
-import { goTemplateSyntax, jinjaSyntax, latteSyntax, mustacheSyntax, smartySyntaxWith, templateParser, twigSyntax, type TemplateSyntax } from "./templates";
-import { dataLanguageFor } from "./templateData";
+import { goTemplateSyntax, jinjaSyntax, latteSyntax, mustacheSyntax, smartySyntaxWith, twigSyntax, type TemplateSyntax } from "./templates";
+import { dataLanguageFor, dataLanguageSupport } from "./templateData";
+import { templateOverlay } from "./templateOverlay";
 import { getSetting } from "@/state/settings";
 import { less } from "@codemirror/lang-less";
 import { sass } from "@codemirror/lang-sass";
@@ -90,7 +91,7 @@ function template(id: string, label: string, extensions: string[], syntax: () =>
     id,
     label,
     extensions,
-    load: (path) => StreamLanguage.define(templateParser(syntax(), dataLanguageFor(path).parser)),
+    load: (path) => [dataLanguageSupport(dataLanguageFor(path)), templateOverlay(syntax())],
     labelFor: (path) => {
       const data = dataLanguageFor(path);
       return data.id === "html" ? label : `${label} (${data.label})`;
