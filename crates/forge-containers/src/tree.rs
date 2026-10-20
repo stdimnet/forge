@@ -10,7 +10,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::compose::ComposeFile;
 use crate::docker::{Container, ContainerState, DockerSnapshot};
-use crate::kube::{age, encode_query, KubeConfig, Workloads};
+use crate::kube::{age, encode_query, ContainerPort, KubeConfig, Workloads};
+use crate::portforward::PortForward;
 use crate::time::{format_size, format_utc, long_age};
 
 // ---- input -----------------------------------------------------------------------------
@@ -96,6 +97,9 @@ pub struct ServicesInput {
     /// Node ids with an action in progress (spinner instead of the status dot).
     #[serde(default)]
     pub busy: Vec<String>,
+    /// Active Kubernetes port forwards.
+    #[serde(default)]
+    pub port_forwards: Vec<PortForward>,
 }
 
 // ---- targets and node ids --------------------------------------------------------------
@@ -832,17 +836,25 @@ fn namespace_node(input: &ServicesInput, context: &str, ns: &str, default: bool)
                 .iter()
                 .map(|p| {
                     let status = pod_status(p);
-                    Node::new(
-                        &Target::Pod {
-                            context: context.into(),
-                            namespace: ns.into(),
-                            name: p.name.clone(),
-                        },
-                        p.name.clone(),
-                        Icon::Pod,
-                    )
-                    .detail(format!("{} · {}", p.ready, p.status))
-                    .status(Some(status))
+                    let target = Target::Pod {
+                        context: context.into(),
+                        namespace: ns.into(),
+                        name: p.name.clone(),
+                    };
+                    let id = target.node_id();
+                    let forwards: Vec<String> = input
+                        .port_forwards
+                        .iter()
+                        .filter(|f| f.node_id == id)
+                        .map(|f| format!("{}→{}", f.local_port, f.remote_port))
+                        .collect();
+                    let mut detail = format!("{} · {}", p.ready, p.status);
+                    if !forwards.is_empty() {
+                        detail.push_str(&format!(" · ⇄ {}", forwards.join(", ")));
+                    }
+                    Node::new(&target, p.name.clone(), Icon::Pod)
+                        .detail(detail)
+                        .status(Some(status))
                 })
                 .collect();
             let deployments = w
@@ -949,6 +961,8 @@ pub enum Action {
     Down,
     Connect,
     Refresh,
+    /// Kubernetes Forward Ports (the UI asks for the ports).
+    ForwardPorts,
 }
 
 /// Toolbar actions that apply to a node, in toolbar order.
@@ -1008,7 +1022,7 @@ pub fn actions(input: &ServicesInput, target: &Target) -> Vec<Action> {
         Target::KubeContext { .. } | Target::KubeNamespace { .. } | Target::KubeRoot => {
             vec![Refresh]
         }
-        Target::Pod { .. } => vec![Remove, Logs, Exec],
+        Target::Pod { .. } => vec![Remove, Logs, Exec, ForwardPorts],
         Target::Deployment { .. } => vec![Restart, Logs],
         _ => vec![Refresh],
     }
@@ -1075,6 +1089,28 @@ pub struct Details {
     /// Text for the empty Dashboard (connection errors, hints).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub message: Option<String>,
+    /// Containers of a pod for the Log / Exec / Attached Console picker.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub containers: Vec<ContainerChoice>,
+    /// Active port forwards: the pod's, or all of them on the Kubernetes nodes.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub port_forwards: Vec<PortForward>,
+    /// Ports the pod's containers declare (Forward Ports suggestions).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub ports: Vec<ContainerPort>,
+}
+
+/// A container in the picker.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ContainerChoice {
+    pub name: String,
+    /// An init container (logs only).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub init: bool,
+    /// The container `kubectl` uses without `-c`.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub default: bool,
 }
 
 fn row(label: &str, value: impl Into<String>) -> Row {
@@ -1238,6 +1274,9 @@ pub fn details(input: &ServicesInput, node_id: &str) -> Option<Details> {
         sections: Vec::new(),
         actions: actions(input, &target),
         message: None,
+        containers: Vec::new(),
+        port_forwards: Vec::new(),
+        ports: Vec::new(),
     };
     match &target {
         Target::Docker => {
@@ -1677,8 +1716,15 @@ pub fn details(input: &ServicesInput, node_id: &str) -> Option<Details> {
                 d.message = Some(e.clone());
             }
             d.sections.push(section("Kubernetes", rows));
+            d.port_forwards = input.port_forwards.clone();
         }
         Target::KubeContext { context } => {
+            d.port_forwards = input
+                .port_forwards
+                .iter()
+                .filter(|f| &f.context == context)
+                .cloned()
+                .collect();
             let cfg = input.kube.config.as_ref()?;
             let r = cfg.resolve(context).ok()?;
             d.sections.push(section(
@@ -1793,7 +1839,29 @@ pub fn details(input: &ServicesInput, node_id: &str) -> Option<Details> {
                 return Some(d);
             };
             let p = w.pods.iter().find(|p| &p.name == name)?;
-            d.tabs = vec![Tab::Dashboard, Tab::Log, Tab::Inspection];
+            d.tabs = vec![Tab::Dashboard, Tab::Log, Tab::Console, Tab::Inspection];
+            let default = p.default_container();
+            d.containers = p
+                .containers
+                .iter()
+                .map(|c| ContainerChoice {
+                    name: c.clone(),
+                    init: false,
+                    default: Some(c.as_str()) == default,
+                })
+                .chain(p.init_containers.iter().map(|c| ContainerChoice {
+                    name: c.clone(),
+                    init: true,
+                    default: false,
+                }))
+                .collect();
+            d.ports = p.ports.clone();
+            d.port_forwards = input
+                .port_forwards
+                .iter()
+                .filter(|f| f.node_id == node_id)
+                .cloned()
+                .collect();
             d.subtitle = Some(format!("{} · {} ready", p.status, p.ready));
             d.sections.push(section(
                 "Pod",
@@ -1831,7 +1899,7 @@ pub fn details(input: &ServicesInput, node_id: &str) -> Option<Details> {
                 return Some(d);
             };
             let x = w.deployments.iter().find(|x| &x.name == name)?;
-            d.tabs = vec![Tab::Dashboard, Tab::Inspection];
+            d.tabs = vec![Tab::Dashboard, Tab::Log, Tab::Inspection];
             d.subtitle = Some(format!("{}/{} ready", x.ready_replicas, x.replicas));
             d.sections.push(section(
                 "Deployment",
@@ -1857,14 +1925,7 @@ pub fn details(input: &ServicesInput, node_id: &str) -> Option<Details> {
                     row("Age", age(x.created, input.now)),
                 ],
             ));
-            let pods: Vec<_> = w
-                .pods
-                .iter()
-                .filter(|p| {
-                    !x.selector.is_empty()
-                        && x.selector.iter().all(|(k, v)| p.labels.get(k) == Some(v))
-                })
-                .collect();
+            let pods: Vec<_> = w.pods.iter().filter(|p| x.selects(p)).collect();
             if !pods.is_empty() {
                 d.sections.push(table_section(
                     "Pods",
@@ -1984,6 +2045,7 @@ mod tests {
             kube,
             now: 1_792_487_521,
             busy: vec![],
+            port_forwards: vec![],
         }
     }
 
@@ -2158,6 +2220,67 @@ mod tests {
         )
         .unwrap();
         assert_eq!(d.sections.len(), 3);
+    }
+
+    #[test]
+    fn pods_with_containers_and_port_forwards() {
+        let mut i = input();
+        let pod = Target::Pod {
+            context: "kind-acme".into(),
+            namespace: "shop".into(),
+            name: "web-1".into(),
+        }
+        .node_id();
+        i.port_forwards = vec![PortForward {
+            id: 1,
+            node_id: pod.clone(),
+            context: "kind-acme".into(),
+            namespace: "shop".into(),
+            pod: "web-1".into(),
+            address: "127.0.0.1".into(),
+            local_port: 8080,
+            remote_port: 80,
+            connections: 0,
+            error: None,
+        }];
+        let d = details(&i, &pod).unwrap();
+        assert_eq!(
+            d.tabs,
+            [Tab::Dashboard, Tab::Log, Tab::Console, Tab::Inspection]
+        );
+        assert_eq!(
+            d.actions,
+            [
+                Action::Remove,
+                Action::Logs,
+                Action::Exec,
+                Action::ForwardPorts
+            ]
+        );
+        assert_eq!(
+            d.containers,
+            [ContainerChoice {
+                name: "php".into(),
+                init: false,
+                default: true
+            }]
+        );
+        assert_eq!(d.port_forwards.len(), 1);
+        let tree = build_tree(&i);
+        let node = tree[2].find(&pod).unwrap();
+        assert_eq!(node.detail.as_deref(), Some("1/1 · Running · ⇄ 8080→80"));
+        assert_eq!(details(&i, "kube").unwrap().port_forwards.len(), 1);
+        assert_eq!(
+            details(&i, "kube/kind-acme").unwrap().port_forwards.len(),
+            1
+        );
+        let dep = Target::Deployment {
+            context: "kind-acme".into(),
+            namespace: "shop".into(),
+            name: "web".into(),
+        }
+        .node_id();
+        assert!(details(&i, &dep).unwrap().tabs.contains(&Tab::Log));
     }
 
     #[test]

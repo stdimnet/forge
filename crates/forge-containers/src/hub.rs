@@ -21,7 +21,8 @@ use crate::exec::{self, TerminalCommand};
 use crate::gutter;
 use crate::kube::{self, KubeConfig};
 use crate::kubeclient::KubeClient;
-use crate::logs::LogStream;
+use crate::logs::{pod_log_prefix, LinePrefixer, LogStream};
+use crate::portforward::PortForward;
 use crate::tree::{
     self, Action, ConnectionState, Details, KubeInput, Loaded, Node, ServicesInput, Target,
 };
@@ -93,6 +94,9 @@ struct State {
     streams: HashMap<String, JoinHandle<()>>,
     watcher: Option<JoinHandle<()>>,
     generation: u64,
+    /// Active port forwards with their listener tasks.
+    forwards: Vec<(PortForward, JoinHandle<()>)>,
+    next_forward: u64,
 }
 
 pub struct Hub {
@@ -294,6 +298,7 @@ impl Hub {
             kube: s.kube.clone(),
             now: now(),
             busy: s.busy.clone(),
+            port_forwards: s.forwards.iter().map(|(f, _)| f.clone()).collect(),
         }
     }
 
@@ -696,9 +701,43 @@ impl Hub {
         );
     }
 
-    /// Start (or restart) streaming the logs of a container, compose service or pod into
+    /// A loaded pod of the tree.
+    fn loaded_pod(&self, context: &str, ns: &str, name: &str) -> Option<kube::Pod> {
+        match self
+            .lock()
+            .kube
+            .workloads
+            .get(&tree::workloads_key(context, ns))
+        {
+            Some(Loaded::Ready { value }) => value.pods.iter().find(|p| p.name == name).cloned(),
+            _ => None,
+        }
+    }
+
+    /// The container of a pod for logs / exec / attach: the chosen one, else the default
+    /// container (annotation or the first one) when the pod is loaded.
+    fn pod_container(
+        &self,
+        context: &str,
+        ns: &str,
+        pod: &str,
+        container: Option<&str>,
+    ) -> Option<String> {
+        match self.loaded_pod(context, ns, pod) {
+            Some(p) => p.pick_container(container).map(str::to_string),
+            None => container.map(str::to_string),
+        }
+    }
+
+    /// Start (or restart) streaming the logs of a container, compose service, pod (one of
+    /// its containers) or deployment (all containers of all its pods, prefixed) into
     /// `log:<nodeId>`.
-    pub fn start_logs(self: &Arc<Self>, node_id: &str, tail: u32) -> Result<String> {
+    pub fn start_logs(
+        self: &Arc<Self>,
+        node_id: &str,
+        tail: u32,
+        container: Option<&str>,
+    ) -> Result<String> {
         let target =
             Target::parse(node_id).ok_or_else(|| Error(format!("Unknown node {node_id}")))?;
         let key = format!("log:{node_id}");
@@ -768,24 +807,128 @@ impl Hub {
                 context,
                 namespace,
                 name,
-            } => self.runtime.spawn(async move {
-                let r = match hub.kube_client(&context).await {
-                    Ok(c) => {
-                        let h = hub.clone();
-                        let kk = k.clone();
-                        c.pod_logs(&namespace, &name, None, tail, true, move |t| {
-                            h.console_text(&kk, LogStream::Stdout, t)
-                        })
-                        .await
-                    }
-                    Err(e) => Err(e),
+            } => {
+                let container = self.pod_container(&context, &namespace, &name, container);
+                self.runtime.spawn(async move {
+                    let r = match hub.kube_client(&context).await {
+                        Ok(c) => {
+                            let h = hub.clone();
+                            let kk = k.clone();
+                            c.pod_logs(
+                                &namespace,
+                                &name,
+                                container.as_deref(),
+                                tail,
+                                true,
+                                move |t| h.console_text(&kk, LogStream::Stdout, t),
+                            )
+                            .await
+                        }
+                        Err(e) => Err(e),
+                    };
+                    hub.stream_ended(&k, r);
+                })
+            }
+            Target::Deployment {
+                context,
+                namespace,
+                name,
+            } => {
+                let selector = match self
+                    .lock()
+                    .kube
+                    .workloads
+                    .get(&tree::workloads_key(&context, &namespace))
+                {
+                    Some(Loaded::Ready { value }) => value
+                        .deployments
+                        .iter()
+                        .find(|d| d.name == name)
+                        .map(|d| d.label_selector()),
+                    _ => None,
                 };
-                hub.stream_ended(&k, r);
-            }),
+                self.runtime.spawn(async move {
+                    let r = hub
+                        .deployment_logs(&k, &context, &namespace, &name, selector, tail)
+                        .await;
+                    hub.stream_ended(&k, r);
+                })
+            }
             _ => return err("This node has no logs"),
         };
         self.lock().streams.insert(key.clone(), task);
         Ok(key)
+    }
+
+    /// `kubectl logs deploy/<name> --all-containers --prefix -f`: every container of every
+    /// pod of the deployment, each line prefixed with `[pod/<pod>/<container>]`.
+    async fn deployment_logs(
+        self: &Arc<Self>,
+        key: &str,
+        context: &str,
+        ns: &str,
+        name: &str,
+        selector: Option<String>,
+        tail: u32,
+    ) -> Result<()> {
+        let client = self.kube_client(context).await?;
+        let selector = match selector {
+            Some(s) => s,
+            None => {
+                let d = client.deployment(ns, name).await?;
+                let list = serde_json::json!({ "items": [d] });
+                kube::parse_deployments(&list)
+                    .first()
+                    .map(|d| d.label_selector())
+                    .unwrap_or_default()
+            }
+        };
+        if selector.is_empty() {
+            return err(format!("Deployment {name} has no label selector"));
+        }
+        let pods = client.pods_matching(ns, &selector).await?;
+        if pods.is_empty() {
+            self.console_text(
+                key,
+                LogStream::Stdout,
+                format!("No pods of deployment {name} found ({selector})\n"),
+            );
+            return Ok(());
+        }
+        let mut streams = tokio::task::JoinSet::new();
+        for pod in &pods {
+            for container in &pod.containers {
+                let (hub, c, key) = (self.clone(), client.clone(), key.to_string());
+                let (ns, pod, container) = (ns.to_string(), pod.name.clone(), container.clone());
+                streams.spawn(async move {
+                    let prefixer = Arc::new(Mutex::new(LinePrefixer::new(pod_log_prefix(
+                        &pod, &container,
+                    ))));
+                    let (h, kk, p) = (hub.clone(), key.clone(), prefixer.clone());
+                    let r = c
+                        .pod_logs(&ns, &pod, Some(&container), tail, true, move |t| {
+                            let lines = p.lock().unwrap_or_else(|e| e.into_inner()).push(&t);
+                            if !lines.is_empty() {
+                                h.console_text(&kk, LogStream::Stdout, lines);
+                            }
+                        })
+                        .await;
+                    let rest = prefixer.lock().unwrap_or_else(|e| e.into_inner()).finish();
+                    if !rest.is_empty() {
+                        hub.console_text(&key, LogStream::Stdout, rest);
+                    }
+                    if let Err(e) = r {
+                        hub.console_text(
+                            &key,
+                            LogStream::Stderr,
+                            format!("{}{e}\n", pod_log_prefix(&pod, &container)),
+                        );
+                    }
+                });
+            }
+        }
+        while streams.join_next().await.is_some() {}
+        Ok(())
     }
 
     fn stream_ended(&self, key: &str, r: Result<()>) {
@@ -1224,6 +1367,7 @@ impl Hub {
                 Ok(())
             }
             (_, Action::Refresh) => self.refresh_docker().await,
+            (_, Action::ForwardPorts) => err("Forward Ports needs the ports to forward"),
             _ => err(format!("{action:?} is not available here")),
         };
         if matches!(
@@ -1302,13 +1446,19 @@ impl Hub {
         Ok(tree::inspection_text(&value))
     }
 
-    /// Command line for Exec (`attach` = false) or the Attached Console (`attach` = true).
-    pub fn terminal_command(&self, node_id: &str, attach: bool) -> Result<TerminalCommand> {
+    /// Command line for Exec (`attach` = false) or the Attached Console (`attach` = true);
+    /// `container` picks the container of a pod (default: the pod's default container).
+    pub fn terminal_command(
+        &self,
+        node_id: &str,
+        attach: bool,
+        container: Option<&str>,
+    ) -> Result<TerminalCommand> {
         let target =
             Target::parse(node_id).ok_or_else(|| Error(format!("Unknown node {node_id}")))?;
         let input = self.input();
         let (cli, env) = self.docker_cli();
-        let container = |id: &str| {
+        let docker_container = |id: &str| {
             input
                 .docker
                 .snapshot
@@ -1317,7 +1467,7 @@ impl Hub {
                 .map(|c| (c.id.clone(), c.name.clone()))
         };
         let found = match &target {
-            Target::Container { id } => container(id),
+            Target::Container { id } => docker_container(id),
             Target::ComposeService { project, service } => tree::compose_projects(&input)
                 .iter()
                 .find(|p| &p.name == project)
@@ -1344,13 +1494,20 @@ impl Hub {
                 let joined = std::env::join_paths(&cfg)
                     .ok()
                     .map(|j| j.to_string_lossy().into_owned());
-                return Ok(exec::kubectl_exec(
+                drop(s);
+                let container = self.pod_container(context, namespace, name, container);
+                let make = if attach {
+                    exec::kubectl_attach
+                } else {
+                    exec::kubectl_exec
+                };
+                return Ok(make(
                     &kubectl,
                     joined.as_deref(),
                     context,
                     namespace,
                     name,
-                    None,
+                    container.as_deref(),
                 ));
             }
             _ => None,
@@ -1378,13 +1535,133 @@ impl Hub {
         ))
     }
 
-    /// Stop the watcher and every stream (app exit / tests).
+    // ---- port forwarding ----------------------------------------------------------------
+
+    /// Forward `127.0.0.1:<local>` (0: any free port) to `remote` of a pod. Every local
+    /// connection opens its own `portforward` WebSocket.
+    pub async fn start_port_forward(
+        self: &Arc<Self>,
+        node_id: &str,
+        local: u16,
+        remote: u16,
+    ) -> Result<PortForward> {
+        let Some(Target::Pod {
+            context,
+            namespace,
+            name,
+        }) = Target::parse(node_id)
+        else {
+            return err("Ports can only be forwarded to pods");
+        };
+        if remote == 0 {
+            return err("Enter the pod port to forward");
+        }
+        let client = self.kube_client(&context).await?;
+        let listener = tokio::net::TcpListener::bind(("127.0.0.1", local))
+            .await
+            .map_err(|e| {
+                Error(if e.kind() == std::io::ErrorKind::AddrInUse {
+                    format!("Local port {local} is already in use")
+                } else {
+                    format!("Cannot listen on 127.0.0.1:{local}: {e}")
+                })
+            })?;
+        let local_port = listener.local_addr()?.port();
+        let id = {
+            let mut s = self.lock();
+            s.next_forward += 1;
+            s.next_forward
+        };
+        let forward = PortForward {
+            id,
+            node_id: node_id.to_string(),
+            context,
+            namespace: namespace.clone(),
+            pod: name.clone(),
+            address: "127.0.0.1".into(),
+            local_port,
+            remote_port: remote,
+            connections: 0,
+            error: None,
+        };
+        let hub = self.clone();
+        let task = self.runtime.spawn(async move {
+            // Aborting the listener drops the set, which aborts its connections.
+            let mut conns = tokio::task::JoinSet::new();
+            loop {
+                tokio::select! {
+                    accepted = listener.accept() => {
+                        let Ok((tcp, _)) = accepted else { continue };
+                        tcp.set_nodelay(true).ok();
+                        hub.update_forward(id, |f| f.connections += 1);
+                        let (hub, client, ns, pod) =
+                            (hub.clone(), client.clone(), namespace.clone(), name.clone());
+                        conns.spawn(async move {
+                            let r = match client.port_forward(&ns, &pod, remote).await {
+                                Ok(ws) => ws.port_forward(remote, tcp).await,
+                                Err(e) => Err(e),
+                            };
+                            hub.update_forward(id, |f| {
+                                f.connections = f.connections.saturating_sub(1);
+                                if let Err(e) = &r {
+                                    f.error = Some(e.0.clone());
+                                }
+                            });
+                        });
+                    }
+                    Some(_) = conns.join_next(), if !conns.is_empty() => {}
+                }
+            }
+        });
+        self.lock().forwards.push((forward.clone(), task));
+        self.emit_tree();
+        Ok(forward)
+    }
+
+    fn update_forward(&self, id: u64, f: impl FnOnce(&mut PortForward)) {
+        {
+            let mut s = self.lock();
+            let Some((fw, _)) = s.forwards.iter_mut().find(|(x, _)| x.id == id) else {
+                return;
+            };
+            f(fw);
+        }
+        self.emit_tree();
+    }
+
+    pub fn stop_port_forward(&self, id: u64) -> Result<()> {
+        let removed = {
+            let mut s = self.lock();
+            let i = s
+                .forwards
+                .iter()
+                .position(|(f, _)| f.id == id)
+                .ok_or_else(|| Error("The port forward has already stopped".into()))?;
+            s.forwards.remove(i)
+        };
+        removed.1.abort();
+        self.emit_tree();
+        Ok(())
+    }
+
+    pub fn port_forwards(&self) -> Vec<PortForward> {
+        self.lock()
+            .forwards
+            .iter()
+            .map(|(f, _)| f.clone())
+            .collect()
+    }
+
+    /// Stop the watcher, every stream and every port forward (app exit / tests).
     pub fn shutdown(&self) {
         let mut s = self.lock();
         if let Some(w) = s.watcher.take() {
             w.abort();
         }
         for (_, h) in s.streams.drain() {
+            h.abort();
+        }
+        for (_, h) in s.forwards.drain(..) {
             h.abort();
         }
     }
@@ -1511,7 +1788,7 @@ mod tests {
         assert_eq!(hub.input().docker.state, ConnectionState::Connected);
         assert_eq!(hub.tree()[0].children[0].children[0].label, "web");
 
-        let key = hub.start_logs("docker/container/c1", 100).unwrap();
+        let key = hub.start_logs("docker/container/c1", 100, None).unwrap();
         for _ in 0..100 {
             if !hub.console(&key).is_empty() && !hub.lock().streams.contains_key(&key) {
                 break;
@@ -1537,7 +1814,9 @@ mod tests {
             .err()
             .unwrap();
         assert!(err.0.contains("not available"));
-        let cmd = hub.terminal_command("docker/container/c1", false).unwrap();
+        let cmd = hub
+            .terminal_command("docker/container/c1", false, None)
+            .unwrap();
         assert_eq!(cmd.args[..3], ["exec", "-it", "c1"]);
         assert!(cmd
             .env
@@ -1555,6 +1834,167 @@ mod tests {
                 ..
             }
         )));
+        hub.shutdown();
+    }
+
+    async fn wait_until(mut f: impl FnMut() -> bool) {
+        for _ in 0..200 {
+            if f() {
+                return;
+            }
+            tokio::time::sleep(Duration::from_millis(20)).await;
+        }
+        panic!("timed out");
+    }
+
+    #[tokio::test]
+    async fn forwards_ports_to_pods() {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        let (_d, path) = crate::forward::tests::fake_portforward_server(80).await;
+        let (emit, _events) = collect();
+        let hub = Hub::new(emit, tokio::runtime::Handle::current());
+        hub.lock().kube_clients.insert(
+            "kind".into(),
+            KubeClient::with_transport(crate::http::Transport::Unix(path), None),
+        );
+        let node = Target::Pod {
+            context: "kind".into(),
+            namespace: "shop".into(),
+            name: "web-1".into(),
+        }
+        .node_id();
+        let f = hub.start_port_forward(&node, 0, 80).await.unwrap();
+        assert!(f.local_port > 0);
+        assert_eq!(hub.input().port_forwards, [f.clone()]);
+        let mut tcp = tokio::net::TcpStream::connect(("127.0.0.1", f.local_port))
+            .await
+            .unwrap();
+        tcp.write_all(b"ping").await.unwrap();
+        let mut buf = [0u8; 4];
+        tcp.read_exact(&mut buf).await.unwrap();
+        assert_eq!(&buf, b"PING");
+        assert_eq!(hub.port_forwards()[0].connections, 1);
+        // The pod refuses: the error is kept on the forward.
+        let mut bad = tokio::net::TcpStream::connect(("127.0.0.1", f.local_port))
+            .await
+            .unwrap();
+        bad.write_all(b"fail").await.unwrap();
+        wait_until(|| hub.port_forwards()[0].error.is_some()).await;
+        assert_eq!(
+            hub.port_forwards()[0].error.as_deref(),
+            Some("error forwarding port 80: connection refused")
+        );
+        let e = hub
+            .start_port_forward(&node, f.local_port, 80)
+            .await
+            .unwrap_err();
+        assert_eq!(
+            e.0,
+            format!("Local port {} is already in use", f.local_port)
+        );
+        assert!(hub
+            .start_port_forward("kube/kind/shop/deployments/web", 0, 80)
+            .await
+            .is_err());
+        hub.stop_port_forward(f.id).unwrap();
+        assert!(hub.port_forwards().is_empty());
+        assert!(hub.stop_port_forward(f.id).is_err());
+        tokio::time::sleep(Duration::from_millis(50)).await;
+        assert!(
+            tokio::net::TcpStream::connect(("127.0.0.1", f.local_port))
+                .await
+                .is_err(),
+            "the listener is closed"
+        );
+        hub.shutdown();
+    }
+
+    #[tokio::test]
+    async fn aggregates_deployment_logs_and_picks_containers() {
+        let (_d, path) = fake_server(|head, _| {
+            let target = head.split_whitespace().nth(1).unwrap().to_string();
+            match target.as_str() {
+                "/apis/apps/v1/namespaces/shop/deployments/web" => ok_json(
+                    r#"{"metadata":{"name":"web","namespace":"shop"},"spec":{"selector":{"matchLabels":{"app":"web"}}}}"#,
+                ),
+                "/api/v1/namespaces/shop/pods?labelSelector=app%3Dweb" => ok_json(
+                    r#"{"items":[
+                        {"metadata":{"name":"web-1","namespace":"shop","labels":{"app":"web"}},"spec":{"containers":[{"name":"php"},{"name":"nginx"}]},"status":{"phase":"Running"}},
+                        {"metadata":{"name":"web-2","namespace":"shop","labels":{"app":"web"}},"spec":{"containers":[{"name":"php"}]},"status":{"phase":"Running"}}
+                    ]}"#,
+                ),
+                t if t.starts_with("/api/v1/namespaces/shop/pods/web-1/log") && t.ends_with("container=php") => {
+                    chunked("200 OK", &[b"booting\nre", b"ady\nno newline"])
+                }
+                t if t.starts_with("/api/v1/namespaces/shop/pods/web-1/log") && t.ends_with("container=nginx") => {
+                    chunked("200 OK", &[b"GET / 200\n"])
+                }
+                t if t.starts_with("/api/v1/namespaces/shop/pods/web-2/log") => {
+                    b"HTTP/1.1 400 Bad Request\r\nContent-Length: 47\r\n\r\n{\"message\":\"container php is waiting to start\"}".to_vec()
+                }
+                _ => b"HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n".to_vec(),
+            }
+        })
+        .await;
+        let (emit, _events) = collect();
+        let hub = Hub::new(emit, tokio::runtime::Handle::current());
+        hub.lock().kube_clients.insert(
+            "kind".into(),
+            KubeClient::with_transport(crate::http::Transport::Unix(path), None),
+        );
+        let node = Target::Deployment {
+            context: "kind".into(),
+            namespace: "shop".into(),
+            name: "web".into(),
+        }
+        .node_id();
+        let key = hub.start_logs(&node, 50, None).unwrap();
+        wait_until(|| !hub.lock().streams.contains_key(&key)).await;
+        let mut lines: Vec<String> = hub
+            .console(&key)
+            .iter()
+            .map(|l| l.text())
+            .filter(|t| !t.is_empty())
+            .collect();
+        lines.sort();
+        assert_eq!(
+            lines,
+            [
+                "[pod/web-1/nginx] GET / 200",
+                "[pod/web-1/php] booting",
+                "[pod/web-1/php] no newline",
+                "[pod/web-1/php] ready",
+                "[pod/web-2/php] container php is waiting to start",
+            ]
+        );
+
+        // Pods: the picked container, else the default one from the loaded workloads.
+        let raw = kube::RawWorkloads {
+            pods: serde_json::json!({ "items": [{
+                "metadata": { "name": "api-1", "namespace": "shop",
+                              "annotations": { "kubectl.kubernetes.io/default-container": "app" } },
+                "spec": { "containers": [{ "name": "istio-proxy" }, { "name": "app" }] },
+                "status": { "phase": "Running" }
+            }] }),
+            ..Default::default()
+        };
+        hub.lock().kube.workloads.insert(
+            tree::workloads_key("kind", "shop"),
+            Loaded::Ready { value: raw.parse() },
+        );
+        let pod = Target::Pod {
+            context: "kind".into(),
+            namespace: "shop".into(),
+            name: "api-1".into(),
+        }
+        .node_id();
+        let exec = hub.terminal_command(&pod, false, None).unwrap();
+        assert_eq!(exec.title, "api-1 [app]");
+        let attach = hub
+            .terminal_command(&pod, true, Some("istio-proxy"))
+            .unwrap();
+        assert!(attach.args.contains(&"attach".to_string()));
+        assert_eq!(attach.args.last().map(String::as_str), Some("istio-proxy"));
         hub.shutdown();
     }
 
