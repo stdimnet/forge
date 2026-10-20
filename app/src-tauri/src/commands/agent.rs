@@ -1,13 +1,18 @@
 //! AI agent CLIs (Claude Code, Gemini CLI) driven headless for the chat tool window.
-//! Events of a session are emitted as `agent://<sessionId>` with `AgentEvent` JSON.
+//! Events of a session are emitted as `agent://<sessionId>`: the raw `AgentEvent` JSON and,
+//! after each, a `chat` update (`forge_agent_cli::ChatUpdate`) with the rendered blocks of the
+//! current turn that the UI shows.
 
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
+use std::time::{SystemTime, UNIX_EPOCH};
 
+use forge_agent_cli::cli::AllowScope;
 use forge_agent_cli::{
     agent_by_id, builtin_agents, compose_prompt, configured_executable, AgentEvent, AgentInfo,
-    AgentSession, EventSink, MessageContext, PermissionDecision, StartOptions,
+    AgentSession, Chat, ChatUpdate, EventSink, MessageContext, PermissionDecision,
+    PermissionStatus, StartOptions,
 };
 use forge_core::{ForgeError, Result};
 use tauri::{AppHandle, Emitter, State};
@@ -15,15 +20,28 @@ use tokio::sync::Mutex;
 
 use crate::state::AppState;
 
+struct Session {
+    agent: Arc<AgentSession>,
+    chat: Arc<std::sync::Mutex<Chat>>,
+    app: AppHandle,
+    event: String,
+}
+
+impl Session {
+    fn emit(&self, update: &ChatUpdate) {
+        emit(&self.app, &self.event, update);
+    }
+}
+
 /// Running agent sessions, keyed by Forge's own session id.
 #[derive(Default)]
 pub struct AgentState {
-    sessions: Mutex<HashMap<String, Arc<AgentSession>>>,
+    sessions: Mutex<HashMap<String, Arc<Session>>>,
     next_id: AtomicU64,
 }
 
 impl AgentState {
-    async fn get(&self, id: &str) -> Result<Arc<AgentSession>> {
+    async fn get(&self, id: &str) -> Result<Arc<Session>> {
         self.sessions
             .lock()
             .await
@@ -31,6 +49,18 @@ impl AgentState {
             .cloned()
             .ok_or_else(|| ForgeError::Other(format!("no agent session {id}")))
     }
+}
+
+fn emit<T: serde::Serialize>(app: &AppHandle, event: &str, payload: &T) {
+    if let Err(e) = app.emit(event, payload) {
+        tracing::warn!("could not emit {event}: {e}");
+    }
+}
+
+fn now_ms() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_or(0, |d| d.as_millis() as u64)
 }
 
 /// A string setting's effective value.
@@ -73,15 +103,25 @@ pub async fn agent_start(
     let n = agents.next_id.fetch_add(1, Ordering::SeqCst);
     let session_id = format!("{agent_id}-{n}");
     let event_name = format!("agent://{session_id}");
-    let sink: EventSink = Arc::new(move |event: AgentEvent| {
-        if let Err(e) = app.emit(&event_name, &event) {
-            tracing::warn!("could not emit {event_name}: {e}");
-        }
-    });
+    let chat = Arc::new(std::sync::Mutex::new(Chat::new()));
+    let sink: EventSink = {
+        let (app, chat, event_name) = (app.clone(), chat.clone(), event_name.clone());
+        Arc::new(move |event: AgentEvent| {
+            let update = chat.lock().expect("chat poisoned").apply(&event, now_ms());
+            emit(&app, &event_name, &event);
+            emit(&app, &event_name, &update);
+        })
+    };
     let options = options
         .unwrap_or_default()
         .with_settings(&agent_id, |k| setting(&state, k));
-    let session = AgentSession::start(adapter, cwd, options, sink).await?;
+    let agent = AgentSession::start(adapter, cwd, options, sink).await?;
+    let session = Session {
+        agent: Arc::new(agent),
+        chat,
+        app,
+        event: event_name,
+    };
     agents
         .sessions
         .lock()
@@ -91,16 +131,25 @@ pub async fn agent_start(
 }
 
 /// Send a user message with optional editor context (attached files, selection).
+/// `turn_id` names the turn in the `chat` updates.
 #[tauri::command]
 pub async fn agent_send(
     session_id: String,
     text: String,
     context: Option<MessageContext>,
+    turn_id: Option<u64>,
     agents: State<'_, AgentState>,
 ) -> Result<()> {
     let session = agents.get(&session_id).await?;
-    let prompt = compose_prompt(&text, &context.unwrap_or_default());
-    session.send(&prompt).await
+    let context = context.unwrap_or_default();
+    let prompt = compose_prompt(&text, &context);
+    let update = session.chat.lock().expect("chat poisoned").begin_turn(
+        turn_id.unwrap_or_default(),
+        text.trim(),
+        context,
+    );
+    session.emit(&update);
+    session.agent.send(&prompt).await
 }
 
 /// Answer a `permissionRequest` event: `{ behavior: "allow", scope?: "once" | "session",
@@ -112,9 +161,25 @@ pub async fn agent_respond_permission(
     decision: PermissionDecision,
     agents: State<'_, AgentState>,
 ) -> Result<()> {
-    agents
-        .get(&session_id)
-        .await?
+    let session = agents.get(&session_id).await?;
+    let status = match &decision {
+        PermissionDecision::Deny { .. } => PermissionStatus::Denied,
+        PermissionDecision::Allow {
+            scope: AllowScope::Session,
+            ..
+        } => PermissionStatus::AllowedForSession,
+        PermissionDecision::Allow { .. } => PermissionStatus::Allowed,
+    };
+    let update = session
+        .chat
+        .lock()
+        .expect("chat poisoned")
+        .set_permission(&request_id, status);
+    if let Some(update) = update {
+        session.emit(&update);
+    }
+    session
+        .agent
         .respond_permission(&request_id, decision)
         .await
 }
@@ -122,7 +187,7 @@ pub async fn agent_respond_permission(
 /// Stop the running turn; the conversation continues with the next message.
 #[tauri::command]
 pub async fn agent_interrupt(session_id: String, agents: State<'_, AgentState>) -> Result<()> {
-    agents.get(&session_id).await?.interrupt().await;
+    agents.get(&session_id).await?.agent.interrupt().await;
     Ok(())
 }
 
@@ -131,7 +196,7 @@ pub async fn agent_interrupt(session_id: String, agents: State<'_, AgentState>) 
 pub async fn agent_stop(session_id: String, agents: State<'_, AgentState>) -> Result<()> {
     let session = agents.sessions.lock().await.remove(&session_id);
     if let Some(session) = session {
-        session.stop().await;
+        session.agent.stop().await;
     }
     Ok(())
 }
