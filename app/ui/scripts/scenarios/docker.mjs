@@ -49,6 +49,46 @@ export default {
     await page.waitForSelector('.svc-section[data-section="Port Bindings"]');
     await page.focus(".svc-tree");
   },
+  "services-exec-terminal": async (page) => {
+    await openServices(page);
+    await selectByLabel(page, "acme-shop-app-1");
+    await page.click('.svc-tool[data-action="exec"]');
+    await page.waitForSelector('.term-tab[data-terminal-tab="acme-shop-app-1"]');
+    await page.waitForTimeout(300);
+    for (const cmd of ["php -v", "env"]) {
+      await page.keyboard.type(cmd, { delay: 8 });
+      await page.keyboard.press("Enter");
+      await page.waitForTimeout(150);
+    }
+  },
+  "services-attached-console": async (page) => {
+    await openServices(page);
+    await selectByLabel(page, "acme-shop-redis-1");
+    await page.click('.svc-tab[data-tab="console"]');
+    await page.waitForSelector(".svc-attach .xterm-screen");
+    await page.waitForTimeout(400);
+  },
+  "services-pull-image": async (page) => {
+    await openServices(page);
+    await page.click(`${row("docker/containers")} .tree-chevron`);
+    await page.click(`${row("docker/images")} .tree-chevron`);
+    await page.click(row("docker/images"));
+    await page.click('.svc-tool[data-action="pull"]');
+    await page.waitForSelector(".git-dialog input");
+    await page.keyboard.type("postgres:17-alpine");
+    await page.keyboard.press("Enter");
+    await page.waitForSelector('.svc-tab.active[data-tab="log"]');
+    await page.waitForTimeout(1800);
+    await page.focus(".svc-tree");
+  },
+  "services-light-theme": async (page) => {
+    await page.evaluate(() => (document.documentElement.dataset.theme = "light"));
+    await openServices(page);
+    await selectByLabel(page, "acme-shop-app-1");
+    await page.click('.svc-tab[data-tab="log"]');
+    await page.waitForSelector(".svc-log .run-line");
+    await page.focus(".svc-tree");
+  },
   "services-compose": async (page) => {
     await openServices(page);
     await page.click(`${row("docker/containers")} .tree-chevron`);

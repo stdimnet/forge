@@ -1289,10 +1289,9 @@
           "description": "One entry per registry: server, a tab, the user name. Passwords are kept in the OS keychain.",
           "type": "list",
           "default": [],
-          "group": "build.docker",
-          "section": "Docker Registry",
+          "group": "build.docker.registries",
           "project": false,
-          "order": 70
+          "order": 0
         },
         {
           "key": "kubernetes.kubeconfig",
