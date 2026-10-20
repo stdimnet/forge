@@ -199,7 +199,7 @@ order = 11
 [[contributions.settings]]
 key = "templates.smarty.delimiterOverrides"
 title = "Delimiters per data language or file"
-description = "One entry per rule: `<data language or file pattern>=<left> <right>`, e.g. `latex=<< >>` or `legacy/pdf/*.tpl=[[ ]]`. File patterns win over data languages. LaTeX templates use `<< >>` by default, because `{` is part of the content. Comments, closing tags and `literal` follow the delimiters: `<<* *>>`, `<</if>>`. Applies to open editors."
+description = "`<data language or file pattern>=<left> <right>`, e.g. `latex=<< >>` (the default, as `{` is part of LaTeX) or `legacy/pdf/*.tpl=[[ ]]`. File patterns win over data languages. Comments and closing tags follow: `<<* *>>`, `<</if>>`."
 type = "list"
 default = ["latex=<< >>"]
 group = "lang.templates"
@@ -231,7 +231,7 @@ order = 21
 [[contributions.settings]]
 key = "templates.gotemplate.delimiterOverrides"
 title = "Delimiters per data language or file"
-description = "One entry per rule: `<data language or file pattern>=<left> <right>`, e.g. `latex=[[ ]]` or `deploy/*.yaml.tmpl=<< >>`. File patterns win over data languages."
+description = "`<data language or file pattern>=<left> <right>`, e.g. `latex=[[ ]]` or `deploy/*.yaml.tmpl=<< >>`. File patterns win over data languages."
 type = "list"
 default = []
 group = "lang.templates"
