@@ -5,7 +5,7 @@
  * registers a command with its id.
  */
 import { render } from "solid-js/web";
-import { commands, registerCommand } from "@/state/commands";
+import { registerCommand } from "@/state/commands";
 import { layout, resizePanel, showToolWindow, toggleToolWindow } from "@/state/layout";
 import { findToolWindow, type ToolWindowAnchor } from "@/features/registry";
 import { closeTab, editor, isDirty, openFile, saveAll } from "@/state/editor";
@@ -17,7 +17,7 @@ import "@/features/search/builtinProviders";
 import { EDITOR_COMMANDS, activeView, runInEditor } from "./editorCommands";
 import { navigateBack, navigateForward, reopenClosedTab } from "./history";
 import { openRecentFiles, recentOpen } from "./RecentFiles";
-import { openFallbackSettings } from "./SettingsFallback";
+import { openSettings } from "@/features/settings/dialogState";
 import { PopupHost } from "./PopupHost";
 import "./navigation.css";
 
@@ -185,12 +185,7 @@ action("CopyReference", () => {
 action("ChangeLaf", toggleTheme);
 action("QuickChangeScheme", toggleTheme);
 action("ShowSettings", () => runAction("settings.open"));
-// Until the real Settings dialog lands, settings.open shows the registered pages in a
-// minimal dialog. A later registerCommand("settings.open") replaces this one.
-if (!commands().has("settings.open")) {
-  registerCommand({ id: "settings.open", title: "Settings", run: () => openFallbackSettings() });
-}
-registerCommand({ id: "settings.keymap", title: "Keymap Settings", category: "Settings", run: () => openFallbackSettings("keymap") });
+registerCommand({ id: "settings.keymap", title: "Keymap Settings", category: "Settings", run: () => openSettings("keymap") });
 
 // ---- Editor actions backed by CodeMirror
 for (const [id, cmd] of Object.entries(EDITOR_COMMANDS)) action(id, () => runInEditor(cmd));

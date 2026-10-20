@@ -25,13 +25,15 @@ mkdirSync(outDir, { recursive: true });
 const browser = await chromium.launch({ executablePath });
 for (const [name, steps] of Object.entries(scenarios)) {
   if (wanted.length && !wanted.includes(name)) continue;
-  const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
+  // Fresh context per scenario so localStorage from one scenario never leaks into the next.
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
+  const page = await context.newPage();
   await page.goto(url);
   await page.waitForSelector(".cm-content");
   await steps(page);
   await page.waitForTimeout(300);
   await page.screenshot({ path: `${outDir}/${name}.png` });
   console.log(`wrote ${name}.png`);
-  await page.close();
+  await context.close();
 }
 await browser.close();

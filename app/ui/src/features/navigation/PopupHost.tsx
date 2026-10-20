@@ -1,11 +1,10 @@
-/** Renders navigation popups (Search Everywhere, Recent Files, Settings fallback) and balloons. */
+/** Renders navigation popups (Search Everywhere, Recent Files) and balloons. */
 import { For, Show } from "solid-js";
 import { Info } from "lucide-solid";
 import { balloons } from "@/keymap";
 import { SearchEverywhere } from "@/features/search/SearchEverywhere";
 import { seOpen } from "@/features/search/state";
 import { RecentFilesPopup, recentOpen } from "./RecentFiles";
-import { SettingsFallback, settingsOpen } from "./SettingsFallback";
 
 export function PopupHost() {
   return (
@@ -15,9 +14,6 @@ export function PopupHost() {
       </Show>
       <Show when={recentOpen()}>
         <RecentFilesPopup />
-      </Show>
-      <Show when={settingsOpen() !== null}>
-        <SettingsFallback />
       </Show>
       <div class="balloons">
         <For each={balloons()}>

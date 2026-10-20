@@ -416,5 +416,9 @@ export const ACTION_ALIASES: Record<string, string[]> = {
   Debug: ["run.debug"],
   editRunConfigurations: ["run.editConfigurations"],
   "Git.Branches": ["git.branches"],
+  CheckinProject: ["git.commit"],
+  "Vcs.Push": ["git.push"],
+  "Vcs.UpdateProject": ["git.update"],
+  Annotate: ["git.annotate"],
   IntroduceVariable: ["ExtractVariable"],
 };
