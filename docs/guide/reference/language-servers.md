@@ -12,8 +12,8 @@ grouped as on Settings | Languages & Frameworks | Language Servers. See
 [Language servers](../user/language-servers.md) for how detection, installation and per-server
 settings work.
 
-- **Install**: npm commands (`npm install -g …`) are run as
-  `npm install --prefix <Forge's server folder> --no-fund --no-audit …`, never globally.
+- **Install**: npm commands (`npm install -g …`) become managed installs into Forge's server
+  folder, never global ones; Forge downloads Node.js itself when none (>= 18) is installed.
   Commands with `sudo` are only shown for you to run. Links are download pages.
 - **Alternative group**: only the first enabled and installed server of a group starts.
 - **Needs plugin**: the server starts only while that plugin is enabled and active.

@@ -73,6 +73,8 @@ To change shortcuts see [Keymap](../user/keymap.md).
 | Action | Action id | Windows / Linux | macOS | In Forge |
 | --- | --- | --- | --- | --- |
 | Find Action… | `GotoAction` | `Ctrl+Shift+A` | `Cmd+Shift+A` | yes |
+| Keymap Reference | `Help.KeymapReference` |  |  | yes |
+| About | `About` |  |  | yes |
 
 ### Code
 
@@ -122,7 +124,7 @@ To change shortcuts see [Keymap](../user/keymap.md).
 | Save All | `SaveAll` | `Ctrl+S` | `Cmd+S` | yes |
 | Reload All from Disk | `Synchronize` | `Ctrl+Alt+Y` | `Cmd+Alt+Y` | — |
 | Close Project | `CloseProject` |  |  | yes |
-| Exit | `Exit` |  | `Cmd+Q` | — |
+| Exit | `Exit` |  | `Cmd+Q` | yes |
 | Invalidate Caches… | `InvalidateCaches` |  |  | — |
 
 ### View
@@ -156,6 +158,14 @@ To change shortcuts see [Keymap](../user/keymap.md).
 | Action | Action id | Windows / Linux | macOS | In Forge |
 | --- | --- | --- | --- | --- |
 | File Path | `ShowFilePath` | `Ctrl+Alt+F12` | `Cmd+Alt+F12` | — |
+
+### View > Appearance
+
+| Action | Action id | Windows / Linux | macOS | In Forge |
+| --- | --- | --- | --- | --- |
+| Show Main Menu in Separate Toolbar | `ToggleMainMenuInSeparateToolbar` |  |  | yes |
+| Compact Mode | `ToggleCompactMode` |  |  | yes |
+| Tool Window Bars | `ViewToolButtons` |  |  | yes |
 
 ### File > Manage IDE Settings
 
@@ -206,7 +216,7 @@ To change shortcuts see [Keymap](../user/keymap.md).
 | Find Next / Move to Next Occurrence | `FindNext` | `F3` | `Cmd+G` | yes |
 | Find Previous / Move to Previous Occurrence | `FindPrevious` | `Shift+F3` | `Cmd+Shift+G` | yes |
 | Find Word at Caret | `FindWordAtCaret` | `Ctrl+F3` | `Alt+Cmd+F3` | — |
-| Find in Files… | `FindInPath` | `Ctrl+Shift+F` | `Cmd+Shift+F` | — |
+| Find in Files… | `FindInPath` | `Ctrl+Shift+F` | `Cmd+Shift+F` | yes |
 | Replace in Files… | `ReplaceInPath` | `Ctrl+Shift+R` | `Cmd+Shift+R` | — |
 | Find Usages | `FindUsages` | `Alt+F7` | `Alt+F7` | — |
 | Find Usages in File | `FindUsagesInFile` | `Ctrl+F7` | `Cmd+F7` | — |
@@ -343,6 +353,7 @@ To change shortcuts see [Keymap](../user/keymap.md).
 | VCS Operations Popup… | `Vcs.QuickListPopupAction` | `` Alt+` `` | `Ctrl+V` | — |
 | Branches… | `Git.Branches` |  |  | yes |
 | Fetch | `Git.Fetch` |  |  | — |
+| Show Git Log | `Vcs.Show.Log` |  |  | — |
 | Pull… | `Git.Pull` |  |  | — |
 | Stash Changes… | `Git.Stash` |  |  | — |
 | Unstash Changes… | `Git.Unstash` |  |  | — |
@@ -466,6 +477,7 @@ To change shortcuts see [Keymap](../user/keymap.md).
 | Action | Action id | Windows / Linux | macOS | In Forge |
 | --- | --- | --- | --- | --- |
 | Show Context Menu | `ShowPopupMenu` | `ContextMenu` |  | yes |
+| Main Menu | `MainMenuButton.ShowMenu` | `Alt+\` |  | yes |
 
 ¹ `Ctrl+O` and `Ctrl+I` open Override/Implement Methods in PHP editors through the PHP pack's
 editor keys; elsewhere they are not available yet.
