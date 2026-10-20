@@ -46,6 +46,9 @@ actions Forge has not implemented yet stay visible but disabled. Plugins add the
 for example Tools | Laravel (Run Artisan Command…, Show Routes), Tools | Symfony and
 Run | Start Listening for PHP Debug Connections. File | Open Recent and View | Tool Windows are
 filled with your recent projects and the available tool windows.
+File | New | **File** and **Directory** create the entry in the folder selected in the Project
+view, else in the folder of the active editor, else in the project root (nested paths such as
+`Jobs/SendMail.php` create the folders too).
 
 ![Main menu](../../screenshots/main-menu-file.png)
 
