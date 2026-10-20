@@ -67,6 +67,6 @@ describe("php mock backend", () => {
     const src = demoFiles["app/Http/Controllers/OrderController.php"];
     const h = await invoke<Hover>("php_hover", { path: "app/Http/Controllers/OrderController.php", offset: src.indexOf("show(") + 1 });
     expect(h.markdown).toContain("#[Route('/orders/{order}', name: 'orders.show', methods: ['GET'])]");
-    expect(h.markdown).toContain("public function show(Order $order): JsonResponse");
+    expect(h.markdown).toContain("public function show(Request $request, Order $order): JsonResponse");
   });
 });
