@@ -28,4 +28,5 @@ pub mod symfony;
 pub mod terminal;
 pub mod web;
 pub mod window;
+pub mod workbench;
 pub mod workspace;

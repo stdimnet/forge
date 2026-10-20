@@ -150,6 +150,7 @@ pub fn run() {
         .manage(commands::symfony::SymfonyState::default())
         .manage(commands::web::WebState::default())
         .manage(commands::keymap::KeymapState::default())
+        .manage(commands::workbench::BookmarksState::default())
         .invoke_handler(tauri::generate_handler![
             commands::workspace::workspace_open,
             commands::workspace::workspace_current,
@@ -216,6 +217,9 @@ pub fn run() {
             commands::langservers::intelephense_set_licence,
             commands::workspace::fs_find_files,
             commands::workspace::find_in_files,
+            commands::workbench::todo_scan,
+            commands::workbench::bookmarks_get,
+            commands::workbench::bookmarks_apply,
             commands::search::fuzzy_filter,
             commands::search::search_rank,
             commands::search::filetypes_detect,

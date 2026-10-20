@@ -22,6 +22,7 @@ forge-keymap.workspace = true
 wasm-bindgen = "=0.2.129"
 forge-fuzzy.workspace = true
 forge-find.workspace = true
+forge-bookmarks.workspace = true
 forge-filetypes.workspace = true
 forge-plugin-api.workspace = true
 forge-window.workspace = true

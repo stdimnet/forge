@@ -30,6 +30,7 @@ mod search;
 mod settings;
 mod web;
 mod window;
+mod workbench;
 
 /// Version of the bridge, used by the UI to check that the bundle is current.
 #[wasm_bindgen]
