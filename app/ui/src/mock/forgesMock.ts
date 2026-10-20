@@ -32,6 +32,7 @@ import type { Branches } from "@/features/git/api";
 import { unifiedDiff } from "@/features/git/textDiff";
 import { demoFiles } from "./demoProject";
 import { fakeSha } from "./gitMock";
+import { demoStatus } from "./demoStatus";
 
 const SERVER = "https://git.acme.dev";
 const REPO = "acme/acme-shop";
@@ -706,6 +707,12 @@ const branchPipelines: Record<string, Pipeline> = Object.fromEntries(
   mrs.filter((m) => m.pipeline).map((m) => [m.sourceBranch, m.pipeline!]),
 );
 branchPipelines.main = pipeline("main", "success", allGreen, 5);
+// The other demos: their own branch's pipeline, or none for a project without CI.
+const demo = demoStatus();
+if (demo.branch !== "feature/order-totals") {
+  for (const k of Object.keys(branchPipelines)) delete branchPipelines[k];
+  if (demo.ci) branchPipelines[demo.branch] = pipeline(demo.branch, demo.ci, demo.jobs, 1);
+}
 
 registerMock("forges_pipelines", ({ branch }) => {
   const list = Object.values(branchPipelines).sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));

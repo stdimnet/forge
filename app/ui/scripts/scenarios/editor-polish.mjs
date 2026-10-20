@@ -63,6 +63,13 @@ const luaChooser = async (page) => {
 };
 luaChooser.query = "?project=lua";
 
+const vueStatus = async (page) => {
+  // Branch, failed CI and no Docker widget: the Vue demo's own status bar.
+  await page.waitForSelector('[data-status="pipeline"]');
+  await page.waitForTimeout(800);
+};
+vueStatus.query = "?project=vue";
+
 const reactChooser = async (page) => {
   await openFromTree(page, "src/components/ui/Button.tsx");
   // On a component's own name: its usages, in the same popup.
@@ -100,6 +107,7 @@ async function runRequestAt(page, line) {
 export default {
   "editor-polish-choose-declaration-lua": luaChooser,
   "editor-polish-choose-declaration-react": reactChooser,
+  "editor-polish-status-vue": vueStatus,
   "editor-polish-http-environments": async (page) => {
     await dismissBalloons(page);
     await openScratch(page, "rest-api.http");

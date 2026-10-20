@@ -24,6 +24,7 @@ import { lineDiff, unifiedDiff } from "@/features/git/textDiff";
 import { demoFiles } from "./demoProject";
 import { createIgnoreMatcher } from "./gitignoreMatcher";
 import { isLuaDemo } from "./demoLuaProject";
+import { demoStatus } from "./demoStatus";
 
 
 const DAY = 86400;
@@ -97,31 +98,46 @@ const commits: MockCommit[] = history.map(([id, parents, who, age, subject, file
 }));
 const bySha = new Map(commits.map((c) => [c.sha, c]));
 
+// The other demos (`?project=lua|react|…`) are on their own branches (demoStatus.ts).
+const demo = demoStatus();
+const laravelBranches = demo.branch === "feature/order-totals";
+const otherBranches = (shas: string[]) =>
+  laravelBranches
+    ? [
+        ["main", shaOf("c6")],
+        ["feature/checkout-flow", shaOf("c3")],
+        ["bugfix/login-redirect", shaOf("c9")],
+      ]
+    : demo.branches.map((b, i): [string, string] => [b, shaOf(shas[i % shas.length])]);
+
 const state = {
-  current: "feature/order-totals" as string | null,
+  current: demo.branch as string | null,
   head: shaOf("c1"),
-  local: new Map<string, string>([
-    ["feature/order-totals", shaOf("c1")],
-    ["main", shaOf("c6")],
-    ["feature/checkout-flow", shaOf("c3")],
-    ["bugfix/login-redirect", shaOf("c9")],
-  ]),
+  local: new Map<string, string>([[demo.branch, shaOf("c1")], ...(otherBranches(["c6", "c3", "c9"]) as [string, string][])]),
   upstream: new Map<string, string>([
-    ["feature/order-totals", "origin/feature/order-totals"],
-    ["main", "origin/main"],
-    ["feature/checkout-flow", "origin/feature/checkout-flow"],
+    [demo.branch, `origin/${demo.branch}`],
+    ...(laravelBranches
+      ? ([
+          ["main", "origin/main"],
+          ["feature/checkout-flow", "origin/feature/checkout-flow"],
+        ] as [string, string][])
+      : demo.branches.filter((b) => b === "main").map((b): [string, string] => [b, `origin/${b}`])),
   ]),
   remote: new Map<string, string>([
     ["origin/main", shaOf("c6")],
-    ["origin/feature/order-totals", shaOf("c2")],
-    ["origin/feature/checkout-flow", shaOf("c3")],
-    ["origin/release/1.1", shaOf("c10")],
+    [`origin/${demo.branch}`, shaOf("c2")],
+    ...(laravelBranches
+      ? ([
+          ["origin/feature/checkout-flow", shaOf("c3")],
+          ["origin/release/1.1", shaOf("c10")],
+        ] as [string, string][])
+      : []),
   ]),
   tags: new Map<string, string>([
     ["v1.1.0", shaOf("c10")],
     ["v1.0.0", shaOf("c16")],
   ]),
-  recent: ["main", "feature/checkout-flow", "bugfix/login-redirect"],
+  recent: laravelBranches ? ["main", "feature/checkout-flow", "bugfix/login-redirect"] : demo.branches,
 };
 
 // ---- file snapshots -------------------------------------------------------------------
