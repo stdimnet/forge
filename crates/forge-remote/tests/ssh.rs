@@ -1,7 +1,8 @@
 //! End to end over real SSH: an in-process russh server on 127.0.0.1 plays the remote host
 //! (it answers the probe, stores the uploaded agent and runs the agent in-process for the
 //! start command). Covers the fingerprint confirmation, password auth, the agent upload,
-//! a remote project and reconnecting after the server dropped the connection.
+//! a remote project, reconnecting after the server dropped the connection, port forwarding
+//! both ways (databases, Xdebug) and jump hosts.
 
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -28,6 +29,10 @@ struct HostState {
     uploads: usize,
     starts: usize,
     handles: Vec<server::Handle>,
+    /// `direct-tcpip` channels opened (tunnels, jump connections).
+    direct: Vec<String>,
+    /// Remote listeners (`tcpip-forward`) by port.
+    listeners: HashMap<u32, tokio::task::JoinHandle<()>>,
 }
 
 #[derive(Clone)]
@@ -80,6 +85,85 @@ impl server::Handler for FakeHost {
         let state = self.state.clone();
         tokio::spawn(async move { run_command(command, channel, state).await });
         Ok(())
+    }
+
+    /// `ssh -L` / `ssh -J`: connect to the target from "the host" and pipe.
+    async fn channel_open_direct_tcpip(
+        &mut self,
+        channel: Channel<Msg>,
+        host_to_connect: &str,
+        port_to_connect: u32,
+        _originator_address: &str,
+        _originator_port: u32,
+        reply: server::ChannelOpenHandle,
+        _session: &mut Session,
+    ) -> Result<(), Self::Error> {
+        let target = format!("{host_to_connect}:{port_to_connect}");
+        self.state.lock().unwrap().direct.push(target.clone());
+        match tokio::net::TcpStream::connect(&target).await {
+            Ok(mut socket) => {
+                reply.accept().await;
+                tokio::spawn(async move {
+                    let mut stream = channel.into_stream();
+                    let _ = tokio::io::copy_bidirectional(&mut socket, &mut stream).await;
+                });
+            }
+            Err(_) => {
+                reply
+                    .reject(russh::ChannelOpenFailure::ConnectFailed)
+                    .await
+            }
+        }
+        Ok(())
+    }
+
+    /// `ssh -R`: listen on the "host" and open a forwarded channel per connection.
+    async fn tcpip_forward(
+        &mut self,
+        address: &str,
+        port: &mut u32,
+        session: &mut Session,
+    ) -> Result<bool, Self::Error> {
+        let Ok(listener) = tokio::net::TcpListener::bind((address, *port as u16)).await else {
+            return Ok(false);
+        };
+        let bound = listener.local_addr().unwrap().port() as u32;
+        *port = bound;
+        let handle = session.handle();
+        let address = address.to_string();
+        let task = tokio::spawn(async move {
+            while let Ok((mut socket, peer)) = listener.accept().await {
+                let Ok(channel) = handle
+                    .channel_open_forwarded_tcpip(
+                        address.clone(),
+                        bound,
+                        peer.ip().to_string(),
+                        peer.port() as u32,
+                    )
+                    .await
+                else {
+                    continue;
+                };
+                tokio::spawn(async move {
+                    let mut stream = channel.into_stream();
+                    let _ = tokio::io::copy_bidirectional(&mut socket, &mut stream).await;
+                });
+            }
+        });
+        self.state.lock().unwrap().listeners.insert(bound, task);
+        Ok(true)
+    }
+
+    async fn cancel_tcpip_forward(
+        &mut self,
+        _address: &str,
+        port: u32,
+        _session: &mut Session,
+    ) -> Result<bool, Self::Error> {
+        if let Some(task) = self.state.lock().unwrap().listeners.remove(&port) {
+            task.abort();
+        }
+        Ok(true)
     }
 }
 
@@ -344,6 +428,160 @@ async fn wrong_passwords_and_changed_host_keys_are_reported() {
     // The new key is trusted now.
     let conn = open(&f, &server, "secret", None).await.unwrap();
     conn.close().await;
+}
+
+/// A TCP server on this machine answering every line with `<name>: <line>`.
+async fn echo_server(name: &'static str) -> u16 {
+    use tokio::io::{AsyncBufReadExt, BufReader};
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let port = listener.local_addr().unwrap().port();
+    tokio::spawn(async move {
+        while let Ok((socket, _)) = listener.accept().await {
+            tokio::spawn(async move {
+                let (read, mut write) = socket.into_split();
+                let mut lines = BufReader::new(read).lines();
+                while let Ok(Some(line)) = lines.next_line().await {
+                    if write
+                        .write_all(format!("{name}: {line}\n").as_bytes())
+                        .await
+                        .is_err()
+                    {
+                        break;
+                    }
+                }
+            });
+        }
+    });
+    port
+}
+
+async fn ask(port: u16, line: &str) -> String {
+    use tokio::io::{AsyncBufReadExt, BufReader};
+    let mut socket = tokio::net::TcpStream::connect(("127.0.0.1", port))
+        .await
+        .unwrap();
+    socket
+        .write_all(format!("{line}\n").as_bytes())
+        .await
+        .unwrap();
+    let mut answer = String::new();
+    tokio::time::timeout(
+        Duration::from_secs(10),
+        BufReader::new(socket).read_line(&mut answer),
+    )
+    .await
+    .unwrap()
+    .unwrap();
+    answer.trim_end().to_string()
+}
+
+async fn trusted(f: &Fixture, server: &TestServer) -> Arc<RemoteConnection> {
+    let fp = match open(f, server, "secret", None).await {
+        Err(ConnectError::HostKey { host_key }) => host_key.fingerprint,
+        Ok(conn) => return conn,
+        Err(e) => panic!("{e}"),
+    };
+    open(f, server, "secret", Some(fp)).await.unwrap()
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn local_and_remote_port_forwarding() {
+    let server = start_server().await;
+    let f = fixture();
+    let conn = trusted(&f, &server).await;
+
+    // A database "on the host" (127.0.0.1 as the host sees it), reached through `ssh -L`.
+    let db = echo_server("mysql").await;
+    let forward = conn.forward_local("127.0.0.1".into(), db).await.unwrap();
+    assert_ne!(forward.port, db);
+    assert_eq!(forward.via, format!("deploy@127.0.0.1:{}", server.port));
+    assert_eq!(ask(forward.port, "select 1").await, "mysql: select 1");
+    assert_eq!(ask(forward.port, "again").await, "mysql: again");
+    assert!(server
+        .state
+        .lock()
+        .unwrap()
+        .direct
+        .contains(&format!("127.0.0.1:{db}")));
+    drop(forward);
+
+    // Xdebug on the host connects to its port 9003; the IDE listens here (`ssh -R`).
+    let ide = echo_server("dbgp").await;
+    let remote = conn.forward_remote(0, ide).await.unwrap();
+    assert!(remote.port > 0);
+    assert_eq!(ask(remote.port, "init").await, "dbgp: init");
+    // Dropping the forward closes the remote listener.
+    let port = remote.port;
+    drop(remote);
+    let start = Instant::now();
+    while server.state.lock().unwrap().listeners.contains_key(&(port as u32)) {
+        assert!(start.elapsed() < Duration::from_secs(10), "listener not cancelled");
+        tokio::time::sleep(Duration::from_millis(20)).await;
+    }
+
+    // The backend hands the same tunnels to the app's database and debugger code.
+    let tunnels = forge_backend::remote::Connection::tunnels(conn.as_ref()).unwrap();
+    let again = tunnels.forward_local("127.0.0.1".into(), db).await.unwrap();
+    assert_eq!(ask(again.port, "x").await, "mysql: x");
+    conn.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn connects_through_a_jump_host() {
+    let target = start_server().await;
+    let bastion = start_server().await;
+    let f = fixture();
+    let mut p = params(&f, target.port, "secret", None);
+    p.route = forge_remote::session::Route::Jump(vec![params(&f, bastion.port, "secret", None)]);
+    let host_key = |r: Result<Arc<RemoteConnection>, ConnectError>| match r {
+        Err(ConnectError::HostKey { host_key }) => host_key,
+        Err(e) => panic!("expected a host key question, got {e}"),
+        Ok(_) => panic!("expected a host key question"),
+    };
+    let open_via = |p: ConnectParams| {
+        let binaries = f.binaries.clone();
+        async move { RemoteConnection::open(host(target.port), p, binaries, &|_| {}).await }
+    };
+    // The jump host is asked about first, then the target (same test key, other port).
+    let first = host_key(open_via(p.clone()).await);
+    assert_eq!(first.port, bastion.port);
+    p.accept_fingerprint = Some(first.fingerprint.clone());
+    let conn = open_via(p.clone()).await.unwrap();
+    assert_eq!(conn.hello().unwrap().version, AGENT_VERSION);
+    let known = std::fs::read_to_string(&f.known_hosts).unwrap();
+    assert!(known.contains(&format!("[127.0.0.1]:{}", bastion.port)), "{known}");
+    assert!(known.contains(&format!("[127.0.0.1]:{}", target.port)), "{known}");
+    // The target was reached from the bastion, which started no agent itself.
+    assert_eq!(
+        bastion.state.lock().unwrap().direct,
+        vec![format!("127.0.0.1:{}", target.port)]
+    );
+    assert_eq!(bastion.state.lock().unwrap().starts, 0);
+    assert_eq!(target.state.lock().unwrap().starts, 1);
+
+    let root = f.project.to_string_lossy().into_owned();
+    let c2 = conn.clone();
+    let port = target.port;
+    let content = tokio::task::spawn_blocking(move || {
+        RemoteBackend::open(c2, host(port), &root)
+            .unwrap()
+            .read_file("app/Order.php")
+            .unwrap()
+    })
+    .await
+    .unwrap();
+    assert_eq!(content, "<?php class Order {}");
+    conn.close().await;
+
+    // A jump host that cannot be reached is named in the error.
+    let mut broken = params(&f, target.port, "secret", None);
+    broken.route = forge_remote::session::Route::Jump(vec![params(&f, 1, "secret", None)]);
+    match open_via(broken).await {
+        Err(ConnectError::Network { message }) => {
+            assert!(message.starts_with("Jump host deploy@127.0.0.1:1"), "{message}")
+        }
+        other => panic!("expected a network error, got {:?}", other.err()),
+    }
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
