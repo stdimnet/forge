@@ -111,6 +111,8 @@ describe("formatting", () => {
 describe("events", () => {
   it("uses physical codes so Alt/Option chars do not matter", () => {
     expect(eventKey(ev("KeyJ", "∆", { altKey: true }))).toBe("J");
+    // Cyrillic layouts have no Latin letters: the physical key decides.
+    expect(eventKey(ev("KeyZ", "я", { ctrlKey: true }))).toBe("Z");
     expect(eventKey(ev("Digit1", "¡", { altKey: true }))).toBe("1");
     expect(eventKey(ev("Slash", "/"))).toBe("/");
     expect(eventKey(ev("NumpadAdd", "+"))).toBe("NumPad+");
@@ -133,5 +135,32 @@ describe("comma key vs. chord separator", () => {
   it("keeps ',' as a key", () => {
     expect(shortcutId(parseShortcut("Cmd+,"))).toBe("Meta+,");
     expect(shortcutId(parseShortcut("Cmd+, Cmd+."))).toBe("Meta+, Meta+.");
+  });
+});
+
+describe("letters on other keyboard layouts", () => {
+  it("uses the character, so Ctrl+Z is undo on a German keyboard", () => {
+    // QWERTZ: the key labelled Z sits where the US keyboard has Y.
+    expect(eventKey(ev("KeyY", "z", { ctrlKey: true }))).toBe("Z");
+    expect(eventKey(ev("KeyZ", "y", { ctrlKey: true }))).toBe("Y");
+    expect(strokeFromEvent(ev("KeyY", "z", { ctrlKey: true }))).toMatchObject({ ctrl: true, shift: false, key: "Z" });
+    expect(strokeFromEvent(ev("KeyZ", "y", { ctrlKey: true }))).toMatchObject({ ctrl: true, key: "Y" });
+  });
+
+  it("follows AZERTY and Dvorak too", () => {
+    expect(eventKey(ev("KeyQ", "a", { ctrlKey: true }))).toBe("A");
+    expect(eventKey(ev("KeyW", "z", { ctrlKey: true }))).toBe("Z");
+    expect(eventKey(ev("KeyS", "o", { ctrlKey: true }))).toBe("O");
+  });
+
+  it("is case insensitive for Shift and Caps Lock", () => {
+    expect(eventKey(ev("KeyY", "Z", { ctrlKey: true, shiftKey: true }))).toBe("Z");
+    expect(strokeFromEvent(ev("KeyY", "Z", { ctrlKey: true, shiftKey: true }))).toMatchObject({ ctrl: true, shift: true, key: "Z" });
+  });
+
+  it("keeps the physical key for digits, punctuation and special Alt characters", () => {
+    expect(eventKey(ev("Digit5", "%", { ctrlKey: true, shiftKey: true }))).toBe("5");
+    expect(eventKey(ev("Slash", "-"))).toBe("/");
+    expect(eventKey(ev("KeyJ", "∆", { altKey: true }))).toBe("J");
   });
 });
