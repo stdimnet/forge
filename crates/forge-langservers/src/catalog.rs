@@ -124,18 +124,22 @@ impl InstallOption {
         if self.command.is_empty() {
             return self.url.clone().unwrap_or_default();
         }
-        self.command
-            .iter()
-            .map(|a| {
-                if a.contains(' ') {
-                    format!("\"{a}\"")
-                } else {
-                    a.clone()
-                }
-            })
-            .collect::<Vec<_>>()
-            .join(" ")
+        display_args(&self.command)
     }
+}
+
+/// A command line for display and copying: arguments with spaces are quoted.
+pub fn display_args(args: &[String]) -> String {
+    args.iter()
+        .map(|a| {
+            if a.contains(' ') {
+                format!("\"{a}\"")
+            } else {
+                a.clone()
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
 /// A language server in the catalog.

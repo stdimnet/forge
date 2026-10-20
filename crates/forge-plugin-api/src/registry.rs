@@ -214,6 +214,10 @@ impl PluginRegistry {
         self.collect(|c| &c.chat_agents)
     }
 
+    pub fn file_types(&self) -> impl Iterator<Item = &FileTypeContribution> {
+        self.collect(|c| &c.file_types)
+    }
+
     pub fn code_generators(&self) -> impl Iterator<Item = &CodeGeneratorContribution> {
         self.collect(|c| &c.code_generators)
     }

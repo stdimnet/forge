@@ -7,6 +7,8 @@ export interface FileEntry {
   name: string;
   path: string;
   kind: FileKind;
+  /** Matched by `.gitignore`; the project tree grays these out. */
+  ignored?: boolean;
 }
 
 export interface WorkspaceInfo {

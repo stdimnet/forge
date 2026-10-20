@@ -30,10 +30,13 @@ describe("language servers mock", () => {
     const outcome = await invoke("langservers_install", { id: "docker-langserver", index: 0 });
     off();
     expect(outcome).toBe("succeeded");
-    expect(lines[0].line).toBe("$ npm install -g dockerfile-language-server-nodejs");
+    expect(lines[0].line).toBe(
+      "$ npm install --prefix /home/marlon/.local/share/forge/langservers --no-fund --no-audit dockerfile-language-server-nodejs",
+    );
     expect(lines.some((l) => l.stream === "stderr")).toBe(true);
     const row = (await mockRows()).find((r) => r.id === "docker-langserver")!;
     expect(row.status).toBe("installed");
+    expect(row.path).toBe("/home/marlon/.local/share/forge/langservers/node_modules/.bin/docker-langserver");
     await expect(invoke("langservers_install", { id: "zls", index: 0 })).rejects.toThrow(/brew was not found/);
   }, 10_000);
 
