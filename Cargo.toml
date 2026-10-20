@@ -24,6 +24,7 @@ forge-process = { path = "crates/forge-process" }
 forge-output = { path = "crates/forge-output" }
 forge-debug = { path = "crates/forge-debug" }
 forge-db = { path = "crates/forge-db" }
+forge-sql = { path = "crates/forge-sql" }
 forge-forges = { path = "crates/forge-forges" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

@@ -13,4 +13,5 @@ crate-type = ["cdylib", "rlib"]
 serde.workspace = true
 serde_json.workspace = true
 forge-output.workspace = true
+forge-sql.workspace = true
 wasm-bindgen = "=0.2.129"

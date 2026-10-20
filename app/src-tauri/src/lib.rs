@@ -305,6 +305,7 @@ pub fn run() {
             commands::db::db_detect_env,
             commands::db::db_add_from_env,
             commands::db::db_export,
+            commands::db::db_statement_at,
             commands::symfony::symfony_detect,
             commands::symfony::symfony_refresh,
             commands::symfony::symfony_routes,

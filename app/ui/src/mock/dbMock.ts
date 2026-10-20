@@ -8,19 +8,18 @@ import {
   DATA_SOURCES_EVENT,
   SESSION_EVENT,
   dialectOf,
-  type Cell,
   type DataSource,
   type DataSourceInfo,
   type DetectedDataSource,
-  type ExportFormat,
   type QueryPage,
   type RowChange,
   type SessionInfo,
+  type SqlStatement,
   type StatementResult,
   type TableDataRequest,
   type TestResult,
 } from "@/ipc/db";
-import { changeSql, exportRows, leadingKeyword, splitStatements } from "@/features/database/sqlText";
+import { callWasm, forgeWasm } from "@/wasm";
 import { createDemoDatabase, type DemoDatabase } from "./dbDemoData";
 import { cloneDatabase, runStatement } from "./dbEngine";
 
@@ -268,7 +267,14 @@ registerMock("db_apply_changes", async (a) => {
   if (!t) throw new Error(`table ${a.table} not found`);
   const changes = a.changes as RowChange[];
   const dialect = dialectOf(s.source.driver);
-  const statements = changes.map((c) => changeSql(dialect, a.schema as string, a.table as string, t.info.primaryKey, c));
+  const wasm = await forgeWasm();
+  const statements = await callWasm<string[]>(wasm.sql_change_statements, {
+    dialect,
+    schema: a.schema,
+    table: a.table,
+    pk: t.info.primaryKey,
+    changes,
+  });
   const backup = cloneDatabase(d);
   let affected = 0;
   try {
@@ -309,9 +315,11 @@ registerMock("db_execute", async (a): Promise<StatementResult[]> => {
   emitSession(s.info);
   await delay(140);
   const out: StatementResult[] = [];
-  const stmts = splitStatements(a.sql as string, dialectOf(src.source.driver));
+  const wasm = await forgeWasm();
+  const stmts = await callWasm<SqlStatement[]>(wasm.sql_split, { sql: a.sql, dialect: dialectOf(src.source.driver) });
+  const keywords = await callWasm<string[]>(wasm.sql_leading_keywords, { statements: stmts.map((s) => s.text) });
   for (const [index, st] of stmts.entries()) {
-    const kw = leadingKeyword(st.text);
+    const kw = keywords[index];
     const base = { index, sql: st.text, start: st.start, end: st.end, elapsedMs: 4 + ((st.text.length * 7) % 23) };
     try {
       if (["BEGIN", "START"].includes(kw)) {
@@ -390,9 +398,14 @@ registerMock("db_add_from_env", () => {
   return [info(get(ds.id))];
 });
 
-registerMock("db_export", (a) =>
-  exportRows(a.format as ExportFormat, a.dialect as "mysql", a.table as string | undefined, a.columns as string[], a.rows as Cell[][]),
-);
+registerMock("db_export", async (a) => {
+  const wasm = await forgeWasm();
+  return callWasm<string>(wasm.sql_export, { format: a.format, dialect: a.dialect, table: a.table ?? null, columns: a.columns, rows: a.rows });
+});
+registerMock("db_statement_at", async (a) => {
+  const wasm = await forgeWasm();
+  return callWasm<SqlStatement | null>(wasm.sql_statement_at, { sql: a.sql, from: a.from, to: a.to, dialect: a.dialect });
+});
 
 /** Reset all state (tests). */
 export function resetDbMock(): void {

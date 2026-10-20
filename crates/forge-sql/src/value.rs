@@ -4,7 +4,7 @@
 
 use serde_json::{json, Map, Number, Value};
 
-use crate::config::Dialect;
+use crate::dialect::Dialect;
 
 /// Largest integer a JavaScript number represents exactly.
 pub const MAX_SAFE_INTEGER: i64 = (1 << 53) - 1;

@@ -1449,6 +1449,7 @@ version = "0.1.0"
 dependencies = [
  "dirs 6.0.0",
  "forge-core",
+ "forge-sql",
  "futures-util",
  "hex",
  "keyring",
@@ -1592,6 +1593,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "forge-sql"
+version = "0.1.0"
+dependencies = [
+ "hex",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "forge-vcs"
 version = "0.1.0"
 dependencies = [
@@ -1607,6 +1617,7 @@ name = "forge-wasm"
 version = "0.1.0"
 dependencies = [
  "forge-output",
+ "forge-sql",
  "serde",
  "serde_json",
  "wasm-bindgen",

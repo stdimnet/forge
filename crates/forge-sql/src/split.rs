@@ -3,7 +3,7 @@
 
 use serde::Serialize;
 
-use crate::config::Dialect;
+use crate::dialect::Dialect;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct Statement {
@@ -126,6 +126,53 @@ fn has_code(piece: &str) -> bool {
     false
 }
 
+fn utf16_to_byte(text: &str, units: usize) -> usize {
+    let mut seen = 0;
+    for (i, c) in text.char_indices() {
+        if seen >= units {
+            return i;
+        }
+        seen += c.len_utf16();
+    }
+    text.len()
+}
+
+fn byte_to_utf16(text: &str, byte: usize) -> usize {
+    text[..byte.min(text.len())].encode_utf16().count()
+}
+
+/// What Ctrl+Enter runs in a console: the selection `from..to` if there is one, otherwise
+/// the statement at the caret `from` (or the closest one before it, like DataGrip).
+/// Offsets in and out are UTF-16 code units (editor positions).
+pub fn statement_at(sql: &str, from: usize, to: usize, dialect: Dialect) -> Option<Statement> {
+    let utf16 = |s: Statement| Statement {
+        start: byte_to_utf16(sql, s.start),
+        end: byte_to_utf16(sql, s.end),
+        text: s.text,
+    };
+    let (from_b, to_b) = (utf16_to_byte(sql, from), utf16_to_byte(sql, to));
+    if to_b > from_b {
+        let text = &sql[from_b..to_b];
+        let trimmed = text.trim();
+        if trimmed.is_empty() {
+            return None;
+        }
+        let start = from_b + (text.len() - text.trim_start().len());
+        return Some(utf16(Statement {
+            text: trimmed.to_string(),
+            start,
+            end: start + trimmed.len(),
+        }));
+    }
+    let stmts = split_statements(sql, dialect);
+    let inside = stmts
+        .iter()
+        .position(|s| from_b >= s.start && from_b <= s.end + 1);
+    let before = || stmts.iter().rposition(|s| s.end <= from_b);
+    let idx = inside.or_else(before).unwrap_or(0);
+    stmts.into_iter().nth(idx).map(utf16)
+}
+
 /// First keyword of a statement, upper-cased, skipping comments and parentheses.
 pub fn leading_keyword(stmt: &str) -> String {
     let mut s = stmt.trim_start();
@@ -220,6 +267,32 @@ mod tests {
         let s = split_statements("  select 1 ;\nselect 2", Dialect::Sqlite);
         assert_eq!((s[0].start, s[0].end), (2, 10));
         assert_eq!(&"  select 1 ;\nselect 2"[s[1].start..s[1].end], "select 2");
+    }
+
+    #[test]
+    fn finds_the_statement_at_the_caret() {
+        let sql = "select 1;\n\nselect 'é' from t;\n-- end";
+        let at = |from: usize, to: usize| {
+            statement_at(sql, from, to, Dialect::MySql).map(|s| (s.text, s.start, s.end))
+        };
+        assert_eq!(at(3, 3), Some(("select 1".into(), 0, 8)));
+        assert_eq!(at(9, 9), Some(("select 1".into(), 0, 8)));
+        assert_eq!(at(15, 15), Some(("select 'é' from t".into(), 11, 28)));
+        assert_eq!(at(40, 40), Some(("select 'é' from t".into(), 11, 28)));
+        assert_eq!(at(10, 22), Some(("select 'é'".into(), 11, 21)));
+        assert_eq!(at(9, 11), None);
+        assert_eq!(statement_at("-- x", 0, 0, Dialect::MySql), None);
+        let sql = "SELECT 1;\n\nSELECT *\nFROM users;\n";
+        let text =
+            |from: usize, to: usize| statement_at(sql, from, to, Dialect::MySql).map(|s| s.text);
+        assert_eq!(text(15, 15).as_deref(), Some("SELECT *\nFROM users"));
+        assert_eq!(text(3, 3).as_deref(), Some("SELECT 1"));
+        // After the last statement: the one before the caret.
+        assert_eq!(
+            text(sql.len(), sql.len()).as_deref(),
+            Some("SELECT *\nFROM users")
+        );
+        assert_eq!(text(0, 6).as_deref(), Some("SELECT"));
     }
 
     #[test]

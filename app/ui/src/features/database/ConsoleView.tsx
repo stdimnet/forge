@@ -42,7 +42,6 @@ import { dbApi, dialectOf, type Cell, type ColumnMeta, type SessionInfo, type So
 import { DataGrid } from "./DataGrid";
 import { ContextMenu, type MenuItem } from "./ContextMenu";
 import { gridColumns } from "./grid";
-import { statementAt } from "./sqlText";
 import { connect, defaultSchema, openDataSources, parseConsolePath, sourceById, states, tableInfo } from "./store";
 import { consoles } from "./controllers";
 import { sqlWithSchema } from "./completion";
@@ -246,8 +245,8 @@ export function ConsoleView(props: { tab: EditorTab }) {
     if (!view || running()) return;
     const text = view.state.doc.toString();
     const sel = view.state.selection.main;
-    const st = statementAt(text, sel.from, sel.to, dialect());
-    if (!st) return;
+    const st = await dbApi.statementAt(text, sel.from, sel.to, dialect()).catch(() => null);
+    if (!st || !view) return;
     view.dispatch({ effects: flashEffect.of({ from: st.start, to: st.end }) });
     setTimeout(() => view?.dispatch({ effects: flashEffect.of(null) }), 900);
     setRunning(true);

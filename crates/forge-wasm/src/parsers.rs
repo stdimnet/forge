@@ -2,6 +2,7 @@
 //! IPC commands of the desktop app for the browser-mode mocks.
 
 pub mod output;
+pub mod sql;
 
 /// Parse a JSON request; the error is already the JSON the UI expects.
 pub(crate) fn parse<T: serde::de::DeserializeOwned>(json: &str) -> Result<T, String> {

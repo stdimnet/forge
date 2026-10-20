@@ -212,9 +212,22 @@ export const dbApi = {
     rows: Cell[][];
     path?: string;
   }) => invoke<string>("db_export", args),
+  /** What Ctrl+Enter runs: the selection or the statement at the caret (editor offsets). */
+  statementAt: (sql: string, from: number, to: number, dialect: Dialect) =>
+    invoke<SqlStatement | null>("db_statement_at", { sql, from, to, dialect }),
   onDataSources: (cb: (list: DataSourceInfo[]) => void) => listen<DataSourceInfo[]>(DATA_SOURCES_EVENT, cb),
   onSession: (cb: (s: SessionInfo) => void) => listen<SessionInfo>(SESSION_EVENT, cb),
 };
+
+/** A statement of a script (`forge_sql::split::Statement`). */
+export interface SqlStatement {
+  text: string;
+  start: number;
+  end: number;
+}
+
+/** Binary cells arrive as `{ $hex }`. */
+export const isBinary = (v: Cell): v is { $hex: string } => typeof v === "object" && v !== null && "$hex" in v;
 
 export const dialectOf = (d: Driver): Dialect => (d === "mariadb" ? "mysql" : d);
 

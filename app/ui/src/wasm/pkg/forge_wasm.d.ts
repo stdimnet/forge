@@ -23,6 +23,31 @@ export function run_output_handle(request_json: string): string;
  */
 export function run_output_new(options_json: string): string;
 
+/**
+ * `{ dialect, schema, table, pk, changes }` → the statements, or `{ error }`.
+ */
+export function sql_change_statements(request_json: string): string;
+
+/**
+ * Mirrors `db_export`: `{ format, dialect, table, columns, rows }` → the text.
+ */
+export function sql_export(request_json: string): string;
+
+/**
+ * `{ statements: string[] }` → their leading keywords, upper-cased.
+ */
+export function sql_leading_keywords(request_json: string): string;
+
+/**
+ * `{ sql, dialect }` → `Statement[]` (byte offsets, like `db_execute`).
+ */
+export function sql_split(request_json: string): string;
+
+/**
+ * Mirrors `db_statement_at`: `{ sql, from, to, dialect }` → `Statement | null`.
+ */
+export function sql_statement_at(request_json: string): string;
+
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
 export interface InitOutput {
@@ -32,6 +57,11 @@ export interface InitOutput {
     readonly run_output_drop: (a: number, b: number, c: number) => void;
     readonly run_output_handle: (a: number, b: number, c: number) => void;
     readonly run_output_new: (a: number, b: number, c: number) => void;
+    readonly sql_change_statements: (a: number, b: number, c: number) => void;
+    readonly sql_export: (a: number, b: number, c: number) => void;
+    readonly sql_leading_keywords: (a: number, b: number, c: number) => void;
+    readonly sql_split: (a: number, b: number, c: number) => void;
+    readonly sql_statement_at: (a: number, b: number, c: number) => void;
     readonly __wbindgen_add_to_stack_pointer: (a: number) => number;
     readonly __wbindgen_export: (a: number, b: number, c: number) => void;
     readonly __wbindgen_export2: (a: number, b: number) => number;
