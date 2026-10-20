@@ -21,7 +21,7 @@ const toggle = (path: string) => setOpen(path, !expanded().has(path));
 /** Tree selection, independent of the active editor tab (like PHPStorm). */
 const [selected, setSelected] = createSignal<string | null>(null);
 
-const singleClickOpens = () => getSetting<boolean>("projectView.openFilesWithSingleClick", false);
+const singleClickOpens = () => getSetting<boolean>("projectView.openFilesWithSingleClick", true);
 
 /** Double click (or single click with the setting on): expand/collapse folders, open files. */
 function activate(entry: FileEntry): void {
