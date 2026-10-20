@@ -18,3 +18,4 @@ import "./laravelMock";
 import "./symfonyMock";
 import "./doctrineMock";
 import "./forgesMock";
+import "./markdownMock";

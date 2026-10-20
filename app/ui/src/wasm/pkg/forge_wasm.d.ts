@@ -27,6 +27,16 @@ export function dql_goto(request_json: string): string;
 export function dql_highlight(request_json: string): string;
 
 /**
+ * `{ markdown }` → `HoverDoc`.
+ */
+export function markdown_hover(request_json: string): string;
+
+/**
+ * `{ text, flavor? }` → `Block[]`.
+ */
+export function markdown_parse(request_json: string): string;
+
+/**
  * Mirrors the `output_file_links` command: `{ text, root }` → `FileLink[]`.
  */
 export function output_file_links(request_json: string): string;
@@ -77,6 +87,8 @@ export interface InitOutput {
     readonly dql_diagnostics: (a: number, b: number, c: number) => void;
     readonly dql_goto: (a: number, b: number, c: number) => void;
     readonly dql_highlight: (a: number, b: number, c: number) => void;
+    readonly markdown_hover: (a: number, b: number, c: number) => void;
+    readonly markdown_parse: (a: number, b: number, c: number) => void;
     readonly output_file_links: (a: number, b: number, c: number) => void;
     readonly run_output_drop: (a: number, b: number, c: number) => void;
     readonly run_output_handle: (a: number, b: number, c: number) => void;
