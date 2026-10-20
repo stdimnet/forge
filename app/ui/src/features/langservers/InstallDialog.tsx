@@ -7,7 +7,7 @@ import { createMemo, createSignal, For, Match, onCleanup, onMount, Show, Switch 
 import { Portal } from "solid-js/web";
 import { CircleCheck, CircleX, Copy, ExternalLink, LoaderCircle, TriangleAlert, X } from "lucide-solid";
 import { langserversApi, type InstallLine, type InstallOutcome, type ServerRow } from "@/ipc/langservers";
-import { onInstallOutput, refreshRows } from "./store";
+import { applyServers, onInstallOutput } from "./store";
 
 type Phase = "confirm" | "running" | "done";
 
@@ -52,7 +52,7 @@ export function InstallDialog(props: { row: ServerRow; onClose: () => void }) {
       setError(errorText(e));
     } finally {
       setPhase("done");
-      void refreshRows();
+      void applyServers();
     }
   };
 

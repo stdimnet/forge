@@ -6,6 +6,7 @@ import { createSignal } from "solid-js";
 import { listen } from "@/ipc";
 import { langserversApi, type InstallLine, type LicenceStatus, type ServerRow } from "@/ipc/langservers";
 import { lspApi } from "@/ipc/lsp";
+import { reopenDocuments } from "@/features/lsp/sync";
 import { SETTINGS_CHANGED_EVENT, type SettingsChange } from "@/ipc/settings";
 import { getSetting, saveSetting } from "@/state/settings";
 
@@ -48,6 +49,23 @@ export function refreshRows(): Promise<void> {
   return p;
 }
 
+/**
+ * Detect installed servers again and register them for the open project, then announce the
+ * open files to them. Needed after an install from outside Forge or from the install dialog:
+ * servers are only registered when the project opens or when this runs.
+ */
+export function applyServers(): Promise<void> {
+  setLoading(true);
+  return langserversApi
+    .apply()
+    .then((r) => {
+      setRows(r);
+      reopenDocuments();
+    })
+    .catch((e) => console.warn("language servers could not be applied", e))
+    .finally(() => setLoading(false));
+}
+
 export async function refreshLicence(): Promise<void> {
   setLicence(await langserversApi.licenceStatus().catch(() => null));
 }
@@ -85,11 +103,6 @@ export function startLangserverListeners(): void {
   void listen<SettingsChange>(SETTINGS_CHANGED_EVENT, (c) => {
     if (!c.key.startsWith("langservers.") && c.key !== "plugins.disabled") return;
     clearTimeout(applyTimer);
-    applyTimer = setTimeout(() => {
-      langserversApi
-        .apply()
-        .then(setRows)
-        .catch((e) => console.warn("language servers could not be applied", e));
-    }, 200);
+    applyTimer = setTimeout(() => void applyServers(), 200);
   });
 }
