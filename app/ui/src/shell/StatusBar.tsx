@@ -33,7 +33,7 @@ export function StatusBar() {
             <button class="status-item">LF</button>
             <button class="status-item">UTF-8</button>
             <button class="status-item">4 spaces</button>
-            <button class="status-item">{languageLabel(tab()!.path)}</button>
+            <button class="status-item">{languageLabel(tab()!.path, tab()!.content)}</button>
           </>
         )}
         <button class="status-item">

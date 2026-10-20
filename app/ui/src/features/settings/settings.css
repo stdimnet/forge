@@ -567,6 +567,12 @@
 .pack-luaforge {
   --pack: var(--syn-type);
 }
+.pack-scriptforge {
+  --pack: var(--success);
+}
+.pack-configforge {
+  --pack: var(--warning);
+}
 .plugin-details {
   flex: 1;
   min-width: 0;

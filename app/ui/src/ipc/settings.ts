@@ -96,8 +96,16 @@ export interface CodeGeneratorContribution {
   description?: string;
 }
 
+export interface FileTypeContribution {
+  id: string;
+  name: string;
+  extensions: string[];
+  fileNames: string[];
+}
+
 export interface Contributions {
   languages: string[];
+  fileTypes: FileTypeContribution[];
   commands: CommandContribution[];
   keybindings: KeybindingContribution[];
   toolWindows: ToolWindowContribution[];
@@ -109,7 +117,7 @@ export interface Contributions {
   codeGenerators: CodeGeneratorContribution[];
 }
 
-export type PackId = "core" | "phpforge" | "webforge" | "luaforge";
+export type PackId = "core" | "phpforge" | "webforge" | "luaforge" | "scriptforge" | "configforge";
 
 export interface PluginInfo {
   id: string;
