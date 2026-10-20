@@ -53,7 +53,13 @@ pub fn scan_tags(text: &str, from: usize, to: usize, jsx: bool) -> Vec<Tag> {
         }
         match parse_tag(text, i, to, jsx) {
             Some(tag) => {
-                i = tag.end.max(i + 1);
+                // JSX attribute values may hold elements (`element={<Home />}`): look
+                // inside them too.
+                i = if jsx {
+                    tag.name_end
+                } else {
+                    tag.end.max(i + 1)
+                };
                 out.push(tag);
             }
             None => i += 1,
@@ -257,6 +263,13 @@ mod tests {
         );
         assert_eq!(tags[0].attrs[0].name, "title");
         assert_eq!(tags[1].attrs[0].name, "onClick");
+
+        let src = "<Route path=\"/\" element={<Home onBuy={buy} />} />";
+        let names: Vec<_> = scan_tags(src, 0, src.len(), true)
+            .into_iter()
+            .map(|t| t.name)
+            .collect();
+        assert_eq!(names, ["Route", "Home"]);
     }
 
     #[test]

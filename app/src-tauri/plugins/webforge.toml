@@ -1,0 +1,166 @@
+# WebForge: HTML, CSS, JavaScript and TypeScript, npm, and the React, Vue.js and Angular
+# frameworks. Each table is one plugin. Logic lives in packs/webforge/*.
+
+[[plugin]]
+id = "forge.web"
+name = "HTML, CSS & JavaScript"
+version = "0.1.0"
+pack = "webforge"
+vendor = "Forge"
+description = "HTML, CSS, JavaScript and TypeScript editing with language servers, npm scripts and package managers."
+projectTypes = ["webforge"]
+
+[plugin.contributions]
+languages = ["html", "css", "scss", "js", "mjs", "ts", "tsx", "jsx"]
+
+[[plugin.contributions.lspServers]]
+id = "typescript-language-server"
+languageId = "typescript"
+command = "typescript-language-server"
+args = ["--stdio"]
+fileExtensions = ["js", "mjs", "cjs", "jsx", "ts", "tsx"]
+
+[[plugin.contributions.lspServers]]
+id = "vscode-css-language-server"
+languageId = "css"
+command = "vscode-css-language-server"
+args = ["--stdio"]
+fileExtensions = ["css", "scss", "less"]
+
+[[plugin.contributions.lspServers]]
+id = "vscode-html-language-server"
+languageId = "html"
+command = "vscode-html-language-server"
+args = ["--stdio"]
+fileExtensions = ["html", "htm"]
+
+[[plugin.contributions.runConfigurationTypes]]
+id = "npm"
+name = "npm"
+description = "Run a package.json script."
+icon = "package"
+debuggable = true
+
+[[plugin.contributions.toolWindows]]
+id = "npm"
+title = "npm"
+anchor = "left"
+icon = "hexagon"
+order = 30
+
+[[plugin.contributions.commands]]
+id = "npm.reload"
+title = "Reload npm Scripts"
+category = "Tools"
+
+[[plugin.contributions.commands]]
+id = "npm.install"
+title = "Install Dependencies"
+category = "Tools"
+
+# ---- Languages & Frameworks > Node.js -------------------------------------------------
+
+[[plugin.contributions.settings]]
+key = "web.packageManager"
+title = "Package manager"
+description = "Auto uses the packageManager field of package.json, else the lock file (pnpm-lock.yaml, yarn.lock, bun.lock, package-lock.json)."
+type = "enum"
+options = [
+  { value = "auto", label = "Auto (packageManager field or lock file)" },
+  { value = "npm", label = "npm" },
+  { value = "pnpm", label = "pnpm" },
+  { value = "yarn", label = "yarn" },
+  { value = "bun", label = "bun" },
+]
+default = "auto"
+group = "lang.node"
+section = "Package Manager"
+project = true
+order = 0
+
+[[plugin.contributions.settings]]
+key = "web.npm.gutterIcons"
+title = "Show run icons next to scripts in package.json"
+type = "bool"
+default = true
+group = "lang.node"
+section = "npm Scripts"
+order = 10
+
+[[plugin.contributions.settings]]
+key = "web.npm.debugArguments"
+title = "Node options when debugging scripts"
+description = "Set as NODE_OPTIONS for Debug; attach Chrome DevTools or another inspector client to the port."
+type = "string"
+default = "--inspect"
+group = "lang.node"
+section = "npm Scripts"
+order = 11
+
+# ---- Languages & Frameworks > TypeScript ----------------------------------------------
+
+[[plugin.contributions.settings]]
+key = "web.navigation.components"
+title = "Navigate from JSX and template tags to components, props and events"
+description = "Ctrl+B and Ctrl+Click on <UserCard>, title=… and @select resolve through imports before the language server is asked."
+type = "bool"
+default = true
+group = "lang.typescript"
+section = "Frameworks"
+order = 0
+
+[[plugin]]
+id = "forge.react"
+name = "React"
+version = "0.1.0"
+pack = "webforge"
+vendor = "Forge"
+depends = ["forge.web"]
+description = "JSX components and props: navigation from tags to components and from components to their usages."
+projectTypes = ["react", "next"]
+
+[[plugin]]
+id = "forge.vue"
+name = "Vue.js"
+version = "0.1.0"
+pack = "webforge"
+vendor = "Forge"
+depends = ["forge.web"]
+description = "Single-file components via the Vue language server, with navigation to components, props and emits."
+projectTypes = ["vue", "nuxt"]
+
+[plugin.contributions]
+languages = ["vue"]
+
+[[plugin.contributions.lspServers]]
+id = "vue-language-server"
+languageId = "vue"
+command = "vue-language-server"
+args = ["--stdio"]
+fileExtensions = ["vue"]
+
+[[plugin]]
+id = "forge.angular"
+name = "Angular"
+version = "0.1.0"
+pack = "webforge"
+vendor = "Forge"
+depends = ["forge.web"]
+description = "Components, directives and pipes: selector, binding and pipe navigation, template and style line markers."
+projectTypes = ["angular"]
+
+[[plugin.contributions.lspServers]]
+id = "ngserver"
+languageId = "html"
+command = "ngserver"
+args = ["--stdio"]
+fileExtensions = ["html"]
+
+[[plugin.contributions.settings]]
+key = "angular.gutterIcons"
+title = "Show line markers between components, templates and styles"
+type = "bool"
+default = true
+group = "lang.typescript"
+section = "Angular"
+order = 10

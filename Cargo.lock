@@ -1435,6 +1435,10 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
+ "webforge-fw-angular",
+ "webforge-fw-react",
+ "webforge-fw-vue",
+ "webforge-lang-web",
 ]
 
 [[package]]
@@ -1708,6 +1712,10 @@ dependencies = [
  "serde",
  "serde_json",
  "wasm-bindgen",
+ "webforge-fw-angular",
+ "webforge-fw-react",
+ "webforge-fw-vue",
+ "webforge-lang-web",
 ]
 
 [[package]]

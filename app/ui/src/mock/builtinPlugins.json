@@ -2561,7 +2561,7 @@
     "name": "HTML, CSS & JavaScript",
     "version": "0.1.0",
     "pack": "webforge",
-    "description": "HTML, CSS, JavaScript and TypeScript editing with language servers.",
+    "description": "HTML, CSS, JavaScript and TypeScript editing with language servers, npm scripts and package managers.",
     "vendor": "Forge",
     "depends": [],
     "required": false,
@@ -2581,10 +2581,95 @@
         "jsx"
       ],
       "fileTypes": [],
-      "commands": [],
+      "commands": [
+        {
+          "id": "npm.reload",
+          "title": "Reload npm Scripts",
+          "category": "Tools"
+        },
+        {
+          "id": "npm.install",
+          "title": "Install Dependencies",
+          "category": "Tools"
+        }
+      ],
       "keybindings": [],
-      "toolWindows": [],
-      "settings": [],
+      "toolWindows": [
+        {
+          "id": "npm",
+          "title": "npm",
+          "anchor": "left",
+          "icon": "hexagon",
+          "order": 30
+        }
+      ],
+      "settings": [
+        {
+          "key": "web.packageManager",
+          "title": "Package manager",
+          "description": "Auto uses the packageManager field of package.json, else the lock file (pnpm-lock.yaml, yarn.lock, bun.lock, package-lock.json).",
+          "type": "enum",
+          "options": [
+            {
+              "value": "auto",
+              "label": "Auto (packageManager field or lock file)"
+            },
+            {
+              "value": "npm",
+              "label": "npm"
+            },
+            {
+              "value": "pnpm",
+              "label": "pnpm"
+            },
+            {
+              "value": "yarn",
+              "label": "yarn"
+            },
+            {
+              "value": "bun",
+              "label": "bun"
+            }
+          ],
+          "default": "auto",
+          "group": "lang.node",
+          "section": "Package Manager",
+          "project": true,
+          "order": 0
+        },
+        {
+          "key": "web.npm.gutterIcons",
+          "title": "Show run icons next to scripts in package.json",
+          "type": "bool",
+          "default": true,
+          "group": "lang.node",
+          "section": "npm Scripts",
+          "project": false,
+          "order": 10
+        },
+        {
+          "key": "web.npm.debugArguments",
+          "title": "Node options when debugging scripts",
+          "description": "Set as NODE_OPTIONS for Debug; attach Chrome DevTools or another inspector client to the port.",
+          "type": "string",
+          "default": "--inspect",
+          "group": "lang.node",
+          "section": "npm Scripts",
+          "project": false,
+          "order": 11
+        },
+        {
+          "key": "web.navigation.components",
+          "title": "Navigate from JSX and template tags to components, props and events",
+          "description": "Ctrl+B and Ctrl+Click on <UserCard>, title=… and @select resolve through imports before the language server is asked.",
+          "type": "bool",
+          "default": true,
+          "group": "lang.typescript",
+          "section": "Frameworks",
+          "project": false,
+          "order": 0
+        }
+      ],
       "lspServers": [
         {
           "id": "typescript-language-server",
@@ -2634,9 +2719,39 @@
           "name": "npm",
           "description": "Run a package.json script.",
           "icon": "package",
-          "debuggable": false
+          "debuggable": true
         }
       ],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": []
+    }
+  },
+  {
+    "id": "forge.react",
+    "name": "React",
+    "version": "0.1.0",
+    "pack": "webforge",
+    "description": "JSX components and props: navigation from tags to components and from components to their usages.",
+    "vendor": "Forge",
+    "depends": [
+      "forge.web"
+    ],
+    "required": false,
+    "projectTypes": [
+      "react",
+      "next"
+    ],
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "fileTypes": [],
+      "commands": [],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [],
+      "lspServers": [],
+      "runConfigurationTypes": [],
       "aiProviders": [],
       "chatAgents": [],
       "codeGenerators": []
@@ -2647,7 +2762,7 @@
     "name": "Vue.js",
     "version": "0.1.0",
     "pack": "webforge",
-    "description": "Single-file components via the Vue language server.",
+    "description": "Single-file components via the Vue language server, with navigation to components, props and emits.",
     "vendor": "Forge",
     "depends": [
       "forge.web"
@@ -2677,6 +2792,58 @@
           ],
           "fileExtensions": [
             "vue"
+          ]
+        }
+      ],
+      "runConfigurationTypes": [],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": []
+    }
+  },
+  {
+    "id": "forge.angular",
+    "name": "Angular",
+    "version": "0.1.0",
+    "pack": "webforge",
+    "description": "Components, directives and pipes: selector, binding and pipe navigation, template and style line markers.",
+    "vendor": "Forge",
+    "depends": [
+      "forge.web"
+    ],
+    "required": false,
+    "projectTypes": [
+      "angular"
+    ],
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "fileTypes": [],
+      "commands": [],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [
+        {
+          "key": "angular.gutterIcons",
+          "title": "Show line markers between components, templates and styles",
+          "type": "bool",
+          "default": true,
+          "group": "lang.typescript",
+          "section": "Angular",
+          "project": false,
+          "order": 10
+        }
+      ],
+      "lspServers": [
+        {
+          "id": "ngserver",
+          "languageId": "html",
+          "command": "ngserver",
+          "args": [
+            "--stdio"
+          ],
+          "fileExtensions": [
+            "html"
           ]
         }
       ],
