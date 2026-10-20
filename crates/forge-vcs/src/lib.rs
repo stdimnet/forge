@@ -12,6 +12,7 @@ mod log;
 mod status;
 
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 use forge_core::{ForgeError, Result};
 use serde::Serialize;
@@ -26,6 +27,7 @@ pub use log::{
 pub use status::{parse_status, FileState, RepoStatus, StatusEntry};
 
 use cmd::{run, run_raw, Run};
+pub use cmd::{GitExec, GitOutput, GitRequest, LocalGit};
 
 /// Summary of the repository a workspace belongs to.
 #[derive(Debug, Clone, Serialize)]
@@ -45,19 +47,37 @@ pub struct RemoteResult {
 }
 
 /// A git repository seen from a workspace directory.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Repo {
     /// Repository top level (where commands run).
     root: PathBuf,
     /// Workspace location inside the repository, `""` or `"sub/dir/"`.
     prefix: String,
+    /// Where git runs (this machine or a remote host).
+    exec: Arc<dyn GitExec>,
+}
+
+impl std::fmt::Debug for Repo {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Repo")
+            .field("root", &self.root)
+            .field("prefix", &self.prefix)
+            .finish_non_exhaustive()
+    }
 }
 
 impl Repo {
     /// Discover the repository containing `workspace_root`.
     pub fn open(workspace_root: impl AsRef<Path>) -> Result<Self> {
+        Self::open_with(workspace_root, Arc::new(LocalGit))
+    }
+
+    /// Discover the repository containing `workspace_root`, running git through `exec`
+    /// (e.g. on the remote host where `workspace_root` lives).
+    pub fn open_with(workspace_root: impl AsRef<Path>, exec: Arc<dyn GitExec>) -> Result<Self> {
         let dir = workspace_root.as_ref();
         let out = run_raw(
+            exec.as_ref(),
             dir,
             &["rev-parse", "--show-toplevel", "--show-prefix"],
             Run::default(),
@@ -71,7 +91,7 @@ impl Repo {
         let mut lines = out.stdout.lines();
         let root = PathBuf::from(lines.next().unwrap_or_default().trim());
         let prefix = lines.next().unwrap_or_default().trim().to_string();
-        Ok(Self { root, prefix })
+        Ok(Self { root, prefix, exec })
     }
 
     pub fn root(&self) -> &Path {
@@ -79,11 +99,12 @@ impl Repo {
     }
 
     fn git(&self, args: &[&str]) -> Result<String> {
-        run(&self.root, args, Run::default())
+        run(self.exec.as_ref(), &self.root, args, Run::default())
     }
 
     fn git_stdin(&self, args: &[&str], input: &str) -> Result<String> {
         run(
+            self.exec.as_ref(),
             &self.root,
             args,
             Run {
@@ -95,6 +116,7 @@ impl Repo {
 
     fn git_remote(&self, args: &[&str]) -> Result<RemoteResult> {
         let out = run_raw(
+            self.exec.as_ref(),
             &self.root,
             args,
             Run {
@@ -150,6 +172,7 @@ impl Repo {
 
     fn has_head(&self) -> bool {
         run_raw(
+            self.exec.as_ref(),
             &self.root,
             &["rev-parse", "--verify", "-q", "HEAD"],
             Run::default(),
@@ -192,7 +215,12 @@ impl Repo {
     /// does not exist there (new file, unborn branch).
     pub fn show(&self, rev: &str, path: &str) -> Result<Option<String>> {
         let spec = format!("{rev}:{}", self.ws_to_repo(path));
-        let out = run_raw(&self.root, &["show", &spec], Run::default())?;
+        let out = run_raw(
+            self.exec.as_ref(),
+            &self.root,
+            &["show", &spec],
+            Run::default(),
+        )?;
         Ok(out.ok.then_some(out.stdout))
     }
 
@@ -601,6 +629,7 @@ impl Repo {
     /// Whether a local branch exists.
     pub fn has_branch(&self, name: &str) -> bool {
         run_raw(
+            self.exec.as_ref(),
             &self.root,
             &[
                 "show-ref",

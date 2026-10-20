@@ -10,8 +10,6 @@ use crate::state::AppState;
 /// JavaScript string indices.
 #[tauri::command]
 pub fn output_file_links(text: String, state: State<'_, AppState>) -> Result<Vec<FileLink>> {
-    let root = state
-        .with_workspace(|ws| Ok(ws.root().display().to_string()))
-        .ok();
+    let root = state.project_root().ok().map(|r| r.display().to_string());
     Ok(file_links_utf16(&text, root.as_deref()))
 }

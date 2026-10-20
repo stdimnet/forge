@@ -24,3 +24,4 @@ forge-filetypes.workspace = true
 forge-plugin-api.workspace = true
 forge-scratches.workspace = true
 forge-containers = { path = "../forge-containers", default-features = false }
+forge-remote = { path = "../forge-remote", default-features = false }

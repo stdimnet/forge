@@ -22,6 +22,19 @@ binary `target/release/forge`. A release build takes about 6 minutes from scratc
 Cross-compiling is not supported; build Windows and macOS bundles on those systems (or with
 the manual CI workflow, which the project owner starts).
 
+## Remote development agents
+
+Remote projects need the headless Forge agent for the host's architecture. Build the static
+Linux agents before packaging (`rustup target add x86_64-unknown-linux-musl` first; aarch64
+also needs a cross compiler, see the script):
+
+```sh
+pnpm --dir app/ui agents            # target/agents/forge-remote-agent-{x86_64,aarch64}-linux
+```
+
+Ship them in an `agents/` folder next to the `forge` binary (or set `FORGE_REMOTE_AGENT_DIR`);
+Forge uploads the matching one to `~/.cache/forge-agent/<version>/` on the host.
+
 ## Smoke test on a headless Linux box
 
 ```sh

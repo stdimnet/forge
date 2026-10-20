@@ -1,11 +1,66 @@
 //! Running the `git` executable. No shell is involved: arguments are passed as-is, so
 //! paths with spaces or quotes need no escaping on any platform.
+//!
+//! Every invocation goes through a [`GitExec`]: [`LocalGit`] runs git on this machine, other
+//! implementations (a remote development agent) run it elsewhere and return the raw output,
+//! which is parsed here as usual.
 
 use std::io::Write;
 use std::path::Path;
 use std::process::{Command, Stdio};
 
 use forge_core::{ForgeError, Result};
+use serde::{Deserialize, Serialize};
+
+/// One git invocation: arguments after `git` (without the fixed `-c` options), working
+/// directory and optional stdin.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GitRequest {
+    pub cwd: String,
+    pub args: Vec<String>,
+    #[serde(default)]
+    pub stdin: Option<String>,
+    /// Network operations: never prompt for credentials, fail instead.
+    #[serde(default)]
+    pub non_interactive: bool,
+}
+
+/// Raw result of a git invocation.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct GitOutput {
+    pub ok: bool,
+    pub stdout: String,
+    pub stderr: String,
+}
+
+/// Runs git somewhere: on this machine ([`LocalGit`]) or on a remote host.
+pub trait GitExec: Send + Sync {
+    fn exec(&self, req: &GitRequest) -> Result<GitOutput>;
+}
+
+/// Runs the local `git` binary.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct LocalGit;
+
+impl GitExec for LocalGit {
+    fn exec(&self, req: &GitRequest) -> Result<GitOutput> {
+        let args: Vec<&str> = req.args.iter().map(String::as_str).collect();
+        let out = run_local(
+            Path::new(&req.cwd),
+            &args,
+            Run {
+                stdin: req.stdin.as_deref().map(str::as_bytes),
+                non_interactive: req.non_interactive,
+            },
+        )?;
+        Ok(GitOutput {
+            ok: out.ok,
+            stdout: out.stdout,
+            stderr: out.stderr,
+        })
+    }
+}
 
 /// Name of the git binary; `FORGE_GIT` overrides it (e.g. a bundled git on Windows).
 fn git_binary() -> String {
@@ -27,7 +82,27 @@ pub(crate) struct Output {
     pub stderr: String,
 }
 
-pub(crate) fn run_raw(cwd: &Path, args: &[&str], opts: Run<'_>) -> Result<Output> {
+/// Run git through `exec` (see [`GitExec`]).
+pub(crate) fn run_raw(
+    exec: &dyn GitExec,
+    cwd: &Path,
+    args: &[&str],
+    opts: Run<'_>,
+) -> Result<Output> {
+    let out = exec.exec(&GitRequest {
+        cwd: cwd.to_string_lossy().into_owned(),
+        args: args.iter().map(|a| a.to_string()).collect(),
+        stdin: opts.stdin.map(|s| String::from_utf8_lossy(s).into_owned()),
+        non_interactive: opts.non_interactive,
+    })?;
+    Ok(Output {
+        ok: out.ok,
+        stdout: out.stdout,
+        stderr: out.stderr,
+    })
+}
+
+fn run_local(cwd: &Path, args: &[&str], opts: Run<'_>) -> Result<Output> {
     let mut cmd = Command::new(git_binary());
     cmd.current_dir(cwd)
         .args([
@@ -85,8 +160,8 @@ pub(crate) fn run_raw(cwd: &Path, args: &[&str], opts: Run<'_>) -> Result<Output
 }
 
 /// Run git and return stdout, turning a non-zero exit into an error carrying stderr.
-pub(crate) fn run(cwd: &Path, args: &[&str], opts: Run<'_>) -> Result<String> {
-    let out = run_raw(cwd, args, opts)?;
+pub(crate) fn run(exec: &dyn GitExec, cwd: &Path, args: &[&str], opts: Run<'_>) -> Result<String> {
+    let out = run_raw(exec, cwd, args, opts)?;
     if out.ok {
         Ok(out.stdout)
     } else {

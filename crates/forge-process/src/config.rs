@@ -94,36 +94,58 @@ struct FileFormat {
     templates: Vec<RunConfiguration>,
 }
 
-fn read_file(path: &Path) -> Result<FileFormat> {
+fn read_text(path: &Path) -> Result<Option<String>> {
     match std::fs::read_to_string(path) {
-        Ok(text) => {
-            toml::from_str(&text).map_err(|e| ForgeError::Other(format!("{}: {e}", path.display())))
-        }
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(FileFormat::default()),
+        Ok(text) => Ok(Some(text)),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
         Err(e) => Err(ForgeError::io(path, e)),
     }
 }
 
-fn write_file(path: &Path, file: &FileFormat) -> Result<()> {
+fn parse_file(name: &str, text: Option<&str>) -> Result<FileFormat> {
+    match text {
+        Some(t) => toml::from_str(t).map_err(|e| ForgeError::Other(format!("{name}: {e}"))),
+        None => Ok(FileFormat::default()),
+    }
+}
+
+/// The file's text, `None` when it has nothing to store.
+fn file_text(file: &FileFormat) -> Result<Option<String>> {
     if file.configurations.is_empty() && file.selected.is_none() && file.templates.is_empty() {
+        return Ok(None);
+    }
+    toml::to_string_pretty(file)
+        .map(Some)
+        .map_err(|e| ForgeError::Other(e.to_string()))
+}
+
+fn write_text(path: &Path, text: Option<&str>) -> Result<()> {
+    let Some(text) = text else {
         // Do not leave empty files behind in the project.
         return match std::fs::remove_file(path) {
             Err(e) if e.kind() != std::io::ErrorKind::NotFound => Err(ForgeError::io(path, e)),
             _ => Ok(()),
         };
-    }
+    };
     if let Some(dir) = path.parent() {
         std::fs::create_dir_all(dir).map_err(|e| ForgeError::io(dir, e))?;
     }
-    let text = toml::to_string_pretty(file).map_err(|e| ForgeError::Other(e.to_string()))?;
     std::fs::write(path, text).map_err(|e| ForgeError::io(path, e))
 }
 
 impl RunConfigurations {
     /// Read both files of the project at `root`. Missing files mean no configurations.
     pub fn load(root: &Path) -> Result<Self> {
-        let shared = read_file(&root.join(PROJECT_FILE))?;
-        let local = read_file(&root.join(LOCAL_FILE))?;
+        let shared = read_text(&root.join(PROJECT_FILE))?;
+        let local = read_text(&root.join(LOCAL_FILE))?;
+        Self::from_texts(shared.as_deref(), local.as_deref())
+    }
+
+    /// Parse the texts of the shared ([`PROJECT_FILE`]) and local ([`LOCAL_FILE`]) files
+    /// (`None` = missing), e.g. read from a remote host.
+    pub fn from_texts(shared: Option<&str>, local: Option<&str>) -> Result<Self> {
+        let shared = parse_file(PROJECT_FILE, shared)?;
+        let local = parse_file(LOCAL_FILE, local)?;
         let mut configurations: Vec<RunConfiguration> = shared
             .configurations
             .into_iter()
@@ -142,6 +164,13 @@ impl RunConfigurations {
 
     /// Write the configurations back, each to the file its `store_as_project_file` picks.
     pub fn save(&self, root: &Path) -> Result<()> {
+        let [shared, local] = self.to_texts()?;
+        write_text(&root.join(PROJECT_FILE), shared.as_deref())?;
+        write_text(&root.join(LOCAL_FILE), local.as_deref())
+    }
+
+    /// The texts of the shared and the local file; `None` means the file should not exist.
+    pub fn to_texts(&self) -> Result<[Option<String>; 2]> {
         let mut seen = std::collections::HashSet::new();
         for c in &self.configurations {
             if c.name.trim().is_empty() {
@@ -166,33 +195,28 @@ impl RunConfigurations {
                 ..c
             })
             .collect();
-        write_file(
-            &root.join(PROJECT_FILE),
-            &FileFormat {
-                selected: None,
-                configurations: shared,
-                templates: Vec::new(),
-            },
-        )?;
-        write_file(
-            &root.join(LOCAL_FILE),
-            &FileFormat {
-                selected: self.selected.clone(),
-                configurations: local,
-                templates: self
-                    .templates
-                    .iter()
-                    .map(|t| RunConfiguration {
-                        name: if t.name.is_empty() {
-                            t.type_id.clone()
-                        } else {
-                            t.name.clone()
-                        },
-                        ..t.clone()
-                    })
-                    .collect(),
-            },
-        )
+        let shared = file_text(&FileFormat {
+            selected: None,
+            configurations: shared,
+            templates: Vec::new(),
+        })?;
+        let local = file_text(&FileFormat {
+            selected: self.selected.clone(),
+            configurations: local,
+            templates: self
+                .templates
+                .iter()
+                .map(|t| RunConfiguration {
+                    name: if t.name.is_empty() {
+                        t.type_id.clone()
+                    } else {
+                        t.name.clone()
+                    },
+                    ..t.clone()
+                })
+                .collect(),
+        })?;
+        Ok([shared, local])
     }
 }
 

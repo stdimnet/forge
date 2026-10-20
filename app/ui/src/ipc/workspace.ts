@@ -11,9 +11,23 @@ export interface FileEntry {
   ignored?: boolean;
 }
 
+/** The host of a project opened over SSH. */
+export interface RemoteInfo {
+  host: string;
+  port: number;
+  user: string;
+  /** `user@host` (with `:port` when not 22). */
+  label: string;
+  configId?: string;
+  /** Project folder on the host. */
+  path: string;
+}
+
 export interface WorkspaceInfo {
   name: string;
+  /** Local path, or `user@host:/path` for a remote project. */
   root: string;
+  remote?: RemoteInfo;
 }
 
 export interface RecentProject {
@@ -21,6 +35,7 @@ export interface RecentProject {
   root: string;
   /** Detected framework (or language) for the Welcome screen badge. */
   primary?: Framework;
+  remote?: RemoteInfo;
 }
 
 export const workspaceApi = {

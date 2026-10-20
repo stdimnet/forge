@@ -1,7 +1,6 @@
 //! Project IPC: project type detection and the New Project wizard (`forge_project`).
 
 use std::collections::BTreeMap;
-use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
@@ -9,7 +8,7 @@ use forge_core::{ForgeError, Result};
 use forge_project::{CreateEvent, CreateRequest, Generator, Plan, ProjectInfo};
 use serde::Serialize;
 use serde_json::Value;
-use tauri::{AppHandle, Emitter, State};
+use tauri::{AppHandle, Emitter, Manager, State};
 
 use crate::state::AppState;
 
@@ -25,16 +24,29 @@ pub struct Detected {
     pub info: ProjectInfo,
 }
 
-/// Detect in the background and emit `project://detected`, so opening stays instant.
-pub fn emit_detection(app: &AppHandle, root: &Path) {
+/// Detect the open project in the background (on its host) and emit `project://detected`
+/// with the project's root as the UI knows it, so opening stays instant.
+pub fn emit_detection(app: &AppHandle) {
+    let Ok(backend) = app.state::<AppState>().backend() else {
+        return;
+    };
     let app = app.clone();
-    let root = root.to_path_buf();
     tauri::async_runtime::spawn_blocking(move || {
-        let payload = Detected {
-            root: root.display().to_string(),
-            info: forge_project::detect(&root),
+        let info = match backend.detect_project() {
+            Ok(i) => i,
+            Err(e) => {
+                tracing::warn!("project detection failed: {e}");
+                return;
+            }
         };
-        crate::commands::php::sync_lsp_server(&app, Some((&root, &payload.info)));
+        let payload = Detected {
+            root: backend.info().display_root(),
+            info,
+        };
+        if backend.info().remote.is_some() {
+            crate::recent::set_primary(&payload.root, payload.info.primary.clone());
+        }
+        crate::commands::php::sync_lsp_server(&app, Some((&backend.info().root, &payload.info)));
         if let Err(e) = app.emit(DETECTED_EVENT, payload) {
             tracing::warn!("could not emit {DETECTED_EVENT}: {e}");
         }
@@ -44,10 +56,10 @@ pub fn emit_detection(app: &AppHandle, root: &Path) {
 /// Languages, frameworks and tools of the open project.
 #[tauri::command]
 pub async fn project_detect(state: State<'_, AppState>) -> Result<ProjectInfo> {
-    let root = state.with_workspace(|ws| Ok(ws.root().to_path_buf()))?;
-    tauri::async_runtime::spawn_blocking(move || forge_project::detect(&root))
+    let backend = state.backend()?;
+    tauri::async_runtime::spawn_blocking(move || backend.detect_project())
         .await
-        .map_err(|e| ForgeError::Other(e.to_string()))
+        .map_err(|e| ForgeError::Other(e.to_string()))?
 }
 
 #[tauri::command]

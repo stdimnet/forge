@@ -69,7 +69,7 @@ pub enum OutputStream {
 }
 
 /// Lifecycle of a run, streamed to the UI.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "camelCase")]
 pub enum RunEvent {
     #[serde(rename_all = "camelCase")]

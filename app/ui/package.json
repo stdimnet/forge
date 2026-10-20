@@ -11,7 +11,8 @@
     "test": "vitest run",
     "screenshots": "node scripts/screenshots.mjs",
     "tauri": "cd .. && tauri",
-    "wasm": "node scripts/build-wasm.mjs"
+    "wasm": "node scripts/build-wasm.mjs",
+    "agents": "node scripts/build-agents.mjs"
   },
   "dependencies": {
     "@codemirror/autocomplete": "^6.18.0",

@@ -1,5 +1,6 @@
 import { createSignal } from "solid-js";
 import { workspaceApi, type WorkspaceInfo } from "@/ipc/workspace";
+import { remoteApi } from "@/ipc/remote";
 import { isTauri } from "@/ipc";
 import { closeAllTabs } from "./editor";
 
@@ -7,10 +8,21 @@ const [workspace, setWorkspace] = createSignal<WorkspaceInfo | null>(null);
 
 export { workspace };
 
-export async function openWorkspace(path: string): Promise<void> {
-  const info = await workspaceApi.open(path);
+/** The open project lives on a remote host (opened over SSH). */
+export const isRemoteProject = () => !!workspace()?.remote;
+
+function adopt(info: WorkspaceInfo): void {
   if (workspace()?.root !== info.root) closeAllTabs();
   setWorkspace(info);
+}
+
+export async function openWorkspace(path: string): Promise<void> {
+  adopt(await workspaceApi.open(path));
+}
+
+/** Open `path` on a host connected with `remoteApi.connect` as the project. */
+export async function openRemoteProject(connectionId: string, path: string): Promise<void> {
+  adopt(await remoteApi.openProject(connectionId, path));
 }
 
 /** Adopt the project the backend already has open (passed on the command line). */

@@ -860,6 +860,79 @@ export function output_file_links(request_json) {
 }
 
 /**
+ * `{ knownHosts, host, port, keyType, key, accept? }` → `{ status, fingerprint, ..., knownHosts? }`
+ * (the verdict, and the updated file when a confirmed key was added).
+ * @param {string} request_json
+ * @returns {string}
+ */
+export function remote_check_host_key(request_json) {
+    let deferred2_0;
+    let deferred2_1;
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        const ptr0 = passStringToWasm0(request_json, wasm.__wbindgen_export2, wasm.__wbindgen_export3);
+        const len0 = WASM_VECTOR_LEN;
+        wasm.remote_check_host_key(retptr, ptr0, len0);
+        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+        deferred2_0 = r0;
+        deferred2_1 = r1;
+        return getStringFromWasm0(r0, r1);
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+        wasm.__wbindgen_export(deferred2_0, deferred2_1, 1);
+    }
+}
+
+/**
+ * `{ text, home, user }` → the concrete `Host` aliases (`HostEntry[]`).
+ * @param {string} request_json
+ * @returns {string}
+ */
+export function remote_ssh_hosts(request_json) {
+    let deferred2_0;
+    let deferred2_1;
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        const ptr0 = passStringToWasm0(request_json, wasm.__wbindgen_export2, wasm.__wbindgen_export3);
+        const len0 = WASM_VECTOR_LEN;
+        wasm.remote_ssh_hosts(retptr, ptr0, len0);
+        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+        deferred2_0 = r0;
+        deferred2_1 = r1;
+        return getStringFromWasm0(r0, r1);
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+        wasm.__wbindgen_export(deferred2_0, deferred2_1, 1);
+    }
+}
+
+/**
+ * `SshConfiguration` → problems worded for the dialog (`string[]`, empty when valid).
+ * @param {string} config_json
+ * @returns {string}
+ */
+export function remote_validate_config(config_json) {
+    let deferred2_0;
+    let deferred2_1;
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        const ptr0 = passStringToWasm0(config_json, wasm.__wbindgen_export2, wasm.__wbindgen_export3);
+        const len0 = WASM_VECTOR_LEN;
+        wasm.remote_validate_config(retptr, ptr0, len0);
+        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+        deferred2_0 = r0;
+        deferred2_1 = r1;
+        return getStringFromWasm0(r0, r1);
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+        wasm.__wbindgen_export(deferred2_0, deferred2_1, 1);
+    }
+}
+
+/**
  * @param {string} request_json
  * @returns {string}
  */

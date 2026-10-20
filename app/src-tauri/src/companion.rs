@@ -87,6 +87,7 @@ fn known_projects(app: &AppHandle) -> ProjectContext {
         .ok();
     let recent = crate::recent::load()
         .into_iter()
+        .filter(|p| p.remote.is_none())
         .map(|p| KnownProject::new(p.name, p.root))
         .collect();
     ProjectContext { open, recent }
@@ -239,10 +240,10 @@ where
 fn open_workspace_now(app: &AppHandle, dir: &Path) {
     match forge_core::Workspace::open(dir) {
         Ok(ws) => {
-            crate::recent::remember(crate::recent::RecentProject {
-                name: ws.name(),
-                root: ws.root().display().to_string(),
-            });
+            crate::recent::remember(crate::recent::RecentProject::local(
+                ws.name(),
+                ws.root().display().to_string(),
+            ));
             app.state::<AppState>().set_workspace(ws);
         }
         Err(e) => tracing::warn!("could not open {}: {e}", dir.display()),

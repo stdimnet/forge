@@ -257,6 +257,14 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+/* The project name stays readable; a long root (user@host:/path) is cut instead. */
+.tree-root .tree-label {
+  flex-shrink: 0;
+}
+.tree-root .tree-hint {
+  min-width: 0;
+  white-space: nowrap;
+}
 
 /* ---------- Editor ---------- */
 .editor-area {

@@ -1,26 +1,29 @@
-//! Terminal tool window: shell sessions on a PTY. Output and exit arrive on
-//! `terminal://<id>` as `{ type: "output", data } | { type: "exited", code }`.
+//! Terminal tool window: shell sessions on a PTY, on the project's host (a remote project's
+//! terminal runs on the remote machine). Output and exit arrive on `terminal://<id>` as
+//! `{ type: "output", data } | { type: "exited", code }`.
 
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 
+use forge_backend::{Backend, LocalBackend, Terminal, TerminalSpec};
 use forge_core::{ForgeError, Result};
-use forge_process::{PtyEvent, PtyOptions, PtySession, PtySink};
+use forge_process::{PtyEvent, PtySink};
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, State};
 
+use crate::commands::workspace::blocking;
 use crate::state::AppState;
 
 #[derive(Default)]
 pub struct TerminalState {
-    sessions: Mutex<HashMap<String, Arc<PtySession>>>,
+    sessions: Mutex<HashMap<String, Arc<dyn Terminal>>>,
     next_id: AtomicU64,
 }
 
 impl TerminalState {
-    fn get(&self, id: &str) -> Result<Arc<PtySession>> {
+    fn get(&self, id: &str) -> Result<Arc<dyn Terminal>> {
         self.sessions
             .lock()
             .expect("terminal sessions poisoned")
@@ -59,17 +62,21 @@ pub struct TerminalOpened {
 /// Start a shell. Without `cwd` it starts in the setting `terminal.startDirectory` or the
 /// project root; without `shell` in `terminal.shellPath` or the system default shell.
 #[tauri::command]
-pub fn terminal_open(
+pub async fn terminal_open(
     options: TerminalOpenOptions,
     app: AppHandle,
     state: State<'_, AppState>,
     terminals: State<'_, TerminalState>,
 ) -> Result<TerminalOpened> {
-    let root = state
-        .with_workspace(|ws| Ok(ws.root().to_path_buf()))
-        .ok()
-        .or_else(dirs::home_dir)
-        .unwrap_or_else(|| PathBuf::from("."));
+    // Without a project the shell starts in the home directory of this machine.
+    let backend: Arc<dyn Backend> = match state.backend() {
+        Ok(b) => b,
+        Err(_) => Arc::new(LocalBackend::open(
+            dirs::home_dir().unwrap_or_else(|| PathBuf::from(".")),
+        )?),
+    };
+    let root = backend.info().root.clone();
+    let remote = backend.info().remote.is_some();
     let (setting_dir, setting_shell, setting_env) = {
         let s = state.read_settings();
         (
@@ -86,10 +93,11 @@ pub fn terminal_open(
         .unwrap_or(setting_dir);
     let cwd = match dir.trim() {
         "" => root.clone(),
+        // A local start directory setting means nothing on a remote host.
+        d if remote && PathBuf::from(d).is_absolute() => root.clone(),
         d if PathBuf::from(d).is_absolute() => PathBuf::from(d),
         d => root.join(d),
     };
-    let cwd = if cwd.is_dir() { cwd } else { root };
     let mut env: Vec<(String, String)> = setting_env
         .iter()
         .filter_map(|pair| pair.split_once('='))
@@ -107,30 +115,30 @@ pub fn terminal_open(
             tracing::warn!("cannot emit {event}: {err}");
         }
     });
-    let session = PtySession::spawn(
-        PtyOptions {
-            shell: options
-                .shell
-                .filter(|s| !s.trim().is_empty())
-                .or(Some(setting_shell).filter(|s| !s.trim().is_empty())),
-            args: options.args,
-            cwd: cwd.clone(),
-            env,
-            cols: options.cols,
-            rows: options.rows,
-        },
-        sink,
-    )?;
+    let shell = options
+        .shell
+        .filter(|s| !s.trim().is_empty())
+        // The local shell setting does not apply on a remote host.
+        .or(Some(setting_shell).filter(|s| !remote && !s.trim().is_empty()));
+    let spec = TerminalSpec {
+        shell,
+        args: options.args,
+        cwd,
+        env,
+        cols: options.cols,
+        rows: options.rows,
+    };
+    let session = blocking(move || backend.open_terminal(spec, sink)).await?;
     let opened = TerminalOpened {
         id: id.clone(),
-        shell: session.shell().to_string(),
-        cwd: cwd.to_string_lossy().into_owned(),
+        shell: session.shell(),
+        cwd: session.cwd().to_string_lossy().into_owned(),
     };
     terminals
         .sessions
         .lock()
         .expect("terminal sessions poisoned")
-        .insert(id, Arc::new(session));
+        .insert(id, session);
     Ok(opened)
 }
 
@@ -141,13 +149,14 @@ pub fn terminal_write(id: String, data: String, terminals: State<'_, TerminalSta
 }
 
 #[tauri::command]
-pub fn terminal_resize(
+pub async fn terminal_resize(
     id: String,
     cols: u16,
     rows: u16,
     terminals: State<'_, TerminalState>,
 ) -> Result<()> {
-    terminals.get(&id)?.resize(cols, rows)
+    let term = terminals.get(&id)?;
+    blocking(move || term.resize(cols, rows)).await
 }
 
 /// Kill the shell and forget the session (closing its tab).

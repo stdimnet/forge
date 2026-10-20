@@ -115,11 +115,8 @@ pub fn run() {
 
             // A project passed on the command line is already open.
             commands::php::spawn_sync_lsp_server(app.handle());
-            let root = app
-                .state::<AppState>()
-                .with_workspace(|ws| Ok(ws.root().to_path_buf()));
-            if let Ok(root) = root {
-                commands::workspace::start_watching(app.handle(), &root);
+            if let Ok(root) = app.state::<AppState>().project_root() {
+                commands::workspace::start_watching(app.handle());
                 // Data sources of the project passed on the command line.
                 commands::db::project_opened(app.handle(), root);
             }
@@ -127,7 +124,7 @@ pub fn run() {
         })
         .manage(commands::lsp::LspState::default())
         .manage(commands::workspace::WatchState::default())
-        .manage(commands::php::PhpState::default())
+        .manage(commands::remote::RemoteState::default())
         .manage(commands::laravel::LaravelState::default())
         .manage(commands::project::CreateState::default())
         .manage(commands::langservers::LangServersState::default())
@@ -385,6 +382,18 @@ pub fn run() {
             commands::services::docker_registry_login,
             commands::services::docker_registry_logout,
             commands::services::docker_registry_status,
+            commands::remote::remote_ssh_configs,
+            commands::remote::remote_ssh_config_save,
+            commands::remote::remote_ssh_config_delete,
+            commands::remote::remote_ssh_hosts,
+            commands::remote::remote_validate_config,
+            commands::remote::remote_test_connection,
+            commands::remote::remote_connect,
+            commands::remote::remote_browse,
+            commands::remote::remote_open_project,
+            commands::remote::remote_disconnect,
+            commands::remote::remote_status,
+            commands::remote::remote_reconnect,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Forge");
