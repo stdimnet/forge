@@ -129,7 +129,8 @@ export function attachSession(id: string, host: HTMLElement, cwd?: string): void
   term.registerLinkProvider({
     provideLinks(y, callback) {
       const line = term.buffer.active.getLine(y - 1)?.translateToString(true) ?? "";
-      const links = findFileLinks(line);
+      const root = workspace()?.root;
+      const links = findFileLinks(line).filter((l) => toWorkspacePath(l.path, root) !== null);
       callback(
         links.length
           ? links.map((l) => ({

@@ -7,9 +7,13 @@ import { workspace } from "@/state/workspace";
 import { revealLocation } from "@/features/lsp/navigation";
 import { showBalloon } from "@/keymap";
 import { lineText, type AnsiStyle, type ConsoleLine, type Segment } from "./ansi";
-import { findFileLinks, toWorkspacePath, type FileLink } from "./fileLinks";
+import { findLinks, toWorkspacePath, type FileLink } from "./fileLinks";
 
-export async function openFileLink(link: Pick<FileLink, "path" | "line" | "column">, cwd?: string): Promise<void> {
+export async function openFileLink(link: Pick<FileLink, "path" | "line" | "column" | "url">, cwd?: string): Promise<void> {
+  if (link.url) {
+    window.open(link.path, "_blank", "noopener");
+    return;
+  }
   const root = workspace()?.root;
   const cwdRel = cwd ? (toWorkspacePath(cwd, root) ?? "") : "";
   const rel = toWorkspacePath(link.path, root, cwdRel);
@@ -41,10 +45,12 @@ interface Piece {
   link?: FileLink;
 }
 
-/** Split a line's segments at file link boundaries. */
-export function linePieces(line: ConsoleLine): Piece[] {
+/** Split a line's segments at link boundaries (file links that resolve into the project, URLs). */
+export function linePieces(line: ConsoleLine, cwd?: string): Piece[] {
   const text = lineText(line);
-  const links = /[\\/.]/.test(text) ? findFileLinks(text) : [];
+  const root = workspace()?.root;
+  const cwdRel = cwd ? (toWorkspacePath(cwd, root) ?? "") : "";
+  const links = /[\\/.]/.test(text) ? findLinks(text, (p) => toWorkspacePath(p, root, cwdRel) !== null) : [];
   if (!links.length) return line.segments;
   const out: Piece[] = [];
   let pos = 0;
@@ -115,14 +121,14 @@ export function Console(props: ConsoleProps) {
       <For each={snapshot()}>
         {(line, i) => (
           <div class="run-line">
-            <For each={linePieces(line)}>
+            <For each={linePieces(line, props.cwd)}>
               {(p) =>
                 p.link ? (
                   <a
                     class="run-link"
                     style={styleOf(p.style)}
                     onClick={() => void openFileLink(p.link!, props.cwd)}
-                    title="Open in editor"
+                    title={p.link!.url ? "Open in browser" : "Open in editor"}
                   >
                     {p.text}
                   </a>

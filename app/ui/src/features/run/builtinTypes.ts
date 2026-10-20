@@ -36,7 +36,7 @@ registerRunConfigurationType({
   fields: [
     {
       key: "scope",
-      label: "Test Runner",
+      label: "Test scope",
       kind: "segmented",
       default: "config",
       options: [
@@ -78,7 +78,7 @@ registerRunConfigurationType({
       placeholder: "tests/Unit/UserTest.php",
       visible: (c) => ["file", "class", "method"].includes(scope(c)),
     },
-    { key: "configFile", label: "Use alternative configuration file", kind: "path", placeholder: "phpunit.xml" },
+    { key: "configFile", label: "Configuration file", kind: "path", placeholder: "phpunit.xml (detected)" },
     { key: "testRunnerOptions", label: "Test runner options", placeholder: "--stop-on-failure" },
   ],
   suggestName: (cfg) => {

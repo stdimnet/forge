@@ -3,6 +3,7 @@ import {
   KeymapEngine,
   allConflicts,
   allowedInInput,
+  allowedInTerminal,
   buildBindings,
   contextMatches,
   findConflicts,
@@ -220,6 +221,18 @@ describe("helpers", () => {
     expect(allowedInInput(parseStroke("Meta+Left"))).toBe(false);
     expect(allowedInInput(parseStroke("Shift+A"))).toBe(false);
     expect(allowedInInput(parseStroke("Escape"))).toBe(false);
+  });
+
+  it("leaves shell keys to the terminal but keeps IDE function keys and tool windows", () => {
+    const allowed = (s: string) => allowedInTerminal(parseStroke(s));
+    for (const s of ["Ctrl+C", "Ctrl+D", "Ctrl+R", "Ctrl+E", "Alt+B", "Escape", "Tab", "Ctrl+Shift+C", "Ctrl+Shift+V"])
+      expect(allowed(s), s).toBe(false);
+    for (const s of ["Alt+F12", "Shift+F10", "Ctrl+F2", "Alt+4", "Ctrl+Shift+A", "Ctrl+Alt+S", "Ctrl+Shift+T"])
+      expect(allowed(s), s).toBe(true);
+    const engine = new KeymapEngine();
+    engine.setBindings(buildBindings({ RecentFiles: ["Ctrl+E"], Run: ["Shift+F10"] }, () => "any", "other"));
+    expect(engine.handleKeyDown(key("Ctrl+E"), "terminal")).toEqual({ consumed: false });
+    expect(engine.handleKeyDown(key("Shift+F10"), "terminal").action).toBe("Run");
   });
 
   it("buildBindings skips unparsable strings", () => {

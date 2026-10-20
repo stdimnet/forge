@@ -27,8 +27,10 @@ onTestResults((entries) => {
 
 const SVG = {
   play: '<polygon points="6 3 20 12 6 21 6 3" fill="currentColor"/>',
-  passed: '<polygon points="5 3 17 12 5 21 5 3" fill="currentColor"/><circle cx="18" cy="17" r="5" fill="var(--bg-editor)"/><path d="m15.5 17 2 2 3-3.5" stroke="currentColor" stroke-width="2" fill="none"/>',
-  failed: '<polygon points="5 3 17 12 5 21 5 3" fill="currentColor"/><circle cx="18" cy="17" r="5" fill="var(--bg-editor)"/><path d="m16 15 4 4m0-4-4 4" stroke="var(--danger)" stroke-width="2" fill="none"/>',
+  passed:
+    '<polygon points="4 2 17 10 4 18 4 2" fill="currentColor"/><circle cx="17" cy="17" r="7" fill="var(--bg-editor)"/><circle cx="17" cy="17" r="5.5" fill="currentColor"/><path d="m14.2 17 2 2 3.4-3.6" stroke="var(--bg-editor)" stroke-width="2" fill="none" stroke-linecap="round"/>',
+  failed:
+    '<polygon points="4 2 17 10 4 18 4 2" fill="var(--success)"/><circle cx="17" cy="17" r="7" fill="var(--bg-editor)"/><circle cx="17" cy="17" r="5.5" fill="currentColor"/><path d="m14.8 14.8 4.4 4.4m0-4.4-4.4 4.4" stroke="var(--bg-editor)" stroke-width="2" fill="none" stroke-linecap="round"/>',
 };
 
 class RunMarker extends GutterMarker {
@@ -46,7 +48,7 @@ class RunMarker extends GutterMarker {
     const state = this.status === "failed" ? "failed" : this.status === "passed" ? "passed" : "play";
     el.className = `run-gutter-icon ${state}`;
     el.title = this.target.kind === "method" ? `Run Test` : `Run Tests`;
-    el.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" stroke-linejoin="round">${SVG[state]}</svg>`;
+    el.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" stroke-linejoin="round">${SVG[state]}</svg>`;
     return el;
   }
 }

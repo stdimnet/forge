@@ -5,6 +5,8 @@
  */
 
 export interface FileLink {
+  /** Set for web links (`https://…`); `path` then holds the URL. */
+  url?: boolean;
   /** Offsets in the text (end exclusive). */
   start: number;
   end: number;
@@ -40,6 +42,20 @@ export function findFileLinks(text: string): FileLink[] {
     });
   }
   return out;
+}
+
+const URL_RE = /\bhttps?:\/\/[^\s<>"'`\]\[)]+[^\s<>"'`.,;:!?\]\[)]/g;
+
+/** File links that resolve into the project, plus web links, sorted by position. */
+export function findLinks(text: string, resolves: (path: string) => boolean): FileLink[] {
+  const urls: FileLink[] = [];
+  URL_RE.lastIndex = 0;
+  let m: RegExpExecArray | null;
+  while ((m = URL_RE.exec(text))) urls.push({ start: m.index, end: m.index + m[0].length, path: m[0], url: true });
+  const files = findFileLinks(text).filter(
+    (f) => resolves(f.path) && !urls.some((u) => f.start < u.end && u.start < f.end),
+  );
+  return [...urls, ...files].sort((a, b) => a.start - b.start);
 }
 
 /**

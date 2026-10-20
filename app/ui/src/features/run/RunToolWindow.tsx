@@ -182,11 +182,12 @@ export function RunTabs() {
 function statusText(root: TestNode, running: boolean): { text: string; failed: boolean; done: number; total: number } {
   const c = countTests(root);
   const finished = c.passed + c.failed + c.ignored;
+  // PHPStorm: "Tests failed: 1, passed: 3 of 4 tests – 51 ms", "Tests passed: 4 of 4 tests".
   const parts: string[] = [];
-  if (c.failed) parts.push(`failed: ${c.failed}`);
-  if (c.passed) parts.push(`passed: ${c.passed}`);
-  if (c.ignored) parts.push(`ignored: ${c.ignored}`);
-  const prefix = running ? "Running tests" : c.failed ? "Tests failed" : c.total ? "Tests passed" : "No tests were found";
+  const prefix = running ? "Running tests" : c.failed ? "Tests failed" : c.passed ? "Tests passed" : c.ignored ? "Tests ignored" : "No tests were found";
+  if (c.failed) parts.push(running ? `failed: ${c.failed}` : String(c.failed));
+  if (c.passed) parts.push(c.failed || running ? `passed: ${c.passed}` : String(c.passed));
+  if (c.ignored) parts.push(c.failed || c.passed || running ? `ignored: ${c.ignored}` : String(c.ignored));
   const tail = c.total ? ` of ${c.total} test${c.total === 1 ? "" : "s"}` : "";
   const time = root.duration !== undefined ? ` – ${formatDuration(root.duration)}` : "";
   const text = parts.length ? `${prefix}: ${parts.join(", ")}${tail}${running ? "" : time}` : `${prefix}${running ? "…" : ""}`;
@@ -210,7 +211,7 @@ function testConsoleLines(n: TestNode): ConsoleLine[] {
     if (x.status === "ignored" && x.message) add(`Test ignored: ${x.message}`, "var(--fg-muted)");
     if (x.details) {
       add("");
-      add(x.details.replace(/\n+$/, ""), "var(--danger)");
+      add(x.details.replace(/^\s+|\s+$/g, ""), "var(--danger)");
     }
     x.children.forEach(collect);
   };

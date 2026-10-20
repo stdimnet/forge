@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { AnsiParser, appendSegments, color256, lineText, type ConsoleLine } from "./ansi";
-import { findFileLinks, toWorkspacePath } from "./fileLinks";
+import { findFileLinks, findLinks, toWorkspacePath } from "./fileLinks";
 import { findTests, testAt, testConfiguration } from "./phpTests";
 import {
   countTests,
@@ -65,6 +65,15 @@ describe("file links", () => {
     expect(findFileLinks("PHP 8.3.12 (cli) version 2.8.4")).toEqual([]);
     expect(findFileLinks("README.md")).toEqual([]);
     expect(findFileLinks("modified:   app/Models/User.php")[0]).toMatchObject({ path: "app/Models/User.php", line: undefined });
+  });
+
+  it("finds web links and drops file links outside the project", () => {
+    const text = "Server on http://127.0.0.1:8000/app.js and /build/assets/app.js, see app/User.php:3.";
+    const links = findLinks(text, (p) => !p.startsWith("/"));
+    expect(links.map((l) => [l.path, !!l.url])).toEqual([
+      ["http://127.0.0.1:8000/app.js", true],
+      ["app/User.php", false],
+    ]);
   });
 
   it("maps paths into the workspace", () => {
