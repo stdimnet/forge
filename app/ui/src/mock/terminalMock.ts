@@ -5,6 +5,11 @@
 import { emitMock, registerMock } from "@/ipc";
 import type { TerminalEvent, TerminalOpenOptions } from "@/ipc/terminal";
 import { demoProjectName } from "./demoProject";
+import { currentRemote } from "./remoteMock";
+
+/** Prompt user and project folder: the remote host's for a remote project. */
+const who = () => (currentRemote() ? `${currentRemote()!.user}@shop-web-01` : "dev@forge");
+const projectDir = () => currentRemote()?.path ?? `~/Projects/${demoProjectName}`;
 
 interface FakeShell {
   line: string;
@@ -33,7 +38,7 @@ const emit = (id: string, e: TerminalEvent) => emitMock(`terminal://${id}`, e);
 const out = (id: string, data: string) => emit(id, { type: "output", data: data.replace(/\n/g, "\r\n") });
 
 const prompt = (s: FakeShell) =>
-  `${C.green}${C.bold}dev@forge${C.reset} ${C.blue}${C.bold}${s.cwd}${C.reset} ${C.magenta}(feature/order-totals)${C.reset} $ `;
+  `${C.green}${C.bold}${who()}${C.reset} ${C.blue}${C.bold}${s.cwd}${C.reset} ${C.magenta}(feature/order-totals)${C.reset} $ `;
 
 const LS_ROOT = [
   ["app", "dir"],
@@ -124,7 +129,7 @@ function run(id: string, s: FakeShell, line: string): void {
   }
   if (cmd === "cd") {
     const target = args[0] ?? "";
-    if (!target || target === "~") s.cwd = `~/Projects/${demoProjectName}`;
+    if (!target || target === "~") s.cwd = projectDir();
     else if (target === "..") s.cwd = s.cwd.replace(/\/[^/]+$/, "") || "~";
     else s.cwd = `${s.cwd}/${target.replace(/\/$/, "")}`;
     return;
@@ -136,7 +141,7 @@ function run(id: string, s: FakeShell, line: string): void {
 registerMock("terminal_open", ({ options }) => {
   const o = options as TerminalOpenOptions;
   const id = o.id ?? `mock-term-${++seq}`;
-  const s: FakeShell = { line: "", cwd: `~/Projects/${demoProjectName}${o.cwd ? `/${o.cwd}` : ""}`, history: [], historyPos: 0 };
+  const s: FakeShell = { line: "", cwd: `${projectDir()}${o.cwd ? `/${o.cwd}` : ""}`, history: [], historyPos: 0 };
   shells.set(id, s);
   setTimeout(() => out(id, prompt(s)), 30);
   return { id, shell: "/bin/bash", cwd: s.cwd };

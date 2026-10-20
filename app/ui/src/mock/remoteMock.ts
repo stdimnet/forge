@@ -307,6 +307,12 @@ export function adoptRemoteProject(info: WorkspaceInfo, connectionId = "conn-dem
   return info;
 }
 
+/** The open remote project's user and folder (the fake terminal runs "there"). */
+export function currentRemote(): { user: string; path: string } | null {
+  const r = openProject?.info.remote;
+  return r ? { user: r.user, path: r.path } : null;
+}
+
 /** Forget the remote project (a local project was opened). */
 export function closeRemoteProject(): void {
   openProject = null;

@@ -75,6 +75,20 @@ const workbench = async (page) => {
 };
 workbench.query = "?project=remote";
 
+/** The terminal of a remote project runs on the host. */
+const terminal = async (page) => {
+  await page.waitForSelector("[data-testid=remote-status]");
+  await page.keyboard.press("Alt+F12");
+  await page.waitForSelector(".term-host .xterm-screen");
+  await page.waitForTimeout(250);
+  for (const cmd of ["pwd", "php -v"]) {
+    await page.keyboard.type(cmd, { delay: 8 });
+    await page.keyboard.press("Enter");
+    await page.waitForTimeout(150);
+  }
+};
+terminal.query = "?project=remote";
+
 const statusPopup = async (page) => {
   await page.click("[data-testid=remote-status]");
   await page.waitForSelector(".remote-popup");
@@ -104,6 +118,7 @@ export default {
   "remote-folder-chooser": folderChooser,
   "remote-project-step": projectStep,
   "remote-workbench": workbench,
+  "remote-terminal": terminal,
   "remote-status-popup": statusPopup,
   "remote-reconnecting": reconnecting,
   "remote-open-recent": openFromWelcome,

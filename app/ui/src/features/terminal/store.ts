@@ -2,6 +2,7 @@
 import { createSignal } from "solid-js";
 import { getSetting } from "@/state/settings";
 import { layout, toggleToolWindow } from "@/state/layout";
+import { workspace } from "@/state/workspace";
 
 export interface TerminalTab {
   /** UI id, also used as the backend session id. */
@@ -28,7 +29,10 @@ export function nextTitle(existing: string[], base: string): string {
 }
 
 export function newTab(cwd?: string): TerminalTab {
-  const base = getSetting<string>("terminal.tabName", "Local") || "Local";
+  const setting = getSetting<string>("terminal.tabName", "Local") || "Local";
+  // A remote project's shells run on its host: name them after it, like SSH sessions.
+  const host = workspace()?.remote?.host;
+  const base = host && setting === "Local" ? host : setting;
   const tab: TerminalTab = {
     id: `term-${Date.now().toString(36)}-${++seq}`,
     title: nextTitle(
