@@ -2,9 +2,12 @@ import { registerMock } from "@/ipc";
 import type { FileEntry } from "@/ipc/workspace";
 import { demoFiles, demoProjectName } from "./demoProject";
 import { demoConfigFiles } from "./demoConfigFiles";
+import { demoLaravelFiles } from "./demoLaravel";
 import { recentPrimaries } from "./projectMock";
 
-const files: Record<string, string> = { ...demoFiles, ...demoConfigFiles };
+/** The in-memory project (demo files plus whatever the UI saved); read by other mocks. */
+export const mockFiles: Record<string, string> = { ...demoFiles, ...demoLaravelFiles, ...demoConfigFiles };
+const files = mockFiles;
 
 function listDir(dir: string): FileEntry[] {
   const prefix = dir ? `${dir}/` : "";
