@@ -22,6 +22,7 @@ const MANIFESTS: &[(&str, &str)] = &[
         include_str!("../plugins/langservers.toml"),
     ),
     ("phpforge.toml", include_str!("../plugins/phpforge.toml")),
+    ("luaforge.toml", include_str!("../plugins/luaforge.toml")),
     ("packs.toml", include_str!("../plugins/packs.toml")),
     ("langs.toml", include_str!("../plugins/langs.toml")),
     (
@@ -164,6 +165,9 @@ mod tests {
             ("sysctl.conf", "conf"),
             ("supervisord.conf", "ini"),
             ("a.PY", "python"),
+            ("src/game/world.lua", "lua"),
+            ("penlight-1.14.0-1.rockspec", "lua"),
+            (".luacheckrc", "lua"),
         ] {
             assert_eq!(id(path, None), Some(expected), "{path}");
         }
@@ -173,6 +177,7 @@ mod tests {
         );
         assert_eq!(id("bin/run", Some("#!/bin/bash")), Some("shell"));
         assert_eq!(id("bin/run", Some("#!/bin/sh")), Some("shell"));
+        assert_eq!(id("bin/run", Some("#!/usr/bin/env luajit")), Some("lua"));
         assert_eq!(id("bin/run", Some("#!/usr/bin/php")), None);
         assert_eq!(id("bin/run", None), None);
         assert_eq!(id("notes.txt", None), None);

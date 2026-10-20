@@ -20,6 +20,8 @@ pub const AUTO_START_KEY: &str = "langservers.autoStart";
 pub const SCAN_LIMIT_KEY: &str = "langservers.scanLimit";
 pub const LUA_ENVIRONMENT_KEY: &str = "langservers.lua.environment";
 pub const LUA_VERSION_KEY: &str = "langservers.lua.version";
+/// Extra `workspace.library` folders of lua-language-server.
+pub const LUA_LIBRARIES_KEY: &str = "langservers.lua.libraries";
 
 /// Settings key of a per-server value (`enabled`, `path` or `settings`).
 pub fn server_key(id: &str, field: &str) -> String {
@@ -67,6 +69,8 @@ pub struct Prefs {
     pub lua_environment: LuaEnvironment,
     /// `Lua 5.1` … `Lua 5.4`, `LuaJIT`.
     pub lua_version: String,
+    /// Extra library folders for lua-language-server.
+    pub lua_libraries: Vec<String>,
     pub servers: HashMap<String, ServerPrefs>,
 }
 
@@ -77,6 +81,7 @@ impl Default for Prefs {
             scan_limit: DEFAULT_SCAN_LIMIT,
             lua_environment: LuaEnvironment::Plain,
             lua_version: "Lua 5.4".into(),
+            lua_libraries: Vec::new(),
             servers: HashMap::new(),
         }
     }
@@ -119,6 +124,13 @@ impl Prefs {
                 _ => LuaEnvironment::Plain,
             },
             lua_version: string(LUA_VERSION_KEY).unwrap_or(defaults.lua_version),
+            lua_libraries: get(LUA_LIBRARIES_KEY)
+                .and_then(|v| v.as_array().cloned())
+                .unwrap_or_default()
+                .iter()
+                .filter_map(|v| v.as_str().map(str::trim).filter(|s| !s.is_empty()))
+                .map(str::to_string)
+                .collect(),
             servers,
         }
     }
@@ -147,6 +159,7 @@ mod tests {
             (AUTO_START_KEY, json!(false)),
             (SCAN_LIMIT_KEY, json!(5)),
             (LUA_ENVIRONMENT_KEY, json!("love")),
+            (LUA_LIBRARIES_KEY, json!(["libs", " ", "~/lua"])),
             ("langservers.servers.gopls.enabled", json!(false)),
             ("langservers.servers.gopls.path", json!(" /opt/gopls ")),
             ("langservers.servers.zls.settings", json!("{\"zls\": {}}")),
@@ -163,6 +176,7 @@ mod tests {
         assert_eq!(p.scan_limit, 100, "clamped");
         assert_eq!(p.lua_environment, LuaEnvironment::Love);
         assert_eq!(p.lua_version, "Lua 5.4");
+        assert_eq!(p.lua_libraries, vec!["libs", "~/lua"]);
         assert!(!p.is_enabled("gopls", true));
         assert!(p.is_enabled("clangd", true));
         assert!(!p.is_enabled("clangd", false));

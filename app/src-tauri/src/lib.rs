@@ -126,6 +126,7 @@ pub fn run() {
         .manage(commands::workspace::WatchState::default())
         .manage(commands::remote::RemoteState::default())
         .manage(commands::laravel::LaravelState::default())
+        .manage(commands::lua::LuaState::default())
         .manage(commands::project::CreateState::default())
         .manage(commands::langservers::LangServersState::default())
         .manage(commands::terminal::TerminalState::default())
@@ -247,6 +248,14 @@ pub fn run() {
             commands::php::php_generate,
             commands::php::php_detect_servers,
             commands::php::php_lsp_config,
+            commands::lua::lua_index_workspace,
+            commands::lua::lua_files_changed,
+            commands::lua::lua_search_symbols,
+            commands::lua::lua_file_structure,
+            commands::lua::lua_hover,
+            commands::lua::lua_goto,
+            commands::lua::lua_run_markers,
+            commands::lua::lua_format,
             commands::laravel::laravel_detect,
             commands::laravel::laravel_routes,
             commands::laravel::laravel_complete,

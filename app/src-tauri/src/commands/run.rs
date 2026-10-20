@@ -37,22 +37,27 @@ pub struct RunState {
     next_id: AtomicU64,
     /// Configuration kinds known to the backend; plugins register more at startup.
     pub kinds: KindRegistry,
+    /// Settings that hold default interpreters of manifest kinds (`lua.interpreter`).
+    interpreter_settings: Vec<String>,
 }
 
 impl RunState {
     /// Built-in kinds plus the manifest-declared ones (types with a `command` template).
     pub fn new(app: &AppState) -> Self {
         let mut kinds = KindRegistry::builtin();
+        let mut interpreter_settings = Vec::new();
         kinds.register(Box::new(super::scratches::ScratchKind));
         let plugins = app.plugins.read().expect("plugins lock poisoned");
         for t in plugins.run_configuration_types() {
             if t.command.is_empty() {
                 continue;
             }
+            interpreter_settings.extend(t.interpreter_setting.clone());
             kinds.register(Box::new(TemplateKind {
                 id: t.id.clone(),
                 command: t.command.clone(),
                 default_interpreter: t.default_interpreter.clone(),
+                interpreter_setting: t.interpreter_setting.clone(),
                 required: t
                     .fields
                     .iter()
@@ -65,6 +70,7 @@ impl RunState {
             runs: Mutex::default(),
             next_id: AtomicU64::new(0),
             kinds,
+            interpreter_settings,
         }
     }
 
@@ -177,6 +183,11 @@ fn build(state: &AppState, runs: &RunState, req: RunRequest) -> Result<CommandLi
                 php_interpreter: settings
                     .get_as::<String>("php.interpreter")
                     .unwrap_or_else(|| "php".into()),
+                interpreters: runs
+                    .interpreter_settings
+                    .iter()
+                    .filter_map(|k| settings.get_as::<String>(k).map(|v| (k.clone(), v)))
+                    .collect(),
                 root,
             };
             drop(settings);

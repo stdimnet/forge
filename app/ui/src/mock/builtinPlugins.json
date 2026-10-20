@@ -2557,6 +2557,168 @@
     }
   },
   {
+    "id": "forge.lua",
+    "name": "Lua",
+    "version": "0.1.0",
+    "pack": "luaforge",
+    "description": "Lua 5.1–5.4 and LuaJIT: EmmyLua/LuaLS annotations, navigation, structure, LÖVE and Neovim, lua-language-server and StyLua.",
+    "vendor": "Forge",
+    "depends": [],
+    "required": false,
+    "projectTypes": [
+      "luaforge"
+    ],
+    "enabled": true,
+    "contributions": {
+      "languages": [
+        "lua"
+      ],
+      "fileTypes": [
+        {
+          "id": "lua",
+          "name": "Lua",
+          "extensions": [
+            "lua",
+            "rockspec"
+          ],
+          "fileNames": [
+            ".luacheckrc",
+            ".busted"
+          ],
+          "interpreters": [
+            "lua",
+            "luajit",
+            "lua5.1",
+            "lua5.2",
+            "lua5.3",
+            "lua5.4",
+            "tarantool"
+          ]
+        }
+      ],
+      "commands": [
+        {
+          "id": "lua.reindex",
+          "title": "Reindex Lua Files",
+          "category": "Lua"
+        }
+      ],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [
+        {
+          "key": "lua.interpreter",
+          "title": "Lua interpreter",
+          "description": "Runs Lua Script configurations that do not set their own: lua, luajit, love or a full path.",
+          "type": "path",
+          "default": "lua",
+          "group": "lang.lua",
+          "section": "Interpreter",
+          "project": true,
+          "order": 0
+        },
+        {
+          "key": "lua.requirePaths",
+          "title": "Module search paths",
+          "description": "package.path templates relative to the project, such as scripts/?.lua. Used to resolve require(\"a.b\"); ?.lua, ?/init.lua, lua/?.lua, src/?.lua and lib/?.lua are always tried.",
+          "type": "list",
+          "default": [],
+          "group": "lang.lua",
+          "section": "Modules",
+          "project": true,
+          "order": 1
+        },
+        {
+          "key": "langservers.servers.lua-language-server.path",
+          "title": "lua-language-server executable",
+          "description": "Leave empty to find it on PATH, in Mason or in Forge's server directory.",
+          "type": "path",
+          "default": "",
+          "group": "lang.lua",
+          "section": "Lua Language Server",
+          "project": false,
+          "order": 9
+        },
+        {
+          "key": "langservers.lua.libraries",
+          "title": "Library paths",
+          "description": "Extra folders with Lua definitions or third-party code (workspace.library), e.g. ~/.luarocks/share/lua/5.4.",
+          "type": "list",
+          "default": [],
+          "group": "lang.lua",
+          "section": "Lua Language Server",
+          "project": true,
+          "order": 12
+        },
+        {
+          "key": "lua.stylua.enabled",
+          "title": "Reformat Code with StyLua",
+          "description": "Ctrl+Alt+L formats Lua files with StyLua when it is installed; stylua.toml in the project is honoured.",
+          "type": "bool",
+          "default": true,
+          "group": "lang.lua",
+          "section": "StyLua",
+          "project": false,
+          "order": 20
+        },
+        {
+          "key": "lua.stylua.path",
+          "title": "StyLua executable",
+          "type": "path",
+          "default": "stylua",
+          "group": "lang.lua",
+          "section": "StyLua",
+          "project": false,
+          "order": 21
+        }
+      ],
+      "lspServers": [
+        {
+          "id": "lua-language-server",
+          "languageId": "lua",
+          "command": "lua-language-server",
+          "args": [],
+          "fileExtensions": [
+            "lua"
+          ],
+          "initializationOptions": {
+            "runtime": {
+              "version": "Lua 5.4"
+            }
+          }
+        }
+      ],
+      "runConfigurationTypes": [
+        {
+          "id": "lua-script",
+          "name": "Lua Script",
+          "description": "Run a Lua file (or a LÖVE game directory) with the configured interpreter.",
+          "icon": "moon",
+          "debuggable": false,
+          "fields": [
+            {
+              "key": "file",
+              "label": "File",
+              "kind": "path",
+              "required": true
+            }
+          ],
+          "command": [
+            "${interpreter}",
+            "${interpreterOptions}",
+            "${file}",
+            "${arguments}"
+          ],
+          "defaultInterpreter": "lua",
+          "interpreterSetting": "lua.interpreter"
+        }
+      ],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": []
+    }
+  },
+  {
     "id": "forge.web",
     "name": "HTML, CSS & JavaScript",
     "version": "0.1.0",
@@ -2681,73 +2843,6 @@
         }
       ],
       "runConfigurationTypes": [],
-      "aiProviders": [],
-      "chatAgents": [],
-      "codeGenerators": []
-    }
-  },
-  {
-    "id": "forge.lua",
-    "name": "Lua",
-    "version": "0.1.0",
-    "pack": "luaforge",
-    "description": "Lua 5.1–5.4 and LuaJIT support via lua-language-server.",
-    "vendor": "Forge",
-    "depends": [],
-    "required": false,
-    "projectTypes": [
-      "luaforge"
-    ],
-    "enabled": true,
-    "contributions": {
-      "languages": [
-        "lua"
-      ],
-      "fileTypes": [],
-      "commands": [],
-      "keybindings": [],
-      "toolWindows": [],
-      "settings": [],
-      "lspServers": [
-        {
-          "id": "lua-language-server",
-          "languageId": "lua",
-          "command": "lua-language-server",
-          "args": [],
-          "fileExtensions": [
-            "lua"
-          ],
-          "initializationOptions": {
-            "runtime": {
-              "version": "Lua 5.4"
-            }
-          }
-        }
-      ],
-      "runConfigurationTypes": [
-        {
-          "id": "lua-script",
-          "name": "Lua Script",
-          "description": "Run a Lua file with the configured interpreter.",
-          "icon": "moon",
-          "debuggable": false,
-          "fields": [
-            {
-              "key": "file",
-              "label": "File",
-              "kind": "path",
-              "required": true
-            }
-          ],
-          "command": [
-            "${interpreter}",
-            "${interpreterOptions}",
-            "${file}",
-            "${arguments}"
-          ],
-          "defaultInterpreter": "lua"
-        }
-      ],
       "aiProviders": [],
       "chatAgents": [],
       "codeGenerators": []

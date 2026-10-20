@@ -23,6 +23,7 @@ use wasm_bindgen::prelude::*;
 mod containers;
 mod filetypes;
 mod keymap;
+mod lua;
 mod scratches;
 mod search;
 mod settings;

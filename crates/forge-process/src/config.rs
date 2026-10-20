@@ -226,6 +226,8 @@ pub struct BuildContext {
     pub root: PathBuf,
     /// Project default PHP interpreter (setting `php.interpreter`).
     pub php_interpreter: String,
+    /// Values of the interpreter settings that template kinds name (`lua.interpreter`).
+    pub interpreters: BTreeMap<String, String>,
 }
 
 impl BuildContext {
@@ -233,6 +235,7 @@ impl BuildContext {
         Self {
             root: root.into(),
             php_interpreter: "php".into(),
+            interpreters: BTreeMap::new(),
         }
     }
 
@@ -552,6 +555,9 @@ pub struct TemplateKind {
     pub id: String,
     pub command: Vec<String>,
     pub default_interpreter: Option<String>,
+    /// Setting with the project's default interpreter, looked up in
+    /// [`BuildContext::interpreters`]; wins over `default_interpreter` when set.
+    pub interpreter_setting: Option<String>,
     /// Option keys that must be set (labels for the error message).
     pub required: Vec<(String, String)>,
 }
@@ -565,8 +571,17 @@ impl RunConfigurationKind for TemplateKind {
         for (key, label) in &self.required {
             required(cfg, key, label)?;
         }
+        let configured = self
+            .interpreter_setting
+            .as_ref()
+            .and_then(|key| ctx.interpreters.get(key))
+            .map(|v| v.trim())
+            .filter(|v| !v.is_empty());
         let interpreter = match cfg.interpreter.trim() {
-            "" => self.default_interpreter.clone().unwrap_or_default(),
+            "" => configured
+                .map(str::to_string)
+                .or_else(|| self.default_interpreter.clone())
+                .unwrap_or_default(),
             i => i.to_string(),
         };
         let mut parts: Vec<String> = Vec::new();
@@ -612,6 +627,7 @@ mod tests {
         BuildContext {
             root: PathBuf::from("/proj"),
             php_interpreter: "/usr/bin/php8.3".into(),
+            interpreters: BTreeMap::new(),
         }
     }
 
@@ -788,6 +804,7 @@ mod tests {
                 "${arguments}".into(),
             ],
             default_interpreter: Some("lua".into()),
+            interpreter_setting: Some("lua.interpreter".into()),
             required: vec![("file".into(), "File".into())],
         }));
         let mut c = cfg("lua-script", &[("file", "main.lua")]);
@@ -795,8 +812,14 @@ mod tests {
         let cmd = r.build(&c, &ctx()).unwrap();
         assert_eq!(cmd.program, "lua");
         assert_eq!(cmd.args, ["main.lua", "a", "b c"]);
+        // The project's interpreter setting replaces the manifest default.
+        let mut with_setting = ctx();
+        with_setting
+            .interpreters
+            .insert("lua.interpreter".into(), "love".into());
+        assert_eq!(r.build(&c, &with_setting).unwrap().program, "love");
         c.interpreter = "luajit".into();
-        assert_eq!(r.build(&c, &ctx()).unwrap().program, "luajit");
+        assert_eq!(r.build(&c, &with_setting).unwrap().program, "luajit");
         let err = r.build(&cfg("lua-script", &[]), &ctx()).unwrap_err();
         assert_eq!(err.to_string(), "File is not specified");
     }

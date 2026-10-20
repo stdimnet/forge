@@ -246,6 +246,10 @@ pub struct RunConfigurationType {
     /// Interpreter used when a configuration does not set one (e.g. `lua`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub default_interpreter: Option<String>,
+    /// Setting that holds the project's default interpreter (e.g. `lua.interpreter`); it
+    /// wins over `default_interpreter` when set.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub interpreter_setting: Option<String>,
 }
 
 /// Value type of a [`RunConfigurationField`].
@@ -423,6 +427,7 @@ mod tests {
             id = "lua-script"
             name = "Lua Script"
             defaultInterpreter = "lua"
+            interpreterSetting = "lua.interpreter"
             command = ["${interpreter}", "${interpreterOptions}", "${file}", "${arguments}"]
             [[runConfigurationTypes.fields]]
             key = "file"
@@ -434,6 +439,7 @@ mod tests {
         .unwrap();
         let t = &c.run_configuration_types[0];
         assert_eq!(t.default_interpreter.as_deref(), Some("lua"));
+        assert_eq!(t.interpreter_setting.as_deref(), Some("lua.interpreter"));
         assert_eq!(t.command.len(), 4);
         assert_eq!(t.fields[0].kind, RunConfigurationFieldKind::Path);
         assert!(t.fields[0].required);
