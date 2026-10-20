@@ -8,6 +8,7 @@ import {
   SETTINGS_CHANGED_EVENT,
   type PluginInfo,
   type SettingsScope,
+  type SettingObject,
   type SettingSpec,
   type SettingValue,
 } from "@/ipc/settings";
@@ -47,12 +48,27 @@ function resolve(key: string): { value: SettingValue | null; scope: "default" | 
 
 const kindOf = (v: unknown) => (Array.isArray(v) ? "array" : typeof v);
 
+/** Same checks as `SettingType::Objects::validate` in Rust. */
+function validateObjects(title: string, items: SettingObject[], unique: string[]): void {
+  const seen = new Set<string>();
+  for (const item of items) {
+    if (typeof item !== "object" || item === null || Array.isArray(item)) throw new Error(`${title}: expected a list of tables`);
+    if (!Object.values(item).every((v) => typeof v === "string")) throw new Error(`${title}: table values must be strings`);
+    if (!unique.length) continue;
+    const id = JSON.stringify(unique.map((f) => item[f] ?? null));
+    if (seen.has(id)) throw new Error(`${title}: duplicate entry for ${unique.map((f) => item[f]).join(" + ")}`);
+    seen.add(id);
+  }
+}
+
 export function setSetting(key: string, value: SettingValue | null, scope: SettingsScope): void {
   if (!key || key.split(".").some((p) => !p)) throw new Error(`invalid settings key \`${key}\``);
   const def = defaults[key];
   if (value !== null && def !== undefined && kindOf(def) !== kindOf(value)) {
     throw new Error(`\`${key}\` expects a value like ${JSON.stringify(def)}, got ${JSON.stringify(value)}`);
   }
+  const spec = allSpecs().find((s) => s.key === key);
+  if (value !== null && spec?.type === "objects") validateObjects(spec.title, value as SettingObject[], spec.unique ?? []);
   const before = JSON.stringify(resolve(key).value);
   if (value === null) delete layers[scope][key];
   else layers[scope][key] = value;

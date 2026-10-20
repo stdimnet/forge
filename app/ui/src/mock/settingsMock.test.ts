@@ -33,6 +33,15 @@ describe("browser-mode settings backend", () => {
     await expect(settingsApi.set("editor.font.size", "huge", "user")).rejects.toThrow();
   });
 
+  it("stores lists of tables and rejects duplicate pairs", async () => {
+    const smarty = { template: "smarty", language: "sql", left: "[[", right: "]]" };
+    await settingsApi.set("templates.delimiters", [smarty], "user");
+    expect((await settingsApi.getAll()).values["templates.delimiters"]).toEqual([smarty]);
+    await expect(settingsApi.set("templates.delimiters", [smarty, { ...smarty, left: "<<" }], "user")).rejects.toThrow(/duplicate/);
+    await expect(settingsApi.set("templates.delimiters", [{ template: 1 } as never], "user")).rejects.toThrow();
+    await settingsApi.set("templates.delimiters", null, "user");
+  });
+
   it("cascades plugin enablement over dependencies", async () => {
     expect(await settingsApi.setPluginEnabled("forge.composer", false)).toEqual([
       "forge.composer",

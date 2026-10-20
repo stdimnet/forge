@@ -358,6 +358,23 @@ mod tests {
     }
 
     #[test]
+    fn persists_lists_of_tables() {
+        let tmp = tempfile::tempdir().unwrap();
+        let mut s = settings(tmp.path());
+        let entries = json!([
+            { "template": "smarty", "language": "latex", "left": "<<", "right": ">>" },
+            { "template": "twig", "language": "latex", "blockStart": "\\BLOCK{" },
+        ]);
+        s.set("templates.delimiters", entries.clone(), SettingsScope::User)
+            .unwrap();
+        let src = fs::read_to_string(tmp.path().join("user/settings.toml")).unwrap();
+        assert!(src.contains("[[templates.delimiters]]"), "{src}");
+
+        let reloaded = settings(tmp.path());
+        assert_eq!(reloaded.get("templates.delimiters"), Some(&entries));
+    }
+
+    #[test]
     fn rejects_type_mismatches_and_bad_scopes() {
         let tmp = tempfile::tempdir().unwrap();
         let mut s = settings(tmp.path());
