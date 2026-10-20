@@ -247,6 +247,74 @@ fn offset_of(text: &str, starts: &[usize], p: Position) -> usize {
     end
 }
 
+/// UTF-16 offset of an LSP position in `text` (clamped like [`apply_text_edits`]).
+pub fn utf16_offset(text: &str, p: Position) -> usize {
+    let starts = line_starts(text);
+    let byte = offset_of(text, &starts, p);
+    text[..byte].encode_utf16().count()
+}
+
+/// The LSP position of a UTF-16 offset in `text`.
+pub fn position_at(text: &str, utf16: usize) -> Position {
+    let mut line = 0u32;
+    let mut character = 0u32;
+    let mut units = 0usize;
+    for c in text.chars() {
+        if units >= utf16 {
+            break;
+        }
+        units += c.len_utf16();
+        if c == '\n' {
+            line += 1;
+            character = 0;
+        } else {
+            character += c.len_utf16() as u32;
+        }
+    }
+    Position::new(line, character)
+}
+
+/// The identifier (letters, digits, `_`, a leading `$`) at `p`, for titles like
+/// "Usages of orders" and the default rename range.
+pub fn word_range(text: &str, p: Position) -> Option<(Range, String)> {
+    let line = text
+        .split('\n')
+        .nth(p.line as usize)?
+        .trim_end_matches('\r');
+    let chars: Vec<(u32, char)> = line
+        .chars()
+        .scan(0u32, |units, c| {
+            let at = *units;
+            *units += c.len_utf16() as u32;
+            Some((at, c))
+        })
+        .collect();
+    let is_word = |c: char| c.is_alphanumeric() || c == '_' || c == '$';
+    let mut i = chars.partition_point(|(at, _)| *at < p.character);
+    if i == chars.len() || !is_word(chars[i].1) {
+        // The caret right after a word still means that word.
+        if i > 0 && is_word(chars[i - 1].1) {
+            i -= 1;
+        } else {
+            return None;
+        }
+    }
+    let mut start = i;
+    while start > 0 && is_word(chars[start - 1].1) && chars[start].1 != '$' {
+        start -= 1;
+    }
+    let mut end = i + 1;
+    while end < chars.len() && is_word(chars[end].1) && chars[end].1 != '$' {
+        end += 1;
+    }
+    let word: String = chars[start..end].iter().map(|(_, c)| c).collect();
+    let end_units = chars.get(end).map_or_else(
+        || chars.last().map_or(0, |(at, c)| at + c.len_utf16() as u32),
+        |(at, _)| *at,
+    );
+    Some((Range::on_line(p.line, chars[start].0, end_units), word))
+}
+
 /// Apply LSP text edits to `text`. Edits refer to the original text; inserts at the same
 /// position keep their order. `None` when edits overlap.
 pub fn apply_text_edits(text: &str, edits: &[TextEdit]) -> Option<String> {
@@ -563,6 +631,21 @@ mod tests {
         // Surrogate pairs count twice.
         let out = apply_text_edits("a😀b", &[edit(0, 3, 0, 4, "c")]).unwrap();
         assert_eq!(out, "a😀c");
+    }
+
+    #[test]
+    fn positions_offsets_and_words() {
+        let text = "<?php\n$ü = $user->orders();\n";
+        let p = Position::new(1, 12);
+        assert_eq!(utf16_offset(text, p), 18);
+        assert_eq!(position_at(text, 18), p);
+        let (range, word) = word_range(text, p).unwrap();
+        assert_eq!(word, "orders");
+        assert_eq!(range, Range::on_line(1, 12, 18));
+        // At the end of a word and on a variable.
+        assert_eq!(word_range(text, Position::new(1, 18)).unwrap().1, "orders");
+        assert_eq!(word_range(text, Position::new(1, 7)).unwrap().1, "$user");
+        assert_eq!(word_range(text, Position::new(1, 3)), None);
     }
 
     #[test]
