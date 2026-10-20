@@ -205,7 +205,11 @@ pub trait AgentCli: Send + Sync {
     }
 
     fn info(&self, override_path: Option<&str>) -> AgentInfo {
-        let path = self.detect(override_path);
+        self.info_with(self.detect(override_path))
+    }
+
+    /// [`AgentInfo`] for an executable detected elsewhere (on a remote host).
+    fn info_with(&self, path: Option<PathBuf>) -> AgentInfo {
         AgentInfo {
             profile: self.profile(),
             supported: self.supported(),
