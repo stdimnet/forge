@@ -27,11 +27,12 @@ use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 
 use crate::frameworks::FrameworkCall;
-use crate::langservers::LangServersRequest;
+use crate::langservers::{InstallRequest, LangServersRequest};
+use crate::web::WebCall;
 use crate::TerminalSpec;
 
 /// Bumped on incompatible protocol changes; client and agent must agree.
-pub const PROTOCOL_VERSION: u32 = 2;
+pub const PROTOCOL_VERSION: u32 = 3;
 
 /// Frames larger than this are refused (protects both sides from garbage input).
 pub const MAX_FRAME: usize = 64 * 1024 * 1024;
@@ -165,6 +166,23 @@ pub enum Call {
         args: Vec<String>,
     },
     Php(PhpCall),
+    /// npm tool window and React / Vue / Angular analysis on the host -> the call's reply
+    /// type (see [`WebCall`])
+    Web(WebCall),
+    /// Install a language server on the host (Node.js and npm packages into the host's
+    /// Forge directories). Steps and progress arrive as [`Event::Install`] on `channel`;
+    /// closing the channel cancels it -> `InstallOutcome`
+    LangServerInstall {
+        channel: u32,
+        request: InstallRequest,
+    },
+    /// Newer versions of the npm servers Forge installed on the host ->
+    /// `Option<Vec<PackageUpdate>>`
+    LangServerUpdates {
+        registry: Option<String>,
+        node_mirror: Option<String>,
+        force: bool,
+    },
 }
 
 /// PHP index queries (see [`crate::PhpBackend`]).
@@ -217,6 +235,11 @@ pub enum Event {
     Pty { channel: u32, event: PtyEvent },
     Run { channel: u32, event: RunEvent },
     PhpIndexProgress { done: usize, total: usize },
+    /// A step, download progress or output line of [`Call::LangServerInstall`].
+    Install {
+        channel: u32,
+        event: forge_langservers::managed::Event,
+    },
 }
 
 /// Reply to [`Call::Hello`]: who and where the agent is.
@@ -442,6 +465,39 @@ mod tests {
                 custom: None,
             },
         });
+        roundtrip(Frame::Request {
+            id: 5,
+            call: Call::Web(WebCall::Gutter {
+                framework: "vue".into(),
+                path: "src/App.vue".into(),
+                content: "<template><Card/></template>".into(),
+            }),
+        });
+        roundtrip(Frame::Request {
+            id: 6,
+            call: Call::LangServerInstall {
+                channel: 12,
+                request: InstallRequest {
+                    target: crate::langservers::InstallTarget::Server {
+                        id: "intelephense".into(),
+                        index: 0,
+                    },
+                    registry: None,
+                    node_mirror: Some("https://mirror.example/node".into()),
+                },
+            },
+        });
+        roundtrip(Frame::Event(Event::Install {
+            channel: 12,
+            event: forge_langservers::managed::Event::progress("node.tar.xz", 10, Some(100)),
+        }));
+        roundtrip(Frame::Event(Event::Install {
+            channel: 12,
+            event: forge_langservers::managed::Event::Output {
+                stream: forge_langservers::install::Stream::Stderr,
+                line: "npm warn".into(),
+            },
+        }));
         roundtrip(Frame::Response {
             id: 7,
             result: Err("no such file".into()),

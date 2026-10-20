@@ -25,7 +25,7 @@ pub(crate) mod testserver;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::catalog::InstallOption;
 use crate::detect::Detector;
@@ -35,7 +35,7 @@ pub use node::DistTarget;
 pub use updates::PackageUpdate;
 
 /// What an install reports while it runs.
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum Event {
     /// A step for the log ("Verified SHA-256 of …").

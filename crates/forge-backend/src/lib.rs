@@ -19,12 +19,15 @@ pub mod protocol;
 pub mod remote;
 pub mod rpc;
 pub mod tunnels;
+pub mod web;
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use forge_core::search::{FindRequest, FindResult};
 use forge_core::{FileEntry, FileMatch, FsChanges, ProjectFiles, Result};
+use forge_langservers::install::InstallOutcome;
+use forge_langservers::managed::PackageUpdate;
 use forge_lsp::ServerLauncher;
 use forge_process::{CommandLine, PtySink, RunSink};
 use forge_project::ProjectInfo;
@@ -32,11 +35,14 @@ use forge_vcs::{GitExec, Repo};
 use serde::{Deserialize, Serialize};
 
 pub use frameworks::{framework_call, FrameworkCall};
-pub use langservers::{LangServersAnswer, LangServersRequest};
+pub use langservers::{
+    InstallRequest, InstallSink, InstallTarget, LangServersAnswer, LangServersRequest,
+};
 pub use local::LocalBackend;
 pub use php::PhpBackend;
 pub use remote::RemoteBackend;
-pub use tunnels::{PortForward, Tunnels};
+pub use tunnels::{PortForward, TunnelStream, Tunnels};
+pub use web::{web_call, WebCall};
 
 /// The machine a remote project lives on.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -195,6 +201,29 @@ pub trait Backend: Send + Sync {
     /// Plan the catalog language servers of the project on the machine that has its files
     /// and the installed servers.
     fn langservers(&self, req: LangServersRequest) -> Result<LangServersAnswer>;
+
+    /// Install a language server on the backend's machine (where the project's servers
+    /// run). `sink` gets its steps, download progress and output; notifying `cancel` stops
+    /// it. Errors are worded for the install log.
+    fn install_langserver(
+        &self,
+        req: InstallRequest,
+        cancel: Arc<tokio::sync::Notify>,
+        sink: InstallSink,
+    ) -> Result<InstallOutcome>;
+
+    /// Newer versions of the npm servers Forge installed on the backend's machine; `None`
+    /// when the last check was less than a day ago (and `force` is not set).
+    fn langserver_updates(
+        &self,
+        registry: Option<String>,
+        node_mirror: Option<String>,
+        force: bool,
+    ) -> Result<Option<Vec<PackageUpdate>>>;
+
+    /// WebForge analysis (npm tool window, component navigation), run next to the files.
+    /// The reply is the MessagePack encoding of the call's reply type; use [`web_call`].
+    fn web(&self, call: WebCall) -> Result<Vec<u8>>;
 
     /// Full path of the first of `names` found on the backend's machine (`PATH` plus the
     /// usual package manager directories). An existing `custom` path wins.
