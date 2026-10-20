@@ -32,3 +32,4 @@ import "./services";
 import "./remote";
 import "./webforge";
 import "./contextMenu";
+import "./mainMenu";

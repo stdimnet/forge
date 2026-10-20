@@ -29,6 +29,7 @@ import { ServersPage } from "./ServersPage";
 import {
   activeSession,
   addWatch,
+  breakpointsMuted,
   executionPoint,
   listening,
   pause,
@@ -44,6 +45,7 @@ import {
   toggleLineBreakpoint,
   toggleMuted,
 } from "./store";
+import { registerMainMenuToggle } from "@/features/mainMenu/model";
 import "./debug.css";
 
 registerToolWindow({
@@ -220,6 +222,8 @@ const actions: { id: string; title: string; run: () => void | Promise<void> }[] 
   { id: "XDebugger.MuteBreakpoints", title: "Mute Breakpoints", run: toggleMuted },
 ];
 for (const a of actions) registerCommand({ ...a, category: "Debug" });
+registerMainMenuToggle("PhpListenDebugAction", listening);
+registerMainMenuToggle("XDebugger.MuteBreakpoints", breakpointsMuted);
 
 /**
  * "Stop" (Ctrl+F2) stops the active debug session; otherwise it falls back to a stop

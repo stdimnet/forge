@@ -1,4 +1,4 @@
-import { ChevronDown, GitBranch, Menu, Search, Settings, Sparkles, Hammer, Sun, Moon } from "lucide-solid";
+import { ChevronDown, GitBranch, Search, Settings, Sparkles, Hammer, Sun, Moon } from "lucide-solid";
 import { RunWidget } from "@/features/run/RunWidget";
 import { workspace } from "@/state/workspace";
 import { theme, toggleTheme } from "@/state/theme";
@@ -8,6 +8,7 @@ import { runCommand } from "@/state/commands";
 import { For } from "solid-js";
 import { Dynamic } from "solid-js/web";
 import { toolbarItems } from "@/features/toolbarItems";
+import { MainMenuButton, SeparateMainMenuBar } from "@/features/mainMenu/MainMenuButton";
 
 /** Top toolbar, laid out like PHPStorm's New UI main toolbar. */
 export function MainToolbar() {
@@ -19,11 +20,11 @@ export function MainToolbar() {
       .slice(0, 2)
       .toUpperCase();
   return (
+    <>
+    <SeparateMainMenuBar />
     <header class="main-toolbar" data-tauri-drag-region>
       <div class="toolbar-left">
-        <button class="icon-btn" title="Main Menu (Alt+\\)">
-          <Menu size={17} />
-        </button>
+        <MainMenuButton />
         <button class="pill-btn project-widget" title="Open Project" onClick={() => runCommand("workspace.open")}>
           <span class="project-badge">{initials()}</span>
           <span class="project-name">{workspace()?.name ?? "No project"}</span>
@@ -57,5 +58,6 @@ export function MainToolbar() {
         </button>
       </div>
     </header>
+    </>
   );
 }

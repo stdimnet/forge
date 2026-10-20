@@ -46,6 +46,7 @@ registerMock("keymap_conflicts", ({ shortcut, actionId }) =>
   call((w) => w.keymap_conflicts, { shortcut, actionId: actionId ?? null }),
 );
 registerMock("keymap_find_by_shortcut", ({ shortcut }) => call((w) => w.keymap_find_by_shortcut, { shortcut }));
+registerMock("keymap_main_menu", ({ request }) => call((w) => w.keymap_main_menu, { request }));
 registerMock("keymap_resolve", ({ event }) => call((w) => w.keymap_resolve, { event }));
 registerMock("keymap_import_legacy", async ({ active, overrides }) => {
   const wasm = await forgeWasm();
