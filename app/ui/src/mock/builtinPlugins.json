@@ -1153,6 +1153,200 @@
     }
   },
   {
+    "id": "forge.services",
+    "name": "Docker and Kubernetes",
+    "version": "0.1.0",
+    "pack": "core",
+    "description": "Services tool window: Docker containers, images, volumes and networks, Docker Compose projects and Kubernetes workloads, with logs, exec and gutter ▶ for compose files and Dockerfiles.",
+    "vendor": "Forge",
+    "depends": [],
+    "required": false,
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "fileTypes": [],
+      "commands": [
+        {
+          "id": "Services.Refresh",
+          "title": "Refresh Services",
+          "category": "Services"
+        },
+        {
+          "id": "Docker.PullImage",
+          "title": "Pull Image…",
+          "category": "Docker"
+        }
+      ],
+      "keybindings": [],
+      "toolWindows": [
+        {
+          "id": "services",
+          "title": "Services",
+          "anchor": "bottom",
+          "icon": "container",
+          "order": 30
+        }
+      ],
+      "settings": [
+        {
+          "key": "docker.connection",
+          "title": "Connect to Docker daemon with",
+          "type": "enum",
+          "options": [
+            {
+              "value": "auto",
+              "label": "Default (DOCKER_HOST or the platform socket)"
+            },
+            {
+              "value": "unix",
+              "label": "Unix socket"
+            },
+            {
+              "value": "pipe",
+              "label": "Windows named pipe"
+            },
+            {
+              "value": "tcp",
+              "label": "TCP socket"
+            }
+          ],
+          "default": "auto",
+          "group": "build.docker",
+          "section": "Connection",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "docker.socketPath",
+          "title": "Socket path",
+          "description": "Unix socket (e.g. /var/run/docker.sock, ~/.docker/run/docker.sock) or named pipe (\\\\.\\pipe\\docker_engine). Empty: the first existing default.",
+          "type": "path",
+          "default": "",
+          "group": "build.docker",
+          "section": "Connection",
+          "project": false,
+          "order": 10
+        },
+        {
+          "key": "docker.tcp.url",
+          "title": "Engine API URL",
+          "description": "For TCP connections, e.g. tcp://192.168.1.20:2376.",
+          "type": "string",
+          "default": "tcp://localhost:2375",
+          "group": "build.docker",
+          "section": "Connection",
+          "project": false,
+          "order": 20
+        },
+        {
+          "key": "docker.tcp.tls",
+          "title": "Use TLS (verify the daemon certificate)",
+          "type": "bool",
+          "default": false,
+          "group": "build.docker",
+          "section": "Connection",
+          "project": false,
+          "order": 30
+        },
+        {
+          "key": "docker.tcp.certPath",
+          "title": "Certificates folder",
+          "description": "Folder with ca.pem, cert.pem and key.pem (like DOCKER_CERT_PATH).",
+          "type": "path",
+          "default": "",
+          "group": "build.docker",
+          "section": "Connection",
+          "project": false,
+          "order": 40
+        },
+        {
+          "key": "docker.cliPath",
+          "title": "Docker executable",
+          "description": "Used for docker compose, image builds and exec terminals.",
+          "type": "path",
+          "default": "docker",
+          "group": "build.docker",
+          "section": "Tools",
+          "project": false,
+          "order": 50
+        },
+        {
+          "key": "docker.logs.tail",
+          "title": "Show the last log lines",
+          "description": "Lines loaded when a Log tab opens; new lines follow.",
+          "type": "int",
+          "min": 10,
+          "max": 100000,
+          "default": 500,
+          "group": "build.docker",
+          "section": "Tools",
+          "project": false,
+          "order": 60
+        },
+        {
+          "key": "docker.registries",
+          "title": "Registry accounts",
+          "description": "One entry per registry: server, a tab, the user name. Passwords are kept in the OS keychain.",
+          "type": "list",
+          "default": [],
+          "group": "build.docker",
+          "section": "Docker Registry",
+          "project": false,
+          "order": 70
+        },
+        {
+          "key": "kubernetes.kubeconfig",
+          "title": "Kubeconfig file",
+          "description": "Empty: $KUBECONFIG or ~/.kube/config.",
+          "type": "path",
+          "default": "",
+          "group": "build.kubernetes",
+          "section": "Configuration",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "kubernetes.defaultContext",
+          "title": "Default context",
+          "description": "Empty: the kubeconfig's current-context.",
+          "type": "string",
+          "default": "",
+          "group": "build.kubernetes",
+          "section": "Configuration",
+          "project": false,
+          "order": 10
+        },
+        {
+          "key": "kubernetes.defaultNamespace",
+          "title": "Default namespace",
+          "description": "Empty: the context's namespace, else default.",
+          "type": "string",
+          "default": "",
+          "group": "build.kubernetes",
+          "section": "Configuration",
+          "project": false,
+          "order": 20
+        },
+        {
+          "key": "kubernetes.kubectlPath",
+          "title": "kubectl executable",
+          "description": "Used for exec terminals in pods.",
+          "type": "path",
+          "default": "kubectl",
+          "group": "build.kubernetes",
+          "section": "Tools",
+          "project": false,
+          "order": 30
+        }
+      ],
+      "lspServers": [],
+      "runConfigurationTypes": [],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": []
+    }
+  },
+  {
     "id": "forge.php",
     "name": "PHP",
     "version": "0.1.0",

@@ -39,6 +39,7 @@ pub fn run() {
         .manage(commands::agent::AgentState::default())
         .manage(commands::db::DbState::load())
         .manage(commands::forges::ForgesState::load())
+        .manage(commands::services::ServicesState::default())
         .setup(|app| {
             app.manage(commands::debug::DebugState::new(app.handle().clone()));
             // Forward settings changes to the UI.
@@ -61,6 +62,20 @@ pub fn run() {
                     }
                 });
             companion::apply_server_settings(app.handle());
+
+            // Docker / Kubernetes: connect now (the status bar shows the connection) and
+            // reconnect when their settings change.
+            commands::services::start(app.handle());
+            let handle = app.handle().clone();
+            app.state::<AppState>()
+                .write_settings()
+                .subscribe(move |change| {
+                    if commands::services::affects_services(&change.key) {
+                        let h = handle.clone();
+                        // Listeners run under the settings lock; read them on another thread.
+                        std::thread::spawn(move || commands::services::reconfigure(&h));
+                    }
+                });
 
             // Reconfigure (restart) the PHP language server when its settings or the
             // enabled plugins change. Listeners run under the settings lock, so the work
@@ -339,6 +354,26 @@ pub fn run() {
             commands::doctrine::doctrine_diagnostics,
             commands::doctrine::doctrine_gutter,
             commands::doctrine::doctrine_highlight,
+            commands::services::services_tree,
+            commands::services::services_refresh,
+            commands::services::services_compose_changed,
+            commands::services::services_expand,
+            commands::services::services_details,
+            commands::services::services_action,
+            commands::services::services_inspect,
+            commands::services::services_console,
+            commands::services::services_logs_start,
+            commands::services::services_logs_stop,
+            commands::services::services_terminal,
+            commands::services::services_pull,
+            commands::services::services_compose_up,
+            commands::services::services_dockerfile_run,
+            commands::services::services_gutter,
+            commands::services::services_status,
+            commands::services::docker_test_connection,
+            commands::services::docker_registry_login,
+            commands::services::docker_registry_logout,
+            commands::services::docker_registry_status,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Forge");

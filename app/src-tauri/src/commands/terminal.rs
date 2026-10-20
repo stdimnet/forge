@@ -39,6 +39,9 @@ pub struct TerminalOpenOptions {
     /// Start directory, relative to the project root or absolute.
     pub cwd: Option<String>,
     pub shell: Option<String>,
+    /// Arguments for `shell` (e.g. `docker exec -it <id> sh` from the Services tool window).
+    #[serde(default)]
+    pub args: Option<Vec<String>>,
     #[serde(default)]
     pub env: HashMap<String, String>,
     pub cols: u16,
@@ -110,7 +113,7 @@ pub fn terminal_open(
                 .shell
                 .filter(|s| !s.trim().is_empty())
                 .or(Some(setting_shell).filter(|s| !s.trim().is_empty())),
-            args: None,
+            args: options.args,
             cwd: cwd.clone(),
             env,
             cols: options.cols,
