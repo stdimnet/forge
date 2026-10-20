@@ -51,7 +51,7 @@ order = 0
 
 Contribution types (`crates/forge-plugin-api/src/contributions.rs`): `languages`, `fileTypes`,
 `commands`, `keybindings`, `toolWindows`, `settings`, `lspServers`, `runConfigurationTypes`,
-`aiProviders`, `chatAgents`, `codeGenerators`. A run configuration type with `fields` and a
+`aiProviders`, `chatAgents`, `codeGenerators`, `mainMenu` (see [Contribution points](contribution-points.md#main-menu)). A run configuration type with `fields` and a
 `command` template works without UI code (see `lua-script` in `luaforge.toml`).
 
 Project types are ids from `forge-project` detection (languages, frameworks, packs, tools).

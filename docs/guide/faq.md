@@ -18,8 +18,8 @@ Forge is MIT-licensed. Third-party tools you connect keep their own terms: Intel
 needs your own licence, AI providers need your own API key or subscription.
 
 **Which version is this guide for?**
-Forge 0.1.0 as on the branch that contains this guide. Features under construction are listed on
-the [start page](index.md#coming-soon).
+Forge 0.1.0 as on the branch that contains this guide. Recent additions and what is not available
+yet are listed on the [start page](index.md#recently-added).
 
 **Which platforms are supported?**
 Windows 10/11, Linux (x86_64; WebKitGTK 4.1) and macOS. Remote development needs a Linux host

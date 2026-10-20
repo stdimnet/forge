@@ -98,7 +98,8 @@ No other fields are used. Generators should ignore unknown fields rather than fa
 
 The guide describes what is on the branch it lives on. When a feature is not finished, the
 page says so with a `> **Note:**` instead of describing planned behaviour. Features that are
-being built on other branches are listed under "Coming soon" on the [start page](index.md).
+being built on other branches can be listed under "Coming soon" on the [start page](index.md); new
+features are announced there under "Recently added".
 
 Every user-visible change updates the matching page in `docs/guide/` (this rule is also in
 `AGENTS.md`). The reference tables are derived from the sources below; when you change a

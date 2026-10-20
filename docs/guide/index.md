@@ -46,22 +46,28 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 - [Remote development](user/remote-development.md)
 - [AI](user/ai.md)
 
-## Coming soon
+## Recently added
 
-These features are being built on other branches and are **not** part of this version; the
-pages describe the current state and mark the gaps with notes.
+- **Main menu**: PHPStorm's menus behind ☰, merged into the toolbar or as a menu bar
+  ([Workbench](user/workbench.md#main-menu)).
+- **Find in Files** (`Ctrl+Shift+F`) and the **Choose Declaration** popup
+  ([Search Everywhere](user/search-everywhere.md#find-in-files), [Editor](user/editor.md#go-to-declaration)).
+- **One-click language server installs**, including Intelephense with its own Node.js
+  ([Language servers](user/language-servers.md#installing-a-server)).
+- **HTTP client**: environment picker, response handlers, body files, dynamic variables
+  ([Scratches and HTTP client](user/scratches-and-http.md#http-client-http-files)).
+- **Services**: Kubernetes port forwarding, container picker, deployment logs, Docker over SSH
+  and Docker contexts ([Services](user/services.md)).
+- **Remote parity**: frameworks, language servers, databases, Xdebug and AI agents in remote
+  projects, `ProxyJump`/`ProxyCommand` ([Remote development](user/remote-development.md)).
+- **Dialog windows and OS-styled window controls**
+  ([Settings and themes](user/settings-and-themes.md#window-controls)).
 
-- **Main menu**: the ☰ button in the toolbar (today: Find Action, `Ctrl+Shift+A`).
-- **Intelephense one-click install** from the PHP settings.
-- **Remote parity**: framework analysis, WebForge, catalog language servers, database tools,
-  Xdebug, AI chat, code hosts and the Browser Companion in remote projects.
-- **Services port forwarding** for containers and Kubernetes pods.
-- **Dialog windows with OS-styled controls** everywhere (polish of the dialog window frames).
-- **Editor polish and Find in Files** (`Ctrl+Shift+F`, Replace in Files, the Find tool window).
+## Not available yet
 
-Also not available yet, without a date: refactorings (Rename, Extract, Move), Find Usages,
-quick-fixes (`Alt+Enter`), bookmarks, TODO, Local History, split editors, Get from VCS, stash,
-multiple project windows, a plugin Marketplace and automatic updates.
+Refactorings (Rename, Extract, Move), Find Usages, Replace in Files, quick-fixes (`Alt+Enter`),
+bookmarks, TODO, Local History, split editors, Get from VCS, stash, multiple project windows, a
+plugin Marketplace and automatic updates. The pages mark smaller gaps with notes.
 
 ## About this guide
 
