@@ -1,0 +1,363 @@
+/**
+ * Browser-mode language servers: a catalog with mixed states (running, installed, not
+ * installed, disabled), installs that stream fake npm output, a TypeScript server that
+ * indexes when a script or style file opens, workspace symbols over the demo project and
+ * the Intelephense licence (kept in memory, like a keychain that forgets on reload).
+ */
+import { emitMock, invoke, registerMock } from "@/ipc";
+import type { InstallRow, LicenceStatus, RowStatus, ServerRow, WorkspaceSymbol } from "@/ipc/langservers";
+import type { ServerStatus } from "@/ipc/lsp";
+import type { SettingValue } from "@/ipc/settings";
+import { demoConfigFiles } from "./demoConfigFiles";
+import { demoFiles } from "./demoProject";
+import { onMockDidOpen, setMockServerStatus } from "./lspMock";
+
+type Install = [tool: string, command: string, runnable?: boolean];
+
+interface MockServer {
+  id: string;
+  name: string;
+  group: string;
+  languages: string[];
+  command: string;
+  args?: string[];
+  status: RowStatus;
+  path?: string;
+  inProject?: boolean;
+  install: Install[];
+  note?: string;
+  license?: string;
+  homepage?: string;
+  source?: string;
+  skip?: ServerRow["skip"];
+}
+
+const HOME = "/home/marlon";
+const npm = (pkgs: string): Install => ["npm", `npm install -g ${pkgs}`];
+const brew = (pkg: string): Install => ["brew", `brew install ${pkg}`];
+const pacman = (pkg: string): Install => ["pacman", `sudo pacman -S ${pkg}`, false];
+const download = (url: string): Install => ["download", url, false];
+
+const servers: MockServer[] = [
+  { id: "typescript-language-server", name: "TypeScript Language Server", group: "JavaScript & TypeScript", languages: ["TypeScript", "JavaScript"], command: "typescript-language-server", args: ["--stdio"], status: "running", path: `${HOME}/.npm-global/bin/typescript-language-server`, inProject: true, install: [npm("typescript-language-server typescript"), brew("typescript-language-server"), pacman("typescript-language-server")], note: "Uses the project's TypeScript (node_modules) or a global one. Serves .vue files too when the Vue language server is installed (hybrid mode)." },
+  { id: "vtsls", name: "vtsls", group: "JavaScript & TypeScript", languages: ["TypeScript", "JavaScript"], command: "vtsls", args: ["--stdio"], status: "notInstalled", inProject: true, install: [npm("@vtsls/language-server")], skip: { reason: "alternative", used: "typescript-language-server" }, note: "Alternative to typescript-language-server built on VS Code's TypeScript extension. Starts only when typescript-language-server is missing or disabled." },
+  { id: "vscode-eslint-language-server", name: "ESLint", group: "JavaScript & TypeScript", languages: ["JavaScript", "TypeScript", "Vue", "Svelte", "Astro"], command: "vscode-eslint-language-server", args: ["--stdio"], status: "installed", path: `${HOME}/.npm-global/bin/vscode-eslint-language-server`, install: [npm("vscode-langservers-extracted"), brew("vscode-langservers-extracted")], skip: { reason: "notUsed" }, note: "Starts in projects with an ESLint configuration or an eslint dependency." },
+  { id: "vue-language-server", name: "Vue Language Server (Volar)", group: "Vue", languages: ["Vue"], command: "vue-language-server", args: ["--stdio"], status: "notInstalled", install: [npm("@vue/language-server @vue/typescript-plugin typescript")], skip: { reason: "notInProject" }, note: "Hybrid mode: templates and styles here, script blocks through the TypeScript server with @vue/typescript-plugin." },
+  { id: "ngserver", name: "Angular Language Service", group: "Angular", languages: ["TypeScript", "HTML"], command: "ngserver", args: ["--stdio"], status: "notInstalled", install: [npm("@angular/language-server typescript")], skip: { reason: "notUsed" }, note: "Starts in projects that depend on @angular/core." },
+  { id: "svelteserver", name: "Svelte Language Server", group: "Svelte", languages: ["Svelte"], command: "svelteserver", args: ["--stdio"], status: "notInstalled", install: [npm("svelte-language-server")], skip: { reason: "notInProject" } },
+  { id: "astro-ls", name: "Astro Language Server", group: "Astro", languages: ["Astro"], command: "astro-ls", args: ["--stdio"], status: "notInstalled", install: [npm("@astrojs/language-server typescript")], skip: { reason: "notInProject" } },
+  { id: "vscode-html-language-server", name: "HTML Language Server", group: "HTML & CSS", languages: ["HTML"], command: "vscode-html-language-server", args: ["--stdio"], status: "installed", path: `${HOME}/.npm-global/bin/vscode-html-language-server`, inProject: true, install: [npm("vscode-langservers-extracted"), brew("vscode-langservers-extracted"), pacman("vscode-html-languageserver")] },
+  { id: "vscode-css-language-server", name: "CSS Language Server", group: "HTML & CSS", languages: ["CSS", "SCSS", "Less"], command: "vscode-css-language-server", args: ["--stdio"], status: "running", path: `${HOME}/.npm-global/bin/vscode-css-language-server`, inProject: true, install: [npm("vscode-langservers-extracted"), brew("vscode-langservers-extracted"), pacman("vscode-css-languageserver")] },
+  { id: "tailwindcss-language-server", name: "Tailwind CSS IntelliSense", group: "HTML & CSS", languages: ["HTML", "CSS", "SCSS", "JavaScript", "TypeScript", "Vue", "Svelte", "Astro", "PHP", "Twig"], command: "tailwindcss-language-server", args: ["--stdio"], status: "running", path: `${HOME}/.npm-global/bin/tailwindcss-language-server`, inProject: true, install: [npm("@tailwindcss/language-server")], note: "Starts in projects with a Tailwind config or a tailwindcss dependency. Class completion in Blade and Twig templates too." },
+  { id: "vscode-json-language-server", name: "JSON Language Server", group: "JSON", languages: ["JSON"], command: "vscode-json-language-server", args: ["--stdio"], status: "running", path: `${HOME}/.npm-global/bin/vscode-json-language-server`, inProject: true, install: [npm("vscode-langservers-extracted"), brew("vscode-langservers-extracted")], note: "Validates composer.json, package.json, tsconfig.json and more with schemas from SchemaStore (downloaded by the server)." },
+  { id: "yaml-language-server", name: "YAML Language Server", group: "YAML", languages: ["YAML", "Docker Compose"], command: "yaml-language-server", args: ["--stdio"], status: "running", path: `${HOME}/.npm-global/bin/yaml-language-server`, inProject: true, install: [npm("yaml-language-server"), brew("yaml-language-server"), pacman("yaml-language-server")], note: "Schemas for GitHub Actions, docker-compose and Kubernetes manifests (in k8s/, kubernetes/, deploy/ or manifests/)." },
+  { id: "taplo", name: "Taplo (TOML)", group: "TOML", languages: ["TOML"], command: "taplo", args: ["lsp", "stdio"], status: "notInstalled", install: [["cargo", "cargo install --locked taplo-cli"], npm("@taplo/cli"), brew("taplo"), pacman("taplo-cli")], skip: { reason: "notInProject" } },
+  { id: "lemminx", name: "LemMinX (XML)", group: "XML", languages: ["XML"], command: "lemminx", status: "notInstalled", inProject: true, install: [download("https://github.com/redhat-developer/vscode-xml/releases"), brew("lemminx")], license: "EPL-2.0", note: "Validates phpunit.xml, Maven POMs and any XML with an XSD or DTD. Needs Java unless you use the native binary." },
+  { id: "marksman", name: "Marksman (Markdown)", group: "Markdown", languages: ["Markdown"], command: "marksman", args: ["server"], status: "installed", path: "/home/linuxbrew/.linuxbrew/bin/marksman", inProject: true, install: [brew("marksman"), pacman("marksman"), download("https://github.com/artempyanykh/marksman/releases")] },
+  { id: "docker-langserver", name: "Dockerfile Language Server", group: "Docker", languages: ["Dockerfile"], command: "docker-langserver", args: ["--stdio"], status: "notInstalled", install: [npm("dockerfile-language-server-nodejs")], skip: { reason: "notInProject" } },
+  { id: "docker-compose-langserver", name: "Docker Compose Language Service", group: "Docker", languages: ["Docker Compose"], command: "docker-compose-langserver", args: ["--stdio"], status: "notInstalled", inProject: true, install: [npm("@microsoft/compose-language-service")] },
+  { id: "bash-language-server", name: "Bash Language Server", group: "Shell Script", languages: ["Shell Script"], command: "bash-language-server", args: ["start"], status: "installed", path: "/usr/bin/bash-language-server", install: [npm("bash-language-server"), brew("bash-language-server"), pacman("bash-language-server")], skip: { reason: "notInProject" }, note: "Uses shellcheck for diagnostics and shfmt for formatting when they are installed." },
+  { id: "sqls", name: "sqls", group: "SQL", languages: ["SQL"], command: "sqls", status: "running", path: `${HOME}/go/bin/sqls`, inProject: true, install: [["go", "go install github.com/sqls-server/sqls@latest"]], note: "Completion and formatting for SQL. Configure connections in ~/.config/sqls/config.yml." },
+  { id: "texlab", name: "TexLab", group: "LaTeX", languages: ["LaTeX"], command: "texlab", status: "installed", path: "/usr/bin/texlab", install: [["cargo", "cargo install --locked texlab"], brew("texlab"), pacman("texlab")], license: "GPL-3.0", skip: { reason: "notInProject" } },
+  { id: "twiggy-language-server", name: "Twiggy (Twig)", group: "Twig", languages: ["Twig"], command: "twiggy-language-server", args: ["--stdio"], status: "notInstalled", inProject: true, install: [npm("twiggy-language-server")], license: "MPL-2.0" },
+  { id: "lua-language-server", name: "Lua Language Server", group: "Lua", languages: ["Lua"], command: "lua-language-server", status: "disabled", path: `${HOME}/.local/share/nvim/mason/bin/lua-language-server`, install: [brew("lua-language-server"), pacman("lua-language-server"), download("https://github.com/LuaLS/lua-language-server/releases")], skip: { reason: "disabled" }, note: "Pick LÖVE or Neovim under Lua environment to get their APIs and globals." },
+  { id: "basedpyright", name: "basedpyright", group: "Python", languages: ["Python"], command: "basedpyright-langserver", args: ["--stdio"], status: "installed", path: `${HOME}/.local/bin/basedpyright-langserver`, install: [["pipx", "pipx install basedpyright"], ["pip", "python3 -m pip install --user basedpyright"], npm("basedpyright")], skip: { reason: "notInProject" } },
+  { id: "pyright", name: "Pyright", group: "Python", languages: ["Python"], command: "pyright-langserver", args: ["--stdio"], status: "notInstalled", install: [npm("pyright"), ["pipx", "pipx install pyright"], pacman("pyright")], skip: { reason: "notInProject" }, note: "Starts only when basedpyright is missing or disabled." },
+  { id: "gopls", name: "gopls", group: "Go", languages: ["Go"], command: "gopls", status: "installed", path: `${HOME}/go/bin/gopls`, install: [["go", "go install golang.org/x/tools/gopls@latest"], pacman("gopls")], license: "BSD-3-Clause", skip: { reason: "notInProject" } },
+  { id: "rust-analyzer", name: "rust-analyzer", group: "Rust", languages: ["Rust"], command: "rust-analyzer", status: "installed", path: `${HOME}/.cargo/bin/rust-analyzer`, install: [["rustup", "rustup component add rust-analyzer"], brew("rust-analyzer"), pacman("rust-analyzer")], license: "MIT OR Apache-2.0", skip: { reason: "notInProject" } },
+  { id: "clangd", name: "clangd", group: "C/C++", languages: ["C", "C++"], command: "clangd", args: ["--background-index", "--clang-tidy", "--header-insertion=iwyu"], status: "installed", path: "/usr/bin/clangd", install: [pacman("clang"), ["apt", "sudo apt install clangd", false], download("https://github.com/clangd/clangd/releases")], license: "Apache-2.0 WITH LLVM-exception", skip: { reason: "notInProject" } },
+  { id: "zls", name: "ZLS", group: "Zig", languages: ["Zig"], command: "zls", status: "notInstalled", install: [brew("zls"), pacman("zls"), download("https://github.com/zigtools/zls/releases")], skip: { reason: "notInProject" } },
+  { id: "jdtls", name: "Eclipse JDT Language Server", group: "Java", languages: ["Java"], command: "jdtls", status: "notInstalled", install: [brew("jdtls"), download("https://download.eclipse.org/jdtls/snapshots/")], license: "EPL-2.0", skip: { reason: "notInProject" }, note: "Needs Java 21+. Forge keeps its workspace data in the user cache directory." },
+  { id: "kotlin-language-server", name: "Kotlin Language Server", group: "Kotlin", languages: ["Kotlin"], command: "kotlin-language-server", status: "notInstalled", install: [brew("kotlin-language-server"), download("https://github.com/fwcd/kotlin-language-server/releases")], skip: { reason: "notInProject" } },
+  { id: "csharp-ls", name: "csharp-ls", group: "C#", languages: ["C#"], command: "csharp-ls", status: "notInstalled", install: [["dotnet", "dotnet tool install --global csharp-ls"]], skip: { reason: "notInProject" }, note: "Needs the .NET SDK." },
+  { id: "ruby-lsp", name: "Ruby LSP", group: "Ruby", languages: ["Ruby"], command: "ruby-lsp", status: "notInstalled", install: [["gem", "gem install --user-install ruby-lsp"]], skip: { reason: "notInProject" } },
+  { id: "intelephense", name: "Intelephense", group: "PHP", languages: ["PHP"], command: "intelephense", args: ["--stdio"], status: "running", path: `${HOME}/.npm-global/bin/intelephense`, inProject: true, install: [npm("intelephense")], source: "php", homepage: "https://intelephense.com", license: "Proprietary (free core, premium licence key optional)", note: "Free by default. Enter your own licence key to unlock premium features such as rename, code actions and type hierarchy." },
+  { id: "phpactor", name: "Phpactor", group: "PHP", languages: ["PHP"], command: "phpactor", args: ["language-server"], status: "notInstalled", inProject: true, install: [["composer", "composer global require phpactor/phpactor"], download("https://github.com/phpactor/phpactor/releases")], source: "php", homepage: "https://phpactor.readthedocs.io", note: "Used when Intelephense is not installed, or when chosen in the PHP settings." },
+];
+
+/** Tools present on the "machine" in browser mode. */
+const TOOLS = new Set(["npm", "cargo", "go", "pipx", "rustup", "composer"]);
+
+const installRows = (s: MockServer): InstallRow[] =>
+  s.install.map(([tool, command, runnable], index) => {
+    const isUrl = command.startsWith("https://");
+    return {
+      index,
+      tool,
+      command,
+      runnable: runnable ?? !isUrl,
+      available: TOOLS.has(tool),
+      url: isUrl ? command : null,
+    };
+  });
+
+const DEFAULTS: Record<string, unknown> = {
+  "typescript-language-server": {
+    initializationOptions: { hostInfo: "forge", preferences: { importModuleSpecifierPreference: "shortest", quotePreference: "auto" } },
+    settings: { typescript: { format: { enable: true } }, javascript: { format: { enable: true } } },
+  },
+  "vscode-json-language-server": {
+    initializationOptions: { provideFormatter: true },
+    settings: { json: { validate: { enable: true }, schemas: [{ fileMatch: ["composer.json"], url: "https://getcomposer.org/schema.json" }] } },
+  },
+};
+
+/** Live detail of the TypeScript server ("Indexing 45%"). */
+let tsDetail: string | null = null;
+
+async function settingsValues(): Promise<Record<string, SettingValue>> {
+  const snap = await invoke<{ values: Record<string, SettingValue> }>("settings_get_all");
+  return snap.values;
+}
+
+function toRow(s: MockServer, values: Record<string, SettingValue>): ServerRow {
+  const key = (f: string) => `langservers.servers.${s.id}.${f}`;
+  const enabledPref = values[key("enabled")];
+  const enabled = typeof enabledPref === "boolean" ? enabledPref : s.status !== "disabled";
+  const customPath = (values[key("path")] as string | undefined) || null;
+  const extra = (values[key("settings")] as string | undefined) || null;
+  let extraError: string | null = null;
+  if (extra) {
+    try {
+      const v = JSON.parse(extra);
+      if (typeof v !== "object" || Array.isArray(v) || v === null) extraError = "extra settings must be a JSON object";
+    } catch (e) {
+      extraError = `invalid JSON: ${(e as Error).message}`;
+    }
+  }
+  const path = customPath ?? s.path ?? null;
+  let status: RowStatus = s.status;
+  if (!enabled) status = "disabled";
+  else if (s.status === "disabled") status = path ? "installed" : "notInstalled";
+  return {
+    id: s.id,
+    name: s.name,
+    group: s.group,
+    languages: s.languages,
+    command: s.command,
+    args: s.args ?? [],
+    homepage: s.homepage ?? `https://github.com/search?q=${encodeURIComponent(s.command)}`,
+    license: s.license ?? "MIT",
+    note: s.note ?? null,
+    enabled,
+    defaultEnabled: true,
+    status,
+    detail: s.id === "typescript-language-server" && status === "running" ? tsDetail : null,
+    path,
+    customPath,
+    inProject: s.inProject ?? false,
+    skip: !enabled ? { reason: "disabled" } : s.skip?.reason === "disabled" ? null : (s.skip ?? null),
+    install: installRows(s),
+    defaults: (DEFAULTS[s.id] as ServerRow["defaults"]) ?? { initializationOptions: null, settings: null },
+    extraSettings: extra,
+    extraSettingsError: extraError,
+    source: s.source ?? "catalog",
+  };
+}
+
+export async function mockRows(): Promise<ServerRow[]> {
+  const values = await settingsValues();
+  return servers.map((s) => toRow(s, values));
+}
+
+registerMock("langservers_list", () => mockRows());
+registerMock("langservers_apply", async () => {
+  emitMock("langservers://changed", null);
+  return mockRows();
+});
+
+// ---------- installs ----------
+
+const running = new Map<string, () => void>();
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+function fakeOutput(s: MockServer, command: string): [stream: "stdout" | "stderr", line: string, delay: number][] {
+  if (command.startsWith("npm")) {
+    const pkg = command.split(" ").slice(3).join(" ");
+    return [
+      ["stderr", "npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory.", 350],
+      ["stderr", "npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported", 250],
+      ["stdout", "", 600],
+      ["stdout", `added ${12 + pkg.length} packages in 3s`, 500],
+      ["stdout", "", 80],
+      ["stdout", `${4 + (pkg.length % 5)} packages are looking for funding`, 80],
+      ["stdout", "  run `npm fund` for details", 80],
+    ];
+  }
+  return [
+    ["stdout", `Installing ${s.command}…`, 400],
+    ["stdout", `Installed ${s.command}`, 900],
+  ];
+}
+
+registerMock("langservers_install", async ({ id, index }) => {
+  const s = servers.find((x) => x.id === id);
+  const option = s?.install[Number(index)];
+  if (!s || !option) throw new Error(`unknown language server ${String(id)}`);
+  const [tool, command] = option;
+  if (!TOOLS.has(tool)) throw new Error(`${tool} was not found. Install it first or run the command in a terminal.`);
+  let cancelled = false;
+  running.set(s.id, () => (cancelled = true));
+  const emit = (stream: string, line: string) => emitMock("langservers://install-output", { id: s.id, stream, line });
+  emit("info", `$ ${command}`);
+  for (const [stream, line, delay] of fakeOutput(s, command)) {
+    await sleep(delay);
+    if (cancelled) break;
+    emit(stream, line);
+  }
+  running.delete(s.id);
+  if (cancelled) {
+    emit("info", "Cancelled.");
+    return "cancelled";
+  }
+  s.status = "installed";
+  s.path = tool === "npm" ? `${HOME}/.npm-global/bin/${s.command}` : `${HOME}/.local/bin/${s.command}`;
+  emit("info", `${s.name} installed.`);
+  emitMock("langservers://changed", null);
+  return "succeeded";
+});
+
+registerMock("langservers_cancel_install", ({ id }) => {
+  running.get(String(id))?.();
+});
+
+// ---------- TypeScript server with indexing progress ----------
+
+const TS_STATUS = { id: "typescript-language-server", name: "TypeScript Language Server" };
+let tsStarted = false;
+let frozen: number | null = null;
+
+type StateOnly<T> = T extends unknown ? Omit<T, "id" | "name"> : never;
+
+function setTs(state: StateOnly<ServerStatus>) {
+  setMockServerStatus({ ...TS_STATUS, ...state } as ServerStatus);
+}
+
+/** Show the TypeScript server indexing at `percent` (screenshots) or let it finish (`null`). */
+export function setMockIndexing(percent: number | null): void {
+  frozen = percent;
+  if (percent === null) {
+    tsDetail = null;
+    setTs({ state: "ready" });
+  } else {
+    tsDetail = `Indexing ${percent}%`;
+    setTs({ state: "busy", message: "Indexing", percentage: percent });
+  }
+}
+
+function startTsServer() {
+  if (tsStarted) return;
+  tsStarted = true;
+  setTs({ state: "starting" });
+  const steps = [0, 18, 45, 72, 100];
+  steps.forEach((p, i) =>
+    setTimeout(() => {
+      if (frozen !== null) return;
+      tsDetail = `Indexing ${p}%`;
+      setTs({ state: "busy", message: "Indexing", percentage: p });
+    }, 200 + i * 450),
+  );
+  setTimeout(() => {
+    if (frozen !== null) return;
+    tsDetail = null;
+    setTs({ state: "ready" });
+  }, 200 + steps.length * 450);
+}
+
+// Screenshot scenarios freeze the progress through this hook (browser mode only).
+(window as unknown as { __forgeMockIndexing?: typeof setMockIndexing }).__forgeMockIndexing = setMockIndexing;
+
+onMockDidOpen((path) => {
+  if (/\.(ts|tsx|js|jsx|mjs|vue|css|scss)$/.test(path)) startTsServer();
+});
+
+// ---------- workspace symbols ----------
+
+const files: Record<string, string> = { ...demoFiles, ...demoConfigFiles };
+
+/** Per-language regexes standing in for the real servers' indexes. */
+const RULES: { ext: RegExp; server: string; rules: [RegExp, string][] }[] = [
+  {
+    ext: /\.(ts|js)$/,
+    server: "typescript-language-server",
+    rules: [
+      [/^\s*(?:export\s+)?interface\s+(\w+)/, "interface"],
+      [/^\s*(?:export\s+)?(?:abstract\s+)?class\s+(\w+)/, "class"],
+      [/^\s*(?:export\s+)?(?:async\s+)?function\s+(\w+)/, "function"],
+      [/^\s*(?:export\s+)?type\s+(\w+)\s*=/, "class"],
+      [/^\s{2}(\w+)\??:\s/, "property"],
+    ],
+  },
+  { ext: /\.(css|scss)$/, server: "vscode-css-language-server", rules: [[/^\s*\.([\w-]+)\s*[{,]/, "class"], [/^\s*(--[\w-]+):/, "variable"]] },
+  {
+    ext: /\.sql$/,
+    server: "sqls",
+    rules: [
+      [/create\s+(?:or\s+replace\s+)?(?:view|table)\s+(?:if\s+not\s+exists\s+)?(\w+)/i, "class"],
+      [/^\s{4}(\w+)\s+(?:BIGINT|INT|VARCHAR|DECIMAL|TIMESTAMP|TEXT|BOOLEAN)/i, "field"],
+    ],
+  },
+  { ext: /\.ya?ml$/, server: "yaml-language-server", rules: [[/^(\w[\w-]*):/, "module"], [/^ {2}(\w[\w-]*):/, "property"]] },
+  { ext: /\.json$/, server: "vscode-json-language-server", rules: [[/^ {2}"([\w@/.-]+)":/, "property"]] },
+];
+
+export function demoWorkspaceSymbols(): WorkspaceSymbol[] {
+  const out: WorkspaceSymbol[] = [];
+  for (const [path, src] of Object.entries(files)) {
+    const lang = RULES.find((r) => r.ext.test(path));
+    if (!lang) continue;
+    let container: string | null = null;
+    src.split("\n").forEach((text, line) => {
+      for (const [re, kind] of lang.rules) {
+        const m = re.exec(text);
+        if (!m) continue;
+        const name = m[1];
+        const character = text.indexOf(name);
+        if (kind === "interface" || kind === "class") container = name;
+        out.push({
+          name,
+          kind,
+          containerName: kind === "property" || kind === "field" ? container : null,
+          path,
+          range: { start: { line, character }, end: { line, character: character + name.length } },
+          server: lang.server,
+        });
+        break;
+      }
+    });
+  }
+  return out;
+}
+
+const allSymbols = demoWorkspaceSymbols();
+
+registerMock("lsp_workspace_symbols", ({ query, limit }) => {
+  const q = String(query ?? "").toLowerCase();
+  if (!q) return [];
+  // Servers match fuzzily themselves; a subsequence match is close enough here.
+  const matches = (name: string) => {
+    let i = 0;
+    for (const ch of name.toLowerCase()) if (ch === q[i]) i++;
+    return i === q.length;
+  };
+  return allSymbols.filter((s) => matches(s.name)).slice(0, Number(limit ?? 200));
+});
+
+// ---------- Intelephense licence ----------
+
+let licenceKey: string | null = null;
+
+const status = (): LicenceStatus => ({
+  premium: licenceKey !== null,
+  maskedKey: licenceKey ? `…${licenceKey.slice(-4)}` : null,
+  error: null,
+  purchaseUrl: "https://intelephense.com",
+});
+
+registerMock("intelephense_licence_status", () => status());
+registerMock("intelephense_set_licence", ({ key }) => {
+  const k = String(key ?? "").trim();
+  if (k && !/^[A-Za-z0-9_-]{8,64}$/.test(k)) throw new Error("This does not look like an Intelephense licence key.");
+  licenceKey = k || null;
+  return status();
+});
