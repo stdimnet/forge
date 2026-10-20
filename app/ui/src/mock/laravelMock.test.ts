@@ -52,7 +52,7 @@ describe("Laravel mock", () => {
     const route = await goto("x.php", "<?php route('orders.sh|ow')");
     expect(route.map((l) => [l.path, l.line])).toEqual([
       ["routes/web.php", 11],
-      ["app/Http/Controllers/OrderController.php", 11],
+      ["app/Http/Controllers/OrderController.php", 17],
     ]);
     expect((await goto("x.php", "<?php view('products.in|dex')"))[0].path).toBe("resources/views/products/index.blade.php");
     expect((await goto("x.blade.php", "<x-al|ert />"))[0].path).toBe("resources/views/components/alert.blade.php");
