@@ -133,7 +133,7 @@ impl DetectEnv {
     /// File names tried for `command` in each directory.
     pub fn candidates(&self, command: &str) -> Vec<String> {
         if self.windows {
-            ["cmd", "exe", "bat", "ps1"]
+            ["cmd", "exe", "bat"]
                 .iter()
                 .map(|ext| format!("{command}.{ext}"))
                 .chain(std::iter::once(command.to_string()))
