@@ -29,7 +29,9 @@ pnpm screenshots          # capture docs/screenshots (needs `pnpm dev` running)
 cargo test --workspace && cargo clippy --workspace --all-targets -- -D warnings
 ```
 
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and [docs/ROADMAP.md](docs/ROADMAP.md).
+See [CONTRIBUTING.md](CONTRIBUTING.md) for step-by-step guides (also usable as coding-agent
+skills in `.claude/skills/`), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and
+[docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## License
 
