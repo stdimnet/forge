@@ -51,6 +51,14 @@ impl LspState {
         }
     }
 
+    /// Stop every server of the current project; the next request starts them again (after
+    /// a remote project reconnected, or when another project with the same root opens).
+    pub fn reset(&self) {
+        if let Some(old) = self.manager.lock().expect("lsp lock").take() {
+            tauri::async_runtime::spawn(async move { old.shutdown_all().await });
+        }
+    }
+
     /// Remove a server config and stop its server.
     pub fn unregister_server(&self, id: &str) {
         self.registered
@@ -62,9 +70,11 @@ impl LspState {
         }
     }
 
-    /// The manager for the open workspace, (re)created when the project changes.
+    /// The manager for the open workspace, (re)created when the project changes. Servers
+    /// start where the project lives (on the remote host for remote projects).
     pub(crate) fn manager(&self, app: &AppHandle, ws: &AppState) -> Result<Arc<LspManager>> {
-        let root = ws.with_workspace(|w| Ok(w.root().to_path_buf()))?;
+        let backend = ws.backend()?;
+        let root = backend.info().root.clone();
         let mut current = self.manager.lock().expect("lsp lock");
         if let Some(m) = current.as_ref().filter(|m| m.root() == root) {
             return Ok(m.clone());
@@ -72,12 +82,16 @@ impl LspState {
         if let Some(old) = current.take() {
             tauri::async_runtime::spawn(async move { old.shutdown_all().await });
         }
-        let manager = Arc::new(LspManager::new(root));
+        let manager = Arc::new(LspManager::with_launcher(root, backend.lsp_launcher()));
         // Language packs register their servers (PHP: `commands::php::sync_lsp_server`).
         for config in self.registered.lock().expect("lsp lock").iter().cloned() {
             manager.register_server(config);
         }
-        crate::commands::langservers::register_enabled(&manager, ws);
+        // The catalog scans and probes this machine; remote projects get their packs'
+        // servers only (Intelephense / phpactor found by the agent).
+        if backend.info().remote.is_none() {
+            crate::commands::langservers::register_enabled(&manager, ws);
+        }
         forward_events(app.clone(), &manager);
         *current = Some(manager.clone());
         Ok(manager)
@@ -144,7 +158,7 @@ struct Ctx {
 impl Ctx {
     fn new(path: &str, app: &AppHandle, lsp: &LspState, ws: &AppState) -> Result<Self> {
         let manager = lsp.manager(app, ws)?;
-        let abs = ws.with_workspace(|w| w.resolve(path))?;
+        let abs = ws.backend()?.resolve(path)?;
         Ok(Ctx { manager, abs })
     }
 

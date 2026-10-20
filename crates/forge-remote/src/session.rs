@@ -36,6 +36,64 @@ pub struct ConnectParams {
     pub timeout: Duration,
 }
 
+impl ConnectParams {
+    /// Parameters for a saved configuration: its host may be a `Host` alias of
+    /// `~/.ssh/config` (host name, port, user and identity files come from there unless the
+    /// configuration sets them), `~` in the key file is the home directory.
+    pub fn for_configuration(
+        config: &crate::config::SshConfiguration,
+        ssh_config: &crate::ssh_config::SshConfig,
+        home: &Path,
+        local_user: &str,
+    ) -> Self {
+        let home_str = home.to_string_lossy();
+        let resolved = ssh_config.resolve(config.host.trim(), &home_str, local_user);
+        let port = match (config.port, resolved.port) {
+            (22, Some(p)) => p,
+            (p, _) => p,
+        };
+        let user = if config.user.trim().is_empty() {
+            resolved
+                .user
+                .clone()
+                .unwrap_or_else(|| local_user.to_string())
+        } else {
+            config.user.trim().to_string()
+        };
+        let expand = |p: &str| -> PathBuf {
+            match p.strip_prefix("~/") {
+                Some(rest) => home.join(rest),
+                None => PathBuf::from(p),
+            }
+        };
+        let mut identity_files: Vec<PathBuf> =
+            resolved.identity_files.iter().map(|f| expand(f)).collect();
+        if !resolved.identities_only {
+            for f in default_identity_files(home) {
+                if !identity_files.contains(&f) {
+                    identity_files.push(f);
+                }
+            }
+        }
+        ConnectParams {
+            host: resolved.host_name,
+            port,
+            user,
+            auth: config.auth,
+            key_file: config
+                .key_file
+                .as_deref()
+                .filter(|k| !k.trim().is_empty())
+                .map(|k| expand(k.trim())),
+            secret: None,
+            identity_files,
+            known_hosts: home.join(".ssh").join("known_hosts"),
+            accept_fingerprint: None,
+            timeout: Duration::from_secs(15),
+        }
+    }
+}
+
 /// A host key that needs the user's decision.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -521,6 +579,43 @@ mod tests {
             std::fs::read_to_string(&path).unwrap(),
             format!("other ssh-rsa AAAA\n[shop]:2222 ssh-ed25519 {KEY}\n")
         );
+    }
+
+    #[test]
+    fn configurations_resolve_ssh_config_aliases() {
+        let ssh = crate::ssh_config::SshConfig::parse(
+            "Host shop\n  HostName shop.example.com\n  Port 2222\n  User deploy\n  IdentityFile ~/.ssh/id_shop\n",
+        );
+        let config = crate::config::SshConfiguration {
+            id: "c".into(),
+            host: "shop".into(),
+            port: 22,
+            user: String::new(),
+            auth: AuthMethod::KeyPair,
+            key_file: Some("~/.ssh/deploy_key".into()),
+            dont_save_secret: false,
+            name: None,
+        };
+        let home = Path::new("/home/me");
+        let p = ConnectParams::for_configuration(&config, &ssh, home, "me");
+        assert_eq!(p.host, "shop.example.com");
+        assert_eq!(p.port, 2222);
+        assert_eq!(p.user, "deploy");
+        assert_eq!(p.key_file, Some(PathBuf::from("/home/me/.ssh/deploy_key")));
+        assert_eq!(p.identity_files[0], PathBuf::from("/home/me/.ssh/id_shop"));
+        assert!(p
+            .identity_files
+            .contains(&PathBuf::from("/home/me/.ssh/id_ed25519")));
+        assert_eq!(p.known_hosts, PathBuf::from("/home/me/.ssh/known_hosts"));
+
+        // Explicit values win over the ssh config.
+        let explicit = crate::config::SshConfiguration {
+            port: 2200,
+            user: "root".into(),
+            ..config
+        };
+        let p = ConnectParams::for_configuration(&explicit, &ssh, home, "me");
+        assert_eq!((p.port, p.user.as_str()), (2200, "root"));
     }
 
     #[test]

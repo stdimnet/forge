@@ -1,31 +1,24 @@
 //! PHPForge IPC: workspace index, symbol search, structure, hover, code generation and
-//! language server configuration. Offsets crossing the boundary are UTF-16 (JS strings);
-//! the index works in bytes, so every command converts.
+//! language server configuration. The index lives with the project (in the remote agent for
+//! remote projects); offsets crossing the boundary are UTF-16 (JS strings).
 
-use std::path::PathBuf;
-use std::sync::Mutex;
+use std::path::Path;
+use std::sync::Arc;
 
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, State};
 
-use forge_core::{ForgeError, Result};
-use phpforge_lang_php::generate::{self, GenerateKind, GenerateOptions, GenerateTargets, TextEdit};
-use phpforge_lang_php::hover::{self, Hover};
+use forge_core::Result;
+use phpforge_lang_php::generate::{GenerateKind, GenerateOptions, GenerateTargets, TextEdit};
+use phpforge_lang_php::hover::Hover;
 use phpforge_lang_php::index::{SearchKind, SymbolHit};
 use phpforge_lang_php::lsp::{self, DetectedServers, LspServerConfig, PhpLspSettings};
-use phpforge_lang_php::offsets::{byte_to_utf16, utf16_to_byte};
-use phpforge_lang_php::parser;
-use phpforge_lang_php::structure::{FileStructure, StructureNode};
-use phpforge_lang_php::{IndexConfig, IndexStats, ProjectIndex};
+use phpforge_lang_php::structure::FileStructure;
+use phpforge_lang_php::IndexStats;
 
 use crate::commands::lsp::LspState;
+use crate::commands::workspace::blocking;
 use crate::state::AppState;
-
-/// The PHP index of the open workspace (created lazily, persisted under `.forge/cache`).
-#[derive(Default)]
-pub struct PhpState {
-    index: Mutex<Option<ProjectIndex>>,
-}
 
 #[derive(Clone, Serialize)]
 struct IndexProgress {
@@ -33,217 +26,134 @@ struct IndexProgress {
     total: usize,
 }
 
-fn err(e: impl std::fmt::Display) -> ForgeError {
-    ForgeError::Other(e.to_string())
-}
-
-fn workspace_root(app: &AppState) -> Result<PathBuf> {
-    app.with_workspace(|ws| Ok(ws.root().to_path_buf()))
-}
-
-/// Run `f` with the index for the current workspace, creating it (from cache) if needed.
-fn with_index<T>(
-    app: &AppState,
-    php: &PhpState,
-    f: impl FnOnce(&mut ProjectIndex) -> T,
-) -> Result<T> {
-    let root = workspace_root(app)?;
-    let mut guard = php.index.lock().map_err(err)?;
-    if guard.as_ref().is_none_or(|i| i.root() != root) {
-        let mut idx = ProjectIndex::new(&root, IndexConfig::default());
-        idx.load_cache();
-        *guard = Some(idx);
-    }
-    Ok(f(guard.as_mut().expect("index initialised above")))
-}
-
-/// Current buffer content, or the file on disk.
-fn source(app: &AppState, path: &str, content: Option<String>) -> Result<String> {
-    match content {
-        Some(c) => Ok(c),
-        None => app.with_workspace(|ws| ws.read_file(path)),
-    }
-}
-
 #[tauri::command]
-pub async fn php_index_workspace(
-    app: AppHandle,
-    state: State<'_, AppState>,
-    php: State<'_, PhpState>,
-) -> Result<IndexStats> {
-    let root = workspace_root(&state)?;
-    // Take the index out so other commands are not blocked while indexing.
-    let previous = php.index.lock().map_err(err)?.take();
-    let mut idx = match previous {
-        Some(i) if i.root() == root => i,
-        _ => {
-            let mut i = ProjectIndex::new(&root, IndexConfig::default());
-            i.load_cache();
-            i
-        }
-    };
-    let emitter = app.clone();
-    let (idx, stats) = tauri::async_runtime::spawn_blocking(move || {
-        let stats = idx.index_workspace(|done, total| {
-            let _ = emitter.emit("php://index-progress", IndexProgress { done, total });
-        });
-        if let Err(e) = idx.save_cache() {
-            tracing::warn!("could not save PHP index cache: {e}");
-        }
-        (idx, stats)
+pub async fn php_index_workspace(app: AppHandle, state: State<'_, AppState>) -> Result<IndexStats> {
+    let backend = state.backend()?;
+    blocking(move || {
+        backend.php().index_workspace(Arc::new(move |done, total| {
+            let _ = app.emit("php://index-progress", IndexProgress { done, total });
+        }))
     })
     .await
-    .map_err(err)?;
-    *php.index.lock().map_err(err)? = Some(idx);
-    Ok(stats)
 }
 
 #[tauri::command]
-pub fn php_search_symbols(
+pub async fn php_search_symbols(
     query: String,
     kind: Option<SearchKind>,
     limit: Option<usize>,
     state: State<'_, AppState>,
-    php: State<'_, PhpState>,
 ) -> Result<Vec<SymbolHit>> {
-    with_index(&state, &php, |idx| {
-        idx.search(&query, kind.unwrap_or_default(), limit.unwrap_or(100))
+    let backend = state.backend()?;
+    blocking(move || {
+        backend
+            .php()
+            .search(&query, kind.unwrap_or_default(), limit.unwrap_or(100))
     })
-}
-
-fn convert_nodes(text: &str, nodes: &mut [StructureNode]) {
-    for n in nodes {
-        // Inherited members live in other files; the UI navigates to them by line.
-        if n.path.is_none() {
-            n.offset = byte_to_utf16(text, n.offset);
-        }
-        convert_nodes(text, &mut n.children);
-    }
+    .await
 }
 
 #[tauri::command]
-pub fn php_file_structure(
+pub async fn php_file_structure(
     path: String,
     content: Option<String>,
     inherited: Option<bool>,
     state: State<'_, AppState>,
-    php: State<'_, PhpState>,
 ) -> Result<FileStructure> {
-    let text = source(&state, &path, content)?;
-    let file = parser::index_source(&path, &text);
-    let mut s = with_index(&state, &php, |idx| {
-        idx.file_structure(&file, inherited.unwrap_or(false))
-    })?;
-    convert_nodes(&text, &mut s.nodes);
-    Ok(s)
-}
-
-#[tauri::command]
-pub fn php_hover(
-    path: String,
-    offset: usize,
-    content: Option<String>,
-    state: State<'_, AppState>,
-    php: State<'_, PhpState>,
-) -> Result<Option<Hover>> {
-    let text = source(&state, &path, content)?;
-    let byte = utf16_to_byte(&text, offset);
-    let h = with_index(&state, &php, |idx| hover::hover(idx, &path, &text, byte))?;
-    Ok(h.map(|h| Hover {
-        start: byte_to_utf16(&text, h.start),
-        end: byte_to_utf16(&text, h.end),
-        markdown: h.markdown,
-    }))
-}
-
-#[tauri::command]
-pub fn php_generate_targets(
-    path: String,
-    offset: usize,
-    content: Option<String>,
-    state: State<'_, AppState>,
-    php: State<'_, PhpState>,
-) -> Result<GenerateTargets> {
-    let text = source(&state, &path, content)?;
-    let file = parser::index_source(&path, &text);
-    let byte = utf16_to_byte(&text, offset);
-    with_index(&state, &php, |idx| {
-        generate::targets(&file, &text, byte, idx)
+    let backend = state.backend()?;
+    blocking(move || {
+        backend
+            .php()
+            .file_structure(&path, content, inherited.unwrap_or(false))
     })
+    .await
 }
 
 #[tauri::command]
-pub fn php_generate(
+pub async fn php_hover(
+    path: String,
+    offset: usize,
+    content: Option<String>,
+    state: State<'_, AppState>,
+) -> Result<Option<Hover>> {
+    let backend = state.backend()?;
+    blocking(move || backend.php().hover(&path, offset, content)).await
+}
+
+#[tauri::command]
+pub async fn php_generate_targets(
+    path: String,
+    offset: usize,
+    content: Option<String>,
+    state: State<'_, AppState>,
+) -> Result<GenerateTargets> {
+    let backend = state.backend()?;
+    blocking(move || backend.php().generate_targets(&path, offset, content)).await
+}
+
+#[tauri::command]
+pub async fn php_generate(
     path: String,
     offset: usize,
     kind: GenerateKind,
     options: Option<GenerateOptions>,
     content: Option<String>,
     state: State<'_, AppState>,
-    php: State<'_, PhpState>,
 ) -> Result<Vec<TextEdit>> {
-    let text = source(&state, &path, content)?;
-    let file = parser::index_source(&path, &text);
-    let byte = utf16_to_byte(&text, offset);
-    let opts = options.unwrap_or_default();
-    let edits = with_index(&state, &php, |idx| {
-        generate::generate(&file, &text, byte, kind, &opts, idx)
-    })?
-    .map_err(err)?;
-    Ok(edits
-        .into_iter()
-        .map(|e| TextEdit {
-            start: byte_to_utf16(&text, e.start),
-            end: byte_to_utf16(&text, e.end),
-            new_text: e.new_text,
-        })
-        .collect())
+    let backend = state.backend()?;
+    blocking(move || {
+        backend
+            .php()
+            .generate(&path, offset, kind, options.unwrap_or_default(), content)
+    })
+    .await
 }
 
-/// Language servers installed on this machine (for Settings > PHP).
+/// Language servers installed on the project's machine (this one when no project is open),
+/// for Settings > PHP.
 #[tauri::command]
-pub fn php_detect_servers(settings: Option<PhpLspSettings>) -> DetectedServers {
+pub async fn php_detect_servers(
+    settings: Option<PhpLspSettings>,
+    state: State<'_, AppState>,
+) -> Result<DetectedServers> {
     let settings = settings.unwrap_or_default();
-    let path_env = std::env::var("PATH").ok();
-    let dirs = lsp::search_dirs(path_env.as_deref(), dirs_home().as_deref());
-    lsp::detect(&settings, &dirs, &lsp::FsProbe)
+    match state.backend() {
+        Ok(backend) => {
+            let remote = backend.info().remote.is_some();
+            blocking(move || backend.php().detect_servers(for_host(settings, remote))).await
+        }
+        Err(_) => {
+            let path_env = std::env::var("PATH").ok();
+            let dirs = lsp::search_dirs(path_env.as_deref(), dirs::home_dir().as_deref());
+            Ok(lsp::detect(&settings, &dirs, &lsp::FsProbe))
+        }
+    }
 }
 
-/// The language server to start for the open workspace, according to the PHP settings
+/// The language server to start for the open project, according to the PHP settings
 /// (the given ones, else Forge's settings store).
 #[tauri::command]
-pub fn php_lsp_config(
+pub async fn php_lsp_config(
     settings: Option<PhpLspSettings>,
     state: State<'_, AppState>,
 ) -> Result<Option<LspServerConfig>> {
-    let root = workspace_root(&state)?;
+    let backend = state.backend()?;
     let mut settings = settings.unwrap_or_else(|| lsp_settings(&state));
     // The licence key lives in the OS keychain only; free mode sends none.
     settings.licence_key = intelephense_licence_key();
-    Ok(lsp::resolve_for_workspace(&settings, &root))
+    let remote = backend.info().remote.is_some();
+    blocking(move || backend.php().lsp_config(for_host(settings, remote))).await
 }
 
-/// Keep the PHP index current when files change on disk (file watcher). Only an index
-/// that already exists for the open project is updated; the next full index picks up
-/// everything else.
-pub fn apply_fs_changes(app: &AppHandle, changes: &forge_core::FsChanges) {
-    if changes.changed.is_empty() && changes.removed.is_empty() {
-        return;
+/// Settings for the machine the project lives on: local executable and cache paths mean
+/// nothing on a remote host, where the agent finds Intelephense / phpactor itself.
+fn for_host(mut settings: PhpLspSettings, remote: bool) -> PhpLspSettings {
+    if remote {
+        settings.intelephense_path = None;
+        settings.phpactor_path = None;
+        settings.storage_path = None;
     }
-    let state = app.state::<AppState>();
-    let php = app.state::<PhpState>();
-    let Ok(root) = workspace_root(&state) else {
-        return;
-    };
-    let Ok(mut guard) = php.index.lock() else {
-        return;
-    };
-    if let Some(idx) = guard.as_mut().filter(|i| i.root() == root) {
-        let n = idx.apply_changes(&changes.changed, &changes.removed);
-        if n > 0 {
-            tracing::debug!("PHP index: {n} files updated from disk");
-        }
-    }
+    settings
 }
 
 /// Id under which the PHP language server (Intelephense or phpactor) is registered.
@@ -276,28 +186,34 @@ fn to_lsp_config(cfg: LspServerConfig) -> forge_lsp::LspServerConfig {
 }
 
 /// Register (or remove) the PHP language server for the open project: PHP projects with
-/// the PHP plugin enabled get Intelephense or phpactor according to Settings > PHP.
-/// Call it after a project was detected and when PHP settings change; an unchanged config
-/// keeps the running server. Blocking (file system lookups), so call it off the main thread.
+/// the PHP plugin enabled get Intelephense or phpactor according to Settings > PHP, found
+/// on the project's machine (a remote project's server runs next to its files and indexes
+/// them there). Call it after a project was detected and when PHP settings change; an
+/// unchanged config keeps the running server. Blocking (file system lookups, remote calls),
+/// so call it off the main thread.
 ///
 /// `detected` is a detection result for a root; it is ignored if another project is open
 /// by now, and detection runs again when it is missing.
-pub fn sync_lsp_server(
-    app: &AppHandle,
-    detected: Option<(&std::path::Path, &forge_project::ProjectInfo)>,
-) {
+pub fn sync_lsp_server(app: &AppHandle, detected: Option<(&Path, &forge_project::ProjectInfo)>) {
     let state = app.state::<AppState>();
     let lsp_state = app.state::<LspState>();
-    let Ok(root) = workspace_root(&state) else {
+    let Ok(backend) = state.backend() else {
         lsp_state.unregister_server(PHP_SERVER_ID);
         return;
     };
+    let root = backend.info().root.clone();
     let fresh;
     let info = match detected {
         Some((r, _)) if r != root => return,
         Some((_, info)) => info,
         None => {
-            fresh = forge_project::detect(&root);
+            fresh = match backend.detect_project() {
+                Ok(i) => i,
+                Err(e) => {
+                    tracing::warn!("project detection failed: {e}");
+                    return;
+                }
+            };
             &fresh
         }
     };
@@ -306,9 +222,18 @@ pub fn sync_lsp_server(
         .read()
         .expect("plugins lock poisoned")
         .is_enabled("forge.php");
-    let config = (enabled && info.uses("php"))
-        .then(|| lsp::resolve_for_workspace(&lsp_settings(&state), &root))
-        .flatten();
+    let remote = backend.info().remote.is_some();
+    let config = if enabled && info.uses("php") {
+        backend
+            .php()
+            .lsp_config(for_host(lsp_settings(&state), remote))
+            .unwrap_or_else(|e| {
+                tracing::warn!("cannot look up the PHP language server: {e}");
+                None
+            })
+    } else {
+        None
+    };
     match config {
         Some(cfg) => {
             tracing::info!("PHP language server: {}", cfg.command.display());
@@ -322,8 +247,4 @@ pub fn sync_lsp_server(
 pub fn spawn_sync_lsp_server(app: &AppHandle) {
     let app = app.clone();
     tauri::async_runtime::spawn_blocking(move || sync_lsp_server(&app, None));
-}
-
-fn dirs_home() -> Option<PathBuf> {
-    std::env::var_os(if cfg!(windows) { "USERPROFILE" } else { "HOME" }).map(PathBuf::from)
 }

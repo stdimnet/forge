@@ -1,7 +1,6 @@
 //! Git IPC: thin wrappers over `forge_vcs::Repo`. Every command runs git off the main
-//! thread; mutating commands emit `git://changed` so open views refresh.
-
-use std::path::PathBuf;
+//! thread (on the project's host: this machine or the remote agent); mutating commands
+//! emit `git://changed` so open views refresh.
 
 use forge_core::{ForgeError, Result};
 use forge_vcs::{
@@ -14,17 +13,13 @@ use crate::state::AppState;
 /// Event emitted after any operation that changes repository state.
 pub const CHANGED_EVENT: &str = "git://changed";
 
-fn root(state: &AppState) -> Result<PathBuf> {
-    state.with_workspace(|ws| Ok(ws.root().to_path_buf()))
-}
-
 async fn with_repo<T, F>(state: &AppState, f: F) -> Result<T>
 where
     T: Send + 'static,
     F: FnOnce(&Repo) -> Result<T> + Send + 'static,
 {
-    let root = root(state)?;
-    tauri::async_runtime::spawn_blocking(move || f(&Repo::open(&root)?))
+    let backend = state.backend()?;
+    tauri::async_runtime::spawn_blocking(move || f(&backend.repo()?))
         .await
         .map_err(|e| ForgeError::Other(format!("git task failed: {e}")))?
 }
@@ -46,8 +41,8 @@ where
 /// Repository info, or `null` when the project is not under git.
 #[tauri::command]
 pub async fn git_info(state: State<'_, AppState>) -> Result<Option<RepoInfo>> {
-    let root = root(&state)?;
-    tauri::async_runtime::spawn_blocking(move || match Repo::open(&root) {
+    let backend = state.backend()?;
+    tauri::async_runtime::spawn_blocking(move || match backend.repo() {
         Ok(repo) => repo.info().map(Some),
         Err(_) => Ok(None),
     })

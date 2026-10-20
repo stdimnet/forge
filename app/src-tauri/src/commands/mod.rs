@@ -17,6 +17,7 @@ pub mod markdown;
 pub mod output;
 pub mod php;
 pub mod project;
+pub mod remote;
 pub mod run;
 pub mod search;
 pub mod settings;

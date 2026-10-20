@@ -11,21 +11,26 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
+use forge_backend::Process;
 use forge_core::{ForgeError, Result};
 use forge_process::output::{RunInput, RunOutput, RunOutputOptions};
 use forge_process::{
     BuildContext, CommandLine, KindRegistry, OutputStream, RunConfiguration, RunConfigurations,
-    RunEvent, RunSink, RunningProcess, TemplateKind,
+    RunEvent, RunSink, TemplateKind,
 };
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, State};
 
+use crate::commands::workspace::blocking;
 use crate::state::AppState;
 
 struct Run {
-    process: Arc<RunningProcess>,
+    process: Arc<dyn Process>,
     output: Arc<Mutex<RunOutput>>,
 }
+
+/// A run's process and its rendered output.
+type RunHandles = (Arc<dyn Process>, Arc<Mutex<RunOutput>>);
 
 pub struct RunState {
     runs: Mutex<HashMap<String, Run>>,
@@ -62,7 +67,7 @@ impl RunState {
         }
     }
 
-    fn get(&self, id: &str) -> Result<(Arc<RunningProcess>, Arc<Mutex<RunOutput>>)> {
+    fn get(&self, id: &str) -> Result<RunHandles> {
         self.runs
             .lock()
             .expect("runs poisoned")
@@ -73,20 +78,49 @@ impl RunState {
 }
 
 fn root(state: &AppState) -> Result<std::path::PathBuf> {
-    state.with_workspace(|ws| Ok(ws.root().to_path_buf()))
+    state.project_root()
+}
+
+/// Configurations live in the project's `.forge` folder, on the project's host.
+#[tauri::command]
+pub async fn run_configurations_load(state: State<'_, AppState>) -> Result<RunConfigurations> {
+    let backend = state.backend()?;
+    blocking(move || {
+        if backend.info().remote.is_none() {
+            return RunConfigurations::load(&backend.info().root);
+        }
+        let shared = backend.read_file(forge_process::config::PROJECT_FILE).ok();
+        let local = backend.read_file(forge_process::config::LOCAL_FILE).ok();
+        RunConfigurations::from_texts(shared.as_deref(), local.as_deref())
+    })
+    .await
 }
 
 #[tauri::command]
-pub fn run_configurations_load(state: State<'_, AppState>) -> Result<RunConfigurations> {
-    RunConfigurations::load(&root(&state)?)
-}
-
-#[tauri::command]
-pub fn run_configurations_save(
+pub async fn run_configurations_save(
     configurations: RunConfigurations,
     state: State<'_, AppState>,
 ) -> Result<()> {
-    configurations.save(&root(&state)?)
+    let backend = state.backend()?;
+    blocking(move || {
+        if backend.info().remote.is_none() {
+            return configurations.save(&backend.info().root);
+        }
+        let [shared, local] = configurations.to_texts()?;
+        for (file, text) in [
+            (forge_process::config::PROJECT_FILE, shared),
+            (forge_process::config::LOCAL_FILE, local),
+        ] {
+            match text {
+                Some(t) => backend.write_file(file, &t)?,
+                // No delete on the remote side: empty out an existing file.
+                None if backend.read_file(file).is_ok() => backend.write_file(file, "")?,
+                None => {}
+            }
+        }
+        Ok(())
+    })
+    .await
 }
 
 /// What to start: a configuration the backend builds, or a command line built by a
@@ -167,7 +201,7 @@ pub fn run_command_line(
 }
 
 #[tauri::command]
-pub fn run_start(
+pub async fn run_start(
     request: RunRequest,
     app: AppHandle,
     state: State<'_, AppState>,
@@ -219,14 +253,13 @@ pub fn run_start(
             emit(&app, &event, &e);
         }
     });
-    let process = RunningProcess::start(&cmd, sink)?;
-    runs.runs.lock().expect("runs poisoned").insert(
-        run_id.clone(),
-        Run {
-            process: Arc::new(process),
-            output,
-        },
-    );
+    let backend = state.backend()?;
+    let start_cmd = cmd.clone();
+    let process = blocking(move || backend.start_process(&start_cmd, sink)).await?;
+    runs.runs
+        .lock()
+        .expect("runs poisoned")
+        .insert(run_id.clone(), Run { process, output });
     Ok(RunStarted {
         run_id,
         command_line: cmd.display(),
@@ -235,9 +268,13 @@ pub fn run_start(
 
 /// Stop a run and its child processes (SIGTERM, then SIGKILL after two seconds).
 #[tauri::command]
-pub fn run_stop(run_id: String, runs: State<'_, RunState>) -> Result<()> {
-    runs.get(&run_id)?.0.kill(Duration::from_secs(2));
-    Ok(())
+pub async fn run_stop(run_id: String, runs: State<'_, RunState>) -> Result<()> {
+    let process = runs.get(&run_id)?.0;
+    blocking(move || {
+        process.kill(Duration::from_secs(2));
+        Ok(())
+    })
+    .await
 }
 
 /// Send console input to a run's stdin and echo it in the console.
@@ -261,10 +298,14 @@ pub fn run_write(
 
 /// Forget a finished run (its tab was closed); a running one is stopped first.
 #[tauri::command]
-pub fn run_dispose(run_id: String, runs: State<'_, RunState>) -> Result<()> {
+pub async fn run_dispose(run_id: String, runs: State<'_, RunState>) -> Result<()> {
     let removed = runs.runs.lock().expect("runs poisoned").remove(&run_id);
     if let Some(r) = removed {
-        r.process.kill(Duration::from_secs(2));
+        blocking(move || {
+            r.process.kill(Duration::from_secs(2));
+            Ok(())
+        })
+        .await?;
     }
     Ok(())
 }
