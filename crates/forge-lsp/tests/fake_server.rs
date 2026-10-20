@@ -180,3 +180,85 @@ async fn missing_server_binary_reports_failure() {
         ServerState::Failed { .. }
     ));
 }
+
+#[tokio::test]
+async fn several_servers_per_file_are_merged() {
+    let dir = tempfile::tempdir().unwrap();
+    let manager = LspManager::new(dir.path());
+    manager.register_server(config());
+    let mut lint = config();
+    lint.id = "lint".into();
+    lint.name = Some("Lint".into());
+    lint.args = vec!["secondary".into()];
+    manager.register_server(lint);
+    let mut rx = manager.subscribe();
+
+    let php = dir.path().join("a.php");
+    manager
+        .did_open(&php, "<?php\n// TODO\n// FIXME\n")
+        .await
+        .unwrap();
+    assert_eq!(manager.running_clients_for(&php).len(), 2);
+
+    // Diagnostics arrive per server; merged they contain both.
+    let mut merged = Vec::new();
+    for _ in 0..2 {
+        let (server, uri, diags) = next_matching(&mut rx, |e| match e {
+            LspEvent::Diagnostics {
+                server_id,
+                uri,
+                diagnostics,
+                ..
+            } => Some((server_id, uri, diagnostics)),
+            _ => None,
+        })
+        .await;
+        merged = manager.merge_diagnostics(&server, &uri, diags);
+    }
+    let mut sources: Vec<_> = merged.iter().filter_map(|d| d.source.clone()).collect();
+    sources.sort();
+    assert_eq!(sources, vec!["fake", "lint"]);
+
+    // Hover: first non-empty answer (the secondary server has none).
+    let hover = manager.hover(&php, Position::new(1, 2)).await.unwrap();
+    assert_eq!(hover.unwrap().contents, "**hover** 1:2");
+
+    // Completion lists are merged and remember their server for resolve.
+    let list = manager
+        .completion(&php, Position::new(0, 0))
+        .await
+        .unwrap()
+        .unwrap();
+    let labels: Vec<_> = list.items.iter().map(|i| i.label.as_str()).collect();
+    assert_eq!(labels, vec!["hasMany", "$orders", "lint-ignore"]);
+    assert_eq!(
+        list.items[2].raw[forge_lsp::COMPLETION_SERVER_KEY],
+        json!("lint")
+    );
+    let resolved = manager
+        .completion_resolve(&php, list.items[0].raw.clone())
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(resolved.documentation.as_deref(), Some("Resolved docs"));
+
+    // Definitions from both servers are deduplicated.
+    let defs = manager.definition(&php, Position::new(0, 0)).await.unwrap();
+    assert_eq!(defs.len(), 1);
+
+    // Formatting goes to the server that supports it.
+    let edits = manager.format(&php, 4, true).await.unwrap();
+    assert_eq!(edits[0].new_text, "<?php");
+
+    // Workspace symbols come from every running server.
+    let symbols = manager.workspace_symbols("Order").await;
+    assert_eq!(symbols.len(), 2);
+    assert!(symbols
+        .iter()
+        .all(|s| s.name == "OrderSymbol" && s.kind == "class"));
+    let mut servers: Vec<_> = symbols.iter().map(|s| s.server.as_str()).collect();
+    servers.sort();
+    assert_eq!(servers, vec!["fake", "lint"]);
+
+    manager.shutdown_all().await;
+}

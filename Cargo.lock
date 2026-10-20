@@ -1244,6 +1244,7 @@ name = "forge-lsp"
 version = "0.1.0"
 dependencies = [
  "forge-core",
+ "futures-util",
  "lsp-types",
  "serde",
  "serde_json",
