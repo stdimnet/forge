@@ -515,3 +515,53 @@
 .ls-remove {
   color: var(--danger);
 }
+
+/* ---- "Language server not installed" banner above the editor ---- */
+.ls-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px;
+  font-size: var(--fs-small);
+  color: var(--fg);
+  background: color-mix(in srgb, var(--warning) 14%, var(--bg-panel));
+  border-bottom: 1px solid color-mix(in srgb, var(--warning) 35%, var(--border));
+}
+.ls-hint[hidden] {
+  display: none;
+}
+.ls-hint-icon {
+  flex-shrink: 0;
+  color: var(--warning);
+}
+.ls-hint-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ls-hint-text strong {
+  color: var(--fg-strong);
+  font-weight: 600;
+}
+.ls-hint-btn {
+  flex-shrink: 0;
+  height: 22px;
+  padding: 0 9px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  color: var(--fg);
+}
+.ls-hint-btn:hover {
+  background: var(--bg-hover);
+}
+.ls-hint-btn.primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-fg);
+}
+.ls-hint-btn.primary:hover {
+  background: var(--accent-strong);
+}
