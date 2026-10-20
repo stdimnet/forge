@@ -102,7 +102,7 @@ pub const ACTION_GROUP_ORDER: [&str; 5] = [
 
 /// Ids that Forge features already register under another name, plus common alternate
 /// spellings. The UI follows these when the PHPStorm id itself has no command.
-pub const ACTION_ALIASES: [(&str, &[&str]); 14] = [
+pub const ACTION_ALIASES: [(&str, &[&str]); 17] = [
     ("SearchEverywhere", &["search.everywhere"]),
     ("ShowSettings", &["settings.open"]),
     ("Run", &["run.run"]),
@@ -112,6 +112,9 @@ pub const ACTION_ALIASES: [(&str, &[&str]); 14] = [
     ("CheckinProject", &["git.commit"]),
     ("Vcs.Push", &["git.push"]),
     ("Vcs.UpdateProject", &["git.update"]),
+    ("Git.Fetch", &["git.fetch"]),
+    ("Git.CreateNewBranch", &["git.newBranch"]),
+    ("Vcs.Show.Log", &["git.log"]),
     ("Annotate", &["git.annotate"]),
     ("Generate", &["php.generate"]),
     ("OpenFile", &["workspace.open"]),

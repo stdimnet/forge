@@ -7,7 +7,7 @@
 //! followed by its shortcuts, tab separated (shortcuts may contain commas and spaces). An
 //! entry with only the id removes all shortcuts of the action.
 
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, HashMap, HashSet};
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -16,6 +16,7 @@ use crate::catalog::{aliases_of, catalog, ActionContext, ActionDef, KeymapId, AC
 use crate::engine::{
     build_bindings, find_conflicts, Binding, ConflictKind, KeyInput, Resolution, Resolver,
 };
+use crate::menu::{resolve_main_menu, ActionLookup, MainMenu, MainMenuRequest};
 use crate::shortcut::{canonical_shortcut, format_shortcut_text, try_parse_shortcut, Platform};
 
 /// Setting that selects the keymap: "auto", "$default" or "macOS".
@@ -703,6 +704,27 @@ impl KeymapService {
         }]
     }
 
+    /// The main menu with labels, shortcuts and enabled states from this keymap.
+    pub fn main_menu(&self, request: &MainMenuRequest) -> MainMenu {
+        let titles: HashMap<String, String> = self
+            .all_actions()
+            .into_iter()
+            .map(|a| (a.id, a.title))
+            .collect();
+        let lookup = MenuLookup {
+            titles,
+            shortcuts: self.effective_shortcuts(),
+            commands: self
+                .registry
+                .commands
+                .iter()
+                .map(|c| c.id.as_str())
+                .collect(),
+            platform: self.platform(),
+        };
+        resolve_main_menu(request, &lookup)
+    }
+
     /// Feed one key event to the resolver.
     pub fn resolve(&mut self, input: &KeyInput) -> Resolution {
         if self.resolver_stale {
@@ -710,6 +732,31 @@ impl KeymapService {
             self.resolver_stale = false;
         }
         self.resolver.handle(input)
+    }
+}
+
+/// Action data the main menu is resolved against.
+struct MenuLookup<'a> {
+    titles: HashMap<String, String>,
+    shortcuts: ShortcutMap,
+    commands: HashSet<&'a str>,
+    platform: Platform,
+}
+
+impl ActionLookup for MenuLookup<'_> {
+    fn title(&self, id: &str) -> Option<String> {
+        self.titles.get(id).cloned()
+    }
+
+    fn shortcut(&self, id: &str) -> Option<String> {
+        self.shortcuts
+            .get(id)
+            .and_then(|list| list.first())
+            .map(|s| format_shortcut_text(s, self.platform))
+    }
+
+    fn is_available(&self, id: &str) -> bool {
+        self.commands.contains(id) || aliases_of(id).iter().any(|a| self.commands.contains(a))
     }
 }
 
