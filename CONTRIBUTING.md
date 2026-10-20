@@ -40,6 +40,9 @@ overview for humans) are in [AGENTS.md](AGENTS.md).
 - Small commits with imperative subjects; descriptive branch names (`feat/…`, `fix/…`, `docs/…`).
 - Run the [quality gates](.claude/skills/quality-gates/SKILL.md) before opening a pull request,
   and attach screenshots for UI changes.
+- Every user-visible change updates the matching page of the user and developer guide in
+  [docs/guide/](docs/guide/index.md) (structure and page format: [docs/guide/README.md](docs/guide/README.md)).
 
+Documentation: [docs/guide/](docs/guide/index.md) (user guide, reference, developer guide).
 Architecture overview: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Roadmap:
 [docs/ROADMAP.md](docs/ROADMAP.md).
