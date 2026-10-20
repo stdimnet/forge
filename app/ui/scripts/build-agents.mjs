@@ -1,6 +1,7 @@
 /**
  * Builds the Forge agent for remote hosts: statically linked (musl) Linux binaries for
- * x86_64 and aarch64, written to target/agents/forge-remote-agent-<arch>-linux. Forge looks
+ * x86_64 and aarch64, written gzip-compressed to target/agents/forge-remote-agent-<arch>-linux.gz
+ * (AppImage tools would patch an uncompressed ELF file in the bundle and break it). Forge looks
  * for them in `FORGE_REMOTE_AGENT_DIR`, the bundle's `agents/` resource folder and next to
  * its executable, and uploads the matching one to `~/.cache/forge-agent/<version>/` on the
  * host.
@@ -13,7 +14,8 @@
  * skipped with a hint. Usage: `pnpm agents [x86_64|aarch64 ...]`.
  */
 import { execFileSync } from "node:child_process";
-import { copyFileSync, mkdirSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { gzipSync } from "node:zlib";
 import { resolve } from "node:path";
 
 const root = resolve(import.meta.dirname, "../../..");
@@ -42,7 +44,7 @@ for (const arch of wanted) {
     stdio: "inherit",
     env,
   });
-  const out = resolve(outDir, `forge-remote-agent-${arch}-linux`);
-  copyFileSync(resolve(target, triple, "release/forge-remote-agent"), out);
+  const out = resolve(outDir, `forge-remote-agent-${arch}-linux.gz`);
+  writeFileSync(out, gzipSync(readFileSync(resolve(target, triple, "release/forge-remote-agent")), { level: 9 }));
   console.log(`wrote ${out}`);
 }

@@ -55,7 +55,8 @@ impl AgentBinaries {
         Self { dirs }
     }
 
-    /// The agent binary for a Linux host of `arch` (`x86_64` / `aarch64`).
+    /// The agent binary for a Linux host of `arch` (`x86_64` / `aarch64`), plain or
+    /// gzip-compressed (`.gz`, as bundled: AppImage tools patch uncompressed ELF files).
     pub fn find(&self, arch: &str) -> Option<PathBuf> {
         let bundled = deploy::bundled_name(arch);
         let same_platform = cfg!(target_os = "linux") && std::env::consts::ARCH == arch;
@@ -64,20 +65,36 @@ impl AgentBinaries {
             if p.is_file() {
                 return Some(p);
             }
+            let gz = d.join(format!("{bundled}.gz"));
+            if gz.is_file() {
+                return Some(gz);
+            }
             let dev = d.join("forge-remote-agent");
             (same_platform && dev.is_file()).then_some(dev)
         })
     }
 }
 
-fn sha256_file(path: &Path) -> Option<String> {
-    let bytes = std::fs::read(path).ok()?;
-    Some(
-        Sha256::digest(&bytes)
-            .iter()
-            .map(|b| format!("{b:02x}"))
-            .collect(),
-    )
+/// The agent binary at `path`, decompressed when it is a `.gz` file.
+fn read_agent(path: &Path) -> std::io::Result<Vec<u8>> {
+    let bytes = std::fs::read(path)?;
+    if path.extension().is_some_and(|e| e == "gz") {
+        let mut out = Vec::new();
+        std::io::Read::read_to_end(
+            &mut flate2::read::GzDecoder::new(bytes.as_slice()),
+            &mut out,
+        )?;
+        Ok(out)
+    } else {
+        Ok(bytes)
+    }
+}
+
+fn sha256_hex(bytes: &[u8]) -> String {
+    Sha256::digest(bytes)
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect()
 }
 
 fn other(message: impl Into<String>) -> ConnectError {
@@ -136,20 +153,19 @@ pub async fn start_agent(
         .await?;
     let probe = deploy::parse_probe(&probe_out.stdout_text());
     let local = deploy::normalize_arch(&probe.arch).and_then(|a| binaries.find(a));
-    let local_sha = local.as_deref().and_then(sha256_file);
+    let local_bytes = local.as_deref().and_then(|p| read_agent(p).ok());
+    let local_sha = local_bytes.as_deref().map(sha256_hex);
     let mut uploaded = false;
     match deploy::plan(&probe, &version_line(), local_sha.as_deref()) {
         DeployPlan::Unsupported { message } => return Err(other(message)),
         DeployPlan::Upload { arch, reason } => {
-            let path = local.ok_or_else(|| {
+            let bytes = local_bytes.ok_or_else(|| {
                 other(format!(
                     "The Forge agent for Linux {arch} is not part of this build ({reason}). \
                      Build it with `pnpm --dir app/ui agents` or point FORGE_REMOTE_AGENT_DIR \
                      at a folder with forge-remote-agent-{arch}-linux."
                 ))
             })?;
-            let bytes = std::fs::read(&path)
-                .map_err(|e| other(format!("Cannot read {}: {e}", path.display())))?;
             progress("Uploading the Forge agent…");
             tracing::info!("uploading the Forge agent ({reason})");
             let out = session
@@ -216,6 +232,20 @@ mod tests {
                 Some(dir.path().join("forge-remote-agent"))
             );
         }
+    }
+
+    #[test]
+    fn reads_compressed_bundled_binaries() {
+        use std::io::Write;
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("forge-remote-agent-aarch64-linux.gz");
+        let mut gz = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::default());
+        gz.write_all(b"\x7fELF agent").unwrap();
+        std::fs::write(&path, gz.finish().unwrap()).unwrap();
+        let bins = AgentBinaries::new(vec![dir.path().to_path_buf()]);
+        let found = bins.find("aarch64").unwrap();
+        assert_eq!(found, path);
+        assert_eq!(read_agent(&found).unwrap(), b"\x7fELF agent");
     }
 
     #[tokio::test]
