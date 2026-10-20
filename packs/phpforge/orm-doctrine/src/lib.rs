@@ -3,13 +3,12 @@
 //! - [`mapping`] reads entity mappings from PHP 8 attributes (`#[ORM\Column]`), legacy
 //!   docblock annotations (`@ORM\Column`, parsed by the lang-php docblock parser), XML
 //!   (`*.orm.xml`) and YAML (`*.orm.yml`) mapping files, and finds entity repositories.
-//! - [`dql`] tokenizes and parses DQL for highlighting, completion (entities, aliases,
+//! - [`dql`] (from the pure `phpforge-dql` crate) tokenizes and parses DQL for highlighting, completion (entities, aliases,
 //!   fields, associations, keywords and functions) and diagnostics.
 //! - [`php`] finds DQL inside PHP: `createQuery('…')` (including concatenated strings and
 //!   `Entity::class`) and QueryBuilder calls (`->where('o.status = :s')`), with the aliases
 //!   the builder chain declares.
 
-pub mod dql;
 pub mod mapping;
 pub mod php;
 
@@ -17,27 +16,12 @@ use std::path::Path;
 
 use serde::{Deserialize, Serialize};
 
-pub use mapping::{Association, AssociationKind, Entity, Field, MappingSource, Repository};
-
-/// A position in a project file (relative `/` path, 0-based line and byte column).
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Location {
-    pub path: String,
-    pub line: u32,
-    #[serde(default)]
-    pub column: u32,
-}
-
-impl Location {
-    pub fn new(path: impl Into<String>, line: u32, column: u32) -> Self {
-        Self {
-            path: path.into(),
-            line,
-            column,
-        }
-    }
-}
+/// DQL tokenizing, parsing, highlighting, completion and diagnostics (pure crate
+/// `phpforge-dql`, also built to WebAssembly).
+pub use phpforge_dql::dql;
+pub use phpforge_dql::model::{
+    Association, AssociationKind, Entity, Field, Location, MappingSource, Repository, Snapshot,
+};
 
 /// Plugin settings (`doctrine.*`).
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -61,53 +45,6 @@ impl Default for Config {
             ],
             annotations: true,
         }
-    }
-}
-
-/// Entities and repositories of a project.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Snapshot {
-    pub entities: Vec<Entity>,
-    pub repositories: Vec<Repository>,
-}
-
-impl Snapshot {
-    /// Entity by FQN, legacy `Bundle:Entity` alias or (unique) short name.
-    pub fn entity(&self, name: &str) -> Option<&Entity> {
-        let name = name.trim().trim_start_matches('\\').replace("\\\\", "\\");
-        if let Some(e) = self
-            .entities
-            .iter()
-            .find(|e| e.class.eq_ignore_ascii_case(&name))
-        {
-            return Some(e);
-        }
-        let short = name
-            .rsplit([':', '\\'])
-            .next()
-            .unwrap_or(&name)
-            .to_ascii_lowercase();
-        self.entities
-            .iter()
-            .find(|e| e.name.to_ascii_lowercase() == short)
-    }
-
-    /// Entity managed by a repository class.
-    pub fn entity_of_repository(&self, repository: &str) -> Option<&Entity> {
-        let repository = repository.trim_start_matches('\\');
-        self.repositories
-            .iter()
-            .find(|r| r.class.eq_ignore_ascii_case(repository))
-            .and_then(|r| r.entity.as_deref())
-            .and_then(|e| self.entity(e))
-            .or_else(|| {
-                self.entities.iter().find(|e| {
-                    e.repository_class
-                        .as_deref()
-                        .is_some_and(|r| r.eq_ignore_ascii_case(repository))
-                })
-            })
     }
 }
 

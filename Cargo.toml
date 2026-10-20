@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/*", "packs/phpforge/lang-php", "packs/phpforge/fw-laravel", "packs/phpforge/fw-symfony", "packs/phpforge/orm-doctrine", "app/src-tauri"]
+members = ["crates/*", "packs/phpforge/lang-php", "packs/phpforge/fw-laravel", "packs/phpforge/fw-symfony", "packs/phpforge/orm-doctrine", "packs/phpforge/dql", "app/src-tauri"]
 
 [workspace.package]
 version = "0.1.0"
