@@ -567,6 +567,34 @@ impl Repo {
     pub fn fetch(&self) -> Result<RemoteResult> {
         self.git_remote(&["fetch", "--all", "--prune"])
     }
+
+    /// `git remote -v` output (`name<TAB>url (fetch|push)` lines).
+    pub fn remote_verbose(&self) -> Result<String> {
+        self.git(&["remote", "-v"])
+    }
+
+    /// Fetch one refspec from a remote, e.g. `+refs/pull/7/head:refs/heads/pr-7`.
+    pub fn fetch_refspec(&self, remote: &str, refspec: &str) -> Result<RemoteResult> {
+        check_rev(remote)?;
+        check_rev(refspec)?;
+        self.git_remote(&["fetch", remote, refspec])
+    }
+
+    /// Whether a local branch exists.
+    pub fn has_branch(&self, name: &str) -> bool {
+        run_raw(
+            &self.root,
+            &[
+                "show-ref",
+                "--verify",
+                "--quiet",
+                &format!("refs/heads/{name}"),
+            ],
+            Run::default(),
+        )
+        .map(|o| o.ok)
+        .unwrap_or(false)
+    }
 }
 
 /// Reject revisions that git would parse as options.

@@ -261,6 +261,18 @@ fn push_pull_fetch_against_local_remote() {
         .remote
         .iter()
         .any(|b| b.name == "origin/main"));
+
+    // Review refs (as code hosts publish them) can be fetched into a local branch.
+    sh(
+        remote.path(),
+        &["update-ref", "refs/pull/7/head", "refs/heads/main"],
+    );
+    assert!(repo.remote_verbose().unwrap().contains("origin\t"));
+    assert!(!repo.has_branch("pr-7"));
+    repo.fetch_refspec("origin", "+refs/pull/7/head:refs/heads/pr-7")
+        .unwrap();
+    assert!(repo.has_branch("pr-7"));
+    assert!(repo.fetch_refspec("origin", "--upload-pack=x").is_err());
 }
 
 #[test]
