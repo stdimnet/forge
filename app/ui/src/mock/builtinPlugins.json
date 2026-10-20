@@ -207,6 +207,17 @@
           "order": 2
         },
         {
+          "key": "system.defaultProjectDirectory",
+          "title": "Default project directory",
+          "description": "New projects are created here unless you pick another location.",
+          "type": "path",
+          "default": "~/Projects",
+          "group": "system",
+          "section": "Project",
+          "project": false,
+          "order": 3
+        },
+        {
           "key": "system.autosave.onFrameDeactivation",
           "title": "Save files if the IDE is switched to a different application",
           "type": "bool",
@@ -838,6 +849,9 @@
     "vendor": "Forge",
     "depends": [],
     "required": false,
+    "projectTypes": [
+      "php"
+    ],
     "enabled": true,
     "contributions": {
       "languages": [
@@ -1170,6 +1184,9 @@
       "forge.php"
     ],
     "required": false,
+    "projectTypes": [
+      "composer"
+    ],
     "enabled": true,
     "contributions": {
       "languages": [],
@@ -1254,6 +1271,10 @@
       "forge.php"
     ],
     "required": false,
+    "projectTypes": [
+      "phpunit",
+      "pest"
+    ],
     "enabled": true,
     "contributions": {
       "languages": [],
@@ -1295,6 +1316,9 @@
       "forge.php"
     ],
     "required": false,
+    "projectTypes": [
+      "php"
+    ],
     "enabled": true,
     "contributions": {
       "languages": [],
@@ -1337,6 +1361,9 @@
       "forge.composer"
     ],
     "required": false,
+    "projectTypes": [
+      "laravel"
+    ],
     "enabled": true,
     "contributions": {
       "languages": [],
@@ -1377,6 +1404,9 @@
       "forge.composer"
     ],
     "required": false,
+    "projectTypes": [
+      "symfony"
+    ],
     "enabled": true,
     "contributions": {
       "languages": [],
@@ -1402,6 +1432,9 @@
       "forge.php"
     ],
     "required": false,
+    "projectTypes": [
+      "doctrine"
+    ],
     "enabled": true,
     "contributions": {
       "languages": [],
@@ -1425,6 +1458,9 @@
     "vendor": "Forge",
     "depends": [],
     "required": false,
+    "projectTypes": [
+      "webforge"
+    ],
     "enabled": true,
     "contributions": {
       "languages": [
@@ -1510,6 +1546,10 @@
       "forge.web"
     ],
     "required": false,
+    "projectTypes": [
+      "vue",
+      "nuxt"
+    ],
     "enabled": true,
     "contributions": {
       "languages": [
@@ -1547,6 +1587,9 @@
     "vendor": "Forge",
     "depends": [],
     "required": false,
+    "projectTypes": [
+      "luaforge"
+    ],
     "enabled": true,
     "contributions": {
       "languages": [
