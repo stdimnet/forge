@@ -7,5 +7,7 @@ pub mod git;
 pub mod lsp;
 pub mod php;
 pub mod project;
+pub mod run;
 pub mod settings;
+pub mod terminal;
 pub mod workspace;
