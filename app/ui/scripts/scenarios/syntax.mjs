@@ -29,4 +29,6 @@ export default {
   "syntax-smarty": scenario("legacy/templates/cart.tpl"),
   "syntax-html": scenario("public/index.html"),
   "syntax-css": scenario("resources/css/app.css"),
+  "syntax-twig-latex": scenario("templates/invoice/invoice.tex.twig"),
+  "syntax-twig-sql": scenario("templates/reports/top_customers.sql.twig"),
 };

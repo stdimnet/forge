@@ -163,6 +163,38 @@
           "order": 40
         },
         {
+          "key": "templates.dataLanguages",
+          "title": "Template data languages",
+          "description": "Language of the content between template tags, one entry per pattern: `legacy/latex/*.tpl=latex`, `*.mail.twig=text`. Languages: html, xml, latex, css, scss, less, javascript, typescript, json, sql, yaml, ini, shell, text. Compound names like `invoice.tex.twig` are detected automatically. Applies to files opened afterwards.",
+          "type": "list",
+          "default": [],
+          "group": "lang.templates",
+          "section": "Data Languages",
+          "project": true,
+          "order": 0
+        },
+        {
+          "key": "templates.smarty.leftDelimiter",
+          "title": "Left delimiter",
+          "description": "Smarty's left_delimiter. Use e.g. `<{` for LaTeX templates, where `{` is part of the content.",
+          "type": "string",
+          "default": "{",
+          "group": "lang.templates",
+          "section": "Smarty",
+          "project": true,
+          "order": 10
+        },
+        {
+          "key": "templates.smarty.rightDelimiter",
+          "title": "Right delimiter",
+          "type": "string",
+          "default": "}",
+          "group": "lang.templates",
+          "section": "Smarty",
+          "project": true,
+          "order": 11
+        },
+        {
           "key": "system.reopenLastProject",
           "title": "Reopen projects on startup",
           "type": "bool",
