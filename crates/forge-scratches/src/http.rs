@@ -19,8 +19,11 @@
 //! Requests are separated by `###` (text after it names the request); `# @name x` also names
 //! one. A request is a request line (`METHOD URL [HTTP/version]`, the method defaults to
 //! GET), indented `?`/`&` lines continuing the query, headers, a blank line and the body.
-//! `@name = value` lines define variables. Response handlers (`> {% … %}`, `> file.js`) and
-//! response references (`<> file`) are skipped.
+//! `@name = value` lines define variables. Body lines `< ./file.json` insert a file (`<@`
+//! substitutes variables in it). `{{$uuid}}`, `{{$random.uuid}}`, `{{$timestamp}}`,
+//! `{{$isoTimestamp}}`, `{{$randomInt}}` and `{{$random.integer(from, to)}}` are dynamic
+//! variables. Response handlers (`> {% … %}` or `> ./handler.js`) are kept for
+//! [`crate::handler`]; response references (`<> file`) are skipped.
 
 use std::collections::BTreeMap;
 
@@ -56,6 +59,12 @@ pub struct HttpRequest {
     pub headers: Vec<Header>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub body: Option<String>,
+    /// Response handler script (`> {% … %}`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub handler: Option<String>,
+    /// Response handler file (`> ./check.js`), relative to the `.http` file.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub handler_file: Option<String>,
 }
 
 impl HttpRequest {
@@ -230,27 +239,43 @@ fn parse_block(
     }
     // Body: up to the end of the block, without response handlers and references.
     let mut body: Vec<&str> = Vec::new();
-    let mut in_handler = false;
+    let mut handler: Option<String> = None;
+    let mut handler_file: Option<String> = None;
+    let mut script: Option<Vec<&str>> = None;
     while i < to {
         let line = lines[i];
         i += 1;
         let t = line.trim_start();
-        if in_handler {
-            in_handler = !t.contains("%}");
+        if let Some(lines) = script.as_mut() {
+            match line.find("%}") {
+                Some(end) => {
+                    lines.push(&line[..end]);
+                    handler = Some(lines.join("\n").trim().to_string());
+                    script = None;
+                }
+                None => lines.push(line),
+            }
             continue;
         }
-        if t.starts_with("> {%") {
-            in_handler = !t.contains("%}");
+        if let Some(rest) = t.strip_prefix("> {%") {
+            match rest.find("%}") {
+                Some(end) => handler = Some(rest[..end].trim().to_string()),
+                None => script = Some(vec![rest]),
+            }
             continue;
         }
-        if t.starts_with("<> ")
-            || t.starts_with(">> ")
-            || t.starts_with(">>! ")
-            || t.starts_with("> ")
-        {
+        if let Some(file) = t.strip_prefix("> ") {
+            handler_file = Some(file.trim().to_string());
+            continue;
+        }
+        if t.starts_with("<> ") || t.starts_with(">> ") || t.starts_with(">>! ") {
             continue;
         }
         body.push(line);
+    }
+    if let Some(lines) = script {
+        // Unterminated `{%`: take the rest of the block.
+        handler = Some(lines.join("\n").trim().to_string());
     }
     while body.first().is_some_and(|l| l.trim().is_empty()) {
         body.remove(0);
@@ -268,12 +293,19 @@ fn parse_block(
         version,
         headers,
         body: (!body.is_empty()).then(|| body.join("\n")),
+        handler,
+        handler_file,
     })
 }
 
 /// Replace `{{name}}` with variables (values may use other variables). Unknown variables
 /// stay as they are.
 pub fn substitute(text: &str, vars: &BTreeMap<String, String>) -> String {
+    substitute_with(text, &mut |key| vars.get(key).cloned())
+}
+
+/// [`substitute`] with a lookup function (variables plus dynamic `$` variables).
+pub fn substitute_with(text: &str, lookup: &mut dyn FnMut(&str) -> Option<String>) -> String {
     let mut out = text.to_string();
     for _ in 0..5 {
         let mut changed = false;
@@ -285,9 +317,9 @@ pub fn substitute(text: &str, vars: &BTreeMap<String, String>) -> String {
             match after.find("}}") {
                 Some(end) => {
                     let key = after[..end].trim();
-                    match vars.get(key) {
+                    match lookup(key) {
                         Some(v) => {
-                            result.push_str(v);
+                            result.push_str(&v);
                             changed = true;
                         }
                         None => result.push_str(&rest[start..start + 2 + end + 2]),
@@ -310,24 +342,245 @@ pub fn substitute(text: &str, vars: &BTreeMap<String, String>) -> String {
 }
 
 /// The request with variables substituted in its URL, headers and body. `env` (e.g. from
-/// an environment file) is overridden by the file's own variables.
+/// an environment file) is overridden by the file's own variables. Body files are not read
+/// and dynamic variables come from a fixed seed; runs use a [`Resolver`].
 pub fn resolve(
     req: &HttpRequest,
     file_vars: &BTreeMap<String, String>,
     env: &BTreeMap<String, String>,
 ) -> HttpRequest {
-    let mut vars = env.clone();
-    vars.extend(file_vars.iter().map(|(k, v)| (k.clone(), v.clone())));
-    let mut out = req.clone();
-    out.url = substitute(&req.url, &vars);
-    if !out.url.contains("://") {
-        out.url = format!("http://{}", out.url);
+    Resolver::new(env, &BTreeMap::new(), file_vars, Dynamic::new(0, 0))
+        .resolve(req)
+        .request
+}
+
+/// Generates the values of dynamic variables (`{{$uuid}}`, …). Pure and seeded, so the
+/// WebAssembly build and tests get reproducible values; [`Dynamic::system`] seeds from the
+/// clock.
+#[derive(Debug, Clone)]
+pub struct Dynamic {
+    timestamp: u64,
+    state: u64,
+}
+
+impl Dynamic {
+    /// `timestamp`: Unix seconds for `$timestamp` / `$isoTimestamp`.
+    pub fn new(timestamp: u64, seed: u64) -> Self {
+        Dynamic {
+            timestamp,
+            state: seed,
+        }
     }
-    for h in &mut out.headers {
-        h.value = substitute(&h.value, &vars);
+
+    /// Seeded from the system clock and the process's hash keys.
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn system() -> Self {
+        use std::hash::{BuildHasher, Hasher};
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default();
+        let mut h = std::collections::hash_map::RandomState::new().build_hasher();
+        h.write_u128(now.as_nanos());
+        Dynamic::new(now.as_secs(), h.finish())
     }
-    out.body = req.body.as_ref().map(|b| substitute(b, &vars));
-    out
+
+    /// splitmix64.
+    fn next(&mut self) -> u64 {
+        self.state = self.state.wrapping_add(0x9E37_79B9_7F4A_7C15);
+        let mut z = self.state;
+        z = (z ^ (z >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
+        z = (z ^ (z >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
+        z ^ (z >> 31)
+    }
+
+    fn uuid(&mut self) -> String {
+        let (a, b) = (self.next(), self.next());
+        let mut bytes = [0u8; 16];
+        bytes[..8].copy_from_slice(&a.to_be_bytes());
+        bytes[8..].copy_from_slice(&b.to_be_bytes());
+        bytes[6] = (bytes[6] & 0x0f) | 0x40;
+        bytes[8] = (bytes[8] & 0x3f) | 0x80;
+        let hex: String = bytes.iter().map(|b| format!("{b:02x}")).collect();
+        format!(
+            "{}-{}-{}-{}-{}",
+            &hex[..8],
+            &hex[8..12],
+            &hex[12..16],
+            &hex[16..20],
+            &hex[20..]
+        )
+    }
+
+    /// The value of a dynamic variable (`$uuid`, `$random.integer(1, 6)`), `None` for
+    /// anything else.
+    pub fn value(&mut self, name: &str) -> Option<String> {
+        let name = name.trim();
+        match name {
+            "$uuid" | "$random.uuid" => Some(self.uuid()),
+            "$timestamp" => Some(self.timestamp.to_string()),
+            "$isoTimestamp" => Some(iso_timestamp(self.timestamp)),
+            "$randomInt" => Some((self.next() % 1001).to_string()),
+            _ => {
+                let args = name.strip_prefix("$random.integer(")?.strip_suffix(')')?;
+                let (from, to) = args.split_once(',').unwrap_or(("0", "1000"));
+                let from: i64 = from.trim().parse().ok()?;
+                let to: i64 = to.trim().parse().ok()?;
+                if to < from {
+                    return None;
+                }
+                let span = (to - from) as u64 + 1;
+                Some((from + (self.next() % span) as i64).to_string())
+            }
+        }
+    }
+}
+
+/// `2026-10-21T09:15:02Z` from Unix seconds.
+pub fn iso_timestamp(secs: u64) -> String {
+    let days = (secs / 86_400) as i64;
+    let rem = secs % 86_400;
+    // Howard Hinnant's civil_from_days.
+    let z = days + 719_468;
+    let era = z.div_euclid(146_097);
+    let doe = z - era * 146_097;
+    let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let d = doy - (153 * mp + 2) / 5 + 1;
+    let m = if mp < 10 { mp + 3 } else { mp - 9 };
+    let y = yoe + era * 400 + i64::from(m <= 2);
+    format!(
+        "{y:04}-{m:02}-{d:02}T{:02}:{:02}:{:02}Z",
+        rem / 3600,
+        rem % 3600 / 60,
+        rem % 60
+    )
+}
+
+/// Reads a file referenced by a request (`< ./body.json`, `> ./handler.js`), relative to
+/// the `.http` file. Errors are worded for the console.
+pub type FileLoader<'a> = &'a dyn Fn(&str) -> Result<String, String>;
+
+/// A request ready to send, or why it cannot be sent.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Resolved {
+    pub request: HttpRequest,
+    /// Body files that could not be read; the request is not sent then.
+    pub problems: Vec<String>,
+}
+
+/// Resolves requests of one file: variables (environment < `client.global` < in-file),
+/// dynamic variables and body files.
+pub struct Resolver<'a> {
+    vars: BTreeMap<String, String>,
+    dynamic: Dynamic,
+    load: Option<FileLoader<'a>>,
+}
+
+impl<'a> Resolver<'a> {
+    pub fn new(
+        env: &BTreeMap<String, String>,
+        globals: &BTreeMap<String, String>,
+        file_vars: &BTreeMap<String, String>,
+        dynamic: Dynamic,
+    ) -> Self {
+        let mut vars = env.clone();
+        vars.extend(globals.iter().map(|(k, v)| (k.clone(), v.clone())));
+        vars.extend(file_vars.iter().map(|(k, v)| (k.clone(), v.clone())));
+        Resolver {
+            vars,
+            dynamic,
+            load: None,
+        }
+    }
+
+    /// Read `< file` bodies and `> file` handlers with `load`.
+    pub fn with_loader(mut self, load: FileLoader<'a>) -> Self {
+        self.load = Some(load);
+        self
+    }
+
+    fn subst(&mut self, text: &str) -> String {
+        let (vars, dynamic) = (&self.vars, &mut self.dynamic);
+        substitute_with(text, &mut |key| {
+            if key.starts_with('$') {
+                dynamic.value(key)
+            } else {
+                vars.get(key).cloned()
+            }
+        })
+    }
+
+    fn load(&self, path: &str) -> Result<String, String> {
+        match self.load {
+            Some(load) => load(path),
+            None => Err(format!("Cannot read {path}: files are not available here")),
+        }
+    }
+
+    pub fn resolve(&mut self, req: &HttpRequest) -> Resolved {
+        let mut out = req.clone();
+        let mut problems = Vec::new();
+        out.url = self.subst(&req.url);
+        if !out.url.contains("://") {
+            out.url = format!("http://{}", out.url);
+        }
+        for h in &mut out.headers {
+            h.value = self.subst(&h.value);
+        }
+        out.body = req.body.as_ref().map(|body| {
+            let mut lines = Vec::new();
+            for line in body.split('\n') {
+                let t = line.trim_start();
+                let (raw, path) = if let Some(p) = t.strip_prefix("<@") {
+                    (false, p)
+                } else if let Some(p) = t.strip_prefix("< ") {
+                    (true, p)
+                } else {
+                    lines.push(self.subst(line));
+                    continue;
+                };
+                let path = self.subst(path.trim());
+                match self.load(&path) {
+                    Ok(text) if raw => lines.push(text.trim_end_matches('\n').to_string()),
+                    Ok(text) => lines.push(self.subst(text.trim_end_matches('\n'))),
+                    Err(e) => problems.push(e),
+                }
+            }
+            lines.join("\n")
+        });
+        Resolved {
+            request: out,
+            problems,
+        }
+    }
+
+    /// The response handler script of a request: inline, or read from its file.
+    pub fn handler(&self, req: &HttpRequest) -> Result<Option<String>, String> {
+        if let Some(script) = &req.handler {
+            return Ok(Some(script.clone()));
+        }
+        match &req.handler_file {
+            Some(path) => self.load(path).map(Some),
+            None => Ok(None),
+        }
+    }
+}
+
+/// The relative path of a referenced file joined to the `.http` file's directory, without
+/// `.` and `..` segments; `None` when it leaves the base (the project root).
+pub fn join_relative(dir: &str, path: &str) -> Option<String> {
+    let mut parts: Vec<&str> = dir.split('/').filter(|p| !p.is_empty()).collect();
+    for seg in path.split(['/', '\\']) {
+        match seg {
+            "" | "." => {}
+            ".." => {
+                parts.pop()?;
+            }
+            s => parts.push(s),
+        }
+    }
+    Some(parts.join("/"))
 }
 
 /// Variables of environment `name` from `http-client.env.json` and
@@ -365,6 +618,25 @@ pub fn environment(
         }
     }
     vars
+}
+
+/// Names of the environments in `http-client.env.json` and `http-client.private.env.json`
+/// (the selector of `.http` editors), sorted, without duplicates.
+pub fn environment_names(public: Option<&str>, private: Option<&str>) -> Vec<String> {
+    let mut names: Vec<String> = [public, private]
+        .into_iter()
+        .flatten()
+        .filter_map(|t| serde_json::from_str::<serde_json::Map<String, serde_json::Value>>(t).ok())
+        .flat_map(|m| {
+            m.into_iter()
+                .filter(|(k, v)| v.is_object() && !k.starts_with('$'))
+                .map(|(k, _)| k)
+                .collect::<Vec<_>>()
+        })
+        .collect();
+    names.sort();
+    names.dedup();
+    names
 }
 
 /// A received response.
@@ -680,6 +952,92 @@ https://example.com/health
         );
         assert!(environment(None, None, None).is_empty());
         assert!(environment(Some("not json"), None, None).is_empty());
+    }
+
+    #[test]
+    fn parses_response_handlers() {
+        let f = parse(FILE);
+        assert_eq!(
+            f.requests[1].handler.as_deref(),
+            Some("client.global.set(\"id\", response.body.id);")
+        );
+        assert_eq!(f.requests[0].handler, None);
+        let f = parse(
+            "GET http://h/a\n\n> {% client.log(1) %}\n\n###\nGET http://h/b\n\n> ./check.js\n",
+        );
+        assert_eq!(f.requests[0].handler.as_deref(), Some("client.log(1)"));
+        assert_eq!(f.requests[0].body, None);
+        assert_eq!(f.requests[1].handler_file.as_deref(), Some("./check.js"));
+    }
+
+    #[test]
+    fn dynamic_variables() {
+        let mut d = Dynamic::new(1_792_574_102, 7);
+        let uuid = d.value("$uuid").unwrap();
+        assert_eq!(uuid.len(), 36);
+        assert_eq!(&uuid[14..15], "4");
+        assert!(matches!(&uuid[19..20], "8" | "9" | "a" | "b"));
+        assert_ne!(uuid, d.value("$random.uuid").unwrap());
+        assert_eq!(d.value("$timestamp").unwrap(), "1792574102");
+        assert_eq!(d.value("$isoTimestamp").unwrap(), "2026-10-21T09:15:02Z");
+        assert_eq!(iso_timestamp(0), "1970-01-01T00:00:00Z");
+        assert_eq!(iso_timestamp(951_782_400), "2000-02-29T00:00:00Z");
+        let n: u32 = d.value("$randomInt").unwrap().parse().unwrap();
+        assert!(n <= 1000);
+        let dice: i64 = d.value("$random.integer(1, 6)").unwrap().parse().unwrap();
+        assert!((1..=6).contains(&dice));
+        assert_eq!(d.value("$nope"), None);
+        assert_eq!(d.value("$random.integer(5, 1)"), None);
+        // Each occurrence gets its own value; unknown `$` variables stay.
+        let req = &parse("POST http://h/{{$uuid}}\nX-Id: {{$uuid}}\n\n{{$unknown}}").requests[0];
+        let r = Resolver::new(&BTreeMap::new(), &BTreeMap::new(), &BTreeMap::new(), d)
+            .resolve(req)
+            .request;
+        assert_ne!(&r.url["http://h/".len()..], r.header("X-Id").unwrap());
+        assert_eq!(r.body.as_deref(), Some("{{$unknown}}"));
+    }
+
+    #[test]
+    fn body_files_globals_and_precedence() {
+        let file = parse(
+            "@who = file\nPOST http://h/{{who}}/{{token}}\n\n< ./body.json\n<@ ./tpl.json\n< ./missing.json\n",
+        );
+        let load = |p: &str| match p {
+            "./body.json" => Ok("{\"raw\": \"{{who}}\"}\n".to_string()),
+            "./tpl.json" => Ok("{\"who\": \"{{who}}\"}".to_string()),
+            other => Err(format!("Cannot read {other}")),
+        };
+        let env = BTreeMap::from([("who".into(), "env".into()), ("token".into(), "e".into())]);
+        let globals = BTreeMap::from([("token".into(), "g".into())]);
+        let r = Resolver::new(&env, &globals, &file.variables, Dynamic::new(0, 1))
+            .with_loader(&load)
+            .resolve(&file.requests[0]);
+        assert_eq!(r.request.url, "http://h/file/g");
+        assert_eq!(
+            r.request.body.as_deref(),
+            Some("{\"raw\": \"{{who}}\"}\n{\"who\": \"file\"}")
+        );
+        assert_eq!(r.problems, vec!["Cannot read ./missing.json"]);
+        // Without a loader, body files are a problem.
+        let r = Resolver::new(&env, &globals, &file.variables, Dynamic::new(0, 1))
+            .resolve(&file.requests[0]);
+        assert_eq!(r.problems.len(), 3);
+        assert_eq!(
+            join_relative("api", "./data/../body.json").as_deref(),
+            Some("api/body.json")
+        );
+        assert_eq!(join_relative("", "../x"), None);
+    }
+
+    #[test]
+    fn lists_environment_names() {
+        let public = r#"{"prod":{"host":"a"},"dev":{"host":"b"},"$shared":{"x":1}}"#;
+        let private = r#"{"dev":{"token":"t"},"staging":{}}"#;
+        assert_eq!(
+            environment_names(Some(public), Some(private)),
+            vec!["dev", "prod", "staging"]
+        );
+        assert!(environment_names(None, Some("broken")).is_empty());
     }
 
     fn strip_ansi(s: &str) -> String {

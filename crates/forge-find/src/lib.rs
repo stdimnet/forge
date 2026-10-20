@@ -109,7 +109,11 @@ pub struct FileMask {
 impl FileMask {
     pub fn parse(mask: &str) -> Self {
         let mut out = FileMask::default();
-        for part in mask.split([',', ';']).map(str::trim).filter(|p| !p.is_empty()) {
+        for part in mask
+            .split([',', ';'])
+            .map(str::trim)
+            .filter(|p| !p.is_empty())
+        {
             match part.strip_prefix('!') {
                 Some(p) => out.exclude.push(p.trim().to_string()),
                 None => out.include.push(part.to_string()),
@@ -264,27 +268,17 @@ fn line_match(line_no: usize, line: &str, found: &[(usize, usize)]) -> LineMatch
         if before.len() > 40 {
             start += before[before.len() - 40].0;
         }
-        let mut taken = 0;
-        let mut cut = end;
-        for (i, _) in line[start..].char_indices() {
-            if taken == PREVIEW_CHARS {
-                cut = start + i;
-                break;
-            }
-            taken += 1;
-        }
+        let cut = line[start..]
+            .char_indices()
+            .nth(PREVIEW_CHARS)
+            .map_or(end, |(i, _)| (start + i).min(end));
         end = cut.max(first_end.min(line.len()));
     }
     let text = &line[start..end];
     let ranges = found
         .iter()
         .filter(|(s, e)| *s >= start && *e <= end)
-        .map(|(s, e)| {
-            (
-                utf16_len(&line[start..*s]),
-                utf16_len(&line[start..*e]),
-            )
-        })
+        .map(|(s, e)| (utf16_len(&line[start..*s]), utf16_len(&line[start..*e])))
         .collect();
     LineMatch {
         line: line_no,
@@ -344,7 +338,10 @@ impl<'a> Collector<'a> {
 }
 
 /// Search in-memory files (browser mode, tests): every `(path, text)` in scope.
-pub fn find_in<'t>(req: &FindRequest, files: impl IntoIterator<Item = (&'t str, &'t str)>) -> FindResult {
+pub fn find_in<'t>(
+    req: &FindRequest,
+    files: impl IntoIterator<Item = (&'t str, &'t str)>,
+) -> FindResult {
     let finder = match Finder::new(req) {
         Ok(f) => f,
         Err(e) => {
@@ -420,7 +417,11 @@ mod tests {
         let mut q = req("(unclosed");
         q.regex = true;
         let r = find_in(&q, files);
-        assert!(r.error.as_deref().unwrap().starts_with("Bad regular expression"));
+        assert!(r
+            .error
+            .as_deref()
+            .unwrap()
+            .starts_with("Bad regular expression"));
         assert!(find_in(&req(""), files).error.is_some());
     }
 
