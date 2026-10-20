@@ -3,6 +3,7 @@ use std::sync::OnceLock;
 
 use nucleo_matcher::pattern::{CaseMatching, Normalization, Pattern};
 use nucleo_matcher::{Config, Matcher, Utf32Str};
+#[cfg(feature = "parallel")]
 use rayon::prelude::*;
 use regex::bytes::Regex;
 use serde::{Deserialize, Serialize};
@@ -15,7 +16,7 @@ const MAX_NAME_BYTES: usize = 120;
 const SCORE_CHUNK: usize = 1 << 16;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub(crate) enum Kind {
+pub enum Kind {
     Class,
     Interface,
     Trait,
@@ -73,7 +74,7 @@ impl Kind {
     }
 }
 
-pub(crate) struct RawSymbol {
+pub struct RawSymbol {
     pub name: String,
     pub kind: Kind,
     pub line: u32,
@@ -318,9 +319,7 @@ impl SymbolTable {
             return Vec::new();
         }
         let pattern = Pattern::parse(query, CaseMatching::Smart, Normalization::Smart);
-        let mut scored: Vec<(u32, usize)> = self
-            .recs
-            .par_chunks(SCORE_CHUNK)
+        let mut scored: Vec<(u32, usize)> = par_chunks!(self.recs, SCORE_CHUNK)
             .enumerate()
             .flat_map(|(chunk_no, chunk)| {
                 let mut matcher = Matcher::new(Config::DEFAULT);

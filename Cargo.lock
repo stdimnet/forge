@@ -2139,19 +2139,27 @@ dependencies = [
 name = "forge-search"
 version = "0.1.0"
 dependencies = [
- "bincode",
  "forge-core",
- "globset",
+ "forge-search-core",
  "ignore",
  "notify",
+ "rayon",
+ "tempfile",
+ "tracing",
+]
+
+[[package]]
+name = "forge-search-core"
+version = "0.1.0"
+dependencies = [
+ "bincode",
+ "globset",
  "nucleo-matcher",
  "rayon",
  "regex",
  "regex-syntax",
  "roaring",
  "serde",
- "tempfile",
- "tracing",
 ]
 
 [[package]]

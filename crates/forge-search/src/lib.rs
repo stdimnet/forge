@@ -1,15 +1,11 @@
 //! Forge search: a persistent trigram index behind Find in Files and file-name search.
+//! The engine lives in `forge-search-core`; this crate walks the disk, persists and watches.
 
 mod index;
-mod search;
 mod service;
-mod symbols;
-mod trigram;
 
-pub use index::RefreshStats;
-pub use search::{FileMatches, Match, Outcome, Query};
-pub use service::{FileHit, SearchService};
-pub use symbols::SymbolHit;
+pub use forge_search_core::{FileHit, FileMatches, Match, Outcome, Query, RefreshStats, SymbolHit};
+pub use service::SearchService;
 
 #[cfg(test)]
 mod tests;

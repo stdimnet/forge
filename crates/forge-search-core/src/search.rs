@@ -1,8 +1,8 @@
-use std::path::Path;
-use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicUsize, Ordering};
 
-use forge_core::{ForgeError, Result};
+use crate::{Error, Result};
 use globset::{Glob, GlobSet, GlobSetBuilder};
+#[cfg(feature = "parallel")]
 use rayon::prelude::*;
 use regex::bytes::{Regex, RegexBuilder};
 use regex_syntax::hir::literal::{ExtractKind, Extractor};
@@ -62,7 +62,7 @@ pub struct Outcome {
     pub indexing: bool,
 }
 
-pub(crate) struct Compiled {
+pub struct Compiled {
     re: Regex,
     literals: Vec<Vec<Vec<u8>>>,
     include: Option<GlobSet>,
@@ -72,9 +72,9 @@ pub(crate) struct Compiled {
 }
 
 impl Query {
-    pub(crate) fn compile(&self) -> Result<Compiled> {
+    pub fn compile(&self) -> Result<Compiled> {
         if self.pattern.is_empty() {
-            return Err(ForgeError::Other("empty search pattern".into()));
+            return Err(Error("empty search pattern".into()));
         }
         let mut pat = if self.regex {
             self.pattern.clone()
@@ -88,7 +88,7 @@ impl Query {
             .case_insensitive(!self.case_sensitive)
             .multi_line(true)
             .build()
-            .map_err(|e| ForgeError::Other(format!("invalid pattern: {e}")))?;
+            .map_err(|e| Error(format!("invalid pattern: {e}")))?;
 
         let literals = regex_syntax::ParserBuilder::new()
             .case_insensitive(!self.case_sensitive)
@@ -156,8 +156,8 @@ fn parse_mask(mask: &str) -> Result<(Option<GlobSet>, Option<GlobSet>)> {
         } else {
             format!("**/{glob}")
         };
-        let glob = Glob::new(&glob)
-            .map_err(|e| ForgeError::Other(format!("invalid file mask `{token}`: {e}")))?;
+        let glob =
+            Glob::new(&glob).map_err(|e| Error(format!("invalid file mask `{token}`: {e}")))?;
         if negated {
             exc.add(glob);
             has_exc = true;
@@ -168,7 +168,7 @@ fn parse_mask(mask: &str) -> Result<(Option<GlobSet>, Option<GlobSet>)> {
     }
     let build = |b: GlobSetBuilder| {
         b.build()
-            .map_err(|e| ForgeError::Other(format!("invalid file mask: {e}")))
+            .map_err(|e| Error(format!("invalid file mask: {e}")))
     };
     Ok((
         if has_inc { Some(build(inc)?) } else { None },
@@ -194,30 +194,27 @@ impl Compiled {
     }
 }
 
-pub(crate) fn run(
+/// Run a compiled query. `read` returns a file's bytes by path; `cancelled` is polled between files.
+pub fn run(
     index: &Index,
-    root: &Path,
     q: &Compiled,
-    generation: &AtomicU64,
-    my_generation: u64,
+    read: impl Fn(&str) -> Option<Vec<u8>> + Sync,
+    cancelled: impl Fn() -> bool + Sync,
 ) -> Outcome {
     let ids = index.candidates(&q.literals);
     let found = AtomicUsize::new(0);
     let searched = AtomicUsize::new(0);
 
-    let mut files: Vec<FileMatches> = ids
-        .par_iter()
+    let mut files: Vec<FileMatches> = par_iter!(ids)
         .filter_map(|&id| {
-            if generation.load(Ordering::Relaxed) != my_generation
-                || found.load(Ordering::Relaxed) >= q.max
-            {
+            if cancelled() || found.load(Ordering::Relaxed) >= q.max {
                 return None;
             }
             let rec = index.rec(id)?;
             if !q.accepts(&rec.path) {
                 return None;
             }
-            let bytes = std::fs::read(root.join(&rec.path)).ok()?;
+            let bytes = read(&rec.path)?;
             searched.fetch_add(1, Ordering::Relaxed);
             let matches = find_matches(
                 &q.re,
@@ -250,7 +247,7 @@ pub(crate) fn run(
         files,
         total_matches,
         truncated: found.load(Ordering::Relaxed) >= q.max,
-        cancelled: generation.load(Ordering::Relaxed) != my_generation,
+        cancelled: cancelled(),
         searched_files: searched.load(Ordering::Relaxed),
         indexing: false,
     }

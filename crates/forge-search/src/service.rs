@@ -6,27 +6,14 @@ use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{mpsc, Arc, Mutex, RwLock, Weak};
 use std::time::{Duration, Instant};
 
-use forge_core::Result;
+use forge_core::{ForgeError, Result};
+use forge_search_core::{FileHit, Index, Outcome, Query, RefreshStats, Scope, SymbolHit};
 use notify::{RecommendedWatcher, RecursiveMode, Watcher};
-use nucleo_matcher::pattern::{CaseMatching, Normalization, Pattern};
-use nucleo_matcher::{Config, Matcher, Utf32Str};
-use serde::Serialize;
 
-use crate::index::{self, Index, RefreshStats, Scope, EXCLUDED_DIRS};
-use crate::search::{self, Outcome, Query};
-use crate::symbols::SymbolHit;
+use crate::index::{self, EXCLUDED_DIRS};
 
 const WATCH_DEBOUNCE: Duration = Duration::from_millis(300);
 const SAVE_INTERVAL: Duration = Duration::from_secs(60);
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct FileHit {
-    pub path: String,
-    pub score: u32,
-    /// Character indices of `path` that matched the query, for highlighting.
-    pub matched: Vec<u32>,
-}
 
 /// One project's search index. Share it behind an `Arc`.
 pub struct SearchService {
@@ -47,7 +34,7 @@ impl SearchService {
             .as_deref()
             .and_then(|p| fs::File::open(p).ok())
             .and_then(|f| Index::read_from(BufReader::new(f)))
-            .unwrap_or_else(Index::new);
+            .unwrap_or_default();
         Self {
             root: root.into(),
             cache,
@@ -181,10 +168,17 @@ impl SearchService {
 
     /// Find in Files. A newer call cancels a search still running on an older one.
     pub fn find_in_files(&self, query: &Query) -> Result<Outcome> {
-        let compiled = query.compile()?;
+        let compiled = query
+            .compile()
+            .map_err(|e| ForgeError::Other(e.to_string()))?;
         let mine = self.generation.fetch_add(1, Ordering::SeqCst) + 1;
         let index = self.index.read().expect("search index lock poisoned");
-        let mut outcome = search::run(&index, &self.root, &compiled, &self.generation, mine);
+        let mut outcome = forge_search_core::run(
+            &index,
+            &compiled,
+            |path| std::fs::read(self.root.join(path)).ok(),
+            || self.generation.load(Ordering::Relaxed) != mine,
+        );
         outcome.indexing = self.indexing.load(Ordering::Relaxed);
         Ok(outcome)
     }
@@ -206,37 +200,10 @@ impl SearchService {
 
     /// Fuzzy file-name search over every indexed path (Search Everywhere, Go to File).
     pub fn find_files(&self, query: &str, limit: usize) -> Vec<FileHit> {
-        if query.trim().is_empty() || limit == 0 {
-            return Vec::new();
-        }
-        let index = self.index.read().expect("search index lock poisoned");
-        let paths: Vec<&str> = index.live().map(|r| r.path.as_str()).collect();
-
-        let mut matcher = Matcher::new(Config::DEFAULT.match_paths());
-        let pattern = Pattern::parse(query, CaseMatching::Smart, Normalization::Smart);
-        let mut scored = pattern.match_list(paths, &mut matcher);
-        scored.sort_by(|a, b| {
-            b.1.cmp(&a.1)
-                .then(a.0.len().cmp(&b.0.len()))
-                .then(a.0.cmp(b.0))
-        });
-        scored.truncate(limit);
-
-        let mut buf = Vec::new();
-        scored
-            .into_iter()
-            .map(|(path, score)| {
-                let mut matched = Vec::new();
-                pattern.indices(Utf32Str::new(path, &mut buf), &mut matcher, &mut matched);
-                matched.sort_unstable();
-                matched.dedup();
-                FileHit {
-                    path: path.to_string(),
-                    score,
-                    matched,
-                }
-            })
-            .collect()
+        self.index
+            .read()
+            .expect("search index lock poisoned")
+            .find_files(query, limit)
     }
 }
 
