@@ -32,6 +32,7 @@ app/ui/                 SolidJS UI
   src/mock/             browser-mode backend (mocks + demo projects)
   scripts/scenarios/    Playwright screenshot scenarios
 docs/                   ARCHITECTURE.md, ROADMAP.md, screenshots/
+  guide/                user and developer documentation (Markdown, see guide/README.md)
 .claude/skills/         step-by-step recipes for common tasks (see below)
 ```
 
@@ -108,6 +109,7 @@ Use the matching skill in `.claude/skills/<name>/SKILL.md` before starting a tas
   `cargo fmt --all --check`, `cargo clippy --workspace --all-targets -- -D warnings`,
   `cargo test --workspace`, `pnpm typecheck`, `pnpm test`, `pnpm build`.
 - UI changes need screenshots (`verify-ui-with-screenshots`), and you must look at them.
+- Every user-visible change updates the matching page in `docs/guide/` (see `docs/guide/README.md`).
 - Tests must not need network access, installed language servers or real code-host accounts.
   Use fakes and local mock servers.
 - With several git worktrees, give each its own `CARGO_TARGET_DIR`. Set
