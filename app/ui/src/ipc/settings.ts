@@ -70,6 +70,20 @@ export interface RunConfigurationType {
   description?: string;
   icon?: string;
   debuggable: boolean;
+  /** Form fields of manifest-only types (stored in the configuration's `options`). */
+  fields?: RunConfigurationFieldSpec[];
+  /** Command template, e.g. `["${interpreter}", "${file}", "${arguments}"]`. */
+  command?: string[];
+  defaultInterpreter?: string;
+}
+
+export interface RunConfigurationFieldSpec {
+  key: string;
+  label: string;
+  kind?: "string" | "path" | "text" | "enum" | "bool";
+  options?: { value: string; label: string }[];
+  default?: string;
+  required?: boolean;
 }
 
 export interface AiProviderContribution {

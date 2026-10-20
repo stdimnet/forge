@@ -1,0 +1,311 @@
+/**
+ * Browser-mode run backend: configurations live in memory (never in a real project) and
+ * runs replay canned output, including PHPUnit TeamCity messages with one failing test.
+ */
+import { emitMock, registerMock } from "@/ipc";
+import type { CommandLine, RunConfiguration, RunConfigurations, RunEvent, RunRequest } from "@/ipc/run";
+import { demoProjectName } from "./demoProject";
+
+const ROOT = `~/Projects/${demoProjectName}`;
+
+let stored: RunConfigurations = {
+  selected: "UserTest",
+  configurations: [
+    {
+      name: "UserTest",
+      type: "phpunit",
+      storeAsProjectFile: true,
+      env: { APP_ENV: "testing" },
+      options: { scope: "class", class: "Tests\\Unit\\UserTest", file: "tests/Unit/UserTest.php" },
+    },
+    { name: "All tests", type: "phpunit", storeAsProjectFile: true, options: { scope: "config" } },
+    { name: "artisan serve", type: "artisan", options: { command: "serve" } },
+    { name: "artisan migrate", type: "artisan", options: { command: "migrate --seed" }, env: { DB_CONNECTION: "sqlite" } },
+    { name: "dev", type: "npm", options: { packageJson: "package.json", command: "run", script: "dev", packageManager: "npm" } },
+    {
+      name: "Clear caches",
+      type: "shell",
+      options: { mode: "text", scriptText: "php artisan optimize:clear" },
+    },
+  ],
+};
+
+const clone = <T>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
+
+registerMock("run_configurations_load", () => clone(stored));
+registerMock("run_configurations_save", ({ configurations }) => {
+  stored = clone(configurations as RunConfigurations);
+});
+
+const split = (s: string | undefined) => (s ?? "").split(/\s+/).filter(Boolean);
+
+/** Same command lines as the Rust kind registry, for previews and the run header. */
+export function mockCommandLine(cfg: RunConfiguration): CommandLine {
+  const o = cfg.options ?? {};
+  const php = cfg.interpreter || "/usr/bin/php";
+  const cwd = cfg.workingDirectory || "";
+  switch (cfg.type) {
+    case "php-script":
+      return { program: php, args: [...split(cfg.interpreterOptions), o.file ?? "", ...split(cfg.arguments)], cwd };
+    case "phpunit": {
+      const args = [...split(cfg.interpreterOptions), "vendor/bin/phpunit", "--teamcity", "--configuration", o.configFile || "phpunit.xml"];
+      args.push(...split(o.testRunnerOptions));
+      const short = (o.class ?? "").split("\\").pop();
+      if (o.scope === "directory") args.push(o.directory ?? "");
+      if (o.scope === "file") args.push(o.file ?? "");
+      if (o.scope === "class") args.push("--filter", `/${short}(::.*)?$/`, o.file ?? "");
+      if (o.scope === "method") args.push("--filter", `/${short}::${o.method}( .*)?$/`, o.file ?? "");
+      return { program: php, args: args.filter(Boolean), cwd };
+    }
+    case "artisan":
+      return { program: php, args: ["artisan", ...split(o.command), ...split(cfg.arguments), "--ansi"], cwd };
+    case "composer":
+      return { program: "composer", args: ["run-script", o.script ?? "", "--ansi"], cwd };
+    case "npm":
+      return { program: o.packageManager || "npm", args: [o.command || "run", ...(o.command && o.command !== "run" ? [] : [o.script ?? ""])], cwd };
+    case "shell":
+      return o.mode === "text"
+        ? { program: cfg.interpreter || "/bin/sh", args: ["-c", o.scriptText ?? ""], cwd }
+        : { program: cfg.interpreter || "/bin/sh", args: [o.scriptPath ?? "", ...split(cfg.arguments)], cwd };
+    default:
+      return { program: cfg.interpreter || cfg.type, args: [o.file ?? "", ...split(cfg.arguments)].filter(Boolean), cwd };
+  }
+}
+
+const quote = (a: string) => (/^[\w./:=@%+,-]+$/.test(a) ? a : `'${a.replace(/'/g, "'\\''")}'`);
+const display = (c: CommandLine) => [c.program, ...c.args].map(quote).join(" ");
+
+registerMock("run_command_line", ({ request }) => {
+  const r = request as RunRequest;
+  return r.command ?? mockCommandLine(r.configuration!);
+});
+
+interface MockRun {
+  timers: ReturnType<typeof setTimeout>[];
+  done: boolean;
+}
+const runs = new Map<string, MockRun>();
+let seq = 0;
+
+type Step = [delayMs: number, text: string, stream?: "stdout" | "stderr"] | [delayMs: number, exit: { code: number }];
+
+function play(runId: string, steps: Step[]): void {
+  const run: MockRun = { timers: [], done: false };
+  runs.set(runId, run);
+  const emit = (e: RunEvent) => emitMock(`run://${runId}`, e);
+  let at = 0;
+  for (const step of steps) {
+    at += step[0];
+    run.timers.push(
+      setTimeout(() => {
+        if (run.done) return;
+        if (typeof step[1] === "string") emit({ type: "output", stream: step[2] ?? "stdout", text: step[1] });
+        else {
+          run.done = true;
+          emit({ type: "exited", code: step[1].code, signal: null });
+        }
+      }, at),
+    );
+  }
+}
+
+const esc = (s: string) => s.replace(/\|/g, "||").replace(/'/g, "|'").replace(/\n/g, "|n").replace(/\[/g, "|[").replace(/]/g, "|]");
+const tc = (name: string, attrs: Record<string, string | number>) =>
+  `##teamcity[${name} ${Object.entries(attrs)
+    .map(([k, v]) => `${k}='${esc(String(v))}'`)
+    .join(" ")} flowId='4242']\n`;
+
+interface DemoTest {
+  name: string;
+  ms: number;
+  fail?: { message: string; expected: string; actual: string; line: number };
+  skip?: string;
+}
+interface DemoClass {
+  fqcn: string;
+  file: string;
+  suite: "Unit" | "Feature";
+  tests: DemoTest[];
+}
+
+const DEMO_TESTS: DemoClass[] = [
+  {
+    fqcn: "Tests\\Unit\\UserTest",
+    file: "tests/Unit/UserTest.php",
+    suite: "Unit",
+    tests: [
+      { name: "test_full_name_joins_first_and_last_name", ms: 4 },
+      {
+        name: "test_display_name_prefers_nickname",
+        ms: 7,
+        fail: { message: "Failed asserting that two strings are identical.", expected: "'Amazing Grace'", actual: "'Grace'", line: 22 },
+      },
+      { name: "email_is_normalized", ms: 2 },
+      { name: "test_orders_relation_is_empty_for_new_users", ms: 38 },
+    ],
+  },
+  {
+    fqcn: "Tests\\Unit\\CheckoutTest",
+    file: "tests/Unit/CheckoutTest.php",
+    suite: "Unit",
+    tests: [
+      { name: "test_total_includes_tax", ms: 3 },
+      { name: "test_empty_cart_cannot_be_checked_out", ms: 1, skip: "Cart rules move to the Cart service." },
+    ],
+  },
+  {
+    fqcn: "Tests\\Feature\\OrderTest",
+    file: "tests/Feature/OrderTest.php",
+    suite: "Feature",
+    tests: [{ name: "test_user_can_view_order", ms: 112 }],
+  },
+];
+
+function phpunitSteps(cfg: RunConfiguration): Step[] {
+  const o = cfg.options ?? {};
+  let classes = DEMO_TESTS;
+  if (o.scope === "class" || o.scope === "file") classes = DEMO_TESTS.filter((c) => c.file === o.file || c.fqcn === o.class);
+  if (o.scope === "method")
+    classes = DEMO_TESTS.filter((c) => c.fqcn === o.class || c.file === o.file).map((c) => ({
+      ...c,
+      tests: c.tests.filter((t) => t.name === o.method),
+    }));
+  if (o.scope === "directory") classes = DEMO_TESTS.filter((c) => c.file.startsWith(`${(o.directory ?? "").replace(/\/$/, "")}/`));
+  const filter = /--filter '\/::\(([^)]*)\)/.exec(o.testRunnerOptions ?? "");
+  if (filter) {
+    const names = filter[1].split("|");
+    classes = classes.map((c) => ({ ...c, tests: c.tests.filter((t) => names.includes(t.name)) })).filter((c) => c.tests.length);
+  }
+  const all = classes.flatMap((c) => c.tests);
+  const steps: Step[] = [
+    [60, "PHPUnit 11.5.2 by Sebastian Bergmann and contributors.\n\nRuntime:       PHP 8.3.12\nConfiguration: " + ROOT + "/phpunit.xml\n\n"],
+    [30, tc("testCount", { count: all.length })],
+  ];
+  const grouped = o.scope === "config" || !o.scope || o.scope === "directory";
+  let currentSuite = "";
+  for (const c of classes) {
+    if (grouped && currentSuite !== c.suite) {
+      if (currentSuite) steps.push([5, tc("testSuiteFinished", { name: currentSuite })]);
+      currentSuite = c.suite;
+      steps.push([5, tc("testSuiteStarted", { name: c.suite })]);
+    }
+    const abs = `${ROOT}/${c.file}`;
+    steps.push([10, tc("testSuiteStarted", { name: c.fqcn, locationHint: `php_qn://${abs}::\\${c.fqcn}` })]);
+    for (const t of c.tests) {
+      const hint = `php_qn://${abs}::\\${c.fqcn}::${t.name}`;
+      if (t.skip) {
+        steps.push([20, tc("testIgnored", { name: t.name, message: t.skip, duration: t.ms, locationHint: hint })]);
+        continue;
+      }
+      steps.push([15, tc("testStarted", { name: t.name, locationHint: hint })]);
+      if (t.fail) {
+        steps.push([
+          t.ms * 12,
+          tc("testFailed", {
+            name: t.name,
+            message: t.fail.message,
+            details: ` ${abs}:${t.fail.line}\n`,
+            type: "comparisonFailure",
+            actual: t.fail.actual,
+            expected: t.fail.expected,
+            duration: t.ms,
+          }),
+        ]);
+      }
+      steps.push([t.ms * 12, tc("testFinished", { name: t.name, duration: t.ms })]);
+    }
+    steps.push([5, tc("testSuiteFinished", { name: c.fqcn })]);
+  }
+  if (grouped && currentSuite) steps.push([5, tc("testSuiteFinished", { name: currentSuite })]);
+  const failed = all.filter((t) => t.fail);
+  const skipped = all.filter((t) => t.skip);
+  const time = all.reduce((s, t) => s + t.ms, 0) + 24;
+  let summary = `\nTime: 00:00.${String(time).padStart(3, "0")}, Memory: 28.00 MB\n\n`;
+  if (failed.length) {
+    summary += `There was ${failed.length} failure:\n\n`;
+    failed.forEach((t, i) => {
+      const c = classes.find((x) => x.tests.includes(t))!;
+      summary += `${i + 1}) ${c.fqcn}::${t.name}\n${t.fail!.message}\n--- Expected\n+++ Actual\n@@ @@\n-${t.fail!.expected}\n+${t.fail!.actual}\n\n${ROOT}/${c.file}:${t.fail!.line}\n\n`;
+    });
+    summary += `\x1b[37;41mFAILURES!\x1b[0m\n\x1b[37;41mTests: ${all.length}, Assertions: ${all.length + 3}, Failures: ${failed.length}${skipped.length ? `, Skipped: ${skipped.length}` : ""}.\x1b[0m\n`;
+  } else {
+    summary += `\x1b[30;42mOK (${all.length} tests, ${all.length + 3} assertions)\x1b[0m\n`;
+  }
+  steps.push([40, summary], [10, { code: failed.length ? 1 : 0 }]);
+  return steps;
+}
+
+function stepsFor(cfg: RunConfiguration | undefined, cmd: CommandLine): Step[] {
+  if (!cfg) return [[50, `${cmd.program} finished.\n`], [10, { code: 0 }]];
+  const o = cfg.options ?? {};
+  switch (cfg.type) {
+    case "phpunit":
+      return phpunitSteps(cfg);
+    case "artisan":
+      if ((o.command ?? "").startsWith("serve"))
+        return [
+          [300, "\n   \x1b[44;37m INFO \x1b[0m Server running on [\x1b[1mhttp://127.0.0.1:8000\x1b[0m].\n\n"],
+          [20, "  \x1b[33mPress Ctrl+C to stop the server\x1b[0m\n\n"],
+          [1500, "  \x1b[90m2026-10-20 09:14:02\x1b[0m /orders/1042 ......................... \x1b[90m~ 0.21ms\x1b[0m\n"],
+          [700, "  \x1b[90m2026-10-20 09:14:03\x1b[0m /build/assets/app.js ................. \x1b[90m~ 0.04ms\x1b[0m\n"],
+        ];
+      if ((o.command ?? "").startsWith("migrate"))
+        return [
+          [200, "\n   \x1b[44;37m INFO \x1b[0m Running migrations.\n\n"],
+          [300, "  2026_01_01_000000_create_orders_table \x1b[90m.................\x1b[0m \x1b[90m14.62ms\x1b[0m \x1b[32;1mDONE\x1b[0m\n\n"],
+          [200, "   \x1b[44;37m INFO \x1b[0m Seeding database.\n\n"],
+          [100, { code: 0 }],
+        ];
+      return [[200, `\n   \x1b[44;37m INFO \x1b[0m Command [${o.command}] finished.\n\n`], [50, { code: 0 }]];
+    case "npm":
+      return [
+        [150, `\n> dev\n> vite\n\n`],
+        [500, "\n  \x1b[32m\x1b[1mVITE\x1b[22m v7.0.4\x1b[39m  ready in \x1b[1m412\x1b[22m ms\n\n"],
+        [20, "  \x1b[32m➜\x1b[39m  \x1b[1mLocal\x1b[22m:   \x1b[36mhttp://localhost:\x1b[1m5173\x1b[22m/\x1b[39m\n"],
+        [10, "  \x1b[32m➜\x1b[39m  \x1b[1mAPP_URL\x1b[22m: \x1b[36mhttp://acme-shop.test\x1b[39m\n\n"],
+        [10, "  \x1b[90mLARAVEL\x1b[39m plugin v1.2.0\n"],
+      ];
+    case "shell":
+      return [
+        [200, "\n   \x1b[44;37m INFO \x1b[0m Clearing cached bootstrap files.\n\n"],
+        [100, "  config \x1b[90m.......................................\x1b[0m \x1b[90m2.11ms\x1b[0m \x1b[32;1mDONE\x1b[0m\n"],
+        [80, "  cache \x1b[90m........................................\x1b[0m \x1b[90m4.80ms\x1b[0m \x1b[32;1mDONE\x1b[0m\n"],
+        [80, "  routes \x1b[90m.......................................\x1b[0m \x1b[90m0.97ms\x1b[0m \x1b[32;1mDONE\x1b[0m\n\n"],
+        [50, { code: 0 }],
+      ];
+    case "php-script":
+      return [
+        [150, "Generating invoices for 3 orders…\n"],
+        [300, "PHP Warning:  Undefined array key \"vat\" in " + ROOT + "/app/Services/InvoiceService.php on line 18\n", "stderr"],
+        [100, "Done.\n"],
+        [50, { code: 0 }],
+      ];
+    default:
+      return [[100, "Done.\n"], [50, { code: 0 }]];
+  }
+}
+
+registerMock("run_start", ({ request }) => {
+  const r = request as RunRequest;
+  const runId = r.runId ?? `mock-run-${++seq}`;
+  const cmd = r.command ?? mockCommandLine(r.configuration!);
+  const commandLine = display({ ...cmd, args: [...(r.interpreterArgs ?? []), ...cmd.args] });
+  setTimeout(() => emitMock(`run://${runId}`, { type: "started", pid: 40000 + seq, commandLine } satisfies RunEvent), 0);
+  play(runId, stepsFor(r.configuration, cmd));
+  return { runId, commandLine };
+});
+
+function stop(runId: string): void {
+  const run = runs.get(String(runId));
+  if (!run || run.done) return;
+  run.done = true;
+  run.timers.forEach(clearTimeout);
+  setTimeout(() => emitMock(`run://${runId}`, { type: "exited", code: null, signal: 15 } satisfies RunEvent), 30);
+}
+
+registerMock("run_stop", ({ runId }) => stop(String(runId)));
+registerMock("run_dispose", ({ runId }) => {
+  stop(String(runId));
+  runs.delete(String(runId));
+});
+registerMock("run_write", () => undefined);
