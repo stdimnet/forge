@@ -79,7 +79,7 @@ impl LspState {
     }
 
     /// The manager for the open workspace, (re)created when the project changes.
-    fn manager(&self, app: &AppHandle, ws: &AppState) -> Result<Arc<LspManager>> {
+    pub(crate) fn manager(&self, app: &AppHandle, ws: &AppState) -> Result<Arc<LspManager>> {
         let root = ws.with_workspace(|w| Ok(w.root().to_path_buf()))?;
         let mut current = self.manager.lock().expect("lsp lock");
         if let Some(m) = current.as_ref().filter(|m| m.root() == root) {
@@ -100,6 +100,7 @@ impl LspState {
         {
             manager.register_server(config);
         }
+        crate::commands::langservers::register_enabled(&manager, ws);
         forward_events(app.clone(), &manager);
         *current = Some(manager.clone());
         Ok(manager)
@@ -131,16 +132,21 @@ fn forward_events(app: AppHandle, manager: &Arc<LspManager>) {
             let Some(manager) = weak.upgrade() else { break };
             match event {
                 LspEvent::Diagnostics {
-                    uri, diagnostics, ..
+                    server_id,
+                    uri,
+                    diagnostics,
+                    ..
                 } => {
                     let Some(abs) = forge_lsp::uri_to_path(&uri) else {
                         continue;
                     };
+                    // Several servers may report on one file; send all of them.
+                    let merged = manager.merge_diagnostics(&server_id, &uri, diagnostics);
                     let _ = app.emit(
                         "lsp://diagnostics",
                         DiagnosticsEvent {
                             path: to_ui_path(manager.root(), &abs),
-                            diagnostics: diagnostics.iter().map(EditorDiagnostic::from).collect(),
+                            diagnostics: merged.iter().map(EditorDiagnostic::from).collect(),
                         },
                     );
                 }

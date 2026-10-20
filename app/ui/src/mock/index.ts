@@ -5,6 +5,7 @@ import "./workspaceMock";
 import "./aiMock";
 import "./agentMock";
 import "./lspMock";
+import "./langserversMock";
 import "./searchMock";
 import "./gitMock";
 import "./phpMock";

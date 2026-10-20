@@ -96,10 +96,25 @@ function publish(path: string) {
 
 let status: ServerStatus = { id: "intelephense", name: "Intelephense", state: "notStarted" };
 let started = false;
+/** Other mock servers (e.g. the TypeScript server of the language servers mock). */
+const otherServers = new Map<string, ServerStatus>();
+const allStatuses = () => [status, ...otherServers.values()];
 const setStatus = (s: ServerStatus) => {
   status = s;
-  emitMock("lsp://status", [s]);
+  emitMock("lsp://status", allStatuses());
 };
+
+/** Publish the state of another mock server next to Intelephense. */
+export function setMockServerStatus(s: ServerStatus): void {
+  otherServers.set(s.id, s);
+  emitMock("lsp://status", allStatuses());
+}
+
+const openHooks: ((path: string) => void)[] = [];
+/** Called for every `lsp_did_open`, so other mocks can start their servers lazily. */
+export function onMockDidOpen(cb: (path: string) => void): void {
+  openHooks.push(cb);
+}
 
 function startServer() {
   if (started) return;
@@ -272,6 +287,7 @@ registerMock("lsp_did_open", ({ path, text }) => {
   docs[str(path)] = str(text);
   startServer();
   if (status.state === "ready") setTimeout(() => publish(str(path)), 30);
+  openHooks.forEach((h) => h(str(path)));
 });
 registerMock("lsp_did_change", ({ path, text }) => {
   const p = str(path);
@@ -292,5 +308,5 @@ registerMock("lsp_references", (a) => referencesAt(str(a.path), posOf(a)));
 registerMock("lsp_document_symbols", (a) => symbolsOf(str(a.path)));
 registerMock("lsp_signature_help", (a) => signatureAt(str(a.path), posOf(a)));
 registerMock("lsp_format", (a) => formatEdits(docs[str(a.path)] ?? ""));
-registerMock("lsp_status", () => [status]);
+registerMock("lsp_status", () => allStatuses());
 registerMock("lsp_register_server", () => undefined);

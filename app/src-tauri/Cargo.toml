@@ -23,6 +23,7 @@ forge-ai.workspace = true
 futures-util = "0.3"
 forge-agent-cli.workspace = true
 forge-lsp.workspace = true
+forge-langservers.workspace = true
 forge-vcs.workspace = true
 forge-project.workspace = true
 forge-open.workspace = true

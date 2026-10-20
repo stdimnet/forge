@@ -1259,6 +1259,7 @@ dependencies = [
  "forge-agent-cli",
  "forge-ai",
  "forge-core",
+ "forge-langservers",
  "forge-lsp",
  "forge-open",
  "forge-plugin-api",
@@ -1293,10 +1294,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "forge-langservers"
+version = "0.1.0"
+dependencies = [
+ "dirs 6.0.0",
+ "forge-lsp",
+ "ignore",
+ "keyring",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tokio",
+ "toml 0.8.23",
+ "tracing",
+]
+
+[[package]]
 name = "forge-lsp"
 version = "0.1.0"
 dependencies = [
  "forge-core",
+ "futures-util",
  "lsp-types",
  "serde",
  "serde_json",

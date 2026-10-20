@@ -151,7 +151,7 @@ function Control(props: { spec: SettingSpec }) {
   );
 }
 
-function SettingRow(props: { spec: SettingSpec }) {
+export function SettingRow(props: { spec: SettingSpec }) {
   const spec = props.spec;
   const hit = () =>
     query().trim() !== "" && matchesQuery(`${spec.title} ${spec.description ?? ""} ${spec.section ?? ""}`, query());

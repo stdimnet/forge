@@ -9,7 +9,7 @@ use lsp_types::{
     CompletionItem, CompletionItemKind, CompletionItemTag, CompletionResponse, Diagnostic,
     DiagnosticSeverity, DiagnosticTag, DocumentSymbol, DocumentSymbolResponse, Documentation,
     GotoDefinitionResponse, Hover, HoverContents, Location, MarkedString, NumberOrString,
-    ParameterLabel, Range, SignatureHelp, SymbolKind,
+    ParameterLabel, Range, SignatureHelp, SymbolKind, WorkspaceSymbolResponse,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -345,6 +345,58 @@ pub fn document_symbols(r: DocumentSymbolResponse) -> Vec<EditorSymbol> {
     }
 }
 
+/// One hit of a project-wide symbol search (`workspace/symbol`).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EditorWorkspaceSymbol {
+    pub name: String,
+    pub kind: String,
+    /// Enclosing class, module or namespace as reported by the server.
+    pub container_name: Option<String>,
+    /// Absolute path; the app rewrites it relative to the workspace.
+    pub path: String,
+    /// `None` when the server only knows the file (resolve on demand is not supported).
+    pub range: Option<Range>,
+    /// Id of the server that found it.
+    pub server: String,
+}
+
+/// Flatten either `workspace/symbol` result shape.
+pub fn workspace_symbols(r: WorkspaceSymbolResponse, server: &str) -> Vec<EditorWorkspaceSymbol> {
+    match r {
+        WorkspaceSymbolResponse::Flat(infos) => infos
+            .into_iter()
+            .filter_map(|i| {
+                Some(EditorWorkspaceSymbol {
+                    name: i.name,
+                    kind: symbol_kind_name(i.kind).into(),
+                    container_name: i.container_name.filter(|c| !c.is_empty()),
+                    path: uri_to_path(&i.location.uri)?.display().to_string(),
+                    range: Some(i.location.range),
+                    server: server.to_string(),
+                })
+            })
+            .collect(),
+        WorkspaceSymbolResponse::Nested(syms) => syms
+            .into_iter()
+            .filter_map(|s| {
+                let (uri, range) = match s.location {
+                    lsp_types::OneOf::Left(l) => (l.uri, Some(l.range)),
+                    lsp_types::OneOf::Right(w) => (w.uri, None),
+                };
+                Some(EditorWorkspaceSymbol {
+                    name: s.name,
+                    kind: symbol_kind_name(s.kind).into(),
+                    container_name: s.container_name.filter(|c| !c.is_empty()),
+                    path: uri_to_path(&uri)?.display().to_string(),
+                    range,
+                    server: server.to_string(),
+                })
+            })
+            .collect(),
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EditorParameter {
@@ -494,6 +546,28 @@ mod tests {
         assert_eq!(params[0].label, [2, 11]);
         assert_eq!(params[1].label, [13, 19]);
         assert_eq!(e.active_parameter, 1);
+    }
+
+    #[test]
+    fn workspace_symbols_accept_both_shapes() {
+        let flat: WorkspaceSymbolResponse = serde_json::from_value(json!([
+            {"name": "Order", "kind": 11, "containerName": "", "location": {"uri": "file:///p/a.ts", "range": {"start": {"line": 2, "character": 0}, "end": {"line": 6, "character": 1}}}}
+        ]))
+        .unwrap();
+        let hits = workspace_symbols(flat, "ts");
+        assert_eq!(hits[0].kind, "interface");
+        assert_eq!(hits[0].container_name, None);
+        assert_eq!(hits[0].range.unwrap().start.line, 2);
+        assert_eq!(hits[0].server, "ts");
+
+        let nested: WorkspaceSymbolResponse = serde_json::from_value(json!([
+            {"name": "load", "kind": 12, "containerName": "app", "location": {"uri": "file:///p/a.py"}}
+        ]))
+        .unwrap();
+        let hits = workspace_symbols(nested, "py");
+        assert_eq!(hits[0].kind, "function");
+        assert_eq!(hits[0].container_name.as_deref(), Some("app"));
+        assert!(hits[0].range.is_none());
     }
 
     #[test]

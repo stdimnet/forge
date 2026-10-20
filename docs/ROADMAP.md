@@ -5,6 +5,7 @@
 - [x] Workspace, Tauri shell, PHPStorm-style workbench (toolbar, stripes, tool windows, tabs, status bar)
 - [ ] Plugin API + registry, layered settings with searchable Settings dialog
 - [ ] Editor + LSP client: hover docs, completion, diagnostics, go to definition
+- [x] Language servers for ~30 languages: catalog, detection, install from Settings, several servers per file, project-wide symbol search
 - [ ] PHPForge language pack: Intelephense (bring your own license) / phpactor, PHPDoc & attribute hover, Generate menu (Alt+Insert: getters/setters/constructor)
 - [ ] Git: Commit tool window, diff, inline blame, branches, AI commit messages
 - [ ] AI providers: Anthropic, OpenRouter, Ollama, llama.cpp, LM Studio, any OpenAI-compatible API

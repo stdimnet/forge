@@ -3,6 +3,9 @@
 //! - publishes one warning per line containing `TODO` on open/change,
 //! - answers hover/completion/definition/references/symbols/signature help/formatting
 //!   with canned data,
+//! - with the argument `secondary`, behaves like a linter attached next to a primary
+//!   server: no hover, its own completion item and diagnostics source,
+//! - answers `workspace/symbol` with `<query>Symbol` in every open document,
 //! - after `initialized` asks the client for `workspace/configuration` and creates a
 //!   work-done progress, then echoes what it got back as `window/logMessage`.
 
@@ -46,14 +49,19 @@ fn range(line: u32, start: u32, end: u32) -> Value {
     json!({"start": {"line": line, "character": start}, "end": {"line": line, "character": end}})
 }
 
-fn publish(uri: &str, text: &str) {
+fn publish(uri: &str, text: &str, secondary: bool) {
+    let (marker, source) = if secondary {
+        ("FIXME", "lint")
+    } else {
+        ("TODO", "fake")
+    };
     let diagnostics: Vec<Value> = text
         .lines()
         .enumerate()
         .filter_map(|(i, l)| {
-            l.find("TODO").map(|c| {
-                json!({"range": range(i as u32, c as u32, c as u32 + 4), "severity": 2,
-                       "source": "fake", "message": "Unfinished work"})
+            l.find(marker).map(|c| {
+                json!({"range": range(i as u32, c as u32, c as u32 + marker.len() as u32), "severity": 2,
+                       "source": source, "message": "Unfinished work"})
             })
         })
         .collect();
@@ -66,6 +74,7 @@ fn publish(uri: &str, text: &str) {
 fn main() {
     let mut stdin = io::stdin().lock();
     let mut docs: HashMap<String, String> = HashMap::new();
+    let secondary = std::env::args().nth(1).as_deref() == Some("secondary");
     while let Some(msg) = read(&mut stdin) {
         let method = msg["method"].as_str().unwrap_or_default().to_string();
         let id = msg.get("id").cloned();
@@ -97,7 +106,8 @@ fn main() {
                     "referencesProvider": true,
                     "documentSymbolProvider": true,
                     "signatureHelpProvider": {"triggerCharacters": ["(", ","]},
-                    "documentFormattingProvider": true
+                    "documentFormattingProvider": !secondary,
+                    "workspaceSymbolProvider": true
                 },
                 "serverInfo": {"name": "fake", "version": "1"}
             }),
@@ -125,7 +135,7 @@ fn main() {
                     .as_str()
                     .unwrap_or_default()
                     .to_string();
-                publish(&uri, &text);
+                publish(&uri, &text, secondary);
                 docs.insert(uri, text);
                 continue;
             }
@@ -134,7 +144,7 @@ fn main() {
                     .as_str()
                     .unwrap_or_default()
                     .to_string();
-                publish(&uri, &text);
+                publish(&uri, &text, secondary);
                 docs.insert(uri, text);
                 continue;
             }
@@ -152,6 +162,18 @@ fn main() {
             "exit" => std::process::exit(0),
             "workspace/didChangeConfiguration" | "$/cancelRequest" => continue,
             "shutdown" => Value::Null,
+            "textDocument/hover" if secondary => Value::Null,
+            "textDocument/completion" if secondary => json!([{"label": "lint-ignore", "kind": 15}]),
+            "workspace/symbol" => {
+                let query = params["query"].as_str().unwrap_or_default();
+                let mut uris: Vec<&String> = docs.keys().collect();
+                uris.sort();
+                json!(uris
+                    .into_iter()
+                    .map(|u| json!({"name": format!("{query}Symbol"), "kind": 5,
+                                    "location": {"uri": u, "range": range(0, 0, 3)}}))
+                    .collect::<Vec<_>>())
+            }
             "textDocument/hover" => json!({
                 "contents": {"kind": "markdown",
                              "value": format!("**hover** {}:{}", pos["line"], pos["character"])}
