@@ -1416,6 +1416,7 @@ dependencies = [
  "forge-plugin-api",
  "forge-process",
  "forge-project",
+ "forge-scratches",
  "forge-vcs",
  "futures-util",
  "phpforge-dql",

@@ -330,6 +330,43 @@ pub fn resolve(
     out
 }
 
+/// Variables of environment `name` from `http-client.env.json` and
+/// `http-client.private.env.json` (private values win), as PHPStorm reads them. Without a
+/// name, `dev` or else the first environment of the public file is used. Non-string values
+/// are taken as their JSON text.
+pub fn environment(
+    public: Option<&str>,
+    private: Option<&str>,
+    name: Option<&str>,
+) -> BTreeMap<String, String> {
+    let parse = |text: Option<&str>| {
+        text.and_then(|t| {
+            serde_json::from_str::<serde_json::Map<String, serde_json::Value>>(t).ok()
+        })
+        .unwrap_or_default()
+    };
+    let (public, private) = (parse(public), parse(private));
+    let name = name
+        .map(str::to_string)
+        .or_else(|| public.contains_key("dev").then(|| "dev".to_string()))
+        .or_else(|| public.keys().next().cloned())
+        .or_else(|| private.keys().next().cloned());
+    let mut vars = BTreeMap::new();
+    let Some(name) = name else { return vars };
+    for file in [&public, &private] {
+        if let Some(serde_json::Value::Object(env)) = file.get(&name) {
+            for (k, v) in env {
+                let value = match v {
+                    serde_json::Value::String(s) => s.clone(),
+                    other => other.to_string(),
+                };
+                vars.insert(k.clone(), value);
+            }
+        }
+    }
+    vars
+}
+
 /// A received response.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -626,6 +663,23 @@ https://example.com/health
         assert_eq!(pretty_json("not json"), None);
         assert_eq!(human_size(2048), "2.0 KB");
         assert!(render_error("Connection refused").contains("Connection refused"));
+    }
+
+    #[test]
+    fn reads_environment_files() {
+        let public =
+            r#"{"prod":{"host":"shop.example"},"dev":{"host":"localhost:8000","port":8000}}"#;
+        let private = r#"{"dev":{"token":"s3cret"}}"#;
+        let dev = environment(Some(public), Some(private), None);
+        assert_eq!(dev["host"], "localhost:8000");
+        assert_eq!(dev["port"], "8000");
+        assert_eq!(dev["token"], "s3cret");
+        assert_eq!(
+            environment(Some(public), None, Some("prod"))["host"],
+            "shop.example"
+        );
+        assert!(environment(None, None, None).is_empty());
+        assert!(environment(Some("not json"), None, None).is_empty());
     }
 
     fn strip_ansi(s: &str) -> String {

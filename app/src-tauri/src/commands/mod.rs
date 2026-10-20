@@ -18,6 +18,7 @@ pub mod output;
 pub mod php;
 pub mod project;
 pub mod run;
+pub mod scratches;
 pub mod search;
 pub mod settings;
 pub mod symfony;
