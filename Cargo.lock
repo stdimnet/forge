@@ -1404,6 +1404,7 @@ dependencies = [
  "forge-db",
  "forge-debug",
  "forge-forges",
+ "forge-keymap",
  "forge-langservers",
  "forge-lsp",
  "forge-open",
