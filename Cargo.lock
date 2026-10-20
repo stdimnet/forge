@@ -2221,6 +2221,7 @@ name = "forge-wasm"
 version = "0.1.0"
 dependencies = [
  "forge-agent-cli",
+ "forge-codeintel",
  "forge-containers",
  "forge-filetypes",
  "forge-find",
