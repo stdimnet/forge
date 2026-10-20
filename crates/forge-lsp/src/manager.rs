@@ -22,6 +22,7 @@ use tokio::sync::{broadcast, OnceCell};
 
 use crate::client::{LspClient, LspEvent, ServerState};
 use crate::config::LspServerConfig;
+use crate::launch::{LocalLauncher, ServerLauncher};
 use crate::model::{
     definition_locations, document_symbols, locations, workspace_symbols, EditorCompletionItem,
     EditorCompletionList, EditorHover, EditorLocation, EditorSignatureHelp, EditorSymbol,
@@ -49,6 +50,7 @@ type Slot = Arc<OnceCell<Option<LspClient>>>;
 
 pub struct LspManager {
     root: PathBuf,
+    launcher: Arc<dyn ServerLauncher>,
     configs: RwLock<Vec<LspServerConfig>>,
     slots: Mutex<HashMap<String, Slot>>,
     /// Startup errors per server id (cleared when the config is registered again).
@@ -60,8 +62,15 @@ pub struct LspManager {
 
 impl LspManager {
     pub fn new(root: impl Into<PathBuf>) -> Self {
+        Self::with_launcher(root, Arc::new(LocalLauncher))
+    }
+
+    /// A manager whose servers are started by `launcher` (e.g. on a remote host, where
+    /// `root` is a path on that host).
+    pub fn with_launcher(root: impl Into<PathBuf>, launcher: Arc<dyn ServerLauncher>) -> Self {
         LspManager {
             root: root.into(),
+            launcher,
             configs: RwLock::new(Vec::new()),
             slots: Mutex::new(HashMap::new()),
             failures: Mutex::new(HashMap::new()),
@@ -173,8 +182,9 @@ impl LspManager {
         let slot = self.slot(&id);
         let events = self.events.clone();
         let root = self.root.clone();
+        let launcher = self.launcher.clone();
         slot.get_or_init(|| async move {
-            match LspClient::start_with_events(config, root, events).await {
+            match LspClient::start_with_launcher(config, root, events, launcher.as_ref()).await {
                 Ok(client) => Some(client),
                 Err(e) => {
                     tracing::warn!("language server {id} failed to start: {e}");

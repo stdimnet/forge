@@ -2,7 +2,6 @@
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use std::process::Stdio;
 use std::sync::atomic::{AtomicI64, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
 use std::time::Duration;
@@ -27,11 +26,11 @@ use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
-use tokio::process::{Child, Command};
 use tokio::sync::{broadcast, mpsc, oneshot};
 
-use crate::config::{find_on_path, LspServerConfig};
+use crate::config::LspServerConfig;
 use crate::framing;
+use crate::launch::{LocalLauncher, ServerLauncher, ServerProcess};
 
 /// Default time to wait for a response before giving up.
 pub const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
@@ -96,7 +95,7 @@ struct Inner {
     versions: Mutex<HashMap<Url, i32>>,
     state: Mutex<ServerState>,
     progress: Mutex<HashMap<String, String>>,
-    child: tokio::sync::Mutex<Option<Child>>,
+    process: tokio::sync::Mutex<Option<Box<dyn ServerProcess>>>,
 }
 
 /// Handle to a running language server. Cheap to clone.
@@ -133,22 +132,22 @@ impl LspClient {
         root: impl AsRef<Path>,
         events: broadcast::Sender<LspEvent>,
     ) -> Result<Self> {
-        let root = root.as_ref().to_path_buf();
-        let program =
-            find_on_path(&config.command).unwrap_or_else(|| config.command.clone().into());
-        let mut child = Command::new(&program)
-            .args(&config.args)
-            .current_dir(&root)
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .kill_on_drop(true)
-            .spawn()
-            .map_err(|e| other(format!("could not start {}: {e}", config.command)))?;
+        Self::start_with_launcher(config, root, events, &LocalLauncher).await
+    }
 
-        let stdin = child.stdin.take().expect("stdin is piped");
-        let stdout = child.stdout.take().expect("stdout is piped");
-        let stderr = child.stderr.take().expect("stderr is piped");
+    /// Like [`start_with_events`](Self::start_with_events) but lets `launcher` start the
+    /// server process (e.g. on a remote development host).
+    pub async fn start_with_launcher(
+        config: LspServerConfig,
+        root: impl AsRef<Path>,
+        events: broadcast::Sender<LspEvent>,
+        launcher: &dyn ServerLauncher,
+    ) -> Result<Self> {
+        let root = root.as_ref().to_path_buf();
+        let io = launcher.launch(&config, &root).await?;
+        let stdin = io.stdin;
+        let stdout = io.stdout;
+        let stderr = io.stderr;
         let (tx, mut rx) = mpsc::unbounded_channel::<Vec<u8>>();
 
         let client = LspClient {
@@ -163,7 +162,7 @@ impl LspClient {
                 versions: Mutex::new(HashMap::new()),
                 state: Mutex::new(ServerState::Starting),
                 progress: Mutex::new(HashMap::new()),
-                child: tokio::sync::Mutex::new(Some(child)),
+                process: tokio::sync::Mutex::new(Some(io.process)),
             }),
         };
         client.set_state(ServerState::Starting);
@@ -179,13 +178,15 @@ impl LspClient {
         });
 
         // Server stderr goes to our log.
-        let id = client.id().to_string();
-        tokio::spawn(async move {
-            let mut lines = BufReader::new(stderr).lines();
-            while let Ok(Some(line)) = lines.next_line().await {
-                tracing::debug!(target: "forge_lsp::stderr", server = %id, "{line}");
-            }
-        });
+        if let Some(stderr) = stderr {
+            let id = client.id().to_string();
+            tokio::spawn(async move {
+                let mut lines = BufReader::new(stderr).lines();
+                while let Ok(Some(line)) = lines.next_line().await {
+                    tracing::debug!(target: "forge_lsp::stderr", server = %id, "{line}");
+                }
+            });
+        }
 
         // Reader: dispatches responses, notifications and server requests.
         let weak = Arc::downgrade(&client.inner);
@@ -558,21 +559,16 @@ impl LspClient {
             .await;
         let _ = self.notify_raw(notif::Exit::METHOD, Value::Null);
         *self.inner.state.lock().expect("state lock") = ServerState::Stopped;
-        let mut child = self.inner.child.lock().await;
-        if let Some(mut c) = child.take() {
-            if tokio::time::timeout(Duration::from_secs(2), c.wait())
-                .await
-                .is_err()
-            {
-                let _ = c.kill().await;
-            }
+        let mut process = self.inner.process.lock().await;
+        if let Some(mut p) = process.take() {
+            p.stop(Duration::from_secs(2)).await;
         }
         self.set_state(ServerState::Stopped);
     }
 
     async fn kill(&self) {
-        if let Some(mut c) = self.inner.child.lock().await.take() {
-            let _ = c.kill().await;
+        if let Some(mut p) = self.inner.process.lock().await.take() {
+            p.kill().await;
         }
     }
 
