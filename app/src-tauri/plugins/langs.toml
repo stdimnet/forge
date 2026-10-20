@@ -1,5 +1,6 @@
 # Language packs for scripts and configuration formats. Each table is one plugin; the
-# `fileTypes` mirror the language registrations in app/ui/src/features/languages.
+# `fileTypes` select the syntax modes registered under the same ids in
+# app/ui/src/features/languages (matching itself happens in crates/forge-filetypes).
 
 # ---- ScriptForge ----------------------------------------------------------------------
 
@@ -16,6 +17,8 @@ id = "shell"
 name = "Shell Script"
 extensions = ["sh", "bash", "zsh", "ksh", "bats"]
 fileNames = [".bashrc", ".bash_profile", ".bash_login", ".bash_logout", ".bash_aliases", ".profile", ".zshrc", ".zprofile", ".envrc", "PKGBUILD", ".xinitrc", ".xprofile"]
+interpreters = ["sh", "bash", "zsh", "ksh", "dash", "ash"]
+indentSize = 2
 
 [[plugin]]
 id = "forge.python"
@@ -30,6 +33,7 @@ id = "python"
 name = "Python"
 extensions = ["py", "pyw", "pyi", "pyx", "pxd", "gyp"]
 fileNames = ["SConstruct", "SConscript", "wscript", ".pythonstartup", ".pythonrc"]
+interpreters = ["python"]
 
 [[plugin]]
 id = "forge.yaml"
@@ -44,6 +48,7 @@ id = "yaml"
 name = "YAML"
 extensions = ["yml", "yaml", "neon"]
 fileNames = [".clang-format", ".clang-tidy", ".yamllint", ".gemrc", "CITATION.cff", ".sops.yaml"]
+indentSize = 2
 
 [[plugin]]
 id = "forge.json"
@@ -58,6 +63,7 @@ id = "json"
 name = "JSON"
 extensions = ["json", "jsonc", "json5", "lock", "webmanifest", "geojson", "har", "code-workspace", "ipynb", "avsc", "mcmeta"]
 fileNames = [".babelrc", ".eslintrc", ".prettierrc", ".stylelintrc", ".jshintrc", ".swcrc", ".watchmanconfig", ".lintstagedrc", ".htmlhintrc", ".remarkrc", "composer.lock", ".php-cs-fixer.cache", ".php-cs-fixer.json", "symfony.lock"]
+indentSize = 2
 
 [[plugin]]
 id = "forge.dotenv"
@@ -72,6 +78,7 @@ id = "dotenv"
 name = "Dotenv"
 extensions = ["env"]
 fileNames = [".env", ".env.local", ".env.*.local", ".env.dist", ".env.*.dist", ".env.example", ".env.sample", ".env.template", ".env.defaults", ".env.dev", ".env.development", ".env.prod", ".env.production", ".env.stage", ".env.staging", ".env.test", ".env.testing"]
+indentSize = 2
 
 [[plugin]]
 id = "forge.ignore"
@@ -86,6 +93,7 @@ id = "ignore"
 name = "Ignore File"
 extensions = ["gitignore", "dockerignore", "npmignore", "ignore"]
 fileNames = [".*ignore", ".gitignore_global", ".git/info/exclude"]
+indentSize = 2
 
 [[plugin]]
 id = "forge.docker"
@@ -105,6 +113,7 @@ fileNames = ["Dockerfile", "Dockerfile.*", "Containerfile", "Containerfile.*"]
 id = "docker-compose"
 name = "Docker Compose"
 fileNames = ["docker-compose.yml", "docker-compose.yaml", "docker-compose.*.yml", "docker-compose.*.yaml", "compose.yml", "compose.yaml", "compose.*.yml", "compose.*.yaml"]
+indentSize = 2
 
 [[plugin]]
 id = "forge.postfix"

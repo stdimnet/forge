@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { languageIdFor, languageLabel, detectLanguage, wildcardMatch } from "@/editor/languages";
 import "./index";
 import { bashParser } from "./bash";
 import { envParser, parseEnv } from "./env";
@@ -10,52 +9,6 @@ import { masterProblems, mainProblems, postfixMainParser, postfixMasterParser } 
 import { composeSchema, namesUnder } from "./compose";
 import { nodeAt, positionAt, schemaCompletion } from "./yamlSchema";
 import { contextAt, stateOf, styleOf, tokenize } from "./testkit";
-
-describe("language detection", () => {
-  const id = (p: string, first?: string) => languageIdFor(p, first);
-  it("matches extensions, names and wildcards", () => {
-    expect(id("src/app.py")).toBe("python");
-    expect(id("scripts/deploy.sh")).toBe("shell");
-    expect(id("config/a.yml")).toBe("yaml");
-    expect(id("composer.json")).toBe("json");
-    expect(id("Dockerfile")).toBe("dockerfile");
-    expect(id("docker/Dockerfile.prod")).toBe("dockerfile");
-    expect(id("docker-compose.override.yml")).toBe("docker-compose");
-    expect(id("compose.yaml")).toBe("docker-compose");
-    expect(id("composer.yml")).toBe("yaml");
-    expect(id("/etc/postfix/main.cf")).toBe("postfix");
-    expect(id("/etc/postfix/master.cf")).toBe("postfix-master");
-    expect(id("pgsql-aliases.cf")).toBe("postfix");
-    expect(id("mail/msg.eml")).toBe("eml");
-    expect(id("src/Kernel.php")).toBe("php");
-    expect(id("templates/x.blade.php")).toBe("blade");
-  });
-  it("recognises .env variants and ignore files", () => {
-    for (const n of [".env", ".env.local", ".env.test.local", ".env.dist", "prod.env"]) expect(id(n)).toBe("dotenv");
-    expect(id(".env.local.php")).toBe("php");
-    for (const n of [".gitignore", ".dockerignore", "app/.npmignore", ".prettierignore", ".ignore"]) expect(id(n)).toBe("ignore");
-  });
-  it("prefers the Symfony services type over plain YAML", () => {
-    expect(id("config/services.yaml")).toBe("symfony-services");
-    expect(id("config/services_test.yaml")).toBe("symfony-services");
-    expect(id("app/config/services/api.yml")).toBe("symfony-services");
-    expect(id("config/packages/framework.yaml")).toBe("yaml");
-  });
-  it("detects scripts by shebang only without a known type", () => {
-    expect(id("bin/run", "#!/usr/bin/env python3")).toBe("python");
-    expect(id("bin/run", "#!/bin/bash")).toBe("shell");
-    expect(id("bin/run", "#!/usr/bin/php")).toBeUndefined();
-    expect(id("bin/run")).toBeUndefined();
-    expect(languageLabel("bin/run", "#!/bin/sh")).toBe("Shell Script");
-    expect(languageLabel("notes.txt")).toBe("Plain text");
-    expect(detectLanguage("a.PY")?.id).toBe("python");
-  });
-  it("wildcards", () => {
-    expect(wildcardMatch("a*b*c", "aXbYc")).toBe(true);
-    expect(wildcardMatch("*.yml", "x.yml")).toBe(true);
-    expect(wildcardMatch("ab*ba", "aba")).toBe(false);
-  });
-});
 
 describe("bash tokens", () => {
   const t = (src: string) => tokenize(bashParser, src);
@@ -197,14 +150,6 @@ describe("Postfix", () => {
 });
 
 describe("INI and conf", () => {
-  it("detects the types", () => {
-    expect(languageIdFor("php.ini")).toBe("ini");
-    expect(languageIdFor("/etc/mysql/my.cnf")).toBe("ini");
-    expect(languageIdFor(".editorconfig")).toBe("ini");
-    expect(languageIdFor("nginx.conf")).toBe("nginx");
-    expect(languageIdFor("sysctl.conf")).toBe("conf");
-    expect(languageIdFor("supervisord.conf")).toBe("ini");
-  });
   it("tokenizes ini", () => {
     const lines = tokenize(iniParser, "; c\n[PHP]\nmemory_limit = 512M ; big\ndisplay_errors=Off\nname = \"x y\"\nurl = http://a.b/c");
     expect(lines[0][0][1]).toBe("comment");

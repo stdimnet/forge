@@ -1,0 +1,12 @@
+[package]
+name = "forge-filetypes"
+description = "File type recognition for Forge: names, extensions, shebangs and template data languages (pure, WebAssembly-friendly)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true

@@ -87,14 +87,9 @@ export function SearchEverywhere() {
     const tab = seTab();
     setLoading(true);
     const perGroup = tab === "all" ? 5 : 60;
-    let res = await runSearch(tab, seQuery(), { includeNonProject: seIncludeNonProject(), perGroup });
+    // Ranked in Rust; disabled actions only show when asked for or when nothing else matches.
+    const res = await runSearch(tab, seQuery(), { includeNonProject: seIncludeNonProject(), perGroup });
     if (id !== seq) return;
-    // Like PHPStorm, disabled actions only show when asked for or when nothing else matches.
-    if (!seIncludeNonProject()) {
-      res = res
-        .map((g) => (g.provider.tab === "actions" && g.items.some((i) => !i.dimmed) ? { ...g, items: g.items.filter((i) => !i.dimmed) } : g))
-        .filter((g) => g.items.length);
-    }
     setGroups(res);
     setSelected(0);
     setLoading(false);

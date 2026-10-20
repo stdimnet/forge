@@ -217,10 +217,6 @@ export function dockerfileSupport() {
 
 registerLanguage({
   id: "dockerfile",
-  label: "Dockerfile",
-  extensions: ["dockerfile", "containerfile"],
-  fileNames: ["Dockerfile", "Dockerfile.*", "Containerfile", "Containerfile.*"],
-  indent: "    ",
   load: dockerfileSupport,
 });
 

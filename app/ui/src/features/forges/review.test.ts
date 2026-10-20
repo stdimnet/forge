@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 import type { ChangedFile, Discussion } from "@/ipc/forges";
 import { diffRows, threadOnRow } from "./ReviewDiff";
 import { highlightLines, parserFor } from "./highlight";
+import { fileTypesReady } from "@/mock/filetypesMock";
+
+await fileTypesReady;
 
 const file: ChangedFile = {
   path: "app/Models/User.php",

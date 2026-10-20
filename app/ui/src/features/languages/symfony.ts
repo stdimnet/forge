@@ -10,7 +10,6 @@ import type { Extension } from "@codemirror/state";
 import { Decoration, MatchDecorator, ViewPlugin, type DecorationSet, type EditorView, type ViewUpdate } from "@codemirror/view";
 import type { Completion, CompletionContext, CompletionResult } from "@codemirror/autocomplete";
 import { registerLanguage } from "@/editor/languages";
-import { isPluginActive } from "@/state/project";
 import { workspaceApi } from "@/ipc/workspace";
 import { phpApi } from "@/features/php/api";
 import { parseEnv } from "./env";
@@ -335,10 +334,7 @@ export function symfonySupport(): Extension {
 
 registerLanguage({
   id: "symfony-services",
-  label: "Symfony Services",
-  fileNames: ["config/services*.yaml", "config/services*.yml", "config/services/*.yaml", "config/services/*.yml"],
-  indent: "    ",
-  // Outside Symfony projects (or with the plugin disabled) these are plain YAML files.
-  labelFor: () => (isPluginActive("forge.symfony-services") ? "Symfony Services" : "YAML"),
-  load: () => (isPluginActive("forge.symfony-services") ? symfonySupport() : yaml()),
+  // Outside Symfony projects (or with the plugin disabled) these files are plain YAML: the
+  // file type comes from that plugin, so Rust falls back to `yaml`.
+  load: () => symfonySupport(),
 });

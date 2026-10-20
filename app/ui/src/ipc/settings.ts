@@ -115,6 +115,11 @@ export interface FileTypeContribution {
   name: string;
   extensions: string[];
   fileNames: string[];
+  /** Interpreters of `#!` lines that select the type. */
+  interpreters?: string[];
+  indentSize?: number;
+  /** Template language (text between tags uses a data language). */
+  template?: boolean;
 }
 
 export interface Contributions {
@@ -165,6 +170,58 @@ export interface SettingsChange {
 
 export const SETTINGS_CHANGED_EVENT = "settings://changed";
 
+/** A settings page as sent to the Settings dialog model (`settings_search`). */
+export interface SettingsPageInput {
+  id: string;
+  title: string;
+  group: string;
+  parent?: string;
+  keywords?: string[];
+  /** Searchable text beyond title, keywords and the page's schema settings. */
+  text?: string;
+}
+
+export interface SettingsTreeNode {
+  /** Page id, or `group:<name>` for a group without a page of its own. */
+  id: string;
+  title: string;
+  /** Whether `id` is a page. */
+  page: boolean;
+  /** Page ids in this subtree, including the node's own. */
+  pages: string[];
+  children: SettingsTreeNode[];
+}
+
+export interface HighlightSegment {
+  text: string;
+  hit: boolean;
+}
+
+export interface SettingsSearchRequest {
+  query: string;
+  pages?: SettingsPageInput[];
+  settings?: SettingSpec[];
+  entries?: { id: string; text: string }[];
+  highlight?: string[];
+}
+
+export interface SettingsSearchResponse {
+  tree: SettingsTreeNode[];
+  /** Matching nodes and their ancestors (the whole tree for an empty query). */
+  visible: SettingsTreeNode[];
+  /** Nodes that match themselves. */
+  matches: string[];
+  firstMatch: string | null;
+  /** Node ids from the root to each node. */
+  breadcrumbs: Record<string, string[]>;
+  /** Keys of matching settings. */
+  settings: string[];
+  /** Ids of matching entries. */
+  entries: string[];
+  /** Segments of each requested highlight text, in order. */
+  highlights: HighlightSegment[][];
+}
+
 export const settingsApi = {
   getAll: () => invoke<SettingsSnapshot>("settings_get_all"),
   /** `null` removes the override in `scope` so the value is inherited again. */
@@ -172,6 +229,10 @@ export const settingsApi = {
     invoke<void>("settings_set", { key, value, scope }),
   schema: () => invoke<SettingSpec[]>("settings_schema"),
   plugins: () => invoke<PluginInfo[]>("plugins_list"),
+  /** Search the Settings dialog (page tree, matches, highlights). */
+  search: (request: SettingsSearchRequest) => invoke<SettingsSearchResponse>("settings_search", { request }),
+  /** The problem with a value for `key`, or null when it is valid. */
+  validate: (key: string, value: SettingValue) => invoke<string | null>("settings_validate", { key, value }),
   /** Returns the ids whose state changed (dependencies/dependents cascade). */
   setPluginEnabled: (id: string, enabled: boolean) =>
     invoke<string[]>("plugin_set_enabled", { id, enabled }),

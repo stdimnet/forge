@@ -9,6 +9,7 @@
 
 pub mod contributions;
 pub mod registry;
+pub mod settings_model;
 
 use serde::{Deserialize, Serialize};
 

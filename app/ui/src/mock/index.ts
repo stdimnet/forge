@@ -1,12 +1,14 @@
 /** Browser-mode backend. Features add their own `*Mock.ts` imports here. */
 import "./settingsMock";
 import "./keymapMock";
+import { fileTypesReady } from "./filetypesMock";
 import "./projectMock";
 import "./workspaceMock";
 import "./aiMock";
 import "./agentMock";
 import "./lspMock";
 import "./langserversMock";
+import "./fuzzyMock";
 import "./searchMock";
 import "./gitMock";
 import "./phpMock";
@@ -19,3 +21,7 @@ import "./laravelMock";
 import "./symfonyMock";
 import "./doctrineMock";
 import "./forgesMock";
+
+// File types answer synchronously once the WebAssembly build is loaded; wait for it so the
+// first editors do not start as plain text.
+await fileTypesReady;

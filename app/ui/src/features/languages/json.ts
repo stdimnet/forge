@@ -6,13 +6,6 @@ import { lezerProblems, syntaxDiagnostics } from "./shared";
 
 registerLanguage({
   id: "json",
-  label: "JSON",
-  extensions: ["json", "jsonc", "json5", "lock", "webmanifest", "geojson", "har", "code-workspace", "ipynb", "avsc", "mcmeta"],
-  fileNames: [
-    ".babelrc", ".eslintrc", ".prettierrc", ".stylelintrc", ".jshintrc", ".swcrc", ".watchmanconfig",
-    ".lintstagedrc", ".htmlhintrc", ".remarkrc", "composer.lock", ".php-cs-fixer.cache", ".php-cs-fixer.json", "symfony.lock",
-  ],
-  indent: "  ",
   load: () => json(),
 });
 

@@ -4,48 +4,34 @@
  */
 import { createMemo, createSignal, For, Index, Match, Show, Switch, type JSX } from "solid-js";
 import { ArrowDown, ArrowUp, Minus, Plus } from "lucide-solid";
-import type { SettingSpec } from "@/ipc/settings";
+import { settingsApi, type SettingSpec } from "@/ipc/settings";
 import { settingsState } from "@/state/settings";
-import { draft, draftValue, query, setDraft } from "./dialogState";
-import { highlight, matchesQuery } from "./model";
-
-/** Text with search hits highlighted. */
-export function Hl(props: { text: string }) {
-  return (
-    <For each={highlight(props.text, query())}>
-      {(s) => (s.hit ? <mark class="set-hl">{s.text}</mark> : s.text)}
-    </For>
-  );
-}
-
-/** Searchable text of a page's settings, used by the dialog's search. */
-export function schemaText(pageId: string): string {
-  return settingsState.schema
-    .filter((s) => s.group === pageId)
-    .map((s) => [s.title, s.description ?? "", s.section ?? "", s.key].join(" "))
-    .join("\n");
-}
+import { draft, draftValue, setDraft } from "./dialogState";
+import { Hl, settingMatches } from "./dialogSearch";
 
 function NumberInput(props: { spec: SettingSpec & { type: "int" | "number" } }) {
   const step = () => (props.spec.type === "number" ? (props.spec.step ?? 0.1) : 1);
-  const [invalid, setInvalid] = createSignal(false);
-  const commit = (raw: string) => {
+  const [invalid, setInvalid] = createSignal<string | null>(null);
+  let seq = 0;
+  // The schema check (type and range) runs in Rust, like the one `settings_set` applies.
+  const commit = async (raw: string) => {
+    const id = ++seq;
     const n = props.spec.type === "int" ? Number.parseInt(raw, 10) : Number.parseFloat(raw);
-    const { min, max } = props.spec;
-    const ok = Number.isFinite(n) && (min === undefined || n >= min) && (max === undefined || n <= max);
-    setInvalid(!ok);
-    if (ok) setDraft(props.spec.key, n);
+    const problem = Number.isFinite(n) ? await settingsApi.validate(props.spec.key, n) : "Not a number";
+    if (id !== seq) return;
+    setInvalid(problem);
+    if (!problem) setDraft(props.spec.key, n);
   };
   return (
     <input
       class="set-input set-number"
-      classList={{ invalid: invalid() }}
+      classList={{ invalid: !!invalid() }}
       type="number"
       min={props.spec.min}
       max={props.spec.max}
       step={step()}
       value={draftValue<number>(props.spec.key)}
-      onInput={(e) => commit(e.currentTarget.value)}
+      onInput={(e) => void commit(e.currentTarget.value)}
       title={
         props.spec.min !== undefined && props.spec.max !== undefined
           ? `${props.spec.min} – ${props.spec.max}`
@@ -153,8 +139,7 @@ function Control(props: { spec: SettingSpec }) {
 
 export function SettingRow(props: { spec: SettingSpec }) {
   const spec = props.spec;
-  const hit = () =>
-    query().trim() !== "" && matchesQuery(`${spec.title} ${spec.description ?? ""} ${spec.section ?? ""}`, query());
+  const hit = () => settingMatches(spec.key);
   const modified = () => spec.key in draft;
   const description = () =>
     spec.description ? (

@@ -17,7 +17,10 @@
 
 use wasm_bindgen::prelude::*;
 
+mod filetypes;
 mod keymap;
+mod search;
+mod settings;
 
 /// Version of the bridge, used by the UI to check that the bundle is current.
 #[wasm_bindgen]

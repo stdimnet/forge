@@ -7,6 +7,7 @@ import { Language, LanguageSupport } from "@codemirror/language";
 import { highlightTree } from "@lezer/highlight";
 import type { Extension } from "@codemirror/state";
 import { languageFor } from "@/editor/languages";
+import { isFileTypeResolved } from "@/editor/fileTypes";
 import { forgeHighlightStyle } from "@/editor/forgeTheme";
 
 export interface Segment {
@@ -46,7 +47,9 @@ export function parserFor(path: string): Parser | null {
   } catch {
     parser = null;
   }
-  cache.set(ext, parser);
+  // Until the file type has arrived (desktop app) the answer is provisional; callers in a
+  // reactive scope re-run once it lands.
+  if (isFileTypeResolved(path)) cache.set(ext, parser);
   return parser;
 }
 

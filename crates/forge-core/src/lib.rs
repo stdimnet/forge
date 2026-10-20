@@ -8,7 +8,7 @@ pub mod watch;
 pub mod workspace;
 
 pub use error::{ForgeError, Result};
-pub use search::{fuzzy_match, FileMatch, FuzzyMatch};
+pub use search::{fuzzy_match, fuzzy_match_with, FileMatch, FuzzyMatch, MatchOptions};
 pub use settings::{Settings, SettingsChange, SettingsScope};
 pub use watch::{FsChanges, ProjectWatcher};
 pub use workspace::{FileEntry, FileKind, Workspace};

@@ -10,7 +10,7 @@ import { layout, showToolWindow } from "@/state/layout";
 import { editor, isDirty, openFile } from "@/state/editor";
 import { FileIcon } from "@/shell/FileIcon";
 import { shortcutLabel } from "@/keymap";
-import { fuzzyMatch } from "@/features/search/fuzzy";
+import { createFuzzyFilter } from "@/features/search/fuzzyFilter";
 import { Highlight } from "@/features/search/SearchEverywhere";
 import { editedFiles, recentFiles } from "./history";
 
@@ -66,25 +66,33 @@ export function RecentFilesPopup() {
   const [fileIdx, setFileIdx] = createSignal(0);
   const [twIdx, setTwIdx] = createSignal(0);
 
-  const files = createMemo(() => {
+  const allFiles = createMemo(() => {
     const source = editedOnly() ? editedFiles() : recentFiles();
     // Open tabs that were never activated still count as recent (e.g. restored session).
-    const all = [...source, ...(editedOnly() ? [] : editor.tabs.map((t) => t.path).filter((p) => !source.includes(p)))];
-    const q = query();
-    return all
-      .map((path) => {
-        const name = path.split("/").pop() ?? path;
-        return { path, name, m: q ? fuzzyMatch(q, name) : { score: 0, positions: [] } };
-      })
-      .filter((f) => f.m)
-      .sort((a, b) => (q ? b.m!.score - a.m!.score : 0));
+    return [...source, ...(editedOnly() ? [] : editor.tabs.map((t) => t.path).filter((p) => !source.includes(p)))];
   });
+  const nameOf = (path: string) => path.split("/").pop() ?? path;
+  // Matched and ranked in Rust; ties keep the recency order.
+  const fileHits = createFuzzyFilter(() => ({ query: query(), candidates: allFiles().map(nameOf) }));
+  const files = createMemo(() =>
+    fileHits()
+      .filter((h) => h.index < allFiles().length)
+      .map((h) => {
+        const path = allFiles()[h.index];
+        return { path, name: nameOf(path), m: h };
+      }),
+  );
 
+  const sortedWindows = createMemo(() =>
+    // Numbered windows first in keyboard order (1…9, 0), then the rest alphabetically.
+    [...toolWindows()].sort((a, b) => rank(a) - rank(b) || a.title.localeCompare(b.title)),
+  );
+  const windowHits = createFuzzyFilter(() => ({ query: query(), candidates: sortedWindows().map((tw) => tw.title) }));
   const windows = createMemo(() =>
-    toolWindows()
-      .filter((tw) => !query() || fuzzyMatch(query(), tw.title))
-      // Numbered windows first in keyboard order (1…9, 0), then the rest alphabetically.
-      .sort((a, b) => rank(a) - rank(b) || a.title.localeCompare(b.title)),
+    windowHits()
+      .map((h) => h.index)
+      .sort((a, b) => a - b)
+      .flatMap((i) => sortedWindows()[i] ?? []),
   );
 
   onMount(() => {

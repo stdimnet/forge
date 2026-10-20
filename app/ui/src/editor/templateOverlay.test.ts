@@ -4,8 +4,12 @@ import { EditorView } from "@codemirror/view";
 import { html } from "@codemirror/lang-html";
 import { overlayClass, OVERLAY_MAX_CHARS, templateOverlay, templateRanges } from "./templateOverlay";
 import { goTemplateSyntax, smartySyntaxWith, twigSyntax } from "./templates";
-import { dataLanguageFor, dataLanguageSupport } from "./templateData";
+import { dataLanguageSupport } from "./templateData";
 import { languageFor } from "./languages";
+import { fileTypeOf } from "./fileTypes";
+import { fileTypesReady } from "@/mock/filetypesMock";
+
+await fileTypesReady;
 
 /** `[text, style]` of every template token in `doc`. */
 const tokens = (doc: string, syntax = goTemplateSyntax) =>
@@ -86,11 +90,12 @@ describe("template overlay in an editor", () => {
 
 describe("template languages use the data language and the overlay", () => {
   it("builds a data language support per compound name", () => {
-    expect(dataLanguageFor("index.html.tmpl").id).toBe("html");
-    expect(dataLanguageFor("query.sql.tmpl").id).toBe("sql");
+    expect(fileTypeOf("index.html.tmpl").dataLanguage?.id).toBe("html");
+    expect(fileTypeOf("query.sql.tmpl").dataLanguage?.id).toBe("sql");
     for (const id of ["html", "css", "sql", "yaml", "json", "go", "javascript", "xml", "text"]) {
-      const lang = dataLanguageFor(`a.${id === "javascript" ? "js" : id === "text" ? "txt" : id}.tmpl`);
-      expect(() => dataLanguageSupport(lang)).not.toThrow();
+      const lang = fileTypeOf(`a.${id === "javascript" ? "js" : id === "text" ? "txt" : id}.tmpl`).dataLanguage;
+      expect(lang?.id).toBe(id);
+      expect(() => dataLanguageSupport(lang?.id)).not.toThrow();
     }
   });
 

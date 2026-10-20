@@ -1403,7 +1403,9 @@ dependencies = [
  "forge-core",
  "forge-db",
  "forge-debug",
+ "forge-filetypes",
  "forge-forges",
+ "forge-fuzzy",
  "forge-keymap",
  "forge-langservers",
  "forge-lsp",
@@ -1434,6 +1436,7 @@ name = "forge-core"
 version = "0.1.0"
 dependencies = [
  "dirs 6.0.0",
+ "forge-fuzzy",
  "ignore",
  "notify",
  "serde",
@@ -1480,6 +1483,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "forge-filetypes"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "forge-forges"
 version = "0.1.0"
 dependencies = [
@@ -1497,6 +1508,14 @@ dependencies = [
  "tokio",
  "toml 0.8.23",
  "tracing",
+]
+
+[[package]]
+name = "forge-fuzzy"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -1559,6 +1578,7 @@ name = "forge-plugin-api"
 version = "0.1.0"
 dependencies = [
  "forge-core",
+ "forge-filetypes",
  "serde",
  "serde_json",
  "thiserror 2.0.21",
@@ -1605,7 +1625,10 @@ dependencies = [
 name = "forge-wasm"
 version = "0.1.0"
 dependencies = [
+ "forge-filetypes",
+ "forge-fuzzy",
  "forge-keymap",
+ "forge-plugin-api",
  "serde",
  "serde_json",
  "wasm-bindgen",
