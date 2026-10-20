@@ -121,6 +121,8 @@ export interface PluginInfo {
   depends: string[];
   required: boolean;
   enabled: boolean;
+  /** Language/framework/pack ids the plugin applies to; missing means always active. */
+  projectTypes?: string[];
   contributions: Contributions;
 }
 
