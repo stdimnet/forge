@@ -81,6 +81,7 @@ impl RpcClient {
             next_channel: AtomicU32::new(1),
             handler: RwLock::new(None),
             closed: AtomicBool::new(false),
+            // Updated with `send_replace`: `send` drops the value while nobody subscribed.
             closed_tx: watch::channel(false).0,
         });
 
@@ -336,7 +337,7 @@ fn mark_closed(inner: &Arc<Inner>) {
     for (_, tx) in inner.channels.lock().expect("channels lock").drain() {
         let _ = tx.send(None);
     }
-    let _ = inner.closed_tx.send(true);
+    inner.closed_tx.send_replace(true);
 }
 
 /// Incoming bytes of a channel as an [`AsyncRead`]; ends when the channel closes.
@@ -401,5 +402,25 @@ impl AsyncWrite for ChannelWriter {
     fn poll_shutdown(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
         self.client.close_channel(self.channel);
         Poll::Ready(Ok(()))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn closed_resolves_when_asked_after_the_connection_ended() {
+        let (ours, theirs) = tokio::io::duplex(64);
+        let (read, write) = tokio::io::split(ours);
+        let client = RpcClient::spawn(read, write);
+        drop(theirs);
+        while !client.is_closed() {
+            tokio::task::yield_now().await;
+        }
+        // Nobody was subscribed when the connection ended.
+        tokio::time::timeout(Duration::from_secs(5), client.closed())
+            .await
+            .expect("closed() must see the earlier close");
     }
 }
