@@ -29,6 +29,7 @@ forge-forges.workspace = true
 forge-project.workspace = true
 forge-open.workspace = true
 forge-process.workspace = true
+forge-markdown.workspace = true
 forge-debug.workspace = true
 forge-db.workspace = true
 phpforge-lang-php = { path = "../../packs/phpforge/lang-php" }

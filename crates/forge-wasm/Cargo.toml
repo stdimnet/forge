@@ -14,5 +14,6 @@ serde.workspace = true
 serde_json.workspace = true
 forge-output.workspace = true
 forge-sql.workspace = true
+forge-markdown.workspace = true
 phpforge-dql = { path = "../../packs/phpforge/dql" }
 wasm-bindgen = "=0.2.129"

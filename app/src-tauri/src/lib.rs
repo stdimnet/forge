@@ -255,6 +255,8 @@ pub fn run() {
             commands::run::run_write,
             commands::run::run_dispose,
             commands::output::output_file_links,
+            commands::markdown::markdown_parse,
+            commands::markdown::markdown_hover,
             commands::debug::debug_status,
             commands::debug::debug_listen_start,
             commands::debug::debug_listen_stop,
