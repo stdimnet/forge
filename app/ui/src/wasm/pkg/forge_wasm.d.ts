@@ -50,6 +50,12 @@ export function containers_compose_args(request_json: string): string;
 export function containers_compose_parse(request_json: string): string;
 
 /**
+ * `{ metas: [meta.json text], current }` → `DockerContext[]` (the mock's
+ * `~/.docker/contexts`).
+ */
+export function containers_docker_contexts(request_json: string): string;
+
+/**
  * Engine API responses (`RawSnapshot`) → `DockerSnapshot`.
  */
 export function containers_docker_snapshot(raw_json: string): string;
@@ -63,6 +69,17 @@ export function containers_dockerfile_plan(request_json: string): string;
  * `{ content, baseDir }` → `KubeConfig`.
  */
 export function containers_kubeconfig_parse(request_json: string): string;
+
+/**
+ * `{ spec }` → `[local, remote][]` (Forward Ports), or an error.
+ */
+export function containers_port_forward_specs(request_json: string): string;
+
+/**
+ * `{ pod, container, text }` → the text with every line prefixed like
+ * `kubectl logs --prefix` (deployment logs).
+ */
+export function containers_prefix_log(request_json: string): string;
 
 /**
  * `{ image }` → handle for [`containers_pull_push`].
@@ -425,9 +442,12 @@ export interface InitOutput {
     readonly chat_set_permission: (a: number, b: number, c: number) => void;
     readonly containers_compose_args: (a: number, b: number, c: number) => void;
     readonly containers_compose_parse: (a: number, b: number, c: number) => void;
+    readonly containers_docker_contexts: (a: number, b: number, c: number) => void;
     readonly containers_docker_snapshot: (a: number, b: number, c: number) => void;
     readonly containers_dockerfile_plan: (a: number, b: number, c: number) => void;
     readonly containers_kubeconfig_parse: (a: number, b: number, c: number) => void;
+    readonly containers_port_forward_specs: (a: number, b: number, c: number) => void;
+    readonly containers_prefix_log: (a: number, b: number, c: number) => void;
     readonly containers_pull_new: (a: number, b: number, c: number) => void;
     readonly containers_pull_push: (a: number, b: number, c: number) => void;
     readonly containers_terminal_command: (a: number, b: number, c: number) => void;

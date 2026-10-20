@@ -50,7 +50,8 @@ export type ServiceAction =
   | "up"
   | "down"
   | "connect"
-  | "refresh";
+  | "refresh"
+  | "forwardPorts";
 
 export type DetailsTab = "dashboard" | "log" | "console" | "inspection";
 
@@ -75,6 +76,47 @@ export interface DashboardSection {
 
 export type Target = { kind: string; [key: string]: string };
 
+/** A container of a pod in the Log / Exec / Attached Console picker. */
+export interface ContainerChoice {
+  name: string;
+  /** Init containers only have logs. */
+  init?: boolean;
+  /** The container kubectl uses without `-c`. */
+  default?: boolean;
+}
+
+/** A port a pod's container declares. */
+export interface ContainerPort {
+  container: string;
+  port: number;
+  name?: string;
+  protocol: string;
+}
+
+/** An active Kubernetes port forward (`127.0.0.1:<localPort>` → pod port). */
+export interface PortForward {
+  id: number;
+  nodeId: string;
+  context: string;
+  namespace: string;
+  pod: string;
+  address: string;
+  localPort: number;
+  remotePort: number;
+  connections: number;
+  error?: string;
+}
+
+/** A Docker CLI context (`docker context ls`). */
+export interface DockerContext {
+  name: string;
+  description?: string;
+  host: string;
+  skipTlsVerify: boolean;
+  tlsDir?: string;
+  current: boolean;
+}
+
 export interface ServiceDetails {
   nodeId: string;
   target: Target;
@@ -86,6 +128,12 @@ export interface ServiceDetails {
   sections: DashboardSection[];
   actions: ServiceAction[];
   message?: string;
+  /** Pods: containers for the picker. */
+  containers?: ContainerChoice[];
+  /** Active port forwards of the pod (all of them on the Kubernetes nodes). */
+  portForwards?: PortForward[];
+  /** Pods: declared container ports. */
+  ports?: ContainerPort[];
 }
 
 export interface TerminalCommand {
@@ -109,6 +157,9 @@ export interface DockerConnectionSettings {
   tcpUrl: string;
   tls: boolean;
   certPath: string;
+  sshUrl: string;
+  sshSocket: string;
+  context: string;
 }
 
 export type ConnectionState = "disconnected" | "connecting" | "connected" | "failed";
@@ -131,9 +182,15 @@ export const servicesApi = {
   action: (nodeId: string, action: ServiceAction) => invoke<void>("services_action", { nodeId, action }),
   inspect: (nodeId: string) => invoke<string>("services_inspect", { nodeId }),
   console: (key: string) => invoke<ConsoleLine[]>("services_console", { key }),
-  logsStart: (nodeId: string) => invoke<string>("services_logs_start", { nodeId }),
+  /** `container` picks a pod's container (default: the pod's default container). */
+  logsStart: (nodeId: string, container?: string) => invoke<string>("services_logs_start", { nodeId, container }),
   logsStop: (nodeId: string) => invoke<void>("services_logs_stop", { nodeId }),
-  terminal: (nodeId: string, attach: boolean) => invoke<TerminalCommand>("services_terminal", { nodeId, attach }),
+  terminal: (nodeId: string, attach: boolean, container?: string) => invoke<TerminalCommand>("services_terminal", { nodeId, attach, container }),
+  /** Forward Ports: `spec` is `local:pod` pairs (`8080:80, 9000`, `:80` for any free local port). */
+  portForwardStart: (nodeId: string, spec: string) => invoke<PortForward[]>("services_port_forward_start", { nodeId, spec }),
+  portForwardStop: (id: number) => invoke<void>("services_port_forward_stop", { id }),
+  portForwards: () => invoke<PortForward[]>("services_port_forwards"),
+  dockerContexts: () => invoke<DockerContext[]>("docker_contexts"),
   pull: (image: string) => invoke<void>("services_pull", { image }),
   composeUp: (path: string, service?: string) => invoke<void>("services_compose_up", { path, service }),
   dockerfileRun: (path: string) => invoke<void>("services_dockerfile_run", { path }),

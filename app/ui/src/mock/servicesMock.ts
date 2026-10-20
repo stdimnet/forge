@@ -1,13 +1,14 @@
 /**
  * Browser-mode Services backend: a fake Docker daemon (acme-shop compose with app, mysql and
- * redis, images, volumes, networks) and a kind cluster with pods. The models, the tree,
- * details, gutter markers, command lines, pull progress and console lines all come from
- * the Rust crates through WebAssembly; this file only keeps the fake daemon's state and
- * replays output. It never touches real files or processes.
+ * redis, images, volumes, networks, two Docker contexts) and a kind cluster with pods. The
+ * models, the tree, details, gutter markers, command lines, port specs, log prefixes, pull
+ * progress and console lines all come from the Rust crates through WebAssembly; this file
+ * only keeps the fake daemon's state (and fake port forwards) and replays output. It never
+ * touches real files, processes or ports.
  */
 import { emitMock, registerMock } from "@/ipc";
 import type { ConsoleLine } from "@/ipc/run";
-import type { GutterMarker, ServiceAction, ServiceDetails, ServiceNode, ServicesEvent, TerminalCommand } from "@/ipc/services";
+import type { DockerContext, GutterMarker, PortForward, ServiceAction, ServiceDetails, ServiceNode, ServicesEvent, TerminalCommand } from "@/ipc/services";
 import { callWasmSync, forgeWasm, type ForgeWasm } from "@/wasm";
 import { demoProjectName } from "./demoProject";
 import { isSymfonyDemo, symfonyDemoName } from "./demoSymfonyProject";
@@ -33,6 +34,32 @@ import {
 const ENDPOINT = "unix:///var/run/docker.sock";
 const EVENT = "services://event";
 
+/** `~/.docker/contexts` of the demo machine (meta.json texts). */
+const CONTEXT_METAS = [
+  { Name: "buildbox", Metadata: { Description: "CI build host" }, Endpoints: { docker: { Host: "ssh://ci@buildbox.acme.dev", SkipTLSVerify: false } } },
+  { Name: "staging", Metadata: { Description: "Staging Swarm manager" }, Endpoints: { docker: { Host: "tcp://10.20.0.15:2376", SkipTLSVerify: false } } },
+].map((m) => JSON.stringify(m));
+
+const contexts = () => callWasmSync<DockerContext[]>(w().containers_docker_contexts, { metas: CONTEXT_METAS, current: null });
+
+/** The endpoint label the settings select (the fake daemon answers on all of them). */
+function endpoint(): string {
+  const setting = (k: string) => String(mockSettingValue(k) ?? "");
+  switch (setting("docker.connection")) {
+    case "ssh": {
+      const url = setting("docker.ssh.url").trim() || "ssh://deploy@build.acme.dev";
+      const socket = setting("docker.ssh.socketPath").trim();
+      return socket && socket !== "/var/run/docker.sock" ? `${url}${socket}` : url;
+    }
+    case "context":
+      return contexts().find((c) => c.name === setting("docker.context"))?.host ?? ENDPOINT;
+    case "tcp":
+      return setting("docker.tcp.url") || "tcp://localhost:2375";
+    default:
+      return ENDPOINT;
+  }
+}
+
 const docker = {
   containers: demoContainers(),
   images: demoImages() as ReturnType<typeof demoImages>,
@@ -40,6 +67,8 @@ const docker = {
   networks: demoNetworks(),
 };
 let busy: string[] = [];
+let forwards: PortForward[] = [];
+let nextForward = 0;
 type Loaded<T> = { state: "loading" } | { state: "ready"; value: T } | { state: "failed"; error: string };
 const namespaces: Record<string, Loaded<string[]>> = {};
 const workloads: Record<string, Loaded<unknown>> = {};
@@ -97,11 +126,12 @@ function kubeInput() {
 function input() {
   const snapshot = callWasmSync(w().containers_docker_snapshot, { ...docker, version: demoVersion });
   return {
-    docker: { state: "connected", endpoint: ENDPOINT, snapshot },
+    docker: { state: "connected", endpoint: endpoint(), snapshot, contexts: contexts() },
     composeFiles: composeFiles(),
     kube: kubeInput(),
     now: Math.floor(Date.now() / 1000),
     busy,
+    portForwards: forwards,
   };
 }
 
@@ -110,9 +140,10 @@ const emitTree = () => emit({ type: "tree", nodes: tree() });
 
 /** Node id → target, using the same Rust parser as the details pane. */
 function target(nodeId: string) {
-  const d = callWasmSync<ServiceDetails | null>(w().services_details, { input: input(), nodeId });
-  return d?.target ?? null;
+  return details(nodeId)?.target ?? null;
 }
+
+const details = (nodeId: string) => callWasmSync<ServiceDetails | null>(w().services_details, { input: input(), nodeId });
 
 // ---- consoles -----------------------------------------------------------------------------
 
@@ -362,7 +393,23 @@ async function expand(nodeId: string): Promise<ServiceNode[]> {
 
 // ---- logs -----------------------------------------------------------------------------------
 
-function startLogs(nodeId: string): string {
+/** `kubectl logs deploy/<name> --all-containers --prefix`: the deployment's pods (by its
+ * selector, from the Rust model) and every container, prefixed by Rust. */
+function deploymentLogs(nodeId: string, key: string): void {
+  const d = details(nodeId);
+  const pods = d?.sections.find((s) => s.title === "Pods")?.table?.rows.map((r) => r[0]) ?? [];
+  if (!pods.length) out(key, `No pods of deployment ${d?.title ?? ""} found\n`);
+  const raw = demoWorkloads().pods.items;
+  for (const pod of pods) {
+    const containers = raw.find((p) => p.metadata.name === pod)?.spec.containers.map((c) => c.name) ?? [];
+    for (const container of containers) {
+      const text = podLogs(pod, container).join("");
+      out(key, callWasmSync<string>(w().containers_prefix_log, { pod, container, text }));
+    }
+  }
+}
+
+function startLogs(nodeId: string, container?: string): string {
   const t = target(nodeId);
   const key = `log:${nodeId}`;
   clearInterval(streams.get(key));
@@ -377,8 +424,13 @@ function startLogs(nodeId: string): string {
     lines = initialLogs(service);
     running = c.State === "running";
   } else if (t?.kind === "pod") {
-    lines = podLogs(t.name);
+    const choices = details(nodeId)?.containers ?? [];
+    const picked = choices.find((c) => c.name === container) ?? choices.find((c) => c.default);
+    lines = podLogs(t.name, picked?.name);
     running = !t.name.startsWith("migrate");
+  } else if (t?.kind === "deployment") {
+    deploymentLogs(nodeId, key);
+    return key;
   } else throw new Error("This node has no logs");
   for (const l of lines) out(key, l, l.includes("ERROR") || l.includes("\x1b[31m") ? "stderr" : "stdout");
   if (running && service) {
@@ -437,10 +489,13 @@ function inspect(nodeId: string): string {
   throw new Error("Nothing to inspect");
 }
 
-function terminalCommand(nodeId: string, attach: boolean): TerminalCommand {
+function terminalCommand(nodeId: string, attach: boolean, container?: string): TerminalCommand {
   const t = target(nodeId);
-  if (t?.kind === "pod")
-    return callWasmSync(w().containers_terminal_command, { kind: "kubectl", context: t.context, namespace: t.namespace, pod: t.name });
+  if (t?.kind === "pod") {
+    const choices = details(nodeId)?.containers ?? [];
+    const picked = choices.find((c) => c.name === container && !c.init) ?? choices.find((c) => c.default);
+    return callWasmSync(w().containers_terminal_command, { kind: "kubectl", context: t.context, namespace: t.namespace, pod: t.name, container: picked?.name, attach });
+  }
   const c = t?.kind === "container" ? containerById(t.id) : t?.kind === "composeService" ? composeContainers(t.project, t.service)[0] : undefined;
   if (!c) throw new Error("No container to open a terminal in");
   return callWasmSync(w().containers_terminal_command, { kind: attach ? "attach" : "exec", container: c.Id, name: c.Names[0].slice(1) });
@@ -465,13 +520,36 @@ registerMock("services_details", ({ nodeId }) => {
 registerMock("services_action", ({ nodeId, action: act }) => action(String(nodeId), act as ServiceAction));
 registerMock("services_inspect", ({ nodeId }) => inspect(String(nodeId)));
 registerMock("services_console", ({ key }) => consoles.get(String(key))?.lines ?? []);
-registerMock("services_logs_start", ({ nodeId }) => startLogs(String(nodeId)));
+registerMock("services_logs_start", ({ nodeId, container }) => startLogs(String(nodeId), container ? String(container) : undefined));
 registerMock("services_logs_stop", ({ nodeId }) => {
   const key = `log:${String(nodeId)}`;
   clearInterval(streams.get(key));
   streams.delete(key);
 });
-registerMock("services_terminal", ({ nodeId, attach }) => terminalCommand(String(nodeId), !!attach));
+registerMock("services_terminal", ({ nodeId, attach, container }) => terminalCommand(String(nodeId), !!attach, container ? String(container) : undefined));
+// Port forwards are only bookkeeping here: nothing listens on the ports.
+registerMock("services_port_forward_start", async ({ nodeId, spec }) => {
+  const t = target(String(nodeId));
+  if (t?.kind !== "pod") throw new Error("Ports can only be forwarded to pods");
+  const pairs = callWasmSync<[number, number][]>(w().containers_port_forward_specs, { spec: String(spec) });
+  await sleep(150);
+  const started: PortForward[] = [];
+  for (const [local, remote] of pairs) {
+    const localPort = local || 49152 + Math.floor(Math.random() * 16000);
+    if (forwards.some((f) => f.localPort === localPort)) throw new Error(`Local port ${localPort} is already in use`);
+    const f: PortForward = { id: ++nextForward, nodeId: String(nodeId), context: t.context, namespace: t.namespace, pod: t.name, address: "127.0.0.1", localPort, remotePort: remote, connections: 0 };
+    started.push(f);
+  }
+  forwards = [...forwards, ...started];
+  emitTree();
+  return started;
+});
+registerMock("services_port_forward_stop", ({ id }) => {
+  forwards = forwards.filter((f) => f.id !== Number(id));
+  emitTree();
+});
+registerMock("services_port_forwards", () => forwards);
+registerMock("docker_contexts", () => contexts());
 registerMock("services_pull", ({ image }) => pull(String(image).trim()));
 registerMock("services_compose_up", ({ path, service }) => {
   const f = composeFiles().find((x) => (x as unknown as { path: string }).path === path) ?? composeFiles()[0];
@@ -508,12 +586,21 @@ registerMock("services_dockerfile_run", async ({ path }) => {
   });
 });
 registerMock("services_gutter", ({ path, content }) => callWasmSync<GutterMarker[]>(w().services_gutter, { path, content }));
-registerMock("services_status", () => ({ type: "status", state: "connected", endpoint: ENDPOINT, version: demoVersion.Version }));
+registerMock("services_status", () => ({ type: "status", state: "connected", endpoint: endpoint(), version: demoVersion.Version }));
 registerMock("docker_test_connection", async ({ settings }) => {
   await sleep(300);
-  const s = settings as { connection?: string; tcpUrl?: string } | undefined;
+  const s = settings as { connection?: string; tcpUrl?: string; sshUrl?: string; sshSocket?: string; context?: string } | undefined;
   if (s?.connection === "tcp") throw new Error(`Cannot connect to ${s.tcpUrl?.replace(/^tcp:\/\//, "") ?? "localhost:2375"}: Connection refused (os error 111)`);
-  return `Connection successful: ${demoVersion.Platform.Name} ${demoVersion.Version} (API ${demoVersion.ApiVersion}) at ${ENDPOINT}`;
+  let at = ENDPOINT;
+  if (s?.connection === "ssh") {
+    if (!s.sshUrl?.trim()) throw new Error("Enter the SSH host of the Docker daemon (ssh://user@host)");
+    at = s.sshUrl.trim();
+  } else if (s?.connection === "context") {
+    const ctx = contexts().find((c) => c.name === s.context);
+    if (!ctx) throw new Error(`Docker context \`${s.context ?? ""}\` not found`);
+    at = ctx.host;
+  }
+  return `Connection successful: ${demoVersion.Platform.Name} ${demoVersion.Version} (API ${demoVersion.ApiVersion}) at ${at}`;
 });
 registerMock("docker_registry_login", ({ server }) => {
   registryPasswords.add(String(server));

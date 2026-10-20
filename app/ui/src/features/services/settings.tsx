@@ -1,6 +1,7 @@
 /**
- * Settings | Build, Execution, Deployment | Docker (connection, Test Connection),
- * | Docker | Docker Registry (accounts; passwords in the OS keychain) and | Kubernetes.
+ * Settings | Build, Execution, Deployment | Docker (connection incl. SSH hosts and Docker
+ * contexts, Test Connection), | Docker | Docker Registry (accounts; passwords in the OS
+ * keychain) and | Kubernetes.
  */
 import { createResource, createSignal, For, Show } from "solid-js";
 import { CircleCheck, CircleX, LoaderCircle, Plus, Trash2 } from "lucide-solid";
@@ -20,6 +21,9 @@ function TestConnection() {
         tcpUrl: draftValue<string>("docker.tcp.url") ?? "",
         tls: draftValue<boolean>("docker.tcp.tls") ?? false,
         certPath: draftValue<string>("docker.tcp.certPath") ?? "",
+        sshUrl: draftValue<string>("docker.ssh.url") ?? "",
+        sshSocket: draftValue<string>("docker.ssh.socketPath") ?? "",
+        context: draftValue<string>("docker.context") ?? "",
       });
       setState({ ok: true, text });
     } catch (err) {
@@ -45,8 +49,70 @@ function TestConnection() {
   );
 }
 
+/** Docker CLI contexts (`docker context ls`) as connections: Use picks one. */
+function DockerContexts() {
+  const [contexts] = createResource(() => servicesApi.dockerContexts().catch(() => []));
+  const inUse = (name: string) => draftValue<string>("docker.connection") === "context" && draftValue<string>("docker.context") === name;
+  return (
+    <Show when={contexts()?.length}>
+      <section class="set-section svc-contexts" data-testid="docker-contexts">
+        <div class="set-section-title">
+          <span>Docker Contexts</span>
+        </div>
+        <div class="set-section-body indented">
+          <p class="muted">Contexts of the Docker CLI (docker context ls). Use connects through one of them.</p>
+          <table class="svc-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Docker endpoint</th>
+                <th>Description</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              <For each={contexts()}>
+                {(c) => (
+                  <tr>
+                    <td>
+                      {c.name}
+                      <Show when={c.current}>
+                        <span class="muted"> (current)</span>
+                      </Show>
+                    </td>
+                    <td>{c.host}</td>
+                    <td class="muted">{c.description ?? ""}</td>
+                    <td class="svc-cell-actions">
+                      <Show when={!inUse(c.name)} fallback={<span class="svc-in-use">In use</span>}>
+                        <button
+                          class="btn-secondary svc-small-btn"
+                          onClick={() => {
+                            setDraft("docker.connection", "context");
+                            setDraft("docker.context", c.name);
+                          }}
+                        >
+                          Use
+                        </button>
+                      </Show>
+                    </td>
+                  </tr>
+                )}
+              </For>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </Show>
+  );
+}
+
 function DockerPage() {
-  return <SchemaPage pageId="build.docker" sectionHeader={(s) => (s === "Connection" ? <TestConnection /> : null)} />;
+  return (
+    <>
+      <SchemaPage pageId="build.docker" sectionHeader={(s) => (s === "Connection" ? <TestConnection /> : null)} />
+      <DockerContexts />
+    </>
+  );
 }
 
 const normalize = (server: string) => {
@@ -141,7 +207,7 @@ registerSettingsPage({
   title: "Docker",
   group: "Build, Execution, Deployment",
   order: 10,
-  keywords: ["docker", "socket", "DOCKER_HOST", "tcp", "tls", "compose", "named pipe", "podman"],
+  keywords: ["docker", "socket", "DOCKER_HOST", "tcp", "tls", "compose", "named pipe", "podman", "ssh", "remote", "context"],
   component: DockerPage,
 });
 

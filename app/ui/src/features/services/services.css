@@ -389,3 +389,97 @@
   flex: 1;
   min-width: 0;
 }
+
+/* ---- container picker, port forwarding, Docker contexts -------------------------------- */
+.svc-container-picker {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+.svc-container-picker select {
+  height: 22px;
+  padding: 0 4px;
+  color: var(--fg);
+  background: var(--bg-input);
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+}
+h4.svc-section-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.svc-title-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  color: var(--info);
+  font-weight: 400;
+}
+.svc-title-btn:hover {
+  background: var(--bg-hover);
+}
+.svc-forwards-empty {
+  padding: 2px 0 6px;
+}
+.svc-forward-table td.svc-forward-error {
+  color: var(--danger);
+}
+.svc-table td.svc-cell-actions {
+  width: 1%;
+  padding-right: 0;
+  text-align: right;
+}
+.svc-stop-forward {
+  width: 20px;
+  height: 20px;
+  color: var(--danger);
+}
+.svc-forward-pod {
+  margin-bottom: 10px;
+}
+.svc-forward-hint {
+  margin-top: 4px;
+  font-size: var(--fs-small);
+}
+.svc-forward-suggest {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+}
+.svc-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 8px 1px 5px;
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  color: var(--fg);
+}
+.svc-chip:hover {
+  background: var(--bg-hover);
+}
+.svc-contexts {
+  max-width: 620px;
+}
+.svc-contexts .set-section-body > * {
+  grid-column: 1 / -1;
+}
+.svc-contexts p {
+  margin: 0 0 6px;
+}
+.svc-small-btn {
+  height: 22px;
+  padding: 0 10px;
+}
+.svc-in-use {
+  color: var(--success);
+  font-size: var(--fs-small);
+}

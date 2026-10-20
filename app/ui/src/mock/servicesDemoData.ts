@@ -285,16 +285,48 @@ users:
 
 export const demoNamespaces = { items: ["default", "kube-node-lease", "kube-public", "kube-system", "shop"].map((name) => ({ metadata: { name } })) };
 
-function pod(name: string, opts: { app: string; containers: string[]; phase: string; ready: boolean[]; restarts?: number[]; waiting?: string; terminated?: string; createdAgo: number; ip: string; owner?: string }) {
+/** Ports the demo containers declare (Forward Ports suggestions). */
+const CONTAINER_PORTS: Record<string, { containerPort: number; name: string }[]> = {
+  php: [{ containerPort: 9000, name: "php-fpm" }],
+  nginx: [{ containerPort: 80, name: "http" }],
+  mysql: [{ containerPort: 3306, name: "mysql" }],
+};
+
+function pod(
+  name: string,
+  opts: {
+    app: string;
+    containers: string[];
+    initContainers?: string[];
+    defaultContainer?: string;
+    phase: string;
+    ready: boolean[];
+    restarts?: number[];
+    waiting?: string;
+    terminated?: string;
+    createdAgo: number;
+    ip: string;
+    owner?: string;
+  },
+) {
   return {
     metadata: {
       name,
       namespace: "shop",
       creationTimestamp: iso(opts.createdAgo),
       labels: { app: opts.app, "pod-template-hash": name.split("-").slice(-2, -1)[0] ?? "" },
+      annotations: opts.defaultContainer ? { "kubectl.kubernetes.io/default-container": opts.defaultContainer } : {},
       ownerReferences: opts.owner ? [{ kind: opts.owner.split("/")[0], name: opts.owner.split("/")[1] }] : [],
     },
-    spec: { nodeName: "kind-control-plane", containers: opts.containers.map((c) => ({ name: c, image: c === "php" ? "acme/shop:1.4.2" : `${c}:latest` })) },
+    spec: {
+      nodeName: "kind-control-plane",
+      initContainers: (opts.initContainers ?? []).map((c) => ({ name: c, image: "acme/shop:1.4.2" })),
+      containers: opts.containers.map((c) => ({
+        name: c,
+        image: c === "php" ? "acme/shop:1.4.2" : `${c}:latest`,
+        ports: (CONTAINER_PORTS[c] ?? []).map((p) => ({ ...p, protocol: "TCP" })),
+      })),
+    },
     status: {
       phase: opts.phase,
       podIP: opts.ip,
@@ -311,8 +343,8 @@ function pod(name: string, opts: { app: string; containers: string[]; phase: str
 export function demoWorkloads() {
   const pods = {
     items: [
-      pod("web-7d4b9c6f8-x2kqf", { app: "web", containers: ["php", "nginx"], phase: "Running", ready: [true, true], createdAgo: 26 * hour, ip: "10.244.0.12", owner: "ReplicaSet/web-7d4b9c6f8" }),
-      pod("web-7d4b9c6f8-p8m4n", { app: "web", containers: ["php", "nginx"], phase: "Running", ready: [true, true], createdAgo: 26 * hour, ip: "10.244.0.13", owner: "ReplicaSet/web-7d4b9c6f8" }),
+      pod("web-7d4b9c6f8-x2kqf", { app: "web", containers: ["nginx", "php"], initContainers: ["cache-warmup"], defaultContainer: "php", phase: "Running", ready: [true, true], createdAgo: 26 * hour, ip: "10.244.0.12", owner: "ReplicaSet/web-7d4b9c6f8" }),
+      pod("web-7d4b9c6f8-p8m4n", { app: "web", containers: ["nginx", "php"], initContainers: ["cache-warmup"], defaultContainer: "php", phase: "Running", ready: [true, true], createdAgo: 26 * hour, ip: "10.244.0.13", owner: "ReplicaSet/web-7d4b9c6f8" }),
       pod("worker-5c9d7b8f4-qz2lw", { app: "worker", containers: ["php"], phase: "Running", ready: [true], restarts: [3], createdAgo: 3 * 24 * hour, ip: "10.244.0.9", owner: "ReplicaSet/worker-5c9d7b8f4" }),
       pod("scheduler-6f8d9c7b5-tq9vd", { app: "scheduler", containers: ["php"], phase: "Running", ready: [false], restarts: [7], waiting: "CrashLoopBackOff", createdAgo: 40 * 60, ip: "10.244.0.21", owner: "ReplicaSet/scheduler-6f8d9c7b5" }),
       pod("mysql-0", { app: "mysql", containers: ["mysql"], phase: "Running", ready: [true], createdAgo: 9 * 24 * hour, ip: "10.244.0.5", owner: "StatefulSet/mysql" }),
@@ -346,7 +378,22 @@ export function demoWorkloads() {
   return { pods, deployments, services };
 }
 
-export function podLogs(name: string): string[] {
+/** Log lines of a pod's container (the default container when none is given). */
+export function podLogs(name: string, container?: string): string[] {
+  if (container === "nginx")
+    return [
+      '10.244.0.1 - - [20/Oct/2026:09:12:04 +0000] "GET /healthz HTTP/1.1" 200 2 "-" "kube-probe/1.31"\n',
+      '172.18.0.1 - - [20/Oct/2026:09:12:16 +0000] "GET /orders/1042 HTTP/1.1" 200 18342 "-" "Mozilla/5.0"\n',
+      '172.18.0.1 - - [20/Oct/2026:09:12:17 +0000] "GET /build/assets/app-4f9c2b.css HTTP/1.1" 200 48211 "-" "Mozilla/5.0"\n',
+    ];
+  if (container === "cache-warmup")
+    return ["\x1b[32m   INFO \x1b[0m Caching configuration.\n", "\x1b[32m   INFO \x1b[0m Caching routes.\n", "\x1b[32m   INFO \x1b[0m Caching views.\n"];
+  if (name.startsWith("web"))
+    return [
+      "[20-Oct-2026 09:00:01] NOTICE: fpm is running, pid 1\n",
+      "[20-Oct-2026 09:00:01] NOTICE: ready to handle connections\n",
+      '127.0.0.1 -  20/Oct/2026:09:12:16 +0000 "GET /index.php" 200\n',
+    ];
   if (name.startsWith("scheduler"))
     return [
       "\x1b[32m   INFO \x1b[0m Running scheduled tasks.\n",

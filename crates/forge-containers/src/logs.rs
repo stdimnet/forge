@@ -138,6 +138,49 @@ pub fn split_timestamp(line: &str) -> (Option<&str>, &str) {
     }
 }
 
+/// `[pod/web-7d4b9c-x2kq/php] `, the prefix of `kubectl logs --prefix`.
+pub fn pod_log_prefix(pod: &str, container: &str) -> String {
+    format!("[pod/{pod}/{container}] ")
+}
+
+/// Prefixes every line of streamed text (aggregated deployment logs). A partial line waits
+/// for its end so lines of different pods never mix.
+#[derive(Debug, Clone)]
+pub struct LinePrefixer {
+    prefix: String,
+    partial: String,
+}
+
+impl LinePrefixer {
+    pub fn new(prefix: impl Into<String>) -> Self {
+        LinePrefixer {
+            prefix: prefix.into(),
+            partial: String::new(),
+        }
+    }
+
+    /// Complete lines of `text` (with what was left over before), prefixed.
+    pub fn push(&mut self, text: &str) -> String {
+        self.partial.push_str(text);
+        let Some(end) = self.partial.rfind('\n') else {
+            return String::new();
+        };
+        let rest = self.partial.split_off(end + 1);
+        let full = std::mem::replace(&mut self.partial, rest);
+        full.split_inclusive('\n')
+            .map(|l| format!("{}{l}", self.prefix))
+            .collect()
+    }
+
+    /// The last line without a newline at the end of the stream.
+    pub fn finish(&mut self) -> String {
+        if self.partial.is_empty() {
+            return String::new();
+        }
+        format!("{}{}\n", self.prefix, std::mem::take(&mut self.partial))
+    }
+}
+
 /// Docker's `/containers/{id}/logs` query.
 pub fn docker_logs_query(tail: u32, follow: bool, timestamps: bool) -> String {
     format!(
@@ -197,6 +240,18 @@ mod tests {
         );
         let mut d = LogDecoder::new(Some(true));
         assert_eq!(d.push(b"hi")[0].text, "hi");
+    }
+
+    #[test]
+    fn prefixes_lines() {
+        let mut p = LinePrefixer::new(pod_log_prefix("web-1", "php"));
+        assert_eq!(p.push("GET / 2"), "");
+        assert_eq!(
+            p.push("00\nGET /a 404\nPO"),
+            "[pod/web-1/php] GET / 200\n[pod/web-1/php] GET /a 404\n"
+        );
+        assert_eq!(p.finish(), "[pod/web-1/php] PO\n");
+        assert_eq!(p.finish(), "");
     }
 
     #[test]

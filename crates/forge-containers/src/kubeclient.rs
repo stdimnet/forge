@@ -243,6 +243,26 @@ impl KubeClient {
         Ok(())
     }
 
+    /// Open a connection to a pod port (`portforward` subresource over a WebSocket).
+    pub async fn port_forward(
+        &self,
+        ns: &str,
+        pod: &str,
+        port: u16,
+    ) -> Result<crate::forward::WsConnection> {
+        let req = self.request("GET", &crate::portforward::portforward_path(ns, pod, port));
+        crate::forward::open_port_forward(&self.transport, req).await
+    }
+
+    /// Pods of a deployment (by its label selector).
+    pub async fn pods_matching(&self, ns: &str, selector: &str) -> Result<Vec<crate::kube::Pod>> {
+        Ok(crate::kube::parse_pods(
+            &self
+                .get(&crate::kube::pods_by_selector_path(ns, selector))
+                .await?,
+        ))
+    }
+
     /// Stream a pod's log text into `sink`.
     pub async fn pod_logs(
         &self,

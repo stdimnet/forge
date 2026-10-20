@@ -1,6 +1,6 @@
 //! Interactive command lines that run in a terminal PTY: a shell inside a container
 //! (`docker exec -it`), attaching to a container's console (`docker attach`) and a shell in
-//! a pod (`kubectl exec -it`).
+//! a pod (`kubectl exec -it`) and attaching to a pod's container (`kubectl attach -it`).
 
 use serde::Serialize;
 
@@ -90,14 +90,56 @@ pub fn kubectl_exec(
     }
     args.extend(["--".into(), "sh".into(), "-c".into(), SHELL_PROBE.into()]);
     TerminalCommand {
-        title: pod.to_string(),
+        title: pod_title(pod, container),
         program: kubectl.to_string(),
         args,
-        env: kubeconfig
-            .filter(|k| !k.is_empty())
-            .map(|k| vec![("KUBECONFIG".to_string(), k.to_string())])
-            .unwrap_or_default(),
+        env: kubeconfig_env(kubeconfig),
     }
+}
+
+/// `kubectl --context <ctx> -n <ns> attach -it <pod> [-c <container>]` (Attached Console).
+pub fn kubectl_attach(
+    kubectl: &str,
+    kubeconfig: Option<&str>,
+    context: &str,
+    namespace: &str,
+    pod: &str,
+    container: Option<&str>,
+) -> TerminalCommand {
+    let mut args = vec![
+        "--context".to_string(),
+        context.into(),
+        "-n".into(),
+        namespace.into(),
+        "attach".into(),
+        "-it".into(),
+        pod.into(),
+    ];
+    if let Some(c) = container {
+        args.push("-c".into());
+        args.push(c.into());
+    }
+    TerminalCommand {
+        title: format!("{} (attached)", pod_title(pod, container)),
+        program: kubectl.to_string(),
+        args,
+        env: kubeconfig_env(kubeconfig),
+    }
+}
+
+/// `web-1` or `web-1 [php]`.
+fn pod_title(pod: &str, container: Option<&str>) -> String {
+    match container {
+        Some(c) => format!("{pod} [{c}]"),
+        None => pod.to_string(),
+    }
+}
+
+fn kubeconfig_env(kubeconfig: Option<&str>) -> Vec<(String, String)> {
+    kubeconfig
+        .filter(|k| !k.is_empty())
+        .map(|k| vec![("KUBECONFIG".to_string(), k.to_string())])
+        .unwrap_or_default()
 }
 
 #[cfg(test)]
@@ -143,6 +185,23 @@ mod tests {
             ]
         );
         assert_eq!(k.env, [("KUBECONFIG".to_string(), "/k/config".to_string())]);
+        assert_eq!(k.title, "web-1 [php]");
+        let a = kubectl_attach("kubectl", None, "kind-acme", "shop", "web-1", Some("php"));
+        assert_eq!(
+            a.args,
+            [
+                "--context",
+                "kind-acme",
+                "-n",
+                "shop",
+                "attach",
+                "-it",
+                "web-1",
+                "-c",
+                "php"
+            ]
+        );
+        assert_eq!(a.title, "web-1 [php] (attached)");
         assert!(kubectl_exec("kubectl", None, "c", "n", "p", None)
             .env
             .is_empty());
