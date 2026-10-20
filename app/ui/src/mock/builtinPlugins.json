@@ -1833,7 +1833,7 @@
         {
           "key": "agents.claude-code.path",
           "title": "Claude Code executable",
-          "description": "Leave empty to find `claude` on PATH.",
+          "description": "Leave empty to find claude on PATH.",
           "type": "path",
           "default": "",
           "group": "tools.ai-agents",
@@ -1942,7 +1942,7 @@
         {
           "key": "agents.gemini-cli.path",
           "title": "Gemini CLI executable",
-          "description": "Leave empty to find `gemini` on PATH.",
+          "description": "Leave empty to find gemini on PATH.",
           "type": "path",
           "default": "",
           "group": "tools.ai-agents",

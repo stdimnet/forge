@@ -6,6 +6,11 @@ async function openChat(page) {
 }
 
 async function ask(page, text) {
+  // These scenarios show a session without prompts: allow every tool call right away
+  // (permission cards have their own scenarios in integration-polish.mjs).
+  await page.evaluate(() => {
+    setInterval(() => document.querySelector(".chat-permission-card .btn-primary")?.click(), 50);
+  });
   await page.fill(".chat-input", text);
   await page.keyboard.press("Enter");
 }
