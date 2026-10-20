@@ -8,7 +8,6 @@ import { workspace } from "@/state/workspace";
 import { searchApi } from "@/ipc/search";
 import { allActions, isActionAvailable, runAction, shortcutLabel } from "@/keymap";
 import { recentFiles } from "@/features/navigation/history";
-import { fuzzyMatch } from "./fuzzy";
 import { registerSearchProvider, type SearchItem } from "./providers";
 
 const dirOf = (path: string) => path.split("/").slice(0, -1).join("/");
@@ -47,28 +46,25 @@ registerSearchProvider({
   tab: "actions",
   title: "Actions",
   order: 0,
-  search(query, { limit }) {
+  search(query) {
     if (!query.trim()) return [];
-    const out: SearchItem[] = [];
-    for (const a of allActions()) {
-      if (a.native) continue;
-      const m = fuzzyMatch(query, a.title.replace(/…$/, ""), { strict: true });
-      const byId = m ? null : fuzzyMatch(query, a.id, { strict: true });
-      if (!m && !byId) continue;
-      const available = isActionAvailable(a.id);
-      out.push({
-        id: a.id,
-        label: a.title,
-        matches: m?.positions,
-        detail: groupLabel(a.group),
-        hint: shortcutLabel(a.id),
-        kind: "action",
-        // Implemented actions first, then by match quality.
-        score: (m?.score ?? (byId!.score - 10)) + (available ? 5 : 0),
-        dimmed: !available,
-        run: () => runAction(a.id),
+    return allActions()
+      .filter((a) => !a.native)
+      .map((a): SearchItem => {
+        const available = isActionAvailable(a.id);
+        return {
+          id: a.id,
+          label: a.title,
+          // Matched by title, else (ranked lower) by id, the way PHPStorm does.
+          match: { strict: true, altTexts: [a.id] },
+          detail: groupLabel(a.group),
+          hint: shortcutLabel(a.id),
+          kind: "action",
+          // Available actions first, then by match quality.
+          score: available ? 5 : 0,
+          dimmed: !available,
+          run: () => runAction(a.id),
+        };
       });
-    }
-    return out.sort((a, b) => b.score - a.score).slice(0, limit);
   },
 });

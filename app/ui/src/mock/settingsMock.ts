@@ -11,7 +11,12 @@ import {
   type SettingSpec,
   type SettingValue,
 } from "@/ipc/settings";
+import { callWasm, callWasmSync, forgeWasm, type ForgeWasm } from "@/wasm";
 import builtinPlugins from "./builtinPlugins.json";
+
+// Commands wait for the WebAssembly build, so validation below can call it synchronously.
+let wasm: ForgeWasm | undefined;
+const ready = forgeWasm().then((w) => (wasm = w));
 
 const STORAGE_KEY = "forge.mock.settings.user";
 const DISABLED_KEY = "plugins.disabled";
@@ -45,14 +50,22 @@ function resolve(key: string): { value: SettingValue | null; scope: "default" | 
   return { value: defaults[key] ?? null, scope: "default" };
 }
 
-const kindOf = (v: unknown) => (Array.isArray(v) ? "array" : typeof v);
+/** Effective value of a setting (for other mocks). */
+export const mockSettingValue = (key: string): SettingValue | null => resolve(key).value;
+
+/** Whether the user layer stores `key`. */
+export const hasUserSetting = (key: string): boolean => key in layers.user;
+
+/** The schema check of `settings_set`, run by the same Rust code. */
+function validate(key: string, value: SettingValue): string | null {
+  const spec = allSpecs().find((s) => s.key === key);
+  return spec && wasm ? callWasmSync<string | null>(wasm.settings_validate, { spec, value }) : null;
+}
 
 export function setSetting(key: string, value: SettingValue | null, scope: SettingsScope): void {
   if (!key || key.split(".").some((p) => !p)) throw new Error(`invalid settings key \`${key}\``);
-  const def = defaults[key];
-  if (value !== null && def !== undefined && kindOf(def) !== kindOf(value)) {
-    throw new Error(`\`${key}\` expects a value like ${JSON.stringify(def)}, got ${JSON.stringify(value)}`);
-  }
+  const problem = value === null ? null : validate(key, value);
+  if (problem) throw new Error(problem);
   const before = JSON.stringify(resolve(key).value);
   if (value === null) delete layers[scope][key];
   else layers[scope][key] = value;
@@ -98,9 +111,15 @@ registerMock("settings_get_all", () => ({
   project: { ...layers.project },
   hasProject: true,
 }));
-registerMock("settings_set", ({ key, value, scope }) =>
-  setSetting(String(key), (value ?? null) as SettingValue | null, scope as SettingsScope),
-);
+registerMock("settings_set", async ({ key, value, scope }) => {
+  await ready;
+  setSetting(String(key), (value ?? null) as SettingValue | null, scope as SettingsScope);
+});
 registerMock("settings_schema", () => plugins.filter((p) => p.enabled).flatMap((p) => p.contributions.settings));
 registerMock("plugins_list", () => structuredClone(plugins));
+registerMock("settings_search", async ({ request }) => callWasm((await ready).settings_search, request));
+registerMock("settings_validate", async ({ key, value }) => {
+  await ready;
+  return validate(String(key), value as SettingValue);
+});
 registerMock("plugin_set_enabled", ({ id, enabled }) => setPluginEnabled(String(id), Boolean(enabled)));

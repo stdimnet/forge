@@ -218,6 +218,18 @@ impl PluginRegistry {
         self.collect(|c| &c.file_types)
     }
 
+    /// Bundled file types plus the file types of *all* plugins (callers pass the inactive
+    /// ones per request, as the UI knows which plugins the open project uses).
+    pub fn file_type_registry(&self) -> forge_filetypes::FileTypeRegistry {
+        let mut registry = forge_filetypes::FileTypeRegistry::with_builtins();
+        for p in &self.plugins {
+            for t in &p.contributions.file_types {
+                registry.register(t.clone(), Some(&p.manifest.id));
+            }
+        }
+        registry
+    }
+
     pub fn code_generators(&self) -> impl Iterator<Item = &CodeGeneratorContribution> {
         self.collect(|c| &c.code_generators)
     }

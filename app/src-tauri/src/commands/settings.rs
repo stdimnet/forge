@@ -5,6 +5,7 @@ use serde_json::Value;
 use tauri::State;
 
 use forge_core::{ForgeError, Result, SettingsScope};
+use forge_plugin_api::settings_model::{self, SearchRequest, SearchResponse, ValidateRequest};
 use forge_plugin_api::{PluginInfo, SettingSpec};
 
 use crate::state::AppState;
@@ -56,6 +57,21 @@ pub fn settings_set(
 pub fn settings_schema(state: State<'_, AppState>) -> Vec<SettingSpec> {
     let plugins = state.plugins.read().expect("plugins lock poisoned");
     plugins.settings_schema().cloned().collect()
+}
+
+/// Search the Settings dialog: page tree, matching pages and settings, highlights.
+#[tauri::command]
+pub fn settings_search(request: SearchRequest) -> SearchResponse {
+    settings_model::search(&request)
+}
+
+/// Check a draft value before it is applied; returns the problem, or `None` when valid.
+/// Unknown keys are accepted (as `settings_set` does).
+#[tauri::command]
+pub fn settings_validate(key: String, value: Value, state: State<'_, AppState>) -> Option<String> {
+    let plugins = state.plugins.read().expect("plugins lock poisoned");
+    let spec = plugins.all_settings().find(|s| s.key == key)?.clone();
+    settings_model::validate(&ValidateRequest { spec, value })
 }
 
 #[tauri::command]

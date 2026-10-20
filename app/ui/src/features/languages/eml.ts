@@ -575,9 +575,6 @@ export function emlSupport() {
 
 registerLanguage({
   id: "eml",
-  label: "E-Mail",
-  extensions: ["eml"],
-  indent: "    ",
   load: emlSupport,
 });
 

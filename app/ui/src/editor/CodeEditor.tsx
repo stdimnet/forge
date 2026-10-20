@@ -16,6 +16,7 @@ import { closeBrackets, autocompletion } from "@codemirror/autocomplete";
 import { highlightSelectionMatches, searchKeymap } from "@codemirror/search";
 import { forgeEditorTheme, forgeHighlight } from "./forgeTheme";
 import { indentFor, languageFor } from "./languages";
+import { ensureFileType, isFileTypeResolved } from "./fileTypes";
 import { extensionsFor } from "./extensions";
 import { updateContent, updateCursor, saveFile, type EditorTab } from "@/state/editor";
 import { registerView } from "./views";
@@ -28,8 +29,17 @@ export function CodeEditor(props: { tab: EditorTab }) {
   let view: EditorView | undefined;
   let unregister: (() => void) | undefined;
 
+  let disposed = false;
+
   onMount(() => {
+    // Language, indentation and editor features depend on the file type (resolved in Rust);
+    // in the desktop app it may still be on its way.
     const path = props.tab.path;
+    if (isFileTypeResolved(path, props.tab.content)) create(path);
+    else void ensureFileType(path, props.tab.content).then(() => disposed || create(path));
+  });
+
+  function create(path: string) {
     view = new EditorView({
       parent: host,
       state: EditorState.create({
@@ -74,7 +84,7 @@ export function CodeEditor(props: { tab: EditorTab }) {
       }),
     });
     unregister = registerView(path, view);
-  });
+  }
 
   // Content replaced from outside (e.g. reloaded after an AI agent edited the file).
   createEffect(() => {
@@ -83,6 +93,7 @@ export function CodeEditor(props: { tab: EditorTab }) {
   });
 
   onCleanup(() => {
+    disposed = true;
     unregister?.();
     view?.destroy();
   });

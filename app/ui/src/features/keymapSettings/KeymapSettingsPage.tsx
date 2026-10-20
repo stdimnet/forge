@@ -2,32 +2,30 @@
  * Settings | Keymap — PHPStorm's keymap page: keymap selector, searchable action tree with
  * shortcuts, "Find Actions by Shortcut", and add/remove shortcuts with conflict warnings.
  */
-import { For, Show, createMemo, createSignal, onCleanup, onMount } from "solid-js";
+import { For, Show, createEffect, createMemo, createSignal, onCleanup, onMount } from "solid-js";
 import { ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown, Folder, Keyboard, Pencil, RotateCcw, Search, X } from "lucide-solid";
 import {
-  ACTION_GROUP_ORDER,
-  KEYMAPS,
   actionById,
+  actionGroupOrder,
   addActionShortcut,
   allActions,
-  bindings,
-  canonicalShortcut,
-  findConflicts,
+  checkShortcut,
+  displayShortcutsOf,
+  findActionsByShortcut,
   formatForKeymap,
   isModified,
   keymapId,
-  keymapPlatform,
-  overrides,
+  keymaps,
+  modifiedCount,
   removeActionShortcut,
   resetAction,
   resetKeymap,
-  setActionShortcuts,
   setKeymapId,
   shortcutsOf,
-  tryParseShortcut,
   type ActionDef,
   type KeymapId,
 } from "@/keymap";
+import type { ShortcutCheck } from "@/ipc/keymap";
 import { ShortcutField } from "./ShortcutField";
 
 const MAIN_MENU_ORDER = ["File", "Edit", "View", "Navigate", "Code", "Refactor", "Build", "Run", "Git", "Window", "Help"];
@@ -55,7 +53,7 @@ function buildTree(actions: ActionDef[]): GroupNode[] {
     node.actions.push(a);
   }
   const rank = (n: GroupNode) => {
-    const top = ACTION_GROUP_ORDER.indexOf(n.path);
+    const top = actionGroupOrder().indexOf(n.path);
     if (top >= 0) return top;
     const menu = n.path.startsWith("Main Menu/") && n.path.split("/").length === 2 ? MAIN_MENU_ORDER.indexOf(n.name) : -1;
     return menu >= 0 ? menu : 100;
@@ -76,25 +74,19 @@ function ShortcutDialog(props: { action: ActionDef; onClose: () => void }) {
   const [useSecond, setUseSecond] = createSignal(false);
   const [second, setSecond] = createSignal("");
   const text = () => (first() ? (useSecond() && second() ? `${first()} ${second()}` : first()) : "");
-  const parsed = () => (text() ? tryParseShortcut(text(), keymapPlatform()) : null);
-  const conflicts = createMemo(() => {
-    const p = parsed();
-    return p ? findConflicts(bindings(), p, props.action.id) : [];
+  // Validity and conflicts come from the keymap engine.
+  const [check, setCheck] = createSignal<ShortcutCheck | null>(null);
+  createEffect(() => {
+    const t = text();
+    if (!t) return setCheck(null);
+    void checkShortcut(t, props.action.id).then((c) => text() === t && setCheck(c));
   });
+  const parsed = () => (text() && check()?.valid ? check() : null);
+  const conflicts = () => parsed()?.conflicts ?? [];
 
   const apply = (removeOthers: boolean) => {
     if (!parsed()) return;
-    if (removeOthers) {
-      const canon = canonicalShortcut(text(), keymapPlatform());
-      for (const c of conflicts()) {
-        if (c.kind !== "same") continue;
-        setActionShortcuts(
-          c.actionId,
-          shortcutsOf(c.actionId).filter((s) => canonicalShortcut(s, keymapPlatform()) !== canon),
-        );
-      }
-    }
-    addActionShortcut(props.action.id, text());
+    void addActionShortcut(props.action.id, text(), removeOthers);
     props.onClose();
   };
 
@@ -124,16 +116,13 @@ function ShortcutDialog(props: { action: ActionDef; onClose: () => void }) {
                     : "The first stroke starts a shortcut of other actions:"}
                 </div>
                 <For each={conflicts()}>
-                  {(c) => {
-                    const a = actionById(c.actionId);
-                    return (
-                      <div class="conflict-row">
-                        <span>{a?.title.replace(/…$/, "") ?? c.actionId}</span>
-                        <span class="muted">{a?.group.split("/").join(" | ")}</span>
-                        <span class="kbd">{formatForKeymap(shortcutsOf(c.actionId).find((s) => tryParseShortcut(s, keymapPlatform())) ?? "")}</span>
-                      </div>
-                    );
-                  }}
+                  {(c) => (
+                    <div class="conflict-row">
+                      <span>{c.title.replace(/…$/, "")}</span>
+                      <span class="muted">{c.group.split("/").join(" | ")}</span>
+                      <span class="kbd">{c.display}</span>
+                    </div>
+                  )}
                 </For>
               </Show>
             </Show>
@@ -208,19 +197,20 @@ export function KeymapSettingsPage() {
   const [menu, setMenu] = createSignal<{ action: ActionDef; x: number; y: number } | null>(null);
   const [dialog, setDialog] = createSignal<ActionDef | null>(null);
 
+  // "Find Actions by Shortcut": the engine also finds chords starting with a single stroke.
+  const [byShortcut, setByShortcut] = createSignal<Set<string> | null>(null);
+  createEffect(() => {
+    const sc = shortcutFilter();
+    if (!sc) return setByShortcut(null);
+    void findActionsByShortcut(sc).then((ids) => shortcutFilter() === sc && setByShortcut(new Set(ids)));
+  });
+
   const visibleActions = createMemo(() => {
     const q = filter().trim().toLowerCase();
-    const sc = shortcutFilter() ? canonicalShortcut(shortcutFilter(), keymapPlatform()) : null;
+    const matches = shortcutFilter() ? byShortcut() : null;
     return allActions().filter((a) => {
       if (q && !a.title.toLowerCase().includes(q) && !a.id.toLowerCase().includes(q)) return false;
-      if (sc) {
-        // A single-stroke filter also finds chords starting with that stroke.
-        return shortcutsOf(a.id).some((s) => {
-          const c = canonicalShortcut(s, keymapPlatform());
-          return c === sc || c?.startsWith(`${sc} `);
-        });
-      }
-      return true;
+      return matches ? matches.has(a.id) : true;
     });
   });
   const filtering = () => !!filter().trim() || !!shortcutFilter();
@@ -277,21 +267,19 @@ export function KeymapSettingsPage() {
     queueMicrotask(() => treeEl.querySelector(".km-row.selected")?.scrollIntoView({ block: "nearest" }));
   };
 
-  const modifiedCount = () => Object.keys(overrides()[keymapId()] ?? {}).length;
-
   return (
     <div class="keymap-page">
       <div class="km-top">
         <span class="form-label">Keymap:</span>
         <div class="select-wrap">
           <select value={keymapId()} onChange={(e) => setKeymapId(e.currentTarget.value as KeymapId)}>
-            <For each={KEYMAPS}>{(k) => <option value={k.id}>{k.title}</option>}</For>
+            <For each={keymaps()}>{(k) => <option value={k.id}>{k.title}</option>}</For>
           </select>
           <ChevronDown size={14} class="select-chevron" />
         </div>
         <Show when={modifiedCount()}>
           <span class="muted km-modified">{modifiedCount()} modified</span>
-          <button class="link-btn" onClick={resetKeymap}>
+          <button class="link-btn" onClick={() => void resetKeymap()}>
             <RotateCcw size={12} /> Reset
           </button>
         </Show>
@@ -383,7 +371,7 @@ export function KeymapSettingsPage() {
                 );
               }
               const a = row.action;
-              const list = () => shortcutsOf(a.id);
+              const list = () => displayShortcutsOf(a.id);
               return (
                 <div
                   class="km-row km-action"
@@ -402,7 +390,7 @@ export function KeymapSettingsPage() {
                     {a.title}
                   </span>
                   <span class="km-shortcuts">
-                    <For each={list()}>{(s) => <span class="km-shortcut">{formatForKeymap(s)}</span>}</For>
+                    <For each={list()}>{(s) => <span class="km-shortcut">{s}</span>}</For>
                   </span>
                 </div>
               );

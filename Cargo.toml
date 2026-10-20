@@ -12,6 +12,8 @@ rust-version = "1.80"
 [workspace.dependencies]
 forge-core = { path = "crates/forge-core" }
 forge-wasm = { path = "crates/forge-wasm" }
+forge-fuzzy = { path = "crates/forge-fuzzy" }
+forge-filetypes = { path = "crates/forge-filetypes" }
 forge-plugin-api = { path = "crates/forge-plugin-api" }
 forge-ai = { path = "crates/forge-ai" }
 forge-agent-cli = { path = "crates/forge-agent-cli" }
@@ -27,6 +29,7 @@ forge-debug = { path = "crates/forge-debug" }
 forge-db = { path = "crates/forge-db" }
 forge-sql = { path = "crates/forge-sql" }
 forge-forges = { path = "crates/forge-forges" }
+forge-keymap = { path = "crates/forge-keymap" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tokio = { version = "1", features = ["full"] }

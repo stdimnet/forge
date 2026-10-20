@@ -120,6 +120,7 @@ pub fn run() {
         .manage(run_state)
         .manage(commands::symfony::SymfonyState::default())
         .manage(commands::doctrine::DoctrineState::default())
+        .manage(commands::keymap::KeymapState::default())
         .invoke_handler(tauri::generate_handler![
             commands::workspace::workspace_open,
             commands::workspace::workspace_current,
@@ -146,7 +147,16 @@ pub fn run() {
             commands::settings::settings_set,
             commands::settings::settings_schema,
             commands::settings::plugins_list,
+            commands::keymap::keymap_actions,
+            commands::keymap::keymap_register_actions,
+            commands::keymap::keymap_set_override,
+            commands::keymap::keymap_conflicts,
+            commands::keymap::keymap_find_by_shortcut,
+            commands::keymap::keymap_resolve,
+            commands::keymap::keymap_import_legacy,
             commands::settings::plugin_set_enabled,
+            commands::settings::settings_search,
+            commands::settings::settings_validate,
             commands::lsp::lsp_did_open,
             commands::lsp::lsp_did_change,
             commands::lsp::lsp_did_save,
@@ -169,6 +179,9 @@ pub fn run() {
             commands::langservers::intelephense_licence_status,
             commands::langservers::intelephense_set_licence,
             commands::workspace::fs_find_files,
+            commands::search::fuzzy_filter,
+            commands::search::search_rank,
+            commands::search::filetypes_detect,
             commands::git::git_info,
             commands::git::git_status,
             commands::git::git_show,

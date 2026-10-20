@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { registerSearchProvider, runSearch, type SearchItem } from "./providers";
+import "@/mock/fuzzyMock";
 
 const item = (id: string, score: number, kind: SearchItem["kind"] = "class"): SearchItem => ({
   id,

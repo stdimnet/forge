@@ -6,10 +6,6 @@ import { lezerProblems, syntaxDiagnostics } from "./shared";
 
 registerLanguage({
   id: "yaml",
-  label: "YAML",
-  extensions: ["yml", "yaml", "neon"],
-  fileNames: [".clang-format", ".clang-tidy", ".yamllint", ".gemrc", "CITATION.cff", ".sops.yaml"],
-  indent: "  ",
   load: () => yaml(),
 });
 

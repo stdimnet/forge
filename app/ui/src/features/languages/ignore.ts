@@ -55,10 +55,6 @@ export function ignoreSupport() {
 
 registerLanguage({
   id: "ignore",
-  label: "Ignore File",
-  extensions: ["gitignore", "dockerignore", "npmignore", "ignore"],
-  fileNames: [".*ignore", ".gitignore_global", ".git/info/exclude"],
-  indent: "  ",
   load: ignoreSupport,
 });
 

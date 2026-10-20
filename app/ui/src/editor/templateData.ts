@@ -19,87 +19,48 @@ import { yaml as yamlMode } from "@codemirror/legacy-modes/mode/yaml";
 import { properties } from "@codemirror/legacy-modes/mode/properties";
 import { shell } from "@codemirror/legacy-modes/mode/shell";
 import { go } from "@codemirror/legacy-modes/mode/go";
-import { matchesGlobList } from "@/features/settings/globs";
-import { getSetting } from "@/state/settings";
 
 /**
- * Template Data Languages (as in PHPStorm): the language of the content *between* template
- * tags. Chosen per file from, in order:
- *   1. the `templates.dataLanguages` setting: entries like `legacy/latex/*.tpl=latex`;
- *   2. a compound extension: `invoice.tex.twig`, `query.sql.twig`, `styles.css.tpl`;
- *   3. HTML.
+ * Syntax highlighting of Template Data Languages (as in PHPStorm): the language of the
+ * content *between* template tags. Which data language a file uses (the
+ * `templates.dataLanguages` setting, compound names like `invoice.tex.twig`, else HTML) is
+ * decided in Rust (`crates/forge-filetypes`) and arrives as `FileTypeInfo.dataLanguage`.
  */
 export interface DataLanguage {
   id: string;
-  label: string;
   /** `undefined` = the template parser's built-in HTML, `null` = plain text. */
   parser: StreamParser<unknown> | null | undefined;
   /** The language's own editor support (Lezer grammar). Without it `parser` is used. */
   support?: () => Extension;
 }
 
-/** The syntax highlighting of a data language, which the template tags are drawn over. */
-export function dataLanguageSupport(lang: DataLanguage): Extension {
-  if (lang.support) return lang.support();
-  return lang.parser ? StreamLanguage.define(lang.parser) : [];
-}
-
 const p = (parser: StreamParser<unknown>) => parser;
 
 export const DATA_LANGUAGES: DataLanguage[] = [
-  { id: "html", label: "HTML", parser: undefined, support: () => html() },
-  { id: "xml", label: "XML", parser: p(xmlMode), support: () => xml() },
-  { id: "latex", label: "LaTeX", parser: p(stex) },
-  { id: "css", label: "CSS", parser: p(cssMode), support: () => css() },
-  { id: "scss", label: "SCSS", parser: p(sCSS), support: () => sass() },
-  { id: "less", label: "Less", parser: p(lessMode), support: () => less() },
-  { id: "javascript", label: "JavaScript", parser: p(jsMode), support: () => javascript() },
-  { id: "typescript", label: "TypeScript", parser: p(tsMode), support: () => javascript({ typescript: true }) },
-  { id: "json", label: "JSON", parser: p(jsonMode), support: () => json() },
-  { id: "sql", label: "SQL", parser: p(mySQL), support: () => sql({ dialect: MySQL }) },
-  { id: "yaml", label: "YAML", parser: p(yamlMode), support: () => yaml() },
-  { id: "ini", label: "INI / Properties", parser: p(properties) },
-  { id: "shell", label: "Shell Script", parser: p(shell) },
-  { id: "go", label: "Go", parser: p(go), support: () => goLang() },
-  { id: "text", label: "Plain text", parser: null },
+  { id: "html", parser: undefined, support: () => html() },
+  { id: "xml", parser: p(xmlMode), support: () => xml() },
+  { id: "latex", parser: p(stex) },
+  { id: "css", parser: p(cssMode), support: () => css() },
+  { id: "scss", parser: p(sCSS), support: () => sass() },
+  { id: "less", parser: p(lessMode), support: () => less() },
+  { id: "javascript", parser: p(jsMode), support: () => javascript() },
+  { id: "typescript", parser: p(tsMode), support: () => javascript({ typescript: true }) },
+  { id: "json", parser: p(jsonMode), support: () => json() },
+  { id: "sql", parser: p(mySQL), support: () => sql({ dialect: MySQL }) },
+  { id: "yaml", parser: p(yamlMode), support: () => yaml() },
+  { id: "ini", parser: p(properties) },
+  { id: "shell", parser: p(shell) },
+  { id: "go", parser: p(go), support: () => goLang() },
+  { id: "text", parser: null },
 ];
 
-/** Inner extensions of compound file names (`*.tex.twig`) → data language id. */
-const COMPOUND: Record<string, string> = {
-  html: "html", htm: "html", xhtml: "html",
-  xml: "xml", svg: "xml", rss: "xml", atom: "xml",
-  tex: "latex", latex: "latex", sty: "latex", cls: "latex",
-  css: "css", scss: "scss", less: "less",
-  js: "javascript", mjs: "javascript", ts: "typescript",
-  json: "json", sql: "sql", yml: "yaml", yaml: "yaml",
-  ini: "ini", env: "ini", conf: "ini", sh: "shell", go: "go",
-  txt: "text", md: "text", csv: "text", eml: "text",
-};
+/** The data language with `id`, HTML for unknown ids. */
+export const dataLanguage = (id: string | null | undefined): DataLanguage =>
+  DATA_LANGUAGES.find((l) => l.id === id) ?? DATA_LANGUAGES[0];
 
-const byId = (id: string) => DATA_LANGUAGES.find((l) => l.id === id.trim().toLowerCase());
-
-/** Data language from the file name alone (`report.tex.twig` → LaTeX). */
-export function dataLanguageFromName(path: string): DataLanguage | undefined {
-  const parts = (path.split("/").pop() ?? path).toLowerCase().split(".");
-  // name.<inner>.<template>, e.g. ["invoice", "tex", "twig"]
-  if (parts.length < 3) return undefined;
-  const inner = COMPOUND[parts[parts.length - 2]];
-  return inner ? byId(inner) : undefined;
-}
-
-/** Data language from `pattern=language` entries (first match wins). */
-export function dataLanguageFromMappings(path: string, mappings: string[]): DataLanguage | undefined {
-  for (const entry of mappings) {
-    const eq = entry.lastIndexOf("=");
-    if (eq <= 0) continue;
-    const pattern = entry.slice(0, eq).trim();
-    const lang = byId(entry.slice(eq + 1));
-    if (lang && matchesGlobList(path, pattern)) return lang;
-  }
-  return undefined;
-}
-
-export function dataLanguageFor(path: string): DataLanguage {
-  const mappings = getSetting<string[]>("templates.dataLanguages", []);
-  return dataLanguageFromMappings(path, mappings) ?? dataLanguageFromName(path) ?? DATA_LANGUAGES[0];
+/** The syntax highlighting of a data language, which the template tags are drawn over. */
+export function dataLanguageSupport(id: string | null | undefined): Extension {
+  const lang = dataLanguage(id);
+  if (lang.support) return lang.support();
+  return lang.parser ? StreamLanguage.define(lang.parser) : [];
 }

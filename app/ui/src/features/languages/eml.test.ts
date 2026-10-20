@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { languageIdFor, languageLabel } from "@/editor/languages";
 import {
   analyzeEml,
   decodeEncodedWord,
@@ -160,12 +159,5 @@ describe("analysis", () => {
     expect(stateAtLine(doc, 2).section).toBe("headers");
     expect(stateAtLine(doc, 8).section).toBe("headers"); // part headers after `--outer`
     expect(stateAtLine(doc, 10).section).toBe("body");
-  });
-});
-
-describe("registration", () => {
-  it("detects .eml files", () => {
-    expect(languageIdFor("mail/msg.eml")).toBe("eml");
-    expect(languageLabel("a.EML")).toBe("E-Mail");
   });
 });

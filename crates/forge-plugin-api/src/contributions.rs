@@ -38,22 +38,11 @@ pub struct Contributions {
     pub code_generators: Vec<CodeGeneratorContribution>,
 }
 
-/// A file type (PHPStorm's Settings | Editor | File Types): how files are recognised and
-/// what the status bar calls them. Syntax highlighting is registered by the UI under the
-/// same `id`.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct FileTypeContribution {
-    /// Stable id, also the LSP language id when a server handles the type, e.g. `yaml`.
-    pub id: String,
-    pub name: String,
-    /// Extensions without the dot; compound ones such as `env.local` are allowed.
-    #[serde(default)]
-    pub extensions: Vec<String>,
-    /// Exact file names (`Dockerfile`) or name patterns with `*` wildcards (`.env.*`).
-    #[serde(default)]
-    pub file_names: Vec<String>,
-}
+/// A file type (PHPStorm's Settings | Editor | File Types): how files are recognised, what
+/// the status bar calls them and their indentation. Syntax highlighting is registered by the
+/// UI under the same `id`. Defined by the pure `forge-filetypes` crate, which also matches
+/// files against these contributions.
+pub use forge_filetypes::FileTypeSpec as FileTypeContribution;
 
 /// An action with a PHPStorm-style id (e.g. `settings.open`), invokable from Find Action.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

@@ -41,6 +41,8 @@ app/ui/            SolidJS UI
   - `registerEditorExtension` (`src/editor/extensions.ts`) — CodeMirror extensions per file.
   - `registerSearchProvider` (`src/features/search/providers.ts`) — Search Everywhere tabs
     (Classes, Files, Symbols, Actions, Text); language packs plug in class/symbol indexes.
+    Providers only collect candidates; ranking happens in Rust (see "Search, file types and the
+    Settings model" below).
   - `registerKeymapActions` (`src/keymap/store.ts`) — plugin actions with default shortcuts.
   - `registerRunConfigurationType` / `registerDebugLauncher` (`src/features/run`) — Run/Debug
     configuration types and debuggers (see "Terminal and Run/Debug" below).
@@ -58,9 +60,16 @@ app/ui/            SolidJS UI
   - `openCustomTab({ id: "forge:<kind>/<id>", title, icon?, component })` (`src/state/editor.ts`) —
     editor tabs that show a feature view instead of a file (merge requests, issues). `activeTab()`
     stays file-only; use `isCustomTab(id)` where an id may belong to such a tab.
-- Keymap (`src/keymap/`): PHPStorm's default keymaps (Windows/Linux and macOS) as data, keyed by
-  PHPStorm action ids that double as command ids. Implementing an action is just
-  `registerCommand({ id: "GotoClass", ... })`; unimplemented actions show "not available yet".
+- Keymap: the engine is the Rust crate `crates/forge-keymap` (shortcut parsing and display,
+  PHPStorm's default keymaps for Windows/Linux and macOS in `data/phpstorm.json`, action
+  aliases, plugin actions, user overrides from the `keymap.*` settings, conflicts and the
+  resolver state machine for chords, double taps and focus contexts). Action ids are PHPStorm's
+  and double as command ids: implementing an action is just `registerCommand({ id: "GotoClass",
+  ... })`; unimplemented actions show "not available yet". `src/keymap/` is a thin client: it
+  captures DOM key events, classifies the focus context, forwards the event to the resolver and
+  runs the returned action. Key events are resolved synchronously by the same Rust code compiled
+  to WebAssembly (desktop and browser), because the handler must decide on `preventDefault`
+  before it returns; the keymap data and all changes go through the `keymap_*` commands.
 - A feature is a folder `src/features/<name>/` with an `index.ts` that registers its
   contributions; add one import line to `src/features/index.ts`. Browser mocks go to
   `src/mock/<name>Mock.ts` and are imported from `src/mock/index.ts`.
@@ -81,12 +90,32 @@ app/ui/            SolidJS UI
 
 ## Shared IPC contracts
 
+- Keymap (`src/ipc/keymap.ts`, `forge-keymap`): `keymap_actions() -> KeymapSnapshot` (selected
+  keymap, platform, every action with its shortcuts, display strings, `modified` and aliases);
+  `keymap_register_actions({ actions?, commands? }) -> KeymapSnapshot`;
+  `keymap_set_override({ change }) -> KeymapSnapshot` where `change` is `{ op: "selectKeymap" |
+  "set" | "add" | "remove" | "reset" | "resetAll", … }` and is stored in the user settings;
+  `keymap_conflicts({ shortcut, actionId? }) -> ShortcutCheck`;
+  `keymap_find_by_shortcut({ shortcut }) -> string[]`; `keymap_resolve({ event }) -> Resolution`
+  (`{ consumed, action?, pending?: "chord" | "doubleTap" }`, the IPC fallback of the in-process
+  resolver); `keymap_import_legacy({ active, overrides })` moves a pre-settings keymap from
+  localStorage into the settings.
+
 - `fs_list_dir({ path }) -> { name, path, kind, ignored }[]` — `ignored` is set for entries matched by
   `.gitignore`, `.git/info/exclude` or the global excludes file (ignored folders ignore their
   content); the Project view grays them out. The browser mock mirrors this with
   `src/mock/gitignoreMatcher.ts`.
 - `fs_find_files({ query, limit? }) -> { path, name, score, positions, matchedPath }[]` — fuzzy
   "Go to File" (camel humps, respects `.gitignore`).
+- `fuzzy_filter({ request: { query, candidates, strict?, preferShorter?, limit? } }) -> { index, text, score, positions }[]`
+  — speed search over in-memory lists (Recent Files, popups); a candidate is a text or a name
+  with aliases.
+- `search_rank({ request: { tab, query, perGroup, includeDimmed?, sources } }) -> { groups }` —
+  Search Everywhere ranking (`forge_fuzzy::everywhere`).
+- `filetypes_detect({ request: { files, inactivePlugins, dataLanguages, softWrapFiles } }) -> FileTypeInfo[]`
+  — file type id, status bar label, indent, template data language and soft wrapping.
+- `settings_search({ request: { query, pages?, settings?, entries?, highlight? } })` and
+  `settings_validate({ key, value }) -> string | null` — the Settings dialog model.
 
 - `ai_complete({ request: { system?: string, messages: { role: "user" | "assistant", content: string }[], provider?: string, model?: string, maxTokens?: number } }) -> string`
   — one-shot completion with the default (or given) provider. Used by e.g. AI commit messages.
@@ -431,19 +460,20 @@ app/ui/            SolidJS UI
 
 - `app/ui/src/features/languages/` holds the packs for Bash, Python, YAML, JSON, INI, `.conf`,
   dotenv, ignore files, Dockerfile, Docker Compose, Postfix (`main.cf`, `master.cf`), E-Mail and
-  Symfony services. Each file calls `registerLanguage` (same ids replace the built-in entries in
-  `src/editor/languages.ts`) and `registerEditorExtension`; `shared.ts` has the stream parser token
+  Symfony services. Each file calls `registerLanguage` (the syntax mode for a file type id; same
+  ids replace the built-in modes in `src/editor/languages.ts`) and `registerEditorExtension`; `shared.ts` has the stream parser token
   vocabulary (`src/editor/tokens.ts`), hover docs, folding and `syntaxDiagnostics`, which feeds the
   Problems view unless one of the listed language servers (ids from the catalog) runs for the
   file. `yamlSchema.ts` completes and documents keys of YAML files from a schema tree (Compose,
   Symfony services).
-- `registerLanguage` also takes `shebang` (extensionless scripts) and `indent`; `fileNames` may
-  contain `*` anywhere and `/` to match a path suffix (`config/services*.yaml`).
-- The manifests `app/src-tauri/plugins/langs.toml` declare the same file types
-  (`[[contributions.fileTypes]]`); keep them in sync with the registrations. Language servers for
+- The file types themselves (extensions, `fileNames` with `*` anywhere and `/` for path
+  suffixes like `config/services*.yaml`, `interpreters` for shebangs, `indentSize`) are declared
+  in the manifests `app/src-tauri/plugins/langs.toml` (`[[contributions.fileTypes]]`) and matched
+  in Rust by `crates/forge-filetypes`. Language servers for
   these languages come from the catalog (`forge-langservers`), not from the manifests.
 - `forge.symfony-services` only applies to Symfony projects (`projectTypes = ["symfony"]`); in other
-  projects `config/services*.yaml` is plain YAML.
+  projects `config/services*.yaml` is plain YAML: the UI sends inactive plugins with each
+  `filetypes_detect` request and their file types are skipped.
 
 
 ## Rust computes, TypeScript renders
@@ -471,3 +501,31 @@ TypeScript because a round trip per token would be slower.
 - DQL injection highlighting comes from the backend shortly after each edit (old spans are mapped
   through the change meanwhile); it is not per keystroke-critical, so no TypeScript tokenizer is
   kept.
+- Code that cannot wait (editor setup) may use `callWasmSync` once `forgeWasm()` resolved;
+  `mock/index.ts` waits for the module before the UI starts.
+
+### Search, file types and the Settings model
+
+- **Fuzzy matching** lives in `crates/forge-fuzzy` (pure; `forge-core` re-exports it for the
+  file walker). Camel humps, separators and strict word-start matching (actions, classes,
+  symbols) are scored there; every highlight position the UI draws comes from it. Lists in
+  popups use `createFuzzyFilter` (`features/search/fuzzyFilter.ts` → `fuzzy_filter`).
+- **Search Everywhere**: providers registered with `registerSearchProvider` only *collect*
+  candidates and return them with their render data (icon, detail, `run`). `runSearch` sends
+  all candidates of the tab in one `search_rank` request; Rust matches text candidates (`match`
+  on the item: strict, alternative texts such as action ids, keep-unmatched for pre-filtered
+  language-server results), takes pre-ranked ones as they are (`score` + `matches` from
+  `fs_find_files` or the PHP index), merges providers per tab, orders groups, dedupes the "All"
+  tab, hides dimmed items while others match and cuts each group. The UI maps the answer back
+  to its items. UI-only providers keep working unchanged; backends stay where their data is.
+- **File types**: `crates/forge-filetypes` resolves files (bundled types plus manifest file
+  types, inactive plugins skipped, `templates.dataLanguages` and soft-wrap patterns applied).
+  `editor/fileTypes.ts` caches answers per path (and `#!` line) so `languageFor`,
+  `languageLabel`, `languageIdFor` and `indentFor` stay synchronous: browser mode answers
+  synchronously from WebAssembly; the desktop app resolves over IPC, and the editor and diff
+  viewer `await ensureFileType(path)` before they build. A cache miss in the desktop app
+  answers "Plain text" and updates reactive readers when the answer lands.
+- **Settings dialog**: `forge_plugin_api::settings_model` builds the page tree, filters it,
+  finds matching pages and settings, picks the page to select and splits every shown text into
+  highlighted segments; `settings_validate` checks values against the schema. The dialog sends
+  pages, the schema and its texts (`features/settings/dialogSearch.tsx`) and renders the answer.

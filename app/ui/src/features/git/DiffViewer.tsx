@@ -7,6 +7,7 @@ import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { MergeView, goToNextChunk, goToPreviousChunk } from "@codemirror/merge";
 import { forgeEditorTheme, forgeHighlight } from "@/editor/forgeTheme";
 import { languageFor } from "@/editor/languages";
+import { ensureFileType, isFileTypeResolved } from "@/editor/fileTypes";
 import { openFile } from "@/state/editor";
 import { workspaceApi } from "@/ipc/workspace";
 import { FileIcon } from "@/shell/FileIcon";
@@ -114,11 +115,15 @@ export function DiffViewer(props: { request: DiffRequest; onClose: () => void })
     }
   };
 
+  let disposed = false;
   onMount(() => {
-    build();
+    // The syntax mode depends on the file type, which may still be resolving (desktop app).
+    if (isFileTypeResolved(req.path)) build();
+    else void ensureFileType(req.path).then(() => disposed || build());
     window.addEventListener("keydown", onKey, true);
   });
   onCleanup(() => {
+    disposed = true;
     window.removeEventListener("keydown", onKey, true);
     mv?.destroy();
   });

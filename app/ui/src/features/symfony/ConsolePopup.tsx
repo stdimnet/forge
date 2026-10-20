@@ -5,7 +5,7 @@
  */
 import { createEffect, createMemo, createSignal, For, on, onMount, Show } from "solid-js";
 import { SquareTerminal } from "lucide-solid";
-import { fuzzyMatch } from "@/features/search/fuzzy";
+import { createFuzzyFilter } from "@/features/search/fuzzyFilter";
 import { Highlight } from "@/features/search/SearchEverywhere";
 import { commands, loadSymfony } from "./store";
 import { runConsoleCommand, splitCommandLine } from "./console";
@@ -30,19 +30,22 @@ export function ConsolePopup() {
   const [index, setIndex] = createSignal(0);
 
   const parsed = () => splitCommandLine(query());
-  const shown = createMemo(() => {
-    const q = parsed().command;
-    return commands()
+  // Project commands before built-in ones; the Rust ranking keeps that order on ties.
+  const pool = createMemo(() =>
+    commands()
       .filter((c) => !c.hidden)
-      .map((c) => {
-        const names = [c.name, ...(c.aliases ?? [])];
-        const m = q ? names.map((n) => fuzzyMatch(q, n)).find((x) => x) ?? null : { score: 0, positions: [] as number[] };
-        return { c, m };
-      })
-      .filter((x) => x.m)
-      .sort((a, b) => (q ? b.m!.score - a.m!.score : 0) || Number(!!a.c.builtin) - Number(!!b.c.builtin));
-  });
-
+      .sort((a, b) => Number(!!a.builtin) - Number(!!b.builtin)),
+  );
+  const hits = createFuzzyFilter(() => ({
+    query: parsed().command,
+    candidates: pool().map((c) => [c.name, ...(c.aliases ?? [])]),
+  }));
+  const shown = createMemo(() =>
+    hits()
+      .filter((h) => h.index < pool().length)
+      // Highlight only when the name itself (not an alias) matched.
+      .map((h) => ({ c: pool()[h.index], m: { score: h.score, positions: h.text === 0 ? h.positions : [] } })),
+  );
   onMount(() => {
     input.focus();
     input.setSelectionRange(input.value.length, input.value.length);

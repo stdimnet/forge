@@ -1,11 +1,14 @@
 /**
- * Glue between the DOM, the keymap engine and the command registry.
+ * Glue between the DOM, the Rust key resolver and the command registry. This file only
+ * captures key events, classifies the focused element and runs the returned action; which
+ * key means what is decided by `forge-keymap`.
  */
-import { createEffect, createRoot, createSignal } from "solid-js";
+import { createSignal } from "solid-js";
+import type { FocusContext, KeyInput, Resolution } from "@/ipc/keymap";
+import { keymapApi } from "@/ipc/keymap";
 import { commands, runCommand } from "@/state/commands";
-import { KeymapEngine, type FocusContext } from "./engine";
-import { ACTION_ALIASES } from "./phpstormKeymap";
-import { actionById, bindings } from "./store";
+import { loadKeymapCore, resolveKeySync } from "./core";
+import { actionById, startKeymap } from "./store";
 
 export interface BalloonAction {
   label: string;
@@ -37,7 +40,7 @@ export function showBalloon(text: string, detail?: string, ms = 2600, actions?: 
 /** Command id that actually implements `actionId` (the id itself or a known alias). */
 export function resolveCommand(actionId: string): string | undefined {
   const cmds = commands();
-  return [actionId, ...(ACTION_ALIASES[actionId] ?? [])].find((id) => cmds.has(id));
+  return [actionId, ...(actionById(actionId)?.aliases ?? [])].find((id) => cmds.has(id));
 }
 
 export const isActionAvailable = (actionId: string): boolean => resolveCommand(actionId) != null;
@@ -87,21 +90,47 @@ export function suspendKeymap(): () => void {
   };
 }
 
-export const engine = new KeymapEngine();
+/**
+ * Resolve an event: synchronously in-process when the engine is loaded, otherwise through
+ * IPC (then the browser default can no longer be prevented, but the action still runs).
+ */
+function resolve(input: KeyInput): Resolution | null {
+  const res = resolveKeySync(input);
+  if (res) return res;
+  keymapApi.resolve(input).then(
+    (r) => r.action && void runAction(r.action),
+    (e) => console.warn("key not resolved", e),
+  );
+  return null;
+}
+
+function keyInput(type: "keydown" | "keyup", e: KeyboardEvent): KeyInput {
+  return {
+    type,
+    key: e.key,
+    code: e.code,
+    ctrlKey: e.ctrlKey,
+    altKey: e.altKey,
+    shiftKey: e.shiftKey,
+    metaKey: e.metaKey,
+    repeat: e.repeat,
+    focus: focusContextOf((e.target as Element) ?? document.activeElement),
+    time: e.timeStamp,
+  };
+}
+
 let installed = false;
 
 /** Attach the global key listeners. Safe to call more than once. */
-export function installKeymap(target: Window = window): void {
-  if (installed) return;
+export function installKeymap(target: Window = window): Promise<void> {
+  if (installed) return Promise.resolve();
   installed = true;
-  createRoot(() => createEffect(() => engine.setBindings(bindings())));
-  const ctx = (e: Event) => focusContextOf((e.target as Element) ?? document.activeElement);
   target.addEventListener(
     "keydown",
     (e) => {
       if (suspended || e.isComposing) return;
-      const res = engine.handleKeyDown(e, ctx(e));
-      if (!res.consumed) return;
+      const res = resolve(keyInput("keydown", e));
+      if (!res?.consumed) return;
       e.preventDefault();
       e.stopPropagation();
       if (res.action) void runAction(res.action);
@@ -112,11 +141,12 @@ export function installKeymap(target: Window = window): void {
     "keyup",
     (e) => {
       if (suspended) return;
-      const res = engine.handleKeyUp(e, ctx(e));
-      if (res.action) void runAction(res.action);
+      const res = resolve(keyInput("keyup", e));
+      if (res?.action) void runAction(res.action);
     },
     true,
   );
-  target.addEventListener("mousedown", () => engine.interrupt(), true);
-  target.addEventListener("blur", () => engine.reset());
+  target.addEventListener("mousedown", () => resolveKeySync({ type: "interrupt" }), true);
+  target.addEventListener("blur", () => resolveKeySync({ type: "reset" }));
+  return Promise.all([loadKeymapCore(), startKeymap()]).then(() => {});
 }

@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { EditorState } from "@codemirror/state";
-import { detectLanguage } from "@/editor/languages";
 import { positionAt } from "./yamlSchema";
 import "./symfony";
 import "./yaml";
@@ -64,13 +63,6 @@ describe("symfony services helpers", () => {
     expect(referenceClass("%app.x%")).toBe("cm-sf-param");
     expect(referenceClass("%env(FOO)%")).toBe("cm-sf-env");
     expect(referenceClass("!tagged_iterator")).toBe("cm-sf-tag");
-  });
-
-  it("is selected for services files by path", () => {
-    expect(detectLanguage("config/services.yaml")?.id).toBe("symfony-services");
-    expect(detectLanguage("app/config/services_dev.yml")?.id).toBe("symfony-services");
-    expect(detectLanguage("config/services/mail.yaml")?.id).toBe("symfony-services");
-    expect(detectLanguage("config/packages/twig.yaml")?.id).toBe("yaml");
   });
 
   it("tolerates IO failures", async () => {

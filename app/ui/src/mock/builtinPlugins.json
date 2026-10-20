@@ -2891,7 +2891,16 @@
             "PKGBUILD",
             ".xinitrc",
             ".xprofile"
-          ]
+          ],
+          "interpreters": [
+            "sh",
+            "bash",
+            "zsh",
+            "ksh",
+            "dash",
+            "ash"
+          ],
+          "indentSize": 2
         }
       ],
       "commands": [],
@@ -2935,6 +2944,9 @@
             "wscript",
             ".pythonstartup",
             ".pythonrc"
+          ],
+          "interpreters": [
+            "python"
           ]
         }
       ],
@@ -2977,7 +2989,8 @@
             ".gemrc",
             "CITATION.cff",
             ".sops.yaml"
-          ]
+          ],
+          "indentSize": 2
         }
       ],
       "commands": [],
@@ -3035,7 +3048,8 @@
             ".php-cs-fixer.cache",
             ".php-cs-fixer.json",
             "symfony.lock"
-          ]
+          ],
+          "indentSize": 2
         }
       ],
       "commands": [],
@@ -3086,7 +3100,8 @@
             ".env.staging",
             ".env.test",
             ".env.testing"
-          ]
+          ],
+          "indentSize": 2
         }
       ],
       "commands": [],
@@ -3126,7 +3141,8 @@
             ".*ignore",
             ".gitignore_global",
             ".git/info/exclude"
-          ]
+          ],
+          "indentSize": 2
         }
       ],
       "commands": [],
@@ -3180,7 +3196,8 @@
             "compose.yaml",
             "compose.*.yml",
             "compose.*.yaml"
-          ]
+          ],
+          "indentSize": 2
         }
       ],
       "commands": [],
