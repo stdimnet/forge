@@ -3,6 +3,7 @@
 pub mod error;
 pub(crate) mod gitignore;
 pub mod project_files;
+pub mod project_state;
 pub mod search;
 pub mod settings;
 pub mod watch;

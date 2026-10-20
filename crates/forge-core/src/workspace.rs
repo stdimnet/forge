@@ -118,11 +118,21 @@ impl Workspace {
     }
 
     pub fn write_file(&self, rel: &str, contents: &str) -> Result<()> {
+        self.write_bytes(rel, contents.as_bytes())
+    }
+
+    /// The file's raw bytes (for files that are not UTF-8).
+    pub fn read_bytes(&self, rel: &str) -> Result<Vec<u8>> {
+        let p = self.resolve(rel)?;
+        fs::read(&p).map_err(|e| ForgeError::io(&p, e))
+    }
+
+    pub fn write_bytes(&self, rel: &str, bytes: &[u8]) -> Result<()> {
         let p = self.resolve(rel)?;
         if let Some(parent) = p.parent() {
             fs::create_dir_all(parent).map_err(|e| ForgeError::io(parent, e))?;
         }
-        fs::write(&p, contents).map_err(|e| ForgeError::io(&p, e))
+        fs::write(&p, bytes).map_err(|e| ForgeError::io(&p, e))
     }
 
     /// Resolve a path the project tree may change: not the project root itself.

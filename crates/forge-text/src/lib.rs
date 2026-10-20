@@ -19,6 +19,7 @@ pub mod commit;
 pub mod editorconfig;
 pub mod encoding;
 pub mod eol;
+pub mod file;
 pub mod format;
 pub mod indent;
 pub mod save;

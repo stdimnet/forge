@@ -24,7 +24,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use forge_core::search::{FindRequest, FindResult};
-use forge_core::{FileEntry, FileMatch, FsChanges, ProjectFiles, Result};
+use forge_core::{FileEntry, FileMatch, ForgeError, FsChanges, ProjectFiles, Result};
 use forge_lsp::ServerLauncher;
 use forge_process::{CommandLine, PtySink, RunSink};
 use forge_project::ProjectInfo;
@@ -149,6 +149,20 @@ pub trait Backend: Send + Sync {
     /// The file's text, `None` when it does not exist (one round trip for remote projects).
     fn read_optional(&self, rel: &str) -> Result<Option<String>>;
     fn write_file(&self, rel: &str, contents: &str) -> Result<()>;
+    /// The file's raw bytes (files in other encodings than UTF-8). Backends that only move
+    /// text (remote projects) answer with the UTF-8 text.
+    fn read_bytes(&self, rel: &str) -> Result<Vec<u8>> {
+        self.read_file(rel).map(String::into_bytes)
+    }
+    /// Write raw bytes. Backends that only move text accept UTF-8 only.
+    fn write_bytes(&self, rel: &str, bytes: &[u8]) -> Result<()> {
+        match std::str::from_utf8(bytes) {
+            Ok(text) => self.write_file(rel, text),
+            Err(_) => Err(ForgeError::Other(
+                "only UTF-8 files can be saved in remote projects".into(),
+            )),
+        }
+    }
     /// New empty file (parent folders included); never replaces an existing path.
     fn create_file(&self, rel: &str) -> Result<()>;
     /// New folder (parent folders included); never replaces an existing path.
