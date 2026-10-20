@@ -16,6 +16,7 @@ import type {
   TextEdit,
 } from "@/ipc/lsp";
 import { demoFiles } from "./demoProject";
+import { isLuaDemo } from "./demoLuaProject";
 import {
   collectionMembers,
   diagnosticRules,
@@ -94,7 +95,9 @@ function publish(path: string) {
 
 // ---------- server status ----------
 
-let status: ServerStatus = { id: "intelephense", name: "Intelephense", state: "notStarted" };
+// The Lua demo game (`?project=lua`) runs lua-language-server instead.
+const SERVER = isLuaDemo() ? { id: "lua-language-server", name: "Lua Language Server" } : { id: "intelephense", name: "Intelephense" };
+let status: ServerStatus = { ...SERVER, state: "notStarted" };
 let started = false;
 /** Other mock servers (e.g. the TypeScript server of the language servers mock). */
 const otherServers = new Map<string, ServerStatus>();
@@ -119,7 +122,7 @@ export function onMockDidOpen(cb: (path: string) => void): void {
 function startServer() {
   if (started) return;
   started = true;
-  const base = { id: "intelephense", name: "Intelephense" };
+  const base = SERVER;
   setStatus({ ...base, state: "starting" });
   const steps = [0, 35, 70, 100];
   steps.forEach((p, i) =>

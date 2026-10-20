@@ -193,6 +193,15 @@ pub fn decl_doc(index: &ProjectIndex, d: DeclRef<'_>) -> HoverDoc {
             return doc;
         }
     }
+    // `local Player = require("player")` where the module returns a class: the class.
+    if let (DeclKind::Local, Value::Require(m)) = (decl.kind, &decl.value) {
+        if let Some(Table::Class(c)) = index.resolve_value(d.path, &decl.value, 0) {
+            if let Some(mut doc) = type_doc(index, &c) {
+                doc.definition = index.resolve_require(m);
+                return doc;
+            }
+        }
+    }
     let mut out = HoverDoc::default();
     // The owner: a class name, else the table expression.
     if decl.kind.is_field() {
@@ -438,10 +447,7 @@ return Player
         assert_eq!(h.doc.signature.as_deref(), Some("class Player : Entity"));
         assert_eq!(h.doc.sections[0].title, "Fields:");
         let h = hover(&p, "main.lua", 7).unwrap();
-        assert_eq!(
-            h.doc.signature.as_deref(),
-            Some("local Player = require(\"player\")")
-        );
+        assert_eq!(h.doc.signature.as_deref(), Some("class Player : Entity"));
     }
 
     #[test]

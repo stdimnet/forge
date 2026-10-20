@@ -22,6 +22,8 @@ import type {
 import { lineDiff, unifiedDiff } from "@/features/git/textDiff";
 import { demoFiles } from "./demoProject";
 import { createIgnoreMatcher } from "./gitignoreMatcher";
+import { isLuaDemo } from "./demoLuaProject";
+
 
 const DAY = 86400;
 const now = Math.floor(Date.now() / 1000);
@@ -190,9 +192,11 @@ index["app/Services/Checkout.php"] = demoFiles["app/Services/Checkout.php"];
 index["app/Http/Controllers/OrderController.php"] = controllerWorking;
 
 // Extra untracked file, written into the workspace mock (absent in tests that load only
-// the git mock).
+// the git mock). The Lua demo game has no PHP tests.
 void Promise.resolve().then(() =>
-  invoke("fs_write_file", {
+  isLuaDemo()
+    ? undefined
+    : invoke("fs_write_file", {
     path: UNTRACKED_EXTRA,
     contents: `<?php\n\nnamespace Tests\\Unit;\n\nuse App\\Services\\Checkout;\nuse PHPUnit\\Framework\\TestCase;\n\nclass CheckoutTest extends TestCase\n{\n    public function test_default_currency_is_euro(): void\n    {\n        $this->assertInstanceOf(Checkout::class, new Checkout());\n    }\n}\n`,
   }),

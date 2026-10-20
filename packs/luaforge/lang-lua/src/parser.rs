@@ -801,8 +801,11 @@ impl<'a> Parser<'a> {
             .any(|o| matches!(*o, "==" | "~=" | "<" | "<=" | ">" | ">="))
         {
             Value::Literal("boolean")
-        } else {
+        } else if operands.iter().all(|e| e.value == Value::Literal("number")) {
             Value::Literal("number")
+        } else {
+            // Arithmetic on tables may go through metamethods (`Vec2 + Vec2`).
+            Value::Unknown
         };
         Expr::of(value)
     }
@@ -823,7 +826,9 @@ impl<'a> Parser<'a> {
         let e = self.simple();
         match op {
             Some("not") => Expr::of(Value::Literal("boolean")),
-            Some(_) => Expr::of(Value::Literal("number")),
+            Some("#") => Expr::of(Value::Literal("number")),
+            Some(_) if e.value == Value::Literal("number") => e,
+            Some(_) => Expr::of(Value::Unknown),
             None => e,
         }
     }

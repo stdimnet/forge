@@ -336,7 +336,7 @@ function luaSteps(cfg: RunConfiguration): Step[] {
       [200, "Generated 48x32 dungeon (seed 1760951142, 7 rooms)\n"],
       [120, "Ada spawned at (4, 3) with 20 HP\n"],
       [900, "Picked up 15 gold at (9, 5)\n"],
-      [700, "Error: src/world.lua:39: attempt to index a nil value (local 'row')\nstack traceback:\n\tsrc/world.lua:39: in function 'isWalkable'\n\tmain.lua:30: in function 'update'\n\t[love \"callbacks.lua\"]:162: in function <[love \"callbacks.lua\"]:144>\n", "stderr"],
+      [700, "Error: src/world.lua:35: attempt to index field 'tiles' (a nil value)\nstack traceback:\n\tsrc/world.lua:35: in function 'isWalkable'\n\tmain.lua:28: in function 'update'\n\t[love \"callbacks.lua\"]:162: in function <[love \"callbacks.lua\"]:144>\n", "stderr"],
     ];
   return [
     [120, "$ mkdir -p dist\n"],

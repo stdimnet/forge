@@ -71,7 +71,7 @@ impl Builder<'_> {
             return format!(": {t}");
         }
         match &d.value {
-            Value::Require(m) => format!("require(\"{m}\")"),
+            Value::Require(m) => format!(" = require(\"{m}\")"),
             Value::Literal(l) => format!(": {l}"),
             Value::Typed(t) => format!(": {t}"),
             _ => String::new(),
@@ -349,7 +349,7 @@ return M
         assert_eq!(
             structure(src),
             vec![
-                "Variable jsonrequire(\"json\")",
+                "Variable json = require(\"json\")",
                 "Variable SPEED: number",
                 "Class Player: Entity",
                 "  Field name: string",
