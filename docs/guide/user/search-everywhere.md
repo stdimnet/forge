@@ -22,7 +22,7 @@ The popup has tabs; `Tab` / `Shift+Tab` switch between them:
 | Files | **Go to File** `Ctrl+Shift+N` (macOS `Cmd+Shift+O`) | project files; without a query, recent files | Forge's file search (respects `.gitignore`) |
 | Symbols | **Go to Symbol** `Ctrl+Alt+Shift+N` (macOS `Cmd+Alt+O`) | functions, methods, constants, properties | PHP index, LuaForge index, language servers |
 | Actions | **Find Action** `Ctrl+Shift+A` (macOS `Cmd+Shift+A`) | every IDE action and command | the keymap and registered commands |
-| Text | — | full-text search | not available yet |
+| Text | — | lines of text in project files | Find in Files (`forge-find`) |
 
 - `Up`/`Down`, `PageUp`/`PageDown` move the selection, `Enter` opens it, `Escape` closes.
 - In the All tab, a "more" row under a group switches to that group's tab.
@@ -73,7 +73,25 @@ See [Workbench: Recent Files and Switcher](workbench.md#recent-files-and-switche
 
 ## Find in Files
 
-> **Note:** Find in Files (`Ctrl+Shift+F`) and Replace in Files (`Ctrl+Shift+R`) are not
-> available on this version; they are being built. In the meantime use the editor's
-> [find panel](editor.md#find-and-replace-in-a-file) for the current file and the
-> [terminal](terminal.md) (`grep -rn`, `rg`) for the project.
+**Find in Files** (`Ctrl+Shift+F`, macOS `Cmd+Shift+F`, also Edit | Find | Find in Files… and
+the Project view's context menu) searches the text of every project file.
+
+![Find in Files](../../screenshots/editor-polish-find-in-files.png)
+
+- Type the text; results update as you type, one row per matching line with the file name and
+  line number. The header counts matches and files.
+- Options next to the field: **Cc** match case, **W** whole words, **.\*** regular expression.
+- **File mask**: tick it and enter patterns such as `*.php` or `*.php, !*Test.php`
+  (`!` excludes).
+- Scope: **In Project** or **Directory** (a folder of the project; empty means the project
+  root).
+- `Up`/`Down` select a row; the preview below shows the file around the match. `Enter` opens
+  the file at the match, `Escape` closes.
+
+Ignored files (`.gitignore`), binary files and very large files are skipped. In remote projects
+the search runs on the host.
+
+The **Text** tab of Search Everywhere uses the same search (from two characters on).
+
+> **Note:** Replace in Files (`Ctrl+Shift+R`) and the Find tool window ("Open in Find Tool
+> Window") are not available yet.

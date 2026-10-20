@@ -145,7 +145,7 @@ Right-click a file, a folder or the empty area below the tree:
 | --- | --- |
 | New > File / Directory | Creates a file or folder in the selected folder (or the file's folder). The name may contain `/` to create nested folders, e.g. `app/Models/Order.php`. A new file opens in the editor. |
 | Copy Path/Reference > Absolute Path (`Ctrl+Shift+C`), Path From Project Root, File Name | Copies to the clipboard |
-| Find in Files… | not available yet |
+| Find in Files… | searches the folder (or the project), see [Find in Files](search-everywhere.md#find-in-files) |
 | Rename… | Renames the file or folder. Unsaved changes in open tabs are saved first and the tabs follow the new name. |
 | Delete… | Deletes after a confirmation; folders with all their content. This cannot be undone. |
 | Reload from Disk | Re-reads the folder |
