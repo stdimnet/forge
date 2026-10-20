@@ -312,12 +312,51 @@ pub struct Pod {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub ip: Option<String>,
     pub containers: Vec<String>,
+    /// Init containers (`spec.initContainers`), shown in the log picker.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub init_containers: Vec<String>,
+    /// The `kubectl.kubernetes.io/default-container` annotation.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub default_container_annotation: Option<String>,
+    /// Declared container ports (suggestions for Forward Ports).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub ports: Vec<ContainerPort>,
     pub labels: BTreeMap<String, String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub owner: Option<String>,
 }
 
+/// A port a pod's container declares (`spec.containers[].ports[]`).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ContainerPort {
+    pub container: String,
+    pub port: u16,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    pub protocol: String,
+}
+
 impl Pod {
+    /// The container `kubectl` picks without `-c`: the default-container annotation when it
+    /// names a container of the pod, else the first (non-init) container.
+    pub fn default_container(&self) -> Option<&str> {
+        self.default_container_annotation
+            .as_deref()
+            .filter(|a| self.containers.iter().any(|c| c == a))
+            .or_else(|| self.containers.first().map(String::as_str))
+    }
+
+    /// `container` when the pod has it, else the default container.
+    pub fn pick_container<'a>(&'a self, container: Option<&'a str>) -> Option<&'a str> {
+        container
+            .filter(|c| {
+                self.containers.iter().any(|x| x == c)
+                    || self.init_containers.iter().any(|x| x == c)
+            })
+            .or_else(|| self.default_container())
+    }
+
     pub fn healthy(&self) -> bool {
         matches!(self.status.as_str(), "Running" | "Completed")
             && (self.phase != PodPhase::Running || {
@@ -340,6 +379,26 @@ pub struct Deployment {
     pub created: Option<i64>,
     pub images: Vec<String>,
     pub selector: BTreeMap<String, String>,
+}
+
+impl Deployment {
+    /// Whether the deployment's selector matches the pod's labels.
+    pub fn selects(&self, pod: &Pod) -> bool {
+        !self.selector.is_empty()
+            && self
+                .selector
+                .iter()
+                .all(|(k, v)| pod.labels.get(k) == Some(v))
+    }
+
+    /// `app=web,tier=frontend` for `?labelSelector=`.
+    pub fn label_selector(&self) -> String {
+        self.selector
+            .iter()
+            .map(|(k, v)| format!("{k}={v}"))
+            .collect::<Vec<_>>()
+            .join(",")
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -433,10 +492,37 @@ pub fn parse_pod(p: &Value) -> Pod {
         .and_then(Value::as_array)
         .cloned()
         .unwrap_or_default();
-    let containers: Vec<String> = p
+    let names = |ptr: &str| -> Vec<String> {
+        p.pointer(ptr)
+            .and_then(Value::as_array)
+            .map(|a| a.iter().filter_map(|c| st(c, "/name")).collect())
+            .unwrap_or_default()
+    };
+    let containers = names("/spec/containers");
+    let init_containers = names("/spec/initContainers");
+    let ports = p
         .pointer("/spec/containers")
         .and_then(Value::as_array)
-        .map(|a| a.iter().filter_map(|c| st(c, "/name")).collect())
+        .map(|a| {
+            a.iter()
+                .flat_map(|c| {
+                    let container = st(c, "/name").unwrap_or_default();
+                    c.get("ports")
+                        .and_then(Value::as_array)
+                        .cloned()
+                        .unwrap_or_default()
+                        .into_iter()
+                        .filter_map(move |port| {
+                            Some(ContainerPort {
+                                container: container.clone(),
+                                port: u16::try_from(port.get("containerPort")?.as_i64()?).ok()?,
+                                name: st(&port, "/name"),
+                                protocol: st(&port, "/protocol").unwrap_or_else(|| "TCP".into()),
+                            })
+                        })
+                })
+                .collect()
+        })
         .unwrap_or_default();
     let ready = statuses
         .iter()
@@ -475,6 +561,13 @@ pub fn parse_pod(p: &Value) -> Pod {
         node: st(p, "/spec/nodeName"),
         ip: st(p, "/status/podIP"),
         containers,
+        init_containers,
+        default_container_annotation: p
+            .pointer("/metadata/annotations")
+            .and_then(|a| a.get("kubectl.kubernetes.io/default-container"))
+            .and_then(Value::as_str)
+            .map(str::to_string),
+        ports,
         labels: labels(p.pointer("/metadata/labels")),
         owner: p
             .pointer("/metadata/ownerReferences/0")
@@ -571,6 +664,11 @@ pub fn encode_query(v: &str) -> String {
 /// API paths of the lists the tree needs.
 pub fn pods_path(ns: &str) -> String {
     format!("/api/v1/namespaces/{}/pods", encode_query(ns))
+}
+
+/// Pods matching a label selector (`app=web`).
+pub fn pods_by_selector_path(ns: &str, selector: &str) -> String {
+    format!("{}?labelSelector={}", pods_path(ns), encode_query(selector))
 }
 
 pub fn deployments_path(ns: &str) -> String {
@@ -720,6 +818,31 @@ users:
         assert_eq!(web.restarts, 3);
         assert_eq!(web.owner.as_deref(), Some("ReplicaSet/web-7d4b9c"));
         assert!(!web.healthy());
+        assert_eq!(web.default_container(), Some("php"));
+
+        let multi = parse_pod(&json!({
+            "metadata": { "name": "api-1", "annotations": { "kubectl.kubernetes.io/default-container": "app" } },
+            "spec": {
+                "initContainers": [{ "name": "migrate" }],
+                "containers": [
+                    { "name": "istio-proxy", "ports": [{ "containerPort": 15090, "name": "http-envoy-prom" }] },
+                    { "name": "app", "ports": [{ "containerPort": 8080, "name": "http", "protocol": "TCP" }] }
+                ]
+            },
+            "status": { "phase": "Running" }
+        }));
+        assert_eq!(multi.containers, ["istio-proxy", "app"]);
+        assert_eq!(multi.init_containers, ["migrate"]);
+        assert_eq!(multi.default_container(), Some("app"), "annotation wins");
+        assert_eq!(multi.pick_container(Some("migrate")), Some("migrate"));
+        assert_eq!(multi.pick_container(Some("nope")), Some("app"));
+        assert_eq!(multi.ports[1].port, 8080);
+        assert_eq!(multi.ports[1].name.as_deref(), Some("http"));
+        let unknown_annotation = Pod {
+            default_container_annotation: Some("gone".into()),
+            ..multi.clone()
+        };
+        assert_eq!(unknown_annotation.default_container(), Some("istio-proxy"));
 
         let deps = parse_deployments(&json!({ "items": [
             { "metadata": { "name": "web", "namespace": "shop" }, "spec": { "replicas": 3,
@@ -729,6 +852,9 @@ users:
         ]}));
         assert_eq!(deps[0].ready_replicas, 2);
         assert_eq!(deps[0].images, ["acme/shop:1.4"]);
+        assert_eq!(deps[0].label_selector(), "app=web");
+        assert!(deps[0].selects(web));
+        assert!(!deps[0].selects(&pods[0]));
 
         let svcs = parse_services(&json!({ "items": [
             { "metadata": { "name": "web", "namespace": "shop" }, "spec": { "type": "NodePort", "clusterIP": "10.96.12.4",
@@ -748,6 +874,10 @@ users:
         assert_eq!(
             pod_log_path("shop", "web-1", Some("php"), 200, true),
             "/api/v1/namespaces/shop/pods/web-1/log?tailLines=200&follow=true&container=php"
+        );
+        assert_eq!(
+            pods_by_selector_path("shop", "app=web"),
+            "/api/v1/namespaces/shop/pods?labelSelector=app%3Dweb"
         );
         assert_eq!(
             encode_query("app=web,tier in (a)"),

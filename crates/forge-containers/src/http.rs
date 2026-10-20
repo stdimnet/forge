@@ -247,6 +247,13 @@ impl Response {
         }
     }
 
+    /// The connection after `101 Switching Protocols`, with the bytes already read past
+    /// the response head.
+    pub fn upgrade(self) -> (BoxIo, Vec<u8>) {
+        let rest = self.reader.buffer().to_vec();
+        (self.reader.into_inner(), rest)
+    }
+
     /// The whole body.
     pub async fn bytes(mut self) -> Result<Vec<u8>> {
         let mut out = Vec::new();
@@ -298,9 +305,17 @@ pub async fn send(transport: &Transport, req: &Request) -> Result<Response> {
 
 pub async fn send_on(mut io: BoxIo, host: &str, req: &Request) -> Result<Response> {
     let mut head = format!(
-        "{} {} HTTP/1.1\r\nHost: {host}\r\nUser-Agent: Forge\r\nConnection: close\r\n",
+        "{} {} HTTP/1.1\r\nHost: {host}\r\nUser-Agent: Forge\r\n",
         req.method, req.path
     );
+    // Upgrades (WebSocket) bring their own `Connection` header.
+    if !req
+        .headers
+        .iter()
+        .any(|(k, _)| k.eq_ignore_ascii_case("connection"))
+    {
+        head.push_str("Connection: close\r\n");
+    }
     for (k, v) in &req.headers {
         head.push_str(&format!("{k}: {v}\r\n"));
     }
@@ -351,7 +366,7 @@ pub async fn send_on(mut io: BoxIo, host: &str, req: &Request) -> Result<Respons
                 .find(|(k, _): &&(String, String)| k.eq_ignore_ascii_case(name))
                 .map(|(_, v)| v.clone())
         };
-        let mode = if req.method == "HEAD" || status == 204 || status == 304 {
+        let mode = if req.method == "HEAD" || status == 101 || status == 204 || status == 304 {
             BodyMode::Length(0)
         } else if get("Transfer-Encoding")
             .is_some_and(|t| t.to_ascii_lowercase().contains("chunked"))
