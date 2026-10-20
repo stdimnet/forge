@@ -426,3 +426,20 @@ app/ui/            SolidJS UI
 - `forge.symfony-services` only applies to Symfony projects (`projectTypes = ["symfony"]`); in other
   projects `config/services*.yaml` is plain YAML.
 
+
+## Rust computes, TypeScript renders
+
+Logic, data models and parsers live in Rust crates; the TypeScript UI only renders and forwards
+events. Exception: per-keystroke editor work (CodeMirror tokenizers, decorations) stays in
+TypeScript because a round trip per token would be slower.
+
+- Desktop app: the UI calls Rust through Tauri IPC (`src/ipc/*`).
+- Browser mode (`pnpm dev`, screenshots, vitest): pure crates (no file system, processes,
+  network or tokio) are compiled to WebAssembly by `crates/forge-wasm` and loaded with
+  `forgeWasm()` / `callWasm()` from `app/ui/src/wasm`. Mocks call the same Rust functions
+  instead of re-implementing them. Each area adds a module in `crates/forge-wasm/src/<area>.rs`
+  with `#[wasm_bindgen]` functions that take and return JSON strings, mirroring the IPC command.
+- Rebuild the bundle after changing Rust code used by it: `pnpm --dir app/ui wasm` (needs the
+  `wasm32-unknown-unknown` target and `wasm-bindgen-cli` at the version pinned in
+  `crates/forge-wasm/Cargo.toml`). The generated `app/ui/src/wasm/pkg` is committed so a plain
+  `pnpm dev` works without the Rust toolchain.

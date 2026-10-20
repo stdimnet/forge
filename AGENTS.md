@@ -75,7 +75,11 @@ Use the matching skill in `.claude/skills/<name>/SKILL.md` before starting a tas
   `app/ui/src/theme/theme.css`, both dark and light, and icons from `lucide-solid`.
 
 ### Architecture
-- Keep `app/src-tauri` thin. Put logic into library crates with unit tests.
+- **Rust computes, TypeScript renders.** Logic, data models and parsers belong in Rust crates with
+  unit tests; the UI renders and forwards events. Only per-keystroke editor work (CodeMirror
+  tokenizers, decorations) stays in TypeScript. Keep `app/src-tauri` thin.
+- Browser mode reuses pure Rust crates through WebAssembly (`crates/forge-wasm`, `@/wasm`)
+  instead of duplicating logic in mocks.
 - Features plug in through contribution points: `registerToolWindow`, `registerCommand`,
   `registerSettingsPage`, `registerStatusItem`, `registerEditorExtension`,
   `registerSearchProvider`, `registerLanguage`, `registerKeymapActions`.

@@ -44,6 +44,11 @@ export const routesApi = {
 
 ## 3. Browser mock
 
+If the command is pure computation (no file system, processes or network), do not re-implement it
+in TypeScript: expose the same Rust function from `crates/forge-wasm/src/<area>.rs` with
+`#[wasm_bindgen]` (JSON string in, JSON string out), rebuild with `pnpm --dir app/ui wasm`, and let
+the mock call it via `callWasm(wasm.<fn>, args)` from `@/wasm`. Otherwise write a mock:
+
 `app/ui/src/mock/<area>Mock.ts`, imported from `app/ui/src/mock/index.ts`:
 
 ```ts
