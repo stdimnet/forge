@@ -27,5 +27,6 @@ import "./debug";
 import "./debug/runIntegration";
 import "./database";
 import "./scratches";
+import "./lua";
 import "./services";
 import "./remote";

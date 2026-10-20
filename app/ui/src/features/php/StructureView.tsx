@@ -1,4 +1,7 @@
-/** Structure tool window (Alt+7): members of the active PHP file's classes. */
+/**
+ * Structure tool window (Alt+7): members of the active PHP file's classes. Other language
+ * packs (LuaForge) contribute the structure of their files with `registerStructureProvider`.
+ */
 import { createEffect, createSignal, For, on, onCleanup, Show } from "solid-js";
 import { ArrowDownAZ, ChevronDown, ChevronRight, Layers2 } from "lucide-solid";
 import { activeTab } from "@/state/editor";
@@ -14,6 +17,22 @@ const [collapsed, setCollapsed] = createSignal<Set<string>>(new Set());
 
 export { structure };
 
+/** The structure of another language's files, mapped to PHP's node model. */
+export interface StructureProvider {
+  appliesTo: (path: string) => boolean;
+  load: (path: string, content: string) => Promise<FileStructure | null>;
+  /** Navigate to a node (defaults to the PHP editor tracking). */
+  reveal?: (path: string, node: StructureNode) => void;
+}
+
+const providers: StructureProvider[] = [];
+
+export function registerStructureProvider(provider: StructureProvider): void {
+  providers.push(provider);
+}
+
+const providerFor = (path: string) => providers.find((p) => p.appliesTo(path));
+
 /** Order children: alphabetically when toggled (PHPStorm keeps kinds grouped). */
 export function orderNodes(nodes: StructureNode[], alpha: boolean): StructureNode[] {
   if (!alpha) return nodes;
@@ -25,7 +44,8 @@ export function orderNodes(nodes: StructureNode[], alpha: boolean): StructureNod
 let timer: ReturnType<typeof setTimeout> | undefined;
 function refresh() {
   const tab = activeTab();
-  if (!tab || !tab.path.endsWith(".php")) {
+  const provider = tab && providerFor(tab.path);
+  if (!tab || (!provider && !tab.path.endsWith(".php"))) {
     setStructure(null);
     return;
   }
@@ -33,7 +53,7 @@ function refresh() {
   clearTimeout(timer);
   timer = setTimeout(async () => {
     try {
-      setStructure(await phpApi.fileStructure(path, content, showInherited()));
+      setStructure(provider ? await provider.load(path, content) : await phpApi.fileStructure(path, content, showInherited()));
     } catch {
       setStructure(null);
     }
@@ -72,6 +92,8 @@ function NodeRow(props: { node: StructureNode; depth: number; parent: string; fi
   const navigate = () => {
     setSelected(key());
     const path = props.node.path ?? props.file;
+    const custom = providerFor(path)?.reveal;
+    if (custom) return custom(path, props.node);
     void revealSymbol(path, props.node.path ? { line: props.node.line, name: props.node.name } : { offset: props.node.offset, line: props.node.line, name: props.node.name });
   };
   return (

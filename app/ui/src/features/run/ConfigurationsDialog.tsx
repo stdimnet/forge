@@ -297,13 +297,14 @@ function Field(props: { field: RunConfigField; cfg: RunConfiguration }) {
 
 function InterpreterRow(props: { cfg: RunConfiguration; type: RunConfigurationTypeDef }) {
   const projectDefault = () =>
-    props.type.interpreter === "php"
+    props.type.defaultInterpreter?.() ||
+    (props.type.interpreter === "php"
       ? getSetting<string>("php.interpreter", "php") || "php"
       : props.type.interpreter === "shell"
         ? "/bin/sh"
         : props.type.interpreter === "node"
           ? "node"
-          : (newConfiguration(props.type, "").interpreter ?? "");
+          : (newConfiguration(props.type, "").interpreter ?? ""));
   const custom = () => !!props.cfg.interpreter;
   const label = () => (props.type.interpreter === "php" ? "Interpreter" : props.type.interpreter === "shell" ? "Interpreter path" : "Interpreter");
   return (

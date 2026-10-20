@@ -9,12 +9,22 @@ import type { CommandLine, RunConfiguration, RunConfigurations, RunEvent, RunReq
 import { forgeWasm, type ForgeWasm } from "@/wasm";
 import { demoProjectName } from "./demoProject";
 import { isSymfonyDemo, symfonyDemoName } from "./demoSymfonyProject";
+import { isLuaDemo, luaDemoName } from "./demoLuaProject";
 import { scratchCommandLine, scratchRunSteps } from "./scratchesMock";
 
 const ROOT = `~/Projects/${demoProjectName}`;
-const projectRoot = () => `~/Projects/${isSymfonyDemo() ? symfonyDemoName : demoProjectName}`;
+const projectRoot = () => `~/Projects/${isSymfonyDemo() ? symfonyDemoName : isLuaDemo() ? luaDemoName : demoProjectName}`;
 
-let stored: RunConfigurations = {
+/** The Lua demo (`?project=lua`): the LÖVE game and its build script. */
+const LUA_CONFIGURATIONS: RunConfigurations = {
+  selected: "pixel-dungeon",
+  configurations: [
+    { name: "pixel-dungeon", type: "lua-script", storeAsProjectFile: true, interpreter: "love", options: { file: "." } },
+    { name: "build", type: "lua-script", options: { file: "tools/build.lua" } },
+  ],
+};
+
+let stored: RunConfigurations = isLuaDemo() ? LUA_CONFIGURATIONS : {
   selected: "UserTest",
   configurations: [
     {
@@ -71,6 +81,8 @@ export function mockCommandLine(cfg: RunConfiguration): CommandLine {
       return { program: "composer", args: ["run-script", o.script ?? "", "--ansi"], cwd };
     case "npm":
       return { program: o.packageManager || "npm", args: [o.command || "run", ...(o.command && o.command !== "run" ? [] : [o.script ?? ""])], cwd };
+    case "lua-script":
+      return { program: cfg.interpreter || "lua", args: [...split(cfg.interpreterOptions), o.file ?? "", ...split(cfg.arguments)].filter(Boolean), cwd };
     case "shell":
       return o.mode === "text"
         ? { program: cfg.interpreter || "/bin/sh", args: ["-c", o.scriptText ?? ""], cwd }
@@ -302,6 +314,8 @@ function stepsFor(cfg: RunConfiguration | undefined, cmd: CommandLine): Step[] {
       ];
     case "scratch":
       return scratchRunSteps(cfg);
+    case "lua-script":
+      return luaSteps(cfg);
     case "php-script":
       return [
         [150, "Generating invoices for 3 orders…\n"],
@@ -312,6 +326,25 @@ function stepsFor(cfg: RunConfiguration | undefined, cmd: CommandLine): Step[] {
     default:
       return [[100, "Done.\n"], [50, { code: 0 }]];
   }
+}
+
+/** Canned output of the Lua demo: the LÖVE game keeps running, scripts finish. */
+function luaSteps(cfg: RunConfiguration): Step[] {
+  if ((cfg.interpreter ?? "").endsWith("love"))
+    return [
+      [250, "Pixel Dungeon — LÖVE 11.5 (Mysterious Mysteries), LuaJIT 2.1.1720049189\n"],
+      [200, "Generated 48x32 dungeon (seed 1760951142, 7 rooms)\n"],
+      [120, "Ada spawned at (4, 3) with 20 HP\n"],
+      [900, "Picked up 15 gold at (9, 5)\n"],
+      [700, "Error: src/world.lua:39: attempt to index a nil value (local 'row')\nstack traceback:\n\tsrc/world.lua:39: in function 'isWalkable'\n\tmain.lua:30: in function 'update'\n\t[love \"callbacks.lua\"]:162: in function <[love \"callbacks.lua\"]:144>\n", "stderr"],
+    ];
+  return [
+    [120, "$ mkdir -p dist\n"],
+    [150, "$ zip -9 -r dist/pixel-dungeon.love main.lua conf.lua src lib assets\n"],
+    [200, "  adding: main.lua (deflated 58%)\n  adding: conf.lua (deflated 31%)\n  adding: src/player.lua (deflated 61%)\n  adding: src/world.lua (deflated 57%)\n  adding: lib/vector.lua (deflated 55%)\n"],
+    [100, "Built dist/pixel-dungeon.love\n"],
+    [50, { code: 0 }],
+  ];
 }
 
 registerMock("run_start", async ({ request }) => {

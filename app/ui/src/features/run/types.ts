@@ -43,6 +43,8 @@ export interface RunConfigurationTypeDef {
   fields: RunConfigField[];
   /** Interpreter row: which interpreter the type uses, if any. */
   interpreter?: "php" | "node" | "shell" | "custom";
+  /** The project default shown in the interpreter row (e.g. the `lua.interpreter` setting). */
+  defaultInterpreter?: () => string;
   /** Label of the arguments row; `false` hides it. */
   argumentsLabel?: string | false;
   debuggable?: boolean;

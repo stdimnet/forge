@@ -1,6 +1,6 @@
 /**
  * Language servers for many languages: Settings | Languages & Frameworks | Language
- * Servers (status, install, options), the Lua page, project-wide symbol search through
+ * Servers (status, install, options), project-wide symbol search through
  * every running server, and the Intelephense licence UI used by the PHP page.
  */
 import { render } from "solid-js/web";
@@ -8,7 +8,6 @@ import { Show } from "solid-js";
 import { registerEditorExtension } from "@/editor/extensions";
 import { registerSettingsPage } from "@/features/settingsPages";
 import { openSettings } from "@/features/settings/dialogState";
-import { SchemaPage } from "@/features/settings/SchemaPage";
 import { registerCommand } from "@/state/commands";
 import { InstallDialog } from "./InstallDialog";
 import { LanguageServersPage } from "./LanguageServersPage";
@@ -45,15 +44,6 @@ registerSettingsPage({
     "licence",
   ],
   component: LanguageServersPage,
-});
-
-registerSettingsPage({
-  id: "lang.lua",
-  title: "Lua",
-  group: "Languages & Frameworks",
-  order: 30,
-  keywords: ["lua", "love", "löve", "neovim", "luajit", "lua-language-server"],
-  component: () => <SchemaPage pageId="lang.lua" />,
 });
 
 registerCommand({

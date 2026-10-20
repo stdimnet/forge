@@ -14,14 +14,18 @@ import {
 import { trackedPaths } from "./gitMock";
 import { recentPrimaries } from "./projectMock";
 import { isSymfonyDemo, symfonyDemoFiles, symfonyDemoName } from "./demoSymfonyProject";
+import { isLuaDemo, luaDemoFiles, luaDemoName } from "./demoLuaProject";
 
 /** The in-memory project (demo files plus whatever the UI saved); read by other mocks. */
-// `?project=symfony` opens the Symfony demo project instead of the Laravel one.
+// `?project=symfony` opens the Symfony demo project instead of the Laravel one,
+// `?project=lua` the LÖVE game.
 export const mockFiles: Record<string, string> = isSymfonyDemo()
   ? { ...symfonyDemoFiles }
-  : { ...demoFiles, ...demoLaravelFiles, ...demoConfigFiles };
+  : isLuaDemo()
+    ? { ...luaDemoFiles }
+    : { ...demoFiles, ...demoLaravelFiles, ...demoConfigFiles };
 const files = mockFiles;
-const openName = isSymfonyDemo() ? symfonyDemoName : demoProjectName;
+const openName = isSymfonyDemo() ? symfonyDemoName : isLuaDemo() ? luaDemoName : demoProjectName;
 // The remote demo host serves the same project as `/var/www/shop`.
 setRemoteProjectFiles(Object.keys(files));
 const ignores = createIgnoreMatcher((dir) => files[dir ? `${dir}/.gitignore` : ".gitignore"]);

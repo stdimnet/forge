@@ -19,6 +19,8 @@ pub struct StructureNode {
     pub offset: usize,
     /// 0-based line.
     pub line: usize,
+    /// UTF-16 column of the name.
+    pub column: usize,
     #[serde(skip_serializing_if = "std::ops::Not::not")]
     pub deprecated: bool,
     #[serde(skip_serializing_if = "Vec::is_empty")]
@@ -58,6 +60,7 @@ impl Builder<'_> {
             detail,
             offset: d.pos.offset,
             line: d.pos.line,
+            column: d.pos.column,
             deprecated: d.doc.as_ref().is_some_and(|doc| doc.deprecated.is_some()),
             children: Vec::new(),
         }
@@ -142,6 +145,7 @@ pub fn file_structure(index: &ProjectIndex, path: &str) -> Option<FileStructure>
                     detail: format!(": {}", f.ty),
                     offset: pos.offset,
                     line: pos.line,
+                    column: pos.column,
                     deprecated: false,
                     children: Vec::new(),
                 }
@@ -167,6 +171,7 @@ pub fn file_structure(index: &ProjectIndex, path: &str) -> Option<FileStructure>
             },
             offset: class.pos.offset,
             line: class.pos.line,
+            column: class.pos.column,
             deprecated: false,
             children,
         });
@@ -178,6 +183,7 @@ pub fn file_structure(index: &ProjectIndex, path: &str) -> Option<FileStructure>
             detail: format!(" = {}", alias.ann.ty),
             offset: alias.pos.offset,
             line: alias.pos.line,
+            column: alias.pos.column,
             deprecated: false,
             children: Vec::new(),
         });
@@ -275,6 +281,7 @@ pub fn file_structure(index: &ProjectIndex, path: &str) -> Option<FileStructure>
                     detail: String::new(),
                     offset: d.pos.offset,
                     line: d.pos.line,
+                    column: d.pos.column,
                     deprecated: false,
                     children: vec![child],
                 },

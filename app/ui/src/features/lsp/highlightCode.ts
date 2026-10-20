@@ -1,6 +1,8 @@
-/** PHP syntax colors for code in documentation popups (Lezer, like the editor). */
+/** PHP and Lua syntax colors for code in documentation popups (Lezer, like the editor). */
 import { highlightCode, tagHighlighter, tags as t } from "@lezer/highlight";
 import { phpLanguage } from "@codemirror/lang-php";
+import { lua } from "@codemirror/legacy-modes/mode/lua";
+import { streamLanguage } from "@/editor/tokens";
 
 const tokenClasses = tagHighlighter([
   { tag: [t.keyword, t.modifier, t.controlKeyword, t.operatorKeyword, t.definitionKeyword], class: "tok-keyword" },
@@ -15,15 +17,27 @@ const tokenClasses = tagHighlighter([
 ]);
 
 let phpProgramParser: ReturnType<typeof phpLanguage.parser.configure> | undefined;
+let luaLanguage: ReturnType<typeof streamLanguage> | undefined;
 
-/** Append syntax-highlighted code (PHP; other languages as plain text) to `parent`. */
+function parse(code: string, lang: string) {
+  if (/^(php|)$/i.test(lang)) {
+    phpProgramParser ??= phpLanguage.parser.configure({ top: "Program" });
+    return phpProgramParser.parse(code);
+  }
+  if (/^lua$/i.test(lang)) {
+    luaLanguage ??= streamLanguage(lua);
+    return luaLanguage.parser.parse(code);
+  }
+  return null;
+}
+
+/** Append syntax-highlighted code (PHP or Lua; other languages as plain text) to `parent`. */
 export function highlightInto(parent: HTMLElement, code: string, lang = "php"): void {
-  if (!/^(php|)$/i.test(lang)) {
+  const tree = parse(code, lang);
+  if (!tree) {
     parent.append(document.createTextNode(code));
     return;
   }
-  phpProgramParser ??= phpLanguage.parser.configure({ top: "Program" });
-  const tree = phpProgramParser.parse(code);
   highlightCode(
     code,
     tree,

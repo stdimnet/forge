@@ -182,6 +182,7 @@ export function lua_hover(request_json: string): string;
 
 /**
  * Replace the indexed files: `{ files: { path: text }, requirePaths?, name? }` -> stats.
+ * Files other than `.lua` are ignored, except `.luarc.json`.
  */
 export function lua_index_files(request_json: string): string;
 

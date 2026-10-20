@@ -13,6 +13,9 @@ const letters: Record<SymbolKind, string> = {
   property: "f",
   constant: "c",
   function: "λ",
+  module: "M",
+  alias: "T",
+  variable: "v",
 };
 
 /** PHPStorm-style symbol badge: a letter in a circle, plus the visibility marker. */

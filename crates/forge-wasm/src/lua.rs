@@ -5,7 +5,7 @@
 use std::cell::RefCell;
 use std::collections::BTreeMap;
 
-use luaforge_lang_lua::{hover, run, structure, ProjectIndex, SearchKind};
+use luaforge_lang_lua::{hover, require, run, structure, ProjectIndex, SearchKind};
 use serde::Deserialize;
 use serde_json::json;
 use wasm_bindgen::prelude::*;
@@ -49,6 +49,7 @@ struct SearchRequest {
 }
 
 /// Replace the indexed files: `{ files: { path: text }, requirePaths?, name? }` -> stats.
+/// Files other than `.lua` are ignored, except `.luarc.json`.
 #[wasm_bindgen]
 pub fn lua_index_files(request_json: &str) -> String {
     let req: IndexRequest = match serde_json::from_str(request_json) {
@@ -58,9 +59,14 @@ pub fn lua_index_files(request_json: &str) -> String {
     INDEX.with(|i| {
         let mut index = i.borrow_mut();
         index.clear();
-        index.set_require_paths(&req.require_paths);
+        // Like the desktop app, `.luarc.json`'s runtime.path adds module search paths.
+        let mut paths = req.require_paths.clone();
+        if let Some(luarc) = req.files.get(".luarc.json") {
+            paths.extend(require::luarc_paths(luarc));
+        }
+        index.set_require_paths(&paths);
         index.set_name(&req.name);
-        for (path, text) in &req.files {
+        for (path, text) in req.files.iter().filter(|(p, _)| p.ends_with(".lua")) {
             index.set_file(path, text);
         }
         to_json(&index.stats())

@@ -33,8 +33,8 @@ export async function hoverDocOf(markdown: string | null | undefined): Promise<H
   return markdownApi.hover(markdown).catch(() => plain);
 }
 
-/** Build the hover popup DOM. Either part may be missing. */
-export function buildHoverDom(doc: HoverDoc | null, diags: EditorDiagnostic[] = []): HTMLElement {
+/** Build the hover popup DOM. Either part may be missing; `lang` colors the signature. */
+export function buildHoverDom(doc: HoverDoc | null, diags: EditorDiagnostic[] = [], lang = "php"): HTMLElement {
   const root = h("div", "lsp-hover");
   if (diags.length) root.append(problemsBlock(diags));
   if (!doc) {
@@ -53,7 +53,7 @@ export function buildHoverDom(doc: HoverDoc | null, diags: EditorDiagnostic[] = 
   if (doc.signature) {
     const sig = h("pre", "lsp-hover-signature");
     if (doc.deprecated !== undefined) sig.classList.add("deprecated");
-    highlightInto(sig, doc.signature, "php");
+    highlightInto(sig, doc.signature, lang);
     docEl.append(sig);
   }
   if (doc.body.length) {

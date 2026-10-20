@@ -38,6 +38,9 @@
 .php-badge-constant { background: var(--syn-type); }
 .php-badge-function { background: var(--syn-function); }
 .php-badge-namespace { background: var(--fg-faint); }
+.php-badge-module { background: var(--syn-keyword); }
+.php-badge-alias { background: var(--syn-type); }
+.php-badge-variable { background: var(--syn-variable); }
 .php-badge.abstract.php-badge-method { color: var(--danger); }
 .php-badge.abstract.php-badge-interface { color: var(--success); }
 .php-badge-static {
