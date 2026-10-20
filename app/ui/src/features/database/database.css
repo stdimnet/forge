@@ -665,38 +665,12 @@
 }
 
 /* ---------- Data Sources and Drivers dialog ---------- */
-.dsd-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 120;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: color-mix(in srgb, var(--bg-app) 55%, transparent);
-}
+/* Data Sources dialog content; the frame is shell/window/WindowFrame. */
 .dsd-dialog {
-  width: 900px;
-  height: 620px;
-  max-width: calc(100vw - 32px);
-  max-height: calc(100vh - 32px);
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  background: var(--bg-panel);
-  border: 1px solid var(--border-strong);
-  border-radius: 10px;
-  box-shadow: var(--shadow);
-  overflow: hidden;
-}
-.dsd-titlebar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: 38px;
-  padding: 0 6px 0 14px;
-  border-bottom: 1px solid var(--border);
-  background: var(--bg-toolbar);
-  font-weight: 600;
-  color: var(--fg-strong);
 }
 .dsd-body {
   flex: 1;

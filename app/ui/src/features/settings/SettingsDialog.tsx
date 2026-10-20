@@ -2,7 +2,7 @@
  * The Settings dialog (Ctrl+Alt+S): searchable page tree on the left, the selected page on
  * the right, OK / Cancel / Apply at the bottom, like PHPStorm.
  */
-import { createEffect, createMemo, createSignal, For, on, Show } from "solid-js";
+import { createEffect, createMemo, createSignal, For, on, onCleanup, onMount, Show } from "solid-js";
 import { Dynamic } from "solid-js/web";
 import { ChevronDown, ChevronRight, CircleHelp, FolderGit2, Search, X } from "lucide-solid";
 import { settingsPages } from "@/features/settingsPages";
@@ -11,6 +11,8 @@ import {
   applyChanges,
   applying,
   closeSettings,
+  dialogClosed,
+  dialogOpened,
   error,
   hasChanges,
   isOpen,
@@ -20,6 +22,7 @@ import {
   selected,
   setQuery,
   setSelected,
+  type SettingsDialogProps,
 } from "./dialogState";
 import { dialogSearch, Hl, nodeMatches } from "./dialogSearch";
 import { nodesById, type TreeNode } from "./search";
@@ -89,7 +92,10 @@ function GroupPage(props: { node: TreeNode }) {
   );
 }
 
-export function SettingsDialog() {
+/** Content of the Settings dialog; the window frame (title bar) comes from `WindowFrame`. */
+export function SettingsDialog(props: { props: SettingsDialogProps }) {
+  dialogOpened(props.props ?? {});
+  onCleanup(dialogClosed);
   // Tree, filtering and matches come from Rust (`settings_search`).
   const tree = () => dialogSearch().response.tree;
   const visibleTree = () => dialogSearch().response.visible;
@@ -131,9 +137,7 @@ export function SettingsDialog() {
   });
 
   let searchEl!: HTMLInputElement;
-  createEffect(() => {
-    if (isOpen()) queueMicrotask(() => searchEl?.focus());
-  });
+  onMount(() => queueMicrotask(() => searchEl?.focus()));
 
   const ok = async () => {
     if (await applyChanges()) closeSettings();
@@ -148,104 +152,94 @@ export function SettingsDialog() {
   };
 
   return (
-    <Show when={isOpen()}>
-      <div class="set-overlay" onMouseDown={(e) => e.target === e.currentTarget && closeSettings()}>
-        <div class="set-dialog" role="dialog" aria-label="Settings" onKeyDown={onKeyDown}>
-          <header class="set-titlebar">
-            <span>Settings</span>
-            <button class="icon-btn" title="Close" onClick={closeSettings}>
-              <X size={15} />
-            </button>
-          </header>
-          <div class="set-body">
-            <aside class="set-sidebar">
-              <div class="set-search">
-                <Search size={14} class="muted" />
-                <input
-                  ref={searchEl}
-                  placeholder="Search settings"
-                  value={query()}
-                  spellcheck={false}
-                  onInput={(e) => setQuery(e.currentTarget.value)}
-                />
-                <Show when={searching()}>
-                  <button class="set-search-clear" title="Clear" onClick={() => setQuery("")}>
-                    <X size={13} />
-                  </button>
-                </Show>
-              </div>
-              <div class="set-tree">
-                <For each={visibleTree()} fallback={<div class="set-empty">Nothing found</div>}>
-                  {(node) => <TreeRow node={node} depth={0} expanded={expanded} toggle={toggle} />}
-                </For>
-              </div>
-            </aside>
-            <main class="set-main">
-              <div class="set-header">
-                <div class="set-breadcrumb">
-                  <For each={selectedPath()}>
-                    {(n, i) => (
-                      <>
-                        <Show when={i() > 0}>
-                          <ChevronRight size={14} class="set-breadcrumb-sep" />
-                        </Show>
-                        <span
-                          classList={{ last: i() === selectedPath().length - 1 }}
-                          onClick={() => setSelected(n.id)}
-                        >
-                          {n.title}
-                        </span>
-                      </>
-                    )}
-                  </For>
-                  <Show when={projectScoped()}>
-                    <span class="set-scope" title="Stored in .forge/settings.toml of the open project">
-                      <FolderGit2 size={13} /> For current project
-                    </span>
-                  </Show>
-                </div>
-                <Show when={currentPageId() && pageModified(currentPageId()!)}>
-                  <button class="set-reset" onClick={() => resetPage(currentPageId()!)}>
-                    Reset
-                  </button>
-                </Show>
-              </div>
-              <div class="set-content">
-                <Show when={current()}>
-                  {(node) => (
-                    <Show when={node().page && pageById(node().id)} fallback={<GroupPage node={node()} />}>
-                      {(page) => <Dynamic component={page().component} />}
-                    </Show>
-                  )}
-                </Show>
-              </div>
-            </main>
-          </div>
-          <footer class="set-footer">
-            <button class="icon-btn" title="Help">
-              <CircleHelp size={16} />
-            </button>
-            <Show when={error()}>
-              <span class="set-error">{error()}</span>
+    <div class="set-dialog" onKeyDown={onKeyDown}>
+      <div class="set-body">
+        <aside class="set-sidebar">
+          <div class="set-search">
+            <Search size={14} class="muted" />
+            <input
+              ref={searchEl}
+              placeholder="Search settings"
+              value={query()}
+              spellcheck={false}
+              onInput={(e) => setQuery(e.currentTarget.value)}
+            />
+            <Show when={searching()}>
+              <button class="set-search-clear" title="Clear" onClick={() => setQuery("")}>
+                <X size={13} />
+              </button>
             </Show>
-            <div class="set-footer-buttons">
-              <button class="btn-primary set-btn" disabled={applying()} onClick={ok}>
-                OK
-              </button>
-              <button class="btn-secondary set-btn" onClick={closeSettings}>
-                Cancel
-              </button>
-              <button
-                class="btn-secondary set-btn"
-                disabled={!hasChanges() || applying()}
-                onClick={() => void applyChanges()}
-              >
-                Apply
-              </button>
+          </div>
+          <div class="set-tree">
+            <For each={visibleTree()} fallback={<div class="set-empty">Nothing found</div>}>
+              {(node) => <TreeRow node={node} depth={0} expanded={expanded} toggle={toggle} />}
+            </For>
+          </div>
+        </aside>
+        <main class="set-main">
+          <div class="set-header">
+            <div class="set-breadcrumb">
+              <For each={selectedPath()}>
+                {(n, i) => (
+                  <>
+                    <Show when={i() > 0}>
+                      <ChevronRight size={14} class="set-breadcrumb-sep" />
+                    </Show>
+                    <span
+                      classList={{ last: i() === selectedPath().length - 1 }}
+                      onClick={() => setSelected(n.id)}
+                    >
+                      {n.title}
+                    </span>
+                  </>
+                )}
+              </For>
+              <Show when={projectScoped()}>
+                <span class="set-scope" title="Stored in .forge/settings.toml of the open project">
+                  <FolderGit2 size={13} /> For current project
+                </span>
+              </Show>
             </div>
-          </footer>
-        </div>
+            <Show when={currentPageId() && pageModified(currentPageId()!)}>
+              <button class="set-reset" onClick={() => resetPage(currentPageId()!)}>
+                Reset
+              </button>
+            </Show>
+          </div>
+          <div class="set-content">
+            <Show when={current()}>
+              {(node) => (
+                <Show when={node().page && pageById(node().id)} fallback={<GroupPage node={node()} />}>
+                  {(page) => <Dynamic component={page().component} />}
+                </Show>
+              )}
+            </Show>
+          </div>
+        </main>
       </div>
-    </Show>
+      <footer class="set-footer">
+        <button class="icon-btn" title="Help">
+          <CircleHelp size={16} />
+        </button>
+        <Show when={error()}>
+          <span class="set-error">{error()}</span>
+        </Show>
+        <div class="set-footer-buttons">
+          <button class="btn-primary set-btn" disabled={applying()} onClick={ok}>
+            OK
+          </button>
+          <button class="btn-secondary set-btn" onClick={closeSettings}>
+            Cancel
+          </button>
+          <button
+            class="btn-secondary set-btn"
+            disabled={!hasChanges() || applying()}
+            onClick={() => void applyChanges()}
+          >
+            Apply
+          </button>
+        </div>
+      </footer>
+    </div>
   );
 }

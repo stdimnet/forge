@@ -386,6 +386,11 @@ export function web_npm_gutter(request_json: string): string;
  */
 export function web_npm_packages(request_json: string): string;
 
+/**
+ * `{ setting, os, desktop }` → `WindowChrome`.
+ */
+export function window_chrome(request_json: string): string;
+
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
 export interface InitOutput {
@@ -467,6 +472,7 @@ export interface InitOutput {
     readonly web_gutter: (a: number, b: number, c: number) => void;
     readonly web_npm_gutter: (a: number, b: number, c: number) => void;
     readonly web_npm_packages: (a: number, b: number, c: number) => void;
+    readonly window_chrome: (a: number, b: number, c: number) => void;
     readonly __wbindgen_add_to_stack_pointer: (a: number) => number;
     readonly __wbindgen_export: (a: number, b: number) => number;
     readonly __wbindgen_export2: (a: number, b: number, c: number, d: number) => number;

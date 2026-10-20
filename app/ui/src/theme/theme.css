@@ -94,6 +94,26 @@
   --ansi-bright-white: #f2f2f5;
 
   --shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+
+  /* Window controls drawn by Forge (title bars), styled after the platform */
+  --wc-fg: #c4c4cc;
+  --wc-hover: rgba(255, 255, 255, 0.08);
+  --wc-pressed: rgba(255, 255, 255, 0.05);
+  --wc-close-hover: #c42b1c;
+  --wc-close-pressed: #a3261a;
+  --wc-close-fg: #ffffff;
+  --wc-round-bg: rgba(255, 255, 255, 0.1);
+  --wc-round-hover: rgba(255, 255, 255, 0.16);
+  --wc-round-active: rgba(255, 255, 255, 0.28);
+  --wc-breeze-hover: #c4c4cc;
+  --wc-breeze-hover-fg: #1a1a1f;
+  --wc-breeze-close: #da4453;
+  --wc-mac-close: #ff5f57;
+  --wc-mac-minimize: #febc2e;
+  --wc-mac-maximize: #28c840;
+  --wc-mac-border: rgba(0, 0, 0, 0.2);
+  --wc-mac-glyph: rgba(0, 0, 0, 0.6);
+  --wc-mac-disabled: #45454d;
   color-scheme: dark;
 }
 
@@ -179,6 +199,25 @@
   --ansi-bright-white: #3a3c42;
 
   --shadow: 0 8px 24px rgba(20, 22, 30, 0.14);
+
+  --wc-fg: #3a3c42;
+  --wc-hover: rgba(0, 0, 0, 0.06);
+  --wc-pressed: rgba(0, 0, 0, 0.04);
+  --wc-close-hover: #c42b1c;
+  --wc-close-pressed: #c8473b;
+  --wc-close-fg: #ffffff;
+  --wc-round-bg: rgba(0, 0, 0, 0.07);
+  --wc-round-hover: rgba(0, 0, 0, 0.11);
+  --wc-round-active: rgba(0, 0, 0, 0.2);
+  --wc-breeze-hover: #3a3c42;
+  --wc-breeze-hover-fg: #ffffff;
+  --wc-breeze-close: #da4453;
+  --wc-mac-close: #ff5f57;
+  --wc-mac-minimize: #febc2e;
+  --wc-mac-maximize: #28c840;
+  --wc-mac-border: rgba(0, 0, 0, 0.14);
+  --wc-mac-glyph: rgba(0, 0, 0, 0.55);
+  --wc-mac-disabled: #d3d4d9;
   color-scheme: light;
 }
 

@@ -4,7 +4,7 @@
  */
 import { createMemo, createSignal, For, Show } from "solid-js";
 import { createStore, produce } from "solid-js/store";
-import { CircleCheck, CircleX, Copy, Database, LoaderCircle, Minus, Plus, X } from "lucide-solid";
+import { CircleCheck, CircleX, Copy, Database, LoaderCircle, Minus, Plus } from "lucide-solid";
 import {
   dbApi,
   defaultOptions,
@@ -18,7 +18,8 @@ import {
 import { isTauri } from "@/ipc";
 import { showBalloon } from "@/keymap";
 import { ContextMenu, type MenuItem } from "./ContextMenu";
-import { dialog, refresh, setDialog, sources, states } from "./store";
+import { notifyDialogOpener } from "@/shell/window/dialogs";
+import { closeDataSources, DATA_SOURCES_DIALOG, sources, type DataSourcesSaved, type DialogRequest } from "./store";
 
 interface Draft {
   key: string;
@@ -76,15 +77,9 @@ function Field(props: { label: string; children: unknown; wide?: boolean }) {
   );
 }
 
-export function DataSourceDialog() {
-  return (
-    <Show when={dialog()}>
-      {(req) => <DialogBody select={req().select} newDriver={req().newDriver} />}
-    </Show>
-  );
-}
-
-function DialogBody(props: { select?: string; newDriver?: Driver }) {
+/** Content of the Data Sources and Drivers dialog (the frame comes from `WindowFrame`). */
+export function DataSourceDialog(p: { props: DialogRequest }) {
+  const props = p.props ?? {};
   let seq = 0;
   const initial: Draft[] = sources().map((s) => ({ key: s.id, source: fromInfo(s), hadPassword: s.hasPassword, dirty: false, isNew: false }));
   const [drafts, setDrafts] = createStore<Draft[]>(initial);
@@ -154,14 +149,17 @@ function DialogBody(props: { select?: string; newDriver?: Driver }) {
     try {
       for (const id of deleted()) await dbApi.remove(id);
       setDeleted([]);
+      const ids: string[] = [];
       for (let i = 0; i < drafts.length; i++) {
         const d = drafts[i];
         if (!d.dirty) continue;
         const saved = await dbApi.save(d.source, d.password);
         setDrafts(i, { key: saved.id, source: fromInfo(saved), hadPassword: saved.hasPassword, dirty: false, isNew: false, password: undefined });
         if (selected() === d.key) setSelected(saved.id);
-        if (states[saved.id]) void refresh(saved.id);
+        ids.push(saved.id);
       }
+      // The opening window reloads the list and reconnects the saved sources it has open.
+      notifyDialogOpener(DATA_SOURCES_DIALOG, { saved: ids } satisfies DataSourcesSaved);
       return true;
     } catch (e) {
       showBalloon("Cannot save data source", e instanceof Error ? e.message : String(e));
@@ -171,7 +169,7 @@ function DialogBody(props: { select?: string; newDriver?: Driver }) {
     }
   };
 
-  const close = () => setDialog(null);
+  const close = () => closeDataSources();
   const dirty = () => drafts.some((d) => d.dirty) || deleted().length > 0;
 
   const addMenu = (e: MouseEvent) => {
@@ -199,293 +197,283 @@ function DialogBody(props: { select?: string; newDriver?: Driver }) {
   );
 
   return (
-    <div class="dsd-overlay" onMouseDown={(e) => e.target === e.currentTarget && close()}>
-      <div
-        class="dsd-dialog"
-        role="dialog"
-        aria-label="Data Sources and Drivers"
-        onKeyDown={(e) => {
-          if (e.key === "Escape" && !menu()) {
-            e.stopPropagation();
-            close();
-          }
-        }}
-      >
-        <div class="dsd-titlebar">
-          <span>Data Sources and Drivers</span>
-          <button class="icon-btn" title="Close" onClick={close}>
-            <X size={15} />
-          </button>
-        </div>
-        <div class="dsd-body">
-          <div class="dsd-sidebar">
-            <div class="dsd-sidebar-tools">
-              <button class="icon-btn" title="Add" onClick={addMenu}>
-                <Plus size={15} />
-              </button>
-              <button class="icon-btn" title="Remove" disabled={!cur()} onClick={remove}>
-                <Minus size={15} />
-              </button>
-              <button class="icon-btn" title="Duplicate" disabled={!cur()} onClick={() => cur() && addNew(cur()!.source.driver, cur()!.source)}>
-                <Copy size={14} />
-              </button>
-            </div>
-            <div class="dsd-list">
-              <div class="dsd-group">Project Data Sources</div>
-              <For each={group("project")} fallback={<div class="dsd-none muted">None</div>}>
-                {(d) => <ListItem d={d} />}
-              </For>
-              <div class="dsd-group">Global Data Sources</div>
-              <For each={group("global")} fallback={<div class="dsd-none muted">None</div>}>
-                {(d) => <ListItem d={d} />}
-              </For>
-            </div>
+    <div
+      class="dsd-dialog"
+      onKeyDown={(e) => {
+        if (e.key === "Escape" && !menu()) {
+          e.stopPropagation();
+          close();
+        }
+      }}
+    >
+      <div class="dsd-body">
+        <div class="dsd-sidebar">
+          <div class="dsd-sidebar-tools">
+            <button class="icon-btn" title="Add" onClick={addMenu}>
+              <Plus size={15} />
+            </button>
+            <button class="icon-btn" title="Remove" disabled={!cur()} onClick={remove}>
+              <Minus size={15} />
+            </button>
+            <button class="icon-btn" title="Duplicate" disabled={!cur()} onClick={() => cur() && addNew(cur()!.source.driver, cur()!.source)}>
+              <Copy size={14} />
+            </button>
           </div>
-          <div class="dsd-main">
-            <Show
-              when={cur()}
-              fallback={
-                <div class="dsd-placeholder muted">
-                  <Database size={28} />
-                  <div>Select a data source or click + to add one</div>
+          <div class="dsd-list">
+            <div class="dsd-group">Project Data Sources</div>
+            <For each={group("project")} fallback={<div class="dsd-none muted">None</div>}>
+              {(d) => <ListItem d={d} />}
+            </For>
+            <div class="dsd-group">Global Data Sources</div>
+            <For each={group("global")} fallback={<div class="dsd-none muted">None</div>}>
+              {(d) => <ListItem d={d} />}
+            </For>
+          </div>
+        </div>
+        <div class="dsd-main">
+          <Show
+            when={cur()}
+            fallback={
+              <div class="dsd-placeholder muted">
+                <Database size={28} />
+                <div>Select a data source or click + to add one</div>
+              </div>
+            }
+          >
+            {(d) => (
+              <>
+                <div class="dsd-head">
+                  <Field label="Name" wide>
+                    <input class="dsd-input" value={d().source.name} onInput={(e) => {
+                      const i = index();
+                      setDrafts(i, produce((x) => { x.source.name = e.currentTarget.value; x.dirty = true; }));
+                    }} />
+                  </Field>
+                  <Field label="Comment" wide>
+                    <input class="dsd-input" value={d().source.comment} onInput={(e) => update((s) => (s.comment = e.currentTarget.value))} />
+                  </Field>
                 </div>
-              }
-            >
-              {(d) => (
-                <>
-                  <div class="dsd-head">
-                    <Field label="Name" wide>
-                      <input class="dsd-input" value={d().source.name} onInput={(e) => {
-                        const i = index();
-                        setDrafts(i, produce((x) => { x.source.name = e.currentTarget.value; x.dirty = true; }));
-                      }} />
-                    </Field>
-                    <Field label="Comment" wide>
-                      <input class="dsd-input" value={d().source.comment} onInput={(e) => update((s) => (s.comment = e.currentTarget.value))} />
-                    </Field>
-                  </div>
-                  <div class="dsd-tabs" role="tablist">
-                    <button class="dsd-tab" classList={{ active: tab() === "general" }} onClick={() => setTab("general")}>
-                      General
-                    </button>
-                    <button class="dsd-tab" classList={{ active: tab() === "options" }} onClick={() => setTab("options")}>
-                      Options
-                    </button>
-                  </div>
-                  <div class="dsd-page">
-                    <Show when={tab() === "general"}>
-                      <Field label="Driver">
-                        <select
-                          class="dsd-input dsd-narrow"
-                          value={d().source.driver}
-                          onChange={(e) =>
-                            update((s) => {
-                              const driver = e.currentTarget.value as Driver;
-                              if (s.port == null || s.port === DEFAULT_PORTS[s.driver]) s.port = DEFAULT_PORTS[driver] ?? null;
-                              s.driver = driver;
-                              if (driver === "sqlite" && !s.file) s.file = "database/database.sqlite";
-                            })
-                          }
-                        >
-                          <For each={DRIVERS}>{(dr) => <option value={dr}>{DRIVER_LABELS[dr]}</option>}</For>
-                        </select>
-                      </Field>
-                      <Show
-                        when={d().source.driver !== "sqlite"}
-                        fallback={
-                          <Field label="File">
-                            <div class="dsd-row">
-                              <input class="dsd-input" value={d().source.file} spellcheck={false} onInput={(e) => update((s) => (s.file = e.currentTarget.value))} />
-                              <Show when={isTauri()}>
-                                <button class="btn-secondary" onClick={() => void browseFile()}>
-                                  …
-                                </button>
-                              </Show>
-                            </div>
-                          </Field>
+                <div class="dsd-tabs" role="tablist">
+                  <button class="dsd-tab" classList={{ active: tab() === "general" }} onClick={() => setTab("general")}>
+                    General
+                  </button>
+                  <button class="dsd-tab" classList={{ active: tab() === "options" }} onClick={() => setTab("options")}>
+                    Options
+                  </button>
+                </div>
+                <div class="dsd-page">
+                  <Show when={tab() === "general"}>
+                    <Field label="Driver">
+                      <select
+                        class="dsd-input dsd-narrow"
+                        value={d().source.driver}
+                        onChange={(e) =>
+                          update((s) => {
+                            const driver = e.currentTarget.value as Driver;
+                            if (s.port == null || s.port === DEFAULT_PORTS[s.driver]) s.port = DEFAULT_PORTS[driver] ?? null;
+                            s.driver = driver;
+                            if (driver === "sqlite" && !s.file) s.file = "database/database.sqlite";
+                          })
                         }
                       >
-                        <div class="dsd-row-fields">
-                          <Field label="Host">
-                            <input class="dsd-input" value={d().source.host} spellcheck={false} onInput={(e) => update((s) => (s.host = e.currentTarget.value))} />
-                          </Field>
-                          <Field label="Port">
-                            <input
-                              class="dsd-input dsd-port"
-                              value={d().source.port ?? ""}
-                              inputMode="numeric"
-                              onInput={(e) => update((s) => (s.port = e.currentTarget.value ? Number(e.currentTarget.value) || null : null))}
-                            />
-                          </Field>
-                        </div>
-                        <Field label="Authentication">
-                          <select class="dsd-input dsd-narrow" value="password" disabled>
-                            <option value="password">User &amp; Password</option>
-                          </select>
-                        </Field>
-                        <Field label="User">
-                          <input class="dsd-input" value={d().source.user} spellcheck={false} onInput={(e) => update((s) => (s.user = e.currentTarget.value))} />
-                        </Field>
-                        <div class="dsd-row-fields">
-                          <Field label="Password">
-                            <input
-                              class="dsd-input"
-                              type="password"
-                              placeholder={d().hadPassword && d().password === undefined ? "<hidden>" : ""}
-                              value={d().password ?? ""}
-                              onInput={(e) => setPassword(e.currentTarget.value)}
-                            />
-                          </Field>
-                          <Field label="Save">
-                            <select
-                              class="dsd-input dsd-save"
-                              value={d().source.options.savePassword ? "forever" : "never"}
-                              onChange={(e) => update((s) => (s.options.savePassword = e.currentTarget.value === "forever"))}
-                            >
-                              <option value="forever">Forever</option>
-                              <option value="never">Never</option>
-                            </select>
-                          </Field>
-                        </div>
-                        <Field label="Database">
-                          <input class="dsd-input" value={d().source.database} spellcheck={false} onInput={(e) => update((s) => (s.database = e.currentTarget.value))} />
-                        </Field>
-                      </Show>
-                      <Field label="URL">
-                        <input class="dsd-input dsd-url" value={connectionUrl(d().source)} readOnly />
-                      </Field>
-                      <div class="dsd-hint muted">Passwords are stored in the system keychain, never in project files.</div>
-                      <div class="dsd-test">
-                        <button class="dsd-test-link" disabled={test() === "running"} onClick={() => void runTest()}>
-                          Test Connection
-                        </button>
-                        <Show when={test()}>
-                          {(t) => (
-                            <Show
-                              when={t() !== "running"}
-                              fallback={
-                                <span class="dsd-test-status muted">
-                                  <LoaderCircle size={14} class="db-spin" /> Connecting…
-                                </span>
-                              }
-                            >
-                              {(() => {
-                                const r = t() as TestResult;
-                                return r.ok ? (
-                                  <span class="dsd-test-status ok">
-                                    <CircleCheck size={15} />
-                                    <span>
-                                      <b>Succeeded</b>
-                                      <span class="muted">
-                                        {" "}
-                                        · {r.driver} {r.serverVersion} · {r.latencyMs} ms
-                                      </span>
-                                    </span>
-                                  </span>
-                                ) : (
-                                  <span class="dsd-test-status error">
-                                    <CircleX size={15} />
-                                    <span>
-                                      <b>Failed</b> <span class="dsd-test-error">{r.error}</span>
-                                    </span>
-                                  </span>
-                                );
-                              })()}
+                        <For each={DRIVERS}>{(dr) => <option value={dr}>{DRIVER_LABELS[dr]}</option>}</For>
+                      </select>
+                    </Field>
+                    <Show
+                      when={d().source.driver !== "sqlite"}
+                      fallback={
+                        <Field label="File">
+                          <div class="dsd-row">
+                            <input class="dsd-input" value={d().source.file} spellcheck={false} onInput={(e) => update((s) => (s.file = e.currentTarget.value))} />
+                            <Show when={isTauri()}>
+                              <button class="btn-secondary" onClick={() => void browseFile()}>
+                                …
+                              </button>
                             </Show>
-                          )}
-                        </Show>
+                          </div>
+                        </Field>
+                      }
+                    >
+                      <div class="dsd-row-fields">
+                        <Field label="Host">
+                          <input class="dsd-input" value={d().source.host} spellcheck={false} onInput={(e) => update((s) => (s.host = e.currentTarget.value))} />
+                        </Field>
+                        <Field label="Port">
+                          <input
+                            class="dsd-input dsd-port"
+                            value={d().source.port ?? ""}
+                            inputMode="numeric"
+                            onInput={(e) => update((s) => (s.port = e.currentTarget.value ? Number(e.currentTarget.value) || null : null))}
+                          />
+                        </Field>
                       </div>
-                    </Show>
-                    <Show when={tab() === "options"}>
-                      <div class="dsd-section">Connection</div>
-                      <label class="dsd-check">
-                        <input type="checkbox" checked={d().source.options.readOnly} onChange={(e) => update((s) => (s.options.readOnly = e.currentTarget.checked))} />
-                        Read-only
-                      </label>
-                      <Field label="Transaction control">
-                        <select
-                          class="dsd-input dsd-narrow"
-                          value={d().source.options.autoCommit ? "auto" : "manual"}
-                          onChange={(e) => update((s) => (s.options.autoCommit = e.currentTarget.value === "auto"))}
-                        >
-                          <option value="auto">Auto</option>
-                          <option value="manual">Manual</option>
+                      <Field label="Authentication">
+                        <select class="dsd-input dsd-narrow" value="password" disabled>
+                          <option value="password">User &amp; Password</option>
                         </select>
                       </Field>
-                      <Show when={d().source.driver !== "sqlite"}>
-                        <Field label="SSL mode">
-                          <select class="dsd-input dsd-narrow" value={d().source.options.sslMode} onChange={(e) => update((s) => (s.options.sslMode = e.currentTarget.value as DataSource["options"]["sslMode"]))}>
-                            <option value="disable">Disable</option>
-                            <option value="prefer">Prefer</option>
-                            <option value="require">Require</option>
+                      <Field label="User">
+                        <input class="dsd-input" value={d().source.user} spellcheck={false} onInput={(e) => update((s) => (s.user = e.currentTarget.value))} />
+                      </Field>
+                      <div class="dsd-row-fields">
+                        <Field label="Password">
+                          <input
+                            class="dsd-input"
+                            type="password"
+                            placeholder={d().hadPassword && d().password === undefined ? "<hidden>" : ""}
+                            value={d().password ?? ""}
+                            onInput={(e) => setPassword(e.currentTarget.value)}
+                          />
+                        </Field>
+                        <Field label="Save">
+                          <select
+                            class="dsd-input dsd-save"
+                            value={d().source.options.savePassword ? "forever" : "never"}
+                            onChange={(e) => update((s) => (s.options.savePassword = e.currentTarget.value === "forever"))}
+                          >
+                            <option value="forever">Forever</option>
+                            <option value="never">Never</option>
                           </select>
                         </Field>
-                      </Show>
-                      <Field label="Connect timeout (s)">
-                        <input
-                          class="dsd-input dsd-port"
-                          value={d().source.options.connectTimeoutSecs}
-                          onInput={(e) => update((s) => (s.options.connectTimeoutSecs = Math.max(1, Number(e.currentTarget.value) || 10)))}
-                        />
+                      </div>
+                      <Field label="Database">
+                        <input class="dsd-input" value={d().source.database} spellcheck={false} onInput={(e) => update((s) => (s.database = e.currentTarget.value))} />
                       </Field>
-                      <Field label="Startup script">
-                        <textarea
-                          class="dsd-input dsd-textarea"
-                          spellcheck={false}
-                          placeholder="SET time_zone = '+00:00';"
-                          value={d().source.options.initSql}
-                          onInput={(e) => update((s) => (s.options.initSql = e.currentTarget.value))}
-                        />
-                      </Field>
-                      <div class="dsd-section">Data Views</div>
-                      <Field label="Page size">
-                        <input
-                          class="dsd-input dsd-port"
-                          placeholder="500"
-                          value={d().source.options.pageSize ?? ""}
-                          onInput={(e) => update((s) => (s.options.pageSize = Number(e.currentTarget.value) || null))}
-                        />
-                      </Field>
-                      <Field label="Schemas">
-                        <input
-                          class="dsd-input"
-                          placeholder="current schema; * for all"
-                          value={d().source.options.schemas.join(", ")}
-                          onInput={(e) =>
-                            update((s) => (s.options.schemas = e.currentTarget.value.split(",").map((x) => x.trim()).filter(Boolean)))
-                          }
-                        />
-                      </Field>
-                      <div class="dsd-section">Scope</div>
-                      <label class="dsd-check">
-                        <input
-                          type="checkbox"
-                          checked={d().source.scope === "global"}
-                          onChange={(e) => update((s) => (s.scope = e.currentTarget.checked ? "global" : "project"))}
-                        />
-                        Global (available in all projects)
-                      </label>
                     </Show>
-                  </div>
-                </>
-              )}
-            </Show>
-          </div>
+                    <Field label="URL">
+                      <input class="dsd-input dsd-url" value={connectionUrl(d().source)} readOnly />
+                    </Field>
+                    <div class="dsd-hint muted">Passwords are stored in the system keychain, never in project files.</div>
+                    <div class="dsd-test">
+                      <button class="dsd-test-link" disabled={test() === "running"} onClick={() => void runTest()}>
+                        Test Connection
+                      </button>
+                      <Show when={test()}>
+                        {(t) => (
+                          <Show
+                            when={t() !== "running"}
+                            fallback={
+                              <span class="dsd-test-status muted">
+                                <LoaderCircle size={14} class="db-spin" /> Connecting…
+                              </span>
+                            }
+                          >
+                            {(() => {
+                              const r = t() as TestResult;
+                              return r.ok ? (
+                                <span class="dsd-test-status ok">
+                                  <CircleCheck size={15} />
+                                  <span>
+                                    <b>Succeeded</b>
+                                    <span class="muted">
+                                      {" "}
+                                      · {r.driver} {r.serverVersion} · {r.latencyMs} ms
+                                    </span>
+                                  </span>
+                                </span>
+                              ) : (
+                                <span class="dsd-test-status error">
+                                  <CircleX size={15} />
+                                  <span>
+                                    <b>Failed</b> <span class="dsd-test-error">{r.error}</span>
+                                  </span>
+                                </span>
+                              );
+                            })()}
+                          </Show>
+                        )}
+                      </Show>
+                    </div>
+                  </Show>
+                  <Show when={tab() === "options"}>
+                    <div class="dsd-section">Connection</div>
+                    <label class="dsd-check">
+                      <input type="checkbox" checked={d().source.options.readOnly} onChange={(e) => update((s) => (s.options.readOnly = e.currentTarget.checked))} />
+                      Read-only
+                    </label>
+                    <Field label="Transaction control">
+                      <select
+                        class="dsd-input dsd-narrow"
+                        value={d().source.options.autoCommit ? "auto" : "manual"}
+                        onChange={(e) => update((s) => (s.options.autoCommit = e.currentTarget.value === "auto"))}
+                      >
+                        <option value="auto">Auto</option>
+                        <option value="manual">Manual</option>
+                      </select>
+                    </Field>
+                    <Show when={d().source.driver !== "sqlite"}>
+                      <Field label="SSL mode">
+                        <select class="dsd-input dsd-narrow" value={d().source.options.sslMode} onChange={(e) => update((s) => (s.options.sslMode = e.currentTarget.value as DataSource["options"]["sslMode"]))}>
+                          <option value="disable">Disable</option>
+                          <option value="prefer">Prefer</option>
+                          <option value="require">Require</option>
+                        </select>
+                      </Field>
+                    </Show>
+                    <Field label="Connect timeout (s)">
+                      <input
+                        class="dsd-input dsd-port"
+                        value={d().source.options.connectTimeoutSecs}
+                        onInput={(e) => update((s) => (s.options.connectTimeoutSecs = Math.max(1, Number(e.currentTarget.value) || 10)))}
+                      />
+                    </Field>
+                    <Field label="Startup script">
+                      <textarea
+                        class="dsd-input dsd-textarea"
+                        spellcheck={false}
+                        placeholder="SET time_zone = '+00:00';"
+                        value={d().source.options.initSql}
+                        onInput={(e) => update((s) => (s.options.initSql = e.currentTarget.value))}
+                      />
+                    </Field>
+                    <div class="dsd-section">Data Views</div>
+                    <Field label="Page size">
+                      <input
+                        class="dsd-input dsd-port"
+                        placeholder="500"
+                        value={d().source.options.pageSize ?? ""}
+                        onInput={(e) => update((s) => (s.options.pageSize = Number(e.currentTarget.value) || null))}
+                      />
+                    </Field>
+                    <Field label="Schemas">
+                      <input
+                        class="dsd-input"
+                        placeholder="current schema; * for all"
+                        value={d().source.options.schemas.join(", ")}
+                        onInput={(e) =>
+                          update((s) => (s.options.schemas = e.currentTarget.value.split(",").map((x) => x.trim()).filter(Boolean)))
+                        }
+                      />
+                    </Field>
+                    <div class="dsd-section">Scope</div>
+                    <label class="dsd-check">
+                      <input
+                        type="checkbox"
+                        checked={d().source.scope === "global"}
+                        onChange={(e) => update((s) => (s.scope = e.currentTarget.checked ? "global" : "project"))}
+                      />
+                      Global (available in all projects)
+                    </label>
+                  </Show>
+                </div>
+              </>
+            )}
+          </Show>
         </div>
-        <div class="dsd-footer">
-          <span class="dsd-spacer" />
-          <button class="btn-primary" disabled={saving()} onClick={() => void apply().then((ok) => ok && close())}>
-            OK
-          </button>
-          <button class="btn-secondary" onClick={close}>
-            Cancel
-          </button>
-          <button class="btn-secondary" disabled={!dirty() || saving()} onClick={() => void apply()}>
-            Apply
-          </button>
-        </div>
-        <Show when={menu()}>{(m) => <ContextMenu {...m()} onClose={() => setMenu(null)} />}</Show>
       </div>
+      <div class="dsd-footer">
+        <span class="dsd-spacer" />
+        <button class="btn-primary" disabled={saving()} onClick={() => void apply().then((ok) => ok && close())}>
+          OK
+        </button>
+        <button class="btn-secondary" onClick={close}>
+          Cancel
+        </button>
+        <button class="btn-secondary" disabled={!dirty() || saving()} onClick={() => void apply()}>
+          Apply
+        </button>
+      </div>
+      <Show when={menu()}>{(m) => <ContextMenu {...m()} onClose={() => setMenu(null)} />}</Show>
     </div>
   );
 }

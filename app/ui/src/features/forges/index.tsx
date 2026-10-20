@@ -4,6 +4,7 @@
  * status of the current branch in the status bar.
  */
 import { createEffect, createRoot, Show } from "solid-js";
+import { isDialogWindow } from "@/shell/window/mode";
 import { render } from "solid-js/web";
 import { GitPullRequest } from "lucide-solid";
 import { registerToolWindow } from "@/features/registry";
@@ -80,7 +81,8 @@ if (typeof window !== "undefined") {
   host.id = "forge-hosts-overlays";
   document.body.append(host);
   render(ForgeDialogs, host);
-  startForgesStore();
+  // Code host polling belongs to the IDE window, not to dialog windows.
+  if (!isDialogWindow()) startForgesStore();
   createRoot(() => {
     // "Merge Requests" on GitLab, "Pull Requests" elsewhere, like PHPStorm.
     createEffect(() => {

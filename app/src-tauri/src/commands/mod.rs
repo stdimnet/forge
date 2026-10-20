@@ -27,4 +27,5 @@ pub mod settings;
 pub mod symfony;
 pub mod terminal;
 pub mod web;
+pub mod window;
 pub mod workspace;

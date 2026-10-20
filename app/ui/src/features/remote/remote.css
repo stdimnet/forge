@@ -26,6 +26,14 @@
   box-shadow: var(--shadow);
   overflow: hidden;
 }
+/* New SSH Connection content; the frame is shell/window/WindowFrame. */
+.ssh-content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+}
 .ssh-titlebar {
   display: flex;
   align-items: center;
@@ -38,7 +46,8 @@
   color: var(--fg-strong);
   flex-shrink: 0;
 }
-.ssh-dialog button:disabled {
+.ssh-dialog button:disabled,
+.ssh-content button:disabled {
   opacity: 0.45;
   cursor: default;
   pointer-events: none;
@@ -147,7 +156,8 @@ select.ssh-input {
   border-color: var(--danger);
 }
 .ssh-input.mono,
-.ssh-dialog .mono {
+.ssh-dialog .mono,
+.ssh-content .mono {
   font-family: var(--font-mono);
   font-size: 12px;
 }

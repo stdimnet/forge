@@ -78,6 +78,15 @@ export async function saveConfigurations(
   await persist();
 }
 
+/**
+ * Reload after the Run/Debug Configurations dialog saved in its own window; temporary
+ * configurations it saved become permanent.
+ */
+export async function reloadConfigurations(): Promise<void> {
+  await loadConfigurations();
+  setTemporary((t) => t.filter((x) => !configurations().some((c) => c.name === x.name)));
+}
+
 export function selectConfiguration(name: string): void {
   setSelectedName(name);
   if (configurations().some((c) => c.name === name)) void persist();

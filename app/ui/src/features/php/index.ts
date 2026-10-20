@@ -3,6 +3,7 @@
  * indexing/PHP version status items, PHP settings page and the index-based hover.
  */
 import { createEffect, createRoot, on } from "solid-js";
+import { isDialogWindow } from "@/shell/window/mode";
 import { render } from "solid-js/web";
 import { keymap } from "@codemirror/view";
 import { Prec } from "@codemirror/state";
@@ -96,8 +97,9 @@ if (typeof document !== "undefined") {
   document.body.appendChild(host);
   render(GenerateOverlay, host);
 
-  // Index whenever a PHP project is opened (detection activates the PHP plugin).
-  createRoot(() => {
+  // Index whenever a PHP project is opened (detection activates the PHP plugin); dialog
+  // windows only show dialogs.
+  if (!isDialogWindow()) createRoot(() => {
     createEffect(
       on(
         () => !!workspace() && isPluginActive("forge.php"),

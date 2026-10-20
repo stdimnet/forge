@@ -3,7 +3,7 @@
  * the form for the selected one on the right, Create / Cancel at the bottom. While a
  * project is created the form turns into a progress view with the tool output.
  */
-import { createEffect, For, Match, Show, Switch } from "solid-js";
+import { createEffect, For, Match, onCleanup, Show, Switch } from "solid-js";
 import {
   CircleAlert,
   CircleCheck,
@@ -12,11 +12,11 @@ import {
   LoaderCircle,
   TerminalSquare,
   TriangleAlert,
-  X,
 } from "lucide-solid";
 import { isTauri } from "@/ipc";
 import type { GeneratorOption } from "@/ipc/project";
 import { ProjectTypeIcon } from "@/shell/ProjectTypeIcon";
+import { onDialogCancel } from "@/shell/window/dialogs";
 import {
   browseLocation,
   canCreate,
@@ -28,13 +28,14 @@ import {
   loadError,
   location,
   name,
+  NEW_PROJECT_DIALOG,
   options,
   plan,
   progress,
-  running,
   selectGenerator,
   selected,
   selectedId,
+  setDialogShown,
   setLocation,
   setName,
   setOption,
@@ -285,8 +286,13 @@ function ProgressView() {
   );
 }
 
+/** Content of the New Project dialog (the frame comes from `WindowFrame`). */
 export function NewProjectDialog() {
   const groups = () => groupGenerators(generators());
+  setDialogShown(true);
+  onCleanup(() => setDialogShown(false));
+  // Title bar close button, click outside, Alt+F4: like Cancel (not while creating).
+  onCleanup(onDialogCancel(NEW_PROJECT_DIALOG, closeNewProject));
   const onKeyDown = (e: KeyboardEvent) => {
     if (e.key === "Escape") {
       e.preventDefault();
@@ -300,89 +306,79 @@ export function NewProjectDialog() {
     }
   };
   return (
-    <Show when={isOpen()}>
-      <div class="np-overlay" onMouseDown={(e) => e.target === e.currentTarget && closeNewProject()}>
-        <div class="np-dialog" role="dialog" aria-label="New Project" onKeyDown={onKeyDown}>
-          <header class="np-titlebar">
-            <span>New Project</span>
-            <button class="icon-btn" title="Close" disabled={running()} onClick={closeNewProject}>
-              <X size={15} />
-            </button>
-          </header>
-          <div class="np-body">
-            <aside class="np-sidebar">
-              <For each={groups()}>
-                {(g) => (
-                  <div class="np-group">
-                    <div class="np-group-title">{g.group}</div>
-                    <For each={g.items}>
-                      {(gen) => (
-                        <button
-                          class="np-item"
-                          classList={{ selected: gen.id === selectedId() }}
-                          data-generator={gen.id}
-                          disabled={!!progress() && gen.id !== selectedId()}
-                          onClick={() => selectGenerator(gen.id)}
-                        >
-                          <ProjectTypeIcon type={gen.icon} size={18} />
-                          <span class="np-item-name">{gen.name}</span>
-                        </button>
-                      )}
-                    </For>
-                  </div>
-                )}
-              </For>
-            </aside>
-            <main class="np-main">
-              <Show when={!loadError()} fallback={<div class="np-error np-load-error">{loadError()}</div>}>
-                <Show when={progress()} fallback={<Form />}>
-                  <ProgressView />
-                </Show>
-              </Show>
-            </main>
-          </div>
-          <footer class="np-footer">
-            <button class="icon-btn" title="Help">
-              <CircleHelp size={16} />
-            </button>
-            <div class="np-footer-buttons">
-              <Show
-                when={progress()}
-                fallback={
-                  <>
-                    <button class="btn-primary np-btn" disabled={!canCreate()} onClick={() => void createProject()}>
-                      Create
-                    </button>
-                    <button class="btn-secondary np-btn" onClick={closeNewProject}>
-                      Cancel
-                    </button>
-                  </>
-                }
-              >
-                <Show
-                  when={progress()?.phase === "failed"}
-                  fallback={
+    <div class="np-dialog" onKeyDown={onKeyDown}>
+      <div class="np-body">
+        <aside class="np-sidebar">
+          <For each={groups()}>
+            {(g) => (
+              <div class="np-group">
+                <div class="np-group-title">{g.group}</div>
+                <For each={g.items}>
+                  {(gen) => (
                     <button
-                      class="btn-secondary np-btn"
-                      disabled={progress()?.phase !== "running"}
-                      onClick={cancelCreation}
+                      class="np-item"
+                      classList={{ selected: gen.id === selectedId() }}
+                      data-generator={gen.id}
+                      disabled={!!progress() && gen.id !== selectedId()}
+                      onClick={() => selectGenerator(gen.id)}
                     >
-                      Cancel
+                      <ProjectTypeIcon type={gen.icon} size={18} />
+                      <span class="np-item-name">{gen.name}</span>
                     </button>
-                  }
-                >
-                  <button class="btn-secondary np-btn" onClick={cancelCreation}>
-                    Back
-                  </button>
-                  <button class="btn-secondary np-btn" onClick={closeNewProject}>
-                    Close
-                  </button>
-                </Show>
-              </Show>
-            </div>
-          </footer>
-        </div>
+                  )}
+                </For>
+              </div>
+            )}
+          </For>
+        </aside>
+        <main class="np-main">
+          <Show when={!loadError()} fallback={<div class="np-error np-load-error">{loadError()}</div>}>
+            <Show when={progress()} fallback={<Form />}>
+              <ProgressView />
+            </Show>
+          </Show>
+        </main>
       </div>
-    </Show>
+      <footer class="np-footer">
+        <button class="icon-btn" title="Help">
+          <CircleHelp size={16} />
+        </button>
+        <div class="np-footer-buttons">
+          <Show
+            when={progress()}
+            fallback={
+              <>
+                <button class="btn-primary np-btn" disabled={!canCreate()} onClick={() => void createProject()}>
+                  Create
+                </button>
+                <button class="btn-secondary np-btn" onClick={closeNewProject}>
+                  Cancel
+                </button>
+              </>
+            }
+          >
+            <Show
+              when={progress()?.phase === "failed"}
+              fallback={
+                <button
+                  class="btn-secondary np-btn"
+                  disabled={progress()?.phase !== "running"}
+                  onClick={cancelCreation}
+                >
+                  Cancel
+                </button>
+              }
+            >
+              <button class="btn-secondary np-btn" onClick={cancelCreation}>
+                Back
+              </button>
+              <button class="btn-secondary np-btn" onClick={closeNewProject}>
+                Close
+              </button>
+            </Show>
+          </Show>
+        </div>
+      </footer>
+    </div>
   );
 }

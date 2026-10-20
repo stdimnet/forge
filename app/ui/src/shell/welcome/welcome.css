@@ -3,6 +3,17 @@
   height: 100vh;
   background: var(--bg-panel);
 }
+/* Undecorated window: Forge's title bar above the Welcome screen. */
+.welcome-window {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+.welcome-window .welcome {
+  flex: 1;
+  height: auto;
+  min-height: 0;
+}
 .welcome-nav {
   width: 230px;
   flex-shrink: 0;

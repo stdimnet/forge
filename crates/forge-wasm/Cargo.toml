@@ -23,6 +23,7 @@ wasm-bindgen = "=0.2.129"
 forge-fuzzy.workspace = true
 forge-filetypes.workspace = true
 forge-plugin-api.workspace = true
+forge-window.workspace = true
 forge-scratches.workspace = true
 forge-containers = { path = "../forge-containers", default-features = false }
 forge-remote = { path = "../forge-remote", default-features = false }

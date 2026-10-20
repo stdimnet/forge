@@ -5,11 +5,17 @@ import { theme, toggleTheme } from "@/state/theme";
 import { showToolWindow } from "@/state/layout";
 import { currentBranch } from "@/state/vcs";
 import { runCommand } from "@/state/commands";
-import { For } from "solid-js";
+import { For, Show } from "solid-js";
 import { Dynamic } from "solid-js/web";
 import { toolbarItems } from "@/features/toolbarItems";
+import { chrome, dragRegion, drawsControls } from "./window/chrome";
+import { WindowControls } from "./window/WindowControls";
 
-/** Top toolbar, laid out like PHPStorm's New UI main toolbar. */
+/**
+ * Top toolbar, laid out like PHPStorm's New UI main toolbar. It is also the window's title
+ * bar: empty areas move the window, a double click maximizes it, and Forge's window controls
+ * sit at its ends (traffic lights at the left with the macOS style).
+ */
 export function MainToolbar() {
   const initials = () =>
     (workspace()?.name ?? "F")
@@ -19,7 +25,10 @@ export function MainToolbar() {
       .slice(0, 2)
       .toUpperCase();
   return (
-    <header class="main-toolbar" data-tauri-drag-region>
+    <header class="main-toolbar" onMouseDown={dragRegion.onMouseDown}>
+      <Show when={drawsControls() && chrome()!.buttons.left.length > 0}>
+        <WindowControls style={chrome()!.style} buttons={chrome()!.buttons.left} side="left" />
+      </Show>
       <div class="toolbar-left">
         <button class="icon-btn" title="Main Menu (Alt+\\)">
           <Menu size={17} />
@@ -35,7 +44,7 @@ export function MainToolbar() {
           <ChevronDown size={14} class="muted" />
         </button>
       </div>
-      <div class="toolbar-center" data-tauri-drag-region />
+      <div class="toolbar-center" />
       <div class="toolbar-right">
         <button class="icon-btn" title="Build Project (Ctrl+F9)">
           <Hammer size={16} />
@@ -56,6 +65,9 @@ export function MainToolbar() {
           <Settings size={16} />
         </button>
       </div>
+      <Show when={drawsControls() && chrome()!.buttons.right.length > 0}>
+        <WindowControls style={chrome()!.style} buttons={chrome()!.buttons.right} side="right" />
+      </Show>
     </header>
   );
 }

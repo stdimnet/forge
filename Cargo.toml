@@ -34,6 +34,7 @@ forge-keymap = { path = "crates/forge-keymap" }
 forge-scratches = { path = "crates/forge-scratches", default-features = false }
 forge-backend = { path = "crates/forge-backend" }
 forge-remote = { path = "crates/forge-remote" }
+forge-window = { path = "crates/forge-window" }
 luaforge-lang-lua = { path = "packs/luaforge/lang-lua" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

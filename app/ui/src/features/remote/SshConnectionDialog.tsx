@@ -7,9 +7,9 @@
  */
 import { createEffect, createResource, createSignal, For, on, onCleanup, Show } from "solid-js";
 import { createStore, reconcile } from "solid-js/store";
-import { ChevronRight, Folder, LoaderCircle, Server, X } from "lucide-solid";
+import { ChevronRight, Folder, LoaderCircle, Server } from "lucide-solid";
 import { connectErrorText, remoteApi, type ConnectError, type SshConfiguration } from "@/ipc/remote";
-import { openRemoteProject } from "@/state/workspace";
+import { closeDialog, onDialogCancel, onDialogDispose } from "@/shell/window/dialogs";
 import { SshForm } from "./SshForm";
 import { TestResultLine, useConnectionTest } from "./TestConnection";
 import {
@@ -18,9 +18,9 @@ import {
   connectWithConfirmation,
   connecting,
   setConnecting,
-  setSshDialog,
-  sshDialog,
+  SSH_CONNECTION_DIALOG,
   type SshDialogRequest,
+  type SshDialogResult,
 } from "./store";
 
 const NEW = "__new__";
@@ -33,11 +33,9 @@ interface Connected {
   system: string;
 }
 
-export function SshConnectionDialog() {
-  return <Show when={sshDialog()}>{(req) => <DialogBody request={req()} />}</Show>;
-}
-
-function DialogBody(props: { request: SshDialogRequest }) {
+/** Content of the New SSH Connection dialog (the frame comes from `WindowFrame`). */
+export function SshConnectionDialog(p: { props: SshDialogRequest }) {
+  const props = { request: p.props };
   const [saved] = createResource(() => remoteApi.configs().catch(() => []));
   const [config, setConfig] = createStore<SshConfiguration>(structuredClone(props.request.config));
   const [selected, setSelected] = createSignal(props.request.config.id || NEW);
@@ -88,13 +86,19 @@ function DialogBody(props: { request: SshDialogRequest }) {
   const close = () => {
     if (pending) void remoteApi.disconnect(pending);
     pending = null;
-    setSshDialog(null);
+    closeDialog(SSH_CONNECTION_DIALOG);
   };
-  onCleanup(() => {
+  const dropPending = () => {
     if (pending) void remoteApi.disconnect(pending);
-  });
+    pending = null;
+  };
+  onCleanup(dropPending);
+  // A dialog window closes without running Solid cleanups.
+  onCleanup(onDialogDispose(SSH_CONNECTION_DIALOG, dropPending));
 
   const busy = () => !!connecting() || opening();
+  // Title bar close button, click outside, Alt+F4: Cancel, but not while connecting.
+  onCleanup(onDialogCancel(SSH_CONNECTION_DIALOG, () => !busy() && close()));
 
   const continueToProject = async () => {
     if (problems().length) return;
@@ -134,9 +138,10 @@ function DialogBody(props: { request: SshDialogRequest }) {
     setOpening(true);
     setError(null);
     try {
-      await openRemoteProject(c.connectionId, path().trim());
+      // The backend opens the project; the window that opened the dialog shows it.
+      const workspace = await remoteApi.openProject(c.connectionId, path().trim());
       pending = null;
-      setSshDialog(null);
+      closeDialog(SSH_CONNECTION_DIALOG, { workspace } satisfies SshDialogResult);
     } catch (e) {
       setError(String((e as Error)?.message ?? e));
     } finally {
@@ -145,159 +150,152 @@ function DialogBody(props: { request: SshDialogRequest }) {
   };
 
   const onKey = (e: KeyboardEvent) => {
-    if (e.key === "Escape" && !busy()) close();
+    if (e.key !== "Escape") return;
+    e.stopPropagation();
+    if (!busy()) close();
   };
 
   return (
-    <div class="ssh-overlay" onMouseDown={(e) => e.target === e.currentTarget && !busy() && close()}>
-      <div class="ssh-dialog" role="dialog" aria-label="New SSH Connection" onKeyDown={onKey} data-testid="ssh-dialog">
-        <div class="ssh-titlebar">
-          <span>New SSH Connection</span>
-          <button class="icon-btn" title="Close" onClick={close} disabled={busy()}>
-            <X size={15} />
-          </button>
-        </div>
+    <div class="ssh-content" onKeyDown={onKey} data-testid="ssh-dialog">
+      <div class="ssh-steps">
+        <span class="ssh-step" classList={{ active: step() === 1, done: step() === 2 }}>
+          <span class="ssh-step-no">1</span> Connect to SSH
+        </span>
+        <ChevronRight size={14} class="muted" />
+        <span class="ssh-step" classList={{ active: step() === 2 }}>
+          <span class="ssh-step-no">2</span> Choose Project
+        </span>
+      </div>
 
-        <div class="ssh-steps">
-          <span class="ssh-step" classList={{ active: step() === 1, done: step() === 2 }}>
-            <span class="ssh-step-no">1</span> Connect to SSH
-          </span>
-          <ChevronRight size={14} class="muted" />
-          <span class="ssh-step" classList={{ active: step() === 2 }}>
-            <span class="ssh-step-no">2</span> Choose Project
-          </span>
-        </div>
+      <div class="ssh-body">
+        <Show when={step() === 1}>
+          <div class="ssh-config-row">
+            <label class="ssh-label" for="ssh-config-select">
+              SSH configuration:
+            </label>
+            <select
+              id="ssh-config-select"
+              class="ssh-input"
+              value={selected()}
+              onChange={(e) => pick(e.currentTarget.value)}
+              disabled={busy()}
+            >
+              <option value={NEW}>New connection</option>
+              <For each={saved() ?? []}>{(c) => <option value={c.id}>{c.name || c.label}</option>}</For>
+            </select>
+          </div>
+          <SshForm
+            config={config}
+            update={update}
+            secret={secret()}
+            setSecret={(s) => {
+              setSecret(s);
+              test.reset();
+            }}
+            hasSecret={selectedConfig()?.hasSecret}
+            problems={config.host || config.user ? problems() : []}
+            autofocus
+          />
+          <div class="ssh-test-row">
+            <button
+              class="btn-secondary"
+              disabled={busy() || problems().length > 0 || test.state()?.running === true}
+              onClick={() => void test.run({ ...config }, secret())}
+              data-testid="ssh-test"
+            >
+              Test Connection
+            </button>
+            <TestResultLine state={test.state()} host={config.host.trim()} />
+          </div>
+        </Show>
 
-        <div class="ssh-body">
-          <Show when={step() === 1}>
-            <div class="ssh-config-row">
-              <label class="ssh-label" for="ssh-config-select">
-                SSH configuration:
-              </label>
-              <select
-                id="ssh-config-select"
-                class="ssh-input"
-                value={selected()}
-                onChange={(e) => pick(e.currentTarget.value)}
-                disabled={busy()}
-              >
-                <option value={NEW}>New connection</option>
-                <For each={saved() ?? []}>{(c) => <option value={c.id}>{c.name || c.label}</option>}</For>
-              </select>
-            </div>
-            <SshForm
-              config={config}
-              update={update}
-              secret={secret()}
-              setSecret={(s) => {
-                setSecret(s);
-                test.reset();
-              }}
-              hasSecret={selectedConfig()?.hasSecret}
-              problems={config.host || config.user ? problems() : []}
-              autofocus
-            />
-            <div class="ssh-test-row">
-              <button
-                class="btn-secondary"
-                disabled={busy() || problems().length > 0 || test.state()?.running === true}
-                onClick={() => void test.run({ ...config }, secret())}
-                data-testid="ssh-test"
-              >
-                Test Connection
-              </button>
-              <TestResultLine state={test.state()} host={config.host.trim()} />
-            </div>
-          </Show>
-
-          <Show when={step() === 2 && connected()}>
-            {(c) => (
-              <div class="ssh-project-step">
-                <div class="ssh-connected">
-                  <Server size={18} class="ssh-ok" />
-                  <div>
-                    <div class="ssh-connected-title">Connected to {c().label}</div>
-                    <div class="muted ssh-connected-sub">
-                      {c().hostname} · {c().system} · Forge agent running
-                    </div>
+        <Show when={step() === 2 && connected()}>
+          {(c) => (
+            <div class="ssh-project-step">
+              <div class="ssh-connected">
+                <Server size={18} class="ssh-ok" />
+                <div>
+                  <div class="ssh-connected-title">Connected to {c().label}</div>
+                  <div class="muted ssh-connected-sub">
+                    {c().hostname} · {c().system} · Forge agent running
                   </div>
                 </div>
-                <label class="ssh-label" for="ssh-project-path">
-                  Project directory:
-                </label>
-                <div class="ssh-path">
-                  <input
-                    id="ssh-project-path"
-                    class="ssh-input mono"
-                    value={path()}
-                    spellcheck={false}
-                    onInput={(e) => setPath(e.currentTarget.value)}
-                    onKeyDown={(e) => e.key === "Enter" && void open()}
-                    data-testid="ssh-project-path"
-                  />
-                  <button class="ssh-browse" title="Browse…" onClick={() => void browse()} data-testid="ssh-browse">
-                    <Folder size={14} />
-                  </button>
-                </div>
-                <p class="ssh-hint">
-                  Forge installs its agent in <code>~/.cache/forge-agent</code> on the host. Indexing, Intelephense and
-                  other language servers, git, terminals and run configurations work on the host; files open in this
-                  window.
-                </p>
               </div>
+              <label class="ssh-label" for="ssh-project-path">
+                Project directory:
+              </label>
+              <div class="ssh-path">
+                <input
+                  id="ssh-project-path"
+                  class="ssh-input mono"
+                  value={path()}
+                  spellcheck={false}
+                  onInput={(e) => setPath(e.currentTarget.value)}
+                  onKeyDown={(e) => e.key === "Enter" && void open()}
+                  data-testid="ssh-project-path"
+                />
+                <button class="ssh-browse" title="Browse…" onClick={() => void browse()} data-testid="ssh-browse">
+                  <Folder size={14} />
+                </button>
+              </div>
+              <p class="ssh-hint">
+                Forge installs its agent in <code>~/.cache/forge-agent</code> on the host. Indexing, Intelephense and
+                other language servers, git, terminals and run configurations work on the host; files open in this
+                window.
+              </p>
+            </div>
+          )}
+        </Show>
+
+        <Show when={error()}>
+          {(e) => (
+            <div class="ssh-error" data-testid="ssh-error">
+              {typeof e() === "string" ? (e() as string) : connectErrorText(e() as ConnectError)}
+            </div>
+          )}
+        </Show>
+      </div>
+
+      <div class="ssh-footer">
+        <div class="ssh-progress">
+          <Show when={connecting()}>
+            {(c) => (
+              <>
+                <LoaderCircle size={14} class="ssh-spin" />
+                <span>{c().message}</span>
+              </>
             )}
           </Show>
-
-          <Show when={error()}>
-            {(e) => (
-              <div class="ssh-error" data-testid="ssh-error">
-                {typeof e() === "string" ? (e() as string) : connectErrorText(e() as ConnectError)}
-              </div>
-            )}
+          <Show when={opening()}>
+            <LoaderCircle size={14} class="ssh-spin" />
+            <span>Opening {path()}…</span>
           </Show>
         </div>
-
-        <div class="ssh-footer">
-          <div class="ssh-progress">
-            <Show when={connecting()}>
-              {(c) => (
-                <>
-                  <LoaderCircle size={14} class="ssh-spin" />
-                  <span>{c().message}</span>
-                </>
-              )}
-            </Show>
-            <Show when={opening()}>
-              <LoaderCircle size={14} class="ssh-spin" />
-              <span>Opening {path()}…</span>
-            </Show>
-          </div>
-          <Show when={step() === 2}>
-            <button class="btn-secondary" disabled={busy()} onClick={() => setStep(1)}>
-              Back
-            </button>
-          </Show>
-          <button class="btn-secondary" disabled={busy()} onClick={close}>
-            Cancel
+        <Show when={step() === 2}>
+          <button class="btn-secondary" disabled={busy()} onClick={() => setStep(1)}>
+            Back
           </button>
-          <Show
-            when={step() === 2}
-            fallback={
-              <button
-                class="btn-primary"
-                disabled={busy() || problems().length > 0}
-                onClick={() => void continueToProject()}
-                data-testid="ssh-continue"
-              >
-                Check Connection and Continue
-              </button>
-            }
-          >
-            <button class="btn-primary" disabled={busy() || !path().trim()} onClick={() => void open()} data-testid="ssh-open">
-              Open Project
+        </Show>
+        <button class="btn-secondary" disabled={busy()} onClick={close}>
+          Cancel
+        </button>
+        <Show
+          when={step() === 2}
+          fallback={
+            <button
+              class="btn-primary"
+              disabled={busy() || problems().length > 0}
+              onClick={() => void continueToProject()}
+              data-testid="ssh-continue"
+            >
+              Check Connection and Continue
             </button>
-          </Show>
-        </div>
+          }
+        >
+          <button class="btn-primary" disabled={busy() || !path().trim()} onClick={() => void open()} data-testid="ssh-open">
+            Open Project
+          </button>
+        </Show>
       </div>
     </div>
   );

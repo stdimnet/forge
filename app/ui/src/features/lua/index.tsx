@@ -11,6 +11,7 @@
  * - Settings | Languages & Frameworks | Lua.
  */
 import { createEffect, createRoot, on } from "solid-js";
+import { isDialogWindow } from "@/shell/window/mode";
 import { hoverTooltip, type EditorView } from "@codemirror/view";
 import { Moon, Play, Settings2 } from "lucide-solid";
 import { luaApi, type LuaRunMarker } from "@/ipc/lua";
@@ -65,7 +66,7 @@ async function reindex(): Promise<void> {
 
 registerCommand({ id: "lua.reindex", title: "Reindex Lua Files", category: "Lua", run: () => void reindex() });
 
-if (typeof document !== "undefined") {
+if (typeof document !== "undefined" && !isDialogWindow()) {
   createRoot(() => {
     createEffect(
       on(

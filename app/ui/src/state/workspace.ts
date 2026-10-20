@@ -11,6 +11,11 @@ export { workspace };
 /** The open project lives on a remote host (opened over SSH). */
 export const isRemoteProject = () => !!workspace()?.remote;
 
+/** Show a project the backend opened (e.g. by a dialog window) in this window. */
+export function adoptWorkspace(info: WorkspaceInfo): void {
+  adopt(info);
+}
+
 function adopt(info: WorkspaceInfo): void {
   if (workspace()?.root !== info.root) closeAllTabs();
   setWorkspace(info);

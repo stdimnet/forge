@@ -3,7 +3,7 @@ import { createEffect, createRoot, createSignal, on } from "solid-js";
 import { isTauri } from "@/ipc";
 import { projectApi, type CreateArgs, type Generator, type OptionValue, type Plan } from "@/ipc/project";
 import { getSetting } from "@/state/settings";
-import { openWorkspace } from "@/state/workspace";
+import { closeDialog, openDialogWindow } from "@/shell/window/dialogs";
 import {
   applyCreateEvent,
   carryOptions,
@@ -14,6 +14,18 @@ import {
 } from "./wizard";
 
 export const DEFAULT_GENERATOR = "empty-php";
+
+export const NEW_PROJECT_DIALOG = "new-project";
+
+export interface NewProjectProps {
+  /** Generator to preselect. */
+  generator?: string;
+}
+
+/** Result of the dialog: the created project, opened by the window that opened the dialog. */
+export interface NewProjectResult {
+  root: string;
+}
 
 const [isOpen, setOpen] = createSignal(false);
 const [generators, setGenerators] = createSignal<Generator[]>([]);
@@ -57,8 +69,13 @@ export function selectGenerator(id: string): void {
   setSelectedId(id);
 }
 
-/** Open the dialog, optionally with a generator preselected. */
-export async function openNewProject(generatorId?: string): Promise<void> {
+/** Open the dialog (its own window in the desktop app), optionally with a generator preselected. */
+export function openNewProject(generatorId?: string): Promise<NewProjectResult | null> {
+  return openDialogWindow<NewProjectResult>(NEW_PROJECT_DIALOG, { generator: generatorId } satisfies NewProjectProps);
+}
+
+/** Load the generators and reset the form, before the dialog shows. */
+export async function prepareNewProject(generatorId?: string): Promise<void> {
   setProgress(null);
   setLoadError(null);
   if (!generators().length) {
@@ -75,13 +92,17 @@ export async function openNewProject(generatorId?: string): Promise<void> {
     setName(gen.defaultName);
   }
   setLocation(getSetting<string>("system.defaultProjectDirectory", "~/Projects") || "~/Projects");
-  setOpen(true);
+}
+
+/** The dialog content mounted / unmounted. */
+export function setDialogShown(shown: boolean): void {
+  setOpen(shown);
+  if (!shown) setProgress(null);
 }
 
 export function closeNewProject(): void {
   if (running()) return;
-  setOpen(false);
-  setProgress(null);
+  closeDialog(NEW_PROJECT_DIALOG);
 }
 
 /** Native folder chooser for the location (desktop only). */
@@ -119,9 +140,7 @@ export async function createProject(): Promise<void> {
     const root = await projectApi.create(request);
     setProgress((p) => (p ? { ...p, phase: "done", root } : p));
     unlisten();
-    setOpen(false);
-    setProgress(null);
-    await openWorkspace(root);
+    closeDialog(NEW_PROJECT_DIALOG, { root } satisfies NewProjectResult);
   } catch (e) {
     unlisten();
     const error = String(e).replace(/^Error: /, "");

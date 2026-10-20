@@ -1,0 +1,10 @@
+[package]
+name = "forge-window"
+description = "Forge window chrome: desktop detection, title bar button layouts and dialog window geometry (pure, also built to WebAssembly)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
