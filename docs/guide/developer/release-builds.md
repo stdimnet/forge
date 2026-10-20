@@ -69,7 +69,7 @@ This writes the private key `~/.tauri/forge.key` and the public key `~/.tauri/fo
 
 - Store the private key and its password as the secrets `TAURI_SIGNING_PRIVATE_KEY` and
   `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` (repository settings), and in a password manager.
-- Store the public key (the contents of `forge.key.pub`) as the variable `FORGE_UPDATER_PUBKEY`.
+- Store the public key (the contents of `forge.key.pub`) as the secret (or variable) `FORGE_UPDATER_PUBKEY`.
 - Never commit either file. The public key is not secret, but it lives in the build
   environment, not in the repository, so forks and local builds do not pretend to be official.
 
