@@ -3,6 +3,7 @@ use std::path::{Component, Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
+use crate::gitignore::IgnoreRules;
 use crate::{ForgeError, Result};
 
 /// Directory names hidden from the project tree by default (like PHPStorm's "Excluded").
@@ -22,6 +23,9 @@ pub struct FileEntry {
     /// Path relative to the workspace root, always with `/` separators.
     pub path: String,
     pub kind: FileKind,
+    /// Matched by `.gitignore` rules; the project tree shows these grayed out.
+    #[serde(default)]
+    pub ignored: bool,
 }
 
 /// An opened project root. All paths handed in from the UI are resolved against it
@@ -76,9 +80,11 @@ impl Workspace {
     }
 
     /// List one directory level: folders first, then files, both alphabetical (case-insensitive).
+    /// Entries matched by `.gitignore` are flagged `ignored` but still listed.
     pub fn list_dir(&self, rel: &str) -> Result<Vec<FileEntry>> {
         let dir = self.resolve(rel)?;
         let read = fs::read_dir(&dir).map_err(|e| ForgeError::io(&dir, e))?;
+        let rules = IgnoreRules::for_dir(&self.root, &dir);
         let mut entries: Vec<FileEntry> = read
             .filter_map(|e| e.ok())
             .filter(|e| !DEFAULT_EXCLUDES.contains(&e.file_name().to_string_lossy().as_ref()))
@@ -88,10 +94,14 @@ impl Workspace {
                 } else {
                     FileKind::File
                 };
+                let ignored = rules
+                    .as_ref()
+                    .is_some_and(|r| r.is_ignored(&e.path(), kind == FileKind::Dir));
                 FileEntry {
                     name: e.file_name().to_string_lossy().into_owned(),
                     path: self.relative(&e.path()),
                     kind,
+                    ignored,
                 }
             })
             .collect();
@@ -140,6 +150,33 @@ mod tests {
             .map(|e| e.name)
             .collect();
         assert_eq!(names, vec!["src", "composer.json"]);
+    }
+
+    #[test]
+    fn flags_gitignored_entries() {
+        let (dir, ws) = ws();
+        fs::write(dir.path().join(".gitignore"), "/vendor\n*.log\n").unwrap();
+        fs::create_dir(dir.path().join("vendor")).unwrap();
+        fs::write(dir.path().join("vendor/autoload.php"), "<?php").unwrap();
+        fs::write(dir.path().join("app.log"), "").unwrap();
+        let flags = |rel: &str| -> Vec<(String, bool)> {
+            ws.list_dir(rel)
+                .unwrap()
+                .into_iter()
+                .map(|e| (e.name, e.ignored))
+                .collect()
+        };
+        assert_eq!(
+            flags(""),
+            vec![
+                ("src".to_string(), false),
+                ("vendor".to_string(), true),
+                (".gitignore".to_string(), false),
+                ("app.log".to_string(), true),
+                ("composer.json".to_string(), false),
+            ]
+        );
+        assert_eq!(flags("vendor"), vec![("autoload.php".to_string(), true)]);
     }
 
     #[test]
