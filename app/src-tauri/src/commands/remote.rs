@@ -365,7 +365,6 @@ pub async fn remote_open_project(
     connection_id: String,
     path: String,
     app: AppHandle,
-    state: State<'_, AppState>,
     remote: State<'_, RemoteState>,
 ) -> Result<WorkspaceInfo> {
     let conn = connection(&remote, &connection_id)?;
@@ -406,7 +405,15 @@ pub async fn remote_open_project(
     forward_status(&app, connection_id.clone(), conn.clone());
 
     app.state::<LspState>().reset();
-    state.set_remote_project(backend.clone());
+    {
+        // Reads the project settings on the host.
+        let (app, backend) = (app.clone(), backend.clone());
+        blocking(move || {
+            app.state::<AppState>().set_remote_project(backend);
+            Ok(())
+        })
+        .await?;
+    }
     crate::commands::workspace::project_opened(&app);
     let _ = app.emit(STATUS_EVENT, status_view(&connection_id, &conn));
     Ok(WorkspaceInfo::from(backend.info()))

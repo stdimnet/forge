@@ -1,14 +1,20 @@
 //! PHP debugger (Xdebug over DBGp). Logic lives in `forge-debug`; these commands wire it
 //! to the UI. Events are emitted on `debug://listening|session|incoming|ended|output|
 //! breakpoints|error` with the tagged `DebugEvent` JSON.
+//!
+//! Remote projects: breakpoints and servers live in the project's `.forge/` on the host,
+//! and "Start Listening" listens on a free local port that the host's `127.0.0.1:<debug
+//! port>` is forwarded to over SSH (Xdebug there connects to its own localhost). Paths
+//! Xdebug reports are the host's, which are the project's paths, so no mappings are needed.
 
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};
 
+use forge_backend::{BackendFiles, PortForward};
 use forge_core::{Result, Settings};
 use forge_debug::{
-    Breakpoint, BreakpointSpec, BreakpointsSnapshot, ContextName, DebugConfig, DebugEvent,
-    DebugServer, Frame, Property, ServerConfig, SessionInfo, StepKind,
+    Breakpoint, BreakpointSpec, BreakpointsSnapshot, ContextName, DebugConfig, DebugError,
+    DebugEvent, DebugServer, Frame, Property, ServerConfig, SessionInfo, StepKind,
 };
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, State};
@@ -18,6 +24,10 @@ use crate::state::AppState;
 pub struct DebugState {
     server: Arc<DebugServer>,
     watches: Mutex<Vec<String>>,
+    /// The project the server was opened for (its display root).
+    project: Mutex<Option<String>>,
+    /// The SSH forward of a remote project's debug port while listening.
+    forward: Mutex<Option<PortForward>>,
 }
 
 impl DebugState {
@@ -30,6 +40,8 @@ impl DebugState {
         Self {
             server: Arc::new(server),
             watches: Mutex::new(Vec::new()),
+            project: Mutex::new(None),
+            forward: Mutex::new(None),
         }
     }
 }
@@ -54,12 +66,26 @@ fn config_from(settings: &Settings) -> DebugConfig {
     }
 }
 
-/// The debugger, synced with the open project and current settings.
+/// The debugger, synced with the open project and current settings. Breakpoints and
+/// servers are read through the project backend (on the host for remote projects).
 fn server(state: &AppState, debug: &DebugState) -> Arc<DebugServer> {
-    let root = state.with_workspace(|ws| Ok(ws.root().to_path_buf())).ok();
-    if debug.server.project_root() != root {
-        debug.server.open_project(root.as_deref());
+    let info = state.project_info();
+    let key = info.as_ref().map(|i| i.display_root());
+    let mut current = debug.project.lock().expect("project lock");
+    if *current != key {
+        *current = key;
+        let project = match (info, state.backend()) {
+            (Some(info), Ok(backend)) => Some((
+                info.root,
+                Arc::new(BackendFiles(backend)) as forge_core::SharedFiles,
+            )),
+            _ => None,
+        };
+        debug.server.open_project_files(project);
+        // A forward belongs to the previous project's connection.
+        debug.forward.lock().expect("forward lock").take();
     }
+    drop(current);
     debug.server.set_config(config_from(&state.read_settings()));
     Arc::clone(&debug.server)
 }
@@ -70,20 +96,32 @@ pub struct DebugStatus {
     pub listening: bool,
     pub port: u16,
     pub sessions: Vec<SessionInfo>,
+    /// For a remote project: the host whose port is forwarded here (`deploy@shop.example.com`).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub via: Option<String>,
 }
 
 #[tauri::command]
 pub fn debug_status(state: State<'_, AppState>, debug: State<'_, DebugState>) -> DebugStatus {
     let server = server(&state, &debug);
     let port = server.listening_port();
+    let via = debug
+        .forward
+        .lock()
+        .expect("forward lock")
+        .as_ref()
+        .filter(|_| port.is_some())
+        .map(|f| f.via.clone());
     DebugStatus {
         listening: port.is_some(),
         port: port.unwrap_or(server.config().port),
         sessions: server.sessions(),
+        via,
     }
 }
 
-/// "Start Listening for PHP Debug Connections". Returns the port.
+/// "Start Listening for PHP Debug Connections". Returns the port debuggers connect to (on
+/// the remote host for a remote project).
 #[tauri::command]
 pub async fn debug_listen_start(
     state: State<'_, AppState>,
@@ -91,12 +129,29 @@ pub async fn debug_listen_start(
 ) -> Result<u16> {
     let server = server(&state, &debug);
     let port = server.config().port;
-    Ok(server.listen(port).await?)
+    let tunnels = state.backend().ok().and_then(|b| b.tunnels());
+    debug.forward.lock().expect("forward lock").take();
+    let Some(tunnels) = tunnels else {
+        return Ok(server.listen(port).await?);
+    };
+    let (shown, forward) = server
+        .listen_with(0, |local| async move {
+            let forward = tunnels.forward_remote(port, local).await.map_err(|e| {
+                DebugError::Other(format!(
+                    "Cannot listen on port {port} of the remote host: {e}"
+                ))
+            })?;
+            Ok((forward.port, forward))
+        })
+        .await?;
+    *debug.forward.lock().expect("forward lock") = Some(forward);
+    Ok(shown)
 }
 
 #[tauri::command]
 pub fn debug_listen_stop(state: State<'_, AppState>, debug: State<'_, DebugState>) {
     server(&state, &debug).stop_listening();
+    debug.forward.lock().expect("forward lock").take();
 }
 
 #[tauri::command]

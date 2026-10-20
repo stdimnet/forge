@@ -119,17 +119,8 @@ impl LocalLangServers {
             .collect();
         let platform = current_platform();
         let mut out = rows(Catalog::builtin(), &ctx, &decisions, &live, platform);
-        // Servers the PHP pack starts itself: listed for status and install hints only.
         let packs = rows(Catalog::pack_servers(), &ctx, &[], &live, platform);
-        out.extend(packs.into_iter().map(|mut r| {
-            r.source = "php".into();
-            r.enabled = true;
-            r.status = match r.status {
-                RowStatus::Disabled => RowStatus::Installed,
-                s => s,
-            };
-            r
-        }));
+        out.extend(packs.into_iter().map(pack_row));
         let servers = decisions
             .into_iter()
             .map(|d| match d.outcome {
@@ -151,6 +142,42 @@ impl LocalLangServers {
             platform: platform.into(),
         })
     }
+}
+
+/// Settings page rows when no project is open (servers detected on this machine).
+pub fn system_rows(req: &LangServersRequest) -> Vec<ServerRow> {
+    let ids = Catalog::builtin().servers.iter().map(|s| s.id.as_str());
+    let prefs = Prefs::load(|k| req.settings.get(k).cloned(), ids);
+    let detector = Detector::system();
+    let scan = ProjectScan::default();
+    let root = std::path::PathBuf::new();
+    let ctx = ConfigContext {
+        root: &root,
+        cache_dir: cache_dir(),
+        detector: &detector,
+        prefs: &prefs,
+        scan: &scan,
+    };
+    let live = HashMap::new();
+    let platform = current_platform();
+    let mut out = rows(Catalog::builtin(), &ctx, &[], &live, platform);
+    out.extend(
+        rows(Catalog::pack_servers(), &ctx, &[], &live, platform)
+            .into_iter()
+            .map(pack_row),
+    );
+    out
+}
+
+/// A row of a server the PHP pack starts itself: listed for status and install hints only.
+fn pack_row(mut r: ServerRow) -> ServerRow {
+    r.source = "php".into();
+    r.enabled = true;
+    r.status = match r.status {
+        RowStatus::Disabled => RowStatus::Installed,
+        s => s,
+    };
+    r
 }
 
 #[cfg(test)]
