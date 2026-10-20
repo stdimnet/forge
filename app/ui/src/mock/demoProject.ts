@@ -99,17 +99,35 @@ enum OrderStatus: string
 namespace App\\Http\\Controllers;
 
 use App\\Models\\Order;
+use App\\Services\\InvoiceService;
 use Illuminate\\Http\\JsonResponse;
+use Illuminate\\Http\\Request;
 use Symfony\\Component\\Routing\\Attribute\\Route;
 
 final class OrderController extends Controller
 {
+    public function __construct(private readonly InvoiceService $invoices)
+    {
+    }
+
     #[Route('/orders/{order}', name: 'orders.show', methods: ['GET'])]
-    public function show(Order $order): JsonResponse
+    public function show(Request $request, Order $order): JsonResponse
     {
         $this->authorize('view', $order);
 
-        return response()->json($order->load('user'));
+        $user = $request->user();
+        $lines = $order->lines()->with('product')->get();
+        $total = $lines->sum(fn ($line) => $line->price * $line->quantity);
+        $discount = $user->isVip() ? 0.1 : 0.0;
+
+        if ($order->isPayable()) {
+            $this->invoices->settle($order);
+        }
+
+        return response()->json([
+            'order' => $order->load('user'),
+            'total' => round($total * (1 - $discount), 2),
+        ]);
     }
 }
 `,
@@ -159,6 +177,27 @@ final class InvoiceService
         Log::info(utf8_encode('Order settled'), ['order' => $order->id]);
     }
 }
+`,
+  "public/index.php": `<?php
+
+use Illuminate\\Foundation\\Application;
+use Illuminate\\Http\\Request;
+
+define('LARAVEL_START', microtime(true));
+
+// Determine if the application is in maintenance mode...
+if (file_exists($maintenance = __DIR__.'/../storage/framework/maintenance.php')) {
+    require $maintenance;
+}
+
+// Register the Composer autoloader...
+require __DIR__.'/../vendor/autoload.php';
+
+// Bootstrap Laravel and handle the request...
+/** @var Application $app */
+$app = require_once __DIR__.'/../bootstrap/app.php';
+
+$app->handleRequest(Request::capture());
 `,
   "routes/web.php": `<?php
 

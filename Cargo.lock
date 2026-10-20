@@ -1282,6 +1282,7 @@ dependencies = [
  "forge-agent-cli",
  "forge-ai",
  "forge-core",
+ "forge-debug",
  "forge-langservers",
  "forge-lsp",
  "forge-open",
@@ -1315,6 +1316,21 @@ dependencies = [
  "tempfile",
  "thiserror 2.0.21",
  "toml 0.8.23",
+ "tracing",
+]
+
+[[package]]
+name = "forge-debug"
+version = "0.1.0"
+dependencies = [
+ "base64 0.22.1",
+ "forge-core",
+ "quick-xml",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror 2.0.21",
+ "tokio",
  "tracing",
 ]
 

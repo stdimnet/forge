@@ -1615,7 +1615,13 @@
     "enabled": true,
     "contributions": {
       "languages": [],
-      "commands": [],
+      "commands": [
+        {
+          "id": "PhpListenDebugAction",
+          "title": "Start Listening for PHP Debug Connections",
+          "category": "Run"
+        }
+      ],
       "keybindings": [],
       "toolWindows": [
         {
@@ -1626,7 +1632,102 @@
           "order": 20
         }
       ],
-      "settings": [],
+      "settings": [
+        {
+          "key": "php.debug.port",
+          "title": "Debug port",
+          "description": "Forge listens here for Xdebug (xdebug.client_port, 9003 by default).",
+          "type": "int",
+          "min": 1,
+          "max": 65535,
+          "default": 9003,
+          "group": "lang.php.debug",
+          "section": "Xdebug",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "php.debug.ignoreExternalConnections",
+          "title": "Ignore external connections through unregistered server configurations",
+          "description": "Connections that match no server and no project file are detached silently.",
+          "type": "bool",
+          "default": false,
+          "group": "lang.php.debug",
+          "section": "Xdebug",
+          "project": false,
+          "order": 1
+        },
+        {
+          "key": "php.debug.breakAtFirstLine",
+          "title": "Break at first line in PHP scripts",
+          "type": "bool",
+          "default": false,
+          "group": "lang.php.debug",
+          "section": "Settings",
+          "project": false,
+          "order": 10
+        },
+        {
+          "key": "php.debug.ignoreUnmappedFiles",
+          "title": "Step out of files that are not mapped into the project",
+          "description": "Stepping never stops in code without a local file (e.g. PHAR internals or eval'd code).",
+          "type": "bool",
+          "default": true,
+          "group": "lang.php.debug",
+          "section": "Settings",
+          "project": false,
+          "order": 11
+        },
+        {
+          "key": "php.debug.showInlineValues",
+          "title": "Show variable values in editor while debugging",
+          "type": "bool",
+          "default": true,
+          "group": "lang.php.debug",
+          "section": "Settings",
+          "project": false,
+          "order": 12
+        },
+        {
+          "key": "php.debug.maxChildren",
+          "title": "Max. children",
+          "description": "Array elements and object properties loaded per page.",
+          "type": "int",
+          "min": 1,
+          "max": 10000,
+          "default": 100,
+          "group": "lang.php.debug",
+          "section": "Evaluation",
+          "project": false,
+          "order": 20
+        },
+        {
+          "key": "php.debug.maxDepth",
+          "title": "Max. depth",
+          "description": "Nesting levels fetched at once; deeper levels load when expanded.",
+          "type": "int",
+          "min": 1,
+          "max": 16,
+          "default": 1,
+          "group": "lang.php.debug",
+          "section": "Evaluation",
+          "project": false,
+          "order": 21
+        },
+        {
+          "key": "php.debug.maxData",
+          "title": "Max. string length",
+          "description": "Bytes of string data fetched per value.",
+          "type": "int",
+          "min": 128,
+          "max": 10485760,
+          "default": 65536,
+          "group": "lang.php.debug",
+          "section": "Evaluation",
+          "project": false,
+          "order": 22
+        }
+      ],
       "lspServers": [],
       "runConfigurationTypes": [
         {

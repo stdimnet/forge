@@ -235,3 +235,30 @@ app/ui/            SolidJS UI
   changes; pack code building Intelephense configs can call
   `commands::langservers::with_intelephense_licence(&mut config)`. A plaintext
   `php.lsp.licenceKey` setting (or the PHP page's old localStorage value) is migrated once.
+- Events: `lsp://diagnostics` `{ path, diagnostics }` and `lsp://status` `ServerStatus[]`.
+
+## PHP debugger (`forge-debug`)
+
+- `DebugServer` is a DBGp server for Xdebug 3: it listens on `php.debug.port` (9003), accepts any
+  number of connections, identifies the server (`PHP_IDE_CONFIG=serverName=…`, else
+  `$_SERVER['SERVER_NAME']`/`SERVER_PORT`), maps paths and sets the project's breakpoints.
+  Breakpoints live in `<root>/.forge/breakpoints.json`, servers with path mappings in
+  `<root>/.forge/php-servers.json`. Unknown servers whose script is not a project file wait for
+  the "Incoming Connection From Xdebug" dialog (`debug_accept_connection` / `debug_ignore_connection`).
+- IPC: `debug_status`, `debug_listen_start() -> port`, `debug_listen_stop`, `debug_sessions`,
+  `debug_step({ sessionId, kind: "run" | "stepInto" | "forceStepInto" | "stepOver" | "stepOut" })`,
+  `debug_pause|debug_stop|debug_detach({ sessionId })`, `debug_run_to_cursor({ sessionId, file, line })`,
+  `debug_stack`, `debug_contexts`, `debug_variables({ sessionId, depth, context? })`,
+  `debug_property({ sessionId, fullname, depth, context?, page? })`, `debug_eval({ sessionId, expression, depth? })`,
+  `debug_set_value`, `debug_breakpoints`, `debug_breakpoint_add|update|remove|toggle`,
+  `debug_breakpoints_mute`, `debug_watches|debug_watches_set`, `debug_servers|debug_servers_save`,
+  `debug_launch_env({ serverName? }) -> env`. Files are project relative, lines 1-based.
+- Events (tagged `DebugEvent` JSON, `type` = last path segment): `debug://listening`, `debug://session`
+  (`SessionInfo` with status and location), `debug://incoming`, `debug://ended`, `debug://output`,
+  `debug://breakpoints`, `debug://error`. Typed client: `app/ui/src/features/debug/api.ts`.
+- Run configurations start debugging through `debugLauncher` (`app/ui/src/features/debug/index.tsx`):
+  `await debugLauncher.prepare(serverName?)` starts listening and returns the environment
+  (`XDEBUG_MODE`, `XDEBUG_SESSION`, `XDEBUG_CONFIG`, `PHP_IDE_CONFIG`) for the PHP process;
+  `debugLauncher.setStopFallback(fn)` lets "Stop" (Ctrl+F2) stop a run when no debug session is active.
+- Main toolbar widgets left of the run configuration selector: `registerToolbarItem`
+  (`src/features/toolbarItems.ts`).

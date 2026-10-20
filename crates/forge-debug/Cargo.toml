@@ -1,0 +1,19 @@
+[package]
+name = "forge-debug"
+description = "Forge IDE debugger: DBGp (Xdebug 3) server, path mappings and breakpoints"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+forge-core.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+quick-xml = "0.42"
+base64 = "0.22"
+
+[dev-dependencies]
+tempfile.workspace = true

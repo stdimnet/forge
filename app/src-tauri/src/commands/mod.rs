@@ -4,6 +4,7 @@
 pub mod agent;
 pub mod ai;
 pub mod companion;
+pub mod debug;
 pub mod git;
 pub mod langservers;
 pub mod lsp;
