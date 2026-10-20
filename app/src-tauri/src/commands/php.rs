@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use std::sync::Mutex;
 
 use serde::Serialize;
-use tauri::{AppHandle, Emitter, State};
+use tauri::{AppHandle, Emitter, Manager, State};
 
 use forge_core::{ForgeError, Result};
 use phpforge_lang_php::generate::{self, GenerateKind, GenerateOptions, GenerateTargets, TextEdit};
@@ -18,6 +18,7 @@ use phpforge_lang_php::parser;
 use phpforge_lang_php::structure::{FileStructure, StructureNode};
 use phpforge_lang_php::{IndexConfig, IndexStats, ProjectIndex};
 
+use crate::commands::lsp::LspState;
 use crate::state::AppState;
 
 /// The PHP index of the open workspace (created lazily, persisted under `.forge/cache`).
@@ -208,17 +209,95 @@ pub fn php_detect_servers(settings: Option<PhpLspSettings>) -> DetectedServers {
     lsp::detect(&settings, &dirs, &lsp::FsProbe)
 }
 
-/// The language server to start for the open workspace, according to the PHP settings.
+/// The language server to start for the open workspace, according to the PHP settings
+/// (the given ones, else Forge's settings store).
 #[tauri::command]
 pub fn php_lsp_config(
     settings: Option<PhpLspSettings>,
     state: State<'_, AppState>,
 ) -> Result<Option<LspServerConfig>> {
     let root = workspace_root(&state)?;
-    Ok(lsp::resolve_for_workspace(
-        &settings.unwrap_or_default(),
-        &root,
-    ))
+    let settings = settings.unwrap_or_else(|| lsp_settings(&state));
+    Ok(lsp::resolve_for_workspace(&settings, &root))
+}
+
+/// Id under which the PHP language server (Intelephense or phpactor) is registered.
+pub const PHP_SERVER_ID: &str = "php";
+
+/// The Intelephense licence key. It lives in the OS keychain, not in settings; reading it
+/// is wired up together with the licence UI.
+pub fn intelephense_licence_key() -> Option<String> {
+    None
+}
+
+/// The PHP language server settings from Forge's settings store.
+fn lsp_settings(state: &AppState) -> PhpLspSettings {
+    let settings = state.read_settings();
+    let mut s = PhpLspSettings::from_settings(|k| settings.get(k).cloned());
+    s.licence_key = intelephense_licence_key();
+    s
+}
+
+fn to_lsp_config(cfg: LspServerConfig) -> forge_lsp::LspServerConfig {
+    forge_lsp::LspServerConfig {
+        id: PHP_SERVER_ID.into(),
+        name: Some(cfg.name),
+        language_ids: cfg.language_ids,
+        file_extensions: cfg.file_extensions,
+        command: cfg.command.to_string_lossy().into_owned(),
+        args: cfg.args,
+        initialization_options: cfg.initialization_options,
+        settings: cfg.settings,
+    }
+}
+
+/// Register (or remove) the PHP language server for the open project: PHP projects with
+/// the PHP plugin enabled get Intelephense or phpactor according to Settings > PHP.
+/// Call it after a project was detected and when PHP settings change; an unchanged config
+/// keeps the running server. Blocking (file system lookups), so call it off the main thread.
+///
+/// `detected` is a detection result for a root; it is ignored if another project is open
+/// by now, and detection runs again when it is missing.
+pub fn sync_lsp_server(
+    app: &AppHandle,
+    detected: Option<(&std::path::Path, &forge_project::ProjectInfo)>,
+) {
+    let state = app.state::<AppState>();
+    let lsp_state = app.state::<LspState>();
+    let Ok(root) = workspace_root(&state) else {
+        lsp_state.unregister_server(PHP_SERVER_ID);
+        return;
+    };
+    let fresh;
+    let info = match detected {
+        Some((r, _)) if r != root => return,
+        Some((_, info)) => info,
+        None => {
+            fresh = forge_project::detect(&root);
+            &fresh
+        }
+    };
+    let enabled = state
+        .plugins
+        .read()
+        .expect("plugins lock poisoned")
+        .is_enabled("forge.php");
+    let config = (enabled && info.uses("php"))
+        .then(|| lsp::resolve_for_workspace(&lsp_settings(&state), &root))
+        .flatten();
+    match config {
+        Some(cfg) => {
+            tracing::info!("PHP language server: {}", cfg.command.display());
+            lsp_state.register_server(to_lsp_config(cfg));
+        }
+        None => lsp_state.unregister_server(PHP_SERVER_ID),
+    }
+}
+
+/// [`sync_lsp_server`] on a blocking thread.
+pub fn spawn_sync_lsp_server(app: &AppHandle) {
+    let app = app.clone();
+    tauri::async_runtime::spawn_blocking(move || sync_lsp_server(&app, None));
 }
 
 fn dirs_home() -> Option<PathBuf> {

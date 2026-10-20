@@ -14,43 +14,12 @@ use forge_lsp::model::{
     EditorCompletionItem, EditorCompletionList, EditorDiagnostic, EditorHover, EditorLocation,
     EditorSignatureHelp, EditorSymbol,
 };
-use forge_lsp::{find_on_path, LspEvent, LspManager, LspServerConfig, ServerStatus};
+use forge_lsp::{LspEvent, LspManager, LspServerConfig, ServerStatus};
 use serde::Serialize;
-use serde_json::{json, Value};
+use serde_json::Value;
 use tauri::{AppHandle, Emitter, State};
 
 use crate::state::AppState;
-
-/// Register the built-in fallback servers below. Language packs (e.g. PHPForge's
-/// `lang-php`) register their own configs through [`LspState::register_server`]; the
-/// integrator can switch this off once they do.
-pub const REGISTER_DEFAULT_SERVERS: bool = true;
-
-/// Fallback servers used when they are installed on `PATH`.
-pub fn default_servers() -> Vec<LspServerConfig> {
-    let mut servers = Vec::new();
-    if find_on_path("intelephense").is_some() {
-        servers.push(LspServerConfig {
-            id: "intelephense".into(),
-            name: Some("Intelephense".into()),
-            language_ids: vec!["php".into()],
-            file_extensions: vec!["php".into(), "phtml".into()],
-            command: "intelephense".into(),
-            args: vec!["--stdio".into()],
-            initialization_options: json!({
-                "storagePath": std::env::temp_dir().join("forge-intelephense").display().to_string(),
-                "clearCache": false
-            }),
-            settings: json!({
-                "intelephense": {
-                    "files": { "maxSize": 5_000_000, "exclude": ["**/.git/**", "**/node_modules/**"] },
-                    "format": { "enable": true }
-                }
-            }),
-        });
-    }
-    servers
-}
 
 #[derive(Serialize, Clone)]
 struct DiagnosticsEvent {
@@ -66,15 +35,30 @@ pub struct LspState {
 }
 
 impl LspState {
-    /// Add (or replace by id) a server config for this and future projects.
+    /// Add (or replace by id) a server config for this and future projects. A changed
+    /// config restarts the running server; an identical one is a no-op.
     pub fn register_server(&self, config: LspServerConfig) {
         {
             let mut registered = self.registered.lock().expect("lsp lock");
+            if registered.iter().any(|c| *c == config) {
+                return;
+            }
             registered.retain(|c| c.id != config.id);
             registered.push(config.clone());
         }
         if let Some(m) = self.manager.lock().expect("lsp lock").as_ref() {
             m.register_server(config);
+        }
+    }
+
+    /// Remove a server config and stop its server.
+    pub fn unregister_server(&self, id: &str) {
+        self.registered
+            .lock()
+            .expect("lsp lock")
+            .retain(|c| c.id != id);
+        if let Some(m) = self.manager.lock().expect("lsp lock").as_ref() {
+            m.unregister_server(id);
         }
     }
 
@@ -89,15 +73,8 @@ impl LspState {
             tauri::async_runtime::spawn(async move { old.shutdown_all().await });
         }
         let manager = Arc::new(LspManager::new(root));
-        let defaults = if REGISTER_DEFAULT_SERVERS {
-            default_servers()
-        } else {
-            vec![]
-        };
-        for config in defaults
-            .into_iter()
-            .chain(self.registered.lock().expect("lsp lock").iter().cloned())
-        {
+        // Language packs register their servers (PHP: `commands::php::sync_lsp_server`).
+        for config in self.registered.lock().expect("lsp lock").iter().cloned() {
             manager.register_server(config);
         }
         forward_events(app.clone(), &manager);
@@ -393,8 +370,13 @@ mod tests {
         };
         state.register_server(cfg("a"));
         state.register_server(cfg("b"));
-        let registered = state.registered.lock().unwrap();
-        assert_eq!(registered.len(), 1);
-        assert_eq!(registered[0].command, "b");
+        state.register_server(cfg("b"));
+        {
+            let registered = state.registered.lock().unwrap();
+            assert_eq!(registered.len(), 1);
+            assert_eq!(registered[0].command, "b");
+        }
+        state.unregister_server("x");
+        assert!(state.registered.lock().unwrap().is_empty());
     }
 }

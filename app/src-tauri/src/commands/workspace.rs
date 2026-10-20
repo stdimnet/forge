@@ -18,12 +18,14 @@ pub fn workspace_open(
     state: State<'_, AppState>,
 ) -> Result<WorkspaceInfo> {
     let ws = Workspace::open(&path)?;
-    crate::commands::project::emit_detection(&app, ws.root());
+    let root = ws.root().to_path_buf();
     let info = WorkspaceInfo {
         name: ws.name(),
-        root: ws.root().display().to_string(),
+        root: root.display().to_string(),
     };
     state.set_workspace(ws);
+    // After `set_workspace`: detection also registers the project's language servers.
+    crate::commands::project::emit_detection(&app, &root);
     crate::recent::remember(crate::recent::RecentProject {
         name: info.name.clone(),
         root: info.root.clone(),

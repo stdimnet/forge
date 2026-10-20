@@ -35,6 +35,21 @@ pub fn run() {
                         tracing::warn!("cannot emit settings change: {e}");
                     }
                 });
+            // Reconfigure (restart) the PHP language server when its settings or the
+            // enabled plugins change. Listeners run under the settings lock, so the work
+            // happens on another thread.
+            let handle = app.handle().clone();
+            app.state::<AppState>()
+                .write_settings()
+                .subscribe(move |change| {
+                    if phpforge_lang_php::lsp::affects_server(&change.key)
+                        || change.key == plugins::DISABLED_PLUGINS_KEY
+                    {
+                        commands::php::spawn_sync_lsp_server(&handle);
+                    }
+                });
+            // A project passed on the command line is already open.
+            commands::php::spawn_sync_lsp_server(app.handle());
             Ok(())
         })
         .manage(commands::lsp::LspState::default())

@@ -63,6 +63,49 @@ impl Default for PhpLspSettings {
     }
 }
 
+/// Setting keys (see `app/src-tauri/plugins/php.toml`) that change the language server.
+pub const LSP_SETTING_KEYS: &[&str] = &[
+    "php.languageLevel",
+    "php.includePaths",
+    "php.lsp.server",
+    "php.lsp.maxFileSize",
+];
+
+/// Whether a change of `key` requires the PHP language server to be reconfigured.
+pub fn affects_server(key: &str) -> bool {
+    LSP_SETTING_KEYS.contains(&key)
+}
+
+impl PhpLspSettings {
+    /// Build the settings from Forge's settings store (`get` returns the effective value of
+    /// a dotted key). Missing or malformed values keep their defaults. The licence key is
+    /// not a setting (it lives in the OS keychain) and is passed separately.
+    pub fn from_settings(get: impl Fn(&str) -> Option<Value>) -> Self {
+        let mut s = Self::default();
+        if let Some(level) = get("php.languageLevel").and_then(|v| v.as_str().map(String::from)) {
+            if !level.trim().is_empty() {
+                s.php_version = level.trim().to_string();
+            }
+        }
+        if let Some(server) = get("php.lsp.server").and_then(|v| serde_json::from_value(v).ok()) {
+            s.server = server;
+        }
+        if let Some(kb) = get("php.lsp.maxFileSize").and_then(|v| v.as_u64()) {
+            s.max_file_size = kb.saturating_mul(1000);
+        }
+        if let Some(paths) = get("php.includePaths").and_then(|v| v.as_array().cloned()) {
+            s.include_paths = paths
+                .iter()
+                .filter_map(|p| p.as_str())
+                .map(str::trim)
+                .filter(|p| !p.is_empty())
+                .map(String::from)
+                .collect();
+        }
+        s
+    }
+}
+
 /// Everything needed to spawn and initialize a language server.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -529,6 +572,30 @@ mod tests {
             ..Default::default()
         };
         assert!(server_config(&want_ip, &only_phpactor, None).is_none());
+    }
+
+    #[test]
+    fn reads_forge_settings() {
+        let values = json!({
+            "php.languageLevel": "8.1",
+            "php.lsp.server": "phpactor",
+            "php.lsp.maxFileSize": 2000,
+            "php.includePaths": ["/usr/share/php", " "],
+        });
+        let s = PhpLspSettings::from_settings(|k| values.get(k).cloned());
+        assert_eq!(s.php_version, "8.1");
+        assert_eq!(s.server, ServerChoice::Phpactor);
+        assert_eq!(s.max_file_size, 2_000_000);
+        assert_eq!(s.include_paths, vec!["/usr/share/php"]);
+        assert!(s.licence_key.is_none());
+
+        let defaults = PhpLspSettings::from_settings(|_| None);
+        assert_eq!(defaults.server, ServerChoice::Auto);
+        assert_eq!(defaults.php_version, "8.3");
+        let bad = PhpLspSettings::from_settings(|_| Some(json!(true)));
+        assert_eq!(bad.server, ServerChoice::Auto);
+        assert!(affects_server("php.lsp.server"));
+        assert!(!affects_server("php.codeStyle.tabSize"));
     }
 
     #[test]

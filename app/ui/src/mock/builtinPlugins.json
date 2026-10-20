@@ -960,6 +960,35 @@
           "order": 10
         },
         {
+          "key": "php.lsp.server",
+          "title": "Language server",
+          "description": "Started automatically when a PHP project opens.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "auto",
+              "label": "Auto (Intelephense, else phpactor)"
+            },
+            {
+              "value": "intelephense",
+              "label": "Intelephense"
+            },
+            {
+              "value": "phpactor",
+              "label": "phpactor"
+            },
+            {
+              "value": "none",
+              "label": "None (built-in index only)"
+            }
+          ],
+          "default": "auto",
+          "group": "lang.php",
+          "section": "Language Server",
+          "project": false,
+          "order": 19
+        },
+        {
           "key": "php.lsp.maxFileSize",
           "title": "Max indexed file size (KB)",
           "type": "int",

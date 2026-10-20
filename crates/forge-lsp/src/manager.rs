@@ -80,6 +80,29 @@ impl LspManager {
         });
     }
 
+    /// Remove a server config and shut its server down. Unknown ids are ignored.
+    pub fn unregister_server(&self, id: &str) {
+        let removed = {
+            let mut configs = self.configs.write().expect("configs lock");
+            let before = configs.len();
+            configs.retain(|c| c.id != id);
+            configs.len() != before
+        };
+        self.failures.lock().expect("failures lock").remove(id);
+        let old = self.slots.lock().expect("slots lock").remove(id);
+        if let Some(Some(client)) = old.and_then(|s| s.get().cloned()) {
+            if let Ok(handle) = tokio::runtime::Handle::try_current() {
+                handle.spawn(async move { client.shutdown().await });
+            }
+        }
+        if removed {
+            let _ = self.events.send(LspEvent::State {
+                server_id: id.to_string(),
+                state: ServerState::NotStarted,
+            });
+        }
+    }
+
     pub fn configs(&self) -> Vec<LspServerConfig> {
         self.configs.read().expect("configs lock").clone()
     }
@@ -322,5 +345,35 @@ impl LspManager {
                 client.shutdown().await;
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn cfg(id: &str) -> LspServerConfig {
+        LspServerConfig {
+            id: id.into(),
+            name: None,
+            language_ids: vec!["php".into()],
+            file_extensions: vec!["php".into()],
+            command: "x".into(),
+            args: vec![],
+            initialization_options: serde_json::Value::Null,
+            settings: serde_json::Value::Null,
+        }
+    }
+
+    #[test]
+    fn unregister_removes_config() {
+        let m = LspManager::new("/p");
+        m.register_server(cfg("php"));
+        m.register_server(cfg("other"));
+        assert!(m.config_for(Path::new("/p/a.php")).is_some());
+        m.unregister_server("php");
+        m.unregister_server("missing");
+        assert_eq!(m.configs().len(), 1);
+        assert_eq!(m.statuses()[0].id, "other");
     }
 }
