@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Forge Companion</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header class="head">
+      <img src="icons/icon-32.png" alt="" width="28" height="28" />
+      <div class="head-text">
+        <h1>Forge Companion</h1>
+        <div class="status" id="status"><span class="dot"></span><span id="status-text">Looking for Forge…</span></div>
+      </div>
+    </header>
+
+    <section id="pair" class="card" hidden>
+      <label for="code" class="label">Pairing code</label>
+      <form class="row" id="pair-form">
+        <input id="code" inputmode="numeric" autocomplete="off" placeholder="123 456" maxlength="7" spellcheck="false" />
+        <button class="primary" type="submit" id="pair-btn">Pair</button>
+      </form>
+      <p class="hint">In Forge, open <b>Settings | Tools | Browser Companion</b> and click <b>Pair New Browser…</b></p>
+      <p class="error" id="pair-error" hidden></p>
+    </section>
+
+    <section id="controls" class="card">
+      <label class="switch-row">
+        <span class="switch-text">
+          <span class="strong">Inspect mode</span>
+          <span class="muted">Click a component to open it</span>
+        </span>
+        <kbd id="shortcut">Alt+Shift+F</kbd>
+        <input type="checkbox" role="switch" id="inspect" />
+      </label>
+      <label class="check">
+        <input type="checkbox" id="alt-click" />
+        <span><kbd>Alt</kbd>+Click opens components directly</span>
+      </label>
+    </section>
+
+    <section id="recent-section">
+      <h2>Recently opened</h2>
+      <ul id="recent"></ul>
+      <p class="muted empty" id="recent-empty">Files you open from the browser show up here.</p>
+    </section>
+
+    <details id="advanced">
+      <summary>Connection and path mappings</summary>
+      <div class="advanced">
+        <label class="label" for="port">Forge port</label>
+        <input id="port" inputmode="numeric" placeholder="auto (63342–63351)" />
+        <label class="label" for="mappings">Path mappings <span class="muted">(one per line: <code>/var/www/html =&gt; /home/me/shop</code>)</span></label>
+        <textarea id="mappings" rows="3" spellcheck="false"></textarea>
+        <div class="row end">
+          <button id="unpair" class="link danger" type="button">Unpair this browser</button>
+          <button id="save" class="secondary" type="button">Save</button>
+        </div>
+      </div>
+    </details>
+    <script src="popup.js"></script>
+  </body>
+</html>

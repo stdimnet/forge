@@ -17,6 +17,11 @@ or another OpenAI-compatible API.
 
 The layout and keymap follow PHPStorm 1:1 so you feel at home immediately; the look is Forge's own.
 
+**Browser Companion**: click a React, Vue, Angular or Svelte component in your running app and
+its source opens in Forge ([browser-extension/](browser-extension/README.md)). Error pages
+(Ignition, Symfony, Whoops, Xdebug) and dev overlays open files through `forge://open` links and
+the `forge path/to/file:12` launcher.
+
 ![Forge workbench](docs/screenshots/workbench-dark.png)
 
 ## Development

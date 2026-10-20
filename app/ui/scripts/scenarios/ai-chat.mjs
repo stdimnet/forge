@@ -17,14 +17,14 @@ export default {
     await page.waitForSelector(".chat-empty-status");
   },
   "ai-chat-streaming": async (page) => {
-    await page.click('[data-path="app/Models/Order.php"]');
+    await page.dblclick('.tree-row[data-path="app/Models/Order.php"]');
     await openChat(page);
     await ask(page, "Add a scope for paid orders to Order model");
     await page.waitForSelector('.chat-tool-card[data-tool="Bash"].running', { timeout: 30000 });
     await page.waitForTimeout(400);
   },
   "ai-chat-finished": async (page) => {
-    await page.click('[data-path="app/Models/Order.php"]');
+    await page.dblclick('.tree-row[data-path="app/Models/Order.php"]');
     await openChat(page);
     await ask(page, "Add a scope for paid orders to Order model");
     await page.waitForSelector(".chat-turn-footer", { timeout: 40000 });
@@ -61,7 +61,7 @@ export default {
   },
   "ai-chat-light": async (page) => {
     await page.evaluate(() => (document.documentElement.dataset.theme = "light"));
-    await page.click('[data-path="app/Models/Order.php"]');
+    await page.dblclick('.tree-row[data-path="app/Models/Order.php"]');
     await openChat(page);
     await ask(page, "Add a scope for paid orders to Order model");
     await page.waitForSelector(".chat-turn-footer", { timeout: 40000 });

@@ -3,6 +3,7 @@
 
 pub mod agent;
 pub mod ai;
+pub mod companion;
 pub mod git;
 pub mod lsp;
 pub mod php;

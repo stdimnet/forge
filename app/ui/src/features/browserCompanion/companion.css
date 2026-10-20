@@ -1,0 +1,351 @@
+/* Settings | Tools | Browser Companion */
+.bc-page {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 860px;
+}
+.bc-page .set-section + .set-section {
+  margin-top: 6px;
+}
+.bc-intro {
+  margin: 0 0 2px;
+  line-height: 1.5;
+}
+.bc-page .mono,
+.bc-code pre {
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+}
+.bc-small {
+  font-size: var(--fs-small);
+}
+.bc-section-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-left: 16px;
+}
+.bc-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.bc-btn-small {
+  height: 26px;
+  padding: 0 10px;
+  font-size: var(--fs-small);
+}
+.bc-page button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.bc-page .spin {
+  animation: bc-spin 0.9s linear infinite;
+}
+@keyframes bc-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.bc-error {
+  color: var(--danger);
+}
+
+/* Server status under the schema settings */
+.bc-status-row {
+  margin-top: -4px;
+  padding-left: 16px;
+}
+.bc-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px;
+  border-radius: var(--radius);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+}
+.bc-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.bc-dot.on {
+  background: var(--success);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--success) 22%, transparent);
+}
+.bc-dot.off {
+  background: var(--fg-faint);
+}
+.bc-error-icon {
+  color: var(--danger);
+}
+
+/* Paired browsers */
+.bc-clients {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-panel);
+  overflow: hidden;
+}
+.bc-client {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+}
+.bc-client + .bc-client {
+  border-top: 1px solid var(--border);
+}
+.bc-client-icon {
+  color: var(--info);
+}
+.bc-client-name {
+  color: var(--fg-strong);
+  font-weight: 500;
+}
+.bc-client-used {
+  white-space: nowrap;
+}
+.bc-empty {
+  padding: 12px;
+  font-size: var(--fs-small);
+}
+
+.bc-pairing {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 18px;
+  padding: 14px 16px;
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--border));
+  border-radius: var(--radius);
+  background: var(--accent-soft);
+}
+.bc-pairing-title {
+  color: var(--fg-strong);
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+.bc-pairing-code {
+  font-family: var(--font-mono);
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+  padding: 8px 16px;
+  border-radius: var(--radius);
+  background: var(--bg-editor);
+  border: 1px solid var(--border-strong);
+  user-select: all;
+}
+.bc-pairing-actions {
+  margin-top: 8px;
+}
+.bc-countdown {
+  min-width: 96px;
+  color: var(--fg-muted);
+  font-variant-numeric: tabular-nums;
+}
+.bc-countdown.expired {
+  color: var(--danger);
+}
+
+/* Links and launcher */
+.bc-grid {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  gap: 12px 10px;
+  line-height: 1.5;
+}
+.bc-grid-icon {
+  margin-top: 2px;
+  color: var(--fg-muted);
+}
+.bc-inline-code {
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  white-space: nowrap;
+}
+.bc-test-link {
+  margin-top: 6px;
+  flex-wrap: nowrap;
+}
+.bc-link-input {
+  flex: 1;
+  min-width: 0;
+  max-width: 460px;
+}
+
+/* Framework integrations */
+.bc-detected-line {
+  margin-top: -2px;
+}
+.bc-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.bc-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-panel);
+}
+.bc-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.bc-card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--fg-strong);
+  font-weight: 600;
+}
+.bc-card-desc,
+.bc-card-note {
+  line-height: 1.45;
+}
+.bc-badge {
+  padding: 1px 7px;
+  border-radius: 9px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+.bc-applied {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--fs-small);
+  color: var(--success);
+  white-space: nowrap;
+}
+.bc-code {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-editor);
+  overflow: hidden;
+}
+.bc-code-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 26px;
+  padding: 0 4px 0 10px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-elevated);
+}
+.bc-code-file {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--fg-muted);
+}
+.bc-code pre {
+  margin: 0;
+  padding: 8px 10px;
+  overflow-x: auto;
+  color: var(--fg);
+  line-height: 1.55;
+}
+.bc-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  color: var(--fg-muted);
+}
+.bc-copy:hover {
+  background: var(--bg-hover);
+  color: var(--fg);
+}
+.bc-copy.done {
+  color: var(--success);
+}
+.bc-link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  color: var(--accent);
+  font-size: var(--fs-small);
+}
+.bc-link-btn:hover {
+  text-decoration: underline;
+}
+
+/* Confirmation dialog (native <dialog>) */
+.bc-confirm {
+  width: 500px;
+  padding: 0;
+  color: var(--fg);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+}
+.bc-confirm::backdrop {
+  background: color-mix(in srgb, var(--bg-app) 55%, transparent);
+}
+.bc-confirm-title {
+  display: flex;
+  align-items: center;
+  height: 38px;
+  padding: 0 14px;
+  font-weight: 600;
+  color: var(--fg-strong);
+  border-bottom: 1px solid var(--border);
+}
+.bc-confirm-body {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 14px;
+  padding: 16px;
+}
+.bc-confirm-icon {
+  color: var(--info);
+}
+.bc-confirm-icon.warning {
+  color: var(--warning);
+}
+.bc-confirm-text p {
+  margin: 0 0 8px;
+  line-height: 1.5;
+}
+.bc-confirm-text p:last-child {
+  margin-bottom: 0;
+}
+.bc-confirm-detail {
+  display: block;
+  margin: 0 0 10px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-editor);
+  border: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  overflow-wrap: anywhere;
+}
+.bc-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--border);
+}

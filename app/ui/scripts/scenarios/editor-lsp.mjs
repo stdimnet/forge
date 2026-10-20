@@ -37,8 +37,8 @@ async function waitForServer(page) {
 }
 
 async function openFile(page, dir, file) {
-  await page.click(`[data-path="${dir}"]`);
-  await page.click(`[data-path="${dir}/${file}"]`);
+  await page.dblclick(`.tree-row[data-path="${dir}"]`);
+  await page.dblclick(`.tree-row[data-path="${dir}/${file}"]`);
   await page.waitForFunction((name) => document.querySelector(".editor-tab.active")?.textContent?.includes(name), file);
   await page.waitForTimeout(150);
 }

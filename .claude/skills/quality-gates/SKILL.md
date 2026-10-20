@@ -29,6 +29,14 @@ pnpm test        # vitest
 pnpm build
 ```
 
+## Browser extension (`browser-extension`, only when it changed)
+
+```sh
+pnpm typecheck
+pnpm test        # vitest
+pnpm build       # dist/chrome and dist/firefox
+```
+
 ## Before you commit
 
 - UI changes have screenshots (`verify-ui-with-screenshots` skill).

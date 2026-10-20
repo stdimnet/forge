@@ -1819,5 +1819,69 @@
       ],
       "codeGenerators": []
     }
+  },
+  {
+    "id": "forge.browser-companion",
+    "name": "Browser Companion",
+    "version": "0.1.0",
+    "pack": "core",
+    "description": "Click a component in the browser to open its source, forge:// links for error pages (Ignition, Symfony, Xdebug) and the forge file:line launcher.",
+    "vendor": "Forge",
+    "depends": [],
+    "required": false,
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "commands": [
+        {
+          "id": "BrowserCompanion.Settings",
+          "title": "Browser Companion Settings",
+          "category": "Tools"
+        }
+      ],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [
+        {
+          "key": "browserCompanion.enabled",
+          "title": "Accept open requests from paired browsers",
+          "description": "Runs a small server on 127.0.0.1 that only paired browser extensions can use.",
+          "type": "bool",
+          "default": true,
+          "group": "tools.browser-companion",
+          "section": "Built-in Server",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "browserCompanion.port",
+          "title": "Port",
+          "description": "If the port is taken (for example by PhpStorm), the next 9 ports are tried. The extension finds Forge in this range.",
+          "type": "int",
+          "min": 1024,
+          "max": 65535,
+          "default": 63342,
+          "group": "tools.browser-companion",
+          "section": "Built-in Server",
+          "project": false,
+          "order": 1
+        },
+        {
+          "key": "browserCompanion.focusWindow",
+          "title": "Bring Forge to the front when a file is opened",
+          "type": "bool",
+          "default": true,
+          "group": "tools.browser-companion",
+          "section": "Built-in Server",
+          "project": false,
+          "order": 2
+        }
+      ],
+      "lspServers": [],
+      "runConfigurationTypes": [],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": []
+    }
   }
 ]

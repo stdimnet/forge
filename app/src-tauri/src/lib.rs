@@ -1,28 +1,37 @@
 mod commands;
+mod companion;
 mod plugins;
 mod recent;
 mod state;
 
 use state::AppState;
 use tauri::{Emitter, Manager};
+use tauri_plugin_deep_link::DeepLinkExt;
 
 pub fn run() {
     tracing_subscriber::fmt()
         .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
         .init();
 
-    let app_state = AppState::new();
-    // Open the project passed on the command line (`forge path/to/project`), if any.
-    if let Some(path) = std::env::args().nth(1) {
-        match forge_core::Workspace::open(&path) {
-            Ok(ws) => app_state.set_workspace(ws),
-            Err(e) => tracing::warn!("could not open {path}: {e}"),
-        }
+    let mut builder = tauri::Builder::default();
+    // A second `forge …` launch is forwarded to this instance. forge:// links among its
+    // arguments arrive through the deep-link plugin's event instead, so they are skipped.
+    #[cfg(any(target_os = "macos", windows, target_os = "linux"))]
+    {
+        builder = builder.plugin(tauri_plugin_single_instance::init(|app, argv, cwd| {
+            let args = argv
+                .into_iter()
+                .skip(1)
+                .filter(|a| !a.starts_with("forge:"));
+            companion::handle_launch_args(app, args, std::path::Path::new(&cwd), false);
+        }));
     }
 
-    tauri::Builder::default()
+    builder
+        .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_dialog::init())
-        .manage(app_state)
+        .manage(AppState::new())
+        .manage(companion::CompanionState::load())
         .manage(commands::ai::AiState::load())
         .manage(commands::agent::AgentState::default())
         .setup(|app| {
@@ -35,6 +44,39 @@ pub fn run() {
                         tracing::warn!("cannot emit settings change: {e}");
                     }
                 });
+
+            // Browser Companion server, restarted when its settings change.
+            let handle = app.handle().clone();
+            app.state::<AppState>()
+                .write_settings()
+                .subscribe(move |change| {
+                    if change.key == companion::KEY_ENABLED || change.key == companion::KEY_PORT {
+                        companion::apply_server_settings(&handle);
+                    }
+                });
+            companion::apply_server_settings(app.handle());
+
+            // forge:// links. Installers register the scheme; dev builds and AppImages
+            // register it at runtime.
+            #[cfg(any(windows, target_os = "linux"))]
+            if cfg!(debug_assertions) || std::env::var_os("APPIMAGE").is_some() {
+                if let Err(e) = app.deep_link().register_all() {
+                    tracing::warn!("cannot register the forge:// scheme: {e}");
+                }
+            }
+            let handle = app.handle().clone();
+            app.deep_link().on_open_url(move |event| {
+                for url in event.urls() {
+                    match forge_open::request::parse_forge_url(url.as_str()) {
+                        Ok(link) => companion::open_link(&handle, &link),
+                        Err(e) => tracing::warn!("ignoring link: {e}"),
+                    }
+                }
+            });
+
+            // `forge path/to/project`, `forge src/App.tsx:12` or a forge:// link at startup.
+            let cwd = std::env::current_dir().unwrap_or_default();
+            companion::handle_launch_args(app.handle(), std::env::args().skip(1), &cwd, true);
             Ok(())
         })
         .manage(commands::lsp::LspState::default())
@@ -115,6 +157,14 @@ pub fn run() {
             commands::project::project_plan,
             commands::project::project_create,
             commands::project::project_create_cancel,
+            commands::companion::companion_status,
+            commands::companion::companion_start_pairing,
+            commands::companion::companion_cancel_pairing,
+            commands::companion::companion_revoke_client,
+            commands::companion::companion_ui_ready,
+            commands::companion::companion_open_link,
+            commands::companion::companion_project_profile,
+            commands::companion::companion_set_env_var,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Forge");
