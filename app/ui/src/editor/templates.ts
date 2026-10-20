@@ -13,11 +13,17 @@ export interface TemplateSyntax {
   /** Delimiter pairs: [open, close, kind]. Longest openers must come first. */
   delimiters: [string, string, "expr" | "block" | "comment"][];
   keywords: string[];
+  /** Built-in functions called without parentheses (`eq .A 1`), styled like function calls. */
+  builtins?: string[];
+  /** `.Field.Sub` selectors are properties instead of an operator followed by a name. */
+  fields?: boolean;
+  /** Backtick raw strings, which may span lines (Go). */
+  rawStrings?: boolean;
 }
 
 interface TemplateState {
   /** Close delimiter of the template tag we are in, if any. */
-  inTag: { close: string; kind: "expr" | "block" | "comment"; first: boolean } | null;
+  inTag: { close: string; kind: "expr" | "block" | "comment"; first: boolean; raw?: boolean } | null;
   /** HTML context outside template tags. */
   html: "text" | "tag" | "comment" | "attrValue";
   quote: string | null;
@@ -43,6 +49,7 @@ function copyState<T>(parser: StreamParser<T>, state: T): T {
  */
 export function templateParser(syntax: TemplateSyntax, data?: StreamParser<unknown> | null): StreamParser<TemplateState> {
   const keywords = new Set(syntax.keywords);
+  const builtins = new Set(syntax.builtins);
   const opens = syntax.delimiters.map(([open]) => open);
 
   /** Position of the next template opener at or after `from`, or the line end. */
@@ -89,6 +96,7 @@ export function templateParser(syntax: TemplateSyntax, data?: StreamParser<unkno
 
   function inTemplateTag(stream: StringStream, state: TemplateState): string | null {
     const tag = state.inTag!;
+    if (tag.raw) return rawString(stream, tag);
     if (tag.kind === "comment") {
       const end = stream.string.indexOf(tag.close, stream.pos);
       if (end < 0) {
@@ -108,6 +116,10 @@ export function templateParser(syntax: TemplateSyntax, data?: StreamParser<unkno
     tag.first = false;
 
     const ch = stream.peek();
+    if (syntax.rawStrings && ch === "`") {
+      stream.next();
+      return rawString(stream, tag);
+    }
     if (ch === '"' || ch === "'") {
       stream.next();
       let escaped = false;
@@ -121,16 +133,25 @@ export function templateParser(syntax: TemplateSyntax, data?: StreamParser<unkno
     if (stream.match(/^\d+(\.\d+)?/)) return "number";
     if (stream.match(/^\$[A-Za-z_]\w*/)) return "variableName";
     if (stream.match(/^\|\s*[A-Za-z_]\w*/)) return "variableName.function";
+    if (syntax.fields && stream.match(/^\.[A-Za-z_]\w*/)) return "propertyName";
     if (stream.match(/^[A-Za-z_]\w*/)) {
       const word = stream.current();
-      if (stream.peek() === "(") return "variableName.function";
+      if (stream.peek() === "(" || builtins.has(word)) return "variableName.function";
       if ((first && tag.kind === "block") || keywords.has(word)) return "keyword";
-      if (word === "true" || word === "false" || word === "null" || word === "none") return "atom";
+      if (word === "true" || word === "false" || word === "null" || word === "none" || word === "nil") return "atom";
       return "variableName";
     }
     if (stream.match(OPERATORS)) return "operator";
     stream.next();
     return "punctuation";
+  }
+
+  /** Rest of a backtick string; it stays open across lines until the closing backtick. */
+  function rawString(stream: StringStream, tag: NonNullable<TemplateState["inTag"]>): string {
+    tag.raw = !stream.skipTo("`");
+    if (!tag.raw) stream.next();
+    else stream.skipToEnd();
+    return "string";
   }
 
   function html(stream: StringStream, state: TemplateState): string | null {
@@ -298,4 +319,24 @@ export const mustacheSyntax: TemplateSyntax = {
     ["{{", "}}", "expr"],
   ],
   keywords: ["if", "unless", "each", "with", "else", "as", "this", "lookup", "log"],
+};
+
+/**
+ * Go `text/template` and `html/template`: `{{ }}` actions with `{{-` / `-}}` trim markers,
+ * block comments, `.Field` selectors, `$variables`, pipelines and builtin functions.
+ */
+export const goTemplateSyntax: TemplateSyntax = {
+  name: "gotemplate",
+  delimiters: [
+    ["{{- /*", "*/ -}}", "comment"],
+    ["{{/*", "*/}}", "comment"],
+    ["{{", "}}", "expr"],
+  ],
+  keywords: ["if", "else", "end", "range", "with", "define", "template", "block", "break", "continue"],
+  builtins: [
+    "and", "or", "not", "len", "index", "slice", "print", "printf", "println", "html", "js", "urlquery",
+    "call", "eq", "ne", "lt", "le", "gt", "ge",
+  ],
+  fields: true,
+  rawStrings: true,
 };

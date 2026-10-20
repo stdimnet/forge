@@ -12,8 +12,9 @@ import { xml } from "@codemirror/lang-xml";
 import { properties } from "@codemirror/legacy-modes/mode/properties";
 import { dotenv } from "./dotenv";
 import { streamLanguage } from "./tokens";
-import { jinjaSyntax, latteSyntax, mustacheSyntax, smartySyntaxWith, templateParser, twigSyntax, type TemplateSyntax } from "./templates";
-import { dataLanguageFor } from "./templateData";
+import { goTemplateSyntax, jinjaSyntax, latteSyntax, mustacheSyntax, smartySyntaxWith, twigSyntax, type TemplateSyntax } from "./templates";
+import { dataLanguageFor, dataLanguageSupport } from "./templateData";
+import { templateOverlay } from "./templateOverlay";
 import { getSetting } from "@/state/settings";
 import { less } from "@codemirror/lang-less";
 import { sass } from "@codemirror/lang-sass";
@@ -97,7 +98,7 @@ function template(id: string, label: string, extensions: string[], syntax: () =>
     id,
     label,
     extensions,
-    load: (path) => StreamLanguage.define(templateParser(syntax(), dataLanguageFor(path).parser)),
+    load: (path) => [dataLanguageSupport(dataLanguageFor(path)), templateOverlay(syntax())],
     labelFor: (path) => {
       const data = dataLanguageFor(path);
       return data.id === "html" ? label : `${label} (${data.label})`;
@@ -128,6 +129,7 @@ const languages: LanguageDef[] = [
     smartySyntaxWith(getSetting<string>("templates.smarty.leftDelimiter", "{"), getSetting<string>("templates.smarty.rightDelimiter", "}")),
   ),
   template("latte", "Latte", ["latte"], () => latteSyntax),
+  template("gotemplate", "Go Template", ["tmpl", "gotmpl", "gohtml"], () => goTemplateSyntax),
   template("jinja", "Jinja2", ["j2", "jinja", "jinja2", "njk", "nunjucks"], () => jinjaSyntax),
   template("handlebars", "Handlebars", ["hbs", "handlebars", "mustache"], () => mustacheSyntax),
   { id: "velocity", label: "Velocity", extensions: ["vm", "vtl"], load: stream(velocity) },

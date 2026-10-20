@@ -31,4 +31,5 @@ export default {
   "syntax-css": scenario("resources/css/app.css"),
   "syntax-twig-latex": scenario("templates/invoice/invoice.tex.twig"),
   "syntax-twig-sql": scenario("templates/reports/top_customers.sql.twig"),
+  "syntax-go-template": scenario("templates/mail/welcome.html.tmpl"),
 };
