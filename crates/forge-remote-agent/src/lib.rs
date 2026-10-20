@@ -391,6 +391,12 @@ impl Agent {
                 kind,
                 content,
             } => reply(php.navigate(&path, offset, kind, content)?),
+            PhpCall::Definition {
+                path,
+                offset,
+                content,
+            } => reply(php.definition(&path, offset, content)?),
+            PhpCall::LineMarkers { path, content } => reply(php.line_markers(&path, content)?),
             PhpCall::Intentions {
                 path,
                 offset,

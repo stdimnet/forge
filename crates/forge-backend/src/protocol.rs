@@ -218,6 +218,17 @@ pub enum PhpCall {
         kind: NavKind,
         content: Option<String>,
     },
+    /// -> `PhpDefinition`
+    Definition {
+        path: String,
+        offset: usize,
+        content: Option<String>,
+    },
+    /// -> `Vec<PhpLineMarker>`
+    LineMarkers {
+        path: String,
+        content: Option<String>,
+    },
     /// -> `Vec<Intention>`
     Intentions {
         path: String,

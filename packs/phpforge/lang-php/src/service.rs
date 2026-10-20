@@ -6,7 +6,7 @@ use crate::generate::{self, GenerateKind, GenerateOptions, GenerateTargets, Text
 use crate::hover::{self, Hover};
 use crate::index::ProjectIndex;
 use crate::intentions::{self, Intention};
-use crate::navigate::{self, NavKind, NavTarget, PhpUsages};
+use crate::navigate::{self, NavKind, NavTarget, PhpDefinition, PhpLineMarker, PhpUsages};
 use crate::offsets::{byte_to_utf16, utf16_to_byte};
 use crate::parser;
 use crate::structure::{FileStructure, StructureNode};
@@ -96,6 +96,16 @@ pub fn navigate(
     kind: NavKind,
 ) -> Vec<NavTarget> {
     navigate::navigate(idx, path, text, utf16_to_byte(text, offset), kind)
+}
+
+/// Go to Declaration at a UTF-16 `offset` (LSP positions out).
+pub fn definition(idx: &mut ProjectIndex, path: &str, text: &str, offset: usize) -> PhpDefinition {
+    navigate::definition(idx, path, text, utf16_to_byte(text, offset))
+}
+
+/// The implemented / overridden gutter markers of a file.
+pub fn line_markers(idx: &mut ProjectIndex, path: &str, text: &str) -> Vec<PhpLineMarker> {
+    navigate::line_markers(idx, path, text)
 }
 
 /// Show Context Actions: the built-in intentions at a UTF-16 `offset`, UTF-16 edits.

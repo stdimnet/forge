@@ -10,7 +10,7 @@ use phpforge_lang_php::hover::Hover;
 use phpforge_lang_php::index::{SearchKind, SymbolHit};
 use phpforge_lang_php::intentions::Intention;
 use phpforge_lang_php::lsp::{self, DetectedServers, LspServerConfig, PhpLspSettings};
-use phpforge_lang_php::navigate::{NavKind, NavTarget, PhpUsages};
+use phpforge_lang_php::navigate::{NavKind, NavTarget, PhpDefinition, PhpLineMarker, PhpUsages};
 use phpforge_lang_php::service;
 use phpforge_lang_php::structure::FileStructure;
 use phpforge_lang_php::{IndexConfig, IndexStats, ProjectIndex};
@@ -59,6 +59,16 @@ pub trait PhpBackend: Send + Sync {
         kind: NavKind,
         content: Option<String>,
     ) -> Result<Vec<NavTarget>>;
+    /// Go to Declaration from the index: the target, "on a declaration" (Show Usages) or
+    /// the name to look up in the PHP stubs.
+    fn definition(
+        &self,
+        path: &str,
+        offset: usize,
+        content: Option<String>,
+    ) -> Result<PhpDefinition>;
+    /// The implemented / overridden gutter markers of a file.
+    fn line_markers(&self, path: &str, content: Option<String>) -> Result<Vec<PhpLineMarker>>;
     /// Built-in intentions for Show Context Actions (Alt+Enter).
     fn intentions(
         &self,
@@ -212,6 +222,21 @@ impl PhpBackend for LocalPhp {
     ) -> Result<Vec<NavTarget>> {
         let text = self.source(path, content)?;
         self.with_index(|idx| service::navigate(idx, path, &text, offset, kind))
+    }
+
+    fn definition(
+        &self,
+        path: &str,
+        offset: usize,
+        content: Option<String>,
+    ) -> Result<PhpDefinition> {
+        let text = self.source(path, content)?;
+        self.with_index(|idx| service::definition(idx, path, &text, offset))
+    }
+
+    fn line_markers(&self, path: &str, content: Option<String>) -> Result<Vec<PhpLineMarker>> {
+        let text = self.source(path, content)?;
+        self.with_index(|idx| service::line_markers(idx, path, &text))
     }
 
     fn intentions(

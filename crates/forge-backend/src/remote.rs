@@ -18,7 +18,7 @@ use phpforge_lang_php::hover::Hover;
 use phpforge_lang_php::index::{SearchKind, SymbolHit};
 use phpforge_lang_php::intentions::Intention;
 use phpforge_lang_php::lsp::{DetectedServers, LspServerConfig, PhpLspSettings};
-use phpforge_lang_php::navigate::{NavKind, NavTarget, PhpUsages};
+use phpforge_lang_php::navigate::{NavKind, NavTarget, PhpDefinition, PhpLineMarker, PhpUsages};
 use phpforge_lang_php::structure::FileStructure;
 use phpforge_lang_php::IndexStats;
 use serde::de::DeserializeOwned;
@@ -657,6 +657,26 @@ impl PhpBackend for RemoteBackend {
             path: path.to_string(),
             offset,
             kind,
+            content,
+        })
+    }
+
+    fn definition(
+        &self,
+        path: &str,
+        offset: usize,
+        content: Option<String>,
+    ) -> Result<PhpDefinition> {
+        self.php_call(PhpCall::Definition {
+            path: path.to_string(),
+            offset,
+            content,
+        })
+    }
+
+    fn line_markers(&self, path: &str, content: Option<String>) -> Result<Vec<PhpLineMarker>> {
+        self.php_call(PhpCall::LineMarkers {
+            path: path.to_string(),
             content,
         })
     }
