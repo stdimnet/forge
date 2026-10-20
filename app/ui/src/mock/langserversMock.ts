@@ -10,7 +10,7 @@ import type { ServerStatus } from "@/ipc/lsp";
 import type { SettingValue } from "@/ipc/settings";
 import { demoConfigFiles } from "./demoConfigFiles";
 import { demoFiles } from "./demoProject";
-import { onMockDidOpen, setMockServerStatus } from "./lspMock";
+import { intelephenseMissingAtStart, markMockIntelephenseInstalled, onMockDidOpen, setMockServerStatus } from "./lspMock";
 
 type Install = [tool: string, command: string, runnable?: boolean];
 
@@ -76,19 +76,31 @@ const servers: MockServer[] = [
   { id: "phpactor", name: "Phpactor", group: "PHP", languages: ["PHP"], command: "phpactor", args: ["language-server"], status: "notInstalled", inProject: true, install: [["composer", "composer global require phpactor/phpactor"], download("https://github.com/phpactor/phpactor/releases")], source: "php", homepage: "https://phpactor.readthedocs.io", note: "Used when Intelephense is not installed, or when chosen in the PHP settings." },
 ];
 
+// `?intelephense=missing`: Intelephense (and Node.js) are not installed yet.
+const intelephense = servers.find((s) => s.id === "intelephense")!;
+let nodeInstalled = true;
+if (intelephenseMissingAtStart()) {
+  intelephense.status = "notInstalled";
+  intelephense.path = undefined;
+  nodeInstalled = false;
+}
+
 /** Tools present on the "machine" in browser mode. */
 const TOOLS = new Set(["npm", "cargo", "go", "pipx", "rustup", "composer"]);
 
 const installRows = (s: MockServer): InstallRow[] =>
   s.install.map(([tool, command, runnable], index) => {
     const isUrl = command.startsWith("https://");
+    // npm packages are installed by Forge itself (no npm needed), like the desktop app.
+    const managed = tool === "npm";
     return {
       index,
       tool,
       command,
       runnable: runnable ?? !isUrl,
-      available: TOOLS.has(tool),
+      available: managed || TOOLS.has(tool),
       url: isUrl ? command : null,
+      managed,
     };
   });
 
@@ -191,20 +203,76 @@ function fakeOutput(s: MockServer, command: string): [stream: "stdout" | "stderr
   ];
 }
 
+/** Screenshot scenarios hold a simulated download at this fraction (browser mode only). */
+const hold = () => (window as unknown as { __forgeMockInstallHold?: number }).__forgeMockInstallHold;
+
+const MB = 1048576;
+const NODE = "v22.11.0";
+const PACKAGE_SIZES: Record<string, number> = { intelephense: 9.6 * MB };
+
+/**
+ * A Forge-managed npm install as the backend reports it: Node.js download (when "missing"),
+ * registry lookup, tarball download with progress, integrity check, unpack.
+ */
+async function managedInstall(id: string, packages: string[], cancelled: () => boolean): Promise<boolean> {
+  const emit = (line: string) => emitMock("langservers://install-output", { id, stream: "info", line });
+  const download = async (label: string, total: number) => {
+    for (let done = 0; ; ) {
+      emitMock("langservers://install-progress", { id, label, done, total });
+      if (done >= total) return;
+      await sleep(180);
+      while (hold() !== undefined && done / total >= hold()!) await sleep(100);
+      if (cancelled()) return;
+      done = Math.min(total, done + total / 12);
+    }
+  };
+  if (nodeInstalled) {
+    emit("Using Node.js at /usr/bin/node.");
+  } else {
+    emit("No Node.js 18 or newer found; Forge downloads its own copy.");
+    emit("Looking up the current Node.js LTS release…");
+    await sleep(250);
+    emit(`Downloading Node.js ${NODE} (linux-x64)…`);
+    await download(`Downloading Node.js ${NODE}`, 48.2 * MB);
+    if (cancelled()) return false;
+    emit(`Verified SHA-256 of node-${NODE}-linux-x64.tar.gz.`);
+    emit("Unpacking Node.js…");
+    await sleep(300);
+    emit(`Node.js ${NODE} is ready in ${HOME}/.local/share/forge/runtimes/node-${NODE}.`);
+    nodeInstalled = true;
+  }
+  for (const pkg of packages) {
+    emit(`Fetching ${pkg} from https://registry.npmjs.org…`);
+    await sleep(200);
+    const version = pkg === "intelephense" ? "1.14.4" : "1.0.0";
+    emit(`Downloading ${pkg}@${version} from https://registry.npmjs.org/${pkg}/-/${pkg.split("/").pop()}-${version}.tgz…`);
+    await download(`Downloading ${pkg} ${version}`, PACKAGE_SIZES[pkg] ?? 2.4 * MB);
+    if (cancelled()) return false;
+    emit(`Verified sha512 integrity of ${pkg}@${version}.`);
+    emit(`Installed ${pkg}@${version} into ${MANAGED}/node_modules/${pkg}.`);
+  }
+  return true;
+}
+
 registerMock("langservers_install", async ({ id, index }) => {
   const s = servers.find((x) => x.id === id);
   const option = s?.install[Number(index)];
   if (!s || !option) throw new Error(`unknown language server ${String(id)}`);
   const [tool, command] = option;
-  if (!TOOLS.has(tool)) throw new Error(`${tool} was not found. Install it first or run the command in a terminal.`);
+  const managed = tool === "npm";
+  if (!managed && !TOOLS.has(tool)) throw new Error(`${tool} was not found. Install it first or run the command in a terminal.`);
   let cancelled = false;
   running.set(s.id, () => (cancelled = true));
   const emit = (stream: string, line: string) => emitMock("langservers://install-output", { id: s.id, stream, line });
-  emit("info", `$ ${command}`);
-  for (const [stream, line, delay] of fakeOutput(s, command)) {
-    await sleep(delay);
-    if (cancelled) break;
-    emit(stream, line);
+  if (managed) {
+    await managedInstall(s.id, command.split(" ").slice(6), () => cancelled);
+  } else {
+    emit("info", `$ ${command}`);
+    for (const [stream, line, delay] of fakeOutput(s, command)) {
+      await sleep(delay);
+      if (cancelled) break;
+      emit(stream, line);
+    }
   }
   running.delete(s.id);
   if (cancelled) {
@@ -212,8 +280,33 @@ registerMock("langservers_install", async ({ id, index }) => {
     return "cancelled";
   }
   s.status = "installed";
-  s.path = tool === "npm" ? `${MANAGED}/node_modules/.bin/${s.command}` : `${HOME}/.local/bin/${s.command}`;
+  s.path = managed ? `${MANAGED}/node_modules/.bin/${s.command}` : `${HOME}/.local/bin/${s.command}`;
+  if (s.id === "intelephense") {
+    // The PHP pack registers it right away and it starts for the open PHP files.
+    s.status = "running";
+    markMockIntelephenseInstalled();
+  }
   emit("info", `${s.name} installed.`);
+  emitMock("langservers://changed", null);
+  return "succeeded";
+});
+
+// `?updates=1`: a newer Intelephense is available.
+const offerUpdates = () => new URLSearchParams(location.search).get("updates") === "1";
+let updated = false;
+
+registerMock("langservers_check_updates", () =>
+  offerUpdates() && !updated ? [{ name: "intelephense", installed: "1.12.6", latest: "1.14.4" }] : null,
+);
+
+registerMock("langservers_update", async ({ package: pkg }) => {
+  const name = String(pkg);
+  let cancelled = false;
+  running.set(name, () => (cancelled = true));
+  const ok = await managedInstall(name, [name], () => cancelled);
+  running.delete(name);
+  if (!ok) return "cancelled";
+  updated = true;
   emitMock("langservers://changed", null);
   return "succeeded";
 });

@@ -29,6 +29,11 @@ export interface InstallRow {
   /** The tool was found on this machine. */
   available: boolean;
   url?: string | null;
+  /**
+   * Forge installs it itself, without prerequisites: npm packages are downloaded from the
+   * registry (sha512 checked) into Forge's directory, with Node.js when none is installed.
+   */
+  managed?: boolean;
 }
 
 export interface ServerRow {
@@ -72,6 +77,23 @@ export interface InstallLine {
 
 export type InstallOutcome = "succeeded" | "cancelled" | { failed: { code?: number | null } };
 
+/** A download of a managed install (Node.js, a package tarball). */
+export interface InstallProgress {
+  /** Server id (or package name for updates). */
+  id: string;
+  /** "Downloading Node.js v22.11.0" */
+  label: string;
+  done: number;
+  total?: number | null;
+}
+
+/** A newer version of an npm server Forge installed. */
+export interface PackageUpdate {
+  name: string;
+  installed: string;
+  latest: string;
+}
+
 export interface WorkspaceSymbol {
   name: string;
   /** "class", "interface", "function", "method", "property", "variable", ... */
@@ -101,6 +123,11 @@ export const langserversApi = {
   apply: () => invoke<ServerRow[]>("langservers_apply"),
   install: (id: string, index: number) => invoke<InstallOutcome>("langservers_install", { id, index }),
   cancelInstall: (id: string) => invoke<void>("langservers_cancel_install", { id }),
+  /** Newer versions of Forge-installed servers; null when not checked (once a day). */
+  checkUpdates: (force = false) => invoke<PackageUpdate[] | null>("langservers_check_updates", { force }),
+  /** Update a Forge-installed npm package to its latest version. */
+  update: (pkg: string) => invoke<InstallOutcome>("langservers_update", { package: pkg }),
+  onInstallProgress: (cb: (p: InstallProgress) => void) => listen<InstallProgress>("langservers://install-progress", cb),
   workspaceSymbols: (query: string, limit = 200) => invoke<WorkspaceSymbol[]>("lsp_workspace_symbols", { query, limit }),
   licenceStatus: () => invoke<LicenceStatus>("intelephense_licence_status"),
   setLicence: (key: string | null) => invoke<LicenceStatus>("intelephense_set_licence", { key }),
