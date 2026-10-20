@@ -44,6 +44,7 @@ export default {
   },
   "keymap-settings": async (page) => {
     await page.keyboard.press("Control+Alt+S");
+    await page.click(".set-tree-row:has-text('Keymap')");
     await page.waitForSelector(".keymap-page");
     await page.click(".km-group:has-text('Navigate')");
     await page.waitForTimeout(100);
@@ -51,6 +52,7 @@ export default {
   },
   "keymap-shortcut-conflict": async (page) => {
     await page.keyboard.press("Control+Alt+S");
+    await page.click(".set-tree-row:has-text('Keymap')");
     await page.waitForSelector(".keymap-page");
     await page.fill(".km-search input", "reformat");
     await page.dblclick(".km-action[data-action='ReformatCode']");
