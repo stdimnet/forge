@@ -7,7 +7,7 @@ import { Puzzle, Search } from "lucide-solid";
 import type { PluginInfo } from "@/ipc/settings";
 import { settingsState } from "@/state/settings";
 import { pluginEnabled, pluginDraft, setPluginDraftEnabled } from "./dialogState";
-import { highlight, matchesQuery } from "./model";
+import { createSettingsSearch, segmentsOf, type SearchResult } from "./search";
 
 export const PACKS: Record<string, { label: string; order: number }> = {
   core: { label: "Bundled", order: 0 },
@@ -28,9 +28,9 @@ export function PackBadge(props: { pack: string }) {
 export const pluginText = (p: PluginInfo) =>
   [p.name, p.id, p.description, packLabel(p.pack), ...p.contributions.languages].join(" ");
 
-function Marked(props: { text: string; query: string }) {
+function Marked(props: { text: string; result: SearchResult }) {
   return (
-    <For each={highlight(props.text, props.query)}>
+    <For each={segmentsOf(props.result, props.text)}>
       {(s) => (s.hit ? <mark class="set-hl">{s.text}</mark> : s.text)}
     </For>
   );
@@ -65,8 +65,15 @@ export function PluginsPage() {
   const [filter, setFilter] = createSignal("");
   const [selectedId, setSelectedId] = createSignal<string | null>(null);
 
+  // Matching and highlighting run in Rust (`settings_search`).
+  const search = createSettingsSearch(() => ({
+    query: filter(),
+    entries: settingsState.plugins.map((p) => ({ id: p.id, text: pluginText(p) })),
+    highlight: settingsState.plugins.map((p) => p.name),
+  }));
   const groups = createMemo(() => {
-    const visible = settingsState.plugins.filter((p) => matchesQuery(pluginText(p), filter()));
+    const hits = new Set(search().response.entries);
+    const visible = settingsState.plugins.filter((p) => !search().ready || hits.has(p.id));
     const packs = [...new Set(visible.map((p) => p.pack))].sort(
       (a, b) => (PACKS[a]?.order ?? 99) - (PACKS[b]?.order ?? 99),
     );
@@ -116,7 +123,7 @@ export function PluginsPage() {
                         <PluginIcon plugin={p} />
                         <div class="plugin-item-text">
                           <div class="plugin-item-name">
-                            <Marked text={p.name} query={filter()} />
+                            <Marked text={p.name} result={search()} />
                           </div>
                           <div class="plugin-item-meta">
                             <PackBadge pack={p.pack} />

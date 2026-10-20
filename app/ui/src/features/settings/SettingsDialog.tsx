@@ -21,13 +21,8 @@ import {
   setQuery,
   setSelected,
 } from "./dialogState";
-import { breadcrumb, buildTree, filterTree, flatten, nodeMatches, type TreeNode } from "./model";
-import { Hl, schemaText } from "./SchemaPage";
-import { pluginText } from "./PluginsPage";
-
-/** Searchable text of a page beyond its title and keywords. */
-const extraText = (pageId: string) =>
-  pageId === "plugins" ? settingsState.plugins.map(pluginText).join("\n") : schemaText(pageId);
+import { dialogSearch, Hl, nodeMatches } from "./dialogSearch";
+import { nodesById, type TreeNode } from "./search";
 
 function TreeRow(props: {
   node: TreeNode;
@@ -36,8 +31,7 @@ function TreeRow(props: {
   toggle: (id: string) => void;
 }) {
   const hasChildren = () => props.node.children.length > 0;
-  const modified = () =>
-    flatten([props.node]).some((n) => n.page && pageModified(n.page.id));
+  const modified = () => props.node.pages.some(pageModified);
   return (
     <>
       <div
@@ -45,7 +39,7 @@ function TreeRow(props: {
         classList={{
           selected: selected() === props.node.id,
           modified: modified(),
-          match: nodeMatches(props.node, query(), extraText),
+          match: nodeMatches(props.node.id),
         }}
         style={{ "padding-left": `${8 + props.depth * 16}px` }}
         data-node={props.node.id}
@@ -96,8 +90,11 @@ function GroupPage(props: { node: TreeNode }) {
 }
 
 export function SettingsDialog() {
-  const tree = createMemo(() => buildTree(settingsPages()));
-  const visibleTree = createMemo(() => filterTree(tree(), query(), extraText));
+  // Tree, filtering and matches come from Rust (`settings_search`).
+  const tree = () => dialogSearch().response.tree;
+  const visibleTree = () => dialogSearch().response.visible;
+  const nodes = createMemo(() => nodesById(tree()));
+  const pageById = (id: string) => settingsPages().find((p) => p.id === id);
   const [collapsed, setCollapsed] = createSignal<Set<string>>(new Set(["editor.code-style", "lang.php"]));
   const searching = () => query().trim() !== "";
   // While searching every branch is open so all hits are visible.
@@ -111,26 +108,25 @@ export function SettingsDialog() {
       return next;
     });
 
-  const selectedPath = createMemo(() => breadcrumb(tree(), selected()));
+  const selectedPath = createMemo(() =>
+    (dialogSearch().response.breadcrumbs[selected()] ?? []).flatMap((id) => nodes().get(id) ?? []),
+  );
   const current = () => selectedPath()[selectedPath().length - 1];
-  const currentPageId = () => current()?.page?.id;
+  const currentPageId = () => (current()?.page ? current()!.id : undefined);
   const projectScoped = () =>
     settingsState.schema.some((s) => s.group === currentPageId() && s.project) && settingsState.hasProject;
 
   // Searching selects the first page that matches if the current one does not.
   createEffect(
-    on(query, (q) => {
-      if (!q.trim()) return;
-      const nodes = flatten(visibleTree());
-      if (nodes.some((n) => n.id === selected() && nodeMatches(n, q, extraText))) return;
-      const first = nodes.find((n) => n.page && nodeMatches(n, q, extraText)) ?? nodes.find((n) => n.page);
-      if (first) setSelected(first.id);
+    on(dialogSearch, (result) => {
+      if (!query().trim() || nodeMatches(selected())) return;
+      if (result.response.firstMatch) setSelected(result.response.firstMatch);
     }),
   );
   // Fall back to the first page if the remembered page no longer exists.
   createEffect(() => {
-    if (isOpen() && !current() && tree().length) {
-      setSelected(flatten(tree()).find((n) => n.page)?.id ?? tree()[0].id);
+    if (isOpen() && dialogSearch().ready && !current() && tree().length) {
+      setSelected(dialogSearch().response.firstMatch ?? tree()[0].id);
     }
   });
 
@@ -217,7 +213,7 @@ export function SettingsDialog() {
               <div class="set-content">
                 <Show when={current()}>
                   {(node) => (
-                    <Show when={node().page} fallback={<GroupPage node={node()} />}>
+                    <Show when={node().page && pageById(node().id)} fallback={<GroupPage node={node()} />}>
                       {(page) => <Dynamic component={page().component} />}
                     </Show>
                   )}
