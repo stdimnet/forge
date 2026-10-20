@@ -75,6 +75,7 @@ pub fn run() {
             commands::agent::agent_start,
             commands::agent::agent_send,
             commands::agent::agent_interrupt,
+            commands::agent::agent_respond_permission,
             commands::agent::agent_stop,
             commands::settings::settings_get_all,
             commands::settings::settings_set,

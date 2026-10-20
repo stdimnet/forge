@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 use forge_agent_cli::{
     agent_by_id, builtin_agents, compose_prompt, AgentEvent, AgentInfo, AgentSession, EventSink,
-    MessageContext, StartOptions,
+    MessageContext, PermissionDecision, StartOptions,
 };
 use forge_core::{ForgeError, Result};
 use tauri::{AppHandle, Emitter, State};
@@ -84,6 +84,22 @@ pub async fn agent_send(
     let session = agents.get(&session_id).await?;
     let prompt = compose_prompt(&text, &context.unwrap_or_default());
     session.send(&prompt).await
+}
+
+/// Answer a `permissionRequest` event: `{ behavior: "allow", scope?: "once" | "session",
+/// updatedInput? }` or `{ behavior: "deny", message? }`.
+#[tauri::command]
+pub async fn agent_respond_permission(
+    session_id: String,
+    request_id: String,
+    decision: PermissionDecision,
+    agents: State<'_, AgentState>,
+) -> Result<()> {
+    agents
+        .get(&session_id)
+        .await?
+        .respond_permission(&request_id, decision)
+        .await
 }
 
 /// Stop the running turn; the conversation continues with the next message.

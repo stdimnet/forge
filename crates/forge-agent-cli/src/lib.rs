@@ -14,7 +14,10 @@ pub mod session;
 use std::sync::Arc;
 
 pub use claude::ClaudeCode;
-pub use cli::{AgentCli, AgentInfo, CommandSpec, EventParser, PermissionMode, StartOptions};
+pub use cli::{
+    session_rule, AgentCli, AgentInfo, AllowScope, CommandSpec, EventParser, PermissionDecision,
+    PermissionMode, StartOptions,
+};
 pub use event::{AgentEvent, Usage};
 pub use gemini::GeminiCli;
 pub use prompt::{compose_prompt, MessageContext, Selection};

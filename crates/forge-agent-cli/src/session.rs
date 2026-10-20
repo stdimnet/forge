@@ -1,5 +1,6 @@
 //! Runs one agent CLI process per conversation and streams its normalized events.
 
+use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 use std::process::Stdio;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -11,7 +12,9 @@ use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader};
 use tokio::process::{ChildStdin, Command};
 use tokio::sync::{oneshot, Mutex};
 
-use crate::cli::{AgentCli, StartOptions};
+use serde_json::Value;
+
+use crate::cli::{session_rule, AgentCli, AllowScope, PermissionDecision, StartOptions};
 use crate::event::AgentEvent;
 
 /// Receives every event of a session (called from a background task).
@@ -21,9 +24,25 @@ pub type EventSink = Arc<dyn Fn(AgentEvent) + Send + Sync>;
 const STDERR_TAIL: usize = 4000;
 
 struct Running {
-    stdin: ChildStdin,
+    stdin: Arc<Mutex<ChildStdin>>,
     kill: Option<oneshot::Sender<()>>,
     alive: Arc<AtomicBool>,
+}
+
+/// Open permission requests and "allow for session" rules.
+#[derive(Default)]
+struct Permissions {
+    /// Request id → (tool name, tool input).
+    pending: HashMap<String, (String, Value)>,
+    /// Keys from [`session_rule`] the user allowed for the rest of the session.
+    allowed: HashSet<String>,
+}
+
+async fn write_line(stdin: &Mutex<ChildStdin>, line: &str) -> std::io::Result<()> {
+    let mut stdin = stdin.lock().await;
+    stdin.write_all(line.as_bytes()).await?;
+    stdin.write_all(b"\n").await?;
+    stdin.flush().await
 }
 
 /// A conversation with an agent CLI. The process is (re)spawned on demand: after an
@@ -37,6 +56,7 @@ pub struct AgentSession {
     running: Mutex<Option<Running>>,
     conversation_id: Arc<StdMutex<Option<String>>>,
     interrupted: Arc<AtomicBool>,
+    permissions: Arc<StdMutex<Permissions>>,
 }
 
 impl AgentSession {
@@ -66,6 +86,7 @@ impl AgentSession {
             sink,
             running: Mutex::new(None),
             interrupted: Arc::new(AtomicBool::new(false)),
+            permissions: Arc::default(),
         };
         let running = session.spawn()?;
         *session.running.lock().await = Some(running);
@@ -79,8 +100,7 @@ impl AgentSession {
 
     /// Send a user message, respawning (and resuming) the process if it is not running.
     pub async fn send(&self, text: &str) -> Result<()> {
-        let mut line = self.adapter.encode_user_message(text)?;
-        line.push('\n');
+        let line = self.adapter.encode_user_message(text)?;
         let mut guard = self.running.lock().await;
         for attempt in 0..2 {
             let alive = guard
@@ -90,11 +110,7 @@ impl AgentSession {
                 *guard = Some(self.spawn()?);
             }
             let running = guard.as_mut().expect("process was just spawned");
-            let write = async {
-                running.stdin.write_all(line.as_bytes()).await?;
-                running.stdin.flush().await
-            };
-            match write.await {
+            match write_line(&running.stdin, &line).await {
                 Ok(()) => return Ok(()),
                 Err(e) if attempt == 0 => {
                     tracing::debug!("agent stdin closed ({e}); respawning");
@@ -104,6 +120,42 @@ impl AgentSession {
             }
         }
         unreachable!("send loop returns on the second attempt")
+    }
+
+    /// Answer a [`AgentEvent::PermissionRequest`]. "Allow for session" also answers later
+    /// requests matching the same [`session_rule`] without asking.
+    pub async fn respond_permission(
+        &self,
+        request_id: &str,
+        decision: PermissionDecision,
+    ) -> Result<()> {
+        let (_tool, input) = {
+            let mut perms = self.permissions.lock().expect("permissions lock");
+            let (tool, input) = perms.pending.remove(request_id).ok_or_else(|| {
+                ForgeError::Other(format!("no pending permission request {request_id}"))
+            })?;
+            if let PermissionDecision::Allow {
+                scope: AllowScope::Session,
+                ..
+            } = &decision
+            {
+                perms.allowed.insert(session_rule(&tool, &input));
+            }
+            (tool, input)
+        };
+        let line = self
+            .adapter
+            .encode_permission_response(request_id, &input, &decision)?;
+        let guard = self.running.lock().await;
+        let running = guard
+            .as_ref()
+            .filter(|r| r.alive.load(Ordering::SeqCst))
+            .ok_or_else(|| {
+                ForgeError::Other(format!("{} is no longer running", self.adapter.name()))
+            })?;
+        write_line(&running.stdin, &line)
+            .await
+            .map_err(|e| ForgeError::io(&self.executable, e))
     }
 
     /// Stop the running turn. The conversation can continue with the next `send`.
@@ -152,23 +204,69 @@ impl AgentSession {
             self.cwd.display()
         );
 
-        let stdin = child.stdin.take().expect("stdin is piped");
+        let stdin = Arc::new(Mutex::new(child.stdin.take().expect("stdin is piped")));
         let stdout = child.stdout.take().expect("stdout is piped");
         let mut stderr = child.stderr.take().expect("stderr is piped");
         let alive = Arc::new(AtomicBool::new(true));
         self.interrupted.store(false, Ordering::SeqCst);
+        // Requests of a previous process can no longer be answered.
+        if let Ok(mut perms) = self.permissions.lock() {
+            perms.pending.clear();
+        }
 
         let mut parser = self.adapter.parser(&opts);
         let sink = self.sink.clone();
         let conversation = self.conversation_id.clone();
+        let permissions = self.permissions.clone();
+        let adapter = self.adapter.clone();
+        let reply_to = stdin.clone();
         let reader = tokio::spawn(async move {
             let mut lines = BufReader::new(stdout).lines();
             while let Ok(Some(line)) = lines.next_line().await {
                 for event in parser.parse_line(&line) {
-                    if let AgentEvent::SessionStarted { session_id, .. } = &event {
-                        if let Ok(mut id) = conversation.lock() {
-                            *id = Some(session_id.clone());
+                    match &event {
+                        AgentEvent::SessionStarted { session_id, .. } => {
+                            if let Ok(mut id) = conversation.lock() {
+                                *id = Some(session_id.clone());
+                            }
                         }
+                        AgentEvent::PermissionRequest {
+                            request_id,
+                            tool_name,
+                            input,
+                            ..
+                        } => {
+                            let allowed = {
+                                let mut perms = permissions.lock().expect("permissions lock");
+                                let allowed =
+                                    perms.allowed.contains(&session_rule(tool_name, input));
+                                if !allowed {
+                                    perms.pending.insert(
+                                        request_id.clone(),
+                                        (tool_name.clone(), input.clone()),
+                                    );
+                                }
+                                allowed
+                            };
+                            if allowed {
+                                let decision = PermissionDecision::Allow {
+                                    updated_input: None,
+                                    scope: AllowScope::Session,
+                                };
+                                match adapter
+                                    .encode_permission_response(request_id, input, &decision)
+                                {
+                                    Ok(reply) => {
+                                        if let Err(e) = write_line(&reply_to, &reply).await {
+                                            tracing::warn!("cannot answer permission request: {e}");
+                                        }
+                                    }
+                                    Err(e) => tracing::warn!("{e}"),
+                                }
+                                continue;
+                            }
+                        }
+                        _ => {}
                     }
                     sink(event);
                 }
