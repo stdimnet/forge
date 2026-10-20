@@ -9,6 +9,7 @@ import type { CommandLine, RunConfiguration, RunConfigurations, RunEvent, RunReq
 import { forgeWasm, type ForgeWasm } from "@/wasm";
 import { demoProjectName } from "./demoProject";
 import { isSymfonyDemo, symfonyDemoName } from "./demoSymfonyProject";
+import { scratchCommandLine, scratchRunSteps } from "./scratchesMock";
 
 const ROOT = `~/Projects/${demoProjectName}`;
 const projectRoot = () => `~/Projects/${isSymfonyDemo() ? symfonyDemoName : demoProjectName}`;
@@ -50,6 +51,8 @@ export function mockCommandLine(cfg: RunConfiguration): CommandLine {
   const php = cfg.interpreter || "/usr/bin/php";
   const cwd = cfg.workingDirectory || "";
   switch (cfg.type) {
+    case "scratch":
+      return scratchCommandLine(cfg);
     case "php-script":
       return { program: php, args: [...split(cfg.interpreterOptions), o.file ?? "", ...split(cfg.arguments)], cwd };
     case "phpunit": {
@@ -297,6 +300,8 @@ function stepsFor(cfg: RunConfiguration | undefined, cmd: CommandLine): Step[] {
         [80, "  routes \x1b[90m.......................................\x1b[0m \x1b[90m0.97ms\x1b[0m \x1b[32;1mDONE\x1b[0m\n\n"],
         [50, { code: 0 }],
       ];
+    case "scratch":
+      return scratchRunSteps(cfg);
     case "php-script":
       return [
         [150, "Generating invoices for 3 orders…\n"],

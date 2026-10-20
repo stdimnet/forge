@@ -362,6 +362,34 @@ app/ui/            SolidJS UI
 - UI: non-file editor tabs are registered with `registerEditorView` (`src/shell/editorViews.ts`) and
   opened with `openViewTab`; consoles and table editors use it. Editor-area panels can opt into the
   tool-window key context with `data-focus-context="toolwindow"`.
+## Scratches and Consoles (`forge-scratches`)
+
+- Scratch files are global (like PHPStorm's): `<config dir>/forge/scratches/<name>`, per-scratch
+  settings (the data source of a SQL scratch) in `<config dir>/forge/scratches.json`. New
+  scratches are numbered `scratch.php`, `scratch_1.php`, … (`rest-api.http` for HTTP requests),
+  buffers `buffer1.txt` … `buffer5.txt` (then the oldest is reused). The language list of the
+  New Scratch File popup is every `forge-filetypes` type with an extension (first extension wins).
+- IPC (`app/ui/src/ipc/scratches.ts`): `scratches_list`, `scratches_languages({ request: { query,
+  current?, recent? } }) -> { id, name, extension, positions }[]`, `scratches_create({ language,
+  content? })`, `scratches_create_buffer`, `scratches_read({ name })`, `scratches_write({ name,
+  contents })`, `scratches_rename({ name, newName })`, `scratches_delete({ name })`,
+  `scratches_set_data_source({ name, dataSourceId })`, `scratches_markers({ name, content }) ->
+  { line, kind: "run" | "http", title, runName }[]`, `scratches_http_run({ runId, content, line,
+  env? })`; list changes are emitted as `scratches://changed`.
+- Runs: PHP/JS/TS/Python/shell/Lua scratches are the backend run kind `scratch` (option
+  `scratch` = name): PHP runs with `php.interpreter` and `-d auto_prepend_file=<root>/vendor/autoload.php`
+  when the project has one (option `useAutoloader=false` turns it off), TypeScript with
+  `node --experimental-strip-types`. `.http` requests are parsed in Rust (`###` separators,
+  `@var = value`, `{{var}}`, `# @name`, the project's `http-client.env.json` /
+  `.private.env.json`, environment `dev` by default), sent with reqwest and streamed to
+  `run://<runId>` like a process (`started`, `console`, `exited`). SQL scratches open as a query
+  console of their attached data source (`openFileConsole` in `features/database/store.ts`).
+- UI: editor tabs at `scratch://<name>` are read and written through `registerFileSystem`
+  (`src/state/editor.ts`), which also gives them the scratch icon and breadcrumbs. The Project
+  view lists "Scratches and Consoles" (scratches and open database consoles) through
+  `registerProjectViewSection`. Run configuration types can set `start` (another backend command
+  streaming `run://` events) and `hidden` (not offered in the Run/Debug Configurations dialog).
+
 ## Laravel (`packs/phpforge/fw-laravel`)
 
 - `Laravel::load(root)` analyses a project statically with the PHP pack's tree-sitter parser:

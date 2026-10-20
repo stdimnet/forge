@@ -1,7 +1,7 @@
 import { For } from "solid-js";
 import { Dynamic } from "solid-js/web";
 import { ChevronRight, GitBranch, Lock } from "lucide-solid";
-import { activeTab } from "@/state/editor";
+import { activeTab, fileSystemFor } from "@/state/editor";
 import { workspace } from "@/state/workspace";
 import { currentBranch } from "@/state/vcs";
 import { visibleStatusItems } from "@/features/statusItems";
@@ -17,6 +17,8 @@ export function StatusBar() {
         <For each={(() => {
           const t = tab();
           if (!t) return [];
+          const fs = fileSystemFor(t.path);
+          if (fs) return fs.breadcrumbs?.(t.path) ?? [t.name];
           const view = editorViewFor(t);
           return view ? (view.breadcrumbs?.(t) ?? [t.name]) : t.path.split("/");
         })()}>

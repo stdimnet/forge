@@ -1,7 +1,7 @@
 import { For, Show } from "solid-js";
 import { Dynamic } from "solid-js/web";
 import { ChevronRight, X } from "lucide-solid";
-import { editor, activeTab, closeTab, customTabs, isCustomTab, isDirty, openFile } from "@/state/editor";
+import { editor, activeTab, closeTab, customTabs, fileSystemFor, isCustomTab, isDirty, openFile } from "@/state/editor";
 import { statusOf } from "@/state/vcs";
 import { CodeEditor } from "@/editor/CodeEditor";
 import { FileIcon } from "./FileIcon";
@@ -24,11 +24,18 @@ function Tabs() {
               onClick={() => setEditorActive(tab.path)}
               onAuxClick={(e) => e.button === 1 && closeTab(tab.path)}
             >
-              <Show when={editorViewFor(tab)?.icon} fallback={<FileIcon name={tab.name} size={14} />}>
-                {(Icon) => {
-                  const I = Icon();
-                  return <I size={14} tab={tab} />;
-                }}
+              <Show
+                when={fileSystemFor(tab.path)?.icon}
+                fallback={
+                  <Show when={editorViewFor(tab)?.icon} fallback={<FileIcon name={tab.name} size={14} />}>
+                    {(Icon) => {
+                      const I = Icon();
+                      return <I size={14} tab={tab} />;
+                    }}
+                  </Show>
+                }
+              >
+                {(Icon) => <Dynamic component={Icon()} size={14} name={tab.name} />}
               </Show>
               <span class={status() ? `vcs-${status()}` : ""}>{tab.name}</span>
               <button
@@ -85,6 +92,8 @@ function Breadcrumbs() {
   const parts = () => {
     const tab = activeTab();
     if (!tab) return [];
+    const fs = fileSystemFor(tab.path);
+    if (fs) return fs.breadcrumbs?.(tab.path) ?? [tab.name];
     const view = editorViewFor(tab);
     if (view) return view.breadcrumbs?.(tab) ?? [tab.name];
     return tab.path.split("/");

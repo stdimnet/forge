@@ -38,6 +38,7 @@ impl RunState {
     /// Built-in kinds plus the manifest-declared ones (types with a `command` template).
     pub fn new(app: &AppState) -> Self {
         let mut kinds = KindRegistry::builtin();
+        kinds.register(Box::new(super::scratches::ScratchKind));
         let plugins = app.plugins.read().expect("plugins lock poisoned");
         for t in plugins.run_configuration_types() {
             if t.command.is_empty() {

@@ -39,7 +39,36 @@ const [editor, setEditor] = createStore<EditorState>({ tabs: [], active: null })
 export { editor };
 
 export const activeTab = () => editor.tabs.find((t) => t.path === editor.active);
-export const isDirty = (t: EditorTab) => !t.view && t.content !== t.saved;
+
+/**
+ * Files outside the project (scratches) live under a path prefix such as `scratch://` and are
+ * read and written by the feature that owns them instead of the workspace.
+ */
+export interface FileSystemProvider {
+  prefix: string;
+  read: (path: string) => Promise<string>;
+  write: (path: string, content: string) => Promise<void>;
+  /** Tab icon instead of the file type icon. */
+  icon?: Component<{ size?: number; name: string }>;
+  /** Breadcrumbs above the editor. */
+  breadcrumbs?: (path: string) => string[];
+}
+
+const fileSystems: FileSystemProvider[] = [];
+
+export function registerFileSystem(provider: FileSystemProvider): void {
+  fileSystems.push(provider);
+}
+
+export const fileSystemFor = (path: string): FileSystemProvider | undefined => fileSystems.find((f) => path.startsWith(f.prefix));
+
+const readText = (path: string) => (fileSystemFor(path)?.read ?? workspaceApi.readFile)(path);
+const writeText = (path: string, text: string) => (fileSystemFor(path)?.write ?? workspaceApi.writeFile)(path, text);
+
+/** View tabs are not files, except those backed by a file system provider (a SQL scratch in a console). */
+const isFileTab = (t: EditorTab) => !t.view || !!fileSystemFor(t.path);
+
+export const isDirty = (t: EditorTab) => isFileTab(t) && t.content !== t.saved;
 
 /**
  * Editor tabs that show a feature view instead of a file (e.g. a merge request). Their ids
@@ -78,7 +107,7 @@ export async function openFile(path: string): Promise<void> {
     return;
   }
   if (!editor.tabs.some((t) => t.path === path)) {
-    const { text: content, eol } = normalizeEol(await workspaceApi.readFile(path));
+    const { text: content, eol } = normalizeEol(await readText(path));
     const name = path.split("/").pop() ?? path;
     setEditor("tabs", (tabs) => [
       ...tabs,
@@ -150,9 +179,9 @@ export function onFileSaved(cb: SaveListener): () => void {
 
 export async function saveFile(path: string): Promise<void> {
   const tab = editor.tabs.find((t) => t.path === path);
-  if (!tab || tab.view) return;
+  if (!tab || !isFileTab(tab)) return;
   const content = tab.content;
-  await workspaceApi.writeFile(path, withEol(content, tab.eol));
+  await writeText(path, withEol(content, tab.eol));
   setEditor("tabs", (t) => t.path === path, "saved", content);
   saveListeners.forEach((l) => l(path, content));
 }
@@ -164,8 +193,8 @@ export async function saveAll(): Promise<void> {
 /** Re-read an open file from disk after an external change (unless it has unsaved edits). */
 export async function reloadFile(path: string): Promise<void> {
   const tab = editor.tabs.find((t) => t.path === path);
-  if (!tab || tab.view || isDirty(tab)) return;
-  const { text: content, eol } = normalizeEol(await workspaceApi.readFile(path));
+  if (!tab || !isFileTab(tab) || isDirty(tab)) return;
+  const { text: content, eol } = normalizeEol(await readText(path));
   setEditor("tabs", (t) => t.path === path, { content, saved: content, eol });
 }
 

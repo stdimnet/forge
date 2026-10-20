@@ -42,7 +42,7 @@ import { dbApi, dialectOf, type Cell, type ColumnMeta, type SessionInfo, type So
 import { DataGrid } from "./DataGrid";
 import { ContextMenu, type MenuItem } from "./ContextMenu";
 import { gridColumns } from "./grid";
-import { connect, defaultSchema, openDataSources, parseConsolePath, sourceById, states, tableInfo } from "./store";
+import { connect, consoleSourceId, defaultSchema, openDataSources, sourceById, states, tableInfo } from "./store";
 import { consoles } from "./controllers";
 import { sqlWithSchema } from "./completion";
 import { exportMenu } from "./exporting";
@@ -187,7 +187,7 @@ function ResultView(props: { result: ResultTab; dsId: string; onPage: (offset: n
 }
 
 export function ConsoleView(props: { tab: EditorTab }) {
-  const loc = parseConsolePath(props.tab.path)!;
+  const loc = { id: consoleSourceId(props.tab.path) ?? "" };
   const ds = () => sourceById(loc.id);
   const dialect = () => dialectOf(ds()?.driver ?? "mysql");
   const pageSize = () => ds()?.options.pageSize ?? getSetting<number>("database.pageSize", 500) ?? 500;

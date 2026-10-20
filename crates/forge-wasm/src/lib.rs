@@ -21,6 +21,7 @@ use wasm_bindgen::prelude::*;
 
 mod filetypes;
 mod keymap;
+mod scratches;
 mod search;
 mod settings;
 

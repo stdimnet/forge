@@ -15,6 +15,7 @@ import "./phpMock";
 import "./companionMock";
 import "./terminalMock";
 import "./runMock";
+import "./scratchesMock";
 import "./debugMock";
 import "./dbMock";
 import "./laravelMock";

@@ -54,6 +54,13 @@ export interface RunConfigurationTypeDef {
   suggestName?: (cfg: RunConfiguration) => string | undefined;
   /** Build the command in the UI; without it the backend's kind registry builds it. */
   buildCommand?: (cfg: RunConfiguration) => CommandLine;
+  /**
+   * Start runs through another backend command that streams the same `run://<runId>` events
+   * (e.g. HTTP requests of scratches); without it `run_start` starts a process.
+   */
+  start?: (cfg: RunConfiguration, request: RunRequest) => Promise<RunStarted>;
+  /** Not offered in the Run/Debug Configurations dialog (runs are started from the editor). */
+  hidden?: boolean;
 }
 
 const [registered, setRegistered] = createSignal<RunConfigurationTypeDef[]>([]);
@@ -116,7 +123,7 @@ export const runConfigurationTypes = createRoot(() =>
     const reg = registered();
     const ids = new Set(reg.map((t) => t.id));
     return [...reg, ...manifestTypes().filter((t) => !ids.has(t.id))]
-      .filter((t) => enabled(t.pluginId))
+      .filter((t) => enabled(t.pluginId) && !t.hidden)
       .sort((a, b) => a.name.localeCompare(b.name));
   }),
 );

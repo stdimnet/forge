@@ -142,7 +142,9 @@ async function startProcess(id: string, extra?: SessionData["extra"]): Promise<R
   const exited = new Promise<number | null>((resolve) => (d.exited = resolve));
   d.unlisten = await runApi.onEvent(runId, (e) => onEvent(id, runId, e));
   try {
-    const started = await runApi.start(requestFor(s.config, runId, extra));
+    const request = requestFor(s.config, runId, extra);
+    const start = findType(s.config.type)?.start;
+    const started = await (start ? start(s.config, request) : runApi.start(request));
     return { started, exited };
   } catch (err) {
     d.unlisten?.();

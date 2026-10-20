@@ -1,0 +1,23 @@
+[package]
+name = "forge-scratches"
+description = "Forge scratch files (PHPStorm's Scratches and Consoles): storage, naming, languages, run commands and the HTTP request client"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[features]
+default = ["client"]
+# Sends `.http` requests with reqwest; off in the WebAssembly build, which only parses and renders.
+client = ["dep:reqwest"]
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+forge-filetypes.workspace = true
+forge-fuzzy.workspace = true
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "http2"], optional = true }
+
+[dev-dependencies]
+tempfile.workspace = true
+tokio.workspace = true
