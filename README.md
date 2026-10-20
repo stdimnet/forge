@@ -9,7 +9,7 @@ Forge is the core. Languages and big feature sets ship as **packs** of plugins:
 | --- | --- |
 | **PHPForge** | PHP, Laravel, Symfony, Doctrine (DQL), Composer, PHPUnit, Xdebug |
 | **WebForge** | HTML, CSS, JavaScript/TypeScript, Vue/React, Node |
-| **LuaForge** | Lua |
+| **LuaForge** | Lua 5.1–5.4, LuaJIT, LÖVE, Neovim: EmmyLua/LuaLS annotations, lua-language-server, StyLua |
 
 AI is built into the core: chat with Claude Code or Gemini CLI rendered natively (no terminal),
 AI commit messages, and any provider: Anthropic, OpenAI, OpenRouter, Ollama, LM Studio, llama.cpp

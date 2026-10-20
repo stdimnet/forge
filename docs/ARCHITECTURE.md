@@ -302,7 +302,8 @@ app/ui/            SolidJS UI
   `phpunit` (always `--teamcity`), `artisan`, `composer`, `shell` and `npm`; the PHP interpreter
   defaults to the setting `php.interpreter`. A manifest `runConfigurationTypes` entry can declare
   `fields` and a `command` template (`["${interpreter}", "${file}", "${arguments}"]`, see
-  `lua-script`) and works without code. In the UI, `registerRunConfigurationType({ id, name, icon,
+  `lua-script`) and works without code; `interpreterSetting` names the setting with the project's
+  default interpreter (`lua.interpreter`). In the UI, `registerRunConfigurationType({ id, name, icon,
   fields, interpreter?, argumentsLabel?, testRunner?, buildCommand? })` adds the form to the
   Run/Debug Configurations dialog; `buildCommand` builds the command in the UI instead.
 - Debugging: Debug (Shift+F9) calls the first `registerDebugLauncher({ id, canDebug(cfg, type),
@@ -595,6 +596,48 @@ app/ui/            SolidJS UI
   `docker.tcp.url|tls|certPath`, `docker.cliPath`, `docker.logs.tail`), | Docker | Docker
   Registry (`docker.registries`: `server<TAB>user`), | Kubernetes (`kubernetes.kubeconfig`,
   `kubernetes.defaultContext`, `kubernetes.defaultNamespace`, `kubernetes.kubectlPath`).
+
+## LuaForge (`packs/luaforge/lang-lua`)
+
+- The plugin `forge.lua` (`app/src-tauri/plugins/luaforge.toml`, `projectTypes = ["luaforge"]`)
+  is active for Lua projects: `forge-project` reports the `lua` language (and so the `luaforge`
+  pack) for Lua files in the root, two or more in a folder, `.luarc.json`, `.luacheckrc`,
+  `stylua.toml`, `selene.toml` or a `*.rockspec`, and the frameworks `love` (`conf.lua`, or a
+  `main.lua` using `love.`) and `neovim` (`init.lua` next to `lua/`, or `lua/` + `plugin/`).
+- `luaforge-lang-lua` is pure Rust (also built to WebAssembly, `crates/forge-wasm/src/lua.rs`):
+  a tolerant lexer and structural parser record locals with their scopes, parameters, globals,
+  table fields, functions and methods (`function M.f`, `function M:f`, `M.f = function`,
+  constructor fields), references, `require` calls and the main chunk's `return`; doc comments
+  (`---`) attached to the next statement are parsed as EmmyLua/LuaLS annotations (`@class`,
+  `@field`, `@param`, `@return`, `@type`, `@alias` with `---|` values, `@deprecated`, `@see`).
+  `ProjectIndex` resolves values across files: tables, `---@class`/`---@type`/`---@param`
+  types, `---@return` of called functions (`Class.new()` without annotations returns the
+  class), `setmetatable`, class parents and `require("a.b")`. Modules resolve through
+  `package.path`-like templates (`lua.requirePaths`, `.luarc.json` `runtime.path`, then `?.lua`,
+  `?/init.lua`, `lua/?.lua`, `src/?.lua`, `lib/?.lua`).
+- IPC (`app/ui/src/ipc/lua.ts`, offsets UTF-16): `lua_index_workspace() -> { files, functions,
+  classes }` (files come through the project's backend, so remote projects work),
+  `lua_files_changed({ changed, removed })`, `lua_search_symbols({ query, kind: "class" |
+  "symbol", limit }) -> SymbolHit[]` (pre-ranked), `lua_file_structure({ path, content? })`,
+  `lua_hover({ path, offset, content? }) -> { doc: HoverDoc, start, end, language }` (the
+  `forge-markdown` hover AST, rendered by `buildHoverDom`), `lua_goto({ path, offset, content? })
+  -> { path, offset, line, column }[]`, `lua_run_markers({ path, content? }) -> { line, kind:
+  "script" | "love", name, file, interpreter? }[]` and `lua_format({ path, content }) -> string |
+  null` (StyLua with `--stdin-filepath`; `null` when it is off or not installed).
+- UI (`app/ui/src/features/lua`): Structure tool window through `registerStructureProvider`
+  (`features/php/StructureView.tsx`), Search Everywhere providers `lua.classes` /
+  `lua.symbols`, a declaration provider (tried before the language server), an index hover
+  that yields to lua-language-server, gutter run icons and Ctrl+Shift+F10 for main chunks,
+  Reformat Code through `registerFormatProvider` (`features/lsp/format.ts`) and
+  Settings | Languages & Frameworks | Lua.
+- lua-language-server comes from the catalog (`forge-langservers`): `langservers.lua.environment`
+  (`auto` detects LÖVE/Neovim from the project root), `langservers.lua.version`,
+  `langservers.lua.libraries` (appended to `Lua.workspace.library`) and the executable
+  `langservers.servers.lua-language-server.path`.
+- Runs: the manifest type `lua-script` (`["${interpreter}", "${interpreterOptions}", "${file}",
+  "${arguments}"]`) takes its default interpreter from `lua.interpreter` through
+  `interpreterSetting`; LÖVE games run as `love <dir>`. Browser mode: `?project=lua` opens the
+  LÖVE demo game `pixel-dungeon` (`mock/demoLuaProject.ts`).
 
 ## Scripting and config language packs
 

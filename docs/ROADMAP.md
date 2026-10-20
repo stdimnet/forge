@@ -17,6 +17,7 @@
 - [x] Symfony plugin: services/parameters (YAML + compiled container), routes, Twig completion & navigation, console commands, line markers
 - [x] Doctrine plugin: entity mapping (attributes, annotations, XML, YAML), DQL highlighting, completion and inspections in `createQuery()` and QueryBuilder strings
 - [x] Code hosts: GitLab, Forgejo/Gitea and GitHub pull/merge requests with inline review threads, issues, pipelines
+- [x] LuaForge: Lua index in Rust (functions, tables, modules, `require` resolution, EmmyLua/LuaLS annotations), Structure, Go to Class/Symbol, Go to Declaration, annotation hover, lua-language-server settings, "Lua Script" run configurations with gutter run icons (lua, luajit, LÖVE), StyLua as Reformat Code
 
 ## Next branches
 
@@ -29,5 +30,4 @@
 | `feat/remote-sessions` | SSH remote backend with remote indexing & LSP |
 | `feat/gemini-cli-plugin` | Gemini CLI as a chat agent |
 | `feat/webforge` | Web pack |
-| `feat/luaforge` | Lua pack |
 | `feat/scratch-files` | Scratches & consoles (Ctrl+Alt+Shift+Insert) |
