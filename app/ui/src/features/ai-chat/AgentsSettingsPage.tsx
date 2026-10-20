@@ -11,9 +11,9 @@ import { SchemaPage } from "@/features/settings/SchemaPage";
 import { draftValue } from "@/features/settings/dialogState";
 
 /** Section title in the schema → agent id. */
-const AGENT_SECTIONS: Record<string, { id: string; install: string }> = {
-  "Claude Code": { id: "claude-code", install: "npm install -g @anthropic-ai/claude-code" },
-  "Gemini CLI": { id: "gemini-cli", install: "npm install -g @google/gemini-cli" },
+const AGENT_SECTIONS: Record<string, { id: string }> = {
+  "Claude Code": { id: "claude-code" },
+  "Gemini CLI": { id: "gemini-cli" },
 };
 
 /** Paths as currently entered (unsaved edits included), by agent id. */
@@ -48,7 +48,7 @@ export function AgentsSettingsPage() {
             <span class="ai-agent-missing">
               <CircleX size={14} />
               <span>
-                {custom() ? "No executable at this path." : "Not found on PATH."} Install with <code>{meta.install}</code>
+                {custom() ? "No executable at this path." : "Not found on PATH."} Install with <code>{info()!.installHint}</code>
               </span>
             </span>
           </Match>
@@ -57,6 +57,12 @@ export function AgentsSettingsPage() {
           <span class="ai-agent-note">
             <Info size={14} />
             <span>Chat sessions with {info()!.name} are not supported yet.</span>
+          </span>
+        </Show>
+        <Show when={info()?.supported && info()!.permissionPrompts === false}>
+          <span class="ai-agent-note">
+            <Info size={14} />
+            <span>{info()!.name} cannot ask before edits or commands in the IDE; the approval mode decides what it may do.</span>
           </span>
         </Show>
         <button class="icon-btn ai-agent-refresh" title="Detect again" onClick={() => void refetch()}>

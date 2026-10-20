@@ -1,24 +1,29 @@
 import { For, onMount, Show } from "solid-js";
 import { Dynamic } from "solid-js/web";
-import { ClipboardList, FilePen, Hand, History, MessageSquarePlus, ShieldAlert, Sparkles } from "lucide-solid";
+import { ClipboardList, Eye, FilePen, Hand, History, MessageSquarePlus, ShieldAlert, Sparkles } from "lucide-solid";
 import type { PermissionMode } from "@/ipc/agent";
 import { workspace } from "@/state/workspace";
 import { chatAgents, findChatAgent } from "./agents";
-import { chat, detectAgents, newChat, openHistory, setAgent, setMode, setModel } from "./store";
+import { agentModes, chat, detectAgents, newChat, openHistory, setAgent, setMode, setModel } from "./store";
 import { Dropdown } from "./Dropdown";
 import { MessageList } from "./MessageList";
 import { Composer, focusChatInput, setComposerText } from "./Composer";
 
-export const MODES: { value: PermissionMode; label: string; short: string; hint: string; icon: typeof Hand }[] = [
-  { value: "default", label: "Ask before edits", short: "Ask before edits", hint: "Confirm every edit and command", icon: Hand },
-  { value: "acceptEdits", label: "Auto-accept edits", short: "Auto-accept", hint: "Apply file edits without asking", icon: FilePen },
-  { value: "plan", label: "Plan mode", short: "Plan", hint: "Explore and plan, no changes", icon: ClipboardList },
-  { value: "bypassPermissions", label: "Bypass permissions", short: "Bypass", hint: "Never ask — trusted projects only", icon: ShieldAlert },
-];
+const MODE_ICONS: Record<PermissionMode, typeof Hand> = {
+  default: Hand,
+  acceptEdits: FilePen,
+  plan: ClipboardList,
+  bypassPermissions: ShieldAlert,
+};
+
+/** Icon of a mode; an agent that cannot ask is read-only in its default mode. */
+const modeIcon = (mode: PermissionMode) =>
+  mode === "default" && chat.detected[chat.agentId]?.permissionPrompts === false ? Eye : MODE_ICONS[mode];
 
 function ChatToolbar() {
   const agent = () => findChatAgent(chat.agentId);
-  const mode = () => MODES.find((m) => m.value === chat.mode) ?? MODES[0];
+  const modes = () => agentModes(chat.agentId);
+  const mode = () => modes().find((m) => m.value === chat.mode) ?? modes()[0];
   const modelLabel = () => agent()?.models.find((m) => m.id === chat.model)?.label ?? chat.model;
   return (
     <div class="chat-toolbar">
@@ -30,7 +35,13 @@ function ChatToolbar() {
           value: a.id,
           label: a.name,
           icon: <Dynamic component={a.icon} size={14} />,
-          hint: a.comingSoon ? undefined : chat.detected[a.id] && !chat.detected[a.id].installed ? "Not installed" : undefined,
+          hint: a.comingSoon
+            ? undefined
+            : chat.detected[a.id] && !chat.detected[a.id].installed
+              ? "Not installed"
+              : chat.detected[a.id]?.supported === false
+                ? "Not supported yet"
+                : undefined,
           badge: a.comingSoon ? "Soon" : undefined,
           disabled: a.comingSoon,
         }))}
@@ -59,12 +70,12 @@ function ChatToolbar() {
         align="right"
         class={`chat-mode chat-mode-${chat.mode}`}
         value={chat.mode}
-        items={MODES.map((m) => ({ value: m.value, label: m.label, hint: m.hint, icon: <Dynamic component={m.icon} size={14} /> }))}
+        items={modes().map((m) => ({ value: m.value, label: m.label, hint: m.hint, icon: <Dynamic component={modeIcon(m.value)} size={14} /> }))}
         onSelect={(m) => void setMode(m)}
         trigger={
           <>
-            <Dynamic component={mode().icon} size={12} />
-            <span class="chat-dropdown-label">{mode().short}</span>
+            <Dynamic component={modeIcon(mode()?.value ?? "default")} size={12} />
+            <span class="chat-dropdown-label">{mode()?.short ?? chat.mode}</span>
           </>
         }
       />
@@ -101,7 +112,15 @@ function EmptyState() {
         {(i) => (
           <div class="chat-empty-status" classList={{ missing: !i().installed }}>
             <span class="chat-status-dot" />
-            <Show when={i().installed} fallback={<span>{i().name} CLI not found on PATH — install it and sign in once in a terminal.</span>}>
+            <Show
+              when={i().installed}
+              fallback={
+                <span>
+                  {i().name} not found on PATH. Install it with <code>{i().installHint}</code> and sign in once in a terminal, or
+                  set its path in Settings | Tools | AI Agents.
+                </span>
+              }
+            >
               <span class="chat-ellipsis" title={i().path ?? ""}>
                 {i().name} CLI ready · uses your own login
               </span>

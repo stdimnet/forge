@@ -292,6 +292,21 @@
 }
 .chat-empty-status.missing .chat-status-dot {
   background: var(--warning);
+  margin-top: 5px;
+}
+.chat-empty-status.missing {
+  align-items: flex-start;
+  max-width: 320px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  text-align: left;
+  line-height: 1.5;
+}
+.chat-empty-status code {
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  color: var(--fg);
+  user-select: all;
 }
 .chat-suggestions {
   display: flex;

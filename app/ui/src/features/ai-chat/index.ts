@@ -39,12 +39,12 @@ registerChatAgent({
   id: "gemini-cli",
   name: "Gemini CLI",
   icon: Gem,
-  comingSoon: true,
-  tagline: "Gemini works in your project using your own Gemini CLI login.",
+  tagline: "Gemini reads, edits and runs code in your project using your own Gemini CLI login.",
   models: [
     { id: "default", label: "Default", hint: "Use the CLI's configured model" },
-    { id: "gemini-2.5-pro", label: "Gemini 2.5 Pro" },
-    { id: "gemini-2.5-flash", label: "Gemini 2.5 Flash" },
+    { id: "gemini-2.5-pro", label: "Gemini 2.5 Pro", hint: "Most capable, for hard problems" },
+    { id: "gemini-2.5-flash", label: "Gemini 2.5 Flash", hint: "Fast, great for everyday coding" },
+    { id: "gemini-2.5-flash-lite", label: "Gemini 2.5 Flash-Lite", hint: "Fastest and cheapest" },
   ],
 });
 

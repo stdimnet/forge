@@ -1,17 +1,21 @@
 /**
- * Browser-mode agent backend: replays a scripted, realistic Claude Code session with
- * timers so the AI chat can be explored and screenshotted without the CLI. The `chat`
- * updates come from the Rust conversation model (WebAssembly), like in the desktop app.
+ * Browser-mode agent backend: replays scripted, realistic Claude Code and Gemini CLI
+ * sessions with timers so the AI chat can be explored and screenshotted without the CLIs.
+ * The `chat` updates come from the Rust conversation model (WebAssembly), like in the
+ * desktop app. The Gemini session is recorded `stream-json` output that goes through the
+ * Rust Gemini parser first, so tool calls are mapped exactly as in the desktop app.
  */
 import { emitMock, invoke, registerMock } from "@/ipc";
-import type { AgentEvent, ChatUpdate, MessageContext, PermissionDecision, PermissionMode } from "@/ipc/agent";
+import type { AgentEvent, AgentProfile, ChatUpdate, MessageContext, PermissionDecision, PermissionMode } from "@/ipc/agent";
 import { forgeWasm, type ForgeWasm } from "@/wasm";
+import { mockSettingValue } from "./settingsMock";
 
 const CWD = "/home/dev/Projects/acme-shop";
 const abs = (p: string) => `${CWD}/${p}`;
 
 interface MockSession {
   id: string;
+  agentId: string;
   started: boolean;
   /** Bumped on interrupt so a running script stops at its next step. */
   generation: number;
@@ -253,29 +257,46 @@ async function genericScript(s: MockSession, text: string, ctx: MessageContext |
   emit({ type: "turnFinished", result: null, isError: false, durationMs: 1800, numTurns: 1, costUsd: 0.0021, usage: { inputTokens: 12, outputTokens: 96 } });
 }
 
-/** Demo machine: Claude Code is installed, Gemini CLI is not. */
-const DEMO_AGENTS = [
-  { id: "claude-code", name: "Claude Code", supported: true, exe: "claude", found: "/usr/local/bin/claude", models: ["default", "sonnet", "opus", "haiku"] },
-  { id: "gemini-cli", name: "Gemini CLI", supported: false, exe: "gemini", found: null, models: ["gemini-2.5-pro", "gemini-2.5-flash"] },
-];
+/** Demo machine: both CLIs are installed. Profiles (models, modes) come from Rust. */
+const DEMO_AGENTS: Record<string, { exe: string; found: string }> = {
+  "claude-code": { exe: "claude", found: "/usr/local/bin/claude" },
+  "gemini-cli": { exe: "gemini", found: "/usr/local/bin/gemini" },
+};
 
-registerMock("agent_list", ({ executables }) => {
-  const explicit = (executables ?? {}) as Record<string, string>;
-  return DEMO_AGENTS.map(({ exe, found, ...a }) => {
-    const custom = explicit[a.id]?.trim();
-    // A configured path counts as installed when it names the CLI's executable.
-    const path = custom ? (/^(\/|[A-Za-z]:\\)/.test(custom) && custom.replace(/\\/g, "/").split("/").pop() === exe ? custom : null) : found;
-    return { ...a, installed: !!path, path };
+/** Where a configured path counts as installed: an absolute path naming the CLI's executable. */
+function detect(agentId: string, configured: string | undefined): string | null {
+  const demo = DEMO_AGENTS[agentId];
+  const custom = configured?.trim();
+  if (!demo) return null;
+  if (!custom) return demo.found;
+  return /^(\/|[A-Za-z]:\\)/.test(custom) && custom.replace(/\\/g, "/").split("/").pop() === demo.exe ? custom : null;
+}
+
+registerMock("agent_list", async ({ executables }) => {
+  wasm ??= await forgeWasm();
+  const explicit = executables as Record<string, string> | undefined;
+  const profiles = JSON.parse(wasm.agent_profiles()) as AgentProfile[];
+  return profiles.map((p) => {
+    // Like the backend: explicit paths (unsaved Settings edits), else Settings > Tools > AI Agents.
+    const configured = explicit ? explicit[p.id] : (mockSettingValue(`agents.${p.id}.path`) as string | null);
+    const path = detect(p.id, configured ?? undefined);
+    return { ...p, supported: true, installed: !!path, path };
   });
 });
 
 registerMock("agent_start", async ({ agentId, options }) => {
-  if (agentId !== "claude-code") throw new Error(`${String(agentId)} is not yet supported in Forge`);
+  const agent = String(agentId);
+  const configured = (options as { executable?: string } | undefined)?.executable ?? (mockSettingValue(`agents.${agent}.path`) as string | null);
+  if (!(agent in DEMO_AGENTS)) throw new Error(`unknown agent ${agent}`);
+  if (!detect(agent, configured ?? undefined)) {
+    const name = agent === "gemini-cli" ? "Gemini CLI" : "Claude Code";
+    throw new Error(`${name} was not found. Install it or set its path in Settings.`);
+  }
   const id = `mock-${++counter}`;
   const mode = ((options as { permissionMode?: PermissionMode } | undefined)?.permissionMode ?? "default") as PermissionMode;
   wasm ??= await forgeWasm();
   const chat = Number(wasm.chat_new());
-  sessions.set(id, { id, started: false, generation: 0, running: false, mode, pending: new Map(), allowed: new Set(), chat });
+  sessions.set(id, { id, agentId: agent, started: false, generation: 0, running: false, mode, pending: new Map(), allowed: new Set(), chat });
   return id;
 });
 
@@ -299,6 +320,18 @@ registerMock("agent_send", ({ sessionId, text, context, turnId }) => {
     const begin = { handle: s.chat, turnId: Number(turnId ?? 0), prompt: String(text), context: context ?? { files: [] } };
     emitMock(`agent://${s.id}`, { type: "chat", ...(JSON.parse(wasm.chat_begin_turn(JSON.stringify(begin))) as ChatUpdate) });
   }
+  const msg = String(text);
+  if (s.agentId === "gemini-cli") {
+    // One Gemini CLI process per turn: every turn starts with its own `init`.
+    s.running = true;
+    const script = /paid/i.test(msg) ? geminiPaidScopeScript(s) : geminiGenericScript(s, msg, context as MessageContext | undefined);
+    script
+      .catch((e) => {
+        if (!(e instanceof Cancelled)) emit({ type: "error", message: String(e) });
+      })
+      .finally(() => (s.running = false));
+    return;
+  }
   if (!s.started) {
     s.started = true;
     setTimeout(() =>
@@ -312,7 +345,6 @@ registerMock("agent_send", ({ sessionId, text, context, turnId }) => {
       }),
     );
   }
-  const msg = String(text);
   const script = /paid/i.test(msg) ? paidScopeScript(s) : genericScript(s, msg, context as MessageContext | undefined);
   s.running = true;
   script
@@ -345,3 +377,151 @@ registerMock("agent_stop", ({ sessionId }) => {
     sessions.delete(s.id);
   }
 });
+
+// ---- Gemini CLI ------------------------------------------------------------------------
+
+const GEMINI_SESSION = "c2f1e0d9-6b5a-4c3b-8a2f-1e0d9c8b7a6f";
+
+/**
+ * A Gemini CLI turn as recorded `stream-json` lines: each line goes through the Rust parser
+ * (`forge_agent_cli::gemini`) and the resulting events through the conversation model.
+ */
+function geminiRunner(s: MockSession) {
+  const { wait } = runner(s);
+  const started = Date.now();
+  let toolN = 0;
+  const line = (obj: Record<string, unknown>) => {
+    const json = JSON.stringify({ ...obj, timestamp: new Date().toISOString() });
+    const events = wasm ? (JSON.parse(wasm.agent_parse_lines(JSON.stringify({ agent: "gemini-cli", lines: [json] }))) as AgentEvent[]) : [];
+    for (const e of events) {
+      // Gemini does not report its working directory; the session fills in the project root.
+      emitAgent(s, e.type === "sessionStarted" ? { ...e, cwd: e.cwd ?? CWD } : e);
+    }
+  };
+  const say = async (text: string, speed = 16) => {
+    for (const chunk of text.match(/[\s\S]{1,12}/g) ?? []) {
+      line({ type: "message", role: "assistant", content: chunk, delta: true });
+      await wait(speed);
+    }
+  };
+  const tool = async (name: string, parameters: Record<string, unknown>, run: () => Promise<string> | string, ms = 300) => {
+    const id = `${name}-${Date.now()}-${++toolN}`;
+    line({ type: "tool_use", tool_name: name, tool_id: id, parameters });
+    await wait(ms);
+    try {
+      line({ type: "tool_result", tool_id: id, status: "success", output: await run() });
+    } catch (e) {
+      if (e instanceof Cancelled) throw e;
+      line({ type: "tool_result", tool_id: id, status: "error", output: "", error: { type: "tool_error", message: String(e) } });
+    }
+    await wait(120);
+  };
+  const begin = async (prompt: string) => {
+    line({ type: "init", session_id: GEMINI_SESSION, model: "gemini-2.5-pro" });
+    line({ type: "message", role: "user", content: prompt });
+    await wait(500);
+  };
+  const finish = (input: number, output: number, cached: number) =>
+    line({
+      type: "result",
+      status: "success",
+      stats: { total_tokens: input + output, input_tokens: input, output_tokens: output, cached, input: input - cached, duration_ms: Date.now() - started, tool_calls: toolN },
+    });
+  return { wait, say, tool, begin, finish, line };
+}
+
+const SCOPE_SNIPPET = `/**
+ * Only orders that have been paid.
+ */
+public function scopePaid(Builder $query): Builder
+{
+    return $query->where('status', OrderStatus::Paid);
+}`;
+
+async function geminiPaidScopeScript(s: MockSession) {
+  const { say, tool, begin, finish } = geminiRunner(s);
+  const canEdit = s.mode === "acceptEdits" || s.mode === "bypassPermissions";
+  const canRun = s.mode === "bypassPermissions";
+  await begin("Add a scope for paid orders to Order model");
+  await say("I'll add a `paid` query scope to the `Order` model. First I'll check the model and the status enum.");
+  await tool("read_file", { absolute_path: abs("app/Models/Order.php") }, () => invoke<string>("fs_read_file", { path: "app/Models/Order.php" }), 300);
+  await tool("read_file", { absolute_path: abs("app/Models/OrderStatus.php") }, () => invoke<string>("fs_read_file", { path: "app/Models/OrderStatus.php" }), 250);
+  await tool(
+    "search_file_content",
+    { pattern: "OrderStatus::Paid", dir_path: CWD },
+    () => 'Found 1 match for pattern "OrderStatus::Paid" in path ".":\n---\nFile: app/Models/User.php\nL36: ->where(\'status\', OrderStatus::Paid)\n---',
+    300,
+  );
+  if (!canEdit) {
+    await say(
+      [
+        "`OrderStatus` is a backed enum with a `Paid` case, so a local scope can compare against it directly. Add this to `App\\Models\\Order` (and import `Illuminate\\Database\\Eloquent\\Builder`):",
+        "",
+        "```php",
+        SCOPE_SNIPPET,
+        "```",
+        "",
+        "I'm in read-only mode, so I didn't change any files. Switch the approval mode to **Auto-accept edits** and I'll apply it.",
+      ].join("\n"),
+      10,
+    );
+    finish(14_820, 312, 9_600);
+    return;
+  }
+  await say("`OrderStatus` is a backed enum with a `Paid` case, so the scope can compare against it directly.");
+  await tool(
+    "replace",
+    { file_path: abs("app/Models/Order.php"), old_string: ORDER_OLD, new_string: ORDER_NEW, expected_replacements: 1 },
+    async () => {
+      await applyEdit("app/Models/Order.php", [{ old_string: ORDER_OLD, new_string: ORDER_NEW }]);
+      return `Successfully modified file: ${abs("app/Models/Order.php")} (1 replacements).`;
+    },
+    600,
+  );
+  if (canRun) {
+    await tool(
+      "run_shell_command",
+      { command: "php artisan test --filter=OrderTest", description: "Run the order tests." },
+      () =>
+        [
+          "Command: php artisan test --filter=OrderTest",
+          "Directory: (root)",
+          "Output: ",
+          "   PASS  Tests\\Feature\\OrderTest",
+          "  ✓ user can view order                                   0.08s",
+          "",
+          "  Tests:    1 passed (2 assertions)",
+          "  Duration: 0.38s",
+          "Exit Code: 0",
+        ].join("\n"),
+      2400,
+    );
+  }
+  await say(
+    [
+      "Added a `paid` local scope to `App\\Models\\Order`:",
+      "",
+      "```php",
+      "$orders = Order::paid()->latest()->get();",
+      "```",
+      "",
+      canRun
+        ? "The order tests still pass."
+        : "Shell commands are off in **Auto-accept edits** mode, so I didn't run the tests. Run `php artisan test --filter=OrderTest` to check.",
+    ].join("\n"),
+    10,
+  );
+  finish(31_240, 586, 22_400);
+}
+
+async function geminiGenericScript(s: MockSession, text: string, ctx: MessageContext | undefined) {
+  const { say, tool, begin, finish } = geminiRunner(s);
+  await begin(text);
+  for (const f of ctx?.files ?? []) {
+    await tool("read_file", { absolute_path: abs(f) }, () => invoke<string>("fs_read_file", { path: f }).catch(() => ""), 300);
+  }
+  await say(
+    `This is Forge's browser demo, so no real agent is running. In the desktop app your message would go to the Gemini CLI:\n\n> ${text.split("\n")[0]}\n\nTry **"Add a scope for paid orders to Order model"** to see a scripted session with file reads and an edit.`,
+  );
+  finish(2_140, 88, 0);
+}
