@@ -8,7 +8,7 @@
 - [ ] PHPForge language pack: Intelephense (bring your own license) / phpactor, PHPDoc & attribute hover, Generate menu (Alt+Insert: getters/setters/constructor)
 - [ ] Git: Commit tool window, diff, inline blame, branches, AI commit messages
 - [ ] AI providers: Anthropic, OpenRouter, Ollama, llama.cpp, LM Studio, any OpenAI-compatible API
-- [ ] AIForge chat: Claude Code rendered as chat (no terminal), tool calls & diffs as cards
+- [x] AI chat: Claude Code rendered as chat (no terminal), tool calls & diffs as cards
 - [ ] PHPStorm keymap 1:1, Find Action, Search Everywhere
 
 ## Next branches
@@ -23,8 +23,7 @@
 | `feat/docker-kubernetes` | Services tool window: containers, compose, pods, logs |
 | `feat/gitlab-forgejo` | GitLab, Forgejo/Gitea merge requests & issues |
 | `feat/remote-sessions` | SSH remote backend with remote indexing & LSP |
-| `feat/gemini-cli-plugin` | Gemini CLI as AIForge chat agent |
-| `feat/aiforge-orchestration` | Several agents in parallel, tasks, worktrees, review & apply |
+| `feat/gemini-cli-plugin` | Gemini CLI as a chat agent |
 | `feat/webforge` | Web pack |
 | `feat/luaforge` | Lua pack |
 | `feat/scratch-files` | Scratches & consoles (Ctrl+Alt+Shift+Insert) |

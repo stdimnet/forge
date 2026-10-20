@@ -1590,7 +1590,7 @@
     "id": "forge.ai",
     "name": "AI Assistant",
     "version": "0.1.0",
-    "pack": "aiforge",
+    "pack": "core",
     "description": "Chat, inline completions and code generation with your own model providers.",
     "vendor": "Forge",
     "depends": [],
@@ -1669,7 +1669,7 @@
     "id": "forge.claude-code",
     "name": "Claude Code",
     "version": "0.1.0",
-    "pack": "aiforge",
+    "pack": "core",
     "description": "Run Claude Code agents in the IDE, several in parallel.",
     "vendor": "Forge",
     "depends": [
@@ -1709,7 +1709,7 @@
     "id": "forge.gemini-cli",
     "name": "Gemini CLI",
     "version": "0.1.0",
-    "pack": "aiforge",
+    "pack": "core",
     "description": "Run Gemini CLI agents in the IDE.",
     "vendor": "Forge",
     "depends": [

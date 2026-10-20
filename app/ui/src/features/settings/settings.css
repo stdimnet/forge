@@ -567,9 +567,6 @@
 .pack-luaforge {
   --pack: var(--syn-type);
 }
-.pack-aiforge {
-  --pack: var(--accent);
-}
 .plugin-details {
   flex: 1;
   min-width: 0;

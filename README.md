@@ -10,7 +10,10 @@ Forge is the core. Languages and big feature sets ship as **packs** of plugins:
 | **PHPForge** | PHP, Laravel, Symfony, Doctrine (DQL), Composer, PHPUnit, Xdebug |
 | **WebForge** | HTML, CSS, JavaScript/TypeScript, Vue/React, Node |
 | **LuaForge** | Lua |
-| **AIForge** | AI agents: Claude Code, Gemini CLI, any OpenAI-compatible model; orchestrate several agents in parallel |
+
+AI is built into the core: chat with Claude Code or Gemini CLI rendered natively (no terminal),
+AI commit messages, and any provider: Anthropic, OpenAI, OpenRouter, Ollama, LM Studio, llama.cpp
+or another OpenAI-compatible API.
 
 The layout and keymap follow PHPStorm 1:1 so you feel at home immediately; the look is Forge's own.
 

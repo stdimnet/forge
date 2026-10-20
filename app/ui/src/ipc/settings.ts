@@ -109,7 +109,7 @@ export interface Contributions {
   codeGenerators: CodeGeneratorContribution[];
 }
 
-export type PackId = "core" | "phpforge" | "webforge" | "luaforge" | "aiforge";
+export type PackId = "core" | "phpforge" | "webforge" | "luaforge";
 
 export interface PluginInfo {
   id: string;
