@@ -1241,6 +1241,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "forge-debug"
+version = "0.1.0"
+dependencies = [
+ "base64 0.22.1",
+ "forge-core",
+ "quick-xml",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror 2.0.21",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "forge-lsp"
 version = "0.1.0"
 dependencies = [
