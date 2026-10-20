@@ -1215,6 +1215,7 @@ dependencies = [
  "forge-project",
  "forge-vcs",
  "futures-util",
+ "phpforge-fw-laravel",
  "phpforge-lang-php",
  "serde",
  "serde_json",

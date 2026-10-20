@@ -123,7 +123,7 @@ description = "Routes, Blade, Eloquent and artisan integration."
 projectTypes = ["laravel"]
 
 [[plugin.contributions.commands]]
-id = "laravel.artisan"
+id = "Laravel.RunArtisan"
 title = "Run Artisan Command…"
 category = "Tools"
 
@@ -131,6 +131,81 @@ category = "Tools"
 id = "laravel.model"
 title = "Eloquent Model"
 languages = ["php"]
+
+[[plugin.contributions.toolWindows]]
+id = "laravel.routes"
+title = "Routes"
+anchor = "bottom"
+icon = "route"
+order = 35
+
+[[plugin.contributions.keybindings]]
+command = "Laravel.RunArtisan"
+key = "Ctrl+Shift+X"
+
+[[plugin.contributions.settings]]
+key = "laravel.routes.source"
+title = "Read routes from"
+description = "`php artisan route:list` sees routes registered by packages but needs a bootable application."
+type = "enum"
+options = [
+  { value = "auto", label = "artisan route:list when available, else route files" },
+  { value = "artisan", label = "artisan route:list" },
+  { value = "static", label = "Route files (no PHP needed)" },
+]
+default = "auto"
+group = "lang.php.laravel"
+section = "Routes"
+project = true
+order = 0
+
+[[plugin.contributions.settings]]
+key = "laravel.completion.enabled"
+title = "Complete routes, views, config, translations and model attributes"
+type = "bool"
+default = true
+group = "lang.php.laravel"
+section = "Code Completion"
+order = 10
+
+[[plugin.contributions.settings]]
+key = "laravel.completion.columns"
+title = "Complete database columns in query builder calls"
+description = "`where('…')`, `orderBy('…')`, `pluck('…')` and similar, from migrations."
+type = "bool"
+default = true
+group = "lang.php.laravel"
+section = "Code Completion"
+order = 11
+
+[[plugin.contributions.settings]]
+key = "laravel.gutter.routes"
+title = "Show route icons for controller actions"
+type = "bool"
+default = true
+group = "lang.php.laravel"
+section = "Gutter Icons"
+order = 20
+
+[[plugin.contributions.settings]]
+key = "laravel.gutter.views"
+title = "Show view icons for view() calls and Blade includes"
+type = "bool"
+default = true
+group = "lang.php.laravel"
+section = "Gutter Icons"
+order = 21
+
+[[plugin.contributions.settings]]
+key = "laravel.blade.customDirectives"
+title = "Additional Blade directives"
+description = "Directive names without `@`, e.g. `datetime`, highlighted and completed like built-in ones."
+type = "list"
+default = []
+group = "lang.php.laravel"
+section = "Blade"
+project = true
+order = 30
 
 [[plugin]]
 id = "forge.symfony"
