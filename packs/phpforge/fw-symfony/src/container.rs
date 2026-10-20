@@ -193,12 +193,7 @@ fn service_files(root: &Path) -> Vec<PathBuf> {
             let mut v: Vec<PathBuf> = entries
                 .flatten()
                 .map(|e| e.path())
-                .filter(|p| {
-                    matches!(
-                        p.extension().and_then(|e| e.to_str()),
-                        Some("yaml" | "yml")
-                    )
-                })
+                .filter(|p| matches!(p.extension().and_then(|e| e.to_str()), Some("yaml" | "yml")))
                 .collect();
             v.sort();
             out.extend(v);
@@ -415,7 +410,11 @@ fn attr(e: &quick_xml::events::BytesStart, name: &str) -> Option<String> {
     e.attributes()
         .flatten()
         .find(|a| a.key.as_ref() == name)
-        .and_then(|a| a.normalized_value(XmlVersion::Implicit1_0).ok().map(|v| v.into_owned()))
+        .and_then(|a| {
+            a.normalized_value(XmlVersion::Implicit1_0)
+                .ok()
+                .map(|v| v.into_owned())
+        })
 }
 
 /// Services and parameters of a compiled container dump (`*Container.xml`).
@@ -426,11 +425,7 @@ pub fn parse_container_xml(xml: &str) -> (Vec<Service>, Vec<Parameter>) {
     let mut in_service: Option<usize> = None;
     // Stack of open <parameter> elements: (key, collected text, is collection).
     let mut param_stack: Vec<(Option<String>, String, bool)> = Vec::new();
-    loop {
-        let event = match reader.read_event() {
-            Ok(e) => e,
-            Err(_) => break,
-        };
+    while let Ok(event) = reader.read_event() {
         match event {
             Event::Start(ref e) | Event::Empty(ref e) => {
                 let empty = matches!(event, Event::Empty(_));
@@ -472,12 +467,17 @@ pub fn parse_container_xml(xml: &str) -> (Vec<Service>, Vec<Parameter>) {
                                 if let Some(k) = key {
                                     parameters.push(Parameter {
                                         name: k,
-                                        value: if collection { "[]".into() } else { "null".into() },
+                                        value: if collection {
+                                            "[]".into()
+                                        } else {
+                                            "null".into()
+                                        },
                                         location: None,
                                     });
                                 }
                             } else if let Some(top) = param_stack.last_mut() {
-                                top.1.push_str(if top.1.is_empty() { "null" } else { ", null" });
+                                top.1
+                                    .push_str(if top.1.is_empty() { "null" } else { ", null" });
                             }
                         } else {
                             param_stack.push((key, String::new(), collection));
@@ -505,15 +505,17 @@ pub fn parse_container_xml(xml: &str) -> (Vec<Service>, Vec<Parameter>) {
                 "service" => in_service = None,
                 "parameter" if in_service.is_none() => {
                     if let Some((key, text, collection)) = param_stack.pop() {
-                        let value = if collection { format!("[{text}]") } else { text };
+                        let value = if collection {
+                            format!("[{text}]")
+                        } else {
+                            text
+                        };
                         if let Some(parent) = param_stack.last_mut() {
                             if !parent.1.is_empty() {
                                 parent.1.push_str(", ");
                             }
                             match key {
-                                Some(k) if parent.2 => {
-                                    parent.1.push_str(&format!("{k}: {value}"))
-                                }
+                                Some(k) if parent.2 => parent.1.push_str(&format!("{k}: {value}")),
                                 _ => parent.1.push_str(&value),
                             }
                         } else if let Some(k) = key {
@@ -616,7 +618,10 @@ mod tests {
         assert!(ids.contains(&"App\\Twig\\AppExtension"));
         assert!(!ids.contains(&"App\\Entity\\Order"));
         assert!(!ids.contains(&"App\\Kernel"));
-        let checkout = services.iter().find(|s| s.id == "App\\Service\\Checkout").unwrap();
+        let checkout = services
+            .iter()
+            .find(|s| s.id == "App\\Service\\Checkout")
+            .unwrap();
         assert!(checkout.autowire);
         assert_eq!(checkout.source, ServiceSource::Resource);
 
@@ -630,7 +635,10 @@ mod tests {
         let currency = params.iter().find(|p| p.name == "app.currency").unwrap();
         assert_eq!(currency.value, "EUR");
         assert_eq!(currency.location.as_ref().unwrap().line, 1);
-        let locales = params.iter().find(|p| p.name == "app.supported_locales").unwrap();
+        let locales = params
+            .iter()
+            .find(|p| p.name == "app.supported_locales")
+            .unwrap();
         assert_eq!(locales.value, "[en, de]");
     }
 
@@ -641,13 +649,23 @@ mod tests {
         assert!(router.public);
         assert_eq!(router.tags, vec!["monolog.logger"]);
         assert!(services.iter().all(|s| !s.id.starts_with('.')));
-        let alias = services.iter().find(|s| s.id == "Twig\\Environment").unwrap();
+        let alias = services
+            .iter()
+            .find(|s| s.id == "Twig\\Environment")
+            .unwrap();
         assert_eq!(alias.alias.as_deref(), Some("twig"));
         assert_eq!(
-            params.iter().find(|p| p.name == "kernel.environment").unwrap().value,
+            params
+                .iter()
+                .find(|p| p.name == "kernel.environment")
+                .unwrap()
+                .value,
             "dev"
         );
-        assert_eq!(params.iter().find(|p| p.name == "locales").unwrap().value, "[en]");
+        assert_eq!(
+            params.iter().find(|p| p.name == "locales").unwrap().value,
+            "[en]"
+        );
     }
 
     #[test]
@@ -665,7 +683,11 @@ mod tests {
         );
         assert!(snap.service("router").is_some());
         // Known from YAML: keeps its location.
-        assert!(snap.service("App\\Service\\Checkout").unwrap().location.is_some());
+        assert!(snap
+            .service("App\\Service\\Checkout")
+            .unwrap()
+            .location
+            .is_some());
     }
 
     #[test]

@@ -3028,6 +3028,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tempfile",
+ "tree-sitter",
  "walkdir",
  "yaml-rust2",
 ]

@@ -161,7 +161,8 @@ pub fn call_context(text: &str, open: usize) -> Option<CallContext> {
                     return None;
                 }
                 let rest = trimmed[..trimmed.len() - name.len()].trim_end();
-                let is_method = rest.ends_with("->") || rest.ends_with("::") || rest.ends_with("?->");
+                let is_method =
+                    rest.ends_with("->") || rest.ends_with("::") || rest.ends_with("?->");
                 let function = name.rsplit('\\').next().unwrap_or(&name).to_string();
                 return Some(CallContext {
                     function,

@@ -181,10 +181,22 @@ const FILTERS: &[(&str, &str)] = &[
     ("find", "find(arrow)"),
     ("first", "first"),
     ("format", "format(...values)"),
-    ("format_currency", "format_currency(currency, attrs = [], locale = null)"),
-    ("format_date", "format_date(dateFormat = 'medium', pattern = '', timezone = null)"),
-    ("format_datetime", "format_datetime(dateFormat = 'medium', timeFormat = 'medium')"),
-    ("format_number", "format_number(attrs = [], style = 'decimal')"),
+    (
+        "format_currency",
+        "format_currency(currency, attrs = [], locale = null)",
+    ),
+    (
+        "format_date",
+        "format_date(dateFormat = 'medium', pattern = '', timezone = null)",
+    ),
+    (
+        "format_datetime",
+        "format_datetime(dateFormat = 'medium', timeFormat = 'medium')",
+    ),
+    (
+        "format_number",
+        "format_number(attrs = [], style = 'decimal')",
+    ),
     ("join", "join(glue = '', and = null)"),
     ("json_encode", "json_encode(options = null)"),
     ("keys", "keys"),
@@ -196,14 +208,20 @@ const FILTERS: &[(&str, &str)] = &[
     ("markdown_to_html", "markdown_to_html"),
     ("merge", "merge(array)"),
     ("nl2br", "nl2br"),
-    ("number_format", "number_format(decimal = 0, decimal_point = '.', thousand_sep = ',')"),
+    (
+        "number_format",
+        "number_format(decimal = 0, decimal_point = '.', thousand_sep = ',')",
+    ),
     ("raw", "raw"),
     ("reduce", "reduce(arrow, initial = null)"),
     ("replace", "replace(from)"),
     ("reverse", "reverse(preserve_keys = false)"),
     ("round", "round(precision = 0, method = 'common')"),
     ("shuffle", "shuffle"),
-    ("slice", "slice(start, length = null, preserve_keys = false)"),
+    (
+        "slice",
+        "slice(start, length = null, preserve_keys = false)",
+    ),
     ("slug", "slug(separator = '-', locale = null)"),
     ("sort", "sort(arrow = null)"),
     ("spaceless", "spaceless"),
@@ -217,7 +235,10 @@ const FILTERS: &[(&str, &str)] = &[
 ];
 
 const SYMFONY_FILTERS: &[(&str, &str)] = &[
-    ("trans", "trans(arguments = [], domain = null, locale = null)"),
+    (
+        "trans",
+        "trans(arguments = [], domain = null, locale = null)",
+    ),
     ("humanize", "humanize"),
     ("yaml_encode", "yaml_encode(inline = 0, dumpObjects = 0)"),
     ("yaml_dump", "yaml_dump(inline = 0)"),
@@ -241,14 +262,20 @@ const FUNCTIONS: &[(&str, &str)] = &[
     ("enum", "enum(class)"),
     ("enum_cases", "enum_cases(class)"),
     ("html_classes", "html_classes(...classes)"),
-    ("include", "include(template, variables = [], with_context = true)"),
+    (
+        "include",
+        "include(template, variables = [], with_context = true)",
+    ),
     ("max", "max(...values)"),
     ("min", "min(...values)"),
     ("parent", "parent()"),
     ("random", "random(values = null, max = null)"),
     ("range", "range(low, high, step = 1)"),
     ("source", "source(name, ignore_missing = false)"),
-    ("template_from_string", "template_from_string(template, name = null)"),
+    (
+        "template_from_string",
+        "template_from_string(template, name = null)",
+    ),
 ];
 
 const SYMFONY_FUNCTIONS: &[(&str, &str)] = &[
@@ -259,20 +286,35 @@ const SYMFONY_FUNCTIONS: &[(&str, &str)] = &[
     ("absolute_url", "absolute_url(path)"),
     ("relative_path", "relative_path(path)"),
     ("csrf_token", "csrf_token(tokenId)"),
-    ("is_granted", "is_granted(role, object = null, field = null)"),
-    ("is_granted_for_user", "is_granted_for_user(user, attribute, subject = null)"),
+    (
+        "is_granted",
+        "is_granted(role, object = null, field = null)",
+    ),
+    (
+        "is_granted_for_user",
+        "is_granted_for_user(user, attribute, subject = null)",
+    ),
     ("logout_path", "logout_path(key = null)"),
     ("logout_url", "logout_url(key = null)"),
-    ("impersonation_exit_path", "impersonation_exit_path(exitTo = null)"),
+    (
+        "impersonation_exit_path",
+        "impersonation_exit_path(exitTo = null)",
+    ),
     ("render", "render(uri, options = [])"),
     ("render_esi", "render_esi(uri, options = [])"),
-    ("controller", "controller(controller, attributes = [], query = [])"),
+    (
+        "controller",
+        "controller(controller, attributes = [], query = [])",
+    ),
     ("form", "form(view, variables = [])"),
     ("form_start", "form_start(view, variables = [])"),
     ("form_end", "form_end(view, variables = [])"),
     ("form_widget", "form_widget(view, variables = [])"),
     ("form_row", "form_row(view, variables = [])"),
-    ("form_label", "form_label(view, label = null, variables = [])"),
+    (
+        "form_label",
+        "form_label(view, label = null, variables = [])",
+    ),
     ("form_errors", "form_errors(view)"),
     ("form_help", "form_help(view)"),
     ("form_rest", "form_rest(view, variables = [])"),
@@ -281,15 +323,38 @@ const SYMFONY_FUNCTIONS: &[(&str, &str)] = &[
     ("field_label", "field_label(view)"),
     ("t", "t(message, parameters = [], domain = null)"),
     ("importmap", "importmap(entryPoint = 'app')"),
-    ("encore_entry_link_tags", "encore_entry_link_tags(entryName)"),
-    ("encore_entry_script_tags", "encore_entry_script_tags(entryName)"),
-    ("workflow_can", "workflow_can(subject, transitionName, name = null)"),
-    ("workflow_transitions", "workflow_transitions(subject, name = null)"),
+    (
+        "encore_entry_link_tags",
+        "encore_entry_link_tags(entryName)",
+    ),
+    (
+        "encore_entry_script_tags",
+        "encore_entry_script_tags(entryName)",
+    ),
+    (
+        "workflow_can",
+        "workflow_can(subject, transitionName, name = null)",
+    ),
+    (
+        "workflow_transitions",
+        "workflow_transitions(subject, name = null)",
+    ),
 ];
 
 const TESTS: &[&str] = &[
-    "constant", "defined", "divisible by", "empty", "even", "iterable", "mapping", "null",
-    "odd", "same as", "sequence", "rootform", "selectedchoice",
+    "constant",
+    "defined",
+    "divisible by",
+    "empty",
+    "even",
+    "iterable",
+    "mapping",
+    "null",
+    "odd",
+    "same as",
+    "sequence",
+    "rootform",
+    "selectedchoice",
 ];
 
 /// Twig core and Symfony bridge tags, filters, functions, tests and the `app` variable.
@@ -324,7 +389,9 @@ pub fn builtin_symbols() -> Vec<TwigSymbol> {
     out.push(TwigSymbol {
         name: "app".into(),
         kind: TwigSymbolKind::Variable,
-        signature: "AppVariable (user, request, session, flashes, environment, debug, current_route)".into(),
+        signature:
+            "AppVariable (user, request, session, flashes, environment, debug, current_route)"
+                .into(),
         provider: "Symfony".into(),
         location: None,
     });
@@ -395,7 +462,12 @@ pub fn render_refs_in(file: &PhpFile) -> Vec<RenderRef> {
             .members
             .iter()
             .filter(|mb| mb.kind == SymbolKind::Method)
-            .find(|mb| mb.range.contains(m.start()) || (mb.range.start > m.start() && mb.range.start - m.start() < 400 && cap.get(0).is_some_and(|c| c.as_str().starts_with("#["))));
+            .find(|mb| {
+                mb.range.contains(m.start())
+                    || (mb.range.start > m.start()
+                        && mb.range.start - m.start() < 400
+                        && cap.get(0).is_some_and(|c| c.as_str().starts_with("#[")))
+            });
         let controller = match method {
             Some(mb) => format!("{}::{}", class.fqn, mb.name),
             None => class.fqn.clone(),
@@ -451,7 +523,9 @@ mod tests {
         assert_eq!(price.kind, TwigSymbolKind::Filter);
         assert_eq!(price.provider, "App\\Twig\\AppExtension");
         assert_eq!(price.location.as_ref().unwrap().line, 13);
-        assert!(ext.iter().any(|s| s.name == "cart_count" && s.kind == TwigSymbolKind::Function));
+        assert!(ext
+            .iter()
+            .any(|s| s.name == "cart_count" && s.kind == TwigSymbolKind::Function));
     }
 
     #[test]
@@ -459,7 +533,10 @@ mod tests {
         let dir = fixture::project();
         let php = crate::index_php_files(dir.path(), "src");
         let refs = render_refs(&php);
-        let show = refs.iter().find(|r| r.template == "order/show.html.twig").unwrap();
+        let show = refs
+            .iter()
+            .find(|r| r.template == "order/show.html.twig")
+            .unwrap();
         assert_eq!(show.controller, "App\\Controller\\OrderController::show");
         assert_eq!(show.location.line, 22);
     }
@@ -467,8 +544,14 @@ mod tests {
     #[test]
     fn builtins_include_symfony_bridge() {
         let all = builtin_symbols();
-        assert!(all.iter().any(|s| s.name == "path" && s.kind == TwigSymbolKind::Function));
-        assert!(all.iter().any(|s| s.name == "trans" && s.kind == TwigSymbolKind::Filter));
-        assert!(all.iter().any(|s| s.name == "form_theme" && s.kind == TwigSymbolKind::Tag));
+        assert!(all
+            .iter()
+            .any(|s| s.name == "path" && s.kind == TwigSymbolKind::Function));
+        assert!(all
+            .iter()
+            .any(|s| s.name == "trans" && s.kind == TwigSymbolKind::Filter));
+        assert!(all
+            .iter()
+            .any(|s| s.name == "form_theme" && s.kind == TwigSymbolKind::Tag));
     }
 }

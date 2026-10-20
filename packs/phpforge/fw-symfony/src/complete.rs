@@ -188,8 +188,10 @@ fn twig_string_reference(text: &str, s: &StringAt) -> Option<Reference> {
     if is_tag {
         let head = text[start..s.open].trim_start_matches('-').trim();
         let first = head.split_whitespace().next().unwrap_or("");
-        let template_tag = matches!(first, "extends" | "include" | "embed" | "import" | "from" | "use")
-            && head.split_whitespace().count() == 1;
+        let template_tag = matches!(
+            first,
+            "extends" | "include" | "embed" | "import" | "from" | "use"
+        ) && head.split_whitespace().count() == 1;
         let theme = first == "form_theme" && head.split_whitespace().count() >= 2;
         if template_tag || theme {
             return Some(plain(RefKind::Template, s));
@@ -304,18 +306,12 @@ pub fn reference_at(path: &str, text: &str, offset: usize) -> Option<Reference> 
         }
         return twig_word_reference(text, offset);
     }
-    if let Some(s) = string_at(text, offset) {
-        return match kind {
-            FileKind::Twig => twig_string_reference(text, &s),
-            FileKind::Php => php_string_reference(text, &s),
-            FileKind::Yaml => sigil_reference(&s),
-            FileKind::Other => None,
-        };
+    let s = string_at(text, offset)?;
+    match kind {
+        FileKind::Php => php_string_reference(text, &s),
+        FileKind::Yaml => sigil_reference(&s),
+        FileKind::Twig | FileKind::Other => None,
     }
-    if kind == FileKind::Twig {
-        return twig_word_reference(text, offset);
-    }
-    None
 }
 
 fn matches_prefix(name: &str, prefix: &str) -> bool {
@@ -353,7 +349,11 @@ pub fn complete(snap: &Snapshot, path: &str, text: &str, offset: usize) -> Optio
     let mut items: Vec<CompletionItem> = Vec::new();
     match r.kind {
         RefKind::Route => {
-            for route in snap.routes.iter().filter(|x| matches_prefix(&x.name, &r.prefix)) {
+            for route in snap
+                .routes
+                .iter()
+                .filter(|x| matches_prefix(&x.name, &r.prefix))
+            {
                 let methods = if route.methods.is_empty() {
                     "ANY".to_string()
                 } else {
@@ -369,7 +369,11 @@ pub fn complete(snap: &Snapshot, path: &str, text: &str, offset: usize) -> Optio
             }
         }
         RefKind::Service => {
-            for s in snap.services.iter().filter(|x| matches_prefix(&x.id, &r.prefix)) {
+            for s in snap
+                .services
+                .iter()
+                .filter(|x| matches_prefix(&x.id, &r.prefix))
+            {
                 let detail = match (&s.alias, &s.class) {
                     (Some(a), _) => format!("alias for {a}"),
                     (None, Some(c)) if c != &s.id => c.clone(),
@@ -379,13 +383,21 @@ pub fn complete(snap: &Snapshot, path: &str, text: &str, offset: usize) -> Optio
                     label: s.id.clone(),
                     kind: CompletionKind::Service,
                     detail,
-                    info: if s.public { "public".into() } else { String::new() },
+                    info: if s.public {
+                        "public".into()
+                    } else {
+                        String::new()
+                    },
                     apply: None,
                 });
             }
         }
         RefKind::Template => {
-            for t in snap.templates.iter().filter(|x| matches_prefix(&x.name, &r.prefix)) {
+            for t in snap
+                .templates
+                .iter()
+                .filter(|x| matches_prefix(&x.name, &r.prefix))
+            {
                 items.push(CompletionItem {
                     label: t.name.clone(),
                     kind: CompletionKind::Template,
@@ -398,7 +410,11 @@ pub fn complete(snap: &Snapshot, path: &str, text: &str, offset: usize) -> Optio
         RefKind::Parameter => {
             // `'%app.cur|'` gets its closing `%`.
             let closing = text[..r.from].ends_with('%') && !text[offset..].starts_with('%');
-            for p in snap.parameters.iter().filter(|x| matches_prefix(&x.name, &r.prefix)) {
+            for p in snap
+                .parameters
+                .iter()
+                .filter(|x| matches_prefix(&x.name, &r.prefix))
+            {
                 items.push(CompletionItem {
                     label: p.name.clone(),
                     kind: CompletionKind::Parameter,
@@ -411,7 +427,8 @@ pub fn complete(snap: &Snapshot, path: &str, text: &str, offset: usize) -> Optio
         k => {
             let tk = twig_kind(k)?;
             for s in snap.twig.iter().filter(|x| {
-                (x.kind == tk || (tk == TwigSymbolKind::Function && x.kind == TwigSymbolKind::Variable))
+                (x.kind == tk
+                    || (tk == TwigSymbolKind::Function && x.kind == TwigSymbolKind::Variable))
                     && matches_prefix(&x.name, &r.prefix)
             }) {
                 items.push(CompletionItem {
@@ -539,7 +556,10 @@ mod tests {
         let snap = scan(dir.path(), &Config::default());
         let (src, pos) = at("<?php $this->redirectToRoute('order_¦');");
         let list = complete(&snap, "src/X.php", &src, pos).unwrap();
-        assert_eq!(labels(&list), vec!["order_index", "order_pay", "order_show"]);
+        assert_eq!(
+            labels(&list),
+            vec!["order_index", "order_pay", "order_show"]
+        );
         assert_eq!(list.items[2].detail, "GET /orders/{id}");
         assert_eq!(list.from, src.find("order_").unwrap());
 
@@ -554,7 +574,10 @@ mod tests {
         let snap = scan(dir.path(), &Config::default());
         let (src, pos) = at("return $this->render('order/¦');");
         let list = complete(&snap, "src/X.php", &src, pos).unwrap();
-        assert_eq!(labels(&list), vec!["order/index.html.twig", "order/show.html.twig"]);
+        assert_eq!(
+            labels(&list),
+            vec!["order/index.html.twig", "order/show.html.twig"]
+        );
 
         let (src, pos) = at("{% extends 'ba¦' %}");
         let list = complete(&snap, "templates/x.html.twig", &src, pos).unwrap();
@@ -590,7 +613,10 @@ mod tests {
         let (src, pos) = at("{{ form_¦ }}");
         let list = complete(&snap, "t.html.twig", &src, pos).unwrap();
         assert!(labels(&list).contains(&"form_start"));
-        assert!(list.items.iter().all(|i| i.kind == CompletionKind::Function));
+        assert!(list
+            .items
+            .iter()
+            .all(|i| i.kind == CompletionKind::Function));
 
         let (src, pos) = at("{% if items is em¦ %}");
         let list = complete(&snap, "t.html.twig", &src, pos).unwrap();
@@ -610,7 +636,10 @@ mod tests {
         assert_eq!(loc.line, 20);
 
         let (src, pos) = at("$this->render('order/sh¦ow.html.twig')");
-        assert_eq!(goto(&snap, "src/X.php", &src, pos)[0].path, "templates/order/show.html.twig");
+        assert_eq!(
+            goto(&snap, "src/X.php", &src, pos)[0].path,
+            "templates/order/show.html.twig"
+        );
 
         let (src, pos) = at("['@mailer.def¦ault']");
         let loc = &goto(&snap, "config/services.yaml", &src, pos)[0];
@@ -620,7 +649,10 @@ mod tests {
         assert_eq!(goto(&snap, "config/services.yaml", &src, pos)[0].line, 1);
 
         let (src, pos) = at("{{ total|pri¦ce }}");
-        assert_eq!(goto(&snap, "t.html.twig", &src, pos)[0].path, "src/Twig/AppExtension.php");
+        assert_eq!(
+            goto(&snap, "t.html.twig", &src, pos)[0].path,
+            "src/Twig/AppExtension.php"
+        );
 
         let (src, pos) = at("    controller: App\\Controller\\OrderController::sh¦ow");
         assert_eq!(goto(&snap, "config/routes.yaml", &src, pos)[0].line, 20);

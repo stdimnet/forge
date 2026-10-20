@@ -595,8 +595,16 @@ api_health:
         write(r, "src/Service/Mailer.php", MAILER);
         write(r, "src/Twig/AppExtension.php", TWIG_EXT);
         write(r, "src/Entity/Order.php", ENTITY);
-        write(r, "templates/base.html.twig", "<html>{% block body %}{% endblock %}</html>\n");
-        write(r, "templates/order/index.html.twig", "{% extends 'base.html.twig' %}\n");
+        write(
+            r,
+            "templates/base.html.twig",
+            "<html>{% block body %}{% endblock %}</html>\n",
+        );
+        write(
+            r,
+            "templates/order/index.html.twig",
+            "{% extends 'base.html.twig' %}\n",
+        );
         write(r, "templates/order/show.html.twig", "{% extends 'base.html.twig' %}\n{% block body %}{{ order.total|price }}{% endblock %}\n");
         dir
     }

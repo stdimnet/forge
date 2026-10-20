@@ -135,7 +135,11 @@ pub fn default_route_name(class: &str, method: &str) -> String {
 
 fn join_path(prefix: &str, path: &str) -> String {
     if prefix.is_empty() {
-        return if path.is_empty() { "/".into() } else { path.into() };
+        return if path.is_empty() {
+            "/".into()
+        } else {
+            path.into()
+        };
     }
     let joined = format!("{}{}", prefix.trim_end_matches('/'), path);
     if joined.is_empty() {
@@ -321,11 +325,17 @@ pub fn from_yaml_files(root: &Path, routes: &mut Vec<Route>) {
             }) else {
                 continue;
             };
-            let controller = yget(v, "controller")
-                .and_then(ystr)
-                .or_else(|| yget(v, "defaults").and_then(|d| yget(d, "_controller")).and_then(ystr));
+            let controller = yget(v, "controller").and_then(ystr).or_else(|| {
+                yget(v, "defaults")
+                    .and_then(|d| yget(d, "_controller"))
+                    .and_then(ystr)
+            });
             let methods = match yget(v, "methods") {
-                Some(Yaml::Array(a)) => a.iter().filter_map(ystr).map(|m| m.to_uppercase()).collect(),
+                Some(Yaml::Array(a)) => a
+                    .iter()
+                    .filter_map(ystr)
+                    .map(|m| m.to_uppercase())
+                    .collect(),
                 Some(other) => ystr(other)
                     .map(|s| s.split('|').map(|m| m.trim().to_uppercase()).collect())
                     .unwrap_or_default(),
@@ -416,7 +426,9 @@ mod tests {
         let php = crate::index_php_files(dir.path(), "src");
         let mut routes = from_php(&php);
         from_yaml_files(dir.path(), &mut routes);
-        assert!(routes.iter().any(|r| r.name == "api_order_show" && r.path == "/api/orders/{id}"));
+        assert!(routes
+            .iter()
+            .any(|r| r.name == "api_order_show" && r.path == "/api/orders/{id}"));
     }
 
     #[test]

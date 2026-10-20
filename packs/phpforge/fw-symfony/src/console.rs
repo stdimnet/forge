@@ -99,9 +99,11 @@ pub fn commands(php: &[PhpFile]) -> Vec<ConsoleCommand> {
     let mut out = Vec::new();
     for f in php {
         for c in &f.index.classes {
-            let attr = c.attributes.iter().find(|a| a.name == "AsCommand" || a.fqn.ends_with("\\AsCommand"));
-            let is_command = attr.is_some()
-                || c.extends.iter().any(|e| e.ends_with("Command"));
+            let attr = c
+                .attributes
+                .iter()
+                .find(|a| a.name == "AsCommand" || a.fqn.ends_with("\\AsCommand"));
+            let is_command = attr.is_some() || c.extends.iter().any(|e| e.ends_with("Command"));
             if !is_command || c.modifiers.is_abstract {
                 continue;
             }
@@ -111,7 +113,11 @@ pub fn commands(php: &[PhpFile]) -> Vec<ConsoleCommand> {
                 description: String::new(),
                 aliases: Vec::new(),
                 class: Some(c.fqn.clone()),
-                location: Some(Location::new(&f.path, c.name_range.line, c.name_range.column)),
+                location: Some(Location::new(
+                    &f.path,
+                    c.name_range.line,
+                    c.name_range.column,
+                )),
                 hidden: false,
                 builtin: false,
             };
@@ -122,13 +128,19 @@ pub fn commands(php: &[PhpFile]) -> Vec<ConsoleCommand> {
                     .filter(|x| x.name.is_none())
                     .map(|x| x.value.as_str())
                     .collect();
-                let named = |n: &str| a.args.iter().find(|x| x.name.as_deref() == Some(n)).map(|x| x.value.as_str());
+                let named = |n: &str| {
+                    a.args
+                        .iter()
+                        .find(|x| x.name.as_deref() == Some(n))
+                        .map(|x| x.value.as_str())
+                };
                 if let Some(n) = named("name").or(positional.first().copied()) {
                     let n = unquote(n);
                     // `name: 'app:a|app:b'` declares aliases with pipes.
                     let mut parts = n.split('|');
                     cmd.name = parts.next().unwrap_or_default().to_string();
-                    cmd.aliases.extend(parts.filter(|p| !p.is_empty()).map(str::to_string));
+                    cmd.aliases
+                        .extend(parts.filter(|p| !p.is_empty()).map(str::to_string));
                 }
                 if let Some(d) = named("description").or(positional.get(1).copied()) {
                     cmd.description = unquote(d);
@@ -139,16 +151,27 @@ pub fn commands(php: &[PhpFile]) -> Vec<ConsoleCommand> {
                 cmd.hidden = named("hidden").is_some_and(|h| h.trim() == "true");
             }
             if cmd.name.is_empty() {
-                if let Some(m) = re(&DEFAULT_NAME, r#"\$defaultName\s*=\s*['"]([^'"]+)['"]"#).captures(body) {
+                if let Some(m) =
+                    re(&DEFAULT_NAME, r#"\$defaultName\s*=\s*['"]([^'"]+)['"]"#).captures(body)
+                {
                     cmd.name = m[1].to_string();
-                } else if let Some(m) = re(&SET_NAME, r#"->setName\(\s*['"]([^'"]+)['"]"#).captures(body) {
+                } else if let Some(m) =
+                    re(&SET_NAME, r#"->setName\(\s*['"]([^'"]+)['"]"#).captures(body)
+                {
                     cmd.name = m[1].to_string();
                 }
             }
             if cmd.description.is_empty() {
-                if let Some(m) = re(&DEFAULT_DESC, r#"\$defaultDescription\s*=\s*['"]([^'"]+)['"]"#).captures(body) {
+                if let Some(m) = re(
+                    &DEFAULT_DESC,
+                    r#"\$defaultDescription\s*=\s*['"]([^'"]+)['"]"#,
+                )
+                .captures(body)
+                {
                     cmd.description = m[1].to_string();
-                } else if let Some(m) = re(&SET_DESC, r#"->setDescription\(\s*['"]([^'"]+)['"]"#).captures(body) {
+                } else if let Some(m) =
+                    re(&SET_DESC, r#"->setDescription\(\s*['"]([^'"]+)['"]"#).captures(body)
+                {
                     cmd.description = m[1].to_string();
                 }
             }
@@ -231,7 +254,10 @@ mod tests {
         let cmds = commands(&php);
         let purge = cmds.iter().find(|c| c.name == "app:orders:purge").unwrap();
         assert_eq!(purge.description, "Delete abandoned orders");
-        assert_eq!(purge.class.as_deref(), Some("App\\Command\\PurgeOrdersCommand"));
+        assert_eq!(
+            purge.class.as_deref(),
+            Some("App\\Command\\PurgeOrdersCommand")
+        );
         let import = cmds.iter().find(|c| c.name == "app:import").unwrap();
         assert_eq!(import.description, "Import products from a CSV file");
         assert_eq!(import.aliases, vec!["app:imp"]);
