@@ -12,6 +12,7 @@ import "./langservers";
 import "./navigation";
 import "./keymapSettings";
 import "./git";
+import "./forges";
 import "./php";
 import "./laravel";
 import "./symfony";

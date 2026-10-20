@@ -1403,6 +1403,7 @@ dependencies = [
  "forge-core",
  "forge-db",
  "forge-debug",
+ "forge-forges",
  "forge-langservers",
  "forge-lsp",
  "forge-open",
@@ -1474,6 +1475,26 @@ dependencies = [
  "tempfile",
  "thiserror 2.0.21",
  "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "forge-forges"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "dirs 6.0.0",
+ "forge-core",
+ "forge-vcs",
+ "futures-util",
+ "keyring",
+ "reqwest 0.12.28",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror 2.0.21",
+ "tokio",
+ "toml 0.8.23",
  "tracing",
 ]
 

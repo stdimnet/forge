@@ -38,6 +38,7 @@ pub fn run() {
         .manage(commands::ai::AiState::load())
         .manage(commands::agent::AgentState::default())
         .manage(commands::db::DbState::load())
+        .manage(commands::forges::ForgesState::load())
         .setup(|app| {
             app.manage(commands::debug::DebugState::new(app.handle().clone()));
             // Forward settings changes to the UI.
@@ -189,6 +190,30 @@ pub fn run() {
             commands::git::git_push,
             commands::git::git_pull,
             commands::git::git_fetch,
+            commands::forges::forges_accounts,
+            commands::forges::forges_login,
+            commands::forges::forges_logout,
+            commands::forges::forges_verify,
+            commands::forges::forges_repo,
+            commands::forges::forges_merge_requests,
+            commands::forges::forges_merge_request,
+            commands::forges::forges_mr_files,
+            commands::forges::forges_discussions,
+            commands::forges::forges_create_mr,
+            commands::forges::forges_comment,
+            commands::forges::forges_reply,
+            commands::forges::forges_resolve,
+            commands::forges::forges_approve,
+            commands::forges::forges_merge,
+            commands::forges::forges_close,
+            commands::forges::forges_issues,
+            commands::forges::forges_issue,
+            commands::forges::forges_issue_comment,
+            commands::forges::forges_pipelines,
+            commands::forges::forges_ci_status,
+            commands::forges::forges_members,
+            commands::forges::forges_file,
+            commands::forges::forges_checkout,
             commands::php::php_index_workspace,
             commands::php::php_search_symbols,
             commands::php::php_file_structure,

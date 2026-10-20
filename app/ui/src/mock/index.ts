@@ -17,3 +17,4 @@ import "./dbMock";
 import "./laravelMock";
 import "./symfonyMock";
 import "./doctrineMock";
+import "./forgesMock";

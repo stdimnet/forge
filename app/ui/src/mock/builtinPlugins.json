@@ -799,6 +799,74 @@
     }
   },
   {
+    "id": "forge.code-hosts",
+    "name": "GitLab, Forgejo and GitHub",
+    "version": "0.1.0",
+    "pack": "core",
+    "description": "Merge and pull requests, code review, issues and CI pipelines for GitLab, Forgejo/Gitea and GitHub.",
+    "vendor": "Forge",
+    "depends": [
+      "forge.git"
+    ],
+    "required": false,
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "commands": [
+        {
+          "id": "forges.createMergeRequest",
+          "title": "Create Merge Request…",
+          "category": "Git"
+        },
+        {
+          "id": "forges.showMergeRequests",
+          "title": "View Pull/Merge Requests",
+          "category": "Git"
+        }
+      ],
+      "keybindings": [],
+      "toolWindows": [
+        {
+          "id": "pull-requests",
+          "title": "Pull Requests",
+          "anchor": "left",
+          "icon": "git-pull-request",
+          "order": 20
+        }
+      ],
+      "settings": [
+        {
+          "key": "vcs.hosts.statusBarPipeline",
+          "title": "Show the CI status of the current branch in the status bar",
+          "type": "bool",
+          "default": true,
+          "group": "vcs.hosts",
+          "section": "General",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "vcs.hosts.refreshSeconds",
+          "title": "Refresh merge requests and pipelines every (seconds)",
+          "description": "0 turns automatic refresh off.",
+          "type": "int",
+          "min": 0,
+          "max": 3600,
+          "default": 120,
+          "group": "vcs.hosts",
+          "section": "General",
+          "project": false,
+          "order": 1
+        }
+      ],
+      "lspServers": [],
+      "runConfigurationTypes": [],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": []
+    }
+  },
+  {
     "id": "forge.terminal",
     "name": "Terminal",
     "version": "0.1.0",

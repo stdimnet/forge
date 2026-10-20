@@ -344,6 +344,14 @@
 .editor-slot.hidden {
   display: none;
 }
+.editor-slot-custom {
+  overflow: hidden;
+  background: var(--bg-editor);
+}
+.editor-tab-icon {
+  display: inline-flex;
+  color: var(--accent);
+}
 .code-editor {
   height: 100%;
   user-select: text;

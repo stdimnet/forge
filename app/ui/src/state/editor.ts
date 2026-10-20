@@ -1,3 +1,4 @@
+import { createSignal, type Component } from "solid-js";
 import { createStore, produce } from "solid-js/store";
 import { workspaceApi } from "@/ipc/workspace";
 
@@ -27,7 +28,42 @@ export { editor };
 export const activeTab = () => editor.tabs.find((t) => t.path === editor.active);
 export const isDirty = (t: EditorTab) => !t.view && t.content !== t.saved;
 
+/**
+ * Editor tabs that show a feature view instead of a file (e.g. a merge request). Their ids
+ * start with `forge:` so file-based features can tell them apart; `activeTab()` is
+ * undefined while one of them is active.
+ */
+export interface CustomTab {
+  id: string;
+  title: string;
+  tooltip?: string;
+  icon?: Component<{ size?: number }>;
+  component: Component;
+}
+
+export const CUSTOM_TAB_PREFIX = "forge:";
+export const isCustomTab = (id: string | null | undefined): boolean => !!id?.startsWith(CUSTOM_TAB_PREFIX);
+
+const [customTabs, setCustomTabs] = createSignal<CustomTab[]>([]);
+export { customTabs };
+
+export const activeCustomTab = () => customTabs().find((t) => t.id === editor.active);
+
+/** Open (or focus) a custom tab; an existing tab with the same id keeps its position. */
+export function openCustomTab(tab: CustomTab): void {
+  if (!tab.id.startsWith(CUSTOM_TAB_PREFIX)) throw new Error(`custom tab ids start with ${CUSTOM_TAB_PREFIX}`);
+  setCustomTabs((tabs) => (tabs.some((t) => t.id === tab.id) ? tabs.map((t) => (t.id === tab.id ? tab : t)) : [...tabs, tab]));
+  setEditor("active", tab.id);
+}
+
+/** Ids of all open tabs in display order (files first, then custom tabs). */
+const allTabIds = () => [...editor.tabs.map((t) => t.path), ...customTabs().map((t) => t.id)];
+
 export async function openFile(path: string): Promise<void> {
+  if (isCustomTab(path)) {
+    if (customTabs().some((t) => t.id === path)) setEditor("active", path);
+    return;
+  }
   if (!editor.tabs.some((t) => t.path === path)) {
     const content = await workspaceApi.readFile(path);
     const name = path.split("/").pop() ?? path;
@@ -67,12 +103,16 @@ export function onTabClosed(cb: CloseListener): () => void {
 
 export function closeTab(path: string): void {
   const closing = editor.tabs.find((t) => t.path === path);
+  const ids = allTabIds();
+  const idx = ids.indexOf(path);
+  if (idx < 0) return;
+  const rest = ids.filter((id) => id !== path);
+  if (isCustomTab(path)) setCustomTabs((tabs) => tabs.filter((t) => t.id !== path));
   setEditor(
     produce((s) => {
-      const idx = s.tabs.findIndex((t) => t.path === path);
-      if (idx < 0) return;
-      s.tabs.splice(idx, 1);
-      if (s.active === path) s.active = s.tabs[Math.min(idx, s.tabs.length - 1)]?.path ?? null;
+      const i = s.tabs.findIndex((t) => t.path === path);
+      if (i >= 0) s.tabs.splice(i, 1);
+      if (s.active === path) s.active = rest[Math.min(idx, rest.length - 1)] ?? null;
     }),
   );
   if (closing) closeListeners.forEach((l) => l(closing));
@@ -119,6 +159,7 @@ export async function reloadFile(path: string): Promise<void> {
 /** Close every tab, e.g. when switching projects. */
 export function closeAllTabs(): void {
   const closing = [...editor.tabs];
+  setCustomTabs([]);
   setEditor({ tabs: [], active: null });
   for (const t of closing) closeListeners.forEach((l) => l(t));
 }

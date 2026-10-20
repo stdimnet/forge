@@ -16,6 +16,7 @@
 - [x] Laravel plugin: routes (route files or `artisan route:list`), Routes tool window, Blade highlighting and completion, `route()`/`view()`/`config()`/`env()`/`__()`/column/model property completion and navigation, gutter icons, Run Artisan Command… (Ctrl+Shift+X)
 - [x] Symfony plugin: services/parameters (YAML + compiled container), routes, Twig completion & navigation, console commands, line markers
 - [x] Doctrine plugin: entity mapping (attributes, annotations, XML, YAML), DQL highlighting, completion and inspections in `createQuery()` and QueryBuilder strings
+- [x] Code hosts: GitLab, Forgejo/Gitea and GitHub pull/merge requests with inline review threads, issues, pipelines
 
 ## Next branches
 
@@ -25,7 +26,6 @@
 | `feat/database-tools` | SQL editor, schema browser, data grid (MySQL, PostgreSQL, SQLite) |
 | `feat/xdebug-run-configs` | Xdebug via DAP, custom run/debug configuration types |
 | `feat/docker-kubernetes` | Services tool window: containers, compose, pods, logs |
-| `feat/gitlab-forgejo` | GitLab, Forgejo/Gitea merge requests & issues |
 | `feat/remote-sessions` | SSH remote backend with remote indexing & LSP |
 | `feat/gemini-cli-plugin` | Gemini CLI as a chat agent |
 | `feat/webforge` | Web pack |

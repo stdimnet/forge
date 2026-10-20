@@ -7,6 +7,7 @@ pub mod companion;
 pub mod db;
 pub mod debug;
 pub mod doctrine;
+pub mod forges;
 pub mod git;
 pub mod langservers;
 pub mod laravel;

@@ -18,6 +18,8 @@ or another OpenAI-compatible API.
 Language servers for JavaScript/TypeScript, Vue, Python, Go, Rust, C/C++, YAML, Docker and ~25 more
 languages are detected and started per project, and can be installed from
 Settings | Languages & Frameworks | Language Servers.
+Code review is built in as well: pull and merge requests with inline threads, issues and CI
+pipelines for GitLab (also self-managed), Forgejo/Gitea and GitHub.
 
 The layout and keymap follow PHPStorm 1:1 so you feel at home immediately; the look is Forge's own.
 

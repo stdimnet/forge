@@ -22,6 +22,7 @@ forge-open = { path = "crates/forge-open" }
 forge-process = { path = "crates/forge-process" }
 forge-debug = { path = "crates/forge-debug" }
 forge-db = { path = "crates/forge-db" }
+forge-forges = { path = "crates/forge-forges" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tokio = { version = "1", features = ["full"] }
