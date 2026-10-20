@@ -20,8 +20,11 @@ pnpm tauri build                      # all bundles for the current OS (dmg on m
 Output: `target/release/bundle/<type>/` (e.g. `Forge_0.1.0_amd64.AppImage`) and the plain
 binary `target/release/forge`. A release build takes about 6 minutes from scratch.
 
-Cross-compiling is not supported; build Windows and macOS bundles on those systems (or with
-the manual CI workflow, which the project owner starts).
+Cross-compiling is not supported; build Windows and macOS bundles on those systems. Official
+builds come from `.github/workflows/release.yml`: it runs only when the project owner publishes a
+GitHub release, builds Linux, Windows and macOS bundles with the remote agents, signs the
+updater artifacts and uploads them together with `latest.json`, the feed Forge's updater reads.
+Agents never publish releases or trigger workflows.
 
 ## Remote development agents
 
