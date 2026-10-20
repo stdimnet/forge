@@ -1,0 +1,426 @@
+/* PHPForge UI. Colours come exclusively from the theme tokens in src/theme/theme.css. */
+
+/* ---------- Symbol badges (Structure, chooser) ---------- */
+.php-symbol-icon {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  height: 16px;
+  margin-right: 2px;
+}
+.php-symbol-icon.with-visibility {
+  width: 28px;
+}
+.php-badge {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  font: 700 9.5px/1 var(--font-mono);
+  color: var(--bg-editor);
+  background: var(--info);
+}
+.php-badge.abstract {
+  background: transparent;
+  color: var(--info);
+  box-shadow: inset 0 0 0 1.5px currentColor;
+}
+.php-badge-class { background: var(--info); }
+.php-badge-interface { background: var(--success); }
+.php-badge-trait { background: var(--syn-variable); }
+.php-badge-enum { background: var(--syn-number); }
+.php-badge-enumCase { background: var(--syn-number); }
+.php-badge-method { background: var(--danger); }
+.php-badge-property { background: var(--warning); }
+.php-badge-constant { background: var(--syn-type); }
+.php-badge-function { background: var(--syn-function); }
+.php-badge-namespace { background: var(--fg-faint); }
+.php-badge.abstract.php-badge-method { color: var(--danger); }
+.php-badge.abstract.php-badge-interface { color: var(--success); }
+.php-badge-static {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--fg-strong);
+  box-shadow: 0 0 0 1.5px var(--bg-panel);
+}
+.php-visibility {
+  position: absolute;
+  left: 17px;
+  top: 3px;
+  display: inline-flex;
+}
+.php-visibility-public { color: var(--success); }
+.php-visibility-protected { color: var(--warning); }
+.php-visibility-private { color: var(--danger); }
+
+/* ---------- Structure tool window ---------- */
+.php-structure-row {
+  gap: 4px;
+}
+.php-structure-name {
+  flex-shrink: 0;
+  color: var(--fg);
+}
+.php-structure-detail {
+  margin-left: -4px;
+  white-space: pre;
+  color: var(--fg-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.php-structure-owner {
+  margin-left: auto;
+  padding-left: 8px;
+  color: var(--fg-faint);
+  font-size: var(--fs-small);
+}
+.php-structure-row.inherited .php-structure-name {
+  color: var(--fg-muted);
+}
+.php-structure-row.deprecated .php-structure-name {
+  text-decoration: line-through;
+}
+
+/* ---------- Generate popup ---------- */
+.php-generate-popup {
+  position: fixed;
+  z-index: 1000;
+  min-width: 220px;
+  padding: 4px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  font-size: var(--fs-ui);
+  outline: none;
+}
+.php-popup-title {
+  padding: 4px 8px 6px;
+  font-weight: 600;
+  color: var(--fg-strong);
+}
+.php-popup-sep {
+  height: 1px;
+  margin: 4px 6px;
+  background: var(--border);
+}
+.php-popup-item {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  height: 26px;
+  padding: 0 8px;
+  border-radius: var(--radius-sm);
+  color: var(--fg);
+  cursor: default;
+}
+.php-popup-item.active {
+  background: var(--accent);
+  color: var(--accent-fg);
+}
+.php-popup-item.disabled {
+  color: var(--fg-faint);
+}
+.php-popup-label u {
+  text-underline-offset: 2px;
+}
+.php-popup-shortcut {
+  margin-left: auto;
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+.php-popup-item.active .php-popup-shortcut {
+  color: inherit;
+  opacity: 0.8;
+}
+
+/* ---------- Chooser dialog ---------- */
+.php-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--bg-app) 35%, transparent);
+}
+.php-dialog {
+  display: flex;
+  flex-direction: column;
+  width: 480px;
+  max-height: min(560px, 80vh);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  font-size: var(--fs-ui);
+}
+.php-dialog-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 38px;
+  padding: 0 6px 0 14px;
+  font-weight: 600;
+  color: var(--fg-strong);
+}
+.php-dialog-title .icon-btn {
+  width: 24px;
+  height: 24px;
+}
+.php-dialog-toolbar {
+  display: flex;
+  gap: 2px;
+  padding: 0 10px 4px;
+}
+.php-dialog-toolbar .icon-btn {
+  width: 26px;
+  height: 26px;
+}
+.php-chooser-list {
+  flex: 1;
+  min-height: 160px;
+  margin: 0 14px;
+  padding: 4px 0;
+  overflow: auto;
+  background: var(--bg-editor);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  outline: none;
+}
+.php-chooser-list:focus-visible {
+  border-color: var(--accent);
+}
+.php-chooser-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 10px 0 30px;
+  white-space: nowrap;
+  cursor: default;
+}
+.php-chooser-row.header {
+  padding-left: 10px;
+}
+.php-chooser-row:not(.header):hover {
+  background: var(--bg-hover);
+}
+.php-chooser-row.focused {
+  background: var(--bg-active);
+}
+.php-chooser-list:focus .php-chooser-row.focused {
+  background: var(--bg-selection);
+}
+.php-chooser-row input[type="checkbox"] {
+  margin: 0 2px 0 0;
+  accent-color: var(--accent);
+}
+.php-chooser-name {
+  color: var(--fg-strong);
+}
+.php-chooser-detail {
+  margin-left: -6px;
+  white-space: pre;
+  color: var(--fg-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.php-chooser-empty {
+  padding: 12px;
+  color: var(--fg-muted);
+}
+.php-dialog-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px 0;
+  color: var(--fg);
+}
+.php-dialog-option input {
+  accent-color: var(--accent);
+}
+.php-dialog-buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px;
+}
+.php-dialog-buttons .spacer {
+  flex: 1;
+}
+.php-btn {
+  height: 28px;
+  min-width: 72px;
+  padding: 0 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-elevated);
+  color: var(--fg);
+}
+.php-btn:hover {
+  background: var(--bg-hover);
+}
+.php-btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-fg);
+  font-weight: 600;
+}
+.php-btn.primary:hover {
+  background: var(--accent-strong);
+}
+.php-btn:disabled {
+  opacity: 0.5;
+}
+
+.php-balloon {
+  position: fixed;
+  z-index: 1001;
+  max-width: 360px;
+  padding: 6px 10px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--warning);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  color: var(--fg);
+}
+
+/* ---------- Hover ---------- */
+.php-hover {
+  max-width: 560px;
+  max-height: 360px;
+  overflow: auto;
+  padding: 8px 12px;
+  font-family: var(--font-ui);
+  font-size: var(--fs-ui);
+  line-height: 1.5;
+}
+.php-hover p {
+  margin: 6px 0;
+}
+.php-hover p:first-child > code:only-child {
+  color: var(--fg-muted);
+  background: none;
+  padding: 0;
+}
+.php-hover ul {
+  margin: 4px 0;
+  padding-left: 18px;
+}
+.php-hover code {
+  font-family: var(--font-mono);
+  font-size: 0.95em;
+  padding: 0 3px;
+  border-radius: 3px;
+  background: var(--bg-hover);
+}
+.php-hover .md-code {
+  margin: 6px 0;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-editor);
+  font-family: var(--font-mono);
+  font-size: var(--fs-editor);
+  white-space: pre-wrap;
+  color: var(--fg);
+}
+.md-kw { color: var(--syn-keyword); }
+.md-str { color: var(--syn-string); }
+.md-var { color: var(--syn-variable); }
+.md-attr { color: var(--syn-attribute); }
+
+/* ---------- Status bar ---------- */
+.php-indexing {
+  gap: 8px;
+}
+.php-progress {
+  width: 80px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--bg-active);
+  overflow: hidden;
+}
+.php-progress-bar {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.15s linear;
+}
+
+/* ---------- Settings page ---------- */
+.php-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 4px 0;
+  max-width: 640px;
+}
+.php-settings h3 {
+  margin: 0 0 8px;
+  font-size: var(--fs-ui);
+  font-weight: 600;
+  color: var(--fg-strong);
+}
+.php-field {
+  display: grid;
+  grid-template-columns: 190px 1fr;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.php-settings input[type="text"],
+.php-settings input[type="password"],
+.php-settings select {
+  height: 28px;
+  padding: 0 8px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-input);
+  color: var(--fg);
+  font: inherit;
+  width: 100%;
+}
+.php-settings input:focus,
+.php-settings select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.php-radio {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 26px;
+}
+.php-radio input {
+  accent-color: var(--accent);
+}
+.php-hint {
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+.php-secret {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.php-list {
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  padding: 4px 8px;
+  margin-bottom: 6px;
+  min-height: 34px;
+}
+.php-list-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 26px;
+}
