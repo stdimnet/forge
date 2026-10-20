@@ -328,6 +328,17 @@ mod tests {
     }
 
     #[test]
+    fn parses_project_types() {
+        let p = PluginDescriptor::parse_many(
+            "id = \"a\"\nname = \"A\"\nversion = \"1\"\npack = \"phpforge\"\nprojectTypes = [\"laravel\"]",
+        )
+        .unwrap();
+        assert_eq!(p[0].manifest.project_types, vec!["laravel"]);
+        let json = serde_json::to_value(&p[0].manifest).unwrap();
+        assert_eq!(json["projectTypes"][0], "laravel");
+    }
+
+    #[test]
     fn parses_single_and_multi_plugin_files() {
         let one = PluginDescriptor::parse_many(
             "id = \"a\"\nname = \"A\"\nversion = \"1\"\npack = \"core\"",

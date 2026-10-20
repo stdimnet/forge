@@ -111,6 +111,16 @@
   color: #fff;
   flex-shrink: 0;
 }
+.welcome-project-type {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-left: auto;
+  padding-left: 12px;
+  font-size: var(--fs-small);
+  color: var(--fg-muted);
+  white-space: nowrap;
+}
 .welcome-project-text {
   display: flex;
   flex-direction: column;

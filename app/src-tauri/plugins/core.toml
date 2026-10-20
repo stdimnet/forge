@@ -195,6 +195,16 @@ section = "Project"
 order = 2
 
 [[contributions.settings]]
+key = "system.defaultProjectDirectory"
+title = "Default project directory"
+description = "New projects are created here unless you pick another location."
+type = "path"
+default = "~/Projects"
+group = "system"
+section = "Project"
+order = 3
+
+[[contributions.settings]]
 key = "system.autosave.onFrameDeactivation"
 title = "Save files if the IDE is switched to a different application"
 type = "bool"

@@ -10,6 +10,7 @@
 - [ ] AI providers: Anthropic, OpenRouter, Ollama, llama.cpp, LM Studio, any OpenAI-compatible API
 - [x] AI chat: Claude Code rendered as chat (no terminal), tool calls & diffs as cards
 - [ ] PHPStorm keymap 1:1, Find Action, Search Everywhere
+- [x] Project type detection (packs activate per project) and New Project wizard with PHP, Web and Lua generators
 
 ## Next branches
 

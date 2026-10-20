@@ -4,6 +4,7 @@ version = "0.1.0"
 pack = "phpforge"
 vendor = "Forge"
 description = "PHP language support: completion, inspections, navigation and refactorings via Intelephense."
+projectTypes = ["php"]
 
 [contributions]
 languages = ["php", "phtml"]

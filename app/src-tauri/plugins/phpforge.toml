@@ -8,6 +8,7 @@ pack = "phpforge"
 vendor = "Forge"
 depends = ["forge.php"]
 description = "composer.json support, dependency install/update and autoload-aware indexing."
+projectTypes = ["composer"]
 
 [[plugin.contributions.commands]]
 id = "composer.install"
@@ -73,6 +74,7 @@ pack = "phpforge"
 vendor = "Forge"
 depends = ["forge.php"]
 description = "Run, debug and navigate PHPUnit and Pest tests."
+projectTypes = ["phpunit", "pest"]
 
 [[plugin.contributions.runConfigurationTypes]]
 id = "phpunit"
@@ -94,6 +96,7 @@ pack = "phpforge"
 vendor = "Forge"
 depends = ["forge.php"]
 description = "Step debugging with Xdebug 3 via DBGp."
+projectTypes = ["php"]
 
 [[plugin.contributions.toolWindows]]
 id = "debug"
@@ -117,6 +120,7 @@ pack = "phpforge"
 vendor = "Forge"
 depends = ["forge.php", "forge.composer"]
 description = "Routes, Blade, Eloquent and artisan integration."
+projectTypes = ["laravel"]
 
 [[plugin.contributions.commands]]
 id = "laravel.artisan"
@@ -136,6 +140,7 @@ pack = "phpforge"
 vendor = "Forge"
 depends = ["forge.php", "forge.composer"]
 description = "Services, routing, Twig templates and console commands."
+projectTypes = ["symfony"]
 
 [[plugin]]
 id = "forge.doctrine"
@@ -145,3 +150,4 @@ pack = "phpforge"
 vendor = "Forge"
 depends = ["forge.php"]
 description = "Entity mapping, repositories and DQL completion."
+projectTypes = ["doctrine"]

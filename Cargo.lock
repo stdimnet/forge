@@ -1212,6 +1212,7 @@ dependencies = [
  "forge-core",
  "forge-lsp",
  "forge-plugin-api",
+ "forge-project",
  "forge-vcs",
  "futures-util",
  "phpforge-lang-php",
@@ -1261,6 +1262,17 @@ dependencies = [
  "serde_json",
  "thiserror 2.0.21",
  "toml 0.8.23",
+]
+
+[[package]]
+name = "forge-project"
+version = "0.1.0"
+dependencies = [
+ "forge-core",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tracing",
 ]
 
 [[package]]

@@ -16,6 +16,7 @@ forge-ai = { path = "crates/forge-ai" }
 forge-agent-cli = { path = "crates/forge-agent-cli" }
 forge-lsp = { path = "crates/forge-lsp" }
 forge-vcs = { path = "crates/forge-vcs" }
+forge-project = { path = "crates/forge-project" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tokio = { version = "1", features = ["full"] }

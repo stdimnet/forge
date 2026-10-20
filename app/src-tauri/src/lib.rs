@@ -39,6 +39,7 @@ pub fn run() {
         })
         .manage(commands::lsp::LspState::default())
         .manage(commands::php::PhpState::default())
+        .manage(commands::project::CreateState::default())
         .invoke_handler(tauri::generate_handler![
             commands::workspace::workspace_open,
             commands::workspace::workspace_current,
@@ -109,6 +110,11 @@ pub fn run() {
             commands::php::php_generate,
             commands::php::php_detect_servers,
             commands::php::php_lsp_config,
+            commands::project::project_detect,
+            commands::project::project_generators_list,
+            commands::project::project_plan,
+            commands::project::project_create,
+            commands::project::project_create_cancel,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Forge");

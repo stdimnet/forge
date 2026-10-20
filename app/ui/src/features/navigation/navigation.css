@@ -354,6 +354,39 @@ mark.hl {
   font-size: var(--fs-small);
   word-break: break-all;
 }
+.balloon.interactive {
+  pointer-events: auto;
+}
+.balloon.interactive .balloon-detail {
+  word-break: normal;
+}
+.balloon-body {
+  flex: 1;
+  min-width: 0;
+}
+.balloon-actions {
+  display: flex;
+  gap: 14px;
+  margin-top: 8px;
+}
+.balloon-action {
+  color: var(--info);
+}
+.balloon-action:hover {
+  text-decoration: underline;
+}
+.balloon-close {
+  align-self: flex-start;
+  display: inline-flex;
+  margin: -2px -4px 0 0;
+  padding: 2px;
+  border-radius: var(--radius-sm);
+  color: var(--fg-muted);
+}
+.balloon-close:hover {
+  background: var(--bg-hover);
+  color: var(--fg);
+}
 @keyframes balloon-in {
   from {
     opacity: 0;

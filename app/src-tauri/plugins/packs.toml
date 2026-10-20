@@ -7,6 +7,7 @@ version = "0.1.0"
 pack = "webforge"
 vendor = "Forge"
 description = "HTML, CSS, JavaScript and TypeScript editing with language servers."
+projectTypes = ["webforge"]
 
 [plugin.contributions]
 languages = ["html", "css", "scss", "js", "mjs", "ts", "tsx", "jsx", "json"]
@@ -46,6 +47,7 @@ pack = "webforge"
 vendor = "Forge"
 depends = ["forge.web"]
 description = "Single-file components via the Vue language server."
+projectTypes = ["vue", "nuxt"]
 
 [plugin.contributions]
 languages = ["vue"]
@@ -64,6 +66,7 @@ version = "0.1.0"
 pack = "luaforge"
 vendor = "Forge"
 description = "Lua 5.1–5.4 and LuaJIT support via lua-language-server."
+projectTypes = ["luaforge"]
 
 [plugin.contributions]
 languages = ["lua"]

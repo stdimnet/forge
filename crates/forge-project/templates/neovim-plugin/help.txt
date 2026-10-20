@@ -1,0 +1,21 @@
+*{{module}}.txt*  {{title}}
+
+==============================================================================
+INTRODUCTION                                              *{{module}}*
+
+{{title}} is a Neovim plugin.
+
+==============================================================================
+SETUP                                                     *{{module}}-setup*
+
+>lua
+    require("{{module}}").setup({ greeting = "Hello" })
+<
+
+==============================================================================
+COMMANDS                                                  *{{module}}-commands*
+
+:{{class}}Greet [name]                                    *:{{class}}Greet*
+    Shows a greeting.
+
+ vim:tw=78:ts=8:ft=help:norl:

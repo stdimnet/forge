@@ -2,7 +2,7 @@
  * PHPForge: PHP language support in the UI — Generate (Alt+Insert), Structure tool window,
  * indexing/PHP version status items, PHP settings page and the index-based hover.
  */
-import { createEffect, createRoot } from "solid-js";
+import { createEffect, createRoot, on } from "solid-js";
 import { render } from "solid-js/web";
 import { keymap } from "@codemirror/view";
 import { Prec } from "@codemirror/state";
@@ -14,6 +14,7 @@ import { registerEditorExtension } from "@/editor/extensions";
 import { registerCommand } from "@/state/commands";
 import { toggleToolWindow } from "@/state/layout";
 import { workspace } from "@/state/workspace";
+import { isPluginActive } from "@/state/project";
 import { activeView, viewTracker } from "./editorViews";
 import { GenerateOverlay, openGeneratePopup, startGenerate } from "./GenerateOverlay";
 import { indexHover } from "./indexHover";
@@ -82,10 +83,15 @@ if (typeof document !== "undefined") {
   document.body.appendChild(host);
   render(GenerateOverlay, host);
 
-  // Index whenever a project is opened.
+  // Index whenever a PHP project is opened (detection activates the PHP plugin).
   createRoot(() => {
-    createEffect(() => {
-      if (workspace()) void indexWorkspace();
-    });
+    createEffect(
+      on(
+        () => !!workspace() && isPluginActive("forge.php"),
+        (active) => {
+          if (active) void indexWorkspace();
+        },
+      ),
+    );
   });
 }

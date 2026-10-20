@@ -12,6 +12,7 @@ app/ui/            SolidJS UI
 
 - `forge-core` — workspace (sandboxed path resolution), file system, settings, events.
 - `forge-plugin-api` — `Plugin` trait, `PluginManifest`, `Contributions`. Packs depend only on this.
+- `forge-project` — project type detection and the New Project generators/templates.
 - Plugins declare contributions (commands, keybindings, tool windows, typed settings, LSP
   servers, run configuration types, AI providers, chat agents, code generators) as serde data;
   `PluginRegistry` tracks enablement (cascading over `depends`) and answers lookups. Built-in
@@ -80,6 +81,27 @@ app/ui/            SolidJS UI
   (`{ type: "sessionStarted" | "assistantText" | "thinking" | "toolUse" | "toolResult" | "usage" |
   "permissionRequest" | "turnFinished" | "interrupted" | "error" | "exited", ... }`, see `app/ui/src/ipc/agent.ts`).
   New CLIs implement the `AgentCli` trait in Rust and call `registerChatAgent` in the UI.
+
+## Project types and New Project (`forge-project`)
+
+- Detection reads markers in the project root and one level below (`composer.json`/`composer.lock`,
+  `artisan`, `bin/console`, `wp-config.php`, `package.json`/lock files/`node_modules`, `angular.json`,
+  `tsconfig.json`, `*.lua`, `.luarc.json`, `*.rockspec`, `conf.lua`, `init.lua`, `Cargo.toml`, `go.mod`,
+  `pyproject.toml`, `Dockerfile`/`compose.yaml`, `.git`).
+- `project_detect() -> ProjectInfo { languages, frameworks: { id, name, version?, language, dir? }[],
+  packs, tools, primary? }`; `workspace_open` also emits `project://detected` `{ root, info }`, and
+  `workspace_recent` returns each project's `primary` for the Welcome screen badge.
+- Plugins opt in with `projectTypes = ["laravel"]` in their manifest (language, framework, pack or
+  tool ids); without it they are always active. In the UI use `projectInfo()`, `usesFramework("laravel")`
+  and `isPluginActive("forge.laravel")` from `src/state/project.ts`.
+- New Project wizard (command `NewProject`): `project_generators_list() -> Generator[]`,
+  `project_plan({ generator, location, name, options }) -> { target, preview, files?, missingTools,
+  fallback?, error? }`, `project_create({ generator, location, name, options }) -> root` streaming
+  `project://create` events (`{ type: "step" | "output" | "done" | "failed", ... }`),
+  `project_create_cancel()`. Generators run official CLIs (composer, symfony, npm, npx) or write
+  offline templates embedded from `crates/forge-project/templates/`. The browser copy of the generator
+  list is `app/ui/src/mock/projectGenerators.json` (`FORGE_UPDATE_SNAPSHOTS=1 cargo test -p forge-app`).
+- The default location is the setting `system.defaultProjectDirectory` (`~/Projects`).
 
 ## Language servers (`forge-lsp`)
 

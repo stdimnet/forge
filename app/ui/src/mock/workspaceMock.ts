@@ -2,6 +2,7 @@ import { registerMock } from "@/ipc";
 import type { FileEntry } from "@/ipc/workspace";
 import { demoFiles, demoProjectName } from "./demoProject";
 import { demoConfigFiles } from "./demoConfigFiles";
+import { recentPrimaries } from "./projectMock";
 
 const files: Record<string, string> = { ...demoFiles, ...demoConfigFiles };
 
@@ -23,11 +24,16 @@ function listDir(dir: string): FileEntry[] {
 }
 
 registerMock("workspace_current", () => null);
-registerMock("workspace_recent", () => [
-  { name: demoProjectName, root: `~/Projects/${demoProjectName}` },
-  { name: "symfony-api", root: "~/Projects/symfony-api" },
-  { name: "legacy-crm", root: "~/Work/legacy-crm" },
-]);
+registerMock("workspace_recent", () =>
+  [
+    { name: demoProjectName, root: `~/Projects/${demoProjectName}` },
+    { name: "symfony-api", root: "~/Projects/symfony-api" },
+    { name: "storefront-ui", root: "~/Projects/storefront-ui" },
+    { name: "pixel-dungeon", root: "~/Games/pixel-dungeon" },
+    { name: "dotfiles.nvim", root: "~/.config/nvim" },
+    { name: "legacy-crm", root: "~/Work/legacy-crm" },
+  ].map((p) => ({ ...p, primary: recentPrimaries[p.name] })),
+);
 registerMock("workspace_open", () => ({ name: demoProjectName, root: `~/Projects/${demoProjectName}` }));
 registerMock("fs_list_dir", ({ path }) => listDir(String(path ?? "")));
 registerMock("fs_read_file", ({ path }) => {
