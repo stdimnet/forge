@@ -65,7 +65,7 @@ export async function compareWithRevision(): Promise<void> {
     title: `Compare ${file.split("/").pop()} with Revision`,
     empty: "No revisions of this file",
     okLabel: "Compare",
-    items: commits.map((c) => ({ id: c.sha, label: c.subject, detail: `${c.sha.slice(0, 8)}  ${c.author}  ${logDate(c.time)}` })),
+    items: commits.map((c) => ({ id: c.sha, label: c.subject, detail: `${c.sha.slice(0, 8)} · ${c.author} · ${logDate(c.time)}` })),
     onOk: (item) => showRevisionDiff(file, item.id, item.id.slice(0, 8)),
   });
 }
@@ -153,7 +153,7 @@ export async function unstashDialog(): Promise<void> {
     items: stashes.map((s) => ({
       id: String(s.index),
       label: s.message,
-      detail: `stash@{${s.index}}${s.branch ? `  On ${s.branch}` : ""}  ${timeAgo(s.time)}`,
+      detail: `stash@{${s.index}}${s.branch ? ` · On ${s.branch}` : ""} · ${timeAgo(s.time)}`,
     })),
     checkboxes: [
       { label: "Pop stash", checked: false },
