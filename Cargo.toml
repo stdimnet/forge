@@ -21,6 +21,7 @@ forge-vcs = { path = "crates/forge-vcs" }
 forge-project = { path = "crates/forge-project" }
 forge-open = { path = "crates/forge-open" }
 forge-process = { path = "crates/forge-process" }
+forge-output = { path = "crates/forge-output" }
 forge-debug = { path = "crates/forge-debug" }
 forge-db = { path = "crates/forge-db" }
 forge-forges = { path = "crates/forge-forges" }
