@@ -36,6 +36,7 @@ pub fn run() {
             Ok(())
         })
         .manage(commands::lsp::LspState::default())
+        .manage(commands::php::PhpState::default())
         .invoke_handler(tauri::generate_handler![
             commands::workspace::workspace_open,
             commands::workspace::fs_list_dir,
@@ -96,6 +97,14 @@ pub fn run() {
             commands::git::git_push,
             commands::git::git_pull,
             commands::git::git_fetch,
+            commands::php::php_index_workspace,
+            commands::php::php_search_symbols,
+            commands::php::php_file_structure,
+            commands::php::php_hover,
+            commands::php::php_generate_targets,
+            commands::php::php_generate,
+            commands::php::php_detect_servers,
+            commands::php::php_lsp_config,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Forge");

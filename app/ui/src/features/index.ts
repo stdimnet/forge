@@ -11,3 +11,4 @@ import "./lsp";
 import "./navigation";
 import "./keymapSettings";
 import "./git";
+import "./php";

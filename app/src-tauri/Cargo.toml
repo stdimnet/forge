@@ -24,6 +24,7 @@ futures-util = "0.3"
 forge-agent-cli.workspace = true
 forge-lsp.workspace = true
 forge-vcs.workspace = true
+phpforge-lang-php = { path = "../../packs/phpforge/lang-php" }
 tauri = { version = "2", features = [] }
 serde.workspace = true
 serde_json.workspace = true
