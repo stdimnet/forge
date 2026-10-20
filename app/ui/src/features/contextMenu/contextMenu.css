@@ -29,6 +29,10 @@
   background: var(--bg-selection);
   color: var(--fg-strong);
 }
+.context-menu-item.disabled,
+.context-menu-item.disabled .context-menu-shortcut {
+  color: var(--fg-faint);
+}
 .context-menu-label {
   flex: 1;
 }

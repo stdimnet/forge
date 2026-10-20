@@ -674,6 +674,70 @@
   padding: 0 16px 14px;
 }
 
+/* Chooser: revisions, branches, stashes, remotes */
+.git-chooser {
+  width: 520px;
+}
+.git-chooser-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+}
+.git-chooser-search input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  box-shadow: none !important;
+  padding: 0;
+  height: 26px;
+}
+.git-chooser-list {
+  height: 240px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-editor);
+  padding: 2px;
+}
+.git-chooser-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  height: 24px;
+  line-height: 24px;
+  padding: 0 8px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  cursor: default;
+}
+.git-chooser-row:hover {
+  background: var(--bg-hover);
+}
+.git-chooser-row.selected {
+  background: var(--bg-selection);
+  color: var(--fg-strong);
+}
+.git-chooser-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.git-chooser-detail {
+  margin-left: auto;
+  flex-shrink: 0;
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+.git-chooser-empty {
+  padding: 16px;
+  color: var(--fg-muted);
+  text-align: center;
+}
+
 /* ---------- Balloons ---------- */
 .balloons {
   position: fixed;

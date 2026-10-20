@@ -39,11 +39,35 @@ export interface InputDialog {
   okLabel: string;
   /** Confirmation only, no text field. */
   noInput?: boolean;
+  /** The text field may stay empty (e.g. an optional stash message). */
+  optional?: boolean;
   checkbox?: { label: string; checked: boolean };
   onOk: (value: string, checked: boolean) => void | Promise<void>;
 }
 const [inputDialog, setInputDialog] = createSignal<InputDialog | null>(null);
 export { inputDialog, setInputDialog };
+
+export interface ChooserItem {
+  id: string;
+  label: string;
+  /** Muted text after the label (hash, author, date, URL). */
+  detail?: string;
+}
+
+/** A modal list to pick one entry from: revisions, branches, stashes, remotes. */
+export interface ChooserDialog {
+  title: string;
+  items: ChooserItem[];
+  empty: string;
+  okLabel: string;
+  checkboxes?: { label: string; checked: boolean }[];
+  /** Buttons left of Cancel; `needsSelection` disables them while nothing is selected. */
+  extra?: { label: string; needsSelection?: boolean; run: (item: ChooserItem | null) => void | Promise<void> }[];
+  /** Without `onOk` the dialog only has a Close button. */
+  onOk?: (item: ChooserItem, checked: boolean[]) => void | Promise<void>;
+}
+const [chooserDialog, setChooserDialog] = createSignal<ChooserDialog | null>(null);
+export { chooserDialog, setChooserDialog };
 
 /** Paths with "Annotate with Git Blame" switched on. */
 const [annotated, setAnnotated] = createSignal<Set<string>>(new Set());

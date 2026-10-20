@@ -57,6 +57,37 @@ describe("browser-mode git backend", () => {
     expect(b.current).toBe("main");
   });
 
+  it("adds unversioned files to .gitignore in the in-memory project", async () => {
+    const patterns = await gitApi.addToGitignore(["tests/Unit/CheckoutTest.php"]);
+    expect(patterns).toEqual(["/tests/Unit/CheckoutTest.php"]);
+    const text = await invoke<string>("fs_read_file", { path: ".gitignore" });
+    expect(text.trimEnd().split("\n").pop()).toBe("/tests/Unit/CheckoutTest.php");
+    const st = await gitApi.status();
+    expect(st.entries.some((e) => e.path === "tests/Unit/CheckoutTest.php")).toBe(false);
+    await expect(gitApi.addToGitignore(["../outside"])).rejects.toThrow();
+  });
+
+  it("creates tags, stashes and remotes", async () => {
+    await gitApi.createTag("v9.9.9");
+    expect((await gitApi.branches()).tags.some((t) => t.name === "v9.9.9")).toBe(true);
+
+    const before = (await gitApi.stashList()).length;
+    await invoke("fs_write_file", { path: "app/Models/Order.php", contents: "<?php // stashed\n" });
+    await gitApi.stash("Try stash");
+    const list = await gitApi.stashList();
+    expect(list).toHaveLength(before + 1);
+    expect(list[0].message).toBe("Try stash");
+    expect(await invoke<string>("fs_read_file", { path: "app/Models/Order.php" })).not.toContain("stashed");
+    await gitApi.unstash(0, true);
+    expect(await invoke<string>("fs_read_file", { path: "app/Models/Order.php" })).toContain("stashed");
+    expect(await gitApi.stashList()).toHaveLength(before);
+
+    await gitApi.addRemote("upstream", "https://example.com/acme/shop.git");
+    expect((await gitApi.remotes()).map((r) => r.name)).toEqual(["origin", "upstream"]);
+    await gitApi.removeRemote("upstream");
+    expect((await gitApi.remotes()).map((r) => r.name)).toEqual(["origin"]);
+  });
+
   it("answers ai_complete with a commit message", async () => {
     const msg = await invoke<string>("ai_complete", { request: { messages: [{ role: "user", content: "app/Models/User.php" }] } });
     expect(msg.split("\n")[0].length).toBeLessThanOrEqual(72);

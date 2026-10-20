@@ -26,7 +26,8 @@ function MenuList(props: {
   const [active, setActive] = createSignal(-1);
   const [opened, setOpened] = createSignal(-1);
 
-  const items = () => props.entries.map((e, i) => [e, i] as const).filter((p): p is [ResolvedItem, number] => p[0] !== "separator");
+  const items = () =>
+    props.entries.map((e, i) => [e, i] as const).filter((p): p is [ResolvedItem, number] => p[0] !== "separator" && !p[0].disabled);
 
   onMount(() => {
     const r = root.getBoundingClientRect();
@@ -47,7 +48,7 @@ function MenuList(props: {
   };
   const activate = (i: number) => {
     const e = props.entries[i];
-    if (e === "separator" || !e) return;
+    if (e === "separator" || !e || e.disabled) return;
     if (e.kind === "submenu") setOpened(i);
     else props.onPick(e);
   };
@@ -91,10 +92,11 @@ function MenuList(props: {
                 <div
                   ref={row}
                   class="context-menu-item"
-                  classList={{ active: active() === i(), open: opened() === i() }}
+                  classList={{ active: active() === i(), open: opened() === i(), disabled: !!item.disabled }}
                   role="menuitem"
+                  aria-disabled={item.disabled ? "true" : undefined}
                   onMouseEnter={() => {
-                    setActive(i());
+                    setActive(item.disabled ? -1 : i());
                     setOpened(item.kind === "submenu" ? i() : -1);
                   }}
                   onClick={() => activate(i())}

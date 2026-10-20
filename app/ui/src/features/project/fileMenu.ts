@@ -4,7 +4,7 @@
  * reject paths outside the project.
  */
 import { askConfirm, askName } from "@/features/contextMenu/dialogs";
-import { action, item, separator, showContextMenu, submenu, type MenuEntry } from "@/features/contextMenu/state";
+import { action, item, providedEntries, separator, showContextMenu, submenu, type MenuEntry } from "@/features/contextMenu/state";
 import { workspaceApi, type FileEntry } from "@/ipc/workspace";
 import { showBalloon } from "@/keymap";
 import { closeTab, editor, isDirty, openFile, saveFile } from "@/state/editor";
@@ -137,7 +137,8 @@ export function fileMenuEntries(entry: FileEntry | null): MenuEntry[] {
   }
   entries.push(action("FindInPath"));
   if (entry) entries.push(item("Rename…", () => void rename(entry), "RenameElement"), item("Delete…", () => void remove(entry), "$Delete"));
-  entries.push(separator, item("Reload from Disk", () => refreshDirs([dir])));
+  // Other features (Git) add their submenus next to Reload from Disk, like PHPStorm.
+  entries.push(separator, ...providedEntries("project", entry), item("Reload from Disk", () => refreshDirs([dir])));
   return entries;
 }
 

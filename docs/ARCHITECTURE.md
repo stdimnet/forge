@@ -92,6 +92,18 @@ app/ui/            SolidJS UI
   context menu (`features/project/fileMenu.ts`); the browser mock keeps the changes in memory.
 - `fs_find_files({ query, limit? }) -> { path, name, score, positions, matchedPath }[]` — fuzzy
   "Go to File" (camel humps, respects `.gitignore`).
+- Git menu commands (`forge-vcs`, `commands/git.rs`): `git_add_to_gitignore({ paths }) -> string[]`
+  (anchored patterns appended to the repository's root `.gitignore`), `git_create_tag({ name,
+  rev?, message? })`, `git_stash({ message, keepIndex, includeUntracked }) -> string`,
+  `git_stash_list() -> { index, branch, message, time }[]`, `git_unstash({ index, pop,
+  reinstateIndex }) -> string`, `git_drop_stash({ index })`, `git_remotes() -> { name, fetchUrl,
+  pushUrl }[]`, `git_add_remote({ name, url })`, `git_remove_remote({ name })`. They back the
+  Git submenu of the Project view (`features/git/fileMenu.ts`); file actions there run PHPStorm
+  action ids (`CheckinFiles`, `Git.Add`, `Compare.Selected`, …) inside `withVcsTargets`, and the
+  same commands use the focused tree, Commit window or editor (`vcsTargets()`) for shortcuts.
+- Context-dependent menu entries: `registerContextMenuProvider(menuId, (context) => MenuEntry[])`
+  (`features/contextMenu/state.ts`); the Project view asks `providedEntries("project", entry)`
+  for its menu. `item(label, run, actionId, { disabled, shortcutAction })` shows greyed-out items.
 
 - `ai_complete({ request: { system?: string, messages: { role: "user" | "assistant", content: string }[], provider?: string, model?: string, maxTokens?: number } }) -> string`
   — one-shot completion with the default (or given) provider. Used by e.g. AI commit messages.
