@@ -32,4 +32,9 @@ export default {
   "syntax-twig-latex": scenario("templates/invoice/invoice.tex.twig"),
   "syntax-twig-sql": scenario("templates/reports/top_customers.sql.twig"),
   "syntax-go-template": scenario("templates/mail/welcome.html.tmpl"),
+  "syntax-smarty-latex": scenario("legacy/templates/invoice.tex.tpl"),
+  "syntax-smarty-latex-light": async (page) => {
+    await page.evaluate(() => (document.documentElement.dataset.theme = "light"));
+    await openPath(page, "legacy/templates/invoice.tex.tpl");
+  },
 };

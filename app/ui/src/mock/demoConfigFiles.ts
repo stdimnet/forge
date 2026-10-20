@@ -178,6 +178,38 @@ jobs:
 </div>
 {/block}
 `,
+  "legacy/templates/invoice.tex.tpl": `<<* Invoice PDF, rendered with pdflatex. LaTeX templates use << >> as Smarty delimiters. *>>
+\\documentclass[11pt,a4paper]{article}
+\\usepackage[utf8]{inputenc}
+\\usepackage{booktabs}
+
+\\newcommand{\\amount}[1]{\\textbf{#1}~EUR}
+
+\\begin{document}
+\\section*{Invoice <<$invoice.number|escape:'latex'>>}
+
+<<if $customer.company>>
+  \\textbf{<<$customer.company>>}\\\\
+<</if>>
+<<$customer.name>>\\\\
+<<$customer.street>>, <<$customer.city>>
+
+\\begin{tabular}{lrr}
+  \\toprule
+  Item & Qty & Total \\\\
+  \\midrule
+<<foreach $invoice.items as $item>>
+  <<$item.name>> & <<$item.quantity>> & \\amount{<<$item.total|string_format:"%.2f">>} \\\\
+<</foreach>>
+  \\bottomrule
+\\end{tabular}
+
+% Plain LaTeX comment: {braces} stay LaTeX.
+<<literal>>\\verb|<<not a tag>>|<</literal>>
+
+Total: \\amount{<<$invoice.total|string_format:"%.2f">>}
+\\end{document}
+`,
   "public/index.html": `<!doctype html>
 <html lang="en">
   <head>

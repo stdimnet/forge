@@ -36,6 +36,17 @@ export default {
     await openSettings(page);
     await selectNode(page, "lang.php");
   },
+  "settings-template-delimiters": async (page) => {
+    await openSettings(page);
+    await selectNode(page, "lang.templates");
+    await page.locator('[data-setting="templates.smarty.leftDelimiter"]').evaluate((el) => el.closest(".set-section")?.scrollIntoView({ block: "start" }));
+  },
+  "settings-template-delimiters-light": async (page) => {
+    await page.evaluate(() => (document.documentElement.dataset.theme = "light"));
+    await openSettings(page);
+    await selectNode(page, "lang.templates");
+    await page.locator('[data-setting="templates.smarty.leftDelimiter"]').evaluate((el) => el.closest(".set-section")?.scrollIntoView({ block: "start" }));
+  },
   "settings-light": async (page) => {
     await page.evaluate(() => (document.documentElement.dataset.theme = "light"));
     await openSettings(page);
