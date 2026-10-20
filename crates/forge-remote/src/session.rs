@@ -723,7 +723,11 @@ impl SshSession {
                 });
             }
         };
-        let bound = if bound == 0 { remote_port as u32 } else { bound };
+        let bound = if bound == 0 {
+            remote_port as u32
+        } else {
+            bound
+        };
         self.forwards
             .lock()
             .expect("forwards lock")
@@ -771,7 +775,13 @@ fn in_jump(e: ConnectError, hop: &ConnectParams) -> ConnectError {
 /// Start a `ProxyCommand`; its stdin/stdout carry the SSH connection.
 fn spawn_proxy_command(
     command: &str,
-) -> std::result::Result<(impl tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send + 'static, tokio::process::Child), ConnectError> {
+) -> std::result::Result<
+    (
+        impl tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send + 'static,
+        tokio::process::Child,
+    ),
+    ConnectError,
+> {
     let mut cmd = if cfg!(windows) {
         let mut c = tokio::process::Command::new("cmd");
         c.arg("/C").arg(command);

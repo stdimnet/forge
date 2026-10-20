@@ -213,6 +213,9 @@ mod tests {
             .insert("langservers.autoStart".into(), Value::Bool(false));
         req.rescan = true;
         let off = planner.plan(dir.path(), &req).unwrap();
-        assert!(off.servers.iter().all(|s| s.skip == Some(Skip::AutoStartOff)));
+        assert!(off
+            .servers
+            .iter()
+            .all(|s| s.skip == Some(Skip::AutoStartOff)));
     }
 }

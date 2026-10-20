@@ -194,11 +194,7 @@ impl RemoteConnection {
     /// Listen on `127.0.0.1:<free port>` here and forward every connection to `host:port`
     /// as the remote host sees it, through the current session (`ssh -L`). Stops when the
     /// returned guard is dropped.
-    pub async fn forward_local(
-        &self,
-        host: String,
-        port: u16,
-    ) -> forge_core::Result<PortForward> {
+    pub async fn forward_local(&self, host: String, port: u16) -> forge_core::Result<PortForward> {
         let listener = tokio::net::TcpListener::bind(("127.0.0.1", 0))
             .await
             .map_err(|e| forge_core::ForgeError::Other(format!("cannot open a local port: {e}")))?;
@@ -226,8 +222,15 @@ impl RemoteConnection {
                 });
             }
         });
-        tracing::info!("forwarding 127.0.0.1:{local} to {target} via {}", self.host.label());
-        Ok(PortForward::new(local, self.host.label(), AbortOnDrop(task)))
+        tracing::info!(
+            "forwarding 127.0.0.1:{local} to {target} via {}",
+            self.host.label()
+        );
+        Ok(PortForward::new(
+            local,
+            self.host.label(),
+            AbortOnDrop(task),
+        ))
     }
 
     /// Ask the host to listen on `127.0.0.1:remote_port` and forward its connections to

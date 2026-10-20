@@ -108,11 +108,7 @@ impl server::Handler for FakeHost {
                     let _ = tokio::io::copy_bidirectional(&mut socket, &mut stream).await;
                 });
             }
-            Err(_) => {
-                reply
-                    .reject(russh::ChannelOpenFailure::ConnectFailed)
-                    .await
-            }
+            Err(_) => reply.reject(russh::ChannelOpenFailure::ConnectFailed).await,
         }
         Ok(())
     }
@@ -514,8 +510,17 @@ async fn local_and_remote_port_forwarding() {
     let port = remote.port;
     drop(remote);
     let start = Instant::now();
-    while server.state.lock().unwrap().listeners.contains_key(&(port as u32)) {
-        assert!(start.elapsed() < Duration::from_secs(10), "listener not cancelled");
+    while server
+        .state
+        .lock()
+        .unwrap()
+        .listeners
+        .contains_key(&(port as u32))
+    {
+        assert!(
+            start.elapsed() < Duration::from_secs(10),
+            "listener not cancelled"
+        );
         tokio::time::sleep(Duration::from_millis(20)).await;
     }
 
@@ -549,8 +554,14 @@ async fn connects_through_a_jump_host() {
     let conn = open_via(p.clone()).await.unwrap();
     assert_eq!(conn.hello().unwrap().version, AGENT_VERSION);
     let known = std::fs::read_to_string(&f.known_hosts).unwrap();
-    assert!(known.contains(&format!("[127.0.0.1]:{}", bastion.port)), "{known}");
-    assert!(known.contains(&format!("[127.0.0.1]:{}", target.port)), "{known}");
+    assert!(
+        known.contains(&format!("[127.0.0.1]:{}", bastion.port)),
+        "{known}"
+    );
+    assert!(
+        known.contains(&format!("[127.0.0.1]:{}", target.port)),
+        "{known}"
+    );
     // The target was reached from the bastion, which started no agent itself.
     assert_eq!(
         bastion.state.lock().unwrap().direct,
@@ -578,7 +589,10 @@ async fn connects_through_a_jump_host() {
     broken.route = forge_remote::session::Route::Jump(vec![params(&f, 1, "secret", None)]);
     match open_via(broken).await {
         Err(ConnectError::Network { message }) => {
-            assert!(message.starts_with("Jump host deploy@127.0.0.1:1"), "{message}")
+            assert!(
+                message.starts_with("Jump host deploy@127.0.0.1:1"),
+                "{message}"
+            )
         }
         other => panic!("expected a network error, got {:?}", other.err()),
     }

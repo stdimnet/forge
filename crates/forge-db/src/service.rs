@@ -503,8 +503,7 @@ impl DbService {
         }
         let root = self.project_root();
         let (target, tunnel) = self.endpoint(&ds).await?;
-        let pool =
-            DbPool::connect(&target, self.password(&ds).as_deref(), root.as_deref()).await?;
+        let pool = DbPool::connect(&target, self.password(&ds).as_deref(), root.as_deref()).await?;
         if let Some(t) = tunnel {
             self.tunnels.lock().expect("poisoned").insert(id.into(), t);
         }

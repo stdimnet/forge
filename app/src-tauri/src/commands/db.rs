@@ -8,9 +8,9 @@ use std::sync::Arc;
 use forge_core::{ForgeError, Result};
 use forge_db::{
     ApplyResult, DataSource, DataSourceInfo, DbError, DbResult, DbService, DbTunnel,
-    DetectedDataSource, Dialect, ExportFormat, ProjectContext, TunnelEndpoint,
-    KeyringStore, QueryPage, RowChange, SchemaInfo, SchemaName, SessionInfo, StatementResult,
-    TableDataRequest, TableInfo, TestResult,
+    DetectedDataSource, Dialect, ExportFormat, KeyringStore, ProjectContext, QueryPage, RowChange,
+    SchemaInfo, SchemaName, SessionInfo, StatementResult, TableDataRequest, TableInfo, TestResult,
+    TunnelEndpoint,
 };
 use serde_json::Value;
 use tauri::{AppHandle, Emitter, Manager, State};

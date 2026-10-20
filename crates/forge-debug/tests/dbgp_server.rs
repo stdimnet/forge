@@ -617,7 +617,11 @@ async fn remote_project_listens_through_a_forwarded_port() {
     let root = Path::new("/var/www/shop");
     server.open_project_files(Some((root.to_path_buf(), files.clone())));
     server
-        .add_breakpoint(line_bp("app/Http/Controllers/OrderController.php", 12, None))
+        .add_breakpoint(line_bp(
+            "app/Http/Controllers/OrderController.php",
+            12,
+            None,
+        ))
         .unwrap();
     let stored = files.get(".forge/breakpoints.json").unwrap();
     assert!(stored.contains("OrderController.php"), "{stored}");
@@ -630,7 +634,10 @@ async fn remote_project_listens_through_a_forwarded_port() {
     assert_eq!(shown, 9003);
     assert_eq!(server.listening_port(), Some(9003));
     let listening = loop {
-        let e = tokio::time::timeout(WAIT, events.recv()).await.unwrap().unwrap();
+        let e = tokio::time::timeout(WAIT, events.recv())
+            .await
+            .unwrap()
+            .unwrap();
         if matches!(e, DebugEvent::Listening { .. }) {
             break e;
         }

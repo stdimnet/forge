@@ -19,9 +19,9 @@ use crate::error::{DebugError, DebugResult};
 use crate::events::{DebugEvent, EventSink, SessionInfo, SessionStatus};
 use crate::protocol::{read_packet, InitPacket};
 use crate::servers::{load_servers_from, save_servers_to, ServerConfig};
-use forge_core::{LocalFiles, SharedFiles};
 use crate::session::Session;
 use crate::xml;
+use forge_core::{LocalFiles, SharedFiles};
 
 /// State shared by the listener and every session.
 pub(crate) struct Shared {
@@ -130,10 +130,7 @@ impl DebugServer {
             .clone()
             .map(BreakpointStore::load_files)
             .unwrap_or_default();
-        let servers = files
-            .as_deref()
-            .map(load_servers_from)
-            .unwrap_or_default();
+        let servers = files.as_deref().map(load_servers_from).unwrap_or_default();
         *self.shared.root.write().expect("root lock") = root;
         *self.shared.files.write().expect("files lock") = files;
         *self.shared.breakpoints.lock().expect("breakpoints lock") = store;

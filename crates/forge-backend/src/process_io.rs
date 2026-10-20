@@ -311,7 +311,10 @@ mod tests {
         p.stdin.write_all(b"hello\nrest").await.unwrap();
         p.stdin.shutdown().await.unwrap();
         let mut lines = BufReader::new(p.stdout).lines();
-        assert_eq!(lines.next_line().await.unwrap().as_deref(), Some("got hello"));
+        assert_eq!(
+            lines.next_line().await.unwrap().as_deref(),
+            Some("got hello")
+        );
         assert_eq!(lines.next_line().await.unwrap().as_deref(), Some("rest"));
         assert_eq!(lines.next_line().await.unwrap(), None);
         let mut err = String::new();

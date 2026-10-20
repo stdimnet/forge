@@ -147,7 +147,10 @@ pub struct ArtisanCommands {
 }
 
 /// Send `call` to the backend and decode the reply.
-pub fn framework_call<T: DeserializeOwned>(backend: &dyn Backend, call: FrameworkCall) -> Result<T> {
+pub fn framework_call<T: DeserializeOwned>(
+    backend: &dyn Backend,
+    call: FrameworkCall,
+) -> Result<T> {
     decode_value(&backend.framework(call)?)
 }
 
@@ -270,7 +273,11 @@ impl LocalFrameworks {
     fn symfony(&self, config: &SymfonyConfig, force: bool) -> Result<Arc<SymfonySnapshot>> {
         let key = format!("{config:?}");
         let mut guard = self.symfony.lock().map_err(err)?;
-        if let Some(s) = guard.as_ref().filter(|_| !force).and_then(|c| c.fresh(&key)) {
+        if let Some(s) = guard
+            .as_ref()
+            .filter(|_| !force)
+            .and_then(|c| c.fresh(&key))
+        {
             return Ok(s);
         }
         let snapshot = Arc::new(phpforge_fw_symfony::scan(&self.root(), config));
@@ -285,7 +292,11 @@ impl LocalFrameworks {
     fn doctrine(&self, config: &DoctrineConfig, force: bool) -> Result<Arc<DoctrineSnapshot>> {
         let key = format!("{config:?}");
         let mut guard = self.doctrine.lock().map_err(err)?;
-        if let Some(s) = guard.as_ref().filter(|_| !force).and_then(|c| c.fresh(&key)) {
+        if let Some(s) = guard
+            .as_ref()
+            .filter(|_| !force)
+            .and_then(|c| c.fresh(&key))
+        {
             return Ok(s);
         }
         let snapshot = Arc::new(phpforge_orm_doctrine::scan(&self.root(), config));
@@ -308,13 +319,12 @@ impl LocalFrameworks {
                 reply(self.with_laravel(|l| l.info())?)
             }
             FrameworkCall::LaravelRoutes { source, php } => {
-                let json = if source == "artisan"
-                    || (source == "auto" && artisan::is_runnable(&root))
-                {
-                    artisan::capture(&root, &php, &["route:list", "--json"], ARTISAN_TIMEOUT)
-                } else {
-                    None
-                };
+                let json =
+                    if source == "artisan" || (source == "auto" && artisan::is_runnable(&root)) {
+                        artisan::capture(&root, &php, &["route:list", "--json"], ARTISAN_TIMEOUT)
+                    } else {
+                        None
+                    };
                 reply(self.with_laravel(|l| {
                     if let Some(json) = json {
                         l.use_route_list_json(&json);
@@ -423,16 +433,20 @@ impl LocalFrameworks {
     fn doctrine_query(&self, config: &DoctrineConfig, query: DoctrineQuery) -> Result<Vec<u8>> {
         use phpforge_dql::editor;
         match query {
-            DoctrineQuery::Entities { refresh } => {
-                reply(&self.doctrine(config, refresh)?.entities)
-            }
+            DoctrineQuery::Entities { refresh } => reply(&self.doctrine(config, refresh)?.entities),
             DoctrineQuery::Complete {
                 path,
                 content,
                 offset,
             } => {
                 let snap = self.doctrine(config, false)?;
-                reply(editor::complete(&TreeSitter, &snap, &path, &content, offset))
+                reply(editor::complete(
+                    &TreeSitter,
+                    &snap,
+                    &path,
+                    &content,
+                    offset,
+                ))
             }
             DoctrineQuery::Goto {
                 path,
@@ -489,7 +503,8 @@ mod tests {
     fn laravel_routes_and_completion_are_answered_from_the_cache() {
         let dir = laravel_project();
         let fw = LocalFrameworks::new(Workspace::open(dir.path()).unwrap());
-        let info: LaravelInfo = decode_value(&fw.call(FrameworkCall::LaravelDetect).unwrap()).unwrap();
+        let info: LaravelInfo =
+            decode_value(&fw.call(FrameworkCall::LaravelDetect).unwrap()).unwrap();
         assert!(info.detected);
         assert_eq!(info.version.as_deref(), Some("12.0"));
         let routes: LaravelRoutes = decode_value(
@@ -528,7 +543,8 @@ mod tests {
     fn other_projects_are_not_laravel_or_symfony() {
         let dir = tempfile::tempdir().unwrap();
         let fw = LocalFrameworks::new(Workspace::open(dir.path()).unwrap());
-        let info: LaravelInfo = decode_value(&fw.call(FrameworkCall::LaravelDetect).unwrap()).unwrap();
+        let info: LaravelInfo =
+            decode_value(&fw.call(FrameworkCall::LaravelDetect).unwrap()).unwrap();
         assert!(!info.detected);
         let sf: Option<phpforge_fw_symfony::SymfonyInfo> = decode_value(
             &fw.call(FrameworkCall::Symfony {
@@ -543,7 +559,11 @@ mod tests {
 
     #[test]
     fn command_lines_run_in_the_project_root() {
-        let cmd = artisan_command(Path::new("/srv/shop"), "php8.3", "php artisan migrate --force");
+        let cmd = artisan_command(
+            Path::new("/srv/shop"),
+            "php8.3",
+            "php artisan migrate --force",
+        );
         assert_eq!(cmd.program, "php8.3");
         assert_eq!(cmd.args, vec!["artisan", "migrate", "--force"]);
         assert_eq!(cmd.cwd, PathBuf::from("/srv/shop"));

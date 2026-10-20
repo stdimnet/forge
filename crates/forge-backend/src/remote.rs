@@ -20,14 +20,14 @@ use phpforge_lang_php::structure::FileStructure;
 use phpforge_lang_php::IndexStats;
 use serde::de::DeserializeOwned;
 
-use crate::php::ProgressSink;
 use crate::frameworks::FrameworkCall;
 use crate::langservers::{LangServersAnswer, LangServersRequest};
+use crate::php::ProgressSink;
 use crate::protocol::{Call, Event, Opened, PhpCall, TerminalOpened};
 use crate::rpc::{connection_lost, RpcClient};
 use crate::{
-    Backend, BackendInfo, FsSink, PhpBackend, Process, RemoteHost, Terminal, TerminalSpec,
-    Tunnels, WatchGuard,
+    Backend, BackendInfo, FsSink, PhpBackend, Process, RemoteHost, Terminal, TerminalSpec, Tunnels,
+    WatchGuard,
 };
 
 /// Default time to wait for an answer.

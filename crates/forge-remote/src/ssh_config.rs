@@ -271,7 +271,13 @@ pub fn parse_proxy_jump(value: &str) -> Vec<JumpHost> {
 
 /// A `ProxyCommand` with its tokens expanded: `%h` host, `%p` port, `%r` remote user,
 /// `%n` the alias as given, `%%` a percent sign.
-pub fn expand_proxy_command(command: &str, alias: &str, host: &str, port: u16, user: &str) -> String {
+pub fn expand_proxy_command(
+    command: &str,
+    alias: &str,
+    host: &str,
+    port: u16,
+    user: &str,
+) -> String {
     let mut out = String::new();
     let mut chars = command.chars();
     while let Some(c) = chars.next() {
@@ -435,7 +441,13 @@ Host *
         );
         assert!(parse_proxy_jump("none").is_empty());
         assert_eq!(
-            expand_proxy_command("ssh -W %h:%p -l %r gw # %n 100%%", "shop", "10.0.0.5", 2222, "deploy"),
+            expand_proxy_command(
+                "ssh -W %h:%p -l %r gw # %n 100%%",
+                "shop",
+                "10.0.0.5",
+                2222,
+                "deploy"
+            ),
             "ssh -W 10.0.0.5:2222 -l deploy gw # shop 100%"
         );
     }
