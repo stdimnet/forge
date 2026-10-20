@@ -147,6 +147,56 @@ export function run_output_handle(request_json: string): string;
 export function run_output_new(options_json: string): string;
 
 /**
+ * `{ request?: HttpRequest, response?: HttpResponse, error?: string }` → console text.
+ */
+export function scratches_http_render(request_json: string): string;
+
+/**
+ * `{ content, line, env? }` → the resolved request at `line` (`HttpRequest`) or `null`.
+ */
+export function scratches_http_request(request_json: string): string;
+
+/**
+ * `LanguageRequest` → `LanguageItem[]` (the New Scratch File popup).
+ */
+export function scratches_languages(request_json: string): string;
+
+/**
+ * Register the plugins' file types (`PluginInfo[]` JSON) for the language list.
+ */
+export function scratches_load(plugins_json: string): string;
+
+/**
+ * `{ name, content }` → gutter markers.
+ */
+export function scratches_markers(request_json: string): string;
+
+/**
+ * `{ language, existing }` → `{ name, extension }` of a new scratch (`scratch_1.php`).
+ */
+export function scratches_new_name(request_json: string): string;
+
+/**
+ * `{ existing: [name, modified][] }` → `{ name, reused }` for "New Scratch Buffer".
+ */
+export function scratches_next_buffer(request_json: string): string;
+
+/**
+ * `{ file, context: RunContext }` → `RunCommand`.
+ */
+export function scratches_run_command(request_json: string): string;
+
+/**
+ * `{ name }` → the scratch's runner (`php`, `http`, …) or `null`.
+ */
+export function scratches_runner(request_json: string): string;
+
+/**
+ * `{ name }` → `null` or the reason the name is invalid.
+ */
+export function scratches_validate_name(request_json: string): string;
+
+/**
  * `{ query, paths, limit }` → `FileMatch[]`: "Go to File" over a list of paths (the
  * browser-mode demo project instead of a file walk).
  */
@@ -226,6 +276,16 @@ export interface InitOutput {
     readonly run_output_drop: (a: number, b: number, c: number) => void;
     readonly run_output_handle: (a: number, b: number, c: number) => void;
     readonly run_output_new: (a: number, b: number, c: number) => void;
+    readonly scratches_http_render: (a: number, b: number, c: number) => void;
+    readonly scratches_http_request: (a: number, b: number, c: number) => void;
+    readonly scratches_languages: (a: number, b: number, c: number) => void;
+    readonly scratches_load: (a: number, b: number, c: number) => void;
+    readonly scratches_markers: (a: number, b: number, c: number) => void;
+    readonly scratches_new_name: (a: number, b: number, c: number) => void;
+    readonly scratches_next_buffer: (a: number, b: number, c: number) => void;
+    readonly scratches_run_command: (a: number, b: number, c: number) => void;
+    readonly scratches_runner: (a: number, b: number, c: number) => void;
+    readonly scratches_validate_name: (a: number, b: number, c: number) => void;
     readonly search_match_files: (a: number, b: number, c: number) => void;
     readonly search_rank: (a: number, b: number, c: number) => void;
     readonly settings_search: (a: number, b: number, c: number) => void;

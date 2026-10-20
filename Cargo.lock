@@ -1680,6 +1680,7 @@ dependencies = [
  "forge-markdown",
  "forge-output",
  "forge-plugin-api",
+ "forge-scratches",
  "forge-sql",
  "phpforge-dql",
  "serde",
