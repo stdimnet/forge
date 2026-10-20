@@ -19,7 +19,7 @@ import { showToolWindow } from "@/state/layout";
 import { registerKeymapActions } from "@/keymap";
 import { bladeParser } from "./blade";
 import { laravelCompletion } from "./completion";
-import { laravelGotoExtension } from "./goto";
+import { laravelGotoExtension, wrapGotoDeclaration } from "./goto";
 import { laravelGutter } from "./gutter";
 import { RoutesActions, RoutesView } from "./RoutesView";
 import { ArtisanPopup, openArtisanPopup } from "./ArtisanPopup";
@@ -47,6 +47,8 @@ const isPhpOrBlade = (path: string) => /\.(php|phtml)$/i.test(path);
 registerEditorExtension(({ path }) =>
   isPhpOrBlade(path) ? [laravelCompletion(path), laravelGotoExtension(path), laravelGutter(path)] : null,
 );
+
+wrapGotoDeclaration();
 
 registerToolWindow({
   id: "laravel.routes",

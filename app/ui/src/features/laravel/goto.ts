@@ -8,6 +8,8 @@ import { Prec, StateEffect, StateField, type Extension } from "@codemirror/state
 import { EditorView, keymap, showTooltip, type Tooltip } from "@codemirror/view";
 import { laravelApi, type LaravelLocation } from "@/ipc/laravel";
 import { gotoDeclaration } from "@/features/lsp/goto";
+import { activeView } from "@/features/lsp/navigation";
+import { commands, registerCommand } from "@/state/commands";
 import { h } from "@/features/lsp/util";
 import { laravelActive, reveal } from "./state";
 import { isBlade } from "./completion";
@@ -25,42 +27,64 @@ export function mayGoto(lineText: string, column: number, blade: boolean): boole
   return false;
 }
 
-const setChooser = StateEffect.define<{ pos: number; targets: LaravelLocation[] } | null>();
+interface Chooser {
+  pos: number;
+  targets: LaravelLocation[];
+  index: number;
+}
 
-const chooserField = StateField.define<Tooltip | null>({
-  create: () => null,
-  update(tip, tr) {
-    for (const e of tr.effects) {
-      if (e.is(setChooser)) {
-        const v = e.value;
-        if (!v) return null;
-        return {
-          pos: v.pos,
-          above: false,
-          create: (view) => {
-            const dom = h("div", "laravel-chooser");
-            dom.append(h("div", "laravel-chooser-title", "Choose Declaration"));
-            v.targets.forEach((t, i) => {
-              const row = h("button", "laravel-chooser-row");
-              const name = t.path.split("/").pop() ?? t.path;
-              row.append(h("span", "laravel-chooser-name", `${name}:${t.line + 1}`), h("span", "laravel-chooser-path", t.path));
-              row.onmousedown = (ev) => {
-                ev.preventDefault();
-                view.dispatch({ effects: setChooser.of(null) });
-                void reveal(t);
-              };
-              if (i === 0) row.classList.add("selected");
-              dom.append(row);
-            });
-            return { dom };
-          },
+const setChooser = StateEffect.define<Chooser | null>();
+
+function chooserTooltip(c: Chooser): Tooltip {
+  return {
+    pos: c.pos,
+    above: false,
+    create: (view) => {
+      const dom = h("div", "laravel-chooser");
+      dom.append(h("div", "laravel-chooser-title", "Choose Declaration"));
+      c.targets.forEach((t, i) => {
+        const row = h("button", "laravel-chooser-row");
+        const name = t.path.split("/").pop() ?? t.path;
+        row.append(h("span", "laravel-chooser-name", `${name}:${t.line + 1}`), h("span", "laravel-chooser-path", t.path));
+        row.onmousedown = (ev) => {
+          ev.preventDefault();
+          view.dispatch({ effects: setChooser.of(null) });
+          void reveal(t);
         };
-      }
-    }
-    return tr.docChanged || tr.selection ? null : tip;
+        if (i === c.index) row.classList.add("selected");
+        dom.append(row);
+      });
+      return { dom };
+    },
+  };
+}
+
+const chooserField = StateField.define<Chooser | null>({
+  create: () => null,
+  update(value, tr) {
+    for (const e of tr.effects) if (e.is(setChooser)) return e.value;
+    return tr.docChanged || tr.selection ? null : value;
   },
-  provide: (f) => showTooltip.from(f),
+  provide: (f) => showTooltip.from(f, (c) => (c ? chooserTooltip(c) : null)),
 });
+
+/** Arrow keys, Enter and Escape while the chooser is open. */
+function chooserKey(key: "up" | "down" | "enter" | "escape") {
+  return (view: EditorView): boolean => {
+    const c = view.state.field(chooserField, false);
+    if (!c) return false;
+    if (key === "escape") view.dispatch({ effects: setChooser.of(null) });
+    else if (key === "enter") {
+      view.dispatch({ effects: setChooser.of(null) });
+      void reveal(c.targets[c.index]);
+    } else {
+      const n = c.targets.length;
+      const index = (c.index + (key === "down" ? 1 : n - 1)) % n;
+      view.dispatch({ effects: setChooser.of({ ...c, index }) });
+    }
+    return true;
+  };
+}
 
 /** Ask the backend; returns false when there is nothing Laravel-specific at `pos`. */
 export async function laravelGoto(path: string, view: EditorView, pos: number): Promise<boolean> {
@@ -69,7 +93,7 @@ export async function laravelGoto(path: string, view: EditorView, pos: number): 
   if (targets.length === 1) {
     await reveal(targets[0]);
   } else {
-    view.dispatch({ effects: setChooser.of({ pos, targets }) });
+    view.dispatch({ effects: setChooser.of({ pos, targets, index: 0 }) });
   }
   return true;
 }
@@ -80,12 +104,33 @@ async function gotoAt(path: string, view: EditorView, pos: number): Promise<void
   await gotoDeclaration(path, view, pos);
 }
 
-function applies(path: string, view: EditorView, pos: number): boolean {
+export function applies(path: string, view: EditorView, pos: number): boolean {
   if (!laravelActive()) return false;
   const line = view.state.doc.lineAt(pos);
   // Include the rest of the word so a caret at the start of a name still counts.
   const tail = /^[\w.:-]*/.exec(line.text.slice(pos - line.from))![0];
   return mayGoto(line.text, pos - line.from + Math.min(tail.length, 1), isBlade(path));
+}
+
+/**
+ * Ctrl+B reaches the editor through the global keymap as the `GotoDeclaration` action.
+ * Wrap the language server's command: Laravel symbols first, everything else unchanged.
+ */
+export function wrapGotoDeclaration(): void {
+  const previous = commands().get("GotoDeclaration");
+  registerCommand({
+    id: "GotoDeclaration",
+    title: previous?.title ?? "Go to Declaration or Usages",
+    category: previous?.category ?? "Navigate",
+    run: async () => {
+      const a = activeView();
+      if (a) {
+        const pos = a.view.state.selection.main.head;
+        if (applies(a.path, a.view, pos) && (await laravelGoto(a.path, a.view, pos))) return;
+      }
+      await previous?.run();
+    },
+  });
 }
 
 export function laravelGotoExtension(path: string): Extension {
@@ -102,14 +147,10 @@ export function laravelGotoExtension(path: string): Extension {
             return true;
           },
         },
-        {
-          key: "Escape",
-          run: (view) => {
-            if (!view.state.field(chooserField, false)) return false;
-            view.dispatch({ effects: setChooser.of(null) });
-            return true;
-          },
-        },
+        { key: "Escape", run: chooserKey("escape") },
+        { key: "Enter", run: chooserKey("enter") },
+        { key: "ArrowDown", run: chooserKey("down") },
+        { key: "ArrowUp", run: chooserKey("up") },
       ]),
     ),
     Prec.high(
