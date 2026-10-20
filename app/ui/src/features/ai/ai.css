@@ -41,7 +41,7 @@
 /* Master / detail */
 .ai-master-detail {
   display: grid;
-  grid-template-columns: 280px 1fr;
+  grid-template-columns: 240px minmax(0, 1fr);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius);
   min-height: 330px;
@@ -273,6 +273,7 @@
 
 .ai-actions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   margin-top: auto;
@@ -292,6 +293,7 @@
   color: var(--fg-muted);
   background: var(--bg-active);
   max-width: 360px;
+  white-space: nowrap;
 }
 .ai-chip.ok {
   color: var(--success);
@@ -389,7 +391,7 @@
 }
 .ai-feature-grid {
   display: grid;
-  grid-template-columns: 130px minmax(0, 460px) 1fr;
+  grid-template-columns: 130px minmax(0, 1fr);
   align-items: center;
   gap: 8px 12px;
   padding-left: 4px;
@@ -406,4 +408,14 @@
   opacity: 1;
   background: var(--bg-active);
   color: var(--fg-faint);
+}
+
+/* Hints sit under their control so the page fits the Settings dialog width. */
+.ai-feature-grid > .ai-hint {
+  grid-column: 2;
+  margin-top: -4px;
+}
+.ai-actions .btn-secondary,
+.ai-actions .btn-primary {
+  white-space: nowrap;
 }

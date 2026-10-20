@@ -1,6 +1,6 @@
-/** Settings | Tools | AI Providers (opened through the temporary `ai.settings` modal). */
+/** Settings | Tools | AI Providers. */
 async function openAiSettings(page) {
-  await page.evaluate(() => window.__forgeOpenAiSettings());
+  await page.evaluate(() => window.__forgeRunCommand("ai.settings"));
   await page.waitForSelector(".ai-row[data-provider]");
 }
 

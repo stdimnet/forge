@@ -1,7 +1,7 @@
 import { registerSettingsPage } from "@/features/settingsPages";
 import { registerCommand } from "@/state/commands";
 import { AiProvidersPage } from "./AiProvidersPage";
-import { openTempAiSettings } from "./TempSettingsModal";
+import { openSettings } from "@/features/settings/dialogState";
 
 registerSettingsPage({
   id: "tools.ai-providers",
@@ -12,5 +12,9 @@ registerSettingsPage({
   component: AiProvidersPage,
 });
 
-// TEMPORARY until the Settings dialog lands: opens the page in a standalone modal.
-registerCommand({ id: "ai.settings", title: "AI Providers…", category: "AI", run: openTempAiSettings });
+registerCommand({
+  id: "ai.settings",
+  title: "AI Providers…",
+  category: "AI",
+  run: () => openSettings("tools.ai-providers"),
+});

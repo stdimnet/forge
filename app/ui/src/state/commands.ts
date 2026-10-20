@@ -27,3 +27,8 @@ export async function runCommand(id: string): Promise<void> {
   }
   await cmd.run();
 }
+
+// Lets the screenshot scenarios and devtools run any command in browser mode.
+if (import.meta.env.DEV && typeof window !== "undefined") {
+  (window as unknown as { __forgeRunCommand?: (id: string) => Promise<void> }).__forgeRunCommand = runCommand;
+}
