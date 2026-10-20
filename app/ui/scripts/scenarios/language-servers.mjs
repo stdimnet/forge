@@ -32,7 +32,8 @@ async function openPage(page) {
 
 /** @param {import("playwright-core").Page} page */
 async function openPhpPage(page) {
-  await page.evaluate(async () => (await import("/src/features/settings/dialogState.ts")).openSettings("lang.php"));
+  await page.evaluate(() => window.__forgeRunCommand("settings.open"));
+  await page.click('.set-tree-row[data-node="lang.php"]');
   await page.waitForSelector('[data-testid="intelephense-licence"]');
   await page.waitForTimeout(150);
 }
