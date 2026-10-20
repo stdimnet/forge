@@ -40,6 +40,8 @@ pub fn run() {
         .manage(commands::db::DbState::load())
         .manage(commands::forges::ForgesState::load())
         .manage(commands::services::ServicesState::default())
+        .manage(commands::window::DialogWindowsState::default())
+        .on_window_event(commands::window::on_window_event)
         .setup(|app| {
             app.manage(commands::debug::DebugState::new(app.handle().clone()));
             // Forward settings changes to the UI.
@@ -49,6 +51,19 @@ pub fn run() {
                 .subscribe(move |change| {
                     if let Err(e) = handle.emit("settings://changed", change) {
                         tracing::warn!("cannot emit settings change: {e}");
+                    }
+                });
+
+            // Forge draws the title bars unless `appearance.windowControls` is `native`.
+            commands::window::apply_decorations(app.handle());
+            let handle = app.handle().clone();
+            app.state::<AppState>()
+                .write_settings()
+                .subscribe(move |change| {
+                    if change.key == commands::window::SETTING_KEY {
+                        let h = handle.clone();
+                        // Listeners run under the settings lock; read it on another thread.
+                        std::thread::spawn(move || commands::window::apply_decorations(&h));
                     }
                 });
 
@@ -413,6 +428,10 @@ pub fn run() {
             commands::remote::remote_disconnect,
             commands::remote::remote_status,
             commands::remote::remote_reconnect,
+            commands::window::window_chrome,
+            commands::window::dialog_window_open,
+            commands::window::dialog_window_close,
+            commands::window::dialog_window_message,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Forge");

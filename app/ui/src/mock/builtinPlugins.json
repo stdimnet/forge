@@ -204,6 +204,47 @@
           "order": 21
         },
         {
+          "key": "appearance.windowControls",
+          "title": "Window controls",
+          "description": "Look of the title bar buttons of the main window and dialogs. \"Native\" lets the operating system draw the title bar.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "auto",
+              "label": "Match the system"
+            },
+            {
+              "value": "windows",
+              "label": "Windows"
+            },
+            {
+              "value": "macos",
+              "label": "macOS"
+            },
+            {
+              "value": "gnome",
+              "label": "GNOME"
+            },
+            {
+              "value": "kde",
+              "label": "KDE Plasma"
+            },
+            {
+              "value": "linux",
+              "label": "Generic Linux"
+            },
+            {
+              "value": "native",
+              "label": "Native title bar"
+            }
+          ],
+          "default": "auto",
+          "group": "appearance",
+          "section": "Window",
+          "project": false,
+          "order": 25
+        },
+        {
           "key": "projectView.openFilesWithSingleClick",
           "title": "Open files with single click",
           "description": "In the Project tool window a single click opens files and expands folders. Turn it off to select with a single click and open with a double click, like PHPStorm.",
