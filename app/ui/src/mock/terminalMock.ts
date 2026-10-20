@@ -1,16 +1,21 @@
 /**
  * Browser-mode terminal: a tiny fake shell with line editing and canned answers for `ls`,
- * `php -v`, `git status`, `pwd`, `echo`, `clear` and a few more. It never touches files.
+ * `php -v`, `git status`, `pwd`, `echo`, `clear` and a few more. `claude` (and
+ * `replay <name>`) replays a recorded TUI session from `terminalReplays.ts`; Ctrl+C ends it.
+ * It never touches files.
  */
 import { emitMock, registerMock } from "@/ipc";
 import type { TerminalEvent, TerminalOpenOptions } from "@/ipc/terminal";
 import { demoProjectName } from "./demoProject";
+import { REPLAYS, replayExit, replayFrames, type ReplayName } from "./terminalReplays";
 
 interface FakeShell {
   line: string;
   cwd: string;
   history: string[];
   historyPos: number;
+  /** Timer of a running replay; input other than Ctrl+C is ignored meanwhile. */
+  replay?: ReturnType<typeof setTimeout>;
 }
 
 const shells = new Map<string, FakeShell>();
@@ -32,7 +37,13 @@ const C = {
 const emit = (id: string, e: TerminalEvent) => emitMock(`terminal://${id}`, e);
 const out = (id: string, data: string) => emit(id, { type: "output", data: data.replace(/\n/g, "\r\n") });
 
+const homePath = (cwd: string) => cwd.replace(/^~/, "/home/dev");
+
+/** OSC 7 (working directory) and OSC 133;A (prompt start), like shells with integration. */
+const promptMarks = (s: FakeShell) => `\x1b]7;file://forge${encodeURI(homePath(s.cwd))}\x07\x1b]133;A\x07`;
+
 const prompt = (s: FakeShell) =>
+  promptMarks(s) +
   `${C.green}${C.bold}dev@forge${C.reset} ${C.blue}${C.bold}${s.cwd}${C.reset} ${C.magenta}(feature/order-totals)${C.reset} $ `;
 
 const LS_ROOT = [
@@ -63,7 +74,7 @@ const COMMANDS: Record<string, (args: string[], s: FakeShell) => string> = {
   ls: () => ls(),
   ll: () =>
     LS_ROOT.map(([n, k]) => `${k === "dir" ? "drwxr-xr-x" : k === "exec" ? "-rwxr-xr-x" : "-rw-r--r--"}  dev dev  ${k === "dir" ? "4096" : " 812"} Oct 20 09:12 ${k === "dir" ? `${C.blue}${C.bold}${n}${C.reset}` : n}`).join("\n") + "\n",
-  pwd: (_a, s) => `${s.cwd.replace(/^~/, "/home/dev")}\n`,
+  pwd: (_a, s) => `${homePath(s.cwd)}\n`,
   echo: (a) => `${a.join(" ")}\n`,
   whoami: () => "dev\n",
   php: (a) => {
@@ -107,12 +118,50 @@ const COMMANDS: Record<string, (args: string[], s: FakeShell) => string> = {
       ? `${C.magenta}app/Models/User.php${C.reset}${C.cyan}:${C.reset}${C.green}33${C.reset}${C.cyan}:${C.reset}    public function orders(): HasMany\n${C.magenta}app/Http/Controllers/OrderController.php${C.reset}${C.cyan}:${C.reset}${C.green}12${C.reset}${C.cyan}:${C.reset}        $orders = $request->user()->orders;\n`
       : "",
   help: () =>
-    `This is Forge's browser-mode terminal. Try ${C.bold}ls${C.reset}, ${C.bold}php -v${C.reset}, ${C.bold}git status${C.reset}, ${C.bold}grep -rn orders app${C.reset}, ${C.bold}clear${C.reset}.\n`,
+    `This is Forge's browser-mode terminal. Try ${C.bold}ls${C.reset}, ${C.bold}php -v${C.reset}, ${C.bold}git status${C.reset}, ${C.bold}grep -rn orders app${C.reset}, ${C.bold}claude${C.reset} (a recorded session), ${C.bold}clear${C.reset}.\n`,
 };
+
+/** Replay a recorded stream; the fake shell stays busy until Ctrl+C, like a running TUI. */
+function startReplay(id: string, s: FakeShell, name: ReplayName): void {
+  const frames = replayFrames(name, homePath(s.cwd));
+  let i = 0;
+  const next = () => {
+    const f = frames[i++];
+    if (!f || !shells.has(id)) return;
+    s.replay = setTimeout(() => {
+      out(id, f.data);
+      next();
+    }, f.delay);
+  };
+  // Keep the shell busy even after the last frame: the TUI keeps running.
+  s.replay = setTimeout(next, 0);
+}
+
+function stopReplay(id: string, s: FakeShell): void {
+  clearTimeout(s.replay);
+  s.replay = undefined;
+  out(id, replayExit());
+}
+
+/** Recording for `claude [--thinking | --error]` or `replay <name>`: null if unknown, undefined if not a replay. */
+function replayFor(cmd: string, args: string[]): ReplayName | null | undefined {
+  if (cmd === "claude") return args.includes("--error") ? "claude-error" : args.includes("--thinking") ? "claude-thinking" : "claude";
+  if (cmd === "replay") return REPLAYS.includes(args[0] as ReplayName) ? (args[0] as ReplayName) : null;
+  return undefined;
+}
 
 function run(id: string, s: FakeShell, line: string): void {
   const [cmd, ...args] = line.trim().split(/\s+/);
   if (!cmd) return;
+  const replay = replayFor(cmd, args);
+  if (replay) {
+    startReplay(id, s, replay);
+    return;
+  }
+  if (replay === null) {
+    out(id, `replay: unknown recording. Available: ${REPLAYS.join(", ")}\n`);
+    return;
+  }
   if (cmd === "clear") {
     out(id, "\x1b[2J\x1b[3J\x1b[H");
     return;
@@ -147,13 +196,20 @@ registerMock("terminal_write", ({ id, data }) => {
   const s = shells.get(key);
   if (!s) return;
   for (const ch of String(data).match(/\x1b\[[A-D]|[\s\S]/g) ?? []) {
+    if (s.replay !== undefined) {
+      if (ch === "\x03") {
+        stopReplay(key, s);
+        out(key, prompt(s));
+      }
+      continue;
+    }
     if (ch === "\r") {
       out(key, "\n");
       if (s.line.trim()) s.history.push(s.line);
       s.historyPos = s.history.length;
       run(key, s, s.line);
       s.line = "";
-      if (shells.has(key)) out(key, prompt(s));
+      if (shells.has(key) && s.replay === undefined) out(key, prompt(s));
     } else if (ch === "\x7f" || ch === "\b") {
       if (s.line) {
         s.line = s.line.slice(0, -1);
@@ -179,5 +235,6 @@ registerMock("terminal_write", ({ id, data }) => {
 
 registerMock("terminal_resize", () => undefined);
 registerMock("terminal_close", ({ id }) => {
+  clearTimeout(shells.get(String(id))?.replay);
   shells.delete(String(id));
 });
