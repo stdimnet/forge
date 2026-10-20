@@ -13,6 +13,7 @@
     "tauri": "cd .. && tauri",
     "wasm": "node scripts/build-wasm.mjs",
     "agents": "node scripts/build-agents.mjs",
+    "langservers": "cargo run -q -p forge-langservers --bin forge-langservers --",
     "release": "node scripts/build-agents.mjs && cd .. && tauri build --config src-tauri/tauri.agents.conf.json"
   },
   "dependencies": {

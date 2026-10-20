@@ -13,6 +13,8 @@ import type {
   TextEdit,
 } from "@/features/php/api";
 import { demoFiles } from "./demoProject";
+import { mockRows } from "./langserversMock";
+import { intelephenseMissingAtStart } from "./lspMock";
 import { classAt, lineOf, memberType, parsePhp, type MockClass, type MockMember } from "./phpMockParser";
 import { callWasmSync, forgeWasm, type ForgeWasm } from "@/wasm";
 import type { FilterHit } from "@/ipc/search";
@@ -456,4 +458,9 @@ registerMock("php_generate", ({ path, offset, kind, options, content }) =>
   mockGenerate(source(path, content), Number(offset), kind as GenerateKind, (options ?? {}) as GenerateOptions),
 );
 
-registerMock("php_detect_servers", () => ({ intelephense: "/usr/local/bin/intelephense", phpactor: null }));
+// With `?intelephense=missing` it is found only after the (mock) install.
+registerMock("php_detect_servers", async () => {
+  if (!intelephenseMissingAtStart()) return { intelephense: "/usr/local/bin/intelephense", phpactor: null };
+  const row = (await mockRows()).find((r) => r.id === "intelephense");
+  return { intelephense: row?.path ?? null, phpactor: null };
+});

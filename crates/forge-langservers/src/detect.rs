@@ -3,6 +3,10 @@
 //! nvm/fnm/volta, `~/.local/bin` for pip/pipx, `~/.cargo/bin`, `~/go/bin`, `~/.dotnet/tools`,
 //! gem user dirs and Neovim's Mason directory). The open project's `node_modules/.bin` and
 //! Forge's own directory for npm servers (`<data dir>/forge/langservers`) come first.
+//!
+//! npm servers in Forge's directory are started with a Node.js >= 18 (Forge's download in
+//! `<data dir>/forge/runtimes`, else the machine's): `node <script> <args>`, see
+//! [`Detector::launch`]. They then work without Node.js on `PATH`.
 
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
@@ -27,6 +31,10 @@ pub struct DetectEnv {
     /// Where Forge installs npm language servers (`npm install --prefix <dir>`); its
     /// `node_modules/.bin` is searched right after the project's.
     pub managed_dir: Option<PathBuf>,
+    /// Where Forge keeps the Node.js builds it downloaded (`<data dir>/forge/runtimes`).
+    pub runtimes_dir: Option<PathBuf>,
+    /// Leave out the fixed system directories (`/usr/local/bin`, Homebrew); for tests.
+    pub skip_system_dirs: bool,
 }
 
 /// Forge's own directory for npm language servers: `<user data dir>/forge/langservers`.
@@ -55,6 +63,8 @@ impl DetectEnv {
             windows: cfg!(windows),
             project_root: None,
             managed_dir: default_managed_dir(),
+            runtimes_dir: crate::managed::default_runtimes_dir(),
+            skip_system_dirs: false,
         }
     }
 
@@ -143,7 +153,7 @@ impl DetectEnv {
             dirs.push(local.join("nvim-data/mason/bin"));
         }
 
-        if !self.windows {
+        if !self.windows && !self.skip_system_dirs {
             dirs.push(PathBuf::from("/usr/local/bin"));
             dirs.push(PathBuf::from("/opt/homebrew/bin"));
             dirs.push(PathBuf::from("/home/linuxbrew/.linuxbrew/bin"));
@@ -242,6 +252,61 @@ impl Detector {
         self.env.managed_dir.as_deref()
     }
 
+    /// Where Forge keeps the Node.js builds it downloaded.
+    pub fn runtimes_dir(&self) -> Option<&Path> {
+        self.env.runtimes_dir.as_deref()
+    }
+
+    /// The Node.js to run npm servers with: Forge's newest download, else a `node` >= 18
+    /// on this machine.
+    pub fn node(&self) -> Option<PathBuf> {
+        let managed = self.runtimes_dir().and_then(|dir| {
+            crate::managed::node::installed_runtimes(dir, self.env.windows)
+                .into_iter()
+                .next()
+                .map(|r| crate::managed::node::node_executable(&r, self.env.windows))
+        });
+        managed.or_else(|| {
+            let names = self.env.candidates("node");
+            self.dirs
+                .iter()
+                .flat_map(|d| names.iter().map(move |n| d.join(n)))
+                .filter(|p| is_executable(p))
+                .find(|p| crate::managed::node::is_suitable(p))
+        })
+    }
+
+    /// `node` and the script of `command` when it is an npm server in Forge's directory
+    /// (`intelephense` → `(node, <dir>/node_modules/intelephense/lib/intelephense.js)`).
+    pub fn managed_launch(&self, command: &str) -> Option<(PathBuf, PathBuf)> {
+        let script = crate::managed::npm::find_bin(self.managed_dir()?, command)?;
+        Some((self.node()?, script))
+    }
+
+    /// The program and arguments that start `executable`: npm servers in Forge's directory
+    /// run as `node <script> <args>` (no Node.js on `PATH` needed, no `.cmd` shims), anything
+    /// else as it is.
+    pub fn launch(&self, executable: &Path, args: &[String]) -> (String, Vec<String>) {
+        let in_managed_bin = self.managed_dir().is_some_and(|m| {
+            executable.parent() == Some(m.join("node_modules").join(".bin").as_path())
+        });
+        let command = executable.file_name().map(|n| {
+            let n = n.to_string_lossy().into_owned();
+            match n.rsplit_once('.') {
+                Some((stem, "cmd" | "exe" | "bat")) if self.env.windows => stem.to_string(),
+                _ => n,
+            }
+        });
+        if let (true, Some(command)) = (in_managed_bin, command) {
+            if let Some((node, script)) = self.managed_launch(&command) {
+                let mut all = vec![script.display().to_string()];
+                all.extend(args.iter().cloned());
+                return (node.display().to_string(), all);
+            }
+        }
+        (executable.display().to_string(), args.to_vec())
+    }
+
     /// `node_modules` of the managed directory (packages next to the managed servers).
     pub fn managed_node_modules(&self) -> Option<PathBuf> {
         self.managed_dir().map(|d| d.join("node_modules"))
@@ -328,6 +393,7 @@ pub(crate) mod tests {
         DetectEnv {
             path: Some(std::env::join_paths(path).unwrap()),
             home: Some(home.to_path_buf()),
+            skip_system_dirs: true,
             ..Default::default()
         }
     }

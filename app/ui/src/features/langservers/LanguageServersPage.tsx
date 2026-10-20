@@ -5,7 +5,7 @@
  * settings page.
  */
 import { createMemo, createSignal, For, onMount, Show } from "solid-js";
-import { Download, ExternalLink, RefreshCw, Search } from "lucide-solid";
+import { Download, ExternalLink, LoaderCircle, RefreshCw, Search } from "lucide-solid";
 import { serverKey, type ServerRow } from "@/ipc/langservers";
 import { settingsState } from "@/state/settings";
 import { draft, draftValue, openSettings, setDraft } from "@/features/settings/dialogState";
@@ -14,6 +14,54 @@ import { InstallDialog } from "./InstallDialog";
 import { IntelephenseLicence } from "./Licence";
 import { groupRows, jsonError, shortenHome, skipText, STATUS_LABEL } from "./model";
 import { applyServers, loading, refreshRows, rows } from "./store";
+import { managedOption, progressText } from "./autoInstall";
+import { installFor, installManaged } from "./managed";
+
+/**
+ * Install button of a row: Forge's own installer when it can do it (npm servers: one click,
+ * progress inline), otherwise the dialog with the commands.
+ */
+function InstallButton(props: { row: ServerRow; onDialog: () => void }) {
+  const running = () => installFor(props.row.id);
+  return (
+    <Show
+      when={!running()}
+      fallback={
+        <span class="ls-installing" title={running()!.label}>
+          <LoaderCircle size={13} class="lsp-spin" />
+          {progressText(running()!.label, running()!.done, running()!.total)}
+        </span>
+      }
+    >
+      <Show
+        when={managedOption(props.row)}
+        fallback={
+          <button
+            class="btn-secondary ls-small-btn"
+            onClick={(e) => {
+              e.stopPropagation();
+              props.onDialog();
+            }}
+          >
+            <Download size={13} /> Install…
+          </button>
+        }
+      >
+        <button
+          class="btn-secondary ls-small-btn"
+          data-testid={`install-${props.row.id}`}
+          title="Forge downloads it into its own server directory (and Node.js, if needed)"
+          onClick={(e) => {
+            e.stopPropagation();
+            void installManaged(props.row);
+          }}
+        >
+          <Download size={13} /> Install
+        </button>
+      </Show>
+    </Show>
+  );
+}
 
 /** Draft-aware value of a per-server setting. */
 function serverValue<T>(id: string, field: "enabled" | "path" | "settings", fallback: T): T {
@@ -98,10 +146,17 @@ function Details(props: { row: ServerRow; onInstall: () => void }) {
         <Show when={row().status === "notInstalled" || (row().install.length > 0 && !row().path)}>
           <span class="ls-form-label">Install:</span>
           <span class="ls-install-line">
-            <code class="ls-code">{row().install[0]?.command}</code>
-            <button class="btn-secondary ls-small-btn" onClick={props.onInstall}>
-              <Download size={13} /> Install…
-            </button>
+            <Show when={managedOption(row())} fallback={<code class="ls-code">{row().install[0]?.command}</code>}>
+              <span class="muted">From the npm registry into Forge's server directory, with Node.js if needed.</span>
+            </Show>
+            <span class="ls-install-actions">
+              <InstallButton row={row()} onDialog={props.onInstall} />
+              <Show when={managedOption(row()) && row().install.length > 1}>
+                <button class="ls-link" onClick={props.onInstall}>
+                  Other ways…
+                </button>
+              </Show>
+            </span>
           </span>
         </Show>
 
@@ -185,8 +240,9 @@ export function LanguageServersPage(props: { groups?: string[] } = {}) {
       <Show when={!props.groups}>
       <p class="ls-intro muted">
         Language servers are separate programs. Forge looks in the project's node_modules, in its own server directory
-        (~/.local/share/forge/langservers), on PATH and in pip, cargo, go and Mason directories. npm servers are
-        installed into that directory only, never globally.
+        (~/.local/share/forge/langservers), on PATH and in pip, cargo, go and Mason directories. Install puts npm
+        servers into that directory only, never globally, and needs nothing else: Forge downloads Node.js too when
+        it is missing.
       </p>
       </Show>
       <Show when={generalSpecs().length}>
@@ -262,15 +318,7 @@ export function LanguageServersPage(props: { groups?: string[] } = {}) {
                           when={r.path}
                           fallback={
                             <Show when={r.install.length}>
-                              <button
-                                class="btn-secondary ls-small-btn"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setInstalling(r);
-                                }}
-                              >
-                                <Download size={13} /> Install…
-                              </button>
+                              <InstallButton row={r} onDialog={() => setInstalling(r)} />
                             </Show>
                           }
                         >

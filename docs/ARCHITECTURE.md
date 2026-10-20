@@ -422,11 +422,44 @@ app/ui/            SolidJS UI
   cargo, go, dotnet, gem dirs, Mason (`~/.local/share/nvim/mason/bin`) and Windows `.cmd` shims.
   The `node_modules` of the project and of Forge's directory are also searched for packages a
   server needs (TypeScript SDK, `@vue/typescript-plugin`).
-- npm servers are never installed globally: a catalog option `npm install -g <packages>` runs as
-  `npm install --prefix <Forge's server directory> --no-fund --no-audit <packages>` (`install::managed_command`;
-  the dialog shows that command). Other tools (brew, pipx, go, cargo, dotnet, ...) run as listed in
-  the catalog. npm and Node must be installed on the machine; a server's `#!/usr/bin/env node` script
-  needs `node` on the PATH Forge was started with.
+- npm servers are installed by Forge itself, with no prerequisites (`forge_langservers::managed`):
+  a catalog option `npm install -g <packages>` becomes a managed install into Forge's server
+  directory, never a global one.
+  1. Node.js: Forge's own download (`<user data dir>/forge/runtimes/node-<version>`) or a `node`
+     >= 18 on the machine; otherwise the newest LTS build for the platform is downloaded from
+     `langservers.download.nodeMirror` (default `https://nodejs.org/dist`, `index.json`),
+     checked against the release's `SHASUMS256.txt` and unpacked (`.tar.gz` on Linux/macOS,
+     `.zip` on Windows) into a staging directory that is renamed into place (`managed::node`).
+  2. Packages without runtime dependencies (Intelephense) come straight from
+     `langservers.download.npmRegistry` (`<registry>/<name>/latest` or a pinned version): the
+     tarball is checked against `dist.integrity` (sha512), unpacked into
+     `<dir>/node_modules/<name>`, `.bin` entries are created (symlink / `.cmd` shim) and the
+     package is recorded in `<dir>/package.json` so npm keeps it (`managed::npm`). Packages
+     with dependencies (typescript-language-server, vscode-langservers-extracted,
+     yaml-language-server, ...) run `npm install --prefix <dir> <name>@<version>` with the npm
+     next to the Node.js in use (Forge's Node.js ships its own `npm-cli.js`).
+  3. Servers in Forge's directory are started as `<node> <package script> <args>`
+     (`Detector::launch`, used by `build_config`), so they need no `node` on PATH. Intelephense
+     (PHP pack) gets the same through `PhpLspSettings::intelephense_node`
+     (`commands::php::for_host`, local projects only).
+  4. Updates: `langservers_check_updates({ force }) -> PackageUpdate[] | null` asks the registry
+     for newer versions of the recorded packages at most once a day
+     (`<dir>/.forge-update-check.json`, setting `langservers.updates.check`);
+     `langservers_update({ package })` installs the latest version and restarts the servers.
+  Downloads report `langservers://install-progress` `{ id, label, done, total }` (status bar
+  `langservers.install`, `src/features/langservers/InstallStatus.tsx`) and their steps as
+  `install-output` lines. `ServerRow.install[].managed` marks such options; the settings page
+  shows a one-click "Install" for them and keeps "Install…" (dialog) for the others. Other tools
+  (brew, pipx, go, cargo, dotnet, ...) run as listed in the catalog. Tests use a local HTTP
+  server (`managed::testserver`) with fake tarballs, never the network.
+- Intelephense is never bundled or committed: its licence forbids redistribution. When a local
+  PHP project opens without it, `src/features/langservers/managed.ts` shows a balloon
+  "PHP language server Intelephense is not installed" with Install / Not now / Don't ask again
+  (`php.intelephense.autoInstall`: `ask` | `always` | `never`; decisions in `autoInstall.ts`).
+  The first install asks for the licence (`IntelephenseConsent.tsx`, stored as
+  `php.intelephense.licenceAccepted`); after the install `langservers_install` registers the
+  catalog servers and runs `php::sync_lsp_server`, so Intelephense starts without reopening the
+  project. Browser mode simulates all of it with `?intelephense=missing` (and `?updates=1`).
 - Per-server settings: `langservers.servers.<id>.enabled|path|settings` (settings = JSON string
   merged into the server settings; `initializationOptions` key for startup options). Global:
   `langservers.autoStart`, `langservers.scanLimit`, `langservers.lua.environment|version`,
@@ -441,6 +474,8 @@ app/ui/            SolidJS UI
   settings changed), `langservers_install({ id, index }) -> InstallOutcome` with output on
   `langservers://install-output` `{ id, stream, line }`, `langservers_cancel_install({ id })`,
   `langservers://changed`. Install commands come from the catalog only and run without a shell.
+  Managed installs add `langservers://install-progress`, `langservers_check_updates` and
+  `langservers_update` (see above).
 - Intelephense licence: `intelephense_licence_status() -> { premium, maskedKey?, error?,
   purchaseUrl }`, `intelephense_set_licence({ key | null })`. The key lives in the OS keychain
   (service `forge-lsp`, account `intelephense`); free mode never sends `licenceKey`. A registered

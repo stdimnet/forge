@@ -88,3 +88,35 @@ default = "Lua 5.4"
 group = "lang.lua"
 section = "Lua Language Server"
 order = 11
+
+# ---- Downloads (Forge-managed installs of npm servers and Node.js) -------------------
+
+[[contributions.settings]]
+key = "langservers.updates.check"
+title = "Check for updates of servers installed by Forge once a day"
+description = "Offers an update when the npm registry has a newer version of a server in Forge's server directory."
+type = "bool"
+default = true
+group = "lang.servers"
+section = "Downloads"
+order = 20
+
+[[contributions.settings]]
+key = "langservers.download.npmRegistry"
+title = "npm registry"
+description = "Where Forge downloads npm language servers from. Every tarball is checked against the registry's sha512 integrity hash."
+type = "string"
+default = "https://registry.npmjs.org"
+group = "lang.servers"
+section = "Downloads"
+order = 21
+
+[[contributions.settings]]
+key = "langservers.download.nodeMirror"
+title = "Node.js download mirror"
+description = "Used only when no Node.js 18 or newer is installed. Downloads are checked against the release's SHASUMS256.txt."
+type = "string"
+default = "https://nodejs.org/dist"
+group = "lang.servers"
+section = "Downloads"
+order = 22

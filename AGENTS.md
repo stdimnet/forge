@@ -96,8 +96,12 @@ Use the matching skill in `.claude/skills/<name>/SKILL.md` before starting a tas
   `FORGE_UPDATE_SNAPSHOTS=1 cargo test -p forge-app`.
 - Plugins activate only when the project uses them (`app/ui/src/state/project.ts`:
   `usesFramework`, `isPluginActive`).
-- Language servers are external and user-installed, e.g. Intelephense free, or premium with
-  the user's own licence key entered in Forge. Never bundle paid tools or keys.
+- Language servers are external programs installed on the user's machine, e.g. Intelephense
+  free, or premium with the user's own licence key entered in Forge. Never bundle or commit
+  Intelephense (its licence forbids redistribution), other paid tools or keys. Forge may
+  download a server for the user, with their consent, from its official source
+  (`forge_langservers::managed`: npm registry with integrity check, Node.js from nodejs.org
+  with SHA-256 check) into Forge's data directory.
 
 ### Quality
 - Before every commit, run the `quality-gates` skill:

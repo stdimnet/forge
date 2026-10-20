@@ -29,11 +29,14 @@ let balloonSeq = 0;
 
 export const dismissBalloon = (id: number) => setBalloons((b) => b.filter((x) => x.id !== id));
 
-/** Show a small transient notification (bottom right, like PHPStorm's balloons). */
+/**
+ * Show a small notification (bottom right, like PHPStorm's balloons). It closes after `ms`;
+ * `0` keeps it until the user closes it or picks an action.
+ */
 export function showBalloon(text: string, detail?: string, ms = 2600, actions?: BalloonAction[]): number {
   const id = ++balloonSeq;
   setBalloons((b) => [...b.slice(-2), { id, text, detail, actions }]);
-  setTimeout(() => dismissBalloon(id), ms);
+  if (ms > 0) setTimeout(() => dismissBalloon(id), ms);
   return id;
 }
 
