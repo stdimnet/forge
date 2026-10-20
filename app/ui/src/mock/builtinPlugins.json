@@ -873,6 +873,83 @@
     }
   },
   {
+    "id": "forge.database",
+    "name": "Database Tools and SQL",
+    "version": "0.1.0",
+    "pack": "core",
+    "description": "Data sources, SQL consoles, schema browsing and table editing for MySQL, MariaDB, PostgreSQL and SQLite.",
+    "vendor": "Forge",
+    "depends": [],
+    "required": false,
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "commands": [
+        {
+          "id": "database.newDataSource",
+          "title": "New Data Source…",
+          "category": "Database"
+        },
+        {
+          "id": "database.openConsole",
+          "title": "Open Query Console",
+          "category": "Database"
+        }
+      ],
+      "keybindings": [],
+      "toolWindows": [
+        {
+          "id": "database",
+          "title": "Database",
+          "anchor": "right",
+          "icon": "database",
+          "order": 10
+        }
+      ],
+      "settings": [
+        {
+          "key": "database.pageSize",
+          "title": "Result set page size",
+          "description": "Rows fetched per page in consoles and table editors.",
+          "type": "int",
+          "min": 10,
+          "max": 100000,
+          "default": 500,
+          "group": "tools.database",
+          "section": "Data Editor and Viewer",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "database.showNullAs",
+          "title": "Show NULL as",
+          "type": "string",
+          "default": "<null>",
+          "group": "tools.database",
+          "section": "Data Editor and Viewer",
+          "project": false,
+          "order": 10
+        },
+        {
+          "key": "database.suggestFromEnv",
+          "title": "Suggest data sources from .env files",
+          "description": "Offer to add the database configured in Laravel's DB_* or Symfony's DATABASE_URL.",
+          "type": "bool",
+          "default": true,
+          "group": "tools.database",
+          "section": "General",
+          "project": false,
+          "order": 20
+        }
+      ],
+      "lspServers": [],
+      "runConfigurationTypes": [],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": []
+    }
+  },
+  {
     "id": "forge.php",
     "name": "PHP",
     "version": "0.1.0",
