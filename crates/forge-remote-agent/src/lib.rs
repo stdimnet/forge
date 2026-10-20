@@ -380,6 +380,22 @@ impl Agent {
                 options,
                 content,
             } => reply(php.generate(&path, offset, kind, options, content)?),
+            PhpCall::Usages {
+                path,
+                offset,
+                content,
+            } => reply(php.usages(&path, offset, content)?),
+            PhpCall::Navigate {
+                path,
+                offset,
+                kind,
+                content,
+            } => reply(php.navigate(&path, offset, kind, content)?),
+            PhpCall::Intentions {
+                path,
+                offset,
+                content,
+            } => reply(php.intentions(&path, offset, content)?),
             PhpCall::LspConfig { settings } => reply(php.lsp_config(settings)?),
             PhpCall::DetectServers { settings } => reply(php.detect_servers(settings)?),
         }

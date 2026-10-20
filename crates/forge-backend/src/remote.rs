@@ -16,7 +16,9 @@ use futures_util::future::BoxFuture;
 use phpforge_lang_php::generate::{GenerateKind, GenerateOptions, GenerateTargets, TextEdit};
 use phpforge_lang_php::hover::Hover;
 use phpforge_lang_php::index::{SearchKind, SymbolHit};
+use phpforge_lang_php::intentions::Intention;
 use phpforge_lang_php::lsp::{DetectedServers, LspServerConfig, PhpLspSettings};
+use phpforge_lang_php::navigate::{NavKind, NavTarget, PhpUsages};
 use phpforge_lang_php::structure::FileStructure;
 use phpforge_lang_php::IndexStats;
 use serde::de::DeserializeOwned;
@@ -627,6 +629,47 @@ impl PhpBackend for RemoteBackend {
             offset,
             kind,
             options,
+            content,
+        })
+    }
+
+    fn usages(
+        &self,
+        path: &str,
+        offset: usize,
+        content: Option<String>,
+    ) -> Result<Option<PhpUsages>> {
+        self.php_call(PhpCall::Usages {
+            path: path.to_string(),
+            offset,
+            content,
+        })
+    }
+
+    fn navigate(
+        &self,
+        path: &str,
+        offset: usize,
+        kind: NavKind,
+        content: Option<String>,
+    ) -> Result<Vec<NavTarget>> {
+        self.php_call(PhpCall::Navigate {
+            path: path.to_string(),
+            offset,
+            kind,
+            content,
+        })
+    }
+
+    fn intentions(
+        &self,
+        path: &str,
+        offset: usize,
+        content: Option<String>,
+    ) -> Result<Vec<Intention>> {
+        self.php_call(PhpCall::Intentions {
+            path: path.to_string(),
+            offset,
             content,
         })
     }

@@ -23,6 +23,7 @@ use forge_vcs::GitRequest;
 use phpforge_lang_php::generate::{GenerateKind, GenerateOptions};
 use phpforge_lang_php::index::SearchKind;
 use phpforge_lang_php::lsp::PhpLspSettings;
+use phpforge_lang_php::navigate::NavKind;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 
@@ -31,7 +32,7 @@ use crate::langservers::LangServersRequest;
 use crate::TerminalSpec;
 
 /// Bumped on incompatible protocol changes; client and agent must agree.
-pub const PROTOCOL_VERSION: u32 = 2;
+pub const PROTOCOL_VERSION: u32 = 3;
 
 /// Frames larger than this are refused (protects both sides from garbage input).
 pub const MAX_FRAME: usize = 64 * 1024 * 1024;
@@ -202,6 +203,25 @@ pub enum PhpCall {
         offset: usize,
         kind: GenerateKind,
         options: GenerateOptions,
+        content: Option<String>,
+    },
+    /// -> `Option<PhpUsages>`
+    Usages {
+        path: String,
+        offset: usize,
+        content: Option<String>,
+    },
+    /// -> `Vec<NavTarget>`
+    Navigate {
+        path: String,
+        offset: usize,
+        kind: NavKind,
+        content: Option<String>,
+    },
+    /// -> `Vec<Intention>`
+    Intentions {
+        path: String,
+        offset: usize,
         content: Option<String>,
     },
     /// -> `Option<LspServerConfig>`
