@@ -15,7 +15,7 @@ import { bracketMatching, foldGutter, indentOnInput, indentUnit } from "@codemir
 import { closeBrackets, autocompletion } from "@codemirror/autocomplete";
 import { highlightSelectionMatches, searchKeymap } from "@codemirror/search";
 import { forgeEditorTheme, forgeHighlight } from "./forgeTheme";
-import { languageFor } from "./languages";
+import { indentFor, languageFor } from "./languages";
 import { extensionsFor } from "./extensions";
 import { updateContent, updateCursor, saveFile, type EditorTab } from "@/state/editor";
 import { registerView } from "./views";
@@ -42,7 +42,7 @@ export function CodeEditor(props: { tab: EditorTab }) {
           rectangularSelection(),
           history(),
           indentOnInput(),
-          indentUnit.of("    "),
+          indentUnit.of(indentFor(path, props.tab.content)),
           bracketMatching(),
           closeBrackets(),
           autocompletion(),
@@ -56,7 +56,7 @@ export function CodeEditor(props: { tab: EditorTab }) {
           ]),
           forgeEditorTheme,
           forgeHighlight,
-          ...languageFor(path),
+          ...languageFor(path, props.tab.content),
           ...extensionsFor(path),
           EditorView.updateListener.of((u) => {
             if (u.docChanged) updateContent(path, u.state.doc.toString());
