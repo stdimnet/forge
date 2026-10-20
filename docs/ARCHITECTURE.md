@@ -50,6 +50,11 @@ app/ui/            SolidJS UI
   `src/mock/<name>Mock.ts` and are imported from `src/mock/index.ts`.
 - Styling uses the CSS variables from `src/theme/theme.css` only (dark + light), icons from
   `lucide-solid`.
+- Editor reloads and line endings: content that changed on disk (rollback, checkout, pull, agent
+  edits) is applied with `replaceDocument` (`src/editor/reload.ts`). The reload is not an undo
+  step and the undo history restarts, so Ctrl+Z never steps back over it. Editor buffers always
+  use `\n`; the tab remembers the file's line ending (`EditorTab.eol`) and `saveFile` writes it
+  back, so CRLF files open unmodified.
 
 ## Conventions
 
