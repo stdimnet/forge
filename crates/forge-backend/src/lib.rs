@@ -137,6 +137,14 @@ pub trait Backend: Send + Sync {
     fn list_dir(&self, rel: &str) -> Result<Vec<FileEntry>>;
     fn read_file(&self, rel: &str) -> Result<String>;
     fn write_file(&self, rel: &str, contents: &str) -> Result<()>;
+    /// New empty file (parent folders included); never replaces an existing path.
+    fn create_file(&self, rel: &str) -> Result<()>;
+    /// New folder (parent folders included); never replaces an existing path.
+    fn create_dir(&self, rel: &str) -> Result<()>;
+    /// Rename or move a file or folder inside the project.
+    fn rename(&self, from: &str, to: &str) -> Result<()>;
+    /// Delete a file or a folder with its content.
+    fn delete(&self, rel: &str) -> Result<()>;
     /// "Go to File": fuzzy file-name search honoring `.gitignore`.
     fn find_files(&self, query: &str, limit: usize) -> Result<Vec<FileMatch>>;
 

@@ -372,6 +372,43 @@ impl Backend for RemoteBackend {
         )
     }
 
+    fn create_file(&self, rel: &str) -> Result<()> {
+        self.shared.call(
+            Call::CreateFile {
+                path: rel.to_string(),
+            },
+            TIMEOUT,
+        )
+    }
+
+    fn create_dir(&self, rel: &str) -> Result<()> {
+        self.shared.call(
+            Call::CreateDir {
+                path: rel.to_string(),
+            },
+            TIMEOUT,
+        )
+    }
+
+    fn rename(&self, from: &str, to: &str) -> Result<()> {
+        self.shared.call(
+            Call::Rename {
+                from: from.to_string(),
+                to: to.to_string(),
+            },
+            TIMEOUT,
+        )
+    }
+
+    fn delete(&self, rel: &str) -> Result<()> {
+        self.shared.call(
+            Call::Delete {
+                path: rel.to_string(),
+            },
+            TIMEOUT,
+        )
+    }
+
     fn find_files(&self, query: &str, limit: usize) -> Result<Vec<FileMatch>> {
         self.shared.call(
             Call::FindFiles {

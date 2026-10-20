@@ -163,6 +163,10 @@ impl Agent {
             Call::WriteFile { path, contents } => {
                 reply(self.backend()?.write_file(&path, &contents)?)
             }
+            Call::CreateFile { path } => reply(self.backend()?.create_file(&path)?),
+            Call::CreateDir { path } => reply(self.backend()?.create_dir(&path)?),
+            Call::Rename { from, to } => reply(self.backend()?.rename(&from, &to)?),
+            Call::Delete { path } => reply(self.backend()?.delete(&path)?),
             Call::FindFiles { query, limit } => reply(self.backend()?.find_files(&query, limit)?),
             Call::Git(req) => reply(LocalGit.exec(&req)?),
             Call::Detect => reply(self.backend()?.detect_project()?),

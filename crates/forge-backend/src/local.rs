@@ -127,6 +127,22 @@ impl Backend for LocalBackend {
         self.workspace.write_file(rel, contents)
     }
 
+    fn create_file(&self, rel: &str) -> Result<()> {
+        self.workspace.create_file(rel)
+    }
+
+    fn create_dir(&self, rel: &str) -> Result<()> {
+        self.workspace.create_dir(rel)
+    }
+
+    fn rename(&self, from: &str, to: &str) -> Result<()> {
+        self.workspace.rename(from, to)
+    }
+
+    fn delete(&self, rel: &str) -> Result<()> {
+        self.workspace.delete(rel)
+    }
+
     fn find_files(&self, query: &str, limit: usize) -> Result<Vec<FileMatch>> {
         self.workspace.find_files(query, limit)
     }
