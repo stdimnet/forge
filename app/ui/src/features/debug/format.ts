@@ -76,10 +76,13 @@ export function frameLabel(f: Frame): { location: string; where: string } {
 
 const VAR_RE = /\$[A-Za-z_\u0080-￿][\w\u0080-￿]*/g;
 
-/** First line of the function containing `line` (1-based), searching at most `limit` lines up. */
+/**
+ * First line of the named function or method containing `line` (1-based), searching at most
+ * `limit` lines up. Closures and arrow functions do not start a scope here.
+ */
 export function scopeStart(lines: string[], line: number, limit = 80): number {
   for (let l = line; l >= Math.max(1, line - limit); l--) {
-    if (/\bfunction\b|\bfn\s*\(/.test(lines[l - 1] ?? "")) return l;
+    if (/\bfunction\s+&?[A-Za-z_]\w*\s*\(/.test(lines[l - 1] ?? "")) return l;
   }
   return Math.max(1, line - 30);
 }

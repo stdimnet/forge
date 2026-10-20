@@ -5,7 +5,9 @@
 import { batch, createMemo, createRoot, createSignal } from "solid-js";
 import { showBalloon } from "@/keymap/dispatch";
 import { showToolWindow } from "@/state/layout";
-import { revealLocation } from "@/features/lsp/navigation";
+import { EditorView } from "@codemirror/view";
+import { openFile } from "@/state/editor";
+import { viewFor } from "@/features/lsp/navigation";
 import {
   debugApi,
   type Breakpoint,
@@ -137,7 +139,7 @@ export async function selectFrame(index: number): Promise<void> {
   const f = frames()[index];
   if (!s || !f) return;
   setFrameIndex(index);
-  if (f.file) void revealLocation(f.file, { line: Math.max(0, f.line - 1), character: 0 });
+  if (f.file) void showLine(f.file, f.line);
   await loadVariables(s.id, f.level);
 }
 
@@ -175,6 +177,28 @@ export function removeWatch(expression: string): void {
   void debugApi.setWatches(watches()).catch(() => {});
 }
 
+/**
+ * Open `path` and scroll `line` (1-based) to the middle without moving the caret, like
+ * PHPStorm does for the execution point.
+ */
+export async function showLine(path: string, line: number): Promise<void> {
+  try {
+    await openFile(path);
+  } catch {
+    showBalloon("Source not found", `${path} is not available in the project.`);
+    return;
+  }
+  for (let i = 0; i < 60; i++) {
+    const view = viewFor(path);
+    if (view && view.dom.isConnected && view.dom.offsetParent !== null) {
+      const l = view.state.doc.line(Math.max(1, Math.min(line, view.state.doc.lines)));
+      view.dispatch({ effects: EditorView.scrollIntoView(l.from, { y: "center" }) });
+      return;
+    }
+    await new Promise((r) => requestAnimationFrame(() => r(null)));
+  }
+}
+
 // ---- events ---------------------------------------------------------------------------
 
 function upsert(session: SessionInfo): SessionInfo | undefined {
@@ -192,7 +216,7 @@ function onSession(session: SessionInfo): void {
     if (activeId() !== session.id) return;
     showToolWindow("bottom", "debug");
     const loc = session.location;
-    if (loc?.file) void revealLocation(loc.file, { line: Math.max(0, loc.line - 1), character: 0 });
+    if (loc?.file) void showLine(loc.file, loc.line);
     if (session.exception) log(session.id, "stderr", `${session.exception.name}: ${session.exception.message ?? ""}\n`);
     void loadSuspendContext(session);
   } else if (session.id === activeId()) {

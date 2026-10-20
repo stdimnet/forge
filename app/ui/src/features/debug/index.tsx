@@ -5,7 +5,7 @@
  *
  * Run configurations can start a debug session through `debugLauncher` (see below).
  */
-import { createEffect, on, Show } from "solid-js";
+import { createEffect, createRoot, on, Show } from "solid-js";
 import { render } from "solid-js/web";
 import { Bug, PhoneCall, PhoneOff } from "lucide-solid";
 import { registerToolWindow } from "@/features/registry";
@@ -19,7 +19,6 @@ import { registerKeymapActions } from "@/keymap/store";
 import { showToolWindow } from "@/state/layout";
 import { workspace } from "@/state/workspace";
 import { activeView } from "@/features/lsp/navigation";
-import { revealLocation } from "@/features/lsp/navigation";
 import { debugApi } from "./api";
 import { DebugActions, DebugView } from "./DebugView";
 import { DebugOverlays } from "./DebugOverlays";
@@ -37,6 +36,7 @@ import {
   port,
   reloadDebugState,
   runToCursor,
+  showLine,
   startDebugStore,
   step,
   stop,
@@ -205,7 +205,7 @@ const actions: { id: string; title: string; run: () => void | Promise<void> }[] 
     title: "Show Execution Point",
     run: () => {
       const p = executionPoint();
-      if (p) return void revealLocation(p.file, { line: p.line - 1, character: 0 });
+      if (p) return showLine(p.file, p.line);
     },
   },
   {
@@ -262,5 +262,5 @@ if (typeof document !== "undefined") {
   render(DebugOverlays, host);
   void startDebugStore();
   // Breakpoints and servers belong to the project: reload when another one opens.
-  createEffect(on(() => workspace()?.root, () => void reloadDebugState(), { defer: true }));
+  createRoot(() => createEffect(on(() => workspace()?.root, () => void reloadDebugState(), { defer: true })));
 }

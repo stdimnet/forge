@@ -2,7 +2,6 @@
 import { createResource, createSignal, For, Show } from "solid-js";
 import { createStore, produce, reconcile } from "solid-js/store";
 import { Copy, Minus, Plus, Server } from "lucide-solid";
-import { workspace } from "@/state/workspace";
 import { debugApi, type ServerConfig } from "./api";
 import { slug } from "./mapping";
 
@@ -55,7 +54,6 @@ export function ServersPage() {
     persist();
   };
   const current = () => servers[index()];
-  const root = () => workspace()?.root ?? "";
 
   return (
     <div class="dbg-servers">
@@ -104,6 +102,8 @@ export function ServersPage() {
                     value={s().port}
                     onChange={(e) => edit((x) => (x.port = Number(e.currentTarget.value) || 80))}
                   />
+                </div>
+                <div class="dbg-form-row">
                   <label for="dbg-srv-dbg">Debugger:</label>
                   <select id="dbg-srv-dbg" class="dbg-input" value={s().debugger} onChange={(e) => edit((x) => (x.debugger = e.currentTarget.value))}>
                     <option value="Xdebug">Xdebug</option>
@@ -118,21 +118,13 @@ export function ServersPage() {
                     <span>File/Directory</span>
                     <span>Absolute path on the server</span>
                   </div>
-                  <div class="dbg-mapping-row dbg-mapping-root">
-                    <span class="dbg-mono" title={root()}>
-                      <span class="muted">Project files › </span>
-                      {root() || "<project root>"}
-                    </span>
-                    <span class="dbg-mono">
-                      {s().mappings.find((m) => m.local === "")?.remote ?? <span class="muted">not mapped</span>}
-                    </span>
-                  </div>
                   <For each={s().mappings}>
                     {(m, i) => (
                       <div class="dbg-mapping-row" data-mapping={i()}>
                         <input
                           class="dbg-input dbg-mono"
-                          placeholder="project relative path (empty = project root)"
+                          title="Project relative file or directory; empty for the project root"
+                          placeholder="Project root"
                           value={m.local}
                           disabled={!s().usePathMappings}
                           onChange={(e) => edit((x) => (x.mappings[i()].local = e.currentTarget.value.trim()))}

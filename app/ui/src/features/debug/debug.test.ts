@@ -55,6 +55,8 @@ describe("inline values", () => {
 
   it("finds the function scope", () => {
     expect(scopeStart(src, 6)).toBe(3);
+    // Arrow functions and closures on the way up do not end the search.
+    expect(scopeStart(["  public function show()", "  {", "  $t = $l->sum(fn ($x) => $x);"], 3)).toBe(1);
   });
 
   it("annotates lines from the function start to the execution line", () => {

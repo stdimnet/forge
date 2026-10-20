@@ -315,6 +315,7 @@ function BreakpointsDialog(props: { select?: number }) {
         <input
           type="checkbox"
           checked={items().length > 0 && items().every((b) => b.enabled)}
+          ref={(el) => createEffect(() => (el.indeterminate = items().some((b) => b.enabled) && !items().every((b) => b.enabled)))}
           disabled={!items().length}
           onClick={(e) => e.stopPropagation()}
           onChange={(e) => {

@@ -195,7 +195,7 @@ const LARAVEL_FRAMES: Frame[] = [
   vendor("Foundation/Http/Kernel.php", 175, "Illuminate\\Foundation\\Http\\Kernel->sendRequestThroughRouter"),
   vendor("Foundation/Http/Kernel.php", 144, "Illuminate\\Foundation\\Http\\Kernel->handle"),
   vendor("Foundation/Application.php", 1219, "Illuminate\\Foundation\\Application->handleRequest"),
-  { level: 0, file: "public/index.php", fileUri: uri("public/index.php"), line: 17, where: "{main}" },
+  { level: 0, file: "public/index.php", fileUri: uri("public/index.php"), line: 20, where: "{main}" },
 ];
 
 function framesFor(stepIdx: number): Frame[] {

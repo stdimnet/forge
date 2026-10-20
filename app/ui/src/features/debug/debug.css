@@ -672,7 +672,7 @@ textarea.dbg-input {
 /* ---------- Settings > PHP > Servers ---------- */
 .dbg-servers {
   display: grid;
-  grid-template-columns: 200px 1fr;
+  grid-template-columns: 180px 1fr;
   gap: 16px;
   height: 100%;
   min-height: 380px;
@@ -710,7 +710,7 @@ textarea.dbg-input {
   white-space: nowrap;
 }
 .dbg-form-row > label:first-child {
-  min-width: 44px;
+  min-width: 66px;
 }
 .dbg-form-row .dbg-input {
   flex: 1;
@@ -720,7 +720,7 @@ textarea.dbg-input {
   flex: 0 0 76px;
 }
 .dbg-form-row select.dbg-input {
-  flex: 0 0 110px;
+  flex: 0 0 140px;
 }
 .dbg-form-check {
   margin-top: 4px;
@@ -755,14 +755,13 @@ textarea.dbg-input {
   min-height: 32px;
   border-bottom: 1px solid var(--border);
 }
+.dbg-mapping-row .dbg-input {
+  min-width: 0;
+  width: 100%;
+}
 .dbg-mapping-row .icon-btn {
   width: 24px;
   height: 24px;
-}
-.dbg-mapping-root > span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 .dbg-add-mapping {
   align-self: flex-start;

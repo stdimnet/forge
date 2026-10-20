@@ -256,8 +256,8 @@ const debugTheme = EditorView.baseTheme({
     borderBottom: "6px solid transparent",
     borderLeft: "10px solid var(--info)",
   },
-  ".cm-bp-line-enabled, .cm-bp-line-conditional": { background: "var(--diff-deleted-bg)" },
-  ".cm-exec-line, .cm-exec-line.cm-activeLine": { background: "var(--diff-changed-bg)", boxShadow: "inset 2px 0 0 var(--info)" },
+  ".cm-bp-line-enabled, .cm-bp-line-conditional": { background: "color-mix(in srgb, var(--danger) 16%, transparent)" },
+  ".cm-exec-line, .cm-exec-line.cm-activeLine": { background: "color-mix(in srgb, var(--info) 24%, transparent)" },
   ".cm-frame-line": { background: "var(--bg-hover)" },
   ".cm-debug-inline": {
     marginLeft: "2.5em",
