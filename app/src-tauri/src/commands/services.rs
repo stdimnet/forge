@@ -6,10 +6,11 @@
 use std::path::PathBuf;
 use std::sync::{Arc, OnceLock};
 
-use forge_containers::endpoint::DockerSettings;
+use forge_containers::endpoint::{DockerContext, DockerSettings};
 use forge_containers::exec::TerminalCommand;
 use forge_containers::gutter::{self, GutterMarker};
 use forge_containers::hub::{Hub, HubEvent, HubSettings};
+use forge_containers::portforward::PortForward;
 use forge_containers::tree::{Action, Details, Node};
 use forge_core::{ForgeError, Result, Settings};
 use forge_process::output::ConsoleLine;
@@ -50,6 +51,9 @@ pub fn hub_settings(s: &Settings) -> HubSettings {
             tcp_url: str_of("docker.tcp.url"),
             tls: s.get_as::<bool>("docker.tcp.tls").unwrap_or(false),
             cert_path: str_of("docker.tcp.certPath"),
+            ssh_url: str_of("docker.ssh.url"),
+            ssh_socket: str_of("docker.ssh.socketPath"),
+            context: str_of("docker.context"),
         },
         docker_cli: str_of("docker.cliPath"),
         kubeconfig: str_of("kubernetes.kubeconfig"),
@@ -163,9 +167,11 @@ pub fn services_console(key: String, state: State<'_, ServicesState>) -> Result<
 }
 
 /// Start following the logs of a node; returns the console key (`log:<nodeId>`).
+/// `container` picks a pod's container (default: the pod's default container).
 #[tauri::command]
 pub fn services_logs_start(
     node_id: String,
+    container: Option<String>,
     app: AppHandle,
     state: State<'_, ServicesState>,
 ) -> Result<String> {
@@ -174,7 +180,10 @@ pub fn services_logs_start(
         .read_settings()
         .get_as::<u32>("docker.logs.tail")
         .unwrap_or(500);
-    state.hub()?.start_logs(&node_id, tail).map_err(e)
+    state
+        .hub()?
+        .start_logs(&node_id, tail, container.as_deref())
+        .map_err(e)
 }
 
 #[tauri::command]
@@ -183,14 +192,44 @@ pub fn services_logs_stop(node_id: String, state: State<'_, ServicesState>) -> R
     Ok(())
 }
 
-/// Command line for an Exec terminal (`attach: false`) or the Attached Console.
+/// Command line for an Exec terminal (`attach: false`) or the Attached Console, in a pod's
+/// `container` (default: the pod's default container).
 #[tauri::command]
 pub fn services_terminal(
     node_id: String,
     attach: bool,
+    container: Option<String>,
     state: State<'_, ServicesState>,
 ) -> Result<TerminalCommand> {
-    state.hub()?.terminal_command(&node_id, attach).map_err(e)
+    state
+        .hub()?
+        .terminal_command(&node_id, attach, container.as_deref())
+        .map_err(e)
+}
+
+/// Forward Ports: listen on `127.0.0.1:<localPort>` (0: any free port) and forward to
+/// `remotePort` of the pod.
+#[tauri::command]
+pub async fn services_port_forward_start(
+    node_id: String,
+    local_port: u16,
+    remote_port: u16,
+    state: State<'_, ServicesState>,
+) -> Result<PortForward> {
+    let hub = state.hub()?.clone();
+    hub.start_port_forward(&node_id, local_port, remote_port)
+        .await
+        .map_err(e)
+}
+
+#[tauri::command]
+pub fn services_port_forward_stop(id: u64, state: State<'_, ServicesState>) -> Result<()> {
+    state.hub()?.stop_port_forward(id).map_err(e)
+}
+
+#[tauri::command]
+pub fn services_port_forwards(state: State<'_, ServicesState>) -> Result<Vec<PortForward>> {
+    Ok(state.hub()?.port_forwards())
 }
 
 #[tauri::command]
@@ -239,6 +278,12 @@ pub async fn docker_test_connection(
         None => hub_settings(&app.state::<AppState>().read_settings()).docker,
     };
     Hub::test_connection(&docker).await.map_err(e)
+}
+
+/// Docker CLI contexts (`~/.docker/contexts`) for the Docker settings page.
+#[tauri::command]
+pub fn docker_contexts() -> Vec<DockerContext> {
+    forge_containers::hub::process_environment().contexts
 }
 
 /// Store a registry password in the keychain (the server and user name are a setting).

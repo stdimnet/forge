@@ -34,6 +34,8 @@ options = [
   { value = "unix", label = "Unix socket" },
   { value = "pipe", label = "Windows named pipe" },
   { value = "tcp", label = "TCP socket" },
+  { value = "ssh", label = "SSH (Docker on a remote host)" },
+  { value = "context", label = "Docker context" },
 ]
 default = "auto"
 group = "build.docker"
@@ -78,6 +80,36 @@ default = ""
 group = "build.docker"
 section = "Connection"
 order = 40
+
+[[contributions.settings]]
+key = "docker.ssh.url"
+title = "SSH host"
+description = "For SSH connections: ssh://user@host[:port] or a Host alias of ~/.ssh/config. Keys come from the ssh-agent and ~/.ssh; the host key must be in known_hosts."
+type = "string"
+default = ""
+group = "build.docker"
+section = "Connection"
+order = 42
+
+[[contributions.settings]]
+key = "docker.ssh.socketPath"
+title = "Docker socket on the host"
+description = "Empty: /var/run/docker.sock (rootless: /run/user/<uid>/docker.sock)."
+type = "string"
+default = ""
+group = "build.docker"
+section = "Connection"
+order = 44
+
+[[contributions.settings]]
+key = "docker.context"
+title = "Docker context"
+description = "For Docker context connections: a context of `docker context ls` (~/.docker/contexts)."
+type = "string"
+default = ""
+group = "build.docker"
+section = "Connection"
+order = 46
 
 [[contributions.settings]]
 key = "docker.cliPath"
