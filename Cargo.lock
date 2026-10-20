@@ -1253,6 +1253,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "forge-open"
+version = "0.1.0"
+dependencies = [
+ "dirs 6.0.0",
+ "forge-core",
+ "getrandom 0.2.17",
+ "percent-encoding",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tempfile",
+ "thiserror 2.0.21",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "forge-plugin-api"
 version = "0.1.0"
 dependencies = [
