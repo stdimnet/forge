@@ -251,7 +251,7 @@ order = 11
 [[plugin.contributions.settings]]
 key = "agents.gemini-cli.permissionMode"
 title = "Default approval mode"
-description = "Gemini CLI cannot ask in the IDE, so the mode decides which tools it gets (--approval-mode). Can be changed per chat."
+description = "Gemini CLI cannot ask in the IDE, so the mode decides which tools it may use. Can be changed per chat."
 type = "enum"
 options = [
   { value = "default", label = "Read-only (no edits or commands)" },

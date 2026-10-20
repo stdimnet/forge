@@ -59,12 +59,6 @@ export function AgentsSettingsPage() {
             <span>Chat sessions with {info()!.name} are not supported yet.</span>
           </span>
         </Show>
-        <Show when={info()?.supported && info()!.permissionPrompts === false}>
-          <span class="ai-agent-note">
-            <Info size={14} />
-            <span>{info()!.name} cannot ask before edits or commands in the IDE; the approval mode decides what it may do.</span>
-          </span>
-        </Show>
         <button class="icon-btn ai-agent-refresh" title="Detect again" onClick={() => void refetch()}>
           <RefreshCw size={13} />
         </button>

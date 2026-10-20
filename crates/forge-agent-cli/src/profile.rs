@@ -131,7 +131,7 @@ pub fn gemini_cli() -> AgentProfile {
                 PermissionMode::BypassPermissions,
                 "YOLO",
                 "YOLO",
-                "Edits and commands without asking — trusted projects only",
+                "Edits and commands, never asks",
             ),
         ],
     }

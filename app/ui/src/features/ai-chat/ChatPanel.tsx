@@ -122,7 +122,7 @@ function EmptyState() {
               }
             >
               <span class="chat-ellipsis" title={i().path ?? ""}>
-                {i().name} CLI ready · uses your own login
+                {/\bCLI$/.test(i().name) ? i().name : `${i().name} CLI`} ready · uses your own login
               </span>
             </Show>
           </div>
