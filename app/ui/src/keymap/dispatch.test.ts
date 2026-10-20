@@ -1,7 +1,9 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import "@/mock/settingsMock";
+import "@/mock/keymapMock";
 import { registerCommand } from "@/state/commands";
 import { balloons, focusContextOf, installKeymap, resolveCommand, runAction, suspendKeymap } from "./dispatch";
-import { resetKeymap, setKeymapId } from "./store";
+import { resetKeymap, setActionShortcuts, setKeymapId, startKeymap } from "./store";
 
 function press(target: EventTarget, init: KeyboardEventInit) {
   const e = new KeyboardEvent("keydown", { bubbles: true, cancelable: true, ...init });
@@ -11,6 +13,8 @@ function press(target: EventTarget, init: KeyboardEventInit) {
 }
 
 describe("runAction", () => {
+  beforeAll(() => startKeymap());
+
   it("runs registered commands", async () => {
     const run = vi.fn();
     registerCommand({ id: "Annotate", title: "Annotate", run });
@@ -55,12 +59,12 @@ describe("focusContextOf", () => {
 describe("installed keymap", () => {
   const gotoClass = vi.fn();
   const search = vi.fn();
-  beforeAll(() => {
-    setKeymapId("$default");
-    resetKeymap();
+  beforeAll(async () => {
+    await installKeymap(window);
+    await setKeymapId("$default");
+    await resetKeymap();
     registerCommand({ id: "GotoClass", title: "Class", run: gotoClass });
     registerCommand({ id: "SearchEverywhere", title: "Search Everywhere", run: search });
-    installKeymap(window);
   });
   beforeEach(() => {
     document.body.innerHTML = `<input id="field" /><button id="btn">b</button>`;
@@ -76,6 +80,23 @@ describe("installed keymap", () => {
   it("leaves typing in inputs alone", () => {
     const e = press(document.getElementById("field")!, { key: "n", code: "KeyN" });
     expect(e.defaultPrevented).toBe(false);
+  });
+
+  it("lets the terminal keep shell keys", () => {
+    document.body.innerHTML = `<div class="xterm"><textarea id="term"></textarea></div>`;
+    const e = press(document.getElementById("term")!, { key: "n", code: "KeyN", ctrlKey: true });
+    expect(e.defaultPrevented).toBe(false);
+    expect(gotoClass).not.toHaveBeenCalled();
+  });
+
+  it("waits for the second stroke of a chord", async () => {
+    await setActionShortcuts("GotoClass", ["Ctrl+Alt+Shift+K Ctrl+N"]);
+    const btn = document.getElementById("btn")!;
+    expect(press(btn, { key: "k", code: "KeyK", ctrlKey: true, altKey: true, shiftKey: true }).defaultPrevented).toBe(true);
+    expect(gotoClass).not.toHaveBeenCalled();
+    expect(press(btn, { key: "n", code: "KeyN", ctrlKey: true }).defaultPrevented).toBe(true);
+    expect(gotoClass).toHaveBeenCalledOnce();
+    await resetKeymap();
   });
 
   it("recognizes Double Shift", () => {

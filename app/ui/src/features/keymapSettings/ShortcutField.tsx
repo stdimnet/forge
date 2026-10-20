@@ -1,7 +1,7 @@
 /** A focusable field that records one keystroke (keymap is suspended while focused). */
 import { Show, onCleanup } from "solid-js";
 import { X } from "lucide-solid";
-import { formatForKeymap, strokeFromEvent, strokeId, suspendKeymap, modifierOfEvent } from "@/keymap";
+import { formatForKeymap, strokeOfEvent, suspendKeymap } from "@/keymap";
 
 export function ShortcutField(props: {
   value: string;
@@ -37,8 +37,8 @@ export function ShortcutField(props: {
         if ((e.key === "Escape" || e.key === "Tab") && !e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey) return;
         e.preventDefault();
         e.stopPropagation();
-        if (modifierOfEvent(e)) return;
-        props.onChange(strokeId(strokeFromEvent(e)));
+        const stroke = strokeOfEvent(e);
+        if (stroke) props.onChange(stroke);
       }}
     >
       <span class="shortcut-field-text">{props.value ? formatForKeymap(props.value) : (props.placeholder ?? "Press keys…")}</span>
