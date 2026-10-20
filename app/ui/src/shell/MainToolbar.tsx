@@ -20,7 +20,7 @@ export function MainToolbar() {
         <button class="icon-btn" title="Main Menu (Alt+\\)">
           <Menu size={17} />
         </button>
-        <button class="pill-btn project-widget" title="Projects">
+        <button class="pill-btn project-widget" title="Open Project" onClick={() => runCommand("workspace.open")}>
           <span class="project-badge">{initials()}</span>
           <span class="project-name">{workspace()?.name ?? "No project"}</span>
           <ChevronDown size={14} class="muted" />

@@ -421,5 +421,7 @@ export const ACTION_ALIASES: Record<string, string[]> = {
   "Vcs.UpdateProject": ["git.update"],
   Annotate: ["git.annotate"],
   Generate: ["php.generate"],
+  OpenFile: ["workspace.open"],
+  CloseProject: ["workspace.close"],
   IntroduceVariable: ["ExtractVariable"],
 };

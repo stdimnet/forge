@@ -19,7 +19,33 @@ pub fn workspace_open(path: String, state: State<'_, AppState>) -> Result<Worksp
         root: ws.root().display().to_string(),
     };
     state.set_workspace(ws);
+    crate::recent::remember(crate::recent::RecentProject {
+        name: info.name.clone(),
+        root: info.root.clone(),
+    });
     Ok(info)
+}
+
+/// The project opened at startup (command line argument), if any.
+#[tauri::command]
+pub fn workspace_current(state: State<'_, AppState>) -> Option<WorkspaceInfo> {
+    state
+        .with_workspace(|ws| {
+            Ok(WorkspaceInfo {
+                name: ws.name(),
+                root: ws.root().display().to_string(),
+            })
+        })
+        .ok()
+}
+
+/// Recently opened projects that still exist on disk.
+#[tauri::command]
+pub fn workspace_recent() -> Vec<crate::recent::RecentProject> {
+    crate::recent::load()
+        .into_iter()
+        .filter(|p| std::path::Path::new(&p.root).is_dir())
+        .collect()
 }
 
 #[tauri::command]

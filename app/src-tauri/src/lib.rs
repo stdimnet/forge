@@ -1,5 +1,6 @@
 mod commands;
 mod plugins;
+mod recent;
 mod state;
 
 use state::AppState;
@@ -20,6 +21,7 @@ pub fn run() {
     }
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
         .manage(app_state)
         .manage(commands::ai::AiState::load())
         .manage(commands::agent::AgentState::default())
@@ -39,6 +41,8 @@ pub fn run() {
         .manage(commands::php::PhpState::default())
         .invoke_handler(tauri::generate_handler![
             commands::workspace::workspace_open,
+            commands::workspace::workspace_current,
+            commands::workspace::workspace_recent,
             commands::workspace::fs_list_dir,
             commands::workspace::fs_read_file,
             commands::workspace::fs_write_file,

@@ -1,16 +1,25 @@
-import { onMount } from "solid-js";
+import { onMount, Show } from "solid-js";
 import { Workbench } from "./shell/Workbench";
-import { openWorkspace } from "./state/workspace";
+import { WelcomeScreen } from "./shell/welcome/WelcomeScreen";
+import { openWorkspace, restoreWorkspace, workspace } from "./state/workspace";
 import { openFile } from "./state/editor";
 import { isTauri } from "./ipc";
 
 export function App() {
   onMount(async () => {
-    // In browser mode open the demo project so the IDE is explorable without a backend.
-    if (!isTauri()) {
-      await openWorkspace("demo");
-      await openFile("app/Models/User.php");
+    if (isTauri()) {
+      await restoreWorkspace();
+      return;
     }
+    // In browser mode open the demo project so the IDE is explorable without a backend,
+    // unless `?welcome` asks for the Welcome screen.
+    if (new URLSearchParams(location.search).has("welcome")) return;
+    await openWorkspace("demo");
+    await openFile("app/Models/User.php");
   });
-  return <Workbench />;
+  return (
+    <Show when={workspace()} fallback={<WelcomeScreen />}>
+      <Workbench />
+    </Show>
+  );
 }

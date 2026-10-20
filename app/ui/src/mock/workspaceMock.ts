@@ -21,6 +21,12 @@ function listDir(dir: string): FileEntry[] {
   );
 }
 
+registerMock("workspace_current", () => null);
+registerMock("workspace_recent", () => [
+  { name: demoProjectName, root: `~/Projects/${demoProjectName}` },
+  { name: "symfony-api", root: "~/Projects/symfony-api" },
+  { name: "legacy-crm", root: "~/Work/legacy-crm" },
+]);
 registerMock("workspace_open", () => ({ name: demoProjectName, root: `~/Projects/${demoProjectName}` }));
 registerMock("fs_list_dir", ({ path }) => listDir(String(path ?? "")));
 registerMock("fs_read_file", ({ path }) => {

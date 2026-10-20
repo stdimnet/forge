@@ -28,8 +28,9 @@ for (const [name, steps] of Object.entries(scenarios)) {
   // Fresh context per scenario so localStorage from one scenario never leaks into the next.
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
   const page = await context.newPage();
-  await page.goto(url);
-  await page.waitForSelector(".cm-content");
+  // A scenario may set `query` (e.g. "?welcome") and `waitFor` to start somewhere else.
+  await page.goto(url + (steps.query ?? ""));
+  await page.waitForSelector(steps.waitFor ?? ".cm-content");
   await steps(page);
   await page.waitForTimeout(300);
   await page.screenshot({ path: `${outDir}/${name}.png` });

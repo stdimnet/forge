@@ -82,3 +82,8 @@ export async function reloadFile(path: string): Promise<void> {
   const content = await workspaceApi.readFile(path);
   setEditor("tabs", (t) => t.path === path, { content, saved: content });
 }
+
+/** Close every tab, e.g. when switching projects. */
+export function closeAllTabs(): void {
+  setEditor({ tabs: [], active: null });
+}
