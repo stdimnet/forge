@@ -7,6 +7,7 @@ import { mySQL } from "@codemirror/legacy-modes/mode/sql";
 import { yaml as yamlMode } from "@codemirror/legacy-modes/mode/yaml";
 import { properties } from "@codemirror/legacy-modes/mode/properties";
 import { shell } from "@codemirror/legacy-modes/mode/shell";
+import { go } from "@codemirror/legacy-modes/mode/go";
 import { matchesGlobList } from "@/features/settings/globs";
 import { getSetting } from "@/state/settings";
 
@@ -40,6 +41,7 @@ export const DATA_LANGUAGES: DataLanguage[] = [
   { id: "yaml", label: "YAML", parser: p(yamlMode) },
   { id: "ini", label: "INI / Properties", parser: p(properties) },
   { id: "shell", label: "Shell Script", parser: p(shell) },
+  { id: "go", label: "Go", parser: p(go) },
   { id: "text", label: "Plain text", parser: null },
 ];
 
@@ -51,7 +53,7 @@ const COMPOUND: Record<string, string> = {
   css: "css", scss: "scss", less: "less",
   js: "javascript", mjs: "javascript", ts: "typescript",
   json: "json", sql: "sql", yml: "yaml", yaml: "yaml",
-  ini: "ini", env: "ini", conf: "ini", sh: "shell",
+  ini: "ini", env: "ini", conf: "ini", sh: "shell", go: "go",
   txt: "text", md: "text", csv: "text", eml: "text",
 };
 

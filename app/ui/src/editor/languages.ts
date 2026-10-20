@@ -11,7 +11,7 @@ import { html } from "@codemirror/lang-html";
 import { xml } from "@codemirror/lang-xml";
 import { properties } from "@codemirror/legacy-modes/mode/properties";
 import { dotenv } from "./dotenv";
-import { jinjaSyntax, latteSyntax, mustacheSyntax, smartySyntaxWith, templateParser, twigSyntax, type TemplateSyntax } from "./templates";
+import { goTemplateSyntax, jinjaSyntax, latteSyntax, mustacheSyntax, smartySyntaxWith, templateParser, twigSyntax, type TemplateSyntax } from "./templates";
 import { dataLanguageFor } from "./templateData";
 import { getSetting } from "@/state/settings";
 import { less } from "@codemirror/lang-less";
@@ -121,6 +121,7 @@ const languages: LanguageDef[] = [
     smartySyntaxWith(getSetting<string>("templates.smarty.leftDelimiter", "{"), getSetting<string>("templates.smarty.rightDelimiter", "}")),
   ),
   template("latte", "Latte", ["latte"], () => latteSyntax),
+  template("gotemplate", "Go Template", ["tmpl", "gotmpl", "gohtml"], () => goTemplateSyntax),
   template("jinja", "Jinja2", ["j2", "jinja", "jinja2", "njk", "nunjucks"], () => jinjaSyntax),
   template("handlebars", "Handlebars", ["hbs", "handlebars", "mustache"], () => mustacheSyntax),
   { id: "velocity", label: "Velocity", extensions: ["vm", "vtl"], load: stream(velocity) },
