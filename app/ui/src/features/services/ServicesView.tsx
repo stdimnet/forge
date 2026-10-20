@@ -7,6 +7,7 @@
 import { createMemo, createResource, createRoot, createSignal, For, Show, type JSX } from "solid-js";
 import { Dynamic } from "solid-js/web";
 import {
+  ArrowRightLeft,
   ChevronDown,
   ChevronRight,
   ChevronsDownUp,
@@ -25,9 +26,11 @@ import { navigate, type VisibleRow } from "@/features/project/treeNavigation";
 import { openMenu, type MenuItem } from "@/features/run/PopupMenu";
 import { servicesApi, type ServiceAction, type ServiceDetails, type ServiceNode } from "@/ipc/services";
 import { DetailsPane } from "./DetailsPane";
+import { ForwardPortsDialog } from "./ForwardPortsDialog";
 import { NodeIconView } from "./icons";
 import {
   collapseAll,
+  containerOf,
   expandAll,
   expanded,
   findNode,
@@ -94,6 +97,7 @@ const TOOL_BUTTONS: (ToolButton | "sep")[] = [
   { id: "logs", title: "Show Log", icon: ScrollText, actions: ["logs"] },
   { id: "exec", title: "Exec (open a terminal in the container)", icon: SquareTerminal, actions: ["exec"] },
   { id: "pull", title: "Pull Image", icon: Download, actions: ["pull"] },
+  { id: "forward", title: "Forward Ports…", icon: ArrowRightLeft, actions: ["forwardPorts"] },
 ];
 
 const LABELS: Partial<Record<ServiceAction, string>> = {
@@ -163,7 +167,8 @@ function contextMenu(node: ServiceNode, x: number, y: number) {
     add("restart", d.target.kind === "deployment" ? "Restart Rollout" : "Restart", RotateCw);
     add("down", "Down", Trash2);
     if (d.tabs.includes("log")) items.push({ label: "Show Log", icon: ScrollText, run: () => setTab("log") });
-    if (d.actions.includes("exec")) items.push({ label: "Exec…", icon: SquareTerminal, run: () => void openExec(d.nodeId) });
+    if (d.actions.includes("exec")) items.push({ label: "Exec…", icon: SquareTerminal, run: () => void openExec(d.nodeId, containerOf(d)) });
+    if (d.actions.includes("forwardPorts")) items.push({ label: "Forward Ports…", icon: ArrowRightLeft, run: () => void runAction(d, "forwardPorts") });
     if (d.tabs.includes("inspection")) items.push({ label: "Inspect", run: () => setTab("inspection") });
     if (d.actions.includes("pull"))
       items.push({ label: "Pull Image", icon: Download, run: () => (d.target.kind === "dockerGroup" ? pullImageDialog() : void runAction(d, "pull")) });
@@ -266,6 +271,7 @@ export function ServicesView() {
           {(_id) => <DetailsPane details={() => details()!} />}
         </Show>
       </div>
+      <ForwardPortsDialog />
     </div>
   );
 }

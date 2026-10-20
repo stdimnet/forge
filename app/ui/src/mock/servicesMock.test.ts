@@ -65,6 +65,45 @@ describe("services mock (Rust tree through WebAssembly)", () => {
     expect(JSON.parse(await servicesApi.inspect(app.id)).Name).toBe("/acme-shop-app-1");
   });
 
+  it("picks pod containers, aggregates deployment logs and forwards ports", async () => {
+    await servicesApi.expand("kube/kind-acme");
+    const pod = "kube/kind-acme/shop/pods/web-7d4b9c6f8-x2kqf";
+    const d = (await servicesApi.details(pod))!;
+    expect(d.tabs).toEqual(["dashboard", "log", "console", "inspection"]);
+    expect(d.containers?.map((c) => [c.name, !!c.default, !!c.init])).toEqual([
+      ["nginx", false, false],
+      ["php", true, false],
+      ["cache-warmup", false, true],
+    ]);
+    expect(d.ports?.map((p) => p.port)).toEqual([80, 9000]);
+    const text = async (key: string) => (await servicesApi.console(key)).map((l) => l.segments.map((s) => s.text).join("")).join("\n");
+    expect(await text(await servicesApi.logsStart(pod))).toContain("fpm is running");
+    expect(await text(await servicesApi.logsStart(pod, "nginx"))).toContain("GET /healthz");
+    const attach = await servicesApi.terminal(pod, true, "nginx");
+    expect(attach.args).toContain("attach");
+    expect(attach.args.slice(-2)).toEqual(["-c", "nginx"]);
+
+    const logs = await text(await servicesApi.logsStart("kube/kind-acme/shop/deployments/web"));
+    expect(logs).toContain("[pod/web-7d4b9c6f8-x2kqf/nginx] 10.244.0.1");
+    expect(logs).toContain("[pod/web-7d4b9c6f8-p8m4n/php] [20-Oct-2026 09:00:01] NOTICE: fpm is running");
+
+    const [f] = await servicesApi.portForwardStart(pod, "8080:80");
+    expect([f.localPort, f.remotePort]).toEqual([8080, 80]);
+    expect((await servicesApi.details(pod))?.portForwards?.map((x) => x.id)).toEqual([f.id]);
+    expect(find(await servicesApi.tree(), pod)?.detail).toBe("2/2 · Running · ⇄ 8080→80");
+    await expect(servicesApi.portForwardStart(pod, "8080:80")).rejects.toThrow("already in use");
+    await expect(servicesApi.portForwardStart(pod, "x")).rejects.toThrow("Invalid");
+    await servicesApi.portForwardStop(f.id);
+    expect(await servicesApi.portForwards()).toEqual([]);
+  });
+
+  it("lists Docker contexts", async () => {
+    const contexts = await servicesApi.dockerContexts();
+    expect(contexts.map((c) => c.name)).toEqual(["buildbox", "staging"]);
+    const docker = await servicesApi.details("docker");
+    expect(docker?.sections.find((s) => s.title === "Docker Contexts")?.table?.rows[0][1]).toBe("ssh://ci@buildbox.acme.dev");
+  });
+
   it("answers gutter markers for compose files and Dockerfiles", async () => {
     const marks = await servicesApi.gutter("docker-compose.yml", "services:\n  app:\n    image: x\n");
     expect(marks.map((m) => [m.line, m.kind])).toEqual([

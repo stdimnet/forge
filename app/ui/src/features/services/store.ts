@@ -25,8 +25,24 @@ const [tab, setTab] = createSignal<DetailsTab>("dashboard");
 const [version, setVersion] = createSignal(0);
 const [status, setStatus] = createSignal<Extract<ServicesEvent, { type: "status" }> | null>(null);
 const [loading, setLoading] = createSignal(new Set<string>());
+/** Picked container per pod node (Log, Exec, Attached Console); default: the pod's default. */
+const [containers, setContainers] = createSignal<Record<string, string>>({});
+/** The pod whose Forward Ports dialog is open. */
+const [forwardDialog, setForwardDialog] = createSignal<ServiceDetails | null>(null);
 
-export { nodes, expanded, selected, tab, setTab, version, status, loading };
+export { nodes, expanded, selected, tab, setTab, version, status, loading, forwardDialog, setForwardDialog };
+
+/** The container picked for a pod node, else its default container. */
+export function containerOf(d: ServiceDetails): string | undefined {
+  const list = d.containers ?? [];
+  const picked = containers()[d.nodeId];
+  if (picked && list.some((c) => c.name === picked)) return picked;
+  return list.find((c) => c.default)?.name ?? list.find((c) => !c.init)?.name;
+}
+
+export function pickContainer(nodeId: string, name: string): void {
+  setContainers((m) => ({ ...m, [nodeId]: name }));
+}
 
 const seen = new Set<string>();
 
@@ -213,7 +229,11 @@ export async function runAction(d: ServiceDetails, action: ServiceAction): Promi
     return;
   }
   if (action === "exec") {
-    await openExec(d.nodeId);
+    await openExec(d.nodeId, containerOf(d));
+    return;
+  }
+  if (action === "forwardPorts") {
+    setForwardDialog(d);
     return;
   }
   if (action === "pull" && d.target.kind === "dockerGroup") {
@@ -250,6 +270,21 @@ export async function runAction(d: ServiceDetails, action: ServiceAction): Promi
   });
 }
 
+/** Forward Ports: start forwards for `spec` (`8080:80, 9000`); throws the backend's error. */
+export async function forwardPorts(nodeId: string, spec: string): Promise<void> {
+  const started = await servicesApi.portForwardStart(nodeId, spec);
+  const list = started.map((f) => `${f.address}:${f.localPort} → ${f.remotePort}`).join(", ");
+  showBalloon(`Forwarding ${list}`, `Pod ${started[0]?.pod ?? ""}`);
+}
+
+export async function stopForward(id: number): Promise<void> {
+  try {
+    await servicesApi.portForwardStop(id);
+  } catch (err) {
+    showBalloon("Cannot stop the port forward", String(err).replace(/^Error: /, ""));
+  }
+}
+
 export function pullImageDialog(): void {
   setInputDialog({
     title: "Pull Image",
@@ -269,10 +304,10 @@ export function pullImageDialog(): void {
   });
 }
 
-/** Exec: a terminal tab with a shell in the container or pod. */
-export async function openExec(nodeId: string): Promise<void> {
+/** Exec: a terminal tab with a shell in the container or pod (`container` of a pod). */
+export async function openExec(nodeId: string, container?: string): Promise<void> {
   try {
-    const cmd = await servicesApi.terminal(nodeId, false);
+    const cmd = await servicesApi.terminal(nodeId, false, container);
     openTerminalWith({ title: cmd.title, program: cmd.program, args: cmd.args, env: cmd.env });
   } catch (err) {
     showBalloon("Cannot open a terminal", String(err).replace(/^Error: /, ""));
