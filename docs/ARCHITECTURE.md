@@ -86,9 +86,52 @@ app/ui/            SolidJS UI
 - Packs contribute `LspServerConfig { id, name?, languageIds, fileExtensions, command, args,
   initializationOptions, settings }`; Rust code calls `LspState::register_server`, the UI or a
   plugin calls `lsp_register_server({ config })`. Servers start lazily for the first matching file
-  and are routed by extension (longest match wins, e.g. `blade.php` over `php`).
+  and are routed by extension: every server sharing the longest match serves the file (TypeScript +
+  ESLint + Tailwind on `.ts`; `blade.php` still beats `php`). An entry `=Dockerfile` matches a whole
+  file name. With one `languageIds` entry per `fileExtensions` entry, the matching one is announced
+  in `didOpen` (`tsx` → `typescriptreact`).
+- Results of several servers are merged in `LspManager`: diagnostics per server (each server
+  replaces only its own; missing `source` = server name), completion lists concatenated (items carry
+  `raw.forgeServer` so `lsp_completion_resolve` goes back to their server), locations deduplicated,
+  hover / signature help / document symbols from the first server with an answer (registration
+  order = priority), formatting by the first server that supports it.
 - `lsp_did_open|did_change|did_save({ path, text })`, `lsp_did_close({ path })`,
   `lsp_hover|lsp_completion|lsp_definition|lsp_references|lsp_signature_help({ path, line, character })`,
   `lsp_document_symbols({ path })`, `lsp_format({ path, tabSize?, insertSpaces? })`, `lsp_status()`.
   Paths are workspace relative, positions 0-based line / UTF-16 character.
-- Events: `lsp://diagnostics` `{ path, diagnostics }` and `lsp://status` `ServerStatus[]`.
+- `lsp_workspace_symbols({ query, limit? }) -> WorkspaceSymbol[]` asks every running server
+  (`workspace/symbol`); `{ name, kind, containerName?, path, range?, server }`. It backs the
+  Search Everywhere providers `lsp.symbols` (Symbols tab) and `lsp.classes` (Classes tab).
+- Events: `lsp://diagnostics` `{ path, diagnostics }` and `lsp://status` `ServerStatus[]`
+  (`busy` carries `$/progress` message and percentage; the status bar shows
+  "Indexing… TypeScript 45%").
+
+### Catalog of language servers (`forge-langservers`)
+
+- `crates/forge-langservers/catalog.toml` lists languages (extensions, file names, LSP language
+  ids) and ~32 servers (TypeScript, Vue, Angular, Svelte, Astro, HTML/CSS/JSON/ESLint, Tailwind,
+  YAML, TOML, XML, Markdown, Docker, Bash, SQL, LaTeX, Twig, Lua, Python, Go, Rust, C/C++, Java,
+  Kotlin, C#, Ruby, Zig) with command, initialization options, settings, install options and
+  licence. `pack_servers.toml` lists servers that packs start themselves (Intelephense, phpactor)
+  so they show up on the same settings page.
+- When a project's LSP manager is created, `commands::langservers::register_enabled` scans the
+  project (honouring `.gitignore`, capped by `langservers.scanLimit`) and registers every enabled
+  and installed server whose languages occur (and whose `when` markers exist, e.g. an ESLint config).
+  Servers in the same `alternative` group (vtsls / typescript-language-server, pyright /
+  basedpyright) are exclusive. Detection looks at PATH, npm/nvm/volta/fnm, `~/.local/bin`,
+  composer, cargo, go, dotnet, gem dirs, Mason (`~/.local/share/nvim/mason/bin`) and Windows
+  `.cmd` shims.
+- Per-server settings: `langservers.servers.<id>.enabled|path|settings` (settings = JSON string
+  merged into the server settings; `initializationOptions` key for startup options). Global:
+  `langservers.autoStart`, `langservers.scanLimit`, `langservers.lua.environment|version`.
+- IPC: `langservers_list() -> ServerRow[]`, `langservers_apply() -> ServerRow[]` (re-plan after
+  settings changed), `langservers_install({ id, index }) -> InstallOutcome` with output on
+  `langservers://install-output` `{ id, stream, line }`, `langservers_cancel_install({ id })`,
+  `langservers://changed`. Install commands come from the catalog only and run without a shell.
+- Intelephense licence: `intelephense_licence_status() -> { premium, maskedKey?, error?,
+  purchaseUrl }`, `intelephense_set_licence({ key | null })`. The key lives in the OS keychain
+  (service `forge-lsp`, account `intelephense`); free mode never sends `licenceKey`. A registered
+  `intelephense` config gets the key applied (and restarts) when the manager is created or the key
+  changes; pack code building Intelephense configs can call
+  `commands::langservers::with_intelephense_licence(&mut config)`. A plaintext
+  `php.lsp.licenceKey` setting (or the PHP page's old localStorage value) is migrated once.

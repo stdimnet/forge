@@ -15,6 +15,10 @@ AI is built into the core: chat with Claude Code or Gemini CLI rendered natively
 AI commit messages, and any provider: Anthropic, OpenAI, OpenRouter, Ollama, LM Studio, llama.cpp
 or another OpenAI-compatible API.
 
+Language servers for JavaScript/TypeScript, Vue, Python, Go, Rust, C/C++, YAML, Docker and ~25 more
+languages are detected and started per project, and can be installed from
+Settings | Languages & Frameworks | Language Servers.
+
 The layout and keymap follow PHPStorm 1:1 so you feel at home immediately; the look is Forge's own.
 
 ![Forge workbench](docs/screenshots/workbench-dark.png)
