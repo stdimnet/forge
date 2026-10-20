@@ -89,6 +89,7 @@ impl RemoteConnection {
             params: Mutex::new(params),
             binaries,
             live: Mutex::new(None),
+            // Updated with `send_replace`: `send` drops the value while nobody subscribed.
             status: watch::channel(ConnectionStatus::Connecting {
                 message: "Connecting…".into(),
             })
@@ -112,7 +113,7 @@ impl RemoteConnection {
         progress: &(dyn Fn(&str) + Send + Sync),
     ) -> Result<(), ConnectError> {
         let params = self.params.lock().expect("params lock").clone();
-        let _ = self.status.send(ConnectionStatus::Connecting {
+        let _ = self.status.send_replace(ConnectionStatus::Connecting {
             message: format!("Connecting to {}…", self.host.label()),
         });
         progress(&format!("Connecting to {}…", self.host.label()));
@@ -130,7 +131,7 @@ impl RemoteConnection {
             }
         }
         let started = start_agent(&session, &self.binaries, &|m: &str| {
-            let _ = self.status.send(ConnectionStatus::Connecting {
+            let _ = self.status.send_replace(ConnectionStatus::Connecting {
                 message: m.to_string(),
             });
             progress(m);
@@ -143,7 +144,7 @@ impl RemoteConnection {
         });
         let _ = self
             .status
-            .send(ConnectionStatus::Connected { latency_ms: None });
+            .send_replace(ConnectionStatus::Connected { latency_ms: None });
         Ok(())
     }
 
@@ -297,7 +298,7 @@ impl RemoteConnection {
         }
         let _ = self
             .status
-            .send(ConnectionStatus::Disconnected { error: None });
+            .send_replace(ConnectionStatus::Disconnected { error: None });
     }
 
     /// Simulate a dropped connection (tests and "Reconnect" in the UI).
@@ -403,7 +404,7 @@ async fn supervise(weak: std::sync::Weak<RemoteConnection>) {
             let Some(client) = conn.current() else { break };
             match conn.ping().await {
                 Ok(rtt) => {
-                    let _ = conn.status.send(ConnectionStatus::Connected {
+                    let _ = conn.status.send_replace(ConnectionStatus::Connected {
                         latency_ms: Some(rtt.as_millis() as u64),
                     });
                 }
@@ -434,7 +435,7 @@ async fn supervise(weak: std::sync::Weak<RemoteConnection>) {
             {
                 let Some(conn) = weak.upgrade() else { return };
                 let error = "Connection lost".to_string();
-                let _ = conn.status.send(ConnectionStatus::Reconnecting {
+                let _ = conn.status.send_replace(ConnectionStatus::Reconnecting {
                     attempt,
                     error,
                     next_retry_secs: wait,
@@ -453,13 +454,13 @@ async fn supervise(weak: std::sync::Weak<RemoteConnection>) {
                 }
                 Err(e @ (ConnectError::HostKey { .. } | ConnectError::Auth { .. })) => {
                     // Needs the user (changed host key, password changed): stop retrying.
-                    let _ = conn.status.send(ConnectionStatus::Disconnected {
+                    let _ = conn.status.send_replace(ConnectionStatus::Disconnected {
                         error: Some(e.to_string()),
                     });
                     return;
                 }
                 Err(e) => {
-                    let _ = conn.status.send(ConnectionStatus::Reconnecting {
+                    let _ = conn.status.send_replace(ConnectionStatus::Reconnecting {
                         attempt,
                         error: e.to_string(),
                         next_retry_secs: BACKOFF[(attempt as usize).min(BACKOFF.len() - 1)],
