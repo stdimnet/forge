@@ -53,7 +53,8 @@ app/ui/            SolidJS UI
 ## Conventions
 
 - Layout, wording and shortcuts follow PHPStorm; colors are Forge's own.
-- Every UI change is checked with `pnpm screenshots`.
+- Every UI change is checked with `pnpm screenshots` (see `.claude/skills/verify-ui-with-screenshots`).
+- Project tree: single click selects, double click opens (setting `projectView.openFilesWithSingleClick`).
 - Commits: small, imperative subject lines, no co-author trailers.
 
 ## Shared IPC contracts
