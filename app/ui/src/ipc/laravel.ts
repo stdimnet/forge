@@ -17,6 +17,8 @@ export interface LaravelInfo {
   models: number;
   configKeys: number;
   translations: number;
+  /** Custom Blade directives without `@`. */
+  directives: string[];
 }
 
 export interface LaravelRoute {

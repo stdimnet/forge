@@ -105,6 +105,7 @@ pub async fn laravel_detect(
             models: 0,
             config_keys: 0,
             translations: 0,
+            directives: Vec::new(),
         });
     }
     with_laravel(&state, &laravel, |l| l.info())

@@ -189,6 +189,7 @@ fn lists_views_and_components() {
         .map(|d| (d.name.as_str(), d.kind.as_str()))
         .collect();
     assert_eq!(names, vec![("money", "directive"), ("admin", "if")]);
+    assert_eq!(l.info().directives, vec!["money", "admin", "elseadmin", "unlessadmin", "endadmin"]);
 }
 
 #[test]

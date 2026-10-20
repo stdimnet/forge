@@ -639,6 +639,7 @@ registerMock("laravel_detect", (): LaravelInfo => ({
   models: mockModels().length,
   configKeys: mockConfig().length,
   translations: mockTranslations().length,
+  directives: ["money"],
 }));
 registerMock("laravel_routes", () => ({ routes: mockRoutes(), source: "static" }));
 registerMock("laravel_complete", ({ path, offset, content }) =>

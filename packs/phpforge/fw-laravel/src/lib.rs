@@ -74,6 +74,9 @@ pub struct LaravelInfo {
     pub models: usize,
     pub config_keys: usize,
     pub translations: usize,
+    /// Custom Blade directives (`@money`, and `@admin`/`@elseadmin`/`@endadmin` for `Blade::if`).
+    #[serde(default)]
+    pub directives: Vec<String>,
 }
 
 impl Laravel {
@@ -120,7 +123,20 @@ impl Laravel {
             models: self.models.len(),
             config_keys: self.config.len(),
             translations: self.translations.len(),
+            directives: self.directive_names(),
         }
+    }
+
+    /// Names of the custom directives, including the variants `Blade::if` defines.
+    pub fn directive_names(&self) -> Vec<String> {
+        let mut out = Vec::new();
+        for d in &self.directives {
+            out.push(d.name.clone());
+            if d.kind == "if" {
+                out.extend(["else", "unless", "end"].map(|p| format!("{p}{}", d.name)));
+            }
+        }
+        out
     }
 
     /// Model by fully qualified or short class name.

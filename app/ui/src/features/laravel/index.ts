@@ -24,7 +24,7 @@ import { laravelGutter } from "./gutter";
 import { RoutesActions, RoutesView } from "./RoutesView";
 import { ArtisanPopup, openArtisanPopup } from "./ArtisanPopup";
 import { LaravelSettingsPage, LaravelStatus, showLaravelStatus } from "./status";
-import { laravelActive, laravelSetting, loadRoutes } from "./state";
+import { laravelActive, laravelInfo, laravelSetting, loadRoutes } from "./state";
 import "./laravel.css";
 
 registerLanguage({
@@ -33,7 +33,12 @@ registerLanguage({
   extensions: ["blade.php"],
   load: () =>
     StreamLanguage.define(
-      bladeParser({ customDirectives: () => laravelSetting<string[]>("laravel.blade.customDirectives", []) }),
+      bladeParser({
+        customDirectives: () => [
+          ...(laravelInfo()?.directives ?? []),
+          ...laravelSetting<string[]>("laravel.blade.customDirectives", []),
+        ],
+      }),
     ),
 });
 
