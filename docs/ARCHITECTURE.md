@@ -571,16 +571,33 @@ app/ui/            SolidJS UI
   into models (`docker`), compose files with profiles, env files, `${VAR}` interpolation from
   the project's `.env`, overrides and the `docker compose` command lines (`compose`), kubeconfig
   files and pods / deployments / services (`kube`), the multiplexed log stream (`logs`), pull
-  progress (`pull`), the daemon endpoint from settings, `DOCKER_HOST` or the platform default
-  (`endpoint`), exec / attach / `kubectl exec` command lines (`exec`), gutter markers
-  (`gutter`) and the whole Services tree, details pane and toolbar state (`tree`).
+  progress (`pull`), the daemon endpoint from settings, `DOCKER_HOST`, the current Docker
+  context (`~/.docker/contexts/meta/*/meta.json`, `currentContext` / `DOCKER_CONTEXT`) or the
+  platform default, including `ssh://user@host[:port][/socket]` hosts (`endpoint`), exec /
+  attach / `kubectl exec` / `kubectl attach` command lines (`exec`), deployment log prefixes
+  (`logs::LinePrefixer`, `[pod/<pod>/<container>]` like `kubectl logs --prefix`), WebSocket
+  framing (`ws`), the port-forward channel protocol and forward specs (`portforward`), gutter
+  markers (`gutter`) and the whole Services tree, details pane and toolbar state (`tree`).
 - Runtime (`runtime` feature): a small HTTP/1.1 client over Unix sockets, Windows named pipes
   and TCP with rustls (`http`), the Engine client (`engine`: snapshot, lifecycle, inspect,
   logs, pulls with `X-Registry-Auth`, `/events`), the Kubernetes client (`kubeclient`: CA,
   bearer tokens, client certificates, basic auth, exec credential plugins), `docker compose` /
   `docker build` processes (`cli`) and registry passwords in the OS keychain (service
   `forge-containers`, account `registry:<server>`; `secrets`). Only compose, builds and the
-  interactive terminals use the docker CLI.
+  interactive terminals use the docker CLI (which reaches `ssh://` hosts itself).
+- Docker over SSH (`ssh`): `forge-remote`'s `SshSession` (ssh-agent, `~/.ssh` keys,
+  `~/.ssh/config` aliases, `known_hosts`; unknown host keys are refused with their
+  fingerprint) and one `direct-streamlocal` channel to the remote Docker socket per HTTP
+  request (`SshSession::open_streamlocal`); the session is shared and reconnects once.
+- Kubernetes port forwarding (`forward`, `portforward`): `GET …/pods/<pod>/portforward?ports=<p>`
+  upgraded to a WebSocket (`v4.channel.k8s.io`); channel 0 carries data, channel 1 errors, and
+  each starts with the port (2 bytes, little endian). The hub listens on `127.0.0.1:<local>`
+  and opens one WebSocket per accepted connection; forwards show in the tree (`⇄ 8080→80`)
+  and on the pod / Kubernetes details (`portForwards`).
+- Pods: `containers` / `initContainers`, the `kubectl.kubernetes.io/default-container`
+  annotation (else the first container) and declared `ports`; Log, Exec and the Attached
+  Console take the picked container. Deployment logs follow every container of every pod
+  matching the deployment's selector.
 - `Hub` holds the state: a watcher connects, follows `/events` (debounced refresh) and retries
   every 10 s; compose files are read from the project root and one level below; contexts load
   their namespaces and the default namespace's workloads when expanded.
@@ -591,11 +608,15 @@ app/ui/            SolidJS UI
 - IPC (`app/ui/src/ipc/services.ts`): `services_tree() -> Node[]`, `services_refresh()`,
   `services_expand({ nodeId })`, `services_details({ nodeId }) -> Details | null` (title, status,
   tabs `dashboard | log | console | inspection`, Dashboard sections with rows and tables,
-  available actions), `services_action({ nodeId, action: "start" | "stop" | "restart" | "remove"
-  | "pull" | "up" | "down" | "connect" | "refresh" })`, `services_inspect({ nodeId }) -> string`,
-  `services_logs_start({ nodeId }) -> key`, `services_logs_stop`, `services_console({ key }) ->
-  ConsoleLine[]`, `services_terminal({ nodeId, attach }) -> { title, program, args, env }`
-  (opened with `openTerminalWith`; `terminal_open` takes `args`), `services_pull({ image })`,
+  available actions, pod `containers` / `ports` / `portForwards`), `services_action({ nodeId,
+  action: "start" | "stop" | "restart" | "remove" | "pull" | "up" | "down" | "connect" |
+  "refresh" })` (`forwardPorts` is handled by the UI's dialog), `services_inspect({ nodeId }) -> string`,
+  `services_logs_start({ nodeId, container? }) -> key`, `services_logs_stop`,
+  `services_console({ key }) -> ConsoleLine[]`, `services_terminal({ nodeId, attach,
+  container? }) -> { title, program, args, env }` (opened with `openTerminalWith`;
+  `terminal_open` takes `args`), `services_port_forward_start({ nodeId, spec }) ->
+  PortForward[]` (`spec`: `8080:80, 9000, :5432`), `services_port_forward_stop({ id })`,
+  `services_port_forwards()`, `docker_contexts() -> DockerContext[]`, `services_pull({ image })`,
   `services_compose_up({ path, service? })`, `services_dockerfile_run({ path })`,
   `services_gutter({ path, content })`, `services_compose_changed()`, `services_status()`,
   `docker_test_connection({ settings? })`, `docker_registry_login|logout|status`.
@@ -603,8 +624,10 @@ app/ui/            SolidJS UI
   (keys `log:<nodeId>` for followed logs, `run:<nodeId>` for compose, build and pull output;
   deltas are `forge-output` console lines), `{ type: "ended", key }`, `{ type: "status", state,
   endpoint, error?, version? }`.
-- Settings: Build, Execution, Deployment | Docker (`docker.connection`, `docker.socketPath`,
-  `docker.tcp.url|tls|certPath`, `docker.cliPath`, `docker.logs.tail`), | Docker | Docker
+- Settings: Build, Execution, Deployment | Docker (`docker.connection`: `auto | unix | pipe |
+  tcp | ssh | context`, `docker.socketPath`, `docker.tcp.url|tls|certPath`, `docker.ssh.url`,
+  `docker.ssh.socketPath`, `docker.context`, `docker.cliPath`, `docker.logs.tail`; the page
+  lists the Docker contexts with Use), | Docker | Docker
   Registry (`docker.registries`: `server<TAB>user`), | Kubernetes (`kubernetes.kubeconfig`,
   `kubernetes.defaultContext`, `kubernetes.defaultNamespace`, `kubernetes.kubectlPath`).
 
