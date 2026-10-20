@@ -1,5 +1,6 @@
 //! Command-line launcher: `forge [project-dir]`, `forge path/to/file:12[:3]`,
-//! `forge --line 12 --column 3 file` (JetBrains style) and `forge forge://open?...`.
+//! `forge --line 12 --column 3 file` (JetBrains style), `forge file 12 3` (launch-editor)
+//! and `forge forge://open?...`.
 
 use std::path::{Path, PathBuf};
 
@@ -38,6 +39,19 @@ where
                 continue;
             }
             _ if arg.starts_with('-') => continue,
+            // `forge file 12 3`: numbers right after a file set its line, then its column
+            // (how `launch-editor` calls custom editors).
+            _ if !arg.is_empty() && arg.bytes().all(|b| b.is_ascii_digit()) => {
+                if let Some(LaunchTarget::File(r)) = out.last_mut() {
+                    let n = arg.parse().ok().filter(|n: &u32| *n > 0);
+                    if r.line.is_none() {
+                        r.line = n;
+                    } else if r.column.is_none() {
+                        r.column = n;
+                    }
+                    continue;
+                }
+            }
             _ => {}
         }
         if arg.starts_with("forge:") {
@@ -131,6 +145,22 @@ mod tests {
             Path::new("/"),
         );
         assert_eq!(targets, vec![file(&abs, Some(7), Some(2))]);
+    }
+
+    #[test]
+    fn positional_line_and_column() {
+        let (_d, base) = fixture();
+        let targets = parse_launch_args(["app/src/App.tsx", "14", "5"], &base);
+        assert_eq!(
+            targets,
+            vec![file(&base.join("app/src/App.tsx"), Some(14), Some(5))]
+        );
+        // `0` from tools that do not know the column means "unknown".
+        let targets = parse_launch_args(["app/src/App.tsx", "14", "0"], &base);
+        assert_eq!(
+            targets,
+            vec![file(&base.join("app/src/App.tsx"), Some(14), None)]
+        );
     }
 
     #[test]
