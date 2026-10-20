@@ -16,6 +16,7 @@ import {
   type TestResult,
 } from "@/ipc/db";
 import { isTauri } from "@/ipc";
+import { workspace } from "@/state/workspace";
 import { showBalloon } from "@/keymap";
 import { ContextMenu, type MenuItem } from "./ContextMenu";
 import { dialog, refresh, setDialog, sources, states } from "./store";
@@ -63,7 +64,7 @@ function blank(driver: Driver): DataSource {
 }
 
 const fromInfo = (i: DataSourceInfo): DataSource => {
-  const { hasPassword: _h, summary: _s, ...ds } = i;
+  const { hasPassword: _h, summary: _s, via: _v, ...ds } = i;
   return structuredClone(ds);
 };
 
@@ -318,6 +319,13 @@ function DialogBody(props: { select?: string; newDriver?: Driver }) {
                             />
                           </Field>
                         </div>
+                        <Show when={d().source.scope === "project" && workspace()?.remote}>
+                          {(remote) => (
+                            <div class="dsd-hint muted" data-testid="dsd-ssh-note">
+                              Connects through the SSH connection to {remote().label}: host and port as the remote host sees them.
+                            </div>
+                          )}
+                        </Show>
                         <Field label="Authentication">
                           <select class="dsd-input dsd-narrow" value="password" disabled>
                             <option value="password">User &amp; Password</option>

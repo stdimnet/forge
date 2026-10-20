@@ -24,6 +24,7 @@ import { callWasm, forgeWasm } from "@/wasm";
 import { createDemoDatabase, type DemoDatabase } from "./dbDemoData";
 import { cloneDatabase, runStatement } from "./dbEngine";
 import { webDemo } from "./demoWebProjects";
+import { currentRemote } from "./remoteMock";
 
 const DEFAULT_PAGE = 500;
 
@@ -75,10 +76,15 @@ function summary(ds: DataSource): string {
   return ds.database ? `${ds.database}@${host}` : host;
 }
 
+/** Project data sources of a remote project connect through its SSH connection. */
+const via = (ds: DataSource): string | undefined =>
+  ds.scope === "project" ? currentRemote()?.label : undefined;
+
 const info = (m: MockSource): DataSourceInfo => ({
   ...m.source,
   hasPassword: m.source.driver !== "sqlite" && !!m.password,
   summary: summary(m.source),
+  via: via(m.source),
 });
 
 const list = () => sources.map(info);
