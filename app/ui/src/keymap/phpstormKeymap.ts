@@ -420,5 +420,6 @@ export const ACTION_ALIASES: Record<string, string[]> = {
   "Vcs.Push": ["git.push"],
   "Vcs.UpdateProject": ["git.update"],
   Annotate: ["git.annotate"],
+  Generate: ["php.generate"],
   IntroduceVariable: ["ExtractVariable"],
 };

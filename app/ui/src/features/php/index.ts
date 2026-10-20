@@ -82,14 +82,6 @@ if (typeof document !== "undefined") {
   document.body.appendChild(host);
   render(GenerateOverlay, host);
 
-  // Alt+7 toggles Structure (until a shared keymap service exists).
-  window.addEventListener("keydown", (e) => {
-    if (e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && e.code === "Digit7") {
-      e.preventDefault();
-      toggleToolWindow("left", "structure");
-    }
-  });
-
   // Index whenever a project is opened.
   createRoot(() => {
     createEffect(() => {
