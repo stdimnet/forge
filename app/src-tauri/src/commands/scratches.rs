@@ -233,6 +233,7 @@ fn read_referenced(
 /// finished process. `source` is the editor path of the file (`scratch://<name>` or a
 /// project path) that referenced files are relative to.
 #[tauri::command]
+#[allow(clippy::too_many_arguments)] // Tauri passes every argument and state separately.
 pub async fn scratches_http_run(
     run_id: String,
     content: String,
