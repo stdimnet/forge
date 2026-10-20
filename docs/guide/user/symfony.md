@@ -110,4 +110,5 @@ The project settings (environment, folders, console, container) can be stored pe
 Symfony projects usually use Doctrine; see [Doctrine and DQL](doctrine.md). Symfony's
 `DATABASE_URL` in `.env` is offered as a data source in the [Database](database.md) tool window.
 
-> **Note:** Symfony analysis is not available in [remote projects](remote-development.md) yet.
+In [remote projects](remote-development.md) the analysis runs in the Forge agent on the host and
+console commands run there as well.

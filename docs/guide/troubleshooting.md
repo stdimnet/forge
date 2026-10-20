@@ -147,8 +147,15 @@ fingerprints. Confirm only if you know why it changed (reinstalled server).
 
 ### Feature says "not available in remote projects yet"
 
-Expected for Laravel/Symfony/Doctrine analysis, WebForge, database tools, Xdebug, AI chat, code
-hosts and the Browser Companion. See [Remote development](user/remote-development.md).
+Expected for WebForge's npm tool window and component navigation, StyLua, code hosts, HTTP
+request environments and project compose files in Services. See
+[Remote development](user/remote-development.md).
+
+### Language server missing in a remote project
+
+Catalog servers and Intelephense must be installed **on the host** (the settings page refuses to
+install for remote projects). Install them there, e.g. `npm install -g intelephense`, then
+reopen the project.
 
 ## Git
 

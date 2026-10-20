@@ -37,7 +37,7 @@ No. Forge keeps its own data in `.forge/` and ignores `.idea/`.
 **Is PHP support as deep as PHPStorm's?**
 Not yet. Completion, diagnostics and navigation come from Intelephense (or Phpactor); Forge adds
 its own index, Generate actions, Laravel, Symfony and Doctrine support. Refactorings, inspections
-with quick-fixes, Find Usages and Find in Files are not implemented yet. See
+with quick-fixes, Find Usages and Replace in Files are not implemented yet. See
 [Coming from PHPStorm](getting-started/from-phpstorm.md).
 
 **Why does a shortcut say "not available yet"?**
@@ -90,8 +90,8 @@ One project per window. Opening another project replaces the current one; multip
 available yet.
 
 **Can I work on a server over SSH?**
-Yes, see [Remote development](user/remote-development.md). Several framework features still
-need a local project.
+Yes, see [Remote development](user/remote-development.md). Frameworks, language servers,
+databases (through SSH tunnels), Xdebug and the AI agents work there; a few features are still local-only.
 
 ## Contributing
 

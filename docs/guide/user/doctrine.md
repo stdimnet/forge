@@ -77,4 +77,5 @@ repository → entity.
 
 The directory settings and annotations can be stored per project.
 
-> **Note:** Doctrine analysis is not available in [remote projects](remote-development.md) yet.
+In [remote projects](remote-development.md) the mappings are read by the Forge agent on the
+host; everything above works the same.

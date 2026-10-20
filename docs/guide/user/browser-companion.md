@@ -125,5 +125,6 @@ builds). A second launch is forwarded to the running Forge window. Files given o
 line are trusted and open without asking. Full syntax:
 [CLI arguments and forge:// links](../reference/cli-and-links.md).
 
-> **Note:** the Browser Companion works with local projects; requests for files of a
-> [remote project](remote-development.md) are not supported yet.
+> **Note:** in a [remote project](remote-development.md) the settings page reads the project's
+> frameworks and applies `.env` changes on the host, but files requested by the browser are
+> only opened in local projects.
