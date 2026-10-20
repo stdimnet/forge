@@ -1,0 +1,365 @@
+/* Symfony plugin UI. Colors come only from the theme tokens in src/theme/theme.css. */
+
+.sf-panel {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* ---------- Tabs (Routes | Services | Parameters | console runs) ---------- */
+.sf-tabs {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  height: 28px;
+  padding: 0 8px;
+  margin-top: -6px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  overflow-x: auto;
+}
+.sf-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 10px;
+  color: var(--fg-muted);
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.sf-tab:hover {
+  color: var(--fg);
+}
+.sf-tab.active {
+  color: var(--fg-strong);
+  border-bottom-color: var(--accent);
+}
+.sf-run-tab {
+  padding-right: 4px;
+}
+.sf-tab-close {
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: var(--radius-sm);
+  color: var(--fg-faint);
+}
+.sf-tab-close:hover {
+  background: var(--bg-hover);
+  color: var(--fg);
+}
+.sf-running {
+  color: var(--success);
+}
+
+.sf-tab-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---------- Toolbar ---------- */
+.sf-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 5px 10px;
+  flex-shrink: 0;
+}
+.sf-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 300px;
+  height: 26px;
+  padding: 0 8px;
+  border-radius: var(--radius);
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  color: var(--fg-muted);
+}
+.sf-search:focus-within {
+  border-color: var(--accent);
+}
+.sf-search input,
+.sf-search input:focus {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+  color: var(--fg);
+}
+.sf-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--fg-muted);
+}
+.sf-count {
+  margin-left: auto;
+  font-size: var(--fs-small);
+}
+.sf-header-info {
+  font-size: var(--fs-small);
+  margin-right: 6px;
+  align-self: center;
+}
+
+/* ---------- Tables ---------- */
+.sf-table-wrap {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+.sf-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+.sf-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  height: 24px;
+  padding: 0 10px;
+  text-align: left;
+  font-weight: 500;
+  color: var(--fg-muted);
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+}
+.sf-table td {
+  height: 24px;
+  padding: 0 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sf-table tbody tr {
+  cursor: default;
+}
+.sf-table tbody tr:hover {
+  background: var(--bg-hover);
+}
+.sf-table tbody tr.selected {
+  background: var(--bg-selection);
+}
+.sf-table tr.vendor .sf-name {
+  color: var(--fg-muted);
+}
+.sf-name {
+  color: var(--fg-strong);
+}
+.sf-name > svg,
+.sf-row-icon {
+  vertical-align: -2px;
+  margin-right: 6px;
+}
+.sf-icon-route {
+  color: var(--info);
+}
+.sf-path {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--syn-string);
+}
+.sf-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sf-source {
+  margin-left: 8px;
+  padding: 0 5px;
+  border-radius: var(--radius-sm);
+  font-size: 10.5px;
+  color: var(--fg-faint);
+  border: 1px solid var(--border);
+}
+
+/* HTTP method badges */
+.sf-methods {
+  display: inline-flex;
+  gap: 4px;
+}
+.sf-method {
+  display: inline-block;
+  min-width: 34px;
+  padding: 0 4px;
+  border-radius: var(--radius-sm);
+  font: 600 10.5px/16px var(--font-mono);
+  text-align: center;
+  color: var(--fg-muted);
+  background: var(--bg-active);
+}
+.sf-method-get { color: var(--success); background: color-mix(in srgb, var(--success) 14%, transparent); }
+.sf-method-post { color: var(--info); background: color-mix(in srgb, var(--info) 14%, transparent); }
+.sf-method-put,
+.sf-method-patch { color: var(--warning); background: color-mix(in srgb, var(--warning) 14%, transparent); }
+.sf-method-delete { color: var(--danger); background: color-mix(in srgb, var(--danger) 14%, transparent); }
+.sf-method-head { color: var(--syn-type); background: color-mix(in srgb, var(--syn-type) 14%, transparent); }
+
+/* Services */
+.sf-svc-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 8px;
+  border-radius: 50%;
+  vertical-align: 1px;
+  background: var(--fg-faint);
+}
+.sf-svc-dot.resource { background: var(--success); }
+.sf-svc-dot.yaml { background: var(--info); }
+.sf-flag {
+  margin-left: 8px;
+  font-size: 10.5px;
+  color: var(--accent-strong);
+}
+.sf-private {
+  margin-left: 6px;
+  color: var(--fg-faint);
+  vertical-align: -1px;
+}
+.sf-tag {
+  display: inline-block;
+  margin-right: 4px;
+  padding: 0 6px;
+  border-radius: 9px;
+  font-size: 11px;
+  line-height: 17px;
+  color: var(--fg);
+  background: var(--bg-active);
+}
+.sf-tag-soft {
+  color: var(--fg-muted);
+  background: transparent;
+  border: 1px solid var(--border);
+  line-height: 15px;
+}
+
+/* ---------- Console runs ---------- */
+.sf-run {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+.sf-run-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px;
+  border-right: 1px solid var(--border);
+}
+.sf-run-actions .icon-btn:disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+.sf-stop {
+  color: var(--danger);
+  fill: var(--danger);
+}
+.sf-run-output {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+  padding: 6px 12px;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.55;
+  white-space: pre;
+  color: var(--fg);
+  background: var(--bg-editor);
+}
+.sf-run-cmd {
+  color: var(--fg-muted);
+}
+.sf-run-line.stderr {
+  color: var(--danger);
+}
+.sf-run-exit {
+  color: var(--fg-muted);
+}
+.sf-run-exit.failed {
+  color: var(--danger);
+}
+
+/* ---------- Run Console Command popup ---------- */
+.sf-console-popup {
+  width: min(640px, calc(100vw - 32px));
+}
+.sf-console-title {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 10px 14px 0;
+  font-weight: 600;
+  color: var(--fg-strong);
+}
+.sf-console-title .muted {
+  font-weight: 400;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+.sf-icon-command {
+  color: var(--success);
+}
+
+/* ---------- Status widget menu ---------- */
+.sf-status-menu {
+  min-width: 220px;
+}
+
+/* ---------- Line markers (shared gutter, see src/editor/lineMarkers.ts) ---------- */
+.cm-line-marker-gutter {
+  min-width: 16px;
+}
+.cm-line-markers {
+  display: inline-flex;
+  align-items: center;
+  height: 100%;
+}
+.cm-line-marker {
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  margin-top: 1px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  color: var(--fg-muted);
+}
+.cm-line-marker:hover {
+  background: var(--bg-hover);
+}
+.cm-line-marker.marker-route { color: var(--info); }
+.cm-line-marker.marker-template { color: var(--success); }
+.cm-line-marker.marker-controller { color: var(--info); }
+.cm-line-marker.marker-run { color: var(--success); }
+.cm-line-marker.marker-entity { color: var(--warning); }
+.cm-line-marker.marker-repository { color: var(--warning); }
+
+/* Completion documentation popup */
+.sf-completion-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 10px;
+  max-width: 460px;
+}
+.sf-completion-info-label {
+  font-size: var(--fs-small);
+  color: var(--fg-muted);
+}
+.sf-completion-info code {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--fg-strong);
+  white-space: normal;
+  word-break: break-all;
+}

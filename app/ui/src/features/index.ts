@@ -12,5 +12,7 @@ import "./navigation";
 import "./keymapSettings";
 import "./git";
 import "./php";
+import "./symfony";
+import "./doctrine";
 import "./project-type";
 import "./new-project";
