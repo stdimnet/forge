@@ -1,0 +1,923 @@
+//! Bindings, conflict detection and the resolver state machine that turns key events into
+//! action ids.
+//!
+//! Handles single keystrokes, two-stroke chords ("Ctrl+K Ctrl+C"), modifier double-taps
+//! ("Shift Shift") and focus contexts (editor / text input / terminal / everything else).
+
+use std::collections::HashMap;
+
+use serde::{Deserialize, Serialize};
+
+use crate::catalog::ActionContext;
+use crate::shortcut::{
+    modifier_of_event, stroke_from_event, try_parse_shortcut, KeyEvent, KeyStroke, Modifier,
+    Platform, Shortcut,
+};
+
+/// Where keyboard focus currently is.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum FocusContext {
+    Editor,
+    Input,
+    Terminal,
+    Toolwindow,
+    #[default]
+    Global,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Binding {
+    pub action_id: String,
+    pub shortcut: Shortcut,
+    pub context: ActionContext,
+}
+
+/// Keystrokes a text field needs for itself. In inputs these never trigger actions, so
+/// Ctrl+A/C/V or word navigation keep working; plain and Shift+ keys are always left alone.
+const INPUT_RESERVED: [&str; 39] = [
+    "Ctrl+A",
+    "Ctrl+C",
+    "Ctrl+V",
+    "Ctrl+X",
+    "Ctrl+Z",
+    "Ctrl+Y",
+    "Ctrl+Shift+Z",
+    "Ctrl+Insert",
+    "Shift+Insert",
+    "Shift+Delete",
+    "Ctrl+Left",
+    "Ctrl+Right",
+    "Ctrl+Shift+Left",
+    "Ctrl+Shift+Right",
+    "Ctrl+Backspace",
+    "Ctrl+Delete",
+    "Ctrl+Home",
+    "Ctrl+End",
+    "Ctrl+Shift+Home",
+    "Ctrl+Shift+End",
+    "Meta+A",
+    "Meta+C",
+    "Meta+V",
+    "Meta+X",
+    "Meta+Z",
+    "Meta+Shift+Z",
+    "Meta+Left",
+    "Meta+Right",
+    "Meta+Shift+Left",
+    "Meta+Shift+Right",
+    "Meta+Backspace",
+    "Alt+Left",
+    "Alt+Right",
+    "Alt+Shift+Left",
+    "Alt+Shift+Right",
+    "Alt+Backspace",
+    "Alt+Delete",
+    "Meta+Up",
+    "Meta+Down",
+];
+
+/// Whether a keystroke may trigger an action while a plain text field has focus.
+pub fn allowed_in_input(s: &KeyStroke) -> bool {
+    if INPUT_RESERVED.contains(&s.id().as_str()) {
+        return false;
+    }
+    if s.is_function_key() {
+        return true;
+    }
+    if matches!(s.key.as_str(), "Escape" | "Enter" | "Tab") {
+        return false;
+    }
+    s.ctrl || s.alt || s.meta
+}
+
+/// Whether a keystroke may trigger an action while the terminal has focus. Like PHPStorm's
+/// "Override IDE shortcuts", plain Ctrl+letter, Alt+letter, Escape and editing keys go to the
+/// shell; function keys, Alt+digit (tool windows) and Ctrl+Shift / Ctrl+Alt combinations
+/// stay with the IDE (except Ctrl+Shift+C/V, the terminal's copy and paste).
+pub fn allowed_in_terminal(s: &KeyStroke) -> bool {
+    if s.is_function_key() {
+        return true;
+    }
+    let digit = s.key.len() == 1 && s.key.as_bytes()[0].is_ascii_digit();
+    if s.alt && !s.ctrl && digit {
+        return true;
+    }
+    let copy_paste = s.key == "C" || s.key == "V";
+    if s.meta {
+        return !copy_paste;
+    }
+    if s.ctrl && s.shift && copy_paste {
+        return false;
+    }
+    s.ctrl && (s.shift || s.alt)
+}
+
+/// Whether an action with `context` may fire under `focus`.
+pub fn context_matches(context: ActionContext, focus: FocusContext) -> bool {
+    match context {
+        ActionContext::Any => true,
+        ActionContext::Editor => focus == FocusContext::Editor,
+        ActionContext::Toolwindow => {
+            matches!(focus, FocusContext::Toolwindow | FocusContext::Terminal)
+        }
+    }
+}
+
+/// Build bindings from action → shortcut strings. Unparsable strings are skipped.
+pub fn build_bindings(
+    shortcuts: &[(String, Vec<String>)],
+    context_of: impl Fn(&str) -> ActionContext,
+    platform: Platform,
+) -> Vec<Binding> {
+    let mut out = Vec::new();
+    for (action_id, list) in shortcuts {
+        for text in list {
+            if let Some(shortcut) = try_parse_shortcut(text, platform) {
+                out.push(Binding {
+                    action_id: action_id.clone(),
+                    shortcut,
+                    context: context_of(action_id),
+                });
+            }
+        }
+    }
+    out
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ConflictKind {
+    /// Identical shortcut.
+    Same,
+    /// One is the first keystroke of the other's chord.
+    Prefix,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Conflict {
+    pub action_id: String,
+    pub shortcut: Shortcut,
+    pub kind: ConflictKind,
+}
+
+/// Bindings that would clash with assigning `shortcut` to `action_id`.
+pub fn find_conflicts(
+    bindings: &[Binding],
+    shortcut: &Shortcut,
+    action_id: Option<&str>,
+) -> Vec<Conflict> {
+    let id = shortcut.id();
+    let strokes = shortcut.strokes();
+    let first = strokes.first().map(KeyStroke::id);
+    let mut out = Vec::new();
+    for b in bindings {
+        if Some(b.action_id.as_str()) == action_id {
+            continue;
+        }
+        let kind = if b.shortcut.id() == id {
+            Some(ConflictKind::Same)
+        } else {
+            match (&first, &b.shortcut) {
+                (Some(first), Shortcut::Keys(other))
+                    if strokes.len() != other.len() && other[0].id() == *first =>
+                {
+                    Some(ConflictKind::Prefix)
+                }
+                _ => None,
+            }
+        };
+        if let Some(kind) = kind {
+            out.push(Conflict {
+                action_id: b.action_id.clone(),
+                shortcut: b.shortcut.clone(),
+                kind,
+            });
+        }
+    }
+    out
+}
+
+/// All shortcuts bound to more than one action with overlapping contexts, in binding order:
+/// shortcut id → action ids.
+pub fn all_conflicts(bindings: &[Binding]) -> Vec<(String, Vec<String>)> {
+    let mut order: Vec<String> = Vec::new();
+    let mut by_id: HashMap<String, Vec<&Binding>> = HashMap::new();
+    for b in bindings {
+        let id = b.shortcut.id();
+        by_id
+            .entry(id.clone())
+            .or_insert_with(|| {
+                order.push(id);
+                Vec::new()
+            })
+            .push(b);
+    }
+    let mut out = Vec::new();
+    for id in order {
+        let list = &by_id[&id];
+        let mut ids: Vec<String> = Vec::new();
+        for b in list {
+            if !ids.contains(&b.action_id) {
+                ids.push(b.action_id.clone());
+            }
+        }
+        let overlapping = list.iter().enumerate().any(|(i, a)| {
+            list[i + 1..].iter().any(|b| {
+                a.action_id != b.action_id
+                    && (a.context == ActionContext::Any
+                        || b.context == ActionContext::Any
+                        || a.context == b.context)
+            })
+        });
+        if ids.len() > 1 && overlapping {
+            out.push((id, ids));
+        }
+    }
+    out
+}
+
+/// What the resolver is waiting for after a consumed or ignored event.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum Pending {
+    /// The first keystroke of a chord was pressed.
+    Chord,
+    /// A modifier was tapped once; a second tap fires a double-tap action.
+    DoubleTap,
+}
+
+/// Outcome of one key event.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Resolution {
+    /// Whether the event belongs to the keymap (the UI calls `preventDefault`).
+    pub consumed: bool,
+    /// Action to run, if any.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub action: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pending: Option<Pending>,
+}
+
+impl Resolution {
+    fn ignored() -> Self {
+        Self::default()
+    }
+
+    fn action(id: String) -> Self {
+        Self {
+            consumed: true,
+            action: Some(id),
+            pending: None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum KeyInputKind {
+    #[default]
+    Keydown,
+    Keyup,
+    /// Mouse clicks and focus changes break a double-tap sequence.
+    Interrupt,
+    /// Window blur: forget chords and taps.
+    Reset,
+}
+
+/// A key event as the UI forwards it.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct KeyInput {
+    #[serde(rename = "type")]
+    pub kind: KeyInputKind,
+    #[serde(flatten)]
+    pub event: KeyEvent,
+    pub focus: FocusContext,
+    /// Event time in milliseconds (`KeyboardEvent.timeStamp`).
+    pub time: f64,
+}
+
+#[derive(Debug, Default)]
+struct StrokeEntry {
+    single: Vec<Binding>,
+    /// Second stroke id → bindings.
+    chords: HashMap<String, Vec<Binding>>,
+}
+
+#[derive(Debug, Clone, Copy)]
+struct Tap {
+    modifier: Modifier,
+    at: f64,
+}
+
+/// The resolver state machine: bindings plus pending chord / double-tap state.
+#[derive(Debug)]
+pub struct Resolver {
+    index: HashMap<String, StrokeEntry>,
+    doubles: HashMap<Modifier, Vec<Binding>>,
+    pending_chord: Option<(String, FocusContext)>,
+    /// Modifier currently held as a potential tap.
+    tap: Option<Modifier>,
+    last_tap: Option<Tap>,
+    double_tap_ms: f64,
+}
+
+impl Default for Resolver {
+    fn default() -> Self {
+        Self::new(Vec::new())
+    }
+}
+
+impl Resolver {
+    pub const DOUBLE_TAP_MS: f64 = 400.0;
+
+    pub fn new(bindings: Vec<Binding>) -> Self {
+        let mut r = Self {
+            index: HashMap::new(),
+            doubles: HashMap::new(),
+            pending_chord: None,
+            tap: None,
+            last_tap: None,
+            double_tap_ms: Self::DOUBLE_TAP_MS,
+        };
+        r.set_bindings(bindings);
+        r
+    }
+
+    pub fn set_bindings(&mut self, bindings: Vec<Binding>) {
+        self.index.clear();
+        self.doubles.clear();
+        self.reset();
+        for b in bindings {
+            let (first, second) = match &b.shortcut {
+                Shortcut::Double(m) => {
+                    self.doubles.entry(*m).or_default().push(b);
+                    continue;
+                }
+                Shortcut::Keys(strokes) => (strokes[0].id(), strokes.get(1).map(KeyStroke::id)),
+            };
+            let entry = self.index.entry(first).or_default();
+            match second {
+                Some(sk) => entry.chords.entry(sk).or_default().push(b),
+                None => entry.single.push(b),
+            }
+        }
+    }
+
+    /// Whether the resolver is waiting for the second keystroke of a chord.
+    pub fn chord_pending(&self) -> bool {
+        self.pending_chord.is_some()
+    }
+
+    pub fn reset(&mut self) {
+        self.pending_chord = None;
+        self.tap = None;
+        self.last_tap = None;
+    }
+
+    /// Mouse clicks and focus changes break a double-tap sequence.
+    pub fn interrupt(&mut self) {
+        self.tap = None;
+        self.last_tap = None;
+    }
+
+    pub fn handle(&mut self, input: &KeyInput) -> Resolution {
+        match input.kind {
+            KeyInputKind::Keydown => self.key_down(&input.event, input.focus),
+            KeyInputKind::Keyup => self.key_up(&input.event, input.focus, input.time),
+            KeyInputKind::Interrupt => {
+                self.interrupt();
+                Resolution::ignored()
+            }
+            KeyInputKind::Reset => {
+                self.reset();
+                Resolution::ignored()
+            }
+        }
+    }
+
+    fn pick(list: Option<&Vec<Binding>>, focus: FocusContext) -> Option<String> {
+        // Context-specific bindings win over global ones (e.g. Generate vs. New… on Alt+Insert).
+        let matching: Vec<&Binding> = list?
+            .iter()
+            .filter(|b| context_matches(b.context, focus))
+            .collect();
+        matching
+            .iter()
+            .find(|b| b.context != ActionContext::Any)
+            .or_else(|| matching.first())
+            .map(|b| b.action_id.clone())
+    }
+
+    pub fn key_down(&mut self, e: &KeyEvent, focus: FocusContext) -> Resolution {
+        if let Some(m) = modifier_of_event(e) {
+            // A bare modifier press starts a potential tap unless other modifiers are held.
+            let held = [e.ctrl_key, e.alt_key, e.shift_key, e.meta_key]
+                .iter()
+                .filter(|x| **x)
+                .count();
+            self.tap = (!e.repeat && held == 1).then_some(m);
+            let pending = if self.pending_chord.is_some() {
+                Some(Pending::Chord)
+            } else {
+                self.last_tap
+                    .filter(|t| t.modifier == m)
+                    .map(|_| Pending::DoubleTap)
+            };
+            return Resolution {
+                consumed: false,
+                action: None,
+                pending,
+            };
+        }
+        self.tap = None;
+        self.last_tap = None;
+        let stroke = stroke_from_event(e);
+        let sid = stroke.id();
+
+        if let Some((first, chord_focus)) = self.pending_chord.take() {
+            let entry = self.index.get(&first);
+            return match Self::pick(entry.and_then(|en| en.chords.get(&sid)), chord_focus) {
+                Some(action) => Resolution::action(action),
+                // Unknown second stroke: swallow it like PHPStorm does.
+                None => Resolution {
+                    consumed: true,
+                    ..Resolution::default()
+                },
+            };
+        }
+
+        if focus == FocusContext::Input && !allowed_in_input(&stroke) {
+            return Resolution::ignored();
+        }
+        if focus == FocusContext::Terminal && !allowed_in_terminal(&stroke) {
+            return Resolution::ignored();
+        }
+        let Some(entry) = self.index.get(&sid) else {
+            return Resolution::ignored();
+        };
+        let has_chord = entry
+            .chords
+            .values()
+            .any(|l| l.iter().any(|b| context_matches(b.context, focus)));
+        if has_chord {
+            self.pending_chord = Some((sid, focus));
+            return Resolution {
+                consumed: true,
+                action: None,
+                pending: Some(Pending::Chord),
+            };
+        }
+        match Self::pick(Some(&entry.single), focus) {
+            Some(action) => Resolution::action(action),
+            None => Resolution::ignored(),
+        }
+    }
+
+    pub fn key_up(&mut self, e: &KeyEvent, focus: FocusContext, time: f64) -> Resolution {
+        let m = modifier_of_event(e);
+        let tapped = self.tap.take();
+        let Some(m) = m.filter(|m| tapped == Some(*m)) else {
+            return Resolution::ignored();
+        };
+        if let Some(last) = self.last_tap {
+            if last.modifier == m && time - last.at <= self.double_tap_ms {
+                self.last_tap = None;
+                return match Self::pick(self.doubles.get(&m), focus) {
+                    Some(action) => Resolution::action(action),
+                    None => Resolution::ignored(),
+                };
+            }
+        }
+        self.last_tap = Some(Tap {
+            modifier: m,
+            at: time,
+        });
+        let pending = self.doubles.contains_key(&m).then_some(Pending::DoubleTap);
+        Resolution {
+            consumed: false,
+            action: None,
+            pending,
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::shortcut::{parse_shortcut, parse_stroke};
+
+    const O: Platform = Platform::Other;
+
+    fn context_of(id: &str) -> ActionContext {
+        match id {
+            "Generate" | "EditorDuplicate" => ActionContext::Editor,
+            "Rerun" => ActionContext::Toolwindow,
+            _ => ActionContext::Any,
+        }
+    }
+
+    fn map(entries: &[(&str, &[&str])]) -> Vec<(String, Vec<String>)> {
+        entries
+            .iter()
+            .map(|(id, list)| (id.to_string(), list.iter().map(|s| s.to_string()).collect()))
+            .collect()
+    }
+
+    fn resolver(entries: &[(&str, &[&str])]) -> Resolver {
+        Resolver::new(build_bindings(&map(entries), context_of, O))
+    }
+
+    /// A keydown-like event from "Ctrl+Shift+A".
+    fn key(text: &str) -> KeyEvent {
+        let s = parse_stroke(text, O).unwrap();
+        let k = s.key.as_str();
+        let code = if k.len() == 1 && k.as_bytes()[0].is_ascii_uppercase() {
+            format!("Key{k}")
+        } else if k.len() == 1 && k.as_bytes()[0].is_ascii_digit() {
+            format!("Digit{k}")
+        } else {
+            match k {
+                "/" => "Slash".into(),
+                "Up" => "ArrowUp".into(),
+                other => other.to_string(),
+            }
+        };
+        KeyEvent {
+            code,
+            key: s.key.clone(),
+            ctrl_key: s.ctrl,
+            alt_key: s.alt,
+            shift_key: s.shift,
+            meta_key: s.meta,
+            repeat: false,
+        }
+    }
+
+    fn modifier(name: &str, down: bool) -> KeyEvent {
+        KeyEvent {
+            code: format!("{name}Left"),
+            key: name.into(),
+            ctrl_key: name == "Control" && down,
+            alt_key: name == "Alt" && down,
+            shift_key: name == "Shift" && down,
+            meta_key: name == "Meta" && down,
+            repeat: false,
+        }
+    }
+
+    use FocusContext::{Editor, Global, Input, Terminal, Toolwindow};
+
+    fn action(r: &mut Resolver, text: &str, focus: FocusContext) -> Option<String> {
+        r.key_down(&key(text), focus).action
+    }
+
+    fn single_stroke_resolver() -> Resolver {
+        resolver(&[
+            ("GotoAction", &["Ctrl+Shift+A"]),
+            ("Generate", &["Alt+Insert"]),
+            ("NewElement", &["Alt+Insert"]),
+            ("RenameElement", &["Shift+F6"]),
+            ("EditorDuplicate", &["Ctrl+D"]),
+            ("Rerun", &["Ctrl+F5"]),
+            ("JumpToLastWindow", &["F12"]),
+        ])
+    }
+
+    #[test]
+    fn resolves_bound_keystrokes() {
+        let mut r = single_stroke_resolver();
+        assert_eq!(
+            r.key_down(&key("Ctrl+Shift+A"), Global),
+            Resolution::action("GotoAction".into())
+        );
+    }
+
+    #[test]
+    fn ignores_unbound_keystrokes() {
+        let mut r = single_stroke_resolver();
+        assert_eq!(
+            r.key_down(&key("Ctrl+Shift+Q"), Global),
+            Resolution::ignored()
+        );
+    }
+
+    #[test]
+    fn prefers_context_specific_bindings_in_their_context() {
+        let mut r = single_stroke_resolver();
+        assert_eq!(
+            action(&mut r, "Alt+Insert", Editor).as_deref(),
+            Some("Generate")
+        );
+        assert_eq!(
+            action(&mut r, "Alt+Insert", Global).as_deref(),
+            Some("NewElement")
+        );
+    }
+
+    #[test]
+    fn does_not_fire_editor_actions_outside_the_editor() {
+        let mut r = single_stroke_resolver();
+        assert_eq!(r.key_down(&key("Ctrl+D"), Global), Resolution::ignored());
+        assert_eq!(
+            action(&mut r, "Ctrl+D", Editor).as_deref(),
+            Some("EditorDuplicate")
+        );
+    }
+
+    #[test]
+    fn fires_tool_window_actions_only_in_tool_windows() {
+        let mut r = single_stroke_resolver();
+        assert!(!r.key_down(&key("Ctrl+F5"), Editor).consumed);
+        assert_eq!(
+            action(&mut r, "Ctrl+F5", Toolwindow).as_deref(),
+            Some("Rerun")
+        );
+    }
+
+    #[test]
+    fn lets_text_inputs_keep_plain_keys_but_allows_real_shortcuts() {
+        let mut plain = resolver(&[("X", &["F"]), ("Y", &["Shift+F"]), ("Z", &["Ctrl+A"])]);
+        assert!(!plain.key_down(&key("F"), Input).consumed);
+        assert!(!plain.key_down(&key("Shift+F"), Input).consumed);
+        assert!(!plain.key_down(&key("Ctrl+A"), Input).consumed);
+        assert_eq!(action(&mut plain, "F", Global).as_deref(), Some("X"));
+        let mut r = single_stroke_resolver();
+        assert_eq!(
+            action(&mut r, "Ctrl+Shift+A", Input).as_deref(),
+            Some("GotoAction")
+        );
+        assert_eq!(
+            action(&mut r, "Shift+F6", Input).as_deref(),
+            Some("RenameElement")
+        );
+    }
+
+    #[test]
+    fn chords_wait_for_the_second_keystroke() {
+        let mut r = resolver(&[
+            ("CommentLine", &["Ctrl+K Ctrl+C"]),
+            ("Uncomment", &["Ctrl+K Ctrl+U"]),
+        ]);
+        let first = r.key_down(&key("Ctrl+K"), Editor);
+        assert!(first.consumed && first.action.is_none());
+        assert_eq!(first.pending, Some(Pending::Chord));
+        assert!(r.chord_pending());
+        assert_eq!(
+            r.key_down(&key("Ctrl+U"), Editor),
+            Resolution::action("Uncomment".into())
+        );
+        assert!(!r.chord_pending());
+    }
+
+    #[test]
+    fn chords_swallow_an_unknown_second_keystroke_and_recover() {
+        let mut r = resolver(&[("CommentLine", &["Ctrl+K Ctrl+C"]), ("Find", &["Ctrl+F"])]);
+        r.key_down(&key("Ctrl+K"), Global);
+        let swallowed = r.key_down(&key("Ctrl+F"), Global);
+        assert!(swallowed.consumed && swallowed.action.is_none() && swallowed.pending.is_none());
+        assert_eq!(action(&mut r, "Ctrl+F", Global).as_deref(), Some("Find"));
+    }
+
+    #[test]
+    fn chords_ignore_pure_modifier_presses_between_strokes() {
+        let mut r = resolver(&[("X", &["Ctrl+K Shift+C"])]);
+        r.key_down(&key("Ctrl+K"), Global);
+        let m = r.key_down(&modifier("Shift", true), Global);
+        assert_eq!(m.pending, Some(Pending::Chord));
+        assert_eq!(action(&mut r, "Shift+C", Global).as_deref(), Some("X"));
+    }
+
+    fn tap(r: &mut Resolver, at: f64, focus: FocusContext) -> Resolution {
+        r.key_down(&modifier("Shift", true), focus);
+        r.key_up(&modifier("Shift", false), focus, at)
+    }
+
+    fn tap_resolver() -> Resolver {
+        resolver(&[("SearchEverywhere", &["Shift Shift"])])
+    }
+
+    #[test]
+    fn double_tap_fires_on_two_quick_taps() {
+        let mut r = tap_resolver();
+        let first = tap(&mut r, 0.0, Global);
+        assert_eq!(first.action, None);
+        assert_eq!(first.pending, Some(Pending::DoubleTap));
+        assert_eq!(
+            tap(&mut r, 200.0, Global),
+            Resolution::action("SearchEverywhere".into())
+        );
+    }
+
+    #[test]
+    fn double_tap_works_while_typing_in_an_input() {
+        let mut r = tap_resolver();
+        tap(&mut r, 0.0, Input);
+        assert_eq!(
+            tap(&mut r, 150.0, Input).action.as_deref(),
+            Some("SearchEverywhere")
+        );
+    }
+
+    #[test]
+    fn double_tap_does_not_fire_when_taps_are_too_slow() {
+        let mut r = tap_resolver();
+        tap(&mut r, 0.0, Global);
+        assert_eq!(tap(&mut r, 900.0, Global).action, None);
+        assert_eq!(
+            tap(&mut r, 1000.0, Global).action.as_deref(),
+            Some("SearchEverywhere")
+        );
+    }
+
+    #[test]
+    fn double_tap_does_not_fire_when_shift_was_used_as_a_modifier() {
+        let mut r = tap_resolver();
+        tap(&mut r, 0.0, Global);
+        r.key_down(&modifier("Shift", true), Global);
+        r.key_down(&key("Shift+A"), Global);
+        assert_eq!(
+            r.key_up(&modifier("Shift", false), Global, 100.0).action,
+            None
+        );
+    }
+
+    #[test]
+    fn double_tap_is_broken_by_another_key_between_the_taps() {
+        let mut r = tap_resolver();
+        tap(&mut r, 0.0, Global);
+        r.key_down(&key("A"), Global);
+        assert_eq!(tap(&mut r, 100.0, Global).action, None);
+    }
+
+    #[test]
+    fn double_tap_is_broken_by_interrupt() {
+        let mut r = tap_resolver();
+        tap(&mut r, 0.0, Global);
+        r.handle(&KeyInput {
+            kind: KeyInputKind::Interrupt,
+            ..KeyInput::default()
+        });
+        assert_eq!(tap(&mut r, 100.0, Global).action, None);
+    }
+
+    #[test]
+    fn double_tap_ignores_auto_repeat_of_a_held_modifier() {
+        let mut r = tap_resolver();
+        tap(&mut r, 0.0, Global);
+        let mut held = modifier("Shift", true);
+        held.repeat = true;
+        r.key_down(&held, Global);
+        assert_eq!(
+            r.key_up(&modifier("Shift", false), Global, 100.0).action,
+            None
+        );
+    }
+
+    #[test]
+    fn handles_key_inputs_from_json() {
+        let mut r = tap_resolver();
+        let down: KeyInput = serde_json::from_str(
+            r#"{"type":"keydown","key":"Shift","code":"ShiftLeft","shiftKey":true,"focus":"global","time":0}"#,
+        )
+        .unwrap();
+        let up: KeyInput = serde_json::from_str(
+            r#"{"type":"keyup","key":"Shift","code":"ShiftLeft","focus":"global","time":10}"#,
+        )
+        .unwrap();
+        r.handle(&down);
+        r.handle(&up);
+        r.handle(&down);
+        let res = r.handle(&KeyInput { time: 120.0, ..up });
+        assert_eq!(
+            serde_json::to_string(&res).unwrap(),
+            r#"{"consumed":true,"action":"SearchEverywhere"}"#
+        );
+    }
+
+    fn conflict_bindings() -> Vec<Binding> {
+        build_bindings(
+            &map(&[
+                ("GotoClass", &["Ctrl+N"]),
+                ("CheckinProject", &["Ctrl+K"]),
+                ("Generate", &["Alt+Insert"]),
+                ("NewElement", &["Alt+Insert"]),
+                ("Chord", &["Ctrl+K Ctrl+C"]),
+            ]),
+            context_of,
+            O,
+        )
+    }
+
+    fn sc(text: &str) -> Shortcut {
+        parse_shortcut(text, O).unwrap()
+    }
+
+    #[test]
+    fn finds_identical_shortcuts() {
+        let c = find_conflicts(&conflict_bindings(), &sc("Ctrl+N"), Some("Other"));
+        let got: Vec<_> = c.iter().map(|x| (x.action_id.as_str(), x.kind)).collect();
+        assert_eq!(got, vec![("GotoClass", ConflictKind::Same)]);
+    }
+
+    #[test]
+    fn does_not_report_the_action_itself() {
+        assert!(find_conflicts(&conflict_bindings(), &sc("Ctrl+N"), Some("GotoClass")).is_empty());
+    }
+
+    #[test]
+    fn finds_chord_prefix_clashes_both_ways() {
+        let ids = |text: &str| -> Vec<String> {
+            find_conflicts(&conflict_bindings(), &sc(text), Some("New"))
+                .into_iter()
+                .map(|c| c.action_id)
+                .collect()
+        };
+        assert_eq!(ids("Ctrl+K Ctrl+X"), vec!["CheckinProject"]);
+        assert_eq!(ids("Ctrl+K"), vec!["CheckinProject", "Chord"]);
+    }
+
+    #[test]
+    fn lists_all_conflicting_shortcuts() {
+        let all = all_conflicts(&conflict_bindings());
+        assert_eq!(
+            all,
+            vec![(
+                "Alt+Insert".to_string(),
+                vec!["Generate".to_string(), "NewElement".to_string()]
+            )]
+        );
+    }
+
+    #[test]
+    fn context_matching() {
+        assert!(context_matches(ActionContext::Any, Input));
+        assert!(context_matches(ActionContext::Editor, Editor));
+        assert!(!context_matches(ActionContext::Editor, Input));
+        assert!(!context_matches(ActionContext::Toolwindow, Global));
+        assert!(context_matches(ActionContext::Toolwindow, Terminal));
+    }
+
+    #[test]
+    fn input_rules() {
+        let allowed = |s: &str| allowed_in_input(&parse_stroke(s, O).unwrap());
+        assert!(allowed("Ctrl+Shift+A"));
+        assert!(allowed("F2"));
+        assert!(!allowed("Ctrl+V"));
+        assert!(!allowed("Meta+Left"));
+        assert!(!allowed("Shift+A"));
+        assert!(!allowed("Escape"));
+    }
+
+    #[test]
+    fn leaves_shell_keys_to_the_terminal_but_keeps_ide_function_keys_and_tool_windows() {
+        let allowed = |s: &str| allowed_in_terminal(&parse_stroke(s, O).unwrap());
+        for s in [
+            "Ctrl+C",
+            "Ctrl+D",
+            "Ctrl+R",
+            "Ctrl+E",
+            "Alt+B",
+            "Escape",
+            "Tab",
+            "Ctrl+Shift+C",
+            "Ctrl+Shift+V",
+        ] {
+            assert!(!allowed(s), "{s}");
+        }
+        for s in [
+            "Alt+F12",
+            "Shift+F10",
+            "Ctrl+F2",
+            "Alt+4",
+            "Ctrl+Shift+A",
+            "Ctrl+Alt+S",
+            "Ctrl+Shift+T",
+        ] {
+            assert!(allowed(s), "{s}");
+        }
+        let mut r = Resolver::default();
+        r.set_bindings(build_bindings(
+            &map(&[("RecentFiles", &["Ctrl+E"]), ("Run", &["Shift+F10"])]),
+            |_| ActionContext::Any,
+            O,
+        ));
+        assert_eq!(r.key_down(&key("Ctrl+E"), Terminal), Resolution::ignored());
+        assert_eq!(
+            action(&mut r, "Shift+F10", Terminal).as_deref(),
+            Some("Run")
+        );
+    }
+
+    #[test]
+    fn build_bindings_skips_unparsable_strings() {
+        let b = build_bindings(
+            &map(&[("A", &["Ctrl+Nope", "Ctrl+A"])]),
+            |_| ActionContext::Any,
+            O,
+        );
+        assert_eq!(b.len(), 1);
+    }
+}

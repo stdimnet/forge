@@ -1,0 +1,25 @@
+//! Forge's PHPStorm-compatible keymap engine.
+//!
+//! - [`shortcut`]: parsing ("Ctrl+K Ctrl+C", "Shift Shift", "Cmd+,"), canonical ids, display
+//!   strings ("Ctrl+Shift+A" / "⇧⌘A") and key names of DOM keyboard events.
+//! - [`catalog`]: PHPStorm's default keymaps (Windows/Linux and macOS) and action aliases.
+//! - [`engine`]: bindings, conflict detection and the [`Resolver`] state machine that turns
+//!   key events into actions (chords, double taps, focus contexts).
+//! - [`keymap`]: the [`KeymapService`] combining the catalog, plugin actions, registered
+//!   commands and user overrides from the settings.
+//!
+//! The crate is pure (no file system or async runtime): the desktop app wraps it in IPC
+//! commands, and browser mode runs the same code as WebAssembly (`crates/forge-wasm`).
+
+pub mod catalog;
+pub mod engine;
+pub mod keymap;
+pub mod shortcut;
+
+pub use catalog::{catalog, ActionContext, ActionDef, KeymapId};
+pub use engine::{FocusContext, KeyInput, Pending, Resolution, Resolver};
+pub use keymap::{
+    legacy_changes, ActionInfo, ActionRegistration, CommandInfo, KeymapChange, KeymapService,
+    KeymapSettings, KeymapSnapshot, SettingWrite, ShortcutCheck,
+};
+pub use shortcut::{KeyEvent, Platform, Shortcut};
