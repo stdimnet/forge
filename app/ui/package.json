@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "screenshots": "node scripts/screenshots.mjs",
-    "tauri": "tauri"
+    "tauri": "cd .. && tauri"
   },
   "dependencies": {
     "@codemirror/autocomplete": "^6.18.0",

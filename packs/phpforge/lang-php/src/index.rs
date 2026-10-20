@@ -38,7 +38,8 @@ pub struct IndexConfig {
     /// Files larger than this are skipped (bytes).
     pub max_file_size: u64,
     pub extensions: Vec<String>,
-    /// Cache file; `None` uses `<root>/.forge/cache/php-index.json`.
+    /// Cache file; `None` uses a per-project file in the user's cache directory, so the
+    /// index never ends up inside the project (like PHPStorm's system caches).
     pub cache_file: Option<PathBuf>,
 }
 
@@ -165,7 +166,7 @@ impl ProjectIndex {
         self.config
             .cache_file
             .clone()
-            .unwrap_or_else(|| self.root.join(".forge/cache/php-index.json"))
+            .unwrap_or_else(|| default_cache_path(&self.root))
     }
 
     pub fn file_count(&self) -> usize {
@@ -686,6 +687,25 @@ pub fn display_name(fqn: &str) -> &str {
     short_name(fqn)
 }
 
+/// `<cache dir>/forge/php-index/<project name>-<path hash>.json`, falling back to the
+/// project's `.forge/cache` when the platform has no cache directory.
+fn default_cache_path(root: &Path) -> PathBuf {
+    use std::hash::{Hash, Hasher};
+    let Some(cache) = dirs::cache_dir() else {
+        return root.join(".forge/cache/php-index.json");
+    };
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    root.hash(&mut hasher);
+    let name = root
+        .file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_else(|| "project".into());
+    cache
+        .join("forge")
+        .join("php-index")
+        .join(format!("{name}-{:016x}.json", hasher.finish()))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -819,12 +839,17 @@ mod tests {
     #[test]
     fn cache_round_trip_reuses_unchanged_files() {
         let dir = project();
-        let mut idx = ProjectIndex::new(dir.path(), IndexConfig::default());
+        let cache = tempfile::tempdir().unwrap();
+        let config = || IndexConfig {
+            cache_file: Some(cache.path().join("php-index.json")),
+            ..IndexConfig::default()
+        };
+        let mut idx = ProjectIndex::new(dir.path(), config());
         idx.index_workspace(|_, _| {});
         idx.save_cache().unwrap();
-        assert!(dir.path().join(".forge/cache/php-index.json").is_file());
+        assert!(cache.path().join("php-index.json").is_file());
 
-        let mut again = ProjectIndex::new(dir.path(), IndexConfig::default());
+        let mut again = ProjectIndex::new(dir.path(), config());
         assert!(again.load_cache());
         assert!(again.find_class("App\\Models\\Order").is_some());
         let stats = again.index_workspace(|_, _| {});
