@@ -1,0 +1,20 @@
+[package]
+name = "forge-langservers"
+description = "Forge IDE: catalog, detection, configuration and installation of language servers"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+forge-lsp.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+toml.workspace = true
+dirs.workspace = true
+ignore.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+keyring = { version = "3", features = ["apple-native", "windows-native", "sync-secret-service", "crypto-rust"] }
+
+[dev-dependencies]
+tempfile.workspace = true

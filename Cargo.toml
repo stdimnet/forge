@@ -15,6 +15,7 @@ forge-plugin-api = { path = "crates/forge-plugin-api" }
 forge-ai = { path = "crates/forge-ai" }
 forge-agent-cli = { path = "crates/forge-agent-cli" }
 forge-lsp = { path = "crates/forge-lsp" }
+forge-langservers = { path = "crates/forge-langservers" }
 forge-vcs = { path = "crates/forge-vcs" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

@@ -1,0 +1,823 @@
+# Forge's catalog of language servers.
+#
+# [[language]]: a language Forge can detect in a project.
+#   extensions  "ext" or "ext:lspLanguageId" (the LSP id defaults to the language id)
+#   file_names  whole file names, same syntax ("Dockerfile", "Gemfile:ruby")
+#
+# [[server]]: one language server.
+#   languages     language ids it serves (all their extensions and file names)
+#   group         heading in Settings > Languages & Frameworks > Language Servers
+#   alternative   servers sharing a value are alternatives: only the first enabled and
+#                 installed one starts (e.g. basedpyright before pyright)
+#   plugin        Forge plugin that must be enabled (Settings > Plugins)
+#   when          start only if the project has one of these root `files` (a trailing `*`
+#                 is a prefix match) or `packages` (package.json dependencies)
+#   enabled       default for the per-server toggle (true when omitted)
+#   install       ways to install it; `command` is run without a shell. apt / pacman need
+#                 root and are only shown. `platforms`: linux, macos, windows (all if empty)
+#   initialization_options / settings: sent to the server; the app adds project specific
+#                 values (TypeScript SDK, Vue plugin, ESLint workspace folder, ...).
+
+# ---- Languages -------------------------------------------------------------------------
+
+[[language]]
+id = "javascript"
+name = "JavaScript"
+extensions = ["js", "mjs", "cjs", "jsx:javascriptreact"]
+
+[[language]]
+id = "typescript"
+name = "TypeScript"
+extensions = ["ts", "mts", "cts", "tsx:typescriptreact"]
+
+[[language]]
+id = "vue"
+name = "Vue"
+extensions = ["vue"]
+
+[[language]]
+id = "svelte"
+name = "Svelte"
+extensions = ["svelte"]
+
+[[language]]
+id = "astro"
+name = "Astro"
+extensions = ["astro"]
+
+[[language]]
+id = "html"
+name = "HTML"
+extensions = ["html", "htm", "xhtml"]
+
+[[language]]
+id = "css"
+name = "CSS"
+extensions = ["css"]
+
+[[language]]
+id = "scss"
+name = "SCSS"
+extensions = ["scss"]
+
+[[language]]
+id = "less"
+name = "Less"
+extensions = ["less"]
+
+[[language]]
+id = "json"
+name = "JSON"
+extensions = ["json", "jsonc:jsonc", "json5:jsonc"]
+file_names = [".babelrc:jsonc", ".eslintrc:jsonc", ".prettierrc:json"]
+
+[[language]]
+id = "yaml"
+name = "YAML"
+extensions = ["yml", "yaml"]
+
+[[language]]
+id = "toml"
+name = "TOML"
+extensions = ["toml"]
+file_names = ["Cargo.lock", "Pipfile"]
+
+[[language]]
+id = "xml"
+name = "XML"
+extensions = ["xml", "xsd", "xsl", "xslt", "wsdl", "xliff", "xlf", "svg"]
+file_names = ["phpunit.xml.dist", "phpcs.xml.dist", "psalm.xml.dist"]
+
+[[language]]
+id = "markdown"
+name = "Markdown"
+extensions = ["md", "markdown", "mdx"]
+
+[[language]]
+id = "dockerfile"
+name = "Dockerfile"
+extensions = ["dockerfile"]
+file_names = ["Dockerfile", "Containerfile"]
+
+[[language]]
+id = "dockercompose"
+name = "Docker Compose"
+file_names = ["docker-compose.yml", "docker-compose.yaml", "compose.yml", "compose.yaml", "docker-compose.override.yml", "docker-compose.override.yaml"]
+
+[[language]]
+id = "shellscript"
+name = "Shell Script"
+extensions = ["sh", "bash", "ksh", "zsh"]
+file_names = [".bashrc", ".bash_profile", ".profile"]
+
+[[language]]
+id = "sql"
+name = "SQL"
+extensions = ["sql"]
+
+[[language]]
+id = "latex"
+name = "LaTeX"
+extensions = ["tex", "sty", "cls", "ltx", "bib:bibtex"]
+
+[[language]]
+id = "twig"
+name = "Twig"
+extensions = ["twig"]
+
+[[language]]
+id = "lua"
+name = "Lua"
+extensions = ["lua", "rockspec"]
+file_names = [".luacheckrc", ".luarc.json:json"]
+
+[[language]]
+id = "python"
+name = "Python"
+extensions = ["py", "pyi", "pyw"]
+
+[[language]]
+id = "go"
+name = "Go"
+extensions = ["go"]
+file_names = ["go.mod:go.mod", "go.work:go.work"]
+
+[[language]]
+id = "rust"
+name = "Rust"
+extensions = ["rs"]
+
+[[language]]
+id = "c"
+name = "C"
+extensions = ["c", "h"]
+
+[[language]]
+id = "cpp"
+name = "C++"
+extensions = ["cpp", "cc", "cxx", "c++", "hpp", "hh", "hxx", "ipp", "inl"]
+
+[[language]]
+id = "java"
+name = "Java"
+extensions = ["java"]
+
+[[language]]
+id = "csharp"
+name = "C#"
+extensions = ["cs", "csx"]
+
+[[language]]
+id = "ruby"
+name = "Ruby"
+extensions = ["rb", "rake", "gemspec", "ru", "erb:erb"]
+file_names = ["Gemfile", "Rakefile", "Guardfile"]
+
+[[language]]
+id = "kotlin"
+name = "Kotlin"
+extensions = ["kt", "kts"]
+
+[[language]]
+id = "zig"
+name = "Zig"
+extensions = ["zig", "zon"]
+
+[[language]]
+id = "php"
+name = "PHP"
+extensions = ["php", "phtml"]
+
+# ---- JavaScript & TypeScript -----------------------------------------------------------
+
+[[server]]
+id = "typescript-language-server"
+name = "TypeScript Language Server"
+group = "JavaScript & TypeScript"
+languages = ["typescript", "javascript"]
+command = "typescript-language-server"
+args = ["--stdio"]
+alternative = "typescript"
+plugin = "forge.web"
+homepage = "https://github.com/typescript-language-server/typescript-language-server"
+license = "MIT"
+note = "Uses the project's TypeScript (node_modules) or a global one. Serves .vue files too when the Vue language server is installed (hybrid mode)."
+install = [
+  { tool = "npm", command = ["npm", "install", "-g", "typescript-language-server", "typescript"] },
+  { tool = "brew", command = ["brew", "install", "typescript-language-server"], platforms = ["macos", "linux"] },
+  { tool = "pacman", command = ["sudo", "pacman", "-S", "typescript-language-server"], platforms = ["linux"] },
+]
+
+[server.initialization_options]
+hostInfo = "forge"
+preferences = { includeInlayParameterNameHints = "none", importModuleSpecifierPreference = "shortest", quotePreference = "auto" }
+
+[server.settings]
+typescript = { format = { enable = true }, suggest = { completeFunctionCalls = false } }
+javascript = { format = { enable = true }, suggest = { completeFunctionCalls = false } }
+
+[[server]]
+id = "vtsls"
+name = "vtsls"
+group = "JavaScript & TypeScript"
+languages = ["typescript", "javascript"]
+command = "vtsls"
+args = ["--stdio"]
+alternative = "typescript"
+plugin = "forge.web"
+homepage = "https://github.com/yioneko/vtsls"
+license = "MIT"
+note = "Alternative to typescript-language-server built on VS Code's TypeScript extension. Starts only when typescript-language-server is missing or disabled."
+install = [
+  { tool = "npm", command = ["npm", "install", "-g", "@vtsls/language-server"] },
+]
+
+[server.settings]
+vtsls = { autoUseWorkspaceTsdk = true }
+typescript = { format = { enable = true } }
+javascript = { format = { enable = true } }
+
+[[server]]
+id = "vscode-eslint-language-server"
+name = "ESLint"
+group = "JavaScript & TypeScript"
+languages = ["javascript", "typescript", "vue", "svelte", "astro"]
+command = "vscode-eslint-language-server"
+args = ["--stdio"]
+plugin = "forge.web"
+homepage = "https://github.com/hrsh7th/vscode-langservers-extracted"
+license = "MIT"
+note = "Starts in projects with an ESLint configuration or an eslint dependency."
+when = { files = ["eslint.config.*", ".eslintrc*"], packages = ["eslint"] }
+install = [
+  { tool = "npm", command = ["npm", "install", "-g", "vscode-langservers-extracted"] },
+  { tool = "brew", command = ["brew", "install", "vscode-langservers-extracted"], platforms = ["macos", "linux"] },
+]
+
+[server.settings]
+validate = "on"
+packageManager = "npm"
+useESLintClass = false
+experimental = { useFlatConfig = false }
+codeAction = { disableRuleComment = { enable = true, location = "separateLine" }, showDocumentation = { enable = true } }
+codeActionOnSave = { enable = false, mode = "all" }
+format = false
+quiet = false
+onIgnoredFiles = "off"
+rulesCustomizations = []
+run = "onType"
+problems = { shortenToSingleLine = false }
+nodePath = ""
+workingDirectory = { mode = "location" }
+
+# ---- Web frameworks ----------------------------------------------------------------------
+
+[[server]]
+id = "vue-language-server"
+name = "Vue Language Server (Volar)"
+group = "Vue"
+languages = ["vue"]
+command = "vue-language-server"
+args = ["--stdio"]
+plugin = "forge.vue"
+homepage = "https://github.com/vuejs/language-tools"
+license = "MIT"
+note = "Hybrid mode: templates and styles here, script blocks through the TypeScript server with @vue/typescript-plugin."
+install = [
+  { tool = "npm", command = ["npm", "install", "-g", "@vue/language-server", "@vue/typescript-plugin", "typescript"] },
+]
+
+[server.initialization_options]
+vue = { hybridMode = true }
+
+[[server]]
+id = "ngserver"
+name = "Angular Language Service"
+group = "Angular"
+languages = ["typescript", "html"]
+command = "ngserver"
+args = ["--stdio"]
+plugin = "forge.web"
+homepage = "https://github.com/angular/vscode-ng-language-service"
+license = "MIT"
+note = "Starts in projects that depend on @angular/core."
+when = { packages = ["@angular/core"] }
+install = [
+  { tool = "npm", command = ["npm", "install", "-g", "@angular/language-server", "typescript"] },
+]
+
+[[server]]
+id = "svelteserver"
+name = "Svelte Language Server"
+group = "Svelte"
+languages = ["svelte"]
+command = "svelteserver"
+args = ["--stdio"]
+plugin = "forge.web"
+homepage = "https://github.com/sveltejs/language-tools"
+license = "MIT"
+install = [
+  { tool = "npm", command = ["npm", "install", "-g", "svelte-language-server"] },
+]
+
+[server.initialization_options]
+configuration = { svelte = { plugin = { svelte = { format = { enable = true } } } } }
+
+[[server]]
+id = "astro-ls"
+name = "Astro Language Server"
+group = "Astro"
+languages = ["astro"]
+command = "astro-ls"
+args = ["--stdio"]
+plugin = "forge.web"
+homepage = "https://github.com/withastro/language-tools"
+license = "MIT"
+install = [
+  { tool = "npm", command = ["npm", "install", "-g", "@astrojs/language-server", "typescript"] },
+]
+
+# ---- HTML & CSS --------------------------------------------------------------------------
+
+[[server]]
+id = "vscode-html-language-server"
+name = "HTML Language Server"
+group = "HTML & CSS"
+languages = ["html"]
+command = "vscode-html-language-server"
+args = ["--stdio"]
+plugin = "forge.web"
+homepage = "https://github.com/hrsh7th/vscode-langservers-extracted"
+license = "MIT"
+install = [
+  { tool = "npm", command = ["npm", "install", "-g", "vscode-langservers-extracted"] },
+  { tool = "brew", command = ["brew", "install", "vscode-langservers-extracted"], platforms = ["macos", "linux"] },
+  { tool = "pacman", command = ["sudo", "pacman", "-S", "vscode-html-languageserver"], platforms = ["linux"] },
+]
+
+[server.initialization_options]
+provideFormatter = true
+embeddedLanguages = { css = true, javascript = true }
+configurationSection = ["html", "css", "javascript"]
+
+[server.settings]
+html = { format = { enable = true, wrapLineLength = 120 }, suggest = { html5 = true }, validate = { scripts = true, styles = true } }
+
+[[server]]
+id = "vscode-css-language-server"
+name = "CSS Language Server"
+group = "HTML & CSS"
+languages = ["css", "scss", "less"]
+command = "vscode-css-language-server"
+args = ["--stdio"]
+plugin = "forge.web"
+homepage = "https://github.com/hrsh7th/vscode-langservers-extracted"
+license = "MIT"
+install = [
+  { tool = "npm", command = ["npm", "install", "-g", "vscode-langservers-extracted"] },
+  { tool = "brew", command = ["brew", "install", "vscode-langservers-extracted"], platforms = ["macos", "linux"] },
+  { tool = "pacman", command = ["sudo", "pacman", "-S", "vscode-css-languageserver"], platforms = ["linux"] },
+]
+
+[server.initialization_options]
+provideFormatter = true
+
+[server.settings]
+css = { validate = true, lint = { unknownAtRules = "ignore" } }
+scss = { validate = true, lint = { unknownAtRules = "ignore" } }
+less = { validate = true }
+
+[[server]]
+id = "tailwindcss-language-server"
+name = "Tailwind CSS IntelliSense"
+group = "HTML & CSS"
+languages = ["html", "css", "scss", "javascript", "typescript", "vue", "svelte", "astro", "php", "twig"]
+command = "tailwindcss-language-server"
+args = ["--stdio"]
+plugin = "forge.web"
+homepage = "https://github.com/tailwindlabs/tailwindcss-intellisense"
+license = "MIT"
+note = "Starts in projects with a Tailwind config or a tailwindcss dependency. Class completion in Blade and Twig templates too."
+when = { files = ["tailwind.config.*"], packages = ["tailwindcss", "@tailwindcss/vite", "@tailwindcss/postcss"] }
+install = [
+  { tool = "npm", command = ["npm", "install", "-g", "@tailwindcss/language-server"] },
+]
+
+[server.initialization_options]
+userLanguages = { php = "html", twig = "html", blade = "html" }
+
+[server.settings]
+tailwindCSS = { emmetCompletions = false, validate = true, classAttributes = ["class", "className", ":class", "ngClass"], includeLanguages = { php = "html", twig = "html" }, lint = { cssConflict = "warning", invalidApply = "error", invalidScreen = "error", invalidVariant = "error", invalidConfigPath = "error", invalidTailwindDirective = "error", recommendedVariantOrder = "warning" } }
+
+# ---- Data & configuration ----------------------------------------------------------------
+
+[[server]]
+id = "vscode-json-language-server"
+name = "JSON Language Server"
+group = "JSON"
+languages = ["json"]
+command = "vscode-json-language-server"
+args = ["--stdio"]
+homepage = "https://github.com/hrsh7th/vscode-langservers-extracted"
+license = "MIT"
+note = "Validates composer.json, package.json, tsconfig.json and more with schemas from SchemaStore (downloaded by the server)."
+install = [
+  { tool = "npm", command = ["npm", "install", "-g", "vscode-langservers-extracted"] },
+  { tool = "brew", command = ["brew", "install", "vscode-langservers-extracted"], platforms = ["macos", "linux"] },
+]
+
+[server.initialization_options]
+provideFormatter = true
+
+[server.settings.json]
+validate = { enable = true }
+format = { enable = true }
+schemas = [
+  { fileMatch = ["composer.json"], url = "https://getcomposer.org/schema.json" },
+  { fileMatch = ["package.json"], url = "https://json.schemastore.org/package.json" },
+  { fileMatch = ["tsconfig.json", "tsconfig.*.json"], url = "https://json.schemastore.org/tsconfig.json" },
+  { fileMatch = ["jsconfig.json", "jsconfig.*.json"], url = "https://json.schemastore.org/jsconfig.json" },
+  { fileMatch = [".eslintrc", ".eslintrc.json"], url = "https://json.schemastore.org/eslintrc.json" },
+  { fileMatch = [".prettierrc", ".prettierrc.json"], url = "https://json.schemastore.org/prettierrc.json" },
+  { fileMatch = [".babelrc", "babel.config.json"], url = "https://json.schemastore.org/babelrc.json" },
+  { fileMatch = ["phpstan.json"], url = "https://json.schemastore.org/phpstan.json" },
+  { fileMatch = ["infection.json", "infection.json5"], url = "https://raw.githubusercontent.com/infection/infection/master/resources/schema.json" },
+  { fileMatch = [".luarc.json"], url = "https://raw.githubusercontent.com/LuaLS/vscode-lua/master/setting/schema.json" },
+  { fileMatch = ["*.schema.json"], url = "https://json-schema.org/draft/2020-12/schema" },
+]
+
+[[server]]
+id = "yaml-language-server"
+name = "YAML Language Server"
+group = "YAML"
+languages = ["yaml", "dockercompose"]
+command = "yaml-language-server"
+args = ["--stdio"]
+homepage = "https://github.com/redhat-developer/yaml-language-server"
+license = "MIT"
+note = "Schemas for GitHub Actions, docker-compose and Kubernetes manifests (in k8s/, kubernetes/, deploy/ or manifests/)."
+install = [
+  { tool = "npm", command = ["npm", "install", "-g", "yaml-language-server"] },
+  { tool = "brew", command = ["brew", "install", "yaml-language-server"], platforms = ["macos", "linux"] },
+  { tool = "pacman", command = ["sudo", "pacman", "-S", "yaml-language-server"], platforms = ["linux"] },
+]
+
+[server.settings.yaml]
+validate = true
+hover = true
+completion = true
+format = { enable = true }
+keyOrdering = false
+schemaStore = { enable = true, url = "https://www.schemastore.org/api/json/catalog.json" }
+
+[server.settings.yaml.schemas]
+"https://json.schemastore.org/github-workflow.json" = ".github/workflows/*.{yml,yaml}"
+"https://json.schemastore.org/github-action.json" = ["action.yml", "action.yaml"]
+"https://raw.githubusercontent.com/compose-spec/compose-spec/master/schema/compose-spec.json" = ["docker-compose*.yml", "docker-compose*.yaml", "compose.yml", "compose.yaml"]
+"kubernetes" = ["k8s/**/*.yaml", "k8s/**/*.yml", "kubernetes/**/*.yaml", "deploy/**/*.yaml", "manifests/**/*.yaml"]
+"https://json.schemastore.org/gitlab-ci.json" = ".gitlab-ci.yml"
+
+[[server]]
+id = "taplo"
+name = "Taplo (TOML)"
+group = "TOML"
+languages = ["toml"]
+command = "taplo"
+args = ["lsp", "stdio"]
+homepage = "https://taplo.tamasfe.dev"
+license = "MIT"
+install = [
+  { tool = "cargo", command = ["cargo", "install", "--locked", "taplo-cli"] },
+  { tool = "npm", command = ["npm", "install", "-g", "@taplo/cli"] },
+  { tool = "brew", command = ["brew", "install", "taplo"], platforms = ["macos", "linux"] },
+  { tool = "pacman", command = ["sudo", "pacman", "-S", "taplo-cli"], platforms = ["linux"] },
+]
+
+[server.settings]
+evenBetterToml = { schema = { enabled = true, catalogs = ["https://www.schemastore.org/api/json/catalog.json"] }, formatter = { alignEntries = false } }
+
+[[server]]
+id = "lemminx"
+name = "LemMinX (XML)"
+group = "XML"
+languages = ["xml"]
+command = "lemminx"
+homepage = "https://github.com/eclipse/lemminx"
+license = "EPL-2.0"
+note = "Validates phpunit.xml, Maven POMs and any XML with an XSD or DTD. Needs Java unless you use the native binary."
+install = [
+  { tool = "download", url = "https://github.com/redhat-developer/vscode-xml/releases" },
+  { tool = "brew", command = ["brew", "install", "lemminx"], platforms = ["macos", "linux"] },
+]
+
+[server.settings]
+xml = { format = { enabled = true, splitAttributes = false }, validation = { enabled = true, noGrammar = "hint" }, completion = { autoCloseTags = true } }
+
+[[server]]
+id = "marksman"
+name = "Marksman (Markdown)"
+group = "Markdown"
+languages = ["markdown"]
+command = "marksman"
+args = ["server"]
+homepage = "https://github.com/artempyanykh/marksman"
+license = "MIT"
+install = [
+  { tool = "brew", command = ["brew", "install", "marksman"], platforms = ["macos", "linux"] },
+  { tool = "pacman", command = ["sudo", "pacman", "-S", "marksman"], platforms = ["linux"] },
+  { tool = "download", url = "https://github.com/artempyanykh/marksman/releases" },
+]
+
+[[server]]
+id = "docker-langserver"
+name = "Dockerfile Language Server"
+group = "Docker"
+languages = ["dockerfile"]
+command = "docker-langserver"
+args = ["--stdio"]
+homepage = "https://github.com/rcjsuen/dockerfile-language-server"
+license = "MIT"
+install = [
+  { tool = "npm", command = ["npm", "install", "-g", "dockerfile-language-server-nodejs"] },
+]
+
+[[server]]
+id = "docker-compose-langserver"
+name = "Docker Compose Language Service"
+group = "Docker"
+languages = ["dockercompose"]
+command = "docker-compose-langserver"
+args = ["--stdio"]
+homepage = "https://github.com/microsoft/compose-language-service"
+license = "MIT"
+install = [
+  { tool = "npm", command = ["npm", "install", "-g", "@microsoft/compose-language-service"] },
+]
+
+[[server]]
+id = "bash-language-server"
+name = "Bash Language Server"
+group = "Shell Script"
+languages = ["shellscript"]
+command = "bash-language-server"
+args = ["start"]
+homepage = "https://github.com/bash-lsp/bash-language-server"
+license = "MIT"
+note = "Uses shellcheck for diagnostics and shfmt for formatting when they are installed."
+install = [
+  { tool = "npm", command = ["npm", "install", "-g", "bash-language-server"] },
+  { tool = "brew", command = ["brew", "install", "bash-language-server"], platforms = ["macos", "linux"] },
+  { tool = "pacman", command = ["sudo", "pacman", "-S", "bash-language-server"], platforms = ["linux"] },
+]
+
+[server.settings]
+bashIde = { globPattern = "**/*@(.sh|.inc|.bash|.command)", shellcheckPath = "shellcheck" }
+
+[[server]]
+id = "sqls"
+name = "sqls"
+group = "SQL"
+languages = ["sql"]
+command = "sqls"
+homepage = "https://github.com/sqls-server/sqls"
+license = "MIT"
+note = "Completion and formatting for SQL. Configure connections in ~/.config/sqls/config.yml."
+install = [
+  { tool = "go", command = ["go", "install", "github.com/sqls-server/sqls@latest"] },
+]
+
+[[server]]
+id = "texlab"
+name = "TexLab"
+group = "LaTeX"
+languages = ["latex"]
+command = "texlab"
+homepage = "https://github.com/latex-lsp/texlab"
+license = "GPL-3.0"
+install = [
+  { tool = "cargo", command = ["cargo", "install", "--locked", "texlab"] },
+  { tool = "brew", command = ["brew", "install", "texlab"], platforms = ["macos", "linux"] },
+  { tool = "pacman", command = ["sudo", "pacman", "-S", "texlab"], platforms = ["linux"] },
+]
+
+[server.settings]
+texlab = { build = { onSave = false }, chktex = { onOpenAndSave = false } }
+
+[[server]]
+id = "twiggy-language-server"
+name = "Twiggy (Twig)"
+group = "Twig"
+languages = ["twig"]
+command = "twiggy-language-server"
+args = ["--stdio"]
+homepage = "https://github.com/moetelo/twiggy"
+license = "MPL-2.0"
+install = [
+  { tool = "npm", command = ["npm", "install", "-g", "twiggy-language-server"] },
+]
+
+[server.settings]
+twiggy = { framework = "symfony", phpExecutable = "php", symfonyConsolePath = "bin/console" }
+
+# ---- Lua --------------------------------------------------------------------------------
+
+[[server]]
+id = "lua-language-server"
+name = "Lua Language Server"
+group = "Lua"
+languages = ["lua"]
+command = "lua-language-server"
+plugin = "forge.lua"
+homepage = "https://luals.github.io"
+license = "MIT"
+note = "Pick LÖVE or Neovim under Lua environment to get their APIs and globals."
+install = [
+  { tool = "brew", command = ["brew", "install", "lua-language-server"], platforms = ["macos", "linux"] },
+  { tool = "pacman", command = ["sudo", "pacman", "-S", "lua-language-server"], platforms = ["linux"] },
+  { tool = "download", url = "https://github.com/LuaLS/lua-language-server/releases" },
+]
+
+[server.settings.Lua]
+runtime = { version = "Lua 5.4" }
+workspace = { checkThirdParty = false, library = [] }
+diagnostics = { globals = [] }
+telemetry = { enable = false }
+format = { enable = true }
+hint = { enable = true }
+
+# ---- Python -----------------------------------------------------------------------------
+
+[[server]]
+id = "basedpyright"
+name = "basedpyright"
+group = "Python"
+languages = ["python"]
+command = "basedpyright-langserver"
+args = ["--stdio"]
+alternative = "python"
+homepage = "https://docs.basedpyright.com"
+license = "MIT"
+install = [
+  { tool = "pipx", command = ["pipx", "install", "basedpyright"] },
+  { tool = "pip", command = ["python3", "-m", "pip", "install", "--user", "basedpyright"] },
+  { tool = "npm", command = ["npm", "install", "-g", "basedpyright"] },
+]
+
+[server.settings]
+basedpyright = { analysis = { typeCheckingMode = "standard", autoSearchPaths = true, useLibraryCodeForTypes = true, diagnosticMode = "openFilesOnly" } }
+
+[[server]]
+id = "pyright"
+name = "Pyright"
+group = "Python"
+languages = ["python"]
+command = "pyright-langserver"
+args = ["--stdio"]
+alternative = "python"
+homepage = "https://github.com/microsoft/pyright"
+license = "MIT"
+note = "Starts only when basedpyright is missing or disabled."
+install = [
+  { tool = "npm", command = ["npm", "install", "-g", "pyright"] },
+  { tool = "pipx", command = ["pipx", "install", "pyright"] },
+  { tool = "pacman", command = ["sudo", "pacman", "-S", "pyright"], platforms = ["linux"] },
+]
+
+[server.settings]
+python = { analysis = { typeCheckingMode = "standard", autoSearchPaths = true, useLibraryCodeForTypes = true, diagnosticMode = "openFilesOnly" } }
+
+# ---- Systems languages -------------------------------------------------------------------
+
+[[server]]
+id = "gopls"
+name = "gopls"
+group = "Go"
+languages = ["go"]
+command = "gopls"
+homepage = "https://go.dev/gopls"
+license = "BSD-3-Clause"
+install = [
+  { tool = "go", command = ["go", "install", "golang.org/x/tools/gopls@latest"] },
+  { tool = "pacman", command = ["sudo", "pacman", "-S", "gopls"], platforms = ["linux"] },
+  { tool = "apt", command = ["sudo", "apt", "install", "gopls"], platforms = ["linux"] },
+]
+
+[server.settings]
+gopls = { gofumpt = false, staticcheck = false, usePlaceholders = false, semanticTokens = true }
+
+[[server]]
+id = "rust-analyzer"
+name = "rust-analyzer"
+group = "Rust"
+languages = ["rust"]
+command = "rust-analyzer"
+homepage = "https://rust-analyzer.github.io"
+license = "MIT OR Apache-2.0"
+install = [
+  { tool = "rustup", command = ["rustup", "component", "add", "rust-analyzer"] },
+  { tool = "brew", command = ["brew", "install", "rust-analyzer"], platforms = ["macos", "linux"] },
+  { tool = "pacman", command = ["sudo", "pacman", "-S", "rust-analyzer"], platforms = ["linux"] },
+]
+
+[server.initialization_options]
+cargo = { buildScripts = { enable = true } }
+check = { command = "clippy" }
+procMacro = { enable = true }
+
+[server.settings]
+rust-analyzer = { cargo = { buildScripts = { enable = true } }, check = { command = "clippy" }, procMacro = { enable = true } }
+
+[[server]]
+id = "clangd"
+name = "clangd"
+group = "C/C++"
+languages = ["c", "cpp"]
+command = "clangd"
+args = ["--background-index", "--clang-tidy", "--header-insertion=iwyu"]
+homepage = "https://clangd.llvm.org"
+license = "Apache-2.0 WITH LLVM-exception"
+note = "Needs compile_commands.json (CMake: -DCMAKE_EXPORT_COMPILE_COMMANDS=ON, or bear) for accurate results."
+install = [
+  { tool = "brew", command = ["brew", "install", "llvm"], platforms = ["macos"] },
+  { tool = "pacman", command = ["sudo", "pacman", "-S", "clang"], platforms = ["linux"] },
+  { tool = "apt", command = ["sudo", "apt", "install", "clangd"], platforms = ["linux"] },
+  { tool = "download", url = "https://github.com/clangd/clangd/releases" },
+]
+
+[server.initialization_options]
+clangdFileStatus = true
+
+[[server]]
+id = "zls"
+name = "ZLS"
+group = "Zig"
+languages = ["zig"]
+command = "zls"
+homepage = "https://github.com/zigtools/zls"
+license = "MIT"
+install = [
+  { tool = "brew", command = ["brew", "install", "zls"], platforms = ["macos", "linux"] },
+  { tool = "pacman", command = ["sudo", "pacman", "-S", "zls"], platforms = ["linux"] },
+  { tool = "download", url = "https://github.com/zigtools/zls/releases" },
+]
+
+# ---- JVM & .NET --------------------------------------------------------------------------
+
+[[server]]
+id = "jdtls"
+name = "Eclipse JDT Language Server"
+group = "Java"
+languages = ["java"]
+command = "jdtls"
+homepage = "https://github.com/eclipse-jdtls/eclipse.jdt.ls"
+license = "EPL-2.0"
+note = "Needs Java 21+. Forge keeps its workspace data in the user cache directory."
+install = [
+  { tool = "brew", command = ["brew", "install", "jdtls"], platforms = ["macos", "linux"] },
+  { tool = "download", url = "https://download.eclipse.org/jdtls/snapshots/" },
+]
+
+[server.settings]
+java = { format = { enabled = true }, signatureHelp = { enabled = true }, contentProvider = { preferred = "fernflower" } }
+
+[[server]]
+id = "kotlin-language-server"
+name = "Kotlin Language Server"
+group = "Kotlin"
+languages = ["kotlin"]
+command = "kotlin-language-server"
+homepage = "https://github.com/fwcd/kotlin-language-server"
+license = "MIT"
+install = [
+  { tool = "brew", command = ["brew", "install", "kotlin-language-server"], platforms = ["macos", "linux"] },
+  { tool = "download", url = "https://github.com/fwcd/kotlin-language-server/releases" },
+]
+
+[[server]]
+id = "csharp-ls"
+name = "csharp-ls"
+group = "C#"
+languages = ["csharp"]
+command = "csharp-ls"
+homepage = "https://github.com/razzmatazz/csharp-language-server"
+license = "MIT"
+note = "Needs the .NET SDK."
+install = [
+  { tool = "dotnet", command = ["dotnet", "tool", "install", "--global", "csharp-ls"] },
+]
+
+[[server]]
+id = "ruby-lsp"
+name = "Ruby LSP"
+group = "Ruby"
+languages = ["ruby"]
+command = "ruby-lsp"
+homepage = "https://shopify.github.io/ruby-lsp"
+license = "MIT"
+install = [
+  { tool = "gem", command = ["gem", "install", "--user-install", "ruby-lsp"] },
+]
+
+[server.initialization_options]
+enabledFeatures = { codeActions = true, completion = true, definition = true, diagnostics = true, documentSymbols = true, formatting = true, hover = true, workspaceSymbol = true }
+formatter = "auto"
