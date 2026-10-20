@@ -1,0 +1,19 @@
+[package]
+name = "phpforge-orm-doctrine"
+description = "PHPForge: Doctrine ORM support (entity mapping, repositories, DQL parsing and completion)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+phpforge-lang-php = { path = "../lang-php" }
+serde.workspace = true
+serde_json.workspace = true
+walkdir = "2.5"
+tree-sitter = "0.25"
+regex = "1"
+quick-xml = "0.42"
+yaml-rust2 = { version = "0.10", default-features = false }
+
+[dev-dependencies]
+tempfile.workspace = true

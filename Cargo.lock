@@ -65,6 +65,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "330a5ed07fa54e4702c9d6c4174f74427fc0ef6e214bbd677ae50a5099946470"
 
 [[package]]
+name = "arraydeque"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7d902e3d592a523def97af8f317b08ce16b7ab854c1985a0c671e6f15cebc236"
+
+[[package]]
 name = "async-broadcast"
 version = "0.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1406,7 +1412,9 @@ dependencies = [
  "forge-vcs",
  "futures-util",
  "phpforge-fw-laravel",
+ "phpforge-fw-symfony",
  "phpforge-lang-php",
+ "phpforge-orm-doctrine",
  "serde",
  "serde_json",
  "tauri",
@@ -3455,6 +3463,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "phpforge-fw-symfony"
+version = "0.1.0"
+dependencies = [
+ "phpforge-lang-php",
+ "quick-xml",
+ "regex",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "walkdir",
+ "yaml-rust2",
+]
+
+[[package]]
 name = "phpforge-lang-php"
 version = "0.1.0"
 dependencies = [
@@ -3468,6 +3490,21 @@ dependencies = [
  "tree-sitter",
  "tree-sitter-php",
  "walkdir",
+]
+
+[[package]]
+name = "phpforge-orm-doctrine"
+version = "0.1.0"
+dependencies = [
+ "phpforge-lang-php",
+ "quick-xml",
+ "regex",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tree-sitter",
+ "walkdir",
+ "yaml-rust2",
 ]
 
 [[package]]
@@ -6897,6 +6934,16 @@ checksum = "ec1cdab258fb55c0da61328dc52c8764709b249011b2cad0454c72f0bf10a1f6"
 dependencies = [
  "libc",
  "windows-sys 0.59.0",
+]
+
+[[package]]
+name = "yaml-rust2"
+version = "0.10.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2462ea039c445496d8793d052e13787f2b90e750b833afee748e601c17621ed9"
+dependencies = [
+ "arraydeque",
+ "hashlink",
 ]
 
 [[package]]

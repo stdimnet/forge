@@ -117,6 +117,8 @@ pub fn run() {
         .manage(commands::langservers::LangServersState::default())
         .manage(commands::terminal::TerminalState::default())
         .manage(run_state)
+        .manage(commands::symfony::SymfonyState::default())
+        .manage(commands::doctrine::DoctrineState::default())
         .invoke_handler(tauri::generate_handler![
             commands::workspace::workspace_open,
             commands::workspace::workspace_current,
@@ -277,6 +279,23 @@ pub fn run() {
             commands::db::db_detect_env,
             commands::db::db_add_from_env,
             commands::db::db_export,
+            commands::symfony::symfony_detect,
+            commands::symfony::symfony_refresh,
+            commands::symfony::symfony_routes,
+            commands::symfony::symfony_services,
+            commands::symfony::symfony_parameters,
+            commands::symfony::symfony_templates,
+            commands::symfony::symfony_console_commands,
+            commands::symfony::symfony_complete,
+            commands::symfony::symfony_goto,
+            commands::symfony::symfony_gutter,
+            commands::symfony::symfony_console_run,
+            commands::symfony::symfony_console_cancel,
+            commands::doctrine::doctrine_entities,
+            commands::doctrine::doctrine_complete,
+            commands::doctrine::doctrine_goto,
+            commands::doctrine::doctrine_diagnostics,
+            commands::doctrine::doctrine_gutter,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Forge");

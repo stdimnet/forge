@@ -1,0 +1,125 @@
+/* Doctrine plugin UI. Colors come only from the theme tokens in src/theme/theme.css. */
+
+/* ---------- Entities tool window ---------- */
+.dc-panel {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.dc-toolbar {
+  padding: 2px 8px 6px;
+  flex-shrink: 0;
+}
+.dc-search {
+  width: 100%;
+}
+.dc-tree {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding-bottom: 6px;
+}
+.dc-row {
+  gap: 6px;
+  padding-left: 6px;
+}
+.dc-row.selected {
+  background: var(--bg-selection);
+}
+.dc-member {
+  padding-left: 42px;
+}
+.dc-chevron {
+  display: inline-grid;
+  place-items: center;
+  width: 14px;
+  color: var(--fg-muted);
+}
+.dc-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  flex-shrink: 0;
+}
+.dc-entity { color: var(--info); }
+.dc-embeddable { color: var(--syn-type); }
+.dc-id { color: var(--warning); }
+.dc-field { color: var(--syn-attribute); }
+.dc-embedded { color: var(--syn-type); }
+.dc-assoc { color: var(--accent-strong); }
+.dc-name {
+  color: var(--fg);
+  flex-shrink: 0;
+}
+.dc-entity-name {
+  color: var(--fg-strong);
+  font-weight: 500;
+}
+.dc-table {
+  color: var(--fg-muted);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+}
+.dc-source {
+  margin-left: auto;
+  font-size: 10.5px;
+  color: var(--fg-faint);
+}
+.dc-type {
+  color: var(--fg-muted);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dc-target {
+  color: var(--syn-type);
+}
+.dc-kind {
+  font-size: 10.5px;
+  padding: 0 5px;
+  border-radius: var(--radius-sm);
+  color: var(--accent-strong);
+  background: var(--accent-soft);
+}
+.dc-arrow {
+  color: var(--fg-faint);
+  flex-shrink: 0;
+}
+.dc-flag {
+  font-size: 10.5px;
+  color: var(--fg-faint);
+}
+.dc-footer {
+  padding: 4px 10px;
+  border-top: 1px solid var(--border);
+  font-size: var(--fs-small);
+  flex-shrink: 0;
+}
+
+/* ---------- DQL injected into PHP strings ---------- */
+.cm-dql-injected {
+  background: color-mix(in srgb, var(--success) 6%, transparent);
+}
+/* Injected tokens override the PHP string color, whichever span ends up inside. */
+.cm-dql-keyword,
+.cm-dql-keyword * { color: var(--syn-keyword) !important; font-weight: 600; }
+.cm-dql-function,
+.cm-dql-function * { color: var(--syn-function) !important; }
+.cm-dql-entity,
+.cm-dql-entity * { color: var(--syn-type) !important; }
+.cm-dql-alias,
+.cm-dql-alias * { color: var(--syn-variable) !important; }
+.cm-dql-field,
+.cm-dql-field * { color: var(--syn-number) !important; }
+.cm-dql-parameter,
+.cm-dql-parameter * { color: var(--syn-attribute) !important; font-style: italic; }
+.cm-dql-number,
+.cm-dql-number * { color: var(--syn-number) !important; }
+.cm-dql-string,
+.cm-dql-string * { color: var(--syn-string) !important; }
+.cm-dql-problem {
+  text-decoration: underline wavy var(--warning);
+  text-underline-offset: 3px;
+}

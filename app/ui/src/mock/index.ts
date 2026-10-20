@@ -15,3 +15,5 @@ import "./runMock";
 import "./debugMock";
 import "./dbMock";
 import "./laravelMock";
+import "./symfonyMock";
+import "./doctrineMock";

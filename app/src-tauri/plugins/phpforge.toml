@@ -323,6 +323,100 @@ depends = ["forge.php", "forge.composer"]
 description = "Services, routing, Twig templates and console commands."
 projectTypes = ["symfony"]
 
+[[plugin.contributions.commands]]
+id = "symfony.runConsoleCommand"
+title = "Run Console Command…"
+category = "Tools"
+
+[[plugin.contributions.commands]]
+id = "symfony.refresh"
+title = "Refresh Symfony Index"
+category = "Tools"
+
+[[plugin.contributions.toolWindows]]
+id = "symfony"
+title = "Symfony"
+anchor = "bottom"
+icon = "route"
+order = 35
+
+[[plugin.contributions.settings]]
+key = "symfony.environment"
+title = "Environment"
+description = "Kernel environment used for the compiled container and console commands."
+type = "enum"
+options = [
+  { value = "dev", label = "dev" },
+  { value = "test", label = "test" },
+  { value = "prod", label = "prod" },
+]
+default = "dev"
+group = "lang.php.symfony"
+section = "Project"
+project = true
+order = 0
+
+[[plugin.contributions.settings]]
+key = "symfony.appDirectory"
+title = "App directory"
+description = "Scanned for controllers, console commands and Twig extensions."
+type = "path"
+default = "src"
+group = "lang.php.symfony"
+section = "Project"
+project = true
+order = 1
+
+[[plugin.contributions.settings]]
+key = "symfony.templatesDirectory"
+title = "Templates directory"
+type = "path"
+default = "templates"
+group = "lang.php.symfony"
+section = "Project"
+project = true
+order = 2
+
+[[plugin.contributions.settings]]
+key = "symfony.consolePath"
+title = "Console"
+description = "Path to the console script, relative to the project root."
+type = "path"
+default = "bin/console"
+group = "lang.php.symfony"
+section = "Project"
+project = true
+order = 3
+
+[[plugin.contributions.settings]]
+key = "symfony.containerXml"
+title = "Container XML"
+description = "Compiled container dump; leave empty to use var/cache/<environment>/*Container.xml."
+type = "path"
+default = ""
+group = "lang.php.symfony"
+section = "Container"
+project = true
+order = 10
+
+[[plugin.contributions.settings]]
+key = "symfony.gutterIcons"
+title = "Show line markers for routes, templates and commands"
+type = "bool"
+default = true
+group = "lang.php.symfony"
+section = "Editor"
+order = 20
+
+[[plugin.contributions.settings]]
+key = "symfony.twigCompletion"
+title = "Complete Twig tags, filters and functions"
+type = "bool"
+default = true
+group = "lang.php.symfony"
+section = "Editor"
+order = 21
+
 [[plugin]]
 id = "forge.doctrine"
 name = "Doctrine"
@@ -332,3 +426,75 @@ vendor = "Forge"
 depends = ["forge.php"]
 description = "Entity mapping, repositories and DQL completion."
 projectTypes = ["doctrine"]
+
+[[plugin.contributions.commands]]
+id = "doctrine.refresh"
+title = "Refresh Doctrine Entities"
+category = "Tools"
+
+[[plugin.contributions.toolWindows]]
+id = "doctrine"
+title = "Doctrine"
+anchor = "right"
+icon = "boxes"
+order = 15
+
+[[plugin.contributions.settings]]
+key = "doctrine.sourceDirectories"
+title = "Entity source directories"
+description = "Scanned for #[ORM\\Entity] classes and repositories."
+type = "list"
+default = ["src"]
+group = "lang.php.doctrine"
+section = "Mapping"
+project = true
+order = 0
+
+[[plugin.contributions.settings]]
+key = "doctrine.mappingDirectories"
+title = "Mapping file directories"
+description = "Directories with *.orm.xml and *.orm.yml mapping files."
+type = "list"
+default = ["config/doctrine", "src/Resources/config/doctrine"]
+group = "lang.php.doctrine"
+section = "Mapping"
+project = true
+order = 1
+
+[[plugin.contributions.settings]]
+key = "doctrine.annotations"
+title = "Read legacy @ORM annotations"
+description = "Docblock annotations are used when a class has no mapping attributes."
+type = "bool"
+default = true
+group = "lang.php.doctrine"
+section = "Mapping"
+project = true
+order = 2
+
+[[plugin.contributions.settings]]
+key = "doctrine.dqlInjection"
+title = "Highlight DQL in createQuery() and QueryBuilder strings"
+type = "bool"
+default = true
+group = "lang.php.doctrine"
+section = "DQL"
+order = 10
+
+[[plugin.contributions.settings]]
+key = "doctrine.dqlCompletion"
+title = "Complete entities, aliases and fields in DQL"
+type = "bool"
+default = true
+group = "lang.php.doctrine"
+section = "DQL"
+order = 11
+
+[[plugin.contributions.settings]]
+key = "doctrine.dqlInspections"
+title = "Report unknown entities and fields"
+type = "bool"
+default = true
+group = "lang.php.doctrine"
+section = "DQL"
+order = 12

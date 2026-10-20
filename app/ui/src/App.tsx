@@ -15,7 +15,8 @@ export function App() {
     // unless `?welcome` asks for the Welcome screen.
     if (new URLSearchParams(location.search).has("welcome")) return;
     await openWorkspace("demo");
-    await openFile("app/Models/User.php");
+    const symfony = new URLSearchParams(location.search).get("project") === "symfony";
+    await openFile(symfony ? "src/Controller/OrderController.php" : "app/Models/User.php");
   });
   return (
     <Show when={workspace()} fallback={<WelcomeScreen />}>

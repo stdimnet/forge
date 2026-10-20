@@ -14,6 +14,8 @@ import "./keymapSettings";
 import "./git";
 import "./php";
 import "./laravel";
+import "./symfony";
+import "./doctrine";
 import "./project-type";
 import "./new-project";
 import "./browserCompanion";
