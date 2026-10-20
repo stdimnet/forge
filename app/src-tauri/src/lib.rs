@@ -40,6 +40,7 @@ pub fn run() {
         .manage(commands::db::DbState::load())
         .manage(commands::forges::ForgesState::load())
         .manage(commands::services::ServicesState::default())
+        .manage(commands::scratches::HttpClientState::default())
         .setup(|app| {
             app.manage(commands::debug::DebugState::new(app.handle().clone()));
             // Forward settings changes to the UI.
@@ -305,6 +306,7 @@ pub fn run() {
             commands::scratches::scratches_set_data_source,
             commands::scratches::scratches_markers,
             commands::scratches::scratches_http_run,
+            commands::scratches::scratches_http_environments,
             commands::output::output_file_links,
             commands::markdown::markdown_parse,
             commands::markdown::markdown_hover,
