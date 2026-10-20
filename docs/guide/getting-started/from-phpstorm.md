@@ -76,8 +76,8 @@ The [keymap reference](../reference/keymap.md) marks every action as implemented
 
 1. Open the project folder in Forge. The `.idea/` folder is ignored; nothing is converted.
 2. Install the language servers you need from Settings | Languages & Frameworks |
-   Language Servers. For PHP install Intelephense (`npm install -g intelephense` or the
-   **Install** button) and, if you own a licence, enter the key on the same page.
+   Language Servers. For PHP, accept the offer "Intelephense is not installed" (or click **Install
+   Intelephense**) and, if you own a licence, enter the key on the same page.
 3. Set the PHP interpreter and language level in Settings | Languages & Frameworks | PHP.
 4. Recreate run configurations in Run | Edit Configurations (the run widget in the toolbar).
    PHPStorm's `.run/` XML files are not imported.

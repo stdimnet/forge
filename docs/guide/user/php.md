@@ -109,6 +109,8 @@ Methods.
 | CLI Interpreter (path to `php`) | `php.interpreter` | `php` |
 | Language server (Auto, Intelephense, phpactor, None) | `php.lsp.server` | Auto |
 | Max indexed file size for the server (KB) | `php.lsp.maxFileSize` | 5000 |
+| When Intelephense is not installed (`ask`, `always`, `never`), see [Installing Intelephense](language-servers.md#installing-intelephense) | `php.intelephense.autoInstall` | `ask` |
+| I accept the Intelephense licence | `php.intelephense.licenceAccepted` | off |
 | Include Path | `php.includePaths` | empty |
 
 The language level and the interpreter can be stored per project ("For current project" in

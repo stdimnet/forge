@@ -58,8 +58,8 @@ No. They are separate programs you install, from the Language Servers settings p
 click or with your package manager. Forge never bundles paid tools or keys.
 
 **Do I need Node.js?**
-Only for npm-based language servers (Intelephense, TypeScript, Vue, HTML/CSS/JSON, YAML, …), npm
-scripts and web project generators.
+Only for npm scripts and web project generators. npm-based language servers (Intelephense, TypeScript, Vue, …) do not need it: Forge
+downloads an official Node.js build for them when none (18 or newer) is installed.
 
 ## AI
 

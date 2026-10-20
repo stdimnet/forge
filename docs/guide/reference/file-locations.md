@@ -45,7 +45,8 @@ index falls back to `<project>/.forge/cache/php-index.json`.
 
 | Path | Content |
 | --- | --- |
-| `langservers/` | language servers installed by Forge with npm (`node_modules/.bin`) |
+| `langservers/` | language servers installed by Forge (`node_modules/.bin`, `package.json`, `.forge-update-check.json`) |
+| `runtimes/node-<version>/` | the Node.js build Forge downloaded for language servers (only when no Node.js 18+ was installed) |
 
 ## In the project — `<project>/.forge/`
 

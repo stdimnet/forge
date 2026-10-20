@@ -84,7 +84,7 @@ The deb/rpm packages install it. For the AppImage, link it into your `PATH`
    volta, fnm, `~/.local/bin` and Composer paths are often only set in shell profiles). Forge
    searches the usual places itself, but if it still fails, set the server's **Executable** to
    the full path, or start Forge from a terminal.
-3. Node-based servers need `node` on Forge's `PATH`, even when the server itself was found.
+3. Servers you installed yourself and that run on Node need `node` on Forge's `PATH`; servers installed by Forge use its own Node.js.
 4. Install with the **Install…** button: npm servers go to Forge's own folder
    (`~/.local/share/forge/langservers` on Linux) and are found there.
 5. The server must be **Enabled**, its plugin active (e.g. `forge.vue` for Volar), and for
@@ -99,7 +99,7 @@ available, the key cannot be stored (see below).
 ### No completion in PHP at all
 
 Check Settings | Languages & Frameworks | PHP | **Language server**: with "None (built-in index
-only)" no server runs. With "Auto", install Intelephense (`npm install -g intelephense`) or
+only)" no server runs. With "Auto", install Intelephense (**Install Intelephense** on the PHP page) or
 Phpactor.
 
 ## Keychain on Linux
