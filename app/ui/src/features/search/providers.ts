@@ -7,9 +7,15 @@
  *
  * A provider registered with an existing id replaces it (e.g. the PHP pack replacing the
  * demo-project mock).
+ *
+ * Providers only *collect* candidates; matching, scoring, highlighting, merging, deduping
+ * and cutting happen in Rust (`forge_fuzzy::everywhere`, the `search_rank` command). A
+ * candidate is either pre-ranked by a Rust backend (`score` + `matches`, e.g. project files
+ * or the PHP index) or carries `match` to be matched against the query there.
  */
 import type { JSX } from "solid-js";
 import { createSignal } from "solid-js";
+import { searchApi, type RankCandidate } from "@/ipc/search";
 
 export type SearchTab = "classes" | "files" | "symbols" | "actions" | "text";
 
@@ -39,7 +45,7 @@ export interface SearchItem {
   /** Unique within its provider. */
   id: string;
   label: string;
-  /** Highlighted character indices into `label`. */
+  /** Highlighted character indices into `label` (pre-ranked items; set by Rust otherwise). */
   matches?: number[];
   /** Grey text right after the label (namespace, containing folder, line preview). */
   detail?: string;
@@ -48,9 +54,18 @@ export interface SearchItem {
   kind?: SearchItemKind;
   /** Custom icon; defaults to an icon derived from `kind`. */
   icon?: () => JSX.Element;
-  /** Higher is better; used to merge providers within a tab. */
-  score: number;
-  /** Shown dimmed (e.g. actions that are not implemented yet). */
+  /** Pre-ranked items: their score. Items with `match`: a bonus on top of the match score. */
+  score?: number;
+  /** Match the query against `label` in Rust. */
+  match?: {
+    /** Word-start matching, as PHPStorm does for actions, classes and symbols. */
+    strict?: boolean;
+    /** Also matched (ranked lower, without highlighting), e.g. an action id. */
+    altTexts?: string[];
+    /** Keep the item when the label does not match (the source already filtered it). */
+    keepUnmatched?: boolean;
+  };
+  /** Shown dimmed (e.g. actions that are not available); hidden while others match. */
   dimmed?: boolean;
   run: () => void | Promise<void>;
 }
@@ -72,18 +87,10 @@ export interface SearchProvider {
 const [searchProviders, setSearchProviders] = createSignal<SearchProvider[]>([]);
 
 export function registerSearchProvider(p: SearchProvider): void {
-  setSearchProviders((prev) =>
-    [...prev.filter((x) => x.id !== p.id), p].sort((a, b) => (a.order ?? 100) - (b.order ?? 100)),
-  );
+  setSearchProviders((prev) => [...prev.filter((x) => x.id !== p.id), p]);
 }
 
 export { searchProviders };
-
-export const providersFor = (tab: "all" | SearchTab): SearchProvider[] => {
-  const order = SEARCH_TABS.map((t) => t.id);
-  const list = searchProviders().filter((p) => tab === "all" || p.tab === tab);
-  return list.sort((a, b) => order.indexOf(a.tab) - order.indexOf(b.tab) || (a.order ?? 100) - (b.order ?? 100));
-};
 
 export interface SearchGroup {
   provider: SearchProvider;
@@ -92,47 +99,50 @@ export interface SearchGroup {
   more: boolean;
 }
 
-/** Query all providers of a tab. Failing providers are logged and skipped. */
+function candidate(item: SearchItem): RankCandidate {
+  const base = { id: item.id, kind: item.kind, score: item.score ?? 0, dimmed: item.dimmed };
+  if (!item.match) return { ...base, positions: item.matches ?? [] };
+  return { ...base, text: item.label, ...item.match };
+}
+
+/** Query all providers of a tab and rank their items in Rust. Failing providers are skipped. */
 export async function runSearch(
   tab: "all" | SearchTab,
   query: string,
   opts: { includeNonProject: boolean; perGroup: number },
 ): Promise<SearchGroup[]> {
-  const providers = providersFor(tab);
+  const providers = searchProviders().filter((p) => tab === "all" || p.tab === tab);
+  // Providers that query a backend fetch a bit more than a page, so "… more" is known.
   const limit = opts.perGroup + 1;
   const results = await Promise.all(
     providers.map(async (provider) => {
       try {
-        const items = await provider.search(query, { includeNonProject: opts.includeNonProject, limit });
-        return { provider, items };
+        return { provider, items: await provider.search(query, { includeNonProject: opts.includeNonProject, limit }) };
       } catch (err) {
         console.warn(`search provider ${provider.id} failed`, err);
         return { provider, items: [] as SearchItem[] };
       }
     }),
   );
-  // Providers serving the same tab are merged into one group (e.g. PHP + JS classes).
-  const byTab = new Map<SearchTab, SearchGroup>();
-  for (const { provider, items } of results) {
-    const g = byTab.get(provider.tab);
-    if (g) g.items.push(...items);
-    else byTab.set(provider.tab, { provider, items: [...items], more: false });
-  }
-  // In "All", an item already listed by an earlier group (e.g. a class that is also a
-  // symbol) is not repeated.
-  const seen = new Set<string>();
-  return [...byTab.values()]
-    .map((g) => {
-      if (tab === "all") {
-        g.items = g.items.filter((i) => {
-          const key = `${i.kind ?? ""}:${i.id}`;
-          if (seen.has(key)) return false;
-          seen.add(key);
-          return true;
-        });
-      }
-      const sorted = g.items.sort((a, b) => b.score - a.score);
-      return { ...g, items: sorted.slice(0, opts.perGroup), more: sorted.length > opts.perGroup };
-    })
-    .filter((g) => g.items.length > 0);
+  const { groups } = await searchApi.rank({
+    tab,
+    query,
+    perGroup: opts.perGroup,
+    includeDimmed: opts.includeNonProject,
+    sources: results.map(({ provider, items }) => ({
+      provider: provider.id,
+      tab: provider.tab,
+      order: provider.order,
+      items: items.map(candidate),
+    })),
+  });
+  const byId = new Map(results.map((r) => [r.provider.id, r]));
+  return groups.map((g) => ({
+    provider: byId.get(g.provider)!.provider,
+    more: g.more,
+    items: g.items.map((hit) => {
+      const item = byId.get(hit.provider)!.items[hit.index];
+      return { ...item, score: hit.score, matches: hit.positions.length ? hit.positions : item.matches };
+    }),
+  }));
 }

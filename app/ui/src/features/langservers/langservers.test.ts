@@ -81,12 +81,12 @@ describe("workspace symbols", () => {
   });
 
   it("turns symbols into Search Everywhere items", () => {
-    const item = symbolItem(sym("Order", "ts"), "ord")!;
+    const item = symbolItem(sym("Order", "ts"));
     expect(item.label).toBe("Order");
     expect(item.kind).toBe("interface");
     expect(item.hint).toBe("app.ts:4");
     expect(item.detail).toBe("resources/js");
-    expect(item.matches).toEqual([0, 1, 2]);
+    expect(item.match?.keepUnmatched).toBe(true);
   });
 });
 

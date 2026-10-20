@@ -7,7 +7,9 @@ import { goTemplateSyntax, smartySyntaxWith, twigSyntax } from "./templates";
 import { dataLanguageSupport } from "./templateData";
 import { languageFor } from "./languages";
 import { fileTypeOf } from "./fileTypes";
-import "@/mock/filetypesMock";
+import { fileTypesReady } from "@/mock/filetypesMock";
+
+await fileTypesReady;
 
 /** `[text, style]` of every template token in `doc`. */
 const tokens = (doc: string, syntax = goTemplateSyntax) =>

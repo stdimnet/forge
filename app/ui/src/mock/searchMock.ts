@@ -5,24 +5,15 @@
  * these only register outside Tauri).
  */
 import { isTauri, registerMock } from "@/ipc";
-import type { FileMatch } from "@/ipc/search";
 import { openFile } from "@/state/editor";
 import { workspace } from "@/state/workspace";
-import { fuzzyMatch, matchFilePath } from "@/features/search/fuzzy";
 import { registerSearchProvider, type SearchItem, type SearchItemKind } from "@/features/search/providers";
 import { demoFiles, demoProjectName } from "./demoProject";
+import { matchFiles } from "./fuzzyMock";
 
-registerMock("fs_find_files", ({ query, limit }) => {
-  const q = String(query ?? "").trim();
-  if (!q) return [];
-  const hits: FileMatch[] = [];
-  for (const path of Object.keys(demoFiles)) {
-    const m = matchFilePath(q, path);
-    if (m) hits.push({ path, name: path.split("/").pop()!, score: m.score, positions: m.positions, matchedPath: m.matchedPath });
-  }
-  hits.sort((a, b) => b.score - a.score || a.path.localeCompare(b.path));
-  return hits.slice(0, Number(limit ?? 100));
-});
+registerMock("fs_find_files", ({ query, limit }) =>
+  matchFiles(String(query ?? ""), Object.keys(demoFiles), Number(limit ?? 100)),
+);
 
 interface DemoSymbol {
   name: string;
@@ -77,12 +68,13 @@ const VENDOR_CLASSES: DemoSymbol[] = [
 if (!isTauri()) {
   const symbols = indexDemoSymbols(demoFiles);
   const open = (s: DemoSymbol) => () => (s.path ? openFile(s.path) : undefined);
-  const toItem = (s: DemoSymbol, score: number, matches: number[], nonProject = false): SearchItem => ({
+  // Candidates are matched (strictly, like PHPStorm's Go to Class) and ranked in Rust.
+  const toItem = (s: DemoSymbol, score = 0): SearchItem => ({
     id: `${s.path}:${s.line}:${s.name}`,
     label: s.name,
-    matches,
-    detail: s.kind === "method" || s.kind === "property" || s.kind === "constant" ? `${s.container}` : s.container,
-    hint: nonProject ? "vendor" : (workspace()?.name ?? demoProjectName),
+    match: { strict: true },
+    detail: s.container,
+    hint: s.path ? (workspace()?.name ?? demoProjectName) : "vendor",
     kind: s.kind,
     score,
     run: open(s),
@@ -92,15 +84,10 @@ if (!isTauri()) {
     id: "demo.classes",
     tab: "classes",
     title: "Classes",
-    search(query, { includeNonProject, limit }) {
+    search(query, { includeNonProject }) {
       if (!query.trim()) return [];
-      const pool = [...symbols.filter((s) => ["class", "interface", "trait", "enum"].includes(s.kind)), ...(includeNonProject ? VENDOR_CLASSES : [])];
-      return pool
-        .map((s) => ({ s, m: fuzzyMatch(query, s.name, { strict: true }) }))
-        .filter((x) => x.m)
-        .map((x) => toItem(x.s, x.m!.score, x.m!.positions, !x.s.path))
-        .sort((a, b) => b.score - a.score)
-        .slice(0, limit);
+      const classes = symbols.filter((s) => ["class", "interface", "trait", "enum"].includes(s.kind));
+      return [...classes, ...(includeNonProject ? VENDOR_CLASSES : [])].map((s) => toItem(s));
     },
   });
 
@@ -108,14 +95,9 @@ if (!isTauri()) {
     id: "demo.symbols",
     tab: "symbols",
     title: "Symbols",
-    search(query, { limit }) {
+    search(query) {
       if (!query.trim()) return [];
-      return symbols
-        .map((s) => ({ s, m: fuzzyMatch(query, s.name, { strict: true }) }))
-        .filter((x) => x.m)
-        .map((x) => toItem(x.s, x.m!.score - 2, x.m!.positions))
-        .sort((a, b) => b.score - a.score)
-        .slice(0, limit);
+      return symbols.map((s) => toItem(s, -2));
     },
   });
 
@@ -139,7 +121,6 @@ if (!isTauri()) {
             matches: Array.from({ length: q.length }, (_, k) => at - shift + k),
             hint: `${path.split("/").pop()} ${i + 1}`,
             kind: "text",
-            score: -i / 1000,
             run: () => openFile(path),
           });
         });

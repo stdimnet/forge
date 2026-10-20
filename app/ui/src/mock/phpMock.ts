@@ -14,6 +14,9 @@ import type {
 } from "@/features/php/api";
 import { demoFiles } from "./demoProject";
 import { classAt, lineOf, memberType, parsePhp, type MockClass, type MockMember } from "./phpMockParser";
+import { callWasmSync, forgeWasm, type ForgeWasm } from "@/wasm";
+import type { FilterHit } from "@/ipc/search";
+
 
 /** Stand-ins for vendor classes the demo extends, so Override Methods has content. */
 const vendorStubs: Record<string, { methods: { name: string; sig: string; visibility: "public" | "protected"; isStatic?: boolean; abstract?: boolean }[] }> = {
@@ -87,27 +90,21 @@ registerMock("php_index_workspace", () => {
   return indexing;
 });
 
-function fuzzy(query: string, name: string): number[] | null {
-  const q = query.toLowerCase();
-  const n = name.toLowerCase();
-  const out: number[] = [];
-  let j = 0;
-  for (let i = 0; i < q.length; i++) {
-    while (j < n.length && n[j] !== q[i]) j++;
-    if (j >= n.length) return null;
-    out.push(j++);
-  }
-  return out;
+/** Match positions from the shared Rust matcher (`forge-fuzzy`), or null. */
+function fuzzy(wasm: ForgeWasm, query: string, name: string): number[] | null {
+  const [hit] = callWasmSync<FilterHit[]>(wasm.fuzzy_filter, { query, candidates: [name] });
+  return hit ? hit.positions : null;
 }
 
-registerMock("php_search_symbols", ({ query, kind, limit }) => {
+registerMock("php_search_symbols", async ({ query, kind, limit }) => {
+  const wasm = await forgeWasm();
   const hits: SymbolHit[] = [];
   const q = String(query ?? "");
   for (const path of phpFiles()) {
     const src = demoFiles[path];
     for (const c of parsePhp(src).classes) {
       const add = (name: string, fqn: string, k: SymbolHit["kind"], container: string, offset: number) => {
-        const positions = fuzzy(q, name);
+        const positions = fuzzy(wasm, q, name);
         if (!positions) return;
         const score = 100 - name.length - (positions[positions.length - 1] ?? 0) + (positions[0] === 0 ? 20 : 0);
         hits.push({ name, fqn, kind: k, container, path, offset, line: lineOf(src, offset), column: 0, score, positions });

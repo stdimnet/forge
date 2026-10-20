@@ -1,18 +1,24 @@
 /**
  * Browser-mode file types: the same Rust detection as the desktop app (`forge-filetypes`),
- * run as WebAssembly over the built-in plugin manifests. Answers synchronously, so editors
+ * run as WebAssembly over the built-in plugin manifests. Once the module is loaded
+ * (`mock/index.ts` waits for it before the UI starts) answers are synchronous, so editors
  * never wait for a file type here.
  */
 import { registerMock } from "@/ipc";
 import type { DetectRequest, FileTypeInfo } from "@/ipc/filetypes";
 import { setSyncFileTypeResolver } from "@/editor/fileTypes";
-import { callWasmSync, forgeWasm } from "@/wasm";
+import { callWasmSync, forgeWasm, type ForgeWasm } from "@/wasm";
 import builtinPlugins from "./builtinPlugins.json";
 
-const wasm = await forgeWasm();
-callWasmSync<number>(wasm.filetypes_load, builtinPlugins);
+const loaded: Promise<ForgeWasm> = forgeWasm().then((wasm) => {
+  callWasmSync<number>(wasm.filetypes_load, builtinPlugins);
+  setSyncFileTypeResolver((request) => callWasmSync<FileTypeInfo[]>(wasm.filetypes_detect, request));
+  return wasm;
+});
 
-const detect = (request: DetectRequest) => callWasmSync<FileTypeInfo[]>(wasm.filetypes_detect, request);
+registerMock("filetypes_detect", async ({ request }) =>
+  callWasmSync<FileTypeInfo[]>((await loaded).filetypes_detect, request as DetectRequest),
+);
 
-registerMock("filetypes_detect", ({ request }) => detect(request as DetectRequest));
-setSyncFileTypeResolver(detect);
+/** Resolves when file types answer synchronously. */
+export const fileTypesReady = loaded.then(() => undefined);

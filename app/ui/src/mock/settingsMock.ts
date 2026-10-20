@@ -11,10 +11,12 @@ import {
   type SettingSpec,
   type SettingValue,
 } from "@/ipc/settings";
-import { callWasmSync, forgeWasm } from "@/wasm";
+import { callWasm, callWasmSync, forgeWasm, type ForgeWasm } from "@/wasm";
 import builtinPlugins from "./builtinPlugins.json";
 
-const wasm = await forgeWasm();
+// Commands wait for the WebAssembly build, so validation below can call it synchronously.
+let wasm: ForgeWasm | undefined;
+const ready = forgeWasm().then((w) => (wasm = w));
 
 const STORAGE_KEY = "forge.mock.settings.user";
 const DISABLED_KEY = "plugins.disabled";
@@ -51,7 +53,7 @@ function resolve(key: string): { value: SettingValue | null; scope: "default" | 
 /** The schema check of `settings_set`, run by the same Rust code. */
 function validate(key: string, value: SettingValue): string | null {
   const spec = allSpecs().find((s) => s.key === key);
-  return spec ? callWasmSync<string | null>(wasm.settings_validate, { spec, value }) : null;
+  return spec && wasm ? callWasmSync<string | null>(wasm.settings_validate, { spec, value }) : null;
 }
 
 export function setSetting(key: string, value: SettingValue | null, scope: SettingsScope): void {
@@ -103,11 +105,15 @@ registerMock("settings_get_all", () => ({
   project: { ...layers.project },
   hasProject: true,
 }));
-registerMock("settings_set", ({ key, value, scope }) =>
-  setSetting(String(key), (value ?? null) as SettingValue | null, scope as SettingsScope),
-);
+registerMock("settings_set", async ({ key, value, scope }) => {
+  await ready;
+  setSetting(String(key), (value ?? null) as SettingValue | null, scope as SettingsScope);
+});
 registerMock("settings_schema", () => plugins.filter((p) => p.enabled).flatMap((p) => p.contributions.settings));
 registerMock("plugins_list", () => structuredClone(plugins));
-registerMock("settings_search", ({ request }) => callWasmSync(wasm.settings_search, request));
-registerMock("settings_validate", ({ key, value }) => validate(String(key), value as SettingValue));
+registerMock("settings_search", async ({ request }) => callWasm((await ready).settings_search, request));
+registerMock("settings_validate", async ({ key, value }) => {
+  await ready;
+  return validate(String(key), value as SettingValue);
+});
 registerMock("plugin_set_enabled", ({ id, enabled }) => setPluginEnabled(String(id), Boolean(enabled)));
