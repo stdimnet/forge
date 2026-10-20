@@ -86,6 +86,27 @@ fn short_hash(s: &str) -> String {
 }
 
 /// Build the config for `spec`, started from `executable`.
+/// The Lua environment to configure: `Auto` looks at the project root (LÖVE: `conf.lua` or a
+/// `main.lua` using `love.`; Neovim: `init.lua` next to `lua/`, or a `lua/` + `plugin/` plugin).
+pub fn lua_environment(env: LuaEnvironment, root: &Path) -> LuaEnvironment {
+    if env != LuaEnvironment::Auto {
+        return env;
+    }
+    let main_uses_love = || {
+        std::fs::read_to_string(root.join("main.lua"))
+            .map(|s| s.contains("love."))
+            .unwrap_or(false)
+    };
+    if root.join("conf.lua").is_file() || main_uses_love() {
+        return LuaEnvironment::Love;
+    }
+    let lua_dir = root.join("lua").is_dir();
+    if lua_dir && (root.join("init.lua").is_file() || root.join("plugin").is_dir()) {
+        return LuaEnvironment::Neovim;
+    }
+    LuaEnvironment::Plain
+}
+
 pub fn build_config(
     catalog: &Catalog,
     spec: &ServerSpec,
@@ -176,8 +197,10 @@ pub fn build_config(
             );
         }
         "lua-language-server" => {
-            let lua = match ctx.prefs.lua_environment {
-                LuaEnvironment::Plain => json!({"runtime": {"version": ctx.prefs.lua_version}}),
+            let lua = match lua_environment(ctx.prefs.lua_environment, ctx.root) {
+                LuaEnvironment::Plain | LuaEnvironment::Auto => {
+                    json!({"runtime": {"version": ctx.prefs.lua_version}})
+                }
                 LuaEnvironment::Love => json!({
                     "runtime": {"version": "LuaJIT"},
                     "diagnostics": {"globals": ["love"]},
@@ -488,6 +511,17 @@ mod tests {
         assert_eq!(lua.settings["Lua"]["runtime"]["version"], "LuaJIT");
         assert_eq!(lua.settings["Lua"]["diagnostics"]["globals"][0], "love");
         assert_eq!(lua.settings["Lua"]["telemetry"]["enable"], false);
+        // Detected from the project: a LÖVE game has conf.lua.
+        prefs.lua_environment = LuaEnvironment::Auto;
+        std::fs::write(root.join("conf.lua"), "function love.conf(t) end").unwrap();
+        let lua = build_config(
+            c,
+            c.server("lua-language-server").unwrap(),
+            Path::new("l"),
+            &ctx(&root, &d, &prefs, &scan),
+        );
+        assert_eq!(lua.settings["Lua"]["diagnostics"]["globals"][0], "love");
+        std::fs::remove_file(root.join("conf.lua")).unwrap();
         prefs.lua_environment = LuaEnvironment::Neovim;
         let lua = build_config(
             c,

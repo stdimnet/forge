@@ -55,6 +55,8 @@ impl ServerPrefs {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub enum LuaEnvironment {
+    /// LÖVE or Neovim when the project looks like one, else plain Lua.
+    Auto,
     Plain,
     Love,
     Neovim,
@@ -79,7 +81,7 @@ impl Default for Prefs {
         Prefs {
             auto_start: true,
             scan_limit: DEFAULT_SCAN_LIMIT,
-            lua_environment: LuaEnvironment::Plain,
+            lua_environment: LuaEnvironment::Auto,
             lua_version: "Lua 5.4".into(),
             lua_libraries: Vec::new(),
             servers: HashMap::new(),
@@ -121,7 +123,8 @@ impl Prefs {
             lua_environment: match string(LUA_ENVIRONMENT_KEY).as_deref() {
                 Some("love") => LuaEnvironment::Love,
                 Some("neovim") => LuaEnvironment::Neovim,
-                _ => LuaEnvironment::Plain,
+                Some("plain") => LuaEnvironment::Plain,
+                _ => LuaEnvironment::Auto,
             },
             lua_version: string(LUA_VERSION_KEY).unwrap_or(defaults.lua_version),
             lua_libraries: get(LUA_LIBRARIES_KEY)
