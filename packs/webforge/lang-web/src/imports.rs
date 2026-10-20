@@ -31,7 +31,10 @@ pub fn imports(text: &str) -> Vec<Import> {
     for (clause, source) in statements(text, "import") {
         let clause = clause.trim().trim_start_matches("type ").trim();
         let (head, braces) = match clause.find('{') {
-            Some(i) => (&clause[..i], Some(&clause[i + 1..clause.rfind('}').unwrap_or(clause.len())])),
+            Some(i) => (
+                &clause[..i],
+                Some(&clause[i + 1..clause.rfind('}').unwrap_or(clause.len())]),
+            ),
             None => (clause, None),
         };
         for part in head.split(',').map(str::trim).filter(|p| !p.is_empty()) {
@@ -72,10 +75,14 @@ pub fn re_exports(text: &str) -> Vec<ReExport> {
     let mut out = Vec::new();
     for (clause, source) in statements(text, "export") {
         let clause = clause.trim().trim_start_matches("type ").trim();
-        if clause.starts_with('*') {
-            let alias = clause[1..].trim().trim_start_matches("as").trim();
+        if let Some(rest) = clause.strip_prefix('*') {
+            let alias = rest.trim().trim_start_matches("as").trim();
             out.push(ReExport {
-                exported: if is_ident(alias) { alias.to_string() } else { "*".into() },
+                exported: if is_ident(alias) {
+                    alias.to_string()
+                } else {
+                    "*".into()
+                },
                 imported: "*".into(),
                 source,
             });
@@ -105,7 +112,8 @@ fn specifiers(inner: &str) -> Vec<(String, String)> {
                 (Some("as"), Some(l)) => l,
                 _ => imported,
             };
-            (is_ident(imported) && is_ident(local)).then(|| (imported.to_string(), local.to_string()))
+            (is_ident(imported) && is_ident(local))
+                .then(|| (imported.to_string(), local.to_string()))
         })
         .collect()
 }
@@ -124,7 +132,11 @@ fn statements(text: &str, keyword: &str) -> Vec<(String, String)> {
         let at = search + found;
         search = at + keyword.len();
         let before = text[..at].trim_end_matches([' ', '\t']);
-        if !(before.is_empty() || before.ends_with('\n') || before.ends_with(';') || before.ends_with('>')) {
+        if !(before.is_empty()
+            || before.ends_with('\n')
+            || before.ends_with(';')
+            || before.ends_with('>'))
+        {
             continue;
         }
         let rest = &text[search..];
@@ -208,7 +220,10 @@ const x = "import y from 'z'";
         assert_eq!(imports(src).len(), 2);
         let re = re_exports(src);
         assert_eq!(re.len(), 3);
-        assert_eq!((re[0].imported.as_str(), re[0].exported.as_str()), ("default", "Button"));
+        assert_eq!(
+            (re[0].imported.as_str(), re[0].exported.as_str()),
+            ("default", "Button")
+        );
         assert_eq!(re[1].exported, "*");
         assert_eq!(re[2].source, "./Modal");
     }

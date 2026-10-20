@@ -42,12 +42,14 @@ impl Sfc {
             let at = i + found;
             i = at + 1;
             let rest = &content[at + 1..];
-            let kind = ["template", "script", "style"]
-                .into_iter()
-                .find(|k| rest.starts_with(k) && rest[k.len()..].starts_with([' ', '>', '\n', '\t']));
+            let kind = ["template", "script", "style"].into_iter().find(|k| {
+                rest.starts_with(k) && rest[k.len()..].starts_with([' ', '>', '\n', '\t'])
+            });
             let Some(kind) = kind else {
                 if rest.starts_with("!--") {
-                    i = content[at..].find("-->").map_or(content.len(), |e| at + e + 3);
+                    i = content[at..]
+                        .find("-->")
+                        .map_or(content.len(), |e| at + e + 3);
                 }
                 continue;
             };
@@ -73,7 +75,10 @@ impl Sfc {
                 tag_start: at,
                 start: open_end,
                 end: close,
-                setup: kind == "script" && head.split_whitespace().any(|w| w == "setup" || w == "setup>"),
+                setup: kind == "script"
+                    && head
+                        .split_whitespace()
+                        .any(|w| w == "setup" || w == "setup>"),
                 lang,
             };
             match kind {
@@ -89,7 +94,10 @@ impl Sfc {
 
     /// The `<script setup>` block, else the plain `<script>`.
     pub fn main_script(&self) -> Option<&Block> {
-        self.scripts.iter().find(|b| b.setup).or(self.scripts.first())
+        self.scripts
+            .iter()
+            .find(|b| b.setup)
+            .or(self.scripts.first())
     }
 }
 
@@ -137,7 +145,13 @@ pub fn scan_file(path: &str, content: &str) -> Vec<Component> {
     out
 }
 
-fn new_component(path: &str, content: &str, name: String, at: usize, kind: ComponentKind) -> Component {
+fn new_component(
+    path: &str,
+    content: &str,
+    name: String,
+    at: usize,
+    kind: ComponentKind,
+) -> Component {
     Component {
         selector: Some(kebab_case(&name)),
         name,
@@ -157,9 +171,22 @@ fn single_file(path: &str, content: &str) -> Component {
     let sfc = Sfc::parse(content);
     let script = sfc.main_script();
     let at = script.map_or(0, |b| b.tag_start);
-    let mut c = new_component(path, content, pascal_case(file_stem(path)), at, ComponentKind::SingleFile);
-    c.template = sfc.template.as_ref().map(|t| Location::at(path, content, t.tag_start));
-    c.styles = sfc.styles.iter().map(|s| Location::at(path, content, s.tag_start)).collect();
+    let mut c = new_component(
+        path,
+        content,
+        pascal_case(file_stem(path)),
+        at,
+        ComponentKind::SingleFile,
+    );
+    c.template = sfc
+        .template
+        .as_ref()
+        .map(|t| Location::at(path, content, t.tag_start));
+    c.styles = sfc
+        .styles
+        .iter()
+        .map(|s| Location::at(path, content, s.tag_start))
+        .collect();
     for block in &sfc.scripts {
         let (s, e) = (block.start, block.end);
         if block.setup {
@@ -169,8 +196,10 @@ fn single_file(path: &str, content: &str) -> Component {
                     c.selector = Some(kebab_case(&c.name));
                 }
             }
-            c.props.extend(macro_members(path, content, s, e, "defineProps"));
-            c.events.extend(macro_members(path, content, s, e, "defineEmits"));
+            c.props
+                .extend(macro_members(path, content, s, e, "defineProps"));
+            c.events
+                .extend(macro_members(path, content, s, e, "defineEmits"));
             // `defineModel('title')` / `defineModel()` add props too.
             let mut from = s;
             while let Some(found) = content[from..e].find("defineModel") {
@@ -188,21 +217,31 @@ fn single_file(path: &str, content: &str) -> Component {
                     Some((a, b)) => (content[a..b].to_string(), a),
                     None => ("modelValue".to_string(), at),
                 };
-                c.props.push(member(path, content, name, name_at, None, false));
+                c.props
+                    .push(member(path, content, name, name_at, None, false));
             }
         } else if let Some((open, close)) = options_object(content, s, e) {
             if let Some((ns, ne)) = string_option(content, open, close, "name") {
                 c.name = pascal_case(&content[ns..ne]);
                 c.selector = Some(kebab_case(&c.name));
             }
-            c.props.extend(options_members(path, content, open, close, "props"));
-            c.events.extend(options_members(path, content, open, close, "emits"));
+            c.props
+                .extend(options_members(path, content, open, close, "props"));
+            c.events
+                .extend(options_members(path, content, open, close, "emits"));
         }
     }
     c
 }
 
-fn member(path: &str, content: &str, name: String, at: usize, type_text: Option<String>, required: bool) -> Member {
+fn member(
+    path: &str,
+    content: &str,
+    name: String,
+    at: usize,
+    type_text: Option<String>,
+    required: bool,
+) -> Member {
     Member {
         name,
         alias: None,
@@ -231,7 +270,9 @@ fn options_object(content: &str, s: usize, e: usize) -> Option<(usize, usize)> {
 
 /// The string value of `key: '…'` directly inside the object `open..close`.
 fn string_option(content: &str, open: usize, close: usize, key: &str) -> Option<(usize, usize)> {
-    let f = fields(content, open + 1, close).into_iter().find(|f| f.key == key)?;
+    let f = fields(content, open + 1, close)
+        .into_iter()
+        .find(|f| f.key == key)?;
     string_at(content, f.value?.0)
 }
 
@@ -258,7 +299,14 @@ fn runtime_members(path: &str, content: &str, vs: usize, ve: usize) -> Vec<Membe
             let mut i = vs + 1;
             while i < close {
                 if let Some((a, b)) = string_at(content, i) {
-                    out.push(member(path, content, content[a..b].to_string(), a, None, false));
+                    out.push(member(
+                        path,
+                        content,
+                        content[a..b].to_string(),
+                        a,
+                        None,
+                        false,
+                    ));
                     i = b + 1;
                 } else {
                     i += 1;
@@ -354,12 +402,21 @@ fn macro_members(path: &str, content: &str, s: usize, e: usize, name: &str) -> V
         let mut i = body_open + 1;
         while let Some(found) = content[i..body_close].find('(') {
             let at = i + found;
-            let Some(c) = matching(content, at) else { break };
+            let Some(c) = matching(content, at) else {
+                break;
+            };
             let sig = &content[at..c];
             if let Some(colon) = sig.find(':') {
                 let lit = skip_trivia(content, at + colon + 1);
                 if let Some((a, b)) = string_at(content, lit) {
-                    out.push(member(path, content, content[a..b].to_string(), a, None, false));
+                    out.push(member(
+                        path,
+                        content,
+                        content[a..b].to_string(),
+                        a,
+                        None,
+                        false,
+                    ));
                 }
             }
             i = c + 1;
@@ -389,9 +446,17 @@ fn nuxt_name(path: &str) -> Option<String> {
     let rest = path.split_once("components/")?.1;
     let (dirs, file) = rest.rsplit_once('/').unwrap_or(("", rest));
     let stem = file_stem(file);
-    let prefix: String = dirs.split('/').filter(|d| !d.is_empty()).map(pascal_case).collect();
+    let prefix: String = dirs
+        .split('/')
+        .filter(|d| !d.is_empty())
+        .map(pascal_case)
+        .collect();
     let stem = pascal_case(stem);
-    Some(if stem.starts_with(&prefix) { stem } else { format!("{prefix}{stem}") })
+    Some(if stem.starts_with(&prefix) {
+        stem
+    } else {
+        format!("{prefix}{stem}")
+    })
 }
 
 /// HTML elements and Vue's built-in components are never project components.
@@ -399,8 +464,15 @@ fn is_builtin(tag: &str) -> bool {
     (!tag.contains('-') && tag.chars().next().is_some_and(|c| c.is_ascii_lowercase()))
         || matches!(
             tag,
-            "Transition" | "TransitionGroup" | "KeepAlive" | "Teleport" | "Suspense" | "Component" | "Slot"
-                | "keep-alive" | "transition-group"
+            "Transition"
+                | "TransitionGroup"
+                | "KeepAlive"
+                | "Teleport"
+                | "Suspense"
+                | "Component"
+                | "Slot"
+                | "keep-alive"
+                | "transition-group"
         )
 }
 
@@ -417,7 +489,10 @@ impl<'a> VueIndex<'a> {
         let mut by_path: HashMap<String, Vec<usize>> = HashMap::new();
         for (path, content) in sources.files() {
             for c in scan_file(path, content) {
-                by_path.entry(path.to_string()).or_default().push(components.len());
+                by_path
+                    .entry(path.to_string())
+                    .or_default()
+                    .push(components.len());
                 components.push(c);
             }
         }
@@ -458,10 +533,11 @@ impl<'a> VueIndex<'a> {
             let module = self.sources.resolve_module(path, &import.source)?;
             return self.in_module(&module, &import.imported, 0);
         }
-        self.components
-            .iter()
-            .find(|c| c.name == name)
-            .or_else(|| self.components.iter().find(|c| nuxt_name(&c.location.path).as_deref() == Some(name.as_str())))
+        self.components.iter().find(|c| c.name == name).or_else(|| {
+            self.components
+                .iter()
+                .find(|c| nuxt_name(&c.location.path).as_deref() == Some(name.as_str()))
+        })
     }
 
     fn in_module(&self, module: &str, imported: &Imported, depth: u32) -> Option<&Component> {
@@ -510,7 +586,10 @@ impl<'a> VueIndex<'a> {
         for (path, content) in self.sources.files().filter(|(p, _)| p.ends_with(".vue")) {
             let imports = script_imports(content);
             for tag in template_tags(content).iter().filter(|t| !t.closing) {
-                if self.resolve(path, &imports, &tag.name).is_some_and(|c| key(c) == key(component)) {
+                if self
+                    .resolve(path, &imports, &tag.name)
+                    .is_some_and(|c| key(c) == key(component))
+                {
                     out.push(Location::at(path, content, tag.name_start));
                 }
             }
@@ -543,7 +622,11 @@ fn template_tags(content: &str) -> Vec<markup::Tag> {
 fn attribute_target(attr: &str) -> Option<(bool, String)> {
     let (is_event, name) = if let Some(n) = attr.strip_prefix('@').or(attr.strip_prefix("v-on:")) {
         (true, n)
-    } else if let Some(n) = attr.strip_prefix(':').or(attr.strip_prefix("v-bind:")).or(attr.strip_prefix("v-model:")) {
+    } else if let Some(n) = attr
+        .strip_prefix(':')
+        .or(attr.strip_prefix("v-bind:"))
+        .or(attr.strip_prefix("v-model:"))
+    {
         (false, n)
     } else if attr == "v-model" {
         (false, "modelValue")

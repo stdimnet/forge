@@ -10,7 +10,9 @@ const MAX_FILE_SIZE: u64 = 512 * 1024;
 /// Whether the index reads a file's content (scripts, templates and manifests).
 pub fn wants_content(path: &str) -> bool {
     let name = path.rsplit('/').next().unwrap_or(path);
-    if matches!(name, "package.json" | "jsconfig.json" | "angular.json") || (name.starts_with("tsconfig") && name.ends_with(".json")) {
+    if matches!(name, "package.json" | "jsconfig.json" | "angular.json")
+        || (name.starts_with("tsconfig") && name.ends_with(".json"))
+    {
         return true;
     }
     let ext = name.rsplit('.').next().unwrap_or("");
@@ -32,7 +34,19 @@ pub fn load(root: &Path, limit: usize) -> Sources {
         .require_git(false)
         .filter_entry(|e| {
             let name = e.file_name().to_string_lossy();
-            !matches!(name.as_ref(), "node_modules" | "vendor" | "dist" | ".git" | ".nuxt" | ".next" | ".angular" | ".output" | "coverage" | "target")
+            !matches!(
+                name.as_ref(),
+                "node_modules"
+                    | "vendor"
+                    | "dist"
+                    | ".git"
+                    | ".nuxt"
+                    | ".next"
+                    | ".angular"
+                    | ".output"
+                    | "coverage"
+                    | "target"
+            )
         })
         .build();
     for entry in walker.flatten() {
@@ -46,7 +60,10 @@ pub fn load(root: &Path, limit: usize) -> Sources {
         if is_vendored(&rel) {
             continue;
         }
-        let small = entry.metadata().map(|m| m.len() <= MAX_FILE_SIZE).unwrap_or(false);
+        let small = entry
+            .metadata()
+            .map(|m| m.len() <= MAX_FILE_SIZE)
+            .unwrap_or(false);
         if files.len() < limit && small && wants_content(&rel) {
             if let Ok(content) = std::fs::read_to_string(entry.path()) {
                 files.push(SourceFile { path: rel, content });
@@ -72,7 +89,10 @@ mod tests {
         };
         write("package.json", "{\"scripts\":{\"dev\":\"vite\"}}");
         write("pnpm-lock.yaml", "lockfileVersion: '9.0'");
-        write("src/App.tsx", "export default function App() { return <div/>; }");
+        write(
+            "src/App.tsx",
+            "export default function App() { return <div/>; }",
+        );
         write("src/app.css", "body{}");
         write("node_modules/react/package.json", "{}");
         write("dist/assets/index.js", "x");

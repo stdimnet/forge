@@ -89,7 +89,11 @@ impl Sources {
         MODULE_EXTENSIONS
             .iter()
             .map(|ext| format!("{base}.{ext}"))
-            .chain(MODULE_EXTENSIONS.iter().map(|ext| format!("{base}/index.{ext}")))
+            .chain(
+                MODULE_EXTENSIONS
+                    .iter()
+                    .map(|ext| format!("{base}/index.{ext}")),
+            )
             .find(|p| self.exists(p))
     }
 
@@ -119,7 +123,11 @@ impl Sources {
                             .filter_map(|t| t.as_str())
                             .map(|t| {
                                 let t = join_path(&base, t.trim_end_matches('*'));
-                                if t.is_empty() { t } else { format!("{t}/") }
+                                if t.is_empty() {
+                                    t
+                                } else {
+                                    format!("{t}/")
+                                }
                             })
                             .collect();
                         out.push((prefix, targets));
@@ -136,15 +144,19 @@ impl Sources {
             out.push(("~/".into(), vec!["src/".into(), String::new()]));
         }
         // Longest prefix first, like TypeScript.
-        out.sort_by(|a, b| b.0.len().cmp(&a.0.len()));
+        out.sort_by_key(|a| std::cmp::Reverse(a.0.len()));
         out
     }
 }
 
 /// Whether a path belongs to installed packages or build output.
 pub fn is_vendored(path: &str) -> bool {
-    path.split('/')
-        .any(|seg| matches!(seg, "node_modules" | "dist" | ".nuxt" | ".next" | ".angular" | ".output" | "coverage"))
+    path.split('/').any(|seg| {
+        matches!(
+            seg,
+            "node_modules" | "dist" | ".nuxt" | ".next" | ".angular" | ".output" | "coverage"
+        )
+    })
 }
 
 #[cfg(test)]
@@ -162,7 +174,10 @@ mod tests {
     fn resolves_relative_alias_and_index_imports() {
         let s = Sources::new(
             vec![
-                file("tsconfig.json", r#"{ "compilerOptions": { "baseUrl": ".", "paths": { "@ui/*": ["src/components/ui/*"] } } }"#),
+                file(
+                    "tsconfig.json",
+                    r#"{ "compilerOptions": { "baseUrl": ".", "paths": { "@ui/*": ["src/components/ui/*"] } } }"#,
+                ),
                 file("src/App.tsx", ""),
                 file("src/components/Header.tsx", ""),
                 file("src/components/ui/index.ts", ""),
@@ -170,9 +185,20 @@ mod tests {
             ],
             ["src/styles/app.css".to_string()],
         );
-        assert_eq!(s.resolve_module("src/App.tsx", "./components/Header").as_deref(), Some("src/components/Header.tsx"));
-        assert_eq!(s.resolve_module("src/App.tsx", "@ui/Card.vue").as_deref(), Some("src/components/ui/Card.vue"));
-        assert_eq!(s.resolve_module("src/components/Header.tsx", "./ui").as_deref(), Some("src/components/ui/index.ts"));
+        assert_eq!(
+            s.resolve_module("src/App.tsx", "./components/Header")
+                .as_deref(),
+            Some("src/components/Header.tsx")
+        );
+        assert_eq!(
+            s.resolve_module("src/App.tsx", "@ui/Card.vue").as_deref(),
+            Some("src/components/ui/Card.vue")
+        );
+        assert_eq!(
+            s.resolve_module("src/components/Header.tsx", "./ui")
+                .as_deref(),
+            Some("src/components/ui/index.ts")
+        );
         assert_eq!(s.resolve_module("src/App.tsx", "react"), None);
         assert!(s.exists("src/styles/app.css"));
     }
@@ -180,8 +206,16 @@ mod tests {
     #[test]
     fn default_aliases_without_tsconfig() {
         let s = Sources::new(vec![file("src/components/Nav.vue", "")], []);
-        assert_eq!(s.resolve_module("src/App.vue", "@/components/Nav.vue").as_deref(), Some("src/components/Nav.vue"));
-        assert_eq!(s.resolve_module("src/App.vue", "~/components/Nav").as_deref(), Some("src/components/Nav.vue"));
+        assert_eq!(
+            s.resolve_module("src/App.vue", "@/components/Nav.vue")
+                .as_deref(),
+            Some("src/components/Nav.vue")
+        );
+        assert_eq!(
+            s.resolve_module("src/App.vue", "~/components/Nav")
+                .as_deref(),
+            Some("src/components/Nav.vue")
+        );
     }
 
     #[test]

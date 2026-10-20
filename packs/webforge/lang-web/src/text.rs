@@ -105,7 +105,8 @@ pub fn kebab_case(name: &str) -> String {
     let mut out = String::new();
     for (i, &c) in chars.iter().enumerate() {
         if c.is_uppercase() {
-            let prev_lower = i > 0 && (chars[i - 1].is_lowercase() || chars[i - 1].is_ascii_digit());
+            let prev_lower =
+                i > 0 && (chars[i - 1].is_lowercase() || chars[i - 1].is_ascii_digit());
             let next_lower = chars.get(i + 1).is_some_and(|n| n.is_lowercase());
             let prev_upper = i > 0 && chars[i - 1].is_uppercase();
             if i > 0 && (prev_lower || (prev_upper && next_lower)) {

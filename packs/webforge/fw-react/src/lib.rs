@@ -169,7 +169,10 @@ fn variable_component(content: &str, after_name: usize) -> Option<(ComponentKind
         let ann = &content[i + 1..eq];
         if let Some(lt) = ann.find('<') {
             let name = ann[..lt].trim();
-            if name.ends_with("FC") || name.ends_with("FunctionComponent") || name.ends_with("ComponentType") {
+            if name.ends_with("FC")
+                || name.ends_with("FunctionComponent")
+                || name.ends_with("ComponentType")
+            {
                 annotated = Some(i + 1 + lt + 1);
             }
         }
@@ -183,9 +186,15 @@ fn variable_component(content: &str, after_name: usize) -> Option<(ComponentKind
     let mut wrapper_props: Option<usize> = None;
     for _ in 0..2 {
         let rest = &content[i..];
-        let wrapper = ["React.memo", "React.forwardRef", "memo", "forwardRef", "observer"]
-            .into_iter()
-            .find(|w| rest.starts_with(w) && rest[w.len()..].starts_with(['(', '<']));
+        let wrapper = [
+            "React.memo",
+            "React.forwardRef",
+            "memo",
+            "forwardRef",
+            "observer",
+        ]
+        .into_iter()
+        .find(|w| rest.starts_with(w) && rest[w.len()..].starts_with(['(', '<']));
         let Some(w) = wrapper else { break };
         i += w.len();
         if content[i..].starts_with('<') {
@@ -239,7 +248,10 @@ fn variable_component(content: &str, after_name: usize) -> Option<(ComponentKind
     } else {
         return None;
     };
-    Some((ComponentKind::Function, params(content, open, annotated.or(wrapper_props))))
+    Some((
+        ComponentKind::Function,
+        params(content, open, annotated.or(wrapper_props)),
+    ))
 }
 
 /// Props from the first parameter of the list starting at `open` (`(`).
@@ -342,7 +354,9 @@ fn is_default_export(content: &str, name: &str) -> bool {
     ]
     .iter()
     .any(|p| content.contains(p.as_str()))
-        || content.trim_end().ends_with(&format!("export default {name}"))
+        || content
+            .trim_end()
+            .ends_with(&format!("export default {name}"))
 }
 
 /// The React component index of a project.
@@ -358,7 +372,10 @@ impl<'a> ReactIndex<'a> {
         let mut by_path: HashMap<String, Vec<usize>> = HashMap::new();
         for (path, content) in sources.files() {
             for c in scan_file(path, content) {
-                by_path.entry(path.to_string()).or_default().push(components.len());
+                by_path
+                    .entry(path.to_string())
+                    .or_default()
+                    .push(components.len());
                 components.push(c);
             }
         }
@@ -395,7 +412,13 @@ impl<'a> ReactIndex<'a> {
     }
 
     /// The component a JSX tag name refers to in `path`.
-    fn resolve<'s>(&'s self, path: &str, local: &'s [Component], imports: &[Import], tag: &str) -> Option<&'s Component> {
+    fn resolve<'s>(
+        &'s self,
+        path: &str,
+        local: &'s [Component],
+        imports: &[Import],
+        tag: &str,
+    ) -> Option<&'s Component> {
         let head = tag.split('.').next().unwrap_or(tag);
         if !is_component_name(head) && !tag.contains('.') {
             return None;
@@ -408,7 +431,9 @@ impl<'a> ReactIndex<'a> {
             let module = self.sources.resolve_module(path, &import.source)?;
             return match (&import.imported, tag.split_once('.')) {
                 // `import * as ui from './ui'` + `<ui.Button>`
-                (Imported::Namespace, Some((_, member))) => self.in_module(&module, &Imported::Named(member.to_string()), 0),
+                (Imported::Namespace, Some((_, member))) => {
+                    self.in_module(&module, &Imported::Named(member.to_string()), 0)
+                }
                 (imported, _) => self.in_module(&module, imported, 0),
             };
         }
@@ -436,7 +461,11 @@ impl<'a> ReactIndex<'a> {
             .unwrap_or_default();
         match imported {
             Imported::Default => {
-                if let Some(c) = own.iter().find(|c| c.default_export).or(own.first().filter(|_| own.len() == 1)) {
+                if let Some(c) = own
+                    .iter()
+                    .find(|c| c.default_export)
+                    .or(own.first().filter(|_| own.len() == 1))
+                {
                     return Some(c);
                 }
             }
@@ -478,7 +507,10 @@ impl<'a> ReactIndex<'a> {
     /// replaces its saved one).
     pub fn usages(&self, component: &Component, current: Option<(&str, &str)>) -> Vec<Location> {
         let mut out = Vec::new();
-        let files = self.sources.files().filter(|(p, _)| Some(*p) != current.map(|c| c.0));
+        let files = self
+            .sources
+            .files()
+            .filter(|(p, _)| Some(*p) != current.map(|c| c.0));
         for (path, content) in files.chain(current) {
             if !is_script(path) {
                 continue;

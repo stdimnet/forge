@@ -129,7 +129,12 @@ pub fn detect(sources: &Sources, package_json: &str, setting: &str) -> Detection
                 };
             }
         }
-        for manager in [PackageManager::Pnpm, PackageManager::Yarn, PackageManager::Bun, PackageManager::Npm] {
+        for manager in [
+            PackageManager::Pnpm,
+            PackageManager::Yarn,
+            PackageManager::Bun,
+            PackageManager::Npm,
+        ] {
             if let Some(lock) = manager
                 .lock_files()
                 .iter()
@@ -187,41 +192,71 @@ mod tests {
             assert_eq!(d.manager, manager, "{lock}");
             assert_eq!(d.describe(), lock);
         }
-        let d = detect(&sources(&[("package.json", "{}")], &[]), "package.json", "auto");
-        assert_eq!((d.manager, d.reason), (PackageManager::Npm, Reason::Default));
+        let d = detect(
+            &sources(&[("package.json", "{}")], &[]),
+            "package.json",
+            "auto",
+        );
+        assert_eq!(
+            (d.manager, d.reason),
+            (PackageManager::Npm, Reason::Default)
+        );
     }
 
     #[test]
     fn field_beats_lock_files_and_workspaces_inherit() {
         let s = sources(
             &[
-                ("package.json", r#"{"packageManager": "yarn@4.6.0+sha512.abc"}"#),
+                (
+                    "package.json",
+                    r#"{"packageManager": "yarn@4.6.0+sha512.abc"}"#,
+                ),
                 ("packages/ui/package.json", "{}"),
             ],
             &["package-lock.json"],
         );
         let d = detect(&s, "package.json", "auto");
-        assert_eq!((d.manager, d.version.as_deref()), (PackageManager::Yarn, Some("4.6.0")));
+        assert_eq!(
+            (d.manager, d.version.as_deref()),
+            (PackageManager::Yarn, Some("4.6.0"))
+        );
         let d = detect(&s, "packages/ui/package.json", "auto");
         assert_eq!(d.manager, PackageManager::Yarn);
 
         let s = sources(&[("apps/web/package.json", "{}")], &["pnpm-lock.yaml"]);
         let d = detect(&s, "apps/web/package.json", "auto");
-        assert_eq!(d.reason, Reason::LockFile { path: "pnpm-lock.yaml".into() });
+        assert_eq!(
+            d.reason,
+            Reason::LockFile {
+                path: "pnpm-lock.yaml".into()
+            }
+        );
     }
 
     #[test]
     fn setting_overrides_detection() {
         let s = sources(&[("package.json", "{}")], &["yarn.lock"]);
-        assert_eq!(detect(&s, "package.json", "bun").manager, PackageManager::Bun);
+        assert_eq!(
+            detect(&s, "package.json", "bun").manager,
+            PackageManager::Bun
+        );
     }
 
     #[test]
     fn command_lines() {
         let args = vec!["--port".to_string(), "3000".to_string()];
-        assert_eq!(PackageManager::Npm.run_script("dev", &args).join(" "), "npm run dev -- --port 3000");
-        assert_eq!(PackageManager::Pnpm.run_script("dev", &args).join(" "), "pnpm run dev --port 3000");
-        assert_eq!(PackageManager::Bun.run_script("test", &[]).join(" "), "bun run test");
+        assert_eq!(
+            PackageManager::Npm.run_script("dev", &args).join(" "),
+            "npm run dev -- --port 3000"
+        );
+        assert_eq!(
+            PackageManager::Pnpm.run_script("dev", &args).join(" "),
+            "pnpm run dev --port 3000"
+        );
+        assert_eq!(
+            PackageManager::Bun.run_script("test", &[]).join(" "),
+            "bun run test"
+        );
         assert_eq!(PackageManager::Yarn.install().join(" "), "yarn install");
     }
 }

@@ -170,7 +170,11 @@ mod tests {
         let p = PackageJson::parse(PKG).unwrap();
         assert_eq!(p.name.as_deref(), Some("storefront-ui"));
         assert_eq!(p.package_manager.as_deref(), Some("pnpm@9.15.0"));
-        let names: Vec<_> = p.scripts.iter().map(|s| (s.name.as_str(), s.line, s.column)).collect();
+        let names: Vec<_> = p
+            .scripts
+            .iter()
+            .map(|s| (s.name.as_str(), s.line, s.column))
+            .collect();
         assert_eq!(names, [("dev", 6, 4), ("build", 7, 4), ("test", 8, 4)]);
         assert_eq!(p.script("build").unwrap().command, "tsc -b && vite build");
         assert_eq!(p.dependencies["react"], "^19.1.0");
@@ -180,7 +184,8 @@ mod tests {
 
     #[test]
     fn yarn_workspaces_object() {
-        let p = PackageJson::parse(r#"{"workspaces": {"packages": ["apps/*", "libs/*"]}}"#).unwrap();
+        let p =
+            PackageJson::parse(r#"{"workspaces": {"packages": ["apps/*", "libs/*"]}}"#).unwrap();
         assert_eq!(p.workspaces, ["apps/*", "libs/*"]);
         assert!(p.scripts.is_empty());
     }
@@ -189,7 +194,11 @@ mod tests {
     fn broken_document_keeps_scripts() {
         let src = "{\n  \"scripts\": {\n    \"dev\": \"vite --host\",\n    \"lint\": \"eslint .\"\n  },\n  \"dependencies\": {\n";
         let p = PackageJson::parse(src).unwrap();
-        let names: Vec<_> = p.scripts.iter().map(|s| (s.name.as_str(), s.command.as_str(), s.line)).collect();
+        let names: Vec<_> = p
+            .scripts
+            .iter()
+            .map(|s| (s.name.as_str(), s.command.as_str(), s.line))
+            .collect();
         assert_eq!(names, [("dev", "vite --host", 2), ("lint", "eslint .", 3)]);
         assert!(PackageJson::parse("{ nope").is_none());
     }

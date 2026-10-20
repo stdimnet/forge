@@ -180,8 +180,10 @@ fn field(text: &str, s: usize, e: usize) -> Option<Field> {
     while let Some((a, b)) = ident(text, i) {
         let word = &text[a..b];
         let next = skip_trivia(text, b);
-        if matches!(word, "readonly" | "public" | "private" | "protected" | "static" | "declare")
-            && next < e
+        if matches!(
+            word,
+            "readonly" | "public" | "private" | "protected" | "static" | "declare"
+        ) && next < e
             && text[next..].starts_with(|c: char| is_ident_start(c) || c == '\'' || c == '"')
         {
             i = next;
@@ -236,7 +238,10 @@ mod tests {
         fields(src, open + 1, close)
             .into_iter()
             .map(|f| {
-                let v = f.value.map(|(a, b)| src[a..b].to_string()).unwrap_or_default();
+                let v = f
+                    .value
+                    .map(|(a, b)| src[a..b].to_string())
+                    .unwrap_or_default();
                 (f.key, f.optional, v)
             })
             .collect()
@@ -250,7 +255,11 @@ mod tests {
             [
                 ("title".into(), false, "string".into()),
                 ("count".into(), true, "number".into()),
-                ("onSelect".into(), true, "(id: number, e: { x: 1 }) => void".into()),
+                (
+                    "onSelect".into(),
+                    true,
+                    "(id: number, e: { x: 1 }) => void".into()
+                ),
                 ("status".into(), false, "'a' | 'b'\n    | 'c'".into()),
                 ("tags".into(), false, "Array<string>".into()),
             ]
@@ -261,9 +270,15 @@ mod tests {
     fn destructuring_and_object_literals() {
         let src = "{ title, size = 'md', onClick: handle, ...rest }";
         let k = keys(src);
-        assert_eq!(k.iter().map(|x| x.0.as_str()).collect::<Vec<_>>(), ["title", "size", "onClick"]);
+        assert_eq!(
+            k.iter().map(|x| x.0.as_str()).collect::<Vec<_>>(),
+            ["title", "size", "onClick"]
+        );
         let src = "{ selector: 'app-x', 'styleUrls': ['./a.css'], standalone: true }";
-        assert_eq!(keys(src)[1], ("styleUrls".into(), false, "['./a.css']".into()));
+        assert_eq!(
+            keys(src)[1],
+            ("styleUrls".into(), false, "['./a.css']".into())
+        );
     }
 
     #[test]

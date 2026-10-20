@@ -101,9 +101,24 @@ fn parses_blocks() {
 #[test]
 fn script_setup_props_emits_and_models() {
     let c = scan_file("src/components/ProductCard.vue", CARD).remove(0);
-    assert_eq!((c.name.as_str(), c.selector.as_deref()), ("ProductCard", Some("product-card")));
-    let props: Vec<_> = c.props.iter().map(|p| (p.name.as_str(), p.required)).collect();
-    assert_eq!(props, [("product", true), ("compact", false), ("badge", false), ("quantity", false)]);
+    assert_eq!(
+        (c.name.as_str(), c.selector.as_deref()),
+        ("ProductCard", Some("product-card"))
+    );
+    let props: Vec<_> = c
+        .props
+        .iter()
+        .map(|p| (p.name.as_str(), p.required))
+        .collect();
+    assert_eq!(
+        props,
+        [
+            ("product", true),
+            ("compact", false),
+            ("badge", false),
+            ("quantity", false)
+        ]
+    );
     assert_eq!(c.props[0].location.line, 5);
     let events: Vec<_> = c.events.iter().map(|e| e.name.as_str()).collect();
     assert_eq!(events, ["add-to-cart", "favorite"]);
@@ -117,45 +132,104 @@ fn options_api_and_runtime_declarations() {
     let props: Vec<_> = c
         .props
         .iter()
-        .map(|p| (p.name.as_str(), p.type_text.as_deref().unwrap_or(""), p.required))
+        .map(|p| {
+            (
+                p.name.as_str(),
+                p.type_text.as_deref().unwrap_or(""),
+                p.required,
+            )
+        })
         .collect();
-    assert_eq!(props, [("variant", "String", false), ("disabled", "Boolean", true), ("size", "String", false)]);
+    assert_eq!(
+        props,
+        [
+            ("variant", "String", false),
+            ("disabled", "Boolean", true),
+            ("size", "String", false)
+        ]
+    );
     assert_eq!(c.events[0].name, "click");
 
     let list = scan_file("src/components/ProductList.vue", LIST).remove(0);
     let names: Vec<_> = list.props.iter().map(|p| p.name.as_str()).collect();
     assert_eq!(names, ["products", "loading"]);
 
-    let counter = scan_file("src/components/Counter.ts", "export default defineComponent({\n  name: 'click-counter',\n  props: ['start'],\n})\n");
-    assert_eq!((counter[0].name.as_str(), counter[0].kind), ("ClickCounter", ComponentKind::Script));
+    let counter = scan_file(
+        "src/components/Counter.ts",
+        "export default defineComponent({\n  name: 'click-counter',\n  props: ['start'],\n})\n",
+    );
+    assert_eq!(
+        (counter[0].name.as_str(), counter[0].kind),
+        ("ClickCounter", ComponentKind::Script)
+    );
 }
 
 #[test]
 fn goto_component_from_template_tags() {
     let s = sources();
     let index = VueIndex::new(&s);
-    let card = index.goto("src/components/ProductList.vue", LIST, at(LIST, "<ProductCard", 4));
-    assert_eq!(card, [Location { path: "src/components/ProductCard.vue".into(), line: 0, column: 0 }]);
+    let card = index.goto(
+        "src/components/ProductList.vue",
+        LIST,
+        at(LIST, "<ProductCard", 4),
+    );
+    assert_eq!(
+        card,
+        [Location {
+            path: "src/components/ProductCard.vue".into(),
+            line: 0,
+            column: 0
+        }]
+    );
     // Kebab-case tag through the barrel's `default as BaseButton` re-export.
-    let button = index.goto("src/components/ProductList.vue", LIST, at(LIST, "<base-button", 3));
+    let button = index.goto(
+        "src/components/ProductList.vue",
+        LIST,
+        at(LIST, "<base-button", 3),
+    );
     assert_eq!(button[0].path, "src/components/ui/BaseButton.vue");
     // Not imported in ProductCard: found project-wide.
-    let global = index.goto("src/components/ProductCard.vue", CARD, at(CARD, "<BaseButton", 3));
+    let global = index.goto(
+        "src/components/ProductCard.vue",
+        CARD,
+        at(CARD, "<BaseButton", 3),
+    );
     assert_eq!(global[0].path, "src/components/ui/BaseButton.vue");
     // Unknown and built-in tags.
-    assert!(index.goto("src/components/ProductList.vue", LIST, at(LIST, "<router-link", 3)).is_empty());
-    assert!(index.goto("src/components/ProductList.vue", LIST, at(LIST, "<section", 3)).is_empty());
+    assert!(index
+        .goto(
+            "src/components/ProductList.vue",
+            LIST,
+            at(LIST, "<router-link", 3)
+        )
+        .is_empty());
+    assert!(index
+        .goto(
+            "src/components/ProductList.vue",
+            LIST,
+            at(LIST, "<section", 3)
+        )
+        .is_empty());
 }
 
 #[test]
 fn goto_props_and_emits_from_attributes() {
     let s = sources();
     let index = VueIndex::new(&s);
-    let goto = |needle: &str, delta: usize| index.goto("src/components/ProductList.vue", LIST, at(LIST, needle, delta));
+    let goto = |needle: &str, delta: usize| {
+        index.goto(
+            "src/components/ProductList.vue",
+            LIST,
+            at(LIST, needle, delta),
+        )
+    };
     assert_eq!(goto(":product=", 3)[0].line, 5);
     assert_eq!(goto("compact @", 2)[0].line, 6);
     let event = goto("@add-to-cart", 4);
-    assert_eq!((event[0].path.as_str(), event[0].line), ("src/components/ProductCard.vue", 12));
+    assert_eq!(
+        (event[0].path.as_str(), event[0].line),
+        ("src/components/ProductCard.vue", 12)
+    );
     let model = goto("v-model:quantity", 10);
     assert_eq!(model[0].line, 15);
 }
@@ -177,7 +251,13 @@ fn usages_and_counts() {
 
 #[test]
 fn nuxt_auto_import_names() {
-    assert_eq!(nuxt_name("components/base/Button.vue").as_deref(), Some("BaseButton"));
-    assert_eq!(nuxt_name("components/base/BaseInput.vue").as_deref(), Some("BaseInput"));
+    assert_eq!(
+        nuxt_name("components/base/Button.vue").as_deref(),
+        Some("BaseButton")
+    );
+    assert_eq!(
+        nuxt_name("components/base/BaseInput.vue").as_deref(),
+        Some("BaseInput")
+    );
     assert_eq!(nuxt_name("pages/index.vue"), None);
 }

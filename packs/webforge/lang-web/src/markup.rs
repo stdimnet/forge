@@ -70,15 +70,13 @@ fn jsx_tag_position(text: &str, at: usize) -> bool {
         return true;
     };
     if prev.is_alphanumeric() || prev == '_' || prev == '$' {
-        return ["return", "yield", "default", "await"]
-            .iter()
-            .any(|kw| {
-                before.ends_with(kw)
-                    && !before[..before.len() - kw.len()]
-                        .chars()
-                        .last()
-                        .is_some_and(|c| c.is_alphanumeric() || c == '_' || c == '.')
-            });
+        return ["return", "yield", "default", "await"].iter().any(|kw| {
+            before.ends_with(kw)
+                && !before[..before.len() - kw.len()]
+                    .chars()
+                    .last()
+                    .is_some_and(|c| c.is_alphanumeric() || c == '_' || c == '.')
+        });
     }
     !matches!(prev, ')' | ']' | '.' | '"' | '\'' | '`')
 }
@@ -253,7 +251,10 @@ mod tests {
         let src = "const [u] = useState<User>(null);\nif (a < b) {}\nreturn (\n  <Layout title={`Hi ${n}`} {...rest}>\n    <Button onClick={() => go({ a: 1 })} />\n  </Layout>\n);";
         let tags = scan_tags(src, 0, src.len(), true);
         let names: Vec<_> = tags.iter().map(|t| (t.name.as_str(), t.closing)).collect();
-        assert_eq!(names, [("Layout", false), ("Button", false), ("Layout", true)]);
+        assert_eq!(
+            names,
+            [("Layout", false), ("Button", false), ("Layout", true)]
+        );
         assert_eq!(tags[0].attrs[0].name, "title");
         assert_eq!(tags[1].attrs[0].name, "onClick");
     }

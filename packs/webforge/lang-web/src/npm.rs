@@ -43,8 +43,14 @@ pub fn packages(sources: &Sources, setting: &str) -> Vec<NpmPackage> {
         })
         .collect();
     out.sort_by(|a, b| {
-        (a.dir.matches('/').count() + usize::from(!a.dir.is_empty()), &a.path)
-            .cmp(&(b.dir.matches('/').count() + usize::from(!b.dir.is_empty()), &b.path))
+        (
+            a.dir.matches('/').count() + usize::from(!a.dir.is_empty()),
+            &a.path,
+        )
+            .cmp(&(
+                b.dir.matches('/').count() + usize::from(!b.dir.is_empty()),
+                &b.path,
+            ))
     });
     out
 }
@@ -93,8 +99,14 @@ mod tests {
     fn lists_packages_root_first() {
         let s = Sources::new(
             vec![
-                f("packages/ui/package.json", r#"{"name": "@shop/ui", "scripts": {"storybook": "storybook dev"}}"#),
-                f("package.json", r#"{"name": "shop", "scripts": {"dev": "turbo dev", "build": "turbo build"}}"#),
+                f(
+                    "packages/ui/package.json",
+                    r#"{"name": "@shop/ui", "scripts": {"storybook": "storybook dev"}}"#,
+                ),
+                f(
+                    "package.json",
+                    r#"{"name": "shop", "scripts": {"dev": "turbo dev", "build": "turbo build"}}"#,
+                ),
                 f("apps/web/package.json", r#"{"name": "web"}"#),
                 f("node_modules/react/package.json", r#"{"name": "react"}"#),
             ],
@@ -102,15 +114,25 @@ mod tests {
         );
         let pkgs = packages(&s, "auto");
         let paths: Vec<_> = pkgs.iter().map(|p| p.path.as_str()).collect();
-        assert_eq!(paths, ["package.json", "apps/web/package.json", "packages/ui/package.json"]);
+        assert_eq!(
+            paths,
+            [
+                "package.json",
+                "apps/web/package.json",
+                "packages/ui/package.json"
+            ]
+        );
         assert_eq!(pkgs[0].scripts.len(), 2);
-        assert!(pkgs.iter().all(|p| p.package_manager.manager == PackageManager::Pnpm));
+        assert!(pkgs
+            .iter()
+            .all(|p| p.package_manager.manager == PackageManager::Pnpm));
         assert_eq!(pkgs[2].name.as_deref(), Some("@shop/ui"));
     }
 
     #[test]
     fn gutter_marks_scripts() {
-        let src = "{\n  \"scripts\": {\n    \"dev\": \"vite\",\n    \"build\": \"vite build\"\n  }\n}\n";
+        let src =
+            "{\n  \"scripts\": {\n    \"dev\": \"vite\",\n    \"build\": \"vite build\"\n  }\n}\n";
         let marks = gutter("package.json", src);
         let lines: Vec<_> = marks.iter().map(|m| (m.line, m.title.as_str())).collect();
         assert_eq!(lines, [(2, "Run 'dev'"), (3, "Run 'build'")]);
