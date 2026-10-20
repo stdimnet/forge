@@ -46,3 +46,10 @@ ignore = "0.4"
 lto = "thin"
 codegen-units = 1
 strip = true
+
+# Size-optimised build of crates/forge-wasm for browser mode (`pnpm --dir app/ui wasm`).
+[profile.wasm]
+inherits = "release"
+opt-level = "z"
+lto = true
+panic = "abort"

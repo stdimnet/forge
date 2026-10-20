@@ -10,9 +10,9 @@ const root = resolve(import.meta.dirname, "../../..");
 const target = process.env.CARGO_TARGET_DIR ?? resolve(root, "target");
 const run = (cmd, args) => execFileSync(cmd, args, { cwd: root, stdio: "inherit" });
 
-run("cargo", ["build", "-p", "forge-wasm", "--release", "--target", "wasm32-unknown-unknown"]);
+run("cargo", ["build", "-p", "forge-wasm", "--profile", "wasm", "--target", "wasm32-unknown-unknown"]);
 run("wasm-bindgen", [
-  resolve(target, "wasm32-unknown-unknown/release/forge_wasm.wasm"),
+  resolve(target, "wasm32-unknown-unknown/wasm/forge_wasm.wasm"),
   "--target", "web",
   "--out-dir", resolve(root, "app/ui/src/wasm/pkg"),
 ]);
