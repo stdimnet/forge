@@ -13,6 +13,7 @@
 - [ ] PHPStorm keymap 1:1, Find Action, Search Everywhere
 - [x] Project type detection (packs activate per project) and New Project wizard with PHP, Web and Lua generators
 - [x] Terminal (PTY, tabs), Run/Debug configurations, Run tool window with PHPUnit test tree
+- [x] Laravel plugin: routes (route files or `artisan route:list`), Routes tool window, Blade highlighting and completion, `route()`/`view()`/`config()`/`env()`/`__()`/column/model property completion and navigation, gutter icons, Run Artisan Command… (Ctrl+Shift+X)
 
 ## Next branches
 

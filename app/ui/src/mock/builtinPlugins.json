@@ -1840,14 +1840,105 @@
       "languages": [],
       "commands": [
         {
-          "id": "laravel.artisan",
+          "id": "Laravel.RunArtisan",
           "title": "Run Artisan Command…",
           "category": "Tools"
         }
       ],
-      "keybindings": [],
-      "toolWindows": [],
-      "settings": [],
+      "keybindings": [
+        {
+          "command": "Laravel.RunArtisan",
+          "key": "Ctrl+Shift+X"
+        }
+      ],
+      "toolWindows": [
+        {
+          "id": "laravel.routes",
+          "title": "Routes",
+          "anchor": "bottom",
+          "icon": "route",
+          "order": 35
+        }
+      ],
+      "settings": [
+        {
+          "key": "laravel.routes.source",
+          "title": "Read routes from",
+          "description": "php artisan route:list also sees routes registered by packages, but needs a bootable application.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "auto",
+              "label": "artisan route:list when available, else route files"
+            },
+            {
+              "value": "artisan",
+              "label": "artisan route:list"
+            },
+            {
+              "value": "static",
+              "label": "Route files (no PHP needed)"
+            }
+          ],
+          "default": "auto",
+          "group": "lang.php.laravel",
+          "section": "Routes",
+          "project": true,
+          "order": 0
+        },
+        {
+          "key": "laravel.completion.enabled",
+          "title": "Complete routes, views, config, translations and model attributes",
+          "type": "bool",
+          "default": true,
+          "group": "lang.php.laravel",
+          "section": "Code Completion",
+          "project": false,
+          "order": 10
+        },
+        {
+          "key": "laravel.completion.columns",
+          "title": "Complete database columns in query builder calls",
+          "description": "where(), orderBy(), pluck() and similar, with columns read from the migrations.",
+          "type": "bool",
+          "default": true,
+          "group": "lang.php.laravel",
+          "section": "Code Completion",
+          "project": false,
+          "order": 11
+        },
+        {
+          "key": "laravel.gutter.routes",
+          "title": "Show route icons for controller actions",
+          "type": "bool",
+          "default": true,
+          "group": "lang.php.laravel",
+          "section": "Gutter Icons",
+          "project": false,
+          "order": 20
+        },
+        {
+          "key": "laravel.gutter.views",
+          "title": "Show view icons for view() calls and Blade includes",
+          "type": "bool",
+          "default": true,
+          "group": "lang.php.laravel",
+          "section": "Gutter Icons",
+          "project": false,
+          "order": 21
+        },
+        {
+          "key": "laravel.blade.customDirectives",
+          "title": "Additional Blade directives",
+          "description": "Directive names without @, e.g. datetime. They are highlighted and completed like built-in ones.",
+          "type": "list",
+          "default": [],
+          "group": "lang.php.laravel",
+          "section": "Blade",
+          "project": true,
+          "order": 30
+        }
+      ],
       "lspServers": [],
       "runConfigurationTypes": [
         {

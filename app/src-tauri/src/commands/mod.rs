@@ -8,6 +8,7 @@ pub mod db;
 pub mod debug;
 pub mod git;
 pub mod langservers;
+pub mod laravel;
 pub mod lsp;
 pub mod php;
 pub mod project;

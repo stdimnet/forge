@@ -31,6 +31,7 @@ forge-process.workspace = true
 forge-debug.workspace = true
 forge-db.workspace = true
 phpforge-lang-php = { path = "../../packs/phpforge/lang-php" }
+phpforge-fw-laravel = { path = "../../packs/phpforge/fw-laravel" }
 tauri = { version = "2", features = [] }
 tauri-plugin-dialog = "2"
 tauri-plugin-deep-link = "2"

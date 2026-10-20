@@ -14,3 +14,4 @@ import "./terminalMock";
 import "./runMock";
 import "./debugMock";
 import "./dbMock";
+import "./laravelMock";

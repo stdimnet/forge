@@ -201,11 +201,26 @@ $app->handleRequest(Request::capture());
 `,
   "routes/web.php": `<?php
 
+use App\\Http\\Controllers\\Admin\\DashboardController;
+use App\\Http\\Controllers\\CheckoutController;
 use App\\Http\\Controllers\\OrderController;
+use App\\Http\\Controllers\\ProductController;
 use Illuminate\\Support\\Facades\\Route;
 
-Route::get('/', fn () => view('welcome'));
+Route::get('/', fn () => view('welcome'))->name('home');
+Route::view('/about', 'pages.about')->name('about');
+
 Route::get('/orders/{order}', [OrderController::class, 'show'])->name('orders.show');
+Route::resource('products', ProductController::class)->only(['index', 'show']);
+
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/checkout', [CheckoutController::class, 'create'])->name('checkout.create');
+    Route::post('/checkout', [CheckoutController::class, 'store'])->name('checkout.store');
+});
+
+Route::prefix('admin')->name('admin.')->middleware('can:admin')->group(function () {
+    Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+});
 `,
   "resources/views/welcome.blade.php": "<x-layout>\n    <h1>{{ config('app.name') }}</h1>\n</x-layout>\n",
   "database/migrations/2026_01_01_000000_create_orders_table.php": "<?php\n\nreturn new class extends Migration {\n    public function up(): void\n    {\n        Schema::create('orders', function (Blueprint $table) {\n            $table->id();\n            $table->foreignId('user_id')->constrained();\n            $table->string('status');\n            $table->decimal('total', 10, 2);\n            $table->timestamps();\n        });\n    }\n};\n",

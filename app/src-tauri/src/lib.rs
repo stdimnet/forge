@@ -112,6 +112,7 @@ pub fn run() {
         .manage(commands::lsp::LspState::default())
         .manage(commands::workspace::WatchState::default())
         .manage(commands::php::PhpState::default())
+        .manage(commands::laravel::LaravelState::default())
         .manage(commands::project::CreateState::default())
         .manage(commands::langservers::LangServersState::default())
         .manage(commands::terminal::TerminalState::default())
@@ -194,6 +195,14 @@ pub fn run() {
             commands::php::php_generate,
             commands::php::php_detect_servers,
             commands::php::php_lsp_config,
+            commands::laravel::laravel_detect,
+            commands::laravel::laravel_routes,
+            commands::laravel::laravel_complete,
+            commands::laravel::laravel_goto,
+            commands::laravel::laravel_gutter,
+            commands::laravel::laravel_artisan_commands,
+            commands::laravel::laravel_artisan_run,
+            commands::laravel::laravel_artisan_cancel,
             commands::project::project_detect,
             commands::project::project_generators_list,
             commands::project::project_plan,

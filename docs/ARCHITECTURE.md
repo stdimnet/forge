@@ -282,3 +282,36 @@ app/ui/            SolidJS UI
 - UI: non-file editor tabs are registered with `registerEditorView` (`src/shell/editorViews.ts`) and
   opened with `openViewTab`; consoles and table editors use it. Editor-area panels can opt into the
   tool-window key context with `data-focus-context="toolwindow"`.
+## Laravel (`packs/phpforge/fw-laravel`)
+
+- `Laravel::load(root)` analyses a project statically with the PHP pack's tree-sitter parser:
+  routes from `routes/*.php` (verbs, `match`, `view`, `redirect`, `resource`/`apiResource`,
+  groups with prefix/name/middleware/controller, included files, the `api` prefix), views and
+  Blade components (anonymous, class based, Livewire), custom directives (`Blade::directive`,
+  `Blade::if`), config and `.env` keys, Eloquent models (columns from migrations, `$fillable`,
+  casts, relations with the related model, scopes, accessors) and translations. The app caches
+  it per workspace and reloads when the files change.
+- `laravel_detect() -> LaravelInfo { detected, version?, routes, views, components, models,
+  configKeys, translations, directives }`.
+- `laravel_routes() -> { routes: Route[], source: "static" | "artisan" }`. With the setting
+  `laravel.routes.source` = `artisan` (or `auto` when `vendor/` exists) it runs
+  `php artisan route:list --json` and keeps the static source locations. A `Route` is
+  `{ methods, uri, name?, action, controller?, controllerMethod?, middleware, domain?, source?,
+  actionLocation? }`; locations are `{ path, line, character }` (0-based, UTF-16).
+- `laravel_complete({ path, offset, content }) -> { from, to, items: { label, kind, detail?,
+  documentation?, insertText? }[] } | null` and `laravel_goto({ path, offset, content }) ->
+  Location[]` for `route()`, `view()`/`@include`, `config()`, `env()`, `__()`, query builder
+  columns (`->where('…')`), relations (`with('…')`), `$model->property`, `Model::scope`,
+  `[Controller::class, 'method']`, `<x-component>` and custom directives. Offsets are UTF-16.
+- `laravel_gutter({ path, content }) -> { line, kind: "route" | "controller" | "view", tooltip,
+  targets }[]`.
+- `laravel_artisan_commands() -> { commands, fromProject }` (`php artisan list --format=json`,
+  else a built-in list), `laravel_artisan_run({ commandLine, runId }) -> exitCode` streaming
+  `laravel://artisan/<runId>` events (`{ type: "started" | "output" | "error" | "exit", ... }`),
+  `laravel_artisan_cancel({ runId })`.
+- UI (`app/ui/src/features/laravel`): the Blade language (`registerLanguage("blade")`), a
+  completion source next to the LSP one, `GotoDeclaration` / Ctrl+Click that try Laravel first,
+  gutter icons, the Routes tool window, Run Artisan Command… (`Laravel.RunArtisan`,
+  Ctrl+Shift+X), the `framework.laravel` status item and Settings | Languages & Frameworks |
+  PHP | Laravel. Tool windows and status items can declare `when` to show only for matching
+  projects.

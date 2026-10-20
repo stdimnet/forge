@@ -22,6 +22,8 @@ export interface ToolWindow {
   actions?: () => JSX.Element;
   /** Optional content right after the title, e.g. tabs (Terminal, Run). */
   headerContent?: () => JSX.Element;
+  /** Show the window only while this is true (e.g. the project uses the framework). */
+  when?: () => boolean;
 }
 
 const [toolWindows, setToolWindows] = createSignal<ToolWindow[]>([]);
@@ -33,7 +35,7 @@ export function registerToolWindow(tw: ToolWindow): void {
 export { toolWindows };
 
 export const toolWindowsFor = (anchor: ToolWindowAnchor) =>
-  toolWindows().filter((t) => t.anchor === anchor);
+  toolWindows().filter((t) => t.anchor === anchor && (t.when?.() ?? true));
 
 export const findToolWindow = (id: string | null) =>
   id ? toolWindows().find((t) => t.id === id) : undefined;

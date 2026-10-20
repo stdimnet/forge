@@ -13,6 +13,7 @@ import "./navigation";
 import "./keymapSettings";
 import "./git";
 import "./php";
+import "./laravel";
 import "./project-type";
 import "./new-project";
 import "./browserCompanion";

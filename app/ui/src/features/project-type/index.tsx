@@ -4,7 +4,7 @@
  * way PHPStorm's framework detection does.
  */
 import { Show } from "solid-js";
-import { registerStatusItem } from "@/features/statusItems";
+import { registerStatusItem, visibleStatusItems } from "@/features/statusItems";
 import { settingsPages } from "@/features/settingsPages";
 import { openSettings } from "@/features/settings/dialogState";
 import { registerCommand } from "@/state/commands";
@@ -20,13 +20,15 @@ export const ANNOUNCED_KEY = "project.announcedFrameworks";
 
 function ProjectTypeStatus() {
   const primary = () => projectInfo()?.primary;
+  // A framework plugin may show its own widget (`framework.<id>`, e.g. Laravel's).
+  const replaced = () => visibleStatusItems("right").some((i) => i.id === `framework.${primary()?.id}`);
   const others = () =>
     (projectInfo()?.frameworks ?? [])
       .filter((f) => f.id !== primary()?.id)
       .map(frameworkLabel)
       .join(", ");
   return (
-    <Show when={primary()}>
+    <Show when={replaced() ? undefined : primary()}>
       {(p) => (
         <button
           class="status-item status-project-type"
