@@ -19,7 +19,7 @@ dialog, with the same tree as PHPStorm:
 - **Version Control**: Git, GitLab, Forgejo / Gitea, GitHub
 - **Languages & Frameworks**: Language Servers, PHP (Composer, Debug, Servers, Laravel,
   Symfony, Doctrine), Node.js, TypeScript, Lua, Template Data Languages
-- **Tools**: Terminal, Database, AI Agents, AI Providers, Browser Companion, SSH Configurations
+- **Tools**: Terminal, Database, AI Agents, AI Providers, Browser Companion, HTTP Client, SSH Configurations
 - **Build, Execution, Deployment**: Docker (Docker Registry), Kubernetes
 
 ![Settings dialog](../../screenshots/settings-light.png)
@@ -99,6 +99,7 @@ Scheme…** (`` Ctrl+` ``) toggle between dark and light.
 | UI font (Inter, System default, Segoe UI, Roboto) | `appearance.uiFont.family` | Inter |
 | UI font size (10–20) | `appearance.uiFont.size` | 13 |
 | Compact mode | `appearance.compactMode` | off |
+| Main menu (Hamburger menu, Merged with main toolbar, Show in separate toolbar) — see [Main menu](workbench.md#main-menu) | `appearance.mainMenu` | Hamburger menu |
 | Window controls | `appearance.windowControls` | Match the system |
 | Show tool window bars | `appearance.showToolWindowBars` | on |
 | Open files with single click (Project view) | `projectView.openFilesWithSingleClick` | on |
