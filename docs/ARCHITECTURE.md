@@ -23,7 +23,7 @@ app/ui/            SolidJS UI
   names. IPC: `settings_get_all`, `settings_set(key, value, scope)`, `settings_schema`,
   `plugins_list`, `plugin_set_enabled`; changes are emitted as `settings://changed`. In the UI read
   them with `getSetting(key)` from `src/state/settings.ts`.
-- Feature crates (`forge-lsp`, `forge-vcs`, `forge-ai`, `forge-agent-cli`, ...) are plain libraries
+- Feature crates (`forge-lsp`, `forge-vcs`, `forge-forges`, `forge-ai`, `forge-agent-cli`, ...) are plain libraries
   with their own tests; `app/src-tauri` wires them to IPC.
 - IPC commands live in `app/src-tauri/src/commands/<area>.rs`, are registered in `lib.rs`, and
   return `forge_core::Result<T>` (errors serialize to strings).
@@ -42,6 +42,9 @@ app/ui/            SolidJS UI
   - `registerSearchProvider` (`src/features/search/providers.ts`) — Search Everywhere tabs
     (Classes, Files, Symbols, Actions, Text); language packs plug in class/symbol indexes.
   - `registerKeymapActions` (`src/keymap/store.ts`) — plugin actions with default shortcuts.
+  - `openCustomTab({ id: "forge:<kind>/<id>", title, icon?, component })` (`src/state/editor.ts`) —
+    editor tabs that show a feature view instead of a file (merge requests, issues). `activeTab()`
+    stays file-only; use `isCustomTab(id)` where an id may belong to such a tab.
 - Keymap (`src/keymap/`): PHPStorm's default keymaps (Windows/Linux and macOS) as data, keyed by
   PHPStorm action ids that double as command ids. Implementing an action is just
   `registerCommand({ id: "GotoClass", ... })`; unimplemented actions show "not available yet".
@@ -114,3 +117,27 @@ app/ui/            SolidJS UI
   `lsp_document_symbols({ path })`, `lsp_format({ path, tabSize?, insertSpaces? })`, `lsp_status()`.
   Paths are workspace relative, positions 0-based line / UTF-16 character.
 - Events: `lsp://diagnostics` `{ path, diagnostics }` and `lsp://status` `ServerStatus[]`.
+
+## Code hosts (`forge-forges`)
+
+- `CodeHost` trait with GitLab (REST v4, `PRIVATE-TOKEN`), Forgejo/Gitea (`/api/v1`, `token`) and
+  GitHub (REST + GraphQL for review threads, `Bearer`) implementations. Numbers are the per-project
+  ones (`!12` on GitLab, `#12` elsewhere); `Capabilities` tell the UI the wording and which actions
+  the host supports (e.g. Forgejo cannot resolve threads through its API).
+- The repository is detected from `git remote -v` (https, ssh, scp-like, nested GitLab groups);
+  accounts make self-hosted servers known, also with relative URL roots and SSH ports.
+- Accounts live in `<config dir>/forge/forges.toml`; tokens in the OS keychain (service
+  `forge-forges`, account = account id) with `GITLAB_TOKEN`, `FORGEJO_TOKEN`/`GITEA_TOKEN`,
+  `GITHUB_TOKEN`/`GH_TOKEN` as fallback for the public servers.
+- IPC (`app/ui/src/ipc/forges.ts`): `forges_accounts`, `forges_login({ kind, server, token, apiUrl? })`
+  (verifies before storing), `forges_logout({ id })`, `forges_verify({ id })`, `forges_repo() ->
+  { repo, repos, account, capabilities } | null`, `forges_merge_requests({ filter }) -> Page<MergeRequest>`,
+  `forges_merge_request({ number })`, `forges_mr_files({ number })` (parsed hunks),
+  `forges_discussions({ number })`, `forges_create_mr({ request })`, `forges_comment({ number, body,
+  position? })`, `forges_reply({ number, discussionId, body })`, `forges_resolve({ number,
+  discussionId, resolved })`, `forges_approve`, `forges_merge({ number, options })`, `forges_close`,
+  `forges_issues({ filter })`, `forges_issue`, `forges_issue_comment`, `forges_pipelines({ branch? })`,
+  `forges_ci_status({ gitRef })`, `forges_members()`, `forges_file({ path, gitRef })`,
+  `forges_checkout({ number, sourceBranch }) -> branch` (emits `git://changed`).
+- Errors are worded for balloons: rejected tokens, missing permissions, rate limits (with the reset
+  time), unreachable servers.

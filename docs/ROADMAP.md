@@ -11,6 +11,7 @@
 - [x] AI chat: Claude Code rendered as chat (no terminal), tool calls & diffs as cards
 - [ ] PHPStorm keymap 1:1, Find Action, Search Everywhere
 - [x] Project type detection (packs activate per project) and New Project wizard with PHP, Web and Lua generators
+- [x] Code hosts: GitLab, Forgejo/Gitea and GitHub pull/merge requests with inline review threads, issues, pipelines
 
 ## Next branches
 
@@ -22,7 +23,6 @@
 | `feat/database-tools` | SQL editor, schema browser, data grid (MySQL, PostgreSQL, SQLite) |
 | `feat/xdebug-run-configs` | Xdebug via DAP, custom run/debug configuration types |
 | `feat/docker-kubernetes` | Services tool window: containers, compose, pods, logs |
-| `feat/gitlab-forgejo` | GitLab, Forgejo/Gitea merge requests & issues |
 | `feat/remote-sessions` | SSH remote backend with remote indexing & LSP |
 | `feat/gemini-cli-plugin` | Gemini CLI as a chat agent |
 | `feat/webforge` | Web pack |

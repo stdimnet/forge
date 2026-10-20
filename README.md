@@ -15,6 +15,9 @@ AI is built into the core: chat with Claude Code or Gemini CLI rendered natively
 AI commit messages, and any provider: Anthropic, OpenAI, OpenRouter, Ollama, LM Studio, llama.cpp
 or another OpenAI-compatible API.
 
+Code review is built in as well: pull and merge requests with inline threads, issues and CI
+pipelines for GitLab (also self-managed), Forgejo/Gitea and GitHub.
+
 The layout and keymap follow PHPStorm 1:1 so you feel at home immediately; the look is Forge's own.
 
 ![Forge workbench](docs/screenshots/workbench-dark.png)
