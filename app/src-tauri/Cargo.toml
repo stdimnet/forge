@@ -35,6 +35,7 @@ phpforge-lang-php = { path = "../../packs/phpforge/lang-php" }
 phpforge-fw-laravel = { path = "../../packs/phpforge/fw-laravel" }
 phpforge-fw-symfony = { path = "../../packs/phpforge/fw-symfony" }
 phpforge-orm-doctrine = { path = "../../packs/phpforge/orm-doctrine" }
+phpforge-dql = { path = "../../packs/phpforge/dql" }
 tauri = { version = "2", features = [] }
 tauri-plugin-dialog = "2"
 tauri-plugin-deep-link = "2"

@@ -323,6 +323,7 @@ pub fn run() {
             commands::doctrine::doctrine_goto,
             commands::doctrine::doctrine_diagnostics,
             commands::doctrine::doctrine_gutter,
+            commands::doctrine::doctrine_highlight,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Forge");

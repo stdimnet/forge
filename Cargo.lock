@@ -1412,6 +1412,7 @@ dependencies = [
  "forge-project",
  "forge-vcs",
  "futures-util",
+ "phpforge-dql",
  "phpforge-fw-laravel",
  "phpforge-fw-symfony",
  "phpforge-lang-php",
@@ -1618,6 +1619,7 @@ version = "0.1.0"
 dependencies = [
  "forge-output",
  "forge-sql",
+ "phpforge-dql",
  "serde",
  "serde_json",
  "wasm-bindgen",

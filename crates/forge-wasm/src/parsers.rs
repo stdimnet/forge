@@ -1,6 +1,7 @@
 //! Parsers and models of process output, SQL, DQL, Markdown and the AI chat, mirroring the
 //! IPC commands of the desktop app for the browser-mode mocks.
 
+pub mod dql;
 pub mod output;
 pub mod sql;
 
