@@ -303,6 +303,31 @@ export function sql_split(request_json: string): string;
  */
 export function sql_statement_at(request_json: string): string;
 
+/**
+ * `{ framework, files, paths }` -> `Component[]`.
+ */
+export function web_components(request_json: string): string;
+
+/**
+ * `{ framework, files, paths, path, content, offset }` -> `Location[]`.
+ */
+export function web_goto(request_json: string): string;
+
+/**
+ * `{ framework, files, paths, path, content }` -> `GutterMark[]`.
+ */
+export function web_gutter(request_json: string): string;
+
+/**
+ * `{ path, content }` -> `GutterMark[]` (run icons of a package.json).
+ */
+export function web_npm_gutter(request_json: string): string;
+
+/**
+ * `{ files, paths, packageManager? }` -> `NpmPackage[]`.
+ */
+export function web_npm_packages(request_json: string): string;
+
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
 export interface InitOutput {
@@ -368,6 +393,11 @@ export interface InitOutput {
     readonly sql_leading_keywords: (a: number, b: number, c: number) => void;
     readonly sql_split: (a: number, b: number, c: number) => void;
     readonly sql_statement_at: (a: number, b: number, c: number) => void;
+    readonly web_components: (a: number, b: number, c: number) => void;
+    readonly web_goto: (a: number, b: number, c: number) => void;
+    readonly web_gutter: (a: number, b: number, c: number) => void;
+    readonly web_npm_gutter: (a: number, b: number, c: number) => void;
+    readonly web_npm_packages: (a: number, b: number, c: number) => void;
     readonly __wbindgen_add_to_stack_pointer: (a: number) => number;
     readonly __wbindgen_export: (a: number, b: number, c: number) => void;
     readonly __wbindgen_export2: (a: number, b: number) => number;
