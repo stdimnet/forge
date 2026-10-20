@@ -1,0 +1,28 @@
+[package]
+name = "forge-remote-agent"
+description = "Headless Forge agent: serves a project's files, git, processes, language servers and PHP index over stdio for remote development"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "forge-remote-agent"
+path = "src/main.rs"
+
+[dependencies]
+forge-backend.workspace = true
+forge-core.workspace = true
+forge-process.workspace = true
+forge-vcs.workspace = true
+forge-lsp.workspace = true
+forge-project.workspace = true
+serde.workspace = true
+serde_bytes = "0.11"
+tokio = { workspace = true, features = ["full"] }
+tracing.workspace = true
+tracing-subscriber.workspace = true
+dirs.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+serde_json.workspace = true
