@@ -8,6 +8,8 @@ export interface TerminalOpenOptions {
   cwd?: string;
   /** Shell executable; default: setting `terminal.shellPath` or the system shell. */
   shell?: string;
+  /** Arguments for `shell` instead of the shell's defaults. */
+  args?: string[];
   env?: Record<string, string>;
   cols: number;
   rows: number;

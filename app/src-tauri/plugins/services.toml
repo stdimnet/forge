@@ -107,9 +107,8 @@ title = "Registry accounts"
 description = "One entry per registry: server, a tab, the user name. Passwords are kept in the OS keychain."
 type = "list"
 default = []
-group = "build.docker"
-section = "Docker Registry"
-order = 70
+group = "build.docker.registries"
+order = 0
 
 # ---- Build, Execution, Deployment > Kubernetes -----------------------------------------
 

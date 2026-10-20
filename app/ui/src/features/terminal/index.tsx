@@ -8,7 +8,7 @@ import { registerCommand } from "@/state/commands";
 import { registerKeymapActions } from "@/keymap";
 import { showToolWindow } from "@/state/layout";
 import { TerminalTabs, TerminalView, closeTerminalTab } from "./TerminalView";
-import { activeTab, newTab } from "./store";
+import { activeTab, newTab, type TerminalProgram } from "./store";
 import { focusSession } from "./sessions";
 
 registerToolWindow({
@@ -25,6 +25,13 @@ registerToolWindow({
 /** Open a new terminal tab in `dir` (relative to the project root), e.g. "Open In > Terminal". */
 export function openTerminalAt(dir?: string): void {
   const tab = newTab(dir);
+  showToolWindow("bottom", "terminal");
+  requestAnimationFrame(() => focusSession(tab.id));
+}
+
+/** Open a terminal tab running a program (Services: exec into a container or pod). */
+export function openTerminalWith(command: TerminalProgram & { title: string }): void {
+  const tab = newTab(undefined, command);
   showToolWindow("bottom", "terminal");
   requestAnimationFrame(() => focusSession(tab.id));
 }

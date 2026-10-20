@@ -831,18 +831,7 @@ fn namespace_node(input: &ServicesInput, context: &str, ns: &str, default: bool)
                 .pods
                 .iter()
                 .map(|p| {
-                    let status = if p.status == "Completed" {
-                        Status::Stopped
-                    } else if p.healthy() {
-                        Status::Running
-                    } else if matches!(
-                        p.status.as_str(),
-                        "Pending" | "ContainerCreating" | "Terminating" | "PodInitializing"
-                    ) {
-                        Status::Pending
-                    } else {
-                        Status::Error
-                    };
+                    let status = pod_status(p);
                     Node::new(
                         &Target::Pod {
                             context: context.into(),
@@ -906,6 +895,22 @@ fn namespace_node(input: &ServicesInput, context: &str, ns: &str, default: bool)
         }
     }
     n
+}
+
+/// Status dot of a pod: completed pods are stopped, starting ones pending.
+fn pod_status(p: &crate::kube::Pod) -> Status {
+    if p.status == "Completed" {
+        Status::Stopped
+    } else if p.healthy() {
+        Status::Running
+    } else if matches!(
+        p.status.as_str(),
+        "Pending" | "ContainerCreating" | "Terminating" | "PodInitializing"
+    ) {
+        Status::Pending
+    } else {
+        Status::Error
+    }
 }
 
 fn mark_busy(node: &mut Node, busy: &[String]) {
@@ -1734,16 +1739,7 @@ pub fn details(input: &ServicesInput, node_id: &str) -> Option<Details> {
                             ]
                         })
                         .collect(),
-                    w.pods
-                        .iter()
-                        .map(|p| {
-                            Some(if p.healthy() {
-                                Status::Running
-                            } else {
-                                Status::Error
-                            })
-                        })
-                        .collect(),
+                    w.pods.iter().map(|p| Some(pod_status(p))).collect(),
                 ));
             }
             if group.is_empty() || group == "deployments" {
@@ -1883,15 +1879,7 @@ pub fn details(input: &ServicesInput, node_id: &str) -> Option<Details> {
                             ]
                         })
                         .collect(),
-                    pods.iter()
-                        .map(|p| {
-                            Some(if p.healthy() {
-                                Status::Running
-                            } else {
-                                Status::Error
-                            })
-                        })
-                        .collect(),
+                    pods.iter().map(|p| Some(pod_status(p))).collect(),
                 ));
             }
         }

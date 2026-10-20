@@ -850,8 +850,9 @@ impl Hub {
             },
             false,
         );
-        let code = crate::cli::run_streaming(program, args, env, cwd, |stream, text| {
-            self.console_text(&key, stream, text)
+        // Compose and BuildKit write their progress to stderr; it is not an error there.
+        let code = crate::cli::run_streaming(program, args, env, cwd, |_stream, text| {
+            self.console_text(&key, LogStream::Stdout, text)
         })
         .await;
         match code {

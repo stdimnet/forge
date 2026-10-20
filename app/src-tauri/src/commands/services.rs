@@ -227,11 +227,18 @@ pub fn services_status(state: State<'_, ServicesState>) -> Result<HubEvent> {
     Ok(state.hub()?.status())
 }
 
-/// Settings page "Test Connection" with the current (applied) settings.
+/// Settings page "Test Connection": the entered (possibly unsaved) connection settings, or
+/// the applied ones.
 #[tauri::command]
-pub async fn docker_test_connection(app: AppHandle) -> Result<String> {
-    let settings = hub_settings(&app.state::<AppState>().read_settings());
-    Hub::test_connection(&settings.docker).await.map_err(e)
+pub async fn docker_test_connection(
+    settings: Option<DockerSettings>,
+    app: AppHandle,
+) -> Result<String> {
+    let docker = match settings {
+        Some(s) => s,
+        None => hub_settings(&app.state::<AppState>().read_settings()).docker,
+    };
+    Hub::test_connection(&docker).await.map_err(e)
 }
 
 /// Store a registry password in the keychain (the server and user name are a setting).
