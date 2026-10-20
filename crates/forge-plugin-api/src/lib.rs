@@ -34,6 +34,11 @@ pub struct PluginManifest {
     /// Required plugins (the IDE core) cannot be disabled.
     #[serde(default)]
     pub required: bool,
+    /// Project types the plugin applies to: language, framework, pack or tool ids from project
+    /// detection (`php`, `laravel`, `luaforge`, ...). The plugin is active in a project that
+    /// uses any of them; empty means always active.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub project_types: Vec<String>,
 }
 
 pub trait Plugin: Send + Sync {
