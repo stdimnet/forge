@@ -78,9 +78,24 @@ may therefore sit anywhere, also where the data language would not expect them.
 To support another data language, add it to `DATA_LANGUAGES` with a `parser` and, if there is
 one, a `support` factory, and add its inner extension to `COMPOUND`. To support another
 template engine, describe it as a `TemplateSyntax` (delimiters, keywords, builtins) and
-register it with the `template(...)` helper in `languages.ts`. Smarty delimiters are
-configurable (`templates.smarty.leftDelimiter`), which helps for LaTeX, where `{` is part of
-the content.
+register it with the `template(...)` helper in `languages.ts`.
+
+### Configurable delimiters
+
+Engines whose delimiters can change (Smarty's `left_delimiter`, Go's `Template.Delims`) are
+listed in `CONFIGURABLE_TEMPLATES` (`app/ui/src/editor/templateDelimiters.ts`) with their
+default delimiters and a `syntax(delimiters)` builder. Their settings, declared in
+`app/src-tauri/plugins/core.toml` (page `lang.templates`), are
+`templates.<id>.leftDelimiter` / `rightDelimiter` and `templates.<id>.delimiterOverrides`, a
+list of `<data language or file pattern>=<left> <right>` rules (a file pattern wins over a
+data language, which wins over the plain delimiters). Smarty ships `latex=<< >>` as a
+default *value*; never add a code path for a specific engine + data language pair. To make
+another engine configurable, add it to `CONFIGURABLE_TEMPLATES`, build its delimiters from
+`left` / `right` (comments, end tags, literal blocks too) and add the three settings.
+
+Everything tag-related reads the resolved syntax from `templateSyntaxField`: the overlay,
+comment toggling, folding, matching delimiters, auto-closing and tag completion
+(`templateEditing.ts`). The syntax is live: a settings change re-highlights open editors.
 
 Smarter features for a language (completion, hover, diagnostics) belong to a language server
 (`forge-lsp`, see the PHP pack) or a pack-specific editor extension (`registerEditorExtension`).
