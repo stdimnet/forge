@@ -55,7 +55,7 @@ async function runSplash() {
   const pause = Number(params().get("splashPause") ?? "NaN");
   const steps: [string, string, number][] = [
     ["Loading the core", "settings · keymap", 4],
-    ["Loading plugins", "15 plugins", 16],
+    ["Loading plugins", "36 plugins", 16],
     ["Opening project", demoProjectName, 38],
     ["Opening project", `${demoProjectName} · Laravel`, 50],
     ["Starting background services", "language servers", 56],

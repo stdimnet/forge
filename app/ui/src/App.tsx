@@ -14,7 +14,8 @@ export function App() {
     if (isTauri()) {
       await restoreWorkspace();
       // The window is shown (and the splash closed) once the first screen has rendered.
-      requestAnimationFrame(() => void reportWorkbenchReady());
+      // The window is still hidden here, so no animation frame would ever run: use a task.
+      setTimeout(() => void reportWorkbenchReady(), 0);
       return;
     }
     // In browser mode open the demo project so the IDE is explorable without a backend,
