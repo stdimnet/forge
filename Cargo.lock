@@ -1433,6 +1433,7 @@ name = "forge-core"
 version = "0.1.0"
 dependencies = [
  "dirs 6.0.0",
+ "forge-fuzzy",
  "ignore",
  "notify",
  "serde",
@@ -1496,6 +1497,14 @@ dependencies = [
  "tokio",
  "toml 0.8.23",
  "tracing",
+]
+
+[[package]]
+name = "forge-fuzzy"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
