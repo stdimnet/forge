@@ -8,9 +8,12 @@ use std::collections::{BTreeMap, HashMap};
 
 use forge_containers::compose::{self, ComposeCommand};
 use forge_containers::docker::RawSnapshot;
+use forge_containers::endpoint;
 use forge_containers::exec;
 use forge_containers::gutter;
 use forge_containers::kube::{self, RawWorkloads};
+use forge_containers::logs;
+use forge_containers::portforward;
 use forge_containers::pull::PullProgress;
 use forge_containers::tree::{self, ServicesInput};
 use serde::Deserialize;
@@ -184,6 +187,9 @@ enum TerminalRequest {
         namespace: String,
         pod: String,
         kubeconfig: Option<String>,
+        container: Option<String>,
+        #[serde(default)]
+        attach: bool,
     },
 }
 
@@ -206,14 +212,90 @@ pub fn containers_terminal_command(request_json: &str) -> String {
             namespace,
             pod,
             kubeconfig,
-        }) => to_json(&exec::kubectl_exec(
-            "kubectl",
-            kubeconfig.as_deref(),
-            &context,
-            &namespace,
-            &pod,
-            None,
-        )),
+            container,
+            attach,
+        }) => {
+            let make = if attach {
+                exec::kubectl_attach
+            } else {
+                exec::kubectl_exec
+            };
+            to_json(&make(
+                "kubectl",
+                kubeconfig.as_deref(),
+                &context,
+                &namespace,
+                &pod,
+                container.as_deref(),
+            ))
+        }
+        Err(e) => e,
+    }
+}
+
+#[derive(Deserialize)]
+struct SpecRequest {
+    spec: String,
+}
+
+/// `{ spec }` → `[local, remote][]` (Forward Ports), or an error.
+#[wasm_bindgen]
+pub fn containers_port_forward_specs(request_json: &str) -> String {
+    match parse::<SpecRequest>(request_json) {
+        Ok(r) => match portforward::parse_specs(&r.spec) {
+            Ok(specs) => to_json(&specs),
+            Err(e) => error(&e.0),
+        },
+        Err(e) => e,
+    }
+}
+
+#[derive(Deserialize)]
+struct LogPrefixRequest {
+    pod: String,
+    container: String,
+    text: String,
+}
+
+/// `{ pod, container, text }` → the text with every line prefixed like
+/// `kubectl logs --prefix` (deployment logs).
+#[wasm_bindgen]
+pub fn containers_prefix_log(request_json: &str) -> String {
+    match parse::<LogPrefixRequest>(request_json) {
+        Ok(r) => {
+            let mut p = logs::LinePrefixer::new(logs::pod_log_prefix(&r.pod, &r.container));
+            let mut out = p.push(&r.text);
+            out.push_str(&p.finish());
+            to_json(&out)
+        }
+        Err(e) => e,
+    }
+}
+
+#[derive(Deserialize)]
+struct ContextsRequest {
+    metas: Vec<String>,
+    current: Option<String>,
+}
+
+/// `{ metas: [meta.json text], current }` → `DockerContext[]` (the mock's
+/// `~/.docker/contexts`).
+#[wasm_bindgen]
+pub fn containers_docker_contexts(request_json: &str) -> String {
+    match parse::<ContextsRequest>(request_json) {
+        Ok(r) => {
+            let mut out: Vec<endpoint::DockerContext> = r
+                .metas
+                .iter()
+                .filter_map(|m| endpoint::parse_context_meta(m))
+                .map(|mut c| {
+                    c.current = r.current.as_deref() == Some(c.name.as_str());
+                    c
+                })
+                .collect();
+            out.sort_by(|a, b| a.name.cmp(&b.name));
+            to_json(&out)
+        }
         Err(e) => e,
     }
 }
@@ -292,6 +374,20 @@ mod tests {
         assert!(g.contains("dockerfile"));
         let t = containers_terminal_command(r#"{"kind":"exec","container":"a","name":"web"}"#);
         assert!(t.contains("\"exec\""));
+        let t = containers_terminal_command(
+            r#"{"kind":"kubectl","context":"k","namespace":"n","pod":"p","container":"c","attach":true}"#,
+        );
+        assert!(t.contains("p [c] (attached)"), "{t}");
+        assert_eq!(
+            containers_port_forward_specs(r#"{"spec":"8080:80, 9000"}"#),
+            "[[8080,80],[9000,9000]]"
+        );
+        assert!(containers_port_forward_specs(r#"{"spec":"x"}"#).contains("error"));
+        let p = containers_prefix_log(r#"{"pod":"web-1","container":"php","text":"a\nb"}"#);
+        assert!(p.contains("[pod/web-1/php] b"), "{p}");
+        let meta = r#"{\"Name\":\"b\",\"Endpoints\":{\"docker\":{\"Host\":\"ssh://x\"}}}"#;
+        let c = containers_docker_contexts(&format!(r#"{{"metas":["{meta}"],"current":"b"}}"#));
+        assert!(c.contains("\"current\":true"), "{c}");
         let h = containers_pull_new(r#"{"image":"redis"}"#);
         let out = containers_pull_push(&format!(
             r#"{{"handle":{h},"text":"{{\"status\":\"Pulling fs layer\",\"id\":\"l1\"}}\n"}}"#

@@ -207,19 +207,16 @@ pub fn services_terminal(
         .map_err(e)
 }
 
-/// Forward Ports: listen on `127.0.0.1:<localPort>` (0: any free port) and forward to
-/// `remotePort` of the pod.
+/// Forward Ports: `spec` lists `local:pod` ports (`8080:80, 9000`, `:80` for any free local
+/// port); each listens on `127.0.0.1` and forwards to the pod.
 #[tauri::command]
 pub async fn services_port_forward_start(
     node_id: String,
-    local_port: u16,
-    remote_port: u16,
+    spec: String,
     state: State<'_, ServicesState>,
-) -> Result<PortForward> {
+) -> Result<Vec<PortForward>> {
     let hub = state.hub()?.clone();
-    hub.start_port_forward(&node_id, local_port, remote_port)
-        .await
-        .map_err(e)
+    hub.start_port_forwards(&node_id, &spec).await.map_err(e)
 }
 
 #[tauri::command]

@@ -116,6 +116,19 @@ pub fn parse_spec(spec: &str) -> Result<(u16, u16)> {
     }
 }
 
+/// Several specs separated by commas or spaces (`8080:80, 9000`).
+pub fn parse_specs(text: &str) -> Result<Vec<(u16, u16)>> {
+    let specs: Vec<(u16, u16)> = text
+        .split([',', ' ', ';'])
+        .filter(|s| !s.trim().is_empty())
+        .map(parse_spec)
+        .collect::<Result<_>>()?;
+    if specs.is_empty() {
+        return err("Enter the ports to forward, e.g. 8080:80");
+    }
+    Ok(specs)
+}
+
 /// An active port forward.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -165,6 +178,12 @@ mod tests {
         assert!(parse_spec("80:0").is_err());
         assert!(parse_spec("x:80").is_err());
         assert!(parse_spec("70000").is_err());
+        assert_eq!(
+            parse_specs("8080:80, 9000 ;:5432").unwrap(),
+            [(8080, 80), (9000, 9000), (0, 5432)]
+        );
+        assert!(parse_specs("  ").is_err());
+        assert!(parse_specs("80, x").is_err());
     }
 
     #[test]

@@ -1658,6 +1658,28 @@ impl Hub {
         Ok(forward)
     }
 
+    /// Start the forwards of a spec (`8080:80, 9000`); stops the ones already started when
+    /// one fails.
+    pub async fn start_port_forwards(
+        self: &Arc<Self>,
+        node_id: &str,
+        spec: &str,
+    ) -> Result<Vec<PortForward>> {
+        let mut started = Vec::new();
+        for (local, remote) in crate::portforward::parse_specs(spec)? {
+            match self.start_port_forward(node_id, local, remote).await {
+                Ok(f) => started.push(f),
+                Err(e) => {
+                    for f in &started {
+                        let _ = self.stop_port_forward(f.id);
+                    }
+                    return Err(e);
+                }
+            }
+        }
+        Ok(started)
+    }
+
     fn update_forward(&self, id: u64, f: impl FnOnce(&mut PortForward)) {
         {
             let mut s = self.lock();
@@ -1938,7 +1960,11 @@ mod tests {
             name: "web-1".into(),
         }
         .node_id();
-        let f = hub.start_port_forward(&node, 0, 80).await.unwrap();
+        let f = hub
+            .start_port_forwards(&node, ":80")
+            .await
+            .unwrap()
+            .remove(0);
         assert!(f.local_port > 0);
         assert_eq!(hub.input().port_forwards, [f.clone()]);
         let mut tcp = tokio::net::TcpStream::connect(("127.0.0.1", f.local_port))
