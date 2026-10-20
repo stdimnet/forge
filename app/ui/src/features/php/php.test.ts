@@ -3,7 +3,7 @@ import type { FieldTarget, GenerateTargets, StructureNode } from "./api";
 import { chooserTitle, clampToViewport, fieldsFor, generateMenu, groupByOwner, showsFluentOption } from "./generateModel";
 import { highlightPhp, renderMarkdown } from "./markdown";
 import { orderNodes } from "./StructureView";
-import { toLspSettings, defaultPhpSettings } from "./settings";
+import { toLspSettings, defaultPhpSettings, legacyPhpChanges } from "./settings";
 import { percent } from "./status";
 
 const field = (name: string, extra: Partial<FieldTarget> = {}): FieldTarget => ({
@@ -103,9 +103,17 @@ describe("structure ordering", () => {
 
 describe("settings", () => {
   it("maps to backend language server settings", () => {
-    const s = toLspSettings({ ...defaultPhpSettings, licenceKey: "  KEY ", languageLevel: "8.2", includePaths: ["/usr/share/php"] });
-    expect(s).toMatchObject({ server: "intelephense", licenceKey: "KEY", phpVersion: "8.2", includePaths: ["/usr/share/php"] });
-    expect(toLspSettings({ ...defaultPhpSettings, licenceKey: "" }).licenceKey).toBeNull();
+    const s = toLspSettings({ ...defaultPhpSettings, server: "intelephense", languageLevel: "8.2", includePaths: ["/usr/share/php"] });
+    expect(s).toMatchObject({ server: "intelephense", licenceKey: null, phpVersion: "8.2", includePaths: ["/usr/share/php"] });
+  });
+
+  it("migrates values from the old localStorage store", () => {
+    const old = JSON.stringify({ languageLevel: "8.1", cliInterpreter: "/usr/bin/php8.1", server: "phpactor", licenceKey: "SECRET", includePaths: [] });
+    const changes = legacyPhpChanges(old, (k) => k === "php.lsp.server");
+    expect(changes).toEqual({ "php.languageLevel": "8.1", "php.interpreter": "/usr/bin/php8.1" });
+    expect(JSON.stringify(changes)).not.toContain("SECRET");
+    expect(legacyPhpChanges("not json", () => false)).toEqual({});
+    expect(legacyPhpChanges(null, () => false)).toEqual({});
   });
 
   it("computes indexing percent", () => {
