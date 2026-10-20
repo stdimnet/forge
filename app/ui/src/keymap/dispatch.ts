@@ -7,21 +7,31 @@ import { KeymapEngine, type FocusContext } from "./engine";
 import { ACTION_ALIASES } from "./phpstormKeymap";
 import { actionById, bindings } from "./store";
 
+export interface BalloonAction {
+  label: string;
+  run: () => void;
+}
+
 export interface Balloon {
   id: number;
   text: string;
   detail?: string;
+  /** Links under the text, like PHPStorm's notification actions ("Configure"). */
+  actions?: BalloonAction[];
 }
 
 const [balloons, setBalloons] = createSignal<Balloon[]>([]);
 export { balloons };
 let balloonSeq = 0;
 
+export const dismissBalloon = (id: number) => setBalloons((b) => b.filter((x) => x.id !== id));
+
 /** Show a small transient notification (bottom right, like PHPStorm's balloons). */
-export function showBalloon(text: string, detail?: string, ms = 2600): void {
+export function showBalloon(text: string, detail?: string, ms = 2600, actions?: BalloonAction[]): number {
   const id = ++balloonSeq;
-  setBalloons((b) => [...b.slice(-2), { id, text, detail }]);
-  setTimeout(() => setBalloons((b) => b.filter((x) => x.id !== id)), ms);
+  setBalloons((b) => [...b.slice(-2), { id, text, detail, actions }]);
+  setTimeout(() => dismissBalloon(id), ms);
+  return id;
 }
 
 /** Command id that actually implements `actionId` (the id itself or a known alias). */
