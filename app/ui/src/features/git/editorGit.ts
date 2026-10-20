@@ -18,12 +18,13 @@ import {
   type DecorationSet,
   type ViewUpdate,
 } from "@codemirror/view";
-import { saveFile } from "@/state/editor";
+import { normalizeEol, saveFile, setTabEol } from "@/state/editor";
 import { gitApi, type Blame, type BlameCommit } from "./api";
 import { fileReload, revision, status } from "./store";
 import { annotated, setBlameCard, setDiffRequest, toggleAnnotate } from "./overlays";
 import { ageBucket, shortDate, timeAgo } from "./format";
-import { lineDiffConfig } from "./lineDiff";
+import { replaceDocument } from "@/editor/reload";
+import { lineDiffConfig, rollbackEdit } from "./lineDiff";
 
 // ---- shared per-view git data ---------------------------------------------------------
 
@@ -250,7 +251,7 @@ const changeField = StateField.define<ChangeState>({
     let rebuild = false;
     for (const e of tr.effects)
       if (e.is(setHeadEffect)) {
-        head = e.value == null ? null : Text.of(e.value.split("\n"));
+        head = e.value == null ? null : Text.of(normalizeEol(e.value).text.split("\n"));
         rebuild = true;
       }
     if (!head) return rebuild ? { head: null, chunks: [], markers: RangeSet.empty } : value;
@@ -297,12 +298,7 @@ function showChangePopup(view: EditorView, path: string, chunk: Chunk, head: Tex
     el.append(b);
   };
   action("Rollback", "Rollback Lines (Ctrl+Alt+Z)", () => {
-    const doc = view.state.doc;
-    const to = Math.min(chunk.toB, doc.length);
-    let insert = removed;
-    // Chunks ending past the document end lose the trailing newline on that side.
-    if (chunk.toB > doc.length && insert.endsWith("\n")) insert = insert.slice(0, -1);
-    view.dispatch({ changes: { from: chunk.fromB, to, insert } });
+    view.dispatch({ changes: rollbackEdit(chunk, head, view.state.doc) });
   });
   action("Show Diff", "Show Diff (Ctrl+D)", () => {
     setDiffRequest({
@@ -374,8 +370,11 @@ function controller(path: string, blameCompartment: Compartment) {
       );
       createEffect(
         on(fileReload, (r) => {
-          if (!r || r.path !== path || r.content === view.state.doc.toString()) return;
-          view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: r.content } });
+          if (!r || r.path !== path) return;
+          const { text, eol } = normalizeEol(r.content);
+          setTabEol(path, eol);
+          if (text === view.state.doc.toString()) return;
+          replaceDocument(view, text);
           void saveFile(path);
         }, { defer: true }),
       );

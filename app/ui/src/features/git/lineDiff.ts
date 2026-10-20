@@ -4,7 +4,8 @@
  * through its neighbour. Like PHPStorm we first diff whole lines, then refine each modified
  * block character-wise for the word highlights.
  */
-import { Change, diff, presentableDiff } from "@codemirror/merge";
+import { Change, diff, presentableDiff, type Chunk } from "@codemirror/merge";
+import type { Text } from "@codemirror/state";
 
 /** Split keeping line terminators, so offsets can be summed back. */
 function lines(s: string): string[] {
@@ -67,3 +68,16 @@ export function lineAlignedDiff(a: string, b: string): readonly Change[] {
 }
 
 export const lineDiffConfig = { override: lineAlignedDiff, scanLimit: 5000 };
+
+/**
+ * The edit that restores one chunk of `doc` to `head`. Chunk ends include the line break
+ * (and may point one past a document that has no trailing newline), so both sides are only
+ * clamped; this also restores or removes a final newline at the end of the file.
+ */
+export function rollbackEdit(chunk: Chunk, head: Text, doc: Text): { from: number; to: number; insert: string } {
+  return {
+    from: chunk.fromB,
+    to: Math.min(chunk.toB, doc.length),
+    insert: head.sliceString(chunk.fromA, Math.min(chunk.toA, head.length)),
+  };
+}
