@@ -37,7 +37,7 @@ function TreeNode(props: { entry: FileEntry; depth: number }) {
     <>
       <div
         class="tree-row"
-        classList={{ selected: selected() === props.entry.path, "active-file": editor.active === props.entry.path }}
+        classList={{ selected: selected() === props.entry.path, "active-file": editor.active === props.entry.path, ignored: !!props.entry.ignored }}
         style={{ "padding-left": `${8 + props.depth * 16}px` }}
         data-path={props.entry.path}
         data-dir={isDir() ? "" : undefined}
@@ -63,7 +63,7 @@ function TreeNode(props: { entry: FileEntry; depth: number }) {
         >
           <Show when={isDir()}>{isOpen() ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</Show>
         </span>
-        <FileIcon name={props.entry.name} dir={isDir()} open={isOpen()} />
+        <FileIcon name={props.entry.name} dir={isDir()} open={isOpen()} dimmed={props.entry.ignored} />
         <span class={`tree-label ${status() ? `vcs-${status()}` : ""}`}>{props.entry.name}</span>
       </div>
       <Show when={isDir() && isOpen()}>

@@ -36,6 +36,7 @@
   --vcs-added: #73c48a;
   --vcs-deleted: #8a8a94;
   --vcs-untracked: #e0806a;
+  --vcs-ignored: #80808a;
   --vcs-conflict: #ef5f5f;
 
   /* Git blame annotation age (newest -> oldest) and diff viewer */
@@ -105,6 +106,7 @@
   --vcs-added: #2f8a46;
   --vcs-deleted: #8a8a94;
   --vcs-untracked: #b5492f;
+  --vcs-ignored: #9a9aa3;
 
   --blame-age-0: #e8620c;
   --blame-age-1: #e48a4a;

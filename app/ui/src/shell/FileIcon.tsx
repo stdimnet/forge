@@ -34,7 +34,7 @@ const byExt: Record<string, { icon: typeof File; color: string }> = {
   dockerfile: { icon: Container, color: "#4fa3e0" },
 };
 
-export function FileIcon(props: { name: string; dir?: boolean; open?: boolean; size?: number }) {
+export function FileIcon(props: { name: string; dir?: boolean; open?: boolean; size?: number; dimmed?: boolean }) {
   const spec = () => {
     if (props.dir) return { icon: props.open ? FolderOpen : Folder, color: "var(--fg-muted)" };
     if (props.name.endsWith(".blade.php")) return { icon: FileCode, color: "#ff7a50" };
@@ -47,9 +47,10 @@ export function FileIcon(props: { name: string; dir?: boolean; open?: boolean; s
   return (
     <Dynamic
       component={spec().icon}
+      class="file-icon"
       size={props.size ?? 15}
       stroke-width={1.75}
-      style={{ color: spec().color, "flex-shrink": 0 }}
+      style={{ color: spec().color, "flex-shrink": 0, opacity: props.dimmed ? 0.6 : undefined }}
     />
   );
 }

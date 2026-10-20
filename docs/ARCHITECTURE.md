@@ -60,6 +60,10 @@ app/ui/            SolidJS UI
 
 ## Shared IPC contracts
 
+- `fs_list_dir({ path }) -> { name, path, kind, ignored }[]` — `ignored` is set for entries matched by
+  `.gitignore`, `.git/info/exclude` or the global excludes file (ignored folders ignore their
+  content); the Project view grays them out. The browser mock mirrors this with
+  `src/mock/gitignoreMatcher.ts`.
 - `fs_find_files({ query, limit? }) -> { path, name, score, positions, matchedPath }[]` — fuzzy
   "Go to File" (camel humps, respects `.gitignore`).
 

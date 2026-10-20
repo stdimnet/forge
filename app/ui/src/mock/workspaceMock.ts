@@ -2,9 +2,11 @@ import { registerMock } from "@/ipc";
 import type { FileEntry } from "@/ipc/workspace";
 import { demoFiles, demoProjectName } from "./demoProject";
 import { demoConfigFiles } from "./demoConfigFiles";
+import { createIgnoreMatcher } from "./gitignoreMatcher";
 import { recentPrimaries } from "./projectMock";
 
 const files: Record<string, string> = { ...demoFiles, ...demoConfigFiles };
+const ignores = createIgnoreMatcher((dir) => files[dir ? `${dir}/.gitignore` : ".gitignore"]);
 
 function listDir(dir: string): FileEntry[] {
   const prefix = dir ? `${dir}/` : "";
@@ -14,7 +16,9 @@ function listDir(dir: string): FileEntry[] {
     const rest = path.slice(prefix.length);
     const [head, ...tail] = rest.split("/");
     const full = prefix + head;
-    if (!seen.has(full)) seen.set(full, { name: head, path: full, kind: tail.length ? "dir" : "file" });
+    if (seen.has(full)) continue;
+    const kind = tail.length ? "dir" : "file";
+    seen.set(full, { name: head, path: full, kind, ignored: ignores.isIgnored(full, kind === "dir") });
   }
   return [...seen.values()].sort(
     (a, b) =>
