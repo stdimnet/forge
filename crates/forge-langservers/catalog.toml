@@ -468,6 +468,12 @@ hover = true
 completion = true
 format = { enable = true }
 keyOrdering = false
+# Docker Compose merge tags (https://docs.docker.com/reference/compose-file/merge/), which
+# the server reports as "Unresolved tag" unless they are declared for every node kind.
+customTags = [
+  "!reset scalar", "!reset sequence", "!reset mapping",
+  "!override scalar", "!override sequence", "!override mapping",
+]
 schemaStore = { enable = true, url = "https://www.schemastore.org/api/json/catalog.json" }
 
 [server.settings.yaml.schemas]
