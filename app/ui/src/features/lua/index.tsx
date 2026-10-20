@@ -22,6 +22,7 @@ import { registerSettingsPage } from "@/features/settingsPages";
 import { SchemaPage } from "@/features/settings/SchemaPage";
 import { registerSearchProvider, type SearchItem } from "@/features/search/providers";
 import { registerDeclarationProvider } from "@/features/lsp/goto";
+import { chooseDeclarationAt } from "@/features/navigation/chooseDeclaration";
 import { registerFormatProvider } from "@/features/lsp/format";
 import { lspClaimsHover } from "@/features/lsp/hover";
 import { buildHoverDom } from "@/features/lsp/hoverDoc";
@@ -121,9 +122,12 @@ registerSearchProvider({ id: "lua.symbols", tab: "symbols", title: "Symbols", or
 registerDeclarationProvider(async (path, view, pos) => {
   if (!isLuaPath(path) || !active()) return false;
   const targets = await luaApi.goto(path, pos, view.state.doc.toString());
-  const target = targets[0];
-  if (!target) return false;
-  return openFileAt(target.path, target.line + 1, target.column + 1, { flash: target.path !== path });
+  if (!targets.length) return false;
+  // Several declarations (a global assigned in several files): PHPStorm's chooser.
+  chooseDeclarationAt(view, pos, targets, {
+    open: (t) => void openFileAt(t.path, t.line + 1, (t.column ?? 0) + 1, { flash: t.path !== path }),
+  });
+  return true;
 });
 
 // ---- Hover ------------------------------------------------------------------------------

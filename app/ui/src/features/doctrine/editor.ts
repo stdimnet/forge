@@ -14,6 +14,7 @@ import { doctrineApi, type DqlHighlight, type DqlItem, type DqlItemKind, type Dq
 import { registerEditorExtension } from "@/editor/extensions";
 import { registerLineMarkerProvider } from "@/editor/lineMarkers";
 import { registerDeclarationProvider } from "@/features/lsp/goto";
+import { chooseDeclarationAt } from "@/features/navigation/chooseDeclaration";
 import { revealSymbol } from "@/features/php/editorViews";
 import { getSetting } from "@/state/settings";
 import { doctrineActive } from "./store";
@@ -205,9 +206,9 @@ registerEditorExtension(({ path }) => {
 registerDeclarationProvider(async (path, view, pos) => {
   if (!isPhp(path) || !injectionOn()) return false;
   const text = view.state.doc.toString();
-  const t = (await doctrineApi.goto(path, text, pos).catch(() => []))[0];
-  if (!t) return false;
-  await revealSymbol(t.path, { line: t.line });
+  const targets = await doctrineApi.goto(path, text, pos).catch(() => []);
+  if (!targets.length) return false;
+  chooseDeclarationAt(view, pos, targets, { open: (t) => void revealSymbol(t.path, { line: t.line }) });
   return true;
 });
 

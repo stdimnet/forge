@@ -2,15 +2,15 @@
  * Go to Declaration (Ctrl+B / Ctrl+Click) for Laravel symbols: route names → route
  * definition and controller, views, config/env keys, translations, columns, relations,
  * model properties, scopes, components and custom directives. Anything else falls through
- * to the language server. Several targets open a "Choose Declaration" list like PHPStorm.
+ * to the language server. Several targets open the shared "Choose Declaration" popup.
  */
-import { Prec, StateEffect, StateField, type Extension } from "@codemirror/state";
-import { EditorView, keymap, showTooltip, type Tooltip } from "@codemirror/view";
-import { laravelApi, type LaravelLocation } from "@/ipc/laravel";
+import { Prec, type Extension } from "@codemirror/state";
+import { EditorView, keymap } from "@codemirror/view";
+import { laravelApi } from "@/ipc/laravel";
 import { gotoDeclaration } from "@/features/lsp/goto";
 import { activeView } from "@/features/lsp/navigation";
+import { chooseDeclarationAt } from "@/features/navigation/chooseDeclaration";
 import { commands, registerCommand } from "@/state/commands";
-import { h } from "@/features/lsp/util";
 import { laravelActive, reveal } from "./state";
 import { isBlade } from "./completion";
 
@@ -27,74 +27,18 @@ export function mayGoto(lineText: string, column: number, blade: boolean): boole
   return false;
 }
 
-interface Chooser {
-  pos: number;
-  targets: LaravelLocation[];
-  index: number;
-}
-
-const setChooser = StateEffect.define<Chooser | null>();
-
-function chooserTooltip(c: Chooser): Tooltip {
-  return {
-    pos: c.pos,
-    above: false,
-    create: (view) => {
-      const dom = h("div", "laravel-chooser");
-      dom.append(h("div", "laravel-chooser-title", "Choose Declaration"));
-      c.targets.forEach((t, i) => {
-        const row = h("button", "laravel-chooser-row");
-        const name = t.path.split("/").pop() ?? t.path;
-        row.append(h("span", "laravel-chooser-name", `${name}:${t.line + 1}`), h("span", "laravel-chooser-path", t.path));
-        row.onmousedown = (ev) => {
-          ev.preventDefault();
-          view.dispatch({ effects: setChooser.of(null) });
-          void reveal(t);
-        };
-        if (i === c.index) row.classList.add("selected");
-        dom.append(row);
-      });
-      return { dom };
-    },
-  };
-}
-
-const chooserField = StateField.define<Chooser | null>({
-  create: () => null,
-  update(value, tr) {
-    for (const e of tr.effects) if (e.is(setChooser)) return e.value;
-    return tr.docChanged || tr.selection ? null : value;
-  },
-  provide: (f) => showTooltip.from(f, (c) => (c ? chooserTooltip(c) : null)),
-});
-
-/** Arrow keys, Enter and Escape while the chooser is open. */
-function chooserKey(key: "up" | "down" | "enter" | "escape") {
-  return (view: EditorView): boolean => {
-    const c = view.state.field(chooserField, false);
-    if (!c) return false;
-    if (key === "escape") view.dispatch({ effects: setChooser.of(null) });
-    else if (key === "enter") {
-      view.dispatch({ effects: setChooser.of(null) });
-      void reveal(c.targets[c.index]);
-    } else {
-      const n = c.targets.length;
-      const index = (c.index + (key === "down" ? 1 : n - 1)) % n;
-      view.dispatch({ effects: setChooser.of({ ...c, index }) });
-    }
-    return true;
-  };
-}
-
 /** Ask the backend; returns false when there is nothing Laravel-specific at `pos`. */
 export async function laravelGoto(path: string, view: EditorView, pos: number): Promise<boolean> {
   const targets = await laravelApi.goto(path, pos, view.state.doc.toString()).catch(() => []);
   if (!targets.length) return false;
-  if (targets.length === 1) {
-    await reveal(targets[0]);
-  } else {
-    view.dispatch({ effects: setChooser.of({ pos, targets, index: 0 }) });
-  }
+  if (targets.length === 1) await reveal(targets[0]);
+  else
+    chooseDeclarationAt(
+      view,
+      pos,
+      targets.map((t) => ({ path: t.path, line: t.line, column: t.character })),
+      { open: (t) => void reveal({ path: t.path, line: t.line, character: t.column ?? 0 }) },
+    );
   return true;
 }
 
@@ -135,7 +79,6 @@ export function wrapGotoDeclaration(): void {
 
 export function laravelGotoExtension(path: string): Extension {
   return [
-    chooserField,
     Prec.high(
       keymap.of([
         {
@@ -147,10 +90,6 @@ export function laravelGotoExtension(path: string): Extension {
             return true;
           },
         },
-        { key: "Escape", run: chooserKey("escape") },
-        { key: "Enter", run: chooserKey("enter") },
-        { key: "ArrowDown", run: chooserKey("down") },
-        { key: "ArrowUp", run: chooserKey("up") },
       ]),
     ),
     Prec.high(

@@ -5,6 +5,7 @@
 import { StateEffect, StateField, type Extension } from "@codemirror/state";
 import { Decoration, EditorView, keymap, showTooltip, type DecorationSet, type Tooltip } from "@codemirror/view";
 import { lspApi } from "@/ipc/lsp";
+import { chooseDeclarationAt } from "@/features/navigation/chooseDeclaration";
 import { revealLocation } from "./navigation";
 import { syncNow } from "./sync";
 import { h, toLsp } from "./util";
@@ -75,7 +76,16 @@ export async function gotoDeclaration(path: string, view: EditorView, pos = view
     showHint(view, pos, "Cannot find declaration to go to");
     return false;
   }
-  return revealLocation(target.path, target.range.start, target.range.end);
+  if (locations.length === 1) return revealLocation(target.path, target.range.start, target.range.end);
+  // Several definitions (e.g. a class declared twice, an interface method): let the user choose.
+  const targets = locations.map((l) => ({ path: l.path, line: l.range.start.line, column: l.range.start.character, location: l }));
+  chooseDeclarationAt(view, pos, targets, {
+    open: (t) => {
+      const l = targets.find((x) => x === t)?.location ?? target;
+      void revealLocation(l.path, l.range.start, l.range.end);
+    },
+  });
+  return true;
 }
 
 function linkRangeAt(view: EditorView, x: number, y: number) {

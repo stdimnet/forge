@@ -56,6 +56,8 @@ export interface LuaLocation {
   offset: number;
   line: number;
   column: number;
+  /** The target's line, for the "Choose Declaration" popup. */
+  preview?: string;
 }
 
 export interface LuaRunMarker {

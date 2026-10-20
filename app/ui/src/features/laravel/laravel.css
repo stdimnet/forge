@@ -353,40 +353,6 @@
 .laravel-gutter-icon.kind-view {
   color: var(--syn-type);
 }
-.laravel-chooser {
-  display: flex;
-  flex-direction: column;
-  padding: 4px;
-  min-width: 320px;
-  font-size: var(--fs-ui);
-}
-.laravel-chooser-title {
-  padding: 2px 8px 4px;
-  font-size: var(--fs-small);
-  color: var(--fg-muted);
-}
-.laravel-chooser-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  height: 24px;
-  padding: 0 8px;
-  border-radius: var(--radius);
-  text-align: left;
-  color: var(--fg);
-}
-.laravel-chooser-row:hover,
-.laravel-chooser-row.selected {
-  background: var(--bg-selection);
-}
-.laravel-chooser-name {
-  color: var(--fg-strong);
-}
-.laravel-chooser-path {
-  margin-left: auto;
-  color: var(--fg-muted);
-  font-size: var(--fs-small);
-}
 .cm-laravel-doc {
   padding: 6px 10px;
   font-family: var(--font-mono);
