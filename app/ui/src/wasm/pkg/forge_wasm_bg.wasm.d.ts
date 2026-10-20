@@ -2,6 +2,10 @@
 /* eslint-disable */
 export const memory: WebAssembly.Memory;
 export const bridge_version: (a: number) => void;
+export const dql_complete: (a: number, b: number, c: number) => void;
+export const dql_diagnostics: (a: number, b: number, c: number) => void;
+export const dql_goto: (a: number, b: number, c: number) => void;
+export const dql_highlight: (a: number, b: number, c: number) => void;
 export const output_file_links: (a: number, b: number, c: number) => void;
 export const run_output_drop: (a: number, b: number, c: number) => void;
 export const run_output_handle: (a: number, b: number, c: number) => void;

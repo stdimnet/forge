@@ -7,6 +7,26 @@
 export function bridge_version(): string;
 
 /**
+ * Mirrors `doctrine_complete`: `{ path, content, offset, snapshot }` → `DqlCompletion | null`.
+ */
+export function dql_complete(request_json: string): string;
+
+/**
+ * Mirrors `doctrine_diagnostics`: `{ path, content, snapshot }` → `SourceDiagnostic[]`.
+ */
+export function dql_diagnostics(request_json: string): string;
+
+/**
+ * Mirrors `doctrine_goto`: `{ path, content, offset, snapshot }` → `Location[]`.
+ */
+export function dql_goto(request_json: string): string;
+
+/**
+ * Mirrors `doctrine_highlight`: `{ path, content, snapshot }` → `SourceHighlight`.
+ */
+export function dql_highlight(request_json: string): string;
+
+/**
  * Mirrors the `output_file_links` command: `{ text, root }` → `FileLink[]`.
  */
 export function output_file_links(request_json: string): string;
@@ -53,6 +73,10 @@ export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembl
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
     readonly bridge_version: (a: number) => void;
+    readonly dql_complete: (a: number, b: number, c: number) => void;
+    readonly dql_diagnostics: (a: number, b: number, c: number) => void;
+    readonly dql_goto: (a: number, b: number, c: number) => void;
+    readonly dql_highlight: (a: number, b: number, c: number) => void;
     readonly output_file_links: (a: number, b: number, c: number) => void;
     readonly run_output_drop: (a: number, b: number, c: number) => void;
     readonly run_output_handle: (a: number, b: number, c: number) => void;

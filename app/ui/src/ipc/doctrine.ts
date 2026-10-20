@@ -62,6 +62,16 @@ export interface DqlDiagnostic {
   message: string;
 }
 
+/** Semantic span kinds of DQL highlighting (`phpforge_dql::dql::SpanKind`). */
+export type DqlSpanKind = "keyword" | "function" | "entity" | "alias" | "field" | "association" | "parameter" | "string" | "number" | "operator";
+
+/** DQL injection highlighting of a PHP file, in editor offsets. */
+export interface DqlHighlight {
+  /** `[from, to]` of the string pieces holding DQL. */
+  injected: [number, number][];
+  spans: { from: number; to: number; kind: DqlSpanKind }[];
+}
+
 export interface DoctrineGutterMark {
   line: number;
   kind: "entity" | "repository";
@@ -77,4 +87,5 @@ export const doctrineApi = {
     invoke<SourceLocation[]>("doctrine_goto", { path, content, offset }),
   diagnostics: (path: string, content: string) => invoke<DqlDiagnostic[]>("doctrine_diagnostics", { path, content }),
   gutter: (path: string, content: string) => invoke<DoctrineGutterMark[]>("doctrine_gutter", { path, content }),
+  highlight: (path: string, content: string) => invoke<DqlHighlight>("doctrine_highlight", { path, content }),
 };

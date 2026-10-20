@@ -1,5 +1,6 @@
 /**
- * DQL language injection in PHP: highlighting of `createQuery()` and QueryBuilder strings,
+ * DQL language injection in PHP: highlighting of `createQuery()` and QueryBuilder strings
+ * (computed by the backend, `phpforge-dql`, and refreshed shortly after edits),
  * completion of entities/aliases/fields/keywords, Ctrl+B to entity fields, unknown-field
  * warnings and entity <-> repository line markers.
  */
@@ -9,13 +10,12 @@ import { Decoration, EditorView, ViewPlugin, type DecorationSet, type ViewUpdate
 import { EditorState } from "@codemirror/state";
 import type { Completion, CompletionContext, CompletionResult } from "@codemirror/autocomplete";
 import { Database, Table2 } from "lucide-solid";
-import { doctrineApi, type DqlItem, type DqlItemKind } from "@/ipc/doctrine";
+import { doctrineApi, type DqlHighlight, type DqlItem, type DqlItemKind, type DqlSpanKind } from "@/ipc/doctrine";
 import { registerEditorExtension } from "@/editor/extensions";
 import { registerLineMarkerProvider } from "@/editor/lineMarkers";
 import { registerDeclarationProvider } from "@/features/lsp/goto";
 import { revealSymbol } from "@/features/php/editorViews";
 import { getSetting } from "@/state/settings";
-import { dqlSourceSpans, findDqlSites, sourceToDql } from "./dql";
 import { doctrineActive } from "./store";
 
 const isPhp = (path: string) => /\.php$/i.test(path) && !path.endsWith(".blade.php");
@@ -24,53 +24,83 @@ const injectionOn = () => doctrineActive() && getSetting<boolean>("doctrine.dqlI
 
 // ---------------------------------------------------------------- highlighting
 
-const marks = {
-  keyword: Decoration.mark({ class: "cm-dql-keyword" }),
-  function: Decoration.mark({ class: "cm-dql-function" }),
-  entity: Decoration.mark({ class: "cm-dql-entity" }),
-  alias: Decoration.mark({ class: "cm-dql-alias" }),
-  field: Decoration.mark({ class: "cm-dql-field" }),
-  parameter: Decoration.mark({ class: "cm-dql-parameter" }),
-  string: Decoration.mark({ class: "cm-dql-string" }),
-  number: Decoration.mark({ class: "cm-dql-number" }),
+const mark = (kind: string) => Decoration.mark({ class: `cm-dql-${kind}` });
+const marks: Partial<Record<DqlSpanKind, Decoration>> = {
+  keyword: mark("keyword"),
+  function: mark("function"),
+  entity: mark("entity"),
+  alias: mark("alias"),
+  field: mark("field"),
+  association: mark("field"),
+  parameter: mark("parameter"),
+  string: mark("string"),
+  number: mark("number"),
 };
 const injected = Decoration.mark({ class: "cm-dql-injected" });
 
-function buildDecorations(state: EditorState): DecorationSet {
-  if (!injectionOn()) return Decoration.none;
-  const { sites, spans } = dqlSourceSpans(state.doc.toString());
+function decorationsOf(h: DqlHighlight, docLength: number): DecorationSet {
   const all: { from: number; to: number; deco: Decoration }[] = [];
-  for (const site of sites) for (const s of site.segments) if (s.len > 0) all.push({ from: s.src, to: s.src + s.len, deco: injected });
-  for (const sp of spans) all.push({ from: sp.from, to: sp.to, deco: marks[sp.kind] });
+  for (const [from, to] of h.injected) all.push({ from, to, deco: injected });
+  for (const sp of h.spans) {
+    const deco = marks[sp.kind];
+    if (deco) all.push({ from: sp.from, to: sp.to, deco });
+  }
   all.sort((a, b) => a.from - b.from || Number(b.deco === injected) - Number(a.deco === injected));
   const builder = new RangeSetBuilder<Decoration>();
-  for (const d of all) if (d.to <= state.doc.length) builder.add(d.from, d.to, d.deco);
+  for (const d of all) if (d.to <= docLength && d.to > d.from) builder.add(d.from, d.to, d.deco);
   return builder.finish();
 }
 
-const highlighter = ViewPlugin.fromClass(
-  class {
-    decorations: DecorationSet;
-    dispose: () => void;
-    constructor(view: EditorView) {
-      this.decorations = buildDecorations(view.state);
-      // The plugin becomes active once the project type is detected; refresh then.
-      this.dispose = createRoot((dispose) => {
-        createEffect(on(injectionOn, () => queueMicrotask(() => view.dispatch({ effects: refreshDql.of(null) })), { defer: true }));
-        return dispose;
-      });
-    }
-    destroy() {
-      this.dispose();
-    }
-    update(u: ViewUpdate) {
-      if (u.docChanged || u.transactions.some((t) => t.effects.some((e) => e.is(refreshDql)))) {
-        this.decorations = buildDecorations(u.state);
-      }
-    }
+const setHighlight = StateEffect.define<DecorationSet>();
+const highlightField = StateField.define<DecorationSet>({
+  create: () => Decoration.none,
+  update(deco, tr) {
+    for (const e of tr.effects) if (e.is(setHighlight)) return e.value;
+    return tr.docChanged ? deco.map(tr.changes) : deco;
   },
-  { decorations: (v) => v.decorations },
-);
+  provide: (f) => EditorView.decorations.from(f),
+});
+
+/** Highlighting from the backend; between edits and the answer the old spans move with the text. */
+function highlighter(path: string): Extension {
+  const plugin = ViewPlugin.define((view) => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let seq = 0;
+    const run = () => {
+      const n = ++seq;
+      if (!injectionOn()) {
+        view.dispatch({ effects: setHighlight.of(Decoration.none) });
+        return;
+      }
+      const text = view.state.doc.toString();
+      void doctrineApi
+        .highlight(path, text)
+        .then((h) => {
+          if (n === seq && view.state.doc.toString() === text) view.dispatch({ effects: setHighlight.of(decorationsOf(h, text.length)) });
+        })
+        .catch(() => {});
+    };
+    timer = setTimeout(run, 0);
+    // The plugin becomes active once the project type is detected; refresh then.
+    const dispose = createRoot((d) => {
+      createEffect(on(injectionOn, () => queueMicrotask(() => view.dispatch({ effects: refreshDql.of(null) })), { defer: true }));
+      return d;
+    });
+    return {
+      update(u: ViewUpdate) {
+        if (!u.docChanged && !u.transactions.some((t) => t.effects.some((e) => e.is(refreshDql)))) return;
+        clearTimeout(timer);
+        timer = setTimeout(run, 30);
+      },
+      destroy() {
+        clearTimeout(timer);
+        seq++;
+        dispose();
+      },
+    };
+  });
+  return [highlightField, plugin];
+}
 
 /** Re-run highlighting once the project is detected (the plugin may become active later). */
 const refreshDql = StateEffect.define<null>();
@@ -93,7 +123,7 @@ function diagnostics(path: string): Extension {
     let seq = 0;
     const run = () => {
       const n = ++seq;
-      if (!injectionOn() || !getSetting<boolean>("doctrine.dqlInspections", true) || !findDqlSites(view.state.doc.toString()).length) {
+      if (!injectionOn() || !getSetting<boolean>("doctrine.dqlInspections", true)) {
         view.dispatch({ effects: setProblems.of(Decoration.none) });
         return;
       }
@@ -155,8 +185,7 @@ function completionSource(path: string) {
   return async (ctx: CompletionContext): Promise<CompletionResult | null> => {
     if (!injectionOn() || !getSetting<boolean>("doctrine.dqlCompletion", true)) return null;
     const text = ctx.state.doc.toString();
-    // Only inside DQL strings; checked locally before asking the backend.
-    if (!findDqlSites(text).some((s) => sourceToDql(s, ctx.pos) != null)) return null;
+    // The backend answers null outside DQL strings.
     const word = ctx.matchBefore(/[\w\\.]*$/);
     if (!ctx.explicit && !word?.text && !/\s$/.test(ctx.state.sliceDoc(ctx.pos - 1, ctx.pos))) return null;
     const res = await doctrineApi.complete(path, text, ctx.pos).catch(() => null);
@@ -170,14 +199,13 @@ function completionSource(path: string) {
 registerEditorExtension(({ path }) => {
   if (!isPhp(path)) return null;
   const data = [{ autocomplete: completionSource(path) }];
-  return [highlighter, diagnostics(path), EditorState.languageData.of(() => data)];
+  return [highlighter(path), diagnostics(path), EditorState.languageData.of(() => data)];
 });
 
 registerDeclarationProvider(async (path, view, pos) => {
   if (!isPhp(path) || !injectionOn()) return false;
   const text = view.state.doc.toString();
-  if (!findDqlSites(text).some((s) => sourceToDql(s, pos) != null)) return false;
-  const t = (await doctrineApi.goto(path, text, pos))[0];
+  const t = (await doctrineApi.goto(path, text, pos).catch(() => []))[0];
   if (!t) return false;
   await revealSymbol(t.path, { line: t.line });
   return true;
