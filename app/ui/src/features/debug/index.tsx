@@ -6,6 +6,7 @@
  * Run configurations can start a debug session through `debugLauncher` (see below).
  */
 import { createEffect, createRoot, on, Show } from "solid-js";
+import { isDialogWindow } from "@/shell/window/mode";
 import { render } from "solid-js/web";
 import { Bug, PhoneCall, PhoneOff } from "lucide-solid";
 import { registerToolWindow } from "@/features/registry";
@@ -262,5 +263,7 @@ if (typeof document !== "undefined") {
   render(DebugOverlays, host);
   void startDebugStore();
   // Breakpoints and servers belong to the project: reload when another one opens.
-  createRoot(() => createEffect(on(() => workspace()?.root, () => void reloadDebugState(), { defer: true })));
+  if (!isDialogWindow()) {
+    createRoot(() => createEffect(on(() => workspace()?.root, () => void reloadDebugState(), { defer: true })));
+  }
 }

@@ -3,13 +3,20 @@
  * settings pages generated from the plugin settings schema, the Plugins page, and applying
  * settings (fonts, theme, editor options) to the running UI.
  */
-import { render } from "solid-js/web";
 import { EditorView, highlightWhitespace } from "@codemirror/view";
 import { registerCommand } from "@/state/commands";
 import { registerSettingsPage, type SettingsPage } from "@/features/settingsPages";
 import { registerEditorExtension } from "@/editor/extensions";
 import { loadSettings } from "@/state/settings";
-import { closeSettings, isOpen, openSettings } from "./dialogState";
+import { registerDialog, isDialogOpen } from "@/shell/window/dialogs";
+import {
+  closeSettings,
+  openSettings,
+  setSelected,
+  SETTINGS_DIALOG,
+  type SettingsDialogProps,
+  type SettingsDialogResult,
+} from "./dialogState";
 import { SettingsDialog } from "./SettingsDialog";
 import { SchemaPage } from "./SchemaPage";
 import { PluginsPage } from "./PluginsPage";
@@ -52,6 +59,24 @@ registerSettingsPage({
 
 registerCommand({ id: "settings.open", title: "Settings…", category: "File", run: () => openSettings() });
 
+registerDialog<SettingsDialogProps, SettingsDialogResult>({
+  id: SETTINGS_DIALOG,
+  title: "Settings",
+  width: 900,
+  height: 640,
+  minWidth: 640,
+  minHeight: 420,
+  component: SettingsDialog,
+  prepare: () => loadSettings(),
+  // Changes reach every window through `settings://changed`; the plugin list and the
+  // setting layers are reloaded here.
+  onClosed: (result) => {
+    if (result?.page) setSelected(result.page);
+    void loadSettings().catch(() => undefined);
+  },
+  onMessage: () => void loadSettings().catch(() => undefined),
+});
+
 // Ctrl+Alt+S (Cmd+, on macOS) toggles the dialog; capture phase so the editor cannot eat it.
 window.addEventListener(
   "keydown",
@@ -61,7 +86,7 @@ window.addEventListener(
     if (!ctrlAltS && !cmdComma) return;
     e.preventDefault();
     e.stopPropagation();
-    if (isOpen()) closeSettings();
+    if (isDialogOpen(SETTINGS_DIALOG)) closeSettings();
     else openSettings();
   },
   true,
@@ -75,7 +100,3 @@ registerEditorExtension(({ path }) => (softWrapFor(path) ? EditorView.lineWrappi
 applySettingsToDocument();
 void loadSettings().catch((e) => console.error("settings could not be loaded", e));
 
-const host = document.createElement("div");
-host.id = "settings-dialog-root";
-document.body.appendChild(host);
-render(() => <SettingsDialog />, host);

@@ -14,6 +14,7 @@ import { showBalloon } from "@/keymap";
 import { ProjectTypeIcon } from "@/shell/ProjectTypeIcon";
 import type { ProjectInfo } from "@/ipc/project";
 import { announcement } from "./announce";
+import { isDialogWindow } from "@/shell/window/mode";
 
 /** User setting holding `<root>#<framework>` pairs already announced. */
 export const ANNOUNCED_KEY = "project.announcedFrameworks";
@@ -75,7 +76,8 @@ function announce(info: ProjectInfo, root: string, attempt = 0): void {
   showBalloon(a.title, a.detail, 12000, [{ label: "Configure", run: () => openSettings(page) }]);
 }
 
-onProjectDetected(announce);
+// The "support enabled" notification shows in the IDE window only.
+if (!isDialogWindow()) onProjectDetected(announce);
 trackProjectInfo();
 
 registerCommand({ id: "project.redetect", title: "Detect Project Type", category: "File", run: refreshProjectInfo });

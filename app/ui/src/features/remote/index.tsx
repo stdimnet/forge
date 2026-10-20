@@ -18,7 +18,16 @@ import { RemoteFolderChooser } from "./RemoteFolderChooser";
 import { RemoteStatusItem } from "./RemoteStatusItem";
 import { SshConfigurationsPage } from "./SshConfigurationsPage";
 import { SshConnectionDialog } from "./SshConnectionDialog";
-import { openNewSshConnection, trackRemoteStatus } from "./store";
+import {
+  openNewSshConnection,
+  SSH_CONNECTION_DIALOG,
+  trackRemoteStatus,
+  type SshDialogRequest,
+  type SshDialogResult,
+} from "./store";
+import { registerDialog } from "@/shell/window/dialogs";
+import { isDialogWindow } from "@/shell/window/mode";
+import { adoptWorkspace } from "@/state/workspace";
 import "./remote.css";
 
 export { openNewSshConnection };
@@ -39,6 +48,20 @@ registerCommand({
   title: "New SSH Connection…",
   category: "File",
   run: () => openNewSshConnection(),
+});
+
+registerDialog<SshDialogRequest, SshDialogResult>({
+  id: SSH_CONNECTION_DIALOG,
+  title: "New SSH Connection",
+  width: 640,
+  height: 560,
+  minWidth: 520,
+  minHeight: 420,
+  component: SshConnectionDialog,
+  // The dialog opened a remote project in the backend: show it here.
+  onClosed: (result) => {
+    if (result?.workspace) adoptWorkspace(result.workspace);
+  },
 });
 
 registerCommand({
@@ -68,7 +91,6 @@ if (typeof document !== "undefined") {
   render(
     () => (
       <>
-        <SshConnectionDialog />
         <RemoteFolderChooser />
         <HostKeyDialog />
       </>
@@ -76,5 +98,5 @@ if (typeof document !== "undefined") {
     host,
   );
   // The status widget follows the open project's connection.
-  createRoot(() => createEffect(on(() => workspace()?.root, () => trackRemoteStatus())));
+  if (!isDialogWindow()) createRoot(() => createEffect(on(() => workspace()?.root, () => trackRemoteStatus())));
 }

@@ -10,8 +10,9 @@ import {
   type RemoteStatus,
   type SshConfiguration,
 } from "@/ipc/remote";
-import type { RecentProject } from "@/ipc/workspace";
+import type { RecentProject, WorkspaceInfo } from "@/ipc/workspace";
 import { openRemoteProject } from "@/state/workspace";
+import { openDialogWindow } from "@/shell/window/dialogs";
 
 export const blankConfig = (): SshConfiguration => ({
   id: "",
@@ -31,11 +32,17 @@ export interface SshDialogRequest {
   error?: ConnectError;
 }
 
-export const [sshDialog, setSshDialog] = createSignal<SshDialogRequest | null>(null);
+export const SSH_CONNECTION_DIALOG = "ssh-connection";
+
+/** Result of the dialog: the remote project it opened (adopted by the opening window). */
+export interface SshDialogResult {
+  workspace: WorkspaceInfo;
+}
 
 /** File | Remote Development | New SSH Connection… (and the Welcome screen). */
 export function openNewSshConnection(request: Partial<SshDialogRequest> = {}): void {
-  setSshDialog({ config: request.config ?? blankConfig(), path: request.path, error: request.error });
+  const full: SshDialogRequest = { config: request.config ?? blankConfig(), path: request.path, error: request.error };
+  void openDialogWindow(SSH_CONNECTION_DIALOG, full);
 }
 
 /** A host key question; resolves with the user's answer. */

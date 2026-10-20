@@ -3,7 +3,6 @@
  * dialog, query consoles and table data editors as editor tabs, and the `.env` suggestion.
  */
 import { createEffect, createRoot, on } from "solid-js";
-import { render } from "solid-js/web";
 import { Database, SquareTerminal, Table2, Eye } from "lucide-solid";
 import { registerToolWindow } from "@/features/registry";
 import { registerSettingsPage } from "@/features/settingsPages";
@@ -14,6 +13,8 @@ import type { EditorTab } from "@/state/editor";
 import { showToolWindow } from "@/state/layout";
 import { onProjectDetected } from "@/state/project";
 import { workspace } from "@/state/workspace";
+import { registerDialog } from "@/shell/window/dialogs";
+import { isDialogWindow } from "@/shell/window/mode";
 import { registerKeymapActions } from "@/keymap";
 import { dbApi } from "@/ipc/db";
 import { DatabaseActions, DatabaseView } from "./DatabaseView";
@@ -24,7 +25,9 @@ import { activeConsole, activeDataEditor, focusedConsole } from "./controllers";
 import { checkEnv } from "./envDetect";
 import {
   CONSOLE_VIEW,
+  DATA_SOURCES_DIALOG,
   TABLE_VIEW,
+  dataSourcesSaved,
   loadSources,
   openConsole,
   openDataSources,
@@ -33,6 +36,8 @@ import {
   selectedSourceId,
   sourceById,
   tableInfo,
+  type DataSourcesSaved,
+  type DialogRequest,
 } from "./store";
 import "./database.css";
 
@@ -151,14 +156,22 @@ registerCommand({
   },
 });
 
+registerDialog<DialogRequest>({
+  id: DATA_SOURCES_DIALOG,
+  title: "Data Sources and Drivers",
+  width: 900,
+  height: 620,
+  minWidth: 680,
+  minHeight: 420,
+  component: DataSourceDialog,
+  prepare: () => loadSources(),
+  onMessage: (msg) => void dataSourcesSaved(msg as DataSourcesSaved),
+});
+
 // ---- wiring ---------------------------------------------------------------------------
 
-if (typeof document !== "undefined") {
-  const host = document.createElement("div");
-  host.id = "database-overlay";
-  document.body.appendChild(host);
-  render(() => <DataSourceDialog />, host);
-
+// Environment file detection offers data sources in the IDE window, not in dialog windows.
+if (typeof document !== "undefined" && !isDialogWindow()) {
   createRoot(() => {
     createEffect(
       on(

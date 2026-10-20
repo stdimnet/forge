@@ -28,7 +28,8 @@ import type { BeforeLaunchTask, RunConfiguration } from "@/ipc/run";
 import { getSetting } from "@/state/settings";
 import { workspace } from "@/state/workspace";
 import { configurations, saveConfigurations, selectedName, templateFor, templates } from "./configStore";
-import { closeRunConfigurations, runConfigurationsDialog } from "./dialogState";
+import { notifyDialogOpener } from "@/shell/window/dialogs";
+import { closeRunConfigurations, RUN_CONFIGURATIONS_DIALOG, type DialogRequest } from "./dialogState";
 import {
   fieldValue,
   findType,
@@ -186,6 +187,7 @@ async function apply(): Promise<boolean> {
   const sel = current()?.cfg.name;
   await saveConfigurations(cfgs, state.mode === "configs" && sel ? sel : undefined, state.templates.map((i) => clone(unwrap(i.cfg))));
   setState("dirty", false);
+  notifyDialogOpener(RUN_CONFIGURATIONS_DIALOG, "saved");
   return true;
 }
 
@@ -699,99 +701,82 @@ function Tree() {
   );
 }
 
-export function RunConfigurationsDialog() {
-  return (
-    <Show when={runConfigurationsDialog()} keyed>
-      {(req) => <DialogBody select={req.select} />}
-    </Show>
-  );
-}
-
-function DialogBody(props: { select?: string }) {
+/** Content of the Run/Debug Configurations dialog (the frame comes from `WindowFrame`). */
+export function RunConfigurationsDialog(props: { props: DialogRequest }) {
   let el!: HTMLDivElement;
-  init(props.select);
+  init(props.props?.select);
   onMount(() => el.focus());
   const close = () => closeRunConfigurations();
   return (
-    <div class="popup-backdrop modal" onMouseDown={(e) => e.target === e.currentTarget && close()}>
-      <div
-        ref={el}
-        class="dialog rc-dialog"
-        role="dialog"
-        aria-label="Run/Debug Configurations"
-        tabIndex={-1}
-        onKeyDown={(e) => {
-          if (e.key === "Escape") {
-            e.stopPropagation();
-            close();
-          } else if (e.key === "Enter" && !(e.target as Element).matches("textarea, button")) {
-            e.preventDefault();
-            void apply().then((ok) => ok && close());
-          }
-        }}
-      >
-        <div class="dialog-title rc-title">
-          <span>Run/Debug Configurations</span>
-          <button class="icon-btn" title="Close" onClick={close}>
-            <X size={15} />
-          </button>
-        </div>
-        <div class="rc-body">
-          <div class="rc-side">
-            <div class="rc-toolbar">
-              <button class="icon-btn" title="Add New Configuration (Alt+Insert)" onClick={openAddMenu}>
-                <Plus size={15} />
-              </button>
-              <button class="icon-btn" title="Remove Configuration" disabled={state.mode !== "configs" || state.selected === null} onClick={removeSelected}>
-                <Minus size={15} />
-              </button>
-              <button class="icon-btn" title="Copy Configuration" disabled={state.mode !== "configs" || state.selected === null} onClick={copySelected}>
-                <Copy size={14} />
-              </button>
-              <button class="icon-btn" title="Move Up" disabled={state.mode !== "configs"} onClick={() => moveSelected(-1)}>
-                <ArrowUp size={14} />
-              </button>
-              <button class="icon-btn" title="Move Down" disabled={state.mode !== "configs"} onClick={() => moveSelected(1)}>
-                <ArrowDown size={14} />
-              </button>
-            </div>
-            <Tree />
-            <button
-              class="rc-templates-link link-btn"
-              onClick={() =>
-                setState({
-                  mode: state.mode === "configs" ? "templates" : "configs",
-                  selected: state.mode === "configs" ? null : (state.items[0]?.uid ?? null),
-                })
-              }
-            >
-              {state.mode === "configs" ? "Edit configuration templates…" : "Back to configurations"}
+    <div
+      ref={el}
+      class="rc-dialog"
+      tabIndex={-1}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") {
+          e.stopPropagation();
+          close();
+        } else if (e.key === "Enter" && !(e.target as Element).matches("textarea, button")) {
+          e.preventDefault();
+          void apply().then((ok) => ok && close());
+        }
+      }}
+    >
+      <div class="rc-body">
+        <div class="rc-side">
+          <div class="rc-toolbar">
+            <button class="icon-btn" title="Add New Configuration (Alt+Insert)" onClick={openAddMenu}>
+              <Plus size={15} />
+            </button>
+            <button class="icon-btn" title="Remove Configuration" disabled={state.mode !== "configs" || state.selected === null} onClick={removeSelected}>
+              <Minus size={15} />
+            </button>
+            <button class="icon-btn" title="Copy Configuration" disabled={state.mode !== "configs" || state.selected === null} onClick={copySelected}>
+              <Copy size={14} />
+            </button>
+            <button class="icon-btn" title="Move Up" disabled={state.mode !== "configs"} onClick={() => moveSelected(-1)}>
+              <ArrowUp size={14} />
+            </button>
+            <button class="icon-btn" title="Move Down" disabled={state.mode !== "configs"} onClick={() => moveSelected(1)}>
+              <ArrowDown size={14} />
             </button>
           </div>
-          <div class="rc-main">
-            <Show when={current()} keyed fallback={state.mode === "configs" ? <EmptyForm /> : <div class="rc-empty muted">Select a template on the left.</div>}>
-              {(it) => <ConfigForm item={it} />}
-            </Show>
-          </div>
-        </div>
-        <div class="dialog-buttons rc-buttons">
-          <button class="icon-btn rc-help" title="Help">
-            <CircleHelp size={16} />
+          <Tree />
+          <button
+            class="rc-templates-link link-btn"
+            onClick={() =>
+              setState({
+                mode: state.mode === "configs" ? "templates" : "configs",
+                selected: state.mode === "configs" ? null : (state.items[0]?.uid ?? null),
+              })
+            }
+          >
+            {state.mode === "configs" ? "Edit configuration templates…" : "Back to configurations"}
           </button>
-          <Show when={state.error}>
-            <span class="rc-save-error">{state.error}</span>
+        </div>
+        <div class="rc-main">
+          <Show when={current()} keyed fallback={state.mode === "configs" ? <EmptyForm /> : <div class="rc-empty muted">Select a template on the left.</div>}>
+            {(it) => <ConfigForm item={it} />}
           </Show>
-          <span class="rc-spacer" />
-          <button class="btn-primary" onClick={() => void apply().then((ok) => ok && close())}>
-            OK
-          </button>
-          <button class="btn-secondary" onClick={close}>
-            Cancel
-          </button>
-          <button class="btn-secondary" disabled={!state.dirty} onClick={() => void apply()}>
-            Apply
-          </button>
         </div>
+      </div>
+      <div class="dialog-buttons rc-buttons">
+        <button class="icon-btn rc-help" title="Help">
+          <CircleHelp size={16} />
+        </button>
+        <Show when={state.error}>
+          <span class="rc-save-error">{state.error}</span>
+        </Show>
+        <span class="rc-spacer" />
+        <button class="btn-primary" onClick={() => void apply().then((ok) => ok && close())}>
+          OK
+        </button>
+        <button class="btn-secondary" onClick={close}>
+          Cancel
+        </button>
+        <button class="btn-secondary" disabled={!state.dirty} onClick={() => void apply()}>
+          Apply
+        </button>
       </div>
     </div>
   );

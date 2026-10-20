@@ -14,8 +14,9 @@ import { RunTabs, RunToolWindow } from "./RunToolWindow";
 import { RunConfigurationsDialog } from "./ConfigurationsDialog";
 import { ChooserPopup } from "./ChooserPopup";
 import { PopupMenuHost } from "./PopupMenu";
-import { openChooser, openRunConfigurations } from "./dialogState";
-import { selectedConfiguration, useTemporary } from "./configStore";
+import { openChooser, openRunConfigurations, RUN_CONFIGURATIONS_DIALOG, type DialogRequest } from "./dialogState";
+import { loadConfigurations, reloadConfigurations, selectedConfiguration, useTemporary } from "./configStore";
+import { registerDialog, usesDialogWindows } from "@/shell/window/dialogs";
 import { activeSession, closeSession, debugConfiguration, launch, rerunSession, runConfiguration, stopSession } from "./runStore";
 import { testGutter } from "./gutter";
 import { findTests, scriptConfiguration, testAt, testConfiguration } from "./phpTests";
@@ -57,6 +58,22 @@ function contextConfiguration() {
   return target ? testConfiguration(target, a.path) : scriptConfiguration(a.path);
 }
 
+registerDialog<DialogRequest>({
+  id: RUN_CONFIGURATIONS_DIALOG,
+  title: "Run/Debug Configurations",
+  width: 1000,
+  height: 660,
+  minWidth: 720,
+  minHeight: 420,
+  component: RunConfigurationsDialog,
+  // A dialog window loads the project's configurations before it shows them.
+  prepare: () => (usesDialogWindows() ? loadConfigurations() : undefined),
+  // The dialog saved in its own window: show the new configurations here.
+  onMessage: () => {
+    if (usesDialogWindows()) void reloadConfigurations();
+  },
+});
+
 const cmd = (id: string, title: string, run: () => void | Promise<void>) => registerCommand({ id, title, category: "Run", run });
 
 cmd("run.run", "Run", () => runConfiguration());
@@ -96,7 +113,6 @@ if (typeof document !== "undefined") {
   render(
     () => (
       <>
-        <RunConfigurationsDialog />
         <ChooserPopup />
         <PopupMenuHost />
       </>

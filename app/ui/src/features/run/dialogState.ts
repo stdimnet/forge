@@ -1,22 +1,27 @@
-/** Open state of the Run/Debug Configurations dialog and the Run… chooser popup. */
+/**
+ * Opening the Run/Debug Configurations dialog (its own window in the desktop app) and the
+ * open state of the Run… chooser popup.
+ */
 import { createSignal } from "solid-js";
+import { closeDialog, openDialogWindow } from "@/shell/window/dialogs";
+
+export const RUN_CONFIGURATIONS_DIALOG = "run-configurations";
 
 export interface DialogRequest {
   /** Configuration to select initially. */
   select?: string;
 }
 
-const [dialog, setDialog] = createSignal<DialogRequest | null>(null);
 const [chooser, setChooser] = createSignal<"run" | "debug" | null>(null);
 
-export { dialog as runConfigurationsDialog, chooser as configurationChooser };
+export { chooser as configurationChooser };
 
 export function openRunConfigurations(select?: string): void {
-  setDialog({ select });
+  void openDialogWindow(RUN_CONFIGURATIONS_DIALOG, { select } satisfies DialogRequest);
 }
 
 export function closeRunConfigurations(): void {
-  setDialog(null);
+  closeDialog(RUN_CONFIGURATIONS_DIALOG);
 }
 
 export function openChooser(mode: "run" | "debug"): void {

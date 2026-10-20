@@ -3,6 +3,7 @@
  * schemas, tree expansion, and the console / table editor tabs.
  */
 import { createSignal } from "solid-js";
+import { closeDialog, openDialogWindow } from "@/shell/window/dialogs";
 import { createStore, produce } from "solid-js/store";
 import { dbApi, type DataSourceInfo, type SchemaInfo, type SchemaName, type TableInfo } from "@/ipc/db";
 import { openViewTab } from "@/state/editor";
@@ -196,11 +197,26 @@ export interface DialogRequest {
   newDriver?: DataSourceInfo["driver"];
 }
 
-const [dialog, setDialog] = createSignal<DialogRequest | null>(null);
-export { dialog, setDialog };
+export const DATA_SOURCES_DIALOG = "data-sources";
 
+/** Messages of the dialog to the window that opened it: data sources it saved. */
+export interface DataSourcesSaved {
+  saved: string[];
+}
+
+/** Open the Data Sources and Drivers dialog (its own window in the desktop app). */
 export function openDataSources(req: DialogRequest = {}): void {
-  setDialog(req);
+  void openDialogWindow(DATA_SOURCES_DIALOG, req);
+}
+
+export function closeDataSources(): void {
+  closeDialog(DATA_SOURCES_DIALOG);
+}
+
+/** The dialog saved data sources (possibly in another window): reload and reconnect them. */
+export async function dataSourcesSaved(msg: DataSourcesSaved): Promise<void> {
+  await loadSources();
+  for (const id of msg.saved) if (states[id]) void refresh(id);
 }
 
 /** Data source of the selected tree node, else the first one. */

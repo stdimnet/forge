@@ -8,7 +8,8 @@ import { remoteApi } from "@/ipc/remote";
 import type { RecentProject } from "@/ipc/workspace";
 import { openSettings } from "@/features/settings/dialogState";
 import { AUTH_LABELS } from "./SshForm";
-import { connecting, openNewSshConnection, openRecentRemote, sshDialog } from "./store";
+import { isDialogOpen } from "@/shell/window/dialogs";
+import { connecting, openNewSshConnection, openRecentRemote, SSH_CONNECTION_DIALOG } from "./store";
 
 /** The SSH badge shown on remote projects. */
 export function SshBadge() {
@@ -44,7 +45,7 @@ export function RemoteDevelopmentPage(props: { recent: RecentProject[]; row: (p:
           </button>
         </div>
 
-        <Show when={!sshDialog() && connecting()}>
+        <Show when={!isDialogOpen(SSH_CONNECTION_DIALOG) && connecting()}>
           {(c) => (
             <div class="welcome-remote-connecting">
               <LoaderCircle size={14} class="ssh-spin" /> {c().message}
