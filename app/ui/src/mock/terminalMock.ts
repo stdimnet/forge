@@ -8,6 +8,7 @@ import { demoProjectName } from "./demoProject";
 import { initialLogs } from "./servicesDemoData";
 import { mockContainerFor } from "./servicesMock";
 import { currentRemote } from "./remoteMock";
+import { demoStatus } from "./demoStatus";
 
 /** Prompt user and project folder: the remote host's for a remote project. */
 const who = () => (currentRemote() ? `${currentRemote()!.user}@shop-web-01` : "dev@forge");
@@ -44,7 +45,7 @@ const emit = (id: string, e: TerminalEvent) => emitMock(`terminal://${id}`, e);
 const out = (id: string, data: string) => emit(id, { type: "output", data: data.replace(/\n/g, "\r\n") });
 
 const prompt = (s: FakeShell) =>
-  s.attached ? "" : s.container ? `root@${s.container.host}:${s.cwd}# ` : `${C.green}${C.bold}${who()}${C.reset} ${C.blue}${C.bold}${s.cwd}${C.reset} ${C.magenta}(feature/order-totals)${C.reset} $ `;
+  s.attached ? "" : s.container ? `root@${s.container.host}:${s.cwd}# ` : `${C.green}${C.bold}${who()}${C.reset} ${C.blue}${C.bold}${s.cwd}${C.reset} ${C.magenta}(${demoStatus().branch})${C.reset} $ `;
 
 const LS_ROOT = [
   ["app", "dir"],

@@ -183,6 +183,17 @@ async fn files_search_git_and_detection() {
         let hits = b.find_files("ordr", 10).unwrap();
         assert_eq!(hits[0].path, "app/Models/Order.php");
 
+        // Find in Files searches on the agent's machine.
+        let found = b
+            .find_in_files(&forge_core::search::FindRequest {
+                query: "function total".into(),
+                file_mask: "*.php".into(),
+                ..Default::default()
+            })
+            .unwrap();
+        assert_eq!(found.files[0].path, "app/Models/Order.php");
+        assert_eq!(found.files[0].matches[0].line, 6);
+
         let info = b.detect_project().unwrap();
         assert!(info.uses("php"));
 

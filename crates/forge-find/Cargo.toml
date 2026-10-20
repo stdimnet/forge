@@ -1,0 +1,13 @@
+[package]
+name = "forge-find"
+description = "Find in Files: query compilation, file masks and line matching (pure, WebAssembly-friendly)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+regex-lite = "0.1"
+
+[dev-dependencies]
+serde_json.workspace = true

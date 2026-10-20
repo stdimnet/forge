@@ -12,10 +12,12 @@
 //! - [`run`]: what runs a scratch (PHP with the project's autoloader, Node, ...) and the
 //!   gutter run markers.
 //! - [`http`]: the `.http` request parser and the console rendering of responses (PHPStorm's
-//!   HTTP Client, lite); [`client`] sends the requests (feature `client`).
+//!   HTTP Client, lite); [`handler`] runs response handler scripts (`> {% … %}`) as a safe
+//!   subset without a JavaScript engine; [`client`] sends the requests (feature `client`).
 //!
 //! Everything except [`store`] and [`client`] is pure, so browser mode runs it as WebAssembly.
 
+pub mod handler;
 pub mod http;
 pub mod languages;
 pub mod naming;

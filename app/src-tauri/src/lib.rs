@@ -42,6 +42,7 @@ pub fn run() {
         .manage(commands::services::ServicesState::default())
         .manage(commands::window::DialogWindowsState::default())
         .on_window_event(commands::window::on_window_event)
+        .manage(commands::scratches::HttpClientState::default())
         .setup(|app| {
             app.manage(commands::debug::DebugState::new(app.handle().clone()));
             // Forward settings changes to the UI.
@@ -212,6 +213,7 @@ pub fn run() {
             commands::langservers::intelephense_licence_status,
             commands::langservers::intelephense_set_licence,
             commands::workspace::fs_find_files,
+            commands::workspace::find_in_files,
             commands::search::fuzzy_filter,
             commands::search::search_rank,
             commands::search::filetypes_detect,
@@ -319,6 +321,7 @@ pub fn run() {
             commands::scratches::scratches_set_data_source,
             commands::scratches::scratches_markers,
             commands::scratches::scratches_http_run,
+            commands::scratches::scratches_http_environments,
             commands::output::output_file_links,
             commands::markdown::markdown_parse,
             commands::markdown::markdown_hover,

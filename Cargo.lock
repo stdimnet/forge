@@ -1861,6 +1861,7 @@ name = "forge-core"
 version = "0.1.0"
 dependencies = [
  "dirs 6.0.0",
+ "forge-find",
  "forge-fuzzy",
  "ignore",
  "notify",
@@ -1912,6 +1913,15 @@ dependencies = [
 name = "forge-filetypes"
 version = "0.1.0"
 dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "forge-find"
+version = "0.1.0"
+dependencies = [
+ "regex-lite",
  "serde",
  "serde_json",
 ]
@@ -2140,6 +2150,7 @@ dependencies = [
  "forge-agent-cli",
  "forge-containers",
  "forge-filetypes",
+ "forge-find",
  "forge-fuzzy",
  "forge-keymap",
  "forge-markdown",

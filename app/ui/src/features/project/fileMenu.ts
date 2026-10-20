@@ -4,12 +4,13 @@
  * reject paths outside the project.
  */
 import { askConfirm, askName } from "@/features/contextMenu/dialogs";
-import { action, item, separator, showContextMenu, submenu, type MenuEntry } from "@/features/contextMenu/state";
+import { item, separator, showContextMenu, submenu, type MenuEntry } from "@/features/contextMenu/state";
 import { workspaceApi, type FileEntry } from "@/ipc/workspace";
 import { showBalloon } from "@/keymap";
 import { closeTab, editor, isDirty, openFile, saveFile } from "@/state/editor";
 import { workspace } from "@/state/workspace";
 import { refreshDirs, revealPath } from "./ProjectView";
+import { openFindInFiles } from "@/features/find/state";
 
 const parentOf = (path: string) => path.split("/").slice(0, -1).join("/");
 const join = (dir: string, name: string) => (dir ? `${dir}/${name}` : name);
@@ -135,7 +136,7 @@ export function fileMenuEntries(entry: FileEntry | null): MenuEntry[] {
       separator,
     );
   }
-  entries.push(action("FindInPath"));
+  entries.push(item("Find in Files…", () => openFindInFiles({ directory: dir }), "FindInPath"));
   if (entry) entries.push(item("Rename…", () => void rename(entry), "RenameElement"), item("Delete…", () => void remove(entry), "$Delete"));
   entries.push(separator, item("Reload from Disk", () => refreshDirs([dir])));
   return entries;

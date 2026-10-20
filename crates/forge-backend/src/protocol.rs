@@ -16,6 +16,7 @@
 
 use std::path::PathBuf;
 
+use forge_core::search::FindRequest;
 use forge_core::{FsChanges, Result};
 use forge_process::{CommandLine, PtyEvent, RunEvent};
 use forge_vcs::GitRequest;
@@ -108,6 +109,8 @@ pub enum Call {
         query: String,
         limit: usize,
     },
+    /// Find in Files -> `FindResult`
+    FindInFiles(FindRequest),
     /// Run git on the agent's machine -> `GitOutput`
     Git(GitRequest),
     /// -> `ProjectInfo`

@@ -57,7 +57,10 @@ app/ui/            SolidJS UI
     controller action, "go to template", entity <-> repository), recomputed after edits.
   - `registerDeclarationProvider` (`src/features/lsp/goto.ts`) — framework targets for Ctrl+B /
     Ctrl+Click that a language server cannot resolve (route names, service ids, DQL fields); tried
-    before the LSP.
+    before the LSP. Several targets (from a provider or the language server) open the shared
+    "Choose Declaration" popup: `chooseDeclarationAt(view, pos, targets, { title?, open? })`
+    (`src/features/navigation/chooseDeclaration.ts`; targets `{ path, line, column?, preview? }`,
+    0-based). WebForge, LuaForge, Laravel, Symfony, Doctrine and the LSP use it.
   - `claimFrameworkStatus` (`src/features/project-type`) — a framework plugin with its own status
     widget hides the generic "Laravel 12" / "Symfony 7" one.
   - `openCustomTab({ id: "forge:<kind>/<id>", title, icon?, component })` (`src/state/editor.ts`) —
@@ -493,14 +496,27 @@ app/ui/            SolidJS UI
   contents })`, `scratches_rename({ name, newName })`, `scratches_delete({ name })`,
   `scratches_set_data_source({ name, dataSourceId })`, `scratches_markers({ name, content }) ->
   { line, kind: "run" | "http", title, runName }[]`, `scratches_http_run({ runId, content, line,
-  env? })`; list changes are emitted as `scratches://changed`.
+  env?, source? })` (`source`: the editor path, `scratch://<name>` or a project path, that
+  `< ./file` bodies and `> ./handler.js` files are relative to; project files are read through
+  the backend), `scratches_http_environments() -> { names, default? }`; list changes are
+  emitted as `scratches://changed`.
 - Runs: PHP/JS/TS/Python/shell/Lua scratches are the backend run kind `scratch` (option
   `scratch` = name): PHP runs with `php.interpreter` and `-d auto_prepend_file=<root>/vendor/autoload.php`
   when the project has one (option `useAutoloader=false` turns it off), TypeScript with
   `node --experimental-strip-types`. `.http` requests are parsed in Rust (`###` separators,
   `@var = value`, `{{var}}`, `# @name`, the project's `http-client.env.json` /
-  `.private.env.json`, environment `dev` by default), sent with reqwest and streamed to
-  `run://<runId>` like a process (`started`, `console`, `exited`). SQL scratches open as a query
+  `.private.env.json`, environment `dev` by default, `< ./body.json` / `<@` body files, dynamic
+  variables `{{$uuid}}`, `{{$random.uuid}}`, `{{$timestamp}}`, `{{$isoTimestamp}}`,
+  `{{$randomInt}}`, `{{$random.integer(a, b)}}`), sent with reqwest and streamed to
+  `run://<runId>` like a process (`started`, `console`, `exited`). Variables: environment <
+  `client.global` < in-file. Response handlers (`> {% … %}` or `> ./handler.js`) run in
+  `forge_scratches::handler`, a small safe interpreter (no JavaScript engine, no loops):
+  `client.global.set/get/clear/clearAll/isEmpty`, `client.test`, `client.assert`, `client.log`,
+  `response.status/body/headers/contentType`, `JSON.stringify/parse`; their report follows the
+  response in the Run output. Globals live for the IDE session (`HttpClientState`). Every `.http`
+  editor (scratch or project file) has a toolbar with the environment selector (project setting
+  `httpClient.environment`, `$none` = no environment); project `.http` files get gutter ▶ icons
+  and run as the `http-request` configuration (option `file` instead of `scratch`). SQL scratches open as a query
   console of their attached data source (`openFileConsole` in `features/database/store.ts`).
 - UI: editor tabs at `scratch://<name>` are read and written through `registerFileSystem`
   (`src/state/editor.ts`), which also gives them the scratch icon and breadcrumbs. The Project
@@ -660,7 +676,10 @@ app/ui/            SolidJS UI
   `package.json` (scripts with lines, dependencies, workspaces, `packageManager`), package manager
   detection (setting > `packageManager` field > lock file in the package's or a parent directory >
   npm), the npm package list and gutter, ES imports/re-exports, module resolution (relative,
-  `tsconfig`/`jsconfig` `paths`, index files) and HTML/JSX tag scanning. `webforge-fw-react`,
+  `tsconfig`/`jsconfig` `paths`, index files, workspace packages imported by name through their
+  `package.json` `exports`/`module`/`main`/`types`, falling back to sources when `dist/` is not
+  built) and HTML/JSX tag scanning. React components include anonymous default exports
+  (`export default () => …`, `export default function () {}`), named after their file. `webforge-fw-react`,
   `webforge-fw-vue` and `webforge-fw-angular` implement `FrameworkIndex { components, goto,
   gutter }` over `Sources`.
 - IPC (`app/ui/src/ipc/web.ts`): `npm_packages({ refresh? }) -> NpmPackage[]` (`{ path, dir, name?,
@@ -824,6 +843,15 @@ TypeScript because a round trip per token would be slower.
   `fs_find_files` or the PHP index), merges providers per tab, orders groups, dedupes the "All"
   tab, hides dimmed items while others match and cuts each group. The UI maps the answer back
   to its items. UI-only providers keep working unchanged; backends stay where their data is.
+- **Find in Files** (Ctrl+Shift+F, `FindInPath`, `features/find`): `find_in_files({ request: {
+  query, caseSensitive?, wholeWords?, regex?, fileMask?, directory?, limit? } }) -> { files: {
+  path, matches: { line, column, length, text, ranges }[] }[], matchCount, truncated, error? }`
+  (UTF-16 columns; `ranges` are inside the listed `text`). The pure crate `crates/forge-find`
+  compiles the query (`regex-lite`), file masks (`*.php, !*Test.php`) and matches lines;
+  `Workspace::find_in_files` walks the project honoring `.gitignore`, skipping binary and huge
+  files. It is a `Backend` method (agent call `FindInFiles`), so remote projects are searched on
+  their host. Browser mode runs `forge-find` as WebAssembly over the demo files. The Text tab of
+  Search Everywhere uses the same command.
 - **File types**: `crates/forge-filetypes` resolves files (bundled types plus manifest file
   types, inactive plugins skipped, `templates.dataLanguages` and soft-wrap patterns applied).
   `editor/fileTypes.ts` caches answers per path (and `#!` line) so `languageFor`,

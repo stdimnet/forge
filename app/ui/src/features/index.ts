@@ -10,6 +10,7 @@ import "./settings";
 import "./lsp";
 import "./langservers";
 import "./navigation";
+import "./find";
 import "./keymapSettings";
 import "./git";
 import "./forges";

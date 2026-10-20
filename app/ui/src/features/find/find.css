@@ -1,0 +1,173 @@
+/* Find in Files popup (PHPStorm New UI). */
+.find-popup {
+  width: min(900px, calc(100vw - 32px));
+  height: min(640px, calc(100vh - 120px));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.find-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px 0 14px;
+}
+.find-title {
+  font-weight: 600;
+  color: var(--fg-strong);
+}
+.find-summary {
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+.find-summary.error {
+  color: var(--danger);
+}
+.find-mask {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  color: var(--fg);
+  font-size: var(--fs-small);
+}
+.find-mask-input {
+  width: 140px;
+  height: 24px;
+}
+.find-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 12px 6px;
+  padding: 0 6px 0 10px;
+  height: 34px;
+  border-radius: var(--radius);
+  background: var(--bg-input);
+  border: 1px solid var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+.find-input,
+.find-input:focus {
+  flex: 1;
+  height: 100%;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  font-size: 14px;
+  color: var(--fg-strong);
+}
+.find-toggle {
+  min-width: 24px;
+  height: 22px;
+  padding: 0 4px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--fg-muted);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  cursor: pointer;
+}
+.find-toggle:hover {
+  background: var(--bg-hover);
+}
+.find-toggle.on {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--fg-strong);
+}
+.find-scope {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 12px 6px;
+}
+.find-scope-tab {
+  height: 24px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--fg);
+  cursor: pointer;
+}
+.find-scope-tab:hover {
+  background: var(--bg-hover);
+}
+.find-scope-tab.active {
+  background: var(--bg-selection);
+  color: var(--fg-strong);
+}
+.find-dir-input {
+  flex: 1;
+  height: 24px;
+  margin-left: 8px;
+}
+.find-results {
+  flex: 1 1 45%;
+  min-height: 80px;
+  overflow-y: auto;
+  padding: 0 6px 6px;
+  border-bottom: 1px solid var(--border);
+}
+.find-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: var(--radius);
+  cursor: default;
+  white-space: nowrap;
+}
+.find-row.selected {
+  background: var(--bg-selection);
+}
+.find-row-text {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  color: var(--fg-strong);
+}
+.find-row-file {
+  flex-shrink: 0;
+  color: var(--fg-faint);
+  font-size: var(--fs-small);
+}
+.find-preview {
+  flex: 1 1 55%;
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-editor);
+}
+.find-preview-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-panel);
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+.find-preview-editor {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+.find-preview-editor .cm-editor {
+  height: 100%;
+}
+.find-preview-line {
+  background: var(--bg-hover);
+}
+.find-preview-match {
+  background: var(--accent-soft);
+  outline: 1px solid var(--accent);
+  border-radius: 2px;
+}

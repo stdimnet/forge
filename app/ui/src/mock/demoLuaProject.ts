@@ -62,10 +62,15 @@ end
 function love.keypressed(key)
   if key == "escape" then
     love.event.quit()
+  elseif key == "f3" then
+    DEBUG = not DEBUG
   end
 end
 `,
-  "conf.lua": `function love.conf(t)
+  "conf.lua": `--- Draw hit boxes and the frame rate (also switched on with F3 in main.lua).
+DEBUG = false
+
+function love.conf(t)
   t.identity = "pixel-dungeon"
   t.version = "11.5"
   t.window.title = "Pixel Dungeon"
@@ -221,6 +226,9 @@ function Hud.draw()
   if not target then return end
   love.graphics.setColor(1, 1, 1)
   love.graphics.print(("%s  HP %d  Gold %d"):format(target.name, target.hp, target.gold), 8, 8)
+  if DEBUG then
+    love.graphics.print(("FPS %d"):format(love.timer.getFPS()), 8, 24)
+  end
 end
 
 return Hud

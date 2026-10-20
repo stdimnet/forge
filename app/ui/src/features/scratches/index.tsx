@@ -10,13 +10,29 @@ import { registerKeymapActions } from "@/keymap";
 import { registerCommand, commands } from "@/state/commands";
 import { activeTab, registerFileSystem } from "@/state/editor";
 import { registerLineMarkerProvider } from "@/editor/lineMarkers";
+import { registerEditorExtension } from "@/editor/extensions";
 import { scratchesApi } from "@/ipc/scratches";
+import { registerSettingsPage } from "@/features/settingsPages";
+import { SchemaPage } from "@/features/settings/SchemaPage";
 import { registerProjectViewSection } from "@/features/project/ProjectView";
 import { registerRunConfigurationType } from "@/features/run/types";
 import { NewScratchPopupHost, openNewScratchPopup } from "./NewScratchPopup";
 import { AttachPopupHost } from "./attach";
 import { ScratchIcon, ScratchesNode } from "./ScratchesNode";
-import { createBuffer, isScratchPath, refreshScratches, runScratch, scratchContent, scratchName } from "./store";
+import {
+  createBuffer,
+  fileContent,
+  httpEnvironment,
+  isHttpPath,
+  isScratchPath,
+  refreshScratches,
+  runHttpFile,
+  runScratch,
+  scratchContent,
+  scratchName,
+  scratchPath,
+} from "./store";
+import { httpToolbar } from "./httpToolbar";
 import "./httpLanguage";
 import "./scratches.css";
 
@@ -46,16 +62,50 @@ registerRunConfigurationType({
 registerRunConfigurationType({
   id: "http-request",
   name: "HTTP Request",
-  description: "Send a request of an .http scratch.",
+  description: "Send a request of an .http file.",
   icon: Globe,
   color: "var(--info)",
   hidden: true,
   argumentsLabel: false,
-  fields: [{ key: "scratch", label: "Scratch", required: true }],
+  // `scratch` (a scratch's name) or `file` (a project path), and the request's `line`.
+  fields: [
+    { key: "scratch", label: "Scratch" },
+    { key: "file", label: "File" },
+  ],
   start: async (cfg, request) => {
-    const name = cfg.options?.scratch ?? "";
-    const content = await scratchContent(name);
-    return scratchesApi.httpRun(request.runId!, content, Number(cfg.options?.line ?? 0));
+    const file = cfg.options?.file;
+    const scratch = cfg.options?.scratch ?? "";
+    const content = file ? await fileContent(file) : await scratchContent(scratch);
+    const source = file ?? scratchPath(scratch);
+    return scratchesApi.httpRun(request.runId!, content, Number(cfg.options?.line ?? 0), httpEnvironment(), source);
+  },
+});
+
+// Toolbar with the environment selector above every `.http` editor.
+registerEditorExtension(({ path }) => (isHttpPath(path) ? httpToolbar() : null));
+
+registerSettingsPage({
+  id: "tools.http-client",
+  title: "HTTP Client",
+  group: "Tools",
+  keywords: ["http", "rest", "environment", "request"],
+  component: () => <SchemaPage pageId="tools.http-client" />,
+});
+
+// Project `.http` files get the same ▶ icons as `.http` scratches.
+registerLineMarkerProvider({
+  appliesTo: (path) => isHttpPath(path) && !isScratchPath(path),
+  markers: async (path, text) => {
+    const markers = await scratchesApi.markers(path.split("/").pop() ?? path, text).catch(() => []);
+    return markers
+      .filter((m) => m.kind === "http")
+      .map((m) => ({
+        line: m.line,
+        icon: Play,
+        title: m.title,
+        className: "marker-run",
+        onClick: () => void runHttpFile(path, m.line),
+      }));
   },
 });
 
@@ -86,7 +136,9 @@ if (runClass) {
     run: () => {
       const tab = activeTab();
       const name = tab ? scratchName(tab.path) : null;
-      return name ? runScratch(name) : runClass.run();
+      if (name) return runScratch(name);
+      if (tab && isHttpPath(tab.path)) return runHttpFile(tab.path);
+      return runClass.run();
     },
   });
 }

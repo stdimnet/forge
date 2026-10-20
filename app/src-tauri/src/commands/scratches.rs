@@ -1,16 +1,21 @@
 //! Scratches and Consoles: scratch files in `<config dir>/forge/scratches/` (logic in
 //! `forge-scratches`). PHP/JS/TS scratches run as the `scratch` run configuration kind; the
-//! requests of `.http` scratches are sent here and their responses streamed to the Run tool
-//! window as `run://<runId>` events. Changes to the list are emitted as `scratches://changed`.
+//! requests of `.http` files (scratches and project files) are sent here and their responses
+//! streamed to the Run tool window as `run://<runId>` events, followed by the report of their
+//! response handler. Changes to the list are emitted as `scratches://changed`.
 
 use std::collections::BTreeMap;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
+
+use forge_backend::Backend;
 
 use forge_core::{ForgeError, Result};
 use forge_process::output::{RunInput, RunOutput, RunOutputOptions};
 use forge_process::{BuildContext, CommandLine, RunConfiguration, RunConfigurationKind, RunEvent};
-use forge_scratches::http::{self, HttpRequest};
+use forge_scratches::handler;
+use forge_scratches::http::{self, Dynamic, Resolver};
 use forge_scratches::{
     languages, run, LanguageItem, LanguageRequest, Marker, RunContext, ScratchFile, ScratchStore,
 };
@@ -168,44 +173,104 @@ pub struct HttpStarted {
     pub command_line: String,
 }
 
-/// Variables of the project's `http-client.env.json` (+ `.private.env.json`).
-fn environment(root: Option<&Path>, env: Option<&str>) -> BTreeMap<String, String> {
-    let read = |name: &str| root.and_then(|r| std::fs::read_to_string(r.join(name)).ok());
-    http::environment(
-        read("http-client.env.json").as_deref(),
-        read("http-client.private.env.json").as_deref(),
-        env,
-    )
+/// `client.global` variables of the HTTP Client, kept for the IDE session like PHPStorm's.
+#[derive(Default)]
+pub struct HttpClientState {
+    globals: Arc<Mutex<BTreeMap<String, String>>>,
 }
 
-/// Send the request of an `.http` scratch at `line` (0-based) of `content` and stream the
-/// console text of the response to `run://<runId>`, like a finished process.
+const ENV_FILE: &str = "http-client.env.json";
+const PRIVATE_ENV_FILE: &str = "http-client.private.env.json";
+
+/// The environment files of the open project, read through its backend (remote projects
+/// keep them on their host).
+fn environment_files(backend: Option<&dyn Backend>) -> (Option<String>, Option<String>) {
+    let read = |name: &str| backend.and_then(|b| b.read_file(name).ok());
+    (read(ENV_FILE), read(PRIVATE_ENV_FILE))
+}
+
+/// Environments of `http-client.env.json` and `http-client.private.env.json` for the
+/// selector in the toolbar of `.http` editors.
 #[tauri::command]
+pub async fn scratches_http_environments(state: State<'_, AppState>) -> Result<http::Environments> {
+    let backend = state.backend().ok();
+    crate::commands::workspace::blocking(move || {
+        let (public, private) = environment_files(backend.as_deref());
+        Ok(http::environments(public.as_deref(), private.as_deref()))
+    })
+    .await
+}
+
+/// Reads files referenced by a request (`< ./body.json`, `> ./handler.js`) relative to the
+/// `.http` file: next to a scratch on this machine, or through the project's backend.
+fn read_referenced(
+    source: Option<&str>,
+    backend: Option<&dyn Backend>,
+    path: &str,
+) -> std::result::Result<String, String> {
+    let fail = |e: &dyn std::fmt::Display| format!("Cannot read {path}: {e}");
+    match source.and_then(|s| s.strip_prefix("scratch://")) {
+        Some(_) => {
+            let dir = store().map_err(|e| fail(&e))?.dir().to_path_buf();
+            let p = PathBuf::from(path);
+            let p = if p.is_absolute() { p } else { dir.join(p) };
+            std::fs::read_to_string(&p).map_err(|e| fail(&e))
+        }
+        None => {
+            let backend = backend.ok_or_else(|| fail(&"no project is open"))?;
+            let dir = source
+                .and_then(|s| s.rsplit_once('/').map(|(d, _)| d))
+                .unwrap_or("");
+            let rel = http::join_relative(dir, path)
+                .ok_or_else(|| fail(&"the file is outside the project"))?;
+            backend.read_file(&rel).map_err(|e| fail(&e))
+        }
+    }
+}
+
+/// Send the request of an `.http` file at `line` (0-based) of `content` and stream the
+/// console text of the response and of its response handler to `run://<runId>`, like a
+/// finished process. `source` is the editor path of the file (`scratch://<name>` or a
+/// project path) that referenced files are relative to.
+#[tauri::command]
+#[allow(clippy::too_many_arguments)] // Tauri passes every argument and state separately.
 pub async fn scratches_http_run(
     run_id: String,
     content: String,
     line: usize,
     env: Option<String>,
+    source: Option<String>,
     app: AppHandle,
     state: State<'_, AppState>,
+    http_state: State<'_, HttpClientState>,
 ) -> Result<HttpStarted> {
     let root = state.with_workspace(|ws| Ok(ws.root().to_path_buf())).ok();
-    let file = http::parse(&content);
-    let request: HttpRequest = file
-        .request_at(line)
-        .map(|r| {
-            http::resolve(
-                r,
-                &file.variables,
-                &environment(root.as_deref(), env.as_deref()),
-            )
-        })
-        .ok_or_else(|| ForgeError::Other("no request at the caret".into()))?;
+    let backend = state.backend().ok();
+    let globals = http_state.globals.clone();
+    let env = env.filter(|e| !e.is_empty());
+    let (resolved, handler_script) = crate::commands::workspace::blocking(move || {
+        let file = http::parse(&content);
+        let req = file
+            .request_at(line)
+            .ok_or_else(|| ForgeError::Other("no request at the caret".into()))?;
+        let (public, private) = environment_files(backend.as_deref());
+        let vars = http::environment(public.as_deref(), private.as_deref(), env.as_deref());
+        let load = |path: &str| read_referenced(source.as_deref(), backend.as_deref(), path);
+        let snapshot = globals.lock().expect("globals lock").clone();
+        let mut resolver =
+            Resolver::new(&vars, &snapshot, &file.variables, Dynamic::system()).with_loader(&load);
+        let resolved = resolver.resolve(req);
+        let script = resolver.handler(req);
+        Ok((resolved, script))
+    })
+    .await?;
+    let request = resolved.request;
     let command_line = format!("{} {}", request.method, request.url);
     let started = HttpStarted {
         run_id: run_id.clone(),
         command_line: command_line.clone(),
     };
+    let globals = http_state.globals.clone();
     let root_text = root.map(|r| r.display().to_string());
     tauri::async_runtime::spawn(async move {
         let event = format!("run://{run_id}");
@@ -222,10 +287,28 @@ pub async fn scratches_http_run(
                 command_line,
             },
         );
-        let text = match forge_scratches::client::send(&request, Duration::from_secs(60)).await {
-            Ok(resp) => http::render_request(&request) + &http::render_response(&resp),
-            Err(e) => http::render_request(&request) + &http::render_error(&e),
-        };
+        let mut text = http::render_request(&request);
+        if !resolved.problems.is_empty() {
+            for p in &resolved.problems {
+                text.push_str(&http::render_error(p));
+            }
+        } else {
+            match forge_scratches::client::send(&request, Duration::from_secs(60)).await {
+                Ok(resp) => {
+                    text.push_str(&http::render_response(&resp));
+                    match handler_script {
+                        Ok(Some(script)) => {
+                            let mut globals = globals.lock().expect("globals lock");
+                            let report = handler::run(&script, &resp, &mut globals);
+                            text.push_str(&handler::render(&report));
+                        }
+                        Ok(None) => {}
+                        Err(e) => text.push_str(&http::render_error(&e)),
+                    }
+                }
+                Err(e) => text.push_str(&http::render_error(&e)),
+            }
+        }
         for rendered in output.handle(&RunInput::Output {
             stream: "stdout".into(),
             text,

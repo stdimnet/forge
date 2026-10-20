@@ -12,6 +12,7 @@ import { symfonyApi, type SymfonyCompletionItem, type SymfonyCompletionKind } fr
 import { registerEditorExtension } from "@/editor/extensions";
 import { registerLineMarkerProvider, type LineMarker } from "@/editor/lineMarkers";
 import { registerDeclarationProvider } from "@/features/lsp/goto";
+import { chooseDeclarationAt } from "@/features/navigation/chooseDeclaration";
 import { revealSymbol } from "@/features/php/editorViews";
 import { getSetting } from "@/state/settings";
 import { runConsoleCommand, setActiveTab } from "./console";
@@ -121,9 +122,8 @@ registerEditorExtension(({ path }): Extension | null => {
 registerDeclarationProvider(async (path, view, pos) => {
   if (!symfonyActive() || !kindOf(path)) return false;
   const targets = await symfonyApi.goto(path, view.state.doc.toString(), pos);
-  const t = targets[0];
-  if (!t) return false;
-  await revealSymbol(t.path, { line: t.line });
+  if (!targets.length) return false;
+  chooseDeclarationAt(view, pos, targets, { open: (t) => void revealSymbol(t.path, { line: t.line }) });
   return true;
 });
 

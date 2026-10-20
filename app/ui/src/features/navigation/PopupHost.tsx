@@ -7,6 +7,8 @@ import { DialogHost } from "@/features/contextMenu/dialogs";
 import { SearchEverywhere } from "@/features/search/SearchEverywhere";
 import { seOpen } from "@/features/search/state";
 import { RecentFilesPopup, recentOpen } from "./RecentFiles";
+import { ChooseDeclarationPopup } from "./ChooseDeclaration";
+import { chooser } from "./chooseDeclaration";
 
 export function PopupHost() {
   return (
@@ -16,6 +18,9 @@ export function PopupHost() {
       </Show>
       <Show when={recentOpen()}>
         <RecentFilesPopup />
+      </Show>
+      <Show when={chooser()} keyed>
+        {(c) => <ChooseDeclarationPopup chooser={c} />}
       </Show>
       <ContextMenuHost />
       <DialogHost />

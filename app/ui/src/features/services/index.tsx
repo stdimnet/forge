@@ -7,6 +7,7 @@ import { Show } from "solid-js";
 import { Container, LoaderCircle } from "lucide-solid";
 import { registerToolWindow } from "@/features/registry";
 import { registerStatusItem } from "@/features/statusItems";
+import { usesProjectType } from "@/state/project";
 import { registerCommand } from "@/state/commands";
 import { showToolWindow } from "@/state/layout";
 import { onFsChanged } from "@/state/fsWatch";
@@ -71,7 +72,8 @@ function DockerStatusItem() {
   );
 }
 
-registerStatusItem({ id: "docker", align: "right", order: 70, component: DockerStatusItem });
+// Only for projects that use Docker (a Dockerfile or compose file, detected in Rust).
+registerStatusItem({ id: "docker", align: "right", order: 70, component: DockerStatusItem, when: () => usesProjectType("docker") });
 
 // Compose files changed on disk (edited, checked out): the backend re-reads them.
 const COMPOSE_FILE = /(^|\/)(docker-)?compose(\.[\w.-]+)?\.ya?ml$/;

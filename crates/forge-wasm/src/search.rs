@@ -49,6 +49,26 @@ pub fn search_match_files(request_json: &str) -> String {
     }
 }
 
+#[derive(Deserialize)]
+struct FindFiles {
+    request: forge_find::FindRequest,
+    /// `[path, text]` of every project file (the browser-mode demo project).
+    files: Vec<(String, String)>,
+}
+
+/// `{ request, files }` → `FindResult`: Find in Files over in-memory files, mirroring the
+/// `find_in_files` command (the desktop app walks the project instead).
+#[wasm_bindgen]
+pub fn find_in_files(request_json: &str) -> String {
+    match parse::<FindFiles>(request_json) {
+        Ok(r) => to_json(&forge_find::find_in(
+            &r.request,
+            r.files.iter().map(|(p, t)| (p.as_str(), t.as_str())),
+        )),
+        Err(e) => to_json(&serde_json::json!({ "error": e })),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -62,5 +82,7 @@ mod tests {
         let out = search_rank(r#"{"tab":"all","query":"","perGroup":5,"sources":[]}"#);
         assert_eq!(out, r#"{"groups":[]}"#);
         assert!(search_rank("nope").contains("error"));
+        let out = find_in_files(r#"{"request":{"query":"user"},"files":[["a.php","new User"]]}"#);
+        assert!(out.contains(r#""ranges":[[4,8]]"#), "{out}");
     }
 }

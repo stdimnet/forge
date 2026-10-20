@@ -546,6 +546,31 @@ export function filetypes_load(plugins_json) {
 }
 
 /**
+ * `{ request, files }` → `FindResult`: Find in Files over in-memory files, mirroring the
+ * `find_in_files` command (the desktop app walks the project instead).
+ * @param {string} request_json
+ * @returns {string}
+ */
+export function find_in_files(request_json) {
+    let deferred2_0;
+    let deferred2_1;
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        const ptr0 = passStringToWasm0(request_json, wasm.__wbindgen_export, wasm.__wbindgen_export2);
+        const len0 = WASM_VECTOR_LEN;
+        wasm.find_in_files(retptr, ptr0, len0);
+        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+        deferred2_0 = r0;
+        deferred2_1 = r1;
+        return getStringFromWasm0(r0, r1);
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+        wasm.__wbindgen_export3(deferred2_0, deferred2_1, 1);
+    }
+}
+
+/**
  * `FilterRequest` → `FilterHit[]`.
  * @param {string} request_json
  * @returns {string}
@@ -1195,6 +1220,55 @@ export function run_output_new(options_json) {
 }
 
 /**
+ * `{ public?, private?, name? }` → `{ names, default, variables }`: the environments of
+ * `http-client.env.json` / `http-client.private.env.json` and the variables of `name`.
+ * @param {string} request_json
+ * @returns {string}
+ */
+export function scratches_http_environments(request_json) {
+    let deferred2_0;
+    let deferred2_1;
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        const ptr0 = passStringToWasm0(request_json, wasm.__wbindgen_export, wasm.__wbindgen_export2);
+        const len0 = WASM_VECTOR_LEN;
+        wasm.scratches_http_environments(retptr, ptr0, len0);
+        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+        deferred2_0 = r0;
+        deferred2_1 = r1;
+        return getStringFromWasm0(r0, r1);
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+        wasm.__wbindgen_export3(deferred2_0, deferred2_1, 1);
+    }
+}
+
+/**
+ * `{ script, response, globals }` → `{ report, globals, text }`: run a response handler.
+ * @param {string} request_json
+ * @returns {string}
+ */
+export function scratches_http_handler(request_json) {
+    let deferred2_0;
+    let deferred2_1;
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        const ptr0 = passStringToWasm0(request_json, wasm.__wbindgen_export, wasm.__wbindgen_export2);
+        const len0 = WASM_VECTOR_LEN;
+        wasm.scratches_http_handler(retptr, ptr0, len0);
+        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+        deferred2_0 = r0;
+        deferred2_1 = r1;
+        return getStringFromWasm0(r0, r1);
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+        wasm.__wbindgen_export3(deferred2_0, deferred2_1, 1);
+    }
+}
+
+/**
  * `{ request?: HttpRequest, response?: HttpResponse, error?: string }` → console text.
  * @param {string} request_json
  * @returns {string}
@@ -1219,7 +1293,10 @@ export function scratches_http_render(request_json) {
 }
 
 /**
- * `{ content, line, env? }` → the resolved request at `line` (`HttpRequest`) or `null`.
+ * `{ content, line, env?, globals?, timestamp?, seed?, base?, files? }` → `{ request,
+ * problems, handler }` for the request at `line`, or `null`. `files` maps paths (relative
+ * to the project or the scratches) to contents for `< ./body.json` and `> ./handler.js`,
+ * resolved against `base`, the `.http` file's directory.
  * @param {string} request_json
  * @returns {string}
  */

@@ -117,6 +117,12 @@ export function filetypes_detect(request_json: string): string;
 export function filetypes_load(plugins_json: string): string;
 
 /**
+ * `{ request, files }` → `FindResult`: Find in Files over in-memory files, mirroring the
+ * `find_in_files` command (the desktop app walks the project instead).
+ */
+export function find_in_files(request_json: string): string;
+
+/**
  * `FilterRequest` → `FilterHit[]`.
  */
 export function fuzzy_filter(request_json: string): string;
@@ -251,12 +257,26 @@ export function run_output_handle(request_json: string): string;
 export function run_output_new(options_json: string): string;
 
 /**
+ * `{ public?, private?, name? }` → `{ names, default, variables }`: the environments of
+ * `http-client.env.json` / `http-client.private.env.json` and the variables of `name`.
+ */
+export function scratches_http_environments(request_json: string): string;
+
+/**
+ * `{ script, response, globals }` → `{ report, globals, text }`: run a response handler.
+ */
+export function scratches_http_handler(request_json: string): string;
+
+/**
  * `{ request?: HttpRequest, response?: HttpResponse, error?: string }` → console text.
  */
 export function scratches_http_render(request_json: string): string;
 
 /**
- * `{ content, line, env? }` → the resolved request at `line` (`HttpRequest`) or `null`.
+ * `{ content, line, env?, globals?, timestamp?, seed?, base?, files? }` → `{ request,
+ * problems, handler }` for the request at `line`, or `null`. `files` maps paths (relative
+ * to the project or the scratches) to contents for `< ./body.json` and `> ./handler.js`,
+ * resolved against `base`, the `.http` file's directory.
  */
 export function scratches_http_request(request_json: string): string;
 
@@ -418,6 +438,7 @@ export interface InitOutput {
     readonly dql_highlight: (a: number, b: number, c: number) => void;
     readonly filetypes_detect: (a: number, b: number, c: number) => void;
     readonly filetypes_load: (a: number, b: number, c: number) => void;
+    readonly find_in_files: (a: number, b: number, c: number) => void;
     readonly fuzzy_filter: (a: number, b: number, c: number) => void;
     readonly keymap_actions: (a: number, b: number, c: number) => void;
     readonly keymap_conflicts: (a: number, b: number, c: number) => void;
@@ -445,6 +466,8 @@ export interface InitOutput {
     readonly run_output_drop: (a: number, b: number, c: number) => void;
     readonly run_output_handle: (a: number, b: number, c: number) => void;
     readonly run_output_new: (a: number, b: number, c: number) => void;
+    readonly scratches_http_environments: (a: number, b: number, c: number) => void;
+    readonly scratches_http_handler: (a: number, b: number, c: number) => void;
     readonly scratches_http_render: (a: number, b: number, c: number) => void;
     readonly scratches_http_request: (a: number, b: number, c: number) => void;
     readonly scratches_languages: (a: number, b: number, c: number) => void;
