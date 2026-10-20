@@ -55,4 +55,28 @@ export default {
     await page.keyboard.press("Control+Shift+E");
     await page.waitForSelector(".locations-popup .location-row");
   },
+  bookmarks: async (page) => {
+    await openViaGotoFile(page, "OrderController");
+    await page.click(".editor-slot:not(.hidden) .cm-content");
+    // F11 on line 25, Ctrl+Shift+2 on line 29, then the tool window (Alt+2).
+    await page.keyboard.press("Control+Home");
+    for (let i = 0; i < 24; i++) await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("F11");
+    for (let i = 0; i < 4; i++) await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("Control+Shift+Digit2");
+    // Lines move with the text: two new lines above the bookmarks.
+    await page.keyboard.press("Control+Home");
+    await page.keyboard.press("End");
+    await page.keyboard.press("Enter");
+    await page.keyboard.press("Enter");
+    await page.waitForTimeout(500);
+    await page.keyboard.press("Alt+Digit2");
+    await page.waitForSelector(".bookmark-row");
+    await page.waitForTimeout(200);
+  },
+  "bookmark-mnemonic": async (page) => {
+    await page.click(".editor-slot:not(.hidden) .cm-content");
+    await page.keyboard.press("Control+F11");
+    await page.waitForSelector(".mnemonic-popup");
+  },
 };

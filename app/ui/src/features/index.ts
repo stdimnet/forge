@@ -35,3 +35,4 @@ import "./webforge";
 import "./contextMenu";
 import "./mainMenu";
 import "./editorTabs";
+import "./bookmarks";
