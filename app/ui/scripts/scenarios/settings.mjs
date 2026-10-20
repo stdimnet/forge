@@ -13,6 +13,20 @@ async function selectNode(page, id) {
   await page.waitForTimeout(100);
 }
 
+/** @param {import("playwright-core").Page} page */
+async function openTemplateDelimiters(page) {
+  await openSettings(page);
+  await selectNode(page, "lang.templates");
+  await page.locator('[data-setting="templates.delimiters"]').evaluate((el) => el.scrollIntoView({ block: "start" }));
+}
+
+/** Open the Twig + LaTeX entry in the edit form. @param {import("playwright-core").Page} page */
+async function editTwigLatex(page) {
+  await page.dblclick('[data-entry="twig+latex"]');
+  await page.waitForSelector(".set-delims-form");
+  await page.locator(".set-delims-form").evaluate((el) => el.scrollIntoView({ block: "end" }));
+}
+
 /** @type {Record<string, (page: import("playwright-core").Page) => Promise<void>>} */
 export default {
   "settings-appearance": async (page) => {
@@ -37,15 +51,22 @@ export default {
     await selectNode(page, "lang.php");
   },
   "settings-template-delimiters": async (page) => {
-    await openSettings(page);
-    await selectNode(page, "lang.templates");
-    await page.locator('[data-setting="templates.smarty.leftDelimiter"]').evaluate((el) => el.closest(".set-section")?.scrollIntoView({ block: "start" }));
+    await openTemplateDelimiters(page);
+    await page.click('[data-entry="smarty+latex"]');
   },
   "settings-template-delimiters-light": async (page) => {
     await page.evaluate(() => (document.documentElement.dataset.theme = "light"));
-    await openSettings(page);
-    await selectNode(page, "lang.templates");
-    await page.locator('[data-setting="templates.smarty.leftDelimiter"]').evaluate((el) => el.closest(".set-section")?.scrollIntoView({ block: "start" }));
+    await openTemplateDelimiters(page);
+    await page.click('[data-entry="smarty+latex"]');
+  },
+  "settings-template-delimiters-edit": async (page) => {
+    await openTemplateDelimiters(page);
+    await editTwigLatex(page);
+  },
+  "settings-template-delimiters-edit-light": async (page) => {
+    await page.evaluate(() => (document.documentElement.dataset.theme = "light"));
+    await openTemplateDelimiters(page);
+    await editTwigLatex(page);
   },
   "settings-light": async (page) => {
     await page.evaluate(() => (document.documentElement.dataset.theme = "light"));

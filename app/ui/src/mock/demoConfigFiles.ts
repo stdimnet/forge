@@ -210,6 +210,32 @@ jobs:
 Total: \\amount{<<$invoice.total|string_format:"%.2f">>}
 \\end{document}
 `,
+  "legacy/templates/letter.tex.twig": `\\#{ Dunning letter, rendered with pdflatex. Twig tags in LaTeX: VAR, BLOCK and # with braces. }
+\\documentclass[11pt,a4paper]{letter}
+\\usepackage[utf8]{inputenc}
+\\signature{\\VAR{company.name}}
+\\address{\\VAR{company.street} \\\\ \\VAR{company.city}}
+
+\\begin{document}
+\\begin{letter}{\\VAR{customer.name|latex_escape} \\\\ \\VAR{customer.city}}
+\\opening{Dear \\VAR{customer.name},}
+
+\\BLOCK{if invoices|length > 1}
+the following invoices are still open:
+\\begin{itemize}
+\\BLOCK{for invoice in invoices}
+  \\item Invoice \\VAR{invoice.number} of \\VAR{invoice.date|date('d.m.Y')}: \\textbf{\\VAR{invoice.total|number_format(2)}~EUR}
+\\BLOCK{endfor}
+\\end{itemize}
+\\BLOCK{else}
+invoice \\VAR{invoices[0].number} is still open.
+\\BLOCK{endif}
+
+% Plain LaTeX comment: {braces} stay LaTeX.
+\\closing{Kind regards,}
+\\end{letter}
+\\end{document}
+`,
   "public/index.html": `<!doctype html>
 <html lang="en">
   <head>
@@ -224,23 +250,23 @@ Total: \\amount{<<$invoice.total|string_format:"%.2f">>}
   </body>
 </html>
 `,
-  "templates/invoice/invoice.tex.twig": `{# Rendered to PDF with pdflatex #}
+  "templates/invoice/invoice.tex.twig": `\\#{ Rendered to PDF with pdflatex. Twig tags in LaTeX: VAR, BLOCK and # with braces. }
 \\documentclass[11pt]{article}
 \\usepackage[utf8]{inputenc}
 \\usepackage{booktabs}
 
 \\begin{document}
-\\section*{Invoice {{ invoice.number }}}
+\\section*{Invoice \\VAR{invoice.number}}
 % Customer block
-\\textbf{ {{ customer.name|latex_escape }} } \\\\
-{{ customer.address|nl2br }}
+\\textbf{\\VAR{customer.name|latex_escape}} \\\\
+\\VAR{customer.address|nl2br}
 
 \\begin{tabular}{lrr}
   \\toprule
   Item & Qty & Total \\\\ \\midrule
-{% for line in invoice.lines %}
-  {{ line.name }} & {{ line.quantity }} & {{ line.total|number_format(2) }} \\\\
-{% endfor %}
+\\BLOCK{for line in invoice.lines}
+  \\VAR{line.name} & \\VAR{line.quantity} & \\VAR{line.total|number_format(2)} \\\\
+\\BLOCK{endfor}
   \\bottomrule
 \\end{tabular}
 
