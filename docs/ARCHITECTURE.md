@@ -38,6 +38,12 @@ app/ui/            SolidJS UI
   - `registerCommand` (`src/state/commands.ts`) — actions with PHPStorm-style ids, bindable to keys.
   - `registerSettingsPage` (`src/features/settingsPages.ts`) — pages in the Settings dialog.
   - `registerEditorExtension` (`src/editor/extensions.ts`) — CodeMirror extensions per file.
+  - `registerSearchProvider` (`src/features/search/providers.ts`) — Search Everywhere tabs
+    (Classes, Files, Symbols, Actions, Text); language packs plug in class/symbol indexes.
+  - `registerKeymapActions` (`src/keymap/store.ts`) — plugin actions with default shortcuts.
+- Keymap (`src/keymap/`): PHPStorm's default keymaps (Windows/Linux and macOS) as data, keyed by
+  PHPStorm action ids that double as command ids. Implementing an action is just
+  `registerCommand({ id: "GotoClass", ... })`; unimplemented actions show "not available yet".
 - A feature is a folder `src/features/<name>/` with an `index.ts` that registers its
   contributions; add one import line to `src/features/index.ts`. Browser mocks go to
   `src/mock/<name>Mock.ts` and are imported from `src/mock/index.ts`.
@@ -51,6 +57,9 @@ app/ui/            SolidJS UI
 - Commits: small, imperative subject lines, no co-author trailers.
 
 ## Shared IPC contracts
+
+- `fs_find_files({ query, limit? }) -> { path, name, score, positions, matchedPath }[]` — fuzzy
+  "Go to File" (camel humps, respects `.gitignore`).
 
 - `ai_complete({ request: { system?: string, messages: { role: "user" | "assistant", content: string }[], provider?: string, model?: string, maxTokens?: number } }) -> string`
   — one-shot completion with the default (or given) provider. Used by e.g. AI commit messages.

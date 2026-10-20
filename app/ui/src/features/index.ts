@@ -8,3 +8,5 @@ import "./ai";
 import "./ai-chat";
 import "./settings";
 import "./lsp";
+import "./navigation";
+import "./keymapSettings";

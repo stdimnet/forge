@@ -4,3 +4,4 @@ import "./aiMock";
 import "./agentMock";
 import "./settingsMock";
 import "./lspMock";
+import "./searchMock";

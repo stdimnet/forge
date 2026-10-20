@@ -1,7 +1,7 @@
 use serde::Serialize;
 use tauri::State;
 
-use forge_core::{FileEntry, Result, Workspace};
+use forge_core::{FileEntry, FileMatch, Result, Workspace};
 
 use crate::state::AppState;
 
@@ -35,4 +35,14 @@ pub fn fs_read_file(path: String, state: State<'_, AppState>) -> Result<String> 
 #[tauri::command]
 pub fn fs_write_file(path: String, contents: String, state: State<'_, AppState>) -> Result<()> {
     state.with_workspace(|ws| ws.write_file(&path, &contents))
+}
+
+/// "Go to File" backend: fuzzy file-name search over the project, honoring `.gitignore`.
+#[tauri::command]
+pub fn fs_find_files(
+    query: String,
+    limit: Option<usize>,
+    state: State<'_, AppState>,
+) -> Result<Vec<FileMatch>> {
+    state.with_workspace(|ws| ws.find_files(&query, limit.unwrap_or(100)))
 }

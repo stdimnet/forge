@@ -6,7 +6,8 @@ use serde::{Deserialize, Serialize};
 use crate::{ForgeError, Result};
 
 /// Directory names hidden from the project tree by default (like PHPStorm's "Excluded").
-const DEFAULT_EXCLUDES: &[&str] = &[".git", "node_modules", "target", ".idea", ".DS_Store"];
+pub(crate) const DEFAULT_EXCLUDES: &[&str] =
+    &[".git", "node_modules", "target", ".idea", ".DS_Store"];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]

@@ -74,6 +74,7 @@ pub fn run() {
             commands::lsp::lsp_format,
             commands::lsp::lsp_status,
             commands::lsp::lsp_register_server,
+            commands::workspace::fs_find_files,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Forge");
