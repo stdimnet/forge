@@ -24,7 +24,7 @@ fn error(e: impl ToString) -> String {
 }
 
 fn parse<'a, T: Deserialize<'a>>(text: &'a str) -> Result<T, String> {
-    serde_json::from_str(text).map_err(|e| error(e))
+    serde_json::from_str(text).map_err(error)
 }
 
 #[derive(Deserialize)]
