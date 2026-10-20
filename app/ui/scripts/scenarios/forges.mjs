@@ -34,6 +34,18 @@ export default {
     await page.locator(".fg-dl-thread").first().scrollIntoViewIfNeeded();
     await page.locator(".fg-diff-scroll").evaluate((el) => (el.scrollTop = Math.max(0, el.scrollTop - 80)));
   },
+  "forges-issues": async (page) => {
+    await page.click('[data-tool-window="pull-requests"]');
+    await page.click(".fg-tabs .git-tab:has-text('Issues')");
+    await page.waitForSelector(".fg-row[data-issue]");
+    await page.click('.fg-row[data-issue="31"]');
+    await page.waitForSelector('[data-issue-tab="31"] .fg-mr-header');
+  },
+  "forges-mr-overview-light": async (page) => {
+    await page.evaluate(() => (document.documentElement.dataset.theme = "light"));
+    await openRequest(page, 41);
+    await page.waitForSelector(".fg-thread");
+  },
   "forges-create-mr": async (page) => {
     await page.evaluate(() => window.__forgeRunCommand("forges.createMergeRequest"));
     await page.waitForSelector(".fg-create select[data-field='target'] option", { state: "attached" });

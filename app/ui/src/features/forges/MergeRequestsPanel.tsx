@@ -17,7 +17,7 @@ import {
 } from "@/ipc/forges";
 import { openSettings } from "@/features/settings/dialogState";
 import { context, contextError, contextLoaded, me, ref, refreshAll, requestName, revision, errorText } from "./store";
-import { Avatar, BranchPill, CiIcon, ciLabels, IssueStateIcon, LabelPill, MrStateIcon, ago, displayName } from "./ui";
+import { Avatar, BranchPill, CiIcon, ciLabels, IssueStateIcon, MrStateIcon, ago, displayName } from "./ui";
 import { Menu, type MenuItem } from "./Menu";
 import { openCreateDialog, openIssue, openMergeRequest, settingsPageFor } from "./actions";
 
@@ -126,7 +126,7 @@ function RequestRow(props: { mr: MergeRequest }) {
       classList={{ selected: selected() === mr().number }}
       data-mr={mr().number}
       tabindex="-1"
-      title={`${mr().title}\n${mr().sourceBranch} → ${mr().targetBranch}`}
+      title={`${mr().title}\n${mr().sourceBranch} → ${mr().targetBranch}${mr().labels.length ? `\nLabels: ${mr().labels.map((l) => l.name).join(", ")}` : ""}`}
       onClick={() => {
         setSelected(mr().number);
         openMergeRequest(mr().number, mr().title);
@@ -143,7 +143,6 @@ function RequestRow(props: { mr: MergeRequest }) {
           <span class="fg-row-sub-text">
             {ref(mr().number)} {displayName(mr().author)} · {ago(mr().updatedAt)}
           </span>
-          <For each={mr().labels.slice(0, 2)}>{(l) => <LabelPill label={l} />}</For>
         </div>
       </div>
       <div class="fg-row-meta">
@@ -345,15 +344,21 @@ function IssuesTab() {
 function IssueRow(props: { issue: Issue }) {
   const i = () => props.issue;
   return (
-    <div class="fg-row" data-issue={i().number} onClick={() => openIssue(i().number, i().title)}>
+    <div
+      class="fg-row"
+      data-issue={i().number}
+      title={`${i().title}${i().labels.length ? `\nLabels: ${i().labels.map((l) => l.name).join(", ")}` : ""}`}
+      onClick={() => openIssue(i().number, i().title)}
+    >
       <IssueStateIcon state={i().state} />
       <div class="fg-row-main">
         <div class="fg-row-title">
           <span class="fg-row-title-text">{i().title}</span>
-          <For each={i().labels.slice(0, 2)}>{(l) => <LabelPill label={l} />}</For>
         </div>
         <div class="fg-row-sub muted">
-          #{i().number} opened by {displayName(i().author)} · updated {ago(i().updatedAt)}
+          <span class="fg-row-sub-text">
+            #{i().number} opened by {displayName(i().author)} · updated {ago(i().updatedAt)}
+          </span>
         </div>
       </div>
       <div class="fg-row-meta">
