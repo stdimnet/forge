@@ -168,6 +168,21 @@ export function openConsole(id: string, sql = ""): string {
   return path;
 }
 
+/** Consoles over files (SQL scratches): the data source attached to each tab path. */
+const attached = new Map<string, string>();
+
+/**
+ * Open a file (e.g. a SQL scratch at `scratch://orders.sql`) as a query console of a data
+ * source. The tab keeps its path, so it is saved like a file.
+ */
+export function openFileConsole(file: { path: string; name: string; content: string }, dataSourceId: string): void {
+  attached.set(file.path, dataSourceId);
+  openViewTab({ ...file, view: CONSOLE_VIEW });
+}
+
+/** Data source of a console tab (`db-console://id/n` or a file console). */
+export const consoleSourceId = (path: string): string | undefined => parseConsolePath(path)?.id ?? attached.get(path);
+
 /** Open the data editor of a table or view. */
 export function openTable(id: string, schema: string, table: string): void {
   openViewTab({ path: tablePath(id, schema, table), name: table, view: TABLE_VIEW });

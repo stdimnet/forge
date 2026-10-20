@@ -1,4 +1,5 @@
-import { createResource, createSignal, For, Show } from "solid-js";
+import { createResource, createSignal, For, Show, type Component } from "solid-js";
+import { Dynamic } from "solid-js/web";
 import { ChevronDown, ChevronRight } from "lucide-solid";
 import { workspaceApi, type FileEntry } from "@/ipc/workspace";
 import { workspace } from "@/state/workspace";
@@ -105,6 +106,20 @@ function visibleRows(root: HTMLElement): VisibleRow[] {
   }));
 }
 
+/**
+ * Top-level nodes below the project root, like PHPStorm's "Scratches and Consoles". Their
+ * rows are `.tree-row`s with a `data-path` outside the project (e.g. `scratch://name`) and use
+ * the tree's expansion and selection (`projectTree`), so keyboard navigation spans them.
+ */
+const [sections, setSections] = createSignal<{ id: string; order: number; component: Component }[]>([]);
+
+export function registerProjectViewSection(section: { id: string; order: number; component: Component }): void {
+  setSections((prev) => [...prev.filter((s) => s.id !== section.id), section].sort((a, b) => a.order - b.order));
+}
+
+/** Expansion and selection of the Project tree, for sections. */
+export const projectTree = { expanded, setOpen, toggle, selected, setSelected, singleClickOpens };
+
 export function ProjectView() {
   let root!: HTMLDivElement;
   const onKeyDown = (e: KeyboardEvent) => {
@@ -132,6 +147,7 @@ export function ProjectView() {
               <span class="tree-hint">{ws().root}</span>
             </div>
             <DirChildren path="" depth={1} />
+            <For each={sections()}>{(section) => <Dynamic component={section.component} />}</For>
           </>
         )}
       </Show>
