@@ -52,7 +52,22 @@ function showHint(view: EditorView, pos: number, text: string) {
   }, 2500);
 }
 
+/**
+ * Framework-specific targets (route names, service ids, templates, DQL fields) that a
+ * language server cannot resolve. A provider returns true when it navigated.
+ */
+export type DeclarationProvider = (path: string, view: EditorView, pos: number) => Promise<boolean>;
+
+const declarationProviders: DeclarationProvider[] = [];
+
+export function registerDeclarationProvider(provider: DeclarationProvider): void {
+  declarationProviders.push(provider);
+}
+
 export async function gotoDeclaration(path: string, view: EditorView, pos = view.state.selection.main.head): Promise<boolean> {
+  for (const provider of declarationProviders) {
+    if (await provider(path, view, pos).catch(() => false)) return true;
+  }
   await syncNow(path);
   const locations = await lspApi.definition(path, toLsp(view.state.doc, pos)).catch(() => []);
   const target = locations[0];

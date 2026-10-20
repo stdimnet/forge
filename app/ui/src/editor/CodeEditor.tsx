@@ -34,7 +34,6 @@ export function CodeEditor(props: { tab: EditorTab }) {
         doc: props.tab.content,
         extensions: [
           lineNumbers(),
-          foldGutter(),
           highlightActiveLine(),
           highlightActiveLineGutter(),
           highlightSpecialChars(),
@@ -58,6 +57,8 @@ export function CodeEditor(props: { tab: EditorTab }) {
           forgeHighlight,
           ...languageFor(path),
           ...extensionsFor(path),
+          // Folding comes last, next to the text, after feature gutters (markers, VCS), as in PHPStorm.
+          foldGutter(),
           EditorView.updateListener.of((u) => {
             if (u.docChanged) updateContent(path, u.state.doc.toString());
             if (u.selectionSet || u.docChanged) {
