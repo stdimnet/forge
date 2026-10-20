@@ -193,6 +193,31 @@
           "order": 31
         },
         {
+          "key": "appearance.mainMenu",
+          "title": "Main menu",
+          "description": "Hamburger menu: behind the button at the left of the main toolbar. Merged: the menu names in the main toolbar. Separate toolbar: a classic menu bar above the main toolbar.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "hamburger",
+              "label": "Hamburger menu"
+            },
+            {
+              "value": "merged",
+              "label": "Merged with main toolbar"
+            },
+            {
+              "value": "toolbar",
+              "label": "Show in separate toolbar"
+            }
+          ],
+          "default": "hamburger",
+          "group": "appearance",
+          "section": "UI Options",
+          "project": false,
+          "order": 19
+        },
+        {
           "key": "appearance.smoothScrolling",
           "title": "Smooth scrolling",
           "description": "Animate scrolling in lists and trees.",
@@ -653,7 +678,8 @@
       "runConfigurationTypes": [],
       "aiProviders": [],
       "chatAgents": [],
-      "codeGenerators": []
+      "codeGenerators": [],
+      "mainMenu": []
     }
   },
   {
@@ -805,7 +831,8 @@
       "runConfigurationTypes": [],
       "aiProviders": [],
       "chatAgents": [],
-      "codeGenerators": []
+      "codeGenerators": [],
+      "mainMenu": []
     }
   },
   {
@@ -874,7 +901,8 @@
       "runConfigurationTypes": [],
       "aiProviders": [],
       "chatAgents": [],
-      "codeGenerators": []
+      "codeGenerators": [],
+      "mainMenu": []
     }
   },
   {
@@ -992,7 +1020,8 @@
       "runConfigurationTypes": [],
       "aiProviders": [],
       "chatAgents": [],
-      "codeGenerators": []
+      "codeGenerators": [],
+      "mainMenu": []
     }
   },
   {
@@ -1071,7 +1100,8 @@
       ],
       "aiProviders": [],
       "chatAgents": [],
-      "codeGenerators": []
+      "codeGenerators": [],
+      "mainMenu": []
     }
   },
   {
@@ -1149,7 +1179,8 @@
       "runConfigurationTypes": [],
       "aiProviders": [],
       "chatAgents": [],
-      "codeGenerators": []
+      "codeGenerators": [],
+      "mainMenu": []
     }
   },
   {
@@ -1342,7 +1373,24 @@
       "runConfigurationTypes": [],
       "aiProviders": [],
       "chatAgents": [],
-      "codeGenerators": []
+      "codeGenerators": [],
+      "mainMenu": [
+        {
+          "path": "Tools/_Docker",
+          "items": [
+            {
+              "type": "action",
+              "id": "Docker.PullImage",
+              "label": "_Pull Image..."
+            },
+            {
+              "type": "action",
+              "id": "Services.Refresh",
+              "label": "_Refresh Services"
+            }
+          ]
+        }
+      ]
     }
   },
   {
@@ -1694,7 +1742,8 @@
             "php"
           ]
         }
-      ]
+      ],
+      "mainMenu": []
     }
   },
   {
@@ -1835,7 +1884,8 @@
       "runConfigurationTypes": [],
       "aiProviders": [],
       "chatAgents": [],
-      "codeGenerators": []
+      "codeGenerators": [],
+      "mainMenu": []
     }
   },
   {
@@ -1931,7 +1981,8 @@
       ],
       "aiProviders": [],
       "chatAgents": [],
-      "codeGenerators": []
+      "codeGenerators": [],
+      "mainMenu": []
     }
   },
   {
@@ -1977,7 +2028,8 @@
             "php"
           ]
         }
-      ]
+      ],
+      "mainMenu": []
     }
   },
   {
@@ -2123,7 +2175,24 @@
       ],
       "aiProviders": [],
       "chatAgents": [],
-      "codeGenerators": []
+      "codeGenerators": [],
+      "mainMenu": [
+        {
+          "path": "Run",
+          "items": [
+            {
+              "type": "separator"
+            },
+            {
+              "type": "action",
+              "id": "PhpListenDebugAction",
+              "label": "Start _Listening for PHP Debug Connections",
+              "checkable": true
+            }
+          ],
+          "after": "XDebugger.MuteBreakpoints"
+        }
+      ]
     }
   },
   {
@@ -2266,6 +2335,23 @@
             "php"
           ]
         }
+      ],
+      "mainMenu": [
+        {
+          "path": "Tools/_Laravel",
+          "items": [
+            {
+              "type": "action",
+              "id": "Laravel.RunArtisan",
+              "label": "Run _Artisan Command..."
+            },
+            {
+              "type": "action",
+              "id": "Laravel.ShowRoutes",
+              "label": "Show _Routes"
+            }
+          ]
+        }
       ]
     }
   },
@@ -2404,7 +2490,32 @@
       "runConfigurationTypes": [],
       "aiProviders": [],
       "chatAgents": [],
-      "codeGenerators": []
+      "codeGenerators": [],
+      "mainMenu": [
+        {
+          "path": "Tools/_Symfony",
+          "items": [
+            {
+              "type": "action",
+              "id": "Symfony.RunConsoleCommand",
+              "label": "Run _Console Command..."
+            },
+            {
+              "type": "action",
+              "id": "Symfony.ShowRoutes",
+              "label": "Show _Routes"
+            },
+            {
+              "type": "separator"
+            },
+            {
+              "type": "action",
+              "id": "symfony.refresh",
+              "label": "Re_fresh Symfony Index"
+            }
+          ]
+        }
+      ]
     }
   },
   {
@@ -2445,7 +2556,8 @@
       "runConfigurationTypes": [],
       "aiProviders": [],
       "chatAgents": [],
-      "codeGenerators": []
+      "codeGenerators": [],
+      "mainMenu": []
     }
   },
   {
@@ -2557,7 +2669,8 @@
       "runConfigurationTypes": [],
       "aiProviders": [],
       "chatAgents": [],
-      "codeGenerators": []
+      "codeGenerators": [],
+      "mainMenu": []
     }
   },
   {
@@ -2728,7 +2841,8 @@
       ],
       "aiProviders": [],
       "chatAgents": [],
-      "codeGenerators": []
+      "codeGenerators": [],
+      "mainMenu": []
     }
   },
   {
@@ -2758,7 +2872,8 @@
       "runConfigurationTypes": [],
       "aiProviders": [],
       "chatAgents": [],
-      "codeGenerators": []
+      "codeGenerators": [],
+      "mainMenu": []
     }
   },
   {
@@ -2802,7 +2917,8 @@
       "runConfigurationTypes": [],
       "aiProviders": [],
       "chatAgents": [],
-      "codeGenerators": []
+      "codeGenerators": [],
+      "mainMenu": []
     }
   },
   {
@@ -2854,7 +2970,8 @@
       "runConfigurationTypes": [],
       "aiProviders": [],
       "chatAgents": [],
-      "codeGenerators": []
+      "codeGenerators": [],
+      "mainMenu": []
     }
   },
   {
@@ -3016,7 +3133,8 @@
       ],
       "aiProviders": [],
       "chatAgents": [],
-      "codeGenerators": []
+      "codeGenerators": [],
+      "mainMenu": []
     }
   },
   {
@@ -3096,7 +3214,8 @@
             "lua"
           ]
         }
-      ]
+      ],
+      "mainMenu": []
     }
   },
   {
@@ -3206,7 +3325,8 @@
           "provider": "claude-code"
         }
       ],
-      "codeGenerators": []
+      "codeGenerators": [],
+      "mainMenu": []
     }
   },
   {
@@ -3312,7 +3432,8 @@
           "provider": "gemini-cli"
         }
       ],
-      "codeGenerators": []
+      "codeGenerators": [],
+      "mainMenu": []
     }
   },
   {
@@ -3371,7 +3492,8 @@
       "runConfigurationTypes": [],
       "aiProviders": [],
       "chatAgents": [],
-      "codeGenerators": []
+      "codeGenerators": [],
+      "mainMenu": []
     }
   },
   {
@@ -3418,7 +3540,8 @@
       "runConfigurationTypes": [],
       "aiProviders": [],
       "chatAgents": [],
-      "codeGenerators": []
+      "codeGenerators": [],
+      "mainMenu": []
     }
   },
   {
@@ -3461,7 +3584,8 @@
       "runConfigurationTypes": [],
       "aiProviders": [],
       "chatAgents": [],
-      "codeGenerators": []
+      "codeGenerators": [],
+      "mainMenu": []
     }
   },
   {
@@ -3520,7 +3644,8 @@
       "runConfigurationTypes": [],
       "aiProviders": [],
       "chatAgents": [],
-      "codeGenerators": []
+      "codeGenerators": [],
+      "mainMenu": []
     }
   },
   {
@@ -3572,7 +3697,8 @@
       "runConfigurationTypes": [],
       "aiProviders": [],
       "chatAgents": [],
-      "codeGenerators": []
+      "codeGenerators": [],
+      "mainMenu": []
     }
   },
   {
@@ -3613,7 +3739,8 @@
       "runConfigurationTypes": [],
       "aiProviders": [],
       "chatAgents": [],
-      "codeGenerators": []
+      "codeGenerators": [],
+      "mainMenu": []
     }
   },
   {
@@ -3668,7 +3795,8 @@
       "runConfigurationTypes": [],
       "aiProviders": [],
       "chatAgents": [],
-      "codeGenerators": []
+      "codeGenerators": [],
+      "mainMenu": []
     }
   },
   {
@@ -3714,7 +3842,8 @@
       "runConfigurationTypes": [],
       "aiProviders": [],
       "chatAgents": [],
-      "codeGenerators": []
+      "codeGenerators": [],
+      "mainMenu": []
     }
   },
   {
@@ -3747,7 +3876,8 @@
       "runConfigurationTypes": [],
       "aiProviders": [],
       "chatAgents": [],
-      "codeGenerators": []
+      "codeGenerators": [],
+      "mainMenu": []
     }
   },
   {
@@ -3805,7 +3935,8 @@
       "runConfigurationTypes": [],
       "aiProviders": [],
       "chatAgents": [],
-      "codeGenerators": []
+      "codeGenerators": [],
+      "mainMenu": []
     }
   },
   {
@@ -3842,7 +3973,8 @@
       "runConfigurationTypes": [],
       "aiProviders": [],
       "chatAgents": [],
-      "codeGenerators": []
+      "codeGenerators": [],
+      "mainMenu": []
     }
   },
   {
@@ -3907,7 +4039,8 @@
       "runConfigurationTypes": [],
       "aiProviders": [],
       "chatAgents": [],
-      "codeGenerators": []
+      "codeGenerators": [],
+      "mainMenu": []
     }
   }
 ]

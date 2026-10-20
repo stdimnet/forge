@@ -142,6 +142,21 @@ section = "Tool Windows"
 order = 31
 
 [[contributions.settings]]
+key = "appearance.mainMenu"
+title = "Main menu"
+description = "Hamburger menu: behind the button at the left of the main toolbar. Merged: the menu names in the main toolbar. Separate toolbar: a classic menu bar above the main toolbar."
+type = "enum"
+options = [
+  { value = "hamburger", label = "Hamburger menu" },
+  { value = "merged", label = "Merged with main toolbar" },
+  { value = "toolbar", label = "Show in separate toolbar" },
+]
+default = "hamburger"
+group = "appearance"
+section = "UI Options"
+order = 19
+
+[[contributions.settings]]
 key = "appearance.smoothScrolling"
 title = "Smooth scrolling"
 description = "Animate scrolling in lists and trees."

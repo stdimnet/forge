@@ -16,6 +16,13 @@ id = "Docker.PullImage"
 title = "Pull Image…"
 category = "Docker"
 
+[[contributions.mainMenu]]
+path = "Tools/_Docker"
+items = [
+  { type = "action", id = "Docker.PullImage", label = "_Pull Image..." },
+  { type = "action", id = "Services.Refresh", label = "_Refresh Services" },
+]
+
 [[contributions.toolWindows]]
 id = "services"
 title = "Services"

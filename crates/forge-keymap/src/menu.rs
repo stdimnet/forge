@@ -53,7 +53,8 @@ pub enum MenuEntry {
 #[serde(rename_all = "camelCase")]
 pub struct MenuContribution {
     /// Submenu labels from the top, separated by `/`: "Tools", "View/Tool Windows". Missing
-    /// submenus are created at the end of their parent.
+    /// submenus are created at the end of their parent, with the label as written here
+    /// ("Tools/_Laravel" creates "Laravel" with the mnemonic L).
     pub path: String,
     pub items: Vec<MenuEntry>,
     /// Insert before the entry with this action id or submenu label.
@@ -224,9 +225,10 @@ fn menu_text(s: &str) -> String {
 fn insert_contribution(menu: &mut Vec<MenuEntry>, c: &MenuContribution) {
     let mut level = menu;
     for part in c.path.split('/').map(str::trim).filter(|p| !p.is_empty()) {
+        let name = plain(part);
         let pos = level
             .iter()
-            .position(|e| matches!(e, MenuEntry::Group { label, .. } if plain(label) == part));
+            .position(|e| matches!(e, MenuEntry::Group { label, .. } if plain(label) == name));
         let pos = pos.unwrap_or_else(|| {
             level.push(MenuEntry::Group {
                 label: part.to_string(),
@@ -1296,7 +1298,7 @@ mod tests {
             after: None,
         };
         let more_laravel = MenuContribution {
-            path: "Tools/Laravel".into(),
+            path: "Tools/_Laravel".into(),
             items: vec![a("Laravel.ShowRoutes")],
             before: None,
             after: None,
