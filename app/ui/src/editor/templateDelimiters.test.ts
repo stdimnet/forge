@@ -94,6 +94,13 @@ describe("Smarty with LaTeX and << >>", () => {
     expect(braces.every(([, style]) => style !== "meta")).toBe(true);
   });
 
+  it("does not let a `%` inside a tag start a LaTeX comment", () => {
+    const t = tokens(templateParser(syntax, latex), '\\amount{<<$total|string_format:"%.2f">>} \\\\ % note');
+    expect(t).toContainEqual(['"%.2f"', "string"]);
+    expect(t.find(([text]) => text === "}")?.[1]).not.toBe("comment");
+    expect(t[t.length - 1]).toEqual(["% note", "comment"]);
+  });
+
   it("follows the delimiters for comments, closing tags and literal blocks", () => {
     const doc = "<<* note {x} *>>\n<<if $a>>x<</if>>\n<<literal>><<$no>><</literal>>";
     const ranges = templateRanges(doc, syntax).map((r) => [doc.slice(r.from, r.to), r.style]);

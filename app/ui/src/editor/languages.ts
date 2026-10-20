@@ -12,7 +12,7 @@ import { xml } from "@codemirror/lang-xml";
 import { properties } from "@codemirror/legacy-modes/mode/properties";
 import { dotenv } from "./dotenv";
 import { streamLanguage } from "./tokens";
-import { jinjaSyntax, latteSyntax, mustacheSyntax, twigSyntax, type TemplateSyntax } from "./templates";
+import { jinjaSyntax, latteSyntax, mustacheSyntax, templateParser, twigSyntax, type TemplateSyntax } from "./templates";
 import { dataLanguageFor, dataLanguageSupport } from "./templateData";
 import { CONFIGURABLE_TEMPLATES, templateSyntaxFor } from "./templateDelimiters";
 import { templateOverlay } from "./templateOverlay";
@@ -102,7 +102,14 @@ function template(id: string, label: string, extensions: string[], syntax: (path
     id,
     label,
     extensions,
-    load: (path) => [dataLanguageSupport(dataLanguageFor(path)), templateOverlay(() => syntax(path)), templateEditing()],
+    load: (path) => {
+      const data = dataLanguageFor(path);
+      // A data language without a Lezer grammar (LaTeX, INI, Shell) is tokenized around the
+      // tags, so a `%` or `#` inside a tag does not start a comment in the data language.
+      const parser = data.support ? undefined : data.parser;
+      const aroundTags = parser ? (s: TemplateSyntax) => StreamLanguage.define(templateParser(s, parser)) : undefined;
+      return [aroundTags ? [] : dataLanguageSupport(data), templateOverlay(() => syntax(path), aroundTags), templateEditing()];
+    },
     labelFor: (path) => {
       const data = dataLanguageFor(path);
       return data.id === "html" ? label : `${label} (${data.label})`;

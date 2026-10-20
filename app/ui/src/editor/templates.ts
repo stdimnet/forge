@@ -270,6 +270,7 @@ export function templateParser(syntax: TemplateSyntax, data?: StreamParser<unkno
 
   return {
     name: syntax.name,
+    languageData: data?.languageData,
     startState: (indentUnit) => ({
       inTag: null,
       literal: null,

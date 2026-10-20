@@ -6,7 +6,7 @@
  * data language, even where its parser would not expect them.
  */
 import { StringStream } from "@codemirror/language";
-import { Prec, RangeSetBuilder, StateEffect, StateField, type Extension, type Text } from "@codemirror/state";
+import { Compartment, Prec, RangeSetBuilder, StateEffect, StateField, type Extension, type Text } from "@codemirror/state";
 import { Decoration, EditorView, ViewPlugin, type DecorationSet, type ViewUpdate } from "@codemirror/view";
 import { createEffect, createRoot } from "solid-js";
 import { templateParser, type TagKind, type TemplateSyntax } from "./templates";
@@ -122,9 +122,17 @@ const sameSyntax = (a: TemplateSyntax | null, b: TemplateSyntax) =>
 /**
  * The template overlay. With a function the syntax is live: it is re-read when the settings it
  * depends on change (delimiters), and open editors are highlighted again.
+ *
+ * @param dataLanguage The data language's highlighting when it depends on the syntax (a stream
+ *   parser that skips the template tags); it is replaced together with the syntax.
  */
-export function templateOverlay(syntax: TemplateSyntax | (() => TemplateSyntax)): Extension {
+export function templateOverlay(
+  syntax: TemplateSyntax | (() => TemplateSyntax),
+  dataLanguage?: (syntax: TemplateSyntax) => Extension,
+): Extension {
   const resolve = typeof syntax === "function" ? syntax : () => syntax;
+  const language = new Compartment();
+  const initial = resolve();
   const plugin = ViewPlugin.define(
     (view) => {
       let current = view.state.field(templateSyntaxField);
@@ -137,7 +145,12 @@ export function templateOverlay(syntax: TemplateSyntax | (() => TemplateSyntax))
               createEffect(() => {
                 const next = resolve();
                 if (sameSyntax(view.state.field(templateSyntaxField), next)) return;
-                queueMicrotask(() => !destroyed && view.dispatch({ effects: setTemplateSyntax.of(next) }));
+                queueMicrotask(() => {
+                  if (destroyed) return;
+                  const effects: StateEffect<unknown>[] = [setTemplateSyntax.of(next)];
+                  if (dataLanguage) effects.push(language.reconfigure(dataLanguage(next)));
+                  view.dispatch({ effects });
+                });
               });
               return dispose;
             })
@@ -162,5 +175,10 @@ export function templateOverlay(syntax: TemplateSyntax | (() => TemplateSyntax))
     { decorations: (v) => v.decorations },
   );
   // Above the data language's own highlighting, so the tag colors win where they overlap.
-  return [templateSyntaxField.init(() => resolve()), Prec.high(plugin), overlayTheme];
+  return [
+    templateSyntaxField.init(() => initial),
+    dataLanguage ? language.of(dataLanguage(initial)) : [],
+    Prec.high(plugin),
+    overlayTheme,
+  ];
 }
