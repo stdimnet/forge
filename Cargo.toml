@@ -14,6 +14,7 @@ forge-core = { path = "crates/forge-core" }
 forge-wasm = { path = "crates/forge-wasm" }
 forge-fuzzy = { path = "crates/forge-fuzzy" }
 forge-find = { path = "crates/forge-find" }
+forge-search = { path = "crates/forge-search" }
 forge-filetypes = { path = "crates/forge-filetypes" }
 forge-plugin-api = { path = "crates/forge-plugin-api" }
 forge-ai = { path = "crates/forge-ai" }
@@ -60,3 +61,35 @@ inherits = "release"
 opt-level = "z"
 lto = true
 panic = "abort"
+
+# Indexing is CPU heavy: keep the search crate and its hot dependencies optimized in dev builds.
+[profile.dev.package.forge-search]
+opt-level = 3
+[profile.dev.package.roaring]
+opt-level = 3
+[profile.dev.package.regex]
+opt-level = 3
+[profile.dev.package.regex-automata]
+opt-level = 3
+[profile.dev.package.regex-syntax]
+opt-level = 3
+[profile.dev.package.ignore]
+opt-level = 3
+[profile.dev.package.globset]
+opt-level = 3
+[profile.dev.package.rayon]
+opt-level = 3
+[profile.dev.package.rayon-core]
+opt-level = 3
+[profile.dev.package.crossbeam-deque]
+opt-level = 3
+[profile.dev.package.crossbeam-epoch]
+opt-level = 3
+[profile.dev.package.nucleo-matcher]
+opt-level = 3
+[profile.dev.package.bincode]
+opt-level = 3
+[profile.dev.package.memchr]
+opt-level = 3
+[profile.dev.package.aho-corasick]
+opt-level = 3
