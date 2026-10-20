@@ -11,6 +11,7 @@ import "./lsp";
 import "./navigation";
 import "./keymapSettings";
 import "./git";
+import "./forges";
 import "./php";
 import "./project-type";
 import "./new-project";
