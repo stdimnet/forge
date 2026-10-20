@@ -8,4 +8,4 @@ license.workspace = true
 [dependencies]
 serde.workspace = true
 serde_json.workspace = true
-regex = { version = "1", default-features = false, features = ["std", "perf"] }
+regex-lite = "0.1"

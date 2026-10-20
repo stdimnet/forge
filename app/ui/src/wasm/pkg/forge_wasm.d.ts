@@ -6,13 +6,36 @@
  */
 export function bridge_version(): string;
 
+/**
+ * Mirrors the `output_file_links` command: `{ text, root }` → `FileLink[]`.
+ */
+export function output_file_links(request_json: string): string;
+
+export function run_output_drop(request_json: string): string;
+
+/**
+ * `{ handle, input: RunInput }` → `OutputEvent[]`.
+ */
+export function run_output_handle(request_json: string): string;
+
+/**
+ * `RunOutputOptions` → handle (a number) for [`run_output_handle`].
+ */
+export function run_output_new(options_json: string): string;
+
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
     readonly bridge_version: (a: number) => void;
+    readonly output_file_links: (a: number, b: number, c: number) => void;
+    readonly run_output_drop: (a: number, b: number, c: number) => void;
+    readonly run_output_handle: (a: number, b: number, c: number) => void;
+    readonly run_output_new: (a: number, b: number, c: number) => void;
     readonly __wbindgen_add_to_stack_pointer: (a: number) => number;
     readonly __wbindgen_export: (a: number, b: number, c: number) => void;
+    readonly __wbindgen_export2: (a: number, b: number) => number;
+    readonly __wbindgen_export3: (a: number, b: number, c: number, d: number) => number;
 }
 
 export type SyncInitInput = BufferSource | WebAssembly.Module;

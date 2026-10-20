@@ -53,6 +53,8 @@ export interface RunRequest {
   env?: Record<string, string>;
   /** Extra arguments right after the program (e.g. `-dxdebug.mode=debug` for PHP). */
   interpreterArgs?: string[];
+  /** Build a test tree from TeamCity service messages (`tests` events). */
+  testRunner?: boolean;
 }
 
 export interface RunStarted {
@@ -62,10 +64,101 @@ export interface RunStarted {
 
 export type OutputStream = "stdout" | "stderr" | "system";
 
+/** Styles of console text, computed in Rust from ANSI escapes; colors are CSS values. */
+export interface AnsiStyle {
+  fg?: string;
+  bg?: string;
+  bold?: boolean;
+  dim?: boolean;
+  italic?: boolean;
+  underline?: boolean;
+  inverse?: boolean;
+}
+
+/** A project file (`target` is workspace-relative, line/column 1-based) or a URL. */
+export interface SpanLink {
+  url?: boolean;
+  target: string;
+  line?: number;
+  column?: number;
+}
+
+export interface ConsoleSpan {
+  text: string;
+  style: AnsiStyle;
+  link?: SpanLink;
+}
+
+export interface ConsoleLine {
+  segments: ConsoleSpan[];
+}
+
+/** Console update: with `replaceLast` the first line replaces the last line shown. */
+export interface ConsoleDelta {
+  replaceLast: boolean;
+  lines: ConsoleLine[];
+}
+
+export type TestStatus = "running" | "passed" | "failed" | "ignored" | "pending";
+
+export interface TestLocation {
+  /** File path as reported (absolute or relative). */
+  path: string;
+  /** The path inside the project, when it is in it. */
+  workspacePath?: string;
+  /** Class or method name after `::`. */
+  member?: string;
+  line?: number;
+}
+
+/** A test tree node as computed by the backend (`forge_output::TestNode`). */
+export interface TestNodeData {
+  id: number;
+  parentId?: number;
+  name: string;
+  kind: "root" | "suite" | "test";
+  /** Suites derive their status from their children. */
+  status: TestStatus;
+  /** Milliseconds. */
+  duration?: number;
+  /** "1 s 245 ms". */
+  durationText: string;
+  location?: TestLocation;
+  message?: string;
+  details?: string;
+  expected?: string;
+  actual?: string;
+  /** Console of a test: its output and the failure. */
+  console: ConsoleLine[];
+}
+
+export interface TestSummary {
+  /** "Tests failed: 1, passed: 3 of 4 tests – 51 ms". */
+  text: string;
+  failed: boolean;
+  done: number;
+  total: number;
+  counts: { total: number; passed: number; failed: number; ignored: number; running: number };
+  expectedCount?: number;
+}
+
 export type RunEvent =
   | { type: "started"; pid: number; commandLine: string }
   | { type: "output"; stream: OutputStream; text: string }
-  | { type: "exited"; code: number | null; signal: number | null };
+  | { type: "exited"; code: number | null; signal: number | null }
+  | ({ type: "console" } & ConsoleDelta)
+  | { type: "tests"; nodes: TestNodeData[]; summary: TestSummary };
+
+/** A file reference in terminal output; offsets are string indices. */
+export interface FileLink {
+  start: number;
+  end: number;
+  path: string;
+  /** Workspace-relative path. */
+  target?: string;
+  line?: number;
+  column?: number;
+}
 
 export const runEvent = (runId: string) => `run://${runId}`;
 
@@ -79,4 +172,6 @@ export const runApi = {
   write: (runId: string, data: string) => invoke<void>("run_write", { runId, data }),
   dispose: (runId: string) => invoke<void>("run_dispose", { runId }),
   onEvent: (runId: string, cb: (e: RunEvent) => void) => listen<RunEvent>(runEvent(runId), cb),
+  /** File links of a line of terminal output that resolve into the project. */
+  fileLinks: (text: string) => invoke<FileLink[]>("output_file_links", { text }),
 };

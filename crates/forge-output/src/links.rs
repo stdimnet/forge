@@ -4,7 +4,7 @@
 
 use std::sync::OnceLock;
 
-use regex::Regex;
+use regex_lite::Regex;
 use serde::{Deserialize, Serialize};
 
 /// A link in a line of text. `start`/`end` are byte offsets (end exclusive) unless a function
