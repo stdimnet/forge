@@ -931,6 +931,8 @@ fn tools_menu() -> MenuEntry {
             SEP,
             l("Terminal.NewTab", "Open in _Terminal"),
             l("IdeScriptingConsole", "_IDE Scripting Console"),
+            // Plugin submenus (Laravel, Symfony, Docker, …) follow this separator.
+            SEP,
         ],
     )
 }

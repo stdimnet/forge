@@ -47,6 +47,11 @@ app/ui/            SolidJS UI
     Providers only collect candidates; ranking happens in Rust (see "Search, file types and the
     Settings model" below).
   - `registerKeymapActions` (`src/keymap/store.ts`) — plugin actions with default shortcuts.
+  - `registerMainMenuEntries(path, entries, { before?, after?, when? })`
+    (`src/features/mainMenu`) — entries in the main menu ("Tools", "Tools/_Laravel",
+    "View/Tool Windows"); manifests do the same with `[[contributions.mainMenu]]`.
+    `registerMainMenuDynamic(source, provider)` fills dynamic lists (`recentProjects`,
+    `toolWindows`), `registerMainMenuToggle(actionId, isOn)` reports check marks.
   - `registerRunConfigurationType` / `registerDebugLauncher` (`src/features/run`) — Run/Debug
     configuration types and debuggers (see "Terminal and Run/Debug" below).
 - Tool windows may render tabs next to their title with `headerContent` (Terminal, Run).
@@ -103,6 +108,16 @@ app/ui/            SolidJS UI
   (`{ consumed, action?, pending?: "chord" | "doubleTap" }`, the IPC fallback of the in-process
   resolver); `keymap_import_legacy({ active, overrides })` moves a pre-settings keymap from
   localStorage into the settings.
+- Main menu (`src/ipc/keymap.ts`, `forge-keymap::menu`): `keymap_main_menu({ request }) -> MainMenu`.
+  The request carries `contributions` (manifest `mainMenu` of active plugins plus
+  `registerMainMenuEntries`), `dynamic` lists (`{ key, label, action?, detail?, enabled?,
+  checked? }` by source), the `checked` toggle action ids and `git` (Git menu instead of VCS).
+  Rust merges the contributions into PHPStorm's menu structure and answers one submenu per
+  top-level menu, each item with `label`, `mnemonic` (character index), `shortcut`, `enabled`
+  (some command implements the action or an alias; unimplemented actions stay visible but
+  disabled), `checkable`/`checked` and tidy separators; empty submenus are dropped. The UI
+  renders it with the context menu renderer (`showResolvedMenu`) as the ☰ popup or a menu bar,
+  depending on `appearance.mainMenu` (`hamburger` | `merged` | `toolbar`).
 
 - `fs_list_dir({ path }) -> { name, path, kind, ignored }[]` — `ignored` is set for entries matched by
   `.gitignore`, `.git/info/exclude` or the global excludes file (ignored folders ignore their

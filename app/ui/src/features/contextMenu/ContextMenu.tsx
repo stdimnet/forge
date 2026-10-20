@@ -206,7 +206,7 @@ function MenuList(props: ListProps) {
                     <Show when={opened() === i()}>
                       <MenuList
                         entries={item.items!}
-                        x={row.getBoundingClientRect().right - 2}
+                        x={root.getBoundingClientRect().right - 1}
                         y={row.getBoundingClientRect().top - 5}
                         anchor={row.getBoundingClientRect()}
                         focused={opened() === i() && active() === i() && props.focused}

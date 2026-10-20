@@ -104,7 +104,7 @@ registerMainMenuDynamic("recentProjects", async () => {
     .map((p) => ({
       key: p.root,
       label: p.name,
-      detail: p.remote ? p.remote.label : p.root,
+      detail: p.remote ? `${p.remote.label}:${p.remote.path}` : p.root,
       run: () => void (p.remote ? openRecentRemote(p) : openWorkspace(p.root)),
     }));
 });
