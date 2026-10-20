@@ -152,6 +152,17 @@
           "order": 21
         },
         {
+          "key": "projectView.openFilesWithSingleClick",
+          "title": "Open files with single click",
+          "description": "In the Project tool window a single click opens files and expands folders. Off by default, like PHPStorm: a single click selects, a double click opens.",
+          "type": "bool",
+          "default": false,
+          "group": "appearance",
+          "section": "Project View",
+          "project": false,
+          "order": 40
+        },
+        {
           "key": "system.reopenLastProject",
           "title": "Reopen projects on startup",
           "type": "bool",

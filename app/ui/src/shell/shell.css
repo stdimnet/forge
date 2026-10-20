@@ -210,6 +210,15 @@
 .tree-row:hover {
   background: var(--bg-hover);
 }
+.project-tree {
+  outline: none;
+}
+.tree-row.active-file:not(.selected) {
+  background: color-mix(in srgb, var(--bg-active) 45%, transparent);
+}
+.project-tree:focus .tree-row.selected {
+  background: var(--accent-soft);
+}
 .tree-row.selected {
   background: var(--bg-active);
 }

@@ -5,15 +5,29 @@ import { workspace } from "@/state/workspace";
 import { editor, openFile } from "@/state/editor";
 import { statusOf, dirHasChanges } from "@/state/vcs";
 import { FileIcon } from "@/shell/FileIcon";
+import { getSetting } from "@/state/settings";
+import { navigate, type VisibleRow } from "./treeNavigation";
 
 const [expanded, setExpanded] = createSignal<Set<string>>(new Set(["app", "app/Models"]));
 
-const toggle = (path: string) =>
+const setOpen = (path: string, open: boolean) =>
   setExpanded((prev) => {
     const next = new Set(prev);
-    next.has(path) ? next.delete(path) : next.add(path);
+    open ? next.add(path) : next.delete(path);
     return next;
   });
+const toggle = (path: string) => setOpen(path, !expanded().has(path));
+
+/** Tree selection, independent of the active editor tab (like PHPStorm). */
+const [selected, setSelected] = createSignal<string | null>(null);
+
+const singleClickOpens = () => getSetting<boolean>("projectView.openFilesWithSingleClick", false);
+
+/** Double click (or single click with the setting on): expand/collapse folders, open files. */
+function activate(entry: FileEntry): void {
+  if (entry.kind === "dir") toggle(entry.path);
+  else void openFile(entry.path);
+}
 
 function TreeNode(props: { entry: FileEntry; depth: number }) {
   const isDir = () => props.entry.kind === "dir";
@@ -23,12 +37,30 @@ function TreeNode(props: { entry: FileEntry; depth: number }) {
     <>
       <div
         class="tree-row"
-        classList={{ selected: editor.active === props.entry.path }}
+        classList={{ selected: selected() === props.entry.path, "active-file": editor.active === props.entry.path }}
         style={{ "padding-left": `${8 + props.depth * 16}px` }}
         data-path={props.entry.path}
-        onClick={() => (isDir() ? toggle(props.entry.path) : openFile(props.entry.path))}
+        data-dir={isDir() ? "" : undefined}
+        data-expanded={isOpen() ? "" : undefined}
+        data-depth={props.depth}
+        onClick={() => {
+          setSelected(props.entry.path);
+          if (singleClickOpens()) activate(props.entry);
+        }}
+        onDblClick={() => {
+          if (!singleClickOpens()) activate(props.entry);
+        }}
       >
-        <span class="tree-chevron">
+        <span
+          class="tree-chevron"
+          onClick={(e) => {
+            // The arrow toggles on a single click, as in PHPStorm.
+            if (!isDir()) return;
+            e.stopPropagation();
+            setSelected(props.entry.path);
+            toggle(props.entry.path);
+          }}
+        >
           <Show when={isDir()}>{isOpen() ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</Show>
         </span>
         <FileIcon name={props.entry.name} dir={isDir()} open={isOpen()} />
@@ -46,9 +78,31 @@ function DirChildren(props: { path: string; depth: number }) {
   return <For each={entries() ?? []}>{(e) => <TreeNode entry={e} depth={props.depth} />}</For>;
 }
 
+/** Rows currently rendered, in display order, read from the DOM. */
+function visibleRows(root: HTMLElement): VisibleRow[] {
+  return [...root.querySelectorAll<HTMLElement>(".tree-row[data-path]")].map((el) => ({
+    path: el.dataset.path!,
+    isDir: el.dataset.dir !== undefined,
+    expanded: el.dataset.expanded !== undefined,
+    depth: Number(el.dataset.depth ?? 0),
+  }));
+}
+
 export function ProjectView() {
+  let root!: HTMLDivElement;
+  const onKeyDown = (e: KeyboardEvent) => {
+    const action = navigate(visibleRows(root), selected(), e.key);
+    if (action.type === "none") return;
+    e.preventDefault();
+    if (action.type === "select") {
+      setSelected(action.path);
+      root.querySelector(`.tree-row[data-path="${CSS.escape(action.path)}"]`)?.scrollIntoView({ block: "nearest" });
+    } else if (action.type === "expand") setOpen(action.path, true);
+    else if (action.type === "collapse") setOpen(action.path, false);
+    else void openFile(action.path);
+  };
   return (
-    <div class="project-tree">
+    <div class="project-tree" tabIndex={0} ref={root} onKeyDown={onKeyDown}>
       <Show when={workspace()}>
         {(ws) => (
           <>
