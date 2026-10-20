@@ -1,9 +1,15 @@
 import { beforeAll, describe, expect, it } from "vitest";
+import "@/mock/settingsMock";
+import "@/mock/keymapMock";
+import { loadKeymapCore } from "@/keymap/core";
+import { startKeymap } from "@/keymap/store";
 import { registerCommand } from "@/state/commands";
 import { clampToViewport } from "./ContextMenu";
 import { action, resolveEntries, separator, submenu } from "./state";
 
-beforeAll(() => {
+beforeAll(async () => {
+  // Labels and shortcuts come from the Rust keymap (through WebAssembly in tests).
+  await Promise.all([loadKeymapCore(), startKeymap()]);
   for (const id of ["$Cut", "$Copy", "ReformatCode"]) registerCommand({ id, title: id, run: () => {} });
 });
 

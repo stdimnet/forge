@@ -169,6 +169,17 @@ async fn files_search_git_and_detection() {
         assert_eq!(b.read_file("app/Http/Kernel.php").unwrap(), "<?php\n// ü\n");
         assert!(b.read_file("../outside").is_err());
 
+        // Project view file operations run on the agent's machine.
+        b.create_dir("app/Jobs").unwrap();
+        b.create_file("app/Jobs/SendMail.php").unwrap();
+        assert!(b.create_file("app/Jobs/SendMail.php").is_err());
+        b.rename("app/Jobs/SendMail.php", "app/Jobs/SendInvoice.php")
+            .unwrap();
+        assert_eq!(b.read_file("app/Jobs/SendInvoice.php").unwrap(), "");
+        b.delete("app/Jobs").unwrap();
+        assert!(b.read_file("app/Jobs/SendInvoice.php").is_err());
+        assert!(b.delete("../outside").is_err());
+
         let hits = b.find_files("ordr", 10).unwrap();
         assert_eq!(hits[0].path, "app/Models/Order.php");
 

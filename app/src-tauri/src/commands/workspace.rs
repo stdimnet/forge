@@ -213,24 +213,28 @@ pub async fn fs_write_file(
 }
 
 #[tauri::command]
-pub fn fs_create_file(path: String, state: State<'_, AppState>) -> Result<()> {
-    state.with_workspace(|ws| ws.create_file(&path))
+pub async fn fs_create_file(path: String, state: State<'_, AppState>) -> Result<()> {
+    let backend = state.backend()?;
+    blocking(move || backend.create_file(&path)).await
 }
 
 #[tauri::command]
-pub fn fs_create_dir(path: String, state: State<'_, AppState>) -> Result<()> {
-    state.with_workspace(|ws| ws.create_dir(&path))
+pub async fn fs_create_dir(path: String, state: State<'_, AppState>) -> Result<()> {
+    let backend = state.backend()?;
+    blocking(move || backend.create_dir(&path)).await
 }
 
 #[tauri::command]
-pub fn fs_rename(from: String, to: String, state: State<'_, AppState>) -> Result<()> {
-    state.with_workspace(|ws| ws.rename(&from, &to))
+pub async fn fs_rename(from: String, to: String, state: State<'_, AppState>) -> Result<()> {
+    let backend = state.backend()?;
+    blocking(move || backend.rename(&from, &to)).await
 }
 
 /// Delete a file or a folder with its content (the UI asks for confirmation first).
 #[tauri::command]
-pub fn fs_delete(path: String, state: State<'_, AppState>) -> Result<()> {
-    state.with_workspace(|ws| ws.delete(&path))
+pub async fn fs_delete(path: String, state: State<'_, AppState>) -> Result<()> {
+    let backend = state.backend()?;
+    blocking(move || backend.delete(&path)).await
 }
 
 /// "Go to File" backend: fuzzy file-name search over the project, honoring `.gitignore`.

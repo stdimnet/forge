@@ -86,6 +86,23 @@ pub enum Call {
         path: String,
         contents: String,
     },
+    /// -> `()`
+    CreateFile {
+        path: String,
+    },
+    /// -> `()`
+    CreateDir {
+        path: String,
+    },
+    /// -> `()`
+    Rename {
+        from: String,
+        to: String,
+    },
+    /// -> `()`
+    Delete {
+        path: String,
+    },
     /// -> `Vec<FileMatch>`
     FindFiles {
         query: String,
