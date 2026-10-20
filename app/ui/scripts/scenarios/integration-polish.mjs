@@ -72,6 +72,14 @@ export default {
     await page.evaluate(() => document.querySelector(".chat-permission-card")?.scrollIntoView({ block: "end" }));
     await page.waitForTimeout(200);
   },
+  "chat-permission-light": async (page) => {
+    await page.evaluate(() => (document.documentElement.dataset.theme = "light"));
+    await openChat(page);
+    await ask(page, "Add a scope for paid orders to Order model");
+    await page.waitForSelector(".chat-permission-card", { timeout: 30000 });
+    await page.evaluate(() => document.querySelector(".chat-permission-card")?.scrollIntoView({ block: "end" }));
+    await page.waitForTimeout(200);
+  },
   "chat-permission-denied": async (page) => {
     await openChat(page);
     await ask(page, "Add a scope for paid orders to Order model");
