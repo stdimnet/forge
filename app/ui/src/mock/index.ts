@@ -5,3 +5,4 @@ import "./agentMock";
 import "./settingsMock";
 import "./lspMock";
 import "./searchMock";
+import "./gitMock";

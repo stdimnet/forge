@@ -23,6 +23,7 @@ forge-ai.workspace = true
 futures-util = "0.3"
 forge-agent-cli.workspace = true
 forge-lsp.workspace = true
+forge-vcs.workspace = true
 tauri = { version = "2", features = [] }
 serde.workspace = true
 serde_json.workspace = true

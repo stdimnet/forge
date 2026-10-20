@@ -10,3 +10,4 @@ import "./settings";
 import "./lsp";
 import "./navigation";
 import "./keymapSettings";
+import "./git";
