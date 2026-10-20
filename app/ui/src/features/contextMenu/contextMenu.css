@@ -44,3 +44,8 @@
   margin: 4px 6px;
   background: var(--border);
 }
+
+.dialog-error {
+  color: var(--danger);
+  font-size: var(--fs-small);
+}

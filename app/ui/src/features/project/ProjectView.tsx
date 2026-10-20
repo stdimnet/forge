@@ -6,6 +6,7 @@ import { editor, openFile } from "@/state/editor";
 import { statusOf, dirHasChanges } from "@/state/vcs";
 import { FileIcon } from "@/shell/FileIcon";
 import { getSetting } from "@/state/settings";
+import { showFileMenu } from "./fileMenu";
 import { navigate, type VisibleRow } from "./treeNavigation";
 
 const [expanded, setExpanded] = createSignal<Set<string>>(new Set(["app", "app/Models"]));
@@ -17,6 +18,17 @@ const setOpen = (path: string, open: boolean) =>
     return next;
   });
 const toggle = (path: string) => setOpen(path, !expanded().has(path));
+
+/** Expand `dir` and all its parents so the entries below it are visible. */
+export function revealPath(dir: string): void {
+  if (!dir) return;
+  const parts = dir.split("/");
+  setExpanded((prev) => {
+    const next = new Set(prev);
+    parts.forEach((_, i) => next.add(parts.slice(0, i + 1).join("/")));
+    return next;
+  });
+}
 
 /** Tree selection, independent of the active editor tab (like PHPStorm). */
 const [selected, setSelected] = createSignal<string | null>(null);
@@ -49,6 +61,12 @@ function TreeNode(props: { entry: FileEntry; depth: number }) {
         }}
         onDblClick={() => {
           if (!singleClickOpens()) activate(props.entry);
+        }}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setSelected(props.entry.path);
+          showFileMenu(props.entry, e.clientX, e.clientY);
         }}
       >
         <span
@@ -119,7 +137,18 @@ export function ProjectView() {
     else void openFile(action.path);
   };
   return (
-    <div class="project-tree" tabIndex={0} ref={root} onKeyDown={onKeyDown}>
+    <div
+      class="project-tree"
+      tabIndex={0}
+      ref={root}
+      onKeyDown={onKeyDown}
+      onContextMenu={(e) => {
+        // Rows handle their own menu; the root row and the empty area act on the project root.
+        e.preventDefault();
+        setSelected(null);
+        showFileMenu(null, e.clientX, e.clientY);
+      }}
+    >
       <Show when={workspace()}>
         {(ws) => (
           <>

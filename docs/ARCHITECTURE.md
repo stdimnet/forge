@@ -85,6 +85,11 @@ app/ui/            SolidJS UI
   `.gitignore`, `.git/info/exclude` or the global excludes file (ignored folders ignore their
   content); the Project view grays them out. The browser mock mirrors this with
   `src/mock/gitignoreMatcher.ts`.
+- `fs_create_file({ path })`, `fs_create_dir({ path })` (missing parents are created, existing paths are
+  refused), `fs_rename({ from, to })` (never replaces, never moves a folder into itself) and
+  `fs_delete({ path })` (a folder with its content; the UI asks first). All paths are
+  workspace-relative and refused for the project root or outside it. They back the Project view
+  context menu (`features/project/fileMenu.ts`); the browser mock keeps the changes in memory.
 - `fs_find_files({ query, limit? }) -> { path, name, score, positions, matchedPath }[]` — fuzzy
   "Go to File" (camel humps, respects `.gitignore`).
 

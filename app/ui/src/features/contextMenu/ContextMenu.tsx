@@ -18,7 +18,7 @@ function MenuList(props: {
   /** Pixel rect of the parent row; submenus flip to the left when they do not fit on the right. */
   anchor?: DOMRect;
   focused: boolean;
-  onPick: (action: string) => void;
+  onPick: (item: ResolvedItem) => void;
   onLeave?: () => void;
 }) {
   let root!: HTMLDivElement;
@@ -49,7 +49,7 @@ function MenuList(props: {
     const e = props.entries[i];
     if (e === "separator" || !e) return;
     if (e.kind === "submenu") setOpened(i);
-    else props.onPick(e.action!);
+    else props.onPick(e);
   };
 
   const onKeyDown = (ev: KeyboardEvent) => {
@@ -150,9 +150,10 @@ export function ContextMenuHost() {
             x={menu.x}
             y={menu.y}
             focused
-            onPick={(id) => {
+            onPick={(item) => {
               closeContextMenu();
-              void runAction(id);
+              if (item.run) item.run();
+              else void runAction(item.action!);
             }}
           />
         );

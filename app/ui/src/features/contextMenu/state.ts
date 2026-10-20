@@ -7,6 +7,8 @@ import { actionById, isActionAvailable, shortcutLabel } from "@/keymap";
 
 export type MenuEntry =
   | { type: "action"; action: string; label?: string }
+  /** A menu item that runs a closure instead of a registered action; `action` only supplies the shortcut. */
+  | { type: "item"; label: string; run: () => void; action?: string }
   | { type: "submenu"; label: string; items: MenuEntry[] }
   | { type: "separator" };
 
@@ -14,6 +16,7 @@ export interface ResolvedItem {
   kind: "action" | "submenu";
   label: string;
   action?: string;
+  run?: () => void;
   shortcut?: string;
   items?: ResolvedItem[];
 }
@@ -21,6 +24,7 @@ export interface ResolvedItem {
 export type ResolvedEntry = ResolvedItem | "separator";
 
 export const action = (id: string, label?: string): MenuEntry => ({ type: "action", action: id, label });
+export const item = (label: string, run: () => void, action?: string): MenuEntry => ({ type: "item", label, run, action });
 export const submenu = (label: string, items: MenuEntry[]): MenuEntry => ({ type: "submenu", label, items });
 export const separator: MenuEntry = { type: "separator" };
 
@@ -30,6 +34,8 @@ export function resolveEntries(entries: MenuEntry[]): ResolvedEntry[] {
   for (const e of entries) {
     if (e.type === "separator") {
       if (out.length && out[out.length - 1] !== "separator") out.push("separator");
+    } else if (e.type === "item") {
+      out.push({ kind: "action", label: e.label, run: e.run, shortcut: e.action ? shortcutLabel(e.action) : "" });
     } else if (e.type === "action") {
       if (!isActionAvailable(e.action)) continue;
       out.push({

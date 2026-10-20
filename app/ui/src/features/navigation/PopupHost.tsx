@@ -3,6 +3,7 @@ import { For, Show } from "solid-js";
 import { Info, X } from "lucide-solid";
 import { balloons, dismissBalloon } from "@/keymap";
 import { ContextMenuHost } from "@/features/contextMenu/ContextMenu";
+import { DialogHost } from "@/features/contextMenu/dialogs";
 import { SearchEverywhere } from "@/features/search/SearchEverywhere";
 import { seOpen } from "@/features/search/state";
 import { RecentFilesPopup, recentOpen } from "./RecentFiles";
@@ -17,6 +18,7 @@ export function PopupHost() {
         <RecentFilesPopup />
       </Show>
       <ContextMenuHost />
+      <DialogHost />
       <div class="balloons">
         <For each={balloons()}>
           {(b) => (

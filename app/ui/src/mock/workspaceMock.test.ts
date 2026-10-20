@@ -25,4 +25,23 @@ describe("browser-mode workspace backend", () => {
     await workspaceApi.writeFile("scratch.php", "<?php echo 1;");
     expect(await workspaceApi.readFile("scratch.php")).toBe("<?php echo 1;");
   });
+
+  it("creates, renames and deletes files and folders", async () => {
+    await workspaceApi.createFile("new/Thing.php");
+    await workspaceApi.createDir("empty/inner");
+    expect((await workspaceApi.listDir("")).map((e) => e.name)).toEqual(expect.arrayContaining(["new", "empty"]));
+    expect((await workspaceApi.listDir("empty")).map((e) => e.name)).toEqual(["inner"]);
+    await expect(workspaceApi.createFile("new/Thing.php")).rejects.toThrow("already exists");
+
+    await workspaceApi.rename("new", "renamed");
+    expect(await workspaceApi.readFile("renamed/Thing.php")).toBe("");
+    await expect(workspaceApi.readFile("new/Thing.php")).rejects.toThrow();
+    await expect(workspaceApi.rename("renamed", "renamed/inside")).rejects.toThrow("into itself");
+
+    await workspaceApi.delete("renamed");
+    await workspaceApi.delete("empty");
+    const names = (await workspaceApi.listDir("")).map((e) => e.name);
+    expect(names).not.toContain("renamed");
+    expect(names).not.toContain("empty");
+  });
 });
