@@ -18,7 +18,9 @@ pub mod meter;
 pub mod policy;
 pub mod simulate;
 
-pub use feed::{check, fetch_feed, CheckOutcome, CheckRequest, Feed, FeedPlatform, UpdateOffer};
+pub use feed::{
+    check, client, fetch_feed, CheckOutcome, CheckRequest, Feed, FeedPlatform, UpdateOffer,
+};
 pub use meter::SpeedMeter;
 pub use policy::{
     evaluate, plan, Channel, CheckPlan, PlanInput, Postponed, SkipReason, UpdateState, Verdict,

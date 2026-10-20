@@ -131,7 +131,11 @@ pub struct PlanInput {
 
 /// Why no check runs.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-#[serde(rename_all = "camelCase", tag = "reason")]
+#[serde(
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase",
+    tag = "kind"
+)]
 pub enum SkipReason {
     /// Debug builds and browser mode never check (simulate instead).
     DevBuild,

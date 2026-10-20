@@ -115,6 +115,17 @@ pub fn summary(current: &str, size: Option<u64>, simulated: bool) -> String {
     }
 }
 
+/// The HTTP client for update checks: system proxy settings, short timeouts and a
+/// `Forge/<version>` user agent.
+pub fn client(version: &str) -> reqwest::Client {
+    reqwest::Client::builder()
+        .user_agent(format!("Forge/{version}"))
+        .connect_timeout(std::time::Duration::from_secs(10))
+        .timeout(std::time::Duration::from_secs(30))
+        .build()
+        .unwrap_or_default()
+}
+
 /// Read the feed. A `204 No Content` answer means "no update" and returns `None`.
 pub async fn fetch_feed(client: &reqwest::Client, endpoint: &str) -> Result<Option<Feed>> {
     let response = client

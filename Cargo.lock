@@ -1822,6 +1822,7 @@ dependencies = [
  "forge-project",
  "forge-remote",
  "forge-scratches",
+ "forge-update",
  "forge-vcs",
  "forge-window",
  "futures-util",
