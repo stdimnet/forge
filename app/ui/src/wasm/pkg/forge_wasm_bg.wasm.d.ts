@@ -1,6 +1,8 @@
 /* tslint:disable */
 /* eslint-disable */
 export const memory: WebAssembly.Memory;
+export const agent_parse_lines: (a: number, b: number, c: number) => void;
+export const agent_profiles: (a: number) => void;
 export const bridge_version: (a: number) => void;
 export const chat_apply: (a: number, b: number, c: number) => void;
 export const chat_begin_turn: (a: number, b: number, c: number) => void;
@@ -63,6 +65,6 @@ export const sql_leading_keywords: (a: number, b: number, c: number) => void;
 export const sql_split: (a: number, b: number, c: number) => void;
 export const sql_statement_at: (a: number, b: number, c: number) => void;
 export const __wbindgen_add_to_stack_pointer: (a: number) => number;
-export const __wbindgen_export: (a: number, b: number, c: number) => void;
-export const __wbindgen_export2: (a: number, b: number) => number;
-export const __wbindgen_export3: (a: number, b: number, c: number, d: number) => number;
+export const __wbindgen_export: (a: number, b: number) => number;
+export const __wbindgen_export2: (a: number, b: number, c: number, d: number) => number;
+export const __wbindgen_export3: (a: number, b: number, c: number) => void;
