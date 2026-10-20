@@ -2948,7 +2948,7 @@
     "name": "Gemini CLI",
     "version": "0.1.0",
     "pack": "core",
-    "description": "Run Gemini CLI agents in the IDE.",
+    "description": "Chat with Gemini CLI agents in the IDE, using your own Gemini CLI login.",
     "vendor": "Forge",
     "depends": [
       "forge.ai"
@@ -2989,6 +2989,10 @@
             {
               "value": "gemini-2.5-flash",
               "label": "Gemini 2.5 Flash"
+            },
+            {
+              "value": "gemini-2.5-flash-lite",
+              "label": "Gemini 2.5 Flash-Lite"
             }
           ],
           "default": "default",
@@ -2999,24 +3003,21 @@
         },
         {
           "key": "agents.gemini-cli.permissionMode",
-          "title": "Default permission mode",
+          "title": "Default approval mode",
+          "description": "Gemini CLI cannot ask in the IDE, so the mode decides which tools it may use. Can be changed per chat.",
           "type": "enum",
           "options": [
             {
               "value": "default",
-              "label": "Ask before edits and commands"
+              "label": "Read-only (no edits or commands)"
             },
             {
               "value": "acceptEdits",
-              "label": "Auto-accept edits"
-            },
-            {
-              "value": "plan",
-              "label": "Plan mode (read-only)"
+              "label": "Auto-accept edits (no commands)"
             },
             {
               "value": "bypassPermissions",
-              "label": "Bypass permissions"
+              "label": "YOLO (edits and commands without asking)"
             }
           ],
           "default": "default",
@@ -3041,7 +3042,7 @@
         {
           "id": "gemini-cli",
           "name": "Gemini CLI",
-          "description": "Agentic coding with the local `gemini` CLI.",
+          "description": "Agentic coding in your project, using the local `gemini` CLI.",
           "provider": "gemini-cli"
         }
       ],

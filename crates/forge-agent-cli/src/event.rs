@@ -85,3 +85,9 @@ pub enum AgentEvent {
     /// The CLI process ended.
     Exited { code: Option<i32> },
 }
+
+/// Turns raw stdout lines of a CLI into normalized events. Stateful, one per session (or
+/// turn), so adapters can de-duplicate streamed deltas against the final message.
+pub trait EventParser: Send {
+    fn parse_line(&mut self, line: &str) -> Vec<AgentEvent>;
+}

@@ -210,7 +210,7 @@ version = "0.1.0"
 pack = "core"
 vendor = "Forge"
 depends = ["forge.ai"]
-description = "Run Gemini CLI agents in the IDE."
+description = "Chat with Gemini CLI agents in the IDE, using your own Gemini CLI login."
 
 [[plugin.contributions.aiProviders]]
 id = "gemini-cli"
@@ -220,7 +220,7 @@ kind = "cli"
 [[plugin.contributions.chatAgents]]
 id = "gemini-cli"
 name = "Gemini CLI"
-description = "Agentic coding with the local `gemini` CLI."
+description = "Agentic coding in your project, using the local `gemini` CLI."
 provider = "gemini-cli"
 
 [[plugin.contributions.settings]]
@@ -241,6 +241,7 @@ options = [
   { value = "default", label = "Default (CLI setting)" },
   { value = "gemini-2.5-pro", label = "Gemini 2.5 Pro" },
   { value = "gemini-2.5-flash", label = "Gemini 2.5 Flash" },
+  { value = "gemini-2.5-flash-lite", label = "Gemini 2.5 Flash-Lite" },
 ]
 default = "default"
 group = "tools.ai-agents"
@@ -249,13 +250,13 @@ order = 11
 
 [[plugin.contributions.settings]]
 key = "agents.gemini-cli.permissionMode"
-title = "Default permission mode"
+title = "Default approval mode"
+description = "Gemini CLI cannot ask in the IDE, so the mode decides which tools it may use. Can be changed per chat."
 type = "enum"
 options = [
-  { value = "default", label = "Ask before edits and commands" },
-  { value = "acceptEdits", label = "Auto-accept edits" },
-  { value = "plan", label = "Plan mode (read-only)" },
-  { value = "bypassPermissions", label = "Bypass permissions" },
+  { value = "default", label = "Read-only (no edits or commands)" },
+  { value = "acceptEdits", label = "Auto-accept edits (no commands)" },
+  { value = "bypassPermissions", label = "YOLO (edits and commands without asking)" },
 ]
 default = "default"
 group = "tools.ai-agents"

@@ -10,7 +10,9 @@ use std::path::Path;
 use forge_core::Result;
 use serde_json::{json, Value};
 
-use crate::cli::{AgentCli, CommandSpec, EventParser, PermissionDecision, StartOptions};
+use crate::cli::{
+    AgentCli, AgentProfile, CommandSpec, EventParser, PermissionDecision, StartOptions,
+};
 use crate::event::{AgentEvent, Usage};
 
 pub struct ClaudeCode;
@@ -28,10 +30,8 @@ impl AgentCli for ClaudeCode {
         &["claude"]
     }
 
-    fn models(&self) -> Vec<String> {
-        ["default", "sonnet", "opus", "haiku"]
-            .map(String::from)
-            .to_vec()
+    fn profile(&self) -> AgentProfile {
+        crate::profile::claude_code()
     }
 
     fn command(&self, executable: &Path, opts: &StartOptions) -> Result<CommandSpec> {

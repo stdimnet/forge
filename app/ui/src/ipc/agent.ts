@@ -9,13 +9,31 @@ import type { MdBlock } from "./markdown";
 
 export type PermissionMode = "default" | "acceptEdits" | "plan" | "bypassPermissions";
 
-export interface AgentInfo {
+/** A permission mode as one agent offers it (`forge_agent_cli::PermissionModeInfo`). */
+export interface PermissionModeInfo {
+  value: PermissionMode;
+  label: string;
+  short: string;
+  hint: string;
+}
+
+/** Static description of an agent CLI (`forge_agent_cli::AgentProfile`). */
+export interface AgentProfile {
   id: string;
   name: string;
+  models: string[];
+  /** Command that installs the CLI. */
+  installHint: string;
+  /** Whether the CLI can ask before running a tool (otherwise the mode alone decides). */
+  permissionPrompts: boolean;
+  permissionModes: PermissionModeInfo[];
+}
+
+/** A profile plus what was detected on this machine. */
+export interface AgentInfo extends AgentProfile {
   supported: boolean;
   installed: boolean;
   path: string | null;
-  models: string[];
 }
 
 export interface StartOptions {

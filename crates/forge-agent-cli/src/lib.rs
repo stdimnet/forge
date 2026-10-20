@@ -4,9 +4,14 @@
 //! Forge never ships credentials: each adapter runs the user's own installed CLI with its
 //! own login or API key.
 //!
+//! Every CLI is an `AgentCli` adapter: its command line, how messages reach it
+//! (`Transport`), an [`EventParser`] from its stream format to [`AgentEvent`]s, permission
+//! prompts and session resume. [`profile`] describes each one (models, permission modes,
+//! install hint).
+//!
 //! [`conversation`] folds the events into the chat as the UI renders it (with [`diff`]s of
-//! edits and Markdown ASTs). It and the event/prompt modules are pure; the adapters and
-//! sessions need the `runtime` feature (default).
+//! edits and Markdown ASTs). It, the event/prompt/profile modules and the Gemini parser are
+//! pure; the adapters and sessions need the `runtime` feature (default).
 
 #[cfg(feature = "runtime")]
 pub mod claude;
@@ -15,8 +20,8 @@ pub mod cli;
 pub mod conversation;
 pub mod diff;
 pub mod event;
-#[cfg(feature = "runtime")]
 pub mod gemini;
+pub mod profile;
 pub mod prompt;
 #[cfg(feature = "runtime")]
 pub mod session;
@@ -29,12 +34,13 @@ pub use claude::ClaudeCode;
 #[cfg(feature = "runtime")]
 pub use cli::{
     configured_executable, session_rule, setting_key, AgentCli, AgentInfo, AllowScope, CommandSpec,
-    EventParser, PermissionDecision, PermissionMode, StartOptions,
+    PermissionDecision, StartOptions, Transport,
 };
 pub use conversation::{Chat, ChatUpdate, PermissionStatus};
-pub use event::{AgentEvent, Usage};
+pub use event::{AgentEvent, EventParser, Usage};
 #[cfg(feature = "runtime")]
 pub use gemini::GeminiCli;
+pub use profile::{AgentProfile, PermissionMode, PermissionModeInfo};
 pub use prompt::{compose_prompt, MessageContext, Selection};
 #[cfg(feature = "runtime")]
 pub use session::{AgentSession, EventSink};
@@ -49,4 +55,13 @@ pub fn builtin_agents() -> Vec<Arc<dyn AgentCli>> {
 #[cfg(feature = "runtime")]
 pub fn agent_by_id(id: &str) -> Option<Arc<dyn AgentCli>> {
     builtin_agents().into_iter().find(|a| a.id() == id)
+}
+
+/// A fresh output parser for the agents whose parser is part of the pure build (the browser
+/// mock replays recorded CLI output through it).
+pub fn pure_parser(agent_id: &str) -> Option<Box<dyn EventParser>> {
+    match agent_id {
+        "gemini-cli" => Some(Box::new(gemini::GeminiParser)),
+        _ => None,
+    }
 }

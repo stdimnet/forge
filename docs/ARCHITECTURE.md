@@ -141,7 +141,9 @@ app/ui/            SolidJS UI
   `ai_models({ providerId })`, `ai_set_default({ providerId, model?, feature? })`. Config lives in
   `<config dir>/forge/ai.toml`; API keys in the OS keychain (service `forge-ai`) with
   `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` / `OPENROUTER_API_KEY` as fallback. Backend: `crates/forge-ai`.
-- Agent CLIs (`forge-agent-cli`, AI Chat tool window): `agent_list({ executables? }) -> AgentInfo[]`,
+- Agent CLIs (`forge-agent-cli`, AI Chat tool window): `agent_list({ executables? }) -> AgentInfo[]`
+  (`{ id, name, models, installHint, permissionPrompts, permissionModes: { value, label, short, hint }[],
+  supported, installed, path }`),
   `agent_start({ agentId, options: { model?, permissionMode?, resume?, allowedTools?, executable? } }) -> sessionId`,
   `agent_send({ sessionId, text, context?: { files, selection? }, turnId? })`, `agent_interrupt({ sessionId })`,
   `agent_stop({ sessionId })`. Events arrive on `agent://<sessionId>` as `AgentEvent` JSON
@@ -152,7 +154,8 @@ app/ui/            SolidJS UI
   rendered conversation (`forge_agent_cli::conversation`: text blocks with their Markdown AST, tool
   cards with paths and edit diffs, permission summaries, duration/token/cost texts). The UI only
   applies these updates (`features/ai-chat/model.ts`).
-  New CLIs implement the `AgentCli` trait in Rust and call `registerChatAgent` in the UI.
+  `exited` means only that a process ended: the session spawns (and resumes) a new one for the
+  next message, so the UI keeps the session. See "Adding a CLI chat agent" below.
 - Markdown (`forge-markdown`): `markdown_parse({ text, flavor?: "chat" | "docs" }) -> MdBlock[]` and
   `markdown_hover({ markdown }) -> { definition?, signature?, body, sections, deprecated? }` return a
   safe AST (no raw HTML) that the UI renders with Solid components (`features/lsp/MarkdownDoc.tsx`,
@@ -615,6 +618,47 @@ app/ui/            SolidJS UI
   projects `config/services*.yaml` is plain YAML: the UI sends inactive plugins with each
   `filetypes_detect` request and their file types are skipped.
 
+
+## Adding a CLI chat agent (`forge-agent-cli`)
+
+The AI Chat runs the user's own installed agent CLI headless (no terminal) and renders its
+structured output. Claude Code and Gemini CLI are built in; another CLI is one adapter plus a
+plugin manifest entry, and the chat UI needs no changes:
+
+1. **Profile** (`src/profile.rs`, pure): id, name, models, install hint, whether the CLI can ask
+   before running a tool (`permission_prompts`) and the permission modes it offers, worded as
+   that CLI behaves (Gemini CLI: Read-only / Auto-accept edits / YOLO). Forge's
+   `PermissionMode` (`default`, `acceptEdits`, `plan`, `bypassPermissions`) is the shared
+   vocabulary; `AgentProfile::effective_mode` maps unsupported ones to the most restrictive.
+2. **Parser** (`EventParser`, pure when possible): one stdout line → `AgentEvent`s
+   (`sessionStarted`, `assistantText`/`thinking` with delta semantics, `toolUse`, `toolResult`,
+   `permissionRequest`, `turnFinished` with usage, `error`). Ignore non-JSON lines and unknown
+   events. Map the CLI's built-in tools to the common names the chat renders (`Read`, `Edit`,
+   `Write`, `Bash`, `Grep`, `Glob`, `WebFetch`, `WebSearch`, `TodoWrite`, inputs `file_path`,
+   `command`, `pattern`, ...), as `gemini::normalize_tool` does; other tools keep their name and
+   get a generic card.
+3. **Adapter** (`AgentCli`, `runtime` feature): executable names for detection, the command
+   line from `StartOptions` (model, permission mode → CLI flags, `resume` = the conversation id
+   from `sessionStarted`), `encode_user_message`, and the `Transport`:
+   `Persistent` keeps one process per conversation and writes every message as a stdin line
+   (Claude Code `--input-format stream-json`); `PerTurn` spawns one process per message, writes
+   the prompt to stdin and closes it (Gemini CLI `--output-format stream-json`, resumed with
+   `--resume`). CLIs with permission prompts implement `encode_permission_response`; the session
+   handles "allow for this session" rules. `AgentSession` does the rest: spawning in the project
+   root, filling in `cwd` when the CLI does not report it, stderr on crashes, interrupts.
+   Register the adapter in `builtin_agents()`.
+4. **Tests**: a recorded stream in `tests/fixtures/*.jsonl` for the parser and a fake CLI shell
+   script (`fake_claude.sh`, `fake_gemini.sh`) for the process lifecycle. No network, no real CLI.
+5. **Plugin manifest** (`app/src-tauri/plugins/packs.toml`): a plugin with a `chatAgents`
+   contribution and the settings `agents.<id>.path`, `.model` and `.permissionMode` in group
+   `tools.ai-agents` with the agent's name as section (Settings | Tools | AI Agents; add the
+   section to `AGENT_SECTIONS` in `AgentsSettingsPage.tsx`). Regenerate the browser snapshot.
+6. **UI**: `registerChatAgent({ id, name, icon, models, tagline })` in
+   `features/ai-chat/index.ts` adds it to the agent picker; modes, install hint and the
+   "not installed" state come from `agent_list`.
+7. **Browser mock** (`mock/agentMock.ts`): a scripted session. If the parser is pure, expose it
+   through `pure_parser` (forge-wasm `agent_parse_lines`) and replay recorded CLI lines through
+   it, as the Gemini demo does, so the mock exercises the same mapping as the desktop app.
 
 ## Rust computes, TypeScript renders
 

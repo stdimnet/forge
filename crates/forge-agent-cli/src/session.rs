@@ -1,4 +1,6 @@
-//! Runs one agent CLI process per conversation and streams its normalized events.
+//! Runs agent CLI processes for a conversation and streams their normalized events: one
+//! long-running process ([`Transport::Persistent`]) or one process per message
+//! ([`Transport::PerTurn`]).
 
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
@@ -11,10 +13,11 @@ use forge_core::{ForgeError, Result};
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader};
 use tokio::process::{ChildStdin, Command};
 use tokio::sync::{oneshot, Mutex};
+use tokio::task::JoinHandle;
 
 use serde_json::Value;
 
-use crate::cli::{session_rule, AgentCli, AllowScope, PermissionDecision, StartOptions};
+use crate::cli::{session_rule, AgentCli, AllowScope, PermissionDecision, StartOptions, Transport};
 use crate::event::AgentEvent;
 
 /// Receives every event of a session (called from a background task).
@@ -23,10 +26,37 @@ pub type EventSink = Arc<dyn Fn(AgentEvent) + Send + Sync>;
 /// Max bytes of stderr kept to explain a crash.
 const STDERR_TAIL: usize = 4000;
 
+/// How long to wait for a finished per-turn process to exit before the next turn kills it.
+const TURN_EXIT_WAIT: Duration = Duration::from_secs(5);
+
+/// stdin of a process; `None` once closed.
+type Stdin = Arc<Mutex<Option<ChildStdin>>>;
+
 struct Running {
-    stdin: Arc<Mutex<ChildStdin>>,
+    stdin: Stdin,
     kill: Option<oneshot::Sender<()>>,
     alive: Arc<AtomicBool>,
+    /// Ends once the process is gone and its last events were emitted.
+    done: Option<JoinHandle<()>>,
+}
+
+impl Running {
+    fn is_alive(&self) -> bool {
+        self.alive.load(Ordering::SeqCst)
+    }
+
+    /// Kill the process (if still running) and wait until its last events were emitted.
+    async fn finish(mut self, wait: Duration) {
+        if let Some(done) = self.done.take() {
+            let abort = done.abort_handle();
+            if let Some(kill) = self.kill.take() {
+                let _ = kill.send(());
+            }
+            if tokio::time::timeout(wait, done).await.is_err() {
+                abort.abort();
+            }
+        }
+    }
 }
 
 /// Open permission requests and "allow for session" rules.
@@ -38,15 +68,19 @@ struct Permissions {
     allowed: HashSet<String>,
 }
 
-async fn write_line(stdin: &Mutex<ChildStdin>, line: &str) -> std::io::Result<()> {
-    let mut stdin = stdin.lock().await;
+async fn write_line(stdin: &Mutex<Option<ChildStdin>>, line: &str) -> std::io::Result<()> {
+    let mut guard = stdin.lock().await;
+    let stdin = guard
+        .as_mut()
+        .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::BrokenPipe, "stdin is closed"))?;
     stdin.write_all(line.as_bytes()).await?;
     stdin.write_all(b"\n").await?;
     stdin.flush().await
 }
 
 /// A conversation with an agent CLI. The process is (re)spawned on demand: after an
-/// interrupt the next message resumes the same conversation via its session id.
+/// interrupt (and, for per-turn CLIs, after every message) the next message resumes the
+/// same conversation via its session id.
 pub struct AgentSession {
     adapter: Arc<dyn AgentCli>,
     executable: PathBuf,
@@ -88,8 +122,10 @@ impl AgentSession {
             interrupted: Arc::new(AtomicBool::new(false)),
             permissions: Arc::default(),
         };
-        let running = session.spawn()?;
-        *session.running.lock().await = Some(running);
+        if session.adapter.transport() == Transport::Persistent {
+            let running = session.spawn()?;
+            *session.running.lock().await = Some(running);
+        }
         Ok(session)
     }
 
@@ -102,10 +138,20 @@ impl AgentSession {
     pub async fn send(&self, text: &str) -> Result<()> {
         let line = self.adapter.encode_user_message(text)?;
         let mut guard = self.running.lock().await;
+        if self.adapter.transport() == Transport::PerTurn {
+            // The previous turn's process normally exits right after its result.
+            if let Some(previous) = guard.take() {
+                previous.finish(TURN_EXIT_WAIT).await;
+            }
+            let running = self.spawn()?;
+            let written = write_line(&running.stdin, &line).await;
+            // EOF ends the prompt.
+            running.stdin.lock().await.take();
+            *guard = Some(running);
+            return written.map_err(|e| ForgeError::io(&self.executable, e));
+        }
         for attempt in 0..2 {
-            let alive = guard
-                .as_ref()
-                .is_some_and(|r| r.alive.load(Ordering::SeqCst));
+            let alive = guard.as_ref().is_some_and(Running::is_alive);
             if !alive {
                 *guard = Some(self.spawn()?);
             }
@@ -158,18 +204,17 @@ impl AgentSession {
             .map_err(|e| ForgeError::io(&self.executable, e))
     }
 
-    /// Stop the running turn. The conversation can continue with the next `send`.
+    /// Stop the running turn. The conversation can continue with the next `send`. Returns
+    /// once the process' last events (`Interrupted`, `Exited`) were emitted, so they never
+    /// reach the next turn.
     pub async fn interrupt(&self) {
         let mut guard = self.running.lock().await;
-        if let Some(running) = guard.as_mut() {
-            if running.alive.load(Ordering::SeqCst) {
+        if let Some(running) = guard.take() {
+            if running.is_alive() {
                 self.interrupted.store(true, Ordering::SeqCst);
-                if let Some(kill) = running.kill.take() {
-                    let _ = kill.send(());
-                }
             }
+            running.finish(Duration::from_secs(3)).await;
         }
-        *guard = None;
     }
 
     /// End the session and its process.
@@ -204,7 +249,9 @@ impl AgentSession {
             self.cwd.display()
         );
 
-        let stdin = Arc::new(Mutex::new(child.stdin.take().expect("stdin is piped")));
+        let stdin: Stdin = Arc::new(Mutex::new(Some(
+            child.stdin.take().expect("stdin is piped"),
+        )));
         let stdout = child.stdout.take().expect("stdout is piped");
         let mut stderr = child.stderr.take().expect("stderr is piped");
         let alive = Arc::new(AtomicBool::new(true));
@@ -220,22 +267,36 @@ impl AgentSession {
         let permissions = self.permissions.clone();
         let adapter = self.adapter.clone();
         let reply_to = stdin.clone();
+        let cwd = self.cwd.display().to_string();
+        let turn_finished = Arc::new(AtomicBool::new(false));
+        let finished = turn_finished.clone();
         let reader = tokio::spawn(async move {
             let mut lines = BufReader::new(stdout).lines();
             while let Ok(Some(line)) = lines.next_line().await {
-                for event in parser.parse_line(&line) {
-                    match &event {
-                        AgentEvent::SessionStarted { session_id, .. } => {
+                for mut event in parser.parse_line(&line) {
+                    match &mut event {
+                        AgentEvent::SessionStarted {
+                            session_id,
+                            cwd: reported,
+                            ..
+                        } => {
                             if let Ok(mut id) = conversation.lock() {
-                                *id = Some(session_id.clone());
+                                if !session_id.is_empty() {
+                                    *id = Some(session_id.clone());
+                                }
                             }
+                            // Paths in tool calls are shown relative to it.
+                            reported.get_or_insert_with(|| cwd.clone());
                         }
+                        AgentEvent::TurnFinished { .. } => finished.store(true, Ordering::SeqCst),
                         AgentEvent::PermissionRequest {
                             request_id,
                             tool_name,
                             input,
                             ..
                         } => {
+                            let (request_id, tool_name, input) =
+                                (&*request_id, &*tool_name, &*input);
                             let allowed = {
                                 let mut perms = permissions.lock().expect("permissions lock");
                                 let allowed =
@@ -288,7 +349,8 @@ impl AgentSession {
         let sink = self.sink.clone();
         let interrupted = self.interrupted.clone();
         let alive_flag = alive.clone();
-        tokio::spawn(async move {
+        let per_turn = self.adapter.transport() == Transport::PerTurn;
+        let done = tokio::spawn(async move {
             let status = tokio::select! {
                 status = child.wait() => status.ok(),
                 _ = kill_rx => {
@@ -313,6 +375,11 @@ impl AgentSession {
                 }
             };
             let was_interrupted = interrupted.swap(false, Ordering::SeqCst);
+            if per_turn && !was_interrupted && turn_finished.load(Ordering::SeqCst) {
+                // A per-turn process ends with its turn; its result already said how the
+                // turn went (an error result also exits non-zero).
+                return;
+            }
             if was_interrupted {
                 sink(AgentEvent::Interrupted);
             } else if status.is_some_and(|s| !s.success()) {
@@ -332,6 +399,7 @@ impl AgentSession {
             stdin,
             kill: Some(kill_tx),
             alive,
+            done: Some(done),
         })
     }
 }

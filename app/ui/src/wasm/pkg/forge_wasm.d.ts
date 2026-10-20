@@ -2,6 +2,17 @@
 /* eslint-disable */
 
 /**
+ * `{ agent, lines }` → the `AgentEvent[]` those raw stdout lines of the agent's CLI
+ * produce.
+ */
+export function agent_parse_lines(request_json: string): string;
+
+/**
+ * Profiles of the built-in agents (`AgentProfile[]`), in picker order.
+ */
+export function agent_profiles(): string;
+
+/**
  * Version of the bridge, used by the UI to check that the bundle is current.
  */
 export function bridge_version(): string;
@@ -323,6 +334,8 @@ export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembl
 
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
+    readonly agent_parse_lines: (a: number, b: number, c: number) => void;
+    readonly agent_profiles: (a: number) => void;
     readonly bridge_version: (a: number) => void;
     readonly chat_apply: (a: number, b: number, c: number) => void;
     readonly chat_begin_turn: (a: number, b: number, c: number) => void;
@@ -388,9 +401,9 @@ export interface InitOutput {
     readonly sql_split: (a: number, b: number, c: number) => void;
     readonly sql_statement_at: (a: number, b: number, c: number) => void;
     readonly __wbindgen_add_to_stack_pointer: (a: number) => number;
-    readonly __wbindgen_export: (a: number, b: number, c: number) => void;
-    readonly __wbindgen_export2: (a: number, b: number) => number;
-    readonly __wbindgen_export3: (a: number, b: number, c: number, d: number) => number;
+    readonly __wbindgen_export: (a: number, b: number) => number;
+    readonly __wbindgen_export2: (a: number, b: number, c: number, d: number) => number;
+    readonly __wbindgen_export3: (a: number, b: number, c: number) => void;
 }
 
 export type SyncInitInput = BufferSource | WebAssembly.Module;

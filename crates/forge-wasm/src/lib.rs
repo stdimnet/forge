@@ -20,6 +20,7 @@ mod remote;
 
 use wasm_bindgen::prelude::*;
 
+mod agents;
 mod containers;
 mod filetypes;
 mod keymap;

@@ -9,6 +9,7 @@ import {
   type MessageContext,
   type PermissionDecision,
   type PermissionMode,
+  type PermissionModeInfo,
 } from "@/ipc/agent";
 import { reloadFile } from "@/state/editor";
 import { addTurn, applyChatUpdate, emptyConversation, failTurn, findPermission, type Conversation } from "./model";
@@ -47,13 +48,25 @@ const [chat, setChat] = createStore<ChatState>({
 
 export { chat };
 
-const PERMISSION_MODES: PermissionMode[] = ["default", "acceptEdits", "plan", "bypassPermissions"];
+/** Claude Code's modes, used until the backend reported an agent's own. */
+const FALLBACK_MODES: PermissionModeInfo[] = [
+  { value: "default", label: "Ask before edits", short: "Ask before edits", hint: "Confirm every edit and command" },
+  { value: "acceptEdits", label: "Auto-accept edits", short: "Auto-accept", hint: "Apply file edits without asking" },
+  { value: "plan", label: "Plan mode", short: "Plan", hint: "Explore and plan, no changes" },
+  { value: "bypassPermissions", label: "Bypass permissions", short: "Bypass", hint: "Never ask — trusted projects only" },
+];
+
+/** The permission modes an agent supports, as its CLI understands them (from the backend profile). */
+export function agentModes(agentId: string): PermissionModeInfo[] {
+  return chat.detected[agentId]?.permissionModes ?? FALLBACK_MODES;
+}
 
 /** Default model and permission mode of an agent (Settings > Tools > AI Agents). */
 export function agentDefaults(agentId: string): { model: string; mode: PermissionMode } {
   const model = getSetting<string>(`agents.${agentId}.model`, "default") || "default";
   const mode = getSetting<string>(`agents.${agentId}.permissionMode`, "default") as PermissionMode;
-  return { model, mode: PERMISSION_MODES.includes(mode) ? mode : "default" };
+  const modes = agentModes(agentId);
+  return { model, mode: modes.some((m) => m.value === mode) ? mode : (modes[0]?.value ?? "default") };
 }
 
 // A fresh chat follows the configured defaults (also once settings have loaded).
@@ -83,12 +96,9 @@ function onEvent(ev: AgentEvent): void {
     for (const path of ev.changedFiles) void reloadFile(path);
     return;
   }
-  if (ev.type === "exited") {
-    // The process is gone; the next message starts (and resumes) a new one.
-    unlisten?.();
-    unlisten = undefined;
-    setChat("sessionId", null);
-  }
+  // An `exited` process needs nothing here: the backend session spawns a new process for
+  // the next message and resumes the conversation (per-turn CLIs like Gemini CLI exit after
+  // every turn).
 }
 
 async function ensureSession(): Promise<string> {
