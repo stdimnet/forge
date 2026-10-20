@@ -1,0 +1,18 @@
+[package]
+name = "phpforge-fw-laravel"
+description = "PHPForge: Laravel support (routes, views, Blade components, config/env, Eloquent, translations, artisan)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+phpforge-lang-php = { path = "../lang-php" }
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+tree-sitter = "0.25"
+walkdir = "2.5"
+
+[dev-dependencies]
+tempfile.workspace = true

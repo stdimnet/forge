@@ -2959,6 +2959,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "phpforge-fw-laravel"
+version = "0.1.0"
+dependencies = [
+ "phpforge-lang-php",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror 2.0.21",
+ "tracing",
+ "tree-sitter",
+ "walkdir",
+]
+
+[[package]]
 name = "phpforge-lang-php"
 version = "0.1.0"
 dependencies = [
