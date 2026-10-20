@@ -5,24 +5,11 @@ use std::path::{Path, PathBuf};
 use forge_core::Result;
 use serde::{Deserialize, Serialize};
 
-use crate::event::AgentEvent;
-
-/// How much the agent may do without asking. Mirrors Claude Code's permission modes.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub enum PermissionMode {
-    /// Ask before edits and commands (the CLI's own default).
-    #[default]
-    Default,
-    /// Apply file edits without asking.
-    AcceptEdits,
-    /// Read-only planning, no edits.
-    Plan,
-    /// Never ask. Only for trusted, sandboxed projects.
-    BypassPermissions,
-}
+pub use crate::event::EventParser;
+pub use crate::profile::{AgentProfile, PermissionMode, PermissionModeInfo};
 
 impl PermissionMode {
+    /// Claude Code's `--permission-mode` value (`None`: the CLI's default).
     pub fn as_cli_arg(self) -> Option<&'static str> {
         match self {
             Self::Default => None,
@@ -142,24 +129,29 @@ pub struct CommandSpec {
     pub args: Vec<String>,
 }
 
-/// Static description of an adapter, shown in the agent picker.
+/// An adapter's profile plus what was detected on this machine, shown in the agent picker.
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AgentInfo {
-    pub id: String,
-    pub name: String,
+    #[serde(flatten)]
+    pub profile: AgentProfile,
     /// Whether Forge can run chat sessions with this CLI yet.
     pub supported: bool,
     /// Path of the detected executable, if installed.
     pub path: Option<String>,
     pub installed: bool,
-    pub models: Vec<String>,
 }
 
-/// Turns raw stdout lines into normalized events. Stateful, one per session, so adapters
-/// can de-duplicate streamed deltas against the final message.
-pub trait EventParser: Send {
-    fn parse_line(&mut self, line: &str) -> Vec<AgentEvent>;
+/// How messages reach the CLI.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Transport {
+    /// One long-running process per conversation; every message is a line on stdin
+    /// (Claude Code's `--input-format stream-json`).
+    Persistent,
+    /// One process per message: the prompt is written to stdin, stdin is closed and the
+    /// process exits after its turn. Later turns resume the conversation by its id
+    /// (Gemini CLI).
+    PerTurn,
 }
 
 /// An agent CLI Forge can drive headless (Claude Code, Gemini CLI, ...).
@@ -170,15 +162,20 @@ pub trait AgentCli: Send + Sync {
     fn name(&self) -> &'static str;
     /// Executable base names to look for on `PATH` (without Windows extensions).
     fn executable_names(&self) -> &'static [&'static str];
-    /// Model aliases offered in the model picker.
-    fn models(&self) -> Vec<String>;
+    /// Models, permission modes and install hint (see [`crate::profile`]).
+    fn profile(&self) -> AgentProfile;
     /// Whether chat sessions are implemented for this CLI.
     fn supported(&self) -> bool {
         true
     }
-    /// Command line for a long-running session process.
+    /// How messages reach the process.
+    fn transport(&self) -> Transport {
+        Transport::Persistent
+    }
+    /// Command line of a session process (with [`Transport::PerTurn`]: of one turn).
+    /// `opts.resume` holds the conversation id once the CLI reported one.
     fn command(&self, executable: &Path, opts: &StartOptions) -> Result<CommandSpec>;
-    /// Encode one user message as a line for the process' stdin (without newline).
+    /// Encode one user message for the process' stdin (without newline).
     fn encode_user_message(&self, text: &str) -> Result<String>;
     /// A fresh output parser for one session.
     fn parser(&self, opts: &StartOptions) -> Box<dyn EventParser>;
@@ -210,12 +207,10 @@ pub trait AgentCli: Send + Sync {
     fn info(&self, override_path: Option<&str>) -> AgentInfo {
         let path = self.detect(override_path);
         AgentInfo {
-            id: self.id().into(),
-            name: self.name().into(),
+            profile: self.profile(),
             supported: self.supported(),
             installed: path.is_some(),
             path: path.map(|p| p.display().to_string()),
-            models: self.models(),
         }
     }
 }

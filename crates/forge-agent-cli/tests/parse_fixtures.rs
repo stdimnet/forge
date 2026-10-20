@@ -1,6 +1,9 @@
 //! Recorded JSONL sessions parse into the expected normalized events.
 
-use forge_agent_cli::{claude::ClaudeParser, gemini::GeminiParser, AgentEvent, EventParser};
+use forge_agent_cli::conversation::{Block, ToolStatus, TurnStatus};
+use forge_agent_cli::{
+    claude::ClaudeParser, gemini::GeminiParser, AgentEvent, Chat, EventParser, MessageContext,
+};
 use serde_json::json;
 
 fn parse_all(parser: &mut dyn EventParser, fixture: &str) -> Vec<AgentEvent> {
@@ -138,24 +141,113 @@ fn gemini_session_fixture() {
         &mut GeminiParser,
         include_str!("fixtures/gemini_session.jsonl"),
     );
-    assert_eq!(events.len(), 6, "{events:#?}");
-    assert!(
-        matches!(&events[0], AgentEvent::SessionStarted { model: Some(m), .. } if m == "gemini-2.5-pro")
+    let kinds: Vec<&str> = events
+        .iter()
+        .map(|e| match e {
+            AgentEvent::SessionStarted { .. } => "start",
+            AgentEvent::AssistantText { .. } => "text",
+            AgentEvent::ToolUse { .. } => "tool",
+            AgentEvent::ToolResult { .. } => "result",
+            AgentEvent::TurnFinished { .. } => "finished",
+            _ => "other",
+        })
+        .collect();
+    // The banner, the echoed user message, the warning and the unknown event are dropped.
+    assert_eq!(
+        kinds,
+        [
+            "start", "text", "text", "tool", "result", "tool", "result", "tool", "result", "text",
+            "finished"
+        ]
     );
-    assert!(matches!(&events[1], AgentEvent::ToolUse { name, .. } if name == "read_file"));
     assert!(
-        matches!(&events[3], AgentEvent::ToolResult { is_error: true, content, .. } if content == "0 occurrences found")
+        matches!(&events[0], AgentEvent::SessionStarted { session_id, model: Some(m), .. }
+        if m == "gemini-2.5-pro" && session_id == "c2f1e0d9-6b5a-4c3b-8a2f-1e0d9c8b7a6f")
     );
-    assert!(matches!(
-        &events[4],
-        AgentEvent::AssistantText { delta: true, .. }
-    ));
-    assert!(matches!(
-        &events[5],
-        AgentEvent::TurnFinished {
-            is_error: false,
-            duration_ms: Some(3900),
-            ..
+    let tools: Vec<_> = events
+        .iter()
+        .filter_map(|e| match e {
+            AgentEvent::ToolUse { name, input, .. } => Some((name.as_str(), input.clone())),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(
+        tools[0],
+        (
+            "Read",
+            json!({"file_path": "/home/dev/acme-shop/app/Models/Order.php"})
+        )
+    );
+    assert_eq!(tools[1].0, "Edit");
+    assert_eq!(tools[2].0, "Bash");
+    assert!(
+        matches!(&events[8], AgentEvent::ToolResult { is_error: true, content, .. } if content == "Command exited with code 1")
+    );
+    let AgentEvent::TurnFinished {
+        is_error,
+        duration_ms,
+        usage: Some(usage),
+        ..
+    } = events.last().unwrap()
+    else {
+        panic!("{events:#?}")
+    };
+    assert!(!is_error);
+    assert_eq!(*duration_ms, Some(5900));
+    assert_eq!(
+        (
+            usage.input_tokens,
+            usage.output_tokens,
+            usage.cache_read_tokens
+        ),
+        (6120, 286, 12000)
+    );
+}
+
+/// The recorded Gemini session folds into the same chat blocks as a Claude session.
+#[test]
+fn gemini_session_folds_into_the_chat() {
+    let mut chat = Chat::new();
+    chat.begin_turn(1, "Add a paid scope", MessageContext::default());
+    let mut last = None;
+    for (i, mut event) in parse_all(
+        &mut GeminiParser,
+        include_str!("fixtures/gemini_session.jsonl"),
+    )
+    .into_iter()
+    .enumerate()
+    {
+        // The session runner reports the project root as the working directory.
+        if let AgentEvent::SessionStarted { cwd, .. } = &mut event {
+            *cwd = Some("/home/dev/acme-shop".into());
         }
-    ));
+        last = Some(chat.apply(&event, i as u64 * 100));
+    }
+    let update = last.unwrap();
+    let turn = chat.turn().unwrap();
+    assert_eq!(turn.status, TurnStatus::Done);
+    assert_eq!(update.turn.unwrap().changed_files, ["app/Models/Order.php"]);
+    let tools: Vec<_> = turn
+        .blocks
+        .iter()
+        .filter_map(|b| match b {
+            Block::Tool(t) => Some((t.name.as_str(), t.status)),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(
+        tools,
+        [
+            ("Read", ToolStatus::Done),
+            ("Edit", ToolStatus::Done),
+            ("Bash", ToolStatus::Error)
+        ]
+    );
+    assert!(
+        matches!(&turn.blocks[0], Block::Text { text, .. } if text == "I'll read the `Order` model first.")
+    );
+    assert_eq!(
+        turn.summary.as_ref().unwrap().tokens_text.as_deref(),
+        Some("18k tokens")
+    );
 }
