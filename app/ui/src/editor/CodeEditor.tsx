@@ -19,6 +19,7 @@ import { languageFor } from "./languages";
 import { extensionsFor } from "./extensions";
 import { updateContent, updateCursor, saveFile, type EditorTab } from "@/state/editor";
 import { registerView } from "./views";
+import { wordCompletion } from "./wordCompletion";
 
 /** One CodeMirror instance per open tab; kept alive while the tab exists. */
 export function CodeEditor(props: { tab: EditorTab }) {
@@ -46,6 +47,7 @@ export function CodeEditor(props: { tab: EditorTab }) {
           bracketMatching(),
           closeBrackets(),
           autocompletion(),
+          wordCompletion,
           highlightSelectionMatches(),
           keymap.of([
             { key: "Mod-s", run: () => (void saveFile(path), true) },
