@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { AnsiParser, appendSegments, color256, lineText, type ConsoleLine } from "./ansi";
 import { findFileLinks, toWorkspacePath } from "./fileLinks";
+import { findTests, testAt, testConfiguration } from "./phpTests";
 import {
   countTests,
   formatDuration,
@@ -133,5 +134,44 @@ describe("teamcity", () => {
     expect(formatDuration(1245)).toBe("1 s 245 ms");
     expect(formatDuration(2000)).toBe("2 s");
     expect(formatDuration(undefined)).toBe("");
+  });
+});
+
+describe("php test detection", () => {
+  const src = [
+    "<?php",
+    "namespace Tests\\Unit;",
+    "use PHPUnit\\Framework\\TestCase;",
+    "final class UserTest extends TestCase",
+    "{",
+    "    public function test_a(): void {}",
+    "    #[Test]",
+    "    public function b(): void {}",
+    "    public function helper(): void {}",
+    "    /** @test */",
+    "    public function c(): void {}",
+    "}",
+  ].join("\n");
+
+  it("finds classes and test methods", () => {
+    const tests = findTests(src);
+    expect(tests.map((t) => [t.kind, t.method ?? t.fqcn, t.line])).toEqual([
+      ["class", "Tests\\Unit\\UserTest", 3],
+      ["method", "test_a", 5],
+      ["method", "b", 7],
+      ["method", "c", 10],
+    ]);
+    expect(findTests("<?php\nclass Helper {\n public function testX() {}\n}")).toEqual([]);
+  });
+
+  it("picks the test at the caret and builds configurations", () => {
+    const tests = findTests(src);
+    expect(testAt(tests, 4)?.kind).toBe("class");
+    expect(testAt(tests, 8)?.method).toBe("b");
+    expect(testConfiguration(testAt(tests, 5)!, "tests/Unit/UserTest.php")).toEqual({
+      name: "UserTest::test_a",
+      type: "phpunit",
+      options: { scope: "method", class: "Tests\\Unit\\UserTest", method: "test_a", file: "tests/Unit/UserTest.php" },
+    });
   });
 });

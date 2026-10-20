@@ -13,6 +13,7 @@ import { parseServiceMessage, TestTreeBuilder, type TestNode } from "./teamcity"
 import { debugLauncherFor, findType, validateConfiguration, type RunHandle } from "./types";
 import { findConfiguration, selectedConfiguration } from "./configStore";
 import { openRunConfigurations } from "./dialogState";
+import { publishTestResults } from "./testResults";
 
 /** Lines kept per console (PHPStorm's cycle buffer). */
 export const MAX_LINES = 10_000;
@@ -153,6 +154,7 @@ function onEvent(id: string, runId: string, e: RunEvent) {
       if (d.tests) {
         if (d.partial) writeTestOutput(id, "", true);
         d.tests.finish(e.code);
+        publishTestResults(d.tests.root);
       }
       d.currentTest = undefined;
       const how =
@@ -285,6 +287,9 @@ export async function runConfiguration(cfg: RunConfiguration | undefined = selec
     openRunConfigurations();
     return;
   }
+  // Like PHPStorm's single-instance default: Run on a running configuration reruns it.
+  const running = runningFor(cfg);
+  if (running && !running.debug) return rerunSession(running.id);
   await launch(cfg);
 }
 
