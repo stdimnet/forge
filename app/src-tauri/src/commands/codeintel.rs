@@ -491,6 +491,16 @@ pub async fn code_goto_declaration(
     Ok(answer)
 }
 
+/// The tooltip's first line for a stub declaration: its class, else where it comes from
+/// (`PHP Runtime · Core`).
+fn stub_container(t: &StubTarget) -> String {
+    if t.info.container.is_empty() {
+        format!("PHP Runtime · {}", t.extension)
+    } else {
+        t.info.container.clone()
+    }
+}
+
 /// What Ctrl+hover shows: the reference to underline and a short description.
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -532,7 +542,7 @@ pub async fn code_symbol_info(
                         codeintel::position_at(&text, byte_to_utf16(&text, s)),
                         codeintel::position_at(&text, byte_to_utf16(&text, e)),
                     ),
-                    container: t.info.container,
+                    container: stub_container(&t),
                     signature: t.info.signature,
                 })
             }));
@@ -566,7 +576,7 @@ pub async fn code_symbol_info(
                 .next()
                 .map(|t| SymbolHover {
                     range,
-                    container: t.info.container,
+                    container: stub_container(&t),
                     signature: t.info.signature,
                 }),
             None => Some(SymbolHover {

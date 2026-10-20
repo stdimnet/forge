@@ -8,12 +8,13 @@ import { isTauri, registerMock } from "@/ipc";
 import { openFile } from "@/state/editor";
 import { workspace } from "@/state/workspace";
 import { registerSearchProvider, type SearchItem, type SearchItemKind } from "@/features/search/providers";
-import { demoFiles, demoProjectName } from "./demoProject";
+import { demoProjectName } from "./demoProject";
+import { mockFiles } from "./workspaceMock";
 import { matchFiles } from "./fuzzyMock";
-import { isLuaDemo, luaDemoFiles } from "./demoLuaProject";
+import { isLuaDemo } from "./demoLuaProject";
 
-/** Files of the open demo project (the Lua demo has its own). */
-const projectFiles = isLuaDemo() ? luaDemoFiles : demoFiles;
+/** Files of the open demo project (including files created in the UI). */
+const projectFiles = mockFiles;
 
 registerMock("fs_find_files", ({ query, limit }) =>
   matchFiles(String(query ?? ""), Object.keys(projectFiles), Number(limit ?? 100)),
@@ -70,7 +71,7 @@ const VENDOR_CLASSES: DemoSymbol[] = [
 ].map(([name, container]) => ({ name, kind: "class" as const, container, path: "", line: 0 }));
 
 if (!isTauri()) {
-  const symbols = indexDemoSymbols(isLuaDemo() ? {} : demoFiles);
+  const symbols = indexDemoSymbols(isLuaDemo() ? {} : mockFiles);
   const open = (s: DemoSymbol) => () => (s.path ? openFile(s.path) : undefined);
   // Candidates are matched (strictly, like PHPStorm's Go to Class) and ranked in Rust.
   const toItem = (s: DemoSymbol, score = 0): SearchItem => ({
