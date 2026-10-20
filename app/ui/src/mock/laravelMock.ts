@@ -446,7 +446,7 @@ export function mockComplete(path: string, text: string, offset: number): Larave
   return { from: ctx.from, to: ctx.to, items };
 }
 
-export function mockGoto(path: string, text: string, offset: number): LaravelLocation[] {
+export function mockGoto(_path: string, text: string, offset: number): LaravelLocation[] {
   const ctx = contextAt(text, offset);
   if (!ctx) return [];
   if (ctx.kind === "string") {

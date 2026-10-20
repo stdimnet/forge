@@ -1,0 +1,405 @@
+/* Laravel plugin: Routes tool window, artisan popup, gutter icons, declaration chooser.
+   Colors come from theme.css variables only. */
+
+/* ---------- Routes tool window ---------- */
+.routes-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+.routes-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.routes-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 4px 0 8px;
+  width: min(420px, 50%);
+  border-radius: var(--radius);
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  color: var(--fg-muted);
+}
+.routes-search:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+.routes-search-input,
+.routes-search-input:focus {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  color: var(--fg-strong);
+  padding: 0;
+}
+.routes-clear {
+  width: 20px;
+  height: 20px;
+}
+.routes-summary,
+.routes-source {
+  font-size: var(--fs-small);
+  white-space: nowrap;
+}
+.routes-source {
+  margin-left: auto;
+}
+.routes-error {
+  padding: 6px 10px;
+  color: var(--danger);
+  font-size: var(--fs-small);
+}
+.routes-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  outline: none;
+}
+.routes-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: var(--fs-ui);
+}
+.routes-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--bg-panel);
+  color: var(--fg-muted);
+  font-weight: 500;
+  font-size: var(--fs-small);
+  text-align: left;
+  height: 24px;
+  padding: 0 8px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.routes-table td {
+  height: 24px;
+  padding: 0 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.routes-table tbody tr {
+  cursor: pointer;
+}
+.routes-table tbody tr:hover {
+  background: var(--bg-hover);
+}
+.routes-table tbody tr.selected {
+  background: var(--bg-selection);
+}
+.routes-table .col-method {
+  width: 118px;
+}
+.routes-table .col-uri {
+  width: 26%;
+}
+.routes-table .col-name {
+  width: 18%;
+  color: var(--fg);
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+}
+.routes-table .col-action {
+  width: 28%;
+}
+.routes-table .col-middleware {
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+.routes-table .col-open {
+  width: 32px;
+  padding: 0 4px;
+}
+.routes-open {
+  width: 22px;
+  height: 22px;
+  visibility: hidden;
+}
+.routes-table tr:hover .routes-open,
+.routes-table tr.selected .routes-open {
+  visibility: visible;
+}
+.routes-verb {
+  display: inline-block;
+  min-width: 42px;
+  margin-right: 4px;
+  padding: 0 5px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 17px;
+  text-align: center;
+  color: var(--fg-muted);
+  background: color-mix(in srgb, var(--fg-muted) 14%, transparent);
+}
+.routes-verb.verb-get {
+  color: var(--success);
+  background: color-mix(in srgb, var(--success) 15%, transparent);
+}
+.routes-verb.verb-post {
+  color: var(--info);
+  background: color-mix(in srgb, var(--info) 15%, transparent);
+}
+.routes-verb.verb-put,
+.routes-verb.verb-patch {
+  color: var(--warning);
+  background: color-mix(in srgb, var(--warning) 15%, transparent);
+}
+.routes-verb.verb-delete {
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 15%, transparent);
+}
+.routes-uri {
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  color: var(--fg-strong);
+}
+.routes-param {
+  color: var(--syn-variable);
+}
+.routes-action {
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+}
+.routes-class {
+  color: var(--syn-type);
+}
+.routes-at {
+  color: var(--fg-faint);
+}
+.routes-method {
+  color: var(--syn-function);
+}
+.routes-closure {
+  color: var(--fg-muted);
+  font-style: italic;
+  font-size: var(--fs-small);
+}
+.routes-empty {
+  padding: 24px;
+  text-align: center;
+  color: var(--fg-muted);
+}
+.laravel-spin,
+.routes-view .spin,
+.tool-window-actions .spin {
+  animation: laravel-spin 0.9s linear infinite;
+}
+@keyframes laravel-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---------- Run Artisan Command popup ---------- */
+.artisan-popup {
+  width: min(760px, calc(100vw - 32px));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.artisan-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 6px 0 12px;
+}
+.artisan-header-icon {
+  color: var(--accent);
+}
+.artisan-title {
+  font-weight: 600;
+  color: var(--fg-strong);
+}
+.artisan-note {
+  font-size: var(--fs-small);
+  color: var(--warning);
+}
+.artisan-shortcut {
+  margin-left: auto;
+}
+.artisan-search {
+  gap: 6px;
+}
+.artisan-prompt {
+  font-family: var(--font-mono);
+  color: var(--fg-muted);
+  white-space: nowrap;
+}
+.artisan-search .se-input {
+  font-family: var(--font-mono);
+}
+.artisan-results {
+  max-height: 360px;
+}
+.artisan-row {
+  font-size: var(--fs-ui);
+}
+.artisan-name {
+  font-family: var(--font-mono);
+  color: var(--fg-strong);
+  flex-shrink: 0;
+}
+.artisan-args {
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  color: var(--syn-variable);
+  flex-shrink: 0;
+}
+.artisan-desc {
+  margin-left: auto;
+  padding-left: 16px;
+  text-align: right;
+}
+.artisan-footer {
+  display: flex;
+  gap: 16px;
+  padding: 6px 12px;
+  border-top: 1px solid var(--border);
+  font-size: var(--fs-small);
+}
+.artisan-run-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 10px 6px;
+  padding: 0 4px 0 10px;
+  height: 32px;
+  border-radius: var(--radius);
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+}
+.artisan-cmdline {
+  font-family: var(--font-mono);
+  color: var(--fg-strong);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.artisan-status {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-small);
+  color: var(--fg-muted);
+  white-space: nowrap;
+}
+.artisan-status.ok {
+  color: var(--success);
+}
+.artisan-status.failed {
+  color: var(--danger);
+}
+.artisan-output {
+  height: 340px;
+  overflow: auto;
+  margin: 0 10px 8px;
+  padding: 6px 10px;
+  border-radius: var(--radius);
+  background: var(--bg-editor);
+  border: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  line-height: 1.5;
+  outline: none;
+}
+.artisan-line {
+  white-space: pre;
+  color: var(--fg);
+}
+.artisan-line.stderr {
+  color: var(--danger);
+}
+
+/* ---------- Editor: gutter icons, chooser, completion docs ---------- */
+.cm-laravel-gutter .cm-gutterElement {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  padding: 0 1px;
+}
+.laravel-gutter-icon {
+  display: inline-flex;
+  cursor: pointer;
+  color: var(--fg-muted);
+}
+.laravel-gutter-icon:hover {
+  color: var(--accent);
+}
+.laravel-gutter-icon.kind-route {
+  color: var(--success);
+}
+.laravel-gutter-icon.kind-controller {
+  color: var(--syn-function);
+}
+.laravel-gutter-icon.kind-view {
+  color: var(--syn-type);
+}
+.laravel-chooser {
+  display: flex;
+  flex-direction: column;
+  padding: 4px;
+  min-width: 320px;
+  font-size: var(--fs-ui);
+}
+.laravel-chooser-title {
+  padding: 2px 8px 4px;
+  font-size: var(--fs-small);
+  color: var(--fg-muted);
+}
+.laravel-chooser-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: var(--radius);
+  text-align: left;
+  color: var(--fg);
+}
+.laravel-chooser-row:hover,
+.laravel-chooser-row.selected {
+  background: var(--bg-selection);
+}
+.laravel-chooser-name {
+  color: var(--fg-strong);
+}
+.laravel-chooser-path {
+  margin-left: auto;
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+.cm-laravel-doc {
+  padding: 6px 10px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  color: var(--fg);
+  max-width: 420px;
+  white-space: pre-wrap;
+}
+
+/* ---------- Settings page ---------- */
+.laravel-settings-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+}
