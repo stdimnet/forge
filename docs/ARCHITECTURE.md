@@ -169,6 +169,43 @@ app/ui/            SolidJS UI
   `src/editor/views.ts` opens a workspace-relative file, puts the caret at the 1-based position,
   centers it and briefly flashes the line.
 
+## Window chrome and dialog windows (`forge-window`)
+
+- **Title bars.** All windows are undecorated (`decorations: false`); Forge draws the title
+  bar itself. The main toolbar *is* the title bar (PHPStorm New UI): empty areas drag the
+  window (`dragRegion` in `src/shell/window/chrome.ts`, a double click maximizes), the
+  controls sit at its ends, and `ResizeEdges` adds resize handles. The Welcome screen gets a
+  plain `WindowTitleBar`.
+- **Styles.** Setting `appearance.windowControls` = `auto | windows | macos | gnome | kde |
+  linux | native`. `forge_window::detect_desktop` reads the target OS and
+  `XDG_CURRENT_DESKTOP` / `XDG_SESSION_DESKTOP` / `DESKTOP_SESSION` / `KDE_FULL_SESSION`;
+  `forge_window::resolve` picks the style and button layout (GNOME's `button-layout` from
+  `gsettings`, KDE's `ButtonsOnLeft/Right` from `kwinrc`, read once by the shell). `native`
+  switches every window back to OS decorations (`commands::window::apply_decorations`, also on
+  setting changes). IPC: `window_chrome({ style? }) -> WindowChrome` (`{ os, desktop, setting,
+  style, native, buttons, dialogButtons, titleAlign }`); `style` forces a style
+  (`?windowControls=gnome` in browser mode, where "auto" means the browser's own frame).
+  Colors are the `--wc-*` tokens in `theme.css`.
+- **Dialog windows.** Large modal dialogs (Settings, Run/Debug Configurations, New Project,
+  New SSH Connection, Data Sources and Drivers) are registered with
+  `registerDialog({ id, title, width, height, component, prepare?, onClosed?, onMessage? })`
+  and opened with `openDialogWindow(id, props) -> Promise<result | null>`
+  (`src/shell/window/dialogs.ts`). In the desktop app `dialog_window_open({ request })` creates
+  the window `dialog-<id>` owned by the calling window (centered on it, or at the geometry
+  remembered in `<config dir>/forge/dialog-windows.json`, see `forge_window::place_dialog`),
+  disables the owner and refocuses the dialog when the owner gets focus. The window loads the
+  same bundle with `?dialog=<id>` (props injected as `window.__FORGE_DIALOG__`) and renders only
+  `DialogWindowApp`. The dialog ends with `closeDialog(id, result)` (`dialog_window_close`);
+  the owner receives `dialog://closed { window, id, result }` and runs `onClosed` there.
+  `notifyDialogOpener(id, msg)` (`dialog_window_message`, event `dialog://message`) tells the
+  owner about Apply. Alt+F4 sends `dialog://close-requested`, which runs the dialog's Cancel
+  path (`onDialogCancel`). Data lives in the backend, so settings arrive everywhere through
+  `settings://changed`; `onClosed` / `onMessage` reload what the owner shows (plugins, run
+  configurations, data sources, the opened project). Code that starts background work at
+  startup checks `isDialogWindow()` (`src/shell/window/mode.ts`). In browser mode dialogs open
+  in-page (`DialogHost`) inside the same `WindowFrame`. Small popups stay in-page everywhere.
+  Window labels `dialog-*` are listed in `capabilities/default.json`.
+
 ## Project backends and remote development (`forge-backend`, `forge-remote`, `forge-remote-agent`)
 
 - Every project command goes through the open project's `forge_backend::Backend`
