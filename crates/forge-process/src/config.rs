@@ -40,9 +40,9 @@ pub struct RunConfiguration {
     /// Configuration type id, e.g. `phpunit` (see `runConfigurationTypes` contributions).
     #[serde(rename = "type")]
     pub type_id: String,
-    /// Stored in the shared project file rather than the local one. Not written to disk:
-    /// the file a configuration is in says where it belongs.
-    #[serde(default, skip_serializing)]
+    /// Stored in the shared project file rather than the local one. Sent to the UI but not
+    /// written to disk: the file a configuration is in says where it belongs.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub store_as_project_file: bool,
     /// Working directory, relative to the project root or absolute; empty = project root.
     #[serde(default, skip_serializing_if = "String::is_empty")]
@@ -159,6 +159,13 @@ impl RunConfigurations {
             .iter()
             .cloned()
             .partition(|c| c.store_as_project_file);
+        let shared = shared
+            .into_iter()
+            .map(|c| RunConfiguration {
+                store_as_project_file: false,
+                ..c
+            })
+            .collect();
         write_file(
             &root.join(PROJECT_FILE),
             &FileFormat {
@@ -803,7 +810,14 @@ mod tests {
         assert!(text.contains("name = \"All tests\""), "{text}");
         assert!(!text.contains("serve"), "{text}");
         assert!(!text.contains("storeAsProjectFile"), "{text}");
-        assert_eq!(RunConfigurations::load(root).unwrap(), all);
+        let loaded = RunConfigurations::load(root).unwrap();
+        assert_eq!(loaded, all);
+        // The UI sees where each configuration is stored.
+        let json = serde_json::to_value(&loaded).unwrap();
+        assert_eq!(json["configurations"][0]["storeAsProjectFile"], true);
+        assert!(json["configurations"][1]
+            .get("storeAsProjectFile")
+            .is_none());
 
         // Removing everything removes the files again.
         RunConfigurations::default().save(root).unwrap();
