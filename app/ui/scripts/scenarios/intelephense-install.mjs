@@ -65,6 +65,18 @@ export default {
     });
     await page.waitForTimeout(600);
   }),
+  "php-settings-install-intelephense": missing(async (page) => {
+    await page.locator(`${OFFER} .balloon-close`).click();
+    await page.evaluate(() => window.__forgeRunCommand("settings.open"));
+    await page.click('.set-tree-row[data-node="lang.php"]');
+    await page.waitForSelector('.php-settings button:has-text("Install Intelephense")');
+  }),
+  "language-server-update-offer": Object.assign(
+    async (page) => {
+      await page.waitForTimeout(200);
+    },
+    { query: "?updates=1", waitFor: '.balloon:has-text("update available")' },
+  ),
   "language-servers-install-buttons-light": missing(async (page) => {
     await page.evaluate(() => (document.documentElement.dataset.theme = "light"));
     await page.locator(`${OFFER} .balloon-close`).click();
