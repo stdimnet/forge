@@ -142,6 +142,9 @@ pub struct Marker {
     pub kind: MarkerKind,
     /// Tooltip.
     pub title: String,
+    /// Name of the run (Run tool window tab): the scratch's name, or for a request
+    /// `rest-api | Show order` (`rest-api | #2` when the request has no name), as in PHPStorm.
+    pub run_name: String,
 }
 
 /// Gutter markers of a scratch: one ▶ on the first line of runnable scratches and one per
@@ -155,15 +158,31 @@ pub fn markers(name: &str, content: &str) -> Vec<Marker> {
                 line: r.line,
                 kind: MarkerKind::Http,
                 title: format!("Run '{}'", r.title()),
+                run_name: format!(
+                    "{} | {}",
+                    stem(name),
+                    r.name
+                        .clone()
+                        .unwrap_or_else(|| format!("#{}", r.index + 1))
+                ),
             })
             .collect(),
         Some(r) if r.is_process() => vec![Marker {
             line: 0,
             kind: MarkerKind::Run,
             title: format!("Run '{name}'"),
+            run_name: name.to_string(),
         }],
         _ => vec![],
     }
+}
+
+/// `rest-api.http` → `rest-api`.
+fn stem(name: &str) -> &str {
+    name.rsplit_once('.')
+        .map(|(stem, _)| stem)
+        .filter(|s| !s.is_empty())
+        .unwrap_or(name)
 }
 
 #[cfg(test)]
@@ -222,7 +241,8 @@ mod tests {
             [Marker {
                 line: 0,
                 kind: MarkerKind::Run,
-                title: "Run 'scratch.php'".into()
+                title: "Run 'scratch.php'".into(),
+                run_name: "scratch.php".into(),
             }]
         );
         let http = markers(
@@ -233,6 +253,9 @@ mod tests {
         assert_eq!((http[0].line, http[0].kind), (1, MarkerKind::Http));
         assert_eq!(http[0].title, "Run 'Users'");
         assert_eq!((http[1].line, http[1].title.as_str()), (5, "Run 'create'"));
+        assert_eq!(http[0].run_name, "rest-api | Users");
+        let unnamed = markers("a.http", "GET http://x\n###\nGET http://y\n");
+        assert_eq!(unnamed[1].run_name, "a | #2");
         assert!(markers("scratch.sql", "select 1").is_empty());
         assert!(markers("buffer1.txt", "x").is_empty());
     }

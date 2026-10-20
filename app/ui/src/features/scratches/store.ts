@@ -81,10 +81,10 @@ export async function runScratch(name: string, line?: number): Promise<void> {
     const content = await scratchContent(name);
     const at = line ?? caretLine(name);
     const markers = (await scratchesApi.markers(name, content)).filter((m) => m.kind === "http");
-    let index = 0;
-    markers.forEach((m, i) => m.line <= at && (index = i));
-    const base = name.replace(/\.[^.]+$/, "");
-    await launch({ name: `${base} | #${index + 1}`, type: "http-request", options: { scratch: name, line: String(markers[index]?.line ?? at) } });
+    let marker = markers[0];
+    for (const m of markers) if (m.line <= at) marker = m;
+    if (!marker) return void showBalloon(`No request in '${name}'`, "Add a request such as GET https://example.com");
+    await launch({ name: marker.runName, type: "http-request", options: { scratch: name, line: String(marker.line) } });
     return;
   }
   await launch({ name, type: "scratch", options: { scratch: name } });

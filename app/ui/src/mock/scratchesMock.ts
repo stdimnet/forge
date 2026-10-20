@@ -56,11 +56,11 @@ const total = orders.reduce((sum, amount) => sum + amount, 0);
 
 console.log(\`Total: \${total.toFixed(2)} EUR\`);
 `,
-  "orders.sql": `SELECT o.id, o.total, u.email
-FROM orders o
-JOIN users u ON u.id = o.user_id
-WHERE o.status = 'paid'
-ORDER BY o.created_at DESC;
+  "orders.sql": `-- Paid orders, largest first
+SELECT id, number, status, total, currency, placed_at
+FROM orders
+WHERE status = 'paid'
+ORDER BY total DESC;
 `,
   "buffer1.txt": "TODO: ask Grace about the VAT rounding in InvoiceService\n",
 };

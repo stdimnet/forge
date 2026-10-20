@@ -42,6 +42,8 @@ export interface ScratchMarker {
   line: number;
   kind: "run" | "http";
   title: string;
+  /** Name of the run's tab, e.g. `rest-api | Show order`. */
+  runName: string;
 }
 
 export const scratchesApi = {

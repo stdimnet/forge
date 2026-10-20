@@ -133,19 +133,27 @@ pub fn list(all: Vec<ScratchLanguage>, req: &LanguageRequest) -> Vec<LanguageIte
             })
         })
         .collect();
-    // Names that start with the query come first, shortest first ("typescr" lists
-    // TypeScript before TypeScript React), highlighted as a prefix.
+    // Names containing the query as typed come first: prefixes, then other substrings, each
+    // shortest first ("typescr" lists TypeScript before TypeScript React, "scr" JavaScript
+    // before JavaScript React). The rest keeps the fuzzy order.
     let lower = query.to_lowercase();
-    let prefix_len = lower.chars().count();
+    let query_len = lower.chars().count();
+    let tier = |item: &LanguageItem| -> (u8, usize) {
+        let name = item.language.name.to_lowercase();
+        match name.find(&lower) {
+            Some(0) => (0, name.len()),
+            Some(_) => (1, name.len()),
+            None => (2, 0),
+        }
+    };
     for item in &mut items {
-        if item.language.name.to_lowercase().starts_with(&lower) {
-            item.positions = (0..prefix_len).collect();
+        let name = item.language.name.to_lowercase();
+        if let Some(at) = name.find(&lower) {
+            let start = name[..at].chars().count();
+            item.positions = (start..start + query_len).collect();
         }
     }
-    items.sort_by_key(|i| {
-        let prefix = i.language.name.to_lowercase().starts_with(&lower);
-        (!prefix, if prefix { i.language.name.len() } else { 0 })
-    });
+    items.sort_by_key(|i| tier(i));
     items
 }
 
@@ -227,5 +235,10 @@ mod tests {
         let js = find("js");
         assert!(js.iter().any(|i| i.language.id == "javascript"));
         assert!(find("zzzz").is_empty());
+        // Substrings beat scattered matches.
+        let scr = find("scr");
+        let rank = |id: &str| scr.iter().position(|i| i.language.id == id).unwrap();
+        assert!(rank("javascript") < rank("jsx"));
+        assert_eq!(scr[rank("javascript")].positions, vec![4, 5, 6]);
     }
 }

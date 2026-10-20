@@ -17,6 +17,7 @@ import { NewScratchPopupHost, openNewScratchPopup } from "./NewScratchPopup";
 import { AttachPopupHost } from "./attach";
 import { ScratchIcon, ScratchesNode } from "./ScratchesNode";
 import { createBuffer, isScratchPath, refreshScratches, runScratch, scratchContent, scratchName } from "./store";
+import "./httpLanguage";
 import "./scratches.css";
 
 registerFileSystem({
