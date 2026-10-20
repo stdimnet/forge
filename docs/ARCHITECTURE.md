@@ -111,11 +111,20 @@ app/ui/            SolidJS UI
   `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` / `OPENROUTER_API_KEY` as fallback. Backend: `crates/forge-ai`.
 - Agent CLIs (`forge-agent-cli`, AI Chat tool window): `agent_list({ executables? }) -> AgentInfo[]`,
   `agent_start({ agentId, options: { model?, permissionMode?, resume?, allowedTools?, executable? } }) -> sessionId`,
-  `agent_send({ sessionId, text, context?: { files, selection? } })`, `agent_interrupt({ sessionId })`,
+  `agent_send({ sessionId, text, context?: { files, selection? }, turnId? })`, `agent_interrupt({ sessionId })`,
   `agent_stop({ sessionId })`. Events arrive on `agent://<sessionId>` as `AgentEvent` JSON
   (`{ type: "sessionStarted" | "assistantText" | "thinking" | "toolUse" | "toolResult" | "usage" |
-  "permissionRequest" | "turnFinished" | "interrupted" | "error" | "exited", ... }`, see `app/ui/src/ipc/agent.ts`).
+  "permissionRequest" | "turnFinished" | "interrupted" | "error" | "exited", ... }`, see `app/ui/src/ipc/agent.ts`),
+  each followed by `{ type: "chat", conversationId, model, cwd, turn?: { id, status, summary?, blocks:
+  [index, block][], changedFiles, awaitingPermission, working }, changedFiles, turnEnded }`: the
+  rendered conversation (`forge_agent_cli::conversation`: text blocks with their Markdown AST, tool
+  cards with paths and edit diffs, permission summaries, duration/token/cost texts). The UI only
+  applies these updates (`features/ai-chat/model.ts`).
   New CLIs implement the `AgentCli` trait in Rust and call `registerChatAgent` in the UI.
+- Markdown (`forge-markdown`): `markdown_parse({ text, flavor?: "chat" | "docs" }) -> MdBlock[]` and
+  `markdown_hover({ markdown }) -> { definition?, signature?, body, sections, deprecated? }` return a
+  safe AST (no raw HTML) that the UI renders with Solid components (`features/lsp/MarkdownDoc.tsx`,
+  `features/ai-chat/Markdown.tsx`); see `app/ui/src/ipc/markdown.ts`.
 - Editor navigation: `openFileAt(path, line?, column?, { flash?, focus? })` from
   `src/editor/views.ts` opens a workspace-relative file, puts the caret at the 1-based position,
   centers it and briefly flashes the line.
@@ -179,9 +188,15 @@ app/ui/            SolidJS UI
   `.forge/runConfigurations.local.toml`. A configuration is `{ name, type, storeAsProjectFile?,
   workingDirectory?, env?, interpreter?, interpreterOptions?, arguments?, options?: Record<string,
   string>, beforeLaunch?: { type: "runConfiguration" | "shell", value }[] }`.
-- Runs: `run_start({ request: { runId?, configuration? | command?, env?, interpreterArgs? } }) ->
+- Runs: `run_start({ request: { runId?, configuration? | command?, env?, interpreterArgs?, testRunner? } }) ->
   { runId, commandLine }` streams `run://<runId>`: `{ type: "started", pid, commandLine }`,
-  `{ type: "output", stream: "stdout" | "stderr", text }`, `{ type: "exited", code, signal }`.
+  `{ type: "output", stream: "stdout" | "stderr", text }`, `{ type: "exited", code, signal }` and
+  what the UI renders, computed by `forge-output` (re-exported as `forge_process::output`):
+  `{ type: "console", replaceLast, lines: { segments: { text, style, link? }[] }[] }` (ANSI styles,
+  `\r` progress lines, file links resolved into the project and URLs) and, with `testRunner`,
+  `{ type: "tests", nodes, summary }` (test tree node updates from TeamCity service messages,
+  parents first, plus the status line). `output_file_links({ text })` finds file links in a
+  terminal line.
   `run_stop({ runId })` (SIGTERM to the process group, SIGKILL after 2 s; `taskkill /T` on
   Windows), `run_write({ runId, data })` (stdin), `run_dispose({ runId })`,
   `run_command_line({ request })` (preview).
@@ -196,9 +211,8 @@ app/ui/            SolidJS UI
   launch(cfg, ctx) })` that accepts the configuration; `ctx.run({ env, interpreterArgs })` starts it
   in the Run tool window (e.g. with `XDEBUG_SESSION` and `-dxdebug.mode=debug`) and returns
   `{ started, exited }`.
-- Test runners parse TeamCity service messages (`src/features/run/teamcity.ts`) into the test
-  tree; PHPUnit test classes and methods get gutter run icons that create temporary
-  configurations.
+- Test runners: the backend turns TeamCity service messages into the test tree (`forge-output`);
+  PHPUnit test classes and methods get gutter run icons that create temporary configurations.
 
 ## Language servers (`forge-lsp`)
 
@@ -310,7 +324,10 @@ app/ui/            SolidJS UI
   `db_apply_changes({ id, schema, table, changes })` (one transaction, refused without a primary key),
   consoles `db_session_open|close`, `db_execute({ sessionId, sql, pageSize? })`, `db_fetch`,
   `db_set_auto_commit`, `db_commit`, `db_rollback`, `db_cancel`, `.env` suggestions
-  `db_detect_env` / `db_add_from_env`, and `db_export({ format: "csv"|"json"|"sql", dialect, table?, columns, rows, path? })`.
+  `db_detect_env` / `db_add_from_env`, `db_export({ format: "csv"|"json"|"sql", dialect, table?, columns, rows, path? })`
+  and `db_statement_at({ sql, from, to, dialect }) -> { text, start, end } | null` (what Ctrl+Enter
+  runs; editor offsets). SQL text handling (dialects, splitting, literals, row changes, export) is
+  the pure crate `forge-sql`, re-exported by `forge-db`.
 - Events: `db://dataSources` (full list after changes and after a project's sources were loaded),
   `db://session` (`SessionInfo` when a console starts/stops running or its transaction changes).
 - UI: non-file editor tabs are registered with `registerEditorView` (`src/shell/editorViews.ts`) and
@@ -382,8 +399,10 @@ app/ui/            SolidJS UI
   `doctrine_complete({ path, content, offset }) -> { from, items: { label, kind: "keyword" |
   "function" | "entity" | "alias" | "field" | "association" | "embedded", detail?, apply? }[] } |
   null`, `doctrine_goto`, `doctrine_diagnostics({ path, content }) -> { start, end, message }[]`,
-  `doctrine_gutter({ path, content })`. The UI highlights DQL itself (`features/doctrine/dql.ts`,
-  same token rules as the Rust lexer).
+  `doctrine_gutter({ path, content })`, `doctrine_highlight({ path, content }) -> { injected: [from,
+  to][], spans: { from, to, kind }[] }` (editor offsets; the editor maps old spans through edits
+  until the new answer arrives). The DQL logic is the pure crate `phpforge-dql` (sites found with
+  tree-sitter on the desktop, with its lexical finder in browser mode).
 ## Code hosts (`forge-forges`)
 
 - `CodeHost` trait with GitLab (REST v4, `PRIVATE-TOKEN`), Forgejo/Gitea (`/api/v1`, `token`) and
@@ -443,3 +462,12 @@ TypeScript because a round trip per token would be slower.
   `wasm32-unknown-unknown` target and `wasm-bindgen-cli` at the version pinned in
   `crates/forge-wasm/Cargo.toml`). The generated `app/ui/src/wasm/pkg` is committed so a plain
   `pnpm dev` works without the Rust toolchain.
+- Keep the pure part of a crate with runtime dependencies separate so it can be built to
+  WebAssembly: a small crate (`forge-output` for `forge-process`, `forge-sql` for `forge-db`,
+  `phpforge-dql` for `phpforge-orm-doctrine`) or a cargo feature (`forge-agent-cli` builds its
+  adapters and sessions only with `runtime`). Stateful models (run output, chat) are exposed to
+  WebAssembly through numeric handles (`run_output_new` / `run_output_handle`, `chat_new` /
+  `chat_apply`); the parser bridges live in `crates/forge-wasm/src/parsers/`.
+- DQL injection highlighting comes from the backend shortly after each edit (old spans are mapped
+  through the change meanwhile); it is not per keystroke-critical, so no TypeScript tokenizer is
+  kept.
