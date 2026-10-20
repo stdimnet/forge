@@ -46,6 +46,13 @@ export interface ScratchMarker {
   runName: string;
 }
 
+/** Environments of `http-client.env.json` / `http-client.private.env.json`. */
+export interface HttpEnvironments {
+  names: string[];
+  /** Used while none is selected (`dev`, else the first). */
+  default?: string;
+}
+
 export const scratchesApi = {
   list: () => invoke<ScratchFile[]>("scratches_list"),
   languages: (request: LanguageRequest) => invoke<ScratchLanguage[]>("scratches_languages", { request }),
@@ -58,8 +65,13 @@ export const scratchesApi = {
   setDataSource: (name: string, dataSourceId: string | null) =>
     invoke<ScratchFile>("scratches_set_data_source", { name, dataSourceId }),
   markers: (name: string, content: string) => invoke<ScratchMarker[]>("scratches_markers", { name, content }),
-  /** Send the request at `line` (0-based) and stream the response to `run://<runId>`. */
-  httpRun: (runId: string, content: string, line: number, env?: string) =>
-    invoke<RunStarted>("scratches_http_run", { runId, content, line, env }),
+  /**
+   * Send the request at `line` (0-based) and stream the response (and the report of its
+   * response handler) to `run://<runId>`. `source` is the editor path of the `.http` file
+   * (`scratch://<name>` or a project path); `< ./body.json` files are relative to it.
+   */
+  httpRun: (runId: string, content: string, line: number, env?: string, source?: string) =>
+    invoke<RunStarted>("scratches_http_run", { runId, content, line, env, source }),
+  httpEnvironments: () => invoke<HttpEnvironments>("scratches_http_environments"),
   onChanged: (cb: () => void) => listen<null>("scratches://changed", () => cb()),
 };

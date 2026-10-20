@@ -142,6 +142,54 @@ jobs:
       - uses: actions/checkout@v4
       - run: composer install && php artisan test
 `,
+  "http-client.env.json": `{
+  "dev": {
+    "host": "acme-shop.test"
+  },
+  "staging": {
+    "host": "staging.acme-shop.test"
+  },
+  "production": {
+    "host": "shop.acme.example"
+  }
+}
+`,
+  "http-client.private.env.json": `{
+  "dev": {
+    "password": "secret"
+  },
+  "staging": {
+    "password": "staging-secret"
+  }
+}
+`,
+  "http/orders.http": `### Create an order from a file
+POST http://{{host}}/api/orders
+Content-Type: application/json
+Authorization: Bearer {{token}}
+X-Request-Id: {{$uuid}}
+X-Sent-At: {{$isoTimestamp}}
+
+< ./new-order.json
+
+> {%
+    client.test("Order created", function () {
+        client.assert(response.status === 201, "Expected 201 but got " + response.status);
+        client.assert(response.contentType.mimeType === "application/json");
+    });
+    client.global.set("orderId", response.body.data.id);
+%}
+
+### Show the new order
+GET http://{{host}}/api/orders/{{orderId}}
+Accept: application/json
+Authorization: Bearer {{token}}
+`,
+  "http/new-order.json": `{
+  "customer_id": 7,
+  "items": [{ "sku": "MUG-001", "quantity": 2 }]
+}
+`,
   "templates/order/show.html.twig": `{# Order detail page #}
 {% extends 'base.html.twig' %}
 

@@ -1,7 +1,9 @@
 /**
  * Browser-mode scratches: files live in memory (never on disk), names, languages, gutter
- * markers, run command lines and the `.http` parser and response text come from the Rust
- * `forge-scratches` crate (WebAssembly). HTTP requests get canned responses.
+ * markers, run command lines, the `.http` parser, request resolution (environments,
+ * `client.global` variables, dynamic variables, body files), response handlers and the
+ * response text come from the Rust `forge-scratches` crate (WebAssembly). HTTP requests
+ * get canned responses.
  */
 import { emitMock, registerMock } from "@/ipc";
 import type { CommandLine, RunConfiguration, RunEvent } from "@/ipc/run";
@@ -9,6 +11,7 @@ import type { ScratchFile, ScratchLanguage, ScratchMarker, ScratchRunner } from 
 import { callWasmSync, forgeWasm, type ForgeWasm } from "@/wasm";
 import builtinPlugins from "./builtinPlugins.json";
 import { demoProjectName } from "./demoProject";
+import { mockFiles } from "./workspaceMock";
 
 const DIR = "~/.config/forge/scratches";
 const ROOT = `~/Projects/${demoProjectName}`;
@@ -29,7 +32,18 @@ $user = new User(['first_name' => 'Ada', 'last_name' => 'Lovelace', 'email' => '
 echo $user->fullName() . PHP_EOL;
 dump($user->only(['first_name', 'last_name', 'email']));
 `,
-  "rest-api.http": `@host = acme-shop.test
+  "rest-api.http": `### Log in
+POST http://{{host}}/api/login
+Content-Type: application/json
+
+{ "email": "ada@example.com", "password": "{{password}}" }
+
+> {%
+    client.global.set("token", response.body.token);
+    client.test("Logged in", function () {
+        client.assert(response.status === 200, "Expected 200 but got " + response.status);
+    });
+%}
 
 ### List paid orders
 GET http://{{host}}/api/orders?status=paid
@@ -45,11 +59,25 @@ Authorization: Bearer {{token}}
 POST http://{{host}}/api/orders
 Content-Type: application/json
 Accept: application/json
+Authorization: Bearer {{token}}
+X-Request-Id: {{$uuid}}
 
 {
   "customer_id": 7,
   "items": [{ "sku": "MUG-001", "quantity": 2 }]
 }
+
+> {%
+    client.test("Order created", () => {
+        client.assert(response.status === 201, "Expected 201 but got " + response.status);
+        client.assert(response.body.data.items.length > 0, "The order has no items");
+    });
+    client.test("Order is paid", () => {
+        client.assert(response.body.data.status === "paid", "Status is " + response.body.data.status);
+    });
+    client.global.set("orderId", response.body.data.id);
+    client.log("Created order " + response.body.data.id);
+%}
 `,
   "scratch.js": `const orders = [42.5, 19.99, 7];
 const total = orders.reduce((sum, amount) => sum + amount, 0);
@@ -226,6 +254,8 @@ function cannedResponse(method: string, url: string): DemoResponse {
     return { status, reason, headers: headers(body.length, extra), body, ms };
   };
   const path = url.replace(/^\w+:\/\/[^/]+/, "");
+  if (method === "POST" && path.startsWith("/api/login"))
+    return json(200, "OK", { token: "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOjd9.demo", expires_in: 3600 }, 71);
   if (method === "POST" && path.startsWith("/api/orders"))
     return json(201, "Created", { data: { id: 1043, status: "pending", total: "25.80", items: [{ sku: "MUG-001", quantity: 2 }] } }, 87, [
       ["Location", "http://acme-shop.test/api/orders/1043"],
@@ -255,31 +285,72 @@ function cannedResponse(method: string, url: string): DemoResponse {
   return { status: 404, reason: "Not Found", headers: headers(31), body: '{"message":"Route not found."}', ms: 23 };
 }
 
-registerMock("scratches_http_run", async ({ runId, content, line }) => {
+/** `client.global` variables of this browser session. */
+let httpGlobals: Record<string, string> = {};
+
+const envFiles = () => ({ public: mockFiles["http-client.env.json"] ?? null, private: mockFiles["http-client.private.env.json"] ?? null });
+
+registerMock("scratches_http_environments", async () => {
+  const envs = await call<{ names: string[]; default?: string }>((w) => w.scratches_http_environments, envFiles());
+  return { names: envs.names, default: envs.default };
+});
+
+interface Resolved {
+  request: { method: string; url: string };
+  problems: string[];
+  handler?: string | null;
+}
+
+registerMock("scratches_http_run", async ({ runId, content, line, env, source }) => {
   const w = await ready;
-  const request = callWasmSync<{ method: string; url: string } | null>(w.scratches_http_request, {
+  const { variables } = callWasmSync<{ variables: Record<string, string> }>(w.scratches_http_environments, {
+    ...envFiles(),
+    name: (env as string | undefined) || null,
+  });
+  const src = String(source ?? "");
+  const scratch = src.startsWith("scratch://");
+  const resolved = callWasmSync<Resolved | null>(w.scratches_http_request, {
     content,
     line,
-    env: { token: "demo-token" },
+    env: variables,
+    globals: httpGlobals,
+    timestamp: Math.floor(Date.now() / 1000),
+    seed: Math.floor(Math.random() * 2 ** 32),
+    // Body and handler files: next to a scratch, or relative to the project file.
+    base: scratch ? "" : src.split("/").slice(0, -1).join("/"),
+    files: scratch ? Object.fromEntries([...files].map(([n, f]) => [n, f.content])) : mockFiles,
   });
-  if (!request) throw new Error("no request at the caret");
+  if (!resolved) throw new Error("no request at the caret");
+  const { request } = resolved;
   const id = String(runId);
   const event = `run://${id}`;
   const commandLine = `${request.method} ${request.url}`;
   const resp = cannedResponse(request.method, request.url);
   const output = Number(w.run_output_new(JSON.stringify({ testRunner: false, root: ROOT, cwd: ROOT })));
-  const text = callWasmSync<string>(w.scratches_http_render, {
-    request,
-    response: {
-      version: "HTTP/1.1",
-      status: resp.status,
-      reason: resp.reason,
-      headers: resp.headers.map(([name, value]) => ({ name, value })),
-      body: resp.body,
-      size: resp.body.length,
-      elapsedMs: resp.ms,
-    },
-  });
+  const response = {
+    version: "HTTP/1.1",
+    status: resp.status,
+    reason: resp.reason,
+    headers: resp.headers.map(([name, value]) => ({ name, value })),
+    body: resp.body,
+    size: resp.body.length,
+    elapsedMs: resp.ms,
+  };
+  let text: string;
+  if (resolved.problems.length) {
+    text = callWasmSync<string>(w.scratches_http_render, { request, error: resolved.problems.join("\n") });
+  } else {
+    text = callWasmSync<string>(w.scratches_http_render, { request, response });
+    if (resolved.handler) {
+      const out = callWasmSync<{ globals: Record<string, string>; text: string }>(w.scratches_http_handler, {
+        script: resolved.handler,
+        response,
+        globals: httpGlobals,
+      });
+      httpGlobals = out.globals;
+      text += out.text;
+    }
+  }
   setTimeout(() => emitMock(event, { type: "started", pid: 0, commandLine } satisfies RunEvent), 0);
   setTimeout(() => {
     const rendered: RunEvent[] = JSON.parse(w.run_output_handle(JSON.stringify({ handle: output, input: { type: "output", stream: "stdout", text } })));
