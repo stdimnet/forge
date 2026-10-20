@@ -489,7 +489,7 @@ impl RunConfigurationKind for ShellScript {
 
 /// `npm run <script> [-- arguments]`. Options: `script`, `command` (default `run`),
 /// `packageJson` (its directory is the default working directory), `packageManager`
-/// (`npm`, `pnpm`, `yarn`).
+/// (`npm`, `pnpm`, `yarn`, `bun`). Only npm needs `--` before script arguments.
 struct NpmScript;
 impl RunConfigurationKind for NpmScript {
     fn id(&self) -> &str {
@@ -510,7 +510,10 @@ impl RunConfigurationKind for NpmScript {
         }
         let extra = split_args(&cfg.arguments);
         if !extra.is_empty() {
-            cmd = cmd.arg("--").args(extra);
+            if manager == "npm" {
+                cmd = cmd.arg("--");
+            }
+            cmd = cmd.args(extra);
         }
         let package_dir = Path::new(cfg.option("packageJson"))
             .parent()
@@ -714,6 +717,18 @@ mod tests {
             .unwrap();
         assert_eq!(cmd.args, ["run", "dev"]);
         assert_eq!(cmd.cwd, PathBuf::from("/proj/frontend"));
+
+        let mut c = cfg("npm", &[("script", "dev"), ("packageManager", "pnpm")]);
+        c.arguments = "--port 3000".into();
+        assert_eq!(
+            r.build(&c, &ctx()).unwrap().args,
+            ["run", "dev", "--port", "3000"]
+        );
+        c.options.insert("packageManager".into(), "npm".into());
+        assert_eq!(
+            r.build(&c, &ctx()).unwrap().args,
+            ["run", "dev", "--", "--port", "3000"]
+        );
 
         let cmd = r
             .build(
