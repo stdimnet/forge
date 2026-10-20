@@ -254,6 +254,7 @@ pub fn run() {
             commands::run::run_stop,
             commands::run::run_write,
             commands::run::run_dispose,
+            commands::output::output_file_links,
             commands::debug::debug_status,
             commands::debug::debug_listen_start,
             commands::debug::debug_listen_stop,

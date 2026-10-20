@@ -1570,6 +1570,7 @@ name = "forge-process"
 version = "0.1.0"
 dependencies = [
  "forge-core",
+ "forge-output",
  "libc",
  "portable-pty",
  "serde",
@@ -1605,6 +1606,7 @@ dependencies = [
 name = "forge-wasm"
 version = "0.1.0"
 dependencies = [
+ "forge-output",
  "serde",
  "serde_json",
  "wasm-bindgen",

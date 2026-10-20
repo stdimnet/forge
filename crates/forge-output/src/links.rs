@@ -181,6 +181,20 @@ pub fn find_links(text: &str, ctx: &LinkContext) -> Vec<FileLink> {
     links
 }
 
+/// File links of a line of terminal output that resolve into the project, with offsets in
+/// UTF-16 code units (JavaScript string indices).
+pub fn file_links_utf16(text: &str, root: Option<&str>) -> Vec<FileLink> {
+    find_links(text, &LinkContext::new(root, None))
+        .into_iter()
+        .filter(|l| !l.url)
+        .map(|mut l| {
+            l.start = crate::byte_to_utf16(text, l.start);
+            l.end = crate::byte_to_utf16(text, l.end);
+            l
+        })
+        .collect()
+}
+
 /// Map a path from output to a workspace-relative path: strips the project root, resolves
 /// `./` and `..` and keeps relative paths (relative to `cwd_rel`, the root by default).
 /// `None` for absolute paths outside the project.
@@ -279,6 +293,11 @@ mod tests {
         );
         assert_eq!(links[1].target.as_deref(), Some("app/User.php"));
         assert!(find_links("xhttps://a.b", &ctx).is_empty());
+        let l = &file_links_utf16("é /r/a/B.php:3", Some("/r"))[0];
+        assert_eq!(
+            (l.start, l.end, l.target.as_deref()),
+            (2, 14, Some("a/B.php"))
+        );
     }
 
     #[test]

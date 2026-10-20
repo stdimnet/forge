@@ -12,6 +12,7 @@ pub mod git;
 pub mod langservers;
 pub mod laravel;
 pub mod lsp;
+pub mod output;
 pub mod php;
 pub mod project;
 pub mod run;

@@ -20,7 +20,9 @@ mod utf16;
 
 pub use ansi::{AnsiParser, Segment, Style};
 pub use console::{ConsoleDelta, ConsoleLine, ConsoleModel, Span};
-pub use links::{find_file_links, find_links, to_workspace_path, FileLink, LinkContext};
+pub use links::{
+    file_links_utf16, find_file_links, find_links, to_workspace_path, FileLink, LinkContext,
+};
 pub use run::{OutputEvent, RunInput, RunOutput, RunOutputOptions};
 pub use teamcity::{
     format_duration, parse_location_hint, parse_service_message, ServiceMessage, TestCounts,
