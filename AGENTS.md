@@ -33,6 +33,7 @@ app/ui/                 SolidJS UI
   scripts/scenarios/    Playwright screenshot scenarios
 docs/                   ARCHITECTURE.md, ROADMAP.md, screenshots/
   guide/                user and developer documentation (Markdown, see guide/README.md)
+  llms.txt              LLM-friendly index of the guide (llms-full.txt: generated full text)
 .claude/skills/         step-by-step recipes for common tasks (see below)
 ```
 
@@ -110,6 +111,8 @@ Use the matching skill in `.claude/skills/<name>/SKILL.md` before starting a tas
   `cargo test --workspace`, `pnpm typecheck`, `pnpm test`, `pnpm build`.
 - UI changes need screenshots (`verify-ui-with-screenshots`), and you must look at them.
 - Every user-visible change updates the matching page in `docs/guide/` (see `docs/guide/README.md`).
+  After changing guide pages, regenerate `docs/llms-full.txt` with `pnpm docs:llms`; update
+  `docs/llms.txt` when you add or rename an important page.
 - Tests must not need network access, installed language servers or real code-host accounts.
   Use fakes and local mock servers.
 - With several git worktrees, give each its own `CARGO_TARGET_DIR`. Set
@@ -120,6 +123,11 @@ Use the matching skill in `.claude/skills/<name>/SKILL.md` before starting a tas
 - Small commits with imperative English subjects ("Add routes tool window").
 - **No co-author or other trailers** in commits. Do not mention AI tools in commit messages.
 - Commit early and often during long tasks, so work is not lost.
-- CI (`.github/workflows/ci.yml`) runs **only on manual dispatch**. Never trigger GitHub
-  workflows. Every branch must keep the `workflow_dispatch`-only trigger.
+- CI (`.github/workflows/ci.yml`) runs **only on manual dispatch**. The release workflow
+  (`.github/workflows/release.yml`) runs **only when a GitHub release is published** and uploads
+  the bundles plus the updater feed `latest.json` to it. Never trigger workflows, never create or
+  publish releases, and never add other triggers (push, pull_request, schedule) to any workflow.
+- Versions follow Pride Versioning (https://pridever.org, PROUD.DEFAULT.SHAME) and are changed
+  only with `pnpm version:bump` (see `docs/guide/developer/versioning.md`). Never bump the
+  version unless you were asked to.
 - Do not push or open pull requests unless you were asked to.

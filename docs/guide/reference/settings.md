@@ -41,6 +41,7 @@ Page id `appearance`.
 | `appearance.mainMenu` | enum: `hamburger`, `merged`, `toolbar` | `hamburger` | user | UI Options | Main menu — Hamburger menu: behind the button at the left of the main toolbar. Merged: the menu names in the main toolbar. Separate toolbar: a classic menu bar above the main toolbar. |
 | `appearance.compactMode` | bool | `false` | user | UI Options | Compact mode — Reduces paddings and the height of toolbars and tool window headers. |
 | `appearance.smoothScrolling` | bool | `true` | user *(not applied yet)* | UI Options | Smooth scrolling — Animate scrolling in lists and trees. |
+| `appearance.showSplash` | bool | `true` | user | UI Options | Show splash screen on startup — The Forge wordmark fills with molten metal while the IDE loads, and offers updates. |
 | `appearance.windowControls` | enum: `auto`, `windows`, `macos`, `gnome`, `kde`, `linux`, `native` | `auto` | user | Window | Window controls — Look of the title bar buttons of the main window and dialogs. "Native" lets the operating system draw the title bar. |
 | `appearance.showToolWindowBars` | bool | `true` | user | Tool Windows | Show tool window bars — The stripes with tool window buttons along the window edges. |
 | `appearance.showToolWindowNumbers` | bool | `true` | user *(not applied yet)* | Tool Windows | Show tool window numbers |
@@ -52,7 +53,7 @@ Page id `system`.
 
 | Key | Type | Default | Scope | Section | Title and description |
 | --- | --- | --- | --- | --- | --- |
-| `system.reopenLastProject` | bool | `true` | user *(not applied yet)* | Project | Reopen projects on startup |
+| `system.reopenLastProject` | bool | `true` | user | Project | Reopen projects on startup — the last local project, when Forge starts without a project argument |
 | `system.confirmExit` | bool | `true` | user *(not applied yet)* | Project | Confirm before exiting the IDE |
 | `system.openProjectIn` | enum: `new`, `same`, `ask` | `ask` | user *(not applied yet)* | Project | Open project in |
 | `system.defaultProjectDirectory` | path | `~/Projects` | user | Project | Default project directory — New projects are created here unless you pick another location. |
@@ -60,6 +61,18 @@ Page id `system`.
 | `system.autosave.onIdle` | bool | `false` | user *(not applied yet)* | Autosave | Save files if the IDE is idle |
 | `system.autosave.idleSeconds` | int (1–600) | `15` | user *(not applied yet)* | Autosave | Idle time (seconds) |
 | `system.syncExternalChanges` | bool | `true` | user *(not applied yet)* | Synchronization | Synchronize external changes when switching to the IDE window |
+
+### Appearance & Behavior | System Settings | Updates
+
+Page id `system.updates`. The page also shows whether this build can update, the current
+version, the last check, **Check Now** and a skipped version with **Offer Again** (stored in
+`updates.json`, see [File locations](file-locations.md)).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `updates.checkOnStartup` | bool | `true` | user | Automatic Checks | Check for updates on startup — The splash screen checks at most once a day. Help \| Check for Updates… checks at any time. |
+| `updates.channel` | enum: `stable`, `beta` | `stable` | user | Automatic Checks | Update channel — Beta also offers pre-releases. |
+| `updates.endpoint` | string | `""` | user | Advanced | Update feed URL — The latest.json of the update feed. Empty: the GitHub releases of Forge for the selected channel. Updates must be signed with the key this build was made with. |
 
 ### Keymap
 

@@ -187,6 +187,38 @@ app/ui/            SolidJS UI
   `src/editor/views.ts` opens a workspace-relative file, puts the caret at the 1-based position,
   centers it and briefly flashes the line.
 
+## Startup splash and updates (`forge-update`)
+
+- **Windows.** `tauri.conf.json` declares two windows with `create: false`: `splash`
+  (640×400, undecorated, transparent, centered, `skipTaskbar`, loads `index.html?splash`) and
+  `main`. `startup::begin` (called from `setup`) opens the splash unless `appearance.showSplash`
+  is off and runs the loading steps on the `forge-startup` thread: keymap, plugin listeners and
+  servers, the CLI / `forge://` / last project (`system.reopenLastProject`) with framework
+  detection, language server registration, file watcher, data sources, Docker, the update
+  check. Then it creates `main` hidden; the UI calls `startup_workbench_ready` after its first
+  render, Rust shows `main` and closes the splash (after 20 s it shows `main` anyway). Closing
+  the splash early quits Forge. Open requests (second launch, `forge://` links) are queued
+  until the main UI calls `companion_ui_ready`, as before.
+- **Progress.** Each step emits `splash://progress { step, detail, percent }` *before* its
+  work; the splash eases the wordmark's molten fill (`--p`) towards `percent`.
+  `splash_state() -> { progress, version, theme, offer? }` gives a freshly loaded splash the
+  current state. The splash (`src/splash/`) imports no features.
+- **Updates.** `forge-update` decides (`plan`: simulated, dev build, no public key, manual,
+  `updates.checkOnStartup`, once a day; `evaluate`: newer, channel, skipped, postponed) and
+  reads the feed (`check`, tested against a local HTTP server). The shell
+  (`commands/updates.rs`) downloads, verifies and installs with `tauri-plugin-updater` (public
+  key from `FORGE_UPDATER_PUBKEY` at build time) and restarts. An offer during startup is sent as
+  `splash://update` (`UpdateOffer { version, currentVersion, notes?, size?, summary, simulated }`)
+  and the startup thread waits for `updates_respond({ action: "download" | "later" | "skip" })`.
+  Download progress goes to every window as `updates://download { version, phase, downloaded,
+  total?, bytesPerSecond, message? }` with `phase` = `downloading | verifying | verified |
+  installing | restarting | simulated | failed`. Other commands: `updates_check() ->
+  CheckResult` (`available | upToDate | notChecked | error`, manual: ignores the daily limit
+  and skipped versions), `updates_status() -> { mode, currentVersion, endpoint, lastCheck?,
+  skippedVersion? }`, `updates_clear_skipped()`. State: `<config dir>/forge/updates.json`.
+- **Simulation.** `FORGE_SIMULATE_UPDATE=<version>` (desktop) and `?simulateUpdate=<version>`
+  (browser mode, `mock/updatesMock.ts`) offer a fake update; nothing is downloaded or installed.
+
 ## Window chrome and dialog windows (`forge-window`)
 
 - **Title bars.** All windows are undecorated (`decorations: false`); Forge draws the title

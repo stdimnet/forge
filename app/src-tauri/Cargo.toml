@@ -40,6 +40,7 @@ forge-scratches = { workspace = true, features = ["client"] }
 forge-backend.workspace = true
 forge-remote.workspace = true
 forge-window.workspace = true
+forge-update.workspace = true
 phpforge-lang-php = { path = "../../packs/phpforge/lang-php" }
 phpforge-fw-laravel = { path = "../../packs/phpforge/fw-laravel" }
 phpforge-fw-symfony = { path = "../../packs/phpforge/fw-symfony" }
@@ -53,6 +54,7 @@ luaforge-lang-lua.workspace = true
 tauri = { version = "2", features = [] }
 tauri-plugin-dialog = "2"
 tauri-plugin-deep-link = "2"
+tauri-plugin-updater = "2"
 dirs.workspace = true
 serde.workspace = true
 serde_json.workspace = true

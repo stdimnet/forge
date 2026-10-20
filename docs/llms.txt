@@ -1,0 +1,63 @@
+# Forge
+
+> Forge is a PHPStorm-style IDE for Windows, Linux and macOS with a Rust + Tauri 2 backend and a SolidJS + CodeMirror 6 UI. Layout, wording, behaviour and the default keymap follow PHPStorm; language and framework support comes in packs: PHPForge (PHP, Laravel, Symfony, Doctrine), WebForge (HTML/CSS/JS/TS, Vue, React, Angular) and LuaForge (Lua). AI providers, Claude Code / Gemini CLI chat and AI commit messages are part of the core. Links below are relative to this file (docs/); docs/llms-full.txt has every guide page in one file.
+
+Forge's rule of thumb is "Rust computes, TypeScript renders": logic lives in Rust crates (`crates/forge-*`, `packs/<pack>/<plugin>`), the UI only renders, and browser mode (`pnpm dev` in `app/ui`) runs the UI against mocks and the same Rust crates compiled to WebAssembly. Language servers are external and installed by the user.
+
+## Getting started
+
+- [Installation](guide/getting-started/installation.md): install Forge as an AppImage, deb or rpm on Linux, or an installer on Windows and macOS
+- [First start](guide/getting-started/first-start.md): the Welcome screen and its recent projects list
+- [Opening and creating projects](guide/getting-started/projects.md): open folders, recent projects, the New Project dialog and generators
+- [Project detection](guide/getting-started/project-detection.md): how Forge detects frameworks and activates plugins
+- [Coming from PHPStorm](guide/getting-started/from-phpstorm.md): what is the same, what differs and what is not there yet
+
+## User guide
+
+- [User guide overview](guide/user/index.md): all user topics
+- [Workbench](guide/user/workbench.md): main window, main menu, tool windows, editor tabs, status bar
+- [Editor](guide/user/editor.md): editing, completion, inspections, folding, multiple carets
+- [Search Everywhere and navigation](guide/user/search-everywhere.md): Search Everywhere, Go to Class/File/Symbol, Find in Files
+- [Shortcuts by topic](guide/user/shortcuts/index.md): every implemented shortcut explained by area, with screenshots
+- [Keymap reference card](guide/user/shortcuts/reference-card.md): the 60 most important shortcuts on one page
+- [PHP](guide/user/php.md): the PHP index, Structure tool window, hover docs, Generate (Alt+Insert)
+- [Laravel](guide/user/laravel.md): Blade, routes, views, config, Eloquent, the Routes tool window and Run Artisan Command
+- [Symfony](guide/user/symfony.md) and [Doctrine](guide/user/doctrine.md): framework and ORM support
+- [WebForge](guide/user/webforge.md): HTML, CSS, JavaScript/TypeScript, Vue, React, Angular
+- [Run and debug](guide/user/run-debug.md) and [Debugging](guide/user/debugging.md): run configurations, Xdebug, breakpoints
+- [Git](guide/user/git.md) and [Code hosts](guide/user/code-hosts.md): commit, branches, log, blame, pull requests
+- [AI](guide/user/ai.md): AI providers, agent chat and AI commit messages
+- [Language servers](guide/user/language-servers.md): installing and configuring external language servers
+- [Settings and themes](guide/user/settings-and-themes.md): the Settings dialog, Ember and Anvil themes
+
+## Reference
+
+- [Reference overview](guide/reference/index.md): all reference tables
+- [Keymap reference](guide/reference/keymap.md): every PHPStorm action with its shortcuts and whether Forge implements it
+- [Main menu reference](guide/reference/main-menu/index.md): every main menu entry, menu by menu
+- [Settings reference](guide/reference/settings.md): every setting key with type, default and description
+- [Plugins](guide/reference/plugins.md): built-in plugins and packs with their activation rules
+- [File types](guide/reference/file-types.md): file types and template data languages
+- [Language servers](guide/reference/language-servers.md): supported servers, commands and install options
+- [File locations](guide/reference/file-locations.md): where settings, caches, language servers, scratches and secrets are stored per OS
+- [Environment variables](guide/reference/environment-variables.md) and [CLI and links](guide/reference/cli-and-links.md)
+
+## Developer
+
+- [Developer guide overview](guide/developer/index.md): start here to work on Forge
+- [Development setup](guide/developer/dev-setup.md): toolchains, browser mode and desktop mode
+- [Repository layout](guide/developer/repo-layout.md): where crates, packs, the Tauri shell and the UI live
+- [Architecture](guide/developer/architecture.md) and [Rust computes, TypeScript renders](guide/developer/rust-computes.md)
+- [Contribution points](guide/developer/contribution-points.md): tool windows, commands, settings pages, status items, editor extensions
+- [IPC commands and browser mocks](guide/developer/ipc-and-mocks.md) and [WASM bridge](guide/developer/wasm-bridge.md)
+- [Plugins and packs](guide/developer/plugins-and-packs.md), [Settings](guide/developer/settings.md), [Keymap actions](guide/developer/keymap-actions.md), [Adding a language](guide/developer/adding-a-language.md)
+- [Quality gates](guide/developer/quality-gates.md), [Screenshots](guide/developer/screenshots.md), [Git workflow](guide/developer/git-workflow.md), [Release builds](guide/developer/release-builds.md), [Versioning](guide/developer/versioning.md)
+
+## Optional
+
+- [Full text of the guide](llms-full.txt): every guide page concatenated in reading order
+- [Crate reference](guide/developer/crates/index.md): one page per Rust crate
+- [FAQ](guide/faq.md) and [Troubleshooting](guide/troubleshooting.md)
+- [Architecture document](ARCHITECTURE.md): contribution points and shared IPC contracts in depth
+- [Roadmap](ROADMAP.md): planned work
+- [Guide conventions](guide/README.md): frontmatter contract and how the guide is maintained

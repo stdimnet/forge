@@ -21,6 +21,7 @@ not finished, the page says so.
 | [File types and syntax highlighting](file-types.md) | file type detection, highlighted languages, config formats, template data languages |
 | [Language servers](language-servers.md) | detection, installation, per-server settings, Intelephense licence |
 | [Keymap](keymap.md) | PHPStorm keymaps, changing shortcuts, contexts |
+| [Shortcuts by topic](shortcuts/index.md) | every implemented shortcut explained by topic, plus a printable [reference card](shortcuts/reference-card.md) |
 | [Settings and themes](settings-and-themes.md) | the Settings dialog, settings files, themes, window controls |
 | [Plugins and packs](plugins-and-packs.md) | packs, activation, Settings \| Plugins |
 
