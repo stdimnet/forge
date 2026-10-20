@@ -35,6 +35,10 @@ pub struct Location {
     pub offset: usize,
     pub line: usize,
     pub column: usize,
+    /// The target's line (trimmed), shown in the "Choose Declaration" popup when Go to
+    /// Declaration finds several targets.
+    #[serde(skip_serializing_if = "String::is_empty")]
+    pub preview: String,
 }
 
 impl Location {
@@ -44,6 +48,7 @@ impl Location {
             offset: pos.offset,
             line: pos.line,
             column: pos.column,
+            preview: String::new(),
         }
     }
 }
@@ -423,7 +428,26 @@ impl ProjectIndex {
     // ---- Navigation -----------------------------------------------------------------
 
     /// Go to Declaration at a UTF-16 offset of `path`.
+    /// Go to Declaration at a UTF-16 `offset`: every target, without duplicates (several open
+    /// the "Choose Declaration" popup), each with its line as `preview`.
     pub fn goto(&self, path: &str, offset: usize) -> Vec<Location> {
+        let mut out: Vec<Location> = Vec::new();
+        for mut loc in self.goto_targets(path, offset) {
+            if out.iter().any(|l| l.path == loc.path && l.line == loc.line) {
+                continue;
+            }
+            loc.preview = self
+                .texts
+                .get(&loc.path)
+                .and_then(|t| t.lines().nth(loc.line))
+                .map(|l| l.trim().chars().take(160).collect())
+                .unwrap_or_default();
+            out.push(loc);
+        }
+        out
+    }
+
+    fn goto_targets(&self, path: &str, offset: usize) -> Vec<Location> {
         let (Some(file), Some(text)) = (self.files.get(path), self.texts.get(path)) else {
             return Vec::new();
         };
@@ -437,6 +461,7 @@ impl ProjectIndex {
                         offset: 0,
                         line: 0,
                         column: 0,
+                        preview: String::new(),
                     }]
                 })
                 .unwrap_or_default();
@@ -713,6 +738,25 @@ Game.reset()
         // Locals.
         let g = p.goto("main.lua", at(MAIN, "print(p", 0) + 6);
         assert_eq!((g[0].path.as_str(), g[0].line), ("main.lua", 3));
+    }
+
+    #[test]
+    fn goto_lists_every_declaration_once_with_previews() {
+        // A global defined in two files (e.g. LÖVE callbacks overridden per state).
+        let a = "function love.draw() end\nScore = 0\n";
+        let b = "Score = 10\nfunction love.update(dt) Score = Score + dt end\n";
+        let c = "print(Score)\n";
+        let p = project(&[("a.lua", a), ("b.lua", b), ("c.lua", c)]);
+        let g = p.goto("c.lua", at(c, "Score", 0) + 1);
+        let found: Vec<_> = g
+            .iter()
+            .map(|l| (l.path.as_str(), l.line, l.preview.as_str()))
+            .collect();
+        assert!(found.contains(&("a.lua", 1, "Score = 0")), "{found:?}");
+        assert!(found.contains(&("b.lua", 0, "Score = 10")), "{found:?}");
+        let mut lines: Vec<_> = g.iter().map(|l| (l.path.clone(), l.line)).collect();
+        lines.dedup();
+        assert_eq!(lines.len(), g.len(), "no duplicates: {found:?}");
     }
 
     #[test]
