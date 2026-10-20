@@ -3,6 +3,8 @@ import { FolderOpen, FolderPlus, GitBranch, LayoutGrid, Puzzle, Search, Settings
 import { workspaceApi, type RecentProject } from "@/ipc/workspace";
 import { openWorkspace, pickAndOpenWorkspace } from "@/state/workspace";
 import { runCommand } from "@/state/commands";
+import { frameworkLabel } from "@/state/project";
+import { ProjectTypeIcon } from "@/shell/ProjectTypeIcon";
 import "./welcome.css";
 
 /** Badge color derived from the project name so each project keeps its color. */
@@ -32,6 +34,14 @@ function ProjectRow(props: { project: RecentProject }) {
         <span class="welcome-project-name">{props.project.name}</span>
         <span class="welcome-project-path">{props.project.root}</span>
       </span>
+      <Show when={props.project.primary}>
+        {(p) => (
+          <span class="welcome-project-type" title={`Detected: ${frameworkLabel(p())}`}>
+            <ProjectTypeIcon type={p().id} size={18} />
+            {frameworkLabel(p())}
+          </span>
+        )}
+      </Show>
     </button>
   );
 }
@@ -45,6 +55,7 @@ export function WelcomeScreen() {
     (recent() ?? []).filter((p) => `${p.name} ${p.root}`.toLowerCase().includes(query().toLowerCase()));
 
   const open = () => pickAndOpenWorkspace().catch((e) => setError(String(e)));
+  const newProject = () => void runCommand("NewProject");
 
   return (
     <div class="welcome">
@@ -80,7 +91,7 @@ export function WelcomeScreen() {
               <p class="muted">Create a new project to start from scratch.</p>
               <p class="muted">Open existing project from disk or version control.</p>
               <div class="welcome-big-actions">
-                <button class="welcome-big" onClick={open}>
+                <button class="welcome-big" onClick={newProject}>
                   <FolderPlus size={22} />
                   <span>New Project</span>
                 </button>
@@ -105,7 +116,9 @@ export function WelcomeScreen() {
                 onInput={(e) => setQuery(e.currentTarget.value)}
               />
             </label>
-            <button class="btn-secondary" onClick={open}>New Project</button>
+            <button class="btn-secondary" onClick={newProject}>
+              New Project
+            </button>
             <button class="btn-primary" onClick={open}>Open</button>
             <button class="btn-secondary" disabled title="Coming soon">Get from VCS</button>
           </div>
