@@ -2,13 +2,13 @@
 //! (`docker exec -it`), attaching to a container's console (`docker attach`) and a shell in
 //! a pod (`kubectl exec -it`).
 
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 
 /// Starts bash when the image has it, else sh.
 pub const SHELL_PROBE: &str =
     "if command -v bash >/dev/null 2>&1; then exec bash; else exec sh; fi";
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TerminalCommand {
     /// Terminal tab title.

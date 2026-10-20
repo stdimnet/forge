@@ -2,11 +2,11 @@
 //! and on the first `FROM` of a Dockerfile (build the image and run a container), plus the
 //! command lines those markers run.
 
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 
 use crate::compose;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub enum MarkerKind {
     ComposeAll,
@@ -14,7 +14,7 @@ pub enum MarkerKind {
     Dockerfile,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GutterMarker {
     /// 0-based line.
@@ -92,7 +92,7 @@ pub fn exposed_ports(content: &str) -> Vec<String> {
     out
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DockerfileRun {
     pub image: String,

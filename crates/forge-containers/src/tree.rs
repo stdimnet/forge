@@ -100,7 +100,7 @@ pub struct ServicesInput {
 
 // ---- targets and node ids --------------------------------------------------------------
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum Target {
     Docker,
@@ -295,7 +295,7 @@ impl Target {
 
 // ---- output ----------------------------------------------------------------------------
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Icon {
     Docker,
@@ -315,7 +315,7 @@ pub enum Icon {
     Error,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Status {
     Running,
@@ -326,7 +326,7 @@ pub enum Status {
     Busy,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Node {
     pub id: String,
@@ -1011,7 +1011,7 @@ pub fn actions(input: &ServicesInput, target: &Target) -> Vec<Action> {
 
 // ---- details ---------------------------------------------------------------------------
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Tab {
     Dashboard,
@@ -1020,7 +1020,7 @@ pub enum Tab {
     Inspection,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Row {
     pub label: String,
@@ -1032,7 +1032,7 @@ pub struct Row {
     pub status: Option<Status>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Table {
     pub columns: Vec<String>,
@@ -1042,7 +1042,7 @@ pub struct Table {
     pub status: Vec<Option<Status>>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Section {
     pub title: String,
@@ -1052,7 +1052,7 @@ pub struct Section {
     pub table: Option<Table>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Details {
     pub node_id: String,

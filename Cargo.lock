@@ -1680,6 +1680,7 @@ name = "forge-wasm"
 version = "0.1.0"
 dependencies = [
  "forge-agent-cli",
+ "forge-containers",
  "forge-filetypes",
  "forge-fuzzy",
  "forge-keymap",

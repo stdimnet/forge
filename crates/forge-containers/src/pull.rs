@@ -3,10 +3,10 @@
 //! [`PullProgress`] folds them into per-layer states, an overall percentage and the console
 //! text the UI shows.
 
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use serde_json::Value;
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Layer {
     pub id: String,
@@ -24,7 +24,7 @@ impl Layer {
     }
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PullState {
     pub image: String,

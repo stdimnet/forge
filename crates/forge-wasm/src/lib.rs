@@ -19,6 +19,7 @@ mod parsers;
 
 use wasm_bindgen::prelude::*;
 
+mod containers;
 mod filetypes;
 mod keymap;
 mod search;

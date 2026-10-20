@@ -3,9 +3,9 @@
 //! body is the raw text. [`LogDecoder`] turns body chunks into text per stream, keeping
 //! incomplete frames and UTF-8 sequences for the next chunk.
 
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub enum LogStream {
     Stdout,
@@ -21,7 +21,7 @@ impl LogStream {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LogChunk {
     pub stream: LogStream,
