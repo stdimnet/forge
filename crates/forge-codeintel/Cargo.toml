@@ -1,0 +1,12 @@
+[package]
+name = "forge-codeintel"
+description = "Code intelligence models: workspace edits with LSP positions and Find Usages grouping (pure, WebAssembly-friendly)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true
