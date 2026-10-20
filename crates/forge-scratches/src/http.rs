@@ -601,9 +601,7 @@ pub fn environment(
     let (public, private) = (parse(public), parse(private));
     let name = name
         .map(str::to_string)
-        .or_else(|| public.contains_key("dev").then(|| "dev".to_string()))
-        .or_else(|| public.keys().next().cloned())
-        .or_else(|| private.keys().next().cloned());
+        .or_else(|| default_name(&public, &private));
     let mut vars = BTreeMap::new();
     let Some(name) = name else { return vars };
     for file in [&public, &private] {
@@ -618,6 +616,39 @@ pub fn environment(
         }
     }
     vars
+}
+
+type EnvFile = serde_json::Map<String, serde_json::Value>;
+
+/// The environment used when none is selected: `dev`, else the first one.
+fn default_name(public: &EnvFile, private: &EnvFile) -> Option<String> {
+    public
+        .contains_key("dev")
+        .then(|| "dev".to_string())
+        .or_else(|| public.keys().next().cloned())
+        .or_else(|| private.keys().next().cloned())
+}
+
+/// The environments a `.http` editor offers.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Environments {
+    pub names: Vec<String>,
+    /// The one requests use while none is selected.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub default: Option<String>,
+}
+
+/// Environments of `http-client.env.json` and `http-client.private.env.json`.
+pub fn environments(public: Option<&str>, private: Option<&str>) -> Environments {
+    let parse = |text: Option<&str>| {
+        text.and_then(|t| serde_json::from_str::<EnvFile>(t).ok())
+            .unwrap_or_default()
+    };
+    Environments {
+        names: environment_names(public, private),
+        default: default_name(&parse(public), &parse(private)),
+    }
 }
 
 /// Names of the environments in `http-client.env.json` and `http-client.private.env.json`
@@ -1038,6 +1069,15 @@ https://example.com/health
             vec!["dev", "prod", "staging"]
         );
         assert!(environment_names(None, Some("broken")).is_empty());
+        let envs = environments(Some(public), Some(private));
+        assert_eq!(envs.default.as_deref(), Some("dev"));
+        assert_eq!(
+            environments(Some(r#"{"prod":{}}"#), None)
+                .default
+                .as_deref(),
+            Some("prod")
+        );
+        assert_eq!(environments(None, None), Environments::default());
     }
 
     fn strip_ansi(s: &str) -> String {

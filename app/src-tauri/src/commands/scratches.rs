@@ -192,14 +192,11 @@ fn environment_files(backend: Option<&dyn Backend>) -> (Option<String>, Option<S
 /// Environments of `http-client.env.json` and `http-client.private.env.json` for the
 /// selector in the toolbar of `.http` editors.
 #[tauri::command]
-pub async fn scratches_http_environments(state: State<'_, AppState>) -> Result<Vec<String>> {
+pub async fn scratches_http_environments(state: State<'_, AppState>) -> Result<http::Environments> {
     let backend = state.backend().ok();
     crate::commands::workspace::blocking(move || {
         let (public, private) = environment_files(backend.as_deref());
-        Ok(http::environment_names(
-            public.as_deref(),
-            private.as_deref(),
-        ))
+        Ok(http::environments(public.as_deref(), private.as_deref()))
     })
     .await
 }

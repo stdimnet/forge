@@ -1,13 +1,15 @@
 //! Scratch files (`forge-scratches`), mirroring the pure parts of the `scratches_*` IPC
 //! commands for the browser-mode mock: the language list, naming, gutter markers, run
-//! command lines and the `.http` parser and response rendering. Storage and sending stay in
-//! the mock (in memory, canned responses).
+//! command lines and the `.http` parser, request resolution (variables, dynamic variables,
+//! body files), response handlers and rendering. Storage and sending stay in the mock (in
+//! memory, canned responses).
 
 use std::cell::RefCell;
 use std::collections::BTreeMap;
 
 use forge_filetypes::{FileTypeRegistry, FileTypeSpec};
-use forge_scratches::http::{self, HttpResponse};
+use forge_scratches::handler;
+use forge_scratches::http::{self, Dynamic, HttpResponse, Resolver};
 use forge_scratches::{languages, naming, run, LanguageRequest, RunContext};
 use serde::Deserialize;
 use serde_json::json;
@@ -168,7 +170,10 @@ pub fn scratches_run_command(request_json: &str) -> String {
     }
 }
 
-/// `{ content, line, env? }` → the resolved request at `line` (`HttpRequest`) or `null`.
+/// `{ content, line, env?, globals?, timestamp?, seed?, base?, files? }` → `{ request,
+/// problems, handler }` for the request at `line`, or `null`. `files` maps paths (relative
+/// to the project or the scratches) to contents for `< ./body.json` and `> ./handler.js`,
+/// resolved against `base`, the `.http` file's directory.
 #[wasm_bindgen]
 pub fn scratches_http_request(request_json: &str) -> String {
     #[derive(Deserialize)]
@@ -177,14 +182,87 @@ pub fn scratches_http_request(request_json: &str) -> String {
         line: usize,
         #[serde(default)]
         env: BTreeMap<String, String>,
+        #[serde(default)]
+        globals: BTreeMap<String, String>,
+        #[serde(default)]
+        timestamp: u64,
+        #[serde(default)]
+        seed: u64,
+        #[serde(default)]
+        base: String,
+        #[serde(default)]
+        files: BTreeMap<String, String>,
     }
     match parse::<Req>(request_json) {
         Ok(r) => {
             let file = http::parse(&r.content);
-            let req = file
-                .request_at(r.line)
-                .map(|req| http::resolve(req, &file.variables, &r.env));
-            to_json(&req)
+            let Some(req) = file.request_at(r.line) else {
+                return "null".into();
+            };
+            let load = |path: &str| {
+                http::join_relative(&r.base, path)
+                    .and_then(|p| r.files.get(&p).cloned())
+                    .ok_or_else(|| format!("Cannot read {path}: no such file"))
+            };
+            let mut resolver = Resolver::new(
+                &r.env,
+                &r.globals,
+                &file.variables,
+                Dynamic::new(r.timestamp, r.seed),
+            )
+            .with_loader(&load);
+            let resolved = resolver.resolve(req);
+            let (handler, mut problems) = match resolver.handler(req) {
+                Ok(h) => (h, resolved.problems),
+                Err(e) => (None, [resolved.problems, vec![e]].concat()),
+            };
+            problems.dedup();
+            to_json(
+                &json!({ "request": resolved.request, "problems": problems, "handler": handler }),
+            )
+        }
+        Err(e) => e,
+    }
+}
+
+/// `{ public?, private?, name? }` → `{ names, default, variables }`: the environments of
+/// `http-client.env.json` / `http-client.private.env.json` and the variables of `name`.
+#[wasm_bindgen]
+pub fn scratches_http_environments(request_json: &str) -> String {
+    #[derive(Deserialize)]
+    struct Req {
+        public: Option<String>,
+        private: Option<String>,
+        name: Option<String>,
+    }
+    match parse::<Req>(request_json) {
+        Ok(r) => {
+            let envs = http::environments(r.public.as_deref(), r.private.as_deref());
+            to_json(&json!({
+                "names": envs.names,
+                "default": envs.default,
+                "variables": http::environment(r.public.as_deref(), r.private.as_deref(), r.name.as_deref()),
+            }))
+        }
+        Err(e) => e,
+    }
+}
+
+/// `{ script, response, globals }` → `{ report, globals, text }`: run a response handler.
+#[wasm_bindgen]
+pub fn scratches_http_handler(request_json: &str) -> String {
+    #[derive(Deserialize)]
+    struct Req {
+        script: String,
+        response: HttpResponse,
+        #[serde(default)]
+        globals: BTreeMap<String, String>,
+    }
+    match parse::<Req>(request_json) {
+        Ok(mut r) => {
+            let report = handler::run(&r.script, &r.response, &mut r.globals);
+            let text = handler::render(&report);
+            to_json(&json!({ "report": report, "globals": r.globals, "text": text }))
         }
         Err(e) => e,
     }
@@ -250,7 +328,8 @@ mod tests {
             r#"{"content":"@h = localhost\n###\nGET {{h}}/a\n###\nPOST {{h}}/b\n","line":4}"#,
         );
         let v: serde_json::Value = serde_json::from_str(&req).unwrap();
-        assert_eq!(v["url"], "http://localhost/b");
+        assert_eq!(v["request"]["url"], "http://localhost/b");
+        let req = v["request"].to_string();
         let text = scratches_http_render(&format!(
             r#"{{"request":{req},"response":{{"version":"HTTP/1.1","status":200,"reason":"OK","body":"[]","size":2,"elapsedMs":5}}}}"#
         ));
@@ -263,5 +342,35 @@ mod tests {
             cmd.contains("auto_prepend_file=/p/vendor/autoload.php"),
             "{cmd}"
         );
+    }
+
+    #[test]
+    fn http_body_files_handlers_and_environments() {
+        let out = scratches_http_request(
+            r#"{"content":"POST http://h/{{$timestamp}}\nAuthorization: Bearer {{token}}\n\n< ./order.json\n\n> {% client.global.set('id', response.body.id); %}\n","line":0,
+                "globals":{"token":"t0k"},"timestamp":42,"base":"http","files":{"http/order.json":"{\"sku\":\"MUG\"}"}}"#,
+        );
+        let v: serde_json::Value = serde_json::from_str(&out).unwrap();
+        assert_eq!(v["request"]["url"], "http://h/42");
+        assert_eq!(v["request"]["body"], r#"{"sku":"MUG"}"#);
+        assert_eq!(v["request"]["headers"][0]["value"], "Bearer t0k");
+        assert_eq!(v["problems"], json!([]));
+        assert_eq!(v["handler"], "client.global.set('id', response.body.id);");
+
+        let out = scratches_http_handler(
+            r#"{"script":"client.global.set('id', response.body.id); client.test('ok', () => client.assert(response.status === 201));",
+                "response":{"version":"HTTP/1.1","status":201,"body":"{\"id\":7}"},"globals":{}}"#,
+        );
+        let v: serde_json::Value = serde_json::from_str(&out).unwrap();
+        assert_eq!(v["globals"]["id"], "7");
+        assert!(v["text"].as_str().unwrap().contains("✓ ok"), "{out}");
+
+        let out = scratches_http_environments(
+            r#"{"public":"{\"dev\":{\"host\":\"a\"},\"prod\":{\"host\":\"b\"}}","name":"prod"}"#,
+        );
+        let v: serde_json::Value = serde_json::from_str(&out).unwrap();
+        assert_eq!(v["names"], json!(["dev", "prod"]));
+        assert_eq!(v["default"], "dev");
+        assert_eq!(v["variables"]["host"], "b");
     }
 }
