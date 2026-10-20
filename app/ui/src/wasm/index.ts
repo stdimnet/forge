@@ -14,9 +14,13 @@ let ready: Promise<ForgeWasm> | null = null;
 export function forgeWasm(): Promise<ForgeWasm> {
   ready ??= (async () => {
     if (import.meta.env.MODE === "test") {
-      // vitest runs in Node: read the file instead of fetching a URL.
-      const { readFileSync } = await import("node:fs");
-      initSync({ module: readFileSync(new URL("./pkg/forge_wasm_bg.wasm", import.meta.url)) });
+      // vitest runs in Node (cwd = app/ui): read the file instead of fetching a URL.
+      const fsModule = "node:fs";
+      const { readFileSync } = (await import(/* @vite-ignore */ fsModule)) as {
+        readFileSync: (path: string) => Uint8Array;
+      };
+      const cwd = (globalThis as unknown as { process: { cwd(): string } }).process.cwd();
+      initSync({ module: readFileSync(`${cwd}/src/wasm/pkg/forge_wasm_bg.wasm`) });
     } else {
       await init();
     }
