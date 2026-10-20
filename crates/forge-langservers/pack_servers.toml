@@ -1,0 +1,39 @@
+# Servers that language packs configure and start themselves. They are listed on the
+# Language Servers settings page (status, path, install hints) but never started from
+# here: PHPForge's `lang-php` builds their configs (Settings > Languages & Frameworks > PHP).
+
+[[language]]
+id = "php"
+name = "PHP"
+extensions = ["php", "phtml"]
+
+[[server]]
+id = "intelephense"
+name = "Intelephense"
+group = "PHP"
+languages = ["php"]
+command = "intelephense"
+args = ["--stdio"]
+plugin = "forge.php"
+homepage = "https://intelephense.com"
+license = "Proprietary (free core, premium licence key optional)"
+note = "Free by default. Enter your own licence key to unlock premium features such as rename, code actions and type hierarchy."
+install = [
+  { tool = "npm", command = ["npm", "install", "-g", "intelephense"] },
+]
+
+[[server]]
+id = "phpactor"
+name = "Phpactor"
+group = "PHP"
+languages = ["php"]
+command = "phpactor"
+args = ["language-server"]
+plugin = "forge.php"
+homepage = "https://phpactor.readthedocs.io"
+license = "MIT"
+note = "Used when Intelephense is not installed, or when chosen in the PHP settings."
+install = [
+  { tool = "composer", command = ["composer", "global", "require", "phpactor/phpactor"] },
+  { tool = "download", url = "https://github.com/phpactor/phpactor/releases" },
+]

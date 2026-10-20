@@ -81,9 +81,14 @@ impl DetectEnv {
             dirs.push(d.join("fnm/aliases/default/bin"));
         }
 
-        // pip --user / pipx, cargo, go, dotnet, gem.
+        // pip --user / pipx, composer global, cargo, go, dotnet, gem.
         if let Some(h) = home {
             dirs.push(h.join(".local/bin"));
+            dirs.push(h.join(".config/composer/vendor/bin"));
+            dirs.push(h.join(".composer/vendor/bin"));
+        }
+        if let Some(appdata) = &self.appdata {
+            dirs.push(appdata.join("Composer/vendor/bin"));
         }
         if let Some(cargo) = self
             .cargo_home

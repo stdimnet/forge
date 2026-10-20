@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 const CATALOG_TOML: &str = include_str!("../catalog.toml");
+const PACK_SERVERS_TOML: &str = include_str!("../pack_servers.toml");
 
 /// A language as detected in a project.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -200,6 +201,12 @@ impl Catalog {
         CATALOG.get_or_init(|| Catalog::parse(CATALOG_TOML).expect("built-in catalog.toml"))
     }
 
+    /// Servers that packs start themselves (Intelephense, phpactor): listed, never planned.
+    pub fn pack_servers() -> &'static Catalog {
+        static PACKS: OnceLock<Catalog> = OnceLock::new();
+        PACKS.get_or_init(|| Catalog::parse(PACK_SERVERS_TOML).expect("built-in pack_servers.toml"))
+    }
+
     pub fn language(&self, id: &str) -> Option<&Language> {
         self.languages.iter().find(|l| l.id == id)
     }
@@ -308,6 +315,11 @@ mod tests {
     fn builtin_catalog_is_consistent() {
         let c = Catalog::builtin();
         assert_eq!(c.problems(), Vec::<String>::new());
+        let packs = Catalog::pack_servers();
+        assert_eq!(packs.problems(), Vec::<String>::new());
+        for s in &packs.servers {
+            assert!(c.server(&s.id).is_none(), "{} is listed twice", s.id);
+        }
         for id in [
             "typescript-language-server",
             "vtsls",
