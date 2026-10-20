@@ -14,11 +14,13 @@ pub struct LspServerConfig {
     /// Human readable name for the status bar; defaults to the id.
     #[serde(default)]
     pub name: Option<String>,
-    /// LSP language ids this server handles, e.g. `["php"]`. The first one is used for
-    /// `didOpen` unless an extension-specific id is found in `file_extensions` order.
+    /// LSP language ids this server handles, e.g. `["php"]`. When it has one id per entry
+    /// of `file_extensions`, the id at the index of the matching extension is announced in
+    /// `didOpen` (`tsx` → `typescriptreact`); otherwise the first one is used.
     pub language_ids: Vec<String>,
     /// File extensions without the dot, e.g. `["php", "phtml"]`. Matched case-insensitively;
-    /// compound extensions like `blade.php` are supported.
+    /// compound extensions like `blade.php` are supported. An entry starting with `=` is a
+    /// whole file name (`=Dockerfile`), which beats any extension match.
     pub file_extensions: Vec<String>,
     /// Executable (looked up on `PATH` when not absolute).
     pub command: String,
@@ -41,21 +43,36 @@ impl LspServerConfig {
     /// Length of the longest configured extension matching `path`, if any. Longer matches
     /// (`blade.php`) win over shorter ones (`php`) when routing.
     pub fn match_len(&self, path: &Path) -> Option<usize> {
+        self.best_match(path).map(|(_, len)| len)
+    }
+
+    /// Index into `file_extensions` and length of the best match for `path`.
+    fn best_match(&self, path: &Path) -> Option<(usize, usize)> {
         let name = path.file_name()?.to_str()?.to_ascii_lowercase();
         self.file_extensions
             .iter()
-            .map(|e| e.trim_start_matches('.').to_ascii_lowercase())
-            .filter(|ext| {
-                name.len() > ext.len() + 1
+            .enumerate()
+            .filter_map(|(i, entry)| {
+                if let Some(exact) = entry.strip_prefix('=') {
+                    // Whole file names rank above every extension.
+                    return (exact.eq_ignore_ascii_case(&name)).then_some((i, name.len() + 1));
+                }
+                let ext = entry.trim_start_matches('.').to_ascii_lowercase();
+                (name.len() > ext.len() + 1
                     && name.ends_with(ext.as_str())
-                    && name.as_bytes()[name.len() - ext.len() - 1] == b'.'
+                    && name.as_bytes()[name.len() - ext.len() - 1] == b'.')
+                    .then_some((i, ext.len()))
             })
-            .map(|ext| ext.len())
-            .max()
+            .max_by_key(|(i, len)| (*len, std::cmp::Reverse(*i)))
     }
 
     /// Language id announced in `textDocument/didOpen`.
-    pub fn language_id_for(&self, _path: &Path) -> String {
+    pub fn language_id_for(&self, path: &Path) -> String {
+        if self.language_ids.len() == self.file_extensions.len() {
+            if let Some((i, _)) = self.best_match(path) {
+                return self.language_ids[i].clone();
+            }
+        }
         self.language_ids
             .first()
             .cloned()
@@ -125,6 +142,29 @@ mod tests {
         assert_eq!(c.match_len(Path::new("/a/php")), None);
         assert_eq!(c.match_len(Path::new("/a/x.phpx")), None);
         assert_eq!(c.match_len(Path::new("/a/xphp")), None);
+    }
+
+    #[test]
+    fn matches_whole_file_names_and_picks_language_ids_per_extension() {
+        let c = LspServerConfig {
+            language_ids: vec![
+                "typescript".into(),
+                "typescriptreact".into(),
+                "dockerfile".into(),
+            ],
+            file_extensions: vec!["ts".into(), "tsx".into(), "=Dockerfile".into()],
+            ..cfg()
+        };
+        assert_eq!(c.match_len(Path::new("/a/Dockerfile")), Some(11));
+        assert_eq!(c.match_len(Path::new("/a/x.Dockerfile")), None);
+        assert_eq!(
+            c.language_id_for(Path::new("/a/App.tsx")),
+            "typescriptreact"
+        );
+        assert_eq!(c.language_id_for(Path::new("/a/main.ts")), "typescript");
+        assert_eq!(c.language_id_for(Path::new("/a/dockerfile")), "dockerfile");
+        // Without one id per extension the first id is used.
+        assert_eq!(cfg().language_id_for(Path::new("/a/x.blade.php")), "php");
     }
 
     #[test]
