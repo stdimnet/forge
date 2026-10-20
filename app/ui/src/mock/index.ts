@@ -13,3 +13,4 @@ import "./companionMock";
 import "./terminalMock";
 import "./runMock";
 import "./debugMock";
+import "./dbMock";

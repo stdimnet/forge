@@ -1,0 +1,490 @@
+/**
+ * Query console tab: SQL editor with schema completion, Execute (Ctrl+Enter) of the
+ * statement at the caret or the selection, transaction mode, and the Output / result panes.
+ */
+import { createEffect, createMemo, createSignal, For, on, onCleanup, onMount, Show } from "solid-js";
+import { Compartment, EditorState, StateEffect, StateField } from "@codemirror/state";
+import {
+  Decoration,
+  EditorView,
+  drawSelection,
+  highlightActiveLine,
+  highlightActiveLineGutter,
+  highlightSpecialChars,
+  keymap,
+  lineNumbers,
+  type DecorationSet,
+} from "@codemirror/view";
+import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
+import { bracketMatching, indentOnInput } from "@codemirror/language";
+import { autocompletion, closeBrackets } from "@codemirror/autocomplete";
+import { highlightSelectionMatches, searchKeymap } from "@codemirror/search";
+import {
+  Check,
+  ChevronDown,
+  ChevronFirst,
+  ChevronLeft,
+  ChevronRight,
+  Database,
+  Download,
+  Play,
+  Square,
+  Table2,
+  Undo2,
+  ScrollText,
+} from "lucide-solid";
+import { forgeEditorTheme, forgeHighlight } from "@/editor/forgeTheme";
+import { registerView } from "@/editor/views";
+import { updateContent, type EditorTab } from "@/state/editor";
+import { getSetting } from "@/state/settings";
+import { shortcutLabel } from "@/keymap";
+import { dbApi, dialectOf, type Cell, type ColumnMeta, type SessionInfo, type SortKey, type StatementResult } from "@/ipc/db";
+import { DataGrid } from "./DataGrid";
+import { ContextMenu, type MenuItem } from "./ContextMenu";
+import { gridColumns } from "./grid";
+import { statementAt } from "./sqlText";
+import { connect, defaultSchema, openDataSources, parseConsolePath, sourceById, states, tableInfo } from "./store";
+import { consoles } from "./controllers";
+import { sqlWithSchema } from "./completion";
+import { exportMenu } from "./exporting";
+
+const errorText = (e: unknown) => (e instanceof Error ? e.message : String(e));
+
+interface LogLine {
+  time: string;
+  kind: "sql" | "info" | "error";
+  text: string;
+}
+
+interface ResultTab {
+  key: number;
+  title: string;
+  sql: string;
+  columns: ColumnMeta[];
+  rows: Cell[][];
+  hasMore: boolean;
+  offset: number;
+  elapsedMs: number;
+  table?: string;
+}
+
+const now = () => {
+  const d = new Date();
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+};
+
+const rowsText = (n: number) => `${n} row${n === 1 ? "" : "s"}`;
+
+/** Table a simple `SELECT … FROM [schema.]table` reads from. */
+export function sourceTable(sqlText: string): string | undefined {
+  const m = /\bfrom\s+[`"]?(\w+)[`"]?(?:\s*\.\s*[`"]?(\w+)[`"]?)?/i.exec(sqlText);
+  if (!m || /\bjoin\b/i.test(sqlText)) return undefined;
+  return m[2] ?? m[1];
+}
+
+// Brief highlight of the statement that was just executed.
+const flashEffect = StateEffect.define<{ from: number; to: number } | null>();
+const flashField = StateField.define<DecorationSet>({
+  create: () => Decoration.none,
+  update(deco, tr) {
+    deco = deco.map(tr.changes);
+    for (const e of tr.effects) {
+      if (e.is(flashEffect)) deco = e.value && e.value.to > e.value.from ? Decoration.set([Decoration.mark({ class: "cm-db-executed" }).range(e.value.from, e.value.to)]) : Decoration.none;
+    }
+    return deco;
+  },
+  provide: (f) => EditorView.decorations.from(f),
+});
+
+function ResultView(props: { result: ResultTab; dsId: string; onPage: (offset: number) => void; pageSize: number }) {
+  const [sort, setSort] = createSignal<SortKey[]>([]);
+  const [menu, setMenu] = createSignal<{ x: number; y: number; items: MenuItem[] } | null>(null);
+  const ds = () => sourceById(props.dsId);
+  const table = () => (props.result.table ? tableInfo(props.dsId, defaultSchema(props.dsId), props.result.table) : undefined);
+  const columns = createMemo(() => gridColumns(props.result.columns, table()));
+  const rows = createMemo(() => {
+    const keys = sort();
+    if (!keys.length) return props.result.rows;
+    const idx = keys.map((k) => ({ i: props.result.columns.findIndex((c) => c.name === k.column), desc: k.desc }));
+    const cmp = (a: Cell, b: Cell) => {
+      if (a === b) return 0;
+      if (a === null) return -1;
+      if (b === null) return 1;
+      const x = Number(a);
+      const y = Number(b);
+      if (typeof a !== "object" && typeof b !== "object" && !Number.isNaN(x) && !Number.isNaN(y)) return x - y;
+      return String(a).localeCompare(String(b));
+    };
+    return [...props.result.rows].sort((a, b) => {
+      for (const k of idx) {
+        const c = cmp(a[k.i], b[k.i]);
+        if (c) return k.desc ? -c : c;
+      }
+      return 0;
+    });
+  });
+  const onSort = (column: string) => {
+    const cur = sort().find((k) => k.column === column);
+    setSort(!cur ? [{ column, desc: false }] : !cur.desc ? [{ column, desc: true }] : []);
+  };
+  const first = () => (props.result.rows.length ? props.result.offset + 1 : 0);
+  return (
+    <div class="db-result">
+      <div class="db-toolbar small">
+        <button class="icon-btn db-tool" title="First Page" disabled={props.result.offset === 0} onClick={() => props.onPage(0)}>
+          <ChevronFirst size={15} />
+        </button>
+        <button class="icon-btn db-tool" title="Previous Page" disabled={props.result.offset === 0} onClick={() => props.onPage(Math.max(0, props.result.offset - props.pageSize))}>
+          <ChevronLeft size={15} />
+        </button>
+        <span class="db-paging">
+          {first()}-{props.result.offset + props.result.rows.length}
+          <Show when={!props.result.hasMore && props.result.offset === 0}>
+            <span class="muted"> of {props.result.rows.length}</span>
+          </Show>
+        </span>
+        <button class="icon-btn db-tool" title="Next Page" disabled={!props.result.hasMore} onClick={() => props.onPage(props.result.offset + props.pageSize)}>
+          <ChevronRight size={15} />
+        </button>
+        <span class="db-sep" />
+        <button
+          class="icon-btn db-tool"
+          title="Export Data"
+          onClick={(e) => {
+            const r = e.currentTarget.getBoundingClientRect();
+            setMenu({
+              x: r.left,
+              y: r.bottom + 2,
+              items: exportMenu(() => ({
+                dialect: dialectOf(ds()?.driver ?? "mysql"),
+                table: props.result.table,
+                columns: props.result.columns.map((c) => c.name),
+                rows: rows(),
+              })),
+            });
+          }}
+        >
+          <Download size={14} />
+        </button>
+        <span class="db-spacer" />
+        <span class="db-status muted">
+          {rowsText(props.result.rows.length)}
+          {props.result.hasMore ? "+" : ""} · {props.result.elapsedMs} ms
+        </span>
+      </div>
+      <DataGrid
+        columns={columns()}
+        rows={rows()}
+        rowOffset={props.result.offset}
+        sort={sort()}
+        onSort={onSort}
+        nullText={getSetting<string>("database.showNullAs", "<null>") ?? "<null>"}
+        emptyText="The query returned no rows"
+      />
+      <Show when={menu()}>{(m) => <ContextMenu {...m()} onClose={() => setMenu(null)} />}</Show>
+    </div>
+  );
+}
+
+export function ConsoleView(props: { tab: EditorTab }) {
+  const loc = parseConsolePath(props.tab.path)!;
+  const ds = () => sourceById(loc.id);
+  const dialect = () => dialectOf(ds()?.driver ?? "mysql");
+  const pageSize = () => ds()?.options.pageSize ?? getSetting<number>("database.pageSize", 500) ?? 500;
+
+  let host!: HTMLDivElement;
+  let body!: HTMLDivElement;
+  let view: EditorView | undefined;
+  const language = new Compartment();
+
+  const [session, setSession] = createSignal<SessionInfo | null>(null);
+  const [running, setRunning] = createSignal(false);
+  const [log, setLog] = createSignal<LogLine[]>([]);
+  const [results, setResults] = createSignal<ResultTab[]>([]);
+  const [active, setActive] = createSignal<"output" | number>("output");
+  const [editorShare, setEditorShare] = createSignal(0.5);
+  const [menu, setMenu] = createSignal<{ x: number; y: number; items: MenuItem[] } | null>(null);
+  let resultSeq = 0;
+
+  const autoCommit = () => session()?.autoCommit ?? ds()?.options.autoCommit ?? true;
+  const txOpen = () => !!session()?.txOpen;
+  const schemaName = () => defaultSchema(loc.id);
+  const prompt = () => schemaName() || ds()?.name || "db";
+
+  const append = (kind: LogLine["kind"], text: string) => setLog((l) => [...l.slice(-400), { time: now(), kind, text }]);
+
+  const unlisten = dbApi.onSession((s) => {
+    if (s.id === session()?.id) setSession(s);
+  });
+  onCleanup(() => void unlisten.then((u) => u()));
+
+  async function ensureSession(): Promise<SessionInfo> {
+    const cur = session();
+    if (cur) return cur;
+    if (!(await connect(loc.id))) throw new Error(states[loc.id]?.error ?? `Cannot connect to ${ds()?.name ?? loc.id}`);
+    const s = await dbApi.openSession(loc.id);
+    setSession(s);
+    append("info", `Connected to ${ds()?.name ?? loc.id}`);
+    return s;
+  }
+
+  async function run(sql: string): Promise<StatementResult[]> {
+    const s = await ensureSession();
+    try {
+      return await dbApi.execute(s.id, sql, pageSize());
+    } catch (e) {
+      // The connection was closed (Disconnect, data source changed): reconnect once.
+      if (!/unknown console session/i.test(errorText(e))) throw e;
+      setSession(null);
+      const again = await ensureSession();
+      return dbApi.execute(again.id, sql, pageSize());
+    }
+  }
+
+  async function execute(): Promise<void> {
+    if (!view || running()) return;
+    const text = view.state.doc.toString();
+    const sel = view.state.selection.main;
+    const st = statementAt(text, sel.from, sel.to, dialect());
+    if (!st) return;
+    view.dispatch({ effects: flashEffect.of({ from: st.start, to: st.end }) });
+    setTimeout(() => view?.dispatch({ effects: flashEffect.of(null) }), 900);
+    setRunning(true);
+    try {
+      const res = await run(st.text);
+      const tabs: ResultTab[] = [];
+      let failed = false;
+      for (const r of res) {
+        append("sql", r.sql);
+        if (r.error) {
+          failed = true;
+          append("error", r.error);
+        } else if (r.returnsRows) {
+          append("info", `${rowsText(r.rows.length)}${r.hasMore ? " (more available)" : ""} retrieved starting from 1 in ${r.elapsedMs} ms`);
+          const table = sourceTable(r.sql);
+          tabs.push({
+            key: ++resultSeq,
+            title: table ?? `Result ${tabs.length + 1}`,
+            sql: r.sql,
+            columns: r.columns,
+            rows: r.rows,
+            hasMore: r.hasMore,
+            offset: 0,
+            elapsedMs: r.elapsedMs,
+            table,
+          });
+        } else {
+          append("info", r.rowsAffected ? `${rowsText(r.rowsAffected)} affected in ${r.elapsedMs} ms` : `completed in ${r.elapsedMs} ms`);
+        }
+      }
+      if (tabs.length) setResults(tabs);
+      setActive(failed || !tabs.length ? "output" : 0);
+    } catch (e) {
+      append("error", errorText(e));
+      setActive("output");
+    } finally {
+      setRunning(false);
+    }
+  }
+
+  async function page(index: number, offset: number): Promise<void> {
+    const r = results()[index];
+    const s = session();
+    if (!r || !s) return;
+    try {
+      const p = await dbApi.fetch(s.id, r.sql, offset, pageSize());
+      setResults((list) => list.map((x, i) => (i === index ? { ...x, rows: p.rows, hasMore: p.hasMore, offset, elapsedMs: p.elapsedMs, columns: p.columns.length ? p.columns : x.columns } : x)));
+    } catch (e) {
+      append("error", errorText(e));
+    }
+  }
+
+  const cancel = () => {
+    const s = session();
+    if (s && running()) void dbApi.cancel(s.id);
+  };
+
+  async function setMode(auto: boolean): Promise<void> {
+    try {
+      const s = await ensureSession();
+      setSession(await dbApi.setAutoCommit(s.id, auto));
+      append("info", auto ? "Switched to auto-commit mode" : "Switched to manual commit mode");
+    } catch (e) {
+      append("error", errorText(e));
+    }
+  }
+
+  async function endTx(commit: boolean): Promise<void> {
+    const s = session();
+    if (!s) return;
+    try {
+      setSession(commit ? await dbApi.commit(s.id) : await dbApi.rollback(s.id));
+      append("sql", commit ? "commit" : "rollback");
+    } catch (e) {
+      append("error", errorText(e));
+    }
+  }
+
+  consoles.set(props.tab.path, { execute, cancel, focus: () => view?.focus() });
+  onCleanup(() => {
+    consoles.delete(props.tab.path);
+    const s = session();
+    if (s) void dbApi.closeSession(s.id).catch(() => undefined);
+  });
+
+  const schemaInfos = () => Object.values(states[loc.id]?.introspected ?? {});
+  const languageExt = () => sqlWithSchema(dialect(), schemaInfos(), schemaName());
+
+  onMount(() => {
+    view = new EditorView({
+      parent: host,
+      state: EditorState.create({
+        doc: props.tab.content,
+        extensions: [
+          lineNumbers(),
+          highlightActiveLine(),
+          highlightActiveLineGutter(),
+          highlightSpecialChars(),
+          drawSelection(),
+          history(),
+          indentOnInput(),
+          bracketMatching(),
+          closeBrackets(),
+          autocompletion({ activateOnTyping: true }),
+          highlightSelectionMatches(),
+          keymap.of([indentWithTab, ...defaultKeymap, ...historyKeymap, ...searchKeymap]),
+          forgeEditorTheme,
+          forgeHighlight,
+          flashField,
+          language.of(languageExt()),
+          EditorView.updateListener.of((u) => {
+            if (u.docChanged) updateContent(props.tab.path, u.state.doc.toString());
+          }),
+        ],
+      }),
+    });
+    const unregister = registerView(props.tab.path, view);
+    onCleanup(() => {
+      unregister();
+      view?.destroy();
+    });
+    // Connect right away so completion knows the schema.
+    void connect(loc.id);
+    queueMicrotask(() => view?.focus());
+  });
+
+  // New metadata (connect, refresh): update completion.
+  createEffect(on([schemaInfos, dialect, schemaName], () => view?.dispatch({ effects: language.reconfigure(languageExt()) }), { defer: true }));
+
+  const startResize = (e: MouseEvent) => {
+    e.preventDefault();
+    const rect = body.getBoundingClientRect();
+    const move = (ev: MouseEvent) => setEditorShare(Math.min(0.85, Math.max(0.15, (ev.clientY - rect.top) / rect.height)));
+    const up = () => {
+      window.removeEventListener("mousemove", move);
+      window.removeEventListener("mouseup", up);
+    };
+    window.addEventListener("mousemove", move);
+    window.addEventListener("mouseup", up);
+  };
+
+  const txMenu = (e: MouseEvent) => {
+    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    setMenu({
+      x: r.left,
+      y: r.bottom + 2,
+      items: [
+        { label: "Auto", icon: autoCommit() ? <Check size={13} /> : undefined, run: () => void setMode(true) },
+        { label: "Manual", icon: !autoCommit() ? <Check size={13} /> : undefined, run: () => void setMode(false) },
+      ],
+    });
+  };
+
+  return (
+    <div class="db-console" data-db-path={props.tab.path}>
+      <div class="db-toolbar">
+        <button
+          class="icon-btn db-tool db-run"
+          title={`Execute (${shortcutLabel("Console.Jdbc.Execute")})`}
+          disabled={running()}
+          onClick={() => void execute()}
+        >
+          <Play size={15} />
+        </button>
+        <button class="icon-btn db-tool db-stop" title="Cancel Running Statements" disabled={!running()} onClick={cancel}>
+          <Square size={13} />
+        </button>
+        <span class="db-sep" />
+        <button class="db-chip-btn" classList={{ manual: !autoCommit(), open: txOpen() }} title="Transaction Mode" onClick={txMenu}>
+          Tx: {autoCommit() ? "Auto" : "Manual"}
+          <ChevronDown size={12} />
+        </button>
+        <button class="icon-btn db-tool db-commit" title="Commit" disabled={autoCommit() || !txOpen()} onClick={() => void endTx(true)}>
+          <Check size={15} />
+        </button>
+        <button class="icon-btn db-tool" title="Rollback" disabled={autoCommit() || !txOpen()} onClick={() => void endTx(false)}>
+          <Undo2 size={15} />
+        </button>
+        <Show when={running()}>
+          <span class="db-running">
+            <span class="db-spinner" /> Executing…
+          </span>
+        </Show>
+        <span class="db-spacer" />
+        <button class="db-target" title="Data source properties" onClick={() => openDataSources({ select: loc.id })}>
+          <Database size={13} />
+          <span>{ds()?.name ?? loc.id}</span>
+          <Show when={schemaName()}>
+            <ChevronRight size={12} class="muted" />
+            <span class="muted">{schemaName()}</span>
+          </Show>
+        </button>
+      </div>
+      <div class="db-console-body" ref={body}>
+        <div class="db-console-editor" style={{ flex: `0 0 ${results().length || log().length ? `${editorShare() * 100}%` : "100%"}` }}>
+          <div class="code-editor" ref={host} />
+        </div>
+        <Show when={results().length || log().length}>
+          <div class="db-hsplit" onMouseDown={startResize} />
+          <div class="db-results">
+            <div class="db-result-tabs" role="tablist">
+              <button class="db-result-tab" classList={{ active: active() === "output" }} onClick={() => setActive("output")}>
+                <ScrollText size={13} />
+                Output
+              </button>
+              <For each={results()}>
+                {(r, i) => (
+                  <button class="db-result-tab" classList={{ active: active() === i() }} onClick={() => setActive(i())} title={r.sql}>
+                    <Table2 size={13} />
+                    {r.title}
+                  </button>
+                )}
+              </For>
+            </div>
+            <Show
+              when={active() !== "output" && results()[active() as number]}
+              fallback={
+                <div class="db-output" tabIndex={0}>
+                  <For each={log()}>
+                    {(l) => (
+                      <div class={`db-log ${l.kind}`}>
+                        <Show when={l.kind === "sql"} fallback={<span class="db-log-time">[{l.time}]</span>}>
+                          <span class="db-log-prompt">{prompt()}&gt;</span>
+                        </Show>
+                        <span class="db-log-text">{l.text}</span>
+                      </div>
+                    )}
+                  </For>
+                </div>
+              }
+            >
+              {(r) => <ResultView result={r()} dsId={loc.id} pageSize={pageSize()} onPage={(o) => void page(active() as number, o)} />}
+            </Show>
+          </div>
+        </Show>
+      </div>
+      <Show when={menu()}>{(m) => <ContextMenu {...m()} onClose={() => setMenu(null)} />}</Show>
+    </div>
+  );
+}

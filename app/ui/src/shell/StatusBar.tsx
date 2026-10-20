@@ -6,6 +6,7 @@ import { workspace } from "@/state/workspace";
 import { currentBranch } from "@/state/vcs";
 import { statusItems } from "@/features/statusItems";
 import { languageLabel } from "@/editor/languages";
+import { editorViewFor } from "./editorViews";
 
 export function StatusBar() {
   const tab = activeTab;
@@ -13,7 +14,12 @@ export function StatusBar() {
     <footer class="status-bar">
       <div class="status-left">
         <span class="status-item">{workspace()?.name}</span>
-        <For each={tab()?.path.split("/") ?? []}>
+        <For each={(() => {
+          const t = tab();
+          if (!t) return [];
+          const view = editorViewFor(t);
+          return view ? (view.breadcrumbs?.(t) ?? [t.name]) : t.path.split("/");
+        })()}>
           {(p) => (
             <>
               <ChevronRight size={11} class="muted" />
@@ -25,7 +31,7 @@ export function StatusBar() {
       </div>
       <div class="status-right">
         <For each={statusItems().filter((s) => s.align === "right")}>{(s) => <Dynamic component={s.component} />}</For>
-        {tab() && (
+        {tab() && !tab()!.view && (
           <>
             <button class="status-item">
               {tab()!.cursor.line}:{tab()!.cursor.col}

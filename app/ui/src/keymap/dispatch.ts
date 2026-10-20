@@ -70,7 +70,8 @@ export function focusContextOf(el: Element | null): FocusContext {
     (el.matches("input") && !/^(checkbox|radio|button|submit|range|color)$/.test((el as HTMLInputElement).type));
   if (el.closest(".cm-editor")) return textInput && !el.classList.contains("cm-content") ? "input" : "editor";
   if (textInput) return "input";
-  if (el.closest(".tool-window")) return "toolwindow";
+  // Panels in the editor area that act like tool windows (data editors) opt in.
+  if (el.closest(".tool-window, [data-focus-context='toolwindow']")) return "toolwindow";
   return "global";
 }
 

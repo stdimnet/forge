@@ -20,3 +20,4 @@ import "./terminal";
 import "./run";
 import "./debug";
 import "./debug/runIntegration";
+import "./database";
