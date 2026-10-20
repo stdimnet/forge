@@ -647,6 +647,16 @@
           "section": "Code Vision",
           "project": false,
           "order": 21
+        },
+        {
+          "key": "httpClient.environment",
+          "title": "Environment",
+          "description": "Environment of http-client.env.json (and http-client.private.env.json) that requests of .http files run with. Empty: dev, else the first one; $none: no environment. Chosen in the toolbar of .http editors.",
+          "type": "string",
+          "default": "",
+          "group": "tools.http-client",
+          "project": true,
+          "order": 0
         }
       ],
       "lspServers": [],
