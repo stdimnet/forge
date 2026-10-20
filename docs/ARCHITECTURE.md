@@ -80,6 +80,33 @@ app/ui/            SolidJS UI
   (`{ type: "sessionStarted" | "assistantText" | "thinking" | "toolUse" | "toolResult" | "usage" |
   "permissionRequest" | "turnFinished" | "interrupted" | "error" | "exited", ... }`, see `app/ui/src/ipc/agent.ts`).
   New CLIs implement the `AgentCli` trait in Rust and call `registerChatAgent` in the UI.
+- Editor navigation: `openFileAt(path, line?, column?, { flash?, focus? })` from
+  `src/editor/views.ts` opens a workspace-relative file, puts the caret at the 1-based position,
+  centers it and briefly flashes the line.
+
+## Opening files from outside (`forge-open`, Browser Companion)
+
+- Entry points: the browser extension (`browser-extension/`) via the local HTTP API, `forge://`
+  links (`tauri-plugin-deep-link`, scheme registered in `tauri.conf.json`) and the launcher
+  (`forge path/to/file:12[:3]`, `forge --line 12 file`, `forge file 12 3`). A second launch is
+  forwarded to the running window by `tauri-plugin-single-instance`.
+- Links: `forge://open?file=<abs or project-relative>&line=&column=` (aliases `url=file://…`, `l`,
+  `col`) and `forge://open-symbol?name=UserCardComponent&kind=component`.
+- HTTP API on `127.0.0.1:63342` (next nine ports if taken; settings `browserCompanion.*`):
+  `GET /api/forge/ping`, `POST /api/forge/pair { code, name }`, `POST /api/forge/open
+  { file, line?, column?, project?, symbol? }`, `POST /api/forge/open-symbol { name, kind? }`.
+  Requests need a loopback `Host`, no web-page `Origin` (extension origins only) and, except
+  ping/pair, `Authorization: Bearer <token>`. Tokens come from one-time 6-digit pairing codes;
+  only their SHA-256 hashes are stored (`<config dir>/forge/browser-companion.json`).
+- Every request is resolved against the open and recent projects into `companion://open`
+  `{ source: "browser" | "link" | "cli", client?, file, line?, column?, target }` with
+  `target.kind` `open` (shown right away), `recent` or `outside` (the UI asks first unless the
+  source is the CLI). Requests that arrive before the UI is ready are returned by
+  `companion_ui_ready()`. Directories from a second launch arrive as `companion://open-project`.
+- IPC (Settings | Tools | Browser Companion): `companion_status`, `companion_start_pairing`,
+  `companion_cancel_pairing`, `companion_revoke_client({ id })`, `companion_open_link({ url })`,
+  `companion_project_profile({ envKeys, files })`, `companion_set_env_var({ file: ".env" |
+  ".env.local", key, value })`; `companion://status` reports server restarts.
 
 ## Language servers (`forge-lsp`)
 

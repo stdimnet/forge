@@ -115,6 +115,13 @@ pnpm test        # vitest: path mapping, link parsing, framework resolvers, API 
 pnpm build
 ```
 
+To work on the extension without running the IDE, start the API on its own; it prints a
+pairing code and every request it receives:
+
+```sh
+cargo run -p forge-open --example companion_server -- /path/to/project
+```
+
 `docs/screenshots/browser-companion-extension.png` is produced by the `browser-companion-extension`
 scenario in `app/ui/scripts/scenarios/browser-companion.mjs`, which loads `dist/chrome` into
 Chromium and drives the demo against a stand-in for Forge's API.
