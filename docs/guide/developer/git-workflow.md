@@ -23,6 +23,11 @@ typecheck/test/build on Ubuntu, and fmt, clippy and tests on Ubuntu, Windows and
 trigger workflows yourself, and every branch must keep the `workflow_dispatch`-only trigger.
 Run the [quality gates](quality-gates.md) locally instead.
 
+`.github/workflows/release.yml` runs **only when a GitHub release is published**. It builds the
+Linux, Windows and macOS bundles (with the remote agents), signs the updater artifacts and uploads
+them plus `latest.json` to that release. Only the project owner publishes releases; never add
+push, pull request or schedule triggers to any workflow. See [Release builds](release-builds.md).
+
 ## Worktrees
 
 Several git worktrees can build in parallel; give each its own `CARGO_TARGET_DIR` (a shared target

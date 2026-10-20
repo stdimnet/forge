@@ -120,6 +120,8 @@ Use the matching skill in `.claude/skills/<name>/SKILL.md` before starting a tas
 - Small commits with imperative English subjects ("Add routes tool window").
 - **No co-author or other trailers** in commits. Do not mention AI tools in commit messages.
 - Commit early and often during long tasks, so work is not lost.
-- CI (`.github/workflows/ci.yml`) runs **only on manual dispatch**. Never trigger GitHub
-  workflows. Every branch must keep the `workflow_dispatch`-only trigger.
+- CI (`.github/workflows/ci.yml`) runs **only on manual dispatch**. The release workflow
+  (`.github/workflows/release.yml`) runs **only when a GitHub release is published** and uploads
+  the bundles plus the updater feed `latest.json` to it. Never trigger workflows, never create or
+  publish releases, and never add other triggers (push, pull_request, schedule) to any workflow.
 - Do not push or open pull requests unless you were asked to.
