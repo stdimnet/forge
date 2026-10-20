@@ -30,6 +30,7 @@ cargo test --workspace
 pnpm typecheck
 pnpm test        # vitest
 pnpm build
+pnpm version:check   # Cargo.toml, tauri.conf.json and package.json agree
 ```
 
 ## Browser extension (`browser-extension`, only when it changed)

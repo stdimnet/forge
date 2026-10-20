@@ -51,7 +51,7 @@ Forge's rule of thumb is "Rust computes, TypeScript renders": logic lives in Rus
 - [Contribution points](guide/developer/contribution-points.md): tool windows, commands, settings pages, status items, editor extensions
 - [IPC commands and browser mocks](guide/developer/ipc-and-mocks.md) and [WASM bridge](guide/developer/wasm-bridge.md)
 - [Plugins and packs](guide/developer/plugins-and-packs.md), [Settings](guide/developer/settings.md), [Keymap actions](guide/developer/keymap-actions.md), [Adding a language](guide/developer/adding-a-language.md)
-- [Quality gates](guide/developer/quality-gates.md), [Screenshots](guide/developer/screenshots.md), [Git workflow](guide/developer/git-workflow.md), [Release builds](guide/developer/release-builds.md)
+- [Quality gates](guide/developer/quality-gates.md), [Screenshots](guide/developer/screenshots.md), [Git workflow](guide/developer/git-workflow.md), [Release builds](guide/developer/release-builds.md), [Versioning](guide/developer/versioning.md)
 
 ## Optional
 
