@@ -25,7 +25,9 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use forge_core::search::{FindRequest, FindResult};
-use forge_core::{FileEntry, FileMatch, FsChanges, ProjectFiles, Result};
+use forge_core::{
+    CollectRequest, FileEntry, FileMatch, FsChanges, ProjectFiles, Result, SourceFile,
+};
 use forge_langservers::install::InstallOutcome;
 use forge_langservers::managed::PackageUpdate;
 use forge_lsp::ServerLauncher;
@@ -167,6 +169,9 @@ pub trait Backend: Send + Sync {
     fn find_files(&self, query: &str, limit: usize) -> Result<Vec<FileMatch>>;
     /// Find in Files: text search over the project honoring `.gitignore`.
     fn find_in_files(&self, req: &FindRequest) -> Result<FindResult>;
+    /// The text of every project file with one of `req.extensions`, in one call (a
+    /// language index of a remote project is built from one round trip).
+    fn collect_files(&self, req: &CollectRequest) -> Result<Vec<SourceFile>>;
 
     /// Where git runs for this project.
     fn git(&self) -> Arc<dyn GitExec>;

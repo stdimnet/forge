@@ -6,7 +6,7 @@ use std::sync::{Arc, Mutex, Weak};
 use std::time::Duration;
 
 use forge_core::search::{FindRequest, FindResult};
-use forge_core::{FileEntry, FileMatch, Result};
+use forge_core::{CollectRequest, FileEntry, FileMatch, Result, SourceFile};
 use forge_lsp::launch::{ServerIo, ServerProcess};
 use forge_lsp::{LspServerConfig as LspConfig, ServerLauncher};
 use forge_process::{CommandLine, PtyEvent, PtySink, RunEvent, RunSink};
@@ -469,6 +469,11 @@ impl Backend for RemoteBackend {
     fn find_in_files(&self, req: &FindRequest) -> Result<FindResult> {
         self.shared
             .call(Call::FindInFiles(req.clone()), GIT_NETWORK_TIMEOUT)
+    }
+
+    fn collect_files(&self, req: &CollectRequest) -> Result<Vec<SourceFile>> {
+        self.shared
+            .call(Call::CollectFiles(req.clone()), SCAN_TIMEOUT)
     }
 
     fn git(&self) -> Arc<dyn GitExec> {

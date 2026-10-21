@@ -174,6 +174,7 @@ impl Agent {
             Call::Delete { path } => reply(self.backend()?.delete(&path)?),
             Call::FindFiles { query, limit } => reply(self.backend()?.find_files(&query, limit)?),
             Call::FindInFiles(req) => reply(self.backend()?.find_in_files(&req)?),
+            Call::CollectFiles(req) => reply(self.backend()?.collect_files(&req)?),
             Call::Git(req) => reply(LocalGit.exec(&req)?),
             Call::Detect => reply(self.backend()?.detect_project()?),
             Call::Watch => {

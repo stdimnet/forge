@@ -194,6 +194,20 @@ async fn files_search_git_and_detection() {
         assert_eq!(found.files[0].path, "app/Models/Order.php");
         assert_eq!(found.files[0].matches[0].line, 6);
 
+        // Language indexes get every matching file in one call (vendor/ is ignored).
+        let files = b
+            .collect_files(&forge_core::CollectRequest {
+                extensions: vec!["php".into()],
+                max_files: 100,
+                max_file_size: 1 << 20,
+                max_total: 1 << 20,
+            })
+            .unwrap();
+        let paths: Vec<&str> = files.iter().map(|f| f.path.as_str()).collect();
+        assert!(paths.contains(&"app/Models/Order.php"), "{paths:?}");
+        assert!(paths.iter().all(|p| !p.starts_with("vendor/")), "{paths:?}");
+        assert!(files.iter().any(|f| f.text.contains("function total")));
+
         let info = b.detect_project().unwrap();
         assert!(info.uses("php"));
 

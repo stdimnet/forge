@@ -1,13 +1,14 @@
 //! LuaForge IPC: the project's Lua index (`luaforge-lang-lua`) for Search Everywhere, the
 //! Structure tool window, hover documentation, Go to Declaration and gutter run icons, plus
-//! Reformat Code through StyLua. Files are read through the project's backend, so remote
+//! Reformat Code through StyLua. Files are read through the project's backend (all Lua files
+//! of a remote project in one round trip) and StyLua runs where the project lives, so remote
 //! projects work too; offsets crossing the boundary are UTF-16 (JS strings).
 
 use std::sync::{Arc, Mutex};
 
 use forge_backend::process_io::capture;
 use forge_backend::Backend;
-use forge_core::{ForgeError, Result};
+use forge_core::{CollectRequest, ForgeError, Result};
 use forge_process::CommandLine;
 use luaforge_lang_lua::hover::Hover;
 use luaforge_lang_lua::run::RunMarker;
@@ -27,7 +28,10 @@ pub const STYLUA_PATH_KEY: &str = "lua.stylua.path";
 /// Lua files beyond this many are not indexed.
 const MAX_FILES: usize = 20_000;
 /// Larger files (generated code, bundled libraries) are skipped.
-const MAX_FILE_SIZE: usize = 2 * 1024 * 1024;
+const MAX_FILE_SIZE: u64 = 2 * 1024 * 1024;
+/// Indexing stops after this much Lua source (keeps one reply well below the agent
+/// protocol's frame limit).
+const MAX_TOTAL_SIZE: u64 = 48 * 1024 * 1024;
 
 /// The index of the open project, keyed by its root.
 #[derive(Default)]
@@ -35,8 +39,9 @@ pub struct LuaState {
     index: Arc<Mutex<Option<(String, ProjectIndex)>>>,
 }
 
+/// `user@host:/path` for a remote project, so equal paths on two hosts differ.
 fn root_key(backend: &dyn Backend) -> String {
-    backend.info().root.display().to_string()
+    backend.info().display_root()
 }
 
 fn require_paths(state: &AppState) -> Vec<String> {
@@ -53,13 +58,14 @@ fn build_index(backend: &dyn Backend, mut paths: Vec<String>) -> Result<ProjectI
     }
     let mut index = ProjectIndex::new(&paths);
     index.set_name(&backend.info().name);
-    let files = backend.find_files(".lua", MAX_FILES)?;
-    for f in files.iter().filter(|f| f.path.ends_with(".lua")) {
-        match backend.read_file(&f.path) {
-            Ok(text) if text.len() <= MAX_FILE_SIZE => index.set_file(&f.path, &text),
-            Ok(_) => {}
-            Err(e) => tracing::debug!("lua index: cannot read {}: {e}", f.path),
-        }
+    let files = backend.collect_files(&CollectRequest {
+        extensions: vec!["lua".into()],
+        max_files: MAX_FILES,
+        max_file_size: MAX_FILE_SIZE,
+        max_total: MAX_TOTAL_SIZE,
+    })?;
+    for f in &files {
+        index.set_file(&f.path, &f.text);
     }
     Ok(index)
 }
@@ -146,7 +152,7 @@ pub async fn lua_files_changed(
         }
         for path in changed.iter().filter(|p| p.ends_with(".lua")) {
             match backend.read_file(path) {
-                Ok(text) if text.len() <= MAX_FILE_SIZE => index.set_file(path, &text),
+                Ok(text) if text.len() as u64 <= MAX_FILE_SIZE => index.set_file(path, &text),
                 _ => index.remove_file(path),
             }
         }
