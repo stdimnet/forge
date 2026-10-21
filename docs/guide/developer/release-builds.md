@@ -41,6 +41,12 @@ Publishing a GitHub release runs `.github/workflows/release.yml`, and nothing el
 Forge's updater reads `https://github.com/Reeperk/Forge/releases/latest/download/latest.json`,
 so a published (not draft, not pre-release) release is what users get offered.
 
+Linux jobs (remote agents, Linux bundles) run on the project's self-hosted runner (labels
+`self-hosted`, `Linux`, `X64`); Windows and macOS bundles run on GitHub's runners. The runner
+needs the Debian packages listed in `.github/scripts/linux-deps.sh`. The script installs missing
+ones when the runner is root or has passwordless sudo; otherwise the job stops and prints the
+`apt-get install` command to run once as root on the runner.
+
 The workflow needs, once, in the repository settings:
 
 | Name | Kind | Value |

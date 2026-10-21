@@ -9707,6 +9707,12 @@ Publishing a GitHub release runs `.github/workflows/release.yml`, and nothing el
 Forge's updater reads `https://github.com/Reeperk/Forge/releases/latest/download/latest.json`,
 so a published (not draft, not pre-release) release is what users get offered.
 
+Linux jobs (remote agents, Linux bundles) run on the project's self-hosted runner (labels
+`self-hosted`, `Linux`, `X64`); Windows and macOS bundles run on GitHub's runners. The runner
+needs the Debian packages listed in `.github/scripts/linux-deps.sh`. The script installs missing
+ones when the runner is root or has passwordless sudo; otherwise the job stops and prints the
+`apt-get install` command to run once as root on the runner.
+
 The workflow needs, once, in the repository settings:
 
 | Name | Kind | Value |
@@ -9928,7 +9934,9 @@ Source: docs/guide/developer/git-workflow.md
 `.github/workflows/ci.yml` runs **only on manual dispatch** (`workflow_dispatch`): UI
 typecheck/test/build on Ubuntu, and fmt, clippy and tests on Ubuntu, Windows and macOS. Never
 trigger workflows yourself, and every branch must keep the `workflow_dispatch`-only trigger.
-Run the [quality gates](docs/guide/developer/quality-gates.md) locally instead.
+Run the [quality gates](docs/guide/developer/quality-gates.md) locally instead. When the owner dispatches it, the UI
+and Linux jobs run on the project's self-hosted runner (`.github/scripts/linux-deps.sh` checks
+its system packages), Windows and macOS on GitHub's runners.
 
 `.github/workflows/release.yml` runs **only when a GitHub release is published**. It builds the
 Linux, Windows and macOS bundles (with the remote agents), signs the updater artifacts and uploads

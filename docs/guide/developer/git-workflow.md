@@ -21,7 +21,9 @@ tags: [git, workflow, ci, commits]
 `.github/workflows/ci.yml` runs **only on manual dispatch** (`workflow_dispatch`): UI
 typecheck/test/build on Ubuntu, and fmt, clippy and tests on Ubuntu, Windows and macOS. Never
 trigger workflows yourself, and every branch must keep the `workflow_dispatch`-only trigger.
-Run the [quality gates](quality-gates.md) locally instead.
+Run the [quality gates](quality-gates.md) locally instead. When the owner dispatches it, the UI
+and Linux jobs run on the project's self-hosted runner (`.github/scripts/linux-deps.sh` checks
+its system packages), Windows and macOS on GitHub's runners.
 
 `.github/workflows/release.yml` runs **only when a GitHub release is published**. It builds the
 Linux, Windows and macOS bundles (with the remote agents), signs the updater artifacts and uploads
