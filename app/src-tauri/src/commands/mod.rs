@@ -12,6 +12,7 @@ pub mod doctrine;
 pub mod editor;
 pub mod forges;
 pub mod git;
+pub mod injections;
 pub mod keymap;
 pub mod langservers;
 pub mod laravel;

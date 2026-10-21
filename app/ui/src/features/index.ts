@@ -30,6 +30,7 @@ import "./run";
 import "./debug";
 import "./debug/runIntegration";
 import "./database";
+import "./injections";
 import "./scratches";
 import "./lua";
 import "./services";

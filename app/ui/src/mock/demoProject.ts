@@ -189,6 +189,68 @@ final class InvoiceService
     }
 }
 `,
+  "app/Reports/SalesReport.php": `<?php
+
+declare(strict_types=1);
+
+namespace App\\Reports;
+
+use Illuminate\\Support\\Facades\\DB;
+
+final class SalesReport
+{
+    public function __construct(private readonly \\PDO $pdo)
+    {
+    }
+
+    public function latestPaid(): array
+    {
+        return $this->pdo->query('SELECT number, total, currency, placed_at FROM orders WHERE status = \\'paid\\' ORDER BY total DESC LIMIT 20')->fetchAll();
+    }
+
+    /** Revenue per customer of the last days. */
+    public function topCustomers(int $days = 30): array
+    {
+        return DB::select('SELECT u.name, SUM(o.total) AS revenue
+            FROM orders o
+            JOIN users u ON u.id = o.user_id
+            WHERE o.created_at >= NOW() - INTERVAL ? DAY
+            GROUP BY u.name
+            ORDER BY revenue DESC
+            LIMIT 10', [$days]);
+    }
+
+    public function paidOrders(): array
+    {
+        $statement = $this->pdo->prepare(<<<SQL
+            SELECT id, total, status
+            FROM orders
+            WHERE status = :status
+            SQL);
+        $statement->execute(['status' => 'paid']);
+
+        return $statement->fetchAll();
+    }
+
+    public function isOrderNumber(string $value): bool
+    {
+        return preg_match('/^ORD-(\\d{4})-[A-Z]{3}$/', $value) === 1;
+    }
+
+    public function chartOptions(): array
+    {
+        // language=JSON
+        $defaults = '{"type": "bar", "stacked": true, "colors": ["#3574f0", "#5fb865"]}';
+
+        return json_decode($defaults, true);
+    }
+
+    public function badge(string $label): string
+    {
+        return '<span class="badge badge-success">' . e($label) . '</span>';
+    }
+}
+`,
   "public/index.php": `<?php
 
 use Illuminate\\Foundation\\Application;

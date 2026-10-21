@@ -36,6 +36,7 @@ import "./doctrineMock";
 import "./forgesMock";
 import "./markdownMock";
 import "./liveTemplatesMock";
+import "./injectionsMock";
 import "./servicesMock";
 import "./webMock";
 import "./windowMock";

@@ -1,0 +1,149 @@
+/* ---------- Injected language fragments in strings ---------- */
+.cm-injected {
+  background: color-mix(in srgb, var(--success) 6%, transparent);
+}
+/* Injected tokens override the host string color, whichever span ends up inside. */
+.cm-inj-keyword,
+.cm-inj-keyword * { color: var(--syn-keyword) !important; }
+.cm-inj-string,
+.cm-inj-string * { color: var(--syn-string) !important; }
+.cm-inj-number,
+.cm-inj-number * { color: var(--syn-number) !important; }
+.cm-inj-comment,
+.cm-inj-comment * { color: var(--syn-comment) !important; font-style: italic; }
+.cm-inj-variable,
+.cm-inj-variable * { color: var(--syn-variable) !important; }
+.cm-inj-function,
+.cm-inj-function * { color: var(--syn-function) !important; }
+.cm-inj-type,
+.cm-inj-type * { color: var(--syn-type) !important; }
+.cm-inj-attribute,
+.cm-inj-attribute * { color: var(--syn-attribute) !important; }
+.cm-inj-tag,
+.cm-inj-tag * { color: var(--syn-tag) !important; }
+.cm-inj-operator,
+.cm-inj-operator * { color: var(--syn-operator) !important; }
+.cm-inj-escape,
+.cm-inj-escape * { color: var(--syn-attribute) !important; font-weight: 600; }
+.cm-inj-invalid,
+.cm-inj-invalid * { color: var(--danger) !important; }
+
+.cm-line-marker.marker-inject-run { color: var(--success); }
+.cm-line-marker.marker-inject-run svg { fill: currentColor; }
+
+/* ---------- Edit Fragment: docked below the host editor ---------- */
+.cm-panels-bottom .cm-fragment-panel {
+  display: flex;
+  flex-direction: column;
+  height: 180px;
+  border-top: 1px solid var(--border-strong);
+  background: var(--bg-editor);
+}
+.cm-fragment-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 4px 0 10px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-panel);
+  color: var(--fg-muted);
+  font-family: var(--font-ui, inherit);
+  font-size: var(--fs-small);
+}
+.cm-fragment-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cm-fragment-close {
+  width: 22px;
+  height: 22px;
+}
+.cm-fragment-body {
+  flex: 1;
+  min-height: 0;
+}
+.cm-fragment-body .cm-editor {
+  height: 100%;
+}
+.cm-fragment-body .cm-scroller {
+  overflow: auto;
+}
+
+/* ---------- Inject language chooser ---------- */
+.injection-chooser {
+  min-width: 200px;
+}
+.injection-language-icon {
+  color: var(--fg-muted);
+}
+
+/* ---------- Settings | Editor | Language Injections ---------- */
+.inj-page {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 640px;
+}
+.inj-intro code {
+  font-family: var(--font-mono);
+}
+.inj-table-box {
+  max-width: none;
+  max-height: 380px;
+  overflow: auto;
+}
+.inj-table td {
+  height: 26px;
+}
+.inj-table .inj-group-row td {
+  padding-top: 6px;
+  color: var(--fg-muted);
+  font-weight: 600;
+}
+.inj-table .inj-group-row:hover {
+  background: transparent;
+}
+.inj-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.inj-name input {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+.inj-name svg {
+  flex: none;
+  color: var(--fg-muted);
+}
+.inj-table tr.off .inj-name span {
+  color: var(--fg-muted);
+}
+.inj-scope {
+  color: var(--fg-muted);
+}
+.inj-details {
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-panel);
+}
+.inj-details-title {
+  margin-bottom: 2px;
+  font-weight: 500;
+}
+.inj-uninjected {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+.inj-restore {
+  font-size: var(--fs-small);
+}

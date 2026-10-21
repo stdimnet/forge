@@ -772,6 +772,26 @@
           "order": 20
         },
         {
+          "key": "editor.injections.disabled",
+          "title": "Disabled injection rules",
+          "description": "Ids of the built-in injection rules that are turned off, e.g. `php-html` or `js-sql-keywords`. `// language=` comments always inject.",
+          "type": "list",
+          "default": [],
+          "group": "editor.injections",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "editor.injections.uninjected",
+          "title": "Un-injected places",
+          "description": "Strings turned off with Un-inject Language (`path#key`); a string is injected again when its text changes.",
+          "type": "list",
+          "default": [],
+          "group": "editor.injections",
+          "project": true,
+          "order": 10
+        },
+        {
           "key": "notifications.balloons",
           "title": "Display balloon notifications",
           "type": "bool",

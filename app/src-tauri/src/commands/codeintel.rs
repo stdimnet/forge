@@ -30,6 +30,7 @@ use serde::Serialize;
 use serde_json::Value;
 use tauri::{AppHandle, State};
 
+use crate::commands::injections;
 use crate::commands::library::{
     read_library, stub_path, LibraryState, LIBRARY_PREFIX, STUBS_PREFIX,
 };
@@ -1105,6 +1106,7 @@ pub async fn code_context_actions(
         };
         let backend = c.backend.clone();
         let p = path.clone();
+        let content = content.clone();
         let (text, intentions) = blocking(move || {
             let text = current_text(&backend, &p, &content);
             let offset = codeintel::utf16_offset(&text, Position::new(line, character));
@@ -1142,6 +1144,25 @@ pub async fn code_context_actions(
             }
             actions.push(php_action(&path, &text, i));
         }
+    }
+    // Language injections: Inject language, Un-inject, Edit Fragment.
+    if forge_injections::Host::of_path(&path).is_some() {
+        let injection_settings = injections::settings_of(&ws.read_settings());
+        let backend = c.backend.clone();
+        let p = path.clone();
+        actions.extend(
+            blocking(move || {
+                let text = current_text(&backend, &p, &content);
+                let offset = codeintel::utf16_offset(&text, Position::new(line, character));
+                Ok(injections::context_actions(
+                    &p,
+                    &text,
+                    offset,
+                    injection_settings,
+                ))
+            })
+            .await?,
+        );
     }
     let actions = order_actions(actions);
     Ok(ContextActionsAnswer {

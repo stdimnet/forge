@@ -25,6 +25,7 @@ mod codeintel;
 mod containers;
 mod editing;
 mod filetypes;
+mod injections;
 mod keymap;
 mod livetemplates;
 mod lua;

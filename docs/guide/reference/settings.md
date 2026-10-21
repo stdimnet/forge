@@ -206,6 +206,15 @@ Page id `editor.liveTemplates`.
 | `editor.liveTemplates.custom` | objects | `[]` | user |  | User and changed templates — New templates and changes to built-in ones: group, abbreviation, description, text, contexts (comma-separated), variables (JSON), builtin (id of the replaced built-in template) and removed. |
 | `editor.liveTemplates.disabled` | list | `[]` | user |  | Disabled templates — Ids (`group/abbreviation`) of templates that do not expand. |
 
+### Editor | Language Injections
+
+Page id `editor.injections`.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `editor.injections.disabled` | list | `[]` | user |  | Disabled injection rules — Ids of the built-in injection rules that are turned off, e.g. `php-html` or `js-sql-keywords`. `// language=` comments always inject. |
+| `editor.injections.uninjected` | list | `[]` | user, project |  | Un-injected places — Strings turned off with Un-inject Language (`path#key`); a string is injected again when its text changes. |
+
 ### Editor | TODO
 
 Page id `editor.todo`.
