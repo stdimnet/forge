@@ -44,6 +44,14 @@ pnpm tauri dev    # desktop app with the real Rust backend
 | `/?welcome` | the Welcome screen |
 | `/?welcome=remote` | Welcome › Remote Development |
 | `?windowControls=gnome` (also `windows`, `macos`, `kde`, `linux`) | force a title bar style |
+| `/?splash` | the startup splash with the mocked loading steps, then the workbench |
+| `/?splash&simulateUpdate=0.2.0` | the splash offering a simulated update (fake download, nothing installed) |
+| `/?splash&splashPause=40` | the splash held at about 40 % (screenshots) |
+| `/?simulateUpdate=0.2.0` | Help \| Check for Updates… offers a simulated update |
+
+Desktop development builds never check for real updates. `FORGE_SIMULATE_UPDATE=0.2.0 pnpm
+tauri dev` shows the update panel on the splash with a fake download instead; see
+[Release builds](release-builds.md#updates-and-signing).
 
 Browser mode is the fastest loop for UI work and screenshots. Use `pnpm tauri dev` to test the
 real file system, git, language servers, PTYs, databases and Docker.
@@ -60,7 +68,7 @@ real file system, git, language servers, PTYs, databases and Docker.
 | `pnpm agents [x86_64\|aarch64]` | build the static remote agents into `target/agents/` |
 | `pnpm langservers install [--accept-intelephense-licence] [package…]` | pre-install npm language servers (and Node.js if missing) into Forge's data directory, like the IDE does; also `updates`, `where` |
 | `pnpm release …` | agents + `tauri build` with bundled agents |
-| `pnpm tauri …` | the Tauri CLI (runs from `app/`) |
+| `pnpm tauri …` | the Tauri CLI (runs from `app/` through `scripts/tauri.mjs`, which adds the updater signing settings to `tauri build`) |
 
 ## Keeping Rust builds manageable
 

@@ -5,13 +5,12 @@
 import { createEffect, createRoot, on } from "solid-js";
 import { isDialogWindow } from "@/shell/window/mode";
 import { render } from "solid-js/web";
-import { keymap } from "@codemirror/view";
-import { Prec } from "@codemirror/state";
 import { ListTree } from "lucide-solid";
 import { registerToolWindow } from "@/features/registry";
 import { registerStatusItem } from "@/features/statusItems";
 import { registerSettingsPage } from "@/features/settingsPages";
 import { registerEditorExtension } from "@/editor/extensions";
+import { isLibraryPath } from "@/ipc/codeintel";
 import { registerCommand } from "@/state/commands";
 import { toggleToolWindow } from "@/state/layout";
 import { workspace } from "@/state/workspace";
@@ -27,19 +26,15 @@ import { IndexingStatus, PhpVersionStatus, indexWorkspace } from "./status";
 import { PhpSettingsPage } from "./PhpSettingsPage";
 import "./php.css";
 
-const isPhp = (path: string) => /\.(php|phtml|inc)$/i.test(path) && !path.endsWith(".blade.php");
+const isPhp = (path: string) =>
+  /\.(php|phtml|inc)$/i.test(path) && !path.endsWith(".blade.php") && !isLibraryPath(path);
 
 registerEditorExtension(({ path }) =>
   isPhp(path)
     ? [
+        // Alt+Insert, Ctrl+O and Ctrl+I reach the `php.*` commands through the keymap
+        // (Generate / OverrideMethods / ImplementMethods aliases in forge-keymap).
         viewTracker(path),
-        Prec.high(
-          keymap.of([
-            { key: "Alt-Insert", mac: "Cmd-n", run: (view) => (void openGeneratePopup(path, view), true) },
-            { key: "Ctrl-o", mac: "Ctrl-o", run: (view) => (void startGenerate(path, view, "overrideMethods"), true) },
-            { key: "Ctrl-i", mac: "Ctrl-i", run: (view) => (void startGenerate(path, view, "implementMethods"), true) },
-          ]),
-        ),
         indexHover(path),
       ]
     : null,

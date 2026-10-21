@@ -29,6 +29,12 @@ pnpm install
 | UI only in the browser, mocked backend with a demo Laravel project | `pnpm dev` → http://localhost:1420 |
 | Welcome screen in browser mode | http://localhost:1420/?welcome |
 | Desktop app with the real Rust backend | `pnpm tauri dev` |
+| Startup splash in browser mode (then the workbench) | http://localhost:1420/?splash |
+| Splash with a simulated update (fake download, nothing installed) | http://localhost:1420/?splash&simulateUpdate=0.2.0 |
+| Desktop dev build with a simulated update on the splash | `FORGE_SIMULATE_UPDATE=0.2.0 pnpm tauri dev` |
+
+Development builds and browser mode never check for real updates; use the simulation above.
+`?splashPause=40` holds the browser-mode splash at about 40 % for screenshots.
 
 Browser mode is the fastest loop: every IPC command has a mock in `app/ui/src/mock/`.
 Use it for UI work and screenshots; use `pnpm tauri dev` to test real file system, git, LSP, PTY.

@@ -27,6 +27,7 @@ Forge uses the platform's standard folders (Rust's `dirs` crate):
 | `dataSources.toml` | global database data sources (no passwords) |
 | `browser-companion.json` | paired browsers (SHA-256 hashes of their tokens only) |
 | `dialog-windows.json` | size and position of dialog windows |
+| `updates.json` | update checks: time of the last check, the skipped version and a postponed ("Later") version |
 | `scratches/` | scratch files and buffers |
 | `scratches.json` | per-scratch options (the data source of SQL scratches) |
 
@@ -35,6 +36,7 @@ Forge uses the platform's standard folders (Rust's `dirs` crate):
 | Path | Content |
 | --- | --- |
 | `php-index/<project>-<hash>.json` | PHP index cache per project |
+| `php-stubs/<version>/` | JetBrains phpstorm-stubs for Go to Declaration on PHP's own symbols (downloaded on first use, checked against a pinned digest of its files, with its `LICENSE`) |
 | `intelephense/` | Intelephense's storage (`storagePath`) |
 | `jdtls/…` | workspace data of the Java language server |
 

@@ -9,7 +9,7 @@ import { workspaceApi, type FileEntry } from "@/ipc/workspace";
 import { showBalloon } from "@/keymap";
 import { closeTab, editor, isDirty, openFile, saveFile } from "@/state/editor";
 import { workspace } from "@/state/workspace";
-import { refreshDirs, revealPath } from "./ProjectView";
+import { projectTree, refreshDirs, revealPath } from "./ProjectView";
 import { openFindInFiles } from "@/features/find/state";
 
 const parentOf = (path: string) => path.split("/").slice(0, -1).join("/");
@@ -58,6 +58,24 @@ async function newEntry(dir: string, kind: "file" | "dir"): Promise<void> {
   refreshDirs([dir, parentOf(path)]);
   revealPath(kind === "file" ? parentOf(path) : path);
   if (kind === "file") await openFile(path);
+}
+
+/**
+ * File | New | File / Directory (`NewFile`, `NewDir`): in the folder selected in the Project
+ * view, else the folder of the active editor, else the project root, like PHPStorm.
+ */
+export async function newEntryFromSelection(kind: "file" | "dir"): Promise<void> {
+  const active = editor.active && !editor.active.includes(":") ? editor.active : null;
+  const path = projectTree.selected() ?? active;
+  let dir = "";
+  if (path) {
+    const entry = await workspaceApi
+      .listDir(parentOf(path))
+      .then((entries) => entries.find((e) => e.path === path) ?? null)
+      .catch(() => null);
+    dir = entry ? targetDir(entry) : parentOf(path);
+  }
+  await newEntry(dir, kind);
 }
 
 async function rename(entry: FileEntry): Promise<void> {

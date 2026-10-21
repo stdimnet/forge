@@ -16,7 +16,8 @@ tags: [environment, variables, reference]
 | `FORGE_GIT` | git executable to use instead of `git` on the `PATH` (e.g. a bundled git on Windows) |
 | `FORGE_REMOTE_AGENT_DIR` | folder with the remote agent binaries (`forge-remote-agent-<arch>-linux[.gz]`), searched before the bundle's `agents/` folder |
 | `FORGE_AGENT_LOG` | log filter of the remote agent on the host (e.g. `debug`); the agent logs to stderr |
-| `RUST_LOG` | log filter of the desktop app (e.g. `RUST_LOG=forge_lsp=debug`) |
+| `RUST_LOG` | log filter of the desktop app (e.g. `RUST_LOG=forge_lsp=debug`; `forge_app_lib::startup=debug` logs the splash steps) |
+| `FORGE_SIMULATE_UPDATE` | e.g. `0.2.0`: the splash and Help \| Check for Updates… offer this version as a simulated update with a fake download; nothing is installed (for development, works in any build) |
 | `APPIMAGE` | set by the AppImage runtime; Forge then registers the `forge://` scheme at startup |
 | `APPIMAGE_EXTRACT_AND_RUN` | read by the AppImage runtime: `1` runs without FUSE (see [Installation](../getting-started/installation.md#running-the-appimage-without-fuse)) |
 
@@ -68,3 +69,5 @@ tags: [environment, variables, reference]
 | `CARGO_TARGET_DIR` | separate target folder per git worktree |
 | `CARGO_PROFILE_DEV_DEBUG=0` | smaller debug builds |
 | `CC_<triple>`, `CFLAGS_<triple>`, `CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER` | cross-compiling the remote agents (`pnpm agents`) |
+| `FORGE_UPDATER_PUBKEY` | at build time: the updater public key compiled into the app; without it the build never checks for updates (see [Release builds](../developer/release-builds.md#updates-and-signing)) |
+| `TAURI_SIGNING_PRIVATE_KEY`, `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | at build time: sign the updater artifacts; `pnpm tauri build` / `pnpm release` turn on `createUpdaterArtifacts` only when the key is set |

@@ -148,9 +148,15 @@ When a provider finds several targets, show the shared popup instead of guessing
 ```ts
 import { chooseDeclarationAt } from "@/features/navigation/chooseDeclaration";
 
-chooseDeclarationAt(view, pos, targets /* { path, line, column?, preview? }[], 0-based */,
+chooseDeclarationAt(view, pos, targets /* { path, line, column?, preview?, name?, container? }[], 0-based */,
   { title: "Choose Declaration" });
 ```
+
+After the providers, Go to Declaration asks Rust (`code_goto_declaration`: language servers,
+then the PHP index and the PHP stubs). On a declaration the answer has `onDeclaration` and the
+UI shows the usages (`showUsagesAt` in `features/codeintel/usages.ts`); targets outside the
+project come as read-only `library://…` paths. Ctrl+hover asks `code_symbol_info` for the range
+to underline and the declaration for the tooltip.
 
 ## Main menu
 
@@ -225,7 +231,8 @@ in `dialog-windows.json`); in browser mode it opens in-page. The dialog ends wit
   merge requests and issues. `activeTab()` stays file-only; check `isCustomTab(id)`.
 - `registerEditorView` + `openViewTab` — database consoles and table editors.
 - `registerFileSystem({ prefix: "scratch://", read, write, icon, breadcrumbs })` — files that
-  live elsewhere (scratches).
+  live elsewhere (scratches, read-only `library://` files: PHP stubs and files outside the
+  project, see `features/codeintel/library.ts`).
 
 ## Project awareness
 

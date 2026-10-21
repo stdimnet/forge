@@ -21,11 +21,64 @@ All launcher forms are listed in [CLI arguments and forge:// links](../reference
 If Forge is already running, a second `forge …` call is handed to the running window instead
 of starting another instance.
 
-Without a project argument Forge shows the **Welcome screen**. It does not reopen the last
-project automatically yet.
+Without a project argument Forge reopens the last local project you worked on, if it still
+exists ("Reopen projects on startup", `system.reopenLastProject` under Settings | Appearance &
+Behavior | System Settings). With that setting off, or when there is no recent project, it shows
+the **Welcome screen**. Remote projects are not reopened automatically.
 
-> **Note:** the setting "Reopen projects on startup" (`system.reopenLastProject`) is listed
-> under Settings | Appearance & Behavior | System Settings but is not applied yet.
+## The splash screen
+
+![Splash screen while Forge loads](../../screenshots/splash-progress.png)
+
+While Forge starts, a small window shows the Forge wordmark. Its letters fill with molten
+metal as the loading steps finish, so the fill is the real progress. The line at the bottom
+names the current step:
+
+| Step | What happens |
+| --- | --- |
+| Loading the core | settings and the keymap |
+| Loading plugins | the built-in plugins' settings and servers (Browser Companion) |
+| Opening project | the project from the command line, a `forge://` link or the last session, and its framework detection |
+| Starting background services | language server registration, file watcher, data sources, Docker / Kubernetes |
+| Checking for updates | at most once a day, see [Updates](#updates) |
+| Opening workbench | the main window loads; the splash closes when it is shown |
+
+Turn the splash off with "Show splash screen on startup" (`appearance.showSplash`) under
+Settings | Appearance & Behavior | Appearance. Forge then starts without it and shows the
+main window when loading is done.
+
+## Updates
+
+![Update offer on the splash screen](../../screenshots/splash-update.png)
+
+Release builds check for a new version on the last splash step, at most once a day. When one
+exists, the splash shows **Update available** with the download size and three buttons:
+
+| Button | Effect |
+| --- | --- |
+| **Download and restart** | downloads the update, checks its signature against Forge's signing key, installs it and restarts Forge |
+| **Later** | opens the workbench; Forge asks again the next day |
+| **Skip this version** | this version is never offered automatically again |
+
+![Downloading an update](../../screenshots/splash-downloading.png)
+
+While downloading, the panel shows the megabytes, the speed and "Signature: verifying… →
+valid". An update whose signature does not match is not installed. When the download fails
+(offline, bad signature) the splash says so and opens the workbench after a moment.
+
+**Help | Check for Updates…** checks at any time, also for skipped versions. The settings are
+under Settings | Appearance & Behavior | System Settings | Updates:
+
+![Updates settings](../../screenshots/settings-updates.png)
+
+- "Check for updates on startup" (`updates.checkOnStartup`)
+- "Update channel" (`updates.channel`): stable releases, or beta releases as well
+- "Update feed URL" (`updates.endpoint`): another `latest.json`, e.g. a company mirror
+- a skipped version can be offered again with **Offer Again**
+
+> **Note:** builds made without the updater key (for example your own builds) never check for
+> updates; the settings page says "Updates are not configured in this build". Development
+> builds never check either.
 
 ## The Welcome screen
 

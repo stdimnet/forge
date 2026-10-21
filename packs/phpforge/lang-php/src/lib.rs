@@ -7,6 +7,8 @@
 //!   fuzzy symbol search, file structure and lazy vendor resolution.
 //! - [`hover`] renders index-based hover markdown.
 //! - [`generate`] implements the "Generate" actions (constructor, accessors, overrides, ...).
+//! - [`navigate`] Go to Declaration, Find Usages, implementations and gutter markers.
+//! - [`stubs`] PHP's own symbols from phpstorm-stubs (the "PHP Runtime").
 //! - [`lsp`] describes how to launch Intelephense / phpactor.
 
 pub mod docblock;
@@ -14,13 +16,16 @@ pub mod fuzzy;
 pub mod generate;
 pub mod hover;
 pub mod index;
+pub mod intentions;
 pub mod lsp;
 pub mod model;
+pub mod navigate;
 pub mod offsets;
 pub mod parser;
 pub mod resolve;
 pub mod service;
 pub mod structure;
+pub mod stubs;
 
 pub use index::{IndexConfig, IndexStats, ProjectIndex};
 pub use model::*;

@@ -12,6 +12,23 @@
   "app": {
     "windows": [
       {
+        "label": "splash",
+        "create": false,
+        "url": "index.html?splash",
+        "title": "Forge",
+        "width": 640,
+        "height": 400,
+        "center": true,
+        "resizable": false,
+        "maximizable": false,
+        "decorations": false,
+        "transparent": true,
+        "shadow": false,
+        "skipTaskbar": true
+      },
+      {
+        "label": "main",
+        "create": false,
         "title": "Forge",
         "width": 1440,
         "height": 900,
@@ -30,6 +47,11 @@
   "plugins": {
     "deep-link": {
       "desktop": { "schemes": ["forge"] }
+    },
+    "updater": {
+      "pubkey": "",
+      "endpoints": [],
+      "windows": { "installMode": "passive" }
     }
   }
 }

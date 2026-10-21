@@ -14,6 +14,7 @@ import "./searchMock";
 import "./findMock";
 import "./gitMock";
 import "./phpMock";
+import "./codeintelMock";
 import "./companionMock";
 import "./terminalMock";
 import "./runMock";
@@ -29,6 +30,7 @@ import "./markdownMock";
 import "./servicesMock";
 import "./webMock";
 import "./windowMock";
+import "./updatesMock";
 
 // File types answer synchronously once the WebAssembly build is loaded; wait for it so the
 // first editors do not start as plain text.

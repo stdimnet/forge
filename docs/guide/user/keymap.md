@@ -12,7 +12,9 @@ PHPStorm's action ids. Shortcuts you know from PHPStorm work the same, and actio
 not implemented yet stay bound and show "*Action* is not available yet" instead of doing
 something unexpected.
 
-The complete list with both platforms is in the [keymap reference](../reference/keymap.md).
+The complete list with both platforms is in the [keymap reference](../reference/keymap.md); the
+[shortcut pages](shortcuts/index.md) explain them by topic and the
+[reference card](shortcuts/reference-card.md) fits on one page.
 
 ## The most important shortcuts
 
