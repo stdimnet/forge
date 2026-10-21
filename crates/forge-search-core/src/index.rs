@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use crate::symbols::{self, RawSymbol, SymbolHit, SymbolTable};
 use crate::trigram;
 
-const FORMAT_VERSION: u32 = 5;
+const FORMAT_VERSION: u32 = 6;
 /// Independent postings maps of the head, so one batch is inserted by several threads at once.
 const SHARDS: usize = 16;
 const SEGMENT_FILES: u32 = 16_384;
@@ -29,6 +29,9 @@ pub struct FileRec {
     /// False for binary or oversized files: listed by name, never searched by content.
     pub content: bool,
 }
+
+/// A symbol extractor tried before the line patterns; `None` means it does not cover the file.
+pub type SymbolParser = dyn Fn(&str, &[u8]) -> Option<Vec<crate::RawSymbol>>;
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub struct RefreshStats {
@@ -213,6 +216,12 @@ impl Analysis {
 
     /// Trigrams and symbols of `bytes`; binary and oversized content is indexed by name only.
     pub fn of(path: &str, bytes: &[u8]) -> Self {
+        Self::of_with(path, bytes, &|_, _| None)
+    }
+
+    /// [`Analysis::of`] with a better symbol extractor tried first; `None` from it falls back to
+    /// the line patterns.
+    pub fn of_with(path: &str, bytes: &[u8], parse: &SymbolParser) -> Self {
         if bytes.len() as u64 > MAX_CONTENT_BYTES
             || bytes[..bytes.len().min(BINARY_SNIFF_BYTES)].contains(&0)
         {
@@ -220,7 +229,7 @@ impl Analysis {
         }
         Self {
             grams: Some(Grams::new(trigram::of_text(bytes))),
-            symbols: symbols::extract(path, bytes),
+            symbols: parse(path, bytes).unwrap_or_else(|| symbols::extract(path, bytes)),
         }
     }
 }

@@ -125,7 +125,9 @@ pub(crate) fn load_chunks(
                         .into_par_iter()
                         .map(|s| {
                             let analysis = read_file(root, &s)
-                                .map_or_else(Analysis::name_only, |b| Analysis::of(&s.path, &b));
+                                .map_or_else(Analysis::name_only, |b| {
+                                    Analysis::of_with(&s.path, &b, &crate::parse::symbols)
+                                });
                             (s, analysis)
                         })
                         .collect()

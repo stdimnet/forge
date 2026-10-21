@@ -13,7 +13,7 @@ pub use index::{
     MAX_CONTENT_BYTES,
 };
 pub use search::{run, Compiled, FileMatches, Match, Outcome, Query};
-pub use symbols::{RawSymbol, SymbolHit};
+pub use symbols::{Kind as SymbolKind, RawSymbol, SymbolHit};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Error(pub String);

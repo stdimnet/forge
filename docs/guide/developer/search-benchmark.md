@@ -24,7 +24,7 @@ Measured on a source tree (272,700 files, Windows 11, release build, files in th
 
 | Scenario | Best of 3 | Result |
 | --- | --- | --- |
-| Cold index | 5458 ms | 272700 files, 272700 added |
+| Cold index | 5458 ms (8130 ms with tree-sitter symbols) | 272700 files, 272700 added |
 | Load saved index | 1287 ms | 272700 files, cache 283 MB |
 | Refresh, nothing changed | 336 ms | 0 changed |
 | Go to File `usr` | 7.5 ms | 100 hits |

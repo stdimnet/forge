@@ -59,6 +59,8 @@ The button at the right end of the search field switches between fuzzy and subst
 Ranking happens in Rust (`forge-fuzzy`), so the same rules apply in every list with a
 speed search: Recent Files, the New Scratch File popup, choosers.
 
+Classes and Symbols come from the project index. For PHP, JavaScript, TypeScript and Lua files the declarations are read with a real parser, so a `class` inside a comment or a string is not listed and the methods of JavaScript and TypeScript classes are found; other languages (and files over 256 KB) use simpler line patterns.
+
 Results appear as each source answers: files and symbols show up at once, and a slower source (a language server, for example) adds its group when it is done instead of holding everything back.
 
 ## Find Action

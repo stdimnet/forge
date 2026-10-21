@@ -3,6 +3,7 @@
 
 mod index;
 mod lazy;
+mod parse;
 mod service;
 
 pub use forge_search_core::{FileHit, FileMatches, Match, Outcome, Query, RefreshStats, SymbolHit};
