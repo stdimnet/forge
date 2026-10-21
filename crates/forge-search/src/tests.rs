@@ -496,3 +496,12 @@ fn an_unlimited_search_below_the_ceiling_is_not_truncated() {
     assert!(!found.truncated);
     assert!(found.match_count < crate::service::MAX_RETAINED_MATCHES);
 }
+
+#[test]
+fn stats_count_what_is_listed_by_name_only() {
+    let (_d, svc) = project();
+    let (stats, last) = svc.stats();
+    assert_eq!(stats.files, stats.content + stats.binary + stats.oversized);
+    assert!(stats.binary >= 1);
+    assert!(last > 0);
+}

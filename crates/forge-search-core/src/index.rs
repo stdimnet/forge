@@ -37,6 +37,15 @@ pub struct RefreshStats {
     pub removed: usize,
 }
 
+/// What an index holds: how many files, and how many of them are listed by name only.
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub struct IndexStats {
+    pub files: usize,
+    pub content: usize,
+    pub binary: usize,
+    pub oversized: usize,
+}
+
 /// Part of the tree a refresh looks at: the whole project, or one directory.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Scope {
@@ -420,6 +429,21 @@ impl Index {
 
     pub fn is_empty(&self) -> bool {
         self.files.is_empty()
+    }
+
+    pub fn stats(&self) -> IndexStats {
+        let mut stats = IndexStats::default();
+        for rec in self.live() {
+            stats.files += 1;
+            if rec.content {
+                stats.content += 1;
+            } else if rec.size > MAX_CONTENT_BYTES {
+                stats.oversized += 1;
+            } else {
+                stats.binary += 1;
+            }
+        }
+        stats
     }
 
     pub fn file_count(&self) -> usize {

@@ -56,4 +56,12 @@ registerMock("search_find_symbols", async ({ query, typesOnly, limit, skipExtens
   });
 });
 
-registerMock("search_status", (): SearchStatus => ({ enabled: true, indexing: false, files: projectFiles().length }));
+registerMock("search_status", (): SearchStatus => ({
+  enabled: true,
+  indexing: false,
+  files: projectFiles().length,
+  contentFiles: projectFiles().length,
+  binaryFiles: 0,
+  oversizedFiles: 0,
+  lastRefreshMs: Date.now(),
+}));

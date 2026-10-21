@@ -55,6 +55,8 @@ pub struct SearchService {
     indexing: AtomicBool,
     /// True once the index holds a complete listing (cache loaded or first refresh done).
     ready: AtomicBool,
+    /// Unix milliseconds when the last refresh finished; 0 before the first one.
+    last_refresh_ms: AtomicU64,
     watcher: Mutex<Option<RecommendedWatcher>>,
 }
 
@@ -96,6 +98,7 @@ impl SearchService {
             gate: Mutex::new(()),
             indexing: AtomicBool::new(false),
             ready: AtomicBool::new(ready),
+            last_refresh_ms: AtomicU64::new(0),
             watcher: Mutex::new(None),
         }
     }
@@ -159,7 +162,21 @@ impl SearchService {
         }
         self.ready.store(true, Ordering::Relaxed);
         self.indexing.store(false, Ordering::Relaxed);
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_or(0, |d| d.as_millis() as u64);
+        self.last_refresh_ms.store(now, Ordering::Relaxed);
         stats
+    }
+
+    /// What the index holds and when it was last brought up to date.
+    pub fn stats(&self) -> (forge_search_core::IndexStats, u64) {
+        let stats = self
+            .index
+            .read()
+            .expect("search index lock poisoned")
+            .stats();
+        (stats, self.last_refresh_ms.load(Ordering::Relaxed))
     }
 
     fn refresh_scope(&self, scope: &Scope) -> RefreshStats {

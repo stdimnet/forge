@@ -7,6 +7,10 @@ export default {
     await page.keyboard.type("order");
     await page.waitForTimeout(800);
   },
+  "search-index-status": async (page) => {
+    await page.waitForSelector('[data-testid="index-status"]');
+    await page.hover('[data-testid="index-status"]');
+  },
   "search-index-find-window": async (page) => {
     await page.evaluate(() => window.__forgeRunCommand("FindInPath"));
     await page.keyboard.type("order");

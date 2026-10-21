@@ -12,8 +12,10 @@ import { findApi } from "@/ipc/find";
 import { registerSearchProvider, type SearchItem } from "@/features/search/providers";
 import { Search } from "lucide-solid";
 import { registerToolWindow } from "@/features/registry";
+import { registerStatusItem } from "@/features/statusItems";
 import { FindInFilesPopup } from "./FindInFiles";
 import { FindWindow } from "./FindWindow";
+import { IndexStatus } from "./IndexStatus";
 import { FIND_TOOL_WINDOW } from "./window";
 import { findOpen, openFindInFiles } from "./state";
 import "./find.css";
@@ -25,6 +27,8 @@ registerCommand({
   category: "Find",
   run: () => openFindInFiles(),
 });
+
+registerStatusItem({ id: "search.index", align: "right", order: -20, component: IndexStatus });
 
 registerToolWindow({
   id: FIND_TOOL_WINDOW,

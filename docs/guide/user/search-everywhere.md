@@ -83,6 +83,10 @@ the Project view's context menu) searches the text of every project file.
 
 ![Find in Files](../../screenshots/editor-polish-find-in-files.png)
 
+The status bar shows the size of the search index ("272,700 files", or "Indexing" while it builds or refreshes). Hover it for how many files are searched by content, how many binary or oversized files are listed by name only, and when the index was last updated.
+
+![Search index in the status bar](../../screenshots/search-index-status.png)
+
 - Type the text; results update as you type, one row per matching line with the file name and
   line number. The header counts matches and files.
 - Options next to the field: **Cc** match case, **W** whole words, **.\*** regular expression.

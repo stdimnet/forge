@@ -258,15 +258,22 @@ impl Backend for LocalBackend {
         #[cfg(feature = "search")]
         if let Some(slot) = &self.search {
             return Ok(match slot.get() {
-                Some(search) => SearchStatus {
-                    enabled: true,
-                    indexing: search.indexing() || !search.ready(),
-                    files: search.file_count(),
-                },
+                Some(search) => {
+                    let (stats, last_refresh_ms) = search.stats();
+                    SearchStatus {
+                        enabled: true,
+                        indexing: search.indexing() || !search.ready(),
+                        files: stats.files,
+                        content_files: stats.content,
+                        binary_files: stats.binary,
+                        oversized_files: stats.oversized,
+                        last_refresh_ms,
+                    }
+                }
                 None => SearchStatus {
                     enabled: true,
                     indexing: true,
-                    files: 0,
+                    ..SearchStatus::default()
                 },
             });
         }

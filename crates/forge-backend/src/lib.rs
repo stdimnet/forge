@@ -128,6 +128,18 @@ pub struct SearchStatus {
     pub indexing: bool,
     /// Files the index knows about.
     pub files: usize,
+    /// Of those, files whose text is searched.
+    #[serde(default)]
+    pub content_files: usize,
+    /// Binary files, listed by name only.
+    #[serde(default)]
+    pub binary_files: usize,
+    /// Files over the size limit, listed by name only.
+    #[serde(default)]
+    pub oversized_files: usize,
+    /// Unix milliseconds of the last finished refresh; 0 before the first.
+    #[serde(default)]
+    pub last_refresh_ms: u64,
 }
 
 /// How to start a terminal session on the backend.

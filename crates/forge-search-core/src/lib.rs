@@ -9,7 +9,8 @@ mod symbols;
 mod trigram;
 
 pub use index::{
-    Analysis, FileHit, Index, Loaded, Plan, RefreshStats, Scanned, Scope, MAX_CONTENT_BYTES,
+    Analysis, FileHit, Index, IndexStats, Loaded, Plan, RefreshStats, Scanned, Scope,
+    MAX_CONTENT_BYTES,
 };
 pub use search::{run, Compiled, FileMatches, Match, Outcome, Query};
 pub use symbols::{RawSymbol, SymbolHit};

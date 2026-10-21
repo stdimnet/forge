@@ -98,6 +98,11 @@ export interface SearchStatus {
   /** The index is still being built or refreshed. */
   indexing: boolean;
   files: number;
+  contentFiles: number;
+  binaryFiles: number;
+  oversizedFiles: number;
+  /** Unix milliseconds of the last finished refresh; 0 before the first. */
+  lastRefreshMs: number;
 }
 
 /** Search Everywhere and Go to File match substrings when the setting `search.everywhere.fuzzy` is off. */
