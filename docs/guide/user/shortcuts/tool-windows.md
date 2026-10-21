@@ -26,6 +26,7 @@ Opening, hiding, resizing and switching tool windows. Windows/Linux shortcuts fi
 | [Terminal tool window](#terminal-tool-window) | `Alt+F12` | `Alt+F12` |
 | [Database tool window](#database-tool-window) | — | — |
 | [AI Chat tool window](#ai-chat-tool-window) | — | — |
+| [Documentation tool window](#documentation-tool-window) | — | — |
 | [Pull Requests tool window](#pull-requests-tool-window) | — | — |
 | [npm tool window](#npm-tool-window) | — | — |
 | [Doctrine tool window](#doctrine-tool-window) | — | — |
@@ -208,6 +209,19 @@ Shows or hides the AI Chat tool window.
 **Menu:** View | Tool Windows | AI Chat
 
 More: [AI](../../user/ai.md#ai-chat)
+
+## Documentation tool window
+
+**Shortcut:** — · macOS — · action id `ActivateDocumentationToolWindow`
+
+Shows or hides the Documentation tool window, which keeps the documentation of the symbol at
+the caret open (Quick Documentation, `Ctrl+Q`, pinned).
+
+**Menu:** View | Tool Windows | Documentation
+
+![Documentation tool window](../../../screenshots/documentation-tool-window.png)
+
+More: [Editor](../../user/editor.md#documentation-tool-window)
 
 ## Pull Requests tool window
 

@@ -616,8 +616,7 @@ happening.
 - Get from VCS
 - Find Usages in File (`Ctrl+F7`), Highlight Usages in File
 - Refactorings other than Rename: Extract/Introduce, Move, Change Signature, Safe Delete
-- Quick Documentation popup (`Ctrl+Q`; hover documentation works with the mouse), File
-  Structure popup (`Ctrl+F12`)
+- File Structure popup (`Ctrl+F12`)
 - Local History
 - Live templates, Surround With, Optimize Imports, Type/Call/Method Hierarchy
 - Go to Test (`Ctrl+Shift+T`)
@@ -796,6 +795,7 @@ shortcut, to show it; pressing the shortcut again hides it, as in PHPStorm.
 | Git | bottom | `Alt+9` (macOS `Cmd+9`) | [Git](docs/guide/user/git.md#log) |
 | AI Chat | right | — | [AI](docs/guide/user/ai.md) |
 | Database | right | — | [Database tools](docs/guide/user/database.md) |
+| Documentation | right | — | [Editor](docs/guide/user/editor.md#documentation-tool-window) |
 | Doctrine | right | — | [Doctrine](docs/guide/user/doctrine.md) |
 | Notifications | right | — | [below](#notifications) |
 
@@ -1170,8 +1170,80 @@ index until lua-language-server answers.
 
 ![Hover documentation](docs/screenshots/lsp-hover.png)
 
-> **Note:** the keyboard actions Quick Documentation (`Ctrl+Q`) and External Documentation
-> (`Shift+F1`) are not available yet; use the mouse hover.
+## Quick Documentation
+
+**View | Quick Documentation** (`Ctrl+Q`, macOS `F1` or `Ctrl+J`) shows the same documentation
+for the symbol at the caret, without the mouse. The popup closes when you move the caret, type
+or press `Escape`. Its toolbar has three buttons:
+
+- **Open in Documentation Tool Window** (pin; or press `Ctrl+Q` a second time) moves the
+  documentation to the Documentation tool window.
+- **External Documentation** (`Shift+F1`) opens the symbol's page in the browser.
+- **Edit Source** (`F4`) jumps to the declaration.
+
+When there is nothing to show, a hint says "No documentation found".
+
+![Quick Documentation](docs/screenshots/quick-documentation.png)
+
+### Documentation tool window
+
+The **Documentation** tool window (right stripe, View | Tool Windows | Documentation) keeps the
+documentation open while you work. With **Auto-Update from Source** (the crosshair button,
+on by default) it follows the caret and shows the documentation of each symbol you move to;
+while it is open, `Ctrl+Q` updates it instead of opening the popup. Its toolbar also has
+External Documentation and Edit Source.
+
+![Documentation tool window](docs/screenshots/documentation-tool-window.png)
+
+## External Documentation
+
+**View | External Documentation** (`Shift+F1`) opens the online documentation of the symbol at
+the caret in your browser:
+
+| Symbol | Page |
+| --- | --- |
+| PHP functions, classes, methods and keywords of PHP itself | php.net manual |
+| Laravel framework classes and methods (`Illuminate\…`) | Laravel API reference |
+| JavaScript built-ins (`Array`, `JSON.parse`, `Promise`), DOM and Web APIs (`document`, `fetch`, `console.log`), keywords | MDN |
+| HTML tags, CSS properties, at-rules and pseudo-classes | MDN |
+| Vue Composition API (`ref`, `computed`, `onMounted`, `defineProps`) in files that import `vue` | vuejs.org API |
+| React hooks and APIs (`useState`, `memo`, `createRoot`) in files that import `react` | react.dev reference |
+| Lua standard functions and libraries (`print`, `string.format`, `table`) | Lua 5.4 reference manual |
+
+Your own project's classes have no external page; the hint "No external documentation
+found" appears instead. PHP symbols are resolved like Go to Declaration (language server,
+PHP index, PHP stubs), so `$date->format()` opens `DateTime::format`.
+
+## Quick Definition
+
+**View | Quick Definition** (`Ctrl+Shift+I`, macOS `Alt+Space` or `Cmd+Y`) shows the source of
+the declaration at the caret in a popup, with its docblock and attributes, up to the closing
+brace (Lua: `end`), without leaving the file. The header names the symbol and its file and
+line; **Edit Source** (pencil) opens it. When there are several declarations (an interface
+method, a class declared twice), the arrows switch between them. On a declaration itself,
+the popup shows that declaration. Declarations in the PHP stubs and other library files work
+too. Long declarations are cut after 80 lines.
+
+![Quick Definition](docs/screenshots/quick-definition.png)
+
+## Type Info, Context Info and Error Description
+
+- **Type Info** (`Ctrl+Shift+P`) shows the type of the expression at the caret in a small hint:
+  a variable's or property's type, a method's return type, a class's name. It comes from the
+  language server's hover, in PHP also from the PHP index.
+
+  ![Type Info](docs/screenshots/type-info.png)
+
+- **Context Info** (`Alt+Q`, macOS `Ctrl+Shift+Q`) shows, at the top of the editor, the
+  headers of the class, function or method (in CSS: the rules and `@media` blocks) that
+  enclose the caret, with their line numbers. Useful when they are scrolled out of view.
+
+  ![Context Info](docs/screenshots/context-info.png)
+
+- **Error Description** (`Ctrl+F1`, macOS `Cmd+F1`) shows the full text of the problems at
+  the caret, with their severity and the inspection or language server that reported them.
+
+  ![Error Description](docs/screenshots/error-description.png)
 
 ## Parameter Info
 
@@ -2076,6 +2148,7 @@ The complete list with both platforms is in the [keymap reference](docs/guide/re
 | Go to Class / File / Symbol | `Ctrl+N` / `Ctrl+Shift+N` / `Ctrl+Alt+Shift+N` | `Cmd+O` / `Cmd+Shift+O` / `Cmd+Alt+O` |
 | Recent Files | `Ctrl+E` | `Cmd+E` |
 | Go to Declaration | `Ctrl+B`, `Ctrl+Click` | `Cmd+B`, `Cmd+Click` |
+| Quick Documentation | `Ctrl+Q` | `F1`, `Ctrl+J` |
 | Generate | `Alt+Insert` | `Cmd+N` |
 | Reformat Code | `Ctrl+Alt+L` | `Cmd+Alt+L` |
 | Settings | `Ctrl+Alt+S` | `Cmd+,` |
@@ -2494,6 +2567,12 @@ Typing, selecting, moving and commenting code, completion, generation, formattin
 | [Cyclic Expand Word (Backward)](#cyclic-expand-word-backward) | `Alt+Shift+/` | `Alt+Shift+/` |
 | [Complete Current Statement](#complete-current-statement) | `Ctrl+Shift+Enter` | `Cmd+Shift+Enter` |
 | [Parameter Info](#parameter-info) | `Ctrl+P` | `Cmd+P` |
+| [Quick Documentation](#quick-documentation) | `Ctrl+Q` | `F1`, `Ctrl+J` |
+| [External Documentation](#external-documentation) | `Shift+F1` | `Shift+F1` |
+| [Quick Definition](#quick-definition) | `Ctrl+Shift+I` | `Alt+Space`, `Cmd+Y` |
+| [Type Info](#type-info) | `Ctrl+Shift+P` | `Ctrl+Shift+P` |
+| [Context Info](#context-info) | `Alt+Q` | `Ctrl+Shift+Q` |
+| [Error Description](#error-description) | `Ctrl+F1` | `Cmd+F1` |
 | [Generate…](#generate) | `Alt+Insert` | `Cmd+N` |
 | [Undo](#undo) | `Ctrl+Z`, `Alt+Backspace` | `Cmd+Z` |
 | [Redo](#redo) | `Ctrl+Shift+Z`, `Alt+Shift+Backspace` | `Cmd+Shift+Z` |
@@ -2580,6 +2659,72 @@ Shows the parameters of the call at the caret, the current one in bold.
 **Menu:** View | Parameter Info
 
 More: [Editor](docs/guide/user/editor.md#parameter-info)
+
+## Quick Documentation
+
+**Shortcut:** `Ctrl+Q` · macOS `F1`, `Ctrl+J` · action id `QuickJavaDoc`
+
+Shows the documentation of the symbol at the caret in a popup. Press it again to move the
+documentation to the Documentation tool window.
+
+**Menu:** View | Quick Documentation
+
+![Quick Documentation](docs/screenshots/quick-documentation.png)
+
+More: [Editor](docs/guide/user/editor.md#quick-documentation)
+
+## External Documentation
+
+**Shortcut:** `Shift+F1` · macOS `Shift+F1` · action id `ExternalJavaDoc`
+
+Opens the online documentation of the symbol at the caret in the browser (php.net, Laravel API,
+MDN, Vue, React, Lua manual).
+
+**Menu:** View | External Documentation
+
+More: [Editor](docs/guide/user/editor.md#external-documentation)
+
+## Quick Definition
+
+**Shortcut:** `Ctrl+Shift+I` · macOS `Alt+Space`, `Cmd+Y` · action id `QuickImplementations`
+
+Shows the source of the declaration at the caret in a popup, with its docblock.
+
+**Menu:** View | Quick Definition
+
+![Quick Definition](docs/screenshots/quick-definition.png)
+
+More: [Editor](docs/guide/user/editor.md#quick-definition)
+
+## Type Info
+
+**Shortcut:** `Ctrl+Shift+P` · macOS `Ctrl+Shift+P` · action id `ExpressionTypeInfo`
+
+Shows the type of the expression at the caret.
+
+**Menu:** View | Type Info
+
+More: [Editor](docs/guide/user/editor.md#type-info-context-info-and-error-description)
+
+## Context Info
+
+**Shortcut:** `Alt+Q` · macOS `Ctrl+Shift+Q` · action id `EditorContextInfo`
+
+Shows the headers of the class and method that enclose the caret at the top of the editor.
+
+**Menu:** View | Context Info
+
+More: [Editor](docs/guide/user/editor.md#type-info-context-info-and-error-description)
+
+## Error Description
+
+**Shortcut:** `Ctrl+F1` · macOS `Cmd+F1` · action id `ShowErrorDescription`
+
+Shows the full description of the problems at the caret.
+
+**Menu:** View | Error Description
+
+More: [Editor](docs/guide/user/editor.md#type-info-context-info-and-error-description)
 
 ## Generate
 
@@ -4070,6 +4215,7 @@ Opening, hiding, resizing and switching tool windows. Windows/Linux shortcuts fi
 | [Terminal tool window](#terminal-tool-window) | `Alt+F12` | `Alt+F12` |
 | [Database tool window](#database-tool-window) | — | — |
 | [AI Chat tool window](#ai-chat-tool-window) | — | — |
+| [Documentation tool window](#documentation-tool-window) | — | — |
 | [Pull Requests tool window](#pull-requests-tool-window) | — | — |
 | [npm tool window](#npm-tool-window) | — | — |
 | [Doctrine tool window](#doctrine-tool-window) | — | — |
@@ -4252,6 +4398,19 @@ Shows or hides the AI Chat tool window.
 **Menu:** View | Tool Windows | AI Chat
 
 More: [AI](docs/guide/user/ai.md#ai-chat)
+
+## Documentation tool window
+
+**Shortcut:** — · macOS — · action id `ActivateDocumentationToolWindow`
+
+Shows or hides the Documentation tool window, which keeps the documentation of the symbol at
+the caret open (Quick Documentation, `Ctrl+Q`, pinned).
+
+**Menu:** View | Tool Windows | Documentation
+
+![Documentation tool window](docs/screenshots/documentation-tool-window.png)
+
+More: [Editor](docs/guide/user/editor.md#documentation-tool-window)
 
 ## Pull Requests tool window
 
@@ -7288,13 +7447,13 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Toggle Distraction Free Mode | `ToggleDistractionFreeMode` |  |  | — |
 | Toggle Zen Mode | `ToggleZenMode` |  |  | — |
 | Jump to Navigation Bar | `ShowNavBar` | `Alt+Home` | `Cmd+Up` | — |
-| Quick Documentation | `QuickJavaDoc` | `Ctrl+Q` | `F1`, `Ctrl+J` | — |
-| External Documentation | `ExternalJavaDoc` | `Shift+F1` | `Shift+F1` | — |
-| Quick Definition | `QuickImplementations` | `Ctrl+Shift+I` | `Alt+Space`, `Cmd+Y` | — |
+| Quick Documentation | `QuickJavaDoc` | `Ctrl+Q` | `F1`, `Ctrl+J` | yes |
+| External Documentation | `ExternalJavaDoc` | `Shift+F1` | `Shift+F1` | yes |
+| Quick Definition | `QuickImplementations` | `Ctrl+Shift+I` | `Alt+Space`, `Cmd+Y` | yes |
 | Parameter Info | `ParameterInfo` | `Ctrl+P` | `Cmd+P` | yes |
-| Type Info | `ExpressionTypeInfo` | `Ctrl+Shift+P` | `Ctrl+Shift+P` | — |
-| Context Info | `EditorContextInfo` | `Alt+Q` | `Ctrl+Shift+Q` | — |
-| Error Description | `ShowErrorDescription` | `Ctrl+F1` | `Cmd+F1` | — |
+| Type Info | `ExpressionTypeInfo` | `Ctrl+Shift+P` | `Ctrl+Shift+P` | yes |
+| Context Info | `EditorContextInfo` | `Alt+Q` | `Ctrl+Shift+Q` | yes |
+| Error Description | `ShowErrorDescription` | `Ctrl+F1` | `Cmd+F1` | yes |
 | Recent Files | `RecentFiles` | `Ctrl+E` | `Cmd+E` | yes |
 | Recently Changed Files | `RecentChangedFiles` |  |  | yes |
 | Recent Locations | `RecentLocations` | `Ctrl+Shift+E` | `Cmd+Shift+E` | yes |
@@ -7395,6 +7554,7 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | AI Chat | `ActivateAIChatToolWindow` |  |  | yes |
 | Pull Requests | `ActivatePullRequestsToolWindow` |  |  | yes |
 | TODO | `ActivateTODOToolWindow` |  |  | yes |
+| Documentation | `ActivateDocumentationToolWindow` |  |  | yes |
 
 ### Navigate > Bookmarks
 
@@ -7873,13 +8033,13 @@ Tool windows, appearance toggles, documentation popups and recent files. Open it
 | Appearance › Navigation Bar › Don't Show | — | — | not yet | Not available yet; the entry is disabled. |
 | Appearance › Members in Navigation Bar | — | — | not yet | Not available yet; the entry is disabled. |
 | Quick Switch Scheme… | `` Ctrl+` `` | `` Ctrl+` `` | yes | Switches between the dark and the light theme. [More](docs/guide/user/settings-and-themes.md#themes) |
-| Quick Definition | `Ctrl+Shift+I` | `Alt+Space`, `Cmd+Y` | not yet | Not available yet; the entry is disabled. |
-| Quick Documentation | `Ctrl+Q` | `F1`, `Ctrl+J` | not yet | Not available yet; the entry is disabled. |
-| External Documentation | `Shift+F1` | `Shift+F1` | not yet | Not available yet; the entry is disabled. |
+| Quick Definition | `Ctrl+Shift+I` | `Alt+Space`, `Cmd+Y` | yes | Shows the source of the declaration at the caret in a popup. [More](docs/guide/user/editor.md#quick-definition) ([screenshot](docs/screenshots/quick-definition.png)) |
+| Quick Documentation | `Ctrl+Q` | `F1`, `Ctrl+J` | yes | Shows the documentation of the symbol at the caret; press again to move it to the Documentation tool window. [More](docs/guide/user/editor.md#quick-documentation) ([screenshot](docs/screenshots/quick-documentation.png)) |
+| External Documentation | `Shift+F1` | `Shift+F1` | yes | Opens the symbol's page on php.net, the Laravel API, MDN, the Vue or React reference or the Lua manual. [More](docs/guide/user/editor.md#external-documentation) |
 | Parameter Info | `Ctrl+P` | `Cmd+P` | yes | Shows the parameters of the call at the caret, the current one in bold. [More](docs/guide/user/editor.md#parameter-info) |
-| Type Info | `Ctrl+Shift+P` | `Ctrl+Shift+P` | not yet | Not available yet; the entry is disabled. |
-| Context Info | `Alt+Q` | `Ctrl+Shift+Q` | not yet | Not available yet; the entry is disabled. |
-| Error Description | `Ctrl+F1` | `Cmd+F1` | not yet | Not available yet; the entry is disabled. |
+| Type Info | `Ctrl+Shift+P` | `Ctrl+Shift+P` | yes | Shows the type of the expression at the caret. [More](docs/guide/user/editor.md#type-info-context-info-and-error-description) ([screenshot](docs/screenshots/type-info.png)) |
+| Context Info | `Alt+Q` | `Ctrl+Shift+Q` | yes | Shows the headers of the class and method around the caret. [More](docs/guide/user/editor.md#type-info-context-info-and-error-description) ([screenshot](docs/screenshots/context-info.png)) |
+| Error Description | `Ctrl+F1` | `Cmd+F1` | yes | Shows the full description of the problems at the caret. [More](docs/guide/user/editor.md#type-info-context-info-and-error-description) ([screenshot](docs/screenshots/error-description.png)) |
 | Recent Files | `Ctrl+E` | `Cmd+E` | yes | Lists recently opened files and the tool windows; press again for recently edited files only. [More](docs/guide/user/workbench.md#recent-files-and-switcher) ([screenshot](docs/screenshots/docs-recent-files.png)) |
 | Recently Changed Files | — | — | yes | Lists recently edited files. [More](docs/guide/user/workbench.md#recent-files-and-switcher) |
 | Recent Locations | `Ctrl+Shift+E` | `Cmd+Shift+E` | yes | Lists recently visited and edited places with a code snippet each; press again for changed places only. [More](docs/guide/user/workbench.md#recent-locations) ([screenshot](docs/screenshots/recent-locations.png)) |
@@ -11441,7 +11601,7 @@ Source: docs/guide/developer/crates/forge-codeintel.md
 
 # forge-codeintel
 
-`crates/forge-codeintel` — Code intelligence models: workspace edits with LSP positions and Find Usages grouping (pure, WebAssembly-friendly).
+`crates/forge-codeintel` — Code intelligence models: workspace edits with LSP positions, Find Usages grouping and documentation helpers (pure, WebAssembly-friendly).
 
 ## Purpose
 
@@ -11458,12 +11618,15 @@ and the browser-mode UI. Pure Rust, so it also runs as WebAssembly.
   editors and the project backend.
 - `usages`: Find Usages: the usage type of each reference (method call, import, new
   instance, ...) from its line, and the result tree grouped by usage type and file.
+- `docs`: the documentation actions of the View menu: External Documentation URLs, Quick
+  Definition snippets, Context Info headers and Type Info from hovers and signatures.
 
 ## Modules
 
 | Module | Summary |
 | --- | --- |
 | `actions.rs` | Context actions (`ContextAction`, `ActionKind`) and `order_actions`: quick fixes first, preferred ones on top, duplicates removed, "fix all" actions (`source.fixAll*`, "Fix all …") moved into the `children` of their server's quick fix (`nest_fix_all`); `bulb_for` picks the red / yellow light bulb. |
+| `docs.rs` | `symbol_at` (the identifier at the caret with its qualifier, call, tag and CSS context, imported frameworks) and `external_doc_url` (php.net, Laravel API, MDN, Vue, React, Lua manual); `definition_snippet` (docblock and attributes above, body to the matching brace or Lua `end`, at most 80 lines); `context_headers` (enclosing class, function and CSS rule headers); `type_from_hover` / `type_from_signature`; `language_of`. |
 | `edit.rs` | `TextEdit`, `WorkspaceEdit` (`edit` / `create` / `rename` / `delete` changes), `apply_workspace_edit` over a `FileStore` (all or nothing), `revert_applied`, `preview_workspace_edit`, `word_range`, UTF-16 offset helpers. |
 | `rename.rs` | `edit_from_locations` (references → `WorkspaceEdit`, keeping `$` where the old text had it, dynamic usages skipped), `validate_identifier`, `is_class_file` / `suggest_file_rename` / `renamed_path` (PHPStorm renames `User.php` with `class User`), `edit_conflicts` (overlapping edits, renames onto existing files) and `plan_edit` (`EditPlan`: text edits of open editors, the backend's part, files to save first, tabs to reopen or close). |
 | `usages.rs` | `UsageKind` (PHPStorm's usage types and their group labels), `classify_usage` from the line around a reference, `group_usages` into a `UsageTree` by usage type and file (the declaration and duplicates removed). |
@@ -11472,6 +11635,7 @@ and the browser-mode UI. Pure Rust, so it also runs as WebAssembly.
 
 ```rust
 pub use actions::{bulb_for, nest_fix_all, order_actions, ActionKind, Bulb, ContextAction};
+pub use docs::{context_headers, definition_snippet, external_doc_url, symbol_at, type_from_hover, type_from_signature, … };
 pub use rename::{edit_conflicts, edit_from_locations, plan_edit, suggest_file_rename, validate_identifier, EditPlan, RenameConflict, … };
 pub use edit::{apply_text_edits, apply_workspace_edit, preview_workspace_edit, revert_applied, word_range, … };
 pub use usages::{classify_usage, group_usages, GroupRequest, UsageKind, UsageLocation, UsageTree, … };
@@ -11479,10 +11643,10 @@ pub use usages::{classify_usage, group_usages, GroupRequest, UsageKind, UsageLoc
 
 ## Used by
 
-- IPC: `code_find_usages`, `code_navigate`, `code_goto_declaration`, `code_symbol_info`, `code_line_markers`, `code_prepare_rename`, `code_rename`, `code_plan_edit`, `code_apply_edit`, `code_revert_edit`, `code_context_actions`, `code_resolve_action`, `code_execute_command` (`app/src-tauri/src/commands/codeintel.rs`), `library_read` (`commands/library.rs`)
+- IPC: `code_find_usages`, `code_navigate`, `code_goto_declaration`, `code_symbol_info`, `code_line_markers`, `code_prepare_rename`, `code_rename`, `code_plan_edit`, `code_apply_edit`, `code_revert_edit`, `code_context_actions`, `code_resolve_action`, `code_execute_command`, `code_external_doc`, `code_quick_definition`, `code_type_info`, `code_context_info` (`app/src-tauri/src/commands/codeintel.rs`), `library_read` (`commands/library.rs`)
 - Crates: `forge-lsp` (workspace edits, locations), `phpforge-lang-php` (usage locations and classification)
-- UI: `app/ui/src/features/codeintel` (Show Usages popup, Find tool window, gutter markers, library files, in-place rename, Refactoring Preview, intention popup and light bulb, refactoring undo), `app/ui/src/features/lsp/goto.ts`
-- Browser mode: `codeintel_group_usages`, `codeintel_apply_edit`, `codeintel_preview_edit`, `codeintel_order_actions`, `codeintel_context_actions`, `codeintel_rename_edit`, `codeintel_plan_edit`, `codeintel_word_range` in `crates/forge-wasm/src/codeintel.rs`, used by `app/ui/src/mock/codeintelMock.ts`
+- UI: `app/ui/src/features/documentation` (Quick Documentation, Documentation tool window, Quick Definition, Type Info, Context Info, Error Description), `app/ui/src/features/codeintel` (Show Usages popup, Find tool window, gutter markers, library files, in-place rename, Refactoring Preview, intention popup and light bulb, refactoring undo), `app/ui/src/features/lsp/goto.ts`
+- Browser mode: `codeintel_group_usages`, `codeintel_apply_edit`, `codeintel_preview_edit`, `codeintel_order_actions`, `codeintel_context_actions`, `codeintel_rename_edit`, `codeintel_plan_edit`, `codeintel_word_range`, `codeintel_doc_url`, `codeintel_definition_snippet`, `codeintel_context_headers`, `codeintel_type_info` in `crates/forge-wasm/src/codeintel.rs`, used by `app/ui/src/mock/codeintelMock.ts` and `documentationMock.ts`
 
 ## Dependencies
 
@@ -11491,7 +11655,7 @@ pub use usages::{classify_usage, group_usages, GroupRequest, UsageKind, UsageLoc
 
 ## Tests
 
-5 source files, about 2100 lines; 19 unit tests.
+6 source files, about 4150 lines; 35 unit tests.
 
 ```sh
 cargo test -p forge-codeintel

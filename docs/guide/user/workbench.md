@@ -99,6 +99,7 @@ shortcut, to show it; pressing the shortcut again hides it, as in PHPStorm.
 | Git | bottom | `Alt+9` (macOS `Cmd+9`) | [Git](git.md#log) |
 | AI Chat | right | — | [AI](ai.md) |
 | Database | right | — | [Database tools](database.md) |
+| Documentation | right | — | [Editor](editor.md#documentation-tool-window) |
 | Doctrine | right | — | [Doctrine](doctrine.md) |
 | Notifications | right | — | [below](#notifications) |
 
