@@ -230,19 +230,13 @@ if (runClass) {
 
 // ---- Reformat Code (StyLua) ---------------------------------------------------------------
 
-registerFormatProvider(async (path, view) => {
-  if (!path.endsWith(".lua") || !active()) return false;
-  const text = view.state.doc.toString();
-  let formatted: string | null;
+registerFormatProvider(async (path, text) => {
+  if (!path.endsWith(".lua") || !active()) return null;
   try {
-    formatted = await luaApi.format(path, text);
+    // null: StyLua is turned off or not installed; the language server formats then.
+    return await luaApi.format(path, text);
   } catch (e) {
     showBalloon("StyLua failed", String(e));
-    return true;
+    return text;
   }
-  if (formatted === null) return false;
-  if (formatted !== text) {
-    view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: formatted }, userEvent: "format", scrollIntoView: false });
-  }
-  return true;
 });

@@ -74,7 +74,7 @@ export function CodeEditor(props: { tab: EditorTab; group?: number }) {
           wordCompletion,
           highlightSelectionMatches(),
           keymap.of([
-            { key: "Mod-s", run: () => (void saveFile(path), true) },
+            { key: "Mod-s", run: () => (void saveFile(path, "explicit"), true) },
             indentWithTab,
             ...defaultKeymap,
             ...historyKeymap,

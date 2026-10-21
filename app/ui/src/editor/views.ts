@@ -8,6 +8,7 @@
  * active group, else the one focused last.
  */
 import type { Text } from "@codemirror/state";
+import { isolateHistory } from "@codemirror/commands";
 import { EditorView } from "@codemirror/view";
 import { editor, groupActive, openFile, setEditorBridge } from "@/state/editor";
 import { flashLineAt } from "./flash";
@@ -131,7 +132,7 @@ export async function openFileAt(
 
 /**
  * Replace a document with `text` as an edit of only the lines that differ, so the caret,
- * folds and undo history stay (used by the on-save cleanup, which only touches line ends).
+ * folds and undo history stay (used by the on-save cleanup and the Actions on Save).
  */
 export function applyLineChanges(view: EditorView, text: string): void {
   const doc = view.state.doc;
@@ -144,7 +145,8 @@ export function applyLineChanges(view: EditorView, text: string): void {
   }
   if (lines.length > doc.lines) changes.push({ from: doc.length, to: doc.length, insert: "\n" + lines.slice(doc.lines).join("\n") });
   else if (lines.length < doc.lines) changes.push({ from: doc.line(lines.length).to, to: doc.length, insert: "" });
-  if (changes.length) view.dispatch({ changes, userEvent: "save.cleanup" });
+  // One undo step of its own for everything saving changed (cleanup and Actions on Save).
+  if (changes.length) view.dispatch({ changes, userEvent: "save.cleanup", annotations: isolateHistory.of("full") });
 }
 
 setEditorBridge({
