@@ -345,6 +345,20 @@
           "order": 10
         },
         {
+          "key": "fileTemplates.custom",
+          "title": "File and code templates",
+          "description": "Templates added in Settings | Editor | File and Code Templates and the changed text of built-in ones (kind \"file\", \"include\" or \"code\", name, extension, text). Built-in templates without an entry use their default text.",
+          "type": "objects",
+          "unique": [
+            "kind",
+            "name"
+          ],
+          "default": [],
+          "group": "editor.file-templates",
+          "project": false,
+          "order": 0
+        },
+        {
           "key": "system.reopenLastProject",
           "title": "Reopen projects on startup",
           "type": "bool",

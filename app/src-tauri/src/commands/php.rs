@@ -109,6 +109,8 @@ pub async fn php_generate(
     let mut options = options.unwrap_or_default();
     // Braces and blank lines of Settings | Editor | Code Style | PHP.
     options.style = php_code_style(&state);
+    // Settings | Editor | File and Code Templates | Code.
+    options.code_templates = crate::commands::templates::code_templates(&state);
     let backend = state.backend()?;
     blocking(move || {
         backend

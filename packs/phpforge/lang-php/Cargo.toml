@@ -9,6 +9,7 @@ license.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 forge-codeintel.workspace = true
+forge-file-templates.workspace = true
 thiserror.workspace = true
 dirs.workspace = true
 tracing.workspace = true
