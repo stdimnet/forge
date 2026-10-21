@@ -2319,6 +2319,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "forge-spell"
+version = "0.1.0"
+dependencies = [
+ "flate2",
+ "forge-codeintel",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "forge-sql"
 version = "0.1.0"
 dependencies = [

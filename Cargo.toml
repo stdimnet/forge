@@ -45,6 +45,7 @@ forge-livetemplates = { path = "crates/forge-livetemplates" }
 forge-injections = { path = "crates/forge-injections" }
 forge-emmet = { path = "crates/forge-emmet" }
 forge-colors = { path = "crates/forge-colors" }
+forge-spell = { path = "crates/forge-spell" }
 forge-scratches = { path = "crates/forge-scratches", default-features = false }
 forge-backend = { path = "crates/forge-backend", default-features = false }
 forge-remote = { path = "crates/forge-remote" }
@@ -107,4 +108,12 @@ opt-level = 3
 [profile.dev.package.memchr]
 opt-level = 3
 [profile.dev.package.aho-corasick]
+opt-level = 3
+
+# Building the dictionary and ranking suggestions are hot loops: keep them fast in dev builds.
+[profile.dev.package.forge-spell]
+opt-level = 3
+[profile.dev.package.flate2]
+opt-level = 3
+[profile.dev.package.miniz_oxide]
 opt-level = 3
