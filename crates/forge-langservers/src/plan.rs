@@ -5,14 +5,14 @@ use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 
 use forge_lsp::LspServerConfig;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
 use crate::catalog::{Catalog, ServerSpec};
 use crate::config::{build_config, ConfigContext};
 
 /// Why a catalog server is not started for the project.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "reason", rename_all = "camelCase")]
 pub enum Skip {
     AutoStartOff,
@@ -114,7 +114,7 @@ fn decide(
 }
 
 /// Install option as shown in the UI.
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct InstallRow {
     /// Index into the server's `install` list (what `langservers_install` takes).
@@ -124,13 +124,16 @@ pub struct InstallRow {
     pub command: String,
     /// Forge can run it (no root, no browser needed).
     pub runnable: bool,
-    /// The tool (`npm`, `pipx`, …) was found on this machine.
+    /// The tool (`npm`, `pipx`, …) was found on this machine, or Forge installs it itself.
     pub available: bool,
     pub url: Option<String>,
+    /// Forge installs it into its own directory without prerequisites (npm packages: Node.js
+    /// and the packages are downloaded and verified by Forge, see [`crate::managed`]).
+    pub managed: bool,
 }
 
 /// Status chip on the settings page.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum RowStatus {
     Running,
@@ -140,7 +143,7 @@ pub enum RowStatus {
 }
 
 /// One row of Settings > Languages & Frameworks > Language Servers.
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ServerRow {
     pub id: String,
@@ -229,10 +232,13 @@ pub fn rows(
                 .filter(|(_, o)| o.applies_to(platform))
                 .map(|(index, o)| {
                     let program = o.command.first().cloned().unwrap_or_default();
-                    let available = !program.is_empty()
-                        && *tools
-                            .entry(program.clone())
-                            .or_insert_with(|| ctx.detector.find(&program).is_some());
+                    let managed = ctx.detector.managed_dir().is_some()
+                        && crate::managed::npm_packages(o).is_some();
+                    let available = managed
+                        || (!program.is_empty()
+                            && *tools
+                                .entry(program.clone())
+                                .or_insert_with(|| ctx.detector.find(&program).is_some()));
                     InstallRow {
                         index,
                         tool: o.tool.clone(),
@@ -240,6 +246,7 @@ pub fn rows(
                         runnable: o.runnable(),
                         available,
                         url: o.url.clone(),
+                        managed,
                     }
                 })
                 .collect();

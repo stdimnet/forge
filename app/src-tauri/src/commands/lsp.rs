@@ -87,10 +87,17 @@ impl LspState {
         for config in self.registered.lock().expect("lsp lock").iter().cloned() {
             manager.register_server(config);
         }
-        // The catalog scans and probes this machine; remote projects get their packs'
-        // servers only (Intelephense / phpactor found by the agent).
+        // Catalog servers are planned where the project is: a remote host scans and probes
+        // in the agent, so it is asked in the background.
         if backend.info().remote.is_none() {
             crate::commands::langservers::register_enabled(&manager, ws);
+        } else {
+            let (app, manager) = (app.clone(), manager.clone());
+            tauri::async_runtime::spawn_blocking(move || {
+                use tauri::Manager;
+                crate::commands::langservers::register_enabled(&manager, &app.state::<AppState>());
+                let _ = tauri::Emitter::emit(&app, "langservers://changed", ());
+            });
         }
         forward_events(app.clone(), &manager);
         *current = Some(manager.clone());

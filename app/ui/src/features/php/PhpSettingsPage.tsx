@@ -4,9 +4,13 @@
  * when the server choice, language level or include path changes.
  */
 import { createResource, createSignal, For, Show } from "solid-js";
-import { Minus, Plus } from "lucide-solid";
+import { Download, Minus, Plus } from "lucide-solid";
 import { IntelephenseLicence } from "@/features/langservers/Licence";
+import { AUTO_INSTALL_KEY, LICENCE_ACCEPTED_KEY } from "@/features/langservers/autoInstall";
+import { installIntelephense } from "@/features/langservers/managed";
 import { draftValue, setDraft } from "@/features/settings/dialogState";
+import { SettingRow } from "@/features/settings/SchemaPage";
+import { findSpec } from "@/state/settings";
 import { phpApi, type DetectedServers, type ServerChoice } from "./api";
 import { LANGUAGE_LEVELS, PHP_SETTING_KEYS as KEYS } from "./settings";
 
@@ -15,7 +19,7 @@ const levelLabel = (v: string) =>
 
 export function PhpSettingsPage() {
   const [newPath, setNewPath] = createSignal("");
-  const [detected] = createResource(() => phpApi.detectServers().catch((): DetectedServers => ({})));
+  const [detected, { refetch }] = createResource(() => phpApi.detectServers().catch((): DetectedServers => ({})));
   const server = () => draftValue<string>(KEYS.server) as ServerChoice;
   const includePaths = () => draftValue<string[]>(KEYS.includePaths) ?? [];
   const servers: { id: ServerChoice; label: string; hint: () => string }[] = [
@@ -24,7 +28,7 @@ export function PhpSettingsPage() {
       label: "Auto",
       hint: () => (detected()?.intelephense ? "Intelephense" : detected()?.phpactor ? "phpactor" : "Intelephense or phpactor, whichever is installed"),
     },
-    { id: "intelephense", label: "Intelephense", hint: () => detected()?.intelephense ?? "not found on PATH (npm i -g intelephense)" },
+    { id: "intelephense", label: "Intelephense", hint: () => detected()?.intelephense ?? "not installed" },
     { id: "phpactor", label: "phpactor", hint: () => detected()?.phpactor ?? "not found on PATH" },
     { id: "none", label: "None (built-in index only)", hint: () => "" },
   ];
@@ -66,6 +70,17 @@ export function PhpSettingsPage() {
               </Show>
             </label>
           )}
+        </For>
+        <Show when={detected.state === "ready" && !detected()?.intelephense}>
+          <div class="php-licence">
+            <span class="php-hint">Intelephense is not installed. Forge can download it for you; nothing else is needed.</span>
+            <button class="btn-secondary" onClick={() => void installIntelephense().then(() => refetch())}>
+              <Download size={13} /> Install Intelephense
+            </button>
+          </div>
+        </Show>
+        <For each={[AUTO_INSTALL_KEY, LICENCE_ACCEPTED_KEY].map(findSpec).filter((s) => !!s)}>
+          {(spec) => <SettingRow spec={spec!} />}
         </For>
         <div class="php-licence">
           <IntelephenseLicence />

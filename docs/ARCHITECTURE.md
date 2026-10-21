@@ -47,6 +47,11 @@ app/ui/            SolidJS UI
     Providers only collect candidates; ranking happens in Rust (see "Search, file types and the
     Settings model" below).
   - `registerKeymapActions` (`src/keymap/store.ts`) — plugin actions with default shortcuts.
+  - `registerMainMenuEntries(path, entries, { before?, after?, when? })`
+    (`src/features/mainMenu`) — entries in the main menu ("Tools", "Tools/_Laravel",
+    "View/Tool Windows"); manifests do the same with `[[contributions.mainMenu]]`.
+    `registerMainMenuDynamic(source, provider)` fills dynamic lists (`recentProjects`,
+    `toolWindows`), `registerMainMenuToggle(actionId, isOn)` reports check marks.
   - `registerRunConfigurationType` / `registerDebugLauncher` (`src/features/run`) — Run/Debug
     configuration types and debuggers (see "Terminal and Run/Debug" below).
 - Tool windows may render tabs next to their title with `headerContent` (Terminal, Run).
@@ -106,6 +111,16 @@ app/ui/            SolidJS UI
   (`{ consumed, action?, pending?: "chord" | "doubleTap" }`, the IPC fallback of the in-process
   resolver); `keymap_import_legacy({ active, overrides })` moves a pre-settings keymap from
   localStorage into the settings.
+- Main menu (`src/ipc/keymap.ts`, `forge-keymap::menu`): `keymap_main_menu({ request }) -> MainMenu`.
+  The request carries `contributions` (manifest `mainMenu` of active plugins plus
+  `registerMainMenuEntries`), `dynamic` lists (`{ key, label, action?, detail?, enabled?,
+  checked? }` by source), the `checked` toggle action ids and `git` (Git menu instead of VCS).
+  Rust merges the contributions into PHPStorm's menu structure and answers one submenu per
+  top-level menu, each item with `label`, `mnemonic` (character index), `shortcut`, `enabled`
+  (some command implements the action or an alias; unimplemented actions stay visible but
+  disabled), `checkable`/`checked` and tidy separators; empty submenus are dropped. The UI
+  renders it with the context menu renderer (`showResolvedMenu`) as the ☰ popup or a menu bar,
+  depending on `appearance.mainMenu` (`hamburger` | `merged` | `toolbar`).
 
 - `fs_list_dir({ path }) -> { name, path, kind, ignored }[]` — `ignored` is set for entries matched by
   `.gitignore`, `.git/info/exclude` or the global excludes file (ignored folders ignore their
@@ -172,6 +187,38 @@ app/ui/            SolidJS UI
   `src/editor/views.ts` opens a workspace-relative file, puts the caret at the 1-based position,
   centers it and briefly flashes the line.
 
+## Startup splash and updates (`forge-update`)
+
+- **Windows.** `tauri.conf.json` declares two windows with `create: false`: `splash`
+  (640×400, undecorated, transparent, centered, `skipTaskbar`, loads `index.html?splash`) and
+  `main`. `startup::begin` (called from `setup`) opens the splash unless `appearance.showSplash`
+  is off and runs the loading steps on the `forge-startup` thread: keymap, plugin listeners and
+  servers, the CLI / `forge://` / last project (`system.reopenLastProject`) with framework
+  detection, language server registration, file watcher, data sources, Docker, the update
+  check. Then it creates `main` hidden; the UI calls `startup_workbench_ready` after its first
+  render, Rust shows `main` and closes the splash (after 20 s it shows `main` anyway). Closing
+  the splash early quits Forge. Open requests (second launch, `forge://` links) are queued
+  until the main UI calls `companion_ui_ready`, as before.
+- **Progress.** Each step emits `splash://progress { step, detail, percent }` *before* its
+  work; the splash eases the wordmark's molten fill (`--p`) towards `percent`.
+  `splash_state() -> { progress, version, theme, offer? }` gives a freshly loaded splash the
+  current state. The splash (`src/splash/`) imports no features.
+- **Updates.** `forge-update` decides (`plan`: simulated, dev build, no public key, manual,
+  `updates.checkOnStartup`, once a day; `evaluate`: newer, channel, skipped, postponed) and
+  reads the feed (`check`, tested against a local HTTP server). The shell
+  (`commands/updates.rs`) downloads, verifies and installs with `tauri-plugin-updater` (public
+  key from `FORGE_UPDATER_PUBKEY` at build time) and restarts. An offer during startup is sent as
+  `splash://update` (`UpdateOffer { version, currentVersion, notes?, size?, summary, simulated }`)
+  and the startup thread waits for `updates_respond({ action: "download" | "later" | "skip" })`.
+  Download progress goes to every window as `updates://download { version, phase, downloaded,
+  total?, bytesPerSecond, message? }` with `phase` = `downloading | verifying | verified |
+  installing | restarting | simulated | failed`. Other commands: `updates_check() ->
+  CheckResult` (`available | upToDate | notChecked | error`, manual: ignores the daily limit
+  and skipped versions), `updates_status() -> { mode, currentVersion, endpoint, lastCheck?,
+  skippedVersion? }`, `updates_clear_skipped()`. State: `<config dir>/forge/updates.json`.
+- **Simulation.** `FORGE_SIMULATE_UPDATE=<version>` (desktop) and `?simulateUpdate=<version>`
+  (browser mode, `mock/updatesMock.ts`) offer a fake update; nothing is downloaded or installed.
+
 ## Window chrome and dialog windows (`forge-window`)
 
 - **Title bars.** All windows are undecorated (`decorations: false`); Forge draws the title
@@ -215,9 +262,13 @@ app/ui/            SolidJS UI
   (`AppState::backend()`): `list_dir`, `read_file`, `write_file`, `find_files`, `git()` (a
   `forge_vcs::GitExec`; `Backend::repo()` = `Repo::open_with`), `detect_project`, `watch`,
   `open_terminal`, `start_process`, `lsp_launcher()` (a `forge_lsp::ServerLauncher`; the app's
-  `LspManager` is created with `LspManager::with_launcher`) and `php()` (the PHP index and the
-  Intelephense / phpactor lookup, `forge_backend::PhpBackend`). Methods block; commands call
-  them on blocking threads (`commands::workspace::blocking`).
+  `LspManager` is created with `LspManager::with_launcher`), `php()` (the PHP index and the
+  Intelephense / phpactor lookup, `forge_backend::PhpBackend`), `read_optional` (a file or
+  `None`, one round trip), `framework(FrameworkCall)` (Laravel / Symfony / Doctrine analysis,
+  see below), `langservers(LangServersRequest)` (catalog server planning), `find_executable`
+  (agent CLIs and tools on the project's machine) and `tunnels()` (SSH port forwarding,
+  `None` for local projects). Methods block; commands call them on blocking threads
+  (`commands::workspace::blocking`).
 - `LocalBackend` serves a folder on this machine (the desktop app's own projects).
   `RemoteBackend` serves a folder on another machine through the **Forge agent**
   (`crates/forge-remote-agent`): a headless `LocalBackend` behind the agent protocol on
@@ -225,13 +276,47 @@ app/ui/            SolidJS UI
   servers run on the host with their stdio proxied over a byte channel (Intelephense indexes
   the remote files itself; its config is resolved on the host), the PHP index, file watcher,
   terminals and processes live in the agent.
-- Features that only work locally use `AppState::with_workspace`, which fails for remote
-  projects with "not available in remote projects yet" (Laravel/Symfony/Doctrine analysis,
-  database tools, the Xdebug listener, AI agent CLIs, Browser Companion).
+- Remote projects have the features of local ones; whatever reads many project files runs
+  next to them:
+  - **Frameworks** (`forge_backend::frameworks`): `LocalFrameworks` scans and caches Laravel
+    (fingerprint recheck every 2 s), Symfony and Doctrine (10 s, keyed by their settings)
+    where the files are: in the app for local projects, in the agent for remote ones
+    (`Call::Framework`). Editor requests carry the buffer, so completion, Go to Declaration,
+    gutter marks and DQL highlighting cost one round trip; `framework_call::<T>` decodes the
+    typed reply. Artisan and `bin/console` run through `Backend::start_process`
+    (`process_io::run_lines`: lines, stderr flag, cancel), so they run on the host.
+  - **Catalog language servers** (`forge_backend::langservers`): the project scan, server
+    detection (`node_modules/.bin`, PATH, npm/nvm/volta, …) and config building run on the
+    project's machine (`Call::LangServers` with the `langservers.*` settings, disabled
+    plugins and the running servers' states); the servers then start there through the LSP
+    byte channel. Installing from the settings page is refused for remote projects (install
+    on the host from the terminal).
+  - **Project settings and `.forge/` files** go through `forge_core::ProjectFiles`
+    (`LocalFiles`, `forge_backend::BackendFiles`): `.forge/settings.toml`
+    (`Settings::load_project_files`), `.forge/dataSources.toml` and `.env` (database tools),
+    `.forge/breakpoints.json` and `.forge/php-servers.json` (debugger).
+  - **Databases**: project data sources of a remote project connect through an SSH
+    `direct-tcpip` tunnel to their host and port as the remote host sees them
+    (`forge_db::DbTunnel`, `DbService::set_project_context`; `DataSourceInfo.via` names the
+    host); SQLite files on the host are refused; global data sources connect directly.
+  - **Xdebug**: "Start Listening" listens on a free local port and asks the host to listen
+    on `127.0.0.1:<php.debug.port>` (`tcpip-forward`, requested again after reconnects;
+    `DebugServer::listen_with`). Xdebug's paths are the host's, which are the project's, so
+    no path mappings are needed. `debug_status` reports `via`.
+  - **AI agent CLIs** run on the host: `forge_agent_cli::AgentHost` (the app's
+    `BackendHost`) finds them with `Backend::find_executable` and starts them with
+    `process_io::spawn_stdio` (async stdin/stdout/stderr over the process API;
+    `Call::ProcessCloseStdin` ends the input of per-turn CLIs).
+  - The Browser Companion's project profile and `.env` edits use the backend; opening files
+    from the browser still targets local projects. `AppState::with_workspace` is left for
+    WebForge sources, StyLua, code hosts, Docker services and HTTP scratch environments,
+    which fail for remote projects with "not available in remote projects yet".
 - Protocol (`forge_backend::protocol`, version `PROTOCOL_VERSION`): frames are a big-endian
   `u32` length + a MessagePack map (`rmp_serde::to_vec_named`). `Request { id, call }` /
   `Response { id, result }` (answers in any order; the result is the MessagePack encoding of
-  the call's reply type), `Event` (`FsChanged`, `Pty`, `Run`, `PhpIndexProgress`), `Data` /
+  the call's reply type; protocol 2 added `ReadOptional`, `ProcessCloseStdin`,
+  `FindExecutable`, `Framework` and `LangServers`), `Event` (`FsChanged`, `Pty`, `Run`,
+  `PhpIndexProgress`), `Data` /
   `Close { channel }` (language server stdio, terminal and process input; channel ids are chosen
   by the client). The connection starts with `Call::Hello`. `forge_backend::rpc::RpcClient`
   is the client (async `call`, `call_blocking`, events, channels); `forge_remote_agent::serve`
@@ -239,12 +324,16 @@ app/ui/            SolidJS UI
 - SSH (`crates/forge-remote`, russh with ring): `session` (password, key file with passphrase,
   ssh-agent plus `IdentityFile`s; `known_hosts` check: unknown or changed keys fail with
   `ConnectError::HostKey` and are trusted after the user confirmed the fingerprint, which
-  updates `~/.ssh/known_hosts`), `agent` (probe with one shell command, upload the bundled
+  updates `~/.ssh/known_hosts`; `Route::Jump` connects through `ProxyJump` hosts, each hop
+  tunnelled through the previous one with a `direct-tcpip` channel and asked about its own
+  host key, `Route::Command` runs a `ProxyCommand` with `%h %p %r %n` expanded; port forwards
+  `open_direct_tcpip` / `forward_remote`), `agent` (probe with one shell command, upload the bundled
   agent through `cat` into `~/.cache/forge-agent/<version>/` when missing or different by
   SHA-256, start it in a login shell; output before the `FORGE-AGENT-READY` line is skipped),
   `connection` (pings every 5 s for the latency, reconnects with backoff 1–30 s after a
   dropped connection and calls `RemoteBackend::reattach`; host key and authentication errors
-  stop retrying), `store` (saved configurations in `<config dir>/forge/ssh.toml`, passwords
+  stop retrying; `forward_local` / `forward_remote` and the `forge_backend::Tunnels` it hands
+  to `RemoteBackend`), `store` (saved configurations in `<config dir>/forge/ssh.toml`, passwords
   and passphrases in the OS keychain, service `forge-ssh`, account = configuration id;
   `~/.ssh/config` with `Include`). The pure modules (`ssh_config`, `known_hosts`, `deploy`,
   `config`) build without the `client` feature and back the browser mocks through
@@ -407,11 +496,44 @@ app/ui/            SolidJS UI
   cargo, go, dotnet, gem dirs, Mason (`~/.local/share/nvim/mason/bin`) and Windows `.cmd` shims.
   The `node_modules` of the project and of Forge's directory are also searched for packages a
   server needs (TypeScript SDK, `@vue/typescript-plugin`).
-- npm servers are never installed globally: a catalog option `npm install -g <packages>` runs as
-  `npm install --prefix <Forge's server directory> --no-fund --no-audit <packages>` (`install::managed_command`;
-  the dialog shows that command). Other tools (brew, pipx, go, cargo, dotnet, ...) run as listed in
-  the catalog. npm and Node must be installed on the machine; a server's `#!/usr/bin/env node` script
-  needs `node` on the PATH Forge was started with.
+- npm servers are installed by Forge itself, with no prerequisites (`forge_langservers::managed`):
+  a catalog option `npm install -g <packages>` becomes a managed install into Forge's server
+  directory, never a global one.
+  1. Node.js: Forge's own download (`<user data dir>/forge/runtimes/node-<version>`) or a `node`
+     >= 18 on the machine; otherwise the newest LTS build for the platform is downloaded from
+     `langservers.download.nodeMirror` (default `https://nodejs.org/dist`, `index.json`),
+     checked against the release's `SHASUMS256.txt` and unpacked (`.tar.gz` on Linux/macOS,
+     `.zip` on Windows) into a staging directory that is renamed into place (`managed::node`).
+  2. Packages without runtime dependencies (Intelephense) come straight from
+     `langservers.download.npmRegistry` (`<registry>/<name>/latest` or a pinned version): the
+     tarball is checked against `dist.integrity` (sha512), unpacked into
+     `<dir>/node_modules/<name>`, `.bin` entries are created (symlink / `.cmd` shim) and the
+     package is recorded in `<dir>/package.json` so npm keeps it (`managed::npm`). Packages
+     with dependencies (typescript-language-server, vscode-langservers-extracted,
+     yaml-language-server, ...) run `npm install --prefix <dir> <name>@<version>` with the npm
+     next to the Node.js in use (Forge's Node.js ships its own `npm-cli.js`).
+  3. Servers in Forge's directory are started as `<node> <package script> <args>`
+     (`Detector::launch`, used by `build_config`), so they need no `node` on PATH. Intelephense
+     (PHP pack) gets the same through `PhpLspSettings::intelephense_node`
+     (`commands::php::for_host`, local projects only).
+  4. Updates: `langservers_check_updates({ force }) -> PackageUpdate[] | null` asks the registry
+     for newer versions of the recorded packages at most once a day
+     (`<dir>/.forge-update-check.json`, setting `langservers.updates.check`);
+     `langservers_update({ package })` installs the latest version and restarts the servers.
+  Downloads report `langservers://install-progress` `{ id, label, done, total }` (status bar
+  `langservers.install`, `src/features/langservers/InstallStatus.tsx`) and their steps as
+  `install-output` lines. `ServerRow.install[].managed` marks such options; the settings page
+  shows a one-click "Install" for them and keeps "Install…" (dialog) for the others. Other tools
+  (brew, pipx, go, cargo, dotnet, ...) run as listed in the catalog. Tests use a local HTTP
+  server (`managed::testserver`) with fake tarballs, never the network.
+- Intelephense is never bundled or committed: its licence forbids redistribution. When a local
+  PHP project opens without it, `src/features/langservers/managed.ts` shows a balloon
+  "PHP language server Intelephense is not installed" with Install / Not now / Don't ask again
+  (`php.intelephense.autoInstall`: `ask` | `always` | `never`; decisions in `autoInstall.ts`).
+  The first install asks for the licence (`IntelephenseConsent.tsx`, stored as
+  `php.intelephense.licenceAccepted`); after the install `langservers_install` registers the
+  catalog servers and runs `php::sync_lsp_server`, so Intelephense starts without reopening the
+  project. Browser mode simulates all of it with `?intelephense=missing` (and `?updates=1`).
 - Per-server settings: `langservers.servers.<id>.enabled|path|settings` (settings = JSON string
   merged into the server settings; `initializationOptions` key for startup options). Global:
   `langservers.autoStart`, `langservers.scanLimit`, `langservers.lua.environment|version`,
@@ -426,6 +548,8 @@ app/ui/            SolidJS UI
   settings changed), `langservers_install({ id, index }) -> InstallOutcome` with output on
   `langservers://install-output` `{ id, stream, line }`, `langservers_cancel_install({ id })`,
   `langservers://changed`. Install commands come from the catalog only and run without a shell.
+  Managed installs add `langservers://install-progress`, `langservers_check_updates` and
+  `langservers_update` (see above).
 - Intelephense licence: `intelephense_licence_status() -> { premium, maskedKey?, error?,
   purchaseUrl }`, `intelephense_set_licence({ key | null })`. The key lives in the OS keychain
   (service `forge-lsp`, account `intelephense`); free mode never sends `licenceKey`. A registered
@@ -531,8 +655,9 @@ app/ui/            SolidJS UI
   groups with prefix/name/middleware/controller, included files, the `api` prefix), views and
   Blade components (anonymous, class based, Livewire), custom directives (`Blade::directive`,
   `Blade::if`), config and `.env` keys, Eloquent models (columns from migrations, `$fillable`,
-  casts, relations with the related model, scopes, accessors) and translations. The app caches
-  it per workspace and reloads when the files change.
+  casts, relations with the related model, scopes, accessors) and translations. The project
+  backend caches it (`forge_backend::frameworks`, in the agent for remote projects) and
+  reloads when the files change.
 - `laravel_detect() -> LaravelInfo { detected, version?, routes, views, components, models,
   configKeys, translations, directives }`.
 - `laravel_routes() -> { routes: Route[], source: "static" | "artisan" }`. With the setting

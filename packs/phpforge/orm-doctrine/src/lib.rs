@@ -24,7 +24,7 @@ pub use phpforge_dql::model::{
 };
 
 /// Plugin settings (`doctrine.*`).
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct Config {
     /// Directories scanned for annotated/attributed entities and repositories.

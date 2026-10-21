@@ -16,7 +16,7 @@ use forge_keymap::engine::Resolver;
 use forge_keymap::shortcut::{format_shortcut_text, modifier_of_event, stroke_from_event};
 use forge_keymap::{
     legacy_changes, ActionRegistration, CommandInfo, KeyEvent, KeyInput, KeymapChange,
-    KeymapService, KeymapSettings, KeymapSnapshot, Platform,
+    KeymapService, KeymapSettings, KeymapSnapshot, MainMenuRequest, Platform,
 };
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
@@ -150,6 +150,17 @@ pub fn keymap_resolve(json: &str) -> String {
 }
 
 #[derive(Deserialize)]
+struct MainMenuReq {
+    request: MainMenuRequest,
+}
+
+/// `{settings, hostPlatform, request}` → `MainMenu`.
+#[wasm_bindgen]
+pub fn keymap_main_menu(json: &str) -> String {
+    with_service(json, |s, r: MainMenuReq| s.main_menu(&r.request))
+}
+
+#[derive(Deserialize)]
 struct LegacyReq {
     #[serde(default)]
     active: Option<String>,
@@ -242,6 +253,19 @@ mod tests {
             .as_array()
             .unwrap()
             .contains(&Value::from("GotoAction")));
+    }
+
+    #[test]
+    fn serves_the_main_menu() {
+        let menu: Value = serde_json::from_str(&keymap_main_menu(&format!(
+            r#"{{{DEFAULT},"request":{{"git":true,"contributions":[{{"path":"Tools","items":[{{"type":"action","id":"Docker.PullImage","label":"Pull Image..."}}]}}]}}}}"#
+        )))
+        .unwrap();
+        let menus = menu["menus"].as_array().unwrap();
+        assert_eq!(menus[0]["label"], "File");
+        assert_eq!(menus[8]["label"], "Git");
+        let tools = menus[7]["items"].as_array().unwrap();
+        assert_eq!(tools.last().unwrap()["label"], "Pull Image...");
     }
 
     #[test]

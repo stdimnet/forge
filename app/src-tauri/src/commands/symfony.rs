@@ -1,39 +1,37 @@
 //! Symfony IPC: project snapshot (routes, services, parameters, templates, console
 //! commands), completion/navigation for Symfony references, gutter marks and running
-//! console commands with streamed output. Logic lives in `phpforge-fw-symfony`.
+//! console commands with streamed output. Logic lives in `phpforge-fw-symfony`; the
+//! analysis runs where the project's files are (`forge_backend::frameworks`) and console
+//! commands run through the project backend's process API.
 //! Offsets crossing the boundary are UTF-16 (JS strings).
 
 use std::collections::HashMap;
-use std::io::{BufRead, BufReader};
-use std::path::PathBuf;
-use std::process::{Child, Command, Stdio};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
-use std::time::{Duration, Instant};
 
+use forge_backend::frameworks::{symfony_console_command, SymfonyQuery};
+use forge_backend::process_io::run_lines;
+use forge_backend::{framework_call, FrameworkCall};
 use forge_core::{ForgeError, Result};
-use phpforge_fw_symfony::complete::{self, CompletionList};
-use phpforge_fw_symfony::gutter::{self, GutterMark};
+use phpforge_fw_symfony::complete::CompletionList;
+use phpforge_fw_symfony::gutter::GutterMark;
 use phpforge_fw_symfony::{
-    console, Config, ConsoleCommand, Location, Parameter, Route, Service, Snapshot, SymfonyInfo,
-    Template,
+    Config, ConsoleCommand, Location, Parameter, Route, Service, SymfonyInfo, Template,
 };
-use phpforge_lang_php::offsets::{byte_to_utf16, utf16_to_byte};
+use serde::de::DeserializeOwned;
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, State};
 
+use crate::commands::workspace::blocking;
 use crate::state::AppState;
 
 /// Event with [`ConsoleEvent`] payloads for `symfony_console_run`.
 pub const CONSOLE_EVENT: &str = "symfony://console";
 
-/// How long a project snapshot is reused before files are scanned again.
-const SNAPSHOT_TTL: Duration = Duration::from_secs(10);
-
-/// Cached project snapshot and running console commands.
+/// Running console commands (cancel flags by run id).
 #[derive(Default)]
 pub struct SymfonyState {
-    snapshot: Mutex<Option<(PathBuf, Instant, Arc<Snapshot>)>>,
-    runs: Arc<Mutex<HashMap<String, Arc<Mutex<Child>>>>>,
+    runs: Arc<Mutex<HashMap<String, Arc<AtomicBool>>>>,
 }
 
 fn err(e: impl std::fmt::Display) -> ForgeError {
@@ -54,94 +52,55 @@ fn config(state: &AppState) -> Config {
     }
 }
 
-/// The snapshot of the open project, rescanned when stale or when `force` is set.
-async fn snapshot(state: &AppState, sf: &SymfonyState, force: bool) -> Result<Arc<Snapshot>> {
-    let root = state.with_workspace(|ws| Ok(ws.root().to_path_buf()))?;
-    let cfg = config(state);
-    if !force {
-        let guard = sf.snapshot.lock().map_err(err)?;
-        if let Some((r, at, snap)) = guard.as_ref() {
-            if *r == root
-                && at.elapsed() < SNAPSHOT_TTL
-                && snap.config.environment == cfg.environment
-            {
-                return Ok(snap.clone());
-            }
-        }
-    }
-    let scan_root = root.clone();
-    let snap =
-        tauri::async_runtime::spawn_blocking(move || phpforge_fw_symfony::scan(&scan_root, &cfg))
-            .await
-            .map_err(err)?;
-    let snap = Arc::new(snap);
-    *sf.snapshot.lock().map_err(err)? = Some((root, Instant::now(), snap.clone()));
-    Ok(snap)
+/// Ask the project's backend about the Symfony snapshot (cached there for 10 s).
+async fn query<T: DeserializeOwned + Send + 'static>(
+    state: &AppState,
+    query: SymfonyQuery,
+) -> Result<T> {
+    let backend = state.backend()?;
+    let call = FrameworkCall::Symfony {
+        config: config(state),
+        query,
+    };
+    blocking(move || framework_call(backend.as_ref(), call)).await
 }
 
 /// Symfony version and counts, or `None` when the project does not use Symfony.
 #[tauri::command]
-pub async fn symfony_detect(
-    state: State<'_, AppState>,
-    sf: State<'_, SymfonyState>,
-) -> Result<Option<SymfonyInfo>> {
-    let root = state.with_workspace(|ws| Ok(ws.root().to_path_buf()))?;
-    if !phpforge_fw_symfony::is_symfony_project(&root) {
-        return Ok(None);
-    }
-    Ok(Some(snapshot(&state, &sf, false).await?.info.clone()))
+pub async fn symfony_detect(state: State<'_, AppState>) -> Result<Option<SymfonyInfo>> {
+    query(&state, SymfonyQuery::Detect).await
 }
 
 /// Scan the project again (after configuration changes or a cache warmup).
 #[tauri::command]
-pub async fn symfony_refresh(
-    state: State<'_, AppState>,
-    sf: State<'_, SymfonyState>,
-) -> Result<SymfonyInfo> {
-    Ok(snapshot(&state, &sf, true).await?.info.clone())
+pub async fn symfony_refresh(state: State<'_, AppState>) -> Result<SymfonyInfo> {
+    query(&state, SymfonyQuery::Refresh).await
 }
 
 #[tauri::command]
-pub async fn symfony_routes(
-    state: State<'_, AppState>,
-    sf: State<'_, SymfonyState>,
-) -> Result<Vec<Route>> {
-    Ok(snapshot(&state, &sf, false).await?.routes.clone())
+pub async fn symfony_routes(state: State<'_, AppState>) -> Result<Vec<Route>> {
+    query(&state, SymfonyQuery::Routes).await
 }
 
 #[tauri::command]
-pub async fn symfony_services(
-    state: State<'_, AppState>,
-    sf: State<'_, SymfonyState>,
-) -> Result<Vec<Service>> {
-    Ok(snapshot(&state, &sf, false).await?.services.clone())
+pub async fn symfony_services(state: State<'_, AppState>) -> Result<Vec<Service>> {
+    query(&state, SymfonyQuery::Services).await
 }
 
 #[tauri::command]
-pub async fn symfony_parameters(
-    state: State<'_, AppState>,
-    sf: State<'_, SymfonyState>,
-) -> Result<Vec<Parameter>> {
-    Ok(snapshot(&state, &sf, false).await?.parameters.clone())
+pub async fn symfony_parameters(state: State<'_, AppState>) -> Result<Vec<Parameter>> {
+    query(&state, SymfonyQuery::Parameters).await
 }
 
 #[tauri::command]
-pub async fn symfony_templates(
-    state: State<'_, AppState>,
-    sf: State<'_, SymfonyState>,
-) -> Result<Vec<Template>> {
-    Ok(snapshot(&state, &sf, false).await?.templates.clone())
+pub async fn symfony_templates(state: State<'_, AppState>) -> Result<Vec<Template>> {
+    query(&state, SymfonyQuery::Templates).await
 }
 
 /// Application commands first, then the framework/bundle commands.
 #[tauri::command]
-pub async fn symfony_console_commands(
-    state: State<'_, AppState>,
-    sf: State<'_, SymfonyState>,
-) -> Result<Vec<ConsoleCommand>> {
-    Ok(console::all_commands(
-        &snapshot(&state, &sf, false).await?.commands,
-    ))
+pub async fn symfony_console_commands(state: State<'_, AppState>) -> Result<Vec<ConsoleCommand>> {
+    query(&state, SymfonyQuery::ConsoleCommands).await
 }
 
 /// Completion for route names, services, templates, parameters and Twig syntax.
@@ -151,16 +110,16 @@ pub async fn symfony_complete(
     content: String,
     offset: usize,
     state: State<'_, AppState>,
-    sf: State<'_, SymfonyState>,
 ) -> Result<Option<CompletionList>> {
-    let snap = snapshot(&state, &sf, false).await?;
-    let byte = utf16_to_byte(&content, offset);
-    Ok(
-        complete::complete(&snap, &path, &content, byte).map(|mut list| {
-            list.from = byte_to_utf16(&content, list.from);
-            list
-        }),
+    query(
+        &state,
+        SymfonyQuery::Complete {
+            path,
+            content,
+            offset,
+        },
     )
+    .await
 }
 
 /// Declarations of the Symfony reference at the cursor.
@@ -170,15 +129,16 @@ pub async fn symfony_goto(
     content: String,
     offset: usize,
     state: State<'_, AppState>,
-    sf: State<'_, SymfonyState>,
 ) -> Result<Vec<Location>> {
-    let snap = snapshot(&state, &sf, false).await?;
-    Ok(complete::goto(
-        &snap,
-        &path,
-        &content,
-        utf16_to_byte(&content, offset),
-    ))
+    query(
+        &state,
+        SymfonyQuery::Goto {
+            path,
+            content,
+            offset,
+        },
+    )
+    .await
 }
 
 /// Line markers for a PHP controller/command or a Twig template.
@@ -187,10 +147,8 @@ pub async fn symfony_gutter(
     path: String,
     content: String,
     state: State<'_, AppState>,
-    sf: State<'_, SymfonyState>,
 ) -> Result<Vec<GutterMark>> {
-    let snap = snapshot(&state, &sf, false).await?;
-    Ok(gutter::marks(&snap, &path, &content))
+    query(&state, SymfonyQuery::Gutter { path, content }).await
 }
 
 #[derive(Clone, Serialize)]
@@ -217,8 +175,8 @@ fn emit(app: &AppHandle, event: ConsoleEvent) {
     }
 }
 
-/// Run `php bin/console <command> <args>` in the project root, streaming its output as
-/// `symfony://console` events tagged with `runId`.
+/// Run `php bin/console <command> <args>` in the project root (on the project's host),
+/// streaming its output as `symfony://console` events tagged with `runId`.
 #[tauri::command]
 pub fn symfony_console_run(
     command: String,
@@ -228,89 +186,59 @@ pub fn symfony_console_run(
     state: State<'_, AppState>,
     sf: State<'_, SymfonyState>,
 ) -> Result<()> {
-    let root = state.with_workspace(|ws| Ok(ws.root().to_path_buf()))?;
+    let backend = state.backend()?;
     let cfg = config(&state);
     let php: String = state
         .read_settings()
         .get_as("php.interpreter")
         .unwrap_or_else(|| "php".into());
-    let argv = console::command_line(
+    let cmd = symfony_console_command(
+        &backend.info().root,
         &php,
-        &cfg.console_path,
+        &cfg,
         &command,
         args.as_deref().unwrap_or(""),
     );
-    let mut cmd = Command::new(&argv[0]);
-    cmd.args(&argv[1..])
-        .current_dir(&root)
-        .env("APP_ENV", &cfg.environment)
-        .env("COLUMNS", "120")
-        .stdin(Stdio::null())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped());
-    let mut child = cmd
-        .spawn()
-        .map_err(|e| err(format!("cannot run {}: {e}", argv[0])))?;
-    emit(
-        &app,
-        ConsoleEvent::Started {
-            run_id: run_id.clone(),
-            command_line: argv.join(" "),
-        },
-    );
-    let streams: Vec<(Box<dyn std::io::Read + Send>, bool)> = [
-        child
-            .stdout
-            .take()
-            .map(|s| (Box::new(s) as Box<dyn std::io::Read + Send>, false)),
-        child
-            .stderr
-            .take()
-            .map(|s| (Box::new(s) as Box<dyn std::io::Read + Send>, true)),
-    ]
-    .into_iter()
-    .flatten()
-    .collect();
-    let mut readers = Vec::new();
-    for (stream, stderr) in streams {
-        let app = app.clone();
-        let run_id = run_id.clone();
-        readers.push(std::thread::spawn(move || {
-            for line in BufReader::new(stream)
-                .lines()
-                .map_while(std::io::Result::ok)
-            {
+    let cancel = Arc::new(AtomicBool::new(false));
+    sf.runs
+        .lock()
+        .map_err(err)?
+        .insert(run_id.clone(), cancel.clone());
+    let runs = sf.runs.clone();
+    std::thread::spawn(move || {
+        let mut command_line = vec![cmd.program.clone()];
+        command_line.extend(cmd.args.iter().cloned());
+        emit(
+            &app,
+            ConsoleEvent::Started {
+                run_id: run_id.clone(),
+                command_line: command_line.join(" "),
+            },
+        );
+        let code = run_lines(backend.as_ref(), &cmd, &cancel, &mut |text, stderr| {
+            emit(
+                &app,
+                ConsoleEvent::Output {
+                    run_id: run_id.clone(),
+                    text,
+                    stderr,
+                },
+            )
+        });
+        let code = match code {
+            Ok(code) => code,
+            Err(e) => {
                 emit(
                     &app,
                     ConsoleEvent::Output {
                         run_id: run_id.clone(),
-                        text: line,
-                        stderr,
+                        text: format!("cannot run {}: {e}", cmd.program),
+                        stderr: true,
                     },
                 );
+                None
             }
-        }));
-    }
-    let child = Arc::new(Mutex::new(child));
-    sf.runs
-        .lock()
-        .map_err(err)?
-        .insert(run_id.clone(), child.clone());
-    let runs = sf.runs.clone();
-    std::thread::spawn(move || {
-        let code = loop {
-            let status = child
-                .lock()
-                .ok()
-                .and_then(|mut c| c.try_wait().ok().flatten());
-            if let Some(s) = status {
-                break s.code();
-            }
-            std::thread::sleep(Duration::from_millis(80));
         };
-        for r in readers {
-            let _ = r.join();
-        }
         if let Ok(mut r) = runs.lock() {
             r.remove(&run_id);
         }
@@ -322,8 +250,8 @@ pub fn symfony_console_run(
 /// Stop a running console command.
 #[tauri::command]
 pub fn symfony_console_cancel(run_id: String, sf: State<'_, SymfonyState>) -> Result<()> {
-    if let Some(child) = sf.runs.lock().map_err(err)?.remove(&run_id) {
-        child.lock().map_err(err)?.kill().map_err(err)?;
+    if let Some(flag) = sf.runs.lock().map_err(err)?.get(&run_id) {
+        flag.store(true, Ordering::Relaxed);
     }
     Ok(())
 }

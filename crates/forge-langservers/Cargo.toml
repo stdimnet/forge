@@ -5,6 +5,12 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 
+[features]
+default = ["keychain"]
+# The Intelephense licence key in the OS keychain (`licence::KeyringStore`). The remote agent
+# builds without it: it runs statically linked on hosts without a keychain.
+keychain = ["dep:keyring"]
+
 [dependencies]
 forge-lsp.workspace = true
 serde.workspace = true
@@ -14,7 +20,13 @@ dirs.workspace = true
 ignore.workspace = true
 tokio.workspace = true
 tracing.workspace = true
-keyring = { version = "3", features = ["apple-native", "windows-native", "sync-secret-service", "crypto-rust"] }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "rustls-tls-native-roots", "http2"] }
+sha2 = "0.10"
+base64 = "0.22"
+flate2 = "1"
+tar = { version = "0.4", default-features = false }
+zip = { version = "2", default-features = false, features = ["deflate"] }
+keyring = { version = "3", optional = true, features = ["apple-native", "windows-native", "sync-secret-service", "crypto-rust"] }
 
 [dev-dependencies]
 tempfile.workspace = true

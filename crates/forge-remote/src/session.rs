@@ -1,8 +1,11 @@
 //! SSH sessions with russh: host key verification against `known_hosts` (unknown and
 //! changed keys need the user's confirmation of the fingerprint), password, key file and
-//! ssh-agent authentication, command execution and streams, and forwarded Unix sockets (the
-//! Docker API over SSH).
+//! ssh-agent authentication, command execution and streams, jump hosts (`ProxyJump`, one
+//! session tunnelled through the previous one) and `ProxyCommand`, port forwarding
+//! (`direct-tcpip` channels and remote `tcpip-forward` listeners) and forwarded Unix sockets
+//! (the Docker API over SSH).
 
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -15,9 +18,23 @@ use tokio::io::AsyncWriteExt;
 
 use crate::config::AuthMethod;
 use crate::known_hosts::{self, HostKeyStatus};
+use crate::ssh_config::{expand_proxy_command, parse_proxy_jump};
+
+/// How the SSH connection reaches the host.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub enum Route {
+    /// A TCP connection to the host.
+    #[default]
+    Direct,
+    /// Through jump hosts (`ProxyJump`), connected in order; each hop is reached through
+    /// the previous one with a `direct-tcpip` channel.
+    Jump(Vec<ConnectParams>),
+    /// Over the stdin/stdout of a local command (`ProxyCommand`, tokens expanded).
+    Command(String),
+}
 
 /// Everything needed to open a session.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct ConnectParams {
     /// Host name or address to connect to (after `~/.ssh/config` resolution).
     pub host: String,
@@ -35,6 +52,7 @@ pub struct ConnectParams {
     /// Fingerprint of an unknown or changed host key the user confirmed.
     pub accept_fingerprint: Option<String>,
     pub timeout: Duration,
+    pub route: Route,
 }
 
 impl ConnectParams {
@@ -67,15 +85,41 @@ impl ConnectParams {
                 None => PathBuf::from(p),
             }
         };
-        let mut identity_files: Vec<PathBuf> =
-            resolved.identity_files.iter().map(|f| expand(f)).collect();
-        if !resolved.identities_only {
-            for f in default_identity_files(home) {
-                if !identity_files.contains(&f) {
-                    identity_files.push(f);
-                }
-            }
-        }
+        let identity_files = identity_files_of(&resolved, home);
+        let route = if let Some(jump) = resolved.proxy_jump.as_deref() {
+            Route::Jump(
+                parse_proxy_jump(jump)
+                    .into_iter()
+                    .map(|hop| {
+                        let r = ssh_config.resolve(&hop.host, &home_str, local_user);
+                        ConnectParams {
+                            port: hop.port.or(r.port).unwrap_or(22),
+                            user: hop
+                                .user
+                                .clone()
+                                .or_else(|| r.user.clone())
+                                .unwrap_or_else(|| local_user.to_string()),
+                            auth: AuthMethod::Agent,
+                            identity_files: identity_files_of(&r, home),
+                            known_hosts: home.join(".ssh").join("known_hosts"),
+                            timeout: Duration::from_secs(15),
+                            host: r.host_name,
+                            ..ConnectParams::default()
+                        }
+                    })
+                    .collect(),
+            )
+        } else if let Some(command) = resolved.proxy_command.as_deref() {
+            Route::Command(expand_proxy_command(
+                command,
+                config.host.trim(),
+                &resolved.host_name,
+                port,
+                &user,
+            ))
+        } else {
+            Route::Direct
+        };
         ConnectParams {
             host: resolved.host_name,
             port,
@@ -91,8 +135,33 @@ impl ConnectParams {
             known_hosts: home.join(".ssh").join("known_hosts"),
             accept_fingerprint: None,
             timeout: Duration::from_secs(15),
+            route,
         }
     }
+
+    /// `user@host:port` for messages.
+    fn label(&self) -> String {
+        format!("{}@{}:{}", self.user, self.host, self.port)
+    }
+}
+
+/// `IdentityFile`s of a resolved host, then the default keys unless `IdentitiesOnly`.
+fn identity_files_of(resolved: &crate::ssh_config::ResolvedHost, home: &Path) -> Vec<PathBuf> {
+    let expand = |p: &str| -> PathBuf {
+        match p.strip_prefix("~/") {
+            Some(rest) => home.join(rest),
+            None => PathBuf::from(p),
+        }
+    };
+    let mut files: Vec<PathBuf> = resolved.identity_files.iter().map(|f| expand(f)).collect();
+    if !resolved.identities_only {
+        for f in default_identity_files(home) {
+            if !files.contains(&f) {
+                files.push(f);
+            }
+        }
+    }
+    files
 }
 
 /// A host key that needs the user's decision.
@@ -171,12 +240,16 @@ fn other(e: impl std::fmt::Display) -> ConnectError {
     }
 }
 
+/// Remote ports forwarded to this machine: remote port -> local port.
+type Forwards = Arc<Mutex<HashMap<u32, u16>>>;
+
 struct Verifier {
     host: String,
     port: u16,
     known_hosts: PathBuf,
     accept: Option<String>,
     rejected: Arc<Mutex<Option<HostKeyInfo>>>,
+    forwards: Forwards,
 }
 
 /// Split an OpenSSH public key line into `(algorithm, base64 blob)`.
@@ -259,11 +332,62 @@ impl client::Handler for Verifier {
             }
         }
     }
+
+    /// A connection to a remote listener of [`SshSession::forward_remote`]: connect to the
+    /// local port it forwards to and pipe both ways.
+    async fn server_channel_open_forwarded_tcpip(
+        &mut self,
+        channel: russh::Channel<client::Msg>,
+        _connected_address: &str,
+        connected_port: u32,
+        _originator_address: &str,
+        _originator_port: u32,
+        reply: client::ChannelOpenHandle,
+        _session: &mut client::Session,
+    ) -> Result<(), Self::Error> {
+        let local = self
+            .forwards
+            .lock()
+            .expect("forwards lock")
+            .get(&connected_port)
+            .copied();
+        let Some(local) = local else {
+            reply
+                .reject(russh::ChannelOpenFailure::AdministrativelyProhibited)
+                .await;
+            return Ok(());
+        };
+        reply.accept().await;
+        tokio::spawn(async move {
+            match tokio::net::TcpStream::connect(("127.0.0.1", local)).await {
+                Ok(mut socket) => {
+                    let _ = socket.set_nodelay(true);
+                    let mut stream = channel.into_stream();
+                    let _ = tokio::io::copy_bidirectional(&mut socket, &mut stream).await;
+                }
+                Err(e) => {
+                    tracing::warn!("forwarded connection to 127.0.0.1:{local} failed: {e}");
+                    let _ = channel.close().await;
+                }
+            }
+        });
+        Ok(())
+    }
+}
+
+/// Keeps what a session's transport depends on alive: the jump host sessions it is
+/// tunnelled through, or the proxy command.
+#[allow(dead_code, reason = "only held, never read")]
+enum Carrier {
+    Jump(Arc<SshSession>),
+    Command(tokio::process::Child),
 }
 
 /// An authenticated SSH session.
 pub struct SshSession {
     handle: Handle<Verifier>,
+    forwards: Forwards,
+    _carriers: Vec<Carrier>,
 }
 
 /// Default private keys tried with [`AuthMethod::Agent`], like `ssh` does.
@@ -281,8 +405,61 @@ fn network(e: impl std::fmt::Display) -> ConnectError {
 }
 
 impl SshSession {
-    /// Connect, verify the host key and authenticate.
+    /// Connect (through the jump hosts or proxy command of `params.route`), verify the host
+    /// key and authenticate.
     pub async fn connect(params: &ConnectParams) -> std::result::Result<Self, ConnectError> {
+        match &params.route {
+            Route::Direct => Self::connect_direct(params).await,
+            Route::Command(command) => {
+                let (stream, child) = spawn_proxy_command(command)?;
+                let mut session = Self::connect_stream(stream, params).await?;
+                session._carriers.push(Carrier::Command(child));
+                Ok(session)
+            }
+            Route::Jump(hops) => {
+                let mut previous: Option<Arc<SshSession>> = None;
+                for hop in hops {
+                    let hop = ConnectParams {
+                        route: Route::Direct,
+                        // The user may have confirmed a jump host's key.
+                        accept_fingerprint: params.accept_fingerprint.clone(),
+                        ..hop.clone()
+                    };
+                    let session = match &previous {
+                        None => Self::connect_direct(&hop).await,
+                        Some(via) => via.connect_through(&hop).await,
+                    }
+                    .map_err(|e| in_jump(e, &hop))?;
+                    previous = Some(Arc::new(session));
+                }
+                match previous {
+                    Some(via) => via.connect_through(params).await,
+                    None => Self::connect_direct(params).await,
+                }
+            }
+        }
+    }
+
+    /// Open a session to `params`' host through this one (`ssh -J`).
+    async fn connect_through(
+        self: &Arc<Self>,
+        params: &ConnectParams,
+    ) -> std::result::Result<Self, ConnectError> {
+        let stream = self
+            .open_direct_tcpip(&params.host, params.port)
+            .await
+            .map_err(|e| {
+                network(format!(
+                    "Cannot reach {}:{} from the jump host: {e}",
+                    params.host, params.port
+                ))
+            })?;
+        let mut session = Self::connect_stream(stream, params).await?;
+        session._carriers.push(Carrier::Jump(self.clone()));
+        Ok(session)
+    }
+
+    async fn connect_direct(params: &ConnectParams) -> std::result::Result<Self, ConnectError> {
         let addr = (params.host.as_str(), params.port);
         let stream = tokio::time::timeout(params.timeout, tokio::net::TcpStream::connect(addr))
             .await
@@ -313,12 +490,14 @@ impl SshSession {
             ..Default::default()
         });
         let rejected = Arc::new(Mutex::new(None));
+        let forwards: Forwards = Arc::default();
         let verifier = Verifier {
             host: params.host.clone(),
             port: params.port,
             known_hosts: params.known_hosts.clone(),
             accept: params.accept_fingerprint.clone(),
             rejected: rejected.clone(),
+            forwards: forwards.clone(),
         };
         let handle = match tokio::time::timeout(
             params.timeout,
@@ -335,7 +514,11 @@ impl SshSession {
                 return Err(network(format!("SSH handshake failed: {e}")));
             }
         };
-        let mut session = SshSession { handle };
+        let mut session = SshSession {
+            handle,
+            forwards,
+            _carriers: Vec::new(),
+        };
         session.authenticate(params).await?;
         Ok(session)
     }
@@ -512,6 +695,75 @@ impl SshSession {
         Ok(channel.into_stream())
     }
 
+    /// A TCP connection to `host:port` made by the remote host (`ssh -L`, `ssh -W`).
+    pub async fn open_direct_tcpip(
+        &self,
+        host: &str,
+        port: u16,
+    ) -> std::result::Result<ChannelStream<client::Msg>, ConnectError> {
+        let channel = self
+            .handle
+            .channel_open_direct_tcpip(host, port as u32, "127.0.0.1", 0)
+            .await
+            .map_err(other)?;
+        Ok(channel.into_stream())
+    }
+
+    /// Ask the host to listen on `127.0.0.1:remote_port` (0 picks a free port) and forward
+    /// its connections to `127.0.0.1:local_port` here (`ssh -R`). Returns the remote port.
+    pub async fn forward_remote(
+        &self,
+        remote_port: u16,
+        local_port: u16,
+    ) -> std::result::Result<u16, ConnectError> {
+        if remote_port != 0 {
+            self.forwards
+                .lock()
+                .expect("forwards lock")
+                .insert(remote_port as u32, local_port);
+        }
+        let bound = match self
+            .handle
+            .tcpip_forward("127.0.0.1", remote_port as u32)
+            .await
+        {
+            Ok(p) => p,
+            Err(e) => {
+                self.forwards
+                    .lock()
+                    .expect("forwards lock")
+                    .remove(&(remote_port as u32));
+                return Err(ConnectError::Other {
+                    message: format!(
+                        "The remote host refused to listen on port {remote_port}: {e}"
+                    ),
+                });
+            }
+        };
+        let bound = if bound == 0 {
+            remote_port as u32
+        } else {
+            bound
+        };
+        self.forwards
+            .lock()
+            .expect("forwards lock")
+            .insert(bound, local_port);
+        Ok(bound as u16)
+    }
+
+    /// Stop a remote listener of [`forward_remote`](Self::forward_remote).
+    pub async fn cancel_forward(&self, remote_port: u16) {
+        self.forwards
+            .lock()
+            .expect("forwards lock")
+            .remove(&(remote_port as u32));
+        let _ = self
+            .handle
+            .cancel_tcpip_forward("127.0.0.1", remote_port as u32)
+            .await;
+    }
+
     pub fn is_closed(&self) -> bool {
         self.handle.is_closed()
     }
@@ -522,6 +774,50 @@ impl SshSession {
             .disconnect(Disconnect::ByApplication, "", "en")
             .await;
     }
+}
+
+/// Errors of a jump host name it, so the user knows which hop failed.
+fn in_jump(e: ConnectError, hop: &ConnectParams) -> ConnectError {
+    match e {
+        ConnectError::Network { message } => ConnectError::Network {
+            message: format!("Jump host {}: {message}", hop.label()),
+        },
+        ConnectError::Auth { message } => ConnectError::Auth {
+            message: format!("Jump host {}: {message}", hop.label()),
+        },
+        e => e,
+    }
+}
+
+/// Start a `ProxyCommand`; its stdin/stdout carry the SSH connection.
+fn spawn_proxy_command(
+    command: &str,
+) -> std::result::Result<
+    (
+        impl tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send + 'static,
+        tokio::process::Child,
+    ),
+    ConnectError,
+> {
+    let mut cmd = if cfg!(windows) {
+        let mut c = tokio::process::Command::new("cmd");
+        c.arg("/C").arg(command);
+        c
+    } else {
+        let mut c = tokio::process::Command::new("sh");
+        c.arg("-c").arg(command);
+        c
+    };
+    let mut child = cmd
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::null())
+        .kill_on_drop(true)
+        .spawn()
+        .map_err(|e| network(format!("Cannot run the proxy command `{command}`: {e}")))?;
+    let stdin = child.stdin.take().ok_or_else(|| other("no stdin"))?;
+    let stdout = child.stdout.take().ok_or_else(|| other("no stdout"))?;
+    Ok((tokio::io::join(stdout, stdin), child))
 }
 
 /// Output of [`SshSession::exec`].
@@ -633,6 +929,43 @@ mod tests {
         };
         let p = ConnectParams::for_configuration(&explicit, &ssh, home, "me");
         assert_eq!((p.port, p.user.as_str()), (2200, "root"));
+    }
+
+    #[test]
+    fn jump_hosts_and_proxy_commands_come_from_the_ssh_config() {
+        let ssh = crate::ssh_config::SshConfig::parse(
+            "Host bastion\n  HostName gw.example.com\n  User ops\n  Port 2200\n\nHost *.internal\n  ProxyJump bastion,root@hop2:2222\n\nHost legacy\n  ProxyCommand ssh -W %h:%p gw\n",
+        );
+        let config = |host: &str| crate::config::SshConfiguration {
+            id: "c".into(),
+            host: host.into(),
+            port: 22,
+            user: "deploy".into(),
+            auth: AuthMethod::Password,
+            key_file: None,
+            dont_save_secret: false,
+            name: None,
+        };
+        let home = Path::new("/home/me");
+        let p = ConnectParams::for_configuration(&config("db.internal"), &ssh, home, "me");
+        let Route::Jump(hops) = &p.route else {
+            panic!("expected jump hosts, got {:?}", p.route);
+        };
+        let hops: Vec<(&str, u16, &str, AuthMethod)> = hops
+            .iter()
+            .map(|h| (h.host.as_str(), h.port, h.user.as_str(), h.auth))
+            .collect();
+        assert_eq!(
+            hops,
+            vec![
+                ("gw.example.com", 2200, "ops", AuthMethod::Agent),
+                ("hop2", 2222, "root", AuthMethod::Agent),
+            ]
+        );
+        let p = ConnectParams::for_configuration(&config("legacy"), &ssh, home, "me");
+        assert_eq!(p.route, Route::Command("ssh -W legacy:22 gw".into()));
+        let p = ConnectParams::for_configuration(&config("shop"), &ssh, home, "me");
+        assert_eq!(p.route, Route::Direct);
     }
 
     #[test]

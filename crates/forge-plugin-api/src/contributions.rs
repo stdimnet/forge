@@ -36,7 +36,22 @@ pub struct Contributions {
     pub chat_agents: Vec<ChatAgentContribution>,
     #[serde(default)]
     pub code_generators: Vec<CodeGeneratorContribution>,
+    /// Entries for the main menu, e.g. `Tools > Laravel`. The UI sends the contributions of
+    /// active plugins when the menu opens.
+    #[serde(default)]
+    pub main_menu: Vec<MainMenuContribution>,
 }
+
+/// Entries a plugin adds to a main menu path:
+///
+/// ```toml
+/// [[contributions.mainMenu]]
+/// path = "Tools"
+/// items = [{ type = "group", label = "_Laravel", items = [{ type = "action", id = "Laravel.ShowRoutes" }] }]
+/// ```
+///
+/// Defined by the pure `forge-keymap` crate, which also resolves the menu.
+pub use forge_keymap::MenuContribution as MainMenuContribution;
 
 /// A file type (PHPStorm's Settings | Editor | File Types): how files are recognised, what
 /// the status bar calls them and their indentation. Syntax highlighting is registered by the

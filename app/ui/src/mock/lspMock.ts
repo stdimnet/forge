@@ -119,8 +119,23 @@ export function onMockDidOpen(cb: (path: string) => void): void {
   openHooks.push(cb);
 }
 
+/**
+ * `?intelephense=missing`: the demo starts without Intelephense (and without Node.js), so
+ * the install offer, licence consent and download progress can be tried. The server starts
+ * once the mock install finished.
+ */
+export const intelephenseMissingAtStart = () =>
+  typeof location !== "undefined" && new URLSearchParams(location.search).get("intelephense") === "missing";
+let serverInstalled = isLuaDemo() || !intelephenseMissingAtStart();
+
+/** The mock install of Intelephense finished: start it for the open files. */
+export function markMockIntelephenseInstalled(): void {
+  serverInstalled = true;
+  if (Object.keys(docs).length) startServer();
+}
+
 function startServer() {
-  if (started) return;
+  if (started || !serverInstalled) return;
   started = true;
   const base = SERVER;
   setStatus({ ...base, state: "starting" });

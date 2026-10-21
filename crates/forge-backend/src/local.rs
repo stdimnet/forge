@@ -13,6 +13,8 @@ use forge_project::ProjectInfo;
 use forge_search::SearchService;
 use forge_vcs::{GitExec, LocalGit, Repo};
 
+use crate::frameworks::{FrameworkCall, LocalFrameworks};
+use crate::langservers::{LangServersAnswer, LangServersRequest, LocalLangServers};
 use crate::php::LocalPhp;
 use crate::{
     folder_name, Backend, BackendInfo, FsSink, PhpBackend, Process, SearchStatus, SymbolHit,
@@ -27,6 +29,8 @@ pub struct LocalBackend {
     php: Arc<LocalPhp>,
     #[cfg(feature = "search")]
     search: Option<Arc<SearchService>>,
+    frameworks: LocalFrameworks,
+    langservers: LocalLangServers,
 }
 
 impl LocalBackend {
@@ -41,6 +45,8 @@ impl LocalBackend {
                 remote: None,
             },
             php: Arc::new(LocalPhp::new(workspace.clone())),
+            frameworks: LocalFrameworks::new(workspace.clone()),
+            langservers: LocalLangServers::default(),
             workspace,
             #[cfg(feature = "search")]
             search: None,
@@ -113,6 +119,10 @@ impl Process for RunningProcess {
     fn write_stdin(&self, data: &[u8]) -> Result<()> {
         RunningProcess::write_stdin(self, data)
     }
+    fn close_stdin(&self) -> Result<()> {
+        RunningProcess::close_stdin(self);
+        Ok(())
+    }
     fn kill(&self, grace: Duration) {
         RunningProcess::kill(self, grace)
     }
@@ -147,6 +157,14 @@ impl Backend for LocalBackend {
 
     fn read_file(&self, rel: &str) -> Result<String> {
         self.workspace.read_file(rel)
+    }
+
+    fn read_optional(&self, rel: &str) -> Result<Option<String>> {
+        if self.workspace.resolve(rel)?.is_file() {
+            self.workspace.read_file(rel).map(Some)
+        } else {
+            Ok(None)
+        }
     }
 
     fn write_file(&self, rel: &str, contents: &str) -> Result<()> {
@@ -266,6 +284,38 @@ impl Backend for LocalBackend {
     fn php(&self) -> &dyn PhpBackend {
         self.php.as_ref()
     }
+
+    fn framework(&self, call: FrameworkCall) -> Result<Vec<u8>> {
+        self.frameworks.call(call)
+    }
+
+    fn langservers(&self, req: LangServersRequest) -> Result<LangServersAnswer> {
+        self.langservers.plan(self.root(), &req)
+    }
+
+    fn find_executable(&self, names: &[String], custom: Option<&str>) -> Result<Option<PathBuf>> {
+        Ok(find_executable(self.root(), names, custom))
+    }
+}
+
+/// Find one of `names` like the language server detection does (project `node_modules/.bin`,
+/// `PATH`, npm/nvm/volta, `~/.local/bin`, cargo, go, ...), plus the places agent CLIs install
+/// themselves (`~/.claude/local`, `~/.npm-global/bin`). An existing `custom` file wins.
+pub fn find_executable(root: &Path, names: &[String], custom: Option<&str>) -> Option<PathBuf> {
+    if let Some(c) = custom.map(str::trim).filter(|c| !c.is_empty()) {
+        let p = PathBuf::from(c);
+        return p.is_file().then_some(p);
+    }
+    let detector = forge_langservers::Detector::for_project(root);
+    if let Some(found) = names.iter().find_map(|n| detector.find(n)) {
+        return Some(found);
+    }
+    let home = detector.env().home.clone()?;
+    let extra = [home.join(".claude/local"), home.join(".npm-global/bin")];
+    extra
+        .iter()
+        .flat_map(|d| names.iter().map(move |n| d.join(n)))
+        .find(|p| p.is_file())
 }
 
 #[cfg(test)]
@@ -321,6 +371,11 @@ mod tests {
         assert!(backend.resolve("../x").is_err());
         let found = backend.find_files("A", 10).unwrap();
         assert_eq!(found[0].path, "src/A.php");
+        assert_eq!(backend.read_optional("missing.php").unwrap(), None);
+        assert_eq!(
+            backend.read_optional("index.php").unwrap().as_deref(),
+            Some("<?php\n")
+        );
     }
 
     #[cfg(feature = "search")]

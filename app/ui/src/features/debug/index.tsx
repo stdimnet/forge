@@ -30,8 +30,10 @@ import { ServersPage } from "./ServersPage";
 import {
   activeSession,
   addWatch,
+  breakpointsMuted,
   executionPoint,
   listening,
+  listeningVia,
   pause,
   pausedSession,
   port,
@@ -45,6 +47,7 @@ import {
   toggleLineBreakpoint,
   toggleMuted,
 } from "./store";
+import { registerMainMenuToggle } from "@/features/mainMenu/model";
 import "./debug.css";
 
 registerToolWindow({
@@ -82,14 +85,23 @@ function DebugStatusItem() {
     const s = activeSession();
     if (s?.status === "paused") return `Debugging: suspended at ${s.location?.file?.split("/").pop() ?? "?"}:${s.location?.line ?? ""}`;
     if (s?.status === "running") return "Debugging: running";
-    return `Xdebug: listening on ${port()}`;
+    const via = listeningVia();
+    // Remote project: the host's port, forwarded over SSH (see the tooltip).
+    return via ? `Xdebug: ${via.replace(/:\d+$/, "")}:${port()}` : `Xdebug: listening on ${port()}`;
+  };
+  const title = () => {
+    if (!listening()) return "Debug session";
+    const via = listeningVia();
+    return via
+      ? `Listening for PHP debug connections on port ${port()} of ${via}, forwarded over SSH. Click to stop.`
+      : "Listening for PHP debug connections. Click to stop.";
   };
   return (
     <Show when={listening() || activeSession()}>
       <button
         class="status-item dbg-status"
         classList={{ paused: !!pausedSession() }}
-        title={listening() ? "Listening for PHP debug connections. Click to stop." : "Debug session"}
+        title={title()}
         onClick={() => (activeSession() ? showToolWindow("bottom", "debug") : void toggleListening())}
       >
         <PhoneCall size={12} />
@@ -221,6 +233,8 @@ const actions: { id: string; title: string; run: () => void | Promise<void> }[] 
   { id: "XDebugger.MuteBreakpoints", title: "Mute Breakpoints", run: toggleMuted },
 ];
 for (const a of actions) registerCommand({ ...a, category: "Debug" });
+registerMainMenuToggle("PhpListenDebugAction", listening);
+registerMainMenuToggle("XDebugger.MuteBreakpoints", breakpointsMuted);
 
 /**
  * "Stop" (Ctrl+F2) stops the active debug session; otherwise it falls back to a stop

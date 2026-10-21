@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { invoke, listen } from "@/ipc";
-import type { InstallLine, LicenceStatus, ServerRow, WorkspaceSymbol } from "@/ipc/langservers";
+import type { InstallLine, InstallProgress, LicenceStatus, ServerRow, WorkspaceSymbol } from "@/ipc/langservers";
 import "./settingsMock";
 import { demoWorkspaceSymbols, mockRows } from "./langserversMock";
 
@@ -24,20 +24,36 @@ describe("language servers mock", () => {
     await invoke("settings_set", { key: "langservers.servers.gopls.settings", value: null, scope: "user" });
   });
 
-  it("streams install output and marks the server installed", async () => {
+  it("simulates a managed npm install with download progress", async () => {
     const lines: InstallLine[] = [];
+    const progress: InstallProgress[] = [];
     const off = await listen<InstallLine>("langservers://install-output", (l) => lines.push(l));
+    const offProgress = await listen<InstallProgress>("langservers://install-progress", (p) => progress.push(p));
+    const before = (await mockRows()).find((r) => r.id === "docker-langserver")!;
+    expect(before.install[0]).toMatchObject({ tool: "npm", managed: true, available: true });
     const outcome = await invoke("langservers_install", { id: "docker-langserver", index: 0 });
     off();
+    offProgress();
     expect(outcome).toBe("succeeded");
-    expect(lines[0].line).toBe(
-      "$ npm install --prefix /home/marlon/.local/share/forge/langservers --no-fund --no-audit dockerfile-language-server-nodejs",
-    );
-    expect(lines.some((l) => l.stream === "stderr")).toBe(true);
+    const text = lines.map((l) => l.line);
+    expect(text).toContain("Verified sha512 integrity of dockerfile-language-server-nodejs@1.0.0.");
+    expect(text.at(-1)).toBe("Dockerfile Language Server installed.");
+    expect(progress.length).toBeGreaterThan(2);
+    const last = progress.at(-1)!;
+    expect(last.done).toBe(last.total);
     const row = (await mockRows()).find((r) => r.id === "docker-langserver")!;
     expect(row.status).toBe("installed");
     expect(row.path).toBe("/home/marlon/.local/share/forge/langservers/node_modules/.bin/docker-langserver");
     await expect(invoke("langservers_install", { id: "zls", index: 0 })).rejects.toThrow(/brew was not found/);
+  }, 10_000);
+
+  it("streams the output of other install commands", async () => {
+    const lines: InstallLine[] = [];
+    const off = await listen<InstallLine>("langservers://install-output", (l) => lines.push(l));
+    expect(await invoke("langservers_install", { id: "taplo", index: 0 })).toBe("succeeded");
+    off();
+    expect(lines[0].line).toBe("$ cargo install --locked taplo-cli");
+    expect((await invoke<null>("langservers_check_updates", { force: false }))).toBeNull();
   }, 10_000);
 
   it("finds workspace symbols in several languages", async () => {

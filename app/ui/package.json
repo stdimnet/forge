@@ -10,10 +10,14 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "screenshots": "node scripts/screenshots.mjs",
-    "tauri": "cd .. && tauri",
+    "docs:llms": "node ../../docs/scripts/build-llms.mjs",
+    "tauri": "node scripts/tauri.mjs",
     "wasm": "node scripts/build-wasm.mjs",
+    "version:check": "node scripts/version.mjs check",
+    "version:bump": "node scripts/version.mjs bump",
     "agents": "node scripts/build-agents.mjs",
-    "release": "node scripts/build-agents.mjs && cd .. && tauri build --config src-tauri/tauri.agents.conf.json"
+    "langservers": "cargo run -q -p forge-langservers --bin forge-langservers --",
+    "release": "node scripts/build-agents.mjs && node scripts/tauri.mjs build --config src-tauri/tauri.agents.conf.json"
   },
   "dependencies": {
     "@codemirror/autocomplete": "^6.18.0",

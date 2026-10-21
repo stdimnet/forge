@@ -44,7 +44,8 @@ action("Forward", navigateForward);
 action("ReopenClosedTab", reopenClosedTab);
 
 // ---- Tool windows
-const TOOL_WINDOW_ACTIONS: Record<string, string> = {
+/** Tool window activation actions by PHPStorm id → tool window id. */
+export const TOOL_WINDOW_ACTIONS: Record<string, string> = {
   ActivateProjectToolWindow: "project",
   ActivateBookmarksToolWindow: "bookmarks",
   ActivateFindToolWindow: "find",

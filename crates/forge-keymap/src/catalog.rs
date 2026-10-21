@@ -102,7 +102,7 @@ pub const ACTION_GROUP_ORDER: [&str; 5] = [
 
 /// Ids that Forge features already register under another name, plus common alternate
 /// spellings. The UI follows these when the PHPStorm id itself has no command.
-pub const ACTION_ALIASES: [(&str, &[&str]); 14] = [
+pub const ACTION_ALIASES: [(&str, &[&str]); 19] = [
     ("SearchEverywhere", &["search.everywhere"]),
     ("ShowSettings", &["settings.open"]),
     ("Run", &["run.run"]),
@@ -112,8 +112,13 @@ pub const ACTION_ALIASES: [(&str, &[&str]); 14] = [
     ("CheckinProject", &["git.commit"]),
     ("Vcs.Push", &["git.push"]),
     ("Vcs.UpdateProject", &["git.update"]),
+    ("Git.Fetch", &["git.fetch"]),
+    ("Git.CreateNewBranch", &["git.newBranch"]),
+    ("Vcs.Show.Log", &["git.log"]),
     ("Annotate", &["git.annotate"]),
     ("Generate", &["php.generate"]),
+    ("OverrideMethods", &["php.overrideMethods"]),
+    ("ImplementMethods", &["php.implementMethods"]),
     ("OpenFile", &["workspace.open"]),
     ("CloseProject", &["workspace.close"]),
     ("IntroduceVariable", &["ExtractVariable"]),
@@ -340,5 +345,6 @@ mod tests {
     fn aliases_point_to_forge_command_ids() {
         assert_eq!(aliases_of("Run"), &["run.run"]);
         assert!(aliases_of("GotoClass").is_empty());
+        assert_eq!(aliases_of("OverrideMethods"), &["php.overrideMethods"]);
     }
 }

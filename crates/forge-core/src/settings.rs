@@ -14,7 +14,11 @@ use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+use crate::project_files::SharedFiles;
 use crate::{ForgeError, Result};
+
+/// The project layer's file, relative to the project root.
+pub const PROJECT_SETTINGS_FILE: &str = ".forge/settings.toml";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -36,47 +40,80 @@ pub struct SettingsChange {
 
 type Listener = Box<dyn Fn(&SettingsChange) + Send + Sync>;
 
+/// Where a layer is saved.
+#[derive(Default)]
+enum Store {
+    /// Values only live in memory.
+    #[default]
+    None,
+    Path(PathBuf),
+    /// A project-relative file, e.g. of a project on a remote host.
+    Files(SharedFiles, String),
+}
+
 /// One persisted layer: flat dotted keys plus the file they are saved to.
-#[derive(Debug, Default)]
+#[derive(Default)]
 struct Layer {
-    path: Option<PathBuf>,
+    store: Store,
     values: BTreeMap<String, Value>,
+}
+
+fn parse_layer(src: &str, describe: impl Fn() -> String) -> Result<BTreeMap<String, Value>> {
+    let table: toml::Table = toml::from_str(src)
+        .map_err(|e| ForgeError::Other(format!("invalid settings file {}: {e}", describe())))?;
+    let mut flat = BTreeMap::new();
+    flatten("", toml::Value::Table(table), &mut flat);
+    Ok(flat)
 }
 
 impl Layer {
     fn load(path: PathBuf) -> Result<Self> {
         let values = match fs::read_to_string(&path) {
-            Ok(src) => {
-                let table: toml::Table = toml::from_str(&src).map_err(|e| {
-                    ForgeError::Other(format!("invalid settings file {}: {e}", path.display()))
-                })?;
-                let mut flat = BTreeMap::new();
-                flatten("", toml::Value::Table(table), &mut flat);
-                flat
-            }
+            Ok(src) => parse_layer(&src, || path.display().to_string())?,
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => BTreeMap::new(),
             Err(e) => return Err(ForgeError::io(&path, e)),
         };
         Ok(Self {
-            path: Some(path),
+            store: Store::Path(path),
             values,
         })
     }
 
-    fn save(&self) -> Result<()> {
-        let Some(path) = &self.path else {
-            return Ok(());
+    fn load_files(files: SharedFiles, rel: &str) -> Result<Self> {
+        let values = match files.read(rel)? {
+            Some(src) => parse_layer(&src, || files.describe(rel))?,
+            None => BTreeMap::new(),
         };
+        Ok(Self {
+            store: Store::Files(files, rel.to_string()),
+            values,
+        })
+    }
+
+    fn is_persisted(&self) -> bool {
+        !matches!(self.store, Store::None)
+    }
+
+    fn save(&self) -> Result<()> {
+        if !self.is_persisted() {
+            return Ok(());
+        }
         let mut root = toml::Table::new();
         for (key, value) in &self.values {
             insert_dotted(&mut root, key, json_to_toml(value)?);
         }
         let src = toml::to_string_pretty(&root)
             .map_err(|e| ForgeError::Other(format!("cannot serialize settings: {e}")))?;
-        if let Some(dir) = path.parent() {
-            fs::create_dir_all(dir).map_err(|e| ForgeError::io(dir, e))?;
+        match &self.store {
+            Store::None => Ok(()),
+            Store::Path(path) => {
+                if let Some(dir) = path.parent() {
+                    fs::create_dir_all(dir).map_err(|e| ForgeError::io(dir, e))?;
+                }
+                fs::write(path, src).map_err(|e| ForgeError::io(path, e))
+            }
+            Store::Files(files, rel) => files.write(rel, &src),
         }
-        fs::write(path, src).map_err(|e| ForgeError::io(path, e))
     }
 }
 
@@ -170,8 +207,20 @@ impl Settings {
         Ok(())
     }
 
+    /// Load the project layer through `files` (a project on a remote host reads and writes
+    /// its `.forge/settings.toml` through the project backend).
+    pub fn load_project_files(&mut self, files: SharedFiles) -> Result<()> {
+        self.project = Layer::load_files(files, PROJECT_SETTINGS_FILE)?;
+        Ok(())
+    }
+
+    /// Forget the project layer (no project is open).
+    pub fn close_project(&mut self) {
+        self.project = Layer::default();
+    }
+
     pub fn has_project(&self) -> bool {
-        self.project.path.is_some()
+        self.project.is_persisted()
     }
 
     /// Call `f` after every change of an effective value.
@@ -395,6 +444,27 @@ mod tests {
         assert_eq!(seen[0].scope, SettingsScope::User);
         assert_eq!(seen[1].value, json!("dark"));
         assert_eq!(seen[1].scope, SettingsScope::Default);
+    }
+
+    #[test]
+    fn project_layer_goes_through_project_files() {
+        let tmp = tempfile::tempdir().unwrap();
+        let mut s = settings(tmp.path());
+        let files = Arc::new(crate::project_files::MemoryFiles::new());
+        files.insert(PROJECT_SETTINGS_FILE, "[editor.font]\nsize = 20\n");
+        s.load_project_files(files.clone()).unwrap();
+        assert_eq!(s.get_i64("editor.font.size"), Some(20));
+        s.set("appearance.theme", json!("light"), SettingsScope::Project)
+            .unwrap();
+        let saved = files.get(PROJECT_SETTINGS_FILE).unwrap();
+        assert!(saved.contains("theme = \"light\""), "{saved}");
+        assert!(saved.contains("size = 20"), "{saved}");
+
+        files.insert(PROJECT_SETTINGS_FILE, "not = [valid");
+        assert!(s.load_project_files(files).is_err());
+        s.close_project();
+        assert!(!s.has_project());
+        assert_eq!(s.get_i64("editor.font.size"), Some(14));
     }
 
     #[test]

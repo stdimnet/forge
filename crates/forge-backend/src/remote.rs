@@ -21,11 +21,13 @@ use phpforge_lang_php::structure::FileStructure;
 use phpforge_lang_php::IndexStats;
 use serde::de::DeserializeOwned;
 
+use crate::frameworks::FrameworkCall;
+use crate::langservers::{LangServersAnswer, LangServersRequest};
 use crate::php::ProgressSink;
 use crate::protocol::{Call, Event, Opened, PhpCall, TerminalOpened};
 use crate::rpc::{connection_lost, RpcClient};
 use crate::{
-    Backend, BackendInfo, FsSink, PhpBackend, Process, RemoteHost, Terminal, TerminalSpec,
+    Backend, BackendInfo, FsSink, PhpBackend, Process, RemoteHost, Terminal, TerminalSpec, Tunnels,
     WatchGuard,
 };
 
@@ -35,10 +37,17 @@ const TIMEOUT: Duration = Duration::from_secs(60);
 const GIT_NETWORK_TIMEOUT: Duration = Duration::from_secs(600);
 /// A full PHP index of a large project.
 const INDEX_TIMEOUT: Duration = Duration::from_secs(3600);
+/// A framework scan or language scan of a large project (artisan may run too).
+const SCAN_TIMEOUT: Duration = Duration::from_secs(300);
 
 /// The current connection to the agent; it changes when the session reconnects.
 pub trait Connection: Send + Sync {
     fn client(&self) -> Result<RpcClient>;
+
+    /// Port forwarding over the connection (SSH tunnels), if it has any.
+    fn tunnels(&self) -> Option<Arc<dyn Tunnels>> {
+        None
+    }
 }
 
 impl Connection for RpcClient {
@@ -265,6 +274,14 @@ impl Process for RemoteProcess {
     fn write_stdin(&self, data: &[u8]) -> Result<()> {
         self.client.send_data(self.channel, data.to_vec())
     }
+    fn close_stdin(&self) -> Result<()> {
+        self.client.call_blocking(
+            Call::ProcessCloseStdin {
+                channel: self.channel,
+            },
+            TIMEOUT,
+        )
+    }
     fn kill(&self, grace: Duration) {
         let _ = self.client.call_blocking::<()>(
             Call::ProcessKill {
@@ -357,6 +374,15 @@ impl Backend for RemoteBackend {
     fn read_file(&self, rel: &str) -> Result<String> {
         self.shared.call(
             Call::ReadFile {
+                path: rel.to_string(),
+            },
+            TIMEOUT,
+        )
+    }
+
+    fn read_optional(&self, rel: &str) -> Result<Option<String>> {
+        self.shared.call(
+            Call::ReadOptional {
                 path: rel.to_string(),
             },
             TIMEOUT,
@@ -533,6 +559,30 @@ impl Backend for RemoteBackend {
 
     fn php(&self) -> &dyn PhpBackend {
         self
+    }
+
+    fn framework(&self, call: FrameworkCall) -> Result<Vec<u8>> {
+        self.shared
+            .client()?
+            .call_raw_blocking(Call::Framework(call), SCAN_TIMEOUT)
+    }
+
+    fn langservers(&self, req: LangServersRequest) -> Result<LangServersAnswer> {
+        self.shared.call(Call::LangServers(req), SCAN_TIMEOUT)
+    }
+
+    fn find_executable(&self, names: &[String], custom: Option<&str>) -> Result<Option<PathBuf>> {
+        self.shared.call(
+            Call::FindExecutable {
+                names: names.to_vec(),
+                custom: custom.map(str::to_string),
+            },
+            TIMEOUT,
+        )
+    }
+
+    fn tunnels(&self) -> Option<Arc<dyn Tunnels>> {
+        self.shared.conn.tunnels()
     }
 }
 

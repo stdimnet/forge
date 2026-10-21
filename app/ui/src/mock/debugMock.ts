@@ -1,7 +1,8 @@
 /**
  * Browser-mode PHP debugger. "Start Listening" is followed by a Laravel request that
  * suspends at the breakpoint in OrderController::show; stepping walks through the method
- * (and into InvoiceService::settle). Everything stays in memory.
+ * (and into InvoiceService::settle). Everything stays in memory. With `?debugIdle` no
+ * request arrives (the debugger just listens).
  */
 import { emitMock, registerMock } from "@/ipc";
 import type {
@@ -15,6 +16,7 @@ import type {
   SessionInfo,
   StepKind,
 } from "@/features/debug/api";
+import { currentRemote } from "./remoteMock";
 
 const CONTROLLER = "app/Http/Controllers/OrderController.php";
 const INVOICES = "app/Services/InvoiceService.php";
@@ -423,11 +425,18 @@ const s_ = s;
 
 // ---- handlers -----------------------------------------------------------------------------
 
-registerMock("debug_status", () => ({ listening, port, sessions: [...sessions.values()].map((x) => x.info) }));
+registerMock("debug_status", () => ({
+  listening,
+  port,
+  sessions: [...sessions.values()].map((x) => x.info),
+  // A remote project listens through an SSH forward of the host's port.
+  via: listening ? currentRemote()?.label : undefined,
+}));
 registerMock("debug_listen_start", () => {
   listening = true;
   emit({ type: "listening", listening: true, port });
-  if (![...sessions.values()].length) setTimeout(connect, 350);
+  const idle = typeof location !== "undefined" && new URLSearchParams(location.search).has("debugIdle");
+  if (!idle && ![...sessions.values()].length) setTimeout(connect, 350);
   return port;
 });
 registerMock("debug_listen_stop", () => {

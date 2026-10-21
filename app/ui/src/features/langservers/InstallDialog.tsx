@@ -8,6 +8,8 @@ import { Portal } from "solid-js/web";
 import { CircleCheck, CircleX, Copy, ExternalLink, LoaderCircle, TriangleAlert, X } from "lucide-solid";
 import { langserversApi, type InstallLine, type InstallOutcome, type ServerRow } from "@/ipc/langservers";
 import { applyServers, onInstallOutput } from "./store";
+import { INTELEPHENSE_ID } from "./autoInstall";
+import { ensureLicence } from "./managed";
 
 type Phase = "confirm" | "running" | "done";
 
@@ -43,6 +45,8 @@ export function InstallDialog(props: { row: ServerRow; onClose: () => void }) {
   const start = async () => {
     const o = option();
     if (!o) return;
+    // Intelephense is downloaded only after its licence was accepted (once).
+    if (o.managed && props.row.id === INTELEPHENSE_ID && !(await ensureLicence())) return;
     setPhase("running");
     setLines([]);
     setError(null);
@@ -116,6 +120,12 @@ export function InstallDialog(props: { row: ServerRow; onClose: () => void }) {
                 </Match>
                 <Match when={!option()?.runnable}>
                   <p class="ls-hint">Run this command in a terminal; it needs administrator rights.</p>
+                </Match>
+                <Match when={option()?.managed}>
+                  <p class="ls-hint">
+                    Forge downloads the package from the npm registry (checking its sha512 hash) into its own server
+                    directory, and Node.js too if none is installed. npm is not needed.
+                  </p>
                 </Match>
                 <Match when={!option()?.available}>
                   <p class="ls-hint ls-warn">

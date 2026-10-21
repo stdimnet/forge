@@ -1,0 +1,154 @@
+---
+title: WebForge
+description: The WebForge pack - npm scripts and package managers, the npm tool window, Node.js and TypeScript settings, and React, Vue and Angular component navigation and line markers.
+order: 100
+tags: [webforge, javascript, typescript, npm, react, vue, angular]
+---
+
+# WebForge
+
+The **WebForge** pack brings web development to Forge. Its plugins activate per project:
+
+| Plugin | Id | Active for |
+| --- | --- | --- |
+| HTML, CSS & JavaScript | `forge.web` | projects with JavaScript, TypeScript, HTML or CSS |
+| React | `forge.react` | `react` or `next` in `package.json` |
+| Vue.js | `forge.vue` | `vue` or `nuxt` |
+| Angular | `forge.angular` | `@angular/core` or `angular.json` |
+
+Editing intelligence comes from the web language servers of the catalog: TypeScript
+(`typescript-language-server` or `vtsls`), Vue (Volar), the Angular Language Service, HTML,
+CSS, ESLint and Tailwind CSS. Install them from Settings | Languages & Frameworks |
+**TypeScript** (the "Language Services" list) or the Language Servers page. See
+[Language servers](language-servers.md).
+
+## npm scripts
+
+### npm tool window
+
+The **npm** tool window (left stripe) lists every `package.json` of the project (also in
+workspaces and sub-folders) with its scripts and the package manager it uses.
+
+![npm tool window](../../screenshots/webforge-npm-tool-window.png)
+
+- **Double-click** a script to run it. It runs as a temporary **npm** run configuration in the
+  Run tool window.
+- The toolbar has **Reload Scripts**, **Run**, **Debug**, **Expand All**, **Collapse All** and
+  **Settings**; the context menu has **Jump to Source**.
+- **Install Dependencies** (Find Action) runs the package manager's install in the root
+  package.
+
+![Running a script](../../screenshots/webforge-npm-run.png)
+
+### Run icons in package.json
+
+Every script in `package.json` gets a ▶ icon in the gutter (setting
+`web.npm.gutterIcons`). Click it for **Run** and **Debug**.
+
+![Gutter menu](../../screenshots/webforge-npm-gutter-menu.png)
+
+### Package managers
+
+The package manager of a package is chosen from, in this order:
+
+1. Settings | Languages & Frameworks | Node.js | **Package manager** (`web.packageManager`)
+   when it is not `auto`;
+2. the `packageManager` field of `package.json` (e.g. `pnpm@9.15.4`);
+3. a lock file in the package's folder or a parent: `pnpm-lock.yaml`, `yarn.lock`,
+   `bun.lock`/`bun.lockb`, `package-lock.json`;
+4. npm.
+
+npm, pnpm, yarn and bun are supported. Script arguments are passed after `--` for npm only.
+
+### Debugging scripts
+
+**Debug** on an npm script sets `NODE_OPTIONS` to the value of **Node options when debugging
+scripts** (`web.npm.debugArguments`, default `--inspect`). Attach Chrome DevTools
+(`chrome://inspect`) or another inspector client to the printed port.
+
+> **Note:** Forge has no built-in JavaScript debugger yet; Debug only starts Node with the
+> inspector enabled.
+
+### Settings | Languages & Frameworks | Node.js
+
+![Node.js settings](../../screenshots/webforge-settings-node.png)
+
+| Option | Setting | Default |
+| --- | --- | --- |
+| Package manager (`auto`, `npm`, `pnpm`, `yarn`, `bun`) | `web.packageManager` | `auto` |
+| Show run icons next to scripts in package.json | `web.npm.gutterIcons` | on |
+| Node options when debugging scripts | `web.npm.debugArguments` | `--inspect` |
+
+## Component navigation
+
+`Ctrl+B` / `Ctrl+Click` resolves components through your imports (relative paths,
+`tsconfig`/`jsconfig` `paths` aliases, index files, barrel re-exports and **workspace
+packages** imported by name — resolved through their `package.json` `exports`, `module`, `main`
+or `types`, falling back to the sources when `dist/` is not built) before the language server
+is asked. Several targets open the **Choose Declaration** popup. Turn it off with Settings | Languages & Frameworks | TypeScript | **Navigate
+from JSX and template tags to components, props and events** (`web.navigation.components`).
+
+### React
+
+- On `<UserCard` in JSX: opens the component (function or class component, also anonymous
+  default exports such as `export default () => …`, which are named after their file).
+- On a prop (`title=`): opens the prop's declaration.
+- On a component's own name: lists the JSX tags that use it (**Usages of …**).
+
+![React Go to Declaration](../../screenshots/webforge-react-goto.png)
+
+![React usages](../../screenshots/webforge-react-usages.png)
+
+### Vue.js
+
+Single-file components with `<script setup>` or the Options API:
+
+- `<UserCard>` and `<user-card>` resolve through the script's imports, barrel files, or
+  project-wide (global registration, Nuxt auto-imports);
+- `:title` and `@select` go to the prop or emit;
+- on a component's own name or block tag: its usages.
+
+![Vue navigation](../../screenshots/webforge-vue-goto.png)
+
+### Angular
+
+- Element and attribute selectors in templates go to the component or directive.
+- `[input]` and `(output)` bindings go to the input or output (decorators or signal
+  functions).
+- `| pipe` goes to the pipe.
+- `templateUrl` and `styleUrls`/`styleUrl` strings open the files (**Choose Stylesheet** when
+  there are several).
+- **Line markers** link a component class with its template and styles, and a template back
+  to its component (setting **Show line markers between components, templates and styles**,
+  `angular.gutterIcons`).
+
+![Angular gutter](../../screenshots/webforge-angular-gutter.png)
+
+![Angular template navigation](../../screenshots/webforge-angular-template.png)
+
+When several targets match, a **Choose Declaration** popup lists them.
+
+## Settings | Languages & Frameworks | TypeScript
+
+![TypeScript settings](../../screenshots/webforge-settings-typescript.png)
+
+| Option | Setting | Default |
+| --- | --- | --- |
+| Navigate from JSX and template tags to components, props and events | `web.navigation.components` | on |
+| Show line markers between components, templates and styles (Angular) | `angular.gutterIcons` | on |
+
+Below these options, **Language Services** shows the web language servers (JavaScript &
+TypeScript, Vue, Angular, HTML & CSS) with the same controls as the Language Servers page.
+
+## Browser Companion
+
+Click a React, Vue, Angular or Svelte component in your running app and its source opens in
+Forge: see [Browser Companion](browser-companion.md).
+
+## New web projects
+
+The New Project wizard creates Vite, React, Vue.js, Angular, Svelte and static HTML projects,
+see [Opening and creating projects](../getting-started/projects.md).
+
+> **Note:** the npm tool window and framework navigation read the project through this
+> machine's file system; they are not available in [remote projects](remote-development.md) yet.

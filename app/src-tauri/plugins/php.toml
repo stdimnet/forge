@@ -116,6 +116,31 @@ section = "Language Server"
 order = 19
 
 [[contributions.settings]]
+key = "php.intelephense.autoInstall"
+title = "When Intelephense is not installed"
+description = "Forge downloads Intelephense from the npm registry into its own directory (and Node.js when none is installed). Intelephense is not bundled with Forge."
+type = "enum"
+options = [
+  { value = "ask", label = "Ask when a PHP project opens" },
+  { value = "always", label = "Install automatically" },
+  { value = "never", label = "Do not install" },
+]
+default = "ask"
+group = "lang.php"
+section = "Language Server"
+order = 21
+
+[[contributions.settings]]
+key = "php.intelephense.licenceAccepted"
+title = "I accept the Intelephense licence"
+description = "Asked once before Forge downloads Intelephense for you. Its licence (LICENSE.txt in the npm package, intelephense.com) applies to your copy."
+type = "bool"
+default = false
+group = "lang.php"
+section = "Language Server"
+order = 22
+
+[[contributions.settings]]
 key = "php.lsp.maxFileSize"
 title = "Max indexed file size (KB)"
 type = "int"

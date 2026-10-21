@@ -604,3 +604,71 @@ async fn cli_scripts_use_the_server_whose_mappings_cover_them() {
         Some("src/Kernel.php")
     );
 }
+
+/// A project on a remote host: its breakpoints live there (through the project files), the
+/// listener is reached through a forwarded port and the host's paths are the project's.
+#[tokio::test]
+async fn remote_project_listens_through_a_forwarded_port() {
+    let files = Arc::new(forge_core::MemoryFiles::new());
+    let (tx, mut events) = mpsc::unbounded_channel();
+    let server = Arc::new(DebugServer::new(Arc::new(move |e| {
+        let _ = tx.send(e);
+    })));
+    let root = Path::new("/var/www/shop");
+    server.open_project_files(Some((root.to_path_buf(), files.clone())));
+    server
+        .add_breakpoint(line_bp(
+            "app/Http/Controllers/OrderController.php",
+            12,
+            None,
+        ))
+        .unwrap();
+    let stored = files.get(".forge/breakpoints.json").unwrap();
+    assert!(stored.contains("OrderController.php"), "{stored}");
+
+    // The "tunnel" reports the remote port; the IDE listens on a local one.
+    let (shown, local) = server
+        .listen_with(0, |bound| async move { Ok((9003, bound)) })
+        .await
+        .unwrap();
+    assert_eq!(shown, 9003);
+    assert_eq!(server.listening_port(), Some(9003));
+    let listening = loop {
+        let e = tokio::time::timeout(WAIT, events.recv())
+            .await
+            .unwrap()
+            .unwrap();
+        if matches!(e, DebugEvent::Listening { .. }) {
+            break e;
+        }
+    };
+    assert!(matches!(
+        listening,
+        DebugEvent::Listening {
+            listening: true,
+            port: 9003,
+            ..
+        }
+    ));
+
+    // Xdebug on the host reports host paths: they are the project's paths.
+    let mut engine = Engine::connect(local, &uri(root, "public/index.php")).await;
+    engine.answer_identity(&[]).await;
+    let (_, bps) = engine.setup().await;
+    assert_eq!(
+        bps[0].arg('f').map(str::to_string),
+        Some(uri(root, "app/Http/Controllers/OrderController.php"))
+    );
+
+    // A failing tunnel stops the listener and reports why.
+    let err = server
+        .listen_with(0, |_| async {
+            Err::<(u16, ()), _>(forge_debug::DebugError::Other(
+                "port 9003 is busy on the host".into(),
+            ))
+        })
+        .await
+        .unwrap_err();
+    assert!(err.to_string().contains("busy on the host"));
+    assert_eq!(server.listening_port(), None);
+}

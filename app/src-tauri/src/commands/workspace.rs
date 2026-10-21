@@ -102,15 +102,18 @@ pub fn project_opened(app: &AppHandle) {
             crate::commands::services::reconfigure(app);
             crate::recent::remember(RecentProject::local(info.name.clone(), display));
         }
-        Some(host) => crate::recent::remember(RecentProject {
-            name: info.name.clone(),
-            root: display,
-            remote: Some(RecentRemote {
-                host: host.clone(),
-                path: info.root.to_string_lossy().into_owned(),
-            }),
-            primary: None,
-        }),
+        Some(host) => {
+            crate::commands::db::remote_project_opened(app);
+            crate::recent::remember(RecentProject {
+                name: info.name.clone(),
+                root: display,
+                remote: Some(RecentRemote {
+                    host: host.clone(),
+                    path: info.root.to_string_lossy().into_owned(),
+                }),
+                primary: None,
+            })
+        }
     }
 }
 

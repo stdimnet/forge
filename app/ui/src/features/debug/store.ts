@@ -29,6 +29,8 @@ export type WatchResult = { value: Property } | { error: string } | { pending: t
 
 const [listening, setListening] = createSignal(false);
 const [port, setPort] = createSignal(9003);
+/** The remote host whose debug port is forwarded over SSH while listening. */
+const [listeningVia, setListeningVia] = createSignal<string | undefined>(undefined);
 const [sessions, setSessions] = createSignal<SessionInfo[]>([]);
 const [activeId, setActiveId] = createSignal<string | null>(null);
 const [frames, setFrames] = createSignal<Frame[]>([]);
@@ -45,6 +47,7 @@ const [contextVersion, setContextVersion] = createSignal(0);
 
 export {
   listening,
+  listeningVia,
   port,
   sessions,
   activeId,
@@ -241,6 +244,7 @@ export function handleDebugEvent(e: DebugEvent): void {
     case "listening":
       setListening(e.listening);
       setPort(e.port);
+      if (!e.listening) setListeningVia(undefined);
       if (e.error) showBalloon("Cannot start listening for debug connections", e.error, 6000);
       break;
     case "session":
@@ -282,6 +286,7 @@ export async function reloadDebugState(): Promise<void> {
     batch(() => {
       setListening(status.listening);
       setPort(status.port);
+      setListeningVia(status.listening ? status.via : undefined);
       setSessions(status.sessions);
       setBreakpointState(bps);
       setWatchList(w);
@@ -303,7 +308,12 @@ export async function reloadDebugState(): Promise<void> {
 export async function toggleListening(): Promise<void> {
   try {
     if (listening()) await debugApi.listenStop();
-    else await debugApi.listenStart();
+    else {
+      await debugApi.listenStart();
+      // A remote project listens through an SSH forward of the host's port.
+      const status = await debugApi.status();
+      setListeningVia(status.listening ? status.via : undefined);
+    }
   } catch (e) {
     showBalloon("Cannot start listening for debug connections", String(e), 6000);
   }

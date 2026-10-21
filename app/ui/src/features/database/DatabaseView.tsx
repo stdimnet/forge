@@ -148,7 +148,10 @@ function buildRows(): Row[] {
       depth: 0,
       kind: "ds",
       label: ds.name,
-      hint: st?.status === "connected" && st.schemas.length > 1 ? `${schemas.length} of ${st.schemas.length}` : undefined,
+      hint:
+        [st?.status === "connected" && st.schemas.length > 1 ? `${schemas.length} of ${st.schemas.length}` : "", ds.via ? `SSH ${ds.via}` : ""]
+          .filter(Boolean)
+          .join(" · ") || undefined,
       expandable: true,
       icon: () => (
         <span class={`db-ic-ds ${DRIVER_COLORS[ds.driver]}`} classList={{ connected: st?.status === "connected" }}>

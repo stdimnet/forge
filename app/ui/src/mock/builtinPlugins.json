@@ -193,6 +193,31 @@
           "order": 31
         },
         {
+          "key": "appearance.mainMenu",
+          "title": "Main menu",
+          "description": "Hamburger menu: behind the button at the left of the main toolbar. Merged: the menu names in the main toolbar. Separate toolbar: a classic menu bar above the main toolbar.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "hamburger",
+              "label": "Hamburger menu"
+            },
+            {
+              "value": "merged",
+              "label": "Merged with main toolbar"
+            },
+            {
+              "value": "toolbar",
+              "label": "Show in separate toolbar"
+            }
+          ],
+          "default": "hamburger",
+          "group": "appearance",
+          "section": "UI Options",
+          "project": false,
+          "order": 19
+        },
+        {
           "key": "appearance.smoothScrolling",
           "title": "Smooth scrolling",
           "description": "Animate scrolling in lists and trees.",
@@ -202,6 +227,17 @@
           "section": "UI Options",
           "project": false,
           "order": 21
+        },
+        {
+          "key": "appearance.showSplash",
+          "title": "Show splash screen on startup",
+          "description": "The Forge wordmark fills with molten metal while the IDE loads, and offers updates.",
+          "type": "bool",
+          "default": true,
+          "group": "appearance",
+          "section": "UI Options",
+          "project": false,
+          "order": 22
         },
         {
           "key": "appearance.windowControls",
@@ -383,6 +419,49 @@
           "section": "Synchronization",
           "project": false,
           "order": 20
+        },
+        {
+          "key": "updates.checkOnStartup",
+          "title": "Check for updates on startup",
+          "description": "The splash screen checks at most once a day. Help | Check for Updates… checks at any time.",
+          "type": "bool",
+          "default": true,
+          "group": "system.updates",
+          "section": "Automatic Checks",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "updates.channel",
+          "title": "Update channel",
+          "description": "Beta also offers pre-releases.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "stable",
+              "label": "Stable releases"
+            },
+            {
+              "value": "beta",
+              "label": "Beta releases"
+            }
+          ],
+          "default": "stable",
+          "group": "system.updates",
+          "section": "Automatic Checks",
+          "project": false,
+          "order": 1
+        },
+        {
+          "key": "updates.endpoint",
+          "title": "Update feed URL",
+          "description": "The latest.json of the update feed. Empty: the GitHub releases of Forge for the selected channel. Updates must be signed with the key this build was made with.",
+          "type": "string",
+          "default": "",
+          "group": "system.updates",
+          "section": "Advanced",
+          "project": false,
+          "order": 10
         },
         {
           "key": "editor.smoothScrolling",
@@ -717,7 +796,8 @@
       "runConfigurationTypes": [],
       "aiProviders": [],
       "chatAgents": [],
-      "codeGenerators": []
+      "codeGenerators": [],
+      "mainMenu": []
     }
   },
   {
@@ -869,7 +949,8 @@
       "runConfigurationTypes": [],
       "aiProviders": [],
       "chatAgents": [],
-      "codeGenerators": []
+      "codeGenerators": [],
+      "mainMenu": []
     }
   },
   {
@@ -938,7 +1019,8 @@
       "runConfigurationTypes": [],
       "aiProviders": [],
       "chatAgents": [],
-      "codeGenerators": []
+      "codeGenerators": [],
+      "mainMenu": []
     }
   },
   {
@@ -1056,7 +1138,8 @@
       "runConfigurationTypes": [],
       "aiProviders": [],
       "chatAgents": [],
-      "codeGenerators": []
+      "codeGenerators": [],
+      "mainMenu": []
     }
   },
   {
@@ -1135,7 +1218,8 @@
       ],
       "aiProviders": [],
       "chatAgents": [],
-      "codeGenerators": []
+      "codeGenerators": [],
+      "mainMenu": []
     }
   },
   {
@@ -1213,7 +1297,8 @@
       "runConfigurationTypes": [],
       "aiProviders": [],
       "chatAgents": [],
-      "codeGenerators": []
+      "codeGenerators": [],
+      "mainMenu": []
     }
   },
   {
@@ -1447,7 +1532,24 @@
       "runConfigurationTypes": [],
       "aiProviders": [],
       "chatAgents": [],
-      "codeGenerators": []
+      "codeGenerators": [],
+      "mainMenu": [
+        {
+          "path": "Tools/_Docker",
+          "items": [
+            {
+              "type": "action",
+              "id": "Docker.PullImage",
+              "label": "_Pull Image..."
+            },
+            {
+              "type": "action",
+              "id": "Services.Refresh",
+              "label": "_Refresh Services"
+            }
+          ]
+        }
+      ]
     }
   },
   {
@@ -1566,6 +1668,42 @@
           "section": "Language Server",
           "project": false,
           "order": 19
+        },
+        {
+          "key": "php.intelephense.autoInstall",
+          "title": "When Intelephense is not installed",
+          "description": "Forge downloads Intelephense from the npm registry into its own directory (and Node.js when none is installed). Intelephense is not bundled with Forge.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "ask",
+              "label": "Ask when a PHP project opens"
+            },
+            {
+              "value": "always",
+              "label": "Install automatically"
+            },
+            {
+              "value": "never",
+              "label": "Do not install"
+            }
+          ],
+          "default": "ask",
+          "group": "lang.php",
+          "section": "Language Server",
+          "project": false,
+          "order": 21
+        },
+        {
+          "key": "php.intelephense.licenceAccepted",
+          "title": "I accept the Intelephense licence",
+          "description": "Asked once before Forge downloads Intelephense for you. Its licence (LICENSE.txt in the npm package, intelephense.com) applies to your copy.",
+          "type": "bool",
+          "default": false,
+          "group": "lang.php",
+          "section": "Language Server",
+          "project": false,
+          "order": 22
         },
         {
           "key": "php.lsp.maxFileSize",
@@ -1799,7 +1937,8 @@
             "php"
           ]
         }
-      ]
+      ],
+      "mainMenu": []
     }
   },
   {
@@ -1934,13 +2073,47 @@
           "section": "Lua Language Server",
           "project": false,
           "order": 11
+        },
+        {
+          "key": "langservers.updates.check",
+          "title": "Check for updates of servers installed by Forge once a day",
+          "description": "Offers an update when the npm registry has a newer version of a server in Forge's server directory.",
+          "type": "bool",
+          "default": true,
+          "group": "lang.servers",
+          "section": "Downloads",
+          "project": false,
+          "order": 20
+        },
+        {
+          "key": "langservers.download.npmRegistry",
+          "title": "npm registry",
+          "description": "Where Forge downloads npm language servers from. Every tarball is checked against the registry's sha512 integrity hash.",
+          "type": "string",
+          "default": "https://registry.npmjs.org",
+          "group": "lang.servers",
+          "section": "Downloads",
+          "project": false,
+          "order": 21
+        },
+        {
+          "key": "langservers.download.nodeMirror",
+          "title": "Node.js download mirror",
+          "description": "Used only when no Node.js 18 or newer is installed. Downloads are checked against the release's SHASUMS256.txt.",
+          "type": "string",
+          "default": "https://nodejs.org/dist",
+          "group": "lang.servers",
+          "section": "Downloads",
+          "project": false,
+          "order": 22
         }
       ],
       "lspServers": [],
       "runConfigurationTypes": [],
       "aiProviders": [],
       "chatAgents": [],
-      "codeGenerators": []
+      "codeGenerators": [],
+      "mainMenu": []
     }
   },
   {
@@ -2036,7 +2209,8 @@
       ],
       "aiProviders": [],
       "chatAgents": [],
-      "codeGenerators": []
+      "codeGenerators": [],
+      "mainMenu": []
     }
   },
   {
@@ -2082,7 +2256,8 @@
             "php"
           ]
         }
-      ]
+      ],
+      "mainMenu": []
     }
   },
   {
@@ -2228,7 +2403,24 @@
       ],
       "aiProviders": [],
       "chatAgents": [],
-      "codeGenerators": []
+      "codeGenerators": [],
+      "mainMenu": [
+        {
+          "path": "Run",
+          "items": [
+            {
+              "type": "separator"
+            },
+            {
+              "type": "action",
+              "id": "PhpListenDebugAction",
+              "label": "Start _Listening for PHP Debug Connections",
+              "checkable": true
+            }
+          ],
+          "after": "XDebugger.MuteBreakpoints"
+        }
+      ]
     }
   },
   {
@@ -2371,6 +2563,23 @@
             "php"
           ]
         }
+      ],
+      "mainMenu": [
+        {
+          "path": "Tools/_Laravel",
+          "items": [
+            {
+              "type": "action",
+              "id": "Laravel.RunArtisan",
+              "label": "Run _Artisan Command..."
+            },
+            {
+              "type": "action",
+              "id": "Laravel.ShowRoutes",
+              "label": "Show _Routes"
+            }
+          ]
+        }
       ]
     }
   },
@@ -2509,7 +2718,32 @@
       "runConfigurationTypes": [],
       "aiProviders": [],
       "chatAgents": [],
-      "codeGenerators": []
+      "codeGenerators": [],
+      "mainMenu": [
+        {
+          "path": "Tools/_Symfony",
+          "items": [
+            {
+              "type": "action",
+              "id": "Symfony.RunConsoleCommand",
+              "label": "Run _Console Command..."
+            },
+            {
+              "type": "action",
+              "id": "Symfony.ShowRoutes",
+              "label": "Show _Routes"
+            },
+            {
+              "type": "separator"
+            },
+            {
+              "type": "action",
+              "id": "symfony.refresh",
+              "label": "Re_fresh Symfony Index"
+            }
+          ]
+        }
+      ]
     }
   },
   {
@@ -2550,7 +2784,8 @@
       "runConfigurationTypes": [],
       "aiProviders": [],
       "chatAgents": [],
-      "codeGenerators": []
+      "codeGenerators": [],
+      "mainMenu": []
     }
   },
   {
@@ -2662,7 +2897,8 @@
       "runConfigurationTypes": [],
       "aiProviders": [],
       "chatAgents": [],
-      "codeGenerators": []
+      "codeGenerators": [],
+      "mainMenu": []
     }
   },
   {
@@ -2833,7 +3069,8 @@
       ],
       "aiProviders": [],
       "chatAgents": [],
-      "codeGenerators": []
+      "codeGenerators": [],
+      "mainMenu": []
     }
   },
   {
@@ -2863,7 +3100,8 @@
       "runConfigurationTypes": [],
       "aiProviders": [],
       "chatAgents": [],
-      "codeGenerators": []
+      "codeGenerators": [],
+      "mainMenu": []
     }
   },
   {
@@ -2907,7 +3145,8 @@
       "runConfigurationTypes": [],
       "aiProviders": [],
       "chatAgents": [],
-      "codeGenerators": []
+      "codeGenerators": [],
+      "mainMenu": []
     }
   },
   {
@@ -2959,7 +3198,8 @@
       "runConfigurationTypes": [],
       "aiProviders": [],
       "chatAgents": [],
-      "codeGenerators": []
+      "codeGenerators": [],
+      "mainMenu": []
     }
   },
   {
@@ -3121,7 +3361,8 @@
       ],
       "aiProviders": [],
       "chatAgents": [],
-      "codeGenerators": []
+      "codeGenerators": [],
+      "mainMenu": []
     }
   },
   {
@@ -3201,7 +3442,8 @@
             "lua"
           ]
         }
-      ]
+      ],
+      "mainMenu": []
     }
   },
   {
@@ -3311,7 +3553,8 @@
           "provider": "claude-code"
         }
       ],
-      "codeGenerators": []
+      "codeGenerators": [],
+      "mainMenu": []
     }
   },
   {
@@ -3417,7 +3660,8 @@
           "provider": "gemini-cli"
         }
       ],
-      "codeGenerators": []
+      "codeGenerators": [],
+      "mainMenu": []
     }
   },
   {
@@ -3476,7 +3720,8 @@
       "runConfigurationTypes": [],
       "aiProviders": [],
       "chatAgents": [],
-      "codeGenerators": []
+      "codeGenerators": [],
+      "mainMenu": []
     }
   },
   {
@@ -3523,7 +3768,8 @@
       "runConfigurationTypes": [],
       "aiProviders": [],
       "chatAgents": [],
-      "codeGenerators": []
+      "codeGenerators": [],
+      "mainMenu": []
     }
   },
   {
@@ -3566,7 +3812,8 @@
       "runConfigurationTypes": [],
       "aiProviders": [],
       "chatAgents": [],
-      "codeGenerators": []
+      "codeGenerators": [],
+      "mainMenu": []
     }
   },
   {
@@ -3625,7 +3872,8 @@
       "runConfigurationTypes": [],
       "aiProviders": [],
       "chatAgents": [],
-      "codeGenerators": []
+      "codeGenerators": [],
+      "mainMenu": []
     }
   },
   {
@@ -3677,7 +3925,8 @@
       "runConfigurationTypes": [],
       "aiProviders": [],
       "chatAgents": [],
-      "codeGenerators": []
+      "codeGenerators": [],
+      "mainMenu": []
     }
   },
   {
@@ -3718,7 +3967,8 @@
       "runConfigurationTypes": [],
       "aiProviders": [],
       "chatAgents": [],
-      "codeGenerators": []
+      "codeGenerators": [],
+      "mainMenu": []
     }
   },
   {
@@ -3773,7 +4023,8 @@
       "runConfigurationTypes": [],
       "aiProviders": [],
       "chatAgents": [],
-      "codeGenerators": []
+      "codeGenerators": [],
+      "mainMenu": []
     }
   },
   {
@@ -3819,7 +4070,8 @@
       "runConfigurationTypes": [],
       "aiProviders": [],
       "chatAgents": [],
-      "codeGenerators": []
+      "codeGenerators": [],
+      "mainMenu": []
     }
   },
   {
@@ -3852,7 +4104,8 @@
       "runConfigurationTypes": [],
       "aiProviders": [],
       "chatAgents": [],
-      "codeGenerators": []
+      "codeGenerators": [],
+      "mainMenu": []
     }
   },
   {
@@ -3910,7 +4163,8 @@
       "runConfigurationTypes": [],
       "aiProviders": [],
       "chatAgents": [],
-      "codeGenerators": []
+      "codeGenerators": [],
+      "mainMenu": []
     }
   },
   {
@@ -3947,7 +4201,8 @@
       "runConfigurationTypes": [],
       "aiProviders": [],
       "chatAgents": [],
-      "codeGenerators": []
+      "codeGenerators": [],
+      "mainMenu": []
     }
   },
   {
@@ -4012,7 +4267,8 @@
       "runConfigurationTypes": [],
       "aiProviders": [],
       "chatAgents": [],
-      "codeGenerators": []
+      "codeGenerators": [],
+      "mainMenu": []
     }
   }
 ]

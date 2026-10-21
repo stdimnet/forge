@@ -26,10 +26,12 @@ use phpforge_lang_php::lsp::PhpLspSettings;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 
+use crate::frameworks::FrameworkCall;
+use crate::langservers::LangServersRequest;
 use crate::TerminalSpec;
 
 /// Bumped on incompatible protocol changes; client and agent must agree.
-pub const PROTOCOL_VERSION: u32 = 1;
+pub const PROTOCOL_VERSION: u32 = 2;
 
 /// Frames larger than this are refused (protects both sides from garbage input).
 pub const MAX_FRAME: usize = 64 * 1024 * 1024;
@@ -80,6 +82,10 @@ pub enum Call {
     },
     /// -> `String`
     ReadFile {
+        path: String,
+    },
+    /// -> `Option<String>` (`None` when the file does not exist)
+    ReadOptional {
         path: String,
     },
     /// -> `()`
@@ -139,6 +145,19 @@ pub enum Call {
         channel: u32,
         grace_ms: u64,
     },
+    /// End of the process' input -> `()`
+    ProcessCloseStdin {
+        channel: u32,
+    },
+    /// Look for an executable on the host -> `Option<PathBuf>`
+    FindExecutable {
+        names: Vec<String>,
+        custom: Option<String>,
+    },
+    /// Laravel / Symfony / Doctrine analysis on the host -> the call's reply type
+    Framework(FrameworkCall),
+    /// Plan the catalog language servers on the host -> `LangServersAnswer`
+    LangServers(LangServersRequest),
     /// Start a language server in the project root; its stdio is `channel` -> `()`
     LspStart {
         channel: u32,
@@ -412,6 +431,24 @@ mod tests {
                     cols: 80,
                     rows: 24,
                 },
+            },
+        });
+        roundtrip(Frame::Request {
+            id: 3,
+            call: Call::Framework(FrameworkCall::Symfony {
+                config: phpforge_fw_symfony::Config::default(),
+                query: crate::frameworks::SymfonyQuery::Complete {
+                    path: "templates/a.html.twig".into(),
+                    content: "{{ path('".into(),
+                    offset: 9,
+                },
+            }),
+        });
+        roundtrip(Frame::Request {
+            id: 4,
+            call: Call::FindExecutable {
+                names: vec!["claude".into()],
+                custom: None,
             },
         });
         roundtrip(Frame::Response {

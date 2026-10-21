@@ -474,3 +474,189 @@ async fn search_index_runs_on_the_agent() {
     })
     .await;
 }
+
+fn laravel_project() -> tempfile::TempDir {
+    let dir = project();
+    let p = dir.path();
+    std::fs::write(
+        p.join("composer.json"),
+        r#"{"require":{"laravel/framework":"^12.0"},"autoload":{"psr-4":{"App\\":"app/"}}}"#,
+    )
+    .unwrap();
+    std::fs::create_dir_all(p.join("routes")).unwrap();
+    std::fs::create_dir_all(p.join("app/Http/Controllers")).unwrap();
+    std::fs::write(
+        p.join("routes/web.php"),
+        "<?php\nuse App\\Http\\Controllers\\OrderController;\nRoute::get('/orders/{order}', [OrderController::class, 'show'])->name('orders.show');\n",
+    )
+    .unwrap();
+    std::fs::write(
+        p.join("app/Http/Controllers/OrderController.php"),
+        "<?php\nnamespace App\\Http\\Controllers;\nclass OrderController\n{\n    public function show() {}\n}\n",
+    )
+    .unwrap();
+    dir
+}
+
+async fn open_remote(dir: &tempfile::TempDir) -> Arc<dyn Backend> {
+    let root = dir.path().to_string_lossy().into_owned();
+    let client = connect();
+    Arc::new(blocking(move || RemoteBackend::open(Arc::new(client), host(), &root).unwrap()).await)
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn frameworks_are_analysed_on_the_agent() {
+    use forge_backend::frameworks::{DoctrineQuery, LaravelRoutes, SymfonyQuery};
+    use forge_backend::{framework_call, FrameworkCall};
+
+    let dir = laravel_project();
+    let b = open_remote(&dir).await;
+    let (info, routes, gutter, symfony, entities) = blocking(move || {
+        let info: phpforge_fw_laravel::LaravelInfo =
+            framework_call(b.as_ref(), FrameworkCall::LaravelDetect).unwrap();
+        let routes: LaravelRoutes = framework_call(
+            b.as_ref(),
+            FrameworkCall::LaravelRoutes {
+                source: "static".into(),
+                php: "php".into(),
+            },
+        )
+        .unwrap();
+        // No buffer: the agent reads the file itself.
+        let gutter: Vec<phpforge_fw_laravel::GutterMark> = framework_call(
+            b.as_ref(),
+            FrameworkCall::LaravelGutter {
+                path: "app/Http/Controllers/OrderController.php".into(),
+                content: None,
+            },
+        )
+        .unwrap();
+        let symfony: Option<phpforge_fw_symfony::SymfonyInfo> = framework_call(
+            b.as_ref(),
+            FrameworkCall::Symfony {
+                config: Default::default(),
+                query: SymfonyQuery::Detect,
+            },
+        )
+        .unwrap();
+        let entities: Vec<phpforge_orm_doctrine::Entity> = framework_call(
+            b.as_ref(),
+            FrameworkCall::Doctrine {
+                config: Default::default(),
+                query: DoctrineQuery::Entities { refresh: true },
+            },
+        )
+        .unwrap();
+        (info, routes, gutter, symfony, entities)
+    })
+    .await;
+    assert!(info.detected);
+    assert_eq!(info.routes, 1);
+    assert_eq!(routes.routes[0].name.as_deref(), Some("orders.show"));
+    let location = routes.routes[0].action_location.clone().unwrap();
+    assert_eq!(location.path, "app/Http/Controllers/OrderController.php");
+    assert!(gutter.iter().any(|m| m.kind == "route"), "{gutter:?}");
+    assert!(symfony.is_none());
+    assert!(entities.is_empty());
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn project_settings_and_executables_on_the_host() {
+    use forge_core::{ProjectFiles, Settings, SettingsScope};
+
+    let dir = project();
+    let b = open_remote(&dir).await;
+    let (missing, value, found, custom) = blocking(move || {
+        let files: Arc<dyn ProjectFiles> = Arc::new(forge_backend::BackendFiles(b.clone()));
+        let missing = files.read(".forge/settings.toml").unwrap();
+        let mut settings = Settings::new();
+        settings.load_project_files(files.clone()).unwrap();
+        settings
+            .set(
+                "php.interpreter",
+                serde_json::json!("/usr/bin/php8.3"),
+                SettingsScope::Project,
+            )
+            .unwrap();
+        let mut again = Settings::new();
+        again.load_project_files(files).unwrap();
+        let value: Option<String> = again.get_as("php.interpreter");
+        let found = b.find_executable(&["sh".into()], None).unwrap();
+        let custom = b
+            .find_executable(&["nope".into()], Some("/definitely/not/here"))
+            .unwrap();
+        (missing, value, found, custom)
+    })
+    .await;
+    assert_eq!(missing, None);
+    assert_eq!(value.as_deref(), Some("/usr/bin/php8.3"));
+    let text = std::fs::read_to_string(dir.path().join(".forge/settings.toml")).unwrap();
+    assert!(text.contains("interpreter = \"/usr/bin/php8.3\""), "{text}");
+    assert!(found.unwrap().ends_with("sh"));
+    assert_eq!(custom, None);
+}
+
+#[cfg(unix)]
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn process_stdio_streams_and_end_of_input() {
+    use tokio::io::AsyncBufReadExt;
+
+    let dir = project();
+    let backend = open_remote(&dir).await;
+    // The backend routes the output; it must outlive the process.
+    let b = backend.clone();
+    let cwd = dir.path().to_path_buf();
+    let mut p = blocking(move || {
+        let mut cmd = CommandLine::new("sh").args(["-c", "cat; echo done"]);
+        cmd.cwd = cwd;
+        forge_backend::process_io::spawn_stdio(b.as_ref(), &cmd).unwrap()
+    })
+    .await;
+    p.stdin.write_all(b"prompt line\n").await.unwrap();
+    // `cat` only ends at the end of its input.
+    p.stdin.shutdown().await.unwrap();
+    let mut lines = tokio::io::BufReader::new(p.stdout).lines();
+    assert_eq!(
+        lines.next_line().await.unwrap().as_deref(),
+        Some("prompt line")
+    );
+    assert_eq!(lines.next_line().await.unwrap().as_deref(), Some("done"));
+    assert_eq!(
+        tokio::time::timeout(T, p.exit).await.unwrap().unwrap(),
+        Some(0)
+    );
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn catalog_language_servers_are_planned_on_the_host() {
+    let dir = project();
+    std::fs::write(dir.path().join("tsconfig.json"), "{}").unwrap();
+    std::fs::write(dir.path().join("app.ts"), "export const a = 1;\n").unwrap();
+    let b = open_remote(&dir).await;
+    let answer = blocking(move || {
+        b.langservers(forge_backend::LangServersRequest {
+            rescan: true,
+            ..Default::default()
+        })
+        .unwrap()
+    })
+    .await;
+    let lua = answer
+        .servers
+        .iter()
+        .find(|s| s.id == "lua-language-server")
+        .unwrap();
+    assert_eq!(lua.skip, Some(forge_langservers::Skip::NotInProject));
+    let ts = answer
+        .servers
+        .iter()
+        .find(|s| s.id == "typescript-language-server")
+        .unwrap();
+    // TypeScript occurs in the project; whether it starts depends on the host.
+    assert_ne!(ts.skip, Some(forge_langservers::Skip::NotInProject));
+    assert_eq!(answer.platform, "linux");
+    assert!(answer
+        .rows
+        .iter()
+        .any(|r| r.id == "typescript-language-server"));
+}

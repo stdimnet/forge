@@ -4,14 +4,12 @@
 
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
-use std::process::Stdio;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex as StdMutex};
 use std::time::Duration;
 
 use forge_core::{ForgeError, Result};
-use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader};
-use tokio::process::{ChildStdin, Command};
+use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWrite, AsyncWriteExt, BufReader};
 use tokio::sync::{oneshot, Mutex};
 use tokio::task::JoinHandle;
 
@@ -19,6 +17,7 @@ use serde_json::Value;
 
 use crate::cli::{session_rule, AgentCli, AllowScope, PermissionDecision, StartOptions, Transport};
 use crate::event::AgentEvent;
+use crate::host::{AgentHost, LocalHost};
 
 /// Receives every event of a session (called from a background task).
 pub type EventSink = Arc<dyn Fn(AgentEvent) + Send + Sync>;
@@ -29,8 +28,10 @@ const STDERR_TAIL: usize = 4000;
 /// How long to wait for a finished per-turn process to exit before the next turn kills it.
 const TURN_EXIT_WAIT: Duration = Duration::from_secs(5);
 
+type ProcessStdin = Box<dyn AsyncWrite + Send + Unpin>;
+
 /// stdin of a process; `None` once closed.
-type Stdin = Arc<Mutex<Option<ChildStdin>>>;
+type Stdin = Arc<Mutex<Option<ProcessStdin>>>;
 
 struct Running {
     stdin: Stdin,
@@ -68,7 +69,7 @@ struct Permissions {
     allowed: HashSet<String>,
 }
 
-async fn write_line(stdin: &Mutex<Option<ChildStdin>>, line: &str) -> std::io::Result<()> {
+async fn write_line(stdin: &Mutex<Option<ProcessStdin>>, line: &str) -> std::io::Result<()> {
     let mut guard = stdin.lock().await;
     let stdin = guard
         .as_mut()
@@ -83,6 +84,7 @@ async fn write_line(stdin: &Mutex<Option<ChildStdin>>, line: &str) -> std::io::R
 /// same conversation via its session id.
 pub struct AgentSession {
     adapter: Arc<dyn AgentCli>,
+    host: Arc<dyn AgentHost>,
     executable: PathBuf,
     cwd: PathBuf,
     opts: StartOptions,
@@ -94,9 +96,23 @@ pub struct AgentSession {
 }
 
 impl AgentSession {
-    /// Spawn the CLI in `cwd`. Must be called inside a tokio runtime.
+    /// Spawn the CLI in `cwd` on this machine. Must be called inside a tokio runtime.
     pub async fn start(
         adapter: Arc<dyn AgentCli>,
+        cwd: PathBuf,
+        opts: StartOptions,
+        sink: EventSink,
+    ) -> Result<Self> {
+        let executable = adapter.detect(opts.executable.as_deref());
+        Self::start_on(Arc::new(LocalHost), adapter, executable, cwd, opts, sink).await
+    }
+
+    /// Spawn the CLI on `host` (`executable` as detected there with
+    /// [`AgentHost::detect`]); `cwd` is a path on that host.
+    pub async fn start_on(
+        host: Arc<dyn AgentHost>,
+        adapter: Arc<dyn AgentCli>,
+        executable: Option<PathBuf>,
         cwd: PathBuf,
         opts: StartOptions,
         sink: EventSink,
@@ -105,13 +121,18 @@ impl AgentSession {
             // Surface the adapter's own explanation.
             adapter.command(&PathBuf::new(), &opts)?;
         }
-        let executable = adapter.detect(opts.executable.as_deref()).ok_or_else(|| {
+        let executable = executable.ok_or_else(|| {
+            let place = host
+                .remote_label()
+                .map(|h| format!(" on {h}"))
+                .unwrap_or_default();
             ForgeError::Other(format!(
-                "{} was not found. Install it or set its path in Settings.",
+                "{} was not found{place}. Install it or set its path in Settings.",
                 adapter.name()
             ))
         })?;
         let session = Self {
+            host,
             conversation_id: Arc::new(StdMutex::new(opts.resume.clone())),
             adapter,
             executable,
@@ -123,7 +144,7 @@ impl AgentSession {
             permissions: Arc::default(),
         };
         if session.adapter.transport() == Transport::Persistent {
-            let running = session.spawn()?;
+            let running = session.spawn().await?;
             *session.running.lock().await = Some(running);
         }
         Ok(session)
@@ -143,17 +164,19 @@ impl AgentSession {
             if let Some(previous) = guard.take() {
                 previous.finish(TURN_EXIT_WAIT).await;
             }
-            let running = self.spawn()?;
+            let running = self.spawn().await?;
             let written = write_line(&running.stdin, &line).await;
             // EOF ends the prompt.
-            running.stdin.lock().await.take();
+            if let Some(mut stdin) = running.stdin.lock().await.take() {
+                let _ = stdin.shutdown().await;
+            }
             *guard = Some(running);
             return written.map_err(|e| ForgeError::io(&self.executable, e));
         }
         for attempt in 0..2 {
             let alive = guard.as_ref().is_some_and(Running::is_alive);
             if !alive {
-                *guard = Some(self.spawn()?);
+                *guard = Some(self.spawn().await?);
             }
             let running = guard.as_mut().expect("process was just spawned");
             match write_line(&running.stdin, &line).await {
@@ -226,34 +249,27 @@ impl AgentSession {
         }
     }
 
-    fn spawn(&self) -> Result<Running> {
+    async fn spawn(&self) -> Result<Running> {
         let mut opts = self.opts.clone();
         opts.resume = self.conversation_id();
         let spec = self.adapter.command(&self.executable, &opts)?;
-        let mut cmd = Command::new(&spec.program);
-        cmd.args(&spec.args)
-            .current_dir(&self.cwd)
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .kill_on_drop(true);
-        #[cfg(windows)]
-        {
-            // CREATE_NO_WINDOW: don't flash a console for `claude.cmd`.
-            cmd.creation_flags(0x0800_0000);
-        }
-        let mut child = cmd.spawn().map_err(|e| ForgeError::io(&spec.program, e))?;
+        let program = spec.program.clone();
+        let child = self.host.spawn(spec, self.cwd.clone()).await?;
         tracing::info!(
-            "started {} in {}",
-            spec.program.display(),
-            self.cwd.display()
+            "started {} in {}{}",
+            program.display(),
+            self.cwd.display(),
+            self.host
+                .remote_label()
+                .map(|h| format!(" on {h}"))
+                .unwrap_or_default()
         );
 
-        let stdin: Stdin = Arc::new(Mutex::new(Some(
-            child.stdin.take().expect("stdin is piped"),
-        )));
-        let stdout = child.stdout.take().expect("stdout is piped");
-        let mut stderr = child.stderr.take().expect("stderr is piped");
+        let stdin: Stdin = Arc::new(Mutex::new(Some(child.stdin)));
+        let stdout = child.stdout;
+        let mut stderr = child.stderr;
+        let mut exit = child.exit;
+        let kill_process = child.kill;
         let alive = Arc::new(AtomicBool::new(true));
         self.interrupted.store(false, Ordering::SeqCst);
         // Requests of a previous process can no longer be answered.
@@ -351,10 +367,12 @@ impl AgentSession {
         let alive_flag = alive.clone();
         let per_turn = self.adapter.transport() == Transport::PerTurn;
         let done = tokio::spawn(async move {
-            let status = tokio::select! {
-                status = child.wait() => status.ok(),
+            // `None`: killed by us; `Some(code)` otherwise (`code` is `None` for a signal).
+            let status: Option<Option<i32>> = tokio::select! {
+                code = &mut exit => Some(code),
                 _ = kill_rx => {
-                    let _ = child.kill().await;
+                    kill_process();
+                    let _ = tokio::time::timeout(Duration::from_secs(2), &mut exit).await;
                     None
                 }
             };
@@ -382,7 +400,7 @@ impl AgentSession {
             }
             if was_interrupted {
                 sink(AgentEvent::Interrupted);
-            } else if status.is_some_and(|s| !s.success()) {
+            } else if status.is_some_and(|code| code != Some(0)) {
                 let message = if stderr.is_empty() {
                     "the agent process exited unexpectedly".to_string()
                 } else {
@@ -391,7 +409,7 @@ impl AgentSession {
                 sink(AgentEvent::Error { message });
             }
             sink(AgentEvent::Exited {
-                code: status.and_then(|s| s.code()),
+                code: status.flatten(),
             });
         });
 

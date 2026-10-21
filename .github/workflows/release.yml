@@ -1,0 +1,103 @@
+name: Release
+
+# Runs only when a GitHub release is published (never on push or pull request). It builds Forge
+# for Linux, Windows and macOS, signs the updater artifacts and uploads the bundles plus
+# `latest.json` (the update feed Forge's updater reads) to that release.
+#
+# Needs these repository settings:
+#   secrets.TAURI_SIGNING_PRIVATE_KEY           private key from `pnpm tauri signer generate`
+#   secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD  its password
+#   FORGE_UPDATER_PUBKEY                        the matching public key (built into the app);
+#                                               a secret or a repository variable
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.event.release.tag_name }}
+  cancel-in-progress: false
+
+jobs:
+  agents:
+    # Static Linux agents for remote development; every desktop bundle ships them.
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-unknown-linux-musl
+      - uses: Swatinem/rust-cache@v2
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build the remote agents
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y musl-tools
+          node app/ui/scripts/build-agents.mjs x86_64
+      - uses: actions/upload-artifact@v4
+        with:
+          name: remote-agents
+          path: target/agents/
+          if-no-files-found: error
+
+  bundles:
+    needs: agents
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            args: ""
+          - os: windows-latest
+            args: ""
+          - os: macos-latest
+            args: "--target aarch64-apple-darwin"
+          - os: macos-latest
+            args: "--target x86_64-apple-darwin"
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ runner.os == 'macOS' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+      - uses: Swatinem/rust-cache@v2
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: app/ui/pnpm-lock.yaml
+      - name: Linux system dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libxdo-dev libssl-dev patchelf
+      - uses: actions/download-artifact@v4
+        with:
+          name: remote-agents
+          path: target/agents/
+      - run: pnpm install --frozen-lockfile
+        working-directory: app/ui
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          FORGE_UPDATER_PUBKEY: ${{ secrets.FORGE_UPDATER_PUBKEY || vars.FORGE_UPDATER_PUBKEY }}
+        with:
+          projectPath: app/ui
+          tauriScript: pnpm tauri
+          args: --config src-tauri/tauri.agents.conf.json ${{ matrix.args }}
+          releaseId: ${{ github.event.release.id }}
+          tagName: ${{ github.event.release.tag_name }}
+          includeUpdaterJson: true
+          updaterJsonPreferNsis: true

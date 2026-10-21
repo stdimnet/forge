@@ -18,14 +18,17 @@ use crate::connection::Connection;
 use crate::error::{DebugError, DebugResult};
 use crate::events::{DebugEvent, EventSink, SessionInfo, SessionStatus};
 use crate::protocol::{read_packet, InitPacket};
-use crate::servers::{load_servers, save_servers, ServerConfig};
+use crate::servers::{load_servers_from, save_servers_to, ServerConfig};
 use crate::session::Session;
 use crate::xml;
+use forge_core::{LocalFiles, SharedFiles};
 
 /// State shared by the listener and every session.
 pub(crate) struct Shared {
     config: RwLock<DebugConfig>,
     root: RwLock<Option<PathBuf>>,
+    /// The project's files (breakpoints and servers are stored there).
+    files: RwLock<Option<SharedFiles>>,
     servers: RwLock<Vec<ServerConfig>>,
     breakpoints: Mutex<BreakpointStore>,
     sessions: Mutex<HashMap<String, Arc<Session>>>,
@@ -72,6 +75,7 @@ impl Shared {
 }
 
 struct Listener {
+    /// The port debuggers connect to (for a remote project: the forwarded port on its host).
     port: u16,
     task: JoinHandle<()>,
 }
@@ -88,6 +92,7 @@ impl DebugServer {
             shared: Arc::new(Shared {
                 config: RwLock::new(DebugConfig::default()),
                 root: RwLock::new(None),
+                files: RwLock::new(None),
                 servers: RwLock::new(Vec::new()),
                 breakpoints: Mutex::new(BreakpointStore::memory()),
                 sessions: Mutex::new(HashMap::new()),
@@ -110,9 +115,24 @@ impl DebugServer {
 
     /// Switch to a project: loads its breakpoints and servers (`None` closes it).
     pub fn open_project(&self, root: Option<&Path>) {
-        *self.shared.root.write().expect("root lock") = root.map(Path::to_path_buf);
-        let store = root.map(BreakpointStore::load).unwrap_or_default();
-        let servers = root.map(load_servers).unwrap_or_default();
+        self.open_project_files(root.map(|r| (r.to_path_buf(), LocalFiles::shared(r))));
+    }
+
+    /// Switch to a project whose `.forge/` files are read and written through `files`
+    /// (a project on a remote host: `root` is its path there, which is also what Xdebug
+    /// reports, so files map 1:1 without path mappings).
+    pub fn open_project_files(&self, project: Option<(PathBuf, SharedFiles)>) {
+        let (root, files) = match project {
+            Some((r, f)) => (Some(r), Some(f)),
+            None => (None, None),
+        };
+        let store = files
+            .clone()
+            .map(BreakpointStore::load_files)
+            .unwrap_or_default();
+        let servers = files.as_deref().map(load_servers_from).unwrap_or_default();
+        *self.shared.root.write().expect("root lock") = root;
+        *self.shared.files.write().expect("files lock") = files;
         *self.shared.breakpoints.lock().expect("breakpoints lock") = store;
         *self.shared.servers.write().expect("servers lock") = servers;
         self.emit_breakpoints();
@@ -128,8 +148,9 @@ impl DebugServer {
 
     /// Replace the server list and persist it in the project.
     pub fn save_servers(&self, servers: Vec<ServerConfig>) -> DebugResult<()> {
-        if let Some(root) = self.shared.root() {
-            save_servers(&root, &servers)?;
+        let files = self.shared.files.read().expect("files lock").clone();
+        if let Some(files) = files {
+            save_servers_to(files.as_ref(), &servers)?;
         }
         *self.shared.servers.write().expect("servers lock") = servers;
         Ok(())
@@ -147,6 +168,20 @@ impl DebugServer {
 
     /// Listen on `port` on all interfaces (0 picks a free port). Returns the bound port.
     pub async fn listen(&self, port: u16) -> DebugResult<u16> {
+        self.listen_with(port, |bound| async move { Ok((bound, ())) })
+            .await
+            .map(|(port, ())| port)
+    }
+
+    /// Listen on `port` here, then let `forward` make the listener reachable elsewhere (an
+    /// SSH tunnel from a remote host's port to the bound one). `forward` returns the port
+    /// debuggers connect to, which is reported as the listening port, and a value kept by
+    /// the caller (the tunnel). The listener stops when `forward` fails.
+    pub async fn listen_with<T, F, Fut>(&self, port: u16, forward: F) -> DebugResult<(u16, T)>
+    where
+        F: FnOnce(u16) -> Fut,
+        Fut: std::future::Future<Output = DebugResult<(u16, T)>>,
+    {
         self.stop_listening_quietly();
         let listener = match TcpListener::bind(("0.0.0.0", port)).await {
             Ok(l) => l,
@@ -165,6 +200,17 @@ impl DebugServer {
             }
         };
         let bound = listener.local_addr()?.port();
+        let (shown, kept) = match forward(bound).await {
+            Ok(v) => v,
+            Err(e) => {
+                self.shared.emit(DebugEvent::Listening {
+                    listening: false,
+                    port,
+                    error: Some(e.to_string()),
+                });
+                return Err(e);
+            }
+        };
         let shared = Arc::clone(&self.shared);
         let task = tokio::spawn(async move {
             loop {
@@ -180,13 +226,13 @@ impl DebugServer {
                 }
             }
         });
-        *self.listener.lock().expect("listener lock") = Some(Listener { port: bound, task });
+        *self.listener.lock().expect("listener lock") = Some(Listener { port: shown, task });
         self.shared.emit(DebugEvent::Listening {
             listening: true,
-            port: bound,
+            port: shown,
             error: None,
         });
-        Ok(bound)
+        Ok((shown, kept))
     }
 
     fn stop_listening_quietly(&self) -> Option<u16> {

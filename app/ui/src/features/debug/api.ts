@@ -98,8 +98,11 @@ export interface ServerConfig {
 
 export interface DebugStatus {
   listening: boolean;
+  /** The port Xdebug connects to (on the remote host for a remote project). */
   port: number;
   sessions: SessionInfo[];
+  /** Remote project: the host whose debug port is forwarded over SSH (`deploy@shop.example.com`). */
+  via?: string;
 }
 
 export interface ContextName {

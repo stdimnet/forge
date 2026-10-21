@@ -3,6 +3,7 @@
  * Usage: pnpm dev &  then  pnpm screenshots [scenario...]
  * Scenarios live in scripts/scenarios/*.mjs; each opens the app, performs steps and writes
  * docs/screenshots/<name>.png. Set FORGE_URL / CHROMIUM_PATH to override defaults.
+ * A scenario may set `clip` (a rect or `async (page) => rect`) to capture only part of the page.
  */
 import { chromium } from "playwright-core";
 import { existsSync, mkdirSync, readdirSync } from "node:fs";
@@ -33,7 +34,9 @@ for (const [name, steps] of Object.entries(scenarios)) {
   await page.waitForSelector(steps.waitFor ?? ".cm-content");
   await steps(page);
   await page.waitForTimeout(300);
-  await page.screenshot({ path: `${outDir}/${name}.png` });
+  // An optional `clip` (a rect, or a function of the page returning one) crops the image.
+  const clip = typeof steps.clip === "function" ? await steps.clip(page) : steps.clip;
+  await page.screenshot({ path: `${outDir}/${name}.png`, ...(clip ? { clip } : {}) });
   console.log(`wrote ${name}.png`);
   await context.close();
 }

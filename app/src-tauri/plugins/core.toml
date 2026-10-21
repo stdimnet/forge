@@ -142,6 +142,21 @@ section = "Tool Windows"
 order = 31
 
 [[contributions.settings]]
+key = "appearance.mainMenu"
+title = "Main menu"
+description = "Hamburger menu: behind the button at the left of the main toolbar. Merged: the menu names in the main toolbar. Separate toolbar: a classic menu bar above the main toolbar."
+type = "enum"
+options = [
+  { value = "hamburger", label = "Hamburger menu" },
+  { value = "merged", label = "Merged with main toolbar" },
+  { value = "toolbar", label = "Show in separate toolbar" },
+]
+default = "hamburger"
+group = "appearance"
+section = "UI Options"
+order = 19
+
+[[contributions.settings]]
 key = "appearance.smoothScrolling"
 title = "Smooth scrolling"
 description = "Animate scrolling in lists and trees."
@@ -150,6 +165,16 @@ default = true
 group = "appearance"
 section = "UI Options"
 order = 21
+
+[[contributions.settings]]
+key = "appearance.showSplash"
+title = "Show splash screen on startup"
+description = "The Forge wordmark fills with molten metal while the IDE loads, and offers updates."
+type = "bool"
+default = true
+group = "appearance"
+section = "UI Options"
+order = 22
 
 [[contributions.settings]]
 key = "appearance.windowControls"
@@ -295,6 +320,42 @@ default = true
 group = "system"
 section = "Synchronization"
 order = 20
+
+# ---- Appearance & Behavior > System Settings > Updates ------------------------------
+
+[[contributions.settings]]
+key = "updates.checkOnStartup"
+title = "Check for updates on startup"
+description = "The splash screen checks at most once a day. Help | Check for Updates… checks at any time."
+type = "bool"
+default = true
+group = "system.updates"
+section = "Automatic Checks"
+order = 0
+
+[[contributions.settings]]
+key = "updates.channel"
+title = "Update channel"
+description = "Beta also offers pre-releases."
+type = "enum"
+options = [
+  { value = "stable", label = "Stable releases" },
+  { value = "beta", label = "Beta releases" },
+]
+default = "stable"
+group = "system.updates"
+section = "Automatic Checks"
+order = 1
+
+[[contributions.settings]]
+key = "updates.endpoint"
+title = "Update feed URL"
+description = "The latest.json of the update feed. Empty: the GitHub releases of Forge for the selected channel. Updates must be signed with the key this build was made with."
+type = "string"
+default = ""
+group = "system.updates"
+section = "Advanced"
+order = 10
 
 # ---- Editor > General ---------------------------------------------------------------
 

@@ -1,28 +1,35 @@
 //! Language servers for many languages (catalog in `forge-langservers`): activation for
 //! the open project, the Language Servers settings page, installs with streamed output,
-//! project-wide symbol search and the Intelephense licence key.
+//! project-wide symbol search and the Intelephense licence key. Which servers start is
+//! planned where the project's files are (`forge_backend::langservers`): on the remote host
+//! for remote projects, whose servers then run there.
+//!
+//! npm servers (Intelephense, typescript-language-server, …) are installed by Forge itself
+//! (`forge_langservers::managed`): Node.js and the packages are downloaded and verified
+//! into Forge's data directory, so nothing has to be installed first.
 //!
 //! Events:
 //! - `langservers://install-output` `{ id, stream, line }`
+//! - `langservers://install-progress` `{ id, label, done, total }` (downloads, for the
+//!   status bar)
 //! - `langservers://changed` (rows changed after an apply or an install)
 
 use std::collections::HashMap;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::{Arc, Mutex};
 
+use forge_backend::langservers::{system_rows, LiveServer, SETTINGS_PREFIX};
+use forge_backend::LangServersRequest;
 use forge_core::{ForgeError, Result};
 use forge_langservers::install::{self, InstallOutcome, Stream};
 use forge_langservers::licence::{self, KeyringStore, Licence, LicenceStatus};
-use forge_langservers::plan::current_platform;
-use forge_langservers::{
-    plan, rows, scan_project, Catalog, ConfigContext, Detector, LiveState, Prefs, ProjectScan,
-    ServerRow,
-};
+use forge_langservers::managed::{self, Event, Installer, PackageUpdate, Sources};
+use forge_langservers::{Catalog, Detector, ServerRow};
 use forge_lsp::model::EditorWorkspaceSymbol;
 use forge_lsp::{LspManager, LspServerConfig, ServerState};
 use serde::Serialize;
 use serde_json::Value;
-use tauri::{AppHandle, Emitter, State};
+use tauri::{AppHandle, Emitter, Manager, State};
 
 use crate::commands::lsp::LspState;
 use crate::state::AppState;
@@ -33,84 +40,72 @@ pub struct LangServersState {
     installs: Mutex<HashMap<String, Arc<tokio::sync::Notify>>>,
 }
 
-/// Last project scan; scanning is cheap but not free.
-static SCAN: Mutex<Option<(PathBuf, ProjectScan)>> = Mutex::new(None);
-
 fn other(e: impl std::fmt::Display) -> ForgeError {
     ForgeError::Other(e.to_string())
 }
 
-fn cache_dir() -> PathBuf {
-    dirs::cache_dir()
-        .unwrap_or_else(std::env::temp_dir)
-        .join("forge")
-}
-
-fn load_prefs(ws: &AppState) -> Prefs {
-    let settings = ws.read_settings();
-    let ids = Catalog::builtin().servers.iter().map(|s| s.id.as_str());
-    Prefs::load(|k| settings.get(k).cloned(), ids)
-}
-
-fn project_scan(root: &Path, limit: usize, refresh: bool) -> ProjectScan {
-    let mut cache = SCAN.lock().expect("scan lock");
-    if !refresh {
-        if let Some((r, scan)) = cache.as_ref() {
-            if r == root {
-                return scan.clone();
-            }
-        }
-    }
-    let scan = scan_project(root, Catalog::builtin(), limit);
-    *cache = Some((root.to_path_buf(), scan.clone()));
-    scan
-}
-
-fn plugin_enabled(ws: &AppState) -> impl Fn(&str) -> bool + '_ {
-    move |id: &str| {
-        let plugins = ws.plugins.read().expect("plugins lock poisoned");
-        // Unknown plugins (none registered yet) do not block a server.
-        plugins.get(id).is_none_or(|p| p.enabled)
+/// What the planner needs from the app: the `langservers.*` settings, disabled plugins and
+/// the running servers.
+fn request(ws: &AppState, manager: Option<&LspManager>, rescan: bool) -> LangServersRequest {
+    let settings = ws
+        .read_settings()
+        .effective()
+        .into_iter()
+        .filter(|(k, _)| k.starts_with(SETTINGS_PREFIX))
+        .collect();
+    let disabled_plugins = ws
+        .plugins
+        .read()
+        .expect("plugins lock poisoned")
+        .list()
+        .iter()
+        .filter(|p| !p.enabled)
+        .map(|p| p.manifest.id.clone())
+        .collect();
+    LangServersRequest {
+        settings,
+        disabled_plugins,
+        live: live_states(manager),
+        rescan,
     }
 }
 
 /// Register the enabled and installed catalog servers for the languages of the manager's
 /// project and unregister the ones no longer wanted. Called when the LSP manager of a
 /// project is created and after settings change. Also applies the Intelephense licence
-/// key to a registered Intelephense config.
+/// key to a registered Intelephense config. Blocks while a remote host plans.
 pub fn register_enabled(manager: &LspManager, ws: &AppState) {
     apply(manager, ws, true);
 }
 
-fn apply(manager: &LspManager, ws: &AppState, refresh_scan: bool) {
-    let prefs = load_prefs(ws);
-    let scan = project_scan(manager.root(), prefs.scan_limit, refresh_scan);
-    let detector = Detector::for_project(manager.root());
-    let ctx = ConfigContext {
-        root: manager.root(),
-        cache_dir: cache_dir(),
-        detector: &detector,
-        prefs: &prefs,
-        scan: &scan,
+fn apply(manager: &LspManager, ws: &AppState, rescan: bool) {
+    let answer = ws
+        .backend()
+        .and_then(|b| b.langservers(request(ws, Some(manager), rescan)));
+    let answer = match answer {
+        Ok(a) => a,
+        Err(e) => {
+            tracing::warn!("language servers not planned: {e}");
+            return;
+        }
     };
-    let decisions = plan(Catalog::builtin(), &ctx, plugin_enabled(ws));
     let registered: HashMap<String, LspServerConfig> = manager
         .configs()
         .into_iter()
         .map(|c| (c.id.clone(), c))
         .collect();
-    for d in decisions {
-        match d.outcome {
-            Ok(config) => {
+    for planned in answer.servers {
+        match planned.config {
+            Some(config) => {
                 if registered.get(&config.id) != Some(&config) {
                     tracing::info!("language server {} registered", config.id);
                     manager.register_server(config);
                 }
             }
-            Err(_) if registered.contains_key(&d.id) => {
-                manager.unregister_server(&d.id);
+            None if registered.contains_key(&planned.id) => {
+                manager.unregister_server(&planned.id);
             }
-            Err(_) => {}
+            None => {}
         }
     }
     apply_intelephense_licence(manager);
@@ -153,9 +148,9 @@ pub fn intelephense_licence_key() -> Option<String> {
     Licence::new(&KeyringStore).key().ok().flatten()
 }
 
-fn live_states(manager: Option<&LspManager>) -> HashMap<String, LiveState> {
+fn live_states(manager: Option<&LspManager>) -> Vec<LiveServer> {
     let Some(manager) = manager else {
-        return HashMap::new();
+        return Vec::new();
     };
     manager
         .statuses()
@@ -177,78 +172,56 @@ fn live_states(manager: Option<&LspManager>) -> HashMap<String, LiveState> {
                 ServerState::Failed { error } => (false, Some(error)),
                 ServerState::NotStarted | ServerState::Stopped => (false, None),
             };
-            (s.id, LiveState { running, detail })
+            LiveServer {
+                id: s.id,
+                running,
+                detail,
+            }
         })
         .collect()
 }
 
 fn build_rows(manager: Option<&LspManager>, ws: &AppState) -> Vec<ServerRow> {
-    let prefs = load_prefs(ws);
-    let root = manager
-        .map(|m| m.root().to_path_buf())
-        .or_else(|| ws.with_workspace(|w| Ok(w.root().to_path_buf())).ok());
-    let scan = root
-        .as_deref()
-        .map(|r| project_scan(r, prefs.scan_limit, false))
-        .unwrap_or_default();
-    let detector = root
-        .as_deref()
-        .map_or_else(Detector::system, Detector::for_project);
-    let fallback_root = PathBuf::new();
-    let ctx = ConfigContext {
-        root: root.as_deref().unwrap_or(&fallback_root),
-        cache_dir: cache_dir(),
-        detector: &detector,
-        prefs: &prefs,
-        scan: &scan,
-    };
-    let live = live_states(manager);
-    let platform = current_platform();
-    let decisions = if root.is_some() {
-        plan(Catalog::builtin(), &ctx, plugin_enabled(ws))
-    } else {
-        vec![]
-    };
-    let mut out = rows(Catalog::builtin(), &ctx, &decisions, &live, platform);
-    // Servers the PHP pack starts itself: listed for status and install hints only.
-    let packs = rows(Catalog::pack_servers(), &ctx, &[], &live, platform);
-    out.extend(packs.into_iter().map(|mut r| {
-        r.source = "php".into();
-        r.enabled = true;
-        r.status = match r.status {
-            forge_langservers::RowStatus::Disabled => forge_langservers::RowStatus::Installed,
-            s => s,
-        };
-        r
-    }));
-    out
+    let req = request(ws, manager, false);
+    match ws.backend() {
+        Ok(backend) => backend
+            .langservers(req)
+            .map(|a| a.rows)
+            .unwrap_or_else(|e| {
+                tracing::warn!("language servers not listed: {e}");
+                Vec::new()
+            }),
+        Err(_) => system_rows(&req),
+    }
 }
 
 /// Rows of Settings > Languages & Frameworks > Language Servers.
 #[tauri::command]
-pub fn langservers_list(
-    app: AppHandle,
-    lsp: State<'_, LspState>,
-    ws: State<'_, AppState>,
-) -> Vec<ServerRow> {
-    let manager = lsp.manager(&app, &ws).ok();
-    build_rows(manager.as_deref(), &ws)
+pub async fn langservers_list(app: AppHandle) -> Result<Vec<ServerRow>> {
+    crate::commands::workspace::blocking(move || {
+        let lsp = app.state::<LspState>();
+        let ws = app.state::<AppState>();
+        let manager = lsp.manager(&app, &ws).ok();
+        Ok(build_rows(manager.as_deref(), &ws))
+    })
+    .await
 }
 
 /// Re-plan after settings changed: start newly enabled servers, stop disabled ones.
 #[tauri::command]
-pub fn langservers_apply(
-    app: AppHandle,
-    lsp: State<'_, LspState>,
-    ws: State<'_, AppState>,
-) -> Vec<ServerRow> {
-    let manager = lsp.manager(&app, &ws).ok();
-    if let Some(m) = manager.as_deref() {
-        apply(m, &ws, true);
-    }
-    let rows = build_rows(manager.as_deref(), &ws);
-    let _ = app.emit("langservers://changed", ());
-    rows
+pub async fn langservers_apply(app: AppHandle) -> Result<Vec<ServerRow>> {
+    crate::commands::workspace::blocking(move || {
+        let lsp = app.state::<LspState>();
+        let ws = app.state::<AppState>();
+        let manager = lsp.manager(&app, &ws).ok();
+        if let Some(m) = manager.as_deref() {
+            apply(m, &ws, true);
+        }
+        let rows = build_rows(manager.as_deref(), &ws);
+        let _ = app.emit("langservers://changed", ());
+        Ok(rows)
+    })
+    .await
 }
 
 #[derive(Serialize, Clone)]
@@ -256,6 +229,88 @@ struct InstallLine {
     id: String,
     stream: Stream,
     line: String,
+}
+
+#[derive(Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+struct InstallProgress {
+    id: String,
+    label: String,
+    done: u64,
+    total: Option<u64>,
+}
+
+/// Download sources from the settings (`langservers.download.*`).
+fn sources(ws: &AppState) -> Sources {
+    let settings = ws.read_settings();
+    let get = |k: &str| settings.get(k).and_then(Value::as_str).map(str::to_owned);
+    Sources::new(
+        get("langservers.download.npmRegistry").as_deref(),
+        get("langservers.download.nodeMirror").as_deref(),
+    )
+}
+
+/// Install npm `packages` with Forge's managed installer, streaming its steps as output
+/// lines of `id` and its downloads as progress events.
+async fn managed_install(
+    app: &AppHandle,
+    ws: &AppState,
+    id: &str,
+    packages: &[String],
+    cancel: Arc<tokio::sync::Notify>,
+) -> std::result::Result<InstallOutcome, String> {
+    let installer = Installer::system(sources(ws))?;
+    let mut last_step: Option<(String, u64)> = None;
+    let mut on = |e: Event| match e {
+        Event::Step { message } => emit_line(app, id, Stream::Info, message),
+        Event::Output { stream, line } => emit_line(app, id, stream, line),
+        Event::Progress { label, done, total } => {
+            // One event per percent (or per MB without a length) is plenty for a progress bar.
+            let step = total.map_or(done >> 20, |t| done * 100 / t.max(1));
+            if last_step.as_ref() == Some(&(label.clone(), step)) {
+                return;
+            }
+            last_step = Some((label.clone(), step));
+            let _ = app.emit(
+                "langservers://install-progress",
+                InstallProgress {
+                    id: id.to_string(),
+                    label,
+                    done,
+                    total,
+                },
+            );
+        }
+    };
+    tokio::select! {
+        r = installer.install(packages, Arc::new(tokio::sync::Notify::new()), &mut on) => r,
+        _ = cancel.notified() => Ok(InstallOutcome::Cancelled),
+    }
+}
+
+fn emit_line(app: &AppHandle, id: &str, stream: Stream, line: String) {
+    let _ = app.emit(
+        "langservers://install-output",
+        InstallLine {
+            id: id.to_string(),
+            stream,
+            line,
+        },
+    );
+}
+
+/// Register what was just installed: catalog servers and the PHP pack's Intelephense.
+async fn register_installed(app: &AppHandle) {
+    let handle = app.clone();
+    let _ = tauri::async_runtime::spawn_blocking(move || {
+        let lsp = handle.state::<LspState>();
+        let ws = handle.state::<AppState>();
+        if let Ok(manager) = lsp.manager(&handle, &ws) {
+            apply(&manager, &ws, false);
+        }
+        crate::commands::php::sync_lsp_server(&handle, None);
+    })
+    .await;
 }
 
 /// Run install option `index` of server `id` (catalog commands only, after the user
@@ -266,7 +321,14 @@ pub async fn langservers_install(
     index: usize,
     app: AppHandle,
     state: State<'_, LangServersState>,
+    ws: State<'_, AppState>,
 ) -> Result<InstallOutcome> {
+    if let Some(host) = ws.project_info().and_then(|i| i.remote) {
+        return Err(other(format!(
+            "Language servers of this project run on {}. Install them there from the terminal (Alt+F12).",
+            host.label()
+        )));
+    }
     let spec = Catalog::builtin()
         .server(&id)
         .or_else(|| Catalog::pack_servers().server(&id))
@@ -276,7 +338,14 @@ pub async fn langservers_install(
         .get(index)
         .ok_or_else(|| other("unknown install option"))?;
     let detector = Detector::system();
-    let (program, args) = install::resolve_command(option, &detector).map_err(other)?;
+    // npm packages: Forge's own installer (no Node.js or npm needed on the machine).
+    let packages = detector
+        .managed_dir()
+        .and_then(|_| managed::npm_packages(option));
+    let resolved = match packages {
+        Some(_) => None,
+        None => Some(install::resolve_command(option, &detector).map_err(other)?),
+    };
     let cancel = Arc::new(tokio::sync::Notify::new());
     {
         let mut installs = state.installs.lock().expect("installs lock");
@@ -285,6 +354,25 @@ pub async fn langservers_install(
         }
         installs.insert(id.clone(), cancel.clone());
     }
+    let Some((program, args)) = resolved else {
+        let packages = packages.unwrap_or_default();
+        let outcome = managed_install(&app, &ws, &id, &packages, cancel).await;
+        state.installs.lock().expect("installs lock").remove(&id);
+        let outcome = match outcome {
+            Ok(o) => o,
+            Err(e) => {
+                emit_line(&app, &id, Stream::Info, e.clone());
+                let _ = app.emit("langservers://changed", ());
+                return Err(other(e));
+            }
+        };
+        emit_line(&app, &id, Stream::Info, outcome_line(&outcome, &spec.name));
+        if outcome == InstallOutcome::Succeeded {
+            register_installed(&app).await;
+        }
+        let _ = app.emit("langservers://changed", ());
+        return Ok(outcome);
+    };
     let emit = |stream: Stream, line: String| {
         let _ = app.emit(
             "langservers://install-output",
@@ -300,16 +388,83 @@ pub async fn langservers_install(
         format!("$ {}", install::display_command(option, &detector)),
     );
     let outcome = install::run(program, args, detector.dirs().to_vec(), cancel, &emit).await;
-    emit(
-        Stream::Info,
-        match &outcome {
-            InstallOutcome::Succeeded => format!("{} installed.", spec.name),
-            InstallOutcome::Failed { code: Some(c) } => format!("Failed with exit code {c}."),
-            InstallOutcome::Failed { code: None } => "Failed.".into(),
-            InstallOutcome::Cancelled => "Cancelled.".into(),
-        },
-    );
+    emit(Stream::Info, outcome_line(&outcome, &spec.name));
     state.installs.lock().expect("installs lock").remove(&id);
+    let _ = app.emit("langservers://changed", ());
+    Ok(outcome)
+}
+
+fn outcome_line(outcome: &InstallOutcome, name: &str) -> String {
+    match outcome {
+        InstallOutcome::Succeeded => format!("{name} installed."),
+        InstallOutcome::Failed { code: Some(c) } => format!("Failed with exit code {c}."),
+        InstallOutcome::Failed { code: None } => "Failed.".into(),
+        InstallOutcome::Cancelled => "Cancelled.".into(),
+    }
+}
+
+/// Newer versions of the npm servers Forge installed. Asks the registry at most once a
+/// day unless `force`; `None` when it did not ask (or checks are off in the settings).
+#[tauri::command]
+pub async fn langservers_check_updates(
+    force: Option<bool>,
+    ws: State<'_, AppState>,
+) -> Result<Option<Vec<PackageUpdate>>> {
+    let force = force.unwrap_or(false);
+    let enabled = ws
+        .read_settings()
+        .get("langservers.updates.check")
+        .and_then(Value::as_bool)
+        .unwrap_or(true);
+    if !enabled && !force {
+        return Ok(None);
+    }
+    let installer = Installer::system(sources(&ws)).map_err(other)?;
+    Ok(installer
+        .check_updates(force, managed::updates::now_secs())
+        .await)
+}
+
+/// Update one package Forge installed to its latest version, then restart the servers so
+/// they run the new files. Output streams under the package name.
+#[tauri::command]
+pub async fn langservers_update(
+    package: String,
+    app: AppHandle,
+    state: State<'_, LangServersState>,
+    ws: State<'_, AppState>,
+) -> Result<InstallOutcome> {
+    let cancel = Arc::new(tokio::sync::Notify::new());
+    {
+        let mut installs = state.installs.lock().expect("installs lock");
+        if installs.contains_key(&package) {
+            return Err(other(format!("{package} is already being updated")));
+        }
+        installs.insert(package.clone(), cancel.clone());
+    }
+    let outcome =
+        managed_install(&app, &ws, &package, std::slice::from_ref(&package), cancel).await;
+    state
+        .installs
+        .lock()
+        .expect("installs lock")
+        .remove(&package);
+    let outcome = outcome.map_err(other)?;
+    emit_line(
+        &app,
+        &package,
+        Stream::Info,
+        outcome_line(&outcome, &package),
+    );
+    if outcome == InstallOutcome::Succeeded {
+        if let Ok(manager) = app.state::<LspState>().manager(&app, &ws) {
+            // Registering again stops a running server; it restarts on next use.
+            for config in manager.configs() {
+                manager.register_server(config);
+            }
+        }
+        register_installed(&app).await;
+    }
     let _ = app.emit("langservers://changed", ());
     Ok(outcome)
 }

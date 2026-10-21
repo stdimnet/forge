@@ -8,6 +8,7 @@ license.workspace = true
 [dependencies]
 forge-core.workspace = true
 forge-filetypes.workspace = true
+forge-keymap.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true

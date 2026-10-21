@@ -35,6 +35,9 @@ export interface DataSource {
 export interface DataSourceInfo extends DataSource {
   hasPassword: boolean;
   summary: string;
+  /** Set when the data source is reached through the remote project's SSH connection
+   * (`deploy@shop.example.com`). */
+  via?: string;
 }
 
 export interface TestResult {

@@ -32,6 +32,8 @@ app/ui/                 SolidJS UI
   src/mock/             browser-mode backend (mocks + demo projects)
   scripts/scenarios/    Playwright screenshot scenarios
 docs/                   ARCHITECTURE.md, ROADMAP.md, screenshots/
+  guide/                user and developer documentation (Markdown, see guide/README.md)
+  llms.txt              LLM-friendly index of the guide (llms-full.txt: generated full text)
 .claude/skills/         step-by-step recipes for common tasks (see below)
 ```
 
@@ -96,14 +98,21 @@ Use the matching skill in `.claude/skills/<name>/SKILL.md` before starting a tas
   `FORGE_UPDATE_SNAPSHOTS=1 cargo test -p forge-app`.
 - Plugins activate only when the project uses them (`app/ui/src/state/project.ts`:
   `usesFramework`, `isPluginActive`).
-- Language servers are external and user-installed, e.g. Intelephense free, or premium with
-  the user's own licence key entered in Forge. Never bundle paid tools or keys.
+- Language servers are external programs installed on the user's machine, e.g. Intelephense
+  free, or premium with the user's own licence key entered in Forge. Never bundle or commit
+  Intelephense (its licence forbids redistribution), other paid tools or keys. Forge may
+  download a server for the user, with their consent, from its official source
+  (`forge_langservers::managed`: npm registry with integrity check, Node.js from nodejs.org
+  with SHA-256 check) into Forge's data directory.
 
 ### Quality
 - Before every commit, run the `quality-gates` skill:
   `cargo fmt --all --check`, `cargo clippy --workspace --all-targets -- -D warnings`,
   `cargo test --workspace`, `pnpm typecheck`, `pnpm test`, `pnpm build`.
 - UI changes need screenshots (`verify-ui-with-screenshots`), and you must look at them.
+- Every user-visible change updates the matching page in `docs/guide/` (see `docs/guide/README.md`).
+  After changing guide pages, regenerate `docs/llms-full.txt` with `pnpm docs:llms`; update
+  `docs/llms.txt` when you add or rename an important page.
 - Tests must not need network access, installed language servers or real code-host accounts.
   Use fakes and local mock servers.
 - With several git worktrees, give each its own `CARGO_TARGET_DIR`. Set
@@ -114,6 +123,11 @@ Use the matching skill in `.claude/skills/<name>/SKILL.md` before starting a tas
 - Small commits with imperative English subjects ("Add routes tool window").
 - **No co-author or other trailers** in commits. Do not mention AI tools in commit messages.
 - Commit early and often during long tasks, so work is not lost.
-- CI (`.github/workflows/ci.yml`) runs **only on manual dispatch**. Never trigger GitHub
-  workflows. Every branch must keep the `workflow_dispatch`-only trigger.
+- CI (`.github/workflows/ci.yml`) runs **only on manual dispatch**. The release workflow
+  (`.github/workflows/release.yml`) runs **only when a GitHub release is published** and uploads
+  the bundles plus the updater feed `latest.json` to it. Never trigger workflows, never create or
+  publish releases, and never add other triggers (push, pull_request, schedule) to any workflow.
+- Versions follow Pride Versioning (https://pridever.org, PROUD.DEFAULT.SHAME) and are changed
+  only with `pnpm version:bump` (see `docs/guide/developer/versioning.md`). Never bump the
+  version unless you were asked to.
 - Do not push or open pull requests unless you were asked to.

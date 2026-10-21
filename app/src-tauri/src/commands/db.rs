@@ -7,12 +7,15 @@ use std::sync::Arc;
 
 use forge_core::{ForgeError, Result};
 use forge_db::{
-    ApplyResult, DataSource, DataSourceInfo, DbService, DetectedDataSource, Dialect, ExportFormat,
-    KeyringStore, QueryPage, RowChange, SchemaInfo, SchemaName, SessionInfo, StatementResult,
-    TableDataRequest, TableInfo, TestResult,
+    ApplyResult, DataSource, DataSourceInfo, DbError, DbResult, DbService, DbTunnel,
+    DetectedDataSource, Dialect, ExportFormat, KeyringStore, ProjectContext, QueryPage, RowChange,
+    SchemaInfo, SchemaName, SessionInfo, StatementResult, TableDataRequest, TableInfo, TestResult,
+    TunnelEndpoint,
 };
 use serde_json::Value;
 use tauri::{AppHandle, Emitter, Manager, State};
+
+use crate::state::AppState;
 
 pub const DATA_SOURCES_EVENT: &str = "db://dataSources";
 pub const SESSION_EVENT: &str = "db://session";
@@ -40,6 +43,72 @@ pub fn project_opened(app: &AppHandle, root: PathBuf) {
         let svc = app.state::<DbState>().service.clone();
         if let Err(e) = svc.set_project(Some(root)).await {
             tracing::warn!("data sources not loaded: {e}");
+        }
+        emit_sources(&app, &svc);
+    });
+}
+
+/// Project data sources of a remote project connect through its SSH connection.
+struct SshDbTunnel {
+    tunnels: Arc<dyn forge_backend::Tunnels>,
+    label: String,
+}
+
+impl DbTunnel for SshDbTunnel {
+    fn open(
+        &self,
+        host: String,
+        port: u16,
+    ) -> futures_util::future::BoxFuture<'static, DbResult<TunnelEndpoint>> {
+        let forward = self.tunnels.forward_local(host, port);
+        Box::pin(async move {
+            let forward = forward
+                .await
+                .map_err(|e| DbError::Io(format!("SSH tunnel: {e}")))?;
+            Ok(TunnelEndpoint::new(forward.port, forward))
+        })
+    }
+
+    fn label(&self) -> String {
+        self.label.clone()
+    }
+}
+
+/// Load the data sources of a newly opened remote project (its `.forge/dataSources.toml`
+/// and `.env` are read on the host).
+pub fn remote_project_opened(app: &AppHandle) {
+    let app = app.clone();
+    tauri::async_runtime::spawn(async move {
+        let state = app.state::<AppState>();
+        let Ok(backend) = state.backend() else {
+            return;
+        };
+        let ctx = ProjectContext {
+            root: backend.info().root.clone(),
+            files: Arc::new(forge_backend::BackendFiles(backend.clone())),
+            tunnel: backend.tunnels().map(|tunnels| {
+                Arc::new(SshDbTunnel {
+                    tunnels,
+                    label: backend
+                        .info()
+                        .remote
+                        .as_ref()
+                        .map(|r| r.label())
+                        .unwrap_or_default(),
+                }) as Arc<dyn DbTunnel>
+            }),
+        };
+        let svc = app.state::<DbState>().service.clone();
+        // Reading the files waits for the host.
+        let loaded = tauri::async_runtime::spawn_blocking({
+            let svc = svc.clone();
+            move || tauri::async_runtime::block_on(svc.set_project_context(ctx))
+        })
+        .await;
+        match loaded {
+            Ok(Err(e)) => tracing::warn!("data sources not loaded: {e}"),
+            Err(e) => tracing::warn!("data sources not loaded: {e}"),
+            Ok(Ok(())) => {}
         }
         emit_sources(&app, &svc);
     });
@@ -248,8 +317,10 @@ pub async fn db_cancel(session_id: String, state: State<'_, DbState>) -> Result<
 
 /// Data sources configured in the project's `.env` that are not added yet.
 #[tauri::command]
-pub fn db_detect_env(state: State<'_, DbState>) -> Vec<DetectedDataSource> {
-    state.service.detect_env()
+pub async fn db_detect_env(state: State<'_, DbState>) -> Result<Vec<DetectedDataSource>> {
+    // A remote project's `.env` is read on its host.
+    let svc = state.service.clone();
+    crate::commands::workspace::blocking(move || Ok(svc.detect_env())).await
 }
 
 #[tauri::command]

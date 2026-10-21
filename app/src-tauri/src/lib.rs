@@ -2,10 +2,11 @@ mod commands;
 mod companion;
 mod plugins;
 mod recent;
+mod startup;
 mod state;
 
 use state::AppState;
-use tauri::{Emitter, Manager};
+use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_deep_link::DeepLinkExt;
 
 pub fn run() {
@@ -30,10 +31,19 @@ pub fn run() {
         }));
     }
 
+    // Signed updates. The public key is compiled in from FORGE_UPDATER_PUBKEY.
+    let mut updater = tauri_plugin_updater::Builder::new();
+    if let Some(key) = commands::updates::pubkey() {
+        updater = updater.pubkey(key);
+    }
+
     builder
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(updater.build())
         .manage(app_state)
+        .manage(startup::StartupState::default())
+        .manage(commands::updates::UpdatesState::default())
         .manage(companion::CompanionState::load())
         .manage(commands::ai::AiState::load())
         .manage(commands::agent::AgentState::default())
@@ -41,74 +51,17 @@ pub fn run() {
         .manage(commands::forges::ForgesState::load())
         .manage(commands::services::ServicesState::default())
         .manage(commands::window::DialogWindowsState::default())
-        .on_window_event(commands::window::on_window_event)
+        .on_window_event(|window, event| {
+            startup::on_splash_event(window, event);
+            commands::window::on_window_event(window, event);
+        })
         .manage(commands::scratches::HttpClientState::default())
         .setup(|app| {
             app.manage(commands::debug::DebugState::new(app.handle().clone()));
-            // Forward settings changes to the UI.
-            let handle = app.handle().clone();
-            app.state::<AppState>()
-                .write_settings()
-                .subscribe(move |change| {
-                    if let Err(e) = handle.emit("settings://changed", change) {
-                        tracing::warn!("cannot emit settings change: {e}");
-                    }
-                });
-
-            // Forge draws the title bars unless `appearance.windowControls` is `native`.
-            commands::window::apply_decorations(app.handle());
-            let handle = app.handle().clone();
-            app.state::<AppState>()
-                .write_settings()
-                .subscribe(move |change| {
-                    if change.key == commands::window::SETTING_KEY {
-                        let h = handle.clone();
-                        // Listeners run under the settings lock; read it on another thread.
-                        std::thread::spawn(move || commands::window::apply_decorations(&h));
-                    }
-                });
-
-            // Browser Companion server, restarted when its settings change.
-            let handle = app.handle().clone();
-            app.state::<AppState>()
-                .write_settings()
-                .subscribe(move |change| {
-                    if change.key == companion::KEY_ENABLED || change.key == companion::KEY_PORT {
-                        companion::apply_server_settings(&handle);
-                    }
-                });
-            companion::apply_server_settings(app.handle());
-
-            // Docker / Kubernetes: connect now (the status bar shows the connection) and
-            // reconnect when their settings change.
-            commands::services::start(app.handle());
-            let handle = app.handle().clone();
-            app.state::<AppState>()
-                .write_settings()
-                .subscribe(move |change| {
-                    if commands::services::affects_services(&change.key) {
-                        let h = handle.clone();
-                        // Listeners run under the settings lock; read them on another thread.
-                        std::thread::spawn(move || commands::services::reconfigure(&h));
-                    }
-                });
-
-            // Reconfigure (restart) the PHP language server when its settings or the
-            // enabled plugins change. Listeners run under the settings lock, so the work
-            // happens on another thread.
-            let handle = app.handle().clone();
-            app.state::<AppState>()
-                .write_settings()
-                .subscribe(move |change| {
-                    if phpforge_lang_php::lsp::affects_server(&change.key)
-                        || change.key == plugins::DISABLED_PLUGINS_KEY
-                    {
-                        commands::php::spawn_sync_lsp_server(&handle);
-                    }
-                });
 
             // forge:// links. Installers register the scheme; dev builds and AppImages
-            // register it at runtime.
+            // register it at runtime. Links that arrive while Forge starts are queued until
+            // the workbench is ready (see `companion::dispatch`).
             #[cfg(any(windows, target_os = "linux"))]
             if cfg!(debug_assertions) || std::env::var_os("APPIMAGE").is_some() {
                 if let Err(e) = app.deep_link().register_all() {
@@ -125,17 +78,9 @@ pub fn run() {
                 }
             });
 
-            // `forge path/to/project`, `forge src/App.tsx:12` or a forge:// link at startup.
-            let cwd = std::env::current_dir().unwrap_or_default();
-            companion::handle_launch_args(app.handle(), std::env::args().skip(1), &cwd, true);
-
-            // A project passed on the command line is already open.
-            commands::php::spawn_sync_lsp_server(app.handle());
-            if let Ok(root) = app.state::<AppState>().project_root() {
-                commands::workspace::start_watching(app.handle());
-                // Data sources of the project passed on the command line.
-                commands::db::project_opened(app.handle(), root);
-            }
+            // The splash window and the loading steps (settings, plugins, the project from
+            // the command line or the last session, services, updates), then the workbench.
+            startup::begin(app.handle());
             Ok(())
         })
         .manage(commands::lsp::LspState::default())
@@ -149,8 +94,6 @@ pub fn run() {
         .manage(run_state)
         .manage(commands::symfony::SymfonyState::default())
         .manage(commands::web::WebState::default())
-        .manage(commands::doctrine::DoctrineState::default())
-        .manage(commands::keymap::KeymapState::default())
         .invoke_handler(tauri::generate_handler![
             commands::workspace::workspace_open,
             commands::workspace::workspace_current,
@@ -187,6 +130,7 @@ pub fn run() {
             commands::keymap::keymap_conflicts,
             commands::keymap::keymap_find_by_shortcut,
             commands::keymap::keymap_resolve,
+            commands::keymap::keymap_main_menu,
             commands::keymap::keymap_import_legacy,
             commands::settings::plugin_set_enabled,
             commands::settings::settings_search,
@@ -209,6 +153,8 @@ pub fn run() {
             commands::langservers::langservers_apply,
             commands::langservers::langservers_install,
             commands::langservers::langservers_cancel_install,
+            commands::langservers::langservers_check_updates,
+            commands::langservers::langservers_update,
             commands::langservers::lsp_workspace_symbols,
             commands::langservers::intelephense_licence_status,
             commands::langservers::intelephense_set_licence,
@@ -440,10 +386,80 @@ pub fn run() {
             commands::remote::remote_status,
             commands::remote::remote_reconnect,
             commands::window::window_chrome,
+            commands::updates::updates_check,
+            commands::updates::updates_respond,
+            commands::updates::updates_status,
+            commands::updates::updates_clear_skipped,
+            startup::splash_state,
+            startup::startup_workbench_ready,
             commands::window::dialog_window_open,
             commands::window::dialog_window_close,
             commands::window::dialog_window_message,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Forge");
+}
+
+/// Startup step "Loading plugins": the settings listeners of the built-in plugins and the
+/// servers they run (Browser Companion). Called once from the startup thread.
+pub(crate) fn activate_plugins(app: &AppHandle) {
+    // Forward settings changes to the UI.
+    let handle = app.clone();
+    app.state::<AppState>()
+        .write_settings()
+        .subscribe(move |change| {
+            if let Err(e) = handle.emit("settings://changed", change) {
+                tracing::warn!("cannot emit settings change: {e}");
+            }
+        });
+
+    // Forge draws the title bars unless `appearance.windowControls` is `native`.
+    let handle = app.clone();
+    app.state::<AppState>()
+        .write_settings()
+        .subscribe(move |change| {
+            if change.key == commands::window::SETTING_KEY {
+                let h = handle.clone();
+                // Listeners run under the settings lock; read it on another thread.
+                std::thread::spawn(move || commands::window::apply_decorations(&h));
+            }
+        });
+
+    // Browser Companion server, restarted when its settings change.
+    let handle = app.clone();
+    app.state::<AppState>()
+        .write_settings()
+        .subscribe(move |change| {
+            if change.key == companion::KEY_ENABLED || change.key == companion::KEY_PORT {
+                companion::apply_server_settings(&handle);
+            }
+        });
+    companion::apply_server_settings(app);
+
+    // Docker / Kubernetes reconnect when their settings change (they connect in the
+    // "background services" step).
+    let handle = app.clone();
+    app.state::<AppState>()
+        .write_settings()
+        .subscribe(move |change| {
+            if commands::services::affects_services(&change.key) {
+                let h = handle.clone();
+                // Listeners run under the settings lock; read them on another thread.
+                std::thread::spawn(move || commands::services::reconfigure(&h));
+            }
+        });
+
+    // Reconfigure (restart) the PHP language server when its settings or the enabled
+    // plugins change. Listeners run under the settings lock, so the work happens on
+    // another thread.
+    let handle = app.clone();
+    app.state::<AppState>()
+        .write_settings()
+        .subscribe(move |change| {
+            if phpforge_lang_php::lsp::affects_server(&change.key)
+                || change.key == plugins::DISABLED_PLUGINS_KEY
+            {
+                commands::php::spawn_sync_lsp_server(&handle);
+            }
+        });
 }

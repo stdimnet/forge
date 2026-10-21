@@ -56,7 +56,7 @@ impl Location {
 }
 
 /// Plugin settings (`symfony.*`), with the defaults of a standard Symfony Flex project.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct Config {
     /// Application sources, scanned for controllers, commands and Twig extensions.

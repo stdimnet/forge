@@ -38,6 +38,7 @@ forge-scratches = { path = "crates/forge-scratches", default-features = false }
 forge-backend = { path = "crates/forge-backend", default-features = false }
 forge-remote = { path = "crates/forge-remote" }
 forge-window = { path = "crates/forge-window" }
+forge-update = { path = "crates/forge-update" }
 luaforge-lang-lua = { path = "packs/luaforge/lang-lua" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

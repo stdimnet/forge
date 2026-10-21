@@ -8,6 +8,8 @@
 //! - [`config`]: building a [`forge_lsp::LspServerConfig`] for a project,
 //! - [`plan`]: which servers start, and the rows of the settings page,
 //! - [`install`]: running an install command with streamed output,
+//! - [`managed`]: installs of npm servers without prerequisites (Node.js and packages
+//!   downloaded and verified into Forge's data directory) and their update check,
 //! - [`licence`]: the Intelephense licence key in the OS keychain.
 //!
 //! PHP servers (Intelephense, phpactor) stay in the PHP pack; the app lists them next to
@@ -18,6 +20,7 @@ pub mod config;
 pub mod detect;
 pub mod install;
 pub mod licence;
+pub mod managed;
 pub mod plan;
 pub mod prefs;
 pub mod scan;

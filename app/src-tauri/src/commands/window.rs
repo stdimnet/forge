@@ -125,10 +125,14 @@ pub fn window_chrome(style: Option<String>, state: State<'_, AppState>) -> Windo
     chrome_for(&style.unwrap_or_else(|| setting(&state)))
 }
 
-/// Give every window OS decorations (`native`) or none (Forge draws the title bar).
+/// Give every window OS decorations (`native`) or none (Forge draws the title bar). The
+/// splash window never has decorations.
 pub fn apply_decorations(app: &AppHandle) {
     let native = chrome_for(&setting(&app.state::<AppState>())).native;
     for window in app.webview_windows().values() {
+        if window.label() == crate::startup::SPLASH_LABEL {
+            continue;
+        }
         if let Err(e) = window.set_decorations(native) {
             tracing::warn!("cannot change window decorations: {e}");
         }

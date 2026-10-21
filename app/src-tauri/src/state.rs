@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 use std::sync::{Arc, RwLock};
 
-use forge_backend::{Backend, BackendInfo, LocalBackend};
+use forge_backend::{Backend, BackendFiles, BackendInfo, LocalBackend};
 use forge_core::{ForgeError, Settings, SettingsScope, Workspace};
 use forge_plugin_api::PluginRegistry;
 
@@ -108,12 +108,20 @@ impl AppState {
         *self.backend.write().expect("backend lock poisoned") = backend;
     }
 
-    /// Open a project on a remote host. Project settings stay at their user values.
+    /// Open a project on a remote host. Its `.forge/settings.toml` is read and written on the
+    /// host. Blocks while the host answers (call off the async runtime).
     pub fn set_remote_project(&self, backend: Arc<dyn Backend>) {
+        let files = Arc::new(BackendFiles(backend.clone()));
+        {
+            let mut settings = self.write_settings();
+            if let Err(e) = settings.load_project_files(files) {
+                tracing::warn!("project settings not loaded: {e}");
+                settings.close_project();
+            }
+        }
         *self.workspace.write().expect("workspace lock poisoned") = None;
         *self.backend.write().expect("backend lock poisoned") = Some(backend);
     }
-
     /// Run `f` with the open workspace, or fail if no project is open or the project is
     /// on a remote host.
     pub fn with_workspace<T>(
