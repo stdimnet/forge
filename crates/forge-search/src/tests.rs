@@ -333,6 +333,29 @@ fn find_text_matches_a_directory_walk() {
     write(d.path(), "src/Crlf.txt", "alpha end\r\nsecond\r\n");
     write(d.path(), "src/Wide.php", "<?php // $user and $userId\n");
     write(d.path(), "src/Mixed.txt", "one\rtwo\n\nthree  \n");
+    write(
+        d.path(),
+        "src/Uni.txt",
+        "Ünïcode straße ÄÖÜ\nplain line\n日本語 テキスト needle\n",
+    );
+    write(
+        d.path(),
+        "src/Long.txt",
+        format!(
+            "{}needle{}\nshort needle\n",
+            "a".repeat(20_000),
+            "b".repeat(20_000)
+        ),
+    );
+    write(d.path(), "src/Bin.dat", b"needle\0binary".to_vec());
+    write(d.path(), "src/Latin1.txt", b"caf\xe9 needle\nok\n".to_vec());
+    write(d.path(), "src/Empty.txt", "");
+    write(d.path(), "src/NoEol.txt", "needle at the end");
+    write(d.path(), "src/Tabs.txt", "\tneedle\t\tneedle\n");
+    let mut big = vec![b'x'; 4 * 1024 * 1024 + 1];
+    big.extend_from_slice(b" needle\n");
+    write(d.path(), "src/Big.txt", big);
+    write(d.path(), "src/Mixed.txt", "one\rtwo\n\nthree  \n");
     svc.refresh();
     let ws = Workspace::open(d.path()).unwrap();
     let req = |query: &str| FindRequest {
@@ -352,6 +375,34 @@ fn find_text_matches_a_directory_walk() {
     let mut words = req("$user");
     words.whole_words = true;
     cases.push(words);
+    for query in [
+        "needle",
+        "straße",
+        "ÜNÏ",
+        "日本",
+        "caf",
+        "end",
+        "needle needle",
+    ] {
+        cases.push(req(query));
+    }
+    for pattern in [
+        r"\bneedle\b",
+        "ß",
+        "(?i)ä",
+        r"\p{Han}+",
+        r"[^\x00-\x7f]+",
+        "b+n",
+        "^$",
+        "e.*e",
+    ] {
+        let mut regex = req(pattern);
+        regex.regex = true;
+        cases.push(regex);
+    }
+    let mut sensitive_unicode = req("ä");
+    sensitive_unicode.case_sensitive = true;
+    cases.push(sensitive_unicode);
     let mut regex = req(r"class \w+Repository");
     regex.regex = true;
     cases.push(regex);

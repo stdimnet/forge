@@ -1973,7 +1973,7 @@ dependencies = [
 name = "forge-find"
 version = "0.1.0"
 dependencies = [
- "regex-lite",
+ "regex",
  "serde",
  "serde_json",
 ]

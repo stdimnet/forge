@@ -2,7 +2,7 @@
 //! matching. The crate is pure so the desktop backend (walking the project with
 //! `forge-core`), the remote agent and the browser-mode WebAssembly build share it.
 //!
-//! - The query is a literal or a regular expression (`regex-lite` syntax), optionally
+//! - The query is a literal or a regular expression (`regex` syntax), optionally
 //!   case-sensitive and limited to whole words.
 //! - The file mask is a comma-separated list of globs (`*.php, *.twig`); `!` excludes
 //!   (`!*Test.php`). A glob without `/` matches the file name, otherwise the whole path.
@@ -10,7 +10,7 @@
 //!   cut around the first match) with every match range in it. Columns and ranges are UTF-16
 //!   offsets so the UI can use them directly.
 
-use regex_lite::{Regex, RegexBuilder};
+use regex::{Regex, RegexBuilder};
 use serde::{Deserialize, Serialize};
 
 /// Files larger than this are skipped (bundles, dumps).
@@ -229,7 +229,7 @@ pub fn pattern(req: &FindRequest) -> String {
     let mut pattern = if req.regex {
         req.query.clone()
     } else {
-        regex_lite::escape(&req.query)
+        regex::escape(&req.query)
     };
     if req.whole_words {
         let word = |c: Option<char>| c.is_some_and(|c| c.is_alphanumeric() || c == '_');

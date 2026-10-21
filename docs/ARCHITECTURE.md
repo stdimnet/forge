@@ -995,7 +995,7 @@ TypeScript because a round trip per token would be slower.
   query, caseSensitive?, wholeWords?, regex?, fileMask?, directory?, limit? } }) -> { files: {
   path, matches: { line, column, length, text, ranges }[] }[], matchCount, truncated, error? }`
   (UTF-16 columns; `ranges` are inside the listed `text`). The pure crate `crates/forge-find`
-  compiles the query (`regex-lite`), file masks (`*.php, !*Test.php`) and matches lines;
+  compiles the query (`regex`), file masks (`*.php, !*Test.php`) and matches lines;
   `Workspace::find_in_files` walks the project honoring `.gitignore`, skipping binary and huge
   files. It is a `Backend` method (agent call `FindInFiles`), so remote projects are searched on
   their host. Browser mode runs `forge-find` as WebAssembly over the demo files. The Text tab of

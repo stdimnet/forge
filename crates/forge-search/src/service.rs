@@ -356,8 +356,9 @@ impl SearchService {
                 if forge_find::is_binary(&bytes) {
                     return None;
                 }
+                let utf8 = std::str::from_utf8(&bytes).is_ok();
                 let ranges = match &prefilter {
-                    Some(re) => {
+                    Some(re) if utf8 => {
                         let ranges = if every_line {
                             non_empty_lines(&bytes).or_else(|| line_ranges(re, &bytes))
                         } else {
@@ -368,11 +369,9 @@ impl SearchService {
                         }
                         ranges
                     }
-                    None => None,
+                    _ => None,
                 };
-                let compact = ranges.filter(|_| {
-                    bytes.len() <= u32::MAX as usize && std::str::from_utf8(&bytes).is_ok()
-                });
+                let compact = ranges.filter(|_| bytes.len() <= u32::MAX as usize && utf8);
                 let (rows, count, cut) = match compact {
                     Some(ranges) => {
                         let (ranges, row_ends, count, cut) = group_rows(&bytes, &ranges, limit);

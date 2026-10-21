@@ -15,7 +15,7 @@ Find in Files (PHPStorm's Ctrl+Shift+F): the search request, file masks and per-
 matching. The crate is pure so the desktop backend (walking the project with
 `forge-core`), the remote agent and the browser-mode WebAssembly build share it.
 
-- The query is a literal or a regular expression (`regex-lite` syntax), optionally
+- The query is a literal or a regular expression (`regex` syntax), optionally
   case-sensitive and limited to whole words.
 - The file mask is a comma-separated list of globs (`*.php, *.twig`); `!` excludes
   (`!*Test.php`). A glob without `/` matches the file name, otherwise the whole path.
@@ -47,7 +47,7 @@ pub fn find_in<'t>(
 ## Dependencies
 
 - Workspace crates: none
-- External: `regex-lite`, `serde`
+- External: `regex`, `serde`
 
 ## Tests
 
