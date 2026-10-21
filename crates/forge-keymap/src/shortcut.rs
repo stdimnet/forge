@@ -5,6 +5,8 @@
 //! "Ctrl+Shift+A"        one keystroke
 //! "Ctrl+K Ctrl+C"       chord (two keystrokes; "Ctrl+K, Ctrl+C" is accepted too)
 //! "Shift Shift"         double-tap of a modifier ("Double Shift" is accepted too)
+//! "Double Ctrl+Up"      double-tap a modifier, keep it down on the second tap, press a key
+//!                       (PHPStorm's Clone Caret Above / Below)
 //! "Cmd+," / "Meta+,"    macOS command key; "Mod+S" is Cmd on macOS and Ctrl elsewhere
 //! ```
 
@@ -134,6 +136,9 @@ pub enum Shortcut {
     Keys(Vec<KeyStroke>),
     /// Double tap of a modifier ("Double Shift").
     Double(Modifier),
+    /// Double tap of a modifier that stays down on the second tap, then a key
+    /// ("Double Ctrl+Up"). The stroke includes the modifier.
+    DoubleKey(Modifier, KeyStroke),
 }
 
 impl Shortcut {
@@ -141,6 +146,7 @@ impl Shortcut {
     pub fn id(&self) -> String {
         match self {
             Self::Double(m) => format!("Double {}", m.name()),
+            Self::DoubleKey(_, stroke) => format!("Double {}", stroke.id()),
             Self::Keys(strokes) => strokes
                 .iter()
                 .map(KeyStroke::id)
@@ -152,7 +158,7 @@ impl Shortcut {
     pub fn strokes(&self) -> &[KeyStroke] {
         match self {
             Self::Keys(s) => s,
-            Self::Double(_) => &[],
+            Self::Double(_) | Self::DoubleKey(..) => &[],
         }
     }
 
@@ -162,6 +168,10 @@ impl Shortcut {
             Self::Double(m) => match platform {
                 Platform::Mac => format!("Double{}", m.mac_symbol()),
                 Platform::Other => format!("Double {}", m.name()),
+            },
+            Self::DoubleKey(_, stroke) => match platform {
+                Platform::Mac => format!("Double{}", format_stroke(stroke, platform)),
+                Platform::Other => format!("Double {}", format_stroke(stroke, platform)),
             },
             Self::Keys(strokes) => strokes
                 .iter()
@@ -321,10 +331,19 @@ pub fn parse_shortcut(text: &str, platform: Platform) -> Result<Shortcut, String
     let mut words = trimmed.split_whitespace();
     if let (Some(first), Some(second), None) = (words.next(), words.next(), words.next()) {
         if first.eq_ignore_ascii_case("double") {
-            return parse_stroke(second, platform)?
-                .sole_modifier()
-                .map(Shortcut::Double)
-                .ok_or_else(|| format!("\"{text}\": only modifiers can be double-tapped"));
+            let stroke = parse_stroke(second, platform)?;
+            if let Some(m) = stroke.sole_modifier() {
+                return Ok(Shortcut::Double(m));
+            }
+            // "Double Ctrl+Up": the double-tapped modifier is the stroke's only modifier.
+            let held = KeyStroke {
+                key: String::new(),
+                ..stroke.clone()
+            };
+            return match held.sole_modifier() {
+                Some(m) if !stroke.key.is_empty() => Ok(Shortcut::DoubleKey(m, stroke)),
+                _ => Err(format!("\"{text}\": only modifiers can be double-tapped")),
+            };
         }
     }
     // Strokes are separated by whitespace; a trailing "," on a stroke ("Ctrl+K, Ctrl+C") is a
@@ -660,6 +679,25 @@ mod tests {
             Shortcut::Double(Modifier::Ctrl)
         );
         assert!(parse_shortcut("Double A", O).is_err());
+    }
+
+    #[test]
+    fn parses_double_tap_with_key() {
+        let s = parse_shortcut("Double Ctrl+Up", O).unwrap();
+        let Shortcut::DoubleKey(m, stroke) = &s else {
+            panic!("{s:?}")
+        };
+        assert_eq!((*m, stroke.id().as_str()), (Modifier::Ctrl, "Ctrl+Up"));
+        assert_eq!(s.id(), "Double Ctrl+Up");
+        assert_eq!(s.format(O), "Double Ctrl+Up");
+        assert_eq!(
+            parse_shortcut("Double Alt+Down", Platform::Mac)
+                .unwrap()
+                .format(Platform::Mac),
+            "Double⌥↓"
+        );
+        assert!(s.strokes().is_empty());
+        assert!(parse_shortcut("Double Ctrl+Shift+Up", O).is_err());
     }
 
     #[test]
