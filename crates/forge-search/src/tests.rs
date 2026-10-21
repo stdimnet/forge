@@ -347,8 +347,8 @@ fn find_text_matches_a_directory_walk() {
             "b".repeat(20_000)
         ),
     );
-    write(d.path(), "src/Bin.dat", b"needle\0binary".to_vec());
-    write(d.path(), "src/Latin1.txt", b"caf\xe9 needle\nok\n".to_vec());
+    write(d.path(), "src/Bin.dat", b"needle\0binary");
+    write(d.path(), "src/Latin1.txt", b"caf\xe9 needle\nok\n");
     write(d.path(), "src/Empty.txt", "");
     write(d.path(), "src/NoEol.txt", "needle at the end");
     write(d.path(), "src/Tabs.txt", "\tneedle\t\tneedle\n");
