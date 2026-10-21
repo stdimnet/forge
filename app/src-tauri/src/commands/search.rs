@@ -4,7 +4,7 @@
 
 use forge_backend::{SearchStatus, SymbolHit};
 use forge_core::Result;
-use forge_filetypes::{DetectRequest, FileTypeInfo};
+use forge_filetypes::{delimiter_catalog, DelimiterCatalog, DetectRequest, FileTypeInfo};
 use forge_fuzzy::everywhere::{self, RankRequest, RankResponse};
 use forge_fuzzy::{FilterHit, FilterRequest};
 use forge_lsp::{LspManager, ServerState};
@@ -31,6 +31,13 @@ pub fn search_rank(request: RankRequest) -> RankResponse {
 pub fn filetypes_detect(request: DetectRequest, state: State<'_, AppState>) -> Vec<FileTypeInfo> {
     let plugins = state.plugins.read().expect("plugins lock poisoned");
     plugins.file_type_registry().resolve(&request)
+}
+
+/// Template languages with configurable delimiters and the data languages (Settings |
+/// Languages & Frameworks | Template Data Languages).
+#[tauri::command]
+pub fn filetypes_template_delimiters() -> DelimiterCatalog {
+    delimiter_catalog()
 }
 
 /// Extensions of the languages a running language server answers symbol queries for.

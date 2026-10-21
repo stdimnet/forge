@@ -12,10 +12,11 @@ import { xml } from "@codemirror/lang-xml";
 import { properties } from "@codemirror/legacy-modes/mode/properties";
 import { dotenv } from "./dotenv";
 import { streamLanguage } from "./tokens";
-import { goTemplateSyntax, jinjaSyntax, latteSyntax, mustacheSyntax, smartySyntaxWith, twigSyntax, type TemplateSyntax } from "./templates";
+import { latteSyntax, mustacheSyntax, templateParser, type TemplateSyntax } from "./templates";
 import { templateOverlay } from "./templateOverlay";
-import { getSetting } from "@/state/settings";
-import { dataLanguageSupport } from "./templateData";
+import { templateEditing } from "./templateEditing";
+import { dataLanguage, dataLanguageSupport } from "./templateData";
+import { liveTemplateSyntax } from "./templateDelimiters";
 import { fileTypeOf, type FileTypeInfo } from "./fileTypes";
 import { less } from "@codemirror/lang-less";
 import { sass } from "@codemirror/lang-sass";
@@ -83,11 +84,25 @@ export const DEFAULT_INDENT = "    ";
 
 const stream = (parser: StreamParser<unknown>) => () => StreamLanguage.define(parser);
 
-/** A template language: the data language's highlighting with the template tags on top. */
-const template = (syntax: () => TemplateSyntax) => (_path: string, info: FileTypeInfo) => [
-  dataLanguageSupport(info.dataLanguage?.id),
-  templateOverlay(syntax()),
-];
+/**
+ * A template language: the data language's highlighting with the template tags on top.
+ * Without `syntax` the delimiters come from Rust (`FileTypeInfo.delimiters`, the
+ * `templates.delimiters` setting) and open editors follow when they change.
+ */
+const template =
+  (syntax?: TemplateSyntax) =>
+  (path: string, info: FileTypeInfo): Extension => {
+    const live = syntax ? undefined : liveTemplateSyntax(info.id ?? "", path, info);
+    const initial = syntax ?? live?.();
+    if (!initial) return dataLanguageSupport(info.dataLanguage?.id);
+    const resolve = live ? () => live() ?? initial : initial;
+    // A data language without a Lezer grammar (LaTeX, INI, Shell) is tokenized around the
+    // tags, so a `%` or `#` inside a tag does not start a comment in the data language.
+    const data = dataLanguage(info.dataLanguage?.id);
+    const parser = data.support ? undefined : data.parser;
+    const aroundTags = parser ? (s: TemplateSyntax) => StreamLanguage.define(templateParser(s, parser)) : undefined;
+    return [aroundTags ? [] : dataLanguageSupport(data.id), templateOverlay(resolve, aroundTags), templateEditing()];
+  };
 
 const loaders = new Map<string, LanguageDef["load"]>(
   Object.entries({
@@ -108,14 +123,12 @@ const loaders = new Map<string, LanguageDef["load"]>(
     stylus: stream(stylus),
     html: () => html(),
     vue: () => vue(),
-    twig: template(() => twigSyntax),
-    smarty: template(() =>
-      smartySyntaxWith(getSetting<string>("templates.smarty.leftDelimiter", "{"), getSetting<string>("templates.smarty.rightDelimiter", "}")),
-    ),
-    latte: template(() => latteSyntax),
-    gotemplate: template(() => goTemplateSyntax),
-    jinja: template(() => jinjaSyntax),
-    handlebars: template(() => mustacheSyntax),
+    twig: template(),
+    smarty: template(),
+    latte: template(latteSyntax),
+    gotemplate: template(),
+    jinja: template(),
+    handlebars: template(mustacheSyntax),
     velocity: stream(velocity),
     pug: stream(pug),
     xml: () => xml(),

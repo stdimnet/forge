@@ -5,7 +5,7 @@
  * never wait for a file type here.
  */
 import { registerMock } from "@/ipc";
-import type { DetectRequest, FileTypeInfo } from "@/ipc/filetypes";
+import type { DelimiterCatalog, DetectRequest, FileTypeInfo } from "@/ipc/filetypes";
 import { setSyncFileTypeResolver } from "@/editor/fileTypes";
 import { callWasmSync, forgeWasm, type ForgeWasm } from "@/wasm";
 import builtinPlugins from "./builtinPlugins.json";
@@ -18,6 +18,10 @@ const loaded: Promise<ForgeWasm> = forgeWasm().then((wasm) => {
 
 registerMock("filetypes_detect", async ({ request }) =>
   callWasmSync<FileTypeInfo[]>((await loaded).filetypes_detect, request as DetectRequest),
+);
+
+registerMock("filetypes_template_delimiters", async () =>
+  JSON.parse((await loaded).filetypes_template_delimiters()) as DelimiterCatalog,
 );
 
 /** Resolves when file types answer synchronously. */

@@ -7,6 +7,9 @@
 //! file names and path patterns, the longest matching extension (so `x.blade.php` beats
 //! `php`), and the interpreter of a `#!` line. Later registrations win ties.
 //!
+//! Template files also get the delimiters of their (template language, data language) pair
+//! from the `templates.delimiters` setting ([`delimiters`]).
+//!
 //! The crate is pure so the desktop app (IPC) and the browser-mode UI (WebAssembly) share it.
 //! The UI only maps a file type id to its CodeMirror syntax mode.
 
@@ -14,10 +17,12 @@ use serde::{Deserialize, Serialize};
 
 mod builtin;
 pub mod data;
+pub mod delimiters;
 pub mod glob;
 
 pub use builtin::builtin_file_types;
 pub use data::{data_language_for, DataLanguage, DATA_LANGUAGES};
+pub use delimiters::{delimiter_catalog, resolve_delimiters, DelimiterCatalog, Delimiters};
 pub use glob::{matches_glob_list, wildcard_match};
 
 /// Indentation used when a file type does not set one.
@@ -81,6 +86,9 @@ pub struct DetectRequest {
     /// The `editor.softWrapFiles` setting (`*.md; *.txt`); `None` disables soft wraps.
     #[serde(default)]
     pub soft_wrap_files: Option<String>,
+    /// The `templates.delimiters` setting: delimiters per (template, data language) pair.
+    #[serde(default)]
+    pub template_delimiters: Vec<serde_json::Value>,
 }
 
 #[derive(Debug, Clone, Default, Deserialize)]
@@ -106,6 +114,9 @@ pub struct FileTypeInfo {
     pub data_language: Option<DataLanguage>,
     /// Lines wrap softly (the soft-wrap file patterns match).
     pub soft_wrap: bool,
+    /// Template delimiters by field key (`left`, `variableStart`, …) for template languages
+    /// whose delimiters are configurable; `None` for the others.
+    pub delimiters: Option<Delimiters>,
 }
 
 impl FileTypeRegistry {
@@ -204,11 +215,14 @@ impl FileTypeRegistry {
                 indent: " ".repeat(DEFAULT_INDENT_SIZE as usize),
                 data_language: None,
                 soft_wrap,
+                delimiters: None,
             };
         };
         let data_language = spec
             .template
             .then(|| data_language_for(&file.path, &req.data_languages));
+        let delimiters = data_language
+            .and_then(|d| resolve_delimiters(&spec.id, d.id, &req.template_delimiters));
         let label = match data_language {
             Some(d) if d.id != DATA_LANGUAGES[0].id => format!("{} ({})", spec.name, d.label),
             _ => spec.name.clone(),
@@ -219,6 +233,7 @@ impl FileTypeRegistry {
             indent: " ".repeat(spec.indent_size.unwrap_or(DEFAULT_INDENT_SIZE) as usize),
             data_language,
             soft_wrap,
+            delimiters,
         }
     }
 

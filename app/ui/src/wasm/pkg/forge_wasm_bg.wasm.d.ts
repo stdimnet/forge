@@ -36,6 +36,7 @@ export const dql_goto: (a: number, b: number, c: number) => void;
 export const dql_highlight: (a: number, b: number, c: number) => void;
 export const filetypes_detect: (a: number, b: number, c: number) => void;
 export const filetypes_load: (a: number, b: number, c: number) => void;
+export const filetypes_template_delimiters: (a: number) => void;
 export const find_in_files: (a: number, b: number, c: number) => void;
 export const find_page: (a: number, b: number, c: number) => void;
 export const find_paged: (a: number, b: number, c: number) => void;

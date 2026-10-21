@@ -1,6 +1,6 @@
 /**
  * File types of open files, resolved by Rust (`crates/forge-filetypes`): language id, status
- * bar label, indentation, template data language and soft wrapping.
+ * bar label, indentation, template data language and delimiters, and soft wrapping.
  *
  * Results are cached per path (and `#!` line), so the editor can ask synchronously when it
  * is created. The desktop app resolves through IPC: call `preloadFileTypes` (or await
@@ -10,12 +10,13 @@
  */
 import { createEffect, createRoot, createSignal, on } from "solid-js";
 import { filetypesApi, type DetectRequest, type FileRef, type FileTypeInfo } from "@/ipc/filetypes";
+import type { SettingObject } from "@/ipc/settings";
 import { getSetting, settingsState } from "@/state/settings";
 import { isPluginActive } from "@/state/project";
 
 export type { FileTypeInfo } from "@/ipc/filetypes";
 
-export const PLAIN_TEXT: FileTypeInfo = { id: null, label: "Plain text", indent: "    ", dataLanguage: null, softWrap: false };
+export const PLAIN_TEXT: FileTypeInfo = { id: null, label: "Plain text", indent: "    ", dataLanguage: null, softWrap: false, delimiters: null };
 
 type SyncResolver = (request: DetectRequest) => FileTypeInfo[];
 let syncResolver: SyncResolver | null = null;
@@ -41,11 +42,12 @@ function config(): Omit<DetectRequest, "files"> {
     inactivePlugins: settingsState.plugins.filter((p) => !isPluginActive(p.id)).map((p) => p.id),
     dataLanguages: getSetting<string[]>("templates.dataLanguages", []),
     softWrapFiles: getSetting<boolean>("editor.softWraps", false) ? getSetting<string>("editor.softWrapFiles", "") : null,
+    templateDelimiters: getSetting<SettingObject[]>("templates.delimiters", []),
   };
 }
 
-// Plugin activation (project detection, Settings > Plugins) and file type settings change
-// the answers.
+// Plugin activation (project detection, Settings > Plugins) and file type settings (data
+// languages, soft wraps, template delimiters) change the answers.
 createRoot(() => createEffect(on(() => JSON.stringify(config()), invalidate, { defer: true })));
 
 const firstLineOf = (content?: string) => content?.slice(0, content.search(/\r?\n|$/));

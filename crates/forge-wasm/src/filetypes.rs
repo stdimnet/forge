@@ -57,6 +57,12 @@ pub fn filetypes_detect(request_json: &str) -> String {
     }
 }
 
+/// Mirrors the `filetypes_template_delimiters` IPC command.
+#[wasm_bindgen]
+pub fn filetypes_template_delimiters() -> String {
+    to_json(&forge_filetypes::delimiter_catalog())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -78,5 +84,14 @@ mod tests {
             r#"{"files":[{"path":"compose.yaml"}],"inactivePlugins":["forge.compose"]}"#,
         );
         assert!(out.contains(r#""id":"yaml""#), "{out}");
+    }
+
+    #[test]
+    fn resolves_template_delimiters() {
+        let out = filetypes_detect(
+            r#"{"files":[{"path":"a.tex.tpl"}],"templateDelimiters":[{"template":"smarty","language":"latex","left":"[[","right":"]]"}]}"#,
+        );
+        assert!(out.contains(r#""left":"[[""#), "{out}");
+        assert!(filetypes_template_delimiters().contains(r#""id":"gotemplate""#));
     }
 }

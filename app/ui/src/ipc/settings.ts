@@ -5,7 +5,10 @@
 import { invoke } from "./index";
 import type { MainMenuContribution } from "./keymap";
 
-export type SettingValue = boolean | number | string | string[];
+/** An entry of an `objects` setting: a table of string values. */
+export type SettingObject = Record<string, string>;
+
+export type SettingValue = boolean | number | string | string[] | SettingObject[];
 export type SettingsScope = "user" | "project";
 
 export interface EnumOption {
@@ -20,7 +23,9 @@ export type SettingType =
   | { type: "string" }
   | { type: "enum"; options: EnumOption[] }
   | { type: "path" }
-  | { type: "list" };
+  | { type: "list" }
+  /** A list of tables; no two entries may share the values of all `unique` fields. */
+  | { type: "objects"; unique?: string[] };
 
 export type SettingSpec = SettingType & {
   key: string;

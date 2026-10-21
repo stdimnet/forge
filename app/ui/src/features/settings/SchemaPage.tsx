@@ -2,12 +2,24 @@
  * A settings page generated from the plugin settings schema: every setting whose `group`
  * is the page id, grouped by `section` under PHPStorm-style titled separators.
  */
-import { createMemo, createSignal, For, Index, Match, Show, Switch, type JSX } from "solid-js";
+import { createMemo, createSignal, For, Index, Match, Show, Switch, type Component, type JSX } from "solid-js";
+import { Dynamic } from "solid-js/web";
 import { ArrowDown, ArrowUp, Minus, Plus } from "lucide-solid";
 import { settingsApi, type SettingSpec } from "@/ipc/settings";
 import { settingsState } from "@/state/settings";
 import { draft, draftValue, setDraft } from "./dialogState";
 import { Hl, settingMatches } from "./dialogSearch";
+
+/** Editors of `objects` settings (lists of tables), by setting key. */
+const objectEditors = new Map<string, Component<{ spec: SettingSpec }>>();
+
+/**
+ * Register the editor of an `objects` setting; schema pages show it in the setting's row.
+ * It reads and writes the value with `draftValue` / `setDraft`, so Apply and Cancel work.
+ */
+export function registerObjectSettingEditor(key: string, editor: Component<{ spec: SettingSpec }>): void {
+  objectEditors.set(key, editor);
+}
 
 function NumberInput(props: { spec: SettingSpec & { type: "int" | "number" } }) {
   const step = () => (props.spec.type === "number" ? (props.spec.step ?? 0.1) : 1);
@@ -169,6 +181,15 @@ export function SettingRow(props: { spec: SettingSpec }) {
           </div>
           {description()}
           <ListEditor spec={spec} />
+        </Match>
+        <Match when={spec.type === "objects"}>
+          <div class="set-label set-label-block">
+            <Hl text={spec.title} />:
+          </div>
+          {description()}
+          <Show when={objectEditors.get(spec.key)} fallback={<div class="set-desc">No editor for this setting.</div>}>
+            {(editor) => <Dynamic component={editor()} spec={spec} />}
+          </Show>
         </Match>
         <Match when={true}>
           <div class="set-line">

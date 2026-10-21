@@ -186,6 +186,7 @@ pub fn run() {
             commands::search::fuzzy_filter,
             commands::search::search_rank,
             commands::search::filetypes_detect,
+            commands::search::filetypes_template_delimiters,
             commands::search::search_find_symbols,
             commands::search::search_status,
             commands::git::git_info,

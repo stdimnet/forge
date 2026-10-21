@@ -181,6 +181,11 @@ export function filetypes_detect(request_json: string): string;
 export function filetypes_load(plugins_json: string): string;
 
 /**
+ * Mirrors the `filetypes_template_delimiters` IPC command.
+ */
+export function filetypes_template_delimiters(): string;
+
+/**
  * `{ request, files }` → `FindResult`: Find in Files over in-memory files, mirroring the
  * `find_in_files` command (the desktop app walks the project instead).
  */
@@ -551,6 +556,7 @@ export interface InitOutput {
     readonly dql_highlight: (a: number, b: number, c: number) => void;
     readonly filetypes_detect: (a: number, b: number, c: number) => void;
     readonly filetypes_load: (a: number, b: number, c: number) => void;
+    readonly filetypes_template_delimiters: (a: number) => void;
     readonly find_in_files: (a: number, b: number, c: number) => void;
     readonly find_page: (a: number, b: number, c: number) => void;
     readonly find_paged: (a: number, b: number, c: number) => void;

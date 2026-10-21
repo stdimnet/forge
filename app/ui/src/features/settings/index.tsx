@@ -18,7 +18,9 @@ import {
   type SettingsDialogResult,
 } from "./dialogState";
 import { SettingsDialog } from "./SettingsDialog";
-import { SchemaPage } from "./SchemaPage";
+import { registerObjectSettingEditor, SchemaPage } from "./SchemaPage";
+import { TemplateDelimitersEditor } from "./TemplateDelimitersEditor";
+import { DELIMITERS_KEY } from "@/editor/templateDelimiters";
 import { PluginsPage } from "./PluginsPage";
 import { applySettingsToDocument } from "./apply";
 import { softWrapFor } from "@/editor/languages";
@@ -42,7 +44,7 @@ const schemaPages: SchemaPageDef[] = [
   { id: "vcs.git", title: "Git", group: "Version Control", order: 0, keywords: ["commit message"] },
   { id: "lang.php", title: "PHP", group: "Languages & Frameworks", order: 0, keywords: ["interpreter", "language level"] },
   { id: "lang.php.composer", title: "Composer", group: "Languages & Frameworks", parent: "lang.php", order: 0 },
-  { id: "lang.templates", title: "Template Data Languages", group: "Languages & Frameworks", order: 50, keywords: ["twig", "smarty", "latte", "jinja", "latex", "delimiter"] },
+  { id: "lang.templates", title: "Template Data Languages", group: "Languages & Frameworks", order: 50, keywords: ["twig", "smarty", "latte", "jinja", "go template", "latex", "delimiter"] },
   { id: "tools.terminal", title: "Terminal", group: "Tools", order: 0, keywords: ["shell"] },
   { id: "tools.search", title: "Search", group: "Tools", order: 10, keywords: ["find in files", "matches", "limit"] },
 ];
@@ -50,6 +52,8 @@ const schemaPages: SchemaPageDef[] = [
 for (const page of schemaPages) {
   registerSettingsPage({ ...page, component: () => <SchemaPage pageId={page.id} /> });
 }
+
+registerObjectSettingEditor(DELIMITERS_KEY, TemplateDelimitersEditor);
 
 registerSettingsPage({
   id: "plugins",

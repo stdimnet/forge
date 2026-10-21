@@ -838,6 +838,27 @@ export function filetypes_load(plugins_json) {
 }
 
 /**
+ * Mirrors the `filetypes_template_delimiters` IPC command.
+ * @returns {string}
+ */
+export function filetypes_template_delimiters() {
+    let deferred1_0;
+    let deferred1_1;
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        wasm.filetypes_template_delimiters(retptr);
+        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+        deferred1_0 = r0;
+        deferred1_1 = r1;
+        return getStringFromWasm0(r0, r1);
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+        wasm.__wbindgen_export3(deferred1_0, deferred1_1, 1);
+    }
+}
+
+/**
  * `{ request, files }` → `FindResult`: Find in Files over in-memory files, mirroring the
  * `find_in_files` command (the desktop app walks the project instead).
  * @param {string} request_json
