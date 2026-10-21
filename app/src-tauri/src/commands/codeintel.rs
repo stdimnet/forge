@@ -1,9 +1,10 @@
 //! Code intelligence actions on top of the language servers and the PHP index: Find Usages
 //! (Alt+F7) / Show Usages, Rename (Shift+F6), Show Context Actions (Alt+Enter), Go to
-//! Implementation / Type Declaration / Super Method, and applying workspace edits to the
-//! files that are not open in an editor. Paths are workspace-relative; positions are LSP
-//! positions (0-based line, UTF-16 character). File access goes through the project's
-//! backend, so everything works for remote projects too.
+//! Implementation / Type Declaration / Super Method, applying workspace edits to the files
+//! that are not open in an editor, and the documentation actions of the View menu (External
+//! Documentation, Quick Definition, Type Info, Context Info). Paths are workspace-relative;
+//! positions are LSP positions (0-based line, UTF-16 character). File access goes through
+//! the project's backend, so everything works for remote projects too.
 //!
 //! Events: `lsp://apply-edit` `{ label?, edit: WorkspaceEdit }` when a server applies an
 //! edit itself (e.g. while running a code action's command).
@@ -28,7 +29,9 @@ use serde::Serialize;
 use serde_json::Value;
 use tauri::{AppHandle, State};
 
-use crate::commands::library::{stub_path, LibraryState, LIBRARY_PREFIX, STUBS_PREFIX};
+use crate::commands::library::{
+    read_library, stub_path, LibraryState, LIBRARY_PREFIX, STUBS_PREFIX,
+};
 use crate::commands::lsp::{to_ui_path, LspState};
 use crate::commands::workspace::blocking;
 use crate::state::AppState;
@@ -425,10 +428,26 @@ pub async fn code_goto_declaration(
     ws: State<'_, AppState>,
     lib: State<'_, LibraryState>,
 ) -> Result<DeclarationAnswer> {
+    resolve_declaration(path, line, character, content, &app, &lsp, &ws, &lib).await
+}
+
+/// The declaration at a position (Go to Declaration, Quick Definition, External
+/// Documentation): language servers, the PHP index, the PHP stubs.
+#[allow(clippy::too_many_arguments)]
+async fn resolve_declaration(
+    path: String,
+    line: u32,
+    character: u32,
+    content: Option<String>,
+    app: &AppHandle,
+    lsp: &LspState,
+    ws: &AppState,
+    lib: &LibraryState,
+) -> Result<DeclarationAnswer> {
     if path.starts_with(LIBRARY_PREFIX) {
-        return Ok(library_declaration(&path, line, character, content, &app, &ws, &lib).await);
+        return Ok(library_declaration(&path, line, character, content, app, ws, lib).await);
     }
-    let c = Ctx::new(&path, &app, &lsp, &ws)?;
+    let c = Ctx::new(&path, app, lsp, ws)?;
     let pos = lsp_types::Position::new(line, character);
     let locs = c.manager.definition(&c.abs, pos).await.unwrap_or_default();
     let on_declaration = locs.iter().any(|l| {
@@ -443,7 +462,7 @@ pub async fn code_goto_declaration(
             ..Default::default()
         });
     }
-    let targets = c.nav_targets(locs, &lib, ws.is_remote());
+    let targets = c.nav_targets(locs, lib, ws.is_remote());
     if !targets.is_empty() {
         return Ok(DeclarationAnswer {
             targets,
@@ -476,7 +495,7 @@ pub async fn code_goto_declaration(
         answer.source = "index".into();
         answer.message = None;
     } else if let Some(external) = def.external {
-        match lib.stubs(&app, &ws, true).await {
+        match lib.stubs(app, ws, true).await {
             Ok(index) => {
                 let found = index.lookup(&external);
                 if !found.is_empty() {
@@ -1159,6 +1178,233 @@ pub async fn code_execute_command(
     c.manager
         .execute_command(&c.abs, &server, &command, arguments.unwrap_or_default())
         .await
+}
+
+// ---- Documentation (View menu) ----
+
+/// External Documentation (Shift+F1): the page to open in the browser.
+#[derive(Debug, Clone, Default, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExternalDocAnswer {
+    pub url: Option<String>,
+    /// The symbol's name for the "No external documentation found for …" hint.
+    pub name: Option<String>,
+}
+
+/// The first target as External Documentation sees it.
+fn doc_target(answer: &DeclarationAnswer) -> Option<codeintel::DocTarget> {
+    answer.targets.first().map(|t| codeintel::DocTarget {
+        path: t.path.clone(),
+        name: t.name.clone(),
+        container: t.container.clone(),
+    })
+}
+
+/// External Documentation: php.net for PHP's own symbols, the Laravel API, MDN, the Vue and
+/// React references and the Lua manual (see `forge_codeintel::docs`).
+#[tauri::command]
+#[allow(clippy::too_many_arguments)]
+pub async fn code_external_doc(
+    path: String,
+    line: u32,
+    character: u32,
+    content: Option<String>,
+    app: AppHandle,
+    lsp: State<'_, LspState>,
+    ws: State<'_, AppState>,
+    lib: State<'_, LibraryState>,
+) -> Result<ExternalDocAnswer> {
+    let language = codeintel::language_of(&path);
+    let text = match &content {
+        Some(t) => t.clone(),
+        None => {
+            let backend = ws.backend()?;
+            let p = path.clone();
+            blocking(move || Ok(current_text(&backend, &p, &None))).await?
+        }
+    };
+    let Some(mut symbol) = codeintel::symbol_at(&text, Position::new(line, character), language)
+    else {
+        return Ok(ExternalDocAnswer::default());
+    };
+    if language == "php" {
+        let answer =
+            resolve_declaration(path, line, character, content, &app, &lsp, &ws, &lib).await?;
+        symbol.declaration = doc_target(&answer);
+    }
+    Ok(ExternalDocAnswer {
+        url: codeintel::external_doc_url(&symbol),
+        name: Some(symbol.word),
+    })
+}
+
+/// One declaration in the Quick Definition popup.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct QuickDefinition {
+    pub path: String,
+    /// 0-based line and UTF-16 column of the name.
+    pub line: u32,
+    pub column: u32,
+    pub name: String,
+    pub container: Option<String>,
+    /// The first line of `text` in the file.
+    pub start_line: u32,
+    pub text: String,
+    pub truncated: bool,
+}
+
+#[derive(Debug, Clone, Default, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct QuickDefinitionAnswer {
+    pub title: Option<String>,
+    pub definitions: Vec<QuickDefinition>,
+    /// Why nothing was found.
+    pub message: Option<String>,
+}
+
+/// The most declarations Quick Definition shows (←/→ switch between them).
+const MAX_QUICK_DEFINITIONS: usize = 20;
+
+/// Quick Definition (Ctrl+Shift+I): the declaration's source, with its docblock, from the
+/// project, the PHP stubs or a library file. On a declaration it shows the declaration.
+#[tauri::command]
+#[allow(clippy::too_many_arguments)]
+pub async fn code_quick_definition(
+    path: String,
+    line: u32,
+    character: u32,
+    content: Option<String>,
+    app: AppHandle,
+    lsp: State<'_, LspState>,
+    ws: State<'_, AppState>,
+    lib: State<'_, LibraryState>,
+) -> Result<QuickDefinitionAnswer> {
+    let answer = resolve_declaration(
+        path.clone(),
+        line,
+        character,
+        content.clone(),
+        &app,
+        &lsp,
+        &ws,
+        &lib,
+    )
+    .await?;
+    let targets = if answer.on_declaration {
+        vec![NavTarget {
+            path: path.clone(),
+            line,
+            column: character,
+            name: answer.title.clone().unwrap_or_default(),
+            container: None,
+        }]
+    } else {
+        answer.targets
+    };
+    let mut definitions = Vec::new();
+    for t in targets.into_iter().take(MAX_QUICK_DEFINITIONS) {
+        let text = if t.path == path && content.is_some() {
+            content.clone()
+        } else if t.path.starts_with(LIBRARY_PREFIX) {
+            read_library(&t.path, &app, &ws, &lib)
+                .await
+                .ok()
+                .map(|f| f.text)
+        } else {
+            let backend = ws.backend()?;
+            let p = t.path.clone();
+            blocking(move || Ok(backend.read_optional(&p).ok().flatten())).await?
+        };
+        let Some(text) = text else { continue };
+        let range = codeintel::definition_snippet(&text, t.line, codeintel::language_of(&t.path));
+        let snippet = text
+            .lines()
+            .skip(range.start_line as usize)
+            .take((range.end_line - range.start_line + 1) as usize)
+            .collect::<Vec<_>>()
+            .join("\n");
+        definitions.push(QuickDefinition {
+            path: t.path,
+            line: t.line,
+            column: t.column,
+            name: t.name,
+            container: t.container,
+            start_line: range.start_line,
+            text: snippet,
+            truncated: range.truncated,
+        });
+    }
+    let message = definitions
+        .is_empty()
+        .then(|| "No definition found".to_string());
+    Ok(QuickDefinitionAnswer {
+        title: answer.title,
+        definitions,
+        message,
+    })
+}
+
+/// Type Info (Ctrl+Shift+P): the type of the expression at the caret, from the language
+/// servers' hover, else from the PHP index's signature. `null` when unknown.
+#[tauri::command]
+pub async fn code_type_info(
+    path: String,
+    line: u32,
+    character: u32,
+    content: Option<String>,
+    app: AppHandle,
+    lsp: State<'_, LspState>,
+    ws: State<'_, AppState>,
+) -> Result<Option<String>> {
+    if !path.starts_with(LIBRARY_PREFIX) {
+        let c = Ctx::new(&path, &app, &lsp, &ws)?;
+        let hover = c
+            .manager
+            .hover(&c.abs, lsp_types::Position::new(line, character))
+            .await
+            .ok()
+            .flatten();
+        if let Some(ty) = hover.and_then(|h| codeintel::type_from_hover(&h.contents)) {
+            return Ok(Some(ty));
+        }
+    }
+    if !is_php(&path) {
+        return Ok(None);
+    }
+    let backend = ws.backend()?;
+    blocking(move || {
+        let text = current_text(&backend, &path, &content);
+        let offset = codeintel::utf16_offset(&text, Position::new(line, character));
+        let def = backend.php().definition(&path, offset, Some(text))?;
+        Ok(def
+            .info
+            .and_then(|i| codeintel::type_from_signature(&i.signature)))
+    })
+    .await
+}
+
+/// Context Info (Alt+Q): the headers of the classes, functions and rules around `line`.
+#[tauri::command]
+pub async fn code_context_info(
+    path: String,
+    line: u32,
+    content: Option<String>,
+    ws: State<'_, AppState>,
+) -> Result<Vec<codeintel::ContextLine>> {
+    let text = match content {
+        Some(t) => t,
+        None => {
+            let backend = ws.backend()?;
+            let p = path.clone();
+            blocking(move || Ok(current_text(&backend, &p, &None))).await?
+        }
+    };
+    Ok(codeintel::context_headers(
+        &text,
+        line,
+        codeintel::language_of(&path),
+    ))
 }
 
 #[cfg(test)]
