@@ -165,6 +165,27 @@ pub fn glob_match(glob: &str, text: &str) -> bool {
     go(&g, &t)
 }
 
+/// The regular expression text a request compiles to (whole-word anchors applied).
+pub fn pattern(req: &FindRequest) -> String {
+    let mut pattern = if req.regex {
+        req.query.clone()
+    } else {
+        regex_lite::escape(&req.query)
+    };
+    if req.whole_words {
+        let word = |c: Option<char>| c.is_some_and(|c| c.is_alphanumeric() || c == '_');
+        // Only anchor the ends that are word characters (PHPStorm: `$user` still matches).
+        let start = req.regex || word(req.query.chars().next());
+        let end = req.regex || word(req.query.chars().last());
+        pattern = format!(
+            "{}(?:{pattern}){}",
+            if start { r"\b" } else { "" },
+            if end { r"\b" } else { "" }
+        );
+    }
+    pattern
+}
+
 /// A compiled request.
 #[derive(Debug, Clone)]
 pub struct Finder {
@@ -180,22 +201,7 @@ impl Finder {
         if req.query.is_empty() {
             return Err("Enter text to search for".into());
         }
-        let mut pattern = if req.regex {
-            req.query.clone()
-        } else {
-            regex_lite::escape(&req.query)
-        };
-        if req.whole_words {
-            let word = |c: Option<char>| c.is_some_and(|c| c.is_alphanumeric() || c == '_');
-            // Only anchor the ends that are word characters (PHPStorm: `$user` still matches).
-            let start = req.regex || word(req.query.chars().next());
-            let end = req.regex || word(req.query.chars().last());
-            pattern = format!(
-                "{}(?:{pattern}){}",
-                if start { r"\b" } else { "" },
-                if end { r"\b" } else { "" }
-            );
-        }
+        let pattern = pattern(req);
         let re = RegexBuilder::new(&pattern)
             .case_insensitive(!req.case_sensitive)
             .build()

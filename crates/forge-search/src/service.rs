@@ -262,6 +262,16 @@ impl SearchService {
             .collect();
         paths.sort_unstable();
 
+        // A whole-buffer scan with the full regex engine skips files without a match cheaply; the
+        // lines of the others are then matched by `forge-find`, so results stay identical. When the
+        // pattern does not compile here, every candidate goes to `forge-find`.
+        let prefilter = regex::bytes::RegexBuilder::new(&forge_find::pattern(req))
+            .case_insensitive(!req.case_sensitive)
+            .multi_line(true)
+            .crlf(true)
+            .build()
+            .ok();
+
         let limit = finder.limit();
         let found = std::sync::atomic::AtomicUsize::new(0);
         let per_file: Vec<(String, Vec<LineMatch>, usize, bool)> = paths
@@ -270,7 +280,13 @@ impl SearchService {
                 if found.load(Ordering::Relaxed) >= limit {
                     return None;
                 }
-                let text = self.read_text(path)?;
+                let bytes = std::fs::read(self.root.join(path)).ok()?;
+                if forge_find::is_binary(&bytes)
+                    || prefilter.as_ref().is_some_and(|re| !re.is_match(&bytes))
+                {
+                    return None;
+                }
+                let text = String::from_utf8_lossy(&bytes);
                 let (matches, count, cut) = finder.search(&text, limit);
                 if matches.is_empty() {
                     return None;

@@ -13,6 +13,7 @@ forge-search-core = { workspace = true, features = ["parallel"] }
 tracing.workspace = true
 ignore = "0.4"
 rayon = "1"
+regex = "1"
 dirs.workspace = true
 notify = "8"
 

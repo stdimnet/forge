@@ -330,6 +330,7 @@ fn find_text_matches_a_directory_walk() {
 
     let (d, svc) = project();
     write(d.path(), "src/Many.php", "x\nx\nx\nx\nx\n");
+    write(d.path(), "src/Crlf.txt", "alpha end\r\nsecond\r\n");
     write(d.path(), "src/Wide.php", "<?php // $user and $userId\n");
     svc.refresh();
     let ws = Workspace::open(d.path()).unwrap();
@@ -353,6 +354,9 @@ fn find_text_matches_a_directory_walk() {
     let mut regex = req(r"class \w+Repository");
     regex.regex = true;
     cases.push(regex);
+    let mut eol = req(r"end$");
+    eol.regex = true;
+    cases.push(eol);
     let mut mask = req("class");
     mask.file_mask = "*.php".into();
     cases.push(mask);
