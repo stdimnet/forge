@@ -1,18 +1,414 @@
 /**
- * Browser-mode Code With Me. Nothing leaves the page: there is no network in browser mode.
+ * Browser-mode Code With Me. A small host runs in the page with real Yjs documents, so the
+ * editor binding, carets and undo work as in the desktop app:
+ *
+ * - Start Session in a plain browser page: "Alex" (a scripted guest inside the page) joins,
+ *   opens `OrderController.php`, moves the caret, types and selects a block.
+ * - `?collab=host` and `?collab=guest` in two pages: the pages exchange Yjs updates. Pages
+ *   of one browser talk through a `BroadcastChannel`; Playwright scenarios with two browser
+ *   contexts bridge them through `window.__cwmOut` / `window.__cwmReceive`.
+ *
+ * Nothing leaves the browser, and saving writes the in-memory demo files only.
  */
-import { registerMock } from "@/ipc";
-import type { SessionView } from "@/ipc/collab";
+import * as Y from "yjs";
+import { Awareness, applyAwarenessUpdate, encodeAwarenessUpdate } from "y-protocols/awareness";
+import { emitMock, invoke, registerMock } from "@/ipc";
+import {
+  encodeOpened,
+  fromBase64,
+  PRESETS,
+  toBase64,
+  type DocOpened,
+  type Participant,
+  type PermissionLevel,
+  type Permissions,
+  type SessionView,
+} from "@/ipc/collab";
+import { contentHash } from "@/state/editor";
 
-const idle = (): SessionView => ({
-  role: "none",
-  canHost: false,
-  hostUnavailable: "Sharing sessions is not available yet.",
-  participants: [],
-  files: [],
+const NOTICE = "Browser mode: the session runs inside this browser; nothing goes over the network.";
+const HOST_NAME = "Robert";
+const DEMO_LINK = "forge://cwm/join?v=1&name=Robert&m=demo&s=browsermodedemo0000000000#h=demo&k=demo&a=127.0.0.1:41641";
+const mode = typeof location !== "undefined" ? new URLSearchParams(location.search).get("collab") : null;
+
+// ---- the wire between pages ---------------------------------------------------------------
+
+/** Messages between a mock host and mock guests; updates are base64. */
+interface WireMsg {
+  from: string;
+  to: string;
+  kind: "knock" | "welcome" | "open" | "opened" | "error" | "update" | "awareness" | "save" | "saved" | "close" | "leave" | "status" | "ended";
+  [key: string]: unknown;
+}
+
+const pageId = `page-${Math.random().toString(36).slice(2, 10)}`;
+type Bridge = { __cwmOut?: (m: WireMsg) => void; __cwmReceive?: (m: WireMsg) => void };
+const bridge = (typeof window !== "undefined" ? window : {}) as Bridge;
+const channel = !bridge.__cwmOut && typeof BroadcastChannel !== "undefined" ? new BroadcastChannel("forge-cwm-demo") : null;
+
+function send(m: Omit<WireMsg, "from">): void {
+  const msg = { ...m, from: pageId } as WireMsg;
+  if (bridge.__cwmOut) bridge.__cwmOut(msg);
+  else channel?.postMessage(msg);
+}
+
+function receive(m: WireMsg): void {
+  if (m.to !== pageId && m.to !== "*") return;
+  if (role === "host") void hostReceive(m.from, m);
+  else if (role === "guest" || joining) guestReceive(m);
+}
+bridge.__cwmReceive = receive;
+channel?.addEventListener("message", (e) => receive(e.data as WireMsg));
+
+// ---- shared state -------------------------------------------------------------------------
+
+let role: "none" | "host" | "guest" = "none";
+let joining = false;
+let permissions: Permissions = PRESETS.readOnly;
+let participants: Participant[] = [];
+let files: { path: string }[] = [];
+let me = 0;
+
+function view(): SessionView {
+  if (role === "none") return { role, canHost: true, participants: [], files: [] };
+  return {
+    role,
+    canHost: role === "host",
+    link: role === "host" ? DEMO_LINK : undefined,
+    me,
+    participants,
+    files,
+    permissions: role === "host" ? permissions : participants.find((p) => p.id === me)?.permissions,
+    hostLabel: role === "guest" ? `${HOST_NAME} (demo)` : undefined,
+    notice: NOTICE,
+  };
+}
+
+const emitStatus = () => emitMock("collab://status", view());
+const emitDoc = (e: Record<string, unknown>) => emitMock("collab://doc", e);
+
+// ---- host -----------------------------------------------------------------------------------
+
+interface HostDoc {
+  id: number;
+  path: string;
+  ydoc: Y.Doc;
+  saved: string;
+  /** "host", guest page ids, or "alex" for the scripted guest. */
+  openBy: Set<string>;
+}
+
+interface MockGuest {
+  key: string;
+  participant: Participant;
+}
+
+const docs = new Map<number, HostDoc>();
+const guests = new Map<string, MockGuest>();
+let nextDoc = 1;
+let nextParticipant = 1;
+
+const hostParticipant = (): Participant => ({ id: 0, name: HOST_NAME, role: "host", color: 1, permissions: PRESETS.fullAccess });
+const docByPath = (path: string) => [...docs.values()].find((d) => d.path === path);
+const opened = (d: HostDoc, readOnly = false): DocOpened => ({
+  docId: d.id,
+  path: d.path,
+  update: Y.encodeStateAsUpdate(d.ydoc),
+  saved: { hash: contentHash(d.saved) },
+  readOnly,
 });
 
-registerMock("collab_status", () => idle());
+function hostChanged(): void {
+  participants = [hostParticipant(), ...[...guests.values()].map((g) => g.participant)];
+  files = [...docs.values()].filter((d) => d.openBy.has("host")).map((d) => ({ path: d.path })).sort((a, b) => a.path.localeCompare(b.path));
+  for (const g of guests.values()) toGuest(g.key, { kind: "status", participants, files });
+  emitStatus();
+}
+
+/** Send to a guest: over the wire, or to the scripted guest in this page. */
+function toGuest(key: string, m: Omit<WireMsg, "from" | "to">): void {
+  if (key === "alex") alex?.receive(m as WireMsg);
+  else send({ ...m, to: key });
+}
+
+/** Forward to everyone with the document open except `except` (the host's editor included). */
+function fanOut(d: HostDoc, except: string, m: Omit<WireMsg, "from" | "to">, toHostUi: Record<string, unknown> | null): void {
+  for (const key of d.openBy) if (key !== except && key !== "host") toGuest(key, m);
+  if (toHostUi && except !== "host" && d.openBy.has("host")) emitDoc({ docId: d.id, ...toHostUi });
+}
+
+async function hostOpen(path: string, content?: string): Promise<DocOpened> {
+  if (/(^|\/)\.env($|\.)/.test(path) && !/\.env\.(example|dist)$/.test(path)) throw new Error(`"${path}" is not shared with guests`);
+  let d = docByPath(path);
+  if (!d) {
+    const disk = String(await invoke<string>("fs_read_file", { path }));
+    d = { id: nextDoc++, path, ydoc: new Y.Doc(), saved: disk, openBy: new Set() };
+    d.ydoc.getText("content").insert(0, content ?? disk);
+    docs.set(d.id, d);
+  }
+  d.openBy.add("host");
+  hostChanged();
+  return opened(d);
+}
+
+function hostApply(from: string, docId: number, update: Uint8Array): void {
+  const d = docs.get(docId);
+  if (!d || !d.openBy.has(from)) return;
+  if (from !== "host" && guests.get(from)?.participant.permissions.files !== "edit") {
+    toGuest(from, { kind: "error", text: "Your permission is Read-only" });
+    return;
+  }
+  Y.applyUpdate(d.ydoc, update, from);
+  fanOut(d, from, { kind: "update", docId, update: toBase64(update) }, { update: toBase64(update) });
+}
+
+function hostAwareness(from: string, docId: number, update: Uint8Array): void {
+  const d = docs.get(docId);
+  if (!d || !d.openBy.has(from)) return;
+  fanOut(d, from, { kind: "awareness", docId, update: toBase64(update) }, { awareness: toBase64(update) });
+}
+
+async function hostSave(docId: number): Promise<void> {
+  const d = docs.get(docId);
+  if (!d) throw new Error("the file is no longer shared");
+  const text = d.ydoc.getText("content").toString();
+  await invoke("fs_write_file", { path: d.path, contents: text });
+  d.saved = text;
+  const saved = { hash: contentHash(text) };
+  for (const key of d.openBy) if (key !== "host") toGuest(key, { kind: "saved", docId, saved });
+  if (d.openBy.has("host")) emitDoc({ docId, saved });
+}
+
+function hostClose(who: string, docId: number): void {
+  const d = docs.get(docId);
+  if (!d) return;
+  d.openBy.delete(who);
+  if (d.openBy.size === 0 && d.ydoc.getText("content").toString() === d.saved) docs.delete(docId);
+  if (who === "host") hostChanged();
+}
+
+function admit(key: string, name: string): MockGuest {
+  const participant: Participant = { id: nextParticipant, name, role: "guest", color: 2 + ((nextParticipant - 1) % 7), permissions };
+  nextParticipant++;
+  const g = { key, participant };
+  guests.set(key, g);
+  hostChanged();
+  emitMock("collab://notice", { text: `${name} joined the session.` });
+  return g;
+}
+
+function dropGuest(key: string): void {
+  const g = guests.get(key);
+  if (!g) return;
+  guests.delete(key);
+  for (const d of [...docs.values()]) if (d.openBy.has(key)) hostClose(key, d.id);
+  hostChanged();
+  emitMock("collab://notice", { text: `${g.participant.name} left the session.` });
+}
+
+async function hostReceive(from: string, m: WireMsg): Promise<void> {
+  if (m.kind === "knock") {
+    const g = guests.get(from) ?? admit(from, String(m.name ?? "Guest"));
+    toGuest(from, { kind: "welcome", you: g.participant.id, participants, files });
+    return;
+  }
+  if (!guests.has(from)) return;
+  const docId = Number(m.docId);
+  switch (m.kind) {
+    case "open": {
+      const d = docByPath(String(m.path));
+      if (!d || !d.openBy.has("host")) toGuest(from, { kind: "opened", req: m.req, error: "The host does not share this file." });
+      else {
+        d.openBy.add(from);
+        const o = opened(d, guests.get(from)!.participant.permissions.files !== "edit");
+        toGuest(from, { kind: "opened", req: m.req, docId: o.docId, path: o.path, saved: o.saved, readOnly: o.readOnly, update: toBase64(o.update) });
+      }
+      break;
+    }
+    case "update":
+      hostApply(from, docId, fromBase64(String(m.update)));
+      break;
+    case "awareness":
+      hostAwareness(from, docId, fromBase64(String(m.update)));
+      break;
+    case "save":
+      if (guests.get(from)!.participant.permissions.files !== "edit") toGuest(from, { kind: "saved", req: m.req, error: "Your permission is Read-only" });
+      else await hostSave(docId).then(() => toGuest(from, { kind: "saved", req: m.req }));
+      break;
+    case "close":
+      hostClose(from, docId);
+      break;
+    case "leave":
+      dropGuest(from);
+      break;
+  }
+}
+
+function startHost(level: PermissionLevel): SessionView {
+  role = "host";
+  me = 0;
+  permissions = level === "custom" ? PRESETS.readOnly : PRESETS[level];
+  hostChanged();
+  return view();
+}
+
+function endHost(reason: string): void {
+  for (const key of guests.keys()) toGuest(key, { kind: "ended", reason });
+  guests.clear();
+  docs.clear();
+  alex?.stop();
+  alex = null;
+  role = "none";
+  participants = [];
+  files = [];
+  emitStatus();
+}
+
+// ---- the scripted guest "Alex" --------------------------------------------------------------
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/** A guest inside this page with its own Yjs replica, for the single-page demo. */
+class ScriptedGuest {
+  private doc: Y.Doc | null = null;
+  private awareness: Awareness | null = null;
+  private docId = 0;
+  private stopped = false;
+
+  receive(m: WireMsg): void {
+    if (m.kind === "update" && this.doc && Number(m.docId) === this.docId) Y.applyUpdate(this.doc, fromBase64(String(m.update)), "remote");
+    if (m.kind === "awareness" && this.awareness && Number(m.docId) === this.docId) applyAwarenessUpdate(this.awareness, fromBase64(String(m.update)), "remote");
+  }
+
+  stop(): void {
+    this.stopped = true;
+    this.awareness?.destroy();
+  }
+
+  async run(): Promise<void> {
+    const g = admit("alex", "Alex");
+    await sleep(400);
+    const target = docByPath("app/Http/Controllers/OrderController.php") ?? [...docs.values()].find((d) => d.openBy.has("host"));
+    if (!target || this.stopped) return;
+    target.openBy.add("alex");
+    this.docId = target.id;
+    this.doc = new Y.Doc();
+    Y.applyUpdate(this.doc, Y.encodeStateAsUpdate(target.ydoc), "remote");
+    const text = this.doc.getText("content");
+    this.doc.on("update", (u: Uint8Array, origin: unknown) => origin !== "remote" && hostApply("alex", this.docId, u));
+    this.awareness = new Awareness(this.doc);
+    this.awareness.setLocalStateField("user", { name: g.participant.name, color: `var(--collab-${g.participant.color})`, colorLight: `color-mix(in srgb, var(--collab-${g.participant.color}) 25%, transparent)`, colorIndex: g.participant.color });
+    this.awareness.on("update", ({ added, updated }: { added: number[]; updated: number[] }, origin: unknown) => {
+      if (origin === "remote" || !this.awareness) return;
+      const changed = [...added, ...updated].filter((c) => c === this.doc!.clientID);
+      if (changed.length) hostAwareness("alex", this.docId, encodeAwarenessUpdate(this.awareness, changed));
+    });
+    const caret = (anchor: number, head = anchor) =>
+      this.awareness?.setLocalStateField("cursor", {
+        anchor: Y.relativePositionToJSON(Y.createRelativePositionFromTypeIndex(text, anchor)),
+        head: Y.relativePositionToJSON(Y.createRelativePositionFromTypeIndex(text, head)),
+      });
+    const find = (needle: string) => text.toString().indexOf(needle);
+    // Alex goes to the discount line and adds a comment, then selects the payable block.
+    const at = find("0.1 : 0.0;");
+    if (at < 0) return;
+    let pos = at + "0.1 : 0.0;".length;
+    caret(pos);
+    await sleep(500);
+    for (const ch of " // VIP customers") {
+      if (this.stopped) return;
+      text.insert(pos, ch);
+      pos += ch.length;
+      caret(pos);
+      await sleep(45);
+    }
+    await sleep(400);
+    const from = find("        if ($order->isPayable())");
+    const to = find("        return response()");
+    if (from >= 0 && to > from) caret(from, to - 1);
+  }
+}
+
+let alex: ScriptedGuest | null = null;
+
+// ---- guest (another page hosts) -------------------------------------------------------------
+
+let hostKey = "*";
+const pending = new Map<number, (m: WireMsg) => void>();
+let nextReq = 1;
+
+function request(m: Omit<WireMsg, "from" | "to" | "req">): Promise<WireMsg> {
+  const req = nextReq++;
+  return new Promise((resolve, reject) => {
+    pending.set(req, resolve);
+    send({ ...m, to: hostKey, req } as Omit<WireMsg, "from">);
+    setTimeout(() => pending.delete(req) && reject(new Error("The host did not answer.")), 5000);
+  });
+}
+
+function guestReceive(m: WireMsg): void {
+  if (m.req !== undefined && pending.has(Number(m.req))) {
+    pending.get(Number(m.req))!(m);
+    pending.delete(Number(m.req));
+    return;
+  }
+  switch (m.kind) {
+    case "welcome":
+      hostKey = m.from;
+      joinResolve?.(m);
+      break;
+    case "status":
+      participants = m.participants as Participant[];
+      files = m.files as { path: string }[];
+      emitStatus();
+      break;
+    case "update":
+      emitDoc({ docId: m.docId, update: m.update });
+      break;
+    case "awareness":
+      emitDoc({ docId: m.docId, awareness: m.update });
+      break;
+    case "saved":
+      emitDoc({ docId: m.docId, saved: m.saved });
+      break;
+    case "error":
+      emitMock("collab://notice", { text: String(m.text) });
+      break;
+    case "ended":
+      role = "none";
+      participants = [];
+      files = [];
+      emitMock("collab://ended", { reason: String(m.reason) });
+      emitStatus();
+      break;
+  }
+}
+
+let joinResolve: ((m: WireMsg) => void) | null = null;
+
+async function join(name: string): Promise<SessionView> {
+  joining = true;
+  try {
+    const welcome = await new Promise<WireMsg>((resolve, reject) => {
+      joinResolve = resolve;
+      send({ kind: "knock", to: "*", name });
+      setTimeout(() => reject(new Error("No host answered. Start a session in another page of this browser first (?collab=host).")), 3000);
+    });
+    role = "guest";
+    me = Number(welcome.you);
+    participants = welcome.participants as Participant[];
+    files = welcome.files as { path: string }[];
+    emitStatus();
+    return view();
+  } finally {
+    joining = false;
+    joinResolve = null;
+  }
+}
+
+// ---- commands -------------------------------------------------------------------------------
+
+registerMock("collab_status", () => view());
 
 registerMock("collab_parse_link", ({ link }) => {
   const text = String(link ?? "").trim();
@@ -21,3 +417,74 @@ registerMock("collab_parse_link", ({ link }) => {
   if (!name) throw new Error("Invalid session link: name is missing");
   return { hostName: name, hostLabel: name, sessionId: /[?&]s=([^&#]*)/.exec(text)?.[1] ?? "" };
 });
+
+registerMock("collab_start", ({ level }) => {
+  if (role !== "none") throw new Error("A Code With Me session is already running.");
+  const v = startHost((level as PermissionLevel) ?? "readOnly");
+  if (mode !== "host") {
+    alex = new ScriptedGuest();
+    setTimeout(() => void alex?.run(), 1000);
+  }
+  return v;
+});
+
+registerMock("collab_end", () => endHost("The host ended the session."));
+registerMock("collab_link", () => DEMO_LINK);
+
+registerMock("collab_join", async ({ link }) => {
+  if (role !== "none") throw new Error("A Code With Me session is already running.");
+  await invoke("collab_parse_link", { link });
+  return join("Alex");
+});
+
+registerMock("collab_leave", () => {
+  if (role !== "guest") return;
+  send({ kind: "leave", to: hostKey });
+  role = "none";
+  participants = [];
+  files = [];
+  emitStatus();
+});
+
+registerMock("collab_doc_open", async ({ path, content }) => {
+  if (role === "host") return encodeOpened(await hostOpen(String(path), content == null ? undefined : String(content)));
+  if (role !== "guest") throw new Error("No session is running.");
+  const r = await request({ kind: "open", path });
+  if (r.error) throw new Error(String(r.error));
+  return encodeOpened({ docId: Number(r.docId), path: String(r.path), saved: r.saved as { hash: string }, readOnly: !!r.readOnly, update: fromBase64(String(r.update)) });
+});
+
+registerMock("collab_doc_update", ({ docId, update }) => {
+  if (role === "host") hostApply("host", Number(docId), fromBase64(String(update)));
+  else if (role === "guest") send({ kind: "update", to: hostKey, docId, update });
+});
+
+registerMock("collab_awareness", ({ docId, update }) => {
+  if (role === "host") hostAwareness("host", Number(docId), fromBase64(String(update)));
+  else if (role === "guest") send({ kind: "awareness", to: hostKey, docId, update });
+});
+
+registerMock("collab_doc_close", ({ docId }) => {
+  if (role === "host") hostClose("host", Number(docId));
+  else if (role === "guest") send({ kind: "close", to: hostKey, docId });
+});
+
+registerMock("collab_doc_save", async ({ docId }) => {
+  if (role === "host") return hostSave(Number(docId));
+  const r = await request({ kind: "save", docId });
+  if (r.error) throw new Error(String(r.error));
+});
+
+// `?collab=host` starts hosting with Edit files; `?collab=guest` joins the host page.
+if (mode === "host") startHost("editFiles");
+if (mode === "guest") {
+  void (async () => {
+    for (let i = 0; i < 20 && role === "none"; i++) {
+      try {
+        await join("Alex");
+      } catch {
+        await sleep(500);
+      }
+    }
+  })();
+}
