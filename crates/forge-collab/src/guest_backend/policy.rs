@@ -133,7 +133,7 @@ impl Policy {
     /// Decide a project call from an admitted guest before the host acts on it.
     pub fn check_call(&self, call: &HostCall) -> Result<(), Denied> {
         match call {
-            HostCall::Open | HostCall::Detect | HostCall::Watch => Ok(()),
+            HostCall::Ping | HostCall::Open | HostCall::Detect | HostCall::Watch => Ok(()),
             HostCall::ListDir { path } if path.is_empty() => Ok(()),
             HostCall::ListDir { path }
             | HostCall::ReadFile { path }

@@ -22,6 +22,8 @@ pub const MAX_CALL: usize = crate::protocol::MAX_GUEST_FRAME;
 /// A request from a guest's project backend.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum HostCall {
+    /// Measures the round trip -> `()`
+    Ping,
     /// The project's name -> [`OpenedProject`]
     Open,
     /// One folder level; `""` is the project root -> `Vec<FileEntry>`
@@ -234,6 +236,7 @@ impl HostCall {
     /// A short name for logs and denial messages.
     pub fn name(&self) -> &'static str {
         match self {
+            HostCall::Ping => "ping",
             HostCall::Open => "open",
             HostCall::ListDir { .. } => "list_dir",
             HostCall::ReadFile { .. } => "read_file",

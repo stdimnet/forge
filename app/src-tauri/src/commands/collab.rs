@@ -464,6 +464,13 @@ pub async fn collab_join(link: String, app: AppHandle) -> Result<SessionView> {
     Ok(v)
 }
 
+/// The round trip to the host in milliseconds (the guest's status bar item).
+#[tauri::command]
+pub async fn collab_ping(app: AppHandle) -> Result<u64> {
+    let guest = guest_session(&app).ok_or_else(|| other("No session is running."))?;
+    guest.ping().await.map_err(other)
+}
+
 /// Leave Session (guest).
 #[tauri::command]
 pub async fn collab_leave(app: AppHandle) -> Result<()> {
@@ -473,6 +480,11 @@ pub async fn collab_leave(app: AppHandle) -> Result<()> {
     };
     end_guest_project(&app);
     guest.leave().await;
+    emit(
+        &app,
+        ENDED_EVENT,
+        json!({ "reason": "You left the session." }),
+    );
     emit_status(&app);
     Ok(())
 }

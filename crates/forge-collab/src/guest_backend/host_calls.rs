@@ -227,6 +227,7 @@ impl HostSession {
         let backend = self.backend.clone();
         let policy = policy.clone();
         match call {
+            HostCall::Ping => enc(&()),
             HostCall::Watch => {
                 lock(&self.calls.watchers).insert(from);
                 enc(&())
@@ -500,9 +501,11 @@ impl<'a> Gate<'a> {
             HostCall::Detect => enc(&b.detect_project().map_err(e)?),
             HostCall::Php(p) => self.php(p),
             HostCall::Framework(f) => self.framework(f),
-            HostCall::Watch | HostCall::Git(_) | HostCall::GitAction(_) | HostCall::Lsp(_) => {
-                Err("Unexpected request.".into())
-            }
+            HostCall::Ping
+            | HostCall::Watch
+            | HostCall::Git(_)
+            | HostCall::GitAction(_)
+            | HostCall::Lsp(_) => Err("Unexpected request.".into()),
         }
     }
 

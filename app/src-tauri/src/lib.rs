@@ -104,6 +104,7 @@ pub fn run() {
             commands::collab::collab_link,
             commands::collab::collab_join,
             commands::collab::collab_leave,
+            commands::collab::collab_ping,
             commands::collab::collab_doc_open,
             commands::collab::collab_doc_update,
             commands::collab::collab_awareness,

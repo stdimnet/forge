@@ -149,6 +149,13 @@ impl GuestSession {
         }
     }
 
+    /// The round trip to the host, in milliseconds.
+    pub async fn ping(&self) -> Result<u64, String> {
+        let start = std::time::Instant::now();
+        self.call(&HostCall::Ping, Duration::from_secs(10)).await?;
+        Ok(start.elapsed().as_millis() as u64)
+    }
+
     /// A language server request answered by the host's servers (JSON reply).
     pub async fn lsp(&self, query: LspQuery) -> Result<Vec<u8>, String> {
         self.call(&HostCall::Lsp(query), Duration::from_secs(60))
