@@ -56,6 +56,22 @@ export function codeintel_apply_edit(request_json: string): string;
 export function codeintel_context_actions(request_json: string): string;
 
 /**
+ * `{ text, line, language }` → `ContextLine[]` (Context Info).
+ */
+export function codeintel_context_headers(request_json: string): string;
+
+/**
+ * `{ text, line, language }` → `SnippetRange` (Quick Definition).
+ */
+export function codeintel_definition_snippet(request_json: string): string;
+
+/**
+ * `{ text, position, language, declaration? }` → `{ url, symbol }`: the External
+ * Documentation page (like `code_external_doc`).
+ */
+export function codeintel_doc_url(request_json: string): string;
+
+/**
  * `{ usages, declaration?, files }` → `{ byType, byFile }` (like `code_find_usages`).
  */
 export function codeintel_group_usages(request_json: string): string;
@@ -85,6 +101,11 @@ export function codeintel_preview_edit(request_json: string): string;
  * fileRename, conflicts }` or `{ error }`: the index part of `code_rename`.
  */
 export function codeintel_rename_edit(request_json: string): string;
+
+/**
+ * `{ hover?, signature? }` → the type Type Info shows, or `null`.
+ */
+export function codeintel_type_info(request_json: string): string;
 
 /**
  * `{ text, position }` → `[range, word] | null`.
@@ -572,12 +593,16 @@ export interface InitOutput {
     readonly chat_set_permission: (a: number, b: number, c: number) => void;
     readonly codeintel_apply_edit: (a: number, b: number, c: number) => void;
     readonly codeintel_context_actions: (a: number, b: number, c: number) => void;
+    readonly codeintel_context_headers: (a: number, b: number, c: number) => void;
+    readonly codeintel_definition_snippet: (a: number, b: number, c: number) => void;
+    readonly codeintel_doc_url: (a: number, b: number, c: number) => void;
     readonly codeintel_group_usages: (a: number, b: number, c: number) => void;
     readonly codeintel_inlay_hints: (a: number, b: number, c: number) => void;
     readonly codeintel_order_actions: (a: number, b: number, c: number) => void;
     readonly codeintel_plan_edit: (a: number, b: number, c: number) => void;
     readonly codeintel_preview_edit: (a: number, b: number, c: number) => void;
     readonly codeintel_rename_edit: (a: number, b: number, c: number) => void;
+    readonly codeintel_type_info: (a: number, b: number, c: number) => void;
     readonly codeintel_word_range: (a: number, b: number, c: number) => void;
     readonly containers_compose_args: (a: number, b: number, c: number) => void;
     readonly containers_compose_parse: (a: number, b: number, c: number) => void;

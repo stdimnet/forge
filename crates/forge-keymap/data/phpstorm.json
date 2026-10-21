@@ -82,6 +82,7 @@
   {"id":"ActivateAIChatToolWindow","title":"AI Chat","group":"Main Menu/View/Tool Windows","win":"","mac":""},
   {"id":"ActivatePullRequestsToolWindow","title":"Pull Requests","group":"Main Menu/View/Tool Windows","win":"","mac":""},
   {"id":"ActivateTODOToolWindow","title":"TODO","group":"Main Menu/View/Tool Windows","win":"","mac":""},
+  {"id":"ActivateDocumentationToolWindow","title":"Documentation","group":"Main Menu/View/Tool Windows","win":"","mac":""},
   {"id":"QuickJavaDoc","title":"Quick Documentation","group":"Main Menu/View","win":"Ctrl+Q","mac":"F1 | Ctrl+J"},
   {"id":"ExternalJavaDoc","title":"External Documentation","group":"Main Menu/View","win":"Shift+F1","mac":"Shift+F1"},
   {"id":"QuickImplementations","title":"Quick Definition","group":"Main Menu/View","win":"Ctrl+Shift+I","mac":"Alt+Space | Cmd+Y"},
