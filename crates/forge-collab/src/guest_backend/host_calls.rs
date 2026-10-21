@@ -818,6 +818,21 @@ fn discover(
 }
 
 impl HostSession {
+    /// A guest's edit or save of a shared document is held to the same rules as a file call:
+    /// the file must be one the guest may change (visible, Files: Edit, and Full access for
+    /// files that configure what runs). Other messages are not about a file's content.
+    pub(crate) fn document_write_denied(
+        &self,
+        policy: &Policy,
+        msg: &GuestMessage,
+    ) -> Option<crate::permissions::Denied> {
+        let (GuestMessage::DocUpdate { doc, .. } | GuestMessage::DocSave { doc, .. }) = msg else {
+            return None;
+        };
+        let path = self.state().docs.get(doc).map(|d| d.path.clone())?;
+        policy.check_write_path(&path).err()
+    }
+
     /// Make sure the shared document of `path` exists for a guest who opens it: created from
     /// the file on disk if nobody has it open yet. The file is checked like any other call
     /// (symlinks resolved, hidden and oversized files refused).

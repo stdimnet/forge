@@ -915,6 +915,59 @@ screenshots.
   server in tests), see git status and blame; a guest with Edit files creates and renames
   files; the host on an SSH remote project can share it.
 
+**S3 as built** (`crates/forge-collab/src/guest_backend/`, branch `feat/code-with-me-guest-backend`).
+Where the plan was unclear or wrong, this is what the code does:
+
+- `HostCall` is its own closed enum (`calls.rs`) carried as an opaque MessagePack payload in
+  `GuestMessage::Call` / `HostMessage::CallResult`, so `protocol.rs` stays pure. The host
+  decodes it, runs `Policy::check_call` (`policy.rs`) and only then answers (`host_calls.rs`,
+  a child module of `host` so it can use the session's state). New host messages:
+  `CallResult`, `FsChanged`, `Diagnostics`. A guest can have 64 calls in flight; answers are
+  limited to the frame size; errors never carry the host's absolute paths; the guest's
+  `BackendInfo.root` is the placeholder `/<project>`.
+- **Paths**: `is_plain_relative`, no `.git/`, secret excludes (now case-insensitive, because
+  `.ENV` is `.env` on macOS and Windows), then `Gate::verify`: the path is resolved through
+  symlinks (for a path that does not exist yet, its nearest existing folder), must stay inside
+  the project, and its real name must pass the rules again (a link to `.env` or `.git/config`
+  is refused). Symlinks that leave the project are listed but not readable or writable.
+  Deleting a folder that contains hidden files is refused. **Limit:** when the host's own
+  project is on an SSH host, symlinks cannot be resolved from the host's Forge, so only the
+  path rules apply there.
+- **Files that configure what runs** (`PROTECTED_FILES`: `composer.json` and `package.json`
+  as whole files, `Makefile`, `artisan`, `bin/console`, `.forge/settings.toml`,
+  `.forge/runConfigurations*.toml`, `.vscode/`, `.idea/`, `.husky/`) need Run Full access to
+  change, in file calls and in shared documents (read-only on open, updates and saves
+  denied). The plan only protected `composer.json`'s `scripts`; whole-file is simpler and
+  safe. Making the list a setting is S2.
+- **Documents**: a guest can open any visible file as a shared document (the host creates it
+  from disk); the shared files list stays the host's own tabs.
+- **Git**: `forge_vcs::Repo` runs unchanged on the guest through `CollabGit`, which turns the
+  exact command lines Forge's version control code issues into `GitQuery` (read-only) and
+  `GitAction` (VCS Full access) values; the host builds the command line again, validates
+  revisions and pathspecs (no options, no `:` magic, no `..`) and filters status, diffs,
+  commit file lists and file lists, so hidden files and files outside the project folder of a
+  larger repository never show up. Everything else fails with "not available in Code With Me
+  sessions".
+- **Framework analysis never runs project code for guests**: Laravel routes always come from
+  the static analysis and the artisan command list from the built-in list (the guest's `php`
+  value is ignored), Symfony and Doctrine settings may only name project folders, and `env`
+  completions lose their values (they come from `.env`). The plan allowed artisan for
+  guests; that would run code a guest with Edit files can change.
+- **Language servers**: the guest's `lsp_*` commands forward `LspQuery` to the host
+  (`lsp_host.rs` answers with the host's `LspManager`, synchronized with the shared
+  document's current text before each request); locations in hidden files or outside the
+  project are dropped. `lsp_did_change` is a no-op for guests (the host reads the document);
+  diagnostics reach the guests that told the host they opened the file (`Sync`).
+- **Guest window**: `AppState::set_collab_project`, `BackendInfo.collab`, status item "Code
+  With Me: <host>" with latency, title `<project> — <host> (Code With Me)`, read-only editors
+  and a trimmed Project context menu without Files: Edit, no AI Chat, Database, Services,
+  Debug, Pull Requests, Terminal or Run windows (Terminal and Run return with S5), and the
+  Commit window only with Full access to version control. Browser mode:
+  `?project=cwm-guest[&permission=edit]`.
+- Not in S3: terminals and processes (`CollabBackend` refuses them), the audit log and the
+  approval UI (S2: denials are logged with `tracing` where S2 plugs in), hooking guest file
+  opening into S1's shared tab source (the host side is ready: every visible file opens).
+
 ### S4 — Follow, Jump To, Make Everyone Follow You (3 d)
 
 - Presence, participant list in the popup and the tool window, avatars in the toolbar, Follow

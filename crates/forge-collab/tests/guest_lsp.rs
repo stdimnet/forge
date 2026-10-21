@@ -164,11 +164,14 @@ impl ManagerSource for Source {
     }
 }
 
+/// What a guest received: the file and its diagnostics.
+type Diagnostics = Arc<Mutex<Vec<(String, Vec<EditorDiagnostic>)>>>;
+
 struct Setup {
     _dir: tempfile::TempDir,
     host: Arc<HostSession>,
     guest: Arc<GuestSession>,
-    diagnostics: Arc<Mutex<Vec<(String, Vec<EditorDiagnostic>)>>>,
+    diagnostics: Diagnostics,
 }
 
 async fn setup() -> Setup {
@@ -245,7 +248,7 @@ async fn setup() -> Setup {
     )
     .await
     .unwrap();
-    let diagnostics: Arc<Mutex<Vec<(String, Vec<EditorDiagnostic>)>>> = Arc::default();
+    let diagnostics: Diagnostics = Arc::default();
     let sink = diagnostics.clone();
     guest.set_diagnostics_sink(Some(Arc::new(move |path, bytes| {
         let list: Vec<EditorDiagnostic> = serde_json::from_slice(&bytes).unwrap();

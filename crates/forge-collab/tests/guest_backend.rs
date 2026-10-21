@@ -28,6 +28,9 @@ use futures_util::future::BoxFuture;
 
 const TIMEOUT: Duration = Duration::from_secs(20);
 
+/// A file's diagnostics as a guest received them.
+type Diagnostics = (String, Vec<u8>);
+
 /// Answers language server requests and records what the host was asked.
 #[derive(Default)]
 struct FakeLsp {
@@ -1091,7 +1094,7 @@ async fn diagnostics_reach_only_guests_with_the_file_open() {
     let mut w = World::new(READ);
     let g = w.join("Alex").await;
     let other = w.join("Bea").await;
-    let got: Arc<Mutex<Vec<(String, Vec<u8>)>>> = Arc::default();
+    let got: Arc<Mutex<Vec<Diagnostics>>> = Arc::default();
     let sink = got.clone();
     g.session.set_diagnostics_sink(Some(Arc::new(move |p, d| {
         sink.lock().unwrap().push((p, d))
@@ -1308,4 +1311,60 @@ async fn project_settings_are_read_from_the_host() {
     };
     assert!(s.0.unwrap().contains("tabSize"));
     assert_eq!(s.1, None);
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn shared_documents_of_protected_files_are_read_only_without_full_access() {
+    let mut w = World::new(EDIT);
+    let g = w.join("Alex").await;
+    let order = g.session.open_doc("app/Http/Order.php").await.unwrap();
+    assert!(!order.read_only);
+    assert!(g.session.save(order.doc).await.is_ok());
+    let composer = g.session.open_doc("composer.json").await.unwrap();
+    assert!(composer.read_only, "composer.json configures what runs");
+    let err = g.session.save(composer.doc).await.unwrap_err();
+    assert!(err.contains("Full access"), "{err}");
+    // An update to it is dropped before it reaches the document.
+    use yrs::updates::decoder::Decode;
+    use yrs::{GetString, ReadTxn, Text, Transact};
+    let replica = yrs::Doc::with_options(yrs::Options {
+        offset_kind: yrs::OffsetKind::Utf16,
+        ..yrs::Options::default()
+    });
+    let text = replica.get_or_insert_text("content");
+    replica
+        .transact_mut()
+        .apply_update(yrs::Update::decode_v1(&composer.update).unwrap())
+        .unwrap();
+    let before = replica.transact().state_vector();
+    text.insert(&mut replica.transact_mut(), 0, "PWNED");
+    let update = replica.transact().encode_state_as_update_v1(&before);
+    g.session.update(composer.doc, update);
+    tokio::time::sleep(Duration::from_millis(200)).await;
+    assert!(text.get_string(&replica.transact()).starts_with("PWNED"));
+    let other = w.join("Bea").await;
+    let seen = other.session.open_doc("composer.json").await.unwrap();
+    let replica2 = yrs::Doc::with_options(yrs::Options {
+        offset_kind: yrs::OffsetKind::Utf16,
+        ..yrs::Options::default()
+    });
+    replica2
+        .transact_mut()
+        .apply_update(yrs::Update::decode_v1(&seen.update).unwrap())
+        .unwrap();
+    assert!(!replica2
+        .get_or_insert_text("content")
+        .get_string(&replica2.transact())
+        .contains("PWNED"));
+    assert_eq!(
+        std::fs::read_to_string(w.root.join("composer.json")).unwrap(),
+        "{\n  \"name\": \"acme/shop\"\n}\n"
+    );
+
+    // With Full access the same file is editable.
+    let mut w = World::new(FULL);
+    let g = w.join("Sam").await;
+    let composer = g.session.open_doc("composer.json").await.unwrap();
+    assert!(!composer.read_only);
+    assert!(g.session.save(composer.doc).await.is_ok());
 }

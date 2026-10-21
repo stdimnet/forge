@@ -717,7 +717,11 @@ impl HostSession {
         else {
             return;
         };
-        if let Err(denied) = policy.check(&msg) {
+        let denied = policy
+            .check(&msg)
+            .err()
+            .or_else(|| self.document_write_denied(&policy, &msg));
+        if let Some(denied) = denied {
             let reason = denied.to_string();
             let answer = match msg {
                 GuestMessage::DocOpen { request, .. } => HostMessage::DocError {
@@ -740,7 +744,9 @@ impl HostSession {
                     Err(error) => HostMessage::DocError { request, error },
                     Ok(()) => {
                         let mut st = self.state();
-                        let read_only = !policy.permissions.can_edit_files();
+                        // Files that configure what runs on the host are read-only without
+                        // Full access, like for every other way of changing them.
+                        let read_only = policy.check_write_path(&path).is_err();
                         match open_in(&mut st, from, &path, read_only) {
                             Some(o) => HostMessage::DocOpened {
                                 request,
