@@ -31,6 +31,3 @@
 .todo-error {
   color: var(--danger);
 }
-.find-tool:disabled {
-  opacity: 0.5;
-}

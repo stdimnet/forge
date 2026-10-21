@@ -84,6 +84,19 @@ export default {
     await page.keyboard.press("Control+F11");
     await page.waitForSelector(".mnemonic-popup");
   },
+  "find-window-text": async (page) => {
+    await page.keyboard.press("Control+Shift+KeyF");
+    await page.waitForSelector(".find-popup .find-input");
+    await page.keyboard.type("total");
+    await page.waitForSelector(".find-popup .find-row");
+    await page.click(".find-open-window");
+    await page.waitForSelector(".find-window .find-usage");
+    // Next Occurrence (Ctrl+Alt+Down) walks the results.
+    await run(page, "NextOccurence");
+    await run(page, "NextOccurence");
+    await page.waitForTimeout(300);
+    await dismissBalloons(page);
+  },
   todo: async (page) => {
     await openViaGotoFile(page, "OrderController");
     await run(page, "ActivateTODOToolWindow");

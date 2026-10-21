@@ -13,18 +13,24 @@ type Line = { kind: "group"; label: string; count: number } | ({ kind: "usage"; 
 
 const fileName = (path: string) => path.split("/").pop() ?? path;
 
-/** The code of a usage with the reference highlighted. */
+/** The code of a usage with the reference (every match of a text search) highlighted. */
 export function UsageCode(props: { row: UsageRow }) {
-  const parts = () => {
-    const [s, e] = props.row.ranges[0] ?? [0, 0];
+  const parts = createMemo(() => {
     const t = props.row.text;
-    return [t.slice(0, s), t.slice(s, e), t.slice(e)];
-  };
+    const out: { text: string; hit: boolean }[] = [];
+    let at = 0;
+    for (const [s, e] of props.row.ranges) {
+      if (s < at) continue;
+      if (s > at) out.push({ text: t.slice(at, s), hit: false });
+      out.push({ text: t.slice(s, e), hit: true });
+      at = e;
+    }
+    if (at < t.length) out.push({ text: t.slice(at), hit: false });
+    return out;
+  });
   return (
     <span class="usage-code">
-      {parts()[0]}
-      <mark class="usage-match">{parts()[1]}</mark>
-      {parts()[2]}
+      <For each={parts()}>{(p) => (p.hit ? <mark class="usage-match">{p.text}</mark> : p.text)}</For>
     </span>
   );
 }

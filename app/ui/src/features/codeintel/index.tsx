@@ -13,7 +13,7 @@ import { Search } from "lucide-solid";
 import type { EditorView } from "@codemirror/view";
 import { registerToolWindow } from "@/features/registry";
 import { registerCommand } from "@/state/commands";
-import { actionById } from "@/keymap";
+import { actionById, showBalloon } from "@/keymap";
 import { codeApi, type NavKind } from "@/ipc/codeintel";
 import { activeView } from "@/features/lsp/navigation";
 import { showHint } from "@/features/lsp/hint";
@@ -21,10 +21,10 @@ import { syncNow } from "@/features/lsp/sync";
 import { toLsp } from "@/features/lsp/util";
 import { setImplementationNavigator } from "@/features/lsp/goto";
 import { isDialogWindow } from "@/shell/window/mode";
-import { FindTabs, FindToolWindow } from "./FindToolWindow";
+import { FindTabs, FindToolWindow, findGroupByType } from "./FindToolWindow";
 import { ShowUsagesPopup } from "./ShowUsagesPopup";
 import { chooseTargetAt } from "./targets";
-import { findTabs, findUsagesAt, showUsagesAt, usagesPopup } from "./usages";
+import { findTabs, findUsagesAt, gotoFindOccurrence, showUsagesAt, usagesPopup } from "./usages";
 import "./library";
 import "./markers";
 import "./codeintel.css";
@@ -65,6 +65,13 @@ action("GotoTypeDeclaration", "Type Declaration", "Navigate", inEditor((p, v, po
 action("GotoSuperMethod", "Super Method", "Navigate", inEditor((p, v, pos) => navigateAt("superMethod", p, v, pos)));
 action("FindUsages", "Find Usages", "Find", inEditor(findUsagesAt));
 action("ShowUsages", "Show Usages", "Find", inEditor((p, v, pos) => showUsagesAt(p, v, pos)));
+// Ctrl+Alt+Down / Up: the next or previous result of the Find tool window's active tab.
+action("NextOccurence", "Next Occurrence", "Navigate", () => {
+  if (!gotoFindOccurrence(1, findGroupByType())) showBalloon("There are no occurrences", "Search with Find Usages (Alt+F7) or Find in Files first.");
+});
+action("PreviousOccurence", "Previous Occurrence", "Navigate", () => {
+  if (!gotoFindOccurrence(-1, findGroupByType())) showBalloon("There are no occurrences", "Search with Find Usages (Alt+F7) or Find in Files first.");
+});
 
 registerToolWindow({
   id: "find",

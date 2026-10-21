@@ -1,6 +1,9 @@
 /** Find in Files popup state (search runs in Rust: `find_in_files`). */
 import { createSignal } from "solid-js";
 import { activeSelection } from "@/editor/views";
+import { findApi, type FindRequest, type FindResult } from "@/ipc/find";
+import type { UsagesAnswer } from "@/ipc/codeintel";
+import { openInFindWindow } from "@/features/codeintel/usages";
 
 export type FindScope = "project" | "directory";
 
@@ -45,3 +48,47 @@ export function openFindInFiles(opts: { directory?: string; query?: string } = {
 }
 
 export const closeFindInFiles = () => setFindOpen(false);
+
+/** The request the popup sends for a query and its options. */
+export function findRequest(query: string, o: FindOptions, limit = 1000): FindRequest {
+  return {
+    query,
+    caseSensitive: o.caseSensitive,
+    wholeWords: o.wholeWords,
+    regex: o.regex,
+    fileMask: o.maskEnabled ? o.fileMask : "",
+    directory: o.scope === "directory" ? o.directory : "",
+    limit,
+  };
+}
+
+/** Find in Files results in the Find tool window's shape (one group, files, lines). */
+export function occurrencesAnswer(query: string, r: FindResult): UsagesAnswer {
+  const files = r.files.map((f) => ({
+    path: f.path,
+    usages: f.matches.map((m) => ({
+      line: m.line,
+      column: m.column,
+      endLine: m.line,
+      endColumn: m.column + m.length,
+      text: m.text,
+      ranges: m.ranges,
+      kind: "unclassified" as const,
+    })),
+  }));
+  const tree = { total: r.matchCount, fileCount: files.length, groups: [{ label: "Found Occurrences", count: r.matchCount, files }] };
+  return { title: query, source: "none", byType: tree, byFile: tree };
+}
+
+/** "Open in Find Window": pin Find in Files results as a tab of the Find tool window. */
+export function openFindResultsInWindow(query: string, options: FindOptions, result: FindResult): void {
+  const o = { ...options };
+  const where = o.scope === "directory" && o.directory ? `Directory ${o.directory}` : "Project Files";
+  const mask = o.maskEnabled && o.fileMask ? ` with Mask '${o.fileMask}'` : "";
+  openInFindWindow(occurrencesAnswer(query, result), {
+    kind: "text",
+    title: `Occurrences of '${query}'`,
+    header: `Occurrences of '${query}' in ${where}${mask}`,
+    rerun: async () => occurrencesAnswer(query, await findApi.search(findRequest(query, o, 5000))),
+  });
+}
