@@ -4,7 +4,7 @@
  * color) 484 B"). Used for raster images (a view tab) and as the preview of SVG files.
  */
 import { createEffect, createSignal, on, onCleanup, onMount, Show } from "solid-js";
-import { Grid3x3, Maximize, Scan, ZoomIn, ZoomOut } from "lucide-solid";
+import { Grid2x2, Grid3x3, Maximize, ZoomIn, ZoomOut } from "lucide-solid";
 import type { ImageInfo } from "@/ipc/viewers";
 import { getSetting } from "@/state/settings";
 import { shortcutLabel } from "@/keymap";
@@ -123,7 +123,7 @@ export function ImageCanvas(props: {
           title={titled("Show Chessboard", "Images.ToggleTransparencyChessboard")}
           onClick={controls.toggleChessboard}
         >
-          <Scan size={15} />
+          <Grid2x2 size={15} />
         </button>
         <span class="img-zoom">{Math.round(zoom() * 100)}%</span>
         <span class="img-info">{info()}</span>
