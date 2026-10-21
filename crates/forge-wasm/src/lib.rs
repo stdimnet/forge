@@ -36,6 +36,7 @@ mod settings;
 mod templates;
 mod terminal;
 mod text;
+mod viewers;
 mod web;
 mod window;
 mod workbench;

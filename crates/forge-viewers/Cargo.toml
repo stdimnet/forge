@@ -1,0 +1,13 @@
+[package]
+name = "forge-viewers"
+description = "Forge file viewers: image metadata for the image editor and CSV/TSV tables for Edit as Table (pure, also built to WebAssembly)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+imagesize = "0.14"
+base64 = "0.22"
+regex-lite = "0.1"

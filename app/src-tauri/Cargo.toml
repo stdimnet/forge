@@ -37,6 +37,7 @@ forge-project.workspace = true
 forge-open.workspace = true
 forge-process.workspace = true
 forge-markdown.workspace = true
+forge-viewers.workspace = true
 forge-debug.workspace = true
 forge-db.workspace = true
 forge-containers.workspace = true
