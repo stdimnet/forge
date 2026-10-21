@@ -223,6 +223,25 @@ Page id `editor.todo`.
 | --- | --- | --- | --- | --- | --- |
 | `todo.patterns` | list | `["\\btodo\\b.*", "\\bfixme\\b.*"]` | user | Patterns | Patterns — Regular expressions matched in comments, one per entry. Add a tab and `case` after a pattern to make it case-sensitive. |
 
+### Editor | Image
+
+Page id `editor.image`.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `images.showChessboard` | bool | `true` | user | Image Viewer | Show chessboard — Transparent areas of images are drawn over a chessboard pattern. |
+| `images.showGrid` | bool | `false` | user | Image Viewer | Show grid — Pixel grid lines when the zoom is 300% or more. |
+| `images.svgDefaultLayout` | enum: `editor`, `split`, `preview` | `split` | user | SVG | SVG files open with |
+
+### Editor | CSV/TSV
+
+Page id `editor.csv`.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `csv.defaultView` | enum: `text`, `table` | `text` | user |  | Open CSV/TSV files as |
+| `csv.firstRowIsHeader` | bool | `true` | user |  | First row is header — Default of the table view's header toggle. |
+
 ### Version Control | Git
 
 Page id `vcs.git`.
@@ -376,6 +395,17 @@ Page id `lang.lua`.
 | `langservers.lua.libraries` | list | `[]` | user, project | Lua Language Server | Library paths — Extra folders with Lua definitions or third-party code (workspace.library), e.g. ~/.luarocks/share/lua/5.4. |
 | `lua.stylua.enabled` | bool | `true` | user | StyLua | Reformat Code with StyLua — Ctrl+Alt+L formats Lua files with StyLua when it is installed; stylua.toml in the project is honoured. |
 | `lua.stylua.path` | path | `stylua` | user | StyLua | StyLua executable |
+
+### Languages & Frameworks | Markdown
+
+Page id `lang.markdown`.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `markdown.defaultLayout` | enum: `editor`, `split`, `preview` | `split` | user | Preview | Default layout — How Markdown files open. The buttons in the top-right corner of the editor switch it per file. |
+| `markdown.syncScroll` | bool | `true` | user | Preview | Synchronize scrolling between the editor and the preview |
+| `markdown.frontMatter` | enum: `table`, `hidden` | `table` | user | Preview | Front matter — The YAML (---) or TOML (+++) block at the start of a file. |
+| `markdown.mermaid` | bool | `true` | user | Markdown Extensions | Mermaid — Render ```mermaid code blocks as diagrams. |
 
 ### Languages & Frameworks | Node.js
 
