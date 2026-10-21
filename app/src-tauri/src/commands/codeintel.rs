@@ -1123,7 +1123,18 @@ pub async fn code_context_actions(
         let lsp_titles: Vec<&str> = lsp_titles.iter().map(String::as_str).collect();
         for i in intentions {
             if let Some(symbol) = &i.unresolved {
-                let declared = stubs.as_ref().is_some_and(|s| !s.lookup(symbol).is_empty());
+                let declared = match (&symbol.member, &stubs) {
+                    // A member of a class with ancestors outside the index: only when they
+                    // are all PHP's own classes and none declares it (a library parent
+                    // such as Eloquent's Model may).
+                    (Some(_), Some(s)) => {
+                        !s.lookup(symbol).is_empty()
+                            || symbol.classes.iter().any(|c| s.class(c).is_none())
+                    }
+                    (Some(_), None) => true,
+                    (None, Some(s)) => !s.lookup(symbol).is_empty(),
+                    (None, None) => false,
+                };
                 let name = i.title.split('\'').nth(1).unwrap_or_default();
                 if declared || codeintel::lsp_creates(&lsp_titles, name) {
                     continue;

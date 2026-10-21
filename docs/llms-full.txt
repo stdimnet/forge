@@ -5375,8 +5375,9 @@ bulb, listed first):
   directory follows the namespace through composer.json's PSR-4 rules. When you pick another
   namespace, the usage gets a `use` import.
 - Nothing is offered for PHP's own functions and classes (`strlen()`, `\Exception`) when the
-  PHP stubs are available, nor when the language server already offers to create the same
-  symbol. Calls on variables whose class is unknown, comments and strings are left alone.
+  PHP stubs are available, for members of classes whose parents are not indexed (a vendor
+  parent may declare them; see "Add packages as libraries" under Composer), nor when the
+  language server already offers to create the same symbol. Calls on variables whose class is unknown, comments and strings are left alone.
 - Remote projects work the same way: the analysis runs next to the files.
 
 ![Create method from usage](docs/screenshots/create-from-usage-method.png)
