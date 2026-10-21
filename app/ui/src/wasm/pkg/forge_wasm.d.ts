@@ -56,17 +56,17 @@ export function codeintel_apply_edit(request_json: string): string;
 export function codeintel_context_actions(request_json: string): string;
 
 /**
- * `{ text, line, language }` → `ContextLine[]` (Context Info).
+ * `{ text, line, path }` → `ContextLine[]` (Context Info).
  */
 export function codeintel_context_headers(request_json: string): string;
 
 /**
- * `{ text, line, language }` → `SnippetRange` (Quick Definition).
+ * `{ text, line, path }` → `SnippetRange` (Quick Definition).
  */
 export function codeintel_definition_snippet(request_json: string): string;
 
 /**
- * `{ text, position, language, declaration? }` → `{ url, symbol }`: the External
+ * `{ text, position, path, declaration? }` → `{ url, symbol }`: the External
  * Documentation page (like `code_external_doc`).
  */
 export function codeintel_doc_url(request_json: string): string;

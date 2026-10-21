@@ -257,7 +257,7 @@ export function codeintel_context_actions(request_json) {
 }
 
 /**
- * `{ text, line, language }` → `ContextLine[]` (Context Info).
+ * `{ text, line, path }` → `ContextLine[]` (Context Info).
  * @param {string} request_json
  * @returns {string}
  */
@@ -281,7 +281,7 @@ export function codeintel_context_headers(request_json) {
 }
 
 /**
- * `{ text, line, language }` → `SnippetRange` (Quick Definition).
+ * `{ text, line, path }` → `SnippetRange` (Quick Definition).
  * @param {string} request_json
  * @returns {string}
  */
@@ -305,7 +305,7 @@ export function codeintel_definition_snippet(request_json) {
 }
 
 /**
- * `{ text, position, language, declaration? }` → `{ url, symbol }`: the External
+ * `{ text, position, path, declaration? }` → `{ url, symbol }`: the External
  * Documentation page (like `code_external_doc`).
  * @param {string} request_json
  * @returns {string}

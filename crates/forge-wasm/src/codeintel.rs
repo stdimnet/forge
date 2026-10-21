@@ -280,22 +280,27 @@ pub fn codeintel_inlay_hints(request_json: &str) -> String {
 struct DocUrlInput {
     text: String,
     position: Position,
-    language: String,
+    /// The file; its extension gives the language.
+    path: String,
     #[serde(default)]
     declaration: Option<forge_codeintel::DocTarget>,
 }
 
-/// `{ text, position, language, declaration? }` → `{ url, symbol }`: the External
+/// `{ text, position, path, declaration? }` → `{ url, symbol }`: the External
 /// Documentation page (like `code_external_doc`).
 #[wasm_bindgen]
 pub fn codeintel_doc_url(request_json: &str) -> String {
     match parse::<DocUrlInput>(request_json) {
         Ok(input) => {
-            let symbol = forge_codeintel::symbol_at(&input.text, input.position, &input.language)
-                .map(|mut s| {
-                    s.declaration = input.declaration;
-                    s
-                });
+            let symbol = forge_codeintel::symbol_at(
+                &input.text,
+                input.position,
+                forge_codeintel::language_of(&input.path),
+            )
+            .map(|mut s| {
+                s.declaration = input.declaration;
+                s
+            });
             let url = symbol.as_ref().and_then(forge_codeintel::external_doc_url);
             to_json(&json!({ "url": url, "symbol": symbol }))
         }
@@ -307,30 +312,31 @@ pub fn codeintel_doc_url(request_json: &str) -> String {
 struct LinesInput {
     text: String,
     line: u32,
-    language: String,
+    /// The file; its extension gives the language.
+    path: String,
 }
 
-/// `{ text, line, language }` → `SnippetRange` (Quick Definition).
+/// `{ text, line, path }` → `SnippetRange` (Quick Definition).
 #[wasm_bindgen]
 pub fn codeintel_definition_snippet(request_json: &str) -> String {
     match parse::<LinesInput>(request_json) {
         Ok(i) => to_json(&forge_codeintel::definition_snippet(
             &i.text,
             i.line,
-            &i.language,
+            forge_codeintel::language_of(&i.path),
         )),
         Err(e) => to_json(&json!({ "error": e })),
     }
 }
 
-/// `{ text, line, language }` → `ContextLine[]` (Context Info).
+/// `{ text, line, path }` → `ContextLine[]` (Context Info).
 #[wasm_bindgen]
 pub fn codeintel_context_headers(request_json: &str) -> String {
     match parse::<LinesInput>(request_json) {
         Ok(i) => to_json(&forge_codeintel::context_headers(
             &i.text,
             i.line,
-            &i.language,
+            forge_codeintel::language_of(&i.path),
         )),
         Err(e) => to_json(&json!({ "error": e })),
     }
@@ -371,12 +377,12 @@ mod doc_tests {
     #[test]
     fn documentation_helpers_over_json() {
         let out = codeintel_doc_url(
-            r#"{"text":"JSON.parse(a)","position":{"line":0,"character":6},"language":"javascript"}"#,
+            r#"{"text":"JSON.parse(a)","position":{"line":0,"character":6},"path":"a.js"}"#,
         );
         assert!(out.contains("Global_Objects/JSON/parse"));
 
         let out = codeintel_definition_snippet(
-            r#"{"text":"/** Doc. */\nfunction a() {\n  return 1;\n}\n","line":1,"language":"javascript"}"#,
+            r#"{"text":"/** Doc. */\nfunction a() {\n  return 1;\n}\n","line":1,"path":"a.js"}"#,
         );
         let v: serde_json::Value = serde_json::from_str(&out).unwrap();
         assert_eq!(
@@ -385,7 +391,7 @@ mod doc_tests {
         );
 
         let out = codeintel_context_headers(
-            r#"{"text":"class A {\n  run() {\n    x();\n  }\n}","line":2,"language":"typescript"}"#,
+            r#"{"text":"class A {\n  run() {\n    x();\n  }\n}","line":2,"path":"a.ts"}"#,
         );
         assert!(out.contains("class A {"));
 

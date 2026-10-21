@@ -1,7 +1,8 @@
 /**
  * Code intelligence IPC (see app/src-tauri/src/commands/codeintel.rs and library.rs): Go to
  * Declaration, Find / Show Usages, Implementation, Type Declaration, Super Method, gutter
- * markers, rename, context actions and read-only library files. Paths are workspace
+ * markers, rename, context actions, read-only library files and the documentation actions
+ * (External Documentation, Quick Definition, Type Info, Context Info). Paths are workspace
  * relative, or `library://…` for files outside the project; positions are LSP positions
  * (0-based line, UTF-16 character).
  */
@@ -250,6 +251,39 @@ export interface ContextActionsAnswer {
   missing?: MissingFeature | null;
 }
 
+/** External Documentation (Shift+F1): the page to open, `null` when there is none. */
+export interface ExternalDocAnswer {
+  url?: string | null;
+  /** The symbol's name for the "No external documentation found" hint. */
+  name?: string | null;
+}
+
+/** One declaration in the Quick Definition popup. */
+export interface QuickDefinition {
+  path: string;
+  /** 0-based line and UTF-16 column of the name. */
+  line: number;
+  column: number;
+  name: string;
+  container?: string | null;
+  /** The file line of the first line of `text` (docblock and attributes included). */
+  startLine: number;
+  text: string;
+  truncated: boolean;
+}
+
+export interface QuickDefinitionAnswer {
+  title?: string | null;
+  definitions: QuickDefinition[];
+  message?: string | null;
+}
+
+/** A header line of Context Info (Alt+Q). */
+export interface ContextLine {
+  line: number;
+  text: string;
+}
+
 const at = (path: string, pos: LspPosition, content?: string) => ({
   path,
   line: pos.line,
@@ -294,5 +328,12 @@ export const codeApi = {
     invoke<ContextAction>("code_resolve_action", { path, server, raw }),
   executeCommand: (path: string, server: string, command: string, args?: unknown[]) =>
     invoke<unknown>("code_execute_command", { path, server, command, arguments: args }),
+  externalDoc: (path: string, pos: LspPosition, content?: string) =>
+    invoke<ExternalDocAnswer>("code_external_doc", at(path, pos, content)),
+  quickDefinition: (path: string, pos: LspPosition, content?: string) =>
+    invoke<QuickDefinitionAnswer>("code_quick_definition", at(path, pos, content)),
+  typeInfo: (path: string, pos: LspPosition, content?: string) => invoke<string | null>("code_type_info", at(path, pos, content)),
+  contextInfo: (path: string, line: number, content?: string) =>
+    invoke<ContextLine[]>("code_context_info", { path, line, content }),
   readLibrary: (path: string) => invoke<LibraryFile>("library_read", { path }),
 };
