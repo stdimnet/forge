@@ -175,6 +175,26 @@ export function dql_goto(request_json: string): string;
 export function dql_highlight(request_json: string): string;
 
 /**
+ * `StatementRequest` → `StatementEdit | null`.
+ */
+export function editing_complete_statement(request_json: string): string;
+
+/**
+ * `ExpandRequest` → `ExpandResult`.
+ */
+export function editing_expand_word(request_json: string): string;
+
+/**
+ * `PostfixRequest` → `PostfixCompletion | null`.
+ */
+export function editing_postfix_complete(request_json: string): string;
+
+/**
+ * `{}` → `TemplateInfo[]`.
+ */
+export function editing_postfix_templates(_request_json: string): string;
+
+/**
  * `DetectRequest` → `FileTypeInfo[]`.
  */
 export function filetypes_detect(request_json: string): string;
@@ -595,6 +615,10 @@ export interface InitOutput {
     readonly dql_diagnostics: (a: number, b: number, c: number) => void;
     readonly dql_goto: (a: number, b: number, c: number) => void;
     readonly dql_highlight: (a: number, b: number, c: number) => void;
+    readonly editing_complete_statement: (a: number, b: number, c: number) => void;
+    readonly editing_expand_word: (a: number, b: number, c: number) => void;
+    readonly editing_postfix_complete: (a: number, b: number, c: number) => void;
+    readonly editing_postfix_templates: (a: number, b: number, c: number) => void;
     readonly filetypes_detect: (a: number, b: number, c: number) => void;
     readonly filetypes_load: (a: number, b: number, c: number) => void;
     readonly filetypes_template_delimiters: (a: number) => void;
