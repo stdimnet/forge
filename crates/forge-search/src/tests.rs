@@ -481,3 +481,18 @@ fn a_rescan_event_triggers_a_full_refresh() {
     }
     panic!("a rescan event did not refresh the index");
 }
+
+#[test]
+fn an_unlimited_search_below_the_ceiling_is_not_truncated() {
+    let (_d, svc) = project();
+    let req = forge_find::FindRequest {
+        query: "e".into(),
+        limit: usize::MAX,
+        ..forge_find::FindRequest::default()
+    };
+    let found = svc
+        .find_text_lazy(&req, &std::sync::atomic::AtomicBool::new(false))
+        .unwrap();
+    assert!(!found.truncated);
+    assert!(found.match_count < crate::service::MAX_RETAINED_MATCHES);
+}

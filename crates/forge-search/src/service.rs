@@ -21,6 +21,10 @@ use crate::lazy::{group_rows, FoundText, LazyFile, Rows};
 const WATCH_DEBOUNCE: Duration = Duration::from_millis(300);
 const SAVE_INTERVAL: Duration = Duration::from_secs(60);
 
+/// A result keeps 8 bytes per match plus its row index; past this the search stops and reports
+/// itself as truncated instead of growing without bound.
+pub(crate) const MAX_RETAINED_MATCHES: usize = 50_000_000;
+
 /// The error of a search that was cancelled before it finished.
 pub const CANCELLED: &str = "Search cancelled";
 
@@ -323,7 +327,7 @@ impl SearchService {
             .ok();
 
         let every_line = req.regex && req.query == ".*";
-        let limit = finder.limit();
+        let limit = finder.limit().min(MAX_RETAINED_MATCHES);
         let found = std::sync::atomic::AtomicUsize::new(0);
         let per_file: Vec<(String, Rows, usize, bool)> = paths
             .par_iter()
