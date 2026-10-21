@@ -148,6 +148,17 @@ const unselectOccurrence: CmCommand = (view) => {
   return true;
 };
 
+/** Select All Occurrences: without a selection, of the word at the caret (PHPStorm). */
+const selectAllOccurrences: CmCommand = (view) => {
+  const { state } = view;
+  if (state.selection.ranges.every((r) => r.empty)) {
+    const words = state.selection.ranges.map((r) => state.wordAt(r.head) ?? r);
+    if (words.every((r) => r.empty)) return false;
+    view.dispatch({ selection: EditorSelection.create(words, state.selection.mainIndex) });
+  }
+  return selectSelectionMatches(view);
+};
+
 const scrollBy = (lines: number): CmCommand => (view) => {
   view.scrollDOM.scrollTop += lines * view.defaultLineHeight;
   return true;
@@ -169,7 +180,7 @@ export const EDITOR_COMMANDS: Record<string, CmCommand> = {
   EditorUnSelectWord: shrinkSelection,
   SelectNextOccurrence: selectNextOccurrence,
   UnselectPreviousOccurrence: unselectOccurrence,
-  SelectAllOccurrences: selectSelectionMatches,
+  SelectAllOccurrences: selectAllOccurrences,
   EditorJoinLines: joinLines,
   EditorToggleCase: toggleCase,
   EditorSplitLine: splitLine,

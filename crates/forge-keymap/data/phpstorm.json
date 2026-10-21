@@ -313,8 +313,9 @@
   {"id":"EditorPageDown","title":"Page Down","group":"Editor Actions","win":"PageDown","mac":"PageDown","context":"editor","native":true},
   {"id":"EditorMoveToPageTop","title":"Move Caret to Page Top","group":"Editor Actions","win":"Ctrl+PageUp","mac":"Cmd+PageUp","context":"editor","native":true},
   {"id":"EditorMoveToPageBottom","title":"Move Caret to Page Bottom","group":"Editor Actions","win":"Ctrl+PageDown","mac":"Cmd+PageDown","context":"editor","native":true},
-  {"id":"EditorCloneCaretAbove","title":"Clone Caret Above","group":"Editor Actions","win":"","mac":"","context":"editor"},
-  {"id":"EditorCloneCaretBelow","title":"Clone Caret Below","group":"Editor Actions","win":"","mac":"","context":"editor"},
+  {"id":"EditorCloneCaretAbove","title":"Clone Caret Above","group":"Editor Actions","win":"Double Ctrl+Up","mac":"Double Alt+Up","context":"editor"},
+  {"id":"EditorCloneCaretBelow","title":"Clone Caret Below","group":"Editor Actions","win":"Double Ctrl+Down","mac":"Double Alt+Down","context":"editor"},
+  {"id":"EditorAddCaretPerSelectedLine","title":"Add Carets to Ends of Selected Lines","group":"Editor Actions","win":"Alt+Shift+G","mac":"Alt+Shift+G","context":"editor"},
   {"id":"EditorToggleInsertState","title":"Toggle Insert/Overwrite","group":"Editor Actions","win":"Insert","mac":"","context":"editor","native":true},
   {"id":"EditorChooseLookupItemReplace","title":"Choose Lookup Item and Replace","group":"Editor Actions","win":"Tab","mac":"Tab","context":"editor","native":true}
 ]

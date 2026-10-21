@@ -1,0 +1,5 @@
+/* Column Selection Mode: the status bar indicator. Colors come from theme.css variables. */
+.status-item.column-mode-status {
+  color: var(--accent);
+  font-weight: 600;
+}

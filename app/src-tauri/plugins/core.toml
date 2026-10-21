@@ -448,6 +448,18 @@ group = "editor.general"
 section = "On Save"
 order = 41
 
+[[contributions.settings]]
+key = "editor.clipboard.maxContents"
+title = "Maximum number of contents to keep in clipboard"
+description = "Entries of Paste from History (Ctrl+Shift+V). The history is kept until Forge closes."
+type = "int"
+min = 1
+max = 100
+default = 20
+group = "editor.general"
+section = "Limits"
+order = 50
+
 # ---- Editor > General > Postfix Completion ---------------------------------------------
 
 [[contributions.settings]]
