@@ -4,6 +4,7 @@ import { EditorView, keymap } from "@codemirror/view";
 import { lspApi, type TextEdit } from "@/ipc/lsp";
 import { syncNow } from "./sync";
 import { fromLsp } from "./util";
+import { editor } from "@/state/editor";
 
 /** Apply LSP text edits (positions relative to the current document) in one transaction. */
 export function applyTextEdits(view: EditorView, edits: TextEdit[], userEvent = "format"): void {
@@ -32,7 +33,9 @@ export async function reformat(path: string, view: EditorView): Promise<void> {
     if (await provider(path, view).catch(() => false)) return;
   }
   await syncNow(path);
-  const edits = await lspApi.format(path).catch(() => [] as TextEdit[]);
+  // Indent options from the code style (or EditorConfig / the detected indent).
+  const indent = editor.tabs.find((t) => t.path === path)?.format?.indent;
+  const edits = await lspApi.format(path, indent?.size ?? 4, !(indent?.useTabs ?? false)).catch(() => [] as TextEdit[]);
   applyTextEdits(view, edits);
 }
 

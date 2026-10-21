@@ -5,6 +5,7 @@ import { fileTypesReady } from "./filetypesMock";
 import "./projectMock";
 import "./remoteMock";
 import "./workspaceMock";
+import "./textMock";
 import "./aiMock";
 import "./agentMock";
 import "./lspMock";

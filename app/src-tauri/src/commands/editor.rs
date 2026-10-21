@@ -6,6 +6,7 @@ use serde::Deserialize;
 use tauri::State;
 
 use forge_core::{ForgeError, Result};
+use forge_text::commit::{inspect_message, MessageProblem, MessageRules};
 use forge_text::editorconfig::EditorConfigFile;
 use forge_text::file::{read_text, write_text, TextFile};
 use forge_text::save::{SaveRequest, SaveResult};
@@ -63,6 +64,12 @@ fn encode_text(
 #[tauri::command]
 pub fn text_prepare_save(request: SaveRequest) -> SaveResult {
     forge_text::prepare_save(&request)
+}
+
+/// Commit message inspections (Settings | Version Control).
+#[tauri::command]
+pub fn vcs_inspect_commit_message(message: String, rules: MessageRules) -> Vec<MessageProblem> {
+    inspect_message(&message, &rules)
 }
 
 /// What the UI sends for [`editor_file_format`]; settings and `.editorconfig` files are

@@ -106,6 +106,7 @@ pub fn run() {
             commands::editor::fs_write_text,
             commands::editor::text_prepare_save,
             commands::editor::editor_file_format,
+            commands::editor::vcs_inspect_commit_message,
             commands::project_state::layout_load,
             commands::project_state::layout_save,
             commands::project_state::agent_history_list,

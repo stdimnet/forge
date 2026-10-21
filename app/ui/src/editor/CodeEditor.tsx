@@ -1,5 +1,5 @@
-import { createEffect, onCleanup, onMount } from "solid-js";
-import { EditorState } from "@codemirror/state";
+import { createEffect, on, onCleanup, onMount } from "solid-js";
+import { Compartment, EditorState } from "@codemirror/state";
 import {
   EditorView,
   keymap,
@@ -11,7 +11,7 @@ import {
   rectangularSelection,
 } from "@codemirror/view";
 import { defaultKeymap, historyKeymap, indentWithTab } from "@codemirror/commands";
-import { bracketMatching, foldGutter, indentOnInput, indentUnit } from "@codemirror/language";
+import { bracketMatching, foldGutter, indentOnInput } from "@codemirror/language";
 import { closeBrackets, autocompletion } from "@codemirror/autocomplete";
 import { highlightSelectionMatches, searchKeymap } from "@codemirror/search";
 import { forgeEditorTheme, forgeHighlight } from "./forgeTheme";
@@ -22,6 +22,12 @@ import { updateContent, updateCursor, saveFile, type EditorTab } from "@/state/e
 import { registerView } from "./views";
 import { replaceDocument, undoHistory } from "./reload";
 import { wordCompletion } from "./wordCompletion";
+import { formatCompartment, formatExtensions } from "./codeStyle";
+import "./fileFormat";
+import { getSetting } from "@/state/settings";
+
+/** Caret blink period (Settings | Editor | General | Caret). */
+const caretBlink = () => drawSelection({ cursorBlinkRate: getSetting<number>("editor.caret.blinkPeriod", 500) });
 
 /** One CodeMirror instance per open tab; kept alive while the tab exists. */
 export function CodeEditor(props: { tab: EditorTab }) {
@@ -30,6 +36,7 @@ export function CodeEditor(props: { tab: EditorTab }) {
   let unregister: (() => void) | undefined;
 
   let disposed = false;
+  const caretCompartment = new Compartment();
 
   onMount(() => {
     // Language, indentation and editor features depend on the file type (resolved in Rust);
@@ -49,11 +56,11 @@ export function CodeEditor(props: { tab: EditorTab }) {
           highlightActiveLine(),
           highlightActiveLineGutter(),
           highlightSpecialChars(),
-          drawSelection(),
+          caretCompartment.of(caretBlink()),
           rectangularSelection(),
           undoHistory(),
           indentOnInput(),
-          indentUnit.of(indentFor(path, props.tab.content)),
+          formatCompartment.of(formatExtensions(props.tab.format, indentFor(path, props.tab.content))),
           bracketMatching(),
           closeBrackets(),
           autocompletion(),
@@ -85,6 +92,23 @@ export function CodeEditor(props: { tab: EditorTab }) {
     });
     unregister = registerView(path, view);
   }
+
+  // The resolved format (code style, EditorConfig, detected indent) and the caret settings
+  // apply to the open editor.
+  createEffect(
+    on(
+      () => props.tab.format,
+      (format) => view?.dispatch({ effects: formatCompartment.reconfigure(formatExtensions(format, indentFor(props.tab.path))) }),
+      { defer: true },
+    ),
+  );
+  createEffect(
+    on(
+      () => getSetting<number>("editor.caret.blinkPeriod", 500),
+      () => view?.dispatch({ effects: caretCompartment.reconfigure(caretBlink()) }),
+      { defer: true },
+    ),
+  );
 
   // Content replaced from outside (e.g. reloaded after an AI agent edited the file).
   createEffect(() => {

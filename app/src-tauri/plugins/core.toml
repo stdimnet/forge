@@ -512,6 +512,7 @@ order = 3
 [[contributions.settings]]
 key = "editor.codeStyle.lineSeparator"
 title = "Line separator"
+description = "For new files. Existing files keep theirs; change it in the status bar."
 type = "enum"
 options = [
   { value = "lf", label = "Unix and macOS (\\n)" },
@@ -526,6 +527,7 @@ order = 0
 [[contributions.settings]]
 key = "editor.codeStyle.hardWrapAt"
 title = "Hard wrap at (columns)"
+description = "The right margin, drawn as a line in the editor. EditorConfig's max_line_length overrides it."
 type = "int"
 min = 40
 max = 400
@@ -547,11 +549,22 @@ order = 2
 [[contributions.settings]]
 key = "editor.codeStyle.useEditorConfig"
 title = "Enable EditorConfig support"
+description = "Indents, line separators, charset and the On Save options of .editorconfig files override these settings."
 type = "bool"
 default = true
 group = "editor.code-style"
 project = true
 order = 3
+
+[[contributions.settings]]
+key = "editor.codeStyle.detectIndents"
+title = "Detect and use existing file indents for editing"
+description = "Files indented differently from the code style keep their indent; the status bar marks it with *."
+type = "bool"
+default = true
+group = "editor.code-style"
+project = true
+order = 4
 
 # ---- Editor > Inlay Hints ------------------------------------------------------------
 
