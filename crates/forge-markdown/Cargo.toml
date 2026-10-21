@@ -1,6 +1,6 @@
 [package]
 name = "forge-markdown"
-description = "Forge Markdown: a safe AST (no raw HTML) for chat messages and documentation popups, built with pulldown-cmark (pure, also built to WebAssembly)"
+description = "Forge Markdown: a safe AST (no raw HTML) for chat messages, documentation popups and the Markdown preview, built with pulldown-cmark (pure, also built to WebAssembly)"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

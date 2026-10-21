@@ -37,6 +37,24 @@ pub enum Inline {
         text: String,
     },
     Break,
+    /// An image (preview only; chat and documentation keep images as links). `src` is the
+    /// URL or path as written; the UI resolves relative paths against the document.
+    Image {
+        src: String,
+        alt: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        title: Option<String>,
+        /// Size from an HTML `<img width height>`.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        width: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        height: Option<String>,
+    },
+    /// A footnote reference (`[^note]`), numbered in the order of first use (preview only).
+    FootnoteRef {
+        label: String,
+        index: u32,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -54,6 +72,9 @@ pub enum Block {
     Heading {
         level: u8,
         inline: Vec<Inline>,
+        /// Anchor id like GitHub's (`#getting-started`), preview only.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        id: Option<String>,
     },
     Paragraph {
         inline: Vec<Inline>,
@@ -76,8 +97,19 @@ pub enum Block {
     },
     Quote {
         blocks: Vec<Block>,
+        /// A GitHub alert (`> [!NOTE]`, preview only): `note`, `tip`, `important`,
+        /// `warning` or `caution`.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        kind: Option<String>,
     },
     Hr,
+    /// A GitHub-flavored table (preview only). `align` per column: `left`, `center`,
+    /// `right` or empty.
+    Table {
+        align: Vec<String>,
+        head: Vec<Vec<Inline>>,
+        rows: Vec<Vec<Vec<Inline>>>,
+    },
 }
 
 impl Inline {
@@ -95,6 +127,8 @@ impl Inline {
                 | Inline::Del { children }
                 | Inline::Link { children, .. } => out.push_str(&Inline::text_of(children)),
                 Inline::Break => out.push('\n'),
+                Inline::Image { alt, .. } => out.push_str(alt),
+                Inline::FootnoteRef { index, .. } => out.push_str(&index.to_string()),
             }
         }
         out
