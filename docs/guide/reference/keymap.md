@@ -102,10 +102,10 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Generate… | `Generate` | `Alt+Insert` | `Cmd+N` | yes |
 | Override Methods… | `OverrideMethods` | `Ctrl+O` | `Ctrl+O` | PHP editors |
 | Implement Methods… | `ImplementMethods` | `Ctrl+I` | `Ctrl+I` | PHP editors |
-| Surround With… | `SurroundWith` | `Ctrl+Alt+T` | `Cmd+Alt+T` | — |
-| Unwrap/Remove… | `Unwrap` | `Ctrl+Shift+Delete` | `Cmd+Shift+Delete` | — |
-| Insert Live Template… | `InsertLiveTemplate` | `Ctrl+J` | `Cmd+J` | — |
-| Surround with Live Template… | `SurroundWithLiveTemplate` | `Ctrl+Alt+J` | `Cmd+Alt+J` | — |
+| Surround With… | `SurroundWith` | `Ctrl+Alt+T` | `Cmd+Alt+T` | yes |
+| Unwrap/Remove… | `Unwrap` | `Ctrl+Shift+Delete` | `Cmd+Shift+Delete` | yes |
+| Insert Live Template… | `InsertLiveTemplate` | `Ctrl+J` | `Cmd+J` | yes |
+| Surround with Live Template… | `SurroundWithLiveTemplate` | `Ctrl+Alt+J` | `Cmd+Alt+J` | yes |
 | Comment with Line Comment | `CommentByLineComment` | `Ctrl+/`, `Ctrl+NumPad/` | `Cmd+/`, `Cmd+NumPad/` | yes |
 | Comment with Block Comment | `CommentByBlockComment` | `Ctrl+Shift+/`, `Ctrl+Shift+NumPad/` | `Cmd+Alt+/`, `Cmd+Alt+NumPad/` | yes |
 | Reformat Code | `ReformatCode` | `Ctrl+Alt+L` | `Cmd+Alt+L` | yes |

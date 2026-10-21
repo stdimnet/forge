@@ -24,8 +24,8 @@ Completion, Generate, folding, comments, formatting and moving lines. Open it wi
 | Override Methods… | `Ctrl+O` | `Ctrl+O` | yes | In PHP editors: pick inherited methods to override; Forge writes the stubs. |
 | Implement Methods… | `Ctrl+I` | `Ctrl+I` | yes | In PHP editors: pick interface or abstract methods to implement; Forge writes the stubs. |
 | Generate… | `Alt+Insert` | `Cmd+N` | yes | In PHP files: generates a constructor, getters, setters, overrides, `__toString()` or a PHPDoc block. [More](../../user/php.md#generate) ([screenshot](../../../screenshots/docs-generate.png)) |
-| Surround With… | `Ctrl+Alt+T` | `Cmd+Alt+T` | not yet | Not available yet; the entry is disabled. |
-| Unwrap/Remove… | `Ctrl+Shift+Delete` | `Cmd+Shift+Delete` | not yet | Not available yet; the entry is disabled. |
+| Surround With… | `Ctrl+Alt+T` | `Cmd+Alt+T` | yes | Wraps the selected lines (or the caret line) in `if`, `foreach`, `try / catch`, a function, a region or a live template with `$SELECTION$`. [More](../../user/live-templates.md#surround-with) ([screenshot](../../../screenshots/surround-with.png)) |
+| Unwrap/Remove… | `Ctrl+Shift+Delete` | `Cmd+Shift+Delete` | yes | Lists the statements around the caret to unwrap (keep the body) or remove (`else`, `catch`, …). [More](../../user/live-templates.md#unwrapremove) ([screenshot](../../../screenshots/unwrap-remove.png)) |
 | **Folding** | | | | submenu |
 | Folding › Expand | `Ctrl+=`, `Ctrl+NumPad+` | `Cmd+=`, `Cmd+NumPad+` | yes | Unfolds the folded region at the caret. [More](../../user/editor.md#folding) |
 | Folding › Collapse | `Ctrl+-`, `Ctrl+NumPad-` | `Cmd+-`, `Cmd+NumPad-` | yes | Folds the region at the caret. [More](../../user/editor.md#folding) |
@@ -35,9 +35,9 @@ Completion, Generate, folding, comments, formatting and moving lines. Open it wi
 | Folding › Collapse All | `Ctrl+Shift+-`, `Ctrl+Shift+NumPad-` | `Cmd+Shift+-`, `Cmd+Shift+NumPad-` | yes | Folds every region of the file. [More](../../user/editor.md#folding) ([screenshot](../../../screenshots/docs-folding.png)) |
 | Folding › Collapse Doc Comments | — | — | not yet | Not available yet; the entry is disabled. |
 | Folding › Fold Selection / Remove Region | `Ctrl+.` | `Cmd+.` | not yet | Not available yet; the entry is disabled. |
-| Insert Live Template… | `Ctrl+J` | `Cmd+J` | not yet | Not available yet; the entry is disabled. |
-| Surround with Live Template… | `Ctrl+Alt+J` | `Cmd+Alt+J` | not yet | Not available yet; the entry is disabled. |
-| Save as Live Template… | — | — | not yet | Not available yet; the entry is disabled. |
+| Insert Live Template… | `Ctrl+J` | `Cmd+J` | yes | Lists the live templates that apply at the caret and inserts the chosen one. [More](../../user/live-templates.md#expanding-a-template) ([screenshot](../../../screenshots/live-template-insert.png)) |
+| Surround with Live Template… | `Ctrl+Alt+J` | `Cmd+Alt+J` | yes | Wraps the selection in a live template that uses `$SELECTION$`. [More](../../user/live-templates.md#surround-with) |
+| Save as Live Template… | — | — | yes | Opens Settings \| Editor \| Live Templates with a new template made from the selection. [More](../../user/live-templates.md#save-as-live-template) |
 | Comment with Line Comment | `Ctrl+/`, `Ctrl+NumPad/` | `Cmd+/`, `Cmd+NumPad/` | yes | Comments or uncomments the current line or the selected lines. [More](../../user/editor.md#editing-actions) |
 | Comment with Block Comment | `Ctrl+Shift+/`, `Ctrl+Shift+NumPad/` | `Cmd+Alt+/`, `Cmd+Alt+NumPad/` | yes | Wraps the selection in a block comment, or removes it. [More](../../user/editor.md#editing-actions) |
 | Reformat Code | `Ctrl+Alt+L` | `Cmd+Alt+L` | yes | Formats the file with the language server's formatter (StyLua for Lua). [More](../../user/editor.md#reformat-code) |

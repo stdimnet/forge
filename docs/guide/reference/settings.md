@@ -178,6 +178,16 @@ Page id `editor.inlay-hints`.
 | `editor.inlayHints.languages.lua` | bool | `true` | user | Languages | Lua |
 | `editor.inlayHints.languages.other` | bool | `true` | user | Languages | Other languages |
 
+### Editor | Live Templates
+
+Page id `editor.liveTemplates`.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `editor.liveTemplates.expandKey` | enum: `tab`, `space`, `enter` | `tab` | user |  | By default expand with — Key that expands a live template abbreviation. |
+| `editor.liveTemplates.custom` | objects | `[]` | user |  | User and changed templates — New templates and changes to built-in ones: group, abbreviation, description, text, contexts (comma-separated), variables (JSON), builtin (id of the replaced built-in template) and removed. |
+| `editor.liveTemplates.disabled` | list | `[]` | user |  | Disabled templates — Ids (`group/abbreviation`) of templates that do not expand. |
+
 ### Editor | TODO
 
 Page id `editor.todo`.
