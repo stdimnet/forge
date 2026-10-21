@@ -65,10 +65,41 @@ export interface FindPaged {
   files: FileMatches[];
 }
 
+export interface ReplaceLine {
+  /** 0-based line. */
+  line: number;
+  before: string;
+  after: string;
+}
+
+export interface ReplacePreviewFile {
+  path: string;
+  lines: ReplaceLine[];
+  /** Matches in the file, also those on lines beyond the preview. */
+  matches: number;
+}
+
+export interface ReplaceDone {
+  files: number;
+  replacements: number;
+  skipped: string[];
+}
+
+export interface UndoneReplace {
+  restored: number;
+  /** Files left alone because they changed after the replace. */
+  left: string[];
+}
+
 export const findApi = {
   search: (request: FindRequest) => invoke<FindResult>("find_in_files", { request }),
   /** Search once and get the first `pageSize` rows; the full result stays in the backend. */
   searchPaged: (request: FindRequest, pageSize: number) => invoke<FindPaged>("find_in_files_paged", { request, pageSize }),
   /** Rows `[offset, offset + count)` of the result a `searchPaged` call returned `id` for. */
   page: (id: number, offset: number, count: number) => invoke<FileMatches[]>("find_page", { id, offset, count }),
+  /** The lines Replace in Files would change. */
+  replacePreview: (request: FindRequest, withText: string) => invoke<ReplacePreviewFile[]>("replace_preview", { request, with: withText }),
+  /** Replace every match; `undoReplace` puts the files back. */
+  replaceAll: (request: FindRequest, withText: string) => invoke<ReplaceDone>("replace_in_files", { request, with: withText }),
+  undoReplace: () => invoke<UndoneReplace>("undo_replace"),
 };

@@ -313,3 +313,46 @@ pub fn find_page(
         )),
     }
 }
+
+/// The lines Replace in Files would change, for the confirmation dialog.
+#[tauri::command]
+pub async fn replace_preview(
+    request: FindRequest,
+    with: String,
+    state: State<'_, AppState>,
+) -> Result<Vec<forge_backend::replace::FilePreview>> {
+    let backend = state.backend()?;
+    blocking(move || forge_backend::replace::preview(&*backend, &request, &with, 200, 20)).await
+}
+
+/// Replace every match of `request` with `with`; the changed files are kept for `undo_replace`.
+#[tauri::command]
+pub async fn replace_in_files(
+    request: FindRequest,
+    with: String,
+    state: State<'_, AppState>,
+) -> Result<forge_backend::replace::ReplaceDone> {
+    let backend = state.backend()?;
+    let done =
+        blocking(move || forge_backend::replace::replace_all(&*backend, &request, &with)).await?;
+    *state.last_replace.lock().expect("last replace lock") = done.undo.clone();
+    Ok(done)
+}
+
+/// What `undo_replace` put back.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UndoneReplace {
+    pub restored: usize,
+    /// Files left alone because they changed after the replace.
+    pub left: Vec<String>,
+}
+
+/// Put back the files the last Replace in Files changed.
+#[tauri::command]
+pub async fn undo_replace(state: State<'_, AppState>) -> Result<UndoneReplace> {
+    let backend = state.backend()?;
+    let undo = std::mem::take(&mut *state.last_replace.lock().expect("last replace lock"));
+    let (restored, left) = blocking(move || forge_backend::replace::undo(&*backend, &undo)).await?;
+    Ok(UndoneReplace { restored, left })
+}

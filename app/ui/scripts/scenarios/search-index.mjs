@@ -38,6 +38,16 @@ export default {
     await page.click('.se-search button[aria-pressed]');
     await page.waitForTimeout(400);
   },
+  "search-index-replace": async (page) => {
+    await page.evaluate(() => window.__forgeRunCommand("FindInPath"));
+    await page.keyboard.type("OrderStatus");
+    await page.waitForTimeout(500);
+    await page.click('button[title^="Open in Find Window"]');
+    await page.waitForSelector(".fw-match");
+    await page.fill('.fw-replace input', "PurchaseState");
+    await page.click('.fw-replace button:has-text("Replace…")');
+    await page.waitForSelector('[data-testid="replace-preview"]');
+  },
   "search-index-status": async (page) => {
     await page.waitForSelector('[data-testid="index-status"]');
     await page.hover('[data-testid="index-status"]');

@@ -108,6 +108,16 @@ pub struct LineMatch {
     pub after: Vec<String>,
 }
 
+/// One line a replacement would change.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReplacePreview {
+    /// 0-based line number.
+    pub line: usize,
+    pub before: String,
+    pub after: String,
+}
+
 /// The matches of one file.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -286,6 +296,7 @@ pub struct Finder {
     only: Option<std::collections::HashSet<String>>,
     context: usize,
     sort: SortBy,
+    regex: bool,
     limit: usize,
 }
 
@@ -312,6 +323,7 @@ impl Finder {
             }),
             context: req.context.min(MAX_CONTEXT),
             sort: req.sort,
+            regex: req.regex,
             limit: req.limit.max(1),
         })
     }
@@ -361,6 +373,66 @@ impl Finder {
         }
         add_context(text, &mut out, self.context);
         (out, count, false)
+    }
+
+    /// `text` with every match replaced by `with`, and how many were replaced. Matches are found
+    /// line by line like [`Finder::search`]; line breaks are kept as they are. In regular
+    /// expression mode `with` may use `$1`, `${name}` and `$$`; otherwise it is inserted as typed.
+    pub fn replace_text(&self, text: &str, with: &str) -> (String, usize) {
+        let mut out = String::with_capacity(text.len());
+        let mut count = 0;
+        for piece in text.split_inclusive('\n') {
+            let body = piece.strip_suffix('\n').unwrap_or(piece);
+            let line = body.strip_suffix('\r').unwrap_or(body);
+            let (replaced, n) = self.replace_line(line, with);
+            out.push_str(&replaced);
+            out.push_str(&piece[line.len()..]);
+            count += n;
+        }
+        (out, count)
+    }
+
+    fn replace_line(&self, line: &str, with: &str) -> (String, usize) {
+        let mut out = String::with_capacity(line.len());
+        let (mut at, mut count) = (0, 0);
+        for caps in self.re.captures_iter(line) {
+            let Some(m) = caps.get(0).filter(|m| m.end() > m.start()) else {
+                continue;
+            };
+            out.push_str(&line[at..m.start()]);
+            if self.regex {
+                caps.expand(with, &mut out);
+            } else {
+                out.push_str(with);
+            }
+            at = m.end();
+            count += 1;
+        }
+        out.push_str(&line[at..]);
+        (out, count)
+    }
+
+    /// The matching lines of `text` as they would read after replacing: `(line, before, after)`,
+    /// at most `budget` lines. Both texts are trimmed and cut like result rows.
+    pub fn replace_preview(&self, text: &str, with: &str, budget: usize) -> Vec<ReplacePreview> {
+        let mut out = Vec::new();
+        for (line_no, line) in text.split('\n').enumerate() {
+            let line = line.strip_suffix('\r').unwrap_or(line);
+            let (after, n) = self.replace_line(line, with);
+            if n == 0 {
+                continue;
+            }
+            if out.len() >= budget {
+                break;
+            }
+            let shown = |s: &str| s.trim().chars().take(PREVIEW_CHARS).collect::<String>();
+            out.push(ReplacePreview {
+                line: line_no,
+                before: shown(line),
+                after: shown(&after),
+            });
+        }
+        out
     }
 
     /// Lines of context requested around each matching line.
@@ -692,6 +764,56 @@ mod tests {
         assert_eq!(paths(&find_in(&q, files)), ["a.txt", "b.txt", "c.txt"]);
         q.sort = SortBy::Matches;
         assert_eq!(paths(&find_in(&q, files)), ["b.txt", "c.txt", "a.txt"]);
+    }
+
+    #[test]
+    fn replacing_keeps_line_breaks_and_expands_groups_only_in_regex_mode() {
+        let finder = Finder::new(&req("user")).unwrap();
+        let (out, n) = finder.replace_text("a user\r\nUser $1\nnone", "$1x");
+        assert_eq!(out, "a $1x\r\n$1x $1\nnone");
+        assert_eq!(n, 2);
+
+        let mut q = req(r"(\w+)@(\w+)");
+        q.regex = true;
+        let finder = Finder::new(&q).unwrap();
+        let (out, n) = finder.replace_text("me@home and you@work\n", "$2:$1");
+        assert_eq!(out, "home:me and work:you\n");
+        assert_eq!(n, 2);
+
+        let mut q = req("a*");
+        q.regex = true;
+        let finder = Finder::new(&q).unwrap();
+        assert_eq!(finder.replace_text("baab", "X"), ("bXb".to_string(), 1));
+
+        let mut q = req("id");
+        q.whole_words = true;
+        let finder = Finder::new(&q).unwrap();
+        assert_eq!(
+            finder.replace_text("id userid id\n", "key").0,
+            "key userid key\n"
+        );
+    }
+
+    #[test]
+    fn a_replace_preview_lists_the_changed_lines_only() {
+        let finder = Finder::new(&req("old")).unwrap();
+        let rows = finder.replace_preview("keep\n  old name\nkeep\nold\n", "new", 10);
+        assert_eq!(
+            rows,
+            vec![
+                ReplacePreview {
+                    line: 1,
+                    before: "old name".into(),
+                    after: "new name".into()
+                },
+                ReplacePreview {
+                    line: 3,
+                    before: "old".into(),
+                    after: "new".into()
+                },
+            ]
+        );
+        assert_eq!(finder.replace_preview("old\nold\n", "x", 1).len(), 1);
     }
 
     #[test]

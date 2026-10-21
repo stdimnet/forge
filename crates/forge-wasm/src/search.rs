@@ -182,3 +182,61 @@ mod tests {
         );
     }
 }
+
+#[derive(Deserialize)]
+struct ReplaceFiles {
+    request: forge_find::FindRequest,
+    with: String,
+    /// `[path, text]` of every project file (the browser-mode demo project).
+    files: Vec<(String, String)>,
+}
+
+/// `{ request, with, files }` → the changed lines per file, like the `replace_preview` command.
+#[wasm_bindgen]
+pub fn replace_preview(request_json: &str) -> String {
+    let r = match parse::<ReplaceFiles>(request_json) {
+        Ok(r) => r,
+        Err(e) => return to_json(&serde_json::json!({ "error": e })),
+    };
+    let finder = match forge_find::Finder::new(&r.request) {
+        Ok(f) => f,
+        Err(e) => return to_json(&serde_json::json!({ "error": e })),
+    };
+    let out: Vec<_> = r
+        .files
+        .iter()
+        .filter(|(path, _)| finder.wants(path))
+        .filter_map(|(path, text)| {
+            let lines = finder.replace_preview(text, &r.with, 20);
+            let (_, matches) = finder.replace_text(text, &r.with);
+            (!lines.is_empty())
+                .then(|| serde_json::json!({ "path": path, "lines": lines, "matches": matches }))
+        })
+        .take(200)
+        .collect();
+    to_json(&out)
+}
+
+/// `{ request, with, files }` → `{ files: [{ path, text, count }] }`: the files a replace changes,
+/// with their new text (the browser-mode demo project keeps them in memory).
+#[wasm_bindgen]
+pub fn replace_in_files(request_json: &str) -> String {
+    let r = match parse::<ReplaceFiles>(request_json) {
+        Ok(r) => r,
+        Err(e) => return to_json(&serde_json::json!({ "error": e })),
+    };
+    let finder = match forge_find::Finder::new(&r.request) {
+        Ok(f) => f,
+        Err(e) => return to_json(&serde_json::json!({ "error": e })),
+    };
+    let files: Vec<_> = r
+        .files
+        .iter()
+        .filter(|(path, _)| finder.wants(path))
+        .filter_map(|(path, text)| {
+            let (after, count) = finder.replace_text(text, &r.with);
+            (count > 0).then(|| serde_json::json!({ "path": path, "text": after, "count": count }))
+        })
+        .collect();
+    to_json(&serde_json::json!({ "files": files }))
+}

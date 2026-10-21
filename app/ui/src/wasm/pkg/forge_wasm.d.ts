@@ -276,6 +276,17 @@ export function remote_ssh_hosts(request_json: string): string;
  */
 export function remote_validate_config(config_json: string): string;
 
+/**
+ * `{ request, with, files }` → `{ files: [{ path, text, count }] }`: the files a replace changes,
+ * with their new text (the browser-mode demo project keeps them in memory).
+ */
+export function replace_in_files(request_json: string): string;
+
+/**
+ * `{ request, with, files }` → the changed lines per file, like the `replace_preview` command.
+ */
+export function replace_preview(request_json: string): string;
+
 export function run_output_drop(request_json: string): string;
 
 /**
@@ -507,6 +518,8 @@ export interface InitOutput {
     readonly remote_check_host_key: (a: number, b: number, c: number) => void;
     readonly remote_ssh_hosts: (a: number, b: number, c: number) => void;
     readonly remote_validate_config: (a: number, b: number, c: number) => void;
+    readonly replace_in_files: (a: number, b: number, c: number) => void;
+    readonly replace_preview: (a: number, b: number, c: number) => void;
     readonly run_output_drop: (a: number, b: number, c: number) => void;
     readonly run_output_handle: (a: number, b: number, c: number) => void;
     readonly run_output_new: (a: number, b: number, c: number) => void;

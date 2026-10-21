@@ -5,6 +5,7 @@ import { openFileAt } from "@/editor/views";
 import { FileIcon } from "@/shell/FileIcon";
 import { fileRows, type MatchRows } from "./contextRows";
 import { formatDuration } from "./duration";
+import { ReplaceBar } from "./ReplaceBar";
 import { collapsedFiles, findForm, findResults, hasMoreRows, loadMoreRows, runFindWindow, setCollapsedFiles, setFindForm } from "./window";
 
 const ROW_HEIGHT = 24;
@@ -189,6 +190,7 @@ export function FindWindow() {
           <ChevronsDownUp size={14} />
         </Toggle>
       </div>
+      <ReplaceBar />
       <Show
         when={findResults().searched}
         fallback={<div class="placeholder-panel">Search with Ctrl+Shift+F, then press "Open in Find Window" to list every match here.</div>}

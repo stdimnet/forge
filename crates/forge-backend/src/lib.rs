@@ -17,6 +17,7 @@ pub mod php;
 pub mod process_io;
 pub mod protocol;
 pub mod remote;
+pub mod replace;
 pub mod rpc;
 pub mod tunnels;
 
