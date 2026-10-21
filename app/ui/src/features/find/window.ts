@@ -8,8 +8,8 @@ import { showToolWindow } from "@/state/layout";
 
 export const FIND_TOOL_WINDOW = "find";
 
-/** Stands in for "no limit" in the request. */
-const UNLIMITED = 100_000_000;
+/** What "no limit" means in the request: a pattern like `.*` matches every line of the project. */
+const UNLIMITED = 1_000_000;
 /** Rows fetched per request; the rest follows while the list is scrolled. */
 const PAGE_ROWS = 2000;
 
@@ -42,6 +42,8 @@ export interface FindWindowResults {
   error: string | null;
   busy: boolean;
   indexing: boolean;
+  /** How long the search took, until the first rows were back. */
+  tookMs: number;
 }
 
 const empty: FindWindowResults = {
@@ -54,6 +56,7 @@ const empty: FindWindowResults = {
   error: null,
   busy: false,
   indexing: false,
+  tookMs: 0,
 };
 
 export const [findResults, setFindResults] = createSignal<FindWindowResults>(empty);
@@ -87,6 +90,7 @@ export async function runFindWindow(): Promise<void> {
   const maxMatches = getSetting<number>("search.findInFiles.maxMatches", 0);
   const request: FindRequest = { ...findForm, limit: maxMatches > 0 ? maxMatches : UNLIMITED };
   const mine = ++latest;
+  const started = performance.now();
   loadedRows = 0;
   loadingMore = false;
   setCollapsedFiles(new Set<string>());
@@ -106,6 +110,7 @@ export async function runFindWindow(): Promise<void> {
       error: paged.error ?? null,
       busy: false,
       indexing: status?.indexing ?? false,
+      tookMs: performance.now() - started,
     });
   } catch (e) {
     if (mine === latest) setFindResults({ ...empty, searched: true, error: String(e instanceof Error ? e.message : e) });

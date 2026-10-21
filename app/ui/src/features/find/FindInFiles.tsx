@@ -15,6 +15,7 @@ import { languageFor } from "@/editor/languages";
 import { ensureFileType } from "@/editor/fileTypes";
 import { editor } from "@/state/editor";
 import { FileIcon } from "@/shell/FileIcon";
+import { formatDuration } from "./duration";
 import { openFindWindow } from "./window";
 import { closeFindInFiles, findOptions, findQuery, setFindQuery, updateFindOptions } from "./state";
 
@@ -132,6 +133,7 @@ export function FindInFilesPopup() {
   let list!: HTMLDivElement;
   const [result, setResult] = createSignal<FindResult | null>(null);
   const [loading, setLoading] = createSignal(false);
+  const [tookMs, setTookMs] = createSignal(0);
   const [selected, setSelected] = createSignal(0);
   let seq = 0;
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -144,6 +146,7 @@ export function FindInFilesPopup() {
     const query = findQuery();
     const o = findOptions();
     const id = ++seq;
+    const started = performance.now();
     if (!query) {
       setResult(null);
       setLoading(false);
@@ -162,6 +165,7 @@ export function FindInFilesPopup() {
       });
       if (id !== seq) return;
       setResult(r);
+      setTookMs(performance.now() - started);
       setSelected(0);
     } catch (e) {
       if (id === seq) setResult({ files: [], matchCount: 0, truncated: false, error: String(e) });
@@ -225,10 +229,10 @@ export function FindInFilesPopup() {
     const r = result();
     if (!r || !findQuery()) return "";
     if (r.error) return r.error;
-    if (!r.matchCount) return "No matches";
+    if (!r.matchCount) return `No matches (${formatDuration(tookMs())})`;
     const plus = r.truncated ? "+" : "";
     const files = r.files.length;
-    return `${r.matchCount}${plus} match${r.matchCount === 1 ? "" : "es"} in ${files}${plus} file${files === 1 ? "" : "s"}`;
+    return `${r.matchCount}${plus} match${r.matchCount === 1 ? "" : "es"} in ${files}${plus} file${files === 1 ? "" : "s"} in ${formatDuration(tookMs())}`;
   };
 
   const toggle = (key: "caseSensitive" | "wholeWords" | "regex", label: string, title: string) => (

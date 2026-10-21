@@ -3,6 +3,7 @@ import { CaseSensitive, ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDow
 import type { FileMatches, LineMatch } from "@/ipc/find";
 import { openFileAt } from "@/editor/views";
 import { FileIcon } from "@/shell/FileIcon";
+import { formatDuration } from "./duration";
 import { collapsedFiles, findForm, findResults, hasMoreRows, loadMoreRows, runFindWindow, setCollapsedFiles, setFindForm } from "./window";
 
 const ROW_HEIGHT = 24;
@@ -162,7 +163,7 @@ export function FindWindow() {
           <Show when={!findResults().busy} fallback={<span>Searching…</span>}>
             <span>
               {findResults().matchCount}
-              {findResults().truncated ? "+" : ""} matches in {findResults().fileCount} files
+              {findResults().truncated ? "+" : ""} matches in {findResults().fileCount} files in {formatDuration(findResults().tookMs)}
             </span>
           </Show>
           <Show when={findResults().indexing}>
