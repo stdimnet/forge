@@ -1178,6 +1178,148 @@
           "group": "tools.actions-on-save",
           "project": true,
           "order": 90
+        },
+        {
+          "key": "markdown.defaultLayout",
+          "title": "Default layout",
+          "description": "How Markdown files open. The buttons in the top-right corner of the editor switch it per file.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "editor",
+              "label": "Editor only"
+            },
+            {
+              "value": "split",
+              "label": "Editor and Preview"
+            },
+            {
+              "value": "preview",
+              "label": "Preview only"
+            }
+          ],
+          "default": "split",
+          "group": "lang.markdown",
+          "section": "Preview",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "markdown.syncScroll",
+          "title": "Synchronize scrolling between the editor and the preview",
+          "type": "bool",
+          "default": true,
+          "group": "lang.markdown",
+          "section": "Preview",
+          "project": false,
+          "order": 10
+        },
+        {
+          "key": "markdown.frontMatter",
+          "title": "Front matter",
+          "description": "The YAML (---) or TOML (+++) block at the start of a file.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "table",
+              "label": "Show as table"
+            },
+            {
+              "value": "hidden",
+              "label": "Hide"
+            }
+          ],
+          "default": "table",
+          "group": "lang.markdown",
+          "section": "Preview",
+          "project": false,
+          "order": 20
+        },
+        {
+          "key": "markdown.mermaid",
+          "title": "Mermaid",
+          "description": "Render ```mermaid code blocks as diagrams.",
+          "type": "bool",
+          "default": true,
+          "group": "lang.markdown",
+          "section": "Markdown Extensions",
+          "project": false,
+          "order": 30
+        },
+        {
+          "key": "images.showChessboard",
+          "title": "Show chessboard",
+          "description": "Transparent areas of images are drawn over a chessboard pattern.",
+          "type": "bool",
+          "default": true,
+          "group": "editor.image",
+          "section": "Image Viewer",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "images.showGrid",
+          "title": "Show grid",
+          "description": "Pixel grid lines when the zoom is 300% or more.",
+          "type": "bool",
+          "default": false,
+          "group": "editor.image",
+          "section": "Image Viewer",
+          "project": false,
+          "order": 10
+        },
+        {
+          "key": "images.svgDefaultLayout",
+          "title": "SVG files open with",
+          "type": "enum",
+          "options": [
+            {
+              "value": "editor",
+              "label": "Editor only"
+            },
+            {
+              "value": "split",
+              "label": "Editor and Preview"
+            },
+            {
+              "value": "preview",
+              "label": "Preview only"
+            }
+          ],
+          "default": "split",
+          "group": "editor.image",
+          "section": "SVG",
+          "project": false,
+          "order": 20
+        },
+        {
+          "key": "csv.defaultView",
+          "title": "Open CSV/TSV files as",
+          "type": "enum",
+          "options": [
+            {
+              "value": "text",
+              "label": "Text"
+            },
+            {
+              "value": "table",
+              "label": "Table"
+            }
+          ],
+          "default": "text",
+          "group": "editor.csv",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "csv.firstRowIsHeader",
+          "title": "First row is header",
+          "description": "Default of the table view's header toggle.",
+          "type": "bool",
+          "default": true,
+          "group": "editor.csv",
+          "project": false,
+          "order": 10
         }
       ],
       "lspServers": [],
