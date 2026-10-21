@@ -51,6 +51,11 @@ export function chat_set_permission(request_json: string): string;
 export function codeintel_apply_edit(request_json: string): string;
 
 /**
+ * `ContextAction[]` → `{ actions, bulb }` like `code_context_actions`.
+ */
+export function codeintel_context_actions(request_json: string): string;
+
+/**
  * `{ usages, declaration?, files }` → `{ byType, byFile }` (like `code_find_usages`).
  */
 export function codeintel_group_usages(request_json: string): string;
@@ -61,9 +66,20 @@ export function codeintel_group_usages(request_json: string): string;
 export function codeintel_order_actions(request_json: string): string;
 
 /**
+ * `{ edit, open }` → `EditPlan` (like `code_plan_edit`).
+ */
+export function codeintel_plan_edit(request_json: string): string;
+
+/**
  * `{ edit, files }` → `FilePreview[]` (Refactoring Preview rows).
  */
 export function codeintel_preview_edit(request_json: string): string;
+
+/**
+ * `{ locations, oldName, newName, declaration?, renameFile?, files }` → `{ edit, skipped,
+ * fileRename, conflicts }` or `{ error }`: the index part of `code_rename`.
+ */
+export function codeintel_rename_edit(request_json: string): string;
 
 /**
  * `{ text, position }` → `[range, word] | null`.
@@ -483,9 +499,12 @@ export interface InitOutput {
     readonly chat_new: (a: number) => void;
     readonly chat_set_permission: (a: number, b: number, c: number) => void;
     readonly codeintel_apply_edit: (a: number, b: number, c: number) => void;
+    readonly codeintel_context_actions: (a: number, b: number, c: number) => void;
     readonly codeintel_group_usages: (a: number, b: number, c: number) => void;
     readonly codeintel_order_actions: (a: number, b: number, c: number) => void;
+    readonly codeintel_plan_edit: (a: number, b: number, c: number) => void;
     readonly codeintel_preview_edit: (a: number, b: number, c: number) => void;
+    readonly codeintel_rename_edit: (a: number, b: number, c: number) => void;
     readonly codeintel_word_range: (a: number, b: number, c: number) => void;
     readonly containers_compose_args: (a: number, b: number, c: number) => void;
     readonly containers_compose_parse: (a: number, b: number, c: number) => void;

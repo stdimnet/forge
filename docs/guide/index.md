@@ -76,9 +76,9 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 
 ## Not available yet
 
-Refactorings (Rename, Extract, Move), Replace in Files, quick-fixes (`Alt+Enter`),
-Local History, Get from VCS, stash, multiple project windows, a plugin Marketplace and
-automatic updates. The pages mark smaller gaps with notes.
+Refactorings other than Rename (Extract, Move, ...), Replace in Files, Local History, Get from
+VCS, stash, multiple project windows, a plugin Marketplace and automatic updates. The pages mark
+smaller gaps with notes.
 
 ## About this guide
 

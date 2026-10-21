@@ -10,7 +10,14 @@ import { invoke, registerMock } from "@/ipc";
 import type {
   AppliedFile,
   ContextAction,
+  ContextActionsAnswer,
   DeclarationAnswer,
+  EditPlan,
+  FilePreview,
+  FileRename,
+  PrepareRenameAnswer,
+  RenameAnswer,
+  RenameConflict,
   LibraryFile,
   LineMarkerInfo,
   NavigateAnswer,
@@ -678,35 +685,152 @@ registerMock("library_read", ({ path }): LibraryFile => {
 
 // Rename and context actions: word-based in browser mode, edits applied by forge-codeintel.
 
-registerMock("code_prepare_rename", (args) => {
-  const { a, text, offset, buffers } = at(args);
-  const r = isPhp(a.path) ? resolveAt(a.path, text, offset, buffers) : null;
-  if (!r) return { invalid: true };
-  return { range: { start: positionOf(text, r.start), end: positionOf(text, r.end) }, placeholder: text.slice(r.start, r.end), invalid: false };
+// ---- Rename ----
+
+/** Intelephense renames only with a licence; without one the PHP index does it. */
+async function premium(): Promise<boolean> {
+  return invoke<{ premium: boolean }>("intelephense_licence_status")
+    .then((s) => s.premium)
+    .catch(() => false);
+}
+
+const missingPremium = (feature: string) => ({
+  feature,
+  message: `${feature} requires Intelephense Premium (licence key in Settings | PHP)`,
+  premium: true,
 });
 
-registerMock("code_rename", async (args) => {
-  const { a, text, offset, buffers } = at(args);
-  const newName = String((args as { newName: string }).newName);
-  const r = resolveAt(a.path, text, offset, buffers);
-  if (!r) throw new Error("Nothing to rename here");
-  const { declaration, usages } = usagesOf(r.sym, buffers);
-  const all = declaration ? [declaration, ...usages] : usages;
-  const byPath = new Map<string, { range: UsageLocation["range"]; newText: string }[]>();
-  for (const u of all) {
-    if (u.path.startsWith(STUBS)) continue;
-    const list = byPath.get(u.path) ?? [];
-    if (!list.some((e) => e.range.start.line === u.range.start.line && e.range.start.character === u.range.start.character)) {
-      list.push({ range: u.range, newText: newName.replace(/^\$/, r.sym.kind === "variable" ? "$" : "") });
+const NOT_RENAMEABLE = "Cannot perform refactoring. Caret should be positioned at the symbol to be renamed";
+
+function renameLabel(sym: Sym): string {
+  switch (sym.kind) {
+    case "class":
+      return `Rename class '${sym.fqn.split("\\").pop()}' and its usages to:`;
+    case "member": {
+      const kind = sym.member === "enumCase" ? "enum case" : sym.member;
+      const name = sym.member === "method" ? `${sym.name}()` : sym.member === "property" ? `$${sym.name}` : sym.name;
+      return `Rename ${kind} '${name}' and its usages to:`;
     }
-    byPath.set(u.path, list);
+    case "function":
+      return `Rename function '${sym.name}()' and its usages to:`;
+    default:
+      return `Rename ${sym.kind} '${sym.name}' and its usages to:`;
   }
-  const edit: WorkspaceEdit = { changes: [...byPath].map(([path, edits]) => ({ kind: "edit" as const, path, edits })) };
-  const files: Record<string, string> = {};
-  for (const path of byPath.keys()) files[path] = textOf(path, buffers) ?? "";
+}
+
+/** Project files (and unsaved buffers) for the Rust rename planner. */
+function projectFiles(buffers: Buffers): Record<string, string> {
+  return { ...mockFiles, ...(buffers ?? {}) };
+}
+
+interface MockRenameEdit {
+  edit: WorkspaceEdit;
+  skipped: number;
+  fileRename: FileRename | null;
+  conflicts: RenameConflict[];
+  error?: string;
+}
+
+async function renameEdit(sym: Sym, oldName: string, newName: string, buffers: Buffers, renameFile = true): Promise<MockRenameEdit> {
+  const { declaration, usages } = usagesOf(sym, buffers);
+  const locations = (declaration ? [declaration, ...usages] : usages).filter((u) => !u.path.startsWith(STUBS));
   const wasm = await forgeWasm();
-  const preview = await callWasm(wasm.codeintel_preview_edit, { edit, files });
-  return { edit, preview };
+  return callWasm<MockRenameEdit>(wasm.codeintel_rename_edit, {
+    locations,
+    oldName,
+    newName,
+    declaration: declaration?.path,
+    renameFile,
+    files: projectFiles(buffers),
+  });
+}
+
+/** What `phpforge_lang_php::rename::clashes` reports: the new name is taken. */
+function clashes(sym: Sym, newName: string, buffers: Buffers): RenameConflict[] {
+  const bare = newName.replace(/^\$/, "");
+  if (sym.kind === "class") {
+    const ns = sym.fqn.includes("\\") ? sym.fqn.slice(0, sym.fqn.lastIndexOf("\\")) : "";
+    const target = ns ? `${ns}\\${bare}` : bare;
+    const d = findClass(target, buffers);
+    if (!d || target.toLowerCase() === sym.fqn.toLowerCase()) return [];
+    return [{ message: `Class ${target} already exists`, path: d.path, line: positionOf(d.text, d.cls.offset).line }];
+  }
+  if (sym.kind === "member" && bare.toLowerCase() !== sym.name.toLowerCase()) {
+    const found = findMember(sym.cls, bare, [sym.member], buffers);
+    if (!found) return [];
+    const shown = sym.member === "method" ? `Method ${bare}()` : sym.member === "property" ? `Property $${bare}` : `Constant ${bare}`;
+    return [
+      {
+        message: `${shown} is already defined in class ${sym.cls.split("\\").pop()}`,
+        path: found.decl.path,
+        line: positionOf(found.decl.text, found.member.offset).line,
+      },
+    ];
+  }
+  return [];
+}
+
+registerMock("code_prepare_rename", async (args): Promise<PrepareRenameAnswer> => {
+  const { a, text, offset, buffers } = at(args);
+  const r = isPhp(a.path) ? resolveAt(a.path, text, offset, buffers) : null;
+  const source = (await premium()) ? "lsp" : "index";
+  const missing = source === "index" ? missingPremium("Rename") : null;
+  if (!r || r.sym.kind === "constant" || (r.sym.kind === "class" && !findClass(r.sym.fqn, buffers)?.path.startsWith("app/"))) {
+    return { invalid: true, message: NOT_RENAMEABLE, missing, source, occurrences: [], sigil: false };
+  }
+  const word = text.slice(r.start, r.end);
+  const sigil = word.startsWith("$");
+  const placeholder = word.replace(/^[$\\]+/, "").split("\\").pop()!;
+  const nameStart = r.end - placeholder.length;
+  const { declaration, usages } = usagesOf(r.sym, buffers);
+  const here = (declaration ? [declaration, ...usages] : usages).filter((u) => u.path === a.path);
+  const occurrences = here.map((u) => {
+    const s = offsetOf(text, u.range.start);
+    const skip = text[s] === "$" ? 1 : 0;
+    return { start: positionOf(text, s + skip), end: u.range.end };
+  });
+  const range = { start: positionOf(text, nameStart), end: positionOf(text, r.end) };
+  if (!occurrences.some((o) => o.start.line === range.start.line && o.start.character === range.start.character)) occurrences.push(range);
+  const plan = await renameEdit(r.sym, placeholder, `${placeholder}Renamed`, buffers);
+  return {
+    range,
+    placeholder,
+    invalid: false,
+    missing,
+    source,
+    occurrences,
+    label: renameLabel(r.sym),
+    classFile: r.sym.kind === "class" ? (plan.fileRename?.from ?? null) : null,
+    sigil,
+  };
+});
+
+registerMock("code_rename", async (args): Promise<RenameAnswer> => {
+  const { a, text, offset, buffers } = at(args);
+  const { newName, renameFile } = args as { newName: string; renameFile?: boolean };
+  const r = isPhp(a.path) ? resolveAt(a.path, text, offset, buffers) : null;
+  if (!r) throw new Error(NOT_RENAMEABLE);
+  const oldName = text.slice(r.start, r.end).replace(/^[$\\]+/, "").split("\\").pop()!;
+  const planned = await renameEdit(r.sym, oldName, String(newName), buffers, renameFile !== false);
+  if (planned.error) throw new Error(planned.error);
+  const files: Record<string, string> = projectFiles(buffers);
+  const wasm = await forgeWasm();
+  const preview = await callWasm<FilePreview[]>(wasm.codeintel_preview_edit, { edit: planned.edit, files });
+  const source = (await premium()) ? "lsp" : "index";
+  return {
+    edit: planned.edit,
+    preview,
+    conflicts: [...planned.conflicts, ...clashes(r.sym, String(newName), buffers)],
+    source,
+    missing: source === "index" ? missingPremium("Rename") : null,
+    fileRename: planned.fileRename,
+    skipped: planned.skipped,
+  };
+});
+
+registerMock("code_plan_edit", async ({ edit, open }): Promise<EditPlan> => {
+  const wasm = await forgeWasm();
+  return callWasm<EditPlan>(wasm.codeintel_plan_edit, { edit, open });
 });
 
 registerMock("code_apply_edit", async ({ edit, skip }): Promise<AppliedFile[]> => {
@@ -715,14 +839,14 @@ registerMock("code_apply_edit", async ({ edit, skip }): Promise<AppliedFile[]> =
   const changes = e.changes.filter((c) => !(c.kind === "edit" && skipped.has(c.path)));
   const files: Record<string, string> = {};
   for (const c of changes) {
-    const p = c.kind === "rename" ? c.from : c.path;
-    if (mockFiles[p] !== undefined) files[p] = mockFiles[p];
+    for (const p of c.kind === "rename" ? [c.from, c.to] : [c.path]) if (mockFiles[p] !== undefined) files[p] = mockFiles[p];
   }
   const wasm = await forgeWasm();
-  const out = await callWasm<{ applied: AppliedFile[]; files: Record<string, string> }>(wasm.codeintel_apply_edit, {
+  const out = await callWasm<{ applied: AppliedFile[]; files: Record<string, string>; error?: string }>(wasm.codeintel_apply_edit, {
     edit: { changes },
     files,
   });
+  if (out.error) throw new Error(out.error);
   for (const f of out.applied) {
     if (f.after === null) delete mockFiles[f.path];
     else mockFiles[f.path] = f.after;
@@ -732,11 +856,181 @@ registerMock("code_apply_edit", async ({ edit, skip }): Promise<AppliedFile[]> =
 
 registerMock("code_revert_edit", ({ files }) => {
   for (const f of files as AppliedFile[]) {
+    if ((mockFiles[f.path] ?? null) !== f.after) throw new Error(`${f.path} was changed in the meantime`);
+  }
+  for (const f of files as AppliedFile[]) {
     if (f.before === null) delete mockFiles[f.path];
     else mockFiles[f.path] = f.before;
   }
 });
 
-registerMock("code_context_actions", async (): Promise<ContextAction[]> => []);
+// ---- Show Context Actions ----
+
+type LspFix = { line: string; title: string; edit: (text: string) => WorkspaceEdit | null; preferred?: boolean; fixAll?: string };
+
+const replaceIn = (path: string, text: string, find: string, by: string): WorkspaceEdit | null => {
+  const i = text.indexOf(find);
+  if (i < 0) return null;
+  return { changes: [{ kind: "edit", path, edits: [{ range: { start: positionOf(text, i), end: positionOf(text, i + find.length) }, newText: by }] }] };
+};
+
+/** Add a method before the last `}` of another demo file. */
+function addMethod(path: string, method: string): WorkspaceEdit | null {
+  const text = mockFiles[path];
+  if (text === undefined) return null;
+  const close = text.lastIndexOf("}");
+  const at = text.lastIndexOf("\n", close - 1) + 1;
+  const pos = positionOf(text, at);
+  return { changes: [{ kind: "edit", path, edits: [{ range: { start: pos, end: pos }, newText: `\n${method}\n` }] }] };
+}
+
+/** Intelephense Premium's quick fixes for the demo's diagnostics (`lspDemoData.ts`). */
+const LSP_FIXES: Record<string, LspFix[]> = {
+  "app/Services/InvoiceService.php": [
+    {
+      line: "use Illuminate\\Support\\Carbon;",
+      title: "Remove unused import",
+      preferred: true,
+      fixAll: "Fix all 'Unused import' problems in file",
+      edit: (t) => replaceIn("app/Services/InvoiceService.php", t, "use Illuminate\\Support\\Carbon;\n", ""),
+    },
+    {
+      line: "private readonly Checkout $checkout",
+      title: "Remove unused private property '$checkout'",
+      fixAll: "Fix all 'Unused private property' problems in file",
+      edit: (t) => replaceIn("app/Services/InvoiceService.php", t, "private readonly Checkout $checkout", ""),
+    },
+    {
+      line: "$order->markAsPaid();",
+      title: "Add method 'markAsPaid()' to class 'Order'",
+      edit: () =>
+        addMethod(
+          "app/Models/Order.php",
+          "    public function markAsPaid(): void\n    {\n        $this->update(['status' => OrderStatus::Paid]);\n    }",
+        ),
+    },
+    {
+      line: "$lines = array_map(",
+      title: "Remove unused variable '$lines'",
+      fixAll: "Fix all 'Unused local variable' problems in file",
+      edit: (t) => replaceIn("app/Services/InvoiceService.php", t, "$lines = array_map(", "array_map("),
+    },
+    {
+      line: "utf8_encode(",
+      title: "Replace 'utf8_encode()' with 'mb_convert_encoding()'",
+      preferred: true,
+      edit: (t) => replaceIn("app/Services/InvoiceService.php", t, "utf8_encode('Order settled')", "mb_convert_encoding('Order settled', 'UTF-8', 'ISO-8859-1')"),
+    },
+  ],
+  "app/Http/Controllers/OrderController.php": [
+    {
+      line: "$this->authorize(",
+      title: "Add method 'authorize()' to class 'OrderController'",
+      edit: (t) => {
+        const close = t.lastIndexOf("}");
+        const at = t.lastIndexOf("\n", close - 1) + 1;
+        const pos = positionOf(t, at);
+        const body = "\n    private function authorize(string $ability, mixed $arguments): void\n    {\n    }\n";
+        return { changes: [{ kind: "edit", path: "app/Http/Controllers/OrderController.php", edits: [{ range: { start: pos, end: pos }, newText: body }] }] };
+      },
+    },
+  ],
+};
+
+function action(title: string, kind: ContextAction["kind"], extra: Partial<ContextAction> = {}): ContextAction {
+  return { title, kind, source: "php", isPreferred: false, needsResolve: false, ...extra };
+}
+
+/** Text edits of the PHP generate mock as a workspace edit of `path`. */
+async function generated(path: string, text: string, offset: number, kind: string, fields: string[]): Promise<WorkspaceEdit | null> {
+  const edits = await invoke<{ start: number; end: number; newText: string }[]>("php_generate", {
+    path,
+    offset,
+    kind,
+    options: { fields },
+    content: text,
+  }).catch(() => []);
+  if (!edits.length) return null;
+  return {
+    changes: [
+      {
+        kind: "edit",
+        path,
+        edits: edits.map((e) => ({ range: { start: positionOf(text, e.start), end: positionOf(text, e.end) }, newText: e.newText })),
+      },
+    ],
+  };
+}
+
+/** The PHP index's intentions (`phpforge_lang_php::intentions`) for the demo. */
+async function phpIntentions(path: string, text: string, offset: number): Promise<ContextAction[]> {
+  const out: ContextAction[] = [];
+  const lineStart = text.lastIndexOf("\n", offset - 1) + 1;
+  const lineEnd = text.indexOf("\n", offset) < 0 ? text.length : text.indexOf("\n", offset);
+  const line = text.slice(lineStart, lineEnd);
+  const file = parse(path, text);
+  const cls = classAt(file, offset);
+  if (!cls) return out;
+  const prop = /^(\s*)(?:(public|protected|private)(\s+readonly)?(\s+static)?\s+([?\w\\|]+)\s+)?\$(\w+)(\s*=[^;]*)?[;,)]/.exec(line);
+  const promoted = /(public|protected|private)(\s+readonly)?\s+([?\w\\|]+)\s+\$(\w+)/.exec(line);
+  const p = prop?.[2] ? { vis: prop[2], readonly: !!prop[3], isStatic: !!prop[4], type: prop[5], name: prop[6], value: !!prop[7] } : null;
+  const q = !p && promoted ? { vis: promoted[1], readonly: !!promoted[2], isStatic: false, type: promoted[3], name: promoted[4], value: false } : null;
+  const field = p ?? q;
+  if (field) {
+    const has = (m: string) => cls.members.some((x) => x.kind === "method" && x.name.toLowerCase() === m.toLowerCase());
+    const cap = field.name[0].toUpperCase() + field.name.slice(1);
+    const getter = !has(`get${cap}`) && !has(`is${cap}`);
+    const setter = !has(`set${cap}`) && !field.readonly;
+    const gen = async (title: string, kind: string) => {
+      const edit = await generated(path, text, offset, kind, [field.name]);
+      if (edit) out.push(action(title, "intention", { edit }));
+    };
+    if (getter && setter) await gen("Generate getter and setter", "gettersAndSetters");
+    if (getter) await gen("Generate getter", "getters");
+    if (setter) await gen("Generate setter", "setters");
+    if (!field.readonly && !field.isStatic && !field.value && field.type) {
+      const vis = line.indexOf(field.vis) + field.vis.length;
+      const pos = positionOf(text, lineStart + vis);
+      out.push(
+        action("Add 'readonly' modifier", "intention", {
+          edit: { changes: [{ kind: "edit", path, edits: [{ range: { start: pos, end: pos }, newText: " readonly" }] }] },
+        }),
+      );
+    }
+    const doc = await generated(path, text, offset, "phpDoc", []);
+    if (doc) out.push(action(`Generate PHPDoc for '${field.name}'`, "intention", { edit: doc }));
+  } else {
+    const fn = /function\s+(\w+)/.exec(line);
+    const doc = fn ? await generated(path, text, offset, "phpDoc", []) : null;
+    if (fn && doc) out.push(action(`Generate PHPDoc for '${fn[1]}'`, "intention", { edit: doc }));
+  }
+  out.push(action("Generate...", "intention", { action: "Generate" }));
+  return out;
+}
+
+registerMock("code_context_actions", async (args): Promise<ContextActionsAnswer> => {
+  const { a, text, offset } = at(args);
+  const actions: ContextAction[] = [];
+  const isPremium = await premium();
+  if (isPhp(a.path)) {
+    if (isPremium) {
+      const lineStart = text.lastIndexOf("\n", offset - 1) + 1;
+      const lineEnd = text.indexOf("\n", offset) < 0 ? text.length : text.indexOf("\n", offset);
+      const line = text.slice(lineStart, lineEnd);
+      for (const fix of LSP_FIXES[a.path] ?? []) {
+        if (!line.includes(fix.line)) continue;
+        const edit = fix.edit(text);
+        if (!edit) continue;
+        const lsp = { source: "lsp", server: "intelephense" };
+        actions.push(action(fix.title, "quickFix", { ...lsp, edit, isPreferred: !!fix.preferred, raw: { kind: "quickfix" } }));
+        if (fix.fixAll) actions.push(action(fix.fixAll, "source", { ...lsp, edit, raw: { kind: "source.fixAll.intelephense" } }));
+      }
+    }
+    actions.push(...(await phpIntentions(a.path, text, offset)));
+  }
+  const wasm = await forgeWasm();
+  const ordered = await callWasm<{ actions: ContextAction[]; bulb: ContextActionsAnswer["bulb"] }>(wasm.codeintel_context_actions, actions);
+  return { ...ordered, missing: isPhp(a.path) && !isPremium ? missingPremium("Show Context Actions") : null };
+});
 registerMock("code_resolve_action", ({ raw }) => raw as ContextAction);
 registerMock("code_execute_command", () => null);

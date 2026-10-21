@@ -141,7 +141,62 @@ The **Problems** tool window (`Alt+6`, macOS `Cmd+6`) has two tabs: **Current Fi
 
 ![Problems tool window](../../screenshots/lsp-problems.png)
 
-> **Note:** quick-fixes and Show Context Actions (`Alt+Enter`) are not available yet.
+## Rename
+
+**Rename…** (`Shift+F6`) renames the symbol at the caret everywhere, like PHPStorm's in-place
+rename:
+
+1. The name gets an edit box and every occurrence in the file is highlighted. Type the new name;
+   the occurrences change as you type.
+2. **Enter** (or `Tab`, or moving the caret out of the box) renames it in the whole project,
+   including files that are not open. **Escape** puts the old name back.
+3. `Shift+F6` again opens the **Rename** dialog: the new name, **Rename file** for classes and
+   **Preview**, which lists every change before anything is written.
+
+![In-place rename](../../screenshots/rename-in-place.png)
+
+When the rename would break something, the **Problems Detected** dialog lists the problems
+first (a class or member with the new name already exists, a file with the new name is in the
+way) together with every occurrence; **Continue** renames anyway, **Cancel** keeps the old name.
+
+![Problems Detected](../../screenshots/rename-refactoring-preview.png)
+
+![Rename dialog](../../screenshots/rename-dialog.png)
+
+- The language server computes the rename where it can (TypeScript, Vue, Lua, Intelephense
+  Premium, …); PHP files fall back to Forge's PHP index, see [PHP](php.md#rename).
+- Renaming a class whose file is named after it (`Order.php` declaring `class Order`) also
+  renames the file, like PHPStorm; untick **Rename file** in the hint below the edit box or in
+  the dialog to keep the name. Open tabs follow the file.
+- An invalid name ("'2fa' is not a valid identifier") keeps the edit box open.
+- **Undo:** the whole rename is one step. `Ctrl+Z` (macOS `Cmd+Z`) in any editor the rename
+  changed undoes it in every file: open editors, files that were not open (written back
+  through the project, also on remote hosts) and a renamed file. `Ctrl+Shift+Z` redoes it.
+  Files edited after the rename are left alone and a balloon names them. Redo is not
+  available in a tab that undo reopened under its old name.
+- Open files keep the change as unsaved edits; files that were not open are saved directly.
+- In the **Project** view, `Shift+F6` renames the selected file or folder.
+  **Refactor | Rename File…** renames the file of the current editor.
+
+## Show Context Actions
+
+**Show Context Actions** (`Alt+Enter`) opens PHPStorm's intention popup at the caret:
+
+- **Quick fixes** (red bulb) from the language servers, for example "Remove unused import" or
+  "Add method 'markAsPaid()' to class 'Order'";
+- **Intentions** (yellow bulb) from the language servers and Forge's own PHP intentions;
+- refactorings and source actions, and links like **Generate…** (`Alt+Insert`) last.
+
+![Context actions](../../screenshots/context-actions.png)
+
+Use `Up` / `Down` and `Enter`, or click. An entry with `›` has more options ("Fix all '…'
+problems in file"): open them with `Right`, go back with `Left`. Typing filters the list.
+`Escape` closes it. A chosen fix is applied as one undo step, also when it changes other files.
+
+When actions are available at the caret line, a **light bulb** appears at the start of the line
+after a short pause (red when a quick fix is available); click it to open the popup.
+
+![Light bulb](../../screenshots/light-bulb.png)
 
 ## Reformat Code
 
@@ -234,14 +289,15 @@ editor context menu:
 
 | Entry | Status |
 | --- | --- |
-| Show Context Actions | not available yet |
+| Show Context Actions | works, see [Show Context Actions](#show-context-actions) |
 | Paste from History… | not available yet |
 | Cut, Copy, Paste | works |
 | Copy / Paste Special > Copy Absolute Path, Copy Reference, Paste as Plain Text | works |
 | Select All | works |
 | Column Selection Mode | not available yet (use `Alt`+drag) |
 | Find Usages | works |
-| Refactor > Rename…, Refactor This… | not available yet |
+| Refactor > Rename… | works, see [Rename](#rename) |
+| Refactor > Refactor This… | not available yet |
 | Go To > Declaration or Usages, Line/Column | works |
 | Go To > Implementation(s) | works |
 | Generate… | works in PHP files, see [PHP](php.md#generate) |

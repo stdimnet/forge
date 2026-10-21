@@ -3,8 +3,9 @@
  * language servers first, the PHP index and the PHP stubs as fallback, through the
  * project's backend so remote projects work): Find Usages (Alt+F7), Show Usages
  * (Ctrl+Alt+F7), Go to Implementation (Ctrl+Alt+B), Type Declaration (Ctrl+Shift+B), Super
- * Method (Ctrl+U), the Find tool window (Alt+3), implemented / overridden gutter icons and
- * read-only library files. Go to Declaration (Ctrl+B, Ctrl+Click) lives in
+ * Method (Ctrl+U), the Find tool window (Alt+3), implemented / overridden gutter icons,
+ * read-only library files, Rename (Shift+F6, in place) and Show Context Actions (Alt+Enter,
+ * with the light bulb). Go to Declaration (Ctrl+B, Ctrl+Click) lives in
  * `features/lsp/goto.ts` and shows usages on a declaration through this feature.
  */
 import { createRoot, Show } from "solid-js";
@@ -12,6 +13,10 @@ import { render } from "solid-js/web";
 import { Search } from "lucide-solid";
 import type { EditorView } from "@codemirror/view";
 import { registerToolWindow } from "@/features/registry";
+import { registerEditorExtension } from "@/editor/extensions";
+import { isLibraryPath } from "@/ipc/codeintel";
+import { renameEntryAt, renameSelection } from "@/features/project/fileMenu";
+import { activeTab } from "@/state/editor";
 import { registerCommand } from "@/state/commands";
 import { actionById, showBalloon } from "@/keymap";
 import { codeApi, type NavKind } from "@/ipc/codeintel";
@@ -25,11 +30,17 @@ import { registerMainMenuEntries } from "@/features/mainMenu";
 import { action as menuAction } from "@/features/mainMenu/model";
 import { FindTabs, FindToolWindow, findGroupByType } from "./FindToolWindow";
 import { ShowUsagesPopup } from "./ShowUsagesPopup";
+import { IntentionPopup } from "./IntentionPopup";
+import { intentionBulb, intentionPopup, showContextActions } from "./intentions";
+import { RefactoringPreviewDialog, RenameDialog } from "./RefactoringDialogs";
+import { listenForServerEdits, refactoringHistory } from "./refactoring";
+import { inPlaceRename, previewRequest, renameDialog, startRename } from "./rename";
 import { chooseTargetAt } from "./targets";
 import { findTabs, findUsagesAt, gotoFindOccurrence, showUsagesAt, usagesPopup } from "./usages";
 import "./library";
 import "./markers";
 import "./codeintel.css";
+import "./refactoring.css";
 
 const NAV_TITLES: Record<NavKind, { title: string; none: string }> = {
   implementation: { title: "Choose Implementation", none: "No implementations found" },
@@ -78,6 +89,30 @@ registerMainMenuEntries("Navigate", [menuAction("NextOccurence"), menuAction("Pr
   after: "GotoPreviousError",
 });
 
+action("ShowIntentionActions", "Show Context Actions", "Code", inEditor((p, v) => showContextActions(p, v)));
+
+/**
+ * Shift+F6: the Project view renames the selected file or folder; the editor renames the
+ * symbol at the caret in place (again during the in-place rename: the Rename dialog).
+ */
+action("RenameElement", "Rename…", "Refactor", () => {
+  const focused = document.activeElement;
+  if (focused?.closest(".project-tree")) {
+    void renameSelection();
+    return;
+  }
+  if (focused?.closest(".dialog")) return;
+  const a = activeView();
+  if (a) void startRename(a.path, a.view);
+});
+action("RenameFile", "Rename File…", "Refactor", () => {
+  const tab = activeTab();
+  if (tab && !isLibraryPath(tab.path)) void renameEntryAt(tab.path);
+});
+
+// Rename, the light bulb and refactoring undo in every project file editor.
+registerEditorExtension(({ path }) => (isLibraryPath(path) ? [] : [refactoringHistory(), inPlaceRename(), intentionBulb(path)]));
+
 registerToolWindow({
   id: "find",
   title: "Find",
@@ -92,15 +127,27 @@ registerToolWindow({
 });
 
 if (typeof document !== "undefined" && !isDialogWindow()) {
+  listenForServerEdits();
   const host = document.createElement("div");
   host.id = "usages-overlay";
   document.body.appendChild(host);
   createRoot(() =>
     render(
       () => (
-        <Show when={usagesPopup()} keyed>
-          {(p) => <ShowUsagesPopup popup={p} />}
-        </Show>
+        <>
+          <Show when={usagesPopup()} keyed>
+            {(p) => <ShowUsagesPopup popup={p} />}
+          </Show>
+          <Show when={intentionPopup()} keyed>
+            {(p) => <IntentionPopup popup={p} />}
+          </Show>
+          <Show when={renameDialog()} keyed>
+            {(r) => <RenameDialog req={r} />}
+          </Show>
+          <Show when={previewRequest()} keyed>
+            {(r) => <RefactoringPreviewDialog req={r} />}
+          </Show>
+        </>
       ),
       host,
     ),

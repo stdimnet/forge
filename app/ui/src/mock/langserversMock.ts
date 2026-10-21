@@ -456,6 +456,8 @@ const status = (): LicenceStatus => ({
 });
 
 registerMock("intelephense_licence_status", () => status());
+// Screenshot scenarios switch Intelephense Premium on (rename and code actions by the server).
+(window as unknown as { __forgeMockLicence?: (key: string | null) => void }).__forgeMockLicence = (key) => (licenceKey = key);
 registerMock("intelephense_set_licence", ({ key }) => {
   const k = String(key ?? "").trim();
   if (k && !/^[A-Za-z0-9_-]{8,64}$/.test(k)) throw new Error("This does not look like an Intelephense licence key.");

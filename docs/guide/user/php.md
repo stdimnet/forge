@@ -1,8 +1,8 @@
 ---
 title: PHP
-description: PHP support in PHPForge - the PHP index, navigation (Ctrl+Click, Show Usages, implementations, PHP stubs), Structure tool window, hover documentation, class and symbol search, Generate (Alt+Insert) and the PHP settings.
+description: PHP support in PHPForge - the PHP index, navigation (Ctrl+Click, Show Usages, implementations, PHP stubs), Rename (Shift+F6), context actions (Alt+Enter), Structure tool window, hover documentation, class and symbol search, Generate (Alt+Insert) and the PHP settings.
 order: 60
-tags: [php, phpforge, generate, structure, index, navigation, usages, stubs]
+tags: [php, phpforge, generate, structure, index, navigation, usages, stubs, rename, intentions]
 ---
 
 # PHP
@@ -167,6 +167,48 @@ Click an icon to go to the target, or to choose one of several.
 
 ![Implemented markers](../../screenshots/php-nav-gutter.png)
 
+## Rename
+
+**Rename…** (`Shift+F6`) works on classes, interfaces, traits, enums, methods, properties,
+constants, functions and variables; see [Editor](editor.md#rename) for the in-place editing,
+the dialog and undo.
+
+- With **Intelephense Premium** (licence key in Settings | Languages & Frameworks | PHP) or
+  Phpactor, the language server renames.
+- **Intelephense without a licence** cannot rename. Forge then renames with its PHP index: the
+  declaration and every usage the index finds in the project (imports, `new`, static calls,
+  type hints, PHPDoc types, `$this->` and typed receivers, members through parent and child
+  classes). Members used on expressions the index cannot type (dynamic usages) are not renamed;
+  Forge says how many it skipped. The first time this happens in a session, a balloon explains
+  that the full rename needs Intelephense Premium and links to the licence key setting.
+- Renaming a class also renames its file when the file is named after it (`Order.php` →
+  `Purchase.php`).
+- Conflicts: a class with the new name in the same namespace, or a method, property or constant
+  with the new name in the same class, are listed in **Problems Detected** before anything
+  changes.
+
+![Premium hint after a rename with the index](../../screenshots/rename-premium-hint.png)
+
+## Context actions and intentions
+
+**Show Context Actions** (`Alt+Enter`) lists the language server's quick fixes (Intelephense
+Premium) and Forge's own PHP intentions, see [Editor](editor.md#show-context-actions):
+
+| Intention | Where |
+| --- | --- |
+| Import class 'App\Models\Order' | on a class name that is neither imported nor declared in the namespace (one entry per candidate) |
+| Replace qualifier with an import | on a fully qualified name (`\App\Models\Order`) |
+| Generate getter and setter / getter / setter | on a property without accessors |
+| Add 'readonly' modifier | on a typed, non-static property without a default value (also promoted constructor properties) |
+| Add method stubs | on a class name that does not implement all abstract or interface methods |
+| Generate PHPDoc for '…' | on a function, method or property without a PHPDoc comment |
+| Generate… | anywhere in a class: opens the Generate popup (`Alt+Insert`) |
+
+![PHP intentions](../../screenshots/context-actions-intentions.png)
+
+Without Intelephense Premium the popup shows only Forge's intentions and says that the language
+server's quick fixes need Premium.
+
 ## Hover documentation
 
 Hovering a class, function, method, property or constant shows its signature, attributes
@@ -270,5 +312,6 @@ See [Run/Debug configurations](run-debug.md), [Xdebug debugging](debugging.md) a
 ## Remote projects
 
 In a [remote project](remote-development.md) the PHP index and the language server run on the
-remote host through the Forge agent; Structure, search, hover, Generate, navigation, usages
-and gutter icons work as locally. The PHP stubs are read on this machine.
+remote host through the Forge agent; Structure, search, hover, Generate, navigation, usages,
+gutter icons, Rename and context actions work as locally; renamed and fixed files are written on
+the remote host. The PHP stubs are read on this machine.

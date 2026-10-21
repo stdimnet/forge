@@ -28,7 +28,8 @@ export const hintField = StateField.define<Tooltip | null>({
 });
 
 export function showHint(view: EditorView, pos: number, text: string): void {
-  if (!view.state.field(hintField, false)) return;
+  // `undefined`: the editor has no hint field (`null` is "no hint shown").
+  if (view.state.field(hintField, false) === undefined) return;
   view.dispatch({ effects: setHint.of({ pos, text }) });
   setTimeout(() => {
     if (view.state.field(hintField, false)) view.dispatch({ effects: setHint.of(null) });

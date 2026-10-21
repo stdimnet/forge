@@ -1,0 +1,280 @@
+/* ---------- In-place rename (Shift+F6) ---------- */
+.cm-rename-primary {
+  outline: 1px solid var(--accent);
+  outline-offset: 0;
+  border-radius: 2px;
+  background: var(--accent-soft);
+}
+.cm-rename-occurrence {
+  border-radius: 2px;
+  background: var(--accent-soft);
+  box-shadow: inset 0 -1px 0 var(--accent);
+}
+.cm-rename-hint {
+  display: grid;
+  gap: 4px;
+  padding: 5px 10px;
+  font-family: var(--font-ui);
+  font-size: var(--fs-small);
+  color: var(--fg-muted);
+}
+.cm-rename-hint-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--fg);
+  cursor: default;
+}
+.cm-rename-hint-option input {
+  margin: 0;
+}
+
+/* ---------- Light bulb ---------- */
+.cm-intention-bulb {
+  position: absolute;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--bg-editor);
+  color: var(--warning);
+  cursor: pointer;
+  animation: bulb-in 120ms ease-out;
+}
+.cm-intention-bulb.fix {
+  color: var(--danger);
+}
+.cm-intention-bulb:hover {
+  background: var(--bg-hover);
+}
+@keyframes bulb-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* ---------- Intention popup (Alt+Enter) ---------- */
+.intention-popup {
+  position: fixed;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  min-width: 280px;
+  max-width: min(560px, calc(100vw - 32px));
+  max-height: 420px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  outline: none;
+  font-size: var(--fs-ui);
+}
+.intention-search {
+  padding: 4px 10px;
+  border-bottom: 1px solid var(--border);
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+.intention-query {
+  color: var(--fg-strong);
+}
+.intention-list {
+  overflow: auto;
+  padding: 4px;
+}
+.intention-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 24px;
+  padding: 0 6px 0 8px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--fg);
+  text-align: left;
+  white-space: nowrap;
+  cursor: default;
+}
+.intention-row.selected {
+  background: var(--bg-selection);
+  color: var(--fg-strong);
+}
+.intention-row.disabled {
+  color: var(--fg-faint);
+}
+.intention-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  width: 16px;
+  justify-content: center;
+  color: var(--fg-muted);
+}
+.intention-icon.fix {
+  color: var(--danger);
+}
+.intention-icon.intention {
+  color: var(--warning);
+}
+.intention-icon.refactor,
+.intention-icon.source {
+  color: var(--info);
+}
+.intention-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.intention-title mark {
+  background: transparent;
+  color: var(--accent);
+  font-weight: 600;
+}
+.intention-more {
+  display: inline-flex;
+  margin-left: 12px;
+  color: var(--fg-muted);
+}
+.intention-submenu {
+  margin: 2px 0 2px 24px;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-panel);
+}
+.intention-empty {
+  padding: 6px 10px;
+  color: var(--fg-muted);
+}
+.intention-footer {
+  padding: 5px 10px;
+  border-top: 1px solid var(--border);
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+
+/* ---------- Rename dialog and Refactoring Preview ---------- */
+/* Above the editor's tooltips (the in-place rename hint). */
+.refactoring-backdrop {
+  z-index: 600;
+}
+.rename-dialog {
+  width: min(480px, calc(100vw - 32px));
+}
+.rename-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--fg);
+}
+.dialog-buttons-gap {
+  flex: 1;
+}
+.refactoring-preview {
+  width: min(760px, calc(100vw - 32px));
+  max-height: min(620px, calc(100vh - 64px));
+  outline: none;
+}
+.refactoring-preview .dialog-body {
+  min-height: 0;
+  overflow: hidden;
+  grid-template-rows: auto auto minmax(0, 1fr);
+}
+.preview-conflicts {
+  display: grid;
+  gap: 4px;
+  padding: 8px 10px;
+  border: 1px solid var(--danger);
+  border-radius: var(--radius-sm);
+  background: var(--diff-deleted-bg);
+}
+.preview-conflict {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--fg-strong);
+}
+.preview-conflict svg {
+  flex-shrink: 0;
+  color: var(--danger);
+}
+.preview-conflict-link {
+  margin-left: auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font-size: var(--fs-small);
+  cursor: pointer;
+}
+.preview-summary {
+  color: var(--fg-muted);
+}
+.preview-files {
+  min-height: 120px;
+  overflow: auto;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-editor);
+}
+.preview-file + .preview-file {
+  margin-top: 4px;
+}
+.preview-file-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 6px;
+  color: var(--fg);
+}
+.preview-file-name {
+  color: var(--fg-strong);
+}
+.preview-file-dir,
+.preview-file-count {
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+.preview-file-count {
+  margin-left: auto;
+}
+.preview-file-op {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--vcs-modified);
+  font-size: var(--fs-small);
+}
+.preview-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  height: 22px;
+  padding: 0 6px 0 28px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--fg);
+  text-align: left;
+  cursor: default;
+}
+.preview-row:hover {
+  background: var(--bg-hover);
+}
+.preview-line {
+  min-width: 3ch;
+  color: var(--fg-faint);
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  text-align: right;
+}

@@ -1,12 +1,15 @@
 //! Code intelligence models (`forge-codeintel`) for the browser-mode mocks of the `code_*`
 //! IPC commands: usage grouping, workspace edits over the in-memory demo files, refactoring
-//! previews and the order of the Alt+Enter popup.
+//! previews, rename planning (edits from references, class file, conflicts, the split
+//! between editors and the backend) and the order of the Alt+Enter popup.
 
 use std::collections::{BTreeMap, HashMap};
 
 use forge_codeintel::{
-    apply_workspace_edit, group_usages, order_actions, preview_workspace_edit, ContextAction,
-    GroupRequest, MemoryStore, Position, UsageLocation, WorkspaceEdit,
+    apply_workspace_edit, bulb_for, edit_conflicts, edit_from_locations, group_usages,
+    order_actions, plan_edit, preview_workspace_edit, suggest_file_rename, validate_identifier,
+    ContextAction, DocumentChange, GroupRequest, MemoryStore, Position, UsageLocation,
+    WorkspaceEdit,
 };
 use serde::Deserialize;
 use serde_json::json;
@@ -89,6 +92,90 @@ pub fn codeintel_order_actions(request_json: &str) -> String {
     }
 }
 
+/// `ContextAction[]` → `{ actions, bulb }` like `code_context_actions`.
+#[wasm_bindgen]
+pub fn codeintel_context_actions(request_json: &str) -> String {
+    match parse::<Vec<ContextAction>>(request_json) {
+        Ok(actions) => {
+            let actions = order_actions(actions);
+            to_json(&json!({ "bulb": bulb_for(&actions), "actions": actions }))
+        }
+        Err(e) => to_json(&json!({ "error": e })),
+    }
+}
+
+#[derive(Deserialize)]
+struct PlanInput {
+    edit: WorkspaceEdit,
+    open: Vec<String>,
+}
+
+/// `{ edit, open }` → `EditPlan` (like `code_plan_edit`).
+#[wasm_bindgen]
+pub fn codeintel_plan_edit(request_json: &str) -> String {
+    match parse::<PlanInput>(request_json) {
+        Ok(input) => to_json(&plan_edit(&input.edit, &input.open)),
+        Err(e) => to_json(&json!({ "error": e })),
+    }
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct RenameInput {
+    /// The declaration and every usage.
+    locations: Vec<UsageLocation>,
+    old_name: String,
+    new_name: String,
+    #[serde(default)]
+    declaration: Option<String>,
+    #[serde(default = "yes")]
+    rename_file: bool,
+    files: BTreeMap<String, String>,
+}
+
+fn yes() -> bool {
+    true
+}
+
+/// `{ locations, oldName, newName, declaration?, renameFile?, files }` → `{ edit, skipped,
+/// fileRename, conflicts }` or `{ error }`: the index part of `code_rename`.
+#[wasm_bindgen]
+pub fn codeintel_rename_edit(request_json: &str) -> String {
+    let input = match parse::<RenameInput>(request_json) {
+        Ok(i) => i,
+        Err(e) => return to_json(&json!({ "error": e })),
+    };
+    if let Some(problem) = validate_identifier(&input.new_name) {
+        return to_json(&json!({ "error": problem }));
+    }
+    let read = |p: &str| input.files.get(p).cloned();
+    let built = edit_from_locations(&input.locations, &input.new_name, read);
+    let mut edit = built.edit;
+    let mut candidates = edit.paths();
+    if let Some(d) = input.declaration {
+        candidates.insert(0, d);
+    }
+    let file_rename = suggest_file_rename(
+        &candidates,
+        input.old_name.trim_start_matches('$'),
+        input.new_name.trim_start_matches('$'),
+        read,
+    );
+    if let (Some(f), true) = (&file_rename, input.rename_file) {
+        edit.changes.push(DocumentChange::Rename {
+            from: f.from.clone(),
+            to: f.to.clone(),
+        });
+    }
+    let conflicts = edit_conflicts(&edit, |p| input.files.contains_key(p));
+    to_json(&json!({
+        "edit": edit,
+        "skipped": built.skipped,
+        "fileRename": file_rename,
+        "conflicts": conflicts,
+    }))
+}
+
 #[derive(Deserialize)]
 struct WordInput {
     text: String,
@@ -125,5 +212,35 @@ mod tests {
         let v: serde_json::Value = serde_json::from_str(&out).unwrap();
         assert_eq!(v["files"]["a.php"], "new Customer();");
         assert_eq!(v["applied"][0]["before"], "new User();");
+    }
+
+    #[test]
+    fn renames_and_plans_over_json() {
+        let out = codeintel_rename_edit(
+            r#"{"locations":[
+                  {"path":"app/User.php","range":{"start":{"line":0,"character":6},"end":{"line":0,"character":10}}},
+                  {"path":"app/Order.php","range":{"start":{"line":0,"character":4},"end":{"line":0,"character":8}}}],
+                "oldName":"User","newName":"Customer","declaration":"app/User.php",
+                "files":{"app/User.php":"class User {}","app/Order.php":"new User();","app/Customer.php":""}}"#,
+        );
+        let v: serde_json::Value = serde_json::from_str(&out).unwrap();
+        assert_eq!(v["fileRename"]["to"], "app/Customer.php");
+        assert_eq!(v["edit"]["changes"][2]["kind"], "rename");
+        assert_eq!(
+            v["conflicts"][0]["message"],
+            "File app/Customer.php already exists"
+        );
+
+        let bad =
+            codeintel_rename_edit(r#"{"locations":[],"oldName":"User","newName":"1x","files":{}}"#);
+        assert!(bad.contains("not a valid identifier"));
+
+        let plan = codeintel_plan_edit(&format!(
+            r#"{{"edit":{},"open":["app/Order.php"]}}"#,
+            v["edit"]
+        ));
+        let p: serde_json::Value = serde_json::from_str(&plan).unwrap();
+        assert_eq!(p["editors"][0]["path"], "app/Order.php");
+        assert_eq!(p["fileCount"], 2);
     }
 }

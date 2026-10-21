@@ -8,6 +8,7 @@
 //! - [`hover`] renders index-based hover markdown.
 //! - [`generate`] implements the "Generate" actions (constructor, accessors, overrides, ...).
 //! - [`navigate`] Go to Declaration, Find Usages, implementations and gutter markers.
+//! - [`rename`] Rename on the index: dialog labels and name clashes.
 //! - [`stubs`] PHP's own symbols from phpstorm-stubs (the "PHP Runtime").
 //! - [`lsp`] describes how to launch Intelephense / phpactor.
 
@@ -22,6 +23,7 @@ pub mod model;
 pub mod navigate;
 pub mod offsets;
 pub mod parser;
+pub mod rename;
 pub mod resolve;
 pub mod service;
 pub mod structure;

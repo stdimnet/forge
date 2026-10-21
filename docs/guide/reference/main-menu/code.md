@@ -15,7 +15,7 @@ Completion, Generate, folding, comments, formatting and moving lines. Open it wi
 
 | Entry | Windows / Linux | macOS | Available | What it does |
 | --- | --- | --- | --- | --- |
-| Show Context Actions | `Alt+Enter` | `Alt+Enter` | not yet | Not available yet; the entry is disabled. |
+| Show Context Actions | `Alt+Enter` | `Alt+Enter` | yes | Opens the intention popup at the caret: quick fixes, intentions and refactorings. [More](../../user/editor.md#show-context-actions) ([screenshot](../../../screenshots/context-actions.png)) |
 | **Code Completion** | | | | submenu |
 | Code Completion › Basic Completion | `Ctrl+Space`, `Shift+Space` | `Ctrl+Space`, `Shift+Space` | yes | Opens code completion at the caret; also offers words from the document. [More](../../user/editor.md#code-completion) |
 | Code Completion › Type-Matching Completion | `Ctrl+Shift+Space` | `Ctrl+Shift+Space` | not yet | Not available yet; the entry is disabled. |

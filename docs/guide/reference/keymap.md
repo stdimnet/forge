@@ -93,7 +93,7 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 
 | Action | Action id | Windows / Linux | macOS | In Forge |
 | --- | --- | --- | --- | --- |
-| Show Context Actions | `ShowIntentionActions` | `Alt+Enter` | `Alt+Enter` | — |
+| Show Context Actions | `ShowIntentionActions` | `Alt+Enter` | `Alt+Enter` | yes |
 | Basic Completion | `CodeCompletion` | `Ctrl+Space`, `Shift+Space` | `Ctrl+Space`, `Shift+Space` | yes |
 | Type-Matching Completion | `SmartTypeCompletion` | `Ctrl+Shift+Space` | `Ctrl+Shift+Space` | — |
 | Cyclic Expand Word | `HippieCompletion` | `Alt+/` | `Alt+/` | — |
@@ -308,8 +308,8 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Action | Action id | Windows / Linux | macOS | In Forge |
 | --- | --- | --- | --- | --- |
 | Refactor This… | `Refactorings.QuickListPopupAction` | `Ctrl+Alt+Shift+T` | `Ctrl+T` | — |
-| Rename… | `RenameElement` | `Shift+F6` | `Shift+F6` | — |
-| Rename File… | `RenameFile` |  |  | — |
+| Rename… | `RenameElement` | `Shift+F6` | `Shift+F6` | yes |
+| Rename File… | `RenameFile` |  |  | yes |
 | Change Signature… | `ChangeSignature` | `Ctrl+F6` | `Cmd+F6` | — |
 | Move… | `Move` | `F6` | `F6` | — |
 | Copy File… | `CopyElement` | `F5` | `F5` | — |

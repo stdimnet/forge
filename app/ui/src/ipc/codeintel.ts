@@ -173,24 +173,81 @@ export interface FilePreview {
 }
 
 export interface PrepareRenameAnswer {
+  /** The name to edit (without a leading `$`, see `sigil`). */
   range?: LspRange | null;
   placeholder?: string | null;
   invalid: boolean;
+  /** Why nothing can be renamed here. */
+  message?: string | null;
+  /** The language server cannot rename (Intelephense Premium); `source` says who does. */
   missing?: MissingFeature | null;
+  source: "lsp" | "index";
+  /** Occurrences in this file (including `range`), edited live by the in-place rename. */
+  occurrences: LspRange[];
+  /** "Rename class 'User' and its usages to:". */
+  label?: string | null;
+  /** The class file renamed with the class. */
+  classFile?: string | null;
+  /** The name has a `$` in front that is not part of `range`. */
+  sigil: boolean;
 }
+
+export interface RenameConflict {
+  message: string;
+  path?: string | null;
+  /** 0-based. */
+  line?: number | null;
+}
+
+export interface FileRename {
+  from: string;
+  to: string;
+}
+
+export interface RenameAnswer {
+  edit: WorkspaceEdit;
+  preview: FilePreview[];
+  conflicts: RenameConflict[];
+  source: "lsp" | "index";
+  missing?: MissingFeature | null;
+  fileRename?: FileRename | null;
+  /** Dynamic usages that were not renamed. */
+  skipped: number;
+}
+
+/** How the UI applies a workspace edit (`forge_codeintel::plan_edit`). */
+export interface EditPlan {
+  editors: { path: string; edits: TextEditLsp[] }[];
+  backend: WorkspaceEdit;
+  saveFirst: string[];
+  reopen: FileRename[];
+  close: string[];
+  fileCount: number;
+}
+
+export type ActionKind = "quickFix" | "intention" | "refactor" | "source";
 
 export interface ContextAction {
   title: string;
-  kind: string;
+  kind: ActionKind;
   source: string;
   isPreferred: boolean;
   disabled?: string | null;
   edit?: WorkspaceEdit | null;
-  command?: unknown;
+  command?: { title?: string; command: string; arguments?: unknown[] } | null;
   needsResolve: boolean;
   server?: string | null;
   raw?: unknown;
   action?: string | null;
+  /** Sub-menu entries ("Fix all ... in file"). */
+  children?: ContextAction[];
+}
+
+export interface ContextActionsAnswer {
+  actions: ContextAction[];
+  /** The light bulb for the caret line. */
+  bulb?: "fix" | "intention" | null;
+  missing?: MissingFeature | null;
 }
 
 const at = (path: string, pos: LspPosition, content?: string) => ({
@@ -212,18 +269,20 @@ export const codeApi = {
   lineMarkers: (path: string, content?: string) => invoke<LineMarkerInfo[]>("code_line_markers", { path, content }),
   prepareRename: (path: string, pos: LspPosition, content?: string) =>
     invoke<PrepareRenameAnswer>("code_prepare_rename", at(path, pos, content)),
-  rename: (path: string, pos: LspPosition, newName: string, buffers?: Record<string, string>) =>
-    invoke<{ edit: WorkspaceEdit; preview: FilePreview[] }>("code_rename", {
+  rename: (path: string, pos: LspPosition, newName: string, opts: { buffers?: Record<string, string>; renameFile?: boolean } = {}) =>
+    invoke<RenameAnswer>("code_rename", {
       path,
       line: pos.line,
       character: pos.character,
       newName,
-      buffers,
+      buffers: opts.buffers,
+      renameFile: opts.renameFile,
     }),
+  planEdit: (edit: WorkspaceEdit, open: string[]) => invoke<EditPlan>("code_plan_edit", { edit, open }),
   applyEdit: (edit: WorkspaceEdit, skip?: string[]) => invoke<AppliedFile[]>("code_apply_edit", { edit, skip }),
   revertEdit: (files: AppliedFile[]) => invoke<void>("code_revert_edit", { files }),
   contextActions: (path: string, range: LspRange, content?: string) =>
-    invoke<ContextAction[]>("code_context_actions", {
+    invoke<ContextActionsAnswer>("code_context_actions", {
       path,
       line: range.start.line,
       character: range.start.character,

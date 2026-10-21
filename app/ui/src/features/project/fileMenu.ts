@@ -105,6 +105,21 @@ async function rename(entry: FileEntry): Promise<void> {
   revealPath(parentOf(entry.path));
 }
 
+/**
+ * Rename (`RenameElement`, Shift+F6) in the Project view and Refactor | Rename File
+ * (`RenameFile`): the selected entry, else `path`.
+ */
+export async function renameEntryAt(path: string | null): Promise<void> {
+  if (!path) return;
+  const entry = await workspaceApi
+    .listDir(parentOf(path))
+    .then((entries) => entries.find((e) => e.path === path) ?? null)
+    .catch(() => null);
+  if (entry) await rename(entry);
+}
+
+export const renameSelection = () => renameEntryAt(projectTree.selected());
+
 async function remove(entry: FileEntry): Promise<void> {
   const tabs = affectedTabs(entry.path);
   const unsaved = tabs.some(isDirty);
