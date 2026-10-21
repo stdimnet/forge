@@ -25,6 +25,7 @@ The complete list with both platforms is in the [keymap reference](../reference/
 | Go to Class / File / Symbol | `Ctrl+N` / `Ctrl+Shift+N` / `Ctrl+Alt+Shift+N` | `Cmd+O` / `Cmd+Shift+O` / `Cmd+Alt+O` |
 | Recent Files | `Ctrl+E` | `Cmd+E` |
 | Go to Declaration | `Ctrl+B`, `Ctrl+Click` | `Cmd+B`, `Cmd+Click` |
+| Quick Documentation | `Ctrl+Q` | `F1`, `Ctrl+J` |
 | Generate | `Alt+Insert` | `Cmd+N` |
 | Reformat Code | `Ctrl+Alt+L` | `Cmd+Alt+L` |
 | Settings | `Ctrl+Alt+S` | `Cmd+,` |

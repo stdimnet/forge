@@ -1,8 +1,8 @@
 ---
 title: Editor
-description: Editing, completion, hover documentation, Parameter Info, Go to Declaration, Find and Show Usages, problems, formatting, folding, find and replace, gutter icons and the editor context menu.
+description: Editing, completion, hover documentation, Quick Documentation and the Documentation tool window, External Documentation, Quick Definition, Type Info, Context Info, Error Description, Parameter Info, Go to Declaration, Find and Show Usages, problems, formatting, folding, find and replace, gutter icons and the editor context menu.
 order: 20
-tags: [editor, completion, hover, navigation, diagnostics, context menu]
+tags: [editor, completion, hover, documentation, navigation, diagnostics, context menu]
 ---
 
 # Editor
@@ -40,8 +40,80 @@ index until lua-language-server answers.
 
 ![Hover documentation](../../screenshots/lsp-hover.png)
 
-> **Note:** the keyboard actions Quick Documentation (`Ctrl+Q`) and External Documentation
-> (`Shift+F1`) are not available yet; use the mouse hover.
+## Quick Documentation
+
+**View | Quick Documentation** (`Ctrl+Q`, macOS `F1` or `Ctrl+J`) shows the same documentation
+for the symbol at the caret, without the mouse. The popup closes when you move the caret, type
+or press `Escape`. Its toolbar has three buttons:
+
+- **Open in Documentation Tool Window** (pin; or press `Ctrl+Q` a second time) moves the
+  documentation to the Documentation tool window.
+- **External Documentation** (`Shift+F1`) opens the symbol's page in the browser.
+- **Edit Source** (`F4`) jumps to the declaration.
+
+When there is nothing to show, a hint says "No documentation found".
+
+![Quick Documentation](../../screenshots/quick-documentation.png)
+
+### Documentation tool window
+
+The **Documentation** tool window (right stripe, View | Tool Windows | Documentation) keeps the
+documentation open while you work. With **Auto-Update from Source** (the crosshair button,
+on by default) it follows the caret and shows the documentation of each symbol you move to;
+while it is open, `Ctrl+Q` updates it instead of opening the popup. Its toolbar also has
+External Documentation and Edit Source.
+
+![Documentation tool window](../../screenshots/documentation-tool-window.png)
+
+## External Documentation
+
+**View | External Documentation** (`Shift+F1`) opens the online documentation of the symbol at
+the caret in your browser:
+
+| Symbol | Page |
+| --- | --- |
+| PHP functions, classes, methods and keywords of PHP itself | php.net manual |
+| Laravel framework classes and methods (`Illuminate\…`) | Laravel API reference |
+| JavaScript built-ins (`Array`, `JSON.parse`, `Promise`), DOM and Web APIs (`document`, `fetch`, `console.log`), keywords | MDN |
+| HTML tags, CSS properties, at-rules and pseudo-classes | MDN |
+| Vue Composition API (`ref`, `computed`, `onMounted`, `defineProps`) in files that import `vue` | vuejs.org API |
+| React hooks and APIs (`useState`, `memo`, `createRoot`) in files that import `react` | react.dev reference |
+| Lua standard functions and libraries (`print`, `string.format`, `table`) | Lua 5.4 reference manual |
+
+Your own project's classes have no external page; the hint "No external documentation
+found" appears instead. PHP symbols are resolved like Go to Declaration (language server,
+PHP index, PHP stubs), so `$date->format()` opens `DateTime::format`.
+
+## Quick Definition
+
+**View | Quick Definition** (`Ctrl+Shift+I`, macOS `Alt+Space` or `Cmd+Y`) shows the source of
+the declaration at the caret in a popup, with its docblock and attributes, up to the closing
+brace (Lua: `end`), without leaving the file. The header names the symbol and its file and
+line; **Edit Source** (pencil) opens it. When there are several declarations (an interface
+method, a class declared twice), the arrows switch between them. On a declaration itself,
+the popup shows that declaration. Declarations in the PHP stubs and other library files work
+too. Long declarations are cut after 80 lines.
+
+![Quick Definition](../../screenshots/quick-definition.png)
+
+## Type Info, Context Info and Error Description
+
+- **Type Info** (`Ctrl+Shift+P`) shows the type of the expression at the caret in a small hint:
+  a variable's or property's type, a method's return type, a class's name. It comes from the
+  language server's hover, in PHP also from the PHP index.
+
+  ![Type Info](../../screenshots/type-info.png)
+
+- **Context Info** (`Alt+Q`, macOS `Ctrl+Shift+Q`) shows, at the top of the editor, the
+  headers of the class, function or method (in CSS: the rules and `@media` blocks) that
+  enclose the caret, with their line numbers. Useful when they are scrolled out of view.
+
+  ![Context Info](../../screenshots/context-info.png)
+
+- **Error Description** (`Ctrl+F1`, macOS `Cmd+F1`) shows the full text of the problems at
+  the caret, with their severity and the inspection or language server that reported them.
+
+  ![Error Description](../../screenshots/error-description.png)
 
 ## Parameter Info
 

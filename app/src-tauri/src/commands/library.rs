@@ -237,12 +237,20 @@ pub async fn library_read(
     ws: State<'_, AppState>,
     lib: State<'_, LibraryState>,
 ) -> Result<LibraryFile> {
+    read_library(&path, &app, &ws, &lib).await
+}
+
+/// A library file's text (the PHP stubs, or a file outside the project that navigation
+/// granted).
+pub async fn read_library(
+    path: &str,
+    app: &AppHandle,
+    ws: &AppState,
+    lib: &LibraryState,
+) -> Result<LibraryFile> {
     if let Some(rel) = path.strip_prefix(STUBS_PREFIX) {
         let rel = safe_relative(rel).ok_or_else(|| ForgeError::Other("invalid path".into()))?;
-        let index = lib
-            .stubs(&app, &ws, false)
-            .await
-            .map_err(ForgeError::Other)?;
+        let index = lib.stubs(app, ws, false).await.map_err(ForgeError::Other)?;
         let detail = lib
             .stubs
             .lock()

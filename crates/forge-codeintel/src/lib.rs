@@ -10,8 +10,11 @@
 //!   rename, conflicts, and the split between open editors and the backend.
 //! - [`usages`]: Find Usages: the usage type of each reference (method call, import, new
 //!   instance, ...) from its line, and the result tree grouped by usage type and file.
+//! - [`docs`]: External Documentation URLs, Quick Definition snippets, Context Info headers
+//!   and Type Info from hovers and signatures.
 
 pub mod actions;
+pub mod docs;
 pub mod edit;
 pub mod inlay;
 pub mod rename;
@@ -19,6 +22,10 @@ pub mod usages;
 
 pub use actions::{bulb_for, nest_fix_all, order_actions, ActionKind, Bulb, ContextAction};
 
+pub use docs::{
+    context_headers, definition_snippet, external_doc_url, language_of, symbol_at, type_from_hover,
+    type_from_signature, ContextLine, DocSymbol, DocTarget, SnippetRange,
+};
 pub use edit::{
     apply_text_edits, apply_workspace_edit, position_at, preview_workspace_edit, revert_applied,
     utf16_offset, word_range, AppliedFile, DocumentChange, EditError, FilePreview, FileStore,

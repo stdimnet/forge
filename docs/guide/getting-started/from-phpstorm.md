@@ -61,8 +61,7 @@ happening.
 - Get from VCS
 - Find Usages in File (`Ctrl+F7`), Highlight Usages in File
 - Refactorings other than Rename: Extract/Introduce, Move, Change Signature, Safe Delete
-- Quick Documentation popup (`Ctrl+Q`; hover documentation works with the mouse), File
-  Structure popup (`Ctrl+F12`)
+- File Structure popup (`Ctrl+F12`)
 - Local History
 - Live templates, Surround With, Optimize Imports, Type/Call/Method Hierarchy
 - Go to Test (`Ctrl+Shift+T`)
