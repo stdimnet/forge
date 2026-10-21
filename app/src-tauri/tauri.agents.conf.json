@@ -1,6 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "bundle": {
-    "resources": { "../../target/agents/": "agents/" }
+    "resources": { "../../target/agents/": "agents/" },
+    "createUpdaterArtifacts": true
   }
 }

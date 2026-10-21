@@ -380,6 +380,37 @@
   --toolbar-h: 40px;
   --statusbar-h: 26px;
   --stripe-w: 40px;
+  --font-display: "Unbounded", "Arial Black", "Helvetica Neue", sans-serif;
+}
+
+/* Splash screen: cold steel letters that fill with molten metal while Forge loads. */
+:root,
+:root[data-theme="dark"],
+:root[data-theme="solarized-dark"] {
+  --splash-desk: #0b0b0d;
+  --splash-bg: #131316;
+  --splash-edge: #26262d;
+  --splash-steel: #2a2a31;
+  --splash-steel-hi: #3a3a44;
+  --splash-molten-1: #ff4d00;
+  --splash-molten-2: #ff8a1f;
+  --splash-molten-3: #ffd27a;
+  --splash-ok: #4caf7d;
+  --splash-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
+}
+
+:root[data-theme="light"],
+:root[data-theme="solarized-light"] {
+  --splash-desk: #dfe2e8;
+  --splash-bg: #f7f8fa;
+  --splash-edge: #d3d6de;
+  --splash-steel: #d5d8e0;
+  --splash-steel-hi: #e6e8ee;
+  --splash-molten-1: #e04400;
+  --splash-molten-2: #f07a14;
+  --splash-molten-3: #ffb24d;
+  --splash-ok: #2f8a5c;
+  --splash-shadow: 0 30px 80px rgba(40, 44, 60, 0.22);
 }
 
 * {

@@ -7,24 +7,36 @@ tags: [keymap, shortcuts, reference]
 
 # Keymap reference
 
-Forge's default keymaps are PHPStorm's, taken from `crates/forge-keymap/data/phpstorm.json`.
+Forge's default keymaps are PHPStorm's (`crates/forge-keymap/data/phpstorm.json`), keyed by
+PHPStorm's action ids. This page is the complete list. To learn the shortcuts the way the
+JetBrains help teaches them, start with:
+
+- [Keymap reference card](../user/shortcuts/reference-card.md): the 60 most important shortcuts
+  on one printable page;
+- [Shortcuts by topic](../user/shortcuts/index.md): one page per area (editing, navigation,
+  search, refactoring, run and debug, Git, tool windows, general) that explains every
+  implemented action, where it is in the menus, and shows its result;
+- [Main menu reference](main-menu/index.md): every menu entry with its shortcut and status;
+- [Keymap](../user/keymap.md): changing shortcuts, chords and focus contexts.
+
+## How to read the tables
+
 Actions are grouped as in Settings | Keymap. The **In Forge** column says whether the action does
-something on this version:
+something on this version (checked against the commands the UI registers):
 
 - **yes**: implemented;
 - **native**: handled by the editor or the operating system (undo, clipboard, caret movement);
 - **—**: not implemented yet; the shortcut stays reserved and shows "*Action* is not available
-  yet".
+  yet", and its main menu entry is disabled.
 
-Shortcuts marked `Fn+…` in PHPStorm are left out. A few commands of Forge implement PHPStorm
+Shortcuts marked `Fn+…` in PHPStorm are left out. Several Forge commands implement PHPStorm
 actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, `settings.open` →
 `ShowSettings`, `run.run` → `Run`, `run.debug` → `Debug`, `run.editConfigurations` →
 `editRunConfigurations`, `git.branches` → `Git.Branches`, `git.commit` → `CheckinProject`,
-`git.push` → `Vcs.Push`, `git.update` → `Vcs.UpdateProject`, `git.annotate` → `Annotate`,
-`php.generate` → `Generate`, `workspace.open` → `OpenFile`, `workspace.close` → `CloseProject`,
-`ExtractVariable` → `IntroduceVariable`.
-
-To change shortcuts see [Keymap](../user/keymap.md).
+`git.push` → `Vcs.Push`, `git.update` → `Vcs.UpdateProject`, `git.fetch` → `Git.Fetch`,
+`git.newBranch` → `Git.CreateNewBranch`, `git.log` → `Vcs.Show.Log`, `git.annotate` →
+`Annotate`, `php.generate` → `Generate`, `workspace.open` → `OpenFile`, `workspace.close` →
+`CloseProject`, `ExtractVariable` → `IntroduceVariable`. `Exit` exists only in the desktop app.
 
 ## Main Menu
 
@@ -44,9 +56,9 @@ To change shortcuts see [Keymap](../user/keymap.md).
 | Next Edit Location | `JumpToNextChange` |  |  | — |
 | Select In… | `SelectIn` | `Alt+F1` | `Alt+F1` | — |
 | Declaration or Usages | `GotoDeclaration` | `Ctrl+B` | `Cmd+B` | yes |
-| Implementation(s) | `GotoImplementation` | `Ctrl+Alt+B` | `Cmd+Alt+B` | — |
-| Type Declaration | `GotoTypeDeclaration` | `Ctrl+Shift+B` | `Cmd+Shift+B` | — |
-| Super Method | `GotoSuperMethod` | `Ctrl+U` | `Cmd+U` | — |
+| Implementation(s) | `GotoImplementation` | `Ctrl+Alt+B` | `Cmd+Alt+B` | yes |
+| Type Declaration | `GotoTypeDeclaration` | `Ctrl+Shift+B` | `Cmd+Shift+B` | yes |
+| Super Method | `GotoSuperMethod` | `Ctrl+U` | `Cmd+U` | yes |
 | Test | `GotoTest` | `Ctrl+Shift+T` | `Cmd+Shift+T` | — |
 | Related Symbol… | `GotoRelated` | `Ctrl+Alt+Home` | `Ctrl+Cmd+Up` | — |
 | File Structure | `FileStructurePopup` | `Ctrl+F12` | `Cmd+F12` | — |
@@ -74,6 +86,7 @@ To change shortcuts see [Keymap](../user/keymap.md).
 | --- | --- | --- | --- | --- |
 | Find Action… | `GotoAction` | `Ctrl+Shift+A` | `Cmd+Shift+A` | yes |
 | Keymap Reference | `Help.KeymapReference` |  |  | yes |
+| Check for Updates… | `CheckForUpdate` |  |  | yes |
 | About | `About` |  |  | yes |
 
 ### Code
@@ -87,8 +100,8 @@ To change shortcuts see [Keymap](../user/keymap.md).
 | Cyclic Expand Word (Backward) | `HippieBackwardCompletion` | `Alt+Shift+/` | `Alt+Shift+/` | — |
 | Complete Current Statement | `EditorCompleteStatement` | `Ctrl+Shift+Enter` | `Cmd+Shift+Enter` | — |
 | Generate… | `Generate` | `Alt+Insert` | `Cmd+N` | yes |
-| Override Methods… | `OverrideMethods` | `Ctrl+O` | `Ctrl+O` | PHP editors¹ |
-| Implement Methods… | `ImplementMethods` | `Ctrl+I` | `Ctrl+I` | PHP editors¹ |
+| Override Methods… | `OverrideMethods` | `Ctrl+O` | `Ctrl+O` | PHP editors |
+| Implement Methods… | `ImplementMethods` | `Ctrl+I` | `Ctrl+I` | PHP editors |
 | Surround With… | `SurroundWith` | `Ctrl+Alt+T` | `Cmd+Alt+T` | — |
 | Unwrap/Remove… | `Unwrap` | `Ctrl+Shift+Delete` | `Cmd+Shift+Delete` | — |
 | Insert Live Template… | `InsertLiveTemplate` | `Ctrl+J` | `Cmd+J` | — |
@@ -218,10 +231,10 @@ To change shortcuts see [Keymap](../user/keymap.md).
 | Find Word at Caret | `FindWordAtCaret` | `Ctrl+F3` | `Alt+Cmd+F3` | — |
 | Find in Files… | `FindInPath` | `Ctrl+Shift+F` | `Cmd+Shift+F` | yes |
 | Replace in Files… | `ReplaceInPath` | `Ctrl+Shift+R` | `Cmd+Shift+R` | — |
-| Find Usages | `FindUsages` | `Alt+F7` | `Alt+F7` | — |
+| Find Usages | `FindUsages` | `Alt+F7` | `Alt+F7` | yes |
 | Find Usages in File | `FindUsagesInFile` | `Ctrl+F7` | `Cmd+F7` | — |
 | Highlight Usages in File | `HighlightUsagesInFile` | `Ctrl+Shift+F7` | `Cmd+Shift+F7` | — |
-| Show Usages | `ShowUsages` | `Ctrl+Alt+F7` | `Cmd+Alt+F7` | — |
+| Show Usages | `ShowUsages` | `Ctrl+Alt+F7` | `Cmd+Alt+F7` | yes |
 | Find Usages Settings… | `ShowSettingsAndFindUsages` | `Ctrl+Alt+Shift+F7` | `Cmd+Alt+Shift+F7` | — |
 | Search Structurally… | `StructuralSearchPlugin.StructuralSearchAction` |  |  | — |
 
@@ -231,7 +244,7 @@ To change shortcuts see [Keymap](../user/keymap.md).
 | --- | --- | --- | --- | --- |
 | Project | `ActivateProjectToolWindow` | `Alt+1` | `Cmd+1` | yes |
 | Bookmarks | `ActivateBookmarksToolWindow` | `Alt+2` | `Cmd+2` | — |
-| Find | `ActivateFindToolWindow` | `Alt+3` | `Cmd+3` | — |
+| Find | `ActivateFindToolWindow` | `Alt+3` | `Cmd+3` | yes |
 | Run | `ActivateRunToolWindow` | `Alt+4` | `Cmd+4` | yes |
 | Debug | `ActivateDebugToolWindow` | `Alt+5` | `Cmd+5` | yes |
 | Problems | `ActivateProblemsViewToolWindow` | `Alt+6` | `Cmd+6` | yes |
@@ -352,12 +365,12 @@ To change shortcuts see [Keymap](../user/keymap.md).
 | Commit and Push… | `Git.Commit.And.Push.Executor` | `Ctrl+Alt+K` | `Cmd+Alt+K` | — |
 | VCS Operations Popup… | `Vcs.QuickListPopupAction` | `` Alt+` `` | `Ctrl+V` | — |
 | Branches… | `Git.Branches` |  |  | yes |
-| Fetch | `Git.Fetch` |  |  | — |
-| Show Git Log | `Vcs.Show.Log` |  |  | — |
+| Fetch | `Git.Fetch` |  |  | yes |
+| Show Git Log | `Vcs.Show.Log` |  |  | yes |
 | Pull… | `Git.Pull` |  |  | — |
 | Stash Changes… | `Git.Stash` |  |  | — |
 | Unstash Changes… | `Git.Unstash` |  |  | — |
-| New Branch… | `Git.CreateNewBranch` |  |  | — |
+| New Branch… | `Git.CreateNewBranch` |  |  | yes |
 | Rollback… | `ChangesView.Rollback` | `Ctrl+Alt+Z` | `Cmd+Alt+Z` | — |
 | Show Commit Message History | `Vcs.ShowMessageHistory` | `Ctrl+M` | `Cmd+M` | — |
 
@@ -479,8 +492,6 @@ To change shortcuts see [Keymap](../user/keymap.md).
 | Show Context Menu | `ShowPopupMenu` | `ContextMenu` |  | yes |
 | Main Menu | `MainMenuButton.ShowMenu` | `Alt+\` |  | yes |
 
-¹ `Ctrl+O` and `Ctrl+I` open Override/Implement Methods in PHP editors through the PHP pack's
-editor keys; elsewhere they are not available yet.
 
 ## Plugins
 

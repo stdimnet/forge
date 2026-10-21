@@ -4,6 +4,7 @@
 //! Events:
 //! - `lsp://diagnostics` `{ path, diagnostics: EditorDiagnostic[] }`
 //! - `lsp://status` `ServerStatus[]`
+//! - `lsp://apply-edit` `{ label?, edit: WorkspaceEdit }` (a server applies an edit itself)
 
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
@@ -20,6 +21,12 @@ use serde_json::Value;
 use tauri::{AppHandle, Emitter, State};
 
 use crate::state::AppState;
+
+#[derive(Serialize, Clone)]
+struct ApplyEditEvent {
+    label: Option<String>,
+    edit: forge_lsp::forge_codeintel::WorkspaceEdit,
+}
 
 #[derive(Serialize, Clone)]
 struct DiagnosticsEvent {
@@ -106,7 +113,7 @@ impl LspState {
 }
 
 /// Workspace-relative, `/`-separated path for the UI (absolute if outside the project).
-fn to_ui_path(root: &Path, abs: &Path) -> String {
+pub(crate) fn to_ui_path(root: &Path, abs: &Path) -> String {
     match abs.strip_prefix(root) {
         Ok(rel) => rel
             .components()
@@ -152,6 +159,11 @@ fn forward_events(app: AppHandle, manager: &Arc<LspManager>) {
                     let _ = app.emit("lsp://status", manager.statuses());
                 }
                 LspEvent::Log { .. } => {}
+                LspEvent::ApplyEdit { label, edit, .. } => {
+                    let mut edit = forge_lsp::model::workspace_edit(&edit);
+                    edit.map_paths(|p| to_ui_path(manager.root(), Path::new(p)));
+                    let _ = app.emit("lsp://apply-edit", ApplyEditEvent { label, edit });
+                }
             }
         }
     });

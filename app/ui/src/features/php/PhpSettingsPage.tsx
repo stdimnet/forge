@@ -14,6 +14,9 @@ import { findSpec } from "@/state/settings";
 import { phpApi, type DetectedServers, type ServerChoice } from "./api";
 import { LANGUAGE_LEVELS, PHP_SETTING_KEYS as KEYS } from "./settings";
 
+/** phpstorm-stubs used for PHP's own symbols (Go to Declaration on `\Throwable`). */
+const STUBS_PATH_KEY = "php.stubs.path";
+
 const levelLabel = (v: string) =>
   ({ "7.4": "7.4 (arrow functions, typed properties)", "8.0": "8.0 (union types, attributes, match)", "8.1": "8.1 (enums, readonly properties)", "8.2": "8.2 (readonly classes, DNF types)", "8.3": "8.3 (typed class constants, #[\\Override])", "8.4": "8.4 (property hooks, asymmetric visibility)" } as Record<string, string>)[v] ?? v;
 
@@ -120,6 +123,10 @@ export function PhpSettingsPage() {
             <Plus size={14} />
           </button>
         </div>
+      </section>
+      <section>
+        <h3>PHP Runtime</h3>
+        <Show when={findSpec(STUBS_PATH_KEY)}>{(spec) => <SettingRow spec={spec()} />}</Show>
       </section>
     </div>
   );

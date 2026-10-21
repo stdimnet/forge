@@ -58,22 +58,32 @@ export function ChooseDeclarationPopup(props: { chooser: Chooser }) {
           >
             <FileIcon name={fileName(t.path)} size={14} />
             <Show
-              when={t.preview}
+              when={t.name}
               fallback={
-                <span class="decl-chooser-name">
-                  {fileName(t.path)}:{t.line + 1}
-                </span>
+                <Show
+                  when={t.preview}
+                  fallback={
+                    <span class="decl-chooser-name">
+                      {fileName(t.path)}:{t.line + 1}
+                    </span>
+                  }
+                >
+                  <span class="decl-chooser-code">{t.preview}</span>
+                </Show>
               }
             >
-              <span class="decl-chooser-code">{t.preview}</span>
+              <span class="decl-chooser-name">{t.name}</span>
+              <Show when={t.container}>
+                <span class="decl-chooser-container">{t.container}</span>
+              </Show>
             </Show>
             <span class="decl-chooser-path">
-              <Show when={t.preview}>
+              <Show when={t.preview || t.name}>
                 <span class="decl-chooser-file">
                   {fileName(t.path)}:{t.line + 1}
                 </span>
               </Show>
-              {dirName(t.path)}
+              <Show when={!t.name}>{dirName(t.path)}</Show>
             </span>
           </button>
         )}

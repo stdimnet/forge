@@ -35,9 +35,11 @@ be imported yet; re-create changes in Settings | Keymap.
 No. Forge keeps its own data in `.forge/` and ignores `.idea/`.
 
 **Is PHP support as deep as PHPStorm's?**
-Not yet. Completion, diagnostics and navigation come from Intelephense (or Phpactor); Forge adds
-its own index, Generate actions, Laravel, Symfony and Doctrine support. Refactorings, inspections
-with quick-fixes, Find Usages and Replace in Files are not implemented yet. See
+Not yet. Completion and diagnostics come from Intelephense (or Phpactor); Forge adds its own
+index with navigation (Go to Declaration including PHP's own stubs, Find/Show Usages,
+implementations, gutter icons) that also works without a server, Generate actions, Laravel,
+Symfony and Doctrine support. Refactorings, inspections with quick-fixes and Replace in Files
+are not implemented yet. See
 [Coming from PHPStorm](getting-started/from-phpstorm.md).
 
 **Why does a shortcut say "not available yet"?**
