@@ -210,50 +210,25 @@ project = true
 order = 3
 
 [[contributions.settings]]
-key = "php.codeStyle.braces.classes"
-title = "In class declaration"
+key = "php.codeStyle.braces"
+title = "Braces placement"
+description = "Used by Reformat Code (Intelephense's formatter) and the Generate actions (Alt+Insert)."
 type = "enum"
 options = [
-  { value = "endOfLine", label = "End of line" },
-  { value = "nextLine", label = "Next line" },
+  { value = "psr12", label = "PSR-12: next line for classes and functions, end of line otherwise" },
+  { value = "allman", label = "Next line everywhere" },
+  { value = "kr", label = "End of line everywhere" },
 ]
-default = "nextLine"
+default = "psr12"
 group = "editor.code-style.php"
 section = "Braces Placement"
 project = true
 order = 10
 
 [[contributions.settings]]
-key = "php.codeStyle.braces.functions"
-title = "In function declaration"
-type = "enum"
-options = [
-  { value = "endOfLine", label = "End of line" },
-  { value = "nextLine", label = "Next line" },
-]
-default = "nextLine"
-group = "editor.code-style.php"
-section = "Braces Placement"
-project = true
-order = 11
-
-[[contributions.settings]]
-key = "php.codeStyle.braces.other"
-title = "Other"
-type = "enum"
-options = [
-  { value = "endOfLine", label = "End of line" },
-  { value = "nextLine", label = "Next line" },
-]
-default = "endOfLine"
-group = "editor.code-style.php"
-section = "Braces Placement"
-project = true
-order = 12
-
-[[contributions.settings]]
 key = "php.codeStyle.blankLines.keepMax"
 title = "Keep maximum blank lines in code"
+description = "Blank lines are applied by Reformat Code (Ctrl+Alt+L); strings, heredocs and comments are left as they are."
 type = "int"
 min = 0
 max = 10

@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 use crate::index::ProjectIndex;
 use crate::model::{short_name, ClassLike, FileIndex, Member, SymbolKind, UseImport, Visibility};
 use crate::resolve::{resolve_type, shorten_type};
+use crate::style::{apply_braces, PhpCodeStyle};
 use crate::{PhpError, Result};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -34,6 +35,9 @@ pub struct GenerateOptions {
     pub methods: Vec<String>,
     /// Setters return `$this` (`: static`).
     pub fluent: bool,
+    /// Brace placement and blank lines around methods (the app fills them from the
+    /// settings).
+    pub style: PhpCodeStyle,
 }
 
 /// Replace `start..end` (bytes) with `new_text`.
@@ -181,6 +185,7 @@ struct Fmt {
     unit: String,
     class_indent: String,
     crlf: bool,
+    style: PhpCodeStyle,
 }
 
 fn line_start(src: &str, offset: usize) -> usize {
@@ -196,7 +201,7 @@ fn leading_ws(src: &str, offset: usize) -> String {
 }
 
 impl Fmt {
-    fn for_class(src: &str, class: &ClassLike) -> Self {
+    fn for_class(src: &str, class: &ClassLike, style: &PhpCodeStyle) -> Self {
         let class_indent = leading_ws(src, class.range.start);
         let first_member_indent = class
             .members
@@ -215,12 +220,18 @@ impl Fmt {
             unit,
             class_indent,
             crlf: src.contains("\r\n"),
+            style: *style,
         }
+    }
+
+    /// Line breaks between two members: "Blank lines around method" + 1.
+    fn member_separator(&self) -> String {
+        "\n".repeat(self.style.blank_lines_around_methods + 1)
     }
 
     /// Indent every non-empty line of `block` (written with 4-space levels) to member level.
     fn indent_block(&self, block: &str) -> String {
-        block
+        apply_braces(block, self.style.braces)
             .lines()
             .map(|l| {
                 if l.trim().is_empty() {
@@ -252,7 +263,7 @@ impl Fmt {
 fn insert_at_end(src: &str, class: &ClassLike, fmt: &Fmt, blocks: &[String]) -> TextEdit {
     let open = class.body_range.start;
     let close = class.body_range.end - 1;
-    let body = fmt.indent_block(&blocks.join("\n\n"));
+    let body = fmt.indent_block(&blocks.join(&fmt.member_separator()));
     let inner = &src[open + 1..close];
     if inner.trim().is_empty() {
         TextEdit {
@@ -265,7 +276,7 @@ fn insert_at_end(src: &str, class: &ClassLike, fmt: &Fmt, blocks: &[String]) -> 
         TextEdit {
             start: content_end,
             end: content_end,
-            new_text: fmt.eol(format!("\n\n{body}")),
+            new_text: fmt.eol(format!("{}{body}", fmt.member_separator())),
         }
     }
 }
@@ -289,7 +300,7 @@ fn insert_after_fields(src: &str, class: &ClassLike, fmt: &Fmt, block: &str) -> 
         Some(end) => TextEdit {
             start: end,
             end,
-            new_text: fmt.eol(format!("\n\n{body}")),
+            new_text: fmt.eol(format!("{}{body}", fmt.member_separator())),
         },
         None => {
             let open = class.body_range.start;
@@ -714,7 +725,7 @@ fn gen_constructor(
         block.push_str(&format!("    $this->{0} = ${0};\n", f.name));
     }
     block.push('}');
-    let fmt = Fmt::for_class(src, class);
+    let fmt = Fmt::for_class(src, class, &opts.style);
     Ok(vec![insert_after_fields(src, class, &fmt, &block)])
 }
 
@@ -802,7 +813,7 @@ fn gen_accessors(
     if blocks.is_empty() {
         return Err(PhpError::Generate("No fields selected".into()));
     }
-    let fmt = Fmt::for_class(src, class);
+    let fmt = Fmt::for_class(src, class, &opts.style);
     Ok(vec![insert_at_end(src, class, &fmt, &blocks)])
 }
 
@@ -836,7 +847,7 @@ fn gen_to_string(src: &str, class: &ClassLike, opts: &GenerateOptions) -> Result
     }
     body.push_str(" .\n        '}';");
     let block = format!("public function __toString(): string\n{{\n{body}\n}}");
-    let fmt = Fmt::for_class(src, class);
+    let fmt = Fmt::for_class(src, class, &opts.style);
     Ok(vec![insert_at_end(src, class, &fmt, &[block])])
 }
 
@@ -902,7 +913,7 @@ fn gen_methods(
     if blocks.is_empty() {
         return Err(PhpError::Generate("No methods selected".into()));
     }
-    let fmt = Fmt::for_class(src, class);
+    let fmt = Fmt::for_class(src, class, &opts.style);
     Ok(vec![insert_at_end(src, class, &fmt, &blocks)])
 }
 

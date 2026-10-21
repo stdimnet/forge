@@ -48,6 +48,8 @@ pub struct PhpLspSettings {
     pub phpactor_path: Option<PathBuf>,
     /// Where Intelephense stores its cache; defaults to `<cache dir>/forge/intelephense`.
     pub storage_path: Option<PathBuf>,
+    /// Brace placement of Reformat Code (`php.codeStyle.braces`).
+    pub braces: crate::style::Braces,
 }
 
 impl Default for PhpLspSettings {
@@ -63,6 +65,7 @@ impl Default for PhpLspSettings {
             intelephense_node: None,
             phpactor_path: None,
             storage_path: None,
+            braces: crate::style::Braces::Psr12,
         }
     }
 }
@@ -73,6 +76,7 @@ pub const LSP_SETTING_KEYS: &[&str] = &[
     "php.includePaths",
     "php.lsp.server",
     "php.lsp.maxFileSize",
+    crate::style::BRACES_KEY,
 ];
 
 /// Whether a change of `key` requires the PHP language server to be reconfigured.
@@ -93,6 +97,9 @@ impl PhpLspSettings {
         }
         if let Some(server) = get("php.lsp.server").and_then(|v| serde_json::from_value(v).ok()) {
             s.server = server;
+        }
+        if let Some(braces) = get(crate::style::BRACES_KEY).and_then(|v| serde_json::from_value(v).ok()) {
+            s.braces = braces;
         }
         if let Some(kb) = get("php.lsp.maxFileSize").and_then(|v| v.as_u64()) {
             s.max_file_size = kb.saturating_mul(1000);
@@ -387,7 +394,7 @@ pub fn intelephense_config(
         },
         "stubs": stubs,
         "completion": { "insertUseDeclaration": true, "fullyQualifyGlobalConstantsAndFunctions": false },
-        "format": { "enable": true },
+        "format": { "enable": true, "braces": settings.braces.intelephense() },
         "telemetry": { "enabled": false },
     });
     init["globalStoragePath"] = json!(storage.to_string_lossy());
@@ -424,6 +431,10 @@ pub fn phpactor_config(command: PathBuf, settings: &PhpLspSettings) -> LspServer
             "php.version": settings.php_version,
             "language_server_phpstan.enabled": false,
             "language_server_psalm.enabled": false,
+            // Inlay hints, filtered by Forge's Inlay Hints settings.
+            "language_server_worse_reflection.inlay_hints.enable": true,
+            "language_server_worse_reflection.inlay_hints.params": true,
+            "language_server_worse_reflection.inlay_hints.types": true,
             "indexer.exclude_patterns": ["/vendor/**/Tests/**/*", "/vendor/**/tests/**/*", "/node_modules/**/*"],
         }),
         settings: json!({}),

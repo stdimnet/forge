@@ -172,6 +172,8 @@ export const phpApi = {
     invoke<GenerateTargets>("php_generate_targets", { path, offset, content }),
   generate: (path: string, offset: number, kind: GenerateKind, options: GenerateOptions = {}, content?: string) =>
     invoke<TextEdit[]>("php_generate", { path, offset, kind, options, content }),
+  /** Reformat Code: the blank lines of the PHP code style applied to `text`; null = unchanged. */
+  tidyBlankLines: (text: string) => invoke<string | null>("php_tidy_blank_lines", { text }),
   detectServers: (settings?: Partial<PhpLspSettings>) =>
     invoke<DetectedServers>("php_detect_servers", { settings }),
 };

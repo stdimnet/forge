@@ -458,6 +458,10 @@ registerMock("php_generate", ({ path, offset, kind, options, content }) =>
   mockGenerate(source(path, content), Number(offset), kind as GenerateKind, (options ?? {}) as GenerateOptions),
 );
 
+// The blank line pass needs the tree-sitter PHP parser, which the WebAssembly build does not
+// include: browser mode leaves the text as the (mock) language server formatted it.
+registerMock("php_tidy_blank_lines", () => null);
+
 // With `?intelephense=missing` it is found only after the (mock) install.
 registerMock("php_detect_servers", async () => {
   if (!intelephenseMissingAtStart()) return { intelephense: "/usr/local/bin/intelephense", phpactor: null };

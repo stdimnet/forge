@@ -10,6 +10,7 @@
 //! - [`navigate`] Go to Declaration, Find Usages, implementations and gutter markers.
 //! - [`stubs`] PHP's own symbols from phpstorm-stubs (the "PHP Runtime").
 //! - [`lsp`] describes how to launch Intelephense / phpactor.
+//! - [`style`] brace placement and blank lines of the PHP code style.
 
 pub mod docblock;
 pub mod fuzzy;
@@ -25,6 +26,7 @@ pub mod parser;
 pub mod resolve;
 pub mod service;
 pub mod structure;
+pub mod style;
 pub mod stubs;
 
 pub use index::{IndexConfig, IndexStats, ProjectIndex};
