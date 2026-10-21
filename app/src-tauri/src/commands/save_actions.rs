@@ -79,11 +79,14 @@ pub struct PhpActionsResult {
     pub applied: Vec<String>,
 }
 
+/// One PHP action: the changed text, `None` when nothing changes.
+type PhpStep = fn(&str) -> Option<String>;
+
 /// Apply Optimize imports, Rearrange code and Code cleanup to a PHP text.
 pub fn apply_php_actions(text: &str, actions: &PhpActions) -> PhpActionsResult {
     let mut text = text.to_string();
     let mut applied = Vec::new();
-    let steps: [(bool, &str, fn(&str) -> Option<String>); 3] = [
+    let steps: [(bool, &str, PhpStep); 3] = [
         (actions.code_cleanup, "Code cleanup", cleanup::code_cleanup),
         (
             actions.optimize_imports,
@@ -119,7 +122,13 @@ pub async fn save_actions_run_tools(
     let custom = custom_paths(&state);
     let backend = state.backend()?;
     blocking(move || {
-        tools::run_tools(backend.as_ref(), &path, &tools, &custom, tools::TOOL_TIMEOUT)
+        tools::run_tools(
+            backend.as_ref(),
+            &path,
+            &tools,
+            &custom,
+            tools::TOOL_TIMEOUT,
+        )
     })
     .await
 }

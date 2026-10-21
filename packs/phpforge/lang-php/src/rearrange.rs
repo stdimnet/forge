@@ -51,7 +51,10 @@ fn class_bodies<'t>(node: Node<'t>, out: &mut Vec<Node<'t>>) {
                     out.push(body);
                 }
             }
-            "namespace_definition" | "compound_statement" | "if_statement" | "else_clause"
+            "namespace_definition"
+            | "compound_statement"
+            | "if_statement"
+            | "else_clause"
             | "declare_statement" => class_bodies(child, out),
             _ => {}
         }

@@ -307,7 +307,10 @@ mod tests {
         assert_eq!(plan("a.php", Trigger::Explicit, &s).reformat, None);
         assert!(plan("a.js", Trigger::Explicit, &s).reformat.is_some());
         // Plain text files are never reformatted.
-        assert_eq!(plan("notes.unknown", Trigger::Explicit, &all_on()).reformat, None);
+        assert_eq!(
+            plan("notes.unknown", Trigger::Explicit, &all_on()).reformat,
+            None
+        );
     }
 
     #[test]

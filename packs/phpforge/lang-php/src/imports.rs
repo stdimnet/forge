@@ -70,7 +70,11 @@ struct Usages {
 
 impl Usages {
     fn add(&mut self, name: &str) {
-        let first = name.trim_start_matches('\\').split('\\').next().unwrap_or("");
+        let first = name
+            .trim_start_matches('\\')
+            .split('\\')
+            .next()
+            .unwrap_or("");
         if first.is_empty() {
             return;
         }
@@ -378,7 +382,10 @@ mod tests {
     #[test]
     fn duplicates_are_dropped() {
         let src = "<?php\nuse A\\B;\nuse A\\B;\n\nnew B();\n";
-        assert_eq!(optimize_imports(src).unwrap(), "<?php\nuse A\\B;\n\nnew B();\n");
+        assert_eq!(
+            optimize_imports(src).unwrap(),
+            "<?php\nuse A\\B;\n\nnew B();\n"
+        );
     }
 
     #[test]

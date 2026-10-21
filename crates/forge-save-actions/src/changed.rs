@@ -69,7 +69,8 @@ struct Hunk {
 fn touches(h: &Hunk, changed: &HashSet<usize>) -> bool {
     if h.a_start == h.a_end {
         // A pure insertion counts for the lines around it.
-        return changed.contains(&h.a_start) || (h.a_start > 0 && changed.contains(&(h.a_start - 1)));
+        return changed.contains(&h.a_start)
+            || (h.a_start > 0 && changed.contains(&(h.a_start - 1)));
     }
     (h.a_start..h.a_end).any(|i| changed.contains(&i))
 }
@@ -183,8 +184,18 @@ mod tests {
         assert_eq!(
             h,
             vec![
-                Hunk { a_start: 1, a_end: 2, b_start: 1, b_end: 2 },
-                Hunk { a_start: 4, a_end: 4, b_start: 4, b_end: 5 },
+                Hunk {
+                    a_start: 1,
+                    a_end: 2,
+                    b_start: 1,
+                    b_end: 2
+                },
+                Hunk {
+                    a_start: 4,
+                    a_end: 4,
+                    b_start: 4,
+                    b_end: 5
+                },
             ]
         );
     }

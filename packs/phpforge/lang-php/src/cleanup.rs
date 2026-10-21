@@ -123,7 +123,10 @@ mod tests {
             "<?php\necho 1;\n"
         );
         assert_eq!(remove_closing_tag("<?php\necho 1;\n"), None);
-        assert_eq!(remove_closing_tag("<?php if ($a): ?>\n<b>x</b>\n<?php endif; ?>\n"), None);
+        assert_eq!(
+            remove_closing_tag("<?php if ($a): ?>\n<b>x</b>\n<?php endif; ?>\n"),
+            None
+        );
         assert_eq!(remove_closing_tag("<?php echo 1; ?>\n<div></div>\n"), None);
     }
 

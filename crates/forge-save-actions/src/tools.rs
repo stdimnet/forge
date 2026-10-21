@@ -116,7 +116,11 @@ pub struct ToolsReport {
 
 /// The first lines of a tool's output, for a balloon.
 fn summary(stdout: &str, stderr: &str) -> String {
-    let text = if stderr.trim().is_empty() { stdout } else { stderr };
+    let text = if stderr.trim().is_empty() {
+        stdout
+    } else {
+        stderr
+    };
     let lines: Vec<&str> = text.trim().lines().take(12).collect();
     lines.join("\n")
 }
@@ -278,7 +282,9 @@ mod tests {
         let report = run_tools(&backend, "a.js", &[Tool::Prettier], &none, TOOL_TIMEOUT).unwrap();
         assert!(!report.changed);
         assert_eq!(report.outcomes[0].status, ToolStatus::Missing);
-        assert!(report.outcomes[0].message.contains("node_modules/.bin/prettier"));
+        assert!(report.outcomes[0]
+            .message
+            .contains("node_modules/.bin/prettier"));
     }
 
     #[test]
@@ -327,7 +333,10 @@ mod tests {
         let found = detect_tools(&backend, &custom);
         let path = |t: Tool| found.iter().find(|l| l.tool == t).unwrap().path.clone();
         assert_eq!(path(Tool::Pint).as_deref(), Some("tools/pint"));
-        assert_eq!(path(Tool::PhpCsFixer).as_deref(), Some("vendor/bin/php-cs-fixer"));
+        assert_eq!(
+            path(Tool::PhpCsFixer).as_deref(),
+            Some("vendor/bin/php-cs-fixer")
+        );
         assert_eq!(path(Tool::Eslint), None);
     }
 }
