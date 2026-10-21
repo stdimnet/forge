@@ -1,0 +1,188 @@
+# PHPStorm's "PHP" live templates.
+
+[group]
+name = "PHP"
+
+[[template]]
+abbreviation = "__c"
+description = "closure function() {}"
+contexts = ["PHP_EXPRESSION"]
+text = '''
+function ($PARAMETERS$) {
+    $END$
+}'''
+
+[[template]]
+abbreviation = "__fn"
+description = "arrow function fn() =>"
+contexts = ["PHP_EXPRESSION"]
+text = "fn($PARAMETERS$) => $END$"
+
+[[template]]
+abbreviation = "con"
+description = "const"
+contexts = ["PHP_CLASS_MEMBER"]
+text = "const $NAME$ = $VALUE$;"
+
+[[template]]
+abbreviation = "eco"
+description = "echo \"...\""
+contexts = ["PHP_STATEMENT"]
+text = 'echo "$END$";'
+
+[[template]]
+abbreviation = "fore"
+description = "foreach (iterable_expression as $value) {...}"
+contexts = ["PHP_STATEMENT"]
+text = '''
+foreach ($ARRAY$ as $$$VAR$) {
+    $END$
+}'''
+variables = [
+  { name = "ARRAY", expression = 'variableOfType("array")', defaultValue = '"$array"' },
+  { name = "VAR", expression = "suggestVariableName(ARRAY)", defaultValue = '"value"' },
+]
+
+[[template]]
+abbreviation = "forek"
+description = "foreach (iterable_expression as $key => $value) {...}"
+contexts = ["PHP_STATEMENT"]
+text = '''
+foreach ($ARRAY$ as $$$KEY$ => $$$VAR$) {
+    $END$
+}'''
+variables = [
+  { name = "ARRAY", expression = 'variableOfType("array")', defaultValue = '"$array"' },
+  { name = "KEY", defaultValue = '"key"' },
+  { name = "VAR", expression = "suggestVariableName(ARRAY)", defaultValue = '"value"' },
+]
+
+[[template]]
+abbreviation = "fori"
+description = "for ($i = 0; $i < ; $i++) {...}"
+contexts = ["PHP_STATEMENT"]
+text = '''
+for ($$$INDEX$ = 0; $$$INDEX$ < $LIMIT$; $$$INDEX$++) {
+    $END$
+}'''
+variables = [
+  { name = "INDEX", defaultValue = '"i"' },
+  { name = "LIMIT" },
+]
+
+[[template]]
+abbreviation = "inc"
+description = "include \"\";"
+contexts = ["PHP_STATEMENT"]
+text = "include '$END$';"
+
+[[template]]
+abbreviation = "inco"
+description = "include_once \"\";"
+contexts = ["PHP_STATEMENT"]
+text = "include_once '$END$';"
+
+[[template]]
+abbreviation = "prif"
+description = "private function"
+contexts = ["PHP_CLASS_MEMBER"]
+text = '''
+private function $NAME$($PARAMETERS$)
+{
+    $END$
+}'''
+
+[[template]]
+abbreviation = "prisf"
+description = "private static function"
+contexts = ["PHP_CLASS_MEMBER"]
+text = '''
+private static function $NAME$($PARAMETERS$)
+{
+    $END$
+}'''
+
+[[template]]
+abbreviation = "prof"
+description = "protected function"
+contexts = ["PHP_CLASS_MEMBER"]
+text = '''
+protected function $NAME$($PARAMETERS$)
+{
+    $END$
+}'''
+
+[[template]]
+abbreviation = "prosf"
+description = "protected static function"
+contexts = ["PHP_CLASS_MEMBER"]
+text = '''
+protected static function $NAME$($PARAMETERS$)
+{
+    $END$
+}'''
+
+[[template]]
+abbreviation = "pubf"
+description = "public function"
+contexts = ["PHP_CLASS_MEMBER"]
+text = '''
+public function $NAME$($PARAMETERS$)
+{
+    $END$
+}'''
+
+[[template]]
+abbreviation = "pubsf"
+description = "public static function"
+contexts = ["PHP_CLASS_MEMBER"]
+text = '''
+public static function $NAME$($PARAMETERS$)
+{
+    $END$
+}'''
+
+[[template]]
+abbreviation = "rqr"
+description = "require \"\";"
+contexts = ["PHP_STATEMENT"]
+text = "require '$END$';"
+
+[[template]]
+abbreviation = "rqro"
+description = "require_once \"\";"
+contexts = ["PHP_STATEMENT"]
+text = "require_once '$END$';"
+
+[[template]]
+abbreviation = "thr"
+description = "throw new"
+contexts = ["PHP_STATEMENT"]
+text = "throw new $END$;"
+
+[[template]]
+abbreviation = "ctor"
+description = "__construct() with promoted properties"
+contexts = ["PHP_CLASS_MEMBER"]
+text = '''
+public function __construct(
+    $END$
+) {
+}'''
+
+[[template]]
+abbreviation = "dc"
+description = "/** PHPDoc */ for the class"
+contexts = ["PHP_CLASS_MEMBER", "PHP_STATEMENT"]
+text = '''
+/**
+ * $DESCRIPTION$
+ *
+ * @author $USER$
+ * @since $DATE$
+ */'''
+variables = [
+  { name = "DESCRIPTION" },
+  { name = "USER", expression = "user()", alwaysStopAt = false },
+  { name = "DATE", expression = 'date("yyyy-MM-dd")', alwaysStopAt = false },
+]

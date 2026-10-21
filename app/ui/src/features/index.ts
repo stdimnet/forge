@@ -12,6 +12,7 @@ import "./langservers";
 import "./navigation";
 import "./find";
 import "./codeintel";
+import "./liveTemplates";
 import "./documentation";
 import "./keymapSettings";
 import "./git";

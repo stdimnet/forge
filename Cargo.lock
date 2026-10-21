@@ -1825,6 +1825,7 @@ dependencies = [
  "forge-fuzzy",
  "forge-keymap",
  "forge-langservers",
+ "forge-livetemplates",
  "forge-lsp",
  "forge-markdown",
  "forge-open",
@@ -2064,6 +2065,15 @@ dependencies = [
  "toml 0.8.23",
  "tracing",
  "zip 2.6.1",
+]
+
+[[package]]
+name = "forge-livetemplates"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "toml 0.8.23",
 ]
 
 [[package]]
@@ -2308,6 +2318,7 @@ dependencies = [
  "forge-find",
  "forge-fuzzy",
  "forge-keymap",
+ "forge-livetemplates",
  "forge-markdown",
  "forge-output",
  "forge-plugin-api",

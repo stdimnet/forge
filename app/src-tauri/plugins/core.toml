@@ -537,6 +537,40 @@ group = "editor.todo"
 section = "Patterns"
 order = 0
 
+# ---- Editor > Live Templates ----------------------------------------------------------
+
+[[contributions.settings]]
+key = "editor.liveTemplates.expandKey"
+title = "By default expand with"
+description = "Key that expands a live template abbreviation."
+type = "enum"
+options = [
+  { value = "tab", label = "Tab" },
+  { value = "space", label = "Space" },
+  { value = "enter", label = "Enter" },
+]
+default = "tab"
+group = "editor.liveTemplates"
+order = 0
+
+[[contributions.settings]]
+key = "editor.liveTemplates.custom"
+title = "User and changed templates"
+description = "New templates and changes to built-in ones: group, abbreviation, description, text, contexts (comma-separated), variables (JSON), builtin (id of the replaced built-in template) and removed."
+type = "objects"
+default = []
+group = "editor.liveTemplates"
+order = 10
+
+[[contributions.settings]]
+key = "editor.liveTemplates.disabled"
+title = "Disabled templates"
+description = "Ids (`group/abbreviation`) of templates that do not expand."
+type = "list"
+default = []
+group = "editor.liveTemplates"
+order = 20
+
 # ---- Appearance & Behavior > Notifications --------------------------------------------
 
 [[contributions.settings]]

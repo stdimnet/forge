@@ -38,6 +38,7 @@ forge-containers = { path = "crates/forge-containers" }
 forge-sql = { path = "crates/forge-sql" }
 forge-forges = { path = "crates/forge-forges" }
 forge-keymap = { path = "crates/forge-keymap" }
+forge-livetemplates = { path = "crates/forge-livetemplates" }
 forge-scratches = { path = "crates/forge-scratches", default-features = false }
 forge-backend = { path = "crates/forge-backend", default-features = false }
 forge-remote = { path = "crates/forge-remote" }
