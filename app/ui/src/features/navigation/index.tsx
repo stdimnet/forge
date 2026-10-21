@@ -72,6 +72,7 @@ export const TOOL_WINDOW_ACTIONS: Record<string, string> = {
   ActivateAIChatToolWindow: "ai-chat",
   ActivatePullRequestsToolWindow: "pull-requests",
   ActivateTODOToolWindow: "todo",
+  ActivateDocumentationToolWindow: "documentation",
 };
 
 let lastToolWindow: string | null = null;

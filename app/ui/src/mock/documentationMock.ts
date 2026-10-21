@@ -20,12 +20,12 @@ import type { EditorHover } from "@/ipc/lsp";
 import { callWasm, forgeWasm } from "@/wasm";
 import { mockFiles } from "./workspaceMock";
 
-interface At {
+type At = {
   path: string;
   line: number;
   character: number;
   content?: string;
-}
+};
 
 const isPhp = (p: string) => /\.(php|phtml|inc)$/i.test(p) && !p.endsWith(".blade.php");
 

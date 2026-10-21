@@ -1,0 +1,196 @@
+/* ---------- Documentation popups (Quick Documentation, Quick Definition, info hints) ---------- */
+.cm-tooltip:has(> .doc-popup) {
+  padding: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.doc-popup-btn {
+  width: 22px;
+  height: 22px;
+}
+
+/* Quick Documentation */
+.doc-quick {
+  display: flex;
+  flex-direction: column;
+  max-width: 620px;
+  min-width: 280px;
+}
+.doc-quick-content {
+  max-height: 420px;
+  overflow: auto;
+}
+.doc-quick-content .lsp-hover {
+  max-height: none;
+  overflow: visible;
+}
+.doc-quick-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  gap: 2px;
+  padding: 2px 6px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-panel);
+}
+
+.doc-index {
+  padding: 10px 14px 12px;
+  font-size: var(--fs-ui);
+  line-height: 1.5;
+  color: var(--fg);
+  user-select: text;
+}
+
+/* Quick Definition */
+.doc-def {
+  display: flex;
+  flex-direction: column;
+  width: 620px;
+  max-width: 80vw;
+}
+.doc-def-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 6px 3px 10px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-panel);
+  font-size: var(--fs-small);
+}
+.doc-def-name {
+  color: var(--fg-strong);
+  font-weight: 600;
+}
+.doc-def-location {
+  color: var(--fg-muted);
+}
+.doc-spacer {
+  flex: 1;
+}
+.doc-def-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.doc-def-count {
+  color: var(--fg-muted);
+  min-width: 44px;
+  text-align: center;
+}
+.doc-def-body {
+  display: flex;
+  max-height: 360px;
+  overflow: auto;
+  background: var(--bg-editor);
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  line-height: 1.6;
+}
+.doc-def-gutter {
+  flex-shrink: 0;
+  padding: 6px 10px 6px 8px;
+  color: var(--fg-faint);
+  text-align: right;
+  white-space: pre;
+  user-select: none;
+  border-right: 1px solid var(--border);
+}
+.doc-def-code {
+  margin: 0;
+  padding: 6px 12px;
+  flex: 1;
+  color: var(--fg);
+  font: inherit;
+  white-space: pre;
+  user-select: text;
+}
+.doc-def-more {
+  color: var(--fg-faint);
+}
+
+/* Type Info */
+.doc-type {
+  padding: 4px 10px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  color: var(--fg-strong);
+  white-space: pre;
+}
+
+/* Context Info */
+.doc-context {
+  min-width: 360px;
+  max-width: 720px;
+  padding: 4px 0;
+  background: var(--bg-editor);
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  line-height: 1.6;
+}
+.doc-context-row {
+  display: flex;
+  gap: 12px;
+  padding: 0 12px 0 8px;
+  white-space: pre;
+}
+.doc-context-line {
+  min-width: 28px;
+  text-align: right;
+  color: var(--fg-faint);
+  user-select: none;
+}
+.doc-context-code {
+  color: var(--fg);
+}
+
+/* Error Description */
+.doc-error {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 560px;
+  padding: 8px 12px;
+}
+.doc-error-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.doc-error-row .sev-icon {
+  margin-top: 3px;
+  flex-shrink: 0;
+}
+.doc-error-message {
+  color: var(--fg-strong);
+  white-space: pre-wrap;
+}
+.doc-error-origin {
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+
+/* ---------- Documentation tool window ---------- */
+.doc-view {
+  height: 100%;
+  overflow: auto;
+  outline: none;
+}
+.doc-view-empty {
+  padding: 24px 16px;
+  text-align: center;
+  font-size: var(--fs-small);
+}
+.doc-view-body .lsp-hover {
+  max-width: none;
+  max-height: none;
+  overflow: visible;
+}
+/* The tool window is narrow: long types wrap instead of overflowing. */
+.doc-view-body .lsp-hover code {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
