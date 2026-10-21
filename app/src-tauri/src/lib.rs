@@ -214,6 +214,8 @@ pub fn run() {
             commands::langservers::intelephense_set_licence,
             commands::workspace::fs_find_files,
             commands::workspace::find_in_files,
+            commands::workspace::find_in_files_paged,
+            commands::workspace::find_page,
             commands::search::fuzzy_filter,
             commands::search::search_rank,
             commands::search::filetypes_detect,

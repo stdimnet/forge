@@ -111,6 +111,35 @@ pub fn search_find_symbols(request_json: &str) -> String {
     }
 }
 
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct PagedRequest {
+    result: forge_find::FindResult,
+    #[serde(default)]
+    id: u64,
+    #[serde(default)]
+    offset: usize,
+    count: usize,
+}
+
+/// `{ result, id, count }` → `FindPaged`: the totals and first rows of a Find in Files result.
+#[wasm_bindgen]
+pub fn find_paged(request_json: &str) -> String {
+    match parse::<PagedRequest>(request_json) {
+        Ok(r) => to_json(&r.result.paged(r.id, r.count)),
+        Err(e) => to_json(&serde_json::json!({ "error": e })),
+    }
+}
+
+/// `{ result, offset, count }` → `FileMatches[]`: rows of a Find in Files result.
+#[wasm_bindgen]
+pub fn find_page(request_json: &str) -> String {
+    match parse::<PagedRequest>(request_json) {
+        Ok(r) => to_json(&r.result.page(r.offset, r.count)),
+        Err(e) => to_json(&serde_json::json!({ "error": e })),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

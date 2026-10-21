@@ -140,6 +140,16 @@ export function filetypes_load(plugins_json: string): string;
 export function find_in_files(request_json: string): string;
 
 /**
+ * `{ result, offset, count }` → `FileMatches[]`: rows of a Find in Files result.
+ */
+export function find_page(request_json: string): string;
+
+/**
+ * `{ result, id, count }` → `FindPaged`: the totals and first rows of a Find in Files result.
+ */
+export function find_paged(request_json: string): string;
+
+/**
  * `FilterRequest` → `FilterHit[]`.
  */
 export function fuzzy_filter(request_json: string): string;
@@ -465,6 +475,8 @@ export interface InitOutput {
     readonly filetypes_detect: (a: number, b: number, c: number) => void;
     readonly filetypes_load: (a: number, b: number, c: number) => void;
     readonly find_in_files: (a: number, b: number, c: number) => void;
+    readonly find_page: (a: number, b: number, c: number) => void;
+    readonly find_paged: (a: number, b: number, c: number) => void;
     readonly fuzzy_filter: (a: number, b: number, c: number) => void;
     readonly keymap_actions: (a: number, b: number, c: number) => void;
     readonly keymap_conflicts: (a: number, b: number, c: number) => void;

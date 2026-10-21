@@ -3,7 +3,7 @@
 //! The matchers live in the pure `forge-fuzzy` and `forge-find` crates (also compiled to
 //! WebAssembly for the browser-mode UI); this module walks the workspace.
 
-pub use forge_find::{FindRequest, FindResult};
+pub use forge_find::{FileMatches, FindPaged, FindRequest, FindResult};
 pub use forge_fuzzy::{
     fuzzy_match, fuzzy_match_with, match_file, FileMatch, FuzzyMatch, MatchOptions,
 };

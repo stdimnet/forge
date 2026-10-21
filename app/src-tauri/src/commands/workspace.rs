@@ -7,7 +7,8 @@ use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, State};
 
 use forge_backend::{BackendInfo, WatchGuard};
-use forge_core::search::{FindRequest, FindResult};
+use forge_core::search::{FileMatches, FindPaged, FindRequest, FindResult};
+
 use forge_core::{FileEntry, FileMatch, ForgeError, FsChanges, Result, Workspace};
 
 use crate::recent::{RecentProject, RecentRemote};
@@ -255,4 +256,43 @@ pub async fn fs_find_files(
 pub async fn find_in_files(request: FindRequest, state: State<'_, AppState>) -> Result<FindResult> {
     let backend = state.backend()?;
     blocking(move || backend.find_in_files(&request)).await
+}
+
+/// Find window: search once, keep the result and return its totals with the first `page_size`
+/// rows. The rest comes from `find_page`, so a result with hundreds of thousands of matches does
+/// not cross the IPC boundary in one piece.
+#[tauri::command]
+pub async fn find_in_files_paged(
+    request: FindRequest,
+    page_size: usize,
+    state: State<'_, AppState>,
+) -> Result<FindPaged> {
+    let backend = state.backend()?;
+    let result = Arc::new(blocking(move || backend.find_in_files(&request)).await?);
+    static NEXT_ID: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
+    let id = NEXT_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    let first = result.paged(id, page_size);
+    *state.find_results.lock().expect("find results lock") = Some((id, result));
+    Ok(first)
+}
+
+/// Rows `[offset, offset + count)` of the result `find_in_files_paged` returned `id` for.
+#[tauri::command]
+pub fn find_page(
+    id: u64,
+    offset: usize,
+    count: usize,
+    state: State<'_, AppState>,
+) -> Result<Vec<FileMatches>> {
+    match state
+        .find_results
+        .lock()
+        .expect("find results lock")
+        .as_ref()
+    {
+        Some((current, result)) if *current == id => Ok(result.page(offset, count)),
+        _ => Err(ForgeError::Other(
+            "The search result was replaced by a newer search".into(),
+        )),
+    }
 }

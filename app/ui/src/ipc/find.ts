@@ -42,6 +42,22 @@ export interface FindResult {
   error?: string;
 }
 
+/** The totals and first rows of a Find window result; later rows come from `findApi.page`. */
+export interface FindPaged {
+  id: number;
+  matchCount: number;
+  truncated: boolean;
+  error?: string;
+  fileCount: number;
+  /** Matching lines over all files. */
+  rowCount: number;
+  files: FileMatches[];
+}
+
 export const findApi = {
   search: (request: FindRequest) => invoke<FindResult>("find_in_files", { request }),
+  /** Search once and get the first `pageSize` rows; the full result stays in the backend. */
+  searchPaged: (request: FindRequest, pageSize: number) => invoke<FindPaged>("find_in_files_paged", { request, pageSize }),
+  /** Rows `[offset, offset + count)` of the result a `searchPaged` call returned `id` for. */
+  page: (id: number, offset: number, count: number) => invoke<FileMatches[]>("find_page", { id, offset, count }),
 };

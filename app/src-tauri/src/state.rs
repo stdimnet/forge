@@ -16,6 +16,8 @@ pub struct AppState {
     /// Where the open project lives: this machine or a remote host.
     backend: RwLock<Option<Arc<dyn Backend>>>,
     pub settings: RwLock<Settings>,
+    /// The latest Find window result, so pages are cut from it instead of searching again.
+    pub find_results: std::sync::Mutex<Option<(u64, Arc<forge_core::search::FindResult>)>>,
     pub plugins: RwLock<PluginRegistry>,
 }
 
@@ -47,6 +49,7 @@ impl AppState {
             workspace: RwLock::default(),
             backend: RwLock::default(),
             settings: RwLock::new(settings),
+            find_results: std::sync::Mutex::default(),
             plugins: RwLock::new(registry),
         };
         let disabled: Vec<String> = state

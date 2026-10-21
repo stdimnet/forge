@@ -99,6 +99,65 @@ pub struct FindResult {
     pub error: Option<String>,
 }
 
+/// The first page of a [`FindResult`] with the totals, for lists that load the rest on demand.
+/// Rows are matching lines, as the result list shows them.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FindPaged {
+    /// Identifies the stored result later pages are cut from.
+    pub id: u64,
+    pub match_count: usize,
+    pub truncated: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
+    pub file_count: usize,
+    pub row_count: usize,
+    pub files: Vec<FileMatches>,
+}
+
+impl FindResult {
+    /// The rows (matching lines) `[offset, offset + count)` in result order. A file split across
+    /// the page edge appears in both pages, each with its share of the lines.
+    pub fn page(&self, offset: usize, count: usize) -> Vec<FileMatches> {
+        let mut out = Vec::new();
+        let (mut skip, mut left) = (offset, count);
+        for file in &self.files {
+            if left == 0 {
+                break;
+            }
+            if skip >= file.matches.len() {
+                skip -= file.matches.len();
+                continue;
+            }
+            let take = (file.matches.len() - skip).min(left);
+            out.push(FileMatches {
+                path: file.path.clone(),
+                matches: file.matches[skip..skip + take].to_vec(),
+            });
+            left -= take;
+            skip = 0;
+        }
+        out
+    }
+
+    pub fn row_count(&self) -> usize {
+        self.files.iter().map(|f| f.matches.len()).sum()
+    }
+
+    /// The totals plus the first `page_size` rows.
+    pub fn paged(&self, id: u64, page_size: usize) -> FindPaged {
+        FindPaged {
+            id,
+            match_count: self.match_count,
+            truncated: self.truncated,
+            error: self.error.clone(),
+            file_count: self.files.len(),
+            row_count: self.row_count(),
+            files: self.page(0, page_size),
+        }
+    }
+}
+
 /// A compiled file mask.
 #[derive(Debug, Clone, Default)]
 pub struct FileMask {
@@ -527,6 +586,39 @@ mod tests {
         assert_eq!(find_in(&q, [("e.txt", "a\r\nb")]).match_count, 0);
         assert!(is_binary(b"ab\0c"));
         assert!(!is_binary(b"abc"));
+    }
+
+    #[test]
+    fn pages_cut_rows_across_files() {
+        let files = [
+            ("a.php", "x\nx\nx\n"),
+            ("b.php", "x\n"),
+            ("c.php", "x\nx\n"),
+        ];
+        let result = find_in(&req("x"), files);
+        assert_eq!(result.row_count(), 6);
+        let rows = |page: Vec<FileMatches>| -> Vec<(String, usize)> {
+            page.into_iter()
+                .map(|f| (f.path, f.matches.len()))
+                .collect()
+        };
+        assert_eq!(rows(result.page(0, 2)), [("a.php".to_string(), 2)]);
+        assert_eq!(
+            rows(result.page(2, 3)),
+            [
+                ("a.php".to_string(), 1),
+                ("b.php".to_string(), 1),
+                ("c.php".to_string(), 1)
+            ]
+        );
+        assert_eq!(rows(result.page(5, 10)), [("c.php".to_string(), 1)]);
+        assert!(result.page(6, 10).is_empty());
+        let first = result.paged(7, 4);
+        assert_eq!((first.id, first.row_count, first.file_count), (7, 6, 3));
+        assert_eq!(
+            first.files.iter().map(|f| f.matches.len()).sum::<usize>(),
+            4
+        );
     }
 
     #[test]

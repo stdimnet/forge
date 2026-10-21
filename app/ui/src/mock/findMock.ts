@@ -4,7 +4,7 @@
  * (`forge-find` and `forge-search-core`, WebAssembly).
  */
 import { registerMock } from "@/ipc";
-import type { FindRequest, FindResult } from "@/ipc/find";
+import type { FileMatches, FindPaged, FindRequest, FindResult } from "@/ipc/find";
 import type { SearchStatus, SymbolHit } from "@/ipc/search";
 import { callWasm, forgeWasm } from "@/wasm";
 import { createIgnoreMatcher } from "./gitignoreMatcher";
@@ -26,6 +26,23 @@ registerMock("find_in_files", async ({ request }) => {
 
 /** The demo language server answers for these, so the index leaves them out like the desktop app does. */
 const LSP_SERVED = ["js", "jsx", "ts", "tsx", "mjs", "cjs"];
+
+/** The result `find_in_files_paged` last returned, like the desktop app keeps it. */
+let lastResult: { id: number; result: FindResult } | null = null;
+
+registerMock("find_in_files_paged", async ({ request, pageSize }) => {
+  const w = await forgeWasm();
+  const result = await callWasm<FindResult>(w.find_in_files, { request: request as FindRequest, files: projectFiles() });
+  const id = (lastResult?.id ?? 0) + 1;
+  lastResult = { id, result };
+  return callWasm<FindPaged>(w.find_paged, { result, id, count: pageSize });
+});
+
+registerMock("find_page", async ({ id, offset, count }) => {
+  if (!lastResult || lastResult.id !== id) throw new Error("The search result was replaced by a newer search");
+  const w = await forgeWasm();
+  return callWasm<FileMatches[]>(w.find_page, { result: lastResult.result, offset, count });
+});
 
 registerMock("search_find_symbols", async ({ query, typesOnly, limit, skipExtensions }) => {
   const w = await forgeWasm();

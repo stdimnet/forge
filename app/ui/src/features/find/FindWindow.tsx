@@ -1,9 +1,9 @@
-import { createMemo, createSignal, For, onCleanup, Show } from "solid-js";
+import { createEffect, createMemo, createSignal, For, onCleanup, Show } from "solid-js";
 import { CaseSensitive, ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown, Regex, RefreshCw, WholeWord } from "lucide-solid";
 import type { FileMatches, LineMatch } from "@/ipc/find";
 import { openFileAt } from "@/editor/views";
 import { FileIcon } from "@/shell/FileIcon";
-import { collapsedFiles, findForm, findResults, runFindWindow, setCollapsedFiles, setFindForm } from "./window";
+import { collapsedFiles, findForm, findResults, hasMoreRows, loadMoreRows, runFindWindow, setCollapsedFiles, setFindForm } from "./window";
 
 const ROW_HEIGHT = 24;
 const OVERSCAN = 12;
@@ -83,7 +83,7 @@ export function FindWindow() {
     onCleanup(() => observer.disconnect());
   };
 
-  const files = () => findResults().result?.files ?? [];
+  const files = () => findResults().files;
   const rows = createMemo<Row[]>(() => {
     const folded = collapsedFiles();
     const out: Row[] = [];
@@ -92,6 +92,11 @@ export function FindWindow() {
       if (!folded.has(file.path)) for (const match of file.matches) out.push({ kind: "match", file, match });
     }
     return out;
+  });
+  // Fetch the next page while the list is scrolled near its end, or does not fill the view yet.
+  createEffect(() => {
+    const end = rows().length * ROW_HEIGHT;
+    if (hasMoreRows() && scrollTop() + viewHeight() > end - 40 * ROW_HEIGHT) void loadMoreRows();
   });
   const first = () => Math.max(0, Math.floor(scrollTop() / ROW_HEIGHT) - OVERSCAN);
   const last = () => Math.min(rows().length, Math.ceil((scrollTop() + viewHeight()) / ROW_HEIGHT) + OVERSCAN);
@@ -156,14 +161,14 @@ export function FindWindow() {
         <div class="fw-summary">
           <Show when={!findResults().busy} fallback={<span>Searching…</span>}>
             <span>
-              {findResults().result?.matchCount ?? 0}
-              {findResults().result?.truncated ? "+" : ""} matches in {files().length} files
+              {findResults().matchCount}
+              {findResults().truncated ? "+" : ""} matches in {findResults().fileCount} files
             </span>
           </Show>
           <Show when={findResults().indexing}>
             <span class="fw-note">Indexing, results may be incomplete</span>
           </Show>
-          <Show when={findResults().result?.truncated}>
+          <Show when={findResults().truncated}>
             <span class="fw-note">Stopped at the match limit (Settings, Tools, Search)</span>
           </Show>
         </div>
