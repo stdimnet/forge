@@ -21,7 +21,7 @@ import { statusOf } from "@/state/vcs";
 import { getSetting } from "@/state/settings";
 import { CodeEditor } from "@/editor/CodeEditor";
 import { FileIcon } from "./FileIcon";
-import { editorViewFor } from "./editorViews";
+import { editorViewFor, fileEditorFor } from "./editorViews";
 import { openTabMenu } from "./tabMenu";
 
 const docOf = (id: string): EditorTab | undefined => editor.tabs.find((t) => t.path === id);
@@ -191,7 +191,14 @@ function Slot(props: { group: TabGroup; id: string }) {
     >
       {(tab) => (
         <div class="editor-slot" classList={{ hidden: hidden() }}>
-          <Show when={editorViewFor(tab())} fallback={<CodeEditor tab={tab()} group={props.group.id} />}>
+          <Show
+            when={editorViewFor(tab())}
+            fallback={
+              <Show when={fileEditorFor(tab())} fallback={<CodeEditor tab={tab()} group={props.group.id} />}>
+                {(provider) => <Dynamic component={provider().component} tab={tab()} group={props.group.id} />}
+              </Show>
+            }
+          >
             {(view) => {
               const View = view().component;
               return <View tab={tab()} />;
