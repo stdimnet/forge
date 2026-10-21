@@ -329,9 +329,10 @@ mod tests {
         assert!(exit.is_some(), "no exit after kill");
     }
 
-    #[test]
-    fn bash_integration_reports_directory_and_command_marks() {
-        let Some(bash) = crate::shell::find_in_path("bash") else {
+    /// A live shell with Forge's integration scripts reports its directory (OSC 7) and the
+    /// prompt, command start and exit code of a failing command (OSC 133).
+    fn integration_reports_directory_and_command_marks(shell: &str) {
+        let Some(shell) = crate::shell::find_in_path(shell) else {
             return;
         };
         let (tx, rx) = mpsc::channel();
@@ -343,7 +344,7 @@ mod tests {
         let scripts = tempfile::tempdir().unwrap();
         let s = PtySession::spawn(
             PtyOptions {
-                shell: Some(bash.display().to_string()),
+                shell: Some(shell.display().to_string()),
                 args: None,
                 cwd: home.path().to_path_buf(),
                 // A clean home: no user startup files.
@@ -365,5 +366,15 @@ mod tests {
         );
         assert!(text.contains("\x1b]133;D;1\x07"), "{text:?}");
         s.kill().unwrap();
+    }
+
+    #[test]
+    fn bash_integration_reports_directory_and_command_marks() {
+        integration_reports_directory_and_command_marks("bash");
+    }
+
+    #[test]
+    fn zsh_integration_reports_directory_and_command_marks() {
+        integration_reports_directory_and_command_marks("zsh");
     }
 }
