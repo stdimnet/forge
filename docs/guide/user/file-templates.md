@@ -67,6 +67,10 @@ template's `${BACKED_TYPE}`) show a field for each one ("Backed type").
 
 ![New PHP Class dialog](../../screenshots/file-templates-php-class-dialog.png)
 
+`Alt+Enter` › **Create class 'Receipt'** on an undeclared class opens the same dialog as
+**Create New PHP Class**, filled with the name, the namespace of the usage (and its PSR-4
+directory) and the template the usage needs; see [PHP: Create from usage](php.md#create-from-usage).
+
 The composer.json is the one set in Settings | Languages & Frameworks | PHP | Composer
 (`php.composer.json`). Its PSR-4 folders are relative to the folder of that file. The mapping is
 computed next to the project files, so it also works in [remote projects](remote-development.md).

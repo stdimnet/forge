@@ -1,6 +1,6 @@
 ---
 title: PHP
-description: PHP support in PHPForge - the PHP index, navigation (Ctrl+Click, Show Usages, implementations, PHP stubs), Rename (Shift+F6), context actions (Alt+Enter), Structure tool window, hover documentation, class and symbol search, Generate (Alt+Insert) and the PHP settings.
+description: PHP support in PHPForge - the PHP index, navigation (Ctrl+Click, Show Usages, implementations, PHP stubs), Rename (Shift+F6), context actions and create from usage (Alt+Enter), Structure tool window, hover documentation, class and symbol search, Generate (Alt+Insert) and the PHP settings.
 order: 60
 tags: [php, phpforge, generate, structure, index, navigation, usages, stubs, rename, intentions]
 ---
@@ -208,6 +208,48 @@ Premium) and Forge's own PHP intentions, see [Editor](editor.md#show-context-act
 
 Without Intelephense Premium the popup shows only Forge's intentions and says that the language
 server's quick fixes need Premium.
+
+### Create from usage
+
+On a name that is not declared anywhere, `Alt+Enter` offers to create it, like PHPStorm (red
+bulb, listed first):
+
+| Quick fix | Where | What is created |
+| --- | --- | --- |
+| Create method 'notifyCustomer' | `$this->notifyCustomer(…)`, `$order->ship(…)` when the variable's class is known, `Order::find(…)` (static), `parent::boot()` | the method in the receiver's class, after the method you are in (same class) or at the end of the class |
+| Create field 'total' | `$this->total`, `$order->total`, `self::$instances` (static) | a property after the other properties, typed from an assigned value when it is obvious (`$this->total = 0` → `private int $total;`) |
+| Create constant 'LIMIT' | `self::LIMIT`, `Order::LIMIT`; a bare `VERSION` | a class constant before the properties; a namespace constant after the imports. The value `null` is selected so you can type over it |
+| Create enum case 'Closed' | `Status::Closed` on an enum | `case Closed;` (backed enums get a value) |
+| Create function 'format_money' | an unknown function call | the function after the function or class you are in, else at the end of the file |
+| Create class / interface / trait 'Receipt' | `new Receipt()`, `Receipt::make()`, type hints, `extends`, `implements` (interface), a trait `use` (trait), `catch` and `throw new` (extends `\Exception`), imports | opens **Create New PHP Class** (see [File templates](file-templates.md)) |
+
+- **Parameters** come from the call's arguments: variables keep their names and their types
+  (typed parameters, `new`, `@var`, assignments), literals become `string $string`, `int $int`
+  …, `new Order()` becomes `Order $order`, `$order->getTotal()` becomes `$total`. Named
+  arguments keep their names; `...$rest` stays variadic.
+- **Return types** come from the usage when they are obvious: a call used as a statement is
+  `void`, `return $this->total()` takes the enclosing return type, conditions (`if`, `!`,
+  `&&`) are `bool`, `echo` and concatenation are `string`.
+- **Visibility**: `private` for `$this->` / `self::` calls into the class you are in, `protected`
+  for `parent::`, else `public`; interfaces get a declaration without a body.
+- The body comes from the code template **PHP Implemented Method Body** (Settings | Editor |
+  File and Code Templates | Code), and the brace placement from the PHP code style.
+- When the class lives in another file, Forge opens it and puts the caret into the new member.
+  The change is one undo step: `Ctrl+Z` in either file undoes it.
+- **Create class** opens the dialog with the name, the namespace the usage resolves to (its
+  imports and the current namespace) and the template (Class, Interface or Trait); the
+  directory follows the namespace through composer.json's PSR-4 rules. When you pick another
+  namespace, the usage gets a `use` import.
+- Nothing is offered for PHP's own functions and classes (`strlen()`, `\Exception`) when the
+  PHP stubs are available, nor when the language server already offers to create the same
+  symbol. Calls on variables whose class is unknown, comments and strings are left alone.
+- Remote projects work the same way: the analysis runs next to the files.
+
+![Create method from usage](../../screenshots/create-from-usage-method.png)
+
+![The created method](../../screenshots/create-from-usage-method-applied.png)
+
+![Create class from usage](../../screenshots/create-from-usage-class.png)
 
 ## Hover documentation
 

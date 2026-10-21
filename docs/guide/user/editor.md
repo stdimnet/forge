@@ -327,6 +327,9 @@ check also runs when a language server computes the rename.
 - **Intentions** (yellow bulb) from the language servers and Forge's own PHP intentions;
 - refactorings and source actions, and links like **Generate…** (`Alt+Insert`) last.
 
+On an undeclared PHP name, the quick fixes include **Create method / field / constant /
+function / class**, see [PHP: Create from usage](php.md#create-from-usage).
+
 ![Context actions](../../screenshots/context-actions.png)
 
 Use `Up` / `Down` and `Enter`, or click. An entry with `›` has more options ("Fix all '…'

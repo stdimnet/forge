@@ -19,6 +19,9 @@ and the browser-mode UI. Pure Rust, so it also runs as WebAssembly.
   and previewing the affected lines (Refactoring Preview).
 - `actions`: Show Context Actions: language server code actions and a pack's own intentions
   in PHPStorm's order, "fix all" actions nested under their quick fix, and the light bulb.
+  An action may carry a `caret` (where the caret goes after its edit) and `data` (arguments
+  of its UI action, which makes it a fix rather than a link); `lsp_creates` tells whether a
+  language server already offers to create a symbol (Create from usage).
 - `rename`: Rename (Shift+F6): the edit from references (PHP index fallback), identifier
   validation, the class file rename, conflicts, and the plan that splits an edit between open
   editors and the project backend.

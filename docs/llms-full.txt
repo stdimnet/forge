@@ -1400,6 +1400,9 @@ check also runs when a language server computes the rename.
 - **Intentions** (yellow bulb) from the language servers and Forge's own PHP intentions;
 - refactorings and source actions, and links like **Generate…** (`Alt+Insert`) last.
 
+On an undeclared PHP name, the quick fixes include **Create method / field / constant /
+function / class**, see [PHP: Create from usage](docs/guide/user/php.md#create-from-usage).
+
 ![Context actions](docs/screenshots/context-actions.png)
 
 Use `Up` / `Down` and `Enter`, or click. An entry with `›` has more options ("Fix all '…'
@@ -1849,6 +1852,10 @@ class's own namespace need no import. Templates that use variables of their own 
 template's `${BACKED_TYPE}`) show a field for each one ("Backed type").
 
 ![New PHP Class dialog](docs/screenshots/file-templates-php-class-dialog.png)
+
+`Alt+Enter` › **Create class 'Receipt'** on an undeclared class opens the same dialog as
+**Create New PHP Class**, filled with the name, the namespace of the usage (and its PSR-4
+directory) and the template the usage needs; see [PHP: Create from usage](docs/guide/user/php.md#create-from-usage).
 
 The composer.json is the one set in Settings | Languages & Frameworks | PHP | Composer
 (`php.composer.json`). Its PSR-4 folders are relative to the folder of that file. The mapping is
@@ -5335,6 +5342,48 @@ Premium) and Forge's own PHP intentions, see [Editor](docs/guide/user/editor.md#
 
 Without Intelephense Premium the popup shows only Forge's intentions and says that the language
 server's quick fixes need Premium.
+
+### Create from usage
+
+On a name that is not declared anywhere, `Alt+Enter` offers to create it, like PHPStorm (red
+bulb, listed first):
+
+| Quick fix | Where | What is created |
+| --- | --- | --- |
+| Create method 'notifyCustomer' | `$this->notifyCustomer(…)`, `$order->ship(…)` when the variable's class is known, `Order::find(…)` (static), `parent::boot()` | the method in the receiver's class, after the method you are in (same class) or at the end of the class |
+| Create field 'total' | `$this->total`, `$order->total`, `self::$instances` (static) | a property after the other properties, typed from an assigned value when it is obvious (`$this->total = 0` → `private int $total;`) |
+| Create constant 'LIMIT' | `self::LIMIT`, `Order::LIMIT`; a bare `VERSION` | a class constant before the properties; a namespace constant after the imports. The value `null` is selected so you can type over it |
+| Create enum case 'Closed' | `Status::Closed` on an enum | `case Closed;` (backed enums get a value) |
+| Create function 'format_money' | an unknown function call | the function after the function or class you are in, else at the end of the file |
+| Create class / interface / trait 'Receipt' | `new Receipt()`, `Receipt::make()`, type hints, `extends`, `implements` (interface), a trait `use` (trait), `catch` and `throw new` (extends `\Exception`), imports | opens **Create New PHP Class** (see [File templates](docs/guide/user/file-templates.md)) |
+
+- **Parameters** come from the call's arguments: variables keep their names and their types
+  (typed parameters, `new`, `@var`, assignments), literals become `string $string`, `int $int`
+  …, `new Order()` becomes `Order $order`, `$order->getTotal()` becomes `$total`. Named
+  arguments keep their names; `...$rest` stays variadic.
+- **Return types** come from the usage when they are obvious: a call used as a statement is
+  `void`, `return $this->total()` takes the enclosing return type, conditions (`if`, `!`,
+  `&&`) are `bool`, `echo` and concatenation are `string`.
+- **Visibility**: `private` for `$this->` / `self::` calls into the class you are in, `protected`
+  for `parent::`, else `public`; interfaces get a declaration without a body.
+- The body comes from the code template **PHP Implemented Method Body** (Settings | Editor |
+  File and Code Templates | Code), and the brace placement from the PHP code style.
+- When the class lives in another file, Forge opens it and puts the caret into the new member.
+  The change is one undo step: `Ctrl+Z` in either file undoes it.
+- **Create class** opens the dialog with the name, the namespace the usage resolves to (its
+  imports and the current namespace) and the template (Class, Interface or Trait); the
+  directory follows the namespace through composer.json's PSR-4 rules. When you pick another
+  namespace, the usage gets a `use` import.
+- Nothing is offered for PHP's own functions and classes (`strlen()`, `\Exception`) when the
+  PHP stubs are available, nor when the language server already offers to create the same
+  symbol. Calls on variables whose class is unknown, comments and strings are left alone.
+- Remote projects work the same way: the analysis runs next to the files.
+
+![Create method from usage](docs/screenshots/create-from-usage-method.png)
+
+![The created method](docs/screenshots/create-from-usage-method-applied.png)
+
+![Create class from usage](docs/screenshots/create-from-usage-class.png)
 
 ## Hover documentation
 
@@ -12002,6 +12051,9 @@ and the browser-mode UI. Pure Rust, so it also runs as WebAssembly.
   and previewing the affected lines (Refactoring Preview).
 - `actions`: Show Context Actions: language server code actions and a pack's own intentions
   in PHPStorm's order, "fix all" actions nested under their quick fix, and the light bulb.
+  An action may carry a `caret` (where the caret goes after its edit) and `data` (arguments
+  of its UI action, which makes it a fix rather than a link); `lsp_creates` tells whether a
+  language server already offers to create a symbol (Create from usage).
 - `rename`: Rename (Shift+F6): the edit from references (PHP index fallback), identifier
   validation, the class file rename, conflicts, and the plan that splits an edit between open
   editors and the project backend.
@@ -14168,6 +14220,7 @@ PHPForge language pack: PHP support built on tree-sitter.
 
 | Module | Summary |
 | --- | --- |
+| `create.rs` | Create from usage (Alt+Enter on an unresolved name): "Create method / field / constant / enum case / function" as edits (another file's as a `WorkspaceEdit` with LSP positions) with the caret after the edit, parameters and return types inferred from the usage, bodies from the code template "PHP Implemented Method Body"; "Create class / interface / trait" as the `PhpCreateClass` action with the dialog's data. Each fix carries the `ExternalSymbol` the PHP stubs must not declare. |
 | `docblock.rs` | PHPDoc parser: summary/description, the standard tags (`@param`, `@return`, `@throws`, `@var`, `@property[-read\|-write]`, `@method`, `@deprecated`, `@see`, `@template`, `@extends`/`@implements`), static-analysis prefixes (`@phpstan-`/`@psalm-`) and Doctrine/Symfony style annotations (`@ORM\Column(type="string")`, `@Route("/x")`). |
 | `fuzzy.rs` | Fuzzy matcher for Go to Class / Go to Symbol: subsequence matching with bonuses for word starts, camel humps (`OrCo` -> `OrderController`) and consecutive runs. |
 | `generate.rs` | "Generate" actions (Alt+Insert): constructor, getters/setters, `__toString()`, override/implement method stubs and PHPDoc blocks. |
