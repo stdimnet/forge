@@ -1130,6 +1130,13 @@ impl Hub {
             },
             false,
         );
+        if let Some(via) = on.and_then(|h| h.remote()) {
+            self.console_text(
+                &key,
+                LogStream::Stdout,
+                format!("Running on {via} in {}\n", cwd.display()),
+            );
+        }
         // Compose and BuildKit write their progress to stderr; it is not an error there.
         let sink = |_stream, text| self.console_text(&key, LogStream::Stdout, text);
         let code = match on {

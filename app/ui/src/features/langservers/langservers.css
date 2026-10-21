@@ -393,6 +393,19 @@
 .ls-licence-dialog {
   width: 460px;
 }
+.ls-remote-note {
+  margin: 0 0 10px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-elevated);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.ls-dialog-host {
+  font-weight: 400;
+  color: var(--fg-muted);
+}
 .ls-dialog-title {
   display: flex;
   align-items: center;

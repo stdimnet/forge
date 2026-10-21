@@ -8,6 +8,7 @@ import { createMemo, createSignal, For, onMount, Show } from "solid-js";
 import { Download, ExternalLink, LoaderCircle, RefreshCw, Search } from "lucide-solid";
 import { serverKey, type ServerRow } from "@/ipc/langservers";
 import { settingsState } from "@/state/settings";
+import { workspace } from "@/state/workspace";
 import { draft, draftValue, openSettings, setDraft } from "@/features/settings/dialogState";
 import { SettingRow } from "@/features/settings/SchemaPage";
 import { InstallDialog } from "./InstallDialog";
@@ -244,6 +245,14 @@ export function LanguageServersPage(props: { groups?: string[] } = {}) {
         servers into that directory only, never globally, and needs nothing else: Forge downloads Node.js too when
         it is missing.
       </p>
+      </Show>
+      <Show when={workspace()?.remote}>
+        {(r) => (
+          <p class="ls-remote-note" data-testid="ls-remote-note">
+            This project is on <b>{r().label}</b>: its language servers run there, the list shows what is installed on
+            that host, and Install downloads Node.js and the servers into Forge's directory on the host.
+          </p>
+        )}
       </Show>
       <Show when={generalSpecs().length}>
         <div class="set-section-body ls-general">

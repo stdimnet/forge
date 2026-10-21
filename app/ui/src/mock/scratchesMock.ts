@@ -12,6 +12,8 @@ import { callWasmSync, forgeWasm, type ForgeWasm } from "@/wasm";
 import builtinPlugins from "./builtinPlugins.json";
 import { demoProjectName } from "./demoProject";
 import { mockFiles } from "./workspaceMock";
+import { currentRemote } from "./remoteMock";
+import { mockSettingValue } from "./settingsMock";
 
 const DIR = "~/.config/forge/scratches";
 const ROOT = `~/Projects/${demoProjectName}`;
@@ -340,7 +342,13 @@ registerMock("scratches_http_run", async ({ runId, content, line, env, source })
   if (resolved.problems.length) {
     text = callWasmSync<string>(w.scratches_http_render, { request, error: resolved.problems.join("\n") });
   } else {
-    text = callWasmSync<string>(w.scratches_http_render, { request, response });
+    // A remote project sends from its host through an SSH tunnel (`httpClient.sendFrom`).
+    const remote = currentRemote();
+    const viaHost = remote && mockSettingValue("httpClient.sendFrom") !== "local";
+    text =
+      callWasmSync<string>(w.scratches_http_render, { request }) +
+      (viaHost ? `\x1b[90mSent from ${remote.label} through an SSH tunnel\x1b[0m\n\n` : "") +
+      callWasmSync<string>(w.scratches_http_render, { response });
     if (resolved.handler) {
       const out = callWasmSync<{ globals: Record<string, string>; text: string }>(w.scratches_http_handler, {
         script: resolved.handler,
