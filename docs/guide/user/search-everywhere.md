@@ -126,7 +126,7 @@ The status bar shows the size of the search index ("272,700 files", or "Indexing
   the file at the match, `Escape` closes.
 
 Ignored files (`.gitignore`), binary files and very large files are skipped. In remote projects
-the search runs on the host.
+the search runs on the host, which keeps the result and sends the rows the list shows, so large results page the same way. A remote search cannot be cancelled once started.
 
 The **Text** tab of Search Everywhere uses the same search (from two characters on).
 

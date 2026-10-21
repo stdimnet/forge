@@ -69,6 +69,9 @@ struct Agent {
     backend: RwLock<Option<Arc<LocalBackend>>>,
     watch: Mutex<Option<WatchGuard>>,
     channels: Mutex<HashMap<u32, Channel>>,
+    /// The result the last `FindStart` kept, for `FindPage`.
+    found: Mutex<Option<(u64, Arc<forge_backend::Found>)>>,
+    next_found: std::sync::atomic::AtomicU64,
 }
 
 fn other(e: impl std::fmt::Display) -> ForgeError {
@@ -177,6 +180,23 @@ impl Agent {
                 exact,
             } => reply(self.backend()?.find_files(&query, limit, exact)?),
             Call::FindInFiles(req) => reply(self.backend()?.find_in_files(&req)?),
+            Call::FindStart { req, page_size } => {
+                let found = self
+                    .backend()?
+                    .find_in_files_found(&req, &std::sync::atomic::AtomicBool::new(false))?;
+                let id = self
+                    .next_found
+                    .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                let first = found.paged(id, page_size);
+                *self.found.lock().expect("found lock") = Some((id, Arc::new(found)));
+                reply(first)
+            }
+            Call::FindPage { id, offset, count } => {
+                match &*self.found.lock().expect("found lock") {
+                    Some((current, found)) if *current == id => reply(found.page(offset, count)),
+                    _ => Err(other("The search result was replaced by a newer search")),
+                }
+            }
             Call::FindSymbols {
                 query,
                 types_only,
@@ -467,6 +487,8 @@ where
         out,
         backend: RwLock::new(None),
         watch: Mutex::new(None),
+        found: Mutex::new(None),
+        next_found: std::sync::atomic::AtomicU64::new(1),
         channels: Mutex::new(HashMap::new()),
     });
 

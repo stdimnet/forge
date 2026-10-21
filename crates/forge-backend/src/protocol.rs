@@ -119,6 +119,18 @@ pub enum Call {
     },
     /// Find in Files -> `FindResult`
     FindInFiles(FindRequest),
+    /// Find in Files with the result kept on the agent for paging -> `FindPaged` (first rows)
+    FindStart {
+        req: FindRequest,
+        page_size: usize,
+    },
+    /// Rows `[offset, offset + count)` of the result `FindStart` returned `id` for
+    /// -> `Vec<FileMatches>`
+    FindPage {
+        id: u64,
+        offset: usize,
+        count: usize,
+    },
     /// Run git on the agent's machine -> `GitOutput`
     Git(GitRequest),
     /// -> `ProjectInfo`

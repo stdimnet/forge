@@ -1200,13 +1200,6 @@ font, size, line height and ligatures. See the [settings reference](docs/guide/r
 
 Source: docs/guide/user/search-everywhere.md
 
----
-title: Search Everywhere and Find Action
-description: Find files, classes, symbols and actions with Search Everywhere, Go to Class/File/Symbol and Find Action, and how fuzzy matching works.
-order: 30
-tags: [search, navigation, find action, go to file]
----
-
 # Search Everywhere and Find Action
 
 ## Search Everywhere
@@ -1328,7 +1321,7 @@ The status bar shows the size of the search index ("272,700 files", or "Indexing
   the file at the match, `Escape` closes.
 
 Ignored files (`.gitignore`), binary files and very large files are skipped. In remote projects
-the search runs on the host.
+the search runs on the host, which keeps the result and sends the rows the list shows, so large results page the same way. A remote search cannot be cancelled once started.
 
 The **Text** tab of Search Everywhere uses the same search (from two characters on).
 

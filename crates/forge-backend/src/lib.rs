@@ -47,7 +47,15 @@ pub enum Found {
     Full(FindResult),
     #[cfg(feature = "search")]
     Lazy(forge_search::FoundText),
+    /// Kept on another machine; rows come from there when a page asks for them.
+    Remote {
+        totals: FindPaged,
+        fetch: Arc<PageFetch>,
+    },
 }
+
+/// Fetches the rows `[offset, offset + count)` of a result kept by the remote agent.
+pub type PageFetch = dyn Fn(usize, usize) -> Vec<FileMatches> + Send + Sync;
 
 impl Found {
     /// The totals with the first `page_size` rows.
@@ -56,6 +64,11 @@ impl Found {
             Found::Full(r) => r.paged(id, page_size),
             #[cfg(feature = "search")]
             Found::Lazy(r) => r.paged(id, page_size),
+            Found::Remote { totals, .. } => FindPaged {
+                id,
+                files: self.page(0, page_size),
+                ..totals.clone()
+            },
         }
     }
 
@@ -65,6 +78,7 @@ impl Found {
             Found::Full(r) => r.page(offset, count),
             #[cfg(feature = "search")]
             Found::Lazy(r) => r.page(offset, count),
+            Found::Remote { fetch, .. } => fetch(offset, count),
         }
     }
 }

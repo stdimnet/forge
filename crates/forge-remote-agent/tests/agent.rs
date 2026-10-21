@@ -470,6 +470,21 @@ async fn search_index_runs_on_the_agent() {
             })
             .unwrap();
         assert_eq!(found.files[0].path, "app/Models/Order.php");
+
+        let paged = backend
+            .find_in_files_found(
+                &forge_core::search::FindRequest {
+                    query: "shop".into(),
+                    ..Default::default()
+                },
+                &std::sync::atomic::AtomicBool::new(false),
+            )
+            .unwrap();
+        let first = paged.paged(7, 1);
+        assert_eq!(first.id, 7);
+        assert_eq!(first.files[0].path, "app/Models/Order.php");
+        assert_eq!(first.file_count, found.files.len());
+        assert_eq!(paged.page(0, 1)[0].path, "app/Models/Order.php");
         assert_eq!(
             backend.find_files("order", 5, false).unwrap()[0].name,
             "Order.php"

@@ -452,6 +452,33 @@ impl Backend for RemoteBackend {
             .call(Call::FindInFiles(req.clone()), GIT_NETWORK_TIMEOUT)
     }
 
+    fn find_in_files_found(
+        &self,
+        req: &FindRequest,
+        _cancel: &std::sync::atomic::AtomicBool,
+    ) -> Result<crate::Found> {
+        let totals: forge_core::search::FindPaged = self.shared.call(
+            Call::FindStart {
+                req: req.clone(),
+                page_size: 0,
+            },
+            GIT_NETWORK_TIMEOUT,
+        )?;
+        let (shared, id) = (self.shared.clone(), totals.id);
+        let fetch = move |offset: usize, count: usize| {
+            shared
+                .call::<Vec<forge_core::search::FileMatches>>(
+                    Call::FindPage { id, offset, count },
+                    GIT_NETWORK_TIMEOUT,
+                )
+                .unwrap_or_default()
+        };
+        Ok(crate::Found::Remote {
+            totals,
+            fetch: Arc::new(fetch),
+        })
+    }
+
     fn find_symbols(
         &self,
         query: &str,
