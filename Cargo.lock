@@ -1912,6 +1912,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "forge-colors"
+version = "0.1.0"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "forge-containers"
 version = "0.1.0"
 dependencies = [
@@ -1988,6 +1995,14 @@ dependencies = [
 
 [[package]]
 name = "forge-editing"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "forge-emmet"
 version = "0.1.0"
 dependencies = [
  "serde",
