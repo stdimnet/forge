@@ -13,6 +13,7 @@ import "./fuzzyMock";
 import "./searchMock";
 import "./findMock";
 import "./replaceMock";
+import "./workbenchMock";
 import "./gitMock";
 import "./phpMock";
 import "./codeintelMock";

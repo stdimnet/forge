@@ -1814,6 +1814,7 @@ dependencies = [
  "forge-agent-cli",
  "forge-ai",
  "forge-backend",
+ "forge-bookmarks",
  "forge-containers",
  "forge-core",
  "forge-db",
@@ -1849,12 +1850,10 @@ dependencies = [
  "tauri-plugin-dialog",
  "tauri-plugin-single-instance",
  "tauri-plugin-updater",
+ "tempfile",
  "tokio",
  "tracing",
  "tracing-subscriber",
- "webforge-fw-angular",
- "webforge-fw-react",
- "webforge-fw-vue",
  "webforge-lang-web",
 ]
 
@@ -1885,6 +1884,18 @@ dependencies = [
  "tempfile",
  "tokio",
  "tracing",
+ "webforge-fw-angular",
+ "webforge-fw-react",
+ "webforge-fw-vue",
+ "webforge-lang-web",
+]
+
+[[package]]
+name = "forge-bookmarks"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -2180,6 +2191,7 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
+ "webforge-lang-web",
 ]
 
 [[package]]
@@ -2270,6 +2282,7 @@ name = "forge-wasm"
 version = "0.1.0"
 dependencies = [
  "forge-agent-cli",
+ "forge-bookmarks",
  "forge-codeintel",
  "forge-containers",
  "forge-filetypes",

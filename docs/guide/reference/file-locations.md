@@ -49,6 +49,7 @@ index falls back to `<project>/.forge/cache/php-index.json`.
 | --- | --- |
 | `langservers/` | language servers installed by Forge (`node_modules/.bin`, `package.json`, `.forge-update-check.json`) |
 | `runtimes/node-<version>/` | the Node.js build Forge downloaded for language servers (only when no Node.js 18+ was installed) |
+| `projects/<name>-<hash>/bookmarks.json` | the bookmarks and bookmark lists of a project (`<hash>` of the project root, for remote projects of `user@host:/path`); kept out of the project |
 
 ## In the project — `<project>/.forge/`
 

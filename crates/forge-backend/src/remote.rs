@@ -5,8 +5,8 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, Weak};
 use std::time::Duration;
 
-use forge_core::search::{FindRequest, FindResult};
-use forge_core::{FileEntry, FileMatch, Result};
+use forge_core::search::{FindRequest, FindResult, TodoRequest, TodoResult};
+use forge_core::{CollectRequest, FileEntry, FileMatch, Result, SourceFile};
 use forge_lsp::launch::{ServerIo, ServerProcess};
 use forge_lsp::{LspServerConfig as LspConfig, ServerLauncher};
 use forge_process::{CommandLine, PtyEvent, PtySink, RunEvent, RunSink};
@@ -24,14 +24,17 @@ use phpforge_lang_php::IndexStats;
 use serde::de::DeserializeOwned;
 
 use crate::frameworks::FrameworkCall;
-use crate::langservers::{LangServersAnswer, LangServersRequest};
+use crate::langservers::{InstallRequest, InstallSink, LangServersAnswer, LangServersRequest};
 use crate::php::ProgressSink;
 use crate::protocol::{Call, Event, Opened, PhpCall, TerminalOpened};
 use crate::rpc::{connection_lost, RpcClient};
+use crate::web::WebCall;
 use crate::{
     Backend, BackendInfo, FsSink, PhpBackend, Process, RemoteHost, Terminal, TerminalSpec, Tunnels,
     WatchGuard,
 };
+use forge_langservers::install::InstallOutcome;
+use forge_langservers::managed::PackageUpdate;
 
 /// Default time to wait for an answer.
 const TIMEOUT: Duration = Duration::from_secs(60);
@@ -41,6 +44,8 @@ const GIT_NETWORK_TIMEOUT: Duration = Duration::from_secs(600);
 const INDEX_TIMEOUT: Duration = Duration::from_secs(3600);
 /// A framework scan or language scan of a large project (artisan may run too).
 const SCAN_TIMEOUT: Duration = Duration::from_secs(300);
+/// Downloading Node.js and npm packages on a slow host.
+const INSTALL_TIMEOUT: Duration = Duration::from_secs(3600);
 
 /// The current connection to the agent; it changes when the session reconnects.
 pub trait Connection: Send + Sync {
@@ -68,6 +73,7 @@ struct Routes {
     pty: HashMap<u32, PtySink>,
     run: HashMap<u32, RunSink>,
     progress: Option<ProgressSink>,
+    install: HashMap<u32, InstallSink>,
 }
 
 struct Shared {
@@ -113,6 +119,18 @@ impl Shared {
                     routes.run.get(&channel).cloned()
                 };
                 drop(routes);
+                if let Some(sink) = sink {
+                    sink(event);
+                }
+            }
+            Event::Install { channel, event } => {
+                let sink = self
+                    .routes
+                    .lock()
+                    .expect("routes lock")
+                    .install
+                    .get(&channel)
+                    .cloned();
                 if let Some(sink) = sink {
                     sink(event);
                 }
@@ -505,6 +523,16 @@ impl Backend for RemoteBackend {
         self.shared.call(Call::SearchStatus, TIMEOUT)
     }
 
+    fn find_todos(&self, req: &TodoRequest) -> Result<TodoResult> {
+        self.shared
+            .call(Call::FindTodos(req.clone()), GIT_NETWORK_TIMEOUT)
+    }
+
+    fn collect_files(&self, req: &CollectRequest) -> Result<Vec<SourceFile>> {
+        self.shared
+            .call(Call::CollectFiles(req.clone()), SCAN_TIMEOUT)
+    }
+
     fn git(&self) -> Arc<dyn GitExec> {
         Arc::new(RemoteGit {
             shared: self.shared.clone(),
@@ -601,6 +629,70 @@ impl Backend for RemoteBackend {
 
     fn langservers(&self, req: LangServersRequest) -> Result<LangServersAnswer> {
         self.shared.call(Call::LangServers(req), SCAN_TIMEOUT)
+    }
+
+    fn install_langserver(
+        &self,
+        req: InstallRequest,
+        cancel: Arc<tokio::sync::Notify>,
+        sink: InstallSink,
+    ) -> Result<InstallOutcome> {
+        let client = self.shared.client()?;
+        let channel = client.new_channel();
+        self.shared
+            .routes
+            .lock()
+            .expect("routes lock")
+            .install
+            .insert(channel, sink);
+        // Cancel = close the channel; the agent stops the install and answers `Cancelled`.
+        let done = Arc::new(tokio::sync::Notify::new());
+        if let Ok(rt) = tokio::runtime::Handle::try_current() {
+            let (client, done) = (client.clone(), done.clone());
+            rt.spawn(async move {
+                tokio::select! {
+                    _ = cancel.notified() => client.close_channel(channel),
+                    _ = done.notified() => {}
+                }
+            });
+        }
+        let result = client.call_blocking(
+            Call::LangServerInstall {
+                channel,
+                request: req,
+            },
+            INSTALL_TIMEOUT,
+        );
+        done.notify_one();
+        self.shared
+            .routes
+            .lock()
+            .expect("routes lock")
+            .install
+            .remove(&channel);
+        result
+    }
+
+    fn langserver_updates(
+        &self,
+        registry: Option<String>,
+        node_mirror: Option<String>,
+        force: bool,
+    ) -> Result<Option<Vec<PackageUpdate>>> {
+        self.shared.call(
+            Call::LangServerUpdates {
+                registry,
+                node_mirror,
+                force,
+            },
+            SCAN_TIMEOUT,
+        )
+    }
+
+    fn web(&self, call: WebCall) -> Result<Vec<u8>> {
+        self.shared
+            .client()?
+            .call_raw_blocking(Call::Web(call), SCAN_TIMEOUT)
     }
 
     fn find_executable(&self, names: &[String], custom: Option<&str>) -> Result<Option<PathBuf>> {

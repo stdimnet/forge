@@ -581,6 +581,96 @@
           "order": 41
         },
         {
+          "key": "editor.tabs.limit",
+          "title": "Tab limit",
+          "description": "Maximum number of tabs per editor group; 0 keeps every tab open. Pinned tabs are never closed by the limit.",
+          "type": "int",
+          "min": 0,
+          "max": 100,
+          "default": 10,
+          "group": "editor.tabs",
+          "section": "Closing Policy",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "editor.tabs.closeUnmodifiedFirst",
+          "title": "When the tab limit is reached, close non-modified tabs first",
+          "type": "bool",
+          "default": true,
+          "group": "editor.tabs",
+          "section": "Closing Policy",
+          "project": false,
+          "order": 1
+        },
+        {
+          "key": "editor.tabs.activateOnClose",
+          "title": "When the current tab is closed, activate",
+          "type": "enum",
+          "options": [
+            {
+              "value": "left",
+              "label": "The tab on the left"
+            },
+            {
+              "value": "right",
+              "label": "The tab on the right"
+            },
+            {
+              "value": "recent",
+              "label": "Most recently opened tab"
+            }
+          ],
+          "default": "recent",
+          "group": "editor.tabs",
+          "section": "Closing Policy",
+          "project": false,
+          "order": 2
+        },
+        {
+          "key": "editor.tabs.showPinnedIcon",
+          "title": "Show pin icon on pinned tabs",
+          "type": "bool",
+          "default": true,
+          "group": "editor.tabs",
+          "section": "Appearance",
+          "project": false,
+          "order": 10
+        },
+        {
+          "key": "todo.patterns",
+          "title": "Patterns",
+          "description": "Regular expressions matched in comments, one per entry. Add a tab and `case` after a pattern to make it case-sensitive.",
+          "type": "list",
+          "default": [
+            "\\btodo\\b.*",
+            "\\bfixme\\b.*"
+          ],
+          "group": "editor.todo",
+          "section": "Patterns",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "notifications.balloons",
+          "title": "Display balloon notifications",
+          "type": "bool",
+          "default": true,
+          "group": "notifications",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "notifications.groups",
+          "title": "Notification groups",
+          "description": "How each group is shown, one entry per group: the group name, a tab, then `balloon`, `sticky` or `log`.",
+          "type": "list",
+          "default": [],
+          "group": "notifications",
+          "project": false,
+          "order": 1
+        },
+        {
           "key": "editor.font.family",
           "title": "Font",
           "type": "enum",
@@ -812,6 +902,26 @@
           "section": "Indexing",
           "project": false,
           "order": 10
+        },
+        {
+          "key": "httpClient.sendFrom",
+          "title": "Send requests from",
+          "description": "Remote projects only: \"Remote host\" sends the requests of .http files through an SSH tunnel from the project's host, so localhost URLs reach the services running there. \"This machine\" sends them from here.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "local",
+              "label": "This machine"
+            },
+            {
+              "value": "remote",
+              "label": "Remote host"
+            }
+          ],
+          "default": "remote",
+          "group": "tools.http-client",
+          "project": true,
+          "order": 1
         }
       ],
       "lspServers": [],
@@ -1452,13 +1562,24 @@
         {
           "key": "docker.ssh.socketPath",
           "title": "Docker socket on the host",
-          "description": "Empty: /var/run/docker.sock (rootless: /run/user/<uid>/docker.sock).",
+          "description": "For SSH connections and Docker on a remote project's host. Empty: /var/run/docker.sock (rootless: /run/user/<uid>/docker.sock).",
           "type": "string",
           "default": "",
           "group": "build.docker",
           "section": "Connection",
           "project": false,
           "order": 44
+        },
+        {
+          "key": "docker.remoteProjectHost",
+          "title": "In remote projects, connect to Docker on the remote host",
+          "description": "Uses the Docker daemon of the project's host through the project's SSH connection (no extra login); compose, builds and exec terminals run on that host. Off: the connection above.",
+          "type": "bool",
+          "default": true,
+          "group": "build.docker",
+          "section": "Connection",
+          "project": false,
+          "order": 45
         },
         {
           "key": "docker.context",

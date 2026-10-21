@@ -2,7 +2,10 @@
 //! follows the Engine's events and reconnects), the project's compose files, the kubeconfig
 //! with lazily loaded namespaces and workloads, running log streams and the consoles (Log
 //! tabs). The app only forwards [`HubEvent`]s to the UI and calls these methods from IPC
-//! commands.
+//! commands. The open project is a [`ProjectHost`]: for a remote project its compose files
+//! are read on the host and compose / build commands run there, and with
+//! [`HubSettings::project_docker`] the Docker daemon of the host is used through the
+//! project's SSH connection.
 
 use std::collections::{BTreeMap, HashMap};
 use std::path::{Path, PathBuf};
@@ -23,6 +26,7 @@ use crate::kube::{self, KubeConfig};
 use crate::kubeclient::KubeClient;
 use crate::logs::{pod_log_prefix, LinePrefixer, LogStream};
 use crate::portforward::PortForward;
+use crate::project::{LocalProject, ProjectHost};
 use crate::tree::{
     self, Action, ConnectionState, Details, KubeInput, Loaded, Node, ServicesInput, Target,
 };
@@ -42,6 +46,10 @@ pub struct HubSettings {
     pub default_namespace: String,
     /// Registry user names by server (`docker.io` → `acme`); passwords are in the keychain.
     pub registries: BTreeMap<String, String>,
+    /// In a remote project: connect to Docker on the project's host
+    /// (`docker.remoteProjectHost`).
+    #[serde(default)]
+    pub project_docker: bool,
 }
 
 /// What the UI is told.
@@ -83,7 +91,7 @@ struct Console {
 #[derive(Default)]
 struct State {
     settings: HubSettings,
-    root: Option<PathBuf>,
+    project: Option<Arc<dyn ProjectHost>>,
     docker: tree::DockerInput,
     client: Option<DockerClient>,
     compose_files: Vec<ComposeFile>,
@@ -182,55 +190,70 @@ fn current_uid() -> u32 {
         .unwrap_or(1000)
 }
 
+/// Where a CLI command runs (`None`: this machine), the program and its environment.
+type CliPlace = (Option<Arc<dyn ProjectHost>>, String, Vec<(String, String)>);
+
+/// Compose files of a project folder on this machine (see [`find_compose_files_in`]).
+pub fn find_compose_files(root: &Path) -> Vec<ComposeFile> {
+    find_compose_files_in(&LocalProject::new(root))
+}
+
 /// Compose files of a project: the root and one directory below (not `vendor`,
 /// `node_modules` or hidden ones), each directory's main file merged with its override file.
-pub fn find_compose_files(root: &Path) -> Vec<ComposeFile> {
-    let mut dirs = vec![root.to_path_buf()];
-    if let Ok(entries) = std::fs::read_dir(root) {
-        let mut subs: Vec<PathBuf> = entries
-            .flatten()
-            .filter(|e| e.file_type().map(|t| t.is_dir()).unwrap_or(false))
-            .filter(|e| {
-                let n = e.file_name().to_string_lossy().into_owned();
-                !n.starts_with('.')
-                    && !matches!(
-                        n.as_str(),
-                        "vendor" | "node_modules" | "target" | "storage" | "var"
-                    )
-            })
-            .map(|e| e.path())
-            .collect();
-        subs.sort();
-        dirs.extend(subs);
-    }
-    let process_env: BTreeMap<String, String> = std::env::vars().collect();
+/// Reads through `project`, so a remote project's files are read on its host. Blocks.
+pub fn find_compose_files_in(project: &dyn ProjectHost) -> Vec<ComposeFile> {
+    let root = project.root();
+    let mut dirs = vec![String::new()];
+    let mut subs: Vec<String> = project
+        .dirs()
+        .into_iter()
+        .filter(|n| {
+            !n.starts_with('.')
+                && !matches!(
+                    n.as_str(),
+                    "vendor" | "node_modules" | "target" | "storage" | "var"
+                )
+        })
+        .collect();
+    subs.sort();
+    dirs.extend(subs);
+    // Variables of this machine only apply to a project on this machine.
+    let process_env: BTreeMap<String, String> = if project.remote().is_none() {
+        std::env::vars().collect()
+    } else {
+        BTreeMap::new()
+    };
+    let join = |dir: &str, name: &str| {
+        if dir.is_empty() {
+            name.to_string()
+        } else {
+            format!("{dir}/{name}")
+        }
+    };
     let mut out = Vec::new();
     for dir in dirs {
-        let Some(main) = compose::COMPOSE_FILE_NAMES
+        let Some((main, text)) = compose::COMPOSE_FILE_NAMES
             .iter()
-            .map(|n| dir.join(n))
-            .find(|p| p.is_file())
+            .map(|n| join(&dir, n))
+            .find_map(|p| project.read(&p).map(|t| (p, t)))
         else {
             continue;
         };
         let mut env = process_env.clone();
-        if let Ok(text) = std::fs::read_to_string(dir.join(".env")) {
+        if let Some(text) = project.read(&join(&dir, ".env")) {
             env.extend(compose::parse_env_file(&text));
         }
-        let rel = |p: &Path| {
-            p.strip_prefix(root)
-                .unwrap_or(p)
-                .to_string_lossy()
-                .replace('\\', "/")
-        };
-        let Ok(text) = std::fs::read_to_string(&main) else {
-            continue;
-        };
-        let mut file = compose::parse(&rel(&main), &text, &env);
+        let mut file = compose::parse(&main, &text, &env);
         // The directory name comes from the absolute path.
         if !text.lines().any(|l| l.starts_with("name:")) {
+            let dir_path = if dir.is_empty() {
+                root.to_path_buf()
+            } else {
+                root.join(&dir)
+            };
             let name = compose::normalize_project_name(
-                &dir.file_name()
+                &dir_path
+                    .file_name()
                     .map(|n| n.to_string_lossy().into_owned())
                     .unwrap_or_default(),
             );
@@ -238,20 +261,30 @@ pub fn find_compose_files(root: &Path) -> Vec<ComposeFile> {
                 file.project = name;
             }
         }
-        if let Some(over) = compose::OVERRIDE_FILE_NAMES
+        if let Some((over, t)) = compose::OVERRIDE_FILE_NAMES
             .iter()
-            .map(|n| dir.join(n))
-            .find(|p| p.is_file())
+            .map(|n| join(&dir, n))
+            .find_map(|p| project.read(&p).map(|t| (p, t)))
         {
-            if let Ok(t) = std::fs::read_to_string(&over) {
-                let project = file.project.clone();
-                file = compose::merge(file, compose::parse(&rel(&over), &t, &env));
-                file.project = project;
-            }
+            let project = file.project.clone();
+            file = compose::merge(file, compose::parse(&over, &t, &env));
+            file.project = project;
+            file.override_path = Some(over);
         }
         out.push(file);
     }
     out
+}
+
+/// Compose files of `project` read off the async runtime (a remote project's files come
+/// over the network).
+async fn load_compose_files(project: Option<Arc<dyn ProjectHost>>) -> Vec<ComposeFile> {
+    match project {
+        Some(p) => tokio::task::spawn_blocking(move || find_compose_files_in(p.as_ref()))
+            .await
+            .unwrap_or_default(),
+        None => Vec::new(),
+    }
 }
 
 fn expand_home(p: &str) -> PathBuf {
@@ -390,12 +423,27 @@ impl Hub {
         }
     }
 
-    /// Apply settings and the project root; restarts the Docker watcher when the connection
-    /// settings changed.
-    pub fn configure(self: &Arc<Self>, settings: HubSettings, root: Option<PathBuf>) {
+    /// Apply settings and the open project; restarts the Docker watcher when the connection
+    /// settings (or the remote host whose Docker is used) changed. Reads the project's
+    /// compose files, so call it off the async runtime.
+    pub fn configure(
+        self: &Arc<Self>,
+        settings: HubSettings,
+        project: Option<Arc<dyn ProjectHost>>,
+    ) {
+        let compose_files = project
+            .as_deref()
+            .map(find_compose_files_in)
+            .unwrap_or_default();
         let restart = {
             let mut s = self.lock();
-            let restart = s.settings.docker != settings.docker || s.watcher.is_none();
+            let host = |p: &Option<Arc<dyn ProjectHost>>| {
+                p.as_ref().and_then(|p| p.remote().map(str::to_string))
+            };
+            let restart = s.settings.docker != settings.docker
+                || s.settings.project_docker != settings.project_docker
+                || (settings.project_docker && host(&s.project) != host(&project))
+                || s.watcher.is_none();
             let kube_changed = s.settings.kubeconfig != settings.kubeconfig
                 || s.settings.default_context != settings.default_context
                 || s.settings.default_namespace != settings.default_namespace
@@ -404,9 +452,9 @@ impl Hub {
                 s.kube = load_kube(&settings);
                 s.kube_clients.clear();
             }
-            s.compose_files = root.as_deref().map(find_compose_files).unwrap_or_default();
+            s.compose_files = compose_files;
             s.settings = settings;
-            s.root = root;
+            s.project = project;
             restart
         };
         if restart {
@@ -417,13 +465,11 @@ impl Hub {
 
     /// Re-read compose files and the kubeconfig and refresh Docker.
     pub async fn refresh(self: &Arc<Self>) {
+        let project = self.lock().project.clone();
+        let compose_files = load_compose_files(project).await;
         {
             let mut s = self.lock();
-            s.compose_files = s
-                .root
-                .as_deref()
-                .map(find_compose_files)
-                .unwrap_or_default();
+            s.compose_files = compose_files;
             let settings = s.settings.clone();
             let namespaces = std::mem::take(&mut s.kube.namespaces);
             let workloads = std::mem::take(&mut s.kube.workloads);
@@ -459,16 +505,47 @@ impl Hub {
         }
     }
 
+    /// Compose files changed: read them again (in the background) and update the tree.
     pub fn compose_files_changed(self: &Arc<Self>) {
-        {
-            let mut s = self.lock();
-            s.compose_files = s
-                .root
-                .as_deref()
-                .map(find_compose_files)
-                .unwrap_or_default();
+        let hub = self.clone();
+        self.runtime.spawn(async move {
+            let project = hub.lock().project.clone();
+            let compose_files = load_compose_files(project).await;
+            hub.lock().compose_files = compose_files;
+            hub.emit_tree();
+        });
+    }
+
+    /// The daemon to use: the project host's in a remote project with
+    /// [`HubSettings::project_docker`], else the one of the settings / environment.
+    fn endpoint(s: &State, env: &endpoint::Environment) -> Result<Endpoint> {
+        if let (true, Some(via)) = (
+            s.settings.project_docker,
+            s.project.as_ref().and_then(|p| p.remote()),
+        ) {
+            let socket = s.settings.docker.ssh_socket.trim();
+            return Ok(Endpoint::ProjectHost {
+                via: via.to_string(),
+                socket: if socket.is_empty() {
+                    endpoint::DEFAULT_REMOTE_SOCKET.to_string()
+                } else {
+                    socket.to_string()
+                },
+            });
         }
-        self.emit_tree();
+        endpoint::resolve(&s.settings.docker, env, &|p| Path::new(p).exists())
+    }
+
+    fn client_for(s: &State, ep: &Endpoint) -> Result<DockerClient> {
+        match (ep, &s.project) {
+            (Endpoint::ProjectHost { socket, .. }, Some(project)) => {
+                Ok(DockerClient::with_transport(
+                    crate::http::Transport::Project(project.clone(), socket.clone()),
+                    ep.clone(),
+                ))
+            }
+            _ => DockerClient::new(ep),
+        }
     }
 
     fn start_watcher(self: &Arc<Self>) {
@@ -480,7 +557,7 @@ impl Hub {
             s.generation += 1;
             s.client = None;
             let env = process_environment();
-            let endpoint = endpoint::resolve(&s.settings.docker, &env, &|p| Path::new(p).exists());
+            let endpoint = Self::endpoint(&s, &env);
             match endpoint {
                 Ok(ep) => {
                     s.docker = tree::DockerInput {
@@ -490,7 +567,7 @@ impl Hub {
                         snapshot: None,
                         contexts: env.contexts,
                     };
-                    match DockerClient::new(&ep) {
+                    match Self::client_for(&s, &ep) {
                         Ok(c) => s.client = Some(c),
                         Err(e) => {
                             s.docker.state = ConnectionState::Failed;
@@ -688,7 +765,10 @@ impl Hub {
     fn console_input(&self, key: &str, input: RunInput, reset: bool) {
         let delta = {
             let mut s = self.lock();
-            let root = s.root.as_ref().map(|r| r.to_string_lossy().into_owned());
+            let root = s
+                .project
+                .as_ref()
+                .map(|p| p.root().to_string_lossy().into_owned());
             if reset {
                 s.consoles.remove(key);
             }
@@ -1001,25 +1081,42 @@ impl Hub {
         self.emit_tree();
     }
 
+    /// The docker CLI and its environment for commands run on this machine (or, with the
+    /// project host's daemon, on that host, where `docker` is on its `PATH`).
     fn docker_cli(&self) -> (String, Vec<(String, String)>) {
         let s = self.lock();
-        let cli = if s.settings.docker_cli.trim().is_empty() {
+        let endpoint = Self::endpoint(&s, &process_environment());
+        let on_host = matches!(endpoint, Ok(Endpoint::ProjectHost { .. }));
+        let cli = if s.settings.docker_cli.trim().is_empty() || on_host {
             "docker".to_string()
         } else {
             s.settings.docker_cli.clone()
         };
-        let env = endpoint::resolve(&s.settings.docker, &process_environment(), &|p| {
-            Path::new(p).exists()
-        })
-        .map(|e| e.cli_env())
-        .unwrap_or_default();
+        let env = endpoint.map(|e| e.cli_env()).unwrap_or_default();
         (cli, env)
+    }
+
+    /// Where compose and build commands run: on a remote project's host when the files
+    /// are there (`project_files`) or Docker of the host is used; else on this machine.
+    /// The command line (`docker`, its environment) to use there.
+    fn cli_for(&self, project_files: bool) -> CliPlace {
+        let (cli, env) = self.docker_cli();
+        let s = self.lock();
+        let remote = s.project.clone().filter(|p| p.remote().is_some());
+        let host_docker = s.settings.project_docker && remote.is_some();
+        match remote {
+            Some(p) if host_docker => (Some(p), cli, env),
+            // The host's own Docker: no DOCKER_HOST of this machine.
+            Some(p) if project_files => (Some(p), "docker".into(), Vec::new()),
+            _ => (None, cli, env),
+        }
     }
 
     /// Run a CLI command, streaming into `run:<node_id>`.
     async fn run_cli(
         &self,
         node_id: &str,
+        on: Option<&dyn ProjectHost>,
         program: &str,
         args: &[String],
         env: &[(String, String)],
@@ -1033,11 +1130,24 @@ impl Hub {
             },
             false,
         );
+        if let Some(via) = on.and_then(|h| h.remote()) {
+            self.console_text(
+                &key,
+                LogStream::Stdout,
+                format!("Running on {via} in {}\n", cwd.display()),
+            );
+        }
         // Compose and BuildKit write their progress to stderr; it is not an error there.
-        let code = crate::cli::run_streaming(program, args, env, cwd, |_stream, text| {
-            self.console_text(&key, LogStream::Stdout, text)
-        })
-        .await;
+        let sink = |_stream, text| self.console_text(&key, LogStream::Stdout, text);
+        let code = match on {
+            Some(host) => {
+                let mut env = env.to_vec();
+                env.push(("COMPOSE_PROGRESS".into(), "plain".into()));
+                env.push(("BUILDKIT_PROGRESS".into(), "plain".into()));
+                host.run(program, args, &env, cwd, Box::new(sink)).await
+            }
+            None => crate::cli::run_streaming(program, args, env, cwd, sink).await,
+        };
         match code {
             Ok(code) => {
                 self.console_input(&key, RunInput::Exited { code, signal: None }, false);
@@ -1074,9 +1184,10 @@ impl Hub {
                     .iter()
                     .find(|f| f.project == project)
                     .cloned(),
-                s.root.clone(),
+                s.project.as_ref().map(|p| p.root().to_path_buf()),
             )
         };
+        let (host, cli, env) = self.cli_for(file.is_some());
         let (files, cwd) = match (&file, &root) {
             (Some(f), Some(root)) => {
                 let path = root.join(&f.path);
@@ -1088,11 +1199,9 @@ impl Hub {
                     .file_name()
                     .map(|n| n.to_string_lossy().into_owned())
                     .unwrap_or_default()];
-                if let Some(over) = compose::OVERRIDE_FILE_NAMES
-                    .iter()
-                    .find(|n| dir.join(n).is_file())
-                {
-                    files.push(over.to_string());
+                // The override file was merged when the files were read.
+                if let Some(over) = f.override_path.as_deref() {
+                    files.push(over.rsplit('/').next().unwrap_or(over).to_string());
                 }
                 (files, dir)
             }
@@ -1140,7 +1249,6 @@ impl Hub {
             services: services.clone(),
             build: false,
         };
-        let (cli, env) = self.docker_cli();
         let node = Target::ComposeProject {
             project: project.to_string(),
         }
@@ -1163,7 +1271,14 @@ impl Hub {
             self.set_busy(b, true);
         }
         let r = self
-            .run_cli(&node, &cli, &compose::compose_args(&cmd), &env, &cwd)
+            .run_cli(
+                &node,
+                host.as_deref(),
+                &cli,
+                &compose::compose_args(&cmd),
+                &env,
+                &cwd,
+            )
             .await;
         for b in &busy {
             self.set_busy(b, false);
@@ -1187,12 +1302,7 @@ impl Hub {
             Some(p) => p,
             None => {
                 // A compose file outside the scanned directories: parse it now.
-                let root = self
-                    .lock()
-                    .root
-                    .clone()
-                    .ok_or_else(|| Error("No project is open".into()))?;
-                let text = std::fs::read_to_string(root.join(path))?;
+                let (root, text) = self.read_project_file(path).await?;
                 let mut f = compose::parse(path, &text, &Default::default());
                 if !text.lines().any(|l| l.starts_with("name:")) {
                     let dir = root
@@ -1212,32 +1322,45 @@ impl Hub {
             .await
     }
 
+    /// The project root and a project file's text, read off the async runtime.
+    async fn read_project_file(&self, path: &str) -> Result<(PathBuf, String)> {
+        let project = self
+            .lock()
+            .project
+            .clone()
+            .ok_or_else(|| Error("No project is open".into()))?;
+        let root = project.root().to_path_buf();
+        let rel = path.to_string();
+        let text = tokio::task::spawn_blocking(move || project.read(&rel))
+            .await
+            .map_err(|e| Error(e.to_string()))?
+            .ok_or_else(|| Error(format!("{path} was not found")))?;
+        Ok((root, text))
+    }
+
     /// Dockerfile ▶: `docker build` then `docker run -d` (replacing an old container of the
     /// same name). Output goes to the Docker node's Log tab.
     pub async fn dockerfile_run(&self, path: &str) -> Result<()> {
-        let root = self
-            .lock()
-            .root
-            .clone()
-            .ok_or_else(|| Error("No project is open".into()))?;
-        let content = std::fs::read_to_string(root.join(path))?;
+        let (root, content) = self.read_project_file(path).await?;
         let project = root
             .file_name()
             .map(|n| n.to_string_lossy().into_owned())
             .unwrap_or_default();
         let plan = gutter::dockerfile_run(path, &project, &content);
-        let (cli, env) = self.docker_cli();
+        let (host, cli, env) = self.cli_for(true);
         let node = Target::Docker.node_id();
         self.set_busy(&node, true);
         let mut r = self
-            .run_cli(&node, &cli, &plan.build_args, &env, &root)
+            .run_cli(&node, host.as_deref(), &cli, &plan.build_args, &env, &root)
             .await;
         if r.is_ok() {
             let client = self.lock().client.clone();
             if let Some(client) = client {
                 let _ = client.remove_container(&plan.container, true).await;
             }
-            r = self.run_cli(&node, &cli, &plan.run_args, &env, &root).await;
+            r = self
+                .run_cli(&node, host.as_deref(), &cli, &plan.run_args, &env, &root)
+                .await;
         }
         self.set_busy(&node, false);
         let _ = self.refresh_docker().await;
@@ -1553,11 +1676,17 @@ impl Hub {
             _ => None,
         };
         let (id, name) = found.ok_or_else(|| Error("No container to open a terminal in".into()))?;
-        Ok(if attach {
+        let mut cmd = if attach {
             exec::docker_attach(&cli, &id, &name, env)
         } else {
             exec::docker_exec(&cli, &id, &name, env)
-        })
+        };
+        // With the Docker daemon of a remote project's host, `docker` runs on that host.
+        cmd.on_host = matches!(
+            Self::endpoint(&self.lock(), &process_environment()),
+            Ok(Endpoint::ProjectHost { .. })
+        );
+        Ok(cmd)
     }
 
     /// The resolved endpoint (Settings page "Test connection").
@@ -2125,6 +2254,197 @@ mod tests {
         assert!(tree[0].children[0]
             .label
             .starts_with("Cannot connect: Cannot connect to /nonexistent/docker.sock"));
+        hub.shutdown();
+    }
+
+    /// Program, arguments, working directory and environment of a command run on the host.
+    type FakeRun = (String, Vec<String>, PathBuf, Vec<(String, String)>);
+
+    /// A remote project as the app's backend serves it: files in memory, commands recorded,
+    /// the host's Docker socket forwarded to a fake daemon.
+    struct FakeHost {
+        root: PathBuf,
+        files: BTreeMap<String, String>,
+        daemon: String,
+        runs: Mutex<Vec<FakeRun>>,
+        sockets: Mutex<Vec<String>>,
+    }
+
+    impl ProjectHost for FakeHost {
+        fn root(&self) -> &Path {
+            &self.root
+        }
+        fn remote(&self) -> Option<&str> {
+            Some("deploy@shop.example.com")
+        }
+        fn read(&self, rel: &str) -> Option<String> {
+            self.files.get(rel).cloned()
+        }
+        fn dirs(&self) -> Vec<String> {
+            vec!["vendor".into(), "worker".into()]
+        }
+        fn run<'a>(
+            &'a self,
+            program: &'a str,
+            args: &'a [String],
+            env: &'a [(String, String)],
+            cwd: &'a Path,
+            mut sink: crate::project::OutputSink<'a>,
+        ) -> crate::project::BoxFuture<'a, Result<Option<i32>>> {
+            self.runs.lock().unwrap().push((
+                program.to_string(),
+                args.to_vec(),
+                cwd.to_path_buf(),
+                env.to_vec(),
+            ));
+            sink(LogStream::Stderr, "Container shop-app-1  Started\n".into());
+            Box::pin(async { Ok(Some(0)) })
+        }
+        fn open_socket(
+            &self,
+            path: &str,
+        ) -> crate::project::BoxFuture<'static, Result<crate::http::BoxIo>> {
+            self.sockets.lock().unwrap().push(path.to_string());
+            let daemon = self.daemon.clone();
+            Box::pin(async move {
+                let s = tokio::net::UnixStream::connect(daemon).await?;
+                Ok(Box::new(s) as crate::http::BoxIo)
+            })
+        }
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn remote_projects_use_the_host_for_compose_and_docker() {
+        let (_d, sock) = fake_server(|head, _| {
+            let target = head.split_whitespace().nth(1).unwrap().to_string();
+            match target.as_str() {
+                "/containers/json?all=1" => ok_json(r#"[{"Id":"c1","Names":["/shop-app-1"],"Image":"php:8.3","State":"running","Status":"Up","Labels":{"com.docker.compose.project":"shop","com.docker.compose.service":"app"}}]"#),
+                "/images/json" => ok_json("[]"),
+                "/volumes" => ok_json(r#"{"Volumes":[]}"#),
+                "/networks" => ok_json("[]"),
+                "/version" => ok_json(r#"{"Version":"27.3.1","ApiVersion":"1.47"}"#),
+                t if t.starts_with("/events") => chunked("200 OK", &[]),
+                _ => b"HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n".to_vec(),
+            }
+        })
+        .await;
+        let mut files = BTreeMap::new();
+        files.insert(
+            "compose.yaml".to_string(),
+            "services:\n  app:\n    image: ${IMG}\n".to_string(),
+        );
+        files.insert(
+            "compose.override.yaml".to_string(),
+            "services:\n  mailpit:\n    image: axllent/mailpit\n".to_string(),
+        );
+        files.insert(".env".to_string(), "IMG=php:8.3\n".to_string());
+        files.insert(
+            "worker/compose.yaml".to_string(),
+            "name: jobs\nservices:\n  q:\n    image: redis\n".to_string(),
+        );
+        files.insert(
+            "docker/Dockerfile".to_string(),
+            "FROM php:8.3\n".to_string(),
+        );
+        let host = Arc::new(FakeHost {
+            root: PathBuf::from("/srv/shop"),
+            files,
+            daemon: sock,
+            runs: Mutex::new(Vec::new()),
+            sockets: Mutex::new(Vec::new()),
+        });
+        let project: Arc<dyn ProjectHost> = host.clone();
+
+        let (emit, _events) = collect();
+        let hub = Hub::new(emit, tokio::runtime::Handle::current());
+        let settings = HubSettings {
+            kubeconfig: "/nonexistent/kubeconfig".into(),
+            project_docker: true,
+            ..Default::default()
+        };
+        let (h, p, s) = (hub.clone(), project.clone(), settings.clone());
+        tokio::task::spawn_blocking(move || h.configure(s, Some(p)))
+            .await
+            .unwrap();
+        wait_until(|| hub.input().docker.state == ConnectionState::Connected).await;
+        assert_eq!(
+            hub.input().docker.endpoint,
+            "ssh://deploy@shop.example.com/var/run/docker.sock"
+        );
+        assert!(host
+            .sockets
+            .lock()
+            .unwrap()
+            .iter()
+            .all(|s| s == "/var/run/docker.sock"));
+
+        // Compose files were read on the host, override and `.env` included.
+        let compose = hub.input().compose_files;
+        assert_eq!(compose.len(), 2);
+        assert_eq!(compose[0].project, "shop");
+        assert_eq!(
+            compose[0].service("app").unwrap().image.as_deref(),
+            Some("php:8.3")
+        );
+        assert!(compose[0].service("mailpit").is_some());
+        assert_eq!(compose[1].path, "worker/compose.yaml");
+
+        hub.compose("shop", ComposeAction::Up, Vec::new())
+            .await
+            .unwrap();
+        hub.dockerfile_run("docker/Dockerfile").await.unwrap();
+        {
+            let runs = host.runs.lock().unwrap();
+            let (program, args, cwd, env) = &runs[0];
+            assert_eq!(program, "docker");
+            assert_eq!(cwd, Path::new("/srv/shop"));
+            assert!(
+                args.contains(&"compose.override.yaml".to_string()),
+                "{args:?}"
+            );
+            assert!(env
+                .iter()
+                .any(|(k, v)| k == "DOCKER_HOST" && v == "unix:///var/run/docker.sock"));
+            assert!(env
+                .iter()
+                .any(|(k, v)| k == "COMPOSE_PROGRESS" && v == "plain"));
+            // Dockerfile ▶: build and run on the host too.
+            assert_eq!(runs.len(), 3);
+            assert_eq!(runs[1].1[0], "build");
+        }
+        let cmd = hub
+            .terminal_command("docker/container/c1", false, None)
+            .unwrap();
+        assert_eq!(cmd.program, "docker");
+        assert!(cmd.on_host);
+        assert!(cmd
+            .env
+            .iter()
+            .any(|(k, v)| k == "DOCKER_HOST" && v == "unix:///var/run/docker.sock"));
+
+        // Docker of this machine: compose still runs on the host, against its own daemon.
+        let local = HubSettings {
+            project_docker: false,
+            docker: DockerSettings {
+                connection: "unix".into(),
+                socket_path: "/nonexistent/docker.sock".into(),
+                ..Default::default()
+            },
+            ..settings
+        };
+        let (h, p) = (hub.clone(), project.clone());
+        tokio::task::spawn_blocking(move || h.configure(local, Some(p)))
+            .await
+            .unwrap();
+        hub.compose("jobs", ComposeAction::Up, Vec::new())
+            .await
+            .unwrap();
+        let runs = host.runs.lock().unwrap();
+        let (program, _, cwd, env) = runs.last().unwrap();
+        assert_eq!(program, "docker");
+        assert_eq!(cwd, Path::new("/srv/shop/worker"));
+        assert!(!env.iter().any(|(k, _)| k == "DOCKER_HOST"));
+        drop(runs);
         hub.shutdown();
     }
 }

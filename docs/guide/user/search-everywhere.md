@@ -124,12 +124,16 @@ The status bar shows the size of the search index ("272,700 files", or "Indexing
   root).
 - `Up`/`Down` select a row; the preview below shows the file around the match. `Enter` opens
   the file at the match, `Escape` closes.
+- **Open in Find Window** (`Ctrl+Enter`, macOS `Cmd+Enter`) closes the popup and keeps the
+  results as a tab of the [Find tool window](workbench.md#find-tool-window) (`Alt+3`),
+  grouped by file, with **Rerun**. `Ctrl+Alt+Down` / `Ctrl+Alt+Up` (Next/Previous Occurrence)
+  then walk through them.
 
 Ignored files (`.gitignore`), binary files and very large files are skipped. In remote projects
 the search runs on the host, which keeps the result and sends the rows the list shows, so large results page the same way. A remote search cannot be cancelled once started.
 
 The **Text** tab of Search Everywhere uses the same search (from two characters on).
 
-> **Note:** Replace in Files (`Ctrl+Shift+R`) and "Open in Find Tool Window" for Find in Files
-> are not available yet. The Find tool window shows the results of
-> [Find Usages](editor.md#find-usages-and-show-usages).
+![Find in Files results in the Find tool window](../../screenshots/find-window-text.png)
+
+> **Note:** Replace in Files (`Ctrl+Shift+R`) is not available yet.

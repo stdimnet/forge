@@ -39,7 +39,7 @@ fn project() -> tempfile::TempDir {
     std::fs::create_dir_all(p.join("app/Models")).unwrap();
     std::fs::write(
         p.join("app/Models/Order.php"),
-        "<?php\nnamespace App\\Models;\n\n/** An order of the shop. */\nclass Order\n{\n    public function total(): int { return 0; }\n}\n",
+        "<?php\nnamespace App\\Models;\n\n/** An order of the shop. TODO: taxes */\nclass Order\n{\n    public function total(): int { return 0; }\n}\n",
     )
     .unwrap();
     std::fs::write(p.join(".gitignore"), "/vendor\n").unwrap();
@@ -193,6 +193,24 @@ async fn files_search_git_and_detection() {
             .unwrap();
         assert_eq!(found.files[0].path, "app/Models/Order.php");
         assert_eq!(found.files[0].matches[0].line, 6);
+
+        // TODO comments are scanned on the agent's machine too.
+        let todos = b.find_todos(&Default::default()).unwrap();
+        assert_eq!(todos.files[0].items[0].text, "TODO: taxes");
+
+        // Language indexes get every matching file in one call (vendor/ is ignored).
+        let files = b
+            .collect_files(&forge_core::CollectRequest {
+                extensions: vec!["php".into()],
+                max_files: 100,
+                max_file_size: 1 << 20,
+                max_total: 1 << 20,
+            })
+            .unwrap();
+        let paths: Vec<&str> = files.iter().map(|f| f.path.as_str()).collect();
+        assert!(paths.contains(&"app/Models/Order.php"), "{paths:?}");
+        assert!(paths.iter().all(|p| !p.starts_with("vendor/")), "{paths:?}");
+        assert!(files.iter().any(|f| f.text.contains("function total")));
 
         let info = b.detect_project().unwrap();
         assert!(info.uses("php"));
@@ -693,4 +711,109 @@ async fn catalog_language_servers_are_planned_on_the_host() {
         .rows
         .iter()
         .any(|r| r.id == "typescript-language-server"));
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn webforge_is_analysed_on_the_agent() {
+    use forge_backend::{web_call, WebCall};
+    use webforge_lang_web::{Component, GutterMark, Location, NpmPackage};
+
+    let dir = project();
+    let p = dir.path();
+    std::fs::write(
+        p.join("package.json"),
+        r#"{"name":"shop","scripts":{"dev":"vite","build":"vite build"},"dependencies":{"vue":"^3"}}"#,
+    )
+    .unwrap();
+    std::fs::write(p.join("package-lock.json"), "{}").unwrap();
+    std::fs::create_dir_all(p.join("src/components")).unwrap();
+    let card = "<script setup lang=\"ts\">\ndefineProps<{ total: number }>()\n</script>\n<template><div>{{ total }}</div></template>\n";
+    std::fs::write(p.join("src/components/OrderCard.vue"), card).unwrap();
+    let app = "<script setup>\nimport OrderCard from './components/OrderCard.vue'\n</script>\n<template><OrderCard :total=\"1\" /></template>\n";
+    std::fs::write(p.join("src/App.vue"), app).unwrap();
+    let b = open_remote(&dir).await;
+    let (packages, components, goto, gutter) = blocking(move || {
+        let packages: Vec<NpmPackage> = web_call(
+            b.as_ref(),
+            WebCall::NpmPackages {
+                refresh: true,
+                package_manager: "auto".into(),
+            },
+        )
+        .unwrap();
+        let components: Vec<Component> = web_call(
+            b.as_ref(),
+            WebCall::Components {
+                framework: "vue".into(),
+            },
+        )
+        .unwrap();
+        let offset = app.find("<OrderCard").unwrap() + 2;
+        let goto: Vec<Location> = web_call(
+            b.as_ref(),
+            WebCall::Goto {
+                framework: "vue".into(),
+                path: "src/App.vue".into(),
+                content: app.into(),
+                offset,
+            },
+        )
+        .unwrap();
+        let gutter: Vec<GutterMark> = web_call(
+            b.as_ref(),
+            WebCall::Gutter {
+                framework: "vue".into(),
+                path: "src/components/OrderCard.vue".into(),
+                content: card.into(),
+            },
+        )
+        .unwrap();
+        (packages, components, goto, gutter)
+    })
+    .await;
+    assert_eq!(packages.len(), 1);
+    assert_eq!(packages[0].package_manager.manager.id(), "npm");
+    let scripts: Vec<&str> = packages[0]
+        .scripts
+        .iter()
+        .map(|s| s.name.as_str())
+        .collect();
+    assert_eq!(scripts, vec!["dev", "build"]);
+    assert!(
+        components.iter().any(|c| c.name == "OrderCard"),
+        "{components:?}"
+    );
+    assert!(
+        goto.iter()
+            .any(|l| l.path == "src/components/OrderCard.vue"),
+        "{goto:?}"
+    );
+    // Line markers come from the host as well.
+    assert!(gutter.iter().all(|m| !m.title.is_empty()), "{gutter:?}");
+}
+
+#[cfg(unix)]
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn filters_like_stylua_run_on_the_host() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let dir = project();
+    // A stand-in for `stylua -`: upper-cases its input.
+    let fake = dir.path().join("fake-stylua");
+    std::fs::write(&fake, "#!/bin/sh\ntr a-z A-Z\n").unwrap();
+    std::fs::set_permissions(&fake, std::fs::Permissions::from_mode(0o755)).unwrap();
+    let b = open_remote(&dir).await;
+    let root = b.info().root.clone();
+    let out = blocking(move || {
+        let exe = b
+            .find_executable(&["stylua".into()], Some(&fake.to_string_lossy()))
+            .unwrap()
+            .unwrap();
+        let mut cmd = CommandLine::new(exe.to_string_lossy()).arg("-");
+        cmd.cwd = root;
+        forge_backend::process_io::capture(b.as_ref(), &cmd, "local x = 1\n", T).unwrap()
+    })
+    .await;
+    assert_eq!(out.code, Some(0));
+    assert_eq!(out.stdout, "LOCAL X = 1\n");
 }

@@ -9,6 +9,10 @@
 //! - Matches are reported per line, like PHPStorm's result list: the line text (trimmed and
 //!   cut around the first match) with every match range in it. Columns and ranges are UTF-16
 //!   offsets so the UI can use them directly.
+//!
+//! [`todo`] scans comments for TODO patterns (the TODO tool window).
+
+pub mod todo;
 
 use regex::{Regex, RegexBuilder};
 use serde::{Deserialize, Serialize};

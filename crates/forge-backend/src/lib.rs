@@ -20,12 +20,19 @@ pub mod remote;
 pub mod replace;
 pub mod rpc;
 pub mod tunnels;
+pub mod web;
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use forge_core::search::{FileMatches, FindPaged, FindRequest, FindResult};
-use forge_core::{FileEntry, FileMatch, FsChanges, ProjectFiles, Result};
+use forge_core::search::{
+    FileMatches, FindPaged, FindRequest, FindResult, TodoRequest, TodoResult,
+};
+use forge_core::{
+    CollectRequest, FileEntry, FileMatch, FsChanges, ProjectFiles, Result, SourceFile,
+};
+use forge_langservers::install::InstallOutcome;
+use forge_langservers::managed::PackageUpdate;
 use forge_lsp::ServerLauncher;
 use forge_process::{CommandLine, PtySink, RunSink};
 use forge_project::ProjectInfo;
@@ -34,13 +41,16 @@ use serde::{Deserialize, Serialize};
 
 pub use forge_search_core::SymbolHit;
 pub use frameworks::{framework_call, FrameworkCall};
-pub use langservers::{LangServersAnswer, LangServersRequest};
+pub use langservers::{
+    InstallRequest, InstallSink, InstallTarget, LangServersAnswer, LangServersRequest,
+};
 #[cfg(feature = "search")]
 pub use local::IndexOptions;
 pub use local::LocalBackend;
 pub use php::PhpBackend;
 pub use remote::RemoteBackend;
-pub use tunnels::{PortForward, Tunnels};
+pub use tunnels::{PortForward, TunnelStream, Tunnels};
+pub use web::{web_call, WebCall};
 
 /// A Find in Files result a window pages through.
 pub enum Found {
@@ -231,6 +241,11 @@ pub trait Backend: Send + Sync {
     fn find_files(&self, query: &str, limit: usize, exact: bool) -> Result<Vec<FileMatch>>;
     /// Find in Files: text search over the project honoring `.gitignore`.
     fn find_in_files(&self, req: &FindRequest) -> Result<FindResult>;
+    /// TODO tool window: TODO patterns in comments, honoring `.gitignore`.
+    fn find_todos(&self, req: &TodoRequest) -> Result<TodoResult>;
+    /// The text of every project file with one of `req.extensions`, in one call (a
+    /// language index of a remote project is built from one round trip).
+    fn collect_files(&self, req: &CollectRequest) -> Result<Vec<SourceFile>>;
 
     /// [`Backend::find_in_files`] for a result that is paged: a local backend with an index keeps
     /// match ranges instead of building every row.
@@ -295,6 +310,29 @@ pub trait Backend: Send + Sync {
     /// Plan the catalog language servers of the project on the machine that has its files
     /// and the installed servers.
     fn langservers(&self, req: LangServersRequest) -> Result<LangServersAnswer>;
+
+    /// Install a language server on the backend's machine (where the project's servers
+    /// run). `sink` gets its steps, download progress and output; notifying `cancel` stops
+    /// it. Errors are worded for the install log.
+    fn install_langserver(
+        &self,
+        req: InstallRequest,
+        cancel: Arc<tokio::sync::Notify>,
+        sink: InstallSink,
+    ) -> Result<InstallOutcome>;
+
+    /// Newer versions of the npm servers Forge installed on the backend's machine; `None`
+    /// when the last check was less than a day ago (and `force` is not set).
+    fn langserver_updates(
+        &self,
+        registry: Option<String>,
+        node_mirror: Option<String>,
+        force: bool,
+    ) -> Result<Option<Vec<PackageUpdate>>>;
+
+    /// WebForge analysis (npm tool window, component navigation), run next to the files.
+    /// The reply is the MessagePack encoding of the call's reply type; use [`web_call`].
+    fn web(&self, call: WebCall) -> Result<Vec<u8>>;
 
     /// Full path of the first of `names` found on the backend's machine (`PATH` plus the
     /// usual package manager directories). An existing `custom` path wins.

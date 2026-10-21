@@ -22,12 +22,17 @@ import { updateContent, updateCursor, saveFile, type EditorTab } from "@/state/e
 import { registerView } from "./views";
 import { replaceDocument, undoHistory } from "./reload";
 import { wordCompletion } from "./wordCompletion";
+import { docSync, joinDocSync } from "./docSync";
 
-/** One CodeMirror instance per open tab; kept alive while the tab exists. */
-export function CodeEditor(props: { tab: EditorTab }) {
+/**
+ * One CodeMirror instance per tab of an editor group; kept alive while the tab exists. Views
+ * of the same file in other groups edit the same document (`docSync`).
+ */
+export function CodeEditor(props: { tab: EditorTab; group?: number }) {
   let host!: HTMLDivElement;
   let view: EditorView | undefined;
   let unregister: (() => void) | undefined;
+  let leaveSync: (() => void) | undefined;
 
   let disposed = false;
 
@@ -45,6 +50,8 @@ export function CodeEditor(props: { tab: EditorTab }) {
       state: EditorState.create({
         doc: props.tab.content,
         extensions: [
+          // First, so other views of the file have the change before the store hears of it.
+          docSync(path),
           lineNumbers(),
           highlightActiveLine(),
           highlightActiveLineGutter(),
@@ -83,7 +90,8 @@ export function CodeEditor(props: { tab: EditorTab }) {
         ],
       }),
     });
-    unregister = registerView(path, view);
+    unregister = registerView(path, view, props.group);
+    leaveSync = joinDocSync(path, view);
   }
 
   // Content replaced from outside (e.g. reloaded after an AI agent edited the file).
@@ -95,6 +103,7 @@ export function CodeEditor(props: { tab: EditorTab }) {
   onCleanup(() => {
     disposed = true;
     unregister?.();
+    leaveSync?.();
     view?.destroy();
   });
 

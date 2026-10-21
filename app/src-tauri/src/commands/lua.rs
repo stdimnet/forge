@@ -1,14 +1,15 @@
 //! LuaForge IPC: the project's Lua index (`luaforge-lang-lua`) for Search Everywhere, the
 //! Structure tool window, hover documentation, Go to Declaration and gutter run icons, plus
-//! Reformat Code through StyLua. Files are read through the project's backend, so remote
+//! Reformat Code through StyLua. Files are read through the project's backend (all Lua files
+//! of a remote project in one round trip) and StyLua runs where the project lives, so remote
 //! projects work too; offsets crossing the boundary are UTF-16 (JS strings).
 
-use std::io::Write;
-use std::process::{Command, Stdio};
 use std::sync::{Arc, Mutex};
 
+use forge_backend::process_io::capture;
 use forge_backend::Backend;
-use forge_core::{ForgeError, Result};
+use forge_core::{CollectRequest, ForgeError, Result};
+use forge_process::CommandLine;
 use luaforge_lang_lua::hover::Hover;
 use luaforge_lang_lua::run::RunMarker;
 use luaforge_lang_lua::structure::FileStructure;
@@ -27,7 +28,10 @@ pub const STYLUA_PATH_KEY: &str = "lua.stylua.path";
 /// Lua files beyond this many are not indexed.
 const MAX_FILES: usize = 20_000;
 /// Larger files (generated code, bundled libraries) are skipped.
-const MAX_FILE_SIZE: usize = 2 * 1024 * 1024;
+const MAX_FILE_SIZE: u64 = 2 * 1024 * 1024;
+/// Indexing stops after this much Lua source (keeps one reply well below the agent
+/// protocol's frame limit).
+const MAX_TOTAL_SIZE: u64 = 48 * 1024 * 1024;
 
 /// The index of the open project, keyed by its root.
 #[derive(Default)]
@@ -35,8 +39,9 @@ pub struct LuaState {
     index: Arc<Mutex<Option<(String, ProjectIndex)>>>,
 }
 
+/// `user@host:/path` for a remote project, so equal paths on two hosts differ.
 fn root_key(backend: &dyn Backend) -> String {
-    backend.info().root.display().to_string()
+    backend.info().display_root()
 }
 
 fn require_paths(state: &AppState) -> Vec<String> {
@@ -53,13 +58,14 @@ fn build_index(backend: &dyn Backend, mut paths: Vec<String>) -> Result<ProjectI
     }
     let mut index = ProjectIndex::new(&paths);
     index.set_name(&backend.info().name);
-    let files = backend.find_files(".lua", MAX_FILES, false)?;
-    for f in files.iter().filter(|f| f.path.ends_with(".lua")) {
-        match backend.read_file(&f.path) {
-            Ok(text) if text.len() <= MAX_FILE_SIZE => index.set_file(&f.path, &text),
-            Ok(_) => {}
-            Err(e) => tracing::debug!("lua index: cannot read {}: {e}", f.path),
-        }
+    let files = backend.collect_files(&CollectRequest {
+        extensions: vec!["lua".into()],
+        max_files: MAX_FILES,
+        max_file_size: MAX_FILE_SIZE,
+        max_total: MAX_TOTAL_SIZE,
+    })?;
+    for f in &files {
+        index.set_file(&f.path, &f.text);
     }
     Ok(index)
 }
@@ -146,7 +152,7 @@ pub async fn lua_files_changed(
         }
         for path in changed.iter().filter(|p| p.ends_with(".lua")) {
             match backend.read_file(path) {
-                Ok(text) if text.len() <= MAX_FILE_SIZE => index.set_file(path, &text),
+                Ok(text) if text.len() as u64 <= MAX_FILE_SIZE => index.set_file(path, &text),
                 _ => index.remove_file(path),
             }
         }
@@ -233,8 +239,10 @@ pub async fn lua_run_markers(
     .await
 }
 
-/// Reformat a Lua file with StyLua (`stylua -`), which finds the project's `stylua.toml`.
-/// `None` when StyLua is turned off or not installed; errors carry StyLua's message.
+/// Reformat a Lua file with StyLua (`stylua --stdin-filepath <file> -`), which finds the
+/// project's `stylua.toml`. StyLua runs where the project lives (on the host for a remote
+/// project). `None` when StyLua is turned off or not installed; errors carry StyLua's
+/// message.
 #[tauri::command]
 pub async fn lua_format(
     path: String,
@@ -253,59 +261,79 @@ pub async fn lua_format(
     if !enabled {
         return Ok(None);
     }
-    let (root, file) =
-        state.with_workspace(|ws| Ok((ws.root().to_path_buf(), ws.resolve(&path)?)))?;
-    blocking(move || format_with_stylua(&exe, &root, &file, &content)).await
+    let backend = state.backend()?;
+    blocking(move || format_with_stylua(backend.as_ref(), &exe, &path, &content)).await
 }
 
+/// StyLua finishes in milliseconds; a hanging one is stopped.
+const STYLUA_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
+
 fn format_with_stylua(
+    backend: &dyn Backend,
     exe: &str,
-    root: &std::path::Path,
-    file: &std::path::Path,
+    path: &str,
     content: &str,
 ) -> Result<Option<String>> {
-    let child = Command::new(exe)
-        .arg("--stdin-filepath")
-        .arg(file)
-        .arg("-")
-        .current_dir(root)
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn();
-    let mut child = match child {
-        Ok(c) => c,
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
-        Err(e) => return Err(ForgeError::Other(format!("cannot start StyLua: {e}"))),
+    let file = backend.resolve(path)?;
+    // A bare name is looked up like other tools (PATH, cargo, ...); a path must exist.
+    let found = if exe.contains('/') || exe.contains('\\') {
+        backend.find_executable(&[], Some(exe))?
+    } else {
+        backend.find_executable(&[exe.to_string()], None)?
     };
-    if let Some(mut stdin) = child.stdin.take() {
-        stdin
-            .write_all(content.as_bytes())
-            .map_err(|e| ForgeError::Other(format!("StyLua: {e}")))?;
+    let Some(program) = found else {
+        return Ok(None);
+    };
+    let mut cmd = CommandLine::new(program.to_string_lossy())
+        .arg("--stdin-filepath")
+        .arg(file.to_string_lossy())
+        .arg("-");
+    cmd.cwd = backend.info().root.clone();
+    let out = capture(backend, &cmd, content, STYLUA_TIMEOUT)?;
+    match out.code {
+        Some(0) => Ok(Some(out.stdout)),
+        None => Err(ForgeError::Other("StyLua did not finish".into())),
+        Some(_) => {
+            let msg = out.stderr.trim().to_string();
+            Err(ForgeError::Other(if msg.is_empty() {
+                "StyLua failed".into()
+            } else {
+                msg
+            }))
+        }
     }
-    let out = child
-        .wait_with_output()
-        .map_err(|e| ForgeError::Other(format!("StyLua: {e}")))?;
-    if !out.status.success() {
-        let msg = String::from_utf8_lossy(&out.stderr).trim().to_string();
-        return Err(ForgeError::Other(if msg.is_empty() {
-            "StyLua failed".into()
-        } else {
-            msg
-        }));
-    }
-    Ok(Some(String::from_utf8_lossy(&out.stdout).into_owned()))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use forge_backend::LocalBackend;
 
     #[test]
     fn missing_stylua_is_not_an_error() {
-        let dir = std::env::temp_dir();
-        let out =
-            format_with_stylua("forge-no-such-stylua", &dir, &dir.join("a.lua"), "x=1").unwrap();
+        let dir = tempfile::tempdir().unwrap();
+        let backend = LocalBackend::open(dir.path()).unwrap();
+        let out = format_with_stylua(&backend, "forge-no-such-stylua", "a.lua", "x=1").unwrap();
         assert_eq!(out, None);
+        let out = format_with_stylua(&backend, "/no/such/stylua", "a.lua", "x=1").unwrap();
+        assert_eq!(out, None);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn formats_through_the_backend() {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = tempfile::tempdir().unwrap();
+        let fake = dir.path().join("stylua");
+        std::fs::write(
+            &fake,
+            "#!/bin/sh\n[ \"$1\" = --stdin-filepath ] || exit 9\ncase \"$2\" in */a.lua) ;; *) exit 8 ;; esac\nsed 's/=/ = /'\n",
+        )
+        .unwrap();
+        std::fs::set_permissions(&fake, std::fs::Permissions::from_mode(0o755)).unwrap();
+        let backend = LocalBackend::open(dir.path()).unwrap();
+        let exe = fake.to_string_lossy().into_owned();
+        let out = format_with_stylua(&backend, &exe, "a.lua", "x=1\n").unwrap();
+        assert_eq!(out.as_deref(), Some("x = 1\n"));
     }
 }

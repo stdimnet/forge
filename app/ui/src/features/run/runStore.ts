@@ -6,7 +6,7 @@
 import { batch, createSignal } from "solid-js";
 import { createStore, produce } from "solid-js/store";
 import { runApi, type ConsoleLine, type RunConfiguration, type RunEvent, type RunRequest } from "@/ipc/run";
-import { showBalloon } from "@/keymap";
+import { balloonsFor } from "@/keymap";
 import { saveAll } from "@/state/editor";
 import { showToolWindow } from "@/state/layout";
 import { applyConsoleDelta, applyTestUpdates, emptyTestTree, type TestNode, type TestTreeState } from "./tests";
@@ -14,6 +14,8 @@ import { debugLauncherFor, findType, validateConfiguration, type RunHandle } fro
 import { findConfiguration, selectedConfiguration } from "./configStore";
 import { openRunConfigurations } from "./dialogState";
 import { publishTestResults } from "./testResults";
+
+const showBalloon = balloonsFor("Run");
 
 /** Lines kept per console (PHPStorm's cycle buffer). */
 export const MAX_LINES = 10_000;

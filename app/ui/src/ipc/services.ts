@@ -141,6 +141,8 @@ export interface TerminalCommand {
   program: string;
   args: string[];
   env: [string, string][];
+  /** Runs on the remote project's host (its Docker daemon); otherwise on this machine. */
+  onHost?: boolean;
 }
 
 export interface GutterMarker {

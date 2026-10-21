@@ -10,7 +10,9 @@ pub mod workspace;
 
 pub use error::{ForgeError, Result};
 pub use project_files::{LocalFiles, MemoryFiles, ProjectFiles, SharedFiles};
-pub use search::{fuzzy_match, fuzzy_match_with, FileMatch, FuzzyMatch, MatchOptions};
+pub use search::{
+    fuzzy_match, fuzzy_match_with, CollectRequest, FileMatch, FuzzyMatch, MatchOptions, SourceFile,
+};
 pub use settings::{Settings, SettingsChange, SettingsScope};
 pub use watch::{FsChanges, ProjectWatcher};
 pub use workspace::{FileEntry, FileKind, Workspace};

@@ -40,7 +40,7 @@ Tool windows, appearance toggles, documentation popups and recent files. Open it
 | Error Description | `Ctrl+F1` | `Cmd+F1` | not yet | Not available yet; the entry is disabled. |
 | Recent Files | `Ctrl+E` | `Cmd+E` | yes | Lists recently opened files and the tool windows; press again for recently edited files only. [More](../../user/workbench.md#recent-files-and-switcher) ([screenshot](../../../screenshots/docs-recent-files.png)) |
 | Recently Changed Files | — | — | yes | Lists recently edited files. [More](../../user/workbench.md#recent-files-and-switcher) |
-| Recent Locations | `Ctrl+Shift+E` | `Cmd+Shift+E` | not yet | Not available yet; the entry is disabled. |
+| Recent Locations | `Ctrl+Shift+E` | `Cmd+Shift+E` | yes | Lists recently visited and edited places with a code snippet each; press again for changed places only. [More](../../user/workbench.md#recent-locations) ([screenshot](../../../screenshots/recent-locations.png)) |
 | Compare with Clipboard | — | — | not yet | Not available yet; the entry is disabled. |
 | **Active Editor** | | | | submenu |
 | Active Editor › Soft-Wrap | — | — | not yet | Not available yet; the entry is disabled. |

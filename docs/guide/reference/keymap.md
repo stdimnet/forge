@@ -69,8 +69,8 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Previous Highlighted Error | `GotoPreviousError` | `Shift+F2` | `Shift+F2` | yes |
 | Next Method | `MethodDown` | `Alt+Down` | `Ctrl+Down` | — |
 | Previous Method | `MethodUp` | `Alt+Up` | `Ctrl+Up` | — |
-| Next Occurrence | `NextOccurence` | `Ctrl+Alt+Down` | `Cmd+Alt+Down` | — |
-| Previous Occurrence | `PreviousOccurence` | `Ctrl+Alt+Up` | `Cmd+Alt+Up` | — |
+| Next Occurrence | `NextOccurence` | `Ctrl+Alt+Down` | `Cmd+Alt+Down` | yes |
+| Previous Occurrence | `PreviousOccurence` | `Ctrl+Alt+Up` | `Cmd+Alt+Up` | yes |
 | Jump to Source | `EditSource` | `F4` | `F4`, `Cmd+Down` | — |
 | Move Caret to Matching Brace | `EditorMatchBrace` | `Ctrl+Shift+M` | `Ctrl+M` | yes |
 | Move Caret to Code Block Start | `EditorCodeBlockStart` | `Ctrl+[` | `Cmd+Alt+[` | — |
@@ -160,7 +160,7 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Error Description | `ShowErrorDescription` | `Ctrl+F1` | `Cmd+F1` | — |
 | Recent Files | `RecentFiles` | `Ctrl+E` | `Cmd+E` | yes |
 | Recently Changed Files | `RecentChangedFiles` |  |  | yes |
-| Recent Locations | `RecentLocations` | `Ctrl+Shift+E` | `Cmd+Shift+E` | — |
+| Recent Locations | `RecentLocations` | `Ctrl+Shift+E` | `Cmd+Shift+E` | yes |
 | Switcher | `Switcher` | `Ctrl+Tab`, `Ctrl+Shift+Tab` | `Ctrl+Tab`, `Ctrl+Shift+Tab` | yes |
 | Toggle Rendered View | `ToggleRenderedDocPresentation` | `Ctrl+Alt+Q` | `Ctrl+Alt+Q` | — |
 | Compare Files | `CompareTwoFiles` | `Ctrl+D` | `Cmd+D` | — |
@@ -243,7 +243,7 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Action | Action id | Windows / Linux | macOS | In Forge |
 | --- | --- | --- | --- | --- |
 | Project | `ActivateProjectToolWindow` | `Alt+1` | `Cmd+1` | yes |
-| Bookmarks | `ActivateBookmarksToolWindow` | `Alt+2` | `Cmd+2` | — |
+| Bookmarks | `ActivateBookmarksToolWindow` | `Alt+2` | `Cmd+2` | yes |
 | Find | `ActivateFindToolWindow` | `Alt+3` | `Cmd+3` | yes |
 | Run | `ActivateRunToolWindow` | `Alt+4` | `Cmd+4` | yes |
 | Debug | `ActivateDebugToolWindow` | `Alt+5` | `Cmd+5` | yes |
@@ -254,38 +254,41 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Commit | `ActivateCommitToolWindow` | `Alt+0` | `Cmd+0` | yes |
 | Terminal | `ActivateTerminalToolWindow` | `Alt+F12` | `Alt+F12` | yes |
 | Database | `ActivateDatabaseToolWindow` |  |  | yes |
-| Notifications | `ActivateNotificationsToolWindow` |  |  | — |
+| Notifications | `ActivateNotificationsToolWindow` |  |  | yes |
 | AI Chat | `ActivateAIChatToolWindow` |  |  | yes |
 | Pull Requests | `ActivatePullRequestsToolWindow` |  |  | yes |
-| TODO | `ActivateTODOToolWindow` |  |  | — |
+| TODO | `ActivateTODOToolWindow` |  |  | yes |
 
 ### Navigate > Bookmarks
 
 | Action | Action id | Windows / Linux | macOS | In Forge |
 | --- | --- | --- | --- | --- |
-| Toggle Bookmark | `ToggleBookmark` | `F11` | `F3` | — |
-| Toggle Bookmark with Mnemonic | `ToggleBookmarkWithMnemonic` | `Ctrl+F11` | `Alt+F3` | — |
-| Show All Bookmarks | `ShowBookmarks` | `Shift+F11` | `Cmd+F3` | — |
-| Go to Bookmark 0 | `GotoBookmark0` | `Ctrl+0` | `Ctrl+0` | — |
-| Go to Bookmark 1 | `GotoBookmark1` | `Ctrl+1` | `Ctrl+1` | — |
-| Go to Bookmark 2 | `GotoBookmark2` | `Ctrl+2` | `Ctrl+2` | — |
-| Go to Bookmark 3 | `GotoBookmark3` | `Ctrl+3` | `Ctrl+3` | — |
-| Go to Bookmark 4 | `GotoBookmark4` | `Ctrl+4` | `Ctrl+4` | — |
-| Go to Bookmark 5 | `GotoBookmark5` | `Ctrl+5` | `Ctrl+5` | — |
-| Go to Bookmark 6 | `GotoBookmark6` | `Ctrl+6` | `Ctrl+6` | — |
-| Go to Bookmark 7 | `GotoBookmark7` | `Ctrl+7` | `Ctrl+7` | — |
-| Go to Bookmark 8 | `GotoBookmark8` | `Ctrl+8` | `Ctrl+8` | — |
-| Go to Bookmark 9 | `GotoBookmark9` | `Ctrl+9` | `Ctrl+9` | — |
-| Toggle Bookmark 0 | `ToggleBookmark0` | `Ctrl+Shift+0` | `Ctrl+Shift+0` | — |
-| Toggle Bookmark 1 | `ToggleBookmark1` | `Ctrl+Shift+1` | `Ctrl+Shift+1` | — |
-| Toggle Bookmark 2 | `ToggleBookmark2` | `Ctrl+Shift+2` | `Ctrl+Shift+2` | — |
-| Toggle Bookmark 3 | `ToggleBookmark3` | `Ctrl+Shift+3` | `Ctrl+Shift+3` | — |
-| Toggle Bookmark 4 | `ToggleBookmark4` | `Ctrl+Shift+4` | `Ctrl+Shift+4` | — |
-| Toggle Bookmark 5 | `ToggleBookmark5` | `Ctrl+Shift+5` | `Ctrl+Shift+5` | — |
-| Toggle Bookmark 6 | `ToggleBookmark6` | `Ctrl+Shift+6` | `Ctrl+Shift+6` | — |
-| Toggle Bookmark 7 | `ToggleBookmark7` | `Ctrl+Shift+7` | `Ctrl+Shift+7` | — |
-| Toggle Bookmark 8 | `ToggleBookmark8` | `Ctrl+Shift+8` | `Ctrl+Shift+8` | — |
-| Toggle Bookmark 9 | `ToggleBookmark9` | `Ctrl+Shift+9` | `Ctrl+Shift+9` | — |
+| Toggle Bookmark | `ToggleBookmark` | `F11` | `F3` | yes |
+| Toggle Bookmark with Mnemonic | `ToggleBookmarkWithMnemonic` | `Ctrl+F11` | `Alt+F3` | yes |
+| Show All Bookmarks | `ShowBookmarks` | `Shift+F11` | `Cmd+F3` | yes |
+| Edit Bookmark Description… | `EditBookmark` |  |  | yes |
+| Next Bookmark | `GotoNextBookmark` |  |  | yes |
+| Previous Bookmark | `GotoPreviousBookmark` |  |  | yes |
+| Go to Bookmark 0 | `GotoBookmark0` | `Ctrl+0` | `Ctrl+0` | yes |
+| Go to Bookmark 1 | `GotoBookmark1` | `Ctrl+1` | `Ctrl+1` | yes |
+| Go to Bookmark 2 | `GotoBookmark2` | `Ctrl+2` | `Ctrl+2` | yes |
+| Go to Bookmark 3 | `GotoBookmark3` | `Ctrl+3` | `Ctrl+3` | yes |
+| Go to Bookmark 4 | `GotoBookmark4` | `Ctrl+4` | `Ctrl+4` | yes |
+| Go to Bookmark 5 | `GotoBookmark5` | `Ctrl+5` | `Ctrl+5` | yes |
+| Go to Bookmark 6 | `GotoBookmark6` | `Ctrl+6` | `Ctrl+6` | yes |
+| Go to Bookmark 7 | `GotoBookmark7` | `Ctrl+7` | `Ctrl+7` | yes |
+| Go to Bookmark 8 | `GotoBookmark8` | `Ctrl+8` | `Ctrl+8` | yes |
+| Go to Bookmark 9 | `GotoBookmark9` | `Ctrl+9` | `Ctrl+9` | yes |
+| Toggle Bookmark 0 | `ToggleBookmark0` | `Ctrl+Shift+0` | `Ctrl+Shift+0` | yes |
+| Toggle Bookmark 1 | `ToggleBookmark1` | `Ctrl+Shift+1` | `Ctrl+Shift+1` | yes |
+| Toggle Bookmark 2 | `ToggleBookmark2` | `Ctrl+Shift+2` | `Ctrl+Shift+2` | yes |
+| Toggle Bookmark 3 | `ToggleBookmark3` | `Ctrl+Shift+3` | `Ctrl+Shift+3` | yes |
+| Toggle Bookmark 4 | `ToggleBookmark4` | `Ctrl+Shift+4` | `Ctrl+Shift+4` | yes |
+| Toggle Bookmark 5 | `ToggleBookmark5` | `Ctrl+Shift+5` | `Ctrl+Shift+5` | yes |
+| Toggle Bookmark 6 | `ToggleBookmark6` | `Ctrl+Shift+6` | `Ctrl+Shift+6` | yes |
+| Toggle Bookmark 7 | `ToggleBookmark7` | `Ctrl+Shift+7` | `Ctrl+Shift+7` | yes |
+| Toggle Bookmark 8 | `ToggleBookmark8` | `Ctrl+Shift+8` | `Ctrl+Shift+8` | yes |
+| Toggle Bookmark 9 | `ToggleBookmark9` | `Ctrl+Shift+9` | `Ctrl+Shift+9` | yes |
 
 ### Code > Folding
 
@@ -425,11 +428,19 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Close Other Tabs | `CloseAllEditorsButActive` |  | `Cmd+Alt+W` | yes |
 | Close Unmodified Tabs | `CloseAllUnmodifiedEditors` |  |  | yes |
 | Reopen Closed Tab | `ReopenClosedTab` |  |  | yes |
-| Pin Tab | `PinActiveEditorTab` |  |  | — |
-| Split Right | `SplitVertically` |  |  | — |
-| Split Down | `SplitHorizontally` |  |  | — |
-| Goto Next Splitter | `NextSplitter` |  | `Alt+Tab` | — |
-| Goto Previous Splitter | `PrevSplitter` |  | `Alt+Shift+Tab` | — |
+| Pin Tab | `PinActiveEditorTab` |  |  | yes |
+| Split Right | `SplitVertically` |  |  | yes |
+| Split Down | `SplitHorizontally` |  |  | yes |
+| Goto Next Splitter | `NextSplitter` |  | `Alt+Tab` | yes |
+| Goto Previous Splitter | `PrevSplitter` |  | `Alt+Shift+Tab` | yes |
+| Split and Move Right | `MoveTabRight` |  |  | yes |
+| Split and Move Down | `MoveTabDown` |  |  | yes |
+| Move to Opposite Group | `MoveEditorToOppositeTabGroup` |  |  | yes |
+| Change Splitter Orientation | `ChangeSplitOrientation` |  |  | yes |
+| Unsplit | `Unsplit` |  |  | yes |
+| Unsplit All | `UnsplitAll` |  |  | yes |
+| Close Tabs to the Left | `CloseAllToTheLeft` |  |  | yes |
+| Close Tabs to the Right | `CloseAllToTheRight` |  |  | yes |
 
 ## Editor Actions
 
@@ -521,6 +532,9 @@ Actions that Forge's plugins add (group **Plugins** in Settings | Keymap, some u
 | Jump to Query Console… | `Database.OpenConsole` | `Ctrl+Shift+F10` | `Cmd+Shift+F10` | tool window |
 | Data Source Properties | `Database.Properties` | `Shift+Enter` | `Shift+Enter` | tool window |
 | New Data Source… | `Database.NewDataSource` |  |  | any |
+| Select in Project View | `SelectInProjectView` |  |  | any |
+| Mark All Notifications as Read | `MarkNotificationsAsRead` |  |  | any |
+| Clear All Notifications | `ClearAllNotifications` |  |  | any |
 
 ## Commands without shortcuts
 

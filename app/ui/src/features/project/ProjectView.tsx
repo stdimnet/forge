@@ -34,6 +34,9 @@ export function revealPath(dir: string): void {
 /** Tree selection, independent of the active editor tab (like PHPStorm). */
 const [selected, setSelected] = createSignal<string | null>(null);
 
+/** Select a row (Select in Project View); call `revealPath` for its folder first. */
+export const selectPath = (path: string) => setSelected(path);
+
 const singleClickOpens = () => getSetting<boolean>("projectView.openFilesWithSingleClick", true);
 
 /** Double click (or single click with the setting on): expand/collapse folders, open files. */

@@ -15,7 +15,7 @@ Forge's rule of thumb is "Rust computes, TypeScript renders": logic lives in Rus
 ## User guide
 
 - [User guide overview](guide/user/index.md): all user topics
-- [Workbench](guide/user/workbench.md): main window, main menu, tool windows, editor tabs, status bar
+- [Workbench](guide/user/workbench.md): main window, main menu, tool windows, editor tabs and split editors, Recent Locations, Bookmarks, Find, TODO and Notifications tool windows, status bar
 - [Editor](guide/user/editor.md): editing, completion, Go to Declaration, Find/Show Usages, inspections, folding, multiple carets
 - [Search Everywhere and navigation](guide/user/search-everywhere.md): Search Everywhere, Go to Class/File/Symbol, Find in Files
 - [Shortcuts by topic](guide/user/shortcuts/index.md): every implemented shortcut explained by area, with screenshots

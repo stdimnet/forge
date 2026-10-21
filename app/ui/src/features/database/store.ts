@@ -7,7 +7,9 @@ import { closeDialog, openDialogWindow } from "@/shell/window/dialogs";
 import { createStore, produce } from "solid-js/store";
 import { dbApi, type DataSourceInfo, type SchemaInfo, type SchemaName, type TableInfo } from "@/ipc/db";
 import { openViewTab } from "@/state/editor";
-import { showBalloon } from "@/keymap";
+import { balloonsFor } from "@/keymap";
+
+const showBalloon = balloonsFor("Database");
 
 export const CONSOLE_VIEW = "db-console";
 export const TABLE_VIEW = "db-table";

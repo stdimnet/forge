@@ -12,6 +12,9 @@ Opening, hiding, resizing and switching tool windows. Windows/Linux shortcuts fi
 | Action | Windows / Linux | macOS |
 | --- | --- | --- |
 | [Project tool window](#project-tool-window) | `Alt+1` | `Cmd+1` |
+| [Bookmarks tool window](#bookmarks-tool-window) | `Alt+2` | `Cmd+2` |
+| [TODO tool window](#todo-tool-window) | — | — |
+| [Notifications tool window](#notifications-tool-window) | — | — |
 | [Find tool window](#find-tool-window) | `Alt+3` | `Cmd+3` |
 | [Run tool window](#run-tool-window) | `Alt+4` | `Cmd+4` |
 | [Debug tool window](#debug-tool-window) | `Alt+5` | `Cmd+5` |
@@ -50,11 +53,45 @@ Shows or hides the Project tool window.
 
 More: [Workbench and tool windows](../../user/workbench.md#project-view)
 
+## Bookmarks tool window
+
+**Shortcut:** `Alt+2` · macOS `Cmd+2` · action id `ActivateBookmarksToolWindow`
+
+Shows or hides the Bookmarks tool window.
+
+**Menu:** View | Tool Windows | Bookmarks
+
+More: [Workbench and tool windows](../../user/workbench.md#bookmarks)
+
+## TODO tool window
+
+**Shortcut:** — · macOS — · action id `ActivateTODOToolWindow`
+
+Shows or hides the TODO tool window with the TODO and FIXME comments of the project.
+
+**Menu:** View | Tool Windows | TODO
+
+![TODO tool window](../../../screenshots/todo.png)
+
+More: [Workbench and tool windows](../../user/workbench.md#todo)
+
+## Notifications tool window
+
+**Shortcut:** — · macOS — · action id `ActivateNotificationsToolWindow`
+
+Shows or hides the Notifications tool window with the history of balloons.
+
+**Menu:** View | Tool Windows | Notifications
+
+![Notifications tool window](../../../screenshots/notifications.png)
+
+More: [Workbench and tool windows](../../user/workbench.md#notifications)
+
 ## Find tool window
 
 **Shortcut:** `Alt+3` · macOS `Cmd+3` · action id `ActivateFindToolWindow`
 
-Shows or hides the Find tool window with the results of Find Usages.
+Shows or hides the Find tool window with the results of Find Usages and of Find in Files (Open in Find Window).
 
 **Menu:** View | Tool Windows | Find
 

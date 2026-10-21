@@ -4,8 +4,8 @@
 //! The desktop app uploads this binary to `~/.cache/forge-agent/<version>/`, starts
 //! `forge-remote-agent serve` and talks to it with [`forge_backend::rpc::RpcClient`]. Every
 //! service runs next to the project's files: file system, file search, git, terminals,
-//! processes, language servers (Intelephense indexes the remote project itself) and the
-//! PHP index.
+//! processes, language servers (Intelephense indexes the remote project itself), language
+//! server installs, the PHP index and the framework and WebForge analysis.
 
 mod browse;
 
@@ -16,7 +16,7 @@ use std::time::Duration;
 use forge_backend::protocol::{
     encode_value, io, Call, Event, Frame, Hello, Opened, PhpCall, TerminalOpened, PROTOCOL_VERSION,
 };
-use forge_backend::{Backend, LocalBackend, Process, Terminal, WatchGuard};
+use forge_backend::{langservers, Backend, LocalBackend, Process, Terminal, WatchGuard};
 use forge_core::{ForgeError, FsChanges, Result};
 use forge_lsp::launch::spawn_local;
 use forge_process::{PtyEvent, PtySink, RunEvent, RunSink};
@@ -42,12 +42,15 @@ enum Channel {
     Terminal(Arc<dyn Terminal>, Input),
     Process(Arc<dyn Process>, Input),
     Lsp(Input),
+    /// A language server install; notified to cancel it.
+    Install(Arc<tokio::sync::Notify>),
 }
 
 impl Channel {
-    fn input(&self) -> &Input {
+    fn input(&self) -> Option<&Input> {
         match self {
-            Channel::Terminal(_, i) | Channel::Process(_, i) | Channel::Lsp(i) => i,
+            Channel::Terminal(_, i) | Channel::Process(_, i) | Channel::Lsp(i) => Some(i),
+            Channel::Install(_) => None,
         }
     }
 
@@ -60,6 +63,7 @@ impl Channel {
             Channel::Process(p, _) => p.kill(Duration::from_secs(2)),
             // Dropping the input ends the stdin writer, which stops the server.
             Channel::Lsp(_) => {}
+            Channel::Install(cancel) => cancel.notify_one(),
         }
     }
 }
@@ -211,6 +215,8 @@ impl Agent {
                 exact,
             )?),
             Call::SearchStatus => reply(self.backend()?.search_status()?),
+            Call::FindTodos(req) => reply(self.backend()?.find_todos(&req)?),
+            Call::CollectFiles(req) => reply(self.backend()?.collect_files(&req)?),
             Call::Git(req) => reply(LocalGit.exec(&req)?),
             Call::Detect => reply(self.backend()?.detect_project()?),
             Call::Watch => {
@@ -322,6 +328,38 @@ impl Agent {
                 reply(())
             }
             Call::Php(call) => self.php(call),
+            // Already encoded with the call's reply type.
+            Call::Web(call) => self.backend()?.web(call),
+            // Works before a project is open, too: installs go to the host's Forge folders.
+            Call::LangServerInstall { channel, request } => {
+                let cancel = Arc::new(tokio::sync::Notify::new());
+                self.add_channel(channel, Channel::Install(cancel.clone()));
+                let agent = Arc::downgrade(self);
+                let mut on = move |event| {
+                    if let Some(a) = agent.upgrade() {
+                        a.event(Event::Install { channel, event });
+                    }
+                };
+                let outcome =
+                    langservers::block_on(langservers::install(&request, cancel, &mut on));
+                self.channels
+                    .lock()
+                    .expect("channels lock")
+                    .remove(&channel);
+                reply(outcome?.map_err(ForgeError::Other)?)
+            }
+            Call::LangServerUpdates {
+                registry,
+                node_mirror,
+                force,
+            } => reply(
+                langservers::block_on(langservers::check_updates(
+                    registry.as_deref(),
+                    node_mirror.as_deref(),
+                    force,
+                ))?
+                .map_err(ForgeError::Other)?,
+            ),
         }
     }
 
@@ -458,7 +496,9 @@ impl Agent {
             return;
         }
         if let Some(c) = self.channels.lock().expect("channels lock").get(&channel) {
-            let _ = c.input().send(data);
+            if let Some(input) = c.input() {
+                let _ = input.send(data);
+            }
         }
     }
 

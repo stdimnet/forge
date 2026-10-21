@@ -18,7 +18,7 @@ import { FileIcon } from "@/shell/FileIcon";
 import { formatDuration } from "./duration";
 import { scopeRequest } from "./scope";
 import { openFindWindow } from "./window";
-import { closeFindInFiles, findOptions, findQuery, setFindQuery, updateFindOptions } from "./state";
+import { closeFindInFiles, findOptions, findQuery, findRequest, openFindResultsInWindow, setFindQuery, updateFindOptions } from "./state";
 
 interface Row {
   path: string;
@@ -155,15 +155,7 @@ export function FindInFilesPopup() {
     }
     setLoading(true);
     try {
-      const r = await findApi.search({
-        query,
-        caseSensitive: o.caseSensitive,
-        wholeWords: o.wholeWords,
-        regex: o.regex,
-        fileMask: o.maskEnabled ? o.fileMask : "",
-        ...scopeRequest(o),
-        limit: 1000,
-      });
+      const r = await findApi.search(findRequest(query, o));
       if (id !== seq) return;
       setResult(r);
       setTookMs(performance.now() - started);
@@ -193,19 +185,6 @@ export function FindInFilesPopup() {
     void openFileAt(row.path, row.match.line + 1, row.match.column + 1);
   };
 
-  const openInWindow = () => {
-    const o = findOptions();
-    closeFindInFiles();
-    openFindWindow({
-      query: findQuery(),
-      caseSensitive: o.caseSensitive,
-      wholeWords: o.wholeWords,
-      regex: o.regex,
-      fileMask: o.maskEnabled ? o.fileMask : "",
-      ...scopeRequest(o),
-    });
-  };
-
   const move = (delta: number) => {
     const n = rows().length;
     if (!n) return;
@@ -220,10 +199,32 @@ export function FindInFilesPopup() {
     else if (e.key === "ArrowUp") move(-1);
     else if (e.key === "PageDown") move(10);
     else if (e.key === "PageUp") move(-10);
+    else if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) openInWindow();
     else if (e.key === "Enter") open(rows()[selected()]);
     else return;
     e.preventDefault();
     e.stopPropagation();
+  };
+
+  const openAllInWindow = () => {
+    const o = findOptions();
+    closeFindInFiles();
+    openFindWindow({
+      query: findQuery(),
+      caseSensitive: o.caseSensitive,
+      wholeWords: o.wholeWords,
+      regex: o.regex,
+      fileMask: o.maskEnabled ? o.fileMask : "",
+      ...scopeRequest(o),
+    });
+  };
+
+  /** "Open in Find Window" (Ctrl+Enter): the results become a tab of the Find tool window. */
+  const openInWindow = () => {
+    const r = result();
+    if (!r || r.error || !r.matchCount || !findQuery()) return;
+    closeFindInFiles();
+    openFindResultsInWindow(findQuery(), findOptions(), r);
   };
 
   const summary = () => {
@@ -294,7 +295,7 @@ export function FindInFilesPopup() {
             title="Open in Find Window (every match, no limit)"
             disabled={!findQuery()}
             onMouseDown={(e) => e.preventDefault()}
-            onClick={openInWindow}
+            onClick={openAllInWindow}
           >
             <PanelBottomOpen size={14} />
           </button>
@@ -373,6 +374,17 @@ export function FindInFilesPopup() {
           </Show>
         </div>
         <Preview row={rows()[selected()]} />
+        <div class="find-footer">
+          <span class="muted">Enter to open · Ctrl+Enter to open in the Find tool window</span>
+          <button
+            class="btn-secondary find-open-window"
+            disabled={!result()?.matchCount}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={openInWindow}
+          >
+            Open in Find Window
+          </button>
+        </div>
       </div>
     </div>
   );

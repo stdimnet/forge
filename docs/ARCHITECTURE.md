@@ -186,6 +186,35 @@ app/ui/            SolidJS UI
 - Editor navigation: `openFileAt(path, line?, column?, { flash?, focus? })` from
   `src/editor/views.ts` opens a workspace-relative file, puts the caret at the 1-based position,
   centers it and briefly flashes the line.
+- TODO tool window (`src/ipc/workbench.ts`, `forge-find::todo`): `todo_scan({ request: {
+  patterns?: { pattern, caseSensitive? }[], paths?, buffers?, limit? } }) -> { files: { path,
+  items: { line, column, length, text, pattern }[] }[], count, truncated, error? }` — comments
+  only, `.gitignore` respected, through `Backend::find_todos` (agent call `FindTodos`, protocol
+  4). `paths` rescans single files (live updates); `buffers` are unsaved editor contents that
+  replace the files on disk. Browser mode runs the same scanner as WebAssembly.
+- Bookmarks (`src/ipc/workbench.ts`, `forge-bookmarks`): `bookmarks_get() -> Bookmarks` and
+  `bookmarks_apply({ ops: BookmarkOp[] }) -> Bookmarks` (`toggle`, `setMnemonic`, `remove`,
+  `clear`, `describe`, `moveToList`, `addList`, `renameList`, `removeList`, `setDefaultList`,
+  `applyEdits` with line edits in old-document coordinates, `renamePath`, `removePath`). Stored
+  in `<data dir>/forge/projects/<name>-<hash of the root>/bookmarks.json`, never in the
+  project.
+
+## Workbench: editor groups, Find, TODO and Notifications
+
+- Split editors: `state/editor.ts` keeps one document per file (`editor.tabs`) shared by every
+  editor group; `state/tabGroups.ts` is the tab layout as plain data (groups, active and
+  recently used tabs, pinned tabs, tab limit and closing policy from `editor.tabs.*`). Each
+  group renders its own CodeMirror view; `editor/docSync.ts` forwards the changes of one view
+  to the other views of the same file as synced transactions (one undo history per view).
+  `features/editorTabs` registers the tab context menu, Window | Editor Tabs actions and
+  Recent Locations (`Ctrl+Shift+E`, places shifted through edits).
+- Find tool window (`features/codeintel`): tabs of usages or Find in Files matches
+  (`openInFindWindow(answer, { kind: "usages" | "text", rerun? })`), Next/Previous Occurrence.
+- Notifications: `showBalloon` (`keymap/dispatch.ts`) logs every balloon in
+  `state/notifications.ts` (group, type, time, actions, read state; at most 200) and asks the
+  group's display mode (`notifications.balloons`, `notifications.groups`: balloon, sticky or
+  log only). `balloonsFor(group)` gives a feature its own group; git balloons use "Version
+  Control". `features/notifications` renders the tool window.
 
 ## Startup splash and updates (`forge-update`)
 
@@ -289,8 +318,35 @@ app/ui/            SolidJS UI
     detection (`node_modules/.bin`, PATH, npm/nvm/volta, …) and config building run on the
     project's machine (`Call::LangServers` with the `langservers.*` settings, disabled
     plugins and the running servers' states); the servers then start there through the LSP
-    byte channel. Installing from the settings page is refused for remote projects (install
-    on the host from the terminal).
+    byte channel. **Installs** run where the servers run: `Backend::install_langserver`
+    (`forge_backend::langservers::install`: `forge_langservers::managed` downloads Node.js and
+    npm packages with integrity checks into the host's Forge directories) is
+    `Call::LangServerInstall { channel, request }` in the agent, whose steps, output and
+    download progress stream back as `Event::Install { channel, event }`; closing the channel
+    cancels it. `Call::LangServerUpdates` checks the host's installed packages. The Intelephense
+    licence is still accepted in the UI before the call.
+  - **WebForge** (`forge_backend::web`): `LocalWeb` loads and caches (5 s) the project's script,
+    template and manifest files next to them and answers `Call::Web(WebCall)`: npm packages
+    with scripts and package manager detection, React / Vue / Angular components, Go to
+    Declaration and gutter marks (the editor buffer travels with the request). npm scripts run
+    as run configurations through `Backend::start_process`.
+  - **Language indexes**: `Call::CollectFiles(CollectRequest)` returns the text of every
+    project file with some extensions in one reply (gitignore-aware, limits on count, file size
+    and total bytes); the Lua index is built from it. StyLua runs through
+    `process_io::capture` with `Backend::find_executable`, so on the host.
+  - **Services** (`forge_containers::project::ProjectHost`, the app's `BackendProject`): compose
+    files and `.env` are read through the backend and `docker compose` / `docker build` run
+    with `Backend::start_process` on the host. With `docker.remoteProjectHost` the hub uses
+    `Endpoint::ProjectHost`: the Docker Engine API over `Tunnels::open_socket`
+    (`direct-streamlocal` to the host's socket on the project's SSH session), and exec
+    terminals carry `TerminalCommand.on_host`; otherwise they open with `local: true` on this
+    machine.
+  - **HTTP client**: environment and `< file` bodies are read through the backend; with
+    `httpClient.sendFrom = remote` (default) each request goes through
+    `Tunnels::forward_local` (a `direct-tcpip` channel per connection) to the URL's host and
+    port as the host sees them (`forge_scratches::client::send_via`: the original host stays
+    the `Host` header and TLS name).
+  - **Code hosts** detect the repository with git through the backend; API calls stay local.
   - **Project settings and `.forge/` files** go through `forge_core::ProjectFiles`
     (`LocalFiles`, `forge_backend::BackendFiles`): `.forge/settings.toml`
     (`Settings::load_project_files`), `.forge/dataSources.toml` and `.env` (database tools),
@@ -307,17 +363,22 @@ app/ui/            SolidJS UI
     `BackendHost`) finds them with `Backend::find_executable` and starts them with
     `process_io::spawn_stdio` (async stdin/stdout/stderr over the process API;
     `Call::ProcessCloseStdin` ends the input of per-turn CLIs).
-  - The Browser Companion's project profile and `.env` edits use the backend; opening files
-    from the browser still targets local projects. `AppState::with_workspace` is left for
-    WebForge sources, StyLua, code hosts, Docker services and HTTP scratch environments,
-    which fail for remote projects with "not available in remote projects yet".
+  - The **Browser Companion**'s project profile and `.env` edits use the backend; files the
+    browser reports are mapped to the remote project (`forge_open::resolve_remote`: paths below
+    the host root, relative paths, or the longest existing tail of another machine's or a
+    container's path, checked with `list_dir`), and symbol lookups use `find_files` /
+    `read_file` (`forge_open::symbols::SymbolSource`). `AppState::with_workspace` and its
+    "not available in remote projects yet" error are gone; `local_workspace()` only answers
+    questions about this machine.
 - Protocol (`forge_backend::protocol`, version `PROTOCOL_VERSION`): frames are a big-endian
   `u32` length + a MessagePack map (`rmp_serde::to_vec_named`). `Request { id, call }` /
   `Response { id, result }` (answers in any order; the result is the MessagePack encoding of
   the call's reply type; protocol 2 added `ReadOptional`, `ProcessCloseStdin`,
   `FindExecutable`, `Framework` and `LangServers`; protocol 3 added `FindInFiles` and the PHP
-  navigation calls `Usages`, `Navigate`, `Definition`, `LineMarkers` and `Intentions`), `Event` (`FsChanged`, `Pty`, `Run`,
-  `PhpIndexProgress`), `Data` /
+  navigation calls `Usages`, `Navigate`, `Definition`, `LineMarkers` and `Intentions`;
+  protocol 4 added `FindTodos`, `CollectFiles`, `Web`, `LangServerInstall` and
+  `LangServerUpdates`; protocol 5 added `FindStart`, `FindPage`, `FindSymbols` and
+  `SearchStatus`, and `exact` on the search calls), `Event` (`FsChanged`, `Pty`, `Run`, `PhpIndexProgress`, `Install`), `Data` /
   `Close { channel }` (language server stdio, terminal and process input; channel ids are chosen
   by the client). The connection starts with `Call::Hello`. `forge_backend::rpc::RpcClient`
   is the client (async `call`, `call_blocking`, events, channels); `forge_remote_agent::serve`

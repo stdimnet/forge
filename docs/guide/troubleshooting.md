@@ -145,17 +145,25 @@ at this step:
 Forge refuses to connect when the host key differs from `~/.ssh/known_hosts` and shows both
 fingerprints. Confirm only if you know why it changed (reinstalled server).
 
-### Feature says "not available in remote projects yet"
-
-Expected for WebForge's npm tool window and component navigation, StyLua, code hosts, HTTP
-request environments and project compose files in Services. See
-[Remote development](user/remote-development.md).
-
 ### Language server missing in a remote project
 
-Catalog servers and Intelephense must be installed **on the host** (the settings page refuses to
-install for remote projects). Install them there, e.g. `npm install -g intelephense`, then
-reopen the project.
+Catalog servers and Intelephense run **on the host**. Install them from Settings | Languages &
+Frameworks | Language Servers (Forge installs npm servers on the host) or on the host yourself,
+e.g. `npm install -g intelephense`, then reopen the project.
+
+### HTTP request in a remote project cannot connect
+
+Requests are sent from the host through an SSH tunnel, so the URL must work **on the host**
+(`localhost` is the host). For a service on your machine, set Settings | Tools | HTTP Client |
+**Send requests from** to **This machine**. "Cannot open an SSH tunnel" means the connection is
+down or the SSH server forbids TCP forwarding (`AllowTcpForwarding`).
+
+### Docker in a remote project
+
+The Docker node uses the host's daemon through the SSH connection. "permission denied" on the
+socket means the SSH user is not in the host's `docker` group; for rootless Docker set **Docker
+socket on the host** to `/run/user/<uid>/docker.sock`. The SSH server must allow stream local
+forwarding (`AllowStreamLocalForwarding`).
 
 ## Git
 

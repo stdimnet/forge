@@ -48,6 +48,10 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 
 ## Recently added
 
+- **Split editors, pinned tabs and the tab context menu**, a tab limit, **Recent Locations**
+  (`Ctrl+Shift+E`), **Bookmarks** (`F11`, `Ctrl+F11`, `Alt+2`), the **TODO** and
+  **Notifications** tool windows and Find in Files results in the **Find** tool window
+  ([Workbench](user/workbench.md#editor-tabs)).
 - **PHP navigation like PHPStorm**: `Ctrl+Click` on every PHP symbol (also `\Throwable` and
   `array_map`, opened read-only in the PHP stubs), Show Usages on declarations, Find Usages
   (`Alt+F7`) in the Find tool window, Implementation / Super Method / Type Declaration and the
@@ -73,8 +77,8 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 ## Not available yet
 
 Refactorings (Rename, Extract, Move), Replace in Files, quick-fixes (`Alt+Enter`),
-bookmarks, TODO, Local History, split editors, Get from VCS, stash, multiple project windows, a
-plugin Marketplace and automatic updates. The pages mark smaller gaps with notes.
+Local History, Get from VCS, stash, multiple project windows, a plugin Marketplace and
+automatic updates. The pages mark smaller gaps with notes.
 
 ## About this guide
 
