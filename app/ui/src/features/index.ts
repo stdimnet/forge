@@ -31,6 +31,7 @@ import "./scratches";
 import "./lua";
 import "./services";
 import "./remote";
+import "./code-with-me";
 import "./webforge";
 import "./contextMenu";
 import "./mainMenu";

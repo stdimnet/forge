@@ -1,0 +1,94 @@
+/* Code With Me: toolbar icon, session popup, remote carets. */
+
+.cwm-toolbar-btn.active {
+  color: var(--collab-1);
+}
+.cwm-toolbar-btn.open {
+  background: var(--bg-active);
+}
+
+.cwm-popup {
+  position: fixed;
+  z-index: 140;
+  width: 360px;
+  padding: 10px 6px 6px;
+}
+.cwm-popup-title {
+  padding: 0 8px 6px;
+  font-weight: 600;
+}
+.cwm-popup-label {
+  padding: 2px 8px 4px;
+  font-size: var(--fs-small);
+}
+.cwm-levels {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.cwm-level {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.cwm-level:hover:not(.disabled) {
+  background: var(--bg-hover);
+}
+.cwm-level.disabled {
+  cursor: default;
+  color: var(--fg-muted);
+}
+.cwm-level input {
+  margin: 2px 0 0;
+  accent-color: var(--accent);
+}
+.cwm-level-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.cwm-level-hint {
+  font-size: var(--fs-small);
+}
+.cwm-popup-note,
+.cwm-popup-warning {
+  padding: 6px 8px 0;
+  font-size: var(--fs-small);
+}
+.cwm-popup-warning {
+  color: var(--warning);
+}
+.cwm-popup-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 10px 8px 4px;
+}
+.cwm-popup-actions button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.cwm-sep {
+  height: 1px;
+  margin: 6px 4px;
+  background: var(--border);
+}
+.cwm-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 28px;
+  padding: 0 8px;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.cwm-menu-item:hover {
+  background: var(--bg-hover);
+}
+.cwm-menu-item.danger {
+  color: var(--danger);
+}
