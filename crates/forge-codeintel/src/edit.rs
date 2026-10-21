@@ -55,6 +55,15 @@ pub struct TextEdit {
     pub new_text: String,
 }
 
+/// Where the caret goes after an edit (Create from usage): a workspace-relative file and a
+/// range in it after the edit (empty for a caret, else selected).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Caret {
+    pub path: String,
+    pub range: Range,
+}
+
 /// One step of a workspace edit. Paths are workspace-relative (`/`-separated) once they
 /// reach the app; the language server client produces absolute ones.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

@@ -3,24 +3,27 @@
 //! import, generate accessors / method stubs / a PHPDoc comment for the element at the
 //! caret, and "Generate..." (Alt+Insert). Pure functions over the parsed file and the index.
 
+use forge_codeintel::{Caret, WorkspaceEdit};
 use serde::{Deserialize, Serialize};
 
 use crate::generate::{self, GenerateKind, GenerateOptions, TextEdit};
 use crate::hover::word_at;
 use crate::index::ProjectIndex;
 use crate::model::{short_name, FileIndex, SymbolKind, UseKind};
+use crate::navigate::ExternalSymbol;
 use crate::parser;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum IntentionKind {
     /// Fixes a problem (PHPStorm's red bulb), listed first.
     QuickFix,
     /// Changes working code (yellow bulb).
+    #[default]
     Intention,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Intention {
     pub title: String,
@@ -30,6 +33,19 @@ pub struct Intention {
     /// A UI action to run instead of edits, e.g. `Generate` (Alt+Insert).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub action: Option<String>,
+    /// Arguments of `action` (Create class: the class to create).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub data: Option<serde_json::Value>,
+    /// Edits of other files (LSP positions), applied together with `edits`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub workspace_edit: Option<WorkspaceEdit>,
+    /// Where the caret goes afterwards (positions after the edit).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub caret: Option<Caret>,
+    /// The symbol the action creates, as the PHP stubs would know it: the action is dropped
+    /// when PHP itself declares it (`strlen()`, `\Exception::getMessage()`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub unresolved: Option<ExternalSymbol>,
 }
 
 /// The edit adding `use <fqn>;` to the imports: in alphabetical order among the existing
@@ -128,7 +144,7 @@ fn import_intentions(
             title: "Replace qualifier with an import".into(),
             kind: IntentionKind::Intention,
             edits,
-            action: None,
+            ..Default::default()
         }];
     }
     if word.contains('\\') {
@@ -157,7 +173,7 @@ fn import_intentions(
             title: format!("Import class '{fqn}'"),
             kind: IntentionKind::QuickFix,
             edits: vec![add_import(file, src, &fqn)],
-            action: None,
+            ..Default::default()
         })
         .collect()
 }
@@ -176,7 +192,7 @@ fn generate_intention(
         title: title.to_string(),
         kind: IntentionKind::Intention,
         edits,
-        action: None,
+        ..Default::default()
     })
 }
 
@@ -213,14 +229,24 @@ fn readonly_intention(src: &str, p: &crate::model::Member) -> Option<Intention> 
             end: at,
             new_text: " readonly".into(),
         }],
-        action: None,
+        ..Default::default()
     })
 }
 
-/// Intentions at `offset` (bytes) of `src`, the content of `rel`.
-pub fn intentions(index: &mut ProjectIndex, rel: &str, src: &str, offset: usize) -> Vec<Intention> {
+/// Intentions at `offset` (bytes) of `src`, the content of `rel`. `options` carries the code
+/// style and the user's code templates for generated code.
+pub fn intentions(
+    index: &mut ProjectIndex,
+    rel: &str,
+    src: &str,
+    offset: usize,
+    options: &GenerateOptions,
+) -> Vec<Intention> {
     let file = parser::index_source(rel, src);
     let mut out = import_intentions(index, &file, src, offset);
+    out.extend(crate::create::create_from_usage(
+        index, &file, rel, src, offset, options,
+    ));
     let targets = generate::targets(&file, src, offset, index);
     let Some(class) = file.class_at(offset).cloned() else {
         return out;
@@ -235,7 +261,7 @@ pub fn intentions(index: &mut ProjectIndex, rel: &str, src: &str, offset: usize)
         if let Some(f) = targets.fields.iter().find(|f| f.name == p.name) {
             let fields = || GenerateOptions {
                 fields: vec![f.name.clone()],
-                ..Default::default()
+                ..options.clone()
             };
             let can_set = !f.has_setter && !f.is_readonly;
             let mut add = |title: &str, kind| {
@@ -271,7 +297,7 @@ pub fn intentions(index: &mut ProjectIndex, rel: &str, src: &str, offset: usize)
                 .iter()
                 .map(|m| m.id.clone())
                 .collect(),
-            ..Default::default()
+            ..options.clone()
         };
         if let Some(mut i) = generate_intention(
             index,
@@ -295,7 +321,7 @@ pub fn intentions(index: &mut ProjectIndex, rel: &str, src: &str, offset: usize)
             offset,
             &format!("Generate PHPDoc for '{name}'"),
             GenerateKind::PhpDoc,
-            GenerateOptions::default(),
+            options.clone(),
         ) {
             out.push(i);
         }
@@ -306,6 +332,7 @@ pub fn intentions(index: &mut ProjectIndex, rel: &str, src: &str, offset: usize)
         kind: IntentionKind::Intention,
         edits: vec![],
         action: Some("Generate".into()),
+        ..Default::default()
     });
     out
 }
@@ -350,7 +377,13 @@ mod tests {
         ]);
         let src = "<?php\n\nnamespace App\\Http;\n\nuse App\\Models\\Address;\nuse Illuminate\\Http\\Request;\n\nfunction show(Order $o) {}\n";
         let at = src.find("Order $o").unwrap() + 2;
-        let found = intentions(&mut idx, "app/Http/show.php", src, at);
+        let found = intentions(
+            &mut idx,
+            "app/Http/show.php",
+            src,
+            at,
+            &GenerateOptions::default(),
+        );
         assert_eq!(
             titles(&found)[..2],
             [
@@ -366,7 +399,13 @@ mod tests {
 
         // Known classes get no import.
         let at = fixed.find("Order $o").unwrap() + 2;
-        let again = intentions(&mut idx, "app/Http/show.php", &fixed, at);
+        let again = intentions(
+            &mut idx,
+            "app/Http/show.php",
+            &fixed,
+            at,
+            &GenerateOptions::default(),
+        );
         assert!(!titles(&again).iter().any(|t| t.starts_with("Import class")));
     }
 
@@ -375,7 +414,7 @@ mod tests {
         let (_d, mut idx) = index_with(&[("app/Models/Order.php", ORDER)]);
         let src = "<?php\nnamespace App\\Http;\n\nfunction f(): \\App\\Models\\Order {}\n";
         let at = src.find("Models\\Order {").unwrap();
-        let found = intentions(&mut idx, "f.php", src, at);
+        let found = intentions(&mut idx, "f.php", src, at, &GenerateOptions::default());
         assert_eq!(found[0].title, "Replace qualifier with an import");
         assert_eq!(
             apply_edits(src, &found[0].edits),
@@ -391,7 +430,13 @@ mod tests {
         )]);
         let src = "<?php\nnamespace App;\n\nuse App\\Contracts\\Payable;\n\nclass Invoice implements Payable\n{\n    private int $total = 0;\n\n    public function getTotal(): int\n    {\n        return $this->total;\n    }\n}\n";
         let at = src.find("$total = 0").unwrap();
-        let found = intentions(&mut idx, "app/Invoice.php", src, at);
+        let found = intentions(
+            &mut idx,
+            "app/Invoice.php",
+            src,
+            at,
+            &GenerateOptions::default(),
+        );
         assert_eq!(
             titles(&found),
             [
@@ -405,12 +450,24 @@ mod tests {
         assert_eq!(found[2].action.as_deref(), Some("Generate"));
 
         let at = src.find("Invoice implements").unwrap() + 1;
-        let found = intentions(&mut idx, "app/Invoice.php", src, at);
+        let found = intentions(
+            &mut idx,
+            "app/Invoice.php",
+            src,
+            at,
+            &GenerateOptions::default(),
+        );
         assert_eq!(found[0].title, "Add method stubs");
         assert!(apply_edits(src, &found[0].edits).contains("public function pay(int $cents): void"));
 
         let at = src.find("getTotal").unwrap() + 1;
-        let found = intentions(&mut idx, "app/Invoice.php", src, at);
+        let found = intentions(
+            &mut idx,
+            "app/Invoice.php",
+            src,
+            at,
+            &GenerateOptions::default(),
+        );
         assert!(titles(&found).contains(&"Generate PHPDoc for 'getTotal'"));
     }
 
@@ -420,9 +477,15 @@ mod tests {
         let src = "<?php\nclass Money\n{\n    private static int $count;\n    protected string $currency;\n    public ?int $cents = null;\n\n    public function __construct(private int $amount) {}\n}\n";
         let readonly = |at: &str, idx: &mut ProjectIndex| {
             let offset = src.find(at).unwrap();
-            intentions(idx, "app/Money.php", src, offset)
-                .into_iter()
-                .find(|i| i.title == "Add 'readonly' modifier")
+            intentions(
+                idx,
+                "app/Money.php",
+                src,
+                offset,
+                &GenerateOptions::default(),
+            )
+            .into_iter()
+            .find(|i| i.title == "Add 'readonly' modifier")
         };
         let i = readonly("$currency", &mut idx).expect("typed property");
         assert!(apply_edits(src, &i.edits).contains("protected readonly string $currency;"));

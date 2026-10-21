@@ -9,11 +9,13 @@
 //! - [`generate`] implements the "Generate" actions (constructor, accessors, overrides, ...).
 //! - [`navigate`] Go to Declaration, Find Usages, implementations and gutter markers.
 //! - [`rename`] Rename on the index: dialog labels and name clashes.
+//! - [`create`] Create symbols from usage (methods, fields, constants, functions, classes).
 //! - [`stubs`] PHP's own symbols from phpstorm-stubs (the "PHP Runtime").
 //! - [`lsp`] describes how to launch Intelephense / phpactor.
 //! - [`style`] brace placement and blank lines of the PHP code style.
 
 pub mod composer;
+pub mod create;
 pub mod docblock;
 pub mod fuzzy;
 pub mod generate;

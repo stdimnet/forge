@@ -857,11 +857,13 @@ impl PhpBackend for RemoteBackend {
         &self,
         path: &str,
         offset: usize,
+        options: GenerateOptions,
         content: Option<String>,
     ) -> Result<Vec<Intention>> {
         self.php_call(PhpCall::Intentions {
             path: path.to_string(),
             offset,
+            options,
             content,
         })
     }

@@ -108,15 +108,44 @@ pub fn line_markers(idx: &mut ProjectIndex, path: &str, text: &str) -> Vec<PhpLi
     navigate::line_markers(idx, path, text)
 }
 
-/// Show Context Actions: the built-in intentions at a UTF-16 `offset`, UTF-16 edits.
-pub fn intentions(idx: &mut ProjectIndex, path: &str, text: &str, offset: usize) -> Vec<Intention> {
-    intentions::intentions(idx, path, text, utf16_to_byte(text, offset))
+/// Show Context Actions: the built-in intentions at a UTF-16 `offset`, UTF-16 edits (the
+/// workspace edits and carets of Create from usage are LSP positions already).
+pub fn intentions(
+    idx: &mut ProjectIndex,
+    path: &str,
+    text: &str,
+    offset: usize,
+    options: &GenerateOptions,
+) -> Vec<Intention> {
+    intentions::intentions(idx, path, text, utf16_to_byte(text, offset), options)
         .into_iter()
         .map(|mut i| {
             i.edits = edits_to_utf16(text, std::mem::take(&mut i.edits));
             i
         })
         .collect()
+}
+
+/// The edit importing `fqn` into `text` (the content of `path`), UTF-16 offsets: nothing
+/// when the class is in the file's namespace or imported already. Create class uses it when
+/// the new class went to another namespace than the usage implied.
+pub fn import_class(path: &str, text: &str, fqn: &str) -> Vec<TextEdit> {
+    let fqn = fqn.trim_start_matches('\\');
+    let file = parser::index_source(path, text);
+    let ns = fqn.rsplit_once('\\').map_or("", |(ns, _)| ns);
+    let short = crate::model::short_name(fqn);
+    let in_namespace = file
+        .namespaces
+        .first()
+        .map_or("", |n| n.name.as_str())
+        .eq_ignore_ascii_case(ns);
+    let imported = file.uses.iter().any(|u| {
+        u.kind == crate::model::UseKind::Class && u.local_name().eq_ignore_ascii_case(short)
+    });
+    if in_namespace || imported {
+        return vec![];
+    }
+    edits_to_utf16(text, vec![intentions::add_import(&file, text, fqn)])
 }
 
 #[cfg(test)]
@@ -133,5 +162,15 @@ mod tests {
         let name_byte = text.find("class A").unwrap() + 6;
         // "ü" is two bytes but one UTF-16 unit.
         assert_eq!(s.nodes[0].offset, name_byte - 1);
+    }
+
+    #[test]
+    fn imports_a_created_class_once() {
+        let text = "<?php\nnamespace App\\Http;\n\nuse App\\Models\\User;\n\nnew Ünit();\n";
+        let edits = import_class("a.php", text, "App\\Support\\Ünit");
+        assert_eq!(edits.len(), 1);
+        assert_eq!(edits[0].new_text, "\nuse App\\Support\\Ünit;");
+        assert!(import_class("a.php", text, "App\\Http\\Ünit").is_empty());
+        assert!(import_class("a.php", text, "Other\\User").is_empty());
     }
 }

@@ -489,8 +489,9 @@ impl Agent {
             PhpCall::Intentions {
                 path,
                 offset,
+                options,
                 content,
-            } => reply(php.intentions(&path, offset, content)?),
+            } => reply(php.intentions(&path, offset, options, content)?),
             PhpCall::LspConfig { settings } => reply(php.lsp_config(settings)?),
             PhpCall::DetectServers { settings } => reply(php.detect_servers(settings)?),
         }

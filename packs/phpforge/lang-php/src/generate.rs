@@ -182,21 +182,21 @@ impl ClassResolver for FilesResolver {
 // ---------------------------------------------------------------------------------------
 // Formatting helpers
 
-struct Fmt {
+pub(crate) struct Fmt {
     /// Indentation of class members.
-    indent: String,
+    pub(crate) indent: String,
     /// One indentation level.
-    unit: String,
-    class_indent: String,
-    crlf: bool,
-    style: PhpCodeStyle,
+    pub(crate) unit: String,
+    pub(crate) class_indent: String,
+    pub(crate) crlf: bool,
+    pub(crate) style: PhpCodeStyle,
 }
 
-fn line_start(src: &str, offset: usize) -> usize {
+pub(crate) fn line_start(src: &str, offset: usize) -> usize {
     src[..offset].rfind('\n').map(|i| i + 1).unwrap_or(0)
 }
 
-fn leading_ws(src: &str, offset: usize) -> String {
+pub(crate) fn leading_ws(src: &str, offset: usize) -> String {
     let ls = line_start(src, offset);
     src[ls..]
         .chars()
@@ -205,7 +205,7 @@ fn leading_ws(src: &str, offset: usize) -> String {
 }
 
 impl Fmt {
-    fn for_class(src: &str, class: &ClassLike, style: &PhpCodeStyle) -> Self {
+    pub(crate) fn for_class(src: &str, class: &ClassLike, style: &PhpCodeStyle) -> Self {
         let class_indent = leading_ws(src, class.range.start);
         let first_member_indent = class
             .members
@@ -229,12 +229,12 @@ impl Fmt {
     }
 
     /// Line breaks between two members: "Blank lines around method" + 1.
-    fn member_separator(&self) -> String {
+    pub(crate) fn member_separator(&self) -> String {
         "\n".repeat(self.style.blank_lines_around_methods + 1)
     }
 
     /// Indent every non-empty line of `block` (written with 4-space levels) to member level.
-    fn indent_block(&self, block: &str) -> String {
+    pub(crate) fn indent_block(&self, block: &str) -> String {
         apply_braces(block, self.style.braces)
             .lines()
             .map(|l| {
@@ -254,7 +254,7 @@ impl Fmt {
             .join("\n")
     }
 
-    fn eol(&self, s: String) -> String {
+    pub(crate) fn eol(&self, s: String) -> String {
         if self.crlf {
             s.replace("\r\n", "\n").replace('\n', "\r\n")
         } else {
@@ -264,7 +264,12 @@ impl Fmt {
 }
 
 /// Insert member blocks at the end of the class body.
-fn insert_at_end(src: &str, class: &ClassLike, fmt: &Fmt, blocks: &[String]) -> TextEdit {
+pub(crate) fn insert_at_end(
+    src: &str,
+    class: &ClassLike,
+    fmt: &Fmt,
+    blocks: &[String],
+) -> TextEdit {
     let open = class.body_range.start;
     let close = class.body_range.end - 1;
     let body = fmt.indent_block(&blocks.join(&fmt.member_separator()));
@@ -286,7 +291,12 @@ fn insert_at_end(src: &str, class: &ClassLike, fmt: &Fmt, blocks: &[String]) -> 
 }
 
 /// Insert after the last property/constant (or at the top of the body).
-fn insert_after_fields(src: &str, class: &ClassLike, fmt: &Fmt, block: &str) -> TextEdit {
+pub(crate) fn insert_after_fields(
+    src: &str,
+    class: &ClassLike,
+    fmt: &Fmt,
+    block: &str,
+) -> TextEdit {
     let last_field_end = class
         .members
         .iter()
