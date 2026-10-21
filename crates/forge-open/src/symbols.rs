@@ -1,7 +1,7 @@
 //! Find the declaration of a symbol the browser only knows by name (an Angular component's
 //! constructor name, a React component without debug source) in the open project.
 
-use forge_core::{Result, Workspace};
+use forge_core::{FileMatch, Result, Workspace};
 use serde::Serialize;
 
 use crate::request::{SymbolKind, SymbolRequest};
@@ -130,8 +130,32 @@ fn kind_bonus(path: &str, kind: Option<SymbolKind>) -> i32 {
     }
 }
 
+/// The files of the open project: a local [`Workspace`], or a remote project's backend.
+pub trait SymbolSource {
+    /// "Go to File" matches for `query`.
+    fn find_files(&self, query: &str, limit: usize) -> Result<Vec<FileMatch>>;
+    /// A file's text when it exists and is at most `max_bytes` long.
+    fn read_small(&self, path: &str, max_bytes: u64) -> Option<String>;
+}
+
+impl SymbolSource for Workspace {
+    fn find_files(&self, query: &str, limit: usize) -> Result<Vec<FileMatch>> {
+        Workspace::find_files(self, query, limit)
+    }
+
+    fn read_small(&self, path: &str, max_bytes: u64) -> Option<String> {
+        self.resolve(path)
+            .ok()
+            .filter(|p| p.metadata().is_ok_and(|m| m.len() <= max_bytes))
+            .and_then(|p| std::fs::read_to_string(p).ok())
+    }
+}
+
 /// Candidate declarations of `request.name` in the workspace, best first.
-pub fn resolve_symbol(ws: &Workspace, request: &SymbolRequest) -> Result<Vec<SymbolHit>> {
+pub fn resolve_symbol(
+    ws: &(impl SymbolSource + ?Sized),
+    request: &SymbolRequest,
+) -> Result<Vec<SymbolHit>> {
     let name = request.name.as_str();
     let base = base_name(name).unwrap_or(name);
     let mut files: Vec<String> = ws
@@ -160,10 +184,7 @@ pub fn resolve_symbol(ws: &Workspace, request: &SymbolRequest) -> Result<Vec<Sym
             continue;
         }
         let declaration = ws
-            .resolve(&path)
-            .ok()
-            .filter(|p| p.metadata().is_ok_and(|m| m.len() <= MAX_SCAN_BYTES))
-            .and_then(|p| std::fs::read_to_string(p).ok())
+            .read_small(&path, MAX_SCAN_BYTES)
             .and_then(|content| find_declaration(&content, name));
         if declaration.is_some() {
             score += 50;

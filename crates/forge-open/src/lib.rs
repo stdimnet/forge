@@ -11,6 +11,7 @@ pub mod cli;
 pub mod http;
 pub mod pairing;
 pub mod project;
+pub mod remote;
 pub mod request;
 pub mod resolve;
 pub mod server;
@@ -18,6 +19,7 @@ pub mod symbols;
 
 use serde::Serialize;
 
+pub use remote::{resolve_remote, RemoteProject};
 pub use request::{LinkAction, OpenRequest, RequestError, SymbolKind, SymbolRequest};
 pub use resolve::{resolve_file, KnownProject, ProjectContext, ResolveError, Target};
 
