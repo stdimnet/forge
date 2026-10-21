@@ -25,7 +25,7 @@ use crate::relay::{ConnectionPath, PathKind, RelayOptions, RelayPlan, RelayStatu
 
 /// How long Start Session / Join wait for the relay connection before they report why it
 /// does not work.
-pub const RELAY_TIMEOUT: Duration = Duration::from_secs(8);
+pub const RELAY_TIMEOUT: Duration = Duration::from_secs(20);
 
 /// Everything the transport needs beyond where to listen.
 #[derive(Debug, Clone, Default)]
@@ -94,33 +94,41 @@ pub(crate) async fn wait_online(endpoint: &Endpoint, plan: &RelayPlan) -> io::Re
     if *plan == RelayPlan::None {
         return Ok(());
     }
-    // A denied token does not resolve by waiting: report it right away.
+    // A denied token does not resolve by waiting: report it right away. The reason is kept
+    // here because the status forgets it while the endpoint retries.
     let denied = async {
         loop {
             tokio::time::sleep(Duration::from_millis(100)).await;
             let relays = endpoint.home_relay_status().get();
-            if relays.iter().any(|r| r.auth_denied_reason().is_some()) {
-                return;
+            let reason = relays.iter().find_map(|relay| {
+                relay
+                    .auth_denied_reason()
+                    .map(|reason| (relay.url().to_string(), reason.to_string()))
+            });
+            if let Some(found) = reason {
+                return found;
             }
         }
     };
-    let online = tokio::time::timeout(RELAY_TIMEOUT, async {
+    let waited = tokio::time::timeout(RELAY_TIMEOUT, async {
         tokio::select! {
-            () = endpoint.online() => true,
-            () = denied => false,
+            () = endpoint.online() => None,
+            found = denied => Some(found),
         }
-    });
-    if online.await == Ok(true) {
-        return Ok(());
-    }
-    let why = match status(endpoint, plan) {
-        Some(RelayStatus {
-            url,
-            error: Some(error),
-            ..
-        }) => format!("{url}: {error}"),
-        Some(RelayStatus { url, .. }) => format!("{url} did not answer"),
-        None => "the relay did not answer".into(),
+    })
+    .await;
+    let why = match waited {
+        Ok(None) => return Ok(()),
+        Ok(Some((url, reason))) => format!("{url}: {reason}"),
+        Err(_) => match status(endpoint, plan) {
+            Some(RelayStatus {
+                url,
+                error: Some(error),
+                ..
+            }) => format!("{url}: {error}"),
+            Some(RelayStatus { url, .. }) => format!("{url} did not answer"),
+            None => "the relay did not answer".into(),
+        },
     };
     Err(io_err(format!("Cannot reach the relay server ({why})")))
 }
