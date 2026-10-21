@@ -79,7 +79,7 @@ export function demoInlayHints(text: string, startLine: number, endLine: number)
     if (assign && TYPES[assign[2]]) {
       hints.push({ line: n, character: assign[1].length + assign[2].length, label: `: ${TYPES[assign[2]]}`, kind: 1, paddingLeft: false, paddingRight: false });
     }
-    for (const m of line.matchAll(/fn\s*\(([^)]*)\)/g)) {
+    for (const m of line.matchAll(/fn\s*\(\$line\)/g)) {
       hints.push({ line: n, character: m.index + m[0].length, label: ": float", kind: 1, paddingLeft: false, paddingRight: false });
     }
   }
