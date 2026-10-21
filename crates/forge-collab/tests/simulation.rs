@@ -370,10 +370,12 @@ async fn disk_changes_reach_everyone_and_unsaved_edits_are_kept() {
         ed.lock().unwrap().text(doc) == new
     })
     .await;
-    assert_eq!(
-        alex.editor.lock().unwrap().saved.get(&doc),
-        Some(&SaveState::of(new))
-    );
+    // The save state follows the update in its own message.
+    let ed = alex.editor.clone();
+    eventually("the guest knows the file is saved", || {
+        ed.lock().unwrap().saved.get(&doc) == Some(&SaveState::of(new))
+    })
+    .await;
 
     // With unsaved shared edits the memory wins and the host is told.
     alex.edit(doc, 0, 0, "// edited\n");
