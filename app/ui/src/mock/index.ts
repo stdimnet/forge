@@ -37,6 +37,7 @@ import "./forgesMock";
 import "./markdownMock";
 import "./liveTemplatesMock";
 import "./injectionsMock";
+import "./emmetMock";
 import "./servicesMock";
 import "./webMock";
 import "./windowMock";

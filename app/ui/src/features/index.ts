@@ -47,3 +47,5 @@ import "./todo";
 import "./notifications";
 import "./updates";
 import "./fileTemplates";
+import "./emmet";
+import "./colors";

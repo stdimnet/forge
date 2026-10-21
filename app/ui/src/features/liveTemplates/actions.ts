@@ -12,6 +12,7 @@ import { liveTemplatesApi, type SurroundItem } from "@/ipc/liveTemplates";
 import { applyExpansion, expandTemplate, setUnwrapHighlight } from "./editor";
 import { docRequest, envFor, PAGE_ID } from "./model";
 import { openPopup, type PopupItem } from "./Popup";
+import { emmetSurroundItem } from "@/features/emmet/actions";
 
 /** The active file editor, if any. */
 function target(): { path: string; view: EditorView } | null {
@@ -54,7 +55,9 @@ export async function surroundWith(templatesOnly = false): Promise<void> {
   const { path, view } = t;
   const request = surroundRequest(path, view, templatesOnly);
   const items = await liveTemplatesApi.surroundItems(request);
-  if (!items.length) {
+  // In markup files Surround with Live Template offers Emmet first, as in PHPStorm.
+  const emmet = templatesOnly ? emmetSurroundItem(path, view) : null;
+  if (!items.length && !emmet) {
     showBalloon(templatesOnly ? "No applicable live templates" : "Nothing to surround with here");
     return;
   }
@@ -73,7 +76,7 @@ export async function surroundWith(templatesOnly = false): Promise<void> {
   });
   openPopup(view, {
     title: templatesOnly ? "Surround with Live Template" : "Surround With",
-    items: items.map(toItem),
+    items: [...(emmet ? [emmet] : []), ...items.map(toItem)],
   });
 }
 
