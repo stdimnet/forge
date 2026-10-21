@@ -397,6 +397,7 @@ impl SearchService {
         let mut result = FoundText {
             root: self.root.clone(),
             files: Vec::new(),
+            context: finder.context(),
             match_count: 0,
             truncated: false,
             error: None,

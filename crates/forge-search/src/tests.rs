@@ -427,6 +427,9 @@ fn find_text_matches_a_directory_walk() {
     let mut dir = req("UserRepository");
     dir.directory = "web".into();
     cases.push(dir);
+    let mut with_context = req("function");
+    with_context.context = 2;
+    cases.push(with_context);
     let mut only = req("user");
     only.paths = Some(vec![
         "src/User.php".into(),

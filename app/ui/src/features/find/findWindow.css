@@ -64,7 +64,8 @@
   color: var(--fg-muted);
   font-size: 11px;
 }
-.fw-match {
+.fw-match,
+.fw-context {
   padding-left: 40px;
   cursor: pointer;
 }
@@ -84,4 +85,12 @@
   background: var(--accent-soft);
   color: var(--fg-strong);
   border-radius: 2px;
+}
+
+.fw-context {
+  color: var(--fg-muted);
+}
+.fw-context-select {
+  height: 24px;
+  flex: 0 0 auto;
 }

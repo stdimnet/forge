@@ -21,6 +21,7 @@ export interface FindForm {
   fileMask: string;
   directory: string;
   paths?: string[];
+  context: number;
 }
 
 export const [findForm, setFindForm] = createStore<FindForm>({
@@ -30,6 +31,7 @@ export const [findForm, setFindForm] = createStore<FindForm>({
   regex: false,
   fileMask: "",
   directory: "",
+  context: 0,
 });
 
 export interface FindWindowResults {

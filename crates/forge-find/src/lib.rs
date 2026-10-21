@@ -44,6 +44,9 @@ pub struct FindRequest {
     /// Search only these project-relative files (open or changed files); `None` = no restriction.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub paths: Option<Vec<String>>,
+    /// Lines of context kept before and after each matching line (at most [`MAX_CONTEXT`]).
+    #[serde(default)]
+    pub context: usize,
     /// Maximum number of matches reported.
     #[serde(default = "default_limit")]
     pub limit: usize,
@@ -59,6 +62,7 @@ impl Default for FindRequest {
             file_mask: String::new(),
             directory: String::new(),
             paths: None,
+            context: 0,
             limit: DEFAULT_LIMIT,
         }
     }
@@ -78,6 +82,12 @@ pub struct LineMatch {
     pub text: String,
     /// UTF-16 `[start, end)` ranges of the matches inside `text`.
     pub ranges: Vec<(usize, usize)>,
+    /// The lines just before this one, when the request asked for context.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub before: Vec<String>,
+    /// The lines just after this one, when the request asked for context.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub after: Vec<String>,
 }
 
 /// The matches of one file.
@@ -256,6 +266,7 @@ pub struct Finder {
     mask: FileMask,
     directory: String,
     only: Option<std::collections::HashSet<String>>,
+    context: usize,
     limit: usize,
 }
 
@@ -280,6 +291,7 @@ impl Finder {
                     .map(|p| p.trim_start_matches('/').to_string())
                     .collect()
             }),
+            context: req.context.min(MAX_CONTEXT),
             limit: req.limit.max(1),
         })
     }
@@ -321,12 +333,19 @@ impl Finder {
                 continue;
             }
             if count + found.len() > budget {
+                add_context(text, &mut out, self.context);
                 return (out, count, true);
             }
             count += found.len();
             out.push(line_match(line_no, line, &found));
         }
+        add_context(text, &mut out, self.context);
         (out, count, false)
+    }
+
+    /// Lines of context requested around each matching line.
+    pub fn context(&self) -> usize {
+        self.context
     }
 }
 
@@ -407,6 +426,39 @@ fn line_match(line_no: usize, line: &str, found: &[(usize, usize)]) -> LineMatch
         length: utf16_len(&line[first_start..first_end]),
         text: text.to_string(),
         ranges,
+        before: Vec::new(),
+        after: Vec::new(),
+    }
+}
+
+/// Most context lines a request may ask for.
+pub const MAX_CONTEXT: usize = 5;
+
+/// Fills `before` and `after` of `rows` with up to `context` neighbouring lines of `text`.
+pub fn add_context(text: &str, rows: &mut [LineMatch], context: usize) {
+    let context = context.min(MAX_CONTEXT);
+    if context == 0 || rows.is_empty() {
+        return;
+    }
+    let lines: Vec<&str> = text
+        .split('\n')
+        .map(|l| l.strip_suffix('\r').unwrap_or(l))
+        .collect();
+    let shown = |line: &&str| {
+        let trimmed = line.trim();
+        trimmed.chars().take(PREVIEW_CHARS).collect::<String>()
+    };
+    for row in rows {
+        let from = row.line.saturating_sub(context);
+        row.before = lines[from..row.line.min(lines.len())]
+            .iter()
+            .map(shown)
+            .collect();
+        let to = (row.line + 1 + context).min(lines.len());
+        row.after = lines[(row.line + 1).min(to)..to]
+            .iter()
+            .map(shown)
+            .collect();
     }
 }
 
@@ -579,6 +631,24 @@ mod tests {
         assert_eq!(r.files[0].path, "tests/UserTest.php");
         q.paths = Some(vec![]);
         assert!(find_in(&q, files).files.is_empty());
+    }
+
+    #[test]
+    fn context_lines_surround_a_match_and_stop_at_the_edges() {
+        let mut q = req("hit");
+        q.context = 2;
+        let text = "a\n  b\nhit\r\nd\ne\nf\n";
+        let r = find_in(&q, [("x.txt", text)]);
+        let row = &r.files[0].matches[0];
+        assert_eq!(row.before, ["a", "b"]);
+        assert_eq!(row.after, ["d", "e"]);
+        let r = find_in(&req("a"), [("x.txt", text)]);
+        assert!(r.files[0].matches[0].before.is_empty());
+        let mut q = req("a");
+        q.context = 3;
+        let first = &find_in(&q, [("x.txt", text)]).files[0].matches[0];
+        assert!(first.before.is_empty());
+        assert_eq!(first.after, ["b", "hit", "d"]);
     }
 
     #[test]

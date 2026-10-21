@@ -15,6 +15,8 @@ export interface FindRequest {
   directory?: string;
   /** Search only these project-relative files (open or changed files). */
   paths?: string[];
+  /** Lines of context around each match (0 to 5). */
+  context?: number;
   /** Maximum number of matches. */
   limit?: number;
 }
@@ -29,6 +31,9 @@ export interface LineMatch {
   text: string;
   /** `[start, end)` of every match inside `text`. */
   ranges: [number, number][];
+  /** Lines just before and after, when the request asked for `context`. */
+  before?: string[];
+  after?: string[];
 }
 
 export interface FileMatches {

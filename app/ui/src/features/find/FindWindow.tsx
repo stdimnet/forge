@@ -3,13 +3,14 @@ import { CaseSensitive, ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDow
 import type { FileMatches, LineMatch } from "@/ipc/find";
 import { openFileAt } from "@/editor/views";
 import { FileIcon } from "@/shell/FileIcon";
+import { fileRows, type MatchRows } from "./contextRows";
 import { formatDuration } from "./duration";
 import { collapsedFiles, findForm, findResults, hasMoreRows, loadMoreRows, runFindWindow, setCollapsedFiles, setFindForm } from "./window";
 
 const ROW_HEIGHT = 24;
 const OVERSCAN = 12;
 
-type Row = { kind: "file"; file: FileMatches } | { kind: "match"; file: FileMatches; match: LineMatch };
+type Row = { kind: "file"; file: FileMatches } | MatchRows;
 
 const toggleFile = (path: string) =>
   setCollapsedFiles((prev) => {
@@ -72,6 +73,15 @@ function MatchRow(props: { file: FileMatches; match: LineMatch }) {
   );
 }
 
+function ContextRow(props: { file: FileMatches; line: number; text: string }) {
+  return (
+    <div class="tree-row fw-row fw-context" onClick={() => void openFileAt(props.file.path, props.line + 1, 1)}>
+      <span class="fw-line">{props.line + 1}</span>
+      <span class="fw-text">{props.text}</span>
+    </div>
+  );
+}
+
 export function FindWindow() {
   const [scrollTop, setScrollTop] = createSignal(0);
   const [viewHeight, setViewHeight] = createSignal(300);
@@ -90,7 +100,7 @@ export function FindWindow() {
     const out: Row[] = [];
     for (const file of files()) {
       out.push({ kind: "file", file });
-      if (!folded.has(file.path)) for (const match of file.matches) out.push({ kind: "match", file, match });
+      if (!folded.has(file.path)) out.push(...fileRows(file));
     }
     return out;
   });
@@ -145,6 +155,17 @@ export function FindWindow() {
           onInput={(e) => setFindForm("directory", e.currentTarget.value)}
           onKeyDown={onEnter}
         />
+        <select
+          class="fw-context-select"
+          title="Lines of context"
+          value={String(findForm.context)}
+          onChange={(e) => {
+            setFindForm("context", Number(e.currentTarget.value));
+            void runFindWindow();
+          }}
+        >
+          <For each={[0, 1, 2, 3, 5]}>{(n) => <option value={String(n)}>{n === 0 ? "No context" : `${n} line${n > 1 ? "s" : ""} of context`}</option>}</For>
+        </select>
         <Toggle title="Search again" onClick={() => void runFindWindow()}>
           <RefreshCw size={14} />
         </Toggle>
@@ -180,7 +201,15 @@ export function FindWindow() {
           <div style={{ height: `${rows().length * ROW_HEIGHT}px`, position: "relative" }}>
             <div style={{ transform: `translateY(${first() * ROW_HEIGHT}px)` }}>
               <For each={rows().slice(first(), last())}>
-                {(row) => (row.kind === "file" ? <FileRow file={row.file} /> : <MatchRow file={row.file} match={row.match} />)}
+                {(row) =>
+                  row.kind === "file" ? (
+                    <FileRow file={row.file} />
+                  ) : row.kind === "context" ? (
+                    <ContextRow file={row.file} line={row.line} text={row.text} />
+                  ) : (
+                    <MatchRow file={row.file} match={row.match} />
+                  )
+                }
               </For>
             </div>
           </div>

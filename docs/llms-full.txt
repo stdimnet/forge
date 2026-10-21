@@ -1296,6 +1296,10 @@ The status bar shows the size of the search index ("272,700 files", or "Indexing
 
 ![Find in Files scopes](docs/screenshots/search-index-find-scopes.png)
 
+- In the Find window, the list next to the directory field adds **lines of context** (1 to 5) above and below each match. Context lines are dimmed, shown once even when two matches share them, and a click opens the file there.
+
+![Find window with context lines](docs/screenshots/search-index-find-context.png)
+
 - **File mask**: tick it and enter patterns such as `*.php` or `*.php, !*Test.php`
   (`!` excludes).
 - Scope: **In Project** or **Directory** (a folder of the project; empty means the project

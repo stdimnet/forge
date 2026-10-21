@@ -63,6 +63,7 @@ pub(crate) fn group_rows(
 pub struct FoundText {
     pub(crate) root: PathBuf,
     pub(crate) files: Vec<LazyFile>,
+    pub(crate) context: usize,
     pub match_count: usize,
     pub truncated: bool,
     pub error: Option<String>,
@@ -73,6 +74,7 @@ impl FoundText {
         Self {
             root,
             files: Vec::new(),
+            context: 0,
             match_count: 0,
             truncated: false,
             error: Some(error),
@@ -135,7 +137,9 @@ impl FoundText {
             .iter()
             .map(|&(s, e)| (s as usize, e as usize))
             .collect();
-        forge_find::lines_from_ranges(text, &ranges, usize::MAX).0
+        let mut rows = forge_find::lines_from_ranges(text, &ranges, usize::MAX).0;
+        forge_find::add_context(text, &mut rows, self.context);
+        rows
     }
 
     /// The totals with the first `page_size` rows.

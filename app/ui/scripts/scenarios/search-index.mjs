@@ -13,6 +13,15 @@ export default {
     await page.click('.find-scope-tab:has-text("Open Files")');
     await page.waitForTimeout(500);
   },
+  "search-index-find-context": async (page) => {
+    await page.evaluate(() => window.__forgeRunCommand("FindInPath"));
+    await page.keyboard.type("hasMany");
+    await page.waitForTimeout(500);
+    await page.click('button[title^="Open in Find Window"]');
+    await page.waitForSelector(".fw-match");
+    await page.selectOption(".fw-context-select", "2");
+    await page.waitForSelector(".fw-context");
+  },
   "search-index-status": async (page) => {
     await page.waitForSelector('[data-testid="index-status"]');
     await page.hover('[data-testid="index-status"]');
