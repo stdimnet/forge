@@ -51,3 +51,4 @@ import "./fileTemplates";
 import "./markdown";
 import "./images";
 import "./csv";
+import "./codeStructure";
