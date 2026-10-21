@@ -344,30 +344,6 @@
           "order": 1
         },
         {
-          "key": "system.openProjectIn",
-          "title": "Open project in",
-          "type": "enum",
-          "options": [
-            {
-              "value": "new",
-              "label": "New window"
-            },
-            {
-              "value": "same",
-              "label": "Current window"
-            },
-            {
-              "value": "ask",
-              "label": "Ask"
-            }
-          ],
-          "default": "ask",
-          "group": "system",
-          "section": "Project",
-          "project": false,
-          "order": 2
-        },
-        {
           "key": "system.defaultProjectDirectory",
           "title": "Default project directory",
           "description": "New projects are created here unless you pick another location.",
@@ -656,6 +632,7 @@
         {
           "key": "editor.codeStyle.lineSeparator",
           "title": "Line separator",
+          "description": "For new files. Existing files keep theirs; change it in the status bar.",
           "type": "enum",
           "options": [
             {
@@ -679,6 +656,7 @@
         {
           "key": "editor.codeStyle.hardWrapAt",
           "title": "Hard wrap at (columns)",
+          "description": "The right margin, drawn as a line in the editor. EditorConfig's max_line_length overrides it.",
           "type": "int",
           "min": 40,
           "max": 400,
@@ -700,11 +678,22 @@
         {
           "key": "editor.codeStyle.useEditorConfig",
           "title": "Enable EditorConfig support",
+          "description": "Indents, line separators, charset and the On Save options of .editorconfig files override these settings.",
           "type": "bool",
           "default": true,
           "group": "editor.code-style",
           "project": true,
           "order": 3
+        },
+        {
+          "key": "editor.codeStyle.detectIndents",
+          "title": "Detect and use existing file indents for editing",
+          "description": "Files indented differently from the code style keep their indent; the status bar marks it with *.",
+          "type": "bool",
+          "default": true,
+          "group": "editor.code-style",
+          "project": true,
+          "order": 4
         },
         {
           "key": "editor.inlayHints.parameterNames",
@@ -720,6 +709,7 @@
         {
           "key": "editor.inlayHints.types",
           "title": "Inferred variable types",
+          "description": "The type of variables and properties without a declared type.",
           "type": "bool",
           "default": false,
           "group": "editor.inlay-hints",
@@ -729,7 +719,8 @@
         },
         {
           "key": "editor.inlayHints.returnTypes",
-          "title": "Return types of closures",
+          "title": "Return types of closures and functions",
+          "description": "The inferred return type after the parameter list when none is declared.",
           "type": "bool",
           "default": true,
           "group": "editor.inlay-hints",
@@ -738,35 +729,56 @@
           "order": 11
         },
         {
-          "key": "editor.inlayHints.chainedCalls",
-          "title": "Types in method chains",
+          "key": "editor.inlayHints.languages.php",
+          "title": "PHP",
           "type": "bool",
           "default": true,
           "group": "editor.inlay-hints",
-          "section": "Types",
+          "section": "Languages",
           "project": false,
-          "order": 12
+          "order": 30
         },
         {
-          "key": "editor.inlayHints.usages",
-          "title": "Usages",
-          "description": "Show the number of usages above classes and methods (Code Vision).",
+          "key": "editor.inlayHints.languages.javascript",
+          "title": "JavaScript and TypeScript",
+          "description": "Also Vue, Svelte and Astro files.",
+          "type": "bool",
+          "default": true,
+          "group": "editor.inlay-hints",
+          "section": "Languages",
+          "project": false,
+          "order": 31
+        },
+        {
+          "key": "editor.inlayHints.languages.lua",
+          "title": "Lua",
+          "type": "bool",
+          "default": true,
+          "group": "editor.inlay-hints",
+          "section": "Languages",
+          "project": false,
+          "order": 32
+        },
+        {
+          "key": "editor.inlayHints.languages.other",
+          "title": "Other languages",
+          "type": "bool",
+          "default": true,
+          "group": "editor.inlay-hints",
+          "section": "Languages",
+          "project": false,
+          "order": 33
+        },
+        {
+          "key": "editor.inlayHints.implementations",
+          "title": "Implementations and inheritors",
+          "description": "Show \"2 implementations\", \"3 inheritors\" and \"1 override\" above PHP classes and methods (Code Vision). Click to go there.",
           "type": "bool",
           "default": true,
           "group": "editor.inlay-hints",
           "section": "Code Vision",
           "project": false,
           "order": 20
-        },
-        {
-          "key": "editor.inlayHints.implementations",
-          "title": "Implementations and inheritors",
-          "type": "bool",
-          "default": true,
-          "group": "editor.inlay-hints",
-          "section": "Code Vision",
-          "project": false,
-          "order": 21
         },
         {
           "key": "httpClient.environment",
@@ -838,7 +850,7 @@
         {
           "key": "vcs.git.path",
           "title": "Path to Git executable",
-          "description": "Leave as `git` to use the one on PATH.",
+          "description": "Leave as `git` to use the one on PATH. Remote projects always use the git of their host.",
           "type": "path",
           "default": "git",
           "group": "vcs.git",
@@ -848,6 +860,7 @@
         {
           "key": "vcs.git.updateMethod",
           "title": "Update method",
+          "description": "How Update Project (Ctrl+T) brings in remote changes. Branch default follows the branch's git configuration (pull.rebase).",
           "type": "enum",
           "options": [
             {
@@ -871,11 +884,23 @@
         {
           "key": "vcs.git.autoFetch",
           "title": "Fetch remotes automatically",
+          "description": "In the background, for repositories whose branch has an upstream. Failures are ignored.",
           "type": "bool",
           "default": true,
           "group": "vcs.git",
           "project": false,
           "order": 2
+        },
+        {
+          "key": "vcs.git.autoFetchInterval",
+          "title": "Fetch every (minutes)",
+          "type": "int",
+          "min": 1,
+          "max": 240,
+          "default": 10,
+          "group": "vcs.git",
+          "project": false,
+          "order": 3
         },
         {
           "key": "vcs.git.commit.subjectMaxLength",
@@ -1070,6 +1095,7 @@
         {
           "key": "terminal.audibleBell",
           "title": "Audible bell",
+          "description": "Play a short tone when a program rings the terminal bell.",
           "type": "bool",
           "default": false,
           "group": "tools.terminal",
@@ -1090,7 +1116,7 @@
         {
           "key": "terminal.shellIntegration",
           "title": "Shell integration",
-          "description": "Track the working directory and command boundaries of supported shells.",
+          "description": "bash and zsh report their working directory (shown in the tab tooltip) and command boundaries (green and red marks in the scrollbar for succeeded and failed commands). Applies to new sessions.",
           "type": "bool",
           "default": true,
           "group": "tools.terminal",
@@ -1183,6 +1209,7 @@
         {
           "key": "run.console.cycleBufferKb",
           "title": "Override console cycle buffer size (KB)",
+          "description": "Run consoles drop their oldest lines beyond this size. Applies to runs started afterwards.",
           "type": "int",
           "min": 100,
           "max": 100000,
@@ -1762,68 +1789,34 @@
           "order": 3
         },
         {
-          "key": "php.codeStyle.braces.classes",
-          "title": "In class declaration",
+          "key": "php.codeStyle.braces",
+          "title": "Braces placement",
+          "description": "Used by Reformat Code (Intelephense's formatter) and the Generate actions (Alt+Insert).",
           "type": "enum",
           "options": [
             {
-              "value": "endOfLine",
-              "label": "End of line"
+              "value": "psr12",
+              "label": "PSR-12: next line for classes and functions, end of line otherwise"
             },
             {
-              "value": "nextLine",
-              "label": "Next line"
+              "value": "allman",
+              "label": "Next line everywhere"
+            },
+            {
+              "value": "kr",
+              "label": "End of line everywhere"
             }
           ],
-          "default": "nextLine",
+          "default": "psr12",
           "group": "editor.code-style.php",
           "section": "Braces Placement",
           "project": true,
           "order": 10
         },
         {
-          "key": "php.codeStyle.braces.functions",
-          "title": "In function declaration",
-          "type": "enum",
-          "options": [
-            {
-              "value": "endOfLine",
-              "label": "End of line"
-            },
-            {
-              "value": "nextLine",
-              "label": "Next line"
-            }
-          ],
-          "default": "nextLine",
-          "group": "editor.code-style.php",
-          "section": "Braces Placement",
-          "project": true,
-          "order": 11
-        },
-        {
-          "key": "php.codeStyle.braces.other",
-          "title": "Other",
-          "type": "enum",
-          "options": [
-            {
-              "value": "endOfLine",
-              "label": "End of line"
-            },
-            {
-              "value": "nextLine",
-              "label": "Next line"
-            }
-          ],
-          "default": "endOfLine",
-          "group": "editor.code-style.php",
-          "section": "Braces Placement",
-          "project": true,
-          "order": 12
-        },
-        {
           "key": "php.codeStyle.blankLines.keepMax",
           "title": "Keep maximum blank lines in code",
+          "description": "Blank lines are applied by Reformat Code (Ctrl+Alt+L); strings, heredocs and comments are left as they are.",
           "type": "int",
           "min": 0,
           "max": 10,
@@ -2160,6 +2153,7 @@
         {
           "key": "php.composer.json",
           "title": "Path to composer.json",
+          "description": "Relative to the project root.",
           "type": "path",
           "default": "composer.json",
           "group": "lang.php.composer",
@@ -2169,7 +2163,7 @@
         {
           "key": "php.composer.syncWithComposerJson",
           "title": "Synchronize IDE settings with composer.json",
-          "description": "Language level and source roots follow `require.php` and `autoload`.",
+          "description": "The PHP language level follows `require.php` of composer.json (the status bar shows it); the language level setting applies when there is no constraint.",
           "type": "bool",
           "default": true,
           "group": "lang.php.composer",
@@ -2179,6 +2173,7 @@
         {
           "key": "php.composer.addPackagesAsLibraries",
           "title": "Add packages as libraries",
+          "description": "Classes in vendor/ are resolved for navigation, completion and Intelephense. Off: vendor/ is left out.",
           "type": "bool",
           "default": true,
           "group": "lang.php.composer",
@@ -2188,6 +2183,7 @@
         {
           "key": "php.composer.checkUpdates",
           "title": "Check for package updates on project open",
+          "description": "Runs `composer outdated --direct` on the project's machine and reports updates in a balloon.",
           "type": "bool",
           "default": false,
           "group": "lang.php.composer",
