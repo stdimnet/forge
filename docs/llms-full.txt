@@ -50,6 +50,11 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 
 ## Recently added
 
+- **File and code templates**: New ▸ PHP Class / Interface / Trait / Enum with the PSR-4
+  namespace from composer.json, PHPUnit Test, Laravel and Symfony classes, HTML, CSS,
+  JavaScript, TypeScript, Vue, React and Lua files, the `Alt+Insert` New popup in the Project
+  view, and Settings | Editor | File and Code Templates with Velocity templates and the code
+  templates of the Generate actions ([File and code templates](docs/guide/user/file-templates.md)).
 - **Split editors, pinned tabs and the tab context menu**, a tab limit, **Recent Locations**
   (`Ctrl+Shift+E`), **Bookmarks** (`F11`, `Ctrl+F11`, `Alt+2`), the **TODO** and
   **Notifications** tool windows and Find in Files results in the **Find** tool window
@@ -656,6 +661,7 @@ not finished, the page says so.
 | --- | --- |
 | [Workbench and tool windows](docs/guide/user/workbench.md) | main toolbar, tool windows, Project view, tabs, Recent Files, Switcher, status bar |
 | [Editor](docs/guide/user/editor.md) | completion, hover, Parameter Info, Go to Declaration, problems, formatting, editing actions, folding, find, gutter, context menu |
+| [File and code templates](docs/guide/user/file-templates.md) | New ▸ PHP Class and other templates, the New PHP Class dialog with PSR-4 namespaces, `Alt+Insert` New popup, Settings \| Editor \| File and Code Templates |
 | [Search Everywhere and Find Action](docs/guide/user/search-everywhere.md) | Double Shift, Go to Class/File/Symbol, Find Action, fuzzy matching |
 | [File types and syntax highlighting](docs/guide/user/file-types.md) | file type detection, highlighted languages, config formats, template data languages |
 | [Language servers](docs/guide/user/language-servers.md) | detection, installation, per-server settings, Intelephense licence |
@@ -1622,6 +1628,155 @@ Settings | Editor | General controls soft wrapping (`editor.softWraps` with the 
 the caret row highlight, caret blinking with its blink period (`editor.caret.blinkPeriod`) and
 smooth scrolling. Settings | Editor | Font sets the font, size, line height and ligatures. See
 the [settings reference](docs/guide/reference/settings.md).
+
+
+---
+
+Source: docs/guide/user/file-templates.md
+
+# File and code templates
+
+Like PHPStorm, Forge creates new files from **file templates** and shapes the code that the
+Generate actions write with **code templates**. Both are edited in Settings | Editor | File and
+Code Templates and use the Apache Velocity template language (`${NAME}`, `#if … #end`).
+
+## Creating a file from a template
+
+The templates appear in three places, always for the folder you are in:
+
+- **Project view**: right-click a folder (or a file, for its folder) › **New**.
+- **File | New** in the main menu: for the folder selected in the Project view, else the
+  folder of the active editor, else the project root.
+- **New…** (`Alt+Insert`, macOS `Cmd+N`) while the Project view has the focus: the same list
+  as a popup next to the selected folder. In an editor `Alt+Insert` stays **Generate…**.
+
+![New submenu of the Project view](docs/screenshots/file-templates-new-menu.png)
+
+The list shows **File** and **Directory**, then the templates the project uses:
+
+| Template | Offered when | Creates |
+| --- | --- | --- |
+| PHP File | the project uses PHP | `<?php` file |
+| PHP Class | the project uses PHP | class, interface, trait or enum (New PHP Class dialog) |
+| PHPUnit Test | the project uses PHP | a `TestCase` subclass |
+| Laravel Controller, Laravel Model | the project uses Laravel | `make:controller` / `make:model` style classes |
+| Symfony Controller | the project uses Symfony | an `AbstractController` with a `#[Route]` action |
+| HTML File, CSS File, JavaScript File, TypeScript File | always | web files |
+| Vue Single File Component | the project uses Vue | `<script setup lang="ts">`, `<template>`, `<style scoped>` |
+| React Component, React TypeScript Component | the project uses React | `.jsx` / `.tsx` function components |
+| Lua File, Lua Module | the project uses Lua | `.lua` files |
+| your own templates | always | see [Editing templates](#editing-templates) |
+
+**Edit File Templates…** at the end opens the settings page. For most templates Forge asks for
+the name in a small "New HTML File" dialog. The name may include sub folders
+(`components/OrderList`), which are created; the extension is added unless you typed it.
+The new file opens in the editor.
+
+![New HTML File dialog](docs/screenshots/file-templates-html-dialog-light.png)
+
+## The New PHP Class dialog
+
+**PHP Class** (and every PHP template that uses `${NAMESPACE}`, such as PHPUnit Test or the
+Laravel and Symfony templates) opens the New PHP Class dialog:
+
+| Field | Meaning |
+| --- | --- |
+| Name | the class name; it must be a valid PHP identifier |
+| Namespace | filled from the PSR-4 rules (`autoload.psr-4` and `autoload-dev.psr-4`) of composer.json for the target folder, e.g. `App\Models` for `app/Models` |
+| File name | `<Name>.php` until you change it |
+| Directory | the target folder; typing a namespace moves it to that namespace's PSR-4 folder (`App\Models\Billing` → `app/Models/Billing`) |
+| Template | Class, Interface, Trait, Enum and the project's PHP class templates |
+| Extends | parent class (for interfaces: parent interfaces, comma separated); only for templates that use `${EXTENDS}` |
+| Implements | interfaces, comma separated; only for templates that use `${IMPLEMENTS}` |
+
+Fully qualified names in Extends and Implements (`\Illuminate\Database\Eloquent\Model`) get a
+`use` import after the namespace statement and are written by their short name; names from the
+class's own namespace need no import. Templates that use variables of their own (the Enum
+template's `${BACKED_TYPE}`) show a field for each one ("Backed type").
+
+![New PHP Class dialog](docs/screenshots/file-templates-php-class-dialog.png)
+
+The composer.json is the one set in Settings | Languages & Frameworks | PHP | Composer
+(`php.composer.json`). Its PSR-4 folders are relative to the folder of that file. The mapping is
+computed next to the project files, so it also works in [remote projects](docs/guide/user/remote-development.md).
+
+![The created class](docs/screenshots/file-templates-php-class-created.png)
+
+## Editing templates
+
+Settings | Editor | File and Code Templates has three tabs:
+
+- **Files**: the templates of the New menus.
+- **Includes**: text pulled into other templates with `#parse`. The built-in
+  **PHP File Header** is empty; put a licence or author comment there and every PHP template
+  starts with it.
+- **Code**: the code templates of the [Generate](docs/guide/user/php.md#generate) actions.
+
+![File and Code Templates settings](docs/screenshots/file-templates-settings.png)
+
+The toolbar above the list creates (`+`), removes (`−`, your own templates only), copies and
+resets templates. **Reset to Default** brings a changed built-in template back. Changed
+built-ins are shown in the accent color. Each template has a name, an extension (the new file's
+extension) and its text; a syntax error is shown below the text with its line. The changes are
+applied with OK or Apply like every other setting and stored in the `fileTemplates.custom`
+setting (only your templates and the built-ins you changed).
+
+### The template language
+
+Templates use the part of Apache Velocity that PHPStorm's templates use:
+
+| Syntax | Meaning |
+| --- | --- |
+| `${NAME}`, `$NAME` | a variable; an unknown variable stays as written, so `$this->x` is left alone |
+| `$!{NAME}` | a variable that is empty when it is not set |
+| `${NAME.toLowerCase()}` | also `toUpperCase()`, `trim()` and `replace("a", "b")` |
+| `#if (${NAMESPACE}) … #elseif (…) … #else … #end` | conditions with `==`, `!=`, `&&`, `\|\|`, `!`, parentheses and strings; a variable alone is true when it is not empty |
+| `#set ($ROUTE = ${NAME.toLowerCase()})` | defines a variable |
+| `#parse("PHP File Header.php")` | inserts an include |
+| `## comment`, `#* comment *#` | comments |
+| `#[[ … ]]#`, `\$`, `\#` | text that is not parsed |
+
+A line that holds only directives (`#if`, `#end`, `#set`, comments) leaves nothing behind in
+the new file, not even an empty line. PHP attributes such as `#[Route('/x')]` are ordinary text.
+
+### Variables
+
+| Variable | Value |
+| --- | --- |
+| `${NAME}` | name of the new file without extension (the class name for PHP classes) |
+| `${FILE_NAME}` | name of the new file with extension |
+| `${NAMESPACE}` | namespace from the New PHP Class dialog |
+| `${PACKAGE_NAME}` | the namespace, else the folder path with dots |
+| `${DIR_PATH}` | folder of the new file, relative to the project root |
+| `${PROJECT_NAME}` | name of the project |
+| `${USER}` | your login name |
+| `${DATE}`, `${TIME}` | current date (`2026-10-22`) and time (`14:05`) |
+| `${YEAR}`, `${MONTH}`, `${MONTH_NAME_SHORT}`, `${MONTH_NAME_FULL}`, `${DAY}`, `${DAY_NAME_SHORT}`, `${DAY_NAME_FULL}`, `${HOUR}`, `${MINUTE}`, `${SECOND}` | parts of the current date and time |
+| `${EXTENDS}`, `${IMPLEMENTS}` | the Extends and Implements fields of the New PHP Class dialog |
+
+Any other variable a file template uses is asked for in its New dialog.
+
+## Code templates
+
+The PHP [Generate](docs/guide/user/php.md#generate) actions write their code with these templates:
+
+| Template | Used by | Variables |
+| --- | --- | --- |
+| PHP Implemented Method Body | Implement Methods (`Ctrl+I`) | `${NAME}`, `${CLASS_NAME}`, `${PARAMETERS}` (`$a, ...$rest`), `${RETURN_TYPE}` |
+| PHP Overridden Method Body | Override Methods (`Ctrl+O`) | as above; the default calls `parent::${NAME}(${PARAMETERS})` and returns its result unless the method returns `void` or `never` |
+| PHP Function Doc Comment | Generate › PHPDoc Comment on a function or method | `${NAME}`, `${CLASS_NAME}`, `${PARAM_DOC}`, `${TYPE_HINT}`, `${THROWS_DOC}` |
+| PHP Field Doc Comment | Generate › PHPDoc Comment on a property or constant | `${NAME}`, `${CLASS_NAME}`, `${TYPE_HINT}` |
+| PHP Class Doc Comment | Generate › PHPDoc Comment on a class | `${NAME}`, `${NAMESPACE}` |
+
+![Code templates](docs/screenshots/file-templates-settings-code.png)
+
+The bodies are indented inside the method and the doc comments in front of the declaration;
+empty lines (for example `${PARAM_DOC}` of a function without parameters) are dropped from doc
+comments. A template with a syntax error makes the action report the error instead of writing
+code.
+
+> **Note:** templates are user settings; PHPStorm's per-project template scheme is not
+> available yet.
 
 
 ---
@@ -4999,7 +5154,7 @@ what can be generated there:
 | Override Methods… (`Ctrl+O`) | stubs for inherited methods that are not overridden yet |
 | Implement Methods… (`Ctrl+I`) | stubs for abstract and interface methods |
 | toString() | a `__toString()` method |
-| PHPDoc Comment | a PHPDoc block for the function, method or property at the caret, with `@param`, `@return` and `@throws` |
+| PHPDoc Comment | a PHPDoc block for the function, method, property or class at the caret, with `@param`, `@return` and `@throws` |
 
 ![Generate popup](docs/screenshots/php-generate-popup.png)
 
@@ -5015,6 +5170,12 @@ property and methods at the end of the class, and adds the `use` imports that in
 signatures need.
 
 ![Generated getters and setters](docs/screenshots/php-generate-result.png)
+
+The bodies of implemented and overridden methods and the PHPDoc blocks come from the code
+templates in Settings | Editor | File and Code Templates | Code (for example
+`// TODO: Implement ${NAME}() method.`), see [File and code templates](docs/guide/user/file-templates.md#code-templates).
+New PHP classes, interfaces, traits and enums with their PSR-4 namespace are created with
+New ▸ PHP Class in the Project view ([New PHP Class dialog](docs/guide/user/file-templates.md#the-new-php-class-dialog)).
 
 `Ctrl+O` and `Ctrl+I` work directly in PHP editors as shortcuts for Override/Implement
 Methods.
@@ -7426,7 +7587,7 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | --- | --- | --- | --- | --- |
 | Settings… | `ShowSettings` | `Ctrl+Alt+S` | `Cmd+,` | yes |
 | Project Structure… | `ShowProjectStructureSettings` | `Ctrl+Alt+Shift+S` | `Cmd+;` | — |
-| New… | `NewElement` | `Alt+Insert` | `Cmd+N` | — |
+| New… | `NewElement` | `Alt+Insert` | `Cmd+N` | yes |
 | New Scratch File | `NewScratchFile` | `Ctrl+Alt+Shift+Insert` | `Cmd+Shift+N` | yes |
 | New Project… | `NewProject` |  |  | yes |
 | Open… | `OpenFile` |  |  | yes |
@@ -7904,6 +8065,8 @@ Projects, new files and scratches, settings and saving. Open it with ☰ (`Alt+\
 | New › File | — | — | yes | Creates a file in the folder selected in the Project view (or the project root) and opens it. [More](docs/guide/user/workbench.md#context-menu) |
 | New › Scratch File | `Ctrl+Alt+Shift+Insert` | `Cmd+Shift+N` | yes | Asks for a language and creates a new scratch file in Forge's global scratch folder. [More](docs/guide/user/scratches-and-http.md#creating-scratches) ([screenshot](docs/screenshots/docs-new-scratch.png)) |
 | New › Directory | — | — | yes | Creates a folder in the folder selected in the Project view (or the project root). [More](docs/guide/user/workbench.md#context-menu) |
+| New › PHP File, PHP Class, PHPUnit Test, … | — | — | yes | The file templates the project uses (PHP, Laravel, Symfony, web, Vue, React, Lua and your own); PHP Class opens the New PHP Class dialog with the PSR-4 namespace. [More](docs/guide/user/file-templates.md) ([screenshot](docs/screenshots/file-templates-main-menu.png)) |
+| New › Edit File Templates… | — | — | yes | Opens Settings \| Editor \| File and Code Templates. [More](docs/guide/user/file-templates.md#editing-templates) |
 | Open… | — | — | yes | Opens a folder as the project (native folder picker in the desktop app). [More](docs/guide/getting-started/projects.md#open-an-existing-project) |
 | **Recent Projects** | — | — | dynamic | Lists your recent projects (except the open one); click one to open it. |
 | Close Project | — | — | yes | Closes the project and returns to the Welcome screen. [More](docs/guide/getting-started/projects.md#open-an-existing-project) |
@@ -8581,6 +8744,12 @@ Page id `editor.code-style.php`.
 | `php.codeStyle.blankLines.afterNamespace` | int (0–10) | `1` | user, project | Blank Lines | After namespace |
 | `php.codeStyle.blankLines.afterImports` | int (0–10) | `1` | user, project | Blank Lines | After imports |
 | `php.codeStyle.blankLines.aroundMethods` | int (0–10) | `1` | user, project | Blank Lines | Around method |
+
+### Editor | File and Code Templates
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `fileTemplates.custom` | objects | `[]` | user | — | File and code templates — Templates added in Settings \| Editor \| File and Code Templates and the changed text of built-in ones (`kind` `file`, `include` or `code`, `name`, `extension`, `text`). Built-in templates without an entry use their default text. One entry per `kind` + `name` pair. Edited on the page, see [File and code templates](docs/guide/user/file-templates.md). |
 
 ### Editor | Inlay Hints
 
@@ -11280,6 +11449,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-db](docs/guide/developer/crates/forge-db.md) | Forge IDE database tools: data sources, introspection, query execution and data editing |
 | [forge-debug](docs/guide/developer/crates/forge-debug.md) | Forge IDE debugger: DBGp (Xdebug 3) server, path mappings and breakpoints |
 | [forge-editing](docs/guide/developer/crates/forge-editing.md) | Editor actions computed in Rust: postfix completion templates, Complete Current Statement and Cyclic Expand Word (pure, WebAssembly-friendly) |
+| [forge-file-templates](docs/guide/developer/crates/forge-file-templates.md) | File and code templates (Settings \| Editor \| File and Code Templates): a Velocity subset renderer, the built-in templates, PSR-4 namespace mapping and New-file rendering (pure, WebAssembly-friendly) |
 | [forge-filetypes](docs/guide/developer/crates/forge-filetypes.md) | File type recognition for Forge: names, extensions, shebangs and template data languages (pure, WebAssembly-friendly) |
 | [forge-find](docs/guide/developer/crates/forge-find.md) | Find in Files and TODO scanning: query compilation, file masks, line matching and comment patterns (pure, WebAssembly-friendly) |
 | [forge-forges](docs/guide/developer/crates/forge-forges.md) | Forge IDE code hosts: GitLab, Forgejo/Gitea and GitHub merge requests, issues and pipelines |
@@ -12007,6 +12177,74 @@ word expansion order.
 
 ```sh
 cargo test -p forge-editing
+```
+
+
+---
+
+Source: docs/guide/developer/crates/forge-file-templates.md
+
+# forge-file-templates
+
+`crates/forge-file-templates` — File and code templates (Settings | Editor | File and Code Templates): a Velocity subset renderer, the built-in templates, PSR-4 namespace mapping and New-file rendering (pure, WebAssembly-friendly).
+
+## Purpose
+
+Everything behind File | New ▸ <template> and the code templates of the PHP Generate actions,
+shared by the desktop backend and the browser-mode WebAssembly build.
+
+- `velocity`: the template language, the part of Apache Velocity PHPStorm's templates use
+  (`${NAME}`, `$!{X}`, string methods, `#if`/`#elseif`/`#else`/`#end`, `#set`, `#parse`,
+  comments, `#[[unparsed]]#`). Whole-line directives leave no line behind ("lines" whitespace
+  mode); syntax errors carry their line. `referenced_variables` lists what a template uses.
+- `builtin`: the shipped templates (PHP File/Class/Interface/Trait/Enum, PHPUnit Test,
+  Laravel Controller/Model, Symfony Controller, HTML, CSS, JavaScript, TypeScript, Vue SFC,
+  React (JSX/TSX), Lua; the PHP File Header include; the PHP code templates), each with the
+  project type it needs (`when`) and its menu group.
+- `psr4`: PSR-4 rules from composer.json (`autoload` and `autoload-dev`, relative to the
+  composer.json folder) and the mapping folder → namespace (deepest folder wins) and
+  namespace → folder (longest prefix wins).
+- `catalog` merges the built-ins with the user's templates from the `fileTemplates.custom`
+  setting; `new_file` renders a New request (name, sub folders, extension, namespace, Extends /
+  Implements with `use` imports, date/user/project variables) into a path and text;
+  `render_code` renders a code template for `phpforge-lang-php`'s generators.
+
+## Main public items
+
+```rust
+pub fn render(template: &str, vars: &Vars, includes: Includes<'_>) -> Result<String, TemplateError> { … }
+pub fn catalog(custom: &[CustomTemplate]) -> Vec<TemplateInfo> { … }
+pub fn new_file(req: &NewFileRequest, custom: &[CustomTemplate]) -> Result<NewFile, TemplateError> { … }
+pub fn render_code(overrides: &BTreeMap<String, String>, name: &str, vars: &Vars) -> Result<String, TemplateError> { … }
+pub fn psr4::namespace_for_dir(roots: &[Psr4Root], dir: &str) -> Option<String> { … }
+pub fn psr4::dir_for_namespace(roots: &[Psr4Root], namespace: &str) -> Option<String> { … }
+```
+
+## Used by
+
+- IPC: `templates_list`, `templates_validate`, `templates_php_namespace`,
+  `templates_php_directory`, `templates_create` (`app/src-tauri/src/commands/templates.rs`;
+  composer.json is read and the file written through the project backend)
+- `phpforge-lang-php`: Implement/Override Methods bodies and PHPDoc comments
+  (`GenerateOptions::code_templates`, filled by `php_generate` from the settings)
+- UI: `app/ui/src/features/fileTemplates` (New menus, `NewElement` popup, New PHP Class
+  dialog, Settings | Editor | File and Code Templates)
+- Browser mode: built into `forge-wasm` (`templates_*`)
+
+## Dependencies
+
+- Workspace crates: none
+- External: `serde`, `serde_json`
+
+## Tests
+
+4 source files; unit tests for references, whole-line and inline directives, conditions,
+`#set`/`#parse` and include recursion, syntax errors with lines, PSR-4 mapping in both
+directions, every built-in file template, `use` imports for Extends/Implements, context
+variables, catalog merging and code templates.
+
+```sh
+cargo test -p forge-file-templates
 ```
 
 

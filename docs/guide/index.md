@@ -48,6 +48,11 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 
 ## Recently added
 
+- **File and code templates**: New ▸ PHP Class / Interface / Trait / Enum with the PSR-4
+  namespace from composer.json, PHPUnit Test, Laravel and Symfony classes, HTML, CSS,
+  JavaScript, TypeScript, Vue, React and Lua files, the `Alt+Insert` New popup in the Project
+  view, and Settings | Editor | File and Code Templates with Velocity templates and the code
+  templates of the Generate actions ([File and code templates](user/file-templates.md)).
 - **Split editors, pinned tabs and the tab context menu**, a tab limit, **Recent Locations**
   (`Ctrl+Shift+E`), **Bookmarks** (`F11`, `Ctrl+F11`, `Alt+2`), the **TODO** and
   **Notifications** tool windows and Find in Files results in the **Find** tool window

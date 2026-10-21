@@ -141,6 +141,21 @@ app/ui/            SolidJS UI
   Statement); `editor_expand_word({ request: { text, offset, others?, backward?, language? }
   }) -> { from, prefix, candidates }` (Cyclic Expand Word, nearest first). Browser mode runs
   the same code through `forge-wasm` (`editing_*`).
+- File and code templates (`src/ipc/templates.ts`, `forge-file-templates`):
+  `templates_list({ custom? }) -> { templates: TemplateInfo[], variables }` (built-ins merged
+  with the `fileTemplates.custom` setting, or with `custom`, the settings page's draft; each
+  with `kind`, `name`, `extension`, `text`, `builtin`, `modified`, `defaultText`, `when`
+  (project type), `group`, `phpClass`, `variables` (asked for in the New dialog), `references`,
+  `error`); `templates_validate({ text }) -> string | null`;
+  `templates_php_namespace({ dir }) -> string | null` and
+  `templates_php_directory({ namespace }) -> string | null` (PSR-4 rules of the composer.json
+  from `php.composer.json`, read through the backend); `templates_create({ request: { template,
+  dir, name, fileName?, namespace?, extends?, implements?, variables?, context?: { now? } } })
+  -> { path, text }` renders the template and creates the file through the backend (never
+  replaces one). `php_generate` fills `GenerateOptions.codeTemplates` from the setting. Browser
+  mode runs the same code through `forge-wasm` (`templates_*`); the mock writes into the
+  in-memory demo project. The Project view's New submenu asks `providedEntries("project.new",
+  dir)` for the template entries.
 - `fs_find_files({ query, limit? }) -> { path, name, score, positions, matchedPath }[]` — fuzzy
   "Go to File" (camel humps, respects `.gitignore`).
 - `fuzzy_filter({ request: { query, candidates, strict?, preferShorter?, limit? } }) -> { index, text, score, positions }[]`

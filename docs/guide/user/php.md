@@ -235,7 +235,7 @@ what can be generated there:
 | Override Methods… (`Ctrl+O`) | stubs for inherited methods that are not overridden yet |
 | Implement Methods… (`Ctrl+I`) | stubs for abstract and interface methods |
 | toString() | a `__toString()` method |
-| PHPDoc Comment | a PHPDoc block for the function, method or property at the caret, with `@param`, `@return` and `@throws` |
+| PHPDoc Comment | a PHPDoc block for the function, method, property or class at the caret, with `@param`, `@return` and `@throws` |
 
 ![Generate popup](../../screenshots/php-generate-popup.png)
 
@@ -251,6 +251,12 @@ property and methods at the end of the class, and adds the `use` imports that in
 signatures need.
 
 ![Generated getters and setters](../../screenshots/php-generate-result.png)
+
+The bodies of implemented and overridden methods and the PHPDoc blocks come from the code
+templates in Settings | Editor | File and Code Templates | Code (for example
+`// TODO: Implement ${NAME}() method.`), see [File and code templates](file-templates.md#code-templates).
+New PHP classes, interfaces, traits and enums with their PSR-4 namespace are created with
+New ▸ PHP Class in the Project view ([New PHP Class dialog](file-templates.md#the-new-php-class-dialog)).
 
 `Ctrl+O` and `Ctrl+I` work directly in PHP editors as shortcuts for Override/Implement
 Methods.

@@ -17,6 +17,7 @@ not finished, the page says so.
 | --- | --- |
 | [Workbench and tool windows](workbench.md) | main toolbar, tool windows, Project view, tabs, Recent Files, Switcher, status bar |
 | [Editor](editor.md) | completion, hover, Parameter Info, Go to Declaration, problems, formatting, editing actions, folding, find, gutter, context menu |
+| [File and code templates](file-templates.md) | New ▸ PHP Class and other templates, the New PHP Class dialog with PSR-4 namespaces, `Alt+Insert` New popup, Settings \| Editor \| File and Code Templates |
 | [Search Everywhere and Find Action](search-everywhere.md) | Double Shift, Go to Class/File/Symbol, Find Action, fuzzy matching |
 | [File types and syntax highlighting](file-types.md) | file type detection, highlighted languages, config formats, template data languages |
 | [Language servers](language-servers.md) | detection, installation, per-server settings, Intelephense licence |
