@@ -22,11 +22,25 @@ current branch is shown in the main toolbar and the status bar.
 - Toolbar: **Refresh** (`Ctrl+F5`), **Rollback…** (`Ctrl+Alt+Z`, discards the changes of the
   selected files after a confirmation), **Show Diff**, **Expand All**, **Collapse All**.
 - Write the **Commit Message**. **Amend** amends the last commit (its message is loaded).
+  **Sign-off** adds a `Signed-off-by` line (`git commit --signoff`; the same option as
+  Settings | Version Control | Git | Sign-off commits).
 - **Commit** (`Ctrl+Enter` in the message) or **Commit and Push…**.
 
-> **Note:** the commit message inspections and commit options in Settings | Version Control |
-> Git (subject length, blank line, right margin, CRLF warning, sign-off), "Commit Message
-> History" (`Ctrl+M`) and the **Commit Options** gear are not applied yet.
+![Commit message inspections](../../screenshots/vcs-commit-inspections.png)
+
+While you type, the message is checked like in PHPStorm (Settings | Version Control | Git |
+Commit Message Inspections): the subject line is at most `vcs.git.commit.subjectMaxLength`
+characters (72), a blank line separates subject and body
+(`vcs.git.commit.blankLineAfterSubject`) and body lines stay within
+`vcs.git.commit.bodyRightMargin` columns (72). Problems are listed below the message; they do
+not block the commit. Lines starting with `#` are ignored.
+
+Before committing files with Windows line separators (CRLF), Forge asks whether to **Commit As
+Is** (`vcs.git.commit.warnOnCrlf`), unless git converts them itself (`core.autocrlf` is `true`
+or `input`).
+
+> **Note:** "Commit Message History" (`Ctrl+M`) and the **Commit Options** gear are not
+> available yet.
 
 ### AI commit messages
 
@@ -93,16 +107,25 @@ Branches**:
 | Action | Shortcut | What it does |
 | --- | --- | --- |
 | Push… | `Ctrl+Shift+K` (macOS `Cmd+Shift+K`) | pushes the current branch |
-| Update Project… | `Ctrl+T` (macOS `Cmd+T`) | pulls the current branch |
+| Update Project… | `Ctrl+T` (macOS `Cmd+T`) | pulls the current branch with the update method |
 | Fetch | Find Action | fetches all remotes |
 
 Results appear as balloons ("Pushed", "Project updated", "All files are up to date", or the
 error). Git runs with `ssh -o BatchMode=yes`, so SSH remotes need a key in your ssh-agent (or
 without passphrase); Forge cannot answer password prompts.
 
-> **Note:** the update method setting (`vcs.git.updateMethod`), automatic fetching and the
-> Git executable path in Settings | Version Control | Git are not applied yet. Set the
-> environment variable `FORGE_GIT` to use another git binary.
+![Git settings](../../screenshots/settings-git.png)
+
+Settings | Version Control | Git:
+
+| Option | Setting | Default |
+| --- | --- | --- |
+| Path to Git executable | `vcs.git.path` | `git` (the one on `PATH`; `FORGE_GIT` also overrides it). Remote projects always use the git of their host. |
+| Update method: Merge, Rebase or Branch default (`pull.rebase` of the branch) | `vcs.git.updateMethod` | Merge |
+| Fetch remotes automatically, every n minutes | `vcs.git.autoFetch`, `vcs.git.autoFetchInterval` | on, 10 |
+
+Automatic fetching runs in the background while the branch has an upstream; failures
+(offline, missing credentials) are ignored.
 
 ## Log
 

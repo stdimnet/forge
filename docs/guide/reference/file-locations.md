@@ -14,6 +14,7 @@ Forge uses the platform's standard folders (Rust's `dirs` crate):
 | `<config dir>` | `$XDG_CONFIG_HOME` or `~/.config` | `~/Library/Application Support` | `%APPDATA%` (`C:\Users\<you>\AppData\Roaming`) |
 | `<cache dir>` | `$XDG_CACHE_HOME` or `~/.cache` | `~/Library/Caches` | `%LOCALAPPDATA%` |
 | `<data dir>` | `$XDG_DATA_HOME` or `~/.local/share` | `~/Library/Application Support` | `%APPDATA%` |
+| `<state dir>` | `$XDG_STATE_HOME` or `~/.local/state` | `~/Library/Application Support` | `%LOCALAPPDATA%` |
 
 ## User configuration — `<config dir>/forge/`
 
@@ -39,6 +40,7 @@ Forge uses the platform's standard folders (Rust's `dirs` crate):
 | `php-stubs/<version>/` | JetBrains phpstorm-stubs for Go to Declaration on PHP's own symbols (downloaded on first use, checked against a pinned digest of its files, with its `LICENSE`) |
 | `intelephense/` | Intelephense's storage (`storagePath`) |
 | `jdtls/…` | workspace data of the Java language server |
+| `shell-integration/` | the bash and zsh scripts of the terminal's shell integration (also on remote hosts, in their cache dir) |
 
 Caches can be deleted at any time; Forge rebuilds them. Without a platform cache folder the PHP
 index falls back to `<project>/.forge/cache/php-index.json`.
@@ -49,6 +51,13 @@ index falls back to `<project>/.forge/cache/php-index.json`.
 | --- | --- |
 | `langservers/` | language servers installed by Forge (`node_modules/.bin`, `package.json`, `.forge-update-check.json`) |
 | `runtimes/node-<version>/` | the Node.js build Forge downloaded for language servers (only when no Node.js 18+ was installed) |
+| `chat-history/<project>-<hash>/<chat>.json` | the AI chats of each project (the newest 100), see [AI](../user/ai.md) |
+
+## State — `<state dir>/forge/`
+
+| Path | Content |
+| --- | --- |
+| `layouts/<project>-<hash>.json` | the tool window layout and open editor tabs of each project |
 
 ## In the project — `<project>/.forge/`
 
@@ -94,5 +103,5 @@ there (the last theme while settings load); everything that matters is in the fi
 
 ## Clean slate
 
-To reset Forge completely, quit it and delete `<config dir>/forge`, `<cache dir>/forge` and
-`<data dir>/forge`, and remove the `forge-*` entries from your keychain.
+To reset Forge completely, quit it and delete `<config dir>/forge`, `<cache dir>/forge`,
+`<data dir>/forge` and `<state dir>/forge`, and remove the `forge-*` entries from your keychain.
