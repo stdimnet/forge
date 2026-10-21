@@ -357,11 +357,21 @@ Page id `tools.terminal`.
 | --- | --- | --- | --- | --- | --- |
 | `terminal.shellPath` | path | `""` | user | Application Settings | Shell path — Leave empty to use the system default shell. |
 | `terminal.tabName` | string | `Local` | user | Application Settings | Default tab name |
-| `terminal.audibleBell` | bool | `false` | user *(not applied yet)* | Application Settings | Audible bell |
+| `terminal.audibleBell` | bool | `false` | user | Application Settings | Audible bell |
 | `terminal.copyOnSelection` | bool | `false` | user | Application Settings | Copy to clipboard on selection |
 | `terminal.shellIntegration` | bool | `true` | user *(not applied yet)* | Application Settings | Shell integration — Track the working directory and command boundaries of supported shells. |
+| `terminal.showApplicationTitle` | bool | `true` | user | Application Settings | Show application title — Name terminal tabs after the title the running program sets, e.g. Claude Code's current task. |
+| `terminal.showProgressInStatusBar` | bool | `true` | user | Application Settings | Show progress in the status bar — Programs such as Claude Code, winget and systemd report progress (OSC 9;4). It is always shown on the terminal tab. |
+| `terminal.optionAsMeta` | bool | `true` | user | Application Settings | Use Option as Meta key — macOS only. |
+| `terminal.cursorShape` | enum: `block`, `underline`, `vertical` | `block` | user | Application Settings | Cursor shape |
+| `terminal.cursorBlink` | bool | `true` | user | Application Settings | Blinking cursor |
 | `terminal.startDirectory` | path | `""` | user, project | Project Settings | Start directory — Leave empty to start in the project root. |
 | `terminal.environment` | list | `[]` | user, project | Project Settings | Environment variables — One NAME=value pair per entry. |
+| `terminal.font.family` | string | `""` | user | Font | Font — Leave empty to use the editor font. Missing symbols fall back to installed Nerd Fonts and emoji fonts. |
+| `terminal.font.size` | number (6–72) | `13` | user | Font | Size |
+| `terminal.font.lineHeight` | number (1.0–3.0) | `1.2` | user | Font | Line height |
+| `terminal.renderer` | enum: `auto`, `webgl`, `dom` | `auto` | user | Rendering | Renderer — WebGL draws on the GPU and is the fastest. Automatic falls back to DOM when WebGL is unavailable. |
+| `terminal.scrollback` | int (0–1000000) | `10000` | user | Rendering | Scrollback buffer — Number of lines kept above the visible area. |
 
 ### Tools | Database
 

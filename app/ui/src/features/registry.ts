@@ -24,6 +24,11 @@ export interface ToolWindow {
   headerContent?: () => JSX.Element;
   /** Show the window only while this is true (e.g. the project uses the framework). */
   when?: () => boolean;
+  /**
+   * Small marker on the stripe icon while the window is hidden, e.g. terminal progress.
+   * Return nothing to show no marker.
+   */
+  badge?: () => JSX.Element;
 }
 
 const [toolWindows, setToolWindows] = createSignal<ToolWindow[]>([]);

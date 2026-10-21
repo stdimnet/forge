@@ -483,6 +483,16 @@ export function sql_split(request_json: string): string;
 export function sql_statement_at(request_json: string): string;
 
 /**
+ * `{ uri, root? }` → `LinkTarget | null`.
+ */
+export function terminal_link_target(request_json: string): string;
+
+/**
+ * `{ code, data, previous? }` → `OscAction`.
+ */
+export function terminal_parse_osc(request_json: string): string;
+
+/**
  * `{ request, files }` → `TodoResult`.
  */
 export function todo_scan(request_json: string): string;
@@ -615,6 +625,8 @@ export interface InitOutput {
     readonly sql_leading_keywords: (a: number, b: number, c: number) => void;
     readonly sql_split: (a: number, b: number, c: number) => void;
     readonly sql_statement_at: (a: number, b: number, c: number) => void;
+    readonly terminal_link_target: (a: number, b: number, c: number) => void;
+    readonly terminal_parse_osc: (a: number, b: number, c: number) => void;
     readonly todo_scan: (a: number, b: number, c: number) => void;
     readonly web_components: (a: number, b: number, c: number) => void;
     readonly web_goto: (a: number, b: number, c: number) => void;

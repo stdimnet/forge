@@ -11,12 +11,17 @@ import {
   activeTab,
   closeOtherTabs,
   closeTab,
+  displayTitle,
   newTab,
+  newTabHere,
   renameTab,
   renaming,
   setActiveTab,
   setRenaming,
+  tabById,
+  tabIds,
   tabs,
+  type TerminalProgram,
   type TerminalTab,
 } from "./store";
 import {
@@ -31,6 +36,8 @@ import {
   paste,
   selectAll,
 } from "./sessions";
+import { progressLabel } from "./osc";
+import { ProgressRing } from "./ProgressRing";
 import "@xterm/xterm/css/xterm.css";
 import "./terminal.css";
 
@@ -42,6 +49,7 @@ export function closeTerminalTab(id: string): void {
 function tabMenu(tab: TerminalTab, x: number, y: number) {
   const items: MenuItem[] = [
     { label: "New Tab", run: () => newTab() },
+    { label: "New Tab in Current Directory", run: () => newTabHere() },
     { label: "Rename Session", run: () => setRenaming(tab.id) },
     { separator: true },
     { label: "Close Tab", shortcut: "Ctrl+Shift+F4", run: () => closeTerminalTab(tab.id) },
@@ -54,57 +62,74 @@ function tabMenu(tab: TerminalTab, x: number, y: number) {
   openMenu({ x, y, items });
 }
 
+function tabTooltip(tab: TerminalTab): string {
+  const lines = [displayTitle(tab)];
+  if (tab.renamed && tab.appTitle) lines.push(tab.appTitle);
+  if (tab.liveCwd) lines.push(tab.liveCwd);
+  if (tab.progress) lines.push(`Progress: ${progressLabel(tab.progress)}`);
+  return lines.join("\n");
+}
+
 export function TerminalTabs() {
   return (
     <div class="term-tabs" role="tablist">
-      <For each={tabs()}>
-        {(tab) => (
-          <div
-            class="term-tab"
-            classList={{ active: activeTab() === tab.id }}
-            role="tab"
-            aria-selected={activeTab() === tab.id}
-            data-terminal-tab={tab.title}
-            onMouseDown={(e) => {
-              if (e.button === 1) {
-                e.preventDefault();
-                closeTerminalTab(tab.id);
-              }
-            }}
-            onClick={() => {
-              setActiveTab(tab.id);
-              queueMicrotask(() => focusSession(tab.id));
-            }}
-            onDblClick={() => setRenaming(tab.id)}
-            onContextMenu={(e) => {
-              e.preventDefault();
-              tabMenu(tab, e.clientX, e.clientY);
-            }}
-          >
-            <Show when={renaming() === tab.id} fallback={<span class="term-tab-title">{tab.title}</span>}>
-              <input
-                class="term-tab-input"
-                value={tab.title}
-                ref={(el) => queueMicrotask(() => (el.focus(), el.select()))}
-                onBlur={(e) => renameTab(tab.id, e.currentTarget.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") renameTab(tab.id, e.currentTarget.value);
-                  if (e.key === "Escape") setRenaming(null);
-                  e.stopPropagation();
+      <For each={tabIds()}>
+        {(id) => (
+          <Show when={tabById(id)}>
+            {(tab) => (
+              <div
+                class="term-tab"
+                classList={{ active: activeTab() === tab().id }}
+                role="tab"
+                aria-selected={activeTab() === tab().id}
+                data-terminal-tab={tab().title}
+                title={tabTooltip(tab())}
+                onMouseDown={(e) => {
+                  if (e.button === 1) {
+                    e.preventDefault();
+                    closeTerminalTab(tab().id);
+                  }
                 }}
-              />
-            </Show>
-            <button
-              class="term-tab-close"
-              title="Close Tab"
-              onClick={(e) => {
-                e.stopPropagation();
-                closeTerminalTab(tab.id);
-              }}
-            >
-              <X size={12} />
-            </button>
-          </div>
+                onClick={() => {
+                  setActiveTab(tab().id);
+                  queueMicrotask(() => focusSession(tab().id));
+                }}
+                onDblClick={() => setRenaming(tab().id)}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  tabMenu(tab(), e.clientX, e.clientY);
+                }}
+              >
+                <Show when={tab().progress}>{(p) => <ProgressRing progress={p()} />}</Show>
+                <Show when={tab().bell && activeTab() !== tab().id}>
+                  <span class="term-tab-bell" title="Bell" />
+                </Show>
+                <Show when={renaming() === tab().id} fallback={<span class="term-tab-title">{displayTitle(tab())}</span>}>
+                  <input
+                    class="term-tab-input"
+                    value={tab().title}
+                    ref={(el) => queueMicrotask(() => (el.focus(), el.select()))}
+                    onBlur={(e) => renameTab(tab().id, e.currentTarget.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") renameTab(tab().id, e.currentTarget.value);
+                      if (e.key === "Escape") setRenaming(null);
+                      e.stopPropagation();
+                    }}
+                  />
+                </Show>
+                <button
+                  class="term-tab-close"
+                  title="Close Tab"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    closeTerminalTab(tab().id);
+                  }}
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            )}
+          </Show>
         )}
       </For>
       <button class="icon-btn term-new" title="New Tab (Ctrl+Shift+T)" onClick={() => newTab()}>
@@ -121,6 +146,7 @@ export function TerminalTabs() {
             y: r.bottom + 4,
             items: [
               { label: "New Tab", shortcut: "Ctrl+Shift+T", run: () => newTab() },
+              { label: "New Tab in Current Directory", disabled: !id, run: () => newTabHere() },
               { label: "Rename Session", disabled: !id, run: () => id && setRenaming(id) },
               { label: "Clear Buffer", disabled: !id, run: () => id && clearBuffer(id) },
             ],
@@ -133,12 +159,12 @@ export function TerminalTabs() {
   );
 }
 
-function TerminalHost(props: { tab: TerminalTab }) {
+function TerminalHost(props: { id: string; cwd?: string; command?: TerminalProgram }) {
   let host!: HTMLDivElement;
-  const visible = () => activeTab() === props.tab.id && layout.active.bottom === "terminal";
+  const visible = () => activeTab() === props.id && layout.active.bottom === "terminal";
   onMount(() => {
-    attachSession(props.tab.id, host, props.tab.cwd, props.tab.command);
-    const ro = new ResizeObserver(() => visible() && fitSession(props.tab.id));
+    attachSession(props.id, host, props.cwd, props.command);
+    const ro = new ResizeObserver(() => visible() && fitSession(props.id));
     ro.observe(host);
     onCleanup(() => ro.disconnect());
   });
@@ -146,8 +172,8 @@ function TerminalHost(props: { tab: TerminalTab }) {
     on(visible, (v) => {
       if (v)
         requestAnimationFrame(() => {
-          fitSession(props.tab.id);
-          focusSession(props.tab.id);
+          fitSession(props.id);
+          focusSession(props.id);
         });
     }),
   );
@@ -155,10 +181,10 @@ function TerminalHost(props: { tab: TerminalTab }) {
     <div
       ref={host}
       class="term-host"
-      classList={{ hidden: activeTab() !== props.tab.id }}
+      classList={{ hidden: activeTab() !== props.id }}
       onContextMenu={(e) => {
         e.preventDefault();
-        const id = props.tab.id;
+        const id = props.id;
         openMenu({
           x: e.clientX,
           y: e.clientY,
@@ -170,6 +196,7 @@ function TerminalHost(props: { tab: TerminalTab }) {
             { label: "Clear Buffer", run: () => clearBuffer(id) },
             { separator: true },
             { label: "New Tab", shortcut: "Ctrl+Shift+T", run: () => newTab() },
+            { label: "New Tab in Current Directory", run: () => newTabHere() },
             { label: "Rename Session", run: () => setRenaming(id) },
             { label: "Close Tab", run: () => closeTerminalTab(id) },
           ],
@@ -187,7 +214,7 @@ export function TerminalView() {
   createEffect(on(theme, () => requestAnimationFrame(applyThemeToAll), { defer: true }));
   return (
     <div class="terminal-view">
-      <For each={tabs()}>{(tab) => <TerminalHost tab={tab} />}</For>
+      <For each={tabIds()}>{(id) => <TerminalHost id={id} cwd={tabById(id)?.cwd} command={tabById(id)?.command} />}</For>
       <Show when={tabs().length === 0}>
         <div class="placeholder-panel">
           No terminal sessions.{" "}
