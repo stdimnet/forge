@@ -251,7 +251,7 @@ pub async fn scratches_http_run(
     let send_from_host = state
         .read_settings()
         .get_as::<String>(SEND_FROM_KEY)
-        .map_or(true, |v| v != "local");
+        .is_none_or(|v| v != "local");
     let tunnels = backend
         .as_ref()
         .filter(|_| send_from_host)

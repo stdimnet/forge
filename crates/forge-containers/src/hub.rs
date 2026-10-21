@@ -190,6 +190,9 @@ fn current_uid() -> u32 {
         .unwrap_or(1000)
 }
 
+/// Where a CLI command runs (`None`: this machine), the program and its environment.
+type CliPlace = (Option<Arc<dyn ProjectHost>>, String, Vec<(String, String)>);
+
 /// Compose files of a project folder on this machine (see [`find_compose_files_in`]).
 pub fn find_compose_files(root: &Path) -> Vec<ComposeFile> {
     find_compose_files_in(&LocalProject::new(root))
@@ -1096,10 +1099,7 @@ impl Hub {
     /// Where compose and build commands run: on a remote project's host when the files
     /// are there (`project_files`) or Docker of the host is used; else on this machine.
     /// The command line (`docker`, its environment) to use there.
-    fn cli_for(
-        &self,
-        project_files: bool,
-    ) -> (Option<Arc<dyn ProjectHost>>, String, Vec<(String, String)>) {
+    fn cli_for(&self, project_files: bool) -> CliPlace {
         let (cli, env) = self.docker_cli();
         let s = self.lock();
         let remote = s.project.clone().filter(|p| p.remote().is_some());
@@ -2257,13 +2257,16 @@ mod tests {
         hub.shutdown();
     }
 
+    /// Program, arguments, working directory and environment of a command run on the host.
+    type FakeRun = (String, Vec<String>, PathBuf, Vec<(String, String)>);
+
     /// A remote project as the app's backend serves it: files in memory, commands recorded,
     /// the host's Docker socket forwarded to a fake daemon.
     struct FakeHost {
         root: PathBuf,
         files: BTreeMap<String, String>,
         daemon: String,
-        runs: Mutex<Vec<(String, Vec<String>, PathBuf, Vec<(String, String)>)>>,
+        runs: Mutex<Vec<FakeRun>>,
         sockets: Mutex<Vec<String>>,
     }
 

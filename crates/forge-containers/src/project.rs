@@ -95,14 +95,8 @@ impl ProjectHost for LocalProject {
         args: &'a [String],
         env: &'a [(String, String)],
         cwd: &'a Path,
-        mut sink: OutputSink<'a>,
+        sink: OutputSink<'a>,
     ) -> BoxFuture<'a, Result<Option<i32>>> {
-        Box::pin(crate::cli::run_streaming(
-            program,
-            args,
-            env,
-            cwd,
-            move |s, t| sink(s, t),
-        ))
+        Box::pin(crate::cli::run_streaming(program, args, env, cwd, sink))
     }
 }
