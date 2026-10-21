@@ -8,11 +8,13 @@
 //!   side: enforcement (paths resolved through symlinks, `.git/` and
 //!   secret files hidden, read-only versus edit) and the answers.
 //! - [`git`]: typed git queries and actions, and how a guest's git commands become them.
+//! - [`lsp_host`]: the host's language servers answering guests' requests.
 //! - [`guest`]: [`guest::CollabBackend`], `forge_backend::Backend` over a guest session.
 
 pub mod calls;
 pub mod git;
 pub mod guest;
+pub mod lsp_host;
 pub mod policy;
 
 pub use calls::{GitAction, GitQuery, HostCall, LspQuery, OpenedProject};
