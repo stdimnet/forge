@@ -70,6 +70,32 @@ export default {
     await page.click('.dg-th:has-text("total")');
     await page.waitForTimeout(300);
   },
+  "csv-table-edited": async (page) => {
+    await collapseApp(page);
+    await openPath(page, "storage/app/orders.csv");
+    await page.click('.csv-tab:has-text("Table")');
+    await page.waitForSelector(".csv-table .dg-row");
+    // Edit "open" of order 1004 and add a row below it, then look at the text.
+    const cell = page.locator('.dg-row:has-text("Ken Ito") .dg-td').nth(4);
+    await cell.dblclick();
+    await page.keyboard.press("Control+A");
+    await page.keyboard.type("shipped, partly");
+    await page.keyboard.press("Enter");
+    await page.waitForFunction(() => document.querySelector(".csv-table")?.textContent?.includes("shipped, partly"));
+    await page.click('.csv-tab:has-text("Text")');
+    await page.waitForFunction(() => document.querySelector(".csv-text .cm-content")?.textContent?.includes('"shipped, partly"'));
+    await page.waitForTimeout(200);
+  },
+  "markdown-live-edit": async (page) => {
+    await collapseApp(page);
+    await openPath(page, "README.md");
+    await page.waitForSelector(".mdp-mermaid img", { timeout: 20000 });
+    await page.click(".twp-editor .cm-line >> nth=6", { position: { x: 4, y: 4 } });
+    await page.keyboard.press("End");
+    await page.keyboard.type("\n## Live heading\n\nTyped *just now*.");
+    await page.waitForFunction(() => [...document.querySelectorAll(".mdp h2")].some((h) => h.textContent === "Live heading"));
+    await page.waitForTimeout(200);
+  },
   "markdown-settings": async (page) => {
     await page.evaluate(() => window.__forgeRunCommand("settings.open"));
     await page.waitForSelector(".set-page, .settings-dialog");
