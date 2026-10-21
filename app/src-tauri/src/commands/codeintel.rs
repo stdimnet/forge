@@ -32,6 +32,7 @@ use tauri::{AppHandle, State};
 use crate::commands::library::{
     read_library, stub_path, LibraryState, LIBRARY_PREFIX, STUBS_PREFIX,
 };
+use crate::commands::injections;
 use crate::commands::lsp::{to_ui_path, LspState};
 use crate::commands::workspace::blocking;
 use crate::state::AppState;
@@ -1091,6 +1092,7 @@ pub async fn code_context_actions(
         .map(|a| from_lsp_action(a, &c))
         .collect();
     let backend = c.backend.clone();
+    let injection_settings = injections::settings_of(&ws.read_settings());
     blocking(move || {
         if is_php(&path) {
             let text = current_text(&backend, &path, &content);
@@ -1137,6 +1139,17 @@ pub async fn code_context_actions(
                     children: vec![],
                 });
             }
+        }
+        // Language injections: Inject language, Un-inject, Edit Fragment.
+        if forge_injections::Host::of_path(&path).is_some() {
+            let text = current_text(&backend, &path, &content);
+            let offset = codeintel::utf16_offset(&text, Position::new(line, character));
+            actions.extend(injections::context_actions(
+                &path,
+                &text,
+                offset,
+                injection_settings,
+            ));
         }
         let actions = order_actions(actions);
         Ok(ContextActionsAnswer {
