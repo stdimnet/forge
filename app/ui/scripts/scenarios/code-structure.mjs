@@ -170,6 +170,14 @@ export default {
     await page.waitForSelector(".php-glyph-region");
     await quiet(page);
   },
+  "breadcrumbs-web": async (page) => {
+    await openFile(page, "public/index.html");
+    await page.keyboard.press("Alt+Digit7");
+    await page.waitForSelector(".php-glyph-tag");
+    await caretAt(page, "data-user-id");
+    await page.waitForSelector(".editor-slot:not(.hidden) .cm-crumb.last");
+    await quiet(page);
+  },
   "sticky-lines-settings": async (page) => {
     await page.keyboard.press("Control+Alt+KeyS");
     await page.click('.set-tree-row[data-node="editor.general"]');

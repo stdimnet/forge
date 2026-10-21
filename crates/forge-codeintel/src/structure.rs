@@ -785,9 +785,13 @@ fn brace_scopes(
     }
 }
 
-/// Drop scopes that start and end on one line (nothing to stick) and re-link the parents.
+/// Scopes on one line never stick; one-line control blocks are dropped (they are no
+/// crumbs either) and the parents re-linked.
 fn compact(scopes: Vec<Scope>) -> Vec<Scope> {
-    let keep: Vec<bool> = scopes.iter().map(|s| s.end_line > s.line).collect();
+    let keep: Vec<bool> = scopes
+        .iter()
+        .map(|s| s.end_line > s.line || s.crumb)
+        .collect();
     let mut new_index = vec![None; scopes.len()];
     let mut out: Vec<Scope> = Vec::new();
     for (i, s) in scopes.iter().enumerate() {
@@ -802,6 +806,7 @@ fn compact(scopes: Vec<Scope>) -> Vec<Scope> {
             parent = scopes[p].parent.map(|q| q as usize);
         }
         let mut scope = s.clone();
+        scope.sticky = s.end_line > s.line;
         scope.parent = parent.and_then(|p| new_index[p]).map(|p: usize| p as u32);
         new_index[i] = Some(out.len());
         out.push(scope);
@@ -1464,7 +1469,12 @@ class User extends Model
     fn css_rules() {
         let css = "@media (max-width: 600px) {\n  .card,\n  .panel {\n    color: red;\n  }\n}\n/* { */\na { b: c; }\n";
         let s = editor_structure(css, "css");
-        assert_eq!(names(&s), ["@media (max-width: 600px)", ".card, .panel"]);
+        assert_eq!(
+            names(&s),
+            ["@media (max-width: 600px)", ".card, .panel", "a"]
+        );
+        // One-line rules are crumbs, but nothing to stick.
+        assert!(!s.scopes[2].sticky && s.scopes[2].crumb);
         assert_eq!(s.scopes[1].line, 1);
         assert_eq!(s.scopes[1].parent, Some(0));
     }
@@ -1484,7 +1494,10 @@ class User extends Model
 
         let vue = "<template>\n  <ul>\n    <li v-for=\"i in items\">{{ i }}</li>\n  </ul>\n</template>\n<script setup lang=\"ts\">\nconst x = computed(() => {\n  return 1;\n});\n</script>\n";
         let s = editor_structure(vue, "vue");
-        assert_eq!(names(&s), ["template", "ul", "script", "computed callback"]);
+        assert_eq!(
+            names(&s),
+            ["template", "ul", "li", "script", "computed callback"]
+        );
     }
 
     #[test]
