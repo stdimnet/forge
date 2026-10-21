@@ -45,7 +45,7 @@ function createMethod(path: string, text: string, start: number, end: number): C
   const close = matchingParen(text, open);
   if (close < 0) return [];
   const enclosing = cls.members.find((m) => m.kind === "method" && m.start <= start && start <= m.end);
-  const signature = enclosing ? text.slice(enclosing.start, text.indexOf("{", enclosing.start)) : "";
+  const signature = enclosing ? text.slice(enclosing.offset, text.indexOf("{", enclosing.offset)) : "";
   const used = new Set<string>();
   const params = text
     .slice(open + 1, close)
