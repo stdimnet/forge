@@ -1246,6 +1246,36 @@ plugin manifest entry, and the chat UI needs no changes:
   `takePageArgs(page)` (`features/settings/dialogState.ts`), which also works when the dialog
   is its own window.
 
+## Emmet and colors (`forge-emmet`, `forge-colors`)
+
+- `crates/forge-emmet` (pure, also WebAssembly) parses Emmet abbreviations and expands them as
+  HTML, JSX or CSS (snippets, implicit tags, numbering, lorem, Emmet's formatting), decides
+  where Emmet applies for a file type (text of HTML-like files and PHP outside `<?php`, not in
+  `{{ }}` / `{% %}` / `@php`, `<style>` as CSS, JSX positions, CSS declaration starts) and
+  computes Surround with Emmet, edit points, Update Tag and Remove Tag. Offsets are UTF-16.
+- `crates/forge-colors` (pure, also WebAssembly) finds colors in CSS, markup and scripts
+  (hex, `rgb()`/`hsl()`/`hwb()` in both syntaxes, names, Tailwind classes), parses them and
+  formats a picked color in the notation of the original text.
+- IPC (`app/ui/src/ipc/emmet.ts`, `commands/emmet.rs`): `emmet_expand({ request: { text,
+  offset, languageId?, options, preview? } }) -> Expansion | null` (`{ from, to, text, fields,
+  end, abbreviation, syntax }`, the shape of a live template expansion; `options`: `{ html,
+  css, jsx, jsxClassAttr, hrefRecognition, indent }` from the `editor.emmet.*` settings),
+  `emmet_wrap({ request: { text, from, to, abbreviation, languageId?, options } }) ->
+  Expansion` (error text for invalid abbreviations), `emmet_edit_point({ request: { text,
+  offset, forward } }) -> number | null`, `emmet_update_tag` / `emmet_remove_tag({ request: {
+  text, offset, abbreviation?, options } }) -> { from, to, text }[]`, `colors_find({ request:
+  { text, languageId? } }) -> { from, to, color: { r, g, b, a }, hex, text, editable }[]`,
+  `colors_format({ request: { color, original } }) -> string`, `colors_parse({ text }) -> {
+  color, hex } | null`.
+- UI: `features/emmet` binds the expand key (`editor.emmet.expandKey`) as a `Prec.high`
+  CodeMirror key registered after live templates (which, like postfix completion, win when
+  they match) and calls `emmet_expand` in-process through `forge-wasm`; the expansion becomes
+  a snippet (`toSnippet` of live templates). The abbreviation preview is a CodeMirror tooltip
+  computed on typing. `features/colors` registers a line marker provider (gutter swatches,
+  `registerLineMarkerProvider`), an inline swatch plugin and the color picker, which writes
+  each change through `colors_format` (`userEvent: "input.color"`); recent colors are the
+  setting `editor.colorPicker.recentColors`.
+
 ## Language injections (`forge-injections`)
 
 - `crates/forge-injections` (pure, also WebAssembly) decides which string literals of PHP and

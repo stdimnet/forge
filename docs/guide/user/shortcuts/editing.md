@@ -27,6 +27,13 @@ Typing, selecting, moving and commenting code, completion, generation, formattin
 | [Surround With…](#surround-with) | `Ctrl+Alt+T` | `Cmd+Alt+T` |
 | [Surround with Live Template…](#surround-with-live-template) | `Ctrl+Alt+J` | `Cmd+Alt+J` |
 | [Unwrap/Remove…](#unwrapremove) | `Ctrl+Shift+Delete` | `Cmd+Shift+Delete` |
+| [Expand Emmet abbreviation](#expand-emmet-abbreviation) | `Tab` | `Tab` |
+| [Surround with Emmet…](#surround-with-emmet) | — | — |
+| [Update Tag with Emmet…](#update-tag-with-emmet) | — | — |
+| [Remove Tag](#remove-tag) | — | — |
+| [Next Emmet Edit Point](#next-emmet-edit-point) | `Alt+Shift+]` | `Ctrl+Alt+]` |
+| [Previous Emmet Edit Point](#previous-emmet-edit-point) | `Alt+Shift+[` | `Ctrl+Alt+[` |
+| [Show Color Picker](#show-color-picker) | — | — |
 | [Undo](#undo) | `Ctrl+Z`, `Alt+Backspace` | `Cmd+Z` |
 | [Redo](#redo) | `Ctrl+Shift+Z`, `Alt+Shift+Backspace` | `Cmd+Shift+Z` |
 | [Cut](#cut) | `Ctrl+X`, `Shift+Delete` | `Cmd+X` |
@@ -245,6 +252,73 @@ an `else`, `elseif`, `catch` or `finally` branch. The editor previews the change
 ![Unwrap/Remove](../../../screenshots/unwrap-remove.png)
 
 More: [Live templates](../../user/live-templates.md#unwrapremove)
+
+## Expand Emmet abbreviation
+
+**Shortcut:** `Tab` (Settings | Editor | Emmet: `Tab`, `Enter` or `Space`)
+
+Expands the Emmet abbreviation before the caret in HTML-like files, PHP, JSX and CSS:
+`ul>li.item$*3`, `a{Home}`, `m10-20`, `df`. Live templates and postfix templates win when they
+match; without an abbreviation the key does what it always does.
+
+![An Emmet abbreviation expanded](../../../screenshots/emmet-expand.png)
+
+More: [Emmet and color previews](../../user/emmet-and-colors.md)
+
+## Surround with Emmet
+
+**Shortcut:** none by default (also the **Emmet** entry of `Ctrl+Alt+J`) · action id `SurroundWithEmmet`
+
+Wraps the selection, or the current line, with an abbreviation entered in a popup that
+previews the result: `div.card`, `ul>li*` (one item per line), `a` around a URL.
+
+![Surround with Emmet](../../../screenshots/emmet-surround.png)
+
+More: [Emmet and color previews](../../user/emmet-and-colors.md#surround-with-emmet)
+
+## Update Tag with Emmet
+
+**Shortcut:** none by default · action id `EmmetUpdateTag`
+
+Renames the tag around the caret and adds the id, classes and attributes of an abbreviation
+(`section.hero[role=banner]`).
+
+More: [Emmet and color previews](../../user/emmet-and-colors.md#update-tag-remove-tag-and-edit-points)
+
+## Remove Tag
+
+**Shortcut:** none by default · action id `EmmetRemoveTag`
+
+Removes the tag around the caret and keeps its content, one indentation level further out.
+
+More: [Emmet and color previews](../../user/emmet-and-colors.md#update-tag-remove-tag-and-edit-points)
+
+## Next Emmet Edit Point
+
+**Shortcut:** `Alt+Shift+]` · macOS `Ctrl+Alt+]` · action id `EmmetNextEditPoint`
+
+Moves the caret to the next empty attribute value, empty element or empty line.
+
+More: [Emmet and color previews](../../user/emmet-and-colors.md#update-tag-remove-tag-and-edit-points)
+
+## Previous Emmet Edit Point
+
+**Shortcut:** `Alt+Shift+[` · macOS `Ctrl+Alt+[` · action id `EmmetPreviousEditPoint`
+
+Moves the caret to the previous edit point.
+
+More: [Emmet and color previews](../../user/emmet-and-colors.md#update-tag-remove-tag-and-edit-points)
+
+## Show Color Picker
+
+**Shortcut:** none by default (or click a color swatch in the gutter) · action id `ShowColorPicker`
+
+Opens the color picker for the color at the caret, or for a new color inserted at the caret.
+The color is written back in its notation.
+
+![The color picker](../../../screenshots/color-picker.png)
+
+More: [Emmet and color previews](../../user/emmet-and-colors.md#color-picker)
 
 ## Undo
 
