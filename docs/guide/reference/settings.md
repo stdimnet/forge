@@ -12,8 +12,9 @@ All settings are declared by plugin manifests (`[[contributions.settings]]` in
 are layered: default < user (`<config dir>/forge/settings.toml`) < project
 (`<project>/.forge/settings.toml`). See [Settings and themes](../user/settings-and-themes.md).
 
-- **Type**: `bool`, `int`, `number`, `string`, `enum` (allowed values listed), `path` or
-  `list` (a list of strings). Ranges are given as (min–max).
+- **Type**: `bool`, `int`, `number`, `string`, `enum` (allowed values listed), `path`,
+  `list` (a list of strings) or `objects` (a list of tables with string values, edited in a
+  table). Ranges are given as (min–max).
 - **Scope**: `user` settings are global; `user, project` settings can also be stored per
   project ("For current project" in the dialog).
 - *(not applied yet)*: the option is declared and shown, but no code reads it on this version.
@@ -298,8 +299,7 @@ Page id `lang.templates`.
 | Key | Type | Default | Scope | Section | Title and description |
 | --- | --- | --- | --- | --- | --- |
 | `templates.dataLanguages` | list | `[]` | user, project | Data Languages | Template data languages — Language of the content between template tags, one entry per pattern: `legacy/latex/*.tpl=latex`, `*.mail.twig=text`. Languages: html, xml, latex, css, scss, less, javascript, typescript, json, sql, yaml, ini, shell, text. Compound names like `invoice.tex.twig` are detected automatically. Applies to files opened afterwards. |
-| `templates.smarty.leftDelimiter` | string | `{` | user, project | Smarty | Left delimiter — Smarty's left_delimiter. Use e.g. `<{` for LaTeX templates, where `{` is part of the content. |
-| `templates.smarty.rightDelimiter` | string | `}` | user, project | Smarty | Right delimiter |
+| `templates.delimiters` | objects | Smarty `[[ ]]`, Twig and Jinja2 `\VAR{ }` / `\BLOCK{ }` / `\#{ }` in LaTeX | user, project | Delimiters | Template delimiters — Delimiters of a template language in a data language, e.g. Smarty in LaTeX, where `{` is part of the content. Templates without an entry use the language's default delimiters. Applies to open editors. One entry per `template` + `language` pair. |
 
 ### Languages & Frameworks | Language Servers
 

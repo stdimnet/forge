@@ -1613,11 +1613,37 @@ applies to files opened afterwards.
 
 ![Twig in SQL](docs/screenshots/syntax-twig-sql.png)
 
-### Smarty delimiters
+### Template delimiters
 
-Smarty's delimiters are configurable on the same page (`templates.smarty.leftDelimiter`,
-`templates.smarty.rightDelimiter`, default `{` and `}`). Use e.g. `<{` and `}>` for LaTeX
-templates, where `{` is part of the content.
+In some data languages the default delimiters are part of the content, for example `{` in
+LaTeX. The **Delimiters** table on the same page (`templates.delimiters`) sets the delimiters
+of a template language *in a data language*, one row per pair, as the engines themselves allow
+(Smarty's `left_delimiter`, Twig's `tag_variable` / `tag_block` / `tag_comment`, Jinja's
+`*_start_string`, Go's `Delims`):
+
+| Template | Data language | Delimiters (default) |
+| --- | --- | --- |
+| Smarty | LaTeX | `[[ ]]` |
+| Twig, Jinja2 | LaTeX | `\VAR{ }`, `\BLOCK{ }`, `\#{ }` |
+
+Add a row with **+**, edit it with the pencil (or a double-click) and remove it with **−**.
+The form shows the delimiters of the chosen template language; a pair can only appear once.
+Files without a row use the language's usual delimiters (`{ }` for Smarty, `{{ }}`, `{% %}`
+and `{# #}` for Twig). The table can be stored per project, and open editors follow a change
+right away.
+
+![Template delimiters](docs/screenshots/settings-template-delimiters.png)
+
+Everything that knows about tags uses the configured delimiters: highlighting, comment
+toggling (`Ctrl+/` inserts `[[* *]]` or `\#{ }`), folding of blocks, matching delimiters,
+auto-closing and completion of the end tag after `[[/` or `{/`. In a data language without
+its own parser (LaTeX, INI, Shell) a `%` or `#` inside a tag no longer starts a comment.
+Smarty's `{literal}` blocks and its auto-literal rule (`{ ` followed by a space is text) are
+respected.
+
+![Smarty in LaTeX](docs/screenshots/syntax-smarty-latex.png)
+
+![Twig in LaTeX](docs/screenshots/syntax-twig-latex-letter.png)
 
 ![Smarty](docs/screenshots/syntax-smarty.png)
 
@@ -7913,8 +7939,9 @@ All settings are declared by plugin manifests (`[[contributions.settings]]` in
 are layered: default < user (`<config dir>/forge/settings.toml`) < project
 (`<project>/.forge/settings.toml`). See [Settings and themes](docs/guide/user/settings-and-themes.md).
 
-- **Type**: `bool`, `int`, `number`, `string`, `enum` (allowed values listed), `path` or
-  `list` (a list of strings). Ranges are given as (min–max).
+- **Type**: `bool`, `int`, `number`, `string`, `enum` (allowed values listed), `path`,
+  `list` (a list of strings) or `objects` (a list of tables with string values, edited in a
+  table). Ranges are given as (min–max).
 - **Scope**: `user` settings are global; `user, project` settings can also be stored per
   project ("For current project" in the dialog).
 - *(not applied yet)*: the option is declared and shown, but no code reads it on this version.
@@ -8199,8 +8226,7 @@ Page id `lang.templates`.
 | Key | Type | Default | Scope | Section | Title and description |
 | --- | --- | --- | --- | --- | --- |
 | `templates.dataLanguages` | list | `[]` | user, project | Data Languages | Template data languages — Language of the content between template tags, one entry per pattern: `legacy/latex/*.tpl=latex`, `*.mail.twig=text`. Languages: html, xml, latex, css, scss, less, javascript, typescript, json, sql, yaml, ini, shell, text. Compound names like `invoice.tex.twig` are detected automatically. Applies to files opened afterwards. |
-| `templates.smarty.leftDelimiter` | string | `{` | user, project | Smarty | Left delimiter — Smarty's left_delimiter. Use e.g. `<{` for LaTeX templates, where `{` is part of the content. |
-| `templates.smarty.rightDelimiter` | string | `}` | user, project | Smarty | Right delimiter |
+| `templates.delimiters` | objects | Smarty `[[ ]]`, Twig and Jinja2 `\VAR{ }` / `\BLOCK{ }` / `\#{ }` in LaTeX | user, project | Delimiters | Template delimiters — Delimiters of a template language in a data language, e.g. Smarty in LaTeX, where `{` is part of the content. Templates without an entry use the language's default delimiters. Applies to open editors. One entry per `template` + `language` pair. |
 
 ### Languages & Frameworks | Language Servers
 
@@ -10068,6 +10094,11 @@ language is chosen in Rust (`crates/forge-filetypes/src/data.rs`): the
 - Another template engine: describe it as a `TemplateSyntax` (delimiters, keywords, builtins)
   and register it with the `template(...)` helper in `languages.ts`; mark its type as a template
   in `builtin.rs` (`TEMPLATES`).
+- Configurable delimiters: list the engine with its delimiter fields and defaults in
+  `CONFIGURABLE_TEMPLATES` (`crates/forge-filetypes/src/delimiters.rs`) and give it a syntax
+  builder in `SYNTAX` (`src/editor/templateDelimiters.ts`). Rust resolves the delimiters of each
+  file from the `templates.delimiters` setting (one entry per template and data language pair;
+  the LaTeX entries are default data in `core.toml`) into `FileTypeInfo.delimiters`.
 
 ## Check
 
