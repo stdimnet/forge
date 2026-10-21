@@ -21,7 +21,16 @@ interface ConfirmRequest {
   done: (ok: boolean) => void;
 }
 
-const [request, setRequest] = createSignal<NameRequest | ConfirmRequest | null>(null);
+interface ChoiceRequest {
+  kind: "choice";
+  title: string;
+  message: string;
+  /** Buttons from left to right; the last enabled one is the default (Enter). */
+  choices: { id: string; label: string; disabled?: boolean; hint?: string }[];
+  done: (id: string | null) => void;
+}
+
+const [request, setRequest] = createSignal<NameRequest | ConfirmRequest | ChoiceRequest | null>(null);
 
 export function askName(opts: Omit<NameRequest, "kind" | "done">): Promise<string | null> {
   return new Promise((resolve) => setRequest({ kind: "name", ...opts, done: resolve }));
@@ -29,6 +38,55 @@ export function askName(opts: Omit<NameRequest, "kind" | "done">): Promise<strin
 
 export function askConfirm(opts: Omit<ConfirmRequest, "kind" | "done">): Promise<boolean> {
   return new Promise((resolve) => setRequest({ kind: "confirm", ...opts, done: resolve }));
+}
+
+/** Ask the user to pick one of several actions (e.g. Reload / Convert); null when cancelled. */
+export function askChoice(opts: Omit<ChoiceRequest, "kind" | "done">): Promise<string | null> {
+  return new Promise((resolve) => setRequest({ kind: "choice", ...opts, done: resolve }));
+}
+
+function ChoiceDialog(props: { req: ChoiceRequest }) {
+  const close = (id: string | null) => {
+    setRequest(null);
+    props.req.done(id);
+  };
+  const enabled = () => props.req.choices.filter((c) => !c.disabled);
+  return (
+    <div class="popup-backdrop modal">
+      <div
+        class="dialog"
+        style={{ width: "min(480px, calc(100vw - 32px))" }}
+        role="alertdialog"
+        tabIndex={-1}
+        ref={(el) => queueMicrotask(() => el.focus())}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") close(null);
+          else if (e.key === "Enter" && enabled().length) close(enabled()[enabled().length - 1].id);
+          else return;
+          e.preventDefault();
+          e.stopPropagation();
+        }}
+      >
+        <div class="dialog-title">{props.req.title}</div>
+        <div class="dialog-body">{props.req.message}</div>
+        <div class="dialog-buttons">
+          <button class="btn-secondary" onClick={() => close(null)}>
+            Cancel
+          </button>
+          {props.req.choices.map((c, i) => (
+            <button
+              class={i === props.req.choices.length - 1 ? "btn-primary" : "btn-secondary"}
+              disabled={c.disabled}
+              title={c.hint}
+              onClick={() => close(c.id)}
+            >
+              {c.label}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function NameDialog(props: { req: NameRequest }) {
@@ -128,7 +186,13 @@ export function DialogHost() {
       {(req) => {
         const release = suspendKeymap();
         onCleanup(release);
-        return req.kind === "name" ? <NameDialog req={req} /> : <ConfirmDialog req={req} />;
+        return req.kind === "name" ? (
+          <NameDialog req={req} />
+        ) : req.kind === "choice" ? (
+          <ChoiceDialog req={req} />
+        ) : (
+          <ConfirmDialog req={req} />
+        );
       }}
     </Show>
   );
