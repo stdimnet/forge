@@ -857,7 +857,7 @@ pub async fn code_rename(
             let renamed = c.manager.rename(&c.abs, pos, &new_name).await;
             match renamed {
                 Ok(e) => edit = e.map(|e| c.relative_edit(e)),
-                Err(e) if !php => return Err(e.into()),
+                Err(e) if !php => return Err(e),
                 Err(_) => {}
             }
         }
