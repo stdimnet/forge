@@ -260,7 +260,10 @@ mod tests {
         let typed = TodoRequest {
             paths: Some(vec!["app/Order.php".into(), "../escape.php".into()]),
             buffers: [
-                ("app/Order.php".to_string(), "<?php\n// FIXME: unsaved\n".to_string()),
+                (
+                    "app/Order.php".to_string(),
+                    "<?php\n// FIXME: unsaved\n".to_string(),
+                ),
                 ("../escape.php".to_string(), "<?php // TODO".to_string()),
             ]
             .into(),

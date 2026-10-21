@@ -580,6 +580,8 @@ mod tests {
             buffers: [("a.php".to_string(), "<?php".to_string())].into(),
             ..req
         };
-        assert!(scan_todos(&cleared, [("a.php", "<?php // TODO")]).files.is_empty());
+        assert!(scan_todos(&cleared, [("a.php", "<?php // TODO")])
+            .files
+            .is_empty());
     }
 }

@@ -118,6 +118,14 @@ export default {
     await page.hover('.context-menu-item:has-text("Display")');
     await page.waitForTimeout(250);
   },
+  "editor-tabs-settings": async (page) => {
+    await page.evaluate(async () => {
+      const { openSettings } = await import("/src/features/settings/dialogState.ts");
+      openSettings("editor.tabs");
+    });
+    await page.waitForSelector(".set-dialog");
+    await page.waitForTimeout(300);
+  },
   todo: async (page) => {
     await openViaGotoFile(page, "OrderController");
     await run(page, "ActivateTODOToolWindow");
