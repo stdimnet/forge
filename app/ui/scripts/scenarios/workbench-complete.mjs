@@ -97,6 +97,27 @@ export default {
     await page.waitForTimeout(300);
     await dismissBalloons(page);
   },
+  notifications: async (page) => {
+    // The demo project announces its database ("Database found in .env"); add a few more.
+    await page.waitForSelector(".balloon");
+    await page.evaluate(async () => {
+      const { showBalloon } = await import("/src/keymap/dispatch.ts");
+      showBalloon("Intelephense was installed", "Version 1.14.4 in Forge's data directory", 2600, undefined, { group: "Language Servers" });
+      showBalloon("Xdebug is not configured", "PHP 8.3 has no xdebug extension loaded.", 0, [{ label: "Configure", run: () => {} }], {
+        group: "Debugger",
+        type: "warning",
+      });
+      showBalloon("Push failed", "rejected: main -> main (fetch first)", 2600, undefined, { group: "Version Control", type: "error" });
+    });
+    await run(page, "ActivateNotificationsToolWindow");
+    await page.waitForSelector(".notif-entry");
+    // Opened entries are read; the newest one stays unread.
+    await page.click('.notif-entry:has-text("Push failed")');
+    await page.click('.notif-entry:has-text("Intelephense")', { button: "right" });
+    await page.waitForSelector(".context-menu");
+    await page.hover('.context-menu-item:has-text("Display")');
+    await page.waitForTimeout(250);
+  },
   todo: async (page) => {
     await openViaGotoFile(page, "OrderController");
     await run(page, "ActivateTODOToolWindow");

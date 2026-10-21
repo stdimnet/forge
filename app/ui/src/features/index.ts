@@ -38,4 +38,5 @@ import "./mainMenu";
 import "./editorTabs";
 import "./bookmarks";
 import "./todo";
+import "./notifications";
 import "./updates";

@@ -4,7 +4,7 @@
  * `services://event`.
  */
 import { createSignal, type Accessor, type Setter } from "solid-js";
-import { showBalloon } from "@/keymap";
+import { balloonsFor } from "@/keymap";
 import { setInputDialog } from "@/features/git/overlays";
 import { openTerminalWith } from "@/features/terminal";
 import { showToolWindow } from "@/state/layout";
@@ -17,6 +17,8 @@ import {
   type ServiceNode,
   type ServicesEvent,
 } from "@/ipc/services";
+
+const showBalloon = balloonsFor("Services");
 
 const [nodes, setNodes] = createSignal<ServiceNode[]>([]);
 const [expanded, setExpanded] = createSignal<ReadonlySet<string>>(new Set());

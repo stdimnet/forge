@@ -5,12 +5,14 @@
  */
 import { createSignal } from "solid-js";
 import { langserversApi, type InstallOutcome, type ServerRow } from "@/ipc/langservers";
-import { showBalloon } from "@/keymap/dispatch";
+import { balloonsFor } from "@/keymap/dispatch";
 import { getSetting, saveSetting } from "@/state/settings";
 import { isPluginActive, onProjectDetected } from "@/state/project";
 import { isRemoteProject } from "@/state/workspace";
 import { INTELEPHENSE_ID, LICENCE_ACCEPTED_KEY, AUTO_INSTALL_KEY, managedOption, offerIntelephense, updateSummary } from "./autoInstall";
 import { applyServers, refreshRows, rows } from "./store";
+
+const showBalloon = balloonsFor("Language Servers");
 
 const errorText = (e: unknown) => String((e as Error)?.message ?? e);
 

@@ -7,6 +7,7 @@ import { createSignal } from "solid-js";
 import type { FocusContext, KeyInput, Resolution } from "@/ipc/keymap";
 import { keymapApi } from "@/ipc/keymap";
 import { commands, runCommand } from "@/state/commands";
+import { DEFAULT_GROUP, logNotification, modeOf, registerNotificationGroup, type NotificationType } from "@/state/notifications";
 import { loadKeymapCore, resolveKeySync } from "./core";
 import { actionById, startKeymap } from "./store";
 
@@ -21,6 +22,17 @@ export interface Balloon {
   detail?: string;
   /** Links under the text, like PHPStorm's notification actions ("Configure"). */
   actions?: BalloonAction[];
+  type?: NotificationType;
+  /** Stays until closed (the group is shown as sticky balloons). */
+  sticky?: boolean;
+}
+
+export interface BalloonOptions {
+  /** Notification group (Settings | Appearance & Behavior | Notifications); default "Forge". */
+  group?: string;
+  type?: NotificationType;
+  /** `false`: a transient hint that is not kept in the Notifications tool window. */
+  log?: boolean;
 }
 
 const [balloons, setBalloons] = createSignal<Balloon[]>([]);
@@ -31,13 +43,27 @@ export const dismissBalloon = (id: number) => setBalloons((b) => b.filter((x) =>
 
 /**
  * Show a small notification (bottom right, like PHPStorm's balloons). It closes after `ms`;
- * `0` keeps it until the user closes it or picks an action.
+ * `0` keeps it until the user closes it or picks an action. It is also logged in the
+ * Notifications tool window; the group's display setting can make it sticky or log-only.
  */
-export function showBalloon(text: string, detail?: string, ms = 2600, actions?: BalloonAction[]): number {
+export function showBalloon(text: string, detail?: string, ms = 2600, actions?: BalloonAction[], opts: BalloonOptions = {}): number {
   const id = ++balloonSeq;
-  setBalloons((b) => [...b.slice(-2), { id, text, detail, actions }]);
-  if (ms > 0) setTimeout(() => dismissBalloon(id), ms);
+  const group = opts.group ?? DEFAULT_GROUP;
+  const type = opts.type ?? "info";
+  if (opts.log !== false) logNotification({ group, type, title: text, content: detail, actions });
+  const mode = modeOf(group);
+  if (mode === "log" && opts.log !== false) return id;
+  const sticky = mode === "sticky" && opts.log !== false;
+  setBalloons((b) => [...b.slice(-2), { id, text, detail, actions, type, sticky: sticky || ms <= 0 }]);
+  const life = sticky ? 0 : ms;
+  if (life > 0) setTimeout(() => dismissBalloon(id), life);
   return id;
+}
+
+/** `showBalloon` for the notifications of one group (the group is registered for the settings). */
+export function balloonsFor(group: string): typeof showBalloon {
+  registerNotificationGroup(group);
+  return (text, detail, ms, actions, opts) => showBalloon(text, detail, ms, actions, { group, ...opts });
 }
 
 /** Command id that actually implements `actionId` (the id itself or a known alias). */
@@ -59,12 +85,12 @@ export async function runAction(actionId: string): Promise<void> {
       await runCommand(cmd);
     } catch (err) {
       console.error(`action ${actionId} failed`, err);
-      showBalloon(`${actionById(actionId)?.title ?? actionId} failed`, String(err));
+      showBalloon(`${actionById(actionId)?.title ?? actionId} failed`, String(err), 2600, undefined, { type: "error" });
     }
     return;
   }
   const title = (actionById(actionId)?.title ?? actionId).replace(/…$/, "");
-  showBalloon(`${title} is not available yet`, "This action will arrive with a later Forge update.");
+  showBalloon(`${title} is not available yet`, "This action will arrive with a later Forge update.", 2600, undefined, { log: false });
 }
 
 /** Classify the focused element for context-sensitive bindings. */

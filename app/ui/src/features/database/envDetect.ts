@@ -4,11 +4,13 @@
  */
 import { createSignal } from "solid-js";
 import { dbApi, DRIVER_LABELS, type DetectedDataSource } from "@/ipc/db";
-import { showBalloon } from "@/keymap";
+import { balloonsFor } from "@/keymap";
 import { getSetting } from "@/state/settings";
 import { showToolWindow } from "@/state/layout";
 import { workspace } from "@/state/workspace";
 import { connect, revealSource, setSelectedNode } from "./store";
+
+const showBalloon = balloonsFor("Database");
 
 const [detected, setDetected] = createSignal<DetectedDataSource[]>([]);
 export { detected };
