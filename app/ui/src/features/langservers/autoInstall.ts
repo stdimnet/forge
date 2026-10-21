@@ -99,3 +99,14 @@ export function progressFraction(done: number, total?: number | null): number | 
 export function updateSummary(updates: PackageUpdate[]): string {
   return updates.map((u) => `${u.name} ${u.installed} → ${u.latest}`).join(", ");
 }
+
+/**
+ * Why an install failed, for the balloon: the last error line the installer printed (npm's
+ * `npm error` prefix removed), and the exit code.
+ */
+export function failureDetail(code: number | null | undefined, stderr: string[]): string {
+  const lines = stderr.map((l) => l.replace(/^npm (error|ERR!)\s*/, "").trim()).filter(Boolean);
+  const reason = [...lines].reverse().find((l) => /fail|error|denied|not found|certificate|ENOTFOUND|ETIMEDOUT/i.test(l) && !/complete log/i.test(l)) ?? lines.at(-1);
+  const exit = code == null ? "" : `Exit code ${code}.`;
+  return [reason, exit].filter(Boolean).join(" ") || "See Settings | Languages & Frameworks | Language Servers.";
+}
