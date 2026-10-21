@@ -1840,12 +1840,10 @@ dependencies = [
  "tauri-plugin-dialog",
  "tauri-plugin-single-instance",
  "tauri-plugin-updater",
+ "tempfile",
  "tokio",
  "tracing",
  "tracing-subscriber",
- "webforge-fw-angular",
- "webforge-fw-react",
- "webforge-fw-vue",
  "webforge-lang-web",
 ]
 
@@ -1873,6 +1871,10 @@ dependencies = [
  "tempfile",
  "tokio",
  "tracing",
+ "webforge-fw-angular",
+ "webforge-fw-react",
+ "webforge-fw-vue",
+ "webforge-lang-web",
 ]
 
 [[package]]
@@ -2168,6 +2170,7 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
+ "webforge-lang-web",
 ]
 
 [[package]]

@@ -10,13 +10,13 @@ use std::path::Path;
 use std::sync::{Arc, Mutex};
 
 use forge_core::Result;
+use forge_langservers::install::InstallOutcome;
+use forge_langservers::managed::{self, Event, Installer, PackageUpdate, Sources};
 use forge_langservers::plan::current_platform;
 use forge_langservers::{
     plan, rows, scan_project, Catalog, ConfigContext, Detector, LiveState, Prefs, ProjectScan,
     RowStatus, ServerRow, Skip,
 };
-use forge_langservers::install::InstallOutcome;
-use forge_langservers::managed::{self, Event, Installer, PackageUpdate, Sources};
 use forge_lsp::LspServerConfig;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;

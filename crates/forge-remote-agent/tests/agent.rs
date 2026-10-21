@@ -703,14 +703,19 @@ async fn webforge_is_analysed_on_the_agent() {
     .await;
     assert_eq!(packages.len(), 1);
     assert_eq!(packages[0].package_manager.manager.id(), "npm");
-    let scripts: Vec<&str> = packages[0].scripts.iter().map(|s| s.name.as_str()).collect();
+    let scripts: Vec<&str> = packages[0]
+        .scripts
+        .iter()
+        .map(|s| s.name.as_str())
+        .collect();
     assert_eq!(scripts, vec!["dev", "build"]);
     assert!(
         components.iter().any(|c| c.name == "OrderCard"),
         "{components:?}"
     );
     assert!(
-        goto.iter().any(|l| l.path == "src/components/OrderCard.vue"),
+        goto.iter()
+            .any(|l| l.path == "src/components/OrderCard.vue"),
         "{goto:?}"
     );
     // Line markers come from the host as well.

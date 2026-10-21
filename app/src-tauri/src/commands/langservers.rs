@@ -6,7 +6,9 @@
 //!
 //! npm servers (Intelephense, typescript-language-server, …) are installed by Forge itself
 //! (`forge_langservers::managed`): Node.js and the packages are downloaded and verified
-//! into Forge's data directory, so nothing has to be installed first.
+//! into Forge's data directory, so nothing has to be installed first. For a remote project
+//! the install runs in the agent on the host (`Backend::install_langserver`), where its
+//! servers run; the Intelephense licence is still accepted in the UI here.
 //!
 //! Events:
 //! - `langservers://install-output` `{ id, stream, line }`
@@ -19,12 +21,12 @@ use std::path::Path;
 use std::sync::{Arc, Mutex};
 
 use forge_backend::langservers::{system_rows, LiveServer, SETTINGS_PREFIX};
-use forge_backend::LangServersRequest;
+use forge_backend::{InstallRequest, InstallSink, InstallTarget, LangServersRequest};
 use forge_core::{ForgeError, Result};
-use forge_langservers::install::{self, InstallOutcome, Stream};
+use forge_langservers::install::{InstallOutcome, Stream};
 use forge_langservers::licence::{self, KeyringStore, Licence, LicenceStatus};
-use forge_langservers::managed::{self, Event, Installer, PackageUpdate, Sources};
-use forge_langservers::{Catalog, Detector, ServerRow};
+use forge_langservers::managed::{Event, PackageUpdate};
+use forge_langservers::{Catalog, ServerRow};
 use forge_lsp::model::EditorWorkspaceSymbol;
 use forge_lsp::{LspManager, LspServerConfig, ServerState};
 use serde::Serialize;
@@ -241,51 +243,77 @@ struct InstallProgress {
 }
 
 /// Download sources from the settings (`langservers.download.*`).
-fn sources(ws: &AppState) -> Sources {
+fn download_sources(ws: &AppState) -> (Option<String>, Option<String>) {
     let settings = ws.read_settings();
     let get = |k: &str| settings.get(k).and_then(Value::as_str).map(str::to_owned);
-    Sources::new(
-        get("langservers.download.npmRegistry").as_deref(),
-        get("langservers.download.nodeMirror").as_deref(),
+    (
+        get("langservers.download.npmRegistry"),
+        get("langservers.download.nodeMirror"),
     )
 }
 
-/// Install npm `packages` with Forge's managed installer, streaming its steps as output
-/// lines of `id` and its downloads as progress events.
-async fn managed_install(
-    app: &AppHandle,
-    ws: &AppState,
-    id: &str,
-    packages: &[String],
-    cancel: Arc<tokio::sync::Notify>,
-) -> std::result::Result<InstallOutcome, String> {
-    let installer = Installer::system(sources(ws))?;
-    let mut last_step: Option<(String, u64)> = None;
-    let mut on = |e: Event| match e {
-        Event::Step { message } => emit_line(app, id, Stream::Info, message),
-        Event::Output { stream, line } => emit_line(app, id, stream, line),
+/// Streams install steps as output lines of `id` and downloads as progress events.
+fn install_sink(app: &AppHandle, id: &str) -> InstallSink {
+    let (app, id) = (app.clone(), id.to_string());
+    let last_step: Mutex<Option<(String, u64)>> = Mutex::new(None);
+    Arc::new(move |e: Event| match e {
+        Event::Step { message } => emit_line(&app, &id, Stream::Info, message),
+        Event::Output { stream, line } => emit_line(&app, &id, stream, line),
         Event::Progress { label, done, total } => {
             // One event per percent (or per MB without a length) is plenty for a progress bar.
             let step = total.map_or(done >> 20, |t| done * 100 / t.max(1));
-            if last_step.as_ref() == Some(&(label.clone(), step)) {
+            let mut last = last_step.lock().expect("progress lock");
+            if last.as_ref() == Some(&(label.clone(), step)) {
                 return;
             }
-            last_step = Some((label.clone(), step));
+            *last = Some((label.clone(), step));
+            drop(last);
             let _ = app.emit(
                 "langservers://install-progress",
                 InstallProgress {
-                    id: id.to_string(),
+                    id: id.clone(),
                     label,
                     done,
                     total,
                 },
             );
         }
+    })
+}
+
+/// Install where the project's language servers run: on the remote host for a remote
+/// project (the agent downloads Node.js and the packages there), else on this machine.
+/// Output streams under `id`.
+async fn run_install(
+    app: &AppHandle,
+    ws: &AppState,
+    id: &str,
+    target: InstallTarget,
+    cancel: Arc<tokio::sync::Notify>,
+) -> std::result::Result<InstallOutcome, String> {
+    let (registry, node_mirror) = download_sources(ws);
+    let req = InstallRequest {
+        target,
+        registry,
+        node_mirror,
     };
-    tokio::select! {
-        r = installer.install(packages, Arc::new(tokio::sync::Notify::new()), &mut on) => r,
-        _ = cancel.notified() => Ok(InstallOutcome::Cancelled),
+    let sink = install_sink(app, id);
+    if let Some(host) = ws.project_info().and_then(|i| i.remote) {
+        emit_line(
+            app,
+            id,
+            Stream::Info,
+            format!("Installing on {}…", host.label()),
+        );
+        let backend = ws.backend().map_err(|e| e.to_string())?;
+        return crate::commands::workspace::blocking(move || {
+            backend.install_langserver(req, cancel, sink)
+        })
+        .await
+        .map_err(|e| e.to_string());
     }
+    let mut on = move |e: Event| sink(e);
+    forge_backend::langservers::install(&req, cancel, &mut on).await
 }
 
 fn emit_line(app: &AppHandle, id: &str, stream: Stream, line: String) {
@@ -314,7 +342,8 @@ async fn register_installed(app: &AppHandle) {
 }
 
 /// Run install option `index` of server `id` (catalog commands only, after the user
-/// confirmed it in the UI). Output streams as `langservers://install-output`.
+/// confirmed it in the UI) where the project's servers run: on the remote host for a
+/// remote project. Output streams as `langservers://install-output`.
 #[tauri::command]
 pub async fn langservers_install(
     id: String,
@@ -323,29 +352,13 @@ pub async fn langservers_install(
     state: State<'_, LangServersState>,
     ws: State<'_, AppState>,
 ) -> Result<InstallOutcome> {
-    if let Some(host) = ws.project_info().and_then(|i| i.remote) {
-        return Err(other(format!(
-            "Language servers of this project run on {}. Install them there from the terminal (Alt+F12).",
-            host.label()
-        )));
-    }
     let spec = Catalog::builtin()
         .server(&id)
         .or_else(|| Catalog::pack_servers().server(&id))
         .ok_or_else(|| other(format!("unknown language server {id}")))?;
-    let option = spec
-        .install
-        .get(index)
-        .ok_or_else(|| other("unknown install option"))?;
-    let detector = Detector::system();
-    // npm packages: Forge's own installer (no Node.js or npm needed on the machine).
-    let packages = detector
-        .managed_dir()
-        .and_then(|_| managed::npm_packages(option));
-    let resolved = match packages {
-        Some(_) => None,
-        None => Some(install::resolve_command(option, &detector).map_err(other)?),
-    };
+    if spec.install.get(index).is_none() {
+        return Err(other("unknown install option"));
+    }
     let cancel = Arc::new(tokio::sync::Notify::new());
     {
         let mut installs = state.installs.lock().expect("installs lock");
@@ -354,42 +367,24 @@ pub async fn langservers_install(
         }
         installs.insert(id.clone(), cancel.clone());
     }
-    let Some((program, args)) = resolved else {
-        let packages = packages.unwrap_or_default();
-        let outcome = managed_install(&app, &ws, &id, &packages, cancel).await;
-        state.installs.lock().expect("installs lock").remove(&id);
-        let outcome = match outcome {
-            Ok(o) => o,
-            Err(e) => {
-                emit_line(&app, &id, Stream::Info, e.clone());
-                let _ = app.emit("langservers://changed", ());
-                return Err(other(e));
-            }
-        };
-        emit_line(&app, &id, Stream::Info, outcome_line(&outcome, &spec.name));
-        if outcome == InstallOutcome::Succeeded {
-            register_installed(&app).await;
-        }
-        let _ = app.emit("langservers://changed", ());
-        return Ok(outcome);
+    let target = InstallTarget::Server {
+        id: id.clone(),
+        index,
     };
-    let emit = |stream: Stream, line: String| {
-        let _ = app.emit(
-            "langservers://install-output",
-            InstallLine {
-                id: id.clone(),
-                stream,
-                line,
-            },
-        );
-    };
-    emit(
-        Stream::Info,
-        format!("$ {}", install::display_command(option, &detector)),
-    );
-    let outcome = install::run(program, args, detector.dirs().to_vec(), cancel, &emit).await;
-    emit(Stream::Info, outcome_line(&outcome, &spec.name));
+    let outcome = run_install(&app, &ws, &id, target, cancel).await;
     state.installs.lock().expect("installs lock").remove(&id);
+    let outcome = match outcome {
+        Ok(o) => o,
+        Err(e) => {
+            emit_line(&app, &id, Stream::Info, e.clone());
+            let _ = app.emit("langservers://changed", ());
+            return Err(other(e));
+        }
+    };
+    emit_line(&app, &id, Stream::Info, outcome_line(&outcome, &spec.name));
+    if outcome == InstallOutcome::Succeeded {
+        register_installed(&app).await;
+    }
     let _ = app.emit("langservers://changed", ());
     Ok(outcome)
 }
@@ -403,8 +398,9 @@ fn outcome_line(outcome: &InstallOutcome, name: &str) -> String {
     }
 }
 
-/// Newer versions of the npm servers Forge installed. Asks the registry at most once a
-/// day unless `force`; `None` when it did not ask (or checks are off in the settings).
+/// Newer versions of the npm servers Forge installed (on the remote host for a remote
+/// project). Asks the registry at most once a day unless `force`; `None` when it did not
+/// ask (or checks are off in the settings).
 #[tauri::command]
 pub async fn langservers_check_updates(
     force: Option<bool>,
@@ -419,10 +415,17 @@ pub async fn langservers_check_updates(
     if !enabled && !force {
         return Ok(None);
     }
-    let installer = Installer::system(sources(&ws)).map_err(other)?;
-    Ok(installer
-        .check_updates(force, managed::updates::now_secs())
-        .await)
+    let (registry, node_mirror) = download_sources(&ws);
+    if ws.is_remote() {
+        let backend = ws.backend()?;
+        return crate::commands::workspace::blocking(move || {
+            backend.langserver_updates(registry, node_mirror, force)
+        })
+        .await;
+    }
+    forge_backend::langservers::check_updates(registry.as_deref(), node_mirror.as_deref(), force)
+        .await
+        .map_err(other)
 }
 
 /// Update one package Forge installed to its latest version, then restart the servers so
@@ -442,8 +445,10 @@ pub async fn langservers_update(
         }
         installs.insert(package.clone(), cancel.clone());
     }
-    let outcome =
-        managed_install(&app, &ws, &package, std::slice::from_ref(&package), cancel).await;
+    let target = InstallTarget::Package {
+        spec: package.clone(),
+    };
+    let outcome = run_install(&app, &ws, &package, target, cancel).await;
     state
         .installs
         .lock()

@@ -263,9 +263,18 @@ pub enum PhpCall {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Event {
     FsChanged(FsChanges),
-    Pty { channel: u32, event: PtyEvent },
-    Run { channel: u32, event: RunEvent },
-    PhpIndexProgress { done: usize, total: usize },
+    Pty {
+        channel: u32,
+        event: PtyEvent,
+    },
+    Run {
+        channel: u32,
+        event: RunEvent,
+    },
+    PhpIndexProgress {
+        done: usize,
+        total: usize,
+    },
     /// A step, download progress or output line of [`Call::LangServerInstall`].
     Install {
         channel: u32,

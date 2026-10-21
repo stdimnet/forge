@@ -64,9 +64,7 @@ fn remote(dir: &tempfile::TempDir) -> Arc<dyn Backend> {
         user: "deploy".into(),
         config_id: None,
     };
-    Arc::new(
-        RemoteBackend::open(Arc::new(client), host, &dir.path().to_string_lossy()).unwrap(),
-    )
+    Arc::new(RemoteBackend::open(Arc::new(client), host, &dir.path().to_string_lossy()).unwrap())
 }
 
 fn request(base: &str) -> InstallRequest {
@@ -95,11 +93,7 @@ async fn installs_report_progress_and_errors_from_the_host() {
         );
         // Asking for updates needs no project, and nothing was installed yet.
         let updates = b
-            .langserver_updates(
-                Some(format!("http://127.0.0.1:{port}/missing")),
-                None,
-                true,
-            )
+            .langserver_updates(Some(format!("http://127.0.0.1:{port}/missing")), None, true)
             .unwrap();
         (r, updates)
     })

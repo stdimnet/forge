@@ -297,8 +297,12 @@ impl Agent {
                         a.event(Event::Install { channel, event });
                     }
                 };
-                let outcome = langservers::block_on(langservers::install(&request, cancel, &mut on));
-                self.channels.lock().expect("channels lock").remove(&channel);
+                let outcome =
+                    langservers::block_on(langservers::install(&request, cancel, &mut on));
+                self.channels
+                    .lock()
+                    .expect("channels lock")
+                    .remove(&channel);
                 reply(outcome?.map_err(ForgeError::Other)?)
             }
             Call::LangServerUpdates {
