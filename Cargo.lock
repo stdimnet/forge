@@ -2235,6 +2235,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "forge-save-actions"
+version = "0.1.0"
+dependencies = [
+ "forge-backend",
+ "forge-core",
+ "forge-filetypes",
+ "forge-process",
+ "forge-text",
+ "serde",
+ "serde_json",
+ "tempfile",
+]
+
+[[package]]
 name = "forge-scratches"
 version = "0.1.0"
 dependencies = [
