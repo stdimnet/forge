@@ -4,6 +4,7 @@
  * with `mock/collabMock.ts`.
  */
 import { invoke, listen } from "./index";
+import type { WorkspaceInfo } from "./workspace";
 
 export type PermissionLevel = "readOnly" | "editFiles" | "fullAccess" | "custom";
 
@@ -60,6 +61,8 @@ export interface SessionView {
   hostLabel?: string;
   /** Shown to every participant, e.g. that the session is a development preview. */
   notice?: string;
+  /** The host's project, open in this window (guest). */
+  workspace?: WorkspaceInfo;
 }
 
 /** What the Join Session dialog shows about a pasted link. */
@@ -71,9 +74,16 @@ export interface LinkSummary {
 }
 
 export const STATUS_EVENT = "collab://status";
+export const ENDED_EVENT = "collab://ended";
 
 export const collabApi = {
   status: () => invoke<SessionView>("collab_status"),
   parseLink: (link: string) => invoke<LinkSummary>("collab_parse_link", { link }),
   onStatus: (cb: (s: SessionView) => void) => listen<SessionView>(STATUS_EVENT, cb),
+  /** The session is over for this window (the host ended it, or the connection was lost). */
+  onEnded: (cb: (e: { reason: string }) => void) => listen<{ reason: string }>(ENDED_EVENT, cb),
+  /** Leave the session as a guest; the host's project closes. */
+  leave: () => invoke<void>("collab_leave"),
+  /** Round trip to the host in milliseconds (guest). */
+  ping: () => invoke<number>("collab_ping"),
 };

@@ -10,10 +10,15 @@ import { registerCommand } from "@/state/commands";
 import { registerKeymapActions } from "@/keymap/store";
 import { showBalloon } from "@/keymap";
 import { isDialogWindow } from "@/shell/window/mode";
-import type { PermissionLevel } from "@/ipc/collab";
+import { registerStatusItem } from "@/features/statusItems";
+import { isCollabGuest } from "@/state/workspace";
+import { collabApi, type PermissionLevel } from "@/ipc/collab";
 import { setPopupOpen, trackSession } from "./store";
 import { ToolbarButton } from "./ToolbarButton";
+import { GuestStatusItem } from "./GuestStatusItem";
+import { trackGuestProject } from "./guest";
 import "./codeWithMe.css";
+import "./guest.css";
 
 function startSession(_level: PermissionLevel): void {
   setPopupOpen(false);
@@ -45,4 +50,11 @@ registerKeymapActions(
 
 registerCommand({ id: "CodeWithMe.StartSession", title: "Start Session…", category: "Code With Me", run: () => void setPopupOpen(true) });
 
-if (!isDialogWindow()) trackSession();
+// A guest's window: "Code With Me: <host>" in the status bar, the host's project as the project.
+registerStatusItem({ id: "codeWithMe.guest", align: "right", order: -40, component: GuestStatusItem, when: isCollabGuest });
+registerCommand({ id: "CodeWithMe.LeaveSession", title: "Leave Session", category: "Code With Me", run: () => void collabApi.leave() });
+
+if (!isDialogWindow()) {
+  trackSession();
+  trackGuestProject();
+}

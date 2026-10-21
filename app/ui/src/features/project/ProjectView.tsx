@@ -173,7 +173,7 @@ export function ProjectView() {
               </span>
               <FileIcon name={ws().name} dir open />
               <span class="tree-label strong">{ws().name}</span>
-              <span class="tree-hint">{ws().root}</span>
+              <span class="tree-hint">{ws().collab ? ws().collab!.label : ws().root}</span>
             </div>
             <DirChildren path="" depth={1} />
             <For each={sections()}>{(section) => <Dynamic component={section.component} />}</For>

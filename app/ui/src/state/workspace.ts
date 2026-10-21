@@ -11,6 +11,9 @@ export { workspace };
 /** The open project lives on a remote host (opened over SSH). */
 export const isRemoteProject = () => !!workspace()?.remote;
 
+/** The open project is the host's in a Code With Me session (this window is a guest). */
+export const isCollabGuest = () => !!workspace()?.collab;
+
 /** Show a project the backend opened (e.g. by a dialog window) in this window. */
 export function adoptWorkspace(info: WorkspaceInfo): void {
   adopt(info);

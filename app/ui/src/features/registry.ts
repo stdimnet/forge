@@ -34,8 +34,15 @@ export function registerToolWindow(tw: ToolWindow): void {
 
 export { toolWindows };
 
+const [filters, setFilters] = createSignal<((tw: ToolWindow) => boolean)[]>([]);
+
+/** Hide tool windows for a reason that applies to all of them (e.g. a Code With Me guest). */
+export function registerToolWindowFilter(keep: (tw: ToolWindow) => boolean): void {
+  setFilters((f) => [...f, keep]);
+}
+
 export const toolWindowsFor = (anchor: ToolWindowAnchor) =>
-  toolWindows().filter((t) => t.anchor === anchor && (t.when?.() ?? true));
+  toolWindows().filter((t) => t.anchor === anchor && (t.when?.() ?? true) && filters().every((keep) => keep(t)));
 
 export const findToolWindow = (id: string | null) =>
   id ? toolWindows().find((t) => t.id === id) : undefined;
