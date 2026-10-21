@@ -1,4 +1,5 @@
 use std::collections::{HashMap, HashSet};
+use std::hash::{BuildHasherDefault, Hasher};
 use std::io::{Read, Write};
 
 use nucleo_matcher::pattern::{CaseMatching, Normalization, Pattern};
@@ -91,7 +92,7 @@ struct Segment {
 }
 
 impl Segment {
-    fn freeze(map: HashMap<u32, RoaringBitmap>) -> Self {
+    fn freeze(map: GramMap) -> Self {
         let mut entries: Vec<(u32, RoaringBitmap)> = map.into_iter().collect();
         entries.sort_unstable_by_key(|e| e.0);
         let mut seg = Segment {
@@ -125,7 +126,7 @@ pub struct Index {
     /// Immutable postings, one segment per `SEGMENT_FILES` indexed files; ids ascend across segments.
     segments: Vec<Segment>,
     /// Postings of the files added since the last segment was frozen.
-    head: HashMap<u32, RoaringBitmap>,
+    head: GramMap,
     head_first_id: u32,
     symbols: SymbolTable,
     #[serde(skip)]
@@ -185,7 +186,7 @@ impl Index {
             version: FORMAT_VERSION,
             files: Vec::new(),
             segments: Vec::new(),
-            head: HashMap::new(),
+            head: GramMap::default(),
             head_first_id: 0,
             symbols: SymbolTable::default(),
             by_path: HashMap::new(),
@@ -438,3 +439,25 @@ impl Default for Index {
         Self::new()
     }
 }
+
+/// Trigram keys are already well spread, so a multiply replaces SipHash on the hot indexing path.
+#[derive(Default)]
+pub struct GramHasher(u64);
+
+impl Hasher for GramHasher {
+    fn finish(&self) -> u64 {
+        self.0
+    }
+
+    fn write(&mut self, bytes: &[u8]) {
+        for &b in bytes {
+            self.0 = (self.0 ^ u64::from(b)).wrapping_mul(0x9E37_79B9_7F4A_7C15);
+        }
+    }
+
+    fn write_u32(&mut self, n: u32) {
+        self.0 = u64::from(n).wrapping_mul(0x9E37_79B9_7F4A_7C15);
+    }
+}
+
+type GramMap = HashMap<u32, RoaringBitmap, BuildHasherDefault<GramHasher>>;

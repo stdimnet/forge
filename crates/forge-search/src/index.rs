@@ -1,12 +1,14 @@
 use std::fs;
 use std::io::Read;
 use std::path::Path;
+use std::sync::mpsc;
 use std::time::UNIX_EPOCH;
 
 use forge_search_core::{Analysis, Loaded, Scanned, Scope, MAX_CONTENT_BYTES};
 use ignore::WalkBuilder;
 use rayon::prelude::*;
 
+const BINARY_SNIFF_BYTES: u64 = 8192;
 const LOAD_CHUNK_FILES: usize = 2048;
 const LOAD_CHUNK_BYTES: u64 = 32 * 1024 * 1024;
 pub(crate) const EXCLUDED_DIRS: &[&str] = &[
@@ -78,41 +80,61 @@ pub(crate) fn scan(root: &Path, scope: &Scope) -> Vec<Scanned> {
 }
 
 /// Read and analyze `stale` in bounded chunks, handing each to `sink` so memory stays flat.
+/// Reading runs one chunk ahead of the sink, so the index is fed while the next chunk loads.
 pub(crate) fn load_chunks(root: &Path, stale: Vec<Scanned>, mut sink: impl FnMut(Loaded)) {
-    let mut rest = stale.into_iter().peekable();
-    loop {
-        let mut chunk: Vec<Scanned> = Vec::new();
-        let mut bytes = 0;
-        while let Some(next) = rest.peek() {
-            if !chunk.is_empty()
-                && (chunk.len() >= LOAD_CHUNK_FILES || bytes + next.size > LOAD_CHUNK_BYTES)
-            {
-                break;
+    let (tx, rx) = mpsc::sync_channel::<Loaded>(1);
+    std::thread::scope(|scope| {
+        scope.spawn(move || {
+            let mut rest = stale.into_iter().peekable();
+            loop {
+                let mut chunk: Vec<Scanned> = Vec::new();
+                let mut bytes = 0;
+                while let Some(next) = rest.peek() {
+                    if !chunk.is_empty()
+                        && (chunk.len() >= LOAD_CHUNK_FILES || bytes + next.size > LOAD_CHUNK_BYTES)
+                    {
+                        break;
+                    }
+                    bytes += next.size;
+                    chunk.extend(rest.next());
+                }
+                if chunk.is_empty() {
+                    break;
+                }
+                let loaded: Loaded = chunk
+                    .into_par_iter()
+                    .map(|s| {
+                        let analysis = read_file(root, &s)
+                            .map_or_else(Analysis::name_only, |b| Analysis::of(&s.path, &b));
+                        (s, analysis)
+                    })
+                    .collect();
+                if tx.send(loaded).is_err() {
+                    break;
+                }
             }
-            bytes += next.size;
-            chunk.extend(rest.next());
+        });
+        for batch in rx {
+            sink(batch);
         }
-        if chunk.is_empty() {
-            break;
-        }
-        let loaded: Loaded = chunk
-            .into_par_iter()
-            .map(|s| {
-                let analysis = read_file(root, &s)
-                    .map_or_else(Analysis::name_only, |b| Analysis::of(&s.path, &b));
-                (s, analysis)
-            })
-            .collect();
-        sink(loaded);
-    }
+    });
 }
 
+/// The file's bytes, or `None` when it is too big, unreadable or binary (decided from its head,
+/// so large binaries are never read in full).
 fn read_file(root: &Path, s: &Scanned) -> Option<Vec<u8>> {
     if s.size > MAX_CONTENT_BYTES {
         return None;
     }
     let mut file = fs::File::open(root.join(&s.path)).ok()?;
     let mut bytes = Vec::with_capacity(s.size as usize);
+    (&mut file)
+        .take(BINARY_SNIFF_BYTES)
+        .read_to_end(&mut bytes)
+        .ok()?;
+    if bytes.contains(&0) {
+        return None;
+    }
     file.read_to_end(&mut bytes).ok()?;
     Some(bytes)
 }
