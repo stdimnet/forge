@@ -11,6 +11,7 @@ use forge_core::{ForgeError, FsChanges, Result};
 use forge_find::{Finder, LineMatch};
 use forge_search_core::{FileHit, Index, Outcome, Query, RefreshStats, Scope, SymbolHit};
 use notify::{RecommendedWatcher, RecursiveMode, Watcher};
+use thread_priority::{set_current_thread_priority, ThreadPriority};
 
 use rayon::prelude::*;
 
@@ -19,8 +20,24 @@ use crate::index::{self, EXCLUDED_DIRS};
 const WATCH_DEBOUNCE: Duration = Duration::from_millis(300);
 const SAVE_INTERVAL: Duration = Duration::from_secs(60);
 
+/// How the index is built.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct IndexOptions {
+    /// Run the indexing threads below normal CPU priority, so the rest of the machine (and the IDE)
+    /// keeps its share while a big project is indexed.
+    pub low_priority: bool,
+}
+
+impl Default for IndexOptions {
+    fn default() -> Self {
+        Self { low_priority: true }
+    }
+}
+
 /// One project's search index. Share it behind an `Arc`.
 pub struct SearchService {
+    /// The threads that build the index; searches use the global pool.
+    pool: rayon::ThreadPool,
     root: PathBuf,
     cache: Option<PathBuf>,
     index: RwLock<Index>,
@@ -36,6 +53,30 @@ pub struct SearchService {
 impl SearchService {
     /// `cache` is where the index is persisted between runs; a missing or stale file is ignored.
     pub fn open(root: impl Into<PathBuf>, cache: Option<PathBuf>) -> Self {
+        Self::open_with(
+            root,
+            cache,
+            IndexOptions {
+                low_priority: false,
+            },
+        )
+    }
+
+    /// [`SearchService::open`] with options for the indexing threads.
+    pub fn open_with(
+        root: impl Into<PathBuf>,
+        cache: Option<PathBuf>,
+        options: IndexOptions,
+    ) -> Self {
+        let pool = rayon::ThreadPoolBuilder::new()
+            .thread_name(|i| format!("forge-index-{i}"))
+            .start_handler(move |_| {
+                if options.low_priority {
+                    let _ = set_current_thread_priority(ThreadPriority::Min);
+                }
+            })
+            .build()
+            .expect("cannot start the indexing threads");
         let index = cache
             .as_deref()
             .and_then(|p| fs::File::open(p).ok())
@@ -43,6 +84,7 @@ impl SearchService {
             .unwrap_or_default();
         let ready = !index.is_empty();
         Self {
+            pool,
             root: root.into(),
             cache,
             index: RwLock::new(index),
@@ -52,6 +94,11 @@ impl SearchService {
             ready: AtomicBool::new(ready),
             watcher: Mutex::new(None),
         }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn pool(&self) -> &rayon::ThreadPool {
+        &self.pool
     }
 
     /// Where the index of the project at `root` is cached between runs.
@@ -112,6 +159,10 @@ impl SearchService {
     }
 
     fn refresh_scope(&self, scope: &Scope) -> RefreshStats {
+        self.pool.install(|| self.refresh_scope_on_pool(scope))
+    }
+
+    fn refresh_scope_on_pool(&self, scope: &Scope) -> RefreshStats {
         let disk = index::scan(&self.root, scope);
         let plan = self
             .index
@@ -120,14 +171,16 @@ impl SearchService {
             .plan(disk, scope);
         if plan.rebuild {
             let mut fresh = Index::new();
-            index::load_chunks(&self.root, plan.stale, |batch| fresh.add_batch(batch));
+            index::load_chunks(&self.root, &self.pool, plan.stale, |batch| {
+                fresh.add_batch(batch)
+            });
             *self.index.write().expect("search index lock poisoned") = fresh;
         } else {
             self.index
                 .write()
                 .expect("search index lock poisoned")
                 .remove(&plan.gone);
-            index::load_chunks(&self.root, plan.stale, |batch| {
+            index::load_chunks(&self.root, &self.pool, plan.stale, |batch| {
                 self.index
                     .write()
                     .expect("search index lock poisoned")

@@ -10,8 +10,12 @@ use forge_lsp::{LocalLauncher, ServerLauncher};
 use forge_process::{CommandLine, PtyOptions, PtySession, PtySink, RunSink, RunningProcess};
 use forge_project::ProjectInfo;
 #[cfg(feature = "search")]
+pub use forge_search::IndexOptions;
+#[cfg(feature = "search")]
 use forge_search::SearchService;
 use forge_vcs::{GitExec, LocalGit, Repo};
+#[cfg(feature = "search")]
+use std::sync::OnceLock;
 
 use crate::frameworks::{FrameworkCall, LocalFrameworks};
 use crate::langservers::{LangServersAnswer, LangServersRequest, LocalLangServers};
@@ -28,7 +32,8 @@ pub struct LocalBackend {
     workspace: Workspace,
     php: Arc<LocalPhp>,
     #[cfg(feature = "search")]
-    search: Option<Arc<SearchService>>,
+    /// Set once the background thread has loaded the saved index; `None` when indexing is off.
+    search: Option<Arc<OnceLock<Arc<SearchService>>>>,
     frameworks: LocalFrameworks,
     langservers: LocalLangServers,
 }
@@ -56,20 +61,31 @@ impl LocalBackend {
     /// Keep a persistent search index of the project: built in the background, kept current by
     /// [`Backend::watch`]. Until it covers the project, searches walk the directory instead.
     #[cfg(feature = "search")]
-    pub fn with_search_index(mut self) -> Self {
+    pub fn with_search_index(mut self, options: IndexOptions) -> Self {
         let root = self.root().to_path_buf();
-        let service = Arc::new(SearchService::open(&root, SearchService::cache_path(&root)));
-        let worker = service.clone();
+        let slot = Arc::new(OnceLock::new());
+        let filler = slot.clone();
         std::thread::spawn(move || {
-            worker.refresh();
+            let service = Arc::new(SearchService::open_with(
+                &root,
+                SearchService::cache_path(&root),
+                options,
+            ));
+            let _ = filler.set(service.clone());
+            service.refresh();
         });
-        self.search = Some(service);
+        self.search = Some(slot);
         self
     }
 
     #[cfg(feature = "search")]
+    fn service(&self) -> Option<&Arc<SearchService>> {
+        self.search.as_ref()?.get()
+    }
+
+    #[cfg(feature = "search")]
     fn index(&self) -> Option<&Arc<SearchService>> {
-        self.search.as_ref().filter(|s| s.ready())
+        self.service().filter(|s| s.ready())
     }
 
     pub fn workspace(&self) -> &Workspace {
@@ -211,7 +227,7 @@ impl Backend for LocalBackend {
         skip_extensions: &[String],
     ) -> Result<Vec<SymbolHit>> {
         #[cfg(feature = "search")]
-        if let Some(search) = &self.search {
+        if let Some(search) = self.service() {
             return Ok(search.find_symbols(query, types_only, limit, skip_extensions));
         }
         let _ = (query, types_only, limit, skip_extensions);
@@ -220,11 +236,18 @@ impl Backend for LocalBackend {
 
     fn search_status(&self) -> Result<SearchStatus> {
         #[cfg(feature = "search")]
-        if let Some(search) = &self.search {
-            return Ok(SearchStatus {
-                enabled: true,
-                indexing: search.indexing() || !search.ready(),
-                files: search.file_count(),
+        if let Some(slot) = &self.search {
+            return Ok(match slot.get() {
+                Some(search) => SearchStatus {
+                    enabled: true,
+                    indexing: search.indexing() || !search.ready(),
+                    files: search.file_count(),
+                },
+                None => SearchStatus {
+                    enabled: true,
+                    indexing: true,
+                    files: 0,
+                },
             });
         }
         Ok(SearchStatus::default())
@@ -245,7 +268,7 @@ impl Backend for LocalBackend {
         let watcher = ProjectWatcher::start(self.root(), move |changes: FsChanges| {
             php.apply_fs_changes(&changes);
             #[cfg(feature = "search")]
-            if let Some(search) = &search {
+            if let Some(search) = search.as_ref().and_then(|slot| slot.get()) {
                 search.apply_changes(&changes);
             }
             sink(changes);
@@ -389,7 +412,9 @@ class OrderBook {}
 ",
         )
         .unwrap();
-        let backend = LocalBackend::open(dir.path()).unwrap().with_search_index();
+        let backend = LocalBackend::open(dir.path())
+            .unwrap()
+            .with_search_index(IndexOptions::default());
         let wait = |done: &dyn Fn() -> bool| {
             for _ in 0..100 {
                 if done() {

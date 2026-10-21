@@ -34,6 +34,8 @@ use serde::{Deserialize, Serialize};
 pub use forge_search_core::SymbolHit;
 pub use frameworks::{framework_call, FrameworkCall};
 pub use langservers::{LangServersAnswer, LangServersRequest};
+#[cfg(feature = "search")]
+pub use local::IndexOptions;
 pub use local::LocalBackend;
 pub use php::PhpBackend;
 pub use remote::RemoteBackend;

@@ -92,10 +92,20 @@ impl AppState {
         )
     }
 
+    /// How a new project's search index is built (setting `search.indexing.lowPriority`).
+    fn index_options(&self) -> forge_backend::IndexOptions {
+        forge_backend::IndexOptions {
+            low_priority: self
+                .read_settings()
+                .get_as("search.indexing.lowPriority")
+                .unwrap_or(true),
+        }
+    }
+
     /// Open a local folder as the project.
     pub fn set_workspace(&self, ws: Workspace) {
         let backend: Option<Arc<dyn Backend>> = match LocalBackend::open(ws.root()) {
-            Ok(b) => Some(Arc::new(b.with_search_index())),
+            Ok(b) => Some(Arc::new(b.with_search_index(self.index_options()))),
             Err(e) => {
                 tracing::warn!("cannot open {}: {e}", ws.root().display());
                 None

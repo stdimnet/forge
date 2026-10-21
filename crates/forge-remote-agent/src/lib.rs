@@ -151,7 +151,7 @@ impl Agent {
             Call::Open { root } => {
                 let backend = LocalBackend::open(browse::expand_home(&root))?;
                 #[cfg(feature = "search")]
-                let backend = backend.with_search_index();
+                let backend = backend.with_search_index(forge_backend::IndexOptions::default());
                 let backend = Arc::new(backend);
                 let opened = Opened {
                     root: backend.info().root.clone(),

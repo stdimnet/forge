@@ -395,3 +395,16 @@ fn ranked_files_match_the_walk_ranking() {
         assert_eq!(svc.find_ranked(q, 3), ws.find_files(q, 3).unwrap(), "{q}");
     }
 }
+
+#[test]
+fn indexing_threads_run_below_normal_priority_when_asked() {
+    use crate::IndexOptions;
+    use thread_priority::get_current_thread_priority;
+    let dir = TempDir::new().unwrap();
+    let priority = |low_priority| {
+        SearchService::open_with(dir.path(), None, IndexOptions { low_priority })
+            .pool()
+            .install(|| get_current_thread_priority().unwrap())
+    };
+    assert_ne!(priority(true), priority(false));
+}

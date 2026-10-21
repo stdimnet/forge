@@ -5,7 +5,7 @@ mod index;
 mod service;
 
 pub use forge_search_core::{FileHit, FileMatches, Match, Outcome, Query, RefreshStats, SymbolHit};
-pub use service::SearchService;
+pub use service::{IndexOptions, SearchService};
 
 #[cfg(test)]
 mod tests;

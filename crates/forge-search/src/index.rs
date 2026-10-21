@@ -95,7 +95,12 @@ pub(crate) fn scan(root: &Path, scope: &Scope) -> Vec<Scanned> {
 
 /// Read and analyze `stale` in bounded chunks, handing each to `sink` so memory stays flat.
 /// Reading runs one chunk ahead of the sink, so the index is fed while the next chunk loads.
-pub(crate) fn load_chunks(root: &Path, stale: Vec<Scanned>, mut sink: impl FnMut(Loaded)) {
+pub(crate) fn load_chunks(
+    root: &Path,
+    pool: &rayon::ThreadPool,
+    stale: Vec<Scanned>,
+    mut sink: impl FnMut(Loaded),
+) {
     let (tx, rx) = mpsc::sync_channel::<Loaded>(1);
     std::thread::scope(|scope| {
         scope.spawn(move || {
@@ -115,14 +120,16 @@ pub(crate) fn load_chunks(root: &Path, stale: Vec<Scanned>, mut sink: impl FnMut
                 if chunk.is_empty() {
                     break;
                 }
-                let loaded: Loaded = chunk
-                    .into_par_iter()
-                    .map(|s| {
-                        let analysis = read_file(root, &s)
-                            .map_or_else(Analysis::name_only, |b| Analysis::of(&s.path, &b));
-                        (s, analysis)
-                    })
-                    .collect();
+                let loaded: Loaded = pool.install(|| {
+                    chunk
+                        .into_par_iter()
+                        .map(|s| {
+                            let analysis = read_file(root, &s)
+                                .map_or_else(Analysis::name_only, |b| Analysis::of(&s.path, &b));
+                            (s, analysis)
+                        })
+                        .collect()
+                });
                 if tx.send(loaded).is_err() {
                     break;
                 }
