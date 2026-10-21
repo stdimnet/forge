@@ -107,6 +107,13 @@ export default {
     await page.waitForSelector(".decl-chooser-row");
     await quiet(page);
   },
+  "php-nav-stubs-setting": async (page) => {
+    await page.keyboard.press("Control+Alt+KeyS");
+    await page.click('.set-tree-row[data-node="lang.php"]');
+    await page.waitForSelector(".php-settings");
+    await page.evaluate(() => document.querySelector(".php-settings section:last-child")?.scrollIntoView());
+    await quiet(page);
+  },
   "php-nav-main-menu": async (page) => {
     await page.click("[data-main-menu-button]");
     await page.waitForSelector(".context-menu.main-menu-popup");

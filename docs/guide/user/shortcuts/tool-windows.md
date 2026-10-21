@@ -12,6 +12,7 @@ Opening, hiding, resizing and switching tool windows. Windows/Linux shortcuts fi
 | Action | Windows / Linux | macOS |
 | --- | --- | --- |
 | [Project tool window](#project-tool-window) | `Alt+1` | `Cmd+1` |
+| [Find tool window](#find-tool-window) | `Alt+3` | `Cmd+3` |
 | [Run tool window](#run-tool-window) | `Alt+4` | `Cmd+4` |
 | [Debug tool window](#debug-tool-window) | `Alt+5` | `Cmd+5` |
 | [Problems tool window](#problems-tool-window) | `Alt+6` | `Cmd+6` |
@@ -48,6 +49,16 @@ Shows or hides the Project tool window.
 **Menu:** View | Tool Windows | Project
 
 More: [Workbench and tool windows](../../user/workbench.md#project-view)
+
+## Find tool window
+
+**Shortcut:** `Alt+3` · macOS `Cmd+3` · action id `ActivateFindToolWindow`
+
+Shows or hides the Find tool window with the results of Find Usages.
+
+**Menu:** View | Tool Windows | Find
+
+More: [Editor](../../user/editor.md#find-usages-and-show-usages)
 
 ## Run tool window
 

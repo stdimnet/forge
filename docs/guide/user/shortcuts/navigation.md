@@ -1,17 +1,20 @@
 ---
 title: "Shortcuts: Navigation"
-description: "Jumping to declarations, lines, problems, recent files and between editor tabs."
+description: "Jumping to declarations, implementations, super methods, lines, problems, recent files and between editor tabs."
 order: 30
 tags: [shortcuts, keymap, navigation]
 ---
 
 # Shortcuts: Navigation
 
-Jumping to declarations, lines, problems, recent files and between editor tabs. Windows/Linux shortcuts first, macOS second; both are PHPStorm's defaults and can be changed in Settings | Keymap.
+Jumping to declarations, implementations, super methods, lines, problems, recent files and between editor tabs. Windows/Linux shortcuts first, macOS second; both are PHPStorm's defaults and can be changed in Settings | Keymap.
 
 | Action | Windows / Linux | macOS |
 | --- | --- | --- |
 | [Go to Declaration or Usages](#go-to-declaration-or-usages) | `Ctrl+B` | `Cmd+B` |
+| [Go to Implementation(s)](#go-to-implementations) | `Ctrl+Alt+B` | `Cmd+Alt+B` |
+| [Go to Type Declaration](#go-to-type-declaration) | `Ctrl+Shift+B` | `Cmd+Shift+B` |
+| [Go to Super Method](#go-to-super-method) | `Ctrl+U` | `Cmd+U` |
 | [Back](#back) | `Ctrl+Alt+Left` | `Cmd+[`, `Cmd+Alt+Left` |
 | [Forward](#forward) | `Ctrl+Alt+Right` | `Cmd+]`, `Cmd+Alt+Right` |
 | [Go to Line/Column](#go-to-linecolumn) | `Ctrl+G` | `Cmd+L` |
@@ -33,11 +36,43 @@ Jumping to declarations, lines, problems, recent files and between editor tabs. 
 
 **Shortcut:** `Ctrl+B` · macOS `Cmd+B` · action id `GotoDeclaration`
 
-Jumps to the declaration of the symbol at the caret; several targets open the Choose Declaration popup.
+Jumps to the declaration of the symbol at the caret (also `Ctrl+Click` and middle click); on a declaration it shows its usages; several targets open the Choose Declaration popup. PHP's own classes and functions open read-only in the PHP stubs.
 
 **Menu:** Navigate | Declaration or Usages
 
-More: [Editor](../../user/editor.md#go-to-declaration)
+![Ctrl+hover on \Throwable](../../../screenshots/php-nav-ctrl-hover.png)
+
+More: [Editor](../../user/editor.md#go-to-declaration), [PHP navigation](../../user/php.md#navigation)
+
+## Go to Implementation(s)
+
+**Shortcut:** `Ctrl+Alt+B` · macOS `Cmd+Alt+B` · action id `GotoImplementation`
+
+Lists the classes implementing or extending the class or interface at the caret, or the methods overriding the method (also `Ctrl+Alt+Click`).
+
+**Menu:** Navigate | Implementation(s)
+
+More: [Editor](../../user/editor.md#implementation-type-declaration-super-method)
+
+## Go to Type Declaration
+
+**Shortcut:** `Ctrl+Shift+B` · macOS `Cmd+Shift+B` · action id `GotoTypeDeclaration`
+
+Jumps to the class of the variable, property or method return type at the caret.
+
+**Menu:** Navigate | Type Declaration
+
+More: [Editor](../../user/editor.md#implementation-type-declaration-super-method)
+
+## Go to Super Method
+
+**Shortcut:** `Ctrl+U` · macOS `Cmd+U` · action id `GotoSuperMethod`
+
+Jumps to the method the current method overrides or implements; on a class, to its parent class and interfaces.
+
+**Menu:** Navigate | Super Method
+
+More: [Editor](../../user/editor.md#implementation-type-declaration-super-method)
 
 ## Back
 

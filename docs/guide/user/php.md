@@ -1,8 +1,8 @@
 ---
 title: PHP
-description: PHP support in PHPForge - the PHP index, Structure tool window, hover documentation, class and symbol search, Generate (Alt+Insert) for constructors, getters and setters, and the PHP settings.
+description: PHP support in PHPForge - the PHP index, navigation (Ctrl+Click, Show Usages, implementations, PHP stubs), Structure tool window, hover documentation, class and symbol search, Generate (Alt+Insert) and the PHP settings.
 order: 60
-tags: [php, phpforge, generate, structure, index]
+tags: [php, phpforge, generate, structure, index, navigation, usages, stubs]
 ---
 
 # PHP
@@ -11,8 +11,9 @@ PHP support is the **PHPForge** pack (plugin `forge.php`). It combines two engin
 
 - **Forge's PHP index**, built with tree-sitter in Rust: classes, interfaces, traits, enums,
   functions, constants, members, PHPDoc and attributes of every PHP file in the project. It
-  powers the Structure tool window, Go to Class/Symbol, index-based hover and the Generate
-  actions, and works without any language server.
+  powers the Structure tool window, Go to Class/Symbol, index-based hover, the Generate
+  actions and [navigation](#navigation) when no language server answers, and works without
+  any language server.
 - **A PHP language server**, Intelephense or Phpactor, for completion, diagnostics,
   Go to Declaration, hover and formatting. See
   [Language servers](language-servers.md#php-intelephense-and-phpactor).
@@ -52,6 +53,119 @@ entry to jump to it.
 `Cmd+Alt+O`) search the PHP index with camel-hump matching: `OrCo` finds
 `OrderController`, `OrderController::sto` finds its `store` method. See
 [Search Everywhere](search-everywhere.md).
+
+## Navigation
+
+Navigation works like in PHPStorm on every PHP symbol. The language server answers first;
+when none runs (or it has no answer) Forge's PHP index does, so navigation also works without
+Intelephense. Everything runs through the project's backend, so it works the same in
+[remote projects](#remote-projects).
+
+### Go to Declaration
+
+`Ctrl+Click`, `Ctrl+B` (macOS `Cmd+Click`, `Cmd+B`) or a middle click jumps to the declaration
+of:
+
+- classes, interfaces, traits and enums, written with or without a leading backslash
+  (`\Throwable`, `\App\Models\User`, `User`), resolved through `use` imports (also aliases
+  `use X as Y` and group uses `use App\Models\{User, Order}`) and the current namespace;
+- names in `use` statements, including `use function` and `use const`;
+- functions (`array_map`, namespaced functions with PHP's fallback to the global function);
+- methods and properties on `$this`, `self::`, `static::`, `parent::`, class names and
+  variables, typed through parameters, `new`, `catch (X $e)`, inline `/** @var X $x */`,
+  property types and PHPDoc, and call chains through return types
+  (`$user->orders()->first()`);
+- class constants, enum cases and namespace constants (`PHP_EOL`, `const VERSION = 2`);
+- variables: the parameter or first assignment in the method or function.
+
+While `Ctrl` (macOS `Cmd`) is held, the symbol under the mouse is underlined like a link and a
+small tooltip shows where it is declared: the namespace or class and the declaration.
+
+![Ctrl+hover on \Throwable](../../screenshots/php-nav-ctrl-hover.png)
+
+On a declaration itself (a class name in `class User`, a method or function name, a property,
+a variable's first assignment), Go to Declaration shows its **usages** instead, like
+PHPStorm's "Declaration or Usages"; a single usage opens directly. Several targets open the
+Choose Declaration popup. `Ctrl+Alt+Click` (macOS `Cmd+Alt+Click`) goes to the
+implementations.
+
+### PHP's own classes and functions
+
+`\Throwable`, `\Exception`, `ArrayAccess`, `PDO`, `array_map`, `PHP_EOL` and the other
+built-in symbols open their declaration in the **PHP stubs**, read-only, like PHPStorm's "PHP
+Runtime" library. The tab shows a banner "Read-only library file" with the source of the
+stubs, and the breadcrumbs read `PHP Runtime › Core › Core_c.php › Throwable`. Library files
+cannot be edited; navigation inside them (for example from `Exception` to `Throwable`) works.
+
+![\Throwable in the PHP stubs](../../screenshots/php-nav-stub.png)
+
+Where the stubs come from:
+
+1. Settings | Languages & Frameworks | PHP | **Default stubs path** (`php.stubs.path`): a
+   checkout of [JetBrains' phpstorm-stubs](https://github.com/JetBrains/phpstorm-stubs)
+   (Apache-2.0) or a compatible folder.
+2. Otherwise Forge downloads a pinned phpstorm-stubs release on first use into
+   `<cache dir>/forge/php-stubs/<version>`, checks its SHA-256 and keeps its licence file. The
+   status bar shows the download.
+3. When Intelephense is installed and nothing else is available, its own stubs are used.
+
+When Intelephense runs, its definition (which points into the stubs inside its package) is
+opened read-only directly.
+
+> **Note:** the managed download of phpstorm-stubs is enabled once the checksum of the pinned
+> release is part of Forge. Until then, set **Default stubs path** or install Intelephense;
+> otherwise Go to Declaration on a built-in symbol explains how to get the stubs.
+
+### Show Usages and Find Usages
+
+**Show Usages** (`Ctrl+Alt+F7`, macOS `Cmd+Alt+F7`, or `Ctrl+Click` on a declaration) opens
+a popup with every usage: the code line with the reference highlighted, file and line,
+grouped by usage type like PHPStorm (Usage in import, New instance creation, Method call,
+Static member access, Usage in extends/implements clause, Usage in type declaration, Usage in
+PHPDoc, Dynamic usages, …). `Up`/`Down` select, `Enter` opens, `Escape` closes; the pin
+button **Open in Find Window** keeps the result in the Find tool window.
+
+![Show Usages on a class declaration](../../screenshots/php-nav-show-usages.png)
+
+For a method or function the popup lists its call sites. Calls through a parent or child
+class count too: the usages of an interface method include calls on its implementations.
+
+![Call sites of an interface method](../../screenshots/php-nav-call-sites.png)
+
+**Find Usages** (`Alt+F7`) shows the usages in the **Find** tool window (`Alt+3`, macOS
+`Cmd+3`): one tab per search, a tree grouped by usage type (toggle **Group by Usage Type**)
+and file. Click a usage to open it.
+
+![Find tool window](../../screenshots/php-nav-find-window.png)
+
+Members used on expressions the index cannot type (`$any->save()`) are listed as **Dynamic
+usages**. Comments and strings are not usages.
+
+### Implementation, Super Method and Type Declaration
+
+| Action | Shortcut | macOS | Goes to |
+| --- | --- | --- | --- |
+| Implementation(s) | `Ctrl+Alt+B` | `Cmd+Alt+B` | classes extending or implementing the class or interface at the caret, or the methods overriding the method |
+| Super Method | `Ctrl+U` | `Cmd+U` | the method this method overrides or implements; on a class, its parent and interfaces |
+| Type Declaration | `Ctrl+Shift+B` | `Cmd+Shift+B` | the class of the variable, property or method return type at the caret |
+
+Several targets open the Choose Declaration popup with names and namespaces. Go to
+Implementation needs Intelephense Premium in Intelephense; without a licence Forge answers from
+the index, and says so when the index finds nothing either.
+
+### Gutter icons
+
+Like PHPStorm, the gutter marks inheritance:
+
+- ↓ on a class with subclasses ("Is subclassed by"), on an interface with implementations and
+  on interface or abstract methods with implementations ("Is implemented in"), and on methods
+  overridden in subclasses ("Is overridden in");
+- ↑ on methods that implement an interface method ("Implements method in") or override a
+  parent's method ("Overrides method in").
+
+Click an icon to go to the target, or to choose one of several.
+
+![Implemented markers](../../screenshots/php-nav-gutter.png)
 
 ## Hover documentation
 
@@ -112,6 +226,7 @@ Methods.
 | When Intelephense is not installed (`ask`, `always`, `never`), see [Installing Intelephense](language-servers.md#installing-intelephense) | `php.intelephense.autoInstall` | `ask` |
 | I accept the Intelephense licence | `php.intelephense.licenceAccepted` | off |
 | Include Path | `php.includePaths` | empty |
+| Default stubs path (PHP Runtime), see [PHP's own classes and functions](#phps-own-classes-and-functions) | `php.stubs.path` | empty (managed download) |
 
 The language level and the interpreter can be stored per project ("For current project" in
 the page header). The status bar shows the language level ("PHP 8.3"); click it to open this
@@ -155,4 +270,5 @@ See [Run/Debug configurations](run-debug.md), [Xdebug debugging](debugging.md) a
 ## Remote projects
 
 In a [remote project](remote-development.md) the PHP index and the language server run on the
-remote host through the Forge agent; Structure, search, hover and Generate work as locally.
+remote host through the Forge agent; Structure, search, hover, Generate, navigation, usages
+and gutter icons work as locally. The PHP stubs are read on this machine.

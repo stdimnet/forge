@@ -1,6 +1,6 @@
 ---
 title: Editor
-description: Editing, completion, hover documentation, Parameter Info, Go to Declaration, problems, formatting, folding, find and replace, gutter icons and the editor context menu.
+description: Editing, completion, hover documentation, Parameter Info, Go to Declaration, Find and Show Usages, problems, formatting, folding, find and replace, gutter icons and the editor context menu.
 order: 20
 tags: [editor, completion, hover, navigation, diagnostics, context menu]
 ---
@@ -53,21 +53,26 @@ the current one in bold, with its documentation. It also opens automatically aft
 
 ## Go to Declaration
 
-**Go to Declaration or Usages** (`Ctrl+B`, macOS `Cmd+B`) or `Ctrl+Click` (macOS
-`Cmd+Click`) jumps to the declaration of the symbol at the caret. While `Ctrl` is held, the
-symbol under the mouse is underlined like a link.
+**Go to Declaration or Usages** (`Ctrl+B`, macOS `Cmd+B`), `Ctrl+Click` (macOS `Cmd+Click`)
+or a middle click jumps to the declaration of the symbol at the caret. While `Ctrl` is held,
+the symbol under the mouse is underlined like a link, with a small tooltip that shows where it
+is declared (in PHP: the namespace or class and the declaration).
 
 Forge first asks its framework providers, which know things a language server cannot
 resolve: Laravel route names, views, config keys and Eloquent attributes; Symfony service ids,
 routes and Twig templates; Doctrine entities and DQL fields; React/Vue/Angular components and
-props; Lua modules. Then it asks the language server.
+props; Lua modules. Then it asks the language server and, in PHP files, Forge's PHP index and
+the PHP stubs (see [PHP navigation](php.md#navigation)).
+
+On a declaration itself (a class, method or function name), Go to Declaration shows its
+**usages** instead, as in PHPStorm; a single usage opens directly.
 
 When there are several targets — from a framework provider (a view that exists in two places, a
 component used in many templates) or from the language server — the **Choose Declaration**
-popup lists them at the caret with file, line and the code of each target, as in PHPStorm. Pick
-one with the arrow keys and `Enter`, or `Escape` to cancel. The same popup is used by line
-markers with several targets, in every language pack (PHP and its frameworks, WebForge,
-LuaForge).
+popup lists them at the caret with file, line and the code of each target (or the symbol name
+and its namespace), as in PHPStorm. Pick one with the arrow keys and `Enter`, or `Escape` to
+cancel. The same popup is used by line markers with several targets, in every language pack
+(PHP and its frameworks, WebForge, LuaForge).
 
 ![Choose Declaration in React](../../screenshots/editor-polish-choose-declaration-react.png)
 
@@ -75,12 +80,47 @@ LuaForge).
 
 If nothing is found, a hint "Cannot find declaration to go to" appears at the caret.
 
+Declarations outside the project (PHP's own classes in the PHP stubs, files a language server
+points to outside the project) open in a **read-only** tab with a "Read-only library file"
+banner and breadcrumbs such as `PHP Runtime › Core › Core_c.php › Throwable`.
+
 **Back** / **Forward** (`Ctrl+Alt+Left` / `Ctrl+Alt+Right`, macOS `Cmd+[` / `Cmd+]`) return
 to where you were.
 
-> **Note:** Go to Implementation (`Ctrl+Alt+B`), Type Declaration, Super Method, Test and
-> Find Usages (`Alt+F7`) are not available yet. In React and Vue projects, Go to Declaration on
-> a component's own name lists its usages instead.
+### Implementation, Type Declaration, Super Method
+
+| Action | Shortcut | macOS |
+| --- | --- | --- |
+| Implementation(s) | `Ctrl+Alt+B`, `Ctrl+Alt+Click` | `Cmd+Alt+B`, `Cmd+Alt+Click` |
+| Type Declaration | `Ctrl+Shift+B` | `Cmd+Shift+B` |
+| Super Method | `Ctrl+U` | `Cmd+U` |
+
+They ask the language servers (`textDocument/implementation`, `typeDefinition`) and fall back
+to the PHP index in PHP files. When a server lacks the feature (Go to Implementation in
+Intelephense without a licence) and the index finds nothing, the hint says so.
+
+> **Note:** Go to Test (`Ctrl+Shift+T`) is not available yet. In React and Vue projects, Go to
+> Declaration on a component's own name lists its usages through the framework provider.
+
+## Find Usages and Show Usages
+
+**Show Usages** (`Ctrl+Alt+F7`, macOS `Cmd+Alt+F7`) opens a popup at the caret with every
+usage of the symbol: its code line with the reference highlighted, the file and the line,
+grouped by usage type (import, new instance, method call, static access, extends/implements,
+type declaration, PHPDoc, …). `Up`/`Down` select, `Enter` opens, `Escape` closes, the pin
+button opens the result in the Find tool window.
+
+**Find Usages** (`Alt+F7`) shows the usages in the **Find** tool window (`Alt+3`, macOS
+`Cmd+3`), one tab per search, as a tree by usage type and file; **Group by Usage Type**,
+**Expand All** and **Collapse All** are on its toolbar. The Find stripe button appears once
+there is a result.
+
+Usages come from the language servers (`textDocument/references`); in PHP files without a
+server answer, from the PHP index. Unsaved changes in open editors are taken into account.
+
+![Show Usages](../../screenshots/php-nav-show-usages.png)
+
+![Find tool window](../../screenshots/php-nav-find-window.png)
 
 ## Problems
 
@@ -160,7 +200,8 @@ Other occurrences of the selected text are highlighted automatically.
 To search the whole project, use [Find in Files](search-everywhere.md#find-in-files)
 (`Ctrl+Shift+F`, macOS `Cmd+Shift+F`).
 
-> **Note:** Replace in Files (`Ctrl+Shift+R`) and the Find tool window are not available yet.
+> **Note:** Replace in Files (`Ctrl+Shift+R`) is not available yet. The Find tool window
+> shows [usages](#find-usages-and-show-usages).
 
 ## Gutter
 
@@ -171,6 +212,9 @@ markers.
   one to see the change, roll it back or open the diff. See [Git](git.md#in-the-editor).
 - **Line markers** of plugins: routes on controller actions, "go to template", entity ⇄
   repository, Angular component ⇄ template, compose services, and more. Click to navigate.
+- **Implemented / overridden markers** in PHP: ↓ on classes with subclasses, interfaces and
+  methods with implementations or overrides, ↑ on methods that implement or override one. See
+  [PHP](php.md#gutter-icons).
 - **Run icons** ▶ next to PHPUnit tests, `package.json` scripts, Lua main chunks, scratch
   files, `.http` requests, compose services and Dockerfiles.
 - **Breakpoints**: click a line number in a PHP file to toggle a breakpoint (drawn over the
@@ -193,10 +237,10 @@ editor context menu:
 | Copy / Paste Special > Copy Absolute Path, Copy Reference, Paste as Plain Text | works |
 | Select All | works |
 | Column Selection Mode | not available yet (use `Alt`+drag) |
-| Find Usages | not available yet |
+| Find Usages | works |
 | Refactor > Rename…, Refactor This… | not available yet |
 | Go To > Declaration or Usages, Line/Column | works |
-| Go To > Implementation(s) | not available yet |
+| Go To > Implementation(s) | works |
 | Generate… | works in PHP files, see [PHP](php.md#generate) |
 | Reformat Code | works |
 | Optimize Imports | not available yet |

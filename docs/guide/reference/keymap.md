@@ -56,9 +56,9 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Next Edit Location | `JumpToNextChange` |  |  | — |
 | Select In… | `SelectIn` | `Alt+F1` | `Alt+F1` | — |
 | Declaration or Usages | `GotoDeclaration` | `Ctrl+B` | `Cmd+B` | yes |
-| Implementation(s) | `GotoImplementation` | `Ctrl+Alt+B` | `Cmd+Alt+B` | — |
-| Type Declaration | `GotoTypeDeclaration` | `Ctrl+Shift+B` | `Cmd+Shift+B` | — |
-| Super Method | `GotoSuperMethod` | `Ctrl+U` | `Cmd+U` | — |
+| Implementation(s) | `GotoImplementation` | `Ctrl+Alt+B` | `Cmd+Alt+B` | yes |
+| Type Declaration | `GotoTypeDeclaration` | `Ctrl+Shift+B` | `Cmd+Shift+B` | yes |
+| Super Method | `GotoSuperMethod` | `Ctrl+U` | `Cmd+U` | yes |
 | Test | `GotoTest` | `Ctrl+Shift+T` | `Cmd+Shift+T` | — |
 | Related Symbol… | `GotoRelated` | `Ctrl+Alt+Home` | `Ctrl+Cmd+Up` | — |
 | File Structure | `FileStructurePopup` | `Ctrl+F12` | `Cmd+F12` | — |
@@ -231,10 +231,10 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Find Word at Caret | `FindWordAtCaret` | `Ctrl+F3` | `Alt+Cmd+F3` | — |
 | Find in Files… | `FindInPath` | `Ctrl+Shift+F` | `Cmd+Shift+F` | yes |
 | Replace in Files… | `ReplaceInPath` | `Ctrl+Shift+R` | `Cmd+Shift+R` | — |
-| Find Usages | `FindUsages` | `Alt+F7` | `Alt+F7` | — |
+| Find Usages | `FindUsages` | `Alt+F7` | `Alt+F7` | yes |
 | Find Usages in File | `FindUsagesInFile` | `Ctrl+F7` | `Cmd+F7` | — |
 | Highlight Usages in File | `HighlightUsagesInFile` | `Ctrl+Shift+F7` | `Cmd+Shift+F7` | — |
-| Show Usages | `ShowUsages` | `Ctrl+Alt+F7` | `Cmd+Alt+F7` | — |
+| Show Usages | `ShowUsages` | `Ctrl+Alt+F7` | `Cmd+Alt+F7` | yes |
 | Find Usages Settings… | `ShowSettingsAndFindUsages` | `Ctrl+Alt+Shift+F7` | `Cmd+Alt+Shift+F7` | — |
 | Search Structurally… | `StructuralSearchPlugin.StructuralSearchAction` |  |  | — |
 
@@ -244,7 +244,7 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | --- | --- | --- | --- | --- |
 | Project | `ActivateProjectToolWindow` | `Alt+1` | `Cmd+1` | yes |
 | Bookmarks | `ActivateBookmarksToolWindow` | `Alt+2` | `Cmd+2` | — |
-| Find | `ActivateFindToolWindow` | `Alt+3` | `Cmd+3` | — |
+| Find | `ActivateFindToolWindow` | `Alt+3` | `Cmd+3` | yes |
 | Run | `ActivateRunToolWindow` | `Alt+4` | `Cmd+4` | yes |
 | Debug | `ActivateDebugToolWindow` | `Alt+5` | `Cmd+5` | yes |
 | Problems | `ActivateProblemsViewToolWindow` | `Alt+6` | `Cmd+6` | yes |
