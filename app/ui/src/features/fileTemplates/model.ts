@@ -4,7 +4,7 @@
  * "New" popup, and the dialog requests they open.
  */
 import { createRoot, createSignal, createEffect, on } from "solid-js";
-import { templatesApi, type TemplateCatalog, type TemplateInfo } from "@/ipc/templates";
+import { templatesApi, type NewFile, type TemplateCatalog, type TemplateInfo } from "@/ipc/templates";
 import { getSetting, settingsState } from "@/state/settings";
 import { workspace } from "@/state/workspace";
 import { projectInfo, usesProjectType } from "@/state/project";
@@ -91,10 +91,21 @@ export function validateNamespace(ns: string): string | null {
   return n.split("\\").every(isPhpIdentifier) ? null : `'${ns.trim()}' is not a valid namespace`;
 }
 
+/** Create class from usage (Alt+Enter): what the Create New PHP Class dialog starts with. */
+export interface CreateClassRequest {
+  name: string;
+  namespace: string;
+  extends?: string;
+  /** Runs after the file was created and opened, with the new class's FQN. */
+  onCreated?: (file: NewFile, fqn: string) => void | Promise<void>;
+}
+
 /** What a New ▸ <template> action opens. */
 export interface NewFileDialogRequest {
   template: TemplateInfo;
   dir: string;
+  /** Opened from a usage: the dialog is "Create New PHP Class" with these values. */
+  create?: CreateClassRequest;
 }
 
 const [dialog, setDialog] = createSignal<NewFileDialogRequest | null>(null);

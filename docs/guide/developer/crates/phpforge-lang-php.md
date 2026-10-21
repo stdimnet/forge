@@ -28,6 +28,7 @@ PHPForge language pack: PHP support built on tree-sitter.
 
 | Module | Summary |
 | --- | --- |
+| `create.rs` | Create from usage (Alt+Enter on an unresolved name): "Create method / field / constant / enum case / function" as edits (another file's as a `WorkspaceEdit` with LSP positions) with the caret after the edit, parameters and return types inferred from the usage, bodies from the code template "PHP Implemented Method Body"; "Create class / interface / trait" as the `PhpCreateClass` action with the dialog's data. Each fix carries the `ExternalSymbol` the PHP stubs must not declare. |
 | `docblock.rs` | PHPDoc parser: summary/description, the standard tags (`@param`, `@return`, `@throws`, `@var`, `@property[-read\|-write]`, `@method`, `@deprecated`, `@see`, `@template`, `@extends`/`@implements`), static-analysis prefixes (`@phpstan-`/`@psalm-`) and Doctrine/Symfony style annotations (`@ORM\Column(type="string")`, `@Route("/x")`). |
 | `fuzzy.rs` | Fuzzy matcher for Go to Class / Go to Symbol: subsequence matching with bonuses for word starts, camel humps (`OrCo` -> `OrderController`) and consecutive runs. |
 | `generate.rs` | "Generate" actions (Alt+Insert): constructor, getters/setters, `__toString()`, override/implement method stubs and PHPDoc blocks. |

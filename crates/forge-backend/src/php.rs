@@ -76,11 +76,13 @@ pub trait PhpBackend: Send + Sync {
     ) -> Result<PhpDefinition>;
     /// The implemented / overridden gutter markers of a file.
     fn line_markers(&self, path: &str, content: Option<String>) -> Result<Vec<PhpLineMarker>>;
-    /// Built-in intentions for Show Context Actions (Alt+Enter).
+    /// Built-in intentions for Show Context Actions (Alt+Enter), including Create from
+    /// usage; `options` carries the code style and code templates for generated code.
     fn intentions(
         &self,
         path: &str,
         offset: usize,
+        options: GenerateOptions,
         content: Option<String>,
     ) -> Result<Vec<Intention>>;
     /// The language server to start for the project (Intelephense or phpactor found on the
@@ -278,10 +280,11 @@ impl PhpBackend for LocalPhp {
         &self,
         path: &str,
         offset: usize,
+        options: GenerateOptions,
         content: Option<String>,
     ) -> Result<Vec<Intention>> {
         let text = self.source(path, content)?;
-        self.with_index(|idx| service::intentions(idx, path, &text, offset))
+        self.with_index(|idx| service::intentions(idx, path, &text, offset, &options))
     }
 
     fn lsp_config(&self, settings: PhpLspSettings) -> Result<Option<LspServerConfig>> {

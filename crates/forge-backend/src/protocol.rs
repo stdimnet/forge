@@ -292,6 +292,9 @@ pub enum PhpCall {
     Intentions {
         path: String,
         offset: usize,
+        /// Code style and code templates (absent from older apps).
+        #[serde(default)]
+        options: GenerateOptions,
         content: Option<String>,
     },
     /// -> `Option<LspServerConfig>`

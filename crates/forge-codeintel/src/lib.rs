@@ -20,7 +20,9 @@ pub mod inlay;
 pub mod rename;
 pub mod usages;
 
-pub use actions::{bulb_for, nest_fix_all, order_actions, ActionKind, Bulb, ContextAction};
+pub use actions::{
+    bulb_for, lsp_creates, nest_fix_all, order_actions, ActionKind, Bulb, ContextAction,
+};
 
 pub use docs::{
     context_headers, definition_snippet, external_doc_url, language_of, symbol_at, type_from_hover,
@@ -28,8 +30,8 @@ pub use docs::{
 };
 pub use edit::{
     apply_text_edits, apply_workspace_edit, position_at, preview_workspace_edit, revert_applied,
-    utf16_offset, word_range, AppliedFile, DocumentChange, EditError, FilePreview, FileStore,
-    MemoryStore, Position, PreviewRow, Range, TextEdit, WorkspaceEdit,
+    utf16_offset, word_range, AppliedFile, Caret, DocumentChange, EditError, FilePreview,
+    FileStore, MemoryStore, Position, PreviewRow, Range, TextEdit, WorkspaceEdit,
 };
 pub use rename::{
     edit_conflicts, edit_from_locations, is_class_file, plan_edit, ranges_in, renamed_path,
