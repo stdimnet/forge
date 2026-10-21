@@ -39,6 +39,7 @@ import "./liveTemplatesMock";
 import "./injectionsMock";
 import "./servicesMock";
 import "./webMock";
+import "./saveActionsMock";
 import "./windowMock";
 import "./updatesMock";
 import "./templatesMock";

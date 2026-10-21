@@ -1835,6 +1835,7 @@ dependencies = [
  "forge-process",
  "forge-project",
  "forge-remote",
+ "forge-save-actions",
  "forge-scratches",
  "forge-text",
  "forge-update",
@@ -2235,6 +2236,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "forge-save-actions"
+version = "0.1.0"
+dependencies = [
+ "forge-backend",
+ "forge-core",
+ "forge-filetypes",
+ "forge-process",
+ "forge-text",
+ "serde",
+ "serde_json",
+ "tempfile",
+]
+
+[[package]]
 name = "forge-scratches"
 version = "0.1.0"
 dependencies = [
@@ -2345,6 +2360,7 @@ dependencies = [
  "forge-output",
  "forge-plugin-api",
  "forge-remote",
+ "forge-save-actions",
  "forge-scratches",
  "forge-search-core",
  "forge-sql",

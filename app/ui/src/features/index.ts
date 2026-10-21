@@ -45,5 +45,6 @@ import "./editing";
 import "./bookmarks";
 import "./todo";
 import "./notifications";
+import "./actionsOnSave";
 import "./updates";
 import "./fileTemplates";

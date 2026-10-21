@@ -1212,6 +1212,22 @@ plugin manifest entry, and the chat UI needs no changes:
   line pass after Reformat Code (`registerFormatPostProcessor` in `features/lsp/format.ts`).
   Composer (`phpforge_lang_php::composer`): `php_language_level() -> { level, fromComposer }`,
   `php_composer_outdated() -> OutdatedPackage[]`.
+- Actions on Save (`crates/forge-save-actions`, `phpforge_lang_php::{imports, rearrange,
+  cleanup}`, UI `features/actionsOnSave/`): `saveFile(path, trigger)` in `state/editor.ts` takes
+  a `SaveTrigger` (`"explicit"` for `Ctrl+S`, `"autosave"`, `"plain"` for saves of other
+  operations) and calls the runner registered with `setSaveActionsRunner`.
+  `save_actions_plan({ path, trigger }) -> SavePlan` (`{ reformat: "whole" | "changed" | null,
+  optimizeImports, rearrange, codeCleanup, tools }`, from the `actionsOnSave.*` settings);
+  Reformat code uses `formattedText` (`features/lsp/format.ts`: format providers, LSP,
+  post-processors, without touching the document) and
+  `save_actions_changed_lines({ path, original, formatted }) -> string` (HEAD through the
+  backend's repo); `save_actions_php({ text, actions }) -> { text, applied }`; after the file is
+  written `save_actions_run_tools({ path, tools }) -> { changed, outcomes }` runs ESLint,
+  Prettier, PHP CS Fixer and Pint through `Backend::start_process` (rolling back a failing
+  tool); `save_actions_info() -> { fileTypes, tools }` feeds the settings page. The editor gets
+  the combined result as one transaction (`applyLineChanges` with `isolateHistory`), only
+  when nobody typed meanwhile. Browser mode: plan and changed lines through WebAssembly, the
+  rest mocked (no tool runs, no writes).
 - Git: `git_crlf_files({ paths })` (files that would commit CRLF), `git_pull({ rebase? })`
   follows `vcs.git.updateMethod` without `rebase`, `git_commit` signs off with
   `vcs.git.commit.signOff`, and `vcs.git.path` selects the git binary

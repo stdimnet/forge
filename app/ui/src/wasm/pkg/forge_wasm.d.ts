@@ -493,6 +493,21 @@ export function run_output_handle(request_json: string): string;
 export function run_output_new(options_json: string): string;
 
 /**
+ * `{ base, original, formatted }` → the text with only changed lines reformatted.
+ */
+export function save_actions_changed_lines(request_json: string): string;
+
+/**
+ * `{}` → the file types of the "Reformat code" filter.
+ */
+export function save_actions_file_types(_request_json: string): string;
+
+/**
+ * `{ path, trigger, settings }` → `SavePlan`.
+ */
+export function save_actions_plan(request_json: string): string;
+
+/**
  * `{ public?, private?, name? }` → `{ names, default, variables }`: the environments of
  * `http-client.env.json` / `http-client.private.env.json` and the variables of `name`.
  */
@@ -819,6 +834,9 @@ export interface InitOutput {
     readonly run_output_drop: (a: number, b: number, c: number) => void;
     readonly run_output_handle: (a: number, b: number, c: number) => void;
     readonly run_output_new: (a: number, b: number, c: number) => void;
+    readonly save_actions_changed_lines: (a: number, b: number, c: number) => void;
+    readonly save_actions_file_types: (a: number, b: number, c: number) => void;
+    readonly save_actions_plan: (a: number, b: number, c: number) => void;
     readonly scratches_http_environments: (a: number, b: number, c: number) => void;
     readonly scratches_http_handler: (a: number, b: number, c: number) => void;
     readonly scratches_http_render: (a: number, b: number, c: number) => void;

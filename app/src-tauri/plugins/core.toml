@@ -882,3 +882,79 @@ default = "remote"
 group = "tools.http-client"
 project = true
 order = 1
+
+# ---- Tools > Actions on Save -----------------------------------------------------------
+
+[[contributions.settings]]
+key = "actionsOnSave.reformat.enabled"
+title = "Reformat code"
+description = "Reformat Code (Ctrl+Alt+L) when the file is saved."
+type = "bool"
+default = false
+group = "tools.actions-on-save"
+project = true
+order = 0
+
+[[contributions.settings]]
+key = "actionsOnSave.reformat.scope"
+title = "Reformat"
+description = "\"Changed lines\" reformats only the lines changed since the last commit; files that are not committed yet are reformatted completely."
+type = "enum"
+options = [
+  { value = "whole", label = "Whole file" },
+  { value = "changed", label = "Changed lines" },
+]
+default = "whole"
+group = "tools.actions-on-save"
+project = true
+order = 1
+
+[[contributions.settings]]
+key = "actionsOnSave.reformat.fileTypes"
+title = "Reformat file types"
+description = "File type ids (php, javascript, ...) reformatted on save; empty means all file types."
+type = "list"
+default = []
+group = "tools.actions-on-save"
+project = true
+order = 2
+
+[[contributions.settings]]
+key = "actionsOnSave.optimizeImports"
+title = "Optimize imports"
+description = "Remove unused imports and sort the others (PHP)."
+type = "bool"
+default = false
+group = "tools.actions-on-save"
+project = true
+order = 10
+
+[[contributions.settings]]
+key = "actionsOnSave.rearrange"
+title = "Rearrange code"
+description = "Order class members: constants, properties, constructor, methods (PHP)."
+type = "bool"
+default = false
+group = "tools.actions-on-save"
+project = true
+order = 20
+
+[[contributions.settings]]
+key = "actionsOnSave.codeCleanup"
+title = "Run code cleanup"
+description = "Apply the safe quick fixes: unused imports, unnecessary semicolons, a redundant closing tag (PHP)."
+type = "bool"
+default = false
+group = "tools.actions-on-save"
+project = true
+order = 30
+
+[[contributions.settings]]
+key = "actionsOnSave.runOnAutosave"
+title = "Also run on autosave"
+description = "Run Reformat code, Optimize imports, Rearrange code and Run code cleanup when files are saved automatically too. External tools only run on explicit save (Ctrl+S)."
+type = "bool"
+default = false
+group = "tools.actions-on-save"
+project = true
+order = 90

@@ -357,6 +357,14 @@ Settings | Editor | Code Style | PHP:
   imports** and **Around method** (at least). Strings, heredocs and comments are never
   changed. Generated methods are separated by "Around method" blank lines.
 
+### Quality Tools
+
+Settings | Languages & Frameworks | PHP | Quality Tools sets the PHP CS Fixer and Laravel Pint
+executables (`php.tools.phpCsFixer.path`, `php.tools.pint.path`); empty means
+`vendor/bin/php-cs-fixer` and `vendor/bin/pint` of the project. They run on save with
+**Run PHP CS Fixer** / **Run Laravel Pint**, and Optimize imports, Rearrange code and code
+cleanup of PHP files run there too, see [Actions on Save](actions-on-save.md).
+
 ## Running and testing PHP
 
 - **PHP Script** run configurations run a file with the CLI interpreter.

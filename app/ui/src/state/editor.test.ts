@@ -18,6 +18,7 @@ import {
   readOpenFile,
   reloadWithEncoding,
   saveFile,
+  setSaveActionsRunner,
   setTabFormat,
   splitEditor,
   togglePinTab,
@@ -116,6 +117,66 @@ describe("on save", () => {
     await saveFile("new.txt");
     expect(text("new.txt")).toBe("a\r\nb");
     expect(editor.tabs[0].eol).toBe("\r\n");
+  });
+});
+
+describe("actions on save", () => {
+  beforeEach(() => closeAllTabs());
+  const calls: string[] = [];
+  beforeAll(() =>
+    setSaveActionsRunner({
+      before: async (path, text, trigger) => {
+        calls.push(`before:${trigger}`);
+        return { text: text.replace("array()", "[]"), tools: path.endsWith(".php") ? ["pint"] : [] };
+      },
+      after: async (path) => {
+        calls.push("after");
+        // A tool rewriting the saved file on disk.
+        disk[path] = bytes(text(path).replace("$a  =", "$a ="));
+        return true;
+      },
+    }),
+  );
+
+  it("runs on explicit save and puts every change into the editor at once", async () => {
+    calls.length = 0;
+    disk["s.php"] = bytes("<?php\n");
+    await openFile("s.php");
+    setTabFormat("s.php", format({ save: { stripTrailingSpaces: "none", ensureNewlineAtEof: true } }));
+    updateContent("s.php", "<?php\n$a  = array();");
+    await saveFile("s.php", "explicit");
+    expect(calls).toEqual(["before:explicit", "after"]);
+    expect(text("s.php")).toBe("<?php\n$a = [];\n");
+    expect(editor.tabs[0].content).toBe("<?php\n$a = [];\n");
+    expect(isDirty(editor.tabs[0])).toBe(false);
+  });
+
+  it("does not run for plain saves", async () => {
+    calls.length = 0;
+    disk["p.php"] = bytes("<?php\n");
+    await openFile("p.php");
+    setTabFormat("p.php", format());
+    updateContent("p.php", "<?php\n$a  = array();\n");
+    await saveFile("p.php");
+    expect(calls).toEqual([]);
+    expect(text("p.php")).toBe("<?php\n$a  = array();\n");
+  });
+
+  it("keeps what the user typed while the actions ran", async () => {
+    disk["t.php"] = bytes("<?php\n");
+    await openFile("t.php");
+    setTabFormat("t.php", format());
+    setSaveActionsRunner({
+      before: async (_path, text) => {
+        updateContent("t.php", text + "// typing\n");
+        return { text: "replaced", tools: [] };
+      },
+      after: async () => false,
+    });
+    updateContent("t.php", "<?php\n$x = 1;\n");
+    await saveFile("t.php", "explicit");
+    expect(editor.tabs[0].content).toBe("<?php\n$x = 1;\n// typing\n");
+    expect(text("t.php")).toBe("<?php\n$x = 1;\n// typing\n");
   });
 });
 

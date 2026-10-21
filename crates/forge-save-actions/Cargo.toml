@@ -1,0 +1,23 @@
+[package]
+name = "forge-save-actions"
+description = "Actions on Save: which actions run for a saved file, reformatting only changed lines and running external tools (ESLint, Prettier, PHP CS Fixer, Laravel Pint) through the project's backend"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[features]
+default = ["backend"]
+# Running external tools through a project backend (not in the WebAssembly build).
+backend = ["dep:forge-backend", "dep:forge-core", "dep:forge-process"]
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+forge-filetypes.workspace = true
+forge-text.workspace = true
+forge-backend = { workspace = true, optional = true }
+forge-core = { workspace = true, optional = true }
+forge-process = { workspace = true, optional = true }
+
+[dev-dependencies]
+tempfile.workspace = true

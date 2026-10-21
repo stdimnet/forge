@@ -358,6 +358,7 @@ export function onFileSaved(cb: SaveListener): () => void {
  */
 export interface EditorBridge {
   caretLines: (path: string) => number[];
+  /** Apply `text` as one edit (one undo step). */
   applyText: (path: string, text: string) => boolean;
 }
 
@@ -378,40 +379,107 @@ function saveOptionsOf(tab: EditorTab): SaveOptions {
 }
 
 /**
- * Save a file: remove trailing spaces and add the final line break (Settings | Editor |
- * General | On Save, computed in Rust), then write it with its separator and encoding.
+ * What started a save. "explicit" (Ctrl+S) and "autosave" run the Actions on Save
+ * (Settings | Tools | Actions on Save); "plain" saves that belong to another operation
+ * (refactoring, encoding or line separator changes) do not.
  */
-export async function saveFile(path: string): Promise<void> {
+export type SaveTrigger = "explicit" | "autosave" | "plain";
+
+/** The Actions on Save, installed by `features/actionsOnSave`. */
+export interface SaveActionsRunner {
+  /** The text after the actions that run before writing, and the tools to run after; null: none. */
+  before: (path: string, text: string, trigger: "explicit" | "autosave") => Promise<{ text: string; tools: string[] } | null>;
+  /** Run the external tools on the written file; true when they changed it. */
+  after: (path: string, tools: string[]) => Promise<boolean>;
+}
+
+let saveActions: SaveActionsRunner | null = null;
+
+export function setSaveActionsRunner(runner: SaveActionsRunner): void {
+  saveActions = runner;
+}
+
+/** Saves of one file run one after the other. */
+const pendingSaves = new Map<string, Promise<void>>();
+
+/**
+ * Save a file: run the Actions on Save, remove trailing spaces and add the final line break
+ * (Settings | Editor | General | On Save, computed in Rust), write it with its separator and
+ * encoding, then run the external tools on it. Every change lands in the editor as one edit,
+ * and only when nobody typed meanwhile, so the user's text is never lost.
+ */
+export function saveFile(path: string, trigger: SaveTrigger = "plain"): Promise<void> {
+  const previous = pendingSaves.get(path) ?? Promise.resolve();
+  const next = previous.catch(() => undefined).then(() => saveFileNow(path, trigger));
+  pendingSaves.set(path, next);
+  next
+    .finally(() => {
+      if (pendingSaves.get(path) === next) pendingSaves.delete(path);
+    })
+    .catch(() => undefined);
+  return next;
+}
+
+async function saveFileNow(path: string, trigger: SaveTrigger): Promise<void> {
   const tab = editor.tabs.find((t) => t.path === path);
   if (!tab || !isFileTab(tab)) return;
-  let content = tab.content;
+  const original = tab.content;
+  const contentNow = () => editor.tabs.find((t) => t.path === path)?.content;
+  let content = original;
+  let tools: string[] = [];
+  if (trigger !== "plain" && saveActions) {
+    try {
+      const result = await saveActions.before(path, original, trigger);
+      if (result && contentNow() === original) {
+        content = result.text;
+        tools = result.tools;
+      }
+    } catch (e) {
+      console.warn("actions on save failed", e);
+    }
+  }
   const options = saveOptionsOf(tab);
   if (options.stripTrailingSpaces !== "none" || options.ensureNewlineAtEof) {
     try {
       const result = await textApi.prepareSave({
         text: content,
         saved: tab.saved,
-        caretLines: bridge?.caretLines(path) ?? [],
+        // After the actions moved lines around, the caret lines are unknown.
+        caretLines: content === original ? (bridge?.caretLines(path) ?? []) : [],
         options,
       });
-      // Only when nobody typed meanwhile.
-      if (result.changed && editor.tabs.find((t) => t.path === path)?.content === content) {
-        content = result.text;
-        if (!bridge?.applyText(path, content)) updateContent(path, content);
-      }
+      if (result.changed) content = result.text;
     } catch (e) {
       console.warn("on-save cleanup failed", e);
     }
   }
   const current = editor.tabs.find((t) => t.path === path);
   if (!current) return;
+  // Typed meanwhile: save what is in the editor now, untouched.
+  if (current.content !== original) {
+    content = current.content;
+    tools = [];
+  }
   await writeTab(current, content);
-  setEditor("tabs", (t) => t.path === path, "saved", content);
-  saveListeners.forEach((l) => l(path, content));
+  let final = content;
+  if (tools.length && saveActions) {
+    try {
+      if (await saveActions.after(path, tools)) {
+        final = (await readText(path, current.encoding === "UTF-8" ? undefined : current.encoding)).text;
+      }
+    } catch (e) {
+      console.warn("actions on save: tools failed", e);
+    }
+  }
+  if (final !== original && contentNow() === original) {
+    if (!bridge?.applyText(path, final)) updateContent(path, final);
+  }
+  setEditor("tabs", (t) => t.path === path, "saved", final);
+  saveListeners.forEach((l) => l(path, final));
 }
 
-export async function saveAll(): Promise<void> {
-  await Promise.all(editor.tabs.filter(isDirty).map((t) => saveFile(t.path)));
+export async function saveAll(trigger: SaveTrigger = "autosave"): Promise<void> {
+  await Promise.all(editor.tabs.filter(isDirty).map((t) => saveFile(t.path, trigger)));
 }
 
 /** Re-read an open file from disk after an external change (unless it has unsaved edits). */
