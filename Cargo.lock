@@ -1992,6 +1992,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "forge-file-templates"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "forge-filetypes"
 version = "0.1.0"
 dependencies = [

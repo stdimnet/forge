@@ -19,6 +19,7 @@ forge-search-core = { path = "crates/forge-search-core" }
 forge-bookmarks = { path = "crates/forge-bookmarks" }
 forge-text = { path = "crates/forge-text" }
 forge-editing = { path = "crates/forge-editing" }
+forge-file-templates = { path = "crates/forge-file-templates" }
 forge-codeintel = { path = "crates/forge-codeintel" }
 forge-filetypes = { path = "crates/forge-filetypes" }
 forge-plugin-api = { path = "crates/forge-plugin-api" }
