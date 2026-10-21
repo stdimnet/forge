@@ -234,6 +234,31 @@ in `dialog-windows.json`); in browser mode it opens in-page. The dialog ends wit
   live elsewhere (scratches, read-only `library://` files: PHP stubs and files outside the
   project, see `features/codeintel/library.ts`).
 
+## Editor groups and the Find tool window
+
+- Split editors keep one document per file (`state/editor.ts`, `editor.tabs`) and the tab
+  layout as plain data (`state/tabGroups.ts`: groups, pinned tabs, tab limit, closing
+  policy; tested in `tabGroups.test.ts`). Use `activeGroupId()`, `groupView(group)`,
+  `viewsOf(path)` and `openFileAt(path, line, column)`; never assume a single editor view.
+- `openInFindWindow(answer, { kind, title, header, rerun })` (`features/codeintel/usages.ts`)
+  pins results in the Find tool window (`Alt+3`): usages (`kind: "usages"`) or text matches
+  (`kind: "text"`, see `features/find/state.ts`). Next/Previous Occurrence walk the active tab.
+
+## Notifications
+
+`showBalloon(text, detail?, ms?, actions?, { group?, type?, log? })` (`@/keymap`) shows a
+balloon and logs it in the Notifications tool window (`state/notifications.ts`). Give a
+feature's balloons a group so users can make them sticky or log-only (Settings | Appearance &
+Behavior | Notifications, or the tool window's context menu):
+
+```ts
+const showBalloon = balloonsFor("Database"); // registers the group
+showBalloon("Database found in .env", "MySQL · shop@localhost", 0, [{ label: "Add data source", run }]);
+```
+
+`type` is `info` (default), `warning` or `error`; `log: false` is for transient hints
+("Path copied") that do not belong in the history.
+
 ## Project awareness
 
 Use `projectInfo()`, `usesFramework("laravel")` and `isPluginActive("forge.laravel")` from

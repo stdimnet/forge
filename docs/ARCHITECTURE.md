@@ -186,6 +186,35 @@ app/ui/            SolidJS UI
 - Editor navigation: `openFileAt(path, line?, column?, { flash?, focus? })` from
   `src/editor/views.ts` opens a workspace-relative file, puts the caret at the 1-based position,
   centers it and briefly flashes the line.
+- TODO tool window (`src/ipc/workbench.ts`, `forge-find::todo`): `todo_scan({ request: {
+  patterns?: { pattern, caseSensitive? }[], paths?, buffers?, limit? } }) -> { files: { path,
+  items: { line, column, length, text, pattern }[] }[], count, truncated, error? }` — comments
+  only, `.gitignore` respected, through `Backend::find_todos` (agent call `FindTodos`, protocol
+  4). `paths` rescans single files (live updates); `buffers` are unsaved editor contents that
+  replace the files on disk. Browser mode runs the same scanner as WebAssembly.
+- Bookmarks (`src/ipc/workbench.ts`, `forge-bookmarks`): `bookmarks_get() -> Bookmarks` and
+  `bookmarks_apply({ ops: BookmarkOp[] }) -> Bookmarks` (`toggle`, `setMnemonic`, `remove`,
+  `clear`, `describe`, `moveToList`, `addList`, `renameList`, `removeList`, `setDefaultList`,
+  `applyEdits` with line edits in old-document coordinates, `renamePath`, `removePath`). Stored
+  in `<data dir>/forge/projects/<name>-<hash of the root>/bookmarks.json`, never in the
+  project.
+
+## Workbench: editor groups, Find, TODO and Notifications
+
+- Split editors: `state/editor.ts` keeps one document per file (`editor.tabs`) shared by every
+  editor group; `state/tabGroups.ts` is the tab layout as plain data (groups, active and
+  recently used tabs, pinned tabs, tab limit and closing policy from `editor.tabs.*`). Each
+  group renders its own CodeMirror view; `editor/docSync.ts` forwards the changes of one view
+  to the other views of the same file as synced transactions (one undo history per view).
+  `features/editorTabs` registers the tab context menu, Window | Editor Tabs actions and
+  Recent Locations (`Ctrl+Shift+E`, places shifted through edits).
+- Find tool window (`features/codeintel`): tabs of usages or Find in Files matches
+  (`openInFindWindow(answer, { kind: "usages" | "text", rerun? })`), Next/Previous Occurrence.
+- Notifications: `showBalloon` (`keymap/dispatch.ts`) logs every balloon in
+  `state/notifications.ts` (group, type, time, actions, read state; at most 200) and asks the
+  group's display mode (`notifications.balloons`, `notifications.groups`: balloon, sticky or
+  log only). `balloonsFor(group)` gives a feature its own group; git balloons use "Version
+  Control". `features/notifications` renders the tool window.
 
 ## Startup splash and updates (`forge-update`)
 

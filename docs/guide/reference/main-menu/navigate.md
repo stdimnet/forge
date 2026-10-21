@@ -20,9 +20,12 @@ Back and forward, Search Everywhere, Go to Class/File/Symbol/Line, declarations 
 | Last Edit Location | `Ctrl+Shift+Backspace` | `Cmd+Shift+Backspace` | not yet | Not available yet; the entry is disabled. |
 | Next Edit Location | — | — | not yet | Not available yet; the entry is disabled. |
 | **Bookmarks** | | | | submenu |
-| Bookmarks › Toggle Bookmark | `F11` | `F3` | not yet | Not available yet; the entry is disabled. |
-| Bookmarks › Toggle Bookmark with Mnemonic | `Ctrl+F11` | `Alt+F3` | not yet | Not available yet; the entry is disabled. |
-| Bookmarks › Show All Bookmarks | `Shift+F11` | `Cmd+F3` | not yet | Not available yet; the entry is disabled. |
+| Bookmarks › Toggle Bookmark | `F11` | `F3` | yes | Adds or removes a bookmark on the caret line. [More](../../user/workbench.md#bookmarks) |
+| Bookmarks › Toggle Bookmark with Mnemonic | `Ctrl+F11` | `Alt+F3` | yes | Adds a bookmark with a digit or letter you pick in a popup, or changes or removes it. [More](../../user/workbench.md#bookmarks) ([screenshot](../../../screenshots/bookmark-mnemonic.png)) |
+| Bookmarks › Show All Bookmarks | `Shift+F11` | `Cmd+F3` | yes | Opens the Bookmarks tool window. [More](../../user/workbench.md#bookmarks) ([screenshot](../../../screenshots/bookmarks.png)) |
+| Bookmarks › Edit Bookmark Description… | — | — | yes | Edits the description of the bookmark on the caret line. [More](../../user/workbench.md#bookmarks) |
+| Bookmarks › Next Bookmark | — | — | yes | Moves the caret to the next bookmark of the file. [More](../../user/workbench.md#bookmarks) |
+| Bookmarks › Previous Bookmark | — | — | yes | Moves the caret to the previous bookmark of the file. [More](../../user/workbench.md#bookmarks) |
 | Search Everywhere | `Double Shift` | `Double Shift` | yes | Searches classes, files, symbols, actions and text in one popup. [More](../../user/search-everywhere.md) ([screenshot](../../../screenshots/docs-search-everywhere.png)) |
 | Class… | `Ctrl+N` | `Cmd+O` | yes | Finds a class, interface, trait or enum by name (camel humps work). [More](../../user/search-everywhere.md) ([screenshot](../../../screenshots/docs-goto-class.png)) |
 | File… | `Ctrl+Shift+N` | `Cmd+Shift+O` | yes | Finds a project file by name or path. [More](../../user/search-everywhere.md) ([screenshot](../../../screenshots/docs-goto-file.png)) |
@@ -43,6 +46,8 @@ Back and forward, Search Everywhere, Go to Class/File/Symbol/Line, declarations 
 | Call Hierarchy | `Ctrl+Alt+H` | `Ctrl+Alt+H` | not yet | Not available yet; the entry is disabled. |
 | Next Highlighted Error | `F2` | `F2` | yes | Moves the caret to the next problem in the file. [More](../../user/editor.md#problems) |
 | Previous Highlighted Error | `Shift+F2` | `Shift+F2` | yes | Moves the caret to the previous problem in the file. [More](../../user/editor.md#problems) |
+| Next Occurrence | `Ctrl+Alt+Down` | `Cmd+Alt+Down` | yes | Opens the next result of the Find tool window's active tab. [More](../../user/workbench.md#find-tool-window) |
+| Previous Occurrence | `Ctrl+Alt+Up` | `Cmd+Alt+Up` | yes | Opens the previous result of the Find tool window's active tab. [More](../../user/workbench.md#find-tool-window) |
 | Next Method | `Alt+Down` | `Ctrl+Down` | not yet | Not available yet; the entry is disabled. |
 | Previous Method | `Alt+Up` | `Ctrl+Up` | not yet | Not available yet; the entry is disabled. |
 | Next Change | `Ctrl+Alt+Shift+Down` | `Ctrl+Alt+Shift+Down` | not yet | Not available yet; the entry is disabled. |

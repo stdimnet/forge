@@ -201,7 +201,8 @@ To search the whole project, use [Find in Files](search-everywhere.md#find-in-fi
 (`Ctrl+Shift+F`, macOS `Cmd+Shift+F`).
 
 > **Note:** Replace in Files (`Ctrl+Shift+R`) is not available yet. The Find tool window
-> shows [usages](#find-usages-and-show-usages).
+> shows [usages](#find-usages-and-show-usages) and the Find in Files results you open there
+> (see [Find tool window](workbench.md#find-tool-window)).
 
 ## Gutter
 
@@ -220,6 +221,8 @@ markers.
 - **Breakpoints**: click a line number in a PHP file to toggle a breakpoint (drawn over the
   number, as in the New UI), or press `Ctrl+F8` (macOS `Cmd+F8`). Right-click it to edit its
   condition. See [Xdebug debugging](debugging.md).
+- **Bookmarks**: a bookmark icon, or the bookmark's mnemonic, on bookmarked lines (`F11`,
+  `Ctrl+F11`). See [Bookmarks](workbench.md#bookmarks).
 - **Annotate with Git Blame**: right-click the gutter. See [Git](git.md#blame).
 
 ## Context menu

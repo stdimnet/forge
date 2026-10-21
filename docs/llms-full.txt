@@ -50,6 +50,10 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 
 ## Recently added
 
+- **Split editors, pinned tabs and the tab context menu**, a tab limit, **Recent Locations**
+  (`Ctrl+Shift+E`), **Bookmarks** (`F11`, `Ctrl+F11`, `Alt+2`), the **TODO** and
+  **Notifications** tool windows and Find in Files results in the **Find** tool window
+  ([Workbench](docs/guide/user/workbench.md#editor-tabs)).
 - **PHP navigation like PHPStorm**: `Ctrl+Click` on every PHP symbol (also `\Throwable` and
   `array_map`, opened read-only in the PHP stubs), Show Usages on declarations, Find Usages
   (`Alt+F7`) in the Find tool window, Implementation / Super Method / Type Declaration and the
@@ -75,8 +79,8 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 ## Not available yet
 
 Refactorings (Rename, Extract, Move), Replace in Files, quick-fixes (`Alt+Enter`),
-bookmarks, TODO, Local History, split editors, Get from VCS, stash, multiple project windows, a
-plugin Marketplace and automatic updates. The pages mark smaller gaps with notes.
+Local History, Get from VCS, stash, multiple project windows, a plugin Marketplace and
+automatic updates. The pages mark smaller gaps with notes.
 
 ## About this guide
 
@@ -615,10 +619,10 @@ happening.
 - Refactorings: Rename (`Shift+F6`), Extract/Introduce, Move, Change Signature, Safe Delete
 - Show Context Actions / quick-fixes (`Alt+Enter`), Quick Documentation popup (`Ctrl+Q`; hover
   documentation works with the mouse), File Structure popup (`Ctrl+F12`)
-- Bookmarks, TODO and Notifications tool windows, Local History
+- Local History
 - Live templates, Surround With, Optimize Imports, Type/Call/Method Hierarchy
 - Go to Test (`Ctrl+Shift+T`)
-- Split editors, Distraction Free / Presentation / Zen modes
+- Distraction Free / Presentation / Zen modes
 - Get from VCS, stash/unstash, Commit and Push
 - Marketplace, settings export/import, automatic updates
 
@@ -777,10 +781,12 @@ shortcut, to show it; pressing the shortcut again hides it, as in PHPStorm.
 | Tool window | Stripe | Shortcut | Page |
 | --- | --- | --- | --- |
 | Project | left | `Alt+1` (macOS `Cmd+1`) | below |
+| Bookmarks | left | `Alt+2` (macOS `Cmd+2`) | [below](#bookmarks) |
 | Commit | left | `Alt+0` (macOS `Cmd+0`) | [Git](docs/guide/user/git.md) |
 | Pull Requests | left | — | [Code hosts](docs/guide/user/code-hosts.md) |
 | Structure | left | `Alt+7` (macOS `Cmd+7`) | [PHP](docs/guide/user/php.md#structure), [LuaForge](docs/guide/user/luaforge.md) |
 | npm | left | — | [WebForge](docs/guide/user/webforge.md) |
+| Find | bottom | `Alt+3` (macOS `Cmd+3`) | [below](#find-tool-window) |
 | Run | bottom | `Alt+4` (macOS `Cmd+4`) | [Run/Debug configurations](docs/guide/user/run-debug.md) |
 | Debug | bottom | `Alt+5` (macOS `Cmd+5`) | [Xdebug debugging](docs/guide/user/debugging.md) |
 | Services | bottom | `Alt+8` (macOS `Cmd+8`) | [Services](docs/guide/user/services.md) |
@@ -788,17 +794,15 @@ shortcut, to show it; pressing the shortcut again hides it, as in PHPStorm.
 | Symfony | bottom | — | [Symfony](docs/guide/user/symfony.md) |
 | Terminal | bottom | `Alt+F12` | [Terminal](docs/guide/user/terminal.md) |
 | Problems | bottom | `Alt+6` (macOS `Cmd+6`) | [Editor](docs/guide/user/editor.md#problems) |
+| TODO | bottom | — | [below](#todo) |
 | Git | bottom | `Alt+9` (macOS `Cmd+9`) | [Git](docs/guide/user/git.md#log) |
 | AI Chat | right | — | [AI](docs/guide/user/ai.md) |
 | Database | right | — | [Database tools](docs/guide/user/database.md) |
 | Doctrine | right | — | [Doctrine](docs/guide/user/doctrine.md) |
-| Notifications | right | — | placeholder, see note |
+| Notifications | right | — | [below](#notifications) |
 
 Framework tool windows (Routes, Symfony, Doctrine, npm) only appear in projects that use the
-framework.
-
-> **Note:** the Notifications tool window is a placeholder ("coming soon"). Bookmarks
-> (`Alt+2`), Find (`Alt+3`) and TODO are not available yet.
+framework. The Find tool window appears once a search put results into it.
 
 ### Managing tool windows
 
@@ -857,15 +861,70 @@ Right-click a file, a folder or the empty area below the tree:
   is saved.
 - Close a tab with its × button, a middle click, or `Ctrl+F4` (macOS `Cmd+W`).
 - `Alt+Right` / `Alt+Left` (macOS `Ctrl+Right` / `Ctrl+Left`) select the next/previous tab.
-- **Close All Tabs**, **Close Other Tabs**, **Close Unmodified Tabs** and **Reopen Closed Tab**
-  are available through Find Action.
 - `Ctrl+S` (macOS `Cmd+S`) saves all files (**Save All**).
 - Some tabs are not files: merge requests, issues, database consoles and table editors open as
   tabs as well.
 
 Breadcrumbs above the editor show the file's folder path.
 
-> **Note:** pinned tabs and split editors are not available yet.
+### Tab context menu
+
+Right-click a tab for PHPStorm's tab menu. The same actions are in Window | Editor Tabs and in
+Find Action (`Ctrl+Shift+A`), where you can also give them shortcuts (Settings | Keymap).
+
+| Entry | What it does |
+| --- | --- |
+| Close (`Ctrl+F4`) | closes the tab |
+| Close Other Tabs | closes every other tab of the group; pinned tabs stay |
+| Close All Tabs | closes every tab of the group except pinned ones |
+| Close Unmodified Tabs | closes the tabs without unsaved changes |
+| Close Tabs to the Left / to the Right | closes the unpinned tabs on that side |
+| Pin Tab / Unpin Tab | pins the tab, see [Pinned tabs](#pinned-tabs) |
+| Split Right / Split Down | opens the file in a new editor group next to or below this one |
+| Split and Move Right / Down | the same, and closes the tab here |
+| Move to Opposite Group | moves the tab to the neighbouring group (only while split) |
+| Change Splitter Orientation, Unsplit, Unsplit All | only while the editor is split |
+| Copy Path/Reference… | Absolute Path, Path From Project Root, File Name |
+| Select in Project View | reveals the file in the Project tool window |
+
+![Tab context menu](docs/screenshots/editor-tab-menu.png)
+
+### Split editors
+
+**Split Right** (`SplitVertically`) and **Split Down** (`SplitHorizontally`) show a file in a
+second editor group. Both groups edit the same document: typing in one shows up in the other
+at once, undo in a group undoes what you typed there, and the file is saved once. Each group has its own tabs and its
+own active tab; the group you click is the active one, and actions such as **Close** or
+**Find Usages** apply to it.
+
+- **Goto Next Splitter** / **Goto Previous Splitter** move the focus between groups.
+- **Move to Opposite Group** moves the active tab to the other group.
+- **Change Splitter Orientation** toggles side by side and stacked.
+- **Unsplit** merges the active group into its neighbour; **Unsplit All** merges all groups.
+  A group whose last tab is closed disappears.
+
+![Split editors](docs/screenshots/split-editors.png)
+
+### Pinned tabs
+
+**Pin Tab** (tab context menu or Window | Editor Tabs) keeps a tab at the front of its group
+with a pin icon. Close Other Tabs, Close All Tabs, Close Tabs to the Left/Right and the tab
+limit never close pinned tabs; close them with **Close** or unpin them first.
+
+![Pinned tabs](docs/screenshots/pinned-tabs.png)
+
+### Tab limit and closing policy
+
+Settings | Editor | General | Editor Tabs:
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| Tab limit (`editor.tabs.limit`) | 10 | Maximum tabs per editor group; `0` keeps every tab. When a new tab goes over the limit, the least recently used tab is closed. |
+| When the tab limit is reached, close non-modified tabs first (`editor.tabs.closeUnmodifiedFirst`) | on | Tabs with unsaved changes are closed last. |
+| When the current tab is closed, activate (`editor.tabs.activateOnClose`) | Most recently opened tab | Or the tab on the left / on the right. |
+| Show pin icon on pinned tabs (`editor.tabs.showPinnedIcon`) | on | |
+
+**Reopen Closed Tab** brings back the last closed tab.
 
 ## Recent Files and Switcher
 
@@ -880,6 +939,103 @@ The **Switcher** (`Ctrl+Tab`, `Ctrl+Shift+Tab`) is the same popup for quick swit
 
 **Back** and **Forward** (`Ctrl+Alt+Left` / `Ctrl+Alt+Right`, macOS `Cmd+[` / `Cmd+]`) move
 through your navigation history.
+
+## Recent Locations
+
+**Recent Locations** (`Ctrl+Shift+E`, macOS `Cmd+Shift+E`, View | Recent Locations) lists the
+places you recently looked at or edited, newest first, each with its file and a few lines of
+code around the caret. Type to filter by file name or code. Press `Ctrl+Shift+E` again, or tick
+**Show changed only**, to see only places you edited. `Enter` or a click jumps there. The
+places follow edits (inserted lines above move them down) and file renames.
+
+![Recent Locations](docs/screenshots/recent-locations.png)
+
+## Bookmarks
+
+Bookmarks mark lines you want to come back to. They are stored per project in Forge's data
+directory (see [File locations](docs/guide/reference/file-locations.md)), never in the project, and
+their lines follow your edits: lines inserted or removed above a bookmark move it.
+
+| Action | Windows/Linux | macOS |
+| --- | --- | --- |
+| Toggle Bookmark on the caret line | `F11` | `F3` |
+| Toggle Bookmark with Mnemonic (pick `0`–`9` or `A`–`Z`) | `Ctrl+F11` | `Alt+F3` |
+| Toggle numbered bookmark 0–9 | `Ctrl+Shift+0` … `Ctrl+Shift+9` | `Ctrl+Shift+0` … `Ctrl+Shift+9` |
+| Go to numbered bookmark 0–9 | `Ctrl+0` … `Ctrl+9` | `Ctrl+0` … `Ctrl+9` |
+| Show All Bookmarks (Bookmarks tool window) | `Shift+F11`, `Alt+2` | `Cmd+F3`, `Cmd+2` |
+
+Bookmarked lines show a bookmark icon (or the mnemonic) in the gutter. Navigate | Bookmarks
+also has **Edit Bookmark Description…**, **Next Bookmark** and **Previous Bookmark** (in the
+current file).
+
+The **Bookmarks** tool window (`Alt+2`) shows bookmark lists with their files and lines.
+Double click or `Enter` jumps to a line. The header has **New List…**, **Edit
+Description…** and **Delete**. The context menu of a bookmark jumps to it, edits its
+description, moves it to another list or deletes it; the context menu of a list renames,
+clears or deletes it, or makes it the default list (new bookmarks go there).
+
+![Bookmarks tool window](docs/screenshots/bookmarks.png)
+
+![Bookmark mnemonics](docs/screenshots/bookmark-mnemonic.png)
+
+## Find tool window
+
+The **Find** tool window (`Alt+3`) keeps search results, one tab per search:
+
+- **Find Usages** (`Alt+F7`) and the pin button of **Show Usages** put usages there, grouped
+  by usage type and file (see [Find Usages](docs/guide/user/editor.md#find-usages-and-show-usages)).
+- **Open in Find Window** in [Find in Files](docs/guide/user/search-everywhere.md#find-in-files)
+  (`Ctrl+Enter` in the popup) pins the text matches there, grouped by file.
+
+The toolbar on the left has **Rerun** (text searches), **Group by Usage Type**, **Expand All**,
+**Collapse All** and **Previous/Next Occurrence**. A click on a line opens it in the editor.
+**Next Occurrence** / **Previous Occurrence** (`Ctrl+Alt+Down` / `Ctrl+Alt+Up`, macOS
+`Cmd+Alt+Down` / `Cmd+Alt+Up`, Navigate menu) walk through the results of the active tab
+without leaving the editor.
+
+![Find tool window with Find in Files results](docs/screenshots/find-window-text.png)
+
+## TODO
+
+The **TODO** tool window (View | Tool Windows | TODO) lists `TODO` and `FIXME` comments of
+the project, grouped by file: `(line, column)` and the comment text. Only comments count, in
+every file type whose comment syntax Forge knows (PHP, Blade, Twig, JavaScript/TypeScript,
+CSS, HTML, SQL, Lua, YAML, shell, …); plain text and Markdown files are scanned as a whole.
+Files ignored by `.gitignore` are skipped. In remote projects the scan runs on the remote host.
+
+- **Project** shows the whole project, **Current File** only the file of the active editor.
+- The list updates while you type (unsaved changes count) and when files change on disk.
+- Toolbar: **Refresh**, **Filter TODO Items** (show only some patterns), **Group by
+  Directory**, **Expand All**, **Collapse All**.
+- A click on an item shows it in the editor; a double click moves the focus there.
+
+The patterns are regular expressions in Settings | Editor | TODO (`todo.patterns`); the
+defaults are PHPStorm's `\btodo\b.*` and `\bfixme\b.*`, case-insensitive. Add a tab and `case`
+after a pattern to make it case-sensitive.
+
+![TODO tool window](docs/screenshots/todo.png)
+
+## Notifications
+
+Every balloon that appears at the bottom right is also kept in the **Notifications** tool
+window (right stripe), newest first, with its time, group and actions (for example **Add data
+source**). The stripe icon shows a dot while there are unread notifications.
+
+- A click marks a notification as read; **Mark All as Read** and **Clear All** are in the
+  header (also in Find Action).
+- The context menu of a notification removes it or sets how its group is displayed:
+  **Balloon** (closes by itself), **Sticky Balloon** (stays until closed) or **No Popup (Tool
+  Window Only)**.
+- Settings | Appearance & Behavior | Notifications: **Display balloon notifications**
+  (`notifications.balloons`; off shows nothing but the tool window) and the display mode per
+  group (`notifications.groups`).
+
+Groups are named after the feature: Forge, Database, Debugger, Language Servers, Remote
+Development, Run, Services and Version Control.
+
+![Notifications tool window](docs/screenshots/notifications.png)
+
+> **Note:** the history is kept until Forge is closed; it is not saved between sessions.
 
 ## Status bar
 
@@ -1106,7 +1262,8 @@ To search the whole project, use [Find in Files](docs/guide/user/search-everywhe
 (`Ctrl+Shift+F`, macOS `Cmd+Shift+F`).
 
 > **Note:** Replace in Files (`Ctrl+Shift+R`) is not available yet. The Find tool window
-> shows [usages](#find-usages-and-show-usages).
+> shows [usages](#find-usages-and-show-usages) and the Find in Files results you open there
+> (see [Find tool window](docs/guide/user/workbench.md#find-tool-window)).
 
 ## Gutter
 
@@ -1125,6 +1282,8 @@ markers.
 - **Breakpoints**: click a line number in a PHP file to toggle a breakpoint (drawn over the
   number, as in the New UI), or press `Ctrl+F8` (macOS `Cmd+F8`). Right-click it to edit its
   condition. See [Xdebug debugging](docs/guide/user/debugging.md).
+- **Bookmarks**: a bookmark icon, or the bookmark's mnemonic, on bookmarked lines (`F11`,
+  `Ctrl+F11`). See [Bookmarks](docs/guide/user/workbench.md#bookmarks).
 - **Annotate with Git Blame**: right-click the gutter. See [Git](docs/guide/user/git.md#blame).
 
 ## Context menu
@@ -1260,15 +1419,19 @@ the Project view's context menu) searches the text of every project file.
   root).
 - `Up`/`Down` select a row; the preview below shows the file around the match. `Enter` opens
   the file at the match, `Escape` closes.
+- **Open in Find Window** (`Ctrl+Enter`, macOS `Cmd+Enter`) closes the popup and keeps the
+  results as a tab of the [Find tool window](docs/guide/user/workbench.md#find-tool-window) (`Alt+3`),
+  grouped by file, with **Rerun**. `Ctrl+Alt+Down` / `Ctrl+Alt+Up` (Next/Previous Occurrence)
+  then walk through them.
 
 Ignored files (`.gitignore`), binary files and very large files are skipped. In remote projects
 the search runs on the host.
 
 The **Text** tab of Search Everywhere uses the same search (from two characters on).
 
-> **Note:** Replace in Files (`Ctrl+Shift+R`) and "Open in Find Tool Window" for Find in Files
-> are not available yet. The Find tool window shows the results of
-> [Find Usages](docs/guide/user/editor.md#find-usages-and-show-usages).
+![Find in Files results in the Find tool window](docs/screenshots/find-window-text.png)
+
+> **Note:** Replace in Files (`Ctrl+Shift+R`) is not available yet.
 
 
 ---
@@ -2498,6 +2661,22 @@ Jumping to declarations, implementations, super methods, lines, problems, recent
 | [Close Other Tabs](#close-other-tabs) | — | `Cmd+Alt+W` |
 | [Close Unmodified Tabs](#close-unmodified-tabs) | — | — |
 | [Reopen Closed Tab](#reopen-closed-tab) | — | — |
+| [Recent Locations](#recent-locations) | `Ctrl+Shift+E` | `Cmd+Shift+E` |
+| [Next Occurrence](#next-occurrence) | `Ctrl+Alt+Down` | `Cmd+Alt+Down` |
+| [Previous Occurrence](#previous-occurrence) | `Ctrl+Alt+Up` | `Cmd+Alt+Up` |
+| [Toggle Bookmark](#toggle-bookmark) | `F11` | `F3` |
+| [Toggle Bookmark with Mnemonic](#toggle-bookmark-with-mnemonic) | `Ctrl+F11` | `Alt+F3` |
+| [Toggle Bookmark 0-9](#toggle-bookmark-0-9) | `Ctrl+Shift+0` … `Ctrl+Shift+9` | `Ctrl+Shift+0` … `Ctrl+Shift+9` |
+| [Go to Bookmark 0-9](#go-to-bookmark-0-9) | `Ctrl+0` … `Ctrl+9` | `Ctrl+0` … `Ctrl+9` |
+| [Show All Bookmarks](#show-all-bookmarks) | `Shift+F11` | `Cmd+F3` |
+| [Pin Tab](#pin-tab) | — | — |
+| [Split Right](#split-right) | — | — |
+| [Split Down](#split-down) | — | — |
+| [Move to Opposite Group](#move-to-opposite-group) | — | — |
+| [Unsplit](#unsplit) | — | — |
+| [Goto Next Splitter](#goto-next-splitter) | — | `Alt+Tab` |
+| [Close Tabs to the Left](#close-tabs-to-the-left) | — | — |
+| [Close Tabs to the Right](#close-tabs-to-the-right) | — | — |
 
 ## Go to Declaration or Usages
 
@@ -2702,6 +2881,174 @@ Reopens the editor tab closed last.
 **Menu:** Window | Editor Tabs | Reopen Closed Tab
 
 More: [Workbench and tool windows](docs/guide/user/workbench.md#editor-tabs)
+
+## Recent Locations
+
+**Shortcut:** `Ctrl+Shift+E` · macOS `Cmd+Shift+E` · action id `RecentLocations`
+
+Lists recently visited and edited places with a few lines of code each; press again for changed places only.
+
+**Menu:** View | Recent Locations
+
+![Recent Locations](docs/screenshots/recent-locations.png)
+
+More: [Workbench and tool windows](docs/guide/user/workbench.md#recent-locations)
+
+## Next Occurrence
+
+**Shortcut:** `Ctrl+Alt+Down` · macOS `Cmd+Alt+Down` · action id `NextOccurence`
+
+Opens the next result of the active tab of the Find tool window (usages or Find in Files results).
+
+**Menu:** Navigate | Next Occurrence
+
+More: [Workbench and tool windows](docs/guide/user/workbench.md#find-tool-window)
+
+## Previous Occurrence
+
+**Shortcut:** `Ctrl+Alt+Up` · macOS `Cmd+Alt+Up` · action id `PreviousOccurence`
+
+Opens the previous result of the active tab of the Find tool window.
+
+**Menu:** Navigate | Previous Occurrence
+
+More: [Workbench and tool windows](docs/guide/user/workbench.md#find-tool-window)
+
+## Toggle Bookmark
+
+**Shortcut:** `F11` · macOS `F3` · action id `ToggleBookmark`
+
+Adds or removes a bookmark on the caret line.
+
+**Menu:** Navigate | Bookmarks | Toggle Bookmark
+
+More: [Workbench and tool windows](docs/guide/user/workbench.md#bookmarks)
+
+## Toggle Bookmark with Mnemonic
+
+**Shortcut:** `Ctrl+F11` · macOS `Alt+F3` · action id `ToggleBookmarkWithMnemonic`
+
+Adds a bookmark with a digit or letter picked in a popup, or changes or removes it.
+
+**Menu:** Navigate | Bookmarks | Toggle Bookmark with Mnemonic
+
+![Toggle Bookmark with Mnemonic](docs/screenshots/bookmark-mnemonic.png)
+
+More: [Workbench and tool windows](docs/guide/user/workbench.md#bookmarks)
+
+## Toggle Bookmark 0-9
+
+**Shortcut:** `Ctrl+Shift+0` … `Ctrl+Shift+9` · macOS `Ctrl+Shift+0` … `Ctrl+Shift+9` · action id `ToggleBookmark0`
+
+Sets the numbered bookmark on the caret line (action ids `ToggleBookmark0` … `ToggleBookmark9`).
+
+More: [Workbench and tool windows](docs/guide/user/workbench.md#bookmarks)
+
+## Go to Bookmark 0-9
+
+**Shortcut:** `Ctrl+0` … `Ctrl+9` · macOS `Ctrl+0` … `Ctrl+9` · action id `GotoBookmark0`
+
+Jumps to the numbered bookmark (action ids `GotoBookmark0` … `GotoBookmark9`).
+
+More: [Workbench and tool windows](docs/guide/user/workbench.md#bookmarks)
+
+## Show All Bookmarks
+
+**Shortcut:** `Shift+F11` · macOS `Cmd+F3` · action id `ShowBookmarks`
+
+Opens the Bookmarks tool window.
+
+**Menu:** Navigate | Bookmarks | Show All Bookmarks
+
+![Show All Bookmarks](docs/screenshots/bookmarks.png)
+
+More: [Workbench and tool windows](docs/guide/user/workbench.md#bookmarks)
+
+## Pin Tab
+
+**Shortcut:** — · macOS — · action id `PinActiveEditorTab`
+
+Pins or unpins the current tab; pinned tabs stay on Close Other Tabs and Close All Tabs.
+
+**Menu:** Window | Editor Tabs | Pin Tab
+
+![Pin Tab](docs/screenshots/pinned-tabs.png)
+
+More: [Workbench and tool windows](docs/guide/user/workbench.md#pinned-tabs)
+
+## Split Right
+
+**Shortcut:** — · macOS — · action id `SplitVertically`
+
+Opens the current file in a new editor group on the right; both groups edit the same document.
+
+**Menu:** Window | Editor Tabs | Split Right
+
+![Split Right](docs/screenshots/split-editors.png)
+
+More: [Workbench and tool windows](docs/guide/user/workbench.md#split-editors)
+
+## Split Down
+
+**Shortcut:** — · macOS — · action id `SplitHorizontally`
+
+Opens the current file in a new editor group below.
+
+**Menu:** Window | Editor Tabs | Split Down
+
+More: [Workbench and tool windows](docs/guide/user/workbench.md#split-editors)
+
+## Move to Opposite Group
+
+**Shortcut:** — · macOS — · action id `MoveEditorToOppositeTabGroup`
+
+Moves the current tab to the neighbouring editor group.
+
+**Menu:** Window | Editor Tabs | Move to Opposite Group
+
+More: [Workbench and tool windows](docs/guide/user/workbench.md#split-editors)
+
+## Unsplit
+
+**Shortcut:** — · macOS — · action id `Unsplit`
+
+Merges the current editor group into its neighbour (Unsplit All merges every group).
+
+**Menu:** Window | Editor Tabs | Unsplit
+
+More: [Workbench and tool windows](docs/guide/user/workbench.md#split-editors)
+
+## Goto Next Splitter
+
+**Shortcut:** — · macOS `Alt+Tab` · action id `NextSplitter`
+
+Moves the focus to the next editor group.
+
+**Menu:** Window | Editor Tabs | Goto Next Splitter
+
+More: [Workbench and tool windows](docs/guide/user/workbench.md#split-editors)
+
+## Close Tabs to the Left
+
+**Shortcut:** — · macOS — · action id `CloseAllToTheLeft`
+
+Closes the unpinned tabs left of the current one.
+
+**Menu:** Window | Editor Tabs | Close Tabs to the Left
+
+More: [Workbench and tool windows](docs/guide/user/workbench.md#tab-context-menu)
+
+## Close Tabs to the Right
+
+**Shortcut:** — · macOS — · action id `CloseAllToTheRight`
+
+Closes the unpinned tabs right of the current one.
+
+**Menu:** Window | Editor Tabs | Close Tabs to the Right
+
+![Close Tabs to the Right](docs/screenshots/editor-tab-menu.png)
+
+More: [Workbench and tool windows](docs/guide/user/workbench.md#tab-context-menu)
 
 
 ---
@@ -3358,6 +3705,9 @@ Opening, hiding, resizing and switching tool windows. Windows/Linux shortcuts fi
 | Action | Windows / Linux | macOS |
 | --- | --- | --- |
 | [Project tool window](#project-tool-window) | `Alt+1` | `Cmd+1` |
+| [Bookmarks tool window](#bookmarks-tool-window) | `Alt+2` | `Cmd+2` |
+| [TODO tool window](#todo-tool-window) | — | — |
+| [Notifications tool window](#notifications-tool-window) | — | — |
 | [Find tool window](#find-tool-window) | `Alt+3` | `Cmd+3` |
 | [Run tool window](#run-tool-window) | `Alt+4` | `Cmd+4` |
 | [Debug tool window](#debug-tool-window) | `Alt+5` | `Cmd+5` |
@@ -3396,11 +3746,45 @@ Shows or hides the Project tool window.
 
 More: [Workbench and tool windows](docs/guide/user/workbench.md#project-view)
 
+## Bookmarks tool window
+
+**Shortcut:** `Alt+2` · macOS `Cmd+2` · action id `ActivateBookmarksToolWindow`
+
+Shows or hides the Bookmarks tool window.
+
+**Menu:** View | Tool Windows | Bookmarks
+
+More: [Workbench and tool windows](docs/guide/user/workbench.md#bookmarks)
+
+## TODO tool window
+
+**Shortcut:** — · macOS — · action id `ActivateTODOToolWindow`
+
+Shows or hides the TODO tool window with the TODO and FIXME comments of the project.
+
+**Menu:** View | Tool Windows | TODO
+
+![TODO tool window](docs/screenshots/todo.png)
+
+More: [Workbench and tool windows](docs/guide/user/workbench.md#todo)
+
+## Notifications tool window
+
+**Shortcut:** — · macOS — · action id `ActivateNotificationsToolWindow`
+
+Shows or hides the Notifications tool window with the history of balloons.
+
+**Menu:** View | Tool Windows | Notifications
+
+![Notifications tool window](docs/screenshots/notifications.png)
+
+More: [Workbench and tool windows](docs/guide/user/workbench.md#notifications)
+
 ## Find tool window
 
 **Shortcut:** `Alt+3` · macOS `Cmd+3` · action id `ActivateFindToolWindow`
 
-Shows or hides the Find tool window with the results of Find Usages.
+Shows or hides the Find tool window with the results of Find Usages and of Find in Files (Open in Find Window).
 
 **Menu:** View | Tool Windows | Find
 
@@ -6257,8 +6641,8 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Previous Highlighted Error | `GotoPreviousError` | `Shift+F2` | `Shift+F2` | yes |
 | Next Method | `MethodDown` | `Alt+Down` | `Ctrl+Down` | — |
 | Previous Method | `MethodUp` | `Alt+Up` | `Ctrl+Up` | — |
-| Next Occurrence | `NextOccurence` | `Ctrl+Alt+Down` | `Cmd+Alt+Down` | — |
-| Previous Occurrence | `PreviousOccurence` | `Ctrl+Alt+Up` | `Cmd+Alt+Up` | — |
+| Next Occurrence | `NextOccurence` | `Ctrl+Alt+Down` | `Cmd+Alt+Down` | yes |
+| Previous Occurrence | `PreviousOccurence` | `Ctrl+Alt+Up` | `Cmd+Alt+Up` | yes |
 | Jump to Source | `EditSource` | `F4` | `F4`, `Cmd+Down` | — |
 | Move Caret to Matching Brace | `EditorMatchBrace` | `Ctrl+Shift+M` | `Ctrl+M` | yes |
 | Move Caret to Code Block Start | `EditorCodeBlockStart` | `Ctrl+[` | `Cmd+Alt+[` | — |
@@ -6348,7 +6732,7 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Error Description | `ShowErrorDescription` | `Ctrl+F1` | `Cmd+F1` | — |
 | Recent Files | `RecentFiles` | `Ctrl+E` | `Cmd+E` | yes |
 | Recently Changed Files | `RecentChangedFiles` |  |  | yes |
-| Recent Locations | `RecentLocations` | `Ctrl+Shift+E` | `Cmd+Shift+E` | — |
+| Recent Locations | `RecentLocations` | `Ctrl+Shift+E` | `Cmd+Shift+E` | yes |
 | Switcher | `Switcher` | `Ctrl+Tab`, `Ctrl+Shift+Tab` | `Ctrl+Tab`, `Ctrl+Shift+Tab` | yes |
 | Toggle Rendered View | `ToggleRenderedDocPresentation` | `Ctrl+Alt+Q` | `Ctrl+Alt+Q` | — |
 | Compare Files | `CompareTwoFiles` | `Ctrl+D` | `Cmd+D` | — |
@@ -6431,7 +6815,7 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Action | Action id | Windows / Linux | macOS | In Forge |
 | --- | --- | --- | --- | --- |
 | Project | `ActivateProjectToolWindow` | `Alt+1` | `Cmd+1` | yes |
-| Bookmarks | `ActivateBookmarksToolWindow` | `Alt+2` | `Cmd+2` | — |
+| Bookmarks | `ActivateBookmarksToolWindow` | `Alt+2` | `Cmd+2` | yes |
 | Find | `ActivateFindToolWindow` | `Alt+3` | `Cmd+3` | yes |
 | Run | `ActivateRunToolWindow` | `Alt+4` | `Cmd+4` | yes |
 | Debug | `ActivateDebugToolWindow` | `Alt+5` | `Cmd+5` | yes |
@@ -6442,38 +6826,41 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Commit | `ActivateCommitToolWindow` | `Alt+0` | `Cmd+0` | yes |
 | Terminal | `ActivateTerminalToolWindow` | `Alt+F12` | `Alt+F12` | yes |
 | Database | `ActivateDatabaseToolWindow` |  |  | yes |
-| Notifications | `ActivateNotificationsToolWindow` |  |  | — |
+| Notifications | `ActivateNotificationsToolWindow` |  |  | yes |
 | AI Chat | `ActivateAIChatToolWindow` |  |  | yes |
 | Pull Requests | `ActivatePullRequestsToolWindow` |  |  | yes |
-| TODO | `ActivateTODOToolWindow` |  |  | — |
+| TODO | `ActivateTODOToolWindow` |  |  | yes |
 
 ### Navigate > Bookmarks
 
 | Action | Action id | Windows / Linux | macOS | In Forge |
 | --- | --- | --- | --- | --- |
-| Toggle Bookmark | `ToggleBookmark` | `F11` | `F3` | — |
-| Toggle Bookmark with Mnemonic | `ToggleBookmarkWithMnemonic` | `Ctrl+F11` | `Alt+F3` | — |
-| Show All Bookmarks | `ShowBookmarks` | `Shift+F11` | `Cmd+F3` | — |
-| Go to Bookmark 0 | `GotoBookmark0` | `Ctrl+0` | `Ctrl+0` | — |
-| Go to Bookmark 1 | `GotoBookmark1` | `Ctrl+1` | `Ctrl+1` | — |
-| Go to Bookmark 2 | `GotoBookmark2` | `Ctrl+2` | `Ctrl+2` | — |
-| Go to Bookmark 3 | `GotoBookmark3` | `Ctrl+3` | `Ctrl+3` | — |
-| Go to Bookmark 4 | `GotoBookmark4` | `Ctrl+4` | `Ctrl+4` | — |
-| Go to Bookmark 5 | `GotoBookmark5` | `Ctrl+5` | `Ctrl+5` | — |
-| Go to Bookmark 6 | `GotoBookmark6` | `Ctrl+6` | `Ctrl+6` | — |
-| Go to Bookmark 7 | `GotoBookmark7` | `Ctrl+7` | `Ctrl+7` | — |
-| Go to Bookmark 8 | `GotoBookmark8` | `Ctrl+8` | `Ctrl+8` | — |
-| Go to Bookmark 9 | `GotoBookmark9` | `Ctrl+9` | `Ctrl+9` | — |
-| Toggle Bookmark 0 | `ToggleBookmark0` | `Ctrl+Shift+0` | `Ctrl+Shift+0` | — |
-| Toggle Bookmark 1 | `ToggleBookmark1` | `Ctrl+Shift+1` | `Ctrl+Shift+1` | — |
-| Toggle Bookmark 2 | `ToggleBookmark2` | `Ctrl+Shift+2` | `Ctrl+Shift+2` | — |
-| Toggle Bookmark 3 | `ToggleBookmark3` | `Ctrl+Shift+3` | `Ctrl+Shift+3` | — |
-| Toggle Bookmark 4 | `ToggleBookmark4` | `Ctrl+Shift+4` | `Ctrl+Shift+4` | — |
-| Toggle Bookmark 5 | `ToggleBookmark5` | `Ctrl+Shift+5` | `Ctrl+Shift+5` | — |
-| Toggle Bookmark 6 | `ToggleBookmark6` | `Ctrl+Shift+6` | `Ctrl+Shift+6` | — |
-| Toggle Bookmark 7 | `ToggleBookmark7` | `Ctrl+Shift+7` | `Ctrl+Shift+7` | — |
-| Toggle Bookmark 8 | `ToggleBookmark8` | `Ctrl+Shift+8` | `Ctrl+Shift+8` | — |
-| Toggle Bookmark 9 | `ToggleBookmark9` | `Ctrl+Shift+9` | `Ctrl+Shift+9` | — |
+| Toggle Bookmark | `ToggleBookmark` | `F11` | `F3` | yes |
+| Toggle Bookmark with Mnemonic | `ToggleBookmarkWithMnemonic` | `Ctrl+F11` | `Alt+F3` | yes |
+| Show All Bookmarks | `ShowBookmarks` | `Shift+F11` | `Cmd+F3` | yes |
+| Edit Bookmark Description… | `EditBookmark` |  |  | yes |
+| Next Bookmark | `GotoNextBookmark` |  |  | yes |
+| Previous Bookmark | `GotoPreviousBookmark` |  |  | yes |
+| Go to Bookmark 0 | `GotoBookmark0` | `Ctrl+0` | `Ctrl+0` | yes |
+| Go to Bookmark 1 | `GotoBookmark1` | `Ctrl+1` | `Ctrl+1` | yes |
+| Go to Bookmark 2 | `GotoBookmark2` | `Ctrl+2` | `Ctrl+2` | yes |
+| Go to Bookmark 3 | `GotoBookmark3` | `Ctrl+3` | `Ctrl+3` | yes |
+| Go to Bookmark 4 | `GotoBookmark4` | `Ctrl+4` | `Ctrl+4` | yes |
+| Go to Bookmark 5 | `GotoBookmark5` | `Ctrl+5` | `Ctrl+5` | yes |
+| Go to Bookmark 6 | `GotoBookmark6` | `Ctrl+6` | `Ctrl+6` | yes |
+| Go to Bookmark 7 | `GotoBookmark7` | `Ctrl+7` | `Ctrl+7` | yes |
+| Go to Bookmark 8 | `GotoBookmark8` | `Ctrl+8` | `Ctrl+8` | yes |
+| Go to Bookmark 9 | `GotoBookmark9` | `Ctrl+9` | `Ctrl+9` | yes |
+| Toggle Bookmark 0 | `ToggleBookmark0` | `Ctrl+Shift+0` | `Ctrl+Shift+0` | yes |
+| Toggle Bookmark 1 | `ToggleBookmark1` | `Ctrl+Shift+1` | `Ctrl+Shift+1` | yes |
+| Toggle Bookmark 2 | `ToggleBookmark2` | `Ctrl+Shift+2` | `Ctrl+Shift+2` | yes |
+| Toggle Bookmark 3 | `ToggleBookmark3` | `Ctrl+Shift+3` | `Ctrl+Shift+3` | yes |
+| Toggle Bookmark 4 | `ToggleBookmark4` | `Ctrl+Shift+4` | `Ctrl+Shift+4` | yes |
+| Toggle Bookmark 5 | `ToggleBookmark5` | `Ctrl+Shift+5` | `Ctrl+Shift+5` | yes |
+| Toggle Bookmark 6 | `ToggleBookmark6` | `Ctrl+Shift+6` | `Ctrl+Shift+6` | yes |
+| Toggle Bookmark 7 | `ToggleBookmark7` | `Ctrl+Shift+7` | `Ctrl+Shift+7` | yes |
+| Toggle Bookmark 8 | `ToggleBookmark8` | `Ctrl+Shift+8` | `Ctrl+Shift+8` | yes |
+| Toggle Bookmark 9 | `ToggleBookmark9` | `Ctrl+Shift+9` | `Ctrl+Shift+9` | yes |
 
 ### Code > Folding
 
@@ -6613,11 +7000,19 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Close Other Tabs | `CloseAllEditorsButActive` |  | `Cmd+Alt+W` | yes |
 | Close Unmodified Tabs | `CloseAllUnmodifiedEditors` |  |  | yes |
 | Reopen Closed Tab | `ReopenClosedTab` |  |  | yes |
-| Pin Tab | `PinActiveEditorTab` |  |  | — |
-| Split Right | `SplitVertically` |  |  | — |
-| Split Down | `SplitHorizontally` |  |  | — |
-| Goto Next Splitter | `NextSplitter` |  | `Alt+Tab` | — |
-| Goto Previous Splitter | `PrevSplitter` |  | `Alt+Shift+Tab` | — |
+| Pin Tab | `PinActiveEditorTab` |  |  | yes |
+| Split Right | `SplitVertically` |  |  | yes |
+| Split Down | `SplitHorizontally` |  |  | yes |
+| Goto Next Splitter | `NextSplitter` |  | `Alt+Tab` | yes |
+| Goto Previous Splitter | `PrevSplitter` |  | `Alt+Shift+Tab` | yes |
+| Split and Move Right | `MoveTabRight` |  |  | yes |
+| Split and Move Down | `MoveTabDown` |  |  | yes |
+| Move to Opposite Group | `MoveEditorToOppositeTabGroup` |  |  | yes |
+| Change Splitter Orientation | `ChangeSplitOrientation` |  |  | yes |
+| Unsplit | `Unsplit` |  |  | yes |
+| Unsplit All | `UnsplitAll` |  |  | yes |
+| Close Tabs to the Left | `CloseAllToTheLeft` |  |  | yes |
+| Close Tabs to the Right | `CloseAllToTheRight` |  |  | yes |
 
 ## Editor Actions
 
@@ -6709,6 +7104,9 @@ Actions that Forge's plugins add (group **Plugins** in Settings | Keymap, some u
 | Jump to Query Console… | `Database.OpenConsole` | `Ctrl+Shift+F10` | `Cmd+Shift+F10` | tool window |
 | Data Source Properties | `Database.Properties` | `Shift+Enter` | `Shift+Enter` | tool window |
 | New Data Source… | `Database.NewDataSource` |  |  | any |
+| Select in Project View | `SelectInProjectView` |  |  | any |
+| Mark All Notifications as Read | `MarkNotificationsAsRead` |  |  | any |
+| Clear All Notifications | `ClearAllNotifications` |  |  | any |
 
 ## Commands without shortcuts
 
@@ -6919,7 +7317,7 @@ Tool windows, appearance toggles, documentation popups and recent files. Open it
 | Error Description | `Ctrl+F1` | `Cmd+F1` | not yet | Not available yet; the entry is disabled. |
 | Recent Files | `Ctrl+E` | `Cmd+E` | yes | Lists recently opened files and the tool windows; press again for recently edited files only. [More](docs/guide/user/workbench.md#recent-files-and-switcher) ([screenshot](docs/screenshots/docs-recent-files.png)) |
 | Recently Changed Files | — | — | yes | Lists recently edited files. [More](docs/guide/user/workbench.md#recent-files-and-switcher) |
-| Recent Locations | `Ctrl+Shift+E` | `Cmd+Shift+E` | not yet | Not available yet; the entry is disabled. |
+| Recent Locations | `Ctrl+Shift+E` | `Cmd+Shift+E` | yes | Lists recently visited and edited places with a code snippet each; press again for changed places only. [More](docs/guide/user/workbench.md#recent-locations) ([screenshot](docs/screenshots/recent-locations.png)) |
 | Compare with Clipboard | — | — | not yet | Not available yet; the entry is disabled. |
 | **Active Editor** | | | | submenu |
 | Active Editor › Soft-Wrap | — | — | not yet | Not available yet; the entry is disabled. |
@@ -6950,9 +7348,12 @@ Back and forward, Search Everywhere, Go to Class/File/Symbol/Line, declarations 
 | Last Edit Location | `Ctrl+Shift+Backspace` | `Cmd+Shift+Backspace` | not yet | Not available yet; the entry is disabled. |
 | Next Edit Location | — | — | not yet | Not available yet; the entry is disabled. |
 | **Bookmarks** | | | | submenu |
-| Bookmarks › Toggle Bookmark | `F11` | `F3` | not yet | Not available yet; the entry is disabled. |
-| Bookmarks › Toggle Bookmark with Mnemonic | `Ctrl+F11` | `Alt+F3` | not yet | Not available yet; the entry is disabled. |
-| Bookmarks › Show All Bookmarks | `Shift+F11` | `Cmd+F3` | not yet | Not available yet; the entry is disabled. |
+| Bookmarks › Toggle Bookmark | `F11` | `F3` | yes | Adds or removes a bookmark on the caret line. [More](docs/guide/user/workbench.md#bookmarks) |
+| Bookmarks › Toggle Bookmark with Mnemonic | `Ctrl+F11` | `Alt+F3` | yes | Adds a bookmark with a digit or letter you pick in a popup, or changes or removes it. [More](docs/guide/user/workbench.md#bookmarks) ([screenshot](docs/screenshots/bookmark-mnemonic.png)) |
+| Bookmarks › Show All Bookmarks | `Shift+F11` | `Cmd+F3` | yes | Opens the Bookmarks tool window. [More](docs/guide/user/workbench.md#bookmarks) ([screenshot](docs/screenshots/bookmarks.png)) |
+| Bookmarks › Edit Bookmark Description… | — | — | yes | Edits the description of the bookmark on the caret line. [More](docs/guide/user/workbench.md#bookmarks) |
+| Bookmarks › Next Bookmark | — | — | yes | Moves the caret to the next bookmark of the file. [More](docs/guide/user/workbench.md#bookmarks) |
+| Bookmarks › Previous Bookmark | — | — | yes | Moves the caret to the previous bookmark of the file. [More](docs/guide/user/workbench.md#bookmarks) |
 | Search Everywhere | `Double Shift` | `Double Shift` | yes | Searches classes, files, symbols, actions and text in one popup. [More](docs/guide/user/search-everywhere.md) ([screenshot](docs/screenshots/docs-search-everywhere.png)) |
 | Class… | `Ctrl+N` | `Cmd+O` | yes | Finds a class, interface, trait or enum by name (camel humps work). [More](docs/guide/user/search-everywhere.md) ([screenshot](docs/screenshots/docs-goto-class.png)) |
 | File… | `Ctrl+Shift+N` | `Cmd+Shift+O` | yes | Finds a project file by name or path. [More](docs/guide/user/search-everywhere.md) ([screenshot](docs/screenshots/docs-goto-file.png)) |
@@ -6973,6 +7374,8 @@ Back and forward, Search Everywhere, Go to Class/File/Symbol/Line, declarations 
 | Call Hierarchy | `Ctrl+Alt+H` | `Ctrl+Alt+H` | not yet | Not available yet; the entry is disabled. |
 | Next Highlighted Error | `F2` | `F2` | yes | Moves the caret to the next problem in the file. [More](docs/guide/user/editor.md#problems) |
 | Previous Highlighted Error | `Shift+F2` | `Shift+F2` | yes | Moves the caret to the previous problem in the file. [More](docs/guide/user/editor.md#problems) |
+| Next Occurrence | `Ctrl+Alt+Down` | `Cmd+Alt+Down` | yes | Opens the next result of the Find tool window's active tab. [More](docs/guide/user/workbench.md#find-tool-window) |
+| Previous Occurrence | `Ctrl+Alt+Up` | `Cmd+Alt+Up` | yes | Opens the previous result of the Find tool window's active tab. [More](docs/guide/user/workbench.md#find-tool-window) |
 | Next Method | `Alt+Down` | `Ctrl+Down` | not yet | Not available yet; the entry is disabled. |
 | Previous Method | `Alt+Up` | `Ctrl+Up` | not yet | Not available yet; the entry is disabled. |
 | Next Change | `Ctrl+Alt+Shift+Down` | `Ctrl+Alt+Shift+Down` | not yet | Not available yet; the entry is disabled. |
@@ -7230,14 +7633,22 @@ Layouts, the active tool window, editor tabs and project windows. Open it with �
 | **Editor Tabs** | | | | submenu |
 | Editor Tabs › Select Next Tab | `Alt+Right` | `Ctrl+Right`, `Cmd+Shift+]` | yes | Selects the next editor tab. [More](docs/guide/user/workbench.md#editor-tabs) |
 | Editor Tabs › Select Previous Tab | `Alt+Left` | `Ctrl+Left`, `Cmd+Shift+[` | yes | Selects the previous editor tab. [More](docs/guide/user/workbench.md#editor-tabs) |
-| Editor Tabs › Pin Tab | — | — | not yet | Not available yet; the entry is disabled. |
-| Editor Tabs › Split Right | — | — | not yet | Not available yet; the entry is disabled. |
-| Editor Tabs › Split Down | — | — | not yet | Not available yet; the entry is disabled. |
-| Editor Tabs › Goto Next Splitter | — | `Alt+Tab` | not yet | Not available yet; the entry is disabled. |
-| Editor Tabs › Goto Previous Splitter | — | `Alt+Shift+Tab` | not yet | Not available yet; the entry is disabled. |
+| Editor Tabs › Pin Tab | — | — | yes | Pins or unpins the current tab; pinned tabs stay on Close Other Tabs and Close All Tabs. [More](docs/guide/user/workbench.md#pinned-tabs) ([screenshot](docs/screenshots/pinned-tabs.png)) |
+| Editor Tabs › Split Right | — | — | yes | Opens the current file in a new editor group on the right. [More](docs/guide/user/workbench.md#split-editors) ([screenshot](docs/screenshots/split-editors.png)) |
+| Editor Tabs › Split Down | — | — | yes | Opens the current file in a new editor group below. [More](docs/guide/user/workbench.md#split-editors) |
+| Editor Tabs › Split and Move Right | — | — | yes | Moves the current tab into a new editor group on the right. [More](docs/guide/user/workbench.md#split-editors) |
+| Editor Tabs › Split and Move Down | — | — | yes | Moves the current tab into a new editor group below. [More](docs/guide/user/workbench.md#split-editors) |
+| Editor Tabs › Move to Opposite Group | — | — | yes | Moves the current tab to the neighbouring editor group. [More](docs/guide/user/workbench.md#split-editors) |
+| Editor Tabs › Change Splitter Orientation | — | — | yes | Switches split editors between side by side and stacked. [More](docs/guide/user/workbench.md#split-editors) |
+| Editor Tabs › Unsplit | — | — | yes | Merges the current editor group into its neighbour. [More](docs/guide/user/workbench.md#split-editors) |
+| Editor Tabs › Unsplit All | — | — | yes | Merges all editor groups into one. [More](docs/guide/user/workbench.md#split-editors) |
+| Editor Tabs › Goto Next Splitter | — | `Alt+Tab` | yes | Moves the focus to the next editor group. [More](docs/guide/user/workbench.md#split-editors) |
+| Editor Tabs › Goto Previous Splitter | — | `Alt+Shift+Tab` | yes | Moves the focus to the previous editor group. [More](docs/guide/user/workbench.md#split-editors) |
 | Editor Tabs › Close Tab | `Ctrl+F4` | `Cmd+W` | yes | Closes the current editor tab. [More](docs/guide/user/workbench.md#editor-tabs) |
-| Editor Tabs › Close Other Tabs | — | `Cmd+Alt+W` | yes | Closes all editor tabs except the current one. [More](docs/guide/user/workbench.md#editor-tabs) |
-| Editor Tabs › Close All Tabs | — | — | yes | Closes all editor tabs. [More](docs/guide/user/workbench.md#editor-tabs) |
+| Editor Tabs › Close Other Tabs | — | `Cmd+Alt+W` | yes | Closes all editor tabs of the group except the current one and pinned ones. [More](docs/guide/user/workbench.md#tab-context-menu) |
+| Editor Tabs › Close All Tabs | — | — | yes | Closes all editor tabs of the group except pinned ones. [More](docs/guide/user/workbench.md#tab-context-menu) |
+| Editor Tabs › Close Tabs to the Left | — | — | yes | Closes the unpinned tabs left of the current one. [More](docs/guide/user/workbench.md#tab-context-menu) |
+| Editor Tabs › Close Tabs to the Right | — | — | yes | Closes the unpinned tabs right of the current one. [More](docs/guide/user/workbench.md#tab-context-menu) |
 | Editor Tabs › Close Unmodified Tabs | — | — | yes | Closes the editor tabs without unsaved changes. [More](docs/guide/user/workbench.md#editor-tabs) |
 | Editor Tabs › Reopen Closed Tab | — | — | yes | Reopens the editor tab closed last. [More](docs/guide/user/workbench.md#editor-tabs) |
 | Next Project Window | `Ctrl+Alt+]` | `` Cmd+` `` | not yet | Not available yet; the entry is disabled. |
@@ -7334,6 +7745,16 @@ Page id `system`.
 | `system.autosave.idleSeconds` | int (1–600) | `15` | user *(not applied yet)* | Autosave | Idle time (seconds) |
 | `system.syncExternalChanges` | bool | `true` | user *(not applied yet)* | Synchronization | Synchronize external changes when switching to the IDE window |
 
+### Appearance & Behavior | Notifications
+
+Page id `notifications`. The display mode of a group is also set from the context menu of a
+notification in the Notifications tool window.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `notifications.balloons` | bool | `true` | user |  | Display balloon notifications — Off: notifications only appear in the Notifications tool window. |
+| `notifications.groups` | list | `[]` | user |  | Notification groups — How each group is shown, one entry per group: the group name, a tab, then `balloon`, `sticky` or `log`. |
+
 ### Appearance & Behavior | System Settings | Updates
 
 Page id `system.updates`. The page also shows whether this build can update, the current
@@ -7374,6 +7795,17 @@ Page id `editor.general`.
 | `editor.ensureNewlineAtEof` | bool | `true` | user *(not applied yet)* | On Save | Ensure every saved file ends with a line break |
 | `run.console.softWrap` | bool | `false` | user | Console | Use soft wraps in console |
 | `run.console.cycleBufferKb` | int (100–100000) | `1024` | user *(not applied yet)* | Console | Override console cycle buffer size (KB) |
+
+### Editor | General | Editor Tabs
+
+Page id `editor.tabs`.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `editor.tabs.limit` | int (0–100) | `10` | user | Closing Policy | Tab limit — Maximum number of tabs per editor group; 0 keeps every tab open. Pinned tabs are never closed by the limit. |
+| `editor.tabs.closeUnmodifiedFirst` | bool | `true` | user | Closing Policy | When the tab limit is reached, close non-modified tabs first |
+| `editor.tabs.activateOnClose` | enum: `left`, `right`, `recent` | `recent` | user | Closing Policy | When the current tab is closed, activate |
+| `editor.tabs.showPinnedIcon` | bool | `true` | user | Appearance | Show pin icon on pinned tabs |
 
 ### Editor | Font
 
@@ -7427,6 +7859,14 @@ Page id `editor.inlay-hints`.
 | `editor.inlayHints.chainedCalls` | bool | `true` | user *(not applied yet)* | Types | Types in method chains |
 | `editor.inlayHints.usages` | bool | `true` | user *(not applied yet)* | Code Vision | Usages — Show the number of usages above classes and methods (Code Vision). |
 | `editor.inlayHints.implementations` | bool | `true` | user *(not applied yet)* | Code Vision | Implementations and inheritors |
+
+### Editor | TODO
+
+Page id `editor.todo`.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `todo.patterns` | list | `["\\btodo\\b.*", "\\bfixme\\b.*"]` | user | Patterns | Patterns — Regular expressions matched in comments, one per entry. Add a tab and `case` after a pattern to make it case-sensitive. |
 
 ### Version Control | Git
 
@@ -8206,6 +8646,7 @@ index falls back to `<project>/.forge/cache/php-index.json`.
 | --- | --- |
 | `langservers/` | language servers installed by Forge (`node_modules/.bin`, `package.json`, `.forge-update-check.json`) |
 | `runtimes/node-<version>/` | the Node.js build Forge downloaded for language servers (only when no Node.js 18+ was installed) |
+| `projects/<name>-<hash>/bookmarks.json` | the bookmarks and bookmark lists of a project (`<hash>` of the project root, for remote projects of `user@host:/path`); kept out of the project |
 
 ## In the project — `<project>/.forge/`
 
@@ -9063,6 +9504,31 @@ in `dialog-windows.json`); in browser mode it opens in-page. The dialog ends wit
 - `registerFileSystem({ prefix: "scratch://", read, write, icon, breadcrumbs })` — files that
   live elsewhere (scratches, read-only `library://` files: PHP stubs and files outside the
   project, see `features/codeintel/library.ts`).
+
+## Editor groups and the Find tool window
+
+- Split editors keep one document per file (`state/editor.ts`, `editor.tabs`) and the tab
+  layout as plain data (`state/tabGroups.ts`: groups, pinned tabs, tab limit, closing
+  policy; tested in `tabGroups.test.ts`). Use `activeGroupId()`, `groupView(group)`,
+  `viewsOf(path)` and `openFileAt(path, line, column)`; never assume a single editor view.
+- `openInFindWindow(answer, { kind, title, header, rerun })` (`features/codeintel/usages.ts`)
+  pins results in the Find tool window (`Alt+3`): usages (`kind: "usages"`) or text matches
+  (`kind: "text"`, see `features/find/state.ts`). Next/Previous Occurrence walk the active tab.
+
+## Notifications
+
+`showBalloon(text, detail?, ms?, actions?, { group?, type?, log? })` (`@/keymap`) shows a
+balloon and logs it in the Notifications tool window (`state/notifications.ts`). Give a
+feature's balloons a group so users can make them sticky or log-only (Settings | Appearance &
+Behavior | Notifications, or the tool window's context menu):
+
+```ts
+const showBalloon = balloonsFor("Database"); // registers the group
+showBalloon("Database found in .env", "MySQL · shop@localhost", 0, [{ label: "Add data source", run }]);
+```
+
+`type` is `info` (default), `warning` or `error`; `log: false` is for transient hints
+("Path copied") that do not belong in the history.
 
 ## Project awareness
 
@@ -9964,13 +10430,14 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-agent-cli](docs/guide/developer/crates/forge-agent-cli.md) | Runs AI coding agent CLIs (Claude Code, Gemini CLI) headless and normalizes their output |
 | [forge-ai](docs/guide/developer/crates/forge-ai.md) | Forge IDE AI provider layer: Anthropic and OpenAI-compatible chat models |
 | [forge-backend](docs/guide/developer/crates/forge-backend.md) | Forge IDE project backends: the Backend trait, the local backend and the remote agent protocol |
+| [forge-bookmarks](docs/guide/developer/crates/forge-bookmarks.md) | Bookmarks: lists, mnemonics and line tracking through edits (pure, WebAssembly-friendly) |
 | [forge-codeintel](docs/guide/developer/crates/forge-codeintel.md) | Code intelligence models: workspace edits with LSP positions and Find Usages grouping (pure, WebAssembly-friendly) |
 | [forge-containers](docs/guide/developer/crates/forge-containers.md) | Forge IDE containers: Docker Engine API, Docker Compose and Kubernetes for the Services tool window |
 | [forge-core](docs/guide/developer/crates/forge-core.md) | Forge IDE core: workspace, file system, settings and event bus |
 | [forge-db](docs/guide/developer/crates/forge-db.md) | Forge IDE database tools: data sources, introspection, query execution and data editing |
 | [forge-debug](docs/guide/developer/crates/forge-debug.md) | Forge IDE debugger: DBGp (Xdebug 3) server, path mappings and breakpoints |
 | [forge-filetypes](docs/guide/developer/crates/forge-filetypes.md) | File type recognition for Forge: names, extensions, shebangs and template data languages (pure, WebAssembly-friendly) |
-| [forge-find](docs/guide/developer/crates/forge-find.md) | Find in Files: query compilation, file masks and line matching (pure, WebAssembly-friendly) |
+| [forge-find](docs/guide/developer/crates/forge-find.md) | Find in Files and TODO scanning: query compilation, file masks, line matching and comment patterns (pure, WebAssembly-friendly) |
 | [forge-forges](docs/guide/developer/crates/forge-forges.md) | Forge IDE code hosts: GitLab, Forgejo/Gitea and GitHub merge requests, issues and pipelines |
 | [forge-fuzzy](docs/guide/developer/crates/forge-fuzzy.md) | PHPStorm-style fuzzy matching and Search Everywhere ranking (pure, WebAssembly-friendly) |
 | [forge-keymap](docs/guide/developer/crates/forge-keymap.md) | PHPStorm-compatible keymap: shortcut model, default keymaps, overrides, conflicts and the key resolver |
@@ -10221,6 +10688,66 @@ pub fn folder_name(root: &Path) -> String { … }
 
 ```sh
 cargo test -p forge-backend
+```
+
+
+---
+
+Source: docs/guide/developer/crates/forge-bookmarks.md
+
+# forge-bookmarks
+
+`crates/forge-bookmarks` — Bookmarks: lists, mnemonics and line tracking through edits (pure, WebAssembly-friendly).
+
+## Purpose
+
+The model behind PHPStorm's bookmarks (`F11`, `Ctrl+F11`, the Bookmarks tool window `Alt+2`).
+
+- `Bookmarks` holds named bookmark lists; one of them is the default list that `F11` adds
+  to. A bookmark marks a line of a project-relative file and may carry a mnemonic (`0`–`9`,
+  `A`–`Z`, unique across all lists) and a description.
+- Every change is an `Op` applied with `Bookmarks::apply` (toggle, set mnemonic, describe,
+  move between lists, add/rename/remove lists, …), so the desktop app and browser mode share
+  the logic.
+- Line positions follow edits: the editor reports each document change as `LineEdit`s in
+  old-document coordinates and `Op::ApplyEdits` moves the bookmarks below them; a bookmark on
+  a removed line stays where the change happened. Renamed and deleted files are
+  followed with `Op::RenamePath` / `Op::RemovePath`.
+
+The crate has no I/O; the state is serialized as JSON by the caller.
+
+## Main public items
+
+```rust
+pub const DEFAULT_LIST: &str = "Bookmarks";
+pub struct Bookmark { … }
+pub struct BookmarkList { … }
+pub struct Bookmarks { … }
+pub struct LineEdit { … }
+pub enum Op { … }
+pub fn normalize_mnemonic(c: char) -> Option<char> { … }
+pub fn map_line(line: usize, edit: &LineEdit) -> usize { … }
+```
+
+## Used by
+
+- IPC: `bookmarks_get`, `bookmarks_apply` (`app/src-tauri/src/commands/workbench.rs`; stored in
+  `<data dir>/forge/projects/<name>-<hash>/bookmarks.json`, never in the project)
+- UI: `app/ui/src/features/bookmarks` (tool window, gutter icons, mnemonic popup)
+- Browser mode: built into `forge-wasm` (`bookmarks_apply`)
+
+## Dependencies
+
+- Workspace crates: none
+- External: `serde`
+
+## Tests
+
+1 source file, about 570 lines; 7 unit tests (toggling, mnemonics, lists, line tracking
+through inserted and removed lines, renames).
+
+```sh
+cargo test -p forge-bookmarks
 ```
 
 
@@ -10633,7 +11160,7 @@ Source: docs/guide/developer/crates/forge-find.md
 
 # forge-find
 
-`crates/forge-find` — Find in Files: query compilation, file masks and line matching (pure, WebAssembly-friendly).
+`crates/forge-find` — Find in Files and TODO scanning: query compilation, file masks, line matching and comment patterns (pure, WebAssembly-friendly).
 
 ## Purpose
 
@@ -10649,6 +11176,13 @@ matching. The crate is pure so the desktop backend (walking the project with
   cut around the first match) with every match range in it. Columns and ranges are UTF-16
   offsets so the UI can use them directly.
 
+The module `todo` scans for the TODO tool window: `TODO` / `FIXME` style patterns (regular
+expressions, PHPStorm's `\btodo\b.*` and `\bfixme\b.*` by default) inside comments only.
+`CommentSyntax::for_path` knows the line and block comments and strings of each file type
+(PHP, Blade, Twig, C-like languages, markup, CSS/SCSS, hash-comment languages, SQL, Lua);
+plain text and Markdown are scanned as a whole. `TodoRequest` can limit the scan to some
+`paths` and pass unsaved editor `buffers` that replace the files on disk.
+
 ## Main public items
 
 ```rust
@@ -10662,12 +11196,15 @@ pub struct Finder { … }
 pub fn is_binary(bytes: &[u8]) -> bool { … }
 pub struct Collector<'a> { … }
 pub fn find_in<'t>(
+pub mod todo; // TodoRequest, TodoPattern, TodoItem, TodoFile, TodoResult, TodoScanner,
+              // TodoCollector, CommentSyntax, scan_todos
 ```
 
 ## Used by
 
 - IPC: `find_in_files` (`app/src-tauri/src/commands/workspace.rs`, a `Backend` method, agent call `FindInFiles`)
-- UI: `app/ui/src/features/find`
+  and `todo_scan` (`app/src-tauri/src/commands/workbench.rs`, `Backend::find_todos`, agent call `FindTodos`)
+- UI: `app/ui/src/features/find`, `app/ui/src/features/todo`
 - Browser mode: built into `forge-wasm`
 
 ## Dependencies
@@ -10677,7 +11214,7 @@ pub fn find_in<'t>(
 
 ## Tests
 
-1 source files, about 493 lines; 5 unit tests.
+2 source files, about 1080 lines; 10 unit tests.
 
 ```sh
 cargo test -p forge-find
