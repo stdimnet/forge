@@ -22,7 +22,7 @@ fn apply_git_path(state: &AppState) {
     forge_vcs::set_git_program(path.as_deref());
 }
 
-async fn with_repo<T, F>(state: &AppState, f: F) -> Result<T>
+pub(crate) async fn with_repo<T, F>(state: &AppState, f: F) -> Result<T>
 where
     T: Send + 'static,
     F: FnOnce(&Repo) -> Result<T> + Send + 'static,

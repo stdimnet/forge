@@ -211,6 +211,21 @@ export function containers_terminal_command(request_json: string): string;
 export function containers_workloads_parse(raw_json: string): string;
 
 /**
+ * `{ text, delimiter, edits }` → the new text.
+ */
+export function csv_edit(request_json: string): string;
+
+/**
+ * `{ text, path?, delimiter? }` → `CsvTable`.
+ */
+export function csv_parse(request_json: string): string;
+
+/**
+ * `{ rows, column, descending, headerRows }` → row indices.
+ */
+export function csv_sort_order(request_json: string): string;
+
+/**
  * Mirrors `doctrine_complete`: `{ path, content, offset, snapshot }` → `DqlCompletion | null`.
  */
 export function dql_complete(request_json: string): string;
@@ -311,6 +326,11 @@ export function find_paged(request_json: string): string;
  * `FilterRequest` → `FilterHit[]`.
  */
 export function fuzzy_filter(request_json: string): string;
+
+/**
+ * `{ path, base64 }` → `ImageData` (the mock reads demo images from base64).
+ */
+export function image_describe(request_json: string): string;
 
 /**
  * `{ text, path, offset, disabled?, uninjected? }` → `Injection | null`.
@@ -479,6 +499,16 @@ export function lua_run_markers(request_json: string): string;
 export function lua_search_symbols(request_json: string): string;
 
 /**
+ * `{ text, anchor }` → 0-based line or `null`.
+ */
+export function markdown_anchor_line(request_json: string): string;
+
+/**
+ * `{ text }` → `Document` (the Markdown preview).
+ */
+export function markdown_document(request_json: string): string;
+
+/**
  * `{ markdown }` → `HoverDoc`.
  */
 export function markdown_hover(request_json: string): string;
@@ -531,6 +561,21 @@ export function run_output_handle(request_json: string): string;
  * `RunOutputOptions` → handle (a number) for [`run_output_handle`].
  */
 export function run_output_new(options_json: string): string;
+
+/**
+ * `{ base, original, formatted }` → the text with only changed lines reformatted.
+ */
+export function save_actions_changed_lines(request_json: string): string;
+
+/**
+ * `{}` → the file types of the "Reformat code" filter.
+ */
+export function save_actions_file_types(_request_json: string): string;
+
+/**
+ * `{ path, trigger, settings }` → `SavePlan`.
+ */
+export function save_actions_plan(request_json: string): string;
 
 /**
  * `{ public?, private?, name? }` → `{ names, default, variables }`: the environments of
@@ -803,6 +848,9 @@ export interface InitOutput {
     readonly containers_pull_push: (a: number, b: number, c: number) => void;
     readonly containers_terminal_command: (a: number, b: number, c: number) => void;
     readonly containers_workloads_parse: (a: number, b: number, c: number) => void;
+    readonly csv_edit: (a: number, b: number, c: number) => void;
+    readonly csv_parse: (a: number, b: number, c: number) => void;
+    readonly csv_sort_order: (a: number, b: number, c: number) => void;
     readonly dql_complete: (a: number, b: number, c: number) => void;
     readonly dql_diagnostics: (a: number, b: number, c: number) => void;
     readonly dql_goto: (a: number, b: number, c: number) => void;
@@ -823,6 +871,7 @@ export interface InitOutput {
     readonly find_page: (a: number, b: number, c: number) => void;
     readonly find_paged: (a: number, b: number, c: number) => void;
     readonly fuzzy_filter: (a: number, b: number, c: number) => void;
+    readonly image_describe: (a: number, b: number, c: number) => void;
     readonly injections_at: (a: number, b: number, c: number) => void;
     readonly injections_context_actions: (a: number, b: number, c: number) => void;
     readonly injections_escape: (a: number, b: number, c: number) => void;
@@ -856,6 +905,8 @@ export interface InitOutput {
     readonly lua_index_files: (a: number, b: number, c: number) => void;
     readonly lua_run_markers: (a: number, b: number, c: number) => void;
     readonly lua_search_symbols: (a: number, b: number, c: number) => void;
+    readonly markdown_anchor_line: (a: number, b: number, c: number) => void;
+    readonly markdown_document: (a: number, b: number, c: number) => void;
     readonly markdown_hover: (a: number, b: number, c: number) => void;
     readonly markdown_parse: (a: number, b: number, c: number) => void;
     readonly output_file_links: (a: number, b: number, c: number) => void;
@@ -867,6 +918,9 @@ export interface InitOutput {
     readonly run_output_drop: (a: number, b: number, c: number) => void;
     readonly run_output_handle: (a: number, b: number, c: number) => void;
     readonly run_output_new: (a: number, b: number, c: number) => void;
+    readonly save_actions_changed_lines: (a: number, b: number, c: number) => void;
+    readonly save_actions_file_types: (a: number, b: number, c: number) => void;
+    readonly save_actions_plan: (a: number, b: number, c: number) => void;
     readonly scratches_http_environments: (a: number, b: number, c: number) => void;
     readonly scratches_http_handler: (a: number, b: number, c: number) => void;
     readonly scratches_http_render: (a: number, b: number, c: number) => void;

@@ -242,6 +242,25 @@ Page id `editor.todo`.
 | --- | --- | --- | --- | --- | --- |
 | `todo.patterns` | list | `["\\btodo\\b.*", "\\bfixme\\b.*"]` | user | Patterns | Patterns — Regular expressions matched in comments, one per entry. Add a tab and `case` after a pattern to make it case-sensitive. |
 
+### Editor | Image
+
+Page id `editor.image`.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `images.showChessboard` | bool | `true` | user | Image Viewer | Show chessboard — Transparent areas of images are drawn over a chessboard pattern. |
+| `images.showGrid` | bool | `false` | user | Image Viewer | Show grid — Pixel grid lines when the zoom is 300% or more. |
+| `images.svgDefaultLayout` | enum: `editor`, `split`, `preview` | `split` | user | SVG | SVG files open with |
+
+### Editor | CSV/TSV
+
+Page id `editor.csv`.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `csv.defaultView` | enum: `text`, `table` | `text` | user |  | Open CSV/TSV files as |
+| `csv.firstRowIsHeader` | bool | `true` | user |  | First row is header — Default of the table view's header toggle. |
+
 ### Version Control | Git
 
 Page id `vcs.git`.
@@ -293,6 +312,15 @@ Page id `lang.php.composer`.
 | `php.composer.syncWithComposerJson` | bool | `true` | user, project |  | Synchronize IDE settings with composer.json — The PHP language level follows `require.php` of composer.json (the status bar shows it); the language level setting applies when there is no constraint. |
 | `php.composer.addPackagesAsLibraries` | bool | `true` | user, project |  | Add packages as libraries — Classes in vendor/ are resolved for navigation, completion and Intelephense. Off: vendor/ is left out. |
 | `php.composer.checkUpdates` | bool | `false` | user |  | Check for package updates on project open — Runs `composer outdated --direct` on the project's machine and reports updates in a balloon. |
+
+### Languages & Frameworks | PHP | Quality Tools
+
+Page id `lang.php.quality-tools`.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `php.tools.phpCsFixer.path` | path | `""` | user, project | PHP CS Fixer | PHP CS Fixer path — Empty: vendor/bin/php-cs-fixer of the project. A relative path starts at the project root. The project's .php-cs-fixer.dist.php is used. |
+| `php.tools.pint.path` | path | `""` | user, project | Laravel Pint | Laravel Pint path — Empty: vendor/bin/pint of the project. A relative path starts at the project root. The project's pint.json is used. |
 
 ### Languages & Frameworks | PHP | Debug
 
@@ -387,6 +415,17 @@ Page id `lang.lua`.
 | `lua.stylua.enabled` | bool | `true` | user | StyLua | Reformat Code with StyLua — Ctrl+Alt+L formats Lua files with StyLua when it is installed; stylua.toml in the project is honoured. |
 | `lua.stylua.path` | path | `stylua` | user | StyLua | StyLua executable |
 
+### Languages & Frameworks | Markdown
+
+Page id `lang.markdown`.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `markdown.defaultLayout` | enum: `editor`, `split`, `preview` | `split` | user | Preview | Default layout — How Markdown files open. The buttons in the top-right corner of the editor switch it per file. |
+| `markdown.syncScroll` | bool | `true` | user | Preview | Synchronize scrolling between the editor and the preview |
+| `markdown.frontMatter` | enum: `table`, `hidden` | `table` | user | Preview | Front matter — The YAML (---) or TOML (+++) block at the start of a file. |
+| `markdown.mermaid` | bool | `true` | user | Markdown Extensions | Mermaid — Render ```mermaid code blocks as diagrams. |
+
 ### Languages & Frameworks | Node.js
 
 Page id `lang.node`.
@@ -405,6 +444,41 @@ Page id `lang.typescript`.
 | --- | --- | --- | --- | --- | --- |
 | `web.navigation.components` | bool | `true` | user | Frameworks | Navigate from JSX and template tags to components, props and events — Ctrl+B and Ctrl+Click on <UserCard>, title=… and @select resolve through imports before the language server is asked. |
 | `angular.gutterIcons` | bool | `true` | user | Angular | Show line markers between components, templates and styles |
+
+### Languages & Frameworks | ESLint
+
+Page id `lang.eslint`.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `web.eslint.path` | path | `""` | user, project |  | ESLint package — Empty: node_modules/.bin/eslint of the project. A relative path starts at the project root. The project's ESLint configuration is used. |
+
+### Languages & Frameworks | Prettier
+
+Page id `lang.prettier`.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `web.prettier.path` | path | `""` | user, project |  | Prettier package — Empty: node_modules/.bin/prettier of the project. A relative path starts at the project root. The project's Prettier configuration is used. |
+
+### Tools | Actions on Save
+
+Page id `tools.actions-on-save`. See [Actions on Save](../user/actions-on-save.md).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `actionsOnSave.reformat.enabled` | bool | `false` | user, project |  | Reformat code — Reformat Code (Ctrl+Alt+L) when the file is saved. |
+| `actionsOnSave.reformat.scope` | enum: `whole`, `changed` | `whole` | user, project |  | Reformat — "Changed lines" reformats only the lines changed since the last commit; files that are not committed yet are reformatted completely. |
+| `actionsOnSave.reformat.fileTypes` | list | `[]` | user, project |  | Reformat file types — File type ids (php, javascript, ...) reformatted on save; empty means all file types. |
+| `actionsOnSave.optimizeImports` | bool | `false` | user, project |  | Optimize imports — Remove unused imports and sort the others (PHP). |
+| `actionsOnSave.rearrange` | bool | `false` | user, project |  | Rearrange code — Order class members: constants, properties, constructor, methods (PHP). |
+| `actionsOnSave.codeCleanup` | bool | `false` | user, project |  | Run code cleanup — Apply the safe quick fixes: unused imports, unnecessary semicolons, a redundant closing tag (PHP). |
+| `actionsOnSave.eslint` | bool | `false` | user, project |  | Run eslint --fix — Fix ESLint problems in saved JavaScript, TypeScript and Vue files. (HTML, CSS & JavaScript plugin) |
+| `actionsOnSave.prettier.enabled` | bool | `false` | user, project |  | Run Prettier — Run `prettier --write` on saved files that match the patterns below. (HTML, CSS & JavaScript plugin) |
+| `actionsOnSave.prettier.files` | string | `*.js; *.ts; *.jsx; *.tsx; *.cjs; *.cts; *.mjs; *.mts; *.vue; *.astro` | user, project |  | Run for files — Patterns separated by `;`; patterns with a `/` match the path, the others the file name. (HTML, CSS & JavaScript plugin) |
+| `actionsOnSave.phpCsFixer` | bool | `false` | user, project |  | Run PHP CS Fixer — Run `php-cs-fixer fix` on saved PHP files. (PHP plugin) |
+| `actionsOnSave.pint` | bool | `false` | user, project |  | Run Laravel Pint — Run `pint` on saved PHP files. (PHP plugin) |
+| `actionsOnSave.runOnAutosave` | bool | `false` | user, project |  | Also run on autosave — Run Reformat code, Optimize imports, Rearrange code and Run code cleanup when files are saved automatically too. External tools only run on explicit save (Ctrl+S). |
 
 ### Tools | Terminal
 

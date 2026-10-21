@@ -273,3 +273,49 @@ group = "editor.code-style.php"
 section = "Blank Lines"
 project = true
 order = 23
+
+# ---- Tools > Actions on Save (PHP tools) ------------------------------------------------
+
+[[contributions.settings]]
+key = "actionsOnSave.phpCsFixer"
+title = "Run PHP CS Fixer"
+description = "Run `php-cs-fixer fix` on saved PHP files."
+type = "bool"
+default = false
+group = "tools.actions-on-save"
+project = true
+order = 60
+
+[[contributions.settings]]
+key = "actionsOnSave.pint"
+title = "Run Laravel Pint"
+description = "Run `pint` on saved PHP files."
+type = "bool"
+default = false
+group = "tools.actions-on-save"
+project = true
+order = 70
+
+# ---- Languages & Frameworks > PHP > Quality Tools --------------------------------------
+
+[[contributions.settings]]
+key = "php.tools.phpCsFixer.path"
+title = "PHP CS Fixer path"
+description = "Empty: vendor/bin/php-cs-fixer of the project. A relative path starts at the project root. The project's .php-cs-fixer.dist.php is used."
+type = "path"
+default = ""
+group = "lang.php.quality-tools"
+section = "PHP CS Fixer"
+project = true
+order = 0
+
+[[contributions.settings]]
+key = "php.tools.pint.path"
+title = "Laravel Pint path"
+description = "Empty: vendor/bin/pint of the project. A relative path starts at the project root. The project's pint.json is used."
+type = "path"
+default = ""
+group = "lang.php.quality-tools"
+section = "Laravel Pint"
+project = true
+order = 10

@@ -50,6 +50,12 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 
 ## Recently added
 
+- **Markdown preview, image editor and Edit as Table**: Markdown files open with a live,
+  GitHub-flavored preview (tables, task lists, footnotes, alerts, Mermaid diagrams, project
+  images, front matter, links that open files in Forge) and synchronized scrolling; images open
+  in an image editor with zoom, grid and chessboard, SVG with a live preview; CSV/TSV files
+  can be edited as a table that keeps the file's quoting
+  ([Markdown, images and CSV](docs/guide/user/markdown-images-csv.md)).
 - **File and code templates**: New ▸ PHP Class / Interface / Trait / Enum with the PSR-4
   namespace from composer.json, PHPUnit Test, Laravel and Symfony classes, HTML, CSS,
   JavaScript, TypeScript, Vue, React and Lua files, the `Alt+Insert` New popup in the Project
@@ -661,6 +667,8 @@ not finished, the page says so.
 | --- | --- |
 | [Workbench and tool windows](docs/guide/user/workbench.md) | main toolbar, tool windows, Project view, tabs, Recent Files, Switcher, status bar |
 | [Editor](docs/guide/user/editor.md) | completion, hover, Parameter Info, Go to Declaration, problems, formatting, editing actions, folding, find, gutter, context menu |
+| [Markdown, images and CSV](docs/guide/user/markdown-images-csv.md) | Markdown preview (Mermaid, tables, links, images, front matter), image editor and SVG preview, Edit as Table for CSV/TSV |
+| [Actions on Save](docs/guide/user/actions-on-save.md) | Reformat code, Optimize imports, Rearrange code, code cleanup, ESLint, Prettier, PHP CS Fixer and Laravel Pint on save |
 | [Live templates](docs/guide/user/live-templates.md) | abbreviations + `Tab`, Insert Live Template, Surround With, Unwrap/Remove, Save as Live Template, template sets and settings |
 | [Emmet and color previews](docs/guide/user/emmet-and-colors.md) | Emmet abbreviations in HTML, Blade, Twig, Vue, PHP, JSX and CSS, abbreviation preview, Surround with Emmet, Update/Remove Tag, edit points, color swatches and the color picker |
 | [Language injections](docs/guide/user/language-injections.md) | SQL, HTML, CSS, JSON and RegExp in PHP and JavaScript strings, `// language=` comments, Inject language or reference, Edit Fragment, Run SQL |
@@ -1082,7 +1090,9 @@ Source: docs/guide/user/editor.md
 
 # Editor
 
-Forge's editor is built on CodeMirror 6. Language intelligence (completion, hover, diagnostics,
+Forge's editor is built on CodeMirror 6. Markdown, SVG, image and CSV/TSV files open in
+editors of their own with a preview, zoom or a table view: see
+[Markdown, images and CSV](docs/guide/user/markdown-images-csv.md). Language intelligence (completion, hover, diagnostics,
 Go to Declaration, formatting) comes from [language servers](docs/guide/user/language-servers.md) and from
 Forge's own indexes for PHP, Lua and the frameworks. Shortcuts below are the Windows/Linux
 defaults with macOS in parentheses; the full list is in the
@@ -1622,6 +1632,10 @@ Saving applies Settings | Editor | General | On Save, like PHPStorm:
 caret keep their spaces, so saving never moves what you are typing. An `.editorconfig` with
 `trim_trailing_whitespace` or `insert_final_newline` overrides both options for its files.
 
+Settings | Tools | [Actions on Save](docs/guide/user/actions-on-save.md) adds Reformat code, Optimize
+imports, Rearrange code, code cleanup and external tools (ESLint, Prettier, PHP CS Fixer,
+Laravel Pint) to an explicit save (`Ctrl+S`), and optionally to autosave.
+
 When Forge gets the focus back it re-reads the open files that changed on disk and refreshes
 the Project view and Git status (`system.syncExternalChanges`).
 
@@ -1698,6 +1712,260 @@ Settings | Editor | General controls soft wrapping (`editor.softWraps` with the 
 the caret row highlight, caret blinking with its blink period (`editor.caret.blinkPeriod`) and
 smooth scrolling. Settings | Editor | Font sets the font, size, line height and ligatures. See
 the [settings reference](docs/guide/reference/settings.md).
+
+
+---
+
+Source: docs/guide/user/markdown-images-csv.md
+
+# Markdown, images and CSV
+
+Some files open in an editor made for them, like in PHPStorm: Markdown files and SVG images
+get a preview next to the text, raster images open in the image editor, and CSV/TSV files can
+be edited as a table. All of them work in remote projects too: files and images are read
+through the project backend.
+
+## Markdown
+
+`.md` and `.markdown` files open in the Markdown editor: the text on the left, the rendered
+preview on the right.
+
+![Markdown editor and preview](docs/screenshots/markdown-preview.png)
+
+### Layout
+
+The three buttons in the top-right corner of the editor switch the layout of the file:
+
+| Button | Action | Action id |
+| --- | --- | --- |
+| Editor Only | only the text | `TextEditorWithPreview.Layout.EditorOnly` |
+| Editor and Preview | text and preview side by side; drag the divider to resize | `TextEditorWithPreview.Layout.EditorAndPreview` |
+| Preview Only | only the preview | `TextEditorWithPreview.Layout.PreviewOnly` |
+
+The actions have no default shortcut; find them with Find Action (`Ctrl+Shift+A`) or bind
+keys in Settings | Keymap. The layout is remembered per file until Forge restarts; new files
+open with the default layout from Settings | Languages & Frameworks | Markdown.
+
+![Preview only, light theme](docs/screenshots/markdown-preview-only-light.png)
+
+### What the preview shows
+
+- **GitHub-flavored Markdown**: tables (with column alignment), task lists, strikethrough,
+  footnotes (numbered in the order they are used, listed at the end), autolinks (`https://…`,
+  `www.…` and e-mail addresses) and GitHub alerts (`> [!NOTE]`, `[!TIP]`, `[!IMPORTANT]`,
+  `[!WARNING]`, `[!CAUTION]`).
+- **Code blocks** with syntax colors for PHP, JavaScript, TypeScript, JSX/TSX, CSS, HTML,
+  JSON, YAML, XML, Python and Rust (other languages get a simple highlighter).
+- **Mermaid diagrams**: a ```` ```mermaid ```` block is drawn as a diagram (flowcharts,
+  sequence, class, state, ER, Gantt, …). An invalid diagram shows Mermaid's error and the
+  code. Turn it off in the settings to see the code instead.
+- **Images**: relative paths (`![Logo](docs/guide/user/docs/logo.png)`, `<img src="logo.svg" width="120">`)
+  are resolved against the Markdown file (`/…` against the project root) and loaded from the
+  project; `https://` images are loaded from the web.
+- **Front matter**: a YAML (`---`) or TOML (`+++`) block at the start of the file is shown as
+  a table, or hidden (setting **Front matter**).
+- **HTML in Markdown** is shown safely: `<img>`, `<a href>`, `<br>`, `<b>`/`<strong>`,
+  `<i>`/`<em>` and `<s>`/`<del>` are rendered, HTML comments and all other tags (scripts,
+  styles, event handlers) are dropped and only their text is kept.
+
+The preview updates while you type.
+
+### Links
+
+| Link | Click opens |
+| --- | --- |
+| `#getting-started` | scrolls the preview to that heading (GitHub-style anchors) |
+| `docs/setup.md`, `../app/Models/User.php` | the project file in Forge |
+| `docs/setup.md#install` | the Markdown file at that heading |
+| `src/app.ts#L42` | the file at line 42 |
+| `https://…`, `mailto:…` | the system browser or mail client |
+
+### Synchronized scrolling
+
+With **Editor and Preview**, scrolling the editor scrolls the preview to the same block and
+scrolling the preview moves the editor to its source. Turn it off with **Synchronize scrolling
+between the editor and the preview**.
+
+![Synchronized scrolling](docs/screenshots/markdown-preview-scrolled.png)
+
+### Settings
+
+Settings | Languages & Frameworks | Markdown:
+
+| Setting | Key | Default |
+| --- | --- | --- |
+| Default layout | `markdown.defaultLayout` | Editor and Preview |
+| Synchronize scrolling between the editor and the preview | `markdown.syncScroll` | on |
+| Front matter: Show as table / Hide | `markdown.frontMatter` | Show as table |
+| Mermaid | `markdown.mermaid` | on |
+
+![Markdown settings](docs/screenshots/markdown-settings.png)
+
+## Images
+
+PNG, JPEG, GIF, WebP, ICO and BMP files open in the image editor.
+
+![Image editor](docs/screenshots/image-editor.png)
+
+| Toolbar button | Action id | Windows / Linux | macOS |
+| --- | --- | --- | --- |
+| Zoom In | `Images.Editor.ZoomIn` | `Ctrl+=`, `Ctrl+NumPad+` | `Cmd+=`, `Cmd+NumPad+` |
+| Zoom Out | `Images.Editor.ZoomOut` | `Ctrl+-`, `Ctrl+NumPad-` | `Cmd+-`, `Cmd+NumPad-` |
+| Actual Size (1:1) | `Images.Editor.ActualSize` | `Ctrl+/`, `Ctrl+NumPad/` | `Cmd+/`, `Cmd+NumPad/` |
+| Fit Zoom to Window | `Images.Editor.FitZoomToWindow` | | |
+| Show Grid | `Images.Editor.ToggleGrid` | | |
+| Show Chessboard | `Images.ToggleTransparencyChessboard` | | |
+
+- `Ctrl` + mouse wheel zooms as well. Images open at 100%, or smaller when they do not fit.
+- The **chessboard** shows transparent areas; the **grid** draws pixel lines from 300% zoom.
+- The toolbar shows the zoom and the image info, for example
+  `128x128 PNG (32-bit color) 484 B`. Format, size and colour depth are read from the file
+  header in Rust.
+- The editor reloads the image when the file changes on disk.
+
+> **Note:** in a code editor `Ctrl+=`, `Ctrl+-` and `Ctrl+/` keep their editor meaning
+> (Expand, Collapse, Comment with Line Comment); the image shortcuts apply while the image
+> editor has focus.
+
+### SVG
+
+SVG files are text: they open in an editor with an image preview (the same toolbar), which
+follows your typing. The layout buttons work as for Markdown; the default is set in
+Settings | Editor | Image | **SVG files open with**.
+
+![SVG editor and preview](docs/screenshots/svg-preview.png)
+
+Settings | Editor | Image:
+
+| Setting | Key | Default |
+| --- | --- | --- |
+| Show chessboard | `images.showChessboard` | on |
+| Show grid | `images.showGrid` | off |
+| SVG files open with | `images.svgDefaultLayout` | Editor and Preview |
+
+## CSV and TSV: Edit as Table
+
+`.csv`, `.tsv` and `.tab` files have two tabs at the bottom of the editor: **Text** and
+**Table**. The actions **Edit as Table** (`Csv.EditAsTable`) and **Edit as Text**
+(`Csv.EditAsText`) switch them from Find Action or a shortcut you assign.
+
+![CSV file as a table](docs/screenshots/csv-table.png)
+
+- The delimiter is detected: tab for `.tsv`/`.tab`, otherwise the most frequent of `,` `;`
+  tab and `|` in the first line. The toolbar shows it with the row and column count.
+- **First row is header** uses the first row as column titles (columns are named `C1`, `C2`,
+  … otherwise).
+- Click a column header to sort ascending, again for descending, a third time for the file
+  order. Numbers sort by value, text case-insensitively, empty cells last. Sorting changes
+  only the view, not the file.
+- Double-click a cell, press `Enter` or `F2`, or just start typing to edit it; `Enter` saves
+  and moves down, `Tab` moves right, `Escape` cancels.
+- The toolbar and the context menu add rows (above/below) and columns (left/right) and delete
+  the selected rows or columns.
+- The table and the text are the same document: every table change is one undoable edit in
+  the editor, `Ctrl+S` saves it. Cells you do not touch are written back exactly as they
+  were: the delimiter, the quotes of quoted cells, the line separator and the final line break
+  stay. New values are quoted only when they need it (delimiter, quote or line break inside).
+
+Settings | Editor | CSV/TSV:
+
+| Setting | Key | Default |
+| --- | --- | --- |
+| Open CSV/TSV files as: Text / Table | `csv.defaultView` | Text |
+| First row is header | `csv.firstRowIsHeader` | on |
+
+
+---
+
+Source: docs/guide/user/actions-on-save.md
+
+# Actions on Save
+
+Settings | Tools | Actions on Save (`Ctrl+Alt+S`, then Tools) chooses what happens to a file
+when you save it, like PHPStorm. Every action is off by default. The settings are stored per
+project ("For current project"), so a team can share them in `.forge/settings.toml`.
+
+![Actions on Save settings](docs/screenshots/actions-on-save-settings.png)
+
+## Actions
+
+| Action | Files | What it does | Configure… |
+| --- | --- | --- | --- |
+| **Reformat code** | the chosen file types (default: all) | Reformat Code (`Ctrl+Alt+L`): the language server's formatter, StyLua for Lua, plus the blank lines of the PHP code style. **Whole file** or **Changed lines** (only lines changed since the last commit; files that are not committed yet are reformatted completely). | Editor \| Code Style |
+| **Optimize imports** | PHP | Removes unused `use` imports and sorts the rest: classes, then functions, then constants, each alphabetically. Group uses (`use A\{B, C};`) are split into single imports. | |
+| **Rearrange code** | PHP | Orders the members of classes, interfaces, traits and enums: trait `use`, enum cases, constants, properties, the constructor, the other methods. Members keep their order inside a group; docblocks, attributes and comments move with their member and blank lines stay where they were. | |
+| **Run code cleanup** | PHP | Applies the safe quick fixes: removes unused imports, unnecessary semicolons (`;;`, `};`) and the redundant closing tag `?>` at the end of a pure PHP file. | |
+| **Run eslint --fix** | `.js`, `.jsx`, `.ts`, `.tsx`, `.mjs`, `.cjs`, `.mts`, `.cts`, `.vue`, `.html`, `.svelte`, `.astro` | `eslint --fix <file>` with the project's ESLint configuration. | Languages & Frameworks \| ESLint |
+| **Run Prettier** | files matching **Run for files** (default `*.js; *.ts; *.jsx; *.tsx; *.cjs; *.cts; *.mjs; *.mts; *.vue; *.astro`) | `prettier --write <file>` with the project's Prettier configuration. | Languages & Frameworks \| Prettier |
+| **Run PHP CS Fixer** | PHP | `php-cs-fixer fix <file>` with the project's `.php-cs-fixer.dist.php`. | Languages & Frameworks \| PHP \| Quality Tools |
+| **Run Laravel Pint** | PHP | `pint <file>` with the project's `pint.json`. | Languages & Frameworks \| PHP \| Quality Tools |
+
+The PHP actions are skipped for Blade templates and files with syntax errors; an import is
+only removed when nothing in the file refers to it, including docblocks (`@var User`) and
+annotations (`@ORM\Column`). The rows of a pack are shown only while its plugin is enabled.
+"Update copyright notice" and "Upload to default server" are not offered because Forge has no
+copyright profiles or deployment servers yet.
+
+The "Reformat code" file types are picked from the **All file types** drop-down:
+
+![Reformat code file types](docs/screenshots/actions-on-save-file-types.png)
+
+## External tools
+
+ESLint, Prettier, PHP CS Fixer and Laravel Pint are the project's own installations:
+`node_modules/.bin/eslint`, `node_modules/.bin/prettier`, `vendor/bin/php-cs-fixer` and
+`vendor/bin/pint` (`.cmd` / `.bat` on Windows). The page shows where each one was found, or
+"Not installed in the project". A different executable can be set on the tool's settings
+page (`web.eslint.path`, `web.prettier.path`, `php.tools.phpCsFixer.path`,
+`php.tools.pint.path`); a relative path starts at the project root.
+
+![PHP Quality Tools settings](docs/screenshots/php-quality-tools-settings.png)
+
+The tools run on the saved file where the project lives, so they work in
+[remote projects](docs/guide/user/remote-development.md) too. A missing tool is skipped with a balloon (once
+per session); a failing tool shows its error in a balloon with a **Configure…** link, and the
+file gets back the text it had before that tool ran. Balloons belong to the "Actions on Save"
+notification group.
+
+![A skipped tool](docs/screenshots/actions-on-save-run.png)
+
+## When the actions run
+
+- On **explicit save**: `Ctrl+S` (Save All, macOS `Cmd+S`).
+- On **autosave** (when Forge loses the focus or after the idle time, see
+  [Saving](docs/guide/user/editor.md#saving)) only with **Also run on autosave**
+  (`actionsOnSave.runOnAutosave`), and then only Reformat code, Optimize imports, Rearrange
+  code and Run code cleanup. External tools only run on explicit save.
+- Saves that are part of another action (renaming, changing the encoding or line separator,
+  Git operations) never run them.
+
+The actions run in this order: Reformat code, Run code cleanup, Optimize imports, Rearrange
+code, then the On Save cleanup of Settings | Editor | General (trailing spaces, final line
+break), then the file is written and the external tools run on it (ESLint, Prettier, PHP CS
+Fixer, Pint).
+
+Everything the actions changed reaches the editor as **one edit**: a single `Ctrl+Z` undoes
+all of it. If you keep typing while the actions run, your text wins: the actions' result is
+dropped and what you typed is saved as it is.
+
+## Settings
+
+| Key | Default | Meaning |
+| --- | --- | --- |
+| `actionsOnSave.reformat.enabled` | `false` | Reformat code |
+| `actionsOnSave.reformat.scope` | `whole` | `whole` (Whole file) or `changed` (Changed lines) |
+| `actionsOnSave.reformat.fileTypes` | `[]` | file type ids (`php`, `javascript`, …); empty: all file types |
+| `actionsOnSave.optimizeImports` | `false` | Optimize imports |
+| `actionsOnSave.rearrange` | `false` | Rearrange code |
+| `actionsOnSave.codeCleanup` | `false` | Run code cleanup |
+| `actionsOnSave.eslint` | `false` | Run eslint --fix |
+| `actionsOnSave.prettier.enabled` | `false` | Run Prettier |
+| `actionsOnSave.prettier.files` | `*.js; *.ts; …` | Prettier's "Run for files" patterns |
+| `actionsOnSave.phpCsFixer` | `false` | Run PHP CS Fixer |
+| `actionsOnSave.pint` | `false` | Run Laravel Pint |
+| `actionsOnSave.runOnAutosave` | `false` | Also run on autosave |
+
+See the [settings reference](docs/guide/reference/settings.md#tools--actions-on-save) for all keys.
 
 
 ---
@@ -5987,6 +6255,14 @@ Settings | Editor | Code Style | PHP:
   imports** and **Around method** (at least). Strings, heredocs and comments are never
   changed. Generated methods are separated by "Around method" blank lines.
 
+### Quality Tools
+
+Settings | Languages & Frameworks | PHP | Quality Tools sets the PHP CS Fixer and Laravel Pint
+executables (`php.tools.phpCsFixer.path`, `php.tools.pint.path`); empty means
+`vendor/bin/php-cs-fixer` and `vendor/bin/pint` of the project. They run on save with
+**Run PHP CS Fixer** / **Run Laravel Pint**, and Optimize imports, Rearrange code and code
+cleanup of PHP files run there too, see [Actions on Save](docs/guide/user/actions-on-save.md).
+
 ## Running and testing PHP
 
 - **PHP Script** run configurations run a file with the CLI interpreter.
@@ -6476,6 +6752,13 @@ When several targets match, a **Choose Declaration** popup lists them.
 
 Below these options, **Language Services** shows the web language servers (JavaScript &
 TypeScript, Vue, Angular, HTML & CSS) with the same controls as the Language Servers page.
+
+## ESLint and Prettier
+
+Settings | Tools | [Actions on Save](docs/guide/user/actions-on-save.md) runs `eslint --fix` and
+`prettier --write` on saved files with the project's own `node_modules/.bin/eslint` and
+`node_modules/.bin/prettier`. Settings | Languages & Frameworks | ESLint and Prettier set a
+different executable (`web.eslint.path`, `web.prettier.path`).
 
 ## Browser Companion
 
@@ -8752,6 +9035,17 @@ Actions that Forge's plugins add (group **Plugins** in Settings | Keymap, some u
 | Jump to Query Console… | `Database.OpenConsole` | `Ctrl+Shift+F10` | `Cmd+Shift+F10` | tool window |
 | Data Source Properties | `Database.Properties` | `Shift+Enter` | `Shift+Enter` | tool window |
 | New Data Source… | `Database.NewDataSource` |  |  | any |
+| Editor Only | `TextEditorWithPreview.Layout.EditorOnly` |  |  | any |
+| Editor and Preview | `TextEditorWithPreview.Layout.EditorAndPreview` |  |  | any |
+| Preview Only | `TextEditorWithPreview.Layout.PreviewOnly` |  |  | any |
+| Zoom In (image editor) | `Images.Editor.ZoomIn` | `Ctrl+=`, `Ctrl+NumPad+` | `Cmd+=`, `Cmd+NumPad+` | any |
+| Zoom Out (image editor) | `Images.Editor.ZoomOut` | `Ctrl+-`, `Ctrl+NumPad-` | `Cmd+-`, `Cmd+NumPad-` | any |
+| Actual Size (image editor) | `Images.Editor.ActualSize` | `Ctrl+/`, `Ctrl+NumPad/` | `Cmd+/`, `Cmd+NumPad/` | any |
+| Fit Zoom to Window | `Images.Editor.FitZoomToWindow` |  |  | any |
+| Show Grid (image editor) | `Images.Editor.ToggleGrid` |  |  | any |
+| Show Chessboard (image editor) | `Images.ToggleTransparencyChessboard` |  |  | any |
+| Edit as Table (CSV/TSV) | `Csv.EditAsTable` |  |  | any |
+| Edit as Text (CSV/TSV) | `Csv.EditAsText` |  |  | any |
 | Select in Project View | `SelectInProjectView` |  |  | any |
 | Mark All Notifications as Read | `MarkNotificationsAsRead` |  |  | any |
 | Clear All Notifications | `ClearAllNotifications` |  |  | any |
@@ -9575,6 +9869,25 @@ Page id `editor.todo`.
 | --- | --- | --- | --- | --- | --- |
 | `todo.patterns` | list | `["\\btodo\\b.*", "\\bfixme\\b.*"]` | user | Patterns | Patterns — Regular expressions matched in comments, one per entry. Add a tab and `case` after a pattern to make it case-sensitive. |
 
+### Editor | Image
+
+Page id `editor.image`.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `images.showChessboard` | bool | `true` | user | Image Viewer | Show chessboard — Transparent areas of images are drawn over a chessboard pattern. |
+| `images.showGrid` | bool | `false` | user | Image Viewer | Show grid — Pixel grid lines when the zoom is 300% or more. |
+| `images.svgDefaultLayout` | enum: `editor`, `split`, `preview` | `split` | user | SVG | SVG files open with |
+
+### Editor | CSV/TSV
+
+Page id `editor.csv`.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `csv.defaultView` | enum: `text`, `table` | `text` | user |  | Open CSV/TSV files as |
+| `csv.firstRowIsHeader` | bool | `true` | user |  | First row is header — Default of the table view's header toggle. |
+
 ### Version Control | Git
 
 Page id `vcs.git`.
@@ -9626,6 +9939,15 @@ Page id `lang.php.composer`.
 | `php.composer.syncWithComposerJson` | bool | `true` | user, project |  | Synchronize IDE settings with composer.json — The PHP language level follows `require.php` of composer.json (the status bar shows it); the language level setting applies when there is no constraint. |
 | `php.composer.addPackagesAsLibraries` | bool | `true` | user, project |  | Add packages as libraries — Classes in vendor/ are resolved for navigation, completion and Intelephense. Off: vendor/ is left out. |
 | `php.composer.checkUpdates` | bool | `false` | user |  | Check for package updates on project open — Runs `composer outdated --direct` on the project's machine and reports updates in a balloon. |
+
+### Languages & Frameworks | PHP | Quality Tools
+
+Page id `lang.php.quality-tools`.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `php.tools.phpCsFixer.path` | path | `""` | user, project | PHP CS Fixer | PHP CS Fixer path — Empty: vendor/bin/php-cs-fixer of the project. A relative path starts at the project root. The project's .php-cs-fixer.dist.php is used. |
+| `php.tools.pint.path` | path | `""` | user, project | Laravel Pint | Laravel Pint path — Empty: vendor/bin/pint of the project. A relative path starts at the project root. The project's pint.json is used. |
 
 ### Languages & Frameworks | PHP | Debug
 
@@ -9720,6 +10042,17 @@ Page id `lang.lua`.
 | `lua.stylua.enabled` | bool | `true` | user | StyLua | Reformat Code with StyLua — Ctrl+Alt+L formats Lua files with StyLua when it is installed; stylua.toml in the project is honoured. |
 | `lua.stylua.path` | path | `stylua` | user | StyLua | StyLua executable |
 
+### Languages & Frameworks | Markdown
+
+Page id `lang.markdown`.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `markdown.defaultLayout` | enum: `editor`, `split`, `preview` | `split` | user | Preview | Default layout — How Markdown files open. The buttons in the top-right corner of the editor switch it per file. |
+| `markdown.syncScroll` | bool | `true` | user | Preview | Synchronize scrolling between the editor and the preview |
+| `markdown.frontMatter` | enum: `table`, `hidden` | `table` | user | Preview | Front matter — The YAML (---) or TOML (+++) block at the start of a file. |
+| `markdown.mermaid` | bool | `true` | user | Markdown Extensions | Mermaid — Render ```mermaid code blocks as diagrams. |
+
 ### Languages & Frameworks | Node.js
 
 Page id `lang.node`.
@@ -9738,6 +10071,41 @@ Page id `lang.typescript`.
 | --- | --- | --- | --- | --- | --- |
 | `web.navigation.components` | bool | `true` | user | Frameworks | Navigate from JSX and template tags to components, props and events — Ctrl+B and Ctrl+Click on <UserCard>, title=… and @select resolve through imports before the language server is asked. |
 | `angular.gutterIcons` | bool | `true` | user | Angular | Show line markers between components, templates and styles |
+
+### Languages & Frameworks | ESLint
+
+Page id `lang.eslint`.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `web.eslint.path` | path | `""` | user, project |  | ESLint package — Empty: node_modules/.bin/eslint of the project. A relative path starts at the project root. The project's ESLint configuration is used. |
+
+### Languages & Frameworks | Prettier
+
+Page id `lang.prettier`.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `web.prettier.path` | path | `""` | user, project |  | Prettier package — Empty: node_modules/.bin/prettier of the project. A relative path starts at the project root. The project's Prettier configuration is used. |
+
+### Tools | Actions on Save
+
+Page id `tools.actions-on-save`. See [Actions on Save](docs/guide/user/actions-on-save.md).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `actionsOnSave.reformat.enabled` | bool | `false` | user, project |  | Reformat code — Reformat Code (Ctrl+Alt+L) when the file is saved. |
+| `actionsOnSave.reformat.scope` | enum: `whole`, `changed` | `whole` | user, project |  | Reformat — "Changed lines" reformats only the lines changed since the last commit; files that are not committed yet are reformatted completely. |
+| `actionsOnSave.reformat.fileTypes` | list | `[]` | user, project |  | Reformat file types — File type ids (php, javascript, ...) reformatted on save; empty means all file types. |
+| `actionsOnSave.optimizeImports` | bool | `false` | user, project |  | Optimize imports — Remove unused imports and sort the others (PHP). |
+| `actionsOnSave.rearrange` | bool | `false` | user, project |  | Rearrange code — Order class members: constants, properties, constructor, methods (PHP). |
+| `actionsOnSave.codeCleanup` | bool | `false` | user, project |  | Run code cleanup — Apply the safe quick fixes: unused imports, unnecessary semicolons, a redundant closing tag (PHP). |
+| `actionsOnSave.eslint` | bool | `false` | user, project |  | Run eslint --fix — Fix ESLint problems in saved JavaScript, TypeScript and Vue files. (HTML, CSS & JavaScript plugin) |
+| `actionsOnSave.prettier.enabled` | bool | `false` | user, project |  | Run Prettier — Run `prettier --write` on saved files that match the patterns below. (HTML, CSS & JavaScript plugin) |
+| `actionsOnSave.prettier.files` | string | `*.js; *.ts; *.jsx; *.tsx; *.cjs; *.cts; *.mjs; *.mts; *.vue; *.astro` | user, project |  | Run for files — Patterns separated by `;`; patterns with a `/` match the path, the others the file name. (HTML, CSS & JavaScript plugin) |
+| `actionsOnSave.phpCsFixer` | bool | `false` | user, project |  | Run PHP CS Fixer — Run `php-cs-fixer fix` on saved PHP files. (PHP plugin) |
+| `actionsOnSave.pint` | bool | `false` | user, project |  | Run Laravel Pint — Run `pint` on saved PHP files. (PHP plugin) |
+| `actionsOnSave.runOnAutosave` | bool | `false` | user, project |  | Also run on autosave — Run Reformat code, Optimize imports, Rearrange code and Run code cleanup when files are saved automatically too. External tools only run on explicit save (Ctrl+S). |
 
 ### Tools | Terminal
 
@@ -11043,6 +11411,8 @@ On the Rust side, plugins contribute **data** through their manifest (see
 | `registerFileSystem` | `state/editor.ts` | editor tabs for a URI prefix (`scratch://`) |
 | `openCustomTab` | `state/editor.ts` | an editor tab that shows a feature view (`forge:<kind>/<id>`) |
 | `registerEditorView` | `shell/editorViews.ts` | non-file editor tabs opened with `openViewTab` (consoles, table editors) |
+| `registerFileEditor` | `shell/editorViews.ts` | an editor for some text files instead of the plain one (Markdown preview, SVG preview, CSV table) |
+| `registerBinaryFileView` | `state/editor.ts` | binary files that open as a view tab (images) |
 | `registerRunConfigurationType` | `features/run/types.ts` | a Run/Debug configuration type |
 | `registerDebugLauncher` | `features/run/types.ts` | a debugger for Debug (`Shift+F9`) |
 | `registerDialog` / `openDialogWindow` | `shell/window/dialogs.ts` | a large dialog in its own window |
@@ -11229,6 +11599,12 @@ in `dialog-windows.json`); in browser mode it opens in-page. The dialog ends wit
 - `openCustomTab({ id: "forge:mr/41", title: "#41 …", icon, component })` — feature views such as
   merge requests and issues. `activeTab()` stays file-only; check `isCustomTab(id)`.
 - `registerEditorView` + `openViewTab` — database consoles and table editors.
+- `registerFileEditor({ id, accepts(path), component })` (`shell/editorViews.ts`) — a richer
+  editor for some text files, like PHPStorm's file editor providers; the component gets the
+  tab and its editor group and usually embeds `CodeEditor` (Markdown and SVG with
+  `TextEditorWithPreview`, CSV/TSV with Text / Table tabs).
+- `registerBinaryFileView({ view, accepts(path) })` (`state/editor.ts`) — binary files that
+  `openFile` opens as a view tab without reading text (the image editor).
 - `registerFileSystem({ prefix: "scratch://", read, write, icon, breadcrumbs })` — files that
   live elsewhere (scratches, read-only `library://` files: PHP stubs and files outside the
   project, see `features/codeintel/library.ts`).
@@ -12263,6 +12639,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-livetemplates](docs/guide/developer/crates/forge-livetemplates.md) | Live templates: template sets, contexts, variables and expansion, Surround With and Unwrap/Remove (pure, WebAssembly-friendly) |
 | [forge-lsp](docs/guide/developer/crates/forge-lsp.md) | Forge IDE: generic Language Server Protocol client and server manager |
 | [forge-markdown](docs/guide/developer/crates/forge-markdown.md) | Forge Markdown: a safe AST (no raw HTML) for chat messages and documentation popups, built with pulldown-cmark (pure, also built to WebAssembly) |
+| [forge-viewers](docs/guide/developer/crates/forge-viewers.md) | Forge file viewers: image metadata for the image editor and CSV/TSV tables for Edit as Table (pure, also built to WebAssembly) |
 | [forge-open](docs/guide/developer/crates/forge-open.md) | Forge IDE open requests: forge:// links, the CLI launcher and the Browser Companion local server |
 | [forge-output](docs/guide/developer/crates/forge-output.md) | Forge process output: ANSI styling, console lines, file links and TeamCity test trees (pure, also built to WebAssembly) |
 | [forge-plugin-api](docs/guide/developer/crates/forge-plugin-api.md) | Stable plugin API for Forge language packs and feature plugins |
@@ -12270,6 +12647,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-project](docs/guide/developer/crates/forge-project.md) | Forge IDE projects: project type detection and New Project generators |
 | [forge-remote](docs/guide/developer/crates/forge-remote.md) | Forge IDE remote development: SSH connections, host keys, ~/.ssh/config and the Forge agent deployment |
 | [forge-remote-agent](docs/guide/developer/crates/forge-remote-agent.md) | Headless Forge agent: serves a project's files, git, processes, language servers and PHP index over stdio for remote development |
+| [forge-save-actions](docs/guide/developer/crates/forge-save-actions.md) | Actions on Save: which actions run for a saved file, reformatting only changed lines and running ESLint, Prettier, PHP CS Fixer and Laravel Pint through the project's backend |
 | [forge-scratches](docs/guide/developer/crates/forge-scratches.md) | Forge scratch files (PHPStorm's Scratches and Consoles): storage, naming, languages, run commands and the HTTP request client |
 | [forge-sql](docs/guide/developer/crates/forge-sql.md) | Forge SQL text: dialects, statement splitting, literals, row changes and export (pure, also built to WebAssembly) |
 | [forge-update](docs/guide/developer/crates/forge-update.md) | Forge update checks: when to check, which release is an update, the update feed, simulated updates and download speed |
@@ -13820,7 +14198,7 @@ Source: docs/guide/developer/crates/forge-markdown.md
 
 # forge-markdown
 
-`crates/forge-markdown` — Forge Markdown: a safe AST (no raw HTML) for chat messages and documentation popups, built with pulldown-cmark (pure, also built to WebAssembly).
+`crates/forge-markdown` — Forge Markdown: a safe AST (no raw HTML) for chat messages, documentation popups and the Markdown preview, built with pulldown-cmark (pure, also built to WebAssembly).
 
 ## Purpose
 
@@ -13828,7 +14206,12 @@ Markdown as a safe AST for the UI, which renders it with Solid components (never
 HTML). Raw HTML is never passed through: in chat messages it stays literal text, in
 documentation `<br>`/`<p>` become line breaks and every other tag is dropped.
 
-- `parse`: Markdown into `Block`s (`Flavor::Chat` or `Flavor::Docs`).
+- `parse`: Markdown into `Block`s (`Flavor::Chat`, `Flavor::Docs` or `Flavor::Preview`).
+- `parse_document`: a Markdown file for the preview: GitHub-flavored blocks (tables, task
+  lists, strikethrough, footnotes, autolinks, alerts, heading anchors, images) with the source
+  lines of every top-level block (synchronized scrolling), the front matter and the footnotes.
+  Raw HTML is sanitized into the AST (`<img>`, `<a href>`, `<br>`, `<b>`, `<i>`, `<s>`); comments
+  and every other tag are dropped.
 - `hover`: language server hover Markdown (Intelephense & co.) split into the parts of
   a PHPStorm-style documentation popup.
 
@@ -13837,6 +14220,7 @@ documentation `<br>`/`<p>` become line breaks and every other tag is dropped.
 | Module | Summary |
 | --- | --- |
 | `ast.rs` | The Markdown AST sent to the UI (JSON tagged by `t`). |
+| `document.rs` | The Markdown preview of a file: GitHub-flavored blocks with the source lines of every top-level block, the front matter and the footnotes; `anchor_line` for links into a file. |
 | `hover.rs` | Language server hovers (Markdown as Intelephense, phpactor & co. send it) split into the parts of a PHPStorm-style documentation popup: owner FQCN, signature, description and `Params:` / `Returns:` / `Throws:` sections. |
 | `parse.rs` | pulldown-cmark events into the `Block` tree. |
 
@@ -13844,14 +14228,15 @@ documentation `<br>`/`<p>` become line breaks and every other tag is dropped.
 
 ```rust
 pub use ast::{Block, Inline, ListItem};
+pub use document::{anchor_line, parse_document, Document, Footnote, FrontMatter, FrontMatterEntry, LineRange};
 pub use hover::{parse_hover, HoverDoc, HoverSection};
 pub use parse::{parse, parse_inline, Flavor};
 ```
 
 ## Used by
 
-- IPC: `markdown_parse`, `markdown_hover` (`app/src-tauri/src/commands/markdown.rs`)
-- UI: `app/ui/src/features/lsp/MarkdownDoc.tsx`, `app/ui/src/features/ai-chat/Markdown.tsx`
+- IPC: `markdown_parse`, `markdown_hover`, `markdown_document`, `markdown_anchor_line` (`app/src-tauri/src/commands/markdown.rs`)
+- UI: `app/ui/src/features/lsp/MarkdownDoc.tsx`, `app/ui/src/features/ai-chat/Markdown.tsx`, `app/ui/src/features/markdown/MarkdownPreview.tsx`
 - Browser mode: built into `forge-wasm`
 
 ## Dependencies
@@ -13861,10 +14246,63 @@ pub use parse::{parse, parse_inline, Flavor};
 
 ## Tests
 
-4 source files, about 987 lines; 9 unit tests.
+5 source files; 17 unit tests.
 
 ```sh
 cargo test -p forge-markdown
+```
+
+
+---
+
+Source: docs/guide/developer/crates/forge-viewers.md
+
+# forge-viewers
+
+`crates/forge-viewers` — Forge file viewers: image metadata for the image editor and CSV/TSV tables for Edit as Table (pure, also built to WebAssembly).
+
+## Purpose
+
+Data behind Forge's non-text file editors, computed in Rust so the desktop app and the
+browser mode (WebAssembly) share it:
+
+- `image`: format, dimensions and colour depth of PNG, JPEG, GIF, WebP, ICO, BMP and
+  SVG files for the image editor, and their bytes as a data URL payload.
+- `table`: CSV/TSV parsing and writing for "Edit as Table" that keeps the delimiter,
+  the quoting of every cell and the final line break, plus the table edits and sorting.
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `image.rs` | Image metadata for the image editor (PHPStorm shows "512x512 PNG (32-bit color) 4.17 kB"). Raster formats through `imagesize`, SVG from the root element's `width`/`height`/`viewBox`. |
+| `table.rs` | CSV/TSV for "Edit as Table". The parser remembers which cells were quoted, so writing an unchanged table gives back the same text, and edits only touch the cells they change. |
+
+## Main public items
+
+```rust
+pub use image::{image_data, image_info, is_image_path, ImageData, ImageInfo};
+pub use table::{apply_edits, detect_delimiter, parse_table, sort_order, CsvEdit, CsvTable};
+```
+
+## Used by
+
+- IPC: `image_read`, `csv_parse`, `csv_edit`, `csv_sort_order` (`app/src-tauri/src/commands/viewers.rs`)
+- UI: `app/ui/src/features/images/`, `app/ui/src/features/csv/`
+- Browser mode: built into `forge-wasm` (`viewers.rs`)
+
+## Dependencies
+
+- Workspace crates: none
+- External: `base64`, `imagesize` (MIT), `regex-lite`, `serde`, `serde_json`
+
+## Tests
+
+3 source files; 10 unit tests (round trips of quoting, delimiters and line endings, edits,
+sorting, PNG/GIF/BMP headers, SVG sizes).
+
+```sh
+cargo test -p forge-viewers
 ```
 
 
@@ -14295,6 +14733,76 @@ cargo test -p forge-remote-agent
 
 ---
 
+Source: docs/guide/developer/crates/forge-save-actions.md
+
+# forge-save-actions
+
+`crates/forge-save-actions` — Actions on Save: which actions run for a saved file,
+reformatting only changed lines and running external tools (ESLint, Prettier, PHP CS Fixer,
+Laravel Pint) through the project's backend.
+
+## Purpose
+
+The logic behind Settings | Tools | [Actions on Save](docs/guide/user/actions-on-save.md):
+
+- `plan(path, trigger, settings)` decides which actions run for one save: Reformat code
+  (whole file or changed lines, limited to file types), Optimize imports, Rearrange code and
+  Run code cleanup (PHP files only) and the external tools. On autosave nothing runs unless
+  "Also run on autosave" is on, and the external tools never do.
+- `restrict_to_changed_lines(base, original, formatted)` keeps only the hunks of a
+  reformatting that touch lines changed since `base` (the committed text; `None` = the whole
+  file is new).
+- `tools` (feature `backend`, on by default) finds a tool in the project (`vendor/bin`,
+  `node_modules/.bin`, `.bat` / `.cmd` too) or at its custom path and runs it on the saved
+  file through a `forge_backend::Backend`, so remote projects work. A failing tool's changes
+  are rolled back; ESLint's exit code 1 (problems left after `--fix`) counts as success.
+
+The PHP actions themselves are in `phpforge-lang-php` (`imports`, `rearrange`, `cleanup`).
+The UI applies the combined result as one edit (one undo step).
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `lib.rs` | Settings keys, `ActionsOnSave` (settings), `Trigger`, `Tool`, `SavePlan`, `plan`, `file_type_choices`. |
+| `changed.rs` | "Changed lines": a line diff (LCS) between the original and the reformatted text, applied hunk by hunk. |
+| `tools.rs` | Locating and running ESLint, Prettier, PHP CS Fixer and Laravel Pint; `run_tools`, `detect_tools`. |
+
+## Main public items
+
+```rust
+pub fn plan(path: &str, trigger: Trigger, settings: &ActionsOnSave) -> SavePlan;
+pub fn restrict_to_changed_lines(base: Option<&str>, original: &str, formatted: &str) -> String;
+pub fn file_type_choices() -> Vec<FileTypeChoice>;
+pub mod tools; // run_tools, detect_tools, locate (feature "backend")
+```
+
+## Used by
+
+- IPC: `save_actions_plan`, `save_actions_changed_lines`, `save_actions_php`,
+  `save_actions_run_tools`, `save_actions_info` (`app/src-tauri/src/commands/save_actions.rs`)
+- UI: `app/ui/src/features/actionsOnSave/`, `saveFile` in `app/ui/src/state/editor.ts`
+- Browser mode: `plan` and `restrict_to_changed_lines` are built into `forge-wasm`
+  (without the `backend` feature)
+
+## Dependencies
+
+- Workspace crates: `forge-filetypes`, `forge-text`; with `backend`: `forge-backend`,
+  `forge-core`, `forge-process`
+- External: `serde`, `serde_json`
+
+## Tests
+
+Plan, changed lines and tool runs with fake tool scripts in temporary directories (no real
+tools needed).
+
+```sh
+cargo test -p forge-save-actions
+```
+
+
+---
+
 Source: docs/guide/developer/crates/forge-scratches.md
 
 # forge-scratches
@@ -14583,12 +15091,13 @@ Rebuild the bundle with `pnpm --dir app/ui wasm` (output: `app/ui/src/wasm/pkg`)
 | `parsers.rs` | Parsers and models of process output, SQL, DQL, Markdown and the AI chat, mirroring the IPC commands of the desktop app for the browser-mode mocks. |
 | `parsers/chat.rs` | The AI chat conversation (`forge_agent_cli::conversation`) for the browser-mode agent: the mock feeds its scripted events into a `Chat` and emits the `chat` updates like the desktop backend. |
 | `parsers/dql.rs` | DQL in PHP strings (`phpforge-dql`) for the browser-mode Doctrine backend. Sites are found by the lexical finder (the desktop app uses tree-sitter); the entity snapshot comes from the mock's demo mappings. |
-| `parsers/markdown.rs` | Markdown (`forge-markdown`) for browser mode, mirroring `markdown_parse` / `markdown_hover`. |
+| `parsers/markdown.rs` | Markdown (`forge-markdown`) for browser mode, mirroring `markdown_parse`, `markdown_hover`, `markdown_document` and `markdown_anchor_line`. |
 | `parsers/output.rs` | Run output (`forge-output`) for the browser-mode run backend and terminal: the mock feeds process events into a `RunOutput` and emits the rendered events like the desktop app. |
 | `parsers/sql.rs` | SQL text (`forge-sql`) for the browser-mode database backend and console. |
 | `remote.rs` | Remote development (`forge-remote` without its SSH client): `~/.ssh/config` hosts, SSH configuration validation and `known_hosts` checks, mirroring `remote_ssh_hosts`, `remote_validate_config` and the host key step of `remote_connect`. |
 | `scratches.rs` | Scratch files (`forge-scratches`), mirroring the pure parts of the `scratches_*` IPC commands for the browser-mode mock: the language list, naming, gutter markers, run command lines and the `.http` parser, request resolution (variables, dynamic variables, body files), response handlers and rendering. |
 | `search.rs` | Fuzzy matching and Search Everywhere ranking (`forge-fuzzy`), mirroring the `fuzzy_filter`, `search_rank` and `fs_find_files` IPC commands. |
+| `viewers.rs` | Image metadata and CSV/TSV tables (`forge-viewers`) for browser mode, mirroring `image_read` (from the mock's demo bytes), `csv_parse`, `csv_edit` and `csv_sort_order`. |
 | `settings.rs` | The Settings dialog model (`forge_plugin_api::settings_model`), mirroring the `settings_search` and `settings_validate` IPC commands. |
 | `terminal.rs` | Terminal sequences (`forge_output::osc`), called synchronously by the terminal in the desktop app and in browser mode alike: xterm.js runs OSC handlers inside its parser, so the answer is needed before the handler returns, which an IPC round trip cannot give. |
 | `web.rs` | WebForge (`packs/webforge/*`) for the browser-mode mock: npm packages and scripts, package manager detection, and React/Vue/Angular component navigation over the demo project's files, mirroring the `npm_*` and `web_*` IPC commands. |
@@ -14608,7 +15117,7 @@ pub fn bridge_version() -> String { … }
 
 ## Dependencies
 
-- Workspace crates: [`forge-agent-cli`](docs/guide/developer/crates/forge-agent-cli.md), [`forge-containers`](docs/guide/developer/crates/forge-containers.md), [`forge-colors`](docs/guide/developer/crates/forge-colors.md), [`forge-editing`](docs/guide/developer/crates/forge-editing.md), [`forge-emmet`](docs/guide/developer/crates/forge-emmet.md), [`forge-filetypes`](docs/guide/developer/crates/forge-filetypes.md), [`forge-find`](docs/guide/developer/crates/forge-find.md), [`forge-fuzzy`](docs/guide/developer/crates/forge-fuzzy.md), [`forge-keymap`](docs/guide/developer/crates/forge-keymap.md), [`forge-markdown`](docs/guide/developer/crates/forge-markdown.md), [`forge-output`](docs/guide/developer/crates/forge-output.md), [`forge-plugin-api`](docs/guide/developer/crates/forge-plugin-api.md), [`forge-remote`](docs/guide/developer/crates/forge-remote.md), [`forge-scratches`](docs/guide/developer/crates/forge-scratches.md), [`forge-sql`](docs/guide/developer/crates/forge-sql.md), [`forge-window`](docs/guide/developer/crates/forge-window.md), [`luaforge-lang-lua`](docs/guide/developer/crates/luaforge-lang-lua.md), [`phpforge-dql`](docs/guide/developer/crates/phpforge-dql.md), [`webforge-fw-angular`](docs/guide/developer/crates/webforge-fw-angular.md), [`webforge-fw-react`](docs/guide/developer/crates/webforge-fw-react.md), [`webforge-fw-vue`](docs/guide/developer/crates/webforge-fw-vue.md), [`webforge-lang-web`](docs/guide/developer/crates/webforge-lang-web.md)
+- Workspace crates: [`forge-agent-cli`](docs/guide/developer/crates/forge-agent-cli.md), [`forge-containers`](docs/guide/developer/crates/forge-containers.md), [`forge-colors`](docs/guide/developer/crates/forge-colors.md), [`forge-editing`](docs/guide/developer/crates/forge-editing.md), [`forge-emmet`](docs/guide/developer/crates/forge-emmet.md), [`forge-filetypes`](docs/guide/developer/crates/forge-filetypes.md), [`forge-find`](docs/guide/developer/crates/forge-find.md), [`forge-fuzzy`](docs/guide/developer/crates/forge-fuzzy.md), [`forge-keymap`](docs/guide/developer/crates/forge-keymap.md), [`forge-markdown`](docs/guide/developer/crates/forge-markdown.md), [`forge-output`](docs/guide/developer/crates/forge-output.md), [`forge-plugin-api`](docs/guide/developer/crates/forge-plugin-api.md), [`forge-remote`](docs/guide/developer/crates/forge-remote.md), [`forge-scratches`](docs/guide/developer/crates/forge-scratches.md), [`forge-sql`](docs/guide/developer/crates/forge-sql.md), [`forge-viewers`](docs/guide/developer/crates/forge-viewers.md), [`forge-window`](docs/guide/developer/crates/forge-window.md), [`luaforge-lang-lua`](docs/guide/developer/crates/luaforge-lang-lua.md), [`phpforge-dql`](docs/guide/developer/crates/phpforge-dql.md), [`webforge-fw-angular`](docs/guide/developer/crates/webforge-fw-angular.md), [`webforge-fw-react`](docs/guide/developer/crates/webforge-fw-react.md), [`webforge-fw-vue`](docs/guide/developer/crates/webforge-fw-vue.md), [`webforge-lang-web`](docs/guide/developer/crates/webforge-lang-web.md)
 - External: `serde`, `serde_json`, `wasm-bindgen`
 
 ## Tests
@@ -14977,16 +15486,19 @@ PHPForge language pack: PHP support built on tree-sitter.
 
 | Module | Summary |
 | --- | --- |
+| `cleanup.rs` | Code Cleanup: removes unused imports, unnecessary semicolons (empty statements in statement lists, never a loop's empty body) and a redundant closing tag `?>` at the end of a pure PHP file. Used by Actions on Save. |
 | `create.rs` | Create from usage (Alt+Enter on an unresolved name): "Create method / field / constant / enum case / function" as edits (another file's as a `WorkspaceEdit` with LSP positions) with the caret after the edit, parameters and return types inferred from the usage, bodies from the code template "PHP Implemented Method Body"; "Create class / interface / trait" as the `PhpCreateClass` action with the dialog's data. Each fix carries the `ExternalSymbol` the PHP stubs must not declare. |
 | `docblock.rs` | PHPDoc parser: summary/description, the standard tags (`@param`, `@return`, `@throws`, `@var`, `@property[-read\|-write]`, `@method`, `@deprecated`, `@see`, `@template`, `@extends`/`@implements`), static-analysis prefixes (`@phpstan-`/`@psalm-`) and Doctrine/Symfony style annotations (`@ORM\Column(type="string")`, `@Route("/x")`). |
 | `fuzzy.rs` | Fuzzy matcher for Go to Class / Go to Symbol: subsequence matching with bonuses for word starts, camel humps (`OrCo` -> `OrderController`) and consecutive runs. |
 | `generate.rs` | "Generate" actions (Alt+Insert): constructor, getters/setters, `__toString()`, override/implement method stubs and PHPDoc blocks. |
 | `hover.rs` | Index-based hover for project symbols: signature + attributes + parsed docblock as markdown. Complements a language server's hover (which covers built-ins). |
 | `intentions.rs` | Built-in intentions for Show Context Actions (Alt+Enter) on the index: import class, replace qualifier with an import, accessors, "Add 'readonly' modifier", method stubs, PHPDoc and the "Generate..." link. |
+| `imports.rs` | Optimize Imports: removes `use` imports nothing refers to (code, attributes, docblocks and annotations count) and sorts the rest (classes, functions, constants); group uses are expanded, braced namespaces handled separately. |
 | `index.rs` | Workspace-wide PHP index: parallel indexing, mtime-keyed persistent cache, fuzzy symbol search, ancestor lookup and lazy resolution of vendor classes through Composer's PSR-4 metadata. |
 | `lsp.rs` | How to launch a PHP language server: Intelephense (preferred, users bring their own licence key) with phpactor as fallback. Independent of the generic LSP client; the app turns `LspServerConfig` into a running server. |
 | `model.rs` | Symbol model produced by the indexer. Everything is serializable so it can be cached on disk and sent over IPC unchanged (camelCase field names for the UI). |
 | `navigate.rs` | Code navigation on the index when no language server answers: the symbol under the caret (classes with or without a leading backslash through imports, aliases, group uses and the namespace; functions and constants with PHP's global fallback; members through `$this`, `self`/`static`/`parent`, typed variables, `catch`, `@var`, property and return-type chains; variables), `definition` (target, "on a declaration" or an `ExternalSymbol` for the stubs), `find_usages` (usage kinds, dynamic usages, members through parent and child classes), Go to Implementation / Super Method / Type Declaration and the implemented / overridden `line_markers`. |
+| `rearrange.rs` | Rearrange Code: orders class members as trait uses, enum cases, constants, properties, constructor, methods; comments move with their member, blank lines stay in place. |
 | `rename.rs` | Rename (Shift+F6) on the index: PHPStorm's dialog label for a symbol and the name clashes reported as conflicts (`clashes`: the class / function / constant or member with the new name already exists). The edit itself comes from `find_usages` and `forge_codeintel::edit_from_locations`. |
 | `offsets.rs` | Offset conversion. The index works in UTF-8 byte offsets; the UI (CodeMirror / JS strings) uses UTF-16 code units. Convert at the IPC boundary. |
 | `parser.rs` | Tree-sitter based PHP file indexer: turns source into a `FileIndex`. |

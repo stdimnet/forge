@@ -155,7 +155,7 @@ action("ResizeToolWindowUp", stretch("up"));
 action("ResizeToolWindowDown", stretch("down"));
 
 // ---- Editor tabs & files
-action("SaveAll", saveAll);
+action("SaveAll", () => saveAll("explicit"));
 // Close actions work on the active editor group; pinned tabs stay on Close Others/All.
 const inActiveGroup = (fn: (group: number, id: string | null) => void) => () => fn(activeGroupId(), groupActive(activeGroupId()));
 action("CloseContent", inActiveGroup((g, id) => id && closeTabIn(g, id)));

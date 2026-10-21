@@ -15,6 +15,8 @@ serde_json.workspace = true
 forge-output.workspace = true
 forge-sql.workspace = true
 forge-markdown.workspace = true
+forge-viewers.workspace = true
+base64 = "0.22"
 forge-agent-cli = { path = "../forge-agent-cli", default-features = false }
 phpforge-dql = { path = "../../packs/phpforge/dql" }
 luaforge-lang-lua.workspace = true
@@ -31,6 +33,7 @@ forge-bookmarks.workspace = true
 forge-codeintel.workspace = true
 forge-filetypes.workspace = true
 forge-text.workspace = true
+forge-save-actions.workspace = true
 forge-editing.workspace = true
 forge-file-templates.workspace = true
 forge-plugin-api.workspace = true

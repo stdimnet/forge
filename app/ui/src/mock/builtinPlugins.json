@@ -1221,6 +1221,228 @@
           "group": "tools.http-client",
           "project": true,
           "order": 1
+        },
+        {
+          "key": "actionsOnSave.reformat.enabled",
+          "title": "Reformat code",
+          "description": "Reformat Code (Ctrl+Alt+L) when the file is saved.",
+          "type": "bool",
+          "default": false,
+          "group": "tools.actions-on-save",
+          "project": true,
+          "order": 0
+        },
+        {
+          "key": "actionsOnSave.reformat.scope",
+          "title": "Reformat",
+          "description": "\"Changed lines\" reformats only the lines changed since the last commit; files that are not committed yet are reformatted completely.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "whole",
+              "label": "Whole file"
+            },
+            {
+              "value": "changed",
+              "label": "Changed lines"
+            }
+          ],
+          "default": "whole",
+          "group": "tools.actions-on-save",
+          "project": true,
+          "order": 1
+        },
+        {
+          "key": "actionsOnSave.reformat.fileTypes",
+          "title": "Reformat file types",
+          "description": "File type ids (php, javascript, ...) reformatted on save; empty means all file types.",
+          "type": "list",
+          "default": [],
+          "group": "tools.actions-on-save",
+          "project": true,
+          "order": 2
+        },
+        {
+          "key": "actionsOnSave.optimizeImports",
+          "title": "Optimize imports",
+          "description": "Remove unused imports and sort the others (PHP).",
+          "type": "bool",
+          "default": false,
+          "group": "tools.actions-on-save",
+          "project": true,
+          "order": 10
+        },
+        {
+          "key": "actionsOnSave.rearrange",
+          "title": "Rearrange code",
+          "description": "Order class members: constants, properties, constructor, methods (PHP).",
+          "type": "bool",
+          "default": false,
+          "group": "tools.actions-on-save",
+          "project": true,
+          "order": 20
+        },
+        {
+          "key": "actionsOnSave.codeCleanup",
+          "title": "Run code cleanup",
+          "description": "Apply the safe quick fixes: unused imports, unnecessary semicolons, a redundant closing tag (PHP).",
+          "type": "bool",
+          "default": false,
+          "group": "tools.actions-on-save",
+          "project": true,
+          "order": 30
+        },
+        {
+          "key": "actionsOnSave.runOnAutosave",
+          "title": "Also run on autosave",
+          "description": "Run Reformat code, Optimize imports, Rearrange code and Run code cleanup when files are saved automatically too. External tools only run on explicit save (Ctrl+S).",
+          "type": "bool",
+          "default": false,
+          "group": "tools.actions-on-save",
+          "project": true,
+          "order": 90
+        },
+        {
+          "key": "markdown.defaultLayout",
+          "title": "Default layout",
+          "description": "How Markdown files open. The buttons in the top-right corner of the editor switch it per file.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "editor",
+              "label": "Editor only"
+            },
+            {
+              "value": "split",
+              "label": "Editor and Preview"
+            },
+            {
+              "value": "preview",
+              "label": "Preview only"
+            }
+          ],
+          "default": "split",
+          "group": "lang.markdown",
+          "section": "Preview",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "markdown.syncScroll",
+          "title": "Synchronize scrolling between the editor and the preview",
+          "type": "bool",
+          "default": true,
+          "group": "lang.markdown",
+          "section": "Preview",
+          "project": false,
+          "order": 10
+        },
+        {
+          "key": "markdown.frontMatter",
+          "title": "Front matter",
+          "description": "The YAML (---) or TOML (+++) block at the start of a file.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "table",
+              "label": "Show as table"
+            },
+            {
+              "value": "hidden",
+              "label": "Hide"
+            }
+          ],
+          "default": "table",
+          "group": "lang.markdown",
+          "section": "Preview",
+          "project": false,
+          "order": 20
+        },
+        {
+          "key": "markdown.mermaid",
+          "title": "Mermaid",
+          "description": "Render ```mermaid code blocks as diagrams.",
+          "type": "bool",
+          "default": true,
+          "group": "lang.markdown",
+          "section": "Markdown Extensions",
+          "project": false,
+          "order": 30
+        },
+        {
+          "key": "images.showChessboard",
+          "title": "Show chessboard",
+          "description": "Transparent areas of images are drawn over a chessboard pattern.",
+          "type": "bool",
+          "default": true,
+          "group": "editor.image",
+          "section": "Image Viewer",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "images.showGrid",
+          "title": "Show grid",
+          "description": "Pixel grid lines when the zoom is 300% or more.",
+          "type": "bool",
+          "default": false,
+          "group": "editor.image",
+          "section": "Image Viewer",
+          "project": false,
+          "order": 10
+        },
+        {
+          "key": "images.svgDefaultLayout",
+          "title": "SVG files open with",
+          "type": "enum",
+          "options": [
+            {
+              "value": "editor",
+              "label": "Editor only"
+            },
+            {
+              "value": "split",
+              "label": "Editor and Preview"
+            },
+            {
+              "value": "preview",
+              "label": "Preview only"
+            }
+          ],
+          "default": "split",
+          "group": "editor.image",
+          "section": "SVG",
+          "project": false,
+          "order": 20
+        },
+        {
+          "key": "csv.defaultView",
+          "title": "Open CSV/TSV files as",
+          "type": "enum",
+          "options": [
+            {
+              "value": "text",
+              "label": "Text"
+            },
+            {
+              "value": "table",
+              "label": "Table"
+            }
+          ],
+          "default": "text",
+          "group": "editor.csv",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "csv.firstRowIsHeader",
+          "title": "First row is header",
+          "description": "Default of the table view's header toggle.",
+          "type": "bool",
+          "default": true,
+          "group": "editor.csv",
+          "project": false,
+          "order": 10
         }
       ],
       "lspServers": [],
@@ -2446,6 +2668,48 @@
           "section": "Blank Lines",
           "project": true,
           "order": 23
+        },
+        {
+          "key": "actionsOnSave.phpCsFixer",
+          "title": "Run PHP CS Fixer",
+          "description": "Run `php-cs-fixer fix` on saved PHP files.",
+          "type": "bool",
+          "default": false,
+          "group": "tools.actions-on-save",
+          "project": true,
+          "order": 60
+        },
+        {
+          "key": "actionsOnSave.pint",
+          "title": "Run Laravel Pint",
+          "description": "Run `pint` on saved PHP files.",
+          "type": "bool",
+          "default": false,
+          "group": "tools.actions-on-save",
+          "project": true,
+          "order": 70
+        },
+        {
+          "key": "php.tools.phpCsFixer.path",
+          "title": "PHP CS Fixer path",
+          "description": "Empty: vendor/bin/php-cs-fixer of the project. A relative path starts at the project root. The project's .php-cs-fixer.dist.php is used.",
+          "type": "path",
+          "default": "",
+          "group": "lang.php.quality-tools",
+          "section": "PHP CS Fixer",
+          "project": true,
+          "order": 0
+        },
+        {
+          "key": "php.tools.pint.path",
+          "title": "Laravel Pint path",
+          "description": "Empty: vendor/bin/pint of the project. A relative path starts at the project root. The project's pint.json is used.",
+          "type": "path",
+          "default": "",
+          "group": "lang.php.quality-tools",
+          "section": "Laravel Pint",
+          "project": true,
+          "order": 10
         }
       ],
       "lspServers": [
@@ -3591,6 +3855,56 @@
           "group": "lang.typescript",
           "section": "Frameworks",
           "project": false,
+          "order": 0
+        },
+        {
+          "key": "actionsOnSave.eslint",
+          "title": "Run eslint --fix",
+          "description": "Fix ESLint problems in saved JavaScript, TypeScript and Vue files.",
+          "type": "bool",
+          "default": false,
+          "group": "tools.actions-on-save",
+          "project": true,
+          "order": 40
+        },
+        {
+          "key": "actionsOnSave.prettier.enabled",
+          "title": "Run Prettier",
+          "description": "Run `prettier --write` on saved files that match the patterns below.",
+          "type": "bool",
+          "default": false,
+          "group": "tools.actions-on-save",
+          "project": true,
+          "order": 50
+        },
+        {
+          "key": "actionsOnSave.prettier.files",
+          "title": "Run for files",
+          "description": "Patterns separated by `;`; patterns with a `/` match the path, the others the file name.",
+          "type": "string",
+          "default": "*.js; *.ts; *.jsx; *.tsx; *.cjs; *.cts; *.mjs; *.mts; *.vue; *.astro",
+          "group": "tools.actions-on-save",
+          "project": true,
+          "order": 51
+        },
+        {
+          "key": "web.eslint.path",
+          "title": "ESLint package",
+          "description": "Empty: node_modules/.bin/eslint of the project. A relative path starts at the project root. The project's ESLint configuration is used.",
+          "type": "path",
+          "default": "",
+          "group": "lang.eslint",
+          "project": true,
+          "order": 0
+        },
+        {
+          "key": "web.prettier.path",
+          "title": "Prettier package",
+          "description": "Empty: node_modules/.bin/prettier of the project. A relative path starts at the project root. The project's Prettier configuration is used.",
+          "type": "path",
+          "default": "",
+          "group": "lang.prettier",
+          "project": true,
           "order": 0
         }
       ],

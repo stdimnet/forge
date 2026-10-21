@@ -18,6 +18,7 @@ forge-search = { path = "crates/forge-search" }
 forge-search-core = { path = "crates/forge-search-core" }
 forge-bookmarks = { path = "crates/forge-bookmarks" }
 forge-text = { path = "crates/forge-text" }
+forge-save-actions = { path = "crates/forge-save-actions", default-features = false }
 forge-editing = { path = "crates/forge-editing" }
 forge-file-templates = { path = "crates/forge-file-templates" }
 forge-codeintel = { path = "crates/forge-codeintel" }
@@ -33,6 +34,7 @@ forge-open = { path = "crates/forge-open" }
 forge-process = { path = "crates/forge-process" }
 forge-output = { path = "crates/forge-output" }
 forge-markdown = { path = "crates/forge-markdown" }
+forge-viewers = { path = "crates/forge-viewers" }
 forge-debug = { path = "crates/forge-debug" }
 forge-db = { path = "crates/forge-db" }
 forge-containers = { path = "crates/forge-containers" }

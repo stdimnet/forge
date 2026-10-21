@@ -1,3 +1,5 @@
+import { demoDocFiles } from "./demoDocs";
+
 /** In-memory demo project used when the UI runs without the Rust backend. */
 export const demoProjectName = "acme-shop";
 
@@ -26,7 +28,6 @@ export const demoFiles: Record<string, string> = {
   "config/packages/framework.yaml": "framework:\n    secret: '%env(APP_SECRET)%'\n    session: true\n",
   "artisan": "#!/usr/bin/env php\n<?php\n\nrequire __DIR__.'/vendor/autoload.php';\n",
   ".env.example": "APP_NAME=AcmeShop\nAPP_ENV=local\nDB_CONNECTION=mysql\nDB_HOST=127.0.0.1\nDB_DATABASE=shop\n",
-  "README.md": "# Acme Shop\n\nDemo project for Forge.\n",
   "app/Models/User.php": `<?php
 
 declare(strict_types=1);
@@ -356,4 +357,6 @@ class CheckoutTest extends TestCase
     }
 }
 `,
+  // README.md, docs, a CSV export and images (Markdown preview, image editor, Edit as Table).
+  ...demoDocFiles,
 };

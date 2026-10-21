@@ -140,6 +140,13 @@ When several targets match, a **Choose Declaration** popup lists them.
 Below these options, **Language Services** shows the web language servers (JavaScript &
 TypeScript, Vue, Angular, HTML & CSS) with the same controls as the Language Servers page.
 
+## ESLint and Prettier
+
+Settings | Tools | [Actions on Save](actions-on-save.md) runs `eslint --fix` and
+`prettier --write` on saved files with the project's own `node_modules/.bin/eslint` and
+`node_modules/.bin/prettier`. Settings | Languages & Frameworks | ESLint and Prettier set a
+different executable (`web.eslint.path`, `web.prettier.path`).
+
 ## Browser Companion
 
 Click a React, Vue, Angular or Svelte component in your running app and its source opens in

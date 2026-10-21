@@ -23,6 +23,7 @@ forge-plugin-api.workspace = true
 forge-fuzzy.workspace = true
 forge-filetypes.workspace = true
 forge-text.workspace = true
+forge-save-actions = { workspace = true, features = ["backend"] }
 forge-editing.workspace = true
 forge-file-templates.workspace = true
 forge-ai.workspace = true
@@ -36,6 +37,7 @@ forge-project.workspace = true
 forge-open.workspace = true
 forge-process.workspace = true
 forge-markdown.workspace = true
+forge-viewers.workspace = true
 forge-debug.workspace = true
 forge-db.workspace = true
 forge-containers.workspace = true

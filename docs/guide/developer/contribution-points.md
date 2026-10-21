@@ -44,6 +44,8 @@ On the Rust side, plugins contribute **data** through their manifest (see
 | `registerFileSystem` | `state/editor.ts` | editor tabs for a URI prefix (`scratch://`) |
 | `openCustomTab` | `state/editor.ts` | an editor tab that shows a feature view (`forge:<kind>/<id>`) |
 | `registerEditorView` | `shell/editorViews.ts` | non-file editor tabs opened with `openViewTab` (consoles, table editors) |
+| `registerFileEditor` | `shell/editorViews.ts` | an editor for some text files instead of the plain one (Markdown preview, SVG preview, CSV table) |
+| `registerBinaryFileView` | `state/editor.ts` | binary files that open as a view tab (images) |
 | `registerRunConfigurationType` | `features/run/types.ts` | a Run/Debug configuration type |
 | `registerDebugLauncher` | `features/run/types.ts` | a debugger for Debug (`Shift+F9`) |
 | `registerDialog` / `openDialogWindow` | `shell/window/dialogs.ts` | a large dialog in its own window |
@@ -230,6 +232,12 @@ in `dialog-windows.json`); in browser mode it opens in-page. The dialog ends wit
 - `openCustomTab({ id: "forge:mr/41", title: "#41 …", icon, component })` — feature views such as
   merge requests and issues. `activeTab()` stays file-only; check `isCustomTab(id)`.
 - `registerEditorView` + `openViewTab` — database consoles and table editors.
+- `registerFileEditor({ id, accepts(path), component })` (`shell/editorViews.ts`) — a richer
+  editor for some text files, like PHPStorm's file editor providers; the component gets the
+  tab and its editor group and usually embeds `CodeEditor` (Markdown and SVG with
+  `TextEditorWithPreview`, CSV/TSV with Text / Table tabs).
+- `registerBinaryFileView({ view, accepts(path) })` (`state/editor.ts`) — binary files that
+  `openFile` opens as a view tab without reading text (the image editor).
 - `registerFileSystem({ prefix: "scratch://", read, write, icon, breadcrumbs })` — files that
   live elsewhere (scratches, read-only `library://` files: PHP stubs and files outside the
   project, see `features/codeintel/library.ts`).

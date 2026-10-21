@@ -7,7 +7,9 @@ tags: [editor, completion, postfix completion, hover, documentation, navigation,
 
 # Editor
 
-Forge's editor is built on CodeMirror 6. Language intelligence (completion, hover, diagnostics,
+Forge's editor is built on CodeMirror 6. Markdown, SVG, image and CSV/TSV files open in
+editors of their own with a preview, zoom or a table view: see
+[Markdown, images and CSV](markdown-images-csv.md). Language intelligence (completion, hover, diagnostics,
 Go to Declaration, formatting) comes from [language servers](language-servers.md) and from
 Forge's own indexes for PHP, Lua and the frameworks. Shortcuts below are the Windows/Linux
 defaults with macOS in parentheses; the full list is in the
@@ -546,6 +548,10 @@ Saving applies Settings | Editor | General | On Save, like PHPStorm:
 "Modified lines" are the lines changed since the file was opened or last saved. Lines with a
 caret keep their spaces, so saving never moves what you are typing. An `.editorconfig` with
 `trim_trailing_whitespace` or `insert_final_newline` overrides both options for its files.
+
+Settings | Tools | [Actions on Save](actions-on-save.md) adds Reformat code, Optimize
+imports, Rearrange code, code cleanup and external tools (ESLint, Prettier, PHP CS Fixer,
+Laravel Pint) to an explicit save (`Ctrl+S`), and optionally to autosave.
 
 When Forge gets the focus back it re-reads the open files that changed on disk and refreshes
 the Project view and Git status (`system.syncExternalChanges`).

@@ -539,6 +539,17 @@ Actions that Forge's plugins add (group **Plugins** in Settings | Keymap, some u
 | Jump to Query Console… | `Database.OpenConsole` | `Ctrl+Shift+F10` | `Cmd+Shift+F10` | tool window |
 | Data Source Properties | `Database.Properties` | `Shift+Enter` | `Shift+Enter` | tool window |
 | New Data Source… | `Database.NewDataSource` |  |  | any |
+| Editor Only | `TextEditorWithPreview.Layout.EditorOnly` |  |  | any |
+| Editor and Preview | `TextEditorWithPreview.Layout.EditorAndPreview` |  |  | any |
+| Preview Only | `TextEditorWithPreview.Layout.PreviewOnly` |  |  | any |
+| Zoom In (image editor) | `Images.Editor.ZoomIn` | `Ctrl+=`, `Ctrl+NumPad+` | `Cmd+=`, `Cmd+NumPad+` | any |
+| Zoom Out (image editor) | `Images.Editor.ZoomOut` | `Ctrl+-`, `Ctrl+NumPad-` | `Cmd+-`, `Cmd+NumPad-` | any |
+| Actual Size (image editor) | `Images.Editor.ActualSize` | `Ctrl+/`, `Ctrl+NumPad/` | `Cmd+/`, `Cmd+NumPad/` | any |
+| Fit Zoom to Window | `Images.Editor.FitZoomToWindow` |  |  | any |
+| Show Grid (image editor) | `Images.Editor.ToggleGrid` |  |  | any |
+| Show Chessboard (image editor) | `Images.ToggleTransparencyChessboard` |  |  | any |
+| Edit as Table (CSV/TSV) | `Csv.EditAsTable` |  |  | any |
+| Edit as Text (CSV/TSV) | `Csv.EditAsText` |  |  | any |
 | Select in Project View | `SelectInProjectView` |  |  | any |
 | Mark All Notifications as Read | `MarkNotificationsAsRead` |  |  | any |
 | Clear All Notifications | `ClearAllNotifications` |  |  | any |
