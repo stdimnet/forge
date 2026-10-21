@@ -220,6 +220,10 @@ always asks before downloading onto a host (also with `auto install` set to alwa
 Intelephense licence is accepted on your machine. Updates of the servers Forge installed are
 checked on the host too.
 
+![Language Servers page of a remote project](../../screenshots/remote-finish-langserver.png)
+
+![Installing on the host](../../screenshots/remote-finish-langserver-dialog.png)
+
 ## Troubleshooting
 
 - **"Not found" although it is installed**: Forge may have been started from a desktop launcher
