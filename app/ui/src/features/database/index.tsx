@@ -15,7 +15,7 @@ import { onProjectDetected } from "@/state/project";
 import { workspace } from "@/state/workspace";
 import { registerDialog } from "@/shell/window/dialogs";
 import { isDialogWindow } from "@/shell/window/mode";
-import { registerKeymapActions } from "@/keymap";
+import { registerKeymapActions, runAction } from "@/keymap";
 import { dbApi } from "@/ipc/db";
 import { DatabaseActions, DatabaseView } from "./DatabaseView";
 import { DataSourceDialog } from "./DataSourceDialog";
@@ -126,7 +126,13 @@ registerCommand({
   id: "Console.TableResult.AddRow",
   title: "Add Row",
   category: "Database",
-  run: () => (inDbTree() ? openDataSources({ newDriver: "mysql" }) : activeDataEditor()?.addRow()),
+  run: () => {
+    if (inDbTree()) return openDataSources({ newDriver: "mysql" });
+    const data = activeDataEditor();
+    if (data && !document.activeElement?.closest(".project-tree")) return data.addRow();
+    // Alt+Insert elsewhere (the Project view, other tool windows) is PHPStorm's New… popup.
+    return runAction("NewElement");
+  },
 });
 registerCommand({ id: "Console.TableResult.DeleteRows", title: "Delete Rows", category: "Database", run: () => activeDataEditor()?.deleteRows() });
 registerCommand({ id: "Console.TableResult.Revert", title: "Revert Selected", category: "Database", run: () => activeDataEditor()?.revert() });

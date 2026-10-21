@@ -42,3 +42,4 @@ import "./bookmarks";
 import "./todo";
 import "./notifications";
 import "./updates";
+import "./fileTemplates";

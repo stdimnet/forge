@@ -73,6 +73,8 @@ pub struct TemplateInfo {
     pub modified: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub default_text: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub default_extension: Option<String>,
     /// Offered only when the project uses this language or framework.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub when: Option<String>,
@@ -82,6 +84,9 @@ pub struct TemplateInfo {
     pub php_class: bool,
     /// Variables the template uses beyond the predefined ones: the New dialog asks for them.
     pub variables: Vec<String>,
+    /// Every variable the template uses (the New PHP Class dialog shows Extends / Implements
+    /// only for templates that use them).
+    pub references: Vec<String>,
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub description: String,
     /// The template does not parse (a message with its line).
@@ -165,8 +170,9 @@ fn info(
         && extension.eq_ignore_ascii_case("php")
         && refs.iter().any(|v| v == "NAMESPACE");
     let variables = if kind == TemplateKind::File {
-        refs.into_iter()
-            .filter(|v| !PREDEFINED.iter().any(|(p, _)| p == v))
+        refs.iter()
+            .filter(|v| !PREDEFINED.iter().any(|(p, _)| p == *v))
+            .cloned()
             .collect()
     } else {
         Vec::new()
@@ -179,10 +185,12 @@ fn info(
         builtin: shipped.is_some(),
         modified: shipped.is_some_and(|b| b.text != text || b.extension != extension),
         default_text: shipped.map(|b| b.text.to_string()),
+        default_extension: shipped.map(|b| b.extension.to_string()),
         when: shipped.and_then(|b| b.when).map(str::to_string),
         group: shipped.map_or("user", |b| b.group).to_string(),
         php_class,
         variables,
+        references: refs,
         description: shipped.map_or("", |b| b.description).to_string(),
         error: velocity::validate(text).err().map(|e| e.to_string()),
     }

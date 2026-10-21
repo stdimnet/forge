@@ -1,0 +1,159 @@
+/* File and Code Templates: the New dialogs and the settings page. Colors come from theme.css
+   variables only. */
+
+/* ---------- New PHP Class / New <template> dialog ---------- */
+.ft-form {
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: center;
+  column-gap: 12px;
+  row-gap: 8px;
+}
+.ft-form input,
+.ft-form select {
+  height: 28px;
+  width: 100%;
+}
+.ft-mono {
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+}
+.ft-error {
+  grid-column: 1 / -1;
+}
+
+/* ---------- Settings page ---------- */
+.ft-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 460px;
+}
+.ft-tabs {
+  display: flex;
+  gap: 2px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 10px;
+}
+.ft-tab {
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  padding: 6px 12px;
+  color: var(--fg-muted);
+  box-shadow: none;
+}
+.ft-tab:hover {
+  color: var(--fg);
+}
+.ft-tab.active {
+  color: var(--fg-strong);
+  border-bottom-color: var(--accent);
+}
+.ft-body {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 250px minmax(0, 1fr);
+  gap: 12px;
+}
+.ft-list {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  max-width: none;
+}
+.ft-items {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 2px 0;
+}
+.ft-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 8px;
+  white-space: nowrap;
+  cursor: default;
+  color: var(--fg);
+}
+.ft-item span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ft-item:hover {
+  background: var(--bg-hover);
+}
+.ft-item.selected {
+  background: var(--accent-soft);
+}
+/* Changed built-ins are highlighted like PHPStorm's modified templates. */
+.ft-item.modified {
+  color: var(--accent);
+}
+.ft-item.broken span {
+  text-decoration: underline wavy var(--danger);
+}
+.ft-editor-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  min-height: 0;
+}
+.ft-fields {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr) max-content 90px;
+  align-items: center;
+  gap: 8px;
+}
+.ft-fields .set-label {
+  min-width: 0;
+}
+.ft-fields input:disabled {
+  opacity: 0.7;
+}
+.ft-text {
+  flex: 1;
+  min-height: 220px;
+  resize: vertical;
+  padding: 8px 10px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-editor);
+  line-height: 1.5;
+  white-space: pre;
+  tab-size: 4;
+  background: var(--bg-editor);
+  color: var(--fg);
+}
+.ft-problem {
+  white-space: normal;
+}
+.ft-description {
+  max-height: 210px;
+  overflow: auto;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+  line-height: 1.45;
+}
+.ft-description p {
+  margin: 0 0 6px;
+}
+.ft-description code {
+  font-family: var(--font-mono);
+  color: var(--fg);
+}
+.ft-vars {
+  border-collapse: collapse;
+  margin-bottom: 6px;
+}
+.ft-vars td {
+  padding: 1px 10px 1px 0;
+  vertical-align: top;
+}

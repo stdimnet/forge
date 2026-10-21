@@ -35,10 +35,19 @@ pub fn code_templates(state: &AppState) -> std::collections::BTreeMap<String, St
     templates::code_overrides(&custom_templates(state))
 }
 
+/// The catalog with the user's templates from the settings, or with `custom` (the settings
+/// page shows its unapplied edits).
 #[tauri::command]
-pub fn templates_list(state: State<'_, AppState>) -> TemplateCatalog {
+pub fn templates_list(
+    custom: Option<serde_json::Value>,
+    state: State<'_, AppState>,
+) -> TemplateCatalog {
+    let custom = match custom {
+        Some(value) => templates::parse_custom(&value),
+        None => custom_templates(&state),
+    };
     TemplateCatalog {
-        templates: templates::catalog(&custom_templates(&state)),
+        templates: templates::catalog(&custom),
         variables: templates::predefined_variables(),
     }
 }
