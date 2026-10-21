@@ -86,6 +86,7 @@ pub fn run() {
         .manage(commands::lsp::LspState::default())
         .manage(commands::workspace::WatchState::default())
         .manage(commands::remote::RemoteState::default())
+        .manage(commands::collab::CollabState::default())
         .manage(commands::laravel::LaravelState::default())
         .manage(commands::lua::LuaState::default())
         .manage(commands::project::CreateState::default())
@@ -96,6 +97,8 @@ pub fn run() {
         .manage(commands::web::WebState::default())
         .invoke_handler(tauri::generate_handler![
             commands::workspace::workspace_open,
+            commands::collab::collab_status,
+            commands::collab::collab_parse_link,
             commands::workspace::workspace_current,
             commands::workspace::workspace_recent,
             commands::workspace::fs_list_dir,

@@ -4,6 +4,7 @@ import "./keymapMock";
 import { fileTypesReady } from "./filetypesMock";
 import "./projectMock";
 import "./remoteMock";
+import "./collabMock";
 import "./workspaceMock";
 import "./aiMock";
 import "./agentMock";

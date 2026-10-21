@@ -2,6 +2,7 @@
 //! commands in `lib.rs`.
 
 pub mod agent;
+pub mod collab;
 pub mod ai;
 pub mod companion;
 pub mod db;

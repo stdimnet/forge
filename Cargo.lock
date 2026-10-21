@@ -1805,6 +1805,7 @@ dependencies = [
  "forge-agent-cli",
  "forge-ai",
  "forge-backend",
+ "forge-collab",
  "forge-containers",
  "forge-core",
  "forge-db",
