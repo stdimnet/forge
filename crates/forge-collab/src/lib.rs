@@ -14,6 +14,8 @@
 //!
 //! With `runtime` (the default):
 //! - [`docs`]: the host's authoritative `yrs` copy of each shared file.
+//! - [`host`]: the host's session: admission, shared documents, saving, disk changes.
+//! - [`guest`]: a guest's session, forwarding between its editor and the host.
 //! - [`transport`]: the [`transport::Transport`] trait and the in-memory transport for tests.
 
 pub mod excludes;
@@ -26,6 +28,10 @@ pub mod verify;
 
 #[cfg(feature = "runtime")]
 pub mod docs;
+#[cfg(feature = "runtime")]
+pub mod guest;
+#[cfg(feature = "runtime")]
+pub mod host;
 #[cfg(feature = "runtime")]
 pub mod transport;
 
