@@ -29,6 +29,7 @@ mod lua;
 mod scratches;
 mod search;
 mod settings;
+mod terminal;
 mod web;
 mod window;
 mod workbench;

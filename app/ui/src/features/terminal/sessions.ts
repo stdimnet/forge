@@ -18,19 +18,11 @@ import { terminalApi } from "@/ipc/terminal";
 import { getSetting } from "@/state/settings";
 import { runApi } from "@/ipc/run";
 import { layout, showToolWindow } from "@/state/layout";
+import { workspace } from "@/state/workspace";
 import { revealLocation } from "@/features/lsp/navigation";
 import { showBalloon } from "@/keymap";
 import { activeTab, closeTab, displayTitle, setActiveTab, tabs, updateTab, type TerminalProgram } from "./store";
-import {
-  isCommandBoundary,
-  isLinkActivation,
-  linkTarget,
-  parseOsc7,
-  parseOsc777,
-  parseOsc9,
-  terminalKeySequence,
-  type Progress,
-} from "./osc";
+import { isLinkActivation, linkTarget, parseOsc, terminalKeySequence, type Progress } from "./osc";
 import { terminalOptions, terminalRenderer, type TerminalRenderer } from "./options";
 
 interface Session {
@@ -96,7 +88,7 @@ function openUrl(uri: string): void {
 
 /** Open an OSC 8 hyperlink or a detected URL. */
 function openLink(uri: string): void {
-  const target = linkTarget(uri);
+  const target = linkTarget(uri, workspace()?.root);
   if (target?.kind === "url") openUrl(target.url);
   else if (target?.kind === "file") void openFileLink(target.path, target.line);
   else showBalloon("Cannot open link", uri);
@@ -262,31 +254,33 @@ function notify(id: string, title: string | undefined, body: string): void {
   showBalloon(title ? `${name}: ${title}` : name, body, 8000, [{ label: "Show", run: () => revealTerminalTab(id) }]);
 }
 
+/** Act on an OSC sequence (parsed in Rust, see `osc.ts`). */
+function handleOsc(id: string, code: number, data: string): void {
+  const r = parseOsc(code, data, currentTab(id)?.progress);
+  if (r.kind === "progress") setProgress(id, r.progress);
+  else if (r.kind === "notify") notify(id, r.title, r.body);
+  else if (r.kind === "cwd") {
+    if (currentTab(id)?.liveCwd !== r.path) updateTab(id, { liveCwd: r.path });
+  }
+  // A new prompt means the previous program is gone; drop progress it left behind.
+  else if (r.kind === "commandBoundary") setProgress(id, null);
+}
+
 /** Wire OSC handlers, title, bell and keys of a new session. */
 function registerHandlers(id: string, s: Session): void {
   const { term } = s;
   const parser = term.parser;
   s.disposables.push(
-    parser.registerOscHandler(9, (data) => {
-      const r = parseOsc9(data, currentTab(id)?.progress);
-      if (r.kind === "progress") setProgress(id, r.progress);
-      else if (r.kind === "notify") notify(id, r.title, r.body);
-      else if (r.kind === "cwd") updateTab(id, { liveCwd: r.path });
-      return true;
-    }),
-    parser.registerOscHandler(777, (data) => {
-      const n = parseOsc777(data);
-      if (n) notify(id, n.title, n.body);
-      return true;
-    }),
-    parser.registerOscHandler(7, (data) => {
-      const path = parseOsc7(data);
-      if (path && currentTab(id)?.liveCwd !== path) updateTab(id, { liveCwd: path });
-      return true;
-    }),
+    // 9: progress, notifications, ConEmu cwd; 777: notifications; 7: working directory.
+    ...[9, 777, 7].map((code) =>
+      parser.registerOscHandler(code, (data) => {
+        handleOsc(id, code, data);
+        return true;
+      }),
+    ),
+    // OSC 133 marks stay visible to other handlers.
     parser.registerOscHandler(133, (data) => {
-      // A new prompt means the previous program is gone; drop progress it left behind.
-      if (isCommandBoundary(data)) setProgress(id, null);
+      handleOsc(id, 133, data);
       return false;
     }),
     term.onTitleChange((title) => {

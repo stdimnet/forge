@@ -1,18 +1,7 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 import { Terminal } from "@xterm/xterm";
 import { UnicodeGraphemesAddon } from "@xterm/addon-unicode-graphemes";
-import {
-  isCommandBoundary,
-  isLinkActivation,
-  linkTarget,
-  parseOsc7,
-  parseOsc777,
-  parseOsc9,
-  parseProgress,
-  progressLabel,
-  terminalKeySequence,
-  type Progress,
-} from "./osc";
+import { isLinkActivation, linkTarget, oscReady, parseOsc, progressLabel, terminalKeySequence, type Progress } from "./osc";
 import { overallProgress, progressTab, tabLabel, type TerminalTab } from "./store";
 import { FALLBACK_FONTS, terminalFontFamily, terminalOptions, terminalRenderer } from "./options";
 import { cellWidth, replayExit, replayFrames } from "@/mock/terminalReplays";
@@ -22,41 +11,29 @@ vi.hoisted(() => {
   HTMLCanvasElement.prototype.getContext = (() => null) as typeof HTMLCanvasElement.prototype.getContext;
 });
 
+// The parsers are Rust (`forge_output::osc`, tested there); these tests cover the bridge.
+beforeAll(async () => {
+  expect(await oscReady).toBe(true);
+});
+
 describe("OSC 9;4 progress", () => {
   it("parses every state", () => {
-    expect(parseProgress("1;42")).toEqual({ state: "normal", percent: 42 });
-    expect(parseProgress("2;60")).toEqual({ state: "error", percent: 60 });
-    expect(parseProgress("3")).toEqual({ state: "indeterminate", percent: 0 });
-    expect(parseProgress("3;10")).toEqual({ state: "indeterminate", percent: 10 });
-    expect(parseProgress("4;75")).toEqual({ state: "paused", percent: 75 });
-  });
-
-  it("clears with state 0", () => {
-    expect(parseProgress("0")).toBeNull();
-    expect(parseProgress("0;0")).toBeNull();
-    expect(parseOsc9("4;0")).toEqual({ kind: "progress", progress: null });
-  });
-
-  it("clamps and rounds the percentage", () => {
-    expect(parseProgress("1;150")?.percent).toBe(100);
-    expect(parseProgress("1;33.6")?.percent).toBe(34);
+    expect(parseOsc(9, "4;1;42")).toEqual({ kind: "progress", progress: { state: "normal", percent: 42 } });
+    expect(parseOsc(9, "4;2;60")).toEqual({ kind: "progress", progress: { state: "error", percent: 60 } });
+    expect(parseOsc(9, "4;3")).toEqual({ kind: "progress", progress: { state: "indeterminate", percent: 0 } });
+    expect(parseOsc(9, "4;4;75")).toEqual({ kind: "progress", progress: { state: "paused", percent: 75 } });
+    expect(parseOsc(9, "4;0")).toEqual({ kind: "progress", progress: null });
   });
 
   it("keeps the previous value for error and paused without a percentage", () => {
     const prev: Progress = { state: "normal", percent: 40 };
-    expect(parseProgress("2", prev)).toEqual({ state: "error", percent: 40 });
-    expect(parseProgress("4;", prev)).toEqual({ state: "paused", percent: 40 });
-    expect(parseProgress("1", prev)).toEqual({ state: "normal", percent: 0 });
+    expect(parseOsc(9, "4;2", prev)).toEqual({ kind: "progress", progress: { state: "error", percent: 40 } });
+    expect(parseOsc(9, "4;1", prev)).toEqual({ kind: "progress", progress: { state: "normal", percent: 0 } });
   });
 
-  it("rejects invalid input", () => {
-    expect(parseProgress("")).toBeUndefined();
-    expect(parseProgress("5;10")).toBeUndefined();
-    expect(parseProgress("x;10")).toBeUndefined();
-    expect(parseProgress("1;-5")).toBeUndefined();
-    expect(parseProgress("1;abc")).toBeUndefined();
-    expect(parseOsc9("4")).toEqual({ kind: "ignored" });
-    expect(parseOsc9("4;7;1")).toEqual({ kind: "ignored" });
+  it("ignores invalid input", () => {
+    expect(parseOsc(9, "4")).toEqual({ kind: "ignored" });
+    expect(parseOsc(9, "4;1;-5")).toEqual({ kind: "ignored" });
   });
 
   it("labels progress for the status bar", () => {
@@ -68,47 +45,26 @@ describe("OSC 9;4 progress", () => {
 });
 
 describe("other OSC sequences", () => {
-  it("tells OSC 9 notifications from ConEmu sub-commands", () => {
-    expect(parseOsc9("Claude is waiting for your input")).toEqual({ kind: "notify", body: "Claude is waiting for your input" });
-    expect(parseOsc9("42 tests passed")).toEqual({ kind: "notify", body: "42 tests passed" });
-    expect(parseOsc9('9;"C:\\Users\\dev"')).toEqual({ kind: "cwd", path: "C:\\Users\\dev" });
-    expect(parseOsc9("1;500")).toEqual({ kind: "ignored" });
-    expect(parseOsc9("   ")).toEqual({ kind: "ignored" });
-  });
-
-  it("parses OSC 777 notifications", () => {
-    expect(parseOsc777("notify;Claude Code;Task finished")).toEqual({ title: "Claude Code", body: "Task finished" });
-    expect(parseOsc777("notify;Build;done; 3 warnings")).toEqual({ title: "Build", body: "done; 3 warnings" });
-    expect(parseOsc777("notify;Only a title")).toEqual({ body: "Only a title" });
-    expect(parseOsc777("preexec")).toBeNull();
-    expect(parseOsc777("notify;;")).toBeNull();
-  });
-
-  it("parses OSC 7 working directories", () => {
-    expect(parseOsc7("file://forge/home/dev/Projects/shop")).toBe("/home/dev/Projects/shop");
-    expect(parseOsc7("file:///home/dev/My%20Project")).toBe("/home/dev/My Project");
-    expect(parseOsc7("file://pc/C:/Users/dev")).toBe("C:/Users/dev");
-    expect(parseOsc7("/home/dev")).toBeNull();
-    expect(parseOsc7("file://host/%E0%A4%A")).toBeNull();
-  });
-
-  it("recognizes OSC 133 command boundaries", () => {
-    expect(isCommandBoundary("A")).toBe(true);
-    expect(isCommandBoundary("D;0")).toBe(true);
-    expect(isCommandBoundary("B")).toBe(false);
-    expect(isCommandBoundary("C")).toBe(false);
+  it("parses notifications, working directories and command boundaries", () => {
+    expect(parseOsc(9, "Claude is waiting for your input")).toEqual({ kind: "notify", body: "Claude is waiting for your input" });
+    expect(parseOsc(777, "notify;Claude Code;Task finished")).toEqual({ kind: "notify", title: "Claude Code", body: "Task finished" });
+    expect(parseOsc(7, "file:///home/dev/My%20Project")).toEqual({ kind: "cwd", path: "/home/dev/My Project" });
+    expect(parseOsc(9, '9;"C:\\Users\\dev"')).toEqual({ kind: "cwd", path: "C:\\Users\\dev" });
+    expect(parseOsc(133, "A")).toEqual({ kind: "commandBoundary" });
+    expect(parseOsc(133, "B")).toEqual({ kind: "ignored" });
   });
 
   it("opens only safe OSC 8 link targets, on Ctrl/Cmd+Click", () => {
-    expect(linkTarget("https://laravel.com/docs")).toEqual({ kind: "url", url: "https://laravel.com/docs" });
-    expect(linkTarget("mailto:dev@example.com")?.kind).toBe("url");
-    expect(linkTarget("file://forge/home/dev/shop/app/Models/Order.php#L30")).toEqual({
+    const root = "/home/dev/shop";
+    expect(linkTarget("https://laravel.com/docs", root)).toEqual({ kind: "url", url: "https://laravel.com/docs" });
+    expect(linkTarget("mailto:dev@example.com", root)?.kind).toBe("url");
+    expect(linkTarget("file://forge/home/dev/shop/app/Models/Order.php#L30", root)).toEqual({
       kind: "file",
-      path: "/home/dev/shop/app/Models/Order.php",
+      path: "app/Models/Order.php",
       line: 30,
     });
-    expect(linkTarget("javascript:alert(1)")).toBeNull();
-    expect(linkTarget("vscode://file/x")).toBeNull();
+    expect(linkTarget("file:///etc/passwd", root)).toBeNull();
+    expect(linkTarget("javascript:alert(1)", root)).toBeNull();
     expect(isLinkActivation({ ctrlKey: true, metaKey: false })).toBe(true);
     expect(isLinkActivation({ ctrlKey: false, metaKey: true })).toBe(true);
     expect(isLinkActivation({ ctrlKey: false, metaKey: false })).toBe(false);
@@ -212,7 +168,7 @@ async function replayInto(frames: string[]) {
   let last = null as Progress | null;
   term.onTitleChange((t) => seen.titles.push(t));
   term.parser.registerOscHandler(9, (data) => {
-    const r = parseOsc9(data, last);
+    const r = parseOsc(9, data, last);
     if (r.kind === "progress") seen.progress.push((last = r.progress));
     return true;
   });
