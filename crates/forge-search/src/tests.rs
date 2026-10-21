@@ -370,3 +370,13 @@ fn find_text_matches_a_directory_walk() {
         assert_eq!(indexed, walked, "{case:?}");
     }
 }
+
+#[test]
+fn ranked_files_match_the_walk_ranking() {
+    use forge_core::Workspace;
+    let (d, svc) = project();
+    let ws = Workspace::open(d.path()).unwrap();
+    for q in ["user", "php", "app", "Ord"] {
+        assert_eq!(svc.find_ranked(q, 3), ws.find_files(q, 3).unwrap(), "{q}");
+    }
+}

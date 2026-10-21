@@ -313,7 +313,14 @@ impl SearchService {
     /// "Go to File" over the indexed paths, ranked like `Workspace::find_files`.
     pub fn find_ranked(&self, query: &str, limit: usize) -> Vec<FileMatch> {
         let index = self.index.read().expect("search index lock poisoned");
-        forge_fuzzy::rank_files(query, index.live().map(|r| r.path.as_str()), limit)
+        let paths: Vec<&str> = index.live().map(|r| r.path.as_str()).collect();
+        let mut hits: Vec<FileMatch> = paths
+            .par_chunks(1 << 14)
+            .flat_map(|chunk| forge_fuzzy::rank_files(query, chunk.iter().copied(), limit))
+            .collect();
+        hits.sort_by(|a, b| b.score.cmp(&a.score).then_with(|| a.path.cmp(&b.path)));
+        hits.truncate(limit);
+        hits
     }
 
     /// Fuzzy search over declared classes (`types_only`) or every declared symbol, leaving out
