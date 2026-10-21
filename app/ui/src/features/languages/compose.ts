@@ -2,11 +2,12 @@
  * Docker Compose files: YAML plus completion and hover documentation for the Compose
  * Specification (top-level elements, service attributes, networks, volumes, configs,
  * secrets), driven by the indentation context so it works while the file is incomplete.
+ * The merge tags `!reset` and `!override` are completed and documented as well.
  */
 import { yaml } from "@codemirror/lang-yaml";
 import type { Completion } from "@codemirror/autocomplete";
 import { registerLanguage } from "@/editor/languages";
-import { flag, key, map, schemaCompletion, schemaHover, seq, type SchemaNode } from "./yamlSchema";
+import { flag, key, map, schemaCompletion, schemaHover, seq, type SchemaNode, type SchemaTags } from "./yamlSchema";
 
 const duration = "A duration such as `30s`, `1m30s` or `2h`.";
 
@@ -231,6 +232,17 @@ export const composeSchema: SchemaNode = {
   },
 };
 
+/** YAML tags of the Compose merge rules (https://docs.docker.com/reference/compose-file/merge/). */
+export const COMPOSE_TAGS: SchemaTags = {
+  "!reset":
+    "**Reset value.** Removes a value set by the overridden Compose file when files are merged. " +
+    "A valid value for the attribute must be given, but it is ignored: the attribute is set to its " +
+    "type's default value or `null`.\n\n```yaml\nservices:\n  app:\n    build: !reset null\n    ports: !reset []\n```",
+  "!override":
+    "**Replace value.** Fully replaces a value from the overridden Compose file instead of merging it, " +
+    "e.g. to publish only the ports listed here.\n\n```yaml\nservices:\n  app:\n    ports: !override\n      - \"8443:443\"\n```",
+};
+
 /** Names declared directly under a top-level section (`services:`, `networks:`, ...). */
 export function namesUnder(text: string, section: string): string[] {
   const start = text.search(new RegExp(`^${section}:\\s*(?:#.*)?$`, "m"));
@@ -253,6 +265,7 @@ const asCompletions = (names: string[], detail: string): Completion[] =>
 
 const completion = schemaCompletion({
   root: composeSchema,
+  tags: COMPOSE_TAGS,
   dynamic: (at, state) => {
     const text = state.doc.toString();
     const last = at.path[at.path.length - 1];
@@ -273,7 +286,7 @@ const completion = schemaCompletion({
 
 export function composeSupport() {
   const lang = yaml();
-  return [lang, lang.language.data.of({ autocomplete: completion }), schemaHover(composeSchema)];
+  return [lang, lang.language.data.of({ autocomplete: completion }), schemaHover(composeSchema, COMPOSE_TAGS)];
 }
 
 registerLanguage({

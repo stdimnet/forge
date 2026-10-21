@@ -6,8 +6,10 @@ import { ignoreParser, ignoreProblems } from "./ignore";
 import { dockerfileProblems, parseStatements, stageNames, variableNames } from "./dockerfile";
 import { confParser, iniParser, iniProblems } from "./ini";
 import { masterProblems, mainProblems, postfixMainParser, postfixMasterParser } from "./postfix";
-import { composeSchema, namesUnder } from "./compose";
-import { nodeAt, positionAt, schemaCompletion } from "./yamlSchema";
+import { yaml } from "@codemirror/lang-yaml";
+import { COMPOSE_TAGS, composeSchema, namesUnder } from "./compose";
+import { lezerProblems } from "./shared";
+import { nodeAt, positionAt, schemaCompletion, schemaHoverAt } from "./yamlSchema";
 import { contextAt, stateOf, styleOf, tokenize } from "./testkit";
 
 describe("bash tokens", () => {
@@ -217,6 +219,40 @@ describe("YAML schema engine", () => {
     const res = complete(contextAt("services:\n  web:\n    restart: |"))!;
     expect(res.options.map((o) => o.label)).toEqual(["no", "always", "on-failure", "unless-stopped"]);
     expect(complete(contextAt("services:\n  web:\n    image: |"))).toBeNull();
+  });
+  it("completes the merge tags !reset and !override as the first token of a value", () => {
+    const complete = schemaCompletion({ root: composeSchema, tags: COMPOSE_TAGS });
+    const labels = (doc: string) => complete(contextAt(doc))?.options.map((o) => o.label) ?? null;
+    expect(labels("services:\n  web:\n    ports: |")).toEqual(["!reset", "!override"]);
+    expect(labels("services:\n  web:\n    restart: |")).toEqual(["no", "always", "on-failure", "unless-stopped", "!reset", "!override"]);
+    const typed = complete(contextAt("services:\n  web:\n    build: !re|"))!;
+    expect(typed.options.map((o) => o.label)).toEqual(["!reset", "!override"]);
+    expect(typed.from).toBe("services:\n  web:\n    build: ".length);
+    expect(typed.validFor instanceof RegExp && typed.validFor.test("!reset")).toBe(true);
+    // After a tag, the values of the key follow, not another tag.
+    expect(labels("services:\n  web:\n    restart: !override |")).toEqual(["no", "always", "on-failure", "unless-stopped"]);
+    expect(labels("services:\n  web:\n    image: nginx !|")).toBeNull();
+    expect(labels("services:\n  web:\n    |")).not.toContain("!reset");
+  });
+  it("documents the merge tags on hover", () => {
+    const doc = "services:\n  web:\n    ports: !reset []\n    build: !override\n      context: .\n    image: !custom x\n";
+    const s = stateOf(doc, yaml());
+    const hover = (needle: string, offset = 1) => schemaHoverAt(composeSchema, COMPOSE_TAGS, s, doc.indexOf(needle) + offset);
+    const reset = hover("!reset")!;
+    expect(doc.slice(reset.from, reset.to)).toBe("!reset");
+    expect(reset.dom().textContent).toContain("type's default value");
+    const override = hover("!override", "!override".length)!;
+    expect(doc.slice(override.from, override.to)).toBe("!override");
+    expect(override.dom().textContent).toContain("instead of merging");
+    expect(hover("!custom")).toBeNull();
+    // Keys keep their own documentation.
+    expect(hover("ports")?.dom().textContent).toContain("Published ports");
+  });
+  it("parses tagged values without syntax errors", () => {
+    const doc =
+      "services:\n  web:\n    build: !reset null\n    ports: !reset []\n    environment: !reset {}\n" +
+      "    command: !reset\n    volumes: !override\n      - ./data:/data\n    networks: !override [\"front\"]\n";
+    expect(lezerProblems(stateOf(doc, yaml()))).toEqual([]);
   });
   it("lists declared names", () => {
     expect(namesUnder("services:\n  web:\n    image: a\n  db:\n    image: b\nvolumes:\n  data:\n", "services")).toEqual(["web", "db"]);

@@ -48,6 +48,22 @@ MAIL_FROM_ADDRESS="hello@acme.test"
 volumes:
   db-data: {}
 `,
+  "docker-compose.override.yml": `# Local overrides, merged over docker-compose.yml.
+services:
+  app:
+    # Use the published image instead of building it.
+    build: !reset null
+    image: ghcr.io/acme/shop:latest
+    # Publish only HTTPS, replacing the ports of the base file.
+    ports: !override
+      - "8443:443"
+    depends_on: !reset []
+
+  mysql:
+    environment: !override
+      MYSQL_DATABASE: shop_dev
+      MYSQL_ROOT_PASSWORD: secret # local only
+`,
   Dockerfile: `FROM php:8.3-fpm-alpine
 
 RUN apk add --no-cache git unzip \\
