@@ -6,8 +6,8 @@
  * manifest or `registerMainMenuEntries` (see `./model`).
  */
 import { render } from "solid-js/web";
-import { redo, undo } from "@codemirror/commands";
 import { isTauri } from "@/ipc";
+import { redoIn, undoIn } from "@/editor/reload";
 import { workspaceApi } from "@/ipc/workspace";
 import { runAction } from "@/keymap";
 import { registerCommand } from "@/state/commands";
@@ -30,10 +30,11 @@ registerCommand({ id: "MainMenuButton.ShowMenu", title: "Main Menu", run: showMa
 registerCommand({ id: "About", title: "About", run: () => void openAbout() });
 registerCommand({ id: "Help.KeymapReference", title: "Keymap Reference", run: () => openSettings("keymap") });
 
-// ---- Edit: Undo / Redo for the menu (the keys themselves stay with CodeMirror)
+// ---- Edit: Undo / Redo for the menu (the keys themselves stay with CodeMirror). Shared
+// documents bring their own history (Code With Me: each participant undoes their own edits).
 for (const [id, cmd] of [
-  ["$Undo", undo],
-  ["$Redo", redo],
+  ["$Undo", undoIn],
+  ["$Redo", redoIn],
 ] as const) {
   registerCommand({
     id,
