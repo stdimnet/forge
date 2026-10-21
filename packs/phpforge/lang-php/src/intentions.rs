@@ -180,6 +180,43 @@ fn generate_intention(
     })
 }
 
+/// "Add 'readonly' modifier" on a typed, non-static property without a default value
+/// (PHP 8.1): `private int $id` → `private readonly int $id`, also for promoted properties.
+fn readonly_intention(src: &str, p: &crate::model::Member) -> Option<Intention> {
+    if p.modifiers.is_readonly
+        || p.modifiers.is_static
+        || p.value.is_some()
+        || p.type_hint.is_none()
+    {
+        return None;
+    }
+    let head = src.get(p.range.start..p.name_range.start)?;
+    let ident = |c: char| c.is_alphanumeric() || c == '_';
+    let end = ["public", "protected", "private"]
+        .iter()
+        .filter_map(|kw| {
+            head.match_indices(kw)
+                .filter(|(i, _)| {
+                    !head[..*i].chars().next_back().is_some_and(ident)
+                        && !head[i + kw.len()..].chars().next().is_some_and(ident)
+                })
+                .map(|(i, _)| i + kw.len())
+                .last()
+        })
+        .max()?;
+    let at = p.range.start + end;
+    Some(Intention {
+        title: "Add 'readonly' modifier".into(),
+        kind: IntentionKind::Intention,
+        edits: vec![TextEdit {
+            start: at,
+            end: at,
+            new_text: " readonly".into(),
+        }],
+        action: None,
+    })
+}
+
 /// Intentions at `offset` (bytes) of `src`, the content of `rel`.
 pub fn intentions(index: &mut ProjectIndex, rel: &str, src: &str, offset: usize) -> Vec<Intention> {
     let file = parser::index_source(rel, src);
@@ -220,6 +257,9 @@ pub fn intentions(index: &mut ProjectIndex, rel: &str, src: &str, offset: usize)
             if can_set {
                 add("Generate setter", GenerateKind::Setters);
             }
+        }
+        if let Some(i) = readonly_intention(src, p) {
+            out.push(i);
         }
     }
 
@@ -372,5 +412,23 @@ mod tests {
         let at = src.find("getTotal").unwrap() + 1;
         let found = intentions(&mut idx, "app/Invoice.php", src, at);
         assert!(titles(&found).contains(&"Generate PHPDoc for 'getTotal'"));
+    }
+
+    #[test]
+    fn makes_typed_properties_readonly() {
+        let (_d, mut idx) = index_with(&[]);
+        let src = "<?php\nclass Money\n{\n    private static int $count;\n    protected string $currency;\n    public ?int $cents = null;\n\n    public function __construct(private int $amount) {}\n}\n";
+        let readonly = |at: &str, idx: &mut ProjectIndex| {
+            let offset = src.find(at).unwrap();
+            intentions(idx, "app/Money.php", src, offset)
+                .into_iter()
+                .find(|i| i.title == "Add 'readonly' modifier")
+        };
+        let i = readonly("$currency", &mut idx).expect("typed property");
+        assert!(apply_edits(src, &i.edits).contains("protected readonly string $currency;"));
+        let i = readonly("$amount", &mut idx).expect("promoted property");
+        assert!(apply_edits(src, &i.edits).contains("(private readonly int $amount)"));
+        assert!(readonly("$count", &mut idx).is_none(), "static");
+        assert!(readonly("$cents", &mut idx).is_none(), "default value");
     }
 }

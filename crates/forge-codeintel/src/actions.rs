@@ -62,6 +62,72 @@ pub struct ContextAction {
     /// A UI action to run instead, e.g. `Generate` (Alt+Insert).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub action: Option<String>,
+    /// Options in the entry's sub-menu (Right arrow), e.g. "Fix all ... in file".
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub children: Vec<ContextAction>,
+}
+
+impl ContextAction {
+    /// The language server's own kind (`source.fixAll.eslint`), when it sent one.
+    fn lsp_kind(&self) -> Option<&str> {
+        self.raw.as_ref()?.get("kind")?.as_str()
+    }
+
+    /// "Fix all" style actions: they belong in the sub-menu of the quick fix they repeat.
+    fn is_fix_all(&self) -> bool {
+        self.lsp_kind()
+            .is_some_and(|k| k.starts_with("source.fixAll"))
+            || self.title.to_ascii_lowercase().starts_with("fix all")
+    }
+}
+
+/// The light bulb at the caret line: red when a quick fix is available, yellow for
+/// intentions and refactorings; none for source actions and links alone.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum Bulb {
+    Fix,
+    Intention,
+}
+
+pub fn bulb_for(actions: &[ContextAction]) -> Option<Bulb> {
+    let enabled = || {
+        actions
+            .iter()
+            .filter(|a| a.disabled.is_none() && a.action.is_none())
+    };
+    if enabled().any(|a| a.kind == ActionKind::QuickFix) {
+        Some(Bulb::Fix)
+    } else if enabled().any(|a| matches!(a.kind, ActionKind::Intention | ActionKind::Refactor)) {
+        Some(Bulb::Intention)
+    } else {
+        None
+    }
+}
+
+/// Move "fix all" actions into the sub-menu of the first quick fix of the same server
+/// (PHPStorm lists "Fix all '...' problems in file" there). Without such a quick fix they
+/// stay where they are.
+pub fn nest_fix_all(actions: Vec<ContextAction>) -> Vec<ContextAction> {
+    let mut out: Vec<ContextAction> = Vec::with_capacity(actions.len());
+    let mut fix_all: Vec<ContextAction> = Vec::new();
+    for a in actions {
+        if a.is_fix_all() && a.disabled.is_none() {
+            fix_all.push(a);
+        } else {
+            out.push(a);
+        }
+    }
+    for a in fix_all {
+        let parent = out
+            .iter_mut()
+            .find(|p| p.kind == ActionKind::QuickFix && p.server == a.server);
+        match parent {
+            Some(p) => p.children.push(a),
+            None => out.push(a),
+        }
+    }
+    out
 }
 
 /// PHPStorm's order: preferred quick fixes, quick fixes, intentions and refactorings,
@@ -83,7 +149,7 @@ pub fn order_actions(actions: Vec<ContextAction>) -> Vec<ContextAction> {
         .filter(|a| seen.insert(a.title.clone()))
         .collect();
     out.sort_by_key(rank);
-    out
+    nest_fix_all(out)
 }
 
 #[cfg(test)]
@@ -103,6 +169,7 @@ mod tests {
             server: None,
             raw: None,
             action: None,
+            children: vec![],
         }
     }
 
@@ -151,6 +218,57 @@ mod tests {
                 "Generate...",
                 "Extract method"
             ]
+        );
+    }
+
+    #[test]
+    fn nests_fix_all_actions_and_picks_the_bulb() {
+        let fix = |title: &str, server: &str| ContextAction {
+            server: Some(server.into()),
+            ..action(title, ActionKind::QuickFix)
+        };
+        let fix_all = ContextAction {
+            server: Some("eslint".into()),
+            raw: Some(serde_json::json!({ "kind": "source.fixAll.eslint" })),
+            ..action("Fix all auto-fixable problems", ActionKind::Source)
+        };
+        let ordered = order_actions(vec![
+            action("Organize imports", ActionKind::Source),
+            fix_all,
+            fix("Remove unused variable 'x'", "eslint"),
+            fix("Add missing import", "typescript"),
+        ]);
+        let titles: Vec<&str> = ordered.iter().map(|a| a.title.as_str()).collect();
+        assert_eq!(
+            titles,
+            [
+                "Remove unused variable 'x'",
+                "Add missing import",
+                "Organize imports"
+            ]
+        );
+        assert_eq!(
+            ordered[0].children[0].title,
+            "Fix all auto-fixable problems"
+        );
+        assert_eq!(bulb_for(&ordered), Some(Bulb::Fix));
+
+        // Without a quick fix to attach to, it stays a top-level entry.
+        let alone = nest_fix_all(vec![ContextAction {
+            raw: Some(serde_json::json!({ "kind": "source.fixAll" })),
+            ..action("Fix all", ActionKind::Source)
+        }]);
+        assert_eq!(alone.len(), 1);
+        assert_eq!(bulb_for(&alone), None);
+
+        let generate = ContextAction {
+            action: Some("Generate".into()),
+            ..action("Generate...", ActionKind::Intention)
+        };
+        assert_eq!(bulb_for(std::slice::from_ref(&generate)), None);
+        assert_eq!(
+            bulb_for(&[generate, action("Add PHPDoc", ActionKind::Intention)]),
+            Some(Bulb::Intention)
         );
     }
 }
