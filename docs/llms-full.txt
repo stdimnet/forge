@@ -74,7 +74,7 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 
 ## Not available yet
 
-Refactorings (Rename, Extract, Move), Replace in Files, quick-fixes (`Alt+Enter`),
+Refactorings other than Rename (Extract, Move, ...), Replace in Files,
 bookmarks, TODO, Local History, split editors, Get from VCS, stash, multiple project windows, a
 plugin Marketplace and automatic updates. The pages mark smaller gaps with notes.
 
@@ -612,9 +612,9 @@ happening.
 
 - Get from VCS
 - Replace in Files (`Ctrl+Shift+R`), Find Usages in File (`Ctrl+F7`), Highlight Usages in File
-- Refactorings: Rename (`Shift+F6`), Extract/Introduce, Move, Change Signature, Safe Delete
-- Show Context Actions / quick-fixes (`Alt+Enter`), Quick Documentation popup (`Ctrl+Q`; hover
-  documentation works with the mouse), File Structure popup (`Ctrl+F12`)
+- Refactorings other than Rename: Extract/Introduce, Move, Change Signature, Safe Delete
+- Quick Documentation popup (`Ctrl+Q`; hover documentation works with the mouse), File
+  Structure popup (`Ctrl+F12`)
 - Bookmarks, TODO and Notifications tool windows, Local History
 - Live templates, Surround With, Optimize Imports, Type/Call/Method Hierarchy
 - Go to Test (`Ctrl+Shift+T`)
@@ -1046,7 +1046,62 @@ The **Problems** tool window (`Alt+6`, macOS `Cmd+6`) has two tabs: **Current Fi
 
 ![Problems tool window](docs/screenshots/lsp-problems.png)
 
-> **Note:** quick-fixes and Show Context Actions (`Alt+Enter`) are not available yet.
+## Rename
+
+**Rename…** (`Shift+F6`) renames the symbol at the caret everywhere, like PHPStorm's in-place
+rename:
+
+1. The name gets an edit box and every occurrence in the file is highlighted. Type the new name;
+   the occurrences change as you type.
+2. **Enter** (or `Tab`, or moving the caret out of the box) renames it in the whole project,
+   including files that are not open. **Escape** puts the old name back.
+3. `Shift+F6` again opens the **Rename** dialog: the new name, **Rename file** for classes and
+   **Preview**, which lists every change before anything is written.
+
+![In-place rename](docs/screenshots/rename-in-place.png)
+
+When the rename would break something, the **Problems Detected** dialog lists the problems
+first (a class or member with the new name already exists, a file with the new name is in the
+way) together with every occurrence; **Continue** renames anyway, **Cancel** keeps the old name.
+
+![Problems Detected](docs/screenshots/rename-refactoring-preview.png)
+
+![Rename dialog](docs/screenshots/rename-dialog.png)
+
+- The language server computes the rename where it can (TypeScript, Vue, Lua, Intelephense
+  Premium, …); PHP files fall back to Forge's PHP index, see [PHP](docs/guide/user/php.md#rename).
+- Renaming a class whose file is named after it (`Order.php` declaring `class Order`) also
+  renames the file, like PHPStorm; untick **Rename file** in the hint below the edit box or in
+  the dialog to keep the name. Open tabs follow the file.
+- An invalid name ("'2fa' is not a valid identifier") keeps the edit box open.
+- **Undo:** the whole rename is one step. `Ctrl+Z` (macOS `Cmd+Z`) in any editor the rename
+  changed undoes it in every file: open editors, files that were not open (written back
+  through the project, also on remote hosts) and a renamed file. `Ctrl+Shift+Z` redoes it.
+  Files edited after the rename are left alone and a balloon names them. Redo is not
+  available in a tab that undo reopened under its old name.
+- Open files keep the change as unsaved edits; files that were not open are saved directly.
+- In the **Project** view, `Shift+F6` renames the selected file or folder.
+  **Refactor | Rename File…** renames the file of the current editor.
+
+## Show Context Actions
+
+**Show Context Actions** (`Alt+Enter`) opens PHPStorm's intention popup at the caret:
+
+- **Quick fixes** (red bulb) from the language servers, for example "Remove unused import" or
+  "Add method 'markAsPaid()' to class 'Order'";
+- **Intentions** (yellow bulb) from the language servers and Forge's own PHP intentions;
+- refactorings and source actions, and links like **Generate…** (`Alt+Insert`) last.
+
+![Context actions](docs/screenshots/context-actions.png)
+
+Use `Up` / `Down` and `Enter`, or click. An entry with `›` has more options ("Fix all '…'
+problems in file"): open them with `Right`, go back with `Left`. Typing filters the list.
+`Escape` closes it. A chosen fix is applied as one undo step, also when it changes other files.
+
+When actions are available at the caret line, a **light bulb** appears at the start of the line
+after a short pause (red when a quick fix is available); click it to open the popup.
+
+![Light bulb](docs/screenshots/light-bulb.png)
 
 ## Reformat Code
 
@@ -1136,14 +1191,15 @@ editor context menu:
 
 | Entry | Status |
 | --- | --- |
-| Show Context Actions | not available yet |
+| Show Context Actions | works, see [Show Context Actions](#show-context-actions) |
 | Paste from History… | not available yet |
 | Cut, Copy, Paste | works |
 | Copy / Paste Special > Copy Absolute Path, Copy Reference, Paste as Plain Text | works |
 | Select All | works |
 | Column Selection Mode | not available yet (use `Alt`+drag) |
 | Find Usages | works |
-| Refactor > Rename…, Refactor This… | not available yet |
+| Refactor > Rename… | works, see [Rename](#rename) |
+| Refactor > Refactor This… | not available yet |
 | Go To > Declaration or Usages, Line/Column | works |
 | Go To > Implementation(s) | works |
 | Generate… | works in PHP files, see [PHP](docs/guide/user/php.md#generate) |
@@ -2874,18 +2930,46 @@ Source: docs/guide/user/shortcuts/refactoring.md
 
 Refactorings and code generation. Windows/Linux shortcuts first, macOS second; both are PHPStorm's defaults and can be changed in Settings | Keymap.
 
-> **Note:** the refactorings of PHPStorm's Refactor menu (Rename `Shift+F6`, Change Signature
-> `Ctrl+F6`, Extract/Introduce Variable, Constant, Field, Parameter and Method, Inline, Move,
-> Copy File, Safe Delete, Pull Members Up / Push Members Down) are not implemented yet. Their
-> shortcuts stay reserved and show "*Action* is not available yet"; see the
-> [Refactor menu](docs/guide/reference/main-menu/refactor.md). Renaming files and folders works from
-> the Project view's context menu. The actions below are the code transformations Forge has
-> today.
+> **Note:** the other refactorings of PHPStorm's Refactor menu (Change Signature `Ctrl+F6`,
+> Extract/Introduce Variable, Constant, Field, Parameter and Method, Inline, Move, Copy File,
+> Safe Delete, Pull Members Up / Push Members Down) are not implemented yet. Their shortcuts
+> stay reserved and show "*Action* is not available yet"; see the
+> [Refactor menu](docs/guide/reference/main-menu/refactor.md). The actions below are the
+> refactorings and code transformations Forge has today.
 
 | Action | Windows / Linux | macOS |
 | --- | --- | --- |
+| [Rename…](#rename) | `Shift+F6` | `Shift+F6` |
+| [Show Context Actions](#show-context-actions) | `Alt+Enter` | `Alt+Enter` |
 | [Generate…](#generate) | `Alt+Insert` | `Cmd+N` |
 | [Reformat Code](#reformat-code) | `Ctrl+Alt+L` | `Cmd+Alt+L` |
+
+## Rename
+
+**Shortcut:** `Shift+F6` · macOS `Shift+F6` · action id `RenameElement`
+
+In the editor: renames the symbol at the caret in place, in every file of the project; `Enter`
+applies, `Escape` cancels, `Shift+F6` again opens the Rename dialog. In the Project view:
+renames the selected file or folder. One undo step (`Ctrl+Z`) undoes the whole rename.
+
+**Menu:** Refactor | Rename…
+
+![In-place rename](docs/screenshots/rename-in-place.png)
+
+More: [Editor](docs/guide/user/editor.md#rename), [PHP](docs/guide/user/php.md#rename)
+
+## Show Context Actions
+
+**Shortcut:** `Alt+Enter` · macOS `Alt+Enter` · action id `ShowIntentionActions`
+
+Opens the intention popup at the caret: quick fixes, intentions and refactorings of the
+language servers and Forge's PHP intentions. `Right` opens an entry's sub-menu.
+
+**Menu:** Code | Show Context Actions
+
+![Context actions](docs/screenshots/context-actions.png)
+
+More: [Editor](docs/guide/user/editor.md#show-context-actions)
 
 ## Generate
 
@@ -4029,6 +4113,48 @@ Click an icon to go to the target, or to choose one of several.
 
 ![Implemented markers](docs/screenshots/php-nav-gutter.png)
 
+## Rename
+
+**Rename…** (`Shift+F6`) works on classes, interfaces, traits, enums, methods, properties,
+constants, functions and variables; see [Editor](docs/guide/user/editor.md#rename) for the in-place editing,
+the dialog and undo.
+
+- With **Intelephense Premium** (licence key in Settings | Languages & Frameworks | PHP) or
+  Phpactor, the language server renames.
+- **Intelephense without a licence** cannot rename. Forge then renames with its PHP index: the
+  declaration and every usage the index finds in the project (imports, `new`, static calls,
+  type hints, PHPDoc types, `$this->` and typed receivers, members through parent and child
+  classes). Members used on expressions the index cannot type (dynamic usages) are not renamed;
+  Forge says how many it skipped. The first time this happens in a session, a balloon explains
+  that the full rename needs Intelephense Premium and links to the licence key setting.
+- Renaming a class also renames its file when the file is named after it (`Order.php` →
+  `Purchase.php`).
+- Conflicts: a class with the new name in the same namespace, or a method, property or constant
+  with the new name in the same class, are listed in **Problems Detected** before anything
+  changes.
+
+![Premium hint after a rename with the index](docs/screenshots/rename-premium-hint.png)
+
+## Context actions and intentions
+
+**Show Context Actions** (`Alt+Enter`) lists the language server's quick fixes (Intelephense
+Premium) and Forge's own PHP intentions, see [Editor](docs/guide/user/editor.md#show-context-actions):
+
+| Intention | Where |
+| --- | --- |
+| Import class 'App\Models\Order' | on a class name that is neither imported nor declared in the namespace (one entry per candidate) |
+| Replace qualifier with an import | on a fully qualified name (`\App\Models\Order`) |
+| Generate getter and setter / getter / setter | on a property without accessors |
+| Add 'readonly' modifier | on a typed, non-static property without a default value (also promoted constructor properties) |
+| Add method stubs | on a class name that does not implement all abstract or interface methods |
+| Generate PHPDoc for '…' | on a function, method or property without a PHPDoc comment |
+| Generate… | anywhere in a class: opens the Generate popup (`Alt+Insert`) |
+
+![PHP intentions](docs/screenshots/context-actions-intentions.png)
+
+Without Intelephense Premium the popup shows only Forge's intentions and says that the language
+server's quick fixes need Premium.
+
 ## Hover documentation
 
 Hovering a class, function, method, property or constant shows its signature, attributes
@@ -4132,8 +4258,9 @@ See [Run/Debug configurations](docs/guide/user/run-debug.md), [Xdebug debugging]
 ## Remote projects
 
 In a [remote project](docs/guide/user/remote-development.md) the PHP index and the language server run on the
-remote host through the Forge agent; Structure, search, hover, Generate, navigation, usages
-and gutter icons work as locally. The PHP stubs are read on this machine.
+remote host through the Forge agent; Structure, search, hover, Generate, navigation, usages,
+gutter icons, Rename and context actions work as locally; renamed and fixed files are written on
+the remote host. The PHP stubs are read on this machine.
 
 
 ---
@@ -6281,7 +6408,7 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 
 | Action | Action id | Windows / Linux | macOS | In Forge |
 | --- | --- | --- | --- | --- |
-| Show Context Actions | `ShowIntentionActions` | `Alt+Enter` | `Alt+Enter` | — |
+| Show Context Actions | `ShowIntentionActions` | `Alt+Enter` | `Alt+Enter` | yes |
 | Basic Completion | `CodeCompletion` | `Ctrl+Space`, `Shift+Space` | `Ctrl+Space`, `Shift+Space` | yes |
 | Type-Matching Completion | `SmartTypeCompletion` | `Ctrl+Shift+Space` | `Ctrl+Shift+Space` | — |
 | Cyclic Expand Word | `HippieCompletion` | `Alt+/` | `Alt+/` | — |
@@ -6493,8 +6620,8 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Action | Action id | Windows / Linux | macOS | In Forge |
 | --- | --- | --- | --- | --- |
 | Refactor This… | `Refactorings.QuickListPopupAction` | `Ctrl+Alt+Shift+T` | `Ctrl+T` | — |
-| Rename… | `RenameElement` | `Shift+F6` | `Shift+F6` | — |
-| Rename File… | `RenameFile` |  |  | — |
+| Rename… | `RenameElement` | `Shift+F6` | `Shift+F6` | yes |
+| Rename File… | `RenameFile` |  |  | yes |
 | Change Signature… | `ChangeSignature` | `Ctrl+F6` | `Cmd+F6` | — |
 | Move… | `Move` | `F6` | `F6` | — |
 | Copy File… | `CopyElement` | `F5` | `F5` | — |
@@ -6993,7 +7120,7 @@ Completion, Generate, folding, comments, formatting and moving lines. Open it wi
 
 | Entry | Windows / Linux | macOS | Available | What it does |
 | --- | --- | --- | --- | --- |
-| Show Context Actions | `Alt+Enter` | `Alt+Enter` | not yet | Not available yet; the entry is disabled. |
+| Show Context Actions | `Alt+Enter` | `Alt+Enter` | yes | Opens the intention popup at the caret: quick fixes, intentions and refactorings. [More](docs/guide/user/editor.md#show-context-actions) ([screenshot](docs/screenshots/context-actions.png)) |
 | **Code Completion** | | | | submenu |
 | Code Completion › Basic Completion | `Ctrl+Space`, `Shift+Space` | `Ctrl+Space`, `Shift+Space` | yes | Opens code completion at the caret; also offers words from the document. [More](docs/guide/user/editor.md#code-completion) |
 | Code Completion › Type-Matching Completion | `Ctrl+Shift+Space` | `Ctrl+Shift+Space` | not yet | Not available yet; the entry is disabled. |
@@ -7040,7 +7167,7 @@ Source: docs/guide/reference/main-menu/refactor.md
 
 # Refactor menu
 
-Refactorings. None of them is implemented yet; the menu shows PHPStorm's entries disabled. Open it with ☰ (`Alt+\`) or from the menu bar, see [Main menu](docs/guide/user/workbench.md#main-menu).
+Refactorings. Rename and Rename File work; the menu shows PHPStorm's other entries disabled. Open it with ☰ (`Alt+\`) or from the menu bar, see [Main menu](docs/guide/user/workbench.md#main-menu).
 
 ![Refactor menu](docs/screenshots/docs-menu-refactor.png)
 
@@ -7049,8 +7176,8 @@ Refactorings. None of them is implemented yet; the menu shows PHPStorm's entries
 | Entry | Windows / Linux | macOS | Available | What it does |
 | --- | --- | --- | --- | --- |
 | Refactor This… | `Ctrl+Alt+Shift+T` | `Ctrl+T` | not yet | Not available yet; the entry is disabled. |
-| Rename… | `Shift+F6` | `Shift+F6` | not yet | Not available yet; the entry is disabled. |
-| Rename File… | — | — | not yet | Not available yet; the entry is disabled. |
+| Rename… | `Shift+F6` | `Shift+F6` | yes | Renames the symbol at the caret in place across the project (the file or folder in the Project view). [More](docs/guide/user/editor.md#rename) ([screenshot](docs/screenshots/rename-in-place.png)) |
+| Rename File… | — | — | yes | Renames the file of the current editor. [More](docs/guide/user/editor.md#rename) |
 | Change Signature… | `Ctrl+F6` | `Cmd+F6` | not yet | Not available yet; the entry is disabled. |
 | **Extract/Introduce** | | | | submenu |
 | Extract/Introduce › Variable… | `Ctrl+Alt+V` | `Cmd+Alt+V` | not yet | Not available yet; the entry is disabled. |
@@ -10241,7 +10368,10 @@ and the browser-mode UI. Pure Rust, so it also runs as WebAssembly.
   character): applying them to file contents atomically (rename, quick fixes), undoing them,
   and previewing the affected lines (Refactoring Preview).
 - `actions`: Show Context Actions: language server code actions and a pack's own intentions
-  in PHPStorm's order.
+  in PHPStorm's order, "fix all" actions nested under their quick fix, and the light bulb.
+- `rename`: Rename (Shift+F6): the edit from references (PHP index fallback), identifier
+  validation, the class file rename, conflicts, and the plan that splits an edit between open
+  editors and the project backend.
 - `usages`: Find Usages: the usage type of each reference (method call, import, new
   instance, ...) from its line, and the result tree grouped by usage type and file.
 
@@ -10249,24 +10379,26 @@ and the browser-mode UI. Pure Rust, so it also runs as WebAssembly.
 
 | Module | Summary |
 | --- | --- |
-| `actions.rs` | Context actions (`ContextAction`, `ActionKind`) and `order_actions`: quick fixes first, preferred ones on top, duplicates removed. |
+| `actions.rs` | Context actions (`ContextAction`, `ActionKind`) and `order_actions`: quick fixes first, preferred ones on top, duplicates removed, "fix all" actions (`source.fixAll*`, "Fix all …") moved into the `children` of their server's quick fix (`nest_fix_all`); `bulb_for` picks the red / yellow light bulb. |
 | `edit.rs` | `TextEdit`, `WorkspaceEdit` (`edit` / `create` / `rename` / `delete` changes), `apply_workspace_edit` over a `FileStore` (all or nothing), `revert_applied`, `preview_workspace_edit`, `word_range`, UTF-16 offset helpers. |
+| `rename.rs` | `edit_from_locations` (references → `WorkspaceEdit`, keeping `$` where the old text had it, dynamic usages skipped), `validate_identifier`, `is_class_file` / `suggest_file_rename` / `renamed_path` (PHPStorm renames `User.php` with `class User`), `edit_conflicts` (overlapping edits, renames onto existing files) and `plan_edit` (`EditPlan`: text edits of open editors, the backend's part, files to save first, tabs to reopen or close). |
 | `usages.rs` | `UsageKind` (PHPStorm's usage types and their group labels), `classify_usage` from the line around a reference, `group_usages` into a `UsageTree` by usage type and file (the declaration and duplicates removed). |
 
 ## Main public items
 
 ```rust
-pub use actions::{order_actions, ActionKind, ContextAction};
+pub use actions::{bulb_for, nest_fix_all, order_actions, ActionKind, Bulb, ContextAction};
+pub use rename::{edit_conflicts, edit_from_locations, plan_edit, suggest_file_rename, validate_identifier, EditPlan, RenameConflict, … };
 pub use edit::{apply_text_edits, apply_workspace_edit, preview_workspace_edit, revert_applied, word_range, … };
 pub use usages::{classify_usage, group_usages, GroupRequest, UsageKind, UsageLocation, UsageTree, … };
 ```
 
 ## Used by
 
-- IPC: `code_find_usages`, `code_navigate`, `code_goto_declaration`, `code_symbol_info`, `code_line_markers`, `code_prepare_rename`, `code_rename`, `code_apply_edit`, `code_revert_edit`, `code_context_actions`, `code_resolve_action`, `code_execute_command` (`app/src-tauri/src/commands/codeintel.rs`), `library_read` (`commands/library.rs`)
+- IPC: `code_find_usages`, `code_navigate`, `code_goto_declaration`, `code_symbol_info`, `code_line_markers`, `code_prepare_rename`, `code_rename`, `code_plan_edit`, `code_apply_edit`, `code_revert_edit`, `code_context_actions`, `code_resolve_action`, `code_execute_command` (`app/src-tauri/src/commands/codeintel.rs`), `library_read` (`commands/library.rs`)
 - Crates: `forge-lsp` (workspace edits, locations), `phpforge-lang-php` (usage locations and classification)
-- UI: `app/ui/src/features/codeintel` (Show Usages popup, Find tool window, gutter markers, library files), `app/ui/src/features/lsp/goto.ts`
-- Browser mode: `codeintel_group_usages`, `codeintel_apply_edit`, `codeintel_preview_edit`, `codeintel_order_actions`, `codeintel_word_range` in `crates/forge-wasm/src/codeintel.rs`, used by `app/ui/src/mock/codeintelMock.ts`
+- UI: `app/ui/src/features/codeintel` (Show Usages popup, Find tool window, gutter markers, library files, in-place rename, Refactoring Preview, intention popup and light bulb, refactoring undo), `app/ui/src/features/lsp/goto.ts`
+- Browser mode: `codeintel_group_usages`, `codeintel_apply_edit`, `codeintel_preview_edit`, `codeintel_order_actions`, `codeintel_context_actions`, `codeintel_rename_edit`, `codeintel_plan_edit`, `codeintel_word_range` in `crates/forge-wasm/src/codeintel.rs`, used by `app/ui/src/mock/codeintelMock.ts`
 
 ## Dependencies
 
@@ -10275,7 +10407,7 @@ pub use usages::{classify_usage, group_usages, GroupRequest, UsageKind, UsageLoc
 
 ## Tests
 
-4 source files, about 1500 lines; 13 unit tests.
+5 source files, about 2100 lines; 19 unit tests.
 
 ```sh
 cargo test -p forge-codeintel
@@ -12175,11 +12307,12 @@ PHPForge language pack: PHP support built on tree-sitter.
 | `fuzzy.rs` | Fuzzy matcher for Go to Class / Go to Symbol: subsequence matching with bonuses for word starts, camel humps (`OrCo` -> `OrderController`) and consecutive runs. |
 | `generate.rs` | "Generate" actions (Alt+Insert): constructor, getters/setters, `__toString()`, override/implement method stubs and PHPDoc blocks. |
 | `hover.rs` | Index-based hover for project symbols: signature + attributes + parsed docblock as markdown. Complements a language server's hover (which covers built-ins). |
-| `intentions.rs` | Built-in intentions for Show Context Actions (Alt+Enter) on the index. |
+| `intentions.rs` | Built-in intentions for Show Context Actions (Alt+Enter) on the index: import class, replace qualifier with an import, accessors, "Add 'readonly' modifier", method stubs, PHPDoc and the "Generate..." link. |
 | `index.rs` | Workspace-wide PHP index: parallel indexing, mtime-keyed persistent cache, fuzzy symbol search, ancestor lookup and lazy resolution of vendor classes through Composer's PSR-4 metadata. |
 | `lsp.rs` | How to launch a PHP language server: Intelephense (preferred, users bring their own licence key) with phpactor as fallback. Independent of the generic LSP client; the app turns `LspServerConfig` into a running server. |
 | `model.rs` | Symbol model produced by the indexer. Everything is serializable so it can be cached on disk and sent over IPC unchanged (camelCase field names for the UI). |
 | `navigate.rs` | Code navigation on the index when no language server answers: the symbol under the caret (classes with or without a leading backslash through imports, aliases, group uses and the namespace; functions and constants with PHP's global fallback; members through `$this`, `self`/`static`/`parent`, typed variables, `catch`, `@var`, property and return-type chains; variables), `definition` (target, "on a declaration" or an `ExternalSymbol` for the stubs), `find_usages` (usage kinds, dynamic usages, members through parent and child classes), Go to Implementation / Super Method / Type Declaration and the implemented / overridden `line_markers`. |
+| `rename.rs` | Rename (Shift+F6) on the index: PHPStorm's dialog label for a symbol and the name clashes reported as conflicts (`clashes`: the class / function / constant or member with the new name already exists). The edit itself comes from `find_usages` and `forge_codeintel::edit_from_locations`. |
 | `offsets.rs` | Offset conversion. The index works in UTF-8 byte offsets; the UI (CodeMirror / JS strings) uses UTF-16 code units. Convert at the IPC boundary. |
 | `parser.rs` | Tree-sitter based PHP file indexer: turns source into a `FileIndex`. |
 | `resolve.rs` | Name resolution through namespaces and use-imports (PHP's rules, simplified to what an index needs: classes and type hints). |
@@ -12197,7 +12330,7 @@ pub enum PhpError { … }
 
 ## Used by
 
-- IPC: `php_index_workspace`, `php_search_symbols`, `php_file_structure`, `php_hover`, `php_generate_targets`, `php_generate`, `php_detect_servers`, `php_lsp_config` (`app/src-tauri/src/commands/php.rs`); `code_goto_declaration`, `code_symbol_info`, `code_find_usages`, `code_navigate`, `code_line_markers`, `code_context_actions`, `library_read` (`commands/codeintel.rs`, `commands/library.rs`) through `forge_backend::PhpBackend`, so remote projects answer from the agent
+- IPC: `php_index_workspace`, `php_search_symbols`, `php_file_structure`, `php_hover`, `php_generate_targets`, `php_generate`, `php_detect_servers`, `php_lsp_config` (`app/src-tauri/src/commands/php.rs`); `code_goto_declaration`, `code_symbol_info`, `code_find_usages`, `code_navigate`, `code_line_markers`, `code_prepare_rename`, `code_rename`, `code_context_actions`, `library_read` (`commands/codeintel.rs`, `commands/library.rs`) through `forge_backend::PhpBackend`, so remote projects answer from the agent
 - UI: `app/ui/src/features/php`, `app/ui/src/features/codeintel`
 - Browser mode: not built to WebAssembly (runtime code); browser mode uses mocks
 

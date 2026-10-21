@@ -32,11 +32,12 @@ PHPForge language pack: PHP support built on tree-sitter.
 | `fuzzy.rs` | Fuzzy matcher for Go to Class / Go to Symbol: subsequence matching with bonuses for word starts, camel humps (`OrCo` -> `OrderController`) and consecutive runs. |
 | `generate.rs` | "Generate" actions (Alt+Insert): constructor, getters/setters, `__toString()`, override/implement method stubs and PHPDoc blocks. |
 | `hover.rs` | Index-based hover for project symbols: signature + attributes + parsed docblock as markdown. Complements a language server's hover (which covers built-ins). |
-| `intentions.rs` | Built-in intentions for Show Context Actions (Alt+Enter) on the index. |
+| `intentions.rs` | Built-in intentions for Show Context Actions (Alt+Enter) on the index: import class, replace qualifier with an import, accessors, "Add 'readonly' modifier", method stubs, PHPDoc and the "Generate..." link. |
 | `index.rs` | Workspace-wide PHP index: parallel indexing, mtime-keyed persistent cache, fuzzy symbol search, ancestor lookup and lazy resolution of vendor classes through Composer's PSR-4 metadata. |
 | `lsp.rs` | How to launch a PHP language server: Intelephense (preferred, users bring their own licence key) with phpactor as fallback. Independent of the generic LSP client; the app turns `LspServerConfig` into a running server. |
 | `model.rs` | Symbol model produced by the indexer. Everything is serializable so it can be cached on disk and sent over IPC unchanged (camelCase field names for the UI). |
 | `navigate.rs` | Code navigation on the index when no language server answers: the symbol under the caret (classes with or without a leading backslash through imports, aliases, group uses and the namespace; functions and constants with PHP's global fallback; members through `$this`, `self`/`static`/`parent`, typed variables, `catch`, `@var`, property and return-type chains; variables), `definition` (target, "on a declaration" or an `ExternalSymbol` for the stubs), `find_usages` (usage kinds, dynamic usages, members through parent and child classes), Go to Implementation / Super Method / Type Declaration and the implemented / overridden `line_markers`. |
+| `rename.rs` | Rename (Shift+F6) on the index: PHPStorm's dialog label for a symbol and the name clashes reported as conflicts (`clashes`: the class / function / constant or member with the new name already exists). The edit itself comes from `find_usages` and `forge_codeintel::edit_from_locations`. |
 | `offsets.rs` | Offset conversion. The index works in UTF-8 byte offsets; the UI (CodeMirror / JS strings) uses UTF-16 code units. Convert at the IPC boundary. |
 | `parser.rs` | Tree-sitter based PHP file indexer: turns source into a `FileIndex`. |
 | `resolve.rs` | Name resolution through namespaces and use-imports (PHP's rules, simplified to what an index needs: classes and type hints). |
@@ -54,7 +55,7 @@ pub enum PhpError { … }
 
 ## Used by
 
-- IPC: `php_index_workspace`, `php_search_symbols`, `php_file_structure`, `php_hover`, `php_generate_targets`, `php_generate`, `php_detect_servers`, `php_lsp_config` (`app/src-tauri/src/commands/php.rs`); `code_goto_declaration`, `code_symbol_info`, `code_find_usages`, `code_navigate`, `code_line_markers`, `code_context_actions`, `library_read` (`commands/codeintel.rs`, `commands/library.rs`) through `forge_backend::PhpBackend`, so remote projects answer from the agent
+- IPC: `php_index_workspace`, `php_search_symbols`, `php_file_structure`, `php_hover`, `php_generate_targets`, `php_generate`, `php_detect_servers`, `php_lsp_config` (`app/src-tauri/src/commands/php.rs`); `code_goto_declaration`, `code_symbol_info`, `code_find_usages`, `code_navigate`, `code_line_markers`, `code_prepare_rename`, `code_rename`, `code_context_actions`, `library_read` (`commands/codeintel.rs`, `commands/library.rs`) through `forge_backend::PhpBackend`, so remote projects answer from the agent
 - UI: `app/ui/src/features/php`, `app/ui/src/features/codeintel`
 - Browser mode: not built to WebAssembly (runtime code); browser mode uses mocks
 

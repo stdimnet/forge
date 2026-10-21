@@ -607,15 +607,45 @@ computes everything; `app/ui/src/features/codeintel` and `features/lsp/goto.ts` 
   - `code_line_markers({ path, content? }) -> { line, kind: "subclassed" | "implemented" |
     "overridden" | "implements" | "overrides", title, targets }[]` — PHP gutter icons.
   - `library_read({ path }) -> { text, library, detail }`.
-  - Rename and context actions (`code_prepare_rename`, `code_rename`, `code_apply_edit`,
-    `code_revert_edit`, `code_context_actions`, `code_resolve_action`, `code_execute_command`)
-    have commands and browser mocks; their UI is not built yet.
+  - `code_prepare_rename({ path, line, character, content? }) -> { range?, placeholder?,
+    invalid, message?, missing?, source: "lsp" | "index", occurrences, label?, classFile?,
+    sigil }` — starts Rename (Shift+F6): the server's `prepareRename` and the occurrences in the
+    file (a rename to the same name); PHP files fall back to the PHP index when the server
+    cannot rename (`missing`, Intelephense without a licence) or none runs. `$` is not part of
+    the ranges (`sigil`).
+  - `code_rename({ path, line, character, newName, buffers?, renameFile? }) -> { edit, preview,
+    conflicts, source, missing?, fileRename?, skipped }` — the server's edit, else the index's
+    (`forge_codeintel::edit_from_locations` over `find_usages`); invalid names are errors. A class
+    file named after the class is renamed with it (`fileRename`, in `edit` unless `renameFile`
+    is false). `conflicts` lists overlapping edits, renames onto existing files and name clashes
+    (`phpforge_lang_php::rename::clashes`).
+  - `code_plan_edit({ edit, open }) -> EditPlan` — how the UI applies an edit: the text edits of
+    open editors, the backend's part (`code_apply_edit`), files to save first and tabs to
+    reopen or close. `code_apply_edit({ edit, skip? }) -> AppliedFile[]` (all or nothing) and
+    `code_revert_edit({ files })` (refused when a file changed since) write through the backend.
+  - `code_context_actions({ path, line, character, endLine?, endCharacter?, content? }) -> {
+    actions, bulb?: "fix" | "intention", missing? }` — the servers' code actions and the PHP
+    intentions in PHPStorm's order ("fix all" variants in `children`); `code_resolve_action`
+    fills an edit, `code_execute_command` runs a command (edits it makes arrive as
+    `lsp://apply-edit` and are applied like any other edit).
 - UI: Go to Declaration (`GotoDeclaration`, `Ctrl+Click`, middle click) shows usages on a
   declaration (`showUsagesAt`); `ShowUsages` (popup), `FindUsages` (Find tool window `find`,
   `Alt+3`), `GotoImplementation` (also `Ctrl+Alt+Click`), `GotoTypeDeclaration`,
   `GotoSuperMethod` are registered commands, so the keymap and the main menu enable them;
   several targets use `chooseDeclarationAt`. Browser mode: `mock/codeintelMock.ts` over the demo
   project and `mock/demoStubs.ts`, grouping through `forge-codeintel` as WebAssembly.
+- Rename and context actions UI (`features/codeintel`): `RenameElement` (Shift+F6) starts the
+  in-place rename (`rename.ts`: a CodeMirror state field with the occurrences; keystrokes in
+  the edit box are mirrored to the others in the same transaction and kept out of the undo
+  history; Enter / Tab / leaving the box commits, Escape cancels, Shift+F6 again opens the
+  Rename dialog); in the Project view it renames the selected file. Committing reverts the live
+  edits, asks `code_rename`, shows the Refactoring Preview / Problems Detected dialog for
+  conflicts and applies the edit with `applyWorkspaceEdit` (`refactoring.ts`). Every affected
+  editor gets one history entry tagged with the refactoring (a `StateEffect` with
+  `invertedEffects`), so `Ctrl+Z` in any of them undoes the others (if unchanged since), reverts
+  the backend's files and moves renamed tabs back; redo re-applies. `ShowIntentionActions`
+  (Alt+Enter) opens the intention popup (`IntentionPopup.tsx`); the light bulb
+  (`intentions.ts`) asks `code_context_actions` after the caret rests for 500 ms.
 
 ## PHP debugger (`forge-debug`)
 

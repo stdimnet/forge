@@ -7,7 +7,7 @@ tags: [main menu, reference, refactor]
 
 # Refactor menu
 
-Refactorings. None of them is implemented yet; the menu shows PHPStorm's entries disabled. Open it with ☰ (`Alt+\`) or from the menu bar, see [Main menu](../../user/workbench.md#main-menu).
+Refactorings. Rename and Rename File work; the menu shows PHPStorm's other entries disabled. Open it with ☰ (`Alt+\`) or from the menu bar, see [Main menu](../../user/workbench.md#main-menu).
 
 ![Refactor menu](../../../screenshots/docs-menu-refactor.png)
 
@@ -16,8 +16,8 @@ Refactorings. None of them is implemented yet; the menu shows PHPStorm's entries
 | Entry | Windows / Linux | macOS | Available | What it does |
 | --- | --- | --- | --- | --- |
 | Refactor This… | `Ctrl+Alt+Shift+T` | `Ctrl+T` | not yet | Not available yet; the entry is disabled. |
-| Rename… | `Shift+F6` | `Shift+F6` | not yet | Not available yet; the entry is disabled. |
-| Rename File… | — | — | not yet | Not available yet; the entry is disabled. |
+| Rename… | `Shift+F6` | `Shift+F6` | yes | Renames the symbol at the caret in place across the project (the file or folder in the Project view). [More](../../user/editor.md#rename) ([screenshot](../../../screenshots/rename-in-place.png)) |
+| Rename File… | — | — | yes | Renames the file of the current editor. [More](../../user/editor.md#rename) |
 | Change Signature… | `Ctrl+F6` | `Cmd+F6` | not yet | Not available yet; the entry is disabled. |
 | **Extract/Introduce** | | | | submenu |
 | Extract/Introduce › Variable… | `Ctrl+Alt+V` | `Cmd+Alt+V` | not yet | Not available yet; the entry is disabled. |
