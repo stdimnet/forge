@@ -96,9 +96,9 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Show Context Actions | `ShowIntentionActions` | `Alt+Enter` | `Alt+Enter` | yes |
 | Basic Completion | `CodeCompletion` | `Ctrl+Space`, `Shift+Space` | `Ctrl+Space`, `Shift+Space` | yes |
 | Type-Matching Completion | `SmartTypeCompletion` | `Ctrl+Shift+Space` | `Ctrl+Shift+Space` | — |
-| Cyclic Expand Word | `HippieCompletion` | `Alt+/` | `Alt+/` | — |
-| Cyclic Expand Word (Backward) | `HippieBackwardCompletion` | `Alt+Shift+/` | `Alt+Shift+/` | — |
-| Complete Current Statement | `EditorCompleteStatement` | `Ctrl+Shift+Enter` | `Cmd+Shift+Enter` | — |
+| Cyclic Expand Word | `HippieCompletion` | `Alt+/` | `Alt+/` | yes |
+| Cyclic Expand Word (Backward) | `HippieBackwardCompletion` | `Alt+Shift+/` | `Alt+Shift+/` | yes |
+| Complete Current Statement | `EditorCompleteStatement` | `Ctrl+Shift+Enter` | `Cmd+Shift+Enter` | yes |
 | Generate… | `Generate` | `Alt+Insert` | `Cmd+N` | yes |
 | Override Methods… | `OverrideMethods` | `Ctrl+O` | `Ctrl+O` | PHP editors |
 | Implement Methods… | `ImplementMethods` | `Ctrl+I` | `Ctrl+I` | PHP editors |

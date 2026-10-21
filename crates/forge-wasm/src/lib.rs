@@ -23,6 +23,7 @@ use wasm_bindgen::prelude::*;
 mod agents;
 mod codeintel;
 mod containers;
+mod editing;
 mod filetypes;
 mod keymap;
 mod livetemplates;

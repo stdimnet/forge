@@ -578,6 +578,58 @@
           "order": 41
         },
         {
+          "key": "editor.postfix.enabled",
+          "title": "Enable postfix completion",
+          "description": "Type a template key after an expression, e.g. $user.if or items.forof, to wrap it.",
+          "type": "bool",
+          "default": true,
+          "group": "editor.postfix",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "editor.postfix.showInCompletion",
+          "title": "Show postfix templates in the completion autopopup",
+          "type": "bool",
+          "default": true,
+          "group": "editor.postfix",
+          "project": false,
+          "order": 1
+        },
+        {
+          "key": "editor.postfix.expandKey",
+          "title": "Expand templates with",
+          "type": "enum",
+          "options": [
+            {
+              "value": "tab",
+              "label": "Tab"
+            },
+            {
+              "value": "space",
+              "label": "Space"
+            },
+            {
+              "value": "enter",
+              "label": "Enter"
+            }
+          ],
+          "default": "tab",
+          "group": "editor.postfix",
+          "project": false,
+          "order": 2
+        },
+        {
+          "key": "editor.postfix.disabled",
+          "title": "Templates",
+          "description": "Clear a template to stop offering it.",
+          "type": "list",
+          "default": [],
+          "group": "editor.postfix",
+          "project": false,
+          "order": 3
+        },
+        {
           "key": "editor.tabs.limit",
           "title": "Tab limit",
           "description": "Maximum number of tabs per editor group; 0 keeps every tab open. Pinned tabs are never closed by the limit.",

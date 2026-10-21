@@ -10,12 +10,13 @@ import { settingsState } from "@/state/settings";
 import { draft, draftValue, setDraft } from "./dialogState";
 import { Hl, settingMatches } from "./dialogSearch";
 
-/** Editors of `objects` settings (lists of tables), by setting key. */
+/** Custom editors of `objects` settings (lists of tables) and `list` settings, by setting key. */
 const objectEditors = new Map<string, Component<{ spec: SettingSpec }>>();
 
 /**
- * Register the editor of an `objects` setting; schema pages show it in the setting's row.
- * It reads and writes the value with `draftValue` / `setDraft`, so Apply and Cancel work.
+ * Register the editor of an `objects` setting, or one that replaces the plain string list
+ * editor of a `list` setting; schema pages show it in the setting's row. It reads and writes
+ * the value with `draftValue` / `setDraft`, so Apply and Cancel work.
  */
 export function registerObjectSettingEditor(key: string, editor: Component<{ spec: SettingSpec }>): void {
   objectEditors.set(key, editor);
@@ -180,7 +181,9 @@ export function SettingRow(props: { spec: SettingSpec }) {
             <Hl text={spec.title} />:
           </div>
           {description()}
-          <ListEditor spec={spec} />
+          <Show when={objectEditors.get(spec.key)} fallback={<ListEditor spec={spec} />}>
+            {(editor) => <Dynamic component={editor()} spec={spec} />}
+          </Show>
         </Match>
         <Match when={spec.type === "objects"}>
           <div class="set-label set-label-block">

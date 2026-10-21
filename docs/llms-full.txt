@@ -1095,6 +1095,70 @@ defaults with macOS in parentheses; the full list is in the
 
 ![Completion](docs/screenshots/lsp-completion.png)
 
+### Postfix completion
+
+Postfix templates wrap the expression you just typed: type a dot and the template key after
+an expression, as in PHPStorm. In PHP, `$user->isAdmin().if` becomes
+
+```php
+if ($user->isAdmin()) {
+    |
+}
+```
+
+- The templates appear in the completion popup after `expr.` (below the members of the
+  expression), with their description. Typing the full key and pressing `Tab` expands the
+  template directly.
+- Templates such as `.if`, `.return`, `.var` or `.foreach` take the whole statement before
+  the dot (`$a > 0.if` → `if ($a > 0)`); `.not`, `.par`, `.isset` or `.await` take the
+  closest expression (`$x = $valid.not` → `$x = !$valid`).
+- `.var`, `.foreach` and the other templates that introduce a name suggest one from the
+  expression and select it (`$this->getUsers().foreach` → `foreach ($this->getUsers() as
+  $user)`), so you can type over it.
+- Templates are not offered in strings and comments.
+
+| Language | Templates |
+| --- | --- |
+| PHP | `.echo`, `.else`, `.empty`, `.for`, `.forek`, `.foreach`, `.forr`, `.if`, `.isset`, `.new`, `.not`, `.notnull`, `.null`, `.par`, `.return`, `.sprintf`, `.switch`, `.throw`, `.try`, `.unset`, `.var`, `.while` |
+| JavaScript and TypeScript | `.await`, `.const`, `.else`, `.for`, `.fori`, `.forin`, `.forof`, `.if`, `.let`, `.log`, `.new`, `.not`, `.notnull`, `.null`, `.par`, `.return`, `.switch`, `.throw`, `.typeof`, `.undefined`, `.var`, `.while` |
+| Lua | `.else`, `.for`, `.if`, `.ipairs`, `.local`, `.nil`, `.not`, `.notnil`, `.pairs`, `.par`, `.print`, `.return`, `.while` |
+
+**Settings | Editor | General | Postfix Completion** switches postfix completion on and off,
+hides the templates from the completion autopopup, chooses the expand key (`Tab`, `Space`
+or `Enter`) and switches single templates off. Selecting a template shows its description
+and a before/after example.
+
+![Postfix completion](docs/screenshots/postfix-completion.png)
+
+![Settings | Editor | General | Postfix Completion](docs/screenshots/settings-postfix.png)
+
+### Complete Current Statement
+
+**Complete Current Statement** (`Ctrl+Shift+Enter`, macOS `Cmd+Shift+Enter`) finishes the
+statement at the caret and puts the caret where you continue typing:
+
+- closes the parentheses and brackets the line left open and adds the missing `;` in PHP,
+  JavaScript and TypeScript (`$a = foo(bar(1` → `$a = foo(bar(1));`). Inside multi-line
+  arrays, calls and object literals, and before a chained `->where(…)` line, no `;` is
+  added;
+- opens the block of `if`, `elseif`, `else`, `for`, `foreach`, `while`, `switch`, `try`,
+  `catch` and function or class declarations and moves the caret into it. PHP functions and
+  classes get their brace on the next line (PSR-12); an existing block is entered instead
+  of adding a second one;
+- in Lua adds `then` / `do` and the matching `end` (`if ready` → `if ready then … end`),
+  and closes `function … end` and `repeat … until`;
+- starts a new line when the statement is already complete.
+
+![Complete Current Statement](docs/screenshots/complete-statement.png)
+
+### Cyclic Expand Word
+
+**Cyclic Expand Word** (`Alt+/`) completes the word at the caret with a word that already
+occurs in the file, the nearest one above the caret first, then the ones below, then the
+words of the other open files. Press `Alt+/` again to cycle through the other matches;
+**Cyclic Expand Word (Backward)** (`Alt+Shift+/`) cycles the other way and, when it starts,
+looks below the caret first. It works in every file type, without a language server.
+
 ## Quick documentation on hover
 
 Hold the mouse over a symbol to see its documentation: signature, description, parameters
@@ -1366,6 +1430,8 @@ server's document formatting. Lua files use StyLua when it is installed (see
 | Split Line | `Ctrl+Enter` | `Cmd+Enter` |
 | Start New Line | `Shift+Enter` | `Shift+Enter` |
 | Start New Line Before Current | `Ctrl+Alt+Enter` | `Cmd+Alt+Enter` |
+| Complete Current Statement | `Ctrl+Shift+Enter` | `Cmd+Shift+Enter` |
+| Cyclic Expand Word / Backward | `Alt+/` / `Alt+Shift+/` | same |
 | Auto-Indent Lines | `Ctrl+Alt+I` | `Ctrl+Alt+I` |
 | Move Caret to Matching Brace | `Ctrl+Shift+M` | `Ctrl+M` |
 | Scroll Up / Down | `Ctrl+Up` / `Ctrl+Down` | — |
@@ -2651,6 +2717,9 @@ Typing, selecting, moving and commenting code, completion, generation, formattin
 | Action | Windows / Linux | macOS |
 | --- | --- | --- |
 | [Basic Completion](#basic-completion) | `Ctrl+Space`, `Shift+Space` | `Ctrl+Space`, `Shift+Space` |
+| [Cyclic Expand Word](#cyclic-expand-word) | `Alt+/` | `Alt+/` |
+| [Cyclic Expand Word (Backward)](#cyclic-expand-word-backward) | `Alt+Shift+/` | `Alt+Shift+/` |
+| [Complete Current Statement](#complete-current-statement) | `Ctrl+Shift+Enter` | `Cmd+Shift+Enter` |
 | [Parameter Info](#parameter-info) | `Ctrl+P` | `Cmd+P` |
 | [Quick Documentation](#quick-documentation) | `Ctrl+Q` | `F1`, `Ctrl+J` |
 | [External Documentation](#external-documentation) | `Shift+F1` | `Shift+F1` |
@@ -2710,6 +2779,34 @@ Opens code completion at the caret; also offers words from the document.
 **Menu:** Code | Code Completion | Basic Completion
 
 More: [Editor](docs/guide/user/editor.md#code-completion)
+
+## Cyclic Expand Word
+
+**Shortcut:** `Alt+/` · macOS `Alt+/` · action id `HippieCompletion`
+
+Completes the word at the caret with the nearest word of the file that starts with it (above the caret first, then below, then the other open files); press again to cycle.
+
+**Menu:** Code | Code Completion | Cyclic Expand Word
+
+More: [Editor](docs/guide/user/editor.md#cyclic-expand-word)
+
+## Cyclic Expand Word (Backward)
+
+**Shortcut:** `Alt+Shift+/` · macOS `Alt+Shift+/` · action id `HippieBackwardCompletion`
+
+Like Cyclic Expand Word, but looks below the caret first and cycles the other way.
+
+**Menu:** Code | Code Completion | Cyclic Expand Word (Backward)
+
+More: [Editor](docs/guide/user/editor.md#cyclic-expand-word)
+
+## Complete Current Statement
+
+**Shortcut:** `Ctrl+Shift+Enter` · macOS `Cmd+Shift+Enter` · action id `EditorCompleteStatement`
+
+Closes open brackets, adds the missing `;` (PHP, JavaScript, TypeScript) or `then … end` (Lua), opens the block of control statements and moves the caret on.
+
+More: [Editor](docs/guide/user/editor.md#complete-current-statement)
 
 ## Parameter Info
 
@@ -7503,9 +7600,9 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Show Context Actions | `ShowIntentionActions` | `Alt+Enter` | `Alt+Enter` | yes |
 | Basic Completion | `CodeCompletion` | `Ctrl+Space`, `Shift+Space` | `Ctrl+Space`, `Shift+Space` | yes |
 | Type-Matching Completion | `SmartTypeCompletion` | `Ctrl+Shift+Space` | `Ctrl+Shift+Space` | — |
-| Cyclic Expand Word | `HippieCompletion` | `Alt+/` | `Alt+/` | — |
-| Cyclic Expand Word (Backward) | `HippieBackwardCompletion` | `Alt+Shift+/` | `Alt+Shift+/` | — |
-| Complete Current Statement | `EditorCompleteStatement` | `Ctrl+Shift+Enter` | `Cmd+Shift+Enter` | — |
+| Cyclic Expand Word | `HippieCompletion` | `Alt+/` | `Alt+/` | yes |
+| Cyclic Expand Word (Backward) | `HippieBackwardCompletion` | `Alt+Shift+/` | `Alt+Shift+/` | yes |
+| Complete Current Statement | `EditorCompleteStatement` | `Ctrl+Shift+Enter` | `Cmd+Shift+Enter` | yes |
 | Generate… | `Generate` | `Alt+Insert` | `Cmd+N` | yes |
 | Override Methods… | `OverrideMethods` | `Ctrl+O` | `Ctrl+O` | PHP editors |
 | Implement Methods… | `ImplementMethods` | `Ctrl+I` | `Ctrl+I` | PHP editors |
@@ -8236,8 +8333,8 @@ Completion, Generate, folding, comments, formatting and moving lines. Open it wi
 | **Code Completion** | | | | submenu |
 | Code Completion › Basic Completion | `Ctrl+Space`, `Shift+Space` | `Ctrl+Space`, `Shift+Space` | yes | Opens code completion at the caret; also offers words from the document. [More](docs/guide/user/editor.md#code-completion) |
 | Code Completion › Type-Matching Completion | `Ctrl+Shift+Space` | `Ctrl+Shift+Space` | not yet | Not available yet; the entry is disabled. |
-| Code Completion › Cyclic Expand Word | `Alt+/` | `Alt+/` | not yet | Not available yet; the entry is disabled. |
-| Code Completion › Cyclic Expand Word (Backward) | `Alt+Shift+/` | `Alt+Shift+/` | not yet | Not available yet; the entry is disabled. |
+| Code Completion › Cyclic Expand Word | `Alt+/` | `Alt+/` | yes | Completes the word at the caret with the nearest matching word of the file or the other open files; press again to cycle. [More](docs/guide/user/editor.md#cyclic-expand-word) |
+| Code Completion › Cyclic Expand Word (Backward) | `Alt+Shift+/` | `Alt+Shift+/` | yes | Like Cyclic Expand Word, looking below the caret first. [More](docs/guide/user/editor.md#cyclic-expand-word) |
 | Override Methods… | `Ctrl+O` | `Ctrl+O` | yes | In PHP editors: pick inherited methods to override; Forge writes the stubs. |
 | Implement Methods… | `Ctrl+I` | `Ctrl+I` | yes | In PHP editors: pick interface or abstract methods to implement; Forge writes the stubs. |
 | Generate… | `Alt+Insert` | `Cmd+N` | yes | In PHP files: generates a constructor, getters, setters, overrides, `__toString()` or a PHPDoc block. [More](docs/guide/user/php.md#generate) ([screenshot](docs/screenshots/docs-generate.png)) |
@@ -8642,6 +8739,17 @@ Page id `editor.tabs`.
 | `editor.tabs.closeUnmodifiedFirst` | bool | `true` | user | Closing Policy | When the tab limit is reached, close non-modified tabs first |
 | `editor.tabs.activateOnClose` | enum: `left`, `right`, `recent` | `recent` | user | Closing Policy | When the current tab is closed, activate |
 | `editor.tabs.showPinnedIcon` | bool | `true` | user | Appearance | Show pin icon on pinned tabs |
+
+### Editor | General | Postfix Completion
+
+Page id `editor.postfix`.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `editor.postfix.enabled` | bool | `true` | user |  | Enable postfix completion — Type a template key after an expression, e.g. $user.if or items.forof, to wrap it. |
+| `editor.postfix.showInCompletion` | bool | `true` | user |  | Show postfix templates in the completion autopopup |
+| `editor.postfix.expandKey` | enum: `tab`, `space`, `enter` | `tab` | user |  | Expand templates with |
+| `editor.postfix.disabled` | list | `[]` | user |  | Templates — Clear a template to stop offering it. Holds the ids of the switched-off templates (`php.echo`, `js.log`, `lua.print`). |
 
 ### Editor | Font
 
@@ -11389,6 +11497,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-core](docs/guide/developer/crates/forge-core.md) | Forge IDE core: workspace, file system, settings and event bus |
 | [forge-db](docs/guide/developer/crates/forge-db.md) | Forge IDE database tools: data sources, introspection, query execution and data editing |
 | [forge-debug](docs/guide/developer/crates/forge-debug.md) | Forge IDE debugger: DBGp (Xdebug 3) server, path mappings and breakpoints |
+| [forge-editing](docs/guide/developer/crates/forge-editing.md) | Editor actions computed in Rust: postfix completion templates, Complete Current Statement and Cyclic Expand Word (pure, WebAssembly-friendly) |
 | [forge-filetypes](docs/guide/developer/crates/forge-filetypes.md) | File type recognition for Forge: names, extensions, shebangs and template data languages (pure, WebAssembly-friendly) |
 | [forge-find](docs/guide/developer/crates/forge-find.md) | Find in Files and TODO scanning: query compilation, file masks, line matching and comment patterns (pure, WebAssembly-friendly) |
 | [forge-forges](docs/guide/developer/crates/forge-forges.md) | Forge IDE code hosts: GitLab, Forgejo/Gitea and GitHub merge requests, issues and pipelines |
@@ -12051,6 +12160,72 @@ pub fn launch_env(port: u16, server_name: Option<&str>) -> Vec<(String, String)>
 
 ```sh
 cargo test -p forge-debug
+```
+
+
+---
+
+Source: docs/guide/developer/crates/forge-editing.md
+
+# forge-editing
+
+`crates/forge-editing` — Editor actions computed in Rust: postfix completion templates, Complete Current Statement and Cyclic Expand Word (pure, WebAssembly-friendly).
+
+## Purpose
+
+Editor actions that need a little language knowledge, shared by the desktop backend and the
+browser-mode WebAssembly build. Offsets at the API boundary are UTF-16 code units, like
+CodeMirror positions.
+
+- `postfix`: PHPStorm's postfix templates for PHP, JavaScript/TypeScript and Lua (`$user.if`,
+  `items.forof`, `list.ipairs`). `complete_postfix` finds the expression before `.key` in the
+  caret's line (the closest expression for templates like `.not` or `.isset`, the whole
+  statement for `.if`, `.return` or `.foreach`) and expands every applicable template with
+  the line's indentation, a suggested variable name (`$this->getUsers().foreach` →
+  `$user`) and the caret or selection. `templates` lists all templates with a before/after
+  example for the settings page.
+- `statement`: Complete Current Statement. Closes the brackets the line left open, adds a
+  missing `;` (not inside multi-line arrays, calls or object literals, nor before a chained
+  `->`/`.` line), opens the block of control statements (`if (…) {`), puts PHP function and
+  class braces on the next line (PSR-12) and completes Lua's `then … end`, `do … end`,
+  `function … end` and `repeat … until`.
+- `hippie`: Cyclic Expand Word. The words that start with the prefix at the caret: above the
+  caret first (nearest first), then below, then in the other open files; the backward action
+  looks below first.
+- `lang`: the language families (`php`, `js`, `lua`) and their Forge file type ids.
+
+## Main public items
+
+```rust
+pub enum Lang { Php, Js, Lua }
+pub fn templates() -> Vec<TemplateInfo> { … }
+pub fn complete_postfix(request: &PostfixRequest) -> Option<PostfixCompletion> { … }
+pub fn complete_statement(request: &StatementRequest) -> Option<StatementEdit> { … }
+pub fn expand_word(request: &ExpandRequest) -> ExpandResult { … }
+```
+
+## Used by
+
+- IPC: `editor_postfix_templates`, `editor_postfix_complete`, `editor_complete_statement`,
+  `editor_expand_word` (`app/src-tauri/src/commands/editor.rs`)
+- UI: `app/ui/src/features/editing` (completion source, expand key, Settings | Editor |
+  General | Postfix Completion, the `EditorCompleteStatement`, `HippieCompletion` and
+  `HippieBackwardCompletion` actions)
+- Browser mode: built into `forge-wasm` (`editing_*`)
+
+## Dependencies
+
+- Workspace crates: none
+- External: `serde`, `serde_json`
+
+## Tests
+
+5 source files; unit tests for every template family, expression and statement detection,
+strings and comments, UTF-16 offsets, statement completion in PHP, JavaScript and Lua, and
+word expansion order.
+
+```sh
+cargo test -p forge-editing
 ```
 
 
@@ -13354,6 +13529,7 @@ Rebuild the bundle with `pnpm --dir app/ui wasm` (output: `app/ui/src/wasm/pkg`)
 | --- | --- |
 | `agents.rs` | Agent CLIs (`forge_agent_cli`) for the browser-mode agent mock: the built-in agents' profiles (what `agent_list` reports besides detection) and the stream parsers, so the mock replays recorded CLI output through the same Rust code as the desktop app. |
 | `containers.rs` | Services tool window (`forge-containers`) for the browser-mode mock: the mock keeps a fake Docker daemon as Engine API JSON, compose files and a kubeconfig as text, and asks Rust for the models, the tree, the details pane, the gutter markers, command lines and pull progress, like the desktop app's hub. |
+| `editing.rs` | Editor actions (`forge-editing`): postfix templates and their expansion, Complete Current Statement and Cyclic Expand Word, mirroring the `editor_postfix_*`, `editor_complete_statement` and `editor_expand_word` commands. |
 | `filetypes.rs` | File type detection (`forge-filetypes`), mirroring the `filetypes_detect` IPC command. The desktop app builds the registry from its plugin manifests; browser mode loads the same manifests (the `builtinPlugins.json` snapshot) once with `filetypes_load`. |
 | `keymap.rs` | Keymap bridge (`forge-keymap`). |
 | `lua.rs` | LuaForge (`luaforge-lang-lua`), mirroring the `lua_*` IPC commands for the browser-mode mock: the mock hands over the demo project's Lua files once (`lua_index_files`), then asks for structure, hover, Go to Declaration, symbol search and run markers. |
@@ -13385,7 +13561,7 @@ pub fn bridge_version() -> String { … }
 
 ## Dependencies
 
-- Workspace crates: [`forge-agent-cli`](docs/guide/developer/crates/forge-agent-cli.md), [`forge-containers`](docs/guide/developer/crates/forge-containers.md), [`forge-filetypes`](docs/guide/developer/crates/forge-filetypes.md), [`forge-find`](docs/guide/developer/crates/forge-find.md), [`forge-fuzzy`](docs/guide/developer/crates/forge-fuzzy.md), [`forge-keymap`](docs/guide/developer/crates/forge-keymap.md), [`forge-markdown`](docs/guide/developer/crates/forge-markdown.md), [`forge-output`](docs/guide/developer/crates/forge-output.md), [`forge-plugin-api`](docs/guide/developer/crates/forge-plugin-api.md), [`forge-remote`](docs/guide/developer/crates/forge-remote.md), [`forge-scratches`](docs/guide/developer/crates/forge-scratches.md), [`forge-sql`](docs/guide/developer/crates/forge-sql.md), [`forge-window`](docs/guide/developer/crates/forge-window.md), [`luaforge-lang-lua`](docs/guide/developer/crates/luaforge-lang-lua.md), [`phpforge-dql`](docs/guide/developer/crates/phpforge-dql.md), [`webforge-fw-angular`](docs/guide/developer/crates/webforge-fw-angular.md), [`webforge-fw-react`](docs/guide/developer/crates/webforge-fw-react.md), [`webforge-fw-vue`](docs/guide/developer/crates/webforge-fw-vue.md), [`webforge-lang-web`](docs/guide/developer/crates/webforge-lang-web.md)
+- Workspace crates: [`forge-agent-cli`](docs/guide/developer/crates/forge-agent-cli.md), [`forge-containers`](docs/guide/developer/crates/forge-containers.md), [`forge-editing`](docs/guide/developer/crates/forge-editing.md), [`forge-filetypes`](docs/guide/developer/crates/forge-filetypes.md), [`forge-find`](docs/guide/developer/crates/forge-find.md), [`forge-fuzzy`](docs/guide/developer/crates/forge-fuzzy.md), [`forge-keymap`](docs/guide/developer/crates/forge-keymap.md), [`forge-markdown`](docs/guide/developer/crates/forge-markdown.md), [`forge-output`](docs/guide/developer/crates/forge-output.md), [`forge-plugin-api`](docs/guide/developer/crates/forge-plugin-api.md), [`forge-remote`](docs/guide/developer/crates/forge-remote.md), [`forge-scratches`](docs/guide/developer/crates/forge-scratches.md), [`forge-sql`](docs/guide/developer/crates/forge-sql.md), [`forge-window`](docs/guide/developer/crates/forge-window.md), [`luaforge-lang-lua`](docs/guide/developer/crates/luaforge-lang-lua.md), [`phpforge-dql`](docs/guide/developer/crates/phpforge-dql.md), [`webforge-fw-angular`](docs/guide/developer/crates/webforge-fw-angular.md), [`webforge-fw-react`](docs/guide/developer/crates/webforge-fw-react.md), [`webforge-fw-vue`](docs/guide/developer/crates/webforge-fw-vue.md), [`webforge-lang-web`](docs/guide/developer/crates/webforge-lang-web.md)
 - External: `serde`, `serde_json`, `wasm-bindgen`
 
 ## Tests

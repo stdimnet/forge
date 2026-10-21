@@ -131,6 +131,16 @@ app/ui/            SolidJS UI
   `fs_delete({ path })` (a folder with its content; the UI asks first). All paths are
   workspace-relative and refused for the project root or outside it. They back the Project view
   context menu (`features/project/fileMenu.ts`); the browser mock keeps the changes in memory.
+- Editor actions (`src/ipc/editing.ts`, `forge-editing`; offsets are UTF-16 like CodeMirror
+  positions): `editor_postfix_templates() -> TemplateInfo[]` (id `php.if`, key, language,
+  group, description, before/after example); `editor_postfix_complete({ request: { language,
+  line, indent?, disabled? } }) -> { keyFrom, key, items: { id, key, description, from,
+  expression, text, selectionFrom, selectionTo }[] } | null` for `expr.key` at the end of
+  `line` (the caret's line up to the caret); `editor_complete_statement({ request: {
+  language, text, offset, indent? } }) -> { changes, cursor } | null` (Complete Current
+  Statement); `editor_expand_word({ request: { text, offset, others?, backward?, language? }
+  }) -> { from, prefix, candidates }` (Cyclic Expand Word, nearest first). Browser mode runs
+  the same code through `forge-wasm` (`editing_*`).
 - `fs_find_files({ query, limit? }) -> { path, name, score, positions, matchedPath }[]` — fuzzy
   "Go to File" (camel humps, respects `.gitignore`).
 - `fuzzy_filter({ request: { query, candidates, strict?, preferShorter?, limit? } }) -> { index, text, score, positions }[]`

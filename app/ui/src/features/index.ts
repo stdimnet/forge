@@ -38,6 +38,7 @@ import "./webforge";
 import "./contextMenu";
 import "./mainMenu";
 import "./editorTabs";
+import "./editing";
 import "./bookmarks";
 import "./todo";
 import "./notifications";

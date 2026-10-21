@@ -1,11 +1,17 @@
 //! Text files in the editor (`forge-text`): reading and writing with their encoding and
 //! line separator, the on-save cleanup, and the effective format of a file (indent,
-//! separators, guides) from the code style settings, EditorConfig and the file's content.
+//! separators, guides) from the code style settings, EditorConfig and the file's content;
+//! and the editor actions of `forge-editing` (postfix completion, Complete Current Statement,
+//! Cyclic Expand Word).
 
 use serde::Deserialize;
 use tauri::State;
 
 use forge_core::{ForgeError, Result};
+use forge_editing::{
+    ExpandRequest, ExpandResult, PostfixCompletion, PostfixRequest, StatementEdit,
+    StatementRequest, TemplateInfo,
+};
 use forge_text::commit::{inspect_message, MessageProblem, MessageRules};
 use forge_text::editorconfig::EditorConfigFile;
 use forge_text::file::{read_text, write_text, TextFile};
@@ -70,6 +76,30 @@ pub fn text_prepare_save(request: SaveRequest) -> SaveResult {
 #[tauri::command]
 pub fn vcs_inspect_commit_message(message: String, rules: MessageRules) -> Vec<MessageProblem> {
     inspect_message(&message, &rules)
+}
+
+/// All postfix templates (Settings | Editor | General | Postfix Completion).
+#[tauri::command]
+pub fn editor_postfix_templates() -> Vec<TemplateInfo> {
+    forge_editing::templates()
+}
+
+/// The postfix templates that apply to `expr.key` before the caret.
+#[tauri::command]
+pub fn editor_postfix_complete(request: PostfixRequest) -> Option<PostfixCompletion> {
+    forge_editing::complete_postfix(&request)
+}
+
+/// Complete Current Statement (`EditorCompleteStatement`).
+#[tauri::command]
+pub fn editor_complete_statement(request: StatementRequest) -> Option<StatementEdit> {
+    forge_editing::complete_statement(&request)
+}
+
+/// Cyclic Expand Word (`HippieCompletion` / `HippieBackwardCompletion`).
+#[tauri::command]
+pub fn editor_expand_word(request: ExpandRequest) -> ExpandResult {
+    forge_editing::expand_word(&request)
 }
 
 /// What the UI sends for [`editor_file_format`]; settings and `.editorconfig` files are

@@ -1,8 +1,8 @@
 ---
 title: Editor
-description: Editing, completion, hover documentation, Quick Documentation and the Documentation tool window, External Documentation, Quick Definition, Type Info, Context Info, Error Description, Parameter Info, Go to Declaration, Find and Show Usages, problems, formatting, folding, find and replace, gutter icons and the editor context menu.
+description: Editing, completion, postfix templates, Complete Current Statement, hover documentation, Quick Documentation and the Documentation tool window, External Documentation, Quick Definition, Type Info, Context Info, Error Description, Parameter Info, Go to Declaration, Find and Show Usages, problems, formatting, folding, find and replace, gutter icons and the editor context menu.
 order: 20
-tags: [editor, completion, hover, documentation, navigation, diagnostics, context menu]
+tags: [editor, completion, postfix completion, hover, documentation, navigation, diagnostics, context menu]
 ---
 
 # Editor
@@ -27,6 +27,70 @@ defaults with macOS in parentheses; the full list is in the
 - Brackets and quotes are closed automatically.
 
 ![Completion](../../screenshots/lsp-completion.png)
+
+### Postfix completion
+
+Postfix templates wrap the expression you just typed: type a dot and the template key after
+an expression, as in PHPStorm. In PHP, `$user->isAdmin().if` becomes
+
+```php
+if ($user->isAdmin()) {
+    |
+}
+```
+
+- The templates appear in the completion popup after `expr.` (below the members of the
+  expression), with their description. Typing the full key and pressing `Tab` expands the
+  template directly.
+- Templates such as `.if`, `.return`, `.var` or `.foreach` take the whole statement before
+  the dot (`$a > 0.if` → `if ($a > 0)`); `.not`, `.par`, `.isset` or `.await` take the
+  closest expression (`$x = $valid.not` → `$x = !$valid`).
+- `.var`, `.foreach` and the other templates that introduce a name suggest one from the
+  expression and select it (`$this->getUsers().foreach` → `foreach ($this->getUsers() as
+  $user)`), so you can type over it.
+- Templates are not offered in strings and comments.
+
+| Language | Templates |
+| --- | --- |
+| PHP | `.echo`, `.else`, `.empty`, `.for`, `.forek`, `.foreach`, `.forr`, `.if`, `.isset`, `.new`, `.not`, `.notnull`, `.null`, `.par`, `.return`, `.sprintf`, `.switch`, `.throw`, `.try`, `.unset`, `.var`, `.while` |
+| JavaScript and TypeScript | `.await`, `.const`, `.else`, `.for`, `.fori`, `.forin`, `.forof`, `.if`, `.let`, `.log`, `.new`, `.not`, `.notnull`, `.null`, `.par`, `.return`, `.switch`, `.throw`, `.typeof`, `.undefined`, `.var`, `.while` |
+| Lua | `.else`, `.for`, `.if`, `.ipairs`, `.local`, `.nil`, `.not`, `.notnil`, `.pairs`, `.par`, `.print`, `.return`, `.while` |
+
+**Settings | Editor | General | Postfix Completion** switches postfix completion on and off,
+hides the templates from the completion autopopup, chooses the expand key (`Tab`, `Space`
+or `Enter`) and switches single templates off. Selecting a template shows its description
+and a before/after example.
+
+![Postfix completion](../../screenshots/postfix-completion.png)
+
+![Settings | Editor | General | Postfix Completion](../../screenshots/settings-postfix.png)
+
+### Complete Current Statement
+
+**Complete Current Statement** (`Ctrl+Shift+Enter`, macOS `Cmd+Shift+Enter`) finishes the
+statement at the caret and puts the caret where you continue typing:
+
+- closes the parentheses and brackets the line left open and adds the missing `;` in PHP,
+  JavaScript and TypeScript (`$a = foo(bar(1` → `$a = foo(bar(1));`). Inside multi-line
+  arrays, calls and object literals, and before a chained `->where(…)` line, no `;` is
+  added;
+- opens the block of `if`, `elseif`, `else`, `for`, `foreach`, `while`, `switch`, `try`,
+  `catch` and function or class declarations and moves the caret into it. PHP functions and
+  classes get their brace on the next line (PSR-12); an existing block is entered instead
+  of adding a second one;
+- in Lua adds `then` / `do` and the matching `end` (`if ready` → `if ready then … end`),
+  and closes `function … end` and `repeat … until`;
+- starts a new line when the statement is already complete.
+
+![Complete Current Statement](../../screenshots/complete-statement.png)
+
+### Cyclic Expand Word
+
+**Cyclic Expand Word** (`Alt+/`) completes the word at the caret with a word that already
+occurs in the file, the nearest one above the caret first, then the ones below, then the
+words of the other open files. Press `Alt+/` again to cycle through the other matches;
+**Cyclic Expand Word (Backward)** (`Alt+Shift+/`) cycles the other way and, when it starts,
+looks below the caret first. It works in every file type, without a language server.
 
 ## Quick documentation on hover
 
@@ -299,6 +363,8 @@ server's document formatting. Lua files use StyLua when it is installed (see
 | Split Line | `Ctrl+Enter` | `Cmd+Enter` |
 | Start New Line | `Shift+Enter` | `Shift+Enter` |
 | Start New Line Before Current | `Ctrl+Alt+Enter` | `Cmd+Alt+Enter` |
+| Complete Current Statement | `Ctrl+Shift+Enter` | `Cmd+Shift+Enter` |
+| Cyclic Expand Word / Backward | `Alt+/` / `Alt+Shift+/` | same |
 | Auto-Indent Lines | `Ctrl+Alt+I` | `Ctrl+Alt+I` |
 | Move Caret to Matching Brace | `Ctrl+Shift+M` | `Ctrl+M` |
 | Scroll Up / Down | `Ctrl+Up` / `Ctrl+Down` | — |

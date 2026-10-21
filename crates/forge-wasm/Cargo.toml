@@ -28,6 +28,7 @@ forge-bookmarks.workspace = true
 forge-codeintel.workspace = true
 forge-filetypes.workspace = true
 forge-text.workspace = true
+forge-editing.workspace = true
 forge-plugin-api.workspace = true
 forge-window.workspace = true
 forge-scratches.workspace = true
