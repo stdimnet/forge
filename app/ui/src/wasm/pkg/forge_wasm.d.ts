@@ -253,6 +253,46 @@ export function find_paged(request_json: string): string;
 export function fuzzy_filter(request_json: string): string;
 
 /**
+ * `{ text, path, offset, disabled?, uninjected? }` → `Injection | null`.
+ */
+export function injections_at(request_json: string): string;
+
+/**
+ * `{ text, path, offset, disabled?, uninjected? }` → `ContextAction[]`.
+ */
+export function injections_context_actions(request_json: string): string;
+
+/**
+ * `{ kind, text }` → the text escaped for a literal of that kind.
+ */
+export function injections_escape(request_json: string): string;
+
+/**
+ * `{ text, path, disabled?, uninjected? }` → `Injection[]`.
+ */
+export function injections_find(request_json: string): string;
+
+/**
+ * `{ text, path, offset, disabled?, uninjected? }` → `Fragment | null`.
+ */
+export function injections_fragment(request_json: string): string;
+
+/**
+ * `{ text, path, offset, language }` → `Edit | null`.
+ */
+export function injections_inject(request_json: string): string;
+
+/**
+ * The injectable languages.
+ */
+export function injections_languages(): string;
+
+/**
+ * The built-in rules for Settings | Editor | Language Injections.
+ */
+export function injections_rules(): string;
+
+/**
  * `{settings, hostPlatform}` → `KeymapSnapshot`.
  */
 export function keymap_actions(json: string): string;
@@ -711,6 +751,14 @@ export interface InitOutput {
     readonly find_page: (a: number, b: number, c: number) => void;
     readonly find_paged: (a: number, b: number, c: number) => void;
     readonly fuzzy_filter: (a: number, b: number, c: number) => void;
+    readonly injections_at: (a: number, b: number, c: number) => void;
+    readonly injections_context_actions: (a: number, b: number, c: number) => void;
+    readonly injections_escape: (a: number, b: number, c: number) => void;
+    readonly injections_find: (a: number, b: number, c: number) => void;
+    readonly injections_fragment: (a: number, b: number, c: number) => void;
+    readonly injections_inject: (a: number, b: number, c: number) => void;
+    readonly injections_languages: (a: number) => void;
+    readonly injections_rules: (a: number) => void;
     readonly keymap_actions: (a: number, b: number, c: number) => void;
     readonly keymap_conflicts: (a: number, b: number, c: number) => void;
     readonly keymap_find_by_shortcut: (a: number, b: number, c: number) => void;
