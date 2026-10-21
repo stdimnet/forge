@@ -6,7 +6,7 @@
  * regex parser of the PHP mocks; grouping usages, applying and previewing edits and ordering
  * context actions run the Rust code (`forge-codeintel`) as WebAssembly.
  */
-import { registerMock } from "@/ipc";
+import { invoke, registerMock } from "@/ipc";
 import type {
   AppliedFile,
   ContextAction,
@@ -22,7 +22,7 @@ import type {
   UsagesAnswer,
   WorkspaceEdit,
 } from "@/ipc/codeintel";
-import type { LspPosition } from "@/ipc/lsp";
+import type { EditorLocation, LspPosition } from "@/ipc/lsp";
 import { callWasm, forgeWasm } from "@/wasm";
 import { demoStubs, demoStubsDetail } from "./demoStubs";
 import { parsePhp, classAt, memberType, type MockClass, type MockFile, type MockMember } from "./phpMockParser";
@@ -552,9 +552,26 @@ function at(args: Record<string, unknown>): { a: At; text: string; offset: numbe
   return { a, text, offset: offsetOf(text, { line: a.line, character: a.character }), buffers };
 }
 
-registerMock("code_goto_declaration", (args): DeclarationAnswer => {
+/** Other languages: the language server mocks, like the backend asks the servers first. */
+async function serverDefinition(a: At): Promise<DeclarationAnswer> {
+  const locs = await invoke<EditorLocation[]>("lsp_definition", { path: a.path, line: a.line, character: a.character }).catch(() => []);
+  const here = (l: EditorLocation) =>
+    l.path === a.path &&
+    (l.range.start.line < a.line || (l.range.start.line === a.line && l.range.start.character <= a.character)) &&
+    (l.range.end.line > a.line || (l.range.end.line === a.line && a.character <= l.range.end.character));
+  if (locs.some(here)) return { onDeclaration: true, targets: [], source: "lsp" };
+  if (!locs.length) return { onDeclaration: false, targets: [], source: "none", message: "Cannot find declaration to go to" };
+  return {
+    onDeclaration: false,
+    targets: locs.map((l) => ({ path: l.path, line: l.range.start.line, column: l.range.start.character, name: "" })),
+    source: "lsp",
+  };
+}
+
+registerMock("code_goto_declaration", async (args): Promise<DeclarationAnswer> => {
   const { a, text, offset, buffers } = at(args);
-  const r = isPhp(a.path) ? resolveAt(a.path, text, offset, buffers) : null;
+  if (!isPhp(a.path)) return serverDefinition(a);
+  const r = resolveAt(a.path, text, offset, buffers);
   if (!r) return { onDeclaration: false, targets: [], source: "none", message: "Cannot find declaration to go to" };
   if (r.decl) return { onDeclaration: true, title: displayOf(r.sym), targets: [], source: "index" };
   const t = declTarget(r.sym, buffers);
@@ -573,7 +590,13 @@ registerMock("code_symbol_info", (args): SymbolHover | null => {
 
 registerMock("code_find_usages", async (args): Promise<UsagesAnswer> => {
   const { a, text, offset, buffers } = at(args);
-  const r = isPhp(a.path) ? resolveAt(a.path, text, offset, buffers) : null;
+  if (!isPhp(a.path)) {
+    const refs = await invoke<EditorLocation[]>("lsp_references", { path: a.path, line: a.line, character: a.character }).catch(() => []);
+    const w = wordAt(text, offset);
+    const trees = await grouped(refs.map((l) => ({ path: l.path, range: l.range })), null, buffers);
+    return { title: w ? text.slice(...w) : "", source: refs.length ? "lsp" : "none", declaration: null, ...trees };
+  }
+  const r = resolveAt(a.path, text, offset, buffers);
   if (!r) {
     const empty = { total: 0, fileCount: 0, groups: [] };
     return { title: wordAt(text, offset) ? text.slice(...wordAt(text, offset)!) : "", source: "none", declaration: null, byType: empty, byFile: empty };
