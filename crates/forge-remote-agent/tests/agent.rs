@@ -340,9 +340,12 @@ async fn terminals_processes_and_watching() {
             .unwrap();
         assert_eq!(term.cwd(), watch_root.join("app"));
         term.resize(100, 30).unwrap();
-        term.write(b"echo \"$FORGE_TEST\"; exit\n").unwrap();
+        // The agent's shell gets the same terminal environment as a local one.
+        term.write(b"echo \"env:$FORGE_TEST:$TERM_PROGRAM:$TERM_PROGRAM_VERSION\"; exit\n")
+            .unwrap();
+        let expected = format!("env:remote-shell:Forge:{}", env!("CARGO_PKG_VERSION"));
         wait_until("terminal output", || {
-            output.lock().unwrap().contains("remote-shell")
+            output.lock().unwrap().contains(&expected)
         });
         wait_until("the shell to exit", || *exited.lock().unwrap());
 
