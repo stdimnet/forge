@@ -3,6 +3,7 @@
  * ranking. Mirrors `crates/forge-fuzzy` and `app/src-tauri/src/commands/{workspace,search}.rs`;
  * browser mode runs the same Rust code as WebAssembly.
  */
+import { createSignal } from "solid-js";
 import { getSetting } from "@/state/settings";
 import { invoke } from "./index";
 
@@ -105,8 +106,15 @@ export interface SearchStatus {
   lastRefreshMs: number;
 }
 
-/** Search Everywhere and Go to File match substrings when the setting `search.everywhere.fuzzy` is off. */
-export const exactMatching = () => !getSetting<boolean>("search.everywhere.fuzzy", true);
+const [exactOverride, setExactOverride] = createSignal<boolean | null>(null);
+
+/**
+ * Search Everywhere and Go to File match substrings when the setting `search.everywhere.fuzzy` is
+ * off, or when the toggle in the popup was switched for this session.
+ */
+export const exactMatching = () => exactOverride() ?? !getSetting<boolean>("search.everywhere.fuzzy", true);
+
+export { setExactOverride };
 
 export const searchApi = {
   /** Classes or all symbols from the index, for languages without a running language server. */

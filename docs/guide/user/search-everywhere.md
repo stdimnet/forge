@@ -52,6 +52,10 @@ matching** (`search.everywhere.fuzzy`). Files, Classes and Symbols in Search Eve
 File then find `OrderCon` in `OrderController` but no longer `orco`. PHP and Lua classes from their
 own language index and the Actions tab keep fuzzy matching.
 
+The button at the right end of the search field switches between fuzzy and substring matching for the current session without touching the setting.
+
+![Substring matching switched on in Go to File](../../screenshots/search-index-exact-toggle.png)
+
 Ranking happens in Rust (`forge-fuzzy`), so the same rules apply in every list with a
 speed search: Recent Files, the New Scratch File popup, choosers.
 
