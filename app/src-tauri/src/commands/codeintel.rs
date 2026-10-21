@@ -29,10 +29,10 @@ use serde::Serialize;
 use serde_json::Value;
 use tauri::{AppHandle, State};
 
+use crate::commands::injections;
 use crate::commands::library::{
     read_library, stub_path, LibraryState, LIBRARY_PREFIX, STUBS_PREFIX,
 };
-use crate::commands::injections;
 use crate::commands::lsp::{to_ui_path, LspState};
 use crate::commands::workspace::blocking;
 use crate::state::AppState;

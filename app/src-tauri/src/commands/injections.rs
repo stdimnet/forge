@@ -2,12 +2,12 @@
 //! JavaScript/TypeScript strings. The same functions run as WebAssembly in the editor (it
 //! needs the answers at once while typing) and in browser mode.
 
-use forge_lsp::forge_codeintel::ContextAction;
 use forge_core::Settings;
 use forge_injections::{
     Edit, FindRequest, Fragment, InjectRequest, Injection, InjectionSettings, Language,
     LiteralKind, OffsetRequest, RuleInfo,
 };
+use forge_lsp::forge_codeintel::ContextAction;
 
 /// Setting with the ids of the turned-off built-in rules.
 pub const DISABLED_KEY: &str = "editor.injections.disabled";

@@ -78,7 +78,8 @@ mod tests {
 
     #[test]
     fn finds_and_escapes_through_json() {
-        let req = json!({ "text": "<?php $q = 'SELECT * FROM t';", "path": "a.php", "disabled": [] });
+        let req =
+            json!({ "text": "<?php $q = 'SELECT * FROM t';", "path": "a.php", "disabled": [] });
         let out = injections_find(&req.to_string());
         assert!(out.contains(r#""language":"sql""#), "{out}");
         let esc = injections_escape(r#"{"kind":"phpSingle","text":"it's"}"#);
