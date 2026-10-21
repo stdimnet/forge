@@ -105,16 +105,16 @@ Where the stubs come from:
    checkout of [JetBrains' phpstorm-stubs](https://github.com/JetBrains/phpstorm-stubs)
    (Apache-2.0) or a compatible folder.
 2. Otherwise Forge downloads a pinned phpstorm-stubs release on first use into
-   `<cache dir>/forge/php-stubs/<version>`, checks its SHA-256 and keeps its licence file. The
-   status bar shows the download.
+   `<cache dir>/forge/php-stubs/<version>`, checks the unpacked files against a pinned digest
+   and keeps its licence file. The status bar shows the download.
 3. When Intelephense is installed and nothing else is available, its own stubs are used.
 
 When Intelephense runs, its definition (which points into the stubs inside its package) is
 opened read-only directly.
 
-> **Note:** the managed download of phpstorm-stubs is enabled once the checksum of the pinned
-> release is part of Forge. Until then, set **Default stubs path** or install Intelephense;
-> otherwise Go to Declaration on a built-in symbol explains how to get the stubs.
+> **Note:** the download needs access to `codeload.github.com`. Offline, set **Default stubs
+> path** or install Intelephense; otherwise Go to Declaration on a built-in symbol explains how
+> to get the stubs.
 
 ### Show Usages and Find Usages
 

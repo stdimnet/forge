@@ -3967,16 +3967,16 @@ Where the stubs come from:
    checkout of [JetBrains' phpstorm-stubs](https://github.com/JetBrains/phpstorm-stubs)
    (Apache-2.0) or a compatible folder.
 2. Otherwise Forge downloads a pinned phpstorm-stubs release on first use into
-   `<cache dir>/forge/php-stubs/<version>`, checks its SHA-256 and keeps its licence file. The
-   status bar shows the download.
+   `<cache dir>/forge/php-stubs/<version>`, checks the unpacked files against a pinned digest
+   and keeps its licence file. The status bar shows the download.
 3. When Intelephense is installed and nothing else is available, its own stubs are used.
 
 When Intelephense runs, its definition (which points into the stubs inside its package) is
 opened read-only directly.
 
-> **Note:** the managed download of phpstorm-stubs is enabled once the checksum of the pinned
-> release is part of Forge. Until then, set **Default stubs path** or install Intelephense;
-> otherwise Go to Declaration on a built-in symbol explains how to get the stubs.
+> **Note:** the download needs access to `codeload.github.com`. Offline, set **Default stubs
+> path** or install Intelephense; otherwise Go to Declaration on a built-in symbol explains how
+> to get the stubs.
 
 ### Show Usages and Find Usages
 
@@ -8193,7 +8193,7 @@ Forge uses the platform's standard folders (Rust's `dirs` crate):
 | Path | Content |
 | --- | --- |
 | `php-index/<project>-<hash>.json` | PHP index cache per project |
-| `php-stubs/<version>/` | JetBrains phpstorm-stubs for Go to Declaration on PHP's own symbols (downloaded on first use, SHA-256 checked, with its `LICENSE`) |
+| `php-stubs/<version>/` | JetBrains phpstorm-stubs for Go to Declaration on PHP's own symbols (downloaded on first use, checked against a pinned digest of its files, with its `LICENSE`) |
 | `intelephense/` | Intelephense's storage (`storagePath`) |
 | `jdtls/…` | workspace data of the Java language server |
 
@@ -10915,7 +10915,7 @@ these rows.
 | `managed/mod.rs` | Zero-prerequisite installs of npm language servers (Intelephense, typescript-language-server, vscode-langservers-extracted, yaml-language-server, …) on the user's machine: |
 | `managed/node.rs` | A Node.js runtime for npm language servers: a suitable one on the machine (>= 18), or the official build from nodejs.org (or a mirror) downloaded into `<data dir>/forge/runtimes/node-<version>`, verified against the release's `SHASUMS256.txt`. |
 | `managed/npm.rs` | npm packages without npm: registry metadata, tarball download with `dist.integrity` (sha512) verification, unpacking into `<managed dir>/node_modules/<name>` and the `node_modules/.bin` entries detection looks for. |
-| `managed/stubs.rs` | PHP stubs for Go to Declaration on PHP's own symbols: a pinned JetBrains phpstorm-stubs release downloaded on first use into `<cache dir>/forge/php-stubs/<version>`, SHA-256 checked and unpacked with its `LICENSE`; `intelephense_stubs` finds Intelephense's own `lib/stub`. Downloads without a configured checksum are refused. |
+| `managed/stubs.rs` | PHP stubs for Go to Declaration on PHP's own symbols: a pinned JetBrains phpstorm-stubs release downloaded on first use into `<cache dir>/forge/php-stubs/<version>`, unpacked and checked against a pinned `content_digest` of its files (reproducible from `git archive <commit>`; see the ignored `print_content_digest` test), with its `LICENSE`; `intelephense_stubs` finds Intelephense's own `lib/stub`. |
 | `managed/testserver.rs` | A tiny HTTP/1.1 server on localhost for tests: fixed bodies per path, request counts. |
 | `managed/updates.rs` | "A newer version is available": at most one registry check a day, remembered in `<managed dir>/.forge-update-check.json`. |
 | `plan.rs` | Which servers to start for a project, and the rows of the Language Servers settings page. |

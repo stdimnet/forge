@@ -581,8 +581,9 @@ computes everything; `app/ui/src/features/codeintel` and `features/lsp/goto.ts` 
   `Navigate`), so remote projects answer from the agent; the stubs live on this machine.
 - PHP stubs (`forge_langservers::managed::stubs`, app state `commands::library::LibraryState`):
   `php.stubs.path`, else a pinned JetBrains phpstorm-stubs release downloaded on first use into
-  `<cache dir>/forge/php-stubs/<version>` (SHA-256 checked, `LICENSE` kept; refused while no
-  checksum is configured), else Intelephense's own `lib/stub`. Progress is reported as
+  `<cache dir>/forge/php-stubs/<version>` (the unpacked files are checked against a pinned
+  `content_digest`, which `git archive <commit>` reproduces; `LICENSE` kept), else
+  Intelephense's own `lib/stub`. Progress is reported as
   `langservers://install-progress` with id `php-stubs`. Indexed once per folder.
 - Library files: `library://php-stubs/<path>` (the stubs) and `library://file/<absolute path>`
   (a file outside the project a language server pointed to; only paths handed out by a
