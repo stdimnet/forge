@@ -58,6 +58,8 @@ from .env files** (`database.suggestFromEnv`).
   columns.
 - **Execute** (`Ctrl+Enter`, macOS `Cmd+Enter`) runs the statement at the caret, or the
   selection. Several statements separated by `;` run one after another.
+- SQL in PHP and JavaScript strings runs the same way: `Ctrl+Enter` in an injected SQL string
+  opens a console with it (see [Language injections](language-injections.md#run-injected-sql)).
 - Results appear below in tabs (**Output** plus one tab per result set), paged by
   **Result set page size** (`database.pageSize`, 500).
 - **Cancel Running Statements** stops a long query.
