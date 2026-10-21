@@ -6,11 +6,14 @@ edition.workspace = true
 license.workspace = true
 
 [features]
-default = ["runtime"]
+default = ["runtime", "net"]
 # Sessions (host and guest), the transports and the document store. Without it only the
 # pure modules are built (links, permissions, protocol, verification, excludes, presence),
 # e.g. for WebAssembly.
 runtime = ["dep:tokio", "dep:tracing", "dep:yrs", "dep:forge-backend", "dep:forge-core", "dep:getrandom"]
+
+# The network transport (iroh, direct connections).
+net = ["runtime", "dep:iroh"]
 
 [dependencies]
 serde.workspace = true
@@ -30,6 +33,7 @@ yrs = { version = "0.28", optional = true }
 forge-backend = { workspace = true, optional = true }
 forge-core = { workspace = true, optional = true }
 getrandom = { version = "0.3", optional = true }
+iroh = { version = "~1.3", optional = true, default-features = false, features = ["tls-ring"] }
 
 [dev-dependencies]
 proptest = "~1.11"

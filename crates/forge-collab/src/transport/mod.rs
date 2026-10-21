@@ -5,8 +5,11 @@
 //! endpoint keys for the network transport); the session code never sees addresses.
 //!
 //! - [`memory`]: an in-process network for tests, with injectable latency and disconnects.
+//! - [`net`]: iroh (QUIC), direct connections (feature `net`).
 
 pub mod memory;
+#[cfg(feature = "net")]
+pub mod net;
 
 use std::future::Future;
 use std::io;
