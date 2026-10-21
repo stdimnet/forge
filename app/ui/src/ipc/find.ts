@@ -13,6 +13,8 @@ export interface FindRequest {
   fileMask?: string;
   /** Project-relative directory ("Directory" scope); empty = whole project. */
   directory?: string;
+  /** Search only these project-relative files (open or changed files). */
+  paths?: string[];
   /** Maximum number of matches. */
   limit?: number;
 }

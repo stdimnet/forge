@@ -2,7 +2,7 @@
 import { createSignal } from "solid-js";
 import { activeSelection } from "@/editor/views";
 
-export type FindScope = "project" | "directory";
+export type FindScope = "project" | "directory" | "openFiles" | "changedFiles";
 
 export interface FindOptions {
   caseSensitive: boolean;

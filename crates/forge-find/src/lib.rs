@@ -41,6 +41,9 @@ pub struct FindRequest {
     /// Project-relative directory to search in (the "Directory" scope); empty = project.
     #[serde(default)]
     pub directory: String,
+    /// Search only these project-relative files (open or changed files); `None` = no restriction.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub paths: Option<Vec<String>>,
     /// Maximum number of matches reported.
     #[serde(default = "default_limit")]
     pub limit: usize,
@@ -55,6 +58,7 @@ impl Default for FindRequest {
             regex: false,
             file_mask: String::new(),
             directory: String::new(),
+            paths: None,
             limit: DEFAULT_LIMIT,
         }
     }
@@ -251,6 +255,7 @@ pub struct Finder {
     re: Regex,
     mask: FileMask,
     directory: String,
+    only: Option<std::collections::HashSet<String>>,
     limit: usize,
 }
 
@@ -270,6 +275,11 @@ impl Finder {
             re,
             mask: FileMask::parse(&req.file_mask),
             directory,
+            only: req.paths.as_ref().map(|p| {
+                p.iter()
+                    .map(|p| p.trim_start_matches('/').to_string())
+                    .collect()
+            }),
             limit: req.limit.max(1),
         })
     }
@@ -290,7 +300,9 @@ impl Finder {
             || path
                 .strip_prefix(self.directory.as_str())
                 .is_some_and(|rest| rest.starts_with('/'));
-        in_dir && self.mask.matches(path)
+        in_dir
+            && self.only.as_ref().is_none_or(|only| only.contains(path))
+            && self.mask.matches(path)
     }
 
     /// Matching lines of one file's text, at most `budget` matches.
@@ -559,6 +571,14 @@ mod tests {
         q.directory.clear();
         q.file_mask = "!*Test.php".into();
         assert_eq!(find_in(&q, files).files.len(), 2);
+
+        let mut q = req("User");
+        q.paths = Some(vec!["tests/UserTest.php".into()]);
+        let r = find_in(&q, files);
+        assert_eq!(r.files.len(), 1);
+        assert_eq!(r.files[0].path, "tests/UserTest.php");
+        q.paths = Some(vec![]);
+        assert!(find_in(&q, files).files.is_empty());
     }
 
     #[test]

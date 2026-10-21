@@ -427,6 +427,16 @@ fn find_text_matches_a_directory_walk() {
     let mut dir = req("UserRepository");
     dir.directory = "web".into();
     cases.push(dir);
+    let mut only = req("user");
+    only.paths = Some(vec![
+        "src/User.php".into(),
+        "web/app.js".into(),
+        "missing.php".into(),
+    ]);
+    cases.push(only);
+    let mut nothing = req("user");
+    nothing.paths = Some(Vec::new());
+    cases.push(nothing);
     for limit in [1, 2, 3, 5, 6] {
         let mut capped = req("x");
         capped.limit = limit;

@@ -16,6 +16,7 @@ import { ensureFileType } from "@/editor/fileTypes";
 import { editor } from "@/state/editor";
 import { FileIcon } from "@/shell/FileIcon";
 import { formatDuration } from "./duration";
+import { scopeRequest } from "./scope";
 import { openFindWindow } from "./window";
 import { closeFindInFiles, findOptions, findQuery, setFindQuery, updateFindOptions } from "./state";
 
@@ -160,7 +161,7 @@ export function FindInFilesPopup() {
         wholeWords: o.wholeWords,
         regex: o.regex,
         fileMask: o.maskEnabled ? o.fileMask : "",
-        directory: o.scope === "directory" ? o.directory : "",
+        ...scopeRequest(o),
         limit: 1000,
       });
       if (id !== seq) return;
@@ -201,7 +202,7 @@ export function FindInFilesPopup() {
       wholeWords: o.wholeWords,
       regex: o.regex,
       fileMask: o.maskEnabled ? o.fileMask : "",
-      directory: o.scope === "directory" ? o.directory : "",
+      ...scopeRequest(o),
     });
   };
 
@@ -316,6 +317,24 @@ export function FindInFilesPopup() {
             onClick={() => updateFindOptions({ scope: "directory" })}
           >
             Directory
+          </button>
+          <button
+            class="find-scope-tab"
+            classList={{ active: findOptions().scope === "openFiles" }}
+            role="tab"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => updateFindOptions({ scope: "openFiles" })}
+          >
+            Open Files
+          </button>
+          <button
+            class="find-scope-tab"
+            classList={{ active: findOptions().scope === "changedFiles" }}
+            role="tab"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => updateFindOptions({ scope: "changedFiles" })}
+          >
+            Changed Files
           </button>
           <Show when={findOptions().scope === "directory"}>
             <input

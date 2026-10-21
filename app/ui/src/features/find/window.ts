@@ -20,6 +20,7 @@ export interface FindForm {
   regex: boolean;
   fileMask: string;
   directory: string;
+  paths?: string[];
 }
 
 export const [findForm, setFindForm] = createStore<FindForm>({
