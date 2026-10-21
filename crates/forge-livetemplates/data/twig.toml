@@ -1,0 +1,47 @@
+# Twig live templates.
+
+[group]
+name = "Twig"
+
+[[template]]
+abbreviation = "block"
+description = "{% block %}...{% endblock %}"
+contexts = ["TWIG"]
+text = '''
+{% block $NAME$ %}
+    $END$
+{% endblock %}'''
+
+[[template]]
+abbreviation = "for"
+description = "{% for %}...{% endfor %}"
+contexts = ["TWIG"]
+text = '''
+{% for $ITEM$ in $ITEMS$ %}
+    $END$
+{% endfor %}'''
+variables = [
+  { name = "ITEMS", defaultValue = '"items"' },
+  { name = "ITEM", expression = "suggestVariableName(ITEMS)", defaultValue = '"item"' },
+]
+
+[[template]]
+abbreviation = "if"
+description = "{% if %}...{% endif %}"
+contexts = ["TWIG"]
+text = '''
+{% if $CONDITION$ %}
+    $END$
+{% endif %}'''
+
+[[template]]
+abbreviation = "extends"
+description = "{% extends '' %}"
+contexts = ["TWIG"]
+text = "{% extends '$TEMPLATE$' %}$END$"
+
+[[template]]
+abbreviation = "include"
+description = "{{ include('') }}"
+contexts = ["TWIG"]
+text = "{{ include('$TEMPLATE$') }}$END$"

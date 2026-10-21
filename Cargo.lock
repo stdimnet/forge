@@ -2058,6 +2058,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "forge-livetemplates"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "toml 0.8.23",
+]
+
+[[package]]
 name = "forge-lsp"
 version = "0.1.0"
 dependencies = [

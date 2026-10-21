@@ -1,0 +1,90 @@
+# Laravel live templates (active in Laravel projects).
+
+[group]
+name = "Laravel"
+framework = "laravel"
+
+[[template]]
+abbreviation = "belongsto"
+description = "belongsTo relation"
+contexts = ["PHP_CLASS_MEMBER"]
+text = '''
+public function $NAME$(): BelongsTo
+{
+    return $$this->belongsTo($MODEL$::class);
+}'''
+variables = [
+  { name = "MODEL" },
+  { name = "NAME", expression = "decapitalize(MODEL)", alwaysStopAt = false },
+]
+
+[[template]]
+abbreviation = "dd"
+description = "dd(...)"
+contexts = ["PHP_STATEMENT"]
+text = "dd($END$);"
+
+[[template]]
+abbreviation = "hasmany"
+description = "hasMany relation"
+contexts = ["PHP_CLASS_MEMBER"]
+text = '''
+public function $NAME$(): HasMany
+{
+    return $$this->hasMany($MODEL$::class);
+}'''
+variables = [
+  { name = "MODEL" },
+  { name = "NAME", expression = 'concat(decapitalize(MODEL), "s")', alwaysStopAt = false },
+]
+
+[[template]]
+abbreviation = "rget"
+description = "Route::get()"
+contexts = ["PHP_STATEMENT"]
+text = "Route::get('/$URI$', [$CONTROLLER$::class, '$ACTION$'])->name('$NAME$');"
+
+[[template]]
+abbreviation = "rgroup"
+description = "Route::middleware()->group()"
+contexts = ["PHP_STATEMENT"]
+text = '''
+Route::middleware(['$MIDDLEWARE$'])->group(function () {
+    $END$
+});'''
+variables = [{ name = "MIDDLEWARE", defaultValue = '"auth"' }]
+
+[[template]]
+abbreviation = "rpost"
+description = "Route::post()"
+contexts = ["PHP_STATEMENT"]
+text = "Route::post('/$URI$', [$CONTROLLER$::class, '$ACTION$'])->name('$NAME$');"
+
+[[template]]
+abbreviation = "rres"
+description = "Route::resource()"
+contexts = ["PHP_STATEMENT"]
+text = "Route::resource('$NAME$', $CONTROLLER$::class);"
+
+[[template]]
+abbreviation = "scope"
+description = "Local query scope"
+contexts = ["PHP_CLASS_MEMBER"]
+text = '''
+public function scope$NAME$(Builder $$query): void
+{
+    $$query->$END$;
+}'''
+
+[[template]]
+abbreviation = "validate"
+description = "$request->validate([...])"
+contexts = ["PHP_STATEMENT"]
+text = '''
+$$validated = $$request->validate([
+    '$FIELD$' => '$RULES$',$END$
+]);'''
+variables = [
+  { name = "FIELD" },
+  { name = "RULES", defaultValue = '"required"' },
+]
