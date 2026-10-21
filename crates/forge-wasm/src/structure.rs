@@ -7,7 +7,9 @@
 //!   parts (`forge_markdown::doc_comments`).
 //! - `structure_group_by_regions`: Structure view nodes grouped under their regions.
 
-use forge_codeintel::{editor_structure as structure_of, group_by_regions, Region};
+use forge_codeintel::{
+    editor_structure as structure_of, group_by_regions, Region, STRUCTURE_LANGUAGES,
+};
 use serde::Deserialize;
 use serde_json::{json, Value};
 use wasm_bindgen::prelude::*;
@@ -41,6 +43,16 @@ pub fn editor_doc_comments(request_json: &str) -> String {
         Ok(r) => to_json(&forge_markdown::doc_comments(&r.text, &r.language)),
         Err(e) => e,
     }
+}
+
+/// `{ id, label }[]` of the languages with Sticky Lines and breadcrumbs.
+#[wasm_bindgen]
+pub fn editor_structure_languages() -> String {
+    let list: Vec<Value> = STRUCTURE_LANGUAGES
+        .iter()
+        .map(|(id, label)| json!({ "id": id, "label": label }))
+        .collect();
+    to_json(&list)
 }
 
 #[derive(Deserialize)]
@@ -84,5 +96,6 @@ mod tests {
         .unwrap();
         assert_eq!(grouped[0]["kind"], "region");
         assert!(editor_structure("{").contains("error"));
+        assert!(editor_structure_languages().contains("\"PHP\""));
     }
 }

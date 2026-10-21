@@ -136,6 +136,32 @@ fn family(language: &str) -> Family {
     }
 }
 
+/// The languages with scopes (Sticky Lines and breadcrumbs), as `(file type id, label)` in
+/// the order of the settings' language lists.
+pub const STRUCTURE_LANGUAGES: &[(&str, &str)] = &[
+    ("php", "PHP"),
+    ("blade", "Blade"),
+    ("twig", "Twig"),
+    ("html", "HTML"),
+    ("xml", "XML"),
+    ("vue", "Vue"),
+    ("javascript", "JavaScript"),
+    ("jsx", "JSX"),
+    ("typescript", "TypeScript"),
+    ("tsx", "TSX"),
+    ("css", "CSS"),
+    ("scss", "SCSS"),
+    ("less", "Less"),
+    ("lua", "Lua"),
+    ("java", "Java"),
+    ("kotlin", "Kotlin"),
+    ("go", "Go"),
+    ("rust", "Rust"),
+    ("c", "C"),
+    ("cpp", "C++"),
+    ("csharp", "C#"),
+];
+
 /// Whether a language has region comments at all (Markdown's `# region` is a heading).
 fn has_region_comments(language: &str) -> bool {
     !matches!(language, "markdown" | "plaintext" | "text" | "json")
@@ -1458,6 +1484,13 @@ class User extends Model
         assert_eq!(s.scopes[0].column, 9);
         assert_eq!(s.scopes[2].parent, Some(1));
         assert!(!s.scopes[1].crumb);
+    }
+
+    #[test]
+    fn every_listed_language_has_scopes() {
+        for (id, _) in STRUCTURE_LANGUAGES {
+            assert_ne!(family(id), Family::None, "{id}");
+        }
     }
 
     #[test]
