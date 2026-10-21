@@ -1,0 +1,31 @@
+[package]
+name = "forge-collab"
+description = "Forge IDE Code With Me: session links, permissions, the collab protocol, transports and the shared editing session"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[features]
+default = ["runtime"]
+# Sessions (host and guest), the transports and the document store. Without it only the
+# pure modules are built (links, permissions, protocol, verification, excludes, presence),
+# e.g. for WebAssembly.
+runtime = ["dep:tokio", "dep:tracing", "dep:futures-util"]
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+rmp-serde = "1.3"
+serde_bytes = "0.11"
+sha2 = "0.10"
+hmac = "0.12"
+data-encoding = "2.6"
+percent-encoding = "2.3"
+globset = { version = "0.4", default-features = false }
+tokio = { workspace = true, optional = true, features = ["io-util", "sync", "rt", "macros", "time"] }
+tracing = { workspace = true, optional = true }
+futures-util = { version = "0.3", optional = true }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["full"] }

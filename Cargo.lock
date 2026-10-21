@@ -1876,6 +1876,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "forge-collab"
+version = "0.1.0"
+dependencies = [
+ "data-encoding",
+ "futures-util",
+ "globset",
+ "hmac 0.12.1",
+ "percent-encoding",
+ "rmp-serde",
+ "serde",
+ "serde_bytes",
+ "serde_json",
+ "sha2 0.10.9",
+ "thiserror 2.0.21",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "forge-containers"
 version = "0.1.0"
 dependencies = [
