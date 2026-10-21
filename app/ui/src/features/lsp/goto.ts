@@ -148,6 +148,7 @@ export function lspGoto(path: string): Extension {
     cache.set(key, link);
     return link;
   };
+  let middleDown: { x: number; y: number } | null = null;
   const navigate = (e: MouseEvent, view: EditorView) => {
     const pos = view.posAtCoords({ x: e.clientX, y: e.clientY });
     if (pos == null) return false;
@@ -165,8 +166,15 @@ export function lspGoto(path: string): Extension {
       mousedown(e, view) {
         // Ctrl+Click (Cmd+Click on macOS) and middle click, like PHPStorm.
         if (e.button === 0 && (e.ctrlKey || e.metaKey)) return navigate(e, view);
-        if (e.button === 1 && !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey) return navigate(e, view);
+        // A middle-button drag selects a rectangle (features/carets); a click navigates on release.
+        middleDown = e.button === 1 && !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey ? { x: e.clientX, y: e.clientY } : null;
         return false;
+      },
+      mouseup(e, view) {
+        const down = middleDown;
+        middleDown = null;
+        if (e.button !== 1 || !down || Math.max(Math.abs(e.clientX - down.x), Math.abs(e.clientY - down.y)) > 4) return false;
+        return navigate(e, view);
       },
       mousemove(e, view) {
         if (!(e.ctrlKey || e.metaKey)) return clear(view), false;

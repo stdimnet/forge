@@ -4,11 +4,9 @@ import {
   EditorView,
   keymap,
   lineNumbers,
-  highlightActiveLine,
   highlightActiveLineGutter,
   drawSelection,
   highlightSpecialChars,
-  rectangularSelection,
 } from "@codemirror/view";
 import { defaultKeymap, historyKeymap, indentWithTab } from "@codemirror/commands";
 import { bracketMatching, foldGutter, indentOnInput } from "@codemirror/language";
@@ -22,6 +20,7 @@ import { updateContent, updateCursor, saveFile, type EditorTab } from "@/state/e
 import { registerView } from "./views";
 import { replaceDocument, undoHistory } from "./reload";
 import { wordCompletion } from "./wordCompletion";
+import { highlightCaretRows } from "./caretRow";
 import { docSync, joinDocSync } from "./docSync";
 import { formatCompartment, formatExtensions } from "./codeStyle";
 import "./fileFormat";
@@ -60,11 +59,11 @@ export function CodeEditor(props: { tab: EditorTab; group?: number }) {
           // First, so other views of the file have the change before the store hears of it.
           docSync(path),
           lineNumbers(),
-          highlightActiveLine(),
+          highlightCaretRows,
           highlightActiveLineGutter(),
           highlightSpecialChars(),
           caretCompartment.of(caretBlink()),
-          rectangularSelection(),
+          // Rectangular selection and multi-caret clicks: features/carets.
           undoHistory(),
           indentOnInput(),
           formatCompartment.of(formatExtensions(props.tab.format, indentFor(path, props.tab.content))),
@@ -91,7 +90,7 @@ export function CodeEditor(props: { tab: EditorTab; group?: number }) {
             if (u.selectionSet || u.docChanged) {
               const head = u.state.selection.main.head;
               const line = u.state.doc.lineAt(head);
-              updateCursor(path, line.number, head - line.from + 1);
+              updateCursor(path, line.number, head - line.from + 1, u.state.selection.ranges.length);
             }
           }),
         ],

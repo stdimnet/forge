@@ -37,7 +37,7 @@ export function StatusBar() {
         {tab() && !tab()!.view && (
           <>
             <button class="status-item">
-              {tab()!.cursor.line}:{tab()!.cursor.col}
+              {(tab()!.cursor.carets ?? 1) > 1 ? `${tab()!.cursor.carets} carets` : `${tab()!.cursor.line}:${tab()!.cursor.col}`}
             </button>
             <LineSeparatorStatus tab={tab()!} />
             <EncodingStatus tab={tab()!} />

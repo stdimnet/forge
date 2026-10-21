@@ -36,6 +36,8 @@ import "./lua";
 import "./services";
 import "./remote";
 import "./webforge";
+import "./clipboard";
+import "./carets";
 import "./contextMenu";
 import "./mainMenu";
 import "./editorTabs";

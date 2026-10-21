@@ -141,6 +141,13 @@ app/ui/            SolidJS UI
   Statement); `editor_expand_word({ request: { text, offset, others?, backward?, language? }
   }) -> { from, prefix, candidates }` (Cyclic Expand Word, nearest first). Browser mode runs
   the same code through `forge-wasm` (`editing_*`).
+- Clipboard history (`src/ipc/clipboard.ts`, `forge_editing::clipboard`, Paste from History):
+  `clipboard_history_add({ entry: { text, carets? }, max? }) -> bool` (dedupes, newest first,
+  keeps `max` = `editor.clipboard.maxContents`; `carets` are the per-caret parts of a
+  multi-caret copy); `clipboard_history_list({ query?, max? }) -> { index, text, carets?,
+  preview, lines, chars }[]`; `clipboard_history_remove({ index }) -> bool`;
+  `clipboard_history_promote({ index }) -> { text, carets? } | null`. Session memory only
+  (`ClipboardState` in `app/src-tauri`, a thread-local in `forge-wasm` for browser mode).
 - File and code templates (`src/ipc/templates.ts`, `forge-file-templates`):
   `templates_list({ custom? }) -> { templates: TemplateInfo[], variables }` (built-ins merged
   with the `fileTemplates.custom` setting, or with `custom`, the settings page's draft; each

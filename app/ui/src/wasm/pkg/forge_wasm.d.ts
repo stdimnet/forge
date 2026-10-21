@@ -45,6 +45,26 @@ export function chat_new(): string;
 export function chat_set_permission(request_json: string): string;
 
 /**
+ * `{ entry, max? }` → `bool`.
+ */
+export function clipboard_history_add(args_json: string): string;
+
+/**
+ * `{ query?, max? }` → `ClipItem[]`.
+ */
+export function clipboard_history_list(args_json: string): string;
+
+/**
+ * `{ index }` → `ClipEntry | null`.
+ */
+export function clipboard_history_promote(args_json: string): string;
+
+/**
+ * `{ index }` → `bool`.
+ */
+export function clipboard_history_remove(args_json: string): string;
+
+/**
  * `{ edit, files }` → `{ applied: AppliedFile[], files }` (the files after the edit) or
  * `{ error }`.
  */
@@ -711,6 +731,10 @@ export interface InitOutput {
     readonly chat_drop: (a: number, b: number, c: number) => void;
     readonly chat_new: (a: number) => void;
     readonly chat_set_permission: (a: number, b: number, c: number) => void;
+    readonly clipboard_history_add: (a: number, b: number, c: number) => void;
+    readonly clipboard_history_list: (a: number, b: number, c: number) => void;
+    readonly clipboard_history_promote: (a: number, b: number, c: number) => void;
+    readonly clipboard_history_remove: (a: number, b: number, c: number) => void;
     readonly codeintel_apply_edit: (a: number, b: number, c: number) => void;
     readonly codeintel_context_actions: (a: number, b: number, c: number) => void;
     readonly codeintel_context_headers: (a: number, b: number, c: number) => void;
