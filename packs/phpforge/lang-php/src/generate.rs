@@ -1036,7 +1036,11 @@ fn gen_php_doc(
                 f.return_type.clone().unwrap_or_else(|| "mixed".into()),
             );
             set("THROWS_DOC", throws_doc(&src[f.range.start..f.range.end]));
-            (f.range, f.doc.is_some(), Some(templates::FUNCTION_DOC_COMMENT))
+            (
+                f.range,
+                f.doc.is_some(),
+                Some(templates::FUNCTION_DOC_COMMENT),
+            )
         }
     };
     if doc_exists {
@@ -1462,7 +1466,13 @@ class Checkout
     #[test]
     fn php_doc_for_classes() {
         let src = "<?php\nnamespace App\\Models;\n\nfinal class Order\n{\n\n    private $x;\n}\n";
-        let out = run(src, "\n\n    private", GenerateKind::PhpDoc, GenerateOptions::default()).unwrap();
+        let out = run(
+            src,
+            "\n\n    private",
+            GenerateKind::PhpDoc,
+            GenerateOptions::default(),
+        )
+        .unwrap();
         assert!(
             out.contains("namespace App\\Models;\n\n/**\n * Class Order\n * @package App\\Models\n */\nfinal class Order\n"),
             "{out}"
@@ -1492,13 +1502,32 @@ class Checkout
             code_templates: templates.clone(),
             ..Default::default()
         };
-        let out = run_with(USER, "class User", GenerateKind::ImplementMethods, opts(&["Lib\\Model::table"]), hierarchy()).unwrap();
+        let out = run_with(
+            USER,
+            "class User",
+            GenerateKind::ImplementMethods,
+            opts(&["Lib\\Model::table"]),
+            hierarchy(),
+        )
+        .unwrap();
         assert!(out.contains("    {\n        throw new \\LogicException('User::table() is not implemented');\n    }"), "{out}");
-        let out = run_with(USER, "class User", GenerateKind::OverrideMethods, opts(&["Lib\\Model::save"]), hierarchy()).unwrap();
+        let out = run_with(
+            USER,
+            "class User",
+            GenerateKind::OverrideMethods,
+            opts(&["Lib\\Model::save"]),
+            hierarchy(),
+        )
+        .unwrap();
         assert!(out.contains("    {\n        $result = parent::save($options);\n\n        return $result;\n    }"), "{out}");
         let src = "<?php\nclass A\n{\n    private $x;\n\n    public function f(int $a) {}\n}\n";
         let out = run(src, "f(", GenerateKind::PhpDoc, opts(&[])).unwrap();
-        assert!(out.contains("    /**\n     * f\n     * @param int $a\n     */\n    public function f("), "{out}");
+        assert!(
+            out.contains(
+                "    /**\n     * f\n     * @param int $a\n     */\n    public function f("
+            ),
+            "{out}"
+        );
         let err = run(src, "$x", GenerateKind::PhpDoc, opts(&[])).unwrap_err();
         assert!(err.to_string().contains("PHP Field Doc Comment"), "{err}");
     }

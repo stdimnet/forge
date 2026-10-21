@@ -70,7 +70,10 @@ fn roots(r: &Psr4Request) -> Vec<psr4::Psr4Root> {
 #[wasm_bindgen]
 pub fn templates_php_namespace(request_json: &str) -> String {
     match parse::<Psr4Request>(request_json) {
-        Ok(r) => to_json(&psr4::namespace_for_dir(&roots(&r), r.dir.as_deref().unwrap_or(""))),
+        Ok(r) => to_json(&psr4::namespace_for_dir(
+            &roots(&r),
+            r.dir.as_deref().unwrap_or(""),
+        )),
         Err(e) => e,
     }
 }
@@ -79,7 +82,10 @@ pub fn templates_php_namespace(request_json: &str) -> String {
 #[wasm_bindgen]
 pub fn templates_php_directory(request_json: &str) -> String {
     match parse::<Psr4Request>(request_json) {
-        Ok(r) => to_json(&psr4::dir_for_namespace(&roots(&r), r.namespace.as_deref().unwrap_or(""))),
+        Ok(r) => to_json(&psr4::dir_for_namespace(
+            &roots(&r),
+            r.namespace.as_deref().unwrap_or(""),
+        )),
         Err(e) => e,
     }
 }
@@ -114,13 +120,23 @@ mod tests {
     fn bridges() {
         let list: serde_json::Value = serde_json::from_str(&templates_list("{}")).unwrap();
         assert!(list["templates"].as_array().unwrap().len() > 10);
-        assert_eq!(templates_validate(r##"{"text":"#end"}"##), "\"Line 1: #end without #if\"");
+        assert_eq!(
+            templates_validate(r##"{"text":"#end"}"##),
+            "\"Line 1: #end without #if\""
+        );
         let ns = templates_php_namespace(
             r#"{"composerJson":"{\"autoload\":{\"psr-4\":{\"App\\\\\":\"app/\"}}}","composerPath":"composer.json","dir":"app/Models"}"#,
         );
         assert_eq!(ns, r#""App\\Models""#);
-        let created = templates_new_file(r#"{"request":{"template":"CSS File","dir":"public","name":"site"}}"#);
-        assert!(created.contains("\"path\":\"public/site.css\""), "{created}");
-        assert!(templates_new_file(r#"{"request":{"template":"Nope","name":"x"}}"#).contains("error"));
+        let created = templates_new_file(
+            r#"{"request":{"template":"CSS File","dir":"public","name":"site"}}"#,
+        );
+        assert!(
+            created.contains("\"path\":\"public/site.css\""),
+            "{created}"
+        );
+        assert!(
+            templates_new_file(r#"{"request":{"template":"Nope","name":"x"}}"#).contains("error")
+        );
     }
 }
