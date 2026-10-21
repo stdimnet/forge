@@ -1,0 +1,90 @@
+/* Settings | Editor | General | Postfix Completion: template tree and before/after example. */
+.postfix-editor {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) minmax(220px, 1fr);
+  gap: 12px;
+  max-width: 720px;
+}
+.postfix-tree {
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+  height: 300px;
+  overflow: auto;
+  padding: 2px 0;
+}
+.postfix-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 8px;
+  white-space: nowrap;
+  cursor: default;
+}
+.postfix-row input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  accent-color: var(--accent);
+  box-shadow: none;
+  flex: none;
+}
+.postfix-template {
+  padding-left: 30px;
+}
+.postfix-template.selected {
+  background: var(--accent-soft);
+  color: var(--fg-strong);
+}
+.postfix-template:not(.selected):hover {
+  background: var(--bg-hover);
+}
+.postfix-chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--fg-muted);
+}
+.postfix-key {
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+}
+.postfix-desc {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+.postfix-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.postfix-preview-title {
+  margin-top: 4px;
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+.postfix-preview-title:first-child {
+  margin-top: 0;
+}
+.postfix-code {
+  margin: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-editor);
+  color: var(--fg);
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  line-height: 1.5;
+  white-space: pre;
+  overflow: auto;
+}

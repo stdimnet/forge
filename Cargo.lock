@@ -1819,6 +1819,7 @@ dependencies = [
  "forge-core",
  "forge-db",
  "forge-debug",
+ "forge-editing",
  "forge-filetypes",
  "forge-forges",
  "forge-fuzzy",
@@ -1980,6 +1981,14 @@ dependencies = [
  "thiserror 2.0.21",
  "tokio",
  "tracing",
+]
+
+[[package]]
+name = "forge-editing"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -2294,6 +2303,7 @@ dependencies = [
  "forge-bookmarks",
  "forge-codeintel",
  "forge-containers",
+ "forge-editing",
  "forge-filetypes",
  "forge-find",
  "forge-fuzzy",

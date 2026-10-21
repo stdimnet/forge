@@ -38,7 +38,7 @@ are in [research/jetbrains-gap-analysis.md](research/jetbrains-gap-analysis.md).
 
 ### Editor
 - [x] Quick Documentation (`Ctrl+Q`), Documentation tool window, External Documentation (`Shift+F1`), Quick Definition (`Ctrl+Shift+I`), Type Info, Context Info, Error Description
-- [ ] Postfix completion and Complete Current Statement (`Ctrl+Shift+Enter`), Cyclic Expand Word
+- [x] Postfix completion and Complete Current Statement (`Ctrl+Shift+Enter`), Cyclic Expand Word
 - [ ] Live Templates with Surround With, Unwrap/Remove, Save as Live Template and Laravel/Symfony template sets
 - [ ] File and code templates (New ▸ PHP Class/Interface/Enum/Trait with PSR-4 namespace, Vue/React components)
 - [ ] Create symbols from usage (Alt+Enter: create method, field, class, constant)

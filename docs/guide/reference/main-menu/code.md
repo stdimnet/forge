@@ -19,8 +19,8 @@ Completion, Generate, folding, comments, formatting and moving lines. Open it wi
 | **Code Completion** | | | | submenu |
 | Code Completion › Basic Completion | `Ctrl+Space`, `Shift+Space` | `Ctrl+Space`, `Shift+Space` | yes | Opens code completion at the caret; also offers words from the document. [More](../../user/editor.md#code-completion) |
 | Code Completion › Type-Matching Completion | `Ctrl+Shift+Space` | `Ctrl+Shift+Space` | not yet | Not available yet; the entry is disabled. |
-| Code Completion › Cyclic Expand Word | `Alt+/` | `Alt+/` | not yet | Not available yet; the entry is disabled. |
-| Code Completion › Cyclic Expand Word (Backward) | `Alt+Shift+/` | `Alt+Shift+/` | not yet | Not available yet; the entry is disabled. |
+| Code Completion › Cyclic Expand Word | `Alt+/` | `Alt+/` | yes | Completes the word at the caret with the nearest matching word of the file or the other open files; press again to cycle. [More](../../user/editor.md#cyclic-expand-word) |
+| Code Completion › Cyclic Expand Word (Backward) | `Alt+Shift+/` | `Alt+Shift+/` | yes | Like Cyclic Expand Word, looking below the caret first. [More](../../user/editor.md#cyclic-expand-word) |
 | Override Methods… | `Ctrl+O` | `Ctrl+O` | yes | In PHP editors: pick inherited methods to override; Forge writes the stubs. |
 | Implement Methods… | `Ctrl+I` | `Ctrl+I` | yes | In PHP editors: pick interface or abstract methods to implement; Forge writes the stubs. |
 | Generate… | `Alt+Insert` | `Cmd+N` | yes | In PHP files: generates a constructor, getters, setters, overrides, `__toString()` or a PHPDoc block. [More](../../user/php.md#generate) ([screenshot](../../../screenshots/docs-generate.png)) |
