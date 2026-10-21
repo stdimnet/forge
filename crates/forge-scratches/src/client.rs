@@ -1,4 +1,7 @@
-//! Sends the requests of `.http` scratches (feature `client`).
+//! Sends the requests of `.http` scratches (feature `client`): from this machine
+//! ([`send`]), or through a local port that is forwarded to the URL's host and port from
+//! another machine ([`send_via`], the SSH tunnel of a remote project), so `localhost` URLs
+//! reach the services of that machine.
 
 use std::time::{Duration, Instant};
 
@@ -7,18 +10,84 @@ use crate::http::{Header, HttpRequest, HttpResponse};
 /// Largest body kept for the console; longer bodies are cut.
 const MAX_BODY: usize = 2 * 1024 * 1024;
 
+fn parse_url(req: &HttpRequest) -> Result<reqwest::Url, String> {
+    reqwest::Url::parse(&req.url).map_err(|e| format!("Invalid URL '{}': {e}", req.url))
+}
+
+/// Host and port a request connects to (the port defaults to the scheme's).
+pub fn target(req: &HttpRequest) -> Result<(String, u16), String> {
+    let url = parse_url(req)?;
+    let host = url
+        .host_str()
+        .ok_or_else(|| format!("No host in '{}'", req.url))?
+        .trim_start_matches('[')
+        .trim_end_matches(']')
+        .to_string();
+    let port = url
+        .port_or_known_default()
+        .ok_or_else(|| format!("No port for '{}'", req.url))?;
+    Ok((host, port))
+}
+
 /// Send a resolved request (see [`crate::http::resolve`]). Errors are worded for the console.
 pub async fn send(req: &HttpRequest, timeout: Duration) -> Result<HttpResponse, String> {
+    send_with(req, timeout, None).await
+}
+
+/// Send a request through `127.0.0.1:local_port`, which forwards to the URL's host and
+/// port as another machine sees them ([`target`]). The URL's host stays the TLS server
+/// name and the `Host` header; redirects are not followed (they would leave the tunnel).
+pub async fn send_via(
+    req: &HttpRequest,
+    timeout: Duration,
+    local_port: u16,
+) -> Result<HttpResponse, String> {
+    send_with(req, timeout, Some(local_port)).await
+}
+
+async fn send_with(
+    req: &HttpRequest,
+    timeout: Duration,
+    tunnel: Option<u16>,
+) -> Result<HttpResponse, String> {
     let method = reqwest::Method::from_bytes(req.method.as_bytes())
         .map_err(|_| format!("Unknown method '{}'", req.method))?;
-    let url =
-        reqwest::Url::parse(&req.url).map_err(|e| format!("Invalid URL '{}': {e}", req.url))?;
-    let client = reqwest::Client::builder()
+    let mut url = parse_url(req)?;
+    let mut builder = reqwest::Client::builder()
         .timeout(timeout)
-        .user_agent(concat!("Forge-HTTP-Client/", env!("CARGO_PKG_VERSION")))
-        .build()
-        .map_err(|e| e.to_string())?;
+        .user_agent(concat!("Forge-HTTP-Client/", env!("CARGO_PKG_VERSION")));
+    let mut host_header = None;
+    if let Some(local) = tunnel {
+        let (host, _) = target(req)?;
+        let authority = url.host_str().unwrap_or(&host).to_string();
+        host_header = Some(match url.port() {
+            Some(p) => format!("{authority}:{p}"),
+            None => authority,
+        });
+        let tunnel_addr = std::net::SocketAddr::from(([127, 0, 0, 1], local));
+        if url.scheme() == "https" && host.parse::<std::net::IpAddr>().is_err() {
+            // TLS needs the real name: resolve it to the tunnel instead of rewriting it.
+            builder = builder.resolve(&host, tunnel_addr);
+        } else {
+            url.set_host(Some("127.0.0.1"))
+                .map_err(|e| format!("Invalid URL '{}': {e}", req.url))?;
+        }
+        url.set_port(Some(local))
+            .map_err(|_| format!("Invalid URL '{}'", req.url))?;
+        builder = builder
+            .no_proxy()
+            .http1_only()
+            .redirect(reqwest::redirect::Policy::none());
+    }
+    let client = builder.build().map_err(|e| e.to_string())?;
     let mut builder = client.request(method, url);
+    let has_host = req
+        .headers
+        .iter()
+        .any(|h| h.name.eq_ignore_ascii_case("host"));
+    if let (Some(host), false) = (host_header, has_host) {
+        builder = builder.header("Host", host);
+    }
     for h in &req.headers {
         builder = builder.header(h.name.as_str(), h.value.as_str());
     }
@@ -191,6 +260,34 @@ mod tests {
             .await
             .unwrap_err()
             .starts_with("Invalid URL"));
+    }
+
+    #[tokio::test]
+    async fn sends_through_a_tunnel_port_with_the_original_host() {
+        let (local, handle) =
+            server("HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok").await;
+        let port: u16 = local.rsplit(':').next().unwrap().parse().unwrap();
+        // As the remote host sees it: its own localhost.
+        let req = resolve(
+            &parse("GET http://localhost:8000/health\nAccept: text/plain\n").requests[0],
+            &BTreeMap::new(),
+            &BTreeMap::new(),
+        );
+        assert_eq!(target(&req).unwrap(), ("localhost".to_string(), 8000));
+        let resp = send_via(&req, Duration::from_secs(5), port).await.unwrap();
+        assert_eq!((resp.status, resp.body.as_str()), (200, "ok"));
+        let seen = handle.await.unwrap();
+        assert!(seen.starts_with("GET /health HTTP/1.1\r\n"), "{seen}");
+        assert!(
+            seen.to_ascii_lowercase()
+                .contains("host: localhost:8000\r\n"),
+            "{seen}"
+        );
+        let https = HttpRequest {
+            url: "https://shop.internal/api".into(),
+            ..req
+        };
+        assert_eq!(target(&https).unwrap(), ("shop.internal".to_string(), 443));
     }
 
     #[test]

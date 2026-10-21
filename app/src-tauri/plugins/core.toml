@@ -622,3 +622,17 @@ default = ""
 group = "tools.http-client"
 project = true
 order = 0
+
+[[contributions.settings]]
+key = "httpClient.sendFrom"
+title = "Send requests from"
+description = "Remote projects only: \"Remote host\" sends the requests of .http files through an SSH tunnel from the project's host, so localhost URLs reach the services running there. \"This machine\" sends them from here."
+type = "enum"
+options = [
+  { value = "local", label = "This machine" },
+  { value = "remote", label = "Remote host" },
+]
+default = "remote"
+group = "tools.http-client"
+project = true
+order = 1

@@ -2,7 +2,9 @@
 //! `forge-scratches`). PHP/JS/TS scratches run as the `scratch` run configuration kind; the
 //! requests of `.http` files (scratches and project files) are sent here and their responses
 //! streamed to the Run tool window as `run://<runId>` events, followed by the report of their
-//! response handler. Changes to the list are emitted as `scratches://changed`.
+//! response handler. Changes to the list are emitted as `scratches://changed`. In a remote
+//! project, requests are sent from the project's host through an SSH tunnel unless
+//! `httpClient.sendFrom` is `local`, so `localhost` URLs reach the host's services.
 
 use std::collections::BTreeMap;
 use std::path::PathBuf;
@@ -244,8 +246,16 @@ pub async fn scratches_http_run(
     state: State<'_, AppState>,
     http_state: State<'_, HttpClientState>,
 ) -> Result<HttpStarted> {
-    let root = state.with_workspace(|ws| Ok(ws.root().to_path_buf())).ok();
+    let root = state.project_root().ok();
     let backend = state.backend().ok();
+    let send_from_host = state
+        .read_settings()
+        .get_as::<String>(SEND_FROM_KEY)
+        .map_or(true, |v| v != "local");
+    let tunnels = backend
+        .as_ref()
+        .filter(|_| send_from_host)
+        .and_then(|b| b.tunnels());
     let globals = http_state.globals.clone();
     let env = env.filter(|e| !e.is_empty());
     let (resolved, handler_script) = crate::commands::workspace::blocking(move || {
@@ -293,7 +303,11 @@ pub async fn scratches_http_run(
                 text.push_str(&http::render_error(p));
             }
         } else {
-            match forge_scratches::client::send(&request, Duration::from_secs(60)).await {
+            let sent = match &tunnels {
+                Some(t) => send_from_host_of(t.as_ref(), &request, &mut text).await,
+                None => forge_scratches::client::send(&request, TIMEOUT).await,
+            };
+            match sent {
                 Ok(resp) => {
                     text.push_str(&http::render_response(&resp));
                     match handler_script {
@@ -325,6 +339,32 @@ pub async fn scratches_http_run(
         );
     });
     Ok(started)
+}
+
+/// `httpClient.sendFrom`: `remote` (default) or `local`.
+pub const SEND_FROM_KEY: &str = "httpClient.sendFrom";
+
+const TIMEOUT: Duration = Duration::from_secs(60);
+
+/// Send `request` from the remote project's host: a local port forwarded through the
+/// project's SSH connection to the URL's host and port as the host sees them.
+async fn send_from_host_of(
+    tunnels: &dyn forge_backend::Tunnels,
+    request: &http::HttpRequest,
+    text: &mut String,
+) -> std::result::Result<http::HttpResponse, String> {
+    let (host, port) = forge_scratches::client::target(request)?;
+    let forward = tunnels
+        .forward_local(host, port)
+        .await
+        .map_err(|e| format!("Cannot open an SSH tunnel: {e}"))?;
+    text.push_str(&format!(
+        "\x1b[90mSent from {} through an SSH tunnel\x1b[0m\n\n",
+        forward.via
+    ));
+    let resp = forge_scratches::client::send_via(request, TIMEOUT, forward.port).await;
+    drop(forward);
+    resp
 }
 
 fn emit<T: Serialize>(app: &AppHandle, event: &str, payload: &T) {
