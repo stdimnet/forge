@@ -6,10 +6,14 @@
 //!
 //! - [`memory`]: an in-process network for tests, with injectable latency and disconnects.
 //! - [`net`]: iroh (QUIC), direct connections (feature `net`).
+//! - [`relay`]: the iroh endpoint configuration for relays, hole punching and LAN
+//!   discovery, and the path a connection uses (feature `net`).
 
 pub mod memory;
 #[cfg(feature = "net")]
 pub mod net;
+#[cfg(feature = "net")]
+pub mod relay;
 
 use std::future::Future;
 use std::io;
@@ -21,6 +25,7 @@ use serde::Serialize;
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 
 use crate::protocol;
+use crate::relay::{ConnectionPath, RelayStatus};
 
 /// An endpoint's public key (an Ed25519 key for the network transport).
 pub type PeerKey = [u8; 32];
@@ -55,6 +60,19 @@ pub trait Transport: Send + Sync + 'static {
     ) -> BoxFuture<'_, io::Result<Connection>>;
     /// Stop accepting and close every connection.
     fn close(&self) -> BoxFuture<'_, ()>;
+    /// The relay others can reach this endpoint through (for the session link), if any.
+    fn relay_url(&self) -> Option<String> {
+        None
+    }
+    /// How the connection to `peer` travels right now (direct or relayed). `None` without a
+    /// connection or when the transport cannot tell.
+    fn path(&self, _peer: &PeerKey) -> Option<ConnectionPath> {
+        None
+    }
+    /// The state of the connection to the relay, when one is configured.
+    fn relay_status(&self) -> Option<RelayStatus> {
+        None
+    }
 }
 
 /// Write one framed message.

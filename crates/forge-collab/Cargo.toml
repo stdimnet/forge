@@ -12,8 +12,8 @@ default = ["runtime", "net"]
 # e.g. for WebAssembly.
 runtime = ["dep:tokio", "dep:tracing", "dep:yrs", "dep:forge-backend", "dep:forge-core", "dep:getrandom"]
 
-# The network transport (iroh, direct connections).
-net = ["runtime", "dep:iroh"]
+# The network transport (iroh: direct connections, optional relay, hole punching, LAN discovery).
+net = ["runtime", "dep:iroh", "dep:iroh-mdns-address-lookup"]
 
 [dependencies]
 serde.workspace = true
@@ -34,8 +34,12 @@ forge-backend = { workspace = true, optional = true }
 forge-core = { workspace = true, optional = true }
 getrandom = { version = "0.3", optional = true }
 iroh = { version = "~1.3", optional = true, default-features = false, features = ["tls-ring"] }
+iroh-mdns-address-lookup = { version = "0.6", optional = true }
 
 [dev-dependencies]
 proptest = "~1.11"
 tempfile.workspace = true
 tokio = { workspace = true, features = ["full"] }
+# An in-process relay server for the relay tests (no network).
+iroh = { version = "~1.3", default-features = false, features = ["tls-ring", "test-utils"] }
+iroh-relay = { version = "~1.3", default-features = false, features = ["server", "test-utils", "tls-ring"] }

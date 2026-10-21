@@ -240,7 +240,7 @@ impl HostSession {
             session_id: self.session_id,
             host_id: self.transport.local_key(),
             join_secret: self.join_secret,
-            relay: None,
+            relay: self.transport.relay_url(),
             addrs: self.transport.addresses(),
         }
     }
