@@ -458,3 +458,26 @@ fn a_cache_cut_short_is_ignored() {
     std::fs::write(&cache, b"not an index at all").unwrap();
     assert!(!SearchService::open(dir.path(), Some(cache)).ready());
 }
+
+#[test]
+fn a_rescan_event_triggers_a_full_refresh() {
+    let dir = TempDir::new().unwrap();
+    write(dir.path(), "a.txt", "alpha\n");
+    let svc = std::sync::Arc::new(SearchService::open(dir.path(), None));
+    svc.refresh();
+    write(dir.path(), "b.txt", "rescantoken\n");
+    assert!(paths(&svc, &q("rescantoken")).is_empty());
+
+    let (tx, rx) = std::sync::mpsc::channel();
+    let weak = std::sync::Arc::downgrade(&svc);
+    std::thread::spawn(move || crate::service::watch_loop(rx, weak));
+    let event = notify::Event::new(notify::EventKind::Other).set_flag(notify::event::Flag::Rescan);
+    tx.send(Ok(event)).unwrap();
+    for _ in 0..50 {
+        if !paths(&svc, &q("rescantoken")).is_empty() {
+            return;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(100));
+    }
+    panic!("a rescan event did not refresh the index");
+}

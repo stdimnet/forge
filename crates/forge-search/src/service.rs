@@ -563,7 +563,10 @@ fn read_cache(path: &Path) -> Option<Index> {
     Index::read_from(BufReader::new(file))
 }
 
-fn watch_loop(rx: mpsc::Receiver<notify::Result<notify::Event>>, service: Weak<SearchService>) {
+pub(crate) fn watch_loop(
+    rx: mpsc::Receiver<notify::Result<notify::Event>>,
+    service: Weak<SearchService>,
+) {
     let mut dirty: HashSet<PathBuf> = HashSet::new();
     let mut overflowed = false;
     let mut unsaved = false;
@@ -571,6 +574,7 @@ fn watch_loop(rx: mpsc::Receiver<notify::Result<notify::Event>>, service: Weak<S
     loop {
         match rx.recv_timeout(WATCH_DEBOUNCE) {
             Ok(Ok(event)) => {
+                overflowed |= event.need_rescan();
                 dirty.extend(event.paths);
                 continue;
             }
