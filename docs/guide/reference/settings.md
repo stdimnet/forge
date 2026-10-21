@@ -174,6 +174,12 @@ Page id `editor.code-style.php`.
 | `php.codeStyle.blankLines.afterImports` | int (0–10) | `1` | user, project | Blank Lines | After imports |
 | `php.codeStyle.blankLines.aroundMethods` | int (0–10) | `1` | user, project | Blank Lines | Around method |
 
+### Editor | File and Code Templates
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `fileTemplates.custom` | objects | `[]` | user | — | File and code templates — Templates added in Settings \| Editor \| File and Code Templates and the changed text of built-in ones (`kind` `file`, `include` or `code`, `name`, `extension`, `text`). Built-in templates without an entry use their default text. One entry per `kind` + `name` pair. Edited on the page, see [File and code templates](../user/file-templates.md). |
+
 ### Editor | Inlay Hints
 
 Page id `editor.inlay-hints`.

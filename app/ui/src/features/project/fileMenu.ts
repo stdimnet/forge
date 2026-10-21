@@ -65,17 +65,22 @@ async function newEntry(dir: string, kind: "file" | "dir"): Promise<void> {
  * view, else the folder of the active editor, else the project root, like PHPStorm.
  */
 export async function newEntryFromSelection(kind: "file" | "dir"): Promise<void> {
+  await newEntry(await newTargetDir(), kind);
+}
+
+/**
+ * The folder File | New creates in: the folder selected in the Project view (or the folder
+ * of the selected file), else the folder of the active editor, else the project root.
+ */
+export async function newTargetDir(): Promise<string> {
   const active = editor.active && !editor.active.includes(":") ? editor.active : null;
   const path = projectTree.selected() ?? active;
-  let dir = "";
-  if (path) {
-    const entry = await workspaceApi
-      .listDir(parentOf(path))
-      .then((entries) => entries.find((e) => e.path === path) ?? null)
-      .catch(() => null);
-    dir = entry ? targetDir(entry) : parentOf(path);
-  }
-  await newEntry(dir, kind);
+  if (!path) return "";
+  const entry = await workspaceApi
+    .listDir(parentOf(path))
+    .then((entries) => entries.find((e) => e.path === path) ?? null)
+    .catch(() => null);
+  return entry ? targetDir(entry) : parentOf(path);
 }
 
 async function rename(entry: FileEntry): Promise<void> {
@@ -152,11 +157,24 @@ const absolute = (path: string) => {
   return path ? `${root.replace(/\/$/, "")}/${path}` : root;
 };
 
+/**
+ * File and Directory, then what other features add for the folder (`project.new` providers
+ * get the folder path: file templates such as PHP Class or HTML File).
+ */
+export function newMenuEntries(dir: string): MenuEntry[] {
+  return [
+    item("File", () => void newEntry(dir, "file"), "NewFile"),
+    item("Directory", () => void newEntry(dir, "dir"), "NewDir"),
+    separator,
+    ...providedEntries("project.new", dir),
+  ];
+}
+
 /** Menu of a tree row (`null` = the project root). */
 export function fileMenuEntries(entry: FileEntry | null): MenuEntry[] {
   const dir = targetDir(entry);
   const entries: MenuEntry[] = [
-    submenu("New", [item("File", () => void newEntry(dir, "file")), item("Directory", () => void newEntry(dir, "dir"))]),
+    submenu("New", newMenuEntries(dir)),
     separator,
   ];
   if (entry) {

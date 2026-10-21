@@ -234,6 +234,16 @@ section = "Delimiters"
 project = true
 order = 10
 
+[[contributions.settings]]
+key = "fileTemplates.custom"
+title = "File and code templates"
+description = "Templates added in Settings | Editor | File and Code Templates and the changed text of built-in ones (kind \"file\", \"include\" or \"code\", name, extension, text). Built-in templates without an entry use their default text."
+type = "objects"
+unique = ["kind", "name"]
+default = []
+group = "editor.file-templates"
+order = 0
+
 # ---- Appearance & Behavior > System Settings ----------------------------------------
 
 [[contributions.settings]]

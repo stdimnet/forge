@@ -18,6 +18,7 @@ Forge's rule of thumb is "Rust computes, TypeScript renders": logic lives in Rus
 - [Workbench](guide/user/workbench.md): main window, main menu, tool windows, editor tabs and split editors, Recent Locations, Bookmarks, Find, TODO and Notifications tool windows, status bar
 - [Editor](guide/user/editor.md): editing, completion, postfix completion, Complete Current Statement (Ctrl+Shift+Enter), Cyclic Expand Word (Alt+/), Quick Documentation (Ctrl+Q), Quick Definition, Go to Declaration, Find/Show Usages, Rename (Shift+F6), Show Context Actions (Alt+Enter), inspections, folding, multiple carets
 - [Live templates](guide/user/live-templates.md): abbreviation + Tab, Insert Live Template (Ctrl+J), Surround With (Ctrl+Alt+T), Unwrap/Remove (Ctrl+Shift+Delete), Save as Live Template, PHP/JS/Lua/Twig/Laravel/Blade/Symfony sets
+- [File and code templates](guide/user/file-templates.md): New ▸ PHP Class/Interface/Trait/Enum with PSR-4 namespaces, framework, web and Lua file templates, the Alt+Insert New popup, Settings | Editor | File and Code Templates (Velocity syntax, variables, code templates of the Generate actions)
 - [Search Everywhere and navigation](guide/user/search-everywhere.md): Search Everywhere, Go to Class/File/Symbol, Find in Files
 - [Shortcuts by topic](guide/user/shortcuts/index.md): every implemented shortcut explained by area, with screenshots
 - [Keymap reference card](guide/user/shortcuts/reference-card.md): the 62 most important shortcuts on one page

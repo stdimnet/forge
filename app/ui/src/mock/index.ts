@@ -39,6 +39,7 @@ import "./servicesMock";
 import "./webMock";
 import "./windowMock";
 import "./updatesMock";
+import "./templatesMock";
 
 // File types answer synchronously once the WebAssembly build is loaded; wait for it so the
 // first editors do not start as plain text.

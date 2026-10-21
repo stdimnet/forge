@@ -31,6 +31,7 @@ mod lua;
 mod scratches;
 mod search;
 mod settings;
+mod templates;
 mod terminal;
 mod text;
 mod web;

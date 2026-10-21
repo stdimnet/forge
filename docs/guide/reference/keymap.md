@@ -130,7 +130,7 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | --- | --- | --- | --- | --- |
 | Settings… | `ShowSettings` | `Ctrl+Alt+S` | `Cmd+,` | yes |
 | Project Structure… | `ShowProjectStructureSettings` | `Ctrl+Alt+Shift+S` | `Cmd+;` | — |
-| New… | `NewElement` | `Alt+Insert` | `Cmd+N` | — |
+| New… | `NewElement` | `Alt+Insert` | `Cmd+N` | yes |
 | New Scratch File | `NewScratchFile` | `Ctrl+Alt+Shift+Insert` | `Cmd+Shift+N` | yes |
 | New Project… | `NewProject` |  |  | yes |
 | Open… | `OpenFile` |  |  | yes |

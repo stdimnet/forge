@@ -30,6 +30,7 @@ pub mod search;
 pub mod services;
 pub mod settings;
 pub mod symfony;
+pub mod templates;
 pub mod terminal;
 pub mod updates;
 pub mod web;

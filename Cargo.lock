@@ -1820,6 +1820,7 @@ dependencies = [
  "forge-db",
  "forge-debug",
  "forge-editing",
+ "forge-file-templates",
  "forge-filetypes",
  "forge-forges",
  "forge-fuzzy",
@@ -1986,6 +1987,14 @@ dependencies = [
 
 [[package]]
 name = "forge-editing"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "forge-file-templates"
 version = "0.1.0"
 dependencies = [
  "serde",
@@ -2314,6 +2323,7 @@ dependencies = [
  "forge-codeintel",
  "forge-containers",
  "forge-editing",
+ "forge-file-templates",
  "forge-filetypes",
  "forge-find",
  "forge-fuzzy",
@@ -4627,6 +4637,7 @@ version = "0.1.0"
 dependencies = [
  "dirs 6.0.0",
  "forge-codeintel",
+ "forge-file-templates",
  "rayon",
  "serde",
  "serde_json",
