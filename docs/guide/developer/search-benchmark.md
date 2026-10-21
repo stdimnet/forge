@@ -42,3 +42,13 @@ Measured on a source tree (272,700 files, Windows 11, release build, files in th
 
 The first cold index after a rebuild or a reboot took 77 s on the same folder, because the
 files were not in the OS cache. That time is disk speed, not the index.
+
+## Tried and rejected
+
+Measured with the benchmark above on the same tree.
+
+| Change | Result | Why not |
+| --- | --- | --- |
+| Rarest trigram first with early stop | `->get(` 16.5 to 19.8 ms, `return` 248 to 249 ms | Choosing candidates is not where the time goes; reading and scanning files is |
+| Skip lockfiles, `.min.js`, `.min.css`, `.map` | About 20 MB of 272,700 files | Too little to gain, and Find in Files would stop matching them |
+| Identifier-run trigrams instead of byte trigrams | Cache 283 to 169 MB, load 1287 to 861 ms, but `->get(` 16 to 274 ms | Queries with punctuation lose most of their narrowing; a hybrid needs both indexes |
