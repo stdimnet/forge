@@ -37,7 +37,10 @@ requests unless asked" **only** for the steps below; every other rule in AGENTS.
 7. **Merge and clean up.**
    - Merge the PR yourself with a merge commit once the gates passed and there is no conflict
      (on a conflict: merge the base into the branch, rerun the gates, push).
-   - Then delete the branch on GitHub and locally, and remove its worktree.
+   - Then delete the branch locally and remove its worktree. On GitHub the repository setting
+     "Automatically delete head branches" deletes it on merge; this environment's git proxy
+     refuses branch deletion (HTTP 403). If the branch is still there after the merge, add it
+     to the owner's cleanup list (see "Branches left on GitHub" below) instead of retrying.
 8. **Milestone done.** When every item of a milestone is ticked, build the AppImage, smoke-test
    it under Xvfb, note the result in the milestone heading ("(done)") and tell the owner in one
    short message. Do not send installers unless asked.
@@ -52,6 +55,18 @@ requests unless asked" **only** for the steps below; every other rule in AGENTS.
 - Trigger workflows, create or publish releases, or bump the version.
 - Add co-author or other trailers, or mention AI tools in commits.
 - Commit secrets, Intelephense or other paid tools.
+
+## Branches left on GitHub
+
+When a merged runner branch cannot be deleted, tell the owner once per milestone with a
+ready-to-run command that deletes only fully merged runner branches, for example:
+
+```sh
+git fetch --prune origin
+for b in feat/a fix/b; do
+  git merge-base --is-ancestor "origin/$b" origin/dev/gallant-cerf-630lu4 && git push origin --delete "$b"
+done
+```
 
 ## Phase 1 branches
 
