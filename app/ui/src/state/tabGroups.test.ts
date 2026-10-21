@@ -7,6 +7,7 @@ import {
   cycle,
   DEFAULT_POLICY,
   moveToOpposite,
+  neighbourGroup,
   newLayout,
   openIds,
   openTab,
@@ -123,5 +124,32 @@ describe("tab groups", () => {
     expect(l.pinned).toEqual(["B"]);
     expect(cycle(l, 1, 1)).toBe("B");
     expect(cycle(l, 1, -1)).toBe("a");
+  });
+
+  it("closes tabs to the left and right but keeps pinned ones", () => {
+    const l = togglePin(open(newLayout(), "a", "b", "c", "d", "e"), "b");
+    // Pinned tabs move to the front: b, a, c, d, e.
+    expect(sideOf(l, 1, "d", "left")).toEqual(["a", "c"]);
+    expect(sideOf(l, 1, "c", "right")).toEqual(["d", "e"]);
+    expect(sideOf(l, 1, "missing", "right")).toEqual([]);
+  });
+
+  it("activates the left or right neighbour per closing policy", () => {
+    const base = activateTab(open(newLayout(), "a", "b", "c"), 1, "b");
+    const left: TabPolicy = { ...DEFAULT_POLICY, activateOnClose: "left" };
+    const right: TabPolicy = { ...DEFAULT_POLICY, activateOnClose: "right" };
+    expect(activeTabId(closeTabs(base, 1, ["b"], left))).toBe("a");
+    expect(activeTabId(closeTabs(base, 1, ["b"], right))).toBe("c");
+  });
+
+  it("splits down, walks the splitters and changes nothing without a tab", () => {
+    let l = open(newLayout(), "a");
+    l = split(l, "horizontal");
+    expect(l.orientation).toBe("horizontal");
+    expect(l.groups.map((g) => g.tabs)).toEqual([["a"], ["a"]]);
+    expect(neighbourGroup(l, 1)?.id).toBe(l.groups[0].id);
+    expect(split(newLayout(), "vertical")).toEqual(newLayout());
+    // Unsplit merges into the neighbour and keeps one copy of each tab.
+    expect(unsplit(l, l.groups[1].id).groups.map((g) => g.tabs)).toEqual([["a"]]);
   });
 });
