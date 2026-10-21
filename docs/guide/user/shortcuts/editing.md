@@ -23,6 +23,10 @@ Typing, selecting, moving and commenting code, completion, generation, formattin
 | [Context Info](#context-info) | `Alt+Q` | `Ctrl+Shift+Q` |
 | [Error Description](#error-description) | `Ctrl+F1` | `Cmd+F1` |
 | [Generate…](#generate) | `Alt+Insert` | `Cmd+N` |
+| [Insert Live Template…](#insert-live-template) | `Ctrl+J` | `Cmd+J` |
+| [Surround With…](#surround-with) | `Ctrl+Alt+T` | `Cmd+Alt+T` |
+| [Surround with Live Template…](#surround-with-live-template) | `Ctrl+Alt+J` | `Cmd+Alt+J` |
+| [Unwrap/Remove…](#unwrapremove) | `Ctrl+Shift+Delete` | `Cmd+Shift+Delete` |
 | [Undo](#undo) | `Ctrl+Z`, `Alt+Backspace` | `Cmd+Z` |
 | [Redo](#redo) | `Ctrl+Shift+Z`, `Alt+Shift+Backspace` | `Cmd+Shift+Z` |
 | [Cut](#cut) | `Ctrl+X`, `Shift+Delete` | `Cmd+X` |
@@ -186,6 +190,56 @@ In PHP files: generates a constructor, getters, setters, overrides, `__toString(
 ![Generate…](../../../screenshots/docs-generate.png)
 
 More: [PHP](../../user/php.md#generate)
+
+## Insert Live Template
+
+**Shortcut:** `Ctrl+J` · macOS `Cmd+J` · action id `InsertLiveTemplate`
+
+Lists the live templates that apply at the caret, filtered by the word before it; type to
+narrow the list and press `Enter` to insert. Typing an abbreviation and pressing `Tab` expands
+it directly.
+
+**Menu:** Code | Insert Live Template…
+
+![Insert Live Template](../../../screenshots/live-template-insert.png)
+
+More: [Live templates](../../user/live-templates.md#expanding-a-template)
+
+## Surround With
+
+**Shortcut:** `Ctrl+Alt+T` · macOS `Cmd+Alt+T` · action id `SurroundWith`
+
+Wraps the selected lines (or the caret line) in `if`, `if / else`, loops, `try / catch`, a
+function, braces, a region or a live template that uses `$SELECTION$`.
+
+**Menu:** Code | Surround With…
+
+![Surround With](../../../screenshots/surround-with.png)
+
+More: [Live templates](../../user/live-templates.md#surround-with)
+
+## Surround with Live Template
+
+**Shortcut:** `Ctrl+Alt+J` · macOS `Cmd+Alt+J` · action id `SurroundWithLiveTemplate`
+
+Like Surround With, but lists only the live templates that use `$SELECTION$`.
+
+**Menu:** Code | Surround with Live Template…
+
+More: [Live templates](../../user/live-templates.md#surround-with)
+
+## Unwrap/Remove
+
+**Shortcut:** `Ctrl+Shift+Delete` · macOS `Cmd+Shift+Delete` · action id `Unwrap`
+
+Lists the statements around the caret: unwrap one (keep the body the caret is in) or remove
+an `else`, `elseif`, `catch` or `finally` branch. The editor previews the change.
+
+**Menu:** Code | Unwrap/Remove…
+
+![Unwrap/Remove](../../../screenshots/unwrap-remove.png)
+
+More: [Live templates](../../user/live-templates.md#unwrapremove)
 
 ## Undo
 

@@ -1826,6 +1826,7 @@ dependencies = [
  "forge-fuzzy",
  "forge-keymap",
  "forge-langservers",
+ "forge-livetemplates",
  "forge-lsp",
  "forge-markdown",
  "forge-open",
@@ -2076,6 +2077,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "forge-livetemplates"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "toml 0.8.23",
+]
+
+[[package]]
 name = "forge-lsp"
 version = "0.1.0"
 dependencies = [
@@ -2318,6 +2328,7 @@ dependencies = [
  "forge-find",
  "forge-fuzzy",
  "forge-keymap",
+ "forge-livetemplates",
  "forge-markdown",
  "forge-output",
  "forge-plugin-api",

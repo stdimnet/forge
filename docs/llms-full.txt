@@ -623,7 +623,7 @@ happening.
 - Refactorings other than Rename: Extract/Introduce, Move, Change Signature, Safe Delete
 - File Structure popup (`Ctrl+F12`)
 - Local History
-- Live templates, Surround With, Optimize Imports, Type/Call/Method Hierarchy
+- Optimize Imports, Type/Call/Method Hierarchy
 - Go to Test (`Ctrl+Shift+T`)
 - Distraction Free / Presentation / Zen modes
 - Marketplace, settings export/import
@@ -661,6 +661,7 @@ not finished, the page says so.
 | --- | --- |
 | [Workbench and tool windows](docs/guide/user/workbench.md) | main toolbar, tool windows, Project view, tabs, Recent Files, Switcher, status bar |
 | [Editor](docs/guide/user/editor.md) | completion, hover, Parameter Info, Go to Declaration, problems, formatting, editing actions, folding, find, gutter, context menu |
+| [Live templates](docs/guide/user/live-templates.md) | abbreviations + `Tab`, Insert Live Template, Surround With, Unwrap/Remove, Save as Live Template, template sets and settings |
 | [File and code templates](docs/guide/user/file-templates.md) | New ▸ PHP Class and other templates, the New PHP Class dialog with PSR-4 namespaces, `Alt+Insert` New popup, Settings \| Editor \| File and Code Templates |
 | [Search Everywhere and Find Action](docs/guide/user/search-everywhere.md) | Double Shift, Go to Class/File/Symbol, Find Action, fuzzy matching |
 | [File types and syntax highlighting](docs/guide/user/file-types.md) | file type detection, highlighted languages, config formats, template data languages |
@@ -1628,6 +1629,159 @@ Settings | Editor | General controls soft wrapping (`editor.softWraps` with the 
 the caret row highlight, caret blinking with its blink period (`editor.caret.blinkPeriod`) and
 smooth scrolling. Settings | Editor | Font sets the font, size, line height and ligatures. See
 the [settings reference](docs/guide/reference/settings.md).
+
+
+---
+
+Source: docs/guide/user/live-templates.md
+
+# Live templates
+
+Live templates work as in PHPStorm: type an abbreviation such as `fore` and press `Tab`, and
+Forge inserts the code it stands for. The variables of the template become tab stops: the
+first one is selected, `Tab` moves to the next one (`Shift+Tab` back), and `Escape` or moving
+the caret away finishes the template. Every occurrence of a variable is edited at once.
+
+![A foreach expanded from fore](docs/screenshots/live-template-expand.png)
+
+The template sets, the contexts a template applies in, the variable expressions and the
+expansion are computed in Rust (`crates/forge-livetemplates`), so the desktop app and browser
+mode behave the same.
+
+## Expanding a template
+
+- **By abbreviation:** type the abbreviation and press the expand key, `Tab` by default. The
+  key keeps its usual meaning when no template applies (the word is not an abbreviation, or
+  the template does not fit the place). Change the key in Settings | Editor | Live Templates
+  ("By default expand with": `Tab`, `Space` or `Enter`).
+- **From completion:** templates that apply at the caret are listed in code completion with
+  their description; choosing one expands it.
+- **Insert Live Template** (`Ctrl+J`, macOS `Cmd+J`, Code | Insert Live Template): a list of
+  every template that applies at the caret. It is filtered by the word before the caret; type
+  to narrow it further, `Enter` or `Tab` inserts the selected template and replaces the typed
+  prefix.
+
+![Insert Live Template](docs/screenshots/live-template-insert.png)
+
+An abbreviation only expands as a whole word: `$fore`, `$x->fore` or `prefore` do not
+expand, and neither do abbreviations inside comments or strings.
+
+## Contexts
+
+Each template says where it applies ("Applicable in"), with PHPStorm's contexts:
+
+| Context | Where |
+| --- | --- |
+| PHP: Statement | where a statement can start (inside functions or at the top level of a PHP file) |
+| PHP: Class Member | directly in a class, interface, trait or enum body |
+| PHP: Expression | inside an expression, e.g. after `=` or `(` |
+| PHP: Comment / String | inside comments or strings (only templates that ask for them) |
+| PHP | all PHP code except comments and strings |
+| JavaScript and TypeScript: Statement / Expression | JavaScript and TypeScript files and `<script>` blocks |
+| TypeScript | TypeScript files and `<script lang="ts">` |
+| HTML, CSS | markup (including the HTML parts of PHP files) and `<style>` blocks |
+| Blade, Twig | Blade and Twig templates |
+| Lua | Lua files |
+| Other | every other file type |
+
+## Variables and expressions
+
+Template text uses `$NAME$` for a variable, `$END$` for the caret position after the last
+variable and `$SELECTION$` for the text a template surrounds. `$$` is a literal dollar sign,
+so PHP variables in template text are written `$$this`.
+
+In "Edit Variables" each variable has an **expression**, a **default value** and
+**Skip if defined**. The expression computes the initial value; when it is empty, the default
+value (an expression too, usually a string such as `"value"`) is used. A variable with a value
+and "Skip if defined" is filled in without a tab stop.
+
+| Expression | Value |
+| --- | --- |
+| `className()`, `methodName()`, `functionName()`, `namespace()` | the class, method or function around the caret and the PHP namespace |
+| `fileName()`, `fileNameWithoutExtension()` | the current file name |
+| `date("yyyy-MM-dd")`, `time("HH:mm")` | the current date and time (Java `SimpleDateFormat` patterns) |
+| `user()`, `clipboard()` | the system user name and the text last copied in Forge |
+| `variableOfType("array")` | a variable used before the caret, preferring collections (`$orders`) |
+| `suggestVariableName(ARRAY)` | a singular name for an element: `$orders` → `order` |
+| `camelCase(s)`, `snakeCase(s)`, `capitalize(s)`, `decapitalize(s)`, `capitalizeAndUnderscore(s)`, `lowercaseAndDash(s)`, `spaceSeparated(s)`, `underscoresToCamelCase(s)`, `underscoresToSpaces(s)` | case conversions |
+| `concat(a, b, …)`, `substringBefore(s, delimiter)`, `enum("a", "b")`, `complete()` | joining, cutting, the first of several values, an empty field |
+
+## Built-in templates
+
+| Group | Applies | Templates |
+| --- | --- | --- |
+| PHP | always | `fore`, `forek`, `fori`, `__c` (closure), `__fn` (arrow function), `eco`, `thr`, `inc`, `inco`, `rqr`, `rqro`, `pubf`, `prof`, `prif`, `pubsf`, `prosf`, `prisf`, `con`, `ctor`, `dc` |
+| JavaScript | always (also TypeScript) | `fori`, `itar`, `ritar`, `iter`, `itin`, `log`, `anf`, `arf`, `imp`, `imd` |
+| Lua | always | `fori`, `forp`, `forip`, `fun`, `lfun`, `req` |
+| Twig | always | `for`, `if`, `block`, `extends`, `include` |
+| Laravel | Laravel projects | `rget`, `rpost`, `rres`, `rgroup`, `dd`, `validate`, `hasmany`, `belongsto`, `scope` |
+| Blade | Laravel projects | `bif`, `bforeach`, `bforelse`, `bsection`, `bextends`, `binclude` |
+| Symfony | Symfony projects | `action`, `route`, `render`, `redirect`, `json`, `flash`, `path`, `trans` |
+
+The Laravel, Blade and Symfony groups apply only in projects that use the framework (and
+while its plugin is enabled in Settings | Plugins).
+
+## Surround With
+
+**Code | Surround With** (`Ctrl+Alt+T`, macOS `Cmd+Alt+T`) wraps the selected lines, or the
+caret line, in a statement. In PHP and JavaScript: `if`, `if / else`, `while`,
+`do / while`, `for`, `foreach` (PHP), `try / catch`, `try / finally`,
+`try / catch / finally`, `function`, `{ }`, `region...endregion Comments`, `(expr)` and
+`!(expr)`; Lua, HTML, Blade and Twig have their own lists (`if … then … end`, `<tag></tag>`,
+`@if`, `{% if %}`, …). Press the number or letter in front of an entry to pick it. The
+selection is re-indented inside the new block and the caret lands in the condition.
+
+Below them, under "Live templates", the popup lists the templates that use `$SELECTION$`.
+**Code | Surround with Live Template** (`Ctrl+Alt+J`, macOS `Cmd+Alt+J`) lists only those.
+
+![Surround With](docs/screenshots/surround-with.png)
+
+## Unwrap/Remove
+
+**Code | Unwrap/Remove** (`Ctrl+Shift+Delete`, macOS `Cmd+Shift+Delete`) lists the
+statements around the caret, innermost first. While an entry is selected, the editor shows
+what goes away (struck through) and what stays (highlighted).
+
+- **Unwrap 'if...'**, **'foreach...'**, **'for...'**, **'while...'**, **'do...'**,
+  **'try...'**, **braces**: replaces the statement with the body the caret is in,
+  re-indented.
+- **Unwrap 'else...'** / **'elseif...'**: keeps that branch instead of the whole `if`.
+- **Remove 'else...'**, **'elseif...'**, **'catch...'**, **'finally...'**: deletes only that
+  branch.
+
+It works in PHP, JavaScript and TypeScript (brace statements) and Lua (`if … then … end`,
+`for`/`while … do … end`, `repeat … until`, `do … end`).
+
+![Unwrap/Remove](docs/screenshots/unwrap-remove.png)
+
+## Save as Live Template
+
+Select code and choose **Tools | Save as Live Template** (also in the Code menu). Settings |
+Editor | Live Templates opens with a new template in the `user` group: the selection is the
+template text (dollar signs written as `$$`) and the contexts are those of the selection.
+Enter an abbreviation and a description, turn parts of the text into `$VARIABLES$` and press
+OK.
+
+![Save as Live Template](docs/screenshots/save-as-live-template.png)
+
+## Settings | Editor | Live Templates
+
+![Live Templates settings](docs/screenshots/settings-live-templates.png)
+
+- **By default expand with:** the expand key (`editor.liveTemplates.expandKey`).
+- **Template groups:** check boxes enable or disable a template or a whole group; a disabled
+  template neither expands nor shows in completion. Framework groups are marked with the
+  projects they apply to. Use the search field to filter by abbreviation or description.
+- **Toolbar:** `+` adds a template to the selected group (`user` when none is selected), `−`
+  removes the selected template, and the restore button brings a changed built-in template
+  (or all built-ins of the selected group, including removed ones) back to its shipped state.
+  Changed built-in templates are shown in blue.
+- **Editor:** abbreviation, description, template text, "Edit Variables" (name, expression,
+  default value, skip if defined) and "Applicable in" with **Change** to pick the contexts.
+
+User templates and changes to built-in ones are stored in the user settings
+(`editor.liveTemplates.custom`), disabled templates in `editor.liveTemplates.disabled`;
+Apply, Cancel and Reset work as on every other settings page.
 
 
 ---
@@ -2729,6 +2883,10 @@ Typing, selecting, moving and commenting code, completion, generation, formattin
 | [Context Info](#context-info) | `Alt+Q` | `Ctrl+Shift+Q` |
 | [Error Description](#error-description) | `Ctrl+F1` | `Cmd+F1` |
 | [Generate…](#generate) | `Alt+Insert` | `Cmd+N` |
+| [Insert Live Template…](#insert-live-template) | `Ctrl+J` | `Cmd+J` |
+| [Surround With…](#surround-with) | `Ctrl+Alt+T` | `Cmd+Alt+T` |
+| [Surround with Live Template…](#surround-with-live-template) | `Ctrl+Alt+J` | `Cmd+Alt+J` |
+| [Unwrap/Remove…](#unwrapremove) | `Ctrl+Shift+Delete` | `Cmd+Shift+Delete` |
 | [Undo](#undo) | `Ctrl+Z`, `Alt+Backspace` | `Cmd+Z` |
 | [Redo](#redo) | `Ctrl+Shift+Z`, `Alt+Shift+Backspace` | `Cmd+Shift+Z` |
 | [Cut](#cut) | `Ctrl+X`, `Shift+Delete` | `Cmd+X` |
@@ -2892,6 +3050,56 @@ In PHP files: generates a constructor, getters, setters, overrides, `__toString(
 ![Generate…](docs/screenshots/docs-generate.png)
 
 More: [PHP](docs/guide/user/php.md#generate)
+
+## Insert Live Template
+
+**Shortcut:** `Ctrl+J` · macOS `Cmd+J` · action id `InsertLiveTemplate`
+
+Lists the live templates that apply at the caret, filtered by the word before it; type to
+narrow the list and press `Enter` to insert. Typing an abbreviation and pressing `Tab` expands
+it directly.
+
+**Menu:** Code | Insert Live Template…
+
+![Insert Live Template](docs/screenshots/live-template-insert.png)
+
+More: [Live templates](docs/guide/user/live-templates.md#expanding-a-template)
+
+## Surround With
+
+**Shortcut:** `Ctrl+Alt+T` · macOS `Cmd+Alt+T` · action id `SurroundWith`
+
+Wraps the selected lines (or the caret line) in `if`, `if / else`, loops, `try / catch`, a
+function, braces, a region or a live template that uses `$SELECTION$`.
+
+**Menu:** Code | Surround With…
+
+![Surround With](docs/screenshots/surround-with.png)
+
+More: [Live templates](docs/guide/user/live-templates.md#surround-with)
+
+## Surround with Live Template
+
+**Shortcut:** `Ctrl+Alt+J` · macOS `Cmd+Alt+J` · action id `SurroundWithLiveTemplate`
+
+Like Surround With, but lists only the live templates that use `$SELECTION$`.
+
+**Menu:** Code | Surround with Live Template…
+
+More: [Live templates](docs/guide/user/live-templates.md#surround-with)
+
+## Unwrap/Remove
+
+**Shortcut:** `Ctrl+Shift+Delete` · macOS `Cmd+Shift+Delete` · action id `Unwrap`
+
+Lists the statements around the caret: unwrap one (keep the body the caret is in) or remove
+an `else`, `elseif`, `catch` or `finally` branch. The editor previews the change.
+
+**Menu:** Code | Unwrap/Remove…
+
+![Unwrap/Remove](docs/screenshots/unwrap-remove.png)
+
+More: [Live templates](docs/guide/user/live-templates.md#unwrapremove)
 
 ## Undo
 
@@ -7559,10 +7767,10 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Generate… | `Generate` | `Alt+Insert` | `Cmd+N` | yes |
 | Override Methods… | `OverrideMethods` | `Ctrl+O` | `Ctrl+O` | PHP editors |
 | Implement Methods… | `ImplementMethods` | `Ctrl+I` | `Ctrl+I` | PHP editors |
-| Surround With… | `SurroundWith` | `Ctrl+Alt+T` | `Cmd+Alt+T` | — |
-| Unwrap/Remove… | `Unwrap` | `Ctrl+Shift+Delete` | `Cmd+Shift+Delete` | — |
-| Insert Live Template… | `InsertLiveTemplate` | `Ctrl+J` | `Cmd+J` | — |
-| Surround with Live Template… | `SurroundWithLiveTemplate` | `Ctrl+Alt+J` | `Cmd+Alt+J` | — |
+| Surround With… | `SurroundWith` | `Ctrl+Alt+T` | `Cmd+Alt+T` | yes |
+| Unwrap/Remove… | `Unwrap` | `Ctrl+Shift+Delete` | `Cmd+Shift+Delete` | yes |
+| Insert Live Template… | `InsertLiveTemplate` | `Ctrl+J` | `Cmd+J` | yes |
+| Surround with Live Template… | `SurroundWithLiveTemplate` | `Ctrl+Alt+J` | `Cmd+Alt+J` | yes |
 | Comment with Line Comment | `CommentByLineComment` | `Ctrl+/`, `Ctrl+NumPad/` | `Cmd+/`, `Cmd+NumPad/` | yes |
 | Comment with Block Comment | `CommentByBlockComment` | `Ctrl+Shift+/`, `Ctrl+Shift+NumPad/` | `Cmd+Alt+/`, `Cmd+Alt+NumPad/` | yes |
 | Reformat Code | `ReformatCode` | `Ctrl+Alt+L` | `Cmd+Alt+L` | yes |
@@ -8293,8 +8501,8 @@ Completion, Generate, folding, comments, formatting and moving lines. Open it wi
 | Override Methods… | `Ctrl+O` | `Ctrl+O` | yes | In PHP editors: pick inherited methods to override; Forge writes the stubs. |
 | Implement Methods… | `Ctrl+I` | `Ctrl+I` | yes | In PHP editors: pick interface or abstract methods to implement; Forge writes the stubs. |
 | Generate… | `Alt+Insert` | `Cmd+N` | yes | In PHP files: generates a constructor, getters, setters, overrides, `__toString()` or a PHPDoc block. [More](docs/guide/user/php.md#generate) ([screenshot](docs/screenshots/docs-generate.png)) |
-| Surround With… | `Ctrl+Alt+T` | `Cmd+Alt+T` | not yet | Not available yet; the entry is disabled. |
-| Unwrap/Remove… | `Ctrl+Shift+Delete` | `Cmd+Shift+Delete` | not yet | Not available yet; the entry is disabled. |
+| Surround With… | `Ctrl+Alt+T` | `Cmd+Alt+T` | yes | Wraps the selected lines (or the caret line) in `if`, `foreach`, `try / catch`, a function, a region or a live template with `$SELECTION$`. [More](docs/guide/user/live-templates.md#surround-with) ([screenshot](docs/screenshots/surround-with.png)) |
+| Unwrap/Remove… | `Ctrl+Shift+Delete` | `Cmd+Shift+Delete` | yes | Lists the statements around the caret to unwrap (keep the body) or remove (`else`, `catch`, …). [More](docs/guide/user/live-templates.md#unwrapremove) ([screenshot](docs/screenshots/unwrap-remove.png)) |
 | **Folding** | | | | submenu |
 | Folding › Expand | `Ctrl+=`, `Ctrl+NumPad+` | `Cmd+=`, `Cmd+NumPad+` | yes | Unfolds the folded region at the caret. [More](docs/guide/user/editor.md#folding) |
 | Folding › Collapse | `Ctrl+-`, `Ctrl+NumPad-` | `Cmd+-`, `Cmd+NumPad-` | yes | Folds the region at the caret. [More](docs/guide/user/editor.md#folding) |
@@ -8304,9 +8512,9 @@ Completion, Generate, folding, comments, formatting and moving lines. Open it wi
 | Folding › Collapse All | `Ctrl+Shift+-`, `Ctrl+Shift+NumPad-` | `Cmd+Shift+-`, `Cmd+Shift+NumPad-` | yes | Folds every region of the file. [More](docs/guide/user/editor.md#folding) ([screenshot](docs/screenshots/docs-folding.png)) |
 | Folding › Collapse Doc Comments | — | — | not yet | Not available yet; the entry is disabled. |
 | Folding › Fold Selection / Remove Region | `Ctrl+.` | `Cmd+.` | not yet | Not available yet; the entry is disabled. |
-| Insert Live Template… | `Ctrl+J` | `Cmd+J` | not yet | Not available yet; the entry is disabled. |
-| Surround with Live Template… | `Ctrl+Alt+J` | `Cmd+Alt+J` | not yet | Not available yet; the entry is disabled. |
-| Save as Live Template… | — | — | not yet | Not available yet; the entry is disabled. |
+| Insert Live Template… | `Ctrl+J` | `Cmd+J` | yes | Lists the live templates that apply at the caret and inserts the chosen one. [More](docs/guide/user/live-templates.md#expanding-a-template) ([screenshot](docs/screenshots/live-template-insert.png)) |
+| Surround with Live Template… | `Ctrl+Alt+J` | `Cmd+Alt+J` | yes | Wraps the selection in a live template that uses `$SELECTION$`. [More](docs/guide/user/live-templates.md#surround-with) |
+| Save as Live Template… | — | — | yes | Opens Settings \| Editor \| Live Templates with a new template made from the selection. [More](docs/guide/user/live-templates.md#save-as-live-template) |
 | Comment with Line Comment | `Ctrl+/`, `Ctrl+NumPad/` | `Cmd+/`, `Cmd+NumPad/` | yes | Comments or uncomments the current line or the selected lines. [More](docs/guide/user/editor.md#editing-actions) |
 | Comment with Block Comment | `Ctrl+Shift+/`, `Ctrl+Shift+NumPad/` | `Cmd+Alt+/`, `Cmd+Alt+NumPad/` | yes | Wraps the selection in a block comment, or removes it. [More](docs/guide/user/editor.md#editing-actions) |
 | Reformat Code | `Ctrl+Alt+L` | `Cmd+Alt+L` | yes | Formats the file with the language server's formatter (StyLua for Lua). [More](docs/guide/user/editor.md#reformat-code) |
@@ -8418,7 +8626,7 @@ Terminal and the tools of plugins (Docker, Laravel, Symfony). Open it with ☰ (
 | Entry | Windows / Linux | macOS | Available | What it does |
 | --- | --- | --- | --- | --- |
 | Run Anything… | — | — | not yet | Not available yet; the entry is disabled. |
-| Save as Live Template… | — | — | not yet | Not available yet; the entry is disabled. |
+| Save as Live Template… | — | — | yes | Opens Settings \| Editor \| Live Templates with a new template made from the selection. [More](docs/guide/user/live-templates.md#save-as-live-template) ([screenshot](docs/screenshots/save-as-live-template.png)) |
 | Save File as Template… | — | — | not yet | Not available yet; the entry is disabled. |
 | Open in Terminal | `Ctrl+Shift+T` | `Cmd+T` | yes | Opens a new terminal tab (Tools | Open in Terminal). [More](docs/guide/user/terminal.md#tabs) ([screenshot](docs/screenshots/docs-terminal.png)) |
 | IDE Scripting Console | — | — | not yet | Not available yet; the entry is disabled. |
@@ -8765,6 +8973,16 @@ Page id `editor.inlay-hints`.
 | `editor.inlayHints.languages.javascript` | bool | `true` | user | Languages | JavaScript and TypeScript — Also Vue, Svelte and Astro files. |
 | `editor.inlayHints.languages.lua` | bool | `true` | user | Languages | Lua |
 | `editor.inlayHints.languages.other` | bool | `true` | user | Languages | Other languages |
+
+### Editor | Live Templates
+
+Page id `editor.liveTemplates`.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `editor.liveTemplates.expandKey` | enum: `tab`, `space`, `enter` | `tab` | user |  | By default expand with — Key that expands a live template abbreviation. |
+| `editor.liveTemplates.custom` | objects | `[]` | user |  | User and changed templates — New templates and changes to built-in ones: group, abbreviation, description, text, contexts (comma-separated), variables (JSON), builtin (id of the replaced built-in template) and removed. |
+| `editor.liveTemplates.disabled` | list | `[]` | user |  | Disabled templates — Ids (`group/abbreviation`) of templates that do not expand. |
 
 ### Editor | TODO
 
@@ -11456,6 +11674,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-fuzzy](docs/guide/developer/crates/forge-fuzzy.md) | PHPStorm-style fuzzy matching and Search Everywhere ranking (pure, WebAssembly-friendly) |
 | [forge-keymap](docs/guide/developer/crates/forge-keymap.md) | PHPStorm-compatible keymap: shortcut model, default keymaps, overrides, conflicts and the key resolver |
 | [forge-langservers](docs/guide/developer/crates/forge-langservers.md) | Forge IDE: catalog, detection, configuration and installation of language servers |
+| [forge-livetemplates](docs/guide/developer/crates/forge-livetemplates.md) | Live templates: template sets, contexts, variables and expansion, Surround With and Unwrap/Remove (pure, WebAssembly-friendly) |
 | [forge-lsp](docs/guide/developer/crates/forge-lsp.md) | Forge IDE: generic Language Server Protocol client and server manager |
 | [forge-markdown](docs/guide/developer/crates/forge-markdown.md) | Forge Markdown: a safe AST (no raw HTML) for chat messages and documentation popups, built with pulldown-cmark (pure, also built to WebAssembly) |
 | [forge-open](docs/guide/developer/crates/forge-open.md) | Forge IDE open requests: forge:// links, the CLI launcher and the Browser Companion local server |
@@ -12645,6 +12864,82 @@ pub use scan::{scan_project, ProjectScan};
 
 ```sh
 cargo test -p forge-langservers
+```
+
+
+---
+
+Source: docs/guide/developer/crates/forge-livetemplates.md
+
+# forge-livetemplates
+
+`crates/forge-livetemplates` — Live templates: template sets, contexts, variables and expansion, Surround With and Unwrap/Remove (pure, WebAssembly-friendly).
+
+## Purpose
+
+Everything behind PHPStorm's live templates, Surround With (`Ctrl+Alt+T`) and Unwrap/Remove
+(`Ctrl+Shift+Delete`). The UI only shows popups and turns an expansion into CodeMirror
+snippet fields.
+
+- `sets`: the built-in groups (`data/*.toml`: PHP, JavaScript, Lua, Twig, Laravel, Blade,
+  Symfony) and `resolve`, which applies the user's settings (`editor.liveTemplates.custom`:
+  new and changed templates, removed built-ins; `editor.liveTemplates.disabled`) and marks
+  framework groups active only for the project's frameworks.
+- `context`: the "Applicable in" tree (`PHP_STATEMENT`, `PHP_CLASS_MEMBER`, `JS_EXPRESSION`,
+  `HTML`, `BLADE`, …) and `analyze`, which finds the contexts at a position from small lexers
+  (PHP with inline HTML, heredocs and attributes; JavaScript with template literals and
+  regular expressions; Lua with long strings) plus the class, function, namespace and the
+  variables used before the caret.
+- `template` and `expr`: `$NAME$` / `$END$` / `$SELECTION$` / `$$` parsing and the variable
+  expressions (`className()`, `camelCase(NAME)`, `date("yyyy-MM-dd")`,
+  `suggestVariableName(ARRAY)`, …). The clock, clipboard and user name come from the caller.
+- `expand`: expansion by abbreviation (`expand`), the Insert Live Template list
+  (`applicable`), Surround With (`surround_items`, `surround_apply`). Results are UTF-16
+  offsets: the text to insert, one field per variable occurrence (same `index` = edited
+  together) and the final caret. Template indentation is converted to the file's indent unit
+  and a surrounded selection is re-indented.
+- `surround`: the code surrounders per language (PHP, JavaScript, Lua, HTML, Blade, Twig).
+- `unwrap`: the statements around the caret (`if`/`elseif`/`else`, loops, `do … while`,
+  `try`/`catch`/`finally`, braces; Lua keyword blocks) and the edits that unwrap or remove
+  them.
+
+## Main public items
+
+```rust
+pub fn catalog(settings: &TemplateSettings) -> Catalog { … }
+pub fn resolve(settings: &TemplateSettings) -> Vec<Group> { … }
+pub fn analyze(text: &str, at: usize, language_id: Option<&str>, path: &str) -> CaretInfo { … }
+pub fn expand(req: &ExpandRequest) -> Option<Expansion> { … }
+pub fn applicable(req: &ApplicableRequest) -> ApplicableResult { … }
+pub fn surround_items(req: &SurroundRequest) -> Vec<SurroundItem> { … }
+pub fn surround_apply(req: &SurroundRequest) -> Option<Expansion> { … }
+pub fn unwrap_options(req: &UnwrapRequest) -> Vec<UnwrapOption> { … }
+pub fn variable_names(text: &str) -> Vec<String> { … }
+```
+
+## Used by
+
+- IPC: `live_templates_catalog`, `live_templates_applicable`, `live_templates_expand`,
+  `live_templates_surround_items`, `live_templates_surround`, `live_templates_unwrap`,
+  `live_templates_variables`, `live_templates_user` (`app/src-tauri/src/commands/live_templates.rs`)
+- UI: `app/ui/src/features/liveTemplates` (expand key, completion, popups, settings page).
+  The expand key calls `live_templates_expand` in-process through `forge-wasm` in both modes,
+  because the key handler must decide at once whether it expands.
+- Browser mode: built into `forge-wasm` (`livetemplates.rs`)
+
+## Dependencies
+
+- Workspace crates: none
+- External: `serde`, `serde_json`, `toml`
+
+## Tests
+
+Unit tests for the lexers, contexts, expressions (case conversions, dates), the template sets
+and user changes, expansion (contexts, word boundaries, framework sets, indent units,
+expressions), Surround With and Unwrap/Remove in PHP, JavaScript and Lua.
+
+```sh
+cargo test -p forge-livetemplates
 ```
 
 

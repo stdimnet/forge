@@ -1197,6 +1197,35 @@ plugin manifest entry, and the chat UI needs no changes:
   `vcs.git.commit.signOff`, and `vcs.git.path` selects the git binary
   (`forge_vcs::set_git_program`).
 
+## Live templates (`forge-livetemplates`)
+
+- `crates/forge-livetemplates` (pure, also WebAssembly) owns the template sets
+  (`data/*.toml`; Laravel, Blade and Symfony groups carry a `framework` and apply only when the
+  UI passes it in `frameworks`), the user's changes (`editor.liveTemplates.custom` entries:
+  string tables with `group`, `abbreviation`, `description`, `text`, `contexts`, `variables`
+  as JSON, `builtin`, `removed`, `key`; `editor.liveTemplates.disabled` ids
+  `group/abbreviation`), context detection, variable expressions, expansion, the Surround With
+  surrounders and Unwrap/Remove. All offsets are UTF-16.
+- IPC (`app/ui/src/ipc/liveTemplates.ts`, `commands/live_templates.rs`):
+  `live_templates_catalog({ settings }) -> { groups, contexts, functions }`,
+  `live_templates_applicable({ request: { text, offset, path, languageId?, settings } }) ->
+  { prefix, items, contexts }`, `live_templates_expand({ request: { …, offset, templateId?,
+  env } }) -> Expansion | null` (`{ from, to, text, fields: { from, to, index }[], end,
+  templateId }`; `env` carries the clock, time zone, clipboard, user and indent unit),
+  `live_templates_surround_items({ request: { …, from, to, env, templatesOnly? } })`,
+  `live_templates_surround({ request: { …, id } }) -> Expansion | null`,
+  `live_templates_unwrap({ request: { text, offset, path, languageId? } }) -> { label, from,
+  to, keep?, edits }[]`, `live_templates_variables({ text })`, `live_templates_user()`.
+- The UI (`features/liveTemplates`) binds the expand key (Tab/Space/Enter, a CodeMirror editor
+  key like Tab's indentation) and calls `live_templates_expand` in-process through
+  `forge-wasm` (`liveTemplatesApi.expandSync`), because the key handler must decide at once;
+  an expansion becomes a CodeMirror snippet (`toSnippet`), so Tab/Shift+Tab walk the fields.
+  The actions use PHPStorm's ids (`InsertLiveTemplate`, `SurroundWith`,
+  `SurroundWithLiveTemplate`, `Unwrap`, `SaveAsTemplate`). Save as Live Template opens the
+  settings page with `openSettings(page, args)`; pages read such arguments with
+  `takePageArgs(page)` (`features/settings/dialogState.ts`), which also works when the dialog
+  is its own window.
+
 ## Rust computes, TypeScript renders
 
 Logic, data models and parsers live in Rust crates; the TypeScript UI only renders and forwards

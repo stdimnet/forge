@@ -28,6 +28,19 @@ export const SETTINGS_DIALOG = "settings";
 export interface SettingsDialogProps {
   /** Page to select; the last selected page when omitted. */
   page?: string;
+  /** Data for the page, e.g. the text of a new live template (Save as Live Template). */
+  args?: unknown;
+}
+
+/** Arguments handed to a page by `openSettings(page, args)`; the page takes them once. */
+const [pageArgs, setPageArgs] = createSignal<{ page: string; args: unknown } | null>(null);
+
+/** The arguments for `pageId`, cleared once taken. Reactive, so an open page sees new ones. */
+export function takePageArgs<T>(pageId: string): T | undefined {
+  const a = pageArgs();
+  if (!a || a.page !== pageId) return undefined;
+  queueMicrotask(() => setPageArgs((cur) => (cur === a ? null : cur)));
+  return a.args as T;
 }
 
 /** Result of the dialog: the page to select next time (PHPStorm remembers it). */
@@ -35,18 +48,20 @@ export interface SettingsDialogResult {
   page: string;
 }
 
-export function openSettings(pageId?: string): void {
+export function openSettings(pageId?: string, args?: unknown): void {
   // This window shows the dialog already (e.g. a link to another page): just switch pages.
   if (isOpen()) {
     if (pageId) setSelected(pageId);
+    if (pageId && args !== undefined) setPageArgs({ page: pageId, args });
     return;
   }
-  void openDialogWindow(SETTINGS_DIALOG, { page: pageId ?? selected() } satisfies SettingsDialogProps);
+  void openDialogWindow(SETTINGS_DIALOG, { page: pageId ?? selected(), args } satisfies SettingsDialogProps);
 }
 
 /** Called by the dialog content when it mounts (in-page or in its window). */
 export function dialogOpened(props: SettingsDialogProps): void {
   if (props.page) setSelected(props.page);
+  setPageArgs(props.page && props.args !== undefined ? { page: props.page, args: props.args } : null);
   setError(null);
   setOpen(true);
 }

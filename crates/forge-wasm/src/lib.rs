@@ -26,6 +26,7 @@ mod containers;
 mod editing;
 mod filetypes;
 mod keymap;
+mod livetemplates;
 mod lua;
 mod scratches;
 mod search;

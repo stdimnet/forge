@@ -313,6 +313,41 @@ export function keymap_set_override(json: string): string;
 export function keymap_stroke_of_event(event_json: string): string;
 
 /**
+ * `ApplicableRequest` → `ApplicableResult`.
+ */
+export function live_templates_applicable(request_json: string): string;
+
+/**
+ * `TemplateSettings` → `Catalog`.
+ */
+export function live_templates_catalog(settings_json: string): string;
+
+/**
+ * `ExpandRequest` → `Expansion | null`.
+ */
+export function live_templates_expand(request_json: string): string;
+
+/**
+ * `SurroundRequest` (with `id`) → `Expansion | null`.
+ */
+export function live_templates_surround(request_json: string): string;
+
+/**
+ * `SurroundRequest` → `SurroundItem[]`.
+ */
+export function live_templates_surround_items(request_json: string): string;
+
+/**
+ * `UnwrapRequest` → `UnwrapOption[]`.
+ */
+export function live_templates_unwrap(request_json: string): string;
+
+/**
+ * `{ text }` → variable names.
+ */
+export function live_templates_variables(request_json: string): string;
+
+/**
  * `{ path, content? }` -> `FileStructure | null`.
  */
 export function lua_file_structure(request_json: string): string;
@@ -688,6 +723,13 @@ export interface InitOutput {
     readonly keymap_resolve: (a: number, b: number, c: number) => void;
     readonly keymap_set_override: (a: number, b: number, c: number) => void;
     readonly keymap_stroke_of_event: (a: number, b: number, c: number) => void;
+    readonly live_templates_applicable: (a: number, b: number, c: number) => void;
+    readonly live_templates_catalog: (a: number, b: number, c: number) => void;
+    readonly live_templates_expand: (a: number, b: number, c: number) => void;
+    readonly live_templates_surround: (a: number, b: number, c: number) => void;
+    readonly live_templates_surround_items: (a: number, b: number, c: number) => void;
+    readonly live_templates_unwrap: (a: number, b: number, c: number) => void;
+    readonly live_templates_variables: (a: number, b: number, c: number) => void;
     readonly lua_file_structure: (a: number, b: number, c: number) => void;
     readonly lua_goto: (a: number, b: number, c: number) => void;
     readonly lua_hover: (a: number, b: number, c: number) => void;
