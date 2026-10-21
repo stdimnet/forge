@@ -81,9 +81,14 @@ impl ContextAction {
         self.raw.as_ref()?.get("kind")?.as_str()
     }
 
-    /// A link to another action ("Generate..."): listed last, no light bulb.
+    /// A link to another action that opens its own popup or dialog ("Generate..."): it
+    /// runs a UI action without data and, by PHPStorm's convention, its title ends with
+    /// an ellipsis. Entries that run a UI action without one ("Edit SQL Fragment") are
+    /// intentions.
     pub fn is_link(&self) -> bool {
-        self.action.is_some() && self.data.is_none()
+        self.action.is_some()
+            && self.data.is_none()
+            && (self.title.ends_with("...") || self.title.ends_with('\u{2026}'))
     }
 
     /// "Fix all" style actions: they belong in the sub-menu of the quick fix they repeat.
@@ -336,6 +341,18 @@ mod tests {
             ..action("Generate...", ActionKind::Intention)
         };
         assert_eq!(bulb_for(std::slice::from_ref(&generate)), None);
+        // An intention that runs a UI action is not a link: it ranks and lights the bulb.
+        let fragment = ContextAction {
+            action: Some("EditInjectedFragment".into()),
+            ..action("Edit SQL Fragment", ActionKind::Intention)
+        };
+        assert!(!fragment.is_link() && generate.is_link());
+        assert_eq!(
+            bulb_for(std::slice::from_ref(&fragment)),
+            Some(Bulb::Intention)
+        );
+        let ordered = order_actions(vec![generate.clone(), fragment.clone()]);
+        assert_eq!(ordered[0].title, "Edit SQL Fragment");
         assert_eq!(
             bulb_for(&[generate, action("Add PHPDoc", ActionKind::Intention)]),
             Some(Bulb::Intention)

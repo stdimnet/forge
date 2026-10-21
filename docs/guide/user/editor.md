@@ -327,6 +327,9 @@ check also runs when a language server computes the rename.
 - **Intentions** (yellow bulb) from the language servers and Forge's own PHP intentions;
 - refactorings and source actions, and links like **Generate…** (`Alt+Insert`) last.
 
+In strings, the popup also offers **Inject language or reference**, **Edit &lt;language&gt;
+Fragment** and **Un-inject Language** (see [Language injections](language-injections.md)).
+
 On an undeclared PHP name, the quick fixes include **Create method / field / constant /
 function / class**, see [PHP: Create from usage](php.md#create-from-usage).
 

@@ -28,6 +28,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-find](forge-find.md) | Find in Files and TODO scanning: query compilation, file masks, line matching and comment patterns (pure, WebAssembly-friendly) |
 | [forge-forges](forge-forges.md) | Forge IDE code hosts: GitLab, Forgejo/Gitea and GitHub merge requests, issues and pipelines |
 | [forge-fuzzy](forge-fuzzy.md) | PHPStorm-style fuzzy matching and Search Everywhere ranking (pure, WebAssembly-friendly) |
+| [forge-injections](forge-injections.md) | Language injections: SQL, HTML, CSS, JSON and RegExp inside PHP and JavaScript/TypeScript strings, `// language=` comments, fragment escaping and the injection intentions (pure, WebAssembly-friendly) |
 | [forge-keymap](forge-keymap.md) | PHPStorm-compatible keymap: shortcut model, default keymaps, overrides, conflicts and the key resolver |
 | [forge-langservers](forge-langservers.md) | Forge IDE: catalog, detection, configuration and installation of language servers |
 | [forge-livetemplates](forge-livetemplates.md) | Live templates: template sets, contexts, variables and expansion, Surround With and Unwrap/Remove (pure, WebAssembly-friendly) |

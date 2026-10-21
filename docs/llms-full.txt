@@ -662,6 +662,7 @@ not finished, the page says so.
 | [Workbench and tool windows](docs/guide/user/workbench.md) | main toolbar, tool windows, Project view, tabs, Recent Files, Switcher, status bar |
 | [Editor](docs/guide/user/editor.md) | completion, hover, Parameter Info, Go to Declaration, problems, formatting, editing actions, folding, find, gutter, context menu |
 | [Live templates](docs/guide/user/live-templates.md) | abbreviations + `Tab`, Insert Live Template, Surround With, Unwrap/Remove, Save as Live Template, template sets and settings |
+| [Language injections](docs/guide/user/language-injections.md) | SQL, HTML, CSS, JSON and RegExp in PHP and JavaScript strings, `// language=` comments, Inject language or reference, Edit Fragment, Run SQL |
 | [File and code templates](docs/guide/user/file-templates.md) | New ▸ PHP Class and other templates, the New PHP Class dialog with PSR-4 namespaces, `Alt+Insert` New popup, Settings \| Editor \| File and Code Templates |
 | [Search Everywhere and Find Action](docs/guide/user/search-everywhere.md) | Double Shift, Go to Class/File/Symbol, Find Action, fuzzy matching |
 | [File types and syntax highlighting](docs/guide/user/file-types.md) | file type detection, highlighted languages, config formats, template data languages |
@@ -1400,6 +1401,9 @@ check also runs when a language server computes the rename.
 - **Intentions** (yellow bulb) from the language servers and Forge's own PHP intentions;
 - refactorings and source actions, and links like **Generate…** (`Alt+Insert`) last.
 
+In strings, the popup also offers **Inject language or reference**, **Edit &lt;language&gt;
+Fragment** and **Un-inject Language** (see [Language injections](docs/guide/user/language-injections.md)).
+
 On an undeclared PHP name, the quick fixes include **Create method / field / constant /
 function / class**, see [PHP: Create from usage](docs/guide/user/php.md#create-from-usage).
 
@@ -1785,6 +1789,152 @@ OK.
 User templates and changes to built-in ones are stored in the user settings
 (`editor.liveTemplates.custom`), disabled templates in `editor.liveTemplates.disabled`;
 Apply, Cancel and Reset work as on every other settings page.
+
+
+---
+
+Source: docs/guide/user/language-injections.md
+
+# Language injections
+
+Like PHPStorm's IntelliLang, Forge treats the text of some string literals as code in another
+language: SQL in a `PDO::query()` call, a regular expression in `preg_match()`, JSON in
+`json_decode()`, HTML in a string that starts with a tag. The injected text gets that
+language's highlighting on a light green background, and the language's actions: edit it in
+its own editor, run SQL in a query console.
+
+![SQL, RegExp and JSON injected into PHP strings](docs/screenshots/injections-highlighting.png)
+
+Injections work in PHP files (not Blade templates) and in JavaScript and TypeScript files
+(`.js`, `.mjs`, `.cjs`, `.jsx`, `.ts`, `.mts`, `.cts`, `.tsx`). Where a language is injected
+is decided in Rust (`crates/forge-injections`), so the desktop app and browser mode behave the
+same; the highlighting itself follows every keystroke.
+
+## Where languages are injected
+
+In this order, the first that applies wins:
+
+1. **A `language=` comment** before the string: `// language=SQL`, `/* language=JSON */`,
+   `# language=HTML`, or `@lang` in a doc comment (`/** @lang SQL */`). The comment applies to
+   the first string after it in the same statement, also when other code stands between them:
+
+   ```php
+   // language=JSON
+   $defaults = '{"type": "bar", "stacked": true}';
+
+   $html = render(/* language=HTML */ '<b>' . e($name) . '</b>');
+   ```
+
+   Language names are not case-sensitive. Besides the names in the list below, `MySQL`,
+   `PostgreSQL`, `SQLite`, `JS`, `Regex` and a few more are understood. A comment always
+   injects, also when the matching rule is turned off.
+2. **A heredoc or nowdoc label** that names a language: `<<<SQL`, `<<<'JSON'`, `<<<HTML`,
+   `<<<CSS`, `<<<JS`, `<<<XML`, `<<<REGEXP`. `<<<DQL` is left to the
+   [Doctrine plugin](docs/guide/user/doctrine.md).
+3. **A built-in rule** (Settings | Editor | Language Injections):
+
+   | Host | Language | Places |
+   | --- | --- | --- |
+   | PHP | SQL | strings starting with a statement: `SELECT … FROM`, `INSERT INTO`, `UPDATE … SET`, `DELETE FROM`, `WITH … AS (`, `CREATE`/`ALTER`/`DROP TABLE`, `TRUNCATE`, `SHOW TABLES`, …; `SELECT` in capitals also without `FROM` |
+   | PHP | SQL | `PDO::query()`/`prepare()`/`exec()` on database objects (`$pdo`, `$this->db`, `$connection`, …), `mysqli_query()`, `pg_query()`, `pg_prepare()`, Doctrine DBAL `executeQuery()`, `fetchAllAssociative()`, … and `createNativeQuery()` |
+   | PHP | SQL | Laravel: `DB::select()`, `DB::statement()`, `DB::unprepared()`, `DB::raw()`, …; `selectRaw()`, `whereRaw()`, `havingRaw()`, `orderByRaw()`, `groupByRaw()` |
+   | PHP | SQL | WordPress: `$wpdb->query()`, `prepare()`, `get_results()`, `get_row()`, `get_var()`, `get_col()` |
+   | PHP | HTML | strings starting with a tag (`'<span class="badge">'`) |
+   | PHP | JSON | `json_decode()` |
+   | PHP | RegExp | `preg_match()`, `preg_match_all()`, `preg_replace()`, `preg_replace_callback()`, `preg_split()`, `preg_grep()`, `preg_filter()`: the pattern between its delimiters (`/…/i`, `#…#`, `{…}`) |
+   | PHP | CSS | `wp_add_inline_style()` |
+   | JavaScript | SQL | strings and templates starting with a statement; `db.query()`, `pool.query()`, `knex.raw()`, … on database objects; `` sql`…` ``, `` Prisma.sql`…` ``, `` $queryRaw`…` ``, `` $executeRaw`…` `` |
+   | JavaScript | HTML | strings starting with a tag, `` html`…` ``, `innerHTML`/`outerHTML` assignments, `insertAdjacentHTML()`, `document.write()` |
+   | JavaScript | CSS | `` css`…` ``, `` styled.div`…` ``, `` styled(Button)`…` ``, `` keyframes`…` ``, `` createGlobalStyle`…` ``, `style.cssText`, `insertRule()` |
+   | JavaScript | JSON | `JSON.parse()` |
+   | JavaScript | RegExp | `new RegExp()`, `RegExp()` (regular expression literals are highlighted by the JavaScript mode) |
+
+Strings joined with `.` (PHP) or `+` (JavaScript) are one injection:
+`'SELECT * FROM ' . $table . ' WHERE id = ?'` is highlighted as one SQL statement. Variables
+inside strings (`"… $id"`, `"{$order->id}"`, `` `${id}` ``) are left out of the injected text.
+`createQuery()` strings are DQL and belong to the [Doctrine plugin](docs/guide/user/doctrine.md).
+
+The languages that can be injected: **SQL**, **HTML**, **CSS**, **JSON**, **RegExp**,
+**JavaScript** and **XML**.
+
+## Inject language or reference
+
+Place the caret in a string and press **Show Context Actions** (`Alt+Enter`):
+
+- **Inject language or reference** (any string without an injection) opens the list of
+  languages; type to filter, `Enter` to choose. Forge writes a `// language=…` comment on the
+  line before the statement, or a `/* language=… */` comment right before the string when
+  other code precedes it on its line. Choosing again for a string with a comment changes the
+  comment.
+- **Edit &lt;language&gt; Fragment** (an injected string) opens the fragment editor, see below.
+- **Un-inject Language** (an injected string) removes the `language=` comment. For a string a
+  built-in rule injected, it turns the injection off for that string in this project (stored
+  in the project's settings, `editor.injections.uninjected`). A string whose text changes is
+  injected again; Settings | Editor | Language Injections can restore all of them.
+
+![The intentions in an injected SQL string](docs/screenshots/injections-intentions.png)
+
+![Inject language or reference: the language list](docs/screenshots/injections-inject-language.png)
+
+The actions are also in Find Action (`Ctrl+Shift+A`): **Inject Language or Reference**,
+**Un-inject Language** and **Edit Injected Fragment**. They have no default shortcut; assign
+one in Settings | Keymap.
+
+## Edit Fragment
+
+**Edit &lt;language&gt; Fragment** opens the value of the string in its own editor below the
+file, titled like "SQL Fragment (SalesReport.php)". It shows the string as the program sees
+it, without quotes and escapes (`\'` is `'`, `\n` a line break), with the language's
+highlighting, brackets and line numbers. What you type there is written back into the string
+right away, escaped for its kind of literal (`'` becomes `\'` in single-quoted PHP strings,
+`$` becomes `\$` in double-quoted ones and in heredocs, line breaks become `\n` in
+JavaScript quotes); changes to the string in the file show up in the fragment. The undo
+history of the file records every change. Close the fragment editor with its `×` button; it
+closes by itself when the string or its injection disappears. For a PHP pattern the fragment
+is the text between the delimiters.
+
+![The SQL fragment editor below the PHP file](docs/screenshots/injections-edit-fragment.png)
+
+## Run injected SQL
+
+With the caret in an injected SQL string (or in its fragment editor), **Execute**
+(`Ctrl+Enter`, macOS `Cmd+Enter`) runs the SQL: Forge opens a query console of the data
+source selected in the Database tool window, puts the SQL in it and runs it, with the usual
+Output and result tabs (see [Database tools](docs/guide/user/database.md)). The SQL is the string's value:
+escapes are resolved and the parts of a concatenation are joined. Elsewhere `Ctrl+Enter`
+keeps its PHPStorm meaning (Split Line).
+
+When the project has data sources, a green **Run SQL in Console** icon in the gutter marks the
+first line of every injected SQL string; clicking it does the same. Without a data source,
+Forge asks you to add one.
+
+![Injected SQL run in a query console](docs/screenshots/injections-run-sql.png)
+
+Parameters (`?`, `:status`) are sent as written; the database reports them unless you replace
+them in the console first.
+
+## Settings
+
+**Settings | Editor | Language Injections** lists the built-in rules by host language with a
+check box each; the panel below the table shows where the selected rule applies. Turned-off
+rules are stored in `editor.injections.disabled` (user settings). The line under the panel
+counts the strings un-injected in this project; **Restore All** injects them again.
+
+![Settings | Editor | Language Injections](docs/screenshots/injections-settings.png)
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `editor.injections.disabled` | `[]` | ids of the built-in rules that are turned off (`php-html`, `js-sql-keywords`, …) |
+| `editor.injections.uninjected` | `[]` | strings turned off with Un-inject Language (`path#key`), per project |
+
+## Not yet supported
+
+- Custom injection rules (PHPStorm's `+` in the settings page) and the `prefix=` / `suffix=`
+  parameters of `language=` comments.
+- Completion, navigation and inspections inside injected text: the injected language gets
+  highlighting, Edit Fragment and Run SQL. DQL has its own completion (see
+  [Doctrine and DQL](docs/guide/user/doctrine.md)).
+- Values for SQL parameters before running (PHPStorm's "Parameters" dialog).
 
 
 ---
@@ -6809,6 +6959,8 @@ from .env files** (`database.suggestFromEnv`).
   columns.
 - **Execute** (`Ctrl+Enter`, macOS `Cmd+Enter`) runs the statement at the caret, or the
   selection. Several statements separated by `;` run one after another.
+- SQL in PHP and JavaScript strings runs the same way: `Ctrl+Enter` in an injected SQL string
+  opens a console with it (see [Language injections](docs/guide/user/language-injections.md#run-injected-sql)).
 - Results appear below in tabs (**Output** plus one tab per result set), paged by
   **Result set page size** (`database.pageSize`, 500).
 - **Cancel Running Statements** stops a long query.
@@ -9033,6 +9185,15 @@ Page id `editor.liveTemplates`.
 | `editor.liveTemplates.expandKey` | enum: `tab`, `space`, `enter` | `tab` | user |  | By default expand with — Key that expands a live template abbreviation. |
 | `editor.liveTemplates.custom` | objects | `[]` | user |  | User and changed templates — New templates and changes to built-in ones: group, abbreviation, description, text, contexts (comma-separated), variables (JSON), builtin (id of the replaced built-in template) and removed. |
 | `editor.liveTemplates.disabled` | list | `[]` | user |  | Disabled templates — Ids (`group/abbreviation`) of templates that do not expand. |
+
+### Editor | Language Injections
+
+Page id `editor.injections`.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `editor.injections.disabled` | list | `[]` | user |  | Disabled injection rules — Ids of the built-in injection rules that are turned off, e.g. `php-html` or `js-sql-keywords`. `// language=` comments always inject. |
+| `editor.injections.uninjected` | list | `[]` | user, project |  | Un-injected places — Strings turned off with Un-inject Language (`path#key`); a string is injected again when its text changes. |
 
 ### Editor | TODO
 
@@ -11722,6 +11883,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-find](docs/guide/developer/crates/forge-find.md) | Find in Files and TODO scanning: query compilation, file masks, line matching and comment patterns (pure, WebAssembly-friendly) |
 | [forge-forges](docs/guide/developer/crates/forge-forges.md) | Forge IDE code hosts: GitLab, Forgejo/Gitea and GitHub merge requests, issues and pipelines |
 | [forge-fuzzy](docs/guide/developer/crates/forge-fuzzy.md) | PHPStorm-style fuzzy matching and Search Everywhere ranking (pure, WebAssembly-friendly) |
+| [forge-injections](docs/guide/developer/crates/forge-injections.md) | Language injections: SQL, HTML, CSS, JSON and RegExp inside PHP and JavaScript/TypeScript strings, `// language=` comments, fragment escaping and the injection intentions (pure, WebAssembly-friendly) |
 | [forge-keymap](docs/guide/developer/crates/forge-keymap.md) | PHPStorm-compatible keymap: shortcut model, default keymaps, overrides, conflicts and the key resolver |
 | [forge-langservers](docs/guide/developer/crates/forge-langservers.md) | Forge IDE: catalog, detection, configuration and installation of language servers |
 | [forge-livetemplates](docs/guide/developer/crates/forge-livetemplates.md) | Live templates: template sets, contexts, variables and expansion, Surround With and Unwrap/Remove (pure, WebAssembly-friendly) |
@@ -12772,6 +12934,91 @@ pub fn filter(req: &FilterRequest) -> Vec<FilterHit> { … }
 
 ```sh
 cargo test -p forge-fuzzy
+```
+
+
+---
+
+Source: docs/guide/developer/crates/forge-injections.md
+
+# forge-injections
+
+`crates/forge-injections` — Language injections: SQL, HTML, CSS, JSON and RegExp inside PHP and JavaScript/TypeScript strings, `// language=` comments, fragment escaping and the injection intentions (pure, WebAssembly-friendly).
+
+## Purpose
+
+Everything behind PHPStorm's IntelliLang that is not per-keystroke highlighting: which string
+literals carry another language, the text ranges that belong to it, the value of a literal for
+Edit Fragment and Run SQL, escaping typed text back into a literal, and the Alt+Enter
+intentions. The editor only colors the ranges with the injected language's CodeMirror parser
+(`app/ui/src/features/injections`).
+
+- `lexer`: string literals and comments of PHP (only inside `<?php … ?>`; single and double
+  quotes, heredoc and nowdoc with their label, `$var` / `{$expr}` interpolations as gaps) and
+  of JavaScript/TypeScript (quotes, template literals with nested `${…}` code, regular
+  expression literals skipped). `Host::of_path` picks the lexer from the file name (Blade is
+  not a host).
+- `rules`: the built-in rules (`RULES`, ids such as `php-sql-calls` or `js-css`) and
+  `detect`: literals joined with `.` / `+` are grouped, then the first of a `language=` comment
+  (`// language=SQL`, `/* language=JSON */`, `# language=HTML`, `/** @lang SQL */`, first
+  literal after it in the same statement), a heredoc label (`<<<SQL`), a call, tagged template
+  or assignment rule (`PDO::query()`, `DB::select()`, `preg_match()`, `` sql`…` ``,
+  `innerHTML =`), and the text rules (strings starting with a SQL statement or an HTML tag)
+  applies. `createQuery()` and `<<<DQL` are left to `phpforge-dql`. PHP patterns are injected
+  without their delimiters and flags.
+- `escape`: `unescape` (value of a literal plus a value-to-source offset map) and `escape`
+  (text typed into a fragment, written for the literal's kind: `\'` in single-quoted PHP,
+  `\$` in double-quoted PHP and heredocs, `\n` in JavaScript quotes, `` \` `` and `\$` in
+  templates).
+- `languages`: the injectable languages (`sql`, `html`, `css`, `json`, `regexp`, `javascript`,
+  `xml`) and their aliases (`MySQL`, `PostgreSQL`, `JS`, `Regex`, …).
+- `lib`: the API with UTF-16 offsets (CodeMirror's): `find`, `injection_at`, `fragment`,
+  `inject` (the `language=` comment to insert, inline `/* … */` when other code precedes the
+  string on its line, or the replaced comment), `context_actions` ("Inject language or
+  reference", "Edit SQL Fragment", "Un-inject Language" as `forge_codeintel::ContextAction`s),
+  `rule_infos`, `languages`. Disabled rules and un-injected places (`path#key`, `key` a hash
+  of the literals' source) come with each request.
+
+## Main public items
+
+```rust
+pub fn find(req: &FindRequest) -> Vec<Injection> { … }
+pub fn injection_at(req: &OffsetRequest) -> Option<Injection> { … }
+pub fn fragment(req: &OffsetRequest) -> Option<Fragment> { … }
+pub fn inject(req: &InjectRequest) -> Option<Edit> { … }
+pub fn context_actions(req: &OffsetRequest) -> Vec<ContextAction> { … }
+pub fn escape(kind: LiteralKind, text: &str) -> String { … }
+pub fn unescape(kind: LiteralKind, src: &str, from: usize, to: usize) -> (String, Vec<usize>) { … }
+pub fn rule_infos() -> Vec<RuleInfo> { … }
+pub fn languages() -> Vec<Language> { … }
+```
+
+## Used by
+
+- IPC: `injections_find`, `injections_at`, `injections_fragment`, `injections_escape`,
+  `injections_inject`, `injections_rules`, `injections_languages`
+  (`app/src-tauri/src/commands/injections.rs`); `code_context_actions` adds
+  `context_actions` with the `editor.injections.*` settings.
+- UI: `app/ui/src/features/injections` (highlighting, Edit Fragment panel, language chooser,
+  Run SQL, Settings | Editor | Language Injections). The editor calls `injections_find`,
+  `injections_fragment` and `injections_escape` in-process through `forge-wasm` in both modes,
+  because highlighting and the fragment editor follow every keystroke.
+- Browser mode: built into `forge-wasm` (`injections.rs`), also for `code_context_actions`.
+
+## Dependencies
+
+- Workspace crates: `forge-codeintel` (context actions and workspace edits)
+- External: `serde`, `serde_json`, `regex-lite`
+
+## Tests
+
+Unit tests for host detection, the PHP and JavaScript lexers (PHP tags, heredocs,
+interpolations, templates, regex literals), every rule, comment and heredoc precedence,
+concatenation, disabled rules and un-injected places, UTF-16 offsets, escaping round trips per
+literal kind, fragment offset maps, the inserted and replaced comments and the intentions.
+
+```sh
+cargo test -p forge-injections
 ```
 
 

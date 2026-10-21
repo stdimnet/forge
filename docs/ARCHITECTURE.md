@@ -1239,6 +1239,36 @@ plugin manifest entry, and the chat UI needs no changes:
   `takePageArgs(page)` (`features/settings/dialogState.ts`), which also works when the dialog
   is its own window.
 
+## Language injections (`forge-injections`)
+
+- `crates/forge-injections` (pure, also WebAssembly) decides which string literals of PHP and
+  JavaScript/TypeScript files carry another language (SQL, HTML, CSS, JSON, RegExp,
+  JavaScript, XML): `language=` comments, heredoc labels, then the built-in rules (calls,
+  tagged templates, assignments, strings starting with a statement or a tag). Literals joined
+  with `.` / `+` are one injection; interpolations are gaps. Settings: `editor.injections.disabled`
+  (rule ids, user) and `editor.injections.uninjected` (`path#key`, project). All offsets are
+  UTF-16.
+- IPC (`app/ui/src/ipc/injections.ts`, `commands/injections.rs`):
+  `injections_find({ request: { text, path, disabled, uninjected } }) -> Injection[]`
+  (`{ language, label, source: "comment" | "rule", rule?, from, to, ranges, literals: { from,
+  to, contentFrom, contentTo, kind }[], comment?, key, text }`), `injections_at({ request: { …,
+  offset } })`, `injections_fragment({ request }) -> { language, label, kind, from, to, text,
+  map } | null` (`map`: source offset of each UTF-16 unit of `text` and its end),
+  `injections_escape({ kind, text }) -> string`, `injections_inject({ request: { text, path,
+  offset, language } }) -> { from, to, text } | null`, `injections_rules()`,
+  `injections_languages()`. `code_context_actions` adds the intentions ("Inject language or
+  reference", "Edit SQL Fragment", "Un-inject Language"); they run the UI actions
+  `InjectLanguageAction`, `EditInjectedFragment` and `UnInjectLanguageAction` (or remove the
+  comment as an edit). Context actions that run a UI action rank as intentions unless their
+  title ends with "..." (links such as "Generate...", `ContextAction::is_link`).
+- UI (`features/injections`): the editor asks `injections_find` in-process (WebAssembly) shortly
+  after each edit and maps the last answer through changes meanwhile; each injected range is
+  parsed with the injected language's CodeMirror parser on every change (`tokenize`, cached)
+  and drawn as `cm-inj-*` marks over the host string. Edit Fragment is a CodeMirror bottom
+  panel whose edits are mapped through the fragment's offset map and escaped by Rust. `Ctrl+Enter`
+  (`EditorSplitLine` / `Console.Jdbc.Execute`) and the gutter run icon open a query console
+  with the injected SQL (`runSqlInConsole`).
+
 ## Rust computes, TypeScript renders
 
 Logic, data models and parsers live in Rust crates; the TypeScript UI only renders and forwards
