@@ -214,6 +214,7 @@ impl Backend for LocalBackend {
             forge_core::MatchOptions {
                 strict: false,
                 exact,
+                typo: !exact,
             },
         )
     }

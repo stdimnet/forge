@@ -38,14 +38,22 @@ pub struct MatchOptions {
     /// Plain case-insensitive substring match instead of fuzzy matching.
     #[serde(default)]
     pub exact: bool,
+    /// Also accept a query with one swapped pair of neighbouring characters or one extra
+    /// character ("ordre" finds "Order"), scored below a clean match.
+    #[serde(default)]
+    pub typo: bool,
 }
 
 impl MatchOptions {
     pub const STRICT: Self = Self {
         strict: true,
         exact: false,
+        typo: false,
     };
 }
+
+const PENALTY_TYPO: i32 = 12;
+const TYPO_MIN_CHARS: usize = 4;
 
 fn is_separator(c: char) -> bool {
     matches!(c, '/' | '\\' | '_' | '-' | '.' | ' ' | ':' | '$')
@@ -71,6 +79,14 @@ pub fn fuzzy_match(query: &str, candidate: &str) -> Option<FuzzyMatch> {
 pub fn fuzzy_match_with(query: &str, candidate: &str, opts: MatchOptions) -> Option<FuzzyMatch> {
     if opts.exact {
         return exact_match(query, candidate);
+    }
+    if opts.typo {
+        let clean = MatchOptions {
+            typo: false,
+            ..opts
+        };
+        return fuzzy_match_with(query, candidate, clean)
+            .or_else(|| typo_match(query, candidate, clean));
     }
     // Most candidates fail the "characters in order" test, so reject them before any allocation.
     let fold = |ch: char| ch.to_lowercase().next().unwrap_or(ch);
@@ -173,6 +189,35 @@ pub fn fuzzy_match_with(query: &str, candidate: &str, opts: MatchOptions) -> Opt
         j = from[i][j];
     }
     Some(FuzzyMatch { score, positions })
+}
+
+/// The best match of `query` with one adjacent pair swapped or one character left out.
+fn typo_match(query: &str, candidate: &str, opts: MatchOptions) -> Option<FuzzyMatch> {
+    let q: Vec<char> = query.chars().filter(|c| !c.is_whitespace()).collect();
+    if q.len() < TYPO_MIN_CHARS {
+        return None;
+    }
+    let mut variants: Vec<String> = Vec::new();
+    for i in 0..q.len() - 1 {
+        if q[i] != q[i + 1] {
+            let mut v = q.clone();
+            v.swap(i, i + 1);
+            variants.push(v.into_iter().collect());
+        }
+    }
+    for i in 0..q.len() {
+        let mut v = q.clone();
+        v.remove(i);
+        variants.push(v.into_iter().collect());
+    }
+    variants
+        .iter()
+        .filter_map(|v| fuzzy_match_with(v, candidate, opts))
+        .max_by_key(|m| m.score)
+        .map(|m| FuzzyMatch {
+            score: m.score - PENALTY_TYPO,
+            positions: m.positions,
+        })
 }
 
 /// The substring match behind [`MatchOptions::exact`]: of all occurrences the one at the best
@@ -308,6 +353,24 @@ pub fn rank_files_with<'a>(
     hits
 }
 
+/// [`rank_files_with`]; when nothing matches and `opts.typo` is set, once more tolerating a typo.
+pub fn rank_files_tolerant(
+    query: &str,
+    paths: &[&str],
+    limit: usize,
+    opts: MatchOptions,
+) -> Vec<FileMatch> {
+    let clean = MatchOptions {
+        typo: false,
+        ..opts
+    };
+    let hits = rank_files_with(query, paths.iter().copied(), limit, clean);
+    if !hits.is_empty() || opts.exact || !opts.typo {
+        return hits;
+    }
+    rank_files_with(query, paths.iter().copied(), limit, opts)
+}
+
 /// A candidate for [`filter`]: one text, or several alternatives (a name and its aliases)
 /// of which the first that matches counts.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
@@ -361,6 +424,7 @@ pub fn filter(req: &FilterRequest) -> Vec<FilterHit> {
     let opts = MatchOptions {
         strict: req.strict,
         exact: req.exact,
+        typo: false,
     };
     let mut hits: Vec<(FilterHit, usize)> = req
         .candidates
@@ -413,6 +477,7 @@ mod tests {
         let exact = MatchOptions {
             strict: false,
             exact: true,
+            typo: false,
         };
         assert!(fuzzy_match_with("orderc", "OrderController", exact).is_some());
         assert!(fuzzy_match_with("odrc", "OrderController", exact).is_none());
@@ -523,6 +588,29 @@ mod tests {
         assert_eq!(order("User.php")[0], "app/Models/User.php");
         assert_eq!(order("index.php")[0], "public/index.php");
         assert_eq!(order("index.php")[1], "vendor/x/y/z/index.php");
+    }
+
+    #[test]
+    fn a_typo_in_the_query_still_finds_the_file_when_nothing_else_does() {
+        let paths = ["app/Models/Order.php", "README.md"];
+        let typo = MatchOptions {
+            typo: true,
+            ..MatchOptions::default()
+        };
+        assert!(rank_files("ordre", paths, 5).is_empty());
+        let hits = rank_files_tolerant("ordre", &paths, 5, typo);
+        assert_eq!(hits[0].path, "app/Models/Order.php");
+        assert_eq!(
+            rank_files_tolerant("ordeer", &paths, 5, typo)[0].path,
+            "app/Models/Order.php"
+        );
+        assert!(rank_files_tolerant("xyzq", &paths, 5, typo).is_empty());
+        let exact = MatchOptions {
+            exact: true,
+            typo: true,
+            ..MatchOptions::default()
+        };
+        assert!(rank_files_tolerant("ordre", &paths, 5, exact).is_empty());
     }
 
     #[test]

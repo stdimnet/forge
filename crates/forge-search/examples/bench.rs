@@ -70,7 +70,7 @@ fn main() {
         format!("{} changed", stats.added + stats.changed + stats.removed),
     );
 
-    for query in ["usr", "ordctl", "index.php"] {
+    for query in ["usr", "ordctl", "index.php", "zzqxvk"] {
         let (took, hits) = best(|| svc.find_ranked(query, 100, false));
         row(
             &format!("Go to File `{query}`"),

@@ -43,12 +43,8 @@ impl Workspace {
             .take(MAX_WALKED_FILES)
             .map(|e| self.relative(e.path()))
             .collect();
-        Ok(forge_fuzzy::rank_files_with(
-            query,
-            paths.iter().map(String::as_str),
-            limit,
-            opts,
-        ))
+        let paths: Vec<&str> = paths.iter().map(String::as_str).collect();
+        Ok(forge_fuzzy::rank_files_tolerant(query, &paths, limit, opts))
     }
 
     /// Find in Files: search the text of every file in scope (`.gitignore`/`.ignore` and the

@@ -30,6 +30,7 @@ Measured on a source tree (272,700 files, Windows 11, release build, files in th
 | Go to File `usr` | 7.5 ms | 100 hits |
 | Go to File `ordctl` | 4.5 ms | 100 hits |
 | Go to File `index.php` | 4.1 ms | 100 hits |
+| Go to File `zzqxvk` (typo pass) | 37 ms | 1 hit |
 | Go to File `index`, substring | 11.1 ms | 100 hits |
 | Classes `order` | 1.5 ms | 50 hits |
 | Classes `user` | 1.3 ms | 50 hits |

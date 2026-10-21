@@ -132,6 +132,7 @@ fn score(query: &str, c: &Candidate, exact: bool) -> Option<(i32, Vec<usize>)> {
     let opts = MatchOptions {
         strict: c.strict,
         exact,
+        typo: false,
     };
     if let Some(m) = fuzzy_match_with(query, text, opts) {
         return Some((m.score + c.score, m.positions));

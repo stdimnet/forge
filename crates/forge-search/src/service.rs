@@ -466,20 +466,28 @@ impl SearchService {
 
     /// "Go to File" over the indexed paths, ranked like `Workspace::find_files`.
     pub fn find_ranked(&self, query: &str, limit: usize, exact: bool) -> Vec<FileMatch> {
-        let opts = forge_fuzzy::MatchOptions {
-            strict: false,
-            exact,
-        };
         let index = self.index.read().expect("search index lock poisoned");
         let paths: Vec<&str> = index.live().map(|r| r.path.as_str()).collect();
-        let mut hits: Vec<FileMatch> = paths
-            .par_chunks(1 << 14)
-            .flat_map(|chunk| {
-                forge_fuzzy::rank_files_with(query, chunk.iter().copied(), limit, opts)
-            })
-            .collect();
-        hits.sort_by(|a, b| b.score.cmp(&a.score).then_with(|| a.path.cmp(&b.path)));
-        hits.truncate(limit);
+        let rank = |typo: bool| {
+            let opts = forge_fuzzy::MatchOptions {
+                strict: false,
+                exact,
+                typo,
+            };
+            let mut hits: Vec<FileMatch> = paths
+                .par_chunks(1 << 14)
+                .flat_map(|chunk| {
+                    forge_fuzzy::rank_files_with(query, chunk.iter().copied(), limit, opts)
+                })
+                .collect();
+            hits.sort_by(|a, b| b.score.cmp(&a.score).then_with(|| a.path.cmp(&b.path)));
+            hits.truncate(limit);
+            hits
+        };
+        let hits = rank(false);
+        if hits.is_empty() && !exact {
+            return rank(true);
+        }
         hits
     }
 

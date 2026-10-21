@@ -42,15 +42,19 @@ struct MatchFiles {
 #[wasm_bindgen]
 pub fn search_match_files(request_json: &str) -> String {
     match parse::<MatchFiles>(request_json) {
-        Ok(r) => to_json(&forge_fuzzy::rank_files_with(
-            &r.query,
-            r.paths.iter().map(String::as_str),
-            r.limit,
-            forge_fuzzy::MatchOptions {
-                strict: false,
-                exact: r.exact,
-            },
-        )),
+        Ok(r) => {
+            let paths: Vec<&str> = r.paths.iter().map(String::as_str).collect();
+            to_json(&forge_fuzzy::rank_files_tolerant(
+                &r.query,
+                &paths,
+                r.limit,
+                forge_fuzzy::MatchOptions {
+                    strict: false,
+                    exact: r.exact,
+                    typo: !r.exact,
+                },
+            ))
+        }
         Err(e) => to_json(&serde_json::json!({ "error": e })),
     }
 }

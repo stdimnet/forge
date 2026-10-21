@@ -42,7 +42,7 @@ Matching works like PHPStorm's:
 - Matches at word starts, after separators (`/ _ - . : $` and spaces) and on **camel humps**
   score higher, so `OrCo` finds `OrderController` first and `usrctl` finds `UserController`.
 - For files you can type part of the path: `models/user` finds `app/Models/User.php`.
-- A file called exactly what you typed, with or without its extension, comes first (`user` puts `User.php` above `UserSeeder.php`), and files under `vendor`, `node_modules` and similar folders rank below the project's own files with the same match. In Search Everywhere's Files tab, files you opened recently and files next to the one you are editing get a small boost.
+- A file called exactly what you typed, with or without its extension, comes first (`user` puts `User.php` above `UserSeeder.php`), and files under `vendor`, `node_modules` and similar folders rank below the project's own files with the same match. When nothing matches, Go to File and the Files tab try once more with one swapped pair of neighbouring letters or one extra letter in the query (`ordre` finds `Order.php`); this is off in substring mode. In Search Everywhere's Files tab, files you opened recently and files next to the one you are editing get a small boost.
 - For classes, symbols and actions a word must start where a hump or separator starts
   ("strict" matching), which keeps the lists short.
 
