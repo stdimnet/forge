@@ -661,6 +661,7 @@ not finished, the page says so.
 | --- | --- |
 | [Workbench and tool windows](docs/guide/user/workbench.md) | main toolbar, tool windows, Project view, tabs, Recent Files, Switcher, status bar |
 | [Editor](docs/guide/user/editor.md) | completion, hover, Parameter Info, Go to Declaration, problems, formatting, editing actions, folding, find, gutter, context menu |
+| [Actions on Save](docs/guide/user/actions-on-save.md) | Reformat code, Optimize imports, Rearrange code, code cleanup, ESLint, Prettier, PHP CS Fixer and Laravel Pint on save |
 | [Live templates](docs/guide/user/live-templates.md) | abbreviations + `Tab`, Insert Live Template, Surround With, Unwrap/Remove, Save as Live Template, template sets and settings |
 | [Language injections](docs/guide/user/language-injections.md) | SQL, HTML, CSS, JSON and RegExp in PHP and JavaScript strings, `// language=` comments, Inject language or reference, Edit Fragment, Run SQL |
 | [File and code templates](docs/guide/user/file-templates.md) | New ▸ PHP Class and other templates, the New PHP Class dialog with PSR-4 namespaces, `Alt+Insert` New popup, Settings \| Editor \| File and Code Templates |
@@ -1560,6 +1561,10 @@ Saving applies Settings | Editor | General | On Save, like PHPStorm:
 caret keep their spaces, so saving never moves what you are typing. An `.editorconfig` with
 `trim_trailing_whitespace` or `insert_final_newline` overrides both options for its files.
 
+Settings | Tools | [Actions on Save](docs/guide/user/actions-on-save.md) adds Reformat code, Optimize
+imports, Rearrange code, code cleanup and external tools (ESLint, Prettier, PHP CS Fixer,
+Laravel Pint) to an explicit save (`Ctrl+S`), and optionally to autosave.
+
 When Forge gets the focus back it re-reads the open files that changed on disk and refreshes
 the Project view and Git status (`system.syncExternalChanges`).
 
@@ -1636,6 +1641,99 @@ Settings | Editor | General controls soft wrapping (`editor.softWraps` with the 
 the caret row highlight, caret blinking with its blink period (`editor.caret.blinkPeriod`) and
 smooth scrolling. Settings | Editor | Font sets the font, size, line height and ligatures. See
 the [settings reference](docs/guide/reference/settings.md).
+
+
+---
+
+Source: docs/guide/user/actions-on-save.md
+
+# Actions on Save
+
+Settings | Tools | Actions on Save (`Ctrl+Alt+S`, then Tools) chooses what happens to a file
+when you save it, like PHPStorm. Every action is off by default. The settings are stored per
+project ("For current project"), so a team can share them in `.forge/settings.toml`.
+
+![Actions on Save settings](docs/screenshots/actions-on-save-settings.png)
+
+## Actions
+
+| Action | Files | What it does | Configure… |
+| --- | --- | --- | --- |
+| **Reformat code** | the chosen file types (default: all) | Reformat Code (`Ctrl+Alt+L`): the language server's formatter, StyLua for Lua, plus the blank lines of the PHP code style. **Whole file** or **Changed lines** (only lines changed since the last commit; files that are not committed yet are reformatted completely). | Editor \| Code Style |
+| **Optimize imports** | PHP | Removes unused `use` imports and sorts the rest: classes, then functions, then constants, each alphabetically. Group uses (`use A\{B, C};`) are split into single imports. | |
+| **Rearrange code** | PHP | Orders the members of classes, interfaces, traits and enums: trait `use`, enum cases, constants, properties, the constructor, the other methods. Members keep their order inside a group; docblocks, attributes and comments move with their member and blank lines stay where they were. | |
+| **Run code cleanup** | PHP | Applies the safe quick fixes: removes unused imports, unnecessary semicolons (`;;`, `};`) and the redundant closing tag `?>` at the end of a pure PHP file. | |
+| **Run eslint --fix** | `.js`, `.jsx`, `.ts`, `.tsx`, `.mjs`, `.cjs`, `.mts`, `.cts`, `.vue`, `.html`, `.svelte`, `.astro` | `eslint --fix <file>` with the project's ESLint configuration. | Languages & Frameworks \| ESLint |
+| **Run Prettier** | files matching **Run for files** (default `*.js; *.ts; *.jsx; *.tsx; *.cjs; *.cts; *.mjs; *.mts; *.vue; *.astro`) | `prettier --write <file>` with the project's Prettier configuration. | Languages & Frameworks \| Prettier |
+| **Run PHP CS Fixer** | PHP | `php-cs-fixer fix <file>` with the project's `.php-cs-fixer.dist.php`. | Languages & Frameworks \| PHP \| Quality Tools |
+| **Run Laravel Pint** | PHP | `pint <file>` with the project's `pint.json`. | Languages & Frameworks \| PHP \| Quality Tools |
+
+The PHP actions are skipped for Blade templates and files with syntax errors; an import is
+only removed when nothing in the file refers to it, including docblocks (`@var User`) and
+annotations (`@ORM\Column`). The rows of a pack are shown only while its plugin is enabled.
+"Update copyright notice" and "Upload to default server" are not offered because Forge has no
+copyright profiles or deployment servers yet.
+
+The "Reformat code" file types are picked from the **All file types** drop-down:
+
+![Reformat code file types](docs/screenshots/actions-on-save-file-types.png)
+
+## External tools
+
+ESLint, Prettier, PHP CS Fixer and Laravel Pint are the project's own installations:
+`node_modules/.bin/eslint`, `node_modules/.bin/prettier`, `vendor/bin/php-cs-fixer` and
+`vendor/bin/pint` (`.cmd` / `.bat` on Windows). The page shows where each one was found, or
+"Not installed in the project". A different executable can be set on the tool's settings
+page (`web.eslint.path`, `web.prettier.path`, `php.tools.phpCsFixer.path`,
+`php.tools.pint.path`); a relative path starts at the project root.
+
+![PHP Quality Tools settings](docs/screenshots/php-quality-tools-settings.png)
+
+The tools run on the saved file where the project lives, so they work in
+[remote projects](docs/guide/user/remote-development.md) too. A missing tool is skipped with a balloon (once
+per session); a failing tool shows its error in a balloon with a **Configure…** link, and the
+file gets back the text it had before that tool ran. Balloons belong to the "Actions on Save"
+notification group.
+
+![A skipped tool](docs/screenshots/actions-on-save-run.png)
+
+## When the actions run
+
+- On **explicit save**: `Ctrl+S` (Save All, macOS `Cmd+S`).
+- On **autosave** (when Forge loses the focus or after the idle time, see
+  [Saving](docs/guide/user/editor.md#saving)) only with **Also run on autosave**
+  (`actionsOnSave.runOnAutosave`), and then only Reformat code, Optimize imports, Rearrange
+  code and Run code cleanup. External tools only run on explicit save.
+- Saves that are part of another action (renaming, changing the encoding or line separator,
+  Git operations) never run them.
+
+The actions run in this order: Reformat code, Run code cleanup, Optimize imports, Rearrange
+code, then the On Save cleanup of Settings | Editor | General (trailing spaces, final line
+break), then the file is written and the external tools run on it (ESLint, Prettier, PHP CS
+Fixer, Pint).
+
+Everything the actions changed reaches the editor as **one edit**: a single `Ctrl+Z` undoes
+all of it. If you keep typing while the actions run, your text wins: the actions' result is
+dropped and what you typed is saved as it is.
+
+## Settings
+
+| Key | Default | Meaning |
+| --- | --- | --- |
+| `actionsOnSave.reformat.enabled` | `false` | Reformat code |
+| `actionsOnSave.reformat.scope` | `whole` | `whole` (Whole file) or `changed` (Changed lines) |
+| `actionsOnSave.reformat.fileTypes` | `[]` | file type ids (`php`, `javascript`, …); empty: all file types |
+| `actionsOnSave.optimizeImports` | `false` | Optimize imports |
+| `actionsOnSave.rearrange` | `false` | Rearrange code |
+| `actionsOnSave.codeCleanup` | `false` | Run code cleanup |
+| `actionsOnSave.eslint` | `false` | Run eslint --fix |
+| `actionsOnSave.prettier.enabled` | `false` | Run Prettier |
+| `actionsOnSave.prettier.files` | `*.js; *.ts; …` | Prettier's "Run for files" patterns |
+| `actionsOnSave.phpCsFixer` | `false` | Run PHP CS Fixer |
+| `actionsOnSave.pint` | `false` | Run Laravel Pint |
+| `actionsOnSave.runOnAutosave` | `false` | Also run on autosave |
+
+See the [settings reference](docs/guide/reference/settings.md#tools--actions-on-save) for all keys.
 
 
 ---
@@ -5641,6 +5739,14 @@ Settings | Editor | Code Style | PHP:
   imports** and **Around method** (at least). Strings, heredocs and comments are never
   changed. Generated methods are separated by "Around method" blank lines.
 
+### Quality Tools
+
+Settings | Languages & Frameworks | PHP | Quality Tools sets the PHP CS Fixer and Laravel Pint
+executables (`php.tools.phpCsFixer.path`, `php.tools.pint.path`); empty means
+`vendor/bin/php-cs-fixer` and `vendor/bin/pint` of the project. They run on save with
+**Run PHP CS Fixer** / **Run Laravel Pint**, and Optimize imports, Rearrange code and code
+cleanup of PHP files run there too, see [Actions on Save](docs/guide/user/actions-on-save.md).
+
 ## Running and testing PHP
 
 - **PHP Script** run configurations run a file with the CLI interpreter.
@@ -6130,6 +6236,13 @@ When several targets match, a **Choose Declaration** popup lists them.
 
 Below these options, **Language Services** shows the web language servers (JavaScript &
 TypeScript, Vue, Angular, HTML & CSS) with the same controls as the Language Servers page.
+
+## ESLint and Prettier
+
+Settings | Tools | [Actions on Save](docs/guide/user/actions-on-save.md) runs `eslint --fix` and
+`prettier --write` on saved files with the project's own `node_modules/.bin/eslint` and
+`node_modules/.bin/prettier`. Settings | Languages & Frameworks | ESLint and Prettier set a
+different executable (`web.eslint.path`, `web.prettier.path`).
 
 ## Browser Companion
 
@@ -9255,6 +9368,15 @@ Page id `lang.php.composer`.
 | `php.composer.addPackagesAsLibraries` | bool | `true` | user, project |  | Add packages as libraries — Classes in vendor/ are resolved for navigation, completion and Intelephense. Off: vendor/ is left out. |
 | `php.composer.checkUpdates` | bool | `false` | user |  | Check for package updates on project open — Runs `composer outdated --direct` on the project's machine and reports updates in a balloon. |
 
+### Languages & Frameworks | PHP | Quality Tools
+
+Page id `lang.php.quality-tools`.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `php.tools.phpCsFixer.path` | path | `""` | user, project | PHP CS Fixer | PHP CS Fixer path — Empty: vendor/bin/php-cs-fixer of the project. A relative path starts at the project root. The project's .php-cs-fixer.dist.php is used. |
+| `php.tools.pint.path` | path | `""` | user, project | Laravel Pint | Laravel Pint path — Empty: vendor/bin/pint of the project. A relative path starts at the project root. The project's pint.json is used. |
+
 ### Languages & Frameworks | PHP | Debug
 
 Page id `lang.php.debug`.
@@ -9366,6 +9488,41 @@ Page id `lang.typescript`.
 | --- | --- | --- | --- | --- | --- |
 | `web.navigation.components` | bool | `true` | user | Frameworks | Navigate from JSX and template tags to components, props and events — Ctrl+B and Ctrl+Click on <UserCard>, title=… and @select resolve through imports before the language server is asked. |
 | `angular.gutterIcons` | bool | `true` | user | Angular | Show line markers between components, templates and styles |
+
+### Languages & Frameworks | ESLint
+
+Page id `lang.eslint`.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `web.eslint.path` | path | `""` | user, project |  | ESLint package — Empty: node_modules/.bin/eslint of the project. A relative path starts at the project root. The project's ESLint configuration is used. |
+
+### Languages & Frameworks | Prettier
+
+Page id `lang.prettier`.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `web.prettier.path` | path | `""` | user, project |  | Prettier package — Empty: node_modules/.bin/prettier of the project. A relative path starts at the project root. The project's Prettier configuration is used. |
+
+### Tools | Actions on Save
+
+Page id `tools.actions-on-save`. See [Actions on Save](docs/guide/user/actions-on-save.md).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `actionsOnSave.reformat.enabled` | bool | `false` | user, project |  | Reformat code — Reformat Code (Ctrl+Alt+L) when the file is saved. |
+| `actionsOnSave.reformat.scope` | enum: `whole`, `changed` | `whole` | user, project |  | Reformat — "Changed lines" reformats only the lines changed since the last commit; files that are not committed yet are reformatted completely. |
+| `actionsOnSave.reformat.fileTypes` | list | `[]` | user, project |  | Reformat file types — File type ids (php, javascript, ...) reformatted on save; empty means all file types. |
+| `actionsOnSave.optimizeImports` | bool | `false` | user, project |  | Optimize imports — Remove unused imports and sort the others (PHP). |
+| `actionsOnSave.rearrange` | bool | `false` | user, project |  | Rearrange code — Order class members: constants, properties, constructor, methods (PHP). |
+| `actionsOnSave.codeCleanup` | bool | `false` | user, project |  | Run code cleanup — Apply the safe quick fixes: unused imports, unnecessary semicolons, a redundant closing tag (PHP). |
+| `actionsOnSave.eslint` | bool | `false` | user, project |  | Run eslint --fix — Fix ESLint problems in saved JavaScript, TypeScript and Vue files. (HTML, CSS & JavaScript plugin) |
+| `actionsOnSave.prettier.enabled` | bool | `false` | user, project |  | Run Prettier — Run `prettier --write` on saved files that match the patterns below. (HTML, CSS & JavaScript plugin) |
+| `actionsOnSave.prettier.files` | string | `*.js; *.ts; *.jsx; *.tsx; *.cjs; *.cts; *.mjs; *.mts; *.vue; *.astro` | user, project |  | Run for files — Patterns separated by `;`; patterns with a `/` match the path, the others the file name. (HTML, CSS & JavaScript plugin) |
+| `actionsOnSave.phpCsFixer` | bool | `false` | user, project |  | Run PHP CS Fixer — Run `php-cs-fixer fix` on saved PHP files. (PHP plugin) |
+| `actionsOnSave.pint` | bool | `false` | user, project |  | Run Laravel Pint — Run `pint` on saved PHP files. (PHP plugin) |
+| `actionsOnSave.runOnAutosave` | bool | `false` | user, project |  | Also run on autosave — Run Reformat code, Optimize imports, Rearrange code and Run code cleanup when files are saved automatically too. External tools only run on explicit save (Ctrl+S). |
 
 ### Tools | Terminal
 
@@ -11896,6 +12053,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-project](docs/guide/developer/crates/forge-project.md) | Forge IDE projects: project type detection and New Project generators |
 | [forge-remote](docs/guide/developer/crates/forge-remote.md) | Forge IDE remote development: SSH connections, host keys, ~/.ssh/config and the Forge agent deployment |
 | [forge-remote-agent](docs/guide/developer/crates/forge-remote-agent.md) | Headless Forge agent: serves a project's files, git, processes, language servers and PHP index over stdio for remote development |
+| [forge-save-actions](docs/guide/developer/crates/forge-save-actions.md) | Actions on Save: which actions run for a saved file, reformatting only changed lines and running ESLint, Prettier, PHP CS Fixer and Laravel Pint through the project's backend |
 | [forge-scratches](docs/guide/developer/crates/forge-scratches.md) | Forge scratch files (PHPStorm's Scratches and Consoles): storage, naming, languages, run commands and the HTTP request client |
 | [forge-sql](docs/guide/developer/crates/forge-sql.md) | Forge SQL text: dialects, statement splitting, literals, row changes and export (pure, also built to WebAssembly) |
 | [forge-update](docs/guide/developer/crates/forge-update.md) | Forge update checks: when to check, which release is an update, the update feed, simulated updates and download speed |
@@ -13787,6 +13945,76 @@ cargo test -p forge-remote-agent
 
 ---
 
+Source: docs/guide/developer/crates/forge-save-actions.md
+
+# forge-save-actions
+
+`crates/forge-save-actions` — Actions on Save: which actions run for a saved file,
+reformatting only changed lines and running external tools (ESLint, Prettier, PHP CS Fixer,
+Laravel Pint) through the project's backend.
+
+## Purpose
+
+The logic behind Settings | Tools | [Actions on Save](docs/guide/user/actions-on-save.md):
+
+- `plan(path, trigger, settings)` decides which actions run for one save: Reformat code
+  (whole file or changed lines, limited to file types), Optimize imports, Rearrange code and
+  Run code cleanup (PHP files only) and the external tools. On autosave nothing runs unless
+  "Also run on autosave" is on, and the external tools never do.
+- `restrict_to_changed_lines(base, original, formatted)` keeps only the hunks of a
+  reformatting that touch lines changed since `base` (the committed text; `None` = the whole
+  file is new).
+- `tools` (feature `backend`, on by default) finds a tool in the project (`vendor/bin`,
+  `node_modules/.bin`, `.bat` / `.cmd` too) or at its custom path and runs it on the saved
+  file through a `forge_backend::Backend`, so remote projects work. A failing tool's changes
+  are rolled back; ESLint's exit code 1 (problems left after `--fix`) counts as success.
+
+The PHP actions themselves are in `phpforge-lang-php` (`imports`, `rearrange`, `cleanup`).
+The UI applies the combined result as one edit (one undo step).
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `lib.rs` | Settings keys, `ActionsOnSave` (settings), `Trigger`, `Tool`, `SavePlan`, `plan`, `file_type_choices`. |
+| `changed.rs` | "Changed lines": a line diff (LCS) between the original and the reformatted text, applied hunk by hunk. |
+| `tools.rs` | Locating and running ESLint, Prettier, PHP CS Fixer and Laravel Pint; `run_tools`, `detect_tools`. |
+
+## Main public items
+
+```rust
+pub fn plan(path: &str, trigger: Trigger, settings: &ActionsOnSave) -> SavePlan;
+pub fn restrict_to_changed_lines(base: Option<&str>, original: &str, formatted: &str) -> String;
+pub fn file_type_choices() -> Vec<FileTypeChoice>;
+pub mod tools; // run_tools, detect_tools, locate (feature "backend")
+```
+
+## Used by
+
+- IPC: `save_actions_plan`, `save_actions_changed_lines`, `save_actions_php`,
+  `save_actions_run_tools`, `save_actions_info` (`app/src-tauri/src/commands/save_actions.rs`)
+- UI: `app/ui/src/features/actionsOnSave/`, `saveFile` in `app/ui/src/state/editor.ts`
+- Browser mode: `plan` and `restrict_to_changed_lines` are built into `forge-wasm`
+  (without the `backend` feature)
+
+## Dependencies
+
+- Workspace crates: `forge-filetypes`, `forge-text`; with `backend`: `forge-backend`,
+  `forge-core`, `forge-process`
+- External: `serde`, `serde_json`
+
+## Tests
+
+Plan, changed lines and tool runs with fake tool scripts in temporary directories (no real
+tools needed).
+
+```sh
+cargo test -p forge-save-actions
+```
+
+
+---
+
 Source: docs/guide/developer/crates/forge-scratches.md
 
 # forge-scratches
@@ -14468,16 +14696,19 @@ PHPForge language pack: PHP support built on tree-sitter.
 
 | Module | Summary |
 | --- | --- |
+| `cleanup.rs` | Code Cleanup: removes unused imports, unnecessary semicolons (empty statements in statement lists, never a loop's empty body) and a redundant closing tag `?>` at the end of a pure PHP file. Used by Actions on Save. |
 | `create.rs` | Create from usage (Alt+Enter on an unresolved name): "Create method / field / constant / enum case / function" as edits (another file's as a `WorkspaceEdit` with LSP positions) with the caret after the edit, parameters and return types inferred from the usage, bodies from the code template "PHP Implemented Method Body"; "Create class / interface / trait" as the `PhpCreateClass` action with the dialog's data. Each fix carries the `ExternalSymbol` the PHP stubs must not declare. |
 | `docblock.rs` | PHPDoc parser: summary/description, the standard tags (`@param`, `@return`, `@throws`, `@var`, `@property[-read\|-write]`, `@method`, `@deprecated`, `@see`, `@template`, `@extends`/`@implements`), static-analysis prefixes (`@phpstan-`/`@psalm-`) and Doctrine/Symfony style annotations (`@ORM\Column(type="string")`, `@Route("/x")`). |
 | `fuzzy.rs` | Fuzzy matcher for Go to Class / Go to Symbol: subsequence matching with bonuses for word starts, camel humps (`OrCo` -> `OrderController`) and consecutive runs. |
 | `generate.rs` | "Generate" actions (Alt+Insert): constructor, getters/setters, `__toString()`, override/implement method stubs and PHPDoc blocks. |
 | `hover.rs` | Index-based hover for project symbols: signature + attributes + parsed docblock as markdown. Complements a language server's hover (which covers built-ins). |
 | `intentions.rs` | Built-in intentions for Show Context Actions (Alt+Enter) on the index: import class, replace qualifier with an import, accessors, "Add 'readonly' modifier", method stubs, PHPDoc and the "Generate..." link. |
+| `imports.rs` | Optimize Imports: removes `use` imports nothing refers to (code, attributes, docblocks and annotations count) and sorts the rest (classes, functions, constants); group uses are expanded, braced namespaces handled separately. |
 | `index.rs` | Workspace-wide PHP index: parallel indexing, mtime-keyed persistent cache, fuzzy symbol search, ancestor lookup and lazy resolution of vendor classes through Composer's PSR-4 metadata. |
 | `lsp.rs` | How to launch a PHP language server: Intelephense (preferred, users bring their own licence key) with phpactor as fallback. Independent of the generic LSP client; the app turns `LspServerConfig` into a running server. |
 | `model.rs` | Symbol model produced by the indexer. Everything is serializable so it can be cached on disk and sent over IPC unchanged (camelCase field names for the UI). |
 | `navigate.rs` | Code navigation on the index when no language server answers: the symbol under the caret (classes with or without a leading backslash through imports, aliases, group uses and the namespace; functions and constants with PHP's global fallback; members through `$this`, `self`/`static`/`parent`, typed variables, `catch`, `@var`, property and return-type chains; variables), `definition` (target, "on a declaration" or an `ExternalSymbol` for the stubs), `find_usages` (usage kinds, dynamic usages, members through parent and child classes), Go to Implementation / Super Method / Type Declaration and the implemented / overridden `line_markers`. |
+| `rearrange.rs` | Rearrange Code: orders class members as trait uses, enum cases, constants, properties, constructor, methods; comments move with their member, blank lines stay in place. |
 | `rename.rs` | Rename (Shift+F6) on the index: PHPStorm's dialog label for a symbol and the name clashes reported as conflicts (`clashes`: the class / function / constant or member with the new name already exists). The edit itself comes from `find_usages` and `forge_codeintel::edit_from_locations`. |
 | `offsets.rs` | Offset conversion. The index works in UTF-8 byte offsets; the UI (CodeMirror / JS strings) uses UTF-16 code units. Convert at the IPC boundary. |
 | `parser.rs` | Tree-sitter based PHP file indexer: turns source into a `FileIndex`. |

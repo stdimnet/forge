@@ -274,6 +274,15 @@ Page id `lang.php.composer`.
 | `php.composer.addPackagesAsLibraries` | bool | `true` | user, project |  | Add packages as libraries — Classes in vendor/ are resolved for navigation, completion and Intelephense. Off: vendor/ is left out. |
 | `php.composer.checkUpdates` | bool | `false` | user |  | Check for package updates on project open — Runs `composer outdated --direct` on the project's machine and reports updates in a balloon. |
 
+### Languages & Frameworks | PHP | Quality Tools
+
+Page id `lang.php.quality-tools`.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `php.tools.phpCsFixer.path` | path | `""` | user, project | PHP CS Fixer | PHP CS Fixer path — Empty: vendor/bin/php-cs-fixer of the project. A relative path starts at the project root. The project's .php-cs-fixer.dist.php is used. |
+| `php.tools.pint.path` | path | `""` | user, project | Laravel Pint | Laravel Pint path — Empty: vendor/bin/pint of the project. A relative path starts at the project root. The project's pint.json is used. |
+
 ### Languages & Frameworks | PHP | Debug
 
 Page id `lang.php.debug`.
@@ -385,6 +394,41 @@ Page id `lang.typescript`.
 | --- | --- | --- | --- | --- | --- |
 | `web.navigation.components` | bool | `true` | user | Frameworks | Navigate from JSX and template tags to components, props and events — Ctrl+B and Ctrl+Click on <UserCard>, title=… and @select resolve through imports before the language server is asked. |
 | `angular.gutterIcons` | bool | `true` | user | Angular | Show line markers between components, templates and styles |
+
+### Languages & Frameworks | ESLint
+
+Page id `lang.eslint`.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `web.eslint.path` | path | `""` | user, project |  | ESLint package — Empty: node_modules/.bin/eslint of the project. A relative path starts at the project root. The project's ESLint configuration is used. |
+
+### Languages & Frameworks | Prettier
+
+Page id `lang.prettier`.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `web.prettier.path` | path | `""` | user, project |  | Prettier package — Empty: node_modules/.bin/prettier of the project. A relative path starts at the project root. The project's Prettier configuration is used. |
+
+### Tools | Actions on Save
+
+Page id `tools.actions-on-save`. See [Actions on Save](../user/actions-on-save.md).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `actionsOnSave.reformat.enabled` | bool | `false` | user, project |  | Reformat code — Reformat Code (Ctrl+Alt+L) when the file is saved. |
+| `actionsOnSave.reformat.scope` | enum: `whole`, `changed` | `whole` | user, project |  | Reformat — "Changed lines" reformats only the lines changed since the last commit; files that are not committed yet are reformatted completely. |
+| `actionsOnSave.reformat.fileTypes` | list | `[]` | user, project |  | Reformat file types — File type ids (php, javascript, ...) reformatted on save; empty means all file types. |
+| `actionsOnSave.optimizeImports` | bool | `false` | user, project |  | Optimize imports — Remove unused imports and sort the others (PHP). |
+| `actionsOnSave.rearrange` | bool | `false` | user, project |  | Rearrange code — Order class members: constants, properties, constructor, methods (PHP). |
+| `actionsOnSave.codeCleanup` | bool | `false` | user, project |  | Run code cleanup — Apply the safe quick fixes: unused imports, unnecessary semicolons, a redundant closing tag (PHP). |
+| `actionsOnSave.eslint` | bool | `false` | user, project |  | Run eslint --fix — Fix ESLint problems in saved JavaScript, TypeScript and Vue files. (HTML, CSS & JavaScript plugin) |
+| `actionsOnSave.prettier.enabled` | bool | `false` | user, project |  | Run Prettier — Run `prettier --write` on saved files that match the patterns below. (HTML, CSS & JavaScript plugin) |
+| `actionsOnSave.prettier.files` | string | `*.js; *.ts; *.jsx; *.tsx; *.cjs; *.cts; *.mjs; *.mts; *.vue; *.astro` | user, project |  | Run for files — Patterns separated by `;`; patterns with a `/` match the path, the others the file name. (HTML, CSS & JavaScript plugin) |
+| `actionsOnSave.phpCsFixer` | bool | `false` | user, project |  | Run PHP CS Fixer — Run `php-cs-fixer fix` on saved PHP files. (PHP plugin) |
+| `actionsOnSave.pint` | bool | `false` | user, project |  | Run Laravel Pint — Run `pint` on saved PHP files. (PHP plugin) |
+| `actionsOnSave.runOnAutosave` | bool | `false` | user, project |  | Also run on autosave — Run Reformat code, Optimize imports, Rearrange code and Run code cleanup when files are saved automatically too. External tools only run on explicit save (Ctrl+S). |
 
 ### Tools | Terminal
 

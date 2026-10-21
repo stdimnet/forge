@@ -44,7 +44,7 @@ are in [research/jetbrains-gap-analysis.md](research/jetbrains-gap-analysis.md).
 - [x] Create symbols from usage (Alt+Enter: create method, field, class, constant)
 - [x] Language injections (SQL/HTML/JSON/RegExp in PHP and JS strings, `// language=`, Edit Fragment, Run injected SQL)
 - [ ] Multiple carets from the keyboard (Clone Caret Above/Below, Column Selection Mode) and Paste from History
-- [ ] Actions on Save (reformat, optimize imports, rearrange, code cleanup, run tools)
+- [x] Actions on Save (reformat, optimize imports, rearrange, code cleanup, run tools)
 - [ ] Emmet, color previews and picker
 - [ ] Markdown preview (Mermaid, links), image/SVG viewer, CSV/TSV table editor
 - [ ] Sticky lines, structure breadcrumbs, Reader mode / rendered doc comments, custom folding regions
