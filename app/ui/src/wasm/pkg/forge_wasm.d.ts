@@ -13,6 +13,11 @@ export function agent_parse_lines(request_json: string): string;
 export function agent_profiles(): string;
 
 /**
+ * `{ state, ops }` → the new `Bookmarks`.
+ */
+export function bookmarks_apply(request_json: string): string;
+
+/**
  * Version of the bridge, used by the UI to check that the bundle is current.
  */
 export function bridge_version(): string;
@@ -430,6 +435,11 @@ export function sql_split(request_json: string): string;
 export function sql_statement_at(request_json: string): string;
 
 /**
+ * `{ request, files }` → `TodoResult`.
+ */
+export function todo_scan(request_json: string): string;
+
+/**
  * `{ framework, files, paths }` -> `Component[]`.
  */
 export function web_components(request_json: string): string;
@@ -465,6 +475,7 @@ export interface InitOutput {
     readonly memory: WebAssembly.Memory;
     readonly agent_parse_lines: (a: number, b: number, c: number) => void;
     readonly agent_profiles: (a: number) => void;
+    readonly bookmarks_apply: (a: number, b: number, c: number) => void;
     readonly bridge_version: (a: number) => void;
     readonly chat_apply: (a: number, b: number, c: number) => void;
     readonly chat_begin_turn: (a: number, b: number, c: number) => void;
@@ -547,6 +558,7 @@ export interface InitOutput {
     readonly sql_leading_keywords: (a: number, b: number, c: number) => void;
     readonly sql_split: (a: number, b: number, c: number) => void;
     readonly sql_statement_at: (a: number, b: number, c: number) => void;
+    readonly todo_scan: (a: number, b: number, c: number) => void;
     readonly web_components: (a: number, b: number, c: number) => void;
     readonly web_goto: (a: number, b: number, c: number) => void;
     readonly web_gutter: (a: number, b: number, c: number) => void;

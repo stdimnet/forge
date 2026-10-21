@@ -3,7 +3,7 @@
  * variables, watches), console output and breakpoints. Fed by `debug://*` events.
  */
 import { batch, createMemo, createRoot, createSignal } from "solid-js";
-import { showBalloon } from "@/keymap/dispatch";
+import { balloonsFor } from "@/keymap/dispatch";
 import { showToolWindow } from "@/state/layout";
 import { EditorView } from "@codemirror/view";
 import { openFile } from "@/state/editor";
@@ -18,6 +18,8 @@ import {
   type SessionInfo,
   type StepKind,
 } from "./api";
+
+const showBalloon = balloonsFor("Debugger");
 
 export interface ConsoleLine {
   sessionId: string;

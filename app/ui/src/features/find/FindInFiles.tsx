@@ -15,7 +15,7 @@ import { languageFor } from "@/editor/languages";
 import { ensureFileType } from "@/editor/fileTypes";
 import { editor } from "@/state/editor";
 import { FileIcon } from "@/shell/FileIcon";
-import { closeFindInFiles, findOptions, findQuery, setFindQuery, updateFindOptions } from "./state";
+import { closeFindInFiles, findOptions, findQuery, findRequest, openFindResultsInWindow, setFindQuery, updateFindOptions } from "./state";
 
 interface Row {
   path: string;
@@ -150,15 +150,7 @@ export function FindInFilesPopup() {
     }
     setLoading(true);
     try {
-      const r = await findApi.search({
-        query,
-        caseSensitive: o.caseSensitive,
-        wholeWords: o.wholeWords,
-        regex: o.regex,
-        fileMask: o.maskEnabled ? o.fileMask : "",
-        directory: o.scope === "directory" ? o.directory : "",
-        limit: 1000,
-      });
+      const r = await findApi.search(findRequest(query, o));
       if (id !== seq) return;
       setResult(r);
       setSelected(0);
@@ -201,10 +193,19 @@ export function FindInFilesPopup() {
     else if (e.key === "ArrowUp") move(-1);
     else if (e.key === "PageDown") move(10);
     else if (e.key === "PageUp") move(-10);
+    else if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) openInWindow();
     else if (e.key === "Enter") open(rows()[selected()]);
     else return;
     e.preventDefault();
     e.stopPropagation();
+  };
+
+  /** "Open in Find Window" (Ctrl+Enter): the results become a tab of the Find tool window. */
+  const openInWindow = () => {
+    const r = result();
+    if (!r || r.error || !r.matchCount || !findQuery()) return;
+    closeFindInFiles();
+    openFindResultsInWindow(findQuery(), findOptions(), r);
   };
 
   const summary = () => {
@@ -327,6 +328,17 @@ export function FindInFilesPopup() {
           </Show>
         </div>
         <Preview row={rows()[selected()]} />
+        <div class="find-footer">
+          <span class="muted">Enter to open · Ctrl+Enter to open in the Find tool window</span>
+          <button
+            class="btn-secondary find-open-window"
+            disabled={!result()?.matchCount}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={openInWindow}
+          >
+            Open in Find Window
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -39,7 +39,7 @@ fn project() -> tempfile::TempDir {
     std::fs::create_dir_all(p.join("app/Models")).unwrap();
     std::fs::write(
         p.join("app/Models/Order.php"),
-        "<?php\nnamespace App\\Models;\n\n/** An order of the shop. */\nclass Order\n{\n    public function total(): int { return 0; }\n}\n",
+        "<?php\nnamespace App\\Models;\n\n/** An order of the shop. TODO: taxes */\nclass Order\n{\n    public function total(): int { return 0; }\n}\n",
     )
     .unwrap();
     std::fs::write(p.join(".gitignore"), "/vendor\n").unwrap();
@@ -193,6 +193,10 @@ async fn files_search_git_and_detection() {
             .unwrap();
         assert_eq!(found.files[0].path, "app/Models/Order.php");
         assert_eq!(found.files[0].matches[0].line, 6);
+
+        // TODO comments are scanned on the agent's machine too.
+        let todos = b.find_todos(&Default::default()).unwrap();
+        assert_eq!(todos.files[0].items[0].text, "TODO: taxes");
 
         let info = b.detect_project().unwrap();
         assert!(info.uses("php"));

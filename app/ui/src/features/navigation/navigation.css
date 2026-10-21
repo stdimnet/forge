@@ -854,3 +854,9 @@ mark.hl {
   white-space: nowrap;
   text-overflow: ellipsis;
 }
+.balloon-icon.warning {
+  color: var(--warning);
+}
+.balloon-icon.error {
+  color: var(--danger);
+}

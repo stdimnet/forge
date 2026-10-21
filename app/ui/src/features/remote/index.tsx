@@ -11,7 +11,7 @@ import { registerSettingsPage } from "@/features/settingsPages";
 import { registerCommand } from "@/state/commands";
 import { isRemoteProject, workspace } from "@/state/workspace";
 import { remoteApi } from "@/ipc/remote";
-import { showBalloon } from "@/keymap";
+import { balloonsFor } from "@/keymap";
 import { openSettings } from "@/features/settings/dialogState";
 import { HostKeyDialog } from "./HostKeyDialog";
 import { RemoteFolderChooser } from "./RemoteFolderChooser";
@@ -29,6 +29,8 @@ import { registerDialog } from "@/shell/window/dialogs";
 import { isDialogWindow } from "@/shell/window/mode";
 import { adoptWorkspace } from "@/state/workspace";
 import "./remote.css";
+
+const showBalloon = balloonsFor("Remote Development");
 
 export { openNewSshConnection };
 

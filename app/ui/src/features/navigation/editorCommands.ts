@@ -30,6 +30,7 @@ import {
 import { startCompletion } from "@codemirror/autocomplete";
 import { registerEditorExtension } from "@/editor/extensions";
 import { editor } from "@/state/editor";
+import { viewFor as sharedViewFor } from "@/editor/views";
 
 const views = new Map<string, EditorView>();
 
@@ -45,7 +46,7 @@ registerEditorExtension(({ path }) =>
 );
 
 /** The CodeMirror view of the active editor tab, if any. */
-export const activeView = (): EditorView | undefined => (editor.active ? views.get(editor.active) : undefined);
+export const activeView = (): EditorView | undefined => (editor.active ? sharedViewFor(editor.active) : undefined);
 
 /** Selection history for Extend/Shrink Selection (Ctrl+W / Ctrl+Shift+W). */
 const selectionStack = new WeakMap<EditorView, { before: EditorSelection; after: EditorSelection }[]>();

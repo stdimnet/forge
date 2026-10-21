@@ -6,6 +6,7 @@ import { EditorSelection, type Extension } from "@codemirror/state";
 import { EditorView, ViewPlugin } from "@codemirror/view";
 import { activeTab, openFile } from "@/state/editor";
 import type { TextEdit } from "./api";
+import { viewFor as sharedViewFor } from "@/editor/views";
 
 const views = new Map<string, EditorView>();
 
@@ -20,11 +21,11 @@ export function viewTracker(path: string): Extension {
   });
 }
 
-export const viewFor = (path: string) => views.get(path);
+export const viewFor = (path: string) => sharedViewFor(path);
 
 export function activeView(): { path: string; view: EditorView } | undefined {
   const tab = activeTab();
-  const view = tab && views.get(tab.path);
+  const view = tab && sharedViewFor(tab.path);
   return tab && view ? { path: tab.path, view } : undefined;
 }
 
@@ -47,7 +48,7 @@ export function applyEdits(view: EditorView, edits: TextEdit[]): void {
 
 async function waitForView(path: string): Promise<EditorView | undefined> {
   for (let i = 0; i < 40; i++) {
-    const v = views.get(path);
+    const v = sharedViewFor(path);
     if (v) return v;
     await new Promise((r) => setTimeout(r, 25));
   }

@@ -1,0 +1,65 @@
+/* Recent Locations popup (Ctrl+Shift+E). */
+.locations-popup {
+  width: min(760px, calc(100vw - 32px));
+  max-height: min(620px, calc(100vh - 120px));
+}
+.locations-list {
+  overflow-y: auto;
+  padding: 4px 6px;
+  min-height: 120px;
+}
+.location-row {
+  padding: 6px 8px 8px;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.location-row + .location-row {
+  margin-top: 2px;
+}
+.location-row.selected {
+  background: var(--bg-selection);
+}
+.location-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 22px;
+  white-space: nowrap;
+}
+.location-changed {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+}
+.location-code {
+  margin-top: 4px;
+  padding: 4px 0;
+  border-radius: 6px;
+  background: var(--bg-editor);
+  border: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 18px;
+  overflow: hidden;
+}
+.location-line {
+  display: flex;
+  white-space: pre;
+  color: var(--fg-muted);
+}
+.location-line.current {
+  color: var(--fg-strong);
+  background: var(--bg-hover);
+}
+.location-gutter {
+  flex: 0 0 44px;
+  padding-right: 12px;
+  text-align: right;
+  color: var(--fg-faint);
+}
+.location-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

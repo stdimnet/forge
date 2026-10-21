@@ -8,7 +8,17 @@ import { render } from "solid-js/web";
 import { registerCommand } from "@/state/commands";
 import { layout, resizePanel, showToolWindow, toggleToolWindow } from "@/state/layout";
 import { findToolWindow, type ToolWindowAnchor } from "@/features/registry";
-import { closeTab, editor, isDirty, openFile, saveAll } from "@/state/editor";
+import {
+  activeGroupId,
+  closeAllTabsIn,
+  closeOtherTabs,
+  closeTabIn,
+  closeUnmodifiedTabs,
+  cycleTabs,
+  editor,
+  groupActive,
+  saveAll,
+} from "@/state/editor";
 import { workspace } from "@/state/workspace";
 import { toggleTheme } from "@/state/theme";
 import { actionById, installKeymap, migrateLegacyKeymap, runAction, showBalloon } from "@/keymap";
@@ -145,25 +155,14 @@ action("ResizeToolWindowDown", stretch("down"));
 
 // ---- Editor tabs & files
 action("SaveAll", saveAll);
-action("CloseContent", () => {
-  if (editor.active) closeTab(editor.active);
-});
-action("CloseAllEditors", () => editor.tabs.map((t) => t.path).forEach(closeTab));
-action("CloseAllEditorsButActive", () =>
-  editor.tabs.filter((t) => t.path !== editor.active).map((t) => t.path).forEach(closeTab),
-);
-action("CloseAllUnmodifiedEditors", () =>
-  editor.tabs.filter((t) => !isDirty(t)).map((t) => t.path).forEach(closeTab),
-);
-
-function cycleTab(delta: number): void {
-  const tabs = editor.tabs;
-  if (!tabs.length) return;
-  const i = tabs.findIndex((t) => t.path === editor.active);
-  void openFile(tabs[(i + delta + tabs.length) % tabs.length].path);
-}
-action("NextTab", () => cycleTab(1));
-action("PreviousTab", () => cycleTab(-1));
+// Close actions work on the active editor group; pinned tabs stay on Close Others/All.
+const inActiveGroup = (fn: (group: number, id: string | null) => void) => () => fn(activeGroupId(), groupActive(activeGroupId()));
+action("CloseContent", inActiveGroup((g, id) => id && closeTabIn(g, id)));
+action("CloseAllEditors", inActiveGroup((g) => closeAllTabsIn(g)));
+action("CloseAllEditorsButActive", inActiveGroup((g, id) => id && closeOtherTabs(g, id)));
+action("CloseAllUnmodifiedEditors", inActiveGroup((g) => closeUnmodifiedTabs(g)));
+action("NextTab", () => cycleTabs(1));
+action("PreviousTab", () => cycleTabs(-1));
 
 async function copy(text: string, what: string): Promise<void> {
   try {

@@ -129,7 +129,7 @@ final class OrderController extends Controller
         $user = $request->user();
         $lines = $order->lines()->with('product')->get();
         $total = $lines->sum(fn ($line) => $line->price * $line->quantity);
-        $discount = $user->isVip() ? 0.1 : 0.0;
+        $discount = $user->isVip() ? 0.1 : 0.0; // TODO: read the VIP rate from config
 
         if ($order->isPayable()) {
             $this->invoices->settle($order);
@@ -185,7 +185,7 @@ final class InvoiceService
         $order->markAsPaid();
         $lines = array_map(fn ($line) => $line->price * $line->quantity, $order->lines);
 
-        Log::info(utf8_encode('Order settled'), ['order' => $order->id]);
+        Log::info(utf8_encode('Order settled'), ['order' => $order->id]); // FIXME: utf8_encode() is deprecated
     }
 }
 `,
@@ -233,9 +233,9 @@ Route::prefix('admin')->name('admin.')->middleware('can:admin')->group(function 
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 });
 `,
-  "resources/views/welcome.blade.php": "<x-layout>\n    <h1>{{ config('app.name') }}</h1>\n</x-layout>\n",
+  "resources/views/welcome.blade.php": "<x-layout>\n    <h1>{{ config('app.name') }}</h1> {{-- TODO: translate the title --}}\n</x-layout>\n",
   "database/migrations/2026_01_01_000000_create_orders_table.php": "<?php\n\nreturn new class extends Migration {\n    public function up(): void\n    {\n        Schema::create('orders', function (Blueprint $table) {\n            $table->id();\n            $table->foreignId('user_id')->constrained();\n            $table->string('status');\n            $table->decimal('total', 10, 2);\n            $table->timestamps();\n        });\n    }\n};\n",
-  "tests/Feature/OrderTest.php": "<?php\n\nnamespace Tests\\Feature;\n\nuse Tests\\TestCase;\n\nclass OrderTest extends TestCase\n{\n    public function test_user_can_view_order(): void\n    {\n        $this->assertTrue(true);\n    }\n}\n",
+  "tests/Feature/OrderTest.php": "<?php\n\nnamespace Tests\\Feature;\n\nuse Tests\\TestCase;\n\nclass OrderTest extends TestCase\n{\n    public function test_user_can_view_order(): void\n    {\n        $this->assertTrue(true); // TODO: open the order page\n    }\n}\n",
   "tests/Unit/UserTest.php": `<?php
 
 namespace Tests\\Unit;

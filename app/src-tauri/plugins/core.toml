@@ -457,6 +457,83 @@ group = "editor.general"
 section = "On Save"
 order = 41
 
+# ---- Editor > General > Editor Tabs ---------------------------------------------------
+
+[[contributions.settings]]
+key = "editor.tabs.limit"
+title = "Tab limit"
+description = "Maximum number of tabs per editor group; 0 keeps every tab open. Pinned tabs are never closed by the limit."
+type = "int"
+min = 0
+max = 100
+default = 10
+group = "editor.tabs"
+section = "Closing Policy"
+order = 0
+
+[[contributions.settings]]
+key = "editor.tabs.closeUnmodifiedFirst"
+title = "When the tab limit is reached, close non-modified tabs first"
+type = "bool"
+default = true
+group = "editor.tabs"
+section = "Closing Policy"
+order = 1
+
+[[contributions.settings]]
+key = "editor.tabs.activateOnClose"
+title = "When the current tab is closed, activate"
+type = "enum"
+options = [
+  { value = "left", label = "The tab on the left" },
+  { value = "right", label = "The tab on the right" },
+  { value = "recent", label = "Most recently opened tab" },
+]
+default = "recent"
+group = "editor.tabs"
+section = "Closing Policy"
+order = 2
+
+[[contributions.settings]]
+key = "editor.tabs.showPinnedIcon"
+title = "Show pin icon on pinned tabs"
+type = "bool"
+default = true
+group = "editor.tabs"
+section = "Appearance"
+order = 10
+
+# ---- Editor > TODO ------------------------------------------------------------------
+
+[[contributions.settings]]
+key = "todo.patterns"
+title = "Patterns"
+description = "Regular expressions matched in comments, one per entry. Add a tab and `case` after a pattern to make it case-sensitive."
+type = "list"
+default = ["\\btodo\\b.*", "\\bfixme\\b.*"]
+group = "editor.todo"
+section = "Patterns"
+order = 0
+
+# ---- Appearance & Behavior > Notifications --------------------------------------------
+
+[[contributions.settings]]
+key = "notifications.balloons"
+title = "Display balloon notifications"
+type = "bool"
+default = true
+group = "notifications"
+order = 0
+
+[[contributions.settings]]
+key = "notifications.groups"
+title = "Notification groups"
+description = "How each group is shown, one entry per group: the group name, a tab, then `balloon`, `sticky` or `log`."
+type = "list"
+default = []
+group = "notifications"
+order = 1
+
 # ---- Editor > Font -------------------------------------------------------------------
 
 [[contributions.settings]]

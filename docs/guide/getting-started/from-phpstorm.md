@@ -63,10 +63,10 @@ happening.
 - Refactorings: Rename (`Shift+F6`), Extract/Introduce, Move, Change Signature, Safe Delete
 - Show Context Actions / quick-fixes (`Alt+Enter`), Quick Documentation popup (`Ctrl+Q`; hover
   documentation works with the mouse), File Structure popup (`Ctrl+F12`)
-- Bookmarks, TODO and Notifications tool windows, Local History
+- Local History
 - Live templates, Surround With, Optimize Imports, Type/Call/Method Hierarchy
 - Go to Test (`Ctrl+Shift+T`)
-- Split editors, Distraction Free / Presentation / Zen modes
+- Distraction Free / Presentation / Zen modes
 - Get from VCS, stash/unstash, Commit and Push
 - Marketplace, settings export/import, automatic updates
 

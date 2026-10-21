@@ -62,6 +62,16 @@ Page id `system`.
 | `system.autosave.idleSeconds` | int (1–600) | `15` | user *(not applied yet)* | Autosave | Idle time (seconds) |
 | `system.syncExternalChanges` | bool | `true` | user *(not applied yet)* | Synchronization | Synchronize external changes when switching to the IDE window |
 
+### Appearance & Behavior | Notifications
+
+Page id `notifications`. The display mode of a group is also set from the context menu of a
+notification in the Notifications tool window.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `notifications.balloons` | bool | `true` | user |  | Display balloon notifications — Off: notifications only appear in the Notifications tool window. |
+| `notifications.groups` | list | `[]` | user |  | Notification groups — How each group is shown, one entry per group: the group name, a tab, then `balloon`, `sticky` or `log`. |
+
 ### Appearance & Behavior | System Settings | Updates
 
 Page id `system.updates`. The page also shows whether this build can update, the current
@@ -102,6 +112,17 @@ Page id `editor.general`.
 | `editor.ensureNewlineAtEof` | bool | `true` | user *(not applied yet)* | On Save | Ensure every saved file ends with a line break |
 | `run.console.softWrap` | bool | `false` | user | Console | Use soft wraps in console |
 | `run.console.cycleBufferKb` | int (100–100000) | `1024` | user *(not applied yet)* | Console | Override console cycle buffer size (KB) |
+
+### Editor | General | Editor Tabs
+
+Page id `editor.tabs`.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `editor.tabs.limit` | int (0–100) | `10` | user | Closing Policy | Tab limit — Maximum number of tabs per editor group; 0 keeps every tab open. Pinned tabs are never closed by the limit. |
+| `editor.tabs.closeUnmodifiedFirst` | bool | `true` | user | Closing Policy | When the tab limit is reached, close non-modified tabs first |
+| `editor.tabs.activateOnClose` | enum: `left`, `right`, `recent` | `recent` | user | Closing Policy | When the current tab is closed, activate |
+| `editor.tabs.showPinnedIcon` | bool | `true` | user | Appearance | Show pin icon on pinned tabs |
 
 ### Editor | Font
 
@@ -155,6 +176,14 @@ Page id `editor.inlay-hints`.
 | `editor.inlayHints.chainedCalls` | bool | `true` | user *(not applied yet)* | Types | Types in method chains |
 | `editor.inlayHints.usages` | bool | `true` | user *(not applied yet)* | Code Vision | Usages — Show the number of usages above classes and methods (Code Vision). |
 | `editor.inlayHints.implementations` | bool | `true` | user *(not applied yet)* | Code Vision | Implementations and inheritors |
+
+### Editor | TODO
+
+Page id `editor.todo`.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `todo.patterns` | list | `["\\btodo\\b.*", "\\bfixme\\b.*"]` | user | Patterns | Patterns — Regular expressions matched in comments, one per entry. Add a tab and `case` after a pattern to make it case-sensitive. |
 
 ### Version Control | Git
 

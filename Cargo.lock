@@ -1805,6 +1805,7 @@ dependencies = [
  "forge-agent-cli",
  "forge-ai",
  "forge-backend",
+ "forge-bookmarks",
  "forge-containers",
  "forge-core",
  "forge-db",
@@ -1873,6 +1874,14 @@ dependencies = [
  "tempfile",
  "tokio",
  "tracing",
+]
+
+[[package]]
+name = "forge-bookmarks"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -2221,6 +2230,7 @@ name = "forge-wasm"
 version = "0.1.0"
 dependencies = [
  "forge-agent-cli",
+ "forge-bookmarks",
  "forge-codeintel",
  "forge-containers",
  "forge-filetypes",

@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
 
-use forge_core::search::{FindRequest, FindResult};
+use forge_core::search::{FindRequest, FindResult, TodoRequest, TodoResult};
 use forge_core::{FileEntry, FileMatch, FsChanges, ProjectWatcher, Result, Workspace};
 use forge_lsp::{LocalLauncher, ServerLauncher};
 use forge_process::{CommandLine, PtyOptions, PtySession, PtySink, RunSink, RunningProcess};
@@ -168,6 +168,10 @@ impl Backend for LocalBackend {
 
     fn find_in_files(&self, req: &FindRequest) -> Result<FindResult> {
         self.workspace.find_in_files(req)
+    }
+
+    fn find_todos(&self, req: &TodoRequest) -> Result<TodoResult> {
+        self.workspace.find_todos(req)
     }
 
     fn git(&self) -> Arc<dyn GitExec> {

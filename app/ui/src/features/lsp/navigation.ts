@@ -6,6 +6,7 @@ import { ViewPlugin, EditorView } from "@codemirror/view";
 import { activeTab, openFile } from "@/state/editor";
 import type { LspPosition } from "@/ipc/lsp";
 import { fromLsp } from "./util";
+import { viewFor as sharedViewFor } from "@/editor/views";
 
 const views = new Map<string, EditorView>();
 
@@ -20,12 +21,12 @@ export function trackView(path: string) {
   });
 }
 
-export const viewFor = (path: string) => views.get(path);
+export const viewFor = (path: string) => sharedViewFor(path);
 
 /** The editor view of the active tab. */
 export function activeView(): { path: string; view: EditorView } | undefined {
   const path = activeTab()?.path;
-  const view = path ? views.get(path) : undefined;
+  const view = path ? sharedViewFor(path) : undefined;
   return path && view ? { path, view } : undefined;
 }
 
@@ -35,7 +36,7 @@ const nextFrame = () => new Promise<void>((r) => requestAnimationFrame(() => r()
 export async function revealLocation(path: string, pos: LspPosition, end?: LspPosition): Promise<boolean> {
   await openFile(path);
   for (let i = 0; i < 60; i++) {
-    const view = views.get(path);
+    const view = sharedViewFor(path);
     if (view && view.dom.isConnected && view.dom.offsetParent !== null) {
       const anchor = fromLsp(view.state.doc, pos);
       const head = end ? fromLsp(view.state.doc, end) : anchor;

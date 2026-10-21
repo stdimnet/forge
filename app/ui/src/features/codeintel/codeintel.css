@@ -263,3 +263,9 @@
 .cm-line-marker.marker-super {
   cursor: pointer;
 }
+.find-usage.selected {
+  background: var(--bg-selection);
+}
+.find-tool:disabled {
+  opacity: 0.5;
+}

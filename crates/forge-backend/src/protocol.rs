@@ -16,7 +16,7 @@
 
 use std::path::PathBuf;
 
-use forge_core::search::FindRequest;
+use forge_core::search::{FindRequest, TodoRequest};
 use forge_core::{FsChanges, Result};
 use forge_process::{CommandLine, PtyEvent, RunEvent};
 use forge_vcs::GitRequest;
@@ -32,7 +32,7 @@ use crate::langservers::LangServersRequest;
 use crate::TerminalSpec;
 
 /// Bumped on incompatible protocol changes; client and agent must agree.
-pub const PROTOCOL_VERSION: u32 = 3;
+pub const PROTOCOL_VERSION: u32 = 4;
 
 /// Frames larger than this are refused (protects both sides from garbage input).
 pub const MAX_FRAME: usize = 64 * 1024 * 1024;
@@ -118,6 +118,8 @@ pub enum Call {
     },
     /// Find in Files -> `FindResult`
     FindInFiles(FindRequest),
+    /// TODO tool window -> `TodoResult` (protocol 4)
+    FindTodos(TodoRequest),
     /// Run git on the agent's machine -> `GitOutput`
     Git(GitRequest),
     /// -> `ProjectInfo`

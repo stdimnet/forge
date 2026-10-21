@@ -1,6 +1,6 @@
 /** Renders navigation popups (Search Everywhere, Recent Files) and balloons. */
-import { For, Show } from "solid-js";
-import { Info, X } from "lucide-solid";
+import { For, Match, Show, Switch } from "solid-js";
+import { CircleAlert, Info, TriangleAlert, X } from "lucide-solid";
 import { balloons, dismissBalloon } from "@/keymap";
 import { ContextMenuHost } from "@/features/contextMenu/ContextMenu";
 import { DialogHost } from "@/features/contextMenu/dialogs";
@@ -27,8 +27,15 @@ export function PopupHost() {
       <div class="balloons">
         <For each={balloons()}>
           {(b) => (
-            <div class="balloon" classList={{ interactive: !!b.actions?.length }} role="status">
-              <Info size={15} class="balloon-icon" />
+            <div class="balloon" classList={{ interactive: !!b.actions?.length || b.sticky }} role="status">
+              <Switch fallback={<Info size={15} class="balloon-icon" />}>
+                <Match when={b.type === "warning"}>
+                  <TriangleAlert size={15} class="balloon-icon warning" />
+                </Match>
+                <Match when={b.type === "error"}>
+                  <CircleAlert size={15} class="balloon-icon error" />
+                </Match>
+              </Switch>
               <div class="balloon-body">
                 <div class="balloon-text">{b.text}</div>
                 <Show when={b.detail}>
@@ -52,7 +59,7 @@ export function PopupHost() {
                   </div>
                 </Show>
               </div>
-              <Show when={b.actions?.length}>
+              <Show when={b.actions?.length || b.sticky}>
                 <button class="balloon-close" title="Close" onClick={() => dismissBalloon(b.id)}>
                   <X size={13} />
                 </button>

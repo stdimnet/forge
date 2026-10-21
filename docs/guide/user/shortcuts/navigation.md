@@ -31,6 +31,22 @@ Jumping to declarations, implementations, super methods, lines, problems, recent
 | [Close Other Tabs](#close-other-tabs) | — | `Cmd+Alt+W` |
 | [Close Unmodified Tabs](#close-unmodified-tabs) | — | — |
 | [Reopen Closed Tab](#reopen-closed-tab) | — | — |
+| [Recent Locations](#recent-locations) | `Ctrl+Shift+E` | `Cmd+Shift+E` |
+| [Next Occurrence](#next-occurrence) | `Ctrl+Alt+Down` | `Cmd+Alt+Down` |
+| [Previous Occurrence](#previous-occurrence) | `Ctrl+Alt+Up` | `Cmd+Alt+Up` |
+| [Toggle Bookmark](#toggle-bookmark) | `F11` | `F3` |
+| [Toggle Bookmark with Mnemonic](#toggle-bookmark-with-mnemonic) | `Ctrl+F11` | `Alt+F3` |
+| [Toggle Bookmark 0-9](#toggle-bookmark-0-9) | `Ctrl+Shift+0` … `Ctrl+Shift+9` | `Ctrl+Shift+0` … `Ctrl+Shift+9` |
+| [Go to Bookmark 0-9](#go-to-bookmark-0-9) | `Ctrl+0` … `Ctrl+9` | `Ctrl+0` … `Ctrl+9` |
+| [Show All Bookmarks](#show-all-bookmarks) | `Shift+F11` | `Cmd+F3` |
+| [Pin Tab](#pin-tab) | — | — |
+| [Split Right](#split-right) | — | — |
+| [Split Down](#split-down) | — | — |
+| [Move to Opposite Group](#move-to-opposite-group) | — | — |
+| [Unsplit](#unsplit) | — | — |
+| [Goto Next Splitter](#goto-next-splitter) | — | `Alt+Tab` |
+| [Close Tabs to the Left](#close-tabs-to-the-left) | — | — |
+| [Close Tabs to the Right](#close-tabs-to-the-right) | — | — |
 
 ## Go to Declaration or Usages
 
@@ -235,3 +251,171 @@ Reopens the editor tab closed last.
 **Menu:** Window | Editor Tabs | Reopen Closed Tab
 
 More: [Workbench and tool windows](../../user/workbench.md#editor-tabs)
+
+## Recent Locations
+
+**Shortcut:** `Ctrl+Shift+E` · macOS `Cmd+Shift+E` · action id `RecentLocations`
+
+Lists recently visited and edited places with a few lines of code each; press again for changed places only.
+
+**Menu:** View | Recent Locations
+
+![Recent Locations](../../../screenshots/recent-locations.png)
+
+More: [Workbench and tool windows](../../user/workbench.md#recent-locations)
+
+## Next Occurrence
+
+**Shortcut:** `Ctrl+Alt+Down` · macOS `Cmd+Alt+Down` · action id `NextOccurence`
+
+Opens the next result of the active tab of the Find tool window (usages or Find in Files results).
+
+**Menu:** Navigate | Next Occurrence
+
+More: [Workbench and tool windows](../../user/workbench.md#find-tool-window)
+
+## Previous Occurrence
+
+**Shortcut:** `Ctrl+Alt+Up` · macOS `Cmd+Alt+Up` · action id `PreviousOccurence`
+
+Opens the previous result of the active tab of the Find tool window.
+
+**Menu:** Navigate | Previous Occurrence
+
+More: [Workbench and tool windows](../../user/workbench.md#find-tool-window)
+
+## Toggle Bookmark
+
+**Shortcut:** `F11` · macOS `F3` · action id `ToggleBookmark`
+
+Adds or removes a bookmark on the caret line.
+
+**Menu:** Navigate | Bookmarks | Toggle Bookmark
+
+More: [Workbench and tool windows](../../user/workbench.md#bookmarks)
+
+## Toggle Bookmark with Mnemonic
+
+**Shortcut:** `Ctrl+F11` · macOS `Alt+F3` · action id `ToggleBookmarkWithMnemonic`
+
+Adds a bookmark with a digit or letter picked in a popup, or changes or removes it.
+
+**Menu:** Navigate | Bookmarks | Toggle Bookmark with Mnemonic
+
+![Toggle Bookmark with Mnemonic](../../../screenshots/bookmark-mnemonic.png)
+
+More: [Workbench and tool windows](../../user/workbench.md#bookmarks)
+
+## Toggle Bookmark 0-9
+
+**Shortcut:** `Ctrl+Shift+0` … `Ctrl+Shift+9` · macOS `Ctrl+Shift+0` … `Ctrl+Shift+9` · action id `ToggleBookmark0`
+
+Sets the numbered bookmark on the caret line (action ids `ToggleBookmark0` … `ToggleBookmark9`).
+
+More: [Workbench and tool windows](../../user/workbench.md#bookmarks)
+
+## Go to Bookmark 0-9
+
+**Shortcut:** `Ctrl+0` … `Ctrl+9` · macOS `Ctrl+0` … `Ctrl+9` · action id `GotoBookmark0`
+
+Jumps to the numbered bookmark (action ids `GotoBookmark0` … `GotoBookmark9`).
+
+More: [Workbench and tool windows](../../user/workbench.md#bookmarks)
+
+## Show All Bookmarks
+
+**Shortcut:** `Shift+F11` · macOS `Cmd+F3` · action id `ShowBookmarks`
+
+Opens the Bookmarks tool window.
+
+**Menu:** Navigate | Bookmarks | Show All Bookmarks
+
+![Show All Bookmarks](../../../screenshots/bookmarks.png)
+
+More: [Workbench and tool windows](../../user/workbench.md#bookmarks)
+
+## Pin Tab
+
+**Shortcut:** — · macOS — · action id `PinActiveEditorTab`
+
+Pins or unpins the current tab; pinned tabs stay on Close Other Tabs and Close All Tabs.
+
+**Menu:** Window | Editor Tabs | Pin Tab
+
+![Pin Tab](../../../screenshots/pinned-tabs.png)
+
+More: [Workbench and tool windows](../../user/workbench.md#pinned-tabs)
+
+## Split Right
+
+**Shortcut:** — · macOS — · action id `SplitVertically`
+
+Opens the current file in a new editor group on the right; both groups edit the same document.
+
+**Menu:** Window | Editor Tabs | Split Right
+
+![Split Right](../../../screenshots/split-editors.png)
+
+More: [Workbench and tool windows](../../user/workbench.md#split-editors)
+
+## Split Down
+
+**Shortcut:** — · macOS — · action id `SplitHorizontally`
+
+Opens the current file in a new editor group below.
+
+**Menu:** Window | Editor Tabs | Split Down
+
+More: [Workbench and tool windows](../../user/workbench.md#split-editors)
+
+## Move to Opposite Group
+
+**Shortcut:** — · macOS — · action id `MoveEditorToOppositeTabGroup`
+
+Moves the current tab to the neighbouring editor group.
+
+**Menu:** Window | Editor Tabs | Move to Opposite Group
+
+More: [Workbench and tool windows](../../user/workbench.md#split-editors)
+
+## Unsplit
+
+**Shortcut:** — · macOS — · action id `Unsplit`
+
+Merges the current editor group into its neighbour (Unsplit All merges every group).
+
+**Menu:** Window | Editor Tabs | Unsplit
+
+More: [Workbench and tool windows](../../user/workbench.md#split-editors)
+
+## Goto Next Splitter
+
+**Shortcut:** — · macOS `Alt+Tab` · action id `NextSplitter`
+
+Moves the focus to the next editor group.
+
+**Menu:** Window | Editor Tabs | Goto Next Splitter
+
+More: [Workbench and tool windows](../../user/workbench.md#split-editors)
+
+## Close Tabs to the Left
+
+**Shortcut:** — · macOS — · action id `CloseAllToTheLeft`
+
+Closes the unpinned tabs left of the current one.
+
+**Menu:** Window | Editor Tabs | Close Tabs to the Left
+
+More: [Workbench and tool windows](../../user/workbench.md#tab-context-menu)
+
+## Close Tabs to the Right
+
+**Shortcut:** — · macOS — · action id `CloseAllToTheRight`
+
+Closes the unpinned tabs right of the current one.
+
+**Menu:** Window | Editor Tabs | Close Tabs to the Right
+
+![Close Tabs to the Right](../../../screenshots/editor-tab-menu.png)
+
+More: [Workbench and tool windows](../../user/workbench.md#tab-context-menu)

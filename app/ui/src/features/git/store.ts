@@ -8,6 +8,7 @@ import { listen } from "@/ipc";
 import { setCurrentBranch, setFileStatuses, type FileStatus } from "@/state/vcs";
 import { editor } from "@/state/editor";
 import { onFsChanged } from "@/state/fsWatch";
+import { logNotification, modeOf, registerNotificationGroup } from "@/state/notifications";
 import { workspaceApi } from "@/ipc/workspace";
 import { gitApi, displayStatus, GIT_CHANGED_EVENT, type RepoStatus } from "./api";
 
@@ -70,10 +71,17 @@ const [notices, setNotices] = createSignal<Notice[]>([]);
 export { notices };
 let noticeId = 0;
 
+/** Notification group of git balloons (Settings | Appearance & Behavior | Notifications). */
+export const VCS_GROUP = "Version Control";
+registerNotificationGroup(VCS_GROUP);
+
 export function notify(kind: Notice["kind"], title: string, body?: string, timeout = 6000): void {
+  logNotification({ group: VCS_GROUP, type: kind === "error" ? "error" : "info", title, content: body });
+  const mode = modeOf(VCS_GROUP);
+  if (mode === "log") return;
   const id = ++noticeId;
   setNotices((n) => [...n, { id, kind, title, body }]);
-  if (timeout > 0) setTimeout(() => dismissNotice(id), timeout);
+  if (timeout > 0 && mode !== "sticky") setTimeout(() => dismissNotice(id), timeout);
 }
 
 export const dismissNotice = (id: number) => setNotices((n) => n.filter((x) => x.id !== id));

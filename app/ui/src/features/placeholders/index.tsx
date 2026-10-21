@@ -2,7 +2,7 @@
  * Tool windows whose features are not implemented yet. Each real feature module replaces
  * its placeholder by registering a tool window with the same id.
  */
-import { Bell, Bug, Database, GitCommitHorizontal, GitPullRequest, Layers, ListTree, Play, Sparkles, SquareTerminal, TriangleAlert, Container } from "lucide-solid";
+import { Bug, Database, GitCommitHorizontal, GitPullRequest, Layers, ListTree, Play, Sparkles, SquareTerminal, TriangleAlert, Container } from "lucide-solid";
 import { registerToolWindow, type ToolWindow } from "@/features/registry";
 
 const placeholder = (text: string) => () => <div class="placeholder-panel">{text}</div>;
@@ -19,7 +19,6 @@ const items: Omit<ToolWindow, "component">[] = [
   { id: "git", title: "Git", icon: Layers, anchor: "bottom", order: 60, shortcut: "Alt+9" },
   { id: "ai-chat", title: "AI Chat", icon: Sparkles, anchor: "right", order: 0 },
   { id: "database", title: "Database", icon: Database, anchor: "right", order: 10 },
-  { id: "notifications", title: "Notifications", icon: Bell, anchor: "right", order: 20 },
 ];
 
 for (const item of items) registerToolWindow({ ...item, component: placeholder(`${item.title} is coming soon.`) });

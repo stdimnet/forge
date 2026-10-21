@@ -23,7 +23,7 @@ pub mod tunnels;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use forge_core::search::{FindRequest, FindResult};
+use forge_core::search::{FindRequest, FindResult, TodoRequest, TodoResult};
 use forge_core::{FileEntry, FileMatch, FsChanges, ProjectFiles, Result};
 use forge_lsp::ServerLauncher;
 use forge_process::{CommandLine, PtySink, RunSink};
@@ -161,6 +161,8 @@ pub trait Backend: Send + Sync {
     fn find_files(&self, query: &str, limit: usize) -> Result<Vec<FileMatch>>;
     /// Find in Files: text search over the project honoring `.gitignore`.
     fn find_in_files(&self, req: &FindRequest) -> Result<FindResult>;
+    /// TODO tool window: TODO patterns in comments, honoring `.gitignore`.
+    fn find_todos(&self, req: &TodoRequest) -> Result<TodoResult>;
 
     /// Where git runs for this project.
     fn git(&self) -> Arc<dyn GitExec>;
