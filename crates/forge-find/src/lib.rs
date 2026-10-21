@@ -372,7 +372,8 @@ fn line_match(line_no: usize, line: &str, found: &[(usize, usize)]) -> LineMatch
     let mut end = line.trim_end().len().max(start);
     // Long lines: keep some context before the first match.
     if line[start..end].chars().count() > PREVIEW_CHARS {
-        let before: Vec<(usize, char)> = line[start..first_start].char_indices().collect();
+        let before: Vec<(usize, char)> =
+            line[start..first_start.max(start)].char_indices().collect();
         if before.len() > 40 {
             start += before[before.len() - 40].0;
         }
@@ -586,6 +587,18 @@ mod tests {
         assert_eq!(find_in(&q, [("e.txt", "a\r\nb")]).match_count, 0);
         assert!(is_binary(b"ab\0c"));
         assert!(!is_binary(b"abc"));
+    }
+
+    #[test]
+    fn a_match_inside_the_indent_of_a_long_line_does_not_panic() {
+        let line = format!("    {}", "word ".repeat(80));
+        let mut request = req(".*");
+        request.regex = true;
+        let finder = Finder::new(&request).unwrap();
+        let (rows, count, _) = finder.search(&line, 10);
+        assert_eq!((rows.len(), count), (1, 1));
+        let (rows, count, _) = lines_from_ranges(&line, &[(0, line.len())], 10);
+        assert_eq!((rows.len(), count), (1, 1));
     }
 
     #[test]
