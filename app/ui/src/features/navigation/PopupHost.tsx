@@ -8,7 +8,7 @@ import { SearchEverywhere } from "@/features/search/SearchEverywhere";
 import { seOpen } from "@/features/search/state";
 import { RecentFilesPopup, recentOpen } from "./RecentFiles";
 import { ChooseDeclarationPopup } from "./ChooseDeclaration";
-import { chooser } from "./chooseDeclaration";
+import { chooser } from "./declarationChooser";
 
 export function PopupHost() {
   return (

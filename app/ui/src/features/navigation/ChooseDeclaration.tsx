@@ -1,7 +1,7 @@
 /** The "Choose Declaration" list (state and API in `chooseDeclaration.ts`). */
 import { createSignal, For, onCleanup, onMount, Show, type JSX } from "solid-js";
 import { FileIcon } from "@/shell/FileIcon";
-import { closeChooser, type Chooser, type DeclarationTarget } from "./chooseDeclaration";
+import { closeChooser, type Chooser, type DeclarationTarget } from "./declarationChooser";
 
 const fileName = (path: string) => path.split("/").pop() ?? path;
 const dirName = (path: string) => path.split("/").slice(0, -1).join("/");

@@ -14,7 +14,7 @@ import { doctrineApi, type DqlHighlight, type DqlItem, type DqlItemKind, type Dq
 import { registerEditorExtension } from "@/editor/extensions";
 import { registerLineMarkerProvider } from "@/editor/lineMarkers";
 import { registerDeclarationProvider } from "@/features/lsp/goto";
-import { chooseDeclarationAt } from "@/features/navigation/chooseDeclaration";
+import { chooseDeclarationAt } from "@/features/navigation/declarationChooser";
 import { revealSymbol } from "@/features/php/editorViews";
 import { getSetting } from "@/state/settings";
 import { doctrineActive } from "./store";

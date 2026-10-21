@@ -12,7 +12,7 @@ import { symfonyApi, type SymfonyCompletionItem, type SymfonyCompletionKind } fr
 import { registerEditorExtension } from "@/editor/extensions";
 import { registerLineMarkerProvider, type LineMarker } from "@/editor/lineMarkers";
 import { registerDeclarationProvider } from "@/features/lsp/goto";
-import { chooseDeclarationAt } from "@/features/navigation/chooseDeclaration";
+import { chooseDeclarationAt } from "@/features/navigation/declarationChooser";
 import { revealSymbol } from "@/features/php/editorViews";
 import { getSetting } from "@/state/settings";
 import { runConsoleCommand, setActiveTab } from "./console";

@@ -9,7 +9,7 @@ import { EditorView, keymap } from "@codemirror/view";
 import { laravelApi } from "@/ipc/laravel";
 import { gotoDeclaration } from "@/features/lsp/goto";
 import { activeView } from "@/features/lsp/navigation";
-import { chooseDeclarationAt } from "@/features/navigation/chooseDeclaration";
+import { chooseDeclarationAt } from "@/features/navigation/declarationChooser";
 import { commands, registerCommand } from "@/state/commands";
 import { laravelActive, reveal } from "./state";
 import { isBlade } from "./completion";

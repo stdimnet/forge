@@ -5,7 +5,7 @@
 import { StateEffect, StateField, type Extension } from "@codemirror/state";
 import { Decoration, EditorView, keymap, showTooltip, type DecorationSet, type Tooltip } from "@codemirror/view";
 import { lspApi } from "@/ipc/lsp";
-import { chooseDeclarationAt } from "@/features/navigation/chooseDeclaration";
+import { chooseDeclarationAt } from "@/features/navigation/declarationChooser";
 import { revealLocation } from "./navigation";
 import { syncNow } from "./sync";
 import { h, toLsp } from "./util";
