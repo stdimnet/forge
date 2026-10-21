@@ -166,6 +166,22 @@ fn commit_selected_paths_and_amend() {
 }
 
 #[test]
+fn signs_off_commits_and_reads_config() {
+    let tmp = fixture();
+    let d = tmp.path();
+    write(d, "a.php", "signed\n");
+    let repo = Repo::open(d).unwrap();
+    let sha = repo
+        .commit_with("Sign this", false, Some(&["a.php".into()]), true)
+        .unwrap();
+    let message = repo.commit_details(&sha).unwrap().message;
+    assert!(message.contains("Signed-off-by: "), "{message}");
+    assert_eq!(repo.config_value("core.autocrlf"), None);
+    sh(d, &["config", "core.autocrlf", "true"]);
+    assert_eq!(repo.config_value("core.autocrlf").as_deref(), Some("true"));
+}
+
+#[test]
 fn branches_checkout_merge_and_log_graph() {
     let tmp = fixture();
     let d = tmp.path();
@@ -252,7 +268,7 @@ fn push_pull_fetch_against_local_remote() {
     assert_eq!(repo.status().unwrap().ahead, 1);
     repo.push(false).unwrap();
     repo.fetch().unwrap();
-    repo.pull(false).unwrap();
+    repo.pull(Some(false)).unwrap();
     let st = repo.status().unwrap();
     assert_eq!((st.ahead, st.behind), (0, 0));
     assert!(repo

@@ -244,3 +244,33 @@ mod tests {
         assert_eq!(p["fileCount"], 2);
     }
 }
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct InlayInput {
+    hints: Vec<forge_codeintel::inlay::RawInlayHint>,
+    text: String,
+    #[serde(default)]
+    language_id: Option<String>,
+    /// Effective setting values by key.
+    settings: HashMap<String, serde_json::Value>,
+}
+
+/// `{ hints, text, languageId?, settings }` → the hints to draw (like `lsp_inlay_hints`).
+#[wasm_bindgen]
+pub fn codeintel_inlay_hints(request_json: &str) -> String {
+    match parse::<InlayInput>(request_json) {
+        Ok(input) => {
+            let filter = forge_codeintel::inlay::InlayFilter::from_settings(
+                input.language_id.as_deref(),
+                |k| input.settings.get(k).and_then(serde_json::Value::as_bool),
+            );
+            to_json(&forge_codeintel::inlay::editor_hints(
+                input.hints,
+                &input.text,
+                &filter,
+            ))
+        }
+        Err(e) => to_json(&json!({ "error": e })),
+    }
+}

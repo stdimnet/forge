@@ -115,6 +115,7 @@
 .stripe-btn {
   width: 30px;
   height: 30px;
+  position: relative;
 }
 .stripe-btn.active {
   color: var(--accent);

@@ -16,6 +16,8 @@ import { toggleToolWindow } from "@/state/layout";
 import { workspace } from "@/state/workspace";
 import { isPluginActive } from "@/state/project";
 import { lspClaimsHover } from "@/features/lsp/hover";
+import { registerFormatPostProcessor, replaceChangedPart } from "@/features/lsp/format";
+import { phpApi } from "./api";
 import { activeView, viewFor, viewTracker } from "./editorViews";
 import { GenerateOverlay, openGeneratePopup, startGenerate } from "./GenerateOverlay";
 import { indexHover, setOtherHoverProvider } from "./indexHover";
@@ -105,3 +107,12 @@ if (typeof document !== "undefined") {
     );
   });
 }
+
+// Reformat Code: after the language server, the blank lines of Settings | Editor | Code
+// Style | PHP (computed in Rust on the buffer).
+registerFormatPostProcessor(async (path, view) => {
+  if (!/\.(php|phtml|inc)$/i.test(path) || path.endsWith(".blade.php") || !isPluginActive("forge.php")) return;
+  const text = view.state.doc.toString();
+  const tidy = await phpApi.tidyBlankLines(text);
+  if (tidy !== null && view.state.doc.toString() === text) replaceChangedPart(view, tidy);
+});

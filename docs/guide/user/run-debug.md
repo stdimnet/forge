@@ -89,7 +89,9 @@ The **Run** tool window (`Alt+4`) has one tab per run. Tabs can be pinned and cl
 - Stop sends SIGTERM to the process group, then SIGKILL after 2 seconds (`taskkill /T` on
   Windows).
 
-Settings | Editor | General | Console: **Use soft wraps in console** (`run.console.softWrap`).
+Settings | Editor | General | Console: **Use soft wraps in console** (`run.console.softWrap`)
+and **Override console cycle buffer size (KB)** (`run.console.cycleBufferKb`, 1024): a console
+keeps the newest output up to that size and drops the oldest lines.
 
 ## Test results
 

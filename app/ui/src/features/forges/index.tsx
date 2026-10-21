@@ -14,6 +14,7 @@ import { registerCommand } from "@/state/commands";
 import { showToolWindow } from "@/state/layout";
 import { MergeRequestsPanel, PanelActions } from "./MergeRequestsPanel";
 import { AccountsPage } from "./AccountsPage";
+import { SchemaPage } from "@/features/settings/SchemaPage";
 import { ForgeDialogs } from "./Dialogs";
 import { openCreateDialog } from "./actions";
 import { branchPipeline, context, refreshAll, requestName, startForgesStore } from "./store";
@@ -37,12 +38,23 @@ const pages = [
   { id: "vcs.forgejo", title: "Forgejo / Gitea", kind: "forgejo", keywords: ["codeberg", "pull request", "token"] },
   { id: "vcs.github", title: "GitHub", kind: "github", keywords: ["pull request", "token", "enterprise"] },
 ] as const;
+// Version Control | Code Hosts: refresh interval and the status bar pipeline; the accounts
+// of each host are pages below it.
+registerSettingsPage({
+  id: "vcs.hosts",
+  title: "Code Hosts",
+  group: "Version Control",
+  order: 10,
+  keywords: ["pipeline", "ci", "merge request", "pull request", "refresh", "gitlab", "github", "forgejo"],
+  component: () => <SchemaPage pageId="vcs.hosts" />,
+});
 pages.forEach((p, i) =>
   registerSettingsPage({
     id: p.id,
     title: p.title,
     group: "Version Control",
-    order: 10 + i,
+    parent: "vcs.hosts",
+    order: i,
     keywords: [...p.keywords, "account", "log in"],
     component: () => <AccountsPage kind={p.kind} />,
   }),

@@ -95,8 +95,7 @@ Actions runs) with their status and jobs.
 ## CI status in the status bar
 
 The status bar shows the CI status of the current branch ("CI: Running", "Passed", "Failed").
-Settings (not shown in the Settings dialog; set them in `settings.toml`, see
-[Settings and themes](settings-and-themes.md#settings-files)):
+Settings | Version Control | **Code Hosts** (the account pages are below it):
 
 | Setting | Default | Meaning |
 | --- | --- | --- |

@@ -43,6 +43,7 @@ order = 1
 [[contributions.settings]]
 key = "terminal.audibleBell"
 title = "Audible bell"
+description = "Play a short tone when a program rings the terminal bell."
 type = "bool"
 default = false
 group = "tools.terminal"
@@ -61,7 +62,7 @@ order = 3
 [[contributions.settings]]
 key = "terminal.shellIntegration"
 title = "Shell integration"
-description = "Track the working directory and command boundaries of supported shells."
+description = "bash and zsh report their working directory (shown in the tab tooltip) and command boundaries (green and red marks in the scrollbar for succeeded and failed commands). Applies to new sessions."
 type = "bool"
 default = true
 group = "tools.terminal"

@@ -1832,6 +1832,7 @@ dependencies = [
  "forge-project",
  "forge-remote",
  "forge-scratches",
+ "forge-text",
  "forge-update",
  "forge-vcs",
  "forge-window",
@@ -2255,6 +2256,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "forge-text"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "forge-update"
 version = "0.1.0"
 dependencies = [
@@ -2296,6 +2305,7 @@ dependencies = [
  "forge-scratches",
  "forge-search-core",
  "forge-sql",
+ "forge-text",
  "forge-window",
  "luaforge-lang-lua",
  "phpforge-dql",

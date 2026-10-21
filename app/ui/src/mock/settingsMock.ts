@@ -53,6 +53,9 @@ function resolve(key: string): { value: SettingValue | null; scope: "default" | 
 /** Effective value of a setting (for other mocks). */
 export const mockSettingValue = (key: string): SettingValue | null => resolve(key).value;
 
+/** Every effective setting value (for mocks that pass the settings to Rust). */
+export const mockSettingValues = (): Record<string, SettingValue> => ({ ...defaults, ...layers.user, ...layers.project });
+
 /** Whether the user layer stores `key`. */
 export const hasUserSetting = (key: string): boolean => key in layers.user;
 

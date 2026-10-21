@@ -95,6 +95,8 @@ export interface MenuOptions {
   keepOpenOn?: string;
   /** Extra class of the top-level menu. */
   class?: string;
+  /** `y` is the bottom edge: the menu opens upwards (status bar popups). */
+  above?: boolean;
 }
 
 export interface OpenMenu extends MenuOptions {

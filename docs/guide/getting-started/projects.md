@@ -20,9 +20,8 @@ configurations, breakpoints, data sources); see [File locations](../reference/fi
   project name) runs **Open…** as well.
 
 Opening a project replaces the current one in the same window and closes its editor tabs.
-
-> **Note:** the setting "Open project in" (`system.openProjectIn`: new window, same window or
-> ask) is not applied yet; projects always open in the current window.
+Each project's tool window layout and editor tabs come back when you open it again, see
+[Layout per project](../user/workbench.md#layout-per-project).
 
 Remote projects (folders on a Linux server reached over SSH) open from Welcome |
 **Remote Development**, see [Remote development](../user/remote-development.md).

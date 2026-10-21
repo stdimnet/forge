@@ -119,11 +119,21 @@ framework. The Find tool window appears once a search put results into it.
 between a tool window and the editor to resize it.
 
 The stripes can be hidden with Settings | Appearance & Behavior | Appearance | **Show tool
-window bars**. **Compact mode** on the same page makes toolbars and tool window headers
-smaller.
+window bars**; **Show tool window numbers** puts the `Alt+<n>` digit on their buttons.
+**Compact mode** on the same page makes toolbars and tool window headers smaller, **Smooth
+scrolling** animates scrolling in lists and trees.
 
-> **Note:** tool window sizes and which tool windows are open are not remembered between
-> sessions yet. "Restore Default Layout" and "Maximize Tool Window" are not available yet.
+### Layout per project
+
+![Restored layout](../../screenshots/layout-restored.png)
+
+Forge remembers the layout of each project and restores it when the project opens again: which
+tool window is open on each side, their sizes, the selected tab of tool windows with tabs
+(Problems, Pull Requests) and the open editor tabs with the active one. It is kept in Forge's
+state directory (`~/.local/state/forge/layouts` on Linux, see
+[File locations](../reference/file-locations.md)), never in the project.
+
+> **Note:** "Restore Default Layout" and "Maximize Tool Window" are not available yet.
 
 ## Project view
 
@@ -355,9 +365,6 @@ Left: the project name and the path of the current file. Right, depending on the
 | PHP version | the PHP language level, e.g. "PHP 8.3" | PHP settings |
 | CI status | pipeline status of the current branch | [Code hosts](code-hosts.md) |
 | Caret | `line:column` | — |
-| `LF`, `UTF-8`, `4 spaces` | line separator, encoding and indentation | — |
+| `LF`, `UTF-8`, `4 spaces` | line separator, encoding and indentation of the file | change the separator, reload or convert the encoding, configure indents, see [Editor](editor.md#line-separator-encoding-and-indent) |
 | File type | e.g. "PHP", "Blade", "TypeScript" | — |
 | Branch | the current Git branch | — |
-
-> **Note:** the line separator, encoding and indentation widgets are labels only; they
-> cannot be changed from the status bar yet.

@@ -390,7 +390,9 @@ app/ui/            SolidJS UI
   navigation calls `Usages`, `Navigate`, `Definition`, `LineMarkers` and `Intentions`;
   protocol 4 added `FindTodos`, `CollectFiles`, `Web`, `LangServerInstall` and
   `LangServerUpdates`; protocol 5 added `FindStart`, `FindPage`, `FindSymbols` and
-  `SearchStatus`, and `exact` on the search calls), `Event` (`FsChanged`, `Pty`, `Run`, `PhpIndexProgress`, `Install`), `Data` /
+  `SearchStatus`, and `exact` on the search calls; protocol 6 added `ReadBytes` / `WriteBytes`
+  (files in other encodings than UTF-8) and `TerminalSpec.shell_integration`), `Event`
+  (`FsChanged`, `Pty`, `Run`, `PhpIndexProgress`, `Install`), `Data` /
   `Close { channel }` (language server stdio, terminal and process input; channel ids are chosen
   by the client). The connection starts with `Call::Hello`. `forge_backend::rpc::RpcClient`
   is the client (async `call`, `call_blocking`, events, channels); `forge_remote_agent::serve`
@@ -492,7 +494,10 @@ app/ui/            SolidJS UI
   Output arrives on `terminal://<id>` as `{ type: "output", data } | { type: "exited", code }`; pass
   your own `id` to subscribe before the shell starts. Defaults: `terminal.shellPath` or `$SHELL` /
   pwsh / `%ComSpec%`, start directory `terminal.startDirectory` or the project root, extra
-  variables from `terminal.environment`.
+  variables from `terminal.environment`. With `terminal.shellIntegration` bash and zsh start
+  with Forge's scripts (`forge_process::integration`, written to the cache dir of the machine
+  the shell runs on), which report OSC 7 (working directory) and OSC 133 (prompt, command
+  start, exit code); the UI tracks them in `features/terminal/sessions.ts`.
 - Configurations: `run_configurations_load() -> { configurations, selected?, templates? }` and
   `run_configurations_save({ configurations })`. Shared ones ("Store as project file") are written
   to `<project>/.forge/runConfigurations.toml`, local ones, the selection and templates to
@@ -503,7 +508,8 @@ app/ui/            SolidJS UI
   { runId, commandLine }` streams `run://<runId>`: `{ type: "started", pid, commandLine }`,
   `{ type: "output", stream: "stdout" | "stderr", text }`, `{ type: "exited", code, signal }` and
   what the UI renders, computed by `forge-output` (re-exported as `forge_process::output`):
-  `{ type: "console", replaceLast, lines: { segments: { text, style, link? }[] }[] }` (ANSI styles,
+  `{ type: "console", replaceLast, lines: { segments: { text, style, link? }[] }[], dropFront? }`
+  (`dropFront`: the oldest lines leave the console cycle buffer, `run.console.cycleBufferKb`; ANSI styles,
   `\r` progress lines, file links resolved into the project and URLs) and, with `testRunner`,
   `{ type: "tests", nodes, summary }` (test tree node updates from TeamCity service messages,
   parents first, plus the status line). `output_file_links({ text })` finds file links in a
@@ -1109,6 +1115,47 @@ plugin manifest entry, and the chat UI needs no changes:
 7. **Browser mock** (`mock/agentMock.ts`): a scripted session. If the parser is pure, expose it
    through `pure_parser` (forge-wasm `agent_parse_lines`) and replay recorded CLI lines through
    it, as the Gemini demo does, so the mock exercises the same mapping as the desktop app.
+
+## Text files, code style and per-project state (`forge-text`, `forge_core::project_state`)
+
+- `crates/forge-text` (pure, also WebAssembly) knows everything about a text file besides its
+  language: line separators, encodings (UTF-8 with or without BOM, UTF-16 LE/BE, ISO-8859-1,
+  Windows-1252; detection and conversion), indent detection, the on-save cleanup (trailing
+  spaces on none / modified / all lines, final line break), EditorConfig and the effective
+  format of a file (`resolve_format`: EditorConfig > detected indent > the language's
+  `<language>.codeStyle.*` settings > the file type's indent), and commit message inspections.
+- IPC (`app/ui/src/ipc/text.ts`): `fs_read_text({ path, encoding? }) -> { text, eol, encoding,
+  bom, malformed }` (`\n`-only text), `fs_write_text({ path, text, eol, encoding, bom })`,
+  `text_prepare_save({ request: { text, saved?, caretLines, options } }) -> { text, changed }`,
+  `editor_file_format({ request: { path, languageId?, text?, fileTypeIndent? } }) -> FileFormat`
+  (settings and `.editorconfig` files are added in Rust), `vcs_inspect_commit_message({
+  message, rules })`. Files go through `Backend::read_bytes` / `write_bytes`, so remote projects
+  keep their encodings. `state/editor.ts` keeps `eol`, `encoding`, `bom` and the resolved
+  `format` per tab; `editor/codeStyle.ts` turns the format into CodeMirror extensions (indent
+  unit, tab size, continuation indent, right margin and guides); `shell/FileStatusItems.tsx` are
+  the status bar popups.
+- `forge_core::project_state`: the workbench layout per project in Forge's state dir
+  (`layout_load() -> ProjectLayout | null`, `layout_save({ layout })`; `{ active, sizes, tabs,
+  openFiles, activeFile }`, sanitized in Rust) and the AI chat history per project in the data
+  dir (`agent_history_list() -> ChatSummary[]`, `agent_history_load({ id })`,
+  `agent_history_save({ record }) -> ChatSummary | null`, `agent_history_delete({ id })`). The
+  UI saves the layout a moment after every change (`state/layoutPersistence.ts`; tool windows
+  with tabs use `toolWindowTab` / `setToolWindowTab` from `state/layout.ts`) and restores it
+  when the project opens.
+- Inlay hints: `lsp_inlay_hints({ path, startLine, endLine, text, languageId? }) ->
+  EditorInlayHint[]` asks the servers (`textDocument/inlayHint`); `forge_codeintel::inlay`
+  sorts them into parameter names, variable types and return types and applies the Inlay Hints
+  settings. Code Vision ("2 implementations") comes from the PHP line markers
+  (`LineMarker.vision`, `editor/lineMarkers.ts`).
+- PHP code style beyond indents (`phpforge_lang_php::style`): brace placement (Intelephense's
+  `format.braces`, Generate) and `php_tidy_blank_lines({ text }) -> string | null`, the blank
+  line pass after Reformat Code (`registerFormatPostProcessor` in `features/lsp/format.ts`).
+  Composer (`phpforge_lang_php::composer`): `php_language_level() -> { level, fromComposer }`,
+  `php_composer_outdated() -> OutdatedPackage[]`.
+- Git: `git_crlf_files({ paths })` (files that would commit CRLF), `git_pull({ rebase? })`
+  follows `vcs.git.updateMethod` without `rebase`, `git_commit` signs off with
+  `vcs.git.commit.signOff`, and `vcs.git.path` selects the git binary
+  (`forge_vcs::set_git_program`).
 
 ## Rust computes, TypeScript renders
 

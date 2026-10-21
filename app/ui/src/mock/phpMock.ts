@@ -14,6 +14,8 @@ import type {
 } from "@/features/php/api";
 import { demoFiles } from "./demoProject";
 import { mockRows } from "./langserversMock";
+import { mockSettingValue } from "./settingsMock";
+import { mockFiles } from "./workspaceMock";
 import { intelephenseMissingAtStart } from "./lspMock";
 import { classAt, lineOf, memberType, parsePhp, type MockClass, type MockMember } from "./phpMockParser";
 import { callWasmSync, forgeWasm, type ForgeWasm } from "@/wasm";
@@ -457,6 +459,24 @@ export function mockGenerate(src: string, offset: number, kind: GenerateKind, op
 registerMock("php_generate", ({ path, offset, kind, options, content }) =>
   mockGenerate(source(path, content), Number(offset), kind as GenerateKind, (options ?? {}) as GenerateOptions),
 );
+
+// The blank line pass needs the tree-sitter PHP parser, which the WebAssembly build does not
+// include: browser mode leaves the text as the (mock) language server formatted it.
+registerMock("php_tidy_blank_lines", () => null);
+
+// Composer: the demo's composer.json requires PHP ^8.3 (the desktop app resolves the
+// constraint in `phpforge_lang_php::composer`, which needs no more than this here).
+registerMock("php_language_level", () => {
+  const json = mockFiles[String(mockSettingValue("php.composer.json") ?? "composer.json")];
+  const sync = mockSettingValue("php.composer.syncWithComposerJson") !== false;
+  const required = json?.match(/"php"\s*:\s*"[^"\d]*(\d+\.\d+)/)?.[1];
+  if (sync && required) return { level: required, fromComposer: true };
+  return { level: String(mockSettingValue("php.languageLevel") ?? "8.3"), fromComposer: false };
+});
+registerMock("php_composer_outdated", async () => [
+  { name: "laravel/framework", version: "v12.1.0", latest: "v12.3.0", status: "semver-safe-update" },
+  { name: "phpunit/phpunit", version: "11.4.0", latest: "12.0.2", status: "update-possible" },
+]);
 
 // With `?intelephense=missing` it is found only after the (mock) install.
 registerMock("php_detect_servers", async () => {

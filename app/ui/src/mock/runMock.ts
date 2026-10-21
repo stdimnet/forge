@@ -12,6 +12,7 @@ import { isSymfonyDemo, symfonyDemoName } from "./demoSymfonyProject";
 import { webDemo } from "./demoWebProjects";
 import { isLuaDemo, luaDemoName } from "./demoLuaProject";
 import { scratchCommandLine, scratchRunSteps } from "./scratchesMock";
+import { mockSettingValue } from "./settingsMock";
 
 const ROOT = `~/Projects/${demoProjectName}`;
 const projectRoot = () =>
@@ -388,7 +389,12 @@ registerMock("run_start", async ({ request }) => {
   const runId = r.runId ?? `mock-run-${++seq}`;
   const cmd = r.command ?? mockCommandLine(r.configuration!);
   const commandLine = display({ ...cmd, args: [...(r.interpreterArgs ?? []), ...cmd.args] });
-  const options = { testRunner: !!r.testRunner, root: projectRoot(), cwd: cmd.cwd || undefined };
+  const options = {
+    testRunner: !!r.testRunner,
+    root: projectRoot(),
+    cwd: cmd.cwd || undefined,
+    cycleBufferKb: Number(mockSettingValue("run.console.cycleBufferKb") ?? 1024),
+  };
   const old = runs.get(runId);
   if (old) wasm.run_output_drop(JSON.stringify({ handle: old.output }));
   runs.set(runId, { timers: [], done: false, output: Number(wasm.run_output_new(JSON.stringify(options))) });

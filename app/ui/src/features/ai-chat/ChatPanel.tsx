@@ -164,7 +164,10 @@ export function ChatPanel() {
 export function ChatActions() {
   const ago = (t: number) => {
     const m = Math.round((Date.now() - t) / 60000);
-    return m < 1 ? "just now" : m < 60 ? `${m} min ago` : `${Math.round(m / 60)} h ago`;
+    if (m < 1) return "just now";
+    if (m < 60) return `${m} min ago`;
+    if (m < 48 * 60) return `${Math.round(m / 60)} h ago`;
+    return new Date(t).toLocaleDateString();
   };
   return (
     <>
@@ -178,6 +181,7 @@ export function ChatActions() {
         align="right"
         hideChevron
         empty="No previous chats yet"
+        value={chat.chatId ?? undefined}
         items={chat.history.map((h) => ({ value: h.id, label: h.title, hint: `${findChatAgent(h.agentId)?.name ?? h.agentId} · ${ago(h.at)}` }))}
         onSelect={(id) => void openHistory(id)}
         trigger={<History size={15} />}

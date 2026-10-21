@@ -145,6 +145,20 @@ export interface GenerateTargets {
 
 export type ServerChoice = "auto" | "intelephense" | "phpactor" | "none";
 
+/** The language level in effect; `fromComposer` while it follows composer.json. */
+export interface LanguageLevel {
+  level: string;
+  fromComposer: boolean;
+}
+
+/** A package `composer outdated` reports. */
+export interface OutdatedPackage {
+  name: string;
+  version: string;
+  latest: string;
+  status: "semver-safe-update" | "update-possible" | string;
+}
+
 export interface PhpLspSettings {
   server: ServerChoice;
   licenceKey?: string | null;
@@ -173,6 +187,10 @@ export const phpApi = {
     invoke<GenerateTargets>("php_generate_targets", { path, offset, content }),
   generate: (path: string, offset: number, kind: GenerateKind, options: GenerateOptions = {}, content?: string) =>
     invoke<TextEdit[]>("php_generate", { path, offset, kind, options, content }),
+  /** Reformat Code: the blank lines of the PHP code style applied to `text`; null = unchanged. */
+  tidyBlankLines: (text: string) => invoke<string | null>("php_tidy_blank_lines", { text }),
+  languageLevel: () => invoke<LanguageLevel>("php_language_level"),
+  composerOutdated: () => invoke<OutdatedPackage[]>("php_composer_outdated"),
   detectServers: (settings?: Partial<PhpLspSettings>) =>
     invoke<DetectedServers>("php_detect_servers", { settings }),
 };

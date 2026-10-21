@@ -45,6 +45,7 @@ order = 90
 [[contributions.settings]]
 key = "run.console.cycleBufferKb"
 title = "Override console cycle buffer size (KB)"
+description = "Run consoles drop their oldest lines beyond this size. Applies to runs started afterwards."
 type = "int"
 min = 100
 max = 100000

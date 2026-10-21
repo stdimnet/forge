@@ -107,6 +107,18 @@ pub fn lua_environment(env: LuaEnvironment, root: &Path) -> LuaEnvironment {
     LuaEnvironment::Plain
 }
 
+/// typescript-language-server's inlay hint preferences (`initializationOptions.preferences`
+/// and the `typescript` / `javascript` settings).
+static TS_INLAY_PREFERENCES: std::sync::LazyLock<Value> = std::sync::LazyLock::new(|| {
+    json!({
+        "includeInlayParameterNameHints": "literals",
+        "includeInlayParameterNameHintsWhenArgumentMatchesName": false,
+        "includeInlayVariableTypeHints": true,
+        "includeInlayFunctionLikeReturnTypeHints": true,
+        "includeInlayPropertyDeclarationTypeHints": true,
+    })
+});
+
 pub fn build_config(
     catalog: &Catalog,
     spec: &ServerSpec,
@@ -138,6 +150,27 @@ pub fn build_config(
 
     match spec.id.as_str() {
         "typescript-language-server" | "vtsls" => {
+            // Inlay hints: the servers report every kind; Forge filters them by the
+            // Inlay Hints settings (`forge_codeintel::inlay`).
+            merge_json(
+                &mut init,
+                &json!({ "preferences": TS_INLAY_PREFERENCES.clone() }),
+            );
+            for language in ["typescript", "javascript"] {
+                merge_json(
+                    &mut settings,
+                    &json!({ language: { "inlayHints": TS_INLAY_PREFERENCES.clone() } }),
+                );
+                merge_json(
+                    &mut settings,
+                    &json!({ language: { "inlayHints": {
+                        "parameterNames": { "enabled": "literals" },
+                        "variableTypes": { "enabled": true },
+                        "functionLikeReturnTypes": { "enabled": true },
+                        "propertyDeclarationTypes": { "enabled": true },
+                    } } }),
+                );
+            }
             if let Some(plugin) = vue_plugin(ctx, catalog) {
                 let entry = json!({
                     "name": "@vue/typescript-plugin",
@@ -219,6 +252,11 @@ pub fn build_config(
                 }
             };
             merge_json(&mut settings, &json!({ "Lua": lua }));
+            // Inlay hints (filtered by Forge's Inlay Hints settings).
+            merge_json(
+                &mut settings,
+                &json!({ "Lua": { "hint": { "enable": true, "paramName": "Literal", "setType": true } } }),
+            );
             // The user's library folders come after the environment's.
             if !ctx.prefs.lua_libraries.is_empty() {
                 let home = std::env::var_os("HOME").map(PathBuf::from);
@@ -341,6 +379,12 @@ mod tests {
         );
         assert_eq!(cfg.language_id_for(Path::new("/p/a.mjs")), "javascript");
         assert_eq!(cfg.initialization_options["hostInfo"], "forge");
+        let ts_prefs = &cfg.initialization_options["preferences"];
+        assert_eq!(ts_prefs["includeInlayParameterNameHints"], "literals");
+        assert_eq!(
+            cfg.settings["typescript"]["inlayHints"]["variableTypes"]["enabled"],
+            true
+        );
 
         let docker = c.server("docker-langserver").unwrap();
         let cfg = build_config(
@@ -513,6 +557,7 @@ mod tests {
         assert_eq!(lua.settings["Lua"]["runtime"]["version"], "LuaJIT");
         assert_eq!(lua.settings["Lua"]["diagnostics"]["globals"][0], "love");
         assert_eq!(lua.settings["Lua"]["telemetry"]["enable"], false);
+        assert_eq!(lua.settings["Lua"]["hint"]["enable"], true);
         // Detected from the project: a LÖVE game has conf.lua.
         prefs.lua_environment = LuaEnvironment::Auto;
         std::fs::write(root.join("conf.lua"), "function love.conf(t) end").unwrap();

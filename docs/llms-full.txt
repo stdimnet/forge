@@ -390,9 +390,8 @@ configurations, breakpoints, data sources); see [File locations](docs/guide/refe
   project name) runs **Open…** as well.
 
 Opening a project replaces the current one in the same window and closes its editor tabs.
-
-> **Note:** the setting "Open project in" (`system.openProjectIn`: new window, same window or
-> ask) is not applied yet; projects always open in the current window.
+Each project's tool window layout and editor tabs come back when you open it again, see
+[Layout per project](docs/guide/user/workbench.md#layout-per-project).
 
 Remote projects (folders on a Linux server reached over SSH) open from Welcome |
 **Remote Development**, see [Remote development](docs/guide/user/remote-development.md).
@@ -818,11 +817,21 @@ framework. The Find tool window appears once a search put results into it.
 between a tool window and the editor to resize it.
 
 The stripes can be hidden with Settings | Appearance & Behavior | Appearance | **Show tool
-window bars**. **Compact mode** on the same page makes toolbars and tool window headers
-smaller.
+window bars**; **Show tool window numbers** puts the `Alt+<n>` digit on their buttons.
+**Compact mode** on the same page makes toolbars and tool window headers smaller, **Smooth
+scrolling** animates scrolling in lists and trees.
 
-> **Note:** tool window sizes and which tool windows are open are not remembered between
-> sessions yet. "Restore Default Layout" and "Maximize Tool Window" are not available yet.
+### Layout per project
+
+![Restored layout](docs/screenshots/layout-restored.png)
+
+Forge remembers the layout of each project and restores it when the project opens again: which
+tool window is open on each side, their sizes, the selected tab of tool windows with tabs
+(Problems, Pull Requests) and the open editor tabs with the active one. It is kept in Forge's
+state directory (`~/.local/state/forge/layouts` on Linux, see
+[File locations](docs/guide/reference/file-locations.md)), never in the project.
+
+> **Note:** "Restore Default Layout" and "Maximize Tool Window" are not available yet.
 
 ## Project view
 
@@ -1054,12 +1063,9 @@ Left: the project name and the path of the current file. Right, depending on the
 | PHP version | the PHP language level, e.g. "PHP 8.3" | PHP settings |
 | CI status | pipeline status of the current branch | [Code hosts](docs/guide/user/code-hosts.md) |
 | Caret | `line:column` | — |
-| `LF`, `UTF-8`, `4 spaces` | line separator, encoding and indentation | — |
+| `LF`, `UTF-8`, `4 spaces` | line separator, encoding and indentation of the file | change the separator, reload or convert the encoding, configure indents, see [Editor](docs/guide/user/editor.md#line-separator-encoding-and-indent) |
 | File type | e.g. "PHP", "Blade", "TypeScript" | — |
 | Branch | the current Git branch | — |
-
-> **Note:** the line separator, encoding and indentation widgets are labels only; they
-> cannot be changed from the status bar yet.
 
 
 ---
@@ -1375,18 +1381,105 @@ When a file changes on disk (a checkout, a pull, a rollback, an AI agent's edit,
 another editor), the open tab is reloaded with the new content. The reload is not an undo
 step: `Ctrl+Z` does not go back across it.
 
-Line endings are preserved: a file with Windows line endings (CRLF) stays CRLF when you save
-it.
+Line endings and encodings are preserved: a file with Windows line endings (CRLF) stays CRLF
+when you save it, a Windows-1252 file stays Windows-1252. Forge detects both when it opens a
+file (UTF-8 with or without BOM, UTF-16 LE/BE, ISO-8859-1, Windows-1252). Change them in the
+status bar, see [Line separator, encoding and indent](#line-separator-encoding-and-indent).
+
+## Saving
+
+Files are saved with `Ctrl+S` (Save All) and automatically (Settings | Appearance & Behavior |
+System Settings | Autosave): when Forge loses the focus (`system.autosave.onFrameDeactivation`,
+on by default) and, if enabled, after `system.autosave.idleSeconds` seconds without typing or
+clicking (`system.autosave.onIdle`).
+
+Saving applies Settings | Editor | General | On Save, like PHPStorm:
+
+| Option | Setting | Default |
+| --- | --- | --- |
+| Remove trailing spaces on: None / Modified lines / All lines | `editor.stripTrailingSpaces` | Modified lines |
+| Ensure every saved file ends with a line break | `editor.ensureNewlineAtEof` | on |
+
+"Modified lines" are the lines changed since the file was opened or last saved. Lines with a
+caret keep their spaces, so saving never moves what you are typing. An `.editorconfig` with
+`trim_trailing_whitespace` or `insert_final_newline` overrides both options for its files.
+
+When Forge gets the focus back it re-reads the open files that changed on disk and refreshes
+the Project view and Git status (`system.syncExternalChanges`).
+
+## Code style
+
+Settings | Editor | Code Style sets what new code looks like:
+
+- **Line separator** for new files (`editor.codeStyle.lineSeparator`: LF, CRLF or the
+  system's); existing files keep theirs.
+- **Hard wrap at** (`editor.codeStyle.hardWrapAt`, 120) draws the right margin, **Visual
+  guides** (`editor.codeStyle.visualGuides`, e.g. `80, 120`) more vertical lines.
+- **Enable EditorConfig support** (`editor.codeStyle.useEditorConfig`): `.editorconfig` files
+  from the project root down to the file set `indent_style`, `indent_size`, `tab_width`,
+  `end_of_line` (for new files), `max_line_length`, `trim_trailing_whitespace` and
+  `insert_final_newline`; they win over the settings. A `charset` the file does not have is
+  named in the encoding tooltip.
+- **Detect and use existing file indents for editing**
+  (`editor.codeStyle.detectIndents`): a file indented differently from the code style (2
+  spaces in a 4-space project, tabs) keeps its indent while you edit it.
+
+The language pages (Code Style | PHP) set **Use tab character**, **Tab size**, **Indent** and
+**Continuation indent** (method chains continue one continuation indent deeper). Enter, `Tab`
+and Reformat Code use the result; PHP's brace placement and blank lines are described in
+[PHP](docs/guide/user/php.md#code-style).
+
+## Line separator, encoding and indent
+
+![Line separator popup](docs/screenshots/status-line-separator.png)
+
+The status bar shows the active file's line separator, encoding and indent. Click them:
+
+- **Line separator** (`LF`, `CRLF`, `CR`): pick another one; the file is converted and saved
+  right away.
+- **Encoding** (`UTF-8`, `UTF-8 BOM`, `UTF-16LE`, `ISO-8859-1`, `windows-1252`, …): pick
+  another one and choose **Reload** (read the file again in that encoding, for a file that
+  was detected wrongly; only without unsaved changes) or **Convert** (save the text in the
+  new encoding). **Add BOM** / **Remove BOM** for UTF-8 files. Characters the encoding cannot
+  hold stop the conversion with a message.
+- **Indent** (`4 spaces`, `2 spaces*`, `Tab`): where it comes from is in the tooltip (code
+  style, EditorConfig, or detected in the file, marked with `*`). The popup opens **Configure
+  Indents for PHP…** or turns indent detection off for the project.
+
+![Encoding popup](docs/screenshots/status-encoding.png)
+
+## Inlay hints
+
+![Inlay hints](docs/screenshots/editor-inlay-hints.png)
+
+Language servers show parameter names at call sites (`precision: 2`) and inferred types
+(`fn ($line): float`) inside the code. Settings | Editor | Inlay Hints:
+
+| Option | Setting | Default |
+| --- | --- | --- |
+| Parameter names (literal and null arguments) | `editor.inlayHints.parameterNames` | on |
+| Inferred variable types | `editor.inlayHints.types` | off |
+| Return types of closures and functions | `editor.inlayHints.returnTypes` | on |
+| Implementations and inheritors (Code Vision) | `editor.inlayHints.implementations` | on |
+| Per language: PHP, JavaScript and TypeScript, Lua, other languages | `editor.inlayHints.languages.<id>` | on |
+
+Hints need a server that reports them: Intelephense Premium, phpactor,
+typescript-language-server / vtsls and lua-language-server (Forge turns their hints on and
+filters them by these settings). Free Intelephense shows none.
+
+**Code Vision**: above PHP classes and methods with subclasses, implementations or overrides
+Forge shows "4 inheritors", "2 implementations" or "1 override" (from the PHP index); click
+it to go there.
+
+![Code Vision](docs/screenshots/editor-code-vision.png)
 
 ## Soft wraps and appearance
 
 Settings | Editor | General controls soft wrapping (`editor.softWraps` with the patterns in
 `editor.softWrapFiles`, by default `*.md; *.txt; *.rst; *.adoc`), whitespace, line numbers,
-the caret row highlight, caret blinking and smooth scrolling. Settings | Editor | Font sets the
-font, size, line height and ligatures. See the [settings reference](docs/guide/reference/settings.md).
-
-> **Note:** "Remove trailing spaces on save", "Ensure line break at end of file", the
-> Code Style options and Inlay Hints are listed in Settings but not applied yet.
+the caret row highlight, caret blinking with its blink period (`editor.caret.blinkPeriod`) and
+smooth scrolling. Settings | Editor | Font sets the font, size, line height and ligatures. See
+the [settings reference](docs/guide/reference/settings.md).
 
 
 ---
@@ -4319,15 +4412,23 @@ Sources and Drivers) open as their own windows with the same style:
 
 ![Settings window on KDE](docs/screenshots/settings-window-kde.png)
 
-## Not applied yet
+## System Settings
 
-These options are shown in Settings but have no effect on this version: Show tool window
-numbers, Smooth scrolling (Appearance), everything under System Settings except **Default
-project directory** (reopen projects on startup, confirm exit, open project in, autosave,
-synchronize external changes), caret blink period, remove trailing spaces on save, ensure line
-break at end of file, Code Style, Inlay Hints, the Git page, the Composer page except the
-composer path, console cycle buffer size, terminal audible bell and shell integration. The
-[settings reference](docs/guide/reference/settings.md) marks each of them.
+![System Settings](docs/screenshots/settings-system.png)
+
+Settings | Appearance & Behavior | System Settings:
+
+| Option | Setting | What it does |
+| --- | --- | --- |
+| Reopen projects on startup | `system.reopenLastProject` | Forge starts with the last local project |
+| Confirm before exiting the IDE | `system.confirmExit` | closing the main window (or File \| Exit) asks "Are you sure you want to exit Forge?"; **Do not ask me again** turns it off. Open files are saved on exit. |
+| Default project directory | `system.defaultProjectDirectory` | where New Project creates projects |
+| Save files if the IDE is switched to a different application | `system.autosave.onFrameDeactivation` | saves all modified files when Forge loses the focus |
+| Save files if the IDE is idle, idle time | `system.autosave.onIdle`, `system.autosave.idleSeconds` | saves after that many seconds without typing or clicking |
+| Synchronize external changes when switching to the IDE window | `system.syncExternalChanges` | re-reads open files changed on disk and refreshes the Project view and Git status |
+
+Every option in the Settings dialog applies; the [settings reference](docs/guide/reference/settings.md)
+lists them all.
 
 
 ---
@@ -4646,8 +4747,8 @@ Methods.
 | Default stubs path (PHP Runtime), see [PHP's own classes and functions](#phps-own-classes-and-functions) | `php.stubs.path` | empty (managed download) |
 
 The language level and the interpreter can be stored per project ("For current project" in
-the page header). The status bar shows the language level ("PHP 8.3"); click it to open this
-page. The page also shows the [Intelephense licence](docs/guide/user/language-servers.md#intelephense-licence-key-premium).
+the page header). The status bar shows the language level in effect ("PHP 8.3"; its tooltip
+says when it comes from composer.json); click it to open this page. The page also shows the [Intelephense licence](docs/guide/user/language-servers.md#intelephense-licence-key-premium).
 
 Sub-pages: **Composer**, **Debug**, **Servers** (see [Xdebug debugging](docs/guide/user/debugging.md)),
 **Laravel**, **Symfony**, **Doctrine**.
@@ -4656,23 +4757,32 @@ Sub-pages: **Composer**, **Debug**, **Servers** (see [Xdebug debugging](docs/gui
 
 Settings | Languages & Frameworks | PHP | Composer:
 
-| Option | Setting | Default | Status |
+| Option | Setting | Default | What it does |
 | --- | --- | --- | --- |
-| Path to composer | `php.composer.executable` | `composer` | used by Composer run configurations |
-| Path to composer.json | `php.composer.json` | `composer.json` | not applied yet |
-| Synchronize IDE settings with composer.json | `php.composer.syncWithComposerJson` | on | not applied yet |
-| Add packages as libraries | `php.composer.addPackagesAsLibraries` | on | not applied yet |
-| Check for package updates on project open | `php.composer.checkUpdates` | off | not applied yet |
+| Path to composer | `php.composer.executable` | `composer` | used by Composer run configurations and the update check |
+| Path to composer.json | `php.composer.json` | `composer.json` | relative to the project root |
+| Synchronize IDE settings with composer.json | `php.composer.syncWithComposerJson` | on | the language level follows `require.php` (`^8.2` → 8.2, `^7.3 \|\| ^8.0` → 7.4); without a constraint the language level setting applies |
+| Add packages as libraries | `php.composer.addPackagesAsLibraries` | on | classes in `vendor/` are resolved for navigation and completion and indexed by Intelephense; off leaves `vendor/` out |
+| Check for package updates on project open | `php.composer.checkUpdates` | off | runs `composer outdated --direct` on the project's machine and lists the updates in a balloon |
 
 Run Composer scripts with a **Composer Script** run configuration, see
 [Run/Debug configurations](docs/guide/user/run-debug.md).
 
 ### Code style
 
-Settings | Editor | Code Style | PHP lists tabs and indents, brace placement and blank lines.
+![PHP code style](docs/screenshots/settings-code-style-php.png)
 
-> **Note:** these options are not applied yet. Reformat Code uses the language server's
-> formatter with its own defaults.
+Settings | Editor | Code Style | PHP:
+
+- **Tabs and Indents** (tab character, tab size, indent, continuation indent) apply while you
+  type, to Reformat Code and to the status bar's indent, see [Editor](docs/guide/user/editor.md#code-style).
+- **Braces placement** (`php.codeStyle.braces`): PSR-12 (next line for classes and functions,
+  end of line otherwise), next line everywhere or end of line everywhere. Reformat Code passes
+  it to Intelephense's formatter; the [Generate](#generate) actions write methods with it.
+- **Blank Lines**: after Reformat Code (`Ctrl+Alt+L`) Forge cuts runs of blank lines to
+  **Keep maximum blank lines in code** and sets the blank lines **After namespace**, **After
+  imports** and **Around method** (at least). Strings, heredocs and comments are never
+  changed. Generated methods are separated by "Around method" blank lines.
 
 ## Running and testing PHP
 
@@ -5289,11 +5399,25 @@ current branch is shown in the main toolbar and the status bar.
 - Toolbar: **Refresh** (`Ctrl+F5`), **Rollback…** (`Ctrl+Alt+Z`, discards the changes of the
   selected files after a confirmation), **Show Diff**, **Expand All**, **Collapse All**.
 - Write the **Commit Message**. **Amend** amends the last commit (its message is loaded).
+  **Sign-off** adds a `Signed-off-by` line (`git commit --signoff`; the same option as
+  Settings | Version Control | Git | Sign-off commits).
 - **Commit** (`Ctrl+Enter` in the message) or **Commit and Push…**.
 
-> **Note:** the commit message inspections and commit options in Settings | Version Control |
-> Git (subject length, blank line, right margin, CRLF warning, sign-off), "Commit Message
-> History" (`Ctrl+M`) and the **Commit Options** gear are not applied yet.
+![Commit message inspections](docs/screenshots/vcs-commit-inspections.png)
+
+While you type, the message is checked like in PHPStorm (Settings | Version Control | Git |
+Commit Message Inspections): the subject line is at most `vcs.git.commit.subjectMaxLength`
+characters (72), a blank line separates subject and body
+(`vcs.git.commit.blankLineAfterSubject`) and body lines stay within
+`vcs.git.commit.bodyRightMargin` columns (72). Problems are listed below the message; they do
+not block the commit. Lines starting with `#` are ignored.
+
+Before committing files with Windows line separators (CRLF), Forge asks whether to **Commit As
+Is** (`vcs.git.commit.warnOnCrlf`), unless git converts them itself (`core.autocrlf` is `true`
+or `input`).
+
+> **Note:** "Commit Message History" (`Ctrl+M`) and the **Commit Options** gear are not
+> available yet.
 
 ### AI commit messages
 
@@ -5360,16 +5484,25 @@ Branches**:
 | Action | Shortcut | What it does |
 | --- | --- | --- |
 | Push… | `Ctrl+Shift+K` (macOS `Cmd+Shift+K`) | pushes the current branch |
-| Update Project… | `Ctrl+T` (macOS `Cmd+T`) | pulls the current branch |
+| Update Project… | `Ctrl+T` (macOS `Cmd+T`) | pulls the current branch with the update method |
 | Fetch | Find Action | fetches all remotes |
 
 Results appear as balloons ("Pushed", "Project updated", "All files are up to date", or the
 error). Git runs with `ssh -o BatchMode=yes`, so SSH remotes need a key in your ssh-agent (or
 without passphrase); Forge cannot answer password prompts.
 
-> **Note:** the update method setting (`vcs.git.updateMethod`), automatic fetching and the
-> Git executable path in Settings | Version Control | Git are not applied yet. Set the
-> environment variable `FORGE_GIT` to use another git binary.
+![Git settings](docs/screenshots/settings-git.png)
+
+Settings | Version Control | Git:
+
+| Option | Setting | Default |
+| --- | --- | --- |
+| Path to Git executable | `vcs.git.path` | `git` (the one on `PATH`; `FORGE_GIT` also overrides it). Remote projects always use the git of their host. |
+| Update method: Merge, Rebase or Branch default (`pull.rebase` of the branch) | `vcs.git.updateMethod` | Merge |
+| Fetch remotes automatically, every n minutes | `vcs.git.autoFetch`, `vcs.git.autoFetchInterval` | on, 10 |
+
+Automatic fetching runs in the background while the branch has an upstream; failures
+(offline, missing credentials) are ignored.
 
 ## Log
 
@@ -5487,8 +5620,7 @@ Actions runs) with their status and jobs.
 ## CI status in the status bar
 
 The status bar shows the CI status of the current branch ("CI: Running", "Passed", "Failed").
-Settings (not shown in the Settings dialog; set them in `settings.toml`, see
-[Settings and themes](docs/guide/user/settings-and-themes.md#settings-files)):
+Settings | Version Control | **Code Hosts** (the account pages are below it):
 
 | Setting | Default | Meaning |
 | --- | --- | --- |
@@ -5584,7 +5716,9 @@ The **Run** tool window (`Alt+4`) has one tab per run. Tabs can be pinned and cl
 - Stop sends SIGTERM to the process group, then SIGKILL after 2 seconds (`taskkill /T` on
   Windows).
 
-Settings | Editor | General | Console: **Use soft wraps in console** (`run.console.softWrap`).
+Settings | Editor | General | Console: **Use soft wraps in console** (`run.console.softWrap`)
+and **Override console cycle buffer size (KB)** (`run.console.cycleBufferKb`, 1024): a console
+keeps the newest output up to that size and drops the oldest lines.
 
 ## Test results
 
@@ -5815,11 +5949,21 @@ set; **Environment variables** (`terminal.environment`, one `NAME=value` per ent
 | --- | --- | --- | --- |
 | Shell path | `terminal.shellPath` | system default | user |
 | Default tab name | `terminal.tabName` | `Local` | user |
-| Audible bell | `terminal.audibleBell` | off | not applied yet |
+| Audible bell (a short tone when a program rings the bell) | `terminal.audibleBell` | off | user |
 | Copy to clipboard on selection | `terminal.copyOnSelection` | off | user |
-| Shell integration | `terminal.shellIntegration` | on | not applied yet |
+| Shell integration | `terminal.shellIntegration` | on | user |
 | Start directory | `terminal.startDirectory` | project root | user, project |
 | Environment variables | `terminal.environment` | empty | user, project |
+
+## Shell integration
+
+With **Shell integration** on, bash and zsh tell the terminal their working directory (shown
+in the tab's tooltip) and where each command starts and ends: finished commands get a mark in
+the scrollbar, green when they succeeded and red when they failed. Your own startup files
+still run: bash starts with an init file that sources `~/.bashrc` (or the profile files for a
+login shell), zsh with a `ZDOTDIR` whose files source yours. The scripts live in
+`<cache dir>/forge/shell-integration` of the machine the shell runs on (also on remote hosts).
+fish, sh and PowerShell start without it; it applies to new sessions.
 
 ## Other terminals
 
@@ -6621,8 +6765,12 @@ Files changed by the agent are reloaded in open editor tabs automatically.
 
 ### History
 
-**Chat history** lists the previous chats of this Forge session (the list is not kept after a
-restart); selecting one resumes the CLI's conversation. **New chat** starts over. The end of a turn shows duration, tokens and cost when
+![Chat history](docs/screenshots/ai-chat-history.png)
+
+**Chat history** lists the chats of the open project, newest first; selecting one shows it
+again and resumes the CLI's conversation with the next message. **New chat** starts over.
+Chats are saved after every turn in Forge's data directory (`<data dir>/forge/chat-history`,
+the newest 100 per project), never in the project. The end of a turn shows duration, tokens and cost when
 the CLI reports them.
 
 ![Finished turn](docs/screenshots/ai-chat-finished.png)
@@ -6775,8 +6923,7 @@ Source: docs/guide/reference/index.md
 
 # Reference
 
-Tables derived from Forge's sources. They list everything, including options that exist but are
-not applied yet (marked as such).
+Tables derived from Forge's sources. They list everything Forge declares.
 
 | Page | Contents |
 | --- | --- |
@@ -7917,7 +8064,7 @@ are layered: default < user (`<config dir>/forge/settings.toml`) < project
   `list` (a list of strings). Ranges are given as (min–max).
 - **Scope**: `user` settings are global; `user, project` settings can also be stored per
   project ("For current project" in the dialog).
-- *(not applied yet)*: the option is declared and shown, but no code reads it on this version.
+-: the option is declared and shown, but no code reads it on this version.
 
 Settings written by Forge itself and not declared in a manifest:
 
@@ -7941,11 +8088,11 @@ Page id `appearance`.
 | `appearance.uiFont.size` | int (10–20) | `13` | user | Font | Size |
 | `appearance.mainMenu` | enum: `hamburger`, `merged`, `toolbar` | `hamburger` | user | UI Options | Main menu — Hamburger menu: behind the button at the left of the main toolbar. Merged: the menu names in the main toolbar. Separate toolbar: a classic menu bar above the main toolbar. |
 | `appearance.compactMode` | bool | `false` | user | UI Options | Compact mode — Reduces paddings and the height of toolbars and tool window headers. |
-| `appearance.smoothScrolling` | bool | `true` | user *(not applied yet)* | UI Options | Smooth scrolling — Animate scrolling in lists and trees. |
+| `appearance.smoothScrolling` | bool | `true` | user | UI Options | Smooth scrolling — Animate scrolling in lists and trees. |
 | `appearance.showSplash` | bool | `true` | user | UI Options | Show splash screen on startup — The Forge wordmark fills with molten metal while the IDE loads, and offers updates. |
 | `appearance.windowControls` | enum: `auto`, `windows`, `macos`, `gnome`, `kde`, `linux`, `native` | `auto` | user | Window | Window controls — Look of the title bar buttons of the main window and dialogs. "Native" lets the operating system draw the title bar. |
 | `appearance.showToolWindowBars` | bool | `true` | user | Tool Windows | Show tool window bars — The stripes with tool window buttons along the window edges. |
-| `appearance.showToolWindowNumbers` | bool | `true` | user *(not applied yet)* | Tool Windows | Show tool window numbers |
+| `appearance.showToolWindowNumbers` | bool | `true` | user | Tool Windows | Show tool window numbers |
 | `projectView.openFilesWithSingleClick` | bool | `true` | user | Project View | Open files with single click — In the Project tool window a single click opens files and expands folders. Turn it off to select with a single click and open with a double click, like PHPStorm. |
 
 ### Appearance & Behavior | System Settings
@@ -7955,13 +8102,12 @@ Page id `system`.
 | Key | Type | Default | Scope | Section | Title and description |
 | --- | --- | --- | --- | --- | --- |
 | `system.reopenLastProject` | bool | `true` | user | Project | Reopen projects on startup — the last local project, when Forge starts without a project argument |
-| `system.confirmExit` | bool | `true` | user *(not applied yet)* | Project | Confirm before exiting the IDE |
-| `system.openProjectIn` | enum: `new`, `same`, `ask` | `ask` | user *(not applied yet)* | Project | Open project in |
+| `system.confirmExit` | bool | `true` | user | Project | Confirm before exiting the IDE |
 | `system.defaultProjectDirectory` | path | `~/Projects` | user | Project | Default project directory — New projects are created here unless you pick another location. |
-| `system.autosave.onFrameDeactivation` | bool | `true` | user *(not applied yet)* | Autosave | Save files if the IDE is switched to a different application |
-| `system.autosave.onIdle` | bool | `false` | user *(not applied yet)* | Autosave | Save files if the IDE is idle |
-| `system.autosave.idleSeconds` | int (1–600) | `15` | user *(not applied yet)* | Autosave | Idle time (seconds) |
-| `system.syncExternalChanges` | bool | `true` | user *(not applied yet)* | Synchronization | Synchronize external changes when switching to the IDE window |
+| `system.autosave.onFrameDeactivation` | bool | `true` | user | Autosave | Save files if the IDE is switched to a different application |
+| `system.autosave.onIdle` | bool | `false` | user | Autosave | Save files if the IDE is idle |
+| `system.autosave.idleSeconds` | int (1–600) | `15` | user | Autosave | Idle time (seconds) |
+| `system.syncExternalChanges` | bool | `true` | user | Synchronization | Synchronize external changes when switching to the IDE window |
 
 ### Appearance & Behavior | Notifications
 
@@ -8003,16 +8149,16 @@ Page id `editor.general`.
 | --- | --- | --- | --- | --- | --- |
 | `editor.smoothScrolling` | bool | `true` | user | Scrolling | Enable smooth scrolling |
 | `editor.caret.blinking` | bool | `true` | user | Caret | Caret blinking |
-| `editor.caret.blinkPeriod` | int (100–2000) | `500` | user *(not applied yet)* | Caret | Blink period (ms) |
+| `editor.caret.blinkPeriod` | int (100–2000) | `500` | user | Caret | Blink period (ms) |
 | `editor.softWraps` | bool | `false` | user | Soft Wraps | Soft-wrap files — Wrap long lines visually in files matching the patterns below. |
 | `editor.softWrapFiles` | string | `*.md; *.txt; *.rst; *.adoc` | user | Soft Wraps | File patterns |
 | `editor.showWhitespace` | bool | `false` | user | Appearance | Show whitespaces |
 | `editor.showLineNumbers` | bool | `true` | user | Appearance | Show line numbers |
 | `editor.highlightCurrentLine` | bool | `true` | user | Appearance | Highlight caret row |
-| `editor.stripTrailingSpaces` | enum: `none`, `modified`, `all` | `modified` | user *(not applied yet)* | On Save | Remove trailing spaces on |
-| `editor.ensureNewlineAtEof` | bool | `true` | user *(not applied yet)* | On Save | Ensure every saved file ends with a line break |
+| `editor.stripTrailingSpaces` | enum: `none`, `modified`, `all` | `modified` | user | On Save | Remove trailing spaces on |
+| `editor.ensureNewlineAtEof` | bool | `true` | user | On Save | Ensure every saved file ends with a line break |
 | `run.console.softWrap` | bool | `false` | user | Console | Use soft wraps in console |
-| `run.console.cycleBufferKb` | int (100–100000) | `1024` | user *(not applied yet)* | Console | Override console cycle buffer size (KB) |
+| `run.console.cycleBufferKb` | int (100–100000) | `1024` | user | Console | Override console cycle buffer size (KB) — Run consoles drop their oldest lines beyond this size. Applies to runs started afterwards. |
 
 ### Editor | General | Editor Tabs
 
@@ -8042,10 +8188,11 @@ Page id `editor.code-style`.
 
 | Key | Type | Default | Scope | Section | Title and description |
 | --- | --- | --- | --- | --- | --- |
-| `editor.codeStyle.lineSeparator` | enum: `lf`, `crlf`, `system` | `lf` | user, project *(not applied yet)* |  | Line separator |
-| `editor.codeStyle.hardWrapAt` | int (40–400) | `120` | user, project *(not applied yet)* |  | Hard wrap at (columns) |
-| `editor.codeStyle.visualGuides` | string | `120` | user, project *(not applied yet)* |  | Visual guides — Comma-separated column numbers, e.g. 80, 120. |
-| `editor.codeStyle.useEditorConfig` | bool | `true` | user, project *(not applied yet)* |  | Enable EditorConfig support |
+| `editor.codeStyle.lineSeparator` | enum: `lf`, `crlf`, `system` | `lf` | user, project |  | Line separator — For new files. Existing files keep theirs; change it in the status bar. |
+| `editor.codeStyle.hardWrapAt` | int (40–400) | `120` | user, project |  | Hard wrap at (columns) — The right margin, drawn as a line in the editor. EditorConfig's max_line_length overrides it. |
+| `editor.codeStyle.visualGuides` | string | `120` | user, project |  | Visual guides — Comma-separated column numbers, e.g. 80, 120. |
+| `editor.codeStyle.useEditorConfig` | bool | `true` | user, project |  | Enable EditorConfig support — Indents, line separators, charset and the On Save options of .editorconfig files override these settings. |
+| `editor.codeStyle.detectIndents` | bool | `true` | user, project |  | Detect and use existing file indents for editing — Files indented differently from the code style keep their indent; the status bar marks it with *. |
 
 ### Editor | Code Style | PHP
 
@@ -8053,17 +8200,15 @@ Page id `editor.code-style.php`.
 
 | Key | Type | Default | Scope | Section | Title and description |
 | --- | --- | --- | --- | --- | --- |
-| `php.codeStyle.useTabs` | bool | `false` | user, project *(not applied yet)* | Tabs and Indents | Use tab character |
-| `php.codeStyle.tabSize` | int (1–16) | `4` | user, project *(not applied yet)* | Tabs and Indents | Tab size |
-| `php.codeStyle.indent` | int (0–16) | `4` | user, project *(not applied yet)* | Tabs and Indents | Indent |
-| `php.codeStyle.continuationIndent` | int (0–16) | `4` | user, project *(not applied yet)* | Tabs and Indents | Continuation indent |
-| `php.codeStyle.braces.classes` | enum: `endOfLine`, `nextLine` | `nextLine` | user, project *(not applied yet)* | Braces Placement | In class declaration |
-| `php.codeStyle.braces.functions` | enum: `endOfLine`, `nextLine` | `nextLine` | user, project *(not applied yet)* | Braces Placement | In function declaration |
-| `php.codeStyle.braces.other` | enum: `endOfLine`, `nextLine` | `endOfLine` | user, project *(not applied yet)* | Braces Placement | Other |
-| `php.codeStyle.blankLines.keepMax` | int (0–10) | `2` | user, project *(not applied yet)* | Blank Lines | Keep maximum blank lines in code |
-| `php.codeStyle.blankLines.afterNamespace` | int (0–10) | `1` | user, project *(not applied yet)* | Blank Lines | After namespace |
-| `php.codeStyle.blankLines.afterImports` | int (0–10) | `1` | user, project *(not applied yet)* | Blank Lines | After imports |
-| `php.codeStyle.blankLines.aroundMethods` | int (0–10) | `1` | user, project *(not applied yet)* | Blank Lines | Around method |
+| `php.codeStyle.useTabs` | bool | `false` | user, project | Tabs and Indents | Use tab character |
+| `php.codeStyle.tabSize` | int (1–16) | `4` | user, project | Tabs and Indents | Tab size |
+| `php.codeStyle.indent` | int (0–16) | `4` | user, project | Tabs and Indents | Indent |
+| `php.codeStyle.continuationIndent` | int (0–16) | `4` | user, project | Tabs and Indents | Continuation indent |
+| `php.codeStyle.braces` | enum: `psr12`, `allman`, `kr` | `psr12` | user, project | Braces Placement | Braces placement — Used by Reformat Code (Intelephense's formatter) and the Generate actions (Alt+Insert). |
+| `php.codeStyle.blankLines.keepMax` | int (0–10) | `2` | user, project | Blank Lines | Keep maximum blank lines in code — Blank lines are applied by Reformat Code (Ctrl+Alt+L); strings, heredocs and comments are left as they are. |
+| `php.codeStyle.blankLines.afterNamespace` | int (0–10) | `1` | user, project | Blank Lines | After namespace |
+| `php.codeStyle.blankLines.afterImports` | int (0–10) | `1` | user, project | Blank Lines | After imports |
+| `php.codeStyle.blankLines.aroundMethods` | int (0–10) | `1` | user, project | Blank Lines | Around method |
 
 ### Editor | Inlay Hints
 
@@ -8071,12 +8216,14 @@ Page id `editor.inlay-hints`.
 
 | Key | Type | Default | Scope | Section | Title and description |
 | --- | --- | --- | --- | --- | --- |
-| `editor.inlayHints.parameterNames` | bool | `true` | user *(not applied yet)* | Parameters | Parameter names — Show parameter names at call sites for literal and null arguments. |
-| `editor.inlayHints.types` | bool | `false` | user *(not applied yet)* | Types | Inferred variable types |
-| `editor.inlayHints.returnTypes` | bool | `true` | user *(not applied yet)* | Types | Return types of closures |
-| `editor.inlayHints.chainedCalls` | bool | `true` | user *(not applied yet)* | Types | Types in method chains |
-| `editor.inlayHints.usages` | bool | `true` | user *(not applied yet)* | Code Vision | Usages — Show the number of usages above classes and methods (Code Vision). |
-| `editor.inlayHints.implementations` | bool | `true` | user *(not applied yet)* | Code Vision | Implementations and inheritors |
+| `editor.inlayHints.parameterNames` | bool | `true` | user | Parameters | Parameter names — Show parameter names at call sites for literal and null arguments. |
+| `editor.inlayHints.types` | bool | `false` | user | Types | Inferred variable types — The type of variables and properties without a declared type. |
+| `editor.inlayHints.returnTypes` | bool | `true` | user | Types | Return types of closures and functions — The inferred return type after the parameter list when none is declared. |
+| `editor.inlayHints.implementations` | bool | `true` | user | Code Vision | Implementations and inheritors — Show "2 implementations", "3 inheritors" and "1 override" above PHP classes and methods (Code Vision). Click to go there. |
+| `editor.inlayHints.languages.php` | bool | `true` | user | Languages | PHP |
+| `editor.inlayHints.languages.javascript` | bool | `true` | user | Languages | JavaScript and TypeScript — Also Vue, Svelte and Astro files. |
+| `editor.inlayHints.languages.lua` | bool | `true` | user | Languages | Lua |
+| `editor.inlayHints.languages.other` | bool | `true` | user | Languages | Other languages |
 
 ### Editor | TODO
 
@@ -8092,18 +8239,19 @@ Page id `vcs.git`.
 
 | Key | Type | Default | Scope | Section | Title and description |
 | --- | --- | --- | --- | --- | --- |
-| `vcs.git.path` | path | `git` | user *(not applied yet)* |  | Path to Git executable — Leave as `git` to use the one on PATH. |
-| `vcs.git.updateMethod` | enum: `merge`, `rebase`, `branchDefault` | `merge` | user *(not applied yet)* |  | Update method |
-| `vcs.git.autoFetch` | bool | `true` | user *(not applied yet)* |  | Fetch remotes automatically |
-| `vcs.git.commit.subjectMaxLength` | int (20–200) | `72` | user *(not applied yet)* | Commit Message Inspections | Limit subject line length |
-| `vcs.git.commit.blankLineAfterSubject` | bool | `true` | user *(not applied yet)* | Commit Message Inspections | Require blank line between subject and body |
-| `vcs.git.commit.bodyRightMargin` | int (40–200) | `72` | user *(not applied yet)* | Commit Message Inspections | Right margin for body (columns) |
-| `vcs.git.commit.warnOnCrlf` | bool | `true` | user *(not applied yet)* | Commit | Warn if CRLF line separators are about to be committed |
-| `vcs.git.commit.signOff` | bool | `false` | user *(not applied yet)* | Commit | Sign-off commits |
+| `vcs.git.path` | path | `git` | user |  | Path to Git executable — Leave as `git` to use the one on PATH. Remote projects always use the git of their host. |
+| `vcs.git.updateMethod` | enum: `merge`, `rebase`, `branchDefault` | `merge` | user |  | Update method — How Update Project (Ctrl+T) brings in remote changes. Branch default follows the branch's git configuration (pull.rebase). |
+| `vcs.git.autoFetch` | bool | `true` | user |  | Fetch remotes automatically — In the background, for repositories whose branch has an upstream. Failures are ignored. |
+| `vcs.git.autoFetchInterval` | int (1–240) | `10` | user |  | Fetch every (minutes) |
+| `vcs.git.commit.subjectMaxLength` | int (20–200) | `72` | user | Commit Message Inspections | Limit subject line length |
+| `vcs.git.commit.blankLineAfterSubject` | bool | `true` | user | Commit Message Inspections | Require blank line between subject and body |
+| `vcs.git.commit.bodyRightMargin` | int (40–200) | `72` | user | Commit Message Inspections | Right margin for body (columns) |
+| `vcs.git.commit.warnOnCrlf` | bool | `true` | user | Commit | Warn if CRLF line separators are about to be committed |
+| `vcs.git.commit.signOff` | bool | `false` | user | Commit | Sign-off commits |
 
-### Version Control (code hosts)
+### Version Control | Code Hosts
 
-Group `vcs.hosts`. These two options have no page in the Settings dialog; set them in `settings.toml`.
+Page id `vcs.hosts`; the GitLab, Forgejo / Gitea and GitHub account pages are below it.
 
 | Key | Type | Default | Scope | Section | Title and description |
 | --- | --- | --- | --- | --- | --- |
@@ -8132,10 +8280,10 @@ Page id `lang.php.composer`.
 | Key | Type | Default | Scope | Section | Title and description |
 | --- | --- | --- | --- | --- | --- |
 | `php.composer.executable` | path | `composer` | user, project |  | Path to composer — A composer executable or composer.phar. |
-| `php.composer.json` | path | `composer.json` | user, project *(not applied yet)* |  | Path to composer.json |
-| `php.composer.syncWithComposerJson` | bool | `true` | user, project *(not applied yet)* |  | Synchronize IDE settings with composer.json — Language level and source roots follow `require.php` and `autoload`. |
-| `php.composer.addPackagesAsLibraries` | bool | `true` | user, project *(not applied yet)* |  | Add packages as libraries |
-| `php.composer.checkUpdates` | bool | `false` | user *(not applied yet)* |  | Check for package updates on project open |
+| `php.composer.json` | path | `composer.json` | user, project |  | Path to composer.json — Relative to the project root. |
+| `php.composer.syncWithComposerJson` | bool | `true` | user, project |  | Synchronize IDE settings with composer.json — The PHP language level follows `require.php` of composer.json (the status bar shows it); the language level setting applies when there is no constraint. |
+| `php.composer.addPackagesAsLibraries` | bool | `true` | user, project |  | Add packages as libraries — Classes in vendor/ are resolved for navigation, completion and Intelephense. Off: vendor/ is left out. |
+| `php.composer.checkUpdates` | bool | `false` | user |  | Check for package updates on project open — Runs `composer outdated --direct` on the project's machine and reports updates in a balloon. |
 
 ### Languages & Frameworks | PHP | Debug
 
@@ -8258,9 +8406,9 @@ Page id `tools.terminal`.
 | --- | --- | --- | --- | --- | --- |
 | `terminal.shellPath` | path | `""` | user | Application Settings | Shell path — Leave empty to use the system default shell. |
 | `terminal.tabName` | string | `Local` | user | Application Settings | Default tab name |
-| `terminal.audibleBell` | bool | `false` | user *(not applied yet)* | Application Settings | Audible bell |
+| `terminal.audibleBell` | bool | `false` | user | Application Settings | Audible bell — Play a short tone when a program rings the terminal bell. |
 | `terminal.copyOnSelection` | bool | `false` | user | Application Settings | Copy to clipboard on selection |
-| `terminal.shellIntegration` | bool | `true` | user *(not applied yet)* | Application Settings | Shell integration — Track the working directory and command boundaries of supported shells. |
+| `terminal.shellIntegration` | bool | `true` | user | Application Settings | Shell integration — bash and zsh report their working directory (shown in the tab tooltip) and command boundaries (green and red marks in the scrollbar for succeeded and failed commands). Applies to new sessions. |
 | `terminal.startDirectory` | path | `""` | user, project | Project Settings | Start directory — Leave empty to start in the project root. |
 | `terminal.environment` | list | `[]` | user, project | Project Settings | Environment variables — One NAME=value pair per entry. |
 
@@ -8829,6 +8977,7 @@ Forge uses the platform's standard folders (Rust's `dirs` crate):
 | `<config dir>` | `$XDG_CONFIG_HOME` or `~/.config` | `~/Library/Application Support` | `%APPDATA%` (`C:\Users\<you>\AppData\Roaming`) |
 | `<cache dir>` | `$XDG_CACHE_HOME` or `~/.cache` | `~/Library/Caches` | `%LOCALAPPDATA%` |
 | `<data dir>` | `$XDG_DATA_HOME` or `~/.local/share` | `~/Library/Application Support` | `%APPDATA%` |
+| `<state dir>` | `$XDG_STATE_HOME` or `~/.local/state` | `~/Library/Application Support` | `%LOCALAPPDATA%` |
 
 ## User configuration — `<config dir>/forge/`
 
@@ -8854,6 +9003,7 @@ Forge uses the platform's standard folders (Rust's `dirs` crate):
 | `php-stubs/<version>/` | JetBrains phpstorm-stubs for Go to Declaration on PHP's own symbols (downloaded on first use, checked against a pinned digest of its files, with its `LICENSE`) |
 | `intelephense/` | Intelephense's storage (`storagePath`) |
 | `jdtls/…` | workspace data of the Java language server |
+| `shell-integration/` | the bash and zsh scripts of the terminal's shell integration (also on remote hosts, in their cache dir) |
 
 Caches can be deleted at any time; Forge rebuilds them. Without a platform cache folder the PHP
 index falls back to `<project>/.forge/cache/php-index.json`.
@@ -8865,6 +9015,13 @@ index falls back to `<project>/.forge/cache/php-index.json`.
 | `langservers/` | language servers installed by Forge (`node_modules/.bin`, `package.json`, `.forge-update-check.json`) |
 | `runtimes/node-<version>/` | the Node.js build Forge downloaded for language servers (only when no Node.js 18+ was installed) |
 | `projects/<name>-<hash>/bookmarks.json` | the bookmarks and bookmark lists of a project (`<hash>` of the project root, for remote projects of `user@host:/path`); kept out of the project |
+| `chat-history/<project>-<hash>/<chat>.json` | the AI chats of each project (the newest 100), see [AI](docs/guide/user/ai.md) |
+
+## State — `<state dir>/forge/`
+
+| Path | Content |
+| --- | --- |
+| `layouts/<project>-<hash>.json` | the tool window layout and open editor tabs of each project |
 
 ## In the project — `<project>/.forge/`
 
@@ -8910,8 +9067,8 @@ there (the last theme while settings load); everything that matters is in the fi
 
 ## Clean slate
 
-To reset Forge completely, quit it and delete `<config dir>/forge`, `<cache dir>/forge` and
-`<data dir>/forge`, and remove the `forge-*` entries from your keychain.
+To reset Forge completely, quit it and delete `<config dir>/forge`, `<cache dir>/forge`,
+`<data dir>/forge` and `<state dir>/forge`, and remove the `forge-*` entries from your keychain.
 
 
 ---

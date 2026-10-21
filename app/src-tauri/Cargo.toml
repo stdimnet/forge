@@ -22,6 +22,7 @@ forge-bookmarks.workspace = true
 forge-plugin-api.workspace = true
 forge-fuzzy.workspace = true
 forge-filetypes.workspace = true
+forge-text.workspace = true
 forge-ai.workspace = true
 futures-util = "0.3"
 forge-agent-cli.workspace = true

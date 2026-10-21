@@ -98,9 +98,9 @@ export async function push(): Promise<void> {
   if (res) notify("success", "Pushed", `${branch ?? "HEAD"} to ${status()?.upstream ?? "origin"}`);
 }
 
-/** "Update Project" (Ctrl+T): pull with merge. */
+/** "Update Project" (Ctrl+T): pull with the update method of the Git settings (merge, rebase or the branch default). */
 export async function updateProject(): Promise<void> {
-  const res = await runGit("Update failed", () => gitApi.pull(false));
+  const res = await runGit("Update failed", () => gitApi.pull());
   if (res) {
     await reloadOpenFiles();
     notify("success", "Project updated", res.output.split("\n")[0] || "All files are up to date");

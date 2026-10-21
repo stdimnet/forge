@@ -6,7 +6,6 @@ import { createResource, createSignal, For, Show } from "solid-js";
 import { createStore } from "solid-js/store";
 import { CircleCheck, CircleX, ExternalLink, KeyRound, LoaderCircle, Minus, Plug, Plus } from "lucide-solid";
 import { defaultServers, forgesApi, hostNames, type Account, type HostKind } from "@/ipc/forges";
-import { SchemaPage } from "@/features/settings/SchemaPage";
 import { Avatar } from "./ui";
 import { errorText, refreshAll } from "./store";
 
@@ -207,8 +206,6 @@ export function AccountsPage(props: { kind: HostKind }) {
           </div>
         </div>
       </Show>
-
-      <SchemaPage pageId="vcs.hosts" />
     </div>
   );
 }

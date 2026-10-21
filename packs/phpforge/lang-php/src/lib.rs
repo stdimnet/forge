@@ -11,7 +11,9 @@
 //! - [`rename`] Rename on the index: dialog labels and name clashes.
 //! - [`stubs`] PHP's own symbols from phpstorm-stubs (the "PHP Runtime").
 //! - [`lsp`] describes how to launch Intelephense / phpactor.
+//! - [`style`] brace placement and blank lines of the PHP code style.
 
+pub mod composer;
 pub mod docblock;
 pub mod fuzzy;
 pub mod generate;
@@ -28,6 +30,7 @@ pub mod resolve;
 pub mod service;
 pub mod structure;
 pub mod stubs;
+pub mod style;
 
 pub use index::{IndexConfig, IndexStats, ProjectIndex};
 pub use model::*;

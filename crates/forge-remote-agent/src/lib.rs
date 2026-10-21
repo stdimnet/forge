@@ -174,6 +174,10 @@ impl Agent {
             Call::WriteFile { path, contents } => {
                 reply(self.backend()?.write_file(&path, &contents)?)
             }
+            Call::ReadBytes { path } => reply(serde_bytes::ByteBuf::from(
+                self.backend()?.read_bytes(&path)?,
+            )),
+            Call::WriteBytes { path, bytes } => reply(self.backend()?.write_bytes(&path, &bytes)?),
             Call::CreateFile { path } => reply(self.backend()?.create_file(&path)?),
             Call::CreateDir { path } => reply(self.backend()?.create_dir(&path)?),
             Call::Rename { from, to } => reply(self.backend()?.rename(&from, &to)?),
