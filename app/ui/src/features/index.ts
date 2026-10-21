@@ -37,4 +37,5 @@ import "./contextMenu";
 import "./mainMenu";
 import "./editorTabs";
 import "./bookmarks";
+import "./todo";
 import "./updates";

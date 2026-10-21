@@ -14,6 +14,11 @@ async function openViaGotoFile(page, name) {
 /** @param {import("playwright-core").Page} page @param {string} id */
 const run = (page, id) => page.evaluate((cmd) => window.__forgeRunCommand(cmd), id);
 
+/** Close the startup balloons ("Database found in .env") so they do not cover the window. */
+async function dismissBalloons(page) {
+  await page.evaluate(() => document.querySelectorAll(".balloon .balloon-close").forEach((b) => b.click()));
+}
+
 /** @type {Record<string, (page: import("playwright-core").Page) => Promise<void>>} */
 export default {
   "split-editors": async (page) => {
@@ -78,5 +83,17 @@ export default {
     await page.click(".editor-slot:not(.hidden) .cm-content");
     await page.keyboard.press("Control+F11");
     await page.waitForSelector(".mnemonic-popup");
+  },
+  todo: async (page) => {
+    await openViaGotoFile(page, "OrderController");
+    await run(page, "ActivateTODOToolWindow");
+    await page.waitForSelector(".todo-item");
+    // Live update: a new TODO typed in the editor shows up without saving.
+    await page.click(".editor-slot:not(.hidden) .cm-content");
+    await page.keyboard.press("Control+Home");
+    await page.keyboard.press("End");
+    await page.keyboard.type("\n// FIXME: check the order state first");
+    await page.waitForSelector('.todo-item:has-text("check the order state")');
+    await dismissBalloons(page);
   },
 };

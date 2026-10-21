@@ -1,0 +1,36 @@
+/* TODO tool window; the tree reuses the Find tool window's classes (codeintel.css). */
+.todo-file {
+  padding-left: 10px;
+}
+.todo-file.nested {
+  padding-left: 28px;
+}
+.todo-item {
+  padding-left: 32px;
+  cursor: default;
+}
+.todo-item.nested {
+  padding-left: 50px;
+}
+.todo-item.selected {
+  background: var(--bg-selection);
+}
+.todo-pos {
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+.todo-text {
+  overflow: hidden;
+  color: var(--info);
+  font-style: italic;
+  text-overflow: ellipsis;
+}
+.todo-keyword {
+  font-weight: 600;
+}
+.todo-error {
+  color: var(--danger);
+}
+.find-tool:disabled {
+  opacity: 0.5;
+}

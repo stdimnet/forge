@@ -15,6 +15,8 @@ export interface TodoRequest {
   patterns?: TodoPattern[];
   /** Only these files (live updates); omitted = the whole project. */
   paths?: string[];
+  /** Unsaved editor contents by path; they replace the files on disk. */
+  buffers?: Record<string, string>;
   limit?: number;
 }
 
