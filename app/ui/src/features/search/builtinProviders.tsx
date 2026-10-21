@@ -3,13 +3,14 @@
  * actions (Find Action). Classes, symbols and text come from language packs.
  */
 import { FileIcon } from "@/shell/FileIcon";
-import { openFile } from "@/state/editor";
+import { activeTab, openFile } from "@/state/editor";
 import { openFileAt } from "@/editor/views";
 import { workspace } from "@/state/workspace";
 import { isTauri } from "@/ipc";
 import { searchApi } from "@/ipc/search";
 import { allActions, isActionAvailable, runAction, shortcutLabel } from "@/keymap";
 import { recentFiles } from "@/features/navigation/history";
+import { recencyBoost } from "./recencyBoost";
 import { registerSearchProvider, type SearchItem } from "./providers";
 
 const dirOf = (path: string) => path.split("/").slice(0, -1).join("/");
@@ -36,8 +37,13 @@ registerSearchProvider({
   order: 0,
   async search(query, { limit }) {
     if (!query.trim()) return recentFiles().slice(0, limit).map((p, i) => fileItem(p, 1000 - i));
-    const hits = await searchApi.findFiles(query, limit);
-    return hits.map((h) => fileItem(h.path, h.score, h.matchedPath ? undefined : h.positions));
+    const hits = await searchApi.findFiles(query, limit * 3);
+    const recent = recentFiles();
+    const active = activeTab()?.path;
+    return hits
+      .map((h) => fileItem(h.path, h.score + recencyBoost(h.path, recent, active), h.matchedPath ? undefined : h.positions))
+      .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
+      .slice(0, limit);
   },
 });
 
