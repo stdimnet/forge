@@ -479,6 +479,9 @@ registerMock("collab_doc_save", async ({ docId }) => {
 if (mode === "host") startHost("editFiles");
 if (mode === "guest") {
   void (async () => {
+    // Join once the workbench is up, so opening the project does not reset the shared tabs.
+    for (let i = 0; i < 40 && !document.querySelector(".cm-content"); i++) await sleep(250);
+    await sleep(500);
     for (let i = 0; i < 20 && role === "none"; i++) {
       try {
         await join("Alex");

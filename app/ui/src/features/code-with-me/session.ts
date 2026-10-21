@@ -7,7 +7,7 @@
  * - Guest: tabs `cwm://<path>` show the host's shared files; they close when the session
  *   ends. The guest's own project stays open.
  */
-import { createEffect, createRoot, on } from "solid-js";
+import { createEffect, createMemo, createRoot, on } from "solid-js";
 import { collabApi, type Participant, type SessionView } from "@/ipc/collab";
 import { workspaceApi } from "@/ipc/workspace";
 import { showBalloon } from "@/keymap";
@@ -137,16 +137,20 @@ export function trackEditorSharing(): void {
   void collabApi.onNotice((e) => showBalloon("Code With Me", e.text));
   void collabApi.onEnded((e) => showBalloon("Code With Me", e.reason, 6000));
   createRoot(() => {
+    // A memo: status events arrive all the time and must not rerun this for the same role.
+    const role = createMemo(() => session().role);
     createEffect(
       on(
-        () => session().role,
+        role,
         (role, prev) => {
           const s = session();
           if (role === "host") void shareOpenTabs(s);
           if (role === "guest" && prev !== "guest") {
             const files = s.files.slice(0, 10);
             void (async () => {
-              for (const f of files) await openSharedFile(f.path).catch(() => undefined);
+              for (const f of files) await openSharedFile(f.path).catch((e) => console.warn(`cannot open shared file ${f.path}`, e));
+              // The host's first file is the one to look at.
+              if (files[0] && sharedDoc(guestPath(files[0].path))) await openSharedFile(files[0].path).catch(() => undefined);
             })();
           }
           if (role !== "host" && prev === "host") void unshareTabs();
@@ -158,7 +162,7 @@ export function trackEditorSharing(): void {
     // A host that opens another project ends the session.
     createEffect(
       on(
-        () => workspace()?.root,
+        createMemo(() => workspace()?.root),
         (_root, prev) => {
           if (prev !== undefined && session().role === "host") void collabApi.end();
         },
