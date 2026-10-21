@@ -10,6 +10,8 @@
 //! - Items carry the 0-based line, the UTF-16 column and length of the match in that line and
 //!   the matched text without comment terminators.
 
+use std::collections::BTreeMap;
+
 use regex_lite::{Regex, RegexBuilder};
 use serde::{Deserialize, Serialize};
 
@@ -51,6 +53,10 @@ pub struct TodoRequest {
     /// whole project.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub paths: Option<Vec<String>>,
+    /// Unsaved editor contents by project-relative path; they replace the files on disk
+    /// (live updates while typing).
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub buffers: BTreeMap<String, String>,
     /// Maximum number of items reported.
     #[serde(default = "default_todo_limit")]
     pub limit: usize,
@@ -61,6 +67,7 @@ impl Default for TodoRequest {
         TodoRequest {
             patterns: Vec::new(),
             paths: None,
+            buffers: BTreeMap::new(),
             limit: DEFAULT_TODO_LIMIT,
         }
     }
@@ -426,7 +433,8 @@ impl<'a> TodoCollector<'a> {
     }
 }
 
-/// Scan in-memory files (browser mode, tests). `req.paths` limits the files.
+/// Scan in-memory files (browser mode, tests). `req.paths` limits the files and
+/// `req.buffers` replaces their texts.
 pub fn scan_todos<'t>(
     req: &TodoRequest,
     files: impl IntoIterator<Item = (&'t str, &'t str)>,
@@ -452,6 +460,7 @@ pub fn scan_todos<'t>(
         {
             continue;
         }
+        let text = req.buffers.get(path).map_or(text, String::as_str);
         collector.add(path, text);
     }
     collector.finish()
@@ -553,5 +562,24 @@ mod tests {
             ..TodoRequest::default()
         };
         assert!(scan_todos(&bad, []).error.is_some());
+    }
+
+    #[test]
+    fn unsaved_buffers_replace_the_files() {
+        let req = TodoRequest {
+            paths: Some(vec!["a.php".into()]),
+            buffers: [("a.php".to_string(), "<?php\n\n// FIXME: typed".to_string())].into(),
+            ..TodoRequest::default()
+        };
+        let r = scan_todos(&req, [("a.php", "<?php // TODO: saved")]);
+        assert_eq!(r.count, 1);
+        assert_eq!(r.files[0].items[0].text, "FIXME: typed");
+        assert_eq!(r.files[0].items[0].line, 2);
+        // A buffer without TODOs removes the file from the answer.
+        let cleared = TodoRequest {
+            buffers: [("a.php".to_string(), "<?php".to_string())].into(),
+            ..req
+        };
+        assert!(scan_todos(&cleared, [("a.php", "<?php // TODO")]).files.is_empty());
     }
 }

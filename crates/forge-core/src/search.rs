@@ -88,6 +88,13 @@ impl Workspace {
         match &req.paths {
             Some(paths) => {
                 for rel in paths {
+                    if let Some(text) = req.buffers.get(rel) {
+                        // Unsaved editor contents win over the file on disk.
+                        if scanner.wants(rel) && self.resolve(rel).is_ok() {
+                            collector.add(rel, text);
+                        }
+                        continue;
+                    }
                     let Ok(abs) = self.resolve(rel) else { continue };
                     if !scanner.wants(rel)
                         || !std::fs::metadata(&abs)
@@ -249,5 +256,18 @@ mod tests {
         let r = ws.find_todos(&only).unwrap();
         assert_eq!(r.files.len(), 1);
         assert_eq!(r.files[0].items[0].text, "FIXME");
+
+        let typed = TodoRequest {
+            paths: Some(vec!["app/Order.php".into(), "../escape.php".into()]),
+            buffers: [
+                ("app/Order.php".to_string(), "<?php\n// FIXME: unsaved\n".to_string()),
+                ("../escape.php".to_string(), "<?php // TODO".to_string()),
+            ]
+            .into(),
+            ..TodoRequest::default()
+        };
+        let r = ws.find_todos(&typed).unwrap();
+        assert_eq!(r.count, 1);
+        assert_eq!(r.files[0].items[0].text, "FIXME: unsaved");
     }
 }
