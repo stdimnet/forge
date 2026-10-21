@@ -6,6 +6,10 @@
 //! - with the argument `secondary`, behaves like a linter attached next to a primary
 //!   server: no hover, its own completion item and diagnostics source,
 //! - answers `workspace/symbol` with `<query>Symbol` in every open document,
+//! - the primary server also renames (with `prepareRename`), finds implementations,
+//!   offers code actions (one resolved lazily, one running a command that sends
+//!   `workspace/applyEdit`); the secondary one announces none of these, like free
+//!   Intelephense,
 //! - after `initialized` asks the client for `workspace/configuration` and creates a
 //!   work-done progress, then echoes what it got back as `window/logMessage`.
 
@@ -107,7 +111,11 @@ fn main() {
                     "documentSymbolProvider": true,
                     "signatureHelpProvider": {"triggerCharacters": ["(", ","]},
                     "documentFormattingProvider": !secondary,
-                    "workspaceSymbolProvider": true
+                    "workspaceSymbolProvider": true,
+                    "renameProvider": if secondary { Value::Null } else { json!({"prepareProvider": true}) },
+                    "implementationProvider": !secondary,
+                    "codeActionProvider": if secondary { Value::Null } else { json!({"resolveProvider": true}) },
+                    "executeCommandProvider": {"commands": ["fake.apply"]}
                 },
                 "serverInfo": {"name": "fake", "version": "1"}
             }),
@@ -188,6 +196,44 @@ fn main() {
                 item
             }
             "textDocument/definition" => json!([{"uri": uri, "range": range(0, 0, 5)}]),
+            "textDocument/implementation" => json!([{"uri": uri, "range": range(3, 0, 4)}]),
+            "textDocument/prepareRename" => {
+                json!({"range": range(0, 6, 10), "placeholder": "User"})
+            }
+            "textDocument/rename" => json!({"documentChanges": [{
+                "textDocument": {"uri": uri, "version": null},
+                "edits": [{"range": range(0, 6, 10), "newText": params["newName"]}]
+            }]}),
+            "textDocument/codeAction" => {
+                let n = params["context"]["diagnostics"]
+                    .as_array()
+                    .map_or(0, Vec::len);
+                json!([
+                    {"title": format!("Fix {n} problem(s)"), "kind": "quickfix", "data": {"uri": uri}},
+                    {"title": "Apply via command", "command": "fake.apply", "arguments": [uri]}
+                ])
+            }
+            "codeAction/resolve" => {
+                let mut action = params.clone();
+                let target = params["data"]["uri"]
+                    .as_str()
+                    .unwrap_or_default()
+                    .to_string();
+                action["edit"] = json!({"changes": {target: [{"range": range(0, 0, 0), "newText": "// fixed\n"}]}});
+                action
+            }
+            "workspace/executeCommand" => {
+                let target = params["arguments"][0]
+                    .as_str()
+                    .unwrap_or_default()
+                    .to_string();
+                write(
+                    json!({"jsonrpc": "2.0", "id": "apply-1", "method": "workspace/applyEdit",
+                             "params": {"label": "fake", "edit": {"changes": {target: [
+                                 {"range": range(0, 0, 0), "newText": "applied"}]}}}}),
+                );
+                Value::Null
+            }
             "textDocument/references" => {
                 json!([{"uri": uri, "range": range(1, 0, 2)}, {"uri": uri, "range": range(2, 0, 2)}])
             }

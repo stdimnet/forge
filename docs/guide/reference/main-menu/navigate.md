@@ -31,10 +31,10 @@ Back and forward, Search Everywhere, Go to Class/File/Symbol/Line, declarations 
 | Line/Column… | `Ctrl+G` | `Cmd+L` | yes | Moves the caret to a line (and column) of the current file. [More](../../user/editor.md#editing-actions) ([screenshot](../../../screenshots/docs-goto-line.png)) |
 | Select In… | `Alt+F1` | `Alt+F1` | not yet | Not available yet; the entry is disabled. |
 | Navigation Bar | `Alt+Home` | `Cmd+Up` | not yet | Not available yet; the entry is disabled. |
-| Declaration or Usages | `Ctrl+B` | `Cmd+B` | yes | Jumps to the declaration of the symbol at the caret; several targets open the Choose Declaration popup. [More](../../user/editor.md#go-to-declaration) |
-| Implementation(s) | `Ctrl+Alt+B` | `Cmd+Alt+B` | not yet | Not available yet; the entry is disabled. |
-| Type Declaration | `Ctrl+Shift+B` | `Cmd+Shift+B` | not yet | Not available yet; the entry is disabled. |
-| Super Method | `Ctrl+U` | `Cmd+U` | not yet | Not available yet; the entry is disabled. |
+| Declaration or Usages | `Ctrl+B` | `Cmd+B` | yes | Jumps to the declaration of the symbol at the caret; on a declaration it shows the usages; several targets open the Choose Declaration popup. [More](../../user/editor.md#go-to-declaration) ([screenshot](../../../screenshots/php-nav-stub.png)) |
+| Implementation(s) | `Ctrl+Alt+B` | `Cmd+Alt+B` | yes | Lists the implementations of the class, interface or method at the caret. [More](../../user/editor.md#implementation-type-declaration-super-method) ([screenshot](../../../screenshots/php-nav-gutter.png)) |
+| Type Declaration | `Ctrl+Shift+B` | `Cmd+Shift+B` | yes | Jumps to the class of the variable, property or method return type at the caret. [More](../../user/editor.md#implementation-type-declaration-super-method) |
+| Super Method | `Ctrl+U` | `Cmd+U` | yes | Jumps to the method the current method overrides or implements. [More](../../user/editor.md#implementation-type-declaration-super-method) |
 | Test | `Ctrl+Shift+T` | `Cmd+Shift+T` | not yet | Not available yet; the entry is disabled. |
 | Related Symbol… | `Ctrl+Alt+Home` | `Ctrl+Cmd+Up` | not yet | Not available yet; the entry is disabled. |
 | File Structure | `Ctrl+F12` | `Cmd+F12` | not yet | Not available yet; the entry is disabled. |

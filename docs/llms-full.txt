@@ -50,6 +50,10 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 
 ## Recently added
 
+- **PHP navigation like PHPStorm**: `Ctrl+Click` on every PHP symbol (also `\Throwable` and
+  `array_map`, opened read-only in the PHP stubs), Show Usages on declarations, Find Usages
+  (`Alt+F7`) in the Find tool window, Implementation / Super Method / Type Declaration and the
+  implemented / overridden gutter icons ([PHP](docs/guide/user/php.md#navigation)).
 - **Splash screen and updates**: the wordmark fills with molten metal while Forge loads, the
   last project reopens, and signed updates are offered on startup or with Help | Check for
   Updates… ([First start](docs/guide/getting-started/first-start.md#the-splash-screen)).
@@ -70,7 +74,7 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 
 ## Not available yet
 
-Refactorings (Rename, Extract, Move), Find Usages, Replace in Files, quick-fixes (`Alt+Enter`),
+Refactorings (Rename, Extract, Move), Replace in Files, quick-fixes (`Alt+Enter`),
 bookmarks, TODO, Local History, split editors, Get from VCS, stash, multiple project windows, a
 plugin Marketplace and automatic updates. The pages mark smaller gaps with notes.
 
@@ -607,13 +611,13 @@ bound and show "*Action* is not available yet" so you are not surprised by somet
 happening.
 
 - Get from VCS
-- Replace in Files (`Ctrl+Shift+R`), Find Usages (`Alt+F7`), Find tool window
+- Replace in Files (`Ctrl+Shift+R`), Find Usages in File (`Ctrl+F7`), Highlight Usages in File
 - Refactorings: Rename (`Shift+F6`), Extract/Introduce, Move, Change Signature, Safe Delete
 - Show Context Actions / quick-fixes (`Alt+Enter`), Quick Documentation popup (`Ctrl+Q`; hover
   documentation works with the mouse), File Structure popup (`Ctrl+F12`)
 - Bookmarks, TODO and Notifications tool windows, Local History
 - Live templates, Surround With, Optimize Imports, Type/Call/Method Hierarchy
-- Go to Implementation (`Ctrl+Alt+B`), Go to Super Method, Go to Test
+- Go to Test (`Ctrl+Shift+T`)
 - Split editors, Distraction Free / Presentation / Zen modes
 - Get from VCS, stash/unstash, Commit and Push
 - Marketplace, settings export/import, automatic updates
@@ -954,21 +958,26 @@ the current one in bold, with its documentation. It also opens automatically aft
 
 ## Go to Declaration
 
-**Go to Declaration or Usages** (`Ctrl+B`, macOS `Cmd+B`) or `Ctrl+Click` (macOS
-`Cmd+Click`) jumps to the declaration of the symbol at the caret. While `Ctrl` is held, the
-symbol under the mouse is underlined like a link.
+**Go to Declaration or Usages** (`Ctrl+B`, macOS `Cmd+B`), `Ctrl+Click` (macOS `Cmd+Click`)
+or a middle click jumps to the declaration of the symbol at the caret. While `Ctrl` is held,
+the symbol under the mouse is underlined like a link, with a small tooltip that shows where it
+is declared (in PHP: the namespace or class and the declaration).
 
 Forge first asks its framework providers, which know things a language server cannot
 resolve: Laravel route names, views, config keys and Eloquent attributes; Symfony service ids,
 routes and Twig templates; Doctrine entities and DQL fields; React/Vue/Angular components and
-props; Lua modules. Then it asks the language server.
+props; Lua modules. Then it asks the language server and, in PHP files, Forge's PHP index and
+the PHP stubs (see [PHP navigation](docs/guide/user/php.md#navigation)).
+
+On a declaration itself (a class, method or function name), Go to Declaration shows its
+**usages** instead, as in PHPStorm; a single usage opens directly.
 
 When there are several targets — from a framework provider (a view that exists in two places, a
 component used in many templates) or from the language server — the **Choose Declaration**
-popup lists them at the caret with file, line and the code of each target, as in PHPStorm. Pick
-one with the arrow keys and `Enter`, or `Escape` to cancel. The same popup is used by line
-markers with several targets, in every language pack (PHP and its frameworks, WebForge,
-LuaForge).
+popup lists them at the caret with file, line and the code of each target (or the symbol name
+and its namespace), as in PHPStorm. Pick one with the arrow keys and `Enter`, or `Escape` to
+cancel. The same popup is used by line markers with several targets, in every language pack
+(PHP and its frameworks, WebForge, LuaForge).
 
 ![Choose Declaration in React](docs/screenshots/editor-polish-choose-declaration-react.png)
 
@@ -976,12 +985,47 @@ LuaForge).
 
 If nothing is found, a hint "Cannot find declaration to go to" appears at the caret.
 
+Declarations outside the project (PHP's own classes in the PHP stubs, files a language server
+points to outside the project) open in a **read-only** tab with a "Read-only library file"
+banner and breadcrumbs such as `PHP Runtime › Core › Core_c.php › Throwable`.
+
 **Back** / **Forward** (`Ctrl+Alt+Left` / `Ctrl+Alt+Right`, macOS `Cmd+[` / `Cmd+]`) return
 to where you were.
 
-> **Note:** Go to Implementation (`Ctrl+Alt+B`), Type Declaration, Super Method, Test and
-> Find Usages (`Alt+F7`) are not available yet. In React and Vue projects, Go to Declaration on
-> a component's own name lists its usages instead.
+### Implementation, Type Declaration, Super Method
+
+| Action | Shortcut | macOS |
+| --- | --- | --- |
+| Implementation(s) | `Ctrl+Alt+B`, `Ctrl+Alt+Click` | `Cmd+Alt+B`, `Cmd+Alt+Click` |
+| Type Declaration | `Ctrl+Shift+B` | `Cmd+Shift+B` |
+| Super Method | `Ctrl+U` | `Cmd+U` |
+
+They ask the language servers (`textDocument/implementation`, `typeDefinition`) and fall back
+to the PHP index in PHP files. When a server lacks the feature (Go to Implementation in
+Intelephense without a licence) and the index finds nothing, the hint says so.
+
+> **Note:** Go to Test (`Ctrl+Shift+T`) is not available yet. In React and Vue projects, Go to
+> Declaration on a component's own name lists its usages through the framework provider.
+
+## Find Usages and Show Usages
+
+**Show Usages** (`Ctrl+Alt+F7`, macOS `Cmd+Alt+F7`) opens a popup at the caret with every
+usage of the symbol: its code line with the reference highlighted, the file and the line,
+grouped by usage type (import, new instance, method call, static access, extends/implements,
+type declaration, PHPDoc, …). `Up`/`Down` select, `Enter` opens, `Escape` closes, the pin
+button opens the result in the Find tool window.
+
+**Find Usages** (`Alt+F7`) shows the usages in the **Find** tool window (`Alt+3`, macOS
+`Cmd+3`), one tab per search, as a tree by usage type and file; **Group by Usage Type**,
+**Expand All** and **Collapse All** are on its toolbar. The Find stripe button appears once
+there is a result.
+
+Usages come from the language servers (`textDocument/references`); in PHP files without a
+server answer, from the PHP index. Unsaved changes in open editors are taken into account.
+
+![Show Usages](docs/screenshots/php-nav-show-usages.png)
+
+![Find tool window](docs/screenshots/php-nav-find-window.png)
 
 ## Problems
 
@@ -1061,7 +1105,8 @@ Other occurrences of the selected text are highlighted automatically.
 To search the whole project, use [Find in Files](docs/guide/user/search-everywhere.md#find-in-files)
 (`Ctrl+Shift+F`, macOS `Cmd+Shift+F`).
 
-> **Note:** Replace in Files (`Ctrl+Shift+R`) and the Find tool window are not available yet.
+> **Note:** Replace in Files (`Ctrl+Shift+R`) is not available yet. The Find tool window
+> shows [usages](#find-usages-and-show-usages).
 
 ## Gutter
 
@@ -1072,6 +1117,9 @@ markers.
   one to see the change, roll it back or open the diff. See [Git](docs/guide/user/git.md#in-the-editor).
 - **Line markers** of plugins: routes on controller actions, "go to template", entity ⇄
   repository, Angular component ⇄ template, compose services, and more. Click to navigate.
+- **Implemented / overridden markers** in PHP: ↓ on classes with subclasses, interfaces and
+  methods with implementations or overrides, ↑ on methods that implement or override one. See
+  [PHP](docs/guide/user/php.md#gutter-icons).
 - **Run icons** ▶ next to PHPUnit tests, `package.json` scripts, Lua main chunks, scratch
   files, `.http` requests, compose services and Dockerfiles.
 - **Breakpoints**: click a line number in a PHP file to toggle a breakpoint (drawn over the
@@ -1094,10 +1142,10 @@ editor context menu:
 | Copy / Paste Special > Copy Absolute Path, Copy Reference, Paste as Plain Text | works |
 | Select All | works |
 | Column Selection Mode | not available yet (use `Alt`+drag) |
-| Find Usages | not available yet |
+| Find Usages | works |
 | Refactor > Rename…, Refactor This… | not available yet |
 | Go To > Declaration or Usages, Line/Column | works |
-| Go To > Implementation(s) | not available yet |
+| Go To > Implementation(s) | works |
 | Generate… | works in PHP files, see [PHP](docs/guide/user/php.md#generate) |
 | Reformat Code | works |
 | Optimize Imports | not available yet |
@@ -1218,8 +1266,9 @@ the search runs on the host.
 
 The **Text** tab of Search Everywhere uses the same search (from two characters on).
 
-> **Note:** Replace in Files (`Ctrl+Shift+R`) and the Find tool window ("Open in Find Tool
-> Window") are not available yet.
+> **Note:** Replace in Files (`Ctrl+Shift+R`) and "Open in Find Tool Window" for Find in Files
+> are not available yet. The Find tool window shows the results of
+> [Find Usages](docs/guide/user/editor.md#find-usages-and-show-usages).
 
 
 ---
@@ -2425,11 +2474,14 @@ Source: docs/guide/user/shortcuts/navigation.md
 
 # Shortcuts: Navigation
 
-Jumping to declarations, lines, problems, recent files and between editor tabs. Windows/Linux shortcuts first, macOS second; both are PHPStorm's defaults and can be changed in Settings | Keymap.
+Jumping to declarations, implementations, super methods, lines, problems, recent files and between editor tabs. Windows/Linux shortcuts first, macOS second; both are PHPStorm's defaults and can be changed in Settings | Keymap.
 
 | Action | Windows / Linux | macOS |
 | --- | --- | --- |
 | [Go to Declaration or Usages](#go-to-declaration-or-usages) | `Ctrl+B` | `Cmd+B` |
+| [Go to Implementation(s)](#go-to-implementations) | `Ctrl+Alt+B` | `Cmd+Alt+B` |
+| [Go to Type Declaration](#go-to-type-declaration) | `Ctrl+Shift+B` | `Cmd+Shift+B` |
+| [Go to Super Method](#go-to-super-method) | `Ctrl+U` | `Cmd+U` |
 | [Back](#back) | `Ctrl+Alt+Left` | `Cmd+[`, `Cmd+Alt+Left` |
 | [Forward](#forward) | `Ctrl+Alt+Right` | `Cmd+]`, `Cmd+Alt+Right` |
 | [Go to Line/Column](#go-to-linecolumn) | `Ctrl+G` | `Cmd+L` |
@@ -2451,11 +2503,43 @@ Jumping to declarations, lines, problems, recent files and between editor tabs. 
 
 **Shortcut:** `Ctrl+B` · macOS `Cmd+B` · action id `GotoDeclaration`
 
-Jumps to the declaration of the symbol at the caret; several targets open the Choose Declaration popup.
+Jumps to the declaration of the symbol at the caret (also `Ctrl+Click` and middle click); on a declaration it shows its usages; several targets open the Choose Declaration popup. PHP's own classes and functions open read-only in the PHP stubs.
 
 **Menu:** Navigate | Declaration or Usages
 
-More: [Editor](docs/guide/user/editor.md#go-to-declaration)
+![Ctrl+hover on \Throwable](docs/screenshots/php-nav-ctrl-hover.png)
+
+More: [Editor](docs/guide/user/editor.md#go-to-declaration), [PHP navigation](docs/guide/user/php.md#navigation)
+
+## Go to Implementation(s)
+
+**Shortcut:** `Ctrl+Alt+B` · macOS `Cmd+Alt+B` · action id `GotoImplementation`
+
+Lists the classes implementing or extending the class or interface at the caret, or the methods overriding the method (also `Ctrl+Alt+Click`).
+
+**Menu:** Navigate | Implementation(s)
+
+More: [Editor](docs/guide/user/editor.md#implementation-type-declaration-super-method)
+
+## Go to Type Declaration
+
+**Shortcut:** `Ctrl+Shift+B` · macOS `Cmd+Shift+B` · action id `GotoTypeDeclaration`
+
+Jumps to the class of the variable, property or method return type at the caret.
+
+**Menu:** Navigate | Type Declaration
+
+More: [Editor](docs/guide/user/editor.md#implementation-type-declaration-super-method)
+
+## Go to Super Method
+
+**Shortcut:** `Ctrl+U` · macOS `Cmd+U` · action id `GotoSuperMethod`
+
+Jumps to the method the current method overrides or implements; on a class, to its parent class and interfaces.
+
+**Menu:** Navigate | Super Method
+
+More: [Editor](docs/guide/user/editor.md#implementation-type-declaration-super-method)
 
 ## Back
 
@@ -2626,7 +2710,7 @@ Source: docs/guide/user/shortcuts/search.md
 
 # Shortcuts: Search
 
-Search Everywhere, Go to Class/File/Symbol, find in the current file and Find in Files. Windows/Linux shortcuts first, macOS second; both are PHPStorm's defaults and can be changed in Settings | Keymap.
+Search Everywhere, Go to Class/File/Symbol, find in the current file, Find in Files and Find / Show Usages. Windows/Linux shortcuts first, macOS second; both are PHPStorm's defaults and can be changed in Settings | Keymap.
 
 | Action | Windows / Linux | macOS |
 | --- | --- | --- |
@@ -2640,6 +2724,8 @@ Search Everywhere, Go to Class/File/Symbol, find in the current file and Find in
 | [Find Next / Move to Next Occurrence](#find-next--move-to-next-occurrence) | `F3` | `Cmd+G` |
 | [Find Previous / Move to Previous Occurrence](#find-previous--move-to-previous-occurrence) | `Shift+F3` | `Cmd+Shift+G` |
 | [Find in Files…](#find-in-files) | `Ctrl+Shift+F` | `Cmd+Shift+F` |
+| [Find Usages](#find-usages) | `Alt+F7` | `Alt+F7` |
+| [Show Usages](#show-usages) | `Ctrl+Alt+F7` | `Cmd+Alt+F7` |
 
 ## Search Everywhere
 
@@ -2754,6 +2840,30 @@ Searches the text of all project files, with match case, whole words, regular ex
 ![Find in Files…](docs/screenshots/docs-find-in-files.png)
 
 More: [Search Everywhere and Find Action](docs/guide/user/search-everywhere.md#find-in-files)
+
+## Find Usages
+
+**Shortcut:** `Alt+F7` · macOS `Alt+F7` · action id `FindUsages`
+
+Finds the usages of the symbol at the caret and shows them in the Find tool window, grouped by usage type and file.
+
+**Menu:** Edit | Find Usages | Find Usages
+
+![Find tool window](docs/screenshots/php-nav-find-window.png)
+
+More: [Editor](docs/guide/user/editor.md#find-usages-and-show-usages)
+
+## Show Usages
+
+**Shortcut:** `Ctrl+Alt+F7` · macOS `Cmd+Alt+F7` · action id `ShowUsages`
+
+Shows the usages of the symbol at the caret in a popup; `Enter` opens one, the pin button keeps them in the Find tool window. `Ctrl+Click` on a declaration does the same.
+
+**Menu:** Edit | Find Usages | Show Usages
+
+![Show Usages](docs/screenshots/php-nav-show-usages.png)
+
+More: [Editor](docs/guide/user/editor.md#find-usages-and-show-usages)
 
 
 ---
@@ -3248,6 +3358,7 @@ Opening, hiding, resizing and switching tool windows. Windows/Linux shortcuts fi
 | Action | Windows / Linux | macOS |
 | --- | --- | --- |
 | [Project tool window](#project-tool-window) | `Alt+1` | `Cmd+1` |
+| [Find tool window](#find-tool-window) | `Alt+3` | `Cmd+3` |
 | [Run tool window](#run-tool-window) | `Alt+4` | `Cmd+4` |
 | [Debug tool window](#debug-tool-window) | `Alt+5` | `Cmd+5` |
 | [Problems tool window](#problems-tool-window) | `Alt+6` | `Cmd+6` |
@@ -3284,6 +3395,16 @@ Shows or hides the Project tool window.
 **Menu:** View | Tool Windows | Project
 
 More: [Workbench and tool windows](docs/guide/user/workbench.md#project-view)
+
+## Find tool window
+
+**Shortcut:** `Alt+3` · macOS `Cmd+3` · action id `ActivateFindToolWindow`
+
+Shows or hides the Find tool window with the results of Find Usages.
+
+**Menu:** View | Tool Windows | Find
+
+More: [Editor](docs/guide/user/editor.md#find-usages-and-show-usages)
 
 ## Run tool window
 
@@ -3752,8 +3873,9 @@ PHP support is the **PHPForge** pack (plugin `forge.php`). It combines two engin
 
 - **Forge's PHP index**, built with tree-sitter in Rust: classes, interfaces, traits, enums,
   functions, constants, members, PHPDoc and attributes of every PHP file in the project. It
-  powers the Structure tool window, Go to Class/Symbol, index-based hover and the Generate
-  actions, and works without any language server.
+  powers the Structure tool window, Go to Class/Symbol, index-based hover, the Generate
+  actions and [navigation](#navigation) when no language server answers, and works without
+  any language server.
 - **A PHP language server**, Intelephense or Phpactor, for completion, diagnostics,
   Go to Declaration, hover and formatting. See
   [Language servers](docs/guide/user/language-servers.md#php-intelephense-and-phpactor).
@@ -3793,6 +3915,119 @@ entry to jump to it.
 `Cmd+Alt+O`) search the PHP index with camel-hump matching: `OrCo` finds
 `OrderController`, `OrderController::sto` finds its `store` method. See
 [Search Everywhere](docs/guide/user/search-everywhere.md).
+
+## Navigation
+
+Navigation works like in PHPStorm on every PHP symbol. The language server answers first;
+when none runs (or it has no answer) Forge's PHP index does, so navigation also works without
+Intelephense. Everything runs through the project's backend, so it works the same in
+[remote projects](#remote-projects).
+
+### Go to Declaration
+
+`Ctrl+Click`, `Ctrl+B` (macOS `Cmd+Click`, `Cmd+B`) or a middle click jumps to the declaration
+of:
+
+- classes, interfaces, traits and enums, written with or without a leading backslash
+  (`\Throwable`, `\App\Models\User`, `User`), resolved through `use` imports (also aliases
+  `use X as Y` and group uses `use App\Models\{User, Order}`) and the current namespace;
+- names in `use` statements, including `use function` and `use const`;
+- functions (`array_map`, namespaced functions with PHP's fallback to the global function);
+- methods and properties on `$this`, `self::`, `static::`, `parent::`, class names and
+  variables, typed through parameters, `new`, `catch (X $e)`, inline `/** @var X $x */`,
+  property types and PHPDoc, and call chains through return types
+  (`$user->orders()->first()`);
+- class constants, enum cases and namespace constants (`PHP_EOL`, `const VERSION = 2`);
+- variables: the parameter or first assignment in the method or function.
+
+While `Ctrl` (macOS `Cmd`) is held, the symbol under the mouse is underlined like a link and a
+small tooltip shows where it is declared: the namespace or class and the declaration.
+
+![Ctrl+hover on \Throwable](docs/screenshots/php-nav-ctrl-hover.png)
+
+On a declaration itself (a class name in `class User`, a method or function name, a property,
+a variable's first assignment), Go to Declaration shows its **usages** instead, like
+PHPStorm's "Declaration or Usages"; a single usage opens directly. Several targets open the
+Choose Declaration popup. `Ctrl+Alt+Click` (macOS `Cmd+Alt+Click`) goes to the
+implementations.
+
+### PHP's own classes and functions
+
+`\Throwable`, `\Exception`, `ArrayAccess`, `PDO`, `array_map`, `PHP_EOL` and the other
+built-in symbols open their declaration in the **PHP stubs**, read-only, like PHPStorm's "PHP
+Runtime" library. The tab shows a banner "Read-only library file" with the source of the
+stubs, and the breadcrumbs read `PHP Runtime › Core › Core_c.php › Throwable`. Library files
+cannot be edited; navigation inside them (for example from `Exception` to `Throwable`) works.
+
+![\Throwable in the PHP stubs](docs/screenshots/php-nav-stub.png)
+
+Where the stubs come from:
+
+1. Settings | Languages & Frameworks | PHP | **Default stubs path** (`php.stubs.path`): a
+   checkout of [JetBrains' phpstorm-stubs](https://github.com/JetBrains/phpstorm-stubs)
+   (Apache-2.0) or a compatible folder.
+2. Otherwise Forge downloads a pinned phpstorm-stubs release on first use into
+   `<cache dir>/forge/php-stubs/<version>`, checks its SHA-256 and keeps its licence file. The
+   status bar shows the download.
+3. When Intelephense is installed and nothing else is available, its own stubs are used.
+
+When Intelephense runs, its definition (which points into the stubs inside its package) is
+opened read-only directly.
+
+> **Note:** the managed download of phpstorm-stubs is enabled once the checksum of the pinned
+> release is part of Forge. Until then, set **Default stubs path** or install Intelephense;
+> otherwise Go to Declaration on a built-in symbol explains how to get the stubs.
+
+### Show Usages and Find Usages
+
+**Show Usages** (`Ctrl+Alt+F7`, macOS `Cmd+Alt+F7`, or `Ctrl+Click` on a declaration) opens
+a popup with every usage: the code line with the reference highlighted, file and line,
+grouped by usage type like PHPStorm (Usage in import, New instance creation, Method call,
+Static member access, Usage in extends/implements clause, Usage in type declaration, Usage in
+PHPDoc, Dynamic usages, …). `Up`/`Down` select, `Enter` opens, `Escape` closes; the pin
+button **Open in Find Window** keeps the result in the Find tool window.
+
+![Show Usages on a class declaration](docs/screenshots/php-nav-show-usages.png)
+
+For a method or function the popup lists its call sites. Calls through a parent or child
+class count too: the usages of an interface method include calls on its implementations.
+
+![Call sites of an interface method](docs/screenshots/php-nav-call-sites.png)
+
+**Find Usages** (`Alt+F7`) shows the usages in the **Find** tool window (`Alt+3`, macOS
+`Cmd+3`): one tab per search, a tree grouped by usage type (toggle **Group by Usage Type**)
+and file. Click a usage to open it.
+
+![Find tool window](docs/screenshots/php-nav-find-window.png)
+
+Members used on expressions the index cannot type (`$any->save()`) are listed as **Dynamic
+usages**. Comments and strings are not usages.
+
+### Implementation, Super Method and Type Declaration
+
+| Action | Shortcut | macOS | Goes to |
+| --- | --- | --- | --- |
+| Implementation(s) | `Ctrl+Alt+B` | `Cmd+Alt+B` | classes extending or implementing the class or interface at the caret, or the methods overriding the method |
+| Super Method | `Ctrl+U` | `Cmd+U` | the method this method overrides or implements; on a class, its parent and interfaces |
+| Type Declaration | `Ctrl+Shift+B` | `Cmd+Shift+B` | the class of the variable, property or method return type at the caret |
+
+Several targets open the Choose Declaration popup with names and namespaces. Go to
+Implementation needs Intelephense Premium in Intelephense; without a licence Forge answers from
+the index, and says so when the index finds nothing either.
+
+### Gutter icons
+
+Like PHPStorm, the gutter marks inheritance:
+
+- ↓ on a class with subclasses ("Is subclassed by"), on an interface with implementations and
+  on interface or abstract methods with implementations ("Is implemented in"), and on methods
+  overridden in subclasses ("Is overridden in");
+- ↑ on methods that implement an interface method ("Implements method in") or override a
+  parent's method ("Overrides method in").
+
+Click an icon to go to the target, or to choose one of several.
+
+![Implemented markers](docs/screenshots/php-nav-gutter.png)
 
 ## Hover documentation
 
@@ -3853,6 +4088,7 @@ Methods.
 | When Intelephense is not installed (`ask`, `always`, `never`), see [Installing Intelephense](docs/guide/user/language-servers.md#installing-intelephense) | `php.intelephense.autoInstall` | `ask` |
 | I accept the Intelephense licence | `php.intelephense.licenceAccepted` | off |
 | Include Path | `php.includePaths` | empty |
+| Default stubs path (PHP Runtime), see [PHP's own classes and functions](#phps-own-classes-and-functions) | `php.stubs.path` | empty (managed download) |
 
 The language level and the interpreter can be stored per project ("For current project" in
 the page header). The status bar shows the language level ("PHP 8.3"); click it to open this
@@ -3896,7 +4132,8 @@ See [Run/Debug configurations](docs/guide/user/run-debug.md), [Xdebug debugging]
 ## Remote projects
 
 In a [remote project](docs/guide/user/remote-development.md) the PHP index and the language server run on the
-remote host through the Forge agent; Structure, search, hover and Generate work as locally.
+remote host through the Forge agent; Structure, search, hover, Generate, navigation, usages
+and gutter icons work as locally. The PHP stubs are read on this machine.
 
 
 ---
@@ -6007,9 +6244,9 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Next Edit Location | `JumpToNextChange` |  |  | — |
 | Select In… | `SelectIn` | `Alt+F1` | `Alt+F1` | — |
 | Declaration or Usages | `GotoDeclaration` | `Ctrl+B` | `Cmd+B` | yes |
-| Implementation(s) | `GotoImplementation` | `Ctrl+Alt+B` | `Cmd+Alt+B` | — |
-| Type Declaration | `GotoTypeDeclaration` | `Ctrl+Shift+B` | `Cmd+Shift+B` | — |
-| Super Method | `GotoSuperMethod` | `Ctrl+U` | `Cmd+U` | — |
+| Implementation(s) | `GotoImplementation` | `Ctrl+Alt+B` | `Cmd+Alt+B` | yes |
+| Type Declaration | `GotoTypeDeclaration` | `Ctrl+Shift+B` | `Cmd+Shift+B` | yes |
+| Super Method | `GotoSuperMethod` | `Ctrl+U` | `Cmd+U` | yes |
 | Test | `GotoTest` | `Ctrl+Shift+T` | `Cmd+Shift+T` | — |
 | Related Symbol… | `GotoRelated` | `Ctrl+Alt+Home` | `Ctrl+Cmd+Up` | — |
 | File Structure | `FileStructurePopup` | `Ctrl+F12` | `Cmd+F12` | — |
@@ -6182,10 +6419,10 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Find Word at Caret | `FindWordAtCaret` | `Ctrl+F3` | `Alt+Cmd+F3` | — |
 | Find in Files… | `FindInPath` | `Ctrl+Shift+F` | `Cmd+Shift+F` | yes |
 | Replace in Files… | `ReplaceInPath` | `Ctrl+Shift+R` | `Cmd+Shift+R` | — |
-| Find Usages | `FindUsages` | `Alt+F7` | `Alt+F7` | — |
+| Find Usages | `FindUsages` | `Alt+F7` | `Alt+F7` | yes |
 | Find Usages in File | `FindUsagesInFile` | `Ctrl+F7` | `Cmd+F7` | — |
 | Highlight Usages in File | `HighlightUsagesInFile` | `Ctrl+Shift+F7` | `Cmd+Shift+F7` | — |
-| Show Usages | `ShowUsages` | `Ctrl+Alt+F7` | `Cmd+Alt+F7` | — |
+| Show Usages | `ShowUsages` | `Ctrl+Alt+F7` | `Cmd+Alt+F7` | yes |
 | Find Usages Settings… | `ShowSettingsAndFindUsages` | `Ctrl+Alt+Shift+F7` | `Cmd+Alt+Shift+F7` | — |
 | Search Structurally… | `StructuralSearchPlugin.StructuralSearchAction` |  |  | — |
 
@@ -6195,7 +6432,7 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | --- | --- | --- | --- | --- |
 | Project | `ActivateProjectToolWindow` | `Alt+1` | `Cmd+1` | yes |
 | Bookmarks | `ActivateBookmarksToolWindow` | `Alt+2` | `Cmd+2` | — |
-| Find | `ActivateFindToolWindow` | `Alt+3` | `Cmd+3` | — |
+| Find | `ActivateFindToolWindow` | `Alt+3` | `Cmd+3` | yes |
 | Run | `ActivateRunToolWindow` | `Alt+4` | `Cmd+4` | yes |
 | Debug | `ActivateDebugToolWindow` | `Alt+5` | `Cmd+5` | yes |
 | Problems | `ActivateProblemsViewToolWindow` | `Alt+6` | `Cmd+6` | yes |
@@ -6621,9 +6858,9 @@ Undo, clipboard, find and replace, selection and line editing. Open it with ☰ 
 | Find › Replace in Files… | `Ctrl+Shift+R` | `Cmd+Shift+R` | not yet | Not available yet; the entry is disabled. |
 | Find › Search Structurally… | — | — | not yet | Not available yet; the entry is disabled. |
 | **Find Usages** | | | | submenu |
-| Find Usages › Find Usages | `Alt+F7` | `Alt+F7` | not yet | Not available yet; the entry is disabled. |
+| Find Usages › Find Usages | `Alt+F7` | `Alt+F7` | yes | Shows the usages of the symbol at the caret in the Find tool window. [More](docs/guide/user/editor.md#find-usages-and-show-usages) ([screenshot](docs/screenshots/php-nav-find-window.png)) |
 | Find Usages › Find Usages Settings… | `Ctrl+Alt+Shift+F7` | `Cmd+Alt+Shift+F7` | not yet | Not available yet; the entry is disabled. |
-| Find Usages › Show Usages | `Ctrl+Alt+F7` | `Cmd+Alt+F7` | not yet | Not available yet; the entry is disabled. |
+| Find Usages › Show Usages | `Ctrl+Alt+F7` | `Cmd+Alt+F7` | yes | Shows the usages of the symbol at the caret in a popup. [More](docs/guide/user/editor.md#find-usages-and-show-usages) ([screenshot](docs/screenshots/php-nav-show-usages.png)) |
 | Find Usages › Find Usages in File | `Ctrl+F7` | `Cmd+F7` | not yet | Not available yet; the entry is disabled. |
 | Find Usages › Highlight Usages in File | `Ctrl+Shift+F7` | `Cmd+Shift+F7` | not yet | Not available yet; the entry is disabled. |
 | Select All | `Ctrl+A` | `Cmd+A` | yes | Selects the whole document. [More](docs/guide/user/editor.md#editing-actions) |
@@ -6724,10 +6961,10 @@ Back and forward, Search Everywhere, Go to Class/File/Symbol/Line, declarations 
 | Line/Column… | `Ctrl+G` | `Cmd+L` | yes | Moves the caret to a line (and column) of the current file. [More](docs/guide/user/editor.md#editing-actions) ([screenshot](docs/screenshots/docs-goto-line.png)) |
 | Select In… | `Alt+F1` | `Alt+F1` | not yet | Not available yet; the entry is disabled. |
 | Navigation Bar | `Alt+Home` | `Cmd+Up` | not yet | Not available yet; the entry is disabled. |
-| Declaration or Usages | `Ctrl+B` | `Cmd+B` | yes | Jumps to the declaration of the symbol at the caret; several targets open the Choose Declaration popup. [More](docs/guide/user/editor.md#go-to-declaration) |
-| Implementation(s) | `Ctrl+Alt+B` | `Cmd+Alt+B` | not yet | Not available yet; the entry is disabled. |
-| Type Declaration | `Ctrl+Shift+B` | `Cmd+Shift+B` | not yet | Not available yet; the entry is disabled. |
-| Super Method | `Ctrl+U` | `Cmd+U` | not yet | Not available yet; the entry is disabled. |
+| Declaration or Usages | `Ctrl+B` | `Cmd+B` | yes | Jumps to the declaration of the symbol at the caret; on a declaration it shows the usages; several targets open the Choose Declaration popup. [More](docs/guide/user/editor.md#go-to-declaration) ([screenshot](docs/screenshots/php-nav-stub.png)) |
+| Implementation(s) | `Ctrl+Alt+B` | `Cmd+Alt+B` | yes | Lists the implementations of the class, interface or method at the caret. [More](docs/guide/user/editor.md#implementation-type-declaration-super-method) ([screenshot](docs/screenshots/php-nav-gutter.png)) |
+| Type Declaration | `Ctrl+Shift+B` | `Cmd+Shift+B` | yes | Jumps to the class of the variable, property or method return type at the caret. [More](docs/guide/user/editor.md#implementation-type-declaration-super-method) |
+| Super Method | `Ctrl+U` | `Cmd+U` | yes | Jumps to the method the current method overrides or implements. [More](docs/guide/user/editor.md#implementation-type-declaration-super-method) |
 | Test | `Ctrl+Shift+T` | `Cmd+Shift+T` | not yet | Not available yet; the entry is disabled. |
 | Related Symbol… | `Ctrl+Alt+Home` | `Ctrl+Cmd+Up` | not yet | Not available yet; the entry is disabled. |
 | File Structure | `Ctrl+F12` | `Cmd+F12` | not yet | Not available yet; the entry is disabled. |
@@ -7224,6 +7461,7 @@ Page id `lang.php`.
 | `php.languageLevel` | enum: `7.4`, `8.0`, `8.1`, `8.2`, `8.3`, `8.4` | `8.3` | user, project | Development Environment | PHP language level — Inspections and completion follow the syntax of this version. |
 | `php.interpreter` | path | `php` | user, project | Development Environment | CLI Interpreter — Path to the php executable used to run scripts and tests. |
 | `php.includePaths` | list | `[]` | user, project | Include Path | Include path — Extra directories indexed as libraries (e.g. global PEAR or framework stubs). |
+| `php.stubs.path` | path | `""` | user | PHP Runtime | Default stubs path — A phpstorm-stubs checkout used for PHP's own classes, functions and constants (Go to Declaration on \Throwable, array_map). Empty: Forge downloads JetBrains' phpstorm-stubs into its cache folder on first use, or uses Intelephense's stubs. |
 | `php.lsp.server` | enum: `auto`, `intelephense`, `phpactor`, `none` | `auto` | user | Language Server | Language server — Started automatically when a PHP project opens. |
 | `php.lsp.maxFileSize` | int (100–100000) | `5000` | user | Language Server | Max indexed file size (KB) |
 | `php.intelephense.autoInstall` | enum: `ask`, `always`, `never` | `ask` | user | Language Server | When Intelephense is not installed — Forge downloads Intelephense from the npm registry into its own directory (and Node.js when none is installed). Intelephense is not bundled with Forge. |
@@ -7955,6 +8193,7 @@ Forge uses the platform's standard folders (Rust's `dirs` crate):
 | Path | Content |
 | --- | --- |
 | `php-index/<project>-<hash>.json` | PHP index cache per project |
+| `php-stubs/<version>/` | JetBrains phpstorm-stubs for Go to Declaration on PHP's own symbols (downloaded on first use, SHA-256 checked, with its `LICENSE`) |
 | `intelephense/` | Intelephense's storage (`storagePath`) |
 | `jdtls/…` | workspace data of the Java language server |
 
@@ -8739,9 +8978,15 @@ When a provider finds several targets, show the shared popup instead of guessing
 ```ts
 import { chooseDeclarationAt } from "@/features/navigation/chooseDeclaration";
 
-chooseDeclarationAt(view, pos, targets /* { path, line, column?, preview? }[], 0-based */,
+chooseDeclarationAt(view, pos, targets /* { path, line, column?, preview?, name?, container? }[], 0-based */,
   { title: "Choose Declaration" });
 ```
+
+After the providers, Go to Declaration asks Rust (`code_goto_declaration`: language servers,
+then the PHP index and the PHP stubs). On a declaration the answer has `onDeclaration` and the
+UI shows the usages (`showUsagesAt` in `features/codeintel/usages.ts`); targets outside the
+project come as read-only `library://…` paths. Ctrl+hover asks `code_symbol_info` for the range
+to underline and the declaration for the tooltip.
 
 ## Main menu
 
@@ -8816,7 +9061,8 @@ in `dialog-windows.json`); in browser mode it opens in-page. The dialog ends wit
   merge requests and issues. `activeTab()` stays file-only; check `isCustomTab(id)`.
 - `registerEditorView` + `openViewTab` — database consoles and table editors.
 - `registerFileSystem({ prefix: "scratch://", read, write, icon, breadcrumbs })` — files that
-  live elsewhere (scratches).
+  live elsewhere (scratches, read-only `library://` files: PHP stubs and files outside the
+  project, see `features/codeintel/library.ts`).
 
 ## Project awareness
 
@@ -9718,6 +9964,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-agent-cli](docs/guide/developer/crates/forge-agent-cli.md) | Runs AI coding agent CLIs (Claude Code, Gemini CLI) headless and normalizes their output |
 | [forge-ai](docs/guide/developer/crates/forge-ai.md) | Forge IDE AI provider layer: Anthropic and OpenAI-compatible chat models |
 | [forge-backend](docs/guide/developer/crates/forge-backend.md) | Forge IDE project backends: the Backend trait, the local backend and the remote agent protocol |
+| [forge-codeintel](docs/guide/developer/crates/forge-codeintel.md) | Code intelligence models: workspace edits with LSP positions and Find Usages grouping (pure, WebAssembly-friendly) |
 | [forge-containers](docs/guide/developer/crates/forge-containers.md) | Forge IDE containers: Docker Engine API, Docker Compose and Kubernetes for the Services tool window |
 | [forge-core](docs/guide/developer/crates/forge-core.md) | Forge IDE core: workspace, file system, settings and event bus |
 | [forge-db](docs/guide/developer/crates/forge-db.md) | Forge IDE database tools: data sources, introspection, query execution and data editing |
@@ -9974,6 +10221,64 @@ pub fn folder_name(root: &Path) -> String { … }
 
 ```sh
 cargo test -p forge-backend
+```
+
+
+---
+
+Source: docs/guide/developer/crates/forge-codeintel.md
+
+# forge-codeintel
+
+`crates/forge-codeintel` — Code intelligence models: workspace edits with LSP positions and Find Usages grouping (pure, WebAssembly-friendly).
+
+## Purpose
+
+Code intelligence models shared by the language server client, the language packs, the app
+and the browser-mode UI. Pure Rust, so it also runs as WebAssembly.
+
+- `edit`: text edits and workspace edits with LSP positions (0-based line, UTF-16
+  character): applying them to file contents atomically (rename, quick fixes), undoing them,
+  and previewing the affected lines (Refactoring Preview).
+- `actions`: Show Context Actions: language server code actions and a pack's own intentions
+  in PHPStorm's order.
+- `usages`: Find Usages: the usage type of each reference (method call, import, new
+  instance, ...) from its line, and the result tree grouped by usage type and file.
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `actions.rs` | Context actions (`ContextAction`, `ActionKind`) and `order_actions`: quick fixes first, preferred ones on top, duplicates removed. |
+| `edit.rs` | `TextEdit`, `WorkspaceEdit` (`edit` / `create` / `rename` / `delete` changes), `apply_workspace_edit` over a `FileStore` (all or nothing), `revert_applied`, `preview_workspace_edit`, `word_range`, UTF-16 offset helpers. |
+| `usages.rs` | `UsageKind` (PHPStorm's usage types and their group labels), `classify_usage` from the line around a reference, `group_usages` into a `UsageTree` by usage type and file (the declaration and duplicates removed). |
+
+## Main public items
+
+```rust
+pub use actions::{order_actions, ActionKind, ContextAction};
+pub use edit::{apply_text_edits, apply_workspace_edit, preview_workspace_edit, revert_applied, word_range, … };
+pub use usages::{classify_usage, group_usages, GroupRequest, UsageKind, UsageLocation, UsageTree, … };
+```
+
+## Used by
+
+- IPC: `code_find_usages`, `code_navigate`, `code_goto_declaration`, `code_symbol_info`, `code_line_markers`, `code_prepare_rename`, `code_rename`, `code_apply_edit`, `code_revert_edit`, `code_context_actions`, `code_resolve_action`, `code_execute_command` (`app/src-tauri/src/commands/codeintel.rs`), `library_read` (`commands/library.rs`)
+- Crates: `forge-lsp` (workspace edits, locations), `phpforge-lang-php` (usage locations and classification)
+- UI: `app/ui/src/features/codeintel` (Show Usages popup, Find tool window, gutter markers, library files), `app/ui/src/features/lsp/goto.ts`
+- Browser mode: `codeintel_group_usages`, `codeintel_apply_edit`, `codeintel_preview_edit`, `codeintel_order_actions`, `codeintel_word_range` in `crates/forge-wasm/src/codeintel.rs`, used by `app/ui/src/mock/codeintelMock.ts`
+
+## Dependencies
+
+- Workspace crates: none
+- External: `serde`, `serde_json`
+
+## Tests
+
+4 source files, about 1500 lines; 13 unit tests.
+
+```sh
+cargo test -p forge-codeintel
 ```
 
 
@@ -10610,6 +10915,7 @@ these rows.
 | `managed/mod.rs` | Zero-prerequisite installs of npm language servers (Intelephense, typescript-language-server, vscode-langservers-extracted, yaml-language-server, …) on the user's machine: |
 | `managed/node.rs` | A Node.js runtime for npm language servers: a suitable one on the machine (>= 18), or the official build from nodejs.org (or a mirror) downloaded into `<data dir>/forge/runtimes/node-<version>`, verified against the release's `SHASUMS256.txt`. |
 | `managed/npm.rs` | npm packages without npm: registry metadata, tarball download with `dist.integrity` (sha512) verification, unpacking into `<managed dir>/node_modules/<name>` and the `node_modules/.bin` entries detection looks for. |
+| `managed/stubs.rs` | PHP stubs for Go to Declaration on PHP's own symbols: a pinned JetBrains phpstorm-stubs release downloaded on first use into `<cache dir>/forge/php-stubs/<version>`, SHA-256 checked and unpacked with its `LICENSE`; `intelephense_stubs` finds Intelephense's own `lib/stub`. Downloads without a configured checksum are refused. |
 | `managed/testserver.rs` | A tiny HTTP/1.1 server on localhost for tests: fixed bodies per path, request counts. |
 | `managed/updates.rs` | "A newer version is available": at most one registry check a day, remembered in `<managed dir>/.forge-update-check.json`. |
 | `plan.rs` | Which servers to start for a project, and the rows of the Language Servers settings page. |
@@ -11857,6 +12163,8 @@ PHPForge language pack: PHP support built on tree-sitter.
   fuzzy symbol search, file structure and lazy vendor resolution.
 - `hover` renders index-based hover markdown.
 - `generate` implements the "Generate" actions (constructor, accessors, overrides, ...).
+- `navigate` Go to Declaration, Find Usages, implementations and gutter markers.
+- `stubs` PHP's own symbols from phpstorm-stubs (the "PHP Runtime").
 - `lsp` describes how to launch Intelephense / phpactor.
 
 ## Modules
@@ -11867,14 +12175,17 @@ PHPForge language pack: PHP support built on tree-sitter.
 | `fuzzy.rs` | Fuzzy matcher for Go to Class / Go to Symbol: subsequence matching with bonuses for word starts, camel humps (`OrCo` -> `OrderController`) and consecutive runs. |
 | `generate.rs` | "Generate" actions (Alt+Insert): constructor, getters/setters, `__toString()`, override/implement method stubs and PHPDoc blocks. |
 | `hover.rs` | Index-based hover for project symbols: signature + attributes + parsed docblock as markdown. Complements a language server's hover (which covers built-ins). |
+| `intentions.rs` | Built-in intentions for Show Context Actions (Alt+Enter) on the index. |
 | `index.rs` | Workspace-wide PHP index: parallel indexing, mtime-keyed persistent cache, fuzzy symbol search, ancestor lookup and lazy resolution of vendor classes through Composer's PSR-4 metadata. |
 | `lsp.rs` | How to launch a PHP language server: Intelephense (preferred, users bring their own licence key) with phpactor as fallback. Independent of the generic LSP client; the app turns `LspServerConfig` into a running server. |
 | `model.rs` | Symbol model produced by the indexer. Everything is serializable so it can be cached on disk and sent over IPC unchanged (camelCase field names for the UI). |
+| `navigate.rs` | Code navigation on the index when no language server answers: the symbol under the caret (classes with or without a leading backslash through imports, aliases, group uses and the namespace; functions and constants with PHP's global fallback; members through `$this`, `self`/`static`/`parent`, typed variables, `catch`, `@var`, property and return-type chains; variables), `definition` (target, "on a declaration" or an `ExternalSymbol` for the stubs), `find_usages` (usage kinds, dynamic usages, members through parent and child classes), Go to Implementation / Super Method / Type Declaration and the implemented / overridden `line_markers`. |
 | `offsets.rs` | Offset conversion. The index works in UTF-8 byte offsets; the UI (CodeMirror / JS strings) uses UTF-16 code units. Convert at the IPC boundary. |
 | `parser.rs` | Tree-sitter based PHP file indexer: turns source into a `FileIndex`. |
 | `resolve.rs` | Name resolution through namespaces and use-imports (PHP's rules, simplified to what an index needs: classes and type hints). |
 | `service.rs` | Editor-facing PHP queries on a `ProjectIndex`: the same answers wherever the index lives (in the desktop app or in the remote development agent). Offsets crossing this boundary are UTF-16 (JS strings); the index works in bytes, so every query converts. |
 | `structure.rs` | File structure for the Structure tool window (Alt+7). |
+| `stubs.rs` | `StubIndex`: PHP's own classes, functions and constants from a phpstorm-stubs folder (also `define()` constants); `lookup` answers an `ExternalSymbol` (members through stub ancestors), `definition_in` navigates inside a stub file. |
 
 ## Main public items
 
@@ -11886,18 +12197,18 @@ pub enum PhpError { … }
 
 ## Used by
 
-- IPC: `php_index_workspace`, `php_search_symbols`, `php_file_structure`, `php_hover`, `php_generate_targets`, `php_generate`, `php_detect_servers`, `php_lsp_config` (`app/src-tauri/src/commands/php.rs`)
-- UI: `app/ui/src/features/php`
+- IPC: `php_index_workspace`, `php_search_symbols`, `php_file_structure`, `php_hover`, `php_generate_targets`, `php_generate`, `php_detect_servers`, `php_lsp_config` (`app/src-tauri/src/commands/php.rs`); `code_goto_declaration`, `code_symbol_info`, `code_find_usages`, `code_navigate`, `code_line_markers`, `code_context_actions`, `library_read` (`commands/codeintel.rs`, `commands/library.rs`) through `forge_backend::PhpBackend`, so remote projects answer from the agent
+- UI: `app/ui/src/features/php`, `app/ui/src/features/codeintel`
 - Browser mode: not built to WebAssembly (runtime code); browser mode uses mocks
 
 ## Dependencies
 
-- Workspace crates: none
+- Workspace crates: `forge-codeintel`
 - External: `dirs`, `rayon`, `serde`, `serde_json`, `thiserror`, `tracing`, `tree-sitter`, `tree-sitter-php`, `walkdir`
 
 ## Tests
 
-13 source files, about 6686 lines; 64 unit tests.
+16 source files, about 10000 lines; 80 unit tests.
 
 ```sh
 cargo test -p phpforge-lang-php
@@ -12196,9 +12507,11 @@ be imported yet; re-create changes in Settings | Keymap.
 No. Forge keeps its own data in `.forge/` and ignores `.idea/`.
 
 **Is PHP support as deep as PHPStorm's?**
-Not yet. Completion, diagnostics and navigation come from Intelephense (or Phpactor); Forge adds
-its own index, Generate actions, Laravel, Symfony and Doctrine support. Refactorings, inspections
-with quick-fixes, Find Usages and Replace in Files are not implemented yet. See
+Not yet. Completion and diagnostics come from Intelephense (or Phpactor); Forge adds its own
+index with navigation (Go to Declaration including PHP's own stubs, Find/Show Usages,
+implementations, gutter icons) that also works without a server, Generate actions, Laravel,
+Symfony and Doctrine support. Refactorings, inspections with quick-fixes and Replace in Files
+are not implemented yet. See
 [Coming from PHPStorm](docs/guide/getting-started/from-phpstorm.md).
 
 **Why does a shortcut say "not available yet"?**

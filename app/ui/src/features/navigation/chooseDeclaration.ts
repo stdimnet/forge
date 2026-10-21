@@ -17,6 +17,10 @@ export interface DeclarationTarget {
   column?: number;
   /** Code of the target line, shown in the row (from the provider, e.g. Lua's index). */
   preview?: string;
+  /** Symbol name shown instead of the file (`StripeGateway`, `Model::save()`). */
+  name?: string;
+  /** Greyed out after the name: namespace, declaring class or PHP extension. */
+  container?: string | null;
 }
 
 export interface Chooser {

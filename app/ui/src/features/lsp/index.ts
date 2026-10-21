@@ -5,6 +5,7 @@
  */
 import { TriangleAlert } from "lucide-solid";
 import { registerEditorExtension } from "@/editor/extensions";
+import { isLibraryPath } from "@/ipc/codeintel";
 import { registerToolWindow } from "@/features/registry";
 import { registerStatusItem } from "@/features/statusItems";
 import { registerCommand } from "@/state/commands";
@@ -24,16 +25,22 @@ import "./lsp.css";
 
 startLspListeners();
 
-registerEditorExtension(({ path }) => [
-  trackView(path),
-  documentSync(path),
-  lspDiagnostics(path),
-  lspHover(path),
-  lspCompletion(path),
-  lspGoto(path),
-  lspSignatureHelp(path),
-  lspFormat(path),
-]);
+registerEditorExtension(({ path }) =>
+  // Read-only library files (PHP stubs) are not the servers' documents; navigation in them
+  // is answered from the stubs.
+  isLibraryPath(path)
+    ? [trackView(path), lspGoto(path)]
+    : [
+        trackView(path),
+        documentSync(path),
+        lspDiagnostics(path),
+        lspHover(path),
+        lspCompletion(path),
+        lspGoto(path),
+        lspSignatureHelp(path),
+        lspFormat(path),
+      ],
+);
 
 registerToolWindow({
   id: "problems",

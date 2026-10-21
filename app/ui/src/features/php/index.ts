@@ -10,6 +10,7 @@ import { registerToolWindow } from "@/features/registry";
 import { registerStatusItem } from "@/features/statusItems";
 import { registerSettingsPage } from "@/features/settingsPages";
 import { registerEditorExtension } from "@/editor/extensions";
+import { isLibraryPath } from "@/ipc/codeintel";
 import { registerCommand } from "@/state/commands";
 import { toggleToolWindow } from "@/state/layout";
 import { workspace } from "@/state/workspace";
@@ -25,7 +26,8 @@ import { IndexingStatus, PhpVersionStatus, indexWorkspace } from "./status";
 import { PhpSettingsPage } from "./PhpSettingsPage";
 import "./php.css";
 
-const isPhp = (path: string) => /\.(php|phtml|inc)$/i.test(path) && !path.endsWith(".blade.php");
+const isPhp = (path: string) =>
+  /\.(php|phtml|inc)$/i.test(path) && !path.endsWith(".blade.php") && !isLibraryPath(path);
 
 registerEditorExtension(({ path }) =>
   isPhp(path)

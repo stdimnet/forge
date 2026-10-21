@@ -16,6 +16,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-agent-cli](forge-agent-cli.md) | Runs AI coding agent CLIs (Claude Code, Gemini CLI) headless and normalizes their output |
 | [forge-ai](forge-ai.md) | Forge IDE AI provider layer: Anthropic and OpenAI-compatible chat models |
 | [forge-backend](forge-backend.md) | Forge IDE project backends: the Backend trait, the local backend and the remote agent protocol |
+| [forge-codeintel](forge-codeintel.md) | Code intelligence models: workspace edits with LSP positions and Find Usages grouping (pure, WebAssembly-friendly) |
 | [forge-containers](forge-containers.md) | Forge IDE containers: Docker Engine API, Docker Compose and Kubernetes for the Services tool window |
 | [forge-core](forge-core.md) | Forge IDE core: workspace, file system, settings and event bus |
 | [forge-db](forge-db.md) | Forge IDE database tools: data sources, introspection, query execution and data editing |

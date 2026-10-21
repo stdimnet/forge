@@ -10,17 +10,19 @@ use forge_core::{ForgeError, Result};
 use lsp_types::notification::{self as notif, Notification};
 use lsp_types::request::{self as req, Request};
 use lsp_types::{
-    ClientCapabilities, CodeActionContext, CodeActionOrCommand, CodeActionParams, CompletionItem,
-    CompletionParams, CompletionResponse, Diagnostic, DidChangeConfigurationParams,
-    DidChangeTextDocumentParams, DidCloseTextDocumentParams, DidOpenTextDocumentParams,
-    DidSaveTextDocumentParams, DocumentFormattingParams, DocumentSymbolParams,
-    DocumentSymbolResponse, FormattingOptions, GotoDefinitionParams, GotoDefinitionResponse, Hover,
-    HoverParams, InitializeParams, InitializeResult, InitializedParams, Location, Position, Range,
-    ReferenceContext, ReferenceParams, ServerCapabilities, SignatureHelp, SignatureHelpParams,
+    ClientCapabilities, CodeAction, CodeActionContext, CodeActionOrCommand, CodeActionParams,
+    CodeActionProviderCapability, CompletionItem, CompletionParams, CompletionResponse, Diagnostic,
+    DidChangeConfigurationParams, DidChangeTextDocumentParams, DidCloseTextDocumentParams,
+    DidOpenTextDocumentParams, DidSaveTextDocumentParams, DocumentFormattingParams,
+    DocumentSymbolParams, DocumentSymbolResponse, ExecuteCommandParams, FormattingOptions,
+    GotoDefinitionParams, GotoDefinitionResponse, Hover, HoverParams,
+    ImplementationProviderCapability, InitializeParams, InitializeResult, InitializedParams,
+    Location, OneOf, Position, PrepareRenameResponse, Range, ReferenceContext, ReferenceParams,
+    RenameParams, ServerCapabilities, SignatureHelp, SignatureHelpParams,
     TextDocumentContentChangeEvent, TextDocumentIdentifier, TextDocumentItem,
-    TextDocumentPositionParams, TextDocumentSyncSaveOptions, TextEdit, Url,
-    VersionedTextDocumentIdentifier, WorkspaceFolder, WorkspaceSymbolParams,
-    WorkspaceSymbolResponse,
+    TextDocumentPositionParams, TextDocumentSyncSaveOptions, TextEdit,
+    TypeDefinitionProviderCapability, Url, VersionedTextDocumentIdentifier, WorkspaceEdit,
+    WorkspaceFolder, WorkspaceSymbolParams, WorkspaceSymbolResponse,
 };
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
@@ -73,6 +75,44 @@ pub enum LspEvent {
         level: i32,
         message: String,
     },
+    /// `workspace/applyEdit` from the server (e.g. while running a code action's command):
+    /// the UI applies it to open editors and the backend to the other files.
+    ApplyEdit {
+        server_id: String,
+        label: Option<String>,
+        edit: WorkspaceEdit,
+    },
+}
+
+/// Language features a server may or may not announce in its capabilities. Free
+/// Intelephense, for example, leaves out rename, implementation and type definition.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum Feature {
+    Hover,
+    Definition,
+    References,
+    Implementation,
+    TypeDefinition,
+    Rename,
+    CodeAction,
+    SignatureHelp,
+}
+
+impl Feature {
+    /// PHPStorm's action name, for messages like "Rename requires …".
+    pub fn title(self) -> &'static str {
+        match self {
+            Feature::Hover => "Quick Documentation",
+            Feature::Definition => "Go to Declaration",
+            Feature::References => "Find Usages",
+            Feature::Implementation => "Go to Implementation",
+            Feature::TypeDefinition => "Go to Type Declaration",
+            Feature::Rename => "Rename",
+            Feature::CodeAction => "Show Context Actions",
+            Feature::SignatureHelp => "Parameter Info",
+        }
+    }
 }
 
 type Pending = Mutex<HashMap<i64, oneshot::Sender<std::result::Result<Value, RpcError>>>>;
@@ -384,7 +424,23 @@ impl LspClient {
                 Ok(serde_json::to_value(self.workspace_folders()).unwrap_or(Value::Null))
             }
             req::ApplyWorkspaceEdit::METHOD => {
-                Ok(json!({"applied": false, "failureReason": "not supported yet"}))
+                match serde_json::from_value::<lsp_types::ApplyWorkspaceEditParams>(params.clone())
+                {
+                    Ok(p) => {
+                        let sent = self.inner.events.send(LspEvent::ApplyEdit {
+                            server_id: self.id().to_string(),
+                            label: p.label,
+                            edit: p.edit,
+                        });
+                        Ok(match sent {
+                            Ok(_) => json!({"applied": true}),
+                            Err(_) => {
+                                json!({"applied": false, "failureReason": "no editor is listening"})
+                            }
+                        })
+                    }
+                    Err(e) => Err((-32602, format!("bad workspace/applyEdit params: {e}"))),
+                }
             }
             _ => Err((-32601, format!("method not supported: {method}"))),
         }
@@ -794,6 +850,133 @@ impl LspClient {
         }
     }
 
+    /// Whether the server announced `feature` in its capabilities.
+    pub fn supports(&self, feature: Feature) -> bool {
+        let Some(c) = self.capabilities() else {
+            return false;
+        };
+        fn one_of<T>(o: Option<&OneOf<bool, T>>) -> bool {
+            match o {
+                Some(OneOf::Left(enabled)) => *enabled,
+                Some(OneOf::Right(_)) => true,
+                None => false,
+            }
+        }
+        match feature {
+            Feature::Hover => !matches!(
+                c.hover_provider,
+                None | Some(lsp_types::HoverProviderCapability::Simple(false))
+            ),
+            Feature::Definition => one_of(c.definition_provider.as_ref()),
+            Feature::References => one_of(c.references_provider.as_ref()),
+            Feature::Rename => one_of(c.rename_provider.as_ref()),
+            Feature::Implementation => !matches!(
+                c.implementation_provider,
+                None | Some(ImplementationProviderCapability::Simple(false))
+            ),
+            Feature::TypeDefinition => !matches!(
+                c.type_definition_provider,
+                None | Some(TypeDefinitionProviderCapability::Simple(false))
+            ),
+            Feature::CodeAction => !matches!(
+                c.code_action_provider,
+                None | Some(CodeActionProviderCapability::Simple(false))
+            ),
+            Feature::SignatureHelp => c.signature_help_provider.is_some(),
+        }
+    }
+
+    /// Whether `textDocument/prepareRename` is supported (`renameProvider.prepareProvider`).
+    pub fn supports_prepare_rename(&self) -> bool {
+        matches!(
+            self.capabilities().and_then(|c| c.rename_provider.as_ref()),
+            Some(OneOf::Right(lsp_types::RenameOptions {
+                prepare_provider: Some(true),
+                ..
+            }))
+        )
+    }
+
+    /// Whether code actions can be resolved lazily (`codeActionProvider.resolveProvider`).
+    pub fn supports_code_action_resolve(&self) -> bool {
+        matches!(
+            self.capabilities()
+                .and_then(|c| c.code_action_provider.as_ref()),
+            Some(CodeActionProviderCapability::Options(
+                lsp_types::CodeActionOptions {
+                    resolve_provider: Some(true),
+                    ..
+                }
+            ))
+        )
+    }
+
+    pub async fn implementation(
+        &self,
+        path: &Path,
+        position: Position,
+    ) -> Result<Option<GotoDefinitionResponse>> {
+        self.request::<req::GotoImplementation>(GotoDefinitionParams {
+            text_document_position_params: Self::position_params(path, position)?,
+            work_done_progress_params: Default::default(),
+            partial_result_params: Default::default(),
+        })
+        .await
+    }
+
+    pub async fn type_definition(
+        &self,
+        path: &Path,
+        position: Position,
+    ) -> Result<Option<GotoDefinitionResponse>> {
+        self.request::<req::GotoTypeDefinition>(GotoDefinitionParams {
+            text_document_position_params: Self::position_params(path, position)?,
+            work_done_progress_params: Default::default(),
+            partial_result_params: Default::default(),
+        })
+        .await
+    }
+
+    pub async fn prepare_rename(
+        &self,
+        path: &Path,
+        position: Position,
+    ) -> Result<Option<PrepareRenameResponse>> {
+        self.request::<req::PrepareRenameRequest>(Self::position_params(path, position)?)
+            .await
+    }
+
+    pub async fn rename(
+        &self,
+        path: &Path,
+        position: Position,
+        new_name: &str,
+    ) -> Result<Option<WorkspaceEdit>> {
+        self.request::<req::Rename>(RenameParams {
+            text_document_position: Self::position_params(path, position)?,
+            new_name: new_name.to_string(),
+            work_done_progress_params: Default::default(),
+        })
+        .await
+    }
+
+    pub async fn code_action_resolve(&self, action: CodeAction) -> Result<CodeAction> {
+        self.request::<req::CodeActionResolveRequest>(action).await
+    }
+
+    pub async fn execute_command(
+        &self,
+        command: &str,
+        arguments: Vec<Value>,
+    ) -> Result<Option<Value>> {
+        self.request::<req::ExecuteCommand>(ExecuteCommandParams {
+            command: command.to_string(),
+            arguments,
+            work_done_progress_params: Default::default(),
+        })
+        .await
+    }
+
     pub async fn code_action(
         &self,
         path: &Path,
@@ -824,7 +1007,13 @@ fn client_capabilities() -> Value {
             "configuration": true,
             "workspaceFolders": true,
             "didChangeConfiguration": { "dynamicRegistration": false },
-            "applyEdit": false,
+            "applyEdit": true,
+            "workspaceEdit": {
+                "documentChanges": true,
+                "resourceOperations": ["create", "rename", "delete"],
+                "failureHandling": "abort"
+            },
+            "executeCommand": { "dynamicRegistration": false },
             "symbol": {
                 "symbolKind": { "valueSet": [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26] }
             }
@@ -853,13 +1042,20 @@ fn client_capabilities() -> Value {
                 }
             },
             "definition": { "linkSupport": true },
+            "implementation": { "linkSupport": true },
+            "typeDefinition": { "linkSupport": true },
             "references": {},
+            "rename": { "prepareSupport": true },
             "documentSymbol": { "hierarchicalDocumentSymbolSupport": true },
             "formatting": {},
             "codeAction": {
                 "codeActionLiteralSupport": {
-                    "codeActionKind": { "valueSet": ["", "quickfix", "refactor", "source", "source.organizeImports"] }
-                }
+                    "codeActionKind": { "valueSet": ["", "quickfix", "refactor", "refactor.extract", "refactor.inline", "refactor.rewrite", "source", "source.organizeImports"] }
+                },
+                "isPreferredSupport": true,
+                "disabledSupport": true,
+                "dataSupport": true,
+                "resolveSupport": { "properties": ["edit"] }
             },
             "publishDiagnostics": {
                 "relatedInformation": false,

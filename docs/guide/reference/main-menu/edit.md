@@ -42,9 +42,9 @@ Undo, clipboard, find and replace, selection and line editing. Open it with ☰ 
 | Find › Replace in Files… | `Ctrl+Shift+R` | `Cmd+Shift+R` | not yet | Not available yet; the entry is disabled. |
 | Find › Search Structurally… | — | — | not yet | Not available yet; the entry is disabled. |
 | **Find Usages** | | | | submenu |
-| Find Usages › Find Usages | `Alt+F7` | `Alt+F7` | not yet | Not available yet; the entry is disabled. |
+| Find Usages › Find Usages | `Alt+F7` | `Alt+F7` | yes | Shows the usages of the symbol at the caret in the Find tool window. [More](../../user/editor.md#find-usages-and-show-usages) ([screenshot](../../../screenshots/php-nav-find-window.png)) |
 | Find Usages › Find Usages Settings… | `Ctrl+Alt+Shift+F7` | `Cmd+Alt+Shift+F7` | not yet | Not available yet; the entry is disabled. |
-| Find Usages › Show Usages | `Ctrl+Alt+F7` | `Cmd+Alt+F7` | not yet | Not available yet; the entry is disabled. |
+| Find Usages › Show Usages | `Ctrl+Alt+F7` | `Cmd+Alt+F7` | yes | Shows the usages of the symbol at the caret in a popup. [More](../../user/editor.md#find-usages-and-show-usages) ([screenshot](../../../screenshots/php-nav-show-usages.png)) |
 | Find Usages › Find Usages in File | `Ctrl+F7` | `Cmd+F7` | not yet | Not available yet; the entry is disabled. |
 | Find Usages › Highlight Usages in File | `Ctrl+Shift+F7` | `Cmd+Shift+F7` | not yet | Not available yet; the entry is disabled. |
 | Select All | `Ctrl+A` | `Cmd+A` | yes | Selects the whole document. [More](../../user/editor.md#editing-actions) |
