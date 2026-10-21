@@ -101,12 +101,22 @@ order = 42
 [[contributions.settings]]
 key = "docker.ssh.socketPath"
 title = "Docker socket on the host"
-description = "Empty: /var/run/docker.sock (rootless: /run/user/<uid>/docker.sock)."
+description = "For SSH connections and Docker on a remote project's host. Empty: /var/run/docker.sock (rootless: /run/user/<uid>/docker.sock)."
 type = "string"
 default = ""
 group = "build.docker"
 section = "Connection"
 order = 44
+
+[[contributions.settings]]
+key = "docker.remoteProjectHost"
+title = "In remote projects, connect to Docker on the remote host"
+description = "Uses the Docker daemon of the project's host through the project's SSH connection (no extra login); compose, builds and exec terminals run on that host. Off: the connection above."
+type = "bool"
+default = true
+group = "build.docker"
+section = "Connection"
+order = 45
 
 [[contributions.settings]]
 key = "docker.context"

@@ -308,7 +308,7 @@ export function pullImageDialog(): void {
 export async function openExec(nodeId: string, container?: string): Promise<void> {
   try {
     const cmd = await servicesApi.terminal(nodeId, false, container);
-    openTerminalWith({ title: cmd.title, program: cmd.program, args: cmd.args, env: cmd.env });
+    openTerminalWith({ title: cmd.title, program: cmd.program, args: cmd.args, env: cmd.env, local: !cmd.onHost });
   } catch (err) {
     showBalloon("Cannot open a terminal", String(err).replace(/^Error: /, ""));
   }

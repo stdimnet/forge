@@ -17,7 +17,8 @@
 //! TCP (+TLS) and SSH-forwarded sockets ([`http`], [`ssh`]), the Docker Engine client
 //! ([`engine`]), the Kubernetes API client ([`kubeclient`]), port-forward connections
 //! ([`forward`]), compose / CLI processes ([`cli`]) and registry credentials in the OS
-//! keychain ([`secrets`]), and the [`hub`] that holds the Services state for the app.
+//! keychain ([`secrets`]), the open project's machine ([`project`]: compose files and runs
+//! on a remote project's host) and the [`hub`] that holds the Services state for the app.
 
 pub mod compose;
 pub mod docker;
@@ -44,6 +45,8 @@ pub mod http;
 pub mod hub;
 #[cfg(feature = "runtime")]
 pub mod kubeclient;
+#[cfg(feature = "runtime")]
+pub mod project;
 #[cfg(feature = "runtime")]
 pub mod secrets;
 #[cfg(feature = "runtime")]

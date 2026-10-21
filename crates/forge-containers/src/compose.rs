@@ -99,6 +99,9 @@ pub struct ComposeFile {
     pub services_line: Option<u32>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
+    /// The override file merged into it (`compose.override.yaml`), same base as `path`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub override_path: Option<String>,
 }
 
 impl ComposeFile {

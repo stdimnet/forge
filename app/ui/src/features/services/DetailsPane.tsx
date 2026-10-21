@@ -240,7 +240,7 @@ function AttachedConsole(props: { d: ServiceDetails; container?: string }) {
   onMount(async () => {
     try {
       const cmd = await servicesApi.terminal(props.d.nodeId, true, props.container);
-      attachSession(id, host, undefined, { program: cmd.program, args: cmd.args, env: cmd.env });
+      attachSession(id, host, undefined, { program: cmd.program, args: cmd.args, env: cmd.env, local: !cmd.onHost });
       const ro = new ResizeObserver(() => fitSession(id));
       ro.observe(host);
       onCleanup(() => ro.disconnect());

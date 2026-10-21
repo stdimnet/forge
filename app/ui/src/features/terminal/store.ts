@@ -20,6 +20,8 @@ export interface TerminalProgram {
   program: string;
   args: string[];
   env?: [string, string][];
+  /** Run on this machine even in a remote project (Docker or kubectl of this machine). */
+  local?: boolean;
 }
 
 const [tabs, setTabs] = createSignal<TerminalTab[]>([]);
@@ -48,7 +50,7 @@ export function newTab(cwd?: string, command?: TerminalProgram & { title?: strin
       base,
     ),
     cwd,
-    command: command && { program: command.program, args: command.args, env: command.env },
+    command: command && { program: command.program, args: command.args, env: command.env, local: command.local },
   };
   setTabs((t) => [...t, tab]);
   setActiveTab(tab.id);
