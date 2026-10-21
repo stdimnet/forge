@@ -34,7 +34,6 @@ const missing: ServerRow = {
 
 const input = (extra: Partial<PromptInput> = {}): PromptInput => ({
   php: true,
-  remote: false,
   row: missing,
   autoInstall: "ask",
   server: "auto",
@@ -48,9 +47,17 @@ describe("Intelephense install offer", () => {
     expect(intelephenseAction(input({ autoInstall: "always" }))).toBe("install");
   });
 
+  it("asks before installing on a remote project's host", () => {
+    const host = "deploy@shop.example.com";
+    expect(intelephenseAction(input({ host }))).toBe("ask");
+    expect(intelephenseAction(input({ host, autoInstall: "always" }))).toBe("ask");
+    const showBalloon = vi.fn((..._args: unknown[]) => 1);
+    offerIntelephense(input({ host }), { showBalloon, install: vi.fn(async () => undefined), saveSetting: vi.fn() });
+    expect(showBalloon.mock.calls[0][0]).toBe(`${OFFER_TEXT} on ${host}`);
+  });
+
   it("stays quiet when there is nothing to offer or the user said no", () => {
     expect(intelephenseAction(input({ php: false }))).toBe("none");
-    expect(intelephenseAction(input({ remote: true }))).toBe("none");
     expect(intelephenseAction(input({ offered: true }))).toBe("none");
     expect(intelephenseAction(input({ autoInstall: "never" }))).toBe("none");
     expect(intelephenseAction(input({ server: "phpactor" }))).toBe("none");
