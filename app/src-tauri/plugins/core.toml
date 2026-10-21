@@ -638,6 +638,16 @@ section = "Find in Files"
 order = 0
 
 [[contributions.settings]]
+key = "search.everywhere.fuzzy"
+title = "Fuzzy matching"
+description = "Search Everywhere (Files, Classes, Symbols) and Go to File match abbreviations such as \"orco\" for OrderController. Turn it off to match only text that contains what you typed."
+type = "bool"
+default = true
+group = "tools.search"
+section = "Search Everywhere"
+order = 0
+
+[[contributions.settings]]
 key = "search.indexing.lowPriority"
 title = "Index in the background at low CPU priority"
 description = "The search index of a project is built and refreshed on threads below normal priority, so the IDE and other programs keep their share of the CPU. Turn it off to index as fast as possible. Applies when a project is opened."

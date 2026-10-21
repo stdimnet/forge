@@ -247,10 +247,11 @@ pub async fn fs_delete(path: String, state: State<'_, AppState>) -> Result<()> {
 pub async fn fs_find_files(
     query: String,
     limit: Option<usize>,
+    exact: Option<bool>,
     state: State<'_, AppState>,
 ) -> Result<Vec<FileMatch>> {
     let backend = state.backend()?;
-    blocking(move || backend.find_files(&query, limit.unwrap_or(100))).await
+    blocking(move || backend.find_files(&query, limit.unwrap_or(100), exact.unwrap_or(false))).await
 }
 
 /// Find in Files (Ctrl+Shift+F): text search over the project through its backend, so
@@ -271,7 +272,7 @@ pub async fn find_in_files_paged(
     state: State<'_, AppState>,
 ) -> Result<FindPaged> {
     let backend = state.backend()?;
-    let result = Arc::new(blocking(move || backend.find_in_files(&request)).await?);
+    let result = Arc::new(blocking(move || backend.find_in_files_found(&request)).await?);
     static NEXT_ID: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
     let id = NEXT_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     let first = result.paged(id, page_size);

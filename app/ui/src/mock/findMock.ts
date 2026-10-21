@@ -44,12 +44,13 @@ registerMock("find_page", async ({ id, offset, count }) => {
   return callWasm<FileMatches[]>(w.find_page, { result: lastResult.result, offset, count });
 });
 
-registerMock("search_find_symbols", async ({ query, typesOnly, limit, skipExtensions }) => {
+registerMock("search_find_symbols", async ({ query, typesOnly, limit, skipExtensions, exact }) => {
   const w = await forgeWasm();
   return callWasm<SymbolHit[]>(w.search_find_symbols, {
     files: projectFiles(),
     query,
     typesOnly,
+    exact: exact === true,
     limit,
     skipExtensions: [...((skipExtensions as string[] | undefined) ?? []), ...LSP_SERVED],
   });

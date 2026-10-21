@@ -7,6 +7,13 @@
 
 Source: docs/guide/index.md
 
+---
+title: Forge documentation
+description: The complete guide to Forge, the PHPStorm-style IDE built with Rust and Tauri - getting started, every feature, reference tables and contributor docs.
+order: 0
+tags: [start, overview]
+---
+
 # Forge documentation
 
 Forge is a fast, memory-safe IDE in the spirit of PHPStorm for Windows, Linux and macOS, built
@@ -85,6 +92,13 @@ matching page.
 
 Source: docs/guide/getting-started/index.md
 
+---
+title: Getting started
+description: Install Forge, start it for the first time and open or create your first project.
+order: 0
+tags: [install, start]
+---
+
 # Getting started
 
 Forge is a PHPStorm-style IDE for Windows, Linux and macOS, built with Rust and Tauri 2. If you
@@ -106,6 +120,13 @@ After that, the [user guide](docs/guide/user/index.md) has one page per feature,
 ---
 
 Source: docs/guide/getting-started/installation.md
+
+---
+title: Installation
+description: Install Forge as an AppImage, deb or rpm package on Linux, or as an installer on Windows and macOS.
+order: 10
+tags: [install, appimage, linux, windows, macos]
+---
 
 # Installation
 
@@ -238,6 +259,13 @@ old one. Uninstalling the app leaves your settings and caches in place; see
 
 Source: docs/guide/getting-started/first-start.md
 
+---
+title: First start and the Welcome screen
+description: What Forge shows on its first launch, the Welcome screen and its recent projects list.
+order: 20
+tags: [welcome, start, recent projects]
+---
+
 # First start and the Welcome screen
 
 ## Starting Forge
@@ -367,6 +395,13 @@ operating system's own title bar, with Settings | Appearance & Behavior | Appear
 
 Source: docs/guide/getting-started/projects.md
 
+---
+title: Opening and creating projects
+description: Open a folder as a project, create new projects with the New Project wizard and choose the default project directory.
+order: 30
+tags: [projects, new project, wizard, generators]
+---
+
 # Opening and creating projects
 
 A Forge project is a folder. There is no project file to import: open the folder, and Forge
@@ -457,6 +492,13 @@ and development and are not part of the desktop app.
 ---
 
 Source: docs/guide/getting-started/project-detection.md
+
+---
+title: Project type detection
+description: How Forge recognizes languages, frameworks and tools in a project and which plugins it activates for them.
+order: 40
+tags: [projects, detection, plugins, packs]
+---
 
 # Project type detection
 
@@ -553,6 +595,13 @@ Detection runs when the project opens. If you add a framework later (for example
 
 Source: docs/guide/getting-started/from-phpstorm.md
 
+---
+title: Coming from PHPStorm
+description: A quick switch guide for PHPStorm users - what works the same, what is different and what Forge does not have yet.
+order: 50
+tags: [phpstorm, migration, keymap]
+---
+
 # Coming from PHPStorm
 
 Forge copies PHPStorm's New UI on purpose: the layout, the names of tool windows and actions,
@@ -639,6 +688,13 @@ The [keymap reference](docs/guide/reference/keymap.md) marks every action as imp
 
 Source: docs/guide/user/index.md
 
+---
+title: User guide
+description: One page per Forge feature, written for people who use Forge as their IDE.
+order: 0
+tags: [user guide]
+---
+
 # User guide
 
 Each page describes one feature the way PHPStorm users know it: tool windows, actions,
@@ -695,6 +751,13 @@ not finished, the page says so.
 ---
 
 Source: docs/guide/user/workbench.md
+
+---
+title: Workbench and tool windows
+description: The main window - main toolbar, tool window stripes, the Project view, editor tabs, Recent Files, the Switcher and the status bar.
+order: 10
+tags: [workbench, tool windows, project view, status bar, tabs]
+---
 
 # Workbench and tool windows
 
@@ -905,6 +968,13 @@ Left: the project name and the path of the current file. Right, depending on the
 ---
 
 Source: docs/guide/user/editor.md
+
+---
+title: Editor
+description: Editing, completion, hover documentation, Parameter Info, Go to Declaration, problems, formatting, folding, find and replace, gutter icons and the editor context menu.
+order: 20
+tags: [editor, completion, hover, navigation, diagnostics, context menu]
+---
 
 # Editor
 
@@ -1130,6 +1200,13 @@ font, size, line height and ligatures. See the [settings reference](docs/guide/r
 
 Source: docs/guide/user/search-everywhere.md
 
+---
+title: Search Everywhere and Find Action
+description: Find files, classes, symbols and actions with Search Everywhere, Go to Class/File/Symbol and Find Action, and how fuzzy matching works.
+order: 30
+tags: [search, navigation, find action, go to file]
+---
+
 # Search Everywhere and Find Action
 
 ## Search Everywhere
@@ -1171,6 +1248,11 @@ Matching works like PHPStorm's:
   ("strict" matching), which keeps the lists short.
 
 ![Go to File with camel humps](docs/screenshots/goto-file-camel-humps.png)
+
+To match only text that contains what you typed, turn off **Settings > Tools > Search > Fuzzy
+matching** (`search.everywhere.fuzzy`). Files, Classes and Symbols in Search Everywhere and Go to
+File then find `OrderCon` in `OrderController` but no longer `orco`. PHP and Lua classes from their
+own language index and the Actions tab keep fuzzy matching.
 
 Ranking happens in Rust (`forge-fuzzy`), so the same rules apply in every list with a
 speed search: Recent Files, the New Scratch File popup, choosers.
@@ -1225,6 +1307,13 @@ The **Text** tab of Search Everywhere uses the same search (from two characters 
 ---
 
 Source: docs/guide/user/file-types.md
+
+---
+title: File types and syntax highlighting
+description: How Forge recognizes file types, which languages it highlights, the extra support for config formats, and template data languages for Twig, Smarty, Latte and others.
+order: 40
+tags: [file types, syntax highlighting, templates, twig, smarty, data languages]
+---
 
 # File types and syntax highlighting
 
@@ -1327,6 +1416,13 @@ feature only a server provides (for example a JSON `$schema` or a YAML
 ---
 
 Source: docs/guide/user/language-servers.md
+
+---
+title: Language servers
+description: How Forge finds, installs, configures and starts language servers, Intelephense free and premium licence keys, and per-server settings.
+order: 50
+tags: [lsp, language servers, intelephense, phpactor, install]
+---
 
 # Language servers
 
@@ -1553,6 +1649,13 @@ and configuration happen on the host too.
 
 Source: docs/guide/user/keymap.md
 
+---
+title: Keymap
+description: Forge's PHPStorm-compatible keymap - the default keymaps for Windows/Linux and macOS, changing shortcuts, chords and double taps, conflicts and focus contexts.
+order: 240
+tags: [keymap, shortcuts, phpstorm]
+---
+
 # Keymap
 
 Forge ships **PHPStorm's default keymaps** 1:1, for Windows/Linux and for macOS, keyed by
@@ -1655,6 +1758,13 @@ All of them can be rebound like PHPStorm actions.
 
 Source: docs/guide/user/shortcuts/index.md
 
+---
+title: Shortcuts by topic
+description: Forge's keyboard shortcuts explained by topic, like the JetBrains help - what each action does, where it is in the menus and what it shows.
+order: 0
+tags: [shortcuts, keymap]
+---
+
 # Shortcuts by topic
 
 Forge uses PHPStorm's default keymap. These pages explain every **implemented** action by topic:
@@ -1687,6 +1797,13 @@ screenshot when it opens something. Actions that are not implemented yet are lis
 ---
 
 Source: docs/guide/user/shortcuts/reference-card.md
+
+---
+title: Keymap reference card
+description: "The 60 most important Forge shortcuts on one printable page, Windows/Linux and macOS side by side."
+order: 5
+tags: [shortcuts, keymap, cheat sheet]
+---
 
 # Keymap reference card
 
@@ -1731,6 +1848,13 @@ Notation: `Double Shift` means pressing Shift twice quickly. On macOS, `Cmd` is 
 ---
 
 Source: docs/guide/user/shortcuts/general.md
+
+---
+title: "Shortcuts: General"
+description: "Actions that work everywhere: Find Action, Settings, the main menu, projects, themes and scratches."
+order: 10
+tags: [shortcuts, keymap, general]
+---
 
 # Shortcuts: General
 
@@ -1978,6 +2102,13 @@ Closes the Forge window (desktop app only).
 ---
 
 Source: docs/guide/user/shortcuts/editing.md
+
+---
+title: "Shortcuts: Editing"
+description: "Typing, selecting, moving and commenting code, completion, generation, formatting and folding."
+order: 20
+tags: [shortcuts, keymap, editing]
+---
 
 # Shortcuts: Editing
 
@@ -2423,6 +2554,13 @@ More: [Editor](docs/guide/user/editor.md#editing-actions)
 
 Source: docs/guide/user/shortcuts/navigation.md
 
+---
+title: "Shortcuts: Navigation"
+description: "Jumping to declarations, lines, problems, recent files and between editor tabs."
+order: 30
+tags: [shortcuts, keymap, navigation]
+---
+
 # Shortcuts: Navigation
 
 Jumping to declarations, lines, problems, recent files and between editor tabs. Windows/Linux shortcuts first, macOS second; both are PHPStorm's defaults and can be changed in Settings | Keymap.
@@ -2624,6 +2762,13 @@ More: [Workbench and tool windows](docs/guide/user/workbench.md#editor-tabs)
 
 Source: docs/guide/user/shortcuts/search.md
 
+---
+title: "Shortcuts: Search"
+description: "Search Everywhere, Go to Class/File/Symbol, find in the current file and Find in Files."
+order: 40
+tags: [shortcuts, keymap, search]
+---
+
 # Shortcuts: Search
 
 Search Everywhere, Go to Class/File/Symbol, find in the current file and Find in Files. Windows/Linux shortcuts first, macOS second; both are PHPStorm's defaults and can be changed in Settings | Keymap.
@@ -2760,6 +2905,13 @@ More: [Search Everywhere and Find Action](docs/guide/user/search-everywhere.md#f
 
 Source: docs/guide/user/shortcuts/refactoring.md
 
+---
+title: "Shortcuts: Refactoring"
+description: "Refactorings and code generation."
+order: 50
+tags: [shortcuts, keymap, refactoring]
+---
+
 # Shortcuts: Refactoring
 
 Refactorings and code generation. Windows/Linux shortcuts first, macOS second; both are PHPStorm's defaults and can be changed in Settings | Keymap.
@@ -2803,6 +2955,13 @@ More: [Editor](docs/guide/user/editor.md#reformat-code)
 ---
 
 Source: docs/guide/user/shortcuts/run-debug.md
+
+---
+title: "Shortcuts: Run and debug"
+description: "Running configurations, breakpoints and stepping through PHP code with Xdebug."
+order: 60
+tags: [shortcuts, keymap, run-debug]
+---
 
 # Shortcuts: Run and debug
 
@@ -3133,6 +3292,13 @@ More: [Database tools and SQL console](docs/guide/user/database.md#query-console
 
 Source: docs/guide/user/shortcuts/vcs.md
 
+---
+title: "Shortcuts: Version control (Git)"
+description: "Commit, push, update, branches, the log and blame."
+order: 70
+tags: [shortcuts, keymap, vcs]
+---
+
 # Shortcuts: Version control (Git)
 
 Commit, push, update, branches, the log and blame. Windows/Linux shortcuts first, macOS second; both are PHPStorm's defaults and can be changed in Settings | Keymap.
@@ -3240,6 +3406,13 @@ More: [Git](docs/guide/user/git.md#blame)
 ---
 
 Source: docs/guide/user/shortcuts/tool-windows.md
+
+---
+title: "Shortcuts: Tool windows"
+description: "Opening, hiding, resizing and switching tool windows."
+order: 80
+tags: [shortcuts, keymap, tool-windows]
+---
 
 # Shortcuts: Tool windows
 
@@ -3558,6 +3731,13 @@ More: [Terminal](docs/guide/user/terminal.md#tabs)
 
 Source: docs/guide/user/settings-and-themes.md
 
+---
+title: Settings and themes
+description: The Settings dialog, user and project settings, settings files, themes (Forge Ember, Forge Anvil, Solarized), fonts and the window title bar styles.
+order: 230
+tags: [settings, themes, appearance, window controls, fonts]
+---
+
 # Settings and themes
 
 ## The Settings dialog
@@ -3700,6 +3880,13 @@ composer path, console cycle buffer size, terminal audible bell and shell integr
 
 Source: docs/guide/user/plugins-and-packs.md
 
+---
+title: Plugins and packs
+description: How Forge is split into packs and plugins, which plugins exist, when they activate, and how to enable or disable them in Settings | Plugins.
+order: 250
+tags: [plugins, packs, phpforge, webforge, luaforge]
+---
+
 # Plugins and packs
 
 Everything in Forge beyond the workbench is a **plugin**. Plugins are grouped in **packs**:
@@ -3745,6 +3932,13 @@ Disabled plugins are remembered in the user settings (`plugins.disabled`, a list
 ---
 
 Source: docs/guide/user/php.md
+
+---
+title: PHP
+description: PHP support in PHPForge - the PHP index, Structure tool window, hover documentation, class and symbol search, Generate (Alt+Insert) for constructors, getters and setters, and the PHP settings.
+order: 60
+tags: [php, phpforge, generate, structure, index]
+---
 
 # PHP
 
@@ -3903,6 +4097,13 @@ remote host through the Forge agent; Structure, search, hover and Generate work 
 
 Source: docs/guide/user/laravel.md
 
+---
+title: Laravel
+description: Laravel support in PHPForge - Blade, completion and navigation for routes, views, config, env, translations and Eloquent, gutter icons, the Routes tool window and Run Artisan Command.
+order: 70
+tags: [laravel, blade, eloquent, artisan, routes, phpforge]
+---
+
 # Laravel
 
 The Laravel plugin (`forge.laravel`, PHPForge pack) activates in projects that require
@@ -4043,6 +4244,13 @@ host.
 
 Source: docs/guide/user/symfony.md
 
+---
+title: Symfony
+description: Symfony support in PHPForge - services and parameters, routes, Twig completion and navigation, console commands, line markers, the Symfony tool window and settings.
+order: 80
+tags: [symfony, twig, services, console, phpforge]
+---
+
 # Symfony
 
 The Symfony plugin (`forge.symfony`, PHPForge pack) activates in projects that require
@@ -4156,6 +4364,13 @@ console commands run there as well.
 
 Source: docs/guide/user/doctrine.md
 
+---
+title: Doctrine and DQL
+description: Doctrine ORM support - entity mappings from attributes, annotations, XML and YAML, the Doctrine tool window, and DQL highlighting, completion, navigation and inspections in PHP strings.
+order: 90
+tags: [doctrine, dql, orm, entities, phpforge]
+---
+
 # Doctrine and DQL
 
 The Doctrine plugin (`forge.doctrine`, PHPForge pack) activates in projects that require
@@ -4235,6 +4450,13 @@ host; everything above works the same.
 ---
 
 Source: docs/guide/user/webforge.md
+
+---
+title: WebForge
+description: The WebForge pack - npm scripts and package managers, the npm tool window, Node.js and TypeScript settings, and React, Vue and Angular component navigation and line markers.
+order: 100
+tags: [webforge, javascript, typescript, npm, react, vue, angular]
+---
 
 # WebForge
 
@@ -4389,6 +4611,13 @@ see [Opening and creating projects](docs/guide/getting-started/projects.md).
 
 Source: docs/guide/user/luaforge.md
 
+---
+title: LuaForge
+description: The LuaForge pack - Lua index with EmmyLua/LuaLS annotations, navigation, structure, hover, lua-language-server, StyLua and Lua Script run configurations.
+order: 110
+tags: [lua, luaforge, love, neovim, stylua]
+---
+
 # LuaForge
 
 **LuaForge** (plugin `forge.lua`) supports Lua 5.1–5.4 and LuaJIT, LÖVE games and Neovim
@@ -4476,6 +4705,13 @@ See the [settings reference](docs/guide/reference/settings.md#languages--framewo
 ---
 
 Source: docs/guide/user/git.md
+
+---
+title: Git
+description: Git integration - the Commit tool window, AI commit messages, diff viewer, change markers, blame, branches, push, update and the Git log.
+order: 120
+tags: [git, vcs, commit, diff, blame, branches]
+---
 
 # Git
 
@@ -4602,6 +4838,13 @@ History and merge conflict resolution are not implemented yet.
 
 Source: docs/guide/user/code-hosts.md
 
+---
+title: Code hosts
+description: Review pull and merge requests with inline threads, browse issues and CI pipelines for GitHub, GitLab and Forgejo/Gitea, including self-hosted servers.
+order: 130
+tags: [github, gitlab, forgejo, gitea, pull requests, merge requests, code review, ci]
+---
+
 # Code hosts
 
 The plugin **GitLab, Forgejo and GitHub** (`forge.code-hosts`) brings code review into Forge:
@@ -4703,6 +4946,13 @@ Settings (not shown in the Settings dialog; set them in `settings.toml`, see
 ---
 
 Source: docs/guide/user/run-debug.md
+
+---
+title: Run/Debug configurations
+description: Create and run Run/Debug configurations for PHP scripts, PHPUnit, Artisan, Composer, npm, shell scripts and Lua, the run widget, the Run tool window and the PHPUnit test tree.
+order: 140
+tags: [run, debug, configurations, phpunit, tests, npm]
+---
 
 # Run/Debug configurations
 
@@ -4816,6 +5066,13 @@ listener and runs the process with the Xdebug environment (`XDEBUG_MODE=debug`,
 ---
 
 Source: docs/guide/user/debugging.md
+
+---
+title: Xdebug debugging
+description: Step-debug PHP with Xdebug 3 - listening for connections, breakpoints and conditions, stepping, variables, watches, Evaluate Expression, servers and path mappings.
+order: 150
+tags: [debug, xdebug, php, breakpoints, dbgp]
+---
 
 # Xdebug debugging
 
@@ -4971,6 +5228,13 @@ the host.
 
 Source: docs/guide/user/terminal.md
 
+---
+title: Terminal
+description: The integrated terminal - tabs, shells, clickable file links, copy and paste, and terminal settings.
+order: 160
+tags: [terminal, shell, pty]
+---
+
 # Terminal
 
 The **Terminal** tool window (`Alt+F12`, bottom stripe) runs your shell on a real pseudo
@@ -5037,6 +5301,13 @@ runs on the remote host.
 ---
 
 Source: docs/guide/user/database.md
+
+---
+title: Database tools and SQL console
+description: Data sources for MySQL, MariaDB, PostgreSQL and SQLite, the Database tool window, query consoles with transactions, the data grid with editing, and export.
+order: 170
+tags: [database, sql, mysql, postgresql, sqlite, console]
+---
 
 # Database tools and SQL console
 
@@ -5154,6 +5425,13 @@ from your machine.
 ---
 
 Source: docs/guide/user/scratches-and-http.md
+
+---
+title: Scratches, consoles and HTTP client
+description: Scratch files and buffers in any language, running PHP/JS/TS/Python/shell/Lua scratches, SQL scratches as database consoles, and .http request files with variables and environments.
+order: 180
+tags: [scratches, consoles, http client, rest, sql]
+---
 
 # Scratches, consoles and HTTP client
 
@@ -5341,6 +5619,13 @@ Test results and log lines are printed after the response.
 
 Source: docs/guide/user/services.md
 
+---
+title: Services
+description: The Services tool window - Docker containers, images, volumes and networks, Docker Compose projects, Kubernetes workloads, logs, exec terminals, image pulls, registries and gutter run icons.
+order: 190
+tags: [docker, compose, kubernetes, services, containers]
+---
+
 # Services
 
 The plugin **Docker and Kubernetes** (`forge.services`) fills the **Services** tool window
@@ -5517,6 +5802,13 @@ auth and exec credential plugins (as used by EKS, GKE and AKS).
 
 Source: docs/guide/user/remote-development.md
 
+---
+title: Remote development
+description: Open a project on a Linux server over SSH - connections, authentication, host keys, the Forge agent, what runs on the host, reconnects and current limitations.
+order: 200
+tags: [remote, ssh, agent, gateway]
+---
+
 # Remote development
 
 Forge can open a project that lives on another machine, like JetBrains Gateway. It connects over
@@ -5657,6 +5949,13 @@ See [Troubleshooting: remote agent upload](docs/guide/troubleshooting.md#remote-
 ---
 
 Source: docs/guide/user/ai.md
+
+---
+title: AI
+description: AI in Forge - model providers (Anthropic, OpenAI, OpenRouter, Ollama, LM Studio, llama.cpp, any OpenAI-compatible server), AI commit messages, and the AI Chat with Claude Code and Gemini CLI including permission modes.
+order: 210
+tags: [ai, llm, claude, claude code, gemini, ollama, openai, chat]
+---
 
 # AI
 
@@ -5805,6 +6104,13 @@ to its own service). Nothing is sent anywhere by default.
 
 Source: docs/guide/user/browser-companion.md
 
+---
+title: Browser Companion
+description: Click a component in your running web app to open its source in Forge, pair the Forge Companion browser extension, and make error pages and dev overlays open files through forge:// links and the forge launcher.
+order: 220
+tags: [browser, extension, react, vue, angular, svelte, forge links, ignition]
+---
+
 # Browser Companion
 
 The Browser Companion (`forge.browser-companion`) connects Forge with the outside world:
@@ -5934,6 +6240,13 @@ line are trusted and open without asking. Full syntax:
 
 Source: docs/guide/reference/index.md
 
+---
+title: Reference
+description: Complete tables - keymap, settings, file types, language servers, command line and links, file locations, environment variables and plugins.
+order: 0
+tags: [reference]
+---
+
 # Reference
 
 Tables derived from Forge's sources. They list everything, including options that exist but are
@@ -5955,6 +6268,13 @@ not applied yet (marked as such).
 ---
 
 Source: docs/guide/reference/keymap.md
+
+---
+title: Keymap reference
+description: Every action of Forge's PHPStorm keymap with its default shortcuts on Windows/Linux and macOS, grouped like PHPStorm's keymap, and whether Forge implements it.
+order: 10
+tags: [keymap, shortcuts, reference]
+---
 
 # Keymap reference
 
@@ -6494,6 +6814,13 @@ Companion Settings (`BrowserCompanion.Settings`), Keymap Settings (`settings.key
 
 Source: docs/guide/reference/main-menu/index.md
 
+---
+title: Main menu reference
+description: Every entry of Forge's main menu, menu by menu, with its shortcut, whether it is implemented and what it does.
+order: 15
+tags: [main menu, reference, menus]
+---
+
 # Main menu reference
 
 Forge's main menu has PHPStorm's structure. Open it with the ☰ button or `Alt+\`, or show it as a
@@ -6527,6 +6854,13 @@ These pages were generated from the menu of the browser-mode Laravel demo projec
 ---
 
 Source: docs/guide/reference/main-menu/file.md
+
+---
+title: "File menu"
+description: "Every entry of the File menu with its shortcut, availability and what it does."
+order: 10
+tags: [main menu, reference, file]
+---
 
 # File menu
 
@@ -6583,6 +6917,13 @@ Projects, new files and scratches, settings and saving. Open it with ☰ (`Alt+\
 ---
 
 Source: docs/guide/reference/main-menu/edit.md
+
+---
+title: "Edit menu"
+description: "Every entry of the Edit menu with its shortcut, availability and what it does."
+order: 20
+tags: [main menu, reference, edit]
+---
 
 # Edit menu
 
@@ -6647,6 +6988,13 @@ Undo, clipboard, find and replace, selection and line editing. Open it with ☰ 
 
 Source: docs/guide/reference/main-menu/view.md
 
+---
+title: "View menu"
+description: "Every entry of the View menu with its shortcut, availability and what it does."
+order: 30
+tags: [main menu, reference, view]
+---
+
 # View menu
 
 Tool windows, appearance toggles, documentation popups and recent files. Open it with ☰ (`Alt+\`) or from the menu bar, see [Main menu](docs/guide/user/workbench.md#main-menu).
@@ -6698,6 +7046,13 @@ The three toggles under **Appearance** (Compact Mode, Show Main Menu in Separate
 
 Source: docs/guide/reference/main-menu/navigate.md
 
+---
+title: "Navigate menu"
+description: "Every entry of the Navigate menu with its shortcut, availability and what it does."
+order: 40
+tags: [main menu, reference, navigate]
+---
+
 # Navigate menu
 
 Back and forward, Search Everywhere, Go to Class/File/Symbol/Line, declarations and problems. Open it with ☰ (`Alt+\`) or from the menu bar, see [Main menu](docs/guide/user/workbench.md#main-menu).
@@ -6745,6 +7100,13 @@ Back and forward, Search Everywhere, Go to Class/File/Symbol/Line, declarations 
 ---
 
 Source: docs/guide/reference/main-menu/code.md
+
+---
+title: "Code menu"
+description: "Every entry of the Code menu with its shortcut, availability and what it does."
+order: 50
+tags: [main menu, reference, code]
+---
 
 # Code menu
 
@@ -6801,6 +7163,13 @@ Completion, Generate, folding, comments, formatting and moving lines. Open it wi
 
 Source: docs/guide/reference/main-menu/refactor.md
 
+---
+title: "Refactor menu"
+description: "Every entry of the Refactor menu with its shortcut, availability and what it does."
+order: 60
+tags: [main menu, reference, refactor]
+---
+
 # Refactor menu
 
 Refactorings. None of them is implemented yet; the menu shows PHPStorm's entries disabled. Open it with ☰ (`Alt+\`) or from the menu bar, see [Main menu](docs/guide/user/workbench.md#main-menu).
@@ -6834,6 +7203,13 @@ Refactorings. None of them is implemented yet; the menu shows PHPStorm's entries
 ---
 
 Source: docs/guide/reference/main-menu/run.md
+
+---
+title: "Run menu"
+description: "Every entry of the Run menu with its shortcut, availability and what it does."
+order: 70
+tags: [main menu, reference, run]
+---
 
 # Run menu
 
@@ -6879,6 +7255,13 @@ Run/Debug configurations, debugging actions and breakpoints. Open it with ☰ (`
 
 Source: docs/guide/reference/main-menu/tools.md
 
+---
+title: "Tools menu"
+description: "Every entry of the Tools menu with its shortcut, availability and what it does."
+order: 80
+tags: [main menu, reference, tools]
+---
+
 # Tools menu
 
 Terminal and the tools of plugins (Docker, Laravel, Symfony). Open it with ☰ (`Alt+\`) or from the menu bar, see [Main menu](docs/guide/user/workbench.md#main-menu).
@@ -6915,6 +7298,13 @@ Tools collects the actions of active plugins; the screenshot shows a Laravel pro
 ---
 
 Source: docs/guide/reference/main-menu/git.md
+
+---
+title: "Git menu"
+description: "Every entry of the Git menu with its shortcut, availability and what it does."
+order: 90
+tags: [main menu, reference, git]
+---
 
 # Git menu
 
@@ -6966,6 +7356,13 @@ In a project without a Git repository the menu is called **VCS** and offers the 
 
 Source: docs/guide/reference/main-menu/window.md
 
+---
+title: "Window menu"
+description: "Every entry of the Window menu with its shortcut, availability and what it does."
+order: 100
+tags: [main menu, reference, window]
+---
+
 # Window menu
 
 Layouts, the active tool window, editor tabs and project windows. Open it with ☰ (`Alt+\`) or from the menu bar, see [Main menu](docs/guide/user/workbench.md#main-menu).
@@ -7011,6 +7408,13 @@ Layouts, the active tool window, editor tabs and project windows. Open it with �
 
 Source: docs/guide/reference/main-menu/help.md
 
+---
+title: "Help menu"
+description: "Every entry of the Help menu with its shortcut, availability and what it does."
+order: 110
+tags: [main menu, reference, help]
+---
+
 # Help menu
 
 Find Action, the keymap reference and About. Open it with ☰ (`Alt+\`) or from the menu bar, see [Main menu](docs/guide/user/workbench.md#main-menu).
@@ -7039,6 +7443,13 @@ Find Action, the keymap reference and About. Open it with ☰ (`Alt+\`) or from 
 ---
 
 Source: docs/guide/reference/settings.md
+
+---
+title: Settings reference
+description: Every setting key Forge's plugins declare, with type, default, scope and where it appears in the Settings dialog.
+order: 20
+tags: [settings, reference, configuration]
+---
 
 # Settings reference
 
@@ -7450,6 +7861,13 @@ Page id `build.kubernetes`.
 
 Source: docs/guide/reference/file-types.md
 
+---
+title: File types reference
+description: Every file type Forge recognizes - bundled types and plugin types with their extensions, file names, shebang interpreters, indentation and template data languages.
+order: 30
+tags: [file types, reference, syntax]
+---
+
 # File types reference
 
 Detection order: file names and path patterns, then the longest matching extension, then the
@@ -7603,6 +8021,13 @@ when `editor.softWraps` is on.
 ---
 
 Source: docs/guide/reference/language-servers.md
+
+---
+title: Language servers reference
+description: The catalog of language servers Forge knows - languages, commands, install options, licences and start conditions.
+order: 40
+tags: [lsp, language servers, reference]
+---
 
 # Language servers reference
 
@@ -7837,6 +8262,13 @@ Languages the catalog detects in a project (the project scan reads up to
 
 Source: docs/guide/reference/cli-and-links.md
 
+---
+title: CLI arguments and forge:// links
+description: Command-line forms of the forge launcher, the forge://open and forge://open-symbol links, and the Browser Companion's local HTTP API.
+order: 50
+tags: [cli, launcher, forge links, deep links, reference]
+---
+
 # CLI arguments and forge:// links
 
 ## The `forge` launcher
@@ -7923,6 +8355,13 @@ only). Pairing codes are 6 digits, valid for five minutes and for one use. See
 ---
 
 Source: docs/guide/reference/file-locations.md
+
+---
+title: Config, cache and data locations
+description: Where Forge stores user settings, project files, caches, language servers, scratches and secrets on Linux, macOS and Windows.
+order: 60
+tags: [files, paths, config, cache, keychain, reference]
+---
 
 # Config, cache and data locations
 
@@ -8020,6 +8459,13 @@ To reset Forge completely, quit it and delete `<config dir>/forge`, `<cache dir>
 
 Source: docs/guide/reference/environment-variables.md
 
+---
+title: Environment variables
+description: Environment variables Forge reads (FORGE_*, credentials fallbacks, Docker and Kubernetes, desktop detection) and the ones it sets for processes it starts.
+order: 70
+tags: [environment, variables, reference]
+---
+
 # Environment variables
 
 ## Read by Forge
@@ -8092,6 +8538,13 @@ Source: docs/guide/reference/environment-variables.md
 
 Source: docs/guide/reference/plugins.md
 
+---
+title: Plugins reference
+description: Every built-in plugin with its id, pack, dependencies, the project types that activate it and what it contributes.
+order: 80
+tags: [plugins, packs, reference]
+---
+
 # Plugins reference
 
 Generated from the manifests in `app/src-tauri/plugins/*.toml`. A plugin is active when it is
@@ -8154,6 +8607,13 @@ script and config language plugins.
 
 Source: docs/guide/developer/index.md
 
+---
+title: Developer guide
+description: Contributor documentation - architecture, repository layout, development setup, extension points, plugins and packs, quality gates, releases and one page per crate.
+order: 0
+tags: [developer, contributing]
+---
+
 # Developer guide
 
 Forge is a Rust + Tauri 2 desktop application with a SolidJS + TypeScript + CodeMirror 6 UI.
@@ -8202,6 +8662,13 @@ commands it backs, and its tests.
 ---
 
 Source: docs/guide/developer/architecture.md
+
+---
+title: Architecture overview
+description: How Forge is put together - the Tauri shell, Rust crates and packs, the SolidJS UI, IPC, project backends, browser mode and plugins.
+order: 10
+tags: [architecture, tauri, rust, solidjs, ipc]
+---
 
 # Architecture overview
 
@@ -8323,6 +8790,13 @@ All windows are undecorated; Forge draws title bars itself, styled per desktop
 
 Source: docs/guide/developer/repo-layout.md
 
+---
+title: Repository layout
+description: Where code, manifests, UI features, mocks, scripts, docs and skills live in the Forge repository.
+order: 20
+tags: [repository, layout]
+---
+
 # Repository layout
 
 ```text
@@ -8381,6 +8855,13 @@ CONTRIBUTING.md            contributor quick start
 ---
 
 Source: docs/guide/developer/dev-setup.md
+
+---
+title: Development setup
+description: Install the toolchains, run Forge in browser mode or as a desktop app, use the demo projects and keep builds fast.
+order: 30
+tags: [setup, development, pnpm, tauri]
+---
 
 # Development setup
 
@@ -8466,6 +8947,13 @@ real file system, git, language servers, PTYs, databases and Docker.
 
 Source: docs/guide/developer/rust-computes.md
 
+---
+title: Rust computes, TypeScript renders
+description: Forge's central design rule - logic, models and parsers in Rust crates with tests, the UI renders and forwards events - and how to apply it.
+order: 40
+tags: [architecture, rust, typescript, design]
+---
+
 # Rust computes, TypeScript renders
 
 Logic, data models and parsers belong in Rust crates with unit tests. The SolidJS UI renders what
@@ -8522,6 +9010,13 @@ shortly after each edit; old spans are mapped through changes meanwhile).
 ---
 
 Source: docs/guide/developer/wasm-bridge.md
+
+---
+title: The WebAssembly bridge
+description: How crates/forge-wasm compiles pure Rust crates to WebAssembly for browser mode, how mocks call it, and how to add a module.
+order: 50
+tags: [wasm, webassembly, browser mode, mocks]
+---
 
 # The WebAssembly bridge
 
@@ -8595,6 +9090,13 @@ This needs the `wasm32-unknown-unknown` target (`rustup target add wasm32-unknow
 ---
 
 Source: docs/guide/developer/contribution-points.md
+
+---
+title: Contribution points
+description: Every UI extension API of Forge (registerToolWindow, registerCommand, registerSettingsPage, registerEditorExtension, registerSearchProvider, registerLanguage, registerKeymapActions and more) with examples.
+order: 60
+tags: [ui, extension points, solidjs, api]
+---
 
 # Contribution points
 
@@ -8829,6 +9331,13 @@ Use `projectInfo()`, `usesFramework("laravel")` and `isPluginActive("forge.larav
 
 Source: docs/guide/developer/ipc-and-mocks.md
 
+---
+title: IPC commands and browser mocks
+description: Adding a backend command - the Rust handler in app/src-tauri, the typed TypeScript client, events, and the browser-mode mock or WebAssembly bridge.
+order: 70
+tags: [ipc, tauri, mocks, commands]
+---
+
 # IPC commands and browser mocks
 
 Every backend call has three parts: a Rust command, a typed client and a browser mock. Recipe:
@@ -8915,6 +9424,13 @@ before you start the work that emits them (pass your own id where the API allows
 ---
 
 Source: docs/guide/developer/plugins-and-packs.md
+
+---
+title: Writing a plugin or pack
+description: A walkthrough for adding a Forge plugin - manifest, Rust crate, IPC, UI feature, settings, activation per project, browser mock, tests and docs.
+order: 80
+tags: [plugins, packs, manifest, walkthrough]
+---
 
 # Writing a plugin or pack
 
@@ -9053,6 +9569,13 @@ in `pack_for_language` in `detect.rs`.
 
 Source: docs/guide/developer/adding-a-language.md
 
+---
+title: Adding a language
+description: Add a file type, a syntax mode, editor features, a language server and template data languages to Forge.
+order: 90
+tags: [languages, syntax highlighting, file types, codemirror]
+---
+
 # Adding a language
 
 Recipe: [`add-language-support`](.claude/skills/add-language-support/SKILL.md).
@@ -9143,6 +9666,13 @@ Add a sample to `app/ui/src/mock/demoConfigFiles.ts`, a scenario to
 
 Source: docs/guide/developer/settings.md
 
+---
+title: Settings
+description: Declaring settings in plugin manifests, reading them in Rust and the UI, settings pages, project scope, validation and secrets.
+order: 100
+tags: [settings, manifest, schema]
+---
+
 # Settings
 
 Recipe: [`add-setting`](.claude/skills/add-setting/SKILL.md). User documentation:
@@ -9209,6 +9739,13 @@ The dialog's search, highlighting and validation are computed in Rust
 ---
 
 Source: docs/guide/developer/keymap-actions.md
+
+---
+title: Keymap actions
+description: How the Rust keymap engine works, implementing PHPStorm actions, aliases, plugin actions with default shortcuts, focus contexts and conflict tests.
+order: 110
+tags: [keymap, shortcuts, actions]
+---
 
 # Keymap actions
 
@@ -9291,6 +9828,13 @@ and `when`).
 
 Source: docs/guide/developer/screenshots.md
 
+---
+title: Screenshots and scenarios
+description: Capture Playwright screenshots of the browser-mode UI with scenario files, review them in both themes and commit them with UI changes.
+order: 120
+tags: [screenshots, playwright, ui, testing]
+---
+
 # Screenshots and scenarios
 
 Every UI change needs screenshots, and you must look at them. Recipe:
@@ -9367,6 +9911,13 @@ scenario, update the pages that use it.
 
 Source: docs/guide/developer/quality-gates.md
 
+---
+title: Quality gates
+description: The checks to run before every commit - rustfmt, clippy, cargo tests, TypeScript typecheck, vitest, production build, browser extension checks and test rules.
+order: 130
+tags: [quality, testing, ci, clippy]
+---
+
 # Quality gates
 
 Run all of these and fix every failure before committing. CI runs only on manual dispatch, so
@@ -9424,6 +9975,13 @@ pnpm build       # dist/chrome and dist/firefox
 ---
 
 Source: docs/guide/developer/release-builds.md
+
+---
+title: Release builds
+description: Build Forge bundles (AppImage, deb, rpm, dmg, msi/nsis), bundle the remote agents with pnpm release, and smoke-test a build.
+order: 140
+tags: [release, build, appimage, bundles, remote agent]
+---
 
 # Release builds
 
@@ -9614,6 +10172,13 @@ The version (0.1.0) is set in `[workspace.package]` of the root `Cargo.toml`,
 
 Source: docs/guide/developer/versioning.md
 
+---
+title: Versioning
+description: Forge versions follow Pride Versioning (PROUD.DEFAULT.SHAME); bump them with pnpm version:bump and release by publishing a GitHub release.
+order: 145
+tags: [release, version, pridever, updates]
+---
+
 # Versioning
 
 Forge versions follow [Pride Versioning](https://pridever.org) 0.3.0: **PROUD.DEFAULT.SHAME**.
@@ -9666,6 +10231,13 @@ commits, tags or publishes.
 
 Source: docs/guide/developer/git-workflow.md
 
+---
+title: Git workflow
+description: Branch names, commit style, no trailers, manual-only CI, worktrees and keeping the documentation in step with changes.
+order: 150
+tags: [git, workflow, ci, commits]
+---
+
 # Git workflow
 
 - Repository: <https://github.com/Reeperk/Forge>, default branch `main`.
@@ -9706,6 +10278,13 @@ dir can return stale builds of workspace crates) and consider `CARGO_PROFILE_DEV
 ---
 
 Source: docs/guide/developer/crates/index.md
+
+---
+title: Crates
+description: One page per Rust crate in crates/ and packs/ - purpose, modules, public items, IPC, dependencies and tests.
+order: 200
+tags: [crates, rust]
+---
 
 # Crates
 
@@ -9763,6 +10342,13 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 ---
 
 Source: docs/guide/developer/crates/forge-agent-cli.md
+
+---
+title: forge-agent-cli
+description: "Runs AI coding agent CLIs (Claude Code, Gemini CLI) headless and normalizes their output."
+order: 10
+tags: [crate, rust]
+---
 
 # forge-agent-cli
 
@@ -9842,6 +10428,13 @@ cargo test -p forge-agent-cli
 
 Source: docs/guide/developer/crates/forge-ai.md
 
+---
+title: forge-ai
+description: "Forge IDE AI provider layer: Anthropic and OpenAI-compatible chat models."
+order: 20
+tags: [crate, rust]
+---
+
 # forge-ai
 
 `crates/forge-ai` — Forge IDE AI provider layer: Anthropic and OpenAI-compatible chat models.
@@ -9905,6 +10498,13 @@ cargo test -p forge-ai
 ---
 
 Source: docs/guide/developer/crates/forge-backend.md
+
+---
+title: forge-backend
+description: "Forge IDE project backends: the Backend trait, the local backend and the remote agent protocol."
+order: 30
+tags: [crate, rust]
+---
 
 # forge-backend
 
@@ -9980,6 +10580,13 @@ cargo test -p forge-backend
 ---
 
 Source: docs/guide/developer/crates/forge-containers.md
+
+---
+title: forge-containers
+description: "Forge IDE containers: Docker Engine API, Docker Compose and Kubernetes for the Services tool window."
+order: 40
+tags: [crate, rust]
+---
 
 # forge-containers
 
@@ -10064,6 +10671,13 @@ cargo test -p forge-containers
 
 Source: docs/guide/developer/crates/forge-core.md
 
+---
+title: forge-core
+description: "Forge IDE core: workspace, file system, settings and event bus."
+order: 50
+tags: [crate, rust]
+---
+
 # forge-core
 
 `crates/forge-core` — Forge IDE core: workspace, file system, settings and event bus.
@@ -10118,6 +10732,13 @@ cargo test -p forge-core
 ---
 
 Source: docs/guide/developer/crates/forge-db.md
+
+---
+title: forge-db
+description: "Forge IDE database tools: data sources, introspection, query execution and data editing."
+order: 60
+tags: [crate, rust]
+---
 
 # forge-db
 
@@ -10192,6 +10813,13 @@ cargo test -p forge-db
 
 Source: docs/guide/developer/crates/forge-debug.md
 
+---
+title: forge-debug
+description: "Forge IDE debugger: DBGp (Xdebug 3) server, path mappings and breakpoints."
+order: 70
+tags: [crate, rust]
+---
+
 # forge-debug
 
 `crates/forge-debug` — Forge IDE debugger: DBGp (Xdebug 3) server, path mappings and breakpoints.
@@ -10263,6 +10891,13 @@ cargo test -p forge-debug
 
 Source: docs/guide/developer/crates/forge-filetypes.md
 
+---
+title: forge-filetypes
+description: "File type recognition for Forge: names, extensions, shebangs and template data languages (pure, WebAssembly-friendly)."
+order: 80
+tags: [crate, rust]
+---
+
 # forge-filetypes
 
 `crates/forge-filetypes` — File type recognition for Forge: names, extensions, shebangs and template data languages (pure, WebAssembly-friendly).
@@ -10326,6 +10961,13 @@ cargo test -p forge-filetypes
 
 Source: docs/guide/developer/crates/forge-find.md
 
+---
+title: forge-find
+description: "Find in Files: query compilation, file masks and line matching (pure, WebAssembly-friendly)."
+order: 90
+tags: [crate, rust]
+---
+
 # forge-find
 
 `crates/forge-find` — Find in Files: query compilation, file masks and line matching (pure, WebAssembly-friendly).
@@ -10382,6 +11024,13 @@ cargo test -p forge-find
 ---
 
 Source: docs/guide/developer/crates/forge-forges.md
+
+---
+title: forge-forges
+description: "Forge IDE code hosts: GitLab, Forgejo/Gitea and GitHub merge requests, issues and pipelines."
+order: 100
+tags: [crate, rust]
+---
 
 # forge-forges
 
@@ -10448,6 +11097,13 @@ cargo test -p forge-forges
 
 Source: docs/guide/developer/crates/forge-fuzzy.md
 
+---
+title: forge-fuzzy
+description: "PHPStorm-style fuzzy matching and Search Everywhere ranking (pure, WebAssembly-friendly)."
+order: 110
+tags: [crate, rust]
+---
+
 # forge-fuzzy
 
 `crates/forge-fuzzy` — PHPStorm-style fuzzy matching and Search Everywhere ranking (pure, WebAssembly-friendly).
@@ -10507,6 +11163,13 @@ cargo test -p forge-fuzzy
 ---
 
 Source: docs/guide/developer/crates/forge-keymap.md
+
+---
+title: forge-keymap
+description: "PHPStorm-compatible keymap: shortcut model, default keymaps, overrides, conflicts and the key resolver."
+order: 120
+tags: [crate, rust]
+---
 
 # forge-keymap
 
@@ -10571,6 +11234,13 @@ cargo test -p forge-keymap
 ---
 
 Source: docs/guide/developer/crates/forge-langservers.md
+
+---
+title: forge-langservers
+description: "Forge IDE: catalog, detection, configuration and installation of language servers."
+order: 130
+tags: [crate, rust]
+---
 
 # forge-langservers
 
@@ -10652,6 +11322,13 @@ cargo test -p forge-langservers
 
 Source: docs/guide/developer/crates/forge-lsp.md
 
+---
+title: forge-lsp
+description: "Forge IDE: generic Language Server Protocol client and server manager."
+order: 140
+tags: [crate, rust]
+---
+
 # forge-lsp
 
 `crates/forge-lsp` — Forge IDE: generic Language Server Protocol client and server manager.
@@ -10715,6 +11392,13 @@ cargo test -p forge-lsp
 
 Source: docs/guide/developer/crates/forge-markdown.md
 
+---
+title: forge-markdown
+description: "Forge Markdown: a safe AST (no raw HTML) for chat messages and documentation popups, built with pulldown-cmark (pure, also built to WebAssembly)."
+order: 150
+tags: [crate, rust]
+---
+
 # forge-markdown
 
 `crates/forge-markdown` — Forge Markdown: a safe AST (no raw HTML) for chat messages and documentation popups, built with pulldown-cmark (pure, also built to WebAssembly).
@@ -10768,6 +11452,13 @@ cargo test -p forge-markdown
 ---
 
 Source: docs/guide/developer/crates/forge-open.md
+
+---
+title: forge-open
+description: "Forge IDE open requests: forge:// links, the CLI launcher and the Browser Companion local server."
+order: 160
+tags: [crate, rust]
+---
 
 # forge-open
 
@@ -10830,6 +11521,13 @@ cargo test -p forge-open
 ---
 
 Source: docs/guide/developer/crates/forge-output.md
+
+---
+title: forge-output
+description: "Forge process output: ANSI styling, console lines, file links and TeamCity test trees (pure, also built to WebAssembly)."
+order: 170
+tags: [crate, rust]
+---
 
 # forge-output
 
@@ -10896,6 +11594,13 @@ cargo test -p forge-output
 
 Source: docs/guide/developer/crates/forge-plugin-api.md
 
+---
+title: forge-plugin-api
+description: "Stable plugin API for Forge language packs and feature plugins."
+order: 180
+tags: [crate, rust]
+---
+
 # forge-plugin-api
 
 `crates/forge-plugin-api` — Stable plugin API for Forge language packs and feature plugins.
@@ -10951,6 +11656,13 @@ cargo test -p forge-plugin-api
 ---
 
 Source: docs/guide/developer/crates/forge-process.md
+
+---
+title: forge-process
+description: "Forge IDE processes: PTY terminal sessions, run configurations and the process runner."
+order: 190
+tags: [crate, rust]
+---
 
 # forge-process
 
@@ -11016,6 +11728,13 @@ cargo test -p forge-process
 
 Source: docs/guide/developer/crates/forge-project.md
 
+---
+title: forge-project
+description: "Forge IDE projects: project type detection and New Project generators."
+order: 200
+tags: [crate, rust]
+---
+
 # forge-project
 
 `crates/forge-project` — Forge IDE projects: project type detection and New Project generators.
@@ -11065,6 +11784,13 @@ cargo test -p forge-project
 ---
 
 Source: docs/guide/developer/crates/forge-remote.md
+
+---
+title: forge-remote
+description: "Forge IDE remote development: SSH connections, host keys, ~/.ssh/config and the Forge agent deployment."
+order: 210
+tags: [crate, rust]
+---
 
 # forge-remote
 
@@ -11135,6 +11861,13 @@ cargo test -p forge-remote
 
 Source: docs/guide/developer/crates/forge-remote-agent.md
 
+---
+title: forge-remote-agent
+description: "Headless Forge agent: serves a project's files, git, processes, language servers and PHP index over stdio for remote development."
+order: 220
+tags: [crate, rust]
+---
+
 # forge-remote-agent
 
 `crates/forge-remote-agent` — Headless Forge agent: serves a project's files, git, processes, language servers and PHP index over stdio for remote development.
@@ -11187,6 +11920,13 @@ cargo test -p forge-remote-agent
 ---
 
 Source: docs/guide/developer/crates/forge-scratches.md
+
+---
+title: forge-scratches
+description: "Forge scratch files (PHPStorm's Scratches and Consoles): storage, naming, languages, run commands and the HTTP request client."
+order: 230
+tags: [crate, rust]
+---
 
 # forge-scratches
 
@@ -11259,6 +11999,13 @@ cargo test -p forge-scratches
 
 Source: docs/guide/developer/crates/forge-sql.md
 
+---
+title: forge-sql
+description: "Forge SQL text: dialects, statement splitting, literals, row changes and export (pure, also built to WebAssembly)."
+order: 240
+tags: [crate, rust]
+---
+
 # forge-sql
 
 `crates/forge-sql` — Forge SQL text: dialects, statement splitting, literals, row changes and export (pure, also built to WebAssembly).
@@ -11311,6 +12058,13 @@ cargo test -p forge-sql
 ---
 
 Source: docs/guide/developer/crates/forge-update.md
+
+---
+title: forge-update
+description: "Forge update checks: when to check, which release is an update, the update feed, simulated updates and download speed."
+order: 245
+tags: [crate, rust, updates]
+---
 
 # forge-update
 
@@ -11376,6 +12130,13 @@ cargo test -p forge-update
 
 Source: docs/guide/developer/crates/forge-vcs.md
 
+---
+title: forge-vcs
+description: "Forge IDE version control: drives the git CLI and parses its output."
+order: 250
+tags: [crate, rust]
+---
+
 # forge-vcs
 
 `crates/forge-vcs` — Forge IDE version control: drives the git CLI and parses its output.
@@ -11436,6 +12197,13 @@ cargo test -p forge-vcs
 ---
 
 Source: docs/guide/developer/crates/forge-wasm.md
+
+---
+title: forge-wasm
+description: "WebAssembly build of Forge's pure Rust logic for the browser-mode UI."
+order: 260
+tags: [crate, rust]
+---
 
 # forge-wasm
 
@@ -11512,6 +12280,13 @@ cargo test -p forge-wasm
 
 Source: docs/guide/developer/crates/forge-window.md
 
+---
+title: forge-window
+description: "Forge window chrome: desktop detection, title bar button layouts and dialog window geometry (pure, also built to WebAssembly)."
+order: 270
+tags: [crate, rust]
+---
+
 # forge-window
 
 `crates/forge-window` — Forge window chrome: desktop detection, title bar button layouts and dialog window geometry (pure, also built to WebAssembly).
@@ -11573,6 +12348,13 @@ cargo test -p forge-window
 ---
 
 Source: docs/guide/developer/crates/luaforge-lang-lua.md
+
+---
+title: luaforge-lang-lua
+description: "LuaForge: Lua language support (lexer, structural parser, EmmyLua/LuaLS annotations, project index, require resolution, hover, navigation; pure, also built to WebAssembly)."
+order: 280
+tags: [crate, rust, pack]
+---
 
 # luaforge-lang-lua
 
@@ -11639,6 +12421,13 @@ cargo test -p luaforge-lang-lua
 
 Source: docs/guide/developer/crates/phpforge-dql.md
 
+---
+title: phpforge-dql
+description: "PHPForge: Doctrine DQL tokenizer, parser, highlighting, completion and diagnostics, and DQL sites in PHP source (pure, also built to WebAssembly)."
+order: 290
+tags: [crate, rust, pack]
+---
+
 # phpforge-dql
 
 `packs/phpforge/dql` — PHPForge: Doctrine DQL tokenizer, parser, highlighting, completion and diagnostics, and DQL sites in PHP source (pure, also built to WebAssembly).
@@ -11687,6 +12476,13 @@ cargo test -p phpforge-dql
 ---
 
 Source: docs/guide/developer/crates/phpforge-fw-laravel.md
+
+---
+title: phpforge-fw-laravel
+description: "PHPForge: Laravel support (routes, views, Blade components, config/env, Eloquent, translations, artisan)."
+order: 300
+tags: [crate, rust, pack]
+---
 
 # phpforge-fw-laravel
 
@@ -11763,6 +12559,13 @@ cargo test -p phpforge-fw-laravel
 ---
 
 Source: docs/guide/developer/crates/phpforge-fw-symfony.md
+
+---
+title: phpforge-fw-symfony
+description: "PHPForge: Symfony support (service container, routes, Twig templates, console commands)."
+order: 310
+tags: [crate, rust, pack]
+---
 
 # phpforge-fw-symfony
 
@@ -11842,6 +12645,13 @@ cargo test -p phpforge-fw-symfony
 
 Source: docs/guide/developer/crates/phpforge-lang-php.md
 
+---
+title: phpforge-lang-php
+description: "PHPForge: PHP language support (tree-sitter index, docblocks, hover, code generation, language server config)."
+order: 320
+tags: [crate, rust, pack]
+---
+
 # phpforge-lang-php
 
 `packs/phpforge/lang-php` — PHPForge: PHP language support (tree-sitter index, docblocks, hover, code generation, language server config).
@@ -11908,6 +12718,13 @@ cargo test -p phpforge-lang-php
 
 Source: docs/guide/developer/crates/phpforge-orm-doctrine.md
 
+---
+title: phpforge-orm-doctrine
+description: "PHPForge: Doctrine ORM support (entity mapping, repositories, DQL parsing and completion)."
+order: 330
+tags: [crate, rust, pack]
+---
+
 # phpforge-orm-doctrine
 
 `packs/phpforge/orm-doctrine` — PHPForge: Doctrine ORM support (entity mapping, repositories, DQL parsing and completion).
@@ -11966,6 +12783,13 @@ cargo test -p phpforge-orm-doctrine
 
 Source: docs/guide/developer/crates/webforge-fw-angular.md
 
+---
+title: webforge-fw-angular
+description: "WebForge: Angular support (components, directives, pipes, templates and styles)."
+order: 340
+tags: [crate, rust, pack]
+---
+
 # webforge-fw-angular
 
 `packs/webforge/fw-angular` — WebForge: Angular support (components, directives, pipes, templates and styles).
@@ -12011,6 +12835,13 @@ cargo test -p webforge-fw-angular
 
 Source: docs/guide/developer/crates/webforge-fw-react.md
 
+---
+title: webforge-fw-react
+description: "WebForge: React support (JSX components, props and usages)."
+order: 350
+tags: [crate, rust, pack]
+---
+
 # webforge-fw-react
 
 `packs/webforge/fw-react` — WebForge: React support (JSX components, props and usages).
@@ -12054,6 +12885,13 @@ cargo test -p webforge-fw-react
 ---
 
 Source: docs/guide/developer/crates/webforge-fw-vue.md
+
+---
+title: webforge-fw-vue
+description: "WebForge: Vue.js support (single-file components, props, emits and usages)."
+order: 360
+tags: [crate, rust, pack]
+---
 
 # webforge-fw-vue
 
@@ -12099,6 +12937,13 @@ cargo test -p webforge-fw-vue
 ---
 
 Source: docs/guide/developer/crates/webforge-lang-web.md
+
+---
+title: webforge-lang-web
+description: "WebForge: package.json, npm scripts, package managers and the shared JavaScript/TypeScript/HTML scanning used by the framework plugins."
+order: 370
+tags: [crate, rust, pack]
+---
 
 # webforge-lang-web
 
@@ -12165,6 +13010,13 @@ cargo test -p webforge-lang-web
 ---
 
 Source: docs/guide/faq.md
+
+---
+title: FAQ
+description: Frequently asked questions about Forge - licensing, PHPStorm compatibility, languages, AI, privacy, platforms and the project's status.
+order: 900
+tags: [faq]
+---
 
 # FAQ
 
@@ -12268,6 +13120,13 @@ to the repository: [Writing a plugin or pack](docs/guide/developer/plugins-and-p
 ---
 
 Source: docs/guide/troubleshooting.md
+
+---
+title: Troubleshooting
+description: Fixes for common problems - AppImage and FUSE, WebKitGTK, language servers not found, remote agent upload, the keychain on Linux, Wayland, Docker and Git.
+order: 910
+tags: [troubleshooting, appimage, fuse, webkit2gtk, wayland, keychain]
+---
 
 # Troubleshooting
 
@@ -12461,6 +13320,13 @@ Project files in `.forge/` are not touched by this.
 ---
 
 Source: docs/guide/README.md
+
+---
+title: About this guide
+description: How the Forge guide is organized and the content contract a documentation site generator can rely on.
+order: 999
+tags: [meta, contributing]
+---
 
 # About this guide
 

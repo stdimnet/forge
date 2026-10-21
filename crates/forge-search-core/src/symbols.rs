@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use std::sync::OnceLock;
 
-use nucleo_matcher::pattern::{CaseMatching, Normalization, Pattern};
 use nucleo_matcher::{Config, Matcher, Utf32Str};
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
@@ -313,12 +312,13 @@ impl SymbolTable {
         types_only: bool,
         limit: usize,
         skip_extensions: &[String],
+        exact: bool,
     ) -> Vec<SymbolHit> {
         let query = query.trim();
         if query.is_empty() || limit == 0 {
             return Vec::new();
         }
-        let pattern = Pattern::parse(query, CaseMatching::Smart, Normalization::Smart);
+        let pattern = crate::index::pattern(query, exact);
         let mut scored: Vec<(u32, usize)> = par_chunks!(self.recs, SCORE_CHUNK)
             .enumerate()
             .flat_map(|(chunk_no, chunk)| {

@@ -114,6 +114,8 @@ pub enum Call {
     FindFiles {
         query: String,
         limit: usize,
+        #[serde(default)]
+        exact: bool,
     },
     /// Find in Files -> `FindResult`
     FindInFiles(FindRequest),
@@ -171,6 +173,8 @@ pub enum Call {
         types_only: bool,
         limit: usize,
         skip_extensions: Vec<String>,
+        #[serde(default)]
+        exact: bool,
     },
     /// State of the project's search index -> `SearchStatus`
     SearchStatus,

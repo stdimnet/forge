@@ -53,7 +53,7 @@ fn build_index(backend: &dyn Backend, mut paths: Vec<String>) -> Result<ProjectI
     }
     let mut index = ProjectIndex::new(&paths);
     index.set_name(&backend.info().name);
-    let files = backend.find_files(".lua", MAX_FILES)?;
+    let files = backend.find_files(".lua", MAX_FILES, false)?;
     for f in files.iter().filter(|f| f.path.ends_with(".lua")) {
         match backend.read_file(&f.path) {
             Ok(text) if text.len() <= MAX_FILE_SIZE => index.set_file(&f.path, &text),

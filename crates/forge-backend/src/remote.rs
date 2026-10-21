@@ -436,11 +436,12 @@ impl Backend for RemoteBackend {
         )
     }
 
-    fn find_files(&self, query: &str, limit: usize) -> Result<Vec<FileMatch>> {
+    fn find_files(&self, query: &str, limit: usize, exact: bool) -> Result<Vec<FileMatch>> {
         self.shared.call(
             Call::FindFiles {
                 query: query.to_string(),
                 limit,
+                exact,
             },
             TIMEOUT,
         )
@@ -457,6 +458,7 @@ impl Backend for RemoteBackend {
         types_only: bool,
         limit: usize,
         skip_extensions: &[String],
+        exact: bool,
     ) -> Result<Vec<forge_search_core::SymbolHit>> {
         self.shared.call(
             Call::FindSymbols {
@@ -464,6 +466,7 @@ impl Backend for RemoteBackend {
                 types_only,
                 limit,
                 skip_extensions: skip_extensions.to_vec(),
+                exact,
             },
             TIMEOUT,
         )

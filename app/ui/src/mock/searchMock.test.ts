@@ -10,6 +10,8 @@ describe("fs_find_files mock", () => {
     const hits = await invoke<FileMatch[]>("fs_find_files", { query: "OrCo", limit: 5 });
     expect(hits[0].path).toBe("app/Http/Controllers/OrderController.php");
     expect(await invoke<FileMatch[]>("fs_find_files", { query: "", limit: 5 })).toEqual([]);
+    expect(await invoke<FileMatch[]>("fs_find_files", { query: "OrCo", limit: 5, exact: true })).toEqual([]);
+    expect((await invoke<FileMatch[]>("fs_find_files", { query: "OrderCon", limit: 5, exact: true }))[0].name).toBe("OrderController.php");
   });
 });
 

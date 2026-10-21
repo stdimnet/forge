@@ -17,7 +17,7 @@ pub struct AppState {
     backend: RwLock<Option<Arc<dyn Backend>>>,
     pub settings: RwLock<Settings>,
     /// The latest Find window result, so pages are cut from it instead of searching again.
-    pub find_results: std::sync::Mutex<Option<(u64, Arc<forge_core::search::FindResult>)>>,
+    pub find_results: std::sync::Mutex<Option<(u64, Arc<forge_backend::Found>)>>,
     pub plugins: RwLock<PluginRegistry>,
 }
 

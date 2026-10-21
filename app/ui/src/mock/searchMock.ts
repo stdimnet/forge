@@ -11,6 +11,6 @@ import { isLuaDemo, luaDemoFiles } from "./demoLuaProject";
 /** Files of the open demo project (the Lua demo has its own). */
 const projectFiles = isLuaDemo() ? luaDemoFiles : demoFiles;
 
-registerMock("fs_find_files", ({ query, limit }) =>
-  matchFiles(String(query ?? ""), Object.keys(projectFiles), Number(limit ?? 100)),
+registerMock("fs_find_files", ({ query, limit, exact }) =>
+  matchFiles(String(query ?? ""), Object.keys(projectFiles), Number(limit ?? 100), exact === true),
 );

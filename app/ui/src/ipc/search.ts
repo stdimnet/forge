@@ -3,6 +3,7 @@
  * ranking. Mirrors `crates/forge-fuzzy` and `app/src-tauri/src/commands/{workspace,search}.rs`;
  * browser mode runs the same Rust code as WebAssembly.
  */
+import { getSetting } from "@/state/settings";
 import { invoke } from "./index";
 
 export interface FileMatch {
@@ -60,6 +61,8 @@ export interface RankRequest {
   query: string;
   perGroup: number;
   includeDimmed?: boolean;
+  /** Match substrings instead of fuzzy. */
+  exact?: boolean;
   sources: { provider: string; tab: string; order?: number; items: RankCandidate[] }[];
 }
 
@@ -97,13 +100,16 @@ export interface SearchStatus {
   files: number;
 }
 
+/** Search Everywhere and Go to File match substrings when the setting `search.everywhere.fuzzy` is off. */
+export const exactMatching = () => !getSetting<boolean>("search.everywhere.fuzzy", true);
+
 export const searchApi = {
   /** Classes or all symbols from the index, for languages without a running language server. */
   findSymbols: (query: string, typesOnly: boolean, limit: number, skipExtensions: string[] = []) =>
-    invoke<SymbolHit[]>("search_find_symbols", { query, typesOnly, limit, skipExtensions }),
+    invoke<SymbolHit[]>("search_find_symbols", { query, typesOnly, limit, skipExtensions, exact: exactMatching() }),
   status: () => invoke<SearchStatus>("search_status"),
   /** Fuzzy "Go to File" over the project (respects .gitignore). */
-  findFiles: (query: string, limit = 100) => invoke<FileMatch[]>("fs_find_files", { query, limit }),
+  findFiles: (query: string, limit = 100) => invoke<FileMatch[]>("fs_find_files", { query, limit, exact: exactMatching() }),
   /** Keep and rank the candidates matching `query`, best first. */
   filter: (request: FilterRequest) => invoke<FilterHit[]>("fuzzy_filter", { request }),
   /** Merge, score, dedupe and group Search Everywhere candidates. */

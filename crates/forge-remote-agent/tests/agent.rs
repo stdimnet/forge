@@ -180,7 +180,7 @@ async fn files_search_git_and_detection() {
         assert!(b.read_file("app/Jobs/SendInvoice.php").is_err());
         assert!(b.delete("../outside").is_err());
 
-        let hits = b.find_files("ordr", 10).unwrap();
+        let hits = b.find_files("ordr", 10, false).unwrap();
         assert_eq!(hits[0].path, "app/Models/Order.php");
 
         // Find in Files searches on the agent's machine.
@@ -454,12 +454,12 @@ async fn search_index_runs_on_the_agent() {
             status.enabled && !status.indexing && status.files > 0
         });
 
-        let hits = backend.find_symbols("order", true, 5, &[]).unwrap();
+        let hits = backend.find_symbols("order", true, 5, &[], false).unwrap();
         assert_eq!(hits[0].name, "Order");
         assert_eq!(hits[0].path, "app/Models/Order.php");
         assert_eq!(hits[0].kind, "class");
         assert!(backend
-            .find_symbols("order", true, 5, &["php".to_string()])
+            .find_symbols("order", true, 5, &["php".to_string()], false)
             .unwrap()
             .is_empty());
 
@@ -470,7 +470,10 @@ async fn search_index_runs_on_the_agent() {
             })
             .unwrap();
         assert_eq!(found.files[0].path, "app/Models/Order.php");
-        assert_eq!(backend.find_files("order", 5).unwrap()[0].name, "Order.php");
+        assert_eq!(
+            backend.find_files("order", 5, false).unwrap()[0].name,
+            "Order.php"
+        );
     })
     .await;
 }

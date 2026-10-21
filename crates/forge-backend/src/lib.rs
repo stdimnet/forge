@@ -23,7 +23,7 @@ pub mod tunnels;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use forge_core::search::{FindRequest, FindResult};
+use forge_core::search::{FileMatches, FindPaged, FindRequest, FindResult};
 use forge_core::{FileEntry, FileMatch, FsChanges, ProjectFiles, Result};
 use forge_lsp::ServerLauncher;
 use forge_process::{CommandLine, PtySink, RunSink};
@@ -40,6 +40,33 @@ pub use local::LocalBackend;
 pub use php::PhpBackend;
 pub use remote::RemoteBackend;
 pub use tunnels::{PortForward, Tunnels};
+
+/// A Find in Files result a window pages through.
+pub enum Found {
+    Full(FindResult),
+    #[cfg(feature = "search")]
+    Lazy(forge_search::FoundText),
+}
+
+impl Found {
+    /// The totals with the first `page_size` rows.
+    pub fn paged(&self, id: u64, page_size: usize) -> FindPaged {
+        match self {
+            Found::Full(r) => r.paged(id, page_size),
+            #[cfg(feature = "search")]
+            Found::Lazy(r) => r.paged(id, page_size),
+        }
+    }
+
+    /// The rows `[offset, offset + count)`.
+    pub fn page(&self, offset: usize, count: usize) -> Vec<FileMatches> {
+        match self {
+            Found::Full(r) => r.page(offset, count),
+            #[cfg(feature = "search")]
+            Found::Lazy(r) => r.page(offset, count),
+        }
+    }
+}
 
 /// The machine a remote project lives on.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -173,9 +200,16 @@ pub trait Backend: Send + Sync {
     /// Delete a file or a folder with its content.
     fn delete(&self, rel: &str) -> Result<()>;
     /// "Go to File": fuzzy file-name search honoring `.gitignore`.
-    fn find_files(&self, query: &str, limit: usize) -> Result<Vec<FileMatch>>;
+    /// `exact` matches the query as a substring instead of fuzzy.
+    fn find_files(&self, query: &str, limit: usize, exact: bool) -> Result<Vec<FileMatch>>;
     /// Find in Files: text search over the project honoring `.gitignore`.
     fn find_in_files(&self, req: &FindRequest) -> Result<FindResult>;
+
+    /// [`Backend::find_in_files`] for a result that is paged: a local backend with an index keeps
+    /// match ranges instead of building every row.
+    fn find_in_files_found(&self, req: &FindRequest) -> Result<Found> {
+        self.find_in_files(req).map(Found::Full)
+    }
 
     /// Classes (`types_only`) or every declared symbol matching `query`, best first. Files with
     /// one of `skip_extensions` are left out (languages a language server answers for).
@@ -186,6 +220,7 @@ pub trait Backend: Send + Sync {
         _types_only: bool,
         _limit: usize,
         _skip_extensions: &[String],
+        _exact: bool,
     ) -> Result<Vec<SymbolHit>> {
         Ok(Vec::new())
     }

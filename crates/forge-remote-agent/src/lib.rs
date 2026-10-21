@@ -171,19 +171,25 @@ impl Agent {
             Call::CreateDir { path } => reply(self.backend()?.create_dir(&path)?),
             Call::Rename { from, to } => reply(self.backend()?.rename(&from, &to)?),
             Call::Delete { path } => reply(self.backend()?.delete(&path)?),
-            Call::FindFiles { query, limit } => reply(self.backend()?.find_files(&query, limit)?),
+            Call::FindFiles {
+                query,
+                limit,
+                exact,
+            } => reply(self.backend()?.find_files(&query, limit, exact)?),
             Call::FindInFiles(req) => reply(self.backend()?.find_in_files(&req)?),
             Call::FindSymbols {
                 query,
                 types_only,
                 limit,
                 skip_extensions,
-            } => {
-                reply(
-                    self.backend()?
-                        .find_symbols(&query, types_only, limit, &skip_extensions)?,
-                )
-            }
+                exact,
+            } => reply(self.backend()?.find_symbols(
+                &query,
+                types_only,
+                limit,
+                &skip_extensions,
+                exact,
+            )?),
             Call::SearchStatus => reply(self.backend()?.search_status()?),
             Call::Git(req) => reply(LocalGit.exec(&req)?),
             Call::Detect => reply(self.backend()?.detect_project()?),

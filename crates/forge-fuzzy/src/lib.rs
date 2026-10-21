@@ -35,10 +35,16 @@ pub struct MatchOptions {
     /// but not "Collapse Recursively". Used for actions, classes and symbols.
     #[serde(default)]
     pub strict: bool,
+    /// Plain case-insensitive substring match instead of fuzzy matching.
+    #[serde(default)]
+    pub exact: bool,
 }
 
 impl MatchOptions {
-    pub const STRICT: Self = Self { strict: true };
+    pub const STRICT: Self = Self {
+        strict: true,
+        exact: false,
+    };
 }
 
 fn is_separator(c: char) -> bool {
@@ -63,6 +69,9 @@ pub fn fuzzy_match(query: &str, candidate: &str) -> Option<FuzzyMatch> {
 
 /// [`fuzzy_match`] with options (e.g. strict word matching).
 pub fn fuzzy_match_with(query: &str, candidate: &str, opts: MatchOptions) -> Option<FuzzyMatch> {
+    if opts.exact {
+        return exact_match(query, candidate);
+    }
     // Most candidates fail the "characters in order" test, so reject them before any allocation.
     let fold = |ch: char| ch.to_lowercase().next().unwrap_or(ch);
     let mut wanted = query.chars().filter(|c| !c.is_whitespace()).map(fold);
@@ -166,6 +175,38 @@ pub fn fuzzy_match_with(query: &str, candidate: &str, opts: MatchOptions) -> Opt
     Some(FuzzyMatch { score, positions })
 }
 
+/// The substring match behind [`MatchOptions::exact`]: of all occurrences the one at the best
+/// word boundary wins.
+fn exact_match(query: &str, candidate: &str) -> Option<FuzzyMatch> {
+    let lower = |ch: char| ch.to_lowercase().next().unwrap_or(ch);
+    let q: Vec<char> = query
+        .chars()
+        .filter(|c| !c.is_whitespace())
+        .map(lower)
+        .collect();
+    if q.is_empty() {
+        return Some(FuzzyMatch {
+            score: 0,
+            positions: vec![],
+        });
+    }
+    let c: Vec<char> = candidate.chars().collect();
+    let folded: Vec<char> = c.iter().copied().map(lower).collect();
+    let start = (0..=folded.len().checked_sub(q.len())?)
+        .filter(|&j| folded[j..j + q.len()] == q[..])
+        .max_by_key(|&j| {
+            (
+                position_bonus(j.checked_sub(1).map(|p| c[p]), c[j]),
+                -(j as i32),
+            )
+        })?;
+    Some(FuzzyMatch {
+        score: q.len() as i32 * (2 + BONUS_CONSECUTIVE)
+            + position_bonus(start.checked_sub(1).map(|p| c[p]), c[start]),
+        positions: (start..start + q.len()).collect(),
+    })
+}
+
 /// One "Go to File" hit.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -182,10 +223,15 @@ pub struct FileMatch {
 /// Score a workspace-relative path: queries with `/` match the whole path, others the
 /// file name.
 pub fn match_file(query: &str, path: &str) -> Option<FileMatch> {
+    match_file_with(query, path, MatchOptions::default())
+}
+
+/// [`match_file`] with options.
+pub fn match_file_with(query: &str, path: &str, opts: MatchOptions) -> Option<FileMatch> {
     let name = path.rsplit('/').next().unwrap_or(path);
     let matched_path = query.contains('/');
     let target = if matched_path { path } else { name };
-    let m = fuzzy_match(query, target)?;
+    let m = fuzzy_match_with(query, target, opts)?;
     // Prefer short names and shallow paths on ties.
     let tiebreak = (target.chars().count() as i32) / 8 + path.matches('/').count() as i32 / 3;
     Some(FileMatch {
@@ -203,13 +249,23 @@ pub fn rank_files<'a>(
     paths: impl IntoIterator<Item = &'a str>,
     limit: usize,
 ) -> Vec<FileMatch> {
+    rank_files_with(query, paths, limit, MatchOptions::default())
+}
+
+/// [`rank_files`] with options.
+pub fn rank_files_with<'a>(
+    query: &str,
+    paths: impl IntoIterator<Item = &'a str>,
+    limit: usize,
+    opts: MatchOptions,
+) -> Vec<FileMatch> {
     let query = query.trim();
     if query.is_empty() || limit == 0 {
         return vec![];
     }
     let mut hits: Vec<FileMatch> = paths
         .into_iter()
-        .filter_map(|p| match_file(query, p))
+        .filter_map(|p| match_file_with(query, p, opts))
         .collect();
     hits.sort_by(|a, b| b.score.cmp(&a.score).then_with(|| a.path.cmp(&b.path)));
     hits.truncate(limit);
@@ -242,6 +298,8 @@ pub struct FilterRequest {
     pub candidates: Vec<FilterCandidate>,
     #[serde(default)]
     pub strict: bool,
+    #[serde(default)]
+    pub exact: bool,
     /// On equal scores, prefer shorter texts (otherwise the input order is kept).
     #[serde(default)]
     pub prefer_shorter: bool,
@@ -264,7 +322,10 @@ pub struct FilterHit {
 /// Keep the candidates that match `query`, best first. An empty query keeps everything in
 /// input order.
 pub fn filter(req: &FilterRequest) -> Vec<FilterHit> {
-    let opts = MatchOptions { strict: req.strict };
+    let opts = MatchOptions {
+        strict: req.strict,
+        exact: req.exact,
+    };
     let mut hits: Vec<(FilterHit, usize)> = req
         .candidates
         .iter()
@@ -309,6 +370,25 @@ mod tests {
 
     fn strict(q: &str, c: &str) -> Option<Vec<usize>> {
         fuzzy_match_with(q, c, MatchOptions::STRICT).map(|m| m.positions)
+    }
+
+    #[test]
+    fn exact_matches_substrings_only() {
+        let exact = MatchOptions {
+            strict: false,
+            exact: true,
+        };
+        assert!(fuzzy_match_with("orderc", "OrderController", exact).is_some());
+        assert!(fuzzy_match_with("odrc", "OrderController", exact).is_none());
+        let m = fuzzy_match_with("CON", "OrderController", exact).unwrap();
+        assert_eq!(m.positions, vec![5, 6, 7]);
+        let word = fuzzy_match_with("user", "User.php", exact).unwrap().score;
+        let inner = fuzzy_match_with("user", "AbuserLog.php", exact)
+            .unwrap()
+            .score;
+        assert!(word > inner);
+        assert!(rank_files_with("ordr", ["app/Order.php"], 5, exact).is_empty());
+        assert_eq!(rank_files_with("ord", ["app/Order.php"], 5, exact).len(), 1);
     }
 
     #[test]

@@ -175,12 +175,12 @@ fn index_survives_a_restart() {
 #[test]
 fn fuzzy_file_names() {
     let (_d, svc) = project();
-    let hits = svc.find_files("usrphp", 5);
+    let hits = svc.find_files("usrphp", 5, false);
     assert_eq!(hits[0].path, "src/User.php");
     assert!(!hits[0].matched.is_empty());
-    assert!(svc.find_files("", 5).is_empty());
+    assert!(svc.find_files("", 5, false).is_empty());
     assert!(svc
-        .find_files("bin.dat", 5)
+        .find_files("bin.dat", 5, false)
         .iter()
         .any(|h| h.path == "bin.dat"));
 }
@@ -273,7 +273,7 @@ fn symbols_are_found_with_kind_container_and_line() {
     let svc = SearchService::open(dir.path(), None);
     svc.refresh();
 
-    let classes = svc.find_symbols("order", true, 20, &[]);
+    let classes = svc.find_symbols("order", true, 20, &[], false);
     let mut names: Vec<&str> = classes.iter().map(|h| h.name.as_str()).collect();
     names.sort_unstable();
     assert_eq!(
@@ -284,7 +284,7 @@ fn symbols_are_found_with_kind_container_and_line() {
         .iter()
         .all(|h| ["class", "interface"].contains(&h.kind.as_str())));
 
-    let show = &svc.find_symbols("show", false, 5, &[])[0];
+    let show = &svc.find_symbols("show", false, 5, &[], false)[0];
     assert_eq!(
         (show.name.as_str(), show.kind.as_str(), show.line),
         ("show", "method", 7)
@@ -293,7 +293,7 @@ fn symbols_are_found_with_kind_container_and_line() {
     assert_eq!(show.path, "app/Order.php");
 
     let kinds = |q: &str| {
-        svc.find_symbols(q, false, 5, &[])
+        svc.find_symbols(q, false, 5, &[], false)
             .iter()
             .map(|h| h.kind.clone())
             .collect::<Vec<_>>()
@@ -304,16 +304,16 @@ fn symbols_are_found_with_kind_container_and_line() {
     assert_eq!(kinds("MAX_ORDERS")[0], "constant");
     assert_eq!(kinds("makeOrder")[0], "function");
     assert_eq!(
-        svc.find_symbols("run", false, 5, &[])[0]
+        svc.find_symbols("run", false, 5, &[], false)[0]
             .container
             .as_deref(),
         Some("OrderTool")
     );
-    assert!(svc.find_symbols("zzzzqq", false, 5, &[]).is_empty());
+    assert!(svc.find_symbols("zzzzqq", false, 5, &[], false).is_empty());
 
     let skip = ["php".to_string(), "PY".to_string()];
     let names = |q: &str| {
-        svc.find_symbols(q, true, 20, &skip)
+        svc.find_symbols(q, true, 20, &skip, false)
             .into_iter()
             .map(|h| h.name)
             .collect::<Vec<_>>()
@@ -392,7 +392,11 @@ fn ranked_files_match_the_walk_ranking() {
     let (d, svc) = project();
     let ws = Workspace::open(d.path()).unwrap();
     for q in ["user", "php", "app", "Ord"] {
-        assert_eq!(svc.find_ranked(q, 3), ws.find_files(q, 3).unwrap(), "{q}");
+        assert_eq!(
+            svc.find_ranked(q, 3, false),
+            ws.find_files(q, 3).unwrap(),
+            "{q}"
+        );
     }
 }
 
@@ -407,4 +411,14 @@ fn indexing_threads_run_below_normal_priority_when_asked() {
             .install(|| get_current_thread_priority().unwrap())
     };
     assert_ne!(priority(true), priority(false));
+}
+
+#[test]
+fn exact_matching_needs_a_substring() {
+    let (_d, svc) = project();
+    assert_eq!(svc.find_files("usrphp", 5, false)[0].path, "src/User.php");
+    assert!(svc.find_files("usrphp", 5, true).is_empty());
+    assert_eq!(svc.find_files("user.ph", 5, true)[0].path, "src/User.php");
+    assert!(!svc.find_ranked("user", 5, true).is_empty());
+    assert!(svc.find_ranked("usrp", 5, true).is_empty());
 }

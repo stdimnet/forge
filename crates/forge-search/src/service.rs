@@ -8,7 +8,7 @@ use std::time::{Duration, Instant};
 
 use forge_core::search::{FileMatch, FindRequest, FindResult};
 use forge_core::{ForgeError, FsChanges, Result};
-use forge_find::{Finder, LineMatch};
+use forge_find::Finder;
 use forge_search_core::{FileHit, Index, Outcome, Query, RefreshStats, Scope, SymbolHit};
 use notify::{RecommendedWatcher, RecursiveMode, Watcher};
 use thread_priority::{set_current_thread_priority, ThreadPriority};
@@ -16,6 +16,7 @@ use thread_priority::{set_current_thread_priority, ThreadPriority};
 use rayon::prelude::*;
 
 use crate::index::{self, EXCLUDED_DIRS};
+use crate::lazy::{group_rows, FoundText, LazyFile, Rows};
 
 const WATCH_DEBOUNCE: Duration = Duration::from_millis(300);
 const SAVE_INTERVAL: Duration = Duration::from_secs(60);
@@ -287,14 +288,21 @@ impl SearchService {
     /// Find in Files with `forge-find` semantics: the trigram index narrows the files, `forge-find`
     /// reads the lines, so results match a directory walk exactly.
     pub fn find_text(&self, req: &FindRequest) -> Result<FindResult> {
+        let found = self.find_text_lazy(req)?;
+        Ok(FindResult {
+            files: found.page(0, usize::MAX),
+            match_count: found.match_count,
+            truncated: found.truncated,
+            error: found.error.clone(),
+        })
+    }
+
+    /// [`SearchService::find_text`] without building the rows: the result keeps match ranges and
+    /// reads the text of the rows a page asks for.
+    pub fn find_text_lazy(&self, req: &FindRequest) -> Result<FoundText> {
         let finder = match Finder::new(req) {
             Ok(f) => f,
-            Err(e) => {
-                return Ok(FindResult {
-                    error: Some(e),
-                    ..FindResult::default()
-                })
-            }
+            Err(e) => return Ok(FoundText::failed(self.root.clone(), e)),
         };
         let literals = Query {
             pattern: req.query.clone(),
@@ -315,9 +323,9 @@ impl SearchService {
             .collect();
         paths.sort_unstable();
 
-        // A whole-buffer scan with the full regex engine skips files without a match cheaply; the
-        // lines of the others are then matched by `forge-find`, so results stay identical. When the
-        // pattern does not compile here, every candidate goes to `forge-find`.
+        // A whole-buffer scan with the full regex engine finds the matches; lines it cannot describe
+        // (a match spanning lines, text that is not UTF-8) and patterns it cannot compile go to
+        // `forge-find`, so results stay identical.
         let prefilter = regex::bytes::RegexBuilder::new(&forge_find::pattern(req))
             .case_insensitive(!req.case_sensitive)
             .multi_line(true)
@@ -327,7 +335,7 @@ impl SearchService {
 
         let limit = finder.limit();
         let found = std::sync::atomic::AtomicUsize::new(0);
-        let per_file: Vec<(String, Vec<LineMatch>, usize, bool)> = paths
+        let per_file: Vec<(String, Rows, usize, bool)> = paths
             .par_iter()
             .filter_map(|path| {
                 if found.load(Ordering::Relaxed) >= limit {
@@ -347,24 +355,40 @@ impl SearchService {
                     }
                     None => None,
                 };
-                let (matches, count, cut) = match (ranges, std::str::from_utf8(&bytes)) {
-                    (Some(ranges), Ok(text)) => forge_find::lines_from_ranges(text, &ranges, limit),
-                    _ => finder.search(&String::from_utf8_lossy(&bytes), limit),
+                let compact = ranges.filter(|_| {
+                    bytes.len() <= u32::MAX as usize && std::str::from_utf8(&bytes).is_ok()
+                });
+                let (rows, count, cut) = match compact {
+                    Some(ranges) => {
+                        let (ranges, row_ends, count, cut) = group_rows(&bytes, &ranges, limit);
+                        (Rows::Ranges { ranges, row_ends }, count, cut)
+                    }
+                    None => {
+                        let (lines, count, cut) =
+                            finder.search(&String::from_utf8_lossy(&bytes), limit);
+                        (Rows::Lines(lines), count, cut)
+                    }
                 };
-                if matches.is_empty() {
+                if rows.len() == 0 {
                     return None;
                 }
                 found.fetch_add(count, Ordering::Relaxed);
-                Some((path.clone(), matches, count, cut))
+                Some((path.clone(), rows, count, cut))
             })
             .collect();
 
-        let mut result = FindResult::default();
-        for (path, matches, count, cut) in per_file {
+        let mut result = FoundText {
+            root: self.root.clone(),
+            files: Vec::new(),
+            match_count: 0,
+            truncated: false,
+            error: None,
+        };
+        for (path, rows, count, cut) in per_file {
             let remaining = limit - result.match_count;
             if count <= remaining {
                 result.match_count += count;
-                result.files.push(forge_find::FileMatches { path, matches });
+                result.files.push(LazyFile { path, rows });
                 if cut {
                     result.truncated = true;
                     break;
@@ -372,16 +396,48 @@ impl SearchService {
                 continue;
             }
             result.truncated = true;
-            if let Some(text) = self.read_text(&path) {
-                let (matches, count, _) = finder.search(&text, remaining);
-                if !matches.is_empty() {
-                    result.match_count += count;
-                    result.files.push(forge_find::FileMatches { path, matches });
-                }
+            if let Some((rows, count)) = self.cut_to(&path, rows, remaining, &finder) {
+                result.match_count += count;
+                result.files.push(LazyFile { path, rows });
             }
             break;
         }
         Ok(result)
+    }
+
+    /// The first rows of a file that fit `budget` matches, as `Finder::search` would keep them.
+    fn cut_to(
+        &self,
+        path: &str,
+        rows: Rows,
+        budget: usize,
+        finder: &Finder,
+    ) -> Option<(Rows, usize)> {
+        match rows {
+            Rows::Ranges {
+                mut ranges,
+                mut row_ends,
+            } => {
+                let (mut keep, mut taken, mut before) = (0, 0, 0);
+                for &end in &row_ends {
+                    let in_row = (end - before) as usize;
+                    if taken + in_row > budget {
+                        break;
+                    }
+                    taken += in_row;
+                    before = end;
+                    keep += 1;
+                }
+                row_ends.truncate(keep);
+                ranges.truncate(before as usize);
+                (keep > 0).then_some((Rows::Ranges { ranges, row_ends }, taken))
+            }
+            Rows::Lines(_) => {
+                let text = self.read_text(path)?;
+                let (lines, count, _) = finder.search(&text, budget);
+                (!lines.is_empty()).then_some((Rows::Lines(lines), count))
+            }
+        }
     }
 
     fn read_text(&self, rel: &str) -> Option<String> {
@@ -390,12 +446,18 @@ impl SearchService {
     }
 
     /// "Go to File" over the indexed paths, ranked like `Workspace::find_files`.
-    pub fn find_ranked(&self, query: &str, limit: usize) -> Vec<FileMatch> {
+    pub fn find_ranked(&self, query: &str, limit: usize, exact: bool) -> Vec<FileMatch> {
+        let opts = forge_fuzzy::MatchOptions {
+            strict: false,
+            exact,
+        };
         let index = self.index.read().expect("search index lock poisoned");
         let paths: Vec<&str> = index.live().map(|r| r.path.as_str()).collect();
         let mut hits: Vec<FileMatch> = paths
             .par_chunks(1 << 14)
-            .flat_map(|chunk| forge_fuzzy::rank_files(query, chunk.iter().copied(), limit))
+            .flat_map(|chunk| {
+                forge_fuzzy::rank_files_with(query, chunk.iter().copied(), limit, opts)
+            })
             .collect();
         hits.sort_by(|a, b| b.score.cmp(&a.score).then_with(|| a.path.cmp(&b.path)));
         hits.truncate(limit);
@@ -410,19 +472,20 @@ impl SearchService {
         types_only: bool,
         limit: usize,
         skip_extensions: &[String],
+        exact: bool,
     ) -> Vec<SymbolHit> {
         self.index
             .read()
             .expect("search index lock poisoned")
-            .find_symbols(query, types_only, limit, skip_extensions)
+            .find_symbols(query, types_only, limit, skip_extensions, exact)
     }
 
     /// Fuzzy file-name search over every indexed path (Search Everywhere, Go to File).
-    pub fn find_files(&self, query: &str, limit: usize) -> Vec<FileHit> {
+    pub fn find_files(&self, query: &str, limit: usize, exact: bool) -> Vec<FileHit> {
         self.index
             .read()
             .expect("search index lock poisoned")
-            .find_files(query, limit)
+            .find_files(query, limit, exact)
     }
 }
 

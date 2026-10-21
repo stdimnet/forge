@@ -47,6 +47,11 @@ Matching works like PHPStorm's:
 
 ![Go to File with camel humps](../../screenshots/goto-file-camel-humps.png)
 
+To match only text that contains what you typed, turn off **Settings > Tools > Search > Fuzzy
+matching** (`search.everywhere.fuzzy`). Files, Classes and Symbols in Search Everywhere and Go to
+File then find `OrderCon` in `OrderController` but no longer `orco`. PHP and Lua classes from their
+own language index and the Actions tab keep fuzzy matching.
+
 Ranking happens in Rust (`forge-fuzzy`), so the same rules apply in every list with a
 speed search: Recent Files, the New Scratch File popup, choosers.
 

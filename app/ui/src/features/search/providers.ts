@@ -15,7 +15,7 @@
  */
 import type { JSX } from "solid-js";
 import { createSignal } from "solid-js";
-import { searchApi, type RankCandidate } from "@/ipc/search";
+import { exactMatching, searchApi, type RankCandidate } from "@/ipc/search";
 
 export type SearchTab = "classes" | "files" | "symbols" | "actions" | "text";
 
@@ -129,6 +129,7 @@ export async function runSearch(
     query,
     perGroup: opts.perGroup,
     includeDimmed: opts.includeNonProject,
+    exact: exactMatching(),
     sources: results.map(({ provider, items }) => ({
       provider: provider.id,
       tab: provider.tab,

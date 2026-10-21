@@ -33,6 +33,8 @@ struct MatchFiles {
     query: String,
     paths: Vec<String>,
     limit: usize,
+    #[serde(default)]
+    exact: bool,
 }
 
 /// `{ query, paths, limit }` → `FileMatch[]`: "Go to File" over a list of paths (the
@@ -40,10 +42,14 @@ struct MatchFiles {
 #[wasm_bindgen]
 pub fn search_match_files(request_json: &str) -> String {
     match parse::<MatchFiles>(request_json) {
-        Ok(r) => to_json(&forge_fuzzy::rank_files(
+        Ok(r) => to_json(&forge_fuzzy::rank_files_with(
             &r.query,
             r.paths.iter().map(String::as_str),
             r.limit,
+            forge_fuzzy::MatchOptions {
+                strict: false,
+                exact: r.exact,
+            },
         )),
         Err(e) => to_json(&serde_json::json!({ "error": e })),
     }
@@ -80,6 +86,8 @@ struct FindSymbols {
     limit: usize,
     #[serde(default)]
     skip_extensions: Vec<String>,
+    #[serde(default)]
+    exact: bool,
 }
 
 /// `{ files, query, typesOnly, limit, skipExtensions }` → `SymbolHit[]`: the classes and
@@ -105,7 +113,13 @@ pub fn search_find_symbols(request_json: &str) -> String {
                     })
                     .collect(),
             );
-            to_json(&index.find_symbols(&r.query, r.types_only, r.limit, &r.skip_extensions))
+            to_json(&index.find_symbols(
+                &r.query,
+                r.types_only,
+                r.limit,
+                &r.skip_extensions,
+                r.exact,
+            ))
         }
         Err(e) => to_json(&serde_json::json!({ "error": e })),
     }

@@ -18,6 +18,16 @@ impl Workspace {
     /// Find files whose name (or path, if the query contains `/`) fuzzy-matches `query`.
     /// Respects `.gitignore`/`.ignore` and the default excludes; best matches first.
     pub fn find_files(&self, query: &str, limit: usize) -> Result<Vec<FileMatch>> {
+        self.find_files_with(query, limit, MatchOptions::default())
+    }
+
+    /// [`Workspace::find_files`] with matching options (e.g. substring instead of fuzzy).
+    pub fn find_files_with(
+        &self,
+        query: &str,
+        limit: usize,
+        opts: MatchOptions,
+    ) -> Result<Vec<FileMatch>> {
         let query = query.trim();
         if query.is_empty() || limit == 0 {
             return Ok(vec![]);
@@ -33,10 +43,11 @@ impl Workspace {
             .take(MAX_WALKED_FILES)
             .map(|e| self.relative(e.path()))
             .collect();
-        Ok(forge_fuzzy::rank_files(
+        Ok(forge_fuzzy::rank_files_with(
             query,
             paths.iter().map(String::as_str),
             limit,
+            opts,
         ))
     }
 

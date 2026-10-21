@@ -65,6 +65,7 @@ pub async fn search_find_symbols(
     types_only: bool,
     limit: usize,
     skip_extensions: Vec<String>,
+    exact: Option<bool>,
     app: AppHandle,
     lsp: State<'_, LspState>,
     state: State<'_, AppState>,
@@ -75,7 +76,10 @@ pub async fn search_find_symbols(
         .map(|m| served_extensions(&m))
         .unwrap_or_default();
     served.extend(skip_extensions);
-    blocking(move || backend.find_symbols(&query, types_only, limit, &served)).await
+    blocking(move || {
+        backend.find_symbols(&query, types_only, limit, &served, exact.unwrap_or(false))
+    })
+    .await
 }
 
 /// Whether the project's search index is still being built.

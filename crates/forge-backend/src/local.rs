@@ -203,12 +203,19 @@ impl Backend for LocalBackend {
         self.workspace.delete(rel)
     }
 
-    fn find_files(&self, query: &str, limit: usize) -> Result<Vec<FileMatch>> {
+    fn find_files(&self, query: &str, limit: usize, exact: bool) -> Result<Vec<FileMatch>> {
         #[cfg(feature = "search")]
         if let Some(index) = self.index() {
-            return Ok(index.find_ranked(query, limit));
+            return Ok(index.find_ranked(query, limit, exact));
         }
-        self.workspace.find_files(query, limit)
+        self.workspace.find_files_with(
+            query,
+            limit,
+            forge_core::MatchOptions {
+                strict: false,
+                exact,
+            },
+        )
     }
 
     fn find_in_files(&self, req: &FindRequest) -> Result<FindResult> {
@@ -219,18 +226,27 @@ impl Backend for LocalBackend {
         self.workspace.find_in_files(req)
     }
 
+    fn find_in_files_found(&self, req: &FindRequest) -> Result<crate::Found> {
+        #[cfg(feature = "search")]
+        if let Some(index) = self.index() {
+            return index.find_text_lazy(req).map(crate::Found::Lazy);
+        }
+        self.find_in_files(req).map(crate::Found::Full)
+    }
+
     fn find_symbols(
         &self,
         query: &str,
         types_only: bool,
         limit: usize,
         skip_extensions: &[String],
+        exact: bool,
     ) -> Result<Vec<SymbolHit>> {
         #[cfg(feature = "search")]
         if let Some(search) = self.service() {
-            return Ok(search.find_symbols(query, types_only, limit, skip_extensions));
+            return Ok(search.find_symbols(query, types_only, limit, skip_extensions, exact));
         }
-        let _ = (query, types_only, limit, skip_extensions);
+        let _ = (query, types_only, limit, skip_extensions, exact);
         Ok(Vec::new())
     }
 
@@ -392,7 +408,7 @@ mod tests {
         assert_eq!(names, vec!["src", "index.php"]);
         assert_eq!(backend.read_file("src/A.php").unwrap(), "<?php class A {}");
         assert!(backend.resolve("../x").is_err());
-        let found = backend.find_files("A", 10).unwrap();
+        let found = backend.find_files("A", 10, false).unwrap();
         assert_eq!(found[0].path, "src/A.php");
         assert_eq!(backend.read_optional("missing.php").unwrap(), None);
         assert_eq!(
@@ -434,7 +450,10 @@ class OrderBook {}
         };
         assert_eq!(backend.find_in_files(&req).unwrap().files.len(), 1);
         assert_eq!(
-            backend.find_symbols("orderbook", true, 5, &[]).unwrap()[0].name,
+            backend
+                .find_symbols("orderbook", true, 5, &[], false)
+                .unwrap()[0]
+                .name,
             "OrderBook"
         );
 

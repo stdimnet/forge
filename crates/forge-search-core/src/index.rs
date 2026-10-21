@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::hash::{BuildHasherDefault, Hasher};
 use std::io::{Read, Write};
 
-use nucleo_matcher::pattern::{CaseMatching, Normalization, Pattern};
+use nucleo_matcher::pattern::{AtomKind, CaseMatching, Normalization, Pattern};
 use nucleo_matcher::{Config, Matcher, Utf32Str};
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
@@ -272,9 +272,16 @@ impl Index {
         types_only: bool,
         limit: usize,
         skip_extensions: &[String],
+        exact: bool,
     ) -> Vec<SymbolHit> {
-        self.symbols
-            .search(&self.files, query, types_only, limit, skip_extensions)
+        self.symbols.search(
+            &self.files,
+            query,
+            types_only,
+            limit,
+            skip_extensions,
+            exact,
+        )
     }
 
     pub fn has_entries_under(&self, dir: &str) -> bool {
@@ -449,14 +456,14 @@ impl Index {
     }
 
     /// Fuzzy file-name search over every indexed path.
-    pub fn find_files(&self, query: &str, limit: usize) -> Vec<FileHit> {
+    pub fn find_files(&self, query: &str, limit: usize, exact: bool) -> Vec<FileHit> {
         if query.trim().is_empty() || limit == 0 {
             return Vec::new();
         }
         let paths: Vec<&str> = self.live().map(|r| r.path.as_str()).collect();
 
         let mut matcher = Matcher::new(Config::DEFAULT.match_paths());
-        let pattern = Pattern::parse(query, CaseMatching::Smart, Normalization::Smart);
+        let pattern = pattern(query, exact);
         let mut scored = pattern.match_list(paths, &mut matcher);
         scored.sort_by(|a, b| {
             b.1.cmp(&a.1)
@@ -519,3 +526,17 @@ impl Hasher for GramHasher {
 }
 
 type GramMap = HashMap<u32, RoaringBitmap, BuildHasherDefault<GramHasher>>;
+
+/// The fuzzy pattern for `query`, or one that matches each word as a substring.
+pub(crate) fn pattern(query: &str, exact: bool) -> Pattern {
+    if exact {
+        Pattern::new(
+            query,
+            CaseMatching::Smart,
+            Normalization::Smart,
+            AtomKind::Substring,
+        )
+    } else {
+        Pattern::parse(query, CaseMatching::Smart, Normalization::Smart)
+    }
+}
