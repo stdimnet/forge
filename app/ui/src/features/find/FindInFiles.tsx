@@ -6,7 +6,7 @@
 import { createEffect, createMemo, createSignal, For, on, onCleanup, onMount, Show } from "solid-js";
 import { EditorState, RangeSetBuilder, StateEffect, StateField } from "@codemirror/state";
 import { Decoration, EditorView, lineNumbers, type DecorationSet } from "@codemirror/view";
-import { Search } from "lucide-solid";
+import { PanelBottomOpen, Search } from "lucide-solid";
 import { findApi, type FindResult, type LineMatch } from "@/ipc/find";
 import { workspaceApi } from "@/ipc/workspace";
 import { openFileAt } from "@/editor/views";
@@ -15,6 +15,7 @@ import { languageFor } from "@/editor/languages";
 import { ensureFileType } from "@/editor/fileTypes";
 import { editor } from "@/state/editor";
 import { FileIcon } from "@/shell/FileIcon";
+import { openFindWindow } from "./window";
 import { closeFindInFiles, findOptions, findQuery, setFindQuery, updateFindOptions } from "./state";
 
 interface Row {
@@ -187,6 +188,19 @@ export function FindInFilesPopup() {
     void openFileAt(row.path, row.match.line + 1, row.match.column + 1);
   };
 
+  const openInWindow = () => {
+    const o = findOptions();
+    closeFindInFiles();
+    openFindWindow({
+      query: findQuery(),
+      caseSensitive: o.caseSensitive,
+      wholeWords: o.wholeWords,
+      regex: o.regex,
+      fileMask: o.maskEnabled ? o.fileMask : "",
+      directory: o.scope === "directory" ? o.directory : "",
+    });
+  };
+
   const move = (delta: number) => {
     const n = rows().length;
     if (!n) return;
@@ -270,6 +284,15 @@ export function FindInFilesPopup() {
           {toggle("caseSensitive", "Cc", "Match case")}
           {toggle("wholeWords", "W", "Words")}
           {toggle("regex", ".*", "Regex")}
+          <button
+            class="find-toggle"
+            title="Open in Find Window (every match, no limit)"
+            disabled={!findQuery()}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={openInWindow}
+          >
+            <PanelBottomOpen size={14} />
+          </button>
         </div>
         <div class="find-scope" role="tablist">
           <button

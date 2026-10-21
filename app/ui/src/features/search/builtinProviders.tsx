@@ -4,6 +4,7 @@
  */
 import { FileIcon } from "@/shell/FileIcon";
 import { openFile } from "@/state/editor";
+import { openFileAt } from "@/editor/views";
 import { workspace } from "@/state/workspace";
 import { searchApi } from "@/ipc/search";
 import { allActions, isActionAvailable, runAction, shortcutLabel } from "@/keymap";
@@ -38,6 +39,36 @@ registerSearchProvider({
     return hits.map((h) => fileItem(h.path, h.score, h.matchedPath ? undefined : h.positions));
   },
 });
+
+const SYMBOL_KINDS = new Set<string>(["class", "interface", "trait", "enum", "function", "method", "property", "constant"]);
+
+function symbolProvider(id: string, tab: "classes" | "symbols", title: string, typesOnly: boolean) {
+  registerSearchProvider({
+    id,
+    tab,
+    title,
+    order: 2,
+    async search(query, { limit }) {
+      if (!query.trim()) return [];
+      const hits = await searchApi.findSymbols(query, typesOnly, limit).catch(() => []);
+      return hits.map(
+        (h): SearchItem => ({
+          id: `${h.path}:${h.line}:${h.name}`,
+          label: h.name,
+          matches: h.matched,
+          detail: h.container ?? undefined,
+          hint: `${h.path.split("/").pop()} ${h.line}`,
+          kind: SYMBOL_KINDS.has(h.kind) ? (h.kind as SearchItem["kind"]) : "function",
+          score: h.score,
+          run: () => void openFileAt(h.path, h.line, 1),
+        }),
+      );
+    },
+  });
+}
+
+symbolProvider("core.classes", "classes", "Classes", true);
+symbolProvider("core.symbols", "symbols", "Symbols", false);
 
 const groupLabel = (group: string) => group.split("/").slice(1).join(" | ") || group;
 
