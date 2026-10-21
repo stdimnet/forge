@@ -21,6 +21,8 @@ luaforge-lang-lua.workspace = true
 forge-keymap.workspace = true
 forge-livetemplates.workspace = true
 forge-injections.workspace = true
+forge-emmet.workspace = true
+forge-colors.workspace = true
 wasm-bindgen = "=0.2.129"
 forge-fuzzy.workspace = true
 forge-find.workspace = true

@@ -10,6 +10,7 @@ pub mod db;
 pub mod debug;
 pub mod doctrine;
 pub mod editor;
+pub mod emmet;
 pub mod forges;
 pub mod git;
 pub mod injections;
