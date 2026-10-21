@@ -272,7 +272,20 @@ pub async fn find_in_files_paged(
     state: State<'_, AppState>,
 ) -> Result<FindPaged> {
     let backend = state.backend()?;
-    let result = Arc::new(blocking(move || backend.find_in_files_found(&request)).await?);
+    let cancel = Arc::new(std::sync::atomic::AtomicBool::new(false));
+    if let Some(previous) = state
+        .find_cancel
+        .lock()
+        .expect("find cancel lock")
+        .replace(cancel.clone())
+    {
+        previous.store(true, std::sync::atomic::Ordering::Relaxed);
+    }
+    let flag = cancel.clone();
+    let result = Arc::new(blocking(move || backend.find_in_files_found(&request, &flag)).await?);
+    if cancel.load(std::sync::atomic::Ordering::Relaxed) {
+        return Err(ForgeError::Other("Search cancelled".into()));
+    }
     static NEXT_ID: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
     let id = NEXT_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     let first = result.paged(id, page_size);

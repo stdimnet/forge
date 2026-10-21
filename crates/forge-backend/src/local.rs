@@ -226,10 +226,14 @@ impl Backend for LocalBackend {
         self.workspace.find_in_files(req)
     }
 
-    fn find_in_files_found(&self, req: &FindRequest) -> Result<crate::Found> {
+    fn find_in_files_found(
+        &self,
+        req: &FindRequest,
+        cancel: &std::sync::atomic::AtomicBool,
+    ) -> Result<crate::Found> {
         #[cfg(feature = "search")]
         if let Some(index) = self.index() {
-            return index.find_text_lazy(req).map(crate::Found::Lazy);
+            return index.find_text_lazy(req, cancel).map(crate::Found::Lazy);
         }
         self.find_in_files(req).map(crate::Found::Full)
     }

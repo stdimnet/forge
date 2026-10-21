@@ -422,3 +422,18 @@ fn exact_matching_needs_a_substring() {
     assert!(!svc.find_ranked("user", 5, true).is_empty());
     assert!(svc.find_ranked("usrp", 5, true).is_empty());
 }
+
+#[test]
+fn a_cancelled_search_reports_it() {
+    let (_d, svc) = project();
+    let req = forge_find::FindRequest {
+        query: "user".into(),
+        ..forge_find::FindRequest::default()
+    };
+    let flag = std::sync::atomic::AtomicBool::new(true);
+    let found = svc.find_text_lazy(&req, &flag).unwrap();
+    assert_eq!(found.error.as_deref(), Some(crate::CANCELLED));
+    assert_eq!(found.file_count(), 0);
+    let flag = std::sync::atomic::AtomicBool::new(false);
+    assert!(svc.find_text_lazy(&req, &flag).unwrap().error.is_none());
+}

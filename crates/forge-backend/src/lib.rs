@@ -207,7 +207,12 @@ pub trait Backend: Send + Sync {
 
     /// [`Backend::find_in_files`] for a result that is paged: a local backend with an index keeps
     /// match ranges instead of building every row.
-    fn find_in_files_found(&self, req: &FindRequest) -> Result<Found> {
+    /// A search that sees `cancel` set stops early; its result is then not meaningful.
+    fn find_in_files_found(
+        &self,
+        req: &FindRequest,
+        _cancel: &std::sync::atomic::AtomicBool,
+    ) -> Result<Found> {
         self.find_in_files(req).map(Found::Full)
     }
 

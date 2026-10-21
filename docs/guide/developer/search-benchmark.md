@@ -38,6 +38,7 @@ Measured on a source tree (272,700 files, Windows 11, release build, files in th
 | Find `function \w+\(` regex | 137 ms | 138491 matches in 15722 files |
 | Find `.*` regex | 1482 ms | 13462040 matches in 168726 files |
 | Find rare word `zzqxv` | 6.5 ms | 23 matches in 6 files |
+| Find `.*` regex, cancelled after 100 ms | 116 ms | Search cancelled |
 
 The first cold index after a rebuild or a reboot took 77 s on the same folder, because the
 files were not in the OS cache. That time is disk speed, not the index.

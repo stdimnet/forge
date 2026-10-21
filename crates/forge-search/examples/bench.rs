@@ -1,3 +1,4 @@
+use std::sync::atomic::AtomicBool;
 use std::time::{Duration, Instant};
 
 use forge_find::FindRequest;
@@ -101,7 +102,10 @@ fn main() {
         ("Find rare word `zzqxv`", "zzqxv", false),
     ] {
         let req = text(query, regex);
-        let (took, found) = best(|| svc.find_text_lazy(&req).expect("find"));
+        let (took, found) = best(|| {
+            svc.find_text_lazy(&req, &AtomicBool::new(false))
+                .expect("find")
+        });
         row(
             label,
             took,
@@ -112,4 +116,20 @@ fn main() {
             ),
         );
     }
+
+    let req = text(".*", true);
+    let flag = AtomicBool::new(false);
+    let started = Instant::now();
+    let found = std::thread::scope(|scope| {
+        scope.spawn(|| {
+            std::thread::sleep(Duration::from_millis(100));
+            flag.store(true, std::sync::atomic::Ordering::Relaxed);
+        });
+        svc.find_text_lazy(&req, &flag).expect("find")
+    });
+    row(
+        "Find `.*` regex, cancelled after 100 ms",
+        started.elapsed(),
+        found.error.unwrap_or_default(),
+    );
 }

@@ -21,6 +21,9 @@ use crate::lazy::{group_rows, FoundText, LazyFile, Rows};
 const WATCH_DEBOUNCE: Duration = Duration::from_millis(300);
 const SAVE_INTERVAL: Duration = Duration::from_secs(60);
 
+/// The error of a search that was cancelled before it finished.
+pub const CANCELLED: &str = "Search cancelled";
+
 /// How the index is built.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct IndexOptions {
@@ -288,7 +291,7 @@ impl SearchService {
     /// Find in Files with `forge-find` semantics: the trigram index narrows the files, `forge-find`
     /// reads the lines, so results match a directory walk exactly.
     pub fn find_text(&self, req: &FindRequest) -> Result<FindResult> {
-        let found = self.find_text_lazy(req)?;
+        let found = self.find_text_lazy(req, &AtomicBool::new(false))?;
         Ok(FindResult {
             files: found.page(0, usize::MAX),
             match_count: found.match_count,
@@ -299,7 +302,7 @@ impl SearchService {
 
     /// [`SearchService::find_text`] without building the rows: the result keeps match ranges and
     /// reads the text of the rows a page asks for.
-    pub fn find_text_lazy(&self, req: &FindRequest) -> Result<FoundText> {
+    pub fn find_text_lazy(&self, req: &FindRequest, cancel: &AtomicBool) -> Result<FoundText> {
         let finder = match Finder::new(req) {
             Ok(f) => f,
             Err(e) => return Ok(FoundText::failed(self.root.clone(), e)),
@@ -338,7 +341,7 @@ impl SearchService {
         let per_file: Vec<(String, Rows, usize, bool)> = paths
             .par_iter()
             .filter_map(|path| {
-                if found.load(Ordering::Relaxed) >= limit {
+                if found.load(Ordering::Relaxed) >= limit || cancel.load(Ordering::Relaxed) {
                     return None;
                 }
                 let bytes = std::fs::read(self.root.join(path)).ok()?;
@@ -377,6 +380,9 @@ impl SearchService {
             })
             .collect();
 
+        if cancel.load(Ordering::Relaxed) {
+            return Ok(FoundText::failed(self.root.clone(), CANCELLED.into()));
+        }
         let mut result = FoundText {
             root: self.root.clone(),
             files: Vec::new(),
