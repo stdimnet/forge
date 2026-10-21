@@ -1261,6 +1261,8 @@ The button at the right end of the search field switches between fuzzy and subst
 Ranking happens in Rust (`forge-fuzzy`), so the same rules apply in every list with a
 speed search: Recent Files, the New Scratch File popup, choosers.
 
+Results appear as each source answers: files and symbols show up at once, and a slower source (a language server, for example) adds its group when it is done instead of holding everything back.
+
 ## Find Action
 
 **Find Action** (`Ctrl+Shift+A`, macOS `Cmd+Shift+A`) is the Actions tab on its own. Type an

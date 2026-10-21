@@ -5,7 +5,7 @@ import { exactMatching, setExactOverride } from "@/ipc/search";
 import { shortcutLabel } from "@/keymap";
 import {
   SEARCH_TABS,
-  runSearch,
+  runSearchStreaming,
   type SearchGroup,
   type SearchItem,
   type SearchItemKind,
@@ -89,11 +89,12 @@ export function SearchEverywhere() {
     setLoading(true);
     const perGroup = tab === "all" ? 5 : 60;
     // Ranked in Rust; disabled actions only show when asked for or when nothing else matches.
-    const res = await runSearch(tab, seQuery(), { includeNonProject: seIncludeNonProject(), perGroup });
-    if (id !== seq) return;
-    setGroups(res);
-    setSelected(0);
-    setLoading(false);
+    await runSearchStreaming(tab, seQuery(), { includeNonProject: seIncludeNonProject(), perGroup }, (res, done) => {
+      if (id !== seq) return;
+      setGroups(res);
+      if (done) setLoading(false);
+    });
+    if (id === seq) setSelected(0);
   }
 
   let timer: ReturnType<typeof setTimeout> | undefined;
