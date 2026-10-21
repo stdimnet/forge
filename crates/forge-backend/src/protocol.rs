@@ -32,7 +32,7 @@ use crate::langservers::LangServersRequest;
 use crate::TerminalSpec;
 
 /// Bumped on incompatible protocol changes; client and agent must agree.
-pub const PROTOCOL_VERSION: u32 = 3;
+pub const PROTOCOL_VERSION: u32 = 4;
 
 /// Frames larger than this are refused (protects both sides from garbage input).
 pub const MAX_FRAME: usize = 64 * 1024 * 1024;
@@ -93,6 +93,15 @@ pub enum Call {
     WriteFile {
         path: String,
         contents: String,
+    },
+    /// -> `ByteBuf`: the raw bytes (files in other encodings than UTF-8). Protocol 4.
+    ReadBytes {
+        path: String,
+    },
+    /// -> `()`. Protocol 4.
+    WriteBytes {
+        path: String,
+        bytes: serde_bytes::ByteBuf,
     },
     /// -> `()`
     CreateFile {
