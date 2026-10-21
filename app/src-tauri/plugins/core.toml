@@ -260,20 +260,6 @@ section = "Project"
 order = 1
 
 [[contributions.settings]]
-key = "system.openProjectIn"
-title = "Open project in"
-type = "enum"
-options = [
-  { value = "new", label = "New window" },
-  { value = "same", label = "Current window" },
-  { value = "ask", label = "Ask" },
-]
-default = "ask"
-group = "system"
-section = "Project"
-order = 2
-
-[[contributions.settings]]
 key = "system.defaultProjectDirectory"
 title = "Default project directory"
 description = "New projects are created here unless you pick another location."

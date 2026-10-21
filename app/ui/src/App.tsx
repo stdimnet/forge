@@ -9,10 +9,12 @@ import { ResizeEdges, WindowTitleBar } from "./shell/window/WindowFrame";
 import { reportWorkbenchReady } from "./features/updates";
 // The project's tool window layout and editor tabs are restored and saved (main window only).
 import "./state/layoutPersistence";
+import { installSystemBehaviour } from "./features/system";
 
 export function App() {
   onMount(async () => {
     trackMaximized();
+    installSystemBehaviour();
     if (isTauri()) {
       await restoreWorkspace();
       // The window is shown (and the splash closed) once the first screen has rendered.

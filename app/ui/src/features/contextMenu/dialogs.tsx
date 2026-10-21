@@ -18,7 +18,9 @@ interface ConfirmRequest {
   title: string;
   message: string;
   confirm: string;
-  done: (ok: boolean) => void;
+  /** Label of a checkbox below the message, e.g. "Do not ask me again". */
+  checkbox?: string;
+  done: (ok: boolean, checked: boolean) => void;
 }
 
 interface ChoiceRequest {
@@ -36,8 +38,15 @@ export function askName(opts: Omit<NameRequest, "kind" | "done">): Promise<strin
   return new Promise((resolve) => setRequest({ kind: "name", ...opts, done: resolve }));
 }
 
-export function askConfirm(opts: Omit<ConfirmRequest, "kind" | "done">): Promise<boolean> {
-  return new Promise((resolve) => setRequest({ kind: "confirm", ...opts, done: resolve }));
+export function askConfirm(opts: Omit<ConfirmRequest, "kind" | "done" | "checkbox">): Promise<boolean> {
+  return new Promise((resolve) => setRequest({ kind: "confirm", ...opts, done: (ok) => resolve(ok) }));
+}
+
+/** Confirm with a checkbox ("Do not ask me again"); `checked` is its state when confirmed. */
+export function askConfirmWithCheckbox(
+  opts: Omit<ConfirmRequest, "kind" | "done" | "checkbox"> & { checkbox: string },
+): Promise<{ ok: boolean; checked: boolean }> {
+  return new Promise((resolve) => setRequest({ kind: "confirm", ...opts, done: (ok, checked) => resolve({ ok, checked }) }));
 }
 
 /** Ask the user to pick one of several actions (e.g. Reload / Convert); null when cancelled. */
@@ -145,9 +154,10 @@ function NameDialog(props: { req: NameRequest }) {
 }
 
 function ConfirmDialog(props: { req: ConfirmRequest }) {
+  const [checked, setChecked] = createSignal(false);
   const close = (ok: boolean) => {
     setRequest(null);
-    props.req.done(ok);
+    props.req.done(ok, ok && checked());
   };
   return (
     <div class="popup-backdrop modal">
@@ -168,6 +178,12 @@ function ConfirmDialog(props: { req: ConfirmRequest }) {
         <div class="dialog-title">{props.req.title}</div>
         <div class="dialog-body">{props.req.message}</div>
         <div class="dialog-buttons">
+          <Show when={props.req.checkbox}>
+            <label class="dialog-checkbox">
+              <input type="checkbox" checked={checked()} onChange={(e) => setChecked(e.currentTarget.checked)} />
+              {props.req.checkbox}
+            </label>
+          </Show>
           <button class="btn-secondary" onClick={() => close(false)}>
             Cancel
           </button>

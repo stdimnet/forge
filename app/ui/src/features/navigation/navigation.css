@@ -429,6 +429,14 @@ mark.hl {
   opacity: 0.5;
   cursor: default;
 }
+/* "Do not ask me again": left-aligned in the button row, like PHPStorm. */
+.dialog-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: auto;
+  color: var(--fg);
+}
 .form-row {
   display: grid;
   grid-template-columns: 120px 1fr;
