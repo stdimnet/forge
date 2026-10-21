@@ -60,4 +60,5 @@ Forge's rule of thumb is "Rust computes, TypeScript renders": logic lives in Rus
 - [FAQ](guide/faq.md) and [Troubleshooting](guide/troubleshooting.md)
 - [Architecture document](ARCHITECTURE.md): contribution points and shared IPC contracts in depth
 - [Roadmap](ROADMAP.md): planned work
+- [Code With Me plan](plans/code-with-me.md): design of real-time collaborative editing (planned)
 - [Guide conventions](guide/README.md): frontmatter contract and how the guide is maintained

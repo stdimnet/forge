@@ -32,3 +32,4 @@
 | `feat/remote-sessions` | SSH remote backend with remote indexing & LSP |
 | `feat/gemini-cli-plugin` | Gemini CLI as a chat agent |
 | `feat/scratch-files` | Scratches & consoles (Ctrl+Alt+Shift+Insert) |
+| `feat/code-with-me` | Code With Me: real-time collaborative editing, host approval and permissions, shared terminal and run, optional self-hosted relay ([plan](plans/code-with-me.md)) |
