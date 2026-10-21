@@ -378,7 +378,12 @@ impl Agent {
                 }))?;
                 reply(stats)
             }
-            PhpCall::Search { query, kind, limit } => reply(php.search(&query, kind, limit)?),
+            PhpCall::Search {
+                query,
+                kind,
+                limit,
+                exact,
+            } => reply(php.search(&query, kind, limit, exact)?),
             PhpCall::Structure {
                 path,
                 content,

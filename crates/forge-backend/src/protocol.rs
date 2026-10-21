@@ -190,6 +190,8 @@ pub enum PhpCall {
         query: String,
         kind: SearchKind,
         limit: usize,
+        #[serde(default)]
+        exact: bool,
     },
     /// -> `FileStructure`
     Structure {

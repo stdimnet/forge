@@ -20,7 +20,13 @@ pub type ProgressSink = Arc<dyn Fn(usize, usize) + Send + Sync>;
 pub trait PhpBackend: Send + Sync {
     /// Index the whole project (incremental through the cache) and save the cache.
     fn index_workspace(&self, progress: ProgressSink) -> Result<IndexStats>;
-    fn search(&self, query: &str, kind: SearchKind, limit: usize) -> Result<Vec<SymbolHit>>;
+    fn search(
+        &self,
+        query: &str,
+        kind: SearchKind,
+        limit: usize,
+        exact: bool,
+    ) -> Result<Vec<SymbolHit>>;
     fn file_structure(
         &self,
         path: &str,
@@ -127,8 +133,14 @@ impl PhpBackend for LocalPhp {
         Ok(stats)
     }
 
-    fn search(&self, query: &str, kind: SearchKind, limit: usize) -> Result<Vec<SymbolHit>> {
-        self.with_index(|idx| idx.search(query, kind, limit))
+    fn search(
+        &self,
+        query: &str,
+        kind: SearchKind,
+        limit: usize,
+        exact: bool,
+    ) -> Result<Vec<SymbolHit>> {
+        self.with_index(|idx| idx.search_with(query, kind, limit, exact))
     }
 
     fn file_structure(

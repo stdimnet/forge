@@ -93,12 +93,12 @@ registerMock("php_index_workspace", () => {
 });
 
 /** Match positions from the shared Rust matcher (`forge-fuzzy`), or null. */
-function fuzzy(wasm: ForgeWasm, query: string, name: string): number[] | null {
-  const [hit] = callWasmSync<FilterHit[]>(wasm.fuzzy_filter, { query, candidates: [name] });
+function fuzzy(wasm: ForgeWasm, query: string, name: string, exact = false): number[] | null {
+  const [hit] = callWasmSync<FilterHit[]>(wasm.fuzzy_filter, { query, candidates: [name], exact });
   return hit ? hit.positions : null;
 }
 
-registerMock("php_search_symbols", async ({ query, kind, limit }) => {
+registerMock("php_search_symbols", async ({ query, kind, limit, exact }) => {
   const wasm = await forgeWasm();
   const hits: SymbolHit[] = [];
   const q = String(query ?? "");
@@ -106,7 +106,7 @@ registerMock("php_search_symbols", async ({ query, kind, limit }) => {
     const src = demoFiles[path];
     for (const c of parsePhp(src).classes) {
       const add = (name: string, fqn: string, k: SymbolHit["kind"], container: string, offset: number) => {
-        const positions = fuzzy(wasm, q, name);
+        const positions = fuzzy(wasm, q, name, exact === true);
         if (!positions) return;
         const score = 100 - name.length - (positions[positions.length - 1] ?? 0) + (positions[0] === 0 ? 20 : 0);
         hits.push({ name, fqn, kind: k, container, path, offset, line: lineOf(src, offset), column: 0, score, positions });

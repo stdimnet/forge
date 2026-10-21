@@ -10,7 +10,7 @@ use std::time::{Instant, UNIX_EPOCH};
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use crate::fuzzy::fuzzy_match;
+use crate::fuzzy::exact_match;
 use crate::model::{short_name, ClassLike, FileIndex, Member, SymbolKind};
 use crate::parser;
 use crate::structure::{self, FileStructure};
@@ -535,6 +535,24 @@ impl ProjectIndex {
 
     /// Fuzzy search (Go to Class / Go to Symbol).
     pub fn search(&self, query: &str, kind: SearchKind, limit: usize) -> Vec<SymbolHit> {
+        self.search_with(query, kind, limit, false)
+    }
+
+    /// [`PhpIndex::search`], matching substrings instead of fuzzy when `exact` is set.
+    pub fn search_with(
+        &self,
+        query: &str,
+        kind: SearchKind,
+        limit: usize,
+        exact: bool,
+    ) -> Vec<SymbolHit> {
+        let fuzzy_match = |q: &str, t: &str| {
+            if exact {
+                exact_match(q, t)
+            } else {
+                crate::fuzzy::fuzzy_match(q, t)
+            }
+        };
         let query = query.trim();
         let (class_q, member_q) = match kind {
             SearchKind::Symbol => match query.split_once("::").or_else(|| query.split_once('.')) {

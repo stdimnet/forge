@@ -49,7 +49,7 @@ registerMock("lua_files_changed", () => {
   indexed = indexFiles();
   return undefined;
 });
-registerMock("lua_search_symbols", ({ query, kind, limit }) => call("lua_search_symbols", { query, kind, limit }));
+registerMock("lua_search_symbols", ({ query, kind, limit, exact }) => call("lua_search_symbols", { query, kind, limit, exact }));
 registerMock("lua_file_structure", ({ path, content }) => call("lua_file_structure", { path, content }));
 registerMock("lua_hover", ({ path, offset, content }) => call("lua_hover", { path, offset, content }));
 registerMock("lua_goto", ({ path, offset, content }) => call("lua_goto", { path, offset, content }));

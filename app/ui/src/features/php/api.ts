@@ -3,6 +3,7 @@
  * indices); the backend converts to bytes.
  */
 import { invoke } from "@/ipc";
+import { exactMatching } from "@/ipc/search";
 
 export type SymbolKind =
   | "namespace"
@@ -163,7 +164,7 @@ export interface DetectedServers {
 export const phpApi = {
   indexWorkspace: () => invoke<IndexStats>("php_index_workspace"),
   searchSymbols: (query: string, kind: "class" | "symbol" = "class", limit = 100) =>
-    invoke<SymbolHit[]>("php_search_symbols", { query, kind, limit }),
+    invoke<SymbolHit[]>("php_search_symbols", { query, kind, limit, exact: exactMatching() }),
   fileStructure: (path: string, content?: string, inherited = false) =>
     invoke<FileStructure>("php_file_structure", { path, content, inherited }),
   hover: (path: string, offset: number, content?: string) =>

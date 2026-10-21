@@ -597,11 +597,18 @@ impl PhpBackend for RemoteBackend {
         result
     }
 
-    fn search(&self, query: &str, kind: SearchKind, limit: usize) -> Result<Vec<SymbolHit>> {
+    fn search(
+        &self,
+        query: &str,
+        kind: SearchKind,
+        limit: usize,
+        exact: bool,
+    ) -> Result<Vec<SymbolHit>> {
         self.php_call(PhpCall::Search {
             query: query.to_string(),
             kind,
             limit,
+            exact,
         })
     }
 

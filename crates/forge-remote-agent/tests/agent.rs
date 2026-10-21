@@ -231,7 +231,7 @@ async fn php_index_runs_on_the_agent() {
         assert!(stats.classes >= 1, "{stats:?}");
         assert!(!progress.lock().unwrap().is_empty());
 
-        let hits = php.search("Order", Default::default(), 10).unwrap();
+        let hits = php.search("Order", Default::default(), 10, false).unwrap();
         assert_eq!(hits[0].name, "Order");
 
         let text = backend.read_file("app/Models/Order.php").unwrap();

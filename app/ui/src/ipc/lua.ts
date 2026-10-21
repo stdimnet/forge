@@ -3,6 +3,7 @@
  * lines and columns are UTF-16 / 0-based; browser mode answers through WebAssembly.
  */
 import { invoke } from "./index";
+import { exactMatching } from "./search";
 import type { HoverDoc } from "./markdown";
 
 export type LuaSymbolKind = "class" | "alias" | "module" | "function" | "method" | "field" | "variable";
@@ -75,7 +76,7 @@ export const luaApi = {
   indexWorkspace: () => invoke<LuaIndexStats>("lua_index_workspace"),
   filesChanged: (changed: string[], removed: string[]) => invoke<void>("lua_files_changed", { changed, removed }),
   searchSymbols: (query: string, kind: "class" | "symbol" = "class", limit = 100) =>
-    invoke<LuaSymbolHit[]>("lua_search_symbols", { query, kind, limit }),
+    invoke<LuaSymbolHit[]>("lua_search_symbols", { query, kind, limit, exact: exactMatching() }),
   fileStructure: (path: string, content?: string) => invoke<LuaFileStructure | null>("lua_file_structure", { path, content }),
   hover: (path: string, offset: number, content?: string) => invoke<LuaHover | null>("lua_hover", { path, offset, content }),
   goto: (path: string, offset: number, content?: string) => invoke<LuaLocation[]>("lua_goto", { path, offset, content }),
