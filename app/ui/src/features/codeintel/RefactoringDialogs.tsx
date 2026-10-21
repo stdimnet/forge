@@ -20,7 +20,7 @@ export function RenameDialog(props: { req: RenameDialogRequest }) {
   const close = (preview: boolean | null) =>
     props.req.done(preview === null ? null : { name: name().trim(), renameFile: renameFile(), preview });
   return (
-    <div class="popup-backdrop modal">
+    <div class="popup-backdrop modal refactoring-backdrop">
       <div
         class="dialog rename-dialog"
         role="dialog"
@@ -128,7 +128,7 @@ export function RefactoringPreviewDialog(props: { req: PreviewRequest }) {
   const total = () => a().preview.reduce((n, f) => n + f.rows.length, 0);
   const files = () => a().preview.filter((f) => f.operation === "edit").length;
   return (
-    <div class="popup-backdrop modal">
+    <div class="popup-backdrop modal refactoring-backdrop">
       <div
         class="dialog refactoring-preview"
         role="dialog"

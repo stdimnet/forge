@@ -161,6 +161,10 @@
 }
 
 /* ---------- Rename dialog and Refactoring Preview ---------- */
+/* Above the editor's tooltips (the in-place rename hint). */
+.refactoring-backdrop {
+  z-index: 600;
+}
 .rename-dialog {
   width: min(480px, calc(100vw - 32px));
 }

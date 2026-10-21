@@ -895,6 +895,12 @@ const LSP_FIXES: Record<string, LspFix[]> = {
       edit: (t) => replaceIn("app/Services/InvoiceService.php", t, "use Illuminate\\Support\\Carbon;\n", ""),
     },
     {
+      line: "private readonly Checkout $checkout",
+      title: "Remove unused private property '$checkout'",
+      fixAll: "Fix all 'Unused private property' problems in file",
+      edit: (t) => replaceIn("app/Services/InvoiceService.php", t, "private readonly Checkout $checkout", ""),
+    },
+    {
       line: "$order->markAsPaid();",
       title: "Add method 'markAsPaid()' to class 'Order'",
       edit: () =>

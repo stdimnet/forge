@@ -73,7 +73,11 @@ async function moveTabs(moves: FileRename[]): Promise<void> {
     await openFile(m.to).catch(() => undefined);
   }
   const back = moves.find((m) => m.from === active)?.to ?? active;
-  if (back && editor.tabs.some((t) => t.path === back)) await openFile(back);
+  if (back && editor.tabs.some((t) => t.path === back)) {
+    await openFile(back);
+    // The editor that had the focus may be gone (its file moved).
+    (await waitForView(back))?.focus();
+  }
 }
 
 function refreshTree(edit: WorkspaceEdit): void {
@@ -90,7 +94,7 @@ function refreshTree(edit: WorkspaceEdit): void {
 export interface ApplyOptions {
   /** "Rename", "Import class" (undo labels, messages). */
   label: string;
-  /** Runs right before the editors change (the in-place rename reverts its live edits). */
+  /** Runs before anything changes (the in-place rename reverts its live edits). */
   beforeEditors?: () => void;
 }
 
@@ -105,6 +109,8 @@ export interface ApplyResult {
  */
 export async function applyWorkspaceEdit(edit: WorkspaceEdit, opts: ApplyOptions): Promise<ApplyResult> {
   const plan = await codeApi.planEdit(edit, openEditors());
+  // Before saving: a file the backend rewrites must be saved as the edit expects it.
+  opts.beforeEditors?.();
   for (const p of plan.saveFirst) {
     const tab = editor.tabs.find((t) => t.path === p);
     if (tab && isDirty(tab)) await saveFile(p);
@@ -123,7 +129,6 @@ export async function applyWorkspaceEdit(edit: WorkspaceEdit, opts: ApplyOptions
     undone: false,
   };
   refactorings.set(id, r);
-  opts.beforeEditors?.();
   for (const e of plan.editors) {
     const view = viewFor(e.path);
     if (!view) continue;

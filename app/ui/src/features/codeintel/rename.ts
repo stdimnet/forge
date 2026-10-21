@@ -13,7 +13,7 @@
 import { createSignal } from "solid-js";
 import { EditorSelection, EditorState, Prec, StateEffect, StateField, Transaction, type Extension } from "@codemirror/state";
 import { Decoration, EditorView, keymap, showTooltip, ViewPlugin, type DecorationSet, type Tooltip } from "@codemirror/view";
-import { closeCompletion } from "@codemirror/autocomplete";
+import { closeCompletion, completionStatus } from "@codemirror/autocomplete";
 import { lspApi } from "@/ipc/lsp";
 import { codeApi, isLibraryPath, type PrepareRenameAnswer, type RenameAnswer } from "@/ipc/codeintel";
 import { editor, isDirty } from "@/state/editor";
@@ -154,6 +154,8 @@ const finisher = ViewPlugin.define((view) => ({
       }
     }
     const now = u.state.field(renameField, false);
+    // No completion popup while renaming: Enter belongs to the rename.
+    if (now && completionStatus(u.state) !== null) setTimeout(() => closeCompletion(view));
     if (now && u.selectionSet && !u.docChanged) {
       const p = now.ranges[now.primary];
       const head = u.state.selection.main.head;
@@ -266,7 +268,7 @@ export function premiumHint(answer: Pick<RenameAnswer, "source" | "missing">): b
   premiumHintShown = true;
   showBalloon(
     "Renamed with the PHP index",
-    "Intelephense renames only with a premium licence; Forge used its own PHP index, which finds the usages of classes, methods, functions and properties in the project. Enter a licence key in Settings | Languages & Frameworks | PHP for the full rename.",
+    "Intelephense renames only with a premium licence, so Forge used its own index of the project's classes, methods, functions and properties. Enter a licence key in Settings | PHP for the full rename.",
     0,
     [{ label: "Enter Licence Key…", run: () => openSettings("lang.php") }],
   );
@@ -394,7 +396,7 @@ export async function commitRename(view: EditorView, opts: { name?: string; prev
     if (!premiumHint(answer) && answer.skipped > 0) {
       showBalloon(`${answer.skipped} dynamic usage${answer.skipped === 1 ? " was" : "s were"} not renamed`, "Find them with Find Usages (Alt+F7).");
     }
-    view.focus();
+    if (view.dom.isConnected) view.focus();
   } finally {
     committing = false;
   }
