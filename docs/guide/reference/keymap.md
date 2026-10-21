@@ -195,11 +195,11 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Cut | `$Cut` | `Ctrl+X`, `Shift+Delete` | `Cmd+X` | native |
 | Copy | `$Copy` | `Ctrl+C`, `Ctrl+Insert` | `Cmd+C` | native |
 | Paste | `$Paste` | `Ctrl+V`, `Shift+Insert` | `Cmd+V` | native |
-| Paste from History… | `PasteMultiple` | `Ctrl+Shift+V` | `Cmd+Shift+V` | — |
+| Paste from History… | `PasteMultiple` | `Ctrl+Shift+V` | `Cmd+Shift+V` | yes |
 | Paste as Plain Text | `PasteSimple` | `Ctrl+Alt+Shift+V` | `Cmd+Alt+Shift+V` | yes |
 | Select All | `$SelectAll` | `Ctrl+A` | `Cmd+A` | native |
 | Delete | `$Delete` | `Delete` | `Delete`, `Backspace` | native |
-| Column Selection Mode | `EditorToggleColumnMode` | `Alt+Shift+Insert` | `Cmd+Shift+8` | — |
+| Column Selection Mode | `EditorToggleColumnMode` | `Alt+Shift+Insert` | `Cmd+Shift+8` | yes |
 | Add Selection for Next Occurrence | `SelectNextOccurrence` | `Alt+J` | `Ctrl+G` | yes |
 | Unselect Occurrence | `UnselectPreviousOccurrence` | `Alt+Shift+J` | `Ctrl+Shift+G` | yes |
 | Select All Occurrences | `SelectAllOccurrences` | `Ctrl+Alt+Shift+J` | `Ctrl+Cmd+G` | yes |
@@ -473,8 +473,9 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Page Down | `EditorPageDown` | `PageDown` | `PageDown` | native |
 | Move Caret to Page Top | `EditorMoveToPageTop` | `Ctrl+PageUp` | `Cmd+PageUp` | native |
 | Move Caret to Page Bottom | `EditorMoveToPageBottom` | `Ctrl+PageDown` | `Cmd+PageDown` | native |
-| Clone Caret Above | `EditorCloneCaretAbove` |  |  | — |
-| Clone Caret Below | `EditorCloneCaretBelow` |  |  | — |
+| Clone Caret Above | `EditorCloneCaretAbove` | `Double Ctrl+Up` | `Double Alt+Up` | yes |
+| Clone Caret Below | `EditorCloneCaretBelow` | `Double Ctrl+Down` | `Double Alt+Down` | yes |
+| Add Carets to Ends of Selected Lines | `EditorAddCaretPerSelectedLine` | `Alt+Shift+G` | `Alt+Shift+G` | yes |
 | Toggle Insert/Overwrite | `EditorToggleInsertState` | `Insert` |  | native |
 | Choose Lookup Item and Replace | `EditorChooseLookupItemReplace` | `Tab` | `Tab` | native |
 

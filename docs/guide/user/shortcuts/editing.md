@@ -32,6 +32,7 @@ Typing, selecting, moving and commenting code, completion, generation, formattin
 | [Cut](#cut) | `Ctrl+X`, `Shift+Delete` | `Cmd+X` |
 | [Copy](#copy) | `Ctrl+C`, `Ctrl+Insert` | `Cmd+C` |
 | [Paste](#paste) | `Ctrl+V`, `Shift+Insert` | `Cmd+V` |
+| [Paste from History…](#paste-from-history) | `Ctrl+Shift+V` | `Cmd+Shift+V` |
 | [Paste as Plain Text](#paste-as-plain-text) | `Ctrl+Alt+Shift+V` | `Cmd+Alt+Shift+V` |
 | [Select All](#select-all) | `Ctrl+A` | `Cmd+A` |
 | [Duplicate Line or Selection](#duplicate-line-or-selection) | `Ctrl+D` | `Cmd+D` |
@@ -47,6 +48,10 @@ Typing, selecting, moving and commenting code, completion, generation, formattin
 | [Add Selection for Next Occurrence](#add-selection-for-next-occurrence) | `Alt+J` | `Ctrl+G` |
 | [Unselect Occurrence](#unselect-occurrence) | `Alt+Shift+J` | `Ctrl+Shift+G` |
 | [Select All Occurrences](#select-all-occurrences) | `Ctrl+Alt+Shift+J` | `Ctrl+Cmd+G` |
+| [Clone Caret Above](#clone-caret-above) | `Double Ctrl+Up` (hold the second `Ctrl`) | `Double Alt+Up` |
+| [Clone Caret Below](#clone-caret-below) | `Double Ctrl+Down` | `Double Alt+Down` |
+| [Add Carets to Ends of Selected Lines](#add-carets-to-ends-of-selected-lines) | `Alt+Shift+G` | `Alt+Shift+G` |
+| [Column Selection Mode](#column-selection-mode) | `Alt+Shift+Insert` | `Cmd+Shift+8` |
 | [Join Lines](#join-lines) | `Ctrl+Shift+J` | `Ctrl+Shift+J` |
 | [Toggle Case](#toggle-case) | `Ctrl+Shift+U` | `Cmd+Shift+U` |
 | [Split Line](#split-line) | `Ctrl+Enter` | `Cmd+Enter` |
@@ -291,6 +296,16 @@ Pastes from the clipboard.
 
 More: [Editor](../../user/editor.md#editing-actions)
 
+## Paste from History
+
+**Shortcut:** `Ctrl+Shift+V` · macOS `Cmd+Shift+V` · action id `PasteMultiple`
+
+Lists the texts copied or cut in this session; type to filter, `Enter` pastes, `Delete` removes an entry.
+
+**Menu:** Edit | Paste Special | Paste from History…
+
+More: [Editor](../../user/editor.md#paste-from-history)
+
 ## Paste as Plain Text
 
 **Shortcut:** `Ctrl+Alt+Shift+V` · macOS `Cmd+Alt+Shift+V` · action id `PasteSimple`
@@ -417,7 +432,7 @@ Adds the next occurrence of the selected text as another selection (multiple car
 
 **Menu:** Edit | Find | Add Selection for Next Occurrence
 
-More: [Editor](../../user/editor.md#editing-actions)
+More: [Editor](../../user/editor.md#multiple-carets-and-column-selection)
 
 ## Unselect Occurrence
 
@@ -427,7 +442,7 @@ Removes the occurrence added last.
 
 **Menu:** Edit | Find | Unselect Occurrence
 
-More: [Editor](../../user/editor.md#editing-actions)
+More: [Editor](../../user/editor.md#multiple-carets-and-column-selection)
 
 ## Select All Occurrences
 
@@ -437,7 +452,41 @@ Selects every occurrence of the selected text.
 
 **Menu:** Edit | Find | Select All Occurrences
 
-More: [Editor](../../user/editor.md#editing-actions)
+More: [Editor](../../user/editor.md#multiple-carets-and-column-selection)
+
+## Clone Caret Above
+
+**Shortcut:** `Double Ctrl+Up` · macOS `Double Alt+Up` · action id `EditorCloneCaretAbove`
+
+Press `Ctrl` twice, keep it down and press `Up`: adds a caret on the line above every caret. `Down` takes the last clones back.
+
+More: [Editor](../../user/editor.md#multiple-carets-and-column-selection)
+
+## Clone Caret Below
+
+**Shortcut:** `Double Ctrl+Down` · macOS `Double Alt+Down` · action id `EditorCloneCaretBelow`
+
+Press `Ctrl` twice, keep it down and press `Down`: adds a caret on the line below every caret.
+
+More: [Editor](../../user/editor.md#multiple-carets-and-column-selection)
+
+## Add Carets to Ends of Selected Lines
+
+**Shortcut:** `Alt+Shift+G` · macOS `Alt+Shift+G` · action id `EditorAddCaretPerSelectedLine`
+
+Replaces the selection with a caret at the end of every selected line.
+
+More: [Editor](../../user/editor.md#multiple-carets-and-column-selection)
+
+## Column Selection Mode
+
+**Shortcut:** `Alt+Shift+Insert` · macOS `Cmd+Shift+8` · action id `EditorToggleColumnMode`
+
+Turns rectangular selection with `Shift`+arrow keys and mouse drags on or off for the editor.
+
+**Menu:** Edit | Column Selection Mode
+
+More: [Editor](../../user/editor.md#multiple-carets-and-column-selection)
 
 ## Join Lines
 

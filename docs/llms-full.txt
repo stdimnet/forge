@@ -1449,8 +1449,67 @@ server's document formatting. Lua files use StyLua when it is installed (see
 | Copy Absolute Path | `Ctrl+Shift+C` | `Cmd+Shift+C` |
 | Copy Reference (`path:line`) | `Ctrl+Alt+Shift+C` | `Cmd+Alt+Shift+C` |
 
-Without a selection, **Copy** and **Cut** take the whole line, as in PHPStorm. `Alt`+drag
-makes a rectangular (column) selection.
+Without a selection, **Copy** and **Cut** take the whole line, as in PHPStorm.
+
+## Multiple carets and column selection
+
+![Clone Caret Below on the imports of User.php](docs/screenshots/clone-carets.png)
+
+Everything you type, delete, copy or paste applies at every caret. The status bar shows
+`3 carets` instead of the caret position while there are several; `Escape` returns to one caret.
+
+| Action | Windows/Linux | macOS |
+| --- | --- | --- |
+| Clone Caret Above / Below | `Ctrl` twice, hold, then `Up` / `Down` | `Alt` twice, hold, then `Up` / `Down` |
+| Add or remove a caret | `Alt+Shift`+click | `Alt+Shift`+click |
+| Add Carets to Ends of Selected Lines | `Alt+Shift+G` | `Alt+Shift+G` |
+| Add Selection for Next Occurrence | `Alt+J` | `Ctrl+G` |
+| Unselect Occurrence | `Alt+Shift+J` | `Ctrl+Shift+G` |
+| Select All Occurrences | `Ctrl+Alt+Shift+J` | `Ctrl+Cmd+G` |
+| Rectangular selection | `Alt`+drag or middle-button drag | `Alt`+drag or middle-button drag |
+| Column Selection Mode | `Alt+Shift+Insert` | `Cmd+Shift+8` |
+
+- **Clone Caret Above / Below** adds a caret on the line above or below every caret, in the same
+  column (short lines get the caret at their end, the column is kept for longer lines further
+  on). Keep `Ctrl` down and press the arrow again for more carets; the other arrow takes the
+  last clones back. The actions are also in Settings | Keymap | Editor Actions, where you can
+  give them ordinary shortcuts.
+- **Alt+Shift+click** adds a caret, or removes the caret you click on; `Alt+Shift`+drag adds a
+  selection.
+- **Add Selection for Next Occurrence** selects the word at the caret first, then adds the next
+  occurrence as another selection. **Select All Occurrences** works without a selection too.
+- **Column Selection Mode** (Edit | Column Selection Mode, also in the editor context menu) makes
+  `Shift`+arrow keys and mouse drags select rectangles, one selection per line, until you turn it
+  off again. It is per editor; the status bar shows **Column** while it is on (click it to turn
+  the mode off). In this mode `Alt`+drag makes an ordinary selection.
+- A middle-button **click** still goes to the declaration; only a drag selects a rectangle.
+
+![Column Selection Mode with a rectangle over the @property tags](docs/screenshots/column-selection-mode.png)
+
+### Copy and paste with multiple carets
+
+Copying with several carets remembers the text of each caret. Pasting with the same number of
+carets puts one part at each caret, like PHPStorm, even when the parts span several lines; with
+another number of carets the whole text is pasted at every caret. Text with as many lines as
+there are carets is spread one line per caret.
+
+## Paste from History
+
+![Paste from History](docs/screenshots/paste-from-history.png)
+
+**Edit | Paste Special | Paste from History…** (`Ctrl+Shift+V`, macOS `Cmd+Shift+V`) lists the
+texts copied or cut in Forge during this session, newest first, with a preview of the selected
+entry. Type to filter the list, `Enter` (or a click) pastes, `Delete` removes the entry, `Escape`
+closes the popup. The pasted entry moves to the top and becomes the clipboard content again. An
+entry copied with several carets shows the number of carets and pastes one part per caret.
+
+The history lives in memory until Forge closes; it is never written to disk. Its size is
+**Maximum number of contents to keep in clipboard** in Settings | Editor | General | Limits
+(default 20). Paste from History also works in text fields such as the commit message.
+
+**Paste as Plain Text** (`Ctrl+Alt+Shift+V`) pastes the clipboard text unchanged. Forge does not
+reformat pasted code or add imports on paste, so it behaves like **Paste**, including the
+one-part-per-caret rule.
 
 ## Folding
 
@@ -2899,6 +2958,7 @@ Typing, selecting, moving and commenting code, completion, generation, formattin
 | [Cut](#cut) | `Ctrl+X`, `Shift+Delete` | `Cmd+X` |
 | [Copy](#copy) | `Ctrl+C`, `Ctrl+Insert` | `Cmd+C` |
 | [Paste](#paste) | `Ctrl+V`, `Shift+Insert` | `Cmd+V` |
+| [Paste from History…](#paste-from-history) | `Ctrl+Shift+V` | `Cmd+Shift+V` |
 | [Paste as Plain Text](#paste-as-plain-text) | `Ctrl+Alt+Shift+V` | `Cmd+Alt+Shift+V` |
 | [Select All](#select-all) | `Ctrl+A` | `Cmd+A` |
 | [Duplicate Line or Selection](#duplicate-line-or-selection) | `Ctrl+D` | `Cmd+D` |
@@ -2914,6 +2974,10 @@ Typing, selecting, moving and commenting code, completion, generation, formattin
 | [Add Selection for Next Occurrence](#add-selection-for-next-occurrence) | `Alt+J` | `Ctrl+G` |
 | [Unselect Occurrence](#unselect-occurrence) | `Alt+Shift+J` | `Ctrl+Shift+G` |
 | [Select All Occurrences](#select-all-occurrences) | `Ctrl+Alt+Shift+J` | `Ctrl+Cmd+G` |
+| [Clone Caret Above](#clone-caret-above) | `Double Ctrl+Up` (hold the second `Ctrl`) | `Double Alt+Up` |
+| [Clone Caret Below](#clone-caret-below) | `Double Ctrl+Down` | `Double Alt+Down` |
+| [Add Carets to Ends of Selected Lines](#add-carets-to-ends-of-selected-lines) | `Alt+Shift+G` | `Alt+Shift+G` |
+| [Column Selection Mode](#column-selection-mode) | `Alt+Shift+Insert` | `Cmd+Shift+8` |
 | [Join Lines](#join-lines) | `Ctrl+Shift+J` | `Ctrl+Shift+J` |
 | [Toggle Case](#toggle-case) | `Ctrl+Shift+U` | `Cmd+Shift+U` |
 | [Split Line](#split-line) | `Ctrl+Enter` | `Cmd+Enter` |
@@ -3158,6 +3222,16 @@ Pastes from the clipboard.
 
 More: [Editor](docs/guide/user/editor.md#editing-actions)
 
+## Paste from History
+
+**Shortcut:** `Ctrl+Shift+V` · macOS `Cmd+Shift+V` · action id `PasteMultiple`
+
+Lists the texts copied or cut in this session; type to filter, `Enter` pastes, `Delete` removes an entry.
+
+**Menu:** Edit | Paste Special | Paste from History…
+
+More: [Editor](docs/guide/user/editor.md#paste-from-history)
+
 ## Paste as Plain Text
 
 **Shortcut:** `Ctrl+Alt+Shift+V` · macOS `Cmd+Alt+Shift+V` · action id `PasteSimple`
@@ -3284,7 +3358,7 @@ Adds the next occurrence of the selected text as another selection (multiple car
 
 **Menu:** Edit | Find | Add Selection for Next Occurrence
 
-More: [Editor](docs/guide/user/editor.md#editing-actions)
+More: [Editor](docs/guide/user/editor.md#multiple-carets-and-column-selection)
 
 ## Unselect Occurrence
 
@@ -3294,7 +3368,7 @@ Removes the occurrence added last.
 
 **Menu:** Edit | Find | Unselect Occurrence
 
-More: [Editor](docs/guide/user/editor.md#editing-actions)
+More: [Editor](docs/guide/user/editor.md#multiple-carets-and-column-selection)
 
 ## Select All Occurrences
 
@@ -3304,7 +3378,41 @@ Selects every occurrence of the selected text.
 
 **Menu:** Edit | Find | Select All Occurrences
 
-More: [Editor](docs/guide/user/editor.md#editing-actions)
+More: [Editor](docs/guide/user/editor.md#multiple-carets-and-column-selection)
+
+## Clone Caret Above
+
+**Shortcut:** `Double Ctrl+Up` · macOS `Double Alt+Up` · action id `EditorCloneCaretAbove`
+
+Press `Ctrl` twice, keep it down and press `Up`: adds a caret on the line above every caret. `Down` takes the last clones back.
+
+More: [Editor](docs/guide/user/editor.md#multiple-carets-and-column-selection)
+
+## Clone Caret Below
+
+**Shortcut:** `Double Ctrl+Down` · macOS `Double Alt+Down` · action id `EditorCloneCaretBelow`
+
+Press `Ctrl` twice, keep it down and press `Down`: adds a caret on the line below every caret.
+
+More: [Editor](docs/guide/user/editor.md#multiple-carets-and-column-selection)
+
+## Add Carets to Ends of Selected Lines
+
+**Shortcut:** `Alt+Shift+G` · macOS `Alt+Shift+G` · action id `EditorAddCaretPerSelectedLine`
+
+Replaces the selection with a caret at the end of every selected line.
+
+More: [Editor](docs/guide/user/editor.md#multiple-carets-and-column-selection)
+
+## Column Selection Mode
+
+**Shortcut:** `Alt+Shift+Insert` · macOS `Cmd+Shift+8` · action id `EditorToggleColumnMode`
+
+Turns rectangular selection with `Shift`+arrow keys and mouse drags on or off for the editor.
+
+**Menu:** Edit | Column Selection Mode
+
+More: [Editor](docs/guide/user/editor.md#multiple-carets-and-column-selection)
 
 ## Join Lines
 
@@ -7910,11 +8018,11 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Cut | `$Cut` | `Ctrl+X`, `Shift+Delete` | `Cmd+X` | native |
 | Copy | `$Copy` | `Ctrl+C`, `Ctrl+Insert` | `Cmd+C` | native |
 | Paste | `$Paste` | `Ctrl+V`, `Shift+Insert` | `Cmd+V` | native |
-| Paste from History… | `PasteMultiple` | `Ctrl+Shift+V` | `Cmd+Shift+V` | — |
+| Paste from History… | `PasteMultiple` | `Ctrl+Shift+V` | `Cmd+Shift+V` | yes |
 | Paste as Plain Text | `PasteSimple` | `Ctrl+Alt+Shift+V` | `Cmd+Alt+Shift+V` | yes |
 | Select All | `$SelectAll` | `Ctrl+A` | `Cmd+A` | native |
 | Delete | `$Delete` | `Delete` | `Delete`, `Backspace` | native |
-| Column Selection Mode | `EditorToggleColumnMode` | `Alt+Shift+Insert` | `Cmd+Shift+8` | — |
+| Column Selection Mode | `EditorToggleColumnMode` | `Alt+Shift+Insert` | `Cmd+Shift+8` | yes |
 | Add Selection for Next Occurrence | `SelectNextOccurrence` | `Alt+J` | `Ctrl+G` | yes |
 | Unselect Occurrence | `UnselectPreviousOccurrence` | `Alt+Shift+J` | `Ctrl+Shift+G` | yes |
 | Select All Occurrences | `SelectAllOccurrences` | `Ctrl+Alt+Shift+J` | `Ctrl+Cmd+G` | yes |
@@ -8188,8 +8296,9 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Page Down | `EditorPageDown` | `PageDown` | `PageDown` | native |
 | Move Caret to Page Top | `EditorMoveToPageTop` | `Ctrl+PageUp` | `Cmd+PageUp` | native |
 | Move Caret to Page Bottom | `EditorMoveToPageBottom` | `Ctrl+PageDown` | `Cmd+PageDown` | native |
-| Clone Caret Above | `EditorCloneCaretAbove` |  |  | — |
-| Clone Caret Below | `EditorCloneCaretBelow` |  |  | — |
+| Clone Caret Above | `EditorCloneCaretAbove` | `Double Ctrl+Up` | `Double Alt+Up` | yes |
+| Clone Caret Below | `EditorCloneCaretBelow` | `Double Ctrl+Down` | `Double Alt+Down` | yes |
+| Add Carets to Ends of Selected Lines | `EditorAddCaretPerSelectedLine` | `Alt+Shift+G` | `Alt+Shift+G` | yes |
 | Toggle Insert/Overwrite | `EditorToggleInsertState` | `Insert` |  | native |
 | Choose Lookup Item and Replace | `EditorChooseLookupItemReplace` | `Tab` | `Tab` | native |
 
@@ -8386,7 +8495,7 @@ Undo, clipboard, find and replace, selection and line editing. Open it with ☰ 
 | Copy Path/Reference › Reference | `Ctrl+Alt+Shift+C` | `Cmd+Alt+Shift+C` | yes | Copies a reference to the caret position (`path:line`). [More](docs/guide/user/editor.md#editing-actions) |
 | Paste | `Ctrl+V`, `Shift+Insert` | `Cmd+V` | yes | Pastes from the clipboard. [More](docs/guide/user/editor.md#editing-actions) |
 | **Paste Special** | | | | submenu |
-| Paste Special › Paste from History… | `Ctrl+Shift+V` | `Cmd+Shift+V` | not yet | Not available yet; the entry is disabled. |
+| Paste Special › Paste from History… | `Ctrl+Shift+V` | `Cmd+Shift+V` | yes | Pastes one of the texts copied or cut in this session. [More](docs/guide/user/editor.md#paste-from-history) |
 | Paste Special › Paste as Plain Text | `Ctrl+Alt+Shift+V` | `Cmd+Alt+Shift+V` | yes | Pastes the clipboard as plain text. [More](docs/guide/user/editor.md#editing-actions) |
 | Delete | `Delete` | `Delete`, `Backspace` | yes | Delete |
 | **Find** | | | | submenu |
@@ -8395,9 +8504,9 @@ Undo, clipboard, find and replace, selection and line editing. Open it with ☰ 
 | Find › Find Next / Move to Next Occurrence | `F3` | `Cmd+G` | yes | Moves to the next match of the current search. [More](docs/guide/user/editor.md#find-and-replace-in-a-file) |
 | Find › Find Previous / Move to Previous Occurrence | `Shift+F3` | `Cmd+Shift+G` | yes | Moves to the previous match. [More](docs/guide/user/editor.md#find-and-replace-in-a-file) |
 | Find › Find Word at Caret | `Ctrl+F3` | `Alt+Cmd+F3` | not yet | Not available yet; the entry is disabled. |
-| Find › Select All Occurrences | `Ctrl+Alt+Shift+J` | `Ctrl+Cmd+G` | yes | Selects every occurrence of the selected text. [More](docs/guide/user/editor.md#editing-actions) |
-| Find › Add Selection for Next Occurrence | `Alt+J` | `Ctrl+G` | yes | Adds the next occurrence of the selected text as another selection (multiple carets). [More](docs/guide/user/editor.md#editing-actions) |
-| Find › Unselect Occurrence | `Alt+Shift+J` | `Ctrl+Shift+G` | yes | Removes the occurrence added last. [More](docs/guide/user/editor.md#editing-actions) |
+| Find › Select All Occurrences | `Ctrl+Alt+Shift+J` | `Ctrl+Cmd+G` | yes | Selects every occurrence of the selected text. [More](docs/guide/user/editor.md#multiple-carets-and-column-selection) |
+| Find › Add Selection for Next Occurrence | `Alt+J` | `Ctrl+G` | yes | Adds the next occurrence of the selected text as another selection (multiple carets). [More](docs/guide/user/editor.md#multiple-carets-and-column-selection) |
+| Find › Unselect Occurrence | `Alt+Shift+J` | `Ctrl+Shift+G` | yes | Removes the occurrence added last. [More](docs/guide/user/editor.md#multiple-carets-and-column-selection) |
 | Find › Find in Files… | `Ctrl+Shift+F` | `Cmd+Shift+F` | yes | Searches the text of all project files, with match case, whole words, regular expressions, file masks and a folder scope. [More](docs/guide/user/search-everywhere.md#find-in-files) ([screenshot](docs/screenshots/docs-find-in-files.png)) |
 | Find › Replace in Files… | `Ctrl+Shift+R` | `Cmd+Shift+R` | yes | Opens the Find tool window's Find in Files tab with a **Replace with** field, a preview of every changed line and undo. [More](docs/guide/user/search-everywhere.md#find-in-files) |
 | Find › Search Structurally… | — | — | not yet | Not available yet; the entry is disabled. |
@@ -8410,7 +8519,7 @@ Undo, clipboard, find and replace, selection and line editing. Open it with ☰ 
 | Select All | `Ctrl+A` | `Cmd+A` | yes | Selects the whole document. [More](docs/guide/user/editor.md#editing-actions) |
 | Extend Selection | `Ctrl+W` | `Alt+Up` | yes | Extends the selection to the next larger syntactic unit (word, expression, statement, block). [More](docs/guide/user/editor.md#editing-actions) |
 | Shrink Selection | `Ctrl+Shift+W` | `Alt+Down` | yes | Shrinks the selection back. [More](docs/guide/user/editor.md#editing-actions) |
-| Column Selection Mode | `Alt+Shift+Insert` | `Cmd+Shift+8` | not yet | Not available yet; the entry is disabled. |
+| Column Selection Mode | `Alt+Shift+Insert` | `Cmd+Shift+8` | yes | Shift+arrow keys and mouse drags select rectangles; checked while on. [More](docs/guide/user/editor.md#multiple-carets-and-column-selection) |
 | Join Lines | `Ctrl+Shift+J` | `Ctrl+Shift+J` | yes | Joins the selected lines (or the next line) into one. [More](docs/guide/user/editor.md#editing-actions) |
 | Duplicate Line or Selection | `Ctrl+D` | `Cmd+D` | yes | Duplicates the current line or the selection. [More](docs/guide/user/editor.md#editing-actions) |
 | Sort Lines | — | — | not yet | Not available yet; the entry is disabled. |
@@ -8939,6 +9048,7 @@ Page id `editor.general`.
 | `editor.highlightCurrentLine` | bool | `true` | user | Appearance | Highlight caret row |
 | `editor.stripTrailingSpaces` | enum: `none`, `modified`, `all` | `modified` | user | On Save | Remove trailing spaces on |
 | `editor.ensureNewlineAtEof` | bool | `true` | user | On Save | Ensure every saved file ends with a line break |
+| `editor.clipboard.maxContents` | int (1–100) | `20` | user | Limits | Maximum number of contents to keep in clipboard |
 | `run.console.softWrap` | bool | `false` | user | Console | Use soft wraps in console |
 | `run.console.cycleBufferKb` | int (100–100000) | `1024` | user | Console | Override console cycle buffer size (KB) — Run consoles drop their oldest lines beyond this size. Applies to runs started afterwards. |
 

@@ -110,6 +110,7 @@ Page id `editor.general`.
 | `editor.highlightCurrentLine` | bool | `true` | user | Appearance | Highlight caret row |
 | `editor.stripTrailingSpaces` | enum: `none`, `modified`, `all` | `modified` | user | On Save | Remove trailing spaces on |
 | `editor.ensureNewlineAtEof` | bool | `true` | user | On Save | Ensure every saved file ends with a line break |
+| `editor.clipboard.maxContents` | int (1–100) | `20` | user | Limits | Maximum number of contents to keep in clipboard |
 | `run.console.softWrap` | bool | `false` | user | Console | Use soft wraps in console |
 | `run.console.cycleBufferKb` | int (100–100000) | `1024` | user | Console | Override console cycle buffer size (KB) — Run consoles drop their oldest lines beyond this size. Applies to runs started afterwards. |
 

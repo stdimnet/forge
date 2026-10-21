@@ -376,8 +376,67 @@ server's document formatting. Lua files use StyLua when it is installed (see
 | Copy Absolute Path | `Ctrl+Shift+C` | `Cmd+Shift+C` |
 | Copy Reference (`path:line`) | `Ctrl+Alt+Shift+C` | `Cmd+Alt+Shift+C` |
 
-Without a selection, **Copy** and **Cut** take the whole line, as in PHPStorm. `Alt`+drag
-makes a rectangular (column) selection.
+Without a selection, **Copy** and **Cut** take the whole line, as in PHPStorm.
+
+## Multiple carets and column selection
+
+![Clone Caret Below on the imports of User.php](../../screenshots/clone-carets.png)
+
+Everything you type, delete, copy or paste applies at every caret. The status bar shows
+`3 carets` instead of the caret position while there are several; `Escape` returns to one caret.
+
+| Action | Windows/Linux | macOS |
+| --- | --- | --- |
+| Clone Caret Above / Below | `Ctrl` twice, hold, then `Up` / `Down` | `Alt` twice, hold, then `Up` / `Down` |
+| Add or remove a caret | `Alt+Shift`+click | `Alt+Shift`+click |
+| Add Carets to Ends of Selected Lines | `Alt+Shift+G` | `Alt+Shift+G` |
+| Add Selection for Next Occurrence | `Alt+J` | `Ctrl+G` |
+| Unselect Occurrence | `Alt+Shift+J` | `Ctrl+Shift+G` |
+| Select All Occurrences | `Ctrl+Alt+Shift+J` | `Ctrl+Cmd+G` |
+| Rectangular selection | `Alt`+drag or middle-button drag | `Alt`+drag or middle-button drag |
+| Column Selection Mode | `Alt+Shift+Insert` | `Cmd+Shift+8` |
+
+- **Clone Caret Above / Below** adds a caret on the line above or below every caret, in the same
+  column (short lines get the caret at their end, the column is kept for longer lines further
+  on). Keep `Ctrl` down and press the arrow again for more carets; the other arrow takes the
+  last clones back. The actions are also in Settings | Keymap | Editor Actions, where you can
+  give them ordinary shortcuts.
+- **Alt+Shift+click** adds a caret, or removes the caret you click on; `Alt+Shift`+drag adds a
+  selection.
+- **Add Selection for Next Occurrence** selects the word at the caret first, then adds the next
+  occurrence as another selection. **Select All Occurrences** works without a selection too.
+- **Column Selection Mode** (Edit | Column Selection Mode, also in the editor context menu) makes
+  `Shift`+arrow keys and mouse drags select rectangles, one selection per line, until you turn it
+  off again. It is per editor; the status bar shows **Column** while it is on (click it to turn
+  the mode off). In this mode `Alt`+drag makes an ordinary selection.
+- A middle-button **click** still goes to the declaration; only a drag selects a rectangle.
+
+![Column Selection Mode with a rectangle over the @property tags](../../screenshots/column-selection-mode.png)
+
+### Copy and paste with multiple carets
+
+Copying with several carets remembers the text of each caret. Pasting with the same number of
+carets puts one part at each caret, like PHPStorm, even when the parts span several lines; with
+another number of carets the whole text is pasted at every caret. Text with as many lines as
+there are carets is spread one line per caret.
+
+## Paste from History
+
+![Paste from History](../../screenshots/paste-from-history.png)
+
+**Edit | Paste Special | Paste from History…** (`Ctrl+Shift+V`, macOS `Cmd+Shift+V`) lists the
+texts copied or cut in Forge during this session, newest first, with a preview of the selected
+entry. Type to filter the list, `Enter` (or a click) pastes, `Delete` removes the entry, `Escape`
+closes the popup. The pasted entry moves to the top and becomes the clipboard content again. An
+entry copied with several carets shows the number of carets and pastes one part per caret.
+
+The history lives in memory until Forge closes; it is never written to disk. Its size is
+**Maximum number of contents to keep in clipboard** in Settings | Editor | General | Limits
+(default 20). Paste from History also works in text fields such as the commit message.
+
+**Paste as Plain Text** (`Ctrl+Alt+Shift+V`) pastes the clipboard text unchanged. Forge does not
+reformat pasted code or add imports on paste, so it behaves like **Paste**, including the
+one-part-per-caret rule.
 
 ## Folding
 
