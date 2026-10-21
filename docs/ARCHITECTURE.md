@@ -316,7 +316,8 @@ app/ui/            SolidJS UI
   `Response { id, result }` (answers in any order; the result is the MessagePack encoding of
   the call's reply type; protocol 2 added `ReadOptional`, `ProcessCloseStdin`,
   `FindExecutable`, `Framework` and `LangServers`; protocol 3 added `FindInFiles` and the PHP
-  navigation calls `Usages`, `Navigate`, `Definition`, `LineMarkers` and `Intentions`), `Event` (`FsChanged`, `Pty`, `Run`,
+  navigation calls `Usages`, `Navigate`, `Definition`, `LineMarkers` and `Intentions`; protocol 4
+  added `FindTodos`), `Event` (`FsChanged`, `Pty`, `Run`,
   `PhpIndexProgress`), `Data` /
   `Close { channel }` (language server stdio, terminal and process input; channel ids are chosen
   by the client). The connection starts with `Call::Hello`. `forge_backend::rpc::RpcClient`
