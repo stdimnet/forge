@@ -79,6 +79,10 @@ impl FoundText {
         }
     }
 
+    pub fn file_count(&self) -> usize {
+        self.files.len()
+    }
+
     pub fn row_count(&self) -> usize {
         self.files.iter().map(|f| f.rows.len()).sum()
     }
