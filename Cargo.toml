@@ -17,6 +17,7 @@ forge-find = { path = "crates/forge-find" }
 forge-search = { path = "crates/forge-search" }
 forge-search-core = { path = "crates/forge-search-core" }
 forge-bookmarks = { path = "crates/forge-bookmarks" }
+forge-text = { path = "crates/forge-text" }
 forge-codeintel = { path = "crates/forge-codeintel" }
 forge-filetypes = { path = "crates/forge-filetypes" }
 forge-plugin-api = { path = "crates/forge-plugin-api" }

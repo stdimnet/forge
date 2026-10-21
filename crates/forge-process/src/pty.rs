@@ -30,6 +30,9 @@ pub struct PtyOptions {
     pub version: String,
     pub cols: u16,
     pub rows: u16,
+    /// Shell integration (see [`crate::integration`]): its scripts are written to this
+    /// folder. Only for shells started with their default arguments.
+    pub integration_dir: Option<PathBuf>,
 }
 
 /// Something that happened in a terminal session.
@@ -73,7 +76,29 @@ impl PtySession {
             .filter(|s| !s.trim().is_empty())
             .unwrap_or_else(default_shell);
         let mut cmd = CommandBuilder::new(&shell);
-        cmd.args(opts.args.unwrap_or_else(|| shell_args(&shell)));
+        let mut extra_env = Vec::new();
+        match opts.args {
+            Some(args) => cmd.args(args),
+            None => {
+                let defaults = shell_args(&shell);
+                let integration = opts.integration_dir.as_deref().and_then(|dir| {
+                    let user_zdotdir = std::env::var_os("ZDOTDIR")
+                        .or_else(|| std::env::var_os("HOME"))
+                        .map(PathBuf::from);
+                    crate::integration::prepare(&shell, &defaults, dir, user_zdotdir)
+                        .map_err(|e| tracing::warn!("shell integration unavailable: {e}"))
+                        .ok()
+                        .flatten()
+                });
+                match integration {
+                    Some(i) => {
+                        cmd.args(i.args);
+                        extra_env = i.env;
+                    }
+                    None => cmd.args(defaults),
+                }
+            }
+        }
         cmd.cwd(&opts.cwd);
         for var in FOREIGN_TERMINAL_VARS {
             cmd.env_remove(var);
@@ -88,7 +113,7 @@ impl PtySession {
         if let Some(lang) = utf8_locale_fallback(|k| std::env::var(k).ok()) {
             cmd.env("LANG", lang);
         }
-        for (k, v) in &opts.env {
+        for (k, v) in extra_env.iter().chain(&opts.env) {
             cmd.env(k, v);
         }
         let mut child = pair
@@ -242,6 +267,7 @@ mod tests {
                 version: "9.9.9".into(),
                 cols: 80,
                 rows: 24,
+                integration_dir: None,
             },
             sink,
         )
@@ -301,5 +327,43 @@ mod tests {
         s.kill().unwrap();
         let (_, exit) = collect_until(&rx, |_| false);
         assert!(exit.is_some(), "no exit after kill");
+    }
+
+    #[test]
+    fn bash_integration_reports_directory_and_command_marks() {
+        let Some(bash) = crate::shell::find_in_path("bash") else {
+            return;
+        };
+        let (tx, rx) = mpsc::channel();
+        let tx = Mutex::new(tx);
+        let sink: PtySink = Arc::new(move |e| {
+            let _ = tx.lock().unwrap().send(e);
+        });
+        let home = tempfile::tempdir().unwrap();
+        let scripts = tempfile::tempdir().unwrap();
+        let s = PtySession::spawn(
+            PtyOptions {
+                shell: Some(bash.display().to_string()),
+                args: None,
+                cwd: home.path().to_path_buf(),
+                // A clean home: no user startup files.
+                env: vec![("HOME".into(), home.path().display().to_string())],
+                version: String::new(),
+                cols: 80,
+                rows: 24,
+                integration_dir: Some(scripts.path().to_path_buf()),
+            },
+            sink,
+        )
+        .expect("spawn");
+        s.write(b"false\n").unwrap();
+        let (text, _) = collect_until(&rx, |t| t.contains("\x1b]133;D;1\x07"));
+        assert!(text.contains("\x1b]7;file://"), "{text:?}");
+        assert!(
+            text.contains("\x1b]133;A\x07") && text.contains("\x1b]133;C\x07"),
+            "{text:?}"
+        );
+        assert!(text.contains("\x1b]133;D;1\x07"), "{text:?}");
+        s.kill().unwrap();
     }
 }

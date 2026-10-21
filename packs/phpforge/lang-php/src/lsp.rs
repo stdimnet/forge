@@ -48,6 +48,14 @@ pub struct PhpLspSettings {
     pub phpactor_path: Option<PathBuf>,
     /// Where Intelephense stores its cache; defaults to `<cache dir>/forge/intelephense`.
     pub storage_path: Option<PathBuf>,
+    /// Brace placement of Reformat Code (`php.codeStyle.braces`).
+    pub braces: crate::style::Braces,
+    /// composer.json, relative to the project root (`php.composer.json`).
+    pub composer_json: String,
+    /// The language level follows `require.php` of composer.json.
+    pub sync_with_composer: bool,
+    /// Packages in `vendor/` are indexed and resolved as libraries.
+    pub vendor_libraries: bool,
 }
 
 impl Default for PhpLspSettings {
@@ -63,6 +71,24 @@ impl Default for PhpLspSettings {
             intelephense_node: None,
             phpactor_path: None,
             storage_path: None,
+            braces: crate::style::Braces::Psr12,
+            composer_json: "composer.json".into(),
+            sync_with_composer: true,
+            vendor_libraries: true,
+        }
+    }
+}
+
+impl PhpLspSettings {
+    /// The language level to use: from composer.json when synchronized and it has a
+    /// `require.php` constraint, else `php_version`.
+    pub fn effective_level(&self, composer_json: Option<&str>) -> (String, bool) {
+        match composer_json
+            .filter(|_| self.sync_with_composer)
+            .and_then(crate::composer::language_level)
+        {
+            Some(level) => (level, true),
+            None => (self.php_version.clone(), false),
         }
     }
 }
@@ -73,6 +99,10 @@ pub const LSP_SETTING_KEYS: &[&str] = &[
     "php.includePaths",
     "php.lsp.server",
     "php.lsp.maxFileSize",
+    crate::style::BRACES_KEY,
+    crate::composer::JSON_KEY,
+    crate::composer::SYNC_KEY,
+    crate::composer::LIBRARIES_KEY,
 ];
 
 /// Whether a change of `key` requires the PHP language server to be reconfigured.
@@ -93,6 +123,24 @@ impl PhpLspSettings {
         }
         if let Some(server) = get("php.lsp.server").and_then(|v| serde_json::from_value(v).ok()) {
             s.server = server;
+        }
+        if let Some(braces) =
+            get(crate::style::BRACES_KEY).and_then(|v| serde_json::from_value(v).ok())
+        {
+            s.braces = braces;
+        }
+        if let Some(path) =
+            get(crate::composer::JSON_KEY).and_then(|v| v.as_str().map(str::trim).map(String::from))
+        {
+            if !path.is_empty() {
+                s.composer_json = path;
+            }
+        }
+        if let Some(sync) = get(crate::composer::SYNC_KEY).and_then(|v| v.as_bool()) {
+            s.sync_with_composer = sync;
+        }
+        if let Some(libraries) = get(crate::composer::LIBRARIES_KEY).and_then(|v| v.as_bool()) {
+            s.vendor_libraries = libraries;
         }
         if let Some(kb) = get("php.lsp.maxFileSize").and_then(|v| v.as_u64()) {
             s.max_file_size = kb.saturating_mul(1000);
@@ -371,7 +419,7 @@ pub fn intelephense_config(
     {
         init["licenceKey"] = json!(key.trim());
     }
-    let intelephense = json!({
+    let mut intelephense = json!({
         "environment": {
             "phpVersion": format!("{}.0", settings.php_version.trim()),
             "includePaths": settings.include_paths,
@@ -387,10 +435,16 @@ pub fn intelephense_config(
         },
         "stubs": stubs,
         "completion": { "insertUseDeclaration": true, "fullyQualifyGlobalConstantsAndFunctions": false },
-        "format": { "enable": true },
+        "format": { "enable": true, "braces": settings.braces.intelephense() },
         "telemetry": { "enabled": false },
     });
     init["globalStoragePath"] = json!(storage.to_string_lossy());
+    // "Add packages as libraries" off: Intelephense ignores vendor/ like Forge's index.
+    if !settings.vendor_libraries {
+        if let Some(exclude) = intelephense["files"]["exclude"].as_array_mut() {
+            exclude.push(json!("**/vendor/**"));
+        }
+    }
     // A managed install: `node <dir>/node_modules/intelephense/lib/intelephense.js --stdio`.
     let node = settings
         .intelephense_node
@@ -424,6 +478,10 @@ pub fn phpactor_config(command: PathBuf, settings: &PhpLspSettings) -> LspServer
             "php.version": settings.php_version,
             "language_server_phpstan.enabled": false,
             "language_server_psalm.enabled": false,
+            // Inlay hints, filtered by Forge's Inlay Hints settings.
+            "language_server_worse_reflection.inlay_hints.enable": true,
+            "language_server_worse_reflection.inlay_hints.params": true,
+            "language_server_worse_reflection.inlay_hints.types": true,
             "indexer.exclude_patterns": ["/vendor/**/Tests/**/*", "/vendor/**/tests/**/*", "/node_modules/**/*"],
         }),
         settings: json!({}),
@@ -462,8 +520,10 @@ pub fn resolve_for_workspace(settings: &PhpLspSettings, root: &Path) -> Option<L
     let path_env = std::env::var("PATH").ok();
     let dirs = search_dirs(path_env.as_deref(), dirs::home_dir().as_deref());
     let detected = detect(settings, &dirs, &FsProbe);
-    let composer = std::fs::read_to_string(root.join("composer.json")).ok();
-    server_config(settings, &detected, composer.as_deref())
+    let composer = std::fs::read_to_string(root.join(&settings.composer_json)).ok();
+    let mut settings = settings.clone();
+    settings.php_version = settings.effective_level(composer.as_deref()).0;
+    server_config(&settings, &detected, composer.as_deref())
 }
 
 #[cfg(test)]
@@ -582,6 +642,33 @@ mod tests {
             assert!(stubs.contains(&s), "missing {s}");
         }
         assert!(!stubs.contains(&"symfony"));
+        assert_eq!(ip["format"]["braces"], "psr12");
+        assert!(!ip["files"]["exclude"]
+            .to_string()
+            .contains("\"**/vendor/**\""));
+        // "Add packages as libraries" off and K&R braces.
+        let no_vendor = PhpLspSettings {
+            vendor_libraries: false,
+            braces: crate::style::Braces::KAndR,
+            ..settings.clone()
+        };
+        let ip = &server_config(&no_vendor, &detected, None).unwrap().settings["intelephense"];
+        assert!(ip["files"]["exclude"]
+            .to_string()
+            .contains("\"**/vendor/**\""));
+        assert_eq!(ip["format"]["braces"], "k&r");
+        // The language level follows composer.json unless synchronization is off.
+        let json = r#"{"require": {"php": "^8.1"}}"#;
+        assert_eq!(
+            settings.effective_level(Some(json)),
+            ("8.1".to_string(), true)
+        );
+        assert_eq!(settings.effective_level(None), ("8.2".to_string(), false));
+        let manual = PhpLspSettings {
+            sync_with_composer: false,
+            ..settings.clone()
+        };
+        assert_eq!(manual.effective_level(Some(json)).0, "8.2");
     }
 
     #[test]

@@ -757,6 +757,26 @@ impl LspManager {
         }
     }
 
+    /// Inlay hints of every server of `path` that announces them, for `range`. Failing
+    /// servers are skipped (hints are decoration, never an error).
+    pub async fn inlay_hints(&self, path: &Path, range: Range) -> Vec<lsp_types::InlayHint> {
+        let clients: Vec<LspClient> = self
+            .clients_for(path)
+            .await
+            .into_iter()
+            .filter(|c| c.supports_inlay_hints())
+            .collect();
+        let results = join_all(clients.iter().map(|c| c.inlay_hints(path, range))).await;
+        let mut out = Vec::new();
+        for (client, r) in clients.iter().zip(results) {
+            match r {
+                Ok(hints) => out.extend(hints.unwrap_or_default()),
+                Err(e) => tracing::debug!("{} inlay hints failed: {e}", client.id()),
+            }
+        }
+        out
+    }
+
     async fn server_client(&self, path: &Path, server: &str) -> Result<LspClient> {
         self.clients_for(path)
             .await

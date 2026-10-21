@@ -271,8 +271,8 @@ Methods.
 | Default stubs path (PHP Runtime), see [PHP's own classes and functions](#phps-own-classes-and-functions) | `php.stubs.path` | empty (managed download) |
 
 The language level and the interpreter can be stored per project ("For current project" in
-the page header). The status bar shows the language level ("PHP 8.3"); click it to open this
-page. The page also shows the [Intelephense licence](language-servers.md#intelephense-licence-key-premium).
+the page header). The status bar shows the language level in effect ("PHP 8.3"; its tooltip
+says when it comes from composer.json); click it to open this page. The page also shows the [Intelephense licence](language-servers.md#intelephense-licence-key-premium).
 
 Sub-pages: **Composer**, **Debug**, **Servers** (see [Xdebug debugging](debugging.md)),
 **Laravel**, **Symfony**, **Doctrine**.
@@ -281,23 +281,32 @@ Sub-pages: **Composer**, **Debug**, **Servers** (see [Xdebug debugging](debuggin
 
 Settings | Languages & Frameworks | PHP | Composer:
 
-| Option | Setting | Default | Status |
+| Option | Setting | Default | What it does |
 | --- | --- | --- | --- |
-| Path to composer | `php.composer.executable` | `composer` | used by Composer run configurations |
-| Path to composer.json | `php.composer.json` | `composer.json` | not applied yet |
-| Synchronize IDE settings with composer.json | `php.composer.syncWithComposerJson` | on | not applied yet |
-| Add packages as libraries | `php.composer.addPackagesAsLibraries` | on | not applied yet |
-| Check for package updates on project open | `php.composer.checkUpdates` | off | not applied yet |
+| Path to composer | `php.composer.executable` | `composer` | used by Composer run configurations and the update check |
+| Path to composer.json | `php.composer.json` | `composer.json` | relative to the project root |
+| Synchronize IDE settings with composer.json | `php.composer.syncWithComposerJson` | on | the language level follows `require.php` (`^8.2` → 8.2, `^7.3 \|\| ^8.0` → 7.4); without a constraint the language level setting applies |
+| Add packages as libraries | `php.composer.addPackagesAsLibraries` | on | classes in `vendor/` are resolved for navigation and completion and indexed by Intelephense; off leaves `vendor/` out |
+| Check for package updates on project open | `php.composer.checkUpdates` | off | runs `composer outdated --direct` on the project's machine and lists the updates in a balloon |
 
 Run Composer scripts with a **Composer Script** run configuration, see
 [Run/Debug configurations](run-debug.md).
 
 ### Code style
 
-Settings | Editor | Code Style | PHP lists tabs and indents, brace placement and blank lines.
+![PHP code style](../../screenshots/settings-code-style-php.png)
 
-> **Note:** these options are not applied yet. Reformat Code uses the language server's
-> formatter with its own defaults.
+Settings | Editor | Code Style | PHP:
+
+- **Tabs and Indents** (tab character, tab size, indent, continuation indent) apply while you
+  type, to Reformat Code and to the status bar's indent, see [Editor](editor.md#code-style).
+- **Braces placement** (`php.codeStyle.braces`): PSR-12 (next line for classes and functions,
+  end of line otherwise), next line everywhere or end of line everywhere. Reformat Code passes
+  it to Intelephense's formatter; the [Generate](#generate) actions write methods with it.
+- **Blank Lines**: after Reformat Code (`Ctrl+Alt+L`) Forge cuts runs of blank lines to
+  **Keep maximum blank lines in code** and sets the blank lines **After namespace**, **After
+  imports** and **Around method** (at least). Strings, heredocs and comments are never
+  changed. Generated methods are separated by "Around method" blank lines.
 
 ## Running and testing PHP
 

@@ -168,6 +168,11 @@ async fn files_search_git_and_detection() {
             .unwrap();
         assert_eq!(b.read_file("app/Http/Kernel.php").unwrap(), "<?php\n// ü\n");
         assert!(b.read_file("../outside").is_err());
+        // Files in other encodings travel as bytes (Windows-1252 "café").
+        b.write_bytes("legacy.txt", b"caf\xE9\r\n").unwrap();
+        assert_eq!(b.read_bytes("legacy.txt").unwrap(), b"caf\xE9\r\n");
+        assert!(b.read_bytes("../outside").is_err());
+        b.delete("legacy.txt").unwrap();
 
         // Project view file operations run on the agent's machine.
         b.create_dir("app/Jobs").unwrap();
@@ -331,6 +336,7 @@ async fn terminals_processes_and_watching() {
                     env: vec![("FORGE_TEST".into(), "remote-shell".into())],
                     cols: 80,
                     rows: 24,
+                    shell_integration: false,
                 },
                 Arc::new(move |e| match e {
                     PtyEvent::Output { data } => out.lock().unwrap().push_str(&data),

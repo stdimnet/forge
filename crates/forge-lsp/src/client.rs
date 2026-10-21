@@ -960,6 +960,34 @@ impl LspClient {
         .await
     }
 
+    /// `textDocument/inlayHint` for `range`.
+    pub async fn inlay_hints(
+        &self,
+        path: &Path,
+        range: Range,
+    ) -> Result<Option<Vec<lsp_types::InlayHint>>> {
+        self.request::<req::InlayHintRequest>(lsp_types::InlayHintParams {
+            text_document: TextDocumentIdentifier {
+                uri: path_to_uri(path)?,
+            },
+            range,
+            work_done_progress_params: Default::default(),
+        })
+        .await
+    }
+
+    /// Whether the server announced `inlayHintProvider`.
+    pub fn supports_inlay_hints(&self) -> bool {
+        match self
+            .capabilities()
+            .and_then(|c| c.inlay_hint_provider.as_ref())
+        {
+            Some(OneOf::Left(enabled)) => *enabled,
+            Some(OneOf::Right(_)) => true,
+            None => false,
+        }
+    }
+
     pub async fn code_action_resolve(&self, action: CodeAction) -> Result<CodeAction> {
         self.request::<req::CodeActionResolveRequest>(action).await
     }
@@ -1048,6 +1076,7 @@ fn client_capabilities() -> Value {
             "rename": { "prepareSupport": true },
             "documentSymbol": { "hierarchicalDocumentSymbolSupport": true },
             "formatting": {},
+            "inlayHint": { "dynamicRegistration": false },
             "codeAction": {
                 "codeActionLiteralSupport": {
                     "codeActionKind": { "valueSet": ["", "quickfix", "refactor", "refactor.extract", "refactor.inline", "refactor.rewrite", "source", "source.organizeImports"] }

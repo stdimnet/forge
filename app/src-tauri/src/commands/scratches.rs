@@ -288,6 +288,7 @@ pub async fn scratches_http_run(
             test_runner: false,
             root: root_text.clone(),
             cwd: root_text,
+            cycle_buffer_kb: None,
         });
         emit(
             &app,

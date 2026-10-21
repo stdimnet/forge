@@ -314,15 +314,102 @@ When a file changes on disk (a checkout, a pull, a rollback, an AI agent's edit,
 another editor), the open tab is reloaded with the new content. The reload is not an undo
 step: `Ctrl+Z` does not go back across it.
 
-Line endings are preserved: a file with Windows line endings (CRLF) stays CRLF when you save
-it.
+Line endings and encodings are preserved: a file with Windows line endings (CRLF) stays CRLF
+when you save it, a Windows-1252 file stays Windows-1252. Forge detects both when it opens a
+file (UTF-8 with or without BOM, UTF-16 LE/BE, ISO-8859-1, Windows-1252). Change them in the
+status bar, see [Line separator, encoding and indent](#line-separator-encoding-and-indent).
+
+## Saving
+
+Files are saved with `Ctrl+S` (Save All) and automatically (Settings | Appearance & Behavior |
+System Settings | Autosave): when Forge loses the focus (`system.autosave.onFrameDeactivation`,
+on by default) and, if enabled, after `system.autosave.idleSeconds` seconds without typing or
+clicking (`system.autosave.onIdle`).
+
+Saving applies Settings | Editor | General | On Save, like PHPStorm:
+
+| Option | Setting | Default |
+| --- | --- | --- |
+| Remove trailing spaces on: None / Modified lines / All lines | `editor.stripTrailingSpaces` | Modified lines |
+| Ensure every saved file ends with a line break | `editor.ensureNewlineAtEof` | on |
+
+"Modified lines" are the lines changed since the file was opened or last saved. Lines with a
+caret keep their spaces, so saving never moves what you are typing. An `.editorconfig` with
+`trim_trailing_whitespace` or `insert_final_newline` overrides both options for its files.
+
+When Forge gets the focus back it re-reads the open files that changed on disk and refreshes
+the Project view and Git status (`system.syncExternalChanges`).
+
+## Code style
+
+Settings | Editor | Code Style sets what new code looks like:
+
+- **Line separator** for new files (`editor.codeStyle.lineSeparator`: LF, CRLF or the
+  system's); existing files keep theirs.
+- **Hard wrap at** (`editor.codeStyle.hardWrapAt`, 120) draws the right margin, **Visual
+  guides** (`editor.codeStyle.visualGuides`, e.g. `80, 120`) more vertical lines.
+- **Enable EditorConfig support** (`editor.codeStyle.useEditorConfig`): `.editorconfig` files
+  from the project root down to the file set `indent_style`, `indent_size`, `tab_width`,
+  `end_of_line` (for new files), `max_line_length`, `trim_trailing_whitespace` and
+  `insert_final_newline`; they win over the settings. A `charset` the file does not have is
+  named in the encoding tooltip.
+- **Detect and use existing file indents for editing**
+  (`editor.codeStyle.detectIndents`): a file indented differently from the code style (2
+  spaces in a 4-space project, tabs) keeps its indent while you edit it.
+
+The language pages (Code Style | PHP) set **Use tab character**, **Tab size**, **Indent** and
+**Continuation indent** (method chains continue one continuation indent deeper). Enter, `Tab`
+and Reformat Code use the result; PHP's brace placement and blank lines are described in
+[PHP](php.md#code-style).
+
+## Line separator, encoding and indent
+
+![Line separator popup](../../screenshots/status-line-separator.png)
+
+The status bar shows the active file's line separator, encoding and indent. Click them:
+
+- **Line separator** (`LF`, `CRLF`, `CR`): pick another one; the file is converted and saved
+  right away.
+- **Encoding** (`UTF-8`, `UTF-8 BOM`, `UTF-16LE`, `ISO-8859-1`, `windows-1252`, …): pick
+  another one and choose **Reload** (read the file again in that encoding, for a file that
+  was detected wrongly; only without unsaved changes) or **Convert** (save the text in the
+  new encoding). **Add BOM** / **Remove BOM** for UTF-8 files. Characters the encoding cannot
+  hold stop the conversion with a message.
+- **Indent** (`4 spaces`, `2 spaces*`, `Tab`): where it comes from is in the tooltip (code
+  style, EditorConfig, or detected in the file, marked with `*`). The popup opens **Configure
+  Indents for PHP…** or turns indent detection off for the project.
+
+![Encoding popup](../../screenshots/status-encoding.png)
+
+## Inlay hints
+
+![Inlay hints](../../screenshots/editor-inlay-hints.png)
+
+Language servers show parameter names at call sites (`precision: 2`) and inferred types
+(`fn ($line): float`) inside the code. Settings | Editor | Inlay Hints:
+
+| Option | Setting | Default |
+| --- | --- | --- |
+| Parameter names (literal and null arguments) | `editor.inlayHints.parameterNames` | on |
+| Inferred variable types | `editor.inlayHints.types` | off |
+| Return types of closures and functions | `editor.inlayHints.returnTypes` | on |
+| Implementations and inheritors (Code Vision) | `editor.inlayHints.implementations` | on |
+| Per language: PHP, JavaScript and TypeScript, Lua, other languages | `editor.inlayHints.languages.<id>` | on |
+
+Hints need a server that reports them: Intelephense Premium, phpactor,
+typescript-language-server / vtsls and lua-language-server (Forge turns their hints on and
+filters them by these settings). Free Intelephense shows none.
+
+**Code Vision**: above PHP classes and methods with subclasses, implementations or overrides
+Forge shows "4 inheritors", "2 implementations" or "1 override" (from the PHP index); click
+it to go there.
+
+![Code Vision](../../screenshots/editor-code-vision.png)
 
 ## Soft wraps and appearance
 
 Settings | Editor | General controls soft wrapping (`editor.softWraps` with the patterns in
 `editor.softWrapFiles`, by default `*.md; *.txt; *.rst; *.adoc`), whitespace, line numbers,
-the caret row highlight, caret blinking and smooth scrolling. Settings | Editor | Font sets the
-font, size, line height and ligatures. See the [settings reference](../reference/settings.md).
-
-> **Note:** "Remove trailing spaces on save", "Ensure line break at end of file", the
-> Code Style options and Inlay Hints are listed in Settings but not applied yet.
+the caret row highlight, caret blinking with its blink period (`editor.caret.blinkPeriod`) and
+smooth scrolling. Settings | Editor | Font sets the font, size, line height and ligatures. See
+the [settings reference](../reference/settings.md).

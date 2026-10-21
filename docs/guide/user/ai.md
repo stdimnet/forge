@@ -131,8 +131,12 @@ Files changed by the agent are reloaded in open editor tabs automatically.
 
 ### History
 
-**Chat history** lists the previous chats of this Forge session (the list is not kept after a
-restart); selecting one resumes the CLI's conversation. **New chat** starts over. The end of a turn shows duration, tokens and cost when
+![Chat history](../../screenshots/ai-chat-history.png)
+
+**Chat history** lists the chats of the open project, newest first; selecting one shows it
+again and resumes the CLI's conversation with the next message. **New chat** starts over.
+Chats are saved after every turn in Forge's data directory (`<data dir>/forge/chat-history`,
+the newest 100 per project), never in the project. The end of a turn shows duration, tokens and cost when
 the CLI reports them.
 
 ![Finished turn](../../screenshots/ai-chat-finished.png)

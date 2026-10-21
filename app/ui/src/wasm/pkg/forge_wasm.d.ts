@@ -61,6 +61,11 @@ export function codeintel_context_actions(request_json: string): string;
 export function codeintel_group_usages(request_json: string): string;
 
 /**
+ * `{ hints, text, languageId?, settings }` → the hints to draw (like `lsp_inlay_hints`).
+ */
+export function codeintel_inlay_hints(request_json: string): string;
+
+/**
  * `ContextAction[]` → the same, in PHPStorm's order without duplicates.
  */
 export function codeintel_order_actions(request_json: string): string;
@@ -493,6 +498,31 @@ export function terminal_link_target(request_json: string): string;
 export function terminal_parse_osc(request_json: string): string;
 
 /**
+ * `FormatRequest` (settings and `.editorconfig` files included) → `FileFormat`.
+ */
+export function text_file_format(request_json: string): string;
+
+/**
+ * `{ message, rules }` → `MessageProblem[]`.
+ */
+export function text_inspect_commit_message(request_json: string): string;
+
+/**
+ * `SaveRequest` → `SaveResult`.
+ */
+export function text_prepare_save(request_json: string): string;
+
+/**
+ * `{ bytes, encoding? }` → `TextFile`.
+ */
+export function text_read(request_json: string): string;
+
+/**
+ * `{ text, eol?, encoding?, bom? }` → `{ bytes }` or `{ error }`.
+ */
+export function text_write(request_json: string): string;
+
+/**
  * `{ request, files }` → `TodoResult`.
  */
 export function todo_scan(request_json: string): string;
@@ -543,6 +573,7 @@ export interface InitOutput {
     readonly codeintel_apply_edit: (a: number, b: number, c: number) => void;
     readonly codeintel_context_actions: (a: number, b: number, c: number) => void;
     readonly codeintel_group_usages: (a: number, b: number, c: number) => void;
+    readonly codeintel_inlay_hints: (a: number, b: number, c: number) => void;
     readonly codeintel_order_actions: (a: number, b: number, c: number) => void;
     readonly codeintel_plan_edit: (a: number, b: number, c: number) => void;
     readonly codeintel_preview_edit: (a: number, b: number, c: number) => void;
@@ -627,6 +658,11 @@ export interface InitOutput {
     readonly sql_statement_at: (a: number, b: number, c: number) => void;
     readonly terminal_link_target: (a: number, b: number, c: number) => void;
     readonly terminal_parse_osc: (a: number, b: number, c: number) => void;
+    readonly text_file_format: (a: number, b: number, c: number) => void;
+    readonly text_inspect_commit_message: (a: number, b: number, c: number) => void;
+    readonly text_prepare_save: (a: number, b: number, c: number) => void;
+    readonly text_read: (a: number, b: number, c: number) => void;
+    readonly text_write: (a: number, b: number, c: number) => void;
     readonly todo_scan: (a: number, b: number, c: number) => void;
     readonly web_components: (a: number, b: number, c: number) => void;
     readonly web_goto: (a: number, b: number, c: number) => void;

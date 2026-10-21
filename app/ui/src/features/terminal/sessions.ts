@@ -8,7 +8,7 @@
  * directories and OSC 133 command boundaries (see `osc.ts`).
  */
 import { createEffect, createRoot, untrack } from "solid-js";
-import { Terminal, type IDisposable, type ITheme } from "@xterm/xterm";
+import { Terminal, type IDisposable, type IMarker, type ITheme } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { WebLinksAddon } from "@xterm/addon-web-links";
 import { WebglAddon } from "@xterm/addon-webgl";
@@ -267,6 +267,28 @@ function handleOsc(id: string, code: number, data: string): void {
 }
 
 /** Wire OSC handlers, title, bell and keys of a new session. */
+/**
+ * Shell integration (Settings | Tools | Terminal; the scripts come from Rust,
+ * `forge_process::integration`): finished commands (OSC 133 `C` … `D;<code>`) get a green or
+ * red mark in the overview ruler.
+ */
+function commandMarks(term: Terminal): IDisposable {
+  let command: IMarker | undefined;
+  return term.parser.registerOscHandler(133, (data) => {
+    const [kind, code] = data.split(";");
+    if (kind === "C") command = term.registerMarker(0);
+    else if (kind === "D" && command) {
+      const failed = code !== undefined && code !== "0";
+      term.registerDecoration({
+        marker: command,
+        overviewRulerOptions: { color: cssVar(failed ? "--danger" : "--success", failed ? "#e5534b" : "#57ab5a"), position: "left" },
+      });
+      command = undefined;
+    }
+    return false;
+  });
+}
+
 function registerHandlers(id: string, s: Session): void {
   const { term } = s;
   const parser = term.parser;
@@ -283,6 +305,7 @@ function registerHandlers(id: string, s: Session): void {
       handleOsc(id, 133, data);
       return false;
     }),
+    commandMarks(term),
     term.onTitleChange((title) => {
       if (currentTab(id)?.appTitle !== title) updateTab(id, { appTitle: title });
     }),
@@ -334,6 +357,8 @@ export function attachSession(id: string, host: HTMLElement, cwd?: string, comma
     // Box drawing and block elements drawn by the renderer line up without gaps.
     customGlyphs: true,
     rescaleOverlappingGlyphs: true,
+    // Command marks of shell integration (green: succeeded, red: failed).
+    overviewRuler: { width: 8 },
     linkHandler: {
       allowNonHttpProtocols: true,
       activate: (e, uri) => {

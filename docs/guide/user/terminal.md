@@ -108,9 +108,9 @@ hang-up signal is killed after 1.5 seconds.
 | --- | --- | --- | --- |
 | Shell path | `terminal.shellPath` | system default | user |
 | Default tab name | `terminal.tabName` | `Local` | user |
-| Audible bell | `terminal.audibleBell` | off | user |
+| Audible bell (a short tone when a program rings the bell) | `terminal.audibleBell` | off | user |
 | Copy to clipboard on selection | `terminal.copyOnSelection` | off | user |
-| Shell integration | `terminal.shellIntegration` | on | not applied yet |
+| Shell integration | `terminal.shellIntegration` | on | user |
 | Show application title | `terminal.showApplicationTitle` | on | user |
 | Show progress in the status bar | `terminal.showProgressInStatusBar` | on | user |
 | Use Option as Meta key (macOS) | `terminal.optionAsMeta` | on | user |
@@ -125,6 +125,16 @@ hang-up signal is killed after 1.5 seconds.
 | Scrollback buffer | `terminal.scrollback` | 10000 lines | user |
 
 ![Terminal settings](../../screenshots/terminal-settings.png)
+
+## Shell integration
+
+With **Shell integration** on, bash and zsh tell the terminal their working directory (shown
+in the tab's tooltip) and where each command starts and ends: finished commands get a mark in
+the scrollbar, green when they succeeded and red when they failed. Your own startup files
+still run: bash starts with an init file that sources `~/.bashrc` (or the profile files for a
+login shell), zsh with a `ZDOTDIR` whose files source yours. The scripts live in
+`<cache dir>/forge/shell-integration` of the machine the shell runs on (also on remote hosts).
+fish, sh and PowerShell start without it; it applies to new sessions.
 
 ## Other terminals
 

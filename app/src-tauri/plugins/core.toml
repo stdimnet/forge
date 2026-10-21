@@ -255,20 +255,6 @@ section = "Project"
 order = 1
 
 [[contributions.settings]]
-key = "system.openProjectIn"
-title = "Open project in"
-type = "enum"
-options = [
-  { value = "new", label = "New window" },
-  { value = "same", label = "Current window" },
-  { value = "ask", label = "Ask" },
-]
-default = "ask"
-group = "system"
-section = "Project"
-order = 2
-
-[[contributions.settings]]
 key = "system.defaultProjectDirectory"
 title = "Default project directory"
 description = "New projects are created here unless you pick another location."
@@ -584,6 +570,7 @@ order = 3
 [[contributions.settings]]
 key = "editor.codeStyle.lineSeparator"
 title = "Line separator"
+description = "For new files. Existing files keep theirs; change it in the status bar."
 type = "enum"
 options = [
   { value = "lf", label = "Unix and macOS (\\n)" },
@@ -598,6 +585,7 @@ order = 0
 [[contributions.settings]]
 key = "editor.codeStyle.hardWrapAt"
 title = "Hard wrap at (columns)"
+description = "The right margin, drawn as a line in the editor. EditorConfig's max_line_length overrides it."
 type = "int"
 min = 40
 max = 400
@@ -619,13 +607,26 @@ order = 2
 [[contributions.settings]]
 key = "editor.codeStyle.useEditorConfig"
 title = "Enable EditorConfig support"
+description = "Indents, line separators, charset and the On Save options of .editorconfig files override these settings."
 type = "bool"
 default = true
 group = "editor.code-style"
 project = true
 order = 3
 
+[[contributions.settings]]
+key = "editor.codeStyle.detectIndents"
+title = "Detect and use existing file indents for editing"
+description = "Files indented differently from the code style keep their indent; the status bar marks it with *."
+type = "bool"
+default = true
+group = "editor.code-style"
+project = true
+order = 4
+
 # ---- Editor > Inlay Hints ------------------------------------------------------------
+# Hints come from the language servers (`textDocument/inlayHint`); Forge groups and filters
+# them (`forge_codeintel::inlay`).
 
 [[contributions.settings]]
 key = "editor.inlayHints.parameterNames"
@@ -640,6 +641,7 @@ order = 0
 [[contributions.settings]]
 key = "editor.inlayHints.types"
 title = "Inferred variable types"
+description = "The type of variables and properties without a declared type."
 type = "bool"
 default = false
 group = "editor.inlay-hints"
@@ -648,7 +650,8 @@ order = 10
 
 [[contributions.settings]]
 key = "editor.inlayHints.returnTypes"
-title = "Return types of closures"
+title = "Return types of closures and functions"
+description = "The inferred return type after the parameter list when none is declared."
 type = "bool"
 default = true
 group = "editor.inlay-hints"
@@ -656,32 +659,51 @@ section = "Types"
 order = 11
 
 [[contributions.settings]]
-key = "editor.inlayHints.chainedCalls"
-title = "Types in method chains"
+key = "editor.inlayHints.languages.php"
+title = "PHP"
 type = "bool"
 default = true
 group = "editor.inlay-hints"
-section = "Types"
-order = 12
+section = "Languages"
+order = 30
 
 [[contributions.settings]]
-key = "editor.inlayHints.usages"
-title = "Usages"
-description = "Show the number of usages above classes and methods (Code Vision)."
+key = "editor.inlayHints.languages.javascript"
+title = "JavaScript and TypeScript"
+description = "Also Vue, Svelte and Astro files."
+type = "bool"
+default = true
+group = "editor.inlay-hints"
+section = "Languages"
+order = 31
+
+[[contributions.settings]]
+key = "editor.inlayHints.languages.lua"
+title = "Lua"
+type = "bool"
+default = true
+group = "editor.inlay-hints"
+section = "Languages"
+order = 32
+
+[[contributions.settings]]
+key = "editor.inlayHints.languages.other"
+title = "Other languages"
+type = "bool"
+default = true
+group = "editor.inlay-hints"
+section = "Languages"
+order = 33
+
+[[contributions.settings]]
+key = "editor.inlayHints.implementations"
+title = "Implementations and inheritors"
+description = "Show \"2 implementations\", \"3 inheritors\" and \"1 override\" above PHP classes and methods (Code Vision). Click to go there."
 type = "bool"
 default = true
 group = "editor.inlay-hints"
 section = "Code Vision"
 order = 20
-
-[[contributions.settings]]
-key = "editor.inlayHints.implementations"
-title = "Implementations and inheritors"
-type = "bool"
-default = true
-group = "editor.inlay-hints"
-section = "Code Vision"
-order = 21
 
 # ---- Tools > HTTP Client ---------------------------------------------------------------
 

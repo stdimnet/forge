@@ -7,6 +7,7 @@ use std::sync::{Arc, Mutex};
 use forge_core::{ForgeError, FsChanges, Result, Workspace};
 use phpforge_lang_php::generate::{GenerateKind, GenerateOptions, GenerateTargets, TextEdit};
 use phpforge_lang_php::hover::Hover;
+use phpforge_lang_php::index::VendorMode;
 use phpforge_lang_php::index::{SearchKind, SymbolHit};
 use phpforge_lang_php::intentions::Intention;
 use phpforge_lang_php::lsp::{self, DetectedServers, LspServerConfig, PhpLspSettings};
@@ -97,6 +98,9 @@ fn err(e: impl std::fmt::Display) -> ForgeError {
 pub struct LocalPhp {
     workspace: Workspace,
     index: Mutex<Option<ProjectIndex>>,
+    /// Vendor packages as libraries ("Add packages as libraries" of the Composer settings,
+    /// which reach the backend with [`PhpBackend::lsp_config`]).
+    vendor: Mutex<VendorMode>,
 }
 
 impl LocalPhp {
@@ -104,6 +108,7 @@ impl LocalPhp {
         Self {
             workspace,
             index: Mutex::new(None),
+            vendor: Mutex::new(VendorMode::default()),
         }
     }
 
@@ -112,7 +117,11 @@ impl LocalPhp {
     }
 
     fn fresh_index(&self) -> ProjectIndex {
-        let mut idx = ProjectIndex::new(self.root(), IndexConfig::default());
+        let config = IndexConfig {
+            vendor: *self.vendor.lock().unwrap_or_else(|e| e.into_inner()),
+            ..IndexConfig::default()
+        };
+        let mut idx = ProjectIndex::new(self.root(), config);
         idx.load_cache();
         idx
     }
@@ -262,6 +271,19 @@ impl PhpBackend for LocalPhp {
     }
 
     fn lsp_config(&self, settings: PhpLspSettings) -> Result<Option<LspServerConfig>> {
+        let mode = if settings.vendor_libraries {
+            VendorMode::Lazy
+        } else {
+            VendorMode::Skip
+        };
+        let changed = {
+            let mut vendor = self.vendor.lock().map_err(err)?;
+            std::mem::replace(&mut *vendor, mode) != mode
+        };
+        if changed {
+            // Built again with the new mode on the next use.
+            *self.index.lock().map_err(err)? = None;
+        }
         Ok(lsp::resolve_for_workspace(&settings, self.root()))
     }
 

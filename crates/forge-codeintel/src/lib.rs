@@ -13,6 +13,7 @@
 
 pub mod actions;
 pub mod edit;
+pub mod inlay;
 pub mod rename;
 pub mod usages;
 

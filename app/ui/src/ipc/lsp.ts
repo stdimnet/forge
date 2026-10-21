@@ -108,6 +108,32 @@ export interface LspServerConfig {
   settings?: unknown;
 }
 
+/** An inlay hint as a server reports it (`forge_codeintel::inlay::RawInlayHint`). */
+export interface RawInlayHint {
+  line: number;
+  character: number;
+  label: string;
+  /** LSP `InlayHintKind`: 1 = type, 2 = parameter. */
+  kind: number | null;
+  paddingLeft: boolean;
+  paddingRight: boolean;
+  tooltip?: string | null;
+}
+
+export type InlayGroup = "parameterName" | "variableType" | "returnType" | "other";
+
+/** An inlay hint to draw: grouped and filtered by Settings | Editor | Inlay Hints. */
+export interface EditorInlayHint {
+  line: number;
+  /** UTF-16 column. */
+  character: number;
+  label: string;
+  group: InlayGroup;
+  paddingLeft: boolean;
+  paddingRight: boolean;
+  tooltip?: string;
+}
+
 const at = (path: string, pos: LspPosition) => ({ path, line: pos.line, character: pos.character });
 
 export const lspApi = {
@@ -127,6 +153,9 @@ export const lspApi = {
     invoke<EditorSignatureHelp | null>("lsp_signature_help", at(path, pos)),
   format: (path: string, tabSize = 4, insertSpaces = true) =>
     invoke<TextEdit[]>("lsp_format", { path, tabSize, insertSpaces }),
+  /** Hints of lines `startLine..=endLine` of the editor's `text`. */
+  inlayHints: (path: string, startLine: number, endLine: number, text: string, languageId: string | null) =>
+    invoke<EditorInlayHint[]>("lsp_inlay_hints", { path, startLine, endLine, text, languageId }),
   status: () => invoke<ServerStatus[]>("lsp_status"),
   registerServer: (config: LspServerConfig) => invoke<void>("lsp_register_server", { config }),
   onDiagnostics: (cb: (e: DiagnosticsEvent) => void) => listen<DiagnosticsEvent>("lsp://diagnostics", cb),

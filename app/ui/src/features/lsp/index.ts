@@ -15,6 +15,7 @@ import { gotoProblem, lspDiagnostics } from "./diagnostics";
 import { lspFormat, reformat } from "./format";
 import { gotoDeclaration, lspGoto } from "./goto";
 import { lspHover } from "./hover";
+import { lspInlayHints } from "./inlayHints";
 import { LspStatusItem } from "./LspStatusItem";
 import { activeView, trackView } from "./navigation";
 import { ProblemsView } from "./ProblemsView";
@@ -39,6 +40,7 @@ registerEditorExtension(({ path }) =>
         lspGoto(path),
         lspSignatureHelp(path),
         lspFormat(path),
+        lspInlayHints(path),
       ],
 );
 

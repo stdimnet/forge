@@ -31,8 +31,8 @@ pub use manage::{
 };
 pub use status::{parse_status, FileState, RepoStatus, StatusEntry};
 
+pub use cmd::{git_binary, set_git_program, GitExec, GitOutput, GitRequest, LocalGit};
 use cmd::{run, run_raw, Run};
-pub use cmd::{GitExec, GitOutput, GitRequest, LocalGit};
 use manage::STASH_FORMAT;
 
 /// Summary of the repository a workspace belongs to.
@@ -535,6 +535,18 @@ impl Repo {
     /// (untracked ones are added first) regardless of what else is staged, like PHPStorm's
     /// changelist checkboxes; without, the index is committed as is.
     pub fn commit(&self, message: &str, amend: bool, paths: Option<&[String]>) -> Result<String> {
+        self.commit_with(message, amend, paths, false)
+    }
+
+    /// [`Repo::commit`] that can add a `Signed-off-by` trailer (`git commit --signoff`,
+    /// Settings | Version Control | Git, "Sign-off commits").
+    pub fn commit_with(
+        &self,
+        message: &str,
+        amend: bool,
+        paths: Option<&[String]>,
+        sign_off: bool,
+    ) -> Result<String> {
         if message.trim().is_empty() && !amend {
             return Err(ForgeError::Other("commit message is empty".into()));
         }
@@ -558,6 +570,9 @@ impl Repo {
         let mut args = vec!["commit", "-q", "--cleanup=strip"];
         if amend {
             args.push("--amend");
+        }
+        if sign_off {
+            args.push("--signoff");
         }
         if message.trim().is_empty() {
             args.push("--no-edit");
@@ -699,12 +714,24 @@ impl Repo {
         self.git_remote(&args)
     }
 
-    pub fn pull(&self, rebase: bool) -> Result<RemoteResult> {
-        self.git_remote(&[
-            "pull",
-            "--no-edit",
-            if rebase { "--rebase" } else { "--no-rebase" },
-        ])
+    /// Pull the current branch: `Some(true)` rebases, `Some(false)` merges, `None` follows
+    /// the branch's own configuration (`pull.rebase`, `branch.<name>.rebase`).
+    pub fn pull(&self, rebase: Option<bool>) -> Result<RemoteResult> {
+        let mut args = vec!["pull", "--no-edit"];
+        match rebase {
+            Some(true) => args.push("--rebase"),
+            Some(false) => args.push("--no-rebase"),
+            None => {}
+        }
+        self.git_remote(&args)
+    }
+
+    /// The effective value of a git config key, if set (`git config --get`).
+    pub fn config_value(&self, key: &str) -> Option<String> {
+        self.git(&["config", "--get", key])
+            .ok()
+            .map(|v| v.trim().to_string())
+            .filter(|v| !v.is_empty())
     }
 
     pub fn fetch(&self) -> Result<RemoteResult> {

@@ -225,10 +225,16 @@ pub async fn run_start(
     });
     let test_runner = request.test_runner;
     let cmd = build(&state, &runs, request)?;
+    // Settings | Editor | General | Console, "Override console cycle buffer size (KB)".
+    let cycle_buffer_kb = state
+        .read_settings()
+        .get_as::<usize>("run.console.cycleBufferKb")
+        .or(Some(1024));
     let output = Arc::new(Mutex::new(RunOutput::new(&RunOutputOptions {
         test_runner,
         root: Some(root(&state)?.display().to_string()),
         cwd: Some(cmd.cwd.display().to_string()),
+        cycle_buffer_kb,
     })));
     let event = format!("run://{run_id}");
     let sink_output = output.clone();

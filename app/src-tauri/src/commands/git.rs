@@ -15,11 +15,19 @@ use crate::state::AppState;
 /// Event emitted after any operation that changes repository state.
 pub const CHANGED_EVENT: &str = "git://changed";
 
+/// Settings | Version Control | Git, "Path to Git executable" (`vcs.git.path`), applied
+/// before every git command so a changed path takes effect at once.
+fn apply_git_path(state: &AppState) {
+    let path = state.read_settings().get_as::<String>("vcs.git.path");
+    forge_vcs::set_git_program(path.as_deref());
+}
+
 async fn with_repo<T, F>(state: &AppState, f: F) -> Result<T>
 where
     T: Send + 'static,
     F: FnOnce(&Repo) -> Result<T> + Send + 'static,
 {
+    apply_git_path(state);
     let backend = state.backend()?;
     tauri::async_runtime::spawn_blocking(move || f(&backend.repo()?))
         .await
@@ -43,6 +51,7 @@ where
 /// Repository info, or `null` when the project is not under git.
 #[tauri::command]
 pub async fn git_info(state: State<'_, AppState>) -> Result<Option<RepoInfo>> {
+    apply_git_path(&state);
     let backend = state.backend()?;
     tauri::async_runtime::spawn_blocking(move || match backend.repo() {
         Ok(repo) => repo.info().map(Some),
@@ -204,10 +213,40 @@ pub async fn git_commit(
     app: AppHandle,
     state: State<'_, AppState>,
 ) -> Result<String> {
+    // Settings | Version Control | Git, "Sign-off commits".
+    let sign_off = state
+        .read_settings()
+        .get_bool("vcs.git.commit.signOff")
+        .unwrap_or(false);
     mutate(&app, &state, move |r| {
-        r.commit(&message, amend, paths.as_deref())
+        r.commit_with(&message, amend, paths.as_deref(), sign_off)
     })
     .await
+}
+
+/// "Warn if CRLF line separators are about to be committed": the files among `paths`
+/// (workspace-relative) whose text uses CRLF separators. Empty when git converts line
+/// separators itself (`core.autocrlf` is `true` or `input`).
+#[tauri::command]
+pub async fn git_crlf_files(paths: Vec<String>, state: State<'_, AppState>) -> Result<Vec<String>> {
+    apply_git_path(&state);
+    let backend = state.backend()?;
+    tauri::async_runtime::spawn_blocking(move || {
+        let repo = backend.repo()?;
+        let autocrlf = repo.config_value("core.autocrlf").unwrap_or_default();
+        if matches!(autocrlf.to_ascii_lowercase().as_str(), "true" | "input") {
+            return Ok(Vec::new());
+        }
+        let files: Vec<(String, Vec<u8>)> = paths
+            .into_iter()
+            .filter_map(|p| backend.read_bytes(&p).ok().map(|bytes| (p, bytes)))
+            .collect();
+        Ok(forge_text::commit::files_with_crlf(
+            files.iter().map(|(p, b)| (p.as_str(), b.as_slice())),
+        ))
+    })
+    .await
+    .map_err(|e| ForgeError::Other(format!("git task failed: {e}")))?
 }
 
 #[tauri::command]
@@ -219,13 +258,34 @@ pub async fn git_push(
     mutate(&app, &state, move |r| r.push(force.unwrap_or(false))).await
 }
 
+/// "Update Project": pull with `rebase`, or by default with the update method of
+/// Settings | Version Control | Git (`vcs.git.updateMethod`: merge, rebase or the branch's
+/// own configuration).
 #[tauri::command]
 pub async fn git_pull(
     rebase: Option<bool>,
     app: AppHandle,
     state: State<'_, AppState>,
 ) -> Result<RemoteResult> {
-    mutate(&app, &state, move |r| r.pull(rebase.unwrap_or(false))).await
+    let rebase = match rebase {
+        Some(r) => Some(r),
+        None => update_method_rebase(
+            state
+                .read_settings()
+                .get_as::<String>("vcs.git.updateMethod")
+                .as_deref(),
+        ),
+    };
+    mutate(&app, &state, move |r| r.pull(rebase)).await
+}
+
+/// `--rebase` (`Some(true)`), `--no-rebase` (`Some(false)`) or the branch default (`None`).
+fn update_method_rebase(method: Option<&str>) -> Option<bool> {
+    match method.unwrap_or("merge") {
+        "rebase" => Some(true),
+        "branchDefault" => None,
+        _ => Some(false),
+    }
 }
 
 #[tauri::command]
@@ -346,4 +406,17 @@ pub async fn git_remove_remote(
     state: State<'_, AppState>,
 ) -> Result<()> {
     mutate(&app, &state, move |r| r.remove_remote(&name)).await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn maps_the_update_method_to_a_pull_mode() {
+        assert_eq!(update_method_rebase(None), Some(false));
+        assert_eq!(update_method_rebase(Some("merge")), Some(false));
+        assert_eq!(update_method_rebase(Some("rebase")), Some(true));
+        assert_eq!(update_method_rebase(Some("branchDefault")), None);
+    }
 }

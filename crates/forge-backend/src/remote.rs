@@ -419,6 +419,26 @@ impl Backend for RemoteBackend {
         )
     }
 
+    fn read_bytes(&self, rel: &str) -> Result<Vec<u8>> {
+        let bytes: serde_bytes::ByteBuf = self.shared.call(
+            Call::ReadBytes {
+                path: rel.to_string(),
+            },
+            TIMEOUT,
+        )?;
+        Ok(bytes.into_vec())
+    }
+
+    fn write_bytes(&self, rel: &str, bytes: &[u8]) -> Result<()> {
+        self.shared.call(
+            Call::WriteBytes {
+                path: rel.to_string(),
+                bytes: serde_bytes::ByteBuf::from(bytes.to_vec()),
+            },
+            TIMEOUT,
+        )
+    }
+
     fn create_file(&self, rel: &str) -> Result<()> {
         self.shared.call(
             Call::CreateFile {

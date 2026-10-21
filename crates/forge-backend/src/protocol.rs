@@ -33,7 +33,7 @@ use crate::web::WebCall;
 use crate::TerminalSpec;
 
 /// Bumped on incompatible protocol changes; client and agent must agree.
-pub const PROTOCOL_VERSION: u32 = 5;
+pub const PROTOCOL_VERSION: u32 = 6;
 
 /// Frames larger than this are refused (protects both sides from garbage input).
 pub const MAX_FRAME: usize = 64 * 1024 * 1024;
@@ -94,6 +94,15 @@ pub enum Call {
     WriteFile {
         path: String,
         contents: String,
+    },
+    /// -> `ByteBuf`: the raw bytes (files in other encodings than UTF-8). Protocol 4.
+    ReadBytes {
+        path: String,
+    },
+    /// -> `()`. Protocol 4.
+    WriteBytes {
+        path: String,
+        bytes: serde_bytes::ByteBuf,
     },
     /// -> `()`
     CreateFile {
@@ -516,6 +525,7 @@ mod tests {
                     env: vec![("A".into(), "b".into())],
                     cols: 80,
                     rows: 24,
+                    shell_integration: true,
                 },
             },
         });

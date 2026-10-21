@@ -30,6 +30,7 @@ mod scratches;
 mod search;
 mod settings;
 mod terminal;
+mod text;
 mod web;
 mod window;
 mod workbench;

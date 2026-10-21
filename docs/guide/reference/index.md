@@ -7,8 +7,7 @@ tags: [reference]
 
 # Reference
 
-Tables derived from Forge's sources. They list everything, including options that exist but are
-not applied yet (marked as such).
+Tables derived from Forge's sources. They list everything Forge declares.
 
 | Page | Contents |
 | --- | --- |

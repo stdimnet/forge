@@ -43,6 +43,8 @@ export function rootFlags(get: <T>(key: string) => T): Record<string, boolean> {
     hideStripes: !get<boolean>("appearance.showToolWindowBars"),
     noCaretBlink: !get<boolean>("editor.caret.blinking"),
     smoothScroll: get<boolean>("editor.smoothScrolling"),
+    smoothLists: get<boolean>("appearance.smoothScrolling"),
+    toolWindowNumbers: get<boolean>("appearance.showToolWindowNumbers"),
     showWhitespace: get<boolean>("editor.showWhitespace"),
     noCaretRow: !get<boolean>("editor.highlightCurrentLine"),
     noLineNumbers: !get<boolean>("editor.showLineNumbers"),

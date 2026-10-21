@@ -36,7 +36,7 @@ order = 60
 [[contributions.settings]]
 key = "vcs.git.path"
 title = "Path to Git executable"
-description = "Leave as `git` to use the one on PATH."
+description = "Leave as `git` to use the one on PATH. Remote projects always use the git of their host."
 type = "path"
 default = "git"
 group = "vcs.git"
@@ -45,6 +45,7 @@ order = 0
 [[contributions.settings]]
 key = "vcs.git.updateMethod"
 title = "Update method"
+description = "How Update Project (Ctrl+T) brings in remote changes. Branch default follows the branch's git configuration (pull.rebase)."
 type = "enum"
 options = [
   { value = "merge", label = "Merge" },
@@ -58,10 +59,21 @@ order = 1
 [[contributions.settings]]
 key = "vcs.git.autoFetch"
 title = "Fetch remotes automatically"
+description = "In the background, for repositories whose branch has an upstream. Failures are ignored."
 type = "bool"
 default = true
 group = "vcs.git"
 order = 2
+
+[[contributions.settings]]
+key = "vcs.git.autoFetchInterval"
+title = "Fetch every (minutes)"
+type = "int"
+min = 1
+max = 240
+default = 10
+group = "vcs.git"
+order = 3
 
 [[contributions.settings]]
 key = "vcs.git.commit.subjectMaxLength"

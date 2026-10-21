@@ -9,11 +9,13 @@ use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, State};
 
 use forge_core::Result;
+use phpforge_lang_php::composer::{self, OutdatedPackage};
 use phpforge_lang_php::generate::{GenerateKind, GenerateOptions, GenerateTargets, TextEdit};
 use phpforge_lang_php::hover::Hover;
 use phpforge_lang_php::index::{SearchKind, SymbolHit};
 use phpforge_lang_php::lsp::{self, DetectedServers, LspServerConfig, PhpLspSettings};
 use phpforge_lang_php::structure::FileStructure;
+use phpforge_lang_php::style::{tidy_blank_lines, PhpCodeStyle};
 use phpforge_lang_php::IndexStats;
 
 use crate::commands::lsp::LspState;
@@ -104,13 +106,104 @@ pub async fn php_generate(
     content: Option<String>,
     state: State<'_, AppState>,
 ) -> Result<Vec<TextEdit>> {
+    let mut options = options.unwrap_or_default();
+    // Braces and blank lines of Settings | Editor | Code Style | PHP.
+    options.style = php_code_style(&state);
     let backend = state.backend()?;
     blocking(move || {
         backend
             .php()
-            .generate(&path, offset, kind, options.unwrap_or_default(), content)
+            .generate(&path, offset, kind, options, content)
     })
     .await
+}
+
+fn php_code_style(state: &AppState) -> PhpCodeStyle {
+    let settings = state.read_settings();
+    PhpCodeStyle::from_settings(|k| settings.get(k).cloned())
+}
+
+/// The PHP language level in effect and whether it comes from composer.json
+/// (Settings | PHP | Composer, "Synchronize IDE settings with composer.json").
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LanguageLevel {
+    pub level: String,
+    pub from_composer: bool,
+}
+
+#[tauri::command]
+pub async fn php_language_level(state: State<'_, AppState>) -> Result<LanguageLevel> {
+    let settings = lsp_settings(&state);
+    let backend = state.backend().ok();
+    blocking(move || {
+        let composer = match &backend {
+            Some(b) => b.read_optional(&settings.composer_json).ok().flatten(),
+            None => None,
+        };
+        let (level, from_composer) = settings.effective_level(composer.as_deref());
+        Ok(LanguageLevel {
+            level,
+            from_composer,
+        })
+    })
+    .await
+}
+
+/// "Check for package updates on project open": `composer outdated --direct` in the folder
+/// of the project's composer.json, on the project's machine.
+#[tauri::command]
+pub async fn php_composer_outdated(state: State<'_, AppState>) -> Result<Vec<OutdatedPackage>> {
+    let (program, json_path) = {
+        let settings = state.read_settings();
+        let program = settings
+            .get_as::<String>(composer::EXECUTABLE_KEY)
+            .map(|p| p.trim().to_string())
+            .filter(|p| !p.is_empty())
+            .unwrap_or_else(|| "composer".into());
+        let json = lsp_settings(&state).composer_json;
+        (program, json)
+    };
+    let backend = state.backend()?;
+    blocking(move || {
+        if backend.read_optional(&json_path)?.is_none() {
+            return Ok(Vec::new());
+        }
+        let dir = Path::new(&json_path).parent().unwrap_or(Path::new(""));
+        let mut cmd = forge_process::CommandLine::new(program).args([
+            "outdated",
+            "--direct",
+            "--format=json",
+            "--no-interaction",
+        ]);
+        cmd.cwd = Path::new(&backend.info().root).join(dir);
+        let mut out = String::new();
+        let cancel = std::sync::atomic::AtomicBool::new(false);
+        forge_backend::process_io::run_lines(
+            backend.as_ref(),
+            &cmd,
+            &cancel,
+            &mut |line, stderr| {
+                if !stderr {
+                    out.push_str(&line);
+                    out.push('\n');
+                }
+            },
+        )?;
+        Ok(composer::parse_outdated(&out))
+    })
+    .await
+}
+
+/// Reformat Code, after the language server: apply the blank line settings of the PHP code
+/// style to `text` (the editor's buffer). `None` when nothing changes.
+#[tauri::command]
+pub async fn php_tidy_blank_lines(
+    text: String,
+    state: State<'_, AppState>,
+) -> Result<Option<String>> {
+    let style = php_code_style(&state);
+    blocking(move || Ok(tidy_blank_lines(&text, &style))).await
 }
 
 /// Language servers installed on the project's machine (this one when no project is open),

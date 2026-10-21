@@ -9,7 +9,7 @@
  */
 import type { Text } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
-import { editor, groupActive, openFile } from "@/state/editor";
+import { editor, groupActive, openFile, setEditorBridge } from "@/state/editor";
 import { flashLineAt } from "./flash";
 
 interface Entry {
@@ -128,3 +128,36 @@ export async function openFileAt(
   if (line && opts.flash !== false) flashLineAt(view, pos);
   return true;
 }
+
+/**
+ * Replace a document with `text` as an edit of only the lines that differ, so the caret,
+ * folds and undo history stay (used by the on-save cleanup, which only touches line ends).
+ */
+export function applyLineChanges(view: EditorView, text: string): void {
+  const doc = view.state.doc;
+  const lines = text.split("\n");
+  const changes: { from: number; to: number; insert: string }[] = [];
+  const common = Math.min(doc.lines, lines.length);
+  for (let i = 0; i < common; i++) {
+    const line = doc.line(i + 1);
+    if (line.text !== lines[i]) changes.push({ from: line.from, to: line.to, insert: lines[i] });
+  }
+  if (lines.length > doc.lines) changes.push({ from: doc.length, to: doc.length, insert: "\n" + lines.slice(doc.lines).join("\n") });
+  else if (lines.length < doc.lines) changes.push({ from: doc.line(lines.length).to, to: doc.length, insert: "" });
+  if (changes.length) view.dispatch({ changes, userEvent: "save.cleanup" });
+}
+
+setEditorBridge({
+  caretLines: (path) => {
+    const view = viewFor(path);
+    if (!view) return [];
+    return [...new Set(view.state.selection.ranges.map((r) => view.state.doc.lineAt(r.head).number - 1))];
+  },
+  // Other views of the file follow through the shared document (docSync.ts).
+  applyText: (path, text) => {
+    const view = viewFor(path);
+    if (!view) return false;
+    applyLineChanges(view, text);
+    return true;
+  },
+});

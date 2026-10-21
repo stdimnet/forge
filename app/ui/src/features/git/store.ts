@@ -3,13 +3,14 @@
  * `state/vcs.ts` for project tree and tab colors), refresh scheduling, notifications and
  * buffer reloads after rollbacks.
  */
-import { createRoot, createSignal, createEffect, on } from "solid-js";
+import { createRoot, createSignal, createEffect, on, onCleanup } from "solid-js";
 import { listen } from "@/ipc";
 import { setCurrentBranch, setFileStatuses, type FileStatus } from "@/state/vcs";
 import { editor } from "@/state/editor";
 import { onFsChanged } from "@/state/fsWatch";
 import { logNotification, modeOf, registerNotificationGroup } from "@/state/notifications";
 import { workspaceApi } from "@/ipc/workspace";
+import { getSetting } from "@/state/settings";
 import { gitApi, displayStatus, GIT_CHANGED_EVENT, type RepoStatus } from "./api";
 
 const [status, setStatus] = createSignal<RepoStatus | null>(null);
@@ -132,9 +133,8 @@ export function startGitStore(): void {
   if (started) return;
   started = true;
   void listen(GIT_CHANGED_EVENT, () => void repositoryChanged());
-  if (typeof window !== "undefined") {
-    window.addEventListener("focus", () => void repositoryChanged());
-  }
+  // Switching back to Forge refreshes through "Synchronize external changes"
+  // (features/system), which reports a git change.
   // Changes made outside Forge (terminal, other tools) arrive from the file watcher.
   onFsChanged((c) => {
     if (c.git) void repositoryChanged();
@@ -149,6 +149,28 @@ export function startGitStore(): void {
         { defer: true },
       ),
     );
+    // Settings | Version Control | Git: fetch the remotes every few minutes, quietly.
+    createEffect(() => {
+      if (!repoAvailable() || !getSetting<boolean>("vcs.git.autoFetch", true)) return;
+      const minutes = Math.max(1, getSetting<number>("vcs.git.autoFetchInterval", 10));
+      const timer = setInterval(() => void autoFetch(), minutes * 60_000);
+      onCleanup(() => clearInterval(timer));
+    });
   });
   void repositoryChanged();
+}
+
+let fetching = false;
+
+/** A background fetch: failures (offline, no credentials) are only logged. */
+async function autoFetch(): Promise<void> {
+  if (fetching || !status()?.upstream) return;
+  fetching = true;
+  try {
+    await gitApi.fetch();
+  } catch (e) {
+    console.debug("auto fetch failed", e);
+  } finally {
+    fetching = false;
+  }
 }

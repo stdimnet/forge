@@ -82,7 +82,7 @@ pub async fn terminal_open(
     };
     let root = backend.info().root.clone();
     let remote = backend.info().remote.is_some();
-    let (setting_dir, setting_shell, setting_env) = {
+    let (setting_dir, setting_shell, setting_env, integration) = {
         let s = state.read_settings();
         (
             s.get_as::<String>("terminal.startDirectory")
@@ -90,6 +90,7 @@ pub async fn terminal_open(
             s.get_as::<String>("terminal.shellPath").unwrap_or_default(),
             s.get_as::<Vec<String>>("terminal.environment")
                 .unwrap_or_default(),
+            s.get_bool("terminal.shellIntegration").unwrap_or(true),
         )
     };
     let dir = options
@@ -132,6 +133,7 @@ pub async fn terminal_open(
         env,
         cols: options.cols,
         rows: options.rows,
+        shell_integration: integration,
     };
     let session = blocking(move || backend.open_terminal(spec, sink)).await?;
     let opened = TerminalOpened {

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import "./index";
 import { bashParser } from "./bash";
 import { envParser, parseEnv } from "./env";
@@ -240,7 +240,7 @@ describe("YAML schema engine", () => {
     const hover = (needle: string, offset = 1) => schemaHoverAt(composeSchema, COMPOSE_TAGS, s, doc.indexOf(needle) + offset);
     // The documentation is rendered from Markdown asynchronously.
     const text = async (dom: HTMLElement | undefined) => {
-      await new Promise((r) => setTimeout(r));
+      await vi.waitFor(() => expect(dom?.querySelector(".lsp-hover-body")?.textContent).toBeTruthy());
       return dom?.textContent ?? "";
     };
     const reset = hover("!reset")!;

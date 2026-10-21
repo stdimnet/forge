@@ -4,6 +4,8 @@ import { layout, toggleToolWindow } from "@/state/layout";
 
 function StripeButton(props: { tw: ToolWindow }) {
   const active = () => layout.active[props.tw.anchor] === props.tw.id;
+  // The digit of an Alt+<n> shortcut, shown with "Show tool window numbers".
+  const number = () => props.tw.shortcut?.match(/^Alt\+(\d)$/)?.[1];
   return (
     <button
       class="icon-btn stripe-btn"
@@ -13,6 +15,9 @@ function StripeButton(props: { tw: ToolWindow }) {
       onClick={() => toggleToolWindow(props.tw.anchor, props.tw.id)}
     >
       <props.tw.icon size={18} stroke-width={1.75} />
+      <Show when={number()}>
+        <span class="stripe-num">{number()}</span>
+      </Show>
       <Show when={!active() && props.tw.badge}>
         {(badge) => <span class="stripe-badge">{badge()()}</span>}
       </Show>

@@ -197,6 +197,14 @@ impl Backend for LocalBackend {
         self.workspace.write_file(rel, contents)
     }
 
+    fn read_bytes(&self, rel: &str) -> Result<Vec<u8>> {
+        self.workspace.read_bytes(rel)
+    }
+
+    fn write_bytes(&self, rel: &str, bytes: &[u8]) -> Result<()> {
+        self.workspace.write_bytes(rel, bytes)
+    }
+
     fn create_file(&self, rel: &str) -> Result<()> {
         self.workspace.create_file(rel)
     }
@@ -339,6 +347,10 @@ impl Backend for LocalBackend {
                 version: String::new(),
                 cols: spec.cols,
                 rows: spec.rows,
+                integration_dir: spec
+                    .shell_integration
+                    .then(|| dirs::cache_dir().map(|d| d.join("forge").join("shell-integration")))
+                    .flatten(),
             },
             sink,
         )?;

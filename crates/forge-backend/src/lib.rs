@@ -184,6 +184,11 @@ pub struct TerminalSpec {
     pub env: Vec<(String, String)>,
     pub cols: u16,
     pub rows: u16,
+    /// Shell integration (Settings | Tools | Terminal): bash and zsh report their working
+    /// directory and command boundaries. Its scripts live in the cache dir of the machine
+    /// the shell runs on.
+    #[serde(default)]
+    pub shell_integration: bool,
 }
 
 /// A running terminal session.
@@ -228,6 +233,10 @@ pub trait Backend: Send + Sync {
     /// The file's text, `None` when it does not exist (one round trip for remote projects).
     fn read_optional(&self, rel: &str) -> Result<Option<String>>;
     fn write_file(&self, rel: &str, contents: &str) -> Result<()>;
+    /// The file's raw bytes (files in other encodings than UTF-8, see `forge-text`).
+    fn read_bytes(&self, rel: &str) -> Result<Vec<u8>>;
+    /// Write raw bytes (parent folders are created).
+    fn write_bytes(&self, rel: &str, bytes: &[u8]) -> Result<()>;
     /// New empty file (parent folders included); never replaces an existing path.
     fn create_file(&self, rel: &str) -> Result<()>;
     /// New folder (parent folders included); never replaces an existing path.

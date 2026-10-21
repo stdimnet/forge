@@ -116,6 +116,7 @@
   position: relative;
   width: 30px;
   height: 30px;
+  position: relative;
 }
 /* Small state marker of a hidden tool window, e.g. terminal progress */
 .stripe-badge {
