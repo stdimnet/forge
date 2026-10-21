@@ -8,7 +8,8 @@ import { Portal } from "solid-js/web";
 import type { PermissionLevel } from "@/ipc/collab";
 import { getSetting } from "@/state/settings";
 import { runCommand } from "@/state/commands";
-import { session, setPopupOpen } from "./store";
+import { inSession, session, setPopupOpen } from "./store";
+import { SessionConnections } from "./ConnectionStatus";
 
 export const LEVELS: { level: PermissionLevel; title: string; hint: string }[] = [
   { level: "readOnly", title: "Read-only", hint: "Guests can view files, the terminal and run output." },
@@ -97,6 +98,10 @@ export function SessionPopup(props: { anchor: HTMLElement; onStart: (level: Perm
         style={{ top: `${rect.bottom + 4}px`, left: `${Math.max(8, Math.min(rect.left, window.innerWidth - 380))}px` }}
         onKeyDown={(e) => e.key === "Escape" && (e.stopPropagation(), setPopupOpen(false))}
       >
+        <Show when={inSession()}>
+          <SessionConnections />
+          <div class="cwm-sep" />
+        </Show>
         <StartView onStart={props.onStart} />
         <div class="cwm-sep" />
         <MenuItem label="Join Session…" action="CodeWithMe.JoinSession" />

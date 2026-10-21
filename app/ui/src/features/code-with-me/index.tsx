@@ -4,6 +4,7 @@
  * The backend is `crates/forge-collab`; the plan is `docs/plans/code-with-me.md`.
  */
 import { registerToolbarItem } from "@/features/toolbarItems";
+import { registerStatusItem } from "@/features/statusItems";
 import { registerSettingsPage } from "@/features/settingsPages";
 import { SchemaPage } from "@/features/settings/SchemaPage";
 import { registerCommand } from "@/state/commands";
@@ -11,8 +12,10 @@ import { registerKeymapActions } from "@/keymap/store";
 import { showBalloon } from "@/keymap";
 import { isDialogWindow } from "@/shell/window/mode";
 import type { PermissionLevel } from "@/ipc/collab";
-import { setPopupOpen, trackSession } from "./store";
+import { inSession, setPopupOpen, trackSession } from "./store";
 import { ToolbarButton } from "./ToolbarButton";
+import { ConnectionStatusItem } from "./ConnectionStatus";
+import { RelayServerTools } from "./RelaySettings";
 import "./codeWithMe.css";
 
 function startSession(_level: PermissionLevel): void {
@@ -28,8 +31,11 @@ registerSettingsPage({
   group: "Tools",
   order: 40,
   keywords: ["collaboration", "pair programming", "share", "session", "guest", "host", "invite"],
-  component: () => <SchemaPage pageId="tools.code-with-me" />,
+  component: () => <SchemaPage pageId="tools.code-with-me" sectionFooter={(s) => (s === "Relay Server" ? <RelayServerTools /> : null)} />,
 });
+
+// The path in use (direct or relayed) while a session runs.
+registerStatusItem({ id: "codeWithMe.connection", align: "right", order: 20, when: inSession, component: ConnectionStatusItem });
 
 // PHPStorm binds no shortcuts to Code With Me; the actions are listed under its plugin.
 registerKeymapActions(
