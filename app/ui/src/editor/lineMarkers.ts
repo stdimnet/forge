@@ -7,8 +7,9 @@
  */
 import { createEffect, createRoot, on, type Component } from "solid-js";
 import { render } from "solid-js/web";
-import { RangeSet, StateEffect, StateField, type Extension } from "@codemirror/state";
-import { EditorView, GutterMarker, ViewPlugin, gutter } from "@codemirror/view";
+import { RangeSet, StateEffect, StateField, type Extension, type Range } from "@codemirror/state";
+import { Decoration, EditorView, GutterMarker, ViewPlugin, WidgetType, gutter } from "@codemirror/view";
+import { getSetting } from "@/state/settings";
 import { registerEditorExtension } from "./extensions";
 
 export interface LineMarker {
@@ -19,6 +20,11 @@ export interface LineMarker {
   /** Extra class for the icon color, e.g. `marker-route`. */
   className?: string;
   onClick?: (view: EditorView, event: MouseEvent) => void;
+  /**
+   * Code Vision text above the line, e.g. "2 implementations" (shown while Settings | Editor |
+   * Inlay Hints | Implementations and inheritors is on); clicking it runs `onClick`.
+   */
+  vision?: string;
 }
 
 export interface LineMarkerProvider {
@@ -99,6 +105,58 @@ function markerSet(view: EditorView) {
   return RangeSet.of(ranges);
 }
 
+/** Code Vision line above a declaration, indented like it. */
+class VisionWidget extends WidgetType {
+  constructor(
+    readonly marker: LineMarker,
+    readonly indent: number,
+  ) {
+    super();
+  }
+  eq(other: VisionWidget): boolean {
+    return other.marker.vision === this.marker.vision && other.indent === this.indent;
+  }
+  toDOM(view: EditorView): HTMLElement {
+    const el = document.createElement("div");
+    el.className = "cm-code-vision";
+    el.style.paddingLeft = `${this.indent}ch`;
+    const link = document.createElement("span");
+    link.className = "cm-code-vision-item";
+    link.textContent = this.marker.vision ?? "";
+    link.title = this.marker.title;
+    link.addEventListener("mousedown", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      this.marker.onClick?.(view, e);
+    });
+    el.append(link);
+    return el;
+  }
+  ignoreEvent(): boolean {
+    return true;
+  }
+}
+
+const codeVision = EditorView.decorations.compute([markerField], (state) => {
+  if (!getSetting<boolean>("editor.inlayHints.implementations", true)) return Decoration.none;
+  const seen = new Set<number>();
+  const ranges: Range<Decoration>[] = [];
+  for (const m of state.field(markerField)) {
+    if (!m.vision || m.line + 1 > state.doc.lines || seen.has(m.line)) continue;
+    seen.add(m.line);
+    const line = state.doc.line(m.line + 1);
+    const indent = line.text.length - line.text.trimStart().length;
+    ranges.push(Decoration.widget({ widget: new VisionWidget(m, indent), block: true, side: -1 }).range(line.from));
+  }
+  return Decoration.set(ranges, true);
+});
+
+const codeVisionTheme = EditorView.baseTheme({
+  ".cm-code-vision": { fontSize: "0.85em", lineHeight: "1.5", color: "var(--fg-muted)", fontFamily: "var(--font-ui)" },
+  ".cm-code-vision-item": { cursor: "pointer" },
+  ".cm-code-vision-item:hover": { color: "var(--accent)", textDecoration: "underline" },
+});
+
 function lineMarkers(path: string, active: LineMarkerProvider[]): Extension {
   const refresher = ViewPlugin.define((view) => {
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -131,6 +189,8 @@ function lineMarkers(path: string, active: LineMarkerProvider[]): Extension {
   });
   return [
     markerField,
+    codeVision,
+    codeVisionTheme,
     refresher,
     gutter({
       class: "cm-line-marker-gutter",

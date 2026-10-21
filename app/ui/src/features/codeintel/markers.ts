@@ -8,6 +8,7 @@ import { CircleArrowDown, CircleArrowUp } from "lucide-solid";
 import { registerLineMarkerProvider, type LineMarker } from "@/editor/lineMarkers";
 import { codeApi, isLibraryPath, type LineMarkerInfo } from "@/ipc/codeintel";
 import { isPluginActive } from "@/state/project";
+import { getSetting } from "@/state/settings";
 import { chooseTargetAtPoint } from "./targets";
 
 const isPhp = (path: string) => /\.(php|phtml|inc)$/i.test(path) && !path.endsWith(".blade.php") && !isLibraryPath(path);
@@ -24,9 +25,17 @@ export function markerChooserTitle(m: LineMarkerInfo): string {
   return `${what}${subject && m.kind !== "subclassed" ? ` of ${subject}` : ""} (${m.targets.length} found)`;
 }
 
+/** Code Vision text of a marker that points down: "2 implementations", "1 inheritor". */
+export function codeVisionText(m: LineMarkerInfo): string | undefined {
+  const n = m.targets.length;
+  const noun = { subclassed: "inheritor", implemented: "implementation", overridden: "override" }[m.kind as string];
+  return noun && n ? `${n} ${noun}${n === 1 ? "" : "s"}` : undefined;
+}
+
 export function toLineMarker(m: LineMarkerInfo): LineMarker {
   const up = m.kind === "implements" || m.kind === "overrides";
   return {
+    vision: codeVisionText(m),
     line: m.line,
     icon: up ? CircleArrowUp : CircleArrowDown,
     title: m.title,
@@ -37,7 +46,7 @@ export function toLineMarker(m: LineMarkerInfo): LineMarker {
 
 registerLineMarkerProvider({
   appliesTo: isPhp,
-  watch: () => isPluginActive("forge.php"),
+  watch: () => [isPluginActive("forge.php"), getSetting<boolean>("editor.inlayHints.implementations", true)],
   markers: async (path, text) => {
     if (!isPluginActive("forge.php")) return [];
     const markers = await codeApi.lineMarkers(path, text).catch(() => [] as LineMarkerInfo[]);

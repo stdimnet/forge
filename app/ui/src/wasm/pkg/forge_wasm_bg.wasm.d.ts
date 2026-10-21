@@ -11,6 +11,7 @@ export const chat_new: (a: number) => void;
 export const chat_set_permission: (a: number, b: number, c: number) => void;
 export const codeintel_apply_edit: (a: number, b: number, c: number) => void;
 export const codeintel_group_usages: (a: number, b: number, c: number) => void;
+export const codeintel_inlay_hints: (a: number, b: number, c: number) => void;
 export const codeintel_order_actions: (a: number, b: number, c: number) => void;
 export const codeintel_preview_edit: (a: number, b: number, c: number) => void;
 export const codeintel_word_range: (a: number, b: number, c: number) => void;

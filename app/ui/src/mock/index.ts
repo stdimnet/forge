@@ -10,6 +10,7 @@ import "./projectStateMock";
 import "./aiMock";
 import "./agentMock";
 import "./lspMock";
+import "./inlayHintsMock";
 import "./langserversMock";
 import "./fuzzyMock";
 import "./searchMock";

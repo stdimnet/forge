@@ -10,7 +10,10 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
 use forge_core::{ForgeError, Result};
-use forge_lsp::lsp_types::{Position, TextEdit};
+use forge_lsp::forge_codeintel::inlay::{self, EditorInlayHint, InlayFilter, RawInlayHint};
+use forge_lsp::lsp_types::{
+    InlayHint, InlayHintKind, InlayHintLabel, InlayHintTooltip, Position, TextEdit,
+};
 use forge_lsp::model::{
     EditorCompletionItem, EditorCompletionList, EditorDiagnostic, EditorHover, EditorLocation,
     EditorSignatureHelp, EditorSymbol,
@@ -351,6 +354,62 @@ pub async fn lsp_format(
     c.manager
         .format(&c.abs, tab_size.unwrap_or(4), insert_spaces.unwrap_or(true))
         .await
+}
+
+/// Inlay hints of lines `start_line..=end_line` (Settings | Editor | Inlay Hints): asked
+/// from the file's servers, grouped and filtered by the settings in
+/// `forge_codeintel::inlay`. `text` is the editor's document, `language_id` its file type.
+#[allow(clippy::too_many_arguments)]
+#[tauri::command]
+pub async fn lsp_inlay_hints(
+    path: String,
+    start_line: u32,
+    end_line: u32,
+    text: String,
+    language_id: Option<String>,
+    app: AppHandle,
+    lsp: State<'_, LspState>,
+    ws: State<'_, AppState>,
+) -> Result<Vec<EditorInlayHint>> {
+    let filter = {
+        let settings = ws.read_settings();
+        InlayFilter::from_settings(language_id.as_deref(), |k| settings.get_bool(k))
+    };
+    if !filter.language_enabled || !(filter.parameter_names || filter.types || filter.return_types)
+    {
+        return Ok(Vec::new());
+    }
+    let c = Ctx::new(&path, &app, &lsp, &ws)?;
+    let range = forge_lsp::lsp_types::Range::new(
+        Position::new(start_line, 0),
+        Position::new(end_line.saturating_add(1), 0),
+    );
+    let raw = c
+        .manager
+        .inlay_hints(&c.abs, range)
+        .await
+        .into_iter()
+        .map(raw_inlay_hint)
+        .collect();
+    Ok(inlay::editor_hints(raw, &text, &filter))
+}
+
+fn raw_inlay_hint(h: InlayHint) -> RawInlayHint {
+    RawInlayHint {
+        line: h.position.line,
+        character: h.position.character,
+        label: match h.label {
+            InlayHintLabel::String(s) => s,
+            InlayHintLabel::LabelParts(parts) => parts.into_iter().map(|p| p.value).collect(),
+        },
+        kind: h.kind.map(|k| if k == InlayHintKind::TYPE { 1 } else { 2 }),
+        padding_left: h.padding_left.unwrap_or(false),
+        padding_right: h.padding_right.unwrap_or(false),
+        tooltip: h.tooltip.map(|t| match t {
+            InlayHintTooltip::String(s) => s,
+            InlayHintTooltip::MarkupContent(m) => m.value,
+        }),
+    }
 }
 
 /// Status of every registered server (for the status bar).

@@ -51,6 +51,11 @@ export function codeintel_apply_edit(request_json: string): string;
 export function codeintel_group_usages(request_json: string): string;
 
 /**
+ * `{ hints, text, languageId?, settings }` → the hints to draw (like `lsp_inlay_hints`).
+ */
+export function codeintel_inlay_hints(request_json: string): string;
+
+/**
  * `ContextAction[]` → the same, in PHPStorm's order without duplicates.
  */
 export function codeintel_order_actions(request_json: string): string;
@@ -498,6 +503,7 @@ export interface InitOutput {
     readonly chat_set_permission: (a: number, b: number, c: number) => void;
     readonly codeintel_apply_edit: (a: number, b: number, c: number) => void;
     readonly codeintel_group_usages: (a: number, b: number, c: number) => void;
+    readonly codeintel_inlay_hints: (a: number, b: number, c: number) => void;
     readonly codeintel_order_actions: (a: number, b: number, c: number) => void;
     readonly codeintel_preview_edit: (a: number, b: number, c: number) => void;
     readonly codeintel_word_range: (a: number, b: number, c: number) => void;

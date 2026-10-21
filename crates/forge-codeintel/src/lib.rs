@@ -11,6 +11,7 @@
 
 pub mod actions;
 pub mod edit;
+pub mod inlay;
 pub mod usages;
 
 pub use actions::{order_actions, ActionKind, ContextAction};

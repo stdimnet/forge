@@ -553,6 +553,8 @@ project = true
 order = 4
 
 # ---- Editor > Inlay Hints ------------------------------------------------------------
+# Hints come from the language servers (`textDocument/inlayHint`); Forge groups and filters
+# them (`forge_codeintel::inlay`).
 
 [[contributions.settings]]
 key = "editor.inlayHints.parameterNames"
@@ -567,6 +569,7 @@ order = 0
 [[contributions.settings]]
 key = "editor.inlayHints.types"
 title = "Inferred variable types"
+description = "The type of variables and properties without a declared type."
 type = "bool"
 default = false
 group = "editor.inlay-hints"
@@ -575,7 +578,8 @@ order = 10
 
 [[contributions.settings]]
 key = "editor.inlayHints.returnTypes"
-title = "Return types of closures"
+title = "Return types of closures and functions"
+description = "The inferred return type after the parameter list when none is declared."
 type = "bool"
 default = true
 group = "editor.inlay-hints"
@@ -583,32 +587,51 @@ section = "Types"
 order = 11
 
 [[contributions.settings]]
-key = "editor.inlayHints.chainedCalls"
-title = "Types in method chains"
+key = "editor.inlayHints.languages.php"
+title = "PHP"
 type = "bool"
 default = true
 group = "editor.inlay-hints"
-section = "Types"
-order = 12
+section = "Languages"
+order = 30
 
 [[contributions.settings]]
-key = "editor.inlayHints.usages"
-title = "Usages"
-description = "Show the number of usages above classes and methods (Code Vision)."
+key = "editor.inlayHints.languages.javascript"
+title = "JavaScript and TypeScript"
+description = "Also Vue, Svelte and Astro files."
+type = "bool"
+default = true
+group = "editor.inlay-hints"
+section = "Languages"
+order = 31
+
+[[contributions.settings]]
+key = "editor.inlayHints.languages.lua"
+title = "Lua"
+type = "bool"
+default = true
+group = "editor.inlay-hints"
+section = "Languages"
+order = 32
+
+[[contributions.settings]]
+key = "editor.inlayHints.languages.other"
+title = "Other languages"
+type = "bool"
+default = true
+group = "editor.inlay-hints"
+section = "Languages"
+order = 33
+
+[[contributions.settings]]
+key = "editor.inlayHints.implementations"
+title = "Implementations and inheritors"
+description = "Show \"2 implementations\", \"3 inheritors\" and \"1 override\" above PHP classes and methods (Code Vision). Click to go there."
 type = "bool"
 default = true
 group = "editor.inlay-hints"
 section = "Code Vision"
 order = 20
-
-[[contributions.settings]]
-key = "editor.inlayHints.implementations"
-title = "Implementations and inheritors"
-type = "bool"
-default = true
-group = "editor.inlay-hints"
-section = "Code Vision"
-order = 21
 
 # ---- Tools > HTTP Client ---------------------------------------------------------------
 
