@@ -893,6 +893,36 @@ screenshots.
   dirty markers agree; Playwright two-context scenario converges; binary size growth measured
   and noted in the PR.
 
+**S1 as built (deviations from the text above)**
+
+- Hosting is off unless `FORGE_CWM_DEV=1` is set in the environment. Without it Start Session
+  explains why and nothing listens. Sessions show a "development preview" notice in the popup,
+  because guests are admitted automatically (`DevAutoAccept`, the seam S2 replaces with the
+  approval balloon). Only the Read-only, Edit files and Full access presets exist; Custom
+  arrives with S2.
+- `collab_start({ level })` takes the preset name (not a permissions table) and answers with
+  the `SessionView`; `collab_join({ link })` does the same for guests. `collab_doc_open`
+  answers with raw bytes (u32 length, JSON header, Yjs update). `collab_doc_update` and
+  `collab_awareness` carry base64 strings, and `collab://doc` events carry base64 updates;
+  raw binary events are a later optimization.
+- `SaveState` is `{ hash }`: `<UTF-16 length>:<FNV-1a 32>` of the saved text, computed
+  identically in Rust (`protocol::text_hash`) and in `contentHash` (`state/editor.ts`). A tab
+  is dirty when `contentHash(content)` differs from it. The state vector is not part of it.
+- On Start Session the host shares every project file that is open in the editor (excluded
+  and oversized files stay normal tabs) and every file opened later; the guest opens the
+  host's shared files from the session popup ("Shared files", Tools | Code With Me | Open
+  Shared File…) and opens the first ten on join.
+- Guest tabs have the path `cwm://<path>` so they never mix with the guest's own project,
+  which stays open in S1 (S3 replaces this with the host's project as backend).
+- The transport is iroh 1.3 over QUIC with direct addresses only (no relay, no discovery);
+  `MemoryTransport` drives the simulation tests.
+- Browser mode: `?collab=host` and `?collab=guest` pages exchange Yjs updates through a
+  `BroadcastChannel`, or through `window.__cwmOut` / `__cwmReceive` that the Playwright
+  scenario bridges between two browser contexts. Link parsing in the mock is a plain regex;
+  the WebAssembly bridge from the plan is not used yet.
+- Binary size was not measured in S1 (the build machine had too little disk for a release
+  build); do it before merging.
+
 ### S2 — Host approval, permissions, audit log (5 d)
 
 - Approval balloon with verification code, Join Session dialog and waiting state, Decline and
