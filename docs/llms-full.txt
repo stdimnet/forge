@@ -1223,9 +1223,13 @@ rename:
 
 When the rename would break something, the **Problems Detected** dialog lists the problems
 first (a class or member with the new name already exists, a file with the new name is in the
-way) together with every occurrence; **Continue** renames anyway, **Cancel** keeps the old name.
+way) together with every occurrence; **Continue** renames anyway, **Cancel** keeps the old name
+and **Show in View** cancels and lists the problems in the Find tool window. In PHP files the
+check also runs when a language server computes the rename.
 
 ![Problems Detected](docs/screenshots/rename-refactoring-preview.png)
+
+![Rename conflicts in the Find tool window](docs/screenshots/rename-conflicts-in-find.png)
 
 ![Rename dialog](docs/screenshots/rename-dialog.png)
 
@@ -7266,7 +7270,7 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Find Previous / Move to Previous Occurrence | `FindPrevious` | `Shift+F3` | `Cmd+Shift+G` | yes |
 | Find Word at Caret | `FindWordAtCaret` | `Ctrl+F3` | `Alt+Cmd+F3` | — |
 | Find in Files… | `FindInPath` | `Ctrl+Shift+F` | `Cmd+Shift+F` | yes |
-| Replace in Files… | `ReplaceInPath` | `Ctrl+Shift+R` | `Cmd+Shift+R` | — |
+| Replace in Files… | `ReplaceInPath` | `Ctrl+Shift+R` | `Cmd+Shift+R` | yes |
 | Find Usages | `FindUsages` | `Alt+F7` | `Alt+F7` | yes |
 | Find Usages in File | `FindUsagesInFile` | `Ctrl+F7` | `Cmd+F7` | — |
 | Highlight Usages in File | `HighlightUsagesInFile` | `Ctrl+Shift+F7` | `Cmd+Shift+F7` | — |
@@ -7717,7 +7721,7 @@ Undo, clipboard, find and replace, selection and line editing. Open it with ☰ 
 | Find › Add Selection for Next Occurrence | `Alt+J` | `Ctrl+G` | yes | Adds the next occurrence of the selected text as another selection (multiple carets). [More](docs/guide/user/editor.md#editing-actions) |
 | Find › Unselect Occurrence | `Alt+Shift+J` | `Ctrl+Shift+G` | yes | Removes the occurrence added last. [More](docs/guide/user/editor.md#editing-actions) |
 | Find › Find in Files… | `Ctrl+Shift+F` | `Cmd+Shift+F` | yes | Searches the text of all project files, with match case, whole words, regular expressions, file masks and a folder scope. [More](docs/guide/user/search-everywhere.md#find-in-files) ([screenshot](docs/screenshots/docs-find-in-files.png)) |
-| Find › Replace in Files… | `Ctrl+Shift+R` | `Cmd+Shift+R` | not yet | Not available yet; the entry is disabled. |
+| Find › Replace in Files… | `Ctrl+Shift+R` | `Cmd+Shift+R` | yes | Opens the Find tool window's Find in Files tab with a **Replace with** field, a preview of every changed line and undo. [More](docs/guide/user/search-everywhere.md#find-in-files) |
 | Find › Search Structurally… | — | — | not yet | Not available yet; the entry is disabled. |
 | **Find Usages** | | | | submenu |
 | Find Usages › Find Usages | `Alt+F7` | `Alt+F7` | yes | Shows the usages of the symbol at the caret in the Find tool window. [More](docs/guide/user/editor.md#find-usages-and-show-usages) ([screenshot](docs/screenshots/php-nav-find-window.png)) |
