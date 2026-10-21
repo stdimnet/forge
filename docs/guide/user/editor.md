@@ -489,6 +489,8 @@ markers.
 - **Bookmarks**: a bookmark icon, or the bookmark's mnemonic, on bookmarked lines (`F11`,
   `Ctrl+F11`). See [Bookmarks](workbench.md#bookmarks).
 - **Annotate with Git Blame**: right-click the gutter. See [Git](git.md#blame).
+- **Color swatches** next to colors in CSS, markup and scripts; click one to open the color
+  picker. See [Emmet and color previews](emmet-and-colors.md#color-previews).
 
 ## Context menu
 

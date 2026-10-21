@@ -111,6 +111,8 @@ Page id `editor.general`.
 | `editor.stripTrailingSpaces` | enum: `none`, `modified`, `all` | `modified` | user | On Save | Remove trailing spaces on |
 | `editor.ensureNewlineAtEof` | bool | `true` | user | On Save | Ensure every saved file ends with a line break |
 | `editor.clipboard.maxContents` | int (1–100) | `20` | user | Limits | Maximum number of contents to keep in clipboard |
+| `editor.colorPreview.gutter` | bool | `true` | user | Appearance | Show color preview in the gutter — Swatches next to colors in CSS, markup and scripts; click one to open the color picker. |
+| `editor.colorPreview.inline` | bool | `false` | user | Appearance | Show color preview inline |
 | `run.console.softWrap` | bool | `false` | user | Console | Use soft wraps in console |
 | `run.console.cycleBufferKb` | int (100–100000) | `1024` | user | Console | Override console cycle buffer size (KB) — Run consoles drop their oldest lines beyond this size. Applies to runs started afterwards. |
 
@@ -205,6 +207,23 @@ Page id `editor.liveTemplates`.
 | `editor.liveTemplates.expandKey` | enum: `tab`, `space`, `enter` | `tab` | user |  | By default expand with — Key that expands a live template abbreviation. |
 | `editor.liveTemplates.custom` | objects | `[]` | user |  | User and changed templates — New templates and changes to built-in ones: group, abbreviation, description, text, contexts (comma-separated), variables (JSON), builtin (id of the replaced built-in template) and removed. |
 | `editor.liveTemplates.disabled` | list | `[]` | user |  | Disabled templates — Ids (`group/abbreviation`) of templates that do not expand. |
+
+### Editor | Emmet
+
+Page ids `editor.emmet`, `editor.emmet.html`, `editor.emmet.css`, `editor.emmet.jsx`.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `editor.emmet.expandKey` | enum: `tab`, `enter`, `space` | `tab` | user |  | Expand abbreviation with — Live templates and postfix templates expand first when they match. |
+| `editor.emmet.html.enabled` | bool | `true` | user |  | Enable Emmet (HTML) — In HTML, Blade, Twig and other template files, Vue templates and the HTML of PHP files. |
+| `editor.emmet.html.preview` | bool | `false` | user |  | Enable abbreviation preview — Show the expanded markup in a popup while typing an abbreviation. |
+| `editor.emmet.html.hrefAutoDetect` | bool | `true` | user |  | Enable automatic URL recognition while wrapping text with `<a>` tag |
+| `editor.emmet.css.enabled` | bool | `true` | user |  | Enable Emmet (CSS) — In CSS, SCSS, Less, Sass and Stylus, and in `<style>` blocks. |
+| `editor.emmet.jsx.enabled` | bool | `true` | user |  | Enable Emmet in JSX |
+| `editor.emmet.jsx.classAttribute` | enum: `className`, `class` | `className` | user |  | Class attribute — Attribute written for .class abbreviations in JSX and TSX files. |
+
+The color picker keeps `editor.colorPicker.recentColors` (list, user scope, not shown on a
+page): the recently used colors, newest first.
 
 ### Editor | Language Injections
 

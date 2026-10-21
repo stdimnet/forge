@@ -1815,11 +1815,13 @@ dependencies = [
  "forge-ai",
  "forge-backend",
  "forge-bookmarks",
+ "forge-colors",
  "forge-containers",
  "forge-core",
  "forge-db",
  "forge-debug",
  "forge-editing",
+ "forge-emmet",
  "forge-file-templates",
  "forge-filetypes",
  "forge-forges",
@@ -1914,6 +1916,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "forge-colors"
+version = "0.1.0"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "forge-containers"
 version = "0.1.0"
 dependencies = [
@@ -1990,6 +1999,14 @@ dependencies = [
 
 [[package]]
 name = "forge-editing"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "forge-emmet"
 version = "0.1.0"
 dependencies = [
  "serde",
@@ -2360,8 +2377,10 @@ dependencies = [
  "forge-agent-cli",
  "forge-bookmarks",
  "forge-codeintel",
+ "forge-colors",
  "forge-containers",
  "forge-editing",
+ "forge-emmet",
  "forge-file-templates",
  "forge-filetypes",
  "forge-find",

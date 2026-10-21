@@ -501,6 +501,108 @@ default = []
 group = "editor.postfix"
 order = 3
 
+# ---- Editor > Emmet --------------------------------------------------------------------
+
+[[contributions.settings]]
+key = "editor.emmet.expandKey"
+title = "Expand abbreviation with"
+description = "Live templates and postfix templates expand first when they match."
+type = "enum"
+options = [
+  { value = "tab", label = "Tab" },
+  { value = "enter", label = "Enter" },
+  { value = "space", label = "Space" },
+]
+default = "tab"
+group = "editor.emmet"
+order = 0
+
+[[contributions.settings]]
+key = "editor.emmet.html.enabled"
+title = "Enable Emmet"
+description = "In HTML, Blade, Twig and other template files, Vue templates and the HTML of PHP files."
+type = "bool"
+default = true
+group = "editor.emmet.html"
+order = 0
+
+[[contributions.settings]]
+key = "editor.emmet.html.preview"
+title = "Enable abbreviation preview"
+description = "Show the expanded markup in a popup while typing an abbreviation."
+type = "bool"
+default = false
+group = "editor.emmet.html"
+order = 1
+
+[[contributions.settings]]
+key = "editor.emmet.html.hrefAutoDetect"
+title = "Enable automatic URL recognition while wrapping text with <a> tag"
+type = "bool"
+default = true
+group = "editor.emmet.html"
+order = 2
+
+[[contributions.settings]]
+key = "editor.emmet.css.enabled"
+title = "Enable Emmet"
+description = "In CSS, SCSS, Less, Sass and Stylus, and in <style> blocks: m10, p10-20, df, pos:a, bgc#fff …"
+type = "bool"
+default = true
+group = "editor.emmet.css"
+order = 0
+
+[[contributions.settings]]
+key = "editor.emmet.jsx.enabled"
+title = "Enable Emmet in JSX"
+type = "bool"
+default = true
+group = "editor.emmet.jsx"
+order = 0
+
+[[contributions.settings]]
+key = "editor.emmet.jsx.classAttribute"
+title = "Class attribute"
+description = "Attribute written for .class abbreviations in JSX and TSX files."
+type = "enum"
+options = [
+  { value = "className", label = "className" },
+  { value = "class", label = "class" },
+]
+default = "className"
+group = "editor.emmet.jsx"
+order = 1
+
+# ---- Editor > General > Appearance: color preview ----------------------------------------
+
+[[contributions.settings]]
+key = "editor.colorPreview.gutter"
+title = "Show color preview in the gutter"
+description = "Swatches next to colors in CSS, markup and scripts; click one to open the color picker."
+type = "bool"
+default = true
+group = "editor.general"
+section = "Appearance"
+order = 33
+
+[[contributions.settings]]
+key = "editor.colorPreview.inline"
+title = "Show color preview inline"
+type = "bool"
+default = false
+group = "editor.general"
+section = "Appearance"
+order = 34
+
+[[contributions.settings]]
+key = "editor.colorPicker.recentColors"
+title = "Recently used colors"
+description = "Colors picked in the color picker, newest first."
+type = "list"
+default = []
+group = "editor.colorPicker"
+order = 0
+
 # ---- Editor > General > Editor Tabs ---------------------------------------------------
 
 [[contributions.settings]]

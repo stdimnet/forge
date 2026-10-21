@@ -48,6 +48,8 @@ import "./notifications";
 import "./actionsOnSave";
 import "./updates";
 import "./fileTemplates";
+import "./emmet";
+import "./colors";
 import "./markdown";
 import "./images";
 import "./csv";

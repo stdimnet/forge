@@ -302,9 +302,28 @@ export interface CartItem {
   quantity: number;
 }
 `,
-  "src/styles/app.css": `.page { max-width: 1200px; margin: 0 auto; }
+  "src/styles/app.css": `:root {
+  --brand: #6d28d9;
+  --brand-soft: rgb(109 40 217 / 12%);
+  --text-muted: hsl(220, 9%, 46%);
+}
+
+.page { max-width: 1200px; margin: 0 auto; }
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
-.card { border-radius: 12px; padding: 12px; }
+
+.card {
+  border-radius: 12px;
+  padding: 12px;
+  background: white;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
+}
+
+.badge {
+  color: #047857;
+  background: rgba(16, 185, 129, 0.15);
+}
+
+.price { color: tomato; font-weight: 600; }
 `,
 };
 

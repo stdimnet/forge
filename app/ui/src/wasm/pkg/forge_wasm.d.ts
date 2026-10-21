@@ -133,6 +133,21 @@ export function codeintel_type_info(request_json: string): string;
 export function codeintel_word_range(request_json: string): string;
 
 /**
+ * `FindRequest` → `ColorMatch[]`.
+ */
+export function colors_find(request_json: string): string;
+
+/**
+ * `FormatRequest` → string.
+ */
+export function colors_format(request_json: string): string;
+
+/**
+ * `{ text }` → `{ color, hex } | null`.
+ */
+export function colors_parse(request_json: string): string;
+
+/**
  * `ComposeCommand` → arguments after `docker`.
  */
 export function containers_compose_args(request_json: string): string;
@@ -249,6 +264,31 @@ export function editing_postfix_complete(request_json: string): string;
  * `{}` → `TemplateInfo[]`.
  */
 export function editing_postfix_templates(_request_json: string): string;
+
+/**
+ * `EditPointRequest` → offset | null.
+ */
+export function emmet_edit_point(request_json: string): string;
+
+/**
+ * `ExpandRequest` → `Expansion | null`.
+ */
+export function emmet_expand(request_json: string): string;
+
+/**
+ * `TagRequest` → `Edit[]` (or `{ error }`).
+ */
+export function emmet_remove_tag(request_json: string): string;
+
+/**
+ * `TagRequest` → `Edit[]` (or `{ error }`).
+ */
+export function emmet_update_tag(request_json: string): string;
+
+/**
+ * `WrapRequest` → `Expansion` (or `{ error }`).
+ */
+export function emmet_wrap(request_json: string): string;
 
 /**
  * `DetectRequest` → `FileTypeInfo[]`.
@@ -793,6 +833,9 @@ export interface InitOutput {
     readonly codeintel_rename_edit: (a: number, b: number, c: number) => void;
     readonly codeintel_type_info: (a: number, b: number, c: number) => void;
     readonly codeintel_word_range: (a: number, b: number, c: number) => void;
+    readonly colors_find: (a: number, b: number, c: number) => void;
+    readonly colors_format: (a: number, b: number, c: number) => void;
+    readonly colors_parse: (a: number, b: number, c: number) => void;
     readonly containers_compose_args: (a: number, b: number, c: number) => void;
     readonly containers_compose_parse: (a: number, b: number, c: number) => void;
     readonly containers_docker_contexts: (a: number, b: number, c: number) => void;
@@ -816,6 +859,11 @@ export interface InitOutput {
     readonly editing_expand_word: (a: number, b: number, c: number) => void;
     readonly editing_postfix_complete: (a: number, b: number, c: number) => void;
     readonly editing_postfix_templates: (a: number, b: number, c: number) => void;
+    readonly emmet_edit_point: (a: number, b: number, c: number) => void;
+    readonly emmet_expand: (a: number, b: number, c: number) => void;
+    readonly emmet_remove_tag: (a: number, b: number, c: number) => void;
+    readonly emmet_update_tag: (a: number, b: number, c: number) => void;
+    readonly emmet_wrap: (a: number, b: number, c: number) => void;
     readonly filetypes_detect: (a: number, b: number, c: number) => void;
     readonly filetypes_load: (a: number, b: number, c: number) => void;
     readonly filetypes_template_delimiters: (a: number) => void;

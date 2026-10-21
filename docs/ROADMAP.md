@@ -45,7 +45,7 @@ are in [research/jetbrains-gap-analysis.md](research/jetbrains-gap-analysis.md).
 - [x] Language injections (SQL/HTML/JSON/RegExp in PHP and JS strings, `// language=`, Edit Fragment, Run injected SQL)
 - [x] Multiple carets from the keyboard (Clone Caret Above/Below, Column Selection Mode) and Paste from History
 - [x] Actions on Save (reformat, optimize imports, rearrange, code cleanup, run tools)
-- [ ] Emmet, color previews and picker
+- [x] Emmet, color previews and picker
 - [x] Markdown preview (Mermaid, links), image/SVG viewer, CSV/TSV table editor
 - [ ] Sticky lines, structure breadcrumbs, Reader mode / rendered doc comments, custom folding regions
 - [ ] Spellchecking and grammar for comments, strings and identifiers
