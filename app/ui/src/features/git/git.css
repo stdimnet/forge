@@ -123,6 +123,24 @@
   background: var(--bg-editor);
   user-select: text;
 }
+/* Commit message inspections below the message. */
+.commit-problems {
+  list-style: none;
+  margin: 4px 10px 0;
+  padding: 0;
+  font-size: var(--fs-small);
+  color: var(--warning);
+}
+.commit-problems li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 1px 0;
+  cursor: pointer;
+}
+.commit-problems li:hover span {
+  text-decoration: underline;
+}
 .commit-options {
   display: flex;
   align-items: center;

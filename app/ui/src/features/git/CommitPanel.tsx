@@ -12,11 +12,16 @@ import {
   RefreshCw,
   Settings,
   Sparkles,
+  TriangleAlert,
   Undo2,
 } from "lucide-solid";
 import { FileIcon } from "@/shell/FileIcon";
 import { openFile } from "@/state/editor";
 import { workspaceApi } from "@/ipc/workspace";
+import { textApi, type CommitMessageProblem } from "@/ipc/text";
+import { getSetting, saveSetting } from "@/state/settings";
+import { askChoice } from "@/features/contextMenu/dialogs";
+import { openSettings } from "@/features/settings/dialogState";
 import { displayStatus, gitApi, type StatusEntry } from "./api";
 import { notify, repositoryChanged, status } from "./store";
 import { commitChanges, confirmRollback, showDiff } from "./actions";
@@ -32,8 +37,52 @@ const [selected, setSelected] = createSignal<string | null>(null);
 const [collapsed, setCollapsed] = createSignal<Set<string>>(new Set());
 const [generating, setGenerating] = createSignal(false);
 const [busy, setBusy] = createSignal(false);
+const [problems, setProblems] = createSignal<CommitMessageProblem[]>([]);
 
 export { setMessage as setCommitMessage, message as commitMessage };
+
+// Commit message inspections (Settings | Version Control | Git), computed in Rust while typing.
+createRoot(() => {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  createEffect(() => {
+    const text = message();
+    const rules = {
+      subjectMaxLength: getSetting<number>("vcs.git.commit.subjectMaxLength", 72),
+      blankLineAfterSubject: getSetting<boolean>("vcs.git.commit.blankLineAfterSubject", true),
+      bodyRightMargin: getSetting<number>("vcs.git.commit.bodyRightMargin", 72),
+    };
+    clearTimeout(timer);
+    if (!text.trim()) {
+      setProblems([]);
+      return;
+    }
+    timer = setTimeout(() => {
+      void textApi
+        .inspectCommitMessage(text, rules)
+        .then((p) => {
+          if (message() === text) setProblems(p);
+        })
+        .catch(() => setProblems([]));
+    }, 150);
+  });
+});
+
+/**
+ * "Warn if CRLF line separators are about to be committed": ask before committing files
+ * with CRLF separators (unless git converts them, see `git_crlf_files`).
+ */
+async function confirmLineSeparators(paths: string[]): Promise<boolean> {
+  if (!paths.length || !getSetting<boolean>("vcs.git.commit.warnOnCrlf", true)) return true;
+  const crlf = await gitApi.crlfFiles(paths).catch(() => [] as string[]);
+  if (!crlf.length) return true;
+  const list = crlf.slice(0, 5).join(", ") + (crlf.length > 5 ? ` and ${crlf.length - 5} more` : "");
+  const choice = await askChoice({
+    title: "Line Separators Warning",
+    message: `You are about to commit CRLF line separators (${list}). Setting the core.autocrlf Git attribute to true avoids line separator issues.`,
+    choices: [{ id: "commit", label: "Commit As Is" }],
+  });
+  return choice === "commit";
+}
 
 const changes = () => (status()?.entries ?? []).filter((e) => e.worktree !== "untracked" && e.worktree !== "ignored");
 const unversioned = () => (status()?.entries ?? []).filter((e) => e.worktree === "untracked");
@@ -190,6 +239,7 @@ async function doCommit(pushAfter: boolean) {
   if (busy()) return;
   setBusy(true);
   try {
+    if (!(await confirmLineSeparators(checkedPaths()))) return;
     const ok = await commitChanges({ message: message(), amend: amend(), paths: checkedPaths(), push: pushAfter });
     if (ok) {
       setMessage("");
@@ -301,10 +351,32 @@ export function CommitPanel() {
             }
           }}
         />
+        <Show when={problems().length}>
+          <ul class="commit-problems" data-commit-problems>
+            <For each={problems()}>
+              {(p) => (
+                <li title="Settings | Version Control | Git | Commit Message Inspections" onClick={() => openSettings("vcs.git")}>
+                  <TriangleAlert size={12} />
+                  <span>
+                    Line {p.line + 1}: {p.message}
+                  </span>
+                </li>
+              )}
+            </For>
+          </ul>
+        </Show>
         <div class="commit-options">
           <label class="commit-amend">
             <input type="checkbox" checked={amend()} onChange={(e) => void toggleAmend(e.currentTarget.checked)} />
             Amend
+          </label>
+          <label class="commit-amend" title="Add a Signed-off-by line (Settings | Version Control | Git)">
+            <input
+              type="checkbox"
+              checked={getSetting<boolean>("vcs.git.commit.signOff", false)}
+              onChange={(e) => void saveSetting("vcs.git.commit.signOff", e.currentTarget.checked)}
+            />
+            Sign-off
           </label>
           <Show when={generating()}>
             <span class="muted ai-status">Generating commit message…</span>

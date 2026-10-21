@@ -144,7 +144,10 @@ export const gitApi = {
   commit: (message: string, amend: boolean, paths: string[] | null) =>
     invoke<string>("git_commit", { message, amend, paths }),
   push: (force = false) => invoke<RemoteResult>("git_push", { force }),
-  pull: (rebase = false) => invoke<RemoteResult>("git_pull", { rebase }),
+  /** Without `rebase` the update method of the Git settings applies. */
+  pull: (rebase?: boolean) => invoke<RemoteResult>("git_pull", { rebase: rebase ?? null }),
+  /** Files among `paths` that would commit CRLF line separators. */
+  crlfFiles: (paths: string[]) => invoke<string[]>("git_crlf_files", { paths }),
   fetch: () => invoke<RemoteResult>("git_fetch"),
 };
 

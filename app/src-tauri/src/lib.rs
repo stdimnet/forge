@@ -209,6 +209,7 @@ pub fn run() {
             commands::git::git_push,
             commands::git::git_pull,
             commands::git::git_fetch,
+            commands::git::git_crlf_files,
             commands::forges::forges_accounts,
             commands::forges::forges_login,
             commands::forges::forges_logout,

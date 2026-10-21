@@ -610,6 +610,15 @@ registerMock("git_fetch", async () => {
   changed();
   return { output: "" };
 });
+// The demo repository has no core.autocrlf: files read back with CRLF are reported.
+registerMock("git_crlf_files", async ({ paths }) => {
+  const out: string[] = [];
+  for (const p of paths as string[]) {
+    const file = await invoke<{ eol: string }>("fs_read_text", { path: p }).catch(() => null);
+    if (file?.eol === "\r\n") out.push(p);
+  }
+  return out;
+});
 
 registerMock("ai_complete", async ({ request }) => {
   const req = request as { messages?: { content: string }[] };
