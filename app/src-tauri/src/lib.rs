@@ -242,6 +242,8 @@ pub fn run() {
             commands::php::php_generate_targets,
             commands::php::php_generate,
             commands::php::php_tidy_blank_lines,
+            commands::php::php_language_level,
+            commands::php::php_composer_outdated,
             commands::php::php_detect_servers,
             commands::php::php_lsp_config,
             commands::lua::lua_index_workspace,

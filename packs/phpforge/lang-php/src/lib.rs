@@ -12,6 +12,7 @@
 //! - [`lsp`] describes how to launch Intelephense / phpactor.
 //! - [`style`] brace placement and blank lines of the PHP code style.
 
+pub mod composer;
 pub mod docblock;
 pub mod fuzzy;
 pub mod generate;
