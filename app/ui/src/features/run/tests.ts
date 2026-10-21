@@ -44,6 +44,7 @@ export function applyTestUpdates(tree: TestTreeState, nodes: TestNodeData[], sum
 export function applyConsoleDelta(lines: ConsoleLine[], delta: ConsoleDelta): void {
   if (delta.replaceLast && delta.lines.length && lines.length) lines.pop();
   lines.push(...delta.lines);
+  if (delta.dropFront) lines.splice(0, delta.dropFront);
 }
 
 /** Text of a console line without styles. */

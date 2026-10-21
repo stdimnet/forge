@@ -700,6 +700,7 @@ impl Hub {
                         test_runner: false,
                         root,
                         cwd: None,
+                        cycle_buffer_kb: None,
                     }),
                     lines: Vec::new(),
                 });

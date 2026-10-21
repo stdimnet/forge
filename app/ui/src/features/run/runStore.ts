@@ -15,8 +15,11 @@ import { findConfiguration, selectedConfiguration } from "./configStore";
 import { openRunConfigurations } from "./dialogState";
 import { publishTestResults } from "./testResults";
 
-/** Lines kept per console (PHPStorm's cycle buffer). */
-export const MAX_LINES = 10_000;
+/**
+ * Lines kept per console when the backend sends no cycle buffer trimming (UI messages only;
+ * run output is trimmed in Rust by `run.console.cycleBufferKb`).
+ */
+const MAX_LINES = 100_000;
 
 export type RunStatus = "starting" | "running" | "finished" | "failed";
 

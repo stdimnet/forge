@@ -97,6 +97,8 @@ export interface ConsoleLine {
 export interface ConsoleDelta {
   replaceLast: boolean;
   lines: ConsoleLine[];
+  /** Lines to remove from the start afterwards (the console cycle buffer is full). */
+  dropFront?: number;
 }
 
 export type TestStatus = "running" | "passed" | "failed" | "ignored" | "pending";

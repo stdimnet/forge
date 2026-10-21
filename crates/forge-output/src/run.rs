@@ -2,6 +2,8 @@
 //! tree built from TeamCity service messages on stdout (those lines are not shown in the
 //! console). Output while a test runs is attributed to that test.
 
+use std::collections::VecDeque;
+
 use serde::{Deserialize, Serialize};
 
 use crate::ansi::{AnsiParser, Style};
@@ -21,6 +23,10 @@ pub struct RunOutputOptions {
     /// Working directory of the process (absolute or relative to the root).
     #[serde(default)]
     pub cwd: Option<String>,
+    /// Console cycle buffer: the oldest lines are dropped while the console holds more text
+    /// than this (Settings | Editor | General | Console). `None` keeps everything.
+    #[serde(default)]
+    pub cycle_buffer_kb: Option<usize>,
 }
 
 /// What happened to the process.
@@ -68,6 +74,10 @@ pub struct RunOutput {
     current_test: Option<usize>,
     delta: ConsoleDelta,
     tests_changed: bool,
+    /// Cycle buffer size in bytes, the text size of every line the UI holds and their sum.
+    limit: Option<usize>,
+    sizes: VecDeque<usize>,
+    total: usize,
 }
 
 impl ConsoleDelta {
@@ -100,6 +110,31 @@ impl RunOutput {
             current_test: None,
             delta: ConsoleDelta::default(),
             tests_changed: false,
+            limit: opts.cycle_buffer_kb.map(|kb| kb.max(1) * 1024),
+            sizes: VecDeque::new(),
+            total: 0,
+        }
+    }
+
+    /// Track the lines of `delta` and drop the oldest ones beyond the cycle buffer.
+    fn cycle(&mut self, delta: &mut ConsoleDelta) {
+        let Some(limit) = self.limit else {
+            return;
+        };
+        if delta.replace_last && !delta.lines.is_empty() {
+            if let Some(last) = self.sizes.pop_back() {
+                self.total -= last;
+            }
+        }
+        for line in &delta.lines {
+            let size = line.segments.iter().map(|s| s.text.len()).sum::<usize>() + 1;
+            self.sizes.push_back(size);
+            self.total += size;
+        }
+        // The newest line always stays.
+        while self.total > limit && self.sizes.len() > 1 {
+            self.total -= self.sizes.pop_front().unwrap_or(0);
+            delta.drop_front += 1;
         }
     }
 
@@ -151,7 +186,8 @@ impl RunOutput {
 
     fn take_events(&mut self) -> Vec<OutputEvent> {
         let mut out = Vec::new();
-        let delta = std::mem::take(&mut self.delta);
+        let mut delta = std::mem::take(&mut self.delta);
+        self.cycle(&mut delta);
         if !delta.is_empty() {
             out.push(OutputEvent::Console(delta));
         }
@@ -289,6 +325,7 @@ mod tests {
             test_runner: true,
             root: Some("/p".into()),
             cwd: None,
+            cycle_buffer_kb: None,
         });
         let (lines, events) = run(
             &mut o,
@@ -334,5 +371,30 @@ mod tests {
             "T.php"
         );
         assert_eq!(summary.unwrap().text, "Tests failed: 1 of 1 test – 5 ms");
+    }
+
+    #[test]
+    fn drops_the_oldest_lines_beyond_the_cycle_buffer() {
+        let mut o = RunOutput::new(&RunOutputOptions {
+            cycle_buffer_kb: Some(1),
+            ..RunOutputOptions::default()
+        });
+        let line = format!("{}\n", "x".repeat(99));
+        let inputs: Vec<RunInput> = (0..30)
+            .map(|_| RunInput::Output {
+                stream: "stdout".into(),
+                text: line.clone(),
+            })
+            .collect();
+        let (lines, events) = run(&mut o, &inputs);
+        // 1 KB holds ten 100-byte lines (plus the open line after the last break).
+        assert!(lines.len() <= 11, "{}", lines.len());
+        assert!(lines.len() >= 9, "{}", lines.len());
+        assert!(events
+            .iter()
+            .any(|e| matches!(e, OutputEvent::Console(d) if d.drop_front > 0)));
+        // Without a limit everything stays.
+        let mut all = RunOutput::new(&RunOutputOptions::default());
+        assert_eq!(run(&mut all, &inputs).0.len(), 31);
     }
 }
