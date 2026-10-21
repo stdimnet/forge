@@ -157,7 +157,9 @@ rename:
 
 When the rename would break something, the **Problems Detected** dialog lists the problems
 first (a class or member with the new name already exists, a file with the new name is in the
-way) together with every occurrence; **Continue** renames anyway, **Cancel** keeps the old name.
+way) together with every occurrence; **Continue** renames anyway, **Cancel** keeps the old name
+and **Show in View** cancels and lists the problems in the Find tool window. In PHP files the
+check also runs when a language server computes the rename.
 
 ![Problems Detected](../../screenshots/rename-refactoring-preview.png)
 

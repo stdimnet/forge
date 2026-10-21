@@ -904,6 +904,16 @@ pub async fn code_rename(
                 symbol = Some(found.symbol);
                 source = "index";
             }
+        } else if php {
+            // A language server renamed it: the index still knows the symbol, so name clashes
+            // are reported like for an index rename.
+            let offset = codeintel::utf16_offset(&text, Position::new(line, character));
+            symbol = backend
+                .php()
+                .usages(&path, offset, Some(text.clone()))
+                .ok()
+                .flatten()
+                .map(|found| found.symbol);
         }
         let mut edit = edit
             .filter(|e| !e.is_empty())
