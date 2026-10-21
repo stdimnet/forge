@@ -95,6 +95,7 @@ pub fn run() {
         .manage(run_state)
         .manage(commands::symfony::SymfonyState::default())
         .manage(commands::workbench::BookmarksState::default())
+        .manage(commands::clipboard::ClipboardState::default())
         .invoke_handler(tauri::generate_handler![
             commands::workspace::workspace_open,
             commands::workspace::workspace_current,
@@ -109,6 +110,10 @@ pub fn run() {
             commands::editor::editor_postfix_complete,
             commands::editor::editor_complete_statement,
             commands::editor::editor_expand_word,
+            commands::clipboard::clipboard_history_add,
+            commands::clipboard::clipboard_history_list,
+            commands::clipboard::clipboard_history_remove,
+            commands::clipboard::clipboard_history_promote,
             commands::templates::templates_list,
             commands::templates::templates_validate,
             commands::templates::templates_php_namespace,
