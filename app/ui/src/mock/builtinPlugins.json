@@ -781,7 +781,7 @@
         {
           "key": "search.findInFiles.maxMatches",
           "title": "Maximum matches in the Find window",
-          "description": "0 shows up to one million matches. Searches that match millions of lines are slow to transfer and display. The Search Everywhere popup always stays limited.",
+          "description": "0 shows every match. Searches that match millions of lines are slow to transfer and display. The Search Everywhere popup always stays limited.",
           "type": "int",
           "min": 0,
           "max": 100000000,

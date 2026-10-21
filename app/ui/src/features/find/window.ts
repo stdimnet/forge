@@ -8,8 +8,8 @@ import { showToolWindow } from "@/state/layout";
 
 export const FIND_TOOL_WINDOW = "find";
 
-/** What "no limit" means in the request: a pattern like `.*` matches every line of the project. */
-const UNLIMITED = 1_000_000;
+/** Stands in for "no limit" in the request. */
+const UNLIMITED = 100_000_000;
 /** Rows fetched per request; the rest follows while the list is scrolled. */
 const PAGE_ROWS = 2000;
 
