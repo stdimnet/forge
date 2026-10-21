@@ -21,6 +21,12 @@ use crate::protocol::{
 use crate::transport::{read_msg, write_msg, Transport};
 use crate::verify::{join_proof, verification_code};
 
+// Project calls of the guest's backend (`guest_backend::CollabBackend`).
+#[path = "guest_backend/session_calls.rs"]
+mod session_calls;
+pub use session_calls::DiagnosticsSink;
+use session_calls::GuestCalls;
+
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(20);
 /// How long the host may take to let a guest in (the host approval waits for a person).
 const ADMISSION_TIMEOUT: Duration = Duration::from_secs(120);
@@ -77,6 +83,7 @@ pub struct GuestSession {
     next_request: AtomicU64,
     host_label: String,
     code: String,
+    calls: GuestCalls,
 }
 
 impl GuestSession {
@@ -139,6 +146,7 @@ impl GuestSession {
             next_request: AtomicU64::new(1),
             host_label: link.summary().host_label,
             code: verification_code(&link.host_id, &me, &link.session_id),
+            calls: GuestCalls::new(),
         });
 
         tokio::spawn(async move {
@@ -165,6 +173,7 @@ impl GuestSession {
             let was_ended = std::mem::replace(&mut reader.state().ended, true);
             reader.state().opens.clear();
             reader.state().saves.clear();
+            reader.calls.fail_all();
             if !was_ended {
                 sink(GuestEvent::Ended(reason));
             }
@@ -177,6 +186,9 @@ impl GuestSession {
     }
 
     fn dispatch(&self, msg: HostMessage, sink: &GuestSink) {
+        if self.dispatch_call_message(&msg) {
+            return;
+        }
         match msg {
             HostMessage::Participants { participants } => {
                 self.state().participants = participants;
@@ -237,7 +249,10 @@ impl GuestSession {
             HostMessage::Denied { reason } => sink(GuestEvent::Denied(reason)),
             HostMessage::Welcome { .. }
             | HostMessage::Refused { .. }
-            | HostMessage::Ended { .. } => {}
+            | HostMessage::Ended { .. }
+            | HostMessage::CallResult { .. }
+            | HostMessage::FsChanged { .. }
+            | HostMessage::Diagnostics { .. } => {}
         }
     }
 

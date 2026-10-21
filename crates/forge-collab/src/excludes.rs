@@ -70,8 +70,10 @@ impl Excludes {
             if rest.is_empty() {
                 return Err(Error::InvalidPattern(line.to_string()));
             }
+            // Case-insensitive: `.ENV` is the same file as `.env` on macOS and Windows.
             let glob: Glob = GlobBuilder::new(rest)
                 .literal_separator(true)
+                .case_insensitive(true)
                 .build()
                 .map_err(|_| Error::InvalidPattern(line.to_string()))?;
             rules.push(Rule {
@@ -163,6 +165,15 @@ mod tests {
         ] {
             assert!(!e.is_excluded(visible), "{visible} is hidden");
         }
+    }
+
+    #[test]
+    fn matching_ignores_case_because_some_file_systems_do() {
+        let e = Excludes::defaults();
+        assert!(e.is_excluded(".ENV"));
+        assert!(e.is_excluded("Keys/Server.PEM"));
+        assert!(e.is_excluded("Auth.json"));
+        assert!(!e.is_excluded(".ENV.EXAMPLE"));
     }
 
     #[test]

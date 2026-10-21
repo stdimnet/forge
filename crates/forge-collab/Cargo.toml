@@ -10,7 +10,11 @@ default = ["runtime", "net"]
 # Sessions (host and guest), the transports and the document store. Without it only the
 # pure modules are built (links, permissions, protocol, verification, excludes, presence),
 # e.g. for WebAssembly.
-runtime = ["dep:tokio", "dep:tracing", "dep:yrs", "dep:forge-backend", "dep:forge-core", "dep:getrandom"]
+runtime = [
+    "dep:tokio", "dep:tracing", "dep:yrs", "dep:forge-backend", "dep:forge-core", "dep:getrandom",
+    "dep:forge-vcs", "dep:forge-process", "dep:forge-lsp", "dep:forge-project", "dep:futures-util",
+    "dep:phpforge-lang-php", "dep:phpforge-fw-laravel",
+]
 
 # The network transport (iroh, direct connections).
 net = ["runtime", "dep:iroh"]
@@ -32,6 +36,13 @@ tracing = { workspace = true, optional = true }
 yrs = { version = "0.28", optional = true }
 forge-backend = { workspace = true, optional = true }
 forge-core = { workspace = true, optional = true }
+forge-vcs = { workspace = true, optional = true }
+forge-process = { workspace = true, optional = true }
+forge-lsp = { workspace = true, optional = true }
+forge-project = { workspace = true, optional = true }
+futures-util = { version = "0.3", optional = true }
+phpforge-lang-php = { path = "../../packs/phpforge/lang-php", optional = true }
+phpforge-fw-laravel = { path = "../../packs/phpforge/fw-laravel", optional = true }
 getrandom = { version = "0.3", optional = true }
 iroh = { version = "~1.3", optional = true, default-features = false, features = ["tls-ring"] }
 
@@ -39,3 +50,4 @@ iroh = { version = "~1.3", optional = true, default-features = false, features =
 proptest = "~1.11"
 tempfile.workspace = true
 tokio = { workspace = true, features = ["full"] }
+phpforge-fw-symfony = { path = "../../packs/phpforge/fw-symfony" }

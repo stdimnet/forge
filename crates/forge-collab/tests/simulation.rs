@@ -429,7 +429,7 @@ async fn read_only_guests_cannot_change_anything() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn only_files_the_host_shares_can_be_opened() {
+async fn guests_open_any_visible_file_but_the_shared_list_holds_the_hosts_tabs() {
     let mut h = Harness::new(Permissions::FULL_ACCESS);
     // The host cannot share secrets, Git internals or files outside the project.
     assert!(h.host.open_doc(".env", None).await.is_err());
@@ -450,9 +450,12 @@ async fn only_files_the_host_shares_can_be_opened() {
             .collect::<Vec<_>>(),
         ["app/Order.php"]
     );
-    assert!(
-        alex.open("README.md").await.is_err(),
-        "not open on the host"
+    // The project tree is the guest's (S3): any visible file opens, created on demand.
+    assert!(alex.open("README.md").await.is_ok());
+    assert_eq!(
+        alex.guest.files().len(),
+        1,
+        "only the host's tabs are listed"
     );
     assert!(alex.open(".env").await.is_err());
     assert!(alex.open("../../etc/passwd").await.is_err());

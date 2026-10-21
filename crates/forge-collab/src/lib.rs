@@ -16,6 +16,8 @@
 //! - [`docs`]: the host's authoritative `yrs` copy of each shared file.
 //! - [`host`]: the host's session: admission, shared documents, saving, disk changes.
 //! - [`guest`]: a guest's session, forwarding between its editor and the host.
+//! - [`guest_backend`]: the host's project as a guest's project backend (tree, search, git,
+//!   language servers, PHP), with the host's enforcement.
 //! - [`transport`]: the [`transport::Transport`] trait and the in-memory transport for tests.
 
 pub mod excludes;
@@ -30,6 +32,8 @@ pub mod verify;
 pub mod docs;
 #[cfg(feature = "runtime")]
 pub mod guest;
+#[cfg(feature = "runtime")]
+pub mod guest_backend;
 #[cfg(feature = "runtime")]
 pub mod host;
 #[cfg(feature = "runtime")]
