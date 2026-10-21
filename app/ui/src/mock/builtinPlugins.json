@@ -698,6 +698,19 @@
           "group": "tools.http-client",
           "project": true,
           "order": 0
+        },
+        {
+          "key": "search.findInFiles.maxMatches",
+          "title": "Maximum matches in the Find window",
+          "description": "0 shows every match. Searches that match millions of lines are slow to transfer and display. The Search Everywhere popup always stays limited.",
+          "type": "int",
+          "min": 0,
+          "max": 100000000,
+          "default": 0,
+          "group": "tools.search",
+          "section": "Find in Files",
+          "project": false,
+          "order": 0
         }
       ],
       "lspServers": [],

@@ -92,7 +92,7 @@ impl AppState {
     /// Open a local folder as the project.
     pub fn set_workspace(&self, ws: Workspace) {
         let backend: Option<Arc<dyn Backend>> = match LocalBackend::open(ws.root()) {
-            Ok(b) => Some(Arc::new(b)),
+            Ok(b) => Some(Arc::new(b.with_search_index())),
             Err(e) => {
                 tracing::warn!("cannot open {}: {e}", ws.root().display());
                 None
