@@ -66,24 +66,45 @@ impl RemoteHost {
     }
 }
 
+/// The host of a Code With Me session whose project this backend shows.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CollabHost {
+    /// The host's user name.
+    pub name: String,
+    /// `name (machine)`, as shown in the title and the status bar.
+    pub label: String,
+}
+
 /// What a backend serves.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BackendInfo {
     /// Project name (the root folder's name).
     pub name: String,
-    /// Absolute project root on the machine that serves it.
+    /// Absolute project root on the machine that serves it. For a Code With Me guest this is
+    /// a placeholder (`/<name>`): the host's real path is never sent.
     pub root: PathBuf,
     /// Set for projects on another machine.
     pub remote: Option<RemoteHost>,
+    /// Set when the project is the host's in a Code With Me session (this machine is a guest).
+    pub collab: Option<CollabHost>,
 }
 
 impl BackendInfo {
-    /// The root as the UI shows it: a local path, or `user@host:/path`.
+    /// The project's files are on this machine (not on an SSH host, not a guest's view of the
+    /// host's project).
+    pub fn is_local(&self) -> bool {
+        self.remote.is_none() && self.collab.is_none()
+    }
+
+    /// The root as the UI shows it: a local path, `user@host:/path`, or `cwm://host/name`
+    /// for a Code With Me guest.
     pub fn display_root(&self) -> String {
         let root = self.root.to_string_lossy();
-        match &self.remote {
-            Some(r) => r.display_path(&root),
-            None => root.into_owned(),
+        match (&self.remote, &self.collab) {
+            (Some(r), _) => r.display_path(&root),
+            (None, Some(c)) => format!("cwm://{}/{}", c.name, self.name),
+            (None, None) => root.into_owned(),
         }
     }
 }
@@ -222,9 +243,10 @@ impl ProjectFiles for BackendFiles {
     fn describe(&self, rel: &str) -> String {
         let info = self.0.info();
         let path = info.root.join(rel).to_string_lossy().into_owned();
-        match &info.remote {
-            Some(r) => r.display_path(&path),
-            None => path,
+        match (&info.remote, &info.collab) {
+            (Some(r), _) => r.display_path(&path),
+            (None, Some(c)) => format!("{} on {}", rel, c.label),
+            (None, None) => path,
         }
     }
 }
@@ -252,6 +274,7 @@ mod tests {
             name: "shop".into(),
             root: PathBuf::from("/var/www/shop"),
             remote: Some(host.clone()),
+            collab: None,
         };
         assert_eq!(info.display_root(), "deploy@shop.example.com:/var/www/shop");
         assert_eq!(host.label(), "deploy@shop.example.com");
