@@ -126,6 +126,10 @@ async fn a_guest_without_direct_addresses_connects_through_the_relay() {
         guest_path.kind,
         PathKind::Relay | PathKind::Direct
     ));
+    let paths = host.connection_paths();
+    assert_eq!(paths.len(), 1);
+    assert_eq!(paths[0].1, host_path);
+    assert!(guest.connection_path().is_some());
     host.end("The host ended the session.").await;
 }
 

@@ -18,7 +18,8 @@ use crate::protocol::{
     DocId, GuestMessage, HostMessage, SaveState, SharedFile, MAX_GUEST_FRAME, MAX_HOST_FRAME,
     PROTOCOL_VERSION,
 };
-use crate::transport::{read_msg, write_msg, Transport};
+use crate::relay::{ConnectionPath, RelayStatus};
+use crate::transport::{read_msg, write_msg, PeerKey, Transport};
 use crate::verify::{join_proof, verification_code};
 
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(20);
@@ -76,6 +77,7 @@ pub struct GuestSession {
     state: Mutex<State>,
     next_request: AtomicU64,
     host_label: String,
+    host_key: PeerKey,
     code: String,
 }
 
@@ -138,6 +140,7 @@ impl GuestSession {
             }),
             next_request: AtomicU64::new(1),
             host_label: link.summary().host_label,
+            host_key: link.host_id,
             code: verification_code(&link.host_id, &me, &link.session_id),
         });
 
@@ -280,6 +283,16 @@ impl GuestSession {
     /// `name (machine)` of the host.
     pub fn host_label(&self) -> &str {
         &self.host_label
+    }
+
+    /// How the connection to the host travels: direct, or through the relay.
+    pub fn connection_path(&self) -> Option<ConnectionPath> {
+        self.transport.path(&self.host_key)
+    }
+
+    /// The state of the connection to the relay named in the link, if there is one.
+    pub fn relay_status(&self) -> Option<RelayStatus> {
+        self.transport.relay_status()
     }
 
     /// The verification code (the host sees the same one).
