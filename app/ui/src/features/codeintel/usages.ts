@@ -108,6 +108,21 @@ const [findTabs, setFindTabs] = createSignal<FindTab[]>([]);
 const [activeFindTab, setActiveFindTab] = createSignal<number | null>(null);
 export { findTabs, activeFindTab, setActiveFindTab };
 
+/**
+ * Id of the "Find in Files" tab: the live search form with Replace (`features/find`), shown
+ * before the pinned result tabs once a search is opened in the Find tool window.
+ */
+export const SEARCH_TAB = 0;
+const [searchTabOpen, setSearchTabOpen] = createSignal(false);
+export { searchTabOpen };
+
+/** Show the Find in Files tab of the Find tool window. */
+export function showSearchTab(): void {
+  setSearchTabOpen(true);
+  setActiveFindTab(SEARCH_TAB);
+  showToolWindow("bottom", "find");
+}
+
 let nextTab = 1;
 
 /** Pin results in the Find tool window (a new tab) and show it. */
@@ -127,6 +142,7 @@ export function openInFindWindow(answer: UsagesAnswer, opts: FindTabOptions = {}
 }
 
 export function closeFindTab(id: number): void {
+  if (id === SEARCH_TAB) setSearchTabOpen(false);
   const rest = findTabs().filter((t) => t.id !== id);
   setFindTabs(rest);
   if (activeFindTab() === id) setActiveFindTab(rest.at(-1)?.id ?? null);

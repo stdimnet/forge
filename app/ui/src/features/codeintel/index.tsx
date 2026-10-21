@@ -36,7 +36,7 @@ import { RefactoringPreviewDialog, RenameDialog } from "./RefactoringDialogs";
 import { listenForServerEdits, refactoringHistory } from "./refactoring";
 import { inPlaceRename, previewRequest, renameDialog, startRename } from "./rename";
 import { chooseTargetAt } from "./targets";
-import { findTabs, findUsagesAt, gotoFindOccurrence, showUsagesAt, usagesPopup } from "./usages";
+import { findTabs, findUsagesAt, searchTabOpen, gotoFindOccurrence, showUsagesAt, usagesPopup } from "./usages";
 import "./library";
 import "./markers";
 import "./codeintel.css";
@@ -123,7 +123,7 @@ registerToolWindow({
   component: FindToolWindow,
   headerContent: FindTabs,
   // Like PHPStorm, the stripe button appears once there are results.
-  when: () => findTabs().length > 0,
+  when: () => findTabs().length > 0 || searchTabOpen(),
 });
 
 if (typeof document !== "undefined" && !isDialogWindow()) {

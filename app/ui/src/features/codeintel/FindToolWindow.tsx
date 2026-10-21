@@ -8,6 +8,7 @@ import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, ChevronsDownUp, Chevrons
 import { FileIcon } from "@/shell/FileIcon";
 import { showBalloon } from "@/keymap";
 import type { UsageGroup } from "@/ipc/codeintel";
+import { FindWindow } from "@/features/find/FindWindow";
 import { UsageCode } from "./ShowUsagesPopup";
 import {
   activeFindTab,
@@ -16,6 +17,8 @@ import {
   findTabs,
   gotoFindOccurrence,
   openUsage,
+  SEARCH_TAB,
+  searchTabOpen,
   selectFindUsage,
   setActiveFindTab,
   tabTree,
@@ -78,6 +81,27 @@ async function rerun(tab: FindTab): Promise<void> {
 export function FindTabs() {
   return (
     <div class="run-tabs" role="tablist">
+      <Show when={searchTabOpen()}>
+        <div
+          class="run-tab"
+          classList={{ active: activeFindTab() === SEARCH_TAB }}
+          role="tab"
+          onClick={() => setActiveFindTab(SEARCH_TAB)}
+          onMouseDown={(e) => e.button === 1 && (e.preventDefault(), closeFindTab(SEARCH_TAB))}
+        >
+          <span class="run-tab-title">Find in Files</span>
+          <button
+            class="run-tab-close"
+            title="Close Tab"
+            onClick={(e) => {
+              e.stopPropagation();
+              closeFindTab(SEARCH_TAB);
+            }}
+          >
+            <X size={12} />
+          </button>
+        </div>
+      </Show>
       <For each={findTabs()}>
         {(t) => (
           <div
@@ -167,6 +191,16 @@ function Group(props: { tab: FindTab; group: UsageGroup; grouped: boolean }) {
 }
 
 export function FindToolWindow() {
+  // The Find in Files tab is the live search form with Replace (`features/find`).
+  return (
+    <Show when={!searchTabOpen() || activeFindTab() !== SEARCH_TAB} fallback={<FindWindow />}>
+      <ResultTab />
+    </Show>
+  );
+}
+
+/** The active tab of pinned results. */
+function ResultTab() {
   const tab = () => findTabs().find((t) => t.id === activeFindTab());
   return (
     <div class="find-window">

@@ -4,10 +4,8 @@ import { createStore } from "solid-js/store";
 import { findApi, type FileMatches, type FindRequest, type FindSort } from "@/ipc/find";
 import { searchApi } from "@/ipc/search";
 import { getSetting } from "@/state/settings";
-import { showToolWindow } from "@/state/layout";
+import { showSearchTab } from "@/features/codeintel/usages";
 import { onFsChanged } from "@/state/fsWatch";
-
-export const FIND_TOOL_WINDOW = "find";
 
 /** Stands in for "no limit" in the request. */
 const UNLIMITED = 100_000_000;
@@ -152,6 +150,6 @@ export async function loadMoreRows(): Promise<void> {
 /** Show the Find tool window and search with `init` merged into the form. */
 export function openFindWindow(init?: Partial<FindForm>): void {
   if (init) setFindForm(init);
-  showToolWindow("bottom", FIND_TOOL_WINDOW);
+  showSearchTab();
   void runFindWindow();
 }
