@@ -151,13 +151,13 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Toggle Distraction Free Mode | `ToggleDistractionFreeMode` |  |  | — |
 | Toggle Zen Mode | `ToggleZenMode` |  |  | — |
 | Jump to Navigation Bar | `ShowNavBar` | `Alt+Home` | `Cmd+Up` | — |
-| Quick Documentation | `QuickJavaDoc` | `Ctrl+Q` | `F1`, `Ctrl+J` | — |
-| External Documentation | `ExternalJavaDoc` | `Shift+F1` | `Shift+F1` | — |
-| Quick Definition | `QuickImplementations` | `Ctrl+Shift+I` | `Alt+Space`, `Cmd+Y` | — |
+| Quick Documentation | `QuickJavaDoc` | `Ctrl+Q` | `F1`, `Ctrl+J` | yes |
+| External Documentation | `ExternalJavaDoc` | `Shift+F1` | `Shift+F1` | yes |
+| Quick Definition | `QuickImplementations` | `Ctrl+Shift+I` | `Alt+Space`, `Cmd+Y` | yes |
 | Parameter Info | `ParameterInfo` | `Ctrl+P` | `Cmd+P` | yes |
-| Type Info | `ExpressionTypeInfo` | `Ctrl+Shift+P` | `Ctrl+Shift+P` | — |
-| Context Info | `EditorContextInfo` | `Alt+Q` | `Ctrl+Shift+Q` | — |
-| Error Description | `ShowErrorDescription` | `Ctrl+F1` | `Cmd+F1` | — |
+| Type Info | `ExpressionTypeInfo` | `Ctrl+Shift+P` | `Ctrl+Shift+P` | yes |
+| Context Info | `EditorContextInfo` | `Alt+Q` | `Ctrl+Shift+Q` | yes |
+| Error Description | `ShowErrorDescription` | `Ctrl+F1` | `Cmd+F1` | yes |
 | Recent Files | `RecentFiles` | `Ctrl+E` | `Cmd+E` | yes |
 | Recently Changed Files | `RecentChangedFiles` |  |  | yes |
 | Recent Locations | `RecentLocations` | `Ctrl+Shift+E` | `Cmd+Shift+E` | yes |
@@ -258,6 +258,7 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | AI Chat | `ActivateAIChatToolWindow` |  |  | yes |
 | Pull Requests | `ActivatePullRequestsToolWindow` |  |  | yes |
 | TODO | `ActivateTODOToolWindow` |  |  | yes |
+| Documentation | `ActivateDocumentationToolWindow` |  |  | yes |
 
 ### Navigate > Bookmarks
 

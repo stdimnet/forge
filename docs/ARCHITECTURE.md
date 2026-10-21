@@ -692,6 +692,15 @@ computes everything; `app/ui/src/features/codeintel` and `features/lsp/goto.ts` 
   - `code_line_markers({ path, content? }) -> { line, kind: "subclassed" | "implemented" |
     "overridden" | "implements" | "overrides", title, targets }[]` — PHP gutter icons.
   - `library_read({ path }) -> { text, library, detail }`.
+  - Documentation actions of the View menu (`forge_codeintel::docs`):
+    `code_external_doc({ path, line, character, content? }) -> { url?, name? }` (Shift+F1; PHP
+    symbols resolved like `code_goto_declaration`),
+    `code_quick_definition({ path, line, character, content? }) -> { title?, definitions:
+    { path, line, column, name, container?, startLine, text, truncated }[], message? }`
+    (Ctrl+Shift+I; on a declaration: the declaration itself),
+    `code_type_info({ path, line, character, content? }) -> string | null` (Ctrl+Shift+P; the
+    servers' hover, else the PHP index's signature) and
+    `code_context_info({ path, line, content? }) -> { line, text }[]` (Alt+Q).
   - `code_prepare_rename({ path, line, character, content? }) -> { range?, placeholder?,
     invalid, message?, missing?, source: "lsp" | "index", occurrences, label?, classFile?,
     sigil }` — starts Rename (Shift+F6): the server's `prepareRename` and the occurrences in the

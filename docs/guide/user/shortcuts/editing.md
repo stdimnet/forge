@@ -13,6 +13,12 @@ Typing, selecting, moving and commenting code, completion, generation, formattin
 | --- | --- | --- |
 | [Basic Completion](#basic-completion) | `Ctrl+Space`, `Shift+Space` | `Ctrl+Space`, `Shift+Space` |
 | [Parameter Info](#parameter-info) | `Ctrl+P` | `Cmd+P` |
+| [Quick Documentation](#quick-documentation) | `Ctrl+Q` | `F1`, `Ctrl+J` |
+| [External Documentation](#external-documentation) | `Shift+F1` | `Shift+F1` |
+| [Quick Definition](#quick-definition) | `Ctrl+Shift+I` | `Alt+Space`, `Cmd+Y` |
+| [Type Info](#type-info) | `Ctrl+Shift+P` | `Ctrl+Shift+P` |
+| [Context Info](#context-info) | `Alt+Q` | `Ctrl+Shift+Q` |
+| [Error Description](#error-description) | `Ctrl+F1` | `Cmd+F1` |
 | [Generate…](#generate) | `Alt+Insert` | `Cmd+N` |
 | [Undo](#undo) | `Ctrl+Z`, `Alt+Backspace` | `Cmd+Z` |
 | [Redo](#redo) | `Ctrl+Shift+Z`, `Alt+Shift+Backspace` | `Cmd+Shift+Z` |
@@ -71,6 +77,72 @@ Shows the parameters of the call at the caret, the current one in bold.
 **Menu:** View | Parameter Info
 
 More: [Editor](../../user/editor.md#parameter-info)
+
+## Quick Documentation
+
+**Shortcut:** `Ctrl+Q` · macOS `F1`, `Ctrl+J` · action id `QuickJavaDoc`
+
+Shows the documentation of the symbol at the caret in a popup. Press it again to move the
+documentation to the Documentation tool window.
+
+**Menu:** View | Quick Documentation
+
+![Quick Documentation](../../../screenshots/quick-documentation.png)
+
+More: [Editor](../../user/editor.md#quick-documentation)
+
+## External Documentation
+
+**Shortcut:** `Shift+F1` · macOS `Shift+F1` · action id `ExternalJavaDoc`
+
+Opens the online documentation of the symbol at the caret in the browser (php.net, Laravel API,
+MDN, Vue, React, Lua manual).
+
+**Menu:** View | External Documentation
+
+More: [Editor](../../user/editor.md#external-documentation)
+
+## Quick Definition
+
+**Shortcut:** `Ctrl+Shift+I` · macOS `Alt+Space`, `Cmd+Y` · action id `QuickImplementations`
+
+Shows the source of the declaration at the caret in a popup, with its docblock.
+
+**Menu:** View | Quick Definition
+
+![Quick Definition](../../../screenshots/quick-definition.png)
+
+More: [Editor](../../user/editor.md#quick-definition)
+
+## Type Info
+
+**Shortcut:** `Ctrl+Shift+P` · macOS `Ctrl+Shift+P` · action id `ExpressionTypeInfo`
+
+Shows the type of the expression at the caret.
+
+**Menu:** View | Type Info
+
+More: [Editor](../../user/editor.md#type-info-context-info-and-error-description)
+
+## Context Info
+
+**Shortcut:** `Alt+Q` · macOS `Ctrl+Shift+Q` · action id `EditorContextInfo`
+
+Shows the headers of the class and method that enclose the caret at the top of the editor.
+
+**Menu:** View | Context Info
+
+More: [Editor](../../user/editor.md#type-info-context-info-and-error-description)
+
+## Error Description
+
+**Shortcut:** `Ctrl+F1` · macOS `Cmd+F1` · action id `ShowErrorDescription`
+
+Shows the full description of the problems at the caret.
+
+**Menu:** View | Error Description
+
+More: [Editor](../../user/editor.md#type-info-context-info-and-error-description)
 
 ## Generate
 

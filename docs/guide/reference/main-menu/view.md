@@ -31,13 +31,13 @@ Tool windows, appearance toggles, documentation popups and recent files. Open it
 | Appearance › Navigation Bar › Don't Show | — | — | not yet | Not available yet; the entry is disabled. |
 | Appearance › Members in Navigation Bar | — | — | not yet | Not available yet; the entry is disabled. |
 | Quick Switch Scheme… | `` Ctrl+` `` | `` Ctrl+` `` | yes | Switches between the dark and the light theme. [More](../../user/settings-and-themes.md#themes) |
-| Quick Definition | `Ctrl+Shift+I` | `Alt+Space`, `Cmd+Y` | not yet | Not available yet; the entry is disabled. |
-| Quick Documentation | `Ctrl+Q` | `F1`, `Ctrl+J` | not yet | Not available yet; the entry is disabled. |
-| External Documentation | `Shift+F1` | `Shift+F1` | not yet | Not available yet; the entry is disabled. |
+| Quick Definition | `Ctrl+Shift+I` | `Alt+Space`, `Cmd+Y` | yes | Shows the source of the declaration at the caret in a popup. [More](../../user/editor.md#quick-definition) ([screenshot](../../../screenshots/quick-definition.png)) |
+| Quick Documentation | `Ctrl+Q` | `F1`, `Ctrl+J` | yes | Shows the documentation of the symbol at the caret; press again to move it to the Documentation tool window. [More](../../user/editor.md#quick-documentation) ([screenshot](../../../screenshots/quick-documentation.png)) |
+| External Documentation | `Shift+F1` | `Shift+F1` | yes | Opens the symbol's page on php.net, the Laravel API, MDN, the Vue or React reference or the Lua manual. [More](../../user/editor.md#external-documentation) |
 | Parameter Info | `Ctrl+P` | `Cmd+P` | yes | Shows the parameters of the call at the caret, the current one in bold. [More](../../user/editor.md#parameter-info) |
-| Type Info | `Ctrl+Shift+P` | `Ctrl+Shift+P` | not yet | Not available yet; the entry is disabled. |
-| Context Info | `Alt+Q` | `Ctrl+Shift+Q` | not yet | Not available yet; the entry is disabled. |
-| Error Description | `Ctrl+F1` | `Cmd+F1` | not yet | Not available yet; the entry is disabled. |
+| Type Info | `Ctrl+Shift+P` | `Ctrl+Shift+P` | yes | Shows the type of the expression at the caret. [More](../../user/editor.md#type-info-context-info-and-error-description) ([screenshot](../../../screenshots/type-info.png)) |
+| Context Info | `Alt+Q` | `Ctrl+Shift+Q` | yes | Shows the headers of the class and method around the caret. [More](../../user/editor.md#type-info-context-info-and-error-description) ([screenshot](../../../screenshots/context-info.png)) |
+| Error Description | `Ctrl+F1` | `Cmd+F1` | yes | Shows the full description of the problems at the caret. [More](../../user/editor.md#type-info-context-info-and-error-description) ([screenshot](../../../screenshots/error-description.png)) |
 | Recent Files | `Ctrl+E` | `Cmd+E` | yes | Lists recently opened files and the tool windows; press again for recently edited files only. [More](../../user/workbench.md#recent-files-and-switcher) ([screenshot](../../../screenshots/docs-recent-files.png)) |
 | Recently Changed Files | — | — | yes | Lists recently edited files. [More](../../user/workbench.md#recent-files-and-switcher) |
 | Recent Locations | `Ctrl+Shift+E` | `Cmd+Shift+E` | yes | Lists recently visited and edited places with a code snippet each; press again for changed places only. [More](../../user/workbench.md#recent-locations) ([screenshot](../../../screenshots/recent-locations.png)) |
