@@ -21,6 +21,8 @@ import { syncNow } from "@/features/lsp/sync";
 import { toLsp } from "@/features/lsp/util";
 import { setImplementationNavigator } from "@/features/lsp/goto";
 import { isDialogWindow } from "@/shell/window/mode";
+import { registerMainMenuEntries } from "@/features/mainMenu";
+import { action as menuAction } from "@/features/mainMenu/model";
 import { FindTabs, FindToolWindow, findGroupByType } from "./FindToolWindow";
 import { ShowUsagesPopup } from "./ShowUsagesPopup";
 import { chooseTargetAt } from "./targets";
@@ -71,6 +73,9 @@ action("NextOccurence", "Next Occurrence", "Navigate", () => {
 });
 action("PreviousOccurence", "Previous Occurrence", "Navigate", () => {
   if (!gotoFindOccurrence(-1, findGroupByType())) showBalloon("There are no occurrences", "Search with Find Usages (Alt+F7) or Find in Files first.");
+});
+registerMainMenuEntries("Navigate", [menuAction("NextOccurence"), menuAction("PreviousOccurence")], {
+  after: "GotoPreviousError",
 });
 
 registerToolWindow({
