@@ -23,11 +23,21 @@ export interface RemoteInfo {
   path: string;
 }
 
+/** The host of the Code With Me session whose project this is (this window is a guest). */
+export interface CollabInfo {
+  /** The host's user name. */
+  host: string;
+  /** `name (machine)`. */
+  label: string;
+}
+
 export interface WorkspaceInfo {
   name: string;
-  /** Local path, or `user@host:/path` for a remote project. */
+  /** Local path, `user@host:/path` for a remote project, `cwm://host/name` for a guest. */
   root: string;
   remote?: RemoteInfo;
+  /** Set for the host's project in a Code With Me session. */
+  collab?: CollabInfo;
 }
 
 export interface RecentProject {

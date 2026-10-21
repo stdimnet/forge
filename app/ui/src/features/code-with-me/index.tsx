@@ -15,14 +15,18 @@ import { getSetting } from "@/state/settings";
 import { registerKeymapActions } from "@/keymap/store";
 import { showBalloon } from "@/keymap";
 import { isDialogWindow } from "@/shell/window/mode";
+import { isCollabGuest } from "@/state/workspace";
 import { collabApi, type PermissionLevel } from "@/ipc/collab";
 import { applySession, inSession, isGuest, isHost, refreshSession, setPopupOpen, trackSession } from "./store";
 import { trackEditorSharing } from "./session";
 import { ToolbarButton } from "./ToolbarButton";
 import { ConnectionStatusItem } from "./ConnectionStatus";
 import { RelayServerTools } from "./RelaySettings";
+import { GuestStatusItem } from "./GuestStatusItem";
+import { trackGuestProject } from "./guest";
 import "./binding";
 import "./codeWithMe.css";
+import "./guest.css";
 
 const message = (e: unknown) => String((e as Error)?.message ?? e);
 
@@ -134,7 +138,12 @@ const commands: [string, string, () => void | Promise<void>][] = [
 ];
 for (const [id, title, run] of commands) registerCommand({ id, title, category: "Code With Me", run });
 
+// A guest's window: "Code With Me: <host>" in the status bar, the host's project as the project.
+registerStatusItem({ id: "codeWithMe.guest", align: "right", order: -40, component: GuestStatusItem, when: isCollabGuest });
+registerCommand({ id: "CodeWithMe.LeaveSession", title: "Leave Session", category: "Code With Me", run: () => void collabApi.leave() });
+
 if (!isDialogWindow()) {
   trackSession();
   trackEditorSharing();
+  trackGuestProject();
 }

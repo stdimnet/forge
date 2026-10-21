@@ -166,6 +166,8 @@ impl Policy {
             GuestMessage::Awareness { .. }
             | GuestMessage::DocClose { .. }
             | GuestMessage::Leave => Ok(()),
+            // Project calls are decoded and checked by the host (`Policy::check_call`).
+            GuestMessage::Call { .. } => Ok(()),
         }
     }
 }

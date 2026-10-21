@@ -46,7 +46,7 @@ pub fn start_watching(app: &AppHandle) {
 }
 
 /// A remote project's host, for the UI.
-#[derive(Serialize, Clone)]
+#[derive(Debug, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct RemoteInfo {
     pub host: String,
@@ -60,7 +60,17 @@ pub struct RemoteInfo {
     pub path: String,
 }
 
-#[derive(Serialize, Clone)]
+/// The host of the Code With Me session whose project this is (this window is a guest).
+#[derive(Debug, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct CollabInfo {
+    /// The host's user name.
+    pub host: String,
+    /// `name (machine)`.
+    pub label: String,
+}
+
+#[derive(Debug, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct WorkspaceInfo {
     pub name: String,
@@ -68,6 +78,9 @@ pub struct WorkspaceInfo {
     pub root: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub remote: Option<RemoteInfo>,
+    /// Set for the host's project in a Code With Me session.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub collab: Option<CollabInfo>,
 }
 
 impl From<&BackendInfo> for WorkspaceInfo {
@@ -83,6 +96,10 @@ impl From<&BackendInfo> for WorkspaceInfo {
                 config_id: r.config_id.clone(),
                 path: info.root.to_string_lossy().into_owned(),
             }),
+            collab: info.collab.as_ref().map(|c| CollabInfo {
+                host: c.name.clone(),
+                label: c.label.clone(),
+            }),
         }
     }
 }
@@ -97,6 +114,11 @@ pub fn project_opened(app: &AppHandle) {
     crate::commands::project::emit_detection(app);
     start_watching(app);
     let display = info.display_root();
+    // A guest's view of the host's project is not the guest's project: no recent entry, no
+    // data sources, no services.
+    if info.collab.is_some() {
+        return;
+    }
     match &info.remote {
         None => {
             crate::commands::db::project_opened(app, info.root.clone());

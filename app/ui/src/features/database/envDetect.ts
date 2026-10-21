@@ -7,7 +7,7 @@ import { dbApi, DRIVER_LABELS, type DetectedDataSource } from "@/ipc/db";
 import { showBalloon } from "@/keymap";
 import { getSetting } from "@/state/settings";
 import { showToolWindow } from "@/state/layout";
-import { workspace } from "@/state/workspace";
+import { isCollabGuest, workspace } from "@/state/workspace";
 import { connect, revealSource, setSelectedNode } from "./store";
 
 const [detected, setDetected] = createSignal<DetectedDataSource[]>([]);
@@ -18,7 +18,8 @@ const announced = new Set<string>();
 /** Look for an unconfigured `.env` database; `announce` shows the notification once. */
 export async function checkEnv(announce = true): Promise<void> {
   // A remote project's `.env` is read on its host; its databases connect through SSH.
-  if (!workspace() || getSetting<boolean>("database.suggestFromEnv", true) === false) {
+  // The host's credentials are never offered to a guest.
+  if (!workspace() || isCollabGuest() || getSetting<boolean>("database.suggestFromEnv", true) === false) {
     setDetected([]);
     return;
   }

@@ -37,6 +37,12 @@ use crate::relay::{ConnectionPath, RelayStatus};
 use crate::transport::{read_msg, write_msg, BoxFuture, Connection, PeerKey, Transport};
 use crate::verify::{check_proof, verification_code};
 
+// The host's side of the guests' project backend (tree, search, git, language servers).
+#[path = "guest_backend/host_calls.rs"]
+mod guest_calls;
+use guest_calls::CallState;
+pub use guest_calls::{virtual_root, HostServices, LspRequest};
+
 /// Messages queued for one guest before the guest counts as too slow and is disconnected.
 const GUEST_QUEUE: usize = 4096;
 /// Time a new connection has to send its knock.
@@ -170,6 +176,7 @@ pub struct HostSession {
     machine: Option<String>,
     notice: Option<String>,
     state: Mutex<State>,
+    calls: CallState,
     ended: AtomicBool,
 }
 
@@ -213,6 +220,7 @@ impl HostSession {
                 next_participant: 1,
                 ..State::default()
             }),
+            calls: CallState::default(),
             ended: AtomicBool::new(false),
         });
         let accepting = session.clone();
@@ -414,6 +422,7 @@ impl HostSession {
     /// Files changed on disk (the project watcher): shared documents without unsaved
     /// changes take the new text as minimal edits; deleted files are closed for everyone.
     pub async fn on_fs_changed(&self, changes: &FsChanges) {
+        self.forward_fs(changes);
         let changed: Vec<(DocId, String)> = {
             let st = self.state();
             changes
@@ -699,6 +708,9 @@ impl HostSession {
         loop {
             match read_msg::<_, GuestMessage>(&mut recv, MAX_GUEST_FRAME).await {
                 Ok(Some(GuestMessage::Leave)) | Ok(None) | Err(_) => break,
+                Ok(Some(GuestMessage::Call { id: call, payload })) => {
+                    self.spawn_call(id, call, payload)
+                }
                 Ok(Some(msg)) => self.handle(id, msg).await,
             }
             if self.is_ended() || !self.state().guests.contains_key(&id) {
@@ -728,7 +740,11 @@ impl HostSession {
         else {
             return;
         };
-        if let Err(denied) = policy.check(&msg) {
+        let denied = policy
+            .check(&msg)
+            .err()
+            .or_else(|| self.document_write_denied(&policy, &msg));
+        if let Some(denied) = denied {
             let reason = denied.to_string();
             let answer = match msg {
                 GuestMessage::DocOpen { request, .. } => HostMessage::DocError {
@@ -746,29 +762,28 @@ impl HostSession {
         }
         match msg {
             GuestMessage::DocOpen { request, path } => {
-                let answer = {
-                    let mut st = self.state();
-                    let shared = st
-                        .by_path
-                        .get(&path)
-                        .is_some_and(|id| st.docs[id].open_by.contains(&ParticipantId::HOST));
-                    let read_only = !policy.permissions.can_edit_files();
-                    match shared
-                        .then(|| open_in(&mut st, from, &path, read_only))
-                        .flatten()
-                    {
-                        Some(o) => HostMessage::DocOpened {
-                            request,
-                            doc: o.doc,
-                            path: o.path,
-                            update: ByteBuf::from(o.update),
-                            saved: o.saved,
-                            read_only: o.read_only,
-                        },
-                        None => HostMessage::DocError {
-                            request,
-                            error: "The host does not share this file.".into(),
-                        },
+                // Any file of the project the guest may see opens, not only the host's tabs.
+                let answer = match self.ensure_doc(&policy, &path).await {
+                    Err(error) => HostMessage::DocError { request, error },
+                    Ok(()) => {
+                        let mut st = self.state();
+                        // Files that configure what runs on the host are read-only without
+                        // Full access, like for every other way of changing them.
+                        let read_only = policy.check_write_path(&path).is_err();
+                        match open_in(&mut st, from, &path, read_only) {
+                            Some(o) => HostMessage::DocOpened {
+                                request,
+                                doc: o.doc,
+                                path: o.path,
+                                update: ByteBuf::from(o.update),
+                                saved: o.saved,
+                                read_only: o.read_only,
+                            },
+                            None => HostMessage::DocError {
+                                request,
+                                error: "The file is no longer shared.".into(),
+                            },
+                        }
                     }
                 };
                 self.reply(from, answer);
@@ -795,7 +810,7 @@ impl HostSession {
                 self.reply(from, HostMessage::SaveResult { request, error });
             }
             GuestMessage::DocClose { doc } => self.close_doc(from, doc),
-            GuestMessage::Knock { .. } | GuestMessage::Leave => {}
+            GuestMessage::Knock { .. } | GuestMessage::Leave | GuestMessage::Call { .. } => {}
         }
     }
 

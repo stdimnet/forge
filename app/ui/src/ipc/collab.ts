@@ -4,6 +4,7 @@
  * with `mock/collabMock.ts`.
  */
 import { invoke, listen } from "./index";
+import type { WorkspaceInfo } from "./workspace";
 
 export type PermissionLevel = "readOnly" | "editFiles" | "fullAccess" | "custom";
 
@@ -94,6 +95,8 @@ export interface SessionView {
   connections?: ParticipantConnection[];
   /** The relay server of the session, when it uses one. */
   relay?: RelayStatus;
+  /** The host's project, open in this window (guest). */
+  workspace?: WorkspaceInfo;
 }
 
 /** What the Join Session dialog shows about a pasted link. */
@@ -190,4 +193,6 @@ export const collabApi = {
   onDoc: (cb: (e: DocEvent) => void) => listen<DocEvent>(DOC_EVENT, cb),
   onNotice: (cb: (e: { text: string }) => void) => listen<{ text: string }>(NOTICE_EVENT, cb),
   onEnded: (cb: (e: { reason: string }) => void) => listen<{ reason: string }>(ENDED_EVENT, cb),
+  /** Round trip to the host in milliseconds (guest). */
+  ping: () => invoke<number>("collab_ping"),
 };

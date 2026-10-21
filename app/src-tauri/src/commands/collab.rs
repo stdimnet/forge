@@ -18,8 +18,11 @@ use std::sync::{Arc, Mutex};
 
 use base64::engine::general_purpose::STANDARD as B64;
 use base64::Engine;
+use forge_backend::Backend;
 use forge_collab::excludes::Excludes;
 use forge_collab::guest::{GuestEvent, GuestSession};
+use forge_collab::guest_backend::lsp_host::{LspServices, ManagerSource};
+use forge_collab::guest_backend::{CollabBackend, LspQuery};
 use forge_collab::host::{DevAutoAccept, HostConfig, HostEvent, HostSession, DEV_PREVIEW_NOTICE};
 use forge_collab::link::{LinkSummary, SessionLink};
 use forge_collab::permissions::{PermissionLevel, Permissions};
@@ -36,6 +39,7 @@ use serde::Serialize;
 use serde_json::json;
 use tauri::{AppHandle, Emitter, Manager, State};
 
+use crate::commands::workspace::WorkspaceInfo;
 use crate::state::AppState;
 
 pub const STATUS_EVENT: &str = "collab://status";
@@ -55,6 +59,8 @@ enum Active {
 #[derive(Default)]
 pub struct CollabState {
     active: Mutex<Option<Active>>,
+    /// The host's project, as a guest has it open.
+    guest_workspace: Mutex<Option<WorkspaceInfo>>,
 }
 
 impl CollabState {
@@ -134,6 +140,9 @@ pub struct SessionView {
     /// The relay server of the session and whether it is connected.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub relay: Option<RelayStatus>,
+    /// The host's project, open in this window (guest).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub workspace: Option<WorkspaceInfo>,
 }
 
 fn dev_flag() -> bool {
@@ -160,6 +169,7 @@ fn idle_view() -> SessionView {
         notice: None,
         connections: Vec::new(),
         relay: None,
+        workspace: None,
     }
 }
 
@@ -182,6 +192,7 @@ fn view(state: &CollabState) -> SessionView {
                 .map(|(participant, path)| ParticipantConnection { participant, path })
                 .collect(),
             relay: h.relay_status(),
+            workspace: None,
         };
     }
     if let Some(g) = state.guest() {
@@ -205,6 +216,11 @@ fn view(state: &CollabState) -> SessionView {
                 .into_iter()
                 .collect(),
             relay: g.relay_status(),
+            workspace: state
+                .guest_workspace
+                .lock()
+                .expect("collab lock poisoned")
+                .clone(),
         };
     }
     idle_view()
@@ -276,10 +292,26 @@ fn on_guest_event(app: &AppHandle, e: GuestEvent) {
         GuestEvent::DocClosed { doc, reason } => doc_event(app, doc, |e| e.closed = Some(reason)),
         GuestEvent::Denied(text) => emit(app, NOTICE_EVENT, json!({ "text": text })),
         GuestEvent::Ended(reason) => {
-            app.state::<CollabState>().take();
+            end_guest_project(app);
             emit(app, ENDED_EVENT, json!({ "reason": reason }));
             emit_status(app);
         }
+    }
+}
+
+/// The guest's session is over: the host's project is closed in this window.
+fn end_guest_project(app: &AppHandle) {
+    let collab = app.state::<CollabState>();
+    collab.take();
+    if collab
+        .guest_workspace
+        .lock()
+        .expect("collab lock poisoned")
+        .take()
+        .is_some()
+    {
+        app.state::<AppState>().close_project();
+        app.state::<crate::commands::lsp::LspState>().reset();
     }
 }
 
@@ -475,6 +507,9 @@ pub async fn collab_start(level: PermissionLevel, app: AppHandle) -> Result<Sess
         Arc::new(DevAutoAccept),
         Arc::new(move |e| on_host_event(&handle, e)),
     );
+    host.set_services(Arc::new(LspServices(Arc::new(ShellServers {
+        app: app.clone(),
+    }))));
     collab.set(Active::Host(host.clone()));
     watch_connections(&app, Active::Host(host));
     let v = view(&collab);
@@ -533,11 +568,56 @@ pub async fn collab_join(link: String, app: AppHandle) -> Result<SessionView> {
         )),
         _ => other(e),
     })?;
+    // The host's project becomes this window's project.
+    let session = guest.clone();
+    let opened = tauri::async_runtime::spawn_blocking(move || {
+        let backend: Arc<dyn Backend> = Arc::new(CollabBackend::open(session)?);
+        Ok::<_, ForgeError>(backend)
+    })
+    .await
+    .map_err(other)?;
+    let backend = match opened {
+        Ok(b) => b,
+        Err(e) => {
+            guest.leave().await;
+            return Err(e);
+        }
+    };
+    let info = WorkspaceInfo::from(backend.info());
+    crate::commands::remote::close_project_connection(&app);
+    let target = backend.clone();
+    let handle = app.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        handle.state::<AppState>().set_collab_project(target);
+    })
+    .await
+    .map_err(other)?;
+    app.state::<crate::commands::lsp::LspState>().reset();
+    let handle = app.clone();
+    guest.set_diagnostics_sink(Some(Arc::new(move |path, diagnostics| {
+        // The host's diagnostics look like local ones to the editor.
+        if let Ok(list) = serde_json::from_slice::<serde_json::Value>(&diagnostics) {
+            emit(
+                &handle,
+                "lsp://diagnostics",
+                json!({ "path": path, "diagnostics": list }),
+            );
+        }
+    })));
+    *collab.guest_workspace.lock().expect("collab lock poisoned") = Some(info);
     collab.set(Active::Guest(guest.clone()));
     watch_connections(&app, Active::Guest(guest));
+    crate::commands::workspace::project_opened(&app);
     let v = view(&collab);
     emit(&app, STATUS_EVENT, v.clone());
     Ok(v)
+}
+
+/// The round trip to the host in milliseconds (the guest's status bar item).
+#[tauri::command]
+pub async fn collab_ping(app: AppHandle) -> Result<u64> {
+    let guest = guest_session(&app).ok_or_else(|| other("No session is running."))?;
+    guest.ping().await.map_err(other)
 }
 
 /// Leave Session (guest).
@@ -547,8 +627,13 @@ pub async fn collab_leave(app: AppHandle) -> Result<()> {
     let Some(guest) = state.guest() else {
         return Ok(());
     };
-    state.take();
+    end_guest_project(&app);
     guest.leave().await;
+    emit(
+        &app,
+        ENDED_EVENT,
+        json!({ "reason": "You left the session." }),
+    );
     emit_status(&app);
     Ok(())
 }
@@ -633,6 +718,48 @@ pub async fn collab_doc_save(doc_id: u64, app: AppHandle) -> Result<()> {
         guest.save(DocId(doc_id)).await.map_err(other)
     } else {
         Err(other("No session is running."))
+    }
+}
+
+// ---- language servers for guests -------------------------------------------------------
+
+/// The guest session of this window, if it is a guest.
+pub fn guest_session(app: &AppHandle) -> Option<Arc<GuestSession>> {
+    app.state::<CollabState>().guest()
+}
+
+/// Ask the host's language servers (a guest's `lsp_*` commands).
+pub async fn guest_lsp<T: serde::de::DeserializeOwned>(
+    guest: &GuestSession,
+    query: LspQuery,
+) -> Result<T> {
+    let bytes = guest.lsp(query).await.map_err(other)?;
+    serde_json::from_slice(&bytes).map_err(other)
+}
+
+/// The language servers of this window's project, for guests' requests.
+struct ShellServers {
+    app: AppHandle,
+}
+
+impl ManagerSource for ShellServers {
+    fn manager(&self) -> std::result::Result<Arc<forge_lsp::LspManager>, String> {
+        let lsp = self.app.state::<crate::commands::lsp::LspState>();
+        let ws = self.app.state::<AppState>();
+        lsp.manager(&self.app, &ws).map_err(|e| e.to_string())
+    }
+}
+
+/// The host's servers reported diagnostics: guests that have the file open get them too.
+pub fn on_diagnostics(
+    app: &AppHandle,
+    path: &str,
+    diagnostics: &[forge_lsp::model::EditorDiagnostic],
+) {
+    if let Some(host) = app.state::<CollabState>().host() {
+        if let Ok(bytes) = serde_json::to_vec(diagnostics) {
+            host.publish_diagnostics(path, bytes);
+        }
     }
 }
 

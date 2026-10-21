@@ -8,7 +8,8 @@ import { item, separator, showContextMenu, submenu, type MenuEntry } from "@/fea
 import { workspaceApi, type FileEntry } from "@/ipc/workspace";
 import { showBalloon } from "@/keymap";
 import { closeTab, editor, isDirty, openFile, saveFile } from "@/state/editor";
-import { workspace } from "@/state/workspace";
+import { isCollabGuest, workspace } from "@/state/workspace";
+import { guestCanEdit } from "@/features/code-with-me/guest";
 import { projectTree, refreshDirs, revealPath } from "./ProjectView";
 import { openFindInFiles } from "@/features/find/state";
 
@@ -140,14 +141,20 @@ const absolute = (path: string) => {
 /** Menu of a tree row (`null` = the project root). */
 export function fileMenuEntries(entry: FileEntry | null): MenuEntry[] {
   const dir = targetDir(entry);
-  const entries: MenuEntry[] = [
-    submenu("New", [item("File", () => void newEntry(dir, "file")), item("Directory", () => void newEntry(dir, "dir"))]),
-    separator,
-  ];
+  const guest = isCollabGuest();
+  // A guest changes files only with Files: Edit (the host checks it again).
+  const canEdit = guestCanEdit();
+  const entries: MenuEntry[] = canEdit
+    ? [
+        submenu("New", [item("File", () => void newEntry(dir, "file")), item("Directory", () => void newEntry(dir, "dir"))]),
+        separator,
+      ]
+    : [];
   if (entry) {
     entries.push(
       submenu("Copy Path/Reference", [
-        item("Absolute Path", () => void copy(absolute(entry.path), "path"), "CopyPaths"),
+        // The host's path is not shared with guests.
+        ...(guest ? [] : [item("Absolute Path", () => void copy(absolute(entry.path), "path"), "CopyPaths")]),
         item("Path From Project Root", () => void copy(entry.path, "path")),
         item("File Name", () => void copy(entry.name, "name")),
       ]),
@@ -155,7 +162,7 @@ export function fileMenuEntries(entry: FileEntry | null): MenuEntry[] {
     );
   }
   entries.push(item("Find in Files…", () => openFindInFiles({ directory: dir }), "FindInPath"));
-  if (entry) entries.push(item("Rename…", () => void rename(entry), "RenameElement"), item("Delete…", () => void remove(entry), "$Delete"));
+  if (entry && canEdit) entries.push(item("Rename…", () => void rename(entry), "RenameElement"), item("Delete…", () => void remove(entry), "$Delete"));
   entries.push(separator, item("Reload from Disk", () => refreshDirs([dir])));
   return entries;
 }

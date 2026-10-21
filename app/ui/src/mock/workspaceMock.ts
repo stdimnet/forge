@@ -11,6 +11,7 @@ import {
   remoteWorkspace,
   setRemoteProjectFiles,
 } from "./remoteMock";
+import { collabGuestWorkspace, hiddenFromGuest, isCollabGuestDemo } from "./collabGuestMock";
 import { trackedPaths } from "./gitMock";
 import { recentPrimaries } from "./projectMock";
 import { isSymfonyDemo, symfonyDemoFiles, symfonyDemoName } from "./demoSymfonyProject";
@@ -67,7 +68,7 @@ function listDir(dir: string): FileEntry[] {
     const kind = tail.length ? "dir" : "file";
     seen.set(full, { name: head, path: full, kind, ignored: isIgnored(full, kind === "dir", tracked) });
   }
-  return [...seen.values()].sort(
+  return [...seen.values()].filter((e) => !hiddenFromGuest(e.path)).sort(
     (a, b) =>
       Number(a.kind !== "dir") - Number(b.kind !== "dir") ||
       a.name.toLowerCase().localeCompare(b.name.toLowerCase()),
@@ -90,12 +91,14 @@ registerMock("workspace_recent", () =>
   })),
 );
 registerMock("workspace_open", () => {
+  if (isCollabGuestDemo()) return collabGuestWorkspace();
   if (isRemoteDemo()) return adoptRemoteProject(remoteWorkspace());
   closeRemoteProject();
   return { name: openName, root: `~/Projects/${openName}` };
 });
 registerMock("fs_list_dir", ({ path }) => listDir(String(path ?? "")));
 registerMock("fs_read_file", ({ path }) => {
+  if (hiddenFromGuest(String(path))) throw new Error(`"${path}" is not shared with guests`);
   const content = files[String(path)];
   if (content === undefined) throw new Error(`not found: ${path}`);
   return content;

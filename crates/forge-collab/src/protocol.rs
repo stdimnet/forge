@@ -105,6 +105,12 @@ pub enum GuestMessage {
     DocClose {
         doc: DocId,
     },
+    /// A project request of the guest's backend (`guest_backend::HostCall`, MessagePack) ->
+    /// [`HostMessage::CallResult`]. The payload stays opaque here so this module is pure.
+    Call {
+        id: u64,
+        payload: ByteBuf,
+    },
     Leave,
 }
 
@@ -175,6 +181,25 @@ pub enum HostMessage {
     DocClosed {
         doc: DocId,
         reason: String,
+    },
+    /// The answer to a [`GuestMessage::Call`]: the MessagePack encoding of the call's reply
+    /// type, or the error to show.
+    CallResult {
+        id: u64,
+        result: std::result::Result<ByteBuf, String>,
+    },
+    /// Files of the project changed on disk (only those the guest may see), after the guest
+    /// asked to watch the project.
+    FsChanged {
+        changed: Vec<String>,
+        removed: Vec<String>,
+        git: bool,
+    },
+    /// Language server diagnostics (JSON `EditorDiagnostic` list) for a file the guest told
+    /// the host it has open.
+    Diagnostics {
+        path: String,
+        diagnostics: ByteBuf,
     },
     /// A request was refused by the host's policy.
     Denied {
@@ -281,6 +306,10 @@ mod tests {
                 doc: DocId(3),
             },
             GuestMessage::DocClose { doc: DocId(3) },
+            GuestMessage::Call {
+                id: 9,
+                payload: bytes(&[0x81, 0xa4]),
+            },
             GuestMessage::Leave,
         ];
         let mut dec = FrameDecoder::new(MAX_GUEST_FRAME);

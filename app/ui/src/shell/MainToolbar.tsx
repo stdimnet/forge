@@ -1,6 +1,6 @@
 import { ChevronDown, GitBranch, Search, Settings, Sparkles, Hammer, Sun, Moon } from "lucide-solid";
 import { RunWidget } from "@/features/run/RunWidget";
-import { workspace } from "@/state/workspace";
+import { isCollabGuest, workspace } from "@/state/workspace";
 import { theme, toggleTheme } from "@/state/theme";
 import { showToolWindow } from "@/state/layout";
 import { currentBranch } from "@/state/vcs";
@@ -37,6 +37,13 @@ export function MainToolbar() {
         <button class="pill-btn project-widget" title="Open Project" onClick={() => runCommand("workspace.open")}>
           <span class="project-badge">{initials()}</span>
           <span class="project-name">{workspace()?.name ?? "No project"}</span>
+          <Show when={workspace()?.collab}>
+            {(c) => (
+              <span class="cwm-guest-tag">
+                — <b>{c().host}</b> (Code With Me)
+              </span>
+            )}
+          </Show>
           <ChevronDown size={14} class="muted" />
         </button>
         <button class="pill-btn" title="Git Branches" onClick={() => runCommand("git.branches")}>
@@ -53,9 +60,11 @@ export function MainToolbar() {
         <For each={toolbarItems()}>{(item) => <Dynamic component={item.component} />}</For>
         <RunWidget />
         <div class="toolbar-sep" />
-        <button class="icon-btn" title="AI Chat" onClick={() => showToolWindow("right", "ai-chat")}>
-          <Sparkles size={16} />
-        </button>
+        <Show when={!isCollabGuest()}>
+          <button class="icon-btn" title="AI Chat" onClick={() => showToolWindow("right", "ai-chat")}>
+            <Sparkles size={16} />
+          </button>
+        </Show>
         <button class="icon-btn" title="Search Everywhere (Double Shift)" onClick={() => runCommand("search.everywhere")}>
           <Search size={16} />
         </button>

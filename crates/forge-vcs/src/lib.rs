@@ -18,11 +18,11 @@ use forge_core::{ForgeError, Result};
 use serde::Serialize;
 
 pub use blame::{parse_blame, Blame, BlameCommit};
-pub use branch::{parse_recent_checkouts, parse_refs, BranchInfo, Branches};
+pub use branch::{parse_recent_checkouts, parse_refs, BranchInfo, Branches, REF_FORMAT};
 pub use diff::{parse_diff, DiffLine, FileDiff, Hunk, LineKind};
 pub use log::{
-    parse_decorations, parse_log, parse_name_status, ChangedFile, Commit, CommitDetails, LogQuery,
-    RefKind, RefLabel,
+    is_object_id, parse_decorations, parse_log, parse_name_status, ChangedFile, Commit,
+    CommitDetails, LogQuery, RefKind, RefLabel, LOG_FORMAT,
 };
 pub use status::{parse_status, FileState, RepoStatus, StatusEntry};
 

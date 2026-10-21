@@ -76,7 +76,7 @@ pub async fn terminal_open(
         )?),
     };
     let root = backend.info().root.clone();
-    let remote = backend.info().remote.is_some();
+    let remote = !backend.info().is_local();
     let (setting_dir, setting_shell, setting_env) = {
         let s = state.read_settings();
         (
