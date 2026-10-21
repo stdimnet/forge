@@ -120,7 +120,7 @@ fn check_label(field: &str, value: &str) -> Result<()> {
     Ok(())
 }
 
-fn check_relay(url: &str) -> Result<()> {
+pub(crate) fn check_relay(url: &str) -> Result<()> {
     let ok_scheme = url.starts_with("https://") || url.starts_with("http://");
     let rest = url.split_once("://").map(|(_, r)| r).unwrap_or_default();
     if !ok_scheme
