@@ -64,8 +64,10 @@ function Popup(props: { req: PasteRequest }) {
   const current = () => items()[selected()];
 
   const finish = (entry: ClipEntry | null) => {
+    // Read the request before closing: the popup's props go stale once it is hidden.
+    const req = props.req;
     setRequest(null);
-    props.req.done(entry);
+    req.done(entry);
   };
 
   async function choose(item = current()) {

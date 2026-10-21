@@ -4,7 +4,6 @@ import {
   EditorView,
   keymap,
   lineNumbers,
-  highlightActiveLine,
   highlightActiveLineGutter,
   drawSelection,
   highlightSpecialChars,
@@ -21,6 +20,7 @@ import { updateContent, updateCursor, saveFile, type EditorTab } from "@/state/e
 import { registerView } from "./views";
 import { replaceDocument, undoHistory } from "./reload";
 import { wordCompletion } from "./wordCompletion";
+import { highlightCaretRows } from "./caretRow";
 import { docSync, joinDocSync } from "./docSync";
 import { formatCompartment, formatExtensions } from "./codeStyle";
 import "./fileFormat";
@@ -59,7 +59,7 @@ export function CodeEditor(props: { tab: EditorTab; group?: number }) {
           // First, so other views of the file have the change before the store hears of it.
           docSync(path),
           lineNumbers(),
-          highlightActiveLine(),
+          highlightCaretRows,
           highlightActiveLineGutter(),
           highlightSpecialChars(),
           caretCompartment.of(caretBlink()),

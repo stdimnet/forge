@@ -339,7 +339,7 @@ export function updateContent(path: string, content: string): void {
 }
 
 export function updateCursor(path: string, line: number, col: number, carets = 1): void {
-  setEditor("tabs", (t) => t.path === path, "cursor", carets > 1 ? { line, col, carets } : { line, col });
+  setEditor("tabs", (t) => t.path === path, "cursor", { line, col, carets });
 }
 
 type SaveListener = (path: string, content: string) => void;

@@ -261,6 +261,8 @@ function startsRectangle(event: MouseEvent): boolean {
 /** Editor extension: column mode state, Shift+arrows in column mode and the mouse gestures. */
 export function caretExtensions(): Extension {
   return [
+    // CodeMirror keeps only the main range unless multiple selections are allowed.
+    EditorState.allowMultipleSelections.of(true),
     columnModeField,
     EditorView.clickAddsSelectionRange.of((e) => e.altKey && e.shiftKey),
     EditorView.mouseSelectionStyle.of(addCaretStyle),
