@@ -97,6 +97,25 @@ const settingsLight = async (page) => {
   await settingsPage(page);
 };
 
+/** Tools | Code With Me in the main menu. */
+async function toolsMenu(page) {
+  const hover = async (label) => {
+    await page.locator(".context-menu-label", { hasText: new RegExp(`^${label}$`) }).last().hover();
+    await page.waitForTimeout(100);
+  };
+  await page.click("[data-main-menu-button]");
+  await page.waitForSelector(".context-menu.main-menu-popup");
+  await hover("Tools");
+  await hover("Code With Me");
+}
+const menu = async (page) => toolsMenu(page);
+menu.clip = { x: 0, y: 0, width: 760, height: 560 };
+const menuLight = async (page) => {
+  await light(page);
+  await toolsMenu(page);
+};
+menuLight.clip = menu.clip;
+
 /**
  * Two browser contexts: `?collab=host` and `?collab=guest`, bridged through the mock's
  * wire. Both type into OrderController.php; the texts must converge and each page must draw
@@ -175,6 +194,8 @@ export default {
   "code-with-me-carets-light": caretsLight,
   "code-with-me-session-popup": sessionPopup,
   "code-with-me-session-popup-light": sessionPopupLight,
+  "code-with-me-menu": menu,
+  "code-with-me-menu-light": menuLight,
   "code-with-me-settings": settings,
   "code-with-me-settings-light": settingsLight,
   "code-with-me-two-pages": twoPagesDark,
