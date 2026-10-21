@@ -321,6 +321,8 @@ pub struct ApplicableResult {
     /// The word before the caret, which the list is filtered by.
     pub prefix: String,
     pub items: Vec<ApplicableItem>,
+    /// Contexts at the caret (Save as Live Template uses them).
+    pub contexts: Vec<String>,
 }
 
 /// Templates applicable at the caret (Insert Live Template, completion).
@@ -348,6 +350,7 @@ pub fn applicable(req: &ApplicableRequest) -> ApplicableResult {
     ApplicableResult {
         prefix: text[start..caret].to_string(),
         items,
+        contexts: info.contexts,
     }
 }
 
@@ -484,6 +487,7 @@ pub fn surround_apply(req: &SurroundRequest) -> Option<Expansion> {
             enabled: true,
             builtin: None,
             modified: false,
+            key: None,
         };
         (
             t,
@@ -707,6 +711,7 @@ mod tests {
         assert!(!r.items.iter().any(|i| i.abbreviation == "pubf"));
         let r = a("<?php class A { | }", "php");
         assert_eq!(r.prefix, "");
+        assert_eq!(r.contexts, ["PHP_CLASS_MEMBER"]);
         assert!(r.items.iter().any(|i| i.abbreviation == "pubf"));
         assert!(a("x|", "markdown").items.is_empty());
     }

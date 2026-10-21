@@ -33,6 +33,7 @@ import "./luaMock";
 import "./doctrineMock";
 import "./forgesMock";
 import "./markdownMock";
+import "./liveTemplatesMock";
 import "./servicesMock";
 import "./webMock";
 import "./windowMock";

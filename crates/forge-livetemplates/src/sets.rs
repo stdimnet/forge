@@ -3,8 +3,8 @@
 //! Built-in groups live in `data/*.toml`. The user's changes are settings:
 //! `editor.liveTemplates.custom` holds new and edited templates (tables of strings: `group`,
 //! `abbreviation`, `description`, `text`, `contexts` as a comma-separated list, `variables` as
-//! JSON, `builtin` with the id of the built-in template it replaces and `removed = "true"` for
-//! deleted built-ins), `editor.liveTemplates.disabled` the ids (`group/abbreviation`) of
+//! JSON, `builtin` with the id of the built-in template it replaces, `removed = "true"` for
+//! deleted built-ins and `key`, a stable id of a user template), `editor.liveTemplates.disabled` the ids (`group/abbreviation`) of
 //! unchecked templates. Framework groups (Laravel, Blade, Symfony) apply only in projects that
 //! use the framework.
 
@@ -52,6 +52,9 @@ pub struct Template {
     pub builtin: Option<String>,
     /// A built-in template the user changed.
     pub modified: bool,
+    /// Stable key of a user template (its settings entry), kept while it is renamed.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub key: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -146,6 +149,7 @@ pub fn builtin_groups() -> &'static [Group] {
                                 contexts: t.contexts,
                                 enabled: true,
                                 modified: false,
+                                key: None,
                             }
                         })
                         .collect(),
@@ -207,7 +211,8 @@ pub fn resolve(settings: &TemplateSettings) -> Vec<Group> {
                 break;
             }
         }
-        if c.get("removed") == "true" || abbreviation.is_empty() {
+        // A new template may not have an abbreviation yet; it shows but never expands.
+        if c.get("removed") == "true" {
             continue;
         }
         let builtin = previous.as_ref().and_then(|p| p.builtin.clone());
@@ -224,6 +229,7 @@ pub fn resolve(settings: &TemplateSettings) -> Vec<Group> {
             enabled: true,
             modified: builtin.is_some(),
             builtin,
+            key: Some(c.get("key").to_string()).filter(|k| !k.is_empty()),
         };
         match groups.iter_mut().find(|g| g.name == template.group) {
             Some(g) => g.templates.push(template),
@@ -257,7 +263,7 @@ pub fn active_templates(settings: &TemplateSettings) -> Vec<Template> {
         .into_iter()
         .filter(|g| g.active)
         .flat_map(|g| g.templates)
-        .filter(|t| t.enabled)
+        .filter(|t| t.enabled && !t.abbreviation.is_empty())
         .collect()
 }
 
@@ -353,6 +359,7 @@ mod tests {
                     ("removed", "true"),
                 ]),
                 entry(&[
+                    ("key", "k1"),
                     ("abbreviation", "hello"),
                     ("text", "hello $NAME$"),
                     ("contexts", "PHP_STATEMENT, HTML"),
@@ -370,6 +377,7 @@ mod tests {
         assert!(find(&groups, "PHP/eco").is_none());
         let hello = find(&groups, "user/hello").unwrap();
         assert!(!hello.modified && hello.builtin.is_none());
+        assert_eq!(hello.key.as_deref(), Some("k1"));
         assert_eq!(hello.contexts, ["PHP_STATEMENT", "HTML"]);
         assert_eq!(hello.variables[0].expression, "user()");
         assert!(hello.variables[0].always_stop_at);

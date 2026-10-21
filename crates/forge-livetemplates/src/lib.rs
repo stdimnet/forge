@@ -43,6 +43,8 @@ use serde::Serialize;
 pub struct Catalog {
     pub groups: Vec<Group>,
     pub contexts: Vec<ContextNode>,
+    /// Expression functions with a description, for the variables editor.
+    pub functions: Vec<(&'static str, &'static str)>,
 }
 
 /// The groups after the user's changes, and the context tree.
@@ -50,5 +52,6 @@ pub fn catalog(settings: &TemplateSettings) -> Catalog {
     Catalog {
         groups: resolve(settings),
         contexts: context_tree(),
+        functions: expr::FUNCTIONS.to_vec(),
     }
 }
