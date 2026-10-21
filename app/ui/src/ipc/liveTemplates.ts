@@ -30,6 +30,8 @@ export interface LiveTemplate {
   /** Id of the built-in template this is or replaces. */
   builtin?: string;
   modified: boolean;
+  /** Stable key of a user template, kept while it is renamed. */
+  key?: string;
 }
 
 export interface TemplateGroup {
@@ -50,6 +52,8 @@ export interface ContextNode {
 export interface TemplateCatalog {
   groups: TemplateGroup[];
   contexts: ContextNode[];
+  /** `[signature, description]` of the expression functions. */
+  functions: [string, string][];
 }
 
 /** The `editor.liveTemplates.*` settings and the project's frameworks. */
@@ -107,6 +111,8 @@ export interface ApplicableItem {
 export interface ApplicableResult {
   prefix: string;
   items: ApplicableItem[];
+  /** Contexts at the caret, e.g. `PHP_STATEMENT`. */
+  contexts: string[];
 }
 
 export interface SurroundRequest extends DocRequest {
@@ -141,7 +147,7 @@ void forgeWasm().then(
 
 export const liveTemplatesApi = {
   catalog: (settings: TemplateSettings) => invoke<TemplateCatalog>("live_templates_catalog", { settings }),
-  applicable: (request: Omit<DocRequest, never> & { offset: number }) =>
+  applicable: (request: DocRequest & { offset: number }) =>
     invoke<ApplicableResult>("live_templates_applicable", { request }),
   expand: (request: ExpandRequest) => invoke<Expansion | null>("live_templates_expand", { request }),
   surroundItems: (request: SurroundRequest) => invoke<SurroundItem[]>("live_templates_surround_items", { request }),
