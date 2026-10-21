@@ -73,6 +73,13 @@ impl ContextAction {
         self.raw.as_ref()?.get("kind")?.as_str()
     }
 
+    /// A link to another action that opens its own popup or dialog ("Generate..."): it
+    /// runs a UI action and, by PHPStorm's convention, its title ends with an ellipsis.
+    /// Entries that run a UI action without one ("Edit SQL Fragment") are intentions.
+    pub fn is_link(&self) -> bool {
+        self.action.is_some() && (self.title.ends_with("...") || self.title.ends_with('\u{2026}'))
+    }
+
     /// "Fix all" style actions: they belong in the sub-menu of the quick fix they repeat.
     fn is_fix_all(&self) -> bool {
         self.lsp_kind()
@@ -94,7 +101,7 @@ pub fn bulb_for(actions: &[ContextAction]) -> Option<Bulb> {
     let enabled = || {
         actions
             .iter()
-            .filter(|a| a.disabled.is_none() && a.action.is_none())
+            .filter(|a| a.disabled.is_none() && !a.is_link())
     };
     if enabled().any(|a| a.kind == ActionKind::QuickFix) {
         Some(Bulb::Fix)
@@ -141,7 +148,7 @@ pub fn order_actions(actions: Vec<ContextAction>) -> Vec<ContextAction> {
             ActionKind::Intention | ActionKind::Refactor => 2,
             ActionKind::Source => 3,
         };
-        (a.disabled.is_some(), a.action.is_some(), kind)
+        (a.disabled.is_some(), a.is_link(), kind)
     };
     let mut seen = std::collections::HashSet::new();
     let mut out: Vec<ContextAction> = actions
@@ -266,6 +273,18 @@ mod tests {
             ..action("Generate...", ActionKind::Intention)
         };
         assert_eq!(bulb_for(std::slice::from_ref(&generate)), None);
+        // An intention that runs a UI action is not a link: it ranks and lights the bulb.
+        let fragment = ContextAction {
+            action: Some("EditInjectedFragment".into()),
+            ..action("Edit SQL Fragment", ActionKind::Intention)
+        };
+        assert!(!fragment.is_link() && generate.is_link());
+        assert_eq!(
+            bulb_for(std::slice::from_ref(&fragment)),
+            Some(Bulb::Intention)
+        );
+        let ordered = order_actions(vec![generate.clone(), fragment.clone()]);
+        assert_eq!(ordered[0].title, "Edit SQL Fragment");
         assert_eq!(
             bulb_for(&[generate, action("Add PHPDoc", ActionKind::Intention)]),
             Some(Bulb::Intention)

@@ -99,7 +99,9 @@ export async function runContextAction(path: string, view: EditorView, chosen: C
 
 /** Icon class of an entry: red bulb for quick fixes, yellow for intentions, none for links. */
 export function actionIcon(a: ContextAction): "fix" | "intention" | "refactor" | "source" | "link" {
-  if (a.action) return "link";
+  // Links open another popup or dialog and end with "..." ("Generate..."); other entries
+  // that run a UI action ("Edit SQL Fragment") are intentions.
+  if (a.action && /(\.\.\.|\u2026)$/.test(a.title)) return "link";
   if (a.kind === "quickFix") return "fix";
   if (a.kind === "refactor") return "refactor";
   if (a.kind === "source") return "source";
