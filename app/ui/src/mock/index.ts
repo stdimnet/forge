@@ -7,6 +7,7 @@ import "./remoteMock";
 import "./workspaceMock";
 import "./textMock";
 import "./editingMock";
+import "./clipboardMock";
 import "./projectStateMock";
 import "./aiMock";
 import "./agentMock";

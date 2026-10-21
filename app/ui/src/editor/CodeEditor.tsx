@@ -8,7 +8,6 @@ import {
   highlightActiveLineGutter,
   drawSelection,
   highlightSpecialChars,
-  rectangularSelection,
 } from "@codemirror/view";
 import { defaultKeymap, historyKeymap, indentWithTab } from "@codemirror/commands";
 import { bracketMatching, foldGutter, indentOnInput } from "@codemirror/language";
@@ -64,7 +63,7 @@ export function CodeEditor(props: { tab: EditorTab; group?: number }) {
           highlightActiveLineGutter(),
           highlightSpecialChars(),
           caretCompartment.of(caretBlink()),
-          rectangularSelection(),
+          // Rectangular selection and multi-caret clicks: features/carets.
           undoHistory(),
           indentOnInput(),
           formatCompartment.of(formatExtensions(props.tab.format, indentFor(path, props.tab.content))),
@@ -91,7 +90,7 @@ export function CodeEditor(props: { tab: EditorTab; group?: number }) {
             if (u.selectionSet || u.docChanged) {
               const head = u.state.selection.main.head;
               const line = u.state.doc.lineAt(head);
-              updateCursor(path, line.number, head - line.from + 1);
+              updateCursor(path, line.number, head - line.from + 1, u.state.selection.ranges.length);
             }
           }),
         ],

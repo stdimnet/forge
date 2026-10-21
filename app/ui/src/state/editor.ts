@@ -20,7 +20,8 @@ export interface EditorTab {
   bom: boolean;
   /** Effective format (indent, separators, on-save cleanup), resolved in Rust. */
   format?: FileFormat;
-  cursor: { line: number; col: number };
+  /** Main caret; `carets` counts all carets when there are several. */
+  cursor: { line: number; col: number; carets?: number };
   /**
    * Tabs that are not files (SQL consoles, table editors) name the editor view that renders
    * them (`registerEditorView`); their path is a pseudo URI like `db-console://shop/1`.
@@ -337,8 +338,8 @@ export function updateContent(path: string, content: string): void {
   setEditor("tabs", (t) => t.path === path, "content", content);
 }
 
-export function updateCursor(path: string, line: number, col: number): void {
-  setEditor("tabs", (t) => t.path === path, "cursor", { line, col });
+export function updateCursor(path: string, line: number, col: number, carets = 1): void {
+  setEditor("tabs", (t) => t.path === path, "cursor", carets > 1 ? { line, col, carets } : { line, col });
 }
 
 type SaveListener = (path: string, content: string) => void;

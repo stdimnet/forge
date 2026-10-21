@@ -8,6 +8,8 @@ import { registerEditorExtension } from "@/editor/extensions";
 import { actionById, showBalloon } from "@/keymap";
 import { registerCommand } from "@/state/commands";
 import { activeView } from "@/features/navigation/editorCommands";
+import { copiedFrom, recordCopy } from "@/features/clipboard/clipboard";
+import { pasteClipboard } from "@/features/clipboard";
 import { action, menuEntries, registerContextMenu, separator, showContextMenu, submenu } from "./state";
 import "./contextMenu.css";
 
@@ -15,59 +17,28 @@ function command(id: string, run: () => void | Promise<void>): void {
   registerCommand({ id, title: actionById(id)?.title ?? id, run });
 }
 
-function selectedText(view: EditorView): string {
-  const { state } = view;
-  return state.selection.ranges
-    .filter((r) => !r.empty)
-    .map((r) => state.sliceDoc(r.from, r.to))
-    .join(state.lineBreak);
-}
-
-/** Without a selection Copy and Cut take the whole line, like PHPStorm. */
-function lineRangeIfEmpty(view: EditorView) {
-  const { state } = view;
-  if (state.selection.ranges.some((r) => !r.empty)) return null;
-  const line = state.doc.lineAt(state.selection.main.head);
-  return { from: line.from, to: Math.min(line.to + 1, state.doc.length) };
-}
-
 async function copy(cut: boolean): Promise<void> {
   const view = activeView();
   if (!view) return;
-  const wholeLine = lineRangeIfEmpty(view);
-  const text = wholeLine ? view.state.sliceDoc(wholeLine.from, wholeLine.to) : selectedText(view);
-  if (!text) return;
+  // The selections, or the caret lines without one (PHPStorm copies the whole line).
+  const copied = copiedFrom(view.state);
+  if (!copied.text) return;
   try {
-    await navigator.clipboard.writeText(text);
+    await navigator.clipboard.writeText(copied.linewise ? copied.text + view.state.lineBreak : copied.text);
   } catch {
     showBalloon("Clipboard is not available", "Use the keyboard shortcut instead.");
     return;
   }
-  if (cut) {
-    const changes = wholeLine ?? view.state.selection.ranges.filter((r) => !r.empty).map((r) => ({ from: r.from, to: r.to }));
-    view.dispatch({ changes, userEvent: "delete.cut" });
-  }
-  view.focus();
-}
-
-async function paste(): Promise<void> {
-  const view = activeView();
-  if (!view) return;
-  let text: string;
-  try {
-    text = await navigator.clipboard.readText();
-  } catch {
-    showBalloon("Clipboard is not available", "Use the keyboard shortcut instead.");
-    return;
-  }
-  if (text) view.dispatch(view.state.replaceSelection(text), { scrollIntoView: true, userEvent: "input.paste" });
+  recordCopy(copied.text, copied.linewise ? [] : copied.carets);
+  if (cut) view.dispatch({ changes: copied.ranges, userEvent: "delete.cut" });
   view.focus();
 }
 
 command("$Cut", () => copy(true));
 command("$Copy", () => copy(false));
-command("$Paste", paste);
-command("PasteSimple", paste);
+command("$Paste", pasteClipboard);
+// Forge's paste does not reformat or add imports, so plain text is the same paste.
+command("PasteSimple", pasteClipboard);
 command("$SelectAll", () => {
   const view = activeView();
   if (!view) return;
