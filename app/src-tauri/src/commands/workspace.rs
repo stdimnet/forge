@@ -32,6 +32,8 @@ pub fn start_watching(app: &AppHandle) {
     tauri::async_runtime::spawn_blocking(move || {
         let handle = app.clone();
         let watcher = backend.watch(Arc::new(move |changes: FsChanges| {
+            // Shared Code With Me documents follow the disk on the host's side.
+            crate::commands::collab::on_fs_changed(&handle, &changes);
             if let Err(e) = handle.emit(FS_CHANGED_EVENT, &changes) {
                 tracing::warn!("cannot emit {FS_CHANGED_EVENT}: {e}");
             }
@@ -229,16 +231,29 @@ pub async fn fs_create_dir(path: String, state: State<'_, AppState>) -> Result<(
 }
 
 #[tauri::command]
-pub async fn fs_rename(from: String, to: String, state: State<'_, AppState>) -> Result<()> {
+pub async fn fs_rename(
+    from: String,
+    to: String,
+    state: State<'_, AppState>,
+    app: AppHandle,
+) -> Result<()> {
     let backend = state.backend()?;
-    blocking(move || backend.rename(&from, &to)).await
+    let (f, t) = (from.clone(), to.clone());
+    blocking(move || backend.rename(&f, &t)).await?;
+    // Guests' tabs of shared files follow the rename.
+    crate::commands::collab::on_renamed(&app, &from, &to);
+    Ok(())
 }
 
 /// Delete a file or a folder with its content (the UI asks for confirmation first).
 #[tauri::command]
-pub async fn fs_delete(path: String, state: State<'_, AppState>) -> Result<()> {
+pub async fn fs_delete(path: String, state: State<'_, AppState>, app: AppHandle) -> Result<()> {
     let backend = state.backend()?;
-    blocking(move || backend.delete(&path)).await
+    let p = path.clone();
+    blocking(move || backend.delete(&p)).await?;
+    // Shared documents of deleted files close for every guest.
+    crate::commands::collab::on_deleted(&app, &path);
+    Ok(())
 }
 
 /// "Go to File" backend: fuzzy file-name search over the project, honoring `.gitignore`.
