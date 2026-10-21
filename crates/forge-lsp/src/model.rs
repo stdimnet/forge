@@ -477,6 +477,205 @@ impl From<SignatureHelp> for EditorSignatureHelp {
     }
 }
 
+// ---- Workspace edits and code actions ----
+
+fn range_of(r: Range) -> forge_codeintel::Range {
+    forge_codeintel::Range::new(
+        forge_codeintel::Position::new(r.start.line, r.start.character),
+        forge_codeintel::Position::new(r.end.line, r.end.character),
+    )
+}
+
+fn text_edits(edits: &[lsp_types::TextEdit]) -> Vec<forge_codeintel::TextEdit> {
+    edits
+        .iter()
+        .map(|e| forge_codeintel::TextEdit {
+            range: range_of(e.range),
+            new_text: e.new_text.clone(),
+        })
+        .collect()
+}
+
+fn annotated_edits(
+    edits: &[lsp_types::OneOf<lsp_types::TextEdit, lsp_types::AnnotatedTextEdit>],
+) -> Vec<forge_codeintel::TextEdit> {
+    let plain: Vec<lsp_types::TextEdit> = edits
+        .iter()
+        .map(|e| match e {
+            lsp_types::OneOf::Left(t) => t.clone(),
+            lsp_types::OneOf::Right(a) => a.text_edit.clone(),
+        })
+        .collect();
+    text_edits(&plain)
+}
+
+fn path_of(uri: &lsp_types::Url) -> String {
+    uri_to_path(uri)
+        .map(|p| p.display().to_string())
+        .unwrap_or_else(|| uri.to_string())
+}
+
+/// An LSP workspace edit as Forge's model, with absolute paths (the app makes them
+/// workspace-relative). `documentChanges` wins over `changes`, as the protocol says.
+pub fn workspace_edit(e: &lsp_types::WorkspaceEdit) -> forge_codeintel::WorkspaceEdit {
+    use forge_codeintel::DocumentChange;
+    use lsp_types::{DocumentChangeOperation, DocumentChanges, ResourceOp};
+    let mut out = forge_codeintel::WorkspaceEdit::default();
+    match &e.document_changes {
+        Some(DocumentChanges::Edits(edits)) => {
+            for d in edits {
+                out.add_edits(path_of(&d.text_document.uri), annotated_edits(&d.edits));
+            }
+        }
+        Some(DocumentChanges::Operations(ops)) => {
+            for op in ops {
+                match op {
+                    DocumentChangeOperation::Edit(d) => {
+                        out.add_edits(path_of(&d.text_document.uri), annotated_edits(&d.edits))
+                    }
+                    DocumentChangeOperation::Op(ResourceOp::Create(c)) => {
+                        out.changes.push(DocumentChange::Create {
+                            path: path_of(&c.uri),
+                            overwrite: c
+                                .options
+                                .as_ref()
+                                .and_then(|o| o.overwrite)
+                                .unwrap_or(false),
+                        })
+                    }
+                    DocumentChangeOperation::Op(ResourceOp::Rename(r)) => {
+                        out.changes.push(DocumentChange::Rename {
+                            from: path_of(&r.old_uri),
+                            to: path_of(&r.new_uri),
+                        })
+                    }
+                    DocumentChangeOperation::Op(ResourceOp::Delete(d)) => {
+                        out.changes.push(DocumentChange::Delete {
+                            path: path_of(&d.uri),
+                        })
+                    }
+                }
+            }
+        }
+        None => {
+            let mut files: Vec<(String, &Vec<lsp_types::TextEdit>)> = e
+                .changes
+                .iter()
+                .flatten()
+                .map(|(uri, edits)| (path_of(uri), edits))
+                .collect();
+            files.sort_by(|a, b| a.0.cmp(&b.0));
+            for (path, edits) in files {
+                out.add_edits(path, text_edits(edits));
+            }
+        }
+    }
+    out
+}
+
+/// A command a code action runs on the server (`workspace/executeCommand`).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EditorCommand {
+    pub title: String,
+    pub command: String,
+    #[serde(default)]
+    pub arguments: Vec<Value>,
+}
+
+/// A quick fix or refactoring for the Alt+Enter popup.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EditorCodeAction {
+    pub title: String,
+    /// LSP kind, e.g. `quickfix`, `refactor.extract`, `source.organizeImports`.
+    pub kind: Option<String>,
+    pub is_preferred: bool,
+    /// Why the action cannot run now (shown greyed out).
+    pub disabled: Option<String>,
+    /// Absolute paths until the app makes them relative.
+    pub edit: Option<forge_codeintel::WorkspaceEdit>,
+    pub command: Option<EditorCommand>,
+    /// The edit comes from `codeAction/resolve` (send `raw` back).
+    pub needs_resolve: bool,
+    /// The server that offered it.
+    pub server: String,
+    /// The original action, for `codeAction/resolve`.
+    pub raw: Value,
+}
+
+impl EditorCodeAction {
+    pub fn from_lsp(a: &lsp_types::CodeActionOrCommand, server: &str, can_resolve: bool) -> Self {
+        match a {
+            lsp_types::CodeActionOrCommand::Command(c) => EditorCodeAction {
+                title: c.title.clone(),
+                kind: None,
+                is_preferred: false,
+                disabled: None,
+                edit: None,
+                command: Some(EditorCommand {
+                    title: c.title.clone(),
+                    command: c.command.clone(),
+                    arguments: c.arguments.clone().unwrap_or_default(),
+                }),
+                needs_resolve: false,
+                server: server.to_string(),
+                raw: serde_json::to_value(c).unwrap_or(Value::Null),
+            },
+            lsp_types::CodeActionOrCommand::CodeAction(c) => {
+                Self::from_action(c, server, can_resolve)
+            }
+        }
+    }
+
+    pub fn from_action(c: &lsp_types::CodeAction, server: &str, can_resolve: bool) -> Self {
+        EditorCodeAction {
+            title: c.title.clone(),
+            kind: c.kind.as_ref().map(|k| k.as_str().to_string()),
+            is_preferred: c.is_preferred.unwrap_or(false),
+            disabled: c.disabled.as_ref().map(|d| d.reason.clone()),
+            edit: c.edit.as_ref().map(workspace_edit),
+            command: c.command.as_ref().map(|cmd| EditorCommand {
+                title: cmd.title.clone(),
+                command: cmd.command.clone(),
+                arguments: cmd.arguments.clone().unwrap_or_default(),
+            }),
+            needs_resolve: can_resolve && c.edit.is_none(),
+            server: server.to_string(),
+            raw: serde_json::to_value(c).unwrap_or(Value::Null),
+        }
+    }
+}
+
+/// Answer of `textDocument/prepareRename`: the range to rename and its current text.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EditorPrepareRename {
+    pub range: Option<Range>,
+    pub placeholder: Option<String>,
+}
+
+impl From<lsp_types::PrepareRenameResponse> for EditorPrepareRename {
+    fn from(r: lsp_types::PrepareRenameResponse) -> Self {
+        match r {
+            lsp_types::PrepareRenameResponse::Range(range) => EditorPrepareRename {
+                range: Some(range),
+                placeholder: None,
+            },
+            lsp_types::PrepareRenameResponse::RangeWithPlaceholder { range, placeholder } => {
+                EditorPrepareRename {
+                    range: Some(range),
+                    placeholder: Some(placeholder),
+                }
+            }
+            lsp_types::PrepareRenameResponse::DefaultBehavior { .. } => EditorPrepareRename {
+                range: None,
+                placeholder: None,
+            },
+        }
+    }
+}
+
 /// Absolute path behind a diagnostics URI, if it is a local file.
 pub fn diagnostics_path(uri: &lsp_types::Url) -> Option<PathBuf> {
     uri_to_path(uri)
@@ -568,6 +767,70 @@ mod tests {
         assert_eq!(hits[0].kind, "function");
         assert_eq!(hits[0].container_name.as_deref(), Some("app"));
         assert!(hits[0].range.is_none());
+    }
+
+    #[test]
+    fn workspace_edits_keep_document_change_order() {
+        let e: lsp_types::WorkspaceEdit = serde_json::from_value(json!({
+            "documentChanges": [
+                {"textDocument": {"uri": "file:///p/User.php", "version": 3},
+                 "edits": [{"range": {"start": {"line": 1, "character": 6}, "end": {"line": 1, "character": 10}}, "newText": "Customer"}]},
+                {"kind": "rename", "oldUri": "file:///p/User.php", "newUri": "file:///p/Customer.php"},
+                {"kind": "create", "uri": "file:///p/new.php", "options": {"overwrite": true}}
+            ]
+        }))
+        .unwrap();
+        let m = workspace_edit(&e);
+        assert_eq!(m.changes.len(), 3);
+        assert_eq!(
+            m.paths(),
+            vec!["/p/User.php", "/p/Customer.php", "/p/new.php"]
+        );
+        assert_eq!(m.edit_count(), 1);
+
+        let e: lsp_types::WorkspaceEdit = serde_json::from_value(json!({
+            "changes": {
+                "file:///p/b.php": [{"range": {"start": {"line": 0, "character": 0}, "end": {"line": 0, "character": 1}}, "newText": "b"}],
+                "file:///p/a.php": [{"range": {"start": {"line": 0, "character": 0}, "end": {"line": 0, "character": 1}}, "newText": "a"}]
+            }
+        }))
+        .unwrap();
+        assert_eq!(workspace_edit(&e).paths(), vec!["/p/a.php", "/p/b.php"]);
+    }
+
+    #[test]
+    fn code_actions_and_commands_are_normalized() {
+        let fix: lsp_types::CodeActionOrCommand = serde_json::from_value(json!({
+            "title": "Import 'App\\Models\\Order'", "kind": "quickfix", "isPreferred": true,
+            "data": {"id": 7}
+        }))
+        .unwrap();
+        let a = EditorCodeAction::from_lsp(&fix, "intelephense", true);
+        assert_eq!(a.kind.as_deref(), Some("quickfix"));
+        assert!(a.is_preferred && a.needs_resolve && a.edit.is_none());
+        assert_eq!(a.raw["data"]["id"], 7);
+
+        let cmd: lsp_types::CodeActionOrCommand = serde_json::from_value(json!({
+            "title": "Organize imports", "command": "php.organizeImports", "arguments": ["x"]
+        }))
+        .unwrap();
+        let a = EditorCodeAction::from_lsp(&cmd, "intelephense", true);
+        assert_eq!(a.command.unwrap().command, "php.organizeImports");
+        assert!(!a.needs_resolve);
+    }
+
+    #[test]
+    fn prepare_rename_shapes() {
+        let r: lsp_types::PrepareRenameResponse = serde_json::from_value(json!({
+            "range": {"start": {"line": 1, "character": 2}, "end": {"line": 1, "character": 6}},
+            "placeholder": "User"
+        }))
+        .unwrap();
+        let p = EditorPrepareRename::from(r);
+        assert_eq!(p.placeholder.as_deref(), Some("User"));
+        let r: lsp_types::PrepareRenameResponse =
+            serde_json::from_value(json!({"defaultBehavior": true})).unwrap();
+        assert_eq!(EditorPrepareRename::from(r).range, None);
     }
 
     #[test]

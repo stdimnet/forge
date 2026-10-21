@@ -1663,6 +1663,17 @@
           "order": 10
         },
         {
+          "key": "php.stubs.path",
+          "title": "Default stubs path",
+          "description": "A phpstorm-stubs checkout used for PHP's own classes, functions and constants (Go to Declaration on \\Throwable, array_map). Empty: Forge downloads JetBrains' phpstorm-stubs into its cache folder on first use, or uses Intelephense's stubs.",
+          "type": "path",
+          "default": "",
+          "group": "lang.php",
+          "section": "PHP Runtime",
+          "project": false,
+          "order": 20
+        },
+        {
           "key": "php.lsp.server",
           "title": "Language server",
           "description": "Started automatically when a PHP project opens.",

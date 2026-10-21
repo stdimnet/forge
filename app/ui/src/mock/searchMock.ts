@@ -4,12 +4,11 @@
  * `find_in_files` in `findMock.ts`, WebAssembly).
  */
 import { registerMock } from "@/ipc";
-import { demoFiles } from "./demoProject";
+import { mockFiles } from "./workspaceMock";
 import { matchFiles } from "./fuzzyMock";
-import { isLuaDemo, luaDemoFiles } from "./demoLuaProject";
 
-/** Files of the open demo project (the Lua demo has its own). */
-const projectFiles = isLuaDemo() ? luaDemoFiles : demoFiles;
+/** Files of the open demo project (including files created in the UI). */
+const projectFiles = mockFiles;
 
 registerMock("fs_find_files", ({ query, limit, exact }) =>
   matchFiles(String(query ?? ""), Object.keys(projectFiles), Number(limit ?? 100), exact === true),

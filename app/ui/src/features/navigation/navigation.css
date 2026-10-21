@@ -847,3 +847,10 @@ mark.hl {
   margin-right: 8px;
   color: var(--fg);
 }
+.decl-chooser-container {
+  overflow: hidden;
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}

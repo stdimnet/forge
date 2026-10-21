@@ -36,6 +36,7 @@ Forge uses the platform's standard folders (Rust's `dirs` crate):
 | Path | Content |
 | --- | --- |
 | `php-index/<project>-<hash>.json` | PHP index cache per project |
+| `php-stubs/<version>/` | JetBrains phpstorm-stubs for Go to Declaration on PHP's own symbols (downloaded on first use, checked against a pinned digest of its files, with its `LICENSE`) |
 | `intelephense/` | Intelephense's storage (`storagePath`) |
 | `jdtls/…` | workspace data of the Java language server |
 

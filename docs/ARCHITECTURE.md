@@ -62,7 +62,7 @@ app/ui/            SolidJS UI
     controller action, "go to template", entity <-> repository), recomputed after edits.
   - `registerDeclarationProvider` (`src/features/lsp/goto.ts`) — framework targets for Ctrl+B /
     Ctrl+Click that a language server cannot resolve (route names, service ids, DQL fields); tried
-    before the LSP. Several targets (from a provider or the language server) open the shared
+    before the language servers and the PHP index (see "Code intelligence" below). Several targets (from a provider or the language server) open the shared
     "Choose Declaration" popup: `chooseDeclarationAt(view, pos, targets, { title?, open? })`
     (`src/features/navigation/chooseDeclaration.ts`; targets `{ path, line, column?, preview? }`,
     0-based). WebForge, LuaForge, Laravel, Symfony, Doctrine and the LSP use it.
@@ -315,7 +315,8 @@ app/ui/            SolidJS UI
   `u32` length + a MessagePack map (`rmp_serde::to_vec_named`). `Request { id, call }` /
   `Response { id, result }` (answers in any order; the result is the MessagePack encoding of
   the call's reply type; protocol 2 added `ReadOptional`, `ProcessCloseStdin`,
-  `FindExecutable`, `Framework` and `LangServers`), `Event` (`FsChanged`, `Pty`, `Run`,
+  `FindExecutable`, `Framework` and `LangServers`; protocol 3 added `FindInFiles` and the PHP
+  navigation calls `Usages`, `Navigate`, `Definition`, `LineMarkers` and `Intentions`), `Event` (`FsChanged`, `Pty`, `Run`,
   `PhpIndexProgress`), `Data` /
   `Close { channel }` (language server stdio, terminal and process input; channel ids are chosen
   by the client). The connection starts with `Call::Hello`. `forge_backend::rpc::RpcClient`
@@ -558,6 +559,63 @@ app/ui/            SolidJS UI
   `commands::langservers::with_intelephense_licence(&mut config)`. A plaintext
   `php.lsp.licenceKey` setting (or the PHP page's old localStorage value) is migrated once.
 - Events: `lsp://diagnostics` `{ path, diagnostics }` and `lsp://status` `ServerStatus[]`.
+
+## Code intelligence: navigation and usages (`forge-codeintel`)
+
+PHPStorm's navigation for every language, with the PHP index as fallback for PHP files. Rust
+computes everything; `app/ui/src/features/codeintel` and `features/lsp/goto.ts` render.
+
+- `crates/forge-codeintel` (pure, also WebAssembly): `UsageKind` and `classify_usage`
+  (PHPStorm's usage types from the line around a reference), `group_usages` (the tree by usage
+  type and file, without the declaration), workspace edits with LSP positions, context action
+  ordering.
+- `packs/phpforge/lang-php`: `navigate` resolves the symbol at a position on the index
+  (classes through imports, aliases, group uses and the namespace; functions and constants with
+  PHP's global fallback; members through `$this`, `self`/`static`/`parent`, typed variables,
+  `catch`, `@var`, property and return-type chains; variables) and answers `definition`
+  (`PhpDefinition { onDeclaration, range, title, targets, external?, info? }`), `find_usages`,
+  implementations, super methods, type declarations and `line_markers`. Names the index does not
+  declare come back as an `ExternalSymbol` (class / function / constant candidates, or a member
+  of candidate classes); `stubs::StubIndex` answers them from a phpstorm-stubs folder. These run
+  through `forge_backend::PhpBackend` (`PhpCall::Definition`, `LineMarkers`, `Usages`,
+  `Navigate`), so remote projects answer from the agent; the stubs live on this machine.
+- PHP stubs (`forge_langservers::managed::stubs`, app state `commands::library::LibraryState`):
+  `php.stubs.path`, else a pinned JetBrains phpstorm-stubs release downloaded on first use into
+  `<cache dir>/forge/php-stubs/<version>` (the unpacked files are checked against a pinned
+  `content_digest`, which `git archive <commit>` reproduces; `LICENSE` kept), else
+  Intelephense's own `lib/stub`. Progress is reported as
+  `langservers://install-progress` with id `php-stubs`. Indexed once per folder.
+- Library files: `library://php-stubs/<path>` (the stubs) and `library://file/<absolute path>`
+  (a file outside the project a language server pointed to; only paths handed out by a
+  navigation answer can be read). The UI registers a read-only `FileSystemProvider` for
+  `library://` with a "Read-only library file" banner and breadcrumbs
+  `PHP Runtime › Core › Core_c.php › Throwable`. Language server and PHP index editor
+  extensions skip library tabs.
+- IPC (`app/ui/src/ipc/codeintel.ts`; positions are LSP positions):
+  - `code_goto_declaration({ path, line, character, content? }) -> { onDeclaration, title?,
+    targets: NavTarget[], source: "lsp" | "index" | "stubs" | "none", message? }` — language
+    servers' `definition` first (a location containing the caret means "on a declaration"),
+    then the PHP index, then the stubs. `NavTarget` is `{ path, line, column, name, container? }`.
+  - `code_symbol_info({ path, line, character, content? }) -> { range, container, signature } |
+    null` — the Ctrl+hover link from the index (and the loaded stubs, never a download).
+  - `code_find_usages({ path, line, character, content?, buffers? }) -> { title, source,
+    declaration?, byType: UsageTree, byFile: UsageTree }` — `references` of the servers, else the
+    index (members also through parent and child classes; unknown receivers as dynamic usages).
+  - `code_navigate({ path, line, character, kind: "implementation" | "superMethod" |
+    "typeDeclaration", content? }) -> { targets, missing? }` — `missing` explains a server
+    without the feature (Intelephense Premium) when the index found nothing either.
+  - `code_line_markers({ path, content? }) -> { line, kind: "subclassed" | "implemented" |
+    "overridden" | "implements" | "overrides", title, targets }[]` — PHP gutter icons.
+  - `library_read({ path }) -> { text, library, detail }`.
+  - Rename and context actions (`code_prepare_rename`, `code_rename`, `code_apply_edit`,
+    `code_revert_edit`, `code_context_actions`, `code_resolve_action`, `code_execute_command`)
+    have commands and browser mocks; their UI is not built yet.
+- UI: Go to Declaration (`GotoDeclaration`, `Ctrl+Click`, middle click) shows usages on a
+  declaration (`showUsagesAt`); `ShowUsages` (popup), `FindUsages` (Find tool window `find`,
+  `Alt+3`), `GotoImplementation` (also `Ctrl+Alt+Click`), `GotoTypeDeclaration`,
+  `GotoSuperMethod` are registered commands, so the keymap and the main menu enable them;
+  several targets use `chooseDeclarationAt`. Browser mode: `mock/codeintelMock.ts` over the demo
+  project and `mock/demoStubs.ts`, grouping through `forge-codeintel` as WebAssembly.
 
 ## PHP debugger (`forge-debug`)
 

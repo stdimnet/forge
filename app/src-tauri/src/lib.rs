@@ -84,6 +84,7 @@ pub fn run() {
             Ok(())
         })
         .manage(commands::lsp::LspState::default())
+        .manage(commands::library::LibraryState::default())
         .manage(commands::workspace::WatchState::default())
         .manage(commands::remote::RemoteState::default())
         .manage(commands::laravel::LaravelState::default())
@@ -149,6 +150,19 @@ pub fn run() {
             commands::lsp::lsp_format,
             commands::lsp::lsp_status,
             commands::lsp::lsp_register_server,
+            commands::codeintel::code_find_usages,
+            commands::codeintel::code_navigate,
+            commands::codeintel::code_goto_declaration,
+            commands::codeintel::code_symbol_info,
+            commands::codeintel::code_line_markers,
+            commands::library::library_read,
+            commands::codeintel::code_prepare_rename,
+            commands::codeintel::code_rename,
+            commands::codeintel::code_apply_edit,
+            commands::codeintel::code_revert_edit,
+            commands::codeintel::code_context_actions,
+            commands::codeintel::code_resolve_action,
+            commands::codeintel::code_execute_command,
             commands::langservers::langservers_list,
             commands::langservers::langservers_apply,
             commands::langservers::langservers_install,

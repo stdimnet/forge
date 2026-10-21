@@ -4,7 +4,8 @@ use std::path::Path;
 use std::time::Duration;
 
 use forge_lsp::lsp_types::Position;
-use forge_lsp::{LspClient, LspEvent, LspManager, LspServerConfig, ServerState};
+use forge_lsp::lsp_types::Range;
+use forge_lsp::{Feature, LspClient, LspEvent, LspManager, LspServerConfig, ServerState};
 use serde_json::json;
 use tokio::sync::broadcast;
 
@@ -259,6 +260,113 @@ async fn several_servers_per_file_are_merged() {
     let mut servers: Vec<_> = symbols.iter().map(|s| s.server.as_str()).collect();
     servers.sort();
     assert_eq!(servers, vec!["fake", "lint"]);
+
+    manager.shutdown_all().await;
+}
+
+#[tokio::test]
+async fn rename_implementation_and_code_actions() {
+    let dir = tempfile::tempdir().unwrap();
+    let manager = LspManager::new(dir.path());
+    manager.register_server(config());
+    let mut lint = config();
+    lint.id = "lint".into();
+    lint.name = Some("Lint".into());
+    lint.args = vec!["secondary".into()];
+    lint.file_extensions = vec!["php".into(), "lint".into()];
+    manager.register_server(lint);
+    let mut rx = manager.subscribe();
+
+    let php = dir.path().join("User.php");
+    manager
+        .did_open(&php, "class User\n// TODO\n")
+        .await
+        .unwrap();
+    let (server, uri, diags) = next_matching(&mut rx, |e| match e {
+        LspEvent::Diagnostics {
+            server_id,
+            uri,
+            diagnostics,
+            ..
+        } if server_id == "fake" => Some((server_id, uri, diagnostics)),
+        _ => None,
+    })
+    .await;
+    manager.merge_diagnostics(&server, &uri, diags);
+
+    // A feature one of the servers supports is not missing; a file served only by the
+    // secondary server lacks it (the UI then explains why, e.g. Intelephense Premium).
+    assert_eq!(manager.missing_feature(&php, Feature::Rename).await, None);
+    let lint_file = dir.path().join("rules.lint");
+    assert_eq!(
+        manager.missing_feature(&lint_file, Feature::Rename).await,
+        Some(vec!["Lint".to_string()])
+    );
+    assert!(manager
+        .rename(&lint_file, Position::new(0, 0), "x")
+        .await
+        .is_err());
+
+    let prepared = manager
+        .prepare_rename(&php, Position::new(0, 7))
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(prepared.placeholder.as_deref(), Some("User"));
+    let edit = manager
+        .rename(&php, Position::new(0, 7), "Customer")
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(edit.paths(), vec![php.display().to_string()]);
+    let mut store = forge_lsp::forge_codeintel::MemoryStore::default();
+    store
+        .0
+        .insert(php.display().to_string(), "class User\n// TODO\n".into());
+    forge_lsp::forge_codeintel::apply_workspace_edit(&edit, &mut store).unwrap();
+    assert_eq!(
+        store.0[&php.display().to_string()],
+        "class Customer\n// TODO\n"
+    );
+
+    let impls = manager
+        .implementation(&php, Position::new(0, 7))
+        .await
+        .unwrap();
+    assert_eq!(impls.len(), 1);
+    assert_eq!(impls[0].range.start.line, 3);
+
+    // Code actions get the diagnostics under the range as context.
+    let line1 = Range::new(Position::new(1, 0), Position::new(1, 7));
+    let actions = manager.code_actions(&php, line1).await.unwrap();
+    assert_eq!(actions[0].title, "Fix 1 problem(s)");
+    assert!(actions[0].needs_resolve);
+    let resolved = manager
+        .resolve_code_action(&php, &actions[0].server, actions[0].raw.clone())
+        .await
+        .unwrap();
+    assert_eq!(resolved.edit.unwrap().edit_count(), 1);
+    let elsewhere = Range::new(Position::new(0, 0), Position::new(0, 1));
+    assert_eq!(
+        manager.code_actions(&php, elsewhere).await.unwrap()[0].title,
+        "Fix 0 problem(s)"
+    );
+
+    // A command's edit comes back as `workspace/applyEdit`.
+    let cmd = actions[1].command.clone().unwrap();
+    manager
+        .execute_command(&php, "fake", &cmd.command, cmd.arguments)
+        .await
+        .unwrap();
+    let label = next_matching(&mut rx, |e| match e {
+        LspEvent::ApplyEdit { label, edit, .. } => {
+            assert!(edit.changes.is_some());
+            label
+        }
+        _ => None,
+    })
+    .await;
+    assert_eq!(label, "fake");
 
     manager.shutdown_all().await;
 }

@@ -130,5 +130,6 @@ the search runs on the host, which keeps the result and sends the rows the list 
 
 The **Text** tab of Search Everywhere uses the same search (from two characters on).
 
-> **Note:** Replace in Files (`Ctrl+Shift+R`) and the Find tool window ("Open in Find Tool
-> Window") are not available yet.
+> **Note:** Replace in Files (`Ctrl+Shift+R`) and "Open in Find Tool Window" for Find in Files
+> are not available yet. The Find tool window shows the results of
+> [Find Usages](editor.md#find-usages-and-show-usages).

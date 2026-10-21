@@ -15,6 +15,7 @@ import "./findMock";
 import "./replaceMock";
 import "./gitMock";
 import "./phpMock";
+import "./codeintelMock";
 import "./companionMock";
 import "./terminalMock";
 import "./runMock";

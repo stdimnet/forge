@@ -7,7 +7,7 @@ tags: [shortcuts, keymap, search]
 
 # Shortcuts: Search
 
-Search Everywhere, Go to Class/File/Symbol, find in the current file and Find in Files. Windows/Linux shortcuts first, macOS second; both are PHPStorm's defaults and can be changed in Settings | Keymap.
+Search Everywhere, Go to Class/File/Symbol, find in the current file, Find in Files and Find / Show Usages. Windows/Linux shortcuts first, macOS second; both are PHPStorm's defaults and can be changed in Settings | Keymap.
 
 | Action | Windows / Linux | macOS |
 | --- | --- | --- |
@@ -21,6 +21,8 @@ Search Everywhere, Go to Class/File/Symbol, find in the current file and Find in
 | [Find Next / Move to Next Occurrence](#find-next--move-to-next-occurrence) | `F3` | `Cmd+G` |
 | [Find Previous / Move to Previous Occurrence](#find-previous--move-to-previous-occurrence) | `Shift+F3` | `Cmd+Shift+G` |
 | [Find in Files…](#find-in-files) | `Ctrl+Shift+F` | `Cmd+Shift+F` |
+| [Find Usages](#find-usages) | `Alt+F7` | `Alt+F7` |
+| [Show Usages](#show-usages) | `Ctrl+Alt+F7` | `Cmd+Alt+F7` |
 
 ## Search Everywhere
 
@@ -135,3 +137,27 @@ Searches the text of all project files, with match case, whole words, regular ex
 ![Find in Files…](../../../screenshots/docs-find-in-files.png)
 
 More: [Search Everywhere and Find Action](../../user/search-everywhere.md#find-in-files)
+
+## Find Usages
+
+**Shortcut:** `Alt+F7` · macOS `Alt+F7` · action id `FindUsages`
+
+Finds the usages of the symbol at the caret and shows them in the Find tool window, grouped by usage type and file.
+
+**Menu:** Edit | Find Usages | Find Usages
+
+![Find tool window](../../../screenshots/php-nav-find-window.png)
+
+More: [Editor](../../user/editor.md#find-usages-and-show-usages)
+
+## Show Usages
+
+**Shortcut:** `Ctrl+Alt+F7` · macOS `Cmd+Alt+F7` · action id `ShowUsages`
+
+Shows the usages of the symbol at the caret in a popup; `Enter` opens one, the pin button keeps them in the Find tool window. `Ctrl+Click` on a declaration does the same.
+
+**Menu:** Edit | Find Usages | Show Usages
+
+![Show Usages](../../../screenshots/php-nav-show-usages.png)
+
+More: [Editor](../../user/editor.md#find-usages-and-show-usages)

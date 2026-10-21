@@ -40,6 +40,32 @@ export function chat_new(): string;
 export function chat_set_permission(request_json: string): string;
 
 /**
+ * `{ edit, files }` → `{ applied: AppliedFile[], files }` (the files after the edit) or
+ * `{ error }`.
+ */
+export function codeintel_apply_edit(request_json: string): string;
+
+/**
+ * `{ usages, declaration?, files }` → `{ byType, byFile }` (like `code_find_usages`).
+ */
+export function codeintel_group_usages(request_json: string): string;
+
+/**
+ * `ContextAction[]` → the same, in PHPStorm's order without duplicates.
+ */
+export function codeintel_order_actions(request_json: string): string;
+
+/**
+ * `{ edit, files }` → `FilePreview[]` (Refactoring Preview rows).
+ */
+export function codeintel_preview_edit(request_json: string): string;
+
+/**
+ * `{ text, position }` → `[range, word] | null`.
+ */
+export function codeintel_word_range(request_json: string): string;
+
+/**
  * `ComposeCommand` → arguments after `docker`.
  */
 export function containers_compose_args(request_json: string): string;
@@ -472,6 +498,11 @@ export interface InitOutput {
     readonly chat_drop: (a: number, b: number, c: number) => void;
     readonly chat_new: (a: number) => void;
     readonly chat_set_permission: (a: number, b: number, c: number) => void;
+    readonly codeintel_apply_edit: (a: number, b: number, c: number) => void;
+    readonly codeintel_group_usages: (a: number, b: number, c: number) => void;
+    readonly codeintel_order_actions: (a: number, b: number, c: number) => void;
+    readonly codeintel_preview_edit: (a: number, b: number, c: number) => void;
+    readonly codeintel_word_range: (a: number, b: number, c: number) => void;
     readonly containers_compose_args: (a: number, b: number, c: number) => void;
     readonly containers_compose_parse: (a: number, b: number, c: number) => void;
     readonly containers_docker_contexts: (a: number, b: number, c: number) => void;

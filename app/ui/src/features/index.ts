@@ -11,6 +11,7 @@ import "./lsp";
 import "./langservers";
 import "./navigation";
 import "./find";
+import "./codeintel";
 import "./keymapSettings";
 import "./git";
 import "./forges";

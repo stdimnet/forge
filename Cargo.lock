@@ -1888,6 +1888,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "forge-codeintel"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "forge-containers"
 version = "0.1.0"
 dependencies = [
@@ -2041,6 +2049,7 @@ dependencies = [
 name = "forge-lsp"
 version = "0.1.0"
 dependencies = [
+ "forge-codeintel",
  "forge-core",
  "futures-util",
  "lsp-types",
@@ -2261,6 +2270,7 @@ name = "forge-wasm"
 version = "0.1.0"
 dependencies = [
  "forge-agent-cli",
+ "forge-codeintel",
  "forge-containers",
  "forge-filetypes",
  "forge-find",
@@ -4572,6 +4582,7 @@ name = "phpforge-lang-php"
 version = "0.1.0"
 dependencies = [
  "dirs 6.0.0",
+ "forge-codeintel",
  "rayon",
  "serde",
  "serde_json",

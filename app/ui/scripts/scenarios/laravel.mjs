@@ -45,7 +45,7 @@ export default {
     await page.keyboard.press("End");
     for (let i = 0; i < 12; i++) await page.keyboard.press("ArrowLeft");
     await page.keyboard.press("Control+KeyB");
-    await page.waitForSelector(".laravel-chooser-row");
+    await page.waitForSelector(".decl-chooser-row");
   },
   "laravel-goto-view": async (page) => {
     await openFile(page, "app/Http/Controllers/ProductController.php");

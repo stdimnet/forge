@@ -16,6 +16,7 @@ forge-fuzzy = { path = "crates/forge-fuzzy" }
 forge-find = { path = "crates/forge-find" }
 forge-search = { path = "crates/forge-search" }
 forge-search-core = { path = "crates/forge-search-core" }
+forge-codeintel = { path = "crates/forge-codeintel" }
 forge-filetypes = { path = "crates/forge-filetypes" }
 forge-plugin-api = { path = "crates/forge-plugin-api" }
 forge-ai = { path = "crates/forge-ai" }
