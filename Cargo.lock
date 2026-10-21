@@ -2047,6 +2047,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "forge-injections"
+version = "0.1.0"
+dependencies = [
+ "forge-codeintel",
+ "regex-lite",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "forge-keymap"
 version = "0.1.0"
 dependencies = [
