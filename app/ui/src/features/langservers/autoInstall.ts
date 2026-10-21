@@ -108,5 +108,6 @@ export function failureDetail(code: number | null | undefined, stderr: string[])
   const lines = stderr.map((l) => l.replace(/^npm (error|ERR!)\s*/, "").trim()).filter(Boolean);
   const reason = [...lines].reverse().find((l) => /fail|error|denied|not found|certificate|ENOTFOUND|ETIMEDOUT/i.test(l) && !/complete log/i.test(l)) ?? lines.at(-1);
   const exit = code == null ? "" : `Exit code ${code}.`;
-  return [reason, exit].filter(Boolean).join(" ") || "See Settings | Languages & Frameworks | Language Servers.";
+  const sentence = reason && !/[.!?]$/.test(reason) ? `${reason}.` : reason;
+  return [sentence, exit].filter(Boolean).join(" ") || "See Settings | Languages & Frameworks | Language Servers.";
 }

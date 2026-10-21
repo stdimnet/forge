@@ -90,6 +90,20 @@ pub trait PhpBackend: Send + Sync {
     fn detect_servers(&self, settings: PhpLspSettings) -> Result<DetectedServers>;
 }
 
+/// Use Forge's managed Intelephense (`node …/intelephense.js`) of this machine unless a path
+/// is set. On a remote agent "this machine" is the project's host, where Forge installs it.
+pub fn with_managed_intelephense(mut settings: PhpLspSettings) -> PhpLspSettings {
+    if settings.intelephense_path.is_none() {
+        if let Some((node, script)) =
+            forge_langservers::Detector::system().managed_launch("intelephense")
+        {
+            settings.intelephense_path = Some(script);
+            settings.intelephense_node = Some(node);
+        }
+    }
+    settings
+}
+
 fn err(e: impl std::fmt::Display) -> ForgeError {
     ForgeError::Other(e.to_string())
 }
@@ -284,12 +298,19 @@ impl PhpBackend for LocalPhp {
             // Built again with the new mode on the next use.
             *self.index.lock().map_err(err)? = None;
         }
-        Ok(lsp::resolve_for_workspace(&settings, self.root()))
+        Ok(lsp::resolve_for_workspace(
+            &with_managed_intelephense(settings),
+            self.root(),
+        ))
     }
 
     fn detect_servers(&self, settings: PhpLspSettings) -> Result<DetectedServers> {
         let path_env = std::env::var("PATH").ok();
         let dirs = lsp::search_dirs(path_env.as_deref(), home_dir().as_deref());
-        Ok(lsp::detect(&settings, &dirs, &lsp::FsProbe))
+        Ok(lsp::detect(
+            &with_managed_intelephense(settings),
+            &dirs,
+            &lsp::FsProbe,
+        ))
     }
 }

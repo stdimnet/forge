@@ -121,11 +121,11 @@ describe("failureDetail", () => {
       "npm error A complete log of this run can be found in: /home/deploy/.npm/_logs/x.log",
     ];
     expect(failureDetail(1, npm)).toBe(
-      "request to https://registry.npmjs.org/intelephense failed, reason: self-signed certificate in certificate chain Exit code 1.",
+      "request to https://registry.npmjs.org/intelephense failed, reason: self-signed certificate in certificate chain. Exit code 1.",
     );
   });
   it("falls back to the last line, or to the settings page", () => {
-    expect(failureDetail(null, ["killed"])).toBe("killed");
+    expect(failureDetail(null, ["killed"])).toBe("killed.");
     expect(failureDetail(undefined, [])).toBe("See Settings | Languages & Frameworks | Language Servers.");
   });
 });
