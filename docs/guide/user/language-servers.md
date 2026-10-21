@@ -212,9 +212,13 @@ the files: the PHP server (the Forge agent finds Intelephense or Phpactor on the
 catalog servers, whose project scan, detection (`node_modules/.bin`, `PATH`, npm/nvm/volta, …)
 and configuration happen on the host too.
 
-> **Note:** installing servers from the settings page is refused for remote projects; install
-> them on the host from the terminal. The Intelephense install offer is shown for local projects
-> only.
+**Install** on the Language Servers page installs on the host: the Forge agent downloads
+Node.js (when the host has none) and the npm package into Forge's directory on the host
+(`~/.local/share/forge`), checking their hashes, and streams its steps and download progress to
+the page. The page names the host, and so do the install dialog and the Intelephense offer, which
+always asks before downloading onto a host (also with `auto install` set to always). The
+Intelephense licence is accepted on your machine. Updates of the servers Forge installed are
+checked on the host too.
 
 ## Troubleshooting
 

@@ -150,5 +150,6 @@ Forge: see [Browser Companion](browser-companion.md).
 The New Project wizard creates Vite, React, Vue.js, Angular, Svelte and static HTML projects,
 see [Opening and creating projects](../getting-started/projects.md).
 
-> **Note:** the npm tool window and framework navigation read the project through this
-> machine's file system; they are not available in [remote projects](remote-development.md) yet.
+In [remote projects](remote-development.md) the npm tool window, package manager detection,
+component navigation and gutter icons are computed by the Forge agent on the host, and scripts
+run there like every run configuration.

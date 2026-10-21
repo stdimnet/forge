@@ -238,4 +238,5 @@ in `dialog-windows.json`); in browser mode it opens in-page. The dialog ends wit
 
 Use `projectInfo()`, `usesFramework("laravel")` and `isPluginActive("forge.laravel")` from
 `src/state/project.ts` to activate a feature only when the project uses it, and
-`isRemoteProject()` from `state/workspace.ts` to hide local-only features.
+`isRemoteProject()` / `workspace()?.remote` from `state/workspace.ts` to name the host in the UI
+(features themselves work remotely through the project backend).
