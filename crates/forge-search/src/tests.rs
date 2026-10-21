@@ -332,6 +332,7 @@ fn find_text_matches_a_directory_walk() {
     write(d.path(), "src/Many.php", "x\nx\nx\nx\nx\n");
     write(d.path(), "src/Crlf.txt", "alpha end\r\nsecond\r\n");
     write(d.path(), "src/Wide.php", "<?php // $user and $userId\n");
+    write(d.path(), "src/Mixed.txt", "one\rtwo\n\nthree  \n");
     svc.refresh();
     let ws = Workspace::open(d.path()).unwrap();
     let req = |query: &str| FindRequest {
@@ -360,6 +361,7 @@ fn find_text_matches_a_directory_walk() {
         r"\w+Repository",
         r"[^a-z]x",
         "x|e",
+        ".*",
     ] {
         let mut regex = req(pattern);
         regex.regex = true;

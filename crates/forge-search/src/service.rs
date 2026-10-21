@@ -336,6 +336,7 @@ impl SearchService {
             .build()
             .ok();
 
+        let every_line = req.regex && req.query == ".*";
         let limit = finder.limit();
         let found = std::sync::atomic::AtomicUsize::new(0);
         let per_file: Vec<(String, Rows, usize, bool)> = paths
@@ -350,7 +351,11 @@ impl SearchService {
                 }
                 let ranges = match &prefilter {
                     Some(re) => {
-                        let ranges = line_ranges(re, &bytes);
+                        let ranges = if every_line {
+                            non_empty_lines(&bytes).or_else(|| line_ranges(re, &bytes))
+                        } else {
+                            line_ranges(re, &bytes)
+                        };
                         if ranges.as_ref().is_some_and(Vec::is_empty) {
                             return None;
                         }
@@ -507,6 +512,32 @@ fn line_ranges(re: &regex::bytes::Regex, bytes: &[u8]) -> Option<Vec<(usize, usi
             return None;
         }
         out.push((m.start(), m.end()));
+    }
+    Some(out)
+}
+
+/// What `.*` matches without the regex engine: the non-empty lines, each without its line break.
+/// `None` when the text ends in a bare `\r`, which the regex path settles.
+fn non_empty_lines(bytes: &[u8]) -> Option<Vec<(usize, usize)>> {
+    if bytes.last() == Some(&b'\r') {
+        return None;
+    }
+    let mut out = Vec::new();
+    let mut start = 0;
+    while start < bytes.len() {
+        let end = bytes[start..]
+            .iter()
+            .position(|&b| b == b'\n')
+            .map_or(bytes.len(), |i| start + i);
+        let trimmed = if end < bytes.len() && end > start && bytes[end - 1] == b'\r' {
+            end - 1
+        } else {
+            end
+        };
+        if trimmed > start {
+            out.push((start, trimmed));
+        }
+        start = end + 1;
     }
     Some(out)
 }
