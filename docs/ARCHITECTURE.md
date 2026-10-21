@@ -492,7 +492,14 @@ app/ui/            SolidJS UI
   Output arrives on `terminal://<id>` as `{ type: "output", data } | { type: "exited", code }`; pass
   your own `id` to subscribe before the shell starts. Defaults: `terminal.shellPath` or `$SHELL` /
   pwsh / `%ComSpec%`, start directory `terminal.startDirectory` or the project root, extra
-  variables from `terminal.environment`.
+  variables from `terminal.environment`. Every session (local or on a remote agent) gets
+  `forge_process::termenv`'s environment (`TERM_PROGRAM=Forge`, `TERM_PROGRAM_VERSION`, a UTF-8
+  `LANG` fallback, other terminals' variables removed); `close` sends SIGHUP and SIGKILL after
+  a grace period.
+- Terminal sequences: OSC 9;4 progress, OSC 9 / 777 notifications, OSC 7 working directories,
+  OSC 133 boundaries and OSC 8 link targets are parsed by `forge_output::osc`, which the UI calls
+  synchronously through WebAssembly (`terminal_parse_osc`, `terminal_link_target`) from
+  xterm.js's OSC handlers. The `terminal.progress` status item and the stripe badge render it.
 - Configurations: `run_configurations_load() -> { configurations, selected?, templates? }` and
   `run_configurations_save({ configurations })`. Shared ones ("Store as project file") are written
   to `<project>/.forge/runConfigurations.toml`, local ones, the selection and templates to

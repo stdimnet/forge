@@ -5771,7 +5771,7 @@ Source: docs/guide/user/terminal.md
 
 The **Terminal** tool window (`Alt+F12`, bottom stripe) runs your shell on a real pseudo
 terminal (xterm.js in the UI, a PTY in Rust), so interactive programs such as `vim`, `htop`,
-`git rebase -i` or `php artisan tinker` work.
+`git rebase -i`, `php artisan tinker` or Claude Code work.
 
 ![Terminal tabs](docs/screenshots/terminal-tabs.png)
 
@@ -5783,10 +5783,40 @@ terminal (xterm.js in the UI, a PTY in Rust), so interactive programs such as `v
 | New tab | `Ctrl+Shift+T` | `Cmd+T` |
 | Close tab | `Ctrl+Shift+F4` | `Cmd+Shift+F4` |
 
-Tabs are named "Local", "Local (2)", …; double-click a tab or use **Rename Session** to rename
-it. A tab's context menu has **New Tab**, **Rename Session**, **Close Tab** and **Close Other
-Tabs**. The terminal area's context menu has **Copy** (`Ctrl+Shift+C`), **Paste**
-(`Ctrl+Shift+V`), **Select All** and **Clear Buffer**.
+Tabs are named "Local", "Local (2)", …; while a program runs that sets a title (OSC 0 / OSC 2,
+e.g. Claude Code's current task), the tab shows that title instead (**Show application title**).
+Double-click a tab or use **Rename Session** to rename it; a renamed tab keeps its name. A
+tab's context menu has **New Tab**, **New Tab in Current Directory** (the directory the shell
+reports, see below), **Rename Session**, **Close Tab** and **Close Other Tabs**. The terminal
+area's context menu has **Copy** (`Ctrl+Shift+C`), **Paste** (`Ctrl+Shift+V`), **Select All**
+and **Clear Buffer**.
+
+## Program progress
+
+Programs such as Claude Code, winget or systemd report their progress with the OSC 9;4
+sequence. Forge shows it:
+
+- on the **terminal tab**: a ring filled to the percentage, or a spinning arc while the
+  program is busy without a percentage;
+- in the **status bar** (**Show progress in the status bar**): the ring plus
+  "&lt;tab title&gt;: 42%", "Working…", "Error 60%" or "Paused"; click it to show the tab;
+- on the **Terminal stripe icon** while the tool window is hidden: the combined progress of
+  all tabs (errors first, then paused, then the slowest).
+
+Errors are drawn in the danger color, paused progress in the warning color. The progress
+disappears when the program removes it, when the shell shows its next prompt (OSC 133) or
+when the shell exits.
+
+![Claude Code with progress](docs/screenshots/terminal-claude-session.png)
+
+![Progress on the stripe icon and in the status bar](docs/screenshots/terminal-progress-hidden.png)
+
+## Notifications and bell
+
+OSC 9 (iTerm2) and OSC 777 (`notify;<title>;<body>`) notifications appear as balloons when
+the tab is not visible or Forge is not focused; **Show** opens the tab. The bell flashes the
+terminal when the tab is visible and otherwise puts a dot on the tab and on the stripe icon;
+with **Audible bell** it also beeps.
 
 ## Keyboard
 
@@ -5795,10 +5825,26 @@ While the terminal has focus, plain `Ctrl`+letter, `Alt`+letter and `Escape` go 
 `Ctrl+Shift` and `Ctrl+Alt` combinations still reach the IDE, so `Alt+1` or `Shift+Escape`
 work from the terminal.
 
+`Shift+Enter` sends ESC CR and `Ctrl+Enter` sends LF, so TUI programs such as Claude Code
+insert a newline instead of submitting. On macOS, **Use Option as Meta key** makes `Option`
+work as `Alt` in the shell.
+
 ## Links
 
-URLs and file references such as `app/Models/User.php:42` in the output are clickable; files
-open in the editor at that line.
+URLs and OSC 8 hyperlinks in the output open with `Ctrl+Click` (`Cmd+Click` on macOS), so a
+plain click still selects text; hovering one shows its target at the bottom of the terminal.
+Only `http(s)` and `mailto` links open in the browser and `file://` links only open files of
+the project; other links are refused. File references such as `app/Models/User.php:42` are
+underlined and open in the editor at that line with a click.
+
+## Rendering
+
+The terminal draws with WebGL on the GPU and falls back to the DOM renderer when WebGL is not
+available or its context is lost (**Renderer**). Emoji, East Asian characters, braille spinners
+and Nerd Font glyphs take the widths modern terminals use (Unicode 15 and grapheme clusters),
+and box drawing characters line up without gaps. The font is **Font** (empty: the editor font),
+followed by common monospace fonts, Nerd Fonts, color emoji and symbol fonts for missing glyphs.
+Settings changes apply to open terminals right away.
 
 ## Shell and start directory
 
@@ -5809,25 +5855,50 @@ The shell is, in this order: Settings | Tools | Terminal | **Shell path**
 New tabs start in the project root unless **Start directory** (`terminal.startDirectory`) is
 set; **Environment variables** (`terminal.environment`, one `NAME=value` per entry) are added.
 
+The shell also gets `TERM=xterm-256color`, `COLORTERM=truecolor`, `TERM_PROGRAM=Forge`,
+`TERM_PROGRAM_VERSION=<Forge version>` and `FORGE_TERMINAL=1`, and a UTF-8 `LANG` when none is
+set. Variables of the terminal Forge itself was started from (kitty, tmux, iTerm2, WezTerm,
+Ghostty, …) are removed, so programs do not mistake Forge for that terminal.
+
+Shells that report their directory (OSC 7, or ConEmu's OSC 9;9) let **New Tab in Current
+Directory** open the new tab there. Closing a tab ends the shell; a shell that ignores the
+hang-up signal is killed after 1.5 seconds.
+
 ## Settings | Tools | Terminal
 
 | Option | Setting | Default | Scope |
 | --- | --- | --- | --- |
 | Shell path | `terminal.shellPath` | system default | user |
 | Default tab name | `terminal.tabName` | `Local` | user |
-| Audible bell | `terminal.audibleBell` | off | not applied yet |
+| Audible bell | `terminal.audibleBell` | off | user |
 | Copy to clipboard on selection | `terminal.copyOnSelection` | off | user |
 | Shell integration | `terminal.shellIntegration` | on | not applied yet |
+| Show application title | `terminal.showApplicationTitle` | on | user |
+| Show progress in the status bar | `terminal.showProgressInStatusBar` | on | user |
+| Use Option as Meta key (macOS) | `terminal.optionAsMeta` | on | user |
+| Cursor shape | `terminal.cursorShape` | Block | user |
+| Blinking cursor | `terminal.cursorBlink` | on | user |
 | Start directory | `terminal.startDirectory` | project root | user, project |
 | Environment variables | `terminal.environment` | empty | user, project |
+| Font | `terminal.font.family` | editor font | user |
+| Size | `terminal.font.size` | 13 | user |
+| Line height | `terminal.font.lineHeight` | 1.2 | user |
+| Renderer | `terminal.renderer` | Automatic | user |
+| Scrollback buffer | `terminal.scrollback` | 10000 lines | user |
+
+![Terminal settings](docs/screenshots/terminal-settings.png)
 
 ## Other terminals
 
 The Services tool window opens terminals into Docker containers and Kubernetes pods
 (`docker exec`, `kubectl exec`), and in a [remote project](docs/guide/user/remote-development.md) the terminal
-runs on the remote host.
+runs on the remote host, with the same environment as a local one.
 
 ![Remote terminal](docs/screenshots/remote-terminal.png)
+
+In browser mode (`pnpm dev`) the terminal is a small fake shell; `claude` replays a recorded
+Claude Code session (`claude --thinking` and `claude --error` show the other progress states),
+`Ctrl+C` ends it.
 
 
 ---
@@ -8258,11 +8329,21 @@ Page id `tools.terminal`.
 | --- | --- | --- | --- | --- | --- |
 | `terminal.shellPath` | path | `""` | user | Application Settings | Shell path — Leave empty to use the system default shell. |
 | `terminal.tabName` | string | `Local` | user | Application Settings | Default tab name |
-| `terminal.audibleBell` | bool | `false` | user *(not applied yet)* | Application Settings | Audible bell |
+| `terminal.audibleBell` | bool | `false` | user | Application Settings | Audible bell |
 | `terminal.copyOnSelection` | bool | `false` | user | Application Settings | Copy to clipboard on selection |
 | `terminal.shellIntegration` | bool | `true` | user *(not applied yet)* | Application Settings | Shell integration — Track the working directory and command boundaries of supported shells. |
+| `terminal.showApplicationTitle` | bool | `true` | user | Application Settings | Show application title — Name terminal tabs after the title the running program sets, e.g. Claude Code's current task. |
+| `terminal.showProgressInStatusBar` | bool | `true` | user | Application Settings | Show progress in the status bar — Programs such as Claude Code, winget and systemd report progress (OSC 9;4). It is always shown on the terminal tab. |
+| `terminal.optionAsMeta` | bool | `true` | user | Application Settings | Use Option as Meta key — macOS only. |
+| `terminal.cursorShape` | enum: `block`, `underline`, `vertical` | `block` | user | Application Settings | Cursor shape |
+| `terminal.cursorBlink` | bool | `true` | user | Application Settings | Blinking cursor |
 | `terminal.startDirectory` | path | `""` | user, project | Project Settings | Start directory — Leave empty to start in the project root. |
 | `terminal.environment` | list | `[]` | user, project | Project Settings | Environment variables — One NAME=value pair per entry. |
+| `terminal.font.family` | string | `""` | user | Font | Font — Leave empty to use the editor font. Missing symbols fall back to installed Nerd Fonts and emoji fonts. |
+| `terminal.font.size` | number (6–72) | `13` | user | Font | Size |
+| `terminal.font.lineHeight` | number (1.0–3.0) | `1.2` | user | Font | Line height |
+| `terminal.renderer` | enum: `auto`, `webgl`, `dom` | `auto` | user | Rendering | Renderer — WebGL draws on the GPU and is the fastest. Automatic falls back to DOM when WebGL is unavailable. |
+| `terminal.scrollback` | int (0–1000000) | `10000` | user | Rendering | Scrollback buffer — Number of lines kept above the visible area. |
 
 ### Tools | Database
 
@@ -11981,7 +12062,7 @@ Source: docs/guide/developer/crates/forge-output.md
 
 # forge-output
 
-`crates/forge-output` — Forge process output: ANSI styling, console lines, file links and TeamCity test trees (pure, also built to WebAssembly).
+`crates/forge-output` — Forge process output: ANSI styling, console lines, file links, TeamCity test trees and terminal OSC sequences (pure, also built to WebAssembly).
 
 ## Purpose
 
@@ -11995,6 +12076,8 @@ renders it.
 - `teamcity`: TeamCity service messages (`phpunit --teamcity`, Pest, Jest) into a test
   tree that is sent to the UI as node updates.
 - `run`: everything above combined for one run.
+- `osc`: terminal OSC sequences (progress, notifications, working directory) and OSC 8
+  link targets.
 
 The crate is pure (no I/O) so `forge-wasm` can run it in browser mode.
 
@@ -12005,6 +12088,7 @@ The crate is pure (no I/O) so `forge-wasm` can run it in browser mode.
 | `ansi.rs` | ANSI escape handling: SGR colors and styles become styled segments, other control sequences (cursor movement, OSC titles) are dropped. Colors are CSS values, either a theme variable (`var(--ansi-red)`) or `rgb(…)`. |
 | `console.rs` | Console lines built from styled segments, sent to the UI as deltas. |
 | `links.rs` | File references in console and terminal output (`app/User.php:42`, `/abs/path/File.php on line 7`, `File.php(12)`, `#0 /path/x.php(31): …`) and web links, so the UI can make them clickable. |
+| `osc.rs` | Payloads of the OSC sequences the terminal understands beyond xterm.js: OSC 9;4 progress (normal, error, indeterminate, paused, remove), OSC 9 and OSC 777 notifications, OSC 7 and ConEmu 9;9 working directories, OSC 133 command boundaries, and which OSC 8 hyperlinks may open (web and mail links, `file://` links into the project). The terminal calls it synchronously through `forge-wasm` from xterm.js's OSC handlers. |
 | `run.rs` | The output of one run: console lines for every stream, and for test runners the test tree built from TeamCity service messages on stdout (those lines are not shown in the console). Output while a test runs is attributed to that test. |
 | `teamcity.rs` | TeamCity service messages (`phpunit --teamcity`, Pest, Jest reporters) turned into the test tree of the Run tool window. The tree lives here; the UI receives changed nodes. |
 | `utf16.rs` | Offsets for the UI: JavaScript strings and CodeMirror count UTF-16 code units, Rust counts bytes. |
@@ -12015,6 +12099,7 @@ The crate is pure (no I/O) so `forge-wasm` can run it in browser mode.
 pub use ansi::{AnsiParser, Segment, Style};
 pub use console::{ConsoleDelta, ConsoleLine, ConsoleModel, Span};
 pub use links::{…};
+pub use osc::{link_target, parse_osc, LinkTarget, OscAction, Progress, ProgressState};
 pub use run::{OutputEvent, RunInput, RunOutput, RunOutputOptions};
 pub use teamcity::{…};
 pub use utf16::{byte_to_utf16, utf16_to_byte};
@@ -12024,7 +12109,7 @@ pub use utf16::{byte_to_utf16, utf16_to_byte};
 
 - IPC: `output_file_links`, and the `console`/`tests` events of `run://<runId>`
 - UI: `app/ui/src/features/run`, `app/ui/src/features/terminal`
-- Browser mode: built into `forge-wasm`
+- Browser mode: built into `forge-wasm`; the terminal uses `osc` through `forge-wasm` in the desktop app too
 
 ## Dependencies
 
@@ -12033,7 +12118,7 @@ pub use utf16::{byte_to_utf16, utf16_to_byte};
 
 ## Tests
 
-7 source files, about 2133 lines; 19 unit tests.
+8 source files, about 2559 lines; 30 unit tests.
 
 ```sh
 cargo test -p forge-output
@@ -12126,6 +12211,7 @@ Forge processes: everything the IDE starts on behalf of the user.
 | `pty.rs` | Interactive shell sessions on a pseudo terminal, used by the Terminal tool window. |
 | `runner.rs` | Non-interactive processes for run configurations: piped stdout/stderr streamed as text, stdin for input typed into the Run console, the exit code, and kill of the whole process tree (so `composer run` or `npm run` children stop too). |
 | `shell.rs` | Picking the user's default shell. |
+| `termenv.rs` | The environment a terminal session starts with: `TERM`, `COLORTERM`, `TERM_PROGRAM=Forge`, `TERM_PROGRAM_VERSION` and `FORGE_TERMINAL=1`, a UTF-8 `LANG` when the inherited locale is not UTF-8, and removal of variables that describe another terminal or multiplexer (kitty, tmux, iTerm2, WezTerm, Ghostty, …). |
 | `utf8.rs` |  |
 
 ## Main public items
@@ -12137,6 +12223,7 @@ pub use config::{…};
 pub use pty::{PtyEvent, PtyOptions, PtySession, PtySink};
 pub use runner::{CommandLine, OutputStream, RunEvent, RunSink, RunningProcess};
 pub use shell::default_shell;
+pub use termenv::{terminal_env, utf8_locale_fallback};
 pub use utf8::Utf8Decoder;
 ```
 
@@ -12153,7 +12240,7 @@ pub use utf8::Utf8Decoder;
 
 ## Tests
 
-7 source files, about 1814 lines; 21 unit tests.
+8 source files, about 2040 lines; 26 unit tests.
 
 ```sh
 cargo test -p forge-process
@@ -12627,6 +12714,7 @@ Rebuild the bundle with `pnpm --dir app/ui wasm` (output: `app/ui/src/wasm/pkg`)
 | `scratches.rs` | Scratch files (`forge-scratches`), mirroring the pure parts of the `scratches_*` IPC commands for the browser-mode mock: the language list, naming, gutter markers, run command lines and the `.http` parser, request resolution (variables, dynamic variables, body files), response handlers and rendering. |
 | `search.rs` | Fuzzy matching and Search Everywhere ranking (`forge-fuzzy`), mirroring the `fuzzy_filter`, `search_rank` and `fs_find_files` IPC commands. |
 | `settings.rs` | The Settings dialog model (`forge_plugin_api::settings_model`), mirroring the `settings_search` and `settings_validate` IPC commands. |
+| `terminal.rs` | Terminal sequences (`forge_output::osc`), called synchronously by the terminal in the desktop app and in browser mode alike: xterm.js runs OSC handlers inside its parser, so the answer is needed before the handler returns, which an IPC round trip cannot give. |
 | `web.rs` | WebForge (`packs/webforge/*`) for the browser-mode mock: npm packages and scripts, package manager detection, and React/Vue/Angular component navigation over the demo project's files, mirroring the `npm_*` and `web_*` IPC commands. |
 | `window.rs` | Window chrome (`forge_window`), mirroring the `window_chrome` IPC command for browser mode. |
 
@@ -12649,7 +12737,7 @@ pub fn bridge_version() -> String { … }
 
 ## Tests
 
-18 source files, about 2393 lines; 23 unit tests.
+21 source files, about 2924 lines; 27 unit tests.
 
 ```sh
 cargo test -p forge-wasm

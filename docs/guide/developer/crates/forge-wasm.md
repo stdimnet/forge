@@ -47,6 +47,7 @@ Rebuild the bundle with `pnpm --dir app/ui wasm` (output: `app/ui/src/wasm/pkg`)
 | `scratches.rs` | Scratch files (`forge-scratches`), mirroring the pure parts of the `scratches_*` IPC commands for the browser-mode mock: the language list, naming, gutter markers, run command lines and the `.http` parser, request resolution (variables, dynamic variables, body files), response handlers and rendering. |
 | `search.rs` | Fuzzy matching and Search Everywhere ranking (`forge-fuzzy`), mirroring the `fuzzy_filter`, `search_rank` and `fs_find_files` IPC commands. |
 | `settings.rs` | The Settings dialog model (`forge_plugin_api::settings_model`), mirroring the `settings_search` and `settings_validate` IPC commands. |
+| `terminal.rs` | Terminal sequences (`forge_output::osc`), called synchronously by the terminal in the desktop app and in browser mode alike: xterm.js runs OSC handlers inside its parser, so the answer is needed before the handler returns, which an IPC round trip cannot give. |
 | `web.rs` | WebForge (`packs/webforge/*`) for the browser-mode mock: npm packages and scripts, package manager detection, and React/Vue/Angular component navigation over the demo project's files, mirroring the `npm_*` and `web_*` IPC commands. |
 | `window.rs` | Window chrome (`forge_window`), mirroring the `window_chrome` IPC command for browser mode. |
 
@@ -69,7 +70,7 @@ pub fn bridge_version() -> String { … }
 
 ## Tests
 
-18 source files, about 2393 lines; 23 unit tests.
+21 source files, about 2924 lines; 27 unit tests.
 
 ```sh
 cargo test -p forge-wasm
