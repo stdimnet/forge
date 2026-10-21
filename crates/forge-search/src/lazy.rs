@@ -81,6 +81,32 @@ impl FoundText {
         }
     }
 
+    /// Reorders the files; `Modified` reads each file's modification time.
+    pub fn sort(&mut self, by: forge_find::SortBy) {
+        use rayon::prelude::*;
+        match by {
+            forge_find::SortBy::Path => {}
+            forge_find::SortBy::Matches => {
+                self.files.sort_by_key(|f| std::cmp::Reverse(f.rows.len()))
+            }
+            forge_find::SortBy::Modified => {
+                let root = &self.root;
+                let mut stamped: Vec<(std::time::SystemTime, LazyFile)> =
+                    std::mem::take(&mut self.files)
+                        .into_par_iter()
+                        .map(|f| {
+                            let at = std::fs::metadata(root.join(&f.path))
+                                .and_then(|m| m.modified())
+                                .unwrap_or(std::time::UNIX_EPOCH);
+                            (at, f)
+                        })
+                        .collect();
+                stamped.sort_by_key(|(at, _)| std::cmp::Reverse(*at));
+                self.files = stamped.into_iter().map(|(_, f)| f).collect();
+            }
+        }
+    }
+
     pub fn file_count(&self) -> usize {
         self.files.len()
     }

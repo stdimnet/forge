@@ -1,7 +1,7 @@
 /** Find tool window: Find in Files results without the popup's match cap (setting `search.findInFiles.maxMatches`). */
 import { createSignal } from "solid-js";
 import { createStore } from "solid-js/store";
-import { findApi, type FileMatches, type FindRequest } from "@/ipc/find";
+import { findApi, type FileMatches, type FindRequest, type FindSort } from "@/ipc/find";
 import { searchApi } from "@/ipc/search";
 import { getSetting } from "@/state/settings";
 import { showToolWindow } from "@/state/layout";
@@ -22,6 +22,7 @@ export interface FindForm {
   directory: string;
   paths?: string[];
   context: number;
+  sort: FindSort;
 }
 
 export const [findForm, setFindForm] = createStore<FindForm>({
@@ -32,6 +33,7 @@ export const [findForm, setFindForm] = createStore<FindForm>({
   fileMask: "",
   directory: "",
   context: 0,
+  sort: "path",
 });
 
 export interface FindWindowResults {

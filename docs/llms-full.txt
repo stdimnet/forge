@@ -1300,6 +1300,10 @@ The status bar shows the size of the search index ("272,700 files", or "Indexing
 
 ![Find window with context lines](docs/screenshots/search-index-find-context.png)
 
+- In the Find window, the first list next to the directory field orders the files: **By path** (which also groups them by folder), **By matches** (most matching lines first) or **By modified** (newest first; only for the project's own files, a remote project keeps the path order).
+
+![Find window ordered by matches](docs/screenshots/search-index-find-sorted.png)
+
 - **File mask**: tick it and enter patterns such as `*.php` or `*.php, !*Test.php`
   (`!` excludes).
 - Scope: **In Project** or **Directory** (a folder of the project; empty means the project

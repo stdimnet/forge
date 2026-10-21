@@ -420,6 +420,7 @@ impl SearchService {
             }
             break;
         }
+        result.sort(finder.sort());
         Ok(result)
     }
 

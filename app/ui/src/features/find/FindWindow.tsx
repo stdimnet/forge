@@ -1,6 +1,6 @@
 import { createEffect, createMemo, createSignal, For, onCleanup, Show } from "solid-js";
 import { CaseSensitive, ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown, Regex, RefreshCw, WholeWord } from "lucide-solid";
-import type { FileMatches, LineMatch } from "@/ipc/find";
+import type { FileMatches, FindSort, LineMatch } from "@/ipc/find";
 import { openFileAt } from "@/editor/views";
 import { FileIcon } from "@/shell/FileIcon";
 import { fileRows, type MatchRows } from "./contextRows";
@@ -155,6 +155,19 @@ export function FindWindow() {
           onInput={(e) => setFindForm("directory", e.currentTarget.value)}
           onKeyDown={onEnter}
         />
+        <select
+          class="fw-context-select"
+          title="Order of the files"
+          value={findForm.sort}
+          onChange={(e) => {
+            setFindForm("sort", e.currentTarget.value as FindSort);
+            void runFindWindow();
+          }}
+        >
+          <option value="path">By path</option>
+          <option value="matches">By matches</option>
+          <option value="modified">By modified</option>
+        </select>
         <select
           class="fw-context-select"
           title="Lines of context"

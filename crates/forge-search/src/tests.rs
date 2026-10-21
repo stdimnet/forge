@@ -569,3 +569,40 @@ fn stats_count_what_is_listed_by_name_only() {
     assert!(stats.binary >= 1);
     assert!(last > 0);
 }
+
+#[test]
+fn files_can_be_ordered_by_matches_and_by_modification_time() {
+    use forge_find::SortBy;
+    let dir = TempDir::new().unwrap();
+    write(dir.path(), "a.txt", "needle\n");
+    write(dir.path(), "b.txt", "needle\nneedle\nneedle\n");
+    write(dir.path(), "c.txt", "needle\nneedle\n");
+    let old = std::time::SystemTime::now() - std::time::Duration::from_secs(3600);
+    fs::File::options()
+        .write(true)
+        .open(dir.path().join("b.txt"))
+        .unwrap()
+        .set_modified(old)
+        .unwrap();
+    let svc = SearchService::open(dir.path(), None);
+    svc.refresh();
+    let order = |sort| {
+        let req = forge_find::FindRequest {
+            query: "needle".into(),
+            sort,
+            ..forge_find::FindRequest::default()
+        };
+        let found = svc
+            .find_text_lazy(&req, &std::sync::atomic::AtomicBool::new(false))
+            .unwrap();
+        found
+            .page(0, usize::MAX)
+            .into_iter()
+            .map(|f| f.path)
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(order(SortBy::Path), ["a.txt", "b.txt", "c.txt"]);
+    assert_eq!(order(SortBy::Matches), ["b.txt", "c.txt", "a.txt"]);
+    let by_time = order(SortBy::Modified);
+    assert_eq!(by_time.last().unwrap(), "b.txt");
+}

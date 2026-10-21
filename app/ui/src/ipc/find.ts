@@ -4,6 +4,8 @@
  */
 import { invoke } from "./index";
 
+export type FindSort = "path" | "matches" | "modified";
+
 export interface FindRequest {
   query: string;
   caseSensitive?: boolean;
@@ -17,6 +19,8 @@ export interface FindRequest {
   paths?: string[];
   /** Lines of context around each match (0 to 5). */
   context?: number;
+  /** Order of the files in the result. */
+  sort?: FindSort;
   /** Maximum number of matches. */
   limit?: number;
 }

@@ -24,6 +24,20 @@ fn default_limit() -> usize {
     DEFAULT_LIMIT
 }
 
+/// The order of the files in a result.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum SortBy {
+    /// By path, which also groups files by directory.
+    #[default]
+    Path,
+    /// Most matching lines first.
+    Matches,
+    /// Most recently modified first. Needs the file system, so only a search over the project
+    /// folder can do it; elsewhere this is the path order.
+    Modified,
+}
+
 /// What to search for and where.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -47,6 +61,9 @@ pub struct FindRequest {
     /// Lines of context kept before and after each matching line (at most [`MAX_CONTEXT`]).
     #[serde(default)]
     pub context: usize,
+    /// How the files of the result are ordered.
+    #[serde(default)]
+    pub sort: SortBy,
     /// Maximum number of matches reported.
     #[serde(default = "default_limit")]
     pub limit: usize,
@@ -63,6 +80,7 @@ impl Default for FindRequest {
             directory: String::new(),
             paths: None,
             context: 0,
+            sort: SortBy::Path,
             limit: DEFAULT_LIMIT,
         }
     }
@@ -267,6 +285,7 @@ pub struct Finder {
     directory: String,
     only: Option<std::collections::HashSet<String>>,
     context: usize,
+    sort: SortBy,
     limit: usize,
 }
 
@@ -292,6 +311,7 @@ impl Finder {
                     .collect()
             }),
             context: req.context.min(MAX_CONTEXT),
+            sort: req.sort,
             limit: req.limit.max(1),
         })
     }
@@ -346,6 +366,10 @@ impl Finder {
     /// Lines of context requested around each matching line.
     pub fn context(&self) -> usize {
         self.context
+    }
+
+    pub fn sort(&self) -> SortBy {
+        self.sort
     }
 }
 
@@ -506,6 +530,11 @@ impl<'a> Collector<'a> {
 
     pub fn finish(mut self) -> FindResult {
         self.result.files.sort_by(|a, b| a.path.cmp(&b.path));
+        if self.finder.sort == SortBy::Matches {
+            self.result
+                .files
+                .sort_by_key(|f| std::cmp::Reverse(f.matches.len()));
+        }
         self.result
     }
 }
@@ -649,6 +678,20 @@ mod tests {
         let first = &find_in(&q, [("x.txt", text)]).files[0].matches[0];
         assert!(first.before.is_empty());
         assert_eq!(first.after, ["b", "hit", "d"]);
+    }
+
+    #[test]
+    fn files_can_be_ordered_by_their_matching_lines() {
+        let files = [
+            ("a.txt", "x\n"),
+            ("b.txt", "x\nx\nx\n"),
+            ("c.txt", "x\nx\n"),
+        ];
+        let mut q = req("x");
+        let paths = |r: &FindResult| r.files.iter().map(|f| f.path.clone()).collect::<Vec<_>>();
+        assert_eq!(paths(&find_in(&q, files)), ["a.txt", "b.txt", "c.txt"]);
+        q.sort = SortBy::Matches;
+        assert_eq!(paths(&find_in(&q, files)), ["b.txt", "c.txt", "a.txt"]);
     }
 
     #[test]
