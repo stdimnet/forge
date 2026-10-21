@@ -439,3 +439,22 @@ fn a_cancelled_search_reports_it() {
     let flag = std::sync::atomic::AtomicBool::new(false);
     assert!(svc.find_text_lazy(&req, &flag).unwrap().error.is_none());
 }
+
+#[test]
+fn a_cache_cut_short_is_ignored() {
+    let dir = TempDir::new().unwrap();
+    write(dir.path(), "a.txt", "alpha\n");
+    let cache_dir = TempDir::new().unwrap();
+    let cache = cache_dir.path().join("cache.bin");
+    let svc = SearchService::open(dir.path(), Some(cache.clone()));
+    svc.refresh();
+    svc.save();
+    assert!(SearchService::open(dir.path(), Some(cache.clone())).ready());
+
+    let bytes = std::fs::read(&cache).unwrap();
+    std::fs::write(&cache, &bytes[..bytes.len() - 3]).unwrap();
+    assert!(!SearchService::open(dir.path(), Some(cache.clone())).ready());
+
+    std::fs::write(&cache, b"not an index at all").unwrap();
+    assert!(!SearchService::open(dir.path(), Some(cache)).ready());
+}

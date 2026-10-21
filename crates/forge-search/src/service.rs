@@ -81,11 +81,7 @@ impl SearchService {
             })
             .build()
             .expect("cannot start the indexing threads");
-        let index = cache
-            .as_deref()
-            .and_then(|p| fs::File::open(p).ok())
-            .and_then(|f| Index::read_from(BufReader::new(f)))
-            .unwrap_or_default();
+        let index = cache.as_deref().and_then(read_cache).unwrap_or_default();
         let ready = !index.is_empty();
         Self {
             pool,
@@ -241,18 +237,8 @@ impl SearchService {
         let written = path
             .parent()
             .map_or(Ok(()), fs::create_dir_all)
-            .and_then(|()| fs::File::create(&tmp))
-            .map(|f| {
-                let mut w = BufWriter::new(f);
-                index.write_to(&mut w) && std::io::Write::flush(&mut w).is_ok()
-            })
-            .and_then(|ok| {
-                if ok {
-                    fs::rename(&tmp, path)
-                } else {
-                    Err(std::io::Error::other("serialize failed"))
-                }
-            });
+            .and_then(|()| write_cache(&index, &tmp))
+            .and_then(|()| fs::rename(&tmp, path));
         if let Err(e) = written {
             tracing::warn!("could not save search index to {}: {e}", path.display());
             let _ = fs::remove_file(&tmp);
@@ -540,6 +526,41 @@ fn non_empty_lines(bytes: &[u8]) -> Option<Vec<(usize, usize)>> {
         start = end + 1;
     }
     Some(out)
+}
+
+const CACHE_MAGIC: &[u8; 8] = b"FORGEIDX";
+const CACHE_HEADER: u64 = 16;
+
+/// The cache file is `FORGEIDX`, the payload length (u64), then the payload; a file whose size
+/// does not match was cut short and is ignored.
+fn write_cache(index: &Index, tmp: &Path) -> std::io::Result<()> {
+    use std::io::{Seek, SeekFrom, Write};
+    let file = fs::File::create(tmp)?;
+    let mut w = BufWriter::new(file);
+    w.write_all(CACHE_MAGIC)?;
+    w.write_all(&0u64.to_le_bytes())?;
+    if !index.write_to(&mut w) {
+        return Err(std::io::Error::other("serialize failed"));
+    }
+    w.flush()?;
+    let mut file = w.into_inner().map_err(|e| e.into_error())?;
+    let payload = file.stream_position()? - CACHE_HEADER;
+    file.seek(SeekFrom::Start(CACHE_MAGIC.len() as u64))?;
+    file.write_all(&payload.to_le_bytes())?;
+    file.sync_all()
+}
+
+fn read_cache(path: &Path) -> Option<Index> {
+    use std::io::Read;
+    let mut file = fs::File::open(path).ok()?;
+    let size = file.metadata().ok()?.len();
+    let mut header = [0u8; CACHE_HEADER as usize];
+    file.read_exact(&mut header).ok()?;
+    let payload = u64::from_le_bytes(header[8..].try_into().ok()?);
+    if &header[..8] != CACHE_MAGIC || size != CACHE_HEADER + payload {
+        return None;
+    }
+    Index::read_from(BufReader::new(file))
 }
 
 fn watch_loop(rx: mpsc::Receiver<notify::Result<notify::Event>>, service: Weak<SearchService>) {
