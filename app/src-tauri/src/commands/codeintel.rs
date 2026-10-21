@@ -15,9 +15,9 @@ use std::sync::Arc;
 use forge_backend::Backend;
 use forge_core::{ForgeError, Result};
 use forge_lsp::forge_codeintel::{
-    self as codeintel, order_actions, preview_workspace_edit, ActionKind, AppliedFile,
-    ContextAction, FilePreview, FileStore, GroupRequest, Position, Range, UsageLocation, UsageTree,
-    WorkspaceEdit,
+    self as codeintel, order_actions, preview_workspace_edit, ActionKind, AppliedFile, Bulb,
+    ContextAction, EditPlan, FilePreview, FileRename, FileStore, GroupRequest, Position, Range,
+    RenameConflict, UsageLocation, UsageTree, WorkspaceEdit,
 };
 use forge_lsp::model::{EditorCodeAction, EditorLocation};
 use forge_lsp::{lsp_types, Feature, LspManager};
@@ -605,7 +605,33 @@ pub async fn code_line_markers(
 
 // ---- Rename ----
 
-#[derive(Debug, Clone, Serialize)]
+/// "Cannot perform refactoring" when the caret is not on something renameable.
+const NOT_RENAMEABLE: &str =
+    "Cannot perform refactoring. Caret should be positioned at the symbol to be renamed";
+
+/// Whether the language servers rename this file: `Ok(None)` when they can, the missing
+/// feature when they cannot (Intelephense without a licence), `Err` when no server serves
+/// the file at all.
+async fn lsp_rename_support(c: &Ctx) -> std::result::Result<Option<MissingFeature>, ()> {
+    if let Some(servers) = c.manager.missing_feature(&c.abs, Feature::Rename).await {
+        return Ok(Some(missing_feature(Feature::Rename, &servers)));
+    }
+    if c.manager.clients_for(&c.abs).await.is_empty() {
+        return Err(());
+    }
+    Ok(None)
+}
+
+/// The text of `r` (one line) in `text`.
+fn text_of_range(text: &str, r: Range) -> Option<String> {
+    let line = text.split('\n').nth(r.start.line as usize)?;
+    let s = codeintel::utf16_offset(line, Position::new(0, r.start.character));
+    let e = codeintel::utf16_offset(line, Position::new(0, r.end.character));
+    let units: Vec<u16> = line.encode_utf16().collect();
+    String::from_utf16(units.get(s..e)?).ok()
+}
+
+#[derive(Debug, Clone, Default, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PrepareRenameAnswer {
     /// What to rename: the server's range, else the word at the caret.
@@ -613,9 +639,27 @@ pub struct PrepareRenameAnswer {
     pub placeholder: Option<String>,
     /// Nothing can be renamed here.
     pub invalid: bool,
+    /// Why nothing can be renamed ("Cannot perform refactoring ...").
+    pub message: Option<String>,
+    /// The language server cannot rename (Intelephense Premium); the PHP index renames
+    /// instead when `source` is `index`.
     pub missing: Option<MissingFeature>,
+    /// `lsp` or `index`: who computes the rename.
+    pub source: String,
+    /// Occurrences in this file, edited live by the in-place rename (includes `range`).
+    pub occurrences: Vec<Range>,
+    /// "Rename class 'User' and its usages to:" (PHP index), for the Rename dialog.
+    pub label: Option<String>,
+    /// The class file renamed along with the class (PHPStorm's "Rename file" option).
+    pub class_file: Option<String>,
+    /// The name starts with `$` (PHP variables and properties), which is not part of
+    /// `range` and `occurrences`.
+    pub sigil: bool,
 }
 
+/// Start an in-place rename (Shift+F6): the range to edit, its occurrences in this file and
+/// who renames. The language servers rename when they can; PHP files fall back to the PHP
+/// index (Intelephense without a licence, or no server), with `missing` explaining why.
 #[tauri::command]
 pub async fn code_prepare_rename(
     path: String,
@@ -629,49 +673,138 @@ pub async fn code_prepare_rename(
     let c = Ctx::new(&path, &app, &lsp, &ws)?;
     let text = current_text(&c.backend, &path, &content);
     let word = codeintel::word_range(&text, Position::new(line, character));
-    if let Some(servers) = c.manager.missing_feature(&c.abs, Feature::Rename).await {
-        return Ok(PrepareRenameAnswer {
-            range: word.as_ref().map(|w| w.0),
-            placeholder: word.map(|w| w.1),
-            invalid: false,
-            missing: Some(missing_feature(Feature::Rename, &servers)),
-        });
-    }
-    if c.manager.clients_for(&c.abs).await.is_empty() {
-        return Err(ForgeError::Other(
-            "Rename needs a language server for this file".into(),
-        ));
-    }
-    let prepared = c
-        .manager
-        .prepare_rename(&c.abs, lsp_types::Position::new(line, character))
-        .await?;
-    Ok(match prepared {
-        None => PrepareRenameAnswer {
-            range: None,
-            placeholder: None,
-            invalid: true,
-            missing: None,
-        },
-        Some(p) => {
-            let range = p.range.map(lsp_range).or(word.as_ref().map(|w| w.0));
-            let placeholder = p.placeholder.or_else(|| {
-                range.and_then(|r| {
-                    let line = text.split('\n').nth(r.start.line as usize)?;
-                    let s = codeintel::utf16_offset(line, Position::new(0, r.start.character));
-                    let e = codeintel::utf16_offset(line, Position::new(0, r.end.character));
-                    let units: Vec<u16> = line.encode_utf16().collect();
-                    String::from_utf16(units.get(s..e)?).ok()
-                })
-            });
-            PrepareRenameAnswer {
-                invalid: range.is_none(),
-                range,
-                placeholder,
-                missing: None,
+    let php = is_php(&path);
+    let support = lsp_rename_support(&c).await;
+    let mut answer = PrepareRenameAnswer {
+        source: "lsp".into(),
+        ..Default::default()
+    };
+    match support {
+        Ok(None) => {
+            let pos = lsp_types::Position::new(line, character);
+            let Some(p) = c.manager.prepare_rename(&c.abs, pos).await? else {
+                answer.invalid = true;
+                answer.message = Some(NOT_RENAMEABLE.into());
+                return Ok(answer);
+            };
+            answer.range = p.range.map(lsp_range).or(word.as_ref().map(|w| w.0));
+            answer.placeholder = p
+                .placeholder
+                .or_else(|| answer.range.and_then(|r| text_of_range(&text, r)));
+            // The occurrences in this file: what renaming to the same name would touch.
+            if let Some(name) = answer.placeholder.clone() {
+                if let Ok(Some(edit)) = c.manager.rename(&c.abs, pos, &name).await {
+                    answer.occurrences = codeintel::ranges_in(&c.relative_edit(edit), &path);
+                }
             }
         }
+        Ok(Some(missing)) => {
+            answer.missing = Some(missing);
+            answer.source = "index".into();
+        }
+        Err(()) => answer.source = "index".into(),
+    }
+    if answer.source == "index" && !php {
+        return match answer.missing {
+            Some(m) => Ok(PrepareRenameAnswer {
+                invalid: true,
+                message: Some(m.message.clone()),
+                missing: Some(m),
+                ..answer
+            }),
+            None => Err(ForgeError::Other(
+                "Rename needs a language server for this file".into(),
+            )),
+        };
+    }
+    let backend = c.backend.clone();
+    blocking(move || {
+        if answer.source == "index" {
+            answer.range = word.as_ref().map(|w| w.0);
+            answer.placeholder = word.map(|w| w.1);
+        }
+        if php {
+            let offset = codeintel::utf16_offset(&text, Position::new(line, character));
+            match backend.php().usages(&path, offset, Some(text.clone()))? {
+                Some(found) => {
+                    answer.label = Some(phpforge_lang_php::rename::rename_label(&found.symbol));
+                    if let (phpforge_lang_php::navigate::SymbolRef::Class { fqn }, Some(decl)) =
+                        (&found.symbol, &found.declaration)
+                    {
+                        let short = phpforge_lang_php::short_name(fqn).to_string();
+                        let decl_text = if decl.path == path {
+                            Some(text.clone())
+                        } else {
+                            backend.read_optional(&decl.path).ok().flatten()
+                        };
+                        if decl_text
+                            .is_some_and(|t| codeintel::is_class_file(&decl.path, &t, &short))
+                        {
+                            answer.class_file = Some(decl.path.clone());
+                        }
+                    }
+                    if answer.occurrences.is_empty() {
+                        let mut all = found.usages;
+                        all.extend(found.declaration);
+                        let local: Vec<UsageLocation> =
+                            all.into_iter().filter(|u| u.path == path).collect();
+                        answer.occurrences =
+                            codeintel::edit_from_locations(&local, "x", |_| Some(text.clone()))
+                                .edit
+                                .edits_of(&path)
+                                .into_iter()
+                                .map(|e| e.range)
+                                .collect();
+                    }
+                }
+                None if answer.source == "index" => {
+                    answer.invalid = true;
+                    answer.message = Some(NOT_RENAMEABLE.into());
+                }
+                None => {}
+            }
+        } else if let Some(name) = &answer.placeholder {
+            if codeintel::is_class_file(&path, &text, name) {
+                answer.class_file = Some(path.clone());
+            }
+        }
+        if let Some(r) = answer.range {
+            // The server's / index's occurrences use their own extent of the name (`$x`
+            // vs `x`); the edited range is the one that contains the caret.
+            match answer.occurrences.iter().find(|o| o.contains(r.start)) {
+                Some(o) => answer.range = Some(*o),
+                None => answer.occurrences.push(r),
+            }
+            answer.occurrences.sort();
+            answer.occurrences.dedup();
+        }
+        if answer.range.is_none() && !answer.invalid {
+            answer.invalid = true;
+            answer.message = Some(NOT_RENAMEABLE.into());
+        }
+        if let (Some(r), true) = (answer.range, answer.placeholder.is_none()) {
+            answer.placeholder = text_of_range(&text, r);
+        }
+        // Like PHPStorm, `$` stays outside the edited name; `sigil` tells the UI to put it
+        // back for the server.
+        let sigil =
+            |r: &Range| text_of_range(&text, *r).is_some_and(|t| t.len() > 1 && t.starts_with('$'));
+        let skip_sigil = |r: Range| {
+            if sigil(&r) {
+                Range::new(Position::new(r.start.line, r.start.character + 1), r.end)
+            } else {
+                r
+            }
+        };
+        answer.sigil = answer.range.as_ref().is_some_and(sigil);
+        answer.occurrences = answer.occurrences.iter().map(|r| skip_sigil(*r)).collect();
+        answer.range = answer.range.map(skip_sigil);
+        answer.placeholder = answer
+            .placeholder
+            .map(|p| p.trim_start_matches('$').to_string());
+        Ok(answer)
     })
+    .await
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -680,8 +813,23 @@ pub struct RenameAnswer {
     pub edit: WorkspaceEdit,
     /// Affected lines per file, for the Refactoring Preview.
     pub preview: Vec<FilePreview>,
+    /// Problems to confirm before refactoring (PHPStorm's "Problems Detected").
+    pub conflicts: Vec<RenameConflict>,
+    /// `lsp` or `index`.
+    pub source: String,
+    /// Set when the language server cannot rename and the index did.
+    pub missing: Option<MissingFeature>,
+    /// The class file renamed with the class (included in `edit` when `renameFile`).
+    pub file_rename: Option<FileRename>,
+    /// Dynamic usages that were not renamed.
+    pub skipped: usize,
 }
 
+/// Rename the symbol at the position to `new_name`: the language servers' edit, else the
+/// PHP index's (every usage and the declaration). Renaming a class also renames its file
+/// when it is named after it (unless `renameFile` is false). Nothing is applied; the UI
+/// shows conflicts and applies the edit (open editors itself, the rest with
+/// `code_apply_edit`). `buffers` are unsaved editor contents by path.
 #[tauri::command]
 #[allow(clippy::too_many_arguments)]
 pub async fn code_rename(
@@ -690,30 +838,127 @@ pub async fn code_rename(
     character: u32,
     new_name: String,
     buffers: Option<HashMap<String, String>>,
+    rename_file: Option<bool>,
     app: AppHandle,
     lsp: State<'_, LspState>,
     ws: State<'_, AppState>,
 ) -> Result<RenameAnswer> {
+    if let Some(problem) = codeintel::validate_identifier(&new_name) {
+        return Err(ForgeError::Other(problem));
+    }
     let c = Ctx::new(&path, &app, &lsp, &ws)?;
-    let edit = c
-        .manager
-        .rename(&c.abs, lsp_types::Position::new(line, character), &new_name)
-        .await?
-        .ok_or_else(|| ForgeError::Other("Nothing to rename here".into()))?;
-    let edit = c.relative_edit(edit);
+    let support = lsp_rename_support(&c).await;
+    let php = is_php(&path);
+    let mut edit = None;
+    let mut missing = None;
+    match support {
+        Ok(None) => {
+            let pos = lsp_types::Position::new(line, character);
+            let renamed = c.manager.rename(&c.abs, pos, &new_name).await;
+            match renamed {
+                Ok(e) => edit = e.map(|e| c.relative_edit(e)),
+                Err(e) if !php => return Err(e.into()),
+                Err(_) => {}
+            }
+        }
+        Ok(Some(m)) if php => missing = Some(m),
+        Ok(Some(m)) => return Err(ForgeError::Other(m.message)),
+        Err(()) if php => {}
+        Err(()) => {
+            return Err(ForgeError::Other(
+                "Rename needs a language server for this file".into(),
+            ))
+        }
+    }
     let backend = c.backend.clone();
     blocking(move || {
+        let mut buffers = buffers.unwrap_or_default();
+        let text = buffers
+            .get(&path)
+            .cloned()
+            .unwrap_or_else(|| current_text(&backend, &path, &None));
+        buffers.insert(path.clone(), text.clone());
         let mut texts = Texts {
-            backend,
-            buffers: buffers.unwrap_or_default(),
+            backend: backend.clone(),
+            buffers,
         };
+        let old = codeintel::word_range(&text, Position::new(line, character))
+            .map(|(_, w)| w)
+            .unwrap_or_default();
+        let mut source = "lsp";
+        let mut symbol = None;
+        let mut skipped = 0;
+        let mut declaration = None;
+        if edit.is_none() && php {
+            let offset = codeintel::utf16_offset(&text, Position::new(line, character));
+            if let Some(found) = backend.php().usages(&path, offset, Some(text.clone()))? {
+                let mut all = found.declaration.iter().cloned().collect::<Vec<_>>();
+                all.extend(found.usages);
+                let built = codeintel::edit_from_locations(&all, &new_name, |p| {
+                    texts.load(p);
+                    texts.get(p).map(str::to_string)
+                });
+                skipped = built.skipped;
+                declaration = found.declaration;
+                edit = Some(built.edit);
+                symbol = Some(found.symbol);
+                source = "index";
+            }
+        }
+        let mut edit = edit
+            .filter(|e| !e.is_empty())
+            .ok_or_else(|| ForgeError::Other(NOT_RENAMEABLE.into()))?;
+        // PHPStorm renames `User.php` with `class User`.
+        let bare_old = old.trim_start_matches('$');
+        let bare_new = new_name.trim_start_matches('$');
+        let mut candidates = edit.paths();
+        if let Some(d) = &declaration {
+            candidates.insert(0, d.path.clone());
+        }
+        let file_rename = codeintel::suggest_file_rename(&candidates, bare_old, bare_new, |p| {
+            texts.load(p);
+            texts.get(p).map(str::to_string)
+        })
+        .filter(|f| f.from != f.to);
+        if let (Some(f), true) = (&file_rename, rename_file.unwrap_or(true)) {
+            edit.changes.push(codeintel::DocumentChange::Rename {
+                from: f.from.clone(),
+                to: f.to.clone(),
+            });
+        }
+        let mut conflicts = codeintel::edit_conflicts(&edit, |p| {
+            texts.get(p).is_some() || backend.read_optional(p).ok().flatten().is_some()
+        });
+        if let Some(symbol) = &symbol {
+            let hits = backend
+                .php()
+                .search(bare_new, phpforge_lang_php::index::SearchKind::Symbol, 200)
+                .unwrap_or_default();
+            conflicts.extend(phpforge_lang_php::rename::clashes(symbol, &new_name, &hits));
+        }
         let preview = preview_workspace_edit(&edit, |p| {
             texts.load(p);
             texts.get(p).map(str::to_string)
         });
-        Ok(RenameAnswer { edit, preview })
+        Ok(RenameAnswer {
+            edit,
+            preview,
+            conflicts,
+            source: source.into(),
+            missing,
+            file_rename,
+            skipped,
+        })
     })
     .await
+}
+
+/// How the UI applies `edit`: the text edits of the `open` files go to their editors (one
+/// undoable step each), the rest to `code_apply_edit`; renamed open files are saved first
+/// and reopened at their new path.
+#[tauri::command]
+pub fn code_plan_edit(edit: WorkspaceEdit, open: Vec<String>) -> EditPlan {
+    codeintel::plan_edit(&edit, &open)
 }
 
 // ---- Workspace edits ----
@@ -762,11 +1007,24 @@ fn from_lsp_action(a: EditorCodeAction, c: &Ctx) -> ContextAction {
         server: Some(a.server),
         raw: Some(a.raw),
         action: None,
+        children: vec![],
     }
 }
 
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ContextActionsAnswer {
+    pub actions: Vec<ContextAction>,
+    /// The light bulb to show at the caret line (none when only links like "Generate..."
+    /// are available).
+    pub bulb: Option<Bulb>,
+    /// The language server offers no code actions (Intelephense without a licence).
+    pub missing: Option<MissingFeature>,
+}
+
 /// The Alt+Enter popup: the language servers' quick fixes and refactorings for the caret
-/// (or selection) and, in PHP files, Forge's own intentions, in PHPStorm's order.
+/// (or selection) and, in PHP files, Forge's own intentions, in PHPStorm's order ("fix
+/// all" variants in the sub-menu of their quick fix). Also answers the light bulb.
 #[tauri::command]
 #[allow(clippy::too_many_arguments)]
 pub async fn code_context_actions(
@@ -779,8 +1037,13 @@ pub async fn code_context_actions(
     app: AppHandle,
     lsp: State<'_, LspState>,
     ws: State<'_, AppState>,
-) -> Result<Vec<ContextAction>> {
+) -> Result<ContextActionsAnswer> {
     let c = Ctx::new(&path, &app, &lsp, &ws)?;
+    let missing = c
+        .manager
+        .missing_feature(&c.abs, Feature::CodeAction)
+        .await
+        .map(|servers| missing_feature(Feature::CodeAction, &servers));
     let start = lsp_types::Position::new(line, character);
     let end =
         lsp_types::Position::new(end_line.unwrap_or(line), end_character.unwrap_or(character));
@@ -837,10 +1100,16 @@ pub async fn code_context_actions(
                     server: None,
                     raw: None,
                     action: i.action,
+                    children: vec![],
                 });
             }
         }
-        Ok(order_actions(actions))
+        let actions = order_actions(actions);
+        Ok(ContextActionsAnswer {
+            bulb: codeintel::bulb_for(&actions),
+            actions,
+            missing,
+        })
     })
     .await
 }

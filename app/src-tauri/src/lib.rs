@@ -158,6 +158,7 @@ pub fn run() {
             commands::library::library_read,
             commands::codeintel::code_prepare_rename,
             commands::codeintel::code_rename,
+            commands::codeintel::code_plan_edit,
             commands::codeintel::code_apply_edit,
             commands::codeintel::code_revert_edit,
             commands::codeintel::code_context_actions,
