@@ -156,6 +156,19 @@ export async function applyWorkspaceEdit(edit: WorkspaceEdit, opts: ApplyOptions
   return { id, fileCount: plan.fileCount };
 }
 
+/**
+ * Give an editor opened after a refactoring (Create method in a file that was closed) the
+ * refactoring's history entry, so Ctrl+Z there undoes it too.
+ */
+export async function attachToRefactoring(id: number, path: string): Promise<void> {
+  const r = refactorings.get(id);
+  if (!r || r.editors.some((e) => e.path === path)) return;
+  const view = await waitForView(path);
+  if (!view) return;
+  view.dispatch({ effects: refactoringStep.of({ id, undo: false }), annotations: isolateHistory.of("full") });
+  r.editors.push({ path, before: view.state.doc, after: view.state.doc });
+}
+
 function driveOthers(r: Refactoring, source: EditorView, dir: "undo" | "redo"): string[] {
   const skipped: string[] = [];
   driving = true;

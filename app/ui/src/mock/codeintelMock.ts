@@ -34,6 +34,7 @@ import { callWasm, forgeWasm } from "@/wasm";
 import { demoStubs, demoStubsDetail } from "./demoStubs";
 import { parsePhp, classAt, memberType, type MockClass, type MockFile, type MockMember } from "./phpMockParser";
 import { mockFiles } from "./workspaceMock";
+import { createFromUsage } from "./createFromUsageMock";
 
 const STUBS = "library://php-stubs/";
 
@@ -968,6 +969,7 @@ async function phpIntentions(path: string, text: string, offset: number): Promis
   const lineStart = text.lastIndexOf("\n", offset - 1) + 1;
   const lineEnd = text.indexOf("\n", offset) < 0 ? text.length : text.indexOf("\n", offset);
   const line = text.slice(lineStart, lineEnd);
+  out.push(...createFromUsage(path, text, offset));
   const file = parse(path, text);
   const cls = classAt(file, offset);
   if (!cls) return out;

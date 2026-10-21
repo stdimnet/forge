@@ -3,8 +3,10 @@
  * the language servers' quick fixes and refactorings and the PHP index's intentions
  * (`code_context_actions`, merged and ordered in Rust), and the light bulb that appears at
  * the caret line after a short pause when actions are available (red for quick fixes).
- * Choosing an entry applies its edit (`refactoring.ts`, one undo step), runs its server
- * command or the UI action it links to (Generate...).
+ * Choosing an entry applies its edit (`refactoring.ts`, one undo step) and moves the caret
+ * where the entry says (Create method: into the new body, opening the class's file when it
+ * is another one), runs its server command, the UI action it links to (Generate...) or the
+ * handler of an action with arguments (Create class opens the Create New PHP Class dialog).
  */
 import { createSignal } from "solid-js";
 import { Lightbulb } from "lucide-solid";
@@ -14,8 +16,10 @@ import { codeApi, isLibraryPath, type ContextAction, type ContextActionsAnswer, 
 import { runAction, showBalloon } from "@/keymap";
 import { showHint } from "@/features/lsp/hint";
 import { syncNow } from "@/features/lsp/sync";
-import { iconNode, toLsp } from "@/features/lsp/util";
-import { applyWorkspaceEdit } from "./refactoring";
+import { fromLsp, iconNode, toLsp } from "@/features/lsp/util";
+import { openFile } from "@/state/editor";
+import { visibleView } from "@/editor/views";
+import { applyWorkspaceEdit, attachToRefactoring } from "./refactoring";
 import { renameSessionOf } from "./rename";
 
 export const NO_ACTIONS = "No context actions available at this location";
@@ -75,11 +79,46 @@ export async function showContextActions(path: string, view: EditorView): Promis
   });
 }
 
+export interface ContextActionContext {
+  /** The file and editor Alt+Enter was pressed in. */
+  path: string;
+  view: EditorView;
+}
+
+type ContextActionHandler = (data: unknown, ctx: ContextActionContext) => void | Promise<void>;
+const handlers = new Map<string, ContextActionHandler>();
+
+/** Run entries whose `action` carries `data` (e.g. `PhpCreateClass`) with `run`. */
+export function registerContextActionHandler(action: string, run: ContextActionHandler): void {
+  handlers.set(action, run);
+}
+
+/** Move the caret (or select) where an applied entry says, opening its file if needed. */
+async function placeCaret(caret: NonNullable<ContextAction["caret"]>, path: string, view: EditorView, refactoring?: number): Promise<void> {
+  let target: EditorView | undefined = caret.path === path ? view : undefined;
+  if (!target) {
+    await openFile(caret.path);
+    target = await visibleView(caret.path);
+    if (target && refactoring) await attachToRefactoring(refactoring, caret.path);
+  }
+  if (!target) return;
+  const doc = target.state.doc;
+  const anchor = fromLsp(doc, caret.range.start);
+  const head = fromLsp(doc, caret.range.end);
+  target.dispatch({ selection: { anchor, head }, effects: EditorView.scrollIntoView(anchor, { y: "center" }) });
+  target.focus();
+}
+
 /** Apply a chosen entry: its edit, its server command, or the action it links to. */
 export async function runContextAction(path: string, view: EditorView, chosen: ContextAction): Promise<void> {
   closeIntentionPopup();
   if (chosen.disabled) {
     showHint(view, view.state.selection.main.head, chosen.disabled);
+    return;
+  }
+  const handler = chosen.action && chosen.data != null ? handlers.get(chosen.action) : undefined;
+  if (handler) {
+    await handler(chosen.data, { path, view });
     return;
   }
   if (chosen.action) {
@@ -89,7 +128,8 @@ export async function runContextAction(path: string, view: EditorView, chosen: C
   try {
     let a = chosen;
     if (a.needsResolve && a.server) a = await codeApi.resolveAction(path, a.server, a.raw);
-    if (a.edit && a.edit.changes.length) await applyWorkspaceEdit(a.edit, { label: a.title });
+    const applied = a.edit && a.edit.changes.length ? await applyWorkspaceEdit(a.edit, { label: a.title }) : undefined;
+    if (a.caret) await placeCaret(a.caret, path, view, applied?.id);
     const cmd = a.command;
     if (cmd && a.server) await codeApi.executeCommand(path, a.server, cmd.command, cmd.arguments);
   } catch (e) {
@@ -99,7 +139,7 @@ export async function runContextAction(path: string, view: EditorView, chosen: C
 
 /** Icon class of an entry: red bulb for quick fixes, yellow for intentions, none for links. */
 export function actionIcon(a: ContextAction): "fix" | "intention" | "refactor" | "source" | "link" {
-  if (a.action) return "link";
+  if (a.action && a.data == null) return "link";
   if (a.kind === "quickFix") return "fix";
   if (a.kind === "refactor") return "refactor";
   if (a.kind === "source") return "source";

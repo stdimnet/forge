@@ -2,6 +2,8 @@
  * The dialogs of File | New ▸ <template>:
  *
  * - "New PHP Class" (PHP class-like templates): Name, Namespace, File name, Directory,
+ *   ("Create New PHP Class" when Alt+Enter's Create class opened it with the name and
+ *   namespace of the usage; the directory follows the namespace),
  *   Template (Class / Interface / Trait / Enum and the project's framework templates),
  *   Extends / Implements when the template uses them. The namespace of the directory and the
  *   directory of a typed namespace come from composer.json's PSR-4 rules (computed in Rust).
@@ -35,11 +37,12 @@ export function NewFileDialog(props: { req: NewFileDialogRequest }) {
 
   const [template, setTemplate] = createSignal<TemplateInfo>(props.req.template);
   const php = () => template().phpClass;
-  const [name, setName] = createSignal("");
-  const [namespace, setNamespace] = createSignal("");
+  const create = props.req.create;
+  const [name, setName] = createSignal(create?.name ?? "");
+  const [namespace, setNamespace] = createSignal(create?.namespace ?? "");
   const [directory, setDirectory] = createSignal(props.req.dir);
   const [fileName, setFileName] = createSignal<string | null>(null);
-  const [extendsName, setExtends] = createSignal("");
+  const [extendsName, setExtends] = createSignal(create?.extends ?? "");
   const [implementsNames, setImplements] = createSignal("");
   const [vars, setVars] = createSignal<Record<string, string>>({});
   const [error, setError] = createSignal<string | null>(null);
@@ -57,7 +60,8 @@ export function NewFileDialog(props: { req: NewFileDialogRequest }) {
     if (id === nsSeq && ns !== null) setNamespace(ns);
   };
   onMount(() => {
-    if (php()) void loadNamespace(props.req.dir);
+    if (create) void onNamespace(create.namespace);
+    else if (php()) void loadNamespace(props.req.dir);
   });
 
   let dirSeq = 0;
@@ -96,13 +100,17 @@ export function NewFileDialog(props: { req: NewFileDialogRequest }) {
       refreshDirs([props.req.dir, dir, parentOf(file.path)]);
       revealPath(parentOf(file.path));
       await openFile(file.path);
+      if (create?.onCreated) {
+        const ns = namespace().trim().replace(/^\\+|\\+$/g, "");
+        await create.onCreated(file, ns ? `${ns}\\${name().trim()}` : name().trim());
+      }
     } catch (e) {
       setError(message(e));
       setBusy(false);
     }
   };
 
-  const title = () => (php() ? "New PHP Class" : `New ${template().name}`);
+  const title = () => (create ? "Create New PHP Class" : php() ? "New PHP Class" : `New ${template().name}`);
   const focusFirst = (el: HTMLInputElement) => queueMicrotask(() => el.focus());
 
   return (
