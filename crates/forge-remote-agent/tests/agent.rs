@@ -313,6 +313,7 @@ async fn terminals_processes_and_watching() {
                     env: vec![("FORGE_TEST".into(), "remote-shell".into())],
                     cols: 80,
                     rows: 24,
+                    shell_integration: false,
                 },
                 Arc::new(move |e| match e {
                     PtyEvent::Output { data } => out.lock().unwrap().push_str(&data),

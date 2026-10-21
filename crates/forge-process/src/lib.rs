@@ -11,6 +11,7 @@
 
 pub mod args;
 pub mod config;
+pub mod integration;
 pub mod pty;
 pub mod runner;
 pub mod shell;

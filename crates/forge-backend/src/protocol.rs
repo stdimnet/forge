@@ -452,6 +452,7 @@ mod tests {
                     env: vec![("A".into(), "b".into())],
                     cols: 80,
                     rows: 24,
+                    shell_integration: true,
                 },
             },
         });

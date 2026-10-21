@@ -14,6 +14,8 @@ export interface TerminalTab {
   cwd?: string;
   /** Run this program instead of the shell (e.g. `docker exec -it …` from Services). */
   command?: TerminalProgram;
+  /** The shell's working directory, as shell integration reports it (OSC 7). */
+  workingDir?: string;
 }
 
 export interface TerminalProgram {
@@ -64,6 +66,11 @@ export function closeTab(id: string): void {
   if (activeTab() === id) setActiveTab(rest[Math.min(idx, rest.length - 1)]?.id ?? null);
   // Like PHPStorm, closing the last session hides the tool window.
   if (!rest.length && layout.active.bottom === "terminal") toggleToolWindow("bottom", "terminal");
+}
+
+/** Shell integration reported a new working directory. */
+export function setWorkingDir(id: string, dir: string): void {
+  setTabs((list) => list.map((x) => (x.id === id && x.workingDir !== dir ? { ...x, workingDir: dir } : x)));
 }
 
 export function renameTab(id: string, title: string): void {

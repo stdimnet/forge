@@ -65,6 +65,7 @@ export function TerminalTabs() {
             role="tab"
             aria-selected={activeTab() === tab.id}
             data-terminal-tab={tab.title}
+            title={tab.workingDir}
             onMouseDown={(e) => {
               if (e.button === 1) {
                 e.preventDefault();

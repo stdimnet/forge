@@ -209,6 +209,10 @@ impl Backend for LocalBackend {
                 env: spec.env,
                 cols: spec.cols,
                 rows: spec.rows,
+                integration_dir: spec
+                    .shell_integration
+                    .then(|| dirs::cache_dir().map(|d| d.join("forge").join("shell-integration")))
+                    .flatten(),
             },
             sink,
         )?;

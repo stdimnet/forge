@@ -105,6 +105,11 @@ pub struct TerminalSpec {
     pub env: Vec<(String, String)>,
     pub cols: u16,
     pub rows: u16,
+    /// Shell integration (Settings | Tools | Terminal): bash and zsh report their working
+    /// directory and command boundaries. Its scripts live in the cache dir of the machine
+    /// the shell runs on.
+    #[serde(default)]
+    pub shell_integration: bool,
 }
 
 /// A running terminal session.

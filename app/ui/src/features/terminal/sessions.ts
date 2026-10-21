@@ -10,7 +10,7 @@ import { getSetting } from "@/state/settings";
 import { runApi } from "@/ipc/run";
 import { revealLocation } from "@/features/lsp/navigation";
 import { showBalloon } from "@/keymap";
-import { closeTab, type TerminalProgram } from "./store";
+import { closeTab, setWorkingDir, type TerminalProgram } from "./store";
 
 interface Session {
   term: Terminal;
@@ -101,6 +101,63 @@ export function fitSession(id: string): void {
   }
 }
 
+let audio: AudioContext | undefined;
+
+/** "Audible bell": a short tone. */
+function beep(): void {
+  try {
+    audio ??= new AudioContext();
+    const osc = audio.createOscillator();
+    const gain = audio.createGain();
+    osc.frequency.value = 880;
+    gain.gain.setValueAtTime(0.08, audio.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.0001, audio.currentTime + 0.15);
+    osc.connect(gain).connect(audio.destination);
+    osc.start();
+    osc.stop(audio.currentTime + 0.15);
+  } catch {
+    /* no audio output */
+  }
+}
+
+/** A path from an OSC 7 `file://host/path` URL. */
+export function workingDirOf(url: string): string | null {
+  const m = url.match(/^file:\/\/[^/]*(\/.*)$/);
+  if (!m) return null;
+  try {
+    return decodeURIComponent(m[1]);
+  } catch {
+    return m[1];
+  }
+}
+
+/**
+ * Shell integration (Settings | Tools | Terminal; the scripts come from Rust,
+ * `forge_process::integration`): OSC 7 reports the working directory, OSC 133 the prompt and
+ * command boundaries. Finished commands get a mark in the overview ruler.
+ */
+function trackShellIntegration(id: string, term: Terminal): void {
+  let command: ReturnType<Terminal["registerMarker"]> | undefined;
+  term.parser.registerOscHandler(7, (data) => {
+    const dir = workingDirOf(data);
+    if (dir) setWorkingDir(id, dir);
+    return true;
+  });
+  term.parser.registerOscHandler(133, (data) => {
+    const [kind, code] = data.split(";");
+    if (kind === "C") command = term.registerMarker(0);
+    else if (kind === "D" && command) {
+      const failed = code !== undefined && code !== "0";
+      term.registerDecoration({
+        marker: command,
+        overviewRulerOptions: { color: cssVar(failed ? "--danger" : "--success", failed ? "#e5534b" : "#57ab5a"), position: "left" },
+      });
+      command = undefined;
+    }
+    return true;
+  });
+}
+
 /** Create the xterm instance for a tab inside `host` and start its shell. */
 export function attachSession(id: string, host: HTMLElement, cwd?: string, command?: TerminalProgram): void {
   const existing = sessions.get(id);
@@ -119,7 +176,13 @@ export function attachSession(id: string, host: HTMLElement, cwd?: string, comma
     theme: terminalTheme(),
     macOptionIsMeta: true,
     rightClickSelectsWord: false,
+    // Command marks of shell integration (green: succeeded, red: failed).
+    overviewRuler: { width: 8 },
   });
+  term.onBell(() => {
+    if (getSetting<boolean>("terminal.audibleBell", false)) beep();
+  });
+  trackShellIntegration(id, term);
   const fit = new FitAddon();
   term.loadAddon(fit);
   term.loadAddon(new WebLinksAddon((_e, uri) => openUrl(uri)));
