@@ -26,8 +26,8 @@ pub use log::{
 };
 pub use status::{parse_status, FileState, RepoStatus, StatusEntry};
 
-use cmd::{run, run_raw, Run};
 pub use cmd::{git_binary, set_git_program, GitExec, GitOutput, GitRequest, LocalGit};
+use cmd::{run, run_raw, Run};
 
 /// Summary of the repository a workspace belongs to.
 #[derive(Debug, Clone, Serialize)]

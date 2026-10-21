@@ -290,7 +290,10 @@ mod tests {
         s.write(b"false\n").unwrap();
         let (text, _) = collect_until(&rx, |t| t.contains("\x1b]133;D;1\x07"));
         assert!(text.contains("\x1b]7;file://"), "{text:?}");
-        assert!(text.contains("\x1b]133;A\x07") && text.contains("\x1b]133;C\x07"), "{text:?}");
+        assert!(
+            text.contains("\x1b]133;A\x07") && text.contains("\x1b]133;C\x07"),
+            "{text:?}"
+        );
         assert!(text.contains("\x1b]133;D;1\x07"), "{text:?}");
         s.kill().unwrap();
     }

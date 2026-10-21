@@ -151,7 +151,11 @@ fn text_before(text: &str, line: u32, character: u32) -> &str {
 
 /// The hints to draw: classified, filtered, sorted by position and without duplicates
 /// (two servers reporting the same hint).
-pub fn editor_hints(hints: Vec<RawInlayHint>, text: &str, filter: &InlayFilter) -> Vec<EditorInlayHint> {
+pub fn editor_hints(
+    hints: Vec<RawInlayHint>,
+    text: &str,
+    filter: &InlayFilter,
+) -> Vec<EditorInlayHint> {
     let mut out: Vec<EditorInlayHint> = hints
         .into_iter()
         .filter(|h| !h.label.trim().is_empty())
@@ -191,12 +195,24 @@ mod tests {
 
     #[test]
     fn classifies_by_kind_and_position() {
-        assert_eq!(classify(&hint(1, 18, "x:", Some(2)), SRC), InlayGroup::ParameterName);
+        assert_eq!(
+            classify(&hint(1, 18, "x:", Some(2)), SRC),
+            InlayGroup::ParameterName
+        );
         // After `)`: the function's return type.
-        assert_eq!(classify(&hint(0, 20, ": number", Some(1)), SRC), InlayGroup::ReturnType);
+        assert_eq!(
+            classify(&hint(0, 20, ": number", Some(1)), SRC),
+            InlayGroup::ReturnType
+        );
         // After a variable name: its type.
-        assert_eq!(classify(&hint(1, 11, ": number", Some(1)), SRC), InlayGroup::VariableType);
-        assert_eq!(classify(&hint(1, 18, "count:", None), SRC), InlayGroup::ParameterName);
+        assert_eq!(
+            classify(&hint(1, 11, ": number", Some(1)), SRC),
+            InlayGroup::VariableType
+        );
+        assert_eq!(
+            classify(&hint(1, 18, "count:", None), SRC),
+            InlayGroup::ParameterName
+        );
         assert_eq!(classify(&hint(1, 18, "…", None), SRC), InlayGroup::Other);
     }
 

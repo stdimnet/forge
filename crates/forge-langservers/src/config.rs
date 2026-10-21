@@ -152,7 +152,10 @@ pub fn build_config(
         "typescript-language-server" | "vtsls" => {
             // Inlay hints: the servers report every kind; Forge filters them by the
             // Inlay Hints settings (`forge_codeintel::inlay`).
-            merge_json(&mut init, &json!({ "preferences": TS_INLAY_PREFERENCES.clone() }));
+            merge_json(
+                &mut init,
+                &json!({ "preferences": TS_INLAY_PREFERENCES.clone() }),
+            );
             for language in ["typescript", "javascript"] {
                 merge_json(
                     &mut settings,

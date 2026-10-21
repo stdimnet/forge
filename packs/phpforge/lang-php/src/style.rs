@@ -113,7 +113,12 @@ struct Gap {
     max: usize,
 }
 
-fn collect(node: Node<'_>, verbatim: &mut Vec<(usize, usize)>, gaps: &mut Vec<Gap>, style: &PhpCodeStyle) {
+fn collect(
+    node: Node<'_>,
+    verbatim: &mut Vec<(usize, usize)>,
+    gaps: &mut Vec<Gap>,
+    style: &PhpCodeStyle,
+) {
     if VERBATIM.contains(&node.kind()) {
         verbatim.push((node.start_byte(), node.end_byte()));
         return;
@@ -135,7 +140,9 @@ fn collect(node: Node<'_>, verbatim: &mut Vec<(usize, usize)>, gaps: &mut Vec<Ga
             {
                 Some((
                     style.blank_lines_around_methods,
-                    style.keep_max_blank_lines.max(style.blank_lines_around_methods),
+                    style
+                        .keep_max_blank_lines
+                        .max(style.blank_lines_around_methods),
                 ))
             }
             _ => None,
@@ -253,19 +260,27 @@ mod tests {
         assert_eq!(s.keep_max_blank_lines, 0);
         assert_eq!(s.blank_lines_around_methods, 10);
         assert_eq!(s.blank_lines_after_imports, 1);
-        assert_eq!(PhpCodeStyle::from_settings(|_| None), PhpCodeStyle::default());
+        assert_eq!(
+            PhpCodeStyle::from_settings(|_| None),
+            PhpCodeStyle::default()
+        );
     }
 
     #[test]
     fn sets_blank_lines_after_namespace_and_imports() {
         let src = "<?php\nnamespace App;\nuse A\\B;\nuse A\\C;\n\n\n\n\nclass X\n{\n}\n";
         let out = tidy_blank_lines(src, &PhpCodeStyle::default()).unwrap();
-        assert_eq!(out, "<?php\nnamespace App;\n\nuse A\\B;\nuse A\\C;\n\nclass X\n{\n}\n");
+        assert_eq!(
+            out,
+            "<?php\nnamespace App;\n\nuse A\\B;\nuse A\\C;\n\nclass X\n{\n}\n"
+        );
         let two = PhpCodeStyle {
             blank_lines_after_imports: 2,
             ..PhpCodeStyle::default()
         };
-        assert!(tidy_blank_lines(&out, &two).unwrap().contains("use A\\C;\n\n\nclass X"));
+        assert!(tidy_blank_lines(&out, &two)
+            .unwrap()
+            .contains("use A\\C;\n\n\nclass X"));
     }
 
     #[test]

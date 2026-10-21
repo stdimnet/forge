@@ -9,12 +9,12 @@ use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, State};
 
 use forge_core::Result;
+use phpforge_lang_php::composer::{self, OutdatedPackage};
 use phpforge_lang_php::generate::{GenerateKind, GenerateOptions, GenerateTargets, TextEdit};
 use phpforge_lang_php::hover::Hover;
 use phpforge_lang_php::index::{SearchKind, SymbolHit};
 use phpforge_lang_php::lsp::{self, DetectedServers, LspServerConfig, PhpLspSettings};
 use phpforge_lang_php::structure::FileStructure;
-use phpforge_lang_php::composer::{self, OutdatedPackage};
 use phpforge_lang_php::style::{tidy_blank_lines, PhpCodeStyle};
 use phpforge_lang_php::IndexStats;
 
@@ -106,7 +106,12 @@ pub async fn php_generate(
     // Braces and blank lines of Settings | Editor | Code Style | PHP.
     options.style = php_code_style(&state);
     let backend = state.backend()?;
-    blocking(move || backend.php().generate(&path, offset, kind, options, content)).await
+    blocking(move || {
+        backend
+            .php()
+            .generate(&path, offset, kind, options, content)
+    })
+    .await
 }
 
 fn php_code_style(state: &AppState) -> PhpCodeStyle {
@@ -170,12 +175,17 @@ pub async fn php_composer_outdated(state: State<'_, AppState>) -> Result<Vec<Out
         cmd.cwd = Path::new(&backend.info().root).join(dir);
         let mut out = String::new();
         let cancel = std::sync::atomic::AtomicBool::new(false);
-        forge_backend::process_io::run_lines(backend.as_ref(), &cmd, &cancel, &mut |line, stderr| {
-            if !stderr {
-                out.push_str(&line);
-                out.push('\n');
-            }
-        })?;
+        forge_backend::process_io::run_lines(
+            backend.as_ref(),
+            &cmd,
+            &cancel,
+            &mut |line, stderr| {
+                if !stderr {
+                    out.push_str(&line);
+                    out.push('\n');
+                }
+            },
+        )?;
         Ok(composer::parse_outdated(&out))
     })
     .await
@@ -184,7 +194,10 @@ pub async fn php_composer_outdated(state: State<'_, AppState>) -> Result<Vec<Out
 /// Reformat Code, after the language server: apply the blank line settings of the PHP code
 /// style to `text` (the editor's buffer). `None` when nothing changes.
 #[tauri::command]
-pub async fn php_tidy_blank_lines(text: String, state: State<'_, AppState>) -> Result<Option<String>> {
+pub async fn php_tidy_blank_lines(
+    text: String,
+    state: State<'_, AppState>,
+) -> Result<Option<String>> {
     let style = php_code_style(&state);
     blocking(move || Ok(tidy_blank_lines(&text, &style))).await
 }

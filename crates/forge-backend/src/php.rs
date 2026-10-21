@@ -7,13 +7,13 @@ use std::sync::{Arc, Mutex};
 use forge_core::{ForgeError, FsChanges, Result, Workspace};
 use phpforge_lang_php::generate::{GenerateKind, GenerateOptions, GenerateTargets, TextEdit};
 use phpforge_lang_php::hover::Hover;
+use phpforge_lang_php::index::VendorMode;
 use phpforge_lang_php::index::{SearchKind, SymbolHit};
 use phpforge_lang_php::intentions::Intention;
 use phpforge_lang_php::lsp::{self, DetectedServers, LspServerConfig, PhpLspSettings};
 use phpforge_lang_php::navigate::{NavKind, NavTarget, PhpDefinition, PhpLineMarker, PhpUsages};
 use phpforge_lang_php::service;
 use phpforge_lang_php::structure::FileStructure;
-use phpforge_lang_php::index::VendorMode;
 use phpforge_lang_php::{IndexConfig, IndexStats, ProjectIndex};
 
 /// Index progress callback: `(done, total)` files.

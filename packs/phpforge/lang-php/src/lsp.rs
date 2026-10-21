@@ -124,10 +124,14 @@ impl PhpLspSettings {
         if let Some(server) = get("php.lsp.server").and_then(|v| serde_json::from_value(v).ok()) {
             s.server = server;
         }
-        if let Some(braces) = get(crate::style::BRACES_KEY).and_then(|v| serde_json::from_value(v).ok()) {
+        if let Some(braces) =
+            get(crate::style::BRACES_KEY).and_then(|v| serde_json::from_value(v).ok())
+        {
             s.braces = braces;
         }
-        if let Some(path) = get(crate::composer::JSON_KEY).and_then(|v| v.as_str().map(str::trim).map(String::from)) {
+        if let Some(path) =
+            get(crate::composer::JSON_KEY).and_then(|v| v.as_str().map(str::trim).map(String::from))
+        {
             if !path.is_empty() {
                 s.composer_json = path;
             }
@@ -639,7 +643,9 @@ mod tests {
         }
         assert!(!stubs.contains(&"symfony"));
         assert_eq!(ip["format"]["braces"], "psr12");
-        assert!(!ip["files"]["exclude"].to_string().contains("\"**/vendor/**\""));
+        assert!(!ip["files"]["exclude"]
+            .to_string()
+            .contains("\"**/vendor/**\""));
         // "Add packages as libraries" off and K&R braces.
         let no_vendor = PhpLspSettings {
             vendor_libraries: false,
@@ -647,11 +653,16 @@ mod tests {
             ..settings.clone()
         };
         let ip = &server_config(&no_vendor, &detected, None).unwrap().settings["intelephense"];
-        assert!(ip["files"]["exclude"].to_string().contains("\"**/vendor/**\""));
+        assert!(ip["files"]["exclude"]
+            .to_string()
+            .contains("\"**/vendor/**\""));
         assert_eq!(ip["format"]["braces"], "k&r");
         // The language level follows composer.json unless synchronization is off.
         let json = r#"{"require": {"php": "^8.1"}}"#;
-        assert_eq!(settings.effective_level(Some(json)), ("8.1".to_string(), true));
+        assert_eq!(
+            settings.effective_level(Some(json)),
+            ("8.1".to_string(), true)
+        );
         assert_eq!(settings.effective_level(None), ("8.2".to_string(), false));
         let manual = PhpLspSettings {
             sync_with_composer: false,

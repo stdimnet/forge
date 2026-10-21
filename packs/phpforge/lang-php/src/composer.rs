@@ -42,12 +42,15 @@ fn versions_in(constraint: &str) -> Vec<(u32, u32)> {
     let bytes = constraint.as_bytes();
     let mut i = 0;
     while i < bytes.len() {
-        if !bytes[i].is_ascii_digit() || (i > 0 && (bytes[i - 1].is_ascii_digit() || bytes[i - 1] == b'.')) {
+        if !bytes[i].is_ascii_digit()
+            || (i > 0 && (bytes[i - 1].is_ascii_digit() || bytes[i - 1] == b'.'))
+        {
             i += 1;
             continue;
         }
         let start = i;
-        while i < bytes.len() && (bytes[i].is_ascii_digit() || bytes[i] == b'.' || bytes[i] == b'*') {
+        while i < bytes.len() && (bytes[i].is_ascii_digit() || bytes[i] == b'.' || bytes[i] == b'*')
+        {
             i += 1;
         }
         let mut parts = constraint[start..i].split('.');
@@ -107,7 +110,10 @@ mod tests {
         assert_eq!(level("~8.3.4").as_deref(), Some("8.3"));
         assert_eq!(level("8.*").as_deref(), Some("8.0"));
         assert_eq!(level("^8.5").as_deref(), Some("8.4"));
-        assert_eq!(language_level(r#"{"require": {"laravel/framework": "^12.0"}}"#), None);
+        assert_eq!(
+            language_level(r#"{"require": {"laravel/framework": "^12.0"}}"#),
+            None
+        );
         assert_eq!(language_level("{not json"), None);
     }
 

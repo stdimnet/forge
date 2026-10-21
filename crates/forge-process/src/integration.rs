@@ -86,7 +86,9 @@ PROMPT="${PROMPT}%{$(printf '\033]133;B\007')%}"
 
 fn shell_name(shell: &str) -> String {
     let file = shell.rsplit(['/', '\\']).next().unwrap_or(shell);
-    file.strip_suffix(".exe").unwrap_or(file).to_ascii_lowercase()
+    file.strip_suffix(".exe")
+        .unwrap_or(file)
+        .to_ascii_lowercase()
 }
 
 /// Write `content` unless the file already has it.
@@ -154,12 +156,20 @@ mod tests {
             .unwrap();
         assert_eq!(i.args[0], "--init-file");
         let rc = std::fs::read_to_string(&i.args[1]).unwrap();
-        assert!(rc.contains(". ~/.bashrc") && rc.contains("133;D;$status") && rc.contains("7;file://"));
-        assert_eq!(i.env, vec![("FORGE_LOGIN_SHELL".to_string(), "1".to_string())]);
+        assert!(
+            rc.contains(". ~/.bashrc") && rc.contains("133;D;$status") && rc.contains("7;file://")
+        );
+        assert_eq!(
+            i.env,
+            vec![("FORGE_LOGIN_SHELL".to_string(), "1".to_string())]
+        );
         // Unchanged files are not written again.
         let before = std::fs::metadata(&i.args[1]).unwrap().modified().unwrap();
         prepare("bash", &[], dir.path(), None).unwrap();
-        assert_eq!(std::fs::metadata(&i.args[1]).unwrap().modified().unwrap(), before);
+        assert_eq!(
+            std::fs::metadata(&i.args[1]).unwrap().modified().unwrap(),
+            before
+        );
     }
 
     #[test]

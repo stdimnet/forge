@@ -160,13 +160,11 @@ fn run_local(cwd: &Path, args: &[&str], opts: Run<'_>) -> Result<Output> {
     }
 
     tracing::debug!(?args, "git");
-    let mut child = cmd
-        .spawn()
-        .map_err(|e| {
-            ForgeError::Other(format!(
-                "could not run {program} (is git installed? See Settings | Version Control | Git): {e}"
-            ))
-        })?;
+    let mut child = cmd.spawn().map_err(|e| {
+        ForgeError::Other(format!(
+            "could not run {program} (is git installed? See Settings | Version Control | Git): {e}"
+        ))
+    })?;
     if let Some(input) = opts.stdin {
         if let Some(mut stdin) = child.stdin.take() {
             stdin

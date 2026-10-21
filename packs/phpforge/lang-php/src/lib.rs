@@ -27,8 +27,8 @@ pub mod parser;
 pub mod resolve;
 pub mod service;
 pub mod structure;
-pub mod style;
 pub mod stubs;
+pub mod style;
 
 pub use index::{IndexConfig, IndexStats, ProjectIndex};
 pub use model::*;
