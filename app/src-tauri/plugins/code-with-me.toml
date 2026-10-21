@@ -1,0 +1,149 @@
+# Code With Me: invite guests into the open project to edit files together
+# (crates/forge-collab, app/ui/src/features/code-with-me, docs/plans/code-with-me.md).
+id = "forge.codewithme"
+name = "Code With Me"
+version = "0.1.0"
+pack = "core"
+vendor = "Forge"
+description = "Real-time collaborative editing: invite guests with a session link, edit the same files at the same time and see each other's carets. Connections go directly from guest to host; no account or service is needed."
+depends = ["forge.core"]
+
+[[contributions.commands]]
+id = "CodeWithMe.StartSession"
+title = "Start Session…"
+category = "Code With Me"
+
+[[contributions.commands]]
+id = "CodeWithMe.CopySessionLink"
+title = "Copy Session Link"
+category = "Code With Me"
+
+[[contributions.commands]]
+id = "CodeWithMe.EndSession"
+title = "End Session"
+category = "Code With Me"
+
+[[contributions.commands]]
+id = "CodeWithMe.JoinSession"
+title = "Join Session…"
+category = "Code With Me"
+
+[[contributions.commands]]
+id = "CodeWithMe.LeaveSession"
+title = "Leave Session"
+category = "Code With Me"
+
+[[contributions.commands]]
+id = "CodeWithMe.OpenSharedFile"
+title = "Open Shared File…"
+category = "Code With Me"
+
+[[contributions.mainMenu]]
+path = "Tools/Code With _Me"
+items = [
+  { type = "action", id = "CodeWithMe.StartSession", label = "_Start Session..." },
+  { type = "action", id = "CodeWithMe.CopySessionLink", label = "_Copy Session Link" },
+  { type = "action", id = "CodeWithMe.EndSession", label = "_End Session" },
+  { type = "separator" },
+  { type = "action", id = "CodeWithMe.JoinSession", label = "_Join Session..." },
+  { type = "action", id = "CodeWithMe.OpenSharedFile", label = "_Open Shared File..." },
+  { type = "action", id = "CodeWithMe.LeaveSession", label = "_Leave Session" },
+]
+
+# ---- Settings | Tools | Code With Me ----------------------------------------------------
+
+[[contributions.settings]]
+key = "codeWithMe.userName"
+title = "User name"
+description = "Shown to the other participants next to your caret. Empty: the system user name."
+type = "string"
+default = ""
+group = "tools.code-with-me"
+section = "Session"
+order = 0
+
+[[contributions.settings]]
+key = "codeWithMe.defaultPermission"
+title = "Default permission for guests"
+description = "Preselected in Start Session."
+type = "enum"
+options = [
+  { value = "readOnly", label = "Read-only" },
+  { value = "editFiles", label = "Edit files" },
+  { value = "fullAccess", label = "Full access" },
+]
+default = "readOnly"
+group = "tools.code-with-me"
+section = "Session"
+order = 10
+
+[[contributions.settings]]
+key = "codeWithMe.confirmEndSession"
+title = "Ask before ending a session"
+type = "bool"
+default = true
+group = "tools.code-with-me"
+section = "Session"
+order = 20
+
+[[contributions.settings]]
+key = "codeWithMe.listenPort"
+title = "Port"
+description = "UDP port for direct connections. 0: any free port. Set a fixed port for a port forward."
+type = "int"
+min = 0
+max = 65535
+default = 0
+group = "tools.code-with-me"
+section = "Connection"
+order = 30
+
+[[contributions.settings]]
+key = "codeWithMe.listenAddress"
+title = "Listen on address"
+description = "Bind to one interface, e.g. a VPN address, or 127.0.0.1 for SSH tunnels. Empty: all interfaces."
+type = "string"
+default = ""
+group = "tools.code-with-me"
+section = "Connection"
+order = 40
+
+[[contributions.settings]]
+key = "codeWithMe.excludedFiles"
+title = "Files guests never see"
+description = "Patterns like .gitignore lines; !pattern shows a file again."
+type = "list"
+default = [
+  ".env",
+  ".env.*",
+  "!.env.example",
+  "!.env.dist",
+  "*.pem",
+  "*.key",
+  "*.p12",
+  "*.pfx",
+  "id_rsa*",
+  "id_ed25519*",
+  "auth.json",
+  ".npmrc",
+  ".pypirc",
+  ".netrc",
+  "*.kdbx",
+  ".forge/dataSources.toml",
+  ".forge/*.local.toml",
+  "config/master.key",
+]
+group = "tools.code-with-me"
+section = "Shared Files"
+order = 50
+
+[[contributions.settings]]
+key = "codeWithMe.maxSharedFileSize"
+title = "Larger files open read-only (KB)"
+type = "int"
+min = 1
+max = 102400
+default = 5120
+group = "tools.code-with-me"
+section = "Shared Files"
+order = 60

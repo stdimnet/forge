@@ -30,6 +30,10 @@ const MANIFESTS: &[(&str, &str)] = &[
         "browser-companion.toml",
         include_str!("../plugins/browser-companion.toml"),
     ),
+    (
+        "code-with-me.toml",
+        include_str!("../plugins/code-with-me.toml"),
+    ),
 ];
 
 /// Setting holding the ids of plugins the user disabled.
