@@ -26,6 +26,9 @@ export function ToolbarButton(props: { onStart: (level: PermissionLevel) => void
         onClick={() => setPopupOpen((o) => !o)}
       >
         <Users size={16} />
+        <Show when={inSession() && session().participants.length > 1}>
+          <span class="cwm-toolbar-count">{session().participants.length}</span>
+        </Show>
       </button>
       <Show when={popupOpen()}>
         <SessionPopup anchor={btn} onStart={props.onStart} />

@@ -5,10 +5,12 @@
  */
 import { createSignal, For, onCleanup, onMount, Show } from "solid-js";
 import { Portal } from "solid-js/web";
-import type { PermissionLevel } from "@/ipc/collab";
+import { levelOf, type Participant, type PermissionLevel } from "@/ipc/collab";
 import { getSetting } from "@/state/settings";
 import { runCommand } from "@/state/commands";
+import { FileIcon } from "@/shell/FileIcon";
 import { session, setPopupOpen } from "./store";
+import { openSharedFile } from "./session";
 
 export const LEVELS: { level: PermissionLevel; title: string; hint: string }[] = [
   { level: "readOnly", title: "Read-only", hint: "Guests can view files, the terminal and run output." },
@@ -74,6 +76,115 @@ function MenuItem(props: { label: string; action: string; danger?: boolean }) {
   );
 }
 
+const LEVEL_TITLES: Record<PermissionLevel, string> = {
+  readOnly: "Read-only",
+  editFiles: "Edit files",
+  fullAccess: "Full access",
+  custom: "Custom",
+};
+
+const initials = (name: string) =>
+  name
+    .split(/[\s._-]+/)
+    .filter(Boolean)
+    .map((w) => w[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase() || "?";
+
+/** A participant's colored circle with initials (also used for carets' colors). */
+export function Avatar(props: { participant: Participant; size?: number }) {
+  return (
+    <span
+      class="cwm-avatar"
+      style={{ background: `var(--collab-${props.participant.color})`, width: `${props.size ?? 20}px`, height: `${props.size ?? 20}px` }}
+      aria-hidden="true"
+    >
+      {initials(props.participant.name)}
+    </span>
+  );
+}
+
+function Participants() {
+  const s = () => session();
+  return (
+    <div class="cwm-participants" role="list" aria-label="Participants">
+      <For each={s().participants}>
+        {(p) => (
+          <div class="cwm-participant" role="listitem" data-participant={p.id}>
+            <Avatar participant={p} />
+            <span class="cwm-participant-name">
+              {p.name}
+              <span class="muted">{p.role === "host" ? " (host)" : ""}{p.id === s().me ? " (you)" : ""}</span>
+            </span>
+            <Show when={p.role === "guest"}>
+              <span class="cwm-participant-perm muted">{LEVEL_TITLES[levelOf(p.permissions)]}</span>
+            </Show>
+          </div>
+        )}
+      </For>
+    </div>
+  );
+}
+
+function HostView() {
+  return (
+    <>
+      <div class="cwm-popup-title">Code With Me</div>
+      <Show when={session().notice}>
+        <div class="cwm-popup-warning cwm-notice">{session().notice}</div>
+      </Show>
+      <div class="cwm-popup-label muted">
+        Participants · guests: {LEVEL_TITLES[levelOf(session().permissions ?? { files: "readOnly", terminal: "readOnly", run: "readOnly", vcs: "readOnly" })]}
+      </div>
+      <Participants />
+      <Show when={session().participants.length < 2}>
+        <div class="cwm-popup-note muted">Send the session link to invite guests. The files open in your editor are shared.</div>
+      </Show>
+      <div class="cwm-sep" />
+      <MenuItem label="Copy Session Link" action="CodeWithMe.CopySessionLink" />
+      <MenuItem label="Settings…" action="CodeWithMe.Settings" />
+      <div class="cwm-sep" />
+      <MenuItem label="End Session" action="CodeWithMe.EndSession" danger />
+    </>
+  );
+}
+
+function GuestView() {
+  return (
+    <>
+      <div class="cwm-popup-title">Code With Me: {session().hostLabel}</div>
+      <Show when={session().notice}>
+        <div class="cwm-popup-warning cwm-notice">{session().notice}</div>
+      </Show>
+      <Participants />
+      <div class="cwm-popup-label muted">Shared files</div>
+      <div class="cwm-files" role="list">
+        <For each={session().files} fallback={<div class="cwm-popup-note muted">The host has no files open.</div>}>
+          {(f) => (
+            <div
+              class="cwm-menu-item cwm-file"
+              role="listitem"
+              data-path={f.path}
+              title={f.path}
+              onClick={() => {
+                setPopupOpen(false);
+                void openSharedFile(f.path);
+              }}
+            >
+              <FileIcon name={f.path.split("/").pop() ?? f.path} />
+              <span class="cwm-file-name">{f.path.split("/").pop()}</span>
+              <span class="cwm-file-dir muted">{f.path.split("/").slice(0, -1).join("/")}</span>
+            </div>
+          )}
+        </For>
+      </div>
+      <div class="cwm-sep" />
+      <MenuItem label="Leave Session" action="CodeWithMe.LeaveSession" danger />
+    </>
+  );
+}
+
 export function SessionPopup(props: { anchor: HTMLElement; onStart: (level: PermissionLevel) => void }) {
   let el!: HTMLDivElement;
   const rect = props.anchor.getBoundingClientRect();
@@ -97,9 +208,17 @@ export function SessionPopup(props: { anchor: HTMLElement; onStart: (level: Perm
         style={{ top: `${rect.bottom + 4}px`, left: `${Math.max(8, Math.min(rect.left, window.innerWidth - 380))}px` }}
         onKeyDown={(e) => e.key === "Escape" && (e.stopPropagation(), setPopupOpen(false))}
       >
-        <StartView onStart={props.onStart} />
-        <div class="cwm-sep" />
-        <MenuItem label="Join Session…" action="CodeWithMe.JoinSession" />
+        <Show when={session().role === "host"}>
+          <HostView />
+        </Show>
+        <Show when={session().role === "guest"}>
+          <GuestView />
+        </Show>
+        <Show when={session().role === "none"}>
+          <StartView onStart={props.onStart} />
+          <div class="cwm-sep" />
+          <MenuItem label="Join Session…" action="CodeWithMe.JoinSession" />
+        </Show>
       </div>
     </Portal>
   );

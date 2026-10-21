@@ -92,3 +92,63 @@
 .cwm-menu-item.danger {
   color: var(--danger);
 }
+.cwm-notice {
+  padding: 0 8px 8px;
+}
+.cwm-participants {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 2px 0;
+}
+.cwm-participant {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 28px;
+  padding: 0 8px;
+  border-radius: var(--radius);
+}
+.cwm-participant:hover {
+  background: var(--bg-hover);
+}
+.cwm-participant-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cwm-participant-perm {
+  font-size: var(--fs-small);
+}
+.cwm-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  border-radius: 50%;
+  color: var(--collab-label-fg);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.cwm-files {
+  max-height: 240px;
+  overflow-y: auto;
+}
+.cwm-file-name {
+  white-space: nowrap;
+}
+.cwm-file-dir {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-small);
+}
+.cwm-toolbar-count {
+  margin-left: 2px;
+  font-size: var(--fs-small);
+  font-weight: 600;
+}
