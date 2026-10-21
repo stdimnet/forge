@@ -67,6 +67,7 @@ export const scratches_next_buffer: (a: number, b: number, c: number) => void;
 export const scratches_run_command: (a: number, b: number, c: number) => void;
 export const scratches_runner: (a: number, b: number, c: number) => void;
 export const scratches_validate_name: (a: number, b: number, c: number) => void;
+export const search_find_symbols: (a: number, b: number, c: number) => void;
 export const search_match_files: (a: number, b: number, c: number) => void;
 export const search_rank: (a: number, b: number, c: number) => void;
 export const services_details: (a: number, b: number, c: number) => void;

@@ -338,6 +338,12 @@ export function scratches_runner(request_json: string): string;
 export function scratches_validate_name(request_json: string): string;
 
 /**
+ * `{ files, query, typesOnly, limit, skipExtensions }` → `SymbolHit[]`: the classes and
+ * symbols the desktop app's search index finds (`forge-search-core`), over in-memory files.
+ */
+export function search_find_symbols(request_json: string): string;
+
+/**
  * `{ query, paths, limit }` → `FileMatch[]`: "Go to File" over a list of paths (the
  * browser-mode demo project instead of a file walk).
  */
@@ -498,6 +504,7 @@ export interface InitOutput {
     readonly scratches_run_command: (a: number, b: number, c: number) => void;
     readonly scratches_runner: (a: number, b: number, c: number) => void;
     readonly scratches_validate_name: (a: number, b: number, c: number) => void;
+    readonly search_find_symbols: (a: number, b: number, c: number) => void;
     readonly search_match_files: (a: number, b: number, c: number) => void;
     readonly search_rank: (a: number, b: number, c: number) => void;
     readonly services_details: (a: number, b: number, c: number) => void;

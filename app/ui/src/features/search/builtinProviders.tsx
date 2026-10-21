@@ -42,6 +42,9 @@ registerSearchProvider({
 
 const SYMBOL_KINDS = new Set<string>(["class", "interface", "trait", "enum", "function", "method", "property", "constant"]);
 
+/** Languages whose pack answers Classes and Symbols from an index of its own. */
+const PACK_INDEXED = ["php", "phtml", "lua"];
+
 function symbolProvider(id: string, tab: "classes" | "symbols", title: string, typesOnly: boolean) {
   registerSearchProvider({
     id,
@@ -50,7 +53,7 @@ function symbolProvider(id: string, tab: "classes" | "symbols", title: string, t
     order: 2,
     async search(query, { limit }) {
       if (!query.trim()) return [];
-      const hits = await searchApi.findSymbols(query, typesOnly, limit).catch(() => []);
+      const hits = await searchApi.findSymbols(query, typesOnly, limit, PACK_INDEXED).catch(() => []);
       return hits.map(
         (h): SearchItem => ({
           id: `${h.path}:${h.line}:${h.name}`,

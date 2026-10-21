@@ -57,21 +57,24 @@ fn served_extensions(manager: &LspManager) -> Vec<String> {
 }
 
 /// Classes (`types_only`) or all symbols from the project's search index, for the languages
-/// no running language server covers.
+/// no running language server covers. `skip_extensions` adds languages whose pack has an index
+/// of its own (PHP, Lua).
 #[tauri::command]
 pub async fn search_find_symbols(
     query: String,
     types_only: bool,
     limit: usize,
+    skip_extensions: Vec<String>,
     app: AppHandle,
     lsp: State<'_, LspState>,
     state: State<'_, AppState>,
 ) -> Result<Vec<SymbolHit>> {
     let backend = state.backend()?;
-    let served = lsp
+    let mut served = lsp
         .manager(&app, &state)
         .map(|m| served_extensions(&m))
         .unwrap_or_default();
+    served.extend(skip_extensions);
     blocking(move || backend.find_symbols(&query, types_only, limit, &served)).await
 }
 

@@ -69,6 +69,48 @@ pub fn find_in_files(request_json: &str) -> String {
     }
 }
 
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct FindSymbols {
+    /// `[path, text]` of every project file (the browser-mode demo project).
+    files: Vec<(String, String)>,
+    query: String,
+    #[serde(default)]
+    types_only: bool,
+    limit: usize,
+    #[serde(default)]
+    skip_extensions: Vec<String>,
+}
+
+/// `{ files, query, typesOnly, limit, skipExtensions }` → `SymbolHit[]`: the classes and
+/// symbols the desktop app's search index finds (`forge-search-core`), over in-memory files.
+#[wasm_bindgen]
+pub fn search_find_symbols(request_json: &str) -> String {
+    match parse::<FindSymbols>(request_json) {
+        Ok(r) => {
+            let mut index = forge_search_core::Index::new();
+            index.add_batch(
+                r.files
+                    .iter()
+                    .map(|(path, text)| {
+                        let scanned = forge_search_core::Scanned {
+                            path: path.clone(),
+                            mtime: 0,
+                            size: text.len() as u64,
+                        };
+                        (
+                            scanned,
+                            forge_search_core::Analysis::of(path, text.as_bytes()),
+                        )
+                    })
+                    .collect(),
+            );
+            to_json(&index.find_symbols(&r.query, r.types_only, r.limit, &r.skip_extensions))
+        }
+        Err(e) => to_json(&serde_json::json!({ "error": e })),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -84,5 +126,12 @@ mod tests {
         assert!(search_rank("nope").contains("error"));
         let out = find_in_files(r#"{"request":{"query":"user"},"files":[["a.php","new User"]]}"#);
         assert!(out.contains(r#""ranges":[[4,8]]"#), "{out}");
+        let out = search_find_symbols(
+            r#"{"files":[["a.php","<?php\nclass Order {}\n"]],"query":"ord","typesOnly":true,"limit":5}"#,
+        );
+        assert!(
+            out.contains(r#""name":"Order""#) && out.contains(r#""kind":"class""#),
+            "{out}"
+        );
     }
 }

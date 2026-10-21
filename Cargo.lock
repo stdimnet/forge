@@ -2202,6 +2202,7 @@ dependencies = [
  "forge-plugin-api",
  "forge-remote",
  "forge-scratches",
+ "forge-search-core",
  "forge-sql",
  "forge-window",
  "luaforge-lang-lua",

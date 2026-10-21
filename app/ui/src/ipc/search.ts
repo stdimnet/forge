@@ -99,8 +99,8 @@ export interface SearchStatus {
 
 export const searchApi = {
   /** Classes or all symbols from the index, for languages without a running language server. */
-  findSymbols: (query: string, typesOnly: boolean, limit: number) =>
-    invoke<SymbolHit[]>("search_find_symbols", { query, typesOnly, limit }),
+  findSymbols: (query: string, typesOnly: boolean, limit: number, skipExtensions: string[] = []) =>
+    invoke<SymbolHit[]>("search_find_symbols", { query, typesOnly, limit, skipExtensions }),
   status: () => invoke<SearchStatus>("search_status"),
   /** Fuzzy "Go to File" over the project (respects .gitignore). */
   findFiles: (query: string, limit = 100) => invoke<FileMatch[]>("fs_find_files", { query, limit }),
