@@ -2308,6 +2308,7 @@ dependencies = [
  "iroh",
  "iroh-mdns-address-lookup",
  "iroh-relay",
+ "keyring",
  "percent-encoding",
  "proptest",
  "rmp-serde",

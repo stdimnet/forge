@@ -144,6 +144,21 @@ impl NetTransport {
         })
     }
 
+    /// Connect to the configured relay once and report how that went (the settings page's
+    /// Test Connection). Binds a short-lived endpoint that dials nobody else.
+    pub async fn check_relay(cfg: NetConfig) -> io::Result<RelayStatus> {
+        let plan = cfg.relay.plan();
+        if plan == RelayPlan::None {
+            return Err(err("No relay server is set"));
+        }
+        let endpoint = builder(false, &cfg)?.bind().await.map_err(err)?;
+        let online = relay_cfg::wait_online(&endpoint, &plan).await;
+        let status = relay_cfg::status(&endpoint, &plan);
+        endpoint.close().await;
+        online?;
+        status.ok_or_else(|| err("The relay did not answer"))
+    }
+
     fn remember(&self, peer: PeerKey, conn: &iroh::endpoint::Connection) {
         let mut conns = self.conns.lock().expect("connection map lock poisoned");
         conns.retain(|_, c| c.close_reason().is_none());
