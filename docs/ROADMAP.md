@@ -30,14 +30,52 @@
 - [x] Split editors, pinned tabs, editor tab settings; file encodings and line separators; restored tool window layout
 - [x] Splash screen, update check and download (signed `latest.json` from GitHub releases), release workflow, Pride Versioning
 
-## Milestone 2 — next
+## Milestone 2 — PHPStorm parity (next)
 
 | Area | Scope |
 | --- | --- |
 | Refactorings | Extract Method/Variable/Constant, Move, Change Signature, Safe Delete, Inline |
 | Local History | Changes per file and project, revert, labels |
-| VCS | Get from VCS (clone), Commit Message History (Ctrl+M), Replace in Files popup (Ctrl+Shift+R) |
+| VCS | Get from VCS (clone), Commit Message History (Ctrl+M), interactive rebase, cherry-pick, shelf |
 | Windows | Several project windows, Distraction Free / Presentation / Zen modes |
-| PHP | Composer Install/Update commands, Type/Call/Method Hierarchy, Live Templates, Surround With, Optimize Imports |
+| PHP | Composer Install/Update commands, Type/Call/Method Hierarchy, Live Templates, Surround With, Optimize Imports, Go to Test |
 | Services | Kubernetes contexts from the project's host |
-| Plugins | Marketplace, settings export/import |
+
+## Milestone 3 — JavaForge and more languages
+
+| Area | Scope |
+| --- | --- |
+| JavaForge pack | Java with Eclipse JDT LS (managed install, JDK detection and download), Maven and Gradle (tool windows, run configurations, dependency sync), JUnit 5 / TestNG test runner, Java debugger (JDWP through DAP) |
+| JVM frameworks | Spring Boot (beans, endpoints, `application.yml` completion), Kotlin (kotlin-lsp), Jakarta EE basics |
+| PyForge pack | Python with basedpyright / ruff, virtualenv / uv / Poetry interpreters, pytest runner, debugpy, Django and FastAPI |
+| GoForge / RustForge packs | gopls and rust-analyzer with run configurations, test runners and debugging (Delve, CodeLLDB) |
+| Shared | Language-neutral test runner and debugger (DAP) used by every pack |
+
+## Milestone 4 — Code quality and tooling
+
+| Area | Scope |
+| --- | --- |
+| PHP quality tools | PHPStan, Psalm, PHP CS Fixer, PHP_CodeSniffer, Rector as inspections and quick fixes |
+| Web quality tools | ESLint, Prettier, Stylelint, Biome |
+| Testing | Code coverage in the gutter and the Project view (PHPUnit, Pest, Jest, Vitest, JUnit) |
+| Profiling | Xdebug profiler and SPX snapshots, call tree and hot spots |
+| Database | ER diagrams, schema compare and migrations, query plans |
+| Inspections | Forge's own inspections with severities, profiles and "Inspect Code" for the whole project |
+
+## Milestone 5 — AI and collaboration
+
+| Area | Scope |
+| --- | --- |
+| AI in the editor | Inline completion (local or hosted models), "Explain / Fix with AI" in Alt+Enter, AI-generated tests and docs |
+| Agents | Agent tasks that run, test and fix in a sandbox, with diffs to review |
+| Code review | Review pull/merge requests inside Forge with AI summaries |
+| Collaboration | Shared sessions (Code With Me style): follow, co-edit, shared terminal |
+
+## Milestone 6 — Platform and release
+
+| Area | Scope |
+| --- | --- |
+| Plugins | Marketplace, public plugin SDK with docs and templates, settings export/import and sync |
+| Releases | Signed Windows (Authenticode) and macOS (notarised) builds, Flatpak and AUR packages, stable and beta channels |
+| Localization | Translatable UI, German as the first translation |
+| Accessibility | Screen reader support, high-contrast themes, keyboard-only navigation everywhere |
