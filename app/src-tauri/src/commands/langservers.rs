@@ -323,6 +323,11 @@ pub async fn langservers_install(
     state: State<'_, LangServersState>,
     ws: State<'_, AppState>,
 ) -> Result<InstallOutcome> {
+    if ws.project_info().is_some_and(|i| i.collab.is_some()) {
+        return Err(other(
+            "Language servers run on the host in Code With Me sessions.".to_string(),
+        ));
+    }
     if let Some(host) = ws.project_info().and_then(|i| i.remote) {
         return Err(other(format!(
             "Language servers of this project run on {}. Install them there from the terminal (Alt+F12).",
@@ -486,6 +491,15 @@ pub async fn lsp_workspace_symbols(
     lsp: State<'_, LspState>,
     ws: State<'_, AppState>,
 ) -> Result<Vec<EditorWorkspaceSymbol>> {
+    if let Some(guest) = crate::commands::collab::guest_session(&app) {
+        let mut hits: Vec<EditorWorkspaceSymbol> = crate::commands::collab::guest_lsp(
+            &guest,
+            forge_collab::guest_backend::LspQuery::WorkspaceSymbols { query },
+        )
+        .await?;
+        hits.truncate(limit.unwrap_or(500));
+        return Ok(hits);
+    }
     let manager = match lsp.manager(&app, &ws) {
         Ok(m) => m,
         Err(_) => return Ok(vec![]),

@@ -93,7 +93,7 @@ fn root(state: &AppState) -> Result<std::path::PathBuf> {
 pub async fn run_configurations_load(state: State<'_, AppState>) -> Result<RunConfigurations> {
     let backend = state.backend()?;
     blocking(move || {
-        if backend.info().remote.is_none() {
+        if backend.info().is_local() {
             return RunConfigurations::load(&backend.info().root);
         }
         let shared = backend.read_file(forge_process::config::PROJECT_FILE).ok();
@@ -110,7 +110,7 @@ pub async fn run_configurations_save(
 ) -> Result<()> {
     let backend = state.backend()?;
     blocking(move || {
-        if backend.info().remote.is_none() {
+        if backend.info().is_local() {
             return configurations.save(&backend.info().root);
         }
         let [shared, local] = configurations.to_texts()?;

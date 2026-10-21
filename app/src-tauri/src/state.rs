@@ -119,6 +119,20 @@ impl AppState {
         *self.workspace.write().expect("workspace lock poisoned") = None;
         *self.backend.write().expect("backend lock poisoned") = Some(backend);
     }
+    /// Open the host's project of a Code With Me session as a guest. Project settings are
+    /// read from the host (read-only for the guest). Blocks while the host answers (call off
+    /// the async runtime).
+    pub fn set_collab_project(&self, backend: Arc<dyn Backend>) {
+        self.set_remote_project(backend);
+    }
+
+    /// Close the open project (a Code With Me session ended).
+    pub fn close_project(&self) {
+        self.write_settings().close_project();
+        *self.workspace.write().expect("workspace lock poisoned") = None;
+        *self.backend.write().expect("backend lock poisoned") = None;
+    }
+
     /// Run `f` with the open workspace, or fail if no project is open or the project is
     /// on a remote host.
     pub fn with_workspace<T>(
@@ -156,7 +170,9 @@ impl AppState {
         Ok(self.backend()?.info().root.clone())
     }
 
+    /// The project's files are not on this machine: an SSH host, or the host of a Code With
+    /// Me session.
     pub fn is_remote(&self) -> bool {
-        self.project_info().is_some_and(|i| i.remote.is_some())
+        self.project_info().is_some_and(|i| !i.is_local())
     }
 }
