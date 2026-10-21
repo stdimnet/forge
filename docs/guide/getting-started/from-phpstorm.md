@@ -59,7 +59,7 @@ bound and show "*Action* is not available yet" so you are not surprised by somet
 happening.
 
 - Get from VCS
-- Replace in Files (`Ctrl+Shift+R`), Find Usages in File (`Ctrl+F7`), Highlight Usages in File
+- Find Usages in File (`Ctrl+F7`), Highlight Usages in File
 - Refactorings other than Rename: Extract/Introduce, Move, Change Signature, Safe Delete
 - Quick Documentation popup (`Ctrl+Q`; hover documentation works with the mouse), File
   Structure popup (`Ctrl+F12`)
@@ -67,8 +67,7 @@ happening.
 - Live templates, Surround With, Optimize Imports, Type/Call/Method Hierarchy
 - Go to Test (`Ctrl+Shift+T`)
 - Distraction Free / Presentation / Zen modes
-- Get from VCS, stash/unstash, Commit and Push
-- Marketplace, settings export/import, automatic updates
+- Marketplace, settings export/import
 
 The [keymap reference](../reference/keymap.md) marks every action as implemented or not.
 

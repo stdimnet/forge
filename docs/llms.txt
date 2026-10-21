@@ -19,7 +19,7 @@ Forge's rule of thumb is "Rust computes, TypeScript renders": logic lives in Rus
 - [Editor](guide/user/editor.md): editing, completion, Go to Declaration, Find/Show Usages, Rename (Shift+F6), Show Context Actions (Alt+Enter), inspections, folding, multiple carets
 - [Search Everywhere and navigation](guide/user/search-everywhere.md): Search Everywhere, Go to Class/File/Symbol, Find in Files
 - [Shortcuts by topic](guide/user/shortcuts/index.md): every implemented shortcut explained by area, with screenshots
-- [Keymap reference card](guide/user/shortcuts/reference-card.md): the 60 most important shortcuts on one page
+- [Keymap reference card](guide/user/shortcuts/reference-card.md): the 62 most important shortcuts on one page
 - [PHP](guide/user/php.md): the PHP index, navigation (Ctrl+Click, usages, implementations, PHP stubs), Rename with the index fallback, PHP intentions, Structure tool window, hover docs, Generate (Alt+Insert)
 - [Laravel](guide/user/laravel.md): Blade, routes, views, config, Eloquent, the Routes tool window and Run Artisan Command
 - [Symfony](guide/user/symfony.md) and [Doctrine](guide/user/doctrine.md): framework and ORM support

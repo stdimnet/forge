@@ -11,7 +11,7 @@ Forge's default keymaps are PHPStorm's (`crates/forge-keymap/data/phpstorm.json`
 PHPStorm's action ids. This page is the complete list. To learn the shortcuts the way the
 JetBrains help teaches them, start with:
 
-- [Keymap reference card](../user/shortcuts/reference-card.md): the 60 most important shortcuts
+- [Keymap reference card](../user/shortcuts/reference-card.md): the 62 most important shortcuts
   on one printable page;
 - [Shortcuts by topic](../user/shortcuts/index.md): one page per area (editing, navigation,
   search, refactoring, run and debug, Git, tool windows, general) that explains every
@@ -230,7 +230,7 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Find Previous / Move to Previous Occurrence | `FindPrevious` | `Shift+F3` | `Cmd+Shift+G` | yes |
 | Find Word at Caret | `FindWordAtCaret` | `Ctrl+F3` | `Alt+Cmd+F3` | — |
 | Find in Files… | `FindInPath` | `Ctrl+Shift+F` | `Cmd+Shift+F` | yes |
-| Replace in Files… | `ReplaceInPath` | `Ctrl+Shift+R` | `Cmd+Shift+R` | — |
+| Replace in Files… | `ReplaceInPath` | `Ctrl+Shift+R` | `Cmd+Shift+R` | yes |
 | Find Usages | `FindUsages` | `Alt+F7` | `Alt+F7` | yes |
 | Find Usages in File | `FindUsagesInFile` | `Ctrl+F7` | `Cmd+F7` | — |
 | Highlight Usages in File | `HighlightUsagesInFile` | `Ctrl+Shift+F7` | `Cmd+Shift+F7` | — |

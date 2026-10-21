@@ -255,9 +255,10 @@ Other occurrences of the selected text are highlighted automatically.
 To search the whole project, use [Find in Files](search-everywhere.md#find-in-files)
 (`Ctrl+Shift+F`, macOS `Cmd+Shift+F`).
 
-> **Note:** Replace in Files (`Ctrl+Shift+R`) is not available yet. The Find tool window
-> shows [usages](#find-usages-and-show-usages) and the Find in Files results you open there
-> (see [Find tool window](workbench.md#find-tool-window)).
+Replace in Files (`Ctrl+Shift+R`, macOS `Cmd+Shift+R`) opens the Find tool window with a
+**Replace with** field (see [Search](search-everywhere.md)). The Find tool window also shows
+[usages](#find-usages-and-show-usages) and the Find in Files results you open there (see
+[Find tool window](workbench.md#find-tool-window)).
 
 ## Gutter
 

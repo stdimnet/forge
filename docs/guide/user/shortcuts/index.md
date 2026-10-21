@@ -15,7 +15,7 @@ screenshot when it opens something. Actions that are not implemented yet are lis
 
 | Page | Covers |
 | --- | --- |
-| [Keymap reference card](reference-card.md) | the 60 most important shortcuts on one printable page |
+| [Keymap reference card](reference-card.md) | the 62 most important shortcuts on one printable page |
 | [General](general.md) | Find Action, Settings, the main menu, projects, scratches, themes |
 | [Editing](editing.md) | completion, Generate, clipboard, lines, selection, comments, formatting, folding |
 | [Navigation](navigation.md) | declarations, back/forward, lines, problems, Recent Files, editor tabs |
