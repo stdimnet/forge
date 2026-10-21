@@ -124,6 +124,17 @@ Page id `editor.tabs`.
 | `editor.tabs.activateOnClose` | enum: `left`, `right`, `recent` | `recent` | user | Closing Policy | When the current tab is closed, activate |
 | `editor.tabs.showPinnedIcon` | bool | `true` | user | Appearance | Show pin icon on pinned tabs |
 
+### Editor | General | Postfix Completion
+
+Page id `editor.postfix`.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `editor.postfix.enabled` | bool | `true` | user |  | Enable postfix completion — Type a template key after an expression, e.g. $user.if or items.forof, to wrap it. |
+| `editor.postfix.showInCompletion` | bool | `true` | user |  | Show postfix templates in the completion autopopup |
+| `editor.postfix.expandKey` | enum: `tab`, `space`, `enter` | `tab` | user |  | Expand templates with |
+| `editor.postfix.disabled` | list | `[]` | user |  | Templates — Clear a template to stop offering it. Holds the ids of the switched-off templates (`php.echo`, `js.log`, `lua.print`). |
+
 ### Editor | Font
 
 Page id `editor.font`.

@@ -12,6 +12,9 @@ Typing, selecting, moving and commenting code, completion, generation, formattin
 | Action | Windows / Linux | macOS |
 | --- | --- | --- |
 | [Basic Completion](#basic-completion) | `Ctrl+Space`, `Shift+Space` | `Ctrl+Space`, `Shift+Space` |
+| [Cyclic Expand Word](#cyclic-expand-word) | `Alt+/` | `Alt+/` |
+| [Cyclic Expand Word (Backward)](#cyclic-expand-word-backward) | `Alt+Shift+/` | `Alt+Shift+/` |
+| [Complete Current Statement](#complete-current-statement) | `Ctrl+Shift+Enter` | `Cmd+Shift+Enter` |
 | [Parameter Info](#parameter-info) | `Ctrl+P` | `Cmd+P` |
 | [Generate…](#generate) | `Alt+Insert` | `Cmd+N` |
 | [Undo](#undo) | `Ctrl+Z`, `Alt+Backspace` | `Cmd+Z` |
@@ -61,6 +64,34 @@ Opens code completion at the caret; also offers words from the document.
 **Menu:** Code | Code Completion | Basic Completion
 
 More: [Editor](../../user/editor.md#code-completion)
+
+## Cyclic Expand Word
+
+**Shortcut:** `Alt+/` · macOS `Alt+/` · action id `HippieCompletion`
+
+Completes the word at the caret with the nearest word of the file that starts with it (above the caret first, then below, then the other open files); press again to cycle.
+
+**Menu:** Code | Code Completion | Cyclic Expand Word
+
+More: [Editor](../../user/editor.md#cyclic-expand-word)
+
+## Cyclic Expand Word (Backward)
+
+**Shortcut:** `Alt+Shift+/` · macOS `Alt+Shift+/` · action id `HippieBackwardCompletion`
+
+Like Cyclic Expand Word, but looks below the caret first and cycles the other way.
+
+**Menu:** Code | Code Completion | Cyclic Expand Word (Backward)
+
+More: [Editor](../../user/editor.md#cyclic-expand-word)
+
+## Complete Current Statement
+
+**Shortcut:** `Ctrl+Shift+Enter` · macOS `Cmd+Shift+Enter` · action id `EditorCompleteStatement`
+
+Closes open brackets, adds the missing `;` (PHP, JavaScript, TypeScript) or `then … end` (Lua), opens the block of control statements and moves the caret on.
+
+More: [Editor](../../user/editor.md#complete-current-statement)
 
 ## Parameter Info
 
