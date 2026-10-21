@@ -1495,6 +1495,26 @@ class User extends Model
     }
 
     #[test]
+    fn surround_with_region_comments_make_regions() {
+        // The texts of Surround With > "region...endregion Comments" (forge-livetemplates).
+        for (language, text) in [
+            ("php", "// region Name\nx\n// endregion"),
+            ("javascript", "//region Name\nx\n//endregion"),
+            ("lua", "--region Name\nx\n--endregion"),
+            ("html", "<!-- region Name -->\nx\n<!-- endregion -->"),
+            ("css", "/* region Name */\nx\n/* endregion */"),
+        ] {
+            let r = editor_structure(text, language).regions;
+            assert_eq!(r.len(), 1, "{language}");
+            assert_eq!(
+                (r[0].name.as_str(), r[0].end_line),
+                ("Name", 2),
+                "{language}"
+            );
+        }
+    }
+
+    #[test]
     fn regions_nest_and_ignore_unbalanced_markers() {
         let text = "a\n  // region Outer\n  // region Inner\n  x\n  // endregion\n  // endregion\n// endregion\n";
         let r = regions(&lines_of(text), "php");
