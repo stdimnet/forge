@@ -380,6 +380,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "bincode"
+version = "1.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b1f45e9417d87227c7a56d22e471c6206462cba514c7590c09aff4cf6d1ddcad"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "bit-set"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1854,10 +1863,13 @@ version = "0.1.0"
 dependencies = [
  "dirs 6.0.0",
  "forge-core",
+ "forge-find",
  "forge-langservers",
  "forge-lsp",
  "forge-process",
  "forge-project",
+ "forge-search",
+ "forge-search-core",
  "forge-vcs",
  "futures-util",
  "phpforge-dql",
@@ -1981,7 +1993,7 @@ dependencies = [
 name = "forge-find"
 version = "0.1.0"
 dependencies = [
- "regex-lite",
+ "regex",
  "serde",
  "serde_json",
 ]
@@ -2197,6 +2209,43 @@ dependencies = [
 ]
 
 [[package]]
+name = "forge-search"
+version = "0.1.0"
+dependencies = [
+ "dirs 6.0.0",
+ "forge-core",
+ "forge-find",
+ "forge-fuzzy",
+ "forge-search-core",
+ "ignore",
+ "notify",
+ "rayon",
+ "regex",
+ "tempfile",
+ "thread-priority",
+ "tracing",
+ "tree-sitter",
+ "tree-sitter-javascript",
+ "tree-sitter-lua",
+ "tree-sitter-php",
+ "tree-sitter-typescript",
+]
+
+[[package]]
+name = "forge-search-core"
+version = "0.1.0"
+dependencies = [
+ "bincode",
+ "globset",
+ "nucleo-matcher",
+ "rayon",
+ "regex",
+ "regex-syntax",
+ "roaring",
+ "serde",
+]
+
+[[package]]
 name = "forge-sql"
 version = "0.1.0"
 dependencies = [
@@ -2245,6 +2294,7 @@ dependencies = [
  "forge-plugin-api",
  "forge-remote",
  "forge-scratches",
+ "forge-search-core",
  "forge-sql",
  "forge-window",
  "luaforge-lang-lua",
@@ -3883,6 +3933,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "nucleo-matcher"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bf33f538733d1a5a3494b836ba913207f14d9d4a1d3cd67030c5061bdd2cac85"
+dependencies = [
+ "memchr",
+ "unicode-segmentation",
+]
+
+[[package]]
 name = "num"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5290,6 +5350,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "72f81bee8c8ef9b577d1681a70ebbc962c232461e397b22c208c43c04b67a155"
 dependencies = [
  "rmp",
+ "serde",
+]
+
+[[package]]
+name = "roaring"
+version = "0.10.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "19e8d2cfa184d94d0726d650a9f4a1be7f9b76ac9fdb954219878dc00c1c1e7b"
+dependencies = [
+ "bytemuck",
+ "byteorder",
  "serde",
 ]
 
@@ -7124,6 +7195,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "thread-priority"
+version = "3.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8d2e834949be5111506bb252643498af1514f600d9e1dceedaa42afae155b67f"
+dependencies = [
+ "bitflags 2.13.2",
+ "cfg-if",
+ "libc",
+ "log",
+ "rustversion",
+ "windows",
+]
+
+[[package]]
 name = "thread_local"
 version = "1.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7508,16 +7593,46 @@ dependencies = [
 ]
 
 [[package]]
+name = "tree-sitter-javascript"
+version = "0.23.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bf40bf599e0416c16c125c3cec10ee5ddc7d1bb8b0c60fa5c4de249ad34dc1b1"
+dependencies = [
+ "cc",
+ "tree-sitter-language",
+]
+
+[[package]]
 name = "tree-sitter-language"
 version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d0af592be68c579aa78a16846bd19422978c3c52e438523d45ff5d1bff1f9d4a"
 
 [[package]]
+name = "tree-sitter-lua"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5cdb9adf0965fec58e7660cbb3a059dbb12ebeec9459e6dcbae3db004739641e"
+dependencies = [
+ "cc",
+ "tree-sitter-language",
+]
+
+[[package]]
 name = "tree-sitter-php"
 version = "0.24.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0d8c17c3ab69052c5eeaa7ff5cd972dd1bc25d1b97ee779fec391ad3b5df5592"
+dependencies = [
+ "cc",
+ "tree-sitter-language",
+]
+
+[[package]]
+name = "tree-sitter-typescript"
+version = "0.23.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6c5f76ed8d947a75cc446d5fccd8b602ebf0cde64ccf2ffa434d873d7a575eff"
 dependencies = [
  "cc",
  "tree-sitter-language",

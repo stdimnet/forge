@@ -3,11 +3,14 @@
  * actions (Find Action). Classes, symbols and text come from language packs.
  */
 import { FileIcon } from "@/shell/FileIcon";
-import { openFile } from "@/state/editor";
+import { activeTab, openFile } from "@/state/editor";
+import { openFileAt } from "@/editor/views";
 import { workspace } from "@/state/workspace";
+import { isTauri } from "@/ipc";
 import { searchApi } from "@/ipc/search";
 import { allActions, isActionAvailable, runAction, shortcutLabel } from "@/keymap";
 import { recentFiles } from "@/features/navigation/history";
+import { recencyBoost } from "./recencyBoost";
 import { registerSearchProvider, type SearchItem } from "./providers";
 
 const dirOf = (path: string) => path.split("/").slice(0, -1).join("/");
@@ -34,10 +37,48 @@ registerSearchProvider({
   order: 0,
   async search(query, { limit }) {
     if (!query.trim()) return recentFiles().slice(0, limit).map((p, i) => fileItem(p, 1000 - i));
-    const hits = await searchApi.findFiles(query, limit);
-    return hits.map((h) => fileItem(h.path, h.score, h.matchedPath ? undefined : h.positions));
+    const hits = await searchApi.findFiles(query, limit * 3);
+    const recent = recentFiles();
+    const active = activeTab()?.path;
+    return hits
+      .map((h) => fileItem(h.path, h.score + recencyBoost(h.path, recent, active), h.matchedPath ? undefined : h.positions))
+      .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
+      .slice(0, limit);
   },
 });
+
+const SYMBOL_KINDS = new Set<string>(["class", "interface", "trait", "enum", "function", "method", "property", "constant"]);
+
+/** Languages whose pack answers Classes and Symbols from an index of its own. */
+const PACK_INDEXED = isTauri() ? ["php", "phtml", "lua"] : ["lua"];
+
+function symbolProvider(id: string, tab: "classes" | "symbols", title: string, typesOnly: boolean) {
+  registerSearchProvider({
+    id,
+    tab,
+    title,
+    order: 2,
+    async search(query, { limit }) {
+      if (!query.trim()) return [];
+      const hits = await searchApi.findSymbols(query, typesOnly, limit, PACK_INDEXED).catch(() => []);
+      return hits.map(
+        (h): SearchItem => ({
+          id: `${h.path}:${h.line}:${h.name}`,
+          label: h.name,
+          matches: h.matched,
+          detail: h.container ?? undefined,
+          hint: `${h.path.split("/").pop()} ${h.line}`,
+          kind: SYMBOL_KINDS.has(h.kind) ? (h.kind as SearchItem["kind"]) : "function",
+          score: h.score,
+          run: () => void openFileAt(h.path, h.line, 1),
+        }),
+      );
+    },
+  });
+}
+
+symbolProvider("core.classes", "classes", "Classes", true);
+symbolProvider("core.symbols", "symbols", "Symbols", false);
 
 const groupLabel = (group: string) => group.split("/").slice(1).join(" | ") || group;
 

@@ -5,7 +5,7 @@
 import type { EditorView } from "@codemirror/view";
 import { openFileAt } from "@/editor/views";
 import type { NavTarget } from "@/ipc/codeintel";
-import { chooseDeclaration, chooseDeclarationAt, type DeclarationTarget } from "@/features/navigation/chooseDeclaration";
+import { chooseDeclaration, chooseDeclarationAt, type DeclarationTarget } from "@/features/navigation/declarationChooser";
 import { noteLibrarySymbol } from "./library";
 
 export const toDeclarationTargets = (targets: NavTarget[]): DeclarationTarget[] =>

@@ -44,6 +44,7 @@ const schemaPages: SchemaPageDef[] = [
   { id: "lang.php.composer", title: "Composer", group: "Languages & Frameworks", parent: "lang.php", order: 0 },
   { id: "lang.templates", title: "Template Data Languages", group: "Languages & Frameworks", order: 50, keywords: ["twig", "smarty", "latte", "jinja", "latex", "delimiter"] },
   { id: "tools.terminal", title: "Terminal", group: "Tools", order: 0, keywords: ["shell"] },
+  { id: "tools.search", title: "Search", group: "Tools", order: 10, keywords: ["find in files", "matches", "limit"] },
 ];
 
 for (const page of schemaPages) {

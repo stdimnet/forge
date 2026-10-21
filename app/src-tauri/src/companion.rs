@@ -225,7 +225,7 @@ struct BackendSymbols(Arc<dyn Backend>);
 
 impl SymbolSource for BackendSymbols {
     fn find_files(&self, query: &str, limit: usize) -> forge_core::Result<Vec<FileMatch>> {
-        self.0.find_files(query, limit)
+        self.0.find_files(query, limit, false)
     }
 
     fn read_small(&self, path: &str, max_bytes: u64) -> Option<String> {

@@ -46,6 +46,8 @@ struct SearchRequest {
     #[serde(default)]
     kind: SearchKind,
     limit: Option<usize>,
+    #[serde(default)]
+    exact: bool,
 }
 
 /// Replace the indexed files: `{ files: { path: text }, requirePaths?, name? }` -> stats.
@@ -128,7 +130,7 @@ pub fn lua_search_symbols(request_json: &str) -> String {
     INDEX.with(|i| {
         to_json(
             &i.borrow()
-                .search(&req.query, req.kind, req.limit.unwrap_or(100)),
+                .search_with(&req.query, req.kind, req.limit.unwrap_or(100), req.exact),
         )
     })
 }

@@ -14,6 +14,8 @@ forge-core = { path = "crates/forge-core" }
 forge-wasm = { path = "crates/forge-wasm" }
 forge-fuzzy = { path = "crates/forge-fuzzy" }
 forge-find = { path = "crates/forge-find" }
+forge-search = { path = "crates/forge-search" }
+forge-search-core = { path = "crates/forge-search-core" }
 forge-bookmarks = { path = "crates/forge-bookmarks" }
 forge-codeintel = { path = "crates/forge-codeintel" }
 forge-filetypes = { path = "crates/forge-filetypes" }
@@ -35,7 +37,7 @@ forge-sql = { path = "crates/forge-sql" }
 forge-forges = { path = "crates/forge-forges" }
 forge-keymap = { path = "crates/forge-keymap" }
 forge-scratches = { path = "crates/forge-scratches", default-features = false }
-forge-backend = { path = "crates/forge-backend" }
+forge-backend = { path = "crates/forge-backend", default-features = false }
 forge-remote = { path = "crates/forge-remote" }
 forge-window = { path = "crates/forge-window" }
 forge-update = { path = "crates/forge-update" }
@@ -63,3 +65,37 @@ inherits = "release"
 opt-level = "z"
 lto = true
 panic = "abort"
+
+# Indexing is CPU heavy: keep the search crate and its hot dependencies optimized in dev builds.
+[profile.dev.package.forge-search-core]
+opt-level = 3
+[profile.dev.package.forge-search]
+opt-level = 3
+[profile.dev.package.roaring]
+opt-level = 3
+[profile.dev.package.regex]
+opt-level = 3
+[profile.dev.package.regex-automata]
+opt-level = 3
+[profile.dev.package.regex-syntax]
+opt-level = 3
+[profile.dev.package.ignore]
+opt-level = 3
+[profile.dev.package.globset]
+opt-level = 3
+[profile.dev.package.rayon]
+opt-level = 3
+[profile.dev.package.rayon-core]
+opt-level = 3
+[profile.dev.package.crossbeam-deque]
+opt-level = 3
+[profile.dev.package.crossbeam-epoch]
+opt-level = 3
+[profile.dev.package.nucleo-matcher]
+opt-level = 3
+[profile.dev.package.bincode]
+opt-level = 3
+[profile.dev.package.memchr]
+opt-level = 3
+[profile.dev.package.aho-corasick]
+opt-level = 3

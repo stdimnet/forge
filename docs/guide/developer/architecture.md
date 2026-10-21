@@ -95,7 +95,7 @@ language indexes (`collect_files`, the Lua index), catalog language server plann
 Xdebug reverse tunnel, HTTP requests sent from the host and the host's Docker socket). Project
 `.forge/` files go through `forge_core::ProjectFiles`. `LocalBackend` serves a local folder;
 `RemoteBackend` talks to `forge-remote-agent` over SSH with a length-prefixed MessagePack
-protocol (calls, events and byte channels; protocol 4). Every feature works in remote
+protocol (calls, events and byte channels; protocol 5). Every feature works in remote
 projects; there is no local-only fallback any more.
 
 ## Keymap

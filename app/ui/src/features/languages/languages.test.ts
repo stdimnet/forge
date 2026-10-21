@@ -234,19 +234,24 @@ describe("YAML schema engine", () => {
     expect(labels("services:\n  web:\n    image: nginx !|")).toBeNull();
     expect(labels("services:\n  web:\n    |")).not.toContain("!reset");
   });
-  it("documents the merge tags on hover", () => {
+  it("documents the merge tags on hover", async () => {
     const doc = "services:\n  web:\n    ports: !reset []\n    build: !override\n      context: .\n    image: !custom x\n";
     const s = stateOf(doc, yaml());
     const hover = (needle: string, offset = 1) => schemaHoverAt(composeSchema, COMPOSE_TAGS, s, doc.indexOf(needle) + offset);
+    // The documentation is rendered from Markdown asynchronously.
+    const text = async (dom: HTMLElement | undefined) => {
+      await new Promise((r) => setTimeout(r));
+      return dom?.textContent ?? "";
+    };
     const reset = hover("!reset")!;
     expect(doc.slice(reset.from, reset.to)).toBe("!reset");
-    expect(reset.dom().textContent).toContain("type's default value");
+    expect(await text(reset.dom())).toContain("type's default value");
     const override = hover("!override", "!override".length)!;
     expect(doc.slice(override.from, override.to)).toBe("!override");
-    expect(override.dom().textContent).toContain("instead of merging");
+    expect(await text(override.dom())).toContain("instead of merging");
     expect(hover("!custom")).toBeNull();
     // Keys keep their own documentation.
-    expect(hover("ports")?.dom().textContent).toContain("Published ports");
+    expect(await text(hover("ports")?.dom())).toContain("Published ports");
   });
   it("parses tagged values without syntax errors", () => {
     const doc =

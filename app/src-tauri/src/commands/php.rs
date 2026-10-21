@@ -42,13 +42,17 @@ pub async fn php_search_symbols(
     query: String,
     kind: Option<SearchKind>,
     limit: Option<usize>,
+    exact: Option<bool>,
     state: State<'_, AppState>,
 ) -> Result<Vec<SymbolHit>> {
     let backend = state.backend()?;
     blocking(move || {
-        backend
-            .php()
-            .search(&query, kind.unwrap_or_default(), limit.unwrap_or(100))
+        backend.php().search(
+            &query,
+            kind.unwrap_or_default(),
+            limit.unwrap_or(100),
+            exact.unwrap_or(false),
+        )
     })
     .await
 }

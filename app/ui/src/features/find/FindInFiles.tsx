@@ -6,7 +6,7 @@
 import { createEffect, createMemo, createSignal, For, on, onCleanup, onMount, Show } from "solid-js";
 import { EditorState, RangeSetBuilder, StateEffect, StateField } from "@codemirror/state";
 import { Decoration, EditorView, lineNumbers, type DecorationSet } from "@codemirror/view";
-import { Search } from "lucide-solid";
+import { PanelBottomOpen, Search } from "lucide-solid";
 import { findApi, type FindResult, type LineMatch } from "@/ipc/find";
 import { workspaceApi } from "@/ipc/workspace";
 import { openFileAt } from "@/editor/views";
@@ -15,6 +15,9 @@ import { languageFor } from "@/editor/languages";
 import { ensureFileType } from "@/editor/fileTypes";
 import { editor } from "@/state/editor";
 import { FileIcon } from "@/shell/FileIcon";
+import { formatDuration } from "./duration";
+import { scopeRequest } from "./scope";
+import { openFindWindow } from "./window";
 import { closeFindInFiles, findOptions, findQuery, findRequest, openFindResultsInWindow, setFindQuery, updateFindOptions } from "./state";
 
 interface Row {
@@ -131,6 +134,7 @@ export function FindInFilesPopup() {
   let list!: HTMLDivElement;
   const [result, setResult] = createSignal<FindResult | null>(null);
   const [loading, setLoading] = createSignal(false);
+  const [tookMs, setTookMs] = createSignal(0);
   const [selected, setSelected] = createSignal(0);
   let seq = 0;
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -143,6 +147,7 @@ export function FindInFilesPopup() {
     const query = findQuery();
     const o = findOptions();
     const id = ++seq;
+    const started = performance.now();
     if (!query) {
       setResult(null);
       setLoading(false);
@@ -153,6 +158,7 @@ export function FindInFilesPopup() {
       const r = await findApi.search(findRequest(query, o));
       if (id !== seq) return;
       setResult(r);
+      setTookMs(performance.now() - started);
       setSelected(0);
     } catch (e) {
       if (id === seq) setResult({ files: [], matchCount: 0, truncated: false, error: String(e) });
@@ -200,6 +206,19 @@ export function FindInFilesPopup() {
     e.stopPropagation();
   };
 
+  const openAllInWindow = () => {
+    const o = findOptions();
+    closeFindInFiles();
+    openFindWindow({
+      query: findQuery(),
+      caseSensitive: o.caseSensitive,
+      wholeWords: o.wholeWords,
+      regex: o.regex,
+      fileMask: o.maskEnabled ? o.fileMask : "",
+      ...scopeRequest(o),
+    });
+  };
+
   /** "Open in Find Window" (Ctrl+Enter): the results become a tab of the Find tool window. */
   const openInWindow = () => {
     const r = result();
@@ -212,10 +231,10 @@ export function FindInFilesPopup() {
     const r = result();
     if (!r || !findQuery()) return "";
     if (r.error) return r.error;
-    if (!r.matchCount) return "No matches";
+    if (!r.matchCount) return `No matches (${formatDuration(tookMs())})`;
     const plus = r.truncated ? "+" : "";
     const files = r.files.length;
-    return `${r.matchCount}${plus} match${r.matchCount === 1 ? "" : "es"} in ${files}${plus} file${files === 1 ? "" : "s"}`;
+    return `${r.matchCount}${plus} match${r.matchCount === 1 ? "" : "es"} in ${files}${plus} file${files === 1 ? "" : "s"} in ${formatDuration(tookMs())}`;
   };
 
   const toggle = (key: "caseSensitive" | "wholeWords" | "regex", label: string, title: string) => (
@@ -271,6 +290,15 @@ export function FindInFilesPopup() {
           {toggle("caseSensitive", "Cc", "Match case")}
           {toggle("wholeWords", "W", "Words")}
           {toggle("regex", ".*", "Regex")}
+          <button
+            class="find-toggle"
+            title="Open in Find Window (every match, no limit)"
+            disabled={!findQuery()}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={openAllInWindow}
+          >
+            <PanelBottomOpen size={14} />
+          </button>
         </div>
         <div class="find-scope" role="tablist">
           <button
@@ -290,6 +318,24 @@ export function FindInFilesPopup() {
             onClick={() => updateFindOptions({ scope: "directory" })}
           >
             Directory
+          </button>
+          <button
+            class="find-scope-tab"
+            classList={{ active: findOptions().scope === "openFiles" }}
+            role="tab"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => updateFindOptions({ scope: "openFiles" })}
+          >
+            Open Files
+          </button>
+          <button
+            class="find-scope-tab"
+            classList={{ active: findOptions().scope === "changedFiles" }}
+            role="tab"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => updateFindOptions({ scope: "changedFiles" })}
+          >
+            Changed Files
           </button>
           <Show when={findOptions().scope === "directory"}>
             <input

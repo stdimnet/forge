@@ -12,7 +12,7 @@
 
 use std::collections::BTreeMap;
 
-use regex_lite::{Regex, RegexBuilder};
+use regex::{Regex, RegexBuilder};
 use serde::{Deserialize, Serialize};
 
 /// Default cap on reported TODO items.

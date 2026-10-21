@@ -932,7 +932,12 @@ pub async fn code_rename(
         if let Some(symbol) = &symbol {
             let hits = backend
                 .php()
-                .search(bare_new, phpforge_lang_php::index::SearchKind::Symbol, 200)
+                .search(
+                    bare_new,
+                    phpforge_lang_php::index::SearchKind::Symbol,
+                    200,
+                    true,
+                )
                 .unwrap_or_default();
             conflicts.extend(phpforge_lang_php::rename::clashes(symbol, &new_name, &hits));
         }

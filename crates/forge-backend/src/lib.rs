@@ -17,6 +17,7 @@ pub mod php;
 pub mod process_io;
 pub mod protocol;
 pub mod remote;
+pub mod replace;
 pub mod rpc;
 pub mod tunnels;
 pub mod web;
@@ -24,7 +25,9 @@ pub mod web;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use forge_core::search::{FindRequest, FindResult, TodoRequest, TodoResult};
+use forge_core::search::{
+    FileMatches, FindPaged, FindRequest, FindResult, TodoRequest, TodoResult,
+};
 use forge_core::{
     CollectRequest, FileEntry, FileMatch, FsChanges, ProjectFiles, Result, SourceFile,
 };
@@ -36,15 +39,59 @@ use forge_project::ProjectInfo;
 use forge_vcs::{GitExec, Repo};
 use serde::{Deserialize, Serialize};
 
+pub use forge_search_core::SymbolHit;
 pub use frameworks::{framework_call, FrameworkCall};
 pub use langservers::{
     InstallRequest, InstallSink, InstallTarget, LangServersAnswer, LangServersRequest,
 };
+#[cfg(feature = "search")]
+pub use local::IndexOptions;
 pub use local::LocalBackend;
 pub use php::PhpBackend;
 pub use remote::RemoteBackend;
 pub use tunnels::{PortForward, TunnelStream, Tunnels};
 pub use web::{web_call, WebCall};
+
+/// A Find in Files result a window pages through.
+pub enum Found {
+    Full(FindResult),
+    #[cfg(feature = "search")]
+    Lazy(forge_search::FoundText),
+    /// Kept on another machine; rows come from there when a page asks for them.
+    Remote {
+        totals: FindPaged,
+        fetch: Arc<PageFetch>,
+    },
+}
+
+/// Fetches the rows `[offset, offset + count)` of a result kept by the remote agent.
+pub type PageFetch = dyn Fn(usize, usize) -> Vec<FileMatches> + Send + Sync;
+
+impl Found {
+    /// The totals with the first `page_size` rows.
+    pub fn paged(&self, id: u64, page_size: usize) -> FindPaged {
+        match self {
+            Found::Full(r) => r.paged(id, page_size),
+            #[cfg(feature = "search")]
+            Found::Lazy(r) => r.paged(id, page_size),
+            Found::Remote { totals, .. } => FindPaged {
+                id,
+                files: self.page(0, page_size),
+                ..totals.clone()
+            },
+        }
+    }
+
+    /// The rows `[offset, offset + count)`.
+    pub fn page(&self, offset: usize, count: usize) -> Vec<FileMatches> {
+        match self {
+            Found::Full(r) => r.page(offset, count),
+            #[cfg(feature = "search")]
+            Found::Lazy(r) => r.page(offset, count),
+            Found::Remote { fetch, .. } => fetch(offset, count),
+        }
+    }
+}
 
 /// The machine a remote project lives on.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -94,6 +141,30 @@ impl BackendInfo {
             None => root.into_owned(),
         }
     }
+}
+
+/// State of a backend's search index.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SearchStatus {
+    /// The backend keeps a search index at all.
+    pub enabled: bool,
+    /// The index is being built or refreshed; results may be incomplete.
+    pub indexing: bool,
+    /// Files the index knows about.
+    pub files: usize,
+    /// Of those, files whose text is searched.
+    #[serde(default)]
+    pub content_files: usize,
+    /// Binary files, listed by name only.
+    #[serde(default)]
+    pub binary_files: usize,
+    /// Files over the size limit, listed by name only.
+    #[serde(default)]
+    pub oversized_files: usize,
+    /// Unix milliseconds of the last finished refresh; 0 before the first.
+    #[serde(default)]
+    pub last_refresh_ms: u64,
 }
 
 /// How to start a terminal session on the backend.
@@ -166,7 +237,8 @@ pub trait Backend: Send + Sync {
     /// Delete a file or a folder with its content.
     fn delete(&self, rel: &str) -> Result<()>;
     /// "Go to File": fuzzy file-name search honoring `.gitignore`.
-    fn find_files(&self, query: &str, limit: usize) -> Result<Vec<FileMatch>>;
+    /// `exact` matches the query as a substring instead of fuzzy.
+    fn find_files(&self, query: &str, limit: usize, exact: bool) -> Result<Vec<FileMatch>>;
     /// Find in Files: text search over the project honoring `.gitignore`.
     fn find_in_files(&self, req: &FindRequest) -> Result<FindResult>;
     /// TODO tool window: TODO patterns in comments, honoring `.gitignore`.
@@ -174,6 +246,36 @@ pub trait Backend: Send + Sync {
     /// The text of every project file with one of `req.extensions`, in one call (a
     /// language index of a remote project is built from one round trip).
     fn collect_files(&self, req: &CollectRequest) -> Result<Vec<SourceFile>>;
+
+    /// [`Backend::find_in_files`] for a result that is paged: a local backend with an index keeps
+    /// match ranges instead of building every row.
+    /// A search that sees `cancel` set stops early; its result is then not meaningful.
+    fn find_in_files_found(
+        &self,
+        req: &FindRequest,
+        _cancel: &std::sync::atomic::AtomicBool,
+    ) -> Result<Found> {
+        self.find_in_files(req).map(Found::Full)
+    }
+
+    /// Classes (`types_only`) or every declared symbol matching `query`, best first. Files with
+    /// one of `skip_extensions` are left out (languages a language server answers for).
+    /// Backends without a search index return nothing.
+    fn find_symbols(
+        &self,
+        _query: &str,
+        _types_only: bool,
+        _limit: usize,
+        _skip_extensions: &[String],
+        _exact: bool,
+    ) -> Result<Vec<SymbolHit>> {
+        Ok(Vec::new())
+    }
+
+    /// Whether the search index is ready or still building.
+    fn search_status(&self) -> Result<SearchStatus> {
+        Ok(SearchStatus::default())
+    }
 
     /// Where git runs for this project.
     fn git(&self) -> Arc<dyn GitExec>;

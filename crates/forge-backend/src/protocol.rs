@@ -33,7 +33,7 @@ use crate::web::WebCall;
 use crate::TerminalSpec;
 
 /// Bumped on incompatible protocol changes; client and agent must agree.
-pub const PROTOCOL_VERSION: u32 = 4;
+pub const PROTOCOL_VERSION: u32 = 5;
 
 /// Frames larger than this are refused (protects both sides from garbage input).
 pub const MAX_FRAME: usize = 64 * 1024 * 1024;
@@ -116,9 +116,23 @@ pub enum Call {
     FindFiles {
         query: String,
         limit: usize,
+        #[serde(default)]
+        exact: bool,
     },
     /// Find in Files -> `FindResult`
     FindInFiles(FindRequest),
+    /// Find in Files with the result kept on the agent for paging -> `FindPaged` (first rows)
+    FindStart {
+        req: FindRequest,
+        page_size: usize,
+    },
+    /// Rows `[offset, offset + count)` of the result `FindStart` returned `id` for
+    /// -> `Vec<FileMatches>`
+    FindPage {
+        id: u64,
+        offset: usize,
+        count: usize,
+    },
     /// TODO tool window -> `TodoResult` (protocol 4)
     FindTodos(TodoRequest),
     /// The text of the project's files with some extensions (language indexes) ->
@@ -172,6 +186,17 @@ pub enum Call {
         args: Vec<String>,
     },
     Php(PhpCall),
+    /// Classes or symbols matching `query` -> `Vec<SymbolHit>`
+    FindSymbols {
+        query: String,
+        types_only: bool,
+        limit: usize,
+        skip_extensions: Vec<String>,
+        #[serde(default)]
+        exact: bool,
+    },
+    /// State of the project's search index -> `SearchStatus`
+    SearchStatus,
     /// npm tool window and React / Vue / Angular analysis on the host -> the call's reply
     /// type (see [`WebCall`])
     Web(WebCall),
@@ -201,6 +226,8 @@ pub enum PhpCall {
         query: String,
         kind: SearchKind,
         limit: usize,
+        #[serde(default)]
+        exact: bool,
     },
     /// -> `FileStructure`
     Structure {

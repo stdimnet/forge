@@ -187,6 +187,16 @@ export function filetypes_load(plugins_json: string): string;
 export function find_in_files(request_json: string): string;
 
 /**
+ * `{ result, offset, count }` → `FileMatches[]`: rows of a Find in Files result.
+ */
+export function find_page(request_json: string): string;
+
+/**
+ * `{ result, id, count }` → `FindPaged`: the totals and first rows of a Find in Files result.
+ */
+export function find_paged(request_json: string): string;
+
+/**
  * `FilterRequest` → `FilterHit[]`.
  */
 export function fuzzy_filter(request_json: string): string;
@@ -313,6 +323,17 @@ export function remote_ssh_hosts(request_json: string): string;
  */
 export function remote_validate_config(config_json: string): string;
 
+/**
+ * `{ request, with, files }` → `{ files: [{ path, text, count }] }`: the files a replace changes,
+ * with their new text (the browser-mode demo project keeps them in memory).
+ */
+export function replace_in_files(request_json: string): string;
+
+/**
+ * `{ request, with, files }` → the changed lines per file, like the `replace_preview` command.
+ */
+export function replace_preview(request_json: string): string;
+
 export function run_output_drop(request_json: string): string;
 
 /**
@@ -388,6 +409,12 @@ export function scratches_runner(request_json: string): string;
  * `{ name }` → `null` or the reason the name is invalid.
  */
 export function scratches_validate_name(request_json: string): string;
+
+/**
+ * `{ files, query, typesOnly, limit, skipExtensions }` → `SymbolHit[]`: the classes and
+ * symbols the desktop app's search index finds (`forge-search-core`), over in-memory files.
+ */
+export function search_find_symbols(request_json: string): string;
 
 /**
  * `{ query, paths, limit }` → `FileMatch[]`: "Go to File" over a list of paths (the
@@ -525,6 +552,8 @@ export interface InitOutput {
     readonly filetypes_detect: (a: number, b: number, c: number) => void;
     readonly filetypes_load: (a: number, b: number, c: number) => void;
     readonly find_in_files: (a: number, b: number, c: number) => void;
+    readonly find_page: (a: number, b: number, c: number) => void;
+    readonly find_paged: (a: number, b: number, c: number) => void;
     readonly fuzzy_filter: (a: number, b: number, c: number) => void;
     readonly keymap_actions: (a: number, b: number, c: number) => void;
     readonly keymap_conflicts: (a: number, b: number, c: number) => void;
@@ -550,6 +579,8 @@ export interface InitOutput {
     readonly remote_check_host_key: (a: number, b: number, c: number) => void;
     readonly remote_ssh_hosts: (a: number, b: number, c: number) => void;
     readonly remote_validate_config: (a: number, b: number, c: number) => void;
+    readonly replace_in_files: (a: number, b: number, c: number) => void;
+    readonly replace_preview: (a: number, b: number, c: number) => void;
     readonly run_output_drop: (a: number, b: number, c: number) => void;
     readonly run_output_handle: (a: number, b: number, c: number) => void;
     readonly run_output_new: (a: number, b: number, c: number) => void;
@@ -565,6 +596,7 @@ export interface InitOutput {
     readonly scratches_run_command: (a: number, b: number, c: number) => void;
     readonly scratches_runner: (a: number, b: number, c: number) => void;
     readonly scratches_validate_name: (a: number, b: number, c: number) => void;
+    readonly search_find_symbols: (a: number, b: number, c: number) => void;
     readonly search_match_files: (a: number, b: number, c: number) => void;
     readonly search_rank: (a: number, b: number, c: number) => void;
     readonly services_details: (a: number, b: number, c: number) => void;

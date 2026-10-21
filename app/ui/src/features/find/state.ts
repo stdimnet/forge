@@ -4,8 +4,9 @@ import { activeSelection } from "@/editor/views";
 import { findApi, type FindRequest, type FindResult } from "@/ipc/find";
 import type { UsagesAnswer } from "@/ipc/codeintel";
 import { openInFindWindow } from "@/features/codeintel/usages";
+import { scopeRequest } from "./scope";
 
-export type FindScope = "project" | "directory";
+export type FindScope = "project" | "directory" | "openFiles" | "changedFiles";
 
 export interface FindOptions {
   caseSensitive: boolean;
@@ -57,7 +58,7 @@ export function findRequest(query: string, o: FindOptions, limit = 1000): FindRe
     wholeWords: o.wholeWords,
     regex: o.regex,
     fileMask: o.maskEnabled ? o.fileMask : "",
-    directory: o.scope === "directory" ? o.directory : "",
+    ...scopeRequest(o),
     limit,
   };
 }

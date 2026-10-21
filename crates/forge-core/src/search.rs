@@ -4,7 +4,7 @@
 //! WebAssembly for the browser-mode UI); this module walks the workspace.
 
 pub use forge_find::todo::{TodoRequest, TodoResult};
-pub use forge_find::{FindRequest, FindResult};
+pub use forge_find::{FileMatches, FindPaged, FindRequest, FindResult};
 pub use forge_fuzzy::{
     fuzzy_match, fuzzy_match_with, match_file, FileMatch, FuzzyMatch, MatchOptions,
 };
@@ -44,6 +44,16 @@ impl Workspace {
     /// Find files whose name (or path, if the query contains `/`) fuzzy-matches `query`.
     /// Respects `.gitignore`/`.ignore` and the default excludes; best matches first.
     pub fn find_files(&self, query: &str, limit: usize) -> Result<Vec<FileMatch>> {
+        self.find_files_with(query, limit, MatchOptions::default())
+    }
+
+    /// [`Workspace::find_files`] with matching options (e.g. substring instead of fuzzy).
+    pub fn find_files_with(
+        &self,
+        query: &str,
+        limit: usize,
+        opts: MatchOptions,
+    ) -> Result<Vec<FileMatch>> {
         let query = query.trim();
         if query.is_empty() || limit == 0 {
             return Ok(vec![]);
@@ -59,11 +69,8 @@ impl Workspace {
             .take(MAX_WALKED_FILES)
             .map(|e| self.relative(e.path()))
             .collect();
-        Ok(forge_fuzzy::rank_files(
-            query,
-            paths.iter().map(String::as_str),
-            limit,
-        ))
+        let paths: Vec<&str> = paths.iter().map(String::as_str).collect();
+        Ok(forge_fuzzy::rank_files_tolerant(query, &paths, limit, opts))
     }
 
     /// Find in Files: search the text of every file in scope (`.gitignore`/`.ignore` and the

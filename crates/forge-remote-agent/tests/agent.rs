@@ -180,7 +180,7 @@ async fn files_search_git_and_detection() {
         assert!(b.read_file("app/Jobs/SendInvoice.php").is_err());
         assert!(b.delete("../outside").is_err());
 
-        let hits = b.find_files("ordr", 10).unwrap();
+        let hits = b.find_files("ordr", 10, false).unwrap();
         assert_eq!(hits[0].path, "app/Models/Order.php");
 
         // Find in Files searches on the agent's machine.
@@ -249,7 +249,7 @@ async fn php_index_runs_on_the_agent() {
         assert!(stats.classes >= 1, "{stats:?}");
         assert!(!progress.lock().unwrap().is_empty());
 
-        let hits = php.search("Order", Default::default(), 10).unwrap();
+        let hits = php.search("Order", Default::default(), 10, false).unwrap();
         assert_eq!(hits[0].name, "Order");
 
         let text = backend.read_file("app/Models/Order.php").unwrap();
@@ -473,6 +473,58 @@ async fn calls_fail_once_the_connection_is_gone() {
     tokio::time::timeout(T, client.closed()).await.unwrap();
     let err = client.call::<()>(Call::Ping, T).await.unwrap_err();
     assert!(err.to_string().contains("lost"));
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn search_index_runs_on_the_agent() {
+    let dir = project();
+    let root = dir.path().to_string_lossy().into_owned();
+    let client = connect();
+    let backend =
+        blocking(move || RemoteBackend::open(Arc::new(client), host(), &root).unwrap()).await;
+    blocking(move || {
+        wait_until("the agent's index", || {
+            let status = backend.search_status().unwrap();
+            status.enabled && !status.indexing && status.files > 0
+        });
+
+        let hits = backend.find_symbols("order", true, 5, &[], false).unwrap();
+        assert_eq!(hits[0].name, "Order");
+        assert_eq!(hits[0].path, "app/Models/Order.php");
+        assert_eq!(hits[0].kind, "class");
+        assert!(backend
+            .find_symbols("order", true, 5, &["php".to_string()], false)
+            .unwrap()
+            .is_empty());
+
+        let found = backend
+            .find_in_files(&forge_core::search::FindRequest {
+                query: "shop".into(),
+                ..Default::default()
+            })
+            .unwrap();
+        assert_eq!(found.files[0].path, "app/Models/Order.php");
+
+        let paged = backend
+            .find_in_files_found(
+                &forge_core::search::FindRequest {
+                    query: "shop".into(),
+                    ..Default::default()
+                },
+                &std::sync::atomic::AtomicBool::new(false),
+            )
+            .unwrap();
+        let first = paged.paged(7, 1);
+        assert_eq!(first.id, 7);
+        assert_eq!(first.files[0].path, "app/Models/Order.php");
+        assert_eq!(first.file_count, found.files.len());
+        assert_eq!(paged.page(0, 1)[0].path, "app/Models/Order.php");
+        assert_eq!(
+            backend.find_files("order", 5, false).unwrap()[0].name,
+            "Order.php"
+        );
+    })
+    .await;
 }
 
 fn laravel_project() -> tempfile::TempDir {

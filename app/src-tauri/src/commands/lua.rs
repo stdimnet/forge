@@ -166,11 +166,17 @@ pub async fn lua_search_symbols(
     query: String,
     kind: Option<SearchKind>,
     limit: Option<usize>,
+    exact: Option<bool>,
     state: State<'_, AppState>,
     lua: State<'_, LuaState>,
 ) -> Result<Vec<SymbolHit>> {
     with_index(&state, &lua, None, move |index| {
-        index.search(&query, kind.unwrap_or_default(), limit.unwrap_or(100))
+        index.search_with(
+            &query,
+            kind.unwrap_or_default(),
+            limit.unwrap_or(100),
+            exact.unwrap_or(false),
+        )
     })
     .await
 }

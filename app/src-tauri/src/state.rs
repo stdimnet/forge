@@ -16,6 +16,11 @@ pub struct AppState {
     /// Where the open project lives: this machine or a remote host.
     backend: RwLock<Option<Arc<dyn Backend>>>,
     pub settings: RwLock<Settings>,
+    /// The latest Find window result, so pages are cut from it instead of searching again.
+    /// The files the last Replace in Files changed, to undo it.
+    pub last_replace: std::sync::Mutex<Vec<forge_backend::replace::Restore>>,
+    pub find_cancel: std::sync::Mutex<Option<Arc<std::sync::atomic::AtomicBool>>>,
+    pub find_results: std::sync::Mutex<Option<(u64, Arc<forge_backend::Found>)>>,
     pub plugins: RwLock<PluginRegistry>,
 }
 
@@ -42,6 +47,9 @@ impl AppState {
             workspace: RwLock::default(),
             backend: RwLock::default(),
             settings: RwLock::new(settings),
+            last_replace: std::sync::Mutex::default(),
+            find_cancel: std::sync::Mutex::default(),
+            find_results: std::sync::Mutex::default(),
             plugins: RwLock::new(registry),
         };
         let disabled: Vec<String> = state
@@ -84,10 +92,20 @@ impl AppState {
         )
     }
 
+    /// How a new project's search index is built (setting `search.indexing.lowPriority`).
+    fn index_options(&self) -> forge_backend::IndexOptions {
+        forge_backend::IndexOptions {
+            low_priority: self
+                .read_settings()
+                .get_as("search.indexing.lowPriority")
+                .unwrap_or(true),
+        }
+    }
+
     /// Open a local folder as the project.
     pub fn set_workspace(&self, ws: Workspace) {
         let backend: Option<Arc<dyn Backend>> = match LocalBackend::open(ws.root()) {
-            Ok(b) => Some(Arc::new(b)),
+            Ok(b) => Some(Arc::new(b.with_search_index(self.index_options()))),
             Err(e) => {
                 tracing::warn!("cannot open {}: {e}", ws.root().display());
                 None

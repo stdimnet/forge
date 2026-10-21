@@ -1,10 +1,11 @@
 import { For, Show, createEffect, createMemo, createSignal, on, onCleanup, onMount, type JSX } from "solid-js";
 import { Dynamic } from "solid-js/web";
-import { Filter, Pin, Search } from "lucide-solid";
+import { Filter, Pin, Search, WholeWord } from "lucide-solid";
+import { exactMatching, setExactOverride } from "@/ipc/search";
 import { shortcutLabel } from "@/keymap";
 import {
   SEARCH_TABS,
-  runSearch,
+  runSearchStreaming,
   type SearchGroup,
   type SearchItem,
   type SearchItemKind,
@@ -88,16 +89,17 @@ export function SearchEverywhere() {
     setLoading(true);
     const perGroup = tab === "all" ? 5 : 60;
     // Ranked in Rust; disabled actions only show when asked for or when nothing else matches.
-    const res = await runSearch(tab, seQuery(), { includeNonProject: seIncludeNonProject(), perGroup });
-    if (id !== seq) return;
-    setGroups(res);
-    setSelected(0);
-    setLoading(false);
+    await runSearchStreaming(tab, seQuery(), { includeNonProject: seIncludeNonProject(), perGroup }, (res, done) => {
+      if (id !== seq) return;
+      setGroups(res);
+      if (done) setLoading(false);
+    });
+    if (id === seq) setSelected(0);
   }
 
   let timer: ReturnType<typeof setTimeout> | undefined;
   createEffect(
-    on([seQuery, seTab, seIncludeNonProject], () => {
+    on([seQuery, seTab, seIncludeNonProject, exactMatching], () => {
       clearTimeout(timer);
       timer = setTimeout(refresh, 60);
     }),
@@ -242,6 +244,19 @@ export function SearchEverywhere() {
           <Show when={loading()}>
             <span class="se-spinner" />
           </Show>
+          <button
+            class="icon-btn se-tool"
+            classList={{ active: exactMatching() }}
+            title={exactMatching() ? "Matching text that contains the query (click for fuzzy)" : "Fuzzy matching (click to match only text that contains the query)"}
+            aria-pressed={exactMatching()}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => {
+              setExactOverride(!exactMatching());
+              input.focus();
+            }}
+          >
+            <WholeWord size={14} />
+          </button>
         </div>
         <div class="se-results" ref={list}>
           <Show

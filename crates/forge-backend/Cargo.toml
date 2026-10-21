@@ -5,8 +5,16 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 
+[features]
+default = ["search"]
+# Trigram index behind Find in Files, Go to File and symbol search.
+search = ["dep:forge-search"]
+
 [dependencies]
 forge-core.workspace = true
+forge-find.workspace = true
+forge-search-core.workspace = true
+forge-search = { workspace = true, optional = true }
 forge-vcs.workspace = true
 forge-process.workspace = true
 forge-lsp.workspace = true

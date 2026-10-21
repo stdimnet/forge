@@ -456,11 +456,12 @@ impl Backend for RemoteBackend {
         )
     }
 
-    fn find_files(&self, query: &str, limit: usize) -> Result<Vec<FileMatch>> {
+    fn find_files(&self, query: &str, limit: usize, exact: bool) -> Result<Vec<FileMatch>> {
         self.shared.call(
             Call::FindFiles {
                 query: query.to_string(),
                 limit,
+                exact,
             },
             TIMEOUT,
         )
@@ -469,6 +470,57 @@ impl Backend for RemoteBackend {
     fn find_in_files(&self, req: &FindRequest) -> Result<FindResult> {
         self.shared
             .call(Call::FindInFiles(req.clone()), GIT_NETWORK_TIMEOUT)
+    }
+
+    fn find_in_files_found(
+        &self,
+        req: &FindRequest,
+        _cancel: &std::sync::atomic::AtomicBool,
+    ) -> Result<crate::Found> {
+        let totals: forge_core::search::FindPaged = self.shared.call(
+            Call::FindStart {
+                req: req.clone(),
+                page_size: 0,
+            },
+            GIT_NETWORK_TIMEOUT,
+        )?;
+        let (shared, id) = (self.shared.clone(), totals.id);
+        let fetch = move |offset: usize, count: usize| {
+            shared
+                .call::<Vec<forge_core::search::FileMatches>>(
+                    Call::FindPage { id, offset, count },
+                    GIT_NETWORK_TIMEOUT,
+                )
+                .unwrap_or_default()
+        };
+        Ok(crate::Found::Remote {
+            totals,
+            fetch: Arc::new(fetch),
+        })
+    }
+
+    fn find_symbols(
+        &self,
+        query: &str,
+        types_only: bool,
+        limit: usize,
+        skip_extensions: &[String],
+        exact: bool,
+    ) -> Result<Vec<forge_search_core::SymbolHit>> {
+        self.shared.call(
+            Call::FindSymbols {
+                query: query.to_string(),
+                types_only,
+                limit,
+                skip_extensions: skip_extensions.to_vec(),
+                exact,
+            },
+            TIMEOUT,
+        )
+    }
+
+    fn search_status(&self) -> Result<crate::SearchStatus> {
+        self.shared.call(Call::SearchStatus, TIMEOUT)
     }
 
     fn find_todos(&self, req: &TodoRequest) -> Result<TodoResult> {
@@ -666,11 +718,18 @@ impl PhpBackend for RemoteBackend {
         result
     }
 
-    fn search(&self, query: &str, kind: SearchKind, limit: usize) -> Result<Vec<SymbolHit>> {
+    fn search(
+        &self,
+        query: &str,
+        kind: SearchKind,
+        limit: usize,
+        exact: bool,
+    ) -> Result<Vec<SymbolHit>> {
         self.php_call(PhpCall::Search {
             query: query.to_string(),
             kind,
             limit,
+            exact,
         })
     }
 

@@ -7,7 +7,8 @@ use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, State};
 
 use forge_backend::{BackendInfo, WatchGuard};
-use forge_core::search::{FindRequest, FindResult};
+use forge_core::search::{FileMatches, FindPaged, FindRequest, FindResult};
+
 use forge_core::{FileEntry, FileMatch, ForgeError, FsChanges, Result, Workspace};
 
 use crate::recent::{RecentProject, RecentRemote};
@@ -247,10 +248,11 @@ pub async fn fs_delete(path: String, state: State<'_, AppState>) -> Result<()> {
 pub async fn fs_find_files(
     query: String,
     limit: Option<usize>,
+    exact: Option<bool>,
     state: State<'_, AppState>,
 ) -> Result<Vec<FileMatch>> {
     let backend = state.backend()?;
-    blocking(move || backend.find_files(&query, limit.unwrap_or(100))).await
+    blocking(move || backend.find_files(&query, limit.unwrap_or(100), exact.unwrap_or(false))).await
 }
 
 /// Find in Files (Ctrl+Shift+F): text search over the project through its backend, so
@@ -259,4 +261,99 @@ pub async fn fs_find_files(
 pub async fn find_in_files(request: FindRequest, state: State<'_, AppState>) -> Result<FindResult> {
     let backend = state.backend()?;
     blocking(move || backend.find_in_files(&request)).await
+}
+
+/// Find window: search once, keep the result and return its totals with the first `page_size`
+/// rows. The rest comes from `find_page`, so a result with hundreds of thousands of matches does
+/// not cross the IPC boundary in one piece.
+#[tauri::command]
+pub async fn find_in_files_paged(
+    request: FindRequest,
+    page_size: usize,
+    state: State<'_, AppState>,
+) -> Result<FindPaged> {
+    let backend = state.backend()?;
+    let cancel = Arc::new(std::sync::atomic::AtomicBool::new(false));
+    if let Some(previous) = state
+        .find_cancel
+        .lock()
+        .expect("find cancel lock")
+        .replace(cancel.clone())
+    {
+        previous.store(true, std::sync::atomic::Ordering::Relaxed);
+    }
+    let flag = cancel.clone();
+    let result = Arc::new(blocking(move || backend.find_in_files_found(&request, &flag)).await?);
+    if cancel.load(std::sync::atomic::Ordering::Relaxed) {
+        return Err(ForgeError::Other("Search cancelled".into()));
+    }
+    static NEXT_ID: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
+    let id = NEXT_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    let first = result.paged(id, page_size);
+    *state.find_results.lock().expect("find results lock") = Some((id, result));
+    Ok(first)
+}
+
+/// Rows `[offset, offset + count)` of the result `find_in_files_paged` returned `id` for.
+#[tauri::command]
+pub fn find_page(
+    id: u64,
+    offset: usize,
+    count: usize,
+    state: State<'_, AppState>,
+) -> Result<Vec<FileMatches>> {
+    match state
+        .find_results
+        .lock()
+        .expect("find results lock")
+        .as_ref()
+    {
+        Some((current, result)) if *current == id => Ok(result.page(offset, count)),
+        _ => Err(ForgeError::Other(
+            "The search result was replaced by a newer search".into(),
+        )),
+    }
+}
+
+/// The lines Replace in Files would change, for the confirmation dialog.
+#[tauri::command]
+pub async fn replace_preview(
+    request: FindRequest,
+    with: String,
+    state: State<'_, AppState>,
+) -> Result<Vec<forge_backend::replace::FilePreview>> {
+    let backend = state.backend()?;
+    blocking(move || forge_backend::replace::preview(&*backend, &request, &with, 200, 20)).await
+}
+
+/// Replace every match of `request` with `with`; the changed files are kept for `undo_replace`.
+#[tauri::command]
+pub async fn replace_in_files(
+    request: FindRequest,
+    with: String,
+    state: State<'_, AppState>,
+) -> Result<forge_backend::replace::ReplaceDone> {
+    let backend = state.backend()?;
+    let done =
+        blocking(move || forge_backend::replace::replace_all(&*backend, &request, &with)).await?;
+    *state.last_replace.lock().expect("last replace lock") = done.undo.clone();
+    Ok(done)
+}
+
+/// What `undo_replace` put back.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UndoneReplace {
+    pub restored: usize,
+    /// Files left alone because they changed after the replace.
+    pub left: Vec<String>,
+}
+
+/// Put back the files the last Replace in Files changed.
+#[tauri::command]
+pub async fn undo_replace(state: State<'_, AppState>) -> Result<UndoneReplace> {
+    let backend = state.backend()?;
+    let undo = std::mem::take(&mut *state.last_replace.lock().expect("last replace lock"));
+    let (restored, left) = blocking(move || forge_backend::replace::undo(&*backend, &undo)).await?;
+    Ok(UndoneReplace { restored, left })
 }

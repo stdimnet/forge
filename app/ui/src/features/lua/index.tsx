@@ -23,7 +23,7 @@ import { registerSettingsPage } from "@/features/settingsPages";
 import { SchemaPage } from "@/features/settings/SchemaPage";
 import { registerSearchProvider, type SearchItem } from "@/features/search/providers";
 import { registerDeclarationProvider } from "@/features/lsp/goto";
-import { chooseDeclarationAt } from "@/features/navigation/chooseDeclaration";
+import { chooseDeclarationAt } from "@/features/navigation/declarationChooser";
 import { registerFormatProvider } from "@/features/lsp/format";
 import { lspClaimsHover } from "@/features/lsp/hover";
 import { buildHoverDom } from "@/features/lsp/hoverDoc";

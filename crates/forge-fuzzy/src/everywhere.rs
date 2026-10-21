@@ -32,6 +32,9 @@ pub struct RankRequest {
     /// Keep dimmed items (disabled actions) even when undimmed ones match.
     #[serde(default)]
     pub include_dimmed: bool,
+    /// Match substrings instead of fuzzy.
+    #[serde(default)]
+    pub exact: bool,
     pub sources: Vec<Source>,
 }
 
@@ -122,11 +125,15 @@ fn tab_rank(tab: &str) -> usize {
 }
 
 /// Score one candidate, or `None` if it does not match.
-fn score(query: &str, c: &Candidate) -> Option<(i32, Vec<usize>)> {
+fn score(query: &str, c: &Candidate, exact: bool) -> Option<(i32, Vec<usize>)> {
     let Some(text) = &c.text else {
         return Some((c.score, c.positions.clone()));
     };
-    let opts = MatchOptions { strict: c.strict };
+    let opts = MatchOptions {
+        strict: c.strict,
+        exact,
+        typo: false,
+    };
     if let Some(m) = fuzzy_match_with(query, text, opts) {
         return Some((m.score + c.score, m.positions));
     }
@@ -170,7 +177,7 @@ pub fn rank(req: &RankRequest) -> RankResponse {
             }
         };
         for (index, c) in s.items.iter().enumerate() {
-            if let Some((score, positions)) = score(&req.query, c) {
+            if let Some((score, positions)) = score(&req.query, c, req.exact) {
                 let item = RankedItem {
                     provider: s.provider.clone(),
                     index,
@@ -259,6 +266,7 @@ mod tests {
             query: "x".into(),
             per_group,
             include_dimmed: false,
+            exact: false,
             sources: vec![
                 source(
                     "t.symbols",
@@ -314,6 +322,7 @@ mod tests {
             query: "line".into(),
             per_group: 10,
             include_dimmed: false,
+            exact: false,
             sources: vec![source(
                 "core.actions",
                 "actions",
@@ -362,6 +371,7 @@ mod tests {
             query: "usr".into(),
             per_group: 10,
             include_dimmed: false,
+            exact: false,
             sources: vec![source("lsp", "symbols", vec![sym("handle"), sym("User")])],
         };
         let res = rank(&req);
