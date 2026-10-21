@@ -9,6 +9,7 @@ import { onFsChanged } from "@/state/fsWatch";
 import { isPluginActive } from "@/state/project";
 import { getSetting, settingsState } from "@/state/settings";
 import { workspace } from "@/state/workspace";
+import { isDialogWindow } from "@/shell/window/mode";
 import { phpApi, type LanguageLevel, type OutdatedPackage } from "./api";
 
 const [languageLevel, setLanguageLevel] = createSignal<LanguageLevel | null>(null);
@@ -55,6 +56,8 @@ createRoot(() => {
       (root) => {
         if (!root) return;
         // Once the project's plugins are known.
+        // Update checks belong to the main window, not to dialog windows (Settings).
+        if (isDialogWindow()) return;
         setTimeout(() => {
           if (workspace()?.root === root && isPluginActive("forge.composer") && getSetting<boolean>("php.composer.checkUpdates", false)) {
             void checkUpdates();
