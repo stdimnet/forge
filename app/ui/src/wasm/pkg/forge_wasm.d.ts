@@ -529,6 +529,31 @@ export function sql_split(request_json: string): string;
 export function sql_statement_at(request_json: string): string;
 
 /**
+ * `{ custom }` (the `fileTemplates.custom` value) → `{ templates, variables }`.
+ */
+export function templates_list(request_json: string): string;
+
+/**
+ * `{ request: NewFileRequest, custom }` → `NewFile`.
+ */
+export function templates_new_file(request_json: string): string;
+
+/**
+ * `{ composerJson, composerPath, namespace }` → `string | null`.
+ */
+export function templates_php_directory(request_json: string): string;
+
+/**
+ * `{ composerJson, composerPath, dir }` → `string | null`.
+ */
+export function templates_php_namespace(request_json: string): string;
+
+/**
+ * `{ text }` → `string | null`.
+ */
+export function templates_validate(request_json: string): string;
+
+/**
  * `{ uri, root? }` → `LinkTarget | null`.
  */
 export function terminal_link_target(request_json: string): string;
@@ -705,6 +730,11 @@ export interface InitOutput {
     readonly sql_leading_keywords: (a: number, b: number, c: number) => void;
     readonly sql_split: (a: number, b: number, c: number) => void;
     readonly sql_statement_at: (a: number, b: number, c: number) => void;
+    readonly templates_list: (a: number, b: number, c: number) => void;
+    readonly templates_new_file: (a: number, b: number, c: number) => void;
+    readonly templates_php_directory: (a: number, b: number, c: number) => void;
+    readonly templates_php_namespace: (a: number, b: number, c: number) => void;
+    readonly templates_validate: (a: number, b: number, c: number) => void;
     readonly terminal_link_target: (a: number, b: number, c: number) => void;
     readonly terminal_parse_osc: (a: number, b: number, c: number) => void;
     readonly text_file_format: (a: number, b: number, c: number) => void;

@@ -2313,6 +2313,7 @@ dependencies = [
  "forge-codeintel",
  "forge-containers",
  "forge-editing",
+ "forge-file-templates",
  "forge-filetypes",
  "forge-find",
  "forge-fuzzy",
