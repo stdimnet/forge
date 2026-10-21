@@ -4379,6 +4379,39 @@
           "order": 40
         },
         {
+          "key": "codeWithMe.lanDiscovery",
+          "title": "Discover hosts on the local network",
+          "description": "Find a host on the same network even when its address changed (mDNS). Nothing leaves the local network.",
+          "type": "bool",
+          "default": true,
+          "group": "tools.code-with-me",
+          "section": "Connection",
+          "project": false,
+          "order": 45
+        },
+        {
+          "key": "codeWithMe.relayUrl",
+          "title": "Relay server",
+          "description": "URL of your own iroh-relay, e.g. https://relay.example.com. Guests behind a NAT or firewall connect through it when a direct connection is not possible; it only forwards encrypted traffic. Empty: direct connections only, and Forge contacts no server.",
+          "type": "string",
+          "default": "",
+          "group": "tools.code-with-me",
+          "section": "Relay Server",
+          "project": false,
+          "order": 47
+        },
+        {
+          "key": "codeWithMe.usePublicRelays",
+          "title": "Use the public relay servers of n0",
+          "description": "Opt in to the free iroh relays run by number 0 computer, a third party. They are rate-limited and see only encrypted traffic. Ignored when a relay server is set above.",
+          "type": "bool",
+          "default": false,
+          "group": "tools.code-with-me",
+          "section": "Relay Server",
+          "project": false,
+          "order": 48
+        },
+        {
           "key": "codeWithMe.excludedFiles",
           "title": "Files guests never see",
           "description": "Patterns like .gitignore lines; !pattern shows a file again.",
