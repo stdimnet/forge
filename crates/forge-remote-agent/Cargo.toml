@@ -30,6 +30,7 @@ phpforge-fw-laravel = { path = "../../packs/phpforge/fw-laravel" }
 phpforge-fw-symfony = { path = "../../packs/phpforge/fw-symfony" }
 phpforge-orm-doctrine = { path = "../../packs/phpforge/orm-doctrine" }
 forge-langservers = { path = "../forge-langservers", default-features = false }
+forge-collab = { path = "../forge-collab", default-features = false, features = ["runtime"] }
 
 # forge-lsp's fake language server, to test language servers started through the agent
 # (never shipped: `pnpm agents` builds only `forge-remote-agent`).

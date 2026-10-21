@@ -2366,6 +2366,7 @@ version = "0.1.0"
 dependencies = [
  "dirs 6.0.0",
  "forge-backend",
+ "forge-collab",
  "forge-core",
  "forge-langservers",
  "forge-lsp",
