@@ -348,10 +348,7 @@ impl Bookmarks {
         let mut sorted = edits.to_vec();
         sorted.sort_by_key(|e| e.line);
         for b in self.bookmarks_mut().filter(|b| b.path == path) {
-            b.line = sorted
-                .iter()
-                .rev()
-                .fold(b.line, |line, e| map_line(line, e));
+            b.line = sorted.iter().rev().fold(b.line, map_line);
         }
         // Two bookmarks that collapsed onto one line: keep the one with a mnemonic.
         let mut seen: Vec<(usize, u64, bool)> = Vec::new();
