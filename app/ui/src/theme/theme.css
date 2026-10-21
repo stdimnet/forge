@@ -383,6 +383,34 @@
   --font-display: "Unbounded", "Arial Black", "Helvetica Neue", sans-serif;
 }
 
+/* Code With Me participant colors (carets, selections, avatars), in join order; the host is 1. */
+:root,
+:root[data-theme="dark"],
+:root[data-theme="solarized-dark"] {
+  --collab-1: #ff8a3d;
+  --collab-2: #5aa9ff;
+  --collab-3: #6fd18c;
+  --collab-4: #c48bff;
+  --collab-5: #ff6b9a;
+  --collab-6: #3fd0c9;
+  --collab-7: #f2c94c;
+  --collab-8: #ff6b6b;
+  --collab-label-fg: #15151a;
+}
+
+:root[data-theme="light"],
+:root[data-theme="solarized-light"] {
+  --collab-1: #d9590a;
+  --collab-2: #1f6fd1;
+  --collab-3: #24914a;
+  --collab-4: #8a4fd6;
+  --collab-5: #c93a6b;
+  --collab-6: #11867f;
+  --collab-7: #a67c00;
+  --collab-8: #c93636;
+  --collab-label-fg: #ffffff;
+}
+
 /* Splash screen: cold steel letters that fill with molten metal while Forge loads. */
 :root,
 :root[data-theme="dark"],
