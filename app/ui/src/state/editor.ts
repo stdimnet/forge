@@ -84,6 +84,14 @@ async function readText(path: string, encoding?: EncodingId): Promise<TextFile> 
   return { text, eol, encoding: "UTF-8", bom: false, malformed: false };
 }
 
+/** An open tab's file as it is on disk now, decoded in the tab's encoding (Git rollback etc.). */
+export async function readOpenFile(path: string): Promise<{ text: string; eol: Eol } | undefined> {
+  const tab = editor.tabs.find((t) => t.path === path);
+  if (!tab || !isFileTab(tab)) return undefined;
+  const file = await readText(path, tab.encoding === "UTF-8" ? undefined : tab.encoding);
+  return { text: file.text, eol: file.eol };
+}
+
 /** Write a tab's text with its separator and encoding. */
 async function writeTab(tab: EditorTab, text: string): Promise<void> {
   const fs = fileSystemFor(tab.path);

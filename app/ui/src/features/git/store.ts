@@ -6,10 +6,9 @@
 import { createRoot, createSignal, createEffect, on, onCleanup } from "solid-js";
 import { listen } from "@/ipc";
 import { setCurrentBranch, setFileStatuses, type FileStatus } from "@/state/vcs";
-import { editor } from "@/state/editor";
+import { editor, readOpenFile, type Eol } from "@/state/editor";
 import { onFsChanged } from "@/state/fsWatch";
 import { logNotification, modeOf, registerNotificationGroup } from "@/state/notifications";
-import { workspaceApi } from "@/ipc/workspace";
 import { getSetting } from "@/state/settings";
 import { gitApi, displayStatus, GIT_CHANGED_EVENT, type RepoStatus } from "./api";
 
@@ -104,7 +103,9 @@ export async function runGit<T>(title: string, op: () => Promise<T>): Promise<T 
 
 export interface FileReload {
   path: string;
-  content: string;
+  /** The file's text with `\n` line breaks, decoded in the tab's encoding. */
+  text: string;
+  eol: Eol;
   seq: number;
 }
 const [fileReload, setFileReload] = createSignal<FileReload | null>(null);
@@ -116,8 +117,8 @@ export async function reloadOpenFiles(paths?: string[]): Promise<void> {
   const open = editor.tabs.map((t) => t.path).filter((p) => !paths || paths.includes(p));
   for (const path of open) {
     try {
-      const content = await workspaceApi.readFile(path);
-      setFileReload({ path, content, seq: ++reloadSeq });
+      const file = await readOpenFile(path);
+      if (file) setFileReload({ path, ...file, seq: ++reloadSeq });
     } catch {
       /* file may have been removed */
     }

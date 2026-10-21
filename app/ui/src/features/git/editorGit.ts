@@ -371,7 +371,7 @@ function controller(path: string, blameCompartment: Compartment) {
       createEffect(
         on(fileReload, (r) => {
           if (!r || r.path !== path) return;
-          const { text, eol } = normalizeEol(r.content);
+          const { text, eol } = r;
           setTabEol(path, eol);
           if (text === view.state.doc.toString()) return;
           replaceDocument(view, text);

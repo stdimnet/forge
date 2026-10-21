@@ -15,6 +15,7 @@ import {
   isTabPinned,
   normalizeEol,
   openFile,
+  readOpenFile,
   reloadWithEncoding,
   saveFile,
   setTabFormat,
@@ -130,6 +131,13 @@ describe("encodings", () => {
     expect(disk["legacy.txt"]).toEqual(bytes("café\n"));
     await reloadWithEncoding("legacy.txt", "ISO-8859-1");
     expect(editor.tabs[0].content).toBe("cafÃ©\n");
+  });
+  it("reads an open file again in its own encoding (Git rollback)", async () => {
+    disk["old.txt"] = [99, 97, 102, 233, 10];
+    await openFile("old.txt");
+    // Rolled back on disk to another Windows-1252 text.
+    disk["old.txt"] = [110, 97, 239, 118, 101, 13, 10];
+    expect(await readOpenFile("old.txt")).toEqual({ text: "naïve\n", eol: "\r\n" });
   });
   it("keeps the old encoding when a character cannot be converted", async () => {
     disk["u.txt"] = bytes("中\n");
