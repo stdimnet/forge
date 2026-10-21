@@ -2360,6 +2360,7 @@ dependencies = [
  "forge-output",
  "forge-plugin-api",
  "forge-remote",
+ "forge-save-actions",
  "forge-scratches",
  "forge-search-core",
  "forge-sql",
