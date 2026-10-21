@@ -469,6 +469,12 @@ fn classify_code(
         };
         return Some((ScopeKind::Control, name));
     }
+    // `return match ($x) {`, `$y = match (true) {` (PHP), `switch` after an assignment.
+    if let Some((_, w)) = words.iter().find(|(at, w)| {
+        matches!(*w, "match" | "switch") && h[at + w.len()..].trim_start().starts_with('(')
+    }) {
+        return Some((ScopeKind::Control, w.to_string()));
+    }
     let in_type = matches!(
         parent,
         Some(ScopeKind::Class | ScopeKind::Interface | ScopeKind::Trait | ScopeKind::Enum)
@@ -1421,6 +1427,12 @@ class User extends Model
         // A multi-line parameter list: the header starts at `function label(`.
         assert_eq!(s.scopes[3].line, 16);
         assert_eq!(chain(&s, 21), ["User", "label()", "array_map callback"]);
+
+        let m = editor_structure(
+            "<?php\nfunction f($x)\n{\n    return match ($x) {\n        1 => 'a',\n    };\n}\n",
+            "php",
+        );
+        assert_eq!(names(&m), ["f()", "match"]);
     }
 
     #[test]

@@ -8,7 +8,9 @@
  */
 import { Facet, StateEffect, StateField, type EditorState, type Extension, type Range } from "@codemirror/state";
 import { Decoration, EditorView, WidgetType, type DecorationSet } from "@codemirror/view";
+import { PencilLine } from "lucide-solid";
 import { buildHoverDom } from "@/features/lsp/hoverDoc";
+import { iconNode } from "@/features/lsp/util";
 import { docCommentsOf, type DocCommentInfo } from "./model";
 
 /** Languages whose documentation comments Forge renders (see `forge_markdown::doc_style`). */
@@ -48,11 +50,21 @@ class RenderedDoc extends WidgetType {
     return other.key === this.key;
   }
 
-  toDOM(): HTMLElement {
+  toDOM(view: EditorView): HTMLElement {
     const wrap = document.createElement("div");
     wrap.className = "cm-rendered-doc";
     wrap.style.marginLeft = `${this.info.column}ch`;
-    wrap.append(buildHoverDom(this.info.doc, [], signatureLanguage(this.language)));
+    // Back to the comment's text (PHPStorm shows this toggle in the gutter).
+    const edit = document.createElement("button");
+    edit.className = "cm-rendered-doc-edit";
+    edit.title = "Toggle Rendered View";
+    edit.append(iconNode(PencilLine, 13));
+    edit.addEventListener("mousedown", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      view.dispatch({ effects: toggleRendered.of(commentStart(view.state, this.info)) });
+    });
+    wrap.append(edit, buildHoverDom(this.info.doc, [], signatureLanguage(this.language)));
     wrap.addEventListener("click", (e) => {
       const link = (e.target as Element).closest(".md-link") as HTMLElement | null;
       const href = link?.title;
@@ -111,6 +123,7 @@ export const renderedDocsField = StateField.define<RenderState>({
 
 const docsTheme = EditorView.baseTheme({
   ".cm-rendered-doc": {
+    position: "relative",
     margin: "2px 0 4px",
     borderLeft: "2px solid var(--border-strong)",
     backgroundColor: "color-mix(in srgb, var(--bg-hover) 45%, transparent)",
@@ -123,6 +136,21 @@ const docsTheme = EditorView.baseTheme({
   ".cm-rendered-doc .lsp-hover-body p": { margin: "2px 0" },
   ".cm-rendered-doc .lsp-hover-sections": { marginTop: "4px" },
   ".cm-rendered-doc .md-link": { cursor: "pointer" },
+  ".cm-rendered-doc-edit": {
+    position: "absolute",
+    top: "4px",
+    right: "6px",
+    display: "inline-flex",
+    padding: "2px",
+    border: "none",
+    borderRadius: "3px",
+    background: "transparent",
+    color: "var(--fg-faint)",
+    cursor: "pointer",
+    visibility: "hidden",
+  },
+  ".cm-rendered-doc:hover .cm-rendered-doc-edit": { visibility: "visible" },
+  ".cm-rendered-doc-edit:hover": { color: "var(--accent)", background: "var(--bg-hover)" },
 });
 
 /** Rendered doc comments for an editor of `language`; `initial` renders all at the start. */

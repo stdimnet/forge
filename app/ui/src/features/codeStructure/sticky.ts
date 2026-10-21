@@ -24,12 +24,16 @@ import {
   type Scope,
 } from "./model";
 
-/** The sticky scopes for a scroll position: those whose header is above the row it would take. */
+/**
+ * The sticky scopes for a scroll position: those whose header is at or above the line
+ * hidden behind the row it would take, and that go on below it. `lineAt(row)` is the
+ * document line under sticky row `row`.
+ */
 export function stickyScopes(scopes: Scope[], lineAt: (row: number) => number, max: number): Scope[] {
   let rows: Scope[] = [];
   for (let attempt = 0; attempt <= max + 1; attempt++) {
     const line = lineAt(rows.length);
-    const next = scopes.filter((s) => s.sticky && s.line < line && s.endLine > line).slice(0, max);
+    const next = scopes.filter((s) => s.sticky && s.line <= line && s.endLine > line).slice(0, max);
     if (next.length === rows.length && next.every((s, i) => s === rows[i])) break;
     // Fewer rows uncover lines whose scopes may have ended: keep the smaller set.
     if (attempt > 0 && next.length < rows.length) {
@@ -92,6 +96,11 @@ class StickyLines implements PluginValue {
     this.dom.className = "cm-sticky-lines";
     this.dom.setAttribute("aria-hidden", "true");
     this.dom.addEventListener("contextmenu", (e) => this.menu(e));
+    // Clicks on the sticky lines never reach the text below.
+    this.dom.addEventListener("mousedown", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+    });
     view.dom.appendChild(this.dom);
     view.scrollDOM.addEventListener("scroll", this.onScroll, { passive: true });
     this.dispose = createRoot((d) => {
@@ -175,9 +184,7 @@ class StickyLines implements PluginValue {
         text.append(inner);
         row.append(gutter, text);
         row.addEventListener("mousedown", (e) => {
-          if (e.button !== 0) return;
-          e.preventDefault();
-          this.jump(scope);
+          if (e.button === 0) this.jump(scope);
         });
         return row;
       }),
@@ -195,6 +202,7 @@ class StickyLines implements PluginValue {
 
   private menu(e: MouseEvent): void {
     e.preventDefault();
+    e.stopPropagation();
     const label = languageLabelOf(this.language);
     openMenu({
       x: e.clientX,

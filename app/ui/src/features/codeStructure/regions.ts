@@ -34,7 +34,14 @@ function placeholder(onclick: (event: Event) => void, text: string, region: bool
   return el;
 }
 
-const regionTheme = EditorView.baseTheme({
+const regionTheme = EditorView.theme({
+  ".cm-foldPlaceholder": {
+    backgroundColor: "var(--bg-hover)",
+    border: "1px solid var(--border-strong)",
+    borderRadius: "3px",
+    color: "var(--fg-muted)",
+    margin: "0 2px",
+  },
   ".cm-region-placeholder": {
     fontFamily: "var(--font-ui)",
     fontSize: "0.9em",

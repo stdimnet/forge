@@ -63,7 +63,7 @@ function CrumbBar(props: { view: EditorView; language: string; crumbs: () => Cru
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     openMenu({
       x: rect.left,
-      y: breadcrumbsOnTop() ? rect.bottom + 2 : rect.top - 4 - Math.min(list.length, 20) * 24,
+      y: breadcrumbsOnTop() ? rect.bottom + 2 : rect.top - 10 - Math.min(list.length, 20) * 27,
       items: list.map((s) => ({
         label: s.name,
         icon: (() => <SymbolIcon kind={symbolKindOf(s.kind)} />) as unknown as IconComponent,
