@@ -2,16 +2,15 @@
 //! and merge requests, issues and pipelines of the project's repository. The repository
 //! is detected from `git remote -v` on every call, so switching projects needs no reset.
 
-use std::path::PathBuf;
 use std::sync::Arc;
 
+use forge_backend::Backend;
 use forge_core::{ForgeError, Result};
 use forge_forges::{
     review_ref, AccountInfo, Capabilities, ChangedFile, CodeHost, Discussion, ForgeService,
     HostKind, Issue, IssueDetails, IssueFilter, KeyringStore, MergeOptions, MergeRequest,
     MergeRequestDetails, MrFilter, NewMergeRequest, Page, Pipeline, Position, RepoRef, User,
 };
-use forge_vcs::Repo;
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, State};
 
@@ -44,8 +43,10 @@ pub struct RepoContext {
     pub capabilities: Capabilities,
 }
 
-fn root(state: &AppState) -> Result<PathBuf> {
-    state.with_workspace(|ws| Ok(ws.root().to_path_buf()))
+/// The project's backend: version control runs where the project lives (on the host for a
+/// remote project), API calls stay on this machine with the user's tokens.
+fn backend(state: &AppState) -> Result<Arc<dyn Backend>> {
+    state.backend()
 }
 
 async fn blocking<T: Send + 'static>(f: impl FnOnce() -> Result<T> + Send + 'static) -> Result<T> {
@@ -55,9 +56,9 @@ async fn blocking<T: Send + 'static>(f: impl FnOnce() -> Result<T> + Send + 'sta
 }
 
 async fn remotes(state: &AppState) -> Result<Vec<(String, String)>> {
-    let root = root(state)?;
+    let backend = backend(state)?;
     blocking(move || {
-        let Ok(repo) = Repo::open(&root) else {
+        let Ok(repo) = backend.repo() else {
             return Ok(Vec::new());
         };
         Ok(forge_forges::remote::parse_remote_v(
@@ -338,9 +339,9 @@ pub async fn forges_checkout(
     forges: State<'_, ForgesState>,
 ) -> Result<String> {
     let (repo_ref, _) = current(&app, &forges).await?;
-    let root = root(&app)?;
+    let backend = backend(&app)?;
     let res = blocking(move || {
-        let repo = Repo::open(&root)?;
+        let repo = backend.repo()?;
         let remote = repo_ref.remote.clone();
         let tracking = format!("refs/remotes/{remote}/{source_branch}");
         let branch_spec = format!("+refs/heads/{source_branch}:{tracking}");

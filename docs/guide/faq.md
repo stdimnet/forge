@@ -93,7 +93,7 @@ available yet.
 
 **Can I work on a server over SSH?**
 Yes, see [Remote development](user/remote-development.md). Frameworks, language servers,
-databases (through SSH tunnels), Xdebug and the AI agents work there; a few features are still local-only.
+databases (through SSH tunnels), Xdebug, Docker, the HTTP client and the AI agents work there.
 
 ## Contributing
 

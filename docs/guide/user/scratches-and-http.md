@@ -182,6 +182,18 @@ Test results and log lines are printed after the response.
 
 ![Handler report](../../screenshots/editor-polish-http-handler.png)
 
-> **Note:** response references (`<> file`) are skipped. HTTP requests read the environment
-> files through the local project; they are not available in
-> [remote projects](remote-development.md) yet.
+> **Note:** response references (`<> file`) are skipped.
+
+### Remote projects
+
+In a [remote project](remote-development.md) environment files and `< file` bodies are read on
+the host, and requests are sent **from the host**: Forge forwards a local port through the
+project's SSH connection (`direct-tcpip`) to the URL's host and port as the remote host sees
+them, so `http://localhost:8000` reaches the server running there. The URL's host stays the
+`Host` header and the TLS server name; redirects are not followed. The console says
+"Sent from user@host through an SSH tunnel".
+
+Settings | Tools | HTTP Client | **Send requests from** (`httpClient.sendFrom`, per project):
+**Remote host** (default) or **This machine**.
+
+![HTTP request sent from the remote host](../../screenshots/remote-finish-http.png)

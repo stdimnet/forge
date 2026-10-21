@@ -131,6 +131,7 @@ anonymously.
 | Connect to Docker daemon with (`auto`, `unix`, `pipe`, `tcp`, `ssh`, `context`) | `docker.connection` | `auto` |
 | SSH host: `ssh://user@host[:port]` or a `Host` alias of `~/.ssh/config` | `docker.ssh.url` | empty |
 | Docker socket on the host (empty: `/var/run/docker.sock`) | `docker.ssh.socketPath` | empty |
+| In remote projects, connect to Docker on the remote host | `docker.remoteProjectHost` | on |
 | Docker context (`docker context ls`) | `docker.context` | empty |
 | Socket path (Unix socket or named pipe; empty: the first existing default) | `docker.socketPath` | empty |
 | Engine API URL (TCP) | `docker.tcp.url` | `tcp://localhost:2375` |
@@ -172,6 +173,20 @@ CLI, which reaches `ssh://` hosts itself.
 Kubernetes authentication supports CA certificates, bearer tokens, client certificates, basic
 auth and exec credential plugins (as used by EKS, GKE and AKS).
 
-> **Note:** the Services tool window always talks to the Docker daemon and cluster configured
-> on this machine, also when a remote project is open; use Docker over SSH to reach the remote
-> host's daemon. Port forwarding is available for Kubernetes pods, not for Docker containers.
+> **Note:** port forwarding is available for Kubernetes pods, not for Docker containers.
+
+## Remote projects
+
+In a [remote project](remote-development.md) the project's compose files (with `.env` and
+override files) are read on the host, and the compose ▶ actions and **Run on 'Docker'** of a
+Dockerfile run `docker compose` / `docker build` **on the host**; the console starts with
+"Running on user@host in /path".
+
+With **In remote projects, connect to Docker on the remote host** (`docker.remoteProjectHost`,
+on) the Docker node shows the host's daemon (`ssh://user@host/var/run/docker.sock`), reached
+through the project's own SSH connection: no second login and nothing to set up. Exec terminals
+and Attached Console then run `docker` on the host. Turn it off to use the connection configured
+above; compose still runs on the host then (against the host's own daemon), while exec terminals
+run on this machine. Kubernetes always uses this machine's kubeconfig.
+
+![Compose on the remote host](../../screenshots/remote-finish-compose.png)

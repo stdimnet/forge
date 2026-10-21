@@ -9,8 +9,33 @@ pub use forge_fuzzy::{
     fuzzy_match, fuzzy_match_with, match_file, FileMatch, FuzzyMatch, MatchOptions,
 };
 
+use serde::{Deserialize, Serialize};
+
 use crate::workspace::{Workspace, DEFAULT_EXCLUDES};
 use crate::Result;
+
+/// Which files [`Workspace::collect_files`] reads: everything a language index needs in one
+/// pass (one round trip for a remote project instead of one per file).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CollectRequest {
+    /// File name extensions without the dot (`lua`), compared case-insensitively.
+    pub extensions: Vec<String>,
+    /// At most this many files are read.
+    pub max_files: usize,
+    /// Larger files (generated code, bundled libraries) are skipped.
+    pub max_file_size: u64,
+    /// Reading stops once the texts add up to this many bytes.
+    pub max_total: u64,
+}
+
+/// A file read by [`Workspace::collect_files`].
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SourceFile {
+    /// Workspace-relative, `/`-separated.
+    pub path: String,
+    pub text: String,
+}
 
 /// Hard cap on files visited per query so huge trees stay responsive.
 const MAX_WALKED_FILES: usize = 200_000;
@@ -161,12 +186,101 @@ impl Workspace {
             }
         }
     }
+
+    /// The text of every file with one of `req.extensions` (`.gitignore`/`.ignore` and the
+    /// default excludes respected; binary and oversized files skipped), in path order.
+    pub fn collect_files(&self, req: &CollectRequest) -> Result<Vec<SourceFile>> {
+        let exts: Vec<String> = req
+            .extensions
+            .iter()
+            .map(|e| e.trim_start_matches('.').to_ascii_lowercase())
+            .collect();
+        let walker = ignore::WalkBuilder::new(self.root())
+            .hidden(false)
+            .require_git(false)
+            .sort_by_file_path(|a, b| a.cmp(b))
+            .filter_entry(|e| !DEFAULT_EXCLUDES.contains(&e.file_name().to_string_lossy().as_ref()))
+            .build();
+        let mut out = Vec::new();
+        let mut total = 0u64;
+        for entry in walker.filter_map(|e| e.ok()).take(MAX_WALKED_FILES) {
+            if out.len() >= req.max_files {
+                break;
+            }
+            if !entry.file_type().is_some_and(|t| t.is_file()) {
+                continue;
+            }
+            let wanted = entry
+                .path()
+                .extension()
+                .map(|e| e.to_string_lossy().to_ascii_lowercase())
+                .is_some_and(|e| exts.contains(&e));
+            let size = entry.metadata().map(|m| m.len()).unwrap_or(u64::MAX);
+            if !wanted || size > req.max_file_size {
+                continue;
+            }
+            if total + size > req.max_total {
+                break;
+            }
+            let Ok(bytes) = std::fs::read(entry.path()) else {
+                continue;
+            };
+            if forge_find::is_binary(&bytes) {
+                continue;
+            }
+            total += bytes.len() as u64;
+            out.push(SourceFile {
+                path: self.relative(entry.path()),
+                text: String::from_utf8_lossy(&bytes).into_owned(),
+            });
+        }
+        Ok(out)
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use std::fs;
+
+    #[test]
+    fn collect_files_reads_matching_files_within_limits() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        fs::create_dir_all(root.join("src/lib")).unwrap();
+        fs::create_dir_all(root.join("ignored")).unwrap();
+        fs::write(root.join(".gitignore"), "ignored/\n").unwrap();
+        fs::write(root.join("main.lua"), "print(1)").unwrap();
+        fs::write(root.join("src/lib/util.LUA"), "return {}").unwrap();
+        fs::write(root.join("src/big.lua"), "x".repeat(100)).unwrap();
+        fs::write(root.join("src/readme.md"), "# no").unwrap();
+        fs::write(root.join("ignored/skip.lua"), "skip()").unwrap();
+        let ws = Workspace::open(root).unwrap();
+        let req = CollectRequest {
+            extensions: vec!["lua".into()],
+            max_files: 10,
+            max_file_size: 50,
+            max_total: 1000,
+        };
+        let files = ws.collect_files(&req).unwrap();
+        let paths: Vec<_> = files.iter().map(|f| f.path.as_str()).collect();
+        assert_eq!(paths, vec!["main.lua", "src/lib/util.LUA"]);
+        assert_eq!(files[0].text, "print(1)");
+        let one = ws
+            .collect_files(&CollectRequest {
+                max_files: 1,
+                ..req.clone()
+            })
+            .unwrap();
+        assert_eq!(one.len(), 1);
+        let none = ws
+            .collect_files(&CollectRequest {
+                max_total: 4,
+                ..req
+            })
+            .unwrap();
+        assert!(none.is_empty());
+    }
 
     #[test]
     fn find_files_respects_gitignore() {

@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use std::sync::Arc;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command;
 use tokio::sync::{mpsc, Notify};
@@ -17,7 +17,7 @@ use tokio::sync::{mpsc, Notify};
 use crate::catalog::{display_args, InstallOption};
 use crate::detect::Detector;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Stream {
     Stdout,
@@ -26,7 +26,7 @@ pub enum Stream {
     Info,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum InstallOutcome {
     Succeeded,

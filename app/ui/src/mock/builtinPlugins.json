@@ -867,6 +867,26 @@
           "group": "tools.http-client",
           "project": true,
           "order": 0
+        },
+        {
+          "key": "httpClient.sendFrom",
+          "title": "Send requests from",
+          "description": "Remote projects only: \"Remote host\" sends the requests of .http files through an SSH tunnel from the project's host, so localhost URLs reach the services running there. \"This machine\" sends them from here.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "local",
+              "label": "This machine"
+            },
+            {
+              "value": "remote",
+              "label": "Remote host"
+            }
+          ],
+          "default": "remote",
+          "group": "tools.http-client",
+          "project": true,
+          "order": 1
         }
       ],
       "lspServers": [],
@@ -1507,13 +1527,24 @@
         {
           "key": "docker.ssh.socketPath",
           "title": "Docker socket on the host",
-          "description": "Empty: /var/run/docker.sock (rootless: /run/user/<uid>/docker.sock).",
+          "description": "For SSH connections and Docker on a remote project's host. Empty: /var/run/docker.sock (rootless: /run/user/<uid>/docker.sock).",
           "type": "string",
           "default": "",
           "group": "build.docker",
           "section": "Connection",
           "project": false,
           "order": 44
+        },
+        {
+          "key": "docker.remoteProjectHost",
+          "title": "In remote projects, connect to Docker on the remote host",
+          "description": "Uses the Docker daemon of the project's host through the project's SSH connection (no extra login); compose, builds and exec terminals run on that host. Off: the connection above.",
+          "type": "bool",
+          "default": true,
+          "group": "build.docker",
+          "section": "Connection",
+          "project": false,
+          "order": 45
         },
         {
           "key": "docker.context",

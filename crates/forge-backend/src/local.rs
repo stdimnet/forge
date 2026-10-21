@@ -5,19 +5,27 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use forge_core::search::{FindRequest, FindResult, TodoRequest, TodoResult};
-use forge_core::{FileEntry, FileMatch, FsChanges, ProjectWatcher, Result, Workspace};
+use forge_core::{
+    CollectRequest, FileEntry, FileMatch, FsChanges, ProjectWatcher, Result, SourceFile, Workspace,
+};
 use forge_lsp::{LocalLauncher, ServerLauncher};
 use forge_process::{CommandLine, PtyOptions, PtySession, PtySink, RunSink, RunningProcess};
 use forge_project::ProjectInfo;
 use forge_vcs::{GitExec, LocalGit, Repo};
 
 use crate::frameworks::{FrameworkCall, LocalFrameworks};
-use crate::langservers::{LangServersAnswer, LangServersRequest, LocalLangServers};
+use crate::langservers::{
+    self, InstallRequest, InstallSink, LangServersAnswer, LangServersRequest, LocalLangServers,
+};
 use crate::php::LocalPhp;
+use crate::web::{LocalWeb, WebCall};
 use crate::{
     folder_name, Backend, BackendInfo, FsSink, PhpBackend, Process, Terminal, TerminalSpec,
     WatchGuard,
 };
+use forge_core::ForgeError;
+use forge_langservers::install::InstallOutcome;
+use forge_langservers::managed::PackageUpdate;
 
 /// Serves a local folder: the desktop app's own projects, and the Forge agent on a remote
 /// host.
@@ -27,6 +35,7 @@ pub struct LocalBackend {
     php: Arc<LocalPhp>,
     frameworks: LocalFrameworks,
     langservers: LocalLangServers,
+    web: LocalWeb,
 }
 
 impl LocalBackend {
@@ -37,12 +46,13 @@ impl LocalBackend {
         Ok(Self {
             info: BackendInfo {
                 name: folder_name(&root),
-                root,
+                root: root.clone(),
                 remote: None,
             },
             php: Arc::new(LocalPhp::new(workspace.clone())),
             frameworks: LocalFrameworks::new(workspace.clone()),
             langservers: LocalLangServers::default(),
+            web: LocalWeb::new(&root),
             workspace,
         })
     }
@@ -174,6 +184,10 @@ impl Backend for LocalBackend {
         self.workspace.find_todos(req)
     }
 
+    fn collect_files(&self, req: &CollectRequest) -> Result<Vec<SourceFile>> {
+        self.workspace.collect_files(req)
+    }
+
     fn git(&self) -> Arc<dyn GitExec> {
         Arc::new(LocalGit)
     }
@@ -229,6 +243,35 @@ impl Backend for LocalBackend {
 
     fn langservers(&self, req: LangServersRequest) -> Result<LangServersAnswer> {
         self.langservers.plan(self.root(), &req)
+    }
+
+    fn install_langserver(
+        &self,
+        req: InstallRequest,
+        cancel: Arc<tokio::sync::Notify>,
+        sink: InstallSink,
+    ) -> Result<InstallOutcome> {
+        let mut on = |e| sink(e);
+        langservers::block_on(langservers::install(&req, cancel, &mut on))?
+            .map_err(ForgeError::Other)
+    }
+
+    fn langserver_updates(
+        &self,
+        registry: Option<String>,
+        node_mirror: Option<String>,
+        force: bool,
+    ) -> Result<Option<Vec<PackageUpdate>>> {
+        langservers::block_on(langservers::check_updates(
+            registry.as_deref(),
+            node_mirror.as_deref(),
+            force,
+        ))?
+        .map_err(ForgeError::Other)
+    }
+
+    fn web(&self, call: WebCall) -> Result<Vec<u8>> {
+        self.web.call(call)
     }
 
     fn find_executable(&self, names: &[String], custom: Option<&str>) -> Result<Option<PathBuf>> {

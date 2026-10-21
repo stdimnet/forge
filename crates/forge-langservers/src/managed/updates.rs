@@ -9,7 +9,7 @@ use super::node::parse_version;
 
 pub const CHECK_INTERVAL_SECS: u64 = 24 * 60 * 60;
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PackageUpdate {
     pub name: String,

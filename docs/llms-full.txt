@@ -1747,9 +1747,17 @@ the files: the PHP server (the Forge agent finds Intelephense or Phpactor on the
 catalog servers, whose project scan, detection (`node_modules/.bin`, `PATH`, npm/nvm/volta, …)
 and configuration happen on the host too.
 
-> **Note:** installing servers from the settings page is refused for remote projects; install
-> them on the host from the terminal. The Intelephense install offer is shown for local projects
-> only.
+**Install** on the Language Servers page installs on the host: the Forge agent downloads
+Node.js (when the host has none) and the npm package into Forge's directory on the host
+(`~/.local/share/forge`), checking their hashes, and streams its steps and download progress to
+the page. The page names the host, and so do the install dialog and the Intelephense offer, which
+always asks before downloading onto a host (also with `auto install` set to always). The
+Intelephense licence is accepted on your machine. Updates of the servers Forge installed are
+checked on the host too.
+
+![Language Servers page of a remote project](docs/screenshots/remote-finish-langserver.png)
+
+![Installing on the host](docs/screenshots/remote-finish-langserver-dialog.png)
 
 ## Troubleshooting
 
@@ -5002,8 +5010,9 @@ Forge: see [Browser Companion](docs/guide/user/browser-companion.md).
 The New Project wizard creates Vite, React, Vue.js, Angular, Svelte and static HTML projects,
 see [Opening and creating projects](docs/guide/getting-started/projects.md).
 
-> **Note:** the npm tool window and framework navigation read the project through this
-> machine's file system; they are not available in [remote projects](docs/guide/user/remote-development.md) yet.
+In [remote projects](docs/guide/user/remote-development.md) the npm tool window, package manager detection,
+component navigation and gutter icons are computed by the Forge agent on the host, and scripts
+run there like every run configuration.
 
 
 ---
@@ -5075,7 +5084,8 @@ lua-language-server`) or from its releases.
 
 **Reformat Code** (`Ctrl+Alt+L`) formats Lua files with StyLua when it is installed; the
 project's `stylua.toml` is honoured. Settings: **Reformat Code with StyLua**
-(`lua.stylua.enabled`, on) and **StyLua executable** (`lua.stylua.path`, `stylua`).
+(`lua.stylua.enabled`, on) and **StyLua executable** (`lua.stylua.path`, `stylua`). In a
+[remote project](docs/guide/user/remote-development.md) StyLua runs on the host (install it there).
 
 ## Running Lua
 
@@ -5234,7 +5244,8 @@ The plugin **GitLab, Forgejo and GitHub** (`forge.code-hosts`) brings code revie
 | GitHub | REST + GraphQL for review threads | `#12` | GitHub Enterprise Server |
 
 The repository is detected from `git remote -v` (https, ssh and scp-style URLs, nested GitLab
-groups). Wording follows the host: "merge request" on GitLab, "pull request" elsewhere.
+groups); in a [remote project](docs/guide/user/remote-development.md) git runs on the host, while the API calls
+go from your machine with your tokens. Wording follows the host: "merge request" on GitLab, "pull request" elsewhere.
 
 ## Logging in
 
@@ -5953,9 +5964,21 @@ Test results and log lines are printed after the response.
 
 ![Handler report](docs/screenshots/editor-polish-http-handler.png)
 
-> **Note:** response references (`<> file`) are skipped. HTTP requests read the environment
-> files through the local project; they are not available in
-> [remote projects](docs/guide/user/remote-development.md) yet.
+> **Note:** response references (`<> file`) are skipped.
+
+### Remote projects
+
+In a [remote project](docs/guide/user/remote-development.md) environment files and `< file` bodies are read on
+the host, and requests are sent **from the host**: Forge forwards a local port through the
+project's SSH connection (`direct-tcpip`) to the URL's host and port as the remote host sees
+them, so `http://localhost:8000` reaches the server running there. The URL's host stays the
+`Host` header and the TLS server name; redirects are not followed. The console says
+"Sent from user@host through an SSH tunnel".
+
+Settings | Tools | HTTP Client | **Send requests from** (`httpClient.sendFrom`, per project):
+**Remote host** (default) or **This machine**.
+
+![HTTP request sent from the remote host](docs/screenshots/remote-finish-http.png)
 
 
 ---
@@ -6088,6 +6111,7 @@ anonymously.
 | Connect to Docker daemon with (`auto`, `unix`, `pipe`, `tcp`, `ssh`, `context`) | `docker.connection` | `auto` |
 | SSH host: `ssh://user@host[:port]` or a `Host` alias of `~/.ssh/config` | `docker.ssh.url` | empty |
 | Docker socket on the host (empty: `/var/run/docker.sock`) | `docker.ssh.socketPath` | empty |
+| In remote projects, connect to Docker on the remote host | `docker.remoteProjectHost` | on |
 | Docker context (`docker context ls`) | `docker.context` | empty |
 | Socket path (Unix socket or named pipe; empty: the first existing default) | `docker.socketPath` | empty |
 | Engine API URL (TCP) | `docker.tcp.url` | `tcp://localhost:2375` |
@@ -6129,9 +6153,23 @@ CLI, which reaches `ssh://` hosts itself.
 Kubernetes authentication supports CA certificates, bearer tokens, client certificates, basic
 auth and exec credential plugins (as used by EKS, GKE and AKS).
 
-> **Note:** the Services tool window always talks to the Docker daemon and cluster configured
-> on this machine, also when a remote project is open; use Docker over SSH to reach the remote
-> host's daemon. Port forwarding is available for Kubernetes pods, not for Docker containers.
+> **Note:** port forwarding is available for Kubernetes pods, not for Docker containers.
+
+## Remote projects
+
+In a [remote project](docs/guide/user/remote-development.md) the project's compose files (with `.env` and
+override files) are read on the host, and the compose ▶ actions and **Run on 'Docker'** of a
+Dockerfile run `docker compose` / `docker build` **on the host**; the console starts with
+"Running on user@host in /path".
+
+With **In remote projects, connect to Docker on the remote host** (`docker.remoteProjectHost`,
+on) the Docker node shows the host's daemon (`ssh://user@host/var/run/docker.sock`), reached
+through the project's own SSH connection: no second login and nothing to set up. Exec terminals
+and Attached Console then run `docker` on the host. Turn it off to use the connection configured
+above; compose still runs on the host then (against the host's own daemon), while exec terminals
+run on this machine. Kubernetes always uses this machine's kubeconfig.
+
+![Compose on the remote host](docs/screenshots/remote-finish-compose.png)
 
 
 ---
@@ -6232,9 +6270,16 @@ The project's root is shown as `user@host:/path`. Recent Projects keeps remote p
 | Git (status, commit, diff, blame, branches, log) | yes; output is parsed locally |
 | Find in Files | yes, searched on the host |
 | PHP index, Structure, Generate, Intelephense/Phpactor | yes; Intelephense indexes the remote files itself |
-| Catalog language servers (TypeScript, YAML, Python, …) | yes: scan, detection and the servers run on the host (install them there) |
+| Catalog language servers (TypeScript, YAML, Python, …) | yes: scan, detection and the servers run on the host |
+| Installing language servers (Settings, Intelephense offer) | yes: the agent downloads Node.js and the npm servers into Forge's directory on the host, with progress here; the Intelephense licence is accepted on your machine |
 | Laravel, Symfony and Doctrine analysis | yes, in the agent; artisan and `bin/console` run on the host |
-| LuaForge index | yes |
+| WebForge: npm tool window, React / Vue / Angular navigation and gutter icons | yes: `package.json` files, scripts, package managers and components are read in the agent; scripts run on the host |
+| LuaForge index | yes, all Lua files are read on the host in one batch |
+| StyLua (Reformat Code) | yes, StyLua runs on the host |
+| Code hosts (GitLab, Forgejo, GitHub) | yes: the repository is detected with git on the host; API calls go from your machine with your tokens |
+| HTTP client (`.http` files) | environment and body files are read on the host; requests are sent **from the host** through an SSH tunnel, so `localhost` URLs reach its services (Settings \| Tools \| HTTP Client \| **Send requests from**) |
+| Services: compose files and Dockerfile ▶ | compose files are read on the host and `docker compose` / `docker build` run there; by default Docker of the host is used through the project's SSH connection |
+| Browser Companion | files the browser reports (host paths, container paths like `/app/src/…`) open in the remote project |
 | Project settings (`.forge/settings.toml`) and other `.forge/` files | yes, read and written on the host |
 | Terminal | yes, a shell on the host |
 | Run/Debug configurations (run) | yes, processes run on the host |
@@ -6244,11 +6289,18 @@ The project's root is shown as `user@host:/path`. Recent Projects keeps remote p
 
 ![Remote terminal](docs/screenshots/remote-terminal.png)
 
-> **Note:** still local-only, reporting "not available in remote projects yet": WebForge's npm
-> tool window and component navigation, StyLua formatting, code hosts (pull requests), the
-> Services tool window's project compose files, and HTTP request environments. Installing
-> language servers from the settings page is refused (install on the host). The Browser
-> Companion opens files of local projects only.
+Every feature works in remote projects. Things that are about your machine stay local on
+purpose: code host API calls (your tokens), the keychain, the Intelephense licence prompt and,
+when you choose it, HTTP requests ("Send requests from: This machine") and Docker or Kubernetes
+of this machine (see [Services](docs/guide/user/services.md#remote-projects)).
+
+![npm tool window of a remote project](docs/screenshots/remote-finish-npm.png)
+
+![Compose on the remote host](docs/screenshots/remote-finish-compose.png)
+
+![HTTP request sent from the remote host](docs/screenshots/remote-finish-http.png)
+
+![Language server installed on the host](docs/screenshots/remote-finish-langserver.png)
 
 ## Connection status and reconnects
 
@@ -6546,9 +6598,11 @@ builds). A second launch is forwarded to the running Forge window. Files given o
 line are trusted and open without asking. Full syntax:
 [CLI arguments and forge:// links](docs/guide/reference/cli-and-links.md).
 
-> **Note:** in a [remote project](docs/guide/user/remote-development.md) the settings page reads the project's
-> frameworks and applies `.env` changes on the host, but files requested by the browser are
-> only opened in local projects.
+In a [remote project](docs/guide/user/remote-development.md) the settings page reads the project's frameworks
+and applies `.env` changes on the host, and files the browser asks for open in the remote
+project: the host's absolute paths below the project, paths relative to it, and paths of other
+machines or containers (`/app/src/App.tsx`, `C:\Users\…\src\App.tsx`), which are matched by
+their longest tail that exists in the project. Symbol lookups search the host's files.
 
 
 ---
@@ -8965,15 +9019,16 @@ the OS keychain. See [Settings](docs/guide/developer/settings.md).
 
 Every project command goes through the open project's `forge_backend::Backend`: files, search,
 git, watching, terminals, processes, language server launching, the PHP index, Find in Files,
-framework analysis (`framework(FrameworkCall)` for Laravel, Symfony and Doctrine), catalog
-language server planning (`langservers`), executable lookup (`find_executable`, used for the AI
-agent CLIs) and SSH port forwarding (`tunnels()`, used for database tunnels and the Xdebug
-reverse tunnel). Project `.forge/` files go through `forge_core::ProjectFiles`.
-`LocalBackend` serves a local folder; `RemoteBackend` talks to `forge-remote-agent` over SSH
-with a length-prefixed MessagePack protocol (calls, events and byte channels; protocol 2). The
-few features that still only work locally (WebForge sources, StyLua, code hosts, Docker
-services, HTTP scratch environments) use `AppState::with_workspace`, which fails for remote
-projects with "not available in remote projects yet".
+framework analysis (`framework(FrameworkCall)` for Laravel, Symfony and Doctrine), WebForge
+analysis (`web(WebCall)`: npm packages, components, navigation, gutter), batched file reads for
+language indexes (`collect_files`, the Lua index), catalog language server planning
+(`langservers`) and installs (`install_langserver`, `langserver_updates`), executable lookup
+(`find_executable`, AI agent CLIs, StyLua) and SSH tunnels (`tunnels()`: database tunnels, the
+Xdebug reverse tunnel, HTTP requests sent from the host and the host's Docker socket). Project
+`.forge/` files go through `forge_core::ProjectFiles`. `LocalBackend` serves a local folder;
+`RemoteBackend` talks to `forge-remote-agent` over SSH with a length-prefixed MessagePack
+protocol (calls, events and byte channels; protocol 4). Every feature works in remote
+projects; there is no local-only fallback any more.
 
 ## Keymap
 
@@ -9534,7 +9589,8 @@ showBalloon("Database found in .env", "MySQL · shop@localhost", 0, [{ label: "A
 
 Use `projectInfo()`, `usesFramework("laravel")` and `isPluginActive("forge.laravel")` from
 `src/state/project.ts` to activate a feature only when the project uses it, and
-`isRemoteProject()` from `state/workspace.ts` to hide local-only features.
+`isRemoteProject()` / `workspace()?.remote` from `state/workspace.ts` to name the host in the UI
+(features themselves work remotely through the project backend).
 
 
 ---
@@ -9555,17 +9611,20 @@ Put the logic in a crate with tests, then add a thin handler to
 
 ```rust
 #[tauri::command]
-pub fn routes_list(state: State<'_, AppState>) -> Result<Vec<Route>> {
-    state.with_workspace(|ws| forge_laravel::routes(ws.root()))
+pub async fn npm_packages(state: State<'_, AppState>) -> Result<Vec<NpmPackage>> {
+    let backend = state.backend()?;
+    blocking(move || web_call(backend.as_ref(), WebCall::NpmPackages { refresh: false, package_manager: "auto".into() })).await
 }
 ```
 
 - Return `forge_core::Result<T>`; errors serialize to strings for the UI.
 - Resolve user paths with `Workspace::resolve`, which rejects paths outside the project.
-- Project operations that must also work remotely go through `AppState::backend()` (the
-  `forge_backend::Backend` of the open project) and run on a blocking thread
-  (`commands::workspace::blocking`). `with_workspace` is for local-only features; it fails for
-  remote projects with "not available in remote projects yet".
+- Project operations go through `AppState::backend()` (the `forge_backend::Backend` of the open
+  project) and run on a blocking thread (`commands::workspace::blocking`), so they work in
+  remote projects too. Never touch the project with `std::fs` or `std::process` in a command;
+  analysis that reads many files belongs behind a backend call that runs next to the files
+  (see `forge_backend::web` or `frameworks`). `AppState::local_workspace()` is only for
+  questions about this machine (which local project a file opened from outside belongs to).
 - Long work: make the command `async` or spawn a task; stream progress with
   `app.emit("<area>://<event>", payload)`.
 - Feature state: a struct registered with `.manage(...)` in `lib.rs`, not more fields in
@@ -13110,7 +13169,7 @@ available yet.
 
 **Can I work on a server over SSH?**
 Yes, see [Remote development](docs/guide/user/remote-development.md). Frameworks, language servers,
-databases (through SSH tunnels), Xdebug and the AI agents work there; a few features are still local-only.
+databases (through SSH tunnels), Xdebug, Docker, the HTTP client and the AI agents work there.
 
 ## Contributing
 
@@ -13267,17 +13326,25 @@ at this step:
 Forge refuses to connect when the host key differs from `~/.ssh/known_hosts` and shows both
 fingerprints. Confirm only if you know why it changed (reinstalled server).
 
-### Feature says "not available in remote projects yet"
-
-Expected for WebForge's npm tool window and component navigation, StyLua, code hosts, HTTP
-request environments and project compose files in Services. See
-[Remote development](docs/guide/user/remote-development.md).
-
 ### Language server missing in a remote project
 
-Catalog servers and Intelephense must be installed **on the host** (the settings page refuses to
-install for remote projects). Install them there, e.g. `npm install -g intelephense`, then
-reopen the project.
+Catalog servers and Intelephense run **on the host**. Install them from Settings | Languages &
+Frameworks | Language Servers (Forge installs npm servers on the host) or on the host yourself,
+e.g. `npm install -g intelephense`, then reopen the project.
+
+### HTTP request in a remote project cannot connect
+
+Requests are sent from the host through an SSH tunnel, so the URL must work **on the host**
+(`localhost` is the host). For a service on your machine, set Settings | Tools | HTTP Client |
+**Send requests from** to **This machine**. "Cannot open an SSH tunnel" means the connection is
+down or the SSH server forbids TCP forwarding (`AllowTcpForwarding`).
+
+### Docker in a remote project
+
+The Docker node uses the host's daemon through the SSH connection. "permission denied" on the
+socket means the SSH user is not in the host's `docker` group; for rootless Docker set **Docker
+socket on the host** to `/run/user/<uid>/docker.sock`. The SSH server must allow stream local
+forwarding (`AllowStreamLocalForwarding`).
 
 ## Git
 
@@ -13379,7 +13446,7 @@ inside a folder are sorted by their `order` value (see below), not by file name.
   without any admonition plugin:
 
   ```markdown
-  > **Note:** not available in remote projects yet.
+  > **Note:** response references (`<> file`) are skipped.
 
   > **Warning:** this deletes the folder and everything in it.
   ```

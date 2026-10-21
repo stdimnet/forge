@@ -64,7 +64,7 @@ inside a folder are sorted by their `order` value (see below), not by file name.
   without any admonition plugin:
 
   ```markdown
-  > **Note:** not available in remote projects yet.
+  > **Note:** response references (`<> file`) are skipped.
 
   > **Warning:** this deletes the folder and everything in it.
   ```

@@ -24,8 +24,11 @@ export function managedOption(row: ServerRow | undefined): InstallRow | undefine
 export interface PromptInput {
   /** The open project uses PHP and the PHP plugin is on. */
   php: boolean;
-  /** Remote projects run their servers on the host; Forge installs locally only. */
-  remote: boolean;
+  /**
+   * `user@host` of a remote project: its servers run (and are installed) on that host, and
+   * Forge always asks before downloading onto it.
+   */
+  host?: string;
   /** The Intelephense row of the Language Servers list. */
   row: ServerRow | undefined;
   autoInstall: string;
@@ -39,12 +42,12 @@ export type PromptAction = "none" | "ask" | "install";
 
 /** What to do about a missing Intelephense when a project opens. */
 export function intelephenseAction(i: PromptInput): PromptAction {
-  if (!i.php || i.remote || i.offered || !i.row) return "none";
+  if (!i.php || i.offered || !i.row) return "none";
   if (i.row.status !== "notInstalled" || i.row.path) return "none";
   if (i.server === "phpactor" || i.server === "none") return "none";
   if (!managedOption(i.row)) return "none";
   if (i.autoInstall === "never") return "none";
-  return i.autoInstall === "always" ? "install" : "ask";
+  return i.autoInstall === "always" && !i.host ? "install" : "ask";
 }
 
 export interface BalloonAction {
@@ -71,7 +74,8 @@ export function offerIntelephense(input: PromptInput, deps: OfferDeps): PromptAc
     void deps.install(row);
     return action;
   }
-  deps.showBalloon(OFFER_TEXT, OFFER_DETAIL, 0, [
+  const text = input.host ? `${OFFER_TEXT} on ${input.host}` : OFFER_TEXT;
+  deps.showBalloon(text, OFFER_DETAIL, 0, [
     { label: "Install", run: () => void deps.install(row) },
     { label: "Not now", run: () => {} },
     { label: "Don't ask again", run: () => void deps.saveSetting(AUTO_INSTALL_KEY, "never") },

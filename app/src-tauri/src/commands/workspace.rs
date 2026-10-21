@@ -103,6 +103,7 @@ pub fn project_opened(app: &AppHandle) {
         }
         Some(host) => {
             crate::commands::db::remote_project_opened(app);
+            crate::commands::services::reconfigure(app);
             crate::recent::remember(RecentProject {
                 name: info.name.clone(),
                 root: display,

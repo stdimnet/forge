@@ -125,6 +125,8 @@ builds). A second launch is forwarded to the running Forge window. Files given o
 line are trusted and open without asking. Full syntax:
 [CLI arguments and forge:// links](../reference/cli-and-links.md).
 
-> **Note:** in a [remote project](remote-development.md) the settings page reads the project's
-> frameworks and applies `.env` changes on the host, but files requested by the browser are
-> only opened in local projects.
+In a [remote project](remote-development.md) the settings page reads the project's frameworks
+and applies `.env` changes on the host, and files the browser asks for open in the remote
+project: the host's absolute paths below the project, paths relative to it, and paths of other
+machines or containers (`/app/src/App.tsx`, `C:\Users\…\src\App.tsx`), which are matched by
+their longest tail that exists in the project. Symbol lookups search the host's files.

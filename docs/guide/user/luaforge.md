@@ -70,7 +70,8 @@ lua-language-server`) or from its releases.
 
 **Reformat Code** (`Ctrl+Alt+L`) formats Lua files with StyLua when it is installed; the
 project's `stylua.toml` is honoured. Settings: **Reformat Code with StyLua**
-(`lua.stylua.enabled`, on) and **StyLua executable** (`lua.stylua.path`, `stylua`).
+(`lua.stylua.enabled`, on) and **StyLua executable** (`lua.stylua.path`, `stylua`). In a
+[remote project](remote-development.md) StyLua runs on the host (install it there).
 
 ## Running Lua
 

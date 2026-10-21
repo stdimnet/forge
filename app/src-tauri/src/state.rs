@@ -10,18 +10,13 @@ use crate::plugins::{self, DISABLED_PLUGINS_KEY};
 /// Shared application state managed by Tauri.
 #[derive(Default)]
 pub struct AppState {
-    /// The open project's folder when it is on this machine (features that only work
-    /// locally use it; remote projects have none).
+    /// The open project's folder when it is on this machine (remote projects have none;
+    /// everything that works on project files goes through `backend`).
     workspace: RwLock<Option<Workspace>>,
     /// Where the open project lives: this machine or a remote host.
     backend: RwLock<Option<Arc<dyn Backend>>>,
     pub settings: RwLock<Settings>,
     pub plugins: RwLock<PluginRegistry>,
-}
-
-/// Error for features that only work with projects on this machine.
-pub fn local_only() -> ForgeError {
-    ForgeError::Other("This feature is not available in remote projects yet".into())
 }
 
 impl AppState {
@@ -119,18 +114,14 @@ impl AppState {
         *self.workspace.write().expect("workspace lock poisoned") = None;
         *self.backend.write().expect("backend lock poisoned") = Some(backend);
     }
-    /// Run `f` with the open workspace, or fail if no project is open or the project is
-    /// on a remote host.
-    pub fn with_workspace<T>(
-        &self,
-        f: impl FnOnce(&Workspace) -> forge_core::Result<T>,
-    ) -> forge_core::Result<T> {
-        let guard = self.workspace.read().expect("workspace lock poisoned");
-        match guard.as_ref() {
-            Some(ws) => f(ws),
-            None if self.is_remote() => Err(local_only()),
-            None => Err(ForgeError::Other("no project is open".into())),
-        }
+    /// The open project's folder when it is on this machine (`None` for remote projects).
+    /// Only for things that are about this machine, like which local project a file
+    /// opened from outside belongs to.
+    pub fn local_workspace(&self) -> Option<Workspace> {
+        self.workspace
+            .read()
+            .expect("workspace lock poisoned")
+            .clone()
     }
 
     /// The open project's backend.

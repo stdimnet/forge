@@ -14,6 +14,7 @@ import { demoProjectName } from "./demoProject";
 import { isSymfonyDemo, symfonyDemoName } from "./demoSymfonyProject";
 import { mockSettingValue } from "./settingsMock";
 import { mockFiles } from "./workspaceMock";
+import { currentRemote } from "./remoteMock";
 import {
   ago,
   composeContainer,
@@ -45,6 +46,12 @@ const contexts = () => callWasmSync<DockerContext[]>(w().containers_docker_conte
 /** The endpoint label the settings select (the fake daemon answers on all of them). */
 function endpoint(): string {
   const setting = (k: string) => String(mockSettingValue(k) ?? "");
+  // A remote project uses the Docker daemon of its host through the project's connection.
+  const remote = currentRemote();
+  if (remote && mockSettingValue("docker.remoteProjectHost") !== false) {
+    const socket = setting("docker.ssh.socketPath").trim() || "/var/run/docker.sock";
+    return `ssh://${remote.label}${socket}`;
+  }
   switch (setting("docker.connection")) {
     case "ssh": {
       const url = setting("docker.ssh.url").trim() || "ssh://deploy@build.acme.dev";
@@ -228,6 +235,8 @@ async function compose(project: string, action: string, services: string[]): Pro
   const busyIds = services.length ? services.map((s) => `${projectNode}/${encodeURIComponent(s)}`) : [projectNode];
   await withBusy(busyIds, async () => {
     feed(key, { type: "started", commandLine: `docker ${args.join(" ")}` });
+    const remote = currentRemote();
+    if (remote) out(key, `Running on ${remote.label} in ${remote.path}\n`);
     await sleep(250);
     if (action === "up" || action === "start" || action === "restart") {
       const verb = action === "restart" ? "Restarted" : "Started";

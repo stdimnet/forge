@@ -8,7 +8,7 @@ import { langserversApi, type InstallOutcome, type ServerRow } from "@/ipc/langs
 import { balloonsFor } from "@/keymap/dispatch";
 import { getSetting, saveSetting } from "@/state/settings";
 import { isPluginActive, onProjectDetected } from "@/state/project";
-import { isRemoteProject } from "@/state/workspace";
+import { workspace } from "@/state/workspace";
 import { INTELEPHENSE_ID, LICENCE_ACCEPTED_KEY, AUTO_INSTALL_KEY, managedOption, offerIntelephense, updateSummary } from "./autoInstall";
 import { applyServers, refreshRows, rows } from "./store";
 
@@ -111,12 +111,12 @@ let updatesChecked = false;
 /** Offer Intelephense for a PHP project that has none (see `autoInstall.ts`). */
 export async function checkIntelephense(): Promise<void> {
   const php = isPluginActive("forge.php");
-  if (!php || isRemoteProject()) return;
+  if (!php) return;
   await refreshRows();
   const action = offerIntelephense(
     {
       php,
-      remote: isRemoteProject(),
+      host: workspace()?.remote?.label,
       row: rows().find((r) => r.id === INTELEPHENSE_ID),
       autoInstall: getSetting<string>(AUTO_INSTALL_KEY, "ask"),
       server: getSetting<string>("php.lsp.server", "auto"),

@@ -197,7 +197,7 @@ async function start(id: string, s: Session, cwd?: string, command?: TerminalPro
       cwd,
       cols: s.term.cols,
       rows: s.term.rows,
-      ...(command && { shell: command.program, args: command.args, env: Object.fromEntries(command.env ?? []) }),
+      ...(command && { shell: command.program, args: command.args, env: Object.fromEntries(command.env ?? []), local: command.local }),
     });
     s.opened = true;
     s.lastSize = `${s.term.cols}x${s.term.rows}`;

@@ -16,13 +16,19 @@ Every command has three parts: the Rust handler, a typed UI client and a browser
 
   ```rust
   #[tauri::command]
-  pub fn routes_list(state: State<'_, AppState>) -> Result<Vec<Route>> {
-      state.with_workspace(|ws| forge_laravel::routes(ws.root()))
+  pub async fn file_text(path: String, state: State<'_, AppState>) -> Result<String> {
+      let backend = state.backend()?;
+      blocking(move || backend.read_file(&path)).await
   }
   ```
 
   - Return `forge_core::Result<T>`; errors serialize to strings.
-  - Resolve user paths with `Workspace::resolve`, which rejects paths outside the project.
+  - Reach the project only through `state.backend()` (files, processes, git, executables,
+    tunnels), so the command works in remote projects; never `std::fs` / `std::process` on
+    the project. Analysis over many files gets its own backend call that runs next to the
+    files (see `forge_backend::web`, `frameworks`, `Backend::collect_files`), with a protocol
+    call in `forge_backend::protocol`, a handler in `forge-remote-agent` and an agent test.
+  - The backend resolves workspace-relative paths and rejects paths outside the project.
   - Long work: make the command `async` or spawn a task; stream progress with
     `app.emit("<area>://<event>", payload)`.
   - Feature state: a separate struct managed with `.manage(...)` instead of growing `AppState`.
