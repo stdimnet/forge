@@ -237,10 +237,46 @@ pub fn match_file_with(query: &str, path: &str, opts: MatchOptions) -> Option<Fi
     Some(FileMatch {
         path: path.to_string(),
         name: name.to_string(),
-        score: m.score - tiebreak,
+        score: m.score - tiebreak + name_bonus(query, name, matched_path) - library_penalty(path),
         positions: m.positions,
         matched_path,
     })
+}
+
+const BONUS_EXACT_NAME: i32 = 40;
+const BONUS_EXACT_STEM: i32 = 30;
+const PENALTY_LIBRARY: i32 = 40;
+const LIBRARY_DIRS: [&str; 4] = ["vendor", "node_modules", "third_party", "bower_components"];
+
+/// A file called exactly what was typed (with or without its extension) comes first.
+fn name_bonus(query: &str, name: &str, matched_path: bool) -> i32 {
+    if matched_path {
+        return 0;
+    }
+    let query: String = query.chars().filter(|c| !c.is_whitespace()).collect();
+    if name.eq_ignore_ascii_case(&query) {
+        return BONUS_EXACT_NAME;
+    }
+    match name.rsplit_once('.') {
+        Some((stem, _)) if !stem.is_empty() && stem.eq_ignore_ascii_case(&query) => {
+            BONUS_EXACT_STEM
+        }
+        _ => 0,
+    }
+}
+
+/// Dependencies rank below the project's own files with the same match.
+fn library_penalty(path: &str) -> i32 {
+    let in_library = path
+        .split('/')
+        .rev()
+        .skip(1)
+        .any(|part| LIBRARY_DIRS.contains(&part));
+    if in_library {
+        PENALTY_LIBRARY
+    } else {
+        0
+    }
 }
 
 /// Rank `paths` for "Go to File": best first, ties by path; at most `limit` hits.
@@ -458,6 +494,35 @@ mod tests {
         assert!(!hit.matched_path);
         assert_eq!(hit.positions, vec![0, 1, 5, 6]);
         assert!(match_file("Http", "app/Http/Controllers/OrderController.php").is_none());
+    }
+
+    #[test]
+    fn go_to_file_prefers_the_exact_name_and_the_project_over_dependencies() {
+        let paths = [
+            "database/seeders/UserSeeder.php",
+            "vendor/laravel/framework/src/Foundation/Auth/User.php",
+            "app/Http/Controllers/UserController.php",
+            "app/Models/User.php",
+            "tests/Feature/UserTest.php",
+            "vendor/x/y/z/index.php",
+            "resources/views/users/index.blade.php",
+            "public/index.php",
+        ];
+        let order = |q: &str| -> Vec<String> {
+            rank_files(q, paths, 8)
+                .into_iter()
+                .map(|h| h.path)
+                .collect()
+        };
+        let user = order("user");
+        assert_eq!(user[0], "app/Models/User.php");
+        assert_eq!(
+            user.last().unwrap(),
+            "vendor/laravel/framework/src/Foundation/Auth/User.php"
+        );
+        assert_eq!(order("User.php")[0], "app/Models/User.php");
+        assert_eq!(order("index.php")[0], "public/index.php");
+        assert_eq!(order("index.php")[1], "vendor/x/y/z/index.php");
     }
 
     #[test]
