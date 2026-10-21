@@ -106,6 +106,10 @@ The status bar shows the size of the search index ("272,700 files", or "Indexing
 
 ![Find window ordered by matches](../../screenshots/search-index-find-sorted.png)
 
+- When project files change after a search (a save, git, another tool), the Find window shows **Files changed since this search. Search again** next to the match count. The list is not refreshed on its own, so rows do not move while you read them.
+
+![Find window after files changed](../../screenshots/search-index-find-stale.png)
+
 - **Replace in Files**: the Find window has a **Replace with** field. **Replace…** lists every line that would change (old text left, new text right) before anything is written; **Replace all** then writes the files, and **Undo replace** puts back the files the last replace changed, leaving alone any file you edited since. In regular expression mode the replacement may use `$1` and `${name}`; otherwise it is inserted as typed. It uses the same scope, file mask and options as the search, and works on remote projects too.
 
 ![Replace in Files preview](../../screenshots/search-index-replace.png)

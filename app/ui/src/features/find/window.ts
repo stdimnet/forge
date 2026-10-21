@@ -5,6 +5,7 @@ import { findApi, type FileMatches, type FindRequest, type FindSort } from "@/ip
 import { searchApi } from "@/ipc/search";
 import { getSetting } from "@/state/settings";
 import { showToolWindow } from "@/state/layout";
+import { onFsChanged } from "@/state/fsWatch";
 
 export const FIND_TOOL_WINDOW = "find";
 
@@ -69,6 +70,14 @@ export const [findResults, setFindResults] = createSignal<FindWindowResults>(emp
 /** Files whose matches are folded away in the results tree. */
 export const [collapsedFiles, setCollapsedFiles] = createSignal<Set<string>>(new Set());
 
+/** Project files changed after the shown result was searched; searching again refreshes it. */
+export const [resultsStale, setResultsStale] = createSignal(false);
+
+onFsChanged((c) => {
+  const r = findResults();
+  if (r.searched && !r.busy && (c.changed.length > 0 || c.removed.length > 0)) setResultsStale(true);
+});
+
 let latest = 0;
 let resultId = 0;
 let loadedRows = 0;
@@ -95,6 +104,7 @@ export async function runFindWindow(): Promise<void> {
   const maxMatches = getSetting<number>("search.findInFiles.maxMatches", 0);
   const request: FindRequest = { ...findForm, limit: maxMatches > 0 ? maxMatches : UNLIMITED };
   const mine = ++latest;
+  setResultsStale(false);
   const started = performance.now();
   loadedRows = 0;
   loadingMore = false;

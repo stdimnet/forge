@@ -6,7 +6,7 @@ import { FileIcon } from "@/shell/FileIcon";
 import { fileRows, type MatchRows } from "./contextRows";
 import { formatDuration } from "./duration";
 import { ReplaceBar } from "./ReplaceBar";
-import { collapsedFiles, findForm, findResults, hasMoreRows, loadMoreRows, runFindWindow, setCollapsedFiles, setFindForm } from "./window";
+import { collapsedFiles, findForm, findResults, hasMoreRows, loadMoreRows, resultsStale, runFindWindow, setCollapsedFiles, setFindForm } from "./window";
 
 const ROW_HEIGHT = 24;
 const OVERSCAN = 12;
@@ -200,6 +200,14 @@ export function FindWindow() {
             <span>
               {findResults().matchCount}
               {findResults().truncated ? "+" : ""} matches in {findResults().fileCount} files in {formatDuration(findResults().tookMs)}
+            </span>
+          </Show>
+          <Show when={resultsStale()}>
+            <span class="fw-note" data-testid="results-stale">
+              Files changed since this search.{" "}
+              <a href="#" onClick={(e) => (e.preventDefault(), void runFindWindow())}>
+                Search again
+              </a>
             </span>
           </Show>
           <Show when={findResults().indexing}>

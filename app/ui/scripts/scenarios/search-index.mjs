@@ -48,6 +48,18 @@ export default {
     await page.click('.fw-replace button:has-text("Replace…")');
     await page.waitForSelector('[data-testid="replace-preview"]');
   },
+  "search-index-find-stale": async (page) => {
+    await page.evaluate(() => window.__forgeRunCommand("FindInPath"));
+    await page.keyboard.type("order");
+    await page.waitForTimeout(500);
+    await page.click('button[title^="Open in Find Window"]');
+    await page.waitForSelector(".fw-match");
+    await page.evaluate(async () => {
+      const m = await import("/src/state/fsWatch.ts");
+      m.dispatchFsChanges({ changed: ["app/Models/Order.php"], removed: [], git: false });
+    });
+    await page.waitForSelector('[data-testid="results-stale"]');
+  },
   "search-index-status": async (page) => {
     await page.waitForSelector('[data-testid="index-status"]');
     await page.hover('[data-testid="index-status"]');
