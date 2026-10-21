@@ -136,6 +136,8 @@ struct Inner {
     state: Mutex<ServerState>,
     progress: Mutex<HashMap<String, String>>,
     process: tokio::sync::Mutex<Option<Box<dyn ServerProcess>>>,
+    /// `processId` of `initialize` (see [`crate::launch::ServerIo::parent_pid`]).
+    parent_pid: Option<u32>,
 }
 
 /// Handle to a running language server. Cheap to clone.
@@ -203,6 +205,7 @@ impl LspClient {
                 state: Mutex::new(ServerState::Starting),
                 progress: Mutex::new(HashMap::new()),
                 process: tokio::sync::Mutex::new(Some(io.process)),
+                parent_pid: io.parent_pid,
             }),
         };
         client.set_state(ServerState::Starting);
@@ -575,7 +578,7 @@ impl LspClient {
             v => Some(v.clone()),
         };
         let params = InitializeParams {
-            process_id: Some(std::process::id()),
+            process_id: self.inner.parent_pid,
             root_path: Some(self.inner.root.display().to_string()),
             root_uri,
             initialization_options: init_options,

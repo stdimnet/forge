@@ -642,7 +642,7 @@ mod tests {
             assert!(stubs.contains(&s), "missing {s}");
         }
         assert!(!stubs.contains(&"symfony"));
-        assert_eq!(ip["format"]["braces"], "psr12");
+        assert_eq!(ip["format"]["braces"], "per");
         assert!(!ip["files"]["exclude"]
             .to_string()
             .contains("\"**/vendor/**\""));

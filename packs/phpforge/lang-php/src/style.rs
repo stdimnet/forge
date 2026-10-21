@@ -35,10 +35,10 @@ pub enum Braces {
 }
 
 impl Braces {
-    /// Intelephense's `format.braces` value.
+    /// Intelephense's `format.braces` value (`per` is PER Coding Style, the successor of PSR-12).
     pub fn intelephense(self) -> &'static str {
         match self {
-            Braces::Psr12 => "psr12",
+            Braces::Psr12 => "per",
             Braces::Allman => "allman",
             Braces::KAndR => "k&r",
         }

@@ -100,6 +100,12 @@ fn main() {
             continue;
         }
 
+        if method == "initialize" {
+            notify(
+                "window/logMessage",
+                json!({"type": 3, "message": format!("processId: {}", params["processId"])}),
+            );
+        }
         let result = match method.as_str() {
             "initialize" => json!({
                 "capabilities": {
