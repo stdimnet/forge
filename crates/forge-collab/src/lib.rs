@@ -10,6 +10,7 @@
 //! - [`verify`]: the join proof and the verification code both sides show.
 //! - [`excludes`]: secret files that guests never see.
 //! - [`presence`]: participants and their colors.
+//! - [`textdiff`]: minimal UTF-16 edits between two texts (reloading shared files from disk).
 //!
 //! With `runtime` (the default):
 //! - [`transport`]: the [`transport::Transport`] trait and the in-memory transport for tests.
@@ -19,6 +20,7 @@ pub mod link;
 pub mod permissions;
 pub mod presence;
 pub mod protocol;
+pub mod textdiff;
 pub mod verify;
 
 #[cfg(feature = "runtime")]
