@@ -9,8 +9,11 @@ import { actionById, isActionAvailable, shortcutLabel } from "@/keymap";
 
 export type MenuEntry =
   | { type: "action"; action: string; label?: string }
-  /** A menu item that runs a closure instead of a registered action; `action` only supplies the shortcut. */
-  | { type: "item"; label: string; run: () => void; action?: string }
+  /**
+   * A menu item that runs a closure instead of a registered action. `action` names the action
+   * the closure stands for and supplies the shortcut, unless `shortcutAction` names another one.
+   */
+  | { type: "item"; label: string; run: () => void; action?: string; disabled?: boolean; shortcutAction?: string }
   | { type: "submenu"; label: string; items: MenuEntry[] }
   | { type: "separator" };
 
@@ -35,7 +38,18 @@ export interface ResolvedItem {
 export type ResolvedEntry = ResolvedItem | "separator";
 
 export const action = (id: string, label?: string): MenuEntry => ({ type: "action", action: id, label });
-export const item = (label: string, run: () => void, action?: string): MenuEntry => ({ type: "item", label, run, action });
+export interface ItemOptions {
+  disabled?: boolean;
+  /** Show this action's shortcut instead of the item's own action's. */
+  shortcutAction?: string;
+}
+export const item = (label: string, run: () => void, action?: string, opts: ItemOptions = {}): MenuEntry => ({
+  type: "item",
+  label,
+  run,
+  action,
+  ...opts,
+});
 export const submenu = (label: string, items: MenuEntry[]): MenuEntry => ({ type: "submenu", label, items });
 export const separator: MenuEntry = { type: "separator" };
 
@@ -46,7 +60,8 @@ export function resolveEntries(entries: MenuEntry[]): ResolvedEntry[] {
     if (e.type === "separator") {
       if (out.length && out[out.length - 1] !== "separator") out.push("separator");
     } else if (e.type === "item") {
-      out.push({ kind: "action", label: e.label, run: e.run, shortcut: e.action ? shortcutLabel(e.action) : "" });
+      const keys = e.shortcutAction ?? e.action;
+      out.push({ kind: "action", label: e.label, action: e.action, run: e.run, shortcut: keys ? shortcutLabel(keys) : "", disabled: e.disabled });
     } else if (e.type === "action") {
       if (!isActionAvailable(e.action)) continue;
       out.push({
@@ -120,3 +135,18 @@ export function registerContextMenu(id: string, entries: MenuEntry[]): void {
 }
 
 export const menuEntries = (id: string): MenuEntry[] => menus.get(id) ?? [];
+
+/**
+ * Entries that depend on what the menu was opened on (e.g. the Git submenu of the Project
+ * view needs the clicked file). The menu owner decides where they go.
+ */
+type MenuProvider = (context: never) => MenuEntry[];
+const providers = new Map<string, MenuProvider[]>();
+
+export function registerContextMenuProvider<T>(id: string, provide: (context: T) => MenuEntry[]): void {
+  providers.set(id, [...(providers.get(id) ?? []), provide as MenuProvider]);
+}
+
+export function providedEntries<T>(id: string, context: T): MenuEntry[] {
+  return (providers.get(id) ?? []).flatMap((p) => (p as (c: T) => MenuEntry[])(context));
+}

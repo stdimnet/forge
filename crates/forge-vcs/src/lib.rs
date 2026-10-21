@@ -9,6 +9,7 @@ mod branch;
 mod cmd;
 mod diff;
 mod log;
+mod manage;
 mod status;
 
 use std::path::{Path, PathBuf};
@@ -24,10 +25,15 @@ pub use log::{
     parse_decorations, parse_log, parse_name_status, ChangedFile, Commit, CommitDetails, LogQuery,
     RefKind, RefLabel,
 };
+pub use manage::{
+    append_ignore_patterns, ignore_pattern, ignore_patterns_for, parse_remotes, parse_stash_list,
+    Remote, StashEntry,
+};
 pub use status::{parse_status, FileState, RepoStatus, StatusEntry};
 
 use cmd::{run, run_raw, Run};
 pub use cmd::{GitExec, GitOutput, GitRequest, LocalGit};
+use manage::STASH_FORMAT;
 
 /// Summary of the repository a workspace belongs to.
 #[derive(Debug, Clone, Serialize)]
@@ -566,6 +572,97 @@ impl Repo {
         Ok(self.git(&["rev-parse", "HEAD"])?.trim().to_string())
     }
 
+    // ---- ignore rules, tags and stashes -------------------------------------------------
+
+    /// Add `paths` (workspace-relative files or directories) to the `.gitignore` at the
+    /// repository root, like PHPStorm's "Add to .gitignore". Returns the patterns written;
+    /// patterns the file already has are not repeated.
+    pub fn add_to_gitignore(&self, paths: &[String]) -> Result<Vec<String>> {
+        let repo_paths: Vec<String> = paths
+            .iter()
+            .map(|p| self.ws_to_repo(p.trim_matches('/')))
+            .collect();
+        if paths.iter().any(|p| p.trim_matches('/').is_empty()) {
+            return Err(ForgeError::Other("invalid path: \"\"".into()));
+        }
+        let patterns = ignore_patterns_for(&repo_paths, |p| self.root.join(p).is_dir())?;
+        let file = self.root.join(".gitignore");
+        let existing = match std::fs::read_to_string(&file) {
+            Ok(s) => s,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => String::new(),
+            Err(e) => return Err(ForgeError::io(&file, e)),
+        };
+        if let Some(text) = append_ignore_patterns(&existing, &patterns) {
+            std::fs::write(&file, text).map_err(|e| ForgeError::io(&file, e))?;
+        }
+        Ok(patterns)
+    }
+
+    /// Create a tag at `rev` (default HEAD); with a message it is an annotated tag.
+    pub fn create_tag(&self, name: &str, rev: Option<&str>, message: Option<&str>) -> Result<()> {
+        check_rev(name)?;
+        let mut args = vec!["tag"];
+        let message = message.map(str::trim).filter(|m| !m.is_empty());
+        if message.is_some() {
+            args.extend(["-a", "-F", "-"]);
+        }
+        args.push(name);
+        if let Some(rev) = rev {
+            check_rev(rev)?;
+            args.push(rev);
+        }
+        self.git_stdin(&args, message.unwrap_or_default()).map(drop)
+    }
+
+    /// Stash local changes ("Stash Changes…"). Returns git's report, e.g. "No local
+    /// changes to save".
+    pub fn stash(
+        &self,
+        message: &str,
+        keep_index: bool,
+        include_untracked: bool,
+    ) -> Result<String> {
+        let mut args = vec!["stash", "push"];
+        if keep_index {
+            args.push("--keep-index");
+        }
+        if include_untracked {
+            args.push("--include-untracked");
+        }
+        let message = message.trim();
+        if !message.is_empty() {
+            args.extend(["-m", message]);
+        }
+        Ok(self.git(&args)?.trim().to_string())
+    }
+
+    /// The stash list, most recent first.
+    pub fn stash_list(&self) -> Result<Vec<StashEntry>> {
+        Ok(parse_stash_list(&self.git(&[
+            "stash",
+            "list",
+            STASH_FORMAT,
+        ])?))
+    }
+
+    /// Apply the stash at `index` ("Unstash Changes…"); `pop` also drops it, and
+    /// `reinstate_index` restores what was staged.
+    pub fn unstash(&self, index: usize, pop: bool, reinstate_index: bool) -> Result<String> {
+        let selector = format!("stash@{{{index}}}");
+        let mut args = vec!["stash", if pop { "pop" } else { "apply" }];
+        if reinstate_index {
+            args.push("--index");
+        }
+        args.push(&selector);
+        Ok(self.git(&args)?.trim().to_string())
+    }
+
+    /// Drop the stash at `index` without applying it.
+    pub fn drop_stash(&self, index: usize) -> Result<()> {
+        let selector = format!("stash@{{{index}}}");
+        self.git(&["stash", "drop", "-q", &selector]).map(drop)
+    }
+
     // ---- remotes ------------------------------------------------------------------------
 
     pub fn remotes(&self) -> Result<Vec<String>> {
@@ -617,6 +714,25 @@ impl Repo {
     /// `git remote -v` output (`name<TAB>url (fetch|push)` lines).
     pub fn remote_verbose(&self) -> Result<String> {
         self.git(&["remote", "-v"])
+    }
+
+    /// Configured remotes with their URLs ("Manage Remotes…").
+    pub fn remote_list(&self) -> Result<Vec<Remote>> {
+        Ok(parse_remotes(&self.remote_verbose()?))
+    }
+
+    pub fn add_remote(&self, name: &str, url: &str) -> Result<()> {
+        check_rev(name)?;
+        let url = url.trim();
+        if url.is_empty() || url.starts_with('-') {
+            return Err(ForgeError::Other(format!("invalid remote URL: {url:?}")));
+        }
+        self.git(&["remote", "add", name, url]).map(drop)
+    }
+
+    pub fn remove_remote(&self, name: &str) -> Result<()> {
+        check_rev(name)?;
+        self.git(&["remote", "remove", name]).map(drop)
     }
 
     /// Fetch one refspec from a remote, e.g. `+refs/pull/7/head:refs/heads/pr-7`.

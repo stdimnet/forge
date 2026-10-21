@@ -138,7 +138,14 @@ const state = {
     ["v1.0.0", shaOf("c16")],
   ]),
   recent: laravelBranches ? ["main", "feature/checkout-flow", "bugfix/login-redirect"] : demo.branches,
+  stashes: [
+    { branch: "main", message: "Half-done invoice PDF layout", time: now - 3 * DAY, files: {} as Record<string, string> },
+  ],
+  remotes: [{ name: "origin", fetchUrl: "git@github.com:acme/shop.git", pushUrl: null as string | null }],
 };
+
+/** Paths added with "Add to .gitignore"; the cached demo ignore rules do not know them. */
+const ignoredFromMenu: string[] = [];
 
 // ---- file snapshots -------------------------------------------------------------------
 
@@ -266,7 +273,7 @@ async function computeStatus(): Promise<RepoStatus> {
     const i = index[path];
     const w = wt[path];
     if (i === undefined && h === undefined) {
-      if (w !== undefined)
+      if (w !== undefined && !ignoredFromMenu.some((p) => path === p || path.startsWith(`${p}/`)))
         entries.push({ path, origPath: null, index: "untracked", worktree: "untracked", conflict: false });
       continue;
     }
@@ -609,6 +616,76 @@ registerMock("git_fetch", async () => {
   await delay(500);
   changed();
   return { output: "" };
+});
+
+registerMock("git_add_to_gitignore", async (a) => {
+  const patterns: string[] = [];
+  for (const raw of paths(a)) {
+    const p = raw.replace(/^\/+|\/+$/g, "");
+    if (!p || p.split("/").some((s) => s === ".." || s === ".")) throw new Error(`invalid path: "${raw}"`);
+    const isDir = (await invoke<FileEntry[]>("fs_list_dir", { path: p }).catch(() => [])).length > 0;
+    patterns.push(`/${p}${isDir ? "/" : ""}`);
+    if (!ignoredFromMenu.includes(p)) ignoredFromMenu.push(p);
+  }
+  const existing = (await readWorking(".gitignore")) ?? "";
+  const missing = [...new Set(patterns)].filter((p) => !existing.split("\n").includes(p));
+  if (missing.length) {
+    const sep = existing && !existing.endsWith("\n") ? "\n" : "";
+    await invoke("fs_write_file", { path: ".gitignore", contents: `${existing}${sep}${missing.join("\n")}\n` });
+  }
+  changed();
+  return patterns;
+});
+registerMock("git_create_tag", ({ name, rev }) => {
+  const n = String(name);
+  if (!n || n.startsWith("-")) throw new Error(`invalid revision: "${n}"`);
+  if (state.tags.has(n)) throw new Error(`git tag: tag '${n}' already exists`);
+  const sha = rev ? resolveRev(String(rev)) : state.head;
+  if (!sha) throw new Error(`git tag: Failed to resolve '${rev}' as a valid ref.`);
+  state.tags.set(n, sha);
+  changed();
+});
+registerMock("git_stash", async ({ message }) => {
+  const st = await computeStatus();
+  const tracked = st.entries.filter((e) => e.worktree !== "untracked");
+  if (!tracked.length) return "No local changes to save";
+  const files: Record<string, string> = {};
+  for (const e of tracked) {
+    const w = await readWorking(e.path);
+    if (w !== null) files[e.path] = w;
+    const base = index[e.path] ?? head[e.path];
+    if (base !== undefined) await invoke("fs_write_file", { path: e.path, contents: base });
+  }
+  const msg = String(message ?? "").trim() || `${state.head.slice(0, 7)} ${bySha.get(state.head)?.subject ?? ""}`;
+  state.stashes.unshift({ branch: state.current ?? "", message: msg, time: Math.floor(Date.now() / 1000), files });
+  changed();
+  return `Saved working directory and index state On ${state.current}: ${msg}`;
+});
+registerMock("git_stash_list", () => state.stashes.map((s, index) => ({ index, branch: s.branch || null, message: s.message, time: s.time })));
+registerMock("git_unstash", async ({ index: i, pop }) => {
+  const s = state.stashes[Number(i)];
+  if (!s) throw new Error(`git stash: stash@{${i}} is not a valid reference`);
+  for (const [path, contents] of Object.entries(s.files)) await invoke("fs_write_file", { path, contents });
+  if (pop) state.stashes.splice(Number(i), 1);
+  changed();
+  return pop ? `Dropped refs/stash@{${i}}` : "";
+});
+registerMock("git_drop_stash", ({ index: i }) => {
+  state.stashes.splice(Number(i), 1);
+  changed();
+});
+registerMock("git_remotes", () => state.remotes.map((r) => ({ ...r })));
+registerMock("git_add_remote", ({ name, url }) => {
+  const n = String(name);
+  if (state.remotes.some((r) => r.name === n)) throw new Error(`git remote: remote ${n} already exists.`);
+  state.remotes.push({ name: n, fetchUrl: String(url), pushUrl: null });
+  changed();
+});
+registerMock("git_remove_remote", ({ name }) => {
+  const at = state.remotes.findIndex((r) => r.name === name);
+  if (at < 0) throw new Error(`git remote: No such remote: '${name}'`);
+  state.remotes.splice(at, 1);
+  changed();
 });
 
 registerMock("ai_complete", async ({ request }) => {

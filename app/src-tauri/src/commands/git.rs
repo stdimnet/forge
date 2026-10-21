@@ -2,12 +2,14 @@
 //! thread (on the project's host: this machine or the remote agent); mutating commands
 //! emit `git://changed` so open views refresh.
 
-use forge_core::{ForgeError, Result};
+use forge_core::{FileKind, ForgeError, Result};
 use forge_vcs::{
-    Blame, Branches, Commit, CommitDetails, LogQuery, RemoteResult, Repo, RepoInfo, RepoStatus,
+    Blame, Branches, Commit, CommitDetails, LogQuery, Remote, RemoteResult, Repo, RepoInfo,
+    RepoStatus, StashEntry,
 };
 use tauri::{AppHandle, Emitter, State};
 
+use crate::commands::workspace::blocking;
 use crate::state::AppState;
 
 /// Event emitted after any operation that changes repository state.
@@ -229,4 +231,119 @@ pub async fn git_pull(
 #[tauri::command]
 pub async fn git_fetch(app: AppHandle, state: State<'_, AppState>) -> Result<RemoteResult> {
     mutate(&app, &state, |r| r.fetch()).await
+}
+
+/// Append files or directories to the repository's `.gitignore`; returns the patterns.
+/// Remote projects edit the `.gitignore` at the project root through the backend.
+#[tauri::command]
+pub async fn git_add_to_gitignore(
+    paths: Vec<String>,
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> Result<Vec<String>> {
+    if !state.is_remote() {
+        return mutate(&app, &state, move |r| r.add_to_gitignore(&paths)).await;
+    }
+    let backend = state.backend()?;
+    let res = blocking(move || {
+        let is_dir = |p: &str| {
+            let (parent, name) = p.rsplit_once('/').unwrap_or(("", p));
+            backend.list_dir(parent).is_ok_and(|entries| {
+                entries
+                    .iter()
+                    .any(|e| e.name == name && e.kind == FileKind::Dir)
+            })
+        };
+        let patterns = forge_vcs::ignore_patterns_for(&paths, is_dir)?;
+        let existing = backend.read_optional(".gitignore")?.unwrap_or_default();
+        if let Some(text) = forge_vcs::append_ignore_patterns(&existing, &patterns) {
+            backend.write_file(".gitignore", &text)?;
+        }
+        Ok(patterns)
+    })
+    .await;
+    if let Err(e) = app.emit(CHANGED_EVENT, ()) {
+        tracing::warn!("could not emit {CHANGED_EVENT}: {e}");
+    }
+    res
+}
+
+#[tauri::command]
+pub async fn git_create_tag(
+    name: String,
+    rev: Option<String>,
+    message: Option<String>,
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> Result<()> {
+    mutate(&app, &state, move |r| {
+        r.create_tag(&name, rev.as_deref(), message.as_deref())
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn git_stash(
+    message: String,
+    keep_index: bool,
+    include_untracked: bool,
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> Result<String> {
+    mutate(&app, &state, move |r| {
+        r.stash(&message, keep_index, include_untracked)
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn git_stash_list(state: State<'_, AppState>) -> Result<Vec<StashEntry>> {
+    with_repo(&state, |r| r.stash_list()).await
+}
+
+#[tauri::command]
+pub async fn git_unstash(
+    index: usize,
+    pop: bool,
+    reinstate_index: bool,
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> Result<String> {
+    mutate(&app, &state, move |r| {
+        r.unstash(index, pop, reinstate_index)
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn git_drop_stash(
+    index: usize,
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> Result<()> {
+    mutate(&app, &state, move |r| r.drop_stash(index)).await
+}
+
+#[tauri::command]
+pub async fn git_remotes(state: State<'_, AppState>) -> Result<Vec<Remote>> {
+    with_repo(&state, |r| r.remote_list()).await
+}
+
+#[tauri::command]
+pub async fn git_add_remote(
+    name: String,
+    url: String,
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> Result<()> {
+    mutate(&app, &state, move |r| r.add_remote(&name, &url)).await
+}
+
+#[tauri::command]
+pub async fn git_remove_remote(
+    name: String,
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> Result<()> {
+    mutate(&app, &state, move |r| r.remove_remote(&name)).await
 }

@@ -120,6 +120,21 @@ export interface RemoteResult {
   output: string;
 }
 
+export interface StashEntry {
+  /** 0 is `stash@{0}`, the most recent. */
+  index: number;
+  branch: string | null;
+  message: string;
+  time: number;
+}
+
+export interface Remote {
+  name: string;
+  fetchUrl: string;
+  /** Only set when it differs from the fetch URL. */
+  pushUrl: string | null;
+}
+
 export const GIT_CHANGED_EVENT = "git://changed";
 
 export const gitApi = {
@@ -146,6 +161,19 @@ export const gitApi = {
   push: (force = false) => invoke<RemoteResult>("git_push", { force }),
   pull: (rebase = false) => invoke<RemoteResult>("git_pull", { rebase }),
   fetch: () => invoke<RemoteResult>("git_fetch"),
+  /** Append files or folders to the repository's `.gitignore`; returns the patterns. */
+  addToGitignore: (paths: string[]) => invoke<string[]>("git_add_to_gitignore", { paths }),
+  createTag: (name: string, rev: string | null = null, message: string | null = null) =>
+    invoke<void>("git_create_tag", { name, rev, message }),
+  stash: (message: string, keepIndex = false, includeUntracked = false) =>
+    invoke<string>("git_stash", { message, keepIndex, includeUntracked }),
+  stashList: () => invoke<StashEntry[]>("git_stash_list"),
+  unstash: (index: number, pop: boolean, reinstateIndex = false) =>
+    invoke<string>("git_unstash", { index, pop, reinstateIndex }),
+  dropStash: (index: number) => invoke<void>("git_drop_stash", { index }),
+  remotes: () => invoke<Remote[]>("git_remotes"),
+  addRemote: (name: string, url: string) => invoke<void>("git_add_remote", { name, url }),
+  removeRemote: (name: string) => invoke<void>("git_remove_remote", { name }),
 };
 
 /** Single status for display (tree/tab colors, commit window icons). */

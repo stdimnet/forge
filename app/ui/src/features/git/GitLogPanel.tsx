@@ -11,6 +11,7 @@ import {
   Star,
   Tag,
   Download,
+  X,
 } from "lucide-solid";
 import { FileIcon } from "@/shell/FileIcon";
 import { gitApi, type Branches, type Commit, type RefLabel } from "./api";
@@ -25,6 +26,9 @@ const ROW = 26;
 
 const [filterRev, setFilterRev] = createSignal<string | null>(null);
 const [filterText, setFilterText] = createSignal("");
+/** Paths filter ("Show History" of a file or folder); `null` shows the whole repository. */
+const [filterPath, setFilterPath] = createSignal<string | null>(null);
+export { setFilterPath as setLogPathFilter };
 const [selectedSha, setSelectedSha] = createSignal<string | null>(null);
 export { setSelectedSha as selectLogCommit };
 
@@ -214,6 +218,7 @@ export function GitLogPanel() {
         all: rev === null,
         rev: rev,
         text: filterText() || null,
+        path: filterPath(),
       });
       setExhausted(page.length < PAGE);
       setCommits(reset ? page : [...commits(), ...page]);
@@ -226,7 +231,7 @@ export function GitLogPanel() {
   };
 
   createEffect(
-    on([filterRev, filterText, revision], () => {
+    on([filterRev, filterText, filterPath, revision], () => {
       void load(true);
       void refetchBranches();
     }),
@@ -278,9 +283,19 @@ export function GitLogPanel() {
             <button class="pill-btn log-filter" title="Date filter">
               Date <ChevronDown size={12} class="muted" />
             </button>
-            <button class="pill-btn log-filter" title="Paths filter">
-              Paths <ChevronDown size={12} class="muted" />
-            </button>
+            <Show
+              when={filterPath() !== null}
+              fallback={
+                <button class="pill-btn log-filter" title="Paths filter">
+                  Paths <ChevronDown size={12} class="muted" />
+                </button>
+              }
+            >
+              <button class="pill-btn log-filter" title={`Paths: ${filterPath() || "/"} (click to clear)`} onClick={() => setFilterPath(null)}>
+                Paths: <b>{filterPath()!.split("/").pop() || "/"}</b>
+                <X size={12} class="muted" />
+              </button>
+            </Show>
             <span class="spacer" />
             <button class="icon-btn" title="Fetch All Remotes" onClick={() => void fetchAll()}>
               <Download size={15} />

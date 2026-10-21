@@ -20,6 +20,7 @@ import { workspaceApi } from "@/ipc/workspace";
 import { displayStatus, gitApi, type StatusEntry } from "./api";
 import { notify, repositoryChanged, status } from "./store";
 import { commitChanges, confirmRollback, showDiff } from "./actions";
+import { setCommitSelectionSource } from "./context";
 import { generateCommitMessage } from "./aiMessage";
 import { unifiedDiff } from "./textDiff";
 
@@ -214,14 +215,9 @@ async function toggleAmend(on: boolean) {
 export function CommitPanel() {
   const canCommit = () => !busy() && (checkedPaths().length > 0 || amend()) && message().trim().length > 0;
   const total = () => changes().length + unversioned().length;
-  const onKey = (e: KeyboardEvent) => {
-    if (e.key.toLowerCase() === "d" && (e.ctrlKey || e.metaKey) && selected()) {
-      e.preventDefault();
-      void showDiff(selected()!, allPaths());
-    }
-  };
+  // Ctrl+D comes through the keymap (CompareTwoFiles → git.showDiff on the selected file).
   return (
-    <div class="commit-panel" onKeyDown={onKey} tabIndex={-1}>
+    <div class="commit-panel" tabIndex={-1}>
       <div class="panel-toolbar">
         <button class="icon-btn" title="Refresh (Ctrl+F5)" onClick={() => void repositoryChanged()}>
           <RefreshCw size={15} />
@@ -331,3 +327,11 @@ export function CommitPanel() {
 export function selectCommitFile(path: string): void {
   setSelected(path);
 }
+
+/** "Commit File…" / "Commit Directory…": include exactly these files in the next commit. */
+export function checkOnly(paths: string[]): void {
+  setChecked(new Set(paths));
+  if (paths.length) setSelected(paths[0]);
+}
+
+setCommitSelectionSource(selected, allPaths);

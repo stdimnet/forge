@@ -973,9 +973,10 @@ fn git_menu() -> MenuEntry {
                 vec![
                     l("CheckinFiles", "_Commit File..."),
                     l("Git.Add", "_Add"),
+                    l("Git.Ignore.File", "Add to .git_ignore"),
                     l("Annotate", "Annotate with Git _Blame"),
-                    l("Compare.LastVersion", "Show _Diff"),
-                    l("Compare.SameVersion", "Compare with _Revision..."),
+                    l("Compare.SameVersion", "Show _Diff"),
+                    l("Compare.Selected", "Compare with _Revision..."),
                     l("Git.CompareWithBranch", "Compare with Bra_nch..."),
                     l("Vcs.ShowTabbedFileHistory", "Show _History"),
                     l("Vcs.ShowHistoryForBlock", "Show History for _Selection"),
