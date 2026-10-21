@@ -63,6 +63,23 @@ pub fn fuzzy_match(query: &str, candidate: &str) -> Option<FuzzyMatch> {
 
 /// [`fuzzy_match`] with options (e.g. strict word matching).
 pub fn fuzzy_match_with(query: &str, candidate: &str, opts: MatchOptions) -> Option<FuzzyMatch> {
+    // Most candidates fail the "characters in order" test, so reject them before any allocation.
+    let fold = |ch: char| ch.to_lowercase().next().unwrap_or(ch);
+    let mut wanted = query.chars().filter(|c| !c.is_whitespace()).map(fold);
+    let mut next = wanted.next();
+    if next.is_some() {
+        for ch in candidate.chars() {
+            if Some(fold(ch)) == next {
+                next = wanted.next();
+                if next.is_none() {
+                    break;
+                }
+            }
+        }
+        if next.is_some() {
+            return None;
+        }
+    }
     let q: Vec<char> = query.chars().filter(|c| !c.is_whitespace()).collect();
     let c: Vec<char> = candidate.chars().collect();
     let (m, n) = (q.len(), c.len());
