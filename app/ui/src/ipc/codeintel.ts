@@ -242,6 +242,23 @@ export interface ContextAction {
   action?: string | null;
   /** Sub-menu entries ("Fix all ... in file"). */
   children?: ContextAction[];
+  /** Where the caret goes after the edit (Create method: into the new body, maybe in another file). */
+  caret?: { path: string; range: LspRange } | null;
+  /** Arguments of `action`; such an entry is a fix of its own, not a link (Create class). */
+  data?: unknown;
+}
+
+/** `data` of "Create class 'Foo'" (`PhpCreateClass`): what the Create New PHP Class dialog starts with. */
+export interface CreateClassData {
+  name: string;
+  namespace: string;
+  /** `PHP Class`, `PHP Interface` or `PHP Trait`. */
+  template: string;
+  extends?: string | null;
+  /** The usage needs an import when the class goes to another namespace. */
+  import: boolean;
+  /** The file with the usage. */
+  path: string;
 }
 
 export interface ContextActionsAnswer {
@@ -336,4 +353,7 @@ export const codeApi = {
   contextInfo: (path: string, line: number, content?: string) =>
     invoke<ContextLine[]>("code_context_info", { path, line, content }),
   readLibrary: (path: string) => invoke<LibraryFile>("library_read", { path }),
+  /** Create class: the edit importing `fqn` into `content` (UTF-16 offsets), empty when not needed. */
+  importClass: (path: string, content: string, fqn: string) =>
+    invoke<{ start: number; end: number; newText: string }[]>("php_import_class", { path, content, fqn }),
 };

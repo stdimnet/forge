@@ -187,6 +187,7 @@ pub fn run() {
             commands::codeintel::code_apply_edit,
             commands::codeintel::code_revert_edit,
             commands::codeintel::code_context_actions,
+            commands::codeintel::php_import_class,
             commands::codeintel::code_resolve_action,
             commands::codeintel::code_execute_command,
             commands::langservers::langservers_list,

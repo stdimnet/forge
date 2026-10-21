@@ -22,6 +22,7 @@ use forge_lsp::forge_codeintel::{
 };
 use forge_lsp::model::{EditorCodeAction, EditorLocation};
 use forge_lsp::{lsp_types, Feature, LspManager};
+use phpforge_lang_php::generate::GenerateOptions;
 use phpforge_lang_php::navigate::{NavKind, NavTarget, PhpLineMarker};
 use phpforge_lang_php::offsets::{byte_to_utf16, utf16_to_byte};
 use phpforge_lang_php::stubs::StubTarget;
@@ -1043,6 +1044,8 @@ fn from_lsp_action(a: EditorCodeAction, c: &Ctx) -> ContextAction {
         raw: Some(a.raw),
         action: None,
         children: vec![],
+        caret: None,
+        data: None,
     }
 }
 
@@ -1060,6 +1063,9 @@ pub struct ContextActionsAnswer {
 /// The Alt+Enter popup: the language servers' quick fixes and refactorings for the caret
 /// (or selection) and, in PHP files, Forge's own intentions, in PHPStorm's order ("fix
 /// all" variants in the sub-menu of their quick fix). Also answers the light bulb.
+///
+/// Create from usage ("Create method 'foo'") is left out when a language server offers to
+/// create the same symbol, or when the PHP stubs declare it (a PHP function or class).
 #[tauri::command]
 #[allow(clippy::too_many_arguments)]
 pub async fn code_context_actions(
@@ -1072,6 +1078,7 @@ pub async fn code_context_actions(
     app: AppHandle,
     lsp: State<'_, LspState>,
     ws: State<'_, AppState>,
+    lib: State<'_, LibraryState>,
 ) -> Result<ContextActionsAnswer> {
     let c = Ctx::new(&path, &app, &lsp, &ws)?;
     let missing = c
@@ -1091,74 +1098,136 @@ pub async fn code_context_actions(
         .into_iter()
         .map(|a| from_lsp_action(a, &c))
         .collect();
-    let backend = c.backend.clone();
-    let injection_settings = injections::settings_of(&ws.read_settings());
-    blocking(move || {
-        if is_php(&path) {
-            let text = current_text(&backend, &path, &content);
+    if is_php(&path) {
+        let options = GenerateOptions {
+            style: crate::commands::php::php_code_style(&ws),
+            code_templates: crate::commands::templates::code_templates(&ws),
+            ..Default::default()
+        };
+        let backend = c.backend.clone();
+        let p = path.clone();
+        let content = content.clone();
+        let (text, intentions) = blocking(move || {
+            let text = current_text(&backend, &p, &content);
             let offset = codeintel::utf16_offset(&text, Position::new(line, character));
-            for i in backend
+            let found = backend
                 .php()
-                .intentions(&path, offset, Some(text.clone()))?
-            {
-                let mut edit = WorkspaceEdit::default();
-                if !i.edits.is_empty() {
-                    edit.add_edits(
-                        path.clone(),
-                        i.edits
-                            .iter()
-                            .map(|e| codeintel::TextEdit {
-                                range: Range::new(
-                                    codeintel::position_at(&text, e.start),
-                                    codeintel::position_at(&text, e.end),
-                                ),
-                                new_text: e.new_text.clone(),
-                            })
-                            .collect(),
-                    );
-                }
-                actions.push(ContextAction {
-                    title: i.title,
-                    kind: match i.kind {
-                        phpforge_lang_php::intentions::IntentionKind::QuickFix => {
-                            ActionKind::QuickFix
-                        }
-                        phpforge_lang_php::intentions::IntentionKind::Intention => {
-                            ActionKind::Intention
-                        }
-                    },
-                    source: "php".into(),
-                    is_preferred: false,
-                    disabled: None,
-                    edit: (!edit.is_empty()).then_some(edit),
-                    command: None,
-                    needs_resolve: false,
-                    server: None,
-                    raw: None,
-                    action: i.action,
-                    children: vec![],
-                });
-            }
-        }
-        // Language injections: Inject language, Un-inject, Edit Fragment.
-        if forge_injections::Host::of_path(&path).is_some() {
-            let text = current_text(&backend, &path, &content);
-            let offset = codeintel::utf16_offset(&text, Position::new(line, character));
-            actions.extend(injections::context_actions(
-                &path,
-                &text,
-                offset,
-                injection_settings,
-            ));
-        }
-        let actions = order_actions(actions);
-        Ok(ContextActionsAnswer {
-            bulb: codeintel::bulb_for(&actions),
-            actions,
-            missing,
+                .intentions(&p, offset, options, Some(text.clone()))?;
+            Ok((text, found))
         })
+        .await?;
+        let stubs = if intentions.iter().any(|i| i.unresolved.is_some()) {
+            lib.stubs(&app, &ws, false).await.ok()
+        } else {
+            None
+        };
+        let lsp_titles: Vec<String> = actions.iter().map(|a| a.title.clone()).collect();
+        let lsp_titles: Vec<&str> = lsp_titles.iter().map(String::as_str).collect();
+        for i in intentions {
+            if let Some(symbol) = &i.unresolved {
+                let declared = match (&symbol.member, &stubs) {
+                    // A member of a class with ancestors outside the index: only when they
+                    // are all PHP's own classes and none declares it (a library parent
+                    // such as Eloquent's Model may).
+                    (Some(_), Some(s)) => {
+                        !s.lookup(symbol).is_empty()
+                            || symbol.classes.iter().any(|c| s.class(c).is_none())
+                    }
+                    (Some(_), None) => true,
+                    (None, Some(s)) => !s.lookup(symbol).is_empty(),
+                    (None, None) => false,
+                };
+                let name = i.title.split('\'').nth(1).unwrap_or_default();
+                if declared || codeintel::lsp_creates(&lsp_titles, name) {
+                    continue;
+                }
+            }
+            actions.push(php_action(&path, &text, i));
+        }
+    }
+    // Language injections: Inject language, Un-inject, Edit Fragment.
+    if forge_injections::Host::of_path(&path).is_some() {
+        let injection_settings = injections::settings_of(&ws.read_settings());
+        let backend = c.backend.clone();
+        let p = path.clone();
+        actions.extend(
+            blocking(move || {
+                let text = current_text(&backend, &p, &content);
+                let offset = codeintel::utf16_offset(&text, Position::new(line, character));
+                Ok(injections::context_actions(
+                    &p,
+                    &text,
+                    offset,
+                    injection_settings,
+                ))
+            })
+            .await?,
+        );
+    }
+    let actions = order_actions(actions);
+    Ok(ContextActionsAnswer {
+        bulb: codeintel::bulb_for(&actions),
+        actions,
+        missing,
     })
-    .await
+}
+
+/// A PHP intention as a context action: its edits of the current file (UTF-16 offsets) and
+/// of other files in one workspace edit.
+fn php_action(
+    path: &str,
+    text: &str,
+    i: phpforge_lang_php::intentions::Intention,
+) -> ContextAction {
+    let mut edit = WorkspaceEdit::default();
+    if !i.edits.is_empty() {
+        edit.add_edits(
+            path.to_string(),
+            i.edits
+                .iter()
+                .map(|e| codeintel::TextEdit {
+                    range: Range::new(
+                        codeintel::position_at(text, e.start),
+                        codeintel::position_at(text, e.end),
+                    ),
+                    new_text: e.new_text.clone(),
+                })
+                .collect(),
+        );
+    }
+    if let Some(other) = i.workspace_edit {
+        edit.changes.extend(other.changes);
+    }
+    ContextAction {
+        title: i.title,
+        kind: match i.kind {
+            phpforge_lang_php::intentions::IntentionKind::QuickFix => ActionKind::QuickFix,
+            phpforge_lang_php::intentions::IntentionKind::Intention => ActionKind::Intention,
+        },
+        source: "php".into(),
+        is_preferred: false,
+        disabled: None,
+        edit: (!edit.is_empty()).then_some(edit),
+        command: None,
+        needs_resolve: false,
+        server: None,
+        raw: None,
+        action: i.action,
+        children: vec![],
+        caret: i.caret,
+        data: i.data,
+    }
+}
+
+/// Create class: the edit importing the new class into the file that used it, when the
+/// Create New PHP Class dialog put it into another namespace (UTF-16 offsets).
+#[tauri::command]
+pub fn php_import_class(
+    path: String,
+    content: String,
+    fqn: String,
+) -> Vec<phpforge_lang_php::generate::TextEdit> {
+    phpforge_lang_php::service::import_class(&path, &content, &fqn)
 }
 
 /// Fill in a code action's edit (`codeAction/resolve`).

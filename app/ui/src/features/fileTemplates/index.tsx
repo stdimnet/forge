@@ -22,9 +22,12 @@ import { projectTree } from "@/features/project/ProjectView";
 import { isDialogWindow } from "@/shell/window/mode";
 import { workspace } from "@/state/workspace";
 import type { TemplateInfo } from "@/ipc/templates";
+import { codeApi, type CreateClassData } from "@/ipc/codeintel";
+import { registerContextActionHandler } from "@/features/codeintel/intentions";
+import { viewFor } from "@/features/lsp/navigation";
 import { FileTemplatesPage } from "./FileTemplatesPage";
 import { NewFileDialogHost } from "./NewFileDialog";
-import { catalog, offeredTemplates, openNewFileDialog, refreshCatalog, SETTINGS_PAGE, trackCatalog } from "./model";
+import { catalog, offeredTemplates, openNewFileDialog, refreshCatalog, setDialog, SETTINGS_PAGE, trackCatalog } from "./model";
 import "./fileTemplates.css";
 
 const editTemplates = () => openSettings(SETTINGS_PAGE);
@@ -80,6 +83,36 @@ registerCommand({
     const t = catalog().templates.find((x) => x.kind === "file" && x.name === "PHP Class");
     if (t) void newTargetDir().then((dir) => openNewFileDialog(t, dir));
   },
+});
+
+/**
+ * Alt+Enter "Create class 'Foo'" on an unresolved class: the Create New PHP Class dialog with
+ * the usage's name, namespace and template (Class / Interface / Trait); the directory follows
+ * the namespace (PSR-4). When the class goes to another namespace, the usage gets an import.
+ */
+registerContextActionHandler("PhpCreateClass", async (raw) => {
+  const data = raw as CreateClassData;
+  if (!catalog().templates.length) await refreshCatalog();
+  const files = catalog().templates.filter((t) => t.kind === "file");
+  const template = files.find((t) => t.name === data.template) ?? files.find((t) => t.name === "PHP Class");
+  if (!template) return;
+  const dir = data.path.includes("/") ? data.path.slice(0, data.path.lastIndexOf("/")) : "";
+  const wanted = data.namespace ? `${data.namespace}\\${data.name}` : data.name;
+  setDialog({
+    template,
+    dir,
+    create: {
+      name: data.name,
+      namespace: data.namespace,
+      extends: data.extends ?? undefined,
+      onCreated: async (_file, fqn) => {
+        const view = viewFor(data.path);
+        if (!data.import || !view || fqn.toLowerCase() === wanted.toLowerCase()) return;
+        const edits = await codeApi.importClass(data.path, view.state.doc.toString(), fqn).catch(() => []);
+        if (edits.length) view.dispatch({ changes: edits.map((e) => ({ from: e.start, to: e.end, insert: e.newText })), userEvent: "input" });
+      },
+    },
+  });
 });
 
 registerSettingsPage({

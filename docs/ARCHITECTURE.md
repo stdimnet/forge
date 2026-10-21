@@ -746,7 +746,20 @@ computes everything; `app/ui/src/features/codeintel` and `features/lsp/goto.ts` 
     actions, bulb?: "fix" | "intention", missing? }` — the servers' code actions and the PHP
     intentions in PHPStorm's order ("fix all" variants in `children`); `code_resolve_action`
     fills an edit, `code_execute_command` runs a command (edits it makes arrive as
-    `lsp://apply-edit` and are applied like any other edit).
+    `lsp://apply-edit` and are applied like any other edit). An action may carry `caret: {
+    path, range }` (where the caret goes after the edit, opening that file) and `data` (the
+    arguments of its UI `action`, run by a handler from `registerContextActionHandler`; such
+    an entry is a fix, not a link).
+  - Create from usage (`phpforge_lang_php::create`, part of the PHP intentions): "Create
+    method / field / constant / enum case / function" edit the current file or, as a
+    workspace edit, the target class's file; "Create class / interface / trait" is the
+    action `PhpCreateClass` with `{ name, namespace, template, extends?, import, path }`,
+    which opens the Create New PHP Class dialog (`features/fileTemplates`); afterwards
+    `php_import_class({ path, content, fqn }) -> { start, end, newText }[]` (UTF-16) imports
+    the class when it went to another namespace. The command drops fixes for symbols the PHP
+    stubs declare (`Intention::unresolved`) or a language server already creates
+    (`forge_codeintel::lsp_creates`). `PhpCall::Intentions` carries the code style and code
+    templates (`GenerateOptions`).
 - UI: Go to Declaration (`GotoDeclaration`, `Ctrl+Click`, middle click) shows usages on a
   declaration (`showUsagesAt`); `ShowUsages` (popup), `FindUsages` (Find tool window `find`,
   `Alt+3`), `GotoImplementation` (also `Ctrl+Alt+Click`), `GotoTypeDeclaration`,

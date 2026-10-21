@@ -120,7 +120,7 @@ pub async fn php_generate(
     .await
 }
 
-fn php_code_style(state: &AppState) -> PhpCodeStyle {
+pub(crate) fn php_code_style(state: &AppState) -> PhpCodeStyle {
     let settings = state.read_settings();
     PhpCodeStyle::from_settings(|k| settings.get(k).cloned())
 }

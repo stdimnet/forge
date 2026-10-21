@@ -5,7 +5,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::edit::WorkspaceEdit;
+use crate::edit::{Caret, WorkspaceEdit};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -65,6 +65,14 @@ pub struct ContextAction {
     /// Options in the entry's sub-menu (Right arrow), e.g. "Fix all ... in file".
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub children: Vec<ContextAction>,
+    /// Where the caret goes after the edit (Create method: into the new body, possibly in
+    /// another file).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub caret: Option<Caret>,
+    /// Arguments of `action`; such an entry is a fix of its own (Create class opens the
+    /// Create New PHP Class dialog), not a link.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub data: Option<Value>,
 }
 
 impl ContextAction {
@@ -74,10 +82,13 @@ impl ContextAction {
     }
 
     /// A link to another action that opens its own popup or dialog ("Generate..."): it
-    /// runs a UI action and, by PHPStorm's convention, its title ends with an ellipsis.
-    /// Entries that run a UI action without one ("Edit SQL Fragment") are intentions.
+    /// runs a UI action without data and, by PHPStorm's convention, its title ends with
+    /// an ellipsis. Entries that run a UI action without one ("Edit SQL Fragment") are
+    /// intentions.
     pub fn is_link(&self) -> bool {
-        self.action.is_some() && (self.title.ends_with("...") || self.title.ends_with('\u{2026}'))
+        self.action.is_some()
+            && self.data.is_none()
+            && (self.title.ends_with("...") || self.title.ends_with('\u{2026}'))
     }
 
     /// "Fix all" style actions: they belong in the sub-menu of the quick fix they repeat.
@@ -159,6 +170,23 @@ pub fn order_actions(actions: Vec<ContextAction>) -> Vec<ContextAction> {
     nest_fix_all(out)
 }
 
+/// Whether a language server's action already creates `name` from its usage (phpactor's
+/// "Generate method", Intelephense's "Add method 'foo'", typescript's "Add missing function
+/// declaration 'foo'"), so a pack's own "Create method 'foo'" would be a duplicate.
+pub fn lsp_creates(lsp_titles: &[&str], name: &str) -> bool {
+    let name = name.trim_start_matches('$').to_lowercase();
+    if name.is_empty() {
+        return false;
+    }
+    const VERBS: &[&str] = &["create", "add", "generate", "declare", "implement"];
+    lsp_titles.iter().any(|t| {
+        let t = t.to_lowercase();
+        VERBS.iter().any(|v| t.starts_with(v))
+            && t.split(|c: char| !(c.is_alphanumeric() || c == '_'))
+                .any(|w| w == name)
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -177,6 +205,8 @@ mod tests {
             raw: None,
             action: None,
             children: vec![],
+            caret: None,
+            data: None,
         }
     }
 
@@ -226,6 +256,44 @@ mod tests {
                 "Extract method"
             ]
         );
+    }
+
+    #[test]
+    fn actions_with_data_are_fixes_not_links() {
+        let create = ContextAction {
+            action: Some("PhpCreateClass".into()),
+            data: Some(serde_json::json!({ "name": "Order" })),
+            ..action("Create class 'Order'", ActionKind::QuickFix)
+        };
+        let generate = ContextAction {
+            action: Some("Generate".into()),
+            ..action("Generate...", ActionKind::Intention)
+        };
+        assert_eq!(bulb_for(std::slice::from_ref(&create)), Some(Bulb::Fix));
+        let ordered = order_actions(vec![
+            generate,
+            action("Add PHPDoc", ActionKind::Intention),
+            create,
+        ]);
+        let titles: Vec<&str> = ordered.iter().map(|a| a.title.as_str()).collect();
+        assert_eq!(
+            titles,
+            ["Create class 'Order'", "Add PHPDoc", "Generate..."]
+        );
+    }
+
+    #[test]
+    fn recognizes_create_actions_of_language_servers() {
+        let titles = [
+            "Add missing function declaration 'formatPrice'",
+            "Generate method",
+            "Import class",
+        ];
+        assert!(lsp_creates(&titles, "formatPrice"));
+        assert!(!lsp_creates(&titles, "format"));
+        assert!(!lsp_creates(&["Import class 'Order'"], "Order"));
+        assert!(lsp_creates(&["Create class 'Order'"], "Order"));
+        assert!(!lsp_creates(&titles, ""));
     }
 
     #[test]

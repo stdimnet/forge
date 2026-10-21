@@ -462,6 +462,8 @@ pub fn context_actions(req: &OffsetRequest) -> Vec<ContextAction> {
             raw: None,
             action: action.map(Into::into),
             children: vec![],
+            caret: None,
+            data: None,
         };
     let Some(f) = a.found_with(i) else {
         return vec![intention(

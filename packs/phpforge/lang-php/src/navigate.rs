@@ -187,7 +187,7 @@ impl ExternalSymbol {
 
 /// What a word in the source refers to.
 #[derive(Debug, Clone, PartialEq, Eq)]
-enum Resolved {
+pub(crate) enum Resolved {
     Symbol(SymbolRef),
     /// The declaration of the symbol itself.
     Declaration(SymbolRef),
@@ -204,7 +204,7 @@ fn is_ident(c: char) -> bool {
     c.is_alphanumeric() || c == '_' || c == '\\' || c == '$'
 }
 
-fn ident_start(src: &str, end: usize) -> usize {
+pub(crate) fn ident_start(src: &str, end: usize) -> usize {
     src[..end]
         .char_indices()
         .rev()
@@ -286,7 +286,7 @@ const KEYWORDS: &[&str] = &[
     "yield",
 ];
 
-fn is_keyword(word: &str) -> bool {
+pub(crate) fn is_keyword(word: &str) -> bool {
     KEYWORDS.iter().any(|k| k.eq_ignore_ascii_case(word))
 }
 
@@ -343,7 +343,11 @@ fn member_type_classes(
 }
 
 /// A class of the current file (its unsaved state) or of the index.
-fn find_class(index: &mut ProjectIndex, file: &FileIndex, fqn: &str) -> Option<ClassLike> {
+pub(crate) fn find_class(
+    index: &mut ProjectIndex,
+    file: &FileIndex,
+    fqn: &str,
+) -> Option<ClassLike> {
     let fqn = fqn.trim_start_matches('\\');
     file.classes
         .iter()
@@ -353,7 +357,7 @@ fn find_class(index: &mut ProjectIndex, file: &FileIndex, fqn: &str) -> Option<C
 }
 
 /// The method or function whose range contains `offset`: its params and range.
-fn enclosing_callable(
+pub(crate) fn enclosing_callable(
     file: &FileIndex,
     offset: usize,
 ) -> Option<(Vec<crate::model::Param>, usize, usize)> {
@@ -372,7 +376,12 @@ fn enclosing_callable(
 
 /// The class type of a local variable at `offset`: a typed parameter, `$x = new X(...)`,
 /// `catch (X $x)` or an inline `/** @var X $x */` earlier in the same method or function.
-fn variable_classes(file: &FileIndex, src: &str, offset: usize, var: &str) -> Vec<String> {
+pub(crate) fn variable_classes(
+    file: &FileIndex,
+    src: &str,
+    offset: usize,
+    var: &str,
+) -> Vec<String> {
     let name = var.trim_start_matches('$');
     let owner = file.class_at(offset).map(|c| c.fqn.clone());
     if name == "this" {
@@ -430,7 +439,7 @@ fn variable_classes(file: &FileIndex, src: &str, offset: usize, var: &str) -> Ve
 }
 
 /// Byte index of the `(` matching the `)` at `close`.
-fn matching_open(src: &str, close: usize) -> Option<usize> {
+pub(crate) fn matching_open(src: &str, close: usize) -> Option<usize> {
     let bytes = src.as_bytes();
     let mut depth = 0i32;
     let mut i = close + 1;
@@ -452,7 +461,7 @@ fn matching_open(src: &str, close: usize) -> Option<usize> {
 }
 
 /// The `(byte end of receiver, operator)` when `before` ends with `->`, `?->` or `::`.
-fn access_before(before: &str) -> Option<(usize, &'static str)> {
+pub(crate) fn access_before(before: &str) -> Option<(usize, &'static str)> {
     if let Some(b) = before.strip_suffix("?->") {
         Some((b.len(), "->"))
     } else if let Some(b) = before.strip_suffix("->") {
@@ -465,7 +474,7 @@ fn access_before(before: &str) -> Option<(usize, &'static str)> {
 /// Fully qualified names of the possible classes of the expression ending at `end` (just
 /// before `->` or `::`): variables, `$this`, `self` / `static` / `parent`, class names,
 /// property chains and method call chains through declared (or PHPDoc) types.
-fn receiver_types(
+pub(crate) fn receiver_types(
     index: &mut ProjectIndex,
     file: &FileIndex,
     src: &str,
@@ -588,7 +597,7 @@ fn property_types(
 
 /// Ancestors of `class` the index cannot resolve (PHP's own classes and interfaces such as
 /// `\Exception` or `\ArrayAccess`), nearest first.
-fn unresolved_ancestors(index: &mut ProjectIndex, class: &ClassLike) -> Vec<String> {
+pub(crate) fn unresolved_ancestors(index: &mut ProjectIndex, class: &ClassLike) -> Vec<String> {
     let mut out: Vec<String> = Vec::new();
     let mut chain = vec![class.clone()];
     chain.extend(index.ancestors(class));
@@ -673,7 +682,7 @@ fn variable_scope(file: &FileIndex, src: &str, offset: usize) -> (usize, usize) 
 }
 
 /// Resolve the word at `start..end` of `src` (the content of `file`).
-fn resolve_word(
+pub(crate) fn resolve_word(
     index: &mut ProjectIndex,
     file: &FileIndex,
     src: &str,
