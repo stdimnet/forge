@@ -91,6 +91,13 @@ export default {
     await page.keyboard.press("Enter");
     await page.waitForSelector(".refactoring-preview .preview-conflict");
   },
+  "rename-conflicts-in-find": async (page) => {
+    await renameOrder(page, "OrderStatus");
+    await page.keyboard.press("Enter");
+    await page.waitForSelector(".refactoring-preview .preview-conflict");
+    await page.click('.refactoring-preview button:has-text("Show in View")');
+    await page.waitForSelector(".find-window .find-usage");
+  },
   "rename-dialog": async (page) => {
     await renameOrder(page, "Purchase");
     await page.keyboard.press("Shift+F6");

@@ -163,6 +163,8 @@ check also runs when a language server computes the rename.
 
 ![Problems Detected](../../screenshots/rename-refactoring-preview.png)
 
+![Rename conflicts in the Find tool window](../../screenshots/rename-conflicts-in-find.png)
+
 ![Rename dialog](../../screenshots/rename-dialog.png)
 
 - The language server computes the rename where it can (TypeScript, Vue, Lua, Intelephense
