@@ -1186,6 +1186,37 @@ pub fn find_usages(
         .collect();
     paths.sort();
     paths.insert(0, rel.to_string());
+    // Members also count where they are reached through a parent or child class (an
+    // interface method called on an implementation and vice versa), like PHPStorm's
+    // search for a base method.
+    let related: HashSet<String> = match &symbol {
+        SymbolRef::Member { class, .. } => {
+            let mut set: HashSet<String> = subclasses(index, class)
+                .into_iter()
+                .map(|c| c.fqn.to_ascii_lowercase())
+                .collect();
+            set.insert(class.to_ascii_lowercase());
+            if let Some(c) = find_class(index, &current, class) {
+                set.extend(
+                    index
+                        .ancestors(&c)
+                        .into_iter()
+                        .map(|a| a.fqn.to_ascii_lowercase()),
+                );
+            }
+            set
+        }
+        _ => HashSet::new(),
+    };
+    let matches = |s: &SymbolRef| {
+        s.same(&symbol)
+            || matches!((s, &symbol), (
+                SymbolRef::Member { class, member, name },
+                SymbolRef::Member { member: m2, name: n2, .. },
+            ) if member == m2
+                && name.eq_ignore_ascii_case(n2)
+                && related.contains(&class.to_ascii_lowercase()))
+    };
 
     let mut usages = Vec::new();
     for path in paths {
@@ -1221,7 +1252,7 @@ pub fn find_usages(
                 continue;
             }
             let kind = match resolve_at(index, &file, &text, at) {
-                Resolved::Symbol(s) if s.same(&symbol) => None,
+                Resolved::Symbol(s) if matches(&s) => None,
                 Resolved::External(e) if external_matches(&symbol, &e) => None,
                 Resolved::Dynamic { kind, name }
                     if matches!(&symbol, SymbolRef::Member { member, name: n, .. }
@@ -1959,6 +1990,24 @@ mod tests {
         assert_eq!(u.title, "User::save()");
         let kinds: Vec<Option<UsageKind>> = u.usages.iter().map(|l| l.kind).collect();
         assert_eq!(kinds, vec![None, None, Some(UsageKind::Dynamic)]);
+
+        // The interface method: calls through the implementing class count too.
+        let o = at(CONTACT, "save", 0);
+        let u = find_usages(&mut idx, "app/Models/Contact.php", CONTACT, o).unwrap();
+        assert_eq!(u.title, "Contact::save()");
+        let lines: Vec<(&str, u32)> = u
+            .usages
+            .iter()
+            .map(|l| (l.path.as_str(), l.range.start.line))
+            .collect();
+        assert_eq!(
+            lines,
+            vec![
+                ("app/Services/Billing.php", 14),
+                ("app/Services/Billing.php", 15),
+                ("app/Services/Billing.php", 16),
+            ]
+        );
     }
 
     #[test]
