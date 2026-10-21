@@ -146,6 +146,15 @@ pub enum Call {
         args: Vec<String>,
     },
     Php(PhpCall),
+    /// Classes or symbols matching `query` -> `Vec<SymbolHit>`
+    FindSymbols {
+        query: String,
+        types_only: bool,
+        limit: usize,
+        skip_extensions: Vec<String>,
+    },
+    /// State of the project's search index -> `SearchStatus`
+    SearchStatus,
 }
 
 /// PHP index queries (see [`crate::PhpBackend`]).

@@ -440,3 +440,37 @@ async fn calls_fail_once_the_connection_is_gone() {
     let err = client.call::<()>(Call::Ping, T).await.unwrap_err();
     assert!(err.to_string().contains("lost"));
 }
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn search_index_runs_on_the_agent() {
+    let dir = project();
+    let root = dir.path().to_string_lossy().into_owned();
+    let client = connect();
+    let backend =
+        blocking(move || RemoteBackend::open(Arc::new(client), host(), &root).unwrap()).await;
+    blocking(move || {
+        wait_until("the agent's index", || {
+            let status = backend.search_status().unwrap();
+            status.enabled && !status.indexing && status.files > 0
+        });
+
+        let hits = backend.find_symbols("order", true, 5, &[]).unwrap();
+        assert_eq!(hits[0].name, "Order");
+        assert_eq!(hits[0].path, "app/Models/Order.php");
+        assert_eq!(hits[0].kind, "class");
+        assert!(backend
+            .find_symbols("order", true, 5, &["php".to_string()])
+            .unwrap()
+            .is_empty());
+
+        let found = backend
+            .find_in_files(&forge_core::search::FindRequest {
+                query: "shop".into(),
+                ..Default::default()
+            })
+            .unwrap();
+        assert_eq!(found.files[0].path, "app/Models/Order.php");
+        assert_eq!(backend.find_files("order", 5).unwrap()[0].name, "Order.php");
+    })
+    .await;
+}

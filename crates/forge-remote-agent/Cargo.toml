@@ -9,6 +9,11 @@ license.workspace = true
 name = "forge-remote-agent"
 path = "src/main.rs"
 
+[features]
+default = ["search"]
+# Keep a persistent search index of the open project on the agent.
+search = ["forge-backend/search"]
+
 [dependencies]
 forge-backend.workspace = true
 forge-core.workspace = true

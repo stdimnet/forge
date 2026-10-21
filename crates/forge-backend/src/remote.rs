@@ -425,6 +425,28 @@ impl Backend for RemoteBackend {
             .call(Call::FindInFiles(req.clone()), GIT_NETWORK_TIMEOUT)
     }
 
+    fn find_symbols(
+        &self,
+        query: &str,
+        types_only: bool,
+        limit: usize,
+        skip_extensions: &[String],
+    ) -> Result<Vec<forge_search_core::SymbolHit>> {
+        self.shared.call(
+            Call::FindSymbols {
+                query: query.to_string(),
+                types_only,
+                limit,
+                skip_extensions: skip_extensions.to_vec(),
+            },
+            TIMEOUT,
+        )
+    }
+
+    fn search_status(&self) -> Result<crate::SearchStatus> {
+        self.shared.call(Call::SearchStatus, TIMEOUT)
+    }
+
     fn git(&self) -> Arc<dyn GitExec> {
         Arc::new(RemoteGit {
             shared: self.shared.clone(),

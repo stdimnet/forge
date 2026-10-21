@@ -149,7 +149,10 @@ impl Agent {
             Call::Ping => reply(()),
             Call::Browse { path } => reply(browse(&path)?),
             Call::Open { root } => {
-                let backend = Arc::new(LocalBackend::open(browse::expand_home(&root))?);
+                let backend = LocalBackend::open(browse::expand_home(&root))?;
+                #[cfg(feature = "search")]
+                let backend = backend.with_search_index();
+                let backend = Arc::new(backend);
                 let opened = Opened {
                     root: backend.info().root.clone(),
                     name: backend.info().name.clone(),
@@ -169,6 +172,18 @@ impl Agent {
             Call::Delete { path } => reply(self.backend()?.delete(&path)?),
             Call::FindFiles { query, limit } => reply(self.backend()?.find_files(&query, limit)?),
             Call::FindInFiles(req) => reply(self.backend()?.find_in_files(&req)?),
+            Call::FindSymbols {
+                query,
+                types_only,
+                limit,
+                skip_extensions,
+            } => {
+                reply(
+                    self.backend()?
+                        .find_symbols(&query, types_only, limit, &skip_extensions)?,
+                )
+            }
+            Call::SearchStatus => reply(self.backend()?.search_status()?),
             Call::Git(req) => reply(LocalGit.exec(&req)?),
             Call::Detect => reply(self.backend()?.detect_project()?),
             Call::Watch => {
