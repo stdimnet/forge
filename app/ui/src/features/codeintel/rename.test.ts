@@ -98,7 +98,9 @@ describe("Rename and Show Context Actions wiring", () => {
     const a = { title: "x", source: "lsp", isPreferred: false, needsResolve: false };
     expect(actionIcon({ ...a, kind: "quickFix" })).toBe("fix");
     expect(actionIcon({ ...a, kind: "intention" })).toBe("intention");
-    expect(actionIcon({ ...a, kind: "intention", action: "Generate" })).toBe("link");
+    expect(actionIcon({ ...a, kind: "intention", title: "Generate...", action: "Generate" })).toBe("link");
+    // Intentions that run a UI action without opening another popup keep the bulb.
+    expect(actionIcon({ ...a, kind: "intention", title: "Edit SQL Fragment", action: "EditInjectedFragment" })).toBe("intention");
     expect(actionIcon({ ...a, kind: "refactor" })).toBe("refactor");
   });
 });
