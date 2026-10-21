@@ -13,6 +13,7 @@ not applied yet (marked as such).
 | Page | Contents |
 | --- | --- |
 | [Keymap](keymap.md) | every PHPStorm action with Windows/Linux and macOS shortcuts, plugin actions, implementation status |
+| [Main menu](main-menu/index.md) | every main menu entry, menu by menu, with shortcut and status |
 | [Settings](settings.md) | every setting key: type, default, scope, Settings page |
 | [File types](file-types.md) | bundled and plugin file types, template data languages |
 | [Language servers](language-servers.md) | the catalog: servers, commands, install options, licences |

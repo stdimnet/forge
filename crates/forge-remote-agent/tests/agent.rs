@@ -251,10 +251,26 @@ async fn php_index_runs_on_the_agent() {
         );
 
         let structure = php
-            .file_structure("app/Models/Order.php", Some(text), false)
+            .file_structure("app/Models/Order.php", Some(text.clone()), false)
             .unwrap();
         assert_eq!(structure.nodes[0].name, "Order");
         assert_eq!(structure.nodes[0].children[0].name, "total");
+
+        // Navigation runs next to the index: Ctrl+Click on the declaration means "show
+        // usages", the gutter markers come back, PHP's own names are left to the stubs.
+        let def = php
+            .definition("app/Models/Order.php", offset, Some(text.clone()))
+            .unwrap();
+        assert!(def.on_declaration, "{def:?}");
+        assert!(php
+            .line_markers("app/Models/Order.php", Some(text.clone()))
+            .is_ok());
+        let with_throwable = format!("{text}\nfunction f(\\Throwable $e) {{}}\n");
+        let at = with_throwable.find("Throwable $e").unwrap() + 1;
+        let def = php
+            .definition("app/Models/Order.php", at, Some(with_throwable))
+            .unwrap();
+        assert_eq!(def.external.unwrap().classes, vec!["Throwable"]);
     })
     .await;
 }

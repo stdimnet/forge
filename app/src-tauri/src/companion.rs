@@ -102,7 +102,7 @@ fn focus_main_window(app: &AppHandle) {
     if !focus {
         return;
     }
-    if let Some(w) = app.webview_windows().values().next() {
+    if let Some(w) = app.get_webview_window(crate::startup::MAIN_LABEL) {
         let _ = w.unminimize();
         let _ = w.show();
         let _ = w.set_focus();
@@ -237,7 +237,7 @@ where
     }
 }
 
-fn open_workspace_now(app: &AppHandle, dir: &Path) {
+pub(crate) fn open_workspace_now(app: &AppHandle, dir: &Path) {
     match forge_core::Workspace::open(dir) {
         Ok(ws) => {
             crate::recent::remember(crate::recent::RecentProject::local(

@@ -7,6 +7,15 @@ tags: [meta, contributing]
 
 # About this guide
 
+> **For agents and LLM tools:** the guide is also published in the
+> [llmstxt.org](https://llmstxt.org) format. [`docs/llms.txt`](../llms.txt) is a hand-curated
+> index of the most important pages with one-line descriptions; edit it when you add or rename
+> an important page. [`docs/llms-full.txt`](../llms-full.txt) is every guide page as plain
+> Markdown in reading order, without frontmatter. It is generated: never edit it, run
+> `pnpm docs:llms` in `app/ui` (or `node docs/scripts/build-llms.mjs`) after changing any page.
+> The script also checks the links in `llms.txt`; `--check` only verifies that both files are
+> up to date.
+
 `docs/guide/` is the complete user and developer documentation of Forge, written as plain
 Markdown so any static site generator (or GitHub's own Markdown view) can render it. This file
 describes the structure and the rules every page follows. It is meant for the people and tools
@@ -25,6 +34,12 @@ docs/guide/
   reference/               generated-style tables: keymap, settings, file types, servers, …
   developer/               contributor documentation
     crates/                one page per Rust crate in crates/ and packs/
+  user/shortcuts/          shortcuts by topic and the keymap reference card
+  reference/main-menu/     one page per top-level main menu
+
+docs/llms.txt              curated index for LLM tools (hand-written)
+docs/llms-full.txt         all guide pages in one file (generated)
+docs/scripts/build-llms.mjs  regenerates llms-full.txt and checks llms.txt
 ```
 
 Every folder has an `index.md` that introduces the section and links to its pages. Pages
@@ -114,6 +129,8 @@ source, update the table:
 | [reference/cli-and-links.md](reference/cli-and-links.md) | `crates/forge-open/src/cli.rs`, `crates/forge-open/src/request.rs` |
 | [reference/file-locations.md](reference/file-locations.md) | `dirs::config_dir()` / `cache_dir()` / `data_dir()` call sites in `crates/`, `packs/` and `app/src-tauri/` |
 | [reference/environment-variables.md](reference/environment-variables.md) | `std::env::var` call sites |
+| [reference/main-menu/](reference/main-menu/index.md) | `crates/forge-keymap/src/menu.rs` (structure, labels) and the commands the UI registers (enabled state) |
+| [user/shortcuts/](user/shortcuts/index.md) | `crates/forge-keymap/data/phpstorm.json`, the registered commands and the menu paths from `menu.rs`; screenshots from `app/ui/scripts/scenarios/docs.mjs` |
 | [developer/crates/](developer/crates/index.md) | each crate's `lib.rs` documentation and `Cargo.toml` |
 
 The developer pages summarize [`docs/ARCHITECTURE.md`](../ARCHITECTURE.md), which remains the

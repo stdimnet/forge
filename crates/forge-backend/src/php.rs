@@ -8,7 +8,9 @@ use forge_core::{ForgeError, FsChanges, Result, Workspace};
 use phpforge_lang_php::generate::{GenerateKind, GenerateOptions, GenerateTargets, TextEdit};
 use phpforge_lang_php::hover::Hover;
 use phpforge_lang_php::index::{SearchKind, SymbolHit};
+use phpforge_lang_php::intentions::Intention;
 use phpforge_lang_php::lsp::{self, DetectedServers, LspServerConfig, PhpLspSettings};
+use phpforge_lang_php::navigate::{NavKind, NavTarget, PhpDefinition, PhpLineMarker, PhpUsages};
 use phpforge_lang_php::service;
 use phpforge_lang_php::structure::FileStructure;
 use phpforge_lang_php::{IndexConfig, IndexStats, ProjectIndex};
@@ -42,6 +44,38 @@ pub trait PhpBackend: Send + Sync {
         options: GenerateOptions,
         content: Option<String>,
     ) -> Result<Vec<TextEdit>>;
+    /// Find Usages of the symbol at `offset` from the index (when no language server answers).
+    fn usages(
+        &self,
+        path: &str,
+        offset: usize,
+        content: Option<String>,
+    ) -> Result<Option<PhpUsages>>;
+    /// Go to Implementation / Super Method / Type Declaration from the index.
+    fn navigate(
+        &self,
+        path: &str,
+        offset: usize,
+        kind: NavKind,
+        content: Option<String>,
+    ) -> Result<Vec<NavTarget>>;
+    /// Go to Declaration from the index: the target, "on a declaration" (Show Usages) or
+    /// the name to look up in the PHP stubs.
+    fn definition(
+        &self,
+        path: &str,
+        offset: usize,
+        content: Option<String>,
+    ) -> Result<PhpDefinition>;
+    /// The implemented / overridden gutter markers of a file.
+    fn line_markers(&self, path: &str, content: Option<String>) -> Result<Vec<PhpLineMarker>>;
+    /// Built-in intentions for Show Context Actions (Alt+Enter).
+    fn intentions(
+        &self,
+        path: &str,
+        offset: usize,
+        content: Option<String>,
+    ) -> Result<Vec<Intention>>;
     /// The language server to start for the project (Intelephense or phpactor found on the
     /// project's machine), according to `settings`.
     fn lsp_config(&self, settings: PhpLspSettings) -> Result<Option<LspServerConfig>>;
@@ -167,6 +201,52 @@ impl PhpBackend for LocalPhp {
         let text = self.source(path, content)?;
         self.with_index(|idx| service::generate(idx, path, &text, offset, kind, &options))?
             .map_err(err)
+    }
+
+    fn usages(
+        &self,
+        path: &str,
+        offset: usize,
+        content: Option<String>,
+    ) -> Result<Option<PhpUsages>> {
+        let text = self.source(path, content)?;
+        self.with_index(|idx| service::usages(idx, path, &text, offset))
+    }
+
+    fn navigate(
+        &self,
+        path: &str,
+        offset: usize,
+        kind: NavKind,
+        content: Option<String>,
+    ) -> Result<Vec<NavTarget>> {
+        let text = self.source(path, content)?;
+        self.with_index(|idx| service::navigate(idx, path, &text, offset, kind))
+    }
+
+    fn definition(
+        &self,
+        path: &str,
+        offset: usize,
+        content: Option<String>,
+    ) -> Result<PhpDefinition> {
+        let text = self.source(path, content)?;
+        self.with_index(|idx| service::definition(idx, path, &text, offset))
+    }
+
+    fn line_markers(&self, path: &str, content: Option<String>) -> Result<Vec<PhpLineMarker>> {
+        let text = self.source(path, content)?;
+        self.with_index(|idx| service::line_markers(idx, path, &text))
+    }
+
+    fn intentions(
+        &self,
+        path: &str,
+        offset: usize,
+        content: Option<String>,
+    ) -> Result<Vec<Intention>> {
+        let text = self.source(path, content)?;
+        self.with_index(|idx| service::intentions(idx, path, &text, offset))
     }
 
     fn lsp_config(&self, settings: PhpLspSettings) -> Result<Option<LspServerConfig>> {

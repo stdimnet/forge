@@ -48,6 +48,13 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 
 ## Recently added
 
+- **PHP navigation like PHPStorm**: `Ctrl+Click` on every PHP symbol (also `\Throwable` and
+  `array_map`, opened read-only in the PHP stubs), Show Usages on declarations, Find Usages
+  (`Alt+F7`) in the Find tool window, Implementation / Super Method / Type Declaration and the
+  implemented / overridden gutter icons ([PHP](user/php.md#navigation)).
+- **Splash screen and updates**: the wordmark fills with molten metal while Forge loads, the
+  last project reopens, and signed updates are offered on startup or with Help | Check for
+  Updates… ([First start](getting-started/first-start.md#the-splash-screen)).
 - **Main menu**: PHPStorm's menus behind ☰, merged into the toolbar or as a menu bar
   ([Workbench](user/workbench.md#main-menu)).
 - **Find in Files** (`Ctrl+Shift+F`) and the **Choose Declaration** popup
@@ -65,7 +72,7 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 
 ## Not available yet
 
-Refactorings (Rename, Extract, Move), Find Usages, Replace in Files, quick-fixes (`Alt+Enter`),
+Refactorings (Rename, Extract, Move), Replace in Files, quick-fixes (`Alt+Enter`),
 bookmarks, TODO, Local History, split editors, Get from VCS, stash, multiple project windows, a
 plugin Marketplace and automatic updates. The pages mark smaller gaps with notes.
 

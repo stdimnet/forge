@@ -4,6 +4,7 @@ import { closeWorkspace, pickAndOpenWorkspace } from "@/state/workspace";
 import { registerToolWindow } from "@/features/registry";
 import { affectedDirs, onFsChanged, startReloadingChangedTabs } from "@/state/fsWatch";
 import { ProjectView, refreshDirs } from "./ProjectView";
+import { newEntryFromSelection } from "./fileMenu";
 
 // Files changed outside the editor: refresh the tree and reload unmodified open tabs.
 onFsChanged((c) => refreshDirs(affectedDirs(c)));
@@ -21,3 +22,5 @@ registerToolWindow({
 
 registerCommand({ id: "workspace.open", title: "Open…", category: "File", run: pickAndOpenWorkspace });
 registerCommand({ id: "workspace.close", title: "Close Project", category: "File", run: closeWorkspace });
+registerCommand({ id: "NewFile", title: "File", category: "File", run: () => newEntryFromSelection("file") });
+registerCommand({ id: "NewDir", title: "Directory", category: "File", run: () => newEntryFromSelection("dir") });

@@ -41,6 +41,7 @@ skills in [`.claude/skills/`](../../../.claude/skills/); the detailed IPC contra
 | [Screenshots and scenarios](screenshots.md) | Playwright scenarios, checking UI changes |
 | [Quality gates](quality-gates.md) | the checks before every commit |
 | [Release builds](release-builds.md) | AppImage, deb/rpm, installers, remote agents |
+| [Versioning](versioning.md) | Pride Versioning, `pnpm version:bump`, releasing a version |
 | [Git workflow](git-workflow.md) | branches, commits, CI, documentation updates |
 
 ## Crates
