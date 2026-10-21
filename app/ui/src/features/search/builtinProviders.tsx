@@ -6,6 +6,7 @@ import { FileIcon } from "@/shell/FileIcon";
 import { openFile } from "@/state/editor";
 import { openFileAt } from "@/editor/views";
 import { workspace } from "@/state/workspace";
+import { isTauri } from "@/ipc";
 import { searchApi } from "@/ipc/search";
 import { allActions, isActionAvailable, runAction, shortcutLabel } from "@/keymap";
 import { recentFiles } from "@/features/navigation/history";
@@ -43,7 +44,7 @@ registerSearchProvider({
 const SYMBOL_KINDS = new Set<string>(["class", "interface", "trait", "enum", "function", "method", "property", "constant"]);
 
 /** Languages whose pack answers Classes and Symbols from an index of its own. */
-const PACK_INDEXED = ["php", "phtml", "lua"];
+const PACK_INDEXED = isTauri() ? ["php", "phtml", "lua"] : ["lua"];
 
 function symbolProvider(id: string, tab: "classes" | "symbols", title: string, typesOnly: boolean) {
   registerSearchProvider({

@@ -1,0 +1,17 @@
+/** Classes and Symbols from the search index, and the Find tool window. */
+
+/** @type {Record<string, (page: import("playwright-core").Page) => Promise<void>>} */
+export default {
+  "search-index-symbols": async (page) => {
+    await page.evaluate(() => window.__forgeRunCommand("SearchEverywhere"));
+    await page.keyboard.type("order");
+    await page.waitForTimeout(800);
+  },
+  "search-index-find-window": async (page) => {
+    await page.evaluate(() => window.__forgeRunCommand("FindInPath"));
+    await page.keyboard.type("order");
+    await page.waitForTimeout(500);
+    await page.click('button[title^="Open in Find Window"]');
+    await page.waitForSelector(".fw-match");
+  },
+};

@@ -24,6 +24,9 @@ registerMock("find_in_files", async ({ request }) => {
   return callWasm<FindResult>(w.find_in_files, { request: request as FindRequest, files: projectFiles() });
 });
 
+/** The demo language server answers for these, so the index leaves them out like the desktop app does. */
+const LSP_SERVED = ["js", "jsx", "ts", "tsx", "mjs", "cjs"];
+
 registerMock("search_find_symbols", async ({ query, typesOnly, limit, skipExtensions }) => {
   const w = await forgeWasm();
   return callWasm<SymbolHit[]>(w.search_find_symbols, {
@@ -31,7 +34,7 @@ registerMock("search_find_symbols", async ({ query, typesOnly, limit, skipExtens
     query,
     typesOnly,
     limit,
-    skipExtensions,
+    skipExtensions: [...((skipExtensions as string[] | undefined) ?? []), ...LSP_SERVED],
   });
 });
 

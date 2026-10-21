@@ -875,6 +875,24 @@ TypeScript because a round trip per token would be slower.
   files. It is a `Backend` method (agent call `FindInFiles`), so remote projects are searched on
   their host. Browser mode runs `forge-find` as WebAssembly over the demo files. The Text tab of
   Search Everywhere uses the same command.
+- **Search index** (`crates/forge-search-core`, `crates/forge-search`): a persistent trigram
+  index with a symbol table. `forge-search-core` is pure (builds for `wasm32`; `rayon` sits
+  behind its `parallel` feature): trigram postings in roaring bitmaps, the literal prefilter of a
+  query, class and symbol extraction for PHP, Rust, JS/TS, Python, Go, Java-like languages, C/C++,
+  Ruby and Lua, and fuzzy ranking. `forge-search` adds the walk (`.gitignore`, excluded folders),
+  chunked parallel reads, the cache file (user cache dir, `Forge/search/<hash>.bin`) and
+  `SearchService`. `LocalBackend::with_search_index` (the app and the agent call it; the agent
+  behind its `search` feature) builds the index in the background and keeps it current from
+  `Backend::watch`. Until it covers the project, `find_in_files` and `find_files` walk the
+  directory as before; afterwards the index only narrows the candidate files and `forge-find`
+  still reads the lines, so both paths return identical results (test
+  `find_text_matches_a_directory_walk`). New `Backend` methods: `find_symbols(query, types_only,
+  limit, skip_extensions)` and `search_status()`; agent calls `FindSymbols` and `SearchStatus`.
+  The Classes and Symbols tabs (`core.classes`, `core.symbols`) skip the languages a running
+  language server or a pack index (PHP, Lua) already answers. The **Find tool window** (Alt+3,
+  "Open in Find Window" in the popup) lists every match; its limit is the setting
+  `search.findInFiles.maxMatches` (0 = unlimited), while Search Everywhere stays at a page. Browser
+  mode answers `search_find_symbols` with `forge-search-core` as WebAssembly.
 - **File types**: `crates/forge-filetypes` resolves files (bundled types plus manifest file
   types, inactive plugins skipped, `templates.dataLanguages` and soft-wrap patterns applied).
   `editor/fileTypes.ts` caches answers per path (and `#!` line) so `languageFor`,
