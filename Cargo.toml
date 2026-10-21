@@ -34,6 +34,7 @@ forge-open = { path = "crates/forge-open" }
 forge-process = { path = "crates/forge-process" }
 forge-output = { path = "crates/forge-output" }
 forge-markdown = { path = "crates/forge-markdown" }
+forge-viewers = { path = "crates/forge-viewers" }
 forge-debug = { path = "crates/forge-debug" }
 forge-db = { path = "crates/forge-db" }
 forge-containers = { path = "crates/forge-containers" }

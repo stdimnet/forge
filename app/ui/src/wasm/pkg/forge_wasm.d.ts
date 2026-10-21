@@ -196,6 +196,21 @@ export function containers_terminal_command(request_json: string): string;
 export function containers_workloads_parse(raw_json: string): string;
 
 /**
+ * `{ text, delimiter, edits }` → the new text.
+ */
+export function csv_edit(request_json: string): string;
+
+/**
+ * `{ text, path?, delimiter? }` → `CsvTable`.
+ */
+export function csv_parse(request_json: string): string;
+
+/**
+ * `{ rows, column, descending, headerRows }` → row indices.
+ */
+export function csv_sort_order(request_json: string): string;
+
+/**
  * Mirrors `doctrine_complete`: `{ path, content, offset, snapshot }` → `DqlCompletion | null`.
  */
 export function dql_complete(request_json: string): string;
@@ -271,6 +286,11 @@ export function find_paged(request_json: string): string;
  * `FilterRequest` → `FilterHit[]`.
  */
 export function fuzzy_filter(request_json: string): string;
+
+/**
+ * `{ path, base64 }` → `ImageData` (the mock reads demo images from base64).
+ */
+export function image_describe(request_json: string): string;
 
 /**
  * `{ text, path, offset, disabled?, uninjected? }` → `Injection | null`.
@@ -437,6 +457,16 @@ export function lua_run_markers(request_json: string): string;
  * `{ query, kind: "class" | "symbol", limit? }` -> `SymbolHit[]`.
  */
 export function lua_search_symbols(request_json: string): string;
+
+/**
+ * `{ text, anchor }` → 0-based line or `null`.
+ */
+export function markdown_anchor_line(request_json: string): string;
+
+/**
+ * `{ text }` → `Document` (the Markdown preview).
+ */
+export function markdown_document(request_json: string): string;
 
 /**
  * `{ markdown }` → `HoverDoc`.
@@ -775,6 +805,9 @@ export interface InitOutput {
     readonly containers_pull_push: (a: number, b: number, c: number) => void;
     readonly containers_terminal_command: (a: number, b: number, c: number) => void;
     readonly containers_workloads_parse: (a: number, b: number, c: number) => void;
+    readonly csv_edit: (a: number, b: number, c: number) => void;
+    readonly csv_parse: (a: number, b: number, c: number) => void;
+    readonly csv_sort_order: (a: number, b: number, c: number) => void;
     readonly dql_complete: (a: number, b: number, c: number) => void;
     readonly dql_diagnostics: (a: number, b: number, c: number) => void;
     readonly dql_goto: (a: number, b: number, c: number) => void;
@@ -790,6 +823,7 @@ export interface InitOutput {
     readonly find_page: (a: number, b: number, c: number) => void;
     readonly find_paged: (a: number, b: number, c: number) => void;
     readonly fuzzy_filter: (a: number, b: number, c: number) => void;
+    readonly image_describe: (a: number, b: number, c: number) => void;
     readonly injections_at: (a: number, b: number, c: number) => void;
     readonly injections_context_actions: (a: number, b: number, c: number) => void;
     readonly injections_escape: (a: number, b: number, c: number) => void;
@@ -823,6 +857,8 @@ export interface InitOutput {
     readonly lua_index_files: (a: number, b: number, c: number) => void;
     readonly lua_run_markers: (a: number, b: number, c: number) => void;
     readonly lua_search_symbols: (a: number, b: number, c: number) => void;
+    readonly markdown_anchor_line: (a: number, b: number, c: number) => void;
+    readonly markdown_document: (a: number, b: number, c: number) => void;
     readonly markdown_hover: (a: number, b: number, c: number) => void;
     readonly markdown_parse: (a: number, b: number, c: number) => void;
     readonly output_file_links: (a: number, b: number, c: number) => void;

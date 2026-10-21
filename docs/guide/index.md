@@ -48,6 +48,12 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 
 ## Recently added
 
+- **Markdown preview, image editor and Edit as Table**: Markdown files open with a live,
+  GitHub-flavored preview (tables, task lists, footnotes, alerts, Mermaid diagrams, project
+  images, front matter, links that open files in Forge) and synchronized scrolling; images open
+  in an image editor with zoom, grid and chessboard, SVG with a live preview; CSV/TSV files
+  can be edited as a table that keeps the file's quoting
+  ([Markdown, images and CSV](user/markdown-images-csv.md)).
 - **File and code templates**: New ▸ PHP Class / Interface / Trait / Enum with the PSR-4
   namespace from composer.json, PHPUnit Test, Laravel and Symfony classes, HTML, CSS,
   JavaScript, TypeScript, Vue, React and Lua files, the `Alt+Insert` New popup in the Project

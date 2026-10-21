@@ -1,0 +1,112 @@
+.img-editor {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: var(--bg-editor);
+}
+.img-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 32px;
+  padding: 0 8px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-editor);
+  flex-shrink: 0;
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+.twp .img-toolbar {
+  /* Leave room for the layout buttons of an SVG editor. */
+  padding-right: 110px;
+}
+.img-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 24px;
+  padding: 0 4px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--fg-muted);
+  cursor: pointer;
+}
+.img-btn:hover {
+  background: var(--bg-hover);
+  color: var(--fg);
+}
+.img-btn.active {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.img-btn-text {
+  font-size: 11px;
+  font-weight: 600;
+}
+.img-sep {
+  width: 1px;
+  height: 16px;
+  margin: 0 6px;
+  background: var(--border);
+}
+.img-zoom {
+  margin-left: 8px;
+  min-width: 42px;
+  color: var(--fg-faint);
+}
+.img-info {
+  margin-left: auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.img-viewport {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  outline: none;
+}
+.img-frame {
+  position: relative;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 1px var(--border);
+}
+.img-frame.chessboard {
+  background-color: var(--bg-editor);
+  background-image:
+    linear-gradient(45deg, var(--bg-active) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--bg-active) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--bg-active) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--bg-active) 75%);
+  background-size: 16px 16px;
+  background-position:
+    0 0,
+    0 8px,
+    8px -8px,
+    -8px 0;
+}
+.img-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.img-image.pixelated {
+  image-rendering: pixelated;
+}
+.img-grid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(to right, var(--border-strong) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--border-strong) 1px, transparent 1px);
+}
+.img-error {
+  color: var(--fg-muted);
+}

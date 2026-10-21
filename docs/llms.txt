@@ -16,6 +16,7 @@ Forge's rule of thumb is "Rust computes, TypeScript renders": logic lives in Rus
 
 - [User guide overview](guide/user/index.md): all user topics
 - [Workbench](guide/user/workbench.md): main window, main menu, tool windows, editor tabs and split editors, Recent Locations, Bookmarks, Find, TODO and Notifications tool windows, status bar
+- [Markdown, images and CSV](guide/user/markdown-images-csv.md): Markdown editor with live GitHub-flavored preview (Mermaid, tables, links, images, front matter, sync scroll), image editor (zoom, grid, chessboard), SVG preview, Edit as Table for CSV/TSV
 - [Editor](guide/user/editor.md): editing, completion, postfix completion, Complete Current Statement (Ctrl+Shift+Enter), Cyclic Expand Word (Alt+/), Quick Documentation (Ctrl+Q), Quick Definition, Go to Declaration, Find/Show Usages, Rename (Shift+F6), Show Context Actions (Alt+Enter), inspections, folding, multiple carets
 - [Actions on Save](guide/user/actions-on-save.md): Settings | Tools | Actions on Save: Reformat code (whole file or changed lines), Optimize imports, Rearrange code, code cleanup, eslint --fix, Prettier, PHP CS Fixer and Laravel Pint on Ctrl+S or autosave, one undo step
 - [Language injections](guide/user/language-injections.md): SQL/HTML/CSS/JSON/RegExp in PHP and JS strings, `// language=` comments, heredoc labels, Inject language or reference, Un-inject, Edit Fragment, Run SQL (Ctrl+Enter)

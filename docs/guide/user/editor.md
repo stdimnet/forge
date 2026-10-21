@@ -7,7 +7,9 @@ tags: [editor, completion, postfix completion, hover, documentation, navigation,
 
 # Editor
 
-Forge's editor is built on CodeMirror 6. Language intelligence (completion, hover, diagnostics,
+Forge's editor is built on CodeMirror 6. Markdown, SVG, image and CSV/TSV files open in
+editors of their own with a preview, zoom or a table view: see
+[Markdown, images and CSV](markdown-images-csv.md). Language intelligence (completion, hover, diagnostics,
 Go to Declaration, formatting) comes from [language servers](language-servers.md) and from
 Forge's own indexes for PHP, Lua and the frameworks. Shortcuts below are the Windows/Linux
 defaults with macOS in parentheses; the full list is in the

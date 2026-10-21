@@ -263,6 +263,21 @@ export function openCustomTab(tab: CustomTab): void {
 }
 
 /**
+ * Binary files that open in an editor view instead of as text (images): the tab gets the
+ * view id and no text.
+ */
+export interface BinaryFileView {
+  view: string;
+  accepts: (path: string) => boolean;
+}
+
+const binaryViews: BinaryFileView[] = [];
+
+export function registerBinaryFileView(v: BinaryFileView): void {
+  binaryViews.push(v);
+}
+
+/**
  * Open a file (or activate its tab) in an editor group; default: the active group. With
  * `activate: false` the tab opens in the background (restoring a project's layout).
  */
@@ -271,6 +286,14 @@ export async function openFile(path: string, opts: { group?: number; activate?: 
   if (isCustomTab(path)) {
     if (activate && customTabs().some((t) => t.id === path)) showTab(path, opts.group ?? groups.groupOf(editor.layout, path)?.id);
     return;
+  }
+  const binary = fileSystemFor(path) ? undefined : binaryViews.find((v) => v.accepts(path));
+  if (binary && !editor.tabs.some((t) => t.path === path)) {
+    const name = path.split("/").pop() ?? path;
+    setEditor("tabs", (tabs) => [
+      ...tabs,
+      { path, name, view: binary.view, content: "", saved: "", eol: "\n", encoding: "UTF-8", bom: false, cursor: { line: 1, col: 1 } },
+    ]);
   }
   if (!editor.tabs.some((t) => t.path === path)) {
     const file = await readText(path);
