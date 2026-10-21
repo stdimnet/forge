@@ -2,13 +2,17 @@
 
 use std::io::{Read, Write};
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
+#[cfg(unix)]
+use std::time::Duration;
 
 use forge_core::{ForgeError, Result};
 use portable_pty::{native_pty_system, ChildKiller, CommandBuilder, MasterPty, PtySize};
 use serde::{Deserialize, Serialize};
 
 use crate::shell::{default_shell, shell_args};
+use crate::termenv::{terminal_env, utf8_locale_fallback, FOREIGN_TERMINAL_VARS};
 use crate::utf8::Utf8Decoder;
 
 /// How to start a terminal session.
@@ -19,8 +23,11 @@ pub struct PtyOptions {
     /// Shell arguments; `None` uses the customary ones for the shell (e.g. `-l` for bash).
     pub args: Option<Vec<String>>,
     pub cwd: PathBuf,
-    /// Extra environment variables on top of the inherited environment.
+    /// Extra environment variables on top of the inherited environment and
+    /// [`terminal_env`]; they win over both.
     pub env: Vec<(String, String)>,
+    /// Reported as `TERM_PROGRAM_VERSION`; empty uses this crate's version.
+    pub version: String,
     pub cols: u16,
     pub rows: u16,
 }
@@ -44,7 +51,12 @@ pub struct PtySession {
     killer: Mutex<Box<dyn ChildKiller + Send + Sync>>,
     shell: String,
     pid: Option<u32>,
+    exited: Arc<AtomicBool>,
 }
+
+/// How long [`PtySession::kill`] waits after SIGHUP before it sends SIGKILL.
+#[cfg(unix)]
+const KILL_GRACE: Duration = Duration::from_millis(1500);
 
 impl PtySession {
     /// Start the shell; output and the exit are delivered to `sink` from a reader thread.
@@ -63,9 +75,19 @@ impl PtySession {
         let mut cmd = CommandBuilder::new(&shell);
         cmd.args(opts.args.unwrap_or_else(|| shell_args(&shell)));
         cmd.cwd(&opts.cwd);
-        cmd.env("TERM", "xterm-256color");
-        cmd.env("COLORTERM", "truecolor");
-        cmd.env("TERM_PROGRAM", "Forge");
+        for var in FOREIGN_TERMINAL_VARS {
+            cmd.env_remove(var);
+        }
+        let version = match opts.version.trim() {
+            "" => env!("CARGO_PKG_VERSION"),
+            v => v,
+        };
+        for (k, v) in terminal_env(version) {
+            cmd.env(k, v);
+        }
+        if let Some(lang) = utf8_locale_fallback(|k| std::env::var(k).ok()) {
+            cmd.env("LANG", lang);
+        }
         for (k, v) in &opts.env {
             cmd.env(k, v);
         }
@@ -79,6 +101,8 @@ impl PtySession {
         let killer = child.clone_killer();
         let mut reader = pair.master.try_clone_reader().map_err(other)?;
         let writer = pair.master.take_writer().map_err(other)?;
+        let exited = Arc::new(AtomicBool::new(false));
+        let exited_flag = exited.clone();
 
         std::thread::Builder::new()
             .name(format!("pty-{}", pid.unwrap_or(0)))
@@ -101,6 +125,7 @@ impl PtySession {
                     sink(PtyEvent::Output { data: rest });
                 }
                 let code = child.wait().ok().map(|s| s.exit_code() as i32);
+                exited_flag.store(true, Ordering::SeqCst);
                 sink(PtyEvent::Exited { code });
             })
             .map_err(other)?;
@@ -111,6 +136,7 @@ impl PtySession {
             killer: Mutex::new(killer),
             shell,
             pid,
+            exited,
         })
     }
 
@@ -144,13 +170,43 @@ impl PtySession {
             .map_err(other)
     }
 
-    /// Terminate the shell.
+    /// Whether the shell has exited.
+    pub fn has_exited(&self) -> bool {
+        self.exited.load(Ordering::SeqCst)
+    }
+
+    /// Terminate the shell: SIGHUP like a closing terminal window, then SIGKILL to the
+    /// shell's process group if it still runs after a grace period. Bash can lose a SIGHUP
+    /// that arrives while it redraws its prompt and would otherwise keep running.
     pub fn kill(&self) -> Result<()> {
+        if self.has_exited() {
+            return Ok(());
+        }
         self.killer
             .lock()
             .expect("pty killer poisoned")
             .kill()
-            .map_err(other)
+            .map_err(other)?;
+        #[cfg(unix)]
+        if let Some(pid) = self.pid {
+            let exited = self.exited.clone();
+            let _ = std::thread::Builder::new()
+                .name(format!("pty-kill-{pid}"))
+                .spawn(move || {
+                    std::thread::sleep(KILL_GRACE);
+                    // The reader thread reaps the child before it sets `exited`, so the pid
+                    // cannot have been reused while the flag is still false.
+                    if !exited.load(Ordering::SeqCst) {
+                        let pid = pid as libc::pid_t;
+                        // SAFETY: plain kill(2) calls on the shell and its process group.
+                        unsafe {
+                            libc::kill(-pid, libc::SIGKILL);
+                            libc::kill(pid, libc::SIGKILL);
+                        }
+                    }
+                });
+        }
+        Ok(())
     }
 }
 
@@ -183,6 +239,7 @@ mod tests {
                 args: Some(args),
                 cwd: dir,
                 env: vec![("FORGE_TEST".into(), "pty-ok".into())],
+                version: "9.9.9".into(),
                 cols: 80,
                 rows: 24,
             },
@@ -221,6 +278,17 @@ mod tests {
         let (text, exit) = collect_until(&rx, |_| false);
         assert!(text.contains("hello pty-ok"), "{text:?}");
         assert_eq!(exit, Some(Some(3)));
+    }
+
+    #[test]
+    fn sets_the_terminal_environment() {
+        let script = "echo \"env:$TERM:$COLORTERM:$TERM_PROGRAM:$TERM_PROGRAM_VERSION:${KITTY_WINDOW_ID-unset}\"";
+        let (_s, rx) = start("/bin/sh", vec!["-c".into(), script.into()]);
+        let (text, _) = collect_until(&rx, |_| false);
+        assert!(
+            text.contains("env:xterm-256color:truecolor:Forge:9.9.9:unset"),
+            "{text:?}"
+        );
     }
 
     #[test]

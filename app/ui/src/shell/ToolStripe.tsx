@@ -1,4 +1,4 @@
-import { For } from "solid-js";
+import { For, Show } from "solid-js";
 import { toolWindowsFor, type ToolWindow, type ToolWindowAnchor } from "@/features/registry";
 import { layout, toggleToolWindow } from "@/state/layout";
 
@@ -13,6 +13,9 @@ function StripeButton(props: { tw: ToolWindow }) {
       onClick={() => toggleToolWindow(props.tw.anchor, props.tw.id)}
     >
       <props.tw.icon size={18} stroke-width={1.75} />
+      <Show when={!active() && props.tw.badge}>
+        {(badge) => <span class="stripe-badge">{badge()()}</span>}
+      </Show>
     </button>
   );
 }

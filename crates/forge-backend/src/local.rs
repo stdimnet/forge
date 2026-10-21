@@ -334,6 +334,9 @@ impl Backend for LocalBackend {
                 args: spec.args,
                 cwd: cwd.clone(),
                 env: spec.env,
+                // Forge's crates share the app's version, so this reports the app version
+                // here and on a remote agent alike.
+                version: String::new(),
                 cols: spec.cols,
                 rows: spec.rows,
             },
