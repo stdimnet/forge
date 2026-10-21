@@ -3,6 +3,7 @@
  * file -> problems tree. Clicking a problem opens the file at that position.
  */
 import { createMemo, createSignal, For, Show } from "solid-js";
+import { setToolWindowTab, toolWindowTab } from "@/state/layout";
 import { Dynamic } from "solid-js/web";
 import { ChevronDown, ChevronRight } from "lucide-solid";
 import { activeTab } from "@/state/editor";
@@ -15,7 +16,8 @@ import { baseName } from "./util";
 
 export type ProblemsTab = "file" | "project";
 
-const [tab, setTab] = createSignal<ProblemsTab>("file");
+const tab = (): ProblemsTab => (toolWindowTab("problems", "file") === "project" ? "project" : "file");
+const setTab = (t: ProblemsTab) => setToolWindowTab("problems", t);
 const [collapsed, setCollapsed] = createSignal<Set<string>>(new Set());
 const [selected, setSelected] = createSignal<string | null>(null);
 

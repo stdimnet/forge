@@ -7,6 +7,8 @@ import { isTauri } from "./ipc";
 import { drawsControls, trackMaximized } from "./shell/window/chrome";
 import { ResizeEdges, WindowTitleBar } from "./shell/window/WindowFrame";
 import { reportWorkbenchReady } from "./features/updates";
+// The project's tool window layout and editor tabs are restored and saved (main window only).
+import "./state/layoutPersistence";
 
 export function App() {
   onMount(async () => {

@@ -3,6 +3,7 @@
  * with CI status, comments and reviewers, plus Issues and Pipelines tabs.
  */
 import { createEffect, createResource, createSignal, For, Match, on, Show, Switch } from "solid-js";
+import { setToolWindowTab, toolWindowTab } from "@/state/layout";
 import { createStore } from "solid-js/store";
 import { ChevronDown, CloudOff, ExternalLink, Filter, KeyRound, MessageSquare, Plus, RefreshCw, Search, X } from "lucide-solid";
 import {
@@ -23,7 +24,9 @@ import { openCreateDialog, openIssue, openMergeRequest, settingsPageFor } from "
 
 type Tab = "requests" | "issues" | "pipelines";
 
-const [tab, setTab] = createSignal<Tab>("requests");
+const TABS: Tab[] = ["requests", "issues", "pipelines"];
+const tab = (): Tab => TABS.find((t) => t === toolWindowTab("pull-requests", "requests")) ?? "requests";
+const setTab = (t: Tab) => setToolWindowTab("pull-requests", t);
 const [filter, setFilter] = createStore<MrFilter>({ state: "open" });
 const [issueFilter, setIssueFilter] = createStore<IssueFilter>({ state: "open" });
 const [selected, setSelected] = createSignal<number | null>(null);

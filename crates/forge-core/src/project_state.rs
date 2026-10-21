@@ -1,7 +1,8 @@
 //! State Forge keeps per project outside the project folder:
 //!
-//! - the window layout (open tool windows, their sizes and tabs, open editor tabs) in the
-//!   user cache dir (`<cache dir>/forge/layouts/<project key>.json`);
+//! - the window layout (open tool windows, their sizes and tabs, open editor tabs) in Forge's
+//!   state dir (`<state dir>/forge/layouts/<project key>.json`; the state dir is
+//!   `$XDG_STATE_HOME` on Linux and the local data dir elsewhere);
 //! - the AI chat history in the user data dir
 //!   (`<data dir>/forge/chat-history/<project key>/<id>.json`).
 //!
@@ -110,9 +111,12 @@ fn is_relative_path(p: &str) -> bool {
         && !p.split(['/', '\\']).any(|s| s == "..")
 }
 
-/// `<cache dir>/forge/layouts`.
+/// `<state dir>/forge/layouts`: `~/.local/state` on Linux, the local data dir on macOS and
+/// Windows (which have no separate state dir).
 pub fn default_layout_dir() -> Option<PathBuf> {
-    dirs::cache_dir().map(|d| d.join("forge").join("layouts"))
+    dirs::state_dir()
+        .or_else(dirs::data_local_dir)
+        .map(|d| d.join("forge").join("layouts"))
 }
 
 pub fn load_layout(dir: &Path, root: &str) -> Option<ProjectLayout> {
