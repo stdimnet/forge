@@ -57,10 +57,11 @@
   text-overflow: ellipsis;
 }
 .aos-missing {
-  color: var(--warning);
+  color: color-mix(in srgb, var(--warning) 75%, var(--fg));
 }
-.aos-select {
+.aos-select.set-select {
   height: 24px;
+  min-width: 0;
 }
 .aos-files {
   height: 24px;
