@@ -13,13 +13,17 @@
 //! - [`stubs`] PHP's own symbols from phpstorm-stubs (the "PHP Runtime").
 //! - [`lsp`] describes how to launch Intelephense / phpactor.
 //! - [`style`] brace placement and blank lines of the PHP code style.
+//! - [`imports`], [`rearrange`] and [`cleanup`]: Optimize Imports, Rearrange Code and Code
+//!   Cleanup (also run as Actions on Save).
 
+pub mod cleanup;
 pub mod composer;
 pub mod create;
 pub mod docblock;
 pub mod fuzzy;
 pub mod generate;
 pub mod hover;
+pub mod imports;
 pub mod index;
 pub mod intentions;
 pub mod lsp;
@@ -27,6 +31,7 @@ pub mod model;
 pub mod navigate;
 pub mod offsets;
 pub mod parser;
+pub mod rearrange;
 pub mod rename;
 pub mod resolve;
 pub mod service;
