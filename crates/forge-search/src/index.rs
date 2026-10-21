@@ -5,7 +5,7 @@ use std::sync::mpsc;
 use std::time::UNIX_EPOCH;
 
 use forge_search_core::{Analysis, Loaded, Scanned, Scope, MAX_CONTENT_BYTES};
-use ignore::WalkBuilder;
+use ignore::{WalkBuilder, WalkState};
 use rayon::prelude::*;
 
 const BINARY_SNIFF_BYTES: u64 = 8192;
@@ -50,32 +50,46 @@ pub(crate) fn scan(root: &Path, scope: &Scope) -> Vec<Scanned> {
                 .strip_prefix(&walk_root)
                 .is_ok_and(|rel| walk_scope.walks_into(&rel.to_string_lossy().replace('\\', "/")))
         })
-        .build();
+        .build_parallel();
 
-    let mut out = Vec::new();
-    for entry in walker.flatten() {
-        if !entry.file_type().is_some_and(|t| t.is_file()) {
-            continue;
-        }
-        let Ok(meta) = entry.metadata() else { continue };
-        let Ok(rel) = entry.path().strip_prefix(root) else {
-            continue;
-        };
-        let path = rel.to_string_lossy().replace('\\', "/");
-        if !scope.contains(&path) {
-            continue;
-        }
-        let mtime = meta
-            .modified()
-            .ok()
-            .and_then(|t| t.duration_since(UNIX_EPOCH).ok())
-            .map_or(0, |d| d.as_nanos() as u64);
-        out.push(Scanned {
-            path,
-            mtime,
-            size: meta.len(),
-        });
-    }
+    let (tx, rx) = mpsc::channel();
+    let root = root.to_path_buf();
+    let scope = scope.clone();
+    walker.run(|| {
+        let (tx, root, scope) = (tx.clone(), root.clone(), scope.clone());
+        Box::new(move |entry| {
+            let Ok(entry) = entry else {
+                return WalkState::Continue;
+            };
+            if !entry.file_type().is_some_and(|t| t.is_file()) {
+                return WalkState::Continue;
+            }
+            let Ok(meta) = entry.metadata() else {
+                return WalkState::Continue;
+            };
+            let Ok(rel) = entry.path().strip_prefix(&root) else {
+                return WalkState::Continue;
+            };
+            let path = rel.to_string_lossy().replace('\\', "/");
+            if !scope.contains(&path) {
+                return WalkState::Continue;
+            }
+            let mtime = meta
+                .modified()
+                .ok()
+                .and_then(|t| t.duration_since(UNIX_EPOCH).ok())
+                .map_or(0, |d| d.as_nanos() as u64);
+            let _ = tx.send(Scanned {
+                path,
+                mtime,
+                size: meta.len(),
+            });
+            WalkState::Continue
+        })
+    });
+    drop(tx);
+    let mut out: Vec<Scanned> = rx.into_iter().collect();
+    out.sort_unstable_by(|a, b| a.path.cmp(&b.path));
     out
 }
 

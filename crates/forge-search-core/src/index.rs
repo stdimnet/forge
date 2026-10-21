@@ -4,13 +4,17 @@ use std::io::{Read, Write};
 
 use nucleo_matcher::pattern::{CaseMatching, Normalization, Pattern};
 use nucleo_matcher::{Config, Matcher, Utf32Str};
+#[cfg(feature = "parallel")]
+use rayon::prelude::*;
 use roaring::RoaringBitmap;
 use serde::{Deserialize, Serialize};
 
 use crate::symbols::{self, RawSymbol, SymbolHit, SymbolTable};
 use crate::trigram;
 
-const FORMAT_VERSION: u32 = 4;
+const FORMAT_VERSION: u32 = 5;
+/// Independent postings maps of the head, so one batch is inserted by several threads at once.
+const SHARDS: usize = 16;
 const SEGMENT_FILES: u32 = 16_384;
 const MAX_SEGMENTS: usize = 48;
 /// Larger files are listed by name but never searched by content.
@@ -92,8 +96,8 @@ struct Segment {
 }
 
 impl Segment {
-    fn freeze(map: GramMap) -> Self {
-        let mut entries: Vec<(u32, RoaringBitmap)> = map.into_iter().collect();
+    fn freeze(shards: Vec<GramMap>) -> Self {
+        let mut entries: Vec<(u32, RoaringBitmap)> = shards.into_iter().flatten().collect();
         entries.sort_unstable_by_key(|e| e.0);
         let mut seg = Segment {
             keys: Vec::with_capacity(entries.len()),
@@ -126,7 +130,7 @@ pub struct Index {
     /// Immutable postings, one segment per `SEGMENT_FILES` indexed files; ids ascend across segments.
     segments: Vec<Segment>,
     /// Postings of the files added since the last segment was frozen.
-    head: GramMap,
+    head: Vec<GramMap>,
     head_first_id: u32,
     symbols: SymbolTable,
     #[serde(skip)]
@@ -142,8 +146,51 @@ pub struct Scanned {
 
 /// What a file's content contributes to the index.
 pub struct Analysis {
-    grams: Option<Vec<u32>>,
+    grams: Option<Grams>,
     symbols: Vec<RawSymbol>,
+}
+
+/// A file's sorted trigrams grouped by shard: `ends[i]` is where shard `i`'s run stops.
+struct Grams {
+    list: Vec<u32>,
+    ends: [u32; SHARDS],
+}
+
+fn shard_of(gram: u32) -> usize {
+    gram as usize % SHARDS
+}
+
+impl Grams {
+    fn new(sorted: Vec<u32>) -> Self {
+        let mut counts = [0u32; SHARDS];
+        for &g in &sorted {
+            counts[shard_of(g)] += 1;
+        }
+        let mut ends = [0u32; SHARDS];
+        let mut next = [0usize; SHARDS];
+        let mut at = 0;
+        for i in 0..SHARDS {
+            next[i] = at;
+            at += counts[i] as usize;
+            ends[i] = at as u32;
+        }
+        let mut list = vec![0u32; sorted.len()];
+        for g in sorted {
+            let shard = shard_of(g);
+            list[next[shard]] = g;
+            next[shard] += 1;
+        }
+        Self { list, ends }
+    }
+
+    fn shard(&self, i: usize) -> &[u32] {
+        let start = if i == 0 { 0 } else { self.ends[i - 1] as usize };
+        &self.list[start..self.ends[i] as usize]
+    }
+}
+
+fn new_head() -> Vec<GramMap> {
+    (0..SHARDS).map(|_| GramMap::default()).collect()
 }
 
 impl Analysis {
@@ -163,7 +210,7 @@ impl Analysis {
             return Self::name_only();
         }
         Self {
-            grams: Some(trigram::of_text(bytes)),
+            grams: Some(Grams::new(trigram::of_text(bytes))),
             symbols: symbols::extract(path, bytes),
         }
     }
@@ -186,7 +233,7 @@ impl Index {
             version: FORMAT_VERSION,
             files: Vec::new(),
             segments: Vec::new(),
-            head: GramMap::default(),
+            head: new_head(),
             head_first_id: 0,
             symbols: SymbolTable::default(),
             by_path: HashMap::new(),
@@ -287,6 +334,7 @@ impl Index {
     }
 
     pub fn add_batch(&mut self, batch: Loaded) {
+        let mut postings: Vec<(u32, Grams)> = Vec::new();
         for (
             s,
             Analysis {
@@ -299,10 +347,9 @@ impl Index {
                 self.tombstone(old);
             }
             let id = self.files.len() as u32;
-            if let Some(grams) = &grams {
-                for &g in grams {
-                    self.head.entry(g).or_default().push(id);
-                }
+            let content = grams.is_some();
+            if let Some(grams) = grams {
+                postings.push((id, grams));
             }
             self.symbols.add_file(id, &syms);
             self.by_path.insert(s.path.clone(), id);
@@ -310,12 +357,20 @@ impl Index {
                 path: s.path,
                 mtime: s.mtime,
                 size: s.size,
-                content: grams.is_some(),
+                content,
             }));
         }
+        let insert = |(shard, map): (usize, &mut GramMap)| {
+            for (id, grams) in &postings {
+                for &g in grams.shard(shard) {
+                    map.entry(g).or_default().push(*id);
+                }
+            }
+        };
+        par_iter_mut!(self.head).enumerate().for_each(insert);
         if self.files.len() as u32 - self.head_first_id >= SEGMENT_FILES {
-            self.segments
-                .push(Segment::freeze(std::mem::take(&mut self.head)));
+            let head = std::mem::replace(&mut self.head, new_head());
+            self.segments.push(Segment::freeze(head));
             self.head_first_id = self.files.len() as u32;
         }
     }
@@ -365,7 +420,10 @@ impl Index {
     }
 
     fn trigram_ids(&self, gram: u32) -> RoaringBitmap {
-        let mut ids = self.head.get(&gram).cloned().unwrap_or_default();
+        let mut ids = self.head[shard_of(gram)]
+            .get(&gram)
+            .cloned()
+            .unwrap_or_default();
         for seg in &self.segments {
             if let Some(more) = seg.get(gram) {
                 ids |= more;

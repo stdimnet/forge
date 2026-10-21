@@ -23,3 +23,16 @@ macro_rules! par_chunks {
         $e.chunks($n)
     };
 }
+
+#[cfg(feature = "parallel")]
+macro_rules! par_iter_mut {
+    ($e:expr) => {
+        rayon::prelude::IntoParallelRefMutIterator::par_iter_mut(&mut $e)
+    };
+}
+#[cfg(not(feature = "parallel"))]
+macro_rules! par_iter_mut {
+    ($e:expr) => {
+        $e.iter_mut()
+    };
+}
