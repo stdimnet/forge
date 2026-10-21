@@ -259,6 +259,49 @@ impl Finder {
     }
 }
 
+/// The rows of a file whose match ranges (byte offsets into `text`, none spanning a line break)
+/// were found elsewhere, e.g. by a faster regex engine. Same result as [`Finder::search`] with
+/// the same budget, provided the ranges are the non-empty matches of the request's pattern.
+pub fn lines_from_ranges(
+    text: &str,
+    ranges: &[(usize, usize)],
+    budget: usize,
+) -> (Vec<LineMatch>, usize, bool) {
+    let bytes = text.as_bytes();
+    let mut out = Vec::new();
+    let mut count = 0;
+    let (mut line_no, mut line_start, mut counted) = (0, 0, 0);
+    let mut i = 0;
+    while i < ranges.len() {
+        let at = ranges[i].0;
+        let skipped = &bytes[counted..at];
+        line_no += skipped.iter().filter(|&&b| b == b'\n').count();
+        if let Some(p) = skipped.iter().rposition(|&b| b == b'\n') {
+            line_start = counted + p + 1;
+        }
+        counted = at;
+        let next_line = bytes[at..]
+            .iter()
+            .position(|&b| b == b'\n')
+            .map_or(bytes.len(), |p| at + p);
+        let mut line_end = next_line;
+        if line_end > line_start && bytes[line_end - 1] == b'\r' {
+            line_end -= 1;
+        }
+        let mut found = Vec::new();
+        while i < ranges.len() && ranges[i].0 <= next_line {
+            found.push((ranges[i].0 - line_start, ranges[i].1 - line_start));
+            i += 1;
+        }
+        if count + found.len() > budget {
+            return (out, count, true);
+        }
+        count += found.len();
+        out.push(line_match(line_no, &text[line_start..line_end], &found));
+    }
+    (out, count, false)
+}
+
 fn utf16_len(s: &str) -> usize {
     s.chars().map(char::len_utf16).sum()
 }
@@ -484,6 +527,24 @@ mod tests {
         assert_eq!(find_in(&q, [("e.txt", "a\r\nb")]).match_count, 0);
         assert!(is_binary(b"ab\0c"));
         assert!(!is_binary(b"abc"));
+    }
+
+    #[test]
+    fn ranges_give_the_same_rows_as_a_line_search() {
+        let text = "alpha beta\r\n\nbeta beta gamma\nno\n  beta\tbeta beta\n";
+        let finder = Finder::new(&req("beta")).unwrap();
+        let ranges: Vec<(usize, usize)> = text
+            .match_indices("beta")
+            .map(|(s, m)| (s, s + m.len()))
+            .collect();
+        for budget in [0, 1, 2, 3, 4, 5, 6, 100] {
+            assert_eq!(
+                lines_from_ranges(text, &ranges, budget),
+                finder.search(text, budget),
+                "budget {budget}"
+            );
+        }
+        assert_eq!(lines_from_ranges(text, &[], 10), (vec![], 0, false));
     }
 
     #[test]

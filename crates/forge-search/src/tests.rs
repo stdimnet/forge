@@ -354,6 +354,17 @@ fn find_text_matches_a_directory_walk() {
     let mut regex = req(r"class \w+Repository");
     regex.regex = true;
     cases.push(regex);
+    for pattern in [
+        r"end\s",
+        r"^\s*function",
+        r"\w+Repository",
+        r"[^a-z]x",
+        "x|e",
+    ] {
+        let mut regex = req(pattern);
+        regex.regex = true;
+        cases.push(regex);
+    }
     let mut eol = req(r"end$");
     eol.regex = true;
     cases.push(eol);

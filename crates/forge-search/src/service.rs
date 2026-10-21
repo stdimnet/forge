@@ -281,13 +281,23 @@ impl SearchService {
                     return None;
                 }
                 let bytes = std::fs::read(self.root.join(path)).ok()?;
-                if forge_find::is_binary(&bytes)
-                    || prefilter.as_ref().is_some_and(|re| !re.is_match(&bytes))
-                {
+                if forge_find::is_binary(&bytes) {
                     return None;
                 }
-                let text = String::from_utf8_lossy(&bytes);
-                let (matches, count, cut) = finder.search(&text, limit);
+                let ranges = match &prefilter {
+                    Some(re) => {
+                        let ranges = line_ranges(re, &bytes);
+                        if ranges.as_ref().is_some_and(Vec::is_empty) {
+                            return None;
+                        }
+                        ranges
+                    }
+                    None => None,
+                };
+                let (matches, count, cut) = match (ranges, std::str::from_utf8(&bytes)) {
+                    (Some(ranges), Ok(text)) => forge_find::lines_from_ranges(text, &ranges, limit),
+                    _ => finder.search(&String::from_utf8_lossy(&bytes), limit),
+                };
                 if matches.is_empty() {
                     return None;
                 }
@@ -361,6 +371,22 @@ impl SearchService {
             .expect("search index lock poisoned")
             .find_files(query, limit)
     }
+}
+
+/// Non-empty matches of `re` in `bytes`, or `None` when one touches a line break: `forge-find`
+/// matches line by line, so those files go through its own search instead.
+fn line_ranges(re: &regex::bytes::Regex, bytes: &[u8]) -> Option<Vec<(usize, usize)>> {
+    let mut out = Vec::new();
+    for m in re.find_iter(bytes) {
+        if m.is_empty() {
+            continue;
+        }
+        if bytes[m.range()].iter().any(|&b| b == b'\n' || b == b'\r') {
+            return None;
+        }
+        out.push((m.start(), m.end()));
+    }
+    Some(out)
 }
 
 fn watch_loop(rx: mpsc::Receiver<notify::Result<notify::Event>>, service: Weak<SearchService>) {
