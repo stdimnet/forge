@@ -9,8 +9,9 @@ import { levelOf, type Participant, type PermissionLevel } from "@/ipc/collab";
 import { getSetting } from "@/state/settings";
 import { runCommand } from "@/state/commands";
 import { FileIcon } from "@/shell/FileIcon";
-import { session, setPopupOpen } from "./store";
+import { inSession, session, setPopupOpen } from "./store";
 import { openSharedFile } from "./session";
+import { SessionConnections } from "./ConnectionStatus";
 
 export const LEVELS: { level: PermissionLevel; title: string; hint: string }[] = [
   { level: "readOnly", title: "Read-only", hint: "Guests can view files, the terminal and run output." },
@@ -208,6 +209,10 @@ export function SessionPopup(props: { anchor: HTMLElement; onStart: (level: Perm
         style={{ top: `${rect.bottom + 4}px`, left: `${Math.max(8, Math.min(rect.left, window.innerWidth - 380))}px` }}
         onKeyDown={(e) => e.key === "Escape" && (e.stopPropagation(), setPopupOpen(false))}
       >
+        <Show when={inSession()}>
+          <SessionConnections />
+          <div class="cwm-sep" />
+        </Show>
         <Show when={session().role === "host"}>
           <HostView />
         </Show>

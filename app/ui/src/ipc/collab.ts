@@ -43,6 +43,36 @@ export interface SharedFile {
   path: string;
 }
 
+/** How a connection travels: straight to the peer, or through a relay server. */
+export type PathKind = "direct" | "relay";
+
+/** The path one participant's connection uses (host: each guest, guest: the host). */
+export interface ConnectionPath {
+  kind: PathKind;
+  /** The peer's address (`192.168.1.20:41641`) or the relay's URL. */
+  remote: string;
+  /** Round-trip time on this path. */
+  rttMs?: number;
+}
+
+export interface ParticipantConnection extends ConnectionPath {
+  participant: number;
+}
+
+/** The connection to the session's relay server. */
+export interface RelayStatus {
+  url: string;
+  connected: boolean;
+  /** Why the relay cannot be used (token denied, unreachable, certificate). */
+  error?: string;
+}
+
+export interface RelayTokenStatus {
+  set: boolean;
+  /** The keychain could not be read or written. */
+  error?: string;
+}
+
 export interface SessionView {
   role: "none" | "host" | "guest";
   /** Start Session can be used; otherwise `hostUnavailable` says why. */
@@ -60,6 +90,10 @@ export interface SessionView {
   hostLabel?: string;
   /** Shown to every participant, e.g. that the session is a development preview. */
   notice?: string;
+  /** Direct or relayed, per connected guest (host) or to the host (guest). */
+  connections?: ParticipantConnection[];
+  /** The relay server of the session, when it uses one. */
+  relay?: RelayStatus;
 }
 
 /** What the Join Session dialog shows about a pasted link. */
@@ -146,6 +180,12 @@ export const collabApi = {
   awareness: (docId: number, update: Uint8Array) => invoke<void>("collab_awareness", { docId, update: toBase64(update) }),
   docClose: (docId: number) => invoke<void>("collab_doc_close", { docId }),
   docSave: (docId: number) => invoke<void>("collab_doc_save", { docId }),
+  /** Whether a relay token is stored in the keychain (the token itself never reaches the UI). */
+  relayTokenStatus: () => invoke<RelayTokenStatus>("collab_relay_token_status"),
+  /** Store the relay token in the keychain; empty or null removes it. */
+  setRelayToken: (token: string | null) => invoke<RelayTokenStatus>("collab_set_relay_token", { token }),
+  /** Settings | Tools | Code With Me | Test Connection. */
+  testRelay: (url: string, publicRelays: boolean) => invoke<RelayStatus>("collab_test_relay", { url, public: publicRelays }),
   onStatus: (cb: (s: SessionView) => void) => listen<SessionView>(STATUS_EVENT, cb),
   onDoc: (cb: (e: DocEvent) => void) => listen<DocEvent>(DOC_EVENT, cb),
   onNotice: (cb: (e: { text: string }) => void) => listen<{ text: string }>(NOTICE_EVENT, cb),

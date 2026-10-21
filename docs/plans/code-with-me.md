@@ -668,10 +668,11 @@ Why not WebRTC: it still needs a signaling channel and, behind symmetric NATs, a
 QUIC, and the webview route fails on Linux distributions whose WebKitGTK lacks WebRTC. WebRTC
 only becomes interesting together with voice and video, which are out of scope.
 
-SSH tunnel recipe (documented in the guide): the host sets `codeWithMe.listenAddress =
-127.0.0.1` and a fixed `codeWithMe.listenPort`; the guest forwards that UDP port with a
-tool that carries UDP (iroh is UDP, so plain `ssh -L` does not work), or simply joins over a
-VPN such as WireGuard or Tailscale, which is the recommended route for locked-down networks.
+SSH tunnel recipe (documented in the guide): iroh is UDP, so plain `ssh -L` does not work, and
+UDP pushed through a TCP stream (`socat`) loses the packet boundaries. The guide documents
+OpenSSH's tunnel device (`ssh -w`, needs root) and, as the recommended route for locked-down
+networks, a VPN such as WireGuard or Tailscale, where the session link simply carries the VPN
+address.
 
 ### Encoding and framing
 
@@ -971,6 +972,51 @@ screenshots.
   and a guest whose direct addresses are blocked; manual test through a VPS relay; with an
   empty relay URL Forge makes no connection to any third-party host (checked with a test that
   asserts the endpoint configuration).
+
+**As built** (`forge_collab::relay`, `forge_collab::secrets`, `forge_collab::transport::relay`,
+`docs/guide/user/code-with-me-relay.md`):
+
+- `RelayOptions` (pure) says what the user allowed: relay URL, token, public relays, LAN
+  discovery. A relay server wins over public relays. `transport::relay` turns it into the iroh
+  endpoint: `RelayMode::Disabled` without a relay (the default, nothing is contacted),
+  `RelayMode::Custom` with one relay and its bearer token, or n0's default map. Address lookup
+  stays off in every case; LAN discovery adds only iroh's mDNS lookup.
+- The host waits for the relay connection in Start Session and reports why it fails (wrong
+  token, unreachable, certificate) instead of putting a dead relay into the link. The link's
+  `r=` is the normalized relay URL (for public relays the endpoint's home relay).
+- A guest dials the link's direct addresses and the link's relay at the same time and uses the
+  link's relay, never the public relays on its own. Its own token is sent only to the relay it
+  was set for (same URL as in the link). Hole punching and the move from relay to direct path
+  are iroh's; Forge reads the selected path (`ConnectionPath`: direct or relay, remote
+  address, RTT).
+- Settings: "Relay server", "Use the public relay servers of n0", "Discover hosts on the
+  local network", a "Relay token" row (Set Token…) and Test Connection (connects once to the
+  relay as typed in the page). The token lives in the keychain (service `forge-cwm`, account
+  `relay-token`), never in settings, links, logs or the IPC.
+- UI: the popup lists the participants with a Direct / Relay badge and the relay state, and a
+  status bar item shows the path in use. The backend re-emits the status when a path changes,
+  because iroh does not announce the move from relay to direct.
+- Tests (no network): an in-process `iroh-relay` on loopback (self-signed certificate)
+  connects a guest without direct addresses, the connection reaches the direct path through
+  hole punching, the token is enforced and its denial is reported, Test Connection works; the
+  default configuration asserts no relay, no lookup and nothing to report.
+
+Deviations from the plan above:
+
+- **Reconnects with backoff are not part of S6.** A dropped QUIC connection still ends the
+  guest session ("The connection to the host was lost."). iroh keeps a connection alive across
+  path changes (Wi-Fi to cable, relay to direct), so only a real outage is visible. Resuming a
+  guest after an outage needs a protocol step (re-knock that keeps the participant and its
+  documents) and belongs with host approval (S2) and polish (S7).
+- The guest-side relay state is only shown while iroh has a home relay for it; the path badge is
+  the reliable indicator on guests.
+- With a relay configured, iroh's HTTPS latency probes run against that relay only (needed to
+  pick the home relay on relays without QUIC address discovery). Captive portal checks stay
+  off; without a relay no probe runs at all.
+- The SSH recipe uses OpenSSH's tunnel device (`ssh -w`), not `socat`: UDP over a TCP stream
+  loses the packet boundaries QUIC needs.
+- Added Test Connection and the connection badges (the participants list itself arrives with
+  S4, so the badges are in the popup and the status bar until then).
 
 ### S7 — Polish, docs, screenshots, stress tests (5 d)
 

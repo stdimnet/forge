@@ -10,6 +10,9 @@
 //! - [`verify`]: the join proof and the verification code both sides show.
 //! - [`excludes`]: secret files that guests never see.
 //! - [`presence`]: participants and their colors.
+//! - [`relay`]: relay options (self-hosted relay, public relays, LAN discovery) and the
+//!   connection path (direct or relayed).
+//! - [`secrets`]: the relay token in the OS keychain.
 //! - [`textdiff`]: minimal UTF-16 edits between two texts (reloading shared files from disk).
 //!
 //! With `runtime` (the default):
@@ -23,6 +26,8 @@ pub mod link;
 pub mod permissions;
 pub mod presence;
 pub mod protocol;
+pub mod relay;
+pub mod secrets;
 pub mod textdiff;
 pub mod verify;
 
@@ -47,6 +52,9 @@ pub enum Error {
     /// A pattern in the excluded files setting.
     #[error("Invalid exclude pattern \"{0}\"")]
     InvalidPattern(String),
+    /// The relay server setting or the relay token.
+    #[error("Invalid relay server: {0}")]
+    InvalidRelay(String),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

@@ -5,6 +5,7 @@
  * `docs/plans/code-with-me.md`.
  */
 import { registerToolbarItem } from "@/features/toolbarItems";
+import { registerStatusItem } from "@/features/statusItems";
 import { registerSettingsPage } from "@/features/settingsPages";
 import { SchemaPage } from "@/features/settings/SchemaPage";
 import { openSettings } from "@/features/settings/dialogState";
@@ -15,9 +16,11 @@ import { registerKeymapActions } from "@/keymap/store";
 import { showBalloon } from "@/keymap";
 import { isDialogWindow } from "@/shell/window/mode";
 import { collabApi, type PermissionLevel } from "@/ipc/collab";
-import { applySession, isGuest, isHost, refreshSession, setPopupOpen, trackSession } from "./store";
+import { applySession, inSession, isGuest, isHost, refreshSession, setPopupOpen, trackSession } from "./store";
 import { trackEditorSharing } from "./session";
 import { ToolbarButton } from "./ToolbarButton";
+import { ConnectionStatusItem } from "./ConnectionStatus";
+import { RelayServerTools } from "./RelaySettings";
 import "./binding";
 import "./codeWithMe.css";
 
@@ -102,8 +105,11 @@ registerSettingsPage({
   group: "Tools",
   order: 40,
   keywords: ["collaboration", "pair programming", "share", "session", "guest", "host", "invite"],
-  component: () => <SchemaPage pageId="tools.code-with-me" />,
+  component: () => <SchemaPage pageId="tools.code-with-me" sectionFooter={(s) => (s === "Relay Server" ? <RelayServerTools /> : null)} />,
 });
+
+// The path in use (direct or relayed) while a session runs.
+registerStatusItem({ id: "codeWithMe.connection", align: "right", order: 20, when: inSession, component: ConnectionStatusItem });
 
 // PHPStorm binds no shortcuts to Code With Me; the actions are listed under its plugin.
 registerKeymapActions(

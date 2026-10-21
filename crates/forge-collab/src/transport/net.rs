@@ -1,15 +1,19 @@
 //! The network transport: iroh (QUIC with TLS 1.3, peers identified by Ed25519 keys).
 //!
-//! Configured for direct connections only: no relay servers, no address lookup (DNS or
-//! pkarr), no port mapping, no network probes. The guest dials the addresses from the link;
-//! iroh authenticates the host by its key. Relays, LAN discovery and NAT traversal are
-//! opt-in settings of a later stage.
+//! Direct connections are the default: no relay servers, no address lookup (DNS or pkarr), no
+//! port mapping, no network probes. The guest dials the addresses from the link; iroh
+//! authenticates the host by its key. A relay (self-hosted, or n0's public ones as an explicit
+//! opt-in) and LAN discovery are added by [`NetConfig`]; see [`super::relay`]. With a relay,
+//! both ends try to punch a hole through their NATs and move the connection to the direct
+//! path when that works.
 //!
 //! Every session uses a fresh key pair, so links cannot be correlated across sessions, and an
 //! endpoint only exists between Start Session (or Join) and the end of the session.
 
+use std::collections::HashMap;
 use std::io;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr};
+use std::sync::Mutex;
 use std::time::Duration;
 
 use iroh::endpoint::presets;
@@ -18,8 +22,10 @@ use iroh::{
     Watcher,
 };
 
+use super::relay::{self as relay_cfg, NetConfig};
 use super::{BoxFuture, Connection, PeerKey, Transport};
 use crate::protocol::ALPN;
+use crate::relay::{ConnectionPath, RelayPlan, RelayStatus};
 
 /// Where the host listens (settings `codeWithMe.listenAddress` and `codeWithMe.listenPort`).
 #[derive(Debug, Clone, Copy, Default)]
@@ -34,14 +40,20 @@ pub struct NetTransport {
     endpoint: Endpoint,
     /// Addresses for the link, fixed when the endpoint is bound.
     addresses: Vec<SocketAddr>,
+    plan: RelayPlan,
+    /// The relay of the session link: where the host is reachable (host: its home relay;
+    /// guest: the relay named in the link).
+    relay_url: Option<String>,
+    /// Open connections, to tell how each one travels.
+    conns: Mutex<HashMap<PeerKey, iroh::endpoint::Connection>>,
 }
 
 fn err(e: impl std::fmt::Display) -> io::Error {
     io::Error::other(e.to_string())
 }
 
-fn builder(accept: bool) -> iroh::endpoint::Builder {
-    Endpoint::builder(presets::Minimal)
+fn builder(accept: bool, cfg: &NetConfig) -> io::Result<iroh::endpoint::Builder> {
+    let b = Endpoint::builder(presets::Minimal)
         .secret_key(SecretKey::generate())
         .relay_mode(RelayMode::Disabled)
         .clear_address_lookup()
@@ -50,7 +62,8 @@ fn builder(accept: bool) -> iroh::endpoint::Builder {
             vec![ALPN.to_vec()]
         } else {
             Vec::new()
-        })
+        });
+    relay_cfg::configure(b, cfg, accept)
 }
 
 /// Addresses worth putting into a link: no unspecified, multicast or IPv6 link-local
@@ -66,7 +79,14 @@ impl NetTransport {
     /// A host endpoint that accepts Code With Me connections. This opens the UDP socket(s);
     /// call it only when the user starts a session.
     pub async fn listen(opts: ListenOptions) -> io::Result<Self> {
-        let mut b = builder(true);
+        Self::listen_with(opts, NetConfig::default()).await
+    }
+
+    /// Like [`Self::listen`], with a relay and LAN discovery as configured. With a relay the
+    /// call returns once the relay is connected (or says why it is not), so the session link
+    /// can name it.
+    pub async fn listen_with(opts: ListenOptions, cfg: NetConfig) -> io::Result<Self> {
+        let mut b = builder(true, &cfg)?;
         if opts.address.is_some() || opts.port != 0 {
             b = b.clear_ip_transports();
             let addrs: Vec<SocketAddr> = match opts.address {
@@ -81,20 +101,68 @@ impl NetTransport {
             }
         }
         let endpoint = b.bind().await.map_err(err)?;
+        let plan = cfg.relay.plan();
+        if let Err(e) = relay_cfg::wait_online(&endpoint, &plan).await {
+            endpoint.close().await;
+            return Err(e);
+        }
         let addresses = Self::local_addresses(&endpoint, opts.address).await;
+        let relay_url = match &plan {
+            RelayPlan::None => None,
+            RelayPlan::Custom { url, .. } => Some(url.clone()),
+            RelayPlan::Public => relay_cfg::home_relay(&endpoint),
+        };
         Ok(Self {
             endpoint,
             addresses,
+            plan,
+            relay_url,
+            conns: Mutex::default(),
         })
     }
 
     /// A guest endpoint: it dials out and accepts nothing.
     pub async fn dialer() -> io::Result<Self> {
-        let endpoint = builder(false).bind().await.map_err(err)?;
+        Self::dialer_with(NetConfig::default()).await
+    }
+
+    /// A guest endpoint that also uses the relay of the session link (see
+    /// [`crate::relay::RelayOptions::guest`]).
+    pub async fn dialer_with(cfg: NetConfig) -> io::Result<Self> {
+        let endpoint = builder(false, &cfg)?.bind().await.map_err(err)?;
+        let plan = cfg.relay.plan();
+        let relay_url = match &plan {
+            RelayPlan::Custom { url, .. } => Some(url.clone()),
+            _ => None,
+        };
         Ok(Self {
             endpoint,
             addresses: Vec::new(),
+            plan,
+            relay_url,
+            conns: Mutex::default(),
         })
+    }
+
+    /// Connect to the configured relay once and report how that went (the settings page's
+    /// Test Connection). Binds a short-lived endpoint that dials nobody else.
+    pub async fn check_relay(cfg: NetConfig) -> io::Result<RelayStatus> {
+        let plan = cfg.relay.plan();
+        if plan == RelayPlan::None {
+            return Err(err("No relay server is set"));
+        }
+        let endpoint = builder(false, &cfg)?.bind().await.map_err(err)?;
+        let online = relay_cfg::wait_online(&endpoint, &plan).await;
+        let status = relay_cfg::status(&endpoint, &plan);
+        endpoint.close().await;
+        online?;
+        status.ok_or_else(|| err("The relay did not answer"))
+    }
+
+    fn remember(&self, peer: PeerKey, conn: &iroh::endpoint::Connection) {
+        let mut conns = self.conns.lock().expect("connection map lock poisoned");
+        conns.retain(|_, c| c.close_reason().is_none());
+        conns.insert(peer, conn.clone());
     }
 
     async fn local_addresses(endpoint: &Endpoint, only: Option<IpAddr>) -> Vec<SocketAddr> {
@@ -148,6 +216,7 @@ impl Transport for NetTransport {
                 let incoming = self.endpoint.accept().await?;
                 let Ok(conn) = incoming.await else { continue };
                 let remote = *conn.remote_id().as_bytes();
+                self.remember(remote, &conn);
                 // The guest opens the stream with its knock.
                 let accepted =
                     tokio::time::timeout(Duration::from_secs(10), conn.accept_bi()).await;
@@ -171,8 +240,14 @@ impl Transport for NetTransport {
     ) -> BoxFuture<'_, io::Result<Connection>> {
         Box::pin(async move {
             let key = PublicKey::from_bytes(&host).map_err(err)?;
-            let addr = EndpointAddr::from_parts(key, addrs.into_iter().map(TransportAddr::Ip));
+            let mut transport_addrs: Vec<TransportAddr> =
+                addrs.into_iter().map(TransportAddr::Ip).collect();
+            if let Some(url) = self.relay_url.as_deref().and_then(|u| u.parse().ok()) {
+                transport_addrs.push(TransportAddr::Relay(url));
+            }
+            let addr = EndpointAddr::from_parts(key, transport_addrs);
             let conn = self.endpoint.connect(addr, ALPN).await.map_err(err)?;
+            self.remember(host, &conn);
             let (send, recv) = conn.open_bi().await.map_err(err)?;
             Ok(Connection {
                 remote: host,
@@ -185,6 +260,19 @@ impl Transport for NetTransport {
 
     fn close(&self) -> BoxFuture<'_, ()> {
         Box::pin(async move { self.endpoint.close().await })
+    }
+
+    fn relay_url(&self) -> Option<String> {
+        self.relay_url.clone()
+    }
+
+    fn path(&self, peer: &PeerKey) -> Option<ConnectionPath> {
+        let conns = self.conns.lock().expect("connection map lock poisoned");
+        relay_cfg::path_of(conns.get(peer)?)
+    }
+
+    fn relay_status(&self) -> Option<RelayStatus> {
+        relay_cfg::status(&self.endpoint, &self.plan)
     }
 }
 
@@ -201,6 +289,34 @@ mod tests {
         assert!(!dialable(&"0.0.0.0:4000".parse().unwrap()));
         assert!(!dialable(&"[fe80::1]:4000".parse().unwrap()));
         assert!(dialable(&"[2001:db8::1]:4000".parse().unwrap()));
+    }
+
+    /// With an empty relay URL (the default) Forge contacts no server: the endpoint has no
+    /// relay, no address lookup and nothing to report.
+    #[tokio::test]
+    async fn without_a_relay_url_no_server_is_configured() {
+        let cfg = NetConfig::default();
+        assert!(!cfg.relay.contacts_servers());
+        assert!(!cfg.relay.lan_discovery);
+        let mode = relay_cfg::relay_mode(&cfg.relay.plan()).unwrap();
+        assert_eq!(mode, RelayMode::Disabled);
+        assert!(mode.relay_map().urls::<Vec<_>>().is_empty());
+
+        let host = NetTransport::listen(ListenOptions {
+            address: Some(IpAddr::V4(Ipv4Addr::LOCALHOST)),
+            port: 0,
+        })
+        .await
+        .unwrap();
+        assert_eq!(host.relay_url(), None);
+        assert_eq!(host.relay_status(), None);
+        assert!(host.endpoint.addr().relay_urls().next().is_none());
+        assert!(host.endpoint.home_relay_status().get().is_empty());
+        host.close().await;
+
+        // A token is only used together with a relay.
+        let host_opts = crate::relay::RelayOptions::host(None, Some("tok".into()), false, false);
+        assert_eq!(host_opts.plan(), RelayPlan::None);
     }
 
     /// Two endpoints on the loopback interface; nothing leaves the machine.

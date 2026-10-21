@@ -17,11 +17,14 @@ import {
   encodeOpened,
   fromBase64,
   PRESETS,
+  STATUS_EVENT,
   toBase64,
   type DocOpened,
   type Participant,
   type PermissionLevel,
   type Permissions,
+  type RelayStatus,
+  type RelayTokenStatus,
   type SessionView,
 } from "@/ipc/collab";
 import { contentHash } from "@/state/editor";
@@ -491,3 +494,35 @@ if (mode === "guest") {
     }
   })();
 }
+
+// ---- relay (Settings | Tools | Code With Me | Relay Server) ------------------------------
+
+let token = false;
+const tokenStatus = (): RelayTokenStatus => ({ set: token });
+
+registerMock("collab_relay_token_status", () => tokenStatus());
+
+registerMock("collab_set_relay_token", ({ token: raw }) => {
+  const value = String(raw ?? "").trim();
+  if (value && !/^[\x21-\x7e]+$/.test(value)) throw new Error("Invalid relay server: the relay token must be printable ASCII without spaces");
+  token = value !== "";
+  return tokenStatus();
+});
+
+registerMock("collab_test_relay", ({ url, public: publicRelays }) => {
+  const text = String(url ?? "").trim();
+  if (!text && !publicRelays) throw new Error("Enter a relay server first.");
+  if (!text) return { url: "https://relay.iroh.example/", connected: true } satisfies RelayStatus;
+  const full = text.includes("://") ? text : `https://${text}`;
+  if (!/^https?:\/\/[^\s/?#@]+(\/.*)?$/.test(full)) throw new Error("Invalid relay server: the URL has no host name");
+  if (full.includes("unreachable")) throw new Error("Cannot reach the relay server (the relay did not answer)");
+  return { url: full.replace(/\/+$/, ""), connected: true } satisfies RelayStatus;
+});
+
+// Screenshot and test hook: show a session in the popup and the status bar.
+declare global {
+  interface Window {
+    __forgeCollabMock?: { show: (view: SessionView) => void };
+  }
+}
+window.__forgeCollabMock = { show: (view) => emitMock(STATUS_EVENT, view) };

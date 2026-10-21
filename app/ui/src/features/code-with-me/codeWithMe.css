@@ -101,16 +101,29 @@
   gap: 1px;
   padding: 2px 0;
 }
+
+/* Connection paths: participants in the popup, status bar item. */
+.cwm-connections {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
 .cwm-participant {
   display: flex;
   align-items: center;
   gap: 8px;
-  height: 28px;
+  min-height: 28px;
   padding: 0 8px;
   border-radius: var(--radius);
 }
 .cwm-participant:hover {
   background: var(--bg-hover);
+}
+.cwm-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 .cwm-participant-name {
   flex: 1;
@@ -151,4 +164,155 @@
   margin-left: 2px;
   font-size: var(--fs-small);
   font-weight: 600;
+}
+.cwm-participant-role {
+  font-size: var(--fs-small);
+}
+.cwm-path {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  padding: 1px 7px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: var(--fs-small);
+  white-space: nowrap;
+  color: var(--success);
+}
+.cwm-path.relay {
+  color: var(--warning);
+}
+.cwm-path.pending {
+  color: var(--fg-muted);
+}
+.cwm-path-rtt {
+  color: var(--fg-muted);
+}
+.cwm-relay-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px 0;
+  font-size: var(--fs-small);
+  color: var(--fg-muted);
+}
+.cwm-relay-line.problem {
+  color: var(--warning);
+}
+.cwm-status.relay {
+  color: var(--warning);
+}
+.cwm-status.problem {
+  color: var(--danger);
+}
+
+/* Settings | Tools | Code With Me | Relay Server */
+.cwm-relay-tools {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px 0 2px;
+}
+.cwm-relay-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.cwm-relay-token {
+  color: var(--fg-muted);
+}
+.cwm-relay-token.set {
+  color: var(--fg);
+}
+.cwm-small-btn {
+  height: 22px;
+  padding: 0 8px;
+  font-size: var(--fs-small);
+}
+.cwm-small-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.cwm-test-result {
+  font-size: var(--fs-small);
+}
+.cwm-test-result.ok {
+  color: var(--success);
+}
+.cwm-test-result.fail {
+  color: var(--danger);
+}
+.cwm-error {
+  color: var(--danger);
+  font-size: var(--fs-small);
+}
+.cwm-hint {
+  margin: 0;
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+  line-height: 1.45;
+}
+.cwm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--bg-app) 45%, transparent);
+}
+.cwm-dialog {
+  display: flex;
+  flex-direction: column;
+  width: 460px;
+  max-width: calc(100vw - 48px);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.cwm-dialog-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 38px;
+  padding: 0 6px 0 14px;
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+}
+.cwm-dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+}
+.cwm-dialog-text {
+  margin: 0;
+  line-height: 1.5;
+}
+.cwm-dialog-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--border);
+}
+.cwm-spacer {
+  flex: 1;
+}
+.cwm-secret {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.cwm-input {
+  flex: 1;
+  height: 26px;
+  padding: 0 8px;
+  font-family: var(--font-mono);
+}
+.cwm-remove {
+  color: var(--danger);
 }

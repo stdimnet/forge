@@ -25,7 +25,12 @@ use forge_collab::link::{LinkSummary, SessionLink};
 use forge_collab::permissions::{PermissionLevel, Permissions};
 use forge_collab::presence::{Participant, ParticipantId};
 use forge_collab::protocol::{DocId, SaveState, SharedFile};
+use forge_collab::relay::{
+    normalize_relay_token, normalize_relay_url, ConnectionPath, RelayOptions, RelayStatus,
+};
+use forge_collab::secrets::{KeyringStore, RelayToken, RelayTokenStatus};
 use forge_collab::transport::net::{ListenOptions, NetTransport};
+use forge_collab::transport::relay::NetConfig;
 use forge_core::{ForgeError, FsChanges, Result};
 use serde::Serialize;
 use serde_json::json;
@@ -88,6 +93,15 @@ pub enum SessionRole {
     Guest,
 }
 
+/// How one participant's connection travels, for the participants list and the status bar.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ParticipantConnection {
+    pub participant: ParticipantId,
+    #[serde(flatten)]
+    pub path: ConnectionPath,
+}
+
 /// The session as the UI shows it.
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -114,6 +128,12 @@ pub struct SessionView {
     /// A notice for every participant, e.g. that the session is a development preview.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub notice: Option<String>,
+    /// Direct or relayed, per connected guest (host) or to the host (guest).
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub connections: Vec<ParticipantConnection>,
+    /// The relay server of the session and whether it is connected.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub relay: Option<RelayStatus>,
 }
 
 fn dev_flag() -> bool {
@@ -138,6 +158,8 @@ fn idle_view() -> SessionView {
         permissions: None,
         host_label: None,
         notice: None,
+        connections: Vec::new(),
+        relay: None,
     }
 }
 
@@ -154,6 +176,12 @@ fn view(state: &CollabState) -> SessionView {
             permissions: Some(h.permissions()),
             host_label: None,
             notice: h.notice(),
+            connections: h
+                .connection_paths()
+                .into_iter()
+                .map(|(participant, path)| ParticipantConnection { participant, path })
+                .collect(),
+            relay: h.relay_status(),
         };
     }
     if let Some(g) = state.guest() {
@@ -168,6 +196,15 @@ fn view(state: &CollabState) -> SessionView {
             permissions: Some(g.permissions()),
             host_label: Some(g.host_label().to_string()),
             notice: g.notice(),
+            connections: g
+                .connection_path()
+                .map(|path| ParticipantConnection {
+                    participant: ParticipantId::HOST,
+                    path,
+                })
+                .into_iter()
+                .collect(),
+            relay: g.relay_status(),
         };
     }
     idle_view()
@@ -275,6 +312,103 @@ fn machine_name() -> Option<String> {
     (!name.is_empty() && name.chars().count() <= 64).then_some(name)
 }
 
+/// The relay settings and the token from the keychain.
+fn host_relay_options(app: &AppHandle) -> Result<RelayOptions> {
+    let (url, public, lan): (String, bool, bool) = {
+        let state = app.state::<AppState>();
+        let s = state.read_settings();
+        (
+            s.get_as("codeWithMe.relayUrl").unwrap_or_default(),
+            s.get_as("codeWithMe.usePublicRelays").unwrap_or(false),
+            s.get_as("codeWithMe.lanDiscovery").unwrap_or(true),
+        )
+    };
+    let url = normalize_relay_url(&url).map_err(|e| {
+        other(format!(
+            "{e} (Settings | Tools | Code With Me | Relay server)"
+        ))
+    })?;
+    let token = if url.is_some() {
+        RelayToken(&KeyringStore).get().unwrap_or_else(|e| {
+            tracing::warn!("{e}");
+            None
+        })
+    } else {
+        None
+    };
+    Ok(RelayOptions::host(url, token, public, lan))
+}
+
+/// How often the connection paths are checked: a relayed connection moves to a direct path
+/// when hole punching succeeds, which iroh does not announce.
+const PATH_POLL: std::time::Duration = std::time::Duration::from_secs(2);
+
+/// Emit the status again whenever a connection path or the relay state changes.
+fn watch_connections(app: &AppHandle, session: Active) {
+    let app = app.clone();
+    tauri::async_runtime::spawn(async move {
+        let mut last = None;
+        loop {
+            tokio::time::sleep(PATH_POLL).await;
+            let state = app.state::<CollabState>();
+            let current = match (
+                &session,
+                &*state.active.lock().expect("collab lock poisoned"),
+            ) {
+                (Active::Host(a), Some(Active::Host(b))) if Arc::ptr_eq(a, b) => true,
+                (Active::Guest(a), Some(Active::Guest(b))) if Arc::ptr_eq(a, b) => true,
+                _ => false,
+            };
+            if !current {
+                return;
+            }
+            let v = view(&state);
+            let key = serde_json::to_string(&(&v.connections, &v.relay)).ok();
+            if key != last {
+                if last.is_some() {
+                    emit(&app, STATUS_EVENT, v);
+                }
+                last = key;
+            }
+        }
+    });
+}
+
+/// Whether a relay token is stored (the token itself never reaches the UI).
+#[tauri::command]
+pub fn collab_relay_token_status() -> RelayTokenStatus {
+    RelayToken(&KeyringStore).status()
+}
+
+/// Store the relay token in the keychain; empty removes it.
+#[tauri::command]
+pub fn collab_set_relay_token(token: Option<String>) -> Result<RelayTokenStatus> {
+    let token = token.as_deref().map(str::trim).filter(|t| !t.is_empty());
+    // Check before touching the keychain, with the same rules.
+    normalize_relay_token(token.unwrap_or_default()).map_err(other)?;
+    RelayToken(&KeyringStore).set(token).map_err(other)?;
+    Ok(RelayToken(&KeyringStore).status())
+}
+
+/// Settings | Tools | Code With Me | Test Connection: connect to the relay as typed in the
+/// page (not yet applied) and report the result.
+#[tauri::command]
+pub async fn collab_test_relay(url: String, public: bool) -> Result<RelayStatus> {
+    let url = normalize_relay_url(&url).map_err(other)?;
+    let token = if url.is_some() {
+        RelayToken(&KeyringStore).get().ok().flatten()
+    } else {
+        None
+    };
+    let options = RelayOptions::host(url, token, public, false);
+    if !options.contacts_servers() {
+        return Err(other("Enter a relay server first."));
+    }
+    NetTransport::check_relay(NetConfig::with_relay(options))
+        .await
+        .map_err(|e| other(e.to_string()))
+}
+
 #[tauri::command]
 pub fn collab_status(state: State<'_, CollabState>) -> SessionView {
     view(&state)
@@ -319,9 +453,13 @@ pub async fn collab_start(level: PermissionLevel, app: AppHandle) -> Result<Sess
         })?),
     };
     let backend = app.state::<AppState>().backend()?;
-    let transport = NetTransport::listen(ListenOptions { address, port })
-        .await
-        .map_err(|e| other(format!("Cannot listen for guests: {e}")))?;
+    let relay = host_relay_options(&app)?;
+    let transport = NetTransport::listen_with(
+        ListenOptions { address, port },
+        NetConfig::with_relay(relay),
+    )
+    .await
+    .map_err(|e| other(format!("Cannot listen for guests: {e}")))?;
     let handle = app.clone();
     let host = HostSession::start(
         Arc::new(transport),
@@ -337,7 +475,8 @@ pub async fn collab_start(level: PermissionLevel, app: AppHandle) -> Result<Sess
         Arc::new(DevAutoAccept),
         Arc::new(move |e| on_host_event(&handle, e)),
     );
-    collab.set(Active::Host(host));
+    collab.set(Active::Host(host.clone()));
+    watch_connections(&app, Active::Host(host));
     let v = view(&collab);
     emit(&app, STATUS_EVENT, v.clone());
     Ok(v)
@@ -373,7 +512,10 @@ pub async fn collab_join(link: String, app: AppHandle) -> Result<SessionView> {
         return Err(other("A Code With Me session is already running."));
     }
     let link = SessionLink::parse(&link).map_err(other)?;
-    let transport = NetTransport::dialer()
+    let own = host_relay_options(&app)?;
+    let relay = RelayOptions::guest(link.relay.as_deref(), &own);
+    let has_token = relay.token.is_some();
+    let transport = NetTransport::dialer_with(NetConfig::with_relay(relay))
         .await
         .map_err(|e| other(format!("Cannot connect: {e}")))?;
     let handle = app.clone();
@@ -384,8 +526,15 @@ pub async fn collab_join(link: String, app: AppHandle) -> Result<SessionView> {
         Arc::new(move |e| on_guest_event(&handle, e)),
     )
     .await
-    .map_err(other)?;
-    collab.set(Active::Guest(guest));
+    .map_err(|e| match &link.relay {
+        Some(relay) if !has_token => other(format!(
+            "{e} The link goes through the relay server {relay}. If it needs a token, enter it \
+             under Settings | Tools | Code With Me."
+        )),
+        _ => other(e),
+    })?;
+    collab.set(Active::Guest(guest.clone()));
+    watch_connections(&app, Active::Guest(guest));
     let v = view(&collab);
     emit(&app, STATUS_EVENT, v.clone());
     Ok(v)

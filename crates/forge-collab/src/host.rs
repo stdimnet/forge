@@ -33,6 +33,7 @@ use crate::protocol::{
     DocId, GuestMessage, HostMessage, SaveState, SharedFile, MAX_GUEST_FRAME, MAX_HOST_FRAME,
     PROTOCOL_VERSION,
 };
+use crate::relay::{ConnectionPath, RelayStatus};
 use crate::transport::{read_msg, write_msg, BoxFuture, Connection, PeerKey, Transport};
 use crate::verify::{check_proof, verification_code};
 
@@ -131,6 +132,8 @@ pub struct DocOpened {
 }
 
 struct Guest {
+    /// The guest's endpoint key, to tell how its connection travels.
+    remote: PeerKey,
     participant: Participant,
     policy: Policy,
     tx: mpsc::Sender<HostMessage>,
@@ -240,7 +243,7 @@ impl HostSession {
             session_id: self.session_id,
             host_id: self.transport.local_key(),
             join_secret: self.join_secret,
-            relay: None,
+            relay: self.transport.relay_url(),
             addrs: self.transport.addresses(),
         }
     }
@@ -256,6 +259,25 @@ impl HostSession {
     /// The host first, then the guests in join order.
     pub fn participants(&self) -> Vec<Participant> {
         participants(&self.host, &self.state())
+    }
+
+    /// How each connected guest's connection travels (direct or through the relay).
+    pub fn connection_paths(&self) -> Vec<(ParticipantId, ConnectionPath)> {
+        let remotes: Vec<(ParticipantId, PeerKey)> = self
+            .state()
+            .guests
+            .iter()
+            .map(|(id, g)| (*id, g.remote))
+            .collect();
+        remotes
+            .into_iter()
+            .filter_map(|(id, key)| Some((id, self.transport.path(&key)?)))
+            .collect()
+    }
+
+    /// The state of the connection to the relay, when the session uses one.
+    pub fn relay_status(&self) -> Option<RelayStatus> {
+        self.transport.relay_status()
     }
 
     /// Files guests can open.
@@ -649,6 +671,7 @@ impl HostSession {
             st.guests.insert(
                 id,
                 Guest {
+                    remote,
                     participant,
                     policy: Policy::new(permissions, self.excludes.clone()),
                     tx,
