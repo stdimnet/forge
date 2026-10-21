@@ -1,13 +1,13 @@
 ---
 title: Keymap reference card
-description: "The 60 most important Forge shortcuts on one printable page, Windows/Linux and macOS side by side."
+description: "The 62 most important Forge shortcuts on one printable page, Windows/Linux and macOS side by side."
 order: 5
 tags: [shortcuts, keymap, cheat sheet]
 ---
 
 # Keymap reference card
 
-The 60 shortcuts you need most, PHPStorm's default keymap. Print it or keep it open next to Forge. Every action is implemented; the [shortcut pages](index.md) explain each one, the [keymap reference](../../reference/keymap.md) lists all of them.
+The 62 shortcuts you need most, PHPStorm's default keymap. Print it or keep it open next to Forge. Every action is implemented; the [shortcut pages](index.md) explain each one, the [keymap reference](../../reference/keymap.md) lists all of them.
 
 | Action | Windows / Linux | macOS | Action | Windows / Linux | macOS |
 | --- | --- | --- | --- | --- | --- |
@@ -41,5 +41,6 @@ The 60 shortcuts you need most, PHPStorm's default keymap. Print it or keep it o
 | Extend Selection | `Ctrl+W` | `Alt+Up` | Push | `Ctrl+Shift+K` | `Cmd+Shift+K` |
 | Shrink Selection | `Ctrl+Shift+W` | `Alt+Down` | Update Project | `Ctrl+T` | `Cmd+T` |
 | Add Selection for Next Occurrence | `Alt+J` | `Ctrl+G` | Project tool window | `Alt+1` | `Cmd+1` |
+| Rename | `Shift+F6` | `Shift+F6` | Show Context Actions | `Alt+Enter` | `Alt+Enter` |
 
 Notation: `Double Shift` means pressing Shift twice quickly. On macOS, `Cmd` is ⌘ and `Alt` is ⌥ (Option).

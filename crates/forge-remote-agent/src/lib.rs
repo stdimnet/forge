@@ -374,6 +374,7 @@ impl Agent {
             mut stdout,
             stderr,
             mut process,
+            ..
         } = io;
         let (tx, mut rx) = mpsc::unbounded_channel::<Vec<u8>>();
         tokio::spawn(async move {

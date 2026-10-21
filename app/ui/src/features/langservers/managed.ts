@@ -9,7 +9,7 @@ import { balloonsFor } from "@/keymap/dispatch";
 import { getSetting, saveSetting } from "@/state/settings";
 import { isPluginActive, onProjectDetected } from "@/state/project";
 import { workspace } from "@/state/workspace";
-import { INTELEPHENSE_ID, LICENCE_ACCEPTED_KEY, AUTO_INSTALL_KEY, managedOption, offerIntelephense, updateSummary } from "./autoInstall";
+import { INTELEPHENSE_ID, LICENCE_ACCEPTED_KEY, AUTO_INSTALL_KEY, failureDetail, managedOption, offerIntelephense, updateSummary } from "./autoInstall";
 import { applyServers, refreshRows, rows } from "./store";
 
 const showBalloon = balloonsFor("Language Servers");
@@ -35,12 +35,16 @@ function patch(id: string, p: Partial<ActiveInstall>) {
   setActive((list) => list.map((a) => (a.id === id ? { ...a, ...p } : a)));
 }
 
+/** The installer's error output per install, for the failure balloon. */
+const stderrOf = new Map<string, string[]>();
+
 let listening = false;
 function listen() {
   if (listening) return;
   listening = true;
   void langserversApi.onInstallProgress((p) => patch(p.id, { label: p.label, done: p.done, total: p.total ?? null }));
   void langserversApi.onInstallOutput((l) => {
+    if (l.stream === "stderr") stderrOf.set(l.id, [...(stderrOf.get(l.id) ?? []), l.line].slice(-20));
     // Forge's own steps name what happens next; npm's output is too noisy for the status bar.
     if (l.stream === "info" && !l.line.startsWith("$ ")) patch(l.id, { label: l.line, done: 0, total: null });
   });
@@ -79,6 +83,7 @@ export async function installManaged(row: ServerRow): Promise<InstallOutcome | n
   if (!option || installFor(row.id)) return null;
   if (row.id === INTELEPHENSE_ID && !(await ensureLicence())) return null;
   listen();
+  stderrOf.delete(row.id);
   setActive((list) => [...list, { id: row.id, name: row.name, label: `Installing ${row.name}…`, done: 0, total: null }]);
   let outcome: InstallOutcome | null = null;
   try {
@@ -96,7 +101,9 @@ export async function installManaged(row: ServerRow): Promise<InstallOutcome | n
       6000,
     );
   } else if (outcome && outcome !== "cancelled") {
-    showBalloon(`${row.name} could not be installed`, "See Settings | Languages & Frameworks | Language Servers.", 10000);
+    // Stays until dismissed: an install takes a while and the user may have looked away.
+    const detail = failureDetail(outcome.failed.code, stderrOf.get(row.id) ?? []);
+    showBalloon(`${row.name} could not be installed`, detail, 0, [{ label: "Retry", run: () => void installManaged(row) }]);
   }
   return outcome;
 }

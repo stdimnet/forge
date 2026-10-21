@@ -78,9 +78,9 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 
 ## Not available yet
 
-Refactorings other than Rename (Extract, Move, ...), Replace in Files, Local History, Get from
-VCS, stash, multiple project windows, a plugin Marketplace and automatic updates. The pages mark
-smaller gaps with notes.
+Refactorings other than Rename (Extract, Move, ...), Local History, Get from VCS, multiple
+project windows and a plugin Marketplace. The pages mark smaller gaps with notes; the
+[roadmap](docs/ROADMAP.md) lists what comes next.
 
 ## About this guide
 
@@ -614,7 +614,7 @@ bound and show "*Action* is not available yet" so you are not surprised by somet
 happening.
 
 - Get from VCS
-- Replace in Files (`Ctrl+Shift+R`), Find Usages in File (`Ctrl+F7`), Highlight Usages in File
+- Find Usages in File (`Ctrl+F7`), Highlight Usages in File
 - Refactorings other than Rename: Extract/Introduce, Move, Change Signature, Safe Delete
 - Quick Documentation popup (`Ctrl+Q`; hover documentation works with the mouse), File
   Structure popup (`Ctrl+F12`)
@@ -622,8 +622,7 @@ happening.
 - Live templates, Surround With, Optimize Imports, Type/Call/Method Hierarchy
 - Go to Test (`Ctrl+Shift+T`)
 - Distraction Free / Presentation / Zen modes
-- Get from VCS, stash/unstash, Commit and Push
-- Marketplace, settings export/import, automatic updates
+- Marketplace, settings export/import
 
 The [keymap reference](docs/guide/reference/keymap.md) marks every action as implemented or not.
 
@@ -1224,9 +1223,13 @@ rename:
 
 When the rename would break something, the **Problems Detected** dialog lists the problems
 first (a class or member with the new name already exists, a file with the new name is in the
-way) together with every occurrence; **Continue** renames anyway, **Cancel** keeps the old name.
+way) together with every occurrence; **Continue** renames anyway, **Cancel** keeps the old name
+and **Show in View** cancels and lists the problems in the Find tool window. In PHP files the
+check also runs when a language server computes the rename.
 
 ![Problems Detected](docs/screenshots/rename-refactoring-preview.png)
+
+![Rename conflicts in the Find tool window](docs/screenshots/rename-conflicts-in-find.png)
 
 ![Rename dialog](docs/screenshots/rename-dialog.png)
 
@@ -1322,9 +1325,10 @@ Other occurrences of the selected text are highlighted automatically.
 To search the whole project, use [Find in Files](docs/guide/user/search-everywhere.md#find-in-files)
 (`Ctrl+Shift+F`, macOS `Cmd+Shift+F`).
 
-> **Note:** Replace in Files (`Ctrl+Shift+R`) is not available yet. The Find tool window
-> shows [usages](#find-usages-and-show-usages) and the Find in Files results you open there
-> (see [Find tool window](docs/guide/user/workbench.md#find-tool-window)).
+Replace in Files (`Ctrl+Shift+R`, macOS `Cmd+Shift+R`) opens the Find tool window with a
+**Replace with** field (see [Search](docs/guide/user/search-everywhere.md)). The Find tool window also shows
+[usages](#find-usages-and-show-usages) and the Find in Files results you open there (see
+[Find tool window](docs/guide/user/workbench.md#find-tool-window)).
 
 ## Gutter
 
@@ -1617,7 +1621,8 @@ The **Text** tab of Search Everywhere uses the same search (from two characters 
 
 ![Find in Files results in the Find tool window](docs/screenshots/find-window-text.png)
 
-> **Note:** Replace in Files (`Ctrl+Shift+R`) is not available yet.
+**Replace in Files** (`Ctrl+Shift+R`, macOS `Cmd+Shift+R`) opens the same tab with the selected
+text as the query and the caret in **Replace with**.
 
 
 ---
@@ -2097,7 +2102,7 @@ screenshot when it opens something. Actions that are not implemented yet are lis
 
 | Page | Covers |
 | --- | --- |
-| [Keymap reference card](docs/guide/user/shortcuts/reference-card.md) | the 60 most important shortcuts on one printable page |
+| [Keymap reference card](docs/guide/user/shortcuts/reference-card.md) | the 62 most important shortcuts on one printable page |
 | [General](docs/guide/user/shortcuts/general.md) | Find Action, Settings, the main menu, projects, scratches, themes |
 | [Editing](docs/guide/user/shortcuts/editing.md) | completion, Generate, clipboard, lines, selection, comments, formatting, folding |
 | [Navigation](docs/guide/user/shortcuts/navigation.md) | declarations, back/forward, lines, problems, Recent Files, editor tabs |
@@ -2122,7 +2127,7 @@ Source: docs/guide/user/shortcuts/reference-card.md
 
 # Keymap reference card
 
-The 60 shortcuts you need most, PHPStorm's default keymap. Print it or keep it open next to Forge. Every action is implemented; the [shortcut pages](docs/guide/user/shortcuts/index.md) explain each one, the [keymap reference](docs/guide/reference/keymap.md) lists all of them.
+The 62 shortcuts you need most, PHPStorm's default keymap. Print it or keep it open next to Forge. Every action is implemented; the [shortcut pages](docs/guide/user/shortcuts/index.md) explain each one, the [keymap reference](docs/guide/reference/keymap.md) lists all of them.
 
 | Action | Windows / Linux | macOS | Action | Windows / Linux | macOS |
 | --- | --- | --- | --- | --- | --- |
@@ -2156,6 +2161,7 @@ The 60 shortcuts you need most, PHPStorm's default keymap. Print it or keep it o
 | Extend Selection | `Ctrl+W` | `Alt+Up` | Push | `Ctrl+Shift+K` | `Cmd+Shift+K` |
 | Shrink Selection | `Ctrl+Shift+W` | `Alt+Down` | Update Project | `Ctrl+T` | `Cmd+T` |
 | Add Selection for Next Occurrence | `Alt+J` | `Ctrl+G` | Project tool window | `Alt+1` | `Cmd+1` |
+| Rename | `Shift+F6` | `Shift+F6` | Show Context Actions | `Alt+Enter` | `Alt+Enter` |
 
 Notation: `Double Shift` means pressing Shift twice quickly. On macOS, `Cmd` is ⌘ and `Alt` is ⌥ (Option).
 
@@ -7045,7 +7051,7 @@ Forge's default keymaps are PHPStorm's (`crates/forge-keymap/data/phpstorm.json`
 PHPStorm's action ids. This page is the complete list. To learn the shortcuts the way the
 JetBrains help teaches them, start with:
 
-- [Keymap reference card](docs/guide/user/shortcuts/reference-card.md): the 60 most important shortcuts
+- [Keymap reference card](docs/guide/user/shortcuts/reference-card.md): the 62 most important shortcuts
   on one printable page;
 - [Shortcuts by topic](docs/guide/user/shortcuts/index.md): one page per area (editing, navigation,
   search, refactoring, run and debug, Git, tool windows, general) that explains every
@@ -7264,7 +7270,7 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Find Previous / Move to Previous Occurrence | `FindPrevious` | `Shift+F3` | `Cmd+Shift+G` | yes |
 | Find Word at Caret | `FindWordAtCaret` | `Ctrl+F3` | `Alt+Cmd+F3` | — |
 | Find in Files… | `FindInPath` | `Ctrl+Shift+F` | `Cmd+Shift+F` | yes |
-| Replace in Files… | `ReplaceInPath` | `Ctrl+Shift+R` | `Cmd+Shift+R` | — |
+| Replace in Files… | `ReplaceInPath` | `Ctrl+Shift+R` | `Cmd+Shift+R` | yes |
 | Find Usages | `FindUsages` | `Alt+F7` | `Alt+F7` | yes |
 | Find Usages in File | `FindUsagesInFile` | `Ctrl+F7` | `Cmd+F7` | — |
 | Highlight Usages in File | `HighlightUsagesInFile` | `Ctrl+Shift+F7` | `Cmd+Shift+F7` | — |
@@ -7715,7 +7721,7 @@ Undo, clipboard, find and replace, selection and line editing. Open it with ☰ 
 | Find › Add Selection for Next Occurrence | `Alt+J` | `Ctrl+G` | yes | Adds the next occurrence of the selected text as another selection (multiple carets). [More](docs/guide/user/editor.md#editing-actions) |
 | Find › Unselect Occurrence | `Alt+Shift+J` | `Ctrl+Shift+G` | yes | Removes the occurrence added last. [More](docs/guide/user/editor.md#editing-actions) |
 | Find › Find in Files… | `Ctrl+Shift+F` | `Cmd+Shift+F` | yes | Searches the text of all project files, with match case, whole words, regular expressions, file masks and a folder scope. [More](docs/guide/user/search-everywhere.md#find-in-files) ([screenshot](docs/screenshots/docs-find-in-files.png)) |
-| Find › Replace in Files… | `Ctrl+Shift+R` | `Cmd+Shift+R` | not yet | Not available yet; the entry is disabled. |
+| Find › Replace in Files… | `Ctrl+Shift+R` | `Cmd+Shift+R` | yes | Opens the Find tool window's Find in Files tab with a **Replace with** field, a preview of every changed line and undo. [More](docs/guide/user/search-everywhere.md#find-in-files) |
 | Find › Search Structurally… | — | — | not yet | Not available yet; the entry is disabled. |
 | **Find Usages** | | | | submenu |
 | Find Usages › Find Usages | `Alt+F7` | `Alt+F7` | yes | Shows the usages of the symbol at the caret in the Find tool window. [More](docs/guide/user/editor.md#find-usages-and-show-usages) ([screenshot](docs/screenshots/php-nav-find-window.png)) |

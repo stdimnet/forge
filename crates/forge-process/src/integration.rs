@@ -38,13 +38,13 @@ __forge_preexec() {
   __forge_osc "133;C"
 }
 __forge_prompt() {
-  local status=$?
+  local __forge_status=$?
   __forge_armed=
-  if [ -n "$__forge_ran" ]; then __forge_osc "133;D;$status"; fi
+  if [ -n "$__forge_ran" ]; then __forge_osc "133;D;$__forge_status"; fi
   __forge_ran=
   __forge_osc "7;file://${HOSTNAME}${PWD}"
   __forge_osc "133;A"
-  return $status
+  return $__forge_status
 }
 __forge_arm() { __forge_armed=1; }
 PROMPT_COMMAND="__forge_prompt${PROMPT_COMMAND:+;$PROMPT_COMMAND};__forge_arm"
@@ -71,8 +71,8 @@ ZDOTDIR=${FORGE_USER_ZDOTDIR:-$HOME}
 __forge_osc() { printf '\033]%s\007' "$1"; }
 __forge_ran=
 __forge_precmd() {
-  local status=$?
-  if [ -n "$__forge_ran" ]; then __forge_osc "133;D;$status"; fi
+  local __forge_status=$?
+  if [ -n "$__forge_ran" ]; then __forge_osc "133;D;$__forge_status"; fi
   __forge_ran=
   __forge_osc "7;file://${HOST}${PWD}"
   __forge_osc "133;A"
@@ -157,7 +157,9 @@ mod tests {
         assert_eq!(i.args[0], "--init-file");
         let rc = std::fs::read_to_string(&i.args[1]).unwrap();
         assert!(
-            rc.contains(". ~/.bashrc") && rc.contains("133;D;$status") && rc.contains("7;file://")
+            rc.contains(". ~/.bashrc")
+                && rc.contains("133;D;$__forge_status")
+                && rc.contains("7;file://")
         );
         assert_eq!(
             i.env,

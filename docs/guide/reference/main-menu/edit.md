@@ -39,7 +39,7 @@ Undo, clipboard, find and replace, selection and line editing. Open it with ☰ 
 | Find › Add Selection for Next Occurrence | `Alt+J` | `Ctrl+G` | yes | Adds the next occurrence of the selected text as another selection (multiple carets). [More](../../user/editor.md#editing-actions) |
 | Find › Unselect Occurrence | `Alt+Shift+J` | `Ctrl+Shift+G` | yes | Removes the occurrence added last. [More](../../user/editor.md#editing-actions) |
 | Find › Find in Files… | `Ctrl+Shift+F` | `Cmd+Shift+F` | yes | Searches the text of all project files, with match case, whole words, regular expressions, file masks and a folder scope. [More](../../user/search-everywhere.md#find-in-files) ([screenshot](../../../screenshots/docs-find-in-files.png)) |
-| Find › Replace in Files… | `Ctrl+Shift+R` | `Cmd+Shift+R` | not yet | Not available yet; the entry is disabled. |
+| Find › Replace in Files… | `Ctrl+Shift+R` | `Cmd+Shift+R` | yes | Opens the Find tool window's Find in Files tab with a **Replace with** field, a preview of every changed line and undo. [More](../../user/search-everywhere.md#find-in-files) |
 | Find › Search Structurally… | — | — | not yet | Not available yet; the entry is disabled. |
 | **Find Usages** | | | | submenu |
 | Find Usages › Find Usages | `Alt+F7` | `Alt+F7` | yes | Shows the usages of the symbol at the caret in the Find tool window. [More](../../user/editor.md#find-usages-and-show-usages) ([screenshot](../../../screenshots/php-nav-find-window.png)) |

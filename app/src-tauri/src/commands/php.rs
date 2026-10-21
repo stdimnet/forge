@@ -220,7 +220,7 @@ pub async fn php_detect_servers(
             blocking(move || backend.php().detect_servers(for_host(settings, remote))).await
         }
         Err(_) => {
-            let settings = for_host(settings, false);
+            let settings = forge_backend::php::with_managed_intelephense(settings);
             let path_env = std::env::var("PATH").ok();
             let dirs = lsp::search_dirs(path_env.as_deref(), dirs::home_dir().as_deref());
             Ok(lsp::detect(&settings, &dirs, &lsp::FsProbe))
@@ -246,29 +246,16 @@ pub async fn php_lsp_config(
 /// Settings for the machine the project lives on: local executable and cache paths mean
 /// nothing on a remote host, where the agent finds Intelephense / phpactor itself. Locally,
 /// Forge's managed Intelephense install comes before anything on `PATH`.
+/// Local paths do not apply on a remote host. The backend adds the managed Intelephense of
+/// the project's machine (`forge_backend::php`).
 fn for_host(mut settings: PhpLspSettings, remote: bool) -> PhpLspSettings {
     if remote {
         settings.intelephense_path = None;
         settings.intelephense_node = None;
         settings.phpactor_path = None;
         settings.storage_path = None;
-    } else {
-        with_managed_intelephense(&mut settings);
     }
     settings
-}
-
-/// Use Forge's managed Intelephense (`node …/intelephense.js`) unless a path is set.
-fn with_managed_intelephense(settings: &mut PhpLspSettings) {
-    if settings.intelephense_path.is_some() {
-        return;
-    }
-    if let Some((node, script)) =
-        forge_langservers::Detector::system().managed_launch("intelephense")
-    {
-        settings.intelephense_path = Some(script);
-        settings.intelephense_node = Some(node);
-    }
 }
 
 /// Id under which the PHP language server (Intelephense or phpactor) is registered.

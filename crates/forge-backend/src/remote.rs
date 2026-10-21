@@ -360,6 +360,7 @@ impl ServerLauncher for RemoteLauncher {
                 stdout: Box::pin(reader),
                 stderr: None,
                 process: Box::new(RemoteServer { client, channel }),
+                parent_pid: None,
             })
         })
     }

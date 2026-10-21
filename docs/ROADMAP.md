@@ -30,14 +30,130 @@
 - [x] Split editors, pinned tabs, editor tab settings; file encodings and line separators; restored tool window layout
 - [x] Splash screen, update check and download (signed `latest.json` from GitHub releases), release workflow, Pride Versioning
 
-## Milestone 2 — next
+Each `- [ ]` item below is one pull request of the [auto-runner](../.claude/skills/auto-runner/SKILL.md)
+(large items are split). The detailed feature lists with links to the JetBrains documentation
+are in [research/jetbrains-gap-analysis.md](research/jetbrains-gap-analysis.md).
 
-| Area | Scope |
-| --- | --- |
-| Refactorings | Extract Method/Variable/Constant, Move, Change Signature, Safe Delete, Inline |
-| Local History | Changes per file and project, revert, labels |
-| VCS | Get from VCS (clone), Commit Message History (Ctrl+M), Replace in Files popup (Ctrl+Shift+R) |
-| Windows | Several project windows, Distraction Free / Presentation / Zen modes |
-| PHP | Composer Install/Update commands, Type/Call/Method Hierarchy, Live Templates, Surround With, Optimize Imports |
-| Services | Kubernetes contexts from the project's host |
-| Plugins | Marketplace, settings export/import |
+## Milestone 2 — PHPStorm parity (next)
+
+### Editor
+- [ ] Quick Documentation (`Ctrl+Q`), Documentation tool window, External Documentation (`Shift+F1`), Quick Definition (`Ctrl+Shift+I`), Type Info, Context Info, Error Description
+- [ ] Postfix completion and Complete Current Statement (`Ctrl+Shift+Enter`), Cyclic Expand Word
+- [ ] Live Templates with Surround With, Unwrap/Remove, Save as Live Template and Laravel/Symfony template sets
+- [ ] File and code templates (New ▸ PHP Class/Interface/Enum/Trait with PSR-4 namespace, Vue/React components)
+- [ ] Create symbols from usage (Alt+Enter: create method, field, class, constant)
+- [ ] Language injections (SQL/HTML/JSON/RegExp in PHP and JS strings, `// language=`, Edit Fragment, Run injected SQL)
+- [ ] Multiple carets from the keyboard (Clone Caret Above/Below, Column Selection Mode) and Paste from History
+- [ ] Actions on Save (reformat, optimize imports, rearrange, code cleanup, run tools)
+- [ ] Emmet, color previews and picker
+- [ ] Markdown preview (Mermaid, links), image/SVG viewer, CSV/TSV table editor
+- [ ] Sticky lines, structure breadcrumbs, Reader mode / rendered doc comments, custom folding regions
+- [ ] Spellchecking and grammar for comments, strings and identifiers
+- [ ] Code style schemes with presets (PSR-12, PER-CS, Symfony, Laravel, WordPress) and per-language pages
+- [ ] JSON Schema validation and completion (composer.json, package.json, compose, CI files)
+- [ ] Vim emulation
+
+### Navigation and search
+- [ ] File Structure popup (`Ctrl+F12`), Navigation Bar (`Alt+Home`), Related Symbol (`Ctrl+Alt+Home`)
+- [ ] Last/Next Edit Location, Next/Previous Method, Next/Previous Change, Select In… and autoscroll from source
+- [ ] Highlight Usages in File, Find Usages in File, Find Usages settings (scope, options)
+- [ ] Type/Call/Method Hierarchy
+- [ ] Scopes and file colors; Structural Search and Replace; Analyze External Stack Trace
+- [ ] Go to Test and Create Test (PHPUnit/Pest, JS test ↔ subject)
+
+### Refactoring
+- [ ] Extract Method/Variable/Constant, Introduce Field/Parameter, Inline
+- [ ] Move, Copy, Safe Delete, Change Signature, Make Static
+- [ ] Extract Interface/Superclass, Pull Members Up/Push Members Down, Refactor This popup
+- [ ] JS/TS refactorings (extract component, arrow/async conversions, destructuring)
+- [ ] Optimize Imports and auto-import settings (on the fly, on save, grouping)
+
+### Version control
+- [ ] Merge conflict resolver (three-way merge, Resolve Simple Conflicts)
+- [ ] File and selection history, Compare with Revision/Branch, Compare Files/Folders/Clipboard
+- [ ] Stash/Unstash, Pull/Merge/Rebase/Reset/Tag/Remotes dialogs, shelf
+- [ ] Log actions (revert, undo, reset, edit message, squash/fixup), interactive rebase, cherry-pick
+- [ ] Changelists and partial commits, commit checks, patches
+- [ ] Get from VCS (clone), Commit Message History (`Ctrl+M`), worktrees, GPG/SSH signing
+- [ ] Local History with labels, selection history and Recent Changes
+
+### Run, debug, PHP
+- [ ] PHP CLI interpreters: several local ones, Docker, Docker Compose, SSH, WSL, with path mappings
+- [ ] PHP Built-in Web Server, PHP Web Page and HTTP request debugging; Xdebug validation; logpoints, temporary breakpoints, Set Value, debugger console
+- [ ] Composer UI (add dependency, version completion, outdated markers, Install/Update, `composer audit`)
+- [ ] Command Line Tool Support (Composer/Artisan/Symfony/WP-CLI console with completion)
+- [ ] `.phpstorm.meta.php` advanced metadata and JetBrains attributes; include paths and PSR-4 roots
+- [ ] Test frameworks: Pest configuration, Codeception, Behat, PHPSpec; test history and auto-test
+- [ ] Run Anything (double `Ctrl`), compound run configurations, External Tools
+
+### Workbench and project
+- [ ] Project Structure (Mark Directory As sources/tests/excluded), file nesting, Show Members
+- [ ] Several project windows, Distraction Free/Presentation/Zen/Full Screen, floating tool windows, editor tabs in their own window, layouts, IDE zoom
+- [ ] Invalidate Caches/Repair IDE, Settings for New Projects, Restore Defaults, custom file types
+- [ ] Other keymaps (VS Code, Eclipse, Sublime, Emacs), mouse shortcuts, color scheme editor and import
+- [ ] Project trust (safe mode) before running a project's scripts
+
+### Deployment and remote
+- [ ] Deployment (SFTP/FTP/local servers, mappings, upload on save, compare with server)
+- [ ] Remote Host tool window, SSH configurations and SSH terminal sessions in local projects
+- [ ] Dev Containers and WSL projects
+
+### Frameworks
+- [ ] WordPress (hooks, WP-CLI, code style); Drupal, Joomla, Shopware basics
+- [ ] Symfony translations, forms and events; Laravel dashboard (logs, `ide.json`)
+- [ ] Kubernetes contexts from the project's host
+
+## Milestone 3 — Language packs I: Java, Python, Go, Rust, C/C++
+
+- [ ] Shared debugging layer: DAP client in Rust used by every pack (attach to process, attach to DAP server, logpoints), native views (memory, disassembly, registers, core dumps, watchpoints)
+- [ ] Shared test runner and coverage for every pack; run targets (Docker, WSL, SSH) for run, test and debug
+- [ ] JavaScript/TypeScript debugger (Chrome, Node.js, attach) and JS test runners (Jest, Vitest, Mocha, Playwright, Cypress)
+- [ ] JavaForge: Eclipse JDT LS (managed), JDK detection and download, Maven and Gradle, JUnit 5/TestNG, Java debugger
+- [ ] JavaForge: Spring Boot, Kotlin (kotlin-lsp), Jakarta EE basics
+- [ ] PyForge: basedpyright/ruff/ty/Black, interpreters (venv, uv, Poetry, conda, pipenv, Hatch; Docker/SSH/WSL), Python Packages tool window, requirements inspections
+- [ ] PyForge: pytest/unittest/tox runners, debugpy with debug console, Python console, profiler
+- [ ] PyForge: Django (manage.py, template navigation, server/tests configurations), Flask, FastAPI, Celery
+- [ ] PyForge: Jupyter notebooks (editor, kernels, outputs, DataFrame views, notebook diffs)
+- [ ] GoForge: SDK/GOPATH, `go.mod`/`go.work`, gofmt/goimports/vet/generate, golangci-lint, Go Build/Test (bench, fuzz), Delve attach/remote, pprof
+- [ ] RustForge: rustup toolchains, Cargo tool window and configurations, Clippy, rustfmt, doctest/nextest, LLDB/GDB renderers
+- [ ] CForge: clangd (managed), CMake profiles/presets and tool window, compilation database, toolchains (GCC/Clang/MSVC/MinGW), build actions, CTest/GoogleTest/Catch2, debugger
+- [ ] CForge v2: sanitizers, Valgrind, perf, vcpkg/Conan, embedded (OpenOCD, SVD, PlatformIO, ESP-IDF, Zephyr)
+
+## Milestone 4 — Code quality, tooling and databases
+
+- [ ] PHP quality tools: PHPStan, Psalm, PHP CS Fixer, PHP_CodeSniffer, PHP Mess Detector, Laravel Pint, Rector (on the fly and on save, also in Docker/remote interpreters)
+- [ ] Web quality tools: ESLint, Prettier, Stylelint, Biome with fix on save
+- [ ] Inspections: Forge's own inspections with severities and profiles, Inspect Code, Run Inspection by Name, Code Cleanup, suppressions, duplicates, data flow, command-line inspector
+- [ ] Code coverage for PHP (Xdebug/PCOV), JS (c8/Istanbul) and the language packs
+- [ ] Profiling: Xdebug and SPX snapshots, V8 CPU/heap
+- [ ] Vulnerable dependency check (`composer audit`, npm audit)
+- [ ] Database connectivity: SSH/SSL per data source, SQL Server, more engines (ClickHouse, Redis, MongoDB, Oracle, …), sessions, read-only/production colors
+- [ ] Database explorer: full object tree, schema filter, virtual foreign keys, full-text search, DDL data sources
+- [ ] SQL editor: resolve and inspections, dialect per file, formatter, user parameters, query history, Run SQL file, live templates
+- [ ] Data editor: header sort/filter, value editor, foreign-key navigation, transpose, aggregates, compare data, charts
+- [ ] Database objects: Create/Modify Table dialogs, Generate DDL, import (CSV/Excel/JSON), dump/restore with native tools
+- [ ] ER diagrams, schema compare and migrations, query plans
+- [ ] Web tooling: File Watchers, Live Edit, Vite/Webpack aliases, Svelte/Astro/Nuxt/Nx/Prisma/Deno/Bun, OpenAPI, GraphQL, HTTP client extras (OAuth 2.0, cURL, WebSocket/gRPC)
+
+## Milestone 5 — Language packs II: .NET and Ruby
+
+- [ ] .NET pack: Roslyn LSP (managed), .NET SDK, solutions/projects, build window, run configurations and launch profiles, netcoredbg debugger, xUnit/NUnit/MSTest, NuGet window, `dotnet new` templates, EditorConfig cleanup
+- [ ] .NET pack: ASP.NET Core (Razor/Blazor, endpoints), EF Core commands, Aspire, Docker, Hot Reload, user secrets, Azure DevOps code host
+- [ ] .NET pack: Unity and Godot integration (editor bridge, tests, debugging)
+- [ ] Ruby pack: ruby-lsp, version managers, Bundler, Rake, RSpec/Minitest, rdbg debugger, RuboCop, ERB, IRB console
+- [ ] Ruby pack: Rails (navigation, routes, generators, console, ActiveRecord data sources, i18n, Hotwire)
+
+## Milestone 6 — AI and collaboration
+
+- [ ] AI in the editor: Inline completion (local or hosted models), "Explain / Fix with AI" in Alt+Enter, AI-generated tests and docs
+- [ ] Agents: Agent tasks that run, test and fix in a sandbox, with diffs to review
+- [ ] Code review: Review pull/merge requests inside Forge with AI summaries
+- [ ] Collaboration: Shared sessions (Code With Me style): follow, co-edit, shared terminal — in progress on `feat/code-with-me` (not the auto-runner's; leave it to its owner)
+- [ ] MCP: Forge as an MCP server for external agents
+
+## Milestone 7 — Platform and release
+
+- [ ] Plugins: Marketplace, public plugin SDK with docs and templates, settings export/import and sync
+- [ ] Releases: Signed Windows (Authenticode) and macOS (notarised) builds, Flatpak and AUR packages, stable and beta channels
+- [ ] Localization: Translatable UI, German as the first translation
+- [ ] Accessibility: Screen reader support, high-contrast themes, keyboard-only navigation everywhere, Presentation Assistant

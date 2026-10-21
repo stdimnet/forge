@@ -6,9 +6,9 @@
 import { createSignal, For, Show } from "solid-js";
 import { FilePen, TriangleAlert } from "lucide-solid";
 import { FileIcon } from "@/shell/FileIcon";
-import type { FilePreview, PreviewRow } from "@/ipc/codeintel";
+import type { FilePreview, PreviewRow, RenameConflict, UsagesAnswer } from "@/ipc/codeintel";
 import { openFileAt } from "@/editor/views";
-import { countLabel } from "./usages";
+import { countLabel, openInFindWindow } from "./usages";
 import type { PreviewRequest, RenameDialogRequest } from "./rename";
 
 const fileName = (p: string) => p.split("/").pop() ?? p;
@@ -123,6 +123,27 @@ function FileBlock(props: { file: FilePreview }) {
   );
 }
 
+/** The conflicts of a refactoring as a Find tool window tree (one row per located conflict). */
+export function conflictsAnswer(title: string, conflicts: RenameConflict[]): UsagesAnswer {
+  const byPath = new Map<string, RenameConflict[]>();
+  for (const c of conflicts) if (c.path) byPath.set(c.path, [...(byPath.get(c.path) ?? []), c]);
+  const files = [...byPath].map(([path, list]) => ({
+    path,
+    usages: list.map((c) => ({
+      line: c.line ?? 0,
+      column: 0,
+      endLine: c.line ?? 0,
+      endColumn: 0,
+      text: c.message,
+      ranges: [] as [number, number][],
+      kind: "unclassified" as const,
+    })),
+  }));
+  const count = files.reduce((n, f) => n + f.usages.length, 0);
+  const tree = { total: count, fileCount: files.length, groups: [{ label: "Conflicts", count, files }] };
+  return { title, source: "none", byType: tree, byFile: tree };
+}
+
 export function RefactoringPreviewDialog(props: { req: PreviewRequest }) {
   const a = () => props.req.answer;
   const total = () => a().preview.reduce((n, f) => n + f.rows.length, 0);
@@ -174,6 +195,23 @@ export function RefactoringPreviewDialog(props: { req: PreviewRequest }) {
           </div>
         </div>
         <div class="dialog-buttons">
+          <Show when={a().conflicts.some((c) => c.path)}>
+            <button
+              class="btn-secondary"
+              title="Cancel the refactoring and list the conflicts in the Find tool window"
+              onClick={() => {
+                openInFindWindow(conflictsAnswer(props.req.title, a().conflicts), {
+                  kind: "text",
+                  title: `Conflicts: ${props.req.title}`,
+                  header: `Conflicts of ${props.req.title}`,
+                });
+                props.req.done(false);
+              }}
+            >
+              Show in View
+            </button>
+            <span class="dialog-buttons-gap" />
+          </Show>
           <button class="btn-secondary" onClick={() => props.req.done(false)}>
             Cancel
           </button>

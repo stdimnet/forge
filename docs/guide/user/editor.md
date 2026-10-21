@@ -157,9 +157,13 @@ rename:
 
 When the rename would break something, the **Problems Detected** dialog lists the problems
 first (a class or member with the new name already exists, a file with the new name is in the
-way) together with every occurrence; **Continue** renames anyway, **Cancel** keeps the old name.
+way) together with every occurrence; **Continue** renames anyway, **Cancel** keeps the old name
+and **Show in View** cancels and lists the problems in the Find tool window. In PHP files the
+check also runs when a language server computes the rename.
 
 ![Problems Detected](../../screenshots/rename-refactoring-preview.png)
+
+![Rename conflicts in the Find tool window](../../screenshots/rename-conflicts-in-find.png)
 
 ![Rename dialog](../../screenshots/rename-dialog.png)
 
@@ -255,9 +259,10 @@ Other occurrences of the selected text are highlighted automatically.
 To search the whole project, use [Find in Files](search-everywhere.md#find-in-files)
 (`Ctrl+Shift+F`, macOS `Cmd+Shift+F`).
 
-> **Note:** Replace in Files (`Ctrl+Shift+R`) is not available yet. The Find tool window
-> shows [usages](#find-usages-and-show-usages) and the Find in Files results you open there
-> (see [Find tool window](workbench.md#find-tool-window)).
+Replace in Files (`Ctrl+Shift+R`, macOS `Cmd+Shift+R`) opens the Find tool window with a
+**Replace with** field (see [Search](search-everywhere.md)). The Find tool window also shows
+[usages](#find-usages-and-show-usages) and the Find in Files results you open there (see
+[Find tool window](workbench.md#find-tool-window)).
 
 ## Gutter
 

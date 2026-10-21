@@ -136,4 +136,5 @@ The **Text** tab of Search Everywhere uses the same search (from two characters 
 
 ![Find in Files results in the Find tool window](../../screenshots/find-window-text.png)
 
-> **Note:** Replace in Files (`Ctrl+Shift+R`) is not available yet.
+**Replace in Files** (`Ctrl+Shift+R`, macOS `Cmd+Shift+R`) opens the same tab with the selected
+text as the query and the caret in **Replace with**.

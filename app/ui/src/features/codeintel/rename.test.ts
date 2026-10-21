@@ -9,6 +9,7 @@ import { registerView } from "@/editor/views";
 import { applyWorkspaceEdit, refactoringHistory } from "./refactoring";
 import { cancelRename, commitRename, currentName, inPlaceRename, premiumHint, renameSessionOf, resetPremiumHint, startRename } from "./rename";
 import { actionIcon } from "./intentions";
+import { conflictsAnswer } from "./RefactoringDialogs";
 import "./index";
 
 // jsdom has no layout: CodeMirror's measure pass (it runs while the tests await) needs these.
@@ -176,5 +177,19 @@ describe("refactoring undo", () => {
     await new Promise((r) => setTimeout(r));
     expect(view.state.doc.toString()).toBe(USER);
     expect(other.state.doc.toString()).toContain("Purchase");
+  });
+});
+
+describe("Problems Detected", () => {
+  it("lists located conflicts by file for the Find tool window", () => {
+    const answer = conflictsAnswer("Rename class Order", [
+      { message: "Class Purchase already exists", path: "app/Models/Purchase.php", line: 4 },
+      { message: "Purchase.php already exists" },
+      { message: "Overlapping edits", path: "app/Models/Purchase.php", line: 9 },
+    ]);
+    expect(answer.byFile.total).toBe(2);
+    expect(answer.byFile.groups[0].files).toEqual([
+      expect.objectContaining({ path: "app/Models/Purchase.php", usages: [expect.objectContaining({ line: 4, text: "Class Purchase already exists" }), expect.objectContaining({ line: 9 })] }),
+    ]);
   });
 });

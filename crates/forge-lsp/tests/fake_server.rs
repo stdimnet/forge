@@ -370,3 +370,53 @@ async fn rename_implementation_and_code_actions() {
 
     manager.shutdown_all().await;
 }
+
+/// Starts the fake server locally but, like the launcher of a remote project, has no process
+/// on the server's machine for it to watch.
+struct RemoteLikeLauncher;
+
+impl forge_lsp::ServerLauncher for RemoteLikeLauncher {
+    fn launch<'a>(
+        &'a self,
+        config: &'a LspServerConfig,
+        root: &'a Path,
+    ) -> futures_util::future::BoxFuture<'a, forge_core::Result<forge_lsp::ServerIo>> {
+        Box::pin(async move {
+            let mut io = forge_lsp::LocalLauncher.launch(config, root).await?;
+            io.parent_pid = None;
+            Ok(io)
+        })
+    }
+}
+
+#[tokio::test]
+async fn sends_the_parent_process_only_for_servers_on_this_machine() {
+    let dir = tempfile::tempdir().unwrap();
+    let process_id = |launcher: Option<&'static dyn forge_lsp::ServerLauncher>| {
+        let root = dir.path().to_path_buf();
+        async move {
+            let (tx, mut rx) = broadcast::channel(256);
+            let client = match launcher {
+                Some(l) => LspClient::start_with_launcher(config(), &root, tx, l).await,
+                None => LspClient::start_with_events(config(), &root, tx).await,
+            }
+            .unwrap();
+            let log = next_matching(&mut rx, |e| match e {
+                LspEvent::Log { message, .. } if message.starts_with("processId:") => Some(message),
+                _ => None,
+            })
+            .await;
+            client.shutdown().await;
+            log
+        }
+    };
+    assert_eq!(
+        process_id(None).await,
+        format!("processId: {}", std::process::id())
+    );
+    // Intelephense exits when the given process does not exist on its machine.
+    assert_eq!(
+        process_id(Some(&RemoteLikeLauncher)).await,
+        "processId: null"
+    );
+}
