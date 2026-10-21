@@ -66,7 +66,7 @@
   min-width: 14px;
   color: var(--fg-muted);
 }
-.lt-popup-label {
+.lt-popup-label.code {
   font-family: var(--font-mono);
   font-size: var(--fs-small);
 }
@@ -86,11 +86,22 @@
   color: var(--fg-muted);
 }
 
+/* Template variables while a template is being filled in (snippet fields). */
+.cm-editor .cm-snippetField {
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent);
+  border-radius: 2px;
+}
+.cm-editor .cm-snippetFieldPosition {
+  border-left: 1.5px solid var(--accent);
+  margin-left: -0.75px;
+}
+
 /* Unwrap/Remove: what goes away and what stays. */
 .lt-unwrap-removed {
-  background: var(--diff-deleted-bg);
+  opacity: 0.55;
   text-decoration: line-through;
-  text-decoration-color: var(--danger);
+  text-decoration-color: var(--fg-muted);
 }
 .lt-unwrap-kept {
   background: var(--accent-soft);
@@ -115,7 +126,7 @@
   height: 22px;
 }
 .lt-tree {
-  height: 230px;
+  height: 190px;
   overflow: auto;
   padding: 2px 0;
 }
@@ -198,7 +209,7 @@
 }
 .lt-text {
   width: 100%;
-  min-height: 120px;
+  min-height: 96px;
   padding: 6px 8px;
   resize: vertical;
   font-family: var(--font-mono);

@@ -8,7 +8,7 @@
  * draft (`live_templates_catalog`); the form keeps its own copy of the selected template so
  * typing never waits for that round trip.
  */
-import { createEffect, createMemo, createResource, createSignal, For, on, Show } from "solid-js";
+import { createEffect, createMemo, createResource, createSignal, For, on, Show, untrack } from "solid-js";
 import { createStore, reconcile } from "solid-js/store";
 import { ChevronDown, ChevronRight, Minus, Plus, RotateCcw } from "lucide-solid";
 import { draftValue, setDraft, takePageArgs } from "@/features/settings/dialogState";
@@ -163,7 +163,7 @@ export function LiveTemplatesPage() {
   // Save as Live Template: a new template with the selected text.
   createEffect(() => {
     const args = takePageArgs<NewTemplateArgs>(PAGE_ID);
-    if (args) addTemplate(args);
+    if (args) untrack(() => addTemplate(args));
   });
 
   const matches = (t: LiveTemplate) => {

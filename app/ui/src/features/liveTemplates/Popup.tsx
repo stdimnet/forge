@@ -19,6 +19,8 @@ export interface PopupItem {
   run: () => void;
   /** Called while the item is selected (Unwrap/Remove highlights the statement). */
   preview?: () => void;
+  /** The label is code (a template abbreviation). */
+  code?: boolean;
 }
 
 interface PopupState {
@@ -164,7 +166,9 @@ function TemplatePopup(props: { popup: PopupState }) {
                 <Show when={item.mnemonic}>
                   <span class="lt-popup-mnemonic">{item.mnemonic}.</span>
                 </Show>
-                <span class="lt-popup-label">{item.label}</span>
+                <span class="lt-popup-label" classList={{ code: !!item.code }}>
+                  {item.label}
+                </span>
                 <Show when={item.detail}>
                   <span class="lt-popup-detail">{item.detail}</span>
                 </Show>

@@ -37,6 +37,7 @@ export async function insertLiveTemplate(): Promise<void> {
       id: i.id,
       label: i.abbreviation,
       detail: i.description,
+      code: true,
       run: () => void expandTemplate(path, view, i.id),
     })),
   });
@@ -63,6 +64,7 @@ export async function surroundWith(templatesOnly = false): Promise<void> {
     label: i.label,
     detail: i.description,
     mnemonic: i.mnemonic,
+    code: i.kind === "template",
     section: index === firstTemplate && index > 0 ? "Live templates" : undefined,
     run: async () => {
       const e = await liveTemplatesApi.surround({ ...request, id: i.id });
