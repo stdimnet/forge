@@ -1,0 +1,41 @@
+.select-in-popup {
+  width: 280px;
+  padding: 4px 0 6px;
+  overflow: hidden;
+}
+.select-in-title {
+  padding: 6px 12px 8px;
+  font-weight: 600;
+  color: var(--fg-strong);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.select-in-file {
+  margin-left: 6px;
+  font-weight: normal;
+  color: var(--fg-muted);
+}
+.select-in-list {
+  padding: 0 4px;
+}
+.select-in-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 8px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.select-in-row.selected {
+  background: var(--bg-selection);
+}
+.select-in-mnemonic {
+  min-width: 16px;
+  color: var(--fg-muted);
+  font-variant-numeric: tabular-nums;
+}

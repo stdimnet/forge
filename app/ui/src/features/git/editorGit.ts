@@ -273,19 +273,20 @@ function changeGutter(path: string): Extension {
           c.fromB === c.toB ? view.state.doc.lineAt(Math.min(c.fromB, view.state.doc.length)).number === line.number : c.fromB <= line.from && line.from < Math.max(c.endB, c.fromB + 1),
         );
         if (idx < 0 || !st.head) return false;
-        showChangePopup(view, path, st.chunks[idx], st.head, event as MouseEvent);
+        const e = event as MouseEvent;
+        showChangePopup(view, path, st.chunks[idx], st.head, { x: e.clientX + 8, y: e.clientY - 6 });
         return true;
       },
     },
   });
 }
 
-function showChangePopup(view: EditorView, path: string, chunk: Chunk, head: Text, event: MouseEvent): void {
+function showChangePopup(view: EditorView, path: string, chunk: Chunk, head: Text, at: { x: number; y: number }): void {
   document.querySelector(".git-change-popup")?.remove();
   const el = document.createElement("div");
   el.className = "git-change-popup";
-  el.style.left = `${event.clientX + 8}px`;
-  el.style.top = `${event.clientY - 6}px`;
+  el.style.left = `${at.x}px`;
+  el.style.top = `${at.y}px`;
   const removed = head.sliceString(chunk.fromA, Math.min(chunk.toA, head.length));
   const action = (label: string, title: string, run: () => void) => {
     const b = document.createElement("button");
@@ -321,6 +322,48 @@ function showChangePopup(view: EditorView, path: string, chunk: Chunk, head: Tex
     }
   };
   setTimeout(() => document.addEventListener("mousedown", close, true));
+}
+
+/** The lines of each change hunk (0-based, end exclusive; deleted lines: `start == end`). */
+export function changeRanges(chunks: readonly Chunk[], doc: Text): { start: number; end: number }[] {
+  return chunks.map((c) => {
+    const start = doc.lineAt(Math.min(c.fromB, doc.length)).number - 1;
+    if (c.fromB === c.toB) return { start, end: start };
+    return { start, end: doc.lineAt(Math.min(c.endB, doc.length)).number };
+  });
+}
+
+/**
+ * Next Change / Previous Change (Ctrl+Alt+Shift+Down/Up, PHPStorm's
+ * `VcsShowNextChangeMarker`): move the caret to the next or previous change hunk (the order,
+ * wrapping around, comes from Rust: `forge_editing::change_target`) and show its popup, as
+ * a click on the gutter marker does. `target` picks the hunk index from the ranges.
+ */
+export function showChangeMarker(
+  view: EditorView,
+  path: string,
+  target: (ranges: { start: number; end: number }[], line: number) => number | null,
+): boolean {
+  const st = view.state.field(changeField, false);
+  if (!st?.head || !st.chunks.length) return false;
+  const doc = view.state.doc;
+  const idx = target(changeRanges(st.chunks, doc), doc.lineAt(view.state.selection.main.head).number - 1);
+  const chunk = idx == null ? undefined : st.chunks[idx];
+  if (!chunk) return false;
+  const pos = doc.lineAt(Math.min(chunk.fromB, doc.length)).from;
+  view.dispatch({ selection: { anchor: pos }, effects: EditorView.scrollIntoView(pos, { y: "center" }), userEvent: "select" });
+  const head = st.head;
+  view.requestMeasure({
+    read: () => {
+      const coords = view.coordsAtPos(pos);
+      const gutter = view.dom.querySelector(".cm-git-change-gutter")?.getBoundingClientRect();
+      return coords && { x: (gutter?.right ?? coords.left) + 6, y: coords.top };
+    },
+    write: (at) => {
+      if (at) showChangePopup(view, path, chunk, head, at);
+    },
+  });
+  return true;
 }
 
 function controller(path: string, blameCompartment: Compartment) {

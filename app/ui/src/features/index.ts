@@ -58,5 +58,6 @@ import "./codeStructure";
 import "./fileStructure";
 import "./navBar";
 import "./related";
+import "./editorNavigation";
 import "./spelling";
 import "./jsonSchema";

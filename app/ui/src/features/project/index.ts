@@ -3,7 +3,7 @@ import { registerCommand } from "@/state/commands";
 import { closeWorkspace, pickAndOpenWorkspace } from "@/state/workspace";
 import { registerToolWindow } from "@/features/registry";
 import { affectedDirs, onFsChanged, startReloadingChangedTabs } from "@/state/fsWatch";
-import { ProjectView, refreshDirs } from "./ProjectView";
+import { ProjectActions, ProjectView, refreshDirs } from "./ProjectView";
 import { newEntryFromSelection } from "./fileMenu";
 
 // Files changed outside the editor: refresh the tree and reload unmodified open tabs.
@@ -18,6 +18,7 @@ registerToolWindow({
   order: 0,
   shortcut: "Alt+1",
   component: ProjectView,
+  actions: ProjectActions,
 });
 
 registerCommand({ id: "workspace.open", title: "Open…", category: "File", run: pickAndOpenWorkspace });

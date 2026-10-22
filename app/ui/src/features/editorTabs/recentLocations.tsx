@@ -1,7 +1,9 @@
 /**
  * Recent Locations popup (Ctrl+Shift+E, PHPStorm's `RecentLocations`): recently visited and
  * changed places with a few lines of code each. Pressing the shortcut again toggles "Show
- * changed only"; typing filters (speed search, ranked in Rust by `fuzzy_filter`).
+ * changed only", which lists the edit history of Last Edit Location
+ * (`features/editorNavigation/editHistory.ts`); typing filters (speed search, ranked in Rust
+ * by `fuzzy_filter`).
  */
 import { For, Show, createEffect, createMemo, createRoot, createSignal, on, onMount } from "solid-js";
 import { render } from "solid-js/web";
@@ -17,6 +19,7 @@ import { actionById, shortcutLabel } from "@/keymap";
 import { FileIcon } from "@/shell/FileIcon";
 import { createFuzzyFilter } from "@/features/search/fuzzyFilter";
 import { Highlight } from "@/features/search/SearchEverywhere";
+import { editPlaces } from "@/features/editorNavigation/editHistory";
 import { movePath, recordLocation, shiftLocations, snippet, type Location } from "./locations";
 
 const [locations, setLocations] = createSignal<Location[]>([]);
@@ -92,7 +95,9 @@ function RecentLocationsPopup() {
   const [selected, setSelected] = createSignal(0);
   const [texts, setTexts] = createSignal<Record<string, string>>({});
 
-  const shown = createMemo(() => locations().filter((l) => !changedOnly() || l.changed));
+  const shown = createMemo<Location[]>(() =>
+    changedOnly() ? editPlaces().map((p, i) => ({ path: p.path, line: p.line + 1, changed: true, seq: -i })) : locations(),
+  );
 
   // Texts of the files: open documents first, the rest from disk.
   createEffect(
