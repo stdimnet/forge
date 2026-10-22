@@ -85,6 +85,12 @@
 .commit-problems li.spell-problem svg {
   flex-shrink: 0;
 }
+.commit-problems li.spell-problem span {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
 .commit-problems li.spell-problem.typo svg {
   color: var(--success);
 }

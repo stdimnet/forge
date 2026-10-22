@@ -123,7 +123,7 @@ export function CommitSpellProblems(props: { text: string; problems: SpellProble
         <li
           class={`spell-problem ${p.kind}`}
           data-spell-problem={p.word ?? p.rule}
-          title="Show fixes"
+          title={`${p.message}\nClick to show fixes`}
           onClick={(e) => void showFixes(p, e.clientX, e.clientY, props.onReplace)}
         >
           {p.kind === "typo" ? <SpellCheck size={12} /> : <WholeWord size={12} />}
