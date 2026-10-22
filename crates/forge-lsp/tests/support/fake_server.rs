@@ -122,6 +122,8 @@ fn main() {
                     "renameProvider": if secondary { Value::Null } else { json!({"prepareProvider": true}) },
                     "implementationProvider": !secondary,
                     "codeActionProvider": if secondary { Value::Null } else { json!({"resolveProvider": true}) },
+                    "typeHierarchyProvider": !secondary,
+                    "callHierarchyProvider": !secondary,
                     "executeCommandProvider": {"commands": ["fake.apply"]}
                 },
                 "serverInfo": {"name": "fake", "version": "1"}
@@ -212,6 +214,24 @@ fn main() {
             }
             "textDocument/definition" => json!([{"uri": uri, "range": range(0, 0, 5)}]),
             "textDocument/implementation" => json!([{"uri": uri, "range": range(3, 0, 4)}]),
+            // User (line 0) extends Model (line 5); calls: main (line 8) -> save (line 1).
+            "textDocument/prepareTypeHierarchy" | "textDocument/prepareCallHierarchy" => {
+                json!([{"name": "User", "kind": 5, "uri": uri, "range": range(0, 0, 10),
+                        "selectionRange": range(0, 6, 10), "data": {"id": 1}}])
+            }
+            "typeHierarchy/supertypes" => json!([{"name": "Model", "kind": 5,
+                "uri": params["item"]["uri"], "range": range(5, 0, 10), "selectionRange": range(5, 6, 11)}]),
+            "typeHierarchy/subtypes" => json!([]),
+            "callHierarchy/incomingCalls" => json!([{
+                "from": {"name": "main", "kind": 12, "uri": params["item"]["uri"],
+                         "range": range(8, 0, 20), "selectionRange": range(8, 9, 13)},
+                "fromRanges": [range(9, 4, 8), range(10, 4, 8)]
+            }]),
+            "callHierarchy/outgoingCalls" => json!([{
+                "to": {"name": "save", "kind": 6, "detail": "User", "uri": params["item"]["uri"],
+                       "range": range(1, 0, 20), "selectionRange": range(1, 20, 24)},
+                "fromRanges": [range(2, 8, 12)]
+            }]),
             "textDocument/prepareRename" => {
                 json!({"range": range(0, 6, 10), "placeholder": "User"})
             }
