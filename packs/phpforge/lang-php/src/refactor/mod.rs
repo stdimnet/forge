@@ -5,14 +5,18 @@
 //! - [`extract_method`]: Extract Method / Function (Ctrl+Alt+M) with parameters, return
 //!   values and duplicates.
 //! - [`inline`]: Inline (Ctrl+Alt+N) of variables, methods, functions and constants.
+//! - [`hierarchy`]: Extract Interface / Superclass, Pull Members Up / Push Members Down.
+//! - [`available`]: Refactor This (Ctrl+Alt+Shift+T), the refactorings that apply.
 //!
 //! Everything here is a pure function over source text (byte offsets). Edits of other files
 //! (call sites of Introduce Parameter and Inline Method) are computed from Find Usages
 //! locations the caller passes in, with the texts of those files; the app converts offsets
 //! to LSP positions and applies the result as one workspace edit.
 
+pub mod available;
 pub mod classes;
 pub mod extract_method;
+pub mod hierarchy;
 pub mod inline;
 pub mod introduce;
 pub mod make_static;

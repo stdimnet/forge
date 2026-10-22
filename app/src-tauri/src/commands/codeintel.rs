@@ -1226,7 +1226,7 @@ pub async fn code_revert_edit(files: Vec<AppliedFile>, state: State<'_, AppState
 fn from_lsp_action(a: EditorCodeAction, c: &Ctx) -> ContextAction {
     ContextAction {
         kind: ActionKind::of_lsp(a.kind.as_deref()),
-        title: a.title,
+        title: codeintel::phpstorm_title(a.kind.as_deref(), &a.title).unwrap_or(a.title),
         source: "lsp".into(),
         is_preferred: a.is_preferred,
         disabled: a.disabled,
@@ -1338,6 +1338,38 @@ pub async fn code_context_actions(
             actions.push(php_action(&path, &text, i));
         }
     }
+    // Extract Component on whole Vue template or JSX elements.
+    if is_web_script(&path) && end != start {
+        let backend = c.backend.clone();
+        let (p, content) = (path.clone(), content.clone());
+        let (s, e) = (
+            Position::new(start.line, start.character),
+            Position::new(end.line, end.character),
+        );
+        let applies = blocking(move || {
+            let text = current_text(&backend, &p, &content);
+            Ok(crate::commands::extract_component::applies(&p, &text, s, e))
+        })
+        .await?;
+        if applies {
+            actions.push(ContextAction {
+                title: "Extract Component\u{2026}".into(),
+                kind: ActionKind::Refactor,
+                source: "webforge".into(),
+                is_preferred: false,
+                disabled: None,
+                edit: None,
+                command: None,
+                needs_resolve: false,
+                server: None,
+                raw: None,
+                action: Some(EXTRACT_COMPONENT.into()),
+                children: vec![],
+                caret: None,
+                data: None,
+            });
+        }
+    }
     // Language injections: Inject language, Un-inject, Edit Fragment.
     if forge_injections::Host::of_path(&path).is_some() {
         let injection_settings = injections::settings_of(&ws.read_settings());
@@ -1396,6 +1428,109 @@ pub async fn code_refactor_actions(
         .map(|a| from_lsp_action(a, &c))
         .collect();
     Ok(codeintel::refactor_actions(actions, &refactoring))
+}
+
+/// Refactor This (Ctrl+Alt+Shift+T): the refactorings that apply at the caret or to the
+/// selection.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RefactorThisAnswer {
+    /// Forge's refactorings (action ids, PHPStorm's order); `None` when Forge has no
+    /// analysis of its own for the file (the UI offers every enabled refactoring).
+    pub actions: Option<Vec<String>>,
+    /// The language servers' refactorings (JS/TS), worded like PHPStorm.
+    pub lsp: Vec<ContextAction>,
+}
+
+/// Refactor This: in PHP files Rust decides which refactorings apply (a class, a method, an
+/// expression or a selection each have their own).
+#[tauri::command]
+#[allow(clippy::too_many_arguments)]
+pub async fn code_refactor_this(
+    path: String,
+    line: u32,
+    character: u32,
+    end_line: u32,
+    end_character: u32,
+    content: Option<String>,
+    app: AppHandle,
+    lsp: State<'_, LspState>,
+    ws: State<'_, AppState>,
+) -> Result<RefactorThisAnswer> {
+    let start = Position::new(line, character);
+    let end = Position::new(end_line, end_character);
+    if is_php(&path) {
+        let backend = ws.backend()?;
+        let actions = blocking(move || {
+            let text = current_text(&backend, &path, &content);
+            Ok(crate::commands::refactor_hierarchy::php_refactorings(
+                &text, start, end,
+            ))
+        })
+        .await?;
+        return Ok(RefactorThisAnswer {
+            actions: Some(actions),
+            lsp: vec![],
+        });
+    }
+    if !is_web_script(&path) {
+        return Ok(RefactorThisAnswer {
+            actions: None,
+            lsp: vec![],
+        });
+    }
+    // JS/TS/Vue: Rename and the file refactorings, Extract Component for whole elements, and
+    // the language servers' refactorings.
+    let backend = ws.backend()?;
+    let (p, c) = (path.clone(), content.clone());
+    let component = blocking(move || {
+        let text = current_text(&backend, &p, &c);
+        Ok(crate::commands::extract_component::applies(
+            &p, &text, start, end,
+        ))
+    })
+    .await?;
+    let mut actions = vec!["RenameElement".to_string()];
+    if component {
+        actions.push(EXTRACT_COMPONENT.to_string());
+    }
+    actions.extend(["Move".to_string(), "CopyElement".to_string()]);
+    let lsp_actions = match Ctx::new(&path, &app, &lsp, &ws) {
+        Ok(c) => {
+            let range = lsp_types::Range::new(
+                lsp_types::Position::new(line, character),
+                lsp_types::Position::new(end_line, end_character),
+            );
+            let found = c
+                .manager
+                .code_actions(&c.abs, range)
+                .await
+                .unwrap_or_default()
+                .into_iter()
+                .map(|a| from_lsp_action(a, &c))
+                .collect();
+            codeintel::refactor_this_actions(found)
+        }
+        Err(_) => vec![],
+    };
+    Ok(RefactorThisAnswer {
+        actions: Some(actions),
+        lsp: lsp_actions,
+    })
+}
+
+/// WebForge's Extract Component action.
+pub(crate) const EXTRACT_COMPONENT: &str = "WebForge.ExtractComponent";
+
+/// Files the TypeScript language server and Extract Component work on.
+fn is_web_script(path: &str) -> bool {
+    let p = path.to_ascii_lowercase();
+    [
+        ".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs", ".mts", ".cts", ".vue",
+    ]
+    .iter()
+    .any(|e| p.ends_with(e))
+        && !p.ends_with(".d.ts")
 }
 
 /// A PHP intention as a context action: its edits of the current file (UTF-16 offsets) and

@@ -1049,6 +1049,32 @@ computes everything; `app/ui/src/features/codeintel` and `features/lsp/goto.ts` 
   applied with `applyWorkspaceEdit`, whose `fileOps` (`move` / `copy` of files and folders)
   run before the edit and are reversed on undo (and when the edit fails). Browser mode
   approximates the refactorings in `mock/moveMock.ts`.
+- Extract Interface / Superclass, Pull Members Up / Push Members Down and Refactor This
+  (`phpforge_lang_php::refactor::{hierarchy, available}`, `commands/refactor_hierarchy.rs`,
+  UI `features/codeintel/hierarchyRefactorings.ts`, `HierarchyDialogs.tsx`, `refactorThis.ts`):
+  `refactor_hierarchy_prepare({ path, position, content, refactoring })` answers the class,
+  its members (`id` like `orders()` / `$count` / `ROLE`, `uses`: the ids each member uses, for
+  the dependency highlighting) and the superclasses / direct subclasses;
+  `refactor_extract_interface`, `refactor_extract_superclass`, `refactor_pull_up` and
+  `refactor_push_down` answer a `RefactorAnswer` whose workspace edit creates the new file
+  (rendered from the user's PHP Class / Interface file templates) together with the edits.
+  `ExtractInterface`, `ExtractSuperclass`, `MembersPullUp` and `MemberPushDown` are registered
+  commands. `code_refactor_this({ path, line, character, endLine, endCharacter, content })`
+  answers `{ actions, lsp }`: the action ids that apply at the caret or selection (Rust decides;
+  `null` for files without an analysis of their own) and the language servers' refactorings;
+  the popup numbers the rows and filters by typing. Browser mode:
+  `mock/refactorHierarchyMock.ts`.
+- Extract Component and the JS/TS refactorings (`webforge_fw_vue::extract`,
+  `webforge_fw_react::extract`, shared pieces in `webforge_lang_web::{scope, extract}`,
+  `commands/extract_component.rs`, UI `features/codeintel/extractComponent.ts`):
+  `refactor_extract_component_prepare({ path, start, end, content })` answers the props and
+  imports of the selected elements, `refactor_extract_component({ ..., name, directory })` a
+  `RefactorAnswer` that creates the component and edits the parent. `WebForge.ExtractComponent`
+  is a keymap action (Refactor | Extract/Introduce | Component…, Refactor This, a link in
+  `Alt+Enter`). The language servers' code actions are worded like PHPStorm
+  (`forge_codeintel::phpstorm_title`, used for `Alt+Enter`) and filtered for Refactor This
+  (`refactor_this_actions`). Browser mode runs the same Rust code through
+  `web_extract_component*` and `codeintel_refactor_this_actions` (`mock/extractComponentMock.ts`).
 
 ## PHP debugger (`forge-debug`)
 

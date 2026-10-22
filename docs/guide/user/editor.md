@@ -599,6 +599,7 @@ editor context menu:
 | Refactor > Refactor This… | works, see [Refactoring shortcuts](shortcuts/refactoring.md#refactor-this) |
 | Refactor > Extract/Introduce > Variable…, Constant…, Field…, Parameter…, Method… | works, see [PHP](php.md#extract-introduce-and-inline) |
 | Refactor > Inline… | works, see [PHP](php.md#extract-introduce-and-inline) |
+| Refactor > Extract/Introduce > Interface…, Superclass…, Pull Members Up…, Push Members Down… | works in PHP classes, see [PHP](php.md#extract-interface-and-superclass-pull-members-up-and-push-members-down) |
 | Go To > Declaration or Usages, Line/Column | works |
 | Go To > Implementation(s) | works |
 | Generate… | works in PHP files, see [PHP](php.md#generate) |

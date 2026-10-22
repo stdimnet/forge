@@ -93,6 +93,22 @@ pub async fn templates_php_directory(
     Ok(psr4::dir_for_namespace(&roots, &namespace))
 }
 
+/// The user's file templates and the context of new files (refactorings render the PHP
+/// Class / Interface templates with them).
+pub(crate) fn render_context(
+    state: &AppState,
+) -> Result<(Vec<CustomTemplate>, templates::TemplateContext)> {
+    let backend = state.backend()?;
+    let context = templates::TemplateContext {
+        project_name: backend.info().name.clone(),
+        user: std::env::var("USER")
+            .or_else(|_| std::env::var("USERNAME"))
+            .unwrap_or_default(),
+        now: None,
+    };
+    Ok((custom_templates(state), context))
+}
+
 /// File | New ▸ <template>: render the template and create the file (never replaces one).
 #[tauri::command]
 pub async fn templates_create(

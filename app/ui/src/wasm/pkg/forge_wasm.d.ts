@@ -136,6 +136,12 @@ export function codeintel_plan_edit(request_json: string): string;
 export function codeintel_preview_edit(request_json: string): string;
 
 /**
+ * Refactor This in JS/TS: the language server's refactorings worded like PHPStorm
+ * (`ContextAction[]` -> `ContextAction[]`).
+ */
+export function codeintel_refactor_this_actions(request_json: string): string;
+
+/**
  * `{ path, text, files }` → `RelatedItem[]` (like `code_related`).
  */
 export function codeintel_related(request_json: string): string;
@@ -1129,6 +1135,16 @@ export function vim_timeout(json: string): string;
 export function web_components(request_json: string): string;
 
 /**
+ * Extract Component: `{ path, content, start, end, name, newPath }` -> `ExtractedComponent`.
+ */
+export function web_extract_component(request_json: string): string;
+
+/**
+ * Extract Component's analysis: `{ path, content, start, end }` -> `ExtractComponentInfo`.
+ */
+export function web_extract_component_prepare(request_json: string): string;
+
+/**
  * `{ framework, files, paths, path, content, offset }` -> `Location[]`.
  */
 export function web_goto(request_json: string): string;
@@ -1183,6 +1199,7 @@ export interface InitOutput {
     readonly codeintel_order_actions: (a: number, b: number, c: number) => void;
     readonly codeintel_plan_edit: (a: number, b: number, c: number) => void;
     readonly codeintel_preview_edit: (a: number, b: number, c: number) => void;
+    readonly codeintel_refactor_this_actions: (a: number, b: number, c: number) => void;
     readonly codeintel_related: (a: number, b: number, c: number) => void;
     readonly codeintel_rename_edit: (a: number, b: number, c: number) => void;
     readonly codeintel_test_source: (a: number, b: number, c: number) => void;
@@ -1380,6 +1397,8 @@ export interface InitOutput {
     readonly vim_state: (a: number, b: number, c: number) => void;
     readonly vim_timeout: (a: number, b: number, c: number) => void;
     readonly web_components: (a: number, b: number, c: number) => void;
+    readonly web_extract_component: (a: number, b: number, c: number) => void;
+    readonly web_extract_component_prepare: (a: number, b: number, c: number) => void;
     readonly web_goto: (a: number, b: number, c: number) => void;
     readonly web_gutter: (a: number, b: number, c: number) => void;
     readonly web_npm_gutter: (a: number, b: number, c: number) => void;

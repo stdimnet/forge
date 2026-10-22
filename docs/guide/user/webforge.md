@@ -1,6 +1,6 @@
 ---
 title: WebForge
-description: The WebForge pack - npm scripts and package managers, the npm tool window, Node.js and TypeScript settings, and React, Vue and Angular component navigation and line markers.
+description: The WebForge pack - npm scripts and package managers, the npm tool window, Node.js and TypeScript settings, React, Vue and Angular component navigation and line markers, Extract Component and the JS/TS refactorings.
 order: 100
 tags: [webforge, javascript, typescript, npm, react, vue, angular]
 ---
@@ -127,6 +127,49 @@ Single-file components with `<script setup>` or the Options API:
 ![Angular template navigation](../../screenshots/webforge-angular-template.png)
 
 When several targets match, a **Choose Declaration** popup lists them.
+
+## Refactoring
+
+### Extract Component
+
+Select whole elements of a Vue `<template>` or JSX elements in a React component and choose
+Refactor | Extract/Introduce | **Component…** (also in Refactor This, `Ctrl+Alt+Shift+T`, and
+`Alt+Enter`). The dialog asks for the component name (PascalCase) and the directory and shows
+the props the new component gets: every name the markup takes from its parent (`{{ total }}`,
+`:user="user"`, `@click="save"`, `{items.map(...)}`, `onClick={() => remove(item)}`). Names
+bound inside the selection (`v-for` aliases, slot props, arrow function parameters) are not
+props, and components and helpers the parent imports are imported by the new component
+(relative imports are rewritten for its folder).
+
+- **Vue**: a new `.vue` file with the markup in its `<template>` and `defineProps([...])` in a
+  `<script setup>` (the `lang` of the parent's script), or `props` / `components` for the
+  Options API. The parent renders `<NewComponent :total="total" />` and imports it (Options API:
+  also registers it in `components`).
+- **React**: a new `.jsx` / `.tsx` file with `export default function NewComponent({ ... })`
+  returning the markup (several elements are wrapped in `<>…</>`, TypeScript gets a props
+  interface). The parent renders `<NewComponent total={total} />` and imports it in its own
+  import style.
+
+The new file and the parent's changes are one undo step; **Preview** shows them first. The
+analysis is Forge's own (Rust), so it needs no language server and works in remote projects.
+
+![Extract Component (Vue)](../../screenshots/extract-component-vue-dialog.png)
+
+![The extracted React component](../../screenshots/extract-component-react-result.png)
+
+### Language server refactorings
+
+In JavaScript and TypeScript files Refactor This adds the refactorings of the TypeScript
+language server for the caret or selection, worded like PHPStorm where it has its own name:
+**Extract Method** (function in module scope, method in class), **Introduce Constant**,
+**Extract Type Alias** / **Extract Interface**, **Inline Variable**, **Move to New File**,
+**Convert to function declaration** / **expression**, and the conversions the server offers as
+they are (convert to arrow function, async function, template string, destructured parameters
+or object, named / namespace imports, optional chain). `Alt+Enter` shows them with the same
+wording. Introduce Variable, Extract Method and Inline (`Ctrl+Alt+V`, `Ctrl+Alt+M`,
+`Ctrl+Alt+N`) use the server's refactorings directly.
+
+![Refactor This on JSX](../../screenshots/refactor-this-react.png)
 
 ## Settings | Languages & Frameworks | TypeScript
 

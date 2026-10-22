@@ -622,6 +622,31 @@ export function codeintel_preview_edit(request_json) {
 }
 
 /**
+ * Refactor This in JS/TS: the language server's refactorings worded like PHPStorm
+ * (`ContextAction[]` -> `ContextAction[]`).
+ * @param {string} request_json
+ * @returns {string}
+ */
+export function codeintel_refactor_this_actions(request_json) {
+    let deferred2_0;
+    let deferred2_1;
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        const ptr0 = passStringToWasm0(request_json, wasm.__wbindgen_export, wasm.__wbindgen_export2);
+        const len0 = WASM_VECTOR_LEN;
+        wasm.codeintel_refactor_this_actions(retptr, ptr0, len0);
+        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+        deferred2_0 = r0;
+        deferred2_1 = r1;
+        return getStringFromWasm0(r0, r1);
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+        wasm.__wbindgen_export3(deferred2_0, deferred2_1, 1);
+    }
+}
+
+/**
  * `{ path, text, files }` → `RelatedItem[]` (like `code_related`).
  * @param {string} request_json
  * @returns {string}
@@ -5333,6 +5358,54 @@ export function web_components(request_json) {
         const ptr0 = passStringToWasm0(request_json, wasm.__wbindgen_export, wasm.__wbindgen_export2);
         const len0 = WASM_VECTOR_LEN;
         wasm.web_components(retptr, ptr0, len0);
+        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+        deferred2_0 = r0;
+        deferred2_1 = r1;
+        return getStringFromWasm0(r0, r1);
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+        wasm.__wbindgen_export3(deferred2_0, deferred2_1, 1);
+    }
+}
+
+/**
+ * Extract Component: `{ path, content, start, end, name, newPath }` -> `ExtractedComponent`.
+ * @param {string} request_json
+ * @returns {string}
+ */
+export function web_extract_component(request_json) {
+    let deferred2_0;
+    let deferred2_1;
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        const ptr0 = passStringToWasm0(request_json, wasm.__wbindgen_export, wasm.__wbindgen_export2);
+        const len0 = WASM_VECTOR_LEN;
+        wasm.web_extract_component(retptr, ptr0, len0);
+        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+        deferred2_0 = r0;
+        deferred2_1 = r1;
+        return getStringFromWasm0(r0, r1);
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+        wasm.__wbindgen_export3(deferred2_0, deferred2_1, 1);
+    }
+}
+
+/**
+ * Extract Component's analysis: `{ path, content, start, end }` -> `ExtractComponentInfo`.
+ * @param {string} request_json
+ * @returns {string}
+ */
+export function web_extract_component_prepare(request_json) {
+    let deferred2_0;
+    let deferred2_1;
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        const ptr0 = passStringToWasm0(request_json, wasm.__wbindgen_export, wasm.__wbindgen_export2);
+        const len0 = WASM_VECTOR_LEN;
+        wasm.web_extract_component_prepare(retptr, ptr0, len0);
         var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
         var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
         deferred2_0 = r0;
