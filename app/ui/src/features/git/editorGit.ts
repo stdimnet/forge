@@ -353,16 +353,22 @@ export function showChangeMarker(
   const pos = doc.lineAt(Math.min(chunk.fromB, doc.length)).from;
   view.dispatch({ selection: { anchor: pos }, effects: EditorView.scrollIntoView(pos, { y: "center" }), userEvent: "select" });
   const head = st.head;
-  view.requestMeasure({
-    read: () => {
-      const coords = view.coordsAtPos(pos);
-      const gutter = view.dom.querySelector(".cm-git-change-gutter")?.getBoundingClientRect();
-      return coords && { x: (gutter?.right ?? coords.left) + 6, y: coords.top };
-    },
-    write: (at) => {
-      if (at) showChangePopup(view, path, chunk, head, at);
-    },
-  });
+  // Below the hunk's last line, like PHPStorm, once the scroll has been applied.
+  const last = chunk.fromB === chunk.toB ? pos : doc.lineAt(Math.max(chunk.fromB, Math.min(chunk.endB, doc.length))).from;
+  // Wait until the line stops moving (the scroll may be animated).
+  let prev: number | undefined;
+  let frames = 0;
+  const place = () => {
+    const coords = view.coordsAtPos(Math.min(last, view.state.doc.length));
+    if (coords && (coords.bottom !== prev || frames < 2) && ++frames < 40) {
+      prev = coords.bottom;
+      requestAnimationFrame(place);
+      return;
+    }
+    const gutter = view.dom.querySelector(".cm-git-change-gutter")?.getBoundingClientRect();
+    if (coords) showChangePopup(view, path, chunk, head, { x: (gutter?.right ?? coords.left) + 6, y: coords.bottom + 2 });
+  };
+  requestAnimationFrame(place);
   return true;
 }
 
