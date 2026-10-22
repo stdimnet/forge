@@ -262,12 +262,17 @@ impl Converter {
             let text = problem
                 .map(|p| p.text.trim().to_string())
                 .unwrap_or_default();
+            // The first line of PHPUnit / Codeception failures names the test.
+            let class = case
+                .attr_nonempty("class")
+                .or(case.attr_nonempty("classname"))
+                .unwrap_or("\0");
             let message = problem
                 .and_then(|p| p.attr_nonempty("message").map(str::to_string))
                 .or_else(|| {
                     text.lines()
                         .map(str::trim)
-                        .find(|l| !l.is_empty() && !l.contains("::"))
+                        .find(|l| !l.is_empty() && !l.contains("::") && !l.contains(class))
                         .map(str::to_string)
                 })
                 .or_else(|| text.lines().next().map(str::to_string))

@@ -15,8 +15,8 @@ export const fileOf = (n: TestNode | undefined): string | undefined => {
 };
 
 /**
- * Result keys of a finished tree, as `test_discover` names its targets: `<path>` for suites
- * with a file and `<path>::<test>` for tests (by method / member and by name; data sets and
+ * Result keys of a finished tree, as `test_discover` names its targets: `<path>` for files
+ * (from their suites and tests) and `<path>::<test>` for tests (by method / member and by name; data sets and
  * example rows count for their test, a failed one fails it).
  */
 export function resultKeys(root: TestNode): Map<string, TestStatus> {
@@ -35,6 +35,8 @@ export function resultKeys(root: TestNode): Map<string, TestStatus> {
         names.add(name.replace(/ #\d+$/, ""));
       }
       for (const name of names) put(`${path}::${name}`, n.status);
+      // The file (class, spec, feature) fails with any of its tests.
+      put(path, n.status);
     }
     n.children.forEach(walk);
   };
