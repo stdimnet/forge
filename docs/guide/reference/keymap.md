@@ -518,6 +518,8 @@ Actions that Forge's plugins add (group **Plugins** in Settings | Keymap, some u
 
 | Action | Action id | Windows / Linux | macOS | Context |
 | --- | --- | --- | --- | --- |
+| Vim (Tools \| Vim) | `VimPluginToggle` | `Ctrl+Alt+V` | `Cmd+Alt+V` | any (in the editor `Introduce Variable` wins) |
+| Reload .ideavimrc | `IdeaVim.ReloadVimRc` |  |  | any |
 | Run Artisan Command… | `Laravel.RunArtisan` | `Ctrl+Shift+X` | `Cmd+Shift+X` | any |
 | Routes (Laravel) | `Laravel.ShowRoutes` |  |  | any |
 | Run Console Command… (Symfony) | `Symfony.RunConsoleCommand` |  |  | any |

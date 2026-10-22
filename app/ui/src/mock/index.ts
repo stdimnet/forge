@@ -9,6 +9,7 @@ import "./textMock";
 import "./codeStyleMock";
 import "./editingMock";
 import "./clipboardMock";
+import "./vimMock";
 import "./projectStateMock";
 import "./aiMock";
 import "./agentMock";

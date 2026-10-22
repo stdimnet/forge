@@ -42,6 +42,7 @@ forge-containers = { path = "crates/forge-containers" }
 forge-sql = { path = "crates/forge-sql" }
 forge-forges = { path = "crates/forge-forges" }
 forge-keymap = { path = "crates/forge-keymap" }
+forge-vim = { path = "crates/forge-vim" }
 forge-livetemplates = { path = "crates/forge-livetemplates" }
 forge-injections = { path = "crates/forge-injections" }
 forge-emmet = { path = "crates/forge-emmet" }

@@ -52,9 +52,17 @@ let last: ClipEntry | null = null;
 
 export const lastCopy = (): ClipEntry | null => last;
 
+const copyListeners: ((text: string) => void)[] = [];
+
+/** Follow the texts copied in Forge (e.g. Vim's `+` register mirrors them). */
+export function onCopy(listener: (text: string) => void): void {
+  copyListeners.push(listener);
+}
+
 /** An entry pasted from the history is the current clipboard content again. */
 export function setLastCopy(entry: ClipEntry): void {
   last = { text: normalize(entry.text), carets: entry.carets ?? [] };
+  for (const l of copyListeners) l(last.text);
 }
 
 /** Remember a copied or cut text (system clipboard writes are the caller's job). */
@@ -62,6 +70,7 @@ export function recordCopy(text: string, carets: string[] = []): void {
   if (!text) return;
   const entry: ClipEntry = { text: normalize(text), carets: carets.length > 1 ? carets.map(normalize) : [] };
   last = entry;
+  for (const l of copyListeners) l(entry.text);
   void clipboardApi.add(entry, getSetting<number>(MAX_CONTENTS_KEY, 20)).catch(() => undefined);
 }
 

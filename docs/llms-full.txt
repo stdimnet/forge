@@ -50,6 +50,12 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 
 ## Recently added
 
+- **Vim emulation**: Tools | Vim turns on IdeaVim-style Vim emulation in the editor: Normal,
+  Insert, Visual (character, line, block), Replace and command-line modes, motions, operators
+  and text objects, registers (also the system clipboard), dot repeat, macros, marks, search,
+  `:s`, `:g`, `:normal` and other ex commands, `~/.ideavimrc` with mappings to IDE actions, and
+  Settings | Editor | Vim to choose Vim or the IDE per conflicting shortcut
+  ([Vim emulation](docs/guide/user/vim-emulation.md)).
 - **Markdown preview, image editor and Edit as Table**: Markdown files open with a live,
   GitHub-flavored preview (tables, task lists, footnotes, alerts, Mermaid diagrams, project
   images, front matter, links that open files in Forge) and synchronized scrolling; images open
@@ -676,6 +682,7 @@ not finished, the page says so.
 | [Spelling and grammar](docs/guide/user/spelling-and-grammar.md) | Typo and Grammar inspections in comments, strings, names, Markdown and commit messages, Alt+Enter suggestions, Rename to, project-level and application-level dictionaries, custom Hunspell dictionaries |
 | [Language injections](docs/guide/user/language-injections.md) | SQL, HTML, CSS, JSON and RegExp in PHP and JavaScript strings, `// language=` comments, Inject language or reference, Edit Fragment, Run SQL |
 | [File and code templates](docs/guide/user/file-templates.md) | New ▸ PHP Class and other templates, the New PHP Class dialog with PSR-4 namespaces, `Alt+Insert` New popup, Settings \| Editor \| File and Code Templates |
+| [Vim emulation](docs/guide/user/vim-emulation.md) | Tools \| Vim, Normal/Insert/Visual/Replace modes, motions, operators, text objects, registers, macros, ex commands, `~/.ideavimrc`, shortcut conflicts |
 | [Search Everywhere and Find Action](docs/guide/user/search-everywhere.md) | Double Shift, Go to Class/File/Symbol, Find Action, fuzzy matching |
 | [File Structure, Navigation Bar and Related Symbol](docs/guide/user/navigation-bar-and-file-structure.md) | File Structure popup (`Ctrl+F12`, Show Inherited, speed search), Navigation Bar (`Alt+Home`, Top / In Status Bar / Don't Show, members), Related Symbol (`Ctrl+Alt+Home`: tests, views, templates, routes, migrations) |
 | [File types and syntax highlighting](docs/guide/user/file-types.md) | file type detection, highlighted languages, config formats, template data languages |
@@ -3142,6 +3149,241 @@ code.
 
 > **Note:** templates are user settings; PHPStorm's per-project template scheme is not
 > available yet.
+
+
+---
+
+Source: docs/guide/user/vim-emulation.md
+
+# Vim emulation
+
+Forge emulates Vim in the editor the way PHPStorm's IdeaVim plugin does. The emulation is part
+of the bundled **Vim** plugin (`forge.vim`) and is off until you turn it on with
+**Tools | Vim** (`VimPluginToggle`, `Ctrl+Alt+V`, macOS `Cmd+Alt+V`), Find Action ("Vim") or
+Settings | Editor | Vim. The choice is remembered in the setting `vim.enabled`.
+
+![Visual Line mode with search highlights](docs/screenshots/vim-emulation.png)
+
+While it is on, every editor tab starts in Normal mode and shows a block caret. The status bar
+shows the mode (`NORMAL`, `INSERT`, `VISUAL`, `VISUAL LINE`, `VISUAL BLOCK`, `REPLACE`), the
+keys of an unfinished command (`2d`, `"a`), `recording @q` while a macro is recorded, and
+messages such as `E486: Pattern not found`. Click it to open Settings | Editor | Vim.
+
+Tool windows, dialogs, the terminal and other text fields keep their normal keys; only the
+editor goes through Vim. The engine is written in Rust (`crates/forge-vim`) and runs in-process
+as WebAssembly, so every key is answered synchronously, in the desktop app and in browser mode.
+
+> **Note:** `Ctrl+Alt+V` is also PHPStorm's Introduce Variable shortcut. In the editor the
+> refactoring's binding wins (as in PHPStorm, where the conflict is shown in Settings |
+> Keymap); use Tools | Vim, Find Action or the status bar there, or give `VimPluginToggle`
+> another shortcut in Settings | Keymap.
+
+## Modes
+
+| Mode | Enter with | Leave with |
+| --- | --- | --- |
+| Normal | `Escape`, `Ctrl+[`, `Ctrl+C` | |
+| Insert | `i` `a` `I` `A` `o` `O` `gi` `gI`, `c`/`s`/`C`/`S` commands | `Escape`, `Ctrl+[`, `Ctrl+C` |
+| Replace | `R`, `Insert` in Insert mode | `Escape` |
+| Visual (character, line, block) | `v`, `V`, `Ctrl+V`; selecting with the mouse | `Escape`, the same key again |
+| Command line | `:`, `/`, `?` | `Enter` runs it, `Escape` cancels |
+
+In Insert mode the editor types as usual: completion, auto-closing brackets, live templates
+and Emmet keep working, and `Escape` also closes the completion popup. Vim handles `Ctrl+W`
+(delete word), `Ctrl+U` (delete to line start), `Ctrl+H`, `Ctrl+R {register}`, `Ctrl+O`
+(one Normal mode command), `Ctrl+T`/`Ctrl+D` (indent), `Ctrl+E`/`Ctrl+Y` (character below or
+above) and `Ctrl+J`, as far as the shortcut handlers give these keys to Vim.
+
+## Motions
+
+Every motion takes a count (`3w`, `5j`, `2f,`).
+
+| Keys | Motion |
+| --- | --- |
+| `h` `j` `k` `l`, arrow keys, `Space`, `Backspace` | left, down, up, right |
+| `w` `b` `e` `ge`, `W` `B` `E` `gE` | words (letters, digits, `_`) and WORDs (non-blank runs) |
+| `0` `^` `$` `g_` `\|` | line start, first non-blank, line end, last non-blank, column |
+| `gg` `G`, `{count}G`, `{count}%` | first, last or numbered line, percentage of the file |
+| `f` `t` `F` `T` + character, `;` `,` | find a character on the line and repeat |
+| `%` | matching `(` `)` `[` `]` `{` `}` |
+| `{` `}` | paragraphs |
+| `H` `M` `L` | top, middle and bottom of the visible lines (with `scrolloff`) |
+| `+` `-` `Enter` `_` | next, previous, current line (first non-blank) |
+| `/pattern` `?pattern` `n` `N` `*` `#` `g*` `g#` | search |
+| `` `a `` `'a`, ``` `` ``` `''` | marks |
+
+## Operators and text objects
+
+An operator is followed by a motion or a text object (`dw`, `c$`, `yi(`, `>ip`), or doubled
+for whole lines (`dd`, `cc`, `yy`, `>>`, `<<`, `==`, `g~~`, `guu`, `gUU`).
+
+| Operator | Meaning |
+| --- | --- |
+| `d` | delete |
+| `c` | change (delete and enter Insert mode) |
+| `y` | yank (copy into a register) |
+| `>` `<` | shift lines right and left by `shiftwidth` (default: the editor's indent) |
+| `=` | re-indent lines (Forge's Auto-Indent Lines, or Reformat Code) |
+| `g~` `gu` `gU` `g?` | toggle case, lower case, upper case, ROT13 |
+
+| Text object | Selects |
+| --- | --- |
+| `iw` `aw`, `iW` `aW` | word, WORD (`a…` with the following blanks) |
+| `i"` `a"`, `i'` `a'`, `` i` `` `` a` `` | quoted string on the line |
+| `i(` `a(` (`ib`), `i[` `a[`, `i{` `a{` (`iB`), `i<` `a<` | brackets; a count selects outer pairs (`2di(`) |
+| `it` `at` | the content of an HTML/XML tag, or the whole element |
+| `ip` `ap` | paragraph |
+
+Other commands: `x` `X` `s` `S` `C` `D` `Y`, `p` `P` `gp` `gP`, `J` `gJ`, `r{char}`, `~`,
+`Ctrl+A`/`Ctrl+X` (increment and decrement numbers, also hexadecimal), `.` (repeat the last
+change, with a new count `3.`), `u` and `Ctrl+R` (undo and redo through the editor's
+history), `zz` `zt` `zb` `z.` `z-` `z<CR>`, `Ctrl+D` `Ctrl+U` `Ctrl+F` `Ctrl+B` `Ctrl+E`
+`Ctrl+Y` (scrolling), `zo` `zc` `za` `zR` `zM` (folding), `gd` and `Ctrl+]` (Go to
+Declaration), `gt`/`gT` (next and previous tab), `Ctrl+O`/`Ctrl+I` (Back and Forward), `K`
+(Quick Documentation), `ZZ` and `ZQ`.
+
+`Ctrl+W` followed by `w`/`h`/`j`/`k`/`l`/`p`, `v`, `s`, `c`/`q` or `o` moves between split
+editors, splits vertically or horizontally, unsplits, or closes the other splits.
+
+## Visual mode
+
+`v` selects characters, `V` whole lines and `Ctrl+V` a block (one caret per line, `$` extends
+every line to its end). Motions and text objects (`viw`, `vi{`) extend the selection; `o`
+jumps to the other end and `gv` selects the previous selection again.
+
+![A block selection with $](docs/screenshots/vim-visual-block.png)
+
+Commands on the selection: `d` `x` `c` `s` `y`, `D` `X` `C` `S` `R` `Y` (whole lines), `>` `<`
+(with a count), `=`, `~` `u` `U`, `J` `gJ`, `r{char}`, `p` `P` (replace the selection),
+`Ctrl+A`/`Ctrl+X`, `:` (an ex command on the selected lines), and in block mode `I` and `A`,
+which insert the typed text on every line when you press `Escape`.
+
+## Registers, macros and marks
+
+- `"{register}` before a command chooses the register: `"ayy`, `"ap`. `a`–`z` are named
+  registers (`A`–`Z` append), `0` holds the last yank, `1`–`9` the last deleted lines, `-`
+  the last small deletion, `_` discards, `.` is the last inserted text, `:` the last command
+  line and `/` the last search.
+- `"+` and `"*` are the system clipboard. Yanks into them are copied to the clipboard and to
+  Paste from History; pasting from them uses the last text copied in Forge or pasted into an
+  editor. With `set clipboard=unnamed` (or `unnamedplus`) every yank and delete goes to the
+  clipboard.
+- `q{register}` records a macro, `q` stops, `@{register}` plays it (`3@a`), `@@` repeats the
+  last macro and `@:` the last command line.
+- `m{a-z}` sets a mark; `'a` jumps to its line, `` `a `` to its position. `''` returns to
+  the position before the last jump. Marks move with the text when lines are added or removed.
+
+## Search and the command line
+
+`/` and `?` search forward and backward with Vim's regular expressions (`\<word\>`, `\(…\)`,
+`\|`, `\{n,m}`, `\v`, `\V`, `\c`), `n` and `N` repeat, `*` and `#` search the word under the
+caret. `ignorecase` and `smartcase` decide case sensitivity; with `hlsearch` all matches stay
+highlighted until `:noh`, with `incsearch` the caret moves to the match while you type. The
+command line opens at the bottom of the editor.
+
+![The command line](docs/screenshots/vim-command-line.png)
+
+| Command | Does |
+| --- | --- |
+| `:w`, `:wa`, `:update` | save (Save All) |
+| `:q`, `:q!`, `:close`; `:qa` | close the tab; close all tabs |
+| `:wq`, `:x`, `ZZ` | save and close |
+| `:e {file}` | open a file (relative to the project) |
+| `:{line}`, `:$` | go to a line |
+| `:s/pattern/replacement/flags`, `:%s/…/…/g`, `:'<,'>s/…`, `:&&`, `&` | substitute (flags `g`, `i`, `I`, `n`, `e`; `\1`, `&`, `\r`, `\u`, `\U` in the replacement) |
+| `:g/pattern/command`, `:v/pattern/command` | run a command on matching (or other) lines, e.g. `:g/^$/d` |
+| `:normal {keys}`, `:%normal A;` | run Normal mode keys on each line |
+| `:d [x]`, `:y [x]`, `:j`, `:>`, `:<`, `:m {line}`, `:t {line}`, `:sort [i] [n] [u]` | line commands with ranges (`.`, `$`, `%`, `'a`, `+n`, `/pattern/`) |
+| `:noh` | hide search highlights |
+| `:set {option}` | change an option (see below) |
+| `:action {ActionId}` | run any Forge action by its PHPStorm id, e.g. `:action GotoClass` |
+| `:registers`, `:marks`, `:map` | list registers, marks and mappings |
+| `:bn` `:bp`, `:sp` `:vs`, `:only` | next and previous tab, split, unsplit |
+| `:source ~/.ideavimrc` | read the configuration file again |
+
+### Options
+
+`:set` (and `~/.ideavimrc`) understands `number` (`nu`), `relativenumber` (`rnu`),
+`ignorecase` (`ic`), `smartcase` (`scs`), `hlsearch` (`hls`), `incsearch` (`is`),
+`wrapscan` (`ws`), `scrolloff` (`so`), `shiftwidth` (`sw`), `tabstop` (`ts`), `expandtab`
+(`et`), `clipboard` (`cb`), `timeout`, `timeoutlen` (`tm`), `showmode`, `showcmd`, `ideajoin`
+(`J` uses the IDE's Join Lines) and `visualbell`. `no…`, `inv…`, `…!`, `…?`, `…=`, `…+=` and
+`…-=` work as in Vim. Common IdeaVim extension options (`set surround`, `set commentary`, …)
+are accepted and ignored.
+
+## ~/.ideavimrc
+
+When the emulation is turned on, Forge reads `~/.ideavimrc` (or `~/_ideavimrc`, or
+`~/.config/ideavim/ideavimrc`; another file can be set in Settings | Editor | Vim |
+Configuration file). `source ~/.vimrc` lines are replaced by that file's text. Use **Reload**
+on the settings page, the action **Reload .ideavimrc** (`IdeaVim.ReloadVimRc`) or `:source`
+after editing it.
+
+```vim
+" ~/.ideavimrc
+let mapleader = " "
+set number relativenumber
+set ignorecase smartcase hlsearch incsearch scrolloff=5
+set clipboard+=unnamedplus
+
+inoremap jk <Esc>
+nnoremap Y y$
+vnoremap < <gv
+vnoremap > >gv
+
+" IDE actions
+nmap <leader>r <Action>(RenameElement)
+nmap <leader>f :action ReformatCode<CR>
+nmap <leader>e :action SearchEverywhere<CR>
+nmap gi <Action>(GotoImplementation)
+
+sethandler <C-V> n-v:vim i:ide
+if has('ide')
+  nnoremap <leader>b :action ToggleLineBreakpoint<CR>
+endif
+```
+
+Supported: `set`, `let mapleader`, the mapping commands `map`, `nmap`, `vmap`/`xmap`, `omap`,
+`imap`, `cmap`, `noremap`, `nnoremap`, `vnoremap`/`xnoremap`, `onoremap`, `inoremap`,
+`cnoremap` with their `unmap` and `mapclear` forms (`<silent>` and the other `<…>` flags are
+accepted), `sethandler`, `if has('ide')` / `else` / `endif` blocks and `"` comments. Mappings
+use Vim's key notation (`<leader>`, `<CR>`, `<Esc>`, `<C-w>`, `<Space>`, `<lt>`, `<Bar>`,
+`<Nop>`). A right-hand side can run IDE actions with `:action ActionId<CR>` or IdeaVim's
+`<Action>(ActionId)`; the ids are PHPStorm's (see the [keymap reference](docs/guide/reference/keymap.md)
+or Find Action). Mappings wait `timeoutlen` milliseconds (default 1000) for the next key when
+a longer mapping could still match (`jk` after `j`).
+
+Lines Forge does not support are skipped and reported in a balloon with their line number
+(for example `wincmd` or an unknown option); `syntax`, `filetype`, `colorscheme`, `autocmd`
+and `Plug` lines are skipped silently.
+
+## Shortcut conflicts
+
+Many `Ctrl` shortcuts mean something in Vim and in the IDE: `Ctrl+R` is Redo in Vim and
+Replace in PHPStorm, `Ctrl+W` window commands or Extend Selection, `Ctrl+V` Visual Block or
+Paste. Settings | Editor | Vim | **Shortcut Conflicts** lists each of them with what Vim does,
+and lets you choose **Vim** or **IDE** for Normal, Insert and Visual mode separately (the
+setting `vim.shortcutHandlers`). By default Vim handles a shortcut in every mode where it has
+a meaning, and the IDE keeps it elsewhere (for example `Ctrl+V` in Insert mode pastes).
+**All Vim**, **All IDE** and **Defaults** change the whole table. `sethandler` lines in
+`~/.ideavimrc` take precedence; such rows are marked `.ideavimrc` and cannot be changed in the
+table.
+
+![Settings | Editor | Vim](docs/screenshots/vim-settings.png)
+
+Shortcuts that are not in the table (`Ctrl+S`, `Ctrl+Shift+…`, `Alt+…`, function keys) always
+reach the IDE, also in Normal mode.
+
+## Limitations
+
+- Undo granularity follows the editor's history: a Normal mode command is one undo step,
+  typing in Insert mode is grouped by the editor.
+- Pasting from `"+` uses the clipboard text Forge knows about (copied in Forge or pasted into
+  an editor); text copied in another application is pasted with `Ctrl+V` (IDE handler) or
+  after pasting it once.
+- Not supported yet: `:s` with the `c` flag, IdeaVim extensions (surround, commentary,
+  easymotion, …), `:wincmd`, functions and `autocmd` in `~/.ideavimrc`, Select mode, the
+  jump and change lists (`Ctrl+O`/`Ctrl+I` use the IDE's Back and Forward).
 
 
 ---
@@ -9750,6 +9992,8 @@ Actions that Forge's plugins add (group **Plugins** in Settings | Keymap, some u
 
 | Action | Action id | Windows / Linux | macOS | Context |
 | --- | --- | --- | --- | --- |
+| Vim (Tools \| Vim) | `VimPluginToggle` | `Ctrl+Alt+V` | `Cmd+Alt+V` | any (in the editor `Introduce Variable` wins) |
+| Reload .ideavimrc | `IdeaVim.ReloadVimRc` |  |  | any |
 | Run Artisan Command… | `Laravel.RunArtisan` | `Ctrl+Shift+X` | `Cmd+Shift+X` | any |
 | Routes (Laravel) | `Laravel.ShowRoutes` |  |  | any |
 | Run Console Command… (Symfony) | `Symfony.RunConsoleCommand` |  |  | any |
@@ -10206,7 +10450,7 @@ Source: docs/guide/reference/main-menu/tools.md
 
 # Tools menu
 
-Terminal and the tools of plugins (Docker, Laravel, Symfony). Open it with ☰ (`Alt+\`) or from the menu bar, see [Main menu](docs/guide/user/workbench.md#main-menu).
+Terminal, Vim emulation and the tools of plugins (Docker, Laravel, Symfony). Open it with ☰ (`Alt+\`) or from the menu bar, see [Main menu](docs/guide/user/workbench.md#main-menu).
 
 ![Tools menu](docs/screenshots/docs-menu-tools.png)
 
@@ -10219,6 +10463,7 @@ Terminal and the tools of plugins (Docker, Laravel, Symfony). Open it with ☰ (
 | Save File as Template… | — | — | not yet | Not available yet; the entry is disabled. |
 | Open in Terminal | `Ctrl+Shift+T` | `Cmd+T` | yes | Opens a new terminal tab (Tools | Open in Terminal). [More](docs/guide/user/terminal.md#tabs) ([screenshot](docs/screenshots/docs-terminal.png)) |
 | IDE Scripting Console | — | — | not yet | Not available yet; the entry is disabled. |
+| Vim | `Ctrl+Alt+V` | `Cmd+Alt+V` | yes | Turns Vim emulation on or off (check mark; plugin `forge.vim`). [More](docs/guide/user/vim-emulation.md) ([screenshot](docs/screenshots/vim-emulation.png)) |
 | Render All Doc Comments | — | — | yes | Shows every documentation comment of the file as formatted text, or the text again. [More](docs/guide/user/code-structure.md#rendered-documentation-comments) ([screenshot](docs/screenshots/rendered-doc-comments.png)) |
 | **Docker** | | | | submenu |
 | Docker › Pull Image… | — | — | yes | Pulls a Docker image. [More](docs/guide/user/services.md#pulling-images-and-registries) |
@@ -10233,6 +10478,7 @@ Tools collects the actions of active plugins; the screenshot shows a Laravel pro
 
 | Submenu | Entries | Appears in |
 | --- | --- | --- |
+| — | Vim (check mark) | always (plugin `forge.vim`) |
 | Docker | Pull Image…, Refresh Services | always (plugin `forge.services`) |
 | Laravel | Run Artisan Command… (`Ctrl+Shift+X`), Show Routes | Laravel projects (`forge.laravel`) |
 | Symfony | Run Console Command…, Show Routes, Refresh Symfony Index | Symfony projects (`forge.symfony`) |
@@ -10643,6 +10889,16 @@ Page id `editor.csv`.
 | --- | --- | --- | --- | --- | --- |
 | `csv.defaultView` | enum: `text`, `table` | `text` | user |  | Open CSV/TSV files as |
 | `csv.firstRowIsHeader` | bool | `true` | user |  | First row is header — Default of the table view's header toggle. |
+
+### Editor | Vim
+
+Page id `editor.vim` (plugin `forge.vim`, see [Vim emulation](docs/guide/user/vim-emulation.md)).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `vim.enabled` | bool | `false` | user | Emulation | Enable Vim emulation — Same as Tools \| Vim (Ctrl+Alt+V). |
+| `vim.rcFile` | path | `""` | user | Emulation | Configuration file — Leave empty to read ~/.ideavimrc (or ~/_ideavimrc, ~/.config/ideavim/ideavimrc). Supports set, map/noremap, let mapleader, sethandler and :action mappings. |
+| `vim.shortcutHandlers` | objects | `[]` | user | Shortcut Conflicts | Shortcuts — Who handles a shortcut in the editor while Vim emulation is on: Vim or the IDE. sethandler lines in ~/.ideavimrc take precedence. Entries `{ shortcut = "Ctrl+R", normal = "vim" \| "ide", insert = …, visual = … }` for the rows changed from the defaults. |
 
 ### Editor | Natural Languages | Spelling
 
@@ -11717,6 +11973,7 @@ script and config language plugins.
 | Run/Debug | `forge.run` | core |  | always | tool windows: Run; 3 commands; 2 settings; run types: Shell Script |
 | Docker and Kubernetes | `forge.services` | core |  | always | tool windows: Services; 2 commands; 15 settings; 1 main menu entries |
 | Terminal | `forge.terminal` | core |  | always | tool windows: Terminal; 1 commands; 7 settings; 1 keybindings |
+| Vim | `forge.vim` | core | `forge.core` | always | 2 commands; 3 settings; 1 main menu entries |
 | HTML, CSS & JavaScript | `forge.web` | webforge |  | `webforge` | tool windows: npm; 2 commands; 4 settings; 3 LSP servers; run types: npm |
 | React | `forge.react` | webforge | `forge.web` | `react`, `next` |  |
 | Vue.js | `forge.vue` | webforge | `forge.web` | `vue`, `nuxt` | 1 LSP servers |
@@ -13464,6 +13721,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-sql](docs/guide/developer/crates/forge-sql.md) | Forge SQL text: dialects, statement splitting, literals, row changes and export (pure, also built to WebAssembly) |
 | [forge-update](docs/guide/developer/crates/forge-update.md) | Forge update checks: when to check, which release is an update, the update feed, simulated updates and download speed |
 | [forge-vcs](docs/guide/developer/crates/forge-vcs.md) | Forge IDE version control: drives the git CLI and parses its output |
+| [forge-vim](docs/guide/developer/crates/forge-vim.md) | Vim emulation (IdeaVim-style): modes, motions, operators, text objects, registers, ex commands and ~/.ideavimrc parsing (pure, built to WebAssembly) |
 | [forge-wasm](docs/guide/developer/crates/forge-wasm.md) | WebAssembly build of Forge's pure Rust logic for the browser-mode UI |
 | [forge-window](docs/guide/developer/crates/forge-window.md) | Forge window chrome: desktop detection, title bar button layouts and dialog window geometry (pure, also built to WebAssembly) |
 
@@ -16160,6 +16418,84 @@ pub struct Repo { … }
 ```sh
 cargo test -p forge-vcs
 ```
+
+
+---
+
+Source: docs/guide/developer/crates/forge-vim.md
+
+# forge-vim
+
+`crates/forge-vim` — Vim emulation (IdeaVim-style): modes, motions, operators, text objects, registers, ex commands and ~/.ideavimrc parsing (pure, built to WebAssembly).
+
+## Purpose
+
+The engine behind [Vim emulation](docs/guide/user/vim-emulation.md). It is pure Rust so it compiles
+to WebAssembly: the editor calls it synchronously for every key press (a keydown handler
+must decide on `preventDefault` before it returns), in the desktop app and in browser mode.
+
+- `Vim` holds the global state (options, registers, mappings, macros, search, the
+  shortcut handlers) and one buffer per attached editor: a copy of the document, mode,
+  caret, marks and pending keys.
+- The UI sends each key with a `Sync`: the document changes since the last call (batches
+  of CodeMirror changes, UTF-16 offsets), the selection, the visible lines and the indent
+  unit. The `Response` carries sequential edits, the new selection, the mode, the pending
+  keys, the command line, a message and effects for the UI: undo/redo through the
+  editor's history, IDE actions (`:action`, `gd`, `:w`), opening files, clipboard writes,
+  scrolling and reloading the rc file. Effects the UI performs asynchronously pause the
+  remaining keys of a mapping or macro (`resume`).
+- `claims` tells the keymap resolver which keys Vim takes from the IDE keymap in the focused
+  editor (plain keys outside Insert mode, `Escape`, and the `Ctrl` shortcuts whose handler is
+  Vim in the current mode).
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `engine.rs` | The state machine: typeahead and mappings (with `timeoutlen`), Normal/Visual/Insert/Replace/command-line modes, operators, dot repeat, macros, marks, search, scrolling and responses. |
+| `command.rs` | Parsing of Normal and Visual mode commands (`"a2d3w`, `ci"`, `gUU`, `<C-w>v`). |
+| `motions.rs` | Word, paragraph, bracket and character motions. |
+| `textobj.rs` | `iw aw iW aW`, quotes, brackets (with counts), tags and paragraphs. |
+| `ex.rs` | Ex commands with ranges: `:w :q :e :s :g :v :normal :d :y :j :> :< :m :t :sort :set :map :action :registers :marks …`. |
+| `rc.rs` | `~/.ideavimrc`: `set`, mappings, `let mapleader`, `sethandler`, `if has('ide')`, `source` inlining, problem reports. |
+| `handlers.rs` | The shortcut conflict table (Vim or IDE per `Ctrl` shortcut and mode) and `sethandler`. |
+| `keys.rs` | Vim key notation (`<C-r>`, `<leader>`, `<Action>(Id)`) and DOM key events. |
+| `pattern.rs` | Vim regular expressions translated to a syntax shared by Rust's `regex` and JavaScript (search highlights), and `:s` replacement strings. |
+| `registers.rs` | Unnamed, numbered, small delete, named (append), black hole, read-only and clipboard registers. |
+| `options.rs` | `:set` options with Vim's abbreviations and `no…`/`inv…`/`…!`/`…?`/`…+=`. |
+| `buffer.rs` | The document copy: lines, character classes, UTF-16 conversion. |
+
+## Main public items
+
+```rust
+pub use engine::{Change, Effect, Handle, Response, SelRange, Sync, Viewport, Vim};
+pub use handlers::{HandlerOverride, HandlerRow};
+pub use keys::DomKey;
+pub use rc::RcReport;
+```
+
+## Used by
+
+- Browser mode and the desktop UI: `forge-wasm` (`vim.rs`: `vim_attach`, `vim_key`,
+  `vim_timeout`, `vim_configure`, `vim_load_rc`, `vim_handlers`, …); `keymap_handle_key` asks
+  `claims` before resolving a key in the editor
+- IPC: `vim_read_rc` (`app/src-tauri/src/commands/vim.rs`, inlines `source` lines with
+  `rc::expand_sources`)
+- UI: `app/ui/src/features/vim/`
+
+## Dependencies
+
+- Workspace crates: none
+- External: `regex`, `serde`, `serde_json`
+
+## Tests
+
+```sh
+cargo test -p forge-vim
+```
+
+Unit tests per module plus behaviour tests in `tests/engine.rs` that type keys into a buffer
+with the caret marked as `|` (`check("foo b|ar", "ciwqux<Esc>", "foo qu|x")`).
 
 
 ---

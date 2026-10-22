@@ -275,6 +275,16 @@ Page id `editor.csv`.
 | `csv.defaultView` | enum: `text`, `table` | `text` | user |  | Open CSV/TSV files as |
 | `csv.firstRowIsHeader` | bool | `true` | user |  | First row is header — Default of the table view's header toggle. |
 
+### Editor | Vim
+
+Page id `editor.vim` (plugin `forge.vim`, see [Vim emulation](../user/vim-emulation.md)).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `vim.enabled` | bool | `false` | user | Emulation | Enable Vim emulation — Same as Tools \| Vim (Ctrl+Alt+V). |
+| `vim.rcFile` | path | `""` | user | Emulation | Configuration file — Leave empty to read ~/.ideavimrc (or ~/_ideavimrc, ~/.config/ideavim/ideavimrc). Supports set, map/noremap, let mapleader, sethandler and :action mappings. |
+| `vim.shortcutHandlers` | objects | `[]` | user | Shortcut Conflicts | Shortcuts — Who handles a shortcut in the editor while Vim emulation is on: Vim or the IDE. sethandler lines in ~/.ideavimrc take precedence. Entries `{ shortcut = "Ctrl+R", normal = "vim" \| "ide", insert = …, visual = … }` for the rows changed from the defaults. |
+
 ### Editor | Natural Languages | Spelling
 
 Page id `editor.natural-languages.spelling` (plugin `forge.natural-languages`).

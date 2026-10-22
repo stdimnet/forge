@@ -1,0 +1,54 @@
+id = "forge.vim"
+name = "Vim"
+version = "0.1.0"
+pack = "core"
+vendor = "Forge"
+description = "Vim emulation like IdeaVim: Normal, Insert, Visual and command-line modes, motions, operators, text objects, registers, macros, ex commands and ~/.ideavimrc. Turn it on with Tools | Vim."
+depends = ["forge.core"]
+
+[[contributions.commands]]
+id = "VimPluginToggle"
+title = "Vim"
+category = "Tools"
+
+[[contributions.commands]]
+id = "IdeaVim.ReloadVimRc"
+title = "Reload .ideavimrc"
+category = "Tools"
+
+[[contributions.mainMenu]]
+path = "Tools"
+items = [{ type = "action", id = "VimPluginToggle", label = "_Vim" }]
+
+# ---- Editor > Vim -----------------------------------------------------------------------
+
+[[contributions.settings]]
+key = "vim.enabled"
+title = "Enable Vim emulation"
+description = "Same as Tools | Vim (Ctrl+Alt+V)."
+type = "bool"
+default = false
+group = "editor.vim"
+section = "Emulation"
+order = 0
+
+[[contributions.settings]]
+key = "vim.rcFile"
+title = "Configuration file"
+description = "Leave empty to read ~/.ideavimrc (or ~/_ideavimrc, ~/.config/ideavim/ideavimrc). Supports set, map/noremap, let mapleader, sethandler and :action mappings."
+type = "path"
+default = ""
+group = "editor.vim"
+section = "Emulation"
+order = 1
+
+[[contributions.settings]]
+key = "vim.shortcutHandlers"
+title = "Shortcuts"
+description = "Who handles a shortcut in the editor while Vim emulation is on: Vim or the IDE. sethandler lines in ~/.ideavimrc take precedence."
+type = "objects"
+unique = ["shortcut"]
+default = []
+group = "editor.vim"
+section = "Shortcut Conflicts"
+order = 10

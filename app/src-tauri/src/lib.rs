@@ -160,6 +160,7 @@ pub fn run() {
             commands::keymap::keymap_resolve,
             commands::keymap::keymap_main_menu,
             commands::keymap::keymap_import_legacy,
+            commands::vim::vim_read_rc,
             commands::settings::plugin_set_enabled,
             commands::settings::settings_search,
             commands::settings::settings_validate,

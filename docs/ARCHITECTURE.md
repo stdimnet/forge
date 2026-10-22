@@ -57,7 +57,8 @@ app/ui/            SolidJS UI
 - Tool windows may render tabs next to their title with `headerContent` (Terminal, Run).
 - Keymap focus contexts: `editor`, `input`, `toolwindow`, `global` and `terminal` (xterm.js has
   focus). In the terminal plain Ctrl+letter, Alt+letter and Escape go to the shell; function
-  keys, Alt+digit, Ctrl+Shift and Ctrl+Alt combinations still reach the IDE.
+  keys, Alt+digit, Ctrl+Shift and Ctrl+Alt combinations still reach the IDE. With Vim
+  emulation on, the focused editor's Vim takes the keys it needs first (see "Vim emulation").
   - `registerLineMarkerProvider` (`src/editor/lineMarkers.ts`) — gutter icons per line (route on a
     controller action, "go to template", entity <-> repository), recomputed after edits.
   - `registerDeclarationProvider` (`src/features/lsp/goto.ts`) — framework targets for Ctrl+B /
@@ -1481,6 +1482,42 @@ comments and Reader mode (`app/ui/src/features/codeStructure`, user guide
   pages `lang.schemas`, `lang.json-schema` (master-detail mappings editor) and
   `lang.json-schema.remote`. Browser mode runs the crate through `forge-wasm` (`json_schema.rs`;
   the mock answers `needs` with demo files).
+
+## Vim emulation (`forge-vim`)
+
+Tools | Vim (`VimPluginToggle`, setting `vim.enabled`, plugin `forge.vim`) turns on IdeaVim-style
+Vim emulation in the editor. The engine is the pure crate `crates/forge-vim`; because a
+keydown handler must decide on `preventDefault` before it returns, it runs in-process as
+WebAssembly in the desktop app too (`forge-wasm/src/vim.rs`, `features/vim/engine.ts`), like
+the keymap resolver.
+
+- **Editor side** (`features/vim/extension.ts`, registered with `registerEditorExtension`): a
+  `ViewPlugin` attaches each editor (`vim_attach({ text }) -> { handle }`), records the
+  CodeMirror changes of every transaction it did not make itself, and a `Prec.highest`
+  `domEventHandlers.keydown` sends each key: `vim_key({ handle, event, sync }) -> Response`.
+  `sync` holds the change batches since the last call (UTF-16, `iterChanges` order), the
+  selection, the visible lines and the indent unit; the full text is sent only when the
+  copies went out of step (the response's `docLength` does not match). The response's
+  sequential `changes` are composed into one transaction (one undo step, annotated so they
+  are not sent back), with the new `selection`, `mode`, `cursor`, `cmdline` and `highlight`
+  in a `StateField`. `effects` (`undo`, `redo`, `action`, `actionOnRange`, `open`,
+  `clipboard`, `reveal`, `scrollTo`, `reloadRc`) run afterwards; with `resume` the queued
+  keys of a mapping or macro continue (`vim_key` without `event`) once the asynchronous
+  effects are done, and `wait` asks for `vim_timeout` after `timeoutlen`.
+- **Keymap**: no new listeners. `keymap_handle_key` asks `forge_vim::Vim::claims` for keydown
+  events in the `editor` focus context (unless a chord is pending): plain keys outside Insert
+  mode, `Escape`, and the `Ctrl` shortcuts whose handler is Vim in the current mode are left
+  unresolved, so they reach CodeMirror and the Vim handler. The focused editor is reported
+  with `vim_focus({ handle | null })`. The handler table (`vim_handlers`) comes from
+  `forge_vim::handlers` with the overrides of the `vim.shortcutHandlers` setting
+  (`vim_configure({ enabled, handlers })`) and `sethandler` lines of the rc file.
+- **`~/.ideavimrc`**: `vim_read_rc({ path? }) -> { path, text }` (desktop: `~/.ideavimrc`,
+  `~/_ideavimrc`, `$XDG_CONFIG_HOME/ideavim/ideavimrc` or the `vim.rcFile` setting, with
+  `source` lines inlined; browser mock: a demo file); the UI applies it with
+  `vim_load_rc({ text }) -> { applied, problems }`.
+- Rendering stays in TypeScript: the block caret, search highlights (the pattern is
+  translated to a regular expression valid in JavaScript and Rust), relative line numbers, the
+  command line panel (`showPanel`) and the status bar widget.
 
 ## Rust computes, TypeScript renders
 

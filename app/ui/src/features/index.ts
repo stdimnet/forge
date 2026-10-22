@@ -60,3 +60,4 @@ import "./navBar";
 import "./related";
 import "./spelling";
 import "./jsonSchema";
+import "./vim";
