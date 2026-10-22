@@ -1920,6 +1920,7 @@ dependencies = [
 name = "forge-codeintel"
 version = "0.1.0"
 dependencies = [
+ "forge-file-templates",
  "forge-fuzzy",
  "forge-scopes",
  "serde",

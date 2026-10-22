@@ -31,6 +31,7 @@ Forge's rule of thumb is "Rust computes, TypeScript renders": logic lives in Rus
 - [Scopes and file colors](guide/user/scopes-and-file-colors.md): named scopes in PHPStorm's scope language, predefined scopes, file colors in tabs and the Project view
 - [Structural Search and Replace](guide/user/structural-search.md): templates with $variables$, filters, Replace All with preview
 - [Type, Method and Call Hierarchy](guide/user/hierarchies.md): the Hierarchy tool window: Type Hierarchy (Ctrl+H; class, supertypes, subtypes), Method Hierarchy (Ctrl+Shift+H) with defined / should define / inherited marks, Call Hierarchy (Ctrl+Alt+H; callers and callees with call sites), scopes, sorting, language servers and the PHP index
+- [Go to Test and Create Test](guide/user/go-to-test.md): Navigate | Test (Ctrl+Shift+T) between classes/modules and tests, Create New PHP Test / Create New Test dialog (PHPUnit, Pest, Vitest, Jest; PSR-4 autoload-dev, Laravel Unit/Feature, Symfony tests/)
 - [File Structure, Navigation Bar and Related Symbol](guide/user/navigation-bar-and-file-structure.md): File Structure popup (Ctrl+F12, Show Inherited), Navigation Bar (Alt+Home; Top, In Status Bar, Don't Show), Related Symbol (Ctrl+Alt+Home: tests, Laravel views/routes/migrations, Twig templates, component tests/stories/styles)
 - [Shortcuts by topic](guide/user/shortcuts/index.md): every implemented shortcut explained by area, with screenshots
 - [Keymap reference card](guide/user/shortcuts/reference-card.md): the 62 most important shortcuts on one page

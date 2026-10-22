@@ -1,0 +1,84 @@
+/* Create New PHP Test / Create New Test dialog. Colors come from theme.css variables only. */
+.create-test-dialog .ft-form input[type="checkbox"] {
+  width: auto;
+  height: auto;
+  margin: 0;
+}
+.ct-subject {
+  overflow: hidden;
+  color: var(--fg-muted);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.ct-hooks {
+  display: flex;
+  gap: 16px;
+}
+.ct-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--fg);
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+}
+.ct-members-label {
+  grid-column: 1 / -1;
+  margin-top: 4px;
+  color: var(--fg);
+}
+.ct-members {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+}
+.ct-members-head,
+.ct-members-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  min-height: 24px;
+  padding: 0 8px;
+}
+.ct-members-head {
+  border-bottom: 1px solid var(--border);
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+.ct-members-body {
+  max-height: 168px;
+  overflow: auto;
+}
+.ct-members-row:hover {
+  background: var(--bg-hover);
+}
+.ct-members-row.selected {
+  background: var(--bg-selection);
+}
+.ct-member {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.ct-stub {
+  overflow: hidden;
+  color: var(--fg-muted);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.ct-hint {
+  color: var(--fg-faint);
+  font-size: var(--fs-small);
+}
+.ct-members-empty {
+  padding: 8px;
+  color: var(--fg-faint);
+  font-size: var(--fs-small);
+}

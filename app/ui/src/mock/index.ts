@@ -30,6 +30,7 @@ import "./codeintelMock";
 import "./hierarchyMock";
 import "./documentationMock";
 import "./relatedMock";
+import "./goToTestMock";
 import "./companionMock";
 import "./terminalMock";
 import "./runMock";

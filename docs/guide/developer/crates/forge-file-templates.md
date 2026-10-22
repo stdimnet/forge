@@ -46,6 +46,8 @@ pub fn psr4::dir_for_namespace(roots: &[Psr4Root], namespace: &str) -> Option<St
 - IPC: `templates_list`, `templates_validate`, `templates_php_namespace`,
   `templates_php_directory`, `templates_create` (`app/src-tauri/src/commands/templates.rs`;
   composer.json is read and the file written through the project backend)
+- `forge-codeintel`: the Create New Test dialog's namespace and directory (`psr4` with
+  `autoload-dev` rules, `test_nav`)
 - `phpforge-lang-php`: Implement/Override Methods bodies and PHPDoc comments
   (`GenerateOptions::code_templates`, filled by `php_generate` from the settings)
 - UI: `app/ui/src/features/fileTemplates` (New menus, `NewElement` popup, New PHP Class

@@ -63,6 +63,7 @@ import "./codeStructure";
 import "./fileStructure";
 import "./navBar";
 import "./related";
+import "./goToTest";
 import "./editorNavigation";
 import "./spelling";
 import "./jsonSchema";
