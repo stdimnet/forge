@@ -962,3 +962,43 @@ textarea.dbg-input {
   top: auto;
   bottom: calc(100% + 2px);
 }
+
+/* Path mappings tree (Settings | PHP | Servers) */
+.dbg-mappings-head {
+  grid-template-columns: 1fr 1fr;
+}
+.dbg-mappings-body {
+  max-height: 320px;
+  overflow: auto;
+}
+.dbg-mappings-body .dbg-mapping-row {
+  grid-template-columns: 1fr 1fr;
+  min-height: 28px;
+  padding: 2px 8px;
+}
+.dbg-mapping-file {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+.dbg-mapping-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dbg-mapping-row.mapped .dbg-mapping-name {
+  color: var(--fg-strong);
+  font-weight: 500;
+}
+.dbg-mappings-body .dbg-input {
+  height: 22px;
+}
+/* Empty cells read like table cells until edited. */
+.dbg-mappings-body .dbg-input:not(:focus):placeholder-shown {
+  background: transparent;
+  border-color: transparent;
+}
+.dbg-mappings-body .dbg-mapping-row:hover .dbg-input:not(:focus):placeholder-shown {
+  border-color: var(--border);
+}
