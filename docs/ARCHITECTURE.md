@@ -1222,6 +1222,55 @@ computes everything; `app/ui/src/features/codeintel` and `features/lsp/goto.ts` 
   (`refactor_this_actions`). Browser mode runs the same Rust code through
   `web_extract_component*` and `codeintel_refactor_this_actions` (`mock/extractComponentMock.ts`).
 
+## PHPStorm metadata, JetBrains attributes, include paths and source roots
+
+Rust computes everything in `packs/phpforge/lang-php` next to the PHP index (so a remote
+project answers from the agent); the UI renders (`app/ui/src/features/php/{meta.ts,
+libraries.tsx, sourceRoots.tsx}`).
+
+- `meta` parses `.phpstorm.meta.php` files (and `.phpstorm.meta.php/` folders) of the project,
+  vendor packages (`vendor/<v>/<p>/…`, read even when vendor is lazy) and include paths into
+  `PhpMeta`; `ProjectIndex::meta()` is the merged view, cached with the index (cache version 2)
+  and updated by `update_file` / `apply_changes`. `navigate::receiver_types` applies
+  `override()` (`map`, `type`, `elementType`) to function and method calls (method targets
+  match the receiver's class chain), infers variables from their last assignment and
+  `$data['key']` from `#[ArrayShape]` (`callsite::subscript_classes`). `definition` goes from a
+  mapped key string to its class.
+- `attributes` reads the JetBrains attributes (parameters keep their attributes in
+  `Param::attributes`). `inspections::inspect` walks the tree-sitter tree, resolves calls and
+  names with `navigate::resolve_word` and reports deprecated, expected values, immutable
+  writes, pure results, unreachable code and the PSR-4 namespace (`ProjectIndex::
+  source_roots`); `fixes_at` feeds the PHP intentions (Alt+Enter). `complete::complete`
+  answers expected arguments / return values and shape keys; `injections::language_places`
+  lists `#[Language]` parameters for `forge-injections` (`InjectionSettings::places`, rule
+  `php-language-attribute`).
+- Include paths and source roots: `project::PhpProjectSettings` (`php.includePaths`,
+  `php.sourceRoots`, `php.composer.json`) reaches the backend through
+  `PhpBackend::configure` before every `php_index_workspace`; include path files are indexed
+  with absolute paths (`ProjectIndex::is_library`), the app maps them to granted
+  `library://file/…` paths (`LibraryState::ui_path`; a remote project's are read through
+  `PhpBackend::library_read`). Source roots are composer.json's PSR-4 rules with the user's
+  changes (`forge_file_templates::psr4::{SourceRootSetting, apply_overrides,
+  describe_roots}`), used by `templates::psr4_roots` (New PHP Class, Move) and the namespace
+  inspection; browser mode runs the same code through `templates_php_namespace` /
+  `php_source_roots` as WebAssembly.
+- Backend calls (`PhpCall`, protocol 10): `Configure`, `Inspect`, `Complete`,
+  `LanguagePlaces`, `Libraries`, `LibraryList`, `LibraryRead`.
+- IPC (`app/ui/src/ipc/phpMeta.ts`, `commands/php_meta.rs`; offsets UTF-16):
+  `php_inspect({ path, content? }) -> { start, end, severity, message, code, deprecated?,
+  unnecessary?, fix?: { title, edits } }[]`, `php_complete({ path, offset, content? }) -> {
+  from, to, items: { label, insert, kind: value | constant | key | class, detail? }[] } |
+  null`, `php_language_places() -> { name, argument, method, language }[]`,
+  `php_libraries() -> { name, path, exists }[]`, `php_library_list({ path }) -> { name, path,
+  dir, open? }[]` (`open`: the `library://file/…` path), `php_source_roots({ overrides? }) ->
+  { path, prefix, kind: source | test | none, origin: composer | user, overridden }[]`.
+- UI: the inspections publish as diagnostics source `php-inspections`; the completion source
+  sits next to the language server's; "External Libraries" is a Project view section
+  (`registerProjectViewSection`), source roots decorate tree rows (`registerRowDecorator`) and
+  add "Mark Directory as" to the Project view menu; Settings | Directories is a top-level page
+  (`GROUP_ORDER` in `forge-plugin-api`). Browser mode: `mock/phpMetaMock.ts` over the demo
+  project and `mock/demoLibraries.ts`.
+
 ## PHP debugger (`forge-debug`)
 
 - `DebugServer` is a DBGp server for Xdebug 3: it listens on `php.debug.port` (9003), accepts any

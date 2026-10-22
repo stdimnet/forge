@@ -415,6 +415,7 @@ impl<'a> Ctx<'a> {
                     by_ref,
                     promoted,
                     readonly: p.child_by_field_name("readonly").is_some(),
+                    attributes: self.attributes(p),
                 },
                 p,
             ));

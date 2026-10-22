@@ -184,7 +184,17 @@ pub fn intentions(
     options: &GenerateOptions,
 ) -> Vec<Intention> {
     let file = parser::index_source(rel, src);
-    let mut out = import_intentions(&file, src, offset);
+    // Quick-fixes of Forge's inspections ("Replace with …", "Set namespace to …").
+    let mut out: Vec<Intention> = crate::inspections::fixes_at(index, rel, src, offset)
+        .into_iter()
+        .map(|f| Intention {
+            title: f.title,
+            kind: IntentionKind::QuickFix,
+            edits: f.edits,
+            ..Default::default()
+        })
+        .collect();
+    out.extend(import_intentions(&file, src, offset));
     out.extend(crate::create::create_from_usage(
         index, &file, rel, src, offset, options,
     ));

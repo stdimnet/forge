@@ -13,7 +13,8 @@ const custom = () => mockSettingValue("fileTemplates.custom") ?? [];
 
 const composer = () => {
   const path = String(mockSettingValue("php.composer.json") || "composer.json");
-  return { composerJson: mockFiles[path] ?? null, composerPath: path };
+  // Mark Directory as | Sources Root changes (Settings | Directories).
+  return { composerJson: mockFiles[path] ?? null, composerPath: path, sourceRoots: mockSettingValue("php.sourceRoots") ?? [] };
 };
 
 registerMock("templates_list", async ({ custom: draft }) =>

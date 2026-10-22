@@ -26,6 +26,7 @@ use phpforge_lang_php::hierarchy::HierarchyQuery;
 use phpforge_lang_php::index::SearchKind;
 use phpforge_lang_php::lsp::PhpLspSettings;
 use phpforge_lang_php::navigate::NavKind;
+use phpforge_lang_php::project::PhpProjectSettings;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 
@@ -35,7 +36,7 @@ use crate::web::WebCall;
 use crate::TerminalSpec;
 
 /// Bumped on incompatible protocol changes; client and agent must agree.
-pub const PROTOCOL_VERSION: u32 = 9;
+pub const PROTOCOL_VERSION: u32 = 10;
 
 /// Frames larger than this are refused (protects both sides from garbage input).
 pub const MAX_FRAME: usize = 64 * 1024 * 1024;
@@ -336,6 +337,27 @@ pub enum PhpCall {
     LspConfig { settings: PhpLspSettings },
     /// -> `DetectedServers`
     DetectServers { settings: PhpLspSettings },
+    /// Include paths and source roots -> `()` (protocol 10)
+    Configure { settings: PhpProjectSettings },
+    /// -> `Vec<PhpProblem>` (protocol 10)
+    Inspect {
+        path: String,
+        content: Option<String>,
+    },
+    /// -> `Option<PhpCompletion>` (protocol 10)
+    Complete {
+        path: String,
+        offset: usize,
+        content: Option<String>,
+    },
+    /// -> `Vec<LanguagePlace>` (protocol 10)
+    LanguagePlaces,
+    /// -> `Vec<LibraryRoot>` (protocol 10)
+    Libraries,
+    /// -> `Vec<LibraryEntry>` (protocol 10)
+    LibraryList { path: String },
+    /// -> `String` (protocol 10)
+    LibraryRead { path: String },
 }
 
 /// Pushed by the agent.

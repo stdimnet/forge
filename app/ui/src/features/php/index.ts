@@ -26,6 +26,9 @@ import { migrateLegacyPhpSettings } from "./settings";
 import { StructureActions, StructureView } from "./StructureView";
 import { IndexingStatus, PhpVersionStatus, indexWorkspace } from "./status";
 import { PhpSettingsPage } from "./PhpSettingsPage";
+import { phpMetaEditor } from "./meta";
+import "./libraries";
+import "./sourceRoots";
 import "./php.css";
 
 const isPhp = (path: string) =>
@@ -38,6 +41,8 @@ registerEditorExtension(({ path }) =>
         // (Generate / OverrideMethods / ImplementMethods aliases in forge-keymap).
         viewTracker(path),
         indexHover(path),
+        // `.phpstorm.meta.php` and JetBrains attributes: inspections and completion.
+        phpMetaEditor(path),
       ]
     : null,
 );

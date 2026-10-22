@@ -815,6 +815,11 @@ export function php_interpreter_parse_info(request_json: string): string;
 export function php_interpreter_wrap(request_json: string): string;
 
 /**
+ * `{ composerJson, composerPath, sourceRoots }` → `SourceRootEntry[]` (Settings | Directories).
+ */
+export function php_source_roots(request_json: string): string;
+
+/**
  * `{ knownHosts, host, port, keyType, key, accept? }` → `{ status, fingerprint, ..., knownHosts? }`
  * (the verdict, and the updated file when a confirmed key was added).
  */
@@ -1474,6 +1479,7 @@ export interface InitOutput {
     readonly php_interpreter_automatic_mappings: (a: number, b: number, c: number) => void;
     readonly php_interpreter_parse_info: (a: number, b: number, c: number) => void;
     readonly php_interpreter_wrap: (a: number, b: number, c: number) => void;
+    readonly php_source_roots: (a: number, b: number, c: number) => void;
     readonly remote_check_host_key: (a: number, b: number, c: number) => void;
     readonly remote_ssh_hosts: (a: number, b: number, c: number) => void;
     readonly remote_validate_config: (a: number, b: number, c: number) => void;

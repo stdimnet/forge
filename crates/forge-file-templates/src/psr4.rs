@@ -57,6 +57,88 @@ pub fn roots(composer_json: &str, composer_dir: &str) -> Vec<Psr4Root> {
     out
 }
 
+/// A folder the user marked (Settings | Directories, Project view: Mark Directory as):
+/// `kind` is `source` (Sources Root), `test` (Test Sources Root) or `none` (unmarked: hides
+/// a root composer.json declares). Stored in the `php.sourceRoots` setting.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct SourceRootSetting {
+    /// Project-relative folder.
+    pub path: String,
+    /// Package prefix (namespace), e.g. `App\Domain`.
+    pub prefix: String,
+    pub kind: String,
+}
+
+/// A source root as Settings | Directories lists it.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SourceRootEntry {
+    pub path: String,
+    pub prefix: String,
+    /// `source` or `test`.
+    pub kind: String,
+    /// `composer` (from composer.json) or `user`.
+    pub origin: String,
+    /// A composer.json root the user changed (prefix or kind) or unmarked (`kind: none`).
+    #[serde(default)]
+    pub overridden: bool,
+}
+
+/// The composer.json rules with the user's changes applied: a setting replaces the rules of
+/// its folder (or removes them with `kind: none`) or adds one.
+pub fn apply_overrides(roots: &[Psr4Root], overrides: &[SourceRootSetting]) -> Vec<Psr4Root> {
+    let mut out: Vec<Psr4Root> = roots.to_vec();
+    for o in overrides {
+        let dir = normalize_dir(&o.path);
+        out.retain(|r| r.dir != dir);
+        if matches!(o.kind.as_str(), "source" | "test") {
+            out.push(Psr4Root {
+                prefix: o.prefix.trim().trim_matches('\\').to_string(),
+                dir,
+                dev: o.kind == "test",
+            });
+        }
+    }
+    out
+}
+
+/// The source roots for Settings | Directories: composer.json's (marked when the user
+/// changed them) and the user's own, sorted by folder.
+pub fn describe_roots(roots: &[Psr4Root], overrides: &[SourceRootSetting]) -> Vec<SourceRootEntry> {
+    let mut out: Vec<SourceRootEntry> = Vec::new();
+    let effective = apply_overrides(roots, overrides);
+    for r in &effective {
+        let from_composer = roots.iter().any(|c| c.dir == r.dir);
+        let overridden = from_composer && overrides.iter().any(|o| normalize_dir(&o.path) == r.dir);
+        if out.iter().any(|e| e.path == r.dir && e.prefix == r.prefix) {
+            continue;
+        }
+        out.push(SourceRootEntry {
+            path: r.dir.clone(),
+            prefix: r.prefix.clone(),
+            kind: if r.dev { "test" } else { "source" }.into(),
+            origin: if from_composer { "composer" } else { "user" }.into(),
+            overridden,
+        });
+    }
+    // Unmarked composer roots stay listed so they can be marked again.
+    for o in overrides.iter().filter(|o| o.kind == "none") {
+        let dir = normalize_dir(&o.path);
+        if let Some(r) = roots.iter().find(|r| r.dir == dir) {
+            out.push(SourceRootEntry {
+                path: dir,
+                prefix: r.prefix.clone(),
+                kind: "none".into(),
+                origin: "composer".into(),
+                overridden: true,
+            });
+        }
+    }
+    out.sort_by(|a, b| a.path.cmp(&b.path).then(a.prefix.cmp(&b.prefix)));
+    out
+}
+
 /// `dir` relative to `root`, `None` when it is not inside.
 fn relative<'a>(root: &str, dir: &'a str) -> Option<&'a str> {
     if root.is_empty() {
@@ -228,6 +310,52 @@ mod tests {
         assert_eq!(dir_for_namespace(&r, "Application"), None);
         let g = roots(r#"{"autoload":{"psr-4":{"":"src/"}}}"#, "api");
         assert_eq!(dir_for_namespace(&g, "Foo").as_deref(), Some("api/src/Foo"));
+    }
+
+    #[test]
+    fn user_roots_override_composer() {
+        let r = roots(LARAVEL, "");
+        let settings = vec![
+            SourceRootSetting {
+                path: "app/".into(),
+                prefix: "Acme\\".into(),
+                kind: "source".into(),
+            },
+            SourceRootSetting {
+                path: "database/seeders".into(),
+                prefix: String::new(),
+                kind: "none".into(),
+            },
+            SourceRootSetting {
+                path: "modules/Billing".into(),
+                prefix: "Billing".into(),
+                kind: "test".into(),
+            },
+        ];
+        let effective = apply_overrides(&r, &settings);
+        assert_eq!(
+            namespace_for_dir(&effective, "app/Models").as_deref(),
+            Some("Acme\\Models")
+        );
+        assert_eq!(namespace_for_dir(&effective, "database/seeders"), None);
+        assert_eq!(
+            namespace_for_dir(&effective, "modules/Billing/Invoices").as_deref(),
+            Some("Billing\\Invoices")
+        );
+        assert_eq!(
+            dir_for_namespace(&effective, "Billing\\X").as_deref(),
+            Some("modules/Billing/X")
+        );
+        let listed = describe_roots(&r, &settings);
+        let row = |p: &str| listed.iter().find(|e| e.path == p).unwrap().clone();
+        assert_eq!(row("app").origin, "composer");
+        assert!(row("app").overridden);
+        assert_eq!(row("app").prefix, "Acme");
+        assert_eq!(row("modules/Billing").origin, "user");
+        assert_eq!(row("modules/Billing").kind, "test");
+        assert_eq!(row("database/seeders").kind, "none");
+        assert_eq!(row("tests").kind, "test");
+        assert!(!row("tests").overridden);
     }
 
     #[test]

@@ -6,15 +6,19 @@ use std::sync::{Arc, Mutex};
 
 use forge_codeintel::{HighlightAnswer, UsageOptions};
 use forge_core::{ForgeError, FsChanges, Result, Workspace};
+use phpforge_lang_php::complete::PhpCompletion;
 use phpforge_lang_php::generate::{GenerateKind, GenerateOptions, GenerateTargets, TextEdit};
 use phpforge_lang_php::hierarchy::{HierarchyQuery, PhpHierarchy};
 use phpforge_lang_php::hover::Hover;
 use phpforge_lang_php::imports::auto::{self, UnresolvedClass};
 use phpforge_lang_php::index::VendorMode;
 use phpforge_lang_php::index::{SearchKind, SymbolHit};
+use phpforge_lang_php::injections::LanguagePlace;
+use phpforge_lang_php::inspections::PhpProblem;
 use phpforge_lang_php::intentions::Intention;
 use phpforge_lang_php::lsp::{self, DetectedServers, LspServerConfig, PhpLspSettings};
 use phpforge_lang_php::navigate::{NavKind, NavTarget, PhpDefinition, PhpLineMarker, PhpUsages};
+use phpforge_lang_php::project::{self, LibraryEntry, LibraryRoot, PhpProjectSettings};
 use phpforge_lang_php::service;
 use phpforge_lang_php::structure::FileStructure;
 use phpforge_lang_php::{IndexConfig, IndexStats, ProjectIndex};
@@ -118,6 +122,26 @@ pub trait PhpBackend: Send + Sync {
     fn lsp_config(&self, settings: PhpLspSettings) -> Result<Option<LspServerConfig>>;
     /// Language servers installed on the project's machine.
     fn detect_servers(&self, settings: PhpLspSettings) -> Result<DetectedServers>;
+    /// Include paths and source roots; a change of the include paths indexes again on the
+    /// next [`PhpBackend::index_workspace`].
+    fn configure(&self, settings: PhpProjectSettings) -> Result<()>;
+    /// Forge's PHP inspections of a file (metadata, JetBrains attributes, PSR-4 namespace).
+    fn inspect(&self, path: &str, content: Option<String>) -> Result<Vec<PhpProblem>>;
+    /// Completion of expected arguments / return values and array shape keys.
+    fn complete(
+        &self,
+        path: &str,
+        offset: usize,
+        content: Option<String>,
+    ) -> Result<Option<PhpCompletion>>;
+    /// Parameters marked `#[Language]` (for the language injections).
+    fn language_places(&self) -> Result<Vec<LanguagePlace>>;
+    /// The include paths ("External Libraries").
+    fn libraries(&self) -> Result<Vec<LibraryRoot>>;
+    /// The entries of a folder inside an include path.
+    fn library_list(&self, path: &str) -> Result<Vec<LibraryEntry>>;
+    /// A file inside an include path.
+    fn library_read(&self, path: &str) -> Result<String>;
 }
 
 /// Use Forge's managed Intelephense (`node …/intelephense.js`) of this machine unless a path
@@ -145,6 +169,8 @@ pub struct LocalPhp {
     /// Vendor packages as libraries ("Add packages as libraries" of the Composer settings,
     /// which reach the backend with [`PhpBackend::lsp_config`]).
     vendor: Mutex<VendorMode>,
+    /// Include paths and source roots ([`PhpBackend::configure`]).
+    project: Mutex<PhpProjectSettings>,
 }
 
 impl LocalPhp {
@@ -153,6 +179,31 @@ impl LocalPhp {
             workspace,
             index: Mutex::new(None),
             vendor: Mutex::new(VendorMode::default()),
+            project: Mutex::new(PhpProjectSettings::default()),
+        }
+    }
+
+    fn project_settings(&self) -> PhpProjectSettings {
+        self.project
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone()
+    }
+
+    fn include_dirs(&self) -> Vec<PathBuf> {
+        self.project_settings()
+            .include_dirs(self.root(), home_dir().as_deref())
+    }
+
+    /// An absolute path inside an include path.
+    fn library_path(&self, path: &str) -> Result<PathBuf> {
+        let p = PathBuf::from(path);
+        if p.is_absolute() && project::inside_library(&self.include_dirs(), &p) {
+            Ok(p)
+        } else {
+            Err(ForgeError::Other(format!(
+                "not inside an include path: {path}"
+            )))
         }
     }
 
@@ -161,12 +212,15 @@ impl LocalPhp {
     }
 
     fn fresh_index(&self) -> ProjectIndex {
+        let settings = self.project_settings();
         let config = IndexConfig {
             vendor: *self.vendor.lock().unwrap_or_else(|e| e.into_inner()),
+            include_paths: settings.include_dirs(self.root(), home_dir().as_deref()),
             ..IndexConfig::default()
         };
         let mut idx = ProjectIndex::new(self.root(), config);
         idx.load_cache();
+        idx.set_source_roots(settings.effective_roots(self.root()));
         idx
     }
 
@@ -212,6 +266,8 @@ impl PhpBackend for LocalPhp {
         // Take the index out so queries are not blocked while indexing.
         let previous = self.index.lock().map_err(err)?.take();
         let mut idx = previous.unwrap_or_else(|| self.fresh_index());
+        // composer.json may have changed since.
+        idx.set_source_roots(self.project_settings().effective_roots(self.root()));
         let stats = idx.index_workspace(|done, total| progress(done, total));
         if let Err(e) = idx.save_cache() {
             tracing::warn!("could not save PHP index cache: {e}");
@@ -374,5 +430,51 @@ impl PhpBackend for LocalPhp {
             &dirs,
             &lsp::FsProbe,
         ))
+    }
+
+    fn configure(&self, settings: PhpProjectSettings) -> Result<()> {
+        let previous = std::mem::replace(&mut *self.project.lock().map_err(err)?, settings.clone());
+        if previous.include_paths != settings.include_paths {
+            // Built again with the new include paths on the next use.
+            *self.index.lock().map_err(err)? = None;
+        } else if let Some(idx) = self.index.lock().map_err(err)?.as_mut() {
+            idx.set_source_roots(settings.effective_roots(self.root()));
+        }
+        Ok(())
+    }
+
+    fn inspect(&self, path: &str, content: Option<String>) -> Result<Vec<PhpProblem>> {
+        let text = self.source(path, content)?;
+        self.with_index(|idx| service::inspect(idx, path, &text))
+    }
+
+    fn complete(
+        &self,
+        path: &str,
+        offset: usize,
+        content: Option<String>,
+    ) -> Result<Option<PhpCompletion>> {
+        let text = self.source(path, content)?;
+        self.with_index(|idx| service::complete(idx, path, &text, offset))
+    }
+
+    fn language_places(&self) -> Result<Vec<LanguagePlace>> {
+        self.with_index(|idx| service::language_places(idx))
+    }
+
+    fn libraries(&self) -> Result<Vec<LibraryRoot>> {
+        Ok(project::library_roots(&self.include_dirs()))
+    }
+
+    fn library_list(&self, path: &str) -> Result<Vec<LibraryEntry>> {
+        let p = self.library_path(path)?;
+        project::list_library(&self.include_dirs(), &p)
+            .ok_or_else(|| ForgeError::Other(format!("cannot list {path}")))
+    }
+
+    fn library_read(&self, path: &str) -> Result<String> {
+        let p = self.library_path(path)?;
+        project::read_library(&self.include_dirs(), &p)
+            .ok_or_else(|| ForgeError::Other(format!("cannot read {path}")))
     }
 }

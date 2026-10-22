@@ -19,7 +19,10 @@
 //! - [`imports`], [`rearrange`] and [`cleanup`]: Optimize Imports, Rearrange Code and Code
 //!   Cleanup (also run as Actions on Save).
 
+pub mod attributes;
+pub mod callsite;
 pub mod cleanup;
+pub mod complete;
 pub mod composer;
 pub mod create;
 pub mod docblock;
@@ -30,12 +33,16 @@ pub mod highlight;
 pub mod hover;
 pub mod imports;
 pub mod index;
+pub mod injections;
+pub mod inspections;
 pub mod intentions;
 pub mod lsp;
+pub mod meta;
 pub mod model;
 pub mod navigate;
 pub mod offsets;
 pub mod parser;
+pub mod project;
 pub mod rearrange;
 pub mod refactor;
 pub mod rename;
