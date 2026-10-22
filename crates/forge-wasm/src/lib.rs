@@ -35,6 +35,7 @@ mod json_schema;
 mod keymap;
 mod livetemplates;
 mod lua;
+mod php_interpreters;
 mod save_actions;
 mod scopes;
 mod scratches;

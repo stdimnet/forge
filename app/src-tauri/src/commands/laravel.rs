@@ -30,11 +30,9 @@ fn err(e: impl std::fmt::Display) -> ForgeError {
     ForgeError::Other(e.to_string())
 }
 
+/// The project's PHP for framework helpers (a local executable).
 fn php(app: &AppState) -> String {
-    app.read_settings()
-        .get_as::<String>("php.interpreter")
-        .filter(|s| !s.trim().is_empty())
-        .unwrap_or_else(|| "php".into())
+    crate::commands::php_interpreters::local_php(app)
 }
 
 fn setting(app: &AppState, key: &str, default: &str) -> String {

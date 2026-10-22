@@ -722,6 +722,21 @@ export function nav_bar_segments(request_json: string): string;
 export function output_file_links(request_json: string): string;
 
 /**
+ * `{ interpreter, root, composeDir?, volumes? }` → the automatic `PathMapping[]`.
+ */
+export function php_interpreter_automatic_mappings(request_json: string): string;
+
+/**
+ * `{ phpV, phpIni, phpM }` (outputs of `php -v`, `php --ini`, `php -m`) → `InterpreterInfo`.
+ */
+export function php_interpreter_parse_info(request_json: string): string;
+
+/**
+ * `WrapRequest` → `{ program, args, cwd, env, kind, pathMappings }`.
+ */
+export function php_interpreter_wrap(request_json: string): string;
+
+/**
  * `{ knownHosts, host, port, keyType, key, accept? }` → `{ status, fingerprint, ..., knownHosts? }`
  * (the verdict, and the updated file when a confirmed key was added).
  */
@@ -1285,6 +1300,9 @@ export interface InitOutput {
     readonly markdown_parse: (a: number, b: number, c: number) => void;
     readonly nav_bar_segments: (a: number, b: number, c: number) => void;
     readonly output_file_links: (a: number, b: number, c: number) => void;
+    readonly php_interpreter_automatic_mappings: (a: number, b: number, c: number) => void;
+    readonly php_interpreter_parse_info: (a: number, b: number, c: number) => void;
+    readonly php_interpreter_wrap: (a: number, b: number, c: number) => void;
     readonly remote_check_host_key: (a: number, b: number, c: number) => void;
     readonly remote_ssh_hosts: (a: number, b: number, c: number) => void;
     readonly remote_validate_config: (a: number, b: number, c: number) => void;

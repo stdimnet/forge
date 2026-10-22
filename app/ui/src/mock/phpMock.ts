@@ -1,5 +1,6 @@
 /** Browser-mode PHPForge backend over the demo project (see phpMockParser.ts). */
 import { emitMock, registerMock } from "@/ipc";
+import { decodeInterpreters, findInterpreter, levelForVersion } from "@/features/php/interpreters";
 import type {
   FieldTarget,
   FileStructure,
@@ -471,7 +472,14 @@ registerMock("php_language_level", () => {
   const sync = mockSettingValue("php.composer.syncWithComposerJson") !== false;
   const required = json?.match(/"php"\s*:\s*"[^"\d]*(\d+\.\d+)/)?.[1];
   if (sync && required) return { level: required, fromComposer: true };
-  return { level: String(mockSettingValue("php.languageLevel") ?? "8.3"), fromComposer: false };
+  const level = String(mockSettingValue("php.languageLevel") ?? "8.3");
+  if (level === "interpreter") {
+    const list = decodeInterpreters(mockSettingValue("php.interpreters") ?? [], mockSettingValue("php.projectInterpreters") ?? []);
+    const version = findInterpreter(list, String(mockSettingValue("php.interpreter") ?? "php"))?.version ?? "";
+    const fromInterpreter = levelForVersion(version, ["7.4", "8.0", "8.1", "8.2", "8.3", "8.4"]);
+    return { level: fromInterpreter ?? "8.3", fromComposer: false, fromInterpreter: !!fromInterpreter };
+  }
+  return { level, fromComposer: false };
 });
 registerMock("php_composer_outdated", async () => [
   { name: "laravel/framework", version: "v12.1.0", latest: "v12.3.0", status: "semver-safe-update" },

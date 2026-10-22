@@ -4,7 +4,7 @@ import { listen } from "@/ipc";
 import { runCommand } from "@/state/commands";
 import { isPluginActive } from "@/state/project";
 import { phpApi, type IndexProgress, type IndexStats } from "./api";
-import { phpSettings } from "./settings";
+import { defaultPhpSettings, LEVEL_FROM_INTERPRETER, phpSettings } from "./settings";
 import { languageLevel } from "./composer";
 
 const [progress, setProgress] = createSignal<IndexProgress | null>(null);
@@ -59,6 +59,12 @@ export function IndexingStatus() {
   );
 }
 
+/** The level in effect; "From the CLI interpreter" falls back to the default until known. */
+const level = () => {
+  const l = languageLevel()?.level ?? phpSettings.languageLevel;
+  return l === LEVEL_FROM_INTERPRETER ? defaultPhpSettings.languageLevel : l;
+};
+
 export function PhpVersionStatus() {
   return (
     <Show when={isPluginActive("forge.php")}>
@@ -67,12 +73,14 @@ export function PhpVersionStatus() {
         data-status="php-version"
         title={
           languageLevel()?.fromComposer
-            ? `PHP language level: ${languageLevel()!.level} (from composer.json). Click to configure`
-            : `PHP language level: ${languageLevel()?.level ?? phpSettings.languageLevel}. Click to configure`
+            ? `PHP language level: ${level()} (from composer.json). Click to configure`
+            : languageLevel()?.fromInterpreter
+              ? `PHP language level: ${level()} (from the CLI interpreter). Click to configure`
+              : `PHP language level: ${level()}. Click to configure`
         }
         onClick={() => void runCommand("settings.open")}
       >
-        PHP {languageLevel()?.level ?? phpSettings.languageLevel}
+        PHP {level()}
       </button>
     </Show>
   );

@@ -155,6 +155,8 @@ export type ServerChoice = "auto" | "intelephense" | "phpactor" | "none";
 export interface LanguageLevel {
   level: string;
   fromComposer: boolean;
+  /** The level follows the CLI interpreter's version (`php.languageLevel` = `interpreter`). */
+  fromInterpreter?: boolean;
 }
 
 /** A package `composer outdated` reports. */

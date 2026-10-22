@@ -26,6 +26,7 @@ import {
 import { isTauri } from "@/ipc";
 import type { BeforeLaunchTask, RunConfiguration } from "@/ipc/run";
 import { getSetting } from "@/state/settings";
+import { decodeInterpreters, findInterpreter, GLOBAL_KEY as INTERPRETERS_GLOBAL_KEY, PROJECT_KEY as INTERPRETERS_PROJECT_KEY } from "@/features/php/interpreters";
 import { workspace } from "@/state/workspace";
 import { configurations, saveConfigurations, selectedName, templateFor, templates } from "./configStore";
 import { notifyDialogOpener } from "@/shell/window/dialogs";
@@ -307,8 +308,17 @@ function InterpreterRow(props: { cfg: RunConfiguration; type: RunConfigurationTy
         : props.type.interpreter === "node"
           ? "node"
           : (newConfiguration(props.type, "").interpreter ?? ""));
-  const custom = () => !!props.cfg.interpreter;
+  // PHP: the interpreters of Settings | PHP | CLI Interpreters, chosen by name.
+  const phpInterpreters = () =>
+    props.type.interpreter === "php" ? decodeInterpreters(getSetting(INTERPRETERS_GLOBAL_KEY, []), getSetting(INTERPRETERS_PROJECT_KEY, [])) : [];
+  const named = () => findInterpreter(phpInterpreters(), props.cfg.interpreter ?? "");
+  const custom = () => !!props.cfg.interpreter && !named();
   const label = () => (props.type.interpreter === "php" ? "Interpreter" : props.type.interpreter === "shell" ? "Interpreter path" : "Interpreter");
+  const defaultLabel = () => {
+    if (props.type.interpreter !== "php") return `Default (${projectDefault()})`;
+    const i = findInterpreter(phpInterpreters(), projectDefault());
+    return i ? `${i.name}${i.version ? ` (${i.version})` : ""} — project default` : `${projectDefault()} — project default`;
+  };
   return (
     <>
       <div class="rc-row">
@@ -316,12 +326,22 @@ function InterpreterRow(props: { cfg: RunConfiguration; type: RunConfigurationTy
         <div class="rc-interp">
           <select
             class="rc-select"
-            value={custom() ? "custom" : ""}
-            onChange={(e) => update((c) => (c.interpreter = e.currentTarget.value === "custom" ? projectDefault() || "php" : ""))}
+            data-testid="rc-interpreter"
+            value={custom() ? "custom" : named() ? `name:${named()!.name}` : ""}
+            onChange={(e) => {
+              const v = e.currentTarget.value;
+              update((c) => (c.interpreter = v === "custom" ? (findInterpreter(phpInterpreters(), projectDefault()) ? "php" : projectDefault() || "php") : v.startsWith("name:") ? v.slice(5) : ""));
+            }}
           >
-            <option value="">
-              {props.type.interpreter === "php" ? `PHP 8.3 (${projectDefault()}) — project default` : `Default (${projectDefault()})`}
-            </option>
+            <option value="">{defaultLabel()}</option>
+            <For each={phpInterpreters()}>
+              {(i) => (
+                <option value={`name:${i.name}`}>
+                  {i.name}
+                  {i.version ? ` (${i.version})` : ""}
+                </option>
+              )}
+            </For>
             <option value="custom">Custom…</option>
           </select>
           <Show when={custom()}>

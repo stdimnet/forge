@@ -30,6 +30,18 @@ pub fn language_level(composer_json: &str) -> Option<String> {
     Some(level.to_string())
 }
 
+/// The language level of an interpreter version (`8.2.10` → `8.2`), like
+/// [`language_level`] clamped to [`LANGUAGE_LEVELS`].
+pub fn level_for_version(version: &str) -> Option<String> {
+    let v = phpforge_interpreters::probe::major_minor(version)?;
+    let level = LANGUAGE_LEVELS
+        .iter()
+        .rev()
+        .find(|l| parse_level(l).is_some_and(|l| l <= v))
+        .unwrap_or(&LANGUAGE_LEVELS[0]);
+    Some(level.to_string())
+}
+
 fn parse_level(s: &str) -> Option<(u32, u32)> {
     let (major, minor) = s.split_once('.')?;
     Some((major.parse().ok()?, minor.parse().ok()?))
@@ -82,5 +94,9 @@ mod tests {
             None
         );
         assert_eq!(language_level("{not json"), None);
+        assert_eq!(level_for_version("8.2.10").as_deref(), Some("8.2"));
+        assert_eq!(level_for_version("8.5.0").as_deref(), Some("8.4"));
+        assert_eq!(level_for_version("7.2.1").as_deref(), Some("7.4"));
+        assert_eq!(level_for_version(""), None);
     }
 }

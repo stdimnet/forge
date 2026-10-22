@@ -13,14 +13,16 @@ use std::time::Duration;
 
 use forge_backend::Process;
 use forge_core::{ForgeError, Result};
-use forge_process::output::{RunInput, RunOutput, RunOutputOptions};
+use forge_process::output::{OutputPathMapping, RunInput, RunOutput, RunOutputOptions};
 use forge_process::{
     BuildContext, CommandLine, KindRegistry, OutputStream, RunConfiguration, RunConfigurations,
     RunEvent, RunSink, TemplateKind,
 };
+use phpforge_interpreters::{PhpInterpreter, Program};
 use serde::{Deserialize, Serialize};
-use tauri::{AppHandle, Emitter, State};
+use tauri::{AppHandle, Emitter, Manager, State};
 
+use crate::commands::php_interpreters as interpreters;
 use crate::commands::workspace::blocking;
 use crate::state::AppState;
 
@@ -158,8 +160,23 @@ pub struct RunStarted {
     pub command_line: String,
 }
 
-fn build(state: &AppState, runs: &RunState, req: RunRequest) -> Result<CommandLine> {
+/// Configuration types whose program is the PHP interpreter.
+const PHP_KINDS: &[&str] = &["php-script", "phpunit", "artisan"];
+/// Composer types: they run through an interpreter only when they name one.
+const COMPOSER_KINDS: &[&str] = &["composer", "composer-command"];
+
+/// A request's command line, plus what a run through a PHP interpreter needs.
+struct Built {
+    cmd: CommandLine,
+    /// Container / remote paths and their local counterparts (Run console links).
+    path_mappings: Vec<OutputPathMapping>,
+    /// The debugger's server with the interpreter's mappings.
+    debug_server: Option<forge_debug::ServerConfig>,
+}
+
+fn build(state: &AppState, runs: &RunState, req: RunRequest) -> Result<Built> {
     let root = root(state)?;
+    let mut through: Option<(PhpInterpreter, bool)> = None;
     let mut cmd = match (req.configuration, req.command) {
         (_, Some(mut cmd)) => {
             if cmd.cwd.as_os_str().is_empty() {
@@ -170,6 +187,17 @@ fn build(state: &AppState, runs: &RunState, req: RunRequest) -> Result<CommandLi
             cmd
         }
         (Some(mut cfg), None) => {
+            let php_kind = PHP_KINDS.contains(&cfg.type_id.as_str());
+            let composer_kind = COMPOSER_KINDS.contains(&cfg.type_id.as_str())
+                && interpreters::interpreter_set(state)
+                    .find(&cfg.interpreter)
+                    .is_some();
+            if php_kind || composer_kind {
+                through = Some((
+                    interpreters::resolve(state, &cfg.interpreter),
+                    composer_kind,
+                ));
+            }
             let settings = state.read_settings();
             if (cfg.type_id == "composer" || cfg.type_id == "composer-command")
                 && cfg.option("composerPath").trim().is_empty()
@@ -181,10 +209,12 @@ fn build(state: &AppState, runs: &RunState, req: RunRequest) -> Result<CommandLi
                     cfg.options.insert("composerPath".into(), composer);
                 }
             }
+            drop(settings);
+            // Kinds build for a local `php`; an interpreter wraps the result below.
+            let php_interpreter = interpreters::local_php(state);
+            let settings = state.read_settings();
             let ctx = BuildContext {
-                php_interpreter: settings
-                    .get_as::<String>("php.interpreter")
-                    .unwrap_or_else(|| "php".into()),
+                php_interpreter,
                 interpreters: runs
                     .interpreter_settings
                     .iter()
@@ -201,7 +231,33 @@ fn build(state: &AppState, runs: &RunState, req: RunRequest) -> Result<CommandLi
     if !req.interpreter_args.is_empty() {
         cmd.args.splice(0..0, req.interpreter_args);
     }
-    Ok(cmd)
+    let Some((interp, composer)) = through else {
+        return Ok(Built {
+            cmd,
+            path_mappings: Vec::new(),
+            debug_server: None,
+        });
+    };
+    let backend = state.backend()?;
+    let prepared = interpreters::prepare(state, backend.as_ref(), interp);
+    // Composer runs as `composer …`, or as `php composer.phar …`.
+    let program = if composer
+        && !cmd
+            .args
+            .first()
+            .is_some_and(|a| a.to_ascii_lowercase().ends_with(".phar"))
+    {
+        Program::Other(cmd.program.clone())
+    } else {
+        Program::Php
+    };
+    Ok(Built {
+        cmd: prepared.wrap(program, &cmd)?,
+        path_mappings: prepared.output_mappings(),
+        debug_server: phpforge_interpreters::command::is_debug(&cmd.env)
+            .then(|| prepared.debug_server())
+            .flatten(),
+    })
 }
 
 /// The command line a request would start, for previews in the configuration dialog.
@@ -211,7 +267,7 @@ pub fn run_command_line(
     state: State<'_, AppState>,
     runs: State<'_, RunState>,
 ) -> Result<CommandLine> {
-    build(&state, &runs, request)
+    build(&state, &runs, request).map(|b| b.cmd)
 }
 
 #[tauri::command]
@@ -226,7 +282,16 @@ pub async fn run_start(
         format!("run-{n}")
     });
     let test_runner = request.test_runner;
-    let cmd = build(&state, &runs, request)?;
+    let Built {
+        cmd,
+        path_mappings,
+        debug_server,
+    } = build(&state, &runs, request)?;
+    if let Some(server) = debug_server {
+        if let Some(debug) = app.try_state::<crate::commands::debug::DebugState>() {
+            debug.add_interpreter_server(server);
+        }
+    }
     // Settings | Editor | General | Console, "Override console cycle buffer size (KB)".
     let cycle_buffer_kb = state
         .read_settings()
@@ -237,6 +302,7 @@ pub async fn run_start(
         root: Some(root(&state)?.display().to_string()),
         cwd: Some(cmd.cwd.display().to_string()),
         cycle_buffer_kb,
+        path_mappings,
     })));
     let event = format!("run://{run_id}");
     let sink_output = output.clone();

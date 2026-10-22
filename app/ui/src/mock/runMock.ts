@@ -6,7 +6,9 @@
  */
 import { emitMock, registerMock } from "@/ipc";
 import type { CommandLine, RunConfiguration, RunConfigurations, RunEvent, RunRequest } from "@/ipc/run";
-import { forgeWasm, type ForgeWasm } from "@/wasm";
+import { decodeInterpreters, findInterpreter, GLOBAL_KEY, PROJECT_KEY } from "@/features/php/interpreters";
+import { callWasmSync, forgeWasm, type ForgeWasm } from "@/wasm";
+import { DEMO_COMPOSE_VOLUMES } from "./phpInterpretersMock";
 import { demoProjectName } from "./demoProject";
 import { isSymfonyDemo, symfonyDemoName } from "./demoSymfonyProject";
 import { webDemo } from "./demoWebProjects";
@@ -103,9 +105,44 @@ export function mockCommandLine(cfg: RunConfiguration): CommandLine {
 const quote = (a: string) => (/^[\w./:=@%+,-]+$/.test(a) ? a : `'${a.replace(/'/g, "'\\''")}'`);
 const display = (c: CommandLine) => [c.program, ...c.args].map(quote).join(" ");
 
-registerMock("run_command_line", ({ request }) => {
+/** Configuration types whose program is PHP (the desktop backend's `PHP_KINDS`). */
+const PHP_KINDS = new Set(["php-script", "phpunit", "artisan"]);
+
+interface Wrapped {
+  cmd: CommandLine;
+  pathMappings: { remote: string; local: string }[];
+}
+
+/**
+ * A PHP configuration's command line through its named interpreter (Docker, Compose, SSH,
+ * WSL), built by the Rust `phpforge-interpreters` crate like in the desktop app.
+ */
+async function throughInterpreter(cfg: RunConfiguration | undefined, cmd: CommandLine, env: Record<string, string> = {}): Promise<Wrapped> {
+  if (!cfg || !PHP_KINDS.has(cfg.type)) return { cmd, pathMappings: [] };
+  const list = decodeInterpreters(mockSettingValue(GLOBAL_KEY) ?? [], mockSettingValue(PROJECT_KEY) ?? []);
+  const selected = cfg.interpreter || String(mockSettingValue("php.interpreter") ?? "php");
+  const named = findInterpreter(list, selected);
+  if (!named) return { cmd, pathMappings: [] };
+  const root = projectRoot();
+  const wasm = await forgeWasm();
+  const out = callWasmSync<{ program: string; args: string[]; cwd: string; pathMappings: Wrapped["pathMappings"] }>(wasm.php_interpreter_wrap, {
+    global: mockSettingValue(GLOBAL_KEY),
+    project: mockSettingValue(PROJECT_KEY),
+    selected,
+    program: { type: "php" },
+    args: cmd.args,
+    cwd: cmd.cwd ? (cmd.cwd.startsWith("/") || cmd.cwd.startsWith("~") ? cmd.cwd : `${root}/${cmd.cwd}`) : root,
+    env: { ...(cfg.env ?? {}), ...(cmd.env ?? {}), ...env },
+    root,
+    composeDir: root,
+    volumes: DEMO_COMPOSE_VOLUMES[named.service] ?? [],
+  });
+  return { cmd: { program: out.program, args: out.args, cwd: cmd.cwd }, pathMappings: out.pathMappings };
+}
+
+registerMock("run_command_line", async ({ request }) => {
   const r = request as RunRequest;
-  return r.command ?? mockCommandLine(r.configuration!);
+  return r.command ?? (await throughInterpreter(r.configuration, mockCommandLine(r.configuration!))).cmd;
 });
 
 interface MockRun {
@@ -449,19 +486,21 @@ registerMock("run_start", async ({ request }) => {
   wasm ??= await forgeWasm();
   const r = request as RunRequest;
   const runId = r.runId ?? `mock-run-${++seq}`;
-  const cmd = r.command ?? mockCommandLine(r.configuration!);
-  const commandLine = display({ ...cmd, args: [...(r.interpreterArgs ?? []), ...cmd.args] });
+  const local = r.command ?? mockCommandLine(r.configuration!);
+  const { cmd, pathMappings } = await throughInterpreter(r.command ? undefined : r.configuration, { ...local, args: [...(r.interpreterArgs ?? []), ...local.args] }, r.env);
+  const commandLine = display(cmd);
   const options = {
     testRunner: !!r.testRunner,
     root: projectRoot(),
     cwd: cmd.cwd || undefined,
     cycleBufferKb: Number(mockSettingValue("run.console.cycleBufferKb") ?? 1024),
+    pathMappings,
   };
   const old = runs.get(runId);
   if (old) wasm.run_output_drop(JSON.stringify({ handle: old.output }));
   runs.set(runId, { timers: [], done: false, output: Number(wasm.run_output_new(JSON.stringify(options))) });
   setTimeout(() => emitRun(runId, { type: "started", pid: 40000 + seq, commandLine }), 0);
-  play(runId, stepsFor(r.configuration && r.env ? { ...r.configuration, env: { ...r.configuration.env, ...r.env } } : r.configuration, cmd));
+  play(runId, stepsFor(r.configuration && r.env ? { ...r.configuration, env: { ...r.configuration.env, ...r.env } } : r.configuration, local));
   return { runId, commandLine };
 });
 

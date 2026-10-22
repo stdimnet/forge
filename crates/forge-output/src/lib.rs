@@ -27,6 +27,7 @@ pub use ansi::{AnsiParser, Segment, Style};
 pub use console::{ConsoleDelta, ConsoleLine, ConsoleModel, Span};
 pub use links::{
     file_links_utf16, find_file_links, find_links, to_workspace_path, FileLink, LinkContext,
+    OutputPathMapping,
 };
 pub use osc::{link_target, parse_osc, LinkTarget, OscAction, Progress, ProgressState};
 pub use run::{OutputEvent, RunInput, RunOutput, RunOutputOptions};

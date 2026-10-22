@@ -605,6 +605,41 @@ async fn cli_scripts_use_the_server_whose_mappings_cover_them() {
     );
 }
 
+#[tokio::test]
+async fn interpreter_servers_map_runs_named_by_php_ide_config() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path().canonicalize().unwrap();
+    let mut ide = Ide::start(&root, DebugConfig::default()).await;
+    ide.server.set_interpreter_servers(vec![ServerConfig {
+        id: "interpreter:compose".into(),
+        name: "compose-app".into(),
+        host: String::new(),
+        port: 80,
+        debugger: "Xdebug".into(),
+        use_path_mappings: true,
+        mappings: vec![PathMapping {
+            local: String::new(),
+            remote: "/var/www/html".into(),
+        }],
+    }]);
+    // Not stored in the project.
+    assert!(ide.server.servers().is_empty());
+    let mut engine = Engine::connect(ide.port, "file:///var/www/html/artisan").await;
+    engine
+        .answer_identity(&[("PHP_IDE_CONFIG", "serverName=compose-app")])
+        .await;
+    let (run, _) = engine.setup().await;
+    engine
+        .reply_break(&run, "file:///var/www/html/app/Models/User.php", 3)
+        .await;
+    let paused = ide.paused().await;
+    assert_eq!(paused.server_id.as_deref(), Some("interpreter:compose"));
+    assert_eq!(
+        paused.location.unwrap().file.as_deref(),
+        Some("app/Models/User.php")
+    );
+}
+
 /// A project on a remote host: its breakpoints live there (through the project files), the
 /// listener is reached through a forwarded port and the host's paths are the project's.
 #[tokio::test]

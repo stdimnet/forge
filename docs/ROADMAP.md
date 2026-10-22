@@ -78,7 +78,7 @@ are in [research/jetbrains-gap-analysis.md](research/jetbrains-gap-analysis.md).
 - [ ] Local History with labels, selection history and Recent Changes
 
 ### Run, debug, PHP
-- [ ] PHP CLI interpreters: several local ones, Docker, Docker Compose, SSH, WSL, with path mappings
+- [x] PHP CLI interpreters: several local ones, Docker, Docker Compose, SSH, WSL, with path mappings
 - [ ] PHP Built-in Web Server, PHP Web Page and HTTP request debugging; Xdebug validation; logpoints, temporary breakpoints, Set Value, debugger console
 - [x] Composer UI (add dependency, version completion, outdated markers, Install/Update, `composer audit`)
 - [ ] Command Line Tool Support (Composer/Artisan/Symfony/WP-CLI console with completion)
