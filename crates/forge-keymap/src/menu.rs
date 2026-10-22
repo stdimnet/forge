@@ -988,7 +988,10 @@ fn git_menu() -> MenuEntry {
                 vec![
                     l("ChangesView.CreatePatch", "_Create Patch..."),
                     l("ChangesView.ApplyPatch", "_Apply Patch..."),
-                    l("ChangesView.ApplyPatchFromClipboard", "Apply Patch from Clip_board..."),
+                    l(
+                        "ChangesView.ApplyPatchFromClipboard",
+                        "Apply Patch from Clip_board...",
+                    ),
                 ],
             ),
             g(
