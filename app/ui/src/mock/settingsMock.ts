@@ -56,6 +56,12 @@ export const mockSettingValue = (key: string): SettingValue | null => resolve(ke
 /** Every effective setting value (for mocks that pass the settings to Rust). */
 export const mockSettingValues = (): Record<string, SettingValue> => ({ ...defaults, ...layers.user, ...layers.project });
 
+/** Copies of the user and project layers (the demo project is always open). */
+export const mockSettingLayers = (): Record<SettingsScope, Record<string, SettingValue>> => ({
+  user: { ...layers.user },
+  project: { ...layers.project },
+});
+
 /** Whether the user layer stores `key`. */
 export const hasUserSetting = (key: string): boolean => key in layers.user;
 

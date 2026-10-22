@@ -151,8 +151,9 @@ export const lspApi = {
   documentSymbols: (path: string) => invoke<EditorSymbol[]>("lsp_document_symbols", { path }),
   signatureHelp: (path: string, pos: LspPosition) =>
     invoke<EditorSignatureHelp | null>("lsp_signature_help", at(path, pos)),
-  format: (path: string, tabSize = 4, insertSpaces = true) =>
-    invoke<TextEdit[]>("lsp_format", { path, tabSize, insertSpaces }),
+  /** Reformat Code; `languageId` (the file type) selects the code style options for the server. */
+  format: (path: string, tabSize = 4, insertSpaces = true, languageId: string | null = null) =>
+    invoke<TextEdit[]>("lsp_format", { path, tabSize, insertSpaces, languageId }),
   /** Hints of lines `startLine..=endLine` of the editor's `text`. */
   inlayHints: (path: string, startLine: number, endLine: number, text: string, languageId: string | null) =>
     invoke<EditorInlayHint[]>("lsp_inlay_hints", { path, startLine, endLine, text, languageId }),
