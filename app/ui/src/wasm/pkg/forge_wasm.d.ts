@@ -1038,9 +1038,24 @@ export function text_write(request_json: string): string;
 export function todo_scan(request_json: string): string;
 
 /**
+ * `SelectionFacts` → `LogActionStates`: which Git Log actions the git mock's selection allows.
+ */
+export function vcs_log_action_states(facts_json: string): string;
+
+/**
  * `{ base, left, right }` → `MergeModel`.
  */
 export function vcs_merge(request_json: string): string;
+
+/**
+ * `RebaseCommit[]` (oldest first) → the initial `RebaseEntry[]` of the rebase dialog.
+ */
+export function vcs_rebase_autosquash(commits_json: string): string;
+
+/**
+ * `RebaseEntry[]` (oldest first) → `{ steps, messages }`, the todo the git mock applies.
+ */
+export function vcs_rebase_todo(entries_json: string): string;
 
 /**
  * `{text}` → `{handle}`: start tracking an editor.
@@ -1332,7 +1347,10 @@ export interface InitOutput {
     readonly text_read: (a: number, b: number, c: number) => void;
     readonly text_write: (a: number, b: number, c: number) => void;
     readonly todo_scan: (a: number, b: number, c: number) => void;
+    readonly vcs_log_action_states: (a: number, b: number, c: number) => void;
     readonly vcs_merge: (a: number, b: number, c: number) => void;
+    readonly vcs_rebase_autosquash: (a: number, b: number, c: number) => void;
+    readonly vcs_rebase_todo: (a: number, b: number, c: number) => void;
     readonly vim_attach: (a: number, b: number, c: number) => void;
     readonly vim_configure: (a: number, b: number, c: number) => void;
     readonly vim_detach: (a: number, b: number, c: number) => void;

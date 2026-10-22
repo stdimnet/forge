@@ -9,6 +9,7 @@ import { createSignal } from "solid-js";
 import { askConfirm } from "@/features/contextMenu/dialogs";
 import { gitApi, type StashEntry } from "./api";
 import { opsApi, type MergeOptions, type PullOptions, type RebaseOptions, type ResetMode, type ShelvedChangelist, type TagOptions } from "./opsApi";
+import type { RebasePlan } from "./logApi";
 import { notify, reloadOpenFiles, runGit, status } from "./store";
 import { runMerging } from "./conflicts";
 import { setDiffRequest } from "./overlays";
@@ -24,7 +25,10 @@ export type GitDialog =
   | { kind: "tag"; commit: string }
   | { kind: "remotes" }
   | { kind: "shelve"; paths: string[] }
-  | { kind: "unshelve"; changelist: ShelvedChangelist; paths: string[] };
+  | { kind: "unshelve"; changelist: ShelvedChangelist; paths: string[] }
+  | { kind: "reword"; sha: string; message: string }
+  | { kind: "squashCommits"; shas: string[]; message: string }
+  | { kind: "interactiveRebase"; sha: string; plan: RebasePlan };
 
 const [gitDialog, setGitDialog] = createSignal<GitDialog | null>(null);
 export { gitDialog, setGitDialog };

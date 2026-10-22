@@ -216,6 +216,24 @@ app/ui/            SolidJS UI
   else `--3way`), `git_shelf_delete({ id })`, `git_shelf_rename({ id, name })`,
   `git_shelf_file({ id, path }) -> { before, after, binary }`. Browser mode: `mock/gitOpsMock.ts`
   (`?rebasing` starts in a stopped rebase).
+- Git Log actions (`forge_vcs::rebase`, `repo/rewrite.rs`, `commands/git_log.rs`, UI
+  `features/git/logActions.ts`, `logIndex.ts`, `LogDialogs.tsx`, `rebaseModel.ts`); commit lists
+  are in log order (newest first): `git_log_actions({ shas }) -> { cherryPick, revert,
+  undoCommit, editMessage, fixup, squashInto, squashCommits, dropCommits, interactiveRebase:
+  { enabled, reason?, warning? } }` (protected branches from `vcs.git.protectedBranches`),
+  `git_cherry_pick({ shas })` (`-x` per `vcs.git.cherryPickSuffix`), `git_revert_commits({ shas
+  })`, `git_undo_commit({ sha }) -> { message }`, `git_reword({ sha, message })`,
+  `git_squash_commits({ shas, message })`, `git_drop_commits({ shas })`,
+  `git_interactive_rebase({ sha, entries: { sha, action: "pick" | "edit" | "reword" | "squash" |
+  "fixup" | "drop", message? }[] /* oldest first */ })` -> `{ output, oldHead, newHead?,
+  stopped }`, `git_undo_rewrite({ oldHead, newHead })`, `git_rebase_plan({ sha }) -> { base?,
+  branch?, commits: { sha, subject, message, author, time }[], entries }` (autosquash applied),
+  `git_commits_patch({ shas }) -> string`, `git_tree_files({ rev }) -> string[]`. Rewrites run
+  `git rebase -i --autostash` with `-c sequence.editor="git cat-file blob <todo> >"` and `exec`
+  amend steps reading message blobs, so no editor opens and remote projects work; stops
+  (conflicts, `edit`) hand over to `git_operation_action` and the conflict resolver. Browser
+  mode: `mock/gitLogMock.ts` (states, autosquash and the todo via WebAssembly:
+  `vcs_log_action_states`, `vcs_rebase_autosquash`, `vcs_rebase_todo`).
 - Merge conflicts (`forge_vcs::merge`, `Repo::conflicts`, `features/git/conflicts.ts`):
   `git_conflicts() -> { operation: "merge" | "rebase" | "cherryPick" | "revert" | "unstash",
   description, yoursName, theirsName, yoursTitle, theirsTitle, reversed, files: { path, yours,
