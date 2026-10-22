@@ -383,6 +383,25 @@
   --font-display: "Unbounded", "Arial Black", "Helvetica Neue", sans-serif;
 }
 
+/* Usages of the element at the caret (Highlight Usages in File): reads and writes, in the
+   text and on the scrollbar's error stripe. */
+:root,
+:root[data-theme="dark"],
+:root[data-theme="solarized-dark"] {
+  --usage-read-bg: rgba(94, 164, 255, 0.2);
+  --usage-write-bg: rgba(239, 95, 95, 0.22);
+  --usage-read-mark: #6aa7ff;
+  --usage-write-mark: #ef7f7f;
+}
+
+:root[data-theme="light"],
+:root[data-theme="solarized-light"] {
+  --usage-read-bg: rgba(46, 111, 214, 0.16);
+  --usage-write-bg: rgba(214, 58, 58, 0.16);
+  --usage-read-mark: #3f7fe0;
+  --usage-write-mark: #d64545;
+}
+
 /* Splash screen: cold steel letters that fill with molten metal while Forge loads. */
 :root,
 :root[data-theme="dark"],

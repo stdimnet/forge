@@ -22,3 +22,14 @@ export { statusItems };
 /** Items to render on one side, in order. */
 export const visibleStatusItems = (align: StatusItem["align"]) =>
   statusItems().filter((s) => s.align === align && (s.when?.() ?? true));
+
+/**
+ * The status bar's message on the left (PHPStorm's status text), e.g. "3 usages of 'total'
+ * found (Press Escape to remove the highlighting)". `null` clears it.
+ */
+const [statusMessage, setStatusMessage] = createSignal<string | null>(null);
+export { statusMessage };
+
+export function showStatusMessage(text: string | null): void {
+  setStatusMessage(text);
+}

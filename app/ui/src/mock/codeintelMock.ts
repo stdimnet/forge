@@ -14,6 +14,8 @@ import type {
   ContextActionsAnswer,
   DeclarationAnswer,
   EditPlan,
+  ElementKind,
+  HighlightAnswer,
   FilePreview,
   FileRename,
   PrepareRenameAnswer,
@@ -26,6 +28,9 @@ import type {
   NavTarget,
   SymbolHover,
   UsageLocation,
+  UsageOptions,
+  UsageScope,
+  UsageTarget,
   UsageTree,
   UsagesAnswer,
   WorkspaceEdit,
@@ -597,22 +602,186 @@ registerMock("code_symbol_info", (args): SymbolHover | null => {
   return { range: { start: positionOf(text, r.start), end: positionOf(text, r.end) }, container: info?.container ?? "", signature: info?.signature ?? "" };
 });
 
+/** What a symbol is, for the Find Usages options and dialog. */
+function elementOf(sym: Sym, buffers?: Buffers): ElementKind {
+  switch (sym.kind) {
+    case "class": {
+      const k = findClass(sym.fqn, buffers)?.cls.kind;
+      return k === "interface" || k === "trait" || k === "enum" ? k : "class";
+    }
+    case "member":
+      return sym.member === "method" ? "method" : sym.member === "property" ? "property" : sym.member === "enumCase" ? "enumCase" : "constant";
+    case "function":
+      return "function";
+    case "constant":
+      return "constant";
+    case "variable":
+      return "variable";
+  }
+}
+
+const locationOf = (path: string, text: string, offset: number, length: number, kind?: UsageLocation["kind"]): UsageLocation => ({
+  path,
+  range: { start: positionOf(text, offset), end: positionOf(text, offset + length) },
+  ...(kind ? { kind } : {}),
+});
+
+/** Usages the Find Usages options add for classes and methods (like `find_usages_with`). */
+function optionUsages(sym: Sym, element: ElementKind, options: UsageOptions, buffers?: Buffers): UsageLocation[] {
+  const on = (k: string, fallback = false) => options[k] ?? fallback;
+  const out: UsageLocation[] = [];
+  if (sym.kind === "class") {
+    const d = findClass(sym.fqn, buffers);
+    const iface = element === "interface";
+    const methods = iface ? on("interfaceMethodUsages") : on("classMethodUsages");
+    const fields = !iface && on("classFieldUsages");
+    for (const m of d?.cls.members ?? []) {
+      if ((m.kind === "method" && methods) || (m.kind !== "method" && fields)) {
+        out.push(...usagesOf({ kind: "member", cls: sym.fqn, name: m.name, member: m.kind }, buffers).usages);
+      }
+    }
+    if (d) {
+      for (const sub of allClasses(buffers).filter((x) => !x.path.startsWith(STUBS) && x.cls.fqn !== d.cls.fqn)) {
+        if (!lineage(sub, buffers).some((a) => a.cls.fqn === d.cls.fqn)) continue;
+        const kind =
+          sub.cls.kind === "interface"
+            ? on("interfaceDerivedInterfaces") && "derivedInterface"
+            : iface
+              ? on("interfaceImplementingClasses") && "implementingClass"
+              : on("classDerivedClasses") && "derivedClass";
+        if (kind) out.push(locationOf(sub.path, sub.text, sub.cls.offset, sub.cls.name.length, kind));
+      }
+    }
+  }
+  if (sym.kind === "member" && sym.member === "method" && on("methodOverridingMethods")) {
+    const base = findClass(sym.cls, buffers);
+    for (const sub of allClasses(buffers).filter((x) => !x.path.startsWith(STUBS))) {
+      if (!base || sub.cls.fqn === base.cls.fqn || !lineage(sub, buffers).some((a) => a.cls.fqn === base.cls.fqn)) continue;
+      const m = sub.cls.members.find((x) => x.kind === "method" && x.name.toLowerCase() === sym.name.toLowerCase());
+      const kind = base.cls.kind === "interface" ? "implementingMethod" : "overridingMethod";
+      if (m) out.push(locationOf(sub.path, sub.text, m.offset, m.name.length, kind));
+    }
+  }
+  return out;
+}
+
+/** Text occurrences, scope and options, by the same Rust code as `code_find_usages`. */
+async function filtered(
+  a: At & { options?: UsageOptions; scope?: UsageScope },
+  usages: UsageLocation[],
+  element: ElementKind,
+  word: string,
+  buffers: Buffers,
+): Promise<{ usages: UsageLocation[]; scope: string }> {
+  const files: Record<string, string> = {};
+  for (const path of Object.keys(mockFiles)) files[path] = textOf(path, buffers) ?? "";
+  const wasm = await forgeWasm();
+  return callWasm(wasm.codeintel_filter_usages, {
+    usages,
+    options: a.options ?? {},
+    scope: { kind: "projectFiles", ...a.scope, currentFile: a.scope?.currentFile || a.path },
+    element,
+    path: a.path,
+    word,
+    files,
+  });
+}
+
 registerMock("code_find_usages", async (args): Promise<UsagesAnswer> => {
   const { a, text, offset, buffers } = at(args);
+  const opts = args as { options?: UsageOptions; scope?: UsageScope };
+  const w = wordAt(text, offset);
+  const word = w ? text.slice(...w) : "";
   if (!isPhp(a.path)) {
     const refs = await invoke<EditorLocation[]>("lsp_references", { path: a.path, line: a.line, character: a.character }).catch(() => []);
-    const w = wordAt(text, offset);
-    const trees = await grouped(refs.map((l) => ({ path: l.path, range: l.range })), null, buffers);
-    return { title: w ? text.slice(...w) : "", source: refs.length ? "lsp" : "none", declaration: null, ...trees };
+    const found = await filtered({ ...a, ...opts }, refs.map((l) => ({ path: l.path, range: l.range })), "symbol", word, buffers);
+    const trees = await grouped(found.usages, null, buffers);
+    return { title: word, source: found.usages.length ? "lsp" : "none", declaration: null, ...trees, element: "symbol", scope: found.scope };
   }
   const r = resolveAt(a.path, text, offset, buffers);
   if (!r) {
     const empty = { total: 0, fileCount: 0, groups: [] };
-    return { title: wordAt(text, offset) ? text.slice(...wordAt(text, offset)!) : "", source: "none", declaration: null, byType: empty, byFile: empty };
+    return { title: word, source: "none", declaration: null, byType: empty, byFile: empty, element: "symbol", scope: "Project Files" };
   }
+  const element = elementOf(r.sym, buffers);
+  const options = opts.options ?? {};
   const { declaration, usages } = usagesOf(r.sym, buffers);
-  const trees = await grouped(usages, declaration, buffers);
-  return { title: displayOf(r.sym), source: "index", declaration, ...trees };
+  const main =
+    element === "class" || element === "trait" || element === "enum"
+      ? (options.classUsages ?? true)
+      : element === "interface"
+        ? (options.interfaceUsages ?? true)
+        : element === "method"
+          ? (options.methodUsages ?? true)
+          : true;
+  const all = [...(main ? usages : []), ...optionUsages(r.sym, element, options, buffers)];
+  const found = await filtered({ ...a, ...opts }, all, element, searchWord(r.sym).split("\\").pop()!, buffers);
+  const trees = await grouped(found.usages, declaration, buffers);
+  return { title: displayOf(r.sym), source: "index", declaration, ...trees, element, scope: found.scope };
+});
+
+/** `implements` / `extends` in a class header: its methods that implement / override the parents'. */
+function parentMethods(path: string, text: string, start: number, keyword: string, buffers: Buffers): HighlightAnswer | null {
+  const file = parse(path, text);
+  const cls = classAt(file, start);
+  if (!cls || start > cls.open) return null;
+  const parents = (keyword === "implements" ? cls.implements : cls.extends ? [cls.extends] : []).map((n) => resolveName(n, file));
+  const names = new Set<string>();
+  for (const p of parents) {
+    const d = findClass(p, buffers);
+    if (d) for (const c of lineage(d, buffers)) for (const m of c.cls.members) if (m.kind === "method") names.add(m.name.toLowerCase());
+  }
+  const highlights = cls.members
+    .filter((m) => m.kind === "method" && names.has(m.name.toLowerCase()))
+    .map((m) => ({ range: { start: positionOf(text, m.offset), end: positionOf(text, m.offset + m.name.length) }, kind: "read" as const }));
+  const title = parents.map((p) => p.split("\\").pop()).join(", ");
+  const implementsIt = keyword === "implements" || cls.kind === "interface";
+  const n = highlights.length;
+  return {
+    target: implementsIt ? "implementingMethods" : "overridingMethods",
+    title,
+    highlights,
+    source: "index",
+    element: "symbol",
+    summary: `${n} ${n === 1 ? "method" : "methods"} ${implementsIt ? "implementing" : "overriding"} '${title}' found`,
+  };
+}
+
+registerMock("code_highlight_usages", async (args): Promise<HighlightAnswer | null> => {
+  const { a, text, offset, buffers } = at(args);
+  const wasm = await forgeWasm();
+  const base = { text, path: a.path, line: a.line, character: a.character };
+  if (isPhp(a.path)) {
+    const w = wordAt(text, offset);
+    const word = w ? text.slice(...w) : "";
+    if (w && (word === "implements" || word === "extends")) return parentMethods(a.path, text, w[0], word, buffers);
+    const r = resolveAt(a.path, text, offset, buffers);
+    if (r) {
+      const { declaration, usages } = usagesOf(r.sym, buffers);
+      const ranges = usages.filter((u) => u.path === a.path).map((u) => u.range);
+      const decl = declaration?.path === a.path ? declaration.range : null;
+      const title = r.sym.kind === "class" ? searchWord(r.sym).split("\\").pop()! : searchWord(r.sym);
+      const element = elementOf(r.sym, buffers);
+      const answer = await callWasm<HighlightAnswer | null>(wasm.codeintel_highlight_usages, { ...base, ranges, declaration: decl, title, element });
+      if (answer) return answer;
+    }
+  }
+  return callWasm<HighlightAnswer | null>(wasm.codeintel_highlight_usages, base);
+});
+
+registerMock("code_usage_target", async (args): Promise<UsageTarget | null> => {
+  const { a, text, offset, buffers } = at(args);
+  const w = wordAt(text, offset);
+  if (!w) return null;
+  const wasm = await forgeWasm();
+  if (isPhp(a.path)) {
+    const r = resolveAt(a.path, text, offset, buffers);
+    if (!r) return null;
+    const title = r.sym.kind === "class" ? searchWord(r.sym).split("\\").pop()! : searchWord(r.sym);
+    return callWasm<UsageTarget>(wasm.codeintel_usage_target, { element: elementOf(r.sym, buffers), title });
+  }
+  const h = await callWasm<HighlightAnswer | null>(wasm.codeintel_highlight_usages, { text, path: a.path, line: a.line, character: a.character });
+  return callWasm<UsageTarget>(wasm.codeintel_usage_target, { element: h?.element ?? "symbol", title: text.slice(...w) });
 });
 
 registerMock("code_navigate", (args): NavigateAnswer => {

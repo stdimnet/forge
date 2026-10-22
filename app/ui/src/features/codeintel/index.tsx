@@ -2,7 +2,9 @@
  * Code navigation like PHPStorm on top of Rust's code intelligence (`code_*` commands:
  * language servers first, the PHP index and the PHP stubs as fallback, through the
  * project's backend so remote projects work): Find Usages (Alt+F7), Show Usages
- * (Ctrl+Alt+F7), Go to Implementation (Ctrl+Alt+B), Type Declaration (Ctrl+Shift+B), Super
+ * (Ctrl+Alt+F7), Find Usages in File (Ctrl+F7), Highlight Usages in File (Ctrl+Shift+F7)
+ * and the highlighting of the element at the caret, the Find Usages dialog
+ * (Ctrl+Alt+Shift+F7), Go to Implementation (Ctrl+Alt+B), Type Declaration (Ctrl+Shift+B), Super
  * Method (Ctrl+U), the Find tool window (Alt+3), implemented / overridden gutter icons,
  * read-only library files, Rename (Shift+F6, in place) and Show Context Actions (Alt+Enter,
  * with the light bulb). Go to Declaration (Ctrl+B, Ctrl+Click) lives in
@@ -36,7 +38,10 @@ import { RefactoringPreviewDialog, RenameDialog } from "./RefactoringDialogs";
 import { listenForServerEdits, refactoringHistory } from "./refactoring";
 import { inPlaceRename, previewRequest, renameDialog, startRename } from "./rename";
 import { chooseTargetAt } from "./targets";
-import { findTabs, findUsagesAt, searchTabOpen, gotoFindOccurrence, showUsagesAt, usagesPopup } from "./usages";
+import { findTabs, findUsagesAt, findUsagesInFileAt, searchTabOpen, gotoFindOccurrence, showUsagesAt, usagesPopup } from "./usages";
+import { findUsagesDialog, openFindUsagesSettings } from "./findSettings";
+import { FindUsagesDialog } from "./FindUsagesDialog";
+import { caretUsageHighlighter, highlightUsagesInFile } from "./highlightUsages";
 import "./library";
 import "./markers";
 import "./codeintel.css";
@@ -78,6 +83,15 @@ action("GotoTypeDeclaration", "Type Declaration", "Navigate", inEditor((p, v, po
 action("GotoSuperMethod", "Super Method", "Navigate", inEditor((p, v, pos) => navigateAt("superMethod", p, v, pos)));
 action("FindUsages", "Find Usages", "Find", inEditor(findUsagesAt));
 action("ShowUsages", "Show Usages", "Find", inEditor((p, v, pos) => showUsagesAt(p, v, pos)));
+action("FindUsagesInFile", "Find Usages in File", "Find", inEditor(findUsagesInFileAt));
+action("HighlightUsagesInFile", "Highlight Usages in File", "Find", inEditor(highlightUsagesInFile));
+// Ctrl+Alt+Shift+F7: the Find Usages dialog, then Find Usages with the chosen settings.
+action(
+  "ShowSettingsAndFindUsages",
+  "Find Usages Settings…",
+  "Find",
+  inEditor((p, v, pos) => openFindUsagesSettings(p, v, pos, () => void findUsagesAt(p, v, pos))),
+);
 // Ctrl+Alt+Down / Up: the next or previous result of the Find tool window's active tab.
 action("NextOccurence", "Next Occurrence", "Navigate", () => {
   if (!gotoFindOccurrence(1, findGroupByType())) showBalloon("There are no occurrences", "Search with Find Usages (Alt+F7) or Find in Files first.");
@@ -111,7 +125,9 @@ action("RenameFile", "Rename File…", "Refactor", () => {
 });
 
 // Rename, the light bulb and refactoring undo in every project file editor.
-registerEditorExtension(({ path }) => (isLibraryPath(path) ? [] : [refactoringHistory(), inPlaceRename(), intentionBulb(path)]));
+registerEditorExtension(({ path }) =>
+  isLibraryPath(path) ? [] : [refactoringHistory(), inPlaceRename(), intentionBulb(path), caretUsageHighlighter(path)],
+);
 
 registerToolWindow({
   id: "find",
@@ -146,6 +162,9 @@ if (typeof document !== "undefined" && !isDialogWindow()) {
           </Show>
           <Show when={previewRequest()} keyed>
             {(r) => <RefactoringPreviewDialog req={r} />}
+          </Show>
+          <Show when={findUsagesDialog()} keyed>
+            {(r) => <FindUsagesDialog req={r} />}
           </Show>
         </>
       ),

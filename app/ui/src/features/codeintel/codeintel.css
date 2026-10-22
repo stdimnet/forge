@@ -269,3 +269,37 @@
 .find-tool:disabled {
   opacity: 0.5;
 }
+
+/* ---------- Find Usages dialog (Ctrl+Shift+Alt+F7) ---------- */
+.find-usages-dialog {
+  width: min(520px, calc(100vw - 32px));
+}
+.find-usages-element {
+  color: var(--fg-muted);
+}
+.find-usages-element strong {
+  color: var(--fg-strong);
+  font-weight: 600;
+}
+.find-usages-groups {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.find-usages-group {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  margin: 0;
+  padding: 8px 10px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.find-usages-group legend {
+  padding: 0 4px;
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+.find-usages-dialog .form-row {
+  grid-template-columns: 80px 1fr;
+}

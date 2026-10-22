@@ -31,6 +31,7 @@ import { startCompletion } from "@codemirror/autocomplete";
 import { registerEditorExtension } from "@/editor/extensions";
 import { editor } from "@/state/editor";
 import { viewFor as sharedViewFor } from "@/editor/views";
+import { gotoHighlightedUsage } from "@/editor/usageHighlight";
 
 const views = new Map<string, EditorView>();
 
@@ -197,8 +198,9 @@ export const EDITOR_COMMANDS: Record<string, CmCommand> = {
   CodeCompletion: startCompletion,
   Find: openSearchPanel,
   Replace: openSearchPanel,
-  FindNext: findNext,
-  FindPrevious: findPrevious,
+  // After Highlight Usages in File (Ctrl+Shift+F7), F3 / Shift+F3 jump between the usages.
+  FindNext: (view) => gotoHighlightedUsage(view, 1) || findNext(view),
+  FindPrevious: (view) => gotoHighlightedUsage(view, -1) || findPrevious(view),
   GotoLine: gotoLine,
   EditorScrollUp: scrollBy(-1),
   EditorScrollDown: scrollBy(1),
