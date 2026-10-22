@@ -7,6 +7,8 @@ import "./project";
 import "./ai";
 import "./ai-chat";
 import "./settings";
+import "./maintenance";
+import "./fileTypes";
 import "./codeStyle";
 import "./lsp";
 import "./langservers";

@@ -67,6 +67,7 @@ import { toml } from "@codemirror/legacy-modes/mode/toml";
 import { nginx } from "@codemirror/legacy-modes/mode/nginx";
 import { lua } from "@codemirror/legacy-modes/mode/lua";
 import { diff } from "@codemirror/legacy-modes/mode/diff";
+import { customFileTypeLanguage } from "./customFileType";
 
 /**
  * Syntax modes by file type id. Which file type a file has (names, extensions, shebangs,
@@ -200,6 +201,8 @@ export function registerLanguage(def: LanguageDef): void {
 /** The editor extensions for a file's language (empty for plain text). */
 export function languageFor(path: string, content?: string): Extension[] {
   const info = fileTypeOf(path, content);
+  // Custom file types (Settings | Editor | File Types) bring their syntax from Rust.
+  if (info.custom) return [customFileTypeLanguage(info.custom)];
   const load = info.id ? loaders.get(info.id) : undefined;
   return load ? [load(path, info)] : [];
 }

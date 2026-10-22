@@ -1,0 +1,175 @@
+/* Settings | Editor | File Types. */
+.ft-page {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 4px;
+}
+.ft-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+}
+.ft-column {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.ft-caption {
+  color: var(--fg-strong);
+  font-weight: 500;
+}
+.ft-list {
+  max-width: none;
+}
+.ft-items {
+  height: 280px;
+  max-height: none;
+}
+.ft-filter {
+  margin-left: auto;
+  width: 140px;
+  height: 22px;
+}
+.ft-type {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-ui);
+  font-size: var(--fs-ui);
+  text-align: left;
+}
+.ft-icon {
+  color: var(--fg-muted);
+  flex: none;
+}
+.ft-type.custom .ft-icon {
+  color: var(--accent);
+}
+.ft-muted {
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+.ft-type .ft-muted {
+  margin-left: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ft-added {
+  font-weight: 600;
+  color: var(--fg-strong);
+}
+.ft-removed {
+  display: flex;
+  align-items: center;
+  color: var(--fg-faint);
+  text-decoration: line-through;
+}
+.ft-line-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+}
+.ft-line-form .set-input {
+  flex: 1;
+  min-width: 120px;
+  font-family: var(--font-mono);
+}
+.ft-hint {
+  flex-basis: 100%;
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+.ft-syntax-note {
+  margin-top: 2px;
+}
+.ft-ignored-caption {
+  margin-top: 10px;
+}
+.ft-ignored {
+  max-width: none;
+}
+.ft-ignored-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 4px;
+  padding: 4px;
+  max-height: 120px;
+  overflow: auto;
+}
+.ft-ignored-items .set-list-item {
+  width: auto;
+  border-radius: var(--radius-sm);
+}
+/* New File Type dialog */
+.ft-dialog {
+  width: min(520px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  overflow: auto;
+}
+.ft-form {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  align-items: center;
+  gap: 6px 12px;
+  padding: 10px 16px 0;
+}
+.ft-group-title {
+  margin: 12px 16px 0;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+.ft-inline {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.ft-short {
+  width: 120px;
+  font-family: var(--font-mono);
+}
+.ft-flags {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 12px;
+  padding: 10px 16px 0;
+}
+.ft-tabs {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 12px 16px 4px;
+}
+.ft-tab {
+  min-width: 28px;
+  height: 24px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--fg);
+}
+.ft-tab.active {
+  border-color: var(--border-strong);
+  background: var(--bg-active);
+  color: var(--fg-strong);
+}
+.ft-tabs .ft-muted {
+  margin-left: 8px;
+}
+.ft-keywords {
+  margin: 0 16px 12px;
+  width: calc(100% - 32px);
+  height: 110px;
+  resize: vertical;
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+}

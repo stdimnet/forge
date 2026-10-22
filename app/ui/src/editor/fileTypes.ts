@@ -43,11 +43,16 @@ function config(): Omit<DetectRequest, "files"> {
     dataLanguages: getSetting<string[]>("templates.dataLanguages", []),
     softWrapFiles: getSetting<boolean>("editor.softWraps", false) ? getSetting<string>("editor.softWrapFiles", "") : null,
     templateDelimiters: getSetting<SettingObject[]>("templates.delimiters", []),
+    associations: getSetting<SettingObject[]>("fileTypes.associations", []),
+    customTypes: getSetting<SettingObject[]>("fileTypes.custom", []),
   };
 }
 
+/** The settings part of a request (Settings | Editor | File Types lists the types with it). */
+export const fileTypeConfig = config;
+
 // Plugin activation (project detection, Settings > Plugins) and file type settings (data
-// languages, soft wraps, template delimiters) change the answers.
+// languages, soft wraps, template delimiters, patterns and custom types) change the answers.
 createRoot(() => createEffect(on(() => JSON.stringify(config()), invalidate, { defer: true })));
 
 const firstLineOf = (content?: string) => content?.slice(0, content.search(/\r?\n|$/));

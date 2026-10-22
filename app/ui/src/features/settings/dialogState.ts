@@ -7,7 +7,7 @@ import { createSignal } from "solid-js";
 import { closeDialog, notifyDialogOpener, openDialogWindow } from "@/shell/window/dialogs";
 import { createStore, produce, reconcile } from "solid-js/store";
 import type { SettingValue } from "@/ipc/settings";
-import { findSpec, getSetting, saveSettings, setPluginEnabled, settingsState } from "@/state/settings";
+import { findSpec, getSetting, newProjectValue, saveSettings, setPluginEnabled, settingsState } from "@/state/settings";
 
 const [isOpen, setOpen] = createSignal(false);
 /** Selected tree node; remembered between openings like PHPStorm does. */
@@ -15,13 +15,18 @@ const [selected, setSelected] = createSignal("appearance");
 const [query, setQuery] = createSignal("");
 const [applying, setApplying] = createSignal(false);
 const [error, setError] = createSignal<string | null>(null);
+/**
+ * The dialog edits the Settings for New Projects (File | New Projects Setup): project-level
+ * settings show and store the defaults for projects instead of the open project's values.
+ */
+const [forNewProjects, setForNewProjects] = createSignal(false);
 
-/** Pending setting values by key. */
-const [draft, setDraftStore] = createStore<Record<string, SettingValue>>({});
+/** Pending setting values by key (`null`: back to the inherited value). */
+const [draft, setDraftStore] = createStore<Record<string, SettingValue | null>>({});
 /** Pending plugin enablement by plugin id. */
 const [pluginDraft, setPluginDraftStore] = createStore<Record<string, boolean>>({});
 
-export { isOpen, selected, setSelected, query, setQuery, applying, error, draft, pluginDraft };
+export { isOpen, selected, setSelected, query, setQuery, applying, error, draft, pluginDraft, forNewProjects };
 
 /**
  * Edits that pages keep in their own store instead of the settings draft (the Code Style
@@ -51,6 +56,8 @@ export interface SettingsDialogProps {
   page?: string;
   /** Data for the page, e.g. the text of a new live template (Save as Live Template). */
   args?: unknown;
+  /** Edit the Settings for New Projects. */
+  forNewProjects?: boolean;
 }
 
 /** Arguments handed to a page by `openSettings(page, args)`; the page takes them once. */
@@ -79,8 +86,15 @@ export function openSettings(pageId?: string, args?: unknown): void {
   void openDialogWindow(SETTINGS_DIALOG, { page: pageId ?? selected(), args } satisfies SettingsDialogProps);
 }
 
+/** File | New Projects Setup | Settings for New Projects…: the dialog in defaults mode. */
+export function openSettingsForNewProjects(pageId?: string): void {
+  if (isOpen()) return;
+  void openDialogWindow(SETTINGS_DIALOG, { page: pageId ?? selected(), forNewProjects: true } satisfies SettingsDialogProps);
+}
+
 /** Called by the dialog content when it mounts (in-page or in its window). */
 export function dialogOpened(props: SettingsDialogProps): void {
+  setForNewProjects(!!props.forNewProjects);
   if (props.page) setSelected(props.page);
   setPageArgs(props.page && props.args !== undefined ? { page: props.page, args: props.args } : null);
   setError(null);
@@ -107,14 +121,26 @@ export function closeSettings(): void {
   closeDialog(SETTINGS_DIALOG, { page: selected() } satisfies SettingsDialogResult);
 }
 
-/** Value shown in the dialog: the draft if edited, else the effective value. */
-export const draftValue = <T extends SettingValue>(key: string): T =>
-  (key in draft ? draft[key] : getSetting(key)) as T;
+/**
+ * The stored value the dialog starts from: the effective value, or for project-level
+ * settings in the Settings for New Projects their value for new projects.
+ */
+export function baseValue<T extends SettingValue>(key: string): T {
+  if (forNewProjects() && findSpec(key)?.project) return newProjectValue<T>(key);
+  return getSetting<T>(key);
+}
+
+/** Value shown in the dialog: the draft if edited, else the stored value. */
+export const draftValue = <T extends SettingValue>(key: string): T => {
+  if (!(key in draft)) return baseValue<T>(key);
+  const v = draft[key];
+  return (v === null ? findSpec(key)?.default : v) as T;
+};
 
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 
 export function setDraft(key: string, value: SettingValue): void {
-  if (same(value, getSetting(key))) {
+  if (same(value, baseValue(key))) {
     setDraftStore(produce((d) => void delete d[key]));
   } else {
     setDraftStore(key, value);
@@ -139,6 +165,19 @@ export function pageModified(pageId: string): boolean {
 export const hasChanges = () =>
   Object.keys(draft).length > 0 || Object.keys(pluginDraft).length > 0 || draftSources.some((s) => s.hasChanges());
 
+/** Schema settings shown on a page (including those its custom editors keep). */
+const pageSpecs = (pageId: string) => settingsState.schema.filter((s) => s.group === pageId);
+
+/** Whether a page shows a value that differs from its default ("Restore Defaults" applies). */
+export function pageDiffersFromDefaults(pageId: string): boolean {
+  return pageSpecs(pageId).some((s) => !same(draftValue(s.key), s.default));
+}
+
+/** "Restore Defaults": draft every setting of the page back to its default (Apply stores it). */
+export function restorePageDefaults(pageId: string): void {
+  for (const spec of pageSpecs(pageId)) setDraft(spec.key, spec.default);
+}
+
 /** Discard the draft of one page (the "Reset" link). */
 export function resetPage(pageId: string): void {
   if (pageId === "plugins") {
@@ -158,7 +197,7 @@ export async function applyChanges(): Promise<boolean> {
   setApplying(true);
   setError(null);
   try {
-    await saveSettings({ ...draft });
+    await saveSettings({ ...draft }, forNewProjects());
     setDraftStore(reconcile({}));
     for (const source of draftSources) if (source.hasChanges()) await source.apply();
     for (const [id, enabled] of Object.entries({ ...pluginDraft })) await setPluginEnabled(id, enabled);

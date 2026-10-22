@@ -246,6 +246,11 @@ function TreeNode(props: { entry: FileEntry; depth: number }) {
 const [dirRevisions, setDirRevisions] = createSignal<Record<string, number>>({});
 
 /** Re-read the listings of these directories ("" is the project root). */
+/** Reload every folder the Project view has listed (Repair IDE, ignored files changed). */
+export function refreshAllDirs(): void {
+  refreshDirs(["", ...Object.keys(dirRevisions())]);
+}
+
 export function refreshDirs(dirs: string[]): void {
   if (!dirs.length) return;
   setDirRevisions((prev) => {
