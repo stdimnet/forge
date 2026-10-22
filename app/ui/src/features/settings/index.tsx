@@ -36,6 +36,7 @@ const schemaPages: SchemaPageDef[] = [
   { id: "system", title: "System Settings", group: "Appearance & Behavior", order: 10, keywords: ["autosave", "startup", "exit"] },
   { id: "editor.general", title: "General", group: "Editor", order: 0 },
   { id: "editor.tabs", title: "Editor Tabs", group: "Editor", parent: "editor.general", order: 0, keywords: ["tab limit", "closing policy", "pinned", "split"] },
+  { id: "editor.general.auto-import", title: "Auto Import", group: "Editor", parent: "editor.general", order: 10, keywords: ["optimize imports", "use statement", "import popup", "fqn", "on the fly"] },
   { id: "editor.font", title: "Font", group: "Editor", order: 10 },
   { id: "editor.inlay-hints", title: "Inlay Hints", group: "Editor", order: 30, keywords: ["code vision"] },
   { id: "editor.todo", title: "TODO", group: "Editor", order: 40, keywords: ["fixme", "patterns", "comments"] },

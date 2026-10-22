@@ -20,7 +20,7 @@ use std::collections::HashMap;
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 
-use forge_backend::langservers::{system_rows, LiveServer, SETTINGS_PREFIX};
+use forge_backend::langservers::{is_planner_setting, system_rows, LiveServer};
 use forge_backend::{InstallRequest, InstallSink, InstallTarget, LangServersRequest};
 use forge_core::{ForgeError, Result};
 use forge_langservers::install::{InstallOutcome, Stream};
@@ -53,7 +53,7 @@ fn request(ws: &AppState, manager: Option<&LspManager>, rescan: bool) -> LangSer
         .read_settings()
         .effective()
         .into_iter()
-        .filter(|(k, _)| k.starts_with(SETTINGS_PREFIX))
+        .filter(|(k, _)| is_planner_setting(k))
         .collect();
     let disabled_plugins = ws
         .plugins

@@ -284,6 +284,16 @@ async fn php_index_runs_on_the_agent() {
         let hits = php.search("Order", Default::default(), 10, false).unwrap();
         assert_eq!(hits[0].name, "Order");
 
+        // Auto Import: unresolved class names with candidates from the agent's index.
+        let unresolved = php
+            .unresolved_classes(
+                "app/Http/Show.php",
+                Some("<?php\nnamespace App\\Http;\n\nnew Order();\n".into()),
+            )
+            .unwrap();
+        assert_eq!(unresolved[0].name, "Order");
+        assert_eq!(unresolved[0].candidates, vec!["App\\Models\\Order"]);
+
         let text = backend.read_file("app/Models/Order.php").unwrap();
         let offset = text.find("Order\n{").unwrap() + 1;
         let hover = php

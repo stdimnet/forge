@@ -22,6 +22,10 @@ pub const LUA_ENVIRONMENT_KEY: &str = "langservers.lua.environment";
 pub const LUA_VERSION_KEY: &str = "langservers.lua.version";
 /// Extra `workspace.library` folders of lua-language-server.
 pub const LUA_LIBRARIES_KEY: &str = "langservers.lua.libraries";
+/// Settings | Editor | General | Auto Import | JavaScript and TypeScript: how import paths
+/// are written and whether TypeScript gets `import type`.
+pub const JS_IMPORT_PATHS_KEY: &str = "javascript.autoImport.pathStyle";
+pub const TS_TYPE_IMPORTS_KEY: &str = "javascript.autoImport.typeImports";
 
 /// Settings key of a per-server value (`enabled`, `path` or `settings`).
 pub fn server_key(id: &str, field: &str) -> String {
@@ -73,6 +77,11 @@ pub struct Prefs {
     pub lua_version: String,
     /// Extra library folders for lua-language-server.
     pub lua_libraries: Vec<String>,
+    /// The TypeScript server's `importModuleSpecifierPreference`: `shortest`,
+    /// `project-relative`, `relative` or `non-relative`.
+    pub js_import_paths: String,
+    /// The TypeScript server's `preferTypeOnlyAutoImports`.
+    pub ts_type_imports: bool,
     pub servers: HashMap<String, ServerPrefs>,
 }
 
@@ -84,6 +93,8 @@ impl Default for Prefs {
             lua_environment: LuaEnvironment::Auto,
             lua_version: "Lua 5.4".into(),
             lua_libraries: Vec::new(),
+            js_import_paths: "shortest".into(),
+            ts_type_imports: false,
             servers: HashMap::new(),
         }
     }
@@ -134,6 +145,13 @@ impl Prefs {
                 .filter_map(|v| v.as_str().map(str::trim).filter(|s| !s.is_empty()))
                 .map(str::to_string)
                 .collect(),
+            js_import_paths: match string(JS_IMPORT_PATHS_KEY).as_deref() {
+                Some(p @ ("project-relative" | "relative" | "non-relative")) => p.to_string(),
+                _ => defaults.js_import_paths,
+            },
+            ts_type_imports: get(TS_TYPE_IMPORTS_KEY)
+                .and_then(|v| v.as_bool())
+                .unwrap_or(defaults.ts_type_imports),
             servers,
         }
     }
@@ -167,6 +185,8 @@ mod tests {
             ("langservers.servers.gopls.path", json!(" /opt/gopls ")),
             ("langservers.servers.zls.settings", json!("{\"zls\": {}}")),
             ("langservers.servers.taplo.path", json!("")),
+            (TS_TYPE_IMPORTS_KEY, json!(true)),
+            (JS_IMPORT_PATHS_KEY, json!("bogus")),
         ]
         .into_iter()
         .map(|(k, v)| (k.to_string(), v))
@@ -180,6 +200,8 @@ mod tests {
         assert_eq!(p.lua_environment, LuaEnvironment::Love);
         assert_eq!(p.lua_version, "Lua 5.4");
         assert_eq!(p.lua_libraries, vec!["libs", "~/lua"]);
+        assert_eq!(p.js_import_paths, "shortest");
+        assert!(p.ts_type_imports);
         assert!(!p.is_enabled("gopls", true));
         assert!(p.is_enabled("clangd", true));
         assert!(!p.is_enabled("clangd", false));

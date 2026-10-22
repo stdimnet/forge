@@ -19,6 +19,7 @@ not finished, the page says so.
 | [Editor](editor.md) | completion, hover, Parameter Info, Go to Declaration, problems, formatting, editing actions, folding, find, gutter, context menu |
 | [Sticky lines, breadcrumbs and Reader mode](code-structure.md) | Sticky Lines, structure breadcrumbs, custom folding regions, rendered doc comments (`Ctrl+Alt+Q`), Reader mode |
 | [Markdown, images and CSV](markdown-images-csv.md) | Markdown preview (Mermaid, tables, links, images, front matter), image editor and SVG preview, Edit as Table for CSV/TSV |
+| [Optimize Imports and Auto Import](imports.md) | Optimize Imports (`Ctrl+Alt+O`) for files, folders and the project, Auto Import on the fly and on completion, the import popup, Import class, the PHP code style's Imports tab |
 | [Actions on Save](actions-on-save.md) | Reformat code, Optimize imports, Rearrange code, code cleanup, ESLint, Prettier, PHP CS Fixer and Laravel Pint on save |
 | [Live templates](live-templates.md) | abbreviations + `Tab`, Insert Live Template, Surround With, Unwrap/Remove, Save as Live Template, template sets and settings |
 | [Emmet and color previews](emmet-and-colors.md) | Emmet abbreviations in HTML, Blade, Twig, Vue, PHP, JSX and CSS, abbreviation preview, Surround with Emmet, Update/Remove Tag, edit points, color swatches and the color picker |

@@ -17,6 +17,7 @@ use futures_util::future::BoxFuture;
 use phpforge_lang_php::generate::{GenerateKind, GenerateOptions, GenerateTargets, TextEdit};
 use phpforge_lang_php::hierarchy::{HierarchyQuery, PhpHierarchy};
 use phpforge_lang_php::hover::Hover;
+use phpforge_lang_php::imports::auto::UnresolvedClass;
 use phpforge_lang_php::index::{SearchKind, SymbolHit};
 use phpforge_lang_php::intentions::Intention;
 use phpforge_lang_php::lsp::{DetectedServers, LspServerConfig, PhpLspSettings};
@@ -915,6 +916,17 @@ impl PhpBackend for RemoteBackend {
             path: path.to_string(),
             offset,
             options,
+            content,
+        })
+    }
+
+    fn unresolved_classes(
+        &self,
+        path: &str,
+        content: Option<String>,
+    ) -> Result<Vec<UnresolvedClass>> {
+        self.php_call(PhpCall::UnresolvedClasses {
+            path: path.to_string(),
             content,
         })
     }

@@ -40,6 +40,7 @@ import type { EditorLocation, LspPosition } from "@/ipc/lsp";
 import { callWasm, forgeWasm } from "@/wasm";
 import { demoStubs, demoStubsDetail } from "./demoStubs";
 import { parsePhp, classAt, memberType, type MockClass, type MockFile, type MockMember } from "./phpMockParser";
+import { mockImportClassAction } from "./importsMock";
 import { mockFiles } from "./workspaceMock";
 import { createFromUsage } from "./createFromUsageMock";
 
@@ -1203,6 +1204,8 @@ registerMock("code_context_actions", async (args): Promise<ContextActionsAnswer>
       }
     }
     actions.push(...(await phpIntentions(a.path, text, offset)));
+    const importClass = mockImportClassAction(a.path, text, offset);
+    if (importClass) actions.push(importClass);
   }
   actions.push(...(await injectionContextActions(a.path, text, offset)));
   const sel = args as { endLine?: number; endCharacter?: number };

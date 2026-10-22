@@ -327,6 +327,11 @@ pub enum PhpCall {
         options: GenerateOptions,
         content: Option<String>,
     },
+    /// -> `Vec<UnresolvedClass>`
+    UnresolvedClasses {
+        path: String,
+        content: Option<String>,
+    },
     /// -> `Option<LspServerConfig>`
     LspConfig { settings: PhpLspSettings },
     /// -> `DetectedServers`

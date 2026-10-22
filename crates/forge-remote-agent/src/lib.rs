@@ -509,6 +509,9 @@ impl Agent {
                 options,
                 content,
             } => reply(php.intentions(&path, offset, options, content)?),
+            PhpCall::UnresolvedClasses { path, content } => {
+                reply(php.unresolved_classes(&path, content)?)
+            }
             PhpCall::LspConfig { settings } => reply(php.lsp_config(settings)?),
             PhpCall::DetectServers { settings } => reply(php.detect_servers(settings)?),
         }

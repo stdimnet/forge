@@ -649,7 +649,6 @@ happening.
 - Extract Interface / Superclass, Pull Members Up / Push Members Down
 - File Structure popup (`Ctrl+F12`)
 - Local History
-- Optimize Imports
 - Go to Test (`Ctrl+Shift+T`)
 - Distraction Free / Presentation / Zen modes
 - Marketplace, settings export/import
@@ -689,6 +688,7 @@ not finished, the page says so.
 | [Editor](docs/guide/user/editor.md) | completion, hover, Parameter Info, Go to Declaration, problems, formatting, editing actions, folding, find, gutter, context menu |
 | [Sticky lines, breadcrumbs and Reader mode](docs/guide/user/code-structure.md) | Sticky Lines, structure breadcrumbs, custom folding regions, rendered doc comments (`Ctrl+Alt+Q`), Reader mode |
 | [Markdown, images and CSV](docs/guide/user/markdown-images-csv.md) | Markdown preview (Mermaid, tables, links, images, front matter), image editor and SVG preview, Edit as Table for CSV/TSV |
+| [Optimize Imports and Auto Import](docs/guide/user/imports.md) | Optimize Imports (`Ctrl+Alt+O`) for files, folders and the project, Auto Import on the fly and on completion, the import popup, Import class, the PHP code style's Imports tab |
 | [Actions on Save](docs/guide/user/actions-on-save.md) | Reformat code, Optimize imports, Rearrange code, code cleanup, ESLint, Prettier, PHP CS Fixer and Laravel Pint on save |
 | [Live templates](docs/guide/user/live-templates.md) | abbreviations + `Tab`, Insert Live Template, Surround With, Unwrap/Remove, Save as Live Template, template sets and settings |
 | [Emmet and color previews](docs/guide/user/emmet-and-colors.md) | Emmet abbreviations in HTML, Blade, Twig, Vue, PHP, JSX and CSS, abbreviation preview, Surround with Emmet, Update/Remove Tag, edit points, color swatches and the color picker |
@@ -1796,7 +1796,7 @@ editor context menu:
 | Go To > Implementation(s) | works |
 | Generate… | works in PHP files, see [PHP](docs/guide/user/php.md#generate) |
 | Reformat Code | works |
-| Optimize Imports | not available yet |
+| Optimize Imports | works, see [Optimize Imports and Auto Import](docs/guide/user/imports.md) |
 | Comment with Line Comment | works |
 | Git > Annotate with Git Blame | works |
 
@@ -2294,6 +2294,124 @@ Settings | Editor | CSV/TSV:
 
 ---
 
+Source: docs/guide/user/imports.md
+
+# Optimize Imports and Auto Import
+
+Forge keeps `use` statements and `import` declarations tidy like PHPStorm: **Optimize
+Imports** removes unused ones and sorts the rest, and **Auto Import** adds them while you
+write code. PHP imports are Forge's own (they follow the PHP code style's **Imports** tab);
+JavaScript, TypeScript and Vue imports come from the TypeScript language server.
+
+## Optimize Imports
+
+**Code | Optimize Imports** (`Ctrl+Alt+O`, also in the editor's context menu) works on the
+file in the editor:
+
+- **PHP**: removes the `use` statements nothing in the file refers to (code, attributes,
+  PHPDoc types and annotations such as `@ORM\Column` count) and arranges the rest as the
+  code style says. Group uses (`use A\{B, C};`) become single statements. Files with syntax
+  errors are left alone.
+- **JavaScript, TypeScript, Vue**: the TypeScript server's "Organize Imports" (removes unused
+  imports, sorts and merges them).
+
+A hint above the caret says what happened: "Removed 2 imports, rearranged imports" or
+"Imports are already optimized". The change is one undo step.
+
+![Optimize Imports in the editor](docs/screenshots/optimize-imports-editor.png)
+
+### Folders and the whole project
+
+In the Project view, select folders or files and press `Ctrl+Alt+O`, or right-click and
+choose **Optimize Imports…**. The **Optimize Imports** dialog shows what is optimized and
+offers:
+
+- **Include subdirectories**: also the files in subfolders (on by default).
+- **Only VCS changed files**: only the files Git reports as changed or new.
+
+**Run** optimizes every PHP, JavaScript, TypeScript and Vue file (Blade templates, minified
+files, `vendor` and `node_modules` are skipped), applies the changes as one undoable step
+(open editors included) and reports "Optimized imports in 3 files: removed 5 imports".
+
+![Optimize Imports dialog](docs/screenshots/optimize-imports-dialog.png)
+
+On save, **Settings | Tools | Actions on Save | Optimize imports** does the same for PHP
+files, see [Actions on Save](docs/guide/user/actions-on-save.md).
+
+## PHP code style: Imports
+
+Settings | Editor | Code Style | PHP | **Imports** decides how Optimize Imports, Auto Import,
+Actions on Save and every refactoring that adds imports (Import class, completion, Create
+from usage, Move, Copy, Extract Interface, Pull Members Up) write `use` statements:
+
+| Option | Values |
+| --- | --- |
+| Sort 'use' statements | **Alphabetically** (default), **By length** (shorter statements first), **Don't sort** (new imports go last) |
+| Group 'use' statements | **By kind** (classes, then functions, then constants; default), **By kind and namespace** (also by the top-level namespace: `App`, `Illuminate`; global classes first), **Don't group** |
+| Blank lines between groups | 0 (default) to 3 |
+| Prefer fully qualified names (FQN) over imports | Completion and Import class write `\App\Models\User` instead of adding a `use` statement |
+
+New imports are inserted in their group and in sort order among the existing ones; existing
+imports are never reordered except by Optimize Imports.
+
+![PHP code style Imports tab](docs/screenshots/code-style-php-imports.png)
+
+## Auto Import settings
+
+Settings | Editor | General | **Auto Import**:
+
+![Auto Import settings](docs/screenshots/auto-import-settings.png)
+
+### PHP
+
+| Option | Default | What it does |
+| --- | --- | --- |
+| Add unambiguous imports on the fly | off | After you stop typing, unresolved class names with exactly one candidate class get their `use` statement. The name you are still typing is left alone. |
+| Optimize imports on the fly | off | Removes unused `use` statements while you edit, but not while the caret or your last edit is in the `use` block, and not an import whose name you are just typing (`Us` keeps `use App\Models\User;`). |
+| Show import popup | on | The blue hint `? App\Models\User Alt+Enter` on an unresolved class name (`? Multiple choices… Alt+Enter` when several classes match). |
+| Enable auto-import in namespace scope | on | Completing a class in a file with a namespace adds its `use` statement; off: the fully qualified name is inserted. |
+| Enable auto-import in file scope | off | The same for files without a namespace. |
+| Prefer FQN in PHPDoc | off | Classes completed or imported inside PHPDoc comments are written fully qualified. |
+| Import classes from the global namespace | on | `use Exception;` for PHP's own classes in namespaced files; off: `\Exception`. |
+
+A class with the same short name as an existing import or a class of the file is always
+written fully qualified.
+
+### JavaScript and TypeScript
+
+| Option | Default | What it does |
+| --- | --- | --- |
+| Add unambiguous imports on the fly | off | The TypeScript server's "add missing imports" after you stop typing, unless it would change the caret's line or the lines you just edited. |
+| Optimize imports on the fly | off | The TypeScript server's "remove unused imports", with the same restriction. |
+| Show import popup | on | `? Name from "module" Alt+Enter` on a name TypeScript cannot find; `Alt+Enter` lists the "Add import from" fixes. |
+| Use paths relative to | Shortest path | How new import paths are written: shortest, project root (or `tsconfig` path mapping), current file, or module (non-relative). |
+| Use type imports in TypeScript | off | `import type { … }` when only types are imported. |
+
+Completion also adds the import of a completed name (the server's import edit), in PHP with
+Forge's own rules above.
+
+## Import class and the import popup
+
+On an unresolved class name, **Alt+Enter** offers **Import class**. The candidates come from
+the PHP index (project and `vendor` packages, also ones that are not indexed yet) and PHP's own
+classes. With one candidate the import is added right away; with several, the **Class to
+Import** chooser lists them with their namespaces.
+
+While the import popup is shown, `Alt+Enter` imports its class directly (or opens the
+chooser).
+
+![Import popup](docs/screenshots/import-popup.png)
+
+![Class to Import](docs/screenshots/import-class-chooser.png)
+
+## Remote projects
+
+Everything works in [remote projects](docs/guide/user/remote-development.md): the PHP index that finds the
+candidates runs on the remote host, and folders are read and written there.
+
+
+---
+
 Source: docs/guide/user/actions-on-save.md
 
 # Actions on Save
@@ -2309,7 +2427,7 @@ project ("For current project"), so a team can share them in `.forge/settings.to
 | Action | Files | What it does | Configure… |
 | --- | --- | --- | --- |
 | **Reformat code** | the chosen file types (default: all) | Reformat Code (`Ctrl+Alt+L`): the language server's formatter, StyLua for Lua, plus the options of the [code style](docs/guide/user/editor.md#code-style) the formatter does not know. **Whole file** or **Changed lines** (only lines changed since the last commit; files that are not committed yet are reformatted completely). | Editor \| Code Style |
-| **Optimize imports** | PHP | Removes unused `use` imports and sorts the rest: classes, then functions, then constants, each alphabetically. Group uses (`use A\{B, C};`) are split into single imports. | |
+| **Optimize imports** | PHP | Removes unused `use` imports and arranges the rest as Settings \| Editor \| Code Style \| PHP \| Imports says (by default classes, then functions, then constants, each alphabetically), see [Optimize Imports](docs/guide/user/imports.md). Group uses (`use A\{B, C};`) are split into single imports. | |
 | **Rearrange code** | PHP | Orders the members of classes, interfaces, traits and enums: trait `use`, enum cases, constants, properties, the constructor, the other methods. Members keep their order inside a group; docblocks, attributes and comments move with their member and blank lines stay where they were. | |
 | **Run code cleanup** | PHP | Applies the safe quick fixes: removes unused imports, unnecessary semicolons (`;;`, `};`) and the redundant closing tag `?>` at the end of a pure PHP file. | |
 | **Run eslint --fix** | `.js`, `.jsx`, `.ts`, `.tsx`, `.mjs`, `.cjs`, `.mts`, `.cts`, `.vue`, `.html`, `.svelte`, `.astro` | `eslint --fix <file>` with the project's ESLint configuration. | Languages & Frameworks \| ESLint |
@@ -8265,7 +8383,7 @@ Premium) and Forge's own PHP intentions, see [Editor](docs/guide/user/editor.md#
 
 | Intention | Where |
 | --- | --- |
-| Import class 'App\Models\Order' | on a class name that is neither imported nor declared in the namespace (one entry per candidate) |
+| Import class | on a class name that is neither imported nor declared in the namespace: candidates from the index (project and vendor) and PHP's own classes, the "Class to Import" chooser when there are several, see [Auto Import](docs/guide/user/imports.md#import-class-and-the-import-popup) |
 | Replace qualifier with an import | on a fully qualified name (`\App\Models\Order`) |
 | Generate getter and setter / getter / setter | on a property without accessors |
 | Add 'readonly' modifier | on a typed, non-static property without a default value (also promoted constructor properties) |
@@ -8495,6 +8613,9 @@ Settings | Editor | Code Style | PHP (schemes, presets and the preview are descr
 - **Code Conversion**: array declaration style (keep, short `[]` or long `array()`), a comma
   after the last element of multi-line arrays, and `true`/`false`/`null` in lower or upper
   case.
+- **Imports**: sorting (alphabetically, by length), grouping (by kind, by kind and
+  namespace), blank lines between groups and "Prefer FQN"; Optimize Imports, Auto Import and
+  the refactorings follow them, see [Optimize Imports and Auto Import](docs/guide/user/imports.md#php-code-style-imports).
 
 Reformat Code (`Ctrl+Alt+L`) lets Intelephense format the file and then applies the spaces,
 brace placement, blank lines and conversions on the lines as they are. Strings, heredocs,
@@ -12376,7 +12497,7 @@ Completion, Generate, folding, comments, formatting and moving lines. Open it wi
 | Reformat Code | `Ctrl+Alt+L` | `Cmd+Alt+L` | yes | Formats the file with the language server's formatter (StyLua for Lua). [More](docs/guide/user/editor.md#reformat-code) |
 | Reformat File… | `Ctrl+Alt+Shift+L` | `Cmd+Alt+Shift+L` | not yet | Not available yet; the entry is disabled. |
 | Auto-Indent Lines | `Ctrl+Alt+I` | `Ctrl+Alt+I` | yes | Re-indents the current line or the selection. [More](docs/guide/user/editor.md#editing-actions) |
-| Optimize Imports | `Ctrl+Alt+O` | `Ctrl+Alt+O` | not yet | Not available yet; the entry is disabled. |
+| Optimize Imports | `Ctrl+Alt+O` | `Ctrl+Alt+O` | yes | Removes unused imports and sorts the rest in the current file (PHP, JavaScript, TypeScript, Vue); in the Project view in the selected folders and files. [More](docs/guide/user/imports.md#optimize-imports) |
 | Rearrange Code | — | — | not yet | Not available yet; the entry is disabled. |
 | Move Statement Down | `Ctrl+Shift+Down` | `Cmd+Shift+Down` | yes | Moves the current line or selection down. [More](docs/guide/user/editor.md#editing-actions) |
 | Move Statement Up | `Ctrl+Shift+Up` | `Cmd+Shift+Up` | yes | Moves the current line or selection up. [More](docs/guide/user/editor.md#editing-actions) |
@@ -12855,6 +12976,25 @@ Page id `editor.breadcrumbs`.
 | `editor.breadcrumbs.show` | bool | `true` | user |  | Show breadcrumbs — The classes, functions, rules and tags around the caret. Click one to go there; the arrow next to it lists its siblings. |
 | `editor.breadcrumbs.placement` | enum: `top`, `bottom` | `bottom` | user |  | Placement |
 | `editor.breadcrumbs.disabledLanguages` | list | `[]` | user | Languages | Show breadcrumbs for — one checkbox per language; holds the file type ids switched off. |
+
+### Editor | General | Auto Import
+
+Page id `editor.general.auto-import`. See [Optimize Imports and Auto Import](docs/guide/user/imports.md).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `php.autoImport.addOnTheFly` | bool | `false` | user | PHP | Add unambiguous imports on the fly — Import a class as soon as you stop typing its name when exactly one class has that name. |
+| `php.autoImport.optimizeOnTheFly` | bool | `false` | user | PHP | Optimize imports on the fly — Remove unused 'use' statements while you edit, but not while you work on the imports or type a name one of them provides. |
+| `php.autoImport.showPopup` | bool | `true` | user | PHP | Show import popup — Show a hint with the class to import on unresolved class names; press Alt+Enter to import it. |
+| `php.autoImport.namespaceScope` | bool | `true` | user | PHP | Enable auto-import in namespace scope — Completion adds a 'use' statement in files with a namespace; otherwise it inserts the fully qualified name. |
+| `php.autoImport.fileScope` | bool | `false` | user | PHP | Enable auto-import in file scope — Completion adds a 'use' statement in files without a namespace. |
+| `php.autoImport.fqnInPhpDoc` | bool | `false` | user | PHP | Prefer FQN in PHPDoc — Class names completed or imported in PHPDoc comments are written fully qualified. |
+| `php.autoImport.globalNamespace` | bool | `true` | user | PHP | Import classes from the global namespace — Add 'use Exception;' for PHP's own classes in namespaced files instead of writing '\Exception'. |
+| `javascript.autoImport.addOnTheFly` | bool | `false` | user | JavaScript and TypeScript | Add unambiguous imports on the fly — Import names the TypeScript server can resolve to exactly one module after you stop typing. |
+| `javascript.autoImport.optimizeOnTheFly` | bool | `false` | user | JavaScript and TypeScript | Optimize imports on the fly — Remove unused imports while you edit, but not on the lines you are editing. |
+| `javascript.autoImport.showPopup` | bool | `true` | user | JavaScript and TypeScript | Show import popup — Show a hint with the module to import from on unresolved names; press Alt+Enter to import. |
+| `javascript.autoImport.pathStyle` | enum: `shortest`, `project-relative`, `relative`, `non-relative` | `shortest` | user | JavaScript and TypeScript | Use paths relative to — How completion and Auto Import write the module path of a new import. |
+| `javascript.autoImport.typeImports` | bool | `false` | user | JavaScript and TypeScript | Use type imports in TypeScript — Import types with 'import type' when nothing else is imported from the module. |
 
 ### Editor | General | Postfix Completion
 
@@ -16192,6 +16332,7 @@ and the browser-mode UI. Pure Rust, so it also runs as WebAssembly.
 | `docs.rs` | `symbol_at` (the identifier at the caret with its qualifier, call, tag and CSS context, imported frameworks) and `external_doc_url` (php.net, Laravel API, MDN, Vue, React, Lua manual); `definition_snippet` (docblock and attributes above, body to the matching brace or Lua `end`, at most 80 lines); `context_headers` (enclosing class, function and CSS rule headers); `type_from_hover` / `type_from_signature`; `language_of`. |
 | `file_structure.rs` | `file_structure_view(FileStructureRequest)` → `FileStructureView { rows, selected, hasFields, hasLambdas, hasInherited }` over Structure view nodes (JSON): "Show Fields" / "Show Inherited" / "Show Lambdas" / "Sort Alphabetically", fuzzy matching with `forge-fuzzy` keeping the parents of matches, the best match or the node at the caret (`caretLine`, `enclosing` scope headers) selected. |
 | `hierarchy.rs` | The model of Type / Method / Call Hierarchy: `HierarchyItem` (id, name, kind, container, LSP position, `handle` with a server's own item), `TypeGraph { root, types: TypeEntry { item, extends, implements, method? }[], method? }` and `CallNode { item, calls: CallSite { path, range, preview }[] }`. `type_view` (Class Hierarchy: superclass chain then subtypes; Supertypes; Subtypes), `method_view` (subtypes of the topmost declaring type with `MethodMark` defined / abstract / shouldDefine / inherited, "Hide Classes Where Method Is Not Implemented"), `call_view` (one level of callers / callees), `HierarchyScope` All / Production / Test / This Class (parents of matches stay), alphabetical sorting, `merge_type_graphs` / `merge_call_nodes` (entries at the same place are one), `is_test_path`. Cycles and huge graphs are cut. |
+| `imports.rs` | Optimize Imports and Auto Import for every language: `summary` / `folder_summary` (PHPStorm's notifications), `minimal_edit` (one replacement for an optimized text, so the caret stays), `optimize_targets` (the files of a folder: supported types, "Only VCS changed files"), `on_the_fly_allowed` (a language server's on-the-fly import edit only away from the caret's line and the last edit). |
 | `navbar.rs` | `nav_bar_segments(NavBarRequest { project, path, scopes, showMembers })` → `NavSegment { kind: project / directory / file / member, label, path, scopeKind?, line?, column? }[]`; members are the class-like and function scopes around the caret. |
 | `related.rs` | `related(RelatedRequest { path, text }, files, read)` → `RelatedItem { kind, group, name, path, line, column }[]` grouped in a fixed order. Text scans, no parser: PHP class ↔ `*Test.php`, Laravel `view()` / `View::make` / `Route::view` / Inertia, `routes/*.php` lines naming a controller, model ↔ migrations (`_create_<table>_table`, `$table`), factory, policy, seeder; Symfony `render()` / `#[Template]` ↔ `templates/`; JS/TS/Vue/Svelte files ↔ `*.test.*`, `*.spec.*`, `__tests__/`, `tests/`, `*.stories.*`, style sheets. The caller lists the files and reads them lazily. |
 | `test_nav.rs` | `test_targets(TestNavRequest { path, text, composerPath }, files, read)` → `TestTargets { isTest, name, targets, canCreate }` (Related Symbol's test items, best folder match first); `new_test_plan` → `NewTestPlan { frameworks, framework, subject, subjectFqn, className, namespace, directory, superclass, superclasses, fileName, members }`: PHPUnit / Pest from composer.json, namespace and folder from `autoload-dev` PSR-4 rules (`forge-file-templates`), Laravel `tests/Unit` / `tests/Feature` mirroring `app/`, Symfony `App\Tests` and `WebTestCase`, public methods from `editor_structure`; Vitest / Jest from package.json and the project's test layout (colocated, `__tests__`, `tests/`, `.test` / `.spec`), exports from a line scan. `test_source(TestSourceRequest)` → `TestSource { path, text, line }`: PHPUnit class with `setUp()` / `tearDown()` and `test<Method>()` stubs, Pest `beforeEach` / `test()` blocks, Vitest / Jest `describe` / `it` with the subject imported. |
@@ -19391,8 +19532,8 @@ PHPForge language pack: PHP support built on tree-sitter.
 | `generate.rs` | "Generate" actions (Alt+Insert): constructor, getters/setters, `__toString()`, override/implement method stubs and PHPDoc blocks. |
 | `highlight.rs` | Highlight Usages in File on the index (when no language server answers `documentHighlight`): the usages of the symbol at the caret in its file, the declaration as a write, and on `implements` / `extends` the class's methods that implement / override the parents' methods. |
 | `hover.rs` | Index-based hover for project symbols: signature + attributes + parsed docblock as markdown. Complements a language server's hover (which covers built-ins). |
-| `intentions.rs` | Built-in intentions for Show Context Actions (Alt+Enter) on the index: import class, replace qualifier with an import, accessors, "Add 'readonly' modifier", method stubs, PHPDoc and the "Generate..." link. |
-| `imports.rs` | Optimize Imports: removes `use` imports nothing refers to (code, attributes, docblocks and annotations count) and sorts the rest (classes, functions, constants); group uses are expanded, braced namespaces handled separately. |
+| `intentions.rs` | Built-in intentions for Show Context Actions (Alt+Enter) on the index: replace qualifier with an import, accessors, "Add 'readonly' modifier", method stubs, PHPDoc and the "Generate..." link. |
+| `imports/` | Optimize Imports: removes `use` imports nothing refers to (code, attributes, docblocks and annotations count) and arranges the rest by the code style's Imports tab; group uses are expanded, braced namespaces handled separately. `style.rs`: `ImportStyle` (sorting, grouping, blank lines, Prefer FQN and the PHP Auto Import settings) and the style of the running call (`with_style`, `set_default`). `insert.rs`: `insert_imports`, the one helper every import goes through (Import class, completion, Create from usage, Move, Copy, Pull Members Up). `auto.rs`: Auto Import: unresolved class names with candidates (`ProjectIndex::class_candidates`, project and vendor by file name), `reference_edits` (import, short name or FQN), the "Import class" fix with the chooser, the import popup and the on-the-fly decisions. |
 | `hierarchy.rs` | Type, Method and Call Hierarchy on the index (`HierarchyQuery`, answer `PhpHierarchy { graph?, title?, root?, calls }` in `forge_codeintel::hierarchy`'s model): the class at the caret with all its supertypes (parents, interfaces, traits; vendor classes resolved lazily, unknown ones by name) and every project class below it; for a method also the subtypes of its topmost declaration and each type's `MethodPresence`; the callable at the caret, its callers (`find_usages` call sites grouped by the enclosing method, function or file) and callees (calls in its body resolved like Go to Declaration, constructors through `new`, PHP's own functions as library items). |
 | `index.rs` | Workspace-wide PHP index: parallel indexing, mtime-keyed persistent cache, fuzzy symbol search, ancestor lookup and lazy resolution of vendor classes through Composer's PSR-4 metadata. |
 | `lsp.rs` | How to launch a PHP language server: Intelephense (preferred, users bring their own licence key) with phpactor as fallback. Independent of the generic LSP client; the app turns `LspServerConfig` into a running server. |
