@@ -71,7 +71,7 @@ are in [research/jetbrains-gap-analysis.md](research/jetbrains-gap-analysis.md).
 ### Version control
 - [x] Merge conflict resolver (three-way merge, Resolve Simple Conflicts)
 - [x] File and selection history, Compare with Revision/Branch, Compare Files/Folders/Clipboard
-- [ ] Stash/Unstash, Pull/Merge/Rebase/Reset/Tag/Remotes dialogs, shelf
+- [x] Stash/Unstash, Pull/Merge/Rebase/Reset/Tag/Remotes dialogs, shelf
 - [ ] Log actions (revert, undo, reset, edit message, squash/fixup), interactive rebase, cherry-pick
 - [ ] Changelists and partial commits, commit checks, patches
 - [ ] Get from VCS (clone), Commit Message History (`Ctrl+M`), worktrees, GPG/SSH signing

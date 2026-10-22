@@ -12,14 +12,12 @@ import { openFileHistory, openSelectionHistory } from "./history";
 import { openBranchChanges } from "./BranchChanges";
 import { activeView } from "@/features/navigation/editorCommands";
 import { activeTab } from "@/state/editor";
-import { logDate, timeAgo } from "./format";
-import { notify, reloadOpenFiles, runGit, status } from "./store";
-import { runMerging } from "./conflicts";
-import { setChooserDialog, setInputDialog, toggleAnnotate } from "./overlays";
+import { logDate } from "./format";
+import { notify, runGit, status } from "./store";
+import { setChooserDialog, toggleAnnotate } from "./overlays";
 import { confirmRollback, openCommitWindow, showDiff, showRevisionDiff } from "./actions";
 
 const stateOf = (targets: VcsTarget[]) => targetState(targets, status()?.entries ?? []);
-const plural = (n: number, what: string) => `${n} ${what}${n === 1 ? "" : "s"}`;
 
 /** Commit File… / Commit Directory… (CheckinFiles): the Commit window with just these changes. */
 export function commitTargets(): void {
@@ -133,136 +131,5 @@ export function rollbackTargets(): void {
 
 // ---- repository dialogs -----------------------------------------------------------------
 
-/** New Tag… (Git.Tag): a lightweight tag on HEAD. */
-export function newTagDialog(): void {
-  setInputDialog({
-    title: "Create New Tag on HEAD",
-    label: "Enter the name of new tag:",
-    value: "",
-    okLabel: "Create Tag",
-    onOk: async (name) => {
-      const n = name.trim();
-      const ok = await runGit("Tag creation failed", () => gitApi.createTag(n).then(() => true));
-      if (ok) notify("info", `Created tag ${n}`);
-    },
-  });
-}
-
-/** Stash Changes… (Git.Stash). */
-export function stashDialog(): void {
-  const tracked = (status()?.entries ?? []).filter((e) => e.worktree !== "untracked");
-  if (!tracked.length) return notify("info", "No local changes to stash");
-  setInputDialog({
-    title: "Stash",
-    label: `Stash ${plural(tracked.length, "changed file")} on ${status()?.branch ?? "HEAD"}. Message:`,
-    value: "",
-    optional: true,
-    okLabel: "Create Stash",
-    checkbox: { label: "Keep index", checked: false },
-    onOk: async (message, keepIndex) => {
-      const out = await runGit("Stash failed", () => gitApi.stash(message.trim(), keepIndex));
-      if (out === undefined) return;
-      await reloadOpenFiles();
-      notify("success", "Changes stashed", out.split("\n")[0]);
-    },
-  });
-}
-
-/** Unstash Changes… (Git.Unstash): apply or pop a stash, or drop one. */
-export async function unstashDialog(): Promise<void> {
-  const stashes = await runGit("Could not list stashes", () => gitApi.stashList());
-  if (!stashes) return;
-  setChooserDialog({
-    title: "Unstash Changes",
-    empty: "No stashes",
-    okLabel: "Apply Stash",
-    items: stashes.map((s) => ({
-      id: String(s.index),
-      label: s.message,
-      detail: `stash@{${s.index}}${s.branch ? ` · On ${s.branch}` : ""} · ${timeAgo(s.time)}`,
-    })),
-    checkboxes: [
-      { label: "Pop stash", checked: false },
-      { label: "Reinstate index", checked: false },
-    ],
-    extra: [
-      {
-        label: "Drop",
-        needsSelection: true,
-        run: async (item) => {
-          if (!item) return;
-          setChooserDialog(null);
-          await runGit("Could not drop the stash", () => gitApi.dropStash(Number(item.id)));
-          await unstashDialog();
-        },
-      },
-    ],
-    onOk: async (item, [pop, reinstate]) => {
-      const out = await runMerging("Unstash failed", () => gitApi.unstash(Number(item.id), pop, reinstate));
-      if (out === undefined) return;
-      await reloadOpenFiles();
-      notify("success", pop ? "Stash popped" : "Stash applied", item.label);
-    },
-  });
-}
-
-function addRemoteDialog(suggested: string): void {
-  setInputDialog({
-    title: "Define Remote",
-    label: "Name:",
-    value: suggested,
-    okLabel: "Next",
-    onOk: (name) => {
-      setInputDialog({
-        title: `Define Remote ${name.trim()}`,
-        label: "URL:",
-        value: "",
-        okLabel: "OK",
-        onOk: async (url) => {
-          await runGit("Could not add the remote", () => gitApi.addRemote(name.trim(), url.trim()));
-          await manageRemotes();
-        },
-      });
-    },
-  });
-}
-
-/** Manage Remotes… (Git.Configure.Remotes): list, add and remove remotes. */
-export async function manageRemotes(): Promise<void> {
-  const remotes = await runGit("Could not list remotes", () => gitApi.remotes());
-  if (!remotes) return;
-  setChooserDialog({
-    title: "Git Remotes",
-    empty: "No remotes defined",
-    okLabel: "Close",
-    items: remotes.map((r) => ({ id: r.name, label: r.name, detail: r.pushUrl ? `${r.fetchUrl} (push: ${r.pushUrl})` : r.fetchUrl })),
-    extra: [
-      {
-        label: "Add…",
-        run: () => {
-          setChooserDialog(null);
-          addRemoteDialog(remotes.some((r) => r.name === "origin") ? "" : "origin");
-        },
-      },
-      {
-        label: "Remove",
-        needsSelection: true,
-        run: (item) => {
-          if (!item) return;
-          setChooserDialog(null);
-          setInputDialog({
-            title: "Remove Remote",
-            label: `Remove remote ${item.id}?`,
-            value: "",
-            noInput: true,
-            okLabel: "Remove",
-            onOk: async () => {
-              await runGit("Could not remove the remote", () => gitApi.removeRemote(item.id));
-              await manageRemotes();
-            },
-          });
-        },
-      },
-    ],
-  });
-}
+// New Tag, Stash, Unstash and Manage Remotes are the Git menu dialogs (`gitDialogs.ts`).
+export { manageRemotes, newTagDialog, stashDialog, unstashDialog } from "./gitDialogs";

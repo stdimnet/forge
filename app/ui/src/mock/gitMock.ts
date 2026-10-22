@@ -855,3 +855,6 @@ export function revisionLines(path: string, time: number): { text: string; line:
 
 /** The demo repository for the history mocks (`gitHistoryMock.ts`). */
 export const mockRepo = { commits, bySha, head, state, log, ancestors, resolveRev, computeStatus };
+
+/** Working-tree and ref helpers for the dialog and shelf mocks (`gitOpsMock.ts`). */
+export const mockRepoOps = { index, changed, readWorking, newCommit, checkout, merging, startConflictMerge, CONFLICT_BRANCH };

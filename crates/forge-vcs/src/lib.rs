@@ -18,8 +18,12 @@ mod log;
 #[cfg(feature = "git")]
 mod manage;
 pub mod merge;
+pub mod ops;
+pub mod patch;
 #[cfg(feature = "git")]
 mod repo;
+#[cfg(feature = "git")]
+pub mod shelf;
 mod status;
 
 pub use blame::{parse_blame, Blame, BlameCommit};
@@ -41,8 +45,13 @@ pub use status::{parse_status, FileState, RepoStatus, StatusEntry};
 
 #[cfg(feature = "git")]
 pub use cmd::{git_binary, set_git_program, GitExec, GitOutput, GitRequest, LocalGit};
+pub use ops::{MergeOptions, OperationAction, PullOptions, RebaseOptions, ResetMode, TagOptions};
 #[cfg(feature = "git")]
 pub use repo::{
     parse_rebase_status, parse_unmerged, ConflictFile, ConflictSet, ConflictSide, MergeFile,
     MergeOperation, RemoteResult, Repo, RepoInfo, SideChange,
 };
+#[cfg(feature = "git")]
+pub use repo::{OngoingOperation, OperationState, ShelfFileContents, StashFileContents};
+#[cfg(feature = "git")]
+pub use shelf::{Shelf, ShelvedChangelist, ShelvedFile};
