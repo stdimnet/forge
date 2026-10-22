@@ -507,7 +507,8 @@ impl Repo {
             .map(|s| self.full_sha(s))
             .collect::<Result<_>>()?;
         let message = message.to_string();
-        self.rewrite_selected(&[oldest.clone()], move |_, entries| {
+        let start = [oldest.clone()];
+        self.rewrite_selected(&start, move |_, entries| {
             let (mut moved, rest): (Vec<RebaseEntry>, Vec<RebaseEntry>) = entries
                 .drain(..)
                 .partition(|e| selected.contains(&e.sha) && e.sha != oldest);
