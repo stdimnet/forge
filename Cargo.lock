@@ -2412,6 +2412,7 @@ dependencies = [
  "forge-find",
  "forge-fuzzy",
  "forge-injections",
+ "forge-jsonschema",
  "forge-keymap",
  "forge-livetemplates",
  "forge-markdown",

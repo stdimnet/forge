@@ -388,6 +388,37 @@ export function injections_languages(): string;
 export function injections_rules(): string;
 
 /**
+ * Like `json_schema_builtins`.
+ */
+export function json_schema_builtins(): string;
+
+/**
+ * Like `json_schema_complete`.
+ */
+export function json_schema_complete(request_json: string): string;
+
+/**
+ * Like `json_schema_goto`.
+ */
+export function json_schema_goto(request_json: string): string;
+
+/**
+ * Like `json_schema_hover`.
+ */
+export function json_schema_hover(request_json: string): string;
+
+/**
+ * A bundled schema's text for `json_schema_read`, or `{ error }`.
+ */
+export function json_schema_read(location: string): string;
+
+/**
+ * `{ path, language, content, mappings, files }` → `{ answer: { schema, problems } }` or
+ * `{ needs: [path] }`, like `json_schema_validate`.
+ */
+export function json_schema_validate(request_json: string): string;
+
+/**
  * `{settings, hostPlatform}` → `KeymapSnapshot`.
  */
 export function keymap_actions(json: string): string;
@@ -918,6 +949,12 @@ export interface InitOutput {
     readonly injections_inject: (a: number, b: number, c: number) => void;
     readonly injections_languages: (a: number) => void;
     readonly injections_rules: (a: number) => void;
+    readonly json_schema_builtins: (a: number) => void;
+    readonly json_schema_complete: (a: number, b: number, c: number) => void;
+    readonly json_schema_goto: (a: number, b: number, c: number) => void;
+    readonly json_schema_hover: (a: number, b: number, c: number) => void;
+    readonly json_schema_read: (a: number, b: number, c: number) => void;
+    readonly json_schema_validate: (a: number, b: number, c: number) => void;
     readonly keymap_actions: (a: number, b: number, c: number) => void;
     readonly keymap_conflicts: (a: number, b: number, c: number) => void;
     readonly keymap_find_by_shortcut: (a: number, b: number, c: number) => void;
