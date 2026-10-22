@@ -46,8 +46,9 @@ Press `Ctrl` twice (Tools | Run Anything…) to run almost anything from one pop
 - **npm scripts** of every `package.json` with the detected package manager (`pnpm run dev`),
   **Composer scripts** of `composer.json` (`composer test`).
 - **PHP files**: type `php ` and part of a file name (`php User`).
-- **Artisan commands** (Laravel projects), **Symfony console commands** (Symfony projects) and
-  **Composer commands** ([Command Line Tool Support](command-line-tools.md));
+- **Composer**, **Artisan** and **Symfony console commands** of
+  [Command Line Tool Support](command-line-tools.md) (Symfony projects without it use the
+  Symfony index);
   other plugins add their commands with `registerRunAnythingProvider`.
 - **Commands**: anything else you type runs as a command in the project directory, in the Run
   tool window. When no suggestion starts with what you typed, the command itself is the first

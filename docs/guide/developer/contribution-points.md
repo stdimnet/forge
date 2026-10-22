@@ -235,10 +235,10 @@ registerBeforeLaunchHandler("externalTool", (task) => runToolAndWait(task.value)
 
 ```ts
 registerRunAnythingProvider({
-  id: "artisan",
-  title: "Artisan commands",
-  when: () => usesFramework("laravel"),
-  commands: async () => (await laravelApi.artisanCommands()).commands.map((c) => ({ command: `php artisan ${c.name}`, description: c.description })),
+  id: "symfony-index",
+  title: "Symfony console commands",
+  when: () => usesFramework("symfony"),
+  commands: async () => (await symfonyApi.consoleCommands()).map((c) => ({ command: `php bin/console ${c.name}`, description: c.description })),
 });
 ```
 

@@ -8,7 +8,6 @@ import { render } from "solid-js/web";
 import { registerCommand } from "@/state/commands";
 import { workspace } from "@/state/workspace";
 import { isPluginActive, usesFramework } from "@/state/project";
-import { laravelApi } from "@/ipc/laravel";
 import { symfonyApi } from "@/ipc/symfony";
 import { cliToolsApi } from "@/ipc/cliTools";
 import { showBalloon } from "@/keymap";
@@ -30,37 +29,47 @@ registerCommand({
   },
 });
 
-registerRunAnythingProvider({
-  id: "artisan",
-  title: "Artisan commands",
-  when: () => usesFramework("laravel"),
-  commands: async () =>
-    (await laravelApi.artisanCommands()).commands.map((c) => ({ command: `php artisan ${c.name}`, description: c.description })),
-});
+/** How a Command Line Tool Support tool's commands are typed in Run Anything. */
+const CLI_PREFIX: Partial<Record<string, (path: string) => string>> = {
+  composer: () => "composer",
+  artisan: (path) => `php ${path || "artisan"}`,
+  symfony: (path) => `php ${path || "bin/console"}`,
+};
 
+const CLI_TITLES: Record<string, string> = {
+  composer: "Composer commands",
+  artisan: "Artisan commands",
+  symfony: "Symfony console commands",
+};
+
+// Composer, Artisan and Symfony Console commands from Command Line Tool Support (its cached
+// command lists); each kind is its own group.
+for (const kind of Object.keys(CLI_PREFIX)) {
+  registerRunAnythingProvider({
+    id: kind,
+    title: CLI_TITLES[kind],
+    when: () => isPluginActive("forge.command-line-tools"),
+    commands: async () => {
+      const tool = (await cliToolsApi.list()).find((t) => t.kind === kind && t.enabled);
+      if (!tool) return [];
+      const prefix = CLI_PREFIX[kind]!(tool.path);
+      return (await cliToolsApi.commands(tool.alias)).commands
+        .filter((c) => !c.hidden && !c.group)
+        .map((c) => ({ command: `${prefix} ${c.name}`, description: c.description }));
+    },
+  });
+}
+
+// Without Command Line Tool Support, Symfony projects still offer the console commands of
+// the Symfony index.
 registerRunAnythingProvider({
-  id: "symfony",
+  id: "symfony-index",
   title: "Symfony console commands",
-  when: () => usesFramework("symfony"),
+  when: () => usesFramework("symfony") && !isPluginActive("forge.command-line-tools"),
   commands: async () =>
     (await symfonyApi.consoleCommands())
       .filter((c) => !c.hidden)
       .map((c) => ({ command: `php bin/console ${c.name}`, description: c.description })),
-});
-
-// Composer commands as Command Line Tool Support knows them (its cached `composer list`).
-registerRunAnythingProvider({
-  id: "composer-commands",
-  title: "Composer commands",
-  when: () => isPluginActive("forge.command-line-tools"),
-  commands: async () => {
-    const tool = (await cliToolsApi.list()).find((t) => t.kind === "composer" && t.enabled);
-    if (!tool) return [];
-    const list = await cliToolsApi.commands(tool.alias);
-    return list.commands
-      .filter((c) => !c.hidden && !c.group)
-      .map((c) => ({ command: `composer ${c.name}`, description: c.description }));
-  },
 });
 
 if (typeof document !== "undefined") {
