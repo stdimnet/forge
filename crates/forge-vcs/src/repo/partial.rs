@@ -11,6 +11,7 @@ use serde::Deserialize;
 
 use super::Repo;
 use crate::hunks::apply_hunks;
+use crate::signing::Signing;
 use forge_core::{ForgeError, Result};
 
 /// Options of the commit panel (the gear menu and the Amend / Sign-off checkboxes).
@@ -24,6 +25,10 @@ pub struct CommitOptions {
     pub no_verify: bool,
     /// "Author": `Name <email>` instead of the configured identity.
     pub author: Option<String>,
+    /// GPG/SSH signing (Settings | Version Control | Git), filled in by the IDE from its
+    /// settings, never sent by the UI.
+    #[serde(skip)]
+    pub signing: Signing,
 }
 
 /// A file to commit: all of its changes, or only the hunks with these ids
@@ -61,6 +66,22 @@ impl CommitOptions {
             }
             args.push(format!("--author={author}"));
         }
+        self.signing.validate().map_err(ForgeError::Other)?;
+        args.extend(self.signing.commit_args());
+        Ok(args)
+    }
+
+    /// `git <these> commit …`: the per-invocation config the signing key needs.
+    fn config_args(&self) -> Vec<String> {
+        self.signing.config_args()
+    }
+
+    /// The full `commit` invocation: config options, `commit -q --cleanup=strip` and the
+    /// options above.
+    fn commit_command(&self) -> Result<Vec<String>> {
+        let mut args = self.config_args();
+        args.extend(["commit".into(), "-q".into(), "--cleanup=strip".into()]);
+        args.extend(self.args()?);
         Ok(args)
     }
 }
@@ -80,9 +101,8 @@ impl Repo {
         if !specs.is_empty() {
             self.add_untracked(&specs)?;
         }
-        let extra = opts.args()?;
-        let mut args = vec!["commit", "-q", "--cleanup=strip"];
-        args.extend(extra.iter().map(String::as_str));
+        let command = opts.commit_command()?;
+        let mut args: Vec<&str> = command.iter().map(String::as_str).collect();
         if message.trim().is_empty() {
             args.push("--no-edit");
         } else {
@@ -204,9 +224,8 @@ impl Repo {
             let info = format!("{mode},{},{repo_path}", blob.trim());
             self.git(&["update-index", "--add", "--cacheinfo", &info])?;
         }
-        let extra = opts.args()?;
-        let mut args = vec!["commit", "-q", "--cleanup=strip"];
-        args.extend(extra.iter().map(String::as_str));
+        let command = opts.commit_command()?;
+        let mut args: Vec<&str> = command.iter().map(String::as_str).collect();
         if message.trim().is_empty() {
             args.push("--no-edit");
         } else {

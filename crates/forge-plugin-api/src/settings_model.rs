@@ -429,6 +429,7 @@ mod tests {
             group: group.into(),
             section: None,
             project: false,
+            hidden: false,
             order: 0,
         }
     }

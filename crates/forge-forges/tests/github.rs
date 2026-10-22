@@ -225,3 +225,35 @@ async fn issues_search_and_rate_limits() {
         .to_string()
         .starts_with("GitHub: API rate limit reached, try again in"));
 }
+
+#[tokio::test]
+async fn lists_the_accounts_repositories_across_pages() {
+    let page1 = r#"[{"full_name":"acme/shop","name":"shop","description":"Online shop","private":true,"fork":false,
+        "clone_url":"https://github.com/acme/shop.git","ssh_url":"git@github.com:acme/shop.git",
+        "html_url":"https://github.com/acme/shop","pushed_at":"2026-10-20T10:00:00Z","updated_at":"2026-10-01T10:00:00Z"}]"#;
+    let page2 = r#"[{"full_name":"marlon/dotfiles","name":"dotfiles","description":null,"private":false,"fork":true,
+        "clone_url":"https://github.com/marlon/dotfiles.git","ssh_url":"git@github.com:marlon/dotfiles.git",
+        "html_url":"https://github.com/marlon/dotfiles","updated_at":"2026-09-01T10:00:00Z"}]"#;
+    let (server, gh) = host(vec![
+        Route::json("GET", "/user/repos", page1).header(
+            "Link",
+            "<{base}/user/repos?per_page=100&page=2>; rel=\"next\"",
+        ),
+        Route::json("GET", "/user/repos", page2).query("page=2"),
+    ])
+    .await;
+    let repos = gh.repositories().await.unwrap();
+    assert_eq!(repos.len(), 2);
+    assert_eq!(repos[0].path, "acme/shop");
+    assert!(repos[0].private && !repos[0].fork);
+    assert_eq!(
+        repos[0].ssh_url.as_deref(),
+        Some("git@github.com:acme/shop.git")
+    );
+    assert_eq!(repos[0].updated_at, "2026-10-20T10:00:00Z");
+    assert_eq!(repos[1].description, None);
+    assert!(repos[1].fork);
+    let first = server.find("GET", "/user/repos");
+    assert!(first.query.contains("page=2") || first.query.contains("affiliation=owner"));
+    assert_eq!(server.count("GET", "/user/repos"), 2);
+}

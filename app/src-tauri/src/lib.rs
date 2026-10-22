@@ -99,8 +99,24 @@ pub fn run() {
         .manage(commands::symfony::SymfonyState::default())
         .manage(commands::workbench::BookmarksState::default())
         .manage(commands::clipboard::ClipboardState::default())
+        .manage(commands::git_clone::CloneState::default())
         .invoke_handler(tauri::generate_handler![
             commands::workspace::workspace_open,
+            commands::git_clone::forges_repositories,
+            commands::git_clone::git_clone_directory_name,
+            commands::git_clone::git_clone_home,
+            commands::git_clone::git_clone_test,
+            commands::git_clone::git_clone,
+            commands::git_clone::git_clone_cancel,
+            commands::git_extras::git_worktrees,
+            commands::git_extras::git_worktree_add,
+            commands::git_extras::git_worktree_remove,
+            commands::git_extras::git_worktree_prune,
+            commands::git_extras::git_worktree_lock,
+            commands::git_extras::git_worktree_unlock,
+            commands::git_extras::git_message_history,
+            commands::git_extras::git_signing_info,
+            commands::remote::remote_project_connection,
             commands::workspace::workspace_current,
             commands::workspace::workspace_recent,
             commands::workspace::fs_list_dir,

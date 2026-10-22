@@ -33,6 +33,7 @@ import {
 import { Check, Frame, Row } from "./DialogFrame";
 import { InteractiveRebaseDialog, RewordDialog, SquashCommitsDialog } from "./LogDialogs";
 import { ApplyPatchDialog, ChangelistDialog, CreatePatchDialog, MoveChangelistDialog } from "./ChangesDialogs";
+import { CloneDialog, NewWorktreeDialog } from "./ExtrasDialogs";
 import "./dialogs.css";
 
 const currentBranch = () => status()?.branch ?? "HEAD";
@@ -807,6 +808,10 @@ function render(d: GitDialog): JSX.Element {
       return <CreatePatchDialog paths={d.paths} shas={d.shas} name={d.name} />;
     case "applyPatch":
       return <ApplyPatchDialog patch={d.patch} name={d.name} files={d.files} />;
+    case "clone":
+      return <CloneDialog request={d.request} />;
+    case "newWorktree":
+      return <NewWorktreeDialog branch={d.branch} />;
   }
 }
 

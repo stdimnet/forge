@@ -2101,6 +2101,29 @@
           "order": 21
         },
         {
+          "key": "vcs.git.commit.gpgSign",
+          "title": "Sign commits with GPG/SSH key",
+          "description": "Commits from Forge are signed (`git commit -S`) with the key chosen in Configure GPG Key…, or the one in git config (`user.signingkey`). Forge never changes git config.",
+          "type": "bool",
+          "default": false,
+          "group": "vcs.git",
+          "section": "Commit",
+          "project": true,
+          "order": 23
+        },
+        {
+          "key": "vcs.git.commit.signingKey",
+          "title": "Signing key",
+          "description": "`openpgp:<key id>` or `ssh:<public key file>`; empty uses `user.signingkey` from git config.",
+          "type": "string",
+          "default": "",
+          "group": "vcs.git",
+          "section": "Commit",
+          "project": true,
+          "hidden": true,
+          "order": 24
+        },
+        {
           "key": "vcs.git.cherryPickSuffix",
           "title": "Add the 'cherry-picked from <hash>' suffix when picking commits pushed to protected branches",
           "type": "bool",
@@ -2226,6 +2249,19 @@
           "section": "Git",
           "project": false,
           "order": 20
+        },
+        {
+          "key": "vcs.commit.messageHistorySize",
+          "title": "Commit message history size",
+          "description": "How many commit messages Commit Message History (Ctrl+M) keeps for each project.",
+          "type": "int",
+          "min": 1,
+          "max": 500,
+          "default": 20,
+          "group": "vcs.commit",
+          "section": "Commit Message",
+          "project": false,
+          "order": 30
         }
       ],
       "lspServers": [],

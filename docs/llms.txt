@@ -43,7 +43,7 @@ Forge's rule of thumb is "Rust computes, TypeScript renders": logic lives in Rus
 - [WebForge](guide/user/webforge.md): HTML, CSS, JavaScript/TypeScript, Vue, React, Angular
 - [Command Line Tool Support](guide/user/command-line-tools.md): Tools | Run Command… (Ctrl+Shift+X): Composer, Laravel Artisan, Symfony Console, WP-CLI, Drush and custom tools as `alias command args` with completion of commands, options and arguments, command help, history, the Command Line Tools Console tool window, command lists cached until composer.lock changes, Settings | Tools | Command Line Tool Support
 - [Run and debug](guide/user/run-debug.md) and [Debugging](guide/user/debugging.md): run configurations (PHP Built-in Web Server, PHP Web Page, PHP HTTP Request), Xdebug, breakpoints and logpoints, debugger console, Web Server Debug Validation
-- [Git](guide/user/git.md) and [Code hosts](guide/user/code-hosts.md): commit, branches, log, blame, pull requests
+- [Git](guide/user/git.md) and [Code hosts](guide/user/code-hosts.md): clone (Get from VCS), commit, message history, signing, branches, worktrees, log, blame, pull requests
 - [AI](guide/user/ai.md): AI providers, agent chat and AI commit messages
 - [Language servers](guide/user/language-servers.md): installing and configuring external language servers
 - [Settings and themes](guide/user/settings-and-themes.md): the Settings dialog, Ember and Anvil themes

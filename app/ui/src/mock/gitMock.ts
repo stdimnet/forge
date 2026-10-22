@@ -145,7 +145,35 @@ const state = {
     { branch: "main", message: "Half-done invoice PDF layout", time: now - 3 * DAY, files: {} as Record<string, string> },
   ],
   remotes: [{ name: "origin", fetchUrl: "git@github.com:acme/shop.git", pushUrl: null as string | null }],
+  /** Worktrees (`git worktree list`); the first is the main one, where the demo project is. */
+  worktrees: [
+    { path: "/home/marlon/src/acme-shop", branch: demo.branch as string | null, locked: false, lockReason: null as string | null, prunable: false },
+    ...(laravelBranches
+      ? [
+          { path: "/home/marlon/src/acme-shop-checkout-flow", branch: "feature/checkout-flow" as string | null, locked: false, lockReason: null as string | null, prunable: false },
+          { path: "/media/usb/acme-shop-hotfix", branch: null as string | null, locked: true, lockReason: "on a USB drive" as string | null, prunable: false },
+        ]
+      : []),
+  ],
 };
+
+/** Signatures of the demo history (`%G?`, signer). */
+const signatures: Record<string, [Commit["signature"], string]> = {
+  c1: ["good", "Marlon <marlon@acme.dev>"],
+  c2: ["good", "Marlon <marlon@acme.dev>"],
+  c4: ["unverified", "Marlon <marlon@acme.dev>"],
+  c10: ["good", "GitHub <noreply@github.com>"],
+  c13: ["good", "Marlon <marlon@acme.dev>"],
+};
+const signatureOf = (sha: string) => {
+  const id = history.find(([hid]) => shaOf(hid) === sha)?.[0];
+  return id ? signatures[id] : undefined;
+};
+/** Mark a commit made from Forge with signing on as signed. */
+const signedCommits = new Set<string>();
+export function signMockCommit(sha: string): void {
+  signedCommits.add(sha);
+}
 
 /** Paths added with "Add to .gitignore"; the cached demo ignore rules do not know them. */
 const ignoredFromMenu: string[] = [];
@@ -356,14 +384,18 @@ function log(q: LogQuery): Commit[] {
   if (q.author) list = list.filter((c) => c.author.toLowerCase().includes(q.author!.toLowerCase()));
   if (q.path) list = list.filter((c) => c.files.some((file) => file.path === q.path || file.path.startsWith(`${q.path}/`)));
   const skip = q.skip ?? 0;
-  return list.slice(skip, skip + (q.limit || 200)).map(({ body: _b, files: _f, ...c }) => ({ ...c, refs: refsFor(c.sha) }));
+  return list.slice(skip, skip + (q.limit || 200)).map(({ body: _b, files: _f, ...c }) => {
+    const sig = signedCommits.has(c.sha) ? (["good", ""] as const) : signatureOf(c.sha);
+    return { ...c, refs: refsFor(c.sha), ...(sig ? { signature: sig[0] } : {}) };
+  });
 }
 
 function branches(): Branches {
   const info = (name: string, sha: string, upstream?: string): BranchInfo => {
     const c = bySha.get(sha);
     const ab = upstream && state.remote.get(upstream) ? aheadBehind(sha, state.remote.get(upstream)!) : { ahead: 0, behind: 0 };
-    return { name, sha, upstream: upstream ?? null, ...ab, time: c?.time ?? now, subject: c?.subject ?? "", current: name === state.current };
+    const worktree = name !== state.current ? (state.worktrees.find((w, i) => i > 0 && w.branch === name)?.path ?? null) : null;
+    return { name, sha, upstream: upstream ?? null, ...ab, time: c?.time ?? now, subject: c?.subject ?? "", current: name === state.current, worktree };
   };
   return {
     current: state.current,
@@ -511,6 +543,10 @@ registerMock("git_commit_details", ({ sha }): CommitDetails => {
     commitTime: c.time,
     message: c.body ? `${c.subject}\n\n${c.body}` : c.subject,
     files: c.files,
+    ...(() => {
+      const sig = signedCommits.has(c.sha) ? (["good", "Marlon <marlon@acme.dev>"] as const) : signatureOf(c.sha);
+      return sig ? { signature: sig[0], signer: sig[1], signingKey: sig[0] === "good" ? "3AA5C34371567BD2" : null } : { signature: "none" as const, signer: null, signingKey: null };
+    })(),
   };
 });
 registerMock("git_branches", () => branches());

@@ -103,6 +103,8 @@ export function focusContextOf(el: Element | null): FocusContext {
     el.matches("textarea, select, [contenteditable=''], [contenteditable='true']") ||
     (el.matches("input") && !/^(checkbox|radio|button|submit|range|color)$/.test((el as HTMLInputElement).type));
   if (el.closest(".cm-editor")) return textInput && !el.classList.contains("cm-content") ? "input" : "editor";
+  // Text fields that also take their tool window's actions (the commit message: Ctrl+M).
+  if (textInput && el.closest("[data-focus-context='toolwindow-input']")) return "toolwindow-input";
   if (textInput) return "input";
   // Panels in the editor area that act like tool windows (data editors) opt in.
   if (el.closest(".tool-window, [data-focus-context='toolwindow']")) return "toolwindow";

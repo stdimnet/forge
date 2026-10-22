@@ -486,3 +486,43 @@ pub async fn remote_reconnect(remote: State<'_, RemoteState>) -> Result<()> {
     tokio::time::sleep(Duration::from_millis(50)).await;
     Ok(())
 }
+
+/// Where Get from VCS clones on a host: a backend that runs git there and the host's home
+/// directory. The open project's connection reuses the project's backend; a connection
+/// opened for browsing gets a backend rooted at the home directory (the project opened
+/// after the clone replaces it).
+pub(crate) async fn clone_target(
+    remote: &RemoteState,
+    state: &AppState,
+    connection_id: &str,
+) -> Result<(Arc<dyn Backend>, String)> {
+    let conn = connection(remote, connection_id)?;
+    let home = conn.browse("~").await?.path;
+    let is_project = remote
+        .project
+        .lock()
+        .expect("project lock")
+        .as_ref()
+        .is_some_and(|p| p.id == connection_id);
+    if is_project {
+        return Ok((state.backend()?, home));
+    }
+    let host = conn.host().clone();
+    let source: Arc<dyn Connection> = conn.clone();
+    let root = home.clone();
+    let backend: Arc<dyn Backend> =
+        Arc::new(blocking(move || RemoteBackend::open(source, host, &root)).await?);
+    Ok((backend, home))
+}
+
+/// The open project's connection id, for actions that open another folder on its host
+/// (a cloned repository, a worktree).
+#[tauri::command]
+pub fn remote_project_connection(remote: State<'_, RemoteState>) -> Option<String> {
+    remote
+        .project
+        .lock()
+        .expect("project lock")
+        .as_ref()
+        .map(|p| p.id.clone())
+}

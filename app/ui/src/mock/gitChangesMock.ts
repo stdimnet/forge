@@ -3,6 +3,7 @@
  * Rust ones through WebAssembly (`forge_vcs::{changelists, hunks, patch}`); this mock only
  * keeps the state of the demo repository (`gitMock.ts`) and the in-memory workspace.
  */
+import { recordMockCommit } from "./gitExtrasMock";
 import { invoke, registerMock } from "@/ipc";
 import { callWasm, forgeWasm } from "@/wasm";
 import type { ChangedFile } from "@/features/git/api";
@@ -102,6 +103,7 @@ registerMock("git_commit_files", async ({ message, files, options }) => {
     mockRepo.commits.splice(mockRepo.commits.indexOf(prev), 1);
     sha = newCommit(subject || prev.subject, body ?? prev.body, prev.parents, [...prev.files, ...committed]);
   } else sha = newCommit(subject, body, [mockRepo.state.head], committed);
+  recordMockCommit(msg, sha);
   changed();
   return sha;
 });

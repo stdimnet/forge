@@ -27,6 +27,8 @@ import { GitTabs, HistoryTabs } from "./FileHistoryPanel";
 import { activeGitTab, setActiveGitTab } from "./history";
 import { goToRelative, openLogMenu, setLogView } from "./logActions";
 import { showToolWindow } from "@/state/layout";
+import { WorktreesPanel } from "./ExtrasDialogs";
+import { SignatureIcon, signatureLabel } from "./signature";
 
 const PAGE = 200;
 const LANE = 14;
@@ -209,6 +211,17 @@ function Details(props: { sha: string | null; commit: Commit | undefined }) {
                   <span class="log-sha">{d().sha.slice(0, 8)}</span> {d().author}{" "}
                   <span class="muted">&lt;{d().email}&gt;</span> on {fullDate(d().time)}
                 </div>
+                <Show when={d().signature && d().signature !== "none"}>
+                  <div class="log-meta log-signed" data-testid="log-signer">
+                    <SignatureIcon status={d().signature} />
+                    {signatureLabel(d().signature!)}
+                    <Show when={d().signer}> by {d().signer}</Show>
+                    <Show when={d().signingKey}>
+                      {" "}
+                      <span class="muted">({d().signingKey})</span>
+                    </Show>
+                  </div>
+                </Show>
                 <Show when={props.commit?.refs.length}>
                   <div class="log-refs">
                     <For each={props.commit!.refs}>{(r) => <RefPill r={r} />}</For>
@@ -393,6 +406,7 @@ export function GitLogPanel() {
                   <div class="log-subject-cell">
                     <Graph row={graph()[i()]} width={graphWidth()} />
                     <span class="log-subject-text">{c.subject}</span>
+                    <SignatureIcon status={c.signature} />
                     <span class="log-row-refs">
                       <For each={c.refs}>{(r) => <RefPill r={r} />}</For>
                     </span>
@@ -409,6 +423,9 @@ export function GitLogPanel() {
         </div>
         <Details sha={selectedSha()} commit={selected()} />
       </div>
+      <Show when={activeGitTab() === "worktrees"}>
+        <WorktreesPanel />
+      </Show>
       <HistoryTabs />
     </div>
   );

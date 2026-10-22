@@ -236,11 +236,16 @@ pub async fn git_commit_files(
         .read_settings()
         .get_bool("vcs.git.commit.signOff")
         .unwrap_or(false);
+    options.signing = crate::commands::git_extras::commit_signing(&state);
+    let msg = message.clone();
     let res = with_repo_files(&state, move |repo, backend| {
         let read = |p: &str| backend.read_file(p);
-        repo.commit_files(&message, &files, &options, &read)
+        repo.commit_files(&msg, &files, &options, &read)
     })
     .await;
+    if res.is_ok() {
+        crate::commands::git_extras::record_commit_message(&state, &message);
+    }
     changed(&app);
     res
 }

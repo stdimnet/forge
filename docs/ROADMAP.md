@@ -74,7 +74,7 @@ are in [research/jetbrains-gap-analysis.md](research/jetbrains-gap-analysis.md).
 - [x] Stash/Unstash, Pull/Merge/Rebase/Reset/Tag/Remotes dialogs, shelf
 - [x] Log actions (revert, undo, reset, edit message, squash/fixup), interactive rebase, cherry-pick
 - [x] Changelists and partial commits, commit checks, patches
-- [ ] Get from VCS (clone), Commit Message History (`Ctrl+M`), worktrees, GPG/SSH signing
+- [x] Get from VCS (clone), Commit Message History (`Ctrl+M`), worktrees, GPG/SSH signing
 - [ ] Local History with labels, selection history and Recent Changes
 
 ### Run, debug, PHP
