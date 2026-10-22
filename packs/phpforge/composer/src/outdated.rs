@@ -65,6 +65,8 @@ pub struct OutdatedMarker {
     pub line: usize,
     pub start: Position,
     pub end: Position,
+    /// The inspection's message.
+    pub message: String,
 }
 
 /// Outdated requirements of `composer_json`: `latest` maps package names to their newest
@@ -93,7 +95,12 @@ pub fn markers(
             continue;
         }
         let safe = Constraint::parse(&r.constraint).is_some_and(|c| c.matches(&new));
+        let message = format!(
+            "Package '{}' is outdated: {} is installed, {} is available",
+            r.name, pkg.version, newest
+        );
         out.push(OutdatedMarker {
+            message,
             name: r.name.clone(),
             constraint: r.constraint.clone(),
             installed: pkg.version.clone(),
@@ -118,14 +125,6 @@ pub fn markers(
         });
     }
     out
-}
-
-/// The message of the outdated package inspection.
-pub fn message(m: &OutdatedMarker) -> String {
-    format!(
-        "Package '{}' is outdated: {} is installed, {} is available",
-        m.name, m.installed, m.latest
-    )
 }
 
 #[cfg(test)]
@@ -173,7 +172,7 @@ mod tests {
         assert_eq!(m[1].suggested, "^4.2");
         assert_eq!(m[1].start.line, 4);
         assert_eq!(
-            message(&m[0]),
+            m[0].message,
             "Package 'laravel/framework' is outdated: v12.1.0 is installed, v12.3.0 is available"
         );
     }

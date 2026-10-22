@@ -28,6 +28,7 @@ import "./gitMock";
 import "./gitHistoryMock";
 import "./compareMock";
 import "./phpMock";
+import "./composerMock";
 import "./codeintelMock";
 import "./refactorMock";
 import "./hierarchyMock";
