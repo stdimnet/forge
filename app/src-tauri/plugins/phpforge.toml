@@ -153,7 +153,7 @@ order = 45
 [[plugin.contributions.settings]]
 key = "commandLineTools.tools"
 title = "Command line tools"
-description = "Tools the console runs, each with an alias (`c install`, `a make:model Order`), the path of its script or program, the PHP interpreter (empty: the project default) and where its output is shown (`toolWindow` or `popup`). Kinds: composer, artisan, symfony, wp-cli, drush, symfony-based (Tool based on Symfony Console) and php-script (Tool based on PHP script)."
+description = "Tools that Tools | Run Command… (Ctrl+Shift+X) runs. The alias starts the command line, e.g. c install or a make:model Order. Tools run with the PHP interpreter of the project unless they name another one."
 type = "objects"
 unique = ["alias"]
 default = []

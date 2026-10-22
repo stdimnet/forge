@@ -50,6 +50,7 @@ import "./scratchesMock";
 import "./debugMock";
 import "./dbMock";
 import "./laravelMock";
+import "./cliToolsMock";
 import "./symfonyMock";
 import "./luaMock";
 import "./doctrineMock";

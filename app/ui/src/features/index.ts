@@ -28,6 +28,7 @@ import "./forges";
 import "./php";
 import "./composer";
 import "./laravel";
+import "./cliTools";
 import "./symfony";
 import "./doctrine";
 import "./project-type";
