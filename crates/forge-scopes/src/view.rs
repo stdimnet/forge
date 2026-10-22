@@ -82,8 +82,10 @@ pub struct ViewOptions {
     pub folders_on_top: bool,
     pub sort_by_type: bool,
     pub compact_middle_packages: bool,
-    /// File Nesting rules; `None` when nesting is off.
-    pub nesting: Option<Vec<NestingRule>>,
+    /// File Nesting is on.
+    pub file_nesting: bool,
+    /// The File Nesting rules; empty uses [`default_nesting_rules`].
+    pub nesting_rules: Vec<NestingRule>,
 }
 
 impl Default for ViewOptions {
@@ -93,7 +95,8 @@ impl Default for ViewOptions {
             folders_on_top: true,
             sort_by_type: false,
             compact_middle_packages: false,
-            nesting: Some(default_nesting_rules()),
+            file_nesting: true,
+            nesting_rules: Vec::new(),
         }
     }
 }
@@ -168,8 +171,12 @@ pub fn arrange(
         }
         rows.push(row);
     }
-    if let Some(rules) = &options.nesting {
-        rows = nest(rows, rules);
+    if options.file_nesting {
+        if options.nesting_rules.is_empty() {
+            rows = nest(rows, &default_nesting_rules());
+        } else {
+            rows = nest(rows, &options.nesting_rules);
+        }
     }
     sort(&mut rows, options);
     rows
@@ -327,7 +334,7 @@ mod tests {
     fn nesting_off_keeps_files_flat_and_folders_are_never_nested() {
         let entries = vec![e("a.ts", false), e("a.js", true), e("a.js.map", false)];
         let off = ViewOptions {
-            nesting: None,
+            file_nesting: false,
             ..ViewOptions::default()
         };
         assert_eq!(
@@ -403,7 +410,7 @@ mod tests {
         ];
         let by_type = ViewOptions {
             sort_by_type: true,
-            nesting: None,
+            file_nesting: false,
             ..ViewOptions::default()
         };
         assert_eq!(
@@ -412,7 +419,7 @@ mod tests {
         );
         let mixed = ViewOptions {
             folders_on_top: false,
-            nesting: None,
+            file_nesting: false,
             ..ViewOptions::default()
         };
         assert_eq!(

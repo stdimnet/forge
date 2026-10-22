@@ -279,6 +279,7 @@ pub fn run() {
             commands::workspace::replace_in_files,
             commands::workspace::undo_replace,
             commands::workbench::todo_scan,
+            commands::project_structure::project_tree_list,
             commands::scopes::scopes_files,
             commands::scopes::scopes_test_roots,
             commands::ssr::ssr_templates,
@@ -752,6 +753,18 @@ pub(crate) fn activate_plugins(app: &AppHandle) {
                 std::thread::spawn(move || {
                     commands::imports::import_style(&h.state::<AppState>());
                 });
+            }
+        });
+
+    // Excluded folders (Settings | Directories, "Mark Directory as") reach the backend.
+    let handle = app.clone();
+    app.state::<AppState>()
+        .write_settings()
+        .subscribe(move |change| {
+            if commands::project_structure::affects(&change.key) {
+                let h = handle.clone();
+                // Listeners run under the settings lock; read them on another thread.
+                std::thread::spawn(move || commands::project_structure::apply(&h));
             }
         });
 

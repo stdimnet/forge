@@ -38,6 +38,7 @@ mod livetemplates;
 mod localhistory;
 mod lua;
 mod php_interpreters;
+mod project_structure;
 mod runtools;
 mod save_actions;
 mod scopes;
