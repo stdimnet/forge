@@ -1,13 +1,13 @@
 ---
 title: forge-editing
-description: "Editor actions computed in Rust: postfix completion templates, Complete Current Statement and Cyclic Expand Word (pure, WebAssembly-friendly)."
+description: "Editor actions computed in Rust: postfix completion templates, Complete Current Statement, Cyclic Expand Word and the edit history (pure, WebAssembly-friendly)."
 order: 75
 tags: [crate, rust]
 ---
 
 # forge-editing
 
-`crates/forge-editing` — Editor actions computed in Rust: postfix completion templates, Complete Current Statement and Cyclic Expand Word (pure, WebAssembly-friendly).
+`crates/forge-editing` — Editor actions computed in Rust: postfix completion templates, Complete Current Statement, Cyclic Expand Word and the edit history (pure, WebAssembly-friendly).
 
 ## Purpose
 
@@ -30,6 +30,11 @@ CodeMirror positions.
 - `hippie`: Cyclic Expand Word. The words that start with the prefix at the caret: above the
   caret first (nearest first), then below, then in the other open files; the backward action
   looks below first.
+- `clipboard`: the clipboard history behind Paste from History (`Ctrl+Shift+V`).
+- `navigation`: `EditHistory`, the places where text was changed behind Last/Next Edit
+  Location and Recent Locations' "Show changed only" (consecutive edits up to two lines
+  apart merge, places follow `LineEdit`s, renames and deletions, Back/Forward skip the caret's
+  place), and `change_target`, the hunk Next/Previous Change moves to (wrapping around).
 - `lang`: the language families (`php`, `js`, `lua`) and their Forge file type ids.
 
 ## Main public items
@@ -40,6 +45,8 @@ pub fn templates() -> Vec<TemplateInfo> { … }
 pub fn complete_postfix(request: &PostfixRequest) -> Option<PostfixCompletion> { … }
 pub fn complete_statement(request: &StatementRequest) -> Option<StatementEdit> { … }
 pub fn expand_word(request: &ExpandRequest) -> ExpandResult { … }
+pub struct EditHistory { … } // apply(EditOp) -> Option<EditPlace>, places()
+pub fn change_target(ranges: &[LineRange], line: usize, forward: bool) -> Option<usize> { … }
 ```
 
 ## Used by
@@ -49,11 +56,14 @@ pub fn expand_word(request: &ExpandRequest) -> ExpandResult { … }
 - UI: `app/ui/src/features/editing` (completion source, expand key, Settings | Editor |
   General | Postfix Completion, the `EditorCompleteStatement`, `HippieCompletion` and
   `HippieBackwardCompletion` actions)
-- Browser mode: built into `forge-wasm` (`editing_*`)
+- UI: `app/ui/src/features/editorNavigation` (Last/Next Edit Location) and `features/git`
+  (Next/Previous Change) call `edit_history` and `editor_change_target` synchronously through
+  WebAssembly in the desktop app too
+- Browser mode: built into `forge-wasm` (`editing_*`, `edit_history`, `editor_change_target`)
 
 ## Dependencies
 
-- Workspace crates: none
+- Workspace crates: `forge-bookmarks` (`LineEdit`, `map_line`)
 - External: `serde`, `serde_json`
 
 ## Tests
