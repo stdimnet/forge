@@ -347,8 +347,10 @@ mod tests {
 
     #[test]
     fn validates_names_programs_and_filters() {
-        let mut t = ExternalTool::default();
-        t.output_filters = vec!["$LINE$".into()];
+        let t = ExternalTool {
+            output_filters: vec!["$LINE$".into()],
+            ..ExternalTool::default()
+        };
         let problems = validate(&t, &[]);
         assert_eq!(problems.len(), 3, "{problems:?}");
         assert!(validate(&tool(), &[]).is_empty());
@@ -378,7 +380,7 @@ mod tests {
         let g = groups(&all);
         assert_eq!(g.len(), 2);
         assert_eq!(g[0].name, "Linters");
-        assert_eq!(g[0].tools, [a.clone()]);
+        assert_eq!(g[0].tools, std::slice::from_ref(&a));
         assert_eq!(g[1].name, DEFAULT_GROUP);
         assert_eq!(find(&all, "Linters/PHP CS Fixer"), Some(&a));
         assert_eq!(find(&all, "ls"), Some(&b));
