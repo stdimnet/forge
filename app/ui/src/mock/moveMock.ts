@@ -27,23 +27,23 @@ import { offsetOf, positionOf } from "./codeintelMock";
 import { parsePhp, type MockClass, type MockMember } from "./phpMockParser";
 import { mockFiles } from "./workspaceMock";
 
-const CANNOT = "Cannot perform refactoring.";
-const isPhp = (p: string) => /\.(php|phtml|inc)$/i.test(p) && !p.endsWith(".blade.php");
-const dirOf = (p: string) => (p.includes("/") ? p.slice(0, p.lastIndexOf("/")) : "");
-const qualify = (ns: string, name: string) => (ns ? `${ns}\\${name}` : name);
+export const CANNOT = "Cannot perform refactoring.";
+export const isPhp = (p: string) => /\.(php|phtml|inc)$/i.test(p) && !p.endsWith(".blade.php");
+export const dirOf = (p: string) => (p.includes("/") ? p.slice(0, p.lastIndexOf("/")) : "");
+export const qualify = (ns: string, name: string) => (ns ? `${ns}\\${name}` : name);
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-type Buffers = Record<string, string> | undefined;
-const textOf = (path: string, buffers: Buffers) => buffers?.[path] ?? mockFiles[path];
+export type Buffers = Record<string, string> | undefined;
+export const textOf = (path: string, buffers: Buffers) => buffers?.[path] ?? mockFiles[path];
 
-interface Edit {
+export interface Edit {
   start: number;
   end: number;
   text: string;
 }
 
 /** Edits per file (byte offsets = JS offsets here) and file operations, in order. */
-class Plan {
+export class Plan {
   edit: WorkspaceEdit = { changes: [] };
   conflicts: RefactorAnswer["conflicts"] = [];
   constructor(private buffers: Buffers) {}
@@ -80,14 +80,14 @@ function classes(path: string, buffers: Buffers): MockClass[] {
   return t === undefined ? [] : parsePhp(t).classes;
 }
 
-function allClasses(buffers: Buffers): { path: string; cls: MockClass }[] {
+export function allClasses(buffers: Buffers): { path: string; cls: MockClass }[] {
   return Object.keys(mockFiles)
     .filter(isPhp)
     .flatMap((path) => classes(path, buffers).map((cls) => ({ path, cls })));
 }
 
 /** Find Usages through the Find Usages mock, as `[path, offset, length]`. */
-async function usagesAt(path: string, offset: number, buffers: Buffers): Promise<{ path: string; start: number; end: number }[]> {
+export async function usagesAt(path: string, offset: number, buffers: Buffers): Promise<{ path: string; start: number; end: number }[]> {
   const text = textOf(path, buffers) ?? "";
   const p = positionOf(text, offset);
   const answer = await invoke<UsagesAnswer>("code_find_usages", { path, line: p.line, character: p.character, content: text, buffers });
@@ -104,7 +104,7 @@ async function usagesAt(path: string, offset: number, buffers: Buffers): Promise
   return out;
 }
 
-function lineRange(text: string, start: number, end: number): [number, number] {
+export function lineRange(text: string, start: number, end: number): [number, number] {
   const ls = text.lastIndexOf("\n", start - 1) + 1;
   const docStart = (() => {
     const before = text.slice(0, ls).trimEnd();

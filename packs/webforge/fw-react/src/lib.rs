@@ -3,6 +3,8 @@
 //! imports (relative paths, path aliases, barrel re-exports, workspace packages) and usages. Go to Declaration on `<UserCard` opens the component, on `title=` the prop,
 //! and on a component's own name lists the JSX tags that use it, like WebStorm.
 
+pub mod extract;
+
 use std::collections::HashMap;
 
 use webforge_lang_web::imports::{self, Import, Imported};

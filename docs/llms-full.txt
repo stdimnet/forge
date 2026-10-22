@@ -1791,6 +1791,7 @@ editor context menu:
 | Refactor > Refactor This… | works, see [Refactoring shortcuts](docs/guide/user/shortcuts/refactoring.md#refactor-this) |
 | Refactor > Extract/Introduce > Variable…, Constant…, Field…, Parameter…, Method… | works, see [PHP](docs/guide/user/php.md#extract-introduce-and-inline) |
 | Refactor > Inline… | works, see [PHP](docs/guide/user/php.md#extract-introduce-and-inline) |
+| Refactor > Extract/Introduce > Interface…, Superclass…, Pull Members Up…, Push Members Down… | works in PHP classes, see [PHP](docs/guide/user/php.md#extract-interface-and-superclass-pull-members-up-and-push-members-down) |
 | Go To > Declaration or Usages, Line/Column | works |
 | Go To > Implementation(s) | works |
 | Generate… | works in PHP files, see [PHP](docs/guide/user/php.md#generate) |
@@ -6560,10 +6561,6 @@ Source: docs/guide/user/shortcuts/refactoring.md
 
 Refactorings and code generation. Windows/Linux shortcuts first, macOS second; both are PHPStorm's defaults and can be changed in Settings | Keymap.
 
-> **Note:** Extract Interface / Superclass and Pull Members Up / Push Members Down are not
-> implemented yet. Their entries stay disabled; see the
-> [Refactor menu](docs/guide/reference/main-menu/refactor.md).
-
 | Action | Windows / Linux | macOS |
 | --- | --- | --- |
 | [Refactor This…](#refactor-this) | `Ctrl+Alt+Shift+T` | `Ctrl+T` |
@@ -6578,6 +6575,11 @@ Refactorings and code generation. Windows/Linux shortcuts first, macOS second; b
 | [Move…](#move) | `F6` | `F6` |
 | [Copy…](#copy) | `F5` | `F5` |
 | [Safe Delete…](#safe-delete) | `Alt+Delete` | `Cmd+Delete` |
+| [Extract Interface…](#extract-interface) | — | — |
+| [Extract Superclass…](#extract-superclass) | — | — |
+| [Extract Component…](#extract-component) | — | — |
+| [Pull Members Up…](#pull-members-up) | — | — |
+| [Push Members Down…](#push-members-down) | — | — |
 | [Make Static…](#make-static) | — | — |
 | [Show Context Actions](#show-context-actions) | `Alt+Enter` | `Alt+Enter` |
 | [Generate…](#generate) | `Alt+Insert` | `Cmd+N` |
@@ -6601,10 +6603,18 @@ More: [Editor](docs/guide/user/editor.md#rename), [PHP](docs/guide/user/php.md#r
 
 **Shortcut:** `Ctrl+Alt+Shift+T` · macOS `Ctrl+T` · action id `Refactorings.QuickListPopupAction`
 
-A popup with the refactorings Forge has (Rename, Change Signature, Move, Copy, Safe Delete,
-Make Static, Introduce Variable / Constant / Field / Parameter, Extract Method, Inline) and their
-shortcuts. Pick one with the arrow keys and
-`Enter`, a click or its number.
+A popup with only the refactorings that apply at the caret or to the selection, with their
+shortcuts: on a PHP class Rename, Move, Copy, Safe Delete, Extract Interface / Superclass and Pull
+Members Up / Push Members Down; on a method Rename, Change Signature, Move, Safe Delete, Inline,
+Pull Up / Push Down and Make Static; on an expression or a selection Introduce Variable /
+Constant / Field / Parameter and Extract Method. In JavaScript, TypeScript and Vue files it
+offers Rename, Extract Component (for whole elements), Move and Copy, and the language server's
+refactorings worded like PHPStorm (see [WebForge](docs/guide/user/webforge.md#language-server-refactorings)). Pick one with its number (`1`-`9`, `0`), the arrow keys and
+`Enter`, or a click; typing filters the list (speed search), `Escape` clears the filter.
+
+![Refactor This on a class](docs/screenshots/refactor-this-class.png)
+
+![Refactor This filtered by typing](docs/screenshots/refactor-this-method.png)
 
 **Menu:** Refactor | Refactor This…
 
@@ -6721,6 +6731,64 @@ that nothing uses it; **Usages Detected** offers View Usages and Delete Anyway.
 **Menu:** Refactor | Safe Delete…
 
 ![Usages Detected](docs/screenshots/safe-delete-usages-detected.png)
+
+## Extract Interface
+
+**Shortcut:** none by default · action id `ExtractInterface`
+
+In a PHP class or enum: creates an interface (name, namespace, directory) from the PHP Interface
+file template that declares the chosen public methods with their PHPDoc and holds the chosen
+constants; the class implements it. **Replace class references with interface where possible**
+changes parameter types that only need the interface's methods.
+
+**Menu:** Refactor | Extract/Introduce | Interface…
+
+![Extract Interface](docs/screenshots/extract-interface-dialog.png)
+
+## Extract Superclass
+
+**Shortcut:** none by default · action id `ExtractSuperclass`
+
+Moves the chosen members of a PHP class into a new class that the class extends (between it
+and its old parent); **Make abstract** keeps a method in the class and declares it abstract in
+the superclass.
+
+**Menu:** Refactor | Extract/Introduce | Superclass…
+
+![Extract Superclass](docs/screenshots/extract-superclass-dialog.png)
+
+## Extract Component
+
+**Shortcut:** none by default · action id `WebForge.ExtractComponent`
+
+Moves the selected Vue template elements or React JSX into a new component file with props for
+the names they use; the parent renders and imports it. See
+[WebForge](docs/guide/user/webforge.md#extract-component).
+
+**Menu:** Refactor | Extract/Introduce | Component…
+
+![Extract Component](docs/screenshots/extract-component-vue-dialog.png)
+
+## Pull Members Up
+
+**Shortcut:** none by default · action id `MembersPullUp`
+
+Moves members into a superclass or interface of the class (interfaces get declarations), with
+**Make abstract**; members a chosen one uses are highlighted, problems are listed before the
+change.
+
+**Menu:** Refactor | Pull Members Up…
+
+![Pull Members Up](docs/screenshots/pull-members-up-dialog.png)
+
+## Push Members Down
+
+**Shortcut:** none by default · action id `MemberPushDown`
+
+Copies members into every direct subclass and removes them from the class (**Keep abstract**
+leaves an abstract declaration).
+
+**Menu:** Refactor | Push Members Down…
 
 ## Make Static
 
@@ -8148,6 +8216,48 @@ conflicts (a class that already exists, a call that cannot be updated).
 
 ![Change Signature dialog](docs/screenshots/change-signature-dialog.png)
 
+## Extract interface and superclass, pull members up and push members down
+
+The class hierarchy refactorings work like PHPStorm's and, like the others, are computed by
+Forge from its PHP index: one undo step, a **Preview**, conflicts in **Problems Detected**, and
+remote projects work. Members a chosen member uses are highlighted in the member table, and
+class names in moved code are imported in the target file. New files come from your
+**PHP Interface** / **PHP Class** file templates (Settings | Editor | File and Code Templates).
+
+- **Extract Interface** (Refactor | Extract/Introduce | Interface…) in a class or enum: name,
+  namespace and directory (the directory follows the namespace through the PSR-4 rules), and the
+  **Members to Form Interface**: public methods (declared in the interface with their PHPDoc)
+  and constants (moved there). The class gets `implements NewInterface` (and the import).
+  **Replace class references with interface where possible** changes parameter types to the
+  interface where the function only calls the interface's methods on the parameter.
+- **Extract Superclass** (Refactor | Extract/Introduce | Superclass…) in a class: the chosen
+  members move into a new class; **Make abstract** keeps a method in the class and declares it
+  `abstract` in the superclass (which then becomes abstract). The class extends the new
+  superclass, which extends the class's old parent. Private members the class still uses become
+  protected; a moved member that uses a member that stays is a problem.
+- **Pull Members Up** (Refactor | Pull Members Up…): choose a superclass or interface of the
+  class (the whole hierarchy in the project) and the members. Into a class, members move
+  (**Make abstract** declares them abstract there instead); into an interface, public methods
+  are declared and constants move (properties cannot). Problems: the target already has the
+  member, a moved member uses a member that is not pulled up (or a private one).
+- **Push Members Down** (Refactor | Push Members Down…): the chosen members are copied into
+  every direct subclass that does not declare them itself (implementing classes of an
+  interface get its constants) and leave the class; **Keep abstract** leaves an abstract
+  declaration behind. Members of the class that still use a pushed member, and usages outside
+  the subclasses, are problems.
+- **Refactor This** (`Ctrl+Alt+Shift+T`) lists only what applies: on a class Rename, Move,
+  Copy, Safe Delete, Extract Interface / Superclass and Pull Members Up / Push Members Down; on a
+  method Rename, Change Signature, Move (static), Safe Delete, Inline, Pull Up / Push Down and
+  Make Static; on an expression or a selection the Introduce refactorings and Extract Method.
+
+![Extract Interface dialog](docs/screenshots/extract-interface-dialog.png)
+
+![Extract Superclass dialog](docs/screenshots/extract-superclass-dialog.png)
+
+![Pull Members Up dialog](docs/screenshots/pull-members-up-dialog.png)
+
+![Refactor This on a class](docs/screenshots/refactor-this-class.png)
+
 ## Context actions and intentions
 
 **Show Context Actions** (`Alt+Enter`) lists the language server's quick fixes (Intelephense
@@ -9052,6 +9162,49 @@ Single-file components with `<script setup>` or the Options API:
 ![Angular template navigation](docs/screenshots/webforge-angular-template.png)
 
 When several targets match, a **Choose Declaration** popup lists them.
+
+## Refactoring
+
+### Extract Component
+
+Select whole elements of a Vue `<template>` or JSX elements in a React component and choose
+Refactor | Extract/Introduce | **Component…** (also in Refactor This, `Ctrl+Alt+Shift+T`, and
+`Alt+Enter`). The dialog asks for the component name (PascalCase) and the directory and shows
+the props the new component gets: every name the markup takes from its parent (`{{ total }}`,
+`:user="user"`, `@click="save"`, `{items.map(...)}`, `onClick={() => remove(item)}`). Names
+bound inside the selection (`v-for` aliases, slot props, arrow function parameters) are not
+props, and components and helpers the parent imports are imported by the new component
+(relative imports are rewritten for its folder).
+
+- **Vue**: a new `.vue` file with the markup in its `<template>` and `defineProps([...])` in a
+  `<script setup>` (the `lang` of the parent's script), or `props` / `components` for the
+  Options API. The parent renders `<NewComponent :total="total" />` and imports it (Options API:
+  also registers it in `components`).
+- **React**: a new `.jsx` / `.tsx` file with `export default function NewComponent({ ... })`
+  returning the markup (several elements are wrapped in `<>…</>`, TypeScript gets a props
+  interface). The parent renders `<NewComponent total={total} />` and imports it in its own
+  import style.
+
+The new file and the parent's changes are one undo step; **Preview** shows them first. The
+analysis is Forge's own (Rust), so it needs no language server and works in remote projects.
+
+![Extract Component (Vue)](docs/screenshots/extract-component-vue-dialog.png)
+
+![The extracted React component](docs/screenshots/extract-component-react-result.png)
+
+### Language server refactorings
+
+In JavaScript and TypeScript files Refactor This adds the refactorings of the TypeScript
+language server for the caret or selection, worded like PHPStorm where it has its own name:
+**Extract Method** (function in module scope, method in class), **Introduce Constant**,
+**Extract Type Alias** / **Extract Interface**, **Inline Variable**, **Move to New File**,
+**Convert to function declaration** / **expression**, and the conversions the server offers as
+they are (convert to arrow function, async function, template string, destructured parameters
+or object, named / namespace imports, optional chain). `Alt+Enter` shows them with the same
+wording. Introduce Variable, Extract Method and Inline (`Ctrl+Alt+V`, `Ctrl+Alt+M`,
+`Ctrl+Alt+N`) use the server's refactorings directly.
+
+![Refactor This on JSX](docs/screenshots/refactor-this-react.png)
 
 ## Settings | Languages & Frameworks | TypeScript
 
@@ -11656,8 +11809,8 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Copy File… | `CopyElement` | `F5` | `F5` | yes |
 | Safe Delete… | `SafeDelete` | `Alt+Delete` | `Cmd+Delete` | yes |
 | Inline… | `Inline` | `Ctrl+Alt+N` | `Cmd+Alt+N` | yes |
-| Push Members Down… | `MemberPushDown` |  |  | — |
-| Pull Members Up… | `MembersPullUp` |  |  | — |
+| Push Members Down… | `MemberPushDown` |  |  | —yes |
+| Pull Members Up… | `MembersPullUp` |  |  | —yes |
 | Make Static… | `MakeStatic` |  |  | yes |
 
 ### Refactor > Extract > Introduce
@@ -11669,8 +11822,8 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Introduce Field… | `IntroduceField` | `Ctrl+Alt+F` | `Cmd+Alt+F` | — |
 | Introduce Constant… | `IntroduceConstant` | `Ctrl+Alt+C` | `Cmd+Alt+C` | — |
 | Introduce Parameter… | `IntroduceParameter` | `Ctrl+Alt+P` | `Cmd+Alt+P` | — |
-| Extract Interface… | `ExtractInterface` |  |  | — |
-| Extract Superclass… | `ExtractSuperclass` |  |  | — |
+| Extract Interface… | `ExtractInterface` |  |  | —yes |
+| Extract Superclass… | `ExtractSuperclass` |  |  | —yes |
 
 ### Run
 
@@ -12243,7 +12396,7 @@ Source: docs/guide/reference/main-menu/refactor.md
 
 # Refactor menu
 
-Refactorings. Refactor This, Rename, Rename File, Change Signature, Extract/Introduce Variable, Constant, Field, Parameter and Method, Inline, Move, Copy, Safe Delete and Make Static work; the menu shows PHPStorm's other entries disabled. Open it with ☰ (`Alt+\`) or from the menu bar, see [Main menu](docs/guide/user/workbench.md#main-menu).
+Refactorings. Every entry works: Refactor This, Rename, Rename File, Change Signature, Extract/Introduce Variable, Constant, Field, Parameter, Method, Interface, Superclass and Component (Vue, React), Inline, Move, Copy, Safe Delete, Pull Members Up, Push Members Down and Make Static. Open it with ☰ (`Alt+\`) or from the menu bar, see [Main menu](docs/guide/user/workbench.md#main-menu).
 
 ![Refactor menu](docs/screenshots/docs-menu-refactor.png)
 
@@ -12251,7 +12404,7 @@ Refactorings. Refactor This, Rename, Rename File, Change Signature, Extract/Intr
 
 | Entry | Windows / Linux | macOS | Available | What it does |
 | --- | --- | --- | --- | --- |
-| Refactor This… | `Ctrl+Alt+Shift+T` | `Ctrl+T` | yes | A popup with the refactorings and their shortcuts. [More](docs/guide/user/shortcuts/refactoring.md#refactor-this) |
+| Refactor This… | `Ctrl+Alt+Shift+T` | `Ctrl+T` | yes | A popup with the refactorings that apply at the caret, numbered and filtered by typing. [More](docs/guide/user/shortcuts/refactoring.md#refactor-this) ([screenshot](docs/screenshots/refactor-this-class.png)) |
 | Rename… | `Shift+F6` | `Shift+F6` | yes | Renames the symbol at the caret in place across the project (the file or folder in the Project view). [More](docs/guide/user/editor.md#rename) ([screenshot](docs/screenshots/rename-in-place.png)) |
 | Rename File… | — | — | yes | Renames the file of the current editor. [More](docs/guide/user/editor.md#rename) |
 | Change Signature… | `Ctrl+F6` | `Cmd+F6` | yes | Changes the name, visibility, return type and parameters of a method or function and updates every call. [More](docs/guide/user/php.md#move-copy-safe-delete-change-signature-and-make-static) ([screenshot](docs/screenshots/change-signature-dialog.png)) |
@@ -12261,14 +12414,15 @@ Refactorings. Refactor This, Rename, Rename File, Change Signature, Extract/Intr
 | Extract/Introduce › Field… | `Ctrl+Alt+F` | `Cmd+Alt+F` | yes | Moves the expression into a new property. [More](docs/guide/user/php.md#extract-introduce-and-inline) |
 | Extract/Introduce › Parameter… | `Ctrl+Alt+P` | `Cmd+Alt+P` | yes | Adds a parameter for the expression and passes it at every call. [More](docs/guide/user/php.md#extract-introduce-and-inline) |
 | Extract/Introduce › Method… | `Ctrl+Alt+M` | `Cmd+Alt+M` | yes | Moves the selected code into a new method or function. [More](docs/guide/user/php.md#extract-introduce-and-inline) ([screenshot](docs/screenshots/extract-method-dialog.png)) |
-| Extract/Introduce › Interface… | — | — | not yet | Not available yet; the entry is disabled. |
-| Extract/Introduce › Superclass… | — | — | not yet | Not available yet; the entry is disabled. |
+| Extract/Introduce › Interface… | — | — | yes | Extracts an interface with the chosen public methods and constants; the class implements it. [More](docs/guide/user/php.md#extract-interface-and-superclass-pull-members-up-and-push-members-down) ([screenshot](docs/screenshots/extract-interface-dialog.png)) |
+| Extract/Introduce › Superclass… | — | — | yes | Moves the chosen members into a new parent class (abstract declarations on request). [More](docs/guide/user/php.md#extract-interface-and-superclass-pull-members-up-and-push-members-down) ([screenshot](docs/screenshots/extract-superclass-dialog.png)) |
+| Extract/Introduce › Component… | — | — | yes | Moves the selected Vue template elements or JSX into a new component file with props, used and imported by the parent. [More](docs/guide/user/webforge.md#extract-component) ([screenshot](docs/screenshots/extract-component-vue-dialog.png)) |
 | Inline… | `Ctrl+Alt+N` | `Cmd+Alt+N` | yes | Inlines a variable, method, function or constant. [More](docs/guide/user/php.md#extract-introduce-and-inline) ([screenshot](docs/screenshots/inline-method-dialog.png)) |
 | Move… | `F6` | `F6` | yes | Moves a class to another namespace, static members to another class, a function to another file, or files and folders in the Project view. [More](docs/guide/user/php.md#move-copy-safe-delete-change-signature-and-make-static) ([screenshot](docs/screenshots/move-class-dialog.png)) |
 | Copy File… | `F5` | `F5` | yes | Copies a class under a new name, or files and folders in the Project view. [More](docs/guide/user/php.md#move-copy-safe-delete-change-signature-and-make-static) |
 | Safe Delete… | `Alt+Delete` | `Cmd+Delete` | yes | Deletes the element (or files) after checking for usages. [More](docs/guide/user/php.md#move-copy-safe-delete-change-signature-and-make-static) ([screenshot](docs/screenshots/safe-delete-usages-detected.png)) |
-| Pull Members Up… | — | — | not yet | Not available yet; the entry is disabled. |
-| Push Members Down… | — | — | not yet | Not available yet; the entry is disabled. |
+| Pull Members Up… | — | — | yes | Moves members into a superclass or interface of the class. [More](docs/guide/user/php.md#extract-interface-and-superclass-pull-members-up-and-push-members-down) ([screenshot](docs/screenshots/pull-members-up-dialog.png)) |
+| Push Members Down… | — | — | yes | Moves members into every direct subclass. [More](docs/guide/user/php.md#extract-interface-and-superclass-pull-members-up-and-push-members-down) |
 | Make Static… | — | — | yes | Makes an instance method static and updates its calls. [More](docs/guide/user/php.md#move-copy-safe-delete-change-signature-and-make-static) ([screenshot](docs/screenshots/make-static-dialog.png)) |
 
 

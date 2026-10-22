@@ -7,7 +7,8 @@
  * (Ctrl+Alt+Shift+F7), Go to Implementation (Ctrl+Alt+B), Type Declaration (Ctrl+Shift+B), Super
  * Method (Ctrl+U), the Find tool window (Alt+3), implemented / overridden gutter icons,
  * read-only library files, Rename (Shift+F6, in place), Extract / Introduce and Inline
- * (`extract.ts`), Refactor This and Show Context Actions (Alt+Enter, with the light bulb). Go to Declaration (Ctrl+B, Ctrl+Click) lives in
+ * (`extract.ts`), Extract Interface / Superclass and Pull Members Up / Push Members Down
+ * (`hierarchyRefactorings.ts`), Refactor This (`refactorThis.ts`) and Show Context Actions (Alt+Enter, with the light bulb). Go to Declaration (Ctrl+B, Ctrl+Click) lives in
  * `features/lsp/goto.ts` and shows usages on a declaration through this feature.
  */
 import { createRoot, Show } from "solid-js";
@@ -21,7 +22,7 @@ import { renameEntryAt, renameSelection } from "@/features/project/fileMenu";
 import { projectTree } from "@/features/project/ProjectView";
 import { activeTab } from "@/state/editor";
 import { registerCommand } from "@/state/commands";
-import { actionById, isActionAvailable, runAction, shortcutLabel, showBalloon } from "@/keymap";
+import { actionById, isActionAvailable, registerKeymapActions, runAction, shortcutLabel, showBalloon } from "@/keymap";
 import { codeApi, type NavKind } from "@/ipc/codeintel";
 import { activeView } from "@/features/lsp/navigation";
 import { showHint } from "@/features/lsp/hint";
@@ -46,8 +47,13 @@ import {
   introduce,
   introduceDialog,
   refactorHighlight,
-  refactorThis,
 } from "./extract";
+import { refactorThisAt, refactorThisPopup } from "./refactorThis";
+import { RefactorThisPopup } from "./RefactorThisPopup";
+import { extractInterfaceAt, extractSuperclassAt, pullUpAt, pushDownAt } from "./hierarchyRefactorings";
+import { HierarchyDialogHost } from "./HierarchyDialogs";
+import { EXTRACT_COMPONENT, extractComponentAt, extractComponentDialog } from "./extractComponent";
+import { ExtractComponentDialog } from "./ExtractComponentDialog";
 import { listenForServerEdits, refactoringHistory } from "./refactoring";
 import { MoveDialogHost } from "./MoveDialogs";
 import {
@@ -176,20 +182,27 @@ action("CopyElement", "Copy…", "Refactor", treeOrEditor(copyEntries, copyAt));
 action("SafeDelete", "Safe Delete…", "Refactor", treeOrEditor(safeDeleteEntries, safeDeleteAt));
 action("ChangeSignature", "Change Signature…", "Refactor", inEditor((p, v) => changeSignatureAt(p, v)));
 action("MakeStatic", "Make Static…", "Refactor", inEditor((p, v) => makeStaticAt(p, v)));
+// Extract Interface / Superclass, Pull Members Up / Push Members Down (PHP classes).
+action("ExtractInterface", "Extract Interface…", "Refactor", inEditor((p, v) => extractInterfaceAt(p, v)));
+action("ExtractSuperclass", "Extract Superclass…", "Refactor", inEditor((p, v) => extractSuperclassAt(p, v)));
+action("MembersPullUp", "Pull Members Up…", "Refactor", inEditor((p, v) => pullUpAt(p, v)));
+action("MemberPushDown", "Push Members Down…", "Refactor", inEditor((p, v) => pushDownAt(p, v)));
+// WebForge: Extract Component (Vue template elements, React JSX).
+registerKeymapActions([{ id: EXTRACT_COMPONENT, title: "Extract Component…", group: "Main Menu/Refactor/Extract/Introduce", shortcuts: {} }]);
+action(EXTRACT_COMPONENT, "Extract Component…", "Refactor", inEditor((p, v) => extractComponentAt(p, v)));
 
-// Ctrl+Alt+Shift+T: the refactorings in a popup.
+// Ctrl+Alt+Shift+T: the refactorings that apply at the caret, in a popup.
 action(
   "Refactorings.QuickListPopupAction",
   "Refactor This…",
   "Refactor",
-  inEditor((_p, v) =>
-    refactorThis(
-      v,
-      isActionAvailable,
-      (id) => actionById(id)?.title ?? id,
-      shortcutLabel,
-      (id) => void runAction(id),
-    ),
+  inEditor((p, v) =>
+    refactorThisAt(p, v, {
+      available: isActionAvailable,
+      title: (id) => actionById(id)?.title ?? id,
+      shortcut: shortcutLabel,
+      run: (id) => void runAction(id),
+    }),
   ),
 );
 
@@ -250,6 +263,13 @@ if (typeof document !== "undefined" && !isDialogWindow()) {
             {(r) => <InlineDialog req={r} />}
           </Show>
           <MoveDialogHost />
+          <HierarchyDialogHost />
+          <Show when={extractComponentDialog()} keyed>
+            {(r) => <ExtractComponentDialog req={r} />}
+          </Show>
+          <Show when={refactorThisPopup()} keyed>
+            {(r) => <RefactorThisPopup req={r} />}
+          </Show>
         </>
       ),
       host,

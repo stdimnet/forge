@@ -628,3 +628,121 @@
 .make-static-param {
   margin-left: 22px;
 }
+/* Extract Interface / Superclass, Pull Members Up / Push Members Down. */
+.hierarchy-dialog {
+  width: min(640px, calc(100vw - 32px));
+}
+.hierarchy-dialog .dialog-body > .form-label:not(.check) {
+  margin-bottom: -6px;
+}
+.hierarchy-dialog input[type="checkbox"] {
+  accent-color: var(--accent);
+}
+.hierarchy-dialog code {
+  color: var(--fg-strong);
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+}
+.hierarchy-members {
+  display: grid;
+  max-height: 240px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-editor);
+}
+.hierarchy-member {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  color: var(--fg);
+}
+.hierarchy-members.with-abstract .hierarchy-member {
+  grid-template-columns: auto minmax(0, 1fr) 104px;
+}
+.hierarchy-member.head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-panel);
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+.hierarchy-member:not(.head):hover {
+  background: var(--bg-hover);
+}
+.hierarchy-member.dependency,
+.hierarchy-legend-swatch {
+  background: var(--accent-soft);
+}
+.hierarchy-member-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.hierarchy-abstract,
+.hierarchy-abstract-head {
+  justify-self: center;
+}
+.hierarchy-empty {
+  padding: 6px 8px;
+}
+.hierarchy-legend {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-small);
+}
+.hierarchy-legend-swatch {
+  width: 12px;
+  height: 12px;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+}
+/* Refactor This: numbered rows, a speed search field. */
+.refactor-this .intention-list {
+  max-height: min(420px, 60vh);
+  overflow: auto;
+}
+.refactor-this-number {
+  flex-shrink: 0;
+  width: 14px;
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+  text-align: right;
+}
+.refactor-this-search {
+  padding: 3px 10px;
+  border-top: 1px solid var(--border);
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+.refactor-this-search mark {
+  background: none;
+  color: var(--accent);
+}
+.refactor-this-separator {
+  height: 1px;
+  margin: 3px 0;
+  background: var(--border);
+}
+.refactor-this-empty {
+  padding: 4px 10px;
+  color: var(--fg-muted);
+}
+/* Extract Component. */
+.extract-component-props {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.extract-component-prop {
+  padding: 1px 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-editor);
+}

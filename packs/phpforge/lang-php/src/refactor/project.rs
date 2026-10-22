@@ -63,7 +63,7 @@ pub struct ProjectPlan {
 }
 
 impl ProjectPlan {
-    fn edit(&mut self, path: &str, edits: Vec<TextEdit>) {
+    pub(crate) fn edit(&mut self, path: &str, edits: Vec<TextEdit>) {
         if edits.is_empty() {
             return;
         }
@@ -82,7 +82,7 @@ impl ProjectPlan {
         });
     }
 
-    fn conflict(&mut self, message: String, path: Option<&str>, line: Option<u32>) {
+    pub(crate) fn conflict(&mut self, message: String, path: Option<&str>, line: Option<u32>) {
         self.conflicts.push(match path {
             Some(p) => RenameConflict::at(message, p, line),
             None => RenameConflict::new(message),
@@ -123,7 +123,10 @@ fn usage_options(comments: bool) -> UsageOptions {
 }
 
 /// Usages as byte spans per file (vendor files and the declaration left out).
-fn usage_spans(p: &mut dyn Project, found: &PhpUsages) -> Vec<(String, Span, Option<UsageKind>)> {
+pub(crate) fn usage_spans(
+    p: &mut dyn Project,
+    found: &PhpUsages,
+) -> Vec<(String, Span, Option<UsageKind>)> {
     let mut out = Vec::new();
     for u in &found.usages {
         if is_vendor(&u.path) || u.path.contains("://") {

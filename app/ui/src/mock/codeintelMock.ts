@@ -7,6 +7,7 @@
  * context actions run the Rust code (`forge-codeintel`) as WebAssembly.
  */
 import { invoke, registerMock } from "@/ipc";
+import { extractComponentInfo } from "./extractComponentMock";
 import { injectionContextActions } from "./injectionsMock";
 import type {
   AppliedFile,
@@ -1204,6 +1205,12 @@ registerMock("code_context_actions", async (args): Promise<ContextActionsAnswer>
     actions.push(...(await phpIntentions(a.path, text, offset)));
   }
   actions.push(...(await injectionContextActions(a.path, text, offset)));
+  const sel = args as { endLine?: number; endCharacter?: number };
+  if (sel.endLine != null && sel.endCharacter != null) {
+    const range = { start: { line: a.line, character: a.character }, end: { line: sel.endLine, character: sel.endCharacter } };
+    if (await extractComponentInfo(a.path, text, range))
+      actions.push(action("Extract Component\u2026", "refactor", { source: "webforge", action: "WebForge.ExtractComponent" }));
+  }
   const wasm = await forgeWasm();
   const ordered = await callWasm<{ actions: ContextAction[]; bulb: ContextActionsAnswer["bulb"] }>(wasm.codeintel_context_actions, actions);
   return { ...ordered, missing: isPhp(a.path) && !isPremium ? missingPremium("Show Context Actions") : null };

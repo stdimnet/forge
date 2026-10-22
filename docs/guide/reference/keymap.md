@@ -324,8 +324,8 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Copy File… | `CopyElement` | `F5` | `F5` | yes |
 | Safe Delete… | `SafeDelete` | `Alt+Delete` | `Cmd+Delete` | yes |
 | Inline… | `Inline` | `Ctrl+Alt+N` | `Cmd+Alt+N` | yes |
-| Push Members Down… | `MemberPushDown` |  |  | — |
-| Pull Members Up… | `MembersPullUp` |  |  | — |
+| Push Members Down… | `MemberPushDown` |  |  | —yes |
+| Pull Members Up… | `MembersPullUp` |  |  | —yes |
 | Make Static… | `MakeStatic` |  |  | yes |
 
 ### Refactor > Extract > Introduce
@@ -337,8 +337,8 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Introduce Field… | `IntroduceField` | `Ctrl+Alt+F` | `Cmd+Alt+F` | — |
 | Introduce Constant… | `IntroduceConstant` | `Ctrl+Alt+C` | `Cmd+Alt+C` | — |
 | Introduce Parameter… | `IntroduceParameter` | `Ctrl+Alt+P` | `Cmd+Alt+P` | — |
-| Extract Interface… | `ExtractInterface` |  |  | — |
-| Extract Superclass… | `ExtractSuperclass` |  |  | — |
+| Extract Interface… | `ExtractInterface` |  |  | —yes |
+| Extract Superclass… | `ExtractSuperclass` |  |  | —yes |
 
 ### Run
 

@@ -40,8 +40,8 @@ pub mod usage_options;
 pub mod usages;
 
 pub use actions::{
-    bulb_for, lsp_creates, nest_fix_all, order_actions, refactor_actions, refactor_kinds,
-    ActionKind, Bulb, ContextAction,
+    bulb_for, lsp_creates, nest_fix_all, order_actions, phpstorm_title, refactor_actions,
+    refactor_kinds, refactor_this_actions, ActionKind, Bulb, ContextAction,
 };
 
 pub use docs::{

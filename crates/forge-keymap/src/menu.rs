@@ -868,6 +868,7 @@ fn refactor_menu() -> MenuEntry {
                     l("ExtractMethod", "_Method..."),
                     l("ExtractInterface", "_Interface..."),
                     l("ExtractSuperclass", "_Superclass..."),
+                    l("WebForge.ExtractComponent", "C_omponent..."),
                 ],
             ),
             l("Inline", "_Inline..."),

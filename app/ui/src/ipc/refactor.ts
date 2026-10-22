@@ -373,3 +373,138 @@ export const refactorApi = {
       refactoring,
     }),
 };
+
+// ---- Extract Interface / Superclass, Pull Members Up / Push Members Down ----
+
+export type HierarchyRefactoring = "extractInterface" | "extractSuperclass" | "pullUp" | "pushDown";
+
+/** A member of a class as the hierarchy dialogs list it. */
+export interface ClassMember {
+  /** `orders()`, `$count`, `ROLE`: unique in the class. */
+  id: string;
+  name: string;
+  kind: "method" | "property" | "constant";
+  signature: string;
+  visibility: Visibility;
+  isStatic: boolean;
+  isAbstract: boolean;
+  constructor: boolean;
+  /** The ids of the other members of the class it uses. */
+  uses: string[];
+}
+
+/** A class or interface of the hierarchy. */
+export interface HierarchyClass {
+  name: string;
+  fqn: string;
+  kind: "class" | "interface";
+  path: string;
+}
+
+export interface HierarchyInfo {
+  /** The declaring file and the class name's position there. */
+  path: string;
+  position: LspPosition;
+  directory: string;
+  name: string;
+  fqn: string;
+  namespace: string;
+  kind: "class" | "interface" | "trait" | "enum";
+  isAbstract: boolean;
+  parent?: string | null;
+  interfaces: string[];
+  members: ClassMember[];
+  /** The member at the caret. */
+  selected?: string | null;
+  /** Pull Members Up: superclasses and interfaces; Push Members Down: direct subclasses. */
+  targets: HierarchyClass[];
+}
+
+/** A chosen member; `makeAbstract` is "Make abstract" (or "Keep abstract" when pushing down). */
+export interface MemberChoice {
+  id: string;
+  makeAbstract: boolean;
+}
+
+export interface ExtractInterfaceOptions {
+  name: string;
+  namespace: string;
+  directory: string;
+  members: string[];
+  replaceReferences: boolean;
+}
+
+export interface ExtractSuperclassOptions {
+  name: string;
+  namespace: string;
+  directory: string;
+  members: MemberChoice[];
+}
+
+export interface PullUpOptions {
+  /** The superclass or interface, fully qualified. */
+  target: string;
+  members: MemberChoice[];
+}
+
+export interface PushDownOptions {
+  members: MemberChoice[];
+}
+
+export const hierarchyApi = {
+  prepare: (path: string, position: LspPosition, content: string, refactoring: HierarchyRefactoring, buffers?: Record<string, string>) =>
+    invoke<HierarchyInfo>("refactor_hierarchy_prepare", { path, position, content, refactoring, buffers }),
+  extractInterface: (info: HierarchyInfo, options: ExtractInterfaceOptions, content?: string, buffers?: Record<string, string>) =>
+    invoke<RefactorAnswer>("refactor_extract_interface", { path: info.path, position: info.position, content, options, buffers }),
+  extractSuperclass: (info: HierarchyInfo, options: ExtractSuperclassOptions, content?: string, buffers?: Record<string, string>) =>
+    invoke<RefactorAnswer>("refactor_extract_superclass", { path: info.path, position: info.position, content, options, buffers }),
+  pullUp: (info: HierarchyInfo, options: PullUpOptions, content?: string, buffers?: Record<string, string>) =>
+    invoke<RefactorAnswer>("refactor_pull_up", { path: info.path, position: info.position, content, options, buffers }),
+  pushDown: (info: HierarchyInfo, options: PushDownOptions, content?: string, buffers?: Record<string, string>) =>
+    invoke<RefactorAnswer>("refactor_push_down", { path: info.path, position: info.position, content, options, buffers }),
+};
+
+// ---- Refactor This ----
+
+export interface RefactorThisAnswer {
+  /** Forge's refactorings (action ids); `null` when Forge has no analysis for the file. */
+  actions?: string[] | null;
+  /** The language servers' refactorings (JS/TS). */
+  lsp: ContextAction[];
+}
+
+export const refactorThisApi = {
+  at: (path: string, range: LspRange, content: string) =>
+    invoke<RefactorThisAnswer>("code_refactor_this", {
+      path,
+      line: range.start.line,
+      character: range.start.character,
+      endLine: range.end.line,
+      endCharacter: range.end.character,
+      content,
+    }),
+};
+
+// ---- Extract Component (Vue, React) ----
+
+export interface ExtractComponentInfo {
+  framework: "vue" | "react";
+  /** A suggested name. */
+  name: string;
+  /** The props the new component gets. */
+  props: string[];
+  /** Names the new component imports itself. */
+  imports: string[];
+  /** The new file's extension (`vue`, `tsx`, `jsx`). */
+  extension: string;
+  /** The extracted range (bytes, trimmed). */
+  start: number;
+  end: number;
+}
+
+export const extractComponentApi = {
+  prepare: (path: string, range: LspRange, content: string) =>
+    invoke<ExtractComponentInfo>("refactor_extract_component_prepare", { path, start: range.start, end: range.end, content }),
+  extract: (path: string, range: LspRange, content: string, name: string, directory: string) =>
+    invoke<RefactorAnswer>("refactor_extract_component", { path, start: range.start, end: range.end, content, name, directory }),
+};

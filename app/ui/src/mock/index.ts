@@ -36,6 +36,8 @@ import "./composerMock";
 import "./codeintelMock";
 import "./refactorMock";
 import "./moveMock";
+import "./refactorHierarchyMock";
+import "./extractComponentMock";
 import "./hierarchyMock";
 import "./documentationMock";
 import "./relatedMock";
