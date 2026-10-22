@@ -92,7 +92,7 @@ async function importSettings(): Promise<void> {
   let path = "settings.zip";
   if (isTauri()) {
     const { open } = await import("@tauri-apps/plugin-dialog");
-    const picked = await open({ multiple: false, title: "Import Settings", filters: [{ name: "Settings archive", extensions: ["zip", "jar"] }] });
+    const picked = await open({ multiple: false, title: "Import Settings", filters: [{ name: "Settings archive", extensions: ["zip"] }] });
     if (typeof picked !== "string") return;
     path = picked;
   }
