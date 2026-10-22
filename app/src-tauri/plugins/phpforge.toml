@@ -11,14 +11,46 @@ description = "composer.json support, dependency install/update and autoload-awa
 projectTypes = ["composer"]
 
 [[plugin.contributions.commands]]
-id = "composer.install"
-title = "Composer Install"
-category = "Tools"
+id = "Composer.AddDependency"
+title = "Add Dependency…"
+category = "Composer"
 
 [[plugin.contributions.commands]]
-id = "composer.update"
-title = "Composer Update"
-category = "Tools"
+id = "Composer.Install"
+title = "Install"
+category = "Composer"
+
+[[plugin.contributions.commands]]
+id = "Composer.Update"
+title = "Update"
+category = "Composer"
+
+[[plugin.contributions.commands]]
+id = "Composer.Validate"
+title = "Validate"
+category = "Composer"
+
+[[plugin.contributions.commands]]
+id = "Composer.ShowOutdated"
+title = "Show Outdated"
+category = "Composer"
+
+[[plugin.contributions.commands]]
+id = "Composer.Audit"
+title = "Audit"
+category = "Composer"
+
+[[plugin.contributions.mainMenu]]
+path = "Tools/_Composer"
+items = [
+  { type = "action", id = "Composer.AddDependency", label = "_Add Dependency..." },
+  { type = "separator" },
+  { type = "action", id = "Composer.Install", label = "_Install" },
+  { type = "action", id = "Composer.Update", label = "_Update" },
+  { type = "action", id = "Composer.Validate", label = "_Validate" },
+  { type = "action", id = "Composer.ShowOutdated", label = "Show _Outdated" },
+  { type = "action", id = "Composer.Audit", label = "Au_dit" },
+]
 
 [[plugin.contributions.runConfigurationTypes]]
 id = "composer"
@@ -29,12 +61,13 @@ icon = "package"
 [[plugin.contributions.settings]]
 key = "php.composer.executable"
 title = "Path to composer"
-description = "A composer executable or composer.phar."
+description = "A composer executable, or a composer.phar (run with the PHP interpreter of Settings | PHP). Empty: `composer` from PATH."
 type = "path"
 default = "composer"
 group = "lang.php.composer"
+section = "Execution"
 project = true
-order = 0
+order = 1
 
 [[plugin.contributions.settings]]
 key = "php.composer.json"
@@ -44,7 +77,7 @@ type = "path"
 default = "composer.json"
 group = "lang.php.composer"
 project = true
-order = 1
+order = 0
 
 [[plugin.contributions.settings]]
 key = "php.composer.syncWithComposerJson"
@@ -74,6 +107,15 @@ type = "bool"
 default = false
 group = "lang.php.composer"
 order = 4
+
+[[plugin.contributions.settings]]
+key = "php.composer.packagist"
+title = "Use Packagist for completion, versions and outdated packages"
+description = "Package names, versions and descriptions come from packagist.org (cached in Forge's cache directory). Off: only installed packages are used and Forge never contacts Packagist."
+type = "bool"
+default = true
+group = "lang.php.composer"
+order = 5
 
 [[plugin]]
 id = "forge.phpunit"

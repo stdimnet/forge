@@ -7,7 +7,7 @@
 //!
 //! A [`KindRegistry`] maps the configuration `type` to a [`RunConfigurationKind`] that builds
 //! the command line. Plugins register their own kinds; built in are PHP Script, PHPUnit,
-//! Artisan, Composer script, Shell script and npm script.
+//! Artisan, Composer script, Composer command, Shell script and npm script.
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -302,6 +302,7 @@ impl KindRegistry {
         r.register(Box::new(PhpUnit));
         r.register(Box::new(Artisan));
         r.register(Box::new(ComposerScript));
+        r.register(Box::new(ComposerCommand));
         r.register(Box::new(ShellScript));
         r.register(Box::new(NpmScript));
         r
@@ -457,6 +458,22 @@ impl RunConfigurationKind for Artisan {
     }
 }
 
+/// The program and leading arguments that run Composer: `executable` (setting
+/// `php.composer.executable`, empty = `composer`), or `php <path>` for a composer.phar.
+pub fn composer_program(executable: &str, php: &str) -> (String, Vec<String>) {
+    match executable.trim() {
+        "" | "composer" => (platform_program("composer"), Vec::new()),
+        p if p.to_ascii_lowercase().ends_with(".phar") => {
+            let php = match php.trim() {
+                "" => "php",
+                p => p,
+            };
+            (php.to_string(), vec![p.to_string()])
+        }
+        p => (p.to_string(), Vec::new()),
+    }
+}
+
 /// `composer run-script <script> --ansi [-- arguments]`. Options: `script`, `composerPath`.
 struct ComposerScript;
 impl RunConfigurationKind for ComposerScript {
@@ -465,15 +482,35 @@ impl RunConfigurationKind for ComposerScript {
     }
     fn build(&self, cfg: &RunConfiguration, ctx: &BuildContext) -> Result<CommandLine> {
         let script = required(cfg, "script", "Script")?;
-        let program = match cfg.option("composerPath").trim() {
-            "" => platform_program("composer"),
-            p => p.to_string(),
-        };
-        let mut cmd = CommandLine::new(program).args(["run-script", script, "--ansi"]);
+        let (program, lead) = composer_program(cfg.option("composerPath"), &ctx.php_interpreter);
+        let mut cmd = CommandLine::new(program)
+            .args(lead)
+            .args(["run-script", script, "--ansi"]);
         let extra = split_args(&cfg.arguments);
         if !extra.is_empty() {
             cmd = cmd.arg("--").args(extra);
         }
+        cmd.cwd = ctx.working_dir(cfg, "");
+        Ok(cmd)
+    }
+}
+
+/// A Composer command of the composer.json editor and Tools | Composer (`install`,
+/// `update vendor/package`, `require vendor/package:^1.0 --dev`, `validate`, …): `composer
+/// <command> [arguments] --ansi`. Options: `command`, `composerPath`.
+struct ComposerCommand;
+impl RunConfigurationKind for ComposerCommand {
+    fn id(&self) -> &str {
+        "composer-command"
+    }
+    fn build(&self, cfg: &RunConfiguration, ctx: &BuildContext) -> Result<CommandLine> {
+        let command = required(cfg, "command", "Command")?;
+        let (program, lead) = composer_program(cfg.option("composerPath"), &ctx.php_interpreter);
+        let mut cmd = CommandLine::new(program)
+            .args(lead)
+            .args(split_args(command))
+            .args(split_args(&cfg.arguments))
+            .args(["--ansi", "--no-interaction"]);
         cmd.cwd = ctx.working_dir(cfg, "");
         Ok(cmd)
     }
@@ -736,6 +773,38 @@ mod tests {
         assert_eq!(
             cmd.display(),
             "/usr/bin/php8.3 artisan migrate --seed --ansi"
+        );
+
+        let c = cfg(
+            "composer-command",
+            &[("command", "require laravel/sanctum:^4.0 --dev")],
+        );
+        let cmd = r.build(&c, &ctx()).unwrap();
+        assert_eq!(
+            cmd.args,
+            [
+                "require",
+                "laravel/sanctum:^4.0",
+                "--dev",
+                "--ansi",
+                "--no-interaction"
+            ]
+        );
+        let c = cfg(
+            "composer-command",
+            &[
+                ("command", "install"),
+                ("composerPath", "/opt/composer.phar"),
+            ],
+        );
+        let cmd = r.build(&c, &ctx()).unwrap();
+        assert_eq!(cmd.program, "/usr/bin/php8.3");
+        assert_eq!(cmd.args[..2], ["/opt/composer.phar", "install"]);
+        assert!(r.build(&cfg("composer-command", &[]), &ctx()).is_err());
+        assert_eq!(composer_program("", "php").1, Vec::<String>::new());
+        assert_eq!(
+            composer_program("/usr/local/bin/composer2", "php").0,
+            "/usr/local/bin/composer2"
         );
 
         let mut c = cfg("composer", &[("script", "test")]);
