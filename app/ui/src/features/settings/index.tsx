@@ -68,8 +68,8 @@ registerCommand({ id: "settings.open", title: "Settings…", category: "File", r
 registerDialog<SettingsDialogProps, SettingsDialogResult>({
   id: SETTINGS_DIALOG,
   title: "Settings",
-  width: 900,
-  height: 640,
+  width: 1040,
+  height: 700,
   minWidth: 640,
   minHeight: 420,
   component: SettingsDialog,

@@ -7,7 +7,7 @@
 import { createEffect, createMemo, createSignal, For, Match, on, onCleanup, onMount, Show, Switch } from "solid-js";
 import { Compartment, EditorState } from "@codemirror/state";
 import { EditorView, lineNumbers } from "@codemirror/view";
-import { Settings2 } from "lucide-solid";
+import { Settings } from "lucide-solid";
 import { isTauri } from "@/ipc";
 import { codeStyleApi, type CodeStyleExportFormat, type CodeStyleLanguage, type CodeStyleOption, type CodeStyleValue } from "@/ipc/codeStyle";
 import { forgeEditorTheme, forgeHighlight } from "@/editor/forgeTheme";
@@ -189,7 +189,7 @@ function SchemeBar(props: { lang?: CodeStyleLanguage }) {
         </Show>
       </select>
       <button class="icon-btn cs-gear" title="Show Scheme Actions" onClick={(e) => openMenu(e, schemeMenu())}>
-        <Settings2 size={15} />
+        <Settings size={15} />
       </button>
       <Show when={props.lang?.presets.length}>
         <button class="set-link cs-set-from" onClick={(e) => openMenu(e, presetMenu(props.lang!))}>

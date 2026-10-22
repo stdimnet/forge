@@ -478,7 +478,7 @@ fn general() -> LanguageSpec {
         &["general", "formatter"],
         b,
         Vec::new(),
-        "sample.txt",
+        "sample.php",
         "",
         "",
     );
