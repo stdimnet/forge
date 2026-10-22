@@ -146,9 +146,8 @@ impl<'a> Y<'a> {
                 }
             }
             let before = self.pos;
-            match self.block_node(-1, false) {
-                Some(n) => docs.push(n),
-                None => {}
+            if let Some(n) = self.block_node(-1, false) {
+                docs.push(n);
             }
             if self.pos == before {
                 self.pos = self.line_end(self.pos);
