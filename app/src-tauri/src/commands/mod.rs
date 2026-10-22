@@ -15,6 +15,7 @@ pub mod emmet;
 pub mod forges;
 pub mod git;
 pub mod injections;
+pub mod json_schema;
 pub mod keymap;
 pub mod langservers;
 pub mod laravel;

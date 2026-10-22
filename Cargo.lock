@@ -1828,6 +1828,7 @@ dependencies = [
  "forge-forges",
  "forge-fuzzy",
  "forge-injections",
+ "forge-jsonschema",
  "forge-keymap",
  "forge-langservers",
  "forge-livetemplates",
@@ -2084,6 +2085,20 @@ dependencies = [
  "regex-lite",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "forge-jsonschema"
+version = "0.1.0"
+dependencies = [
+ "flate2",
+ "regex-lite",
+ "reqwest 0.12.28",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "tempfile",
+ "tokio",
 ]
 
 [[package]]
@@ -2407,6 +2422,7 @@ dependencies = [
  "forge-find",
  "forge-fuzzy",
  "forge-injections",
+ "forge-jsonschema",
  "forge-keymap",
  "forge-livetemplates",
  "forge-markdown",

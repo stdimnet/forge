@@ -34,6 +34,10 @@ const MANIFESTS: &[(&str, &str)] = &[
         "natural-languages.toml",
         include_str!("../plugins/natural-languages.toml"),
     ),
+    (
+        "json-schema.toml",
+        include_str!("../plugins/json-schema.toml"),
+    ),
 ];
 
 /// Setting holding the ids of plugins the user disabled.

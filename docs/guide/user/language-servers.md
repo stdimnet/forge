@@ -129,9 +129,10 @@ WebForge, Vue to `forge.vue`, Lua to `forge.lua`) start only while that plugin i
 ## Install suggestions in the editor
 
 When a file uses something only a language server provides, and that server is not installed,
-a banner above the editor offers it, for example for a JSON file with `"$schema"` or a YAML file
-with a `# yaml-language-server: $schema=…` modeline: "The $schema of this file is not used: no
-validation, completion or documentation from it."
+a banner above the editor offers it. A JSON `"$schema"` or a YAML
+`# yaml-language-server: $schema=…` modeline needs no server: Forge validates, completes and
+documents such files itself (see [JSON Schema](json-schema.md)). While the JSON or YAML server
+runs for a file, Forge leaves schema problems, completion and hover to it.
 
 - **Install…** opens the install dialog.
 - **Not now** hides the banner until Forge restarts.

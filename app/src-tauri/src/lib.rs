@@ -51,6 +51,7 @@ pub fn run() {
         .manage(commands::forges::ForgesState::load())
         .manage(commands::services::ServicesState::default())
         .manage(commands::spell::SpellState::default())
+        .manage(commands::json_schema::JsonSchemaState::default())
         .manage(commands::window::DialogWindowsState::default())
         .on_window_event(|window, event| {
             startup::on_splash_event(window, event);
@@ -379,6 +380,12 @@ pub fn run() {
             commands::spell::spell_inspect,
             commands::spell::spell_context_actions,
             commands::spell::spell_dictionaries,
+            commands::json_schema::json_schema_validate,
+            commands::json_schema::json_schema_complete,
+            commands::json_schema::json_schema_hover,
+            commands::json_schema::json_schema_goto,
+            commands::json_schema::json_schema_read,
+            commands::json_schema::json_schema_builtins,
             commands::markdown::markdown_hover,
             commands::markdown::markdown_document,
             commands::markdown::markdown_anchor_line,
