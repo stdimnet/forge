@@ -61,3 +61,4 @@ import "./related";
 import "./editorNavigation";
 import "./spelling";
 import "./jsonSchema";
+import "./vim";

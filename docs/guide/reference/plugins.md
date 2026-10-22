@@ -51,6 +51,7 @@ script and config language plugins.
 | Run/Debug | `forge.run` | core |  | always | tool windows: Run; 3 commands; 2 settings; run types: Shell Script |
 | Docker and Kubernetes | `forge.services` | core |  | always | tool windows: Services; 2 commands; 15 settings; 1 main menu entries |
 | Terminal | `forge.terminal` | core |  | always | tool windows: Terminal; 1 commands; 7 settings; 1 keybindings |
+| Vim | `forge.vim` | core | `forge.core` | always | 2 commands; 3 settings; 1 main menu entries |
 | HTML, CSS & JavaScript | `forge.web` | webforge |  | `webforge` | tool windows: npm; 2 commands; 4 settings; 3 LSP servers; run types: npm |
 | React | `forge.react` | webforge | `forge.web` | `react`, `next` |  |
 | Vue.js | `forge.vue` | webforge | `forge.web` | `vue`, `nuxt` | 1 LSP servers |

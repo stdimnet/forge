@@ -48,6 +48,12 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 
 ## Recently added
 
+- **Vim emulation**: Tools | Vim turns on IdeaVim-style Vim emulation in the editor: Normal,
+  Insert, Visual (character, line, block), Replace and command-line modes, motions, operators
+  and text objects, registers (also the system clipboard), dot repeat, macros, marks, search,
+  `:s`, `:g`, `:normal` and other ex commands, `~/.ideavimrc` with mappings to IDE actions, and
+  Settings | Editor | Vim to choose Vim or the IDE per conflicting shortcut
+  ([Vim emulation](user/vim-emulation.md)).
 - **Markdown preview, image editor and Edit as Table**: Markdown files open with a live,
   GitHub-flavored preview (tables, task lists, footnotes, alerts, Mermaid diagrams, project
   images, front matter, links that open files in Forge) and synchronized scrolling; images open

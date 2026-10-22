@@ -42,6 +42,7 @@ mod templates;
 mod terminal;
 mod text;
 mod viewers;
+mod vim;
 mod web;
 mod window;
 mod workbench;

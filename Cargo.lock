@@ -1846,6 +1846,7 @@ dependencies = [
  "forge-update",
  "forge-vcs",
  "forge-viewers",
+ "forge-vim",
  "forge-window",
  "futures-util",
  "luaforge-lang-lua",
@@ -2409,6 +2410,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "forge-vim"
+version = "0.1.0"
+dependencies = [
+ "regex",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "forge-wasm"
 version = "0.1.0"
 dependencies = [
@@ -2440,6 +2450,7 @@ dependencies = [
  "forge-sql",
  "forge-text",
  "forge-viewers",
+ "forge-vim",
  "forge-window",
  "luaforge-lang-lua",
  "phpforge-dql",

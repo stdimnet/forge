@@ -25,7 +25,8 @@ async function openClassDialog(page) {
   await page.click('.tree-row[data-path="app/Models"]', { button: "right" });
   await page.waitForSelector(".context-menu");
   await hover(page, "New");
-  await pick(page, "PHP Class");
+  await hover(page, "PHP");
+  await pick(page, "Class");
   await page.waitForSelector(".ft-dialog");
   await page.waitForFunction(() => document.querySelector("#ft-namespace")?.value === "App\\Models");
 }
@@ -45,6 +46,7 @@ export default {
     await page.click('.tree-row[data-path="app/Models"]', { button: "right" });
     await page.waitForSelector(".context-menu");
     await hover(page, "New");
+    await hover(page, "PHP");
   },
   "file-templates-php-class-dialog": async (page) => {
     await openClassDialog(page);
@@ -68,6 +70,7 @@ export default {
     await page.click('.tree-row[data-path="app/Models"]', { button: "right" });
     await page.waitForSelector(".context-menu");
     await hover(page, "New");
+    await hover(page, "Web");
     await pick(page, "HTML File");
     await page.waitForSelector(".ft-dialog");
     await page.fill("#ft-name", "invoice");

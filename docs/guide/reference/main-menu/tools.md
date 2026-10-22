@@ -7,7 +7,7 @@ tags: [main menu, reference, tools]
 
 # Tools menu
 
-Terminal and the tools of plugins (Docker, Laravel, Symfony). Open it with ☰ (`Alt+\`) or from the menu bar, see [Main menu](../../user/workbench.md#main-menu).
+Terminal, Vim emulation and the tools of plugins (Docker, Laravel, Symfony). Open it with ☰ (`Alt+\`) or from the menu bar, see [Main menu](../../user/workbench.md#main-menu).
 
 ![Tools menu](../../../screenshots/docs-menu-tools.png)
 
@@ -20,6 +20,7 @@ Terminal and the tools of plugins (Docker, Laravel, Symfony). Open it with ☰ (
 | Save File as Template… | — | — | not yet | Not available yet; the entry is disabled. |
 | Open in Terminal | `Ctrl+Shift+T` | `Cmd+T` | yes | Opens a new terminal tab (Tools | Open in Terminal). [More](../../user/terminal.md#tabs) ([screenshot](../../../screenshots/docs-terminal.png)) |
 | IDE Scripting Console | — | — | not yet | Not available yet; the entry is disabled. |
+| Vim | `Ctrl+Alt+V` | `Cmd+Alt+V` | yes | Turns Vim emulation on or off (check mark; plugin `forge.vim`). [More](../../user/vim-emulation.md) ([screenshot](../../../screenshots/vim-emulation.png)) |
 | Render All Doc Comments | — | — | yes | Shows every documentation comment of the file as formatted text, or the text again. [More](../../user/code-structure.md#rendered-documentation-comments) ([screenshot](../../../screenshots/rendered-doc-comments.png)) |
 | **Docker** | | | | submenu |
 | Docker › Pull Image… | — | — | yes | Pulls a Docker image. [More](../../user/services.md#pulling-images-and-registries) |
@@ -34,6 +35,7 @@ Tools collects the actions of active plugins; the screenshot shows a Laravel pro
 
 | Submenu | Entries | Appears in |
 | --- | --- | --- |
+| — | Vim (check mark) | always (plugin `forge.vim`) |
 | Docker | Pull Image…, Refresh Services | always (plugin `forge.services`) |
 | Laravel | Run Artisan Command… (`Ctrl+Shift+X`), Show Routes | Laravel projects (`forge.laravel`) |
 | Symfony | Run Console Command…, Show Routes, Refresh Symfony Index | Symfony projects (`forge.symfony`) |

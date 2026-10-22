@@ -51,7 +51,7 @@ are in [research/jetbrains-gap-analysis.md](research/jetbrains-gap-analysis.md).
 - [x] Spellchecking and grammar for comments, strings and identifiers
 - [x] Code style schemes with presets (PSR-12, PER-CS, Symfony, Laravel, WordPress) and per-language pages
 - [x] JSON Schema validation and completion (composer.json, package.json, compose, CI files)
-- [ ] Vim emulation
+- [x] Vim emulation
 
 ### Navigation and search
 - [x] File Structure popup (`Ctrl+F12`), Navigation Bar (`Alt+Home`), Related Symbol (`Ctrl+Alt+Home`)
