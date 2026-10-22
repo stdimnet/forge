@@ -2018,6 +2018,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "forge-diff"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "tempfile",
+]
+
+[[package]]
 name = "forge-editing"
 version = "0.1.0"
 dependencies = [
