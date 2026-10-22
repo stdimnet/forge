@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { invoke, listen } from "@/ipc";
-import type { ArtisanEvent, GutterMark, LaravelCompletions, LaravelLocation, RoutesResult } from "@/ipc/laravel";
-import { artisanEvent } from "@/ipc/laravel";
+import { invoke } from "@/ipc";
+import type { GutterMark, LaravelCompletions, LaravelLocation, RoutesResult } from "@/ipc/laravel";
 import { mockConfig, mockModels, mockTranslations } from "./laravelMock";
 import { mockFiles } from "./workspaceMock";
 import "./laravelMock";
@@ -68,16 +67,5 @@ describe("Laravel mock", () => {
       [18, "view"],
     ]);
     expect(marks[0].tooltip).toBe("GET|HEAD /products (products.index)\nGET|HEAD /api/products (products.index)");
-  });
-
-  it("streams simulated artisan output", async () => {
-    const events: ArtisanEvent[] = [];
-    const off = await listen<ArtisanEvent>(artisanEvent("t1"), (e) => events.push(e));
-    const code = await invoke<number>("laravel_artisan_run", { commandLine: "route:list", runId: "t1" });
-    off();
-    expect(code).toBe(0);
-    expect(events[0]).toEqual({ type: "started", commandLine: "php artisan route:list" });
-    expect(events.some((e) => e.type === "output" && e.text.includes("orders.show"))).toBe(true);
-    expect(events.at(-1)).toEqual({ type: "exit", code: 0 });
   });
 });

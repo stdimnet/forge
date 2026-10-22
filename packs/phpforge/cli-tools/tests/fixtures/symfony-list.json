@@ -1,0 +1,790 @@
+{
+    "application": {
+        "name": "Symfony",
+        "version": "7.3.1"
+    },
+    "commands": [
+        {
+            "name": "cache:clear",
+            "hidden": false,
+            "usage": [
+                "cache:clear [--no-warmup] [--no-optional-warmers]"
+            ],
+            "description": "Clear the cache",
+            "help": "Clear the cache",
+            "aliases": [],
+            "definition": {
+                "arguments": {
+                    "command": {
+                        "name": "command",
+                        "is_required": true,
+                        "is_array": false,
+                        "description": "The command to execute",
+                        "default": null
+                    }
+                },
+                "options": {
+                    "no-warmup": {
+                        "name": "--no-warmup",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Do not warm up the cache",
+                        "default": false
+                    },
+                    "no-optional-warmers": {
+                        "name": "--no-optional-warmers",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Skip optional cache warmers (faster)",
+                        "default": false
+                    },
+                    "help": {
+                        "name": "--help",
+                        "shortcut": "-h",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Display help for the given command. When no command is given display help for the <info>list</info> command",
+                        "default": false
+                    },
+                    "silent": {
+                        "name": "--silent",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Do not output any message",
+                        "default": false
+                    },
+                    "quiet": {
+                        "name": "--quiet",
+                        "shortcut": "-q",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Only errors are displayed. All other output is suppressed",
+                        "default": false
+                    },
+                    "verbose": {
+                        "name": "--verbose",
+                        "shortcut": "-v|-vv|-vvv",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Increase the verbosity of messages: 1 for normal output, 2 for more verbose output and 3 for debug",
+                        "default": false
+                    },
+                    "version": {
+                        "name": "--version",
+                        "shortcut": "-V",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Display this application version",
+                        "default": false
+                    },
+                    "ansi": {
+                        "name": "--ansi",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Force (or disable --no-ansi) ANSI output",
+                        "default": null
+                    },
+                    "no-ansi": {
+                        "name": "--no-ansi",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Negate the \"--ansi\" option",
+                        "default": false
+                    },
+                    "no-interaction": {
+                        "name": "--no-interaction",
+                        "shortcut": "-n",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Do not ask any interactive question",
+                        "default": false
+                    },
+                    "env": {
+                        "name": "--env",
+                        "shortcut": "-e",
+                        "accept_value": true,
+                        "is_value_required": true,
+                        "is_multiple": false,
+                        "description": "The Environment name.",
+                        "default": "dev"
+                    },
+                    "no-debug": {
+                        "name": "--no-debug",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Switch off debug mode.",
+                        "default": false
+                    }
+                }
+            }
+        },
+        {
+            "name": "debug:router",
+            "hidden": false,
+            "usage": [
+                "debug:router [--show-controllers] [--show-aliases] [--format FORMAT] [--raw] [--] [<name>]"
+            ],
+            "description": "Display current routes for an application",
+            "help": "Display current routes for an application",
+            "aliases": [],
+            "definition": {
+                "arguments": {
+                    "command": {
+                        "name": "command",
+                        "is_required": true,
+                        "is_array": false,
+                        "description": "The command to execute",
+                        "default": null
+                    },
+                    "name": {
+                        "name": "name",
+                        "is_required": false,
+                        "is_array": false,
+                        "description": "A route name",
+                        "default": null
+                    }
+                },
+                "options": {
+                    "show-controllers": {
+                        "name": "--show-controllers",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Show assigned controllers in overview",
+                        "default": false
+                    },
+                    "format": {
+                        "name": "--format",
+                        "shortcut": "",
+                        "accept_value": true,
+                        "is_value_required": true,
+                        "is_multiple": false,
+                        "description": "The output format (\"txt\", \"xml\", \"json\", \"md\")",
+                        "default": "txt"
+                    },
+                    "help": {
+                        "name": "--help",
+                        "shortcut": "-h",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Display help for the given command. When no command is given display help for the <info>list</info> command",
+                        "default": false
+                    },
+                    "silent": {
+                        "name": "--silent",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Do not output any message",
+                        "default": false
+                    },
+                    "quiet": {
+                        "name": "--quiet",
+                        "shortcut": "-q",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Only errors are displayed. All other output is suppressed",
+                        "default": false
+                    },
+                    "verbose": {
+                        "name": "--verbose",
+                        "shortcut": "-v|-vv|-vvv",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Increase the verbosity of messages: 1 for normal output, 2 for more verbose output and 3 for debug",
+                        "default": false
+                    },
+                    "version": {
+                        "name": "--version",
+                        "shortcut": "-V",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Display this application version",
+                        "default": false
+                    },
+                    "ansi": {
+                        "name": "--ansi",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Force (or disable --no-ansi) ANSI output",
+                        "default": null
+                    },
+                    "no-ansi": {
+                        "name": "--no-ansi",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Negate the \"--ansi\" option",
+                        "default": false
+                    },
+                    "no-interaction": {
+                        "name": "--no-interaction",
+                        "shortcut": "-n",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Do not ask any interactive question",
+                        "default": false
+                    },
+                    "env": {
+                        "name": "--env",
+                        "shortcut": "-e",
+                        "accept_value": true,
+                        "is_value_required": true,
+                        "is_multiple": false,
+                        "description": "The Environment name.",
+                        "default": "dev"
+                    },
+                    "no-debug": {
+                        "name": "--no-debug",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Switch off debug mode.",
+                        "default": false
+                    }
+                }
+            }
+        },
+        {
+            "name": "doctrine:schema:update",
+            "hidden": false,
+            "usage": [
+                "doctrine:schema:update [--em EM] [--complete] [--dump-sql] [-f|--force]"
+            ],
+            "description": "Executes (or dumps) the SQL needed to update the database schema to match the current mapping metadata",
+            "help": "Executes (or dumps) the SQL needed to update the database schema to match the current mapping metadata",
+            "aliases": [],
+            "definition": {
+                "arguments": {
+                    "command": {
+                        "name": "command",
+                        "is_required": true,
+                        "is_array": false,
+                        "description": "The command to execute",
+                        "default": null
+                    }
+                },
+                "options": {
+                    "em": {
+                        "name": "--em",
+                        "shortcut": "",
+                        "accept_value": true,
+                        "is_value_required": true,
+                        "is_multiple": false,
+                        "description": "Name of the entity manager to operate on",
+                        "default": null
+                    },
+                    "dump-sql": {
+                        "name": "--dump-sql",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Dumps the generated SQL statements to the screen (does not execute them).",
+                        "default": false
+                    },
+                    "force": {
+                        "name": "--force",
+                        "shortcut": "-f",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Causes the generated SQL statements to be physically executed against your database.",
+                        "default": false
+                    },
+                    "help": {
+                        "name": "--help",
+                        "shortcut": "-h",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Display help for the given command. When no command is given display help for the <info>list</info> command",
+                        "default": false
+                    },
+                    "silent": {
+                        "name": "--silent",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Do not output any message",
+                        "default": false
+                    },
+                    "quiet": {
+                        "name": "--quiet",
+                        "shortcut": "-q",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Only errors are displayed. All other output is suppressed",
+                        "default": false
+                    },
+                    "verbose": {
+                        "name": "--verbose",
+                        "shortcut": "-v|-vv|-vvv",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Increase the verbosity of messages: 1 for normal output, 2 for more verbose output and 3 for debug",
+                        "default": false
+                    },
+                    "version": {
+                        "name": "--version",
+                        "shortcut": "-V",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Display this application version",
+                        "default": false
+                    },
+                    "ansi": {
+                        "name": "--ansi",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Force (or disable --no-ansi) ANSI output",
+                        "default": null
+                    },
+                    "no-ansi": {
+                        "name": "--no-ansi",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Negate the \"--ansi\" option",
+                        "default": false
+                    },
+                    "no-interaction": {
+                        "name": "--no-interaction",
+                        "shortcut": "-n",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Do not ask any interactive question",
+                        "default": false
+                    },
+                    "env": {
+                        "name": "--env",
+                        "shortcut": "-e",
+                        "accept_value": true,
+                        "is_value_required": true,
+                        "is_multiple": false,
+                        "description": "The Environment name.",
+                        "default": "dev"
+                    },
+                    "no-debug": {
+                        "name": "--no-debug",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Switch off debug mode.",
+                        "default": false
+                    }
+                }
+            }
+        },
+        {
+            "name": "make:entity",
+            "hidden": false,
+            "usage": [
+                "make:entity [-a|--api-resource] [-b|--broadcast] [--regenerate] [--overwrite] [--with-uuid] [--with-ulid] [--] [<name>]"
+            ],
+            "description": "Create or update a Doctrine entity class, and optionally an API Platform resource",
+            "help": "Create or update a Doctrine entity class, and optionally an API Platform resource",
+            "aliases": [],
+            "definition": {
+                "arguments": {
+                    "command": {
+                        "name": "command",
+                        "is_required": true,
+                        "is_array": false,
+                        "description": "The command to execute",
+                        "default": null
+                    },
+                    "name": {
+                        "name": "name",
+                        "is_required": false,
+                        "is_array": false,
+                        "description": "Class name of the entity to create or update (e.g. <fg=yellow>BraveElephant</>)",
+                        "default": null
+                    }
+                },
+                "options": {
+                    "api-resource": {
+                        "name": "--api-resource",
+                        "shortcut": "-a",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Mark this class as an API Platform resource (expose a CRUD API for it)",
+                        "default": false
+                    },
+                    "regenerate": {
+                        "name": "--regenerate",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Instead of adding new fields, simply generate the methods (e.g. getter/setter) for existing fields",
+                        "default": false
+                    },
+                    "help": {
+                        "name": "--help",
+                        "shortcut": "-h",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Display help for the given command. When no command is given display help for the <info>list</info> command",
+                        "default": false
+                    },
+                    "silent": {
+                        "name": "--silent",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Do not output any message",
+                        "default": false
+                    },
+                    "quiet": {
+                        "name": "--quiet",
+                        "shortcut": "-q",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Only errors are displayed. All other output is suppressed",
+                        "default": false
+                    },
+                    "verbose": {
+                        "name": "--verbose",
+                        "shortcut": "-v|-vv|-vvv",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Increase the verbosity of messages: 1 for normal output, 2 for more verbose output and 3 for debug",
+                        "default": false
+                    },
+                    "version": {
+                        "name": "--version",
+                        "shortcut": "-V",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Display this application version",
+                        "default": false
+                    },
+                    "ansi": {
+                        "name": "--ansi",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Force (or disable --no-ansi) ANSI output",
+                        "default": null
+                    },
+                    "no-ansi": {
+                        "name": "--no-ansi",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Negate the \"--ansi\" option",
+                        "default": false
+                    },
+                    "no-interaction": {
+                        "name": "--no-interaction",
+                        "shortcut": "-n",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Do not ask any interactive question",
+                        "default": false
+                    },
+                    "env": {
+                        "name": "--env",
+                        "shortcut": "-e",
+                        "accept_value": true,
+                        "is_value_required": true,
+                        "is_multiple": false,
+                        "description": "The Environment name.",
+                        "default": "dev"
+                    },
+                    "no-debug": {
+                        "name": "--no-debug",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Switch off debug mode.",
+                        "default": false
+                    }
+                }
+            }
+        },
+        {
+            "name": "help",
+            "hidden": false,
+            "usage": [
+                "help [--format FORMAT] [--raw] [--] [<command_name>]"
+            ],
+            "description": "Display help for a command",
+            "help": "Display help for a command",
+            "aliases": [],
+            "definition": {
+                "arguments": {
+                    "command_name": {
+                        "name": "command_name",
+                        "is_required": false,
+                        "is_array": false,
+                        "description": "The command name",
+                        "default": "help"
+                    }
+                },
+                "options": {
+                    "format": {
+                        "name": "--format",
+                        "shortcut": "",
+                        "accept_value": true,
+                        "is_value_required": true,
+                        "is_multiple": false,
+                        "description": "The output format (txt, xml, json, or md)",
+                        "default": "txt"
+                    },
+                    "help": {
+                        "name": "--help",
+                        "shortcut": "-h",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Display help for the given command. When no command is given display help for the <info>list</info> command",
+                        "default": false
+                    },
+                    "silent": {
+                        "name": "--silent",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Do not output any message",
+                        "default": false
+                    },
+                    "quiet": {
+                        "name": "--quiet",
+                        "shortcut": "-q",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Only errors are displayed. All other output is suppressed",
+                        "default": false
+                    },
+                    "verbose": {
+                        "name": "--verbose",
+                        "shortcut": "-v|-vv|-vvv",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Increase the verbosity of messages: 1 for normal output, 2 for more verbose output and 3 for debug",
+                        "default": false
+                    },
+                    "version": {
+                        "name": "--version",
+                        "shortcut": "-V",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Display this application version",
+                        "default": false
+                    },
+                    "ansi": {
+                        "name": "--ansi",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Force (or disable --no-ansi) ANSI output",
+                        "default": null
+                    },
+                    "no-ansi": {
+                        "name": "--no-ansi",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Negate the \"--ansi\" option",
+                        "default": false
+                    },
+                    "no-interaction": {
+                        "name": "--no-interaction",
+                        "shortcut": "-n",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Do not ask any interactive question",
+                        "default": false
+                    },
+                    "env": {
+                        "name": "--env",
+                        "shortcut": "-e",
+                        "accept_value": true,
+                        "is_value_required": true,
+                        "is_multiple": false,
+                        "description": "The Environment name.",
+                        "default": "dev"
+                    },
+                    "no-debug": {
+                        "name": "--no-debug",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Switch off debug mode.",
+                        "default": false
+                    }
+                }
+            }
+        },
+        {
+            "name": "list",
+            "hidden": false,
+            "usage": [
+                "list [--raw] [--format FORMAT] [--short] [--] [<namespace>]"
+            ],
+            "description": "List commands",
+            "help": "List commands",
+            "aliases": [],
+            "definition": {
+                "arguments": {
+                    "namespace": {
+                        "name": "namespace",
+                        "is_required": false,
+                        "is_array": false,
+                        "description": "The namespace name",
+                        "default": null
+                    }
+                },
+                "options": {
+                    "help": {
+                        "name": "--help",
+                        "shortcut": "-h",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Display help for the given command. When no command is given display help for the <info>list</info> command",
+                        "default": false
+                    },
+                    "silent": {
+                        "name": "--silent",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Do not output any message",
+                        "default": false
+                    },
+                    "quiet": {
+                        "name": "--quiet",
+                        "shortcut": "-q",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Only errors are displayed. All other output is suppressed",
+                        "default": false
+                    },
+                    "verbose": {
+                        "name": "--verbose",
+                        "shortcut": "-v|-vv|-vvv",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Increase the verbosity of messages: 1 for normal output, 2 for more verbose output and 3 for debug",
+                        "default": false
+                    },
+                    "version": {
+                        "name": "--version",
+                        "shortcut": "-V",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Display this application version",
+                        "default": false
+                    },
+                    "ansi": {
+                        "name": "--ansi",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Force (or disable --no-ansi) ANSI output",
+                        "default": null
+                    },
+                    "no-ansi": {
+                        "name": "--no-ansi",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Negate the \"--ansi\" option",
+                        "default": false
+                    },
+                    "no-interaction": {
+                        "name": "--no-interaction",
+                        "shortcut": "-n",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Do not ask any interactive question",
+                        "default": false
+                    },
+                    "env": {
+                        "name": "--env",
+                        "shortcut": "-e",
+                        "accept_value": true,
+                        "is_value_required": true,
+                        "is_multiple": false,
+                        "description": "The Environment name.",
+                        "default": "dev"
+                    },
+                    "no-debug": {
+                        "name": "--no-debug",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Switch off debug mode.",
+                        "default": false
+                    }
+                }
+            }
+        }
+    ]
+}

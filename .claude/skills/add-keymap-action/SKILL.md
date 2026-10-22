@@ -36,10 +36,10 @@ For plugin-specific actions with default shortcuts:
 
 ```ts
 registerKeymapActions([
-  { id: "Laravel.RunArtisan", title: "Run Artisan Command…", group: "Laravel",
+  { id: "CommandLineToolsAction", title: "Run Command…", group: "Tools",
     shortcuts: { $default: ["Ctrl+Shift+X"], macOS: ["Cmd+Shift+X"] } },
 ]);
-registerCommand({ id: "Laravel.RunArtisan", title: "Run Artisan Command…", run: openArtisanPopup });
+registerCommand({ id: "CommandLineToolsAction", title: "Run Command…", run: () => openRunCommand() });
 ```
 
 Shortcut syntax: `Ctrl+Shift+A`, `Alt+Insert`, chords `Ctrl+K Ctrl+C`, double taps `Shift Shift`,

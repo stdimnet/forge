@@ -42,9 +42,10 @@ script and config language plugins.
 | Gemini CLI | `forge.gemini-cli` | core | `forge.ai` | always | 3 settings; 1 AI providers; 1 chat agents |
 | PHP | `forge.php` | phpforge |  | `php` | 1 commands; 18 settings; 1 LSP servers; run types: PHP Script, PHP Built-in Web Server; 4 code generators |
 | Composer | `forge.composer` | phpforge | `forge.php` | `composer` | 6 commands; 6 settings; run types: Composer Script; 1 main menu entries |
+| Command Line Tool Support | `forge.command-line-tools` | phpforge | `forge.php` | `php`, `composer` | tool windows: Command Line Tools Console; 1 commands; 2 settings; 1 keybindings; 1 main menu entries |
 | PHPUnit | `forge.phpunit` | phpforge | `forge.php` | `phpunit`, `pest` | run types: PHPUnit; 1 code generators |
 | Xdebug | `forge.xdebug` | phpforge | `forge.php` | `php` | tool windows: Debug; 1 commands; 8 settings; run types: PHP Remote Debug; 1 main menu entries |
-| Laravel | `forge.laravel` | phpforge | `forge.php`, `forge.composer` | `laravel` | tool windows: Routes; 1 commands; 6 settings; run types: Artisan; 1 code generators; 1 keybindings; 1 main menu entries |
+| Laravel | `forge.laravel` | phpforge | `forge.php`, `forge.composer` | `laravel` | tool windows: Routes; 1 commands; 6 settings; run types: Artisan; 1 code generators; 1 main menu entries |
 | Symfony | `forge.symfony` | phpforge | `forge.php`, `forge.composer` | `symfony` | tool windows: Symfony; 2 commands; 7 settings; 1 main menu entries |
 | Symfony Services | `forge.symfony-services` | phpforge | `forge.yaml` | `symfony` | file types: Symfony Services |
 | Doctrine | `forge.doctrine` | phpforge | `forge.php` | `doctrine` | tool windows: Doctrine; 1 commands; 6 settings |

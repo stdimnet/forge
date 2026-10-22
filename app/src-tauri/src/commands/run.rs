@@ -166,12 +166,12 @@ const PHP_KINDS: &[&str] = &["php-script", "phpunit", "artisan", "php-builtin-se
 const COMPOSER_KINDS: &[&str] = &["composer", "composer-command"];
 
 /// A request's command line, plus what a run through a PHP interpreter needs.
-struct Built {
-    cmd: CommandLine,
+pub(crate) struct Built {
+    pub cmd: CommandLine,
     /// Container / remote paths and their local counterparts (Run console links).
-    path_mappings: Vec<OutputPathMapping>,
+    pub path_mappings: Vec<OutputPathMapping>,
     /// The debugger's server with the interpreter's mappings.
-    debug_server: Option<forge_debug::ServerConfig>,
+    pub debug_server: Option<forge_debug::ServerConfig>,
 }
 
 fn build(state: &AppState, runs: &RunState, req: RunRequest) -> Result<Built> {
@@ -295,11 +295,25 @@ pub async fn run_start(
         format!("run-{n}")
     });
     let test_runner = request.test_runner;
+    let built = build(&state, &runs, request)?;
+    start_built(run_id, built, test_runner, app, &state, &runs).await
+}
+
+/// Start a built command line as run `run_id`, streaming `run://<runId>` (also used by
+/// the Command Line Tools Console).
+pub(crate) async fn start_built(
+    run_id: String,
+    built: Built,
+    test_runner: bool,
+    app: AppHandle,
+    state: &AppState,
+    runs: &RunState,
+) -> Result<RunStarted> {
     let Built {
         cmd,
         path_mappings,
         debug_server,
-    } = build(&state, &runs, request)?;
+    } = built;
     if let Some(server) = debug_server {
         if let Some(debug) = app.try_state::<crate::commands::debug::DebugState>() {
             debug.add_interpreter_server(server);
@@ -312,7 +326,7 @@ pub async fn run_start(
         .or(Some(1024));
     let output = Arc::new(Mutex::new(RunOutput::new(&RunOutputOptions {
         test_runner,
-        root: Some(root(&state)?.display().to_string()),
+        root: Some(root(state)?.display().to_string()),
         cwd: Some(cmd.cwd.display().to_string()),
         cycle_buffer_kb,
         path_mappings,
