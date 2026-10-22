@@ -5,7 +5,7 @@
  * parser on each change (TypeScript, per keystroke) and gets the injected-fragment
  * background.
  */
-import { createEffect, createRoot, on } from "solid-js";
+import { createEffect, createRoot, createSignal, on } from "solid-js";
 import { Prec, RangeSetBuilder, StateEffect, StateField, type ChangeDesc, type EditorState, type Extension } from "@codemirror/state";
 import { Decoration, EditorView, ViewPlugin, type DecorationSet, type ViewUpdate } from "@codemirror/view";
 import { injectionsApi, type Injection, type InjectionSettings, type Span } from "@/ipc/injections";
@@ -18,9 +18,14 @@ export const UNINJECTED_KEY = "editor.injections.uninjected";
 /** Files above this size are not analysed. */
 const MAX_CHARS = 1_000_000;
 
+/** Parameters marked `#[Language]`, set by the PHP feature after indexing. */
+const [injectionPlaces, setInjectionPlaces] = createSignal<NonNullable<InjectionSettings["places"]>>([]);
+export { setInjectionPlaces };
+
 export const injectionSettings = (): InjectionSettings => ({
   disabled: getSetting<string[]>(DISABLED_KEY, []) ?? [],
   uninjected: getSetting<string[]>(UNINJECTED_KEY, []) ?? [],
+  places: injectionPlaces(),
 });
 
 /** Host files: PHP (not Blade) and JavaScript/TypeScript, as `Host::of_path` in Rust. */

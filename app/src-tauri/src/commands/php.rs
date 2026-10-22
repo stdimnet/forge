@@ -31,6 +31,8 @@ struct IndexProgress {
 #[tauri::command]
 pub async fn php_index_workspace(app: AppHandle, state: State<'_, AppState>) -> Result<IndexStats> {
     let backend = state.backend()?;
+    // Include paths and source roots first: a changed include path indexes everything again.
+    crate::commands::php_meta::configure(&state)?;
     blocking(move || {
         backend.php().index_workspace(Arc::new(move |done, total| {
             let _ = app.emit("php://index-progress", IndexProgress { done, total });
@@ -46,9 +48,10 @@ pub async fn php_search_symbols(
     limit: Option<usize>,
     exact: Option<bool>,
     state: State<'_, AppState>,
+    lib: State<'_, crate::commands::library::LibraryState>,
 ) -> Result<Vec<SymbolHit>> {
     let backend = state.backend()?;
-    blocking(move || {
+    let mut hits = blocking(move || {
         backend.php().search(
             &query,
             kind.unwrap_or_default(),
@@ -56,7 +59,12 @@ pub async fn php_search_symbols(
             exact.unwrap_or(false),
         )
     })
-    .await
+    .await?;
+    // Include path classes open as read-only library files.
+    for h in &mut hits {
+        h.path = lib.ui_path(&h.path);
+    }
+    Ok(hits)
 }
 
 #[tauri::command]

@@ -1,0 +1,9 @@
+{
+    "packages": [
+        {
+            "name": "acme/toolkit",
+            "install-path": "../acme/toolkit",
+            "autoload": { "psr-4": { "Acme\\Toolkit\\": "src/" } }
+        }
+    ]
+}

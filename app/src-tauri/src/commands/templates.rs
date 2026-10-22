@@ -65,12 +65,18 @@ pub(crate) async fn psr4_roots(state: &AppState) -> Result<Vec<psr4::Psr4Root>> 
         .get_as::<String>("php.composer.json")
         .filter(|p| !p.trim().is_empty())
         .unwrap_or_else(|| "composer.json".into());
+    // Mark Directory as | Sources Root changes of Settings | Directories.
+    let overrides = state
+        .read_settings()
+        .get_as::<Vec<psr4::SourceRootSetting>>(phpforge_lang_php::project::SOURCE_ROOTS_KEY)
+        .unwrap_or_default();
     let backend = state.backend()?;
     let path = json_path.clone();
     let text = blocking(move || backend.read_optional(&path)).await?;
-    Ok(text
+    let base = text
         .map(|t| psr4::roots(&t, &psr4::composer_dir(&json_path)))
-        .unwrap_or_default())
+        .unwrap_or_default();
+    Ok(psr4::apply_overrides(&base, &overrides))
 }
 
 /// The namespace of new classes in `dir`, from the PSR-4 rules.

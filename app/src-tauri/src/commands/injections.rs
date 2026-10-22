@@ -23,6 +23,7 @@ pub fn settings_of(settings: &Settings) -> InjectionSettings {
         uninjected: settings
             .get_as::<Vec<String>>(UNINJECTED_KEY)
             .unwrap_or_default(),
+        ..Default::default()
     }
 }
 

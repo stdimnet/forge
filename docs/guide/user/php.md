@@ -31,7 +31,11 @@ progress bar; afterwards the index follows file changes on its own.
   next start only re-reads changed files. Nothing is written into the project.
 - **Reindex PHP Files** (Find Action) rebuilds it.
 - Extra library folders can be added under Settings | Languages & Frameworks | PHP |
-  **Include Path** (`php.includePaths`); they are also passed to the language server.
+  **Include Path** (`php.includePaths`). Forge indexes them as libraries and passes them to
+  the language server; see [Include paths and External
+  Libraries](#include-paths-and-external-libraries).
+- `.phpstorm.meta.php` files are read with the index, in the project and in vendor packages;
+  see [PHPStorm metadata](#phpstorm-metadata-phpstormmetaphp).
 
 ## Structure
 
@@ -490,6 +494,108 @@ New ▸ PHP Class in the Project view ([New PHP Class dialog](file-templates.md#
 `Ctrl+O` and `Ctrl+I` work directly in PHP editors as shortcuts for Override/Implement
 Methods.
 
+## PHPStorm metadata (`.phpstorm.meta.php`)
+
+Like PHPStorm, Forge reads advanced metadata from `.phpstorm.meta.php` files — or the PHP files
+in a `.phpstorm.meta.php/` folder — anywhere in the project and in vendor packages (Laravel IDE
+Helper, Symfony and Doctrine plugins ship them). Everything inside
+`namespace PHPSTORM_META { … }` is used:
+
+```php
+<?php
+
+namespace PHPSTORM_META {
+    // The return type from the argument: `$container->get(Mailer::class)` is a Mailer,
+    // `app('cache')` the mapped class, `factory('User')` a UserFactory.
+    override(\Psr\Container\ContainerInterface::get(0), map([
+        '' => '@',
+        'cache' => \Illuminate\Cache\Repository::class,
+    ]));
+    override(\factory(0), map(['' => '@Factory']));
+    override(\tap(0), type(0));          // returns the argument's type
+    override(\head(0), elementType(0));  // returns the array argument's element type
+
+    registerArgumentsSet('statuses', 'draft', 'paid');
+    expectedArguments(\App\Models\Order::setStatus(), 0, argumentsSet('statuses'));
+    expectedArguments(\json_encode(), 1, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+    expectedReturnValues(\App\Models\Order::status(), argumentsSet('statuses'));
+    exitPoint(\abort());
+}
+```
+
+- **Types**: overridden calls give their result a type for Go to Declaration, hover and the
+  inspections below. A method override also applies to the subclasses and implementations of
+  the class or interface it names. The type of a variable assigned from such a call follows
+  (`$mailer = $container->get('mailer');`).
+- **Go to Declaration** (`Ctrl+B`) on a mapped key such as `app('cache')` opens the class it
+  maps to (or the map entry).
+- **Completion**: the arguments of `expectedArguments()` and the keys of `override()` maps
+  (service ids) are offered in the argument, inside a string without quotes; flags written
+  `A | B` again after `|`. `expectedReturnValues()` completes comparisons such as
+  `$order->status() === '…'`.
+- **Exit points**: statements after an `exitPoint()` call are reported as unreachable.
+
+Changed metadata files are read again at once. Forge reads PHPStorm's current syntax; the old
+`$STATIC_METHOD_TYPES` array is not supported.
+
+## JetBrains attributes
+
+The attributes of the `jetbrains/phpstorm-attributes` package (and PHP 8.4's own
+`#[\Deprecated]`) work as in PHPStorm:
+
+| Attribute | What Forge does |
+| --- | --- |
+| `#[Deprecated(reason: …, replacement: …, since: …)]` | Usages are struck through with the reason; with a `replacement` (`%class%->pay(%parametersList%)`, `%parameter0%`, `%name%`) Alt+Enter offers **Replace with '…'**. `@deprecated` in PHPDoc counts too. |
+| `#[ExpectedValues(['asc', 'desc'])]`, `flags:`, `valuesFromClass:`, `flagsFromClass:` | Completion of the values (or the constants of the class) in the argument, and the warning **Value should be one of: …** for other literals. On a function or method it lists its return values. |
+| `#[ArrayShape(['id' => 'int', 'user' => User::class])]` | Completion of the keys in `$data['…']` and the type of `$data['user']->…`, for calls, parameters, variables and properties. |
+| `#[Immutable]` (also `PRIVATE_WRITE_SCOPE`, `PROTECTED_WRITE_SCOPE`) | Writing the property (or a property of an immutable class) outside its write scope: **Immutable property '$x' cannot be written outside of the constructor**. |
+| `#[Pure]` | **The result of the pure function call is not used** when the call is a statement of its own. |
+| `#[NoReturn]` | Statements after the call are unreachable (greyed out). |
+| `#[Language('SQL')]` | String arguments of the parameter are a [language injection](language-injections.md) (rule "#[Language] parameters"). |
+
+![Deprecated method with its quick-fix](../../screenshots/php-meta-quickfix.png)
+
+![Expected values in completion](../../screenshots/php-meta-completion.png)
+
+The inspections are Forge's own (from the PHP index, next to the language server's problems)
+and appear in the editor and the Problems tool window. Turn them off with **Inspections from
+PHPStorm metadata and attributes** (`php.inspections.enabled`) on Settings | Languages &
+Frameworks | PHP.
+
+## Source roots and the PSR-4 namespace check
+
+PHPStorm derives the source roots of a PHP project from composer.json's PSR-4 rules
+(`autoload`, `autoload-dev`) and lets you change them. Forge does the same:
+
+- **Settings | Directories** lists the **Source Folders** and **Test Source Folders** with
+  their **package prefix** (the namespace of the folder). Change a prefix, unmark a
+  composer.json root (it stays listed and can be marked again), reset it, or add a folder.
+- In the Project view, right-click a folder › **Mark Directory as** › **Sources Root**, **Test
+  Sources Root** or **Unmark as Sources Root**. A new root gets the namespace the folder maps
+  to now as its prefix. Source roots get blue folders, test roots green ones, with the prefix
+  next to the name.
+- The changes are stored in the project setting `php.sourceRoots` (shared through
+  `.forge/settings.toml`). **New ▸ PHP Class** fills its namespace from them, **Move** of
+  classes and files updates namespaces with them, and the inspection **Namespace name doesn't
+  match PSR-0/PSR-4 project structure** checks every file below a root, with the quick-fix
+  **Set namespace to '…'**.
+
+![Settings | Directories](../../screenshots/php-directories-settings.png)
+
+![Set namespace to](../../screenshots/php-meta-namespace.png)
+
+## Include paths and External Libraries
+
+Folders outside the project — a global PEAR folder, framework stubs, a shared library — are
+added under Settings | Languages & Frameworks | PHP | **Include Path**. Forge indexes them as
+libraries: their classes appear in Go to Class (after the project's), resolve as types and
+open read-only on Go to Declaration. They are listed under **External Libraries** at the end
+of the Project view, where folders can be browsed and files opened read-only; right-click ›
+**Configure PHP Include Paths…** opens the settings page. A path may start with `~/` or be
+relative to the project. Changing the include paths indexes the project again.
+
+![External Libraries](../../screenshots/php-external-libraries.png)
+
 ## Settings | Languages & Frameworks | PHP
 
 ![PHP settings](../../screenshots/settings-php.png)
@@ -505,6 +611,7 @@ Methods.
 | When Intelephense is not installed (`ask`, `always`, `never`), see [Installing Intelephense](language-servers.md#installing-intelephense) | `php.intelephense.autoInstall` | `ask` |
 | I accept the Intelephense licence | `php.intelephense.licenceAccepted` | off |
 | Include Path | `php.includePaths` | empty |
+| Inspections from PHPStorm metadata and attributes | `php.inspections.enabled` | on |
 | Default stubs path (PHP Runtime), see [PHP's own classes and functions](#phps-own-classes-and-functions) | `php.stubs.path` | empty (managed download) |
 
 The language level and the interpreter can be stored per project ("For current project" in
@@ -644,5 +751,6 @@ See [Run/Debug configurations](run-debug.md), [Xdebug debugging](debugging.md) a
 
 In a [remote project](remote-development.md) the PHP index and the language server run on the
 remote host through the Forge agent; Structure, search, hover, Generate, navigation, usages,
-gutter icons, Rename and context actions work as locally; renamed and fixed files are written on
+gutter icons, Rename, context actions, metadata and attribute inspections and completion,
+include paths (folders on the remote host) and source roots work as locally; renamed and fixed files are written on
 the remote host. The PHP stubs are read on this machine.

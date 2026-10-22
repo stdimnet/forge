@@ -45,6 +45,7 @@ In this order, the first that applies wins:
 
    | Host | Language | Places |
    | --- | --- | --- |
+   | PHP | (from the attribute) | arguments of parameters marked `#[Language('SQL')]` (JetBrains PhpStorm attributes, found by the PHP index in the project, vendor and include paths) |
    | PHP | SQL | strings starting with a statement: `SELECT … FROM`, `INSERT INTO`, `UPDATE … SET`, `DELETE FROM`, `WITH … AS (`, `CREATE`/`ALTER`/`DROP TABLE`, `TRUNCATE`, `SHOW TABLES`, …; `SELECT` in capitals also without `FROM` |
    | PHP | SQL | `PDO::query()`/`prepare()`/`exec()` on database objects (`$pdo`, `$this->db`, `$connection`, …), `mysqli_query()`, `pg_query()`, `pg_prepare()`, Doctrine DBAL `executeQuery()`, `fetchAllAssociative()`, … and `createNativeQuery()` |
    | PHP | SQL | Laravel: `DB::select()`, `DB::statement()`, `DB::unprepared()`, `DB::raw()`, …; `selectRaw()`, `whereRaw()`, `havingRaw()`, `orderByRaw()`, `groupByRaw()` |

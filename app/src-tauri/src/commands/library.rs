@@ -203,6 +203,17 @@ impl LibraryState {
         stubs::ensure(&http, base, release, &mut on).await
     }
 
+    /// A path of the PHP index as the UI opens it: workspace-relative paths stay, absolute
+    /// ones (include paths) become granted `library://file/…` paths.
+    pub fn ui_path(&self, path: &str) -> String {
+        let p = Path::new(path);
+        if path.starts_with('/') || p.is_absolute() {
+            self.grant(p)
+        } else {
+            path.to_string()
+        }
+    }
+
     /// The UI path of a file outside the project a navigation answer points to; it may be
     /// read with `library_read` from now on.
     pub fn grant(&self, abs: &Path) -> String {
@@ -277,8 +288,11 @@ pub async fn read_library(
             ));
         }
         let detail = abs.display().to_string();
-        let text = blocking(move || {
-            std::fs::read_to_string(&abs).map_err(|e| ForgeError::Other(e.to_string()))
+        // A remote project's include paths live on its host.
+        let remote = ws.is_remote().then(|| ws.backend()).transpose()?;
+        let text = blocking(move || match remote {
+            Some(backend) => backend.php().library_read(&abs.to_string_lossy()),
+            None => std::fs::read_to_string(&abs).map_err(|e| ForgeError::Other(e.to_string())),
         })
         .await?;
         return Ok(LibraryFile {
