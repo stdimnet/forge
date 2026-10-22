@@ -83,20 +83,6 @@ export function confirmRollback(paths: string[]): void {
   });
 }
 
-export async function commitChanges(opts: {
-  message: string;
-  amend: boolean;
-  paths: string[];
-  push: boolean;
-}): Promise<boolean> {
-  const sha = await runGit("Commit failed", () => gitApi.commit(opts.message, opts.amend, opts.paths));
-  if (!sha) return false;
-  const n = opts.paths.length;
-  notify("success", `${n} file${n === 1 ? "" : "s"} committed: ${opts.message.split("\n")[0]}`);
-  if (opts.push) await push();
-  return true;
-}
-
 export async function push(): Promise<void> {
   const branch = status()?.branch;
   const res = await runGit("Push failed", () => gitApi.push());
