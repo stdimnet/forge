@@ -3,6 +3,7 @@
 mod conflicts;
 mod history;
 mod ops;
+mod rewrite;
 mod shelve;
 
 use std::path::{Path, PathBuf};
@@ -26,6 +27,7 @@ pub use conflicts::{
     MergeOperation, SideChange,
 };
 pub use ops::{OngoingOperation, OperationState, StashFileContents};
+pub use rewrite::{RewriteResult, UndoneCommit};
 pub use shelve::ShelfFileContents;
 
 /// Summary of the repository a workspace belongs to.

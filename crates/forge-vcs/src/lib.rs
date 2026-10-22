@@ -20,6 +20,7 @@ mod manage;
 pub mod merge;
 pub mod ops;
 pub mod patch;
+pub mod rebase;
 #[cfg(feature = "git")]
 mod repo;
 #[cfg(feature = "git")]
@@ -46,6 +47,9 @@ pub use status::{parse_status, FileState, RepoStatus, StatusEntry};
 #[cfg(feature = "git")]
 pub use cmd::{git_binary, set_git_program, GitExec, GitOutput, GitRequest, LocalGit};
 pub use ops::{MergeOptions, OperationAction, PullOptions, RebaseOptions, ResetMode, TagOptions};
+pub use rebase::{
+    ActionState, LogActionStates, RebaseAction, RebaseCommit, RebaseEntry, RebasePlan,
+};
 #[cfg(feature = "git")]
 pub use repo::{
     parse_rebase_status, parse_unmerged, ConflictFile, ConflictSet, ConflictSide, MergeFile,
@@ -53,5 +57,7 @@ pub use repo::{
 };
 #[cfg(feature = "git")]
 pub use repo::{OngoingOperation, OperationState, ShelfFileContents, StashFileContents};
+#[cfg(feature = "git")]
+pub use repo::{RewriteResult, UndoneCommit};
 #[cfg(feature = "git")]
 pub use shelf::{Shelf, ShelvedChangelist, ShelvedFile};
