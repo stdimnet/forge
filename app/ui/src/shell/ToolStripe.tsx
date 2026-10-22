@@ -157,7 +157,7 @@ export function ToolStripe(props: { side: "left" | "right" }) {
       <Show when={props.side === "left" && drag()}>
         {(d) => (
           <Portal>
-            <div class="stripe-drag-ghost" style={{ left: `${d().x - 15}px`, top: `${d().y - 15}px` }}>
+            <div class="stripe-drag-ghost" style={{ left: `${d().x + (d().x > window.innerWidth - 60 ? -40 : 10)}px`, top: `${d().y + 10}px` }}>
               {(() => {
                 const tw = findToolWindow(d().id);
                 return tw ? <tw.icon size={18} stroke-width={1.75} /> : null;

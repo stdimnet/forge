@@ -196,7 +196,11 @@ function MenuList(props: ListProps) {
                     </span>
                   </Show>
                   <Show when={item.icon}>
-                    {(icon) => <Dynamic component={icon()} size={14} stroke-width={1.75} class="context-menu-icon" />}
+                    {(icon) => (
+                      <span class="context-menu-icon">
+                        <Dynamic component={icon()} size={14} stroke-width={1.75} />
+                      </span>
+                    )}
                   </Show>
                   <span class="context-menu-label">
                     <MnemonicLabel label={item.label} mnemonic={item.mnemonic} />

@@ -34,7 +34,7 @@ export interface ResolvedItem {
   /** Secondary text after the label (e.g. the path of a recent project). */
   detail?: string;
   /** Icon before the label (e.g. the tool windows of the ⋯ stripe button). */
-  icon?: Component<{ size?: number; "stroke-width"?: number; class?: string }>;
+  icon?: Component<{ size?: number; "stroke-width"?: number }>;
 }
 
 export type ResolvedEntry = ResolvedItem | "separator";

@@ -1,7 +1,8 @@
 /* Context menus (editor right-click, Shift+F10). Colors come from theme.css only. */
 .context-menu {
   position: fixed;
-  z-index: 200;
+  /* Above CodeMirror's panels (z-index 300), e.g. the breadcrumbs below the editor. */
+  z-index: 400;
   min-width: 220px;
   padding: 4px;
   background: var(--bg-elevated);
@@ -74,6 +75,9 @@
 }
 .context-menu-icon {
   flex-shrink: 0;
+  display: inline-flex;
+  width: 14px;
+  overflow: visible;
   margin-right: -16px;
   color: var(--fg-muted);
 }

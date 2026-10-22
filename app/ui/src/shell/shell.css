@@ -152,7 +152,7 @@
 }
 .stripe-drag-ghost {
   position: fixed;
-  z-index: 300;
+  z-index: 450;
   display: grid;
   place-items: center;
   width: 30px;
