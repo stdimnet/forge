@@ -1416,6 +1416,20 @@
           "order": 20
         },
         {
+          "key": "tools.externalTools",
+          "title": "External Tools",
+          "description": "Programs run from Tools | External Tools, the editor and Project view context menus, the keymap and Before launch tasks: name, group, description, program, arguments and working directory with macros such as $FilePath$, plus the options and output filters ($FILE_PATH$:$LINE$, one per line).",
+          "type": "objects",
+          "unique": [
+            "group",
+            "name"
+          ],
+          "default": [],
+          "group": "tools.external-tools",
+          "project": false,
+          "order": 0
+        },
+        {
           "key": "httpClient.environment",
           "title": "Environment",
           "description": "Environment of http-client.env.json (and http-client.private.env.json) that requests of .http files run with. Empty: dev, else the first one; $none: no environment. Chosen in the toolbar of .http editors.",

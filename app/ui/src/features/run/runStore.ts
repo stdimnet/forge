@@ -266,6 +266,8 @@ async function runTask(task: PlannedTask, owner: RunConfiguration): Promise<bool
 interface LaunchOptions {
   debug?: boolean;
   extra?: SessionData["extra"];
+  /** Do not bring up the Run tool window (External Tools without "Open console"). */
+  background?: boolean;
 }
 
 /** Start one (non-compound) configuration in its Run tab, without Before launch tasks. */
@@ -280,7 +282,7 @@ async function startConfiguration(cfg: RunConfiguration, opts: LaunchOptions = {
   const id = sessionFor(cfg, !!opts.debug);
   data.get(id)!.extra = opts.extra;
   // A debug launcher may switch to its own tool window once the session starts.
-  showToolWindow("run");
+  if (!opts.background) showToolWindow("run");
   const handle = await startProcess(id, opts.extra);
   if (handle) findType(cfg.type)?.afterStart?.(cfg, handle, !!opts.debug);
   return handle;

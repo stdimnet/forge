@@ -37,6 +37,7 @@ import "./browserCompanion";
 import "./terminal";
 import "./run";
 import "./runAnything";
+import "./externalTools";
 import "./debug";
 import "./debug/runIntegration";
 import "./database";

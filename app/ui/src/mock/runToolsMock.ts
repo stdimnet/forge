@@ -10,7 +10,7 @@ import { mockFiles } from "./workspaceMock";
 import { matchFiles } from "./fuzzyMock";
 import { mockNpmPackages } from "./webMock";
 import { projectRoot } from "./runMock";
-import { mockSettingValue } from "./settingsMock";
+import { hasUserSetting, mockSettingValue, setSetting } from "./settingsMock";
 
 const projectName = () => projectRoot().split("/").pop() ?? "";
 
@@ -72,3 +72,44 @@ registerMock("external_tool_command", async ({ tool, context: ctx }) =>
 registerMock("external_tool_validate", async ({ tool, others }) =>
   callWasm((await forgeWasm()).external_tool_validate, { tool, others: others ?? [] }),
 );
+
+/** Demo External Tools (Settings | Tools | External Tools), unless the user changed them. */
+const DEMO_TOOLS = [
+  {
+    name: "PHPStan",
+    group: "Linters",
+    description: "Analyse the current file",
+    program: "$ProjectFileDir$/vendor/bin/phpstan",
+    arguments: "analyse $FilePathRelativeToProjectRoot$ --error-format=raw --no-progress",
+    workingDirectory: "$ProjectFileDir$",
+    synchronize: "false",
+    openConsole: "true",
+    outputFilters: "^$FILE_PATH$:$LINE$:",
+    enabled: "true",
+  },
+  {
+    name: "PHP CS Fixer",
+    group: "Linters",
+    description: "Fix the coding style of the current file",
+    program: "$ProjectFileDir$/vendor/bin/php-cs-fixer",
+    arguments: "fix $FilePath$ --diff",
+    workingDirectory: "$ProjectFileDir$",
+    synchronize: "true",
+    openConsole: "true",
+    outputFilters: "",
+    enabled: "true",
+  },
+  {
+    name: "Git blame line",
+    group: "External Tools",
+    description: "Who changed the caret line",
+    program: "git",
+    arguments: "blame -L $LineNumber$,$LineNumber$ $FilePath$",
+    workingDirectory: "$FileDir$",
+    synchronize: "false",
+    openConsole: "true",
+    outputFilters: "",
+    enabled: "true",
+  },
+];
+if (!hasUserSetting("tools.externalTools")) setSetting("tools.externalTools", DEMO_TOOLS, "user");

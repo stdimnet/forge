@@ -416,6 +416,8 @@ function stepsFor(cfg: RunConfiguration | undefined, cmd: CommandLine): Step[] {
       return composerSteps(split(o.command));
     case "lua-script":
       return luaSteps(cfg);
+    case "external-tool":
+      return externalToolSteps(cmd);
     case "php-script":
       return [
         [150, "Generating invoices for 3 orders…\n"],
@@ -484,6 +486,31 @@ function composerSteps(args: string[]): Step[] {
     default:
       return [[150, "Done.\n"], [20, { code: 0 }]];
   }
+}
+
+/** Canned output of the demo External Tools (PHPStan lines link through the tool's output filter). */
+function externalToolSteps(cmd: CommandLine): Step[] {
+  const program = cmd.program.split("/").pop() ?? cmd.program;
+  if (program === "phpstan") {
+    const file = cmd.args.find((a) => a.endsWith(".php")) ?? "app/Models/User.php";
+    return [
+      [300, `${file}:22:Method App\\Models\\User::fullName() has no return type specified.\n`],
+      [40, `${file}:34:Method App\\Models\\User::totalSpent() should return float but returns int.\n`],
+      [30, { code: 1 }],
+    ];
+  }
+  if (program === "php-cs-fixer")
+    return [
+      [300, "Loaded config default from \"" + ROOT + "/.php-cs-fixer.dist.php\".\n"],
+      [200, "   1) app/Models/User.php\n\nFixed 1 of 1 files in 0.042 seconds, 14.00 MB memory used\n"],
+      [30, { code: 0 }],
+    ];
+  if (program === "git")
+    return [
+      [150, "3f1c2d8e (Marlon 2026-09-12 10:41:07 +0200 19) class User extends Authenticatable\n"],
+      [20, { code: 0 }],
+    ];
+  return [[100, `${cmd.program} finished.\n`], [30, { code: 0 }]];
 }
 
 /** Canned output of the Lua demo: the LÖVE game keeps running, scripts finish. */
