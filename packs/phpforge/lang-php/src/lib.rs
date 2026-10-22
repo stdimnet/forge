@@ -8,6 +8,7 @@
 //! - [`hover`] renders index-based hover markdown.
 //! - [`generate`] implements the "Generate" actions (constructor, accessors, overrides, ...).
 //! - [`navigate`] Go to Declaration, Find Usages, implementations and gutter markers.
+//! - [`hierarchy`] Type, Method and Call Hierarchy.
 //! - [`rename`] Rename on the index: dialog labels and name clashes.
 //! - [`create`] Create symbols from usage (methods, fields, constants, functions, classes).
 //! - [`stubs`] PHP's own symbols from phpstorm-stubs (the "PHP Runtime").
@@ -22,6 +23,7 @@ pub mod create;
 pub mod docblock;
 pub mod fuzzy;
 pub mod generate;
+pub mod hierarchy;
 pub mod hover;
 pub mod imports;
 pub mod index;

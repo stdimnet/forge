@@ -6,6 +6,7 @@ use std::sync::{Arc, Mutex};
 
 use forge_core::{ForgeError, FsChanges, Result, Workspace};
 use phpforge_lang_php::generate::{GenerateKind, GenerateOptions, GenerateTargets, TextEdit};
+use phpforge_lang_php::hierarchy::{HierarchyQuery, PhpHierarchy};
 use phpforge_lang_php::hover::Hover;
 use phpforge_lang_php::index::VendorMode;
 use phpforge_lang_php::index::{SearchKind, SymbolHit};
@@ -76,6 +77,14 @@ pub trait PhpBackend: Send + Sync {
     ) -> Result<PhpDefinition>;
     /// The implemented / overridden gutter markers of a file.
     fn line_markers(&self, path: &str, content: Option<String>) -> Result<Vec<PhpLineMarker>>;
+    /// Type, Method or Call Hierarchy from the index (when no language server answers).
+    fn hierarchy(
+        &self,
+        path: &str,
+        offset: usize,
+        query: HierarchyQuery,
+        content: Option<String>,
+    ) -> Result<PhpHierarchy>;
     /// Built-in intentions for Show Context Actions (Alt+Enter), including Create from
     /// usage; `options` carries the code style and code templates for generated code.
     fn intentions(
@@ -274,6 +283,17 @@ impl PhpBackend for LocalPhp {
     fn line_markers(&self, path: &str, content: Option<String>) -> Result<Vec<PhpLineMarker>> {
         let text = self.source(path, content)?;
         self.with_index(|idx| service::line_markers(idx, path, &text))
+    }
+
+    fn hierarchy(
+        &self,
+        path: &str,
+        offset: usize,
+        query: HierarchyQuery,
+        content: Option<String>,
+    ) -> Result<PhpHierarchy> {
+        let text = self.source(path, content)?;
+        self.with_index(|idx| service::hierarchy(idx, path, &text, offset, query))
     }
 
     fn intentions(

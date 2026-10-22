@@ -2272,6 +2272,7 @@ dependencies = [
  "forge-vcs",
  "phpforge-fw-laravel",
  "phpforge-fw-symfony",
+ "phpforge-lang-php",
  "phpforge-orm-doctrine",
  "serde",
  "serde_bytes",

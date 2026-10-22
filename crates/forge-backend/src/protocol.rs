@@ -21,6 +21,7 @@ use forge_core::{CollectRequest, FsChanges, Result};
 use forge_process::{CommandLine, PtyEvent, RunEvent};
 use forge_vcs::GitRequest;
 use phpforge_lang_php::generate::{GenerateKind, GenerateOptions};
+use phpforge_lang_php::hierarchy::HierarchyQuery;
 use phpforge_lang_php::index::SearchKind;
 use phpforge_lang_php::lsp::PhpLspSettings;
 use phpforge_lang_php::navigate::NavKind;
@@ -33,7 +34,7 @@ use crate::web::WebCall;
 use crate::TerminalSpec;
 
 /// Bumped on incompatible protocol changes; client and agent must agree.
-pub const PROTOCOL_VERSION: u32 = 6;
+pub const PROTOCOL_VERSION: u32 = 7;
 
 /// Frames larger than this are refused (protects both sides from garbage input).
 pub const MAX_FRAME: usize = 64 * 1024 * 1024;
@@ -286,6 +287,13 @@ pub enum PhpCall {
     /// -> `Vec<PhpLineMarker>`
     LineMarkers {
         path: String,
+        content: Option<String>,
+    },
+    /// -> `PhpHierarchy`
+    Hierarchy {
+        path: String,
+        offset: usize,
+        query: HierarchyQuery,
         content: Option<String>,
     },
     /// -> `Vec<Intention>`
