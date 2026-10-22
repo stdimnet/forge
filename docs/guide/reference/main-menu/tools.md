@@ -7,7 +7,7 @@ tags: [main menu, reference, tools]
 
 # Tools menu
 
-Terminal, Vim emulation and the tools of plugins (Composer, Docker, Laravel, Symfony). Open it with ☰ (`Alt+\`) or from the menu bar, see [Main menu](../../user/workbench.md#main-menu).
+Terminal, Vim emulation, Run Command… and the tools of plugins (Composer, Docker, Laravel, Symfony). Open it with ☰ (`Alt+\`) or from the menu bar, see [Main menu](../../user/workbench.md#main-menu).
 
 ![Tools menu](../../../screenshots/docs-menu-tools.png)
 
@@ -16,6 +16,7 @@ Terminal, Vim emulation and the tools of plugins (Composer, Docker, Laravel, Sym
 | Entry | Windows / Linux | macOS | Available | What it does |
 | --- | --- | --- | --- | --- |
 | Run Anything… | — | — | not yet | Not available yet; the entry is disabled. |
+| Run Command… | `Ctrl+Shift+X` | `Cmd+Shift+X` | yes | Opens the Command Line Tools Console popup: run Composer, Artisan, Symfony Console, WP-CLI, Drush and custom tools with completion (plugin `forge.command-line-tools`, PHP projects). [More](../../user/command-line-tools.md#run-command) ([screenshot](../../../screenshots/docs-run-command.png)) |
 | Save as Live Template… | — | — | yes | Opens Settings \| Editor \| Live Templates with a new template made from the selection. [More](../../user/live-templates.md#save-as-live-template) ([screenshot](../../../screenshots/save-as-live-template.png)) |
 | Save File as Template… | — | — | not yet | Not available yet; the entry is disabled. |
 | Open in Terminal | `Ctrl+Shift+T` | `Cmd+T` | yes | Opens a new terminal tab (Tools | Open in Terminal). [More](../../user/terminal.md#tabs) ([screenshot](../../../screenshots/docs-terminal.png)) |
@@ -33,7 +34,7 @@ Terminal, Vim emulation and the tools of plugins (Composer, Docker, Laravel, Sym
 | Docker › Pull Image… | — | — | yes | Pulls a Docker image. [More](../../user/services.md#pulling-images-and-registries) |
 | Docker › Refresh Services | — | — | yes | Refreshes the Services tree. [More](../../user/services.md) |
 | **Laravel** | | | | submenu |
-| Laravel › Run Artisan Command… | `Ctrl+Shift+X` | `Cmd+Shift+X` | yes | Runs an artisan command of the Laravel project. [More](../../user/laravel.md#run-artisan-command) ([screenshot](../../../screenshots/docs-artisan.png)) |
+| Laravel › Run Artisan Command… | — | — | yes | Opens Run Command with the Artisan alias typed in. [More](../../user/laravel.md#run-artisan-command) |
 | Laravel › Show Routes | — | — | yes | Shows the Laravel Routes tool window. [More](../../user/laravel.md#routes-tool-window) |
 
 ## Entries of plugins
@@ -45,5 +46,5 @@ Tools collects the actions of active plugins; the screenshot shows a Laravel pro
 | — | Vim (check mark) | always (plugin `forge.vim`) |
 | Composer | Add Dependency…, Install, Update, Validate, Show Outdated, Audit | Composer projects (`forge.composer`) |
 | Docker | Pull Image…, Refresh Services | always (plugin `forge.services`) |
-| Laravel | Run Artisan Command… (`Ctrl+Shift+X`), Show Routes | Laravel projects (`forge.laravel`) |
+| Laravel | Run Artisan Command…, Show Routes | Laravel projects (`forge.laravel`) |
 | Symfony | Run Console Command…, Show Routes, Refresh Symfony Index | Symfony projects (`forge.symfony`) |

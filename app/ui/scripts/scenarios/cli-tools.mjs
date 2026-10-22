@@ -34,7 +34,7 @@ export default {
     await openPopup(page);
     await type(page, "a make:model Order -m");
     await page.keyboard.press("Enter");
-    await page.waitForSelector(".cli-window .cli-run-status.ok", { timeout: 8000 });
+    await page.waitForSelector('.cli-window .run-line:has-text("Process finished")', { timeout: 8000 });
     await page.click(".cli-window .cli-input-field");
     await type(page, "c up");
     await page.waitForSelector('.cli-item[data-cli-item="update"]');

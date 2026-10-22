@@ -52,12 +52,12 @@ Rebuild the browser bundle after changing Rust keymap code: `pnpm --dir app/ui w
 
 ```ts
 registerKeymapActions([
-  { id: "Laravel.RunArtisan", title: "Run Artisan Command…", group: "Laravel",
+  { id: "CommandLineToolsAction", title: "Run Command…", group: "Tools",
     shortcuts: { $default: ["Ctrl+Shift+X"], macOS: ["Cmd+Shift+X"] } },
   { id: "Console.Jdbc.Execute", title: "Execute", group: "Database", context: "editor",
     shortcuts: { $default: ["Ctrl+Enter"], macOS: ["Cmd+Enter"] } },
 ]);
-registerCommand({ id: "Laravel.RunArtisan", title: "Run Artisan Command…", run: openArtisanPopup });
+registerCommand({ id: "CommandLineToolsAction", title: "Run Command…", run: () => openRunCommand() });
 ```
 
 - `group` places the action in the Keymap tree (`Plugins/<Name>` by convention, or a

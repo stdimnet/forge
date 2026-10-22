@@ -1,6 +1,6 @@
 ---
 title: Laravel
-description: Laravel support in PHPForge - Blade, completion and navigation for routes, views, config, env, translations and Eloquent, gutter icons, the Routes tool window and Run Artisan Command.
+description: Laravel support in PHPForge - Blade, completion and navigation for routes, views, config, env, translations and Eloquent, gutter icons, the Routes tool window and artisan commands in the Command Line Tools Console.
 order: 70
 tags: [laravel, blade, eloquent, artisan, routes, phpforge]
 ---
@@ -98,17 +98,20 @@ With artisan, the source locations from static analysis are kept so navigation s
 
 ## Run Artisan Command
 
-**Run Artisan Command…** (`Ctrl+Shift+X`, macOS `Cmd+Shift+X`) opens a popup listing the
-project's artisan commands (from `php artisan list --format=json`, or a built-in list when the
-application cannot boot) and your **Recently run** commands. Type a command with its
-arguments and press `Enter`.
+Artisan commands run in the Command Line Tools Console: **Tools | Run Command…**
+(`Ctrl+Shift+X`, macOS `Cmd+Shift+X`) with the alias `a`, for example `a make:model Order -m`.
+Laravel projects get the Artisan tool automatically. Forge completes the commands of
+`php artisan list --format=json` (or Laravel's standard commands when the application cannot
+boot), their options and arguments, and shows each command's help. **Tools | Laravel | Run
+Artisan Command…** opens the popup with `a ` typed in. See
+[Command Line Tool Support](command-line-tools.md).
 
-![Run Artisan Command](../../screenshots/laravel-artisan.png)
+![Artisan commands in the Run Command popup](../../screenshots/cli-tools-commands.png)
 
-The output appears in the popup; **Rerun** runs it again, `Enter` starts another command,
-`Esc` closes.
+The output goes to the Command Line Tools Console tool window, with clickable paths of the
+generated files.
 
-![Artisan output](../../screenshots/laravel-artisan-output.png)
+![Artisan output in the Command Line Tools Console](../../screenshots/cli-tools-console.png)
 
 For commands you run often, create an **Artisan** run configuration (Run | Edit
 Configurations), which can also be debugged with Xdebug. See

@@ -716,7 +716,7 @@ not finished, the page says so.
 | --- | --- |
 | [PHP](docs/guide/user/php.md) | PHP index, Structure, hover, Generate (`Alt+Insert`), PHP settings |
 | [Composer](docs/guide/user/composer.md) | composer.json toolbar (Install, Update, Validate, Show Outdated, Audit), outdated packages with Update package, package and version completion from Packagist, Manage Composer Dependencies, `composer audit` (Vulnerable Dependencies), composer.phar download |
-| [Laravel](docs/guide/user/laravel.md) | Blade, routes, views, config, Eloquent, Routes tool window, artisan |
+| [Laravel](docs/guide/user/laravel.md) | Blade, routes, views, config, Eloquent, Routes tool window, artisan commands |
 | [Symfony](docs/guide/user/symfony.md) | services, routes, Twig, console, Symfony tool window |
 | [Doctrine and DQL](docs/guide/user/doctrine.md) | entity mappings, Doctrine tool window, DQL in PHP strings |
 | [WebForge](docs/guide/user/webforge.md) | npm scripts and package managers, React, Vue, Angular navigation |
@@ -734,6 +734,7 @@ not finished, the page says so.
 | Page | Covers |
 | --- | --- |
 | [Run/Debug configurations](docs/guide/user/run-debug.md) | configuration types, run widget, Run tool window, Analyze Stack Trace, test results |
+| [Command Line Tool Support](docs/guide/user/command-line-tools.md) | Tools \| Run Command… (`Ctrl+Shift+X`): Composer, Artisan, Symfony Console, WP-CLI, Drush and custom tools with completion, the Command Line Tools Console, Settings \| Tools \| Command Line Tool Support |
 | [Xdebug debugging](docs/guide/user/debugging.md) | listening, breakpoints, stepping, evaluate, servers and path mappings |
 | [Terminal](docs/guide/user/terminal.md) | tabs, shells, links |
 | [Database tools and SQL console](docs/guide/user/database.md) | data sources, consoles, data grid, export |
@@ -786,7 +787,7 @@ sit at the toolbar's ends, styled for your desktop (see
 The main menu has PHPStorm's menus: **File, Edit, View, Navigate, Code, Refactor, Run, Tools,
 Git** (**VCS** in projects without Git), **Window** and **Help**. Every entry shows its shortcut;
 actions Forge has not implemented yet stay visible but disabled. Plugins add their own entries,
-for example Tools | Laravel (Run Artisan Command…, Show Routes), Tools | Symfony and
+for example Tools | Run Command…, Tools | Laravel (Run Artisan Command…, Show Routes), Tools | Symfony and
 Run | Start Listening for PHP Debug Connections. File | Open Recent and View | Tool Windows are
 filled with your recent projects and the available tool windows.
 File | New | **File** and **Directory** create the entry in the folder selected in the Project
@@ -4739,7 +4740,7 @@ The complete list with both platforms is in the [keymap reference](docs/guide/re
 | Run / Debug | `Shift+F10` / `Shift+F9` | `Ctrl+R` / `Ctrl+D` |
 | Project / Terminal tool window | `Alt+1` / `Alt+F12` | `Cmd+1` / `Alt+F12` |
 | New Scratch File | `Ctrl+Alt+Shift+Insert` | `Cmd+Shift+N` |
-| Run Artisan Command (Laravel) | `Ctrl+Shift+X` | `Cmd+Shift+X` |
+| Run Command (Command Line Tools Console) | `Ctrl+Shift+X` | `Cmd+Shift+X` |
 
 ## Settings | Keymap
 
@@ -4799,7 +4800,7 @@ Plugins add their own actions under **Plugins** (and some under Main Menu), for 
 
 | Action | Default shortcut |
 | --- | --- |
-| Laravel: Run Artisan Command… | `Ctrl+Shift+X` (macOS `Cmd+Shift+X`) |
+| Command Line Tool Support: Run Command… | `Ctrl+Shift+X` (macOS `Cmd+Shift+X`) |
 | Terminal: New Terminal Tab | `Ctrl+Shift+T` (macOS `Cmd+T`), in the terminal |
 | Database: Execute | `Ctrl+Enter` (macOS `Cmd+Enter`), in a console |
 | Database: Submit / Add Row / Delete Rows / Revert Selected | `Ctrl+Enter` / `Alt+Insert` / `Ctrl+Y` / `Ctrl+Alt+Z` in a data grid |
@@ -6994,7 +6995,7 @@ Running configurations, breakpoints and stepping through PHP code with Xdebug. W
 | [Show Execution Point](#show-execution-point) | `Alt+F10` | `Alt+F10` |
 | [Add to Watches](#add-to-watches) | — | — |
 | [Set Value](#set-value) | `F2` | `F2` |
-| [Run Artisan Command…](#run-artisan-command) | `Ctrl+Shift+X` | `Cmd+Shift+X` |
+| [Run Command…](#run-command) | `Ctrl+Shift+X` | `Cmd+Shift+X` |
 | [Run Console Command…](#run-console-command) | — | — |
 | [Execute](#execute) | `Ctrl+Enter` | `Cmd+Enter` |
 
@@ -7286,17 +7287,20 @@ press `Enter`.
 
 More: [Xdebug debugging](docs/guide/user/debugging.md#variables-set-value-and-copy-value)
 
-## Run Artisan Command
+## Run Command
 
-**Shortcut:** `Ctrl+Shift+X` · macOS `Cmd+Shift+X` · action id `Laravel.RunArtisan`
+**Shortcut:** `Ctrl+Shift+X` · macOS `Cmd+Shift+X` · action id `CommandLineToolsAction`
 
-Runs an artisan command of the Laravel project.
+Opens the Command Line Tools Console popup: type `alias command [arguments]` (`c install`,
+`a make:model Order -m`, `s cache:clear`) with completion of commands, options and arguments,
+and press `Enter`. The output goes to the Command Line Tools Console tool window. Tools |
+Laravel | Run Artisan Command… (`Laravel.RunArtisan`) opens it with the Artisan alias typed in.
 
-**Menu:** Tools | Laravel | Run Artisan Command…
+**Menu:** Tools | Run Command…
 
-![Run Artisan Command…](docs/screenshots/docs-artisan.png)
+![Run Command…](docs/screenshots/docs-run-command.png)
 
-More: [Laravel](docs/guide/user/laravel.md#run-artisan-command)
+More: [Command Line Tool Support](docs/guide/user/command-line-tools.md)
 
 ## Run Console Command
 
@@ -8954,17 +8958,20 @@ With artisan, the source locations from static analysis are kept so navigation s
 
 ## Run Artisan Command
 
-**Run Artisan Command…** (`Ctrl+Shift+X`, macOS `Cmd+Shift+X`) opens a popup listing the
-project's artisan commands (from `php artisan list --format=json`, or a built-in list when the
-application cannot boot) and your **Recently run** commands. Type a command with its
-arguments and press `Enter`.
+Artisan commands run in the Command Line Tools Console: **Tools | Run Command…**
+(`Ctrl+Shift+X`, macOS `Cmd+Shift+X`) with the alias `a`, for example `a make:model Order -m`.
+Laravel projects get the Artisan tool automatically. Forge completes the commands of
+`php artisan list --format=json` (or Laravel's standard commands when the application cannot
+boot), their options and arguments, and shows each command's help. **Tools | Laravel | Run
+Artisan Command…** opens the popup with `a ` typed in. See
+[Command Line Tool Support](docs/guide/user/command-line-tools.md).
 
-![Run Artisan Command](docs/screenshots/laravel-artisan.png)
+![Artisan commands in the Run Command popup](docs/screenshots/cli-tools-commands.png)
 
-The output appears in the popup; **Rerun** runs it again, `Enter` starts another command,
-`Esc` closes.
+The output goes to the Command Line Tools Console tool window, with clickable paths of the
+generated files.
 
-![Artisan output](docs/screenshots/laravel-artisan-output.png)
+![Artisan output in the Command Line Tools Console](docs/screenshots/cli-tools-console.png)
 
 For commands you run often, create an **Artisan** run configuration (Run | Edit
 Configurations), which can also be debugged with Xdebug. See
@@ -10381,6 +10388,140 @@ request. See [Xdebug debugging](docs/guide/user/debugging.md#debugging-web-pages
 
 > **Note:** Run/Debug configurations work in [remote projects](docs/guide/user/remote-development.md): the
 > process runs on the remote host.
+
+
+---
+
+Source: docs/guide/user/command-line-tools.md
+
+# Command Line Tool Support
+
+The Command Line Tools Console runs the command line tools of a PHP project, like PHPStorm's
+Command Line Tool Support: Composer, Laravel Artisan, Symfony Console, WP-CLI, Drush, any tool
+built on Symfony Console, and plain PHP scripts. You type a command as
+`alias command [arguments]`, for example `c require laravel/sanctum`,
+`a make:model Order -m` or `s cache:clear`, and Forge completes commands, options and
+arguments as you type.
+
+The feature is the plugin **Command Line Tool Support** (`forge.command-line-tools`) of the
+PHPForge pack. It is active in PHP and Composer projects.
+
+## Run Command
+
+**Tools | Run Command…** (`Ctrl+Shift+X`, macOS `Cmd+Shift+X`, action id
+`CommandLineToolsAction`) opens the Run Command popup. Its header lists the aliases of the
+project's tools.
+
+![Run Command popup with command completion](docs/screenshots/cli-tools-commands.png)
+
+| Key | Action |
+| --- | --- |
+| typing | completion of the alias, the command, options, option values and arguments |
+| `Tab` | insert the selected (or first) completion item |
+| `↓` / `↑` | move through the completion list; with no list, browse the history |
+| `Enter` | run the command (or insert the item you moved to with the arrow keys) |
+| `Ctrl+C` | stop the running command (when nothing is selected in the input) |
+| `Esc` | close the completion list, then the popup |
+
+Completion knows:
+
+- **aliases** of the configured tools (also found by the tool's name),
+- **commands**, by prefix, by any part (`model` finds `make:model`) and by Symfony-style
+  abbreviations (`m:mi` for `make:migration`, `d:s:u` for `doctrine:schema:update`);
+  WP-CLI subcommands word by word (`wp plugin list`),
+- **options** (`--migration`, `-m`) of the command, the command's own first and the
+  application's global ones (`--help`, `--ansi`, `--env`) after them; options you already used
+  are not offered again unless they may repeat,
+- **option values** that the tool lists (WP-CLI `--format=table|csv|json|…`),
+- **arguments**: the expected argument is shown below the input (`<name>: The name of the
+  model`); `help <command_name>` completes command names and `list <namespace>` namespaces.
+
+While you type the arguments of a command, the help of the command is shown under the list:
+its description, usage, arguments and options, with the argument or option at the cursor
+highlighted. Hovering a completion item shows its description.
+
+![Options with the command's help](docs/screenshots/cli-tools-options.png)
+
+## The console and the output
+
+A command's output goes to the **Command Line Tools Console** tool window (one tab per
+command), or stays in the popup when the tool's **Show console in** is **Pop-up window**.
+The console shows the command line, colored output, clickable file paths (`app/Models/Order.php`
+opens in the editor) and URLs, and the exit code (`Process finished with exit code 0`). Input
+typed into a running console goes to the command (questions of `make:` commands, `tinker`).
+
+![Command Line Tools Console tool window](docs/screenshots/cli-tools-console.png)
+
+The tool window has an input with completion at the bottom (the completion opens above it),
+and a toolbar with **Rerun**, **Stop**, **Scroll to the End**, **Soft-Wrap** and **Clear
+All**. Its header has **Reload Command Lists** and a link to the settings. Middle-click or `×`
+closes a tab.
+
+Commands run where the project's PHP runs: through the tool's PHP interpreter, or the project
+default of Settings | PHP | CLI Interpreter, including Docker, Docker Compose, SSH and WSL
+interpreters (see [PHP](docs/guide/user/php.md)). Container paths in the output are mapped back to project
+files, so links work there too. Remote projects run the tools on the remote host.
+
+## Command lists and the cache
+
+Forge reads the commands of a tool by running it once:
+
+| Tool | List command |
+| --- | --- |
+| Composer, Laravel Artisan, Symfony Console, Drush, Tool based on Symfony Console | `<tool> list --format=json` |
+| WP-CLI | `wp cli cmd-dump` |
+| Tool based on PHP script | none (no completion of commands) |
+
+The result is cached per project and tool in Forge's cache directory
+(`<cache dir>/forge/command-line-tools`) and reused until the tool's path, its interpreter or
+`composer.lock` changes, so installing or updating packages brings new commands in. **Reload
+Command Lists** (in the popup header and the tool window header) lists all tools again. When
+Artisan or the Symfony console cannot run (no `vendor/`, a broken application), the standard
+commands of Laravel or Symfony are offered instead.
+
+## Settings | Tools | Command Line Tool Support
+
+![Command Line Tool Support settings](docs/screenshots/cli-tools-settings.png)
+
+The table lists the project's tools. Tools the project uses are **auto-detected** (shown in
+italics) as long as no tool of that kind or alias is configured:
+
+| Tool | Detected from | Alias | Path |
+| --- | --- | --- | --- |
+| Composer | `composer.json` | `c` | the Composer executable of Settings \| PHP \| Composer (`composer`) |
+| Laravel Artisan | `artisan` | `a` | `artisan` |
+| Symfony Console | `bin/console` | `s` | `bin/console` |
+| WP-CLI | `wp-cli.phar`, `vendor/bin/wp`, or a WordPress site (`wp-config.php`) | `wp` | `wp-cli.phar`, `vendor/bin/wp` or `wp` |
+| Drush | `vendor/bin/drush` | `drush` | `vendor/bin/drush` |
+
+**+** opens **Choose Tool to Add** with these tools plus **Tool based on Symfony Console** and
+**Tool based on PHP script** (any PHP script, run as `php <script> <arguments>`). **−**
+removes a tool, the pencil (or a double-click) edits it; editing an auto-detected tool adds it
+to the list. The checkbox turns a tool off. Each tool has:
+
+| Field | Meaning |
+| --- | --- |
+| Name | shown in the table, the popup header and the tool window |
+| Alias | the first word of a command line; unique, without spaces |
+| Path | a project script (`artisan`, `bin/console`), a `.phar` (run with PHP) or a program name (`composer`, `wp`) |
+| PHP interpreter | the CLI interpreter that runs it; **Project default** uses Settings \| PHP |
+| Show console in | **Tool window** or **Pop-up window** |
+
+Scripts and `.phar` files always run with the PHP interpreter. Programs such as `composer` or
+`wp` run as they are, and inside the interpreter's environment (for example in the Docker
+container) when the tool names an interpreter.
+
+The tools are stored in the project settings (`commandLineTools.tools`), so a team can share
+them through `.forge/settings.toml`. **Add the tools the project uses automatically**
+(`commandLineTools.autoDetect`) turns auto-detection off.
+
+## Laravel and Symfony
+
+**Tools | Laravel | Run Artisan Command…** opens the Run Command popup with the Artisan alias
+typed in. The Symfony plugin keeps its own **Run Console Command…** list with the
+application's commands and gutter icons (see [Symfony](docs/guide/user/symfony.md)). For commands you run often
+with a debugger, create an **Artisan** or **Composer** run configuration
+(see [Run/Debug configurations](docs/guide/user/run-debug.md)).
 
 
 ---
@@ -12289,7 +12430,9 @@ Actions that Forge's plugins add (group **Plugins** in Settings | Keymap, some u
 | Composer: Validate | `Composer.Validate` |  |  | any |
 | Composer: Show Outdated | `Composer.ShowOutdated` |  |  | any |
 | Composer: Audit | `Composer.Audit` |  |  | any |
-| Run Artisan Command… | `Laravel.RunArtisan` | `Ctrl+Shift+X` | `Cmd+Shift+X` | any |
+| Run Command… (Command Line Tools Console) | `CommandLineToolsAction` | `Ctrl+Shift+X` | `Cmd+Shift+X` | any |
+| Command Line Tools Console (tool window) | `ActivateCommandLineToolsConsoleToolWindow` |  |  | any |
+| Run Artisan Command… | `Laravel.RunArtisan` |  |  | any |
 | Routes (Laravel) | `Laravel.ShowRoutes` |  |  | any |
 | Run Console Command… (Symfony) | `Symfony.RunConsoleCommand` |  |  | any |
 | Symfony Routes | `Symfony.ShowRoutes` |  |  | any |
@@ -12752,7 +12895,7 @@ Source: docs/guide/reference/main-menu/tools.md
 
 # Tools menu
 
-Terminal, Vim emulation and the tools of plugins (Composer, Docker, Laravel, Symfony). Open it with ☰ (`Alt+\`) or from the menu bar, see [Main menu](docs/guide/user/workbench.md#main-menu).
+Terminal, Vim emulation, Run Command… and the tools of plugins (Composer, Docker, Laravel, Symfony). Open it with ☰ (`Alt+\`) or from the menu bar, see [Main menu](docs/guide/user/workbench.md#main-menu).
 
 ![Tools menu](docs/screenshots/docs-menu-tools.png)
 
@@ -12761,6 +12904,7 @@ Terminal, Vim emulation and the tools of plugins (Composer, Docker, Laravel, Sym
 | Entry | Windows / Linux | macOS | Available | What it does |
 | --- | --- | --- | --- | --- |
 | Run Anything… | — | — | not yet | Not available yet; the entry is disabled. |
+| Run Command… | `Ctrl+Shift+X` | `Cmd+Shift+X` | yes | Opens the Command Line Tools Console popup: run Composer, Artisan, Symfony Console, WP-CLI, Drush and custom tools with completion (plugin `forge.command-line-tools`, PHP projects). [More](docs/guide/user/command-line-tools.md#run-command) ([screenshot](docs/screenshots/docs-run-command.png)) |
 | Save as Live Template… | — | — | yes | Opens Settings \| Editor \| Live Templates with a new template made from the selection. [More](docs/guide/user/live-templates.md#save-as-live-template) ([screenshot](docs/screenshots/save-as-live-template.png)) |
 | Save File as Template… | — | — | not yet | Not available yet; the entry is disabled. |
 | Open in Terminal | `Ctrl+Shift+T` | `Cmd+T` | yes | Opens a new terminal tab (Tools | Open in Terminal). [More](docs/guide/user/terminal.md#tabs) ([screenshot](docs/screenshots/docs-terminal.png)) |
@@ -12778,7 +12922,7 @@ Terminal, Vim emulation and the tools of plugins (Composer, Docker, Laravel, Sym
 | Docker › Pull Image… | — | — | yes | Pulls a Docker image. [More](docs/guide/user/services.md#pulling-images-and-registries) |
 | Docker › Refresh Services | — | — | yes | Refreshes the Services tree. [More](docs/guide/user/services.md) |
 | **Laravel** | | | | submenu |
-| Laravel › Run Artisan Command… | `Ctrl+Shift+X` | `Cmd+Shift+X` | yes | Runs an artisan command of the Laravel project. [More](docs/guide/user/laravel.md#run-artisan-command) ([screenshot](docs/screenshots/docs-artisan.png)) |
+| Laravel › Run Artisan Command… | — | — | yes | Opens Run Command with the Artisan alias typed in. [More](docs/guide/user/laravel.md#run-artisan-command) |
 | Laravel › Show Routes | — | — | yes | Shows the Laravel Routes tool window. [More](docs/guide/user/laravel.md#routes-tool-window) |
 
 ## Entries of plugins
@@ -12790,7 +12934,7 @@ Tools collects the actions of active plugins; the screenshot shows a Laravel pro
 | — | Vim (check mark) | always (plugin `forge.vim`) |
 | Composer | Add Dependency…, Install, Update, Validate, Show Outdated, Audit | Composer projects (`forge.composer`) |
 | Docker | Pull Image…, Refresh Services | always (plugin `forge.services`) |
-| Laravel | Run Artisan Command… (`Ctrl+Shift+X`), Show Routes | Laravel projects (`forge.laravel`) |
+| Laravel | Run Artisan Command…, Show Routes | Laravel projects (`forge.laravel`) |
 | Symfony | Run Console Command…, Show Routes, Refresh Symfony Index | Symfony projects (`forge.symfony`) |
 
 
@@ -13586,6 +13730,15 @@ Page id `tools.terminal`.
 | `terminal.renderer` | enum: `auto`, `webgl`, `dom` | `auto` | user | Rendering | Renderer — WebGL draws on the GPU and is the fastest. Automatic falls back to DOM when WebGL is unavailable. |
 | `terminal.scrollback` | int (0–1000000) | `10000` | user | Rendering | Scrollback buffer — Number of lines kept above the visible area. |
 
+### Tools | Command Line Tool Support
+
+Page id `tools.command-line-tools`. See [Command Line Tool Support](docs/guide/user/command-line-tools.md).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `commandLineTools.tools` | objects | `[]` | user, project | — | Command line tools — Tools that Tools \| Run Command… (Ctrl+Shift+X) runs. Entries: `kind` (`composer`, `artisan`, `symfony`, `wp-cli`, `drush`, `symfony-based`, `php-script`), `name`, `alias` (unique), `path`, `interpreter` (empty: the project default), `showConsoleIn` (`toolWindow` or `popup`), `enabled` (`false` turns it off). |
+| `commandLineTools.autoDetect` | bool | `true` | user, project | — | Add the tools the project uses automatically — Composer, Laravel Artisan, Symfony Console, WP-CLI and Drush, unless a tool of that kind or alias is configured. |
+
 ### Tools | Database
 
 Page id `tools.database`.
@@ -14364,9 +14517,10 @@ script and config language plugins.
 | Gemini CLI | `forge.gemini-cli` | core | `forge.ai` | always | 3 settings; 1 AI providers; 1 chat agents |
 | PHP | `forge.php` | phpforge |  | `php` | 1 commands; 18 settings; 1 LSP servers; run types: PHP Script, PHP Built-in Web Server; 4 code generators |
 | Composer | `forge.composer` | phpforge | `forge.php` | `composer` | 6 commands; 6 settings; run types: Composer Script; 1 main menu entries |
+| Command Line Tool Support | `forge.command-line-tools` | phpforge | `forge.php` | `php`, `composer` | tool windows: Command Line Tools Console; 1 commands; 2 settings; 1 keybindings; 1 main menu entries |
 | PHPUnit | `forge.phpunit` | phpforge | `forge.php` | `phpunit`, `pest` | run types: PHPUnit; 1 code generators |
 | Xdebug | `forge.xdebug` | phpforge | `forge.php` | `php` | tool windows: Debug; 1 commands; 8 settings; run types: PHP Remote Debug; 1 main menu entries |
-| Laravel | `forge.laravel` | phpforge | `forge.php`, `forge.composer` | `laravel` | tool windows: Routes; 1 commands; 6 settings; run types: Artisan; 1 code generators; 1 keybindings; 1 main menu entries |
+| Laravel | `forge.laravel` | phpforge | `forge.php`, `forge.composer` | `laravel` | tool windows: Routes; 1 commands; 6 settings; run types: Artisan; 1 code generators; 1 main menu entries |
 | Symfony | `forge.symfony` | phpforge | `forge.php`, `forge.composer` | `symfony` | tool windows: Symfony; 2 commands; 7 settings; 1 main menu entries |
 | Symfony Services | `forge.symfony-services` | phpforge | `forge.yaml` | `symfony` | file types: Symfony Services |
 | Doctrine | `forge.doctrine` | phpforge | `forge.php` | `doctrine` | tool windows: Doctrine; 1 commands; 6 settings |
@@ -15554,12 +15708,12 @@ Rebuild the browser bundle after changing Rust keymap code: `pnpm --dir app/ui w
 
 ```ts
 registerKeymapActions([
-  { id: "Laravel.RunArtisan", title: "Run Artisan Command…", group: "Laravel",
+  { id: "CommandLineToolsAction", title: "Run Command…", group: "Tools",
     shortcuts: { $default: ["Ctrl+Shift+X"], macOS: ["Cmd+Shift+X"] } },
   { id: "Console.Jdbc.Execute", title: "Execute", group: "Database", context: "editor",
     shortcuts: { $default: ["Ctrl+Enter"], macOS: ["Cmd+Enter"] } },
 ]);
-registerCommand({ id: "Laravel.RunArtisan", title: "Run Artisan Command…", run: openArtisanPopup });
+registerCommand({ id: "CommandLineToolsAction", title: "Run Command…", run: () => openRunCommand() });
 ```
 
 - `group` places the action in the Keymap tree (`Plugins/<Name>` by convention, or a
@@ -16141,6 +16295,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | Crate | Description |
 | --- | --- |
 | [luaforge-lang-lua](docs/guide/developer/crates/luaforge-lang-lua.md) | LuaForge: Lua language support (lexer, structural parser, EmmyLua/LuaLS annotations, project index, require resolution, hover, navigation; pure, also built to WebAssembly) |
+| [phpforge-cli-tools](docs/guide/developer/crates/phpforge-cli-tools.md) | PHPForge: Command Line Tool Support (tool model and detection, `list --format=json` and `wp cli cmd-dump` parsing, console input parsing and completion; pure, also built to WebAssembly) |
 | [phpforge-composer](docs/guide/developer/crates/phpforge-composer.md) | PHPForge: Composer support (version constraints, composer.json/lock analysis, Packagist metadata, outdated packages, audit advisories, completion) |
 | [phpforge-dql](docs/guide/developer/crates/phpforge-dql.md) | PHPForge: Doctrine DQL tokenizer, parser, highlighting, completion and diagnostics, and DQL sites in PHP source (pure, also built to WebAssembly) |
 | [phpforge-fw-laravel](docs/guide/developer/crates/phpforge-fw-laravel.md) | PHPForge: Laravel support (routes, views, Blade components, config/env, Eloquent, translations, artisan) |
@@ -19212,6 +19367,7 @@ Rebuild the bundle with `pnpm --dir app/ui wasm` (output: `app/ui/src/wasm/pkg`)
 
 | Module | Summary |
 | --- | --- |
+| `cli_tools.rs` | Command Line Tool Support (`phpforge-cli-tools`), mirroring the `cli_tools_*` commands: the effective tools from the demo files and settings, parsing of recorded `list --format=json` output, completion and the command line of a console input. |
 | `agents.rs` | Agent CLIs (`forge_agent_cli`) for the browser-mode agent mock: the built-in agents' profiles (what `agent_list` reports besides detection) and the stream parsers, so the mock replays recorded CLI output through the same Rust code as the desktop app. |
 | `containers.rs` | Services tool window (`forge-containers`) for the browser-mode mock: the mock keeps a fake Docker daemon as Engine API JSON, compose files and a kubeconfig as text, and asks Rust for the models, the tree, the details pane, the gutter markers, command lines and pull progress, like the desktop app's hub. |
 | `editing.rs` | Editor actions (`forge-editing`): postfix templates and their expansion, Complete Current Statement and Cyclic Expand Word, mirroring the `editor_postfix_*`, `editor_complete_statement` and `editor_expand_word` commands. |
@@ -19399,6 +19555,57 @@ cargo test -p luaforge-lang-lua
 
 ---
 
+Source: docs/guide/developer/crates/phpforge-cli-tools.md
+
+# phpforge-cli-tools
+
+`packs/phpforge/cli-tools` — PHPForge: Command Line Tool Support (Composer, Artisan, Symfony
+Console, WP-CLI, Drush and custom tools): tool model and detection, list/help JSON parsing,
+command line parsing and completion.
+
+## Purpose
+
+Everything the [Command Line Tools Console](docs/guide/user/command-line-tools.md) computes. The crate
+is pure (no processes, files or network) and builds to WebAssembly for browser mode; the app
+runs the tools through the project backend and the PHP interpreter.
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `model.rs` | `ToolKind` (composer, artisan, symfony, wp-cli, drush, symfony-based, php-script) with PHPStorm's labels, default aliases and paths; `Tool` and its codec for the `commandLineTools.tools` objects setting; `detect` (composer.json, artisan, bin/console, wp-cli.phar, vendor/bin/wp, wp-config.php, vendor/bin/drush) and `effective_tools` (configured first, then detected kinds that are not configured). |
+| `definitions.rs` | `CommandDef` / `ArgumentDef` / `OptionDef`; `parse_symfony_list` (Symfony Console's `list --format=json`, shared by Artisan, Symfony, Composer and Drush; argument order kept, PHP's `[]` for empty objects, defaults, shortcuts like `-v\|-vv\|-vvv`, application options marked global, text before the JSON skipped) and `parse_wp_cli_dump` (`wp cli cmd-dump`: subcommands as multi-word commands with their groups, synopsis tokens, descriptions, defaults and `options:` values from `longdesc`). |
+| `cmdline.rs` | `tokenize` (POSIX-like quotes and escapes with UTF-16 offsets per word), `split`, `quote` / `join` for display. |
+| `complete.rs` | `complete(input, offset, tools, commands)`: aliases, commands (prefix, word, substring and `m:mi`-style abbreviations; WP-CLI words), options (unused ones, command options before global ones), option values (`--format=`, the word after an option that needs a value), arguments (`help <command_name>`, `list <namespace>`, known values), the hint for the expected argument and `CommandHelp` (the command with the argument or option at the cursor). |
+| `invoke.rs` | `run_invocation` (PHP script or own program, `--ansi` / `--color` unless given, `COLUMNS=120`), `list_invocation` (`list --format=json`, `cli cmd-dump`), `parse_input` (alias lookup with PHPStorm-like errors). |
+| `cache.rs` | `fingerprint` (FNV-1a of kind, path, interpreter and composer.lock), the cache file name per project and alias, and the cache entry format. |
+
+## Used by
+
+- IPC: `cli_tools_list`, `cli_tools_commands`, `cli_tools_complete`, `cli_tools_run`
+  (`app/src-tauri/src/commands/command_line_tools.rs`; runs stream `run://<runId>` through
+  `commands::run::start_built`, the cache lives in `<cache dir>/forge/command-line-tools`)
+- UI: `app/ui/src/features/cliTools/`
+- Browser mode: built into `forge-wasm` (`cli_tools.rs`)
+
+## Dependencies
+
+- Workspace crates: phpforge-interpreters (`Program`)
+- External: `serde`, `serde_json`
+
+## Tests
+
+7 source files; unit tests per module plus `tests/fixtures.rs` on recorded output
+(`tests/fixtures/artisan-list.json`, `composer-list.json`, `symfony-list.json`,
+`wp-cli-dump.json`). No PHP is needed; the app's tests run a fake `php` script.
+
+```sh
+cargo test -p phpforge-cli-tools
+```
+
+
+---
+
 Source: docs/guide/developer/crates/phpforge-composer.md
 
 # phpforge-composer
@@ -19565,7 +19772,7 @@ pub fn fingerprint(root: &Path) -> u64 { … }
 
 ## Used by
 
-- IPC: `laravel_detect`, `laravel_routes`, `laravel_complete`, `laravel_goto`, `laravel_gutter`, `laravel_artisan_commands`, `laravel_artisan_run`, `laravel_artisan_cancel` (`app/src-tauri/src/commands/laravel.rs`)
+- IPC: `laravel_detect`, `laravel_routes`, `laravel_complete`, `laravel_goto`, `laravel_gutter` (`app/src-tauri/src/commands/laravel.rs`); `artisan::builtin_commands` is the fallback list of the Command Line Tools Console (`command_line_tools.rs`, see [phpforge-cli-tools](docs/guide/developer/crates/phpforge-cli-tools.md))
 - UI: `app/ui/src/features/laravel`
 - Browser mode: not built to WebAssembly (runtime code); browser mode uses mocks
 

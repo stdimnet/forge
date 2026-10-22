@@ -654,6 +654,15 @@ Page id `tools.terminal`.
 | `terminal.renderer` | enum: `auto`, `webgl`, `dom` | `auto` | user | Rendering | Renderer — WebGL draws on the GPU and is the fastest. Automatic falls back to DOM when WebGL is unavailable. |
 | `terminal.scrollback` | int (0–1000000) | `10000` | user | Rendering | Scrollback buffer — Number of lines kept above the visible area. |
 
+### Tools | Command Line Tool Support
+
+Page id `tools.command-line-tools`. See [Command Line Tool Support](../user/command-line-tools.md).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `commandLineTools.tools` | objects | `[]` | user, project | — | Command line tools — Tools that Tools \| Run Command… (Ctrl+Shift+X) runs. Entries: `kind` (`composer`, `artisan`, `symfony`, `wp-cli`, `drush`, `symfony-based`, `php-script`), `name`, `alias` (unique), `path`, `interpreter` (empty: the project default), `showConsoleIn` (`toolWindow` or `popup`), `enabled` (`false` turns it off). |
+| `commandLineTools.autoDetect` | bool | `true` | user, project | — | Add the tools the project uses automatically — Composer, Laravel Artisan, Symfony Console, WP-CLI and Drush, unless a tool of that kind or alias is configured. |
+
 ### Tools | Database
 
 Page id `tools.database`.

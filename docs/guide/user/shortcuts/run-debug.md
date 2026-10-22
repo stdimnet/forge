@@ -40,7 +40,7 @@ Running configurations, breakpoints and stepping through PHP code with Xdebug. W
 | [Show Execution Point](#show-execution-point) | `Alt+F10` | `Alt+F10` |
 | [Add to Watches](#add-to-watches) | — | — |
 | [Set Value](#set-value) | `F2` | `F2` |
-| [Run Artisan Command…](#run-artisan-command) | `Ctrl+Shift+X` | `Cmd+Shift+X` |
+| [Run Command…](#run-command) | `Ctrl+Shift+X` | `Cmd+Shift+X` |
 | [Run Console Command…](#run-console-command) | — | — |
 | [Execute](#execute) | `Ctrl+Enter` | `Cmd+Enter` |
 
@@ -332,17 +332,20 @@ press `Enter`.
 
 More: [Xdebug debugging](../../user/debugging.md#variables-set-value-and-copy-value)
 
-## Run Artisan Command
+## Run Command
 
-**Shortcut:** `Ctrl+Shift+X` · macOS `Cmd+Shift+X` · action id `Laravel.RunArtisan`
+**Shortcut:** `Ctrl+Shift+X` · macOS `Cmd+Shift+X` · action id `CommandLineToolsAction`
 
-Runs an artisan command of the Laravel project.
+Opens the Command Line Tools Console popup: type `alias command [arguments]` (`c install`,
+`a make:model Order -m`, `s cache:clear`) with completion of commands, options and arguments,
+and press `Enter`. The output goes to the Command Line Tools Console tool window. Tools |
+Laravel | Run Artisan Command… (`Laravel.RunArtisan`) opens it with the Artisan alias typed in.
 
-**Menu:** Tools | Laravel | Run Artisan Command…
+**Menu:** Tools | Run Command…
 
-![Run Artisan Command…](../../../screenshots/docs-artisan.png)
+![Run Command…](../../../screenshots/docs-run-command.png)
 
-More: [Laravel](../../user/laravel.md#run-artisan-command)
+More: [Command Line Tool Support](../../user/command-line-tools.md)
 
 ## Run Console Command
 

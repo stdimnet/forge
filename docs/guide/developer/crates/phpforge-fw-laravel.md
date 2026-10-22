@@ -59,7 +59,7 @@ pub fn fingerprint(root: &Path) -> u64 { … }
 
 ## Used by
 
-- IPC: `laravel_detect`, `laravel_routes`, `laravel_complete`, `laravel_goto`, `laravel_gutter`, `laravel_artisan_commands`, `laravel_artisan_run`, `laravel_artisan_cancel` (`app/src-tauri/src/commands/laravel.rs`)
+- IPC: `laravel_detect`, `laravel_routes`, `laravel_complete`, `laravel_goto`, `laravel_gutter` (`app/src-tauri/src/commands/laravel.rs`); `artisan::builtin_commands` is the fallback list of the Command Line Tools Console (`command_line_tools.rs`, see [phpforge-cli-tools](phpforge-cli-tools.md))
 - UI: `app/ui/src/features/laravel`
 - Browser mode: not built to WebAssembly (runtime code); browser mode uses mocks
 
