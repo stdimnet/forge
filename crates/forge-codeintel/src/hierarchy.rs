@@ -471,7 +471,7 @@ pub fn method_base(graph: &TypeGraph) -> String {
     g.ancestors(&graph.root)
         .into_iter()
         .filter(|a| declares(a))
-        .find(|a| !g.ancestors(a).into_iter().any(|x| declares(x)))
+        .find(|a| !g.ancestors(a).into_iter().any(&declares))
         .unwrap_or(&graph.root)
         .to_string()
 }
