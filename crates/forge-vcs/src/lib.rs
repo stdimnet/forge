@@ -38,4 +38,7 @@ pub use status::{parse_status, FileState, RepoStatus, StatusEntry};
 #[cfg(feature = "git")]
 pub use cmd::{git_binary, set_git_program, GitExec, GitOutput, GitRequest, LocalGit};
 #[cfg(feature = "git")]
-pub use repo::{RemoteResult, Repo, RepoInfo};
+pub use repo::{
+    parse_rebase_status, parse_unmerged, ConflictFile, ConflictSet, ConflictSide, MergeFile,
+    MergeOperation, RemoteResult, Repo, RepoInfo, SideChange,
+};

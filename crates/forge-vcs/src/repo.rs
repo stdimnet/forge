@@ -1,5 +1,7 @@
 //! [`Repo`]: a git repository driven through the git command line.
 
+mod conflicts;
+
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
@@ -15,6 +17,11 @@ use crate::manage::{
 };
 use crate::status::{parse_status, RepoStatus};
 use crate::{parse_blame, parse_diff, Blame, FileDiff};
+
+pub use conflicts::{
+    parse_rebase_status, parse_unmerged, ConflictFile, ConflictSet, ConflictSide, MergeFile,
+    MergeOperation, SideChange,
+};
 
 /// Summary of the repository a workspace belongs to.
 #[derive(Debug, Clone, Serialize)]
