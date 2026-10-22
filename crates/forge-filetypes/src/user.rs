@@ -126,7 +126,7 @@ fn keywords(raw: &str, ignore_case: bool) -> Vec<String> {
 }
 
 impl CustomFileType {
-    /// `{ name, description?, lineComment?, lineCommentAtStart?, blockCommentStart?,
+    /// `{ id?, name, description?, lineComment?, lineCommentAtStart?, blockCommentStart?,
     /// blockCommentEnd?, hexPrefix?, numberPostfixes?, keywords1..keywords4?, ignoreCase?,
     /// pairedBraces?, pairedBrackets?, pairedParens?, stringEscapes? }`; flags are `"true"` /
     /// `"false"` strings (or booleans).
@@ -157,8 +157,12 @@ impl CustomFileType {
             paired_parens: flag(value, "pairedParens", true),
             string_escapes: flag(value, "stringEscapes", true),
         };
+        // A stable id stored with the definition survives renames; else one from the name.
+        let id = str_field(value, "id")
+            .filter(|id| id.starts_with(CUSTOM_PREFIX))
+            .unwrap_or_else(|| custom_id(&name));
         Some(Self {
-            id: custom_id(&name),
+            id,
             description: text(value, "description"),
             name,
             syntax,

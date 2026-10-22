@@ -12,13 +12,26 @@ pub struct ForgeDirs {
     pub data: Option<PathBuf>,
     /// The user config directory (`~/.config`); Forge's settings live in `forge/`.
     pub config: Option<PathBuf>,
-    /// The cache of the embedded browser engine (the webview), if the shell knows it.
-    pub webview_cache: Option<PathBuf>,
+    /// The cache folders of the embedded browser engine (the webview).
+    pub webview_cache: Vec<PathBuf>,
 }
 
 impl ForgeDirs {
-    /// The directories of this machine's user.
-    pub fn system(webview_cache: Option<PathBuf>) -> Self {
+    /// The directories of this machine's user. `identifier` is the app's bundle identifier,
+    /// which names the webview's folders: WebKit (Linux, macOS) caches in
+    /// `<cache dir>/<identifier>`, WebView2 (Windows) in the `Cache` folders of
+    /// `<local data dir>/<identifier>/EBWebView/Default`.
+    pub fn system(identifier: &str) -> Self {
+        let mut webview_cache: Vec<PathBuf> = ::dirs::cache_dir()
+            .map(|c| c.join(identifier))
+            .into_iter()
+            .collect();
+        if let Some(local) = ::dirs::data_local_dir() {
+            let profile = local.join(identifier).join("EBWebView").join("Default");
+            for cache in ["Cache", "Code Cache", "GPUCache"] {
+                webview_cache.push(profile.join(cache));
+            }
+        }
         Self {
             cache: ::dirs::cache_dir(),
             data: ::dirs::data_dir(),
@@ -33,7 +46,7 @@ impl ForgeDirs {
             cache: Some(root.join("cache")),
             data: Some(root.join("data")),
             config: Some(root.join("config")),
-            webview_cache: Some(root.join("webview")),
+            webview_cache: vec![root.join("webview")],
         }
     }
 

@@ -346,6 +346,13 @@ fn custom_file_types_bring_their_syntax() {
     assert_eq!(custom[0].description, "Build scripts");
     assert_eq!(custom[0].patterns, ["*.dsl"]);
     assert_eq!(custom_id("  C++ / Legacy!  "), "custom-c-legacy");
+    // A stored id wins over the name, so renaming keeps the patterns.
+    let renamed = DetectRequest {
+        custom_types: vec![serde_json::json!({ "id": "custom-k1", "name": "Renamed" })],
+        associations: vec![serde_json::json!({ "fileType": "custom-k1", "pattern": "*.k1" })],
+        ..Default::default()
+    };
+    assert_eq!(detect_with(&renamed, "a.k1").label, "Renamed");
 }
 
 #[test]

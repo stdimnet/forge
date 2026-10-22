@@ -14,7 +14,7 @@
 //! | Shell integration scripts | `<cache>/forge/shell-integration` |
 //! | Local History (option) | `<data>/forge/projects/*/local-history` |
 //! | PHP stubs (option) | `<cache>/forge/php-stubs` |
-//! | Browser engine (option) | the webview's cache directory |
+//! | Browser engine (option) | the webview's cache folders (`<cache>/<identifier>`, WebView2's `Cache`) |
 //! | Language server data (option) | `<cache>/forge/intelephense`, `<cache>/forge/jdtls` |
 //!
 //! Installed language servers and runtimes (`<data>/forge/langservers`, `runtimes`) are not
@@ -179,7 +179,7 @@ mod disk {
                     }
                 }
                 CacheOption::BrowserEngine => {
-                    if let Some(webview) = &dirs.webview_cache {
+                    for webview in &dirs.webview_cache {
                         push("Embedded browser engine cache", webview.clone());
                     }
                 }

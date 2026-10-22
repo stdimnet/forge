@@ -296,6 +296,13 @@ pub trait Backend: Send + Sync {
         Ok(SearchStatus::default())
     }
 
+    /// Bring the search index in line with the disk (Repair IDE's "Rescan project
+    /// indexes"); returns the number of files it re-read. A backend without an index of its
+    /// own has nothing to rescan.
+    fn rescan_search_index(&self) -> Result<usize> {
+        Ok(0)
+    }
+
     /// Where git runs for this project.
     fn git(&self) -> Arc<dyn GitExec>;
 

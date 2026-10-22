@@ -44,6 +44,7 @@ forge-bookmarks.workspace = true
 forge-localhistory.workspace = true
 forge-codeintel.workspace = true
 forge-filetypes.workspace = true
+forge-maintenance.workspace = true
 forge-text.workspace = true
 forge-codestyle.workspace = true
 forge-save-actions.workspace = true

@@ -273,6 +273,15 @@ impl Backend for LocalBackend {
         Ok(Vec::new())
     }
 
+    fn rescan_search_index(&self) -> Result<usize> {
+        #[cfg(feature = "search")]
+        if let Some(search) = self.service() {
+            let stats = search.refresh();
+            return Ok(stats.added + stats.changed + stats.removed);
+        }
+        Ok(0)
+    }
+
     fn search_status(&self) -> Result<SearchStatus> {
         #[cfg(feature = "search")]
         if let Some(slot) = &self.search {

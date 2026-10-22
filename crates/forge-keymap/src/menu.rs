@@ -532,6 +532,7 @@ fn file_menu() -> MenuEntry {
             l("SaveAll", "Save _All"),
             l("Synchronize", "Reloa_d All from Disk"),
             l("InvalidateCaches", "In_validate Caches..."),
+            l("CallSaul", "Repair I_DE"),
             SEP,
             g(
                 "_Manage IDE Settings",
@@ -1233,6 +1234,7 @@ mod tests {
                 "Save All",
                 "Reload All from Disk",
                 "Invalidate Caches...",
+                "Repair IDE",
                 "-",
                 "Manage IDE Settings",
                 "New Projects Setup",

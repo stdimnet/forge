@@ -27,7 +27,7 @@ forge-editing = { path = "crates/forge-editing" }
 forge-file-templates = { path = "crates/forge-file-templates" }
 forge-codeintel = { path = "crates/forge-codeintel" }
 forge-filetypes = { path = "crates/forge-filetypes" }
-forge-maintenance = { path = "crates/forge-maintenance" }
+forge-maintenance = { path = "crates/forge-maintenance", default-features = false }
 forge-plugin-api = { path = "crates/forge-plugin-api" }
 forge-ai = { path = "crates/forge-ai" }
 forge-agent-cli = { path = "crates/forge-agent-cli" }
