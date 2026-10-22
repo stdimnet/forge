@@ -24,7 +24,8 @@ import {
 import { rebaseDialogActions } from "./LogDialogs";
 
 registerKeymapActions([
-  { id: "Git.Reword.Commit", title: "Edit Commit Message…", group: "Version Control Systems/Log", context: "toolwindow", shortcuts: { $default: ["F2"] } },
+  // No default key: F2 in tool windows edits data grid cells.
+  { id: "Git.Reword.Commit", title: "Edit Commit Message…", group: "Version Control Systems/Log", context: "toolwindow", shortcuts: {} },
   { id: "Git.Interactive.Rebase.MoveUp", title: "Move Commit Up", group: "Version Control Systems/Interactive Rebase", context: "toolwindow", shortcuts: { $default: ["Alt+Up"] } },
   { id: "Git.Interactive.Rebase.MoveDown", title: "Move Commit Down", group: "Version Control Systems/Interactive Rebase", context: "toolwindow", shortcuts: { $default: ["Alt+Down"] } },
 ]);

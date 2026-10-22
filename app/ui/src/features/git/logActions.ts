@@ -230,7 +230,7 @@ export function logMenuEntries(shas: string[], states: LogActionStates | null): 
   const [sha] = shas;
   const s = states;
   return [
-    item("Copy Revision Number", () => void copyRevisionNumber(shas.join(" ")), "Vcs.CopyRevisionNumberAction", { shortcutAction: "CopyReference" }),
+    item("Copy Revision Number", () => void copyRevisionNumber(shas.join(" ")), "Vcs.CopyRevisionNumberAction"),
     item("Create Patch…", () => void createPatch(shas), "Vcs.Log.CreatePatch"),
     item(shas.length > 1 ? `Cherry-Pick ${shas.length} Commits` : "Cherry-Pick", () => void cherryPick(shas), "Vcs.CherryPick", off(s?.cherryPick)),
     separator,

@@ -9337,7 +9337,7 @@ the keymap (Settings | Keymap) under its PHPStorm id and works on the selection 
 | Reset Current Branch to Here… | `Git.Reset.In.Log` | the [Reset dialog](#reset-head-tags-and-remotes) with the commit |
 | Revert Commit | `Git.Revert.In.Log` | new commits that undo the selected ones |
 | Undo Commit… | `Git.Uncommit` | removes the last, unpushed commit and keeps its changes |
-| Edit Commit Message… | `Git.Reword.Commit` (`F2` in the Log) | rewords a commit |
+| Edit Commit Message… | `Git.Reword.Commit` | rewords a commit |
 | Fixup… / Squash Into… | `Git.Fixup.To.Commit`, `Git.Squash.Into.Commit` | commit the local changes as `fixup! <subject>` / `squash! <subject>` |
 | Squash Commits… | `Git.Squash.Commits` | several selected commits become one, with an editable message |
 | Drop Commits | `Git.Drop.Commits` | removes commits from the branch |
