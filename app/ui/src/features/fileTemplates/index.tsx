@@ -14,6 +14,7 @@ import {
   resolveEntries,
   separator,
   showResolvedMenu,
+  submenu,
   type MenuEntry,
 } from "@/features/contextMenu/state";
 import { action, registerMainMenuDynamic, registerMainMenuEntries } from "@/features/mainMenu/model";
@@ -27,18 +28,26 @@ import { registerContextActionHandler } from "@/features/codeintel/intentions";
 import { viewFor } from "@/features/lsp/navigation";
 import { FileTemplatesPage } from "./FileTemplatesPage";
 import { NewFileDialogHost } from "./NewFileDialog";
-import { catalog, offeredTemplates, openNewFileDialog, refreshCatalog, setDialog, SETTINGS_PAGE, trackCatalog } from "./model";
+import { catalog, newMenuGroups, newMenuLabel, offeredTemplates, openNewFileDialog, refreshCatalog, setDialog, SETTINGS_PAGE, trackCatalog } from "./model";
 import "./fileTemplates.css";
 
 const editTemplates = () => openSettings(SETTINGS_PAGE);
 
-/** New ▸ entries for the templates the project uses, grouped, then Edit File Templates…. */
+/**
+ * New ▸ entries for the templates the project uses: PHP ▸ (Class, Interface, Trait, Enum, …),
+ * Web ▸ and Lua ▸ submenus, user templates, then Edit File Templates….
+ */
 export function templateMenuEntries(dir: string, templates: TemplateInfo[] = catalog().templates): MenuEntry[] {
   const out: MenuEntry[] = [];
-  for (const group of offeredTemplates(templates)) {
-    out.push(...group.map((t) => item(t.name, () => openNewFileDialog(t, dir))), separator);
+  for (const group of newMenuGroups(templates)) {
+    const entries = group.sections.flatMap((section, i) => [
+      ...(i > 0 ? [separator] : []),
+      ...section.map((t) => item(newMenuLabel(t, group.label), () => openNewFileDialog(t, dir))),
+    ]);
+    if (group.label) out.push(submenu(group.label, entries));
+    else out.push(separator, ...entries);
   }
-  out.push(item("Edit File Templates…", editTemplates, "EditFileTemplates"));
+  out.push(separator, item("Edit File Templates…", editTemplates, "EditFileTemplates"));
   return out;
 }
 
