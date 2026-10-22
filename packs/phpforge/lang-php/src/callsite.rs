@@ -208,6 +208,7 @@ pub fn call_at(
 
 /// A function or method declaration.
 #[derive(Debug, Clone)]
+#[allow(clippy::large_enum_variant)]
 pub enum Decl {
     Function(FunctionDecl),
     Method { owner: ClassLike, member: Member },

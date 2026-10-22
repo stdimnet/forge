@@ -296,3 +296,11 @@ fn namespace_must_match_source_roots() {
     // Correct files and files outside the roots are fine.
     assert!(problems(&mut idx, "app/Services/Mailer.php").is_empty());
 }
+
+#[test]
+fn mapped_keys_go_to_their_class() {
+    let (_c, mut idx) = project();
+    let d = def(&mut idx, "get('mailer')", 6);
+    assert_eq!(target(&d), "app/Services/Mailer.php#Mailer");
+    assert_eq!(d.title.as_deref(), Some("mailer"));
+}

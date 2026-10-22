@@ -2108,6 +2108,9 @@ fn symbol_target(
 /// unresolved name to look up in the PHP stubs.
 pub fn definition(index: &mut ProjectIndex, rel: &str, src: &str, offset: usize) -> PhpDefinition {
     let file = parser::index_source(rel, src);
+    if let Some(d) = meta_key_definition(index, &file, rel, src, offset) {
+        return d;
+    }
     let Some((start, end)) = word_at(src, offset) else {
         return PhpDefinition::default();
     };
@@ -2141,6 +2144,58 @@ pub fn definition(index: &mut ProjectIndex, rel: &str, src: &str, offset: usize)
         Resolved::Dynamic { .. } | Resolved::Nothing => out.range = None,
     }
     out
+}
+
+/// Go to Declaration on a string argument that a `.phpstorm.meta.php` map knows
+/// (`app('cache')`, `$container->get('mailer')`): the class it maps to, else the map entry.
+fn meta_key_definition(
+    index: &mut ProjectIndex,
+    file: &FileIndex,
+    rel: &str,
+    src: &str,
+    offset: usize,
+) -> Option<PhpDefinition> {
+    if index.meta().overrides.is_empty() {
+        return None;
+    }
+    // The caret inside a string literal: the call it is an argument of.
+    let site = crate::callsite::call_at(index, file, src, offset)?;
+    let string = site.string?;
+    let content_start = string.quote + 1;
+    let content_end = src[content_start..]
+        .find(string.quote_char)
+        .map(|i| content_start + i)?;
+    if src[content_start..content_end].contains('\n') {
+        return None;
+    }
+    let value = crate::meta::ArgValue::Str(src[content_start..content_end].to_string());
+    let entry = index
+        .meta()
+        .map_entry(|t| site.callee.matches(t), site.argument, &value)?
+        .clone();
+    let lines = Lines::new(src);
+    let mut out = PhpDefinition {
+        range: Some(lines.range(content_start, content_end)),
+        title: Some(src[content_start..content_end].to_string()),
+        ..Default::default()
+    };
+    let mut sources = sources(index, rel, src);
+    if !entry.value.contains('@') {
+        if let Some(t) = class_target(index, &mut sources, entry.value.trim_start_matches('\\')) {
+            out.targets.push(t);
+            return Some(out);
+        }
+    }
+    if let Some(t) = target(
+        &mut sources,
+        &entry.location.path,
+        entry.location.range,
+        format!("'{}'", entry.key),
+        Some(crate::meta::META_NAME.to_string()),
+    ) {
+        out.targets.push(t);
+    }
+    Some(out)
 }
 
 // ---- Gutter markers ----

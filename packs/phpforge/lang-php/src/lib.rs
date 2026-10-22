@@ -33,6 +33,7 @@ pub mod highlight;
 pub mod hover;
 pub mod imports;
 pub mod index;
+pub mod injections;
 pub mod inspections;
 pub mod intentions;
 pub mod lsp;
