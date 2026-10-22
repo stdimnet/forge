@@ -65,6 +65,17 @@ pub enum FrameworkCall {
         path: String,
         content: Option<String>,
     },
+    /// Go to Test (Ctrl+Shift+T) -> `forge_codeintel::TestTargets`
+    TestTargets {
+        path: String,
+        content: Option<String>,
+    },
+    /// Create New Test: the dialog's initial values -> `Option<forge_codeintel::NewTestPlan>`
+    NewTestPlan {
+        path: String,
+        content: Option<String>,
+        composer_path: String,
+    },
     Symfony {
         config: SymfonyConfig,
         query: SymfonyQuery,
@@ -384,6 +395,38 @@ impl LocalFrameworks {
                     &read,
                 ))
             }
+            FrameworkCall::TestTargets { path, content } => {
+                let text = self.source(&path, content)?;
+                let files = self.workspace.list_files();
+                let read = |rel: &str| self.workspace.read_file(rel).ok();
+                reply(forge_codeintel::test_targets(
+                    &forge_codeintel::TestNavRequest {
+                        path,
+                        text,
+                        composer_path: String::new(),
+                    },
+                    &files,
+                    &read,
+                ))
+            }
+            FrameworkCall::NewTestPlan {
+                path,
+                content,
+                composer_path,
+            } => {
+                let text = self.source(&path, content)?;
+                let files = self.workspace.list_files();
+                let read = |rel: &str| self.workspace.read_file(rel).ok();
+                reply(forge_codeintel::new_test_plan(
+                    &forge_codeintel::TestNavRequest {
+                        path,
+                        text,
+                        composer_path,
+                    },
+                    &files,
+                    &read,
+                ))
+            }
             FrameworkCall::Symfony { config, query } => self.symfony_query(&root, &config, query),
             FrameworkCall::Doctrine { config, query } => self.doctrine_query(&config, query),
         }
@@ -540,6 +583,36 @@ mod tests {
                 ("routes/web.php", 2)
             ]
         );
+    }
+
+    #[test]
+    fn tests_and_new_test_plans_are_found_next_to_the_files() {
+        let dir = laravel_project();
+        let fw = LocalFrameworks::new(Workspace::open(dir.path()).unwrap());
+        let path = "app/Http/Controllers/OrderController.php".to_string();
+        let found: forge_codeintel::TestTargets = decode_value(
+            &fw.call(FrameworkCall::TestTargets {
+                path: path.clone(),
+                content: None,
+            })
+            .unwrap(),
+        )
+        .unwrap();
+        assert!(found.targets.is_empty());
+        assert!(found.can_create);
+        let plan: Option<forge_codeintel::NewTestPlan> = decode_value(
+            &fw.call(FrameworkCall::NewTestPlan {
+                path,
+                content: None,
+                composer_path: String::new(),
+            })
+            .unwrap(),
+        )
+        .unwrap();
+        let plan = plan.unwrap();
+        assert_eq!(plan.directory, "tests/Feature/Http/Controllers");
+        assert_eq!(plan.namespace, "Tests\\Feature\\Http\\Controllers");
+        assert_eq!(plan.members[0].name, "index");
     }
 
     #[test]

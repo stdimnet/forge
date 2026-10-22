@@ -1508,6 +1508,67 @@ pub async fn code_related(
     .await
 }
 
+/// Navigate | Test / Test Subject (Ctrl+Shift+T): the tests of `path`, or the subjects of a
+/// test. Computed next to the files, see `forge_codeintel::test_nav`.
+#[tauri::command]
+pub async fn code_test_targets(
+    path: String,
+    content: Option<String>,
+    ws: State<'_, AppState>,
+) -> Result<codeintel::TestTargets> {
+    let backend = ws.backend()?;
+    blocking(move || {
+        forge_backend::frameworks::framework_call(
+            backend.as_ref(),
+            forge_backend::frameworks::FrameworkCall::TestTargets { path, content },
+        )
+    })
+    .await
+}
+
+/// Create New Test: the dialog's initial values for the subject `path` (`None` for a test or
+/// an unsupported file). The PSR-4 rules come from Settings | PHP | Composer's composer.json.
+#[tauri::command]
+pub async fn code_new_test_plan(
+    path: String,
+    content: Option<String>,
+    ws: State<'_, AppState>,
+) -> Result<Option<codeintel::NewTestPlan>> {
+    let composer_path = ws
+        .read_settings()
+        .get_as::<String>("php.composer.json")
+        .unwrap_or_default();
+    let backend = ws.backend()?;
+    blocking(move || {
+        forge_backend::frameworks::framework_call(
+            backend.as_ref(),
+            forge_backend::frameworks::FrameworkCall::NewTestPlan {
+                path,
+                content,
+                composer_path,
+            },
+        )
+    })
+    .await
+}
+
+/// Create New Test: render the test and create its file (never replaces one).
+#[tauri::command]
+pub async fn code_create_test(
+    request: codeintel::TestSourceRequest,
+    ws: State<'_, AppState>,
+) -> Result<codeintel::TestSource> {
+    let file = codeintel::test_source(&request).map_err(ForgeError::Other)?;
+    let backend = ws.backend()?;
+    let (path, text) = (file.path.clone(), file.text.clone());
+    blocking(move || {
+        backend.create_file(&path)?;
+        backend.write_file(&path, &text)
+    })
+    .await?;
+    Ok(file)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
