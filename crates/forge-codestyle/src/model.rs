@@ -670,12 +670,13 @@ fn php() -> LanguageSpec {
             "imports.groupBy",
             "Group 'use' statements",
             &[
-                ("kind", "By kind: classes, functions, constants"),
-                ("namespace", "By kind and top-level namespace"),
+                ("kind", "By kind"),
+                ("namespace", "By kind and namespace"),
                 ("none", "Don't group"),
             ],
             "kind",
         )
+        .describe("Kinds are classes, functions and constants; the namespace is the top-level one (App, Illuminate).")
         .int(
             "imports.blankLinesBetweenGroups",
             "Blank lines between groups",

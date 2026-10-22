@@ -1,10 +1,9 @@
 /* The import popup ("? App\Models\User Alt+Enter"): PHPStorm's blue question hint. */
-.cm-tooltip:has(> .cm-import-hint) {
-  background: var(--accent-soft);
-  border: 1px solid var(--accent);
-  border-radius: var(--radius-sm);
+.cm-editor .cm-tooltip:has(> .cm-import-hint) {
+  border-color: var(--accent);
 }
 .cm-import-hint {
+  background: var(--accent-soft);
   padding: 3px 8px;
   font-family: var(--font-mono);
   font-size: var(--fs-small);
