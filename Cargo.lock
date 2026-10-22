@@ -2475,6 +2475,7 @@ dependencies = [
  "forge-search-core",
  "forge-spell",
  "forge-sql",
+ "forge-ssr",
  "forge-text",
  "forge-viewers",
  "forge-vim",
