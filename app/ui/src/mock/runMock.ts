@@ -132,7 +132,7 @@ async function throughInterpreter(cfg: RunConfiguration | undefined, cmd: Comman
     program: { type: "php" },
     args: cmd.args,
     cwd: cmd.cwd ? (cmd.cwd.startsWith("/") || cmd.cwd.startsWith("~") ? cmd.cwd : `${root}/${cmd.cwd}`) : root,
-    env: { ...(cmd.env ?? {}), ...env },
+    env: { ...(cfg.env ?? {}), ...(cmd.env ?? {}), ...env },
     root,
     composeDir: root,
     volumes: DEMO_COMPOSE_VOLUMES[named.service] ?? [],

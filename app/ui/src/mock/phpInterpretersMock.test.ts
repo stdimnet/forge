@@ -55,7 +55,7 @@ describe("PHP interpreters", () => {
     const mappings = await invoke<PathMapping[]>("php_interpreter_mappings", {
       interpreter: { ...emptyInterpreter("compose"), service: "app" },
     });
-    expect(mappings[0]).toEqual({ local: "/home/demo/Projects/shop", remote: "/var/www/html" });
+    expect(mappings[0]).toEqual({ local: "~/Projects/acme-shop", remote: "/var/www/html" });
     expect(await invoke<string[]>("php_interpreter_compose_services", { files: [] })).toContain("app");
   });
 

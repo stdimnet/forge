@@ -58,11 +58,15 @@ pub fn normalize(path: &str) -> String {
     }
 }
 
-/// Whether `path` is absolute on any platform (`/x`, `C:/x`, `\\server\share`).
+/// Whether `path` is absolute on any platform (`/x`, `C:/x`, `\\server\share`) or starts
+/// at the home folder (`~/x`).
 pub fn is_absolute(path: &str) -> bool {
     let p = path.replace('\\', "/");
     let b = p.as_bytes();
-    p.starts_with('/') || (b.len() >= 2 && b[0].is_ascii_alphabetic() && b[1] == b':')
+    p.starts_with('/')
+        || p == "~"
+        || p.starts_with("~/")
+        || (b.len() >= 2 && b[0].is_ascii_alphabetic() && b[1] == b':')
 }
 
 /// `rel` against `base` unless it is absolute.
@@ -313,6 +317,7 @@ mod tests {
         assert_eq!(normalize("../x"), "../x");
         assert_eq!(join("/proj", "docker/../src"), "/proj/src");
         assert_eq!(join("/proj", "/abs"), "/abs");
+        assert_eq!(join("~/proj", "~/proj"), "~/proj");
     }
 
     #[test]

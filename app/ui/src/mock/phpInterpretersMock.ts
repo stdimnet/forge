@@ -6,9 +6,10 @@
 import { registerMock } from "@/ipc";
 import type { InterpreterInfo, PhpInterpreter } from "@/features/php/interpreters";
 import { callWasm, forgeWasm } from "@/wasm";
+import { demoProjectName } from "./demoProject";
 
 /** The demo project's root as the mocks show it. */
-export const DEMO_ROOT = "/home/demo/Projects/shop";
+export const DEMO_ROOT = `~/Projects/${demoProjectName}`;
 
 /** The demo compose file's PHP service mounts the project at /var/www/html. */
 export const DEMO_COMPOSE_VOLUMES: Record<string, string[]> = {
