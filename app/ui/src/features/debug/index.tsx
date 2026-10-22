@@ -25,7 +25,8 @@ import { DebugActions, DebugView } from "./DebugView";
 import { DebugOverlays } from "./DebugOverlays";
 import { debugEditorExtensions } from "./editorDebug";
 import { expressionAt } from "./format";
-import { setBreakpointsDialog, setEvaluateRequest } from "./overlays";
+import { setBreakpointsDialog, setEvaluateRequest, setValidationDialog } from "./overlays";
+import { copyValue, editSelectedValue } from "./VariablesTree";
 import { ServersPage } from "./ServersPage";
 import {
   activeSession,
@@ -39,6 +40,7 @@ import {
   port,
   reloadDebugState,
   runToCursor,
+  selectedVariable,
   showLine,
   startDebugStore,
   step,
@@ -46,6 +48,7 @@ import {
   toggleListening,
   toggleLineBreakpoint,
   toggleMuted,
+  toggleTemporaryLineBreakpoint,
 } from "./store";
 import { registerMainMenuToggle } from "@/features/mainMenu/model";
 import "./debug.css";
@@ -145,7 +148,16 @@ registerKeymapActions([
     group: "Main Menu/Run",
     shortcuts: { $default: [], macOS: [] },
   },
+  {
+    id: "WebServerDebugValidation",
+    title: "Web Server Debug Validation",
+    group: "Main Menu/Run",
+    shortcuts: { $default: [], macOS: [] },
+  },
 ]);
+
+/** Focus is in the Debug tool window (its variables tree, watches or console). */
+const inDebugWindow = () => !!document.activeElement?.closest('[data-tool-window-panel="debug"], .dbg-view');
 
 /** File and 1-based caret line of the active editor. */
 function caret(): { path: string; line: number; text: string; col: number } | null {
@@ -209,10 +221,38 @@ const actions: { id: string; title: string; run: () => void | Promise<void> }[] 
     id: "Debugger.AddToWatch",
     title: "Add to Watches",
     run: () => {
+      const v = selectedVariable();
+      if (inDebugWindow() && v && !v.watch) return addWatch(v.property.fullname);
       const e = selectionOrWord();
       if (e) addWatch(e);
     },
   },
+  {
+    id: "XDebugger.SetValue",
+    title: "Set Value…",
+    run: () => {
+      if (!pausedSession() || !selectedVariable()) return;
+      showToolWindow("debug");
+      editSelectedValue();
+    },
+  },
+  {
+    id: "XDebugger.CopyValue",
+    title: "Copy Value",
+    run: () => {
+      const v = selectedVariable();
+      if (v) return copyValue(v);
+    },
+  },
+  {
+    id: "ToggleTemporaryLineBreakpoint",
+    title: "Toggle Temporary Line Breakpoint",
+    run: () => {
+      const c = caret();
+      if (c && /\.(php|phtml|inc)$/i.test(c.path)) return toggleTemporaryLineBreakpoint(c.path, c.line);
+    },
+  },
+  { id: "WebServerDebugValidation", title: "Web Server Debug Validation", run: () => setValidationDialog(true) },
   {
     id: "ShowExecutionPoint",
     title: "Show Execution Point",

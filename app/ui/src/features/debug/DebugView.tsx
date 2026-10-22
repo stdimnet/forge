@@ -29,6 +29,7 @@ import {
   breakpointsMuted,
   clearConsole,
   consoleLines,
+  evaluateInConsole,
   frameIndex,
   frames,
   listening,
@@ -46,6 +47,7 @@ import {
 } from "./store";
 import { VariableNode } from "./VariablesTree";
 import { setEvaluateRequest } from "./overlays";
+import { ExpressionInput } from "./ExpressionInput";
 
 const tip = (title: string, action: string) => {
   const keys = shortcutLabel(action);
@@ -190,7 +192,6 @@ function FramesPane() {
 
 function VariablesPane() {
   const [expr, setExpr] = createSignal("");
-  const [selected, setSelected] = createSignal<string | null>(null);
   const submit = (asWatch: boolean) => {
     const e = expr().trim();
     if (!e) return;
@@ -214,7 +215,7 @@ function VariablesPane() {
           }}
         />
       </div>
-      <div class="dbg-tree" role="tree">
+      <div class="dbg-tree" role="tree" tabIndex={0} aria-label="Variables">
         <Show when={pausedSession()} fallback={<div class="dbg-empty muted">{activeSession() ? "Variables are not available" : ""}</div>}>
           <For each={watches()}>
             {(w) => {
@@ -233,23 +234,20 @@ function VariablesPane() {
                       depth={0}
                       watch
                       onRemove={() => removeWatch(w)}
-                      selected={selected()}
-                      onSelect={setSelected}
+                      selectable
                     >
                       <span class="dbg-eq"> = </span>
                       <span class="dbg-error-text">{(() => { const x = r(); return x && "error" in x ? x.error : "Collecting data…"; })()}</span>
                     </VariableNode>
                   }
                 >
-                  {(p) => (
-                    <VariableNode p={p()} label={w} depth={0} watch onRemove={() => removeWatch(w)} selected={selected()} onSelect={setSelected} />
-                  )}
+                  {(p) => <VariableNode p={p()} label={w} depth={0} watch onRemove={() => removeWatch(w)} selectable />}
                 </Show>
               );
             }}
           </For>
           <For each={variables()} fallback={<Show when={!variablesLoading()}><div class="dbg-empty muted">No variables</div></Show>}>
-            {(v) => <VariableNode p={v} depth={0} selected={selected()} onSelect={setSelected} />}
+            {(v) => <VariableNode p={v} depth={0} selectable />}
           </For>
         </Show>
       </div>
@@ -259,6 +257,7 @@ function VariablesPane() {
 
 function ConsolePane() {
   let el!: HTMLDivElement;
+  const [expr, setExpr] = createSignal("");
   const lines = () => consoleLines().filter((l) => l.sessionId === activeId());
   createEffect(on(lines, () => queueMicrotask(() => el && (el.scrollTop = el.scrollHeight))));
   return (
@@ -268,10 +267,34 @@ function ConsolePane() {
           <Trash2 size={14} />
         </button>
       </div>
-      <div class="dbg-console" ref={el}>
-        <For each={lines()} fallback={<span class="muted">No output yet.</span>}>
-          {(l) => <span class={`dbg-out dbg-out-${l.stream}`}>{l.text}</span>}
-        </For>
+      <div class="dbg-console-main">
+        <div class="dbg-console" ref={el}>
+          <For each={lines()} fallback={<span class="muted">No output yet.</span>}>
+            {(l) => (
+              <Show when={l.value} fallback={<span class={`dbg-out dbg-out-${l.stream}`}>{l.text}</span>}>
+                {(v) => (
+                  <span class="dbg-console-value dbg-tree">
+                    <VariableNode p={v()} depth={0} initiallyOpen={false} />
+                  </span>
+                )}
+              </Show>
+            )}
+          </For>
+        </div>
+        <div class="dbg-console-input">
+          <span class="dbg-console-prompt">&gt;</span>
+          <ExpressionInput
+            value={expr()}
+            onInput={setExpr}
+            onSubmit={(e) => {
+              if (!e.trim()) return;
+              setExpr("");
+              void evaluateInConsole(e);
+            }}
+            disabled={!activeSession()}
+            placeholder={pausedSession() ? "Evaluate a PHP expression in the current frame" : "Expressions can be evaluated while the script is suspended"}
+          />
+        </div>
       </div>
     </div>
   );

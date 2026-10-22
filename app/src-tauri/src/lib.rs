@@ -516,6 +516,7 @@ pub fn run() {
             commands::debug::debug_set_value,
             commands::debug::debug_complete,
             commands::debug::debug_web_page_start,
+            commands::debug::debug_page_url,
             commands::debug::debug_validate_cli,
             commands::debug::debug_validate_web,
             commands::debug::debug_breakpoints,

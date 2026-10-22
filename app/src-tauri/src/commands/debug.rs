@@ -460,6 +460,42 @@ pub struct WebPageStarted {
     pub url: String,
 }
 
+/// The configured server `server_id` (by id or name; `None`: no server).
+fn find_server(servers: &[ServerConfig], server_id: Option<&str>) -> Result<Option<ServerConfig>> {
+    match server_id.filter(|s| !s.is_empty()) {
+        Some(id) => servers
+            .iter()
+            .find(|s| s.id == id || s.name == id)
+            .cloned()
+            .map(Some)
+            .ok_or_else(|| {
+                ForgeError::Other(format!(
+                    "Server '{id}' is not configured (Settings | PHP | Servers)"
+                ))
+            }),
+        None => Ok(None),
+    }
+}
+
+/// The URL of `startUrl` on a server (PHP HTTP Request configurations), with the Xdebug
+/// trigger when `debug`.
+#[tauri::command]
+pub fn debug_page_url(
+    server_id: Option<String>,
+    start_url: String,
+    debug: Option<bool>,
+    state: State<'_, AppState>,
+    debug_state: State<'_, DebugState>,
+) -> Result<String> {
+    let servers = server(&state, &debug_state).servers();
+    let srv = find_server(&servers, server_id.as_deref())?;
+    Ok(forge_debug::web::page_url(
+        srv.as_ref(),
+        &start_url,
+        debug.unwrap_or(false),
+    ))
+}
+
 /// Start a "PHP Web Page" configuration: the URL of `startUrl` on the server `serverId`
 /// (with `XDEBUG_SESSION_START` when debugging), reported on `run://<runId>` like a
 /// finished process. The UI opens the returned URL in the browser.
@@ -474,21 +510,9 @@ pub fn debug_web_page_start(
     debug_state: State<'_, DebugState>,
 ) -> Result<WebPageStarted> {
     let servers = server(&state, &debug_state).servers();
-    let srv = match server_id.as_deref().filter(|s| !s.is_empty()) {
-        Some(id) => Some(
-            servers
-                .iter()
-                .find(|s| s.id == id || s.name == id)
-                .ok_or_else(|| {
-                    ForgeError::Other(format!(
-                        "Server '{id}' is not configured (Settings | PHP | Servers)"
-                    ))
-                })?,
-        ),
-        None => None,
-    };
+    let srv = find_server(&servers, server_id.as_deref())?;
     let debugging = debug.unwrap_or(false);
-    let url = forge_debug::web::page_url(srv, &start_url, debugging);
+    let url = forge_debug::web::page_url(srv.as_ref(), &start_url, debugging);
     let event = format!("run://{run_id}");
     let mut output = RunOutput::new(&RunOutputOptions::default());
     emit_run(

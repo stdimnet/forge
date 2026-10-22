@@ -33,6 +33,21 @@ import {
   scratchPath,
 } from "./store";
 import { httpToolbar } from "./httpToolbar";
+import { openMenu } from "@/features/run/PopupMenu";
+import { shortcutLabel } from "@/keymap";
+import { Bug } from "lucide-solid";
+
+/** Gutter ▶ of a request: Run, or Debug with the Xdebug session cookie (PHP's debugger). */
+function openHttpRunMenu(e: MouseEvent, name: string, run: (debug: boolean) => Promise<void>): void {
+  openMenu({
+    x: e.clientX,
+    y: e.clientY,
+    items: [
+      { label: `Run '${name}'`, icon: Play, iconColor: "var(--success)", shortcut: shortcutLabel("RunClass"), run: () => void run(false) },
+      { label: `Debug '${name}' with Xdebug`, icon: Bug, iconColor: "var(--info)", shortcut: shortcutLabel("DebugClass"), run: () => void run(true) },
+    ],
+  });
+}
 import "./httpLanguage";
 import "./scratches.css";
 
@@ -66,6 +81,7 @@ registerRunConfigurationType({
   icon: Globe,
   color: "var(--info)",
   hidden: true,
+  debuggable: true,
   argumentsLabel: false,
   // `scratch` (a scratch's name) or `file` (a project path), and the request's `line`.
   fields: [
@@ -77,7 +93,9 @@ registerRunConfigurationType({
     const scratch = cfg.options?.scratch ?? "";
     const content = file ? await fileContent(file) : await scratchContent(scratch);
     const source = file ?? scratchPath(scratch);
-    return scratchesApi.httpRun(request.runId!, content, Number(cfg.options?.line ?? 0), httpEnvironment(), source);
+    // A Debug run (gutter menu, Shift+F9) carries the Xdebug environment: add the cookie.
+    const debug = !!request.env?.XDEBUG_SESSION;
+    return scratchesApi.httpRun(request.runId!, content, Number(cfg.options?.line ?? 0), httpEnvironment(), source, debug);
   },
 });
 
@@ -104,7 +122,7 @@ registerLineMarkerProvider({
         icon: Play,
         title: m.title,
         className: "marker-run",
-        onClick: () => void runHttpFile(path, m.line),
+        onClick: (_view, e) => openHttpRunMenu(e, m.runName, (debug) => runHttpFile(path, m.line, debug)),
       }));
   },
 });
@@ -119,7 +137,8 @@ registerLineMarkerProvider({
       icon: Play,
       title: m.title,
       className: "marker-run",
-      onClick: () => void runScratch(name, m.line),
+      onClick: (_view, e) =>
+        m.kind === "http" ? openHttpRunMenu(e, m.runName, (debug) => runScratch(name, m.line, debug)) : void runScratch(name, m.line),
     }));
   },
 });
