@@ -299,6 +299,7 @@ impl KindRegistry {
     pub fn builtin() -> Self {
         let mut r = Self::empty();
         r.register(Box::new(PhpScript));
+        r.register(Box::new(PhpBuiltinServer));
         r.register(Box::new(PhpUnit));
         r.register(Box::new(Artisan));
         r.register(Box::new(ComposerScript));
@@ -362,6 +363,50 @@ impl RunConfigurationKind for PhpScript {
             .args(split_args(&cfg.interpreter_options))
             .arg(file)
             .args(split_args(&cfg.arguments));
+        cmd.cwd = ctx.working_dir(cfg, "");
+        Ok(cmd)
+    }
+}
+
+/// "PHP Built-in Web Server": `php [interpreter options] -S <host>:<port> -t <document
+/// root> [router script]`. Options: `host` (default `localhost`), `port` (default 8080),
+/// `documentRoot` (default the project root), `useRouter` (`true`) and `routerScript`.
+pub struct PhpBuiltinServer;
+
+/// Host and port of a built-in web server configuration.
+pub fn builtin_server_address(cfg: &RunConfiguration) -> (String, u16) {
+    let host = match cfg.option("host").trim() {
+        "" => "localhost",
+        h => h,
+    };
+    let port = cfg.option("port").trim().parse().unwrap_or(8080);
+    (host.to_string(), port)
+}
+
+impl RunConfigurationKind for PhpBuiltinServer {
+    fn id(&self) -> &str {
+        "php-builtin-server"
+    }
+    fn build(&self, cfg: &RunConfiguration, ctx: &BuildContext) -> Result<CommandLine> {
+        let (host, port) = builtin_server_address(cfg);
+        if port == 0 {
+            return Err(ForgeError::Other("Port is not specified".into()));
+        }
+        let docroot = match cfg.option("documentRoot").trim() {
+            "" => ctx.root.clone(),
+            d => ctx.resolve(d),
+        };
+        let mut cmd = CommandLine::new(ctx.php(cfg))
+            .args(split_args(&cfg.interpreter_options))
+            .arg("-S")
+            .arg(format!("{host}:{port}"))
+            .arg("-t")
+            .arg(docroot.to_string_lossy().into_owned());
+        if cfg.option("useRouter") == "true" {
+            let router = required(cfg, "routerScript", "Router script")?;
+            cmd = cmd.arg(ctx.resolve(router).to_string_lossy().into_owned());
+        }
+        cmd = cmd.args(split_args(&cfg.arguments));
         cmd.cwd = ctx.working_dir(cfg, "");
         Ok(cmd)
     }
@@ -669,6 +714,47 @@ mod tests {
             php_interpreter: "/usr/bin/php8.3".into(),
             interpreters: BTreeMap::new(),
         }
+    }
+
+    #[test]
+    fn builtin_server_serves_the_document_root() {
+        let r = KindRegistry::builtin();
+        let ctx = BuildContext::new("/p");
+        let mut cfg = RunConfiguration {
+            name: "server".into(),
+            type_id: "php-builtin-server".into(),
+            interpreter_options: "-dmemory_limit=1G".into(),
+            ..Default::default()
+        };
+        let cmd = r.build(&cfg, &ctx).unwrap();
+        assert_eq!(cmd.program, "php");
+        assert_eq!(
+            cmd.args,
+            ["-dmemory_limit=1G", "-S", "localhost:8080", "-t", "/p"]
+        );
+        cfg.options.insert("host".into(), "0.0.0.0".into());
+        cfg.options.insert("port".into(), "8000".into());
+        cfg.options.insert("documentRoot".into(), "public".into());
+        cfg.options.insert("useRouter".into(), "true".into());
+        assert!(r
+            .build(&cfg, &ctx)
+            .unwrap_err()
+            .to_string()
+            .contains("Router script"));
+        cfg.options
+            .insert("routerScript".into(), "public/router.php".into());
+        let cmd = r.build(&cfg, &ctx).unwrap();
+        assert_eq!(
+            &cmd.args[1..],
+            [
+                "-S",
+                "0.0.0.0:8000",
+                "-t",
+                "/p/public",
+                "/p/public/router.php"
+            ]
+        );
+        assert_eq!(builtin_server_address(&cfg), ("0.0.0.0".into(), 8000));
     }
 
     #[test]

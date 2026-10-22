@@ -63,6 +63,7 @@ pub fn php_interpreter_wrap(request_json: &str) -> String {
         args: r.args,
         cwd: r.cwd,
         env: r.env,
+        publish: Vec::new(),
     };
     match wrap(&interp, &inv, &ctx) {
         Ok(w) => {

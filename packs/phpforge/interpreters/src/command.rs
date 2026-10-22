@@ -8,6 +8,9 @@
 //! - SSH: `ssh -o BatchMode=yes -p <port> user@host "cd '<dir>' && env 'K=V' 'php' …"`
 //! - WSL: `wsl.exe -d <distribution> --cd <dir> --exec env K=V php …`
 //!
+//! Ports a program serves ([`Invocation::publish`]) are published by containers (`-p`) and
+//! forwarded over SSH (`-L`); WSL 2 forwards localhost on its own.
+//!
 //! Paths in the arguments and the working directory are mapped to the remote side. A
 //! debug run (an `XDEBUG_SESSION` / `XDEBUG_CONFIG` variable) also gets what Xdebug needs
 //! to reach the IDE: `host.docker.internal` in containers, a reverse tunnel of the debug
@@ -41,6 +44,9 @@ pub struct Invocation {
     /// Absolute local working directory (empty = the project root).
     pub cwd: String,
     pub env: BTreeMap<String, String>,
+    /// Ports the program listens on that must be reachable from this machine (the PHP
+    /// built-in web server): published by containers, forwarded over SSH.
+    pub publish: Vec<u16>,
 }
 
 /// A saved SSH configuration, as far as the command line needs it.
@@ -212,6 +218,10 @@ pub fn wrap(
                 args.push("-v".into());
                 args.push(format!("{local}:{remote}"));
             }
+            for p in &inv.publish {
+                args.push("-p".into());
+                args.push(format!("{p}:{p}"));
+            }
             if let Some(dir) = &remote_cwd {
                 args.push("-w".into());
                 args.push(dir.clone());
@@ -232,7 +242,14 @@ pub fn wrap(
                 args.push(crate::mapping::join(&ctx.root, f));
             }
             match interp.lifecycle {
-                Lifecycle::Run => args.extend(["run", "--rm", "-T"].map(String::from)),
+                Lifecycle::Run => {
+                    args.extend(["run", "--rm", "-T"].map(String::from));
+                    for p in &inv.publish {
+                        args.push("-p".into());
+                        args.push(format!("{p}:{p}"));
+                    }
+                }
+                // A running container keeps the ports it was started with.
                 Lifecycle::Exec => args.extend(["exec", "-T"].map(String::from)),
             }
             if let Some(dir) = &remote_cwd {
@@ -262,6 +279,10 @@ pub fn wrap(
             if let Some(port) = debug.then(|| debug_port(&env)).flatten() {
                 args.push("-R".into());
                 args.push(format!("{port}:127.0.0.1:{port}"));
+            }
+            for p in &inv.publish {
+                args.push("-L".into());
+                args.push(format!("{p}:127.0.0.1:{p}"));
             }
             args.push(if target.user.trim().is_empty() {
                 target.host.trim().to_string()
@@ -329,6 +350,7 @@ mod tests {
             args: args.iter().map(|a| a.to_string()).collect(),
             cwd: "/home/me/shop".into(),
             env: BTreeMap::new(),
+            publish: Vec::new(),
         }
     }
 
@@ -555,6 +577,41 @@ mod tests {
                 "/mnt/c/work/shop/bin/run.php"
             ]
         );
+    }
+
+    #[test]
+    fn served_ports_are_published_and_forwarded() {
+        let mut i = inv(&["-S", "0.0.0.0:8080", "-t", "/home/me/shop/public"]);
+        i.publish = vec![8080];
+        let docker = PhpInterpreter {
+            kind: InterpreterKind::Docker,
+            image: "php:8.3-cli".into(),
+            ..Default::default()
+        };
+        let w = wrap(&docker, &i, &ctx(&docker, None)).unwrap();
+        assert!(w.args.windows(2).any(|a| a == ["-p", "8080:8080"]));
+        assert!(w.args.contains(&"/opt/project/public".to_string()));
+        let compose = PhpInterpreter {
+            kind: InterpreterKind::Compose,
+            service: "app".into(),
+            ..Default::default()
+        };
+        let w = wrap(&compose, &i, &ctx(&compose, None)).unwrap();
+        assert!(w.args.windows(2).any(|a| a == ["-p", "8080:8080"]));
+        let ssh = PhpInterpreter {
+            kind: InterpreterKind::Ssh,
+            ..Default::default()
+        };
+        let mut c = ctx(&ssh, None);
+        c.ssh = Some(SshTarget {
+            host: "h".into(),
+            ..Default::default()
+        });
+        let w = wrap(&ssh, &i, &c).unwrap();
+        assert!(w
+            .args
+            .windows(2)
+            .any(|a| a == ["-L", "8080:127.0.0.1:8080"]));
     }
 
     #[test]
