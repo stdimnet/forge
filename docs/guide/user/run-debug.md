@@ -93,6 +93,46 @@ Settings | Editor | General | Console: **Use soft wraps in console** (`run.conso
 and **Override console cycle buffer size (KB)** (`run.console.cycleBufferKb`, 1024): a console
 keeps the newest output up to that size and drops the oldest lines.
 
+## Analyze Stack Trace
+
+**Code | Analyze Stack Trace or Thread Dump…** (`AnalyzeStacktraceOnError`, no default
+shortcut) opens a dialog to paste a stack trace from a log file, a bug report, an error page or
+a server. When the clipboard holds a trace, the dialog starts with it.
+
+![Analyze Stack Trace dialog](../../screenshots/analyze-stack-trace.png)
+
+**Analyze** opens it in a **Stack Trace** tab of the Run tool window. Every frame that names a
+project file is a link to its line; the exception message is red, frames in libraries
+(`vendor/`, `node_modules/`) and files outside the project are dimmed. **Rerun** opens the
+dialog again with the same text.
+
+![Stack trace in the Run tool window](../../screenshots/stack-trace-tab.png)
+
+Recognized formats:
+
+| Language | Frames |
+| --- | --- |
+| PHP | `#0 /var/www/app/User.php(12): …`, `… in /path/File.php:42`, `… on line 7`, Laravel and Symfony exception traces and logs, Xdebug's `0.0012 402456 1. {main}() /path/index.php:0` |
+| JavaScript / Node | `at fn (/app/src/cart.ts:10:5)`, `at /app/src/x.js:3:1`, `file:///…`, `webpack:///./src/…` |
+| Lua | `main.lua:12: attempt to …`, `lib/util.lua:4: in function 'load'` |
+| Others | any `path:line[:column]` or `path(line)` |
+
+A trace copied from a JSON log as one line with escaped line breaks (`\n#1 …`) is split into
+lines first.
+
+Paths of a server or container are mapped into the project:
+
+1. the path mappings of the PHP servers (Settings | PHP | Servers,
+   [Xdebug debugging](debugging.md)),
+2. the bind mounts of the project's Docker Compose file (`./:/var/www/html`),
+3. the project root,
+4. otherwise the longest trailing part of the path that exists in the project
+   (`/srv/app/releases/42/app/Models/Order.php` → `app/Models/Order.php`).
+
+Files are looked up through the project's backend, so this works in
+[remote projects](remote-development.md) too. Detecting traces copied to the clipboard outside
+Forge automatically is not supported.
+
 ## Test results
 
 Test runners that speak TeamCity service messages (PHPUnit with `--teamcity`, Pest, Jest)

@@ -48,6 +48,14 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 
 ## Recently added
 
+- **Scopes, file colors, Structural Search and Analyze Stack Trace**: named scopes in
+  PHPStorm's scope language for Find in Files, Replace in Files, Find Usages and Structural
+  Search, file colors in editor tabs and the Project view
+  ([Scopes and file colors](user/scopes-and-file-colors.md)); Search and Replace
+  Structurally with `$variables$` templates for PHP, JavaScript and TypeScript
+  ([Structural Search and Replace](user/structural-search.md)); Code | Analyze Stack Trace
+  with frames linked to project files and container paths mapped
+  ([Analyze Stack Trace](user/run-debug.md#analyze-stack-trace)).
 - **Vim emulation**: Tools | Vim turns on IdeaVim-style Vim emulation in the editor: Normal,
   Insert, Visual (character, line, block), Replace and command-line modes, motions, operators
   and text objects, registers (also the system clipboard), dot repeat, macros, marks, search,

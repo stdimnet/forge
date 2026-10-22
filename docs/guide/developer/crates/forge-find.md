@@ -30,6 +30,11 @@ expressions, PHPStorm's `\btodo\b.*` and `\bfixme\b.*` by default) inside commen
 plain text and Markdown are scanned as a whole. `TodoRequest` can limit the scan to some
 `paths` and pass unsaved editor `buffers` that replace the files on disk.
 
+A request may carry a `scope` (`forge_scopes::ScopeFilter`: a predefined scope or a scope
+pattern of the Scopes page with its context); `Finder::wants` applies it with the directory,
+the path list and the file mask, so the index, the directory walk, the agent and Replace in
+Files all honor it.
+
 ## Main public items
 
 ```rust
@@ -56,7 +61,7 @@ pub mod todo; // TodoRequest, TodoPattern, TodoItem, TodoFile, TodoResult, TodoS
 
 ## Dependencies
 
-- Workspace crates: none
+- Workspace crates: `forge-scopes`
 - External: `regex`, `serde`
 
 ## Tests

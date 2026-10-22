@@ -268,6 +268,49 @@ app/ui/            SolidJS UI
   in `<data dir>/forge/projects/<name>-<hash of the root>/bookmarks.json`, never in the
   project.
 
+## Scopes, file colors, Structural Search and Analyze Stack Trace
+
+- **Scopes** (`crates/forge-scopes`, pure): PHPStorm's scope language (`file:`, `src:`,
+  `test:`, `lib:` path patterns with `*`, `?` and `//`, `&&`, `||`, `!`, parentheses),
+  `Predefined` scopes, named scopes from the settings `scopes.shared` (project) and
+  `scopes.local` (user), Include / Exclude editing, the preview tree and file colors. A
+  search carries a `ScopeFilter { scope: { predefined } | { pattern }, context: { testRoots,
+  openFiles, changedFiles, currentFile } }`: `FindRequest.scope` (Find in Files, the Find
+  window and Replace in Files; applied in `Finder::wants`, so the index, the walk and the agent
+  honor it), `SsrRequest.scope` and, for Find Usages, `UsageScope { kind: custom, pattern,
+  scopeName, testRoots }` (a pattern with `:` is the scope language, otherwise globs). The UI
+  (`features/scopes/model.ts`) resolves a named scope to its pattern and calls the crate
+  synchronously through WebAssembly in both modes (`scopes_entries`, `scopes_check`,
+  `scopes_edit`, `scopes_tree`, `scopes_contains`, `file_colors_resolve`). IPC:
+  `scopes_files({ limit? }) -> string[]` (`Backend::list_files`, agent call `ListFiles`) and
+  `scopes_test_roots() -> string[]` (`composer.json` `autoload-dev`).
+- **File colors**: `fileColors.enabled`, `useInEditorTabs`, `useInProjectView`,
+  `fileColors.local` (default Non-Project Files: Yellow, Tests: Green) and
+  `fileColors.shared`; `forge_scopes::colors::resolve` picks the first row whose scope
+  contains a file or a whole folder. The UI sets `--file-color` on editor tabs and Project
+  view rows (`tabColor`, `projectViewColor`) from the palette variables `--file-color-*` of
+  `theme.css`.
+- **Structural Search and Replace** (`crates/forge-ssr`, tree-sitter PHP, JavaScript,
+  TypeScript/TSX behind the `engine` feature): `ssr_templates() -> SavedTemplate[]`,
+  `ssr_check({ request }) -> { variables, unknownInReplacement?, error? }`,
+  `ssr_search({ request: SsrRequest }) -> SsrResult` (`Backend::structural_search`, agent call
+  `StructuralSearch`, so remote projects are parsed on their host) and
+  `ssr_replace({ request }) -> ReplaceDone` (`forge_backend::ssr::replace_all`; the undo goes
+  to the same state as Replace in Files, `undo_replace`). `SsrRequest { template, fileType,
+  constraints: { name, minCount, maxCount|null, text, invertText, type, invertType }[],
+  matchCase, replacement?, scope?, buffers?, limit }`; matches carry line/column (UTF-16),
+  byte offsets, the listed line with ranges, bindings and the `replacement`. The UI
+  (`features/ssr`) shows them as a Find tool window tab (`openInFindWindow` with `actions`:
+  Replace All; `UsageRow.after` for Preview Replacement). Browser mode cannot build the C
+  grammars to WebAssembly: `forge-wasm` has the library and `variables`, the mock approximates
+  matches with a regular expression.
+- **Analyze Stack Trace** (`forge_output::stacktrace`, pure): `stacktrace_analyze({ text }) ->
+  { lines: ConsoleLine[], kind, frames, resolved }`. The command maps paths with the PHP
+  servers' mappings (`.forge/php-servers.json`), the bind mounts of the root Compose file and
+  the backend's root, and checks candidates with `Backend::list_dir` (cached per folder); the
+  UI opens the lines in a Run tool window tab without a process (`openOutputTab`, Rerun
+  reopens the dialog). Browser mode runs the analyzer as WebAssembly over the demo files.
+
 ## Workbench: editor groups, Find, TODO and Notifications
 
 - Split editors: `state/editor.ts` keeps one document per file (`editor.tabs`) shared by every
@@ -452,7 +495,8 @@ app/ui/            SolidJS UI
   the PHP index's `Hierarchy` call), `Event`
 
   (files in other encodings than UTF-8) and `TerminalSpec.shell_integration`; protocol 7
-  added `PhpCall::Highlights` and the Find Usages `options` of `PhpCall::Usages`), `Event`
+  added `PhpCall::Highlights` and the Find Usages `options` of `PhpCall::Usages`; protocol 8
+  added `ListFiles`, `StructuralSearch` and the `scope` of `FindRequest`), `Event`
   (`FsChanged`, `Pty`, `Run`, `PhpIndexProgress`, `Install`), `Data` /
   `Close { channel }` (language server stdio, terminal and process input; channel ids are chosen
   by the client). The connection starts with `Call::Hello`. `forge_backend::rpc::RpcClient`

@@ -58,7 +58,7 @@ are in [research/jetbrains-gap-analysis.md](research/jetbrains-gap-analysis.md).
 - [x] Last/Next Edit Location, Next/Previous Method, Next/Previous Change, Select In… and autoscroll from source
 - [x] Highlight Usages in File, Find Usages in File, Find Usages settings (scope, options)
 - [x] Type/Call/Method Hierarchy
-- [ ] Scopes and file colors; Structural Search and Replace; Analyze External Stack Trace
+- [x] Scopes and file colors; Structural Search and Replace; Analyze External Stack Trace
 - [ ] Go to Test and Create Test (PHPUnit/Pest, JS test ↔ subject)
 
 ### Refactoring
