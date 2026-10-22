@@ -294,7 +294,7 @@ export function pullImageDialog(): void {
     value: "",
     okLabel: "Pull",
     onOk: async (image) => {
-      showToolWindow("bottom", "services");
+      showToolWindow("services");
       setSelected("docker");
       setTab("log");
       try {

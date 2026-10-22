@@ -6,12 +6,29 @@
 import { invoke } from "./index";
 
 export type LayoutAnchor = "left" | "right" | "bottom";
+/**
+ * Where a tool window sits (`forge_core::project_state::SLOTS`): the primary and the split
+ * group of each anchor, e.g. `leftSplit` = Left Bottom, `bottomSplit` = Bottom Right.
+ */
+export type LayoutSlot = "left" | "leftSplit" | "right" | "rightSplit" | "bottom" | "bottomSplit";
+
+export interface ToolWindowPlacement {
+  slot: LayoutSlot;
+  /** Position inside the stripe group (lower first). */
+  order: number;
+  /** Removed from the sidebar: no stripe button until the window is opened another way. */
+  removed: boolean;
+}
 
 export interface ProjectLayout {
-  /** Visible tool window per anchor; `null` = that side is hidden. */
-  active: Partial<Record<LayoutAnchor, string | null>>;
+  /** Visible tool window per slot; `null` = nothing open there. */
+  active: Partial<Record<LayoutSlot, string | null>>;
   /** Size of each anchor's area in pixels. */
   sizes: Partial<Record<LayoutAnchor, number>>;
+  /** Share of the first tool window when an area shows two (per mille). */
+  splits?: Partial<Record<LayoutAnchor, number>>;
+  /** Tool windows the user moved, reordered or removed from the sidebar. */
+  toolWindows?: Record<string, ToolWindowPlacement>;
   /** Selected tab inside tool windows with tabs (tool window id → tab id). */
   tabs: Record<string, string>;
   /** Open editor tabs (workspace-relative paths) in order. */
@@ -40,6 +57,9 @@ export interface ChatRecord {
 export const projectStateApi = {
   loadLayout: () => invoke<ProjectLayout | null>("layout_load"),
   saveLayout: (layout: ProjectLayout) => invoke<void>("layout_save", { layout }),
+  /** The layout stored with Window | Store Current Layout as Default (tool windows only). */
+  loadDefaultLayout: () => invoke<ProjectLayout | null>("layout_default_load"),
+  saveDefaultLayout: (layout: ProjectLayout) => invoke<void>("layout_default_save", { layout }),
   listChats: () => invoke<ChatSummary[]>("agent_history_list"),
   loadChat: (id: string) => invoke<ChatRecord>("agent_history_load", { id }),
   /** Save a chat; an empty conversation removes it. */

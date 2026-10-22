@@ -3,6 +3,7 @@
  * mnemonics, disabled and checkable entries, viewport clamping.
  */
 import { For, Show, createEffect, createSignal, onCleanup, onMount } from "solid-js";
+import { Dynamic } from "solid-js/web";
 import { Check, ChevronRight } from "lucide-solid";
 import { runAction, suspendKeymap } from "@/keymap";
 import { closeContextMenu, openMenu, type ResolvedEntry, type ResolvedItem } from "./state";
@@ -193,6 +194,9 @@ function MenuList(props: ListProps) {
                         <Check size={13} />
                       </Show>
                     </span>
+                  </Show>
+                  <Show when={item.icon}>
+                    {(icon) => <Dynamic component={icon()} size={14} stroke-width={1.75} class="context-menu-icon" />}
                   </Show>
                   <span class="context-menu-label">
                     <MnemonicLabel label={item.label} mnemonic={item.mnemonic} />

@@ -1,7 +1,7 @@
 /** Terminal tabs (one shell session each), like PHPStorm's "Local", "Local (2)", ... */
 import { createSignal } from "solid-js";
 import { getSetting } from "@/state/settings";
-import { layout, toggleToolWindow } from "@/state/layout";
+import { isToolWindowVisible, toggleToolWindow } from "@/state/layout";
 import { workspace } from "@/state/workspace";
 import type { Progress } from "./osc";
 
@@ -97,7 +97,7 @@ export function closeTab(id: string): void {
   setTabs(rest);
   if (activeTab() === id) setActiveTab(rest[Math.min(idx, rest.length - 1)]?.id ?? null);
   // Like PHPStorm, closing the last session hides the tool window.
-  if (!rest.length && layout.active.bottom === "terminal") toggleToolWindow("bottom", "terminal");
+  if (!rest.length && isToolWindowVisible("terminal")) toggleToolWindow("terminal");
 }
 
 export function renameTab(id: string, title: string): void {

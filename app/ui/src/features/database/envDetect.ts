@@ -51,7 +51,7 @@ export async function addFromEnv(): Promise<void> {
     setDetected([]);
     const ds = added[0];
     if (!ds) return;
-    showToolWindow("right", "database");
+    showToolWindow("database");
     setSelectedNode(`ds:${ds.id}`);
     if (await connect(ds.id)) revealSource(ds.id);
   } catch (e) {

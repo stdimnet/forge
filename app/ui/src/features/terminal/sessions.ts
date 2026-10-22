@@ -17,7 +17,7 @@ import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { terminalApi } from "@/ipc/terminal";
 import { getSetting } from "@/state/settings";
 import { runApi } from "@/ipc/run";
-import { layout, showToolWindow } from "@/state/layout";
+import { isToolWindowVisible, showToolWindow } from "@/state/layout";
 import { workspace } from "@/state/workspace";
 import { revealLocation } from "@/features/lsp/navigation";
 import { showBalloon } from "@/keymap";
@@ -130,11 +130,11 @@ export const hasSelection = (id: string) => !!sessions.get(id)?.term.hasSelectio
 export const sessionRenderer = (id: string) => sessions.get(id)?.renderer;
 
 /** Whether the tab is on screen: the Terminal tool window is open and the tab selected. */
-const isVisible = (id: string) => layout.active.bottom === "terminal" && activeTab() === id;
+const isVisible = (id: string) => isToolWindowVisible("terminal") && activeTab() === id;
 
 /** Open the Terminal tool window on a tab (status bar item, notification "Show"). */
 export function revealTerminalTab(id: string): void {
-  showToolWindow("bottom", "terminal");
+  showToolWindow("terminal");
   setActiveTab(id);
   requestAnimationFrame(() => {
     fitSession(id);

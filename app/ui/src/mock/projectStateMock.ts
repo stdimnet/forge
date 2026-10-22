@@ -7,6 +7,7 @@ import { registerMock } from "@/ipc";
 import type { ChatRecord, ChatSummary, ProjectLayout } from "@/ipc/projectState";
 
 let layout: ProjectLayout | null = null;
+let defaultLayout: ProjectLayout | null = null;
 const chats = new Map<string, ChatRecord>();
 
 const paragraph = (text: string) => [{ t: "paragraph", inline: [{ t: "text", text }] }];
@@ -66,6 +67,12 @@ function summary(record: ChatRecord): ChatSummary {
 registerMock("layout_load", () => (layout ? structuredClone(layout) : null));
 registerMock("layout_save", ({ layout: next }) => {
   layout = structuredClone(next as ProjectLayout);
+});
+
+// Like `forge_core::project_state::save_default_layout`: only the tool window part is kept.
+registerMock("layout_default_load", () => (defaultLayout ? structuredClone(defaultLayout) : null));
+registerMock("layout_default_save", ({ layout: next }) => {
+  defaultLayout = { ...structuredClone(next as ProjectLayout), tabs: {}, openFiles: [], activeFile: null };
 });
 
 registerMock("agent_history_list", () => [...chats.values()].map(summary).sort((a, b) => b.at - a.at));

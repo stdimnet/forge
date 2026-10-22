@@ -10,7 +10,7 @@ import { getSetting } from "@/state/settings";
 import { workspace } from "@/state/workspace";
 import { onFsChanged } from "@/state/fsWatch";
 import { activeTab, editor, isDirty, onFileSaved, onPathMoved, onTabClosed, type EditorTab } from "@/state/editor";
-import { layout } from "@/state/layout";
+import { isToolWindowVisible } from "@/state/layout";
 
 /** PHPStorm's default patterns, also the default of the `todo.patterns` setting. */
 export const DEFAULT_PATTERNS = ["\\btodo\\b.*", "\\bfixme\\b.*"];
@@ -106,7 +106,7 @@ export async function rescanPaths(paths: readonly string[], contents?: Record<st
   }
 }
 
-const todoVisible = () => layout.active.bottom === "todo";
+const todoVisible = () => isToolWindowVisible("todo");
 
 createRoot(() => {
   // A new project forgets the old answer; the window scans when it is shown.

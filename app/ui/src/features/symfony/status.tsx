@@ -15,8 +15,8 @@ function Menu(props: { x: number; y: number; onClose: () => void }) {
   onMount(() => document.addEventListener("mousedown", onDoc, true));
   onCleanup(() => document.removeEventListener("mousedown", onDoc, true));
   const items: ([string, () => void] | null)[] = [
-    ["Show Routes", () => (setActiveTab("routes"), showToolWindow("bottom", "symfony"))],
-    ["Show Services", () => (setActiveTab("services"), showToolWindow("bottom", "symfony"))],
+    ["Show Routes", () => (setActiveTab("routes"), showToolWindow("symfony"))],
+    ["Show Services", () => (setActiveTab("services"), showToolWindow("symfony"))],
     ["Run Console Command…", () => openConsolePopup()],
     null,
     ["Refresh Symfony Index", () => void loadSymfony(true)],

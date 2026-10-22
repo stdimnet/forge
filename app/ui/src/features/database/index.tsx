@@ -156,7 +156,7 @@ registerCommand({
   title: "Open Query Console",
   category: "Database",
   run: () => {
-    showToolWindow("right", "database");
+    showToolWindow("database");
     const id = selectedSourceId();
     if (id) openConsole(id);
   },

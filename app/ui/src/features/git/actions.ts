@@ -184,7 +184,7 @@ export function deleteBranch(name: string): void {
 }
 
 export function openCommitWindow(): void {
-  showToolWindow("left", "commit");
+  showToolWindow("commit");
   void repositoryChanged();
   // Focus the message editor once the panel is rendered.
   requestAnimationFrame(() => document.querySelector<HTMLTextAreaElement>(".commit-message textarea")?.focus());

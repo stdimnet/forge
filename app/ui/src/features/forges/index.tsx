@@ -65,7 +65,7 @@ registerCommand({
   id: "forges.showMergeRequests",
   title: "View Pull/Merge Requests",
   category: "Git",
-  run: () => showToolWindow("left", "pull-requests"),
+  run: () => showToolWindow("pull-requests"),
 });
 registerCommand({ id: "forges.refresh", title: "Refresh Pull/Merge Requests", category: "Git", run: () => void refreshAll() });
 
@@ -77,7 +77,7 @@ function PipelineStatus() {
           class="status-item fg-status-ci"
           data-status="pipeline"
           title={`Pipeline for ${p().ref ?? "this branch"}: ${ciLabels[p().status]}${p().jobs.length ? `\n${p().jobs.map((j) => `${ciLabels[j.status]}  ${j.name}`).join("\n")}` : ""}`}
-          onClick={() => (p().webUrl ? window.open(p().webUrl!, "_blank") : showToolWindow("left", "pull-requests"))}
+          onClick={() => (p().webUrl ? window.open(p().webUrl!, "_blank") : showToolWindow("pull-requests"))}
         >
           <CiIcon status={p().status} size={12} />
           CI: {ciLabels[p().status]}

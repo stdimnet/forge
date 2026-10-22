@@ -1,27 +1,39 @@
 import { Show } from "solid-js";
 import { Dynamic } from "solid-js/web";
-import { Minus } from "lucide-solid";
-import { findToolWindow, type ToolWindowAnchor } from "@/features/registry";
-import { layout, toggleToolWindow } from "@/state/layout";
+import { EllipsisVertical, Minus } from "lucide-solid";
+import { findToolWindow } from "@/features/registry";
+import { hideToolWindow, layout, type ToolWindowSlot } from "@/state/layout";
+import { openToolWindowOptions } from "./toolWindowMenu";
 
-export function ToolWindowPanel(props: { anchor: ToolWindowAnchor }) {
-  const tw = () => findToolWindow(layout.active[props.anchor]);
+export function ToolWindowPanel(props: { slot: ToolWindowSlot }) {
+  const tw = () => findToolWindow(layout.active[props.slot]);
   return (
-    <Show when={tw()}>
+    <Show when={tw()} keyed>
       {(w) => (
-        <section class={`tool-window tool-window-${props.anchor}`} data-tool-window-panel={w().id}>
+        <section class={`tool-window tool-window-${props.slot}`} data-tool-window-panel={w.id}>
           <header class="tool-window-header">
-            <span class="tool-window-title">{w().title}</span>
-            <div class="tool-window-header-content">{w().headerContent?.()}</div>
+            <span class="tool-window-title">{w.title}</span>
+            <div class="tool-window-header-content">{w.headerContent?.()}</div>
             <div class="tool-window-actions">
-              {w().actions?.()}
-              <button class="icon-btn" title="Hide" onClick={() => toggleToolWindow(props.anchor, w().id)}>
+              {w.actions?.()}
+              <button
+                class="icon-btn"
+                title="Options"
+                data-tool-window-options
+                onClick={(e) => {
+                  const r = e.currentTarget.getBoundingClientRect();
+                  openToolWindowOptions(w.id, r.left, r.bottom + 2);
+                }}
+              >
+                <EllipsisVertical size={15} />
+              </button>
+              <button class="icon-btn" title="Hide" onClick={() => hideToolWindow(w.id)}>
                 <Minus size={15} />
               </button>
             </div>
           </header>
           <div class="tool-window-body">
-            <Dynamic component={w().component} />
+            <Dynamic component={w.component} />
           </div>
         </section>
       )}

@@ -78,7 +78,7 @@ const commands: { id: string; title: string; run: () => void | Promise<void> }[]
   { id: "git.update", title: "Update Project…", run: updateProject },
   { id: "git.fetch", title: "Fetch", run: fetchAll },
   { id: "git.newBranch", title: "New Branch…", run: () => newBranchDialog(null) },
-  { id: "git.log", title: "Show Git Log", run: () => showToolWindow("bottom", "git") },
+  { id: "git.log", title: "Show Git Log", run: () => showToolWindow("git") },
 ];
 for (const c of commands) registerCommand({ ...c, category: "Git" });
 

@@ -11,6 +11,7 @@ import "./codeStyle";
 import "./lsp";
 import "./langservers";
 import "./navigation";
+import "./toolWindowLayout";
 import "./find";
 import "./codeintel";
 import "./liveTemplates";

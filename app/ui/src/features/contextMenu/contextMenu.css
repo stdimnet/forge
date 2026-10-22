@@ -72,3 +72,8 @@
   color: var(--danger);
   font-size: var(--fs-small);
 }
+.context-menu-icon {
+  flex-shrink: 0;
+  margin-right: -16px;
+  color: var(--fg-muted);
+}
