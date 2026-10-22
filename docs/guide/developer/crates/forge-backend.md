@@ -26,7 +26,7 @@ PHP index live.
 
 | Module | Summary |
 | --- | --- |
-| `frameworks.rs` | Laravel, Symfony and Doctrine analysis of a project, run where its files are. |
+| `frameworks.rs` | Laravel, Symfony and Doctrine analysis of a project, and Related Symbol (`FrameworkCall::Related`, `forge_codeintel::related` over the project's files), run where its files are. |
 | `langservers.rs` | Which catalog language servers (`forge-langservers`) start for a project, planned on the machine that has the project's files and the installed servers: the desktop app for a local project, the Forge agent for a remote one (its servers then start on the host through the LSP byte channel). |
 | `local.rs` | A project folder on this machine. |
 | `paths.rs` | Path helpers that do not touch the file system (the project may live on another machine). |
@@ -64,7 +64,7 @@ pub fn folder_name(root: &Path) -> String { … }
 
 ## Dependencies
 
-- Workspace crates: [`forge-core`](forge-core.md), [`forge-langservers`](forge-langservers.md), [`forge-lsp`](forge-lsp.md), [`forge-process`](forge-process.md), [`forge-project`](forge-project.md), [`forge-vcs`](forge-vcs.md), [`phpforge-dql`](phpforge-dql.md), [`phpforge-fw-laravel`](phpforge-fw-laravel.md), [`phpforge-fw-symfony`](phpforge-fw-symfony.md), [`phpforge-lang-php`](phpforge-lang-php.md), [`phpforge-orm-doctrine`](phpforge-orm-doctrine.md)
+- Workspace crates: [`forge-codeintel`](forge-codeintel.md), [`forge-core`](forge-core.md), [`forge-langservers`](forge-langservers.md), [`forge-lsp`](forge-lsp.md), [`forge-process`](forge-process.md), [`forge-project`](forge-project.md), [`forge-vcs`](forge-vcs.md), [`phpforge-dql`](phpforge-dql.md), [`phpforge-fw-laravel`](phpforge-fw-laravel.md), [`phpforge-fw-symfony`](phpforge-fw-symfony.md), [`phpforge-lang-php`](phpforge-lang-php.md), [`phpforge-orm-doctrine`](phpforge-orm-doctrine.md)
 - External: `dirs`, `futures-util`, `rmp-serde`, `serde`, `serde_bytes`, `serde_json`, `tokio`, `tracing`
 
 ## Tests

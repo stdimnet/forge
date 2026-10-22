@@ -27,6 +27,7 @@ Forge's rule of thumb is "Rust computes, TypeScript renders": logic lives in Rus
 - [Live templates](guide/user/live-templates.md): abbreviation + Tab, Insert Live Template (Ctrl+J), Surround With (Ctrl+Alt+T), Unwrap/Remove (Ctrl+Shift+Delete), Save as Live Template, PHP/JS/Lua/Twig/Laravel/Blade/Symfony sets
 - [File and code templates](guide/user/file-templates.md): New ▸ PHP Class/Interface/Trait/Enum with PSR-4 namespaces, framework, web and Lua file templates, the Alt+Insert New popup, Settings | Editor | File and Code Templates (Velocity syntax, variables, code templates of the Generate actions)
 - [Search Everywhere and navigation](guide/user/search-everywhere.md): Search Everywhere, Go to Class/File/Symbol, Find in Files
+- [File Structure, Navigation Bar and Related Symbol](guide/user/navigation-bar-and-file-structure.md): File Structure popup (Ctrl+F12, Show Inherited), Navigation Bar (Alt+Home; Top, In Status Bar, Don't Show), Related Symbol (Ctrl+Alt+Home: tests, Laravel views/routes/migrations, Twig templates, component tests/stories/styles)
 - [Shortcuts by topic](guide/user/shortcuts/index.md): every implemented shortcut explained by area, with screenshots
 - [Keymap reference card](guide/user/shortcuts/reference-card.md): the 62 most important shortcuts on one page
 - [PHP](guide/user/php.md): the PHP index, navigation (Ctrl+Click, usages, implementations, PHP stubs), Rename with the index fallback, PHP intentions, Structure tool window, hover docs, Generate (Alt+Insert)

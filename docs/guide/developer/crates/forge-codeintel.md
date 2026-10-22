@@ -1,13 +1,13 @@
 ---
 title: forge-codeintel
-description: "Code intelligence models: workspace edits with LSP positions, Find Usages grouping and documentation helpers (pure, WebAssembly-friendly)."
+description: "Code intelligence models: workspace edits with LSP positions, Find Usages grouping, documentation helpers, file structure, navigation bar and related files (pure, WebAssembly-friendly)."
 order: 35
 tags: [crate, rust, core, wasm]
 ---
 
 # forge-codeintel
 
-`crates/forge-codeintel` — Code intelligence models: workspace edits with LSP positions, Find Usages grouping and documentation helpers (pure, WebAssembly-friendly).
+`crates/forge-codeintel` — Code intelligence models: workspace edits with LSP positions, Find Usages grouping, documentation helpers, file structure, navigation bar and related files (pure, WebAssembly-friendly).
 
 ## Purpose
 
@@ -32,6 +32,11 @@ and the browser-mode UI. Pure Rust, so it also runs as WebAssembly.
 - `structure`: the scopes of a document (classes, functions, control blocks, CSS rules,
   HTML elements, Lua blocks) for Sticky Lines, breadcrumbs and the Structure view of web
   files, the custom folding regions, and the Structure view grouped by regions.
+- `file_structure`: the File Structure popup's rows (Ctrl+F12): toggles, fuzzy speed search
+  that keeps parents, the node at the caret.
+- `navbar`: the Navigation Bar's segments (project, folders, file, members at the caret).
+- `related`: Related Symbol (Ctrl+Alt+Home): tests, Laravel views / routes / migrations /
+  factories / policies, Twig templates, component tests, stories and styles.
 
 ## Modules
 
@@ -39,6 +44,9 @@ and the browser-mode UI. Pure Rust, so it also runs as WebAssembly.
 | --- | --- |
 | `actions.rs` | Context actions (`ContextAction`, `ActionKind`) and `order_actions`: quick fixes first, preferred ones on top, duplicates removed, "fix all" actions (`source.fixAll*`, "Fix all …") moved into the `children` of their server's quick fix (`nest_fix_all`); `bulb_for` picks the red / yellow light bulb. |
 | `docs.rs` | `symbol_at` (the identifier at the caret with its qualifier, call, tag and CSS context, imported frameworks) and `external_doc_url` (php.net, Laravel API, MDN, Vue, React, Lua manual); `definition_snippet` (docblock and attributes above, body to the matching brace or Lua `end`, at most 80 lines); `context_headers` (enclosing class, function and CSS rule headers); `type_from_hover` / `type_from_signature`; `language_of`. |
+| `file_structure.rs` | `file_structure_view(FileStructureRequest)` → `FileStructureView { rows, selected, hasFields, hasLambdas, hasInherited }` over Structure view nodes (JSON): "Show Fields" / "Show Inherited" / "Show Lambdas" / "Sort Alphabetically", fuzzy matching with `forge-fuzzy` keeping the parents of matches, the best match or the node at the caret (`caretLine`, `enclosing` scope headers) selected. |
+| `navbar.rs` | `nav_bar_segments(NavBarRequest { project, path, scopes, showMembers })` → `NavSegment { kind: project / directory / file / member, label, path, scopeKind?, line?, column? }[]`; members are the class-like and function scopes around the caret. |
+| `related.rs` | `related(RelatedRequest { path, text }, files, read)` → `RelatedItem { kind, group, name, path, line, column }[]` grouped in a fixed order. Text scans, no parser: PHP class ↔ `*Test.php`, Laravel `view()` / `View::make` / `Route::view` / Inertia, `routes/*.php` lines naming a controller, model ↔ migrations (`_create_<table>_table`, `$table`), factory, policy, seeder; Symfony `render()` / `#[Template]` ↔ `templates/`; JS/TS/Vue/Svelte files ↔ `*.test.*`, `*.spec.*`, `__tests__/`, `tests/`, `*.stories.*`, style sheets. The caller lists the files and reads them lazily. |
 | `edit.rs` | `TextEdit`, `WorkspaceEdit` (`edit` / `create` / `rename` / `delete` changes), `apply_workspace_edit` over a `FileStore` (all or nothing), `revert_applied`, `preview_workspace_edit`, `word_range`, UTF-16 offset helpers. |
 | `structure.rs` | `editor_structure(text, language)` → `EditorStructure { scopes, regions }`: braces (PHP without inline HTML and heredocs, JS/TS with template literals, CSS, C-like), tags (HTML/XML/Vue/templates, `<script>` / `<style>` bodies as code) and Lua's block keywords outside strings and comments; each `Scope` has its kind, crumb name (`User`, `orders()`, `forEach callback`, `div#app.card`), header line and column, end and parent, and whether it sticks or is a crumb. `Region`s come from `// region` / `#region` / `<!-- region -->` / `/* region */` / `-- region` / `<editor-fold desc defaultstate>` comments. `group_by_regions` nests Structure view nodes (JSON with `line`) under their regions; `STRUCTURE_LANGUAGES` lists the languages with scopes. |
 | `rename.rs` | `edit_from_locations` (references → `WorkspaceEdit`, keeping `$` where the old text had it, dynamic usages skipped), `validate_identifier`, `is_class_file` / `suggest_file_rename` / `renamed_path` (PHPStorm renames `User.php` with `class User`), `edit_conflicts` (overlapping edits, renames onto existing files) and `plan_edit` (`EditPlan`: text edits of open editors, the backend's part, files to save first, tabs to reopen or close). |
@@ -50,6 +58,9 @@ and the browser-mode UI. Pure Rust, so it also runs as WebAssembly.
 pub use actions::{bulb_for, nest_fix_all, order_actions, ActionKind, Bulb, ContextAction};
 pub use docs::{context_headers, definition_snippet, external_doc_url, symbol_at, type_from_hover, type_from_signature, … };
 pub use rename::{edit_conflicts, edit_from_locations, plan_edit, suggest_file_rename, validate_identifier, EditPlan, RenameConflict, … };
+pub use file_structure::{file_structure_view, FileStructureRequest, FileStructureView};
+pub use navbar::{nav_bar_segments, NavBarRequest, NavSegment};
+pub use related::{related, RelatedItem, RelatedKind, RelatedRequest};
 pub use edit::{apply_text_edits, apply_workspace_edit, preview_workspace_edit, revert_applied, word_range, … };
 pub use structure::{editor_structure, group_by_regions, EditorStructure, Region, Scope, ScopeKind, STRUCTURE_LANGUAGES};
 pub use usages::{classify_usage, group_usages, GroupRequest, UsageKind, UsageLocation, UsageTree, … };
@@ -57,19 +68,19 @@ pub use usages::{classify_usage, group_usages, GroupRequest, UsageKind, UsageLoc
 
 ## Used by
 
-- IPC: `code_find_usages`, `code_navigate`, `code_goto_declaration`, `code_symbol_info`, `code_line_markers`, `code_prepare_rename`, `code_rename`, `code_plan_edit`, `code_apply_edit`, `code_revert_edit`, `code_context_actions`, `code_resolve_action`, `code_execute_command`, `code_external_doc`, `code_quick_definition`, `code_type_info`, `code_context_info` (`app/src-tauri/src/commands/codeintel.rs`), `library_read` (`commands/library.rs`)
-- Crates: `forge-lsp` (workspace edits, locations), `phpforge-lang-php` (usage locations and classification)
-- UI: `app/ui/src/features/documentation` (Quick Documentation, Documentation tool window, Quick Definition, Type Info, Context Info, Error Description), `app/ui/src/features/codeintel` (Show Usages popup, Find tool window, gutter markers, library files, in-place rename, Refactoring Preview, intention popup and light bulb, refactoring undo), `app/ui/src/features/lsp/goto.ts`
-- Browser mode: `codeintel_group_usages`, `codeintel_apply_edit`, `codeintel_preview_edit`, `codeintel_order_actions`, `codeintel_context_actions`, `codeintel_rename_edit`, `codeintel_plan_edit`, `codeintel_word_range`, `codeintel_doc_url`, `codeintel_definition_snippet`, `codeintel_context_headers`, `codeintel_type_info` in `crates/forge-wasm/src/codeintel.rs`, used by `app/ui/src/mock/codeintelMock.ts` and `documentationMock.ts`
+- IPC: `code_find_usages`, `code_navigate`, `code_goto_declaration`, `code_symbol_info`, `code_line_markers`, `code_prepare_rename`, `code_rename`, `code_plan_edit`, `code_apply_edit`, `code_revert_edit`, `code_context_actions`, `code_resolve_action`, `code_execute_command`, `code_external_doc`, `code_quick_definition`, `code_type_info`, `code_context_info`, `code_related` (`app/src-tauri/src/commands/codeintel.rs`), `library_read` (`commands/library.rs`)
+- Crates: `forge-lsp` (workspace edits, locations), `phpforge-lang-php` (usage locations and classification), `forge-backend` (`FrameworkCall::Related`, run next to the files)
+- UI: `app/ui/src/features/documentation` (Quick Documentation, Documentation tool window, Quick Definition, Type Info, Context Info, Error Description), `app/ui/src/features/codeintel` (Show Usages popup, Find tool window, gutter markers, library files, in-place rename, Refactoring Preview, intention popup and light bulb, refactoring undo), `app/ui/src/features/lsp/goto.ts`, `features/fileStructure` (File Structure popup), `features/navBar` (Navigation Bar), `features/related` (Related Symbol)
+- Browser mode: `codeintel_group_usages`, `codeintel_apply_edit`, `codeintel_preview_edit`, `codeintel_order_actions`, `codeintel_context_actions`, `codeintel_rename_edit`, `codeintel_plan_edit`, `codeintel_word_range`, `codeintel_doc_url`, `codeintel_definition_snippet`, `codeintel_context_headers`, `codeintel_type_info`, `codeintel_related` in `crates/forge-wasm/src/codeintel.rs`, used by `app/ui/src/mock/codeintelMock.ts` `documentationMock.ts` and `relatedMock.ts`; `file_structure_view` and `nav_bar_segments` (`crates/forge-wasm/src/structure.rs`) run synchronously in the desktop app too
 
 ## Dependencies
 
-- Workspace crates: none
+- Workspace crates: [`forge-fuzzy`](forge-fuzzy.md)
 - External: `serde`, `serde_json`
 
 ## Tests
 
-6 source files, about 4150 lines; 35 unit tests.
+9 source files, about 7300 lines; 59 unit tests.
 
 ```sh
 cargo test -p forge-codeintel

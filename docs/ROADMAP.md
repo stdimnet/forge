@@ -54,7 +54,7 @@ are in [research/jetbrains-gap-analysis.md](research/jetbrains-gap-analysis.md).
 - [ ] Vim emulation
 
 ### Navigation and search
-- [ ] File Structure popup (`Ctrl+F12`), Navigation Bar (`Alt+Home`), Related Symbol (`Ctrl+Alt+Home`)
+- [x] File Structure popup (`Ctrl+F12`), Navigation Bar (`Alt+Home`), Related Symbol (`Ctrl+Alt+Home`)
 - [ ] Last/Next Edit Location, Next/Previous Method, Next/Previous Change, Select In… and autoscroll from source
 - [ ] Highlight Usages in File, Find Usages in File, Find Usages settings (scope, options)
 - [ ] Type/Call/Method Hierarchy

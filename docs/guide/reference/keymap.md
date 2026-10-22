@@ -60,8 +60,8 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Type Declaration | `GotoTypeDeclaration` | `Ctrl+Shift+B` | `Cmd+Shift+B` | yes |
 | Super Method | `GotoSuperMethod` | `Ctrl+U` | `Cmd+U` | yes |
 | Test | `GotoTest` | `Ctrl+Shift+T` | `Cmd+Shift+T` | — |
-| Related Symbol… | `GotoRelated` | `Ctrl+Alt+Home` | `Ctrl+Cmd+Up` | — |
-| File Structure | `FileStructurePopup` | `Ctrl+F12` | `Cmd+F12` | — |
+| Related Symbol… | `GotoRelated` | `Ctrl+Alt+Home` | `Ctrl+Cmd+Up` | yes |
+| File Structure | `FileStructurePopup` | `Ctrl+F12` | `Cmd+F12` | yes |
 | Type Hierarchy | `TypeHierarchy` | `Ctrl+H` | `Ctrl+H` | — |
 | Method Hierarchy | `MethodHierarchy` | `Ctrl+Shift+H` | `Cmd+Shift+H` | — |
 | Call Hierarchy | `CallHierarchy` | `Ctrl+Alt+H` | `Ctrl+Alt+H` | — |
@@ -155,7 +155,7 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Toggle Presentation Mode | `TogglePresentationMode` |  |  | — |
 | Toggle Distraction Free Mode | `ToggleDistractionFreeMode` |  |  | — |
 | Toggle Zen Mode | `ToggleZenMode` |  |  | — |
-| Jump to Navigation Bar | `ShowNavBar` | `Alt+Home` | `Cmd+Up` | — |
+| Jump to Navigation Bar | `ShowNavBar` | `Alt+Home` | `Cmd+Up` | yes |
 | Quick Documentation | `QuickJavaDoc` | `Ctrl+Q` | `F1`, `Ctrl+J` | yes |
 | External Documentation | `ExternalJavaDoc` | `Shift+F1` | `Shift+F1` | yes |
 | Quick Definition | `QuickImplementations` | `Ctrl+Shift+I` | `Alt+Space`, `Cmd+Y` | yes |

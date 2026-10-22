@@ -26,10 +26,10 @@ Tool windows, appearance toggles, documentation popups and recent files. Open it
 | Appearance › Tool Window Bars | — | — | yes | Shows or hides the tool window stripes along the window edges. [More](../../user/workbench.md#managing-tool-windows) |
 | Appearance › Status Bar | — | — | not yet | Not available yet; the entry is disabled. |
 | Appearance › **Navigation Bar** | | | | submenu |
-| Appearance › Navigation Bar › Top | — | — | not yet | Not available yet; the entry is disabled. |
-| Appearance › Navigation Bar › In Status Bar | — | — | not yet | Not available yet; the entry is disabled. |
-| Appearance › Navigation Bar › Don't Show | — | — | not yet | Not available yet; the entry is disabled. |
-| Appearance › Members in Navigation Bar | — | — | not yet | Not available yet; the entry is disabled. |
+| Appearance › Navigation Bar › Top | — | — | yes | Shows the navigation bar above the editor (the default). [More](../../user/navigation-bar-and-file-structure.md#navigation-bar) ([screenshot](../../../screenshots/navigation-bar.png)) |
+| Appearance › Navigation Bar › In Status Bar | — | — | yes | Shows the navigation bar only in the status bar. [More](../../user/navigation-bar-and-file-structure.md#navigation-bar) ([screenshot](../../../screenshots/navigation-bar-status-bar.png)) |
+| Appearance › Navigation Bar › Don't Show | — | — | yes | Hides the navigation bar; `Alt+Home` shows it as a popup. [More](../../user/navigation-bar-and-file-structure.md#navigation-bar) ([screenshot](../../../screenshots/navigation-bar-floating.png)) |
+| Appearance › Members in Navigation Bar | — | — | yes | Adds the class and method at the caret to the navigation bar. [More](../../user/navigation-bar-and-file-structure.md#navigation-bar) ([screenshot](../../../screenshots/navigation-bar-members.png)) |
 | Quick Switch Scheme… | `` Ctrl+` `` | `` Ctrl+` `` | yes | Switches between the dark and the light theme. [More](../../user/settings-and-themes.md#themes) |
 | Quick Definition | `Ctrl+Shift+I` | `Alt+Space`, `Cmd+Y` | yes | Shows the source of the declaration at the caret in a popup. [More](../../user/editor.md#quick-definition) ([screenshot](../../../screenshots/quick-definition.png)) |
 | Quick Documentation | `Ctrl+Q` | `F1`, `Ctrl+J` | yes | Shows the documentation of the symbol at the caret; press again to move it to the Documentation tool window. [More](../../user/editor.md#quick-documentation) ([screenshot](../../../screenshots/quick-documentation.png)) |
@@ -51,4 +51,4 @@ Tool windows, appearance toggles, documentation popups and recent files. Open it
 | Active Editor › Show Sticky Lines | — | — | yes | Shows or hides the sticky lines for the file's language. [More](../../user/code-structure.md#sticky-lines) ([screenshot](../../../screenshots/sticky-lines.png)) |
 | Active Editor › Reader Mode | — | — | yes | Switches Reader mode in the editor. [More](../../user/code-structure.md#reader-mode) ([screenshot](../../../screenshots/reader-mode.png)) |
 
-The three toggles under **Appearance** (Compact Mode, Show Main Menu in Separate Toolbar, Tool Window Bars) show a check mark when on.
+The toggles under **Appearance** (Compact Mode, Show Main Menu in Separate Toolbar, Tool Window Bars, the Navigation Bar placement and Members in Navigation Bar) show a check mark when on.
