@@ -274,12 +274,21 @@ export async function reloadFile(path: string): Promise<void> {
   setEditor("tabs", (t) => t.path === path, { content, saved: content, eol });
 }
 
+const resetListeners = new Set<() => void>();
+
+/** Notified after `closeAllTabs`, i.e. when another project took the window (per-project state resets). */
+export function onTabsReset(cb: () => void): () => void {
+  resetListeners.add(cb);
+  return () => resetListeners.delete(cb);
+}
+
 /** Close every tab, e.g. when switching projects. */
 export function closeAllTabs(): void {
   const closing = [...editor.tabs];
   setCustomTabs([]);
   setEditor({ tabs: [], active: null });
   for (const t of closing) closeListeners.forEach((l) => l(t));
+  resetListeners.forEach((l) => l());
 }
 
 /** Adopt the line ending of a file that was rewritten on disk (rollback, checkout, ...). */

@@ -3,7 +3,8 @@ import { Dynamic } from "solid-js/web";
 import { ChevronDown, ChevronRight } from "lucide-solid";
 import { workspaceApi, type FileEntry } from "@/ipc/workspace";
 import { workspace } from "@/state/workspace";
-import { editor, openFile } from "@/state/editor";
+import { editor } from "@/state/editor";
+import { openFileReported } from "@/features/navigation/openReported";
 import { statusOf, dirHasChanges } from "@/state/vcs";
 import { FileIcon } from "@/shell/FileIcon";
 import { getSetting } from "@/state/settings";
@@ -39,7 +40,7 @@ const singleClickOpens = () => getSetting<boolean>("projectView.openFilesWithSin
 /** Double click (or single click with the setting on): expand/collapse folders, open files. */
 function activate(entry: FileEntry): void {
   if (entry.kind === "dir") toggle(entry.path);
-  else void openFile(entry.path);
+  else void openFileReported(entry.path);
 }
 
 function TreeNode(props: { entry: FileEntry; depth: number }) {
@@ -149,7 +150,7 @@ export function ProjectView() {
       root.querySelector(`.tree-row[data-path="${CSS.escape(action.path)}"]`)?.scrollIntoView({ block: "nearest" });
     } else if (action.type === "expand") setOpen(action.path, true);
     else if (action.type === "collapse") setOpen(action.path, false);
-    else void openFile(action.path);
+    else void openFileReported(action.path);
   };
   return (
     <div

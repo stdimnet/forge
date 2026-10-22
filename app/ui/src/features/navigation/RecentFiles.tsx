@@ -7,12 +7,13 @@ import { Dynamic } from "solid-js/web";
 import { Search } from "lucide-solid";
 import { toolWindows, type ToolWindow } from "@/features/registry";
 import { layout, showToolWindow } from "@/state/layout";
-import { editor, isDirty, openFile } from "@/state/editor";
+import { editor, isDirty } from "@/state/editor";
 import { FileIcon } from "@/shell/FileIcon";
 import { shortcutLabel } from "@/keymap";
 import { createFuzzyFilter } from "@/features/search/fuzzyFilter";
 import { Highlight } from "@/features/search/SearchEverywhere";
 import { editedFiles, recentFiles } from "./history";
+import { openFileReported } from "./openReported";
 
 export type RecentMode = "recent" | "switcher";
 
@@ -121,7 +122,7 @@ export function RecentFilesPopup() {
     if (column() === "files") {
       const f = files()[fileIdx()];
       closeRecentFiles();
-      if (f) await openFile(f.path);
+      if (f) await openFileReported(f.path);
     } else {
       const tw = windows()[twIdx()];
       closeRecentFiles();

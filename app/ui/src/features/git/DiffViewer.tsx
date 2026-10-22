@@ -8,7 +8,7 @@ import { MergeView, goToNextChunk, goToPreviousChunk } from "@codemirror/merge";
 import { forgeEditorTheme, forgeHighlight } from "@/editor/forgeTheme";
 import { languageFor } from "@/editor/languages";
 import { ensureFileType, isFileTypeResolved } from "@/editor/fileTypes";
-import { openFile } from "@/state/editor";
+import { openFileReported } from "@/features/navigation/openReported";
 import { workspaceApi } from "@/ipc/workspace";
 import { FileIcon } from "@/shell/FileIcon";
 import { reloadOpenFiles, repositoryChanged } from "./store";
@@ -160,7 +160,7 @@ export function DiffViewer(props: { request: DiffRequest; onClose: () => void })
             title="Jump to Source (F4)"
             onClick={() => {
               void close();
-              void openFile(req.path);
+              void openFileReported(req.path);
             }}
           >
             <SquareArrowOutUpRight size={15} />
