@@ -390,7 +390,7 @@ fn php_file(cx: &mut Ctx, path: &str, text: &str) {
         let base = format!("resources/js/Pages/{}", r.name);
         for ext in ["vue", "tsx", "jsx", "svelte", "ts", "js"] {
             let p = format!("{base}.{ext}");
-            if cx.files.iter().any(|f| *f == p) {
+            if cx.files.contains(&p) {
                 cx.push(item(RelatedKind::View, r.name, &p, 0));
                 break;
             }
@@ -398,7 +398,7 @@ fn php_file(cx: &mut Ctx, path: &str, text: &str) {
     }
     for r in twig_refs(text) {
         let p = format!("templates/{}", r.name);
-        if cx.files.iter().any(|f| *f == p) {
+        if cx.files.contains(&p) {
             cx.push(item(RelatedKind::Template, r.name, &p, 0));
         }
     }
@@ -442,7 +442,7 @@ fn laravel_model(cx: &mut Ctx, path: &str, name: &str, text: &str) {
                 format!("database/seeders/{name}Seeder.php"),
             ),
         ] {
-            if cx.files.iter().any(|f| *f == file) {
+            if cx.files.contains(&file) {
                 cx.push(item(kind, file_name(&file), &file, 0));
             }
         }
