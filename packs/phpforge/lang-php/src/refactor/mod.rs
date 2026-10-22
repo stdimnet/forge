@@ -17,6 +17,7 @@ pub mod inline;
 pub mod introduce;
 pub mod move_class;
 pub mod names;
+pub mod safe_delete;
 pub mod signature;
 pub mod vars;
 
