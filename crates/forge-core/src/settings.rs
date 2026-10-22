@@ -106,12 +106,7 @@ impl Layer {
         if !self.is_persisted() {
             return Ok(());
         }
-        let mut root = toml::Table::new();
-        for (key, value) in &self.values {
-            insert_dotted(&mut root, key, json_to_toml(value)?);
-        }
-        let src = toml::to_string_pretty(&root)
-            .map_err(|e| ForgeError::Other(format!("cannot serialize settings: {e}")))?;
+        let src = settings_to_toml(&self.values)?;
         match &self.store {
             Store::None => Ok(()),
             Store::Path(path) => {
@@ -123,6 +118,21 @@ impl Layer {
             Store::Files(files, rel) => files.write(rel, &src),
         }
     }
+}
+
+/// Parse a settings file into flat dotted keys (as the layers hold them).
+pub fn parse_settings_toml(src: &str) -> Result<BTreeMap<String, Value>> {
+    parse_layer(src, || "settings".to_string())
+}
+
+/// Write flat dotted keys as a nested settings file (as the layers save them).
+pub fn settings_to_toml(values: &BTreeMap<String, Value>) -> Result<String> {
+    let mut root = toml::Table::new();
+    for (key, value) in values {
+        insert_dotted(&mut root, key, json_to_toml(value)?);
+    }
+    toml::to_string_pretty(&root)
+        .map_err(|e| ForgeError::Other(format!("cannot serialize settings: {e}")))
 }
 
 /// Flatten nested TOML tables into dotted keys. Arrays and scalars are leaves.
