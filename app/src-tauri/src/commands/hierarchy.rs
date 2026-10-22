@@ -243,14 +243,11 @@ pub async fn code_call_hierarchy(
     };
     let (root, title, source) = match (root, index.root) {
         (Some(r), i) => {
-            // The index names members `Class::method()`; servers only `method`.
+            // The index names members `Class::method()`; servers only `method()`.
             let title = index
                 .title
                 .filter(|_| i.is_some())
-                .unwrap_or_else(|| match &r.container {
-                    Some(c) => format!("{c}.{}", r.name),
-                    None => r.name.clone(),
-                });
+                .unwrap_or_else(|| r.name.clone());
             (Some(r), title, "lsp")
         }
         (None, Some(i)) => (Some(i), index.title.unwrap_or_default(), "index"),
