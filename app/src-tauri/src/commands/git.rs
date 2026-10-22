@@ -36,7 +36,7 @@ where
 
 /// Like [`with_repo`] but notifies the UI afterwards, also on failure (a failed merge or
 /// pull may still have changed the working tree).
-async fn mutate<T, F>(app: &AppHandle, state: &AppState, f: F) -> Result<T>
+pub(crate) async fn mutate<T, F>(app: &AppHandle, state: &AppState, f: F) -> Result<T>
 where
     T: Send + 'static,
     F: FnOnce(&Repo) -> Result<T> + Send + 'static,
