@@ -45,6 +45,7 @@ export const codestyle_schemes: (a: number, b: number, c: number) => void;
 export const colors_find: (a: number, b: number, c: number) => void;
 export const colors_format: (a: number, b: number, c: number) => void;
 export const colors_parse: (a: number, b: number, c: number) => void;
+export const compare_dir_listings: (a: number, b: number, c: number) => void;
 export const containers_compose_args: (a: number, b: number, c: number) => void;
 export const containers_compose_parse: (a: number, b: number, c: number) => void;
 export const containers_docker_contexts: (a: number, b: number, c: number) => void;

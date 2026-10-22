@@ -2472,6 +2472,7 @@ dependencies = [
  "forge-codestyle",
  "forge-colors",
  "forge-containers",
+ "forge-diff",
  "forge-editing",
  "forge-emmet",
  "forge-file-templates",

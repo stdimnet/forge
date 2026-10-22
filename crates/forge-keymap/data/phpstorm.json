@@ -98,6 +98,7 @@
   {"id":"Switcher","title":"Switcher","group":"Main Menu/View","win":"Ctrl+Tab | Ctrl+Shift+Tab","mac":"Ctrl+Tab | Ctrl+Shift+Tab"},
   {"id":"ToggleRenderedDocPresentation","title":"Toggle Rendered View","group":"Main Menu/View","win":"Ctrl+Alt+Q","mac":"Ctrl+Alt+Q","context":"editor"},
   {"id":"CompareTwoFiles","title":"Compare Files","group":"Main Menu/View","win":"Ctrl+D","mac":"Cmd+D","context":"toolwindow"},
+  {"id":"CompareClipboardWithSelection","title":"Compare with Clipboard","group":"Main Menu/View","win":"","mac":""},
   {"id":"ViewInplaceComments","title":"Inlay Hints","group":"Main Menu/View","win":"","mac":""},
   {"id":"GotoClass","title":"Class…","group":"Main Menu/Navigate","win":"Ctrl+N","mac":"Cmd+O"},
   {"id":"GotoFile","title":"File…","group":"Main Menu/Navigate","win":"Ctrl+Shift+N","mac":"Cmd+Shift+O"},
