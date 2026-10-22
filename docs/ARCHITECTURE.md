@@ -22,8 +22,9 @@ app/ui/            SolidJS UI
   manifests are TOML files in `app/src-tauri/plugins/`; `app/ui/src/mock/builtinPlugins.json`
   is their browser-mode snapshot (regenerate with `FORGE_UPDATE_SNAPSHOTS=1 cargo test -p forge-app`).
 - Settings (`forge_core::Settings`) are layered: schema defaults < user
-  (`<config dir>/forge/settings.toml`) < project (`<root>/.forge/settings.toml`), keyed by dotted
-  names. IPC: `settings_get_all`, `settings_set(key, value, scope)`, `settings_schema`,
+  (`<config dir>/forge/settings.toml`) < Settings for New Projects (`newProjects`,
+  `<config dir>/forge/new-project-settings.toml`, project-level settings only) < project
+  (`<root>/.forge/settings.toml`), keyed by dotted names. IPC: `settings_get_all`, `settings_set(key, value, scope)`, `settings_schema`,
   `plugins_list`, `plugin_set_enabled`; changes are emitted as `settings://changed`. In the UI read
   them with `getSetting(key)` from `src/state/settings.ts`.
 - Feature crates (`forge-lsp`, `forge-vcs`, `forge-forges`, `forge-ai`, `forge-agent-cli`, ...) are plain libraries
@@ -185,8 +186,28 @@ app/ui/            SolidJS UI
   with aliases.
 - `search_rank({ request: { tab, query, perGroup, includeDimmed?, sources } }) -> { groups }` —
   Search Everywhere ranking (`forge_fuzzy::everywhere`).
-- `filetypes_detect({ request: { files, inactivePlugins, dataLanguages, softWrapFiles } }) -> FileTypeInfo[]`
-  — file type id, status bar label, indent, template data language and soft wrapping.
+- `filetypes_detect({ request: { files, inactivePlugins, dataLanguages, softWrapFiles,
+  templateDelimiters, associations?, customTypes? } }) -> FileTypeInfo[]` — file type id,
+  status bar label, indent, template data language, soft wrapping and, for custom file types,
+  their `custom` syntax (comments, hex prefix, number postfixes, keyword lists 1–4, options)
+  that `editor/customFileType.ts` turns into a stream parser. `associations` and `customTypes`
+  are the `fileTypes.associations` / `fileTypes.custom` settings (`forge_filetypes::user`).
+  `filetypes_list({ request }) -> FileTypeRow[]` is Settings | Editor | File Types (`{ id,
+  name, description?, patterns, added, removed, plugin?, custom, syntax?, indent }`);
+  `fs_list_dir` hides the names of `fileTypes.ignoredFiles`.
+- Repair and reset (`forge-maintenance`, `commands/maintenance.rs`, UI `features/maintenance`):
+  `maintenance_invalidate_model() -> { title, message, warning, always, options: { id,
+  label, detail }[], invalidateLabel, justRestartLabel }`, `maintenance_invalidate_caches({
+  options: ("fileSystemAndLocalHistory" | "sharedIndexes" | "browserEngine" |
+  "languageServerData")[], invalidate })` (writes `<data dir>/forge/pending-maintenance.json`
+  and restarts; `forge_maintenance::pending::run_pending` deletes the caches at the next start,
+  before the settings load), `maintenance_restart()`, `maintenance_rescan_indexes() -> number`
+  (`Backend::rescan_search_index`), `settings_export_info() -> { groups: { id, label, count
+  }[], defaultPath }`, `settings_export({ path, groups }) -> path`,
+  `settings_import_preview({ path }) -> groups`, `settings_import({ path, groups }) -> number`
+  (replaces the chosen groups in the user settings and writes the chosen files),
+  `settings_restore_defaults() -> backup folder` (resets on the next start). Browser mode:
+  `mock/maintenanceMock.ts` (models from WebAssembly, nothing is deleted).
 - `settings_search({ request: { query, pages?, settings?, entries?, highlight? } })` and
   `settings_validate({ key, value }) -> string | null` — the Settings dialog model.
 - Git menu commands (`forge-vcs`, `commands/git.rs`): `git_add_to_gitignore({ paths }) -> string[]`

@@ -702,11 +702,12 @@ not finished, the page says so.
 | [Type, Method and Call Hierarchy](docs/guide/user/hierarchies.md) | the Hierarchy tool window: Type Hierarchy (`Ctrl+H`: class, supertypes, subtypes), Method Hierarchy (`Ctrl+Shift+H`) with PHPStorm's marks, Call Hierarchy (`Ctrl+Alt+H`: callers and callees with call sites), scopes and sorting |
 | [Go to Test and Create Test](docs/guide/user/go-to-test.md) | Navigate \| Test (`Ctrl+Shift+T`) between classes, components and their tests, Choose Test popup, Create New PHP Test / Create New Test dialog (PHPUnit, Pest, Vitest, Jest, PSR-4 `autoload-dev`, Laravel Unit/Feature and Symfony layouts, test method stubs) |
 | [File Structure, Navigation Bar and Related Symbol](docs/guide/user/navigation-bar-and-file-structure.md) | File Structure popup (`Ctrl+F12`, Show Inherited, speed search), Navigation Bar (`Alt+Home`, Top / In Status Bar / Don't Show, members), Related Symbol (`Ctrl+Alt+Home`: tests, views, templates, routes, migrations) |
-| [File types and syntax highlighting](docs/guide/user/file-types.md) | file type detection, highlighted languages, config formats, template data languages |
+| [File types and syntax highlighting](docs/guide/user/file-types.md) | file type detection, highlighted languages, config formats, template data languages, Settings \| Editor \| File Types (patterns, custom file types, ignored files) |
 | [Language servers](docs/guide/user/language-servers.md) | detection, installation, per-server settings, Intelephense licence |
 | [Keymap](docs/guide/user/keymap.md) | PHPStorm keymaps, changing shortcuts, contexts |
 | [Shortcuts by topic](docs/guide/user/shortcuts/index.md) | every implemented shortcut explained by topic, plus a printable [reference card](docs/guide/user/shortcuts/reference-card.md) |
-| [Settings and themes](docs/guide/user/settings-and-themes.md) | the Settings dialog, settings files, themes, window controls |
+| [Settings and themes](docs/guide/user/settings-and-themes.md) | the Settings dialog, settings files, Settings for New Projects, Restore Defaults, Export / Import Settings, Restore Default Settings, themes, window controls |
+| [Invalidate Caches and Repair IDE](docs/guide/user/repair-ide.md) | Reload All from Disk, the step-by-step Repair IDE, Invalidate Caches and its options |
 | [Plugins and packs](docs/guide/user/plugins-and-packs.md) | packs, activation, Settings \| Plugins |
 
 ## Languages and frameworks
@@ -4372,6 +4373,51 @@ Plugins add types or replace bundled ones while they are active: in a Symfony pr
 The complete list of types, extensions and file names is in the
 [file types reference](docs/guide/reference/file-types.md).
 
+## Changing file types
+
+Settings | Editor | **File Types** lists the recognized file types with their **File name
+patterns**, like PHPStorm:
+
+![File Types settings](docs/screenshots/file-types-settings.png)
+
+- Select a type and add a pattern with **+** (`*.module`, `Procfile*`, `config/*.conf`), edit it
+  with the pencil or remove it with **−**. A pattern belongs to one type: adding one that
+  another type has moves it (the form tells you which type had it). Added patterns are bold,
+  removed bundled ones are struck through; adding a removed one again restores it.
+- **+** above the type list creates a **custom file type** (below); **−** and the pencil remove
+  and edit custom types.
+- **Ignored Files and Folders** lists names the Project view hides (`.git`, `__pycache__`,
+  `*.pyc`, `.DS_Store`, …; `*` and `?` are wildcards).
+- **Restore Defaults** in the header brings back the bundled patterns, removes custom types and
+  resets the ignored names.
+
+The changes apply to files opened afterwards, in the desktop app and in browser mode alike
+(the detection runs in Rust, `forge-filetypes`). They are stored in `fileTypes.associations`,
+`fileTypes.custom` and `fileTypes.ignoredFiles`.
+
+### Custom file types
+
+PHPStorm's "New File Type" dialog: a name, a description and the syntax highlighting of the
+type.
+
+![New File Type](docs/screenshots/file-types-custom.png)
+
+| Option | Meaning |
+| --- | --- |
+| Line comment, Only at line start | starts a comment to the end of the line, e.g. `#` or `//` |
+| Block comment start / end | e.g. `/*` and `*/`; may span lines |
+| Hex prefix | e.g. `0x` for `0xFF` |
+| Number postfixes | characters allowed after a number, e.g. `lLfF` |
+| Support paired braces, brackets, parens | typing `{`, `[` or `(` inserts the closing one |
+| Support string escapes | `\"` does not end a string |
+| Ignore case | keywords match in any case |
+| Keywords 1–4 | one keyword per line; each list has its own color (keyword, built-in, type, constant). Keywords may contain other characters, e.g. `#define` |
+
+Strings in `"` and `'` and decimal numbers are always highlighted. Add the type's file name
+patterns on the right after creating it; `Ctrl+/` comments lines with its line comment.
+
+![A custom file type in the editor](docs/screenshots/custom-file-type-editor.png)
+
 ## Highlighted languages
 
 About 70 languages are highlighted, among them PHP, Blade, Twig, Smarty, Latte, Jinja2,
@@ -7882,6 +7928,8 @@ dialog, with the same tree as PHPStorm:
   page, also by keywords ("theme", "autosave", "interpreter").
 - **OK** applies and closes, **Apply** applies and keeps the dialog open, **Cancel** discards.
 - Invalid values (out of range, wrong type) are flagged right away and not saved.
+- **Reset** (top right) throws away the unapplied changes of the page; **Restore Defaults**
+  sets every option of the page to its default (Apply or OK stores it).
 - In the desktop app the dialog is its own window; its size and position are remembered.
 
 ![Search in settings](docs/screenshots/settings-search.png)
@@ -7891,15 +7939,53 @@ Every option, its key, type and default is listed in the
 
 ## User and project settings
 
-Settings come in three layers; a later one wins:
+Settings come in four layers; a later one wins:
 
 1. built-in defaults (declared by the plugins),
 2. **user** settings: `<config dir>/forge/settings.toml`,
-3. **project** settings: `<project>/.forge/settings.toml`.
+3. **Settings for New Projects** (project-level options only):
+   `<config dir>/forge/new-project-settings.toml`,
+4. **project** settings: `<project>/.forge/settings.toml`.
 
 Pages with options that can be stored per project show **For current project** in the header;
 those options are saved to the project's file, which you can commit to share them with your
-team (for example the PHP language level or the Symfony environment).
+team (for example the PHP language level or the Symfony environment). A value that equals
+what the layers below give is not stored again, so the project keeps following them.
+
+### Settings for New Projects
+
+File | New Projects Setup | **Settings for New Projects…** opens the Settings dialog for the
+defaults of project-level options. The pages with such options show **For new projects**;
+their values apply to every project that has no value of its own: the projects you create or
+open next, and open projects that never changed the option. Application options (theme, fonts,
+keymap, …) are the same everywhere and are edited as usual. On the Welcome screen, without an
+open project, the Settings dialog edits these defaults as well.
+
+![Settings for New Projects](docs/screenshots/settings-for-new-projects.png)
+
+## Export and Import Settings
+
+File | Manage IDE Settings | **Export Settings…** writes your settings to a settings archive
+(a `.zip` file). Choose the groups to export: Appearance & Behavior, Keymap, Editor, Code Style,
+File Types, File and Code Templates, Live Templates, Version Control, Languages & Frameworks,
+Tools, Plugins, Other settings, and the files Settings for New Projects, AI Providers, Data
+Sources and SSH Configurations. Only groups with changed settings are listed.
+
+![Export Settings](docs/screenshots/export-settings.png)
+
+**Import Settings…** reads such an archive, lists the groups it holds and imports the chosen
+ones: each imported group replaces your settings of that group. Forge then restarts.
+
+> **Note:** API keys, tokens and passwords live in the system keychain and are never part of a
+> settings archive.
+
+## Restore Default Settings
+
+File | Manage IDE Settings | **Restore Default Settings…** copies your configuration folder to
+`<config dir>/forge-backup-<date>-<time>` and restarts Forge with the default settings (the
+user settings, the Settings for New Projects and the dialog window sizes are reset).
+Connections and accounts (AI providers, code hosts, data sources, SSH configurations), recent
+projects and scratches are kept. To go back, copy the files from the backup folder.
 
 ### Settings files
 
@@ -8005,6 +8091,77 @@ Settings | Appearance & Behavior | System Settings:
 
 Every option in the Settings dialog applies; the [settings reference](docs/guide/reference/settings.md)
 lists them all.
+
+
+---
+
+Source: docs/guide/user/repair-ide.md
+
+# Invalidate Caches and Repair IDE
+
+When search results, completion or the Project view no longer match the files on disk, Forge
+offers the same tools as PHPStorm, from the gentlest to the most thorough.
+
+## Reload All from Disk
+
+File | **Reload All from Disk** (`Ctrl+Alt+Y`, macOS `Cmd+Alt+Y`) re-reads the open files that
+changed on disk and refreshes the Project view and the Git status. Forge does this on its own
+when you switch back to its window (Settings | Appearance & Behavior | System Settings |
+Synchronize external changes).
+
+## Repair IDE
+
+File | **Repair IDE** runs PHPStorm's repair steps one after another. After each step a balloon
+says what was done and offers the next step:
+
+1. **Refresh project files**: as Reload All from Disk, for every folder the Project view shows.
+2. **Rescan project indexes**: brings the search index in line with the disk and rescans the
+   PHP index (and the Lua index in Lua projects).
+3. **Reopen project**: closes the project and opens it again (editor tabs are closed).
+4. **Invalidate caches and restart**: opens the [Invalidate Caches](#invalidate-caches) dialog.
+
+![Repair IDE balloon](docs/screenshots/repair-ide-balloon.png)
+
+In the balloon, the first link runs the next step, **Everything Works Now** ends the repair, and
+**More…** lets you pick any of the remaining steps.
+
+## Invalidate Caches
+
+File | **Invalidate Caches…** clears Forge's indexes and caches. The files are deleted on the
+next start, before Forge opens any of them, so nothing is locked; the caches are rebuilt
+afterwards.
+
+![Invalidate Caches](docs/screenshots/invalidate-caches.png)
+
+Always cleared: the PHP index, the search index, the command line tools cache, downloaded JSON
+schemas, the Packagist cache and the terminal's shell integration scripts.
+
+Optional:
+
+| Option | What is deleted |
+| --- | --- |
+| Clear file system cache and Local History | the [Local History](docs/guide/user/local-history.md) of all projects |
+| Clear downloaded shared indexes | the PHP stubs downloaded for the PHP index (downloaded again when needed) |
+| Delete embedded browser engine cache | the cache of the webview that draws Forge's window |
+| Delete language server data | Intelephense's storage and the Java language server's workspaces |
+
+**Invalidate and Restart** schedules the cleanup and restarts Forge; **Just Restart** only
+restarts; **Cancel** does nothing.
+
+> **Note:** installed language servers, Node.js runtimes, settings, bookmarks, changelists and
+> shelved changes are no caches and are never deleted. Where each cache lives is listed in
+> [File locations](docs/guide/reference/file-locations.md#caches--cache-dirforge).
+
+In browser mode (`pnpm dev`) the dialog works, but nothing is deleted and Forge does not
+restart.
+
+## On the Welcome screen
+
+The gear at the bottom of the Welcome screen offers Settings, Settings for New Projects,
+Import / Export Settings, Restore Default Settings and Invalidate Caches, so you can repair
+Forge without opening a project.
+
+![Welcome screen menu](docs/screenshots/welcome-manage-settings.png)
 
 
 ---
@@ -12986,14 +13143,15 @@ Projects, new files and scratches, settings and saving. Open it with ☰ (`Alt+\
 | Local History › Show History | — | — | yes | Revisions of the selected file or folder (or the editor's file) recorded on save, refactorings, VCS operations and external changes, with diff, Revert and Create Patch. [More](docs/guide/user/local-history.md#show-history) ([screenshot](docs/screenshots/local-history-file.png)) |
 | Local History › Put Label… | — | — | yes | Names the current moment for the whole project; revert files, folders or the project to it. [More](docs/guide/user/local-history.md#labels) ([screenshot](docs/screenshots/local-history-put-label.png)) |
 | Save All | `Ctrl+S` | `Cmd+S` | yes | Saves all modified files. [More](docs/guide/user/workbench.md#editor-tabs) |
-| Reload All from Disk | `Ctrl+Alt+Y` | `Cmd+Alt+Y` | not yet | Not available yet; the entry is disabled. |
-| Invalidate Caches… | — | — | not yet | Not available yet; the entry is disabled. |
+| Reload All from Disk | `Ctrl+Alt+Y` | `Cmd+Alt+Y` | yes | Re-reads open files changed on disk and refreshes the Project view and Git status. [More](docs/guide/user/repair-ide.md#repair-ide) |
+| Invalidate Caches… | — | — | yes | Clears Forge's indexes and caches (optionally Local History, PHP stubs, the browser engine cache and language server data) on the next start and restarts. [More](docs/guide/user/repair-ide.md#invalidate-caches) ([screenshot](docs/screenshots/invalidate-caches.png)) |
+| Repair IDE | — | — | yes | Step by step: refresh project files, rescan project indexes, reopen the project, invalidate caches. [More](docs/guide/user/repair-ide.md#repair-ide) ([screenshot](docs/screenshots/repair-ide-balloon.png)) |
 | **Manage IDE Settings** | | | | submenu |
-| Manage IDE Settings › Import Settings… | — | — | not yet | Not available yet; the entry is disabled. |
-| Manage IDE Settings › Export Settings… | — | — | not yet | Not available yet; the entry is disabled. |
-| Manage IDE Settings › Restore Default Settings… | — | — | not yet | Not available yet; the entry is disabled. |
+| Manage IDE Settings › Import Settings… | — | — | yes | Imports chosen groups of a settings archive (`.zip`) and restarts. [More](docs/guide/user/settings-and-themes.md#export-and-import-settings) |
+| Manage IDE Settings › Export Settings… | — | — | yes | Writes chosen groups of your settings to a settings archive (`.zip`). [More](docs/guide/user/settings-and-themes.md#export-and-import-settings) ([screenshot](docs/screenshots/export-settings.png)) |
+| Manage IDE Settings › Restore Default Settings… | — | — | yes | Backs up your settings and restarts with the defaults. [More](docs/guide/user/settings-and-themes.md#restore-default-settings) |
 | **New Projects Setup** | | | | submenu |
-| New Projects Setup › Settings for New Projects… | — | — | not yet | Not available yet; the entry is disabled. |
+| New Projects Setup › Settings for New Projects… | — | — | yes | The Settings dialog for the defaults of project-level settings. [More](docs/guide/user/settings-and-themes.md#settings-for-new-projects) ([screenshot](docs/screenshots/settings-for-new-projects.png)) |
 | Save File as Template… | — | — | not yet | Not available yet; the entry is disabled. |
 | **Export** | | | | submenu |
 | Export › Export to HTML… | — | — | not yet | Not available yet; the entry is disabled. |
@@ -13508,7 +13666,8 @@ Source: docs/guide/reference/settings.md
 
 All settings are declared by plugin manifests (`[[contributions.settings]]` in
 `app/src-tauri/plugins/*.toml`) and shown on the Settings page whose id is their `group`. Values
-are layered: default < user (`<config dir>/forge/settings.toml`) < project
+are layered: default < user (`<config dir>/forge/settings.toml`) < Settings for New Projects
+(`<config dir>/forge/new-project-settings.toml`, project-level settings only) < project
 (`<project>/.forge/settings.toml`). See [Settings and themes](docs/guide/user/settings-and-themes.md).
 
 - **Type**: `bool`, `int`, `number`, `string`, `enum` (allowed values listed), `path`,
@@ -13756,6 +13915,17 @@ table of keys Forge writes itself above.
 | Key | Type | Default | Scope | Section | Title and description |
 | --- | --- | --- | --- | --- | --- |
 | `fileTemplates.custom` | objects | `[]` | user | — | File and code templates — Templates added in Settings \| Editor \| File and Code Templates and the changed text of built-in ones (`kind` `file`, `include` or `code`, `name`, `extension`, `text`). Built-in templates without an entry use their default text. One entry per `kind` + `name` pair. Edited on the page, see [File and code templates](docs/guide/user/file-templates.md). |
+
+### Editor | File Types
+
+Page id `editor.file-types`. The options are edited on the page itself, see
+[File types](docs/guide/user/file-types.md#changing-file-types).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `fileTypes.associations` | objects | `[]` | user | — | File name patterns — Patterns added to a file type (`fileType`, `pattern`) or removed from it (`action` `remove`). A pattern added to one type is taken away from the others. One entry per `fileType` + `pattern` pair. |
+| `fileTypes.custom` | objects | `[]` | user | — | Custom file types — `id`, `name`, `description`, `lineComment`, `lineCommentAtStart`, `blockCommentStart`, `blockCommentEnd`, `hexPrefix`, `numberPostfixes`, `keywords1`–`keywords4` (one keyword per line), `ignoreCase`, `pairedBraces`, `pairedBrackets`, `pairedParens`, `stringEscapes` (`"true"` / `"false"`). One entry per `name`. |
+| `fileTypes.ignoredFiles` | string | `*.hprof;*.pyc;*.pyo;*.rbc;*.yarb;*~;.DS_Store;.git;.hg;.svn;CVS;__pycache__;_svn;vssver.scc;vssver2.scc` | user | — | Ignored Files and Folders — Names hidden from the Project view, separated by `;` (`*` and `?` wildcards). |
 
 ### Editor | Inlay Hints
 
@@ -14753,6 +14923,7 @@ Forge uses the platform's standard folders (Rust's `dirs` crate):
 | File | Content |
 | --- | --- |
 | `settings.toml` | user settings (including keymap changes and disabled plugins) |
+| `new-project-settings.toml` | [Settings for New Projects](docs/guide/user/settings-and-themes.md#settings-for-new-projects): defaults of project-level settings |
 | `recent-projects.json` | the Welcome screen's recent projects |
 | `ai.toml` | AI providers and model choices (no keys) |
 | `forges.toml` | GitHub/GitLab/Forgejo accounts (no tokens) |
@@ -14776,7 +14947,12 @@ Forge uses the platform's standard folders (Rust's `dirs` crate):
 | `jdtls/…` | workspace data of the Java language server |
 | `shell-integration/` | the bash and zsh scripts of the terminal's shell integration (also on remote hosts, in their cache dir) |
 
-Caches can be deleted at any time; Forge rebuilds them. Without a platform cache folder the PHP
+The search index lives in `<cache dir>/Forge/search/<hash of the project root>.bin`. The
+embedded browser engine (the webview) keeps its cache in `<cache dir>/dev.forge.ide` (WebView2 on
+Windows: the `Cache` folders of `%LOCALAPPDATA%\dev.forge.ide\EBWebView\Default`).
+
+Caches can be deleted at any time; Forge rebuilds them. File | [Invalidate Caches…](docs/guide/user/repair-ide.md#invalidate-caches)
+deletes them for you on the next start. Without a platform cache folder the PHP
 index falls back to `<project>/.forge/cache/php-index.json`.
 
 ## Data — `<data dir>/forge/`
@@ -14790,7 +14966,11 @@ index falls back to `<project>/.forge/cache/php-index.json`.
 | `projects/<name>-<hash>/local-history/` | the project's [Local History](docs/guide/user/local-history.md): `changes.jsonl` (one change set per line: saves, refactorings, VCS operations, external changes, labels) and `content/` (file contents, zlib-compressed and stored once per content hash); cleaned up after the configured working days and size; kept out of the project |
 | `projects/<name>-<hash>/changelists.json` | the changelists of the Commit tool window (names, comments, the active list, which files and changes belong where); kept out of the project |
 | `projects/<name>-<hash>/shelf/<id>/` | shelved changelists (Git ▸ Shelve Changes): `changes.json` (name, date, branch, files) and `shelved.patch`; kept out of the project |
+| `pending-maintenance.json` | work for the next start written by Invalidate Caches and Restore Default Settings; removed once it ran |
 | `chat-history/<project>-<hash>/<chat>.json` | the AI chats of each project (the newest 100), see [AI](docs/guide/user/ai.md) |
+
+Restore Default Settings copies `<config dir>/forge` to `<config dir>/forge-backup-<date>-<time>`
+first (the time is UTC).
 
 ## State — `<state dir>/forge/`
 
@@ -16069,14 +16249,24 @@ Recipe: [`add-setting`](.claude/skills/add-setting/SKILL.md). User documentation
 
 ## Model
 
-`forge_core::Settings` merges three layers: schema defaults < user
-(`<config dir>/forge/settings.toml`) < project (`<project>/.forge/settings.toml`). Keys are
+`forge_core::Settings` merges four layers: schema defaults < user
+(`<config dir>/forge/settings.toml`) < Settings for New Projects
+(`<config dir>/forge/new-project-settings.toml`, scope `newProjects`, only settings declared
+with `project = true`) < project (`<project>/.forge/settings.toml`). Keys are
 dotted (`editor.font.size`) and stored as nested TOML tables. Values are JSON so they cross IPC
 unchanged. Writing a value persists its layer and notifies subscribers with the new effective
 value (`SettingsChange { key, value, scope }`), which the shell forwards as `settings://changed`.
 
-IPC: `settings_get_all`, `settings_set(key, value, scope)`, `settings_schema`,
-`settings_search`, `settings_validate`, `plugins_list`, `plugin_set_enabled`.
+IPC: `settings_get_all` (effective values and the `user`, `newProjects` and `project` layers),
+`settings_set(key, value, scope)`, `settings_schema`, `settings_search`, `settings_validate`,
+`plugins_list`, `plugin_set_enabled`.
+
+In the UI, `scopeFor(key, forNewProjects?)` picks the layer: project-level settings go to the
+open project, or to `newProjects` when no project is open or the dialog edits the Settings for
+New Projects (`openSettingsForNewProjects()`, `forNewProjects()` in `dialogState.ts`).
+`saveSettings` removes an override instead of storing a value equal to what the layers below
+give (`inheritedValue`). Every schema page gets **Restore Defaults** (`restorePageDefaults`)
+next to **Reset** (discard the page's draft).
 
 ## Declaring a setting
 
@@ -16740,6 +16930,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-livetemplates](docs/guide/developer/crates/forge-livetemplates.md) | Live templates: template sets, contexts, variables and expansion, Surround With and Unwrap/Remove (pure, WebAssembly-friendly) |
 | [forge-localhistory](docs/guide/developer/crates/forge-localhistory.md) | Local History: file contents recorded on save, refactorings, VCS operations and external changes, with labels, revert and selection history |
 | [forge-lsp](docs/guide/developer/crates/forge-lsp.md) | Forge IDE: generic Language Server Protocol client and server manager |
+| [forge-maintenance](docs/guide/developer/crates/forge-maintenance.md) | Repairing and resetting the IDE: Invalidate Caches, Restore Default Settings, Export / Import Settings |
 | [forge-markdown](docs/guide/developer/crates/forge-markdown.md) | Forge Markdown: a safe AST (no raw HTML) for chat messages and documentation popups, built with pulldown-cmark (pure, also built to WebAssembly) |
 | [forge-viewers](docs/guide/developer/crates/forge-viewers.md) | Forge file viewers: image metadata for the image editor and CSV/TSV tables for Edit as Table (pure, also built to WebAssembly) |
 | [forge-open](docs/guide/developer/crates/forge-open.md) | Forge IDE open requests: forge:// links, the CLI launcher and the Browser Companion local server |
@@ -17437,7 +17628,7 @@ Forge core: the language-agnostic foundation every pack builds on.
 | `gitignore.rs` | Which project files git ignores, so the project tree can gray them out like PHPStorm. |
 | `project_files.rs` | Project-relative files that Forge itself keeps in a project (`.forge/settings.toml`, `.forge/dataSources.toml`, `.forge/breakpoints.json`, ...) and project files it reads (`.env`), wherever the project lives: `LocalFiles` for a folder on this machine, the project backend (`forge_backend::BackendFiles`) for a project on a remote host. |
 | `search.rs` | Fuzzy file search for "Go to File" / Search Everywhere, and Find in Files. |
-| `settings.rs` | Layered settings: built-in defaults < user < project. `Settings::set_many` stores several values and saves each layer once (the Code Style schemes). |
+| `settings.rs` | Layered settings: built-in defaults < user < Settings for New Projects (`SettingsScope::NewProjects`, `new-project-settings.toml`) < project. `Settings::set_many` stores several values and saves each layer once (the Code Style schemes); `parse_settings_toml` / `settings_to_toml` convert between flat keys and the nested files (settings archives). |
 | `watch.rs` | Watches the open project for changes made outside the editor (git checkouts, composer, code generators, other editors) and reports them in debounced batches. |
 | `workspace.rs` |  |
 
@@ -17929,6 +18120,7 @@ The UI only maps a file type id to its CodeMirror syntax mode.
 | `builtin.rs` | File types every Forge installation knows (PHPStorm's bundled file types). Plugins add more, or replace one of these by contributing a file type with the same id, through `[[plugin.contributions.fileTypes]]` in their manifests. |
 | `data.rs` | Template Data Languages (as in PHPStorm): the language of the content *between* template tags. |
 | `glob.rs` | The two pattern flavours of file type settings. |
+| `user.rs` | Settings \| Editor \| File Types: patterns added to or removed from a type (`fileTypes.associations`; a pattern added to one type leaves the others), custom file types with their `CustomSyntax` (`fileTypes.custom`), `FileTypeRegistry::customized` and `rows` (the page's list), `DEFAULT_IGNORED_FILES`. |
 
 ## Main public items
 
@@ -17945,8 +18137,9 @@ pub struct FileTypeInfo { … }
 
 ## Used by
 
-- IPC: `filetypes_detect`
-- UI: `app/ui/src/editor/fileTypes.ts`
+- IPC: `filetypes_detect`, `filetypes_list`; `fs_list_dir` hides `fileTypes.ignoredFiles`
+- UI: `app/ui/src/editor/fileTypes.ts`, `app/ui/src/features/fileTypes` (the settings page),
+  `app/ui/src/editor/customFileType.ts` (highlighting of custom types)
 - Browser mode: built into `forge-wasm`
 
 ## Dependencies
@@ -18700,6 +18893,81 @@ pub use manager::{LspManager, ServerStatus, COMPLETION_SERVER_KEY};
 ```sh
 cargo test -p forge-lsp
 ```
+
+
+---
+
+Source: docs/guide/developer/crates/forge-maintenance.md
+
+# forge-maintenance
+
+`crates/forge-maintenance` — Repairing and resetting the IDE: Invalidate Caches, Restore Default Settings, Export / Import Settings.
+
+## Purpose
+
+The logic behind PHPStorm's File | Invalidate Caches… and File | Manage IDE Settings
+([user guide](docs/guide/user/repair-ide.md), [settings](docs/guide/user/settings-and-themes.md#export-and-import-settings)).
+
+- **Invalidate Caches** (`caches`): `invalidate_model` is the dialog (texts and the four
+  `CacheOption`s); `cleanup_plan(dirs, options)` lists the folders that exist and would be
+  deleted (always the PHP index, search index, command line tools cache, JSON schemas,
+  Packagist and shell integration; per option the Local History of all projects, the PHP
+  stubs, the webview cache and language server data); `run_cleanup` deletes them and reports
+  failures.
+- **Work for the next start** (`pending`): `schedule` merges work into
+  `<data dir>/forge/pending-maintenance.json`; `run_pending` runs it once at startup (the
+  app calls it before the settings load), removing the marker first.
+- **Settings groups** (`groups`): PHPStorm's export components as setting key prefixes
+  (the longest prefix wins, the rest is "Other settings") or whole configuration files;
+  `count_groups` lists the non-empty ones for the dialogs.
+- **Settings archive** (`archive`): `export_settings` writes a zip with `forge-settings.json`
+  (format, version, groups), the chosen keys as `settings.toml` and the chosen files;
+  `read_archive` reads one back (unknown entries ignored, size-limited); `SettingsArchive::plan`
+  replaces the chosen groups of the current user settings (keys the archive does not set are
+  removed).
+- **Restore Default Settings** (`restore`): `backup_settings` copies `<config dir>/forge` to
+  `forge-backup-<UTC timestamp>`; `reset_settings` removes `settings.toml`,
+  `new-project-settings.toml` and `dialog-windows.json` at the next start.
+
+`ForgeDirs` names the user directories, so tests run entirely in temporary folders.
+
+## Main public items
+
+```rust
+pub enum CacheOption { FileSystemAndLocalHistory, SharedIndexes, BrowserEngine, LanguageServerData }
+pub fn invalidate_model() -> InvalidateModel { … }
+pub fn cleanup_plan(dirs: &ForgeDirs, options: &[CacheOption]) -> Vec<CleanupItem> { … }
+pub fn run_cleanup(plan: Vec<CleanupItem>) -> CleanupReport { … }
+pub fn schedule(dirs: &ForgeDirs, change: impl FnOnce(&mut PendingWork)) -> Result<(), String> { … }
+pub fn run_pending(dirs: &ForgeDirs) -> Option<PendingReport> { … }
+pub fn settings_groups() -> &'static [SettingsGroup] { … }
+pub fn group_of_key(key: &str) -> &'static str { … }
+pub fn export_settings(values, files, groups, version) -> Result<Vec<u8>, String> { … }
+pub fn read_archive(bytes: &[u8]) -> Result<SettingsArchive, String> { … }
+pub fn backup_settings(dirs: &ForgeDirs, now_secs: u64) -> Result<PathBuf, String> { … }
+```
+
+## Used by
+
+- IPC: `maintenance_invalidate_model`, `maintenance_invalidate_caches`, `maintenance_restart`,
+  `maintenance_rescan_indexes`, `settings_export_info`, `settings_export`,
+  `settings_import_preview`, `settings_import`, `settings_restore_defaults`
+  (`app/src-tauri/src/commands/maintenance.rs`).
+- UI: `app/ui/src/features/maintenance` (Invalidate Caches dialog, Repair IDE balloons,
+  Export / Import Settings chooser, Restore Default Settings).
+- Browser mode: the pure models (`caches`, `groups`) are built into `forge-wasm`
+  (`maintenance_invalidate_model`, `maintenance_settings_groups`).
+
+## Dependencies
+
+- Workspace crates: `forge-core` (feature `disk`)
+- External: `serde`, `serde_json`, `dirs`, `zip` (MIT, deflate only; feature `disk`)
+
+## Tests
+
+7 source files; 9 unit tests (dialog model, cleanup plan with every option in a temporary
+folder, the marker running once, settings groups, archive round trip and plans, foreign
+archives, UTC timestamps, backups and reset).
 
 
 ---
@@ -21127,7 +21395,12 @@ forwarding (`AllowStreamLocalForwarding`).
 
 ## Resetting Forge
 
-Quit Forge and delete its folders (see [File locations](docs/guide/reference/file-locations.md#clean-slate)).
+Search, completion or the Project view out of date? Try File | **Repair IDE** first, then File |
+**Invalidate Caches…**; see [Invalidate Caches and Repair IDE](docs/guide/user/repair-ide.md). File | Manage
+IDE Settings | **Restore Default Settings…** backs up your settings and starts with the defaults
+([more](docs/guide/user/settings-and-themes.md#restore-default-settings)).
+
+For a completely clean slate, quit Forge and delete its folders (see [File locations](docs/guide/reference/file-locations.md#clean-slate)).
 Project files in `.forge/` are not touched by this.
 
 

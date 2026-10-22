@@ -27,6 +27,51 @@ Plugins add types or replace bundled ones while they are active: in a Symfony pr
 The complete list of types, extensions and file names is in the
 [file types reference](../reference/file-types.md).
 
+## Changing file types
+
+Settings | Editor | **File Types** lists the recognized file types with their **File name
+patterns**, like PHPStorm:
+
+![File Types settings](../../screenshots/file-types-settings.png)
+
+- Select a type and add a pattern with **+** (`*.module`, `Procfile*`, `config/*.conf`), edit it
+  with the pencil or remove it with **−**. A pattern belongs to one type: adding one that
+  another type has moves it (the form tells you which type had it). Added patterns are bold,
+  removed bundled ones are struck through; adding a removed one again restores it.
+- **+** above the type list creates a **custom file type** (below); **−** and the pencil remove
+  and edit custom types.
+- **Ignored Files and Folders** lists names the Project view hides (`.git`, `__pycache__`,
+  `*.pyc`, `.DS_Store`, …; `*` and `?` are wildcards).
+- **Restore Defaults** in the header brings back the bundled patterns, removes custom types and
+  resets the ignored names.
+
+The changes apply to files opened afterwards, in the desktop app and in browser mode alike
+(the detection runs in Rust, `forge-filetypes`). They are stored in `fileTypes.associations`,
+`fileTypes.custom` and `fileTypes.ignoredFiles`.
+
+### Custom file types
+
+PHPStorm's "New File Type" dialog: a name, a description and the syntax highlighting of the
+type.
+
+![New File Type](../../screenshots/file-types-custom.png)
+
+| Option | Meaning |
+| --- | --- |
+| Line comment, Only at line start | starts a comment to the end of the line, e.g. `#` or `//` |
+| Block comment start / end | e.g. `/*` and `*/`; may span lines |
+| Hex prefix | e.g. `0x` for `0xFF` |
+| Number postfixes | characters allowed after a number, e.g. `lLfF` |
+| Support paired braces, brackets, parens | typing `{`, `[` or `(` inserts the closing one |
+| Support string escapes | `\"` does not end a string |
+| Ignore case | keywords match in any case |
+| Keywords 1–4 | one keyword per line; each list has its own color (keyword, built-in, type, constant). Keywords may contain other characters, e.g. `#define` |
+
+Strings in `"` and `'` and decimal numbers are always highlighted. Add the type's file name
+patterns on the right after creating it; `Ctrl+/` comments lines with its line comment.
+
+![A custom file type in the editor](../../screenshots/custom-file-type-editor.png)
+
 ## Highlighted languages
 
 About 70 languages are highlighted, among them PHP, Blade, Twig, Smarty, Latte, Jinja2,

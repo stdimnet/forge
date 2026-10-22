@@ -198,5 +198,10 @@ forwarding (`AllowStreamLocalForwarding`).
 
 ## Resetting Forge
 
-Quit Forge and delete its folders (see [File locations](reference/file-locations.md#clean-slate)).
+Search, completion or the Project view out of date? Try File | **Repair IDE** first, then File |
+**Invalidate Caches…**; see [Invalidate Caches and Repair IDE](user/repair-ide.md). File | Manage
+IDE Settings | **Restore Default Settings…** backs up your settings and starts with the defaults
+([more](user/settings-and-themes.md#restore-default-settings)).
+
+For a completely clean slate, quit Forge and delete its folders (see [File locations](reference/file-locations.md#clean-slate)).
 Project files in `.forge/` are not touched by this.

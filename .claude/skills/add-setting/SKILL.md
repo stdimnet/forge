@@ -5,7 +5,8 @@ description: Add a user/project setting to Forge and show it in the Settings dia
 
 # Add a setting
 
-Settings are layered: schema defaults < user (`<config dir>/forge/settings.toml`) < project
+Settings are layered: schema defaults < user (`<config dir>/forge/settings.toml`) < Settings for
+New Projects (`new-project-settings.toml`, project-level settings only) < project
 (`<project>/.forge/settings.toml`). Keys are dotted (`editor.fontSize`).
 
 ## 1. Declare it in the schema
