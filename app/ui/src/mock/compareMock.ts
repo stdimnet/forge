@@ -52,3 +52,9 @@ async function copy(from: string, to: string, dir: boolean): Promise<void> {
 }
 
 registerMock("compare_copy", ({ from, to, dir }) => copy(String(from), String(to), !!dir));
+
+// Screenshot scenarios create a second folder to compare (in the in-memory demo project).
+if (typeof window !== "undefined") {
+  (window as unknown as { __forgeMockWriteFile?: (path: string, contents: string) => Promise<void> }).__forgeMockWriteFile = (path, contents) =>
+    invoke<void>("fs_write_file", { path, contents });
+}

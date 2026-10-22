@@ -76,8 +76,8 @@
   padding-left: 12px;
 }
 .history-list {
-  flex: 1 1 60%;
-  min-height: 60px;
+  flex: 1 1 auto;
+  min-height: 72px;
 }
 .history-row {
   height: 24px;
@@ -114,8 +114,8 @@
   color: var(--accent);
 }
 .history-details {
-  flex: 0 1 40%;
-  min-height: 70px;
+  flex: 0 0 34%;
+  min-height: 0;
   overflow: auto;
   border-top: 1px solid var(--border);
   display: flex;

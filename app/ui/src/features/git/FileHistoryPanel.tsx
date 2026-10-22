@@ -152,9 +152,10 @@ function CommitMessage(props: { sha: string | null }) {
     (sha) => gitApi.commitDetails(sha),
   );
   return (
-    <Show when={details()} fallback={<div class="commit-empty">{props.sha ? "Loading…" : "Select a revision"}</div>}>
-      {(d) => {
-        const [subject, ...body] = d().message.split("\n");
+    <Show when={details()} keyed fallback={<div class="commit-empty">{props.sha ? "Loading…" : "Select a revision"}</div>}>
+      {(detail) => {
+        const d = () => detail;
+        const [subject, ...body] = detail.message.split("\n");
         return (
           <div class="log-message">
             <div class="log-subject">{subject}</div>

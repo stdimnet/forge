@@ -179,7 +179,7 @@ export function DirDiffView(props: { left: string; right: string }) {
               toggleDir(p.e.path);
             }}
           >
-            <Show when={p.e.dir}>{collapsed().has(p.e.path) ? <ChevronRight size={14} /> : <ChevronDown size={14} />}</Show>
+            <Show when={p.e.dir && present()}>{collapsed().has(p.e.path) ? <ChevronRight size={14} /> : <ChevronDown size={14} />}</Show>
           </span>
           <Show when={present()}>
             <FileIcon name={name} dir={p.e.dir} open={p.e.dir && !collapsed().has(p.e.path)} />

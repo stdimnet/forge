@@ -80,13 +80,11 @@ export async function compareWithClipboard(): Promise<void> {
   const view = activeView();
   const tab = activeTab();
   if (!view || !tab) return;
-  let clip: string | null;
-  try {
-    clip = await navigator.clipboard.readText();
-  } catch {
-    // The system clipboard may be off limits (browser permissions); Forge's last copy is the same text.
-    clip = lastCopy()?.text ?? null;
-  }
+  // The system clipboard may be off limits or wait for a permission prompt (browsers); Forge's
+  // last copy is the same text then.
+  const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 1500));
+  const system = navigator.clipboard?.readText().catch(() => null) ?? Promise.resolve(null);
+  const clip = (await Promise.race([system, timeout])) ?? lastCopy()?.text ?? null;
   if (clip === null) return void showBalloon("Clipboard is not available", "Copy some text first.");
   const sel = view.state.selection.main;
   const name = nameOf(tab.path);
