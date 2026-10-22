@@ -154,6 +154,11 @@
   font-family: var(--font-mono);
   font-size: var(--fs-small);
 }
+.gd-chip.plain,
+.gd-option-flag.plain {
+  font-family: var(--font-ui);
+  font-size: inherit;
+}
 .gd-option-desc {
   overflow: hidden;
   color: var(--fg-muted);
@@ -161,7 +166,11 @@
   white-space: nowrap;
 }
 .gd-option.disabled .gd-option-flag,
-.gd-option.disabled .gd-option-desc {
+.gd-option.disabled .gd-option-flag.plain {
+  font-family: var(--font-ui);
+  font-size: inherit;
+}
+.gd-option-desc {
   color: var(--fg-faint);
 }
 
@@ -171,8 +180,8 @@
   grid-template-columns: 1fr max-content;
   gap: 8px;
 }
-.gd-list {
-  height: 180px;
+.gd .gd-list {
+  height: 140px;
 }
 .gd-side-buttons {
   display: grid;
@@ -224,7 +233,7 @@
 .gd-file-diff {
   margin-left: auto;
 }
-.gd-file-checks {
+.gd .gd-file-checks {
   height: 200px;
 }
 
@@ -298,8 +307,8 @@
 .gd-table tbody {
   display: table-row-group;
 }
-.gd-table-box .gd-table {
-  min-height: 140px;
+.gd-table-box {
+  min-height: 160px;
 }
 
 /* Commit tool window: Stash and Shelf tabs */

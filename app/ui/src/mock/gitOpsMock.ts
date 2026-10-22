@@ -19,6 +19,17 @@ const DAY = 86400;
 /** The rebase in progress, if any (merges are `merging.theirs`). */
 let rebasing: { branch: string; onto: string } | null = null;
 
+/** `rev`, `rev~n` and `rev^`: follow first parents in the demo history. */
+function resolve(rev: string): string | undefined {
+  const m = /^(.*?)((?:[~^]\d*)*)$/.exec(rev.trim());
+  let sha = mockRepo.resolveRev(m?.[1] || "HEAD");
+  for (const step of (m?.[2] ?? "").match(/[~^]\d*/g) ?? []) {
+    const n = step.length > 1 ? Number(step.slice(1)) : 1;
+    for (let i = 0; i < (step[0] === "~" ? n : 1) && sha; i++) sha = mockRepo.bySha.get(sha)?.parents[step[0] === "^" ? n - 1 : 0];
+  }
+  return sha;
+}
+
 const isConflictRev = (rev: string) => rev === CONFLICT_BRANCH || rev === `origin/${CONFLICT_BRANCH}`;
 
 async function startRebaseConflict(onto: string): Promise<never> {
@@ -95,7 +106,7 @@ registerMock("git_operation_action", async ({ action }) => {
 });
 
 registerMock("git_reset_head", async ({ rev, mode }) => {
-  const sha = mockRepo.resolveRev(String(rev || "HEAD"));
+  const sha = resolve(String(rev || "HEAD"));
   if (!sha) throw new Error(`git reset: ambiguous argument '${rev}': unknown revision`);
   state.head = sha;
   if (state.current) state.local.set(state.current, sha);
@@ -109,7 +120,7 @@ registerMock("git_tag_with", async ({ options }) => {
   await invoke("git_create_tag", { name: o.name.trim(), rev: o.commit || null, message: null });
 });
 
-registerMock("git_resolve_commit", ({ rev }) => mockRepo.resolveRev(String(rev)) ?? null);
+registerMock("git_resolve_commit", ({ rev }) => resolve(String(rev)) ?? null);
 
 registerMock("git_edit_remote", ({ oldName, name, url }) => {
   const r = state.remotes.find((x) => x.name === oldName);
@@ -125,9 +136,9 @@ registerMock("git_edit_remote", ({ oldName, name, url }) => {
 // The demo stash changes two files (the generic stash mock keeps only the stashed texts).
 const demoStash = state.stashes[0];
 if (demoStash && !Object.keys(demoStash.files).length) {
-  const checkout = head["app/Services/Checkout.php"];
-  if (checkout !== undefined)
-    demoStash.files["app/Services/Checkout.php"] = checkout.replace(/\n}\s*$/, "\n\n    public function invoicePdf(): string\n    {\n        return view('invoices.pdf')->render();\n    }\n}\n");
+  const order = head["app/Models/Order.php"];
+  if (order !== undefined)
+    demoStash.files["app/Models/Order.php"] = order.replace(/\n}\s*$/, "\n\n    public function invoicePdf(): string\n    {\n        return view('invoices.pdf', ['order' => $this])->render();\n    }\n}\n");
   demoStash.files["resources/views/invoices/pdf.blade.php"] = "<h1>Invoice {{ $order->number }}</h1>\n<table class=\"items\"></table>\n";
 }
 

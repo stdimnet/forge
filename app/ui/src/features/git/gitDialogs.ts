@@ -12,7 +12,6 @@ import { opsApi, type MergeOptions, type PullOptions, type RebaseOptions, type R
 import { notify, reloadOpenFiles, runGit, status } from "./store";
 import { runMerging } from "./conflicts";
 import { setDiffRequest } from "./overlays";
-import { vcsTargets } from "./context";
 import { refreshOperation } from "./operation";
 
 export type GitDialog =
@@ -180,13 +179,11 @@ export function manageRemotes(): void {
 
 // ---- shelf -----------------------------------------------------------------------------------
 
-/** Shelve Changes… (ChangesView.Shelve): the changed files below the targets, or all changes. */
+/** Shelve Changes… (ChangesView.Shelve): every change, or the given files preselected. */
 export function shelveDialog(paths?: string[]): void {
   const changed = (status()?.entries ?? []).filter((e) => !e.conflict && e.worktree !== "ignored").map((e) => e.path);
   if (!changed.length) return notify("info", "No changes to shelve");
-  const targets = paths ?? vcsTargets().map((t) => t.path);
-  const under = (p: string) => targets.some((t) => t === "" || p === t || p.startsWith(`${t}/`));
-  const selected = targets.length ? changed.filter(under) : [];
+  const selected = paths?.filter((p) => changed.includes(p)) ?? [];
   open({ kind: "shelve", paths: selected.length ? selected : changed });
 }
 

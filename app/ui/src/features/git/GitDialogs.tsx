@@ -126,6 +126,8 @@ interface OptionDef {
   description: string;
   /** Keys this option cannot be combined with. */
   conflicts?: string[];
+  /** A choice in words rather than a git flag. */
+  plain?: boolean;
 }
 
 function OptionsBar(props: { options: OptionDef[]; selected: Set<string>; onChange: (s: Set<string>) => void }) {
@@ -143,7 +145,7 @@ function OptionsBar(props: { options: OptionDef[]; selected: Set<string>; onChan
       <div class="gd-chips">
         <For each={props.options.filter((o) => props.selected.has(o.key))}>
           {(o) => (
-            <span class="gd-chip">
+            <span class="gd-chip" classList={{ plain: o.plain }}>
               {o.flag}
               <button class="gd-chip-x" title={`Remove ${o.flag}`} onClick={() => toggle(o.key)}>
                 <X size={11} />
@@ -161,7 +163,7 @@ function OptionsBar(props: { options: OptionDef[]; selected: Set<string>; onChan
             {(o) => (
               <label class="gd-option" classList={{ disabled: blocked(o) }} role="menuitemcheckbox" aria-checked={props.selected.has(o.key)}>
                 <input type="checkbox" checked={props.selected.has(o.key)} disabled={blocked(o)} onChange={() => toggle(o.key)} />
-                <span class="gd-option-flag">{o.flag}</span>
+                <span class="gd-option-flag" classList={{ plain: o.plain }}>{o.flag}</span>
                 <span class="gd-option-desc">{o.description}</span>
               </label>
             )}
@@ -462,7 +464,7 @@ function MergeDialog() {
 
 const REBASE_OPTIONS: OptionDef[] = [
   { key: "onto", flag: "--onto", description: "Rebase the commits after a base revision onto a new base", conflicts: ["root"] },
-  { key: "branch", flag: "Select another branch to rebase", description: "Rebase a branch other than the current one" },
+  { key: "branch", flag: "Select another branch to rebase", description: "Rebase a branch other than the current one", plain: true },
   { key: "rebaseMerges", flag: "--rebase-merges", description: "Recreate the merge commits instead of flattening the history" },
   { key: "keepEmpty", flag: "--keep-empty", description: "Keep the commits that do not change anything" },
   { key: "root", flag: "--root", description: "Rebase all reachable commits up to the root" },

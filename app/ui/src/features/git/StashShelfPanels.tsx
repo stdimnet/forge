@@ -10,7 +10,7 @@ import { askConfirm, askName } from "@/features/contextMenu/dialogs";
 import { gitApi, type ChangedFile, type StashEntry } from "./api";
 import { opsApi, type ShelvedChangelist } from "./opsApi";
 import { repoAvailable, revision, runGit, notify } from "./store";
-import { timeAgo, logDate } from "./format";
+import { logDate, shortDate, timeAgo } from "./format";
 import { CommitPanel } from "./CommitPanel";
 import { applyStash, dropStash, showShelfDiff, showStashDiff, unshelve, unshelveDialog } from "./gitDialogs";
 
@@ -41,9 +41,9 @@ const dirOf = (p: string) => (p.includes("/") ? p.slice(0, p.lastIndexOf("/")) :
 const statusClass = (s: string) => (s === "A" || s === "added" ? "added" : s === "D" || s === "deleted" ? "deleted" : "modified");
 
 const tabs = (): { id: CommitTab; title: string }[] => [
-  { id: "commit", title: "Commit" },
-  ...(stashes().length || commitTab() === "stash" ? [{ id: "stash" as const, title: "Stash" }] : []),
+  { id: "commit", title: "Changes" },
   ...(shelf().length || commitTab() === "shelf" ? [{ id: "shelf" as const, title: "Shelf" }] : []),
+  ...(stashes().length || commitTab() === "stash" ? [{ id: "stash" as const, title: "Stash" }] : []),
 ];
 
 /** Header tabs of the Commit tool window. */
@@ -300,7 +300,7 @@ function ShelfPanel() {
                   <Chevron open={shelfOpen().has(cl.id)} />
                 </span>
                 <span class="tree-label">{cl.name}</span>
-                <span class="tree-hint">{logDate(cl.date)}</span>
+                <span class="tree-hint">{shortDate(cl.date)}</span>
               </div>
               <Show when={shelfOpen().has(cl.id)}>
                 <For each={cl.files}>
