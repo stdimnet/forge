@@ -59,7 +59,7 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Implementation(s) | `GotoImplementation` | `Ctrl+Alt+B` | `Cmd+Alt+B` | yes |
 | Type Declaration | `GotoTypeDeclaration` | `Ctrl+Shift+B` | `Cmd+Shift+B` | yes |
 | Super Method | `GotoSuperMethod` | `Ctrl+U` | `Cmd+U` | yes |
-| Test | `GotoTest` | `Ctrl+Shift+T` | `Cmd+Shift+T` | — |
+| Test | `GotoTest` | `Ctrl+Shift+T` | `Cmd+Shift+T` | yes |
 | Related Symbol… | `GotoRelated` | `Ctrl+Alt+Home` | `Ctrl+Cmd+Up` | yes |
 | File Structure | `FileStructurePopup` | `Ctrl+F12` | `Cmd+F12` | yes |
 | Type Hierarchy | `TypeHierarchy` | `Ctrl+H` | `Ctrl+H` | yes |

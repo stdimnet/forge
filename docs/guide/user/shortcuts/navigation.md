@@ -45,6 +45,7 @@ Jumping to declarations, implementations, super methods, lines, problems, recent
 | [File Structure](#file-structure) | `Ctrl+F12` | `Cmd+F12` |
 | [Jump to Navigation Bar](#jump-to-navigation-bar) | `Alt+Home` | `Cmd+Up` |
 | [Related Symbol](#related-symbol) | `Ctrl+Alt+Home` | `Ctrl+Cmd+Up` |
+| [Test](#test) | `Ctrl+Shift+T` | `Cmd+Shift+T` |
 | [Next Occurrence](#next-occurrence) | `Ctrl+Alt+Down` | `Cmd+Alt+Down` |
 | [Previous Occurrence](#previous-occurrence) | `Ctrl+Alt+Up` | `Cmd+Alt+Up` |
 | [Toggle Bookmark](#toggle-bookmark) | `F11` | `F3` |
@@ -431,6 +432,18 @@ Jumps to the files that belong to the current one: a class's tests, a controller
 ![Related Symbol](../../../screenshots/related-symbol.png)
 
 More: [File Structure, Navigation Bar and Related Symbol](../../user/navigation-bar-and-file-structure.md#related-symbol)
+
+## Test
+
+**Shortcut:** `Ctrl+Shift+T` · macOS `Cmd+Shift+T` · action id `GotoTest`
+
+Jumps from a class, component or module to its tests and from a test to its subject. One result opens directly; several open the Choose Test popup. **Create New Test...** at the top of the popup opens the Create New PHP Test / Create New Test dialog (PHPUnit, Pest, Vitest, Jest).
+
+**Menu:** Navigate | Test
+
+![Go to Test](../../../screenshots/go-to-test-chooser.png)
+
+More: [Go to Test and Create Test](../../user/go-to-test.md)
 
 ## Next Occurrence
 
