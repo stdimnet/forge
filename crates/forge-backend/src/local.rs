@@ -73,14 +73,14 @@ impl LocalBackend {
     #[cfg(feature = "search")]
     pub fn with_search_index(mut self, options: IndexOptions) -> Self {
         let root = self.root().to_path_buf();
+        let excludes = self.workspace.excludes().clone();
         let slot = Arc::new(OnceLock::new());
         let filler = slot.clone();
         std::thread::spawn(move || {
-            let service = Arc::new(SearchService::open_with(
-                &root,
-                SearchService::cache_path(&root),
-                options,
-            ));
+            let service = Arc::new(
+                SearchService::open_with(&root, SearchService::cache_path(&root), options)
+                    .with_excludes(excludes),
+            );
             let _ = filler.set(service.clone());
             service.refresh();
         });
@@ -273,6 +273,19 @@ impl Backend for LocalBackend {
         Ok(Vec::new())
     }
 
+    fn set_structure(&self, config: forge_core::excludes::StructureConfig) -> Result<bool> {
+        let changed = self.workspace.excludes().set(config);
+        #[cfg(feature = "search")]
+        if changed {
+            if let Some(search) = self.service().cloned() {
+                std::thread::spawn(move || {
+                    search.refresh();
+                });
+            }
+        }
+        Ok(changed)
+    }
+
     fn search_status(&self) -> Result<SearchStatus> {
         #[cfg(feature = "search")]
         if let Some(slot) = &self.search {
@@ -335,14 +348,19 @@ impl Backend for LocalBackend {
         let php = self.php.clone();
         #[cfg(feature = "search")]
         let search = self.search.clone();
-        let watcher = ProjectWatcher::start(self.root(), move |changes: FsChanges| {
-            php.apply_fs_changes(&changes);
-            #[cfg(feature = "search")]
-            if let Some(search) = search.as_ref().and_then(|slot| slot.get()) {
-                search.apply_changes(&changes);
-            }
-            sink(changes);
-        })?;
+        let excludes = self.workspace.excludes().clone();
+        let watcher = ProjectWatcher::start_with_excludes(
+            self.root(),
+            excludes,
+            move |changes: FsChanges| {
+                php.apply_fs_changes(&changes);
+                #[cfg(feature = "search")]
+                if let Some(search) = search.as_ref().and_then(|slot| slot.get()) {
+                    search.apply_changes(&changes);
+                }
+                sink(changes);
+            },
+        )?;
         Ok(Box::new(watcher))
     }
 
@@ -458,6 +476,7 @@ mod tests {
             path: path.to_string(),
             kind,
             ignored,
+            excluded: false,
         }
     }
 
@@ -496,6 +515,22 @@ mod tests {
             .map(|e| e.name)
             .collect();
         assert_eq!(names, vec!["src", "index.php"]);
+        // Excluded folders are flagged in listings and skipped by searches.
+        backend
+            .write_file("build/A.php", "<?php class A {}")
+            .unwrap();
+        assert!(backend
+            .set_structure(forge_core::excludes::StructureConfig {
+                folders: vec![forge_scopes::structure::FolderMark {
+                    path: "build".into(),
+                    kind: forge_scopes::structure::FolderKind::Excluded,
+                }],
+                ..Default::default()
+            })
+            .unwrap());
+        let build = backend.list_dir("").unwrap();
+        assert!(build.iter().any(|e| e.name == "build" && e.excluded));
+        assert_eq!(backend.find_files("A.php", 10, false).unwrap().len(), 1);
         assert_eq!(backend.read_file("src/A.php").unwrap(), "<?php class A {}");
         assert!(backend.resolve("../x").is_err());
         let found = backend.find_files("A", 10, false).unwrap();

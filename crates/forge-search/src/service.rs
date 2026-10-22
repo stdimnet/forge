@@ -15,8 +15,9 @@ use thread_priority::{set_current_thread_priority, ThreadPriority};
 
 use rayon::prelude::*;
 
-use crate::index::{self, EXCLUDED_DIRS};
+use crate::index;
 use crate::lazy::{group_rows, FoundText, LazyFile, Rows};
+use forge_core::Excludes;
 
 const WATCH_DEBOUNCE: Duration = Duration::from_millis(300);
 const SAVE_INTERVAL: Duration = Duration::from_secs(60);
@@ -58,6 +59,9 @@ pub struct SearchService {
     /// Unix milliseconds when the last refresh finished; 0 before the first one.
     last_refresh_ms: AtomicU64,
     watcher: Mutex<Option<RecommendedWatcher>>,
+    /// Excluded paths (Settings | Directories); [`SearchService::refresh`] drops what they
+    /// cover.
+    excludes: Excludes,
 }
 
 impl SearchService {
@@ -100,7 +104,14 @@ impl SearchService {
             ready: AtomicBool::new(ready),
             last_refresh_ms: AtomicU64::new(0),
             watcher: Mutex::new(None),
+            excludes: Excludes::default(),
         }
+    }
+
+    /// Follow the project's excluded paths (a [`forge_core::Workspace`]'s handle).
+    pub fn with_excludes(mut self, excludes: Excludes) -> Self {
+        self.excludes = excludes;
+        self
     }
 
     #[cfg(test)]
@@ -184,7 +195,7 @@ impl SearchService {
     }
 
     fn refresh_scope_on_pool(&self, scope: &Scope) -> RefreshStats {
-        let disk = index::scan(&self.root, scope);
+        let disk = index::scan(&self.root, scope, &self.excludes.get());
         let plan = self
             .index
             .read()
@@ -219,7 +230,7 @@ impl SearchService {
                 continue;
             };
             let rel = rel.to_string_lossy().replace('\\', "/");
-            let excluded = rel.split('/').any(|c| EXCLUDED_DIRS.contains(&c));
+            let excluded = self.excludes.get().excludes(&rel, path.is_dir());
             if rel.is_empty() || excluded {
                 continue;
             }

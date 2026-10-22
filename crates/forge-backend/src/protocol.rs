@@ -36,7 +36,7 @@ use crate::web::WebCall;
 use crate::TerminalSpec;
 
 /// Bumped on incompatible protocol changes; client and agent must agree.
-pub const PROTOCOL_VERSION: u32 = 10;
+pub const PROTOCOL_VERSION: u32 = 11;
 
 /// Frames larger than this are refused (protects both sides from garbage input).
 pub const MAX_FRAME: usize = 64 * 1024 * 1024;
@@ -221,6 +221,9 @@ pub enum Call {
     },
     /// State of the project's search index -> `SearchStatus`
     SearchStatus,
+    /// Excluded folders and patterns of the project (Settings | Directories) -> `bool`
+    /// (changed; protocol 11)
+    SetStructure(forge_core::excludes::StructureConfig),
     /// npm tool window and React / Vue / Angular analysis on the host -> the call's reply
     /// type (see [`WebCall`])
     Web(WebCall),
@@ -690,10 +693,11 @@ mod tests {
             path: "vendor".into(),
             kind: FileKind::Dir,
             ignored: true,
+            excluded: true,
         }];
         let back: Vec<FileEntry> = decode_value(&encode_value(&entries).unwrap()).unwrap();
         assert_eq!(back[0].path, "vendor");
-        assert!(back[0].ignored);
+        assert!(back[0].ignored && back[0].excluded);
         let unit: () = decode_value(&encode_value(&()).unwrap()).unwrap();
         assert_eq!(unit, ());
     }

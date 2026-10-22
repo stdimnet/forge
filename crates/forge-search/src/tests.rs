@@ -64,6 +64,33 @@ fn literal_search_is_case_insensitive_by_default_and_skips_excluded_files() {
 }
 
 #[test]
+fn excluded_folders_and_patterns_leave_the_index_on_refresh() {
+    use forge_core::excludes::{FolderKind, FolderMark, StructureConfig};
+    let dir = TempDir::new().unwrap();
+    let r = dir.path();
+    write(r, "src/User.php", "<?php class UserRepository {}");
+    write(r, "web/app.js", "new UserRepository();");
+    write(r, "web/app.min.js", "new UserRepository();");
+    let excludes = forge_core::Excludes::default();
+    let svc = SearchService::open(r, None).with_excludes(excludes.clone());
+    svc.refresh();
+    assert_eq!(svc.file_count(), 3);
+    excludes.set(StructureConfig {
+        folders: vec![FolderMark {
+            path: "src".into(),
+            kind: FolderKind::Excluded,
+        }],
+        exclude_patterns: "*.min.js".into(),
+    });
+    svc.refresh();
+    assert_eq!(paths(&svc, &q("userrepository")), ["web/app.js"]);
+    // The watcher's changes inside an excluded folder are dropped too.
+    write(r, "src/New.php", "<?php class UserRepository {}");
+    svc.update_paths(&[r.join("src/New.php")]);
+    assert_eq!(svc.file_count(), 1);
+}
+
+#[test]
 fn case_sensitive_whole_words_and_positions() {
     let (_d, svc) = project();
     let mut query = q("UserRepository");
