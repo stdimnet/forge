@@ -40,6 +40,7 @@ import "./liveTemplatesMock";
 import "./injectionsMock";
 import "./emmetMock";
 import "./spellMock";
+import "./jsonSchemaMock";
 import "./servicesMock";
 import "./webMock";
 import "./saveActionsMock";

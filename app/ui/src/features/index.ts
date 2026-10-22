@@ -55,3 +55,4 @@ import "./images";
 import "./csv";
 import "./codeStructure";
 import "./spelling";
+import "./jsonSchema";
