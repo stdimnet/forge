@@ -59,7 +59,8 @@ index falls back to `<project>/.forge/cache/php-index.json`.
 
 | Path | Content |
 | --- | --- |
-| `layouts/<project>-<hash>.json` | the tool window layout and open editor tabs of each project |
+| `layouts/<project>-<hash>.json` | the tool window layout (placements, open tool windows, sizes) and open editor tabs of each project |
+| `layouts/_default.json` | the layout stored with Window \| Layouts \| Store Current Layout as Default |
 
 ## In the project — `<project>/.forge/`
 

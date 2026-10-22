@@ -1,8 +1,9 @@
 //! State Forge keeps per project outside the project folder:
 //!
-//! - the window layout (open tool windows, their sizes and tabs, open editor tabs) in Forge's
-//!   state dir (`<state dir>/forge/layouts/<project key>.json`; the state dir is
-//!   `$XDG_STATE_HOME` on Linux and the local data dir elsewhere);
+//! - the window layout (open tool windows, where each tool window sits, their sizes and tabs,
+//!   open editor tabs) in Forge's state dir (`<state dir>/forge/layouts/<project key>.json`;
+//!   the state dir is `$XDG_STATE_HOME` on Linux and the local data dir elsewhere), plus the
+//!   layout stored with Window | Store Current Layout as Default (`layouts/_default.json`);
 //! - the AI chat history in the user data dir
 //!   (`<data dir>/forge/chat-history/<project key>/<id>.json`).
 //!
@@ -55,16 +56,50 @@ const SIDE_SIZE: (u32, u32) = (180, 900);
 const BOTTOM_SIZE: (u32, u32) = (100, 700);
 /// Most editor tabs restored.
 const MAX_OPEN_FILES: usize = 50;
+/// Most tool window placements kept.
+const MAX_PLACEMENTS: usize = 200;
 const ANCHORS: [&str; 3] = ["left", "right", "bottom"];
+/// Where a tool window can sit, like PHPStorm's New UI: the primary and the split ("secondary")
+/// group of each anchor. `left`/`leftSplit` are Left Top/Left Bottom, `right`/`rightSplit` Right
+/// Top/Right Bottom, `bottom`/`bottomSplit` Bottom Left/Bottom Right.
+pub const SLOTS: [&str; 6] = [
+    "left",
+    "leftSplit",
+    "right",
+    "rightSplit",
+    "bottom",
+    "bottomSplit",
+];
+/// Share of the first tool window when an area shows two (per mille).
+const SPLIT_RATIO: (u32, u32) = (100, 900);
+
+/// Where the user put a tool window (the registration supplies the default).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ToolWindowPlacement {
+    /// One of [`SLOTS`].
+    pub slot: String,
+    /// Position inside its stripe group (lower first).
+    #[serde(default)]
+    pub order: u32,
+    /// Removed from the sidebar: no stripe button until the window is opened another way.
+    #[serde(default)]
+    pub removed: bool,
+}
 
 /// The workbench layout of one project.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct ProjectLayout {
-    /// Visible tool window per anchor (`left`, `right`, `bottom`); `None` = side hidden.
+    /// Visible tool window per slot (see [`SLOTS`]); `None` = nothing open there.
     pub active: BTreeMap<String, Option<String>>,
     /// Size of each anchor's area in pixels.
     pub sizes: BTreeMap<String, u32>,
+    /// Share of the first tool window per anchor when it shows two (per mille, 100–900).
+    pub splits: BTreeMap<String, u32>,
+    /// Tool windows the user moved, reordered or removed from the sidebar (id → placement).
+    /// Layouts saved before placements existed have none: every window uses its default.
+    pub tool_windows: BTreeMap<String, ToolWindowPlacement>,
     /// Selected tab inside tool windows that have tabs (tool window id → tab id).
     pub tabs: BTreeMap<String, String>,
     /// Open editor tabs (workspace-relative paths) in order.
@@ -74,11 +109,20 @@ pub struct ProjectLayout {
 }
 
 impl ProjectLayout {
-    /// Drop what cannot be restored: unknown anchors, out-of-range sizes, absolute paths or
-    /// `..` escapes, duplicate tabs.
+    /// Drop what cannot be restored: unknown anchors and slots, out-of-range sizes and split
+    /// ratios, placements of odd ids, absolute paths or `..` escapes, duplicate tabs.
     pub fn sanitize(&mut self) {
-        self.active
+        self.active.retain(|slot, _| SLOTS.contains(&slot.as_str()));
+        self.splits
             .retain(|anchor, _| ANCHORS.contains(&anchor.as_str()));
+        for ratio in self.splits.values_mut() {
+            *ratio = (*ratio).clamp(SPLIT_RATIO.0, SPLIT_RATIO.1);
+        }
+        self.tool_windows
+            .retain(|id, p| !id.is_empty() && id.len() <= 128 && SLOTS.contains(&p.slot.as_str()));
+        while self.tool_windows.len() > MAX_PLACEMENTS {
+            self.tool_windows.pop_last();
+        }
         self.sizes
             .retain(|anchor, _| ANCHORS.contains(&anchor.as_str()));
         for (anchor, size) in self.sizes.iter_mut() {
@@ -130,6 +174,32 @@ pub fn save_layout(dir: &Path, root: &str, layout: &ProjectLayout) -> Result<()>
     let mut layout = layout.clone();
     layout.sanitize();
     write_json(&dir.join(format!("{}.json", project_key(root))), &layout)
+}
+
+/// The file of the default layout. Project keys always end in a hex hash, so the name never
+/// clashes with a project's layout.
+fn default_layout_file(dir: &Path) -> PathBuf {
+    dir.join("_default.json")
+}
+
+/// Only the tool window part of a layout counts as the default: placements, open tool
+/// windows, sizes and split ratios, but no editor tabs or tool window tabs.
+fn window_part(mut layout: ProjectLayout) -> ProjectLayout {
+    layout.sanitize();
+    layout.tabs.clear();
+    layout.open_files.clear();
+    layout.active_file = None;
+    layout
+}
+
+/// The layout stored with Window | Store Current Layout as Default, for every project.
+pub fn load_default_layout(dir: &Path) -> Option<ProjectLayout> {
+    let text = fs::read_to_string(default_layout_file(dir)).ok()?;
+    Some(window_part(serde_json::from_str(&text).ok()?))
+}
+
+pub fn save_default_layout(dir: &Path, layout: &ProjectLayout) -> Result<()> {
+    write_json(&default_layout_file(dir), &window_part(layout.clone()))
 }
 
 // ---- Chat history --------------------------------------------------------------------
@@ -322,6 +392,98 @@ mod tests {
         // The JSON uses camelCase keys.
         let text = serde_json::to_string(&back).unwrap();
         assert!(text.contains("\"openFiles\""), "{text}");
+    }
+
+    #[test]
+    fn tool_window_placements_and_splits_are_sanitized() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut layout = ProjectLayout::default();
+        layout
+            .active
+            .insert("leftSplit".into(), Some("structure".into()));
+        layout
+            .active
+            .insert("bottomSplit".into(), Some("terminal".into()));
+        layout.active.insert("top".into(), Some("x".into()));
+        layout.splits.insert("left".into(), 20);
+        layout.splits.insert("bottom".into(), 600);
+        layout.splits.insert("leftSplit".into(), 500);
+        let place = |slot: &str, order, removed| ToolWindowPlacement {
+            slot: slot.into(),
+            order,
+            removed,
+        };
+        layout
+            .tool_windows
+            .insert("terminal".into(), place("right", 20, false));
+        layout
+            .tool_windows
+            .insert("todo".into(), place("bottom", 0, true));
+        layout
+            .tool_windows
+            .insert("odd".into(), place("middle", 0, false));
+        layout
+            .tool_windows
+            .insert(String::new(), place("left", 0, false));
+        save_layout(dir.path(), "/p", &layout).unwrap();
+        let back = load_layout(dir.path(), "/p").unwrap();
+        assert_eq!(
+            back.active.keys().collect::<Vec<_>>(),
+            vec!["bottomSplit", "leftSplit"]
+        );
+        assert_eq!(back.splits.len(), 2);
+        assert_eq!(back.splits["left"], 100);
+        assert_eq!(back.splits["bottom"], 600);
+        assert_eq!(back.tool_windows.len(), 2);
+        assert_eq!(back.tool_windows["terminal"], place("right", 20, false));
+        assert!(back.tool_windows["todo"].removed);
+        let text = serde_json::to_string(&back).unwrap();
+        assert!(text.contains("\"toolWindows\""), "{text}");
+    }
+
+    #[test]
+    fn layouts_saved_before_placements_still_load() {
+        let dir = tempfile::tempdir().unwrap();
+        let old = r#"{"active":{"left":"project","bottom":null},"sizes":{"left":320},
+            "tabs":{},"openFiles":["a.php"],"activeFile":"a.php"}"#;
+        fs::write(dir.path().join(format!("{}.json", project_key("/p"))), old).unwrap();
+        let back = load_layout(dir.path(), "/p").unwrap();
+        assert_eq!(back.active["left"].as_deref(), Some("project"));
+        assert_eq!(back.sizes["left"], 320);
+        assert!(back.tool_windows.is_empty());
+        assert!(back.splits.is_empty());
+        // A placement without order or removed flag uses the defaults.
+        let p: ToolWindowPlacement = serde_json::from_str(r#"{"slot":"right"}"#).unwrap();
+        assert_eq!((p.order, p.removed), (0, false));
+    }
+
+    #[test]
+    fn default_layout_keeps_only_the_tool_windows() {
+        let dir = tempfile::tempdir().unwrap();
+        assert_eq!(load_default_layout(dir.path()), None);
+        let mut layout = ProjectLayout::default();
+        layout
+            .active
+            .insert("right".into(), Some("terminal".into()));
+        layout.tool_windows.insert(
+            "terminal".into(),
+            ToolWindowPlacement {
+                slot: "right".into(),
+                order: 5,
+                removed: false,
+            },
+        );
+        layout.tabs.insert("git".into(), "log".into());
+        layout.open_files = vec!["a.php".into()];
+        layout.active_file = Some("a.php".into());
+        save_default_layout(dir.path(), &layout).unwrap();
+        let back = load_default_layout(dir.path()).unwrap();
+        assert_eq!(back.active["right"].as_deref(), Some("terminal"));
+        assert_eq!(back.tool_windows["terminal"].order, 5);
+        assert!(back.tabs.is_empty() && back.open_files.is_empty());
+        assert_eq!(back.active_file, None);
+        // Not mistaken for a project's layout.
+        assert_eq!(load_layout(dir.path(), "_default"), None);
     }
 
     fn conv(prompt: &str) -> Value {

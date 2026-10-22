@@ -95,7 +95,7 @@ export function showTargetHistory(): void {
   const [target] = vcsTargets();
   if (!target) return;
   setLogPathFilter(target.path || null);
-  showToolWindow("bottom", "git");
+  showToolWindow("git");
 }
 
 /** Rollback… (ChangesView.Rollback, Ctrl+Alt+Z): discard the tracked changes below the targets. */

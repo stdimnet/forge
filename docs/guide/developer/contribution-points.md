@@ -63,8 +63,9 @@ registerToolWindow({
   id: "services",            // same id as a placeholder replaces it
   title: "Services",
   icon: Container,           // lucide-solid
-  anchor: "bottom",          // "left" | "right" | "bottom"
-  order: 30,                 // position in the stripe
+  anchor: "bottom",          // default place: "left" | "right" | "bottom"
+  split: false,              // optional: start in the split group (Left Bottom, Right Bottom, Bottom Right)
+  order: 30,                 // default position in the stripe group
   shortcut: "Alt+8",         // tooltip only; the binding comes from the keymap
   component: ServicesView,
   actions: () => <HeaderButtons />,   // optional header buttons
@@ -72,6 +73,11 @@ registerToolWindow({
   when: () => usesFramework("docker"), // optional: only for matching projects
 });
 ```
+
+Users can move every tool window to another place, reorder it or remove it from the sidebar
+(saved per project), so never assume a window sits at its `anchor`: open and check it with
+`showToolWindow(id)`, `toggleToolWindow(id)`, `hideToolWindow(id)` and `isToolWindowVisible(id)`
+from `state/layout.ts`.
 
 Recipe: [`add-tool-window`](../../../.claude/skills/add-tool-window/SKILL.md).
 
@@ -81,7 +87,7 @@ Recipe: [`add-tool-window`](../../../.claude/skills/add-tool-window/SKILL.md).
 import { registerCommand } from "@/state/commands";
 
 registerCommand({ id: "ActivateStructureToolWindow", title: "Structure", category: "View",
-  run: () => toggleToolWindow("left", "structure") });
+  run: () => toggleToolWindow("structure") });
 ```
 
 Use a PHPStorm action id when one exists: the command then gets PHPStorm's default shortcut and

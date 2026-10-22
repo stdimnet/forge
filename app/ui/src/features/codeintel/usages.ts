@@ -120,7 +120,7 @@ export { searchTabOpen };
 export function showSearchTab(): void {
   setSearchTabOpen(true);
   setActiveFindTab(SEARCH_TAB);
-  showToolWindow("bottom", "find");
+  showToolWindow("find");
 }
 
 let nextTab = 1;
@@ -138,7 +138,7 @@ export function openInFindWindow(answer: UsagesAnswer, opts: FindTabOptions = {}
   setFindTabs((tabs) => [...tabs.slice(-9), tab]);
   setActiveFindTab(tab.id);
   closeUsagesPopup();
-  showToolWindow("bottom", "find");
+  showToolWindow("find");
 }
 
 export function closeFindTab(id: number): void {

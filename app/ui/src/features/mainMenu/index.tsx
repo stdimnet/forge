@@ -11,7 +11,7 @@ import { isTauri } from "@/ipc";
 import { workspaceApi } from "@/ipc/workspace";
 import { runAction } from "@/keymap";
 import { registerCommand } from "@/state/commands";
-import { layout, showToolWindow, toggleToolWindow } from "@/state/layout";
+import { toggleToolWindow } from "@/state/layout";
 import { getSetting, saveSetting } from "@/state/settings";
 import { openWorkspace, workspace } from "@/state/workspace";
 import { toolWindows } from "@/features/registry";
@@ -87,8 +87,7 @@ registerMainMenuDynamic("toolWindows", () =>
         action,
         run: () => {
           if (action) void runAction(action);
-          else if (layout.active[tw.anchor] === tw.id) toggleToolWindow(tw.anchor, tw.id);
-          else showToolWindow(tw.anchor, tw.id);
+          else toggleToolWindow(tw.id);
         },
       };
     }),

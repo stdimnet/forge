@@ -53,7 +53,7 @@ export function selectInTargets(ctx: SelectInContext): SelectInTarget[] {
       id: "project",
       label: "Project View",
       run: () => {
-        showToolWindow("left", "project");
+        showToolWindow("project");
         selectInTree(path);
       },
     });
@@ -62,7 +62,7 @@ export function selectInTargets(ctx: SelectInContext): SelectInTarget[] {
       id: "commit",
       label: "Commit",
       run: () => {
-        showToolWindow("left", "commit");
+        showToolWindow("commit");
         selectCommitFile(path);
       },
     });
@@ -71,7 +71,7 @@ export function selectInTargets(ctx: SelectInContext): SelectInTarget[] {
       id: "structure",
       label: "Structure",
       run: () => {
-        showToolWindow("left", "structure");
+        showToolWindow("structure");
         // The view loads the file's structure first.
         setTimeout(selectStructureAtCaret, 250);
       },
@@ -87,7 +87,7 @@ export function selectInTargets(ctx: SelectInContext): SelectInTarget[] {
       label: "Git Log",
       run: () => {
         setLogPathFilter(path);
-        showToolWindow("bottom", "git");
+        showToolWindow("git");
       },
     });
   out.push({

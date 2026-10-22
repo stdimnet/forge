@@ -98,6 +98,12 @@
   align-items: center;
   padding: 6px 0;
   background: var(--bg-toolbar);
+  /* Stripe buttons are dragged with the pointer. */
+  user-select: none;
+  touch-action: none;
+}
+.tool-stripe.dragging {
+  cursor: grabbing;
 }
 .tool-stripe-left {
   border-right: 1px solid var(--border);
@@ -106,11 +112,63 @@
   border-left: 1px solid var(--border);
   justify-content: flex-start;
 }
+.stripe-part {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.tool-stripe-right .stripe-part:last-child {
+  margin-top: auto;
+}
 .stripe-group {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 4px;
   align-items: center;
+}
+.stripe-separator {
+  width: 20px;
+  height: 1px;
+  margin: 2px 0;
+  background: var(--border-strong);
+}
+/* While a stripe button is dragged, every group (also empty ones) is a drop target. */
+.tool-stripe.dragging .stripe-group {
+  min-height: 30px;
+  width: 30px;
+  border-radius: var(--radius);
+}
+.tool-stripe.dragging .stripe-group.drop-target {
+  background: var(--bg-hover);
+}
+.stripe-drop-indicator {
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  height: 2px;
+  margin-top: -1px;
+  border-radius: 1px;
+  background: var(--accent);
+  pointer-events: none;
+}
+.stripe-btn.dragged {
+  opacity: 0.35;
+}
+.stripe-drag-ghost {
+  position: fixed;
+  z-index: 450;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow);
+  color: var(--accent);
+  pointer-events: none;
 }
 .stripe-btn {
   position: relative;
@@ -142,6 +200,24 @@
 }
 .bottom-panel {
   border-top: 1px solid var(--border);
+}
+/* The one or two tool windows of an area (Left Top above Left Bottom, Bottom Left beside
+   Bottom Right). */
+.tool-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+.tool-area-bottom {
+  flex-direction: row;
+}
+.tool-area-part {
+  flex: 1;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
 }
 .tool-window {
   flex: 1;

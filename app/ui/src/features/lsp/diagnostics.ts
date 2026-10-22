@@ -175,7 +175,7 @@ class InspectionWidget implements PluginValue {
     if (total === 0) {
       const ok = h("button", "cm-lsp-inspection-ok", iconNode(Check, 14));
       ok.title = "No problems found";
-      ok.onclick = () => showToolWindow("bottom", "problems");
+      ok.onclick = () => showToolWindow("problems");
       this.dom.append(ok);
       return;
     }
@@ -187,7 +187,7 @@ class InspectionWidget implements PluginValue {
       tips.push(pluralize(counts[sev], severityLabel[sev].toLowerCase()));
     }
     summary.title = `${tips.join(", ")}\nClick to open the Problems tool window`;
-    summary.onclick = () => showToolWindow("bottom", "problems");
+    summary.onclick = () => showToolWindow("problems");
     const prev = h("button", "cm-lsp-inspection-nav", iconNode(ChevronUp, 14));
     prev.title = "Previous Highlighted Error (Shift+F2)";
     prev.onclick = () => gotoProblem(this.view, -1);

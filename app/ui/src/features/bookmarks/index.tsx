@@ -86,7 +86,7 @@ action("EditBookmark", () =>
 );
 
 action("ShowBookmarks", () => {
-  showToolWindow("left", "bookmarks");
+  showToolWindow("bookmarks");
   queueMicrotask(() => document.querySelector<HTMLElement>(".bookmarks-view")?.focus());
 });
 
