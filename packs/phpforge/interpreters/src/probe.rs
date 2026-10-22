@@ -30,7 +30,10 @@ pub struct InterpreterInfo {
 
 /// `PHP 8.3.12 (cli) …` → `8.3.12`; also accepts `8.4.0RC1` and `8.2.10-1ubuntu1`.
 pub fn parse_version(php_v: &str) -> Option<String> {
-    let line = php_v.lines().map(str::trim).find(|l| l.starts_with("PHP "))?;
+    let line = php_v
+        .lines()
+        .map(str::trim)
+        .find(|l| l.starts_with("PHP "))?;
     let token = line[4..].split_whitespace().next()?;
     let end = token
         .find(|c: char| !(c.is_ascii_digit() || c == '.'))
@@ -112,9 +115,24 @@ fn clean(v: &str) -> String {
 }
 
 fn split_files(v: &str) -> Vec<String> {
-    v.split(',')
-        .map(clean)
-        .filter(|f| !f.is_empty())
+    v.split(',').map(clean).filter(|f| !f.is_empty()).collect()
+}
+
+/// The distributions `wsl.exe -l -q` lists (UTF-16 little endian, sometimes UTF-8).
+pub fn parse_wsl_list(output: &[u8]) -> Vec<String> {
+    let text = if output.len() >= 2 && output.iter().skip(1).step_by(2).all(|b| *b == 0) {
+        let units: Vec<u16> = output
+            .chunks_exact(2)
+            .map(|c| u16::from_le_bytes([c[0], c[1]]))
+            .collect();
+        String::from_utf16_lossy(&units)
+    } else {
+        String::from_utf8_lossy(output).into_owned()
+    };
+    text.lines()
+        .map(|l| l.trim_matches(|c: char| c.is_whitespace() || c == '\u{feff}' || c == '\0'))
+        .filter(|l| !l.is_empty())
+        .map(String::from)
         .collect()
 }
 
@@ -164,7 +182,8 @@ Scan for additional .ini files in: /etc/php/8.3/cli/conf.d\n\
 Additional .ini files parsed:      /etc/php/8.3/cli/conf.d/10-opcache.ini,\n\
 /etc/php/8.3/cli/conf.d/20-xdebug.ini\n";
 
-    const PHP_M: &str = "[PHP Modules]\nCore\nctype\nmbstring\nxdebug\n\n[Zend Modules]\nXdebug\nZend OPcache\n";
+    const PHP_M: &str =
+        "[PHP Modules]\nCore\nctype\nmbstring\nxdebug\n\n[Zend Modules]\nXdebug\nZend OPcache\n";
 
     #[test]
     fn parses_versions() {
@@ -173,7 +192,10 @@ Additional .ini files parsed:      /etc/php/8.3/cli/conf.d/10-opcache.ini,\n\
             parse_version("PHP 8.2.10-1ubuntu1 (cli)").as_deref(),
             Some("8.2.10")
         );
-        assert_eq!(parse_version("PHP 8.4.0RC1 (cli)").as_deref(), Some("8.4.0"));
+        assert_eq!(
+            parse_version("PHP 8.4.0RC1 (cli)").as_deref(),
+            Some("8.4.0")
+        );
         assert_eq!(parse_version("Python 3.12"), None);
         assert_eq!(parse_xdebug(PHP_V).as_deref(), Some("3.3.2"));
         assert_eq!(major_minor("8.3.12"), Some((8, 3)));
@@ -198,6 +220,17 @@ Additional .ini files parsed:      /etc/php/8.3/cli/conf.d/10-opcache.ini,\n\
     }
 
     #[test]
+    fn lists_wsl_distributions() {
+        let utf16: Vec<u8> = "Ubuntu-24.04\r\nDebian\r\n"
+            .encode_utf16()
+            .flat_map(u16::to_le_bytes)
+            .collect();
+        assert_eq!(parse_wsl_list(&utf16), ["Ubuntu-24.04", "Debian"]);
+        assert_eq!(parse_wsl_list(b"Ubuntu\n"), ["Ubuntu"]);
+        assert!(parse_wsl_list(b"").is_empty());
+    }
+
+    #[test]
     fn combines_the_probes() {
         let info = InterpreterInfo::from_outputs(PHP_V, PHP_INI, PHP_M).unwrap();
         assert_eq!(info.version, "8.3.12");
@@ -206,7 +239,8 @@ Additional .ini files parsed:      /etc/php/8.3/cli/conf.d/10-opcache.ini,\n\
         let plain = InterpreterInfo::from_outputs("PHP 8.1.2 (cli)", "", "[PHP Modules]\nxdebug\n")
             .unwrap();
         assert_eq!(plain.xdebug, "unknown");
-        let err = InterpreterInfo::from_outputs("bash: php: command not found", "", "").unwrap_err();
+        let err =
+            InterpreterInfo::from_outputs("bash: php: command not found", "", "").unwrap_err();
         assert!(err.contains("command not found"), "{err}");
     }
 }

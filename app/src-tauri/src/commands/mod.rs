@@ -31,6 +31,7 @@ pub mod lua;
 pub mod markdown;
 pub mod output;
 pub mod php;
+pub mod php_interpreters;
 pub mod project;
 pub mod project_state;
 pub mod refactor;

@@ -330,7 +330,9 @@ mod tests {
             Some("/opt/vendor/a/b.php")
         );
         assert_eq!(
-            mapper.to_local("/var/www/html/tests/UserTest.php").as_deref(),
+            mapper
+                .to_local("/var/www/html/tests/UserTest.php")
+                .as_deref(),
             Some("/home/me/shop/tests/UserTest.php")
         );
         assert_eq!(
@@ -434,9 +436,6 @@ mod tests {
             kind: InterpreterKind::Wsl,
             ..Default::default()
         };
-        assert_eq!(
-            automatic(&wsl, "D:\\p", None),
-            vec![m("D:/p", "/mnt/d/p")]
-        );
+        assert_eq!(automatic(&wsl, "D:\\p", None), vec![m("D:/p", "/mnt/d/p")]);
     }
 }

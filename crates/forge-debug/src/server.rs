@@ -167,7 +167,11 @@ impl DebugServer {
     /// The path mappings of PHP interpreters, as servers named like the interpreters (runs
     /// through an interpreter set `PHP_IDE_CONFIG=serverName=<name>`).
     pub fn set_interpreter_servers(&self, servers: Vec<ServerConfig>) {
-        *self.shared.interpreter_servers.write().expect("servers lock") = servers;
+        *self
+            .shared
+            .interpreter_servers
+            .write()
+            .expect("servers lock") = servers;
     }
 
     /// Replace the server list and persist it in the project.

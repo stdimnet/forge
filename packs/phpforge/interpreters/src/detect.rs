@@ -36,7 +36,8 @@ impl SearchEnv {
     /// This machine's environment.
     pub fn system() -> Self {
         let windows = cfg!(windows);
-        let home = std::env::var_os(if windows { "USERPROFILE" } else { "HOME" }).map(PathBuf::from);
+        let home =
+            std::env::var_os(if windows { "USERPROFILE" } else { "HOME" }).map(PathBuf::from);
         let mut dirs: Vec<PathBuf> = Vec::new();
         let mut install_roots: Vec<PathBuf> = Vec::new();
         if windows {
@@ -49,7 +50,13 @@ impl SearchEnv {
                 install_roots.push(d.to_path_buf());
             }
         } else {
-            for d in ["/usr/bin", "/usr/local/bin", "/bin", "/opt/homebrew/bin", "/opt/local/bin"] {
+            for d in [
+                "/usr/bin",
+                "/usr/local/bin",
+                "/bin",
+                "/opt/homebrew/bin",
+                "/opt/local/bin",
+            ] {
                 dirs.push(PathBuf::from(d));
             }
             for d in ["/opt/homebrew/opt", "/usr/local/opt", "/opt/remi", "/opt"] {
@@ -218,7 +225,14 @@ mod tests {
         for n in ["php", "php8.3", "php83", "php-8.2", "php8"] {
             assert!(is_php_name(n, false), "{n}");
         }
-        for n in ["php-config", "phpize", "php-fpm8.3", "php-cgi", "phpunit", "xphp"] {
+        for n in [
+            "php-config",
+            "phpize",
+            "php-fpm8.3",
+            "php-cgi",
+            "phpunit",
+            "xphp",
+        ] {
             assert!(!is_php_name(n, false), "{n}");
         }
         assert!(is_php_name("PHP.EXE", true));

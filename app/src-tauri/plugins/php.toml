@@ -70,6 +70,7 @@ options = [
   { value = "8.2", label = "8.2 (readonly classes, DNF types)" },
   { value = "8.3", label = "8.3 (typed class constants)" },
   { value = "8.4", label = "8.4 (property hooks, asymmetric visibility)" },
+  { value = "interpreter", label = "From the CLI interpreter" },
 ]
 default = "8.3"
 group = "lang.php"
@@ -80,13 +81,36 @@ order = 0
 [[contributions.settings]]
 key = "php.interpreter"
 title = "CLI Interpreter"
-description = "Path to the php executable used to run scripts and tests."
-type = "path"
+description = "The interpreter that runs scripts and tests: the name of an interpreter of the CLI Interpreters dialog, or the path of a local php executable."
+type = "string"
 default = "php"
 group = "lang.php"
 section = "Development Environment"
 project = true
 order = 1
+
+[[contributions.settings]]
+key = "php.interpreters"
+title = "CLI Interpreters"
+description = "PHP interpreters available in every project: local, Docker, Docker Compose, SSH and WSL (edited in the CLI Interpreters dialog)."
+type = "objects"
+unique = ["name"]
+default = []
+group = "lang.php"
+section = "Development Environment"
+order = 2
+
+[[contributions.settings]]
+key = "php.projectInterpreters"
+title = "CLI Interpreters of this project"
+description = "Interpreters marked \"Visible only for this project\"."
+type = "objects"
+unique = ["name"]
+default = []
+group = "lang.php"
+section = "Development Environment"
+project = true
+order = 3
 
 [[contributions.settings]]
 key = "php.includePaths"

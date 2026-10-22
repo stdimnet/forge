@@ -404,7 +404,9 @@ mod tests {
     #[test]
     fn resolves_names_then_paths() {
         let set = InterpreterSet::from_settings(
-            Some(&json!([{ "id": "a", "name": "PHP 8.3", "path": "/usr/bin/php8.3" }, { "name": "" }])),
+            Some(
+                &json!([{ "id": "a", "name": "PHP 8.3", "path": "/usr/bin/php8.3" }, { "name": "" }]),
+            ),
             Some(&json!([{ "id": "b", "name": "PHP 8.3", "kind": "docker", "image": "php:8.3" }])),
         );
         assert_eq!(set.global.len(), 1);

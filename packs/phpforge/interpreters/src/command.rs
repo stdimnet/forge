@@ -144,8 +144,7 @@ pub fn wrap(
                     inner.push(format!("-d{}={}", o.name.trim(), o.value.trim()));
                 }
             }
-            if debug && interp.xdebug.trim().is_empty() && !interp.debugger_extension.is_empty()
-            {
+            if debug && interp.xdebug.trim().is_empty() && !interp.debugger_extension.is_empty() {
                 inner.push(format!(
                     "-dzend_extension={}",
                     interp.debugger_extension.trim()
@@ -467,7 +466,15 @@ mod tests {
         let w = wrap(&php, &composer, &c).unwrap();
         assert_eq!(
             w.args[3..],
-            ["exec", "-T", "-w", "/var/www/html", "app", "composer", "install"]
+            [
+                "exec",
+                "-T",
+                "-w",
+                "/var/www/html",
+                "app",
+                "composer",
+                "install"
+            ]
         );
     }
 

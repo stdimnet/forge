@@ -188,10 +188,7 @@ pub fn symfony_console_run(
 ) -> Result<()> {
     let backend = state.backend()?;
     let cfg = config(&state);
-    let php: String = state
-        .read_settings()
-        .get_as("php.interpreter")
-        .unwrap_or_else(|| "php".into());
+    let php = crate::commands::php_interpreters::local_php(&state);
     let cmd = symfony_console_command(
         &backend.info().root,
         &php,

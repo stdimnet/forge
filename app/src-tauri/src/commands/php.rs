@@ -133,6 +133,8 @@ pub(crate) fn php_code_style(state: &AppState) -> PhpCodeStyle {
 pub struct LanguageLevel {
     pub level: String,
     pub from_composer: bool,
+    /// The level follows the CLI interpreter's version (`php.languageLevel` = `interpreter`).
+    pub from_interpreter: bool,
 }
 
 #[tauri::command]
@@ -148,6 +150,7 @@ pub async fn php_language_level(state: State<'_, AppState>) -> Result<LanguageLe
         Ok(LanguageLevel {
             level,
             from_composer,
+            from_interpreter: !from_composer && settings.level_from_interpreter,
         })
     })
     .await
@@ -162,9 +165,7 @@ pub async fn php_composer_outdated(state: State<'_, AppState>) -> Result<Vec<Out
         let executable = settings
             .get_as::<String>(composer::EXECUTABLE_KEY)
             .unwrap_or_default();
-        let php = settings
-            .get_as::<String>("php.interpreter")
-            .unwrap_or_else(|| "php".into());
+        let php = crate::commands::php_interpreters::local_php(&state);
         let (program, lead) = forge_process::composer_program(&executable, &php);
         let json = lsp_settings(&state).composer_json;
         (program, lead, json)

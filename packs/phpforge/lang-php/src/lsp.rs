@@ -34,6 +34,8 @@ pub struct PhpLspSettings {
     pub licence_key: Option<String>,
     /// PHP language level, e.g. `8.3`.
     pub php_version: String,
+    /// `php_version` is the CLI interpreter's (`php.languageLevel` = `interpreter`).
+    pub level_from_interpreter: bool,
     /// Intelephense `files.maxSize` in bytes.
     pub max_file_size: u64,
     /// Extra stub sets on top of the defaults.
@@ -64,6 +66,7 @@ impl Default for PhpLspSettings {
             server: ServerChoice::Auto,
             licence_key: None,
             php_version: "8.3".into(),
+            level_from_interpreter: false,
             max_file_size: 5_000_000,
             extra_stubs: Vec::new(),
             include_paths: Vec::new(),
@@ -106,7 +109,14 @@ pub const LSP_SETTING_KEYS: &[&str] = &[
     crate::composer::JSON_KEY,
     crate::composer::SYNC_KEY,
     crate::composer::LIBRARIES_KEY,
+    // The language level can follow the CLI interpreter's version.
+    phpforge_interpreters::model::SELECTED_KEY,
+    phpforge_interpreters::model::GLOBAL_KEY,
+    phpforge_interpreters::model::PROJECT_KEY,
 ];
+
+/// `php.languageLevel` value: the level follows the CLI interpreter's version.
+pub const LEVEL_FROM_INTERPRETER: &str = "interpreter";
 
 /// Whether a change of `key` requires the PHP language server to be reconfigured.
 pub fn affects_server(key: &str) -> bool {
@@ -120,7 +130,24 @@ impl PhpLspSettings {
     pub fn from_settings(get: impl Fn(&str) -> Option<Value>) -> Self {
         let mut s = Self::default();
         if let Some(level) = get("php.languageLevel").and_then(|v| v.as_str().map(String::from)) {
-            if !level.trim().is_empty() {
+            if level.trim() == LEVEL_FROM_INTERPRETER {
+                use phpforge_interpreters::model::{GLOBAL_KEY, PROJECT_KEY, SELECTED_KEY};
+                let set = phpforge_interpreters::InterpreterSet::from_settings(
+                    get(GLOBAL_KEY).as_ref(),
+                    get(PROJECT_KEY).as_ref(),
+                );
+                let selected = get(SELECTED_KEY)
+                    .and_then(|v| v.as_str().map(String::from))
+                    .unwrap_or_default();
+                if let Some(level) = set
+                    .resolve(&selected)
+                    .version()
+                    .and_then(crate::composer::level_for_version)
+                {
+                    s.php_version = level;
+                    s.level_from_interpreter = true;
+                }
+            } else if !level.trim().is_empty() {
                 s.php_version = level.trim().to_string();
             }
         }
@@ -720,6 +747,24 @@ mod tests {
         assert_eq!(bad.server, ServerChoice::Auto);
         assert!(affects_server("php.lsp.server"));
         assert!(!affects_server("php.codeStyle.tabSize"));
+    }
+
+    #[test]
+    fn the_language_level_can_follow_the_interpreter() {
+        let values = json!({
+            "php.languageLevel": "interpreter",
+            "php.interpreter": "Docker 8.2",
+            "php.projectInterpreters": [{ "name": "Docker 8.2", "kind": "docker", "image": "php:8.2-cli", "version": "8.2.27" }],
+        });
+        let s = PhpLspSettings::from_settings(|k| values.get(k).cloned());
+        assert_eq!(s.php_version, "8.2");
+        assert!(s.level_from_interpreter);
+        // An interpreter whose version was never detected keeps the default level.
+        let unknown = json!({ "php.languageLevel": "interpreter", "php.interpreter": "php" });
+        let s = PhpLspSettings::from_settings(|k| unknown.get(k).cloned());
+        assert_eq!(s.php_version, "8.3");
+        assert!(!s.level_from_interpreter);
+        assert!(affects_server("php.interpreter"));
     }
 
     #[test]
