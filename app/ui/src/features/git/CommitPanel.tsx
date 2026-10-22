@@ -269,7 +269,7 @@ export function CommitPanel() {
   let messageInput: HTMLTextAreaElement | undefined;
   // Spelling and grammar of the message (Settings | Editor | Natural Languages).
   const spellProblems = createCommitMessageCheck(message);
-  // Ctrl+D comes through the keymap (CompareTwoFiles → git.showDiff on the selected file).
+  // Ctrl+D comes through the keymap (CompareTwoFiles → the Commit window's compare handler).
   return (
     <div class="commit-panel" tabIndex={-1}>
       <div class="panel-toolbar">

@@ -31,11 +31,14 @@ import {
   manageRemotes,
   newTagDialog,
   rollbackTargets,
+  showSelectionHistory,
   showTargetHistory,
   showTargetsDiff,
   stashDialog,
   unstashDialog,
 } from "./fileActions";
+import { registerCompareHandler } from "@/features/compare/state";
+import "./revisionFiles";
 import "./git.css";
 
 registerToolWindow({
@@ -72,6 +75,7 @@ const commands: { id: string; title: string; run: () => void | Promise<void> }[]
   { id: "Compare.Selected", title: "Compare with Revision…", run: compareWithRevision },
   { id: "Git.CompareWithBranch", title: "Compare with Branch…", run: compareWithBranch },
   { id: "Vcs.ShowTabbedFileHistory", title: "Show History", run: showTargetHistory },
+  { id: "Vcs.ShowHistoryForBlock", title: "Show History for Selection", run: showSelectionHistory },
   { id: "ChangesView.Rollback", title: "Rollback…", run: rollbackTargets },
   { id: "Git.Tag", title: "New Tag…", run: newTagDialog },
   { id: "Git.Stash", title: "Stash Changes…", run: stashDialog },
@@ -84,6 +88,9 @@ const commands: { id: string; title: string; run: () => void | Promise<void> }[]
   { id: "git.log", title: "Show Git Log", run: () => showToolWindow("git") },
 ];
 for (const c of commands) registerCommand({ ...c, category: "Git" });
+
+// Ctrl+D in the Commit window: the diff of the selected change.
+registerCompareHandler(".commit-panel", showTargetsDiff);
 
 /** Next Change / Previous Change: the hunk order comes from `forge_editing::change_target`. */
 async function gotoChange(forward: boolean): Promise<void> {

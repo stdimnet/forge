@@ -20,6 +20,8 @@ import {
 } from "@codemirror/view";
 import { normalizeEol, saveFile, setTabEol } from "@/state/editor";
 import { gitApi, type Blame, type BlameCommit } from "./api";
+import { historyApi } from "./historyApi";
+import { parseRevisionPath } from "./revisionFiles";
 import { fileReload, revision, status } from "./store";
 import { annotated, setBlameCard, setDiffRequest, toggleAnnotate } from "./overlays";
 import { ageBucket, shortDate, timeAgo } from "./format";
@@ -376,7 +378,11 @@ function controller(path: string, blameCompartment: Compartment) {
   return ViewPlugin.define((view) => {
     let disposed = false;
     let dispose = () => {};
+    // A file as it was in a revision (Annotate Revision): no change markers, the blame of
+    // that revision.
+    const atRevision = parseRevisionPath(path);
     const fetchHead = async () => {
+      if (atRevision) return;
       const st = status();
       const entry = st?.entries.find((e) => e.path === path);
       if (entry && (entry.worktree === "untracked" || entry.index === "added")) {
@@ -392,7 +398,9 @@ function controller(path: string, blameCompartment: Compartment) {
     };
     const fetchBlame = async () => {
       try {
-        const blame = await gitApi.blame(path, view.state.doc.toString());
+        const blame = atRevision
+          ? await historyApi.blameRevision(atRevision.sha, atRevision.path)
+          : await gitApi.blame(path, view.state.doc.toString());
         if (!disposed) view.dispatch({ effects: setBlameEffect.of(blame) });
       } catch {
         if (!disposed) view.dispatch({ effects: setBlameEffect.of(null) });

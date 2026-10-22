@@ -1,0 +1,134 @@
+/* ---------- Git tool window: history tabs ---------- */
+.git-log.hidden,
+.git-history-body.hidden {
+  display: none;
+}
+.git-history-tab {
+  gap: 5px;
+  cursor: default;
+}
+.git-tab:not(.active):hover {
+  color: var(--fg);
+}
+.git-tab-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  margin-left: 2px;
+  border-radius: var(--radius-sm);
+  color: var(--fg-muted);
+}
+.git-tab-close:hover {
+  background: var(--bg-hover);
+  color: var(--fg);
+}
+.git-history-body {
+  flex: 1;
+  min-height: 0;
+}
+.file-history {
+  height: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+.file-history-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  border-right: 1px solid var(--border);
+}
+.history-toolbar {
+  gap: 2px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.history-path {
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+  font-family: var(--font-mono);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding-right: 8px;
+  min-width: 0;
+}
+.history-columns,
+.history-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 110px 120px 72px;
+  align-items: center;
+  padding-right: 10px;
+}
+.history-columns {
+  height: 22px;
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.history-columns > div:first-child {
+  padding-left: 10px;
+}
+.history-columns > div:nth-child(2) {
+  padding-left: 12px;
+}
+.history-list {
+  flex: 1 1 60%;
+  min-height: 60px;
+}
+.history-row {
+  height: 24px;
+  white-space: nowrap;
+  cursor: default;
+}
+.history-row:hover {
+  background: var(--bg-hover);
+}
+.history-row.selected {
+  background: var(--bg-active);
+}
+.history-list:focus .history-row.selected {
+  background: var(--bg-selection);
+}
+.history-subject {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding-left: 10px;
+  overflow: hidden;
+}
+.history-renamed {
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 1;
+}
+.history-hash {
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  color: var(--accent);
+}
+.history-details {
+  flex: 0 1 40%;
+  min-height: 70px;
+  overflow: auto;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+}
+.history-files {
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border);
+}
+.inline-diff {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: var(--bg-editor);
+}

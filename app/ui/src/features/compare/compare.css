@@ -1,0 +1,169 @@
+/* ---------- Compare Directories ---------- */
+.dir-diff {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-panel);
+  min-height: 0;
+}
+.dir-diff-toolbar {
+  gap: 2px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.dir-diff-filter {
+  height: 24px;
+  gap: 4px;
+  font-size: var(--fs-small);
+  color: var(--fg-muted);
+  opacity: 0.55;
+}
+.dir-diff-filter.active {
+  opacity: 1;
+  color: var(--fg);
+  background: var(--bg-active);
+}
+.dir-diff-header,
+.dir-diff-columns,
+.dir-diff-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 72px 128px 32px minmax(0, 1fr) 72px 128px;
+  align-items: center;
+}
+.dir-diff-header {
+  grid-template-columns: minmax(0, 1fr) 32px minmax(0, 1fr);
+  background: var(--bg-toolbar);
+  border-bottom: 1px solid var(--border);
+  font-size: var(--fs-small);
+  flex-shrink: 0;
+}
+.dir-diff-root {
+  padding: 6px 12px;
+  color: var(--fg-strong);
+  font-family: var(--font-mono);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dir-diff-columns {
+  height: 24px;
+  border-bottom: 1px solid var(--border);
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+  flex-shrink: 0;
+}
+.dir-diff-columns > div {
+  padding: 0 8px;
+}
+.dir-diff-list {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  outline: none;
+}
+.dir-diff-row {
+  height: 24px;
+  cursor: default;
+  white-space: nowrap;
+}
+.dir-diff-row:hover {
+  background: var(--bg-hover);
+}
+.dir-diff-row.selected {
+  background: var(--bg-active);
+}
+.dir-diff-list:focus .dir-diff-row.selected {
+  background: var(--bg-selection);
+}
+.dir-diff-name {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  overflow: hidden;
+}
+.dir-diff-name .tree-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dir-diff-size,
+.dir-diff-date {
+  padding: 0 8px;
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dir-diff-size {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.dir-diff-row > .dir-diff-indicator {
+  display: flex;
+  justify-content: center;
+  border-inline: 1px solid var(--border);
+  height: 100%;
+  align-items: center;
+}
+.dir-diff-indicator {
+  display: inline-flex;
+}
+.tree-label.dir-diff-different,
+.dir-diff-indicator.dir-diff-different {
+  color: var(--vcs-modified);
+}
+.tree-label.dir-diff-leftOnly,
+.dir-diff-indicator.dir-diff-leftOnly {
+  color: var(--vcs-untracked);
+}
+.tree-label.dir-diff-rightOnly,
+.dir-diff-indicator.dir-diff-rightOnly {
+  color: var(--vcs-added);
+}
+.dir-diff-indicator.dir-diff-equal {
+  color: var(--fg-faint);
+}
+
+/* ---------- Select Path ---------- */
+.select-path-dialog {
+  width: 520px;
+  outline: none;
+}
+.select-path-description {
+  color: var(--fg-muted);
+}
+.select-path-field {
+  height: 28px;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.select-path-tree {
+  height: 320px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-editor);
+  padding: 4px 0;
+}
+
+/* ---------- Compare with Branch on a folder ---------- */
+.dir-diff-header.branch-changes-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  color: var(--fg-muted);
+}
+.branch-changes-header b {
+  color: var(--fg-strong);
+  font-weight: 600;
+}

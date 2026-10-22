@@ -4,11 +4,14 @@
  * act on `vcsTargets()`, so the same command serves menus and shortcuts.
  */
 import { openFile } from "@/state/editor";
-import { showToolWindow } from "@/state/layout";
 import { gitApi } from "./api";
 import { checkOnly } from "./CommitPanel";
 import { diffSiblings, targetState, vcsTargets, type VcsTarget } from "./context";
-import { setLogPathFilter } from "./GitLogPanel";
+import { historyApi } from "./historyApi";
+import { openFileHistory, openSelectionHistory } from "./history";
+import { openBranchChanges } from "./BranchChanges";
+import { activeView } from "@/features/navigation/editorCommands";
+import { activeTab } from "@/state/editor";
 import { logDate, timeAgo } from "./format";
 import { notify, reloadOpenFiles, runGit, status } from "./store";
 import { setChooserDialog, setInputDialog, toggleAnnotate } from "./overlays";
@@ -56,24 +59,31 @@ export async function showTargetsDiff(): Promise<void> {
   await showDiff(files[0], diffSiblings(files));
 }
 
-/** Compare with Revision… (Compare.Selected): pick a commit that touched the file. */
+/** Compare with Revision… (Compare.Selected): pick a commit that touched the file (renames followed). */
 export async function compareWithRevision(): Promise<void> {
   const { file, fileTracked } = stateOf(vcsTargets());
   if (!file || !fileTracked) return;
-  const commits = (await runGit("Could not load the file history", () => gitApi.log({ path: file, limit: 200 }))) ?? [];
+  const revs = (await runGit("Could not load the file history", () => historyApi.fileHistory(file, false, { limit: 200 }))) ?? [];
+  const pathAt = new Map(revs.map((r) => [r.sha, r.files[0]?.path ?? file]));
   setChooserDialog({
     title: `Compare ${file.split("/").pop()} with Revision`,
     empty: "No revisions of this file",
     okLabel: "Compare",
-    items: commits.map((c) => ({ id: c.sha, label: c.subject, detail: `${c.sha.slice(0, 8)} · ${c.author} · ${logDate(c.time)}` })),
-    onOk: (item) => showRevisionDiff(file, item.id, item.id.slice(0, 8)),
+    items: revs.map((c) => ({ id: c.sha, label: c.subject, detail: `${c.sha.slice(0, 8)} · ${c.author} · ${logDate(c.time)}` })),
+    onOk: (item) => showRevisionDiff(file, item.id, item.id.slice(0, 8), pathAt.get(item.id)),
   });
 }
 
-/** Compare with Branch… (Git.CompareWithBranch): the file on another branch vs the working copy. */
+/**
+ * Compare with Branch… (Git.CompareWithBranch): a file on another branch vs the working copy,
+ * or for a folder the files that differ between the branch and the working tree.
+ */
 export async function compareWithBranch(): Promise<void> {
-  const { file, fileTracked } = stateOf(vcsTargets());
-  if (!file || !fileTracked) return;
+  const [target] = vcsTargets();
+  const { file, fileTracked, ignored } = stateOf(vcsTargets());
+  const folder = target?.dir && !ignored ? target.path : null;
+  if (folder === null && (!file || !fileTracked)) return;
+  const name = folder === null ? file!.split("/").pop() : folder.split("/").pop() || "Project";
   const branches = await runGit("Could not load branches", () => gitApi.branches());
   if (!branches) return;
   const items = [
@@ -82,20 +92,35 @@ export async function compareWithBranch(): Promise<void> {
     ...branches.tags.map((b) => ({ id: b.name, label: b.name, detail: "Tag" })),
   ];
   setChooserDialog({
-    title: `Compare ${file.split("/").pop()} with Branch`,
+    title: `Compare ${name} with Branch`,
     empty: "No other branches",
     okLabel: "Compare",
     items,
-    onOk: (item) => showRevisionDiff(file, item.id, item.label),
+    onOk: (item) => (folder === null ? showRevisionDiff(file!, item.id, item.label) : openBranchChanges(item.id, folder)),
   });
 }
 
-/** Show History (Vcs.ShowTabbedFileHistory): the Git log filtered to the file or folder. */
+/** Show History (Vcs.ShowTabbedFileHistory): a "History: <name>" tab in the Git tool window. */
 export function showTargetHistory(): void {
   const [target] = vcsTargets();
-  if (!target) return;
-  setLogPathFilter(target.path || null);
-  showToolWindow("git");
+  if (!target || target.ignored) return;
+  const { fileTracked } = stateOf([target]);
+  if (!target.dir && !fileTracked) return notify("info", "The file is not under version control");
+  openFileHistory(target.path, target.dir);
+}
+
+/** Show History for Selection (Vcs.ShowHistoryForBlock): the history of the selected lines. */
+export function showSelectionHistory(): void {
+  const tab = activeTab();
+  const view = activeView();
+  if (!tab || !view || tab.view || tab.path.includes("://")) return;
+  if (!stateOf([{ path: tab.path, dir: false }]).fileTracked) return notify("info", "The file is not under version control");
+  const sel = view.state.selection.main;
+  const first = view.state.doc.lineAt(sel.from).number;
+  // A selection ending at the start of a line does not include that line.
+  const lastLine = view.state.doc.lineAt(sel.to);
+  const last = sel.to > sel.from && lastLine.from === sel.to ? Math.max(first, lastLine.number - 1) : lastLine.number;
+  openSelectionHistory(tab.path, first, last);
 }
 
 /** Rollback… (ChangesView.Rollback, Ctrl+Alt+Z): discard the tracked changes below the targets. */

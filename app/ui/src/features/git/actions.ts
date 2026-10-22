@@ -34,9 +34,12 @@ export async function showDiff(path: string, files?: string[]): Promise<void> {
   });
 }
 
-/** A revision or branch (`rev`, shown as `label`) vs the working copy: Compare with Revision / Branch. */
-export async function showRevisionDiff(path: string, rev: string, label: string): Promise<void> {
-  const [before, after] = await Promise.all([gitApi.show(rev, path).catch(() => null), workingContent(path)]);
+/**
+ * A revision or branch (`rev`, shown as `label`) vs the working copy: Compare with Revision /
+ * Branch. `revPath` is the file's path in `rev` when it was renamed since.
+ */
+export async function showRevisionDiff(path: string, rev: string, label: string, revPath = path): Promise<void> {
+  const [before, after] = await Promise.all([gitApi.show(rev, revPath).catch(() => null), workingContent(path)]);
   setDiffRequest({
     path,
     left: { title: before === null ? `${label} (file does not exist)` : `${label} (Read-only)`, content: before ?? "" },
