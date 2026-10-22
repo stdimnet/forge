@@ -320,13 +320,16 @@
 
 /* ---------- Settings | PHP | Composer ---------- */
 .composer-phar {
+  grid-column: 1 / -1;
+  min-width: 0;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 4px 12px;
-  margin-bottom: 8px;
+  margin: 2px 0 6px;
 }
 .composer-phar-consent {
+  max-width: 640px;
   padding: 8px 10px;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius);
