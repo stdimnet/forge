@@ -132,7 +132,25 @@ export interface DocEvent {
   closed?: string;
 }
 
+/** A guest asks to join (`collab://join-request`, host); `code` is what the guest sees too. */
+export interface JoinRequest {
+  id: number;
+  name: string;
+  code: string;
+  /** The permission level the guest gets when accepted. */
+  level: PermissionLevel;
+}
+
+/** The guest waits for the host to accept (`collab://waiting`). */
+export interface JoiningInfo {
+  host: string;
+  code: string;
+}
+
 export const STATUS_EVENT = "collab://status";
+export const JOIN_REQUEST_EVENT = "collab://join-request";
+export const JOIN_CLOSED_EVENT = "collab://join-closed";
+export const WAITING_EVENT = "collab://waiting";
 export const DOC_EVENT = "collab://doc";
 export const NOTICE_EVENT = "collab://notice";
 export const ENDED_EVENT = "collab://ended";
@@ -175,6 +193,10 @@ export const collabApi = {
   end: () => invoke<void>("collab_end"),
   link: () => invoke<string>("collab_link"),
   join: (link: string) => invoke<SessionView>("collab_join", { link }),
+  /** Accept or decline a guest's join request (host). */
+  answerJoin: (id: number, accept: boolean) => invoke<void>("collab_answer_join", { id, accept }),
+  /** Stop waiting for the host to accept (guest). */
+  cancelJoin: () => invoke<void>("collab_cancel_join"),
   leave: () => invoke<void>("collab_leave"),
   /** Open a shared document; `content` is the host's editor text of an open tab. */
   docOpen: async (path: string, content?: string) =>
@@ -191,6 +213,10 @@ export const collabApi = {
   testRelay: (url: string, publicRelays: boolean) => invoke<RelayStatus>("collab_test_relay", { url, public: publicRelays }),
   onStatus: (cb: (s: SessionView) => void) => listen<SessionView>(STATUS_EVENT, cb),
   onDoc: (cb: (e: DocEvent) => void) => listen<DocEvent>(DOC_EVENT, cb),
+  onJoinRequest: (cb: (r: JoinRequest) => void) => listen<JoinRequest>(JOIN_REQUEST_EVENT, cb),
+  /** A request is gone without an answer (it timed out, or the session ended). */
+  onJoinClosed: (cb: (e: { id: number }) => void) => listen<{ id: number }>(JOIN_CLOSED_EVENT, cb),
+  onWaiting: (cb: (w: JoiningInfo) => void) => listen<JoiningInfo>(WAITING_EVENT, cb),
   onNotice: (cb: (e: { text: string }) => void) => listen<{ text: string }>(NOTICE_EVENT, cb),
   onEnded: (cb: (e: { reason: string }) => void) => listen<{ reason: string }>(ENDED_EVENT, cb),
   /** Round trip to the host in milliseconds (guest). */

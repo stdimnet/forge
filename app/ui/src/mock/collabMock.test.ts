@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { invoke, listen } from "@/ipc";
 import { STATUS_EVENT, type RelayStatus, type RelayTokenStatus, type SessionView } from "@/ipc/collab";
 import "./collabMock";
@@ -28,5 +28,20 @@ describe("Code With Me mock: relay", () => {
     const view: SessionView = { role: "host", canHost: true, participants: [], files: [] };
     window.__forgeCollabMock!.show(view);
     expect(seen).toEqual([view]);
+  });
+});
+
+describe("Code With Me mock: host approval", () => {
+  it("lets the guest in only after the host accepted", async () => {
+    const requests: { id: number; name: string }[] = [];
+    await listen<{ id: number; name: string }>("collab://join-request", (r) => requests.push(r));
+    await invoke("collab_start", { level: "readOnly" });
+    await vi.waitFor(() => expect(requests.length).toBeGreaterThan(0), { timeout: 3000 });
+    expect(requests[0].name).toBe("Alex");
+    const status = await invoke<{ participants: { name: string }[] }>("collab_status");
+    expect(status.participants.map((p) => p.name)).not.toContain("Alex");
+    await invoke("collab_answer_join", { id: requests[0].id, accept: true });
+    await vi.waitFor(async () => expect((await invoke<{ participants: { name: string }[] }>("collab_status")).participants.map((p) => p.name)).toContain("Alex"));
+    await invoke("collab_end");
   });
 });

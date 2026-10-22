@@ -934,6 +934,19 @@ screenshots.
   edits never reach the host (test and manual); a wrong proof never shows a prompt; codes
   match on both sides; `.env` is invisible to guests.
 
+**S2 host approval as built**
+
+- `forge_collab::approval::Approvals` is the `Admission`: a guest with a valid proof becomes a
+  request (`collab://join-request` with the verification code), the host answers with
+  `collab_answer_join`; unanswered requests expire after 110 s (`collab://join-closed`, the
+  guest hears "The host did not answer."), a guest has one open request, at most 5 wait, and
+  ending the session refuses all of them. The guest gets `collab://waiting` with the same code
+  and can cancel with `collab_cancel_join`.
+- `DevAutoAccept` and the `FORGE_CWM_DEV` flag are gone from the app; `DevAutoAccept` stays
+  for tests. Hosting is available in every build.
+- Still to do from the list above: Custom permissions, per-guest permissions, Remove Guest,
+  Regenerate Link and the session log.
+
 ### S3 — Guest project backend (8 d)
 
 - `CollabBackend: Backend`, `set_collab_project`, `HostCall` dispatcher on the host with the

@@ -37,12 +37,19 @@ async function openPopup(page) {
   await page.waitForSelector(".cwm-popup");
 }
 
-/** Start a session; Alex joins, types a comment and selects the `if` block. */
+/** The host's approval balloon names the guest and the code; accept it. */
+async function acceptGuest(page) {
+  await page.waitForSelector('.balloon:has-text("wants to join the session")');
+  await page.click('.balloon:has-text("wants to join the session") button:has-text("Accept")');
+}
+
+/** Start a session; Alex joins (the host accepts), types a comment and selects the `if` block. */
 async function sessionWithAlex(page) {
   await openController(page);
   await openPopup(page);
   await page.click('.cwm-level:has-text("Edit files") input');
   await page.click('.cwm-popup button:has-text("Start Session")');
+  await acceptGuest(page);
   await page.waitForFunction(`${ACTIVE}?.textContent.includes("// VIP customers")`, null, { timeout: 15000 });
   await page.waitForSelector(".cm-ySelection");
   await page.waitForTimeout(400);
@@ -133,7 +140,7 @@ async function twoPages(page, theme) {
   if (theme === "light") await light(page);
   await openController(page);
   await guest.goto(`${url.origin}/?collab=guest`);
-  await guest.waitForSelector('.cm-content');
+  await acceptGuest(page);
   await guest.waitForFunction(`${ACTIVE}?.textContent.includes("OrderController")`, null, { timeout: 15000 });
   if (theme === "light") await light(guest);
   // The guest types a comment at the end of the discount line, the host above `return`.
@@ -186,6 +193,22 @@ twoPagesDark.clip = editorClip;
 const twoPagesLight = async (page) => twoPages(page, "light");
 twoPagesLight.clip = editorClip;
 
+/** The host's balloon asks about Alex: the code, the permissions and Accept / Decline. */
+async function approvalBalloon(page) {
+  await openController(page);
+  await openPopup(page);
+  await page.click('.cwm-popup button:has-text("Start Session")');
+  await page.waitForSelector('.balloon:has-text("wants to join the session")');
+  await page.waitForTimeout(300);
+}
+const approval = async (page) => approvalBalloon(page);
+approval.clip = { x: 1000, y: 540, width: 440, height: 360 };
+const approvalLight = async (page) => {
+  await light(page);
+  await approvalBalloon(page);
+};
+approvalLight.clip = approval.clip;
+
 /** @type {Record<string, (page: import("playwright-core").Page) => Promise<void>>} */
 export default {
   "code-with-me-start-popup": startPopup,
@@ -194,6 +217,8 @@ export default {
   "code-with-me-carets-light": caretsLight,
   "code-with-me-session-popup": sessionPopup,
   "code-with-me-session-popup-light": sessionPopupLight,
+  "code-with-me-approval": approval,
+  "code-with-me-approval-light": approvalLight,
   "code-with-me-menu": menu,
   "code-with-me-menu-light": menuLight,
   "code-with-me-settings": settings,

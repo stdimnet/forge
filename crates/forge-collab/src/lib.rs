@@ -17,6 +17,7 @@
 //!
 //! With `runtime` (the default):
 //! - [`docs`]: the host's authoritative `yrs` copy of each shared file.
+//! - [`approval`]: host approval, the admission that asks the host before a guest joins.
 //! - [`host`]: the host's session: admission, shared documents, saving, disk changes.
 //! - [`guest`]: a guest's session, forwarding between its editor and the host.
 //! - [`guest_backend`]: the host's project as a guest's project backend (tree, search, git,
@@ -33,6 +34,8 @@ pub mod secrets;
 pub mod textdiff;
 pub mod verify;
 
+#[cfg(feature = "runtime")]
+pub mod approval;
 #[cfg(feature = "runtime")]
 pub mod docs;
 #[cfg(feature = "runtime")]

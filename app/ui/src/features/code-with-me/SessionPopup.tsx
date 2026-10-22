@@ -40,7 +40,7 @@ function StartView(props: { onStart: (level: PermissionLevel) => void }) {
             </label>
           )}
         </For>
-        <label class="cwm-level disabled" title="Custom permissions come with host approval">
+        <label class="cwm-level disabled" title="Custom permissions are not available yet">
           <input type="radio" name="cwm-level" disabled />
           <span class="cwm-level-text">
             <span class="cwm-level-title">Custom…</span>

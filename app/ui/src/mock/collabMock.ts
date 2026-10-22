@@ -16,6 +16,7 @@ import { emitMock, invoke, registerMock } from "@/ipc";
 import {
   encodeOpened,
   fromBase64,
+  levelOf,
   PRESETS,
   STATUS_EVENT,
   toBase64,
@@ -40,7 +41,7 @@ const mode = typeof location !== "undefined" ? new URLSearchParams(location.sear
 interface WireMsg {
   from: string;
   to: string;
-  kind: "knock" | "welcome" | "open" | "opened" | "error" | "update" | "awareness" | "save" | "saved" | "close" | "leave" | "status" | "ended";
+  kind: "knock" | "welcome" | "open" | "opened" | "error" | "update" | "awareness" | "save" | "saved" | "close" | "leave" | "status" | "ended" | "waiting" | "refused";
   [key: string]: unknown;
 }
 
@@ -190,6 +191,29 @@ function hostClose(who: string, docId: number): void {
   if (who === "host") hostChanged();
 }
 
+/** Join requests the host has not answered yet, by id. */
+const requests = new Map<number, (accept: boolean) => void>();
+let nextRequest = 1;
+const MOCK_CODE = "482 913";
+
+/** The host's approval: shows the request and waits for `collab_answer_join` (2 minutes). */
+function askHost(name: string): Promise<boolean> {
+  const id = nextRequest++;
+  return new Promise((resolve) => {
+    const finish = (accept: boolean) => {
+      requests.delete(id);
+      clearTimeout(timer);
+      resolve(accept);
+    };
+    const timer = setTimeout(() => {
+      emitMock("collab://join-closed", { id });
+      finish(false);
+    }, 120_000);
+    requests.set(id, finish);
+    emitMock("collab://join-request", { id, name, code: MOCK_CODE, level: levelOf(permissions) });
+  });
+}
+
 function admit(key: string, name: string): MockGuest {
   const participant: Participant = { id: nextParticipant, name, role: "guest", color: 2 + ((nextParticipant - 1) % 7), permissions };
   nextParticipant++;
@@ -211,7 +235,12 @@ function dropGuest(key: string): void {
 
 async function hostReceive(from: string, m: WireMsg): Promise<void> {
   if (m.kind === "knock") {
-    const g = guests.get(from) ?? admit(from, String(m.name ?? "Guest"));
+    let g = guests.get(from);
+    if (!g) {
+      toGuest(from, { kind: "waiting" });
+      if (!(await askHost(String(m.name ?? "Guest")))) return void toGuest(from, { kind: "refused", reason: "The host declined your request." });
+      g = admit(from, String(m.name ?? "Guest"));
+    }
     toGuest(from, { kind: "welcome", you: g.participant.id, participants, files });
     return;
   }
@@ -256,6 +285,7 @@ function startHost(level: PermissionLevel): SessionView {
 }
 
 function endHost(reason: string): void {
+  for (const answer of [...requests.values()]) answer(false);
   for (const key of guests.keys()) toGuest(key, { kind: "ended", reason });
   guests.clear();
   docs.clear();
@@ -289,6 +319,7 @@ class ScriptedGuest {
   }
 
   async run(): Promise<void> {
+    if (!(await askHost("Alex")) || this.stopped) return;
     const g = admit("alex", "Alex");
     await sleep(400);
     const target = docByPath("app/Http/Controllers/OrderController.php") ?? [...docs.values()].find((d) => d.openBy.has("host"));
@@ -360,6 +391,12 @@ function guestReceive(m: WireMsg): void {
       hostKey = m.from;
       joinResolve?.(m);
       break;
+    case "waiting":
+      waitingForUser?.();
+      break;
+    case "refused":
+      joinReject?.(new Error(String(m.reason)));
+      break;
     case "status":
       participants = m.participants as Participant[];
       files = m.files as { path: string }[];
@@ -388,14 +425,23 @@ function guestReceive(m: WireMsg): void {
 }
 
 let joinResolve: ((m: WireMsg) => void) | null = null;
+let joinReject: ((e: Error) => void) | null = null;
+let waitingForUser: (() => void) | null = null;
 
 async function join(name: string): Promise<SessionView> {
   joining = true;
   try {
+    // The host answers the knock only after its user accepted, so the wait is the approval's.
     const welcome = await new Promise<WireMsg>((resolve, reject) => {
       joinResolve = resolve;
+      joinReject = reject;
       send({ kind: "knock", to: "*", name });
-      setTimeout(() => reject(new Error("No host answered. Start a session in another page of this browser first (?collab=host).")), 3000);
+      const quiet = setTimeout(() => reject(new Error("No host answered. Start a session in another page of this browser first (?collab=host).")), 3000);
+      // A host page that is asking its user answers with `waiting`.
+      waitingForUser = () => {
+        clearTimeout(quiet);
+        emitMock("collab://waiting", { host: HOST_NAME, code: MOCK_CODE });
+      };
     });
     role = "guest";
     me = Number(welcome.you);
@@ -406,6 +452,8 @@ async function join(name: string): Promise<SessionView> {
   } finally {
     joining = false;
     joinResolve = null;
+    joinReject = null;
+    waitingForUser = null;
   }
 }
 
@@ -432,6 +480,14 @@ registerMock("collab_start", ({ level }) => {
 });
 
 registerMock("collab_end", () => endHost("The host ended the session."));
+registerMock("collab_answer_join", ({ id, accept }) => {
+  const answer = requests.get(Number(id));
+  if (!answer) throw new Error("The request is no longer open.");
+  answer(Boolean(accept));
+});
+registerMock("collab_cancel_join", () => {
+  joinReject?.(new Error("Cancelled."));
+});
 registerMock("collab_link", () => DEMO_LINK);
 
 registerMock("collab_join", async ({ link }) => {

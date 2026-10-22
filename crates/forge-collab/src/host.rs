@@ -94,15 +94,17 @@ pub enum Decision {
     /// Admit the guest with these permissions (`None`: the session's).
     Accept(Option<Permissions>),
     Decline,
+    /// The host did not answer in time.
+    Unanswered,
 }
 
-/// Decides who joins. The host approval balloon implements this.
+/// Decides who joins. [`crate::approval::Approvals`] asks the host; tests use [`DevAutoAccept`].
 pub trait Admission: Send + Sync + 'static {
     fn decide(&self, request: JoinRequest) -> BoxFuture<'static, Decision>;
 }
 
-/// Development preview: every guest with a valid join proof is admitted with the session's
-/// permissions, without asking the host. Sessions using it carry [`DEV_PREVIEW_NOTICE`].
+/// Admits every guest with a valid join proof with the session's permissions, without asking
+/// the host. For tests; the app asks the host ([`crate::approval::Approvals`]).
 pub struct DevAutoAccept;
 
 impl Admission for DevAutoAccept {
@@ -111,7 +113,7 @@ impl Admission for DevAutoAccept {
     }
 }
 
-/// Shown to everyone in a session without host approval.
+/// The notice of sessions without host approval (tests).
 pub const DEV_PREVIEW_NOTICE: &str =
     "Development preview: anyone with the link joins without approval.";
 
@@ -642,10 +644,19 @@ impl HostSession {
             .await;
         let permissions = match decision {
             Decision::Accept(p) => p.unwrap_or_else(|| self.permissions()),
-            Decision::Decline => {
-                let reason = "The host declined your request.".to_string();
-                let _ =
-                    write_msg(&mut send, &HostMessage::Refused { reason }, MAX_HOST_FRAME).await;
+            Decision::Decline | Decision::Unanswered => {
+                let reason = match decision {
+                    Decision::Unanswered => "The host did not answer.",
+                    _ => "The host declined your request.",
+                };
+                let _ = write_msg(
+                    &mut send,
+                    &HostMessage::Refused {
+                        reason: reason.to_string(),
+                    },
+                    MAX_HOST_FRAME,
+                )
+                .await;
                 return;
             }
         };

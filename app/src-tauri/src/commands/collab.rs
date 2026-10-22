@@ -11,19 +11,23 @@
 //! Updates and awareness cross the IPC as base64 strings; the initial state of a document is
 //! sent as raw bytes ([`collab_doc_open`]).
 //!
-//! Until host approval exists, hosting needs the development flag `FORGE_CWM_DEV=1`: every
-//! guest with the link joins without being asked. No socket is opened before Start Session.
+//! A guest with the link is admitted only when the host accepts: `collab://join-request`
+//! shows the request with its verification code, `collab_answer_join` answers it and
+//! `collab://join-closed` removes it when nobody answered. A joining guest gets
+//! `collab://waiting` with the same code and can cancel with `collab_cancel_join`. No socket
+//! is opened before Start Session.
 
 use std::sync::{Arc, Mutex};
 
 use base64::engine::general_purpose::STANDARD as B64;
 use base64::Engine;
 use forge_backend::Backend;
+use forge_collab::approval::{ApprovalEvent, Approvals};
 use forge_collab::excludes::Excludes;
 use forge_collab::guest::{GuestEvent, GuestSession};
 use forge_collab::guest_backend::lsp_host::{LspServices, ManagerSource};
 use forge_collab::guest_backend::{CollabBackend, LspQuery};
-use forge_collab::host::{DevAutoAccept, HostConfig, HostEvent, HostSession, DEV_PREVIEW_NOTICE};
+use forge_collab::host::{HostConfig, HostEvent, HostSession};
 use forge_collab::link::{LinkSummary, SessionLink};
 use forge_collab::permissions::{PermissionLevel, Permissions};
 use forge_collab::presence::{Participant, ParticipantId};
@@ -34,10 +38,13 @@ use forge_collab::relay::{
 use forge_collab::secrets::{KeyringStore, RelayToken, RelayTokenStatus};
 use forge_collab::transport::net::{ListenOptions, NetTransport};
 use forge_collab::transport::relay::NetConfig;
+use forge_collab::transport::Transport;
+use forge_collab::verify::verification_code;
 use forge_core::{ForgeError, FsChanges, Result};
 use serde::Serialize;
 use serde_json::json;
 use tauri::{AppHandle, Emitter, Manager, State};
+use tokio::sync::Notify;
 
 use crate::commands::workspace::WorkspaceInfo;
 use crate::state::AppState;
@@ -46,9 +53,9 @@ pub const STATUS_EVENT: &str = "collab://status";
 pub const DOC_EVENT: &str = "collab://doc";
 pub const NOTICE_EVENT: &str = "collab://notice";
 pub const ENDED_EVENT: &str = "collab://ended";
-
-/// Environment variable that allows hosting while sessions have no host approval.
-pub const DEV_FLAG: &str = "FORGE_CWM_DEV";
+pub const JOIN_REQUEST_EVENT: &str = "collab://join-request";
+pub const JOIN_CLOSED_EVENT: &str = "collab://join-closed";
+pub const WAITING_EVENT: &str = "collab://waiting";
 
 enum Active {
     Host(Arc<HostSession>),
@@ -61,6 +68,19 @@ pub struct CollabState {
     active: Mutex<Option<Active>>,
     /// The host's project, as a guest has it open.
     guest_workspace: Mutex<Option<WorkspaceInfo>>,
+    /// The host's open join requests.
+    approvals: Mutex<Option<Arc<Approvals>>>,
+    /// A guest waiting for the host to accept; notified to cancel.
+    joining: Mutex<Option<Arc<Notify>>>,
+}
+
+/// Clears the joining state however the join ends.
+struct JoiningGuard<'a>(&'a CollabState);
+
+impl Drop for JoiningGuard<'_> {
+    fn drop(&mut self) {
+        *self.0.joining.lock().expect("collab lock poisoned") = None;
+    }
 }
 
 impl CollabState {
@@ -88,6 +108,18 @@ impl CollabState {
 
     fn busy(&self) -> bool {
         self.active.lock().expect("collab lock poisoned").is_some()
+            || self.joining.lock().expect("collab lock poisoned").is_some()
+    }
+
+    /// Start joining; fails while a session runs or another join waits.
+    fn begin_join(&self) -> Result<(Arc<Notify>, JoiningGuard<'_>)> {
+        let mut joining = self.joining.lock().expect("collab lock poisoned");
+        if joining.is_some() || self.active.lock().expect("collab lock poisoned").is_some() {
+            return Err(other("A Code With Me session is already running."));
+        }
+        let cancel = Arc::new(Notify::new());
+        *joining = Some(cancel.clone());
+        Ok((cancel, JoiningGuard(self)))
     }
 }
 
@@ -145,21 +177,11 @@ pub struct SessionView {
     pub workspace: Option<WorkspaceInfo>,
 }
 
-fn dev_flag() -> bool {
-    std::env::var(DEV_FLAG).is_ok_and(|v| v == "1" || v.eq_ignore_ascii_case("true"))
-}
-
 fn idle_view() -> SessionView {
-    let can_host = dev_flag();
     SessionView {
         role: SessionRole::None,
-        can_host,
-        host_unavailable: (!can_host).then(|| {
-            format!(
-                "Hosting is a development preview until host approval is available: guests with \
-                 the link join without being asked. Start Forge with {DEV_FLAG}=1 to try it."
-            )
-        }),
+        can_host: true,
+        host_unavailable: None,
         link: None,
         me: None,
         participants: Vec::new(),
@@ -457,9 +479,6 @@ pub fn collab_parse_link(link: String) -> Result<LinkSummary> {
 /// Start Session: open the listening socket and share the files open in the editor.
 #[tauri::command]
 pub async fn collab_start(level: PermissionLevel, app: AppHandle) -> Result<SessionView> {
-    if !dev_flag() {
-        return Err(other(idle_view().host_unavailable.unwrap_or_default()));
-    }
     let collab = app.state::<CollabState>();
     if collab.busy() {
         return Err(other("A Code With Me session is already running."));
@@ -493,6 +512,15 @@ pub async fn collab_start(level: PermissionLevel, app: AppHandle) -> Result<Sess
     .await
     .map_err(|e| other(format!("Cannot listen for guests: {e}")))?;
     let handle = app.clone();
+    let approvals = Approvals::new(Arc::new(move |e| match e {
+        ApprovalEvent::Request { id, name, code } => emit(
+            &handle,
+            JOIN_REQUEST_EVENT,
+            json!({ "id": id, "name": name, "code": code, "level": level }),
+        ),
+        ApprovalEvent::Closed { id } => emit(&handle, JOIN_CLOSED_EVENT, json!({ "id": id })),
+    }));
+    let handle = app.clone();
     let host = HostSession::start(
         Arc::new(transport),
         backend,
@@ -502,14 +530,15 @@ pub async fn collab_start(level: PermissionLevel, app: AppHandle) -> Result<Sess
             permissions,
             excludes,
             max_file_size: (max_kb as usize).saturating_mul(1024),
-            notice: Some(DEV_PREVIEW_NOTICE.into()),
+            notice: None,
         },
-        Arc::new(DevAutoAccept),
+        approvals.clone(),
         Arc::new(move |e| on_host_event(&handle, e)),
     );
     host.set_services(Arc::new(LspServices(Arc::new(ShellServers {
         app: app.clone(),
     }))));
+    *collab.approvals.lock().expect("collab lock poisoned") = Some(approvals);
     collab.set(Active::Host(host.clone()));
     watch_connections(&app, Active::Host(host));
     let v = view(&collab);
@@ -525,6 +554,9 @@ pub async fn collab_end(app: AppHandle) -> Result<()> {
         return Ok(());
     };
     state.take();
+    if let Some(approvals) = state.approvals.lock().expect("collab lock poisoned").take() {
+        approvals.refuse_all();
+    }
     host.end("The host ended the session.").await;
     emit_status(&app);
     Ok(())
@@ -539,29 +571,61 @@ pub fn collab_link(state: State<'_, CollabState>) -> Result<String> {
         .ok_or_else(|| other("No session is running."))
 }
 
+/// Accept or decline a guest's join request (host).
+#[tauri::command]
+pub fn collab_answer_join(id: u64, accept: bool, state: State<'_, CollabState>) -> Result<()> {
+    let approvals = state
+        .approvals
+        .lock()
+        .expect("collab lock poisoned")
+        .clone();
+    match approvals {
+        Some(a) if a.answer(id, accept) => Ok(()),
+        _ => Err(other("The request is no longer open.")),
+    }
+}
+
+/// Stop waiting for the host to accept (guest).
+#[tauri::command]
+pub fn collab_cancel_join(state: State<'_, CollabState>) {
+    if let Some(cancel) = state.joining.lock().expect("collab lock poisoned").clone() {
+        cancel.notify_one();
+    }
+}
+
 /// Join a session from a link.
 #[tauri::command]
 pub async fn collab_join(link: String, app: AppHandle) -> Result<SessionView> {
     let collab = app.state::<CollabState>();
-    if collab.busy() {
-        return Err(other("A Code With Me session is already running."));
-    }
     let link = SessionLink::parse(&link).map_err(other)?;
+    let (cancel, _joining) = collab.begin_join()?;
     let own = host_relay_options(&app)?;
     let relay = RelayOptions::guest(link.relay.as_deref(), &own);
     let has_token = relay.token.is_some();
     let transport = NetTransport::dialer_with(NetConfig::with_relay(relay))
         .await
         .map_err(|e| other(format!("Cannot connect: {e}")))?;
+    // The host sees the same code and compares it with this one before accepting.
+    emit(
+        &app,
+        WAITING_EVENT,
+        json!({
+            "host": link.summary().host_label,
+            "code": verification_code(&link.host_id, &transport.local_key(), &link.session_id),
+        }),
+    );
     let handle = app.clone();
-    let guest = GuestSession::join(
-        Arc::new(transport),
-        &link,
-        &user_name(&app),
-        Arc::new(move |e| on_guest_event(&handle, e)),
-    )
-    .await
-    .map_err(|e| match &link.relay {
+    let name = user_name(&app);
+    let joined = tokio::select! {
+        r = GuestSession::join(
+            Arc::new(transport),
+            &link,
+            &name,
+            Arc::new(move |e| on_guest_event(&handle, e)),
+        ) => r,
+        _ = cancel.notified() => return Err(other("Cancelled.")),
+    };
+    let guest = joined.map_err(|e| match &link.relay {
         Some(relay) if !has_token => other(format!(
             "{e} The link goes through the relay server {relay}. If it needs a token, enter it \
              under Settings | Tools | Code With Me."

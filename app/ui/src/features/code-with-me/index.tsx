@@ -24,6 +24,7 @@ import { ConnectionStatusItem } from "./ConnectionStatus";
 import { RelayServerTools } from "./RelaySettings";
 import { GuestStatusItem } from "./GuestStatusItem";
 import { trackGuestProject } from "./guest";
+import { hideWaiting, trackApprovals } from "./approval";
 import "./binding";
 import "./codeWithMe.css";
 import "./guest.css";
@@ -91,7 +92,9 @@ async function joinSession(): Promise<void> {
   try {
     applySession(await collabApi.join(link));
   } catch (e) {
-    showBalloon("Cannot join the session", message(e), 8000);
+    if (message(e) !== "Cancelled.") showBalloon("Cannot join the session", message(e), 8000);
+  } finally {
+    hideWaiting();
   }
 }
 
@@ -146,4 +149,5 @@ if (!isDialogWindow()) {
   trackSession();
   trackEditorSharing();
   trackGuestProject();
+  trackApprovals();
 }

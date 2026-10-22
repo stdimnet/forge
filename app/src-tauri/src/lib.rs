@@ -108,6 +108,8 @@ pub fn run() {
             commands::collab::collab_end,
             commands::collab::collab_link,
             commands::collab::collab_join,
+            commands::collab::collab_answer_join,
+            commands::collab::collab_cancel_join,
             commands::collab::collab_leave,
             commands::collab::collab_ping,
             commands::collab::collab_doc_open,

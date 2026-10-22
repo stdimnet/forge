@@ -70,6 +70,7 @@ not finished, the page says so.
 | [Scratches, consoles and HTTP client](scratches-and-http.md) | scratch files, runs, `.http` requests, environments |
 | [Services](services.md) | Docker, Docker Compose, Kubernetes |
 | [Remote development](remote-development.md) | SSH, the Forge agent, what runs remotely |
+| [Code With Me](code-with-me.md) | invite guests, accept them with the verification code, permission levels, files guests never see, joining |
 | [Code With Me: relay and NAT traversal](code-with-me-relay.md) | direct and relayed connections, Relay server settings, running `iroh-relay`, SSH tunnel and VPN |
 | [AI](ai.md) | providers, AI commit messages, Claude Code and Gemini CLI chat |
 | [Browser Companion](browser-companion.md) | browser extension, `forge://` links, error page integrations |
