@@ -59,8 +59,22 @@ fn chars_of(text: &str) -> (Vec<char>, Vec<usize>) {
     (chars, offsets)
 }
 
-/// Blanks out what is never prose: escape sequences in strings and `inline code`.
-fn mask(chars: &mut [char], context: Context) {
+/// Blanks out what is never prose: escape sequences in strings, `inline code` and comment
+/// lines (`#`) of commit messages.
+pub(crate) fn mask(chars: &mut [char], context: Context) {
+    if context == Context::CommitMessage {
+        let mut line_start = true;
+        let mut comment = false;
+        for c in chars.iter_mut() {
+            if line_start {
+                comment = *c == '#';
+            }
+            line_start = *c == '\n';
+            if comment && *c != '\n' {
+                *c = ' ';
+            }
+        }
+    }
     if context == Context::String {
         let mut i = 0;
         while i < chars.len() {
@@ -397,6 +411,17 @@ mod tests {
         );
         let w = words("Hello\\nWorld", Context::String);
         assert_eq!((w[1].from, w[1].to), (7, 12));
+    }
+
+    #[test]
+    fn commit_message_comment_lines() {
+        assert_eq!(
+            texts(
+                "Fix ordr\n# Plese enter the message\nBody",
+                Context::CommitMessage
+            ),
+            ["Fix", "ordr", "Body"]
+        );
     }
 
     #[test]

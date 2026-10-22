@@ -176,6 +176,20 @@ pub fn check(text: &str, context: Context) -> Vec<GrammarProblem> {
         at += c.len_utf16();
     }
     offsets.push(at);
+    // Comment lines of commit messages are not part of the message.
+    if context == Context::CommitMessage {
+        let mut line_start = true;
+        let mut comment = false;
+        for c in chars.iter_mut() {
+            if line_start {
+                comment = *c == '#';
+            }
+            line_start = *c == '\n';
+            if comment && *c != '\n' {
+                *c = '\u{1}';
+            }
+        }
+    }
     // Inline code is not prose (a placeholder that is neither a word nor a space).
     let mut open: Option<usize> = None;
     for i in 0..chars.len() {
@@ -459,5 +473,6 @@ mod tests {
         assert!(rules(" * @param int    $id   the id", Context::DocComment).is_empty());
         assert!(rules("name  type  default", Context::Comment).is_empty());
         assert!(rules("Loads the  order.", Context::String).is_empty());
+        assert!(rules("Fix it\n# the the  order", Context::CommitMessage).is_empty());
     }
 }
