@@ -889,22 +889,17 @@ impl Vim {
                 }
             }
             Mode::Visual(VisualKind::Line) => {
+                // Whole lines; the head stays on the caret's line so the editor shows it there.
                 let (la, lc) = (b.line_of(st.anchor), b.line_of(st.cursor));
-                let line_to = |l: usize| {
-                    if l + 1 < b.line_count() {
-                        b.line_end(l) + 1
-                    } else {
-                        b.line_end(l)
-                    }
-                };
                 if lc >= la {
                     vec![SelRange {
                         anchor: u(b.line_start(la)),
-                        head: u(line_to(lc)),
+                        head: u(b.line_end(lc)),
                     }]
                 } else {
+                    let to = if la + 1 < b.line_count() { b.line_end(la) + 1 } else { b.line_end(la) };
                     vec![SelRange {
-                        anchor: u(line_to(la)),
+                        anchor: u(to),
                         head: u(b.line_start(lc)),
                     }]
                 }
@@ -948,8 +943,9 @@ impl Vim {
     }
 
     fn respond(&mut self, st: &mut BufState, consumed: bool) -> Response {
-        if st.cmdline.is_none() {
-            Self::clamp_cursor(st);
+        Self::clamp_cursor(st);
+        if let Some(cl) = st.cmdline.as_mut() {
+            cl.origin = cl.origin.min(st.buf.len());
         }
         let out = std::mem::take(&mut self.out);
         let selection = if out.passthrough && out.changes.is_empty() {

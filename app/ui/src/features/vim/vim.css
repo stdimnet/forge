@@ -126,7 +126,7 @@
 .vim-handlers-table {
   border-collapse: collapse;
   width: 100%;
-  max-width: 760px;
+  max-width: 640px;
   border: 1px solid var(--border);
 }
 
@@ -159,6 +159,12 @@
   font-size: var(--fs-small);
 }
 
+.vim-handlers-action {
+  color: var(--fg-muted);
+  white-space: nowrap;
+}
+
 .vim-handlers-table select {
   width: 100%;
+  min-width: 72px;
 }

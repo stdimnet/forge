@@ -57,6 +57,7 @@ export function HandlersEditor(props: { spec: SettingSpec }) {
         <thead>
           <tr>
             <th>Shortcut</th>
+            <th>Vim action</th>
             <For each={MODES}>{(m) => <th>{m.title}</th>}</For>
           </tr>
         </thead>
@@ -72,6 +73,9 @@ export function HandlersEditor(props: { spec: SettingSpec }) {
                     </span>
                   </Show>
                 </td>
+                <td class="vim-handlers-action">
+                  <Hl text={row.normalAction ?? row.insertAction ?? row.visualAction ?? ""} />
+                </td>
                 <For each={MODES}>
                   {(m) => {
                     const action = () => row[`${m.key}Action` as const];
@@ -84,7 +88,7 @@ export function HandlersEditor(props: { spec: SettingSpec }) {
                           title={action() ? `Vim: ${action()}` : "Vim does nothing with this shortcut in this mode"}
                           onChange={(e) => set(row, m.key, e.currentTarget.value as VimHandler)}
                         >
-                          <option value="vim">{action() ? `Vim (${action()})` : "Vim"}</option>
+                          <option value="vim">Vim</option>
                           <option value="ide">IDE</option>
                         </select>
                       </td>
