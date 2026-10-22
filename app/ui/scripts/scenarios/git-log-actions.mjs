@@ -62,6 +62,13 @@ const scenarios = {
   },
 };
 
+scenarios["git-interactive-rebase-done"] = async (page) => {
+  await scenarios["git-interactive-rebase"](page);
+  await page.click(".rebase-dialog .btn-primary:has-text('Start Rebasing')");
+  await page.waitForSelector(".log-row:has-text('Add order totals to the checkout')");
+  await page.waitForTimeout(400);
+};
+
 scenarios["git-interactive-rebase-light"] = Object.assign(async (page) => {
   await page.evaluate(() => (document.documentElement.dataset.theme = "light"));
   await scenarios["git-interactive-rebase"](page);

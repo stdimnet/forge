@@ -9401,6 +9401,8 @@ remote projects. When the rebase stops at an **Edit** step or with conflicts, th
 shows **Rebasing …**, conflicts open the [Conflicts dialog](#merge-conflicts), and **Git ▸
 Continue Rebase / Skip Commit / Abort Rebase** take it from there.
 
+![After the rebase](docs/screenshots/git-interactive-rebase-done.png)
+
 ## File and folder history
 
 **Show History** (Git ▸ Current File, the editor's and the Project view's Git submenu) opens a
