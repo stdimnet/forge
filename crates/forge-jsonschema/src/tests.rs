@@ -715,3 +715,12 @@ fn ecmascript_patterns() {
     assert!(json_problems(s, r#""@acme/shop""#).is_empty());
     assert_eq!(json_problems(s, r#""Shop""#).len(), 1);
 }
+
+#[test]
+fn ref_cycles_terminate() {
+    let s = r##"{"$defs": {"a": {"anyOf": [{"$ref": "#/$defs/b"}, {"$ref": "#/$defs/b"}]}, "b": {"anyOf": [{"$ref": "#/$defs/a"}, {"type": "string"}]}}, "$ref": "#/$defs/a"}"##;
+    let started = std::time::Instant::now();
+    let _ = json_problems(s, "1");
+    assert!(json_problems(s, r#""x""#).is_empty());
+    assert!(started.elapsed().as_secs() < 2);
+}

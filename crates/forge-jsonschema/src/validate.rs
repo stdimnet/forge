@@ -87,6 +87,9 @@ const MAX_DEPTH: usize = 64;
 pub struct Validator<'r> {
     reg: &'r Registry,
     depth: usize,
+    /// (value, schema) pairs being validated: a `$ref` cycle that does not descend into the
+    /// value stops here instead of recursing (exponentially, through `anyOf`).
+    active: Vec<(*const Node, *const Node)>,
     regexes: HashMap<String, Option<regex_lite::Regex>>,
 }
 
@@ -169,6 +172,7 @@ impl<'r> Validator<'r> {
         Validator {
             reg,
             depth: 0,
+            active: Vec::new(),
             regexes: HashMap::new(),
         }
     }
@@ -205,9 +209,15 @@ impl<'r> Validator<'r> {
         if s.node.as_object().is_none() {
             return out;
         }
+        let pair = (n as *const Node, s.node as *const Node);
+        if self.active.contains(&pair) {
+            return out;
+        }
+        self.active.push(pair);
         self.depth += 1;
         self.run(n, s, key, &mut out);
         self.depth -= 1;
+        self.active.pop();
         out
     }
 

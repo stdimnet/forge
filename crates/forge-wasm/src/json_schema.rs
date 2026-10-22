@@ -45,7 +45,7 @@ struct Info {
 enum Prepared {
     None,
     Needs(Vec<String>),
-    Ready(Registry, String, DocKind, Info),
+    Ready(Box<(Registry, String, DocKind, Info)>),
 }
 
 fn prepare(r: &Request) -> Prepared {
@@ -66,7 +66,7 @@ fn prepare(r: &Request) -> Prepared {
     let mut reg = Registry::new();
     reg.draft = sel.version;
     if sel.uri.is_empty() {
-        return Prepared::Ready(reg, sel.uri, kind, info);
+        return Prepared::Ready(Box::new((reg, sel.uri, kind, info)));
     }
     let mut needs = Vec::new();
     let mut queue = vec![uri::document(&sel.uri).to_string()];
@@ -108,7 +108,7 @@ fn prepare(r: &Request) -> Prepared {
         return Prepared::Needs(needs);
     }
     info.location = reg.doc(&sel.uri).map(|d| d.location.clone());
-    Prepared::Ready(reg, sel.uri, kind, info)
+    Prepared::Ready(Box::new((reg, sel.uri, kind, info)))
 }
 
 fn run(
@@ -122,7 +122,8 @@ fn run(
     match prepare(&r) {
         Prepared::None => to_json(&json!({ "answer": null })),
         Prepared::Needs(n) => to_json(&json!({ "needs": n })),
-        Prepared::Ready(reg, root, kind, info) => {
+        Prepared::Ready(ready) => {
+            let (reg, root, kind, info) = *ready;
             to_json(&json!({ "answer": f(&r, &reg, &root, kind, info) }))
         }
     }
