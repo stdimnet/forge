@@ -20,6 +20,15 @@
   height: 100%;
   flex-shrink: 1;
 }
+.navbar-statusBar .navbar-seg {
+  flex-shrink: 1;
+  min-width: 22px;
+}
+/* Folders give way first; the file and its members stay readable. */
+.navbar-statusBar .navbar-project,
+.navbar-statusBar .navbar-directory {
+  flex-shrink: 4;
+}
 .navbar-floating {
   height: 30px;
   padding: 0 8px;

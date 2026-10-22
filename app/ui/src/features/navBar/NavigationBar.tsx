@@ -9,7 +9,7 @@
 import { createEffect, createMemo, createResource, createSignal, For, Match, on, onCleanup, Show, Switch } from "solid-js";
 import { Portal } from "solid-js/web";
 import { ChevronRight, Search } from "lucide-solid";
-import { activeTab, editor, openFile, type EditorTab } from "@/state/editor";
+import { activeTab, openFile, type EditorTab } from "@/state/editor";
 import { FileIcon } from "@/shell/FileIcon";
 import { SymbolIcon } from "@/features/php/SymbolIcon";
 import { revealStructureNode } from "@/features/php/StructureView";
@@ -21,6 +21,8 @@ import {
   childrenOf,
   clearNavBarFocusRequest,
   focusRequest,
+  navBarLocation,
+  navBarMembers,
   segmentsOf,
   setFloatingNavBar,
   type NavItem,
@@ -70,7 +72,10 @@ export function NavigationBar(props: { placement: NavBarPlacement; group?: numbe
   let root!: HTMLDivElement;
   let popupEl: HTMLDivElement | undefined;
   const tab = () => (props.tab ? props.tab() : activeTab());
-  const current = createMemo(() => segmentsOf(tab(), props.group));
+  // With the bar on top, the status bar keeps the plain path (project, folders, file).
+  const current = createMemo(() =>
+    segmentsOf(tab(), props.group, navBarMembers() && !(props.placement === "statusBar" && navBarLocation() === "top")),
+  );
   /** Segments while browsing folders from a dropdown (until a file opens or the bar is left). */
   const [browse, setBrowse] = createSignal<NavSegment[] | null>(null);
   const segments = () => browse() ?? current().segments;
@@ -372,6 +377,3 @@ export function NavigationBar(props: { placement: NavBarPlacement; group?: numbe
     </div>
   );
 }
-
-/** Whether the editor group shows a text editor (the bar follows its caret). */
-export const groupTab = (id: string | null): EditorTab | undefined => (id ? editor.tabs.find((t) => t.path === id) : undefined);

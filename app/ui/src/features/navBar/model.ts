@@ -35,8 +35,11 @@ export interface TabSegments {
   plain?: string[];
 }
 
-/** The segments of `tab` (reactive: follows the caret, the content and the settings). */
-export function segmentsOf(tab: EditorTab | undefined, group?: number): TabSegments {
+/**
+ * The segments of `tab` (reactive: follows the caret, the content and the settings);
+ * `withMembers` adds the class and function at the caret.
+ */
+export function segmentsOf(tab: EditorTab | undefined, group?: number, withMembers = navBarMembers()): TabSegments {
   const project = workspace()?.name ?? "";
   if (!tab) return { segments: project ? [{ kind: "project", label: project, path: "" }] : [] };
   const fs = fileSystemFor(tab.path);
@@ -47,7 +50,7 @@ export function segmentsOf(tab: EditorTab | undefined, group?: number): TabSegme
   void tab.cursor.line;
   void tab.cursor.col;
   void tab.content;
-  const members = navBarMembers();
+  const members = withMembers;
   let scopes: ReturnType<typeof scopesAt> = [];
   if (members && structureReady()) {
     const view = viewFor(tab.path, group);
