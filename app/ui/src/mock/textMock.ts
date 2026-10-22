@@ -7,7 +7,7 @@ import { registerMock } from "@/ipc";
 import type { Eol, FileFormatRequest } from "@/ipc/text";
 import { callWasm, forgeWasm } from "@/wasm";
 import { mockFiles } from "./workspaceMock";
-import { mockSettingValues } from "./settingsMock";
+import { mockSettingLayers, mockSettingValues } from "./settingsMock";
 
 /** Raw bytes of files written in another encoding than UTF-8 (or with a BOM). */
 const mockBytes = new Map<string, number[]>();
@@ -57,8 +57,12 @@ function editorConfigsFor(path: string): { dir: string; content: string }[] {
     .filter((f): f is { dir: string; content: string } => f.content !== undefined);
 }
 
+// The code style comes from the selected scheme, as `editor_file_format` resolves it.
 registerMock("editor_file_format", async ({ request }) => {
   const wasm = await forgeWasm();
   const r = request as FileFormatRequest;
-  return callWasm(wasm.text_file_format, { ...r, settings: mockSettingValues(), editorconfigs: editorConfigsFor(r.path) });
+  return callWasm(wasm.codestyle_file_format, {
+    ...mockSettingLayers(),
+    request: { ...r, settings: mockSettingValues(), editorconfigs: editorConfigsFor(r.path) },
+  });
 });

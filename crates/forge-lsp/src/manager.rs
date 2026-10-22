@@ -559,6 +559,7 @@ impl LspManager {
         path: &Path,
         tab_size: u32,
         insert_spaces: bool,
+        settings: Option<&Value>,
     ) -> Result<Vec<TextEdit>> {
         let clients = self.clients_for(path).await;
         let Some(client) = clients
@@ -568,6 +569,10 @@ impl LspManager {
         else {
             return Ok(vec![]);
         };
+        // Code style options the server reads from its settings.
+        if let Some(settings) = settings {
+            client.update_settings(settings)?;
+        }
         let options = FormattingOptions {
             tab_size,
             insert_spaces,

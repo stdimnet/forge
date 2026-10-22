@@ -22,6 +22,10 @@ Forge's generic Language Server Protocol client.
 - `launch`: how server processes start (`LocalLauncher` here, or on a remote host).
 
 Nothing here is language specific; language packs contribute `LspServerConfig`s.
+`LspClient::update_settings` merges later changes (the code style options before Reformat
+Code, `LspManager::format`'s `settings`) into a server's settings, pushes them with
+`workspace/didChangeConfiguration` and answers later `workspace/configuration` requests with
+them.
 
 ## Modules
 

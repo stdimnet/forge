@@ -49,7 +49,7 @@ are in [research/jetbrains-gap-analysis.md](research/jetbrains-gap-analysis.md).
 - [x] Markdown preview (Mermaid, links), image/SVG viewer, CSV/TSV table editor
 - [x] Sticky lines, structure breadcrumbs, Reader mode / rendered doc comments, custom folding regions
 - [x] Spellchecking and grammar for comments, strings and identifiers
-- [ ] Code style schemes with presets (PSR-12, PER-CS, Symfony, Laravel, WordPress) and per-language pages
+- [x] Code style schemes with presets (PSR-12, PER-CS, Symfony, Laravel, WordPress) and per-language pages
 - [ ] JSON Schema validation and completion (composer.json, package.json, compose, CI files)
 - [ ] Vim emulation
 

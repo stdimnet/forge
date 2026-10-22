@@ -240,9 +240,10 @@ pub async fn lua_run_markers(
 }
 
 /// Reformat a Lua file with StyLua (`stylua --stdin-filepath <file> -`), which finds the
-/// project's `stylua.toml`. StyLua runs where the project lives (on the host for a remote
-/// project). `None` when StyLua is turned off or not installed; errors carry StyLua's
-/// message.
+/// project's `stylua.toml`; without one, the Lua code style (Settings | Editor | Code Style |
+/// Lua) is passed on the command line. StyLua runs where the project lives (on the host for
+/// a remote project). `None` when StyLua is turned off or not installed; errors carry
+/// StyLua's message.
 #[tauri::command]
 pub async fn lua_format(
     path: String,
@@ -261,8 +262,43 @@ pub async fn lua_format(
     if !enabled {
         return Ok(None);
     }
+    let style =
+        forge_codestyle::lsp::stylua_args(&crate::commands::code_style::code_style_values(&state));
     let backend = state.backend()?;
-    blocking(move || format_with_stylua(backend.as_ref(), &exe, &path, &content)).await
+    blocking(move || {
+        let args = if has_stylua_config(backend.as_ref(), &path) {
+            Vec::new()
+        } else {
+            style
+        };
+        format_with_stylua(backend.as_ref(), &exe, &path, &content, &args)
+    })
+    .await
+}
+
+/// Whether a `stylua.toml` / `.stylua.toml` applies to `path` (in its folder or above, up to
+/// the project root).
+fn has_stylua_config(backend: &dyn Backend, path: &str) -> bool {
+    let mut dir = std::path::Path::new(path).parent();
+    loop {
+        let base = dir
+            .map(|d| d.to_string_lossy().replace('\\', "/"))
+            .unwrap_or_default();
+        for name in ["stylua.toml", ".stylua.toml"] {
+            let file = if base.is_empty() {
+                name.to_string()
+            } else {
+                format!("{base}/{name}")
+            };
+            if backend.read_optional(&file).ok().flatten().is_some() {
+                return true;
+            }
+        }
+        match dir {
+            Some(d) if !d.as_os_str().is_empty() => dir = d.parent(),
+            _ => return false,
+        }
+    }
 }
 
 /// StyLua finishes in milliseconds; a hanging one is stopped.
@@ -273,6 +309,7 @@ fn format_with_stylua(
     exe: &str,
     path: &str,
     content: &str,
+    style: &[String],
 ) -> Result<Option<String>> {
     let file = backend.resolve(path)?;
     // A bare name is looked up like other tools (PATH, cargo, ...); a path must exist.
@@ -285,6 +322,7 @@ fn format_with_stylua(
         return Ok(None);
     };
     let mut cmd = CommandLine::new(program.to_string_lossy())
+        .args(style.iter().cloned())
         .arg("--stdin-filepath")
         .arg(file.to_string_lossy())
         .arg("-");
@@ -313,9 +351,10 @@ mod tests {
     fn missing_stylua_is_not_an_error() {
         let dir = tempfile::tempdir().unwrap();
         let backend = LocalBackend::open(dir.path()).unwrap();
-        let out = format_with_stylua(&backend, "forge-no-such-stylua", "a.lua", "x=1").unwrap();
+        let out =
+            format_with_stylua(&backend, "forge-no-such-stylua", "a.lua", "x=1", &[]).unwrap();
         assert_eq!(out, None);
-        let out = format_with_stylua(&backend, "/no/such/stylua", "a.lua", "x=1").unwrap();
+        let out = format_with_stylua(&backend, "/no/such/stylua", "a.lua", "x=1", &[]).unwrap();
         assert_eq!(out, None);
     }
 
@@ -333,7 +372,43 @@ mod tests {
         std::fs::set_permissions(&fake, std::fs::Permissions::from_mode(0o755)).unwrap();
         let backend = LocalBackend::open(dir.path()).unwrap();
         let exe = fake.to_string_lossy().into_owned();
-        let out = format_with_stylua(&backend, &exe, "a.lua", "x=1\n").unwrap();
+        let out = format_with_stylua(&backend, &exe, "a.lua", "x=1\n", &[]).unwrap();
         assert_eq!(out.as_deref(), Some("x = 1\n"));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn passes_the_code_style_without_a_config_file() {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = tempfile::tempdir().unwrap();
+        let fake = dir.path().join("stylua");
+        std::fs::write(&fake, "#!/bin/sh\necho \"$1 $2 $3\"\n").unwrap();
+        std::fs::set_permissions(&fake, std::fs::Permissions::from_mode(0o755)).unwrap();
+        let backend = LocalBackend::open(dir.path()).unwrap();
+        let exe = fake.to_string_lossy().into_owned();
+        let style = vec!["--indent-type".to_string(), "Tabs".to_string()];
+        // A freshly written script can be "busy" while other tests spawn processes.
+        let mut attempt = 0;
+        let out = loop {
+            match format_with_stylua(&backend, &exe, "lua/a.lua", "x", &style) {
+                Ok(out) => break out,
+                Err(_) if attempt < 20 => {
+                    attempt += 1;
+                    std::thread::sleep(std::time::Duration::from_millis(50));
+                }
+                Err(e) => panic!("{e}"),
+            }
+        };
+        assert_eq!(
+            out.as_deref(),
+            Some("--indent-type Tabs --stdin-filepath\n")
+        );
+        assert!(!has_stylua_config(&backend, "lua/a.lua"));
+        std::fs::write(
+            dir.path().join(".stylua.toml"),
+            "indent_type = \"Spaces\"\n",
+        )
+        .unwrap();
+        assert!(has_stylua_config(&backend, "lua/a.lua"));
     }
 }

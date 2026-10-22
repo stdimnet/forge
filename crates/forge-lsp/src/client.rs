@@ -138,6 +138,9 @@ struct Inner {
     process: tokio::sync::Mutex<Option<Box<dyn ServerProcess>>>,
     /// `processId` of `initialize` (see [`crate::launch::ServerIo::parent_pid`]).
     parent_pid: Option<u32>,
+    /// Settings changed after the start (code style options before Reformat Code), merged
+    /// over `config.settings`.
+    overrides: Mutex<Value>,
 }
 
 /// Handle to a running language server. Cheap to clone.
@@ -206,6 +209,7 @@ impl LspClient {
                 progress: Mutex::new(HashMap::new()),
                 process: tokio::sync::Mutex::new(Some(io.process)),
                 parent_pid: io.parent_pid,
+                overrides: Mutex::new(Value::Null),
             }),
         };
         client.set_state(ServerState::Starting);
@@ -344,6 +348,45 @@ impl LspClient {
         serde_json::from_value(value).map_err(|e| other(format!("bad {} response: {e}", R::METHOD)))
     }
 
+    /// The server's settings: its configuration with later changes merged in.
+    pub fn settings(&self) -> Value {
+        let mut settings = self.inner.config.settings.clone();
+        let overrides = self.inner.overrides.lock().expect("overrides lock").clone();
+        if !overrides.is_null() {
+            if settings.is_null() {
+                settings = json!({});
+            }
+            crate::config::merge_settings(&mut settings, &overrides);
+        }
+        settings
+    }
+
+    /// Merge `patch` into the server's settings and push them with
+    /// `workspace/didChangeConfiguration` (later `workspace/configuration` requests see
+    /// them too). Returns whether anything changed; unchanged settings are not sent again.
+    pub fn update_settings(&self, patch: &Value) -> Result<bool> {
+        if !patch.is_object() {
+            return Ok(false);
+        }
+        {
+            let mut overrides = self.inner.overrides.lock().expect("overrides lock");
+            let mut next = if overrides.is_null() {
+                json!({})
+            } else {
+                overrides.clone()
+            };
+            crate::config::merge_settings(&mut next, patch);
+            if *overrides == next {
+                return Ok(false);
+            }
+            *overrides = next;
+        }
+        self.notify::<notif::DidChangeConfiguration>(DidChangeConfigurationParams {
+            settings: self.settings(),
+        })?;
+        Ok(true)
+    }
+
     pub fn notify_raw(&self, method: &str, params: Value) -> Result<()> {
         self.send(json!({"jsonrpc": "2.0", "method": method, "params": params}))
     }
@@ -404,13 +447,15 @@ impl LspClient {
                     .and_then(Value::as_array)
                     .cloned()
                     .unwrap_or_default();
+                let settings = self.settings();
                 Ok(Value::Array(
                     items
                         .iter()
                         .map(|item| {
-                            self.inner
-                                .config
-                                .setting(item.get("section").and_then(Value::as_str))
+                            crate::config::setting_of(
+                                &settings,
+                                item.get("section").and_then(Value::as_str),
+                            )
                         })
                         .collect(),
                 ))

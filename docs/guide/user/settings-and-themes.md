@@ -14,7 +14,7 @@ dialog, with the same tree as PHPStorm:
 
 - **Appearance & Behavior**: Appearance, System Settings
 - **Keymap**
-- **Editor**: General, Font, Code Style (PHP), Inlay Hints
+- **Editor**: General, Font, Code Style (schemes, General and one page per language), Inlay Hints
 - **Plugins**
 - **Version Control**: Git, GitLab, Forgejo / Gitea, GitHub
 - **Languages & Frameworks**: Language Servers, PHP (Composer, Debug, Servers, Laravel,

@@ -69,7 +69,9 @@ lua-language-server`) or from its releases.
 ## StyLua
 
 **Reformat Code** (`Ctrl+Alt+L`) formats Lua files with StyLua when it is installed; the
-project's `stylua.toml` is honoured. Settings: **Reformat Code with StyLua**
+project's `stylua.toml` is honoured. Without one, StyLua gets the Lua
+[code style](editor.md#code-style) (indent, hard wrap, quotes, call parentheses, simple
+statements on one line) on its command line. Settings: **Reformat Code with StyLua**
 (`lua.stylua.enabled`, on) and **StyLua executable** (`lua.stylua.path`, `stylua`). In a
 [remote project](remote-development.md) StyLua runs on the host (install it there).
 
