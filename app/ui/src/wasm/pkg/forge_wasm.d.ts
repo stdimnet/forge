@@ -116,6 +116,11 @@ export function codeintel_highlight_usages(request_json: string): string;
 export function codeintel_inlay_hints(request_json: string): string;
 
 /**
+ * `{ path, text, composerPath?, files }` → `NewTestPlan | null` (like `code_new_test_plan`).
+ */
+export function codeintel_new_test_plan(request_json: string): string;
+
+/**
  * `ContextAction[]` → the same, in PHPStorm's order without duplicates.
  */
 export function codeintel_order_actions(request_json: string): string;
@@ -140,6 +145,16 @@ export function codeintel_related(request_json: string): string;
  * fileRename, conflicts }` or `{ error }`: the index part of `code_rename`.
  */
 export function codeintel_rename_edit(request_json: string): string;
+
+/**
+ * `TestSourceRequest` → `TestSource` or `{ error }` (the rendering of `code_create_test`).
+ */
+export function codeintel_test_source(request_json: string): string;
+
+/**
+ * `{ path, text, files }` → `TestTargets` (like `code_test_targets`).
+ */
+export function codeintel_test_targets(request_json: string): string;
 
 /**
  * `{ hover?, signature? }` → the type Type Info shows, or `null`.
@@ -1043,11 +1058,14 @@ export interface InitOutput {
     readonly codeintel_group_usages: (a: number, b: number, c: number) => void;
     readonly codeintel_highlight_usages: (a: number, b: number, c: number) => void;
     readonly codeintel_inlay_hints: (a: number, b: number, c: number) => void;
+    readonly codeintel_new_test_plan: (a: number, b: number, c: number) => void;
     readonly codeintel_order_actions: (a: number, b: number, c: number) => void;
     readonly codeintel_plan_edit: (a: number, b: number, c: number) => void;
     readonly codeintel_preview_edit: (a: number, b: number, c: number) => void;
     readonly codeintel_related: (a: number, b: number, c: number) => void;
     readonly codeintel_rename_edit: (a: number, b: number, c: number) => void;
+    readonly codeintel_test_source: (a: number, b: number, c: number) => void;
+    readonly codeintel_test_targets: (a: number, b: number, c: number) => void;
     readonly codeintel_type_info: (a: number, b: number, c: number) => void;
     readonly codeintel_usage_target: (a: number, b: number, c: number) => void;
     readonly codeintel_word_range: (a: number, b: number, c: number) => void;

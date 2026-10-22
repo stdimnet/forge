@@ -26,7 +26,7 @@ PHP index live.
 
 | Module | Summary |
 | --- | --- |
-| `frameworks.rs` | Laravel, Symfony and Doctrine analysis of a project, and Related Symbol (`FrameworkCall::Related`, `forge_codeintel::related` over the project's files), run where its files are. |
+| `frameworks.rs` | Laravel, Symfony and Doctrine analysis of a project, Related Symbol (`FrameworkCall::Related`, `forge_codeintel::related` over the project's files) and Go to Test / Create New Test (`FrameworkCall::TestTargets`, `NewTestPlan`), run where its files are. |
 | `langservers.rs` | Which catalog language servers (`forge-langservers`) start for a project, planned on the machine that has the project's files and the installed servers: the desktop app for a local project, the Forge agent for a remote one (its servers then start on the host through the LSP byte channel). |
 | `local.rs` | A project folder on this machine. |
 | `paths.rs` | Path helpers that do not touch the file system (the project may live on another machine). |

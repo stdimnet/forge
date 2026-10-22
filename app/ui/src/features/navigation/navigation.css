@@ -884,3 +884,12 @@ mark.hl {
 .balloon-icon.error {
   color: var(--danger);
 }
+.decl-chooser-action svg {
+  flex-shrink: 0;
+  color: var(--fg-muted);
+}
+.decl-chooser-action:has(+ .decl-chooser-row:not(.decl-chooser-action)),
+.decl-chooser-action:has(+ .decl-chooser-group) {
+  margin-bottom: 4px;
+  box-shadow: 0 1px 0 0 var(--border);
+}

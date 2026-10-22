@@ -12,7 +12,8 @@ export const demoFiles: Record<string, string> = {
         "laravel/framework": "^12.0",
         "doctrine/dbal": "^4.0"
     },
-    "autoload": { "psr-4": { "App\\\\": "app/" } }
+    "autoload": { "psr-4": { "App\\\\": "app/" } },
+    "autoload-dev": { "psr-4": { "Tests\\\\": "tests/" } }
 }
 `,
   ".gitignore": "/vendor\n/node_modules\n.env\n/storage/logs\n*.log\n",
@@ -391,6 +392,7 @@ Route::prefix('admin')->name('admin.')->middleware('can:admin')->group(function 
 `,
   "resources/views/welcome.blade.php": "<x-layout>\n    <h1>{{ config('app.name') }}</h1> {{-- TODO: translate the title --}}\n</x-layout>\n",
   "database/migrations/2026_01_01_000000_create_orders_table.php": "<?php\n\nreturn new class extends Migration {\n    public function up(): void\n    {\n        Schema::create('orders', function (Blueprint $table) {\n            $table->id();\n            $table->foreignId('user_id')->constrained();\n            $table->string('status');\n            $table->decimal('total', 10, 2);\n            $table->timestamps();\n        });\n    }\n};\n",
+  "tests/TestCase.php": "<?php\n\nnamespace Tests;\n\nuse Illuminate\\Foundation\\Testing\\TestCase as BaseTestCase;\n\nabstract class TestCase extends BaseTestCase\n{\n}\n",
   "tests/Feature/OrderTest.php": "<?php\n\nnamespace Tests\\Feature;\n\nuse Tests\\TestCase;\n\nclass OrderTest extends TestCase\n{\n    public function test_user_can_view_order(): void\n    {\n        $this->assertTrue(true); // TODO: open the order page\n    }\n}\n",
   "tests/Unit/UserTest.php": `<?php
 

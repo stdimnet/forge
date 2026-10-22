@@ -685,6 +685,7 @@ not finished, the page says so.
 | [Vim emulation](docs/guide/user/vim-emulation.md) | Tools \| Vim, Normal/Insert/Visual/Replace modes, motions, operators, text objects, registers, macros, ex commands, `~/.ideavimrc`, shortcut conflicts |
 | [Search Everywhere and Find Action](docs/guide/user/search-everywhere.md) | Double Shift, Go to Class/File/Symbol, Find Action, fuzzy matching |
 | [Type, Method and Call Hierarchy](docs/guide/user/hierarchies.md) | the Hierarchy tool window: Type Hierarchy (`Ctrl+H`: class, supertypes, subtypes), Method Hierarchy (`Ctrl+Shift+H`) with PHPStorm's marks, Call Hierarchy (`Ctrl+Alt+H`: callers and callees with call sites), scopes and sorting |
+| [Go to Test and Create Test](docs/guide/user/go-to-test.md) | Navigate \| Test (`Ctrl+Shift+T`) between classes, components and their tests, Choose Test popup, Create New PHP Test / Create New Test dialog (PHPUnit, Pest, Vitest, Jest, PSR-4 `autoload-dev`, Laravel Unit/Feature and Symfony layouts, test method stubs) |
 | [File Structure, Navigation Bar and Related Symbol](docs/guide/user/navigation-bar-and-file-structure.md) | File Structure popup (`Ctrl+F12`, Show Inherited, speed search), Navigation Bar (`Alt+Home`, Top / In Status Bar / Don't Show, members), Related Symbol (`Ctrl+Alt+Home`: tests, views, templates, routes, migrations) |
 | [File types and syntax highlighting](docs/guide/user/file-types.md) | file type detection, highlighted languages, config formats, template data languages |
 | [Language servers](docs/guide/user/language-servers.md) | detection, installation, per-server settings, Intelephense licence |
@@ -3767,6 +3768,125 @@ Remote projects work the same way: the PHP index runs on the remote host next to
 
 ---
 
+Source: docs/guide/user/go-to-test.md
+
+# Go to Test and Create Test
+
+**Navigate | Test** (`Ctrl+Shift+T`, macOS `Cmd+Shift+T`, action id `GotoTest`) jumps between
+a class, component or module and its tests, like PHPStorm:
+
+- From a class or module it goes to its tests; from a test it goes to the tested class or
+  module (**Test Subject**).
+- One result opens directly.
+- Several results open the chooser **Choose Test for Order (2 found)**, best match first: the
+  test whose folders mirror the class's (`app/Models/Order.php` →
+  `tests/Unit/Models/OrderTest.php`) comes before `tests/Feature/OrderTest.php`.
+- Without a test the chooser **Choose Test for Order** only offers **Create New Test...**,
+  which is also the first row whenever tests exist.
+
+![Choose Test for a class without tests](docs/screenshots/go-to-test-chooser.png)
+
+| From | To |
+| --- | --- |
+| PHP class `Order.php` | `OrderTest.php` (PHPUnit or Pest), anywhere in the project |
+| PHP test `OrderTest.php` | `Order.php` outside the test folders |
+| `Button.vue`, `format.ts`, `api.js`, … | `Button.spec.ts`, `format.test.ts`, `__tests__/api.test.js`, `tests/…/format.test.ts` |
+| JS/TS test | the module or component with the same name |
+
+Tests are found in Rust next to the project's files, so remote projects are searched on their
+host.
+
+## Create New Test
+
+**Create New Test...** opens **Create New PHP Test** for PHP classes and **Create New Test**
+for JavaScript, TypeScript, Vue and Svelte files. All fields start with the values PHPStorm
+would suggest and can be changed:
+
+![Create New PHP Test dialog](docs/screenshots/create-php-test-dialog.png)
+
+| Field | PHP | JavaScript / TypeScript |
+| --- | --- | --- |
+| Test framework | PHPUnit; Pest first when composer.json requires `pestphp/pest` or `tests/Pest.php` exists | Vitest or Jest from package.json (`vitest`, `jest`) or `vitest.config.*` / `jest.config.*` |
+| Class / Module to test | the class's fully qualified name | the file |
+| Test class name | `<Class>Test` (PHPUnit) | — |
+| Namespace | from composer.json's `autoload-dev` PSR-4 rules; typing a namespace moves the directory along | — |
+| Superclass | the project's `Tests\TestCase` when it exists, Symfony's `WebTestCase` for controllers, otherwise `PHPUnit\Framework\TestCase`; the list offers the others | — |
+| File name | `<Class>Test.php` (follows the class name until edited) | `<name>.test.ts` or `<name>.spec.ts` like the project's existing tests |
+| Directory | see below | next to the subject, in `__tests__` or in `tests/`, like the project's existing tests |
+| Generate | `setUp()` / `tearDown()` (Pest: `beforeEach()` / `afterEach()`) | `beforeEach()` / `afterEach()` |
+| Generate test methods for | the class's public methods (no magic methods) → `testShip()`, Pest `test('ship')` | the module's exports → `it("format")` |
+
+Where PHP tests go:
+
+| Project | Class | Test |
+| --- | --- | --- |
+| Laravel (`tests/Unit`, `tests/Feature`) | `app/Models/Order.php` | `tests/Unit/Models/OrderTest.php`, namespace `Tests\Unit\Models` |
+| Laravel | `app/Http/Controllers/OrderController.php` (also `Livewire`, `Console`) | `tests/Feature/Http/Controllers/OrderControllerTest.php`, superclass `Tests\TestCase` |
+| Symfony (`App\Tests\` → `tests/`) | `src/Service/Mailer.php` | `tests/Service/MailerTest.php`, namespace `App\Tests\Service` |
+| Without `autoload-dev` | `src/Billing/Invoice.php` | `tests/Billing/InvoiceTest.php`, namespace `Tests\Billing` |
+
+Laravel's Unit tests extend `PHPUnit\Framework\TestCase` like the skeleton's, unless the
+project's Unit tests already use `Tests\TestCase`.
+
+**OK** creates the file (never replacing an existing one), opens it with the caret in the
+first test, and shows it in the Project tool window. The new test gets its green run icons in
+the gutter like every other test.
+
+![The created test with run icons](docs/screenshots/create-php-test-created.png)
+
+The JavaScript / TypeScript dialog:
+
+![Create New Test dialog for a TypeScript module](docs/screenshots/create-js-test-dialog.png)
+
+A generated PHPUnit test:
+
+```php
+<?php
+
+namespace Tests\Unit\Models;
+
+use PHPUnit\Framework\TestCase;
+
+class OrderTest extends TestCase
+{
+    protected function setUp(): void
+    {
+        parent::setUp();
+    }
+
+    public function testShip(): void
+    {
+
+    }
+}
+```
+
+A Vitest test imports the selected exports from the subject:
+
+```ts
+import { describe, expect, it } from "vitest";
+import { format } from "./format";
+
+describe("format", () => {
+  it("format", () => {
+    expect(format).toBeDefined();
+  });
+});
+```
+
+Jest tests use Jest's globals and need no import.
+
+## See also
+
+- [File Structure, Navigation Bar and Related Symbol](docs/guide/user/navigation-bar-and-file-structure.md#related-symbol):
+  Related Symbol (`Ctrl+Alt+Home`) also lists a file's tests among its views, routes and
+  migrations.
+- [File and code templates](docs/guide/user/file-templates.md): the PSR-4 rules behind the namespace and
+  directory fields.
+
+
+---
+
 Source: docs/guide/user/navigation-bar-and-file-structure.md
 
 # File Structure, Navigation Bar and Related Symbol
@@ -5435,6 +5555,7 @@ Jumping to declarations, implementations, super methods, lines, problems, recent
 | [File Structure](#file-structure) | `Ctrl+F12` | `Cmd+F12` |
 | [Jump to Navigation Bar](#jump-to-navigation-bar) | `Alt+Home` | `Cmd+Up` |
 | [Related Symbol](#related-symbol) | `Ctrl+Alt+Home` | `Ctrl+Cmd+Up` |
+| [Test](#test) | `Ctrl+Shift+T` | `Cmd+Shift+T` |
 | [Next Occurrence](#next-occurrence) | `Ctrl+Alt+Down` | `Cmd+Alt+Down` |
 | [Previous Occurrence](#previous-occurrence) | `Ctrl+Alt+Up` | `Cmd+Alt+Up` |
 | [Toggle Bookmark](#toggle-bookmark) | `F11` | `F3` |
@@ -5821,6 +5942,18 @@ Jumps to the files that belong to the current one: a class's tests, a controller
 ![Related Symbol](docs/screenshots/related-symbol.png)
 
 More: [File Structure, Navigation Bar and Related Symbol](docs/guide/user/navigation-bar-and-file-structure.md#related-symbol)
+
+## Test
+
+**Shortcut:** `Ctrl+Shift+T` · macOS `Cmd+Shift+T` · action id `GotoTest`
+
+Jumps from a class, component or module to its tests and from a test to its subject. One result opens directly; several open the Choose Test popup. **Create New Test...** at the top of the popup opens the Create New PHP Test / Create New Test dialog (PHPUnit, Pest, Vitest, Jest).
+
+**Menu:** Navigate | Test
+
+![Go to Test](docs/screenshots/go-to-test-chooser.png)
+
+More: [Go to Test and Create Test](docs/guide/user/go-to-test.md)
 
 ## Next Occurrence
 
@@ -10002,7 +10135,7 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Implementation(s) | `GotoImplementation` | `Ctrl+Alt+B` | `Cmd+Alt+B` | yes |
 | Type Declaration | `GotoTypeDeclaration` | `Ctrl+Shift+B` | `Cmd+Shift+B` | yes |
 | Super Method | `GotoSuperMethod` | `Ctrl+U` | `Cmd+U` | yes |
-| Test | `GotoTest` | `Ctrl+Shift+T` | `Cmd+Shift+T` | — |
+| Test | `GotoTest` | `Ctrl+Shift+T` | `Cmd+Shift+T` | yes |
 | Related Symbol… | `GotoRelated` | `Ctrl+Alt+Home` | `Ctrl+Cmd+Up` | yes |
 | File Structure | `FileStructurePopup` | `Ctrl+F12` | `Cmd+F12` | yes |
 | Type Hierarchy | `TypeHierarchy` | `Ctrl+H` | `Ctrl+H` | yes |
@@ -10764,7 +10897,7 @@ Back and forward, Search Everywhere, Go to Class/File/Symbol/Line, declarations 
 | Implementation(s) | `Ctrl+Alt+B` | `Cmd+Alt+B` | yes | Lists the implementations of the class, interface or method at the caret. [More](docs/guide/user/editor.md#implementation-type-declaration-super-method) ([screenshot](docs/screenshots/php-nav-gutter.png)) |
 | Type Declaration | `Ctrl+Shift+B` | `Cmd+Shift+B` | yes | Jumps to the class of the variable, property or method return type at the caret. [More](docs/guide/user/editor.md#implementation-type-declaration-super-method) |
 | Super Method | `Ctrl+U` | `Cmd+U` | yes | Jumps to the method the current method overrides or implements. [More](docs/guide/user/editor.md#implementation-type-declaration-super-method) |
-| Test | `Ctrl+Shift+T` | `Cmd+Shift+T` | not yet | Not available yet; the entry is disabled. |
+| Test | `Ctrl+Shift+T` | `Cmd+Shift+T` | yes | Jumps between a class, component or module and its tests; Create New Test... opens the Create New PHP Test / Create New Test dialog. [More](docs/guide/user/go-to-test.md) ([screenshot](docs/screenshots/go-to-test-chooser.png)) |
 | Related Symbol… | `Ctrl+Alt+Home` | `Ctrl+Cmd+Up` | yes | Jumps to related files: tests, views, templates, routes, migrations, stories and styles. [More](docs/guide/user/navigation-bar-and-file-structure.md#related-symbol) ([screenshot](docs/screenshots/related-symbol.png)) |
 | File Structure | `Ctrl+F12` | `Cmd+F12` | yes | Shows the file's structure in a popup with speed search; press again for inherited members. [More](docs/guide/user/navigation-bar-and-file-structure.md#file-structure-popup) ([screenshot](docs/screenshots/file-structure-popup.png)) |
 | Type Hierarchy | `Ctrl+H` | `Ctrl+H` | yes | Shows the class, supertypes or subtypes hierarchy of the type at the caret in the Hierarchy tool window. [More](docs/guide/user/hierarchies.md#type-hierarchy) ([screenshot](docs/screenshots/hierarchy-type.png)) |
@@ -14416,7 +14549,7 @@ PHP index live.
 
 | Module | Summary |
 | --- | --- |
-| `frameworks.rs` | Laravel, Symfony and Doctrine analysis of a project, and Related Symbol (`FrameworkCall::Related`, `forge_codeintel::related` over the project's files), run where its files are. |
+| `frameworks.rs` | Laravel, Symfony and Doctrine analysis of a project, Related Symbol (`FrameworkCall::Related`, `forge_codeintel::related` over the project's files) and Go to Test / Create New Test (`FrameworkCall::TestTargets`, `NewTestPlan`), run where its files are. |
 | `langservers.rs` | Which catalog language servers (`forge-langservers`) start for a project, planned on the machine that has the project's files and the installed servers: the desktop app for a local project, the Forge agent for a remote one (its servers then start on the host through the LSP byte channel). |
 | `local.rs` | A project folder on this machine. |
 | `paths.rs` | Path helpers that do not touch the file system (the project may live on another machine). |
@@ -14532,7 +14665,7 @@ Source: docs/guide/developer/crates/forge-codeintel.md
 
 # forge-codeintel
 
-`crates/forge-codeintel` — Code intelligence models: workspace edits with LSP positions, Find Usages grouping, documentation helpers, file structure, navigation bar and related files (pure, WebAssembly-friendly).
+`crates/forge-codeintel` — Code intelligence models: workspace edits with LSP positions, Find Usages grouping, documentation helpers, file structure, navigation bar and related files, Go to Test and Create New Test (pure, WebAssembly-friendly).
 
 ## Purpose
 
@@ -14571,6 +14704,8 @@ and the browser-mode UI. Pure Rust, so it also runs as WebAssembly.
 - `navbar`: the Navigation Bar's segments (project, folders, file, members at the caret).
 - `related`: Related Symbol (Ctrl+Alt+Home): tests, Laravel views / routes / migrations /
   factories / policies, Twig templates, component tests, stories and styles.
+- `test_nav`: Go to Test (Ctrl+Shift+T) and the Create New Test dialog: test ↔ subject,
+  the dialog's initial values from composer.json / package.json and the generated test.
 - `hierarchy`: Type, Method and Call Hierarchy: the data model sources fill (`TypeGraph`,
   `CallNode`), the views of the Hierarchy tool window, scopes, sorting and merging.
 
@@ -14584,6 +14719,7 @@ and the browser-mode UI. Pure Rust, so it also runs as WebAssembly.
 | `hierarchy.rs` | The model of Type / Method / Call Hierarchy: `HierarchyItem` (id, name, kind, container, LSP position, `handle` with a server's own item), `TypeGraph { root, types: TypeEntry { item, extends, implements, method? }[], method? }` and `CallNode { item, calls: CallSite { path, range, preview }[] }`. `type_view` (Class Hierarchy: superclass chain then subtypes; Supertypes; Subtypes), `method_view` (subtypes of the topmost declaring type with `MethodMark` defined / abstract / shouldDefine / inherited, "Hide Classes Where Method Is Not Implemented"), `call_view` (one level of callers / callees), `HierarchyScope` All / Production / Test / This Class (parents of matches stay), alphabetical sorting, `merge_type_graphs` / `merge_call_nodes` (entries at the same place are one), `is_test_path`. Cycles and huge graphs are cut. |
 | `navbar.rs` | `nav_bar_segments(NavBarRequest { project, path, scopes, showMembers })` → `NavSegment { kind: project / directory / file / member, label, path, scopeKind?, line?, column? }[]`; members are the class-like and function scopes around the caret. |
 | `related.rs` | `related(RelatedRequest { path, text }, files, read)` → `RelatedItem { kind, group, name, path, line, column }[]` grouped in a fixed order. Text scans, no parser: PHP class ↔ `*Test.php`, Laravel `view()` / `View::make` / `Route::view` / Inertia, `routes/*.php` lines naming a controller, model ↔ migrations (`_create_<table>_table`, `$table`), factory, policy, seeder; Symfony `render()` / `#[Template]` ↔ `templates/`; JS/TS/Vue/Svelte files ↔ `*.test.*`, `*.spec.*`, `__tests__/`, `tests/`, `*.stories.*`, style sheets. The caller lists the files and reads them lazily. |
+| `test_nav.rs` | `test_targets(TestNavRequest { path, text, composerPath }, files, read)` → `TestTargets { isTest, name, targets, canCreate }` (Related Symbol's test items, best folder match first); `new_test_plan` → `NewTestPlan { frameworks, framework, subject, subjectFqn, className, namespace, directory, superclass, superclasses, fileName, members }`: PHPUnit / Pest from composer.json, namespace and folder from `autoload-dev` PSR-4 rules (`forge-file-templates`), Laravel `tests/Unit` / `tests/Feature` mirroring `app/`, Symfony `App\Tests` and `WebTestCase`, public methods from `editor_structure`; Vitest / Jest from package.json and the project's test layout (colocated, `__tests__`, `tests/`, `.test` / `.spec`), exports from a line scan. `test_source(TestSourceRequest)` → `TestSource { path, text, line }`: PHPUnit class with `setUp()` / `tearDown()` and `test<Method>()` stubs, Pest `beforeEach` / `test()` blocks, Vitest / Jest `describe` / `it` with the subject imported. |
 | `edit.rs` | `TextEdit`, `WorkspaceEdit` (`edit` / `create` / `rename` / `delete` changes), `apply_workspace_edit` over a `FileStore` (all or nothing), `revert_applied`, `preview_workspace_edit`, `word_range`, UTF-16 offset helpers. |
 | `structure.rs` | `editor_structure(text, language)` → `EditorStructure { scopes, regions }`: braces (PHP without inline HTML and heredocs, JS/TS with template literals, CSS, C-like), tags (HTML/XML/Vue/templates, `<script>` / `<style>` bodies as code) and Lua's block keywords outside strings and comments; each `Scope` has its kind, crumb name (`User`, `orders()`, `forEach callback`, `div#app.card`), header line and column, end and parent, and whether it sticks or is a crumb. `Region`s come from `// region` / `#region` / `<!-- region -->` / `/* region */` / `-- region` / `<editor-fold desc defaultstate>` comments. `group_by_regions` nests Structure view nodes (JSON with `line`) under their regions; `method_stops` / `method_target` give Next/Previous Method's stops (class-like, function, method and CSS rule names, closing braces of classes); `STRUCTURE_LANGUAGES` lists the languages with scopes. |
 | `rename.rs` | `edit_from_locations` (references → `WorkspaceEdit`, keeping `$` where the old text had it, dynamic usages skipped), `validate_identifier`, `is_class_file` / `suggest_file_rename` / `renamed_path` (PHPStorm renames `User.php` with `class User`), `edit_conflicts` (overlapping edits, renames onto existing files) and `plan_edit` (`EditPlan`: text edits of open editors, the backend's part, files to save first, tabs to reopen or close). |
@@ -14599,6 +14735,10 @@ pub use file_structure::{file_structure_view, FileStructureRequest, FileStructur
 pub use hierarchy::{call_view, merge_call_nodes, merge_type_graphs, method_view, type_view, CallNode, HierarchyItem, TypeGraph, … };
 pub use navbar::{nav_bar_segments, NavBarRequest, NavSegment};
 pub use related::{related, RelatedItem, RelatedKind, RelatedRequest};
+pub use test_nav::{
+    new_test_plan, test_source, test_targets, NewTestPlan, TestFramework, TestMember, TestNavRequest,
+    TestSource, TestSourceRequest, TestTargets,
+};
 pub use edit::{apply_text_edits, apply_workspace_edit, preview_workspace_edit, revert_applied, word_range, … };
 pub use structure::{editor_structure, group_by_regions, method_stops, method_target, EditorStructure, MethodStop, Region, Scope, ScopeKind, STRUCTURE_LANGUAGES};
 pub use usages::{classify_usage, group_usages, GroupRequest, UsageKind, UsageLocation, UsageTree, … };
@@ -14606,14 +14746,14 @@ pub use usages::{classify_usage, group_usages, GroupRequest, UsageKind, UsageLoc
 
 ## Used by
 
-- IPC: `code_find_usages`, `code_navigate`, `code_goto_declaration`, `code_symbol_info`, `code_line_markers`, `code_prepare_rename`, `code_rename`, `code_plan_edit`, `code_apply_edit`, `code_revert_edit`, `code_context_actions`, `code_resolve_action`, `code_execute_command`, `code_external_doc`, `code_quick_definition`, `code_type_info`, `code_context_info`, `code_related` (`app/src-tauri/src/commands/codeintel.rs`), `library_read` (`commands/library.rs`)
-- Crates: `forge-lsp` (workspace edits, locations), `phpforge-lang-php` (usage locations and classification), `forge-backend` (`FrameworkCall::Related`, run next to the files)
-- UI: `app/ui/src/features/documentation` (Quick Documentation, Documentation tool window, Quick Definition, Type Info, Context Info, Error Description), `app/ui/src/features/codeintel` (Show Usages popup, Find tool window, gutter markers, library files, in-place rename, Refactoring Preview, intention popup and light bulb, refactoring undo), `app/ui/src/features/lsp/goto.ts`, `features/fileStructure` (File Structure popup), `features/navBar` (Navigation Bar), `features/related` (Related Symbol)
-- Browser mode: `codeintel_group_usages`, `codeintel_apply_edit`, `codeintel_preview_edit`, `codeintel_order_actions`, `codeintel_context_actions`, `codeintel_rename_edit`, `codeintel_plan_edit`, `codeintel_word_range`, `codeintel_doc_url`, `codeintel_definition_snippet`, `codeintel_context_headers`, `codeintel_type_info`, `codeintel_related` in `crates/forge-wasm/src/codeintel.rs`, used by `app/ui/src/mock/codeintelMock.ts` `documentationMock.ts` and `relatedMock.ts`; `file_structure_view` and `nav_bar_segments` (`crates/forge-wasm/src/structure.rs`) run synchronously in the desktop app too
+- IPC: `code_find_usages`, `code_navigate`, `code_goto_declaration`, `code_symbol_info`, `code_line_markers`, `code_prepare_rename`, `code_rename`, `code_plan_edit`, `code_apply_edit`, `code_revert_edit`, `code_context_actions`, `code_resolve_action`, `code_execute_command`, `code_external_doc`, `code_quick_definition`, `code_type_info`, `code_context_info`, `code_related`, `code_test_targets`, `code_new_test_plan`, `code_create_test` (`app/src-tauri/src/commands/codeintel.rs`), `library_read` (`commands/library.rs`)
+- Crates: `forge-lsp` (workspace edits, locations), `phpforge-lang-php` (usage locations and classification), `forge-backend` (`FrameworkCall::Related`, `TestTargets`, `NewTestPlan`, run next to the files)
+- UI: `app/ui/src/features/documentation` (Quick Documentation, Documentation tool window, Quick Definition, Type Info, Context Info, Error Description), `app/ui/src/features/codeintel` (Show Usages popup, Find tool window, gutter markers, library files, in-place rename, Refactoring Preview, intention popup and light bulb, refactoring undo), `app/ui/src/features/lsp/goto.ts`, `features/fileStructure` (File Structure popup), `features/navBar` (Navigation Bar), `features/related` (Related Symbol), `features/goToTest` (Go to Test, Create New Test dialog; action rows in `features/navigation/declarationChooser.ts`)
+- Browser mode: `codeintel_group_usages`, `codeintel_apply_edit`, `codeintel_preview_edit`, `codeintel_order_actions`, `codeintel_context_actions`, `codeintel_rename_edit`, `codeintel_plan_edit`, `codeintel_word_range`, `codeintel_doc_url`, `codeintel_definition_snippet`, `codeintel_context_headers`, `codeintel_type_info`, `codeintel_related`, `codeintel_test_targets`, `codeintel_new_test_plan`, `codeintel_test_source` in `crates/forge-wasm/src/codeintel.rs`, used by `app/ui/src/mock/codeintelMock.ts` `documentationMock.ts` and `relatedMock.ts`, `goToTestMock.ts`; `file_structure_view` and `nav_bar_segments` (`crates/forge-wasm/src/structure.rs`) run synchronously in the desktop app too
 
 ## Dependencies
 
-- Workspace crates: [`forge-fuzzy`](docs/guide/developer/crates/forge-fuzzy.md)
+- Workspace crates: [`forge-fuzzy`](docs/guide/developer/crates/forge-fuzzy.md), [`forge-file-templates`](docs/guide/developer/crates/forge-file-templates.md)
 - External: `serde`, `serde_json`
 
 ## Tests
@@ -15273,6 +15413,8 @@ pub fn psr4::dir_for_namespace(roots: &[Psr4Root], namespace: &str) -> Option<St
 - IPC: `templates_list`, `templates_validate`, `templates_php_namespace`,
   `templates_php_directory`, `templates_create` (`app/src-tauri/src/commands/templates.rs`;
   composer.json is read and the file written through the project backend)
+- `forge-codeintel`: the Create New Test dialog's namespace and directory (`psr4` with
+  `autoload-dev` rules, `test_nav`)
 - `phpforge-lang-php`: Implement/Override Methods bodies and PHPDoc comments
   (`GenerateOptions::code_templates`, filled by `php_generate` from the settings)
 - UI: `app/ui/src/features/fileTemplates` (New menus, `NewElement` popup, New PHP Class
