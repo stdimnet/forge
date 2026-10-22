@@ -6,11 +6,9 @@
 //! - `hierarchy_type_view`: `TypeViewRequest` → `HierarchyView`.
 //! - `hierarchy_method_view`: `MethodViewRequest` → `HierarchyView`.
 //! - `hierarchy_call_view`: `CallViewRequest` → `CallNode[]`.
-//! - `hierarchy_merge_calls`: `{ a, b }` → `CallNode[]` (browser-mode mocks).
 
 use forge_codeintel::hierarchy::{
-    call_view, merge_call_nodes, method_view, type_view, CallNode, CallViewRequest,
-    MethodViewRequest, TypeViewRequest,
+    call_view, method_view, type_view, CallViewRequest, MethodViewRequest, TypeViewRequest,
 };
 use serde::Deserialize;
 use serde_json::json;
@@ -42,20 +40,6 @@ pub fn hierarchy_method_view(request_json: &str) -> String {
 pub fn hierarchy_call_view(request_json: &str) -> String {
     match parse::<CallViewRequest>(request_json) {
         Ok(r) => to_json(&call_view(&r)),
-        Err(e) => e,
-    }
-}
-
-#[derive(Deserialize)]
-struct MergeCalls {
-    a: Vec<CallNode>,
-    b: Vec<CallNode>,
-}
-
-#[wasm_bindgen]
-pub fn hierarchy_merge_calls(request_json: &str) -> String {
-    match parse::<MergeCalls>(request_json) {
-        Ok(r) => to_json(&merge_call_nodes(r.a, r.b)),
         Err(e) => e,
     }
 }

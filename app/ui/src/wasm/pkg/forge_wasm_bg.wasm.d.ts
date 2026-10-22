@@ -82,7 +82,6 @@ export const find_page: (a: number, b: number, c: number) => void;
 export const find_paged: (a: number, b: number, c: number) => void;
 export const fuzzy_filter: (a: number, b: number, c: number) => void;
 export const hierarchy_call_view: (a: number, b: number, c: number) => void;
-export const hierarchy_merge_calls: (a: number, b: number, c: number) => void;
 export const hierarchy_method_view: (a: number, b: number, c: number) => void;
 export const hierarchy_type_view: (a: number, b: number, c: number) => void;
 export const image_describe: (a: number, b: number, c: number) => void;

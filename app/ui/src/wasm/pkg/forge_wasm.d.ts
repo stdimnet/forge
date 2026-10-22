@@ -410,8 +410,6 @@ export function fuzzy_filter(request_json: string): string;
 
 export function hierarchy_call_view(request_json: string): string;
 
-export function hierarchy_merge_calls(request_json: string): string;
-
 export function hierarchy_method_view(request_json: string): string;
 
 export function hierarchy_type_view(request_json: string): string;
@@ -1085,7 +1083,6 @@ export interface InitOutput {
     readonly find_paged: (a: number, b: number, c: number) => void;
     readonly fuzzy_filter: (a: number, b: number, c: number) => void;
     readonly hierarchy_call_view: (a: number, b: number, c: number) => void;
-    readonly hierarchy_merge_calls: (a: number, b: number, c: number) => void;
     readonly hierarchy_method_view: (a: number, b: number, c: number) => void;
     readonly hierarchy_type_view: (a: number, b: number, c: number) => void;
     readonly image_describe: (a: number, b: number, c: number) => void;
