@@ -140,6 +140,13 @@ pub enum SettingType {
     Path,
     /// An ordered list of strings, e.g. PHP include paths.
     List,
+    /// An ordered list of tables with string values, e.g. template delimiters per
+    /// (template language, data language) pair. Settings pages render them with a custom
+    /// editor. No two entries may share the values of all `unique` fields.
+    Objects {
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        unique: Vec<String>,
+    },
 }
 
 impl SettingType {
@@ -165,6 +172,8 @@ impl SettingType {
             }
             (Self::List, Value::Array(items)) if items.iter().all(Value::is_string) => Ok(()),
             (Self::List, _) => Err("expected a list of strings".into()),
+            (Self::Objects { unique }, Value::Array(items)) => validate_objects(items, unique),
+            (Self::Objects { .. }, _) => Err("expected a list of tables".into()),
             (ty, _) => Err(format!("expected a value of type {}", ty.name())),
         }
     }
@@ -178,8 +187,33 @@ impl SettingType {
             Self::Enum { .. } => "enum",
             Self::Path => "path",
             Self::List => "list",
+            Self::Objects { .. } => "objects",
         }
     }
+}
+
+/// A list of tables with string values. Every entry needs a non-empty value for each
+/// `unique` field, and no two entries may share all of them.
+fn validate_objects(items: &[Value], unique: &[String]) -> Result<(), String> {
+    let mut seen: Vec<Vec<&str>> = Vec::new();
+    for item in items {
+        let table = item.as_object().ok_or("expected a list of tables")?;
+        if !table.values().all(Value::is_string) {
+            return Err("table values must be strings".into());
+        }
+        let mut key = Vec::with_capacity(unique.len());
+        for field in unique {
+            match table.get(field).and_then(Value::as_str).map(str::trim) {
+                Some(v) if !v.is_empty() => key.push(v),
+                _ => return Err(format!("every entry needs a `{field}`")),
+            }
+        }
+        if !unique.is_empty() && seen.contains(&key) {
+            return Err(format!("duplicate entry for {}", key.join(" + ")));
+        }
+        seen.push(key);
+    }
+    Ok(())
 }
 
 fn check_range<T: PartialOrd + std::fmt::Display>(
@@ -394,6 +428,28 @@ mod tests {
         assert!(level.validate(&json!("5.6")).is_err());
         assert!(SettingType::List.validate(&json!(["a", "b"])).is_ok());
         assert!(SettingType::List.validate(&json!([1])).is_err());
+        let pairs = SettingType::Objects {
+            unique: vec!["template".into(), "language".into()],
+        };
+        let smarty = json!({ "template": "smarty", "language": "latex", "left": "<<" });
+        let twig = json!({ "template": "twig", "language": "latex", "left": "<<" });
+        assert!(pairs.validate(&json!([smarty, twig])).is_ok());
+        assert!(pairs
+            .validate(&json!([smarty, smarty]))
+            .unwrap_err()
+            .contains("duplicate"));
+        assert!(pairs.validate(&json!([{ "template": 1 }])).is_err());
+        assert_eq!(
+            pairs.validate(&json!([smarty, { "template": "twig", "language": " " }])),
+            Err("every entry needs a `language`".into())
+        );
+        assert_eq!(
+            pairs.validate(&json!([smarty, smarty])),
+            Err("duplicate entry for smarty + latex".into())
+        );
+        let free = SettingType::Objects { unique: vec![] };
+        assert!(free.validate(&json!([{}, {}])).is_ok());
+        assert!(pairs.validate(&json!(["smarty"])).is_err());
         let num = SettingType::Number {
             min: Some(1.0),
             max: Some(3.0),
@@ -401,6 +457,24 @@ mod tests {
         };
         assert!(num.validate(&json!(1.4)).is_ok());
         assert!(num.validate(&json!(2)).is_ok());
+    }
+
+    #[test]
+    fn object_settings_parse_from_toml() {
+        let spec: SettingSpec = toml::from_str(
+            r#"
+            key = "templates.delimiters"
+            title = "Delimiters"
+            type = "objects"
+            unique = ["template", "language"]
+            default = [{ template = "smarty", language = "latex", left = "<<", right = ">>" }]
+            group = "lang.templates"
+            "#,
+        )
+        .unwrap();
+        assert_eq!(spec.kind.name(), "objects");
+        assert_eq!(spec.default[0]["left"], "<<");
+        assert!(spec.kind.validate(&spec.default).is_ok());
     }
 
     #[test]

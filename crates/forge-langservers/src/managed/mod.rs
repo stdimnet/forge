@@ -10,6 +10,9 @@
 //!    `<data dir>/forge/langservers`, never globally,
 //! 3. a daily check for newer versions of what Forge installed ([`updates`]).
 //!
+//! [`stubs`] downloads JetBrains' phpstorm-stubs (pinned, SHA-256 checked) for Go to
+//! Declaration on PHP's own symbols.
+//!
 //! Nothing is bundled with Forge: servers whose licence forbids redistribution
 //! (Intelephense) are downloaded by each user, with their consent, from the official source.
 
@@ -17,6 +20,7 @@ pub mod archive;
 pub mod http;
 pub mod node;
 pub mod npm;
+pub mod stubs;
 pub mod updates;
 
 #[cfg(test)]
@@ -25,7 +29,7 @@ pub(crate) mod testserver;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::catalog::InstallOption;
 use crate::detect::Detector;
@@ -35,7 +39,7 @@ pub use node::DistTarget;
 pub use updates::PackageUpdate;
 
 /// What an install reports while it runs.
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum Event {
     /// A step for the log ("Verified SHA-256 of …").

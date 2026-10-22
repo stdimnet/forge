@@ -59,7 +59,7 @@ function DockerStatusItem() {
         title={title()}
         data-testid="docker-status"
         onClick={() => {
-          showToolWindow("bottom", "services");
+          showToolWindow("services");
           select("docker");
         }}
       >

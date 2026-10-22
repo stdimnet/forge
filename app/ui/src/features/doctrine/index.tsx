@@ -36,5 +36,5 @@ registerSettingsPage({
 });
 
 registerKeymapActions([{ id: "Doctrine.ShowEntities", title: "Doctrine Entities", group: "Plugins/Doctrine" }]);
-registerCommand({ id: "Doctrine.ShowEntities", title: "Doctrine Entities", category: "View", run: () => toggleToolWindow("right", "doctrine") });
+registerCommand({ id: "Doctrine.ShowEntities", title: "Doctrine Entities", category: "View", run: () => toggleToolWindow("doctrine") });
 registerCommand({ id: "doctrine.refresh", title: "Refresh Doctrine Entities", category: "Tools", run: () => void loadEntities(true) });

@@ -31,6 +31,7 @@ Forge processes: everything the IDE starts on behalf of the user.
 | `pty.rs` | Interactive shell sessions on a pseudo terminal, used by the Terminal tool window. |
 | `runner.rs` | Non-interactive processes for run configurations: piped stdout/stderr streamed as text, stdin for input typed into the Run console, the exit code, and kill of the whole process tree (so `composer run` or `npm run` children stop too). |
 | `shell.rs` | Picking the user's default shell. |
+| `termenv.rs` | The environment a terminal session starts with: `TERM`, `COLORTERM`, `TERM_PROGRAM=Forge`, `TERM_PROGRAM_VERSION` and `FORGE_TERMINAL=1`, a UTF-8 `LANG` when the inherited locale is not UTF-8, and removal of variables that describe another terminal or multiplexer (kitty, tmux, iTerm2, WezTerm, Ghostty, …). |
 | `utf8.rs` |  |
 
 ## Main public items
@@ -42,6 +43,7 @@ pub use config::{…};
 pub use pty::{PtyEvent, PtyOptions, PtySession, PtySink};
 pub use runner::{CommandLine, OutputStream, RunEvent, RunSink, RunningProcess};
 pub use shell::default_shell;
+pub use termenv::{terminal_env, utf8_locale_fallback};
 pub use utf8::Utf8Decoder;
 ```
 
@@ -58,7 +60,7 @@ pub use utf8::Utf8Decoder;
 
 ## Tests
 
-7 source files, about 1814 lines; 21 unit tests.
+8 source files, about 2040 lines; 26 unit tests.
 
 ```sh
 cargo test -p forge-process

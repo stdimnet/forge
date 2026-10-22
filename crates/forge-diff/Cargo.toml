@@ -1,0 +1,13 @@
+[package]
+name = "forge-diff"
+description = "Forge IDE comparisons: folder diff (Compare Directories), pure and WebAssembly-friendly"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+serde_json.workspace = true

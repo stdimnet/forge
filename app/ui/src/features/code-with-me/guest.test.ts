@@ -74,15 +74,15 @@ describe("a guest's permissions", () => {
 
   it("shape the Project view's context menu", () => {
     const labels = () => fileMenuEntries({ name: "User.php", path: "app/User.php", kind: "file" }).map((e) => (e.type === "item" || e.type === "submenu" ? e.label : "-"));
-    expect(labels()).toContain("Rename…");
+    expect(labels()).toContain("Refactor");
     join(PRESETS.readOnly);
-    expect(labels()).not.toContain("Rename…");
+    expect(labels()).not.toContain("Refactor");
     expect(labels()).not.toContain("Delete…");
     expect(labels()).not.toContain("New");
     expect(labels()).toContain("Find in Files…");
     closeWorkspace();
     join(PRESETS.editFiles);
-    expect(labels()).toContain("Rename…");
+    expect(labels()).toContain("Refactor");
     expect(labels()).toContain("New");
   });
 });

@@ -13,7 +13,8 @@ default = ["runtime", "net", "keychain"]
 runtime = [
     "dep:tokio", "dep:tracing", "dep:yrs", "dep:forge-backend", "dep:forge-core", "dep:getrandom",
     "dep:forge-vcs", "dep:forge-process", "dep:forge-lsp", "dep:forge-project", "dep:futures-util",
-    "dep:phpforge-lang-php", "dep:phpforge-fw-laravel",
+    "dep:phpforge-lang-php", "dep:phpforge-fw-laravel", "dep:forge-codeintel", "dep:forge-langservers",
+    "dep:forge-ssr", "dep:forge-diff",
 ]
 
 # The relay token in the OS keychain (`secrets::KeyringStore`).
@@ -43,6 +44,10 @@ forge-vcs = { workspace = true, optional = true }
 forge-process = { workspace = true, optional = true }
 forge-lsp = { workspace = true, optional = true }
 forge-project = { workspace = true, optional = true }
+forge-codeintel = { workspace = true, optional = true }
+forge-langservers = { path = "../forge-langservers", default-features = false, optional = true }
+forge-ssr = { workspace = true, optional = true }
+forge-diff = { workspace = true, optional = true }
 futures-util = { version = "0.3", optional = true }
 phpforge-lang-php = { path = "../../packs/phpforge/lang-php", optional = true }
 phpforge-fw-laravel = { path = "../../packs/phpforge/fw-laravel", optional = true }

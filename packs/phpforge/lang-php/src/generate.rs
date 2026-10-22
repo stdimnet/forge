@@ -3,13 +3,15 @@
 //! the output is a list of text edits that respect the class' indentation, line endings
 //! and PSR-12 layout.
 
-use std::collections::HashSet;
+use std::collections::{BTreeMap, HashSet};
 
+use forge_file_templates::{names as templates, render_code, Vars};
 use serde::{Deserialize, Serialize};
 
 use crate::index::ProjectIndex;
 use crate::model::{short_name, ClassLike, FileIndex, Member, SymbolKind, UseImport, Visibility};
 use crate::resolve::{resolve_type, shorten_type};
+use crate::style::{apply_braces, PhpCodeStyle};
 use crate::{PhpError, Result};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -34,6 +36,12 @@ pub struct GenerateOptions {
     pub methods: Vec<String>,
     /// Setters return `$this` (`: static`).
     pub fluent: bool,
+    /// Brace placement and blank lines around methods (the app fills them from the
+    /// settings).
+    pub style: PhpCodeStyle,
+    /// The user's code templates by name (Settings | Editor | File and Code Templates |
+    /// Code); the built-in ones apply otherwise.
+    pub code_templates: BTreeMap<String, String>,
 }
 
 /// Replace `start..end` (bytes) with `new_text`.
@@ -174,20 +182,21 @@ impl ClassResolver for FilesResolver {
 // ---------------------------------------------------------------------------------------
 // Formatting helpers
 
-struct Fmt {
+pub(crate) struct Fmt {
     /// Indentation of class members.
-    indent: String,
+    pub(crate) indent: String,
     /// One indentation level.
-    unit: String,
-    class_indent: String,
-    crlf: bool,
+    pub(crate) unit: String,
+    pub(crate) class_indent: String,
+    pub(crate) crlf: bool,
+    pub(crate) style: PhpCodeStyle,
 }
 
-fn line_start(src: &str, offset: usize) -> usize {
+pub(crate) fn line_start(src: &str, offset: usize) -> usize {
     src[..offset].rfind('\n').map(|i| i + 1).unwrap_or(0)
 }
 
-fn leading_ws(src: &str, offset: usize) -> String {
+pub(crate) fn leading_ws(src: &str, offset: usize) -> String {
     let ls = line_start(src, offset);
     src[ls..]
         .chars()
@@ -196,7 +205,7 @@ fn leading_ws(src: &str, offset: usize) -> String {
 }
 
 impl Fmt {
-    fn for_class(src: &str, class: &ClassLike) -> Self {
+    pub(crate) fn for_class(src: &str, class: &ClassLike, style: &PhpCodeStyle) -> Self {
         let class_indent = leading_ws(src, class.range.start);
         let first_member_indent = class
             .members
@@ -215,12 +224,18 @@ impl Fmt {
             unit,
             class_indent,
             crlf: src.contains("\r\n"),
+            style: *style,
         }
     }
 
+    /// Line breaks between two members: "Blank lines around method" + 1.
+    pub(crate) fn member_separator(&self) -> String {
+        "\n".repeat(self.style.blank_lines_around_methods + 1)
+    }
+
     /// Indent every non-empty line of `block` (written with 4-space levels) to member level.
-    fn indent_block(&self, block: &str) -> String {
-        block
+    pub(crate) fn indent_block(&self, block: &str) -> String {
+        apply_braces(block, self.style.braces)
             .lines()
             .map(|l| {
                 if l.trim().is_empty() {
@@ -239,7 +254,7 @@ impl Fmt {
             .join("\n")
     }
 
-    fn eol(&self, s: String) -> String {
+    pub(crate) fn eol(&self, s: String) -> String {
         if self.crlf {
             s.replace("\r\n", "\n").replace('\n', "\r\n")
         } else {
@@ -249,10 +264,15 @@ impl Fmt {
 }
 
 /// Insert member blocks at the end of the class body.
-fn insert_at_end(src: &str, class: &ClassLike, fmt: &Fmt, blocks: &[String]) -> TextEdit {
+pub(crate) fn insert_at_end(
+    src: &str,
+    class: &ClassLike,
+    fmt: &Fmt,
+    blocks: &[String],
+) -> TextEdit {
     let open = class.body_range.start;
     let close = class.body_range.end - 1;
-    let body = fmt.indent_block(&blocks.join("\n\n"));
+    let body = fmt.indent_block(&blocks.join(&fmt.member_separator()));
     let inner = &src[open + 1..close];
     if inner.trim().is_empty() {
         TextEdit {
@@ -265,13 +285,18 @@ fn insert_at_end(src: &str, class: &ClassLike, fmt: &Fmt, blocks: &[String]) -> 
         TextEdit {
             start: content_end,
             end: content_end,
-            new_text: fmt.eol(format!("\n\n{body}")),
+            new_text: fmt.eol(format!("{}{body}", fmt.member_separator())),
         }
     }
 }
 
 /// Insert after the last property/constant (or at the top of the body).
-fn insert_after_fields(src: &str, class: &ClassLike, fmt: &Fmt, block: &str) -> TextEdit {
+pub(crate) fn insert_after_fields(
+    src: &str,
+    class: &ClassLike,
+    fmt: &Fmt,
+    block: &str,
+) -> TextEdit {
     let last_field_end = class
         .members
         .iter()
@@ -289,7 +314,7 @@ fn insert_after_fields(src: &str, class: &ClassLike, fmt: &Fmt, block: &str) -> 
         Some(end) => TextEdit {
             start: end,
             end,
-            new_text: fmt.eol(format!("\n\n{body}")),
+            new_text: fmt.eol(format!("{}{body}", fmt.member_separator())),
         },
         None => {
             let open = class.body_range.start;
@@ -532,7 +557,7 @@ fn method_targets(
     (overrides, implements)
 }
 
-/// Innermost function/method/property at `offset` that has no docblock yet.
+/// Innermost function/method/property at `offset`, else the class around it.
 fn doc_target(file: &FileIndex, offset: usize) -> Option<DocTarget> {
     if let Some(class) = file.class_at(offset) {
         if let Some(m) = class
@@ -541,8 +566,9 @@ fn doc_target(file: &FileIndex, offset: usize) -> Option<DocTarget> {
             .filter(|m| m.range.contains(offset) && !m.promoted)
             .min_by_key(|m| m.range.end - m.range.start)
         {
-            return Some(DocTarget::Member(m.clone()));
+            return Some(DocTarget::Member(m.clone(), class.name.clone()));
         }
+        return Some(DocTarget::Class(class.clone()));
     }
     file.functions
         .iter()
@@ -551,7 +577,9 @@ fn doc_target(file: &FileIndex, offset: usize) -> Option<DocTarget> {
 }
 
 enum DocTarget {
-    Member(Member),
+    Class(ClassLike),
+    /// A member and the name of its class.
+    Member(Member, String),
     Function(crate::model::FunctionDecl),
 }
 
@@ -564,7 +592,8 @@ pub fn targets(
 ) -> GenerateTargets {
     let mut t = GenerateTargets {
         php_doc_target: doc_target(file, offset).and_then(|d| match d {
-            DocTarget::Member(m) if m.doc.is_none() => Some(m.name),
+            DocTarget::Class(c) if c.doc.is_none() => Some(c.name),
+            DocTarget::Member(m, _) if m.doc.is_none() => Some(m.name),
             DocTarget::Function(f) if f.doc.is_none() => Some(f.name),
             _ => None,
         }),
@@ -714,7 +743,7 @@ fn gen_constructor(
         block.push_str(&format!("    $this->{0} = ${0};\n", f.name));
     }
     block.push('}');
-    let fmt = Fmt::for_class(src, class);
+    let fmt = Fmt::for_class(src, class, &opts.style);
     Ok(vec![insert_after_fields(src, class, &fmt, &block)])
 }
 
@@ -802,7 +831,7 @@ fn gen_accessors(
     if blocks.is_empty() {
         return Err(PhpError::Generate("No fields selected".into()));
     }
-    let fmt = Fmt::for_class(src, class);
+    let fmt = Fmt::for_class(src, class, &opts.style);
     Ok(vec![insert_at_end(src, class, &fmt, &blocks)])
 }
 
@@ -836,7 +865,7 @@ fn gen_to_string(src: &str, class: &ClassLike, opts: &GenerateOptions) -> Result
     }
     body.push_str(" .\n        '}';");
     let block = format!("public function __toString(): string\n{{\n{body}\n}}");
-    let fmt = Fmt::for_class(src, class);
+    let fmt = Fmt::for_class(src, class, &opts.style);
     Ok(vec![insert_at_end(src, class, &fmt, &[block])])
 }
 
@@ -879,30 +908,47 @@ fn gen_methods(
             ""
         };
         let head = format!("{}{st} function {sig}", c.member.visibility.as_str());
-        let body = if implement {
-            format!("    // TODO: Implement {}() method.", c.member.name)
+        let args: Vec<String> = c
+            .member
+            .params
+            .iter()
+            .map(|p| format!("{}${}", if p.variadic { "..." } else { "" }, p.name))
+            .collect();
+        let mut vars = Vars::new();
+        vars.insert("NAME".into(), c.member.name.clone());
+        vars.insert("CLASS_NAME".into(), class.name.clone());
+        vars.insert("PARAMETERS".into(), args.join(", "));
+        vars.insert("RETURN_TYPE".into(), ret.clone().unwrap_or_default());
+        let template = if implement {
+            templates::IMPLEMENTED_METHOD_BODY
         } else {
-            let args: Vec<String> = c
-                .member
-                .params
-                .iter()
-                .map(|p| format!("{}${}", if p.variadic { "..." } else { "" }, p.name))
-                .collect();
-            let call = format!("parent::{}({})", c.member.name, args.join(", "));
-            let returns_nothing = c.member.name.eq_ignore_ascii_case("__construct")
-                || matches!(ret.as_deref(), Some("void") | Some("never"));
-            if returns_nothing {
-                format!("    {call};")
-            } else {
-                format!("    return {call};")
-            }
+            templates::OVERRIDDEN_METHOD_BODY
         };
-        blocks.push(format!("{head}\n{{\n{body}\n}}"));
+        let rendered = render_code(&opts.code_templates, template, &vars)
+            .map_err(|e| PhpError::Generate(e.to_string()))?;
+        let body = rendered
+            .trim_end()
+            .lines()
+            .map(|l| {
+                if l.trim().is_empty() {
+                    String::new()
+                } else {
+                    format!("    {l}")
+                }
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+        let body = if body.is_empty() {
+            body
+        } else {
+            format!("{body}\n")
+        };
+        blocks.push(format!("{head}\n{{\n{body}}}"));
     }
     if blocks.is_empty() {
         return Err(PhpError::Generate("No methods selected".into()));
     }
-    let fmt = Fmt::for_class(src, class);
+    let fmt = Fmt::for_class(src, class, &opts.style);
     Ok(vec![insert_at_end(src, class, &fmt, &blocks)])
 }
 
@@ -924,79 +970,110 @@ fn thrown(body: &str) -> Vec<String> {
     out
 }
 
-fn gen_php_doc(src: &str, file: &FileIndex, offset: usize) -> Result<Vec<TextEdit>> {
-    let target = doc_target(file, offset)
-        .ok_or_else(|| PhpError::Generate("Place the caret on a function or field".into()))?;
-    let (range, doc_exists, lines, params_owner) = match &target {
-        DocTarget::Member(m) => {
-            let mut lines = Vec::new();
-            match m.kind {
+fn param_doc(params: &[crate::model::Param]) -> String {
+    params
+        .iter()
+        .map(|p| {
+            format!(
+                " * @param {} {}${}",
+                p.type_hint.clone().unwrap_or_else(|| "mixed".into()),
+                if p.variadic { "..." } else { "" },
+                p.name
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+fn throws_doc(body: &str) -> String {
+    thrown(body)
+        .iter()
+        .map(|t| format!(" * @throws {t}"))
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+fn gen_php_doc(
+    src: &str,
+    file: &FileIndex,
+    offset: usize,
+    opts: &GenerateOptions,
+) -> Result<Vec<TextEdit>> {
+    let target = doc_target(file, offset).ok_or_else(|| {
+        PhpError::Generate("Place the caret on a class, function or field".into())
+    })?;
+    let mut vars = Vars::new();
+    let mut set = |k: &str, v: String| {
+        vars.insert(k.to_string(), v);
+    };
+    let (range, doc_exists, template) = match &target {
+        DocTarget::Class(c) => {
+            set("NAME", c.name.clone());
+            set("NAMESPACE", c.namespace.clone());
+            (c.range, c.doc.is_some(), Some(templates::CLASS_DOC_COMMENT))
+        }
+        DocTarget::Member(m, class) => {
+            set("NAME", m.name.clone());
+            set("CLASS_NAME", class.clone());
+            let template = match m.kind {
                 SymbolKind::Method => {
-                    for p in &m.params {
-                        lines.push(format!(
-                            "@param {} {}${}",
-                            p.type_hint.clone().unwrap_or_else(|| "mixed".into()),
-                            if p.variadic { "..." } else { "" },
-                            p.name
-                        ));
-                    }
-                    let is_ctor = m.name.eq_ignore_ascii_case("__construct");
-                    match m.type_hint.as_deref() {
-                        Some("void") => {}
-                        _ if is_ctor => {}
-                        Some(t) => lines.push(format!("@return {t}")),
-                        None => lines.push("@return mixed".into()),
-                    }
+                    set("PARAM_DOC", param_doc(&m.params));
+                    let ty = if m.name.eq_ignore_ascii_case("__construct") {
+                        "void".to_string()
+                    } else {
+                        m.type_hint.clone().unwrap_or_else(|| "mixed".into())
+                    };
+                    set("TYPE_HINT", ty);
+                    set("THROWS_DOC", throws_doc(&src[m.range.start..m.range.end]));
+                    Some(templates::FUNCTION_DOC_COMMENT)
                 }
                 SymbolKind::Property | SymbolKind::Constant => {
-                    lines.push(format!(
-                        "@var {}",
-                        m.type_hint.clone().unwrap_or_else(|| "mixed".into())
-                    ));
+                    set(
+                        "TYPE_HINT",
+                        m.type_hint.clone().unwrap_or_else(|| "mixed".into()),
+                    );
+                    Some(templates::FIELD_DOC_COMMENT)
                 }
-                _ => {}
-            }
-            (
-                m.range,
-                m.doc.is_some(),
-                lines,
-                m.kind == SymbolKind::Method,
-            )
+                _ => None,
+            };
+            (m.range, m.doc.is_some(), template)
         }
         DocTarget::Function(f) => {
-            let mut lines: Vec<String> = f
-                .params
-                .iter()
-                .map(|p| {
-                    format!(
-                        "@param {} {}${}",
-                        p.type_hint.clone().unwrap_or_else(|| "mixed".into()),
-                        if p.variadic { "..." } else { "" },
-                        p.name
-                    )
-                })
-                .collect();
-            match f.return_type.as_deref() {
-                Some("void") => {}
-                Some(t) => lines.push(format!("@return {t}")),
-                None => lines.push("@return mixed".into()),
-            }
-            (f.range, f.doc.is_some(), lines, true)
+            set("NAME", f.name.clone());
+            set("PARAM_DOC", param_doc(&f.params));
+            set(
+                "TYPE_HINT",
+                f.return_type.clone().unwrap_or_else(|| "mixed".into()),
+            );
+            set("THROWS_DOC", throws_doc(&src[f.range.start..f.range.end]));
+            (
+                f.range,
+                f.doc.is_some(),
+                Some(templates::FUNCTION_DOC_COMMENT),
+            )
         }
     };
     if doc_exists {
         return Err(PhpError::Generate("PHPDoc comment already exists".into()));
     }
-    let mut lines = lines;
-    if params_owner {
-        for t in thrown(&src[range.start..range.end]) {
-            lines.push(format!("@throws {t}"));
-        }
+    let rendered = match template {
+        Some(t) => render_code(&opts.code_templates, t, &vars)
+            .map_err(|e| PhpError::Generate(e.to_string()))?,
+        None => "/**\n */".to_string(),
+    };
+    // Empty variables (no parameters, nothing thrown) leave empty lines behind.
+    let doc: String = rendered
+        .lines()
+        .filter(|l| !l.trim().is_empty())
+        .map(|l| format!("{l}\n"))
+        .collect();
+    if doc.is_empty() {
+        return Err(PhpError::Generate("The PHPDoc template is empty".into()));
     }
     let indent = leading_ws(src, range.start);
     let ls = line_start(src, range.start);
     let mut text = String::new();
-    for l in docblock(&lines).lines() {
+    for l in doc.lines() {
         text.push_str(&indent);
         text.push_str(l);
         text.push('\n');
@@ -1029,7 +1106,7 @@ pub fn generate(
     resolver: &mut dyn ClassResolver,
 ) -> Result<Vec<TextEdit>> {
     if kind == GenerateKind::PhpDoc {
-        return gen_php_doc(src, file, offset);
+        return gen_php_doc(src, file, offset, opts);
     }
     let class = file
         .class_at(offset)
@@ -1394,6 +1471,75 @@ class Checkout
             GenerateOptions::default()
         )
         .is_err());
+    }
+
+    #[test]
+    fn php_doc_for_classes() {
+        let src = "<?php\nnamespace App\\Models;\n\nfinal class Order\n{\n\n    private $x;\n}\n";
+        let out = run(
+            src,
+            "\n\n    private",
+            GenerateKind::PhpDoc,
+            GenerateOptions::default(),
+        )
+        .unwrap();
+        assert!(
+            out.contains("namespace App\\Models;\n\n/**\n * Class Order\n * @package App\\Models\n */\nfinal class Order\n"),
+            "{out}"
+        );
+    }
+
+    #[test]
+    fn code_templates_shape_the_generated_code() {
+        let templates: BTreeMap<String, String> = [
+            (
+                templates::IMPLEMENTED_METHOD_BODY.to_string(),
+                "throw new \\LogicException('${CLASS_NAME}::${NAME}(${PARAMETERS}) is not implemented');\n".to_string(),
+            ),
+            (
+                templates::OVERRIDDEN_METHOD_BODY.to_string(),
+                "$result = parent::${NAME}(${PARAMETERS});\n\nreturn $result;".to_string(),
+            ),
+            (
+                templates::FUNCTION_DOC_COMMENT.to_string(),
+                "/**\n * ${NAME}\n${PARAM_DOC}\n */".to_string(),
+            ),
+            (templates::FIELD_DOC_COMMENT.to_string(), "#if ($X".to_string()),
+        ]
+        .into();
+        let opts = |methods: &[&str]| GenerateOptions {
+            methods: methods.iter().map(|m| m.to_string()).collect(),
+            code_templates: templates.clone(),
+            ..Default::default()
+        };
+        let out = run_with(
+            USER,
+            "class User",
+            GenerateKind::ImplementMethods,
+            opts(&["Lib\\Model::table"]),
+            hierarchy(),
+        )
+        .unwrap();
+        assert!(out.contains("    {\n        throw new \\LogicException('User::table() is not implemented');\n    }"), "{out}");
+        let out = run_with(
+            USER,
+            "class User",
+            GenerateKind::OverrideMethods,
+            opts(&["Lib\\Model::save"]),
+            hierarchy(),
+        )
+        .unwrap();
+        assert!(out.contains("    {\n        $result = parent::save($options);\n\n        return $result;\n    }"), "{out}");
+        let src = "<?php\nclass A\n{\n    private $x;\n\n    public function f(int $a) {}\n}\n";
+        let out = run(src, "f(", GenerateKind::PhpDoc, opts(&[])).unwrap();
+        assert!(
+            out.contains(
+                "    /**\n     * f\n     * @param int $a\n     */\n    public function f("
+            ),
+            "{out}"
+        );
+        let err = run(src, "$x", GenerateKind::PhpDoc, opts(&[])).unwrap_err();
+        assert!(err.to_string().contains("PHP Field Doc Comment"), "{err}");
     }
 
     #[test]

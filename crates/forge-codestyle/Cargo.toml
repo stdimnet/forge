@@ -1,0 +1,10 @@
+[package]
+name = "forge-codestyle"
+description = "Code style schemes (Settings | Editor | Code Style): options per language, presets, scheme storage and resolution, import/export and the formatting passes and previews (pure, WebAssembly-friendly)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true

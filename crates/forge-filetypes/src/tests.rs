@@ -231,3 +231,25 @@ fn info_serializes_for_the_ui() {
     assert_eq!(json[1]["id"], serde_json::Value::Null);
     assert_eq!(json[1]["label"], "Plain text");
 }
+
+#[test]
+fn template_files_get_the_delimiters_of_their_pair() {
+    let r = FileTypeRegistry::with_builtins();
+    let req: DetectRequest = serde_json::from_str(
+        r#"{
+            "files": [{"path":"invoice.tex.tpl"},{"path":"cart.tpl"},{"path":"a.latte"},{"path":"x.php"}],
+            "templateDelimiters": [{"template":"smarty","language":"latex","left":"[[","right":"]]"}]
+        }"#,
+    )
+    .unwrap();
+    let out = r.resolve(&req);
+    let left = |i: usize| out[i].delimiters.as_ref().map(|d| d["left"].clone());
+    assert_eq!(left(0).as_deref(), Some("[["));
+    assert_eq!(left(1).as_deref(), Some("{"));
+    // Latte's delimiters are fixed; non-template files have none.
+    assert_eq!(out[2].delimiters, None);
+    assert_eq!(out[3].delimiters, None);
+    let json = serde_json::to_value(&out).unwrap();
+    assert_eq!(json[0]["delimiters"]["right"], "]]");
+    assert_eq!(json[3]["delimiters"], serde_json::Value::Null);
+}

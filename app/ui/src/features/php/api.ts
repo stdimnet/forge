@@ -3,6 +3,7 @@
  * indices); the backend converts to bytes.
  */
 import { invoke } from "@/ipc";
+import { exactMatching } from "@/ipc/search";
 
 export type SymbolKind =
   | "namespace"
@@ -18,7 +19,11 @@ export type SymbolKind =
   // Kinds of other languages shown in the Structure tool window (Lua).
   | "module"
   | "alias"
-  | "variable";
+  | "variable"
+  // Markup and style sheets (WebForge), custom folding regions.
+  | "tag"
+  | "rule"
+  | "region";
 
 export type Visibility = "public" | "protected" | "private";
 
@@ -73,6 +78,8 @@ export interface StructureNode {
   deprecated?: boolean;
   inheritedFrom?: string;
   path?: string;
+  /** An anonymous function (hidden by the File Structure popup's "Show Lambdas"). */
+  lambda?: boolean;
   children?: StructureNode[];
 }
 
@@ -144,6 +151,20 @@ export interface GenerateTargets {
 
 export type ServerChoice = "auto" | "intelephense" | "phpactor" | "none";
 
+/** The language level in effect; `fromComposer` while it follows composer.json. */
+export interface LanguageLevel {
+  level: string;
+  fromComposer: boolean;
+}
+
+/** A package `composer outdated` reports. */
+export interface OutdatedPackage {
+  name: string;
+  version: string;
+  latest: string;
+  status: "semver-safe-update" | "update-possible" | string;
+}
+
 export interface PhpLspSettings {
   server: ServerChoice;
   licenceKey?: string | null;
@@ -163,7 +184,7 @@ export interface DetectedServers {
 export const phpApi = {
   indexWorkspace: () => invoke<IndexStats>("php_index_workspace"),
   searchSymbols: (query: string, kind: "class" | "symbol" = "class", limit = 100) =>
-    invoke<SymbolHit[]>("php_search_symbols", { query, kind, limit }),
+    invoke<SymbolHit[]>("php_search_symbols", { query, kind, limit, exact: exactMatching() }),
   fileStructure: (path: string, content?: string, inherited = false) =>
     invoke<FileStructure>("php_file_structure", { path, content, inherited }),
   hover: (path: string, offset: number, content?: string) =>
@@ -172,6 +193,10 @@ export const phpApi = {
     invoke<GenerateTargets>("php_generate_targets", { path, offset, content }),
   generate: (path: string, offset: number, kind: GenerateKind, options: GenerateOptions = {}, content?: string) =>
     invoke<TextEdit[]>("php_generate", { path, offset, kind, options, content }),
+  /** Reformat Code: the blank lines of the PHP code style applied to `text`; null = unchanged. */
+  tidyBlankLines: (text: string) => invoke<string | null>("php_tidy_blank_lines", { text }),
+  languageLevel: () => invoke<LanguageLevel>("php_language_level"),
+  composerOutdated: () => invoke<OutdatedPackage[]>("php_composer_outdated"),
   detectServers: (settings?: Partial<PhpLspSettings>) =>
     invoke<DetectedServers>("php_detect_servers", { settings }),
 };

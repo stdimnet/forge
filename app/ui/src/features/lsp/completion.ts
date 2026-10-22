@@ -93,6 +93,17 @@ const WORD = /[$\w\\]*$/;
 const TRIGGERS = ["->", "::", "?->", "$", "\\"];
 
 const deprecatedOptions = new WeakSet<Completion>();
+const extraClasses = new WeakMap<Completion, string>();
+
+/**
+ * Style an option of another completion source like the server's: struck through when
+ * deprecated, plus extra classes (e.g. `cm-json-required` for required JSON properties).
+ */
+export function styleOption(option: Completion, opts: { deprecated?: boolean; class?: string }): Completion {
+  if (opts.deprecated) deprecatedOptions.add(option);
+  if (opts.class) extraClasses.set(option, opts.class);
+  return option;
+}
 const CALLABLE = new Set(["method", "function", "constructor"]);
 
 /** Insert `name()` with the caret between the parentheses (unless a `(` already follows). */
@@ -188,7 +199,9 @@ export function lspCompletion(path: string): Extension {
       icons: false,
       addToOptions: [{ render: (c) => kindIconNode(c.type ?? "text"), position: 20 }],
       optionClass: (c) =>
-        `cm-lsp-option kind-${kindGroup(c.type ?? "text")}${deprecatedOptions.has(c) ? " cm-lsp-deprecated-option" : ""}`,
+        `cm-lsp-option kind-${kindGroup(c.type ?? "text")}${deprecatedOptions.has(c) ? " cm-lsp-deprecated-option" : ""}${
+          extraClasses.has(c) ? ` ${extraClasses.get(c)}` : ""
+        }`,
     }),
   ];
 }

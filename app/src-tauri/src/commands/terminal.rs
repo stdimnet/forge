@@ -47,6 +47,10 @@ pub struct TerminalOpenOptions {
     pub args: Option<Vec<String>>,
     #[serde(default)]
     pub env: HashMap<String, String>,
+    /// Start on this machine even when the project is remote (Services: `docker` or
+    /// `kubectl` of this machine).
+    #[serde(default)]
+    pub local: bool,
     pub cols: u16,
     pub rows: u16,
 }
@@ -68,16 +72,17 @@ pub async fn terminal_open(
     state: State<'_, AppState>,
     terminals: State<'_, TerminalState>,
 ) -> Result<TerminalOpened> {
-    // Without a project the shell starts in the home directory of this machine.
+    // Without a project (or for a program of this machine in a remote project) the shell
+    // starts in the home directory of this machine.
     let backend: Arc<dyn Backend> = match state.backend() {
-        Ok(b) => b,
-        Err(_) => Arc::new(LocalBackend::open(
+        Ok(b) if !(options.local && b.info().remote.is_some()) => b,
+        _ => Arc::new(LocalBackend::open(
             dirs::home_dir().unwrap_or_else(|| PathBuf::from(".")),
         )?),
     };
     let root = backend.info().root.clone();
     let remote = !backend.info().is_local();
-    let (setting_dir, setting_shell, setting_env) = {
+    let (setting_dir, setting_shell, setting_env, integration) = {
         let s = state.read_settings();
         (
             s.get_as::<String>("terminal.startDirectory")
@@ -85,6 +90,7 @@ pub async fn terminal_open(
             s.get_as::<String>("terminal.shellPath").unwrap_or_default(),
             s.get_as::<Vec<String>>("terminal.environment")
                 .unwrap_or_default(),
+            s.get_bool("terminal.shellIntegration").unwrap_or(true),
         )
     };
     let dir = options
@@ -127,6 +133,7 @@ pub async fn terminal_open(
         env,
         cols: options.cols,
         rows: options.rows,
+        shell_integration: integration,
     };
     let session = blocking(move || backend.open_terminal(spec, sink)).await?;
     let opened = TerminalOpened {

@@ -19,6 +19,44 @@ fn is_boundary(prev: Option<char>, cur: char) -> bool {
     }
 }
 
+/// Case-insensitive substring match instead of fuzzy matching; a hit at a word start scores higher.
+pub fn exact_match(query: &str, candidate: &str) -> Option<FuzzyMatch> {
+    let q: Vec<char> = query
+        .chars()
+        .filter(|c| !c.is_whitespace())
+        .flat_map(char::to_lowercase)
+        .collect();
+    if q.is_empty() {
+        return Some(FuzzyMatch {
+            score: 0,
+            positions: Vec::new(),
+        });
+    }
+    let c: Vec<char> = candidate.chars().collect();
+    let cl: Vec<char> = c
+        .iter()
+        .map(|ch| ch.to_lowercase().next().unwrap_or(*ch))
+        .collect();
+    let last = cl.len().checked_sub(q.len())?;
+    let start = (0..=last)
+        .filter(|&i| cl[i..i + q.len()] == q[..])
+        .max_by_key(|&i| {
+            (
+                is_boundary(i.checked_sub(1).map(|p| c[p]), c[i]),
+                std::cmp::Reverse(i),
+            )
+        })?;
+    let boundary = if is_boundary(start.checked_sub(1).map(|p| c[p]), c[start]) {
+        10
+    } else {
+        0
+    };
+    Some(FuzzyMatch {
+        score: q.len() as i32 * 6 + boundary,
+        positions: (start..start + q.len()).collect(),
+    })
+}
+
 /// Match `query` against `candidate` (case-insensitive). Empty queries match everything.
 pub fn fuzzy_match(query: &str, candidate: &str) -> Option<FuzzyMatch> {
     let q: Vec<char> = query
@@ -122,6 +160,18 @@ pub fn fuzzy_match(query: &str, candidate: &str) -> Option<FuzzyMatch> {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn exact_needs_a_substring_and_prefers_word_starts() {
+        assert!(exact_match("ordc", "OrderController").is_none());
+        assert_eq!(
+            exact_match("con", "OrderController").unwrap().positions,
+            vec![5, 6, 7]
+        );
+        let start = exact_match("order", "Order").unwrap().score;
+        let inner = exact_match("order", "Reorder").unwrap().score;
+        assert!(start > inner);
+    }
+
     use super::*;
 
     #[test]

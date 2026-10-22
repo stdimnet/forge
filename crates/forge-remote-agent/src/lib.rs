@@ -4,8 +4,8 @@
 //! The desktop app uploads this binary to `~/.cache/forge-agent/<version>/`, starts
 //! `forge-remote-agent serve` and talks to it with [`forge_backend::rpc::RpcClient`]. Every
 //! service runs next to the project's files: file system, file search, git, terminals,
-//! processes, language servers (Intelephense indexes the remote project itself) and the
-//! PHP index.
+//! processes, language servers (Intelephense indexes the remote project itself), language
+//! server installs, the PHP index and the framework and WebForge analysis.
 
 mod browse;
 
@@ -16,7 +16,7 @@ use std::time::Duration;
 use forge_backend::protocol::{
     encode_value, io, Call, Event, Frame, Hello, Opened, PhpCall, TerminalOpened, PROTOCOL_VERSION,
 };
-use forge_backend::{Backend, LocalBackend, Process, Terminal, WatchGuard};
+use forge_backend::{langservers, Backend, LocalBackend, Process, Terminal, WatchGuard};
 use forge_core::{ForgeError, FsChanges, Result};
 use forge_lsp::launch::spawn_local;
 use forge_process::{PtyEvent, PtySink, RunEvent, RunSink};
@@ -42,12 +42,15 @@ enum Channel {
     Terminal(Arc<dyn Terminal>, Input),
     Process(Arc<dyn Process>, Input),
     Lsp(Input),
+    /// A language server install; notified to cancel it.
+    Install(Arc<tokio::sync::Notify>),
 }
 
 impl Channel {
-    fn input(&self) -> &Input {
+    fn input(&self) -> Option<&Input> {
         match self {
-            Channel::Terminal(_, i) | Channel::Process(_, i) | Channel::Lsp(i) => i,
+            Channel::Terminal(_, i) | Channel::Process(_, i) | Channel::Lsp(i) => Some(i),
+            Channel::Install(_) => None,
         }
     }
 
@@ -60,6 +63,7 @@ impl Channel {
             Channel::Process(p, _) => p.kill(Duration::from_secs(2)),
             // Dropping the input ends the stdin writer, which stops the server.
             Channel::Lsp(_) => {}
+            Channel::Install(cancel) => cancel.notify_one(),
         }
     }
 }
@@ -69,6 +73,9 @@ struct Agent {
     backend: RwLock<Option<Arc<LocalBackend>>>,
     watch: Mutex<Option<WatchGuard>>,
     channels: Mutex<HashMap<u32, Channel>>,
+    /// The result the last `FindStart` kept, for `FindPage`.
+    found: Mutex<Option<(u64, Arc<forge_backend::Found>)>>,
+    next_found: std::sync::atomic::AtomicU64,
 }
 
 fn other(e: impl std::fmt::Display) -> ForgeError {
@@ -149,7 +156,10 @@ impl Agent {
             Call::Ping => reply(()),
             Call::Browse { path } => reply(browse(&path)?),
             Call::Open { root } => {
-                let backend = Arc::new(LocalBackend::open(browse::expand_home(&root))?);
+                let backend = LocalBackend::open(browse::expand_home(&root))?;
+                #[cfg(feature = "search")]
+                let backend = backend.with_search_index(forge_backend::IndexOptions::default());
+                let backend = Arc::new(backend);
                 let opened = Opened {
                     root: backend.info().root.clone(),
                     name: backend.info().name.clone(),
@@ -164,12 +174,58 @@ impl Agent {
             Call::WriteFile { path, contents } => {
                 reply(self.backend()?.write_file(&path, &contents)?)
             }
+            Call::ReadBytes { path } => reply(serde_bytes::ByteBuf::from(
+                self.backend()?.read_bytes(&path)?,
+            )),
+            Call::WriteBytes { path, bytes } => reply(self.backend()?.write_bytes(&path, &bytes)?),
             Call::CreateFile { path } => reply(self.backend()?.create_file(&path)?),
             Call::CreateDir { path } => reply(self.backend()?.create_dir(&path)?),
             Call::Rename { from, to } => reply(self.backend()?.rename(&from, &to)?),
             Call::Delete { path } => reply(self.backend()?.delete(&path)?),
-            Call::FindFiles { query, limit } => reply(self.backend()?.find_files(&query, limit)?),
+            Call::FindFiles {
+                query,
+                limit,
+                exact,
+            } => reply(self.backend()?.find_files(&query, limit, exact)?),
             Call::FindInFiles(req) => reply(self.backend()?.find_in_files(&req)?),
+            Call::FindStart { req, page_size } => {
+                let found = self
+                    .backend()?
+                    .find_in_files_found(&req, &std::sync::atomic::AtomicBool::new(false))?;
+                let id = self
+                    .next_found
+                    .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                let first = found.paged(id, page_size);
+                *self.found.lock().expect("found lock") = Some((id, Arc::new(found)));
+                reply(first)
+            }
+            Call::FindPage { id, offset, count } => {
+                match &*self.found.lock().expect("found lock") {
+                    Some((current, found)) if *current == id => reply(found.page(offset, count)),
+                    _ => Err(other("The search result was replaced by a newer search")),
+                }
+            }
+            Call::FindSymbols {
+                query,
+                types_only,
+                limit,
+                skip_extensions,
+                exact,
+            } => reply(self.backend()?.find_symbols(
+                &query,
+                types_only,
+                limit,
+                &skip_extensions,
+                exact,
+            )?),
+            Call::SearchStatus => reply(self.backend()?.search_status()?),
+            Call::FindTodos(req) => reply(self.backend()?.find_todos(&req)?),
+            Call::CollectFiles(req) => reply(self.backend()?.collect_files(&req)?),
+            Call::ListFiles { limit } => reply(self.backend()?.list_files(limit)?),
+            Call::StructuralSearch(req) => reply(self.backend()?.structural_search(&req)?),
+            Call::CompareDirs { left, right } => {
+                reply(self.backend()?.compare_dirs(&left, &right)?)
+            }
             Call::Git(req) => reply(LocalGit.exec(&req)?),
             Call::Detect => reply(self.backend()?.detect_project()?),
             Call::Watch => {
@@ -281,6 +337,38 @@ impl Agent {
                 reply(())
             }
             Call::Php(call) => self.php(call),
+            // Already encoded with the call's reply type.
+            Call::Web(call) => self.backend()?.web(call),
+            // Works before a project is open, too: installs go to the host's Forge folders.
+            Call::LangServerInstall { channel, request } => {
+                let cancel = Arc::new(tokio::sync::Notify::new());
+                self.add_channel(channel, Channel::Install(cancel.clone()));
+                let agent = Arc::downgrade(self);
+                let mut on = move |event| {
+                    if let Some(a) = agent.upgrade() {
+                        a.event(Event::Install { channel, event });
+                    }
+                };
+                let outcome =
+                    langservers::block_on(langservers::install(&request, cancel, &mut on));
+                self.channels
+                    .lock()
+                    .expect("channels lock")
+                    .remove(&channel);
+                reply(outcome?.map_err(ForgeError::Other)?)
+            }
+            Call::LangServerUpdates {
+                registry,
+                node_mirror,
+                force,
+            } => reply(
+                langservers::block_on(langservers::check_updates(
+                    registry.as_deref(),
+                    node_mirror.as_deref(),
+                    force,
+                ))?
+                .map_err(ForgeError::Other)?,
+            ),
         }
     }
 
@@ -291,6 +379,7 @@ impl Agent {
             mut stdout,
             stderr,
             mut process,
+            ..
         } = io;
         let (tx, mut rx) = mpsc::unbounded_channel::<Vec<u8>>();
         tokio::spawn(async move {
@@ -357,7 +446,12 @@ impl Agent {
                 }))?;
                 reply(stats)
             }
-            PhpCall::Search { query, kind, limit } => reply(php.search(&query, kind, limit)?),
+            PhpCall::Search {
+                query,
+                kind,
+                limit,
+                exact,
+            } => reply(php.search(&query, kind, limit, exact)?),
             PhpCall::Structure {
                 path,
                 content,
@@ -380,6 +474,41 @@ impl Agent {
                 options,
                 content,
             } => reply(php.generate(&path, offset, kind, options, content)?),
+            PhpCall::Usages {
+                path,
+                offset,
+                options,
+                content,
+            } => reply(php.usages(&path, offset, options, content)?),
+            PhpCall::Highlights {
+                path,
+                offset,
+                content,
+            } => reply(php.highlights(&path, offset, content)?),
+            PhpCall::Navigate {
+                path,
+                offset,
+                kind,
+                content,
+            } => reply(php.navigate(&path, offset, kind, content)?),
+            PhpCall::Definition {
+                path,
+                offset,
+                content,
+            } => reply(php.definition(&path, offset, content)?),
+            PhpCall::LineMarkers { path, content } => reply(php.line_markers(&path, content)?),
+            PhpCall::Hierarchy {
+                path,
+                offset,
+                query,
+                content,
+            } => reply(php.hierarchy(&path, offset, query, content)?),
+            PhpCall::Intentions {
+                path,
+                offset,
+                options,
+                content,
+            } => reply(php.intentions(&path, offset, options, content)?),
             PhpCall::LspConfig { settings } => reply(php.lsp_config(settings)?),
             PhpCall::DetectServers { settings } => reply(php.detect_servers(settings)?),
         }
@@ -390,7 +519,9 @@ impl Agent {
             return;
         }
         if let Some(c) = self.channels.lock().expect("channels lock").get(&channel) {
-            let _ = c.input().send(data);
+            if let Some(input) = c.input() {
+                let _ = input.send(data);
+            }
         }
     }
 
@@ -441,6 +572,8 @@ where
         out,
         backend: RwLock::new(None),
         watch: Mutex::new(None),
+        found: Mutex::new(None),
+        next_found: std::sync::atomic::AtomicU64::new(1),
         channels: Mutex::new(HashMap::new()),
     });
 

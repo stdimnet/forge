@@ -48,6 +48,22 @@ MAIL_FROM_ADDRESS="hello@acme.test"
 volumes:
   db-data: {}
 `,
+  "docker-compose.override.yml": `# Local overrides, merged over docker-compose.yml.
+services:
+  app:
+    # Use the published image instead of building it.
+    build: !reset null
+    image: ghcr.io/acme/shop:latest
+    # Publish only HTTPS, replacing the ports of the base file.
+    ports: !override
+      - "8443:443"
+    depends_on: !reset []
+
+  mysql:
+    environment: !override
+      MYSQL_DATABASE: shop_dev
+      MYSQL_ROOT_PASSWORD: secret # local only
+`,
   Dockerfile: `FROM php:8.3-fpm-alpine
 
 RUN apk add --no-cache git unzip \\
@@ -232,6 +248,64 @@ Authorization: Bearer {{token}}
 </div>
 {/block}
 `,
+  "legacy/templates/invoice.tex.tpl": `[[* Invoice PDF, rendered with pdflatex. LaTeX templates use double square brackets as Smarty delimiters. *]]
+\\documentclass[11pt,a4paper]{article}
+\\usepackage[utf8]{inputenc}
+\\usepackage{booktabs}
+
+\\newcommand{\\amount}[1]{\\textbf{#1}~EUR}
+
+\\begin{document}
+\\section*{Invoice [[$invoice.number|escape:'latex']]}
+
+[[if $customer.company]]
+  \\textbf{[[$customer.company]]}\\\\
+[[/if]]
+[[$customer.name]]\\\\[2pt]
+[[$customer.street]], [[$customer.city]]
+
+\\begin{tabular}{lrr}
+  \\toprule
+  Item & Qty & Total \\\\
+  \\midrule
+[[foreach $invoice.items as $item]]
+  [[$item.name]] & [[$item.quantity]] & \\amount{[[$item.total|string_format:"%.2f"]]} \\\\
+[[/foreach]]
+  \\bottomrule
+\\end{tabular}
+
+% Plain LaTeX comment: {braces} stay LaTeX.
+[[literal]]\\verb|[[not a tag]]|[[/literal]]
+
+Total: \\amount{[[$invoice.total|string_format:"%.2f"]]}
+\\end{document}
+`,
+  "legacy/templates/letter.tex.twig": `\\#{ Dunning letter, rendered with pdflatex. Twig tags in LaTeX: VAR, BLOCK and # with braces. }
+\\documentclass[11pt,a4paper]{letter}
+\\usepackage[utf8]{inputenc}
+\\signature{\\VAR{company.name}}
+\\address{\\VAR{company.street} \\\\ \\VAR{company.city}}
+
+\\begin{document}
+\\begin{letter}{\\VAR{customer.name|latex_escape} \\\\ \\VAR{customer.city}}
+\\opening{Dear \\VAR{customer.name},}
+
+\\BLOCK{if invoices|length > 1}
+the following invoices are still open:
+\\begin{itemize}
+\\BLOCK{for invoice in invoices}
+  \\item Invoice \\VAR{invoice.number} of \\VAR{invoice.date|date('d.m.Y')}: \\textbf{\\VAR{invoice.total|number_format(2)}~EUR}
+\\BLOCK{endfor}
+\\end{itemize}
+\\BLOCK{else}
+invoice \\VAR{invoices[0].number} is still open.
+\\BLOCK{endif}
+
+% Plain LaTeX comment: {braces} stay LaTeX.
+\\closing{Kind regards,}
+\\end{letter}
+\\end{document}
+`,
   "public/index.html": `<!doctype html>
 <html lang="en">
   <head>
@@ -246,23 +320,23 @@ Authorization: Bearer {{token}}
   </body>
 </html>
 `,
-  "templates/invoice/invoice.tex.twig": `{# Rendered to PDF with pdflatex #}
+  "templates/invoice/invoice.tex.twig": `\\#{ Rendered to PDF with pdflatex. Twig tags in LaTeX: VAR, BLOCK and # with braces. }
 \\documentclass[11pt]{article}
 \\usepackage[utf8]{inputenc}
 \\usepackage{booktabs}
 
 \\begin{document}
-\\section*{Invoice {{ invoice.number }}}
+\\section*{Invoice \\VAR{invoice.number}}
 % Customer block
-\\textbf{ {{ customer.name|latex_escape }} } \\\\
-{{ customer.address|nl2br }}
+\\textbf{\\VAR{customer.name|latex_escape}} \\\\
+\\VAR{customer.address|nl2br}
 
 \\begin{tabular}{lrr}
   \\toprule
   Item & Qty & Total \\\\ \\midrule
-{% for line in invoice.lines %}
-  {{ line.name }} & {{ line.quantity }} & {{ line.total|number_format(2) }} \\\\
-{% endfor %}
+\\BLOCK{for line in invoice.lines}
+  \\VAR{line.name} & \\VAR{line.quantity} & \\VAR{line.total|number_format(2)} \\\\
+\\BLOCK{endfor}
   \\bottomrule
 \\end{tabular}
 

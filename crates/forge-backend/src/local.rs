@@ -4,20 +4,34 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
 
-use forge_core::search::{FindRequest, FindResult};
-use forge_core::{FileEntry, FileMatch, FsChanges, ProjectWatcher, Result, Workspace};
+use forge_core::search::{FindRequest, FindResult, TodoRequest, TodoResult};
+use forge_core::{
+    CollectRequest, FileEntry, FileMatch, FsChanges, ProjectWatcher, Result, SourceFile, Workspace,
+};
 use forge_lsp::{LocalLauncher, ServerLauncher};
 use forge_process::{CommandLine, PtyOptions, PtySession, PtySink, RunSink, RunningProcess};
 use forge_project::ProjectInfo;
+#[cfg(feature = "search")]
+pub use forge_search::IndexOptions;
+#[cfg(feature = "search")]
+use forge_search::SearchService;
 use forge_vcs::{GitExec, LocalGit, Repo};
+#[cfg(feature = "search")]
+use std::sync::OnceLock;
 
 use crate::frameworks::{FrameworkCall, LocalFrameworks};
-use crate::langservers::{LangServersAnswer, LangServersRequest, LocalLangServers};
-use crate::php::LocalPhp;
-use crate::{
-    folder_name, Backend, BackendInfo, FsSink, PhpBackend, Process, Terminal, TerminalSpec,
-    WatchGuard,
+use crate::langservers::{
+    self, InstallRequest, InstallSink, LangServersAnswer, LangServersRequest, LocalLangServers,
 };
+use crate::php::LocalPhp;
+use crate::web::{LocalWeb, WebCall};
+use crate::{
+    folder_name, Backend, BackendInfo, FsSink, PhpBackend, Process, SearchStatus, SymbolHit,
+    Terminal, TerminalSpec, WatchGuard,
+};
+use forge_core::ForgeError;
+use forge_langservers::install::InstallOutcome;
+use forge_langservers::managed::PackageUpdate;
 
 /// Serves a local folder: the desktop app's own projects, and the Forge agent on a remote
 /// host.
@@ -25,8 +39,12 @@ pub struct LocalBackend {
     info: BackendInfo,
     workspace: Workspace,
     php: Arc<LocalPhp>,
+    #[cfg(feature = "search")]
+    /// Set once the background thread has loaded the saved index; `None` when indexing is off.
+    search: Option<Arc<OnceLock<Arc<SearchService>>>>,
     frameworks: LocalFrameworks,
     langservers: LocalLangServers,
+    web: LocalWeb,
 }
 
 impl LocalBackend {
@@ -37,15 +55,48 @@ impl LocalBackend {
         Ok(Self {
             info: BackendInfo {
                 name: folder_name(&root),
-                root,
+                root: root.clone(),
                 remote: None,
                 collab: None,
             },
             php: Arc::new(LocalPhp::new(workspace.clone())),
             frameworks: LocalFrameworks::new(workspace.clone()),
             langservers: LocalLangServers::default(),
+            web: LocalWeb::new(&root),
             workspace,
+            #[cfg(feature = "search")]
+            search: None,
         })
+    }
+
+    /// Keep a persistent search index of the project: built in the background, kept current by
+    /// [`Backend::watch`]. Until it covers the project, searches walk the directory instead.
+    #[cfg(feature = "search")]
+    pub fn with_search_index(mut self, options: IndexOptions) -> Self {
+        let root = self.root().to_path_buf();
+        let slot = Arc::new(OnceLock::new());
+        let filler = slot.clone();
+        std::thread::spawn(move || {
+            let service = Arc::new(SearchService::open_with(
+                &root,
+                SearchService::cache_path(&root),
+                options,
+            ));
+            let _ = filler.set(service.clone());
+            service.refresh();
+        });
+        self.search = Some(slot);
+        self
+    }
+
+    #[cfg(feature = "search")]
+    fn service(&self) -> Option<&Arc<SearchService>> {
+        self.search.as_ref()?.get()
+    }
+
+    #[cfg(feature = "search")]
+    fn index(&self) -> Option<&Arc<SearchService>> {
+        self.service().filter(|s| s.ready())
     }
 
     pub fn workspace(&self) -> &Workspace {
@@ -147,6 +198,14 @@ impl Backend for LocalBackend {
         self.workspace.write_file(rel, contents)
     }
 
+    fn read_bytes(&self, rel: &str) -> Result<Vec<u8>> {
+        self.workspace.read_bytes(rel)
+    }
+
+    fn write_bytes(&self, rel: &str, bytes: &[u8]) -> Result<()> {
+        self.workspace.write_bytes(rel, bytes)
+    }
+
     fn create_file(&self, rel: &str) -> Result<()> {
         self.workspace.create_file(rel)
     }
@@ -163,12 +222,106 @@ impl Backend for LocalBackend {
         self.workspace.delete(rel)
     }
 
-    fn find_files(&self, query: &str, limit: usize) -> Result<Vec<FileMatch>> {
-        self.workspace.find_files(query, limit)
+    fn find_files(&self, query: &str, limit: usize, exact: bool) -> Result<Vec<FileMatch>> {
+        #[cfg(feature = "search")]
+        if let Some(index) = self.index() {
+            return Ok(index.find_ranked(query, limit, exact));
+        }
+        self.workspace.find_files_with(
+            query,
+            limit,
+            forge_core::MatchOptions {
+                strict: false,
+                exact,
+                typo: !exact,
+            },
+        )
     }
 
     fn find_in_files(&self, req: &FindRequest) -> Result<FindResult> {
+        #[cfg(feature = "search")]
+        if let Some(index) = self.index() {
+            return index.find_text(req);
+        }
         self.workspace.find_in_files(req)
+    }
+
+    fn find_in_files_found(
+        &self,
+        req: &FindRequest,
+        cancel: &std::sync::atomic::AtomicBool,
+    ) -> Result<crate::Found> {
+        #[cfg(feature = "search")]
+        if let Some(index) = self.index() {
+            return index.find_text_lazy(req, cancel).map(crate::Found::Lazy);
+        }
+        self.find_in_files(req).map(crate::Found::Full)
+    }
+
+    fn find_symbols(
+        &self,
+        query: &str,
+        types_only: bool,
+        limit: usize,
+        skip_extensions: &[String],
+        exact: bool,
+    ) -> Result<Vec<SymbolHit>> {
+        #[cfg(feature = "search")]
+        if let Some(search) = self.service() {
+            return Ok(search.find_symbols(query, types_only, limit, skip_extensions, exact));
+        }
+        let _ = (query, types_only, limit, skip_extensions, exact);
+        Ok(Vec::new())
+    }
+
+    fn search_status(&self) -> Result<SearchStatus> {
+        #[cfg(feature = "search")]
+        if let Some(slot) = &self.search {
+            return Ok(match slot.get() {
+                Some(search) => {
+                    let (stats, last_refresh_ms) = search.stats();
+                    SearchStatus {
+                        enabled: true,
+                        indexing: search.indexing() || !search.ready(),
+                        files: stats.files,
+                        content_files: stats.content,
+                        binary_files: stats.binary,
+                        oversized_files: stats.oversized,
+                        last_refresh_ms,
+                    }
+                }
+                None => SearchStatus {
+                    enabled: true,
+                    indexing: true,
+                    ..SearchStatus::default()
+                },
+            });
+        }
+        Ok(SearchStatus::default())
+    }
+
+    fn find_todos(&self, req: &TodoRequest) -> Result<TodoResult> {
+        self.workspace.find_todos(req)
+    }
+
+    fn collect_files(&self, req: &CollectRequest) -> Result<Vec<SourceFile>> {
+        self.workspace.collect_files(req)
+    }
+
+    fn structural_search(&self, req: &forge_ssr::SsrRequest) -> Result<forge_ssr::SsrResult> {
+        crate::ssr::search_workspace(&self.workspace, req)
+    }
+
+    fn compare_dirs(&self, left: &str, right: &str) -> Result<forge_diff::DirCompare> {
+        let (l, r) = (self.resolve(left)?, self.resolve(right)?);
+        forge_diff::compare_trees(&l, &r).map_err(|e| forge_core::ForgeError::Other(e.to_string()))
+    }
+
+    fn list_files(&self, limit: usize) -> Result<Vec<String>> {
+        let mut files = self.workspace.list_files();
+        files.sort();
+        files.truncate(limit);
+        Ok(files)
     }
 
     fn git(&self) -> Arc<dyn GitExec> {
@@ -181,8 +334,14 @@ impl Backend for LocalBackend {
 
     fn watch(&self, sink: FsSink) -> Result<WatchGuard> {
         let php = self.php.clone();
+        #[cfg(feature = "search")]
+        let search = self.search.clone();
         let watcher = ProjectWatcher::start(self.root(), move |changes: FsChanges| {
             php.apply_fs_changes(&changes);
+            #[cfg(feature = "search")]
+            if let Some(search) = search.as_ref().and_then(|slot| slot.get()) {
+                search.apply_changes(&changes);
+            }
             sink(changes);
         })?;
         Ok(Box::new(watcher))
@@ -200,8 +359,15 @@ impl Backend for LocalBackend {
                 args: spec.args,
                 cwd: cwd.clone(),
                 env: spec.env,
+                // Forge's crates share the app's version, so this reports the app version
+                // here and on a remote agent alike.
+                version: String::new(),
                 cols: spec.cols,
                 rows: spec.rows,
+                integration_dir: spec
+                    .shell_integration
+                    .then(|| dirs::cache_dir().map(|d| d.join("forge").join("shell-integration")))
+                    .flatten(),
             },
             sink,
         )?;
@@ -226,6 +392,35 @@ impl Backend for LocalBackend {
 
     fn langservers(&self, req: LangServersRequest) -> Result<LangServersAnswer> {
         self.langservers.plan(self.root(), &req)
+    }
+
+    fn install_langserver(
+        &self,
+        req: InstallRequest,
+        cancel: Arc<tokio::sync::Notify>,
+        sink: InstallSink,
+    ) -> Result<InstallOutcome> {
+        let mut on = |e| sink(e);
+        langservers::block_on(langservers::install(&req, cancel, &mut on))?
+            .map_err(ForgeError::Other)
+    }
+
+    fn langserver_updates(
+        &self,
+        registry: Option<String>,
+        node_mirror: Option<String>,
+        force: bool,
+    ) -> Result<Option<Vec<PackageUpdate>>> {
+        langservers::block_on(langservers::check_updates(
+            registry.as_deref(),
+            node_mirror.as_deref(),
+            force,
+        ))?
+        .map_err(ForgeError::Other)
+    }
+
+    fn web(&self, call: WebCall) -> Result<Vec<u8>> {
+        self.web.call(call)
     }
 
     fn find_executable(&self, names: &[String], custom: Option<&str>) -> Result<Option<PathBuf>> {
@@ -304,12 +499,63 @@ mod tests {
         assert_eq!(names, vec!["src", "index.php"]);
         assert_eq!(backend.read_file("src/A.php").unwrap(), "<?php class A {}");
         assert!(backend.resolve("../x").is_err());
-        let found = backend.find_files("A", 10).unwrap();
+        let found = backend.find_files("A", 10, false).unwrap();
         assert_eq!(found[0].path, "src/A.php");
         assert_eq!(backend.read_optional("missing.php").unwrap(), None);
         assert_eq!(
             backend.read_optional("index.php").unwrap().as_deref(),
             Some("<?php\n")
         );
+    }
+
+    #[cfg(feature = "search")]
+    #[test]
+    fn the_index_answers_once_ready_and_follows_the_watcher() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(
+            dir.path().join("Order.php"),
+            "<?php
+class OrderBook {}
+",
+        )
+        .unwrap();
+        let backend = LocalBackend::open(dir.path())
+            .unwrap()
+            .with_search_index(IndexOptions::default());
+        let wait = |done: &dyn Fn() -> bool| {
+            for _ in 0..100 {
+                if done() {
+                    return;
+                }
+                std::thread::sleep(Duration::from_millis(50));
+            }
+            panic!("search index never caught up");
+        };
+        wait(&|| backend.search_status().unwrap().files == 1 && backend.index().is_some());
+        let status = backend.search_status().unwrap();
+        assert!(status.enabled);
+
+        let req = FindRequest {
+            query: "OrderBook".into(),
+            ..FindRequest::default()
+        };
+        assert_eq!(backend.find_in_files(&req).unwrap().files.len(), 1);
+        assert_eq!(
+            backend
+                .find_symbols("orderbook", true, 5, &[], false)
+                .unwrap()[0]
+                .name,
+            "OrderBook"
+        );
+
+        let _guard = backend.watch(Arc::new(|_| {})).unwrap();
+        std::fs::write(
+            dir.path().join("Late.php"),
+            "<?php
+// OrderBook
+",
+        )
+        .unwrap();
+        wait(&|| backend.find_in_files(&req).unwrap().files.len() == 2);
     }
 }

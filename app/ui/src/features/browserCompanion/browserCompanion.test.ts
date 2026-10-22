@@ -23,6 +23,14 @@ describe("planOpen", () => {
     });
   });
 
+  it("opens files of an open remote project directly", () => {
+    const root = "deploy@shop.example.com:/var/www/shop";
+    expect(planOpen(event({ kind: "open", root, path: "resources/js/app.ts" }), root)).toEqual({
+      kind: "open",
+      path: "resources/js/app.ts",
+    });
+  });
+
   it("asks before switching to a recent project", () => {
     const plan = planOpen(
       event({ kind: "recent", root: "/home/me/blog", name: "blog", path: "app/Post.php" }),

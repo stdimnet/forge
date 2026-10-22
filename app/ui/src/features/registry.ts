@@ -12,8 +12,14 @@ export interface ToolWindow {
   id: string;
   title: string;
   icon: Component<{ size?: number; "stroke-width"?: number }>;
+  /** Default stripe; users can move the window (`state/layout.ts`: `moveToolWindowTo`). */
   anchor: ToolWindowAnchor;
-  /** Sort order inside its stripe (lower first). */
+  /**
+   * Starts in the split group of its anchor (Left Bottom, Right Bottom, Bottom Right) like
+   * PHPStorm's secondary tool windows.
+   */
+  split?: boolean;
+  /** Default sort order inside its stripe group (lower first). */
   order: number;
   component: Component;
   /** PHPStorm-style shortcut hint shown in tooltips, e.g. "Alt+1". */
@@ -24,6 +30,11 @@ export interface ToolWindow {
   headerContent?: () => JSX.Element;
   /** Show the window only while this is true (e.g. the project uses the framework). */
   when?: () => boolean;
+  /**
+   * Small marker on the stripe icon while the window is hidden, e.g. terminal progress.
+   * Return nothing to show no marker.
+   */
+  badge?: () => JSX.Element;
 }
 
 const [toolWindows, setToolWindows] = createSignal<ToolWindow[]>([]);
@@ -41,6 +52,7 @@ export function registerToolWindowFilter(keep: (tw: ToolWindow) => boolean): voi
   setFilters((f) => [...f, keep]);
 }
 
+/** Tool windows registered for `anchor` (their default place; see `stripeToolWindows`). */
 export const toolWindowsFor = (anchor: ToolWindowAnchor) =>
   toolWindows().filter((t) => t.anchor === anchor && (t.when?.() ?? true) && filters().every((keep) => keep(t)));
 

@@ -17,7 +17,22 @@ not finished, the page says so.
 | --- | --- |
 | [Workbench and tool windows](workbench.md) | main toolbar, tool windows, Project view, tabs, Recent Files, Switcher, status bar |
 | [Editor](editor.md) | completion, hover, Parameter Info, Go to Declaration, problems, formatting, editing actions, folding, find, gutter, context menu |
+| [Sticky lines, breadcrumbs and Reader mode](code-structure.md) | Sticky Lines, structure breadcrumbs, custom folding regions, rendered doc comments (`Ctrl+Alt+Q`), Reader mode |
+| [Markdown, images and CSV](markdown-images-csv.md) | Markdown preview (Mermaid, tables, links, images, front matter), image editor and SVG preview, Edit as Table for CSV/TSV |
+| [Actions on Save](actions-on-save.md) | Reformat code, Optimize imports, Rearrange code, code cleanup, ESLint, Prettier, PHP CS Fixer and Laravel Pint on save |
+| [Live templates](live-templates.md) | abbreviations + `Tab`, Insert Live Template, Surround With, Unwrap/Remove, Save as Live Template, template sets and settings |
+| [Emmet and color previews](emmet-and-colors.md) | Emmet abbreviations in HTML, Blade, Twig, Vue, PHP, JSX and CSS, abbreviation preview, Surround with Emmet, Update/Remove Tag, edit points, color swatches and the color picker |
+| [JSON Schema](json-schema.md) | validation, completion, hover and Go to Declaration from JSON schemas in JSON and YAML files: composer.json, package.json, tsconfig, ESLint, Prettier, Compose, GitHub Actions, GitLab CI, `$schema`, JSON Schema Mappings, the status bar widget, remote schemas |
+| [Spelling and grammar](spelling-and-grammar.md) | Typo and Grammar inspections in comments, strings, names, Markdown and commit messages, Alt+Enter suggestions, Rename to, project-level and application-level dictionaries, custom Hunspell dictionaries |
+| [Language injections](language-injections.md) | SQL, HTML, CSS, JSON and RegExp in PHP and JavaScript strings, `// language=` comments, Inject language or reference, Edit Fragment, Run SQL |
+| [File and code templates](file-templates.md) | New ▸ PHP Class and other templates, the New PHP Class dialog with PSR-4 namespaces, `Alt+Insert` New popup, Settings \| Editor \| File and Code Templates |
+| [Vim emulation](vim-emulation.md) | Tools \| Vim, Normal/Insert/Visual/Replace modes, motions, operators, text objects, registers, macros, ex commands, `~/.ideavimrc`, shortcut conflicts |
 | [Search Everywhere and Find Action](search-everywhere.md) | Double Shift, Go to Class/File/Symbol, Find Action, fuzzy matching |
+| [Scopes and file colors](scopes-and-file-colors.md) | named scopes in PHPStorm's scope language (`file:app//*.php`, `src:`, `test:`, `lib:`, `&&`, `\|\|`, `!`), predefined scopes, scopes in Find in Files, Replace in Files and Find Usages, file colors in editor tabs and the Project view |
+| [Structural Search and Replace](structural-search.md) | templates with `$variables$` for PHP, JavaScript and TypeScript, Count / Text / Type filters, the template library, Replace with preview, Replace All and Undo |
+| [Type, Method and Call Hierarchy](hierarchies.md) | the Hierarchy tool window: Type Hierarchy (`Ctrl+H`: class, supertypes, subtypes), Method Hierarchy (`Ctrl+Shift+H`) with PHPStorm's marks, Call Hierarchy (`Ctrl+Alt+H`: callers and callees with call sites), scopes and sorting |
+| [Go to Test and Create Test](go-to-test.md) | Navigate \| Test (`Ctrl+Shift+T`) between classes, components and their tests, Choose Test popup, Create New PHP Test / Create New Test dialog (PHPUnit, Pest, Vitest, Jest, PSR-4 `autoload-dev`, Laravel Unit/Feature and Symfony layouts, test method stubs) |
+| [File Structure, Navigation Bar and Related Symbol](navigation-bar-and-file-structure.md) | File Structure popup (`Ctrl+F12`, Show Inherited, speed search), Navigation Bar (`Alt+Home`, Top / In Status Bar / Don't Show, members), Related Symbol (`Ctrl+Alt+Home`: tests, views, templates, routes, migrations) |
 | [File types and syntax highlighting](file-types.md) | file type detection, highlighted languages, config formats, template data languages |
 | [Language servers](language-servers.md) | detection, installation, per-server settings, Intelephense licence |
 | [Keymap](keymap.md) | PHPStorm keymaps, changing shortcuts, contexts |
@@ -30,6 +45,7 @@ not finished, the page says so.
 | Page | Covers |
 | --- | --- |
 | [PHP](php.md) | PHP index, Structure, hover, Generate (`Alt+Insert`), PHP settings |
+| [Composer](composer.md) | composer.json toolbar (Install, Update, Validate, Show Outdated, Audit), outdated packages with Update package, package and version completion from Packagist, Manage Composer Dependencies, `composer audit` (Vulnerable Dependencies), composer.phar download |
 | [Laravel](laravel.md) | Blade, routes, views, config, Eloquent, Routes tool window, artisan |
 | [Symfony](symfony.md) | services, routes, Twig, console, Symfony tool window |
 | [Doctrine and DQL](doctrine.md) | entity mappings, Doctrine tool window, DQL in PHP strings |
@@ -47,7 +63,7 @@ not finished, the page says so.
 
 | Page | Covers |
 | --- | --- |
-| [Run/Debug configurations](run-debug.md) | configuration types, run widget, Run tool window, test results |
+| [Run/Debug configurations](run-debug.md) | configuration types, run widget, Run tool window, Analyze Stack Trace, test results |
 | [Xdebug debugging](debugging.md) | listening, breakpoints, stepping, evaluate, servers and path mappings |
 | [Terminal](terminal.md) | tabs, shells, links |
 | [Database tools and SQL console](database.md) | data sources, consoles, data grid, export |

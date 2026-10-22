@@ -4,11 +4,16 @@
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
+use forge_codeintel::{HighlightAnswer, UsageOptions};
 use forge_core::{ForgeError, FsChanges, Result, Workspace};
 use phpforge_lang_php::generate::{GenerateKind, GenerateOptions, GenerateTargets, TextEdit};
+use phpforge_lang_php::hierarchy::{HierarchyQuery, PhpHierarchy};
 use phpforge_lang_php::hover::Hover;
+use phpforge_lang_php::index::VendorMode;
 use phpforge_lang_php::index::{SearchKind, SymbolHit};
+use phpforge_lang_php::intentions::Intention;
 use phpforge_lang_php::lsp::{self, DetectedServers, LspServerConfig, PhpLspSettings};
+use phpforge_lang_php::navigate::{NavKind, NavTarget, PhpDefinition, PhpLineMarker, PhpUsages};
 use phpforge_lang_php::service;
 use phpforge_lang_php::structure::FileStructure;
 use phpforge_lang_php::{IndexConfig, IndexStats, ProjectIndex};
@@ -20,7 +25,13 @@ pub type ProgressSink = Arc<dyn Fn(usize, usize) + Send + Sync>;
 pub trait PhpBackend: Send + Sync {
     /// Index the whole project (incremental through the cache) and save the cache.
     fn index_workspace(&self, progress: ProgressSink) -> Result<IndexStats>;
-    fn search(&self, query: &str, kind: SearchKind, limit: usize) -> Result<Vec<SymbolHit>>;
+    fn search(
+        &self,
+        query: &str,
+        kind: SearchKind,
+        limit: usize,
+        exact: bool,
+    ) -> Result<Vec<SymbolHit>>;
     fn file_structure(
         &self,
         path: &str,
@@ -42,11 +53,77 @@ pub trait PhpBackend: Send + Sync {
         options: GenerateOptions,
         content: Option<String>,
     ) -> Result<Vec<TextEdit>>;
+    /// Find Usages of the symbol at `offset` from the index (when no language server answers),
+    /// with the options of the Find Usages dialog.
+    fn usages(
+        &self,
+        path: &str,
+        offset: usize,
+        options: UsageOptions,
+        content: Option<String>,
+    ) -> Result<Option<PhpUsages>>;
+    /// Highlight Usages in File: the usages of the symbol at `offset` in its file (or the
+    /// methods implementing / overriding the parents on `implements` / `extends`).
+    fn highlights(
+        &self,
+        path: &str,
+        offset: usize,
+        content: Option<String>,
+    ) -> Result<Option<HighlightAnswer>>;
+    /// Go to Implementation / Super Method / Type Declaration from the index.
+    fn navigate(
+        &self,
+        path: &str,
+        offset: usize,
+        kind: NavKind,
+        content: Option<String>,
+    ) -> Result<Vec<NavTarget>>;
+    /// Go to Declaration from the index: the target, "on a declaration" (Show Usages) or
+    /// the name to look up in the PHP stubs.
+    fn definition(
+        &self,
+        path: &str,
+        offset: usize,
+        content: Option<String>,
+    ) -> Result<PhpDefinition>;
+    /// The implemented / overridden gutter markers of a file.
+    fn line_markers(&self, path: &str, content: Option<String>) -> Result<Vec<PhpLineMarker>>;
+    /// Type, Method or Call Hierarchy from the index (when no language server answers).
+    fn hierarchy(
+        &self,
+        path: &str,
+        offset: usize,
+        query: HierarchyQuery,
+        content: Option<String>,
+    ) -> Result<PhpHierarchy>;
+    /// Built-in intentions for Show Context Actions (Alt+Enter), including Create from
+    /// usage; `options` carries the code style and code templates for generated code.
+    fn intentions(
+        &self,
+        path: &str,
+        offset: usize,
+        options: GenerateOptions,
+        content: Option<String>,
+    ) -> Result<Vec<Intention>>;
     /// The language server to start for the project (Intelephense or phpactor found on the
     /// project's machine), according to `settings`.
     fn lsp_config(&self, settings: PhpLspSettings) -> Result<Option<LspServerConfig>>;
     /// Language servers installed on the project's machine.
     fn detect_servers(&self, settings: PhpLspSettings) -> Result<DetectedServers>;
+}
+
+/// Use Forge's managed Intelephense (`node …/intelephense.js`) of this machine unless a path
+/// is set. On a remote agent "this machine" is the project's host, where Forge installs it.
+pub fn with_managed_intelephense(mut settings: PhpLspSettings) -> PhpLspSettings {
+    if settings.intelephense_path.is_none() {
+        if let Some((node, script)) =
+            forge_langservers::Detector::system().managed_launch("intelephense")
+        {
+            settings.intelephense_path = Some(script);
+            settings.intelephense_node = Some(node);
+        }
+    }
+    settings
 }
 
 fn err(e: impl std::fmt::Display) -> ForgeError {
@@ -57,6 +134,9 @@ fn err(e: impl std::fmt::Display) -> ForgeError {
 pub struct LocalPhp {
     workspace: Workspace,
     index: Mutex<Option<ProjectIndex>>,
+    /// Vendor packages as libraries ("Add packages as libraries" of the Composer settings,
+    /// which reach the backend with [`PhpBackend::lsp_config`]).
+    vendor: Mutex<VendorMode>,
 }
 
 impl LocalPhp {
@@ -64,6 +144,7 @@ impl LocalPhp {
         Self {
             workspace,
             index: Mutex::new(None),
+            vendor: Mutex::new(VendorMode::default()),
         }
     }
 
@@ -72,7 +153,11 @@ impl LocalPhp {
     }
 
     fn fresh_index(&self) -> ProjectIndex {
-        let mut idx = ProjectIndex::new(self.root(), IndexConfig::default());
+        let config = IndexConfig {
+            vendor: *self.vendor.lock().unwrap_or_else(|e| e.into_inner()),
+            ..IndexConfig::default()
+        };
+        let mut idx = ProjectIndex::new(self.root(), config);
         idx.load_cache();
         idx
     }
@@ -127,8 +212,14 @@ impl PhpBackend for LocalPhp {
         Ok(stats)
     }
 
-    fn search(&self, query: &str, kind: SearchKind, limit: usize) -> Result<Vec<SymbolHit>> {
-        self.with_index(|idx| idx.search(query, kind, limit))
+    fn search(
+        &self,
+        query: &str,
+        kind: SearchKind,
+        limit: usize,
+        exact: bool,
+    ) -> Result<Vec<SymbolHit>> {
+        self.with_index(|idx| idx.search_with(query, kind, limit, exact))
     }
 
     fn file_structure(
@@ -169,13 +260,102 @@ impl PhpBackend for LocalPhp {
             .map_err(err)
     }
 
+    fn usages(
+        &self,
+        path: &str,
+        offset: usize,
+        options: UsageOptions,
+        content: Option<String>,
+    ) -> Result<Option<PhpUsages>> {
+        let text = self.source(path, content)?;
+        self.with_index(|idx| service::usages(idx, path, &text, offset, &options))
+    }
+
+    fn highlights(
+        &self,
+        path: &str,
+        offset: usize,
+        content: Option<String>,
+    ) -> Result<Option<HighlightAnswer>> {
+        let text = self.source(path, content)?;
+        self.with_index(|idx| service::highlights(idx, path, &text, offset))
+    }
+
+    fn navigate(
+        &self,
+        path: &str,
+        offset: usize,
+        kind: NavKind,
+        content: Option<String>,
+    ) -> Result<Vec<NavTarget>> {
+        let text = self.source(path, content)?;
+        self.with_index(|idx| service::navigate(idx, path, &text, offset, kind))
+    }
+
+    fn definition(
+        &self,
+        path: &str,
+        offset: usize,
+        content: Option<String>,
+    ) -> Result<PhpDefinition> {
+        let text = self.source(path, content)?;
+        self.with_index(|idx| service::definition(idx, path, &text, offset))
+    }
+
+    fn line_markers(&self, path: &str, content: Option<String>) -> Result<Vec<PhpLineMarker>> {
+        let text = self.source(path, content)?;
+        self.with_index(|idx| service::line_markers(idx, path, &text))
+    }
+
+    fn hierarchy(
+        &self,
+        path: &str,
+        offset: usize,
+        query: HierarchyQuery,
+        content: Option<String>,
+    ) -> Result<PhpHierarchy> {
+        let text = self.source(path, content)?;
+        self.with_index(|idx| service::hierarchy(idx, path, &text, offset, query))
+    }
+
+    fn intentions(
+        &self,
+        path: &str,
+        offset: usize,
+        options: GenerateOptions,
+        content: Option<String>,
+    ) -> Result<Vec<Intention>> {
+        let text = self.source(path, content)?;
+        self.with_index(|idx| service::intentions(idx, path, &text, offset, &options))
+    }
+
     fn lsp_config(&self, settings: PhpLspSettings) -> Result<Option<LspServerConfig>> {
-        Ok(lsp::resolve_for_workspace(&settings, self.root()))
+        let mode = if settings.vendor_libraries {
+            VendorMode::Lazy
+        } else {
+            VendorMode::Skip
+        };
+        let changed = {
+            let mut vendor = self.vendor.lock().map_err(err)?;
+            std::mem::replace(&mut *vendor, mode) != mode
+        };
+        if changed {
+            // Built again with the new mode on the next use.
+            *self.index.lock().map_err(err)? = None;
+        }
+        Ok(lsp::resolve_for_workspace(
+            &with_managed_intelephense(settings),
+            self.root(),
+        ))
     }
 
     fn detect_servers(&self, settings: PhpLspSettings) -> Result<DetectedServers> {
         let path_env = std::env::var("PATH").ok();
         let dirs = lsp::search_dirs(path_env.as_deref(), home_dir().as_deref());
-        Ok(lsp::detect(&settings, &dirs, &lsp::FsProbe))
+        Ok(lsp::detect(
+            &with_managed_intelephense(settings),
+            &dirs,
+            &lsp::FsProbe,
+        ))
     }
 }

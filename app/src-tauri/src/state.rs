@@ -10,18 +10,18 @@ use crate::plugins::{self, DISABLED_PLUGINS_KEY};
 /// Shared application state managed by Tauri.
 #[derive(Default)]
 pub struct AppState {
-    /// The open project's folder when it is on this machine (features that only work
-    /// locally use it; remote projects have none).
+    /// The open project's folder when it is on this machine (remote projects have none;
+    /// everything that works on project files goes through `backend`).
     workspace: RwLock<Option<Workspace>>,
     /// Where the open project lives: this machine or a remote host.
     backend: RwLock<Option<Arc<dyn Backend>>>,
     pub settings: RwLock<Settings>,
+    /// The latest Find window result, so pages are cut from it instead of searching again.
+    /// The files the last Replace in Files changed, to undo it.
+    pub last_replace: std::sync::Mutex<Vec<forge_backend::replace::Restore>>,
+    pub find_cancel: std::sync::Mutex<Option<Arc<std::sync::atomic::AtomicBool>>>,
+    pub find_results: std::sync::Mutex<Option<(u64, Arc<forge_backend::Found>)>>,
     pub plugins: RwLock<PluginRegistry>,
-}
-
-/// Error for features that only work with projects on this machine.
-pub fn local_only() -> ForgeError {
-    ForgeError::Other("This feature is not available in remote projects yet".into())
 }
 
 impl AppState {
@@ -47,6 +47,9 @@ impl AppState {
             workspace: RwLock::default(),
             backend: RwLock::default(),
             settings: RwLock::new(settings),
+            last_replace: std::sync::Mutex::default(),
+            find_cancel: std::sync::Mutex::default(),
+            find_results: std::sync::Mutex::default(),
             plugins: RwLock::new(registry),
         };
         let disabled: Vec<String> = state
@@ -89,10 +92,20 @@ impl AppState {
         )
     }
 
+    /// How a new project's search index is built (setting `search.indexing.lowPriority`).
+    fn index_options(&self) -> forge_backend::IndexOptions {
+        forge_backend::IndexOptions {
+            low_priority: self
+                .read_settings()
+                .get_as("search.indexing.lowPriority")
+                .unwrap_or(true),
+        }
+    }
+
     /// Open a local folder as the project.
     pub fn set_workspace(&self, ws: Workspace) {
         let backend: Option<Arc<dyn Backend>> = match LocalBackend::open(ws.root()) {
-            Ok(b) => Some(Arc::new(b)),
+            Ok(b) => Some(Arc::new(b.with_search_index(self.index_options()))),
             Err(e) => {
                 tracing::warn!("cannot open {}: {e}", ws.root().display());
                 None
@@ -133,18 +146,14 @@ impl AppState {
         *self.backend.write().expect("backend lock poisoned") = None;
     }
 
-    /// Run `f` with the open workspace, or fail if no project is open or the project is
-    /// on a remote host.
-    pub fn with_workspace<T>(
-        &self,
-        f: impl FnOnce(&Workspace) -> forge_core::Result<T>,
-    ) -> forge_core::Result<T> {
-        let guard = self.workspace.read().expect("workspace lock poisoned");
-        match guard.as_ref() {
-            Some(ws) => f(ws),
-            None if self.is_remote() => Err(local_only()),
-            None => Err(ForgeError::Other("no project is open".into())),
-        }
+    /// The open project's folder when it is on this machine (`None` for remote projects).
+    /// Only for things that are about this machine, like which local project a file
+    /// opened from outside belongs to.
+    pub fn local_workspace(&self) -> Option<Workspace> {
+        self.workspace
+            .read()
+            .expect("workspace lock poisoned")
+            .clone()
     }
 
     /// The open project's backend.

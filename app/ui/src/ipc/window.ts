@@ -49,6 +49,8 @@ export interface DialogMessageEvent {
 }
 
 export const windowApi = {
+  /** Select In… › Explorer / Finder / File Manager: show a project file in the system file manager. */
+  revealInFileManager: (path: string) => invoke<void>("reveal_in_file_manager", { path }),
   /** `style` overrides the setting (e.g. `?windowControls=gnome`). */
   chrome: (style?: string) => invoke<WindowChrome>("window_chrome", { style: style ?? null }),
   /** Open (or focus) a dialog window owned by the calling window. */

@@ -1,12 +1,14 @@
 /**
  * "Install <server>": pick how to install it, see the exact command, confirm, then watch
  * the streamed output. Commands that need root (apt, pacman) or a browser are shown for
- * copying only.
+ * copying only. In a remote project the server is installed on the project's host, where
+ * its language servers run.
  */
 import { createMemo, createSignal, For, Match, onCleanup, onMount, Show, Switch } from "solid-js";
 import { Portal } from "solid-js/web";
 import { CircleCheck, CircleX, Copy, ExternalLink, LoaderCircle, TriangleAlert, X } from "lucide-solid";
 import { langserversApi, type InstallLine, type InstallOutcome, type ServerRow } from "@/ipc/langservers";
+import { workspace } from "@/state/workspace";
 import { applyServers, onInstallOutput } from "./store";
 import { INTELEPHENSE_ID } from "./autoInstall";
 import { ensureLicence } from "./managed";
@@ -72,6 +74,9 @@ export function InstallDialog(props: { row: ServerRow; onClose: () => void }) {
   };
 
   const succeeded = () => outcome() === "succeeded";
+  /** `user@host` of a remote project: the install runs there. */
+  const host = () => workspace()?.remote?.label;
+  const machine = () => host() ?? "this machine";
 
   return (
     <Portal>
@@ -85,7 +90,12 @@ export function InstallDialog(props: { row: ServerRow; onClose: () => void }) {
           }}
         >
           <header class="ls-dialog-title">
-            <span>Install {props.row.name}</span>
+            <span>
+              Install {props.row.name}
+              <Show when={host()}>
+                {(h) => <span class="ls-dialog-host"> on {h()}</span>}
+              </Show>
+            </span>
             <button class="icon-btn" title="Close" onClick={close}>
               <X size={15} />
             </button>
@@ -124,16 +134,18 @@ export function InstallDialog(props: { row: ServerRow; onClose: () => void }) {
                 <Match when={option()?.managed}>
                   <p class="ls-hint">
                     Forge downloads the package from the npm registry (checking its sha512 hash) into its own server
-                    directory, and Node.js too if none is installed. npm is not needed.
+                    directory{host() ? ` on ${host()}` : ""}, and Node.js too if none is installed there. npm is not needed.
                   </p>
                 </Match>
                 <Match when={!option()?.available}>
                   <p class="ls-hint ls-warn">
-                    <TriangleAlert size={13} /> {option()?.command.split(" ")[0]} was not found on this machine.
+                    <TriangleAlert size={13} /> {option()?.command.split(" ")[0]} was not found on {machine()}.
                   </p>
                 </Match>
                 <Match when={true}>
-                  <p class="ls-hint">Forge runs this command on your machine and shows its output. This may take a few minutes.</p>
+                  <p class="ls-hint">
+                    Forge runs this command on {host() ?? "your machine"} and shows its output. This may take a few minutes.
+                  </p>
                 </Match>
               </Switch>
             </Show>
@@ -142,7 +154,10 @@ export function InstallDialog(props: { row: ServerRow; onClose: () => void }) {
                 <Switch>
                   <Match when={phase() === "running"}>
                     <LoaderCircle size={14} class="lsp-spin" />
-                    <span>Installing {props.row.name}…</span>
+                    <span>
+                      Installing {props.row.name}
+                      {host() ? ` on ${host()}` : ""}…
+                    </span>
                   </Match>
                   <Match when={succeeded()}>
                     <CircleCheck size={14} class="ls-ok" />

@@ -10,11 +10,14 @@ import { registerToolWindow } from "@/features/registry";
 import { registerStatusItem } from "@/features/statusItems";
 import { registerSettingsPage } from "@/features/settingsPages";
 import { registerEditorExtension } from "@/editor/extensions";
+import { isLibraryPath } from "@/ipc/codeintel";
 import { registerCommand } from "@/state/commands";
 import { toggleToolWindow } from "@/state/layout";
 import { workspace } from "@/state/workspace";
 import { isPluginActive } from "@/state/project";
 import { lspClaimsHover } from "@/features/lsp/hover";
+import { registerFormatPostProcessor } from "@/features/lsp/format";
+import { phpApi } from "./api";
 import { activeView, viewFor, viewTracker } from "./editorViews";
 import { GenerateOverlay, openGeneratePopup, startGenerate } from "./GenerateOverlay";
 import { indexHover, setOtherHoverProvider } from "./indexHover";
@@ -25,7 +28,8 @@ import { IndexingStatus, PhpVersionStatus, indexWorkspace } from "./status";
 import { PhpSettingsPage } from "./PhpSettingsPage";
 import "./php.css";
 
-const isPhp = (path: string) => /\.(php|phtml|inc)$/i.test(path) && !path.endsWith(".blade.php");
+const isPhp = (path: string) =>
+  /\.(php|phtml|inc)$/i.test(path) && !path.endsWith(".blade.php") && !isLibraryPath(path);
 
 registerEditorExtension(({ path }) =>
   isPhp(path)
@@ -58,7 +62,7 @@ registerCommand({ id: "php.overrideMethods", title: "Override Methods…", categ
 registerCommand({ id: "php.implementMethods", title: "Implement Methods…", category: "Code", run: withActive((p, v) => void startGenerate(p, v, "implementMethods")) });
 registerCommand({ id: "php.generatePhpDoc", title: "Generate PHPDoc Comment", category: "Code", run: withActive((p, v) => void startGenerate(p, v, "phpDoc")) });
 registerCommand({ id: "php.reindex", title: "Reindex PHP Files", category: "PHP", run: () => void indexWorkspace() });
-registerCommand({ id: "ActivateStructureToolWindow", title: "Structure", category: "View", run: () => toggleToolWindow("left", "structure") });
+registerCommand({ id: "ActivateStructureToolWindow", title: "Structure", category: "View", run: () => toggleToolWindow("structure") });
 
 registerToolWindow({
   id: "structure",
@@ -103,3 +107,10 @@ if (typeof document !== "undefined") {
     );
   });
 }
+
+// Reformat Code: after the language server, the blank lines of Settings | Editor | Code
+// Style | PHP (computed in Rust on the buffer).
+registerFormatPostProcessor(async (path, text) => {
+  if (!/\.(php|phtml|inc)$/i.test(path) || path.endsWith(".blade.php") || !isPluginActive("forge.php")) return text;
+  return (await phpApi.tidyBlankLines(text)) ?? text;
+});

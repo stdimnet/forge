@@ -119,6 +119,7 @@ pub fn list(all: Vec<ScratchLanguage>, req: &LanguageRequest) -> Vec<LanguageIte
             .map(|l| FilterCandidate::Many(vec![l.name.clone(), l.id.clone(), l.extension.clone()]))
             .collect(),
         strict: false,
+        exact: false,
         prefer_shorter: true,
         limit: None,
     };

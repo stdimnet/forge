@@ -97,9 +97,37 @@ To support another data language, add it to `DATA_LANGUAGES` in `data.rs` (id, l
 `COMPOUND` there, and to `DATA_LANGUAGES` in `templateData.ts` with a `parser` and, if there is
 one, a `support` factory. To support another
 template engine, describe it as a `TemplateSyntax` (delimiters, keywords, builtins) and
-register it with the `template(...)` helper in `languages.ts`. Smarty delimiters are
-configurable (`templates.smarty.leftDelimiter`), which helps for LaTeX, where `{` is part of
-the content.
+register it with the `template(...)` helper in `languages.ts`.
+
+### Configurable delimiters
+
+Engines whose delimiters can change (Smarty's `left_delimiter`, Twig's and Jinja's
+`tag_variable` / `tag_block` / `tag_comment`, Go's `Template.Delims`) are listed in Rust, in
+`CONFIGURABLE_TEMPLATES` (`crates/forge-filetypes/src/delimiters.rs`). Each declares its
+delimiter `fields` with their built-in defaults (`left`/`right`, or `variableStart`,
+`variableEnd`, `blockStart`, ...). Rust resolves the delimiters of every template file
+(`FileTypeInfo.delimiters`); the UI only maps them to a syntax with the builder in `SYNTAX`
+(`app/ui/src/editor/templateDelimiters.ts`), which derives everything else (comments, end
+tags, literal blocks).
+
+One setting, `templates.delimiters` (type `objects`, page `lang.templates`, declared in
+`app/src-tauri/plugins/core.toml`), holds the differences: one entry per (template language,
+data language) pair, e.g. `{ template = "smarty", language = "latex", left = "[[", right = "]]" }`.
+The LaTeX entries ship as default *data*; never add a code path for a specific pair. Files
+without an entry use the language's defaults. The settings page edits the entries with
+`TemplateDelimitersEditor` (a table plus a form with the template's fields, both from the
+`filetypes_template_delimiters` command); duplicate pairs are rejected by the `unique` fields
+of the schema, checked in Rust (`settings_validate`). To make another engine configurable, add
+it to `CONFIGURABLE_TEMPLATES` in Rust and its syntax builder to `SYNTAX`; its
+`template()` registration in `languages.ts` then follows the setting.
+
+`objects` settings (lists of tables) are generic: declare `type = "objects"` with optional
+`unique` fields (validated in `forge-plugin-api`), and register an editor with
+`registerObjectSettingEditor(key, Component)`.
+
+Everything tag-related reads the resolved syntax from `templateSyntaxField`: the overlay,
+comment toggling, folding, matching delimiters, auto-closing and tag completion
+(`templateEditing.ts`). The syntax is live: a settings change re-highlights open editors.
 
 Smarter features for a language (completion, hover, diagnostics) belong to a language server
 (`forge-lsp`, see the PHP pack) or a pack-specific editor extension (`registerEditorExtension`).

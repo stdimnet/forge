@@ -23,11 +23,45 @@ const [pluginDraft, setPluginDraftStore] = createStore<Record<string, boolean>>(
 
 export { isOpen, selected, setSelected, query, setQuery, applying, error, draft, pluginDraft };
 
+/**
+ * Edits that pages keep in their own store instead of the settings draft (the Code Style
+ * schemes). Apply, OK, Cancel and Reset reach them through this interface; the getters must
+ * be reactive.
+ */
+export interface DraftSource {
+  /** Whether `pageId` has unapplied edits of this source. */
+  modified: (pageId: string) => boolean;
+  hasChanges: () => boolean;
+  apply: () => Promise<void>;
+  discard: () => void;
+  /** Throw away the edits of one page (the "Reset" link). */
+  resetPage: (pageId: string) => void;
+}
+
+const draftSources: DraftSource[] = [];
+
+export function registerDraftSource(source: DraftSource): void {
+  draftSources.push(source);
+}
+
 export const SETTINGS_DIALOG = "settings";
 
 export interface SettingsDialogProps {
   /** Page to select; the last selected page when omitted. */
   page?: string;
+  /** Data for the page, e.g. the text of a new live template (Save as Live Template). */
+  args?: unknown;
+}
+
+/** Arguments handed to a page by `openSettings(page, args)`; the page takes them once. */
+const [pageArgs, setPageArgs] = createSignal<{ page: string; args: unknown } | null>(null);
+
+/** The arguments for `pageId`, cleared once taken. Reactive, so an open page sees new ones. */
+export function takePageArgs<T>(pageId: string): T | undefined {
+  const a = pageArgs();
+  if (!a || a.page !== pageId) return undefined;
+  queueMicrotask(() => setPageArgs((cur) => (cur === a ? null : cur)));
+  return a.args as T;
 }
 
 /** Result of the dialog: the page to select next time (PHPStorm remembers it). */
@@ -35,18 +69,20 @@ export interface SettingsDialogResult {
   page: string;
 }
 
-export function openSettings(pageId?: string): void {
+export function openSettings(pageId?: string, args?: unknown): void {
   // This window shows the dialog already (e.g. a link to another page): just switch pages.
   if (isOpen()) {
     if (pageId) setSelected(pageId);
+    if (pageId && args !== undefined) setPageArgs({ page: pageId, args });
     return;
   }
-  void openDialogWindow(SETTINGS_DIALOG, { page: pageId ?? selected() } satisfies SettingsDialogProps);
+  void openDialogWindow(SETTINGS_DIALOG, { page: pageId ?? selected(), args } satisfies SettingsDialogProps);
 }
 
 /** Called by the dialog content when it mounts (in-page or in its window). */
 export function dialogOpened(props: SettingsDialogProps): void {
   if (props.page) setSelected(props.page);
+  setPageArgs(props.page && props.args !== undefined ? { page: props.page, args: props.args } : null);
   setError(null);
   setOpen(true);
 }
@@ -61,6 +97,7 @@ export function dialogClosed(): void {
 export function discardChanges(): void {
   setDraftStore(reconcile({}));
   setPluginDraftStore(reconcile({}));
+  for (const source of draftSources) source.discard();
   setError(null);
 }
 
@@ -96,10 +133,11 @@ export function setPluginDraftEnabled(id: string, enabled: boolean): void {
 /** Whether a settings page has unapplied edits. */
 export function pageModified(pageId: string): boolean {
   if (pageId === "plugins") return Object.keys(pluginDraft).length > 0;
-  return Object.keys(draft).some((k) => findSpec(k)?.group === pageId);
+  return Object.keys(draft).some((k) => findSpec(k)?.group === pageId) || draftSources.some((s) => s.modified(pageId));
 }
 
-export const hasChanges = () => Object.keys(draft).length > 0 || Object.keys(pluginDraft).length > 0;
+export const hasChanges = () =>
+  Object.keys(draft).length > 0 || Object.keys(pluginDraft).length > 0 || draftSources.some((s) => s.hasChanges());
 
 /** Discard the draft of one page (the "Reset" link). */
 export function resetPage(pageId: string): void {
@@ -112,6 +150,7 @@ export function resetPage(pageId: string): void {
       for (const k of Object.keys(d)) if (findSpec(k)?.group === pageId) delete d[k];
     }),
   );
+  for (const source of draftSources) source.resetPage(pageId);
 }
 
 export async function applyChanges(): Promise<boolean> {
@@ -121,6 +160,7 @@ export async function applyChanges(): Promise<boolean> {
   try {
     await saveSettings({ ...draft });
     setDraftStore(reconcile({}));
+    for (const source of draftSources) if (source.hasChanges()) await source.apply();
     for (const [id, enabled] of Object.entries({ ...pluginDraft })) await setPluginEnabled(id, enabled);
     setPluginDraftStore(reconcile({}));
     // The window that opened the dialog refreshes its plugin list and setting layers.

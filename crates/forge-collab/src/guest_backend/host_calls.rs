@@ -27,6 +27,7 @@ use forge_backend::protocol::{encode_value, PhpCall};
 use forge_backend::{Backend, FrameworkCall};
 use forge_vcs::{GitExec, GitOutput, GitRequest};
 use serde::Serialize;
+use serde_bytes::ByteBuf;
 
 use super::*;
 use crate::guest_backend::calls::{GitAction, GitQuery, HostCall, LspQuery, OpenedProject};
@@ -449,6 +450,15 @@ impl<'a> Gate<'a> {
                 self.file_size_ok(&path, MAX_READ)?;
                 enc(&b.read_file(&path).map_err(e)?)
             }
+            HostCall::ReadBytes { path } => {
+                self.verify(&path)?;
+                self.file_size_ok(&path, MAX_READ)?;
+                enc(&ByteBuf::from(b.read_bytes(&path).map_err(e)?))
+            }
+            HostCall::WriteBytes { path, bytes } => {
+                self.verify(&path)?;
+                enc(&b.write_bytes(&path, &bytes).map_err(e)?)
+            }
             HostCall::ReadOptional { path } => {
                 self.verify(&path)?;
                 self.file_size_ok(&path, MAX_READ)?;
@@ -481,10 +491,14 @@ impl<'a> Gate<'a> {
                 }
                 enc(&b.delete(&path).map_err(e)?)
             }
-            HostCall::FindFiles { query, limit } => {
+            HostCall::FindFiles {
+                query,
+                limit,
+                exact,
+            } => {
                 let limit = limit.min(MAX_FIND_LIMIT);
                 // Hidden files are dropped afterwards; ask for a few more.
-                let found = b.find_files(&query, limit + 100).map_err(e)?;
+                let found = b.find_files(&query, limit + 100, exact).map_err(e)?;
                 let mut found = self.keep(found, |m| &m.path);
                 found.truncate(limit);
                 enc(&found)
@@ -527,8 +541,15 @@ impl<'a> Gate<'a> {
         let e = |err: forge_core::ForgeError| self.msg(err);
         match call {
             PhpCall::Index => enc(&php.index_workspace(Arc::new(|_, _| {})).map_err(e)?),
-            PhpCall::Search { query, kind, limit } => {
-                let hits = php.search(&query, kind, limit.min(1000)).map_err(e)?;
+            PhpCall::Search {
+                query,
+                kind,
+                limit,
+                exact,
+            } => {
+                let hits = php
+                    .search(&query, kind, limit.min(1000), exact)
+                    .map_err(e)?;
                 enc(&self.keep(hits, |h| &h.path))
             }
             PhpCall::Structure {
@@ -567,10 +588,72 @@ impl<'a> Gate<'a> {
                     .generate(&path, offset, kind, options, content)
                     .map_err(e)?)
             }
+            PhpCall::Usages {
+                path,
+                offset,
+                options,
+                content,
+            } => {
+                self.verify(&path)?;
+                self.scrubbed(&php.usages(&path, offset, options, content).map_err(e)?)
+            }
+            PhpCall::Highlights {
+                path,
+                offset,
+                content,
+            } => {
+                self.verify(&path)?;
+                self.scrubbed(&php.highlights(&path, offset, content).map_err(e)?)
+            }
+            PhpCall::Navigate {
+                path,
+                offset,
+                kind,
+                content,
+            } => {
+                self.verify(&path)?;
+                self.scrubbed(&php.navigate(&path, offset, kind, content).map_err(e)?)
+            }
+            PhpCall::Definition {
+                path,
+                offset,
+                content,
+            } => {
+                self.verify(&path)?;
+                self.scrubbed(&php.definition(&path, offset, content).map_err(e)?)
+            }
+            PhpCall::LineMarkers { path, content } => {
+                self.verify(&path)?;
+                self.scrubbed(&php.line_markers(&path, content).map_err(e)?)
+            }
+            PhpCall::Hierarchy {
+                path,
+                offset,
+                query,
+                content,
+            } => {
+                self.verify(&path)?;
+                self.scrubbed(&php.hierarchy(&path, offset, query, content).map_err(e)?)
+            }
+            PhpCall::Intentions {
+                path,
+                offset,
+                options,
+                content,
+            } => {
+                self.verify(&path)?;
+                self.scrubbed(&php.intentions(&path, offset, options, content).map_err(e)?)
+            }
             PhpCall::LspConfig { .. } | PhpCall::DetectServers { .. } => {
                 Err("Language servers run on the host.".into())
             }
         }
+    }
+
+    /// The reply of a query that may point into other files, without what the guest may not
+    /// see (the same filter as framework analysis).
+    fn scrubbed<T: Serialize>(&self, reply: &T) -> Result<Vec<u8>, String> {
+        scrub_msgpack(&enc(reply)?, self.policy)
     }
 
     /// Framework analysis. Nothing a guest sends can run project code or name a program:
@@ -587,8 +670,21 @@ impl<'a> Gate<'a> {
             }
             FrameworkCall::LaravelComplete { ref path, .. }
             | FrameworkCall::LaravelGoto { ref path, .. }
-            | FrameworkCall::LaravelGutter { ref path, .. } => {
+            | FrameworkCall::LaravelGutter { ref path, .. }
+            | FrameworkCall::Related { ref path, .. }
+            | FrameworkCall::TestTargets { ref path, .. } => {
                 self.verify(path)?;
+                call
+            }
+            FrameworkCall::NewTestPlan {
+                ref path,
+                ref composer_path,
+                ..
+            } => {
+                self.verify(path)?;
+                if !composer_path.is_empty() {
+                    self.verify(composer_path)?;
+                }
                 call
             }
             FrameworkCall::Symfony {
@@ -660,6 +756,12 @@ fn scrub_value(value: &mut serde_json::Value, policy: &Policy) {
                 map.remove("detail");
                 map.remove("documentation");
             }
+            // A single location (a declaration) in a hidden file.
+            map.values_mut().for_each(|v| {
+                if located_in_hidden_file(v, policy) {
+                    *v = Value::Null;
+                }
+            });
             map.values_mut().for_each(|v| scrub_value(v, policy));
         }
         _ => {}

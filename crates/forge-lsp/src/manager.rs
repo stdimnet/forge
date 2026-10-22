@@ -15,18 +15,21 @@ use std::time::Duration;
 
 use forge_core::{ForgeError, Result};
 use futures_util::future::join_all;
-use lsp_types::{Diagnostic, FormattingOptions, Position, TextEdit, Url};
+use lsp_types::{
+    CallHierarchyItem, Diagnostic, FormattingOptions, Position, Range, TextEdit, TypeHierarchyItem,
+    Url,
+};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tokio::sync::{broadcast, OnceCell};
 
-use crate::client::{LspClient, LspEvent, ServerState};
+use crate::client::{Feature, LspClient, LspEvent, ServerState};
 use crate::config::LspServerConfig;
 use crate::launch::{LocalLauncher, ServerLauncher};
 use crate::model::{
-    definition_locations, document_symbols, locations, workspace_symbols, EditorCompletionItem,
-    EditorCompletionList, EditorHover, EditorLocation, EditorSignatureHelp, EditorSymbol,
-    EditorWorkspaceSymbol,
+    definition_locations, document_symbols, locations, workspace_edit, workspace_symbols,
+    EditorCodeAction, EditorCompletionItem, EditorCompletionList, EditorHover, EditorLocation,
+    EditorPrepareRename, EditorSignatureHelp, EditorSymbol, EditorWorkspaceSymbol,
 };
 
 /// Key added to a completion item's `raw` value so `completionItem/resolve` goes back to
@@ -523,6 +526,43 @@ impl LspManager {
         )))
     }
 
+    /// `documentHighlight` of the servers that announce it: the first non-empty answer as
+    /// `(range, kind)` with LSP's kind numbers (1 text, 2 read, 3 write).
+    pub async fn document_highlights(
+        &self,
+        path: &Path,
+        position: Position,
+    ) -> Result<Vec<(lsp_types::Range, Option<u8>)>> {
+        let clients = self.supporting(path, Feature::DocumentHighlight).await;
+        let answers = join_all(
+            clients
+                .into_iter()
+                .map(|c| async move { c.document_highlight(path, position).await }),
+        )
+        .await;
+        Ok(answers
+            .into_iter()
+            .filter_map(|r| r.ok().flatten())
+            .find(|h| !h.is_empty())
+            .map(|h| {
+                h.into_iter()
+                    .map(|d| {
+                        let kind = d.kind.map(|k| {
+                            if k == lsp_types::DocumentHighlightKind::WRITE {
+                                3
+                            } else if k == lsp_types::DocumentHighlightKind::READ {
+                                2
+                            } else {
+                                1
+                            }
+                        });
+                        (d.range, kind)
+                    })
+                    .collect()
+            })
+            .unwrap_or_default())
+    }
+
     pub async fn document_symbols(&self, path: &Path) -> Result<Vec<EditorSymbol>> {
         let answers = self
             .ask_all(path, |c| async move { c.document_symbols(path).await })
@@ -559,6 +599,7 @@ impl LspManager {
         path: &Path,
         tab_size: u32,
         insert_spaces: bool,
+        settings: Option<&Value>,
     ) -> Result<Vec<TextEdit>> {
         let clients = self.clients_for(path).await;
         let Some(client) = clients
@@ -568,6 +609,10 @@ impl LspManager {
         else {
             return Ok(vec![]);
         };
+        // Code style options the server reads from its settings.
+        if let Some(settings) = settings {
+            client.update_settings(settings)?;
+        }
         let options = FormattingOptions {
             tab_size,
             insert_spaces,
@@ -576,6 +621,351 @@ impl LspManager {
             ..Default::default()
         };
         Ok(client.formatting(path, options).await?.unwrap_or_default())
+    }
+
+    // ---- Navigation, rename and code actions (servers that announce the feature) ----
+
+    /// Names of the servers attached to `path` when none of them announces `feature`, so
+    /// the UI can say why nothing happens (free Intelephense has no rename). `None` when a
+    /// server supports it or no server serves the file.
+    pub async fn missing_feature(&self, path: &Path, feature: Feature) -> Option<Vec<String>> {
+        let clients = self.clients_for(path).await;
+        if clients.is_empty() || clients.iter().any(|c| c.supports(feature)) {
+            return None;
+        }
+        Some(
+            clients
+                .iter()
+                .map(|c| c.config().display_name().to_string())
+                .collect(),
+        )
+    }
+
+    async fn supporting(&self, path: &Path, feature: Feature) -> Vec<LspClient> {
+        self.clients_for(path)
+            .await
+            .into_iter()
+            .filter(|c| c.supports(feature))
+            .collect()
+    }
+
+    async fn locations_from<F, Fut>(
+        &self,
+        path: &Path,
+        feature: Feature,
+        ask: F,
+    ) -> Result<Vec<EditorLocation>>
+    where
+        F: Fn(LspClient) -> Fut,
+        Fut: std::future::Future<Output = Result<Option<lsp_types::GotoDefinitionResponse>>>,
+    {
+        let clients = self.supporting(path, feature).await;
+        let results = join_all(clients.into_iter().map(ask)).await;
+        let mut ok = Vec::new();
+        let mut first_err = None;
+        for r in results {
+            match r {
+                Ok(r) => ok.extend(r.map(definition_locations).unwrap_or_default()),
+                Err(e) => {
+                    first_err.get_or_insert(e);
+                }
+            }
+        }
+        match first_err {
+            Some(e) if ok.is_empty() => Err(e),
+            _ => Ok(Self::dedup_locations(ok)),
+        }
+    }
+
+    /// Go to Implementation (`textDocument/implementation`).
+    pub async fn implementation(
+        &self,
+        path: &Path,
+        position: Position,
+    ) -> Result<Vec<EditorLocation>> {
+        self.locations_from(path, Feature::Implementation, |c| async move {
+            c.implementation(path, position).await
+        })
+        .await
+    }
+
+    /// Go to Type Declaration (`textDocument/typeDefinition`).
+    pub async fn type_definition(
+        &self,
+        path: &Path,
+        position: Position,
+    ) -> Result<Vec<EditorLocation>> {
+        self.locations_from(path, Feature::TypeDefinition, |c| async move {
+            c.type_definition(path, position).await
+        })
+        .await
+    }
+
+    /// `prepareTypeHierarchy` of the servers of `path` that support it: their items with the
+    /// server id (to ask that server for supertypes and subtypes).
+    pub async fn prepare_type_hierarchy(
+        &self,
+        path: &Path,
+        position: Position,
+    ) -> Result<Vec<(String, TypeHierarchyItem)>> {
+        let clients = self.supporting(path, Feature::TypeHierarchy).await;
+        let results = join_all(
+            clients
+                .iter()
+                .map(|c| c.prepare_type_hierarchy(path, position)),
+        )
+        .await;
+        Self::with_servers(clients, results)
+    }
+
+    /// Supertypes (or subtypes) of an item `server` handed out.
+    pub async fn type_hierarchy(
+        &self,
+        server: &str,
+        item: TypeHierarchyItem,
+        subtypes: bool,
+    ) -> Result<Vec<TypeHierarchyItem>> {
+        let client = self.running_server(server)?;
+        Ok(client
+            .type_hierarchy(item, subtypes)
+            .await?
+            .unwrap_or_default())
+    }
+
+    /// `prepareCallHierarchy` of the servers of `path` that support it, with the server id.
+    pub async fn prepare_call_hierarchy(
+        &self,
+        path: &Path,
+        position: Position,
+    ) -> Result<Vec<(String, CallHierarchyItem)>> {
+        let clients = self.supporting(path, Feature::CallHierarchy).await;
+        let results = join_all(
+            clients
+                .iter()
+                .map(|c| c.prepare_call_hierarchy(path, position)),
+        )
+        .await;
+        Self::with_servers(clients, results)
+    }
+
+    /// Callers of an item `server` handed out: each caller with the ranges it calls from.
+    pub async fn incoming_calls(
+        &self,
+        server: &str,
+        item: CallHierarchyItem,
+    ) -> Result<Vec<(CallHierarchyItem, Vec<Range>)>> {
+        let client = self.running_server(server)?;
+        Ok(client
+            .incoming_calls(item)
+            .await?
+            .unwrap_or_default()
+            .into_iter()
+            .map(|c| (c.from, c.from_ranges))
+            .collect())
+    }
+
+    /// Callees of an item `server` handed out: each callee with the ranges (in the item's
+    /// file) it is called at.
+    pub async fn outgoing_calls(
+        &self,
+        server: &str,
+        item: CallHierarchyItem,
+    ) -> Result<Vec<(CallHierarchyItem, Vec<Range>)>> {
+        let client = self.running_server(server)?;
+        Ok(client
+            .outgoing_calls(item)
+            .await?
+            .unwrap_or_default()
+            .into_iter()
+            .map(|c| (c.to, c.from_ranges))
+            .collect())
+    }
+
+    fn running_server(&self, id: &str) -> Result<LspClient> {
+        self.running(id)
+            .ok_or_else(|| ForgeError::Other(format!("language server {id} is not running")))
+    }
+
+    /// Items of several servers, tagged with the server id; fails only when all failed.
+    fn with_servers<T>(
+        clients: Vec<LspClient>,
+        results: Vec<Result<Option<Vec<T>>>>,
+    ) -> Result<Vec<(String, T)>> {
+        let mut ok = Vec::new();
+        let mut first_err = None;
+        for (client, r) in clients.into_iter().zip(results) {
+            match r {
+                Ok(items) => ok.extend(
+                    items
+                        .unwrap_or_default()
+                        .into_iter()
+                        .map(|i| (client.id().to_string(), i)),
+                ),
+                Err(e) => {
+                    first_err.get_or_insert(e);
+                }
+            }
+        }
+        match first_err {
+            Some(e) if ok.is_empty() => Err(e),
+            _ => Ok(ok),
+        }
+    }
+
+    /// What can be renamed at `position`: `Ok(None)` when nothing can (the server said so);
+    /// an answer without range when the server has no `prepareRename` (rename the word).
+    pub async fn prepare_rename(
+        &self,
+        path: &Path,
+        position: Position,
+    ) -> Result<Option<EditorPrepareRename>> {
+        let Some(client) = self
+            .supporting(path, Feature::Rename)
+            .await
+            .into_iter()
+            .next()
+        else {
+            return Err(ForgeError::Other(
+                "no language server can rename here".into(),
+            ));
+        };
+        if !client.supports_prepare_rename() {
+            return Ok(Some(EditorPrepareRename {
+                range: None,
+                placeholder: None,
+            }));
+        }
+        Ok(client
+            .prepare_rename(path, position)
+            .await?
+            .map(EditorPrepareRename::from))
+    }
+
+    /// The edit renaming the symbol at `position` (absolute paths).
+    pub async fn rename(
+        &self,
+        path: &Path,
+        position: Position,
+        new_name: &str,
+    ) -> Result<Option<forge_codeintel::WorkspaceEdit>> {
+        let Some(client) = self
+            .supporting(path, Feature::Rename)
+            .await
+            .into_iter()
+            .next()
+        else {
+            return Err(ForgeError::Other(
+                "no language server can rename here".into(),
+            ));
+        };
+        Ok(client
+            .rename(path, position, new_name)
+            .await?
+            .map(|e| workspace_edit(&e)))
+    }
+
+    /// Diagnostics `server_id` reported for `uri` that touch `range` (context for code actions).
+    fn diagnostics_in(&self, server_id: &str, uri: &Url, range: Range) -> Vec<Diagnostic> {
+        self.diagnostics
+            .lock()
+            .expect("diagnostics lock")
+            .get(uri)
+            .and_then(|per_server| per_server.get(server_id))
+            .map(|all| {
+                all.iter()
+                    .filter(|d| d.range.start <= range.end && range.start <= d.range.end)
+                    .cloned()
+                    .collect()
+            })
+            .unwrap_or_default()
+    }
+
+    /// Quick fixes and refactorings of every server for `range`, with the diagnostics each
+    /// server reported there as context. Servers keep their priority order.
+    pub async fn code_actions(&self, path: &Path, range: Range) -> Result<Vec<EditorCodeAction>> {
+        let uri = crate::client::path_to_uri(path)?;
+        let clients = self.supporting(path, Feature::CodeAction).await;
+        let results = join_all(clients.iter().map(|c| {
+            let diagnostics = self.diagnostics_in(c.id(), &uri, range);
+            async move { c.code_action(path, range, diagnostics).await }
+        }))
+        .await;
+        let mut out = Vec::new();
+        let mut first_err = None;
+        for (client, r) in clients.iter().zip(results) {
+            match r {
+                Ok(actions) => out.extend(actions.unwrap_or_default().iter().map(|a| {
+                    EditorCodeAction::from_lsp(
+                        a,
+                        client.id(),
+                        client.supports_code_action_resolve(),
+                    )
+                })),
+                Err(e) => {
+                    tracing::debug!("{} code actions failed: {e}", client.id());
+                    first_err.get_or_insert(e);
+                }
+            }
+        }
+        match first_err {
+            Some(e) if out.is_empty() && !clients.is_empty() => Err(e),
+            _ => Ok(out),
+        }
+    }
+
+    /// Inlay hints of every server of `path` that announces them, for `range`. Failing
+    /// servers are skipped (hints are decoration, never an error).
+    pub async fn inlay_hints(&self, path: &Path, range: Range) -> Vec<lsp_types::InlayHint> {
+        let clients: Vec<LspClient> = self
+            .clients_for(path)
+            .await
+            .into_iter()
+            .filter(|c| c.supports_inlay_hints())
+            .collect();
+        let results = join_all(clients.iter().map(|c| c.inlay_hints(path, range))).await;
+        let mut out = Vec::new();
+        for (client, r) in clients.iter().zip(results) {
+            match r {
+                Ok(hints) => out.extend(hints.unwrap_or_default()),
+                Err(e) => tracing::debug!("{} inlay hints failed: {e}", client.id()),
+            }
+        }
+        out
+    }
+
+    async fn server_client(&self, path: &Path, server: &str) -> Result<LspClient> {
+        self.clients_for(path)
+            .await
+            .into_iter()
+            .find(|c| c.id() == server)
+            .ok_or_else(|| ForgeError::Other(format!("language server {server} is not running")))
+    }
+
+    /// Fill in the edit of a lazily resolved code action.
+    pub async fn resolve_code_action(
+        &self,
+        path: &Path,
+        server: &str,
+        raw: Value,
+    ) -> Result<EditorCodeAction> {
+        let client = self.server_client(path, server).await?;
+        let action = serde_json::from_value(raw)
+            .map_err(|e| ForgeError::Other(format!("bad code action: {e}")))?;
+        let resolved = client.code_action_resolve(action).await?;
+        Ok(EditorCodeAction::from_action(&resolved, server, false))
+    }
+
+    /// Run a code action's command on its server. Edits it makes arrive as
+    /// [`LspEvent::ApplyEdit`].
+    pub async fn execute_command(
+        &self,
+        path: &Path,
+        server: &str,
+        command: &str,
+        arguments: Vec<Value>,
+    ) -> Result<Option<Value>> {
+        let client = self.server_client(path, server).await?;
+        client.execute_command(command, arguments).await
     }
 
     /// Project-wide symbol search over every running server that supports it. Slow or

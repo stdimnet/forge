@@ -99,10 +99,10 @@ describe("template languages use the data language and the overlay", () => {
     }
   });
 
-  it("returns the data language plus the overlay as the file's language", () => {
+  it("returns the data language, the overlay and the tag editing support as the file's language", () => {
     const ext = languageFor("views/index.html.tmpl");
     expect(ext).toHaveLength(1);
     expect(Array.isArray(ext[0])).toBe(true);
-    expect((ext[0] as unknown[]).length).toBe(2);
+    expect((ext[0] as unknown[]).length).toBe(3);
   });
 });

@@ -10,17 +10,19 @@ use forge_core::{ForgeError, Result};
 use lsp_types::notification::{self as notif, Notification};
 use lsp_types::request::{self as req, Request};
 use lsp_types::{
-    ClientCapabilities, CodeActionContext, CodeActionOrCommand, CodeActionParams, CompletionItem,
-    CompletionParams, CompletionResponse, Diagnostic, DidChangeConfigurationParams,
-    DidChangeTextDocumentParams, DidCloseTextDocumentParams, DidOpenTextDocumentParams,
-    DidSaveTextDocumentParams, DocumentFormattingParams, DocumentSymbolParams,
-    DocumentSymbolResponse, FormattingOptions, GotoDefinitionParams, GotoDefinitionResponse, Hover,
-    HoverParams, InitializeParams, InitializeResult, InitializedParams, Location, Position, Range,
-    ReferenceContext, ReferenceParams, ServerCapabilities, SignatureHelp, SignatureHelpParams,
-    TextDocumentContentChangeEvent, TextDocumentIdentifier, TextDocumentItem,
-    TextDocumentPositionParams, TextDocumentSyncSaveOptions, TextEdit, Url,
-    VersionedTextDocumentIdentifier, WorkspaceFolder, WorkspaceSymbolParams,
-    WorkspaceSymbolResponse,
+    CallHierarchyItem, ClientCapabilities, CodeAction, CodeActionContext, CodeActionOrCommand,
+    CodeActionParams, CodeActionProviderCapability, CompletionItem, CompletionParams,
+    CompletionResponse, Diagnostic, DidChangeConfigurationParams, DidChangeTextDocumentParams,
+    DidCloseTextDocumentParams, DidOpenTextDocumentParams, DidSaveTextDocumentParams,
+    DocumentFormattingParams, DocumentHighlight, DocumentHighlightParams, DocumentSymbolParams,
+    DocumentSymbolResponse, ExecuteCommandParams, FormattingOptions, GotoDefinitionParams,
+    GotoDefinitionResponse, Hover, HoverParams, ImplementationProviderCapability, InitializeParams,
+    InitializeResult, InitializedParams, Location, OneOf, Position, PrepareRenameResponse, Range,
+    ReferenceContext, ReferenceParams, RenameParams, ServerCapabilities, SignatureHelp,
+    SignatureHelpParams, TextDocumentContentChangeEvent, TextDocumentIdentifier, TextDocumentItem,
+    TextDocumentPositionParams, TextDocumentSyncSaveOptions, TextEdit,
+    TypeDefinitionProviderCapability, TypeHierarchyItem, Url, VersionedTextDocumentIdentifier,
+    WorkspaceEdit, WorkspaceFolder, WorkspaceSymbolParams, WorkspaceSymbolResponse,
 };
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
@@ -73,6 +75,50 @@ pub enum LspEvent {
         level: i32,
         message: String,
     },
+    /// `workspace/applyEdit` from the server (e.g. while running a code action's command):
+    /// the UI applies it to open editors and the backend to the other files.
+    ApplyEdit {
+        server_id: String,
+        label: Option<String>,
+        edit: WorkspaceEdit,
+    },
+}
+
+/// Language features a server may or may not announce in its capabilities. Free
+/// Intelephense, for example, leaves out rename, implementation and type definition.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum Feature {
+    Hover,
+    Definition,
+    References,
+    Implementation,
+    TypeDefinition,
+    Rename,
+    CodeAction,
+    SignatureHelp,
+    DocumentHighlight,
+    TypeHierarchy,
+    CallHierarchy,
+}
+
+impl Feature {
+    /// PHPStorm's action name, for messages like "Rename requires …".
+    pub fn title(self) -> &'static str {
+        match self {
+            Feature::Hover => "Quick Documentation",
+            Feature::Definition => "Go to Declaration",
+            Feature::References => "Find Usages",
+            Feature::Implementation => "Go to Implementation",
+            Feature::TypeDefinition => "Go to Type Declaration",
+            Feature::Rename => "Rename",
+            Feature::CodeAction => "Show Context Actions",
+            Feature::SignatureHelp => "Parameter Info",
+            Feature::DocumentHighlight => "Highlight Usages in File",
+            Feature::TypeHierarchy => "Type Hierarchy",
+            Feature::CallHierarchy => "Call Hierarchy",
+        }
+    }
 }
 
 type Pending = Mutex<HashMap<i64, oneshot::Sender<std::result::Result<Value, RpcError>>>>;
@@ -92,10 +138,17 @@ struct Inner {
     pending: Pending,
     events: broadcast::Sender<LspEvent>,
     capabilities: OnceLock<ServerCapabilities>,
+    /// The capabilities as sent, for ones `lsp_types` does not model (`typeHierarchyProvider`).
+    raw_capabilities: OnceLock<Value>,
     versions: Mutex<HashMap<Url, i32>>,
     state: Mutex<ServerState>,
     progress: Mutex<HashMap<String, String>>,
     process: tokio::sync::Mutex<Option<Box<dyn ServerProcess>>>,
+    /// `processId` of `initialize` (see [`crate::launch::ServerIo::parent_pid`]).
+    parent_pid: Option<u32>,
+    /// Settings changed after the start (code style options before Reformat Code), merged
+    /// over `config.settings`.
+    overrides: Mutex<Value>,
 }
 
 /// Handle to a running language server. Cheap to clone.
@@ -159,10 +212,13 @@ impl LspClient {
                 pending: Mutex::new(HashMap::new()),
                 events,
                 capabilities: OnceLock::new(),
+                raw_capabilities: OnceLock::new(),
                 versions: Mutex::new(HashMap::new()),
                 state: Mutex::new(ServerState::Starting),
                 progress: Mutex::new(HashMap::new()),
                 process: tokio::sync::Mutex::new(Some(io.process)),
+                parent_pid: io.parent_pid,
+                overrides: Mutex::new(Value::Null),
             }),
         };
         client.set_state(ServerState::Starting);
@@ -301,6 +357,45 @@ impl LspClient {
         serde_json::from_value(value).map_err(|e| other(format!("bad {} response: {e}", R::METHOD)))
     }
 
+    /// The server's settings: its configuration with later changes merged in.
+    pub fn settings(&self) -> Value {
+        let mut settings = self.inner.config.settings.clone();
+        let overrides = self.inner.overrides.lock().expect("overrides lock").clone();
+        if !overrides.is_null() {
+            if settings.is_null() {
+                settings = json!({});
+            }
+            crate::config::merge_settings(&mut settings, &overrides);
+        }
+        settings
+    }
+
+    /// Merge `patch` into the server's settings and push them with
+    /// `workspace/didChangeConfiguration` (later `workspace/configuration` requests see
+    /// them too). Returns whether anything changed; unchanged settings are not sent again.
+    pub fn update_settings(&self, patch: &Value) -> Result<bool> {
+        if !patch.is_object() {
+            return Ok(false);
+        }
+        {
+            let mut overrides = self.inner.overrides.lock().expect("overrides lock");
+            let mut next = if overrides.is_null() {
+                json!({})
+            } else {
+                overrides.clone()
+            };
+            crate::config::merge_settings(&mut next, patch);
+            if *overrides == next {
+                return Ok(false);
+            }
+            *overrides = next;
+        }
+        self.notify::<notif::DidChangeConfiguration>(DidChangeConfigurationParams {
+            settings: self.settings(),
+        })?;
+        Ok(true)
+    }
+
     pub fn notify_raw(&self, method: &str, params: Value) -> Result<()> {
         self.send(json!({"jsonrpc": "2.0", "method": method, "params": params}))
     }
@@ -361,13 +456,15 @@ impl LspClient {
                     .and_then(Value::as_array)
                     .cloned()
                     .unwrap_or_default();
+                let settings = self.settings();
                 Ok(Value::Array(
                     items
                         .iter()
                         .map(|item| {
-                            self.inner
-                                .config
-                                .setting(item.get("section").and_then(Value::as_str))
+                            crate::config::setting_of(
+                                &settings,
+                                item.get("section").and_then(Value::as_str),
+                            )
                         })
                         .collect(),
                 ))
@@ -384,7 +481,23 @@ impl LspClient {
                 Ok(serde_json::to_value(self.workspace_folders()).unwrap_or(Value::Null))
             }
             req::ApplyWorkspaceEdit::METHOD => {
-                Ok(json!({"applied": false, "failureReason": "not supported yet"}))
+                match serde_json::from_value::<lsp_types::ApplyWorkspaceEditParams>(params.clone())
+                {
+                    Ok(p) => {
+                        let sent = self.inner.events.send(LspEvent::ApplyEdit {
+                            server_id: self.id().to_string(),
+                            label: p.label,
+                            edit: p.edit,
+                        });
+                        Ok(match sent {
+                            Ok(_) => json!({"applied": true}),
+                            Err(_) => {
+                                json!({"applied": false, "failureReason": "no editor is listening"})
+                            }
+                        })
+                    }
+                    Err(e) => Err((-32602, format!("bad workspace/applyEdit params: {e}"))),
+                }
             }
             _ => Err((-32601, format!("method not supported: {method}"))),
         }
@@ -519,7 +632,7 @@ impl LspClient {
             v => Some(v.clone()),
         };
         let params = InitializeParams {
-            process_id: Some(std::process::id()),
+            process_id: self.inner.parent_pid,
             root_path: Some(self.inner.root.display().to_string()),
             root_uri,
             initialization_options: init_options,
@@ -536,6 +649,9 @@ impl LspClient {
         let result = self
             .request_raw(req::Initialize::METHOD, params, Duration::from_secs(60))
             .await?;
+        if let Some(raw) = result.get("capabilities") {
+            let _ = self.inner.raw_capabilities.set(raw.clone());
+        }
         let result: InitializeResult = serde_json::from_value(result).map_err(other)?;
         let _ = self.inner.capabilities.set(result.capabilities);
         self.notify::<notif::Initialized>(InitializedParams {})?;
@@ -721,6 +837,20 @@ impl LspClient {
         .await
     }
 
+    /// Usages of the symbol at `position` in its document (`textDocument/documentHighlight`).
+    pub async fn document_highlight(
+        &self,
+        path: &Path,
+        position: Position,
+    ) -> Result<Option<Vec<DocumentHighlight>>> {
+        self.request::<req::DocumentHighlightRequest>(DocumentHighlightParams {
+            text_document_position_params: Self::position_params(path, position)?,
+            work_done_progress_params: Default::default(),
+            partial_result_params: Default::default(),
+        })
+        .await
+    }
+
     pub async fn document_symbols(&self, path: &Path) -> Result<Option<DocumentSymbolResponse>> {
         self.request::<req::DocumentSymbolRequest>(DocumentSymbolParams {
             text_document: TextDocumentIdentifier {
@@ -794,6 +924,255 @@ impl LspClient {
         }
     }
 
+    /// Whether the server announced `feature` in its capabilities.
+    pub fn supports(&self, feature: Feature) -> bool {
+        let Some(c) = self.capabilities() else {
+            return false;
+        };
+        fn one_of<T>(o: Option<&OneOf<bool, T>>) -> bool {
+            match o {
+                Some(OneOf::Left(enabled)) => *enabled,
+                Some(OneOf::Right(_)) => true,
+                None => false,
+            }
+        }
+        match feature {
+            Feature::Hover => !matches!(
+                c.hover_provider,
+                None | Some(lsp_types::HoverProviderCapability::Simple(false))
+            ),
+            Feature::Definition => one_of(c.definition_provider.as_ref()),
+            Feature::References => one_of(c.references_provider.as_ref()),
+            Feature::Rename => one_of(c.rename_provider.as_ref()),
+            Feature::Implementation => !matches!(
+                c.implementation_provider,
+                None | Some(ImplementationProviderCapability::Simple(false))
+            ),
+            Feature::TypeDefinition => !matches!(
+                c.type_definition_provider,
+                None | Some(TypeDefinitionProviderCapability::Simple(false))
+            ),
+            Feature::CodeAction => !matches!(
+                c.code_action_provider,
+                None | Some(CodeActionProviderCapability::Simple(false))
+            ),
+            Feature::SignatureHelp => c.signature_help_provider.is_some(),
+            Feature::DocumentHighlight => one_of(c.document_highlight_provider.as_ref()),
+            Feature::CallHierarchy => !matches!(
+                c.call_hierarchy_provider,
+                None | Some(lsp_types::CallHierarchyServerCapability::Simple(false))
+            ),
+            Feature::TypeHierarchy => match self
+                .inner
+                .raw_capabilities
+                .get()
+                .and_then(|r| r.get("typeHierarchyProvider"))
+            {
+                Some(Value::Bool(b)) => *b,
+                Some(Value::Object(_)) => true,
+                _ => false,
+            },
+        }
+    }
+
+    /// Whether `textDocument/prepareRename` is supported (`renameProvider.prepareProvider`).
+    pub fn supports_prepare_rename(&self) -> bool {
+        matches!(
+            self.capabilities().and_then(|c| c.rename_provider.as_ref()),
+            Some(OneOf::Right(lsp_types::RenameOptions {
+                prepare_provider: Some(true),
+                ..
+            }))
+        )
+    }
+
+    /// Whether code actions can be resolved lazily (`codeActionProvider.resolveProvider`).
+    pub fn supports_code_action_resolve(&self) -> bool {
+        matches!(
+            self.capabilities()
+                .and_then(|c| c.code_action_provider.as_ref()),
+            Some(CodeActionProviderCapability::Options(
+                lsp_types::CodeActionOptions {
+                    resolve_provider: Some(true),
+                    ..
+                }
+            ))
+        )
+    }
+
+    pub async fn implementation(
+        &self,
+        path: &Path,
+        position: Position,
+    ) -> Result<Option<GotoDefinitionResponse>> {
+        self.request::<req::GotoImplementation>(GotoDefinitionParams {
+            text_document_position_params: Self::position_params(path, position)?,
+            work_done_progress_params: Default::default(),
+            partial_result_params: Default::default(),
+        })
+        .await
+    }
+
+    pub async fn type_definition(
+        &self,
+        path: &Path,
+        position: Position,
+    ) -> Result<Option<GotoDefinitionResponse>> {
+        self.request::<req::GotoTypeDefinition>(GotoDefinitionParams {
+            text_document_position_params: Self::position_params(path, position)?,
+            work_done_progress_params: Default::default(),
+            partial_result_params: Default::default(),
+        })
+        .await
+    }
+
+    /// `textDocument/prepareTypeHierarchy`.
+    pub async fn prepare_type_hierarchy(
+        &self,
+        path: &Path,
+        position: Position,
+    ) -> Result<Option<Vec<TypeHierarchyItem>>> {
+        self.request::<req::TypeHierarchyPrepare>(lsp_types::TypeHierarchyPrepareParams {
+            text_document_position_params: Self::position_params(path, position)?,
+            work_done_progress_params: Default::default(),
+        })
+        .await
+    }
+
+    /// `typeHierarchy/supertypes` (`subtypes: false`) or `typeHierarchy/subtypes`.
+    pub async fn type_hierarchy(
+        &self,
+        item: TypeHierarchyItem,
+        subtypes: bool,
+    ) -> Result<Option<Vec<TypeHierarchyItem>>> {
+        if subtypes {
+            self.request::<req::TypeHierarchySubtypes>(lsp_types::TypeHierarchySubtypesParams {
+                item,
+                work_done_progress_params: Default::default(),
+                partial_result_params: Default::default(),
+            })
+            .await
+        } else {
+            self.request::<req::TypeHierarchySupertypes>(lsp_types::TypeHierarchySupertypesParams {
+                item,
+                work_done_progress_params: Default::default(),
+                partial_result_params: Default::default(),
+            })
+            .await
+        }
+    }
+
+    /// `textDocument/prepareCallHierarchy`.
+    pub async fn prepare_call_hierarchy(
+        &self,
+        path: &Path,
+        position: Position,
+    ) -> Result<Option<Vec<CallHierarchyItem>>> {
+        self.request::<req::CallHierarchyPrepare>(lsp_types::CallHierarchyPrepareParams {
+            text_document_position_params: Self::position_params(path, position)?,
+            work_done_progress_params: Default::default(),
+        })
+        .await
+    }
+
+    /// `callHierarchy/incomingCalls`.
+    pub async fn incoming_calls(
+        &self,
+        item: CallHierarchyItem,
+    ) -> Result<Option<Vec<lsp_types::CallHierarchyIncomingCall>>> {
+        self.request::<req::CallHierarchyIncomingCalls>(
+            lsp_types::CallHierarchyIncomingCallsParams {
+                item,
+                work_done_progress_params: Default::default(),
+                partial_result_params: Default::default(),
+            },
+        )
+        .await
+    }
+
+    /// `callHierarchy/outgoingCalls`.
+    pub async fn outgoing_calls(
+        &self,
+        item: CallHierarchyItem,
+    ) -> Result<Option<Vec<lsp_types::CallHierarchyOutgoingCall>>> {
+        self.request::<req::CallHierarchyOutgoingCalls>(
+            lsp_types::CallHierarchyOutgoingCallsParams {
+                item,
+                work_done_progress_params: Default::default(),
+                partial_result_params: Default::default(),
+            },
+        )
+        .await
+    }
+
+    pub async fn prepare_rename(
+        &self,
+        path: &Path,
+        position: Position,
+    ) -> Result<Option<PrepareRenameResponse>> {
+        self.request::<req::PrepareRenameRequest>(Self::position_params(path, position)?)
+            .await
+    }
+
+    pub async fn rename(
+        &self,
+        path: &Path,
+        position: Position,
+        new_name: &str,
+    ) -> Result<Option<WorkspaceEdit>> {
+        self.request::<req::Rename>(RenameParams {
+            text_document_position: Self::position_params(path, position)?,
+            new_name: new_name.to_string(),
+            work_done_progress_params: Default::default(),
+        })
+        .await
+    }
+
+    /// `textDocument/inlayHint` for `range`.
+    pub async fn inlay_hints(
+        &self,
+        path: &Path,
+        range: Range,
+    ) -> Result<Option<Vec<lsp_types::InlayHint>>> {
+        self.request::<req::InlayHintRequest>(lsp_types::InlayHintParams {
+            text_document: TextDocumentIdentifier {
+                uri: path_to_uri(path)?,
+            },
+            range,
+            work_done_progress_params: Default::default(),
+        })
+        .await
+    }
+
+    /// Whether the server announced `inlayHintProvider`.
+    pub fn supports_inlay_hints(&self) -> bool {
+        match self
+            .capabilities()
+            .and_then(|c| c.inlay_hint_provider.as_ref())
+        {
+            Some(OneOf::Left(enabled)) => *enabled,
+            Some(OneOf::Right(_)) => true,
+            None => false,
+        }
+    }
+
+    pub async fn code_action_resolve(&self, action: CodeAction) -> Result<CodeAction> {
+        self.request::<req::CodeActionResolveRequest>(action).await
+    }
+
+    pub async fn execute_command(
+        &self,
+        command: &str,
+        arguments: Vec<Value>,
+    ) -> Result<Option<Value>> {
+        self.request::<req::ExecuteCommand>(ExecuteCommandParams {
+            command: command.to_string(),
+            arguments,
+            work_done_progress_params: Default::default(),
+        })
+        .await
+    }
+
     pub async fn code_action(
         &self,
         path: &Path,
@@ -824,7 +1203,13 @@ fn client_capabilities() -> Value {
             "configuration": true,
             "workspaceFolders": true,
             "didChangeConfiguration": { "dynamicRegistration": false },
-            "applyEdit": false,
+            "applyEdit": true,
+            "workspaceEdit": {
+                "documentChanges": true,
+                "resourceOperations": ["create", "rename", "delete"],
+                "failureHandling": "abort"
+            },
+            "executeCommand": { "dynamicRegistration": false },
             "symbol": {
                 "symbolKind": { "valueSet": [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26] }
             }
@@ -853,13 +1238,24 @@ fn client_capabilities() -> Value {
                 }
             },
             "definition": { "linkSupport": true },
+            "implementation": { "linkSupport": true },
+            "typeDefinition": { "linkSupport": true },
             "references": {},
+            "documentHighlight": {},
+            "typeHierarchy": { "dynamicRegistration": false },
+            "callHierarchy": { "dynamicRegistration": false },
+            "rename": { "prepareSupport": true },
             "documentSymbol": { "hierarchicalDocumentSymbolSupport": true },
             "formatting": {},
+            "inlayHint": { "dynamicRegistration": false },
             "codeAction": {
                 "codeActionLiteralSupport": {
-                    "codeActionKind": { "valueSet": ["", "quickfix", "refactor", "source", "source.organizeImports"] }
-                }
+                    "codeActionKind": { "valueSet": ["", "quickfix", "refactor", "refactor.extract", "refactor.inline", "refactor.rewrite", "source", "source.organizeImports"] }
+                },
+                "isPreferredSupport": true,
+                "disabledSupport": true,
+                "dataSupport": true,
+                "resolveSupport": { "properties": ["edit"] }
             },
             "publishDiagnostics": {
                 "relatedInformation": false,

@@ -14,6 +14,7 @@ Forge uses the platform's standard folders (Rust's `dirs` crate):
 | `<config dir>` | `$XDG_CONFIG_HOME` or `~/.config` | `~/Library/Application Support` | `%APPDATA%` (`C:\Users\<you>\AppData\Roaming`) |
 | `<cache dir>` | `$XDG_CACHE_HOME` or `~/.cache` | `~/Library/Caches` | `%LOCALAPPDATA%` |
 | `<data dir>` | `$XDG_DATA_HOME` or `~/.local/share` | `~/Library/Application Support` | `%APPDATA%` |
+| `<state dir>` | `$XDG_STATE_HOME` or `~/.local/state` | `~/Library/Application Support` | `%LOCALAPPDATA%` |
 
 ## User configuration — `<config dir>/forge/`
 
@@ -36,8 +37,12 @@ Forge uses the platform's standard folders (Rust's `dirs` crate):
 | Path | Content |
 | --- | --- |
 | `php-index/<project>-<hash>.json` | PHP index cache per project |
+| `json-schemas/<sha256 of the URL>.json` | downloaded JSON schemas and the SchemaStore catalog (only with remote JSON schemas allowed), refreshed daily |
+| `php-stubs/<version>/` | JetBrains phpstorm-stubs for Go to Declaration on PHP's own symbols (downloaded on first use, checked against a pinned digest of its files, with its `LICENSE`) |
+| `packagist/p2/<vendor>/<package>.json`, `packagist/search/` | Packagist package metadata (6 hours) and searches (1 hour) for Composer completion, versions and outdated packages (only while `php.composer.packagist` is on) |
 | `intelephense/` | Intelephense's storage (`storagePath`) |
 | `jdtls/…` | workspace data of the Java language server |
+| `shell-integration/` | the bash and zsh scripts of the terminal's shell integration (also on remote hosts, in their cache dir) |
 
 Caches can be deleted at any time; Forge rebuilds them. Without a platform cache folder the PHP
 index falls back to `<project>/.forge/cache/php-index.json`.
@@ -47,7 +52,18 @@ index falls back to `<project>/.forge/cache/php-index.json`.
 | Path | Content |
 | --- | --- |
 | `langservers/` | language servers installed by Forge (`node_modules/.bin`, `package.json`, `.forge-update-check.json`) |
+| `composer/composer.phar` | composer.phar downloaded from getcomposer.org with Settings \| PHP \| Composer, checked against its published SHA-256 sum |
 | `runtimes/node-<version>/` | the Node.js build Forge downloaded for language servers (only when no Node.js 18+ was installed) |
+| `projects/<name>-<hash>/bookmarks.json` | the bookmarks and bookmark lists of a project (`<hash>` of the project root, for remote projects of `user@host:/path`); kept out of the project |
+| `projects/<name>-<hash>/shelf/<id>/` | shelved changelists (Git ▸ Shelve Changes): `changes.json` (name, date, branch, files) and `shelved.patch`; kept out of the project |
+| `chat-history/<project>-<hash>/<chat>.json` | the AI chats of each project (the newest 100), see [AI](../user/ai.md) |
+
+## State — `<state dir>/forge/`
+
+| Path | Content |
+| --- | --- |
+| `layouts/<project>-<hash>.json` | the tool window layout (placements, open tool windows, sizes) and open editor tabs of each project |
+| `layouts/_default.json` | the layout stored with Window \| Layouts \| Store Current Layout as Default |
 
 ## In the project — `<project>/.forge/`
 
@@ -93,5 +109,5 @@ there (the last theme while settings load); everything that matters is in the fi
 
 ## Clean slate
 
-To reset Forge completely, quit it and delete `<config dir>/forge`, `<cache dir>/forge` and
-`<data dir>/forge`, and remove the `forge-*` entries from your keychain.
+To reset Forge completely, quit it and delete `<config dir>/forge`, `<cache dir>/forge`,
+`<data dir>/forge` and `<state dir>/forge`, and remove the `forge-*` entries from your keychain.

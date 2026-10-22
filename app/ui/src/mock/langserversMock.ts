@@ -11,6 +11,7 @@ import type { SettingValue } from "@/ipc/settings";
 import { demoConfigFiles } from "./demoConfigFiles";
 import { demoFiles } from "./demoProject";
 import { intelephenseMissingAtStart, markMockIntelephenseInstalled, onMockDidOpen, setMockServerStatus } from "./lspMock";
+import { currentRemote } from "./remoteMock";
 
 type Install = [tool: string, command: string, runnable?: boolean];
 
@@ -216,6 +217,11 @@ const PACKAGE_SIZES: Record<string, number> = { intelephense: 9.6 * MB };
  */
 async function managedInstall(id: string, packages: string[], cancelled: () => boolean): Promise<boolean> {
   const emit = (line: string) => emitMock("langservers://install-output", { id, stream: "info", line });
+  // A remote project's servers are installed by the agent on its host.
+  const remote = currentRemote();
+  const home = remote ? `/home/${remote.user}` : HOME;
+  const managedDir = `${home}/.local/share/forge/langservers`;
+  if (remote) emit(`Installing on ${remote.label}…`);
   const download = async (label: string, total: number) => {
     for (let done = 0; ; ) {
       emitMock("langservers://install-progress", { id, label, done, total });
@@ -238,7 +244,7 @@ async function managedInstall(id: string, packages: string[], cancelled: () => b
     emit(`Verified SHA-256 of node-${NODE}-linux-x64.tar.gz.`);
     emit("Unpacking Node.js…");
     await sleep(300);
-    emit(`Node.js ${NODE} is ready in ${HOME}/.local/share/forge/runtimes/node-${NODE}.`);
+    emit(`Node.js ${NODE} is ready in ${home}/.local/share/forge/runtimes/node-${NODE}.`);
     nodeInstalled = true;
   }
   for (const pkg of packages) {
@@ -249,7 +255,7 @@ async function managedInstall(id: string, packages: string[], cancelled: () => b
     await download(`Downloading ${pkg} ${version}`, PACKAGE_SIZES[pkg] ?? 2.4 * MB);
     if (cancelled()) return false;
     emit(`Verified sha512 integrity of ${pkg}@${version}.`);
-    emit(`Installed ${pkg}@${version} into ${MANAGED}/node_modules/${pkg}.`);
+    emit(`Installed ${pkg}@${version} into ${managedDir}/node_modules/${pkg}.`);
   }
   return true;
 }
@@ -280,7 +286,8 @@ registerMock("langservers_install", async ({ id, index }) => {
     return "cancelled";
   }
   s.status = "installed";
-  s.path = managed ? `${MANAGED}/node_modules/.bin/${s.command}` : `${HOME}/.local/bin/${s.command}`;
+  const home = currentRemote() ? `/home/${currentRemote()!.user}` : HOME;
+  s.path = managed ? `${home}/.local/share/forge/langservers/node_modules/.bin/${s.command}` : `${home}/.local/bin/${s.command}`;
   if (s.id === "intelephense") {
     // The PHP pack registers it right away and it starts for the open PHP files.
     s.status = "running";
@@ -449,6 +456,8 @@ const status = (): LicenceStatus => ({
 });
 
 registerMock("intelephense_licence_status", () => status());
+// Screenshot scenarios switch Intelephense Premium on (rename and code actions by the server).
+(window as unknown as { __forgeMockLicence?: (key: string | null) => void }).__forgeMockLicence = (key) => (licenceKey = key);
 registerMock("intelephense_set_licence", ({ key }) => {
   const k = String(key ?? "").trim();
   if (k && !/^[A-Za-z0-9_-]{8,64}$/.test(k)) throw new Error("This does not look like an Intelephense licence key.");

@@ -123,6 +123,24 @@
   background: var(--bg-editor);
   user-select: text;
 }
+/* Commit message inspections below the message. */
+.commit-problems {
+  list-style: none;
+  margin: 4px 10px 0;
+  padding: 0;
+  font-size: var(--fs-small);
+  color: var(--warning);
+}
+.commit-problems li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 1px 0;
+  cursor: pointer;
+}
+.commit-problems li:hover span {
+  text-decoration: underline;
+}
 .commit-options {
   display: flex;
   align-items: center;
@@ -152,10 +170,12 @@
 }
 
 /* ---------- Modal + diff viewer ---------- */
+/* Above CodeMirror's sticky editor panels (z-index 300: banners, breadcrumbs), which are not
+   inside a stacking context of their own. */
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 100;
+  z-index: 350;
   display: grid;
   place-items: center;
   background: color-mix(in srgb, var(--bg-app) 55%, transparent);
@@ -674,6 +694,70 @@
   padding: 0 16px 14px;
 }
 
+/* Chooser: revisions, branches, stashes, remotes */
+.git-chooser {
+  width: 520px;
+}
+.git-chooser-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+}
+.git-chooser-search input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  box-shadow: none !important;
+  padding: 0;
+  height: 26px;
+}
+.git-chooser-list {
+  height: 240px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-editor);
+  padding: 2px;
+}
+.git-chooser-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  height: 24px;
+  line-height: 24px;
+  padding: 0 8px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  cursor: default;
+}
+.git-chooser-row:hover {
+  background: var(--bg-hover);
+}
+.git-chooser-row.selected {
+  background: var(--bg-selection);
+  color: var(--fg-strong);
+}
+.git-chooser-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.git-chooser-detail {
+  margin-left: auto;
+  flex-shrink: 0;
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+.git-chooser-empty {
+  padding: 16px;
+  color: var(--fg-muted);
+  text-align: center;
+}
+
 /* ---------- Balloons ---------- */
 .balloons {
   position: fixed;
@@ -760,4 +844,277 @@
 }
 .git-gutter-menu button {
   text-align: left;
+}
+
+/* ---------- Merge conflicts: Conflicts dialog, merge window, editor banner ---------- */
+.conflicts-dialog {
+  width: min(860px, calc(100vw - 48px));
+}
+.conflicts-body {
+  display: grid;
+  gap: 10px;
+  padding: 12px 16px 14px;
+}
+.conflicts-description {
+  color: var(--fg);
+}
+.conflicts-main {
+  display: flex;
+  gap: 12px;
+  min-height: 0;
+}
+.conflicts-table {
+  flex: 1;
+  min-width: 0;
+  height: 280px;
+  overflow: auto;
+  background: var(--bg-editor);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  outline: none;
+}
+.conflicts-table:focus {
+  border-color: var(--accent);
+}
+.conflicts-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 190px 190px;
+  align-items: center;
+  height: 24px;
+  padding: 0 8px;
+  white-space: nowrap;
+}
+.conflicts-row > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.conflicts-row > span:first-child {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.conflicts-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  height: 26px;
+  font-size: var(--fs-small);
+  color: var(--fg-muted);
+  background: var(--bg-toolbar);
+  border-bottom: 1px solid var(--border);
+}
+.conflicts-dir {
+  color: var(--fg-muted);
+}
+.conflicts-file {
+  cursor: default;
+}
+.conflicts-file:hover {
+  background: var(--bg-hover);
+}
+.conflicts-file.selected {
+  background: var(--bg-active);
+}
+.conflicts-table:focus .conflicts-file.selected {
+  background: var(--bg-selection);
+}
+.conflicts-file.indented > span:first-child {
+  padding-left: 22px;
+}
+.conflicts-empty {
+  padding: 12px;
+}
+.conflicts-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 132px;
+  flex-shrink: 0;
+}
+.conflicts-buttons button {
+  width: 100%;
+}
+.conflicts-group {
+  margin-right: auto;
+}
+
+.merge-window {
+  width: min(1560px, calc(100vw - 48px));
+  height: calc(100vh - 64px);
+  outline: none;
+}
+.merge-count.done {
+  color: var(--success);
+}
+.merge-headers,
+.merge-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 40px minmax(0, 1fr) 40px minmax(0, 1fr);
+}
+.merge-headers {
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  background: var(--bg-toolbar);
+}
+.merge-headers .diff-header {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.merge-headers .diff-header:nth-child(1) {
+  grid-column: 1;
+}
+.merge-headers .diff-header:nth-child(2) {
+  grid-column: 3;
+  color: var(--fg-strong);
+  font-weight: 600;
+}
+.merge-headers .diff-header:nth-child(3) {
+  grid-column: 5;
+}
+.merge-headers .diff-header + .diff-header {
+  border-left: none;
+  padding-left: 14px;
+}
+.merge-body {
+  flex: 1;
+  min-height: 0;
+  background: var(--bg-editor);
+  user-select: text;
+}
+.merge-pane {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+.merge-pane .cm-editor {
+  height: 100%;
+}
+.merge-pane-side .cm-editor {
+  background: color-mix(in srgb, var(--bg-editor) 92%, var(--bg-panel));
+}
+.merge-divider {
+  position: relative;
+  overflow: hidden;
+  background: var(--bg-editor);
+  border-inline: 1px solid var(--border);
+}
+.merge-bands {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  pointer-events: none;
+}
+.merge-band-conflict {
+  fill: var(--merge-conflict-band);
+}
+.merge-band-modified {
+  fill: var(--merge-modified-band);
+}
+.merge-band-inserted {
+  fill: var(--merge-inserted-band);
+}
+.merge-band-deleted {
+  fill: var(--merge-deleted-band);
+}
+.merge-chunk-actions {
+  position: absolute;
+  left: 2px;
+  display: flex;
+  gap: 1px;
+  margin-top: 1px;
+}
+.merge-chunk-actions.right {
+  left: auto;
+  right: 2px;
+}
+.merge-chunk-btn {
+  width: 17px;
+  height: 17px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  color: var(--fg-muted);
+}
+.merge-chunk-btn.apply {
+  color: var(--accent);
+}
+.merge-chunk-btn:hover {
+  background: var(--bg-hover);
+  color: var(--fg-strong);
+}
+.merge-chunk-btn.apply:hover {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+.cm-merge-line.cm-merge-conflict {
+  background: var(--merge-conflict-bg);
+}
+.cm-merge-line.cm-merge-modified {
+  background: var(--merge-modified-bg);
+}
+.cm-merge-line.cm-merge-inserted {
+  background: var(--merge-inserted-bg);
+}
+.cm-merge-line.cm-merge-deleted {
+  background: var(--merge-deleted-bg);
+}
+.cm-merge-empty.cm-merge-conflict {
+  box-shadow: inset 0 2px 0 var(--merge-conflict-mark);
+}
+.cm-merge-empty.cm-merge-modified {
+  box-shadow: inset 0 2px 0 var(--merge-modified-mark);
+}
+.cm-merge-empty.cm-merge-inserted {
+  box-shadow: inset 0 2px 0 var(--merge-inserted-mark);
+}
+.cm-merge-empty.cm-merge-deleted {
+  box-shadow: inset 0 2px 0 var(--merge-deleted-mark);
+}
+.cm-merge-empty-after.cm-merge-conflict {
+  box-shadow: inset 0 -2px 0 var(--merge-conflict-mark);
+}
+.cm-merge-empty-after.cm-merge-modified {
+  box-shadow: inset 0 -2px 0 var(--merge-modified-mark);
+}
+.cm-merge-empty-after.cm-merge-inserted {
+  box-shadow: inset 0 -2px 0 var(--merge-inserted-mark);
+}
+.cm-merge-empty-after.cm-merge-deleted {
+  box-shadow: inset 0 -2px 0 var(--merge-deleted-mark);
+}
+.merge-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.commit-resolve {
+  margin-left: 8px;
+  font-size: var(--fs-small);
+}
+
+.merge-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px;
+  font-size: var(--fs-small);
+  color: var(--fg);
+  background: color-mix(in srgb, var(--vcs-conflict) 12%, var(--bg-panel));
+  border-bottom: 1px solid color-mix(in srgb, var(--vcs-conflict) 35%, var(--border));
+}
+.merge-banner[hidden] {
+  display: none;
+}
+.merge-banner-icon {
+  flex-shrink: 0;
+  color: var(--vcs-conflict);
+}
+.merge-banner-text {
+  flex: 1;
+  min-width: 0;
 }

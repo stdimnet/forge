@@ -20,7 +20,7 @@ breaks user overrides, focus contexts and conflict detection, and causes double 
 - `catalog`: PHPStorm's default keymaps from `data/phpstorm.json` (id, title, group,
   Windows/Linux and macOS shortcuts, `native` flag) and `ACTION_ALIASES`;
 - `engine`: bindings, conflicts and the `Resolver` state machine (chords, double taps, focus
-  contexts `editor`, `input`, `toolwindow`, `global`, `terminal`);
+  contexts `editor`, `input`, `toolwindow`, `diff`, `global`, `terminal`);
 - `keymap`: `KeymapService` combining the catalog, plugin actions, registered commands and user
   overrides from the `keymap.*` settings.
 
@@ -36,7 +36,7 @@ Most actions already exist with the right default keys. Register a command with 
 
 ```ts
 registerCommand({ id: "ActivateStructureToolWindow", title: "Structure",
-  run: () => toggleToolWindow("left", "structure") });
+  run: () => toggleToolWindow("structure") });
 ```
 
 If your feature already uses another id, alias it in `ACTION_ALIASES`
@@ -62,8 +62,10 @@ registerCommand({ id: "Laravel.RunArtisan", title: "Run Artisan Command…", run
 
 - `group` places the action in the Keymap tree (`Plugins/<Name>` by convention, or a
   `Main Menu/...` group).
-- `context: "editor" | "toolwindow"` limits where the shortcut applies, so the same keys can
-  mean different things (`Alt+Insert` adds a row in a data grid, opens Generate in the editor).
+- `context: "editor" | "toolwindow" | "diff"` limits where the shortcut applies, so the same
+  keys can mean different things (`Alt+Insert` adds a row in a data grid, opens Generate in the
+  editor; `F7` is Next Difference inside the merge window, an element with
+  `data-focus-context="diff"`, and Step Into elsewhere).
 - Shortcut syntax: `Ctrl+Shift+A`, `Alt+Insert`, chords `Ctrl+K Ctrl+C`, double taps
   `Shift Shift`, macOS `Cmd`/`Opt`. Physical key codes are used, so layouts work.
 

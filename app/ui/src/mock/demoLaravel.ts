@@ -354,4 +354,138 @@ return [
     {{ $slot }}
 </button>
 `,
+  // Payments: an interface with two implementations, call sites and PHP's own \\Throwable,
+  // for Go to Declaration, Show Usages and the implemented / overridden gutter markers.
+  "app/Contracts/PaymentGateway.php": `<?php
+
+namespace App\\Contracts;
+
+use App\\Models\\Order;
+
+interface PaymentGateway
+{
+    /** Charge the order's total; false when the payment was declined. */
+    public function charge(Order $order): bool;
+
+    public function refund(Order $order): void;
+}
+`,
+  "app/Exceptions/PaymentFailed.php": `<?php
+
+namespace App\\Exceptions;
+
+final class PaymentFailed extends \\RuntimeException
+{
+}
+`,
+  "app/Services/Payments/StripeGateway.php": `<?php
+
+declare(strict_types=1);
+
+namespace App\\Services\\Payments;
+
+use App\\Contracts\\PaymentGateway;
+use App\\Exceptions\\PaymentFailed;
+use App\\Models\\Order;
+use Illuminate\\Support\\Facades\\Http;
+
+final class StripeGateway implements PaymentGateway
+{
+    public function charge(Order $order): bool
+    {
+        try {
+            $response = Http::post('https://api.stripe.com/v1/charges', [
+                'amount' => (int) round($order->total * 100),
+            ]);
+
+            return $response->successful();
+        } catch (\\Throwable $e) {
+            throw new PaymentFailed($e->getMessage(), previous: $e);
+        }
+    }
+
+    public function refund(Order $order): void
+    {
+        Http::post('https://api.stripe.com/v1/refunds', ['charge' => $order->id]);
+    }
+}
+`,
+  "app/Services/Payments/FakeGateway.php": `<?php
+
+namespace App\\Services\\Payments;
+
+use App\\Contracts\\PaymentGateway;
+use App\\Models\\Order;
+
+final class FakeGateway implements PaymentGateway
+{
+    /** @var list<int> */
+    public array $charged = [];
+
+    public function charge(Order $order): bool
+    {
+        $this->charged[] = $order->id;
+
+        return true;
+    }
+
+    public function refund(Order $order): void
+    {
+        $this->charged = array_values(array_diff($this->charged, [$order->id]));
+    }
+}
+`,
+  "app/Services/Payments/PaymentService.php": `<?php
+
+namespace App\\Services\\Payments;
+
+use App\\Contracts\\PaymentGateway;
+use App\\Exceptions\\PaymentFailed;
+use App\\Models\\Order;
+use App\\Models\\OrderStatus;
+
+final class PaymentService
+{
+    public function __construct(private readonly PaymentGateway $gateway)
+    {
+    }
+
+    public function pay(Order $order): void
+    {
+        if (! $this->gateway->charge($order)) {
+            throw new PaymentFailed("Order {$order->id} was declined");
+        }
+
+        $order->status = OrderStatus::Paid;
+    }
+
+    public function cancel(Order $order): void
+    {
+        $this->gateway->refund($order);
+    }
+}
+`,
+  "tests/Unit/PaymentServiceTest.php": `<?php
+
+namespace Tests\\Unit;
+
+use App\\Models\\Order;
+use App\\Services\\Payments\\FakeGateway;
+use App\\Services\\Payments\\PaymentService;
+use PHPUnit\\Framework\\TestCase;
+
+final class PaymentServiceTest extends TestCase
+{
+    public function test_it_charges_the_gateway(): void
+    {
+        $gateway = new FakeGateway();
+        $order = new Order(['total' => 10]);
+
+        (new PaymentService($gateway))->pay($order);
+
+        $this->assertTrue($gateway->charge($order));
+        $this->assertCount(2, $gateway->charged);
+    }
+}
+`,
 };

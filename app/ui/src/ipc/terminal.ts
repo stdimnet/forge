@@ -11,6 +11,8 @@ export interface TerminalOpenOptions {
   /** Arguments for `shell` instead of the shell's defaults. */
   args?: string[];
   env?: Record<string, string>;
+  /** Start on this machine (in its home directory) even when the project is remote. */
+  local?: boolean;
   cols: number;
   rows: number;
 }

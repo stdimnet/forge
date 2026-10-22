@@ -22,6 +22,10 @@ Forge's generic Language Server Protocol client.
 - `launch`: how server processes start (`LocalLauncher` here, or on a remote host).
 
 Nothing here is language specific; language packs contribute `LspServerConfig`s.
+`LspClient::update_settings` merges later changes (the code style options before Reformat
+Code, `LspManager::format`'s `settings`) into a server's settings, pushes them with
+`workspace/didChangeConfiguration` and answers later `workspace/configuration` requests with
+them.
 
 ## Modules
 
@@ -30,6 +34,7 @@ Nothing here is language specific; language packs contribute `LspServerConfig`s.
 | `client.rs` | An LSP client talking to one language server process over stdio. |
 | `config.rs` | Language server configuration as contributed by language packs. |
 | `framing.rs` | JSON-RPC message framing used by LSP over stdio: a `Content-Length` header block, an empty line, then exactly that many bytes of UTF-8 JSON. |
+| `hierarchy.rs` | Type and Call Hierarchy from the servers as `forge_codeintel::hierarchy`'s model: `LspManager::type_graph` (prepare, then supertypes and subtypes breadth-first, at most 300 types), `call_root` and `call_nodes` (incoming / outgoing calls of an item); items keep the server id and the server's own item as their `handle`. The manager's `prepare_type_hierarchy`, `type_hierarchy`, `prepare_call_hierarchy`, `incoming_calls` and `outgoing_calls` ask only servers announcing `typeHierarchyProvider` / `callHierarchyProvider` (`Feature::TypeHierarchy`, `Feature::CallHierarchy`). |
 | `launch.rs` | Starting language server processes. `LocalLauncher` spawns them on this machine; other launchers start them elsewhere (on a remote development host) and hand back their stdio as streams, so `LspClient`(crate::LspClient) works the same either way. |
 | `manager.rs` | Routes files to language servers: one server per registered config, started lazily the first time a matching file is used. |
 | `model.rs` | Editor-friendly views of LSP results. |

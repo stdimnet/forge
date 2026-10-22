@@ -1,20 +1,25 @@
 //! Browser Companion and other ways to open files from outside: the local HTTP server for
 //! the browser extension, `forge://` links and `forge file:12` launches. The logic lives
-//! in `forge-open`; this module wires it to the window, the settings and the UI.
+//! in `forge-open`; this module wires it to the window, the settings and the UI. For a
+//! remote project, browser paths are mapped to the project on the host
+//! (`forge_open::resolve_remote`) and checked and searched through the project's backend.
 
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
+use forge_backend::Backend;
+use forge_core::{FileKind, FileMatch};
 use forge_open::cli::{parse_launch_args, LaunchTarget};
 use forge_open::pairing::{ClientInfo, Pairing};
 use forge_open::server::{
     CompanionServer, HostError, HostInfo, OpenHost, OpenOutcome, OpenStatus, ProjectInfo,
     DEFAULT_PORT,
 };
+use forge_open::symbols::SymbolSource;
 use forge_open::{
-    open_event, symbols, KnownProject, LinkAction, OpenEvent, OpenRequest, OpenSource,
-    ProjectContext, ResolveError, SymbolRequest, Target,
+    open_event, resolve_remote, symbols, KnownProject, LinkAction, OpenEvent, OpenRequest,
+    OpenSource, ProjectContext, RemoteProject, ResolveError, SymbolRequest, Target,
 };
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager};
@@ -83,8 +88,8 @@ impl CompanionState {
 fn known_projects(app: &AppHandle) -> ProjectContext {
     let open = app
         .state::<AppState>()
-        .with_workspace(|ws| Ok(KnownProject::new(ws.name(), ws.root())))
-        .ok();
+        .local_workspace()
+        .map(|ws| KnownProject::new(ws.name(), ws.root()));
     let recent = crate::recent::load()
         .into_iter()
         .filter(|p| p.remote.is_none())
@@ -139,6 +144,63 @@ fn resolve_error(e: ResolveError) -> HostError {
     HostError::new(status, e.to_string())
 }
 
+/// The open project when it is on a remote host, with its backend.
+fn remote_project(app: &AppHandle) -> Option<(RemoteProject, Arc<dyn Backend>)> {
+    let state = app.state::<AppState>();
+    let info = state.project_info().filter(|i| i.remote.is_some())?;
+    let backend = state.backend().ok()?;
+    Some((
+        RemoteProject {
+            display_root: info.display_root(),
+            root: info.root.to_string_lossy().into_owned(),
+        },
+        backend,
+    ))
+}
+
+/// Whether `rel` is a file of the remote project (one directory listing on the host).
+fn remote_file_exists(backend: &dyn Backend, rel: &str) -> bool {
+    let parent = rel.rsplit_once('/').map_or("", |(d, _)| d);
+    backend.list_dir(parent).is_ok_and(|entries| {
+        entries
+            .iter()
+            .any(|e| e.path == rel && e.kind == FileKind::File)
+    })
+}
+
+/// An open request for the remote project: `None` when the file is not part of it.
+fn remote_open_event(
+    project: &RemoteProject,
+    backend: &dyn Backend,
+    request: &OpenRequest,
+    source: OpenSource,
+    client: Option<String>,
+) -> Option<OpenEvent> {
+    let (file, target) =
+        resolve_remote(request, project, &|rel| remote_file_exists(backend, rel)).ok()?;
+    let (mut line, mut column) = (request.line, request.column);
+    if line.is_none() {
+        if let Some(symbol) = &request.symbol {
+            if let Some((l, c)) = backend
+                .read_file(target.path())
+                .ok()
+                .and_then(|content| symbols::find_declaration(&content, symbol))
+            {
+                line = Some(l);
+                column = Some(c);
+            }
+        }
+    }
+    Some(OpenEvent {
+        source,
+        client,
+        file,
+        line,
+        column,
+        target,
+    })
+}
+
 /// Resolve and dispatch one open request.
 pub fn open_request(
     app: &AppHandle,
@@ -146,33 +208,61 @@ pub fn open_request(
     source: OpenSource,
     client: Option<String>,
 ) -> Result<OpenEvent, ResolveError> {
-    let event = open_event(request, &known_projects(app), source, client)?;
+    let remote = remote_project(app).and_then(|(project, backend)| {
+        remote_open_event(&project, backend.as_ref(), request, source, client.clone())
+    });
+    let event = match remote {
+        Some(event) => event,
+        // Not part of the remote project: maybe a local project's file.
+        None => open_event(request, &known_projects(app), source, client)?,
+    };
     dispatch(app, PendingEvent::Open(event.clone()));
     Ok(event)
 }
 
-/// Open the best declaration of `request.name` in the open project.
+/// The files of the open project as the symbol search sees them.
+struct BackendSymbols(Arc<dyn Backend>);
+
+impl SymbolSource for BackendSymbols {
+    fn find_files(&self, query: &str, limit: usize) -> forge_core::Result<Vec<FileMatch>> {
+        self.0.find_files(query, limit, false)
+    }
+
+    fn read_small(&self, path: &str, max_bytes: u64) -> Option<String> {
+        self.0
+            .read_file(path)
+            .ok()
+            .filter(|t| t.len() as u64 <= max_bytes)
+    }
+}
+
+/// Open the best declaration of `request.name` in the open project (searched on the host
+/// for a remote project).
 pub fn open_symbol(
     app: &AppHandle,
     request: &SymbolRequest,
     source: OpenSource,
     client: Option<String>,
 ) -> Result<OpenEvent, HostError> {
-    let (root, hit) = app
-        .state::<AppState>()
-        .with_workspace(|ws| {
-            Ok((
-                ws.root().display().to_string(),
-                symbols::resolve_symbol(ws, request)?.into_iter().next(),
-            ))
-        })
-        .map_err(|_| HostError::new(409, "no project is open in Forge"))?;
+    let state = app.state::<AppState>();
+    let no_project = || HostError::new(409, "no project is open in Forge");
+    let info = state.project_info().ok_or_else(no_project)?;
+    let backend = state.backend().map_err(|_| no_project())?;
+    let hit = symbols::resolve_symbol(&BackendSymbols(backend), request)
+        .map_err(|e| HostError::new(500, e.to_string()))?
+        .into_iter()
+        .next();
+    let root = info.display_root();
     let hit = hit
         .ok_or_else(|| HostError::new(404, format!("no declaration of {} found", request.name)))?;
+    let file = match &info.remote {
+        Some(_) => format!("{root}/{}", hit.path),
+        None => Path::new(&root).join(&hit.path).display().to_string(),
+    };
     let event = OpenEvent {
         source,
         client,
-        file: Path::new(&root).join(&hit.path).display().to_string(),
+        file,
         line: hit.line,
         column: hit.column,
         target: Target::Open {
@@ -221,7 +311,7 @@ where
                 }
             }
             LaunchTarget::File(request) => {
-                if startup && app.state::<AppState>().with_workspace(|_| Ok(())).is_err() {
+                if startup && app.state::<AppState>().project_info().is_none() {
                     // Open the file's project first, so the file opens in it right away.
                     let ctx = known_projects(app);
                     if let Ok((_, target)) = forge_open::resolve_file(&request, &ctx) {
@@ -260,11 +350,12 @@ impl OpenHost for AppHost {
         let projects = self
             .app
             .state::<AppState>()
-            .with_workspace(|ws| {
-                Ok(vec![ProjectInfo {
-                    name: ws.name(),
-                    root: ws.root().display().to_string(),
-                }])
+            .project_info()
+            .map(|info| {
+                vec![ProjectInfo {
+                    root: info.display_root(),
+                    name: info.name,
+                }]
             })
             .unwrap_or_default();
         HostInfo {

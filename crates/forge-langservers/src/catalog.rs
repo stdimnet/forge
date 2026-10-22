@@ -363,6 +363,23 @@ mod tests {
     }
 
     #[test]
+    fn yaml_server_accepts_compose_merge_tags() {
+        let yaml = Catalog::builtin().server("yaml-language-server").unwrap();
+        let tags: Vec<&str> = yaml.settings["yaml"]["customTags"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter_map(|t| t.as_str())
+            .collect();
+        for tag in ["!reset", "!override"] {
+            for kind in ["scalar", "sequence", "mapping"] {
+                let entry = format!("{tag} {kind}");
+                assert!(tags.contains(&entry.as_str()), "missing {entry}");
+            }
+        }
+    }
+
+    #[test]
     fn problems_are_reported() {
         let c = Catalog::parse(
             r#"

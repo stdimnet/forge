@@ -79,11 +79,18 @@ impl ConsoleLine {
 pub struct ConsoleDelta {
     pub replace_last: bool,
     pub lines: Vec<ConsoleLine>,
+    /// Lines to remove from the start afterwards (the console's cycle buffer is full).
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub drop_front: usize,
+}
+
+fn is_zero(n: &usize) -> bool {
+    *n == 0
 }
 
 impl ConsoleDelta {
     pub fn is_empty(&self) -> bool {
-        self.lines.is_empty()
+        self.lines.is_empty() && self.drop_front == 0
     }
 
     /// Apply to a line list, as the UI does.
@@ -92,6 +99,7 @@ impl ConsoleDelta {
             lines.pop();
         }
         lines.extend(self.lines.iter().cloned());
+        lines.drain(..self.drop_front.min(lines.len()));
     }
 }
 
@@ -158,6 +166,7 @@ impl ConsoleModel {
         let mut delta = ConsoleDelta {
             replace_last: self.shown,
             lines: Vec::new(),
+            drop_front: 0,
         };
         let mut touched = false;
         for seg in segments {

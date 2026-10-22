@@ -30,6 +30,8 @@ pub enum Transport {
     },
     /// A Unix socket on an SSH host (`ssh://` Docker hosts).
     Ssh(Arc<crate::ssh::SshTunnel>),
+    /// A Unix socket on a remote project's host, through the project's connection.
+    Project(Arc<dyn crate::project::ProjectHost>, String),
 }
 
 impl std::fmt::Debug for Transport {
@@ -47,6 +49,9 @@ impl std::fmt::Debug for Transport {
                 )
             }
             Transport::Ssh(t) => write!(f, "{t:?}"),
+            Transport::Project(p, socket) => {
+                write!(f, "ssh://{}{socket}", p.remote().unwrap_or_default())
+            }
         }
     }
 }
@@ -70,6 +75,7 @@ impl Transport {
     pub async fn connect(&self) -> Result<BoxIo> {
         match self {
             Transport::Ssh(tunnel) => tunnel.open().await,
+            Transport::Project(project, socket) => project.open_socket(socket).await,
             #[cfg(unix)]
             Transport::Unix(path) => {
                 let s = tokio::net::UnixStream::connect(path)

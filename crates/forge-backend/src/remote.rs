@@ -5,8 +5,9 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, Weak};
 use std::time::Duration;
 
-use forge_core::search::{FindRequest, FindResult};
-use forge_core::{FileEntry, FileMatch, Result};
+use forge_codeintel::{HighlightAnswer, UsageOptions};
+use forge_core::search::{FindRequest, FindResult, TodoRequest, TodoResult};
+use forge_core::{CollectRequest, FileEntry, FileMatch, Result, SourceFile};
 use forge_lsp::launch::{ServerIo, ServerProcess};
 use forge_lsp::{LspServerConfig as LspConfig, ServerLauncher};
 use forge_process::{CommandLine, PtyEvent, PtySink, RunEvent, RunSink};
@@ -14,22 +15,28 @@ use forge_project::ProjectInfo;
 use forge_vcs::{GitExec, GitOutput, GitRequest};
 use futures_util::future::BoxFuture;
 use phpforge_lang_php::generate::{GenerateKind, GenerateOptions, GenerateTargets, TextEdit};
+use phpforge_lang_php::hierarchy::{HierarchyQuery, PhpHierarchy};
 use phpforge_lang_php::hover::Hover;
 use phpforge_lang_php::index::{SearchKind, SymbolHit};
+use phpforge_lang_php::intentions::Intention;
 use phpforge_lang_php::lsp::{DetectedServers, LspServerConfig, PhpLspSettings};
+use phpforge_lang_php::navigate::{NavKind, NavTarget, PhpDefinition, PhpLineMarker, PhpUsages};
 use phpforge_lang_php::structure::FileStructure;
 use phpforge_lang_php::IndexStats;
 use serde::de::DeserializeOwned;
 
 use crate::frameworks::FrameworkCall;
-use crate::langservers::{LangServersAnswer, LangServersRequest};
+use crate::langservers::{InstallRequest, InstallSink, LangServersAnswer, LangServersRequest};
 use crate::php::ProgressSink;
 use crate::protocol::{Call, Event, Opened, PhpCall, TerminalOpened};
 use crate::rpc::{connection_lost, RpcClient};
+use crate::web::WebCall;
 use crate::{
     Backend, BackendInfo, FsSink, PhpBackend, Process, RemoteHost, Terminal, TerminalSpec, Tunnels,
     WatchGuard,
 };
+use forge_langservers::install::InstallOutcome;
+use forge_langservers::managed::PackageUpdate;
 
 /// Default time to wait for an answer.
 const TIMEOUT: Duration = Duration::from_secs(60);
@@ -39,6 +46,8 @@ const GIT_NETWORK_TIMEOUT: Duration = Duration::from_secs(600);
 const INDEX_TIMEOUT: Duration = Duration::from_secs(3600);
 /// A framework scan or language scan of a large project (artisan may run too).
 const SCAN_TIMEOUT: Duration = Duration::from_secs(300);
+/// Downloading Node.js and npm packages on a slow host.
+const INSTALL_TIMEOUT: Duration = Duration::from_secs(3600);
 
 /// The current connection to the agent; it changes when the session reconnects.
 pub trait Connection: Send + Sync {
@@ -66,6 +75,7 @@ struct Routes {
     pty: HashMap<u32, PtySink>,
     run: HashMap<u32, RunSink>,
     progress: Option<ProgressSink>,
+    install: HashMap<u32, InstallSink>,
 }
 
 struct Shared {
@@ -111,6 +121,18 @@ impl Shared {
                     routes.run.get(&channel).cloned()
                 };
                 drop(routes);
+                if let Some(sink) = sink {
+                    sink(event);
+                }
+            }
+            Event::Install { channel, event } => {
+                let sink = self
+                    .routes
+                    .lock()
+                    .expect("routes lock")
+                    .install
+                    .get(&channel)
+                    .cloned();
                 if let Some(sink) = sink {
                     sink(event);
                 }
@@ -341,6 +363,7 @@ impl ServerLauncher for RemoteLauncher {
                 stdout: Box::pin(reader),
                 stderr: None,
                 process: Box::new(RemoteServer { client, channel }),
+                parent_pid: None,
             })
         })
     }
@@ -400,6 +423,26 @@ impl Backend for RemoteBackend {
         )
     }
 
+    fn read_bytes(&self, rel: &str) -> Result<Vec<u8>> {
+        let bytes: serde_bytes::ByteBuf = self.shared.call(
+            Call::ReadBytes {
+                path: rel.to_string(),
+            },
+            TIMEOUT,
+        )?;
+        Ok(bytes.into_vec())
+    }
+
+    fn write_bytes(&self, rel: &str, bytes: &[u8]) -> Result<()> {
+        self.shared.call(
+            Call::WriteBytes {
+                path: rel.to_string(),
+                bytes: serde_bytes::ByteBuf::from(bytes.to_vec()),
+            },
+            TIMEOUT,
+        )
+    }
+
     fn create_file(&self, rel: &str) -> Result<()> {
         self.shared.call(
             Call::CreateFile {
@@ -437,11 +480,12 @@ impl Backend for RemoteBackend {
         )
     }
 
-    fn find_files(&self, query: &str, limit: usize) -> Result<Vec<FileMatch>> {
+    fn find_files(&self, query: &str, limit: usize, exact: bool) -> Result<Vec<FileMatch>> {
         self.shared.call(
             Call::FindFiles {
                 query: query.to_string(),
                 limit,
+                exact,
             },
             TIMEOUT,
         )
@@ -450,6 +494,86 @@ impl Backend for RemoteBackend {
     fn find_in_files(&self, req: &FindRequest) -> Result<FindResult> {
         self.shared
             .call(Call::FindInFiles(req.clone()), GIT_NETWORK_TIMEOUT)
+    }
+
+    fn find_in_files_found(
+        &self,
+        req: &FindRequest,
+        _cancel: &std::sync::atomic::AtomicBool,
+    ) -> Result<crate::Found> {
+        let totals: forge_core::search::FindPaged = self.shared.call(
+            Call::FindStart {
+                req: req.clone(),
+                page_size: 0,
+            },
+            GIT_NETWORK_TIMEOUT,
+        )?;
+        let (shared, id) = (self.shared.clone(), totals.id);
+        let fetch = move |offset: usize, count: usize| {
+            shared
+                .call::<Vec<forge_core::search::FileMatches>>(
+                    Call::FindPage { id, offset, count },
+                    GIT_NETWORK_TIMEOUT,
+                )
+                .unwrap_or_default()
+        };
+        Ok(crate::Found::Remote {
+            totals,
+            fetch: Arc::new(fetch),
+        })
+    }
+
+    fn find_symbols(
+        &self,
+        query: &str,
+        types_only: bool,
+        limit: usize,
+        skip_extensions: &[String],
+        exact: bool,
+    ) -> Result<Vec<forge_search_core::SymbolHit>> {
+        self.shared.call(
+            Call::FindSymbols {
+                query: query.to_string(),
+                types_only,
+                limit,
+                skip_extensions: skip_extensions.to_vec(),
+                exact,
+            },
+            TIMEOUT,
+        )
+    }
+
+    fn search_status(&self) -> Result<crate::SearchStatus> {
+        self.shared.call(Call::SearchStatus, TIMEOUT)
+    }
+
+    fn find_todos(&self, req: &TodoRequest) -> Result<TodoResult> {
+        self.shared
+            .call(Call::FindTodos(req.clone()), GIT_NETWORK_TIMEOUT)
+    }
+
+    fn collect_files(&self, req: &CollectRequest) -> Result<Vec<SourceFile>> {
+        self.shared
+            .call(Call::CollectFiles(req.clone()), SCAN_TIMEOUT)
+    }
+
+    fn structural_search(&self, req: &forge_ssr::SsrRequest) -> Result<forge_ssr::SsrResult> {
+        self.shared
+            .call(Call::StructuralSearch(req.clone()), SCAN_TIMEOUT)
+    }
+
+    fn compare_dirs(&self, left: &str, right: &str) -> Result<forge_diff::DirCompare> {
+        self.shared.call(
+            Call::CompareDirs {
+                left: left.to_string(),
+                right: right.to_string(),
+            },
+            SCAN_TIMEOUT,
+        )
+    }
+
+    fn list_files(&self, limit: usize) -> Result<Vec<String>> {
+        self.shared.call(Call::ListFiles { limit }, SCAN_TIMEOUT)
     }
 
     fn git(&self) -> Arc<dyn GitExec> {
@@ -550,6 +674,70 @@ impl Backend for RemoteBackend {
         self.shared.call(Call::LangServers(req), SCAN_TIMEOUT)
     }
 
+    fn install_langserver(
+        &self,
+        req: InstallRequest,
+        cancel: Arc<tokio::sync::Notify>,
+        sink: InstallSink,
+    ) -> Result<InstallOutcome> {
+        let client = self.shared.client()?;
+        let channel = client.new_channel();
+        self.shared
+            .routes
+            .lock()
+            .expect("routes lock")
+            .install
+            .insert(channel, sink);
+        // Cancel = close the channel; the agent stops the install and answers `Cancelled`.
+        let done = Arc::new(tokio::sync::Notify::new());
+        if let Ok(rt) = tokio::runtime::Handle::try_current() {
+            let (client, done) = (client.clone(), done.clone());
+            rt.spawn(async move {
+                tokio::select! {
+                    _ = cancel.notified() => client.close_channel(channel),
+                    _ = done.notified() => {}
+                }
+            });
+        }
+        let result = client.call_blocking(
+            Call::LangServerInstall {
+                channel,
+                request: req,
+            },
+            INSTALL_TIMEOUT,
+        );
+        done.notify_one();
+        self.shared
+            .routes
+            .lock()
+            .expect("routes lock")
+            .install
+            .remove(&channel);
+        result
+    }
+
+    fn langserver_updates(
+        &self,
+        registry: Option<String>,
+        node_mirror: Option<String>,
+        force: bool,
+    ) -> Result<Option<Vec<PackageUpdate>>> {
+        self.shared.call(
+            Call::LangServerUpdates {
+                registry,
+                node_mirror,
+                force,
+            },
+            SCAN_TIMEOUT,
+        )
+    }
+
+    fn web(&self, call: WebCall) -> Result<Vec<u8>> {
+        self.shared
+            .client()?
+            .call_raw_blocking(Call::Web(call), SCAN_TIMEOUT)
+    }
+
     fn find_executable(&self, names: &[String], custom: Option<&str>) -> Result<Option<PathBuf>> {
         self.shared.call(
             Call::FindExecutable {
@@ -573,11 +761,18 @@ impl PhpBackend for RemoteBackend {
         result
     }
 
-    fn search(&self, query: &str, kind: SearchKind, limit: usize) -> Result<Vec<SymbolHit>> {
+    fn search(
+        &self,
+        query: &str,
+        kind: SearchKind,
+        limit: usize,
+        exact: bool,
+    ) -> Result<Vec<SymbolHit>> {
         self.php_call(PhpCall::Search {
             query: query.to_string(),
             kind,
             limit,
+            exact,
         })
     }
 
@@ -627,6 +822,99 @@ impl PhpBackend for RemoteBackend {
             path: path.to_string(),
             offset,
             kind,
+            options,
+            content,
+        })
+    }
+
+    fn usages(
+        &self,
+        path: &str,
+        offset: usize,
+        options: UsageOptions,
+        content: Option<String>,
+    ) -> Result<Option<PhpUsages>> {
+        self.php_call(PhpCall::Usages {
+            path: path.to_string(),
+            offset,
+            options,
+            content,
+        })
+    }
+
+    fn highlights(
+        &self,
+        path: &str,
+        offset: usize,
+        content: Option<String>,
+    ) -> Result<Option<HighlightAnswer>> {
+        self.php_call(PhpCall::Highlights {
+            path: path.to_string(),
+            offset,
+            content,
+        })
+    }
+
+    fn navigate(
+        &self,
+        path: &str,
+        offset: usize,
+        kind: NavKind,
+        content: Option<String>,
+    ) -> Result<Vec<NavTarget>> {
+        self.php_call(PhpCall::Navigate {
+            path: path.to_string(),
+            offset,
+            kind,
+            content,
+        })
+    }
+
+    fn definition(
+        &self,
+        path: &str,
+        offset: usize,
+        content: Option<String>,
+    ) -> Result<PhpDefinition> {
+        self.php_call(PhpCall::Definition {
+            path: path.to_string(),
+            offset,
+            content,
+        })
+    }
+
+    fn line_markers(&self, path: &str, content: Option<String>) -> Result<Vec<PhpLineMarker>> {
+        self.php_call(PhpCall::LineMarkers {
+            path: path.to_string(),
+            content,
+        })
+    }
+
+    fn hierarchy(
+        &self,
+        path: &str,
+        offset: usize,
+        query: HierarchyQuery,
+        content: Option<String>,
+    ) -> Result<PhpHierarchy> {
+        self.php_call(PhpCall::Hierarchy {
+            path: path.to_string(),
+            offset,
+            query,
+            content,
+        })
+    }
+
+    fn intentions(
+        &self,
+        path: &str,
+        offset: usize,
+        options: GenerateOptions,
+        content: Option<String>,
+    ) -> Result<Vec<Intention>> {
+        self.php_call(PhpCall::Intentions {
+            path: path.to_string(),
+            offset,
             options,
             content,
         })

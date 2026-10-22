@@ -11,7 +11,7 @@ Forge's default keymaps are PHPStorm's (`crates/forge-keymap/data/phpstorm.json`
 PHPStorm's action ids. This page is the complete list. To learn the shortcuts the way the
 JetBrains help teaches them, start with:
 
-- [Keymap reference card](../user/shortcuts/reference-card.md): the 60 most important shortcuts
+- [Keymap reference card](../user/shortcuts/reference-card.md): the 62 most important shortcuts
   on one printable page;
 - [Shortcuts by topic](../user/shortcuts/index.md): one page per area (editing, navigation,
   search, refactoring, run and debug, Git, tool windows, general) that explains every
@@ -52,33 +52,35 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Line/Column… | `GotoLine` | `Ctrl+G` | `Cmd+L` | yes |
 | Back | `Back` | `Ctrl+Alt+Left` | `Cmd+[`, `Cmd+Alt+Left` | yes |
 | Forward | `Forward` | `Ctrl+Alt+Right` | `Cmd+]`, `Cmd+Alt+Right` | yes |
-| Last Edit Location | `JumpToLastChange` | `Ctrl+Shift+Backspace` | `Cmd+Shift+Backspace` | — |
-| Next Edit Location | `JumpToNextChange` |  |  | — |
-| Select In… | `SelectIn` | `Alt+F1` | `Alt+F1` | — |
+| Last Edit Location | `JumpToLastChange` | `Ctrl+Shift+Backspace` | `Cmd+Shift+Backspace` | yes |
+| Next Edit Location | `JumpToNextChange` |  |  | yes |
+| Select In… | `SelectIn` | `Alt+F1` | `Alt+F1` | yes |
 | Declaration or Usages | `GotoDeclaration` | `Ctrl+B` | `Cmd+B` | yes |
-| Implementation(s) | `GotoImplementation` | `Ctrl+Alt+B` | `Cmd+Alt+B` | — |
-| Type Declaration | `GotoTypeDeclaration` | `Ctrl+Shift+B` | `Cmd+Shift+B` | — |
-| Super Method | `GotoSuperMethod` | `Ctrl+U` | `Cmd+U` | — |
-| Test | `GotoTest` | `Ctrl+Shift+T` | `Cmd+Shift+T` | — |
-| Related Symbol… | `GotoRelated` | `Ctrl+Alt+Home` | `Ctrl+Cmd+Up` | — |
-| File Structure | `FileStructurePopup` | `Ctrl+F12` | `Cmd+F12` | — |
-| Type Hierarchy | `TypeHierarchy` | `Ctrl+H` | `Ctrl+H` | — |
-| Method Hierarchy | `MethodHierarchy` | `Ctrl+Shift+H` | `Cmd+Shift+H` | — |
-| Call Hierarchy | `CallHierarchy` | `Ctrl+Alt+H` | `Ctrl+Alt+H` | — |
+| Implementation(s) | `GotoImplementation` | `Ctrl+Alt+B` | `Cmd+Alt+B` | yes |
+| Type Declaration | `GotoTypeDeclaration` | `Ctrl+Shift+B` | `Cmd+Shift+B` | yes |
+| Super Method | `GotoSuperMethod` | `Ctrl+U` | `Cmd+U` | yes |
+| Test | `GotoTest` | `Ctrl+Shift+T` | `Cmd+Shift+T` | yes |
+| Related Symbol… | `GotoRelated` | `Ctrl+Alt+Home` | `Ctrl+Cmd+Up` | yes |
+| File Structure | `FileStructurePopup` | `Ctrl+F12` | `Cmd+F12` | yes |
+| Type Hierarchy | `TypeHierarchy` | `Ctrl+H` | `Ctrl+H` | yes |
+| Method Hierarchy | `MethodHierarchy` | `Ctrl+Shift+H` | `Cmd+Shift+H` | yes |
+| Call Hierarchy | `CallHierarchy` | `Ctrl+Alt+H` | `Ctrl+Alt+H` | yes |
 | Next Highlighted Error | `GotoNextError` | `F2` | `F2` | yes |
 | Previous Highlighted Error | `GotoPreviousError` | `Shift+F2` | `Shift+F2` | yes |
-| Next Method | `MethodDown` | `Alt+Down` | `Ctrl+Down` | — |
-| Previous Method | `MethodUp` | `Alt+Up` | `Ctrl+Up` | — |
-| Next Occurrence | `NextOccurence` | `Ctrl+Alt+Down` | `Cmd+Alt+Down` | — |
-| Previous Occurrence | `PreviousOccurence` | `Ctrl+Alt+Up` | `Cmd+Alt+Up` | — |
+| Next Method | `MethodDown` | `Alt+Down` | `Ctrl+Down` | yes |
+| Previous Method | `MethodUp` | `Alt+Up` | `Ctrl+Up` | yes |
+| Next Occurrence | `NextOccurence` | `Ctrl+Alt+Down` | `Cmd+Alt+Down` | yes |
+| Previous Occurrence | `PreviousOccurence` | `Ctrl+Alt+Up` | `Cmd+Alt+Up` | yes |
 | Jump to Source | `EditSource` | `F4` | `F4`, `Cmd+Down` | — |
 | Move Caret to Matching Brace | `EditorMatchBrace` | `Ctrl+Shift+M` | `Ctrl+M` | yes |
 | Move Caret to Code Block Start | `EditorCodeBlockStart` | `Ctrl+[` | `Cmd+Alt+[` | — |
 | Move Caret to Code Block End | `EditorCodeBlockEnd` | `Ctrl+]` | `Cmd+Alt+]` | — |
 | Move Caret to Code Block Start with Selection | `EditorCodeBlockStartWithSelection` | `Ctrl+Shift+[` | `Cmd+Alt+Shift+[` | — |
 | Move Caret to Code Block End with Selection | `EditorCodeBlockEndWithSelection` | `Ctrl+Shift+]` | `Cmd+Alt+Shift+]` | — |
-| Next Change | `VcsShowNextChangeMarker` | `Ctrl+Alt+Shift+Down` | `Ctrl+Alt+Shift+Down` | — |
-| Previous Change | `VcsShowPrevChangeMarker` | `Ctrl+Alt+Shift+Up` | `Ctrl+Alt+Shift+Up` | — |
+| Next Emmet Edit Point | `EmmetNextEditPoint` | `Alt+Shift+]` | `Ctrl+Alt+]` | yes |
+| Previous Emmet Edit Point | `EmmetPreviousEditPoint` | `Alt+Shift+[` | `Ctrl+Alt+[` | yes |
+| Next Change | `VcsShowNextChangeMarker` | `Ctrl+Alt+Shift+Down` | `Ctrl+Alt+Shift+Down` | yes |
+| Previous Change | `VcsShowPrevChangeMarker` | `Ctrl+Alt+Shift+Up` | `Ctrl+Alt+Shift+Up` | yes |
 
 ### Help
 
@@ -93,19 +95,22 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 
 | Action | Action id | Windows / Linux | macOS | In Forge |
 | --- | --- | --- | --- | --- |
-| Show Context Actions | `ShowIntentionActions` | `Alt+Enter` | `Alt+Enter` | — |
+| Show Context Actions | `ShowIntentionActions` | `Alt+Enter` | `Alt+Enter` | yes |
 | Basic Completion | `CodeCompletion` | `Ctrl+Space`, `Shift+Space` | `Ctrl+Space`, `Shift+Space` | yes |
 | Type-Matching Completion | `SmartTypeCompletion` | `Ctrl+Shift+Space` | `Ctrl+Shift+Space` | — |
-| Cyclic Expand Word | `HippieCompletion` | `Alt+/` | `Alt+/` | — |
-| Cyclic Expand Word (Backward) | `HippieBackwardCompletion` | `Alt+Shift+/` | `Alt+Shift+/` | — |
-| Complete Current Statement | `EditorCompleteStatement` | `Ctrl+Shift+Enter` | `Cmd+Shift+Enter` | — |
+| Cyclic Expand Word | `HippieCompletion` | `Alt+/` | `Alt+/` | yes |
+| Cyclic Expand Word (Backward) | `HippieBackwardCompletion` | `Alt+Shift+/` | `Alt+Shift+/` | yes |
+| Complete Current Statement | `EditorCompleteStatement` | `Ctrl+Shift+Enter` | `Cmd+Shift+Enter` | yes |
 | Generate… | `Generate` | `Alt+Insert` | `Cmd+N` | yes |
 | Override Methods… | `OverrideMethods` | `Ctrl+O` | `Ctrl+O` | PHP editors |
 | Implement Methods… | `ImplementMethods` | `Ctrl+I` | `Ctrl+I` | PHP editors |
-| Surround With… | `SurroundWith` | `Ctrl+Alt+T` | `Cmd+Alt+T` | — |
-| Unwrap/Remove… | `Unwrap` | `Ctrl+Shift+Delete` | `Cmd+Shift+Delete` | — |
-| Insert Live Template… | `InsertLiveTemplate` | `Ctrl+J` | `Cmd+J` | — |
-| Surround with Live Template… | `SurroundWithLiveTemplate` | `Ctrl+Alt+J` | `Cmd+Alt+J` | — |
+| Surround With… | `SurroundWith` | `Ctrl+Alt+T` | `Cmd+Alt+T` | yes |
+| Unwrap/Remove… | `Unwrap` | `Ctrl+Shift+Delete` | `Cmd+Shift+Delete` | yes |
+| Insert Live Template… | `InsertLiveTemplate` | `Ctrl+J` | `Cmd+J` | yes |
+| Surround with Live Template… | `SurroundWithLiveTemplate` | `Ctrl+Alt+J` | `Cmd+Alt+J` | yes |
+| Surround with Emmet… | `SurroundWithEmmet` |  |  | yes |
+| Update Tag with Emmet… | `EmmetUpdateTag` |  |  | yes |
+| Show Color Picker | `ShowColorPicker` |  |  | yes |
 | Comment with Line Comment | `CommentByLineComment` | `Ctrl+/`, `Ctrl+NumPad/` | `Cmd+/`, `Cmd+NumPad/` | yes |
 | Comment with Block Comment | `CommentByBlockComment` | `Ctrl+Shift+/`, `Ctrl+Shift+NumPad/` | `Cmd+Alt+/`, `Cmd+Alt+NumPad/` | yes |
 | Reformat Code | `ReformatCode` | `Ctrl+Alt+L` | `Cmd+Alt+L` | yes |
@@ -122,6 +127,7 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Inspect Code… | `InspectCode` |  |  | — |
 | Code Cleanup / Inspect File | `CodeInspection.OnEditor` | `Alt+Shift+I` | `Ctrl+Alt+Shift+I` | — |
 | Run Inspection by Name… | `RunInspection` | `Ctrl+Alt+Shift+I` | `Cmd+Alt+Shift+I` | — |
+| Analyze Stack Trace or Thread Dump… | `AnalyzeStacktraceOnError` |  |  | yes |
 | Show Quick-Fixes | `ShowIntentionsGroup` |  |  | — |
 
 ### File
@@ -130,7 +136,7 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | --- | --- | --- | --- | --- |
 | Settings… | `ShowSettings` | `Ctrl+Alt+S` | `Cmd+,` | yes |
 | Project Structure… | `ShowProjectStructureSettings` | `Ctrl+Alt+Shift+S` | `Cmd+;` | — |
-| New… | `NewElement` | `Alt+Insert` | `Cmd+N` | — |
+| New… | `NewElement` | `Alt+Insert` | `Cmd+N` | yes |
 | New Scratch File | `NewScratchFile` | `Ctrl+Alt+Shift+Insert` | `Cmd+Shift+N` | yes |
 | New Project… | `NewProject` |  |  | yes |
 | Open… | `OpenFile` |  |  | yes |
@@ -150,20 +156,21 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Toggle Presentation Mode | `TogglePresentationMode` |  |  | — |
 | Toggle Distraction Free Mode | `ToggleDistractionFreeMode` |  |  | — |
 | Toggle Zen Mode | `ToggleZenMode` |  |  | — |
-| Jump to Navigation Bar | `ShowNavBar` | `Alt+Home` | `Cmd+Up` | — |
-| Quick Documentation | `QuickJavaDoc` | `Ctrl+Q` | `F1`, `Ctrl+J` | — |
-| External Documentation | `ExternalJavaDoc` | `Shift+F1` | `Shift+F1` | — |
-| Quick Definition | `QuickImplementations` | `Ctrl+Shift+I` | `Alt+Space`, `Cmd+Y` | — |
+| Jump to Navigation Bar | `ShowNavBar` | `Alt+Home` | `Cmd+Up` | yes |
+| Quick Documentation | `QuickJavaDoc` | `Ctrl+Q` | `F1`, `Ctrl+J` | yes |
+| External Documentation | `ExternalJavaDoc` | `Shift+F1` | `Shift+F1` | yes |
+| Quick Definition | `QuickImplementations` | `Ctrl+Shift+I` | `Alt+Space`, `Cmd+Y` | yes |
 | Parameter Info | `ParameterInfo` | `Ctrl+P` | `Cmd+P` | yes |
-| Type Info | `ExpressionTypeInfo` | `Ctrl+Shift+P` | `Ctrl+Shift+P` | — |
-| Context Info | `EditorContextInfo` | `Alt+Q` | `Ctrl+Shift+Q` | — |
-| Error Description | `ShowErrorDescription` | `Ctrl+F1` | `Cmd+F1` | — |
+| Type Info | `ExpressionTypeInfo` | `Ctrl+Shift+P` | `Ctrl+Shift+P` | yes |
+| Context Info | `EditorContextInfo` | `Alt+Q` | `Ctrl+Shift+Q` | yes |
+| Error Description | `ShowErrorDescription` | `Ctrl+F1` | `Cmd+F1` | yes |
 | Recent Files | `RecentFiles` | `Ctrl+E` | `Cmd+E` | yes |
 | Recently Changed Files | `RecentChangedFiles` |  |  | yes |
-| Recent Locations | `RecentLocations` | `Ctrl+Shift+E` | `Cmd+Shift+E` | — |
+| Recent Locations | `RecentLocations` | `Ctrl+Shift+E` | `Cmd+Shift+E` | yes |
 | Switcher | `Switcher` | `Ctrl+Tab`, `Ctrl+Shift+Tab` | `Ctrl+Tab`, `Ctrl+Shift+Tab` | yes |
-| Toggle Rendered View | `ToggleRenderedDocPresentation` | `Ctrl+Alt+Q` | `Ctrl+Alt+Q` | — |
+| Toggle Rendered View | `ToggleRenderedDocPresentation` | `Ctrl+Alt+Q` | `Ctrl+Alt+Q` | yes |
 | Compare Files | `CompareTwoFiles` | `Ctrl+D` | `Cmd+D` | — |
+| Compare with Clipboard | `CompareClipboardWithSelection` |  |  | — |
 | Inlay Hints | `ViewInplaceComments` |  |  | — |
 
 ### File > File Properties
@@ -195,11 +202,11 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Cut | `$Cut` | `Ctrl+X`, `Shift+Delete` | `Cmd+X` | native |
 | Copy | `$Copy` | `Ctrl+C`, `Ctrl+Insert` | `Cmd+C` | native |
 | Paste | `$Paste` | `Ctrl+V`, `Shift+Insert` | `Cmd+V` | native |
-| Paste from History… | `PasteMultiple` | `Ctrl+Shift+V` | `Cmd+Shift+V` | — |
+| Paste from History… | `PasteMultiple` | `Ctrl+Shift+V` | `Cmd+Shift+V` | yes |
 | Paste as Plain Text | `PasteSimple` | `Ctrl+Alt+Shift+V` | `Cmd+Alt+Shift+V` | yes |
 | Select All | `$SelectAll` | `Ctrl+A` | `Cmd+A` | native |
 | Delete | `$Delete` | `Delete` | `Delete`, `Backspace` | native |
-| Column Selection Mode | `EditorToggleColumnMode` | `Alt+Shift+Insert` | `Cmd+Shift+8` | — |
+| Column Selection Mode | `EditorToggleColumnMode` | `Alt+Shift+Insert` | `Cmd+Shift+8` | yes |
 | Add Selection for Next Occurrence | `SelectNextOccurrence` | `Alt+J` | `Ctrl+G` | yes |
 | Unselect Occurrence | `UnselectPreviousOccurrence` | `Alt+Shift+J` | `Ctrl+Shift+G` | yes |
 | Select All Occurrences | `SelectAllOccurrences` | `Ctrl+Alt+Shift+J` | `Ctrl+Cmd+G` | yes |
@@ -230,21 +237,22 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Find Previous / Move to Previous Occurrence | `FindPrevious` | `Shift+F3` | `Cmd+Shift+G` | yes |
 | Find Word at Caret | `FindWordAtCaret` | `Ctrl+F3` | `Alt+Cmd+F3` | — |
 | Find in Files… | `FindInPath` | `Ctrl+Shift+F` | `Cmd+Shift+F` | yes |
-| Replace in Files… | `ReplaceInPath` | `Ctrl+Shift+R` | `Cmd+Shift+R` | — |
-| Find Usages | `FindUsages` | `Alt+F7` | `Alt+F7` | — |
-| Find Usages in File | `FindUsagesInFile` | `Ctrl+F7` | `Cmd+F7` | — |
-| Highlight Usages in File | `HighlightUsagesInFile` | `Ctrl+Shift+F7` | `Cmd+Shift+F7` | — |
-| Show Usages | `ShowUsages` | `Ctrl+Alt+F7` | `Cmd+Alt+F7` | — |
-| Find Usages Settings… | `ShowSettingsAndFindUsages` | `Ctrl+Alt+Shift+F7` | `Cmd+Alt+Shift+F7` | — |
-| Search Structurally… | `StructuralSearchPlugin.StructuralSearchAction` |  |  | — |
+| Replace in Files… | `ReplaceInPath` | `Ctrl+Shift+R` | `Cmd+Shift+R` | yes |
+| Find Usages | `FindUsages` | `Alt+F7` | `Alt+F7` | yes |
+| Find Usages in File | `FindUsagesInFile` | `Ctrl+F7` | `Cmd+F7` | yes |
+| Highlight Usages in File | `HighlightUsagesInFile` | `Ctrl+Shift+F7` | `Cmd+Shift+F7` | yes |
+| Show Usages | `ShowUsages` | `Ctrl+Alt+F7` | `Cmd+Alt+F7` | yes |
+| Find Usages Settings… | `ShowSettingsAndFindUsages` | `Ctrl+Alt+Shift+F7` | `Cmd+Alt+Shift+F7` | yes |
+| Search Structurally… | `StructuralSearchPlugin.StructuralSearchAction` |  |  | yes |
+| Replace Structurally… | `StructuralSearchPlugin.StructuralReplaceAction` |  |  | yes |
 
 ### View > Tool Windows
 
 | Action | Action id | Windows / Linux | macOS | In Forge |
 | --- | --- | --- | --- | --- |
 | Project | `ActivateProjectToolWindow` | `Alt+1` | `Cmd+1` | yes |
-| Bookmarks | `ActivateBookmarksToolWindow` | `Alt+2` | `Cmd+2` | — |
-| Find | `ActivateFindToolWindow` | `Alt+3` | `Cmd+3` | — |
+| Bookmarks | `ActivateBookmarksToolWindow` | `Alt+2` | `Cmd+2` | yes |
+| Find | `ActivateFindToolWindow` | `Alt+3` | `Cmd+3` | yes |
 | Run | `ActivateRunToolWindow` | `Alt+4` | `Cmd+4` | yes |
 | Debug | `ActivateDebugToolWindow` | `Alt+5` | `Cmd+5` | yes |
 | Problems | `ActivateProblemsViewToolWindow` | `Alt+6` | `Cmd+6` | yes |
@@ -254,38 +262,42 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Commit | `ActivateCommitToolWindow` | `Alt+0` | `Cmd+0` | yes |
 | Terminal | `ActivateTerminalToolWindow` | `Alt+F12` | `Alt+F12` | yes |
 | Database | `ActivateDatabaseToolWindow` |  |  | yes |
-| Notifications | `ActivateNotificationsToolWindow` |  |  | — |
+| Notifications | `ActivateNotificationsToolWindow` |  |  | yes |
 | AI Chat | `ActivateAIChatToolWindow` |  |  | yes |
 | Pull Requests | `ActivatePullRequestsToolWindow` |  |  | yes |
-| TODO | `ActivateTODOToolWindow` |  |  | — |
+| TODO | `ActivateTODOToolWindow` |  |  | yes |
+| Documentation | `ActivateDocumentationToolWindow` |  |  | yes |
 
 ### Navigate > Bookmarks
 
 | Action | Action id | Windows / Linux | macOS | In Forge |
 | --- | --- | --- | --- | --- |
-| Toggle Bookmark | `ToggleBookmark` | `F11` | `F3` | — |
-| Toggle Bookmark with Mnemonic | `ToggleBookmarkWithMnemonic` | `Ctrl+F11` | `Alt+F3` | — |
-| Show All Bookmarks | `ShowBookmarks` | `Shift+F11` | `Cmd+F3` | — |
-| Go to Bookmark 0 | `GotoBookmark0` | `Ctrl+0` | `Ctrl+0` | — |
-| Go to Bookmark 1 | `GotoBookmark1` | `Ctrl+1` | `Ctrl+1` | — |
-| Go to Bookmark 2 | `GotoBookmark2` | `Ctrl+2` | `Ctrl+2` | — |
-| Go to Bookmark 3 | `GotoBookmark3` | `Ctrl+3` | `Ctrl+3` | — |
-| Go to Bookmark 4 | `GotoBookmark4` | `Ctrl+4` | `Ctrl+4` | — |
-| Go to Bookmark 5 | `GotoBookmark5` | `Ctrl+5` | `Ctrl+5` | — |
-| Go to Bookmark 6 | `GotoBookmark6` | `Ctrl+6` | `Ctrl+6` | — |
-| Go to Bookmark 7 | `GotoBookmark7` | `Ctrl+7` | `Ctrl+7` | — |
-| Go to Bookmark 8 | `GotoBookmark8` | `Ctrl+8` | `Ctrl+8` | — |
-| Go to Bookmark 9 | `GotoBookmark9` | `Ctrl+9` | `Ctrl+9` | — |
-| Toggle Bookmark 0 | `ToggleBookmark0` | `Ctrl+Shift+0` | `Ctrl+Shift+0` | — |
-| Toggle Bookmark 1 | `ToggleBookmark1` | `Ctrl+Shift+1` | `Ctrl+Shift+1` | — |
-| Toggle Bookmark 2 | `ToggleBookmark2` | `Ctrl+Shift+2` | `Ctrl+Shift+2` | — |
-| Toggle Bookmark 3 | `ToggleBookmark3` | `Ctrl+Shift+3` | `Ctrl+Shift+3` | — |
-| Toggle Bookmark 4 | `ToggleBookmark4` | `Ctrl+Shift+4` | `Ctrl+Shift+4` | — |
-| Toggle Bookmark 5 | `ToggleBookmark5` | `Ctrl+Shift+5` | `Ctrl+Shift+5` | — |
-| Toggle Bookmark 6 | `ToggleBookmark6` | `Ctrl+Shift+6` | `Ctrl+Shift+6` | — |
-| Toggle Bookmark 7 | `ToggleBookmark7` | `Ctrl+Shift+7` | `Ctrl+Shift+7` | — |
-| Toggle Bookmark 8 | `ToggleBookmark8` | `Ctrl+Shift+8` | `Ctrl+Shift+8` | — |
-| Toggle Bookmark 9 | `ToggleBookmark9` | `Ctrl+Shift+9` | `Ctrl+Shift+9` | — |
+| Toggle Bookmark | `ToggleBookmark` | `F11` | `F3` | yes |
+| Toggle Bookmark with Mnemonic | `ToggleBookmarkWithMnemonic` | `Ctrl+F11` | `Alt+F3` | yes |
+| Show All Bookmarks | `ShowBookmarks` | `Shift+F11` | `Cmd+F3` | yes |
+| Edit Bookmark Description… | `EditBookmark` |  |  | yes |
+| Next Bookmark | `GotoNextBookmark` |  |  | yes |
+| Previous Bookmark | `GotoPreviousBookmark` |  |  | yes |
+| Go to Bookmark 0 | `GotoBookmark0` | `Ctrl+0` | `Ctrl+0` | yes |
+| Go to Bookmark 1 | `GotoBookmark1` | `Ctrl+1` | `Ctrl+1` | yes |
+| Go to Bookmark 2 | `GotoBookmark2` | `Ctrl+2` | `Ctrl+2` | yes |
+| Go to Bookmark 3 | `GotoBookmark3` | `Ctrl+3` | `Ctrl+3` | yes |
+| Go to Bookmark 4 | `GotoBookmark4` | `Ctrl+4` | `Ctrl+4` | yes |
+| Go to Bookmark 5 | `GotoBookmark5` | `Ctrl+5` | `Ctrl+5` | yes |
+| Go to Bookmark 6 | `GotoBookmark6` | `Ctrl+6` | `Ctrl+6` | yes |
+| Go to Bookmark 7 | `GotoBookmark7` | `Ctrl+7` | `Ctrl+7` | yes |
+| Go to Bookmark 8 | `GotoBookmark8` | `Ctrl+8` | `Ctrl+8` | yes |
+| Go to Bookmark 9 | `GotoBookmark9` | `Ctrl+9` | `Ctrl+9` | yes |
+| Toggle Bookmark 0 | `ToggleBookmark0` | `Ctrl+Shift+0` | `Ctrl+Shift+0` | yes |
+| Toggle Bookmark 1 | `ToggleBookmark1` | `Ctrl+Shift+1` | `Ctrl+Shift+1` | yes |
+| Toggle Bookmark 2 | `ToggleBookmark2` | `Ctrl+Shift+2` | `Ctrl+Shift+2` | yes |
+| Toggle Bookmark 3 | `ToggleBookmark3` | `Ctrl+Shift+3` | `Ctrl+Shift+3` | yes |
+| Toggle Bookmark 4 | `ToggleBookmark4` | `Ctrl+Shift+4` | `Ctrl+Shift+4` | yes |
+| Toggle Bookmark 5 | `ToggleBookmark5` | `Ctrl+Shift+5` | `Ctrl+Shift+5` | yes |
+| Toggle Bookmark 6 | `ToggleBookmark6` | `Ctrl+Shift+6` | `Ctrl+Shift+6` | yes |
+| Toggle Bookmark 7 | `ToggleBookmark7` | `Ctrl+Shift+7` | `Ctrl+Shift+7` | yes |
+| Toggle Bookmark 8 | `ToggleBookmark8` | `Ctrl+Shift+8` | `Ctrl+Shift+8` | yes |
+| Toggle Bookmark 9 | `ToggleBookmark9` | `Ctrl+Shift+9` | `Ctrl+Shift+9` | yes |
 
 ### Code > Folding
 
@@ -298,22 +310,23 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Expand All | `ExpandAllRegions` | `Ctrl+Shift+=`, `Ctrl+Shift+NumPad+` | `Cmd+Shift+=`, `Cmd+Shift+NumPad+` | yes |
 | Collapse All | `CollapseAllRegions` | `Ctrl+Shift+-`, `Ctrl+Shift+NumPad-` | `Cmd+Shift+-`, `Cmd+Shift+NumPad-` | yes |
 | Fold Selection / Remove Region | `CollapseSelection` | `Ctrl+.` | `Cmd+.` | — |
-| Collapse Doc Comments | `CollapseDocComments` |  |  | — |
+| Collapse Doc Comments | `CollapseDocComments` |  |  | yes |
 
 ### Refactor
 
 | Action | Action id | Windows / Linux | macOS | In Forge |
 | --- | --- | --- | --- | --- |
-| Refactor This… | `Refactorings.QuickListPopupAction` | `Ctrl+Alt+Shift+T` | `Ctrl+T` | — |
-| Rename… | `RenameElement` | `Shift+F6` | `Shift+F6` | — |
-| Rename File… | `RenameFile` |  |  | — |
-| Change Signature… | `ChangeSignature` | `Ctrl+F6` | `Cmd+F6` | — |
-| Move… | `Move` | `F6` | `F6` | — |
-| Copy File… | `CopyElement` | `F5` | `F5` | — |
-| Safe Delete… | `SafeDelete` | `Alt+Delete` | `Cmd+Delete` | — |
-| Inline… | `Inline` | `Ctrl+Alt+N` | `Cmd+Alt+N` | — |
+| Refactor This… | `Refactorings.QuickListPopupAction` | `Ctrl+Alt+Shift+T` | `Ctrl+T` | yes |
+| Rename… | `RenameElement` | `Shift+F6` | `Shift+F6` | yes |
+| Rename File… | `RenameFile` |  |  | yes |
+| Change Signature… | `ChangeSignature` | `Ctrl+F6` | `Cmd+F6` | yes |
+| Move… | `Move` | `F6` | `F6` | yes |
+| Copy File… | `CopyElement` | `F5` | `F5` | yes |
+| Safe Delete… | `SafeDelete` | `Alt+Delete` | `Cmd+Delete` | yes |
+| Inline… | `Inline` | `Ctrl+Alt+N` | `Cmd+Alt+N` | yes |
 | Push Members Down… | `MemberPushDown` |  |  | — |
 | Pull Members Up… | `MembersPullUp` |  |  | — |
+| Make Static… | `MakeStatic` |  |  | yes |
 
 ### Refactor > Extract > Introduce
 
@@ -399,8 +412,8 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Hide Active Tool Window | `HideActiveWindow` | `Shift+Escape` | `Shift+Escape` | yes |
 | Hide Side Tool Windows | `HideSideWindows` |  |  | yes |
 | Maximize Tool Window | `MaximizeToolWindow` | `Ctrl+Shift+'` | `Cmd+Shift+'` | — |
-| Restore Default Layout | `RestoreDefaultLayout` | `Shift+F12` | `Shift+F12` | — |
-| Store Current Layout as Default | `StoreDefaultLayout` |  |  | — |
+| Restore Default Layout | `RestoreDefaultLayout` | `Shift+F12` | `Shift+F12` | yes |
+| Store Current Layout as Default | `StoreDefaultLayout` |  |  | yes |
 | Close Active Tool Window Tab | `CloseActiveTab` | `Ctrl+Shift+F4` | `Cmd+Shift+F4` | yes |
 | Next Project Window | `NextProjectWindow` | `Ctrl+Alt+]` | `` Cmd+` `` | — |
 | Previous Project Window | `PreviousProjectWindow` | `Ctrl+Alt+[` | `` Cmd+Shift+` `` | — |
@@ -425,11 +438,19 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Close Other Tabs | `CloseAllEditorsButActive` |  | `Cmd+Alt+W` | yes |
 | Close Unmodified Tabs | `CloseAllUnmodifiedEditors` |  |  | yes |
 | Reopen Closed Tab | `ReopenClosedTab` |  |  | yes |
-| Pin Tab | `PinActiveEditorTab` |  |  | — |
-| Split Right | `SplitVertically` |  |  | — |
-| Split Down | `SplitHorizontally` |  |  | — |
-| Goto Next Splitter | `NextSplitter` |  | `Alt+Tab` | — |
-| Goto Previous Splitter | `PrevSplitter` |  | `Alt+Shift+Tab` | — |
+| Pin Tab | `PinActiveEditorTab` |  |  | yes |
+| Split Right | `SplitVertically` |  |  | yes |
+| Split Down | `SplitHorizontally` |  |  | yes |
+| Goto Next Splitter | `NextSplitter` |  | `Alt+Tab` | yes |
+| Goto Previous Splitter | `PrevSplitter` |  | `Alt+Shift+Tab` | yes |
+| Split and Move Right | `MoveTabRight` |  |  | yes |
+| Split and Move Down | `MoveTabDown` |  |  | yes |
+| Move to Opposite Group | `MoveEditorToOppositeTabGroup` |  |  | yes |
+| Change Splitter Orientation | `ChangeSplitOrientation` |  |  | yes |
+| Unsplit | `Unsplit` |  |  | yes |
+| Unsplit All | `UnsplitAll` |  |  | yes |
+| Close Tabs to the Left | `CloseAllToTheLeft` |  |  | yes |
+| Close Tabs to the Right | `CloseAllToTheRight` |  |  | yes |
 
 ## Editor Actions
 
@@ -461,8 +482,9 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Page Down | `EditorPageDown` | `PageDown` | `PageDown` | native |
 | Move Caret to Page Top | `EditorMoveToPageTop` | `Ctrl+PageUp` | `Cmd+PageUp` | native |
 | Move Caret to Page Bottom | `EditorMoveToPageBottom` | `Ctrl+PageDown` | `Cmd+PageDown` | native |
-| Clone Caret Above | `EditorCloneCaretAbove` |  |  | — |
-| Clone Caret Below | `EditorCloneCaretBelow` |  |  | — |
+| Clone Caret Above | `EditorCloneCaretAbove` | `Double Ctrl+Up` | `Double Alt+Up` | yes |
+| Clone Caret Below | `EditorCloneCaretBelow` | `Double Ctrl+Down` | `Double Alt+Down` | yes |
+| Add Carets to Ends of Selected Lines | `EditorAddCaretPerSelectedLine` | `Alt+Shift+G` | `Alt+Shift+G` | yes |
 | Toggle Insert/Overwrite | `EditorToggleInsertState` | `Insert` |  | native |
 | Choose Lookup Item and Replace | `EditorChooseLookupItemReplace` | `Tab` | `Tab` | native |
 
@@ -500,6 +522,14 @@ Actions that Forge's plugins add (group **Plugins** in Settings | Keymap, some u
 
 | Action | Action id | Windows / Linux | macOS | Context |
 | --- | --- | --- | --- | --- |
+| Vim (Tools \| Vim) | `VimPluginToggle` | `Ctrl+Alt+V` | `Cmd+Alt+V` | any (in the editor `Introduce Variable` wins) |
+| Reload .ideavimrc | `IdeaVim.ReloadVimRc` |  |  | any |
+| Composer: Add Dependency… | `Composer.AddDependency` |  |  | any |
+| Composer: Install | `Composer.Install` |  |  | any |
+| Composer: Update | `Composer.Update` |  |  | any |
+| Composer: Validate | `Composer.Validate` |  |  | any |
+| Composer: Show Outdated | `Composer.ShowOutdated` |  |  | any |
+| Composer: Audit | `Composer.Audit` |  |  | any |
 | Run Artisan Command… | `Laravel.RunArtisan` | `Ctrl+Shift+X` | `Cmd+Shift+X` | any |
 | Routes (Laravel) | `Laravel.ShowRoutes` |  |  | any |
 | Run Console Command… (Symfony) | `Symfony.RunConsoleCommand` |  |  | any |
@@ -521,6 +551,23 @@ Actions that Forge's plugins add (group **Plugins** in Settings | Keymap, some u
 | Jump to Query Console… | `Database.OpenConsole` | `Ctrl+Shift+F10` | `Cmd+Shift+F10` | tool window |
 | Data Source Properties | `Database.Properties` | `Shift+Enter` | `Shift+Enter` | tool window |
 | New Data Source… | `Database.NewDataSource` |  |  | any |
+| Editor Only | `TextEditorWithPreview.Layout.EditorOnly` |  |  | any |
+| Editor and Preview | `TextEditorWithPreview.Layout.EditorAndPreview` |  |  | any |
+| Preview Only | `TextEditorWithPreview.Layout.PreviewOnly` |  |  | any |
+| Zoom In (image editor) | `Images.Editor.ZoomIn` | `Ctrl+=`, `Ctrl+NumPad+` | `Cmd+=`, `Cmd+NumPad+` | any |
+| Zoom Out (image editor) | `Images.Editor.ZoomOut` | `Ctrl+-`, `Ctrl+NumPad-` | `Cmd+-`, `Cmd+NumPad-` | any |
+| Actual Size (image editor) | `Images.Editor.ActualSize` | `Ctrl+/`, `Ctrl+NumPad/` | `Cmd+/`, `Cmd+NumPad/` | any |
+| Fit Zoom to Window | `Images.Editor.FitZoomToWindow` |  |  | any |
+| Show Grid (image editor) | `Images.Editor.ToggleGrid` |  |  | any |
+| Show Chessboard (image editor) | `Images.ToggleTransparencyChessboard` |  |  | any |
+| Edit as Table (CSV/TSV) | `Csv.EditAsTable` |  |  | any |
+| Edit as Text (CSV/TSV) | `Csv.EditAsText` |  |  | any |
+| Select in Project View | `SelectInProjectView` |  |  | any |
+| Render All Doc Comments | `ToggleRenderedDocPresentationForAll` |  |  | any |
+| Show Sticky Lines | `EditorToggleStickyLines` |  |  | any |
+| Reader Mode | `ToggleReaderMode` |  |  | any |
+| Mark All Notifications as Read | `MarkNotificationsAsRead` |  |  | any |
+| Clear All Notifications | `ClearAllNotifications` |  |  | any |
 
 ## Commands without shortcuts
 

@@ -16,11 +16,15 @@ use std::time::Duration;
 use forge_backend::php::ProgressSink;
 use forge_backend::protocol::{decode_value, PhpCall};
 use forge_backend::{
-    Backend, BackendInfo, CollabHost, FrameworkCall, FsSink, LangServersAnswer, LangServersRequest,
-    PhpBackend, Process, Terminal, TerminalSpec, WatchGuard,
+    Backend, BackendInfo, CollabHost, FrameworkCall, FsSink, InstallRequest, InstallSink,
+    LangServersAnswer, LangServersRequest, PhpBackend, Process, Terminal, TerminalSpec, WatchGuard,
+    WebCall,
 };
-use forge_core::search::{FindRequest, FindResult};
-use forge_core::{FileEntry, FileMatch, ForgeError, Result};
+use forge_codeintel::{HighlightAnswer, UsageOptions};
+use forge_core::search::{FindRequest, FindResult, TodoRequest, TodoResult};
+use forge_core::{CollectRequest, FileEntry, FileMatch, ForgeError, Result, SourceFile};
+use forge_langservers::install::InstallOutcome;
+use forge_langservers::managed::PackageUpdate;
 use forge_lsp::launch::ServerIo;
 use forge_lsp::{LspServerConfig as LspConfig, ServerLauncher};
 use forge_process::{CommandLine, PtySink, RunSink};
@@ -28,12 +32,16 @@ use forge_project::ProjectInfo;
 use forge_vcs::{GitExec, GitOutput, GitRequest};
 use futures_util::future::BoxFuture;
 use phpforge_lang_php::generate::{GenerateKind, GenerateOptions, GenerateTargets, TextEdit};
+use phpforge_lang_php::hierarchy::{HierarchyQuery, PhpHierarchy};
 use phpforge_lang_php::hover::Hover;
 use phpforge_lang_php::index::{SearchKind, SymbolHit};
+use phpforge_lang_php::intentions::Intention;
 use phpforge_lang_php::lsp::{DetectedServers, LspServerConfig, PhpLspSettings};
+use phpforge_lang_php::navigate::{NavKind, NavTarget, PhpDefinition, PhpLineMarker, PhpUsages};
 use phpforge_lang_php::structure::FileStructure;
 use phpforge_lang_php::IndexStats;
 use serde::de::DeserializeOwned;
+use serde_bytes::ByteBuf;
 
 use super::calls::{HostCall, OpenedProject};
 use super::git::{self, GitCall};
@@ -176,6 +184,23 @@ impl Backend for CollabBackend {
             .call(HostCall::ReadOptional { path: rel.into() }, TIMEOUT)
     }
 
+    fn read_bytes(&self, rel: &str) -> Result<Vec<u8>> {
+        let bytes: ByteBuf = self
+            .shared
+            .call(HostCall::ReadBytes { path: rel.into() }, TIMEOUT)?;
+        Ok(bytes.into_vec())
+    }
+
+    fn write_bytes(&self, rel: &str, bytes: &[u8]) -> Result<()> {
+        self.shared.call(
+            HostCall::WriteBytes {
+                path: rel.into(),
+                bytes: ByteBuf::from(bytes.to_vec()),
+            },
+            TIMEOUT,
+        )
+    }
+
     fn write_file(&self, rel: &str, contents: &str) -> Result<()> {
         self.shared.call(
             HostCall::WriteFile {
@@ -211,11 +236,12 @@ impl Backend for CollabBackend {
             .call(HostCall::Delete { path: rel.into() }, TIMEOUT)
     }
 
-    fn find_files(&self, query: &str, limit: usize) -> Result<Vec<FileMatch>> {
+    fn find_files(&self, query: &str, limit: usize, exact: bool) -> Result<Vec<FileMatch>> {
         self.shared.call(
             HostCall::FindFiles {
                 query: query.into(),
                 limit,
+                exact,
             },
             FIND_TIMEOUT,
         )
@@ -224,6 +250,26 @@ impl Backend for CollabBackend {
     fn find_in_files(&self, req: &FindRequest) -> Result<FindResult> {
         self.shared
             .call(HostCall::FindInFiles(req.clone()), FIND_TIMEOUT)
+    }
+
+    fn find_todos(&self, _req: &TodoRequest) -> Result<TodoResult> {
+        Err(unavailable("The TODO tool window"))
+    }
+
+    fn collect_files(&self, _req: &CollectRequest) -> Result<Vec<SourceFile>> {
+        Err(unavailable("Indexing files"))
+    }
+
+    fn list_files(&self, _limit: usize) -> Result<Vec<String>> {
+        Err(unavailable("Listing every project file"))
+    }
+
+    fn structural_search(&self, _req: &forge_ssr::SsrRequest) -> Result<forge_ssr::SsrResult> {
+        Err(unavailable("Structural Search"))
+    }
+
+    fn compare_dirs(&self, _left: &str, _right: &str) -> Result<forge_diff::DirCompare> {
+        Err(unavailable("Compare Directories"))
     }
 
     fn git(&self) -> Arc<dyn GitExec> {
@@ -268,6 +314,28 @@ impl Backend for CollabBackend {
         Err(unavailable("Managing language servers"))
     }
 
+    fn install_langserver(
+        &self,
+        _req: InstallRequest,
+        _cancel: Arc<tokio::sync::Notify>,
+        _sink: InstallSink,
+    ) -> Result<InstallOutcome> {
+        Err(unavailable("Installing language servers"))
+    }
+
+    fn langserver_updates(
+        &self,
+        _registry: Option<String>,
+        _node_mirror: Option<String>,
+        _force: bool,
+    ) -> Result<Option<Vec<PackageUpdate>>> {
+        Err(unavailable("Checking language server updates"))
+    }
+
+    fn web(&self, _call: WebCall) -> Result<Vec<u8>> {
+        Err(unavailable("WebForge analysis"))
+    }
+
     fn find_executable(&self, _names: &[String], _custom: Option<&str>) -> Result<Option<PathBuf>> {
         Ok(None)
     }
@@ -285,11 +353,18 @@ impl PhpBackend for CollabBackend {
             .call(HostCall::Php(PhpCall::Index), INDEX_TIMEOUT)
     }
 
-    fn search(&self, query: &str, kind: SearchKind, limit: usize) -> Result<Vec<SymbolHit>> {
+    fn search(
+        &self,
+        query: &str,
+        kind: SearchKind,
+        limit: usize,
+        exact: bool,
+    ) -> Result<Vec<SymbolHit>> {
         self.php_call(PhpCall::Search {
             query: query.into(),
             kind,
             limit,
+            exact,
         })
     }
 
@@ -339,6 +414,99 @@ impl PhpBackend for CollabBackend {
             path: path.into(),
             offset,
             kind,
+            options,
+            content,
+        })
+    }
+
+    fn usages(
+        &self,
+        path: &str,
+        offset: usize,
+        options: UsageOptions,
+        content: Option<String>,
+    ) -> Result<Option<PhpUsages>> {
+        self.php_call(PhpCall::Usages {
+            path: path.into(),
+            offset,
+            options,
+            content,
+        })
+    }
+
+    fn highlights(
+        &self,
+        path: &str,
+        offset: usize,
+        content: Option<String>,
+    ) -> Result<Option<HighlightAnswer>> {
+        self.php_call(PhpCall::Highlights {
+            path: path.into(),
+            offset,
+            content,
+        })
+    }
+
+    fn navigate(
+        &self,
+        path: &str,
+        offset: usize,
+        kind: NavKind,
+        content: Option<String>,
+    ) -> Result<Vec<NavTarget>> {
+        self.php_call(PhpCall::Navigate {
+            path: path.into(),
+            offset,
+            kind,
+            content,
+        })
+    }
+
+    fn definition(
+        &self,
+        path: &str,
+        offset: usize,
+        content: Option<String>,
+    ) -> Result<PhpDefinition> {
+        self.php_call(PhpCall::Definition {
+            path: path.into(),
+            offset,
+            content,
+        })
+    }
+
+    fn line_markers(&self, path: &str, content: Option<String>) -> Result<Vec<PhpLineMarker>> {
+        self.php_call(PhpCall::LineMarkers {
+            path: path.into(),
+            content,
+        })
+    }
+
+    fn hierarchy(
+        &self,
+        path: &str,
+        offset: usize,
+        query: HierarchyQuery,
+        content: Option<String>,
+    ) -> Result<PhpHierarchy> {
+        self.php_call(PhpCall::Hierarchy {
+            path: path.into(),
+            offset,
+            query,
+            content,
+        })
+    }
+
+    fn intentions(
+        &self,
+        path: &str,
+        offset: usize,
+        options: GenerateOptions,
+        content: Option<String>,
+    ) -> Result<Vec<Intention>> {
+        self.php_call(PhpCall::Intentions {
+            path: path.into(),
+            offset,
             options,
             content,
         })

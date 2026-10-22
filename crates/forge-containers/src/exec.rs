@@ -17,6 +17,10 @@ pub struct TerminalCommand {
     pub args: Vec<String>,
     #[serde(default)]
     pub env: Vec<(String, String)>,
+    /// Run on a remote project's host (the Docker daemon of that host); otherwise the
+    /// command runs on this machine, also in a remote project.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub on_host: bool,
 }
 
 impl TerminalCommand {
@@ -44,6 +48,7 @@ pub fn docker_exec(
             SHELL_PROBE.into(),
         ],
         env,
+        on_host: false,
     }
 }
 
@@ -63,6 +68,7 @@ pub fn docker_attach(
             container.into(),
         ],
         env,
+        on_host: false,
     }
 }
 
@@ -94,6 +100,7 @@ pub fn kubectl_exec(
         program: kubectl.to_string(),
         args,
         env: kubeconfig_env(kubeconfig),
+        on_host: false,
     }
 }
 
@@ -124,6 +131,7 @@ pub fn kubectl_attach(
         program: kubectl.to_string(),
         args,
         env: kubeconfig_env(kubeconfig),
+        on_host: false,
     }
 }
 

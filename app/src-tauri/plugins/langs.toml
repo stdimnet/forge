@@ -56,7 +56,7 @@ name = "JSON"
 version = "0.1.0"
 pack = "configforge"
 vendor = "Forge"
-description = "JSON and JSON with comments: highlighting, folding and syntax checks. With vscode-json-language-server (Settings > Language Servers), `$schema` (local file or URL) drives validation, completion and hover."
+description = "JSON and JSON with comments: highlighting, folding and syntax checks. Validation, completion and documentation from JSON schemas (`$schema`, composer.json, package.json, ...) come from the JSON Schema plugin."
 
 [[plugin.contributions.fileTypes]]
 id = "json"

@@ -12,11 +12,12 @@ All settings are declared by plugin manifests (`[[contributions.settings]]` in
 are layered: default < user (`<config dir>/forge/settings.toml`) < project
 (`<project>/.forge/settings.toml`). See [Settings and themes](../user/settings-and-themes.md).
 
-- **Type**: `bool`, `int`, `number`, `string`, `enum` (allowed values listed), `path` or
-  `list` (a list of strings). Ranges are given as (min–max).
+- **Type**: `bool`, `int`, `number`, `string`, `enum` (allowed values listed), `path`,
+  `list` (a list of strings) or `objects` (a list of tables with string values, edited in a
+  table). Ranges are given as (min–max).
 - **Scope**: `user` settings are global; `user, project` settings can also be stored per
   project ("For current project" in the dialog).
-- *(not applied yet)*: the option is declared and shown, but no code reads it on this version.
+-: the option is declared and shown, but no code reads it on this version.
 
 Settings written by Forge itself and not declared in a manifest:
 
@@ -28,6 +29,9 @@ Settings written by Forge itself and not declared in a manifest:
 | `langservers.servers.<id>.path` | custom executable of a language server |
 | `langservers.servers.<id>.settings` | extra JSON settings of a language server |
 | `langservers.hints.dismissed` | servers whose install banner was turned off (also declared below) |
+| `<language>.codeStyle.<option>`, `editor.codeStyle.<option>` | the code style options of the Default scheme (user settings) and the Project scheme (project settings), e.g. `php.codeStyle.indent`, `php.codeStyle.spaces.afterComma`, `editor.codeStyle.hardWrapAt`; the options are listed in [Editor](../user/editor.md#code-style) and defined in `crates/forge-codestyle` |
+| `editor.codeStyle.scheme` | the scheme the project uses: `default`, `project` or an IDE scheme id |
+| `editor.codeStyle.schemes.<id>.name`, `editor.codeStyle.schemes.<id>.values.<language>.<option>` | further IDE code style schemes (Duplicate, Copy to IDE, Import Scheme) |
 
 ### Appearance & Behavior | Appearance
 
@@ -40,12 +44,38 @@ Page id `appearance`.
 | `appearance.uiFont.size` | int (10–20) | `13` | user | Font | Size |
 | `appearance.mainMenu` | enum: `hamburger`, `merged`, `toolbar` | `hamburger` | user | UI Options | Main menu — Hamburger menu: behind the button at the left of the main toolbar. Merged: the menu names in the main toolbar. Separate toolbar: a classic menu bar above the main toolbar. |
 | `appearance.compactMode` | bool | `false` | user | UI Options | Compact mode — Reduces paddings and the height of toolbars and tool window headers. |
-| `appearance.smoothScrolling` | bool | `true` | user *(not applied yet)* | UI Options | Smooth scrolling — Animate scrolling in lists and trees. |
+| `appearance.smoothScrolling` | bool | `true` | user | UI Options | Smooth scrolling — Animate scrolling in lists and trees. |
 | `appearance.showSplash` | bool | `true` | user | UI Options | Show splash screen on startup — The Forge wordmark fills with molten metal while the IDE loads, and offers updates. |
 | `appearance.windowControls` | enum: `auto`, `windows`, `macos`, `gnome`, `kde`, `linux`, `native` | `auto` | user | Window | Window controls — Look of the title bar buttons of the main window and dialogs. "Native" lets the operating system draw the title bar. |
 | `appearance.showToolWindowBars` | bool | `true` | user | Tool Windows | Show tool window bars — The stripes with tool window buttons along the window edges. |
-| `appearance.showToolWindowNumbers` | bool | `true` | user *(not applied yet)* | Tool Windows | Show tool window numbers |
+| `appearance.showToolWindowNumbers` | bool | `true` | user | Tool Windows | Show tool window numbers |
+| `appearance.navigationBar.location` | enum: `top`, `statusBar`, `hidden` | `top` | user | Navigation Bar | Navigation bar — Where the navigation bar (project, folders, file and members at the caret) is shown: Top: above the editor, with the path in the status bar too. In status bar: only in the status bar. Don't show: Jump to Navigation Bar (Alt+Home) shows it as a popup. View \| Appearance \| Navigation Bar. |
+| `appearance.navigationBar.showMembers` | bool | `true` | user | Navigation Bar | Show members in the navigation bar — Add the class and function at the caret after the file name. View \| Appearance \| Members in Navigation Bar. |
 | `projectView.openFilesWithSingleClick` | bool | `true` | user | Project View | Open files with single click — In the Project tool window a single click opens files and expands folders. Turn it off to select with a single click and open with a double click, like PHPStorm. |
+| `projectView.autoscrollFromSource` | bool | `false` | user | Project View | Always select opened file — The Project tool window selects the file of the active editor whenever you switch editors (PHPStorm's Autoscroll from Source). Also in the tool window's Options menu. |
+| `structureView.autoscrollToSource` | bool | `true` | user | Structure View | Autoscroll to source — A single click on a Structure tool window node moves the editor to it. Turn it off to select with a single click and navigate with a double click. |
+| `structureView.autoscrollFromSource` | bool | `true` | user | Structure View | Autoscroll from source — The Structure tool window selects the member at the caret as you move through the editor. |
+
+### Appearance & Behavior | Scopes
+
+Page id `appearance.scopes` (custom page).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `scopes.shared` | objects (`name`, `pattern`) | `[]` | project |  | Shared scopes, stored in `.forge/settings.toml` |
+| `scopes.local` | objects (`name`, `pattern`) | `[]` | user |  | Local scopes |
+
+### Appearance & Behavior | File Colors
+
+Page id `appearance.fileColors` (custom page).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `fileColors.enabled` | bool | `true` | user |  | Enable file colors |
+| `fileColors.useInEditorTabs` | bool | `true` | user |  | Use in editor tabs |
+| `fileColors.useInProjectView` | bool | `true` | user |  | Use in project view |
+| `fileColors.local` | objects (`scope`, `color`) | Non-Project Files: Yellow, Tests: Green | user |  | Local colors |
+| `fileColors.shared` | objects (`scope`, `color`) | `[]` | project |  | Shared colors |
 
 ### Appearance & Behavior | System Settings
 
@@ -54,13 +84,22 @@ Page id `system`.
 | Key | Type | Default | Scope | Section | Title and description |
 | --- | --- | --- | --- | --- | --- |
 | `system.reopenLastProject` | bool | `true` | user | Project | Reopen projects on startup — the last local project, when Forge starts without a project argument |
-| `system.confirmExit` | bool | `true` | user *(not applied yet)* | Project | Confirm before exiting the IDE |
-| `system.openProjectIn` | enum: `new`, `same`, `ask` | `ask` | user *(not applied yet)* | Project | Open project in |
+| `system.confirmExit` | bool | `true` | user | Project | Confirm before exiting the IDE |
 | `system.defaultProjectDirectory` | path | `~/Projects` | user | Project | Default project directory — New projects are created here unless you pick another location. |
-| `system.autosave.onFrameDeactivation` | bool | `true` | user *(not applied yet)* | Autosave | Save files if the IDE is switched to a different application |
-| `system.autosave.onIdle` | bool | `false` | user *(not applied yet)* | Autosave | Save files if the IDE is idle |
-| `system.autosave.idleSeconds` | int (1–600) | `15` | user *(not applied yet)* | Autosave | Idle time (seconds) |
-| `system.syncExternalChanges` | bool | `true` | user *(not applied yet)* | Synchronization | Synchronize external changes when switching to the IDE window |
+| `system.autosave.onFrameDeactivation` | bool | `true` | user | Autosave | Save files if the IDE is switched to a different application |
+| `system.autosave.onIdle` | bool | `false` | user | Autosave | Save files if the IDE is idle |
+| `system.autosave.idleSeconds` | int (1–600) | `15` | user | Autosave | Idle time (seconds) |
+| `system.syncExternalChanges` | bool | `true` | user | Synchronization | Synchronize external changes when switching to the IDE window |
+
+### Appearance & Behavior | Notifications
+
+Page id `notifications`. The display mode of a group is also set from the context menu of a
+notification in the Notifications tool window.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `notifications.balloons` | bool | `true` | user |  | Display balloon notifications — Off: notifications only appear in the Notifications tool window. |
+| `notifications.groups` | list | `[]` | user |  | Notification groups — How each group is shown, one entry per group: the group name, a tab, then `balloon`, `sticky` or `log`. |
 
 ### Appearance & Behavior | System Settings | Updates
 
@@ -84,6 +123,35 @@ Page id `keymap`. The override lists are edited through the Keymap page, not as 
 | `keymap.overrides.default` | list | `[]` | user |  | Changed shortcuts (Windows / Linux) — One entry per action: the action id, then its shortcuts, separated by tabs. |
 | `keymap.overrides.macOS` | list | `[]` | user |  | Changed shortcuts (macOS) — One entry per action: the action id, then its shortcuts, separated by tabs. |
 
+### Find Usages
+
+Group `findUsages`, edited in the Find Usages dialog (`Ctrl+Alt+Shift+F7`), not on a Settings
+page. Every Find Usages and Show Usages run uses them.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `findUsages.options.classUsages` | bool | `true` | user |  | Usages (classes, traits, enums) |
+| `findUsages.options.classMethodUsages` | bool | `false` | user |  | Usages of methods (classes) |
+| `findUsages.options.classFieldUsages` | bool | `false` | user |  | Usages of fields (classes) |
+| `findUsages.options.classDerivedClasses` | bool | `false` | user |  | Derived classes |
+| `findUsages.options.interfaceUsages` | bool | `true` | user |  | Usages (interfaces) |
+| `findUsages.options.interfaceMethodUsages` | bool | `false` | user |  | Usages of methods (interfaces) |
+| `findUsages.options.interfaceImplementingClasses` | bool | `false` | user |  | Implementing classes |
+| `findUsages.options.interfaceDerivedInterfaces` | bool | `false` | user |  | Derived interfaces |
+| `findUsages.options.methodUsages` | bool | `true` | user |  | Usages (methods) |
+| `findUsages.options.methodOverridingMethods` | bool | `false` | user |  | Overriding methods |
+| `findUsages.options.readAccess` | bool | `true` | user |  | Read access (properties, variables) |
+| `findUsages.options.writeAccess` | bool | `true` | user |  | Write access (properties, variables) |
+| `findUsages.options.usages` | bool | `true` | user |  | Usages (functions, constants, other symbols) |
+| `findUsages.options.searchInCommentsAndStrings` | bool | `false` | user |  | Search in comments and strings |
+| `findUsages.options.searchForTextOccurrences` | bool | `false` | user |  | Search for text occurrences |
+| `findUsages.scope.kind` | enum: `projectFiles`, `projectAndLibraries`, `openFiles`, `currentFile`, `recentlyChangedFiles`, `directory`, `custom` | `projectFiles` | user |  | Scope |
+| `findUsages.scope.directory` | string | `""` | user |  | Directory |
+| `findUsages.scope.includeSubdirectories` | bool | `true` | user |  | Include subdirectories |
+| `findUsages.scope.pattern` | string | `""` | user |  | Custom scope — A scope pattern (`file:app//*.php&&!test:*..*`) or file globs separated by ';', where '!' excludes (app/**/*.php; !app/Legacy/**). |
+| `findUsages.scope.name` | string | `""` | user |  | Named scope — a scope of the Scopes page used as the custom scope; empty uses the pattern. |
+| `findUsages.openInNewTab` | bool | `true` | user |  | Open in new tab |
+
 ### Editor | General
 
 Page id `editor.general`.
@@ -92,16 +160,56 @@ Page id `editor.general`.
 | --- | --- | --- | --- | --- | --- |
 | `editor.smoothScrolling` | bool | `true` | user | Scrolling | Enable smooth scrolling |
 | `editor.caret.blinking` | bool | `true` | user | Caret | Caret blinking |
-| `editor.caret.blinkPeriod` | int (100–2000) | `500` | user *(not applied yet)* | Caret | Blink period (ms) |
+| `editor.caret.blinkPeriod` | int (100–2000) | `500` | user | Caret | Blink period (ms) |
 | `editor.softWraps` | bool | `false` | user | Soft Wraps | Soft-wrap files — Wrap long lines visually in files matching the patterns below. |
 | `editor.softWrapFiles` | string | `*.md; *.txt; *.rst; *.adoc` | user | Soft Wraps | File patterns |
 | `editor.showWhitespace` | bool | `false` | user | Appearance | Show whitespaces |
 | `editor.showLineNumbers` | bool | `true` | user | Appearance | Show line numbers |
 | `editor.highlightCurrentLine` | bool | `true` | user | Appearance | Highlight caret row |
-| `editor.stripTrailingSpaces` | enum: `none`, `modified`, `all` | `modified` | user *(not applied yet)* | On Save | Remove trailing spaces on |
-| `editor.ensureNewlineAtEof` | bool | `true` | user *(not applied yet)* | On Save | Ensure every saved file ends with a line break |
+| `editor.renderDocComments` | bool | `false` | user | Appearance | Render documentation comments — Show PHPDoc, JSDoc and LuaDoc comments as formatted text. Toggle one with Ctrl+Alt+Q or its gutter icon. |
+| `editor.stickyLines.enabled` | bool | `true` | user | Sticky Lines | Show sticky lines while scrolling — The headers of the classes, functions, blocks, rules and tags around the top of the editor stay visible. Click one to jump to it. |
+| `editor.stickyLines.maxLines` | int (1–20) | `5` | user | Sticky Lines | Limit sticky lines |
+| `editor.stickyLines.disabledLanguages` | list | `[]` | user | Sticky Lines | Show sticky lines for — one checkbox per language; holds the file type ids switched off (`php`, `vue`, `lua`). |
+| `editor.stripTrailingSpaces` | enum: `none`, `modified`, `all` | `modified` | user | On Save | Remove trailing spaces on |
+| `editor.ensureNewlineAtEof` | bool | `true` | user | On Save | Ensure every saved file ends with a line break |
+| `editor.clipboard.maxContents` | int (1–100) | `20` | user | Limits | Maximum number of contents to keep in clipboard |
+| `editor.highlightUsagesAtCaret` | bool | `true` | user | Highlight on Caret Movement | Highlight usages of element at caret — Highlights the usages of the symbol at the caret in the file (reads and writes in different colors), also on the scrollbar. |
+| `editor.colorPreview.gutter` | bool | `true` | user | Appearance | Show color preview in the gutter — Swatches next to colors in CSS, markup and scripts; click one to open the color picker. |
+| `editor.colorPreview.inline` | bool | `false` | user | Appearance | Show color preview inline |
 | `run.console.softWrap` | bool | `false` | user | Console | Use soft wraps in console |
-| `run.console.cycleBufferKb` | int (100–100000) | `1024` | user *(not applied yet)* | Console | Override console cycle buffer size (KB) |
+| `run.console.cycleBufferKb` | int (100–100000) | `1024` | user | Console | Override console cycle buffer size (KB) — Run consoles drop their oldest lines beyond this size. Applies to runs started afterwards. |
+
+### Editor | General | Editor Tabs
+
+Page id `editor.tabs`.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `editor.tabs.limit` | int (0–100) | `10` | user | Closing Policy | Tab limit — Maximum number of tabs per editor group; 0 keeps every tab open. Pinned tabs are never closed by the limit. |
+| `editor.tabs.closeUnmodifiedFirst` | bool | `true` | user | Closing Policy | When the tab limit is reached, close non-modified tabs first |
+| `editor.tabs.activateOnClose` | enum: `left`, `right`, `recent` | `recent` | user | Closing Policy | When the current tab is closed, activate |
+| `editor.tabs.showPinnedIcon` | bool | `true` | user | Appearance | Show pin icon on pinned tabs |
+
+### Editor | General | Breadcrumbs
+
+Page id `editor.breadcrumbs`.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `editor.breadcrumbs.show` | bool | `true` | user |  | Show breadcrumbs — The classes, functions, rules and tags around the caret. Click one to go there; the arrow next to it lists its siblings. |
+| `editor.breadcrumbs.placement` | enum: `top`, `bottom` | `bottom` | user |  | Placement |
+| `editor.breadcrumbs.disabledLanguages` | list | `[]` | user | Languages | Show breadcrumbs for — one checkbox per language; holds the file type ids switched off. |
+
+### Editor | General | Postfix Completion
+
+Page id `editor.postfix`.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `editor.postfix.enabled` | bool | `true` | user |  | Enable postfix completion — Type a template key after an expression, e.g. $user.if or items.forof, to wrap it. |
+| `editor.postfix.showInCompletion` | bool | `true` | user |  | Show postfix templates in the completion autopopup |
+| `editor.postfix.expandKey` | enum: `tab`, `space`, `enter` | `tab` | user |  | Expand templates with |
+| `editor.postfix.disabled` | list | `[]` | user |  | Templates — Clear a template to stop offering it. Holds the ids of the switched-off templates (`php.echo`, `js.log`, `lua.print`). |
 
 ### Editor | Font
 
@@ -116,32 +224,20 @@ Page id `editor.font`.
 
 ### Editor | Code Style
 
-Page id `editor.code-style`.
+Page id `editor.code-style`; the language pages are `editor.code-style.<language>`
+(`editor.code-style.php`, …). The scheme options are not declared in a manifest, see the
+table of keys Forge writes itself above.
 
 | Key | Type | Default | Scope | Section | Title and description |
 | --- | --- | --- | --- | --- | --- |
-| `editor.codeStyle.lineSeparator` | enum: `lf`, `crlf`, `system` | `lf` | user, project *(not applied yet)* |  | Line separator |
-| `editor.codeStyle.hardWrapAt` | int (40–400) | `120` | user, project *(not applied yet)* |  | Hard wrap at (columns) |
-| `editor.codeStyle.visualGuides` | string | `120` | user, project *(not applied yet)* |  | Visual guides — Comma-separated column numbers, e.g. 80, 120. |
-| `editor.codeStyle.useEditorConfig` | bool | `true` | user, project *(not applied yet)* |  | Enable EditorConfig support |
+| `editor.codeStyle.useEditorConfig` | bool | `true` | user, project |  | Enable EditorConfig support — Indents, line separators, charset and the On Save options of .editorconfig files override these settings. |
+| `editor.codeStyle.detectIndents` | bool | `true` | user, project |  | Detect and use existing file indents for editing — Files indented differently from the code style keep their indent; the status bar marks it with *. |
 
-### Editor | Code Style | PHP
-
-Page id `editor.code-style.php`.
+### Editor | File and Code Templates
 
 | Key | Type | Default | Scope | Section | Title and description |
 | --- | --- | --- | --- | --- | --- |
-| `php.codeStyle.useTabs` | bool | `false` | user, project *(not applied yet)* | Tabs and Indents | Use tab character |
-| `php.codeStyle.tabSize` | int (1–16) | `4` | user, project *(not applied yet)* | Tabs and Indents | Tab size |
-| `php.codeStyle.indent` | int (0–16) | `4` | user, project *(not applied yet)* | Tabs and Indents | Indent |
-| `php.codeStyle.continuationIndent` | int (0–16) | `4` | user, project *(not applied yet)* | Tabs and Indents | Continuation indent |
-| `php.codeStyle.braces.classes` | enum: `endOfLine`, `nextLine` | `nextLine` | user, project *(not applied yet)* | Braces Placement | In class declaration |
-| `php.codeStyle.braces.functions` | enum: `endOfLine`, `nextLine` | `nextLine` | user, project *(not applied yet)* | Braces Placement | In function declaration |
-| `php.codeStyle.braces.other` | enum: `endOfLine`, `nextLine` | `endOfLine` | user, project *(not applied yet)* | Braces Placement | Other |
-| `php.codeStyle.blankLines.keepMax` | int (0–10) | `2` | user, project *(not applied yet)* | Blank Lines | Keep maximum blank lines in code |
-| `php.codeStyle.blankLines.afterNamespace` | int (0–10) | `1` | user, project *(not applied yet)* | Blank Lines | After namespace |
-| `php.codeStyle.blankLines.afterImports` | int (0–10) | `1` | user, project *(not applied yet)* | Blank Lines | After imports |
-| `php.codeStyle.blankLines.aroundMethods` | int (0–10) | `1` | user, project *(not applied yet)* | Blank Lines | Around method |
+| `fileTemplates.custom` | objects | `[]` | user | — | File and code templates — Templates added in Settings \| Editor \| File and Code Templates and the changed text of built-in ones (`kind` `file`, `include` or `code`, `name`, `extension`, `text`). Built-in templates without an entry use their default text. One entry per `kind` + `name` pair. Edited on the page, see [File and code templates](../user/file-templates.md). |
 
 ### Editor | Inlay Hints
 
@@ -149,12 +245,130 @@ Page id `editor.inlay-hints`.
 
 | Key | Type | Default | Scope | Section | Title and description |
 | --- | --- | --- | --- | --- | --- |
-| `editor.inlayHints.parameterNames` | bool | `true` | user *(not applied yet)* | Parameters | Parameter names — Show parameter names at call sites for literal and null arguments. |
-| `editor.inlayHints.types` | bool | `false` | user *(not applied yet)* | Types | Inferred variable types |
-| `editor.inlayHints.returnTypes` | bool | `true` | user *(not applied yet)* | Types | Return types of closures |
-| `editor.inlayHints.chainedCalls` | bool | `true` | user *(not applied yet)* | Types | Types in method chains |
-| `editor.inlayHints.usages` | bool | `true` | user *(not applied yet)* | Code Vision | Usages — Show the number of usages above classes and methods (Code Vision). |
-| `editor.inlayHints.implementations` | bool | `true` | user *(not applied yet)* | Code Vision | Implementations and inheritors |
+| `editor.inlayHints.parameterNames` | bool | `true` | user | Parameters | Parameter names — Show parameter names at call sites for literal and null arguments. |
+| `editor.inlayHints.types` | bool | `false` | user | Types | Inferred variable types — The type of variables and properties without a declared type. |
+| `editor.inlayHints.returnTypes` | bool | `true` | user | Types | Return types of closures and functions — The inferred return type after the parameter list when none is declared. |
+| `editor.inlayHints.implementations` | bool | `true` | user | Code Vision | Implementations and inheritors — Show "2 implementations", "3 inheritors" and "1 override" above PHP classes and methods (Code Vision). Click to go there. |
+| `editor.inlayHints.languages.php` | bool | `true` | user | Languages | PHP |
+| `editor.inlayHints.languages.javascript` | bool | `true` | user | Languages | JavaScript and TypeScript — Also Vue, Svelte and Astro files. |
+| `editor.inlayHints.languages.lua` | bool | `true` | user | Languages | Lua |
+| `editor.inlayHints.languages.other` | bool | `true` | user | Languages | Other languages |
+
+### Editor | Live Templates
+
+Page id `editor.liveTemplates`.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `editor.liveTemplates.expandKey` | enum: `tab`, `space`, `enter` | `tab` | user |  | By default expand with — Key that expands a live template abbreviation. |
+| `editor.liveTemplates.custom` | objects | `[]` | user |  | User and changed templates — New templates and changes to built-in ones: group, abbreviation, description, text, contexts (comma-separated), variables (JSON), builtin (id of the replaced built-in template) and removed. |
+| `editor.liveTemplates.disabled` | list | `[]` | user |  | Disabled templates — Ids (`group/abbreviation`) of templates that do not expand. |
+
+### Editor | Emmet
+
+Page ids `editor.emmet`, `editor.emmet.html`, `editor.emmet.css`, `editor.emmet.jsx`.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `editor.emmet.expandKey` | enum: `tab`, `enter`, `space` | `tab` | user |  | Expand abbreviation with — Live templates and postfix templates expand first when they match. |
+| `editor.emmet.html.enabled` | bool | `true` | user |  | Enable Emmet (HTML) — In HTML, Blade, Twig and other template files, Vue templates and the HTML of PHP files. |
+| `editor.emmet.html.preview` | bool | `false` | user |  | Enable abbreviation preview — Show the expanded markup in a popup while typing an abbreviation. |
+| `editor.emmet.html.hrefAutoDetect` | bool | `true` | user |  | Enable automatic URL recognition while wrapping text with `<a>` tag |
+| `editor.emmet.css.enabled` | bool | `true` | user |  | Enable Emmet (CSS) — In CSS, SCSS, Less, Sass and Stylus, and in `<style>` blocks. |
+| `editor.emmet.jsx.enabled` | bool | `true` | user |  | Enable Emmet in JSX |
+| `editor.emmet.jsx.classAttribute` | enum: `className`, `class` | `className` | user |  | Class attribute — Attribute written for .class abbreviations in JSX and TSX files. |
+
+The color picker keeps `editor.colorPicker.recentColors` (list, user scope, not shown on a
+page): the recently used colors, newest first.
+
+### Editor | Reader Mode
+
+Page id `editor.readerMode`.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `editor.readerMode.enabled` | bool | `true` | user |  | Use Reader mode — Open files you only read in Reader mode. Toggle it with the Reader Mode button at the top right of the editor. |
+| `editor.readerMode.applyTo` | enum: `libraries`, `readOnly`, `both` | `both` | user |  | Use for |
+| `editor.readerMode.renderDocs` | bool | `true` | user | Show | Rendered documentation comments |
+| `editor.readerMode.ligatures` | bool | `true` | user | Show | Ligatures |
+| `editor.readerMode.increaseLineSpacing` | bool | `true` | user | Show | Increased line spacing |
+
+### Editor | Language Injections
+
+Page id `editor.injections`.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `editor.injections.disabled` | list | `[]` | user |  | Disabled injection rules — Ids of the built-in injection rules that are turned off, e.g. `php-html` or `js-sql-keywords`. `// language=` comments always inject. |
+| `editor.injections.uninjected` | list | `[]` | user, project |  | Un-injected places — Strings turned off with Un-inject Language (`path#key`); a string is injected again when its text changes. |
+
+### Editor | TODO
+
+Page id `editor.todo`.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `todo.patterns` | list | `["\\btodo\\b.*", "\\bfixme\\b.*"]` | user | Patterns | Patterns — Regular expressions matched in comments, one per entry. Add a tab and `case` after a pattern to make it case-sensitive. |
+
+### Editor | Image
+
+Page id `editor.image`.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `images.showChessboard` | bool | `true` | user | Image Viewer | Show chessboard — Transparent areas of images are drawn over a chessboard pattern. |
+| `images.showGrid` | bool | `false` | user | Image Viewer | Show grid — Pixel grid lines when the zoom is 300% or more. |
+| `images.svgDefaultLayout` | enum: `editor`, `split`, `preview` | `split` | user | SVG | SVG files open with |
+
+### Editor | CSV/TSV
+
+Page id `editor.csv`.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `csv.defaultView` | enum: `text`, `table` | `text` | user |  | Open CSV/TSV files as |
+| `csv.firstRowIsHeader` | bool | `true` | user |  | First row is header — Default of the table view's header toggle. |
+
+### Editor | Vim
+
+Page id `editor.vim` (plugin `forge.vim`, see [Vim emulation](../user/vim-emulation.md)).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `vim.enabled` | bool | `false` | user | Emulation | Enable Vim emulation — Same as Tools \| Vim (Ctrl+Alt+V). |
+| `vim.rcFile` | path | `""` | user | Emulation | Configuration file — Leave empty to read ~/.ideavimrc (or ~/_ideavimrc, ~/.config/ideavim/ideavimrc). Supports set, map/noremap, let mapleader, sethandler and :action mappings. |
+| `vim.shortcutHandlers` | objects | `[]` | user | Shortcut Conflicts | Shortcuts — Who handles a shortcut in the editor while Vim emulation is on: Vim or the IDE. sethandler lines in ~/.ideavimrc take precedence. Entries `{ shortcut = "Ctrl+R", normal = "vim" \| "ide", insert = …, visual = … }` for the rows changed from the defaults. |
+
+### Editor | Natural Languages | Spelling
+
+Page id `editor.natural-languages.spelling` (plugin `forge.natural-languages`).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `spelling.enabled` | bool | `true` | user | Inspection | Check spelling (Typo inspection) |
+| `spelling.severity` | enum: `typo`, `grammar`, `weak`, `warning`, `error` | `typo` | user | Inspection | Severity |
+| `spelling.checkComments` | bool | `true` | user | Inspection | Process comments |
+| `spelling.checkStrings` | bool | `true` | user | Inspection | Process literals — String literals. |
+| `spelling.checkIdentifiers` | bool | `true` | user | Inspection | Process code — Names of declared variables, functions, classes and properties, split at camelCase humps and underscores. |
+| `spelling.checkText` | bool | `true` | user | Inspection | Process Markdown and plain text files |
+| `spelling.checkCommitMessages` | bool | `true` | user | Inspection | Process commit messages |
+| `spelling.checkFileNames` | bool | `false` | user | Inspection | Process file names — Reports typos in the name of the open file in the Problems tool window. |
+| `spelling.projectWords` | list | `[]` | user, project | Accepted Words | Project-level dictionary — Accepted words of this project, stored in the project settings. "Save to project-level dictionary" (Alt+Enter on a typo) adds words here. |
+| `spelling.applicationWords` | list | `[]` | user | Accepted Words | Application-level dictionary — Accepted words of all projects, stored in the user settings. |
+| `spelling.customDictionaries` | list | `[]` | user | Dictionaries | Custom dictionaries — Hunspell dictionaries (.dic; the .aff file with the same name next to it is read too) or plain word lists with one word per line. Absolute paths, or paths relative to the project root. |
+
+### Editor | Natural Languages | Grammar and Style
+
+Page id `editor.natural-languages.grammar` (plugin `forge.natural-languages`).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `grammar.enabled` | bool | `true` | user | Inspection | Check grammar and style (Grammar inspection) — Comments, Markdown and plain text files and commit messages. |
+| `grammar.severity` | enum: `grammar`, `typo`, `weak`, `warning`, `error` | `grammar` | user | Inspection | Severity |
+| `grammar.rules.repeatedWord` | bool | `true` | user | Rules | Repeated words — "the the" |
+| `grammar.rules.articles` | bool | `true` | user | Rules | Use of 'a' and 'an' |
+| `grammar.rules.sentenceStart` | bool | `true` | user | Rules | Sentences start with an uppercase letter — Doc comments only. |
+| `grammar.rules.doubleSpace` | bool | `true` | user | Rules | Repeated whitespace |
 
 ### Version Control | Git
 
@@ -162,18 +376,19 @@ Page id `vcs.git`.
 
 | Key | Type | Default | Scope | Section | Title and description |
 | --- | --- | --- | --- | --- | --- |
-| `vcs.git.path` | path | `git` | user *(not applied yet)* |  | Path to Git executable — Leave as `git` to use the one on PATH. |
-| `vcs.git.updateMethod` | enum: `merge`, `rebase`, `branchDefault` | `merge` | user *(not applied yet)* |  | Update method |
-| `vcs.git.autoFetch` | bool | `true` | user *(not applied yet)* |  | Fetch remotes automatically |
-| `vcs.git.commit.subjectMaxLength` | int (20–200) | `72` | user *(not applied yet)* | Commit Message Inspections | Limit subject line length |
-| `vcs.git.commit.blankLineAfterSubject` | bool | `true` | user *(not applied yet)* | Commit Message Inspections | Require blank line between subject and body |
-| `vcs.git.commit.bodyRightMargin` | int (40–200) | `72` | user *(not applied yet)* | Commit Message Inspections | Right margin for body (columns) |
-| `vcs.git.commit.warnOnCrlf` | bool | `true` | user *(not applied yet)* | Commit | Warn if CRLF line separators are about to be committed |
-| `vcs.git.commit.signOff` | bool | `false` | user *(not applied yet)* | Commit | Sign-off commits |
+| `vcs.git.path` | path | `git` | user |  | Path to Git executable — Leave as `git` to use the one on PATH. Remote projects always use the git of their host. |
+| `vcs.git.updateMethod` | enum: `merge`, `rebase`, `branchDefault` | `merge` | user |  | Update method — How Update Project (Ctrl+T) brings in remote changes. Branch default follows the branch's git configuration (pull.rebase). |
+| `vcs.git.autoFetch` | bool | `true` | user |  | Fetch remotes automatically — In the background, for repositories whose branch has an upstream. Failures are ignored. |
+| `vcs.git.autoFetchInterval` | int (1–240) | `10` | user |  | Fetch every (minutes) |
+| `vcs.git.commit.subjectMaxLength` | int (20–200) | `72` | user | Commit Message Inspections | Limit subject line length |
+| `vcs.git.commit.blankLineAfterSubject` | bool | `true` | user | Commit Message Inspections | Require blank line between subject and body |
+| `vcs.git.commit.bodyRightMargin` | int (40–200) | `72` | user | Commit Message Inspections | Right margin for body (columns) |
+| `vcs.git.commit.warnOnCrlf` | bool | `true` | user | Commit | Warn if CRLF line separators are about to be committed |
+| `vcs.git.commit.signOff` | bool | `false` | user | Commit | Sign-off commits |
 
-### Version Control (code hosts)
+### Version Control | Code Hosts
 
-Group `vcs.hosts`. These two options have no page in the Settings dialog; set them in `settings.toml`.
+Page id `vcs.hosts`; the GitLab, Forgejo / Gitea and GitHub account pages are below it.
 
 | Key | Type | Default | Scope | Section | Title and description |
 | --- | --- | --- | --- | --- | --- |
@@ -189,6 +404,7 @@ Page id `lang.php`.
 | `php.languageLevel` | enum: `7.4`, `8.0`, `8.1`, `8.2`, `8.3`, `8.4` | `8.3` | user, project | Development Environment | PHP language level — Inspections and completion follow the syntax of this version. |
 | `php.interpreter` | path | `php` | user, project | Development Environment | CLI Interpreter — Path to the php executable used to run scripts and tests. |
 | `php.includePaths` | list | `[]` | user, project | Include Path | Include path — Extra directories indexed as libraries (e.g. global PEAR or framework stubs). |
+| `php.stubs.path` | path | `""` | user | PHP Runtime | Default stubs path — A phpstorm-stubs checkout used for PHP's own classes, functions and constants (Go to Declaration on \Throwable, array_map). Empty: Forge downloads JetBrains' phpstorm-stubs into its cache folder on first use, or uses Intelephense's stubs. |
 | `php.lsp.server` | enum: `auto`, `intelephense`, `phpactor`, `none` | `auto` | user | Language Server | Language server — Started automatically when a PHP project opens. |
 | `php.lsp.maxFileSize` | int (100–100000) | `5000` | user | Language Server | Max indexed file size (KB) |
 | `php.intelephense.autoInstall` | enum: `ask`, `always`, `never` | `ask` | user | Language Server | When Intelephense is not installed — Forge downloads Intelephense from the npm registry into its own directory (and Node.js when none is installed). Intelephense is not bundled with Forge. |
@@ -200,11 +416,21 @@ Page id `lang.php.composer`.
 
 | Key | Type | Default | Scope | Section | Title and description |
 | --- | --- | --- | --- | --- | --- |
-| `php.composer.executable` | path | `composer` | user, project |  | Path to composer — A composer executable or composer.phar. |
-| `php.composer.json` | path | `composer.json` | user, project *(not applied yet)* |  | Path to composer.json |
-| `php.composer.syncWithComposerJson` | bool | `true` | user, project *(not applied yet)* |  | Synchronize IDE settings with composer.json — Language level and source roots follow `require.php` and `autoload`. |
-| `php.composer.addPackagesAsLibraries` | bool | `true` | user, project *(not applied yet)* |  | Add packages as libraries |
-| `php.composer.checkUpdates` | bool | `false` | user *(not applied yet)* |  | Check for package updates on project open |
+| `php.composer.json` | path | `composer.json` | user, project |  | Path to composer.json — Relative to the project root. |
+| `php.composer.executable` | path | `composer` | user, project | Execution | Path to composer — A composer executable, or a composer.phar (run with the PHP interpreter of Settings \| PHP). Empty: `composer` from PATH. |
+| `php.composer.syncWithComposerJson` | bool | `true` | user, project |  | Synchronize IDE settings with composer.json — The PHP language level follows `require.php` of composer.json (the status bar shows it); the language level setting applies when there is no constraint. |
+| `php.composer.addPackagesAsLibraries` | bool | `true` | user, project |  | Add packages as libraries — Classes in vendor/ are resolved for navigation, completion and Intelephense. Off: vendor/ is left out. |
+| `php.composer.checkUpdates` | bool | `false` | user |  | Check for package updates on project open — Runs `composer outdated --direct` on the project's machine and reports updates in a balloon. |
+| `php.composer.packagist` | bool | `true` | user |  | Use Packagist for completion, versions and outdated packages — Package names, versions and descriptions come from packagist.org (cached in Forge's cache directory). Off: only installed packages are used and Forge never contacts Packagist. |
+
+### Languages & Frameworks | PHP | Quality Tools
+
+Page id `lang.php.quality-tools`.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `php.tools.phpCsFixer.path` | path | `""` | user, project | PHP CS Fixer | PHP CS Fixer path — Empty: vendor/bin/php-cs-fixer of the project. A relative path starts at the project root. The project's .php-cs-fixer.dist.php is used. |
+| `php.tools.pint.path` | path | `""` | user, project | Laravel Pint | Laravel Pint path — Empty: vendor/bin/pint of the project. A relative path starts at the project root. The project's pint.json is used. |
 
 ### Languages & Frameworks | PHP | Debug
 
@@ -268,8 +494,7 @@ Page id `lang.templates`.
 | Key | Type | Default | Scope | Section | Title and description |
 | --- | --- | --- | --- | --- | --- |
 | `templates.dataLanguages` | list | `[]` | user, project | Data Languages | Template data languages — Language of the content between template tags, one entry per pattern: `legacy/latex/*.tpl=latex`, `*.mail.twig=text`. Languages: html, xml, latex, css, scss, less, javascript, typescript, json, sql, yaml, ini, shell, text. Compound names like `invoice.tex.twig` are detected automatically. Applies to files opened afterwards. |
-| `templates.smarty.leftDelimiter` | string | `{` | user, project | Smarty | Left delimiter — Smarty's left_delimiter. Use e.g. `<{` for LaTeX templates, where `{` is part of the content. |
-| `templates.smarty.rightDelimiter` | string | `}` | user, project | Smarty | Right delimiter |
+| `templates.delimiters` | objects | Smarty `[[ ]]`, Twig and Jinja2 `\VAR{ }` / `\BLOCK{ }` / `\#{ }` in LaTeX | user, project | Delimiters | Template delimiters — Delimiters of a template language in a data language, e.g. Smarty in LaTeX, where `{` is part of the content. Templates without an entry use the language's default delimiters. Applies to open editors. One entry per `template` + `language` pair. |
 
 ### Languages & Frameworks | Language Servers
 
@@ -300,6 +525,34 @@ Page id `lang.lua`.
 | `lua.stylua.enabled` | bool | `true` | user | StyLua | Reformat Code with StyLua — Ctrl+Alt+L formats Lua files with StyLua when it is installed; stylua.toml in the project is honoured. |
 | `lua.stylua.path` | path | `stylua` | user | StyLua | StyLua executable |
 
+### Languages & Frameworks | Schemas and DTDs | JSON Schema Mappings
+
+Page id `lang.json-schema` (plugin `forge.json-schema`). See [JSON Schema](../user/json-schema.md).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `jsonSchema.mappings` | objects | `[]` | user, project |  | JSON Schema mappings — `name`, `schema` (a project path, an absolute path or a URL; empty: no schema), `version` (`4`, `6`, `7`, `2019-09`, `2020-12` or empty for automatic) and `files` (one file, directory ending in `/` or pattern per line). |
+
+### Languages & Frameworks | Schemas and DTDs | Remote JSON Schemas
+
+Page id `lang.json-schema.remote` (plugin `forge.json-schema`).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `jsonSchema.remote.enabled` | bool | `false` | user |  | Allow downloading JSON schemas from remote sources — Schemas named by a URL ($schema, mappings, $ref) are downloaded into Forge's cache folder and refreshed daily. Built-in schemas are bundled and need no download. |
+| `jsonSchema.remote.schemaStore` | bool | `true` | user |  | Use schemastore.org JSON Schema catalog — Find schemas for other well-known files (renovate.json, .babelrc, Helm charts, ...) in the SchemaStore catalog. |
+
+### Languages & Frameworks | Markdown
+
+Page id `lang.markdown`.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `markdown.defaultLayout` | enum: `editor`, `split`, `preview` | `split` | user | Preview | Default layout — How Markdown files open. The buttons in the top-right corner of the editor switch it per file. |
+| `markdown.syncScroll` | bool | `true` | user | Preview | Synchronize scrolling between the editor and the preview |
+| `markdown.frontMatter` | enum: `table`, `hidden` | `table` | user | Preview | Front matter — The YAML (---) or TOML (+++) block at the start of a file. |
+| `markdown.mermaid` | bool | `true` | user | Markdown Extensions | Mermaid — Render ```mermaid code blocks as diagrams. |
+
 ### Languages & Frameworks | Node.js
 
 Page id `lang.node`.
@@ -319,6 +572,41 @@ Page id `lang.typescript`.
 | `web.navigation.components` | bool | `true` | user | Frameworks | Navigate from JSX and template tags to components, props and events — Ctrl+B and Ctrl+Click on <UserCard>, title=… and @select resolve through imports before the language server is asked. |
 | `angular.gutterIcons` | bool | `true` | user | Angular | Show line markers between components, templates and styles |
 
+### Languages & Frameworks | ESLint
+
+Page id `lang.eslint`.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `web.eslint.path` | path | `""` | user, project |  | ESLint package — Empty: node_modules/.bin/eslint of the project. A relative path starts at the project root. The project's ESLint configuration is used. |
+
+### Languages & Frameworks | Prettier
+
+Page id `lang.prettier`.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `web.prettier.path` | path | `""` | user, project |  | Prettier package — Empty: node_modules/.bin/prettier of the project. A relative path starts at the project root. The project's Prettier configuration is used. |
+
+### Tools | Actions on Save
+
+Page id `tools.actions-on-save`. See [Actions on Save](../user/actions-on-save.md).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `actionsOnSave.reformat.enabled` | bool | `false` | user, project |  | Reformat code — Reformat Code (Ctrl+Alt+L) when the file is saved. |
+| `actionsOnSave.reformat.scope` | enum: `whole`, `changed` | `whole` | user, project |  | Reformat — "Changed lines" reformats only the lines changed since the last commit; files that are not committed yet are reformatted completely. |
+| `actionsOnSave.reformat.fileTypes` | list | `[]` | user, project |  | Reformat file types — File type ids (php, javascript, ...) reformatted on save; empty means all file types. |
+| `actionsOnSave.optimizeImports` | bool | `false` | user, project |  | Optimize imports — Remove unused imports and sort the others (PHP). |
+| `actionsOnSave.rearrange` | bool | `false` | user, project |  | Rearrange code — Order class members: constants, properties, constructor, methods (PHP). |
+| `actionsOnSave.codeCleanup` | bool | `false` | user, project |  | Run code cleanup — Apply the safe quick fixes: unused imports, unnecessary semicolons, a redundant closing tag (PHP). |
+| `actionsOnSave.eslint` | bool | `false` | user, project |  | Run eslint --fix — Fix ESLint problems in saved JavaScript, TypeScript and Vue files. (HTML, CSS & JavaScript plugin) |
+| `actionsOnSave.prettier.enabled` | bool | `false` | user, project |  | Run Prettier — Run `prettier --write` on saved files that match the patterns below. (HTML, CSS & JavaScript plugin) |
+| `actionsOnSave.prettier.files` | string | `*.js; *.ts; *.jsx; *.tsx; *.cjs; *.cts; *.mjs; *.mts; *.vue; *.astro` | user, project |  | Run for files — Patterns separated by `;`; patterns with a `/` match the path, the others the file name. (HTML, CSS & JavaScript plugin) |
+| `actionsOnSave.phpCsFixer` | bool | `false` | user, project |  | Run PHP CS Fixer — Run `php-cs-fixer fix` on saved PHP files. (PHP plugin) |
+| `actionsOnSave.pint` | bool | `false` | user, project |  | Run Laravel Pint — Run `pint` on saved PHP files. (PHP plugin) |
+| `actionsOnSave.runOnAutosave` | bool | `false` | user, project |  | Also run on autosave — Run Reformat code, Optimize imports, Rearrange code and Run code cleanup when files are saved automatically too. External tools only run on explicit save (Ctrl+S). |
+
 ### Tools | Terminal
 
 Page id `tools.terminal`.
@@ -327,11 +615,21 @@ Page id `tools.terminal`.
 | --- | --- | --- | --- | --- | --- |
 | `terminal.shellPath` | path | `""` | user | Application Settings | Shell path — Leave empty to use the system default shell. |
 | `terminal.tabName` | string | `Local` | user | Application Settings | Default tab name |
-| `terminal.audibleBell` | bool | `false` | user *(not applied yet)* | Application Settings | Audible bell |
+| `terminal.audibleBell` | bool | `false` | user | Application Settings | Audible bell — Play a short tone when a program rings the terminal bell. |
 | `terminal.copyOnSelection` | bool | `false` | user | Application Settings | Copy to clipboard on selection |
-| `terminal.shellIntegration` | bool | `true` | user *(not applied yet)* | Application Settings | Shell integration — Track the working directory and command boundaries of supported shells. |
+| `terminal.shellIntegration` | bool | `true` | user | Application Settings | Shell integration — bash and zsh report their working directory (shown in the tab tooltip) and command boundaries (green and red marks in the scrollbar for succeeded and failed commands). Applies to new sessions. |
+| `terminal.showApplicationTitle` | bool | `true` | user | Application Settings | Show application title — Name terminal tabs after the title the running program sets, e.g. Claude Code's current task. |
+| `terminal.showProgressInStatusBar` | bool | `true` | user | Application Settings | Show progress in the status bar — Programs such as Claude Code, winget and systemd report progress (OSC 9;4). It is always shown on the terminal tab. |
+| `terminal.optionAsMeta` | bool | `true` | user | Application Settings | Use Option as Meta key — macOS only. |
+| `terminal.cursorShape` | enum: `block`, `underline`, `vertical` | `block` | user | Application Settings | Cursor shape |
+| `terminal.cursorBlink` | bool | `true` | user | Application Settings | Blinking cursor |
 | `terminal.startDirectory` | path | `""` | user, project | Project Settings | Start directory — Leave empty to start in the project root. |
 | `terminal.environment` | list | `[]` | user, project | Project Settings | Environment variables — One NAME=value pair per entry. |
+| `terminal.font.family` | string | `""` | user | Font | Font — Leave empty to use the editor font. Missing symbols fall back to installed Nerd Fonts and emoji fonts. |
+| `terminal.font.size` | number (6–72) | `13` | user | Font | Size |
+| `terminal.font.lineHeight` | number (1.0–3.0) | `1.2` | user | Font | Line height |
+| `terminal.renderer` | enum: `auto`, `webgl`, `dom` | `auto` | user | Rendering | Renderer — WebGL draws on the GPU and is the fastest. Automatic falls back to DOM when WebGL is unavailable. |
+| `terminal.scrollback` | int (0–1000000) | `10000` | user | Rendering | Scrollback buffer — Number of lines kept above the visible area. |
 
 ### Tools | Database
 

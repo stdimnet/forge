@@ -6,9 +6,29 @@
  */
 import { render } from "solid-js/web";
 import { registerCommand } from "@/state/commands";
-import { layout, resizePanel, showToolWindow, toggleToolWindow } from "@/state/layout";
+import {
+  hideToolWindow,
+  isToolWindowVisible,
+  layout,
+  resizePanel,
+  setLayout,
+  showToolWindow,
+  slotOfToolWindow,
+  type ToolWindowSlot,
+} from "@/state/layout";
+import { SLOTS, anchorOf } from "@/state/toolWindowLayout";
 import { findToolWindow, type ToolWindowAnchor } from "@/features/registry";
-import { closeTab, editor, isDirty, openFile, saveAll } from "@/state/editor";
+import {
+  activeGroupId,
+  closeAllTabsIn,
+  closeOtherTabs,
+  closeTabIn,
+  closeUnmodifiedTabs,
+  cycleTabs,
+  editor,
+  groupActive,
+  saveAll,
+} from "@/state/editor";
 import { workspace } from "@/state/workspace";
 import { toggleTheme } from "@/state/theme";
 import { actionById, installKeymap, migrateLegacyKeymap, runAction, showBalloon } from "@/keymap";
@@ -62,10 +82,12 @@ export const TOOL_WINDOW_ACTIONS: Record<string, string> = {
   ActivateAIChatToolWindow: "ai-chat",
   ActivatePullRequestsToolWindow: "pull-requests",
   ActivateTODOToolWindow: "todo",
+  ActivateDocumentationToolWindow: "documentation",
+  ActivateHierarchyToolWindow: "hierarchy",
 };
 
 let lastToolWindow: string | null = null;
-let hiddenLayout: Partial<Record<ToolWindowAnchor, string>> | null = null;
+let hiddenLayout: Partial<Record<ToolWindowSlot, string>> | null = null;
 
 function focusToolWindow(id: string): void {
   queueMicrotask(() =>
@@ -81,11 +103,11 @@ for (const [actionId, twId] of Object.entries(TOOL_WINDOW_ACTIONS)) {
       return;
     }
     // Like PHPStorm: a visible tool window is hidden, otherwise it is shown and focused.
-    if (layout.active[tw.anchor] === tw.id) {
-      toggleToolWindow(tw.anchor, tw.id);
+    if (isToolWindowVisible(tw.id)) {
+      hideToolWindow(tw.id);
       activeView()?.focus();
     } else {
-      showToolWindow(tw.anchor, tw.id);
+      showToolWindow(tw.id);
       lastToolWindow = tw.id;
       hiddenLayout = null;
       focusToolWindow(tw.id);
@@ -93,40 +115,43 @@ for (const [actionId, twId] of Object.entries(TOOL_WINDOW_ACTIONS)) {
   });
 }
 
-const ANCHORS: ToolWindowAnchor[] = ["left", "right", "bottom"];
-
 action("HideAllWindows", () => {
-  const visible = ANCHORS.filter((a) => layout.active[a]);
+  const visible = SLOTS.filter((s) => layout.active[s]);
   if (visible.length) {
-    hiddenLayout = Object.fromEntries(visible.map((a) => [a, layout.active[a]!]));
-    for (const a of visible) toggleToolWindow(a, layout.active[a]!);
+    hiddenLayout = Object.fromEntries(visible.map((s) => [s, layout.active[s]!]));
+    for (const s of visible) setLayout("active", s, null);
   } else if (hiddenLayout) {
-    for (const [a, id] of Object.entries(hiddenLayout)) showToolWindow(a as ToolWindowAnchor, id);
+    for (const id of Object.values(hiddenLayout)) if (findToolWindow(id)) showToolWindow(id);
     hiddenLayout = null;
   }
 });
 action("HideSideWindows", () => {
-  for (const a of ["left", "right"] as const) if (layout.active[a]) toggleToolWindow(a, layout.active[a]!);
+  for (const s of SLOTS) if (anchorOf(s) !== "bottom") setLayout("active", s, null);
 });
+
+/** The tool window that has focus. */
+function focusedToolWindow(): string | null {
+  const el = document.activeElement?.closest<HTMLElement>("[data-tool-window-panel]");
+  return el?.dataset.toolWindowPanel ?? null;
+}
 
 /** Anchor of the tool window that has focus. */
 function focusedAnchor(): ToolWindowAnchor | null {
-  const el = document.activeElement?.closest<HTMLElement>("[data-tool-window-panel]");
-  const tw = el ? findToolWindow(el.dataset.toolWindowPanel ?? null) : undefined;
-  return tw?.anchor ?? null;
+  const id = focusedToolWindow();
+  return id && isToolWindowVisible(id) ? anchorOf(slotOfToolWindow(id)) : null;
 }
 
 action("HideActiveWindow", () => {
-  const a = focusedAnchor();
-  if (a && layout.active[a]) {
-    toggleToolWindow(a, layout.active[a]!);
+  const id = focusedToolWindow();
+  if (id && isToolWindowVisible(id)) {
+    hideToolWindow(id);
     activeView()?.focus();
   }
 });
 action("JumpToLastWindow", () => {
   const tw = findToolWindow(lastToolWindow) ?? findToolWindow(layout.active.left);
   if (!tw) return;
-  showToolWindow(tw.anchor, tw.id);
+  showToolWindow(tw.id);
   focusToolWindow(tw.id);
 });
 
@@ -144,26 +169,15 @@ action("ResizeToolWindowUp", stretch("up"));
 action("ResizeToolWindowDown", stretch("down"));
 
 // ---- Editor tabs & files
-action("SaveAll", saveAll);
-action("CloseContent", () => {
-  if (editor.active) closeTab(editor.active);
-});
-action("CloseAllEditors", () => editor.tabs.map((t) => t.path).forEach(closeTab));
-action("CloseAllEditorsButActive", () =>
-  editor.tabs.filter((t) => t.path !== editor.active).map((t) => t.path).forEach(closeTab),
-);
-action("CloseAllUnmodifiedEditors", () =>
-  editor.tabs.filter((t) => !isDirty(t)).map((t) => t.path).forEach(closeTab),
-);
-
-function cycleTab(delta: number): void {
-  const tabs = editor.tabs;
-  if (!tabs.length) return;
-  const i = tabs.findIndex((t) => t.path === editor.active);
-  void openFile(tabs[(i + delta + tabs.length) % tabs.length].path);
-}
-action("NextTab", () => cycleTab(1));
-action("PreviousTab", () => cycleTab(-1));
+action("SaveAll", () => saveAll("explicit"));
+// Close actions work on the active editor group; pinned tabs stay on Close Others/All.
+const inActiveGroup = (fn: (group: number, id: string | null) => void) => () => fn(activeGroupId(), groupActive(activeGroupId()));
+action("CloseContent", inActiveGroup((g, id) => id && closeTabIn(g, id)));
+action("CloseAllEditors", inActiveGroup((g) => closeAllTabsIn(g)));
+action("CloseAllEditorsButActive", inActiveGroup((g, id) => id && closeOtherTabs(g, id)));
+action("CloseAllUnmodifiedEditors", inActiveGroup((g) => closeUnmodifiedTabs(g)));
+action("NextTab", () => cycleTabs(1));
+action("PreviousTab", () => cycleTabs(-1));
 
 async function copy(text: string, what: string): Promise<void> {
   try {

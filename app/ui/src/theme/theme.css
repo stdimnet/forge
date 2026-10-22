@@ -63,6 +63,15 @@
   --ref-remote: #b48cff;
   --ref-tag: #e5b449;
 
+  /* File colors (Settings | Appearance & Behavior | File Colors): tints of tabs and rows */
+  --file-color-blue: rgba(94, 164, 255, 0.16);
+  --file-color-green: rgba(95, 191, 119, 0.15);
+  --file-color-orange: rgba(255, 138, 61, 0.16);
+  --file-color-rose: rgba(239, 127, 159, 0.16);
+  --file-color-violet: rgba(180, 140, 255, 0.17);
+  --file-color-yellow: rgba(229, 180, 73, 0.15);
+  --file-color-gray: rgba(140, 140, 152, 0.18);
+
   /* Syntax */
   --syn-keyword: #ff9a57;
   --syn-string: #a5d17f;
@@ -168,6 +177,14 @@
   --ref-local: #d45608;
   --ref-remote: #7a3fc4;
   --ref-tag: #9a7400;
+
+  --file-color-blue: rgba(36, 99, 199, 0.1);
+  --file-color-green: rgba(47, 138, 70, 0.11);
+  --file-color-orange: rgba(232, 98, 12, 0.1);
+  --file-color-rose: rgba(196, 63, 106, 0.1);
+  --file-color-violet: rgba(122, 63, 196, 0.1);
+  --file-color-yellow: rgba(181, 138, 0, 0.14);
+  --file-color-gray: rgba(107, 110, 120, 0.12);
 
   --syn-keyword: #b8460b;
   --syn-string: #3c7d24;
@@ -383,32 +400,58 @@
   --font-display: "Unbounded", "Arial Black", "Helvetica Neue", sans-serif;
 }
 
-/* Code With Me participant colors (carets, selections, avatars), in join order; the host is 1. */
+/* Usages of the element at the caret (Highlight Usages in File): reads and writes, in the
+   text and on the scrollbar's error stripe. */
 :root,
 :root[data-theme="dark"],
 :root[data-theme="solarized-dark"] {
-  --collab-1: #ff8a3d;
-  --collab-2: #5aa9ff;
-  --collab-3: #6fd18c;
-  --collab-4: #c48bff;
-  --collab-5: #ff6b9a;
-  --collab-6: #3fd0c9;
-  --collab-7: #f2c94c;
-  --collab-8: #ff6b6b;
-  --collab-label-fg: #15151a;
+  --usage-read-bg: rgba(94, 164, 255, 0.2);
+  --usage-write-bg: rgba(239, 95, 95, 0.22);
+  --usage-read-mark: #6aa7ff;
+  --usage-write-mark: #ef7f7f;
 }
 
 :root[data-theme="light"],
 :root[data-theme="solarized-light"] {
-  --collab-1: #d9590a;
-  --collab-2: #1f6fd1;
-  --collab-3: #24914a;
-  --collab-4: #8a4fd6;
-  --collab-5: #c93a6b;
-  --collab-6: #11867f;
-  --collab-7: #a67c00;
-  --collab-8: #c93636;
-  --collab-label-fg: #ffffff;
+  --usage-read-bg: rgba(46, 111, 214, 0.16);
+  --usage-write-bg: rgba(214, 58, 58, 0.16);
+  --usage-read-mark: #3f7fe0;
+  --usage-write-mark: #d64545;
+}
+
+/* Merge window: chunk colours in the panes (lines), the bands between the panes and the
+   marker of an empty side. Conflicts red, modifications blue, insertions green, deletions grey. */
+:root,
+:root[data-theme="dark"],
+:root[data-theme="solarized-dark"] {
+  --merge-conflict-bg: rgba(239, 95, 95, 0.22);
+  --merge-conflict-band: rgba(239, 95, 95, 0.36);
+  --merge-conflict-mark: #ef6f6f;
+  --merge-modified-bg: rgba(94, 164, 255, 0.2);
+  --merge-modified-band: rgba(94, 164, 255, 0.34);
+  --merge-modified-mark: #6aa7ff;
+  --merge-inserted-bg: rgba(95, 191, 119, 0.2);
+  --merge-inserted-band: rgba(95, 191, 119, 0.34);
+  --merge-inserted-mark: #73c48a;
+  --merge-deleted-bg: rgba(150, 150, 165, 0.2);
+  --merge-deleted-band: rgba(150, 150, 165, 0.34);
+  --merge-deleted-mark: #9a9aa8;
+}
+
+:root[data-theme="light"],
+:root[data-theme="solarized-light"] {
+  --merge-conflict-bg: rgba(214, 58, 58, 0.14);
+  --merge-conflict-band: rgba(214, 58, 58, 0.26);
+  --merge-conflict-mark: #d64545;
+  --merge-modified-bg: rgba(36, 99, 199, 0.1);
+  --merge-modified-band: rgba(36, 99, 199, 0.2);
+  --merge-modified-mark: #2463c7;
+  --merge-inserted-bg: rgba(47, 138, 70, 0.11);
+  --merge-inserted-band: rgba(47, 138, 70, 0.22);
+  --merge-inserted-mark: #2f8a46;
+  --merge-deleted-bg: rgba(110, 112, 125, 0.12);
+  --merge-deleted-band: rgba(110, 112, 125, 0.24);
+  --merge-deleted-mark: #8a8a94;
 }
 
 /* Splash screen: cold steel letters that fill with molten metal while Forge loads. */
@@ -575,3 +618,32 @@ select:focus {
 .vcs-deleted { color: var(--vcs-deleted); text-decoration: line-through; }
 .vcs-untracked { color: var(--vcs-untracked); }
 .vcs-conflict { color: var(--vcs-conflict); }
+
+/* Code With Me participant colors (carets, selections, avatars), in join order; the host is 1. */
+:root,
+:root[data-theme="dark"],
+:root[data-theme="solarized-dark"] {
+  --collab-1: #ff8a3d;
+  --collab-2: #5aa9ff;
+  --collab-3: #6fd18c;
+  --collab-4: #c48bff;
+  --collab-5: #ff6b9a;
+  --collab-6: #3fd0c9;
+  --collab-7: #f2c94c;
+  --collab-8: #ff6b6b;
+  --collab-label-fg: #15151a;
+}
+
+:root[data-theme="light"],
+:root[data-theme="solarized-light"] {
+  --collab-1: #d9590a;
+  --collab-2: #1f6fd1;
+  --collab-3: #24914a;
+  --collab-4: #8a4fd6;
+  --collab-5: #c93a6b;
+  --collab-6: #11867f;
+  --collab-7: #a67c00;
+  --collab-8: #c93636;
+  --collab-label-fg: #ffffff;
+}
+

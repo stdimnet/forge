@@ -9,6 +9,7 @@
 //!   [`protocol`]. [`rpc::RpcClient`] multiplexes calls, events and byte channels over any
 //!   stream (SSH in `crates/forge-remote`, an in-memory pipe in tests).
 
+pub mod compare;
 pub mod frameworks;
 pub mod langservers;
 pub mod local;
@@ -17,26 +18,82 @@ pub mod php;
 pub mod process_io;
 pub mod protocol;
 pub mod remote;
+pub mod replace;
 pub mod rpc;
+pub mod ssr;
 pub mod tunnels;
+pub mod web;
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use forge_core::search::{FindRequest, FindResult};
-use forge_core::{FileEntry, FileMatch, FsChanges, ProjectFiles, Result};
+use forge_core::search::{
+    FileMatches, FindPaged, FindRequest, FindResult, TodoRequest, TodoResult,
+};
+use forge_core::{
+    CollectRequest, FileEntry, FileMatch, FsChanges, ProjectFiles, Result, SourceFile,
+};
+use forge_langservers::install::InstallOutcome;
+use forge_langservers::managed::PackageUpdate;
 use forge_lsp::ServerLauncher;
 use forge_process::{CommandLine, PtySink, RunSink};
 use forge_project::ProjectInfo;
 use forge_vcs::{GitExec, Repo};
 use serde::{Deserialize, Serialize};
 
+pub use forge_search_core::SymbolHit;
 pub use frameworks::{framework_call, FrameworkCall};
-pub use langservers::{LangServersAnswer, LangServersRequest};
+pub use langservers::{
+    InstallRequest, InstallSink, InstallTarget, LangServersAnswer, LangServersRequest,
+};
+#[cfg(feature = "search")]
+pub use local::IndexOptions;
 pub use local::LocalBackend;
 pub use php::PhpBackend;
 pub use remote::RemoteBackend;
-pub use tunnels::{PortForward, Tunnels};
+pub use tunnels::{PortForward, TunnelStream, Tunnels};
+pub use web::{web_call, WebCall};
+
+/// A Find in Files result a window pages through.
+pub enum Found {
+    Full(FindResult),
+    #[cfg(feature = "search")]
+    Lazy(forge_search::FoundText),
+    /// Kept on another machine; rows come from there when a page asks for them.
+    Remote {
+        totals: FindPaged,
+        fetch: Arc<PageFetch>,
+    },
+}
+
+/// Fetches the rows `[offset, offset + count)` of a result kept by the remote agent.
+pub type PageFetch = dyn Fn(usize, usize) -> Vec<FileMatches> + Send + Sync;
+
+impl Found {
+    /// The totals with the first `page_size` rows.
+    pub fn paged(&self, id: u64, page_size: usize) -> FindPaged {
+        match self {
+            Found::Full(r) => r.paged(id, page_size),
+            #[cfg(feature = "search")]
+            Found::Lazy(r) => r.paged(id, page_size),
+            Found::Remote { totals, .. } => FindPaged {
+                id,
+                files: self.page(0, page_size),
+                ..totals.clone()
+            },
+        }
+    }
+
+    /// The rows `[offset, offset + count)`.
+    pub fn page(&self, offset: usize, count: usize) -> Vec<FileMatches> {
+        match self {
+            Found::Full(r) => r.page(offset, count),
+            #[cfg(feature = "search")]
+            Found::Lazy(r) => r.page(offset, count),
+            Found::Remote { fetch, .. } => fetch(offset, count),
+        }
+    }
+}
 
 /// The machine a remote project lives on.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -109,6 +166,30 @@ impl BackendInfo {
     }
 }
 
+/// State of a backend's search index.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SearchStatus {
+    /// The backend keeps a search index at all.
+    pub enabled: bool,
+    /// The index is being built or refreshed; results may be incomplete.
+    pub indexing: bool,
+    /// Files the index knows about.
+    pub files: usize,
+    /// Of those, files whose text is searched.
+    #[serde(default)]
+    pub content_files: usize,
+    /// Binary files, listed by name only.
+    #[serde(default)]
+    pub binary_files: usize,
+    /// Files over the size limit, listed by name only.
+    #[serde(default)]
+    pub oversized_files: usize,
+    /// Unix milliseconds of the last finished refresh; 0 before the first.
+    #[serde(default)]
+    pub last_refresh_ms: u64,
+}
+
 /// How to start a terminal session on the backend.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -126,6 +207,11 @@ pub struct TerminalSpec {
     pub env: Vec<(String, String)>,
     pub cols: u16,
     pub rows: u16,
+    /// Shell integration (Settings | Tools | Terminal): bash and zsh report their working
+    /// directory and command boundaries. Its scripts live in the cache dir of the machine
+    /// the shell runs on.
+    #[serde(default)]
+    pub shell_integration: bool,
 }
 
 /// A running terminal session.
@@ -170,6 +256,10 @@ pub trait Backend: Send + Sync {
     /// The file's text, `None` when it does not exist (one round trip for remote projects).
     fn read_optional(&self, rel: &str) -> Result<Option<String>>;
     fn write_file(&self, rel: &str, contents: &str) -> Result<()>;
+    /// The file's raw bytes (files in other encodings than UTF-8, see `forge-text`).
+    fn read_bytes(&self, rel: &str) -> Result<Vec<u8>>;
+    /// Write raw bytes (parent folders are created).
+    fn write_bytes(&self, rel: &str, bytes: &[u8]) -> Result<()>;
     /// New empty file (parent folders included); never replaces an existing path.
     fn create_file(&self, rel: &str) -> Result<()>;
     /// New folder (parent folders included); never replaces an existing path.
@@ -179,9 +269,52 @@ pub trait Backend: Send + Sync {
     /// Delete a file or a folder with its content.
     fn delete(&self, rel: &str) -> Result<()>;
     /// "Go to File": fuzzy file-name search honoring `.gitignore`.
-    fn find_files(&self, query: &str, limit: usize) -> Result<Vec<FileMatch>>;
+    /// `exact` matches the query as a substring instead of fuzzy.
+    fn find_files(&self, query: &str, limit: usize, exact: bool) -> Result<Vec<FileMatch>>;
     /// Find in Files: text search over the project honoring `.gitignore`.
     fn find_in_files(&self, req: &FindRequest) -> Result<FindResult>;
+    /// TODO tool window: TODO patterns in comments, honoring `.gitignore`.
+    fn find_todos(&self, req: &TodoRequest) -> Result<TodoResult>;
+    /// The text of every project file with one of `req.extensions`, in one call (a
+    /// language index of a remote project is built from one round trip).
+    fn collect_files(&self, req: &CollectRequest) -> Result<Vec<SourceFile>>;
+    /// Every project file (`.gitignore` respected), at most `limit`: the Scopes page's tree.
+    fn list_files(&self, limit: usize) -> Result<Vec<String>>;
+    /// Structural Search: the matches of a template in the project's files, searched where
+    /// they are.
+    fn structural_search(&self, req: &forge_ssr::SsrRequest) -> Result<forge_ssr::SsrResult>;
+    /// Compare Directories: the folder diff of two project folders, read where they are.
+    fn compare_dirs(&self, left: &str, right: &str) -> Result<forge_diff::DirCompare>;
+
+    /// [`Backend::find_in_files`] for a result that is paged: a local backend with an index keeps
+    /// match ranges instead of building every row.
+    /// A search that sees `cancel` set stops early; its result is then not meaningful.
+    fn find_in_files_found(
+        &self,
+        req: &FindRequest,
+        _cancel: &std::sync::atomic::AtomicBool,
+    ) -> Result<Found> {
+        self.find_in_files(req).map(Found::Full)
+    }
+
+    /// Classes (`types_only`) or every declared symbol matching `query`, best first. Files with
+    /// one of `skip_extensions` are left out (languages a language server answers for).
+    /// Backends without a search index return nothing.
+    fn find_symbols(
+        &self,
+        _query: &str,
+        _types_only: bool,
+        _limit: usize,
+        _skip_extensions: &[String],
+        _exact: bool,
+    ) -> Result<Vec<SymbolHit>> {
+        Ok(Vec::new())
+    }
+
+    /// Whether the search index is ready or still building.
+    fn search_status(&self) -> Result<SearchStatus> {
+        Ok(SearchStatus::default())
+    }
 
     /// Where git runs for this project.
     fn git(&self) -> Arc<dyn GitExec>;
@@ -216,6 +349,29 @@ pub trait Backend: Send + Sync {
     /// Plan the catalog language servers of the project on the machine that has its files
     /// and the installed servers.
     fn langservers(&self, req: LangServersRequest) -> Result<LangServersAnswer>;
+
+    /// Install a language server on the backend's machine (where the project's servers
+    /// run). `sink` gets its steps, download progress and output; notifying `cancel` stops
+    /// it. Errors are worded for the install log.
+    fn install_langserver(
+        &self,
+        req: InstallRequest,
+        cancel: Arc<tokio::sync::Notify>,
+        sink: InstallSink,
+    ) -> Result<InstallOutcome>;
+
+    /// Newer versions of the npm servers Forge installed on the backend's machine; `None`
+    /// when the last check was less than a day ago (and `force` is not set).
+    fn langserver_updates(
+        &self,
+        registry: Option<String>,
+        node_mirror: Option<String>,
+        force: bool,
+    ) -> Result<Option<Vec<PackageUpdate>>>;
+
+    /// WebForge analysis (npm tool window, component navigation), run next to the files.
+    /// The reply is the MessagePack encoding of the call's reply type; use [`web_call`].
+    fn web(&self, call: WebCall) -> Result<Vec<u8>>;
 
     /// Full path of the first of `names` found on the backend's machine (`PATH` plus the
     /// usual package manager directories). An existing `custom` path wins.

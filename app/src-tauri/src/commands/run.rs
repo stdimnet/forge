@@ -171,7 +171,9 @@ fn build(state: &AppState, runs: &RunState, req: RunRequest) -> Result<CommandLi
         }
         (Some(mut cfg), None) => {
             let settings = state.read_settings();
-            if cfg.type_id == "composer" && cfg.option("composerPath").trim().is_empty() {
+            if (cfg.type_id == "composer" || cfg.type_id == "composer-command")
+                && cfg.option("composerPath").trim().is_empty()
+            {
                 if let Some(composer) = settings
                     .get_as::<String>("php.composer.executable")
                     .filter(|c| !c.trim().is_empty() && c != "composer")
@@ -225,10 +227,16 @@ pub async fn run_start(
     });
     let test_runner = request.test_runner;
     let cmd = build(&state, &runs, request)?;
+    // Settings | Editor | General | Console, "Override console cycle buffer size (KB)".
+    let cycle_buffer_kb = state
+        .read_settings()
+        .get_as::<usize>("run.console.cycleBufferKb")
+        .or(Some(1024));
     let output = Arc::new(Mutex::new(RunOutput::new(&RunOutputOptions {
         test_runner,
         root: Some(root(&state)?.display().to_string()),
         cwd: Some(cmd.cwd.display().to_string()),
+        cycle_buffer_kb,
     })));
     let event = format!("run://{run_id}");
     let sink_output = output.clone();

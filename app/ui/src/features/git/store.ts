@@ -3,12 +3,13 @@
  * `state/vcs.ts` for project tree and tab colors), refresh scheduling, notifications and
  * buffer reloads after rollbacks.
  */
-import { createRoot, createSignal, createEffect, on } from "solid-js";
+import { createRoot, createSignal, createEffect, on, onCleanup } from "solid-js";
 import { listen } from "@/ipc";
 import { setCurrentBranch, setFileStatuses, type FileStatus } from "@/state/vcs";
-import { editor } from "@/state/editor";
+import { editor, readOpenFile, type Eol } from "@/state/editor";
 import { onFsChanged } from "@/state/fsWatch";
-import { workspaceApi } from "@/ipc/workspace";
+import { logNotification, modeOf, registerNotificationGroup } from "@/state/notifications";
+import { getSetting } from "@/state/settings";
 import { gitApi, displayStatus, GIT_CHANGED_EVENT, type RepoStatus } from "./api";
 
 const [status, setStatus] = createSignal<RepoStatus | null>(null);
@@ -70,10 +71,17 @@ const [notices, setNotices] = createSignal<Notice[]>([]);
 export { notices };
 let noticeId = 0;
 
+/** Notification group of git balloons (Settings | Appearance & Behavior | Notifications). */
+export const VCS_GROUP = "Version Control";
+registerNotificationGroup(VCS_GROUP);
+
 export function notify(kind: Notice["kind"], title: string, body?: string, timeout = 6000): void {
+  logNotification({ group: VCS_GROUP, type: kind === "error" ? "error" : "info", title, content: body });
+  const mode = modeOf(VCS_GROUP);
+  if (mode === "log") return;
   const id = ++noticeId;
   setNotices((n) => [...n, { id, kind, title, body }]);
-  if (timeout > 0) setTimeout(() => dismissNotice(id), timeout);
+  if (timeout > 0 && mode !== "sticky") setTimeout(() => dismissNotice(id), timeout);
 }
 
 export const dismissNotice = (id: number) => setNotices((n) => n.filter((x) => x.id !== id));
@@ -95,7 +103,9 @@ export async function runGit<T>(title: string, op: () => Promise<T>): Promise<T 
 
 export interface FileReload {
   path: string;
-  content: string;
+  /** The file's text with `\n` line breaks, decoded in the tab's encoding. */
+  text: string;
+  eol: Eol;
   seq: number;
 }
 const [fileReload, setFileReload] = createSignal<FileReload | null>(null);
@@ -107,8 +117,8 @@ export async function reloadOpenFiles(paths?: string[]): Promise<void> {
   const open = editor.tabs.map((t) => t.path).filter((p) => !paths || paths.includes(p));
   for (const path of open) {
     try {
-      const content = await workspaceApi.readFile(path);
-      setFileReload({ path, content, seq: ++reloadSeq });
+      const file = await readOpenFile(path);
+      if (file) setFileReload({ path, ...file, seq: ++reloadSeq });
     } catch {
       /* file may have been removed */
     }
@@ -124,9 +134,8 @@ export function startGitStore(): void {
   if (started) return;
   started = true;
   void listen(GIT_CHANGED_EVENT, () => void repositoryChanged());
-  if (typeof window !== "undefined") {
-    window.addEventListener("focus", () => void repositoryChanged());
-  }
+  // Switching back to Forge refreshes through "Synchronize external changes"
+  // (features/system), which reports a git change.
   // Changes made outside Forge (terminal, other tools) arrive from the file watcher.
   onFsChanged((c) => {
     if (c.git) void repositoryChanged();
@@ -141,6 +150,28 @@ export function startGitStore(): void {
         { defer: true },
       ),
     );
+    // Settings | Version Control | Git: fetch the remotes every few minutes, quietly.
+    createEffect(() => {
+      if (!repoAvailable() || !getSetting<boolean>("vcs.git.autoFetch", true)) return;
+      const minutes = Math.max(1, getSetting<number>("vcs.git.autoFetchInterval", 10));
+      const timer = setInterval(() => void autoFetch(), minutes * 60_000);
+      onCleanup(() => clearInterval(timer));
+    });
   });
   void repositoryChanged();
+}
+
+let fetching = false;
+
+/** A background fetch: failures (offline, no credentials) are only logged. */
+async function autoFetch(): Promise<void> {
+  if (fetching || !status()?.upstream) return;
+  fetching = true;
+  try {
+    await gitApi.fetch();
+  } catch (e) {
+    console.debug("auto fetch failed", e);
+  } finally {
+    fetching = false;
+  }
 }

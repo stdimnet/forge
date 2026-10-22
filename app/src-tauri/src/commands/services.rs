@@ -2,18 +2,28 @@
 //! tree, details, toolbar actions, logs, inspect, exec terminals, pulls and the gutter ▶ of
 //! compose files and Dockerfiles. Everything streams on `services://event` as
 //! `{ type: "tree" | "console" | "ended" | "status" | "error", … }` ([`HubEvent`]).
+//!
+//! The open project is handed to the hub as a [`ProjectHost`]: a local folder, or for a
+//! remote project [`BackendProject`] (compose files read and `docker compose` run on the
+//! host through the project backend; with `docker.remoteProjectHost` the host's Docker
+//! daemon through the project's SSH connection).
 
-use std::path::PathBuf;
+use std::path::Path;
 use std::sync::{Arc, OnceLock};
 
+use forge_backend::Backend;
 use forge_containers::endpoint::{DockerContext, DockerSettings};
 use forge_containers::exec::TerminalCommand;
 use forge_containers::gutter::{self, GutterMarker};
+use forge_containers::http::BoxIo;
 use forge_containers::hub::{Hub, HubEvent, HubSettings};
+use forge_containers::logs::LogStream;
 use forge_containers::portforward::PortForward;
+use forge_containers::project::{BoxFuture, LocalProject, OutputSink, ProjectHost};
 use forge_containers::tree::{Action, Details, Node};
-use forge_core::{ForgeError, Result, Settings};
+use forge_core::{FileKind, ForgeError, Result, Settings};
 use forge_process::output::ConsoleLine;
+use forge_process::{CommandLine, OutputStream, RunEvent, RunSink};
 use tauri::{AppHandle, Emitter, Manager, State};
 
 use crate::state::AppState;
@@ -72,13 +82,134 @@ pub fn hub_settings(s: &Settings) -> HubSettings {
                 ))
             })
             .collect(),
+        project_docker: s.get_as::<bool>("docker.remoteProjectHost").unwrap_or(true),
     }
 }
 
-fn project_root(app: &AppHandle) -> Option<PathBuf> {
-    app.state::<AppState>()
-        .with_workspace(|ws| Ok(ws.root().to_path_buf()))
-        .ok()
+/// A remote project for the Services hub: files and processes through its backend (on the
+/// host), the host's Unix sockets through its SSH tunnels.
+pub struct BackendProject {
+    backend: Arc<dyn Backend>,
+    label: String,
+}
+
+enum RunMsg {
+    Output(LogStream, String),
+    Exit(Option<i32>),
+}
+
+/// Stops a process when its run is dropped before it ended (Stop in the Services window).
+struct KillOnDrop(Option<Arc<dyn forge_backend::Process>>);
+
+impl Drop for KillOnDrop {
+    fn drop(&mut self) {
+        if let Some(p) = self.0.take() {
+            std::thread::spawn(move || p.kill(std::time::Duration::from_secs(2)));
+        }
+    }
+}
+
+impl ProjectHost for BackendProject {
+    fn root(&self) -> &Path {
+        &self.backend.info().root
+    }
+
+    fn remote(&self) -> Option<&str> {
+        Some(&self.label)
+    }
+
+    fn read(&self, rel: &str) -> Option<String> {
+        self.backend.read_optional(rel).ok().flatten()
+    }
+
+    fn dirs(&self) -> Vec<String> {
+        self.backend
+            .list_dir("")
+            .map(|entries| {
+                entries
+                    .into_iter()
+                    .filter(|e| e.kind == FileKind::Dir)
+                    .map(|e| e.name)
+                    .collect()
+            })
+            .unwrap_or_default()
+    }
+
+    fn run<'a>(
+        &'a self,
+        program: &'a str,
+        args: &'a [String],
+        env: &'a [(String, String)],
+        cwd: &'a Path,
+        mut sink: OutputSink<'a>,
+    ) -> BoxFuture<'a, forge_containers::Result<Option<i32>>> {
+        Box::pin(async move {
+            let mut cmd = CommandLine::new(program).args(args.iter().cloned());
+            cmd.cwd = cwd.to_path_buf();
+            cmd.env.extend(env.iter().cloned());
+            let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<RunMsg>();
+            let run_sink: RunSink = Arc::new(move |event| {
+                let _ = match event {
+                    RunEvent::Output { stream, text } => tx.send(RunMsg::Output(
+                        if stream == OutputStream::Stdout {
+                            LogStream::Stdout
+                        } else {
+                            LogStream::Stderr
+                        },
+                        text,
+                    )),
+                    RunEvent::Exited { code, .. } => tx.send(RunMsg::Exit(code)),
+                    RunEvent::Started { .. } => Ok(()),
+                };
+            });
+            let backend = self.backend.clone();
+            let process =
+                tauri::async_runtime::spawn_blocking(move || backend.start_process(&cmd, run_sink))
+                    .await
+                    .map_err(|e| forge_containers::Error(e.to_string()))?
+                    .map_err(|e| forge_containers::Error(e.to_string()))?;
+            let mut guard = KillOnDrop(Some(process));
+            while let Some(msg) = rx.recv().await {
+                match msg {
+                    RunMsg::Output(stream, text) => sink(stream, text),
+                    RunMsg::Exit(code) => {
+                        guard.0 = None;
+                        return Ok(code);
+                    }
+                }
+            }
+            guard.0 = None;
+            Ok(None)
+        })
+    }
+
+    fn open_socket(&self, path: &str) -> BoxFuture<'static, forge_containers::Result<BoxIo>> {
+        let tunnels = self.backend.tunnels();
+        let path = path.to_string();
+        Box::pin(async move {
+            let tunnels = tunnels.ok_or_else(|| {
+                forge_containers::Error("the project has no SSH connection".into())
+            })?;
+            let stream = tunnels
+                .open_socket(path)
+                .await
+                .map_err(|e| forge_containers::Error(e.to_string()))?;
+            Ok(Box::new(stream) as BoxIo)
+        })
+    }
+}
+
+/// The open project for the hub: a local folder, or a remote project through its backend.
+fn project_host(app: &AppHandle) -> Option<Arc<dyn ProjectHost>> {
+    let state = app.state::<AppState>();
+    let info = state.project_info()?;
+    match info.remote {
+        None => Some(Arc::new(LocalProject::new(info.root))),
+        Some(host) => Some(Arc::new(BackendProject {
+            backend: state.backend().ok()?,
+            label: host.label(),
+        })),
+    }
 }
 
 /// Create the hub (app setup) and connect.
@@ -104,9 +235,10 @@ pub fn reconfigure(app: &AppHandle) {
         return;
     };
     let settings = hub_settings(&app.state::<AppState>().read_settings());
-    let root = project_root(app);
-    // Scanning compose files and reading the kubeconfig touch the disk.
-    tauri::async_runtime::spawn_blocking(move || hub.configure(settings, root));
+    let project = project_host(app);
+    // Scanning compose files (on the host for a remote project) and reading the
+    // kubeconfig touch the disk.
+    tauri::async_runtime::spawn_blocking(move || hub.configure(settings, project));
 }
 
 #[tauri::command]

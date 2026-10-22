@@ -2,13 +2,17 @@
 
 use std::io::{Read, Write};
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
+#[cfg(unix)]
+use std::time::Duration;
 
 use forge_core::{ForgeError, Result};
 use portable_pty::{native_pty_system, ChildKiller, CommandBuilder, MasterPty, PtySize};
 use serde::{Deserialize, Serialize};
 
 use crate::shell::{default_shell, shell_args};
+use crate::termenv::{terminal_env, utf8_locale_fallback, FOREIGN_TERMINAL_VARS};
 use crate::utf8::Utf8Decoder;
 
 /// How to start a terminal session.
@@ -19,10 +23,16 @@ pub struct PtyOptions {
     /// Shell arguments; `None` uses the customary ones for the shell (e.g. `-l` for bash).
     pub args: Option<Vec<String>>,
     pub cwd: PathBuf,
-    /// Extra environment variables on top of the inherited environment.
+    /// Extra environment variables on top of the inherited environment and
+    /// [`terminal_env`]; they win over both.
     pub env: Vec<(String, String)>,
+    /// Reported as `TERM_PROGRAM_VERSION`; empty uses this crate's version.
+    pub version: String,
     pub cols: u16,
     pub rows: u16,
+    /// Shell integration (see [`crate::integration`]): its scripts are written to this
+    /// folder. Only for shells started with their default arguments.
+    pub integration_dir: Option<PathBuf>,
 }
 
 /// Something that happened in a terminal session.
@@ -44,7 +54,12 @@ pub struct PtySession {
     killer: Mutex<Box<dyn ChildKiller + Send + Sync>>,
     shell: String,
     pid: Option<u32>,
+    exited: Arc<AtomicBool>,
 }
+
+/// How long [`PtySession::kill`] waits after SIGHUP before it sends SIGKILL.
+#[cfg(unix)]
+const KILL_GRACE: Duration = Duration::from_millis(1500);
 
 impl PtySession {
     /// Start the shell; output and the exit are delivered to `sink` from a reader thread.
@@ -61,12 +76,44 @@ impl PtySession {
             .filter(|s| !s.trim().is_empty())
             .unwrap_or_else(default_shell);
         let mut cmd = CommandBuilder::new(&shell);
-        cmd.args(opts.args.unwrap_or_else(|| shell_args(&shell)));
+        let mut extra_env = Vec::new();
+        match opts.args {
+            Some(args) => cmd.args(args),
+            None => {
+                let defaults = shell_args(&shell);
+                let integration = opts.integration_dir.as_deref().and_then(|dir| {
+                    let user_zdotdir = std::env::var_os("ZDOTDIR")
+                        .or_else(|| std::env::var_os("HOME"))
+                        .map(PathBuf::from);
+                    crate::integration::prepare(&shell, &defaults, dir, user_zdotdir)
+                        .map_err(|e| tracing::warn!("shell integration unavailable: {e}"))
+                        .ok()
+                        .flatten()
+                });
+                match integration {
+                    Some(i) => {
+                        cmd.args(i.args);
+                        extra_env = i.env;
+                    }
+                    None => cmd.args(defaults),
+                }
+            }
+        }
         cmd.cwd(&opts.cwd);
-        cmd.env("TERM", "xterm-256color");
-        cmd.env("COLORTERM", "truecolor");
-        cmd.env("TERM_PROGRAM", "Forge");
-        for (k, v) in &opts.env {
+        for var in FOREIGN_TERMINAL_VARS {
+            cmd.env_remove(var);
+        }
+        let version = match opts.version.trim() {
+            "" => env!("CARGO_PKG_VERSION"),
+            v => v,
+        };
+        for (k, v) in terminal_env(version) {
+            cmd.env(k, v);
+        }
+        if let Some(lang) = utf8_locale_fallback(|k| std::env::var(k).ok()) {
+            cmd.env("LANG", lang);
+        }
+        for (k, v) in extra_env.iter().chain(&opts.env) {
             cmd.env(k, v);
         }
         let mut child = pair
@@ -79,6 +126,8 @@ impl PtySession {
         let killer = child.clone_killer();
         let mut reader = pair.master.try_clone_reader().map_err(other)?;
         let writer = pair.master.take_writer().map_err(other)?;
+        let exited = Arc::new(AtomicBool::new(false));
+        let exited_flag = exited.clone();
 
         std::thread::Builder::new()
             .name(format!("pty-{}", pid.unwrap_or(0)))
@@ -101,6 +150,7 @@ impl PtySession {
                     sink(PtyEvent::Output { data: rest });
                 }
                 let code = child.wait().ok().map(|s| s.exit_code() as i32);
+                exited_flag.store(true, Ordering::SeqCst);
                 sink(PtyEvent::Exited { code });
             })
             .map_err(other)?;
@@ -111,6 +161,7 @@ impl PtySession {
             killer: Mutex::new(killer),
             shell,
             pid,
+            exited,
         })
     }
 
@@ -144,13 +195,43 @@ impl PtySession {
             .map_err(other)
     }
 
-    /// Terminate the shell.
+    /// Whether the shell has exited.
+    pub fn has_exited(&self) -> bool {
+        self.exited.load(Ordering::SeqCst)
+    }
+
+    /// Terminate the shell: SIGHUP like a closing terminal window, then SIGKILL to the
+    /// shell's process group if it still runs after a grace period. Bash can lose a SIGHUP
+    /// that arrives while it redraws its prompt and would otherwise keep running.
     pub fn kill(&self) -> Result<()> {
+        if self.has_exited() {
+            return Ok(());
+        }
         self.killer
             .lock()
             .expect("pty killer poisoned")
             .kill()
-            .map_err(other)
+            .map_err(other)?;
+        #[cfg(unix)]
+        if let Some(pid) = self.pid {
+            let exited = self.exited.clone();
+            let _ = std::thread::Builder::new()
+                .name(format!("pty-kill-{pid}"))
+                .spawn(move || {
+                    std::thread::sleep(KILL_GRACE);
+                    // The reader thread reaps the child before it sets `exited`, so the pid
+                    // cannot have been reused while the flag is still false.
+                    if !exited.load(Ordering::SeqCst) {
+                        let pid = pid as libc::pid_t;
+                        // SAFETY: plain kill(2) calls on the shell and its process group.
+                        unsafe {
+                            libc::kill(-pid, libc::SIGKILL);
+                            libc::kill(pid, libc::SIGKILL);
+                        }
+                    }
+                });
+        }
+        Ok(())
     }
 }
 
@@ -183,8 +264,10 @@ mod tests {
                 args: Some(args),
                 cwd: dir,
                 env: vec![("FORGE_TEST".into(), "pty-ok".into())],
+                version: "9.9.9".into(),
                 cols: 80,
                 rows: 24,
+                integration_dir: None,
             },
             sink,
         )
@@ -224,6 +307,17 @@ mod tests {
     }
 
     #[test]
+    fn sets_the_terminal_environment() {
+        let script = "echo \"env:$TERM:$COLORTERM:$TERM_PROGRAM:$TERM_PROGRAM_VERSION:${KITTY_WINDOW_ID-unset}\"";
+        let (_s, rx) = start("/bin/sh", vec!["-c".into(), script.into()]);
+        let (text, _) = collect_until(&rx, |_| false);
+        assert!(
+            text.contains("env:xterm-256color:truecolor:Forge:9.9.9:unset"),
+            "{text:?}"
+        );
+    }
+
+    #[test]
     fn interactive_input_resize_and_kill() {
         let (s, rx) = start("/bin/sh", vec![]);
         s.resize(100, 30).unwrap();
@@ -233,5 +327,54 @@ mod tests {
         s.kill().unwrap();
         let (_, exit) = collect_until(&rx, |_| false);
         assert!(exit.is_some(), "no exit after kill");
+    }
+
+    /// A live shell with Forge's integration scripts reports its directory (OSC 7) and the
+    /// prompt, command start and exit code of a failing command (OSC 133).
+    fn integration_reports_directory_and_command_marks(shell: &str) {
+        let Some(shell) = crate::shell::find_in_path(shell) else {
+            return;
+        };
+        let (tx, rx) = mpsc::channel();
+        let tx = Mutex::new(tx);
+        let sink: PtySink = Arc::new(move |e| {
+            let _ = tx.lock().unwrap().send(e);
+        });
+        let home = tempfile::tempdir().unwrap();
+        let scripts = tempfile::tempdir().unwrap();
+        let s = PtySession::spawn(
+            PtyOptions {
+                shell: Some(shell.display().to_string()),
+                args: None,
+                cwd: home.path().to_path_buf(),
+                // A clean home: no user startup files.
+                env: vec![("HOME".into(), home.path().display().to_string())],
+                version: String::new(),
+                cols: 80,
+                rows: 24,
+                integration_dir: Some(scripts.path().to_path_buf()),
+            },
+            sink,
+        )
+        .expect("spawn");
+        s.write(b"false\n").unwrap();
+        let (text, _) = collect_until(&rx, |t| t.contains("\x1b]133;D;1\x07"));
+        assert!(text.contains("\x1b]7;file://"), "{text:?}");
+        assert!(
+            text.contains("\x1b]133;A\x07") && text.contains("\x1b]133;C\x07"),
+            "{text:?}"
+        );
+        assert!(text.contains("\x1b]133;D;1\x07"), "{text:?}");
+        s.kill().unwrap();
+    }
+
+    #[test]
+    fn bash_integration_reports_directory_and_command_marks() {
+        integration_reports_directory_and_command_marks("bash");
+    }
+
+    #[test]
+    fn zsh_integration_reports_directory_and_command_marks() {
+        integration_reports_directory_and_command_marks("zsh");
     }
 }

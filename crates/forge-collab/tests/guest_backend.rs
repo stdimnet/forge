@@ -292,7 +292,7 @@ async fn secret_files_and_git_are_invisible_everywhere() {
     let mut sees = Vec::new();
     for q in [".env", "master", "config", "HEAD"] {
         let q = q.to_string();
-        sees.extend(g.on(move |b| b.find_files(&q, 50)).await.unwrap());
+        sees.extend(g.on(move |b| b.find_files(&q, 50, false)).await.unwrap());
     }
     for m in &sees {
         assert!(
@@ -313,7 +313,7 @@ async fn secret_files_and_git_are_invisible_everywhere() {
         .unwrap();
     assert_eq!(hits.files.len(), 1);
     assert_eq!(hits.files[0].path, "app/Http/Order.php");
-    let files = g.on(|b| b.find_files("order", 10)).await.unwrap();
+    let files = g.on(|b| b.find_files("order", 10, false)).await.unwrap();
     assert_eq!(files[0].path, "app/Http/Order.php");
 }
 

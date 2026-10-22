@@ -21,15 +21,38 @@ mod remote;
 use wasm_bindgen::prelude::*;
 
 mod agents;
+mod codeintel;
+mod codestyle;
+mod compare;
+mod composer;
 mod containers;
+mod editing;
+mod emmet;
 mod filetypes;
+mod hierarchy;
+mod injections;
+mod json_schema;
 mod keymap;
+mod livetemplates;
 mod lua;
+mod save_actions;
+mod scopes;
 mod scratches;
 mod search;
 mod settings;
+mod spell;
+mod ssr;
+mod stacktrace;
+mod structure;
+mod templates;
+mod terminal;
+mod text;
+mod vcs;
+mod viewers;
+mod vim;
 mod web;
 mod window;
+mod workbench;
 
 /// Version of the bridge, used by the UI to check that the bundle is current.
 #[wasm_bindgen]

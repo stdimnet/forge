@@ -21,7 +21,7 @@ Forge core: the language-agnostic foundation every pack builds on.
 | `gitignore.rs` | Which project files git ignores, so the project tree can gray them out like PHPStorm. |
 | `project_files.rs` | Project-relative files that Forge itself keeps in a project (`.forge/settings.toml`, `.forge/dataSources.toml`, `.forge/breakpoints.json`, ...) and project files it reads (`.env`), wherever the project lives: `LocalFiles` for a folder on this machine, the project backend (`forge_backend::BackendFiles`) for a project on a remote host. |
 | `search.rs` | Fuzzy file search for "Go to File" / Search Everywhere, and Find in Files. |
-| `settings.rs` | Layered settings: built-in defaults < user < project. |
+| `settings.rs` | Layered settings: built-in defaults < user < project. `Settings::set_many` stores several values and saves each layer once (the Code Style schemes). |
 | `watch.rs` | Watches the open project for changes made outside the editor (git checkouts, composer, code generators, other editors) and reports them in debounced batches. |
 | `workspace.rs` |  |
 

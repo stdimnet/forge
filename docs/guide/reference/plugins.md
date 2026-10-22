@@ -19,6 +19,7 @@ script and config language plugins.
 | Plugin | Id | Pack | Depends on | Active for (project types) | Contributes |
 | --- | --- | --- | --- | --- | --- |
 | Browser Companion | `forge.browser-companion` | core |  | always | 1 commands; 3 settings |
+| Natural Languages | `forge.natural-languages` | core |  | always | 17 settings |
 | GitLab, Forgejo and GitHub | `forge.code-hosts` | core | `forge.git` | always | tool windows: Pull Requests; 2 commands; 2 settings |
 | Forge Platform (required) | `forge.core` | core |  | always | tool windows: Project; 2 commands; 49 settings; 3 keybindings |
 | Database Tools and SQL | `forge.database` | core |  | always | tool windows: Database; 2 commands; 3 settings |
@@ -40,7 +41,7 @@ script and config language plugins.
 | Claude Code | `forge.claude-code` | core | `forge.ai` | always | 3 settings; 1 AI providers; 1 chat agents |
 | Gemini CLI | `forge.gemini-cli` | core | `forge.ai` | always | 3 settings; 1 AI providers; 1 chat agents |
 | PHP | `forge.php` | phpforge |  | `php` | 1 commands; 18 settings; 1 LSP servers; run types: PHP Script, PHP Built-in Web Server; 4 code generators |
-| Composer | `forge.composer` | phpforge | `forge.php` | `composer` | 2 commands; 5 settings; run types: Composer Script |
+| Composer | `forge.composer` | phpforge | `forge.php` | `composer` | 6 commands; 6 settings; run types: Composer Script; 1 main menu entries |
 | PHPUnit | `forge.phpunit` | phpforge | `forge.php` | `phpunit`, `pest` | run types: PHPUnit; 1 code generators |
 | Xdebug | `forge.xdebug` | phpforge | `forge.php` | `php` | tool windows: Debug; 1 commands; 8 settings; run types: PHP Remote Debug; 1 main menu entries |
 | Laravel | `forge.laravel` | phpforge | `forge.php`, `forge.composer` | `laravel` | tool windows: Routes; 1 commands; 6 settings; run types: Artisan; 1 code generators; 1 keybindings; 1 main menu entries |
@@ -50,6 +51,7 @@ script and config language plugins.
 | Run/Debug | `forge.run` | core |  | always | tool windows: Run; 3 commands; 2 settings; run types: Shell Script |
 | Docker and Kubernetes | `forge.services` | core |  | always | tool windows: Services; 2 commands; 15 settings; 1 main menu entries |
 | Terminal | `forge.terminal` | core |  | always | tool windows: Terminal; 1 commands; 7 settings; 1 keybindings |
+| Vim | `forge.vim` | core | `forge.core` | always | 2 commands; 3 settings; 1 main menu entries |
 | HTML, CSS & JavaScript | `forge.web` | webforge |  | `webforge` | tool windows: npm; 2 commands; 4 settings; 3 LSP servers; run types: npm |
 | React | `forge.react` | webforge | `forge.web` | `react`, `next` |  |
 | Vue.js | `forge.vue` | webforge | `forge.web` | `vue`, `nuxt` | 1 LSP servers |

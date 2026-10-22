@@ -15,7 +15,7 @@
  */
 import type { JSX } from "solid-js";
 import { createSignal } from "solid-js";
-import { searchApi, type RankCandidate } from "@/ipc/search";
+import { exactMatching, searchApi, type RankCandidate } from "@/ipc/search";
 
 export type SearchTab = "classes" | "files" | "symbols" | "actions" | "text";
 
@@ -105,30 +105,74 @@ function candidate(item: SearchItem): RankCandidate {
   return { ...base, text: item.label, ...item.match };
 }
 
-/** Query all providers of a tab and rank their items in Rust. Failing providers are skipped. */
-export async function runSearch(
-  tab: "all" | SearchTab,
-  query: string,
-  opts: { includeNonProject: boolean; perGroup: number },
-): Promise<SearchGroup[]> {
-  const providers = searchProviders().filter((p) => tab === "all" || p.tab === tab);
+interface ProviderResult {
+  provider: SearchProvider;
+  items: SearchItem[];
+}
+
+type RunOptions = { includeNonProject: boolean; perGroup: number };
+
+async function queryProvider(provider: SearchProvider, query: string, opts: RunOptions): Promise<ProviderResult> {
   // Providers that query a backend fetch a bit more than a page, so "… more" is known.
   const limit = opts.perGroup + 1;
-  const results = await Promise.all(
+  try {
+    return { provider, items: await provider.search(query, { includeNonProject: opts.includeNonProject, limit }) };
+  } catch (err) {
+    console.warn(`search provider ${provider.id} failed`, err);
+    return { provider, items: [] };
+  }
+}
+
+/** Query all providers of a tab and rank their items in Rust. Failing providers are skipped. */
+export async function runSearch(tab: "all" | SearchTab, query: string, opts: RunOptions): Promise<SearchGroup[]> {
+  const providers = searchProviders().filter((p) => tab === "all" || p.tab === tab);
+  return rankResults(tab, query, opts, await Promise.all(providers.map((p) => queryProvider(p, query, opts))));
+}
+
+/**
+ * [`runSearch`] that reports the ranked groups every time another provider has answered, so a
+ * fast provider's results show while a slow one is still working. `done` is true on the last
+ * update. Updates arrive in the order the providers finished.
+ */
+export async function runSearchStreaming(
+  tab: "all" | SearchTab,
+  query: string,
+  opts: RunOptions,
+  onUpdate: (groups: SearchGroup[], done: boolean) => void,
+): Promise<void> {
+  const providers = searchProviders().filter((p) => tab === "all" || p.tab === tab);
+  if (!providers.length) {
+    onUpdate([], true);
+    return;
+  }
+  const answered: ProviderResult[] = [];
+  let reported = 0;
+  await Promise.all(
     providers.map(async (provider) => {
-      try {
-        return { provider, items: await provider.search(query, { includeNonProject: opts.includeNonProject, limit }) };
-      } catch (err) {
-        console.warn(`search provider ${provider.id} failed`, err);
-        return { provider, items: [] as SearchItem[] };
+      answered.push(await queryProvider(provider, query, opts));
+      const snapshot = answered.slice();
+      const mine = snapshot.length;
+      const groups = await rankResults(tab, query, opts, snapshot);
+      if (mine > reported) {
+        reported = mine;
+        onUpdate(groups, mine === providers.length);
       }
     }),
   );
+}
+
+async function rankResults(
+  tab: "all" | SearchTab,
+  query: string,
+  opts: RunOptions,
+  results: ProviderResult[],
+): Promise<SearchGroup[]> {
   const { groups } = await searchApi.rank({
     tab,
     query,
     perGroup: opts.perGroup,
     includeDimmed: opts.includeNonProject,
+    exact: exactMatching(),
     sources: results.map(({ provider, items }) => ({
       provider: provider.id,
       tab: provider.tab,

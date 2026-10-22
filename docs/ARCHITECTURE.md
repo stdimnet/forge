@@ -37,7 +37,8 @@ app/ui/            SolidJS UI
   registered with `registerMock` (see `src/mock/`), so every feature works without Rust and can
   be screenshotted.
 - Contribution points (the UI side of plugins):
-  - `registerToolWindow` (`src/features/registry.ts`) — panels on the left/right/bottom stripes.
+  - `registerToolWindow` (`src/features/registry.ts`) — panels on the left/right/bottom stripes
+    (`anchor` and optional `split` are the default place; users move them, see `state/layout.ts`).
   - `registerStatusItem` (`src/features/statusItems.ts`) — status bar widgets.
   - `registerCommand` (`src/state/commands.ts`) — actions with PHPStorm-style ids, bindable to keys.
   - `registerSettingsPage` (`src/features/settingsPages.ts`) — pages in the Settings dialog.
@@ -55,19 +56,30 @@ app/ui/            SolidJS UI
   - `registerRunConfigurationType` / `registerDebugLauncher` (`src/features/run`) — Run/Debug
     configuration types and debuggers (see "Terminal and Run/Debug" below).
 - Tool windows may render tabs next to their title with `headerContent` (Terminal, Run).
-- Keymap focus contexts: `editor`, `input`, `toolwindow`, `global` and `terminal` (xterm.js has
+- Keymap focus contexts: `editor`, `input`, `toolwindow`, `diff` (diff and merge windows, `[data-focus-context="diff"]`; "diff" actions such as Next Difference only fire there), `global` and `terminal` (xterm.js has
   focus). In the terminal plain Ctrl+letter, Alt+letter and Escape go to the shell; function
-  keys, Alt+digit, Ctrl+Shift and Ctrl+Alt combinations still reach the IDE.
+  keys, Alt+digit, Ctrl+Shift and Ctrl+Alt combinations still reach the IDE. With Vim
+  emulation on, the focused editor's Vim takes the keys it needs first (see "Vim emulation").
   - `registerLineMarkerProvider` (`src/editor/lineMarkers.ts`) — gutter icons per line (route on a
     controller action, "go to template", entity <-> repository), recomputed after edits.
+  - `registerProblemsTab({ id, title, order?, count?, visible?, component })`
+    (`src/features/lsp/problemsTabs.ts`) — a tab of the Problems tool window after "Current
+    File" and "Project Errors" (Composer's "Vulnerable Dependencies").
   - `registerDeclarationProvider` (`src/features/lsp/goto.ts`) — framework targets for Ctrl+B /
     Ctrl+Click that a language server cannot resolve (route names, service ids, DQL fields); tried
-    before the LSP. Several targets (from a provider or the language server) open the shared
+    before the language servers and the PHP index (see "Code intelligence" below). Several targets (from a provider or the language server) open the shared
     "Choose Declaration" popup: `chooseDeclarationAt(view, pos, targets, { title?, open? })`
     (`src/features/navigation/chooseDeclaration.ts`; targets `{ path, line, column?, preview? }`,
     0-based). WebForge, LuaForge, Laravel, Symfony, Doctrine and the LSP use it.
   - `claimFrameworkStatus` (`src/features/project-type`) — a framework plugin with its own status
     widget hides the generic "Laravel 12" / "Symfony 7" one.
+  - `registerFileEditor({ id, accepts(path), component })` (`src/shell/editorViews.ts`) — an
+    editor for some text files instead of the plain `CodeEditor` (PHPStorm's file editor
+    providers): Markdown and SVG use `TextEditorWithPreview` (`src/editor`, layout actions
+    `TextEditorWithPreview.Layout.*`), CSV/TSV the Text / Table tabs. The component gets the
+    tab and its editor group and embeds `CodeEditor` itself.
+    `registerBinaryFileView({ view, accepts(path) })` (`src/state/editor.ts`) makes `openFile`
+    open binary files (images) as a view tab without reading text.
   - `openCustomTab({ id: "forge:<kind>/<id>", title, icon?, component })` (`src/state/editor.ts`) —
     editor tabs that show a feature view instead of a file (merge requests, issues). `activeTab()`
     stays file-only; use `isCustomTab(id)` where an id may belong to such a tab.
@@ -131,6 +143,38 @@ app/ui/            SolidJS UI
   `fs_delete({ path })` (a folder with its content; the UI asks first). All paths are
   workspace-relative and refused for the project root or outside it. They back the Project view
   context menu (`features/project/fileMenu.ts`); the browser mock keeps the changes in memory.
+- Editor actions (`src/ipc/editing.ts`, `forge-editing`; offsets are UTF-16 like CodeMirror
+  positions): `editor_postfix_templates() -> TemplateInfo[]` (id `php.if`, key, language,
+  group, description, before/after example); `editor_postfix_complete({ request: { language,
+  line, indent?, disabled? } }) -> { keyFrom, key, items: { id, key, description, from,
+  expression, text, selectionFrom, selectionTo }[] } | null` for `expr.key` at the end of
+  `line` (the caret's line up to the caret); `editor_complete_statement({ request: {
+  language, text, offset, indent? } }) -> { changes, cursor } | null` (Complete Current
+  Statement); `editor_expand_word({ request: { text, offset, others?, backward?, language? }
+  }) -> { from, prefix, candidates }` (Cyclic Expand Word, nearest first). Browser mode runs
+  the same code through `forge-wasm` (`editing_*`).
+- Clipboard history (`src/ipc/clipboard.ts`, `forge_editing::clipboard`, Paste from History):
+  `clipboard_history_add({ entry: { text, carets? }, max? }) -> bool` (dedupes, newest first,
+  keeps `max` = `editor.clipboard.maxContents`; `carets` are the per-caret parts of a
+  multi-caret copy); `clipboard_history_list({ query?, max? }) -> { index, text, carets?,
+  preview, lines, chars }[]`; `clipboard_history_remove({ index }) -> bool`;
+  `clipboard_history_promote({ index }) -> { text, carets? } | null`. Session memory only
+  (`ClipboardState` in `app/src-tauri`, a thread-local in `forge-wasm` for browser mode).
+- File and code templates (`src/ipc/templates.ts`, `forge-file-templates`):
+  `templates_list({ custom? }) -> { templates: TemplateInfo[], variables }` (built-ins merged
+  with the `fileTemplates.custom` setting, or with `custom`, the settings page's draft; each
+  with `kind`, `name`, `extension`, `text`, `builtin`, `modified`, `defaultText`, `when`
+  (project type), `group`, `phpClass`, `variables` (asked for in the New dialog), `references`,
+  `error`); `templates_validate({ text }) -> string | null`;
+  `templates_php_namespace({ dir }) -> string | null` and
+  `templates_php_directory({ namespace }) -> string | null` (PSR-4 rules of the composer.json
+  from `php.composer.json`, read through the backend); `templates_create({ request: { template,
+  dir, name, fileName?, namespace?, extends?, implements?, variables?, context?: { now? } } })
+  -> { path, text }` renders the template and creates the file through the backend (never
+  replaces one). `php_generate` fills `GenerateOptions.codeTemplates` from the setting. Browser
+  mode runs the same code through `forge-wasm` (`templates_*`); the mock writes into the
+  in-memory demo project. The Project view's New submenu asks `providedEntries("project.new",
+  dir)` for the template entries.
 - `fs_find_files({ query, limit? }) -> { path, name, score, positions, matchedPath }[]` — fuzzy
   "Go to File" (camel humps, respects `.gitignore`).
 - `fuzzy_filter({ request: { query, candidates, strict?, preferShorter?, limit? } }) -> { index, text, score, positions }[]`
@@ -142,6 +186,73 @@ app/ui/            SolidJS UI
   — file type id, status bar label, indent, template data language and soft wrapping.
 - `settings_search({ request: { query, pages?, settings?, entries?, highlight? } })` and
   `settings_validate({ key, value }) -> string | null` — the Settings dialog model.
+- Git menu commands (`forge-vcs`, `commands/git.rs`): `git_add_to_gitignore({ paths }) -> string[]`
+  (anchored patterns appended to the repository's root `.gitignore`), `git_create_tag({ name,
+  rev?, message? })`, `git_stash({ message, keepIndex, includeUntracked }) -> string`,
+  `git_stash_list() -> { index, branch, message, time }[]`, `git_unstash({ index, pop,
+  reinstateIndex }) -> string`, `git_drop_stash({ index })`, `git_remotes() -> { name, fetchUrl,
+  pushUrl }[]`, `git_add_remote({ name, url })`, `git_remove_remote({ name })`. They back the
+  Git submenu of the Project view (`features/git/fileMenu.ts`); file actions there run PHPStorm
+  action ids (`CheckinFiles`, `Git.Add`, `Compare.Selected`, …) inside `withVcsTargets`, and the
+  same commands use the focused tree, Commit window or editor (`vcsTargets()`) for shortcuts.
+- Git menu dialogs and the shelf (`forge_vcs::ops`, `repo/ops.rs`, `repo/shelve.rs`,
+  `forge_vcs::shelf`, `commands/git_ops.rs`, UI `features/git/gitDialogs.ts`, `GitDialogs.tsx`,
+  `StashShelfPanels.tsx`, `operation.ts`): `git_pull_with({ options: { remote, branches, rebase?,
+  ffOnly?, noFf?, squash?, noCommit?, noVerify? } }) -> { output }`, `git_merge_with({ options: {
+  branches, noFf?, ffOnly?, squash?, message?, noCommit?, allowUnrelatedHistories?, noVerify? }
+  }) -> string`, `git_rebase_with({ options: { onto, from?, branch?, root?, rebaseMerges?,
+  keepEmpty?, updateRefs? } }) -> string` (incompatible options are rejected in Rust; conflicts
+  fail and leave unmerged files for the resolver), `git_operation_state() -> { operation:
+  "rebase" | "merge" | "cherryPick" | "revert" | null, branch, onto }` (branch widget label
+  `branchLabel()` in `state/vcs.ts`), `git_operation_action({ action: "continue" | "abort" |
+  "skip" })`, `git_reset_head({ rev, mode: "soft" | "mixed" | "hard" | "keep" })`,
+  `git_tag_with({ options: { name, commit?, message?, force? } })`, `git_resolve_commit({ rev })
+  -> sha | null`, `git_edit_remote({ oldName, name, url })`, `git_stash_files({ index }) ->
+  ChangedFile[]`, `git_stash_file({ index, path }) -> { before, after }`, `git_stash_clear()`,
+  `git_stash_branch({ index, branch })`; shelf (stored in `<data dir>/forge/projects/<name>-
+  <hash>/shelf/<id>/{changes.json, shelved.patch}`, never in the project): `git_shelf_list() ->
+  { id, name, date, branch, files: { path, status: "added" | "modified" | "deleted", binary }[]
+  }[]`, `git_shelve({ paths, name })`, `git_unshelve({ id, paths?, remove })` (plain `git apply`,
+  else `--3way`), `git_shelf_delete({ id })`, `git_shelf_rename({ id, name })`,
+  `git_shelf_file({ id, path }) -> { before, after, binary }`. Browser mode: `mock/gitOpsMock.ts`
+  (`?rebasing` starts in a stopped rebase).
+- Merge conflicts (`forge_vcs::merge`, `Repo::conflicts`, `features/git/conflicts.ts`):
+  `git_conflicts() -> { operation: "merge" | "rebase" | "cherryPick" | "revert" | "unstash",
+  description, yoursName, theirsName, yoursTitle, theirsTitle, reversed, files: { path, yours,
+  theirs: "modified" | "added" | "deleted" }[] }` (yours is git's `theirs` in a rebase);
+  `git_merge_file({ path }) -> { path, yoursTitle, theirsTitle, base?, yours?, theirs?, binary,
+  crlf, model?: { chunks: { kind: "left" | "right" | "both" | "conflict", base, left, right
+  (0-based line ranges), baseText, leftText, rightText, simple? }[], changes, conflicts,
+  simpleConflicts } }` (stage versions `:1:`/`:2:`/`:3:` with `\n` line breaks and their
+  three-way merge; `simple` is the word-level merge of "Resolve Simple Conflicts");
+  `git_accept_conflict_side({ paths, side: "yours" | "theirs" })` (checkout of that stage and
+  `git add`, or `git rm` when that side deleted the file); `git_resolve_merge({ path, text,
+  crlf })` writes the merged result through the backend and stages it. The merge window keeps
+  the chunk positions and applied/ignored sides in a CodeMirror state field
+  (`features/git/mergeState.ts`, undoable); its actions use the keymap's `diff` focus context
+  (`[data-focus-context='diff']`: `NextDiff`/`PreviousDiff` on `F7`/`Shift+F7` there,
+  `Diff.ApplyNonConflicts[.Left|.Right]`, `Diff.MagicResolveConflicts`). Browser mode runs the
+  merge as WebAssembly (`vcs_merge`); merging `feature/checkout-flow` in the demo (or
+  `?conflicts`) stops with conflicts.
+- History and comparisons (`forge_vcs` `repo/history.rs`, `forge-diff`, `commands/git_history.rs`,
+  `commands/compare.rs`): `git_file_history({ path, dir, query: { skip?, limit? } }) ->
+  { sha, parents, author, email, time, subject, files: ChangedFile[] }[]` (files follow renames;
+  for a folder every changed file below it), `git_block_history({ path, start, end }) ->
+  { sha, parents, author, email, time, subject, path, before: string | null, after, startLine }[]`
+  (`git log -L`, lines as in `HEAD`), `git_blame_revision({ rev, path }) -> Blame`,
+  `git_changes_since({ rev, path }) -> ChangedFile[]` (rev against the working tree),
+  `compare_dirs({ left, right }) -> { entries: { path, dir, depth, status: "equal" | "different" |
+  "leftOnly" | "rightOnly", leftSize, rightSize, leftModified, rightModified }[], truncated }`
+  (computed where the files are: `Backend::compare_dirs`, agent call `CompareDirs`) and
+  `compare_copy({ from, to, dir })`. History tabs live in the Git tool window
+  (`features/git/history.ts`); files of a revision open as read-only `gitrev://<sha>/<path>`
+  tabs. `CompareTwoFiles` (`Ctrl+D`) runs the handler registered for the focused view with
+  `registerCompareHandler(selector, run)` (`features/compare/state.ts`), else compares the
+  Project view selection (`projectTree.selectedPaths()`, Ctrl+click adds rows); the Project
+  view menu asks `providedEntries("project.compare", entry)` below Reload from Disk.
+- Context-dependent menu entries: `registerContextMenuProvider(menuId, (context) => MenuEntry[])`
+  (`features/contextMenu/state.ts`); the Project view asks `providedEntries("project", entry)`
+  for its menu. `item(label, run, actionId, { disabled, shortcutAction })` shows greyed-out items.
 
 - `ai_complete({ request: { system?: string, messages: { role: "user" | "assistant", content: string }[], provider?: string, model?: string, maxTokens?: number } }) -> string`
   — one-shot completion with the default (or given) provider. Used by e.g. AI commit messages.
@@ -183,9 +294,97 @@ app/ui/            SolidJS UI
   `markdown_hover({ markdown }) -> { definition?, signature?, body, sections, deprecated? }` return a
   safe AST (no raw HTML) that the UI renders with Solid components (`features/lsp/MarkdownDoc.tsx`,
   `features/ai-chat/Markdown.tsx`); see `app/ui/src/ipc/markdown.ts`.
+  `markdown_document({ text }) -> { blocks, lines: { start, end }[], frontMatter?: { format,
+  entries: { key, value }[], endLine }, footnotes?: { label, index, blocks, line }[] }` is the
+  Markdown preview (`Flavor::Preview`: GitHub-flavored tables, task lists, footnotes, autolinks,
+  alerts, heading `id`s, `image` inlines; raw HTML sanitized into the AST); `lines[i]` are the
+  0-based source lines of `blocks[i]` for synchronized scrolling.
+  `markdown_anchor_line({ text, anchor }) -> number | null` finds a heading for links like
+  `guide.md#install` (`features/markdown`).
+- File viewers (`forge-viewers`, `src/ipc/viewers.ts`): `image_read({ path }) -> { info: {
+  format, mime, width, height, size, bitDepth? }, base64 }` reads an image through the backend
+  (remote projects work; images over 32 MB are refused) for the image editor and Markdown
+  images. `csv_parse({ text, path?, delimiter? }) -> { rows, quoted, delimiter, eol,
+  trailingNewline, columns }`; `csv_edit({ text, delimiter, edits }) -> string` applies
+  `setCell` / `insertRow` / `removeRows` / `insertColumn` / `removeColumns` and writes untouched
+  cells exactly as they were; `csv_sort_order({ rows, column, descending, headerRows }) ->
+  number[]` is the display order of a sorted column. Browser mode runs the same code through
+  `forge-wasm`.
 - Editor navigation: `openFileAt(path, line?, column?, { flash?, focus? })` from
   `src/editor/views.ts` opens a workspace-relative file, puts the caret at the 1-based position,
   centers it and briefly flashes the line.
+- TODO tool window (`src/ipc/workbench.ts`, `forge-find::todo`): `todo_scan({ request: {
+  patterns?: { pattern, caseSensitive? }[], paths?, buffers?, limit? } }) -> { files: { path,
+  items: { line, column, length, text, pattern }[] }[], count, truncated, error? }` — comments
+  only, `.gitignore` respected, through `Backend::find_todos` (agent call `FindTodos`, protocol
+  4). `paths` rescans single files (live updates); `buffers` are unsaved editor contents that
+  replace the files on disk. Browser mode runs the same scanner as WebAssembly.
+- Bookmarks (`src/ipc/workbench.ts`, `forge-bookmarks`): `bookmarks_get() -> Bookmarks` and
+  `bookmarks_apply({ ops: BookmarkOp[] }) -> Bookmarks` (`toggle`, `setMnemonic`, `remove`,
+  `clear`, `describe`, `moveToList`, `addList`, `renameList`, `removeList`, `setDefaultList`,
+  `applyEdits` with line edits in old-document coordinates, `renamePath`, `removePath`). Stored
+  in `<data dir>/forge/projects/<name>-<hash of the root>/bookmarks.json`, never in the
+  project.
+
+## Scopes, file colors, Structural Search and Analyze Stack Trace
+
+- **Scopes** (`crates/forge-scopes`, pure): PHPStorm's scope language (`file:`, `src:`,
+  `test:`, `lib:` path patterns with `*`, `?` and `//`, `&&`, `||`, `!`, parentheses),
+  `Predefined` scopes, named scopes from the settings `scopes.shared` (project) and
+  `scopes.local` (user), Include / Exclude editing, the preview tree and file colors. A
+  search carries a `ScopeFilter { scope: { predefined } | { pattern }, context: { testRoots,
+  openFiles, changedFiles, currentFile } }`: `FindRequest.scope` (Find in Files, the Find
+  window and Replace in Files; applied in `Finder::wants`, so the index, the walk and the agent
+  honor it), `SsrRequest.scope` and, for Find Usages, `UsageScope { kind: custom, pattern,
+  scopeName, testRoots }` (a pattern with `:` is the scope language, otherwise globs). The UI
+  (`features/scopes/model.ts`) resolves a named scope to its pattern and calls the crate
+  synchronously through WebAssembly in both modes (`scopes_entries`, `scopes_check`,
+  `scopes_edit`, `scopes_tree`, `scopes_contains`, `file_colors_resolve`). IPC:
+  `scopes_files({ limit? }) -> string[]` (`Backend::list_files`, agent call `ListFiles`) and
+  `scopes_test_roots() -> string[]` (`composer.json` `autoload-dev`).
+- **File colors**: `fileColors.enabled`, `useInEditorTabs`, `useInProjectView`,
+  `fileColors.local` (default Non-Project Files: Yellow, Tests: Green) and
+  `fileColors.shared`; `forge_scopes::colors::resolve` picks the first row whose scope
+  contains a file or a whole folder. The UI sets `--file-color` on editor tabs and Project
+  view rows (`tabColor`, `projectViewColor`) from the palette variables `--file-color-*` of
+  `theme.css`.
+- **Structural Search and Replace** (`crates/forge-ssr`, tree-sitter PHP, JavaScript,
+  TypeScript/TSX behind the `engine` feature): `ssr_templates() -> SavedTemplate[]`,
+  `ssr_check({ request }) -> { variables, unknownInReplacement?, error? }`,
+  `ssr_search({ request: SsrRequest }) -> SsrResult` (`Backend::structural_search`, agent call
+  `StructuralSearch`, so remote projects are parsed on their host) and
+  `ssr_replace({ request }) -> ReplaceDone` (`forge_backend::ssr::replace_all`; the undo goes
+  to the same state as Replace in Files, `undo_replace`). `SsrRequest { template, fileType,
+  constraints: { name, minCount, maxCount|null, text, invertText, type, invertType }[],
+  matchCase, replacement?, scope?, buffers?, limit }`; matches carry line/column (UTF-16),
+  byte offsets, the listed line with ranges, bindings and the `replacement`. The UI
+  (`features/ssr`) shows them as a Find tool window tab (`openInFindWindow` with `actions`:
+  Replace All; `UsageRow.after` for Preview Replacement). Browser mode cannot build the C
+  grammars to WebAssembly: `forge-wasm` has the library and `variables`, the mock approximates
+  matches with a regular expression.
+- **Analyze Stack Trace** (`forge_output::stacktrace`, pure): `stacktrace_analyze({ text }) ->
+  { lines: ConsoleLine[], kind, frames, resolved }`. The command maps paths with the PHP
+  servers' mappings (`.forge/php-servers.json`), the bind mounts of the root Compose file and
+  the backend's root, and checks candidates with `Backend::list_dir` (cached per folder); the
+  UI opens the lines in a Run tool window tab without a process (`openOutputTab`, Rerun
+  reopens the dialog). Browser mode runs the analyzer as WebAssembly over the demo files.
+
+## Workbench: editor groups, Find, TODO and Notifications
+
+- Split editors: `state/editor.ts` keeps one document per file (`editor.tabs`) shared by every
+  editor group; `state/tabGroups.ts` is the tab layout as plain data (groups, active and
+  recently used tabs, pinned tabs, tab limit and closing policy from `editor.tabs.*`). Each
+  group renders its own CodeMirror view; `editor/docSync.ts` forwards the changes of one view
+  to the other views of the same file as synced transactions (one undo history per view).
+  `features/editorTabs` registers the tab context menu, Window | Editor Tabs actions and
+  Recent Locations (`Ctrl+Shift+E`, places shifted through edits).
+- Find tool window (`features/codeintel`): tabs of usages or Find in Files matches
+  (`openInFindWindow(answer, { kind: "usages" | "text", rerun? })`), Next/Previous Occurrence.
+- Notifications: `showBalloon` (`keymap/dispatch.ts`) logs every balloon in
+  `state/notifications.ts` (group, type, time, actions, read state; at most 200) and asks the
+  group's display mode (`notifications.balloons`, `notifications.groups`: balloon, sticky or
+  log only). `balloonsFor(group)` gives a feature its own group; git balloons use "Version
+  Control". `features/notifications` renders the tool window.
 
 ## Startup splash and updates (`forge-update`)
 
@@ -289,8 +488,35 @@ app/ui/            SolidJS UI
     detection (`node_modules/.bin`, PATH, npm/nvm/volta, …) and config building run on the
     project's machine (`Call::LangServers` with the `langservers.*` settings, disabled
     plugins and the running servers' states); the servers then start there through the LSP
-    byte channel. Installing from the settings page is refused for remote projects (install
-    on the host from the terminal).
+    byte channel. **Installs** run where the servers run: `Backend::install_langserver`
+    (`forge_backend::langservers::install`: `forge_langservers::managed` downloads Node.js and
+    npm packages with integrity checks into the host's Forge directories) is
+    `Call::LangServerInstall { channel, request }` in the agent, whose steps, output and
+    download progress stream back as `Event::Install { channel, event }`; closing the channel
+    cancels it. `Call::LangServerUpdates` checks the host's installed packages. The Intelephense
+    licence is still accepted in the UI before the call.
+  - **WebForge** (`forge_backend::web`): `LocalWeb` loads and caches (5 s) the project's script,
+    template and manifest files next to them and answers `Call::Web(WebCall)`: npm packages
+    with scripts and package manager detection, React / Vue / Angular components, Go to
+    Declaration and gutter marks (the editor buffer travels with the request). npm scripts run
+    as run configurations through `Backend::start_process`.
+  - **Language indexes**: `Call::CollectFiles(CollectRequest)` returns the text of every
+    project file with some extensions in one reply (gitignore-aware, limits on count, file size
+    and total bytes); the Lua index is built from it. StyLua runs through
+    `process_io::capture` with `Backend::find_executable`, so on the host.
+  - **Services** (`forge_containers::project::ProjectHost`, the app's `BackendProject`): compose
+    files and `.env` are read through the backend and `docker compose` / `docker build` run
+    with `Backend::start_process` on the host. With `docker.remoteProjectHost` the hub uses
+    `Endpoint::ProjectHost`: the Docker Engine API over `Tunnels::open_socket`
+    (`direct-streamlocal` to the host's socket on the project's SSH session), and exec
+    terminals carry `TerminalCommand.on_host`; otherwise they open with `local: true` on this
+    machine.
+  - **HTTP client**: environment and `< file` bodies are read through the backend; with
+    `httpClient.sendFrom = remote` (default) each request goes through
+    `Tunnels::forward_local` (a `direct-tcpip` channel per connection) to the URL's host and
+    port as the host sees them (`forge_scratches::client::send_via`: the original host stays
+    the `Host` header and TLS name).
+  - **Code hosts** detect the repository with git through the backend; API calls stay local.
   - **Project settings and `.forge/` files** go through `forge_core::ProjectFiles`
     (`LocalFiles`, `forge_backend::BackendFiles`): `.forge/settings.toml`
     (`Settings::load_project_files`), `.forge/dataSources.toml` and `.env` (database tools),
@@ -307,16 +533,29 @@ app/ui/            SolidJS UI
     `BackendHost`) finds them with `Backend::find_executable` and starts them with
     `process_io::spawn_stdio` (async stdin/stdout/stderr over the process API;
     `Call::ProcessCloseStdin` ends the input of per-turn CLIs).
-  - The Browser Companion's project profile and `.env` edits use the backend; opening files
-    from the browser still targets local projects. `AppState::with_workspace` is left for
-    WebForge sources, StyLua, code hosts, Docker services and HTTP scratch environments,
-    which fail for remote projects with "not available in remote projects yet".
+  - The **Browser Companion**'s project profile and `.env` edits use the backend; files the
+    browser reports are mapped to the remote project (`forge_open::resolve_remote`: paths below
+    the host root, relative paths, or the longest existing tail of another machine's or a
+    container's path, checked with `list_dir`), and symbol lookups use `find_files` /
+    `read_file` (`forge_open::symbols::SymbolSource`). `AppState::with_workspace` and its
+    "not available in remote projects yet" error are gone; `local_workspace()` only answers
+    questions about this machine.
 - Protocol (`forge_backend::protocol`, version `PROTOCOL_VERSION`): frames are a big-endian
   `u32` length + a MessagePack map (`rmp_serde::to_vec_named`). `Request { id, call }` /
   `Response { id, result }` (answers in any order; the result is the MessagePack encoding of
   the call's reply type; protocol 2 added `ReadOptional`, `ProcessCloseStdin`,
-  `FindExecutable`, `Framework` and `LangServers`), `Event` (`FsChanged`, `Pty`, `Run`,
-  `PhpIndexProgress`), `Data` /
+  `FindExecutable`, `Framework` and `LangServers`; protocol 3 added `FindInFiles` and the PHP
+  navigation calls `Usages`, `Navigate`, `Definition`, `LineMarkers` and `Intentions`;
+  protocol 4 added `FindTodos`, `CollectFiles`, `Web`, `LangServerInstall` and
+  `LangServerUpdates`; protocol 5 added `FindStart`, `FindPage`, `FindSymbols` and
+  `SearchStatus`, and `exact` on the search calls; protocol 6 added `ReadBytes` / `WriteBytes`
+  (files in other encodings than UTF-8) and `TerminalSpec.shell_integration`; protocol 7 added
+  the PHP index's `Hierarchy` call), `Event`
+
+  (files in other encodings than UTF-8) and `TerminalSpec.shell_integration`; protocol 7
+  added `PhpCall::Highlights` and the Find Usages `options` of `PhpCall::Usages`; protocol 8
+  added `ListFiles`, `StructuralSearch` and the `scope` of `FindRequest`), `Event`
+  (`FsChanged`, `Pty`, `Run`, `PhpIndexProgress`, `Install`), `Data` /
   `Close { channel }` (language server stdio, terminal and process input; channel ids are chosen
   by the client). The connection starts with `Call::Hello`. `forge_backend::rpc::RpcClient`
   is the client (async `call`, `call_blocking`, events, channels); `forge_remote_agent::serve`
@@ -418,7 +657,16 @@ app/ui/            SolidJS UI
   Output arrives on `terminal://<id>` as `{ type: "output", data } | { type: "exited", code }`; pass
   your own `id` to subscribe before the shell starts. Defaults: `terminal.shellPath` or `$SHELL` /
   pwsh / `%ComSpec%`, start directory `terminal.startDirectory` or the project root, extra
-  variables from `terminal.environment`.
+  variables from `terminal.environment`. Every session (local or on a remote agent) gets
+  `forge_process::termenv`'s environment (`TERM_PROGRAM=Forge`, `TERM_PROGRAM_VERSION`, a UTF-8
+  `LANG` fallback, other terminals' variables removed); `close` sends SIGHUP and SIGKILL after
+  a grace period. With `terminal.shellIntegration` bash and zsh start with Forge's scripts
+  (`forge_process::integration`, written to the cache dir of the machine the shell runs on),
+  which report OSC 7 (working directory) and OSC 133 (prompt, command start, exit code).
+- Terminal sequences: OSC 9;4 progress, OSC 9 / 777 notifications, OSC 7 working directories,
+  OSC 133 boundaries and OSC 8 link targets are parsed by `forge_output::osc`, which the UI calls
+  synchronously through WebAssembly (`terminal_parse_osc`, `terminal_link_target`) from
+  xterm.js's OSC handlers. The `terminal.progress` status item and the stripe badge render it.
 - Configurations: `run_configurations_load() -> { configurations, selected?, templates? }` and
   `run_configurations_save({ configurations })`. Shared ones ("Store as project file") are written
   to `<project>/.forge/runConfigurations.toml`, local ones, the selection and templates to
@@ -429,7 +677,8 @@ app/ui/            SolidJS UI
   { runId, commandLine }` streams `run://<runId>`: `{ type: "started", pid, commandLine }`,
   `{ type: "output", stream: "stdout" | "stderr", text }`, `{ type: "exited", code, signal }` and
   what the UI renders, computed by `forge-output` (re-exported as `forge_process::output`):
-  `{ type: "console", replaceLast, lines: { segments: { text, style, link? }[] }[] }` (ANSI styles,
+  `{ type: "console", replaceLast, lines: { segments: { text, style, link? }[] }[], dropFront? }`
+  (`dropFront`: the oldest lines leave the console cycle buffer, `run.console.cycleBufferKb`; ANSI styles,
   `\r` progress lines, file links resolved into the project and URLs) and, with `testRunner`,
   `{ type: "tests", nodes, summary }` (test tree node updates from TeamCity service messages,
   parents first, plus the status line). `output_file_links({ text })` finds file links in a
@@ -538,10 +787,10 @@ app/ui/            SolidJS UI
   merged into the server settings; `initializationOptions` key for startup options). Global:
   `langservers.autoStart`, `langservers.scanLimit`, `langservers.lua.environment|version`,
   `langservers.hints.enabled|dismissed`.
-- Install hint: files that use a feature only a server provides (a JSON `"$schema"`, a YAML
-  `# yaml-language-server: $schema=` modeline) get a banner above the editor when that server is
-  not installed (`src/features/langservers/hints.ts`, `serverHint.ts`). Add an entry to
-  `SERVER_HINTS` for another server. "Install…" opens the install dialog (`requestInstall`),
+- Install hint: files that use a feature only a server provides get a banner above the editor
+  when that server is not installed (`src/features/langservers/hints.ts`, `serverHint.ts`). Add
+  an entry to `SERVER_HINTS` for a server (it is empty: `$schema` and YAML schema modelines are
+  handled by Forge's own JSON Schema support). "Install…" opens the install dialog (`requestInstall`),
   "Not now" hides it until Forge restarts, "Don't show again" stores the server id in
   `langservers.hints.dismissed`.
 - IPC: `langservers_list() -> ServerRow[]`, `langservers_apply() -> ServerRow[]` (re-plan after
@@ -558,6 +807,227 @@ app/ui/            SolidJS UI
   `commands::langservers::with_intelephense_licence(&mut config)`. A plaintext
   `php.lsp.licenceKey` setting (or the PHP page's old localStorage value) is migrated once.
 - Events: `lsp://diagnostics` `{ path, diagnostics }` and `lsp://status` `ServerStatus[]`.
+
+## Code intelligence: navigation and usages (`forge-codeintel`)
+
+PHPStorm's navigation for every language, with the PHP index as fallback for PHP files. Rust
+computes everything; `app/ui/src/features/codeintel` and `features/lsp/goto.ts` render.
+
+- `crates/forge-codeintel` (pure, also WebAssembly): `UsageKind` and `classify_usage`
+  (PHPStorm's usage types from the line around a reference), `group_usages` (the tree by usage
+  type and file, without the declaration), workspace edits with LSP positions, context action
+  ordering, the Find Usages settings (`usage_options`: `UsageOptions` per `ElementKind`,
+  `UsageScope`, `text_occurrences`, `apply_options`) and highlighting (`highlight`: read /
+  write access, `exit_points`, `lexical_highlights`).
+- `packs/phpforge/lang-php`: `navigate` resolves the symbol at a position on the index
+  (classes through imports, aliases, group uses and the namespace; functions and constants with
+  PHP's global fallback; members through `$this`, `self`/`static`/`parent`, typed variables,
+  `catch`, `@var`, property and return-type chains; variables) and answers `definition`
+  (`PhpDefinition { onDeclaration, range, title, targets, external?, info? }`), `find_usages`,
+  implementations, super methods, type declarations and `line_markers`. Names the index does not
+  declare come back as an `ExternalSymbol` (class / function / constant candidates, or a member
+  of candidate classes); `stubs::StubIndex` answers them from a phpstorm-stubs folder. These run
+  through `forge_backend::PhpBackend` (`PhpCall::Definition`, `LineMarkers`, `Usages`,
+  `Navigate`), so remote projects answer from the agent; the stubs live on this machine.
+- PHP stubs (`forge_langservers::managed::stubs`, app state `commands::library::LibraryState`):
+  `php.stubs.path`, else a pinned JetBrains phpstorm-stubs release downloaded on first use into
+  `<cache dir>/forge/php-stubs/<version>` (the unpacked files are checked against a pinned
+  `content_digest`, which `git archive <commit>` reproduces; `LICENSE` kept), else
+  Intelephense's own `lib/stub`. Progress is reported as
+  `langservers://install-progress` with id `php-stubs`. Indexed once per folder.
+- Library files: `library://php-stubs/<path>` (the stubs) and `library://file/<absolute path>`
+  (a file outside the project a language server pointed to; only paths handed out by a
+  navigation answer can be read). The UI registers a read-only `FileSystemProvider` for
+  `library://` with a "Read-only library file" banner and breadcrumbs
+  `PHP Runtime › Core › Core_c.php › Throwable`. Language server and PHP index editor
+  extensions skip library tabs.
+- IPC (`app/ui/src/ipc/codeintel.ts`; positions are LSP positions):
+  - `code_goto_declaration({ path, line, character, content? }) -> { onDeclaration, title?,
+    targets: NavTarget[], source: "lsp" | "index" | "stubs" | "none", message? }` — language
+    servers' `definition` first (a location containing the caret means "on a declaration"),
+    then the PHP index, then the stubs. `NavTarget` is `{ path, line, column, name, container? }`.
+  - `code_symbol_info({ path, line, character, content? }) -> { range, container, signature } |
+    null` — the Ctrl+hover link from the index (and the loaded stubs, never a download).
+  - `code_find_usages({ path, line, character, content?, buffers?, options?, scope? }) -> {
+    title, source, declaration?, byType: UsageTree, byFile: UsageTree, element, scope }` —
+    `references` of the servers, else the index (members also through parent and child
+    classes; unknown receivers as dynamic usages). `options` are the `findUsages.options.*`
+    settings by field name (`UsageOptions`; Rust applies those of the element: usages of a
+    class's methods / fields, derived / implementing classes, derived interfaces, overriding
+    methods through `PhpCall::Usages { options }`, read / write access, comments and strings,
+    text occurrences found with `Backend::find_in_files`); `scope` is `UsageScope { kind:
+    projectFiles | projectAndLibraries | openFiles | currentFile | recentlyChangedFiles |
+    directory | custom, directory, includeSubdirectories, pattern, currentFile, openFiles,
+    changedFiles }`, `scope` in the answer its label ("Directory 'app'").
+  - `code_highlight_usages({ path, line, character, content? }) -> HighlightAnswer | null` —
+    Highlight Usages in File and the element at the caret: exit points on `return` / `throw`,
+    `documentHighlight` of the servers, else the PHP index (`PhpCall::Highlights`, also
+    implementing / overriding methods on `implements` / `extends`), else the lexical fallback.
+    `HighlightAnswer { target: usages | exitPoints | implementingMethods | overridingMethods,
+    title, highlights: { range, kind: read | write | text }[], source, element, summary }`.
+  - `code_usage_target({ path, line, character, content? }) -> { element, title, label,
+    fields: { key, label, section: find | options }[], scoped } | null` — the Find Usages
+    dialog's checkboxes for the element at the caret.
+  - `code_navigate({ path, line, character, kind: "implementation" | "superMethod" |
+    "typeDeclaration", content? }) -> { targets, missing? }` — `missing` explains a server
+    without the feature (Intelephense Premium) when the index found nothing either.
+  - `code_line_markers({ path, content? }) -> { line, kind: "subclassed" | "implemented" |
+    "overridden" | "implements" | "overrides", title, targets }[]` — PHP gutter icons.
+  - `library_read({ path }) -> { text, library, detail }`.
+  - Hierarchies (`app/ui/src/ipc/hierarchy.ts`, `commands/hierarchy.rs`, model in
+    `forge_codeintel::hierarchy`): `code_type_hierarchy({ path, line, character, content? })`
+    and `code_method_hierarchy(…)` `-> { title, graph: TypeGraph | null, source, message? }`
+    (`TypeGraph { root, types: { item, extends, implements, method? }[], method? }`);
+    `code_call_hierarchy(…) -> { title, root: HierarchyItem | null, source, message? }` and
+    `code_call_hierarchy_calls({ item, direction: "callers" | "callees" }) -> CallNode[]`
+    (`{ item, calls: { path, range, preview }[] }`, one level per call). Language servers
+    (`LspManager::type_graph`, `call_root`, `call_nodes`; items carry the server's item as
+    `handle`) first, the PHP index (`PhpCall::Hierarchy`, `phpforge_lang_php::hierarchy`)
+    for PHP files, merged (`merge_type_graphs`, `merge_call_nodes`). The Hierarchy tool window
+    (`features/hierarchy`, right side) computes its trees with `forge_codeintel::hierarchy`
+    through WebAssembly (`hierarchy_type_view`, `hierarchy_method_view`,
+    `hierarchy_call_view`), so views, scopes and sorting need no new query.
+  - Documentation actions of the View menu (`forge_codeintel::docs`):
+    `code_external_doc({ path, line, character, content? }) -> { url?, name? }` (Shift+F1; PHP
+    symbols resolved like `code_goto_declaration`),
+    `code_quick_definition({ path, line, character, content? }) -> { title?, definitions:
+    { path, line, column, name, container?, startLine, text, truncated }[], message? }`
+    (Ctrl+Shift+I; on a declaration: the declaration itself),
+    `code_type_info({ path, line, character, content? }) -> string | null` (Ctrl+Shift+P; the
+    servers' hover, else the PHP index's signature) and
+    `code_context_info({ path, line, content? }) -> { line, text }[]` (Alt+Q).
+  - `code_related({ path, content? }) -> { kind, group, name, path, line, column }[]` —
+    Related Symbol (Ctrl+Alt+Home, `forge_codeintel::related`): tests, views, templates,
+    routes, migrations, factories, policies, stories and styles. It is a
+    `FrameworkCall::Related`, so the project's files are listed and read where they are (the
+    agent for a remote project). The UI (`features/related`) opens one result directly and
+    several in the shared chooser, grouped (`DeclarationTarget.group`).
+  - `code_prepare_rename({ path, line, character, content? }) -> { range?, placeholder?,
+    invalid, message?, missing?, source: "lsp" | "index", occurrences, label?, classFile?,
+    sigil }` — starts Rename (Shift+F6): the server's `prepareRename` and the occurrences in the
+    file (a rename to the same name); PHP files fall back to the PHP index when the server
+    cannot rename (`missing`, Intelephense without a licence) or none runs. `$` is not part of
+    the ranges (`sigil`).
+  - `code_rename({ path, line, character, newName, buffers?, renameFile? }) -> { edit, preview,
+    conflicts, source, missing?, fileRename?, skipped }` — the server's edit, else the index's
+    (`forge_codeintel::edit_from_locations` over `find_usages`); invalid names are errors. A class
+    file named after the class is renamed with it (`fileRename`, in `edit` unless `renameFile`
+    is false). `conflicts` lists overlapping edits, renames onto existing files and name clashes
+    (`phpforge_lang_php::rename::clashes`).
+  - Extract / Introduce and Inline (`app/src-tauri/src/commands/refactor.rs`,
+    `phpforge_lang_php::refactor`: pure functions over the tree-sitter syntax tree with byte
+    offsets; call sites and usages come from the PHP index through the backend, so remote
+    projects work): `refactor_introduce_prepare({ path, kind: "variable" | "constant" | "field" |
+    "parameter", start, end, content }) -> { expressions: { range, text }[], info? }` (several
+    expressions at the caret: the "Expressions" popup; `info`: occurrences, name suggestions,
+    field init places, call sites), `refactor_introduce({ ..., options: { name, replaceAll,
+    visibility?, init?, defaultValue? }, buffers? }) -> RefactorAnswer`,
+    `refactor_extract_method_prepare({ path, start, end, content }) -> ExtractMethodInfo`
+    (parameters, returned variables, `usesThis`, duplicates), `refactor_extract_method({ ...,
+    options: { name, visibility?, isStatic, parameters: { original, name }[], replaceDuplicates }
+    }) -> RefactorAnswer`, `refactor_inline_prepare({ path, position, content, buffers? }) -> {
+    kind, title, name, onReference, occurrences, readOnly }` and `refactor_inline({ ..., mode:
+    "all" | "allKeep" | "this" }) -> RefactorAnswer`. `RefactorAnswer` is `{ edit, preview,
+    conflicts, nameRanges, skipped }`; `nameRanges` are the new name's ranges in the current file
+    after the edit (the in-place name of Introduce Variable). Errors are PHPStorm's "Cannot
+    perform refactoring. …" hints. Other languages: `code_refactor_actions({ path, line,
+    character, endLine, endCharacter, refactoring }) -> ContextAction[]`, the servers'
+    `refactor.extract.*` / `refactor.inline.*` code actions for a Refactor menu action
+    (`forge_codeintel::refactor_actions`).
+  - Move, Copy, Safe Delete, Change Signature and Make Static
+    (`app/src-tauri/src/commands/refactor_move.rs`, `phpforge_lang_php::refactor::project` over
+    the `Project` trait: Find Usages, Go to Declaration, symbol search and files through the
+    backend, so remote projects work; the plan is `FileOp`s (byte edits, create, rename,
+    delete) and conflicts, turned into a `RefactorAnswer`): `refactor_move_prepare({ path,
+    position, content, copy? }) -> { kind: "class" | "members" | "function", class?, members?,
+    function? }` (the declaration's path and name position, also from a reference),
+    `refactor_move_class({ path, position, content?, targetNamespace, targetDirectory,
+    searchInComments })`, `refactor_copy_class({ ..., newName, targetNamespace,
+    targetDirectory })`, `refactor_move_members({ ..., members, target })`,
+    `refactor_move_function({ ..., target })`, `refactor_move_files({ moves: { from, to }[],
+    searchForReferences, searchInComments }) -> { answer, files }` (text edits for the paths
+    after the move; the UI moves the files first), `refactor_safe_delete_prepare({ path,
+    position, content, searchInComments }) -> { kind, name, message, count, inComments,
+    usages: UsagesAnswer, answer, paths }` and `refactor_safe_delete_files({ paths,
+    searchInComments })` (`paths`: folders and files the UI deletes itself),
+    `refactor_change_signature_prepare(...) -> SignatureInfo & { path, position, signature }`,
+    `refactor_change_signature({ ..., options: { name, visibility?, returnType, parameters: {
+    original, name, typeHint?, defaultValue?, callValue?, byRef?, variadic? }[] } })`,
+    `refactor_make_static_prepare(...) -> { name, className, usesThis, fields, needsObject,
+    parameter, path, position }` and `refactor_make_static({ ..., options: { objectParameter?,
+    fieldParameters } })`. All take `buffers` (unsaved editors). `fs_copy({ from, to })` copies
+    a file or folder through the backend (never replaces).
+  - `code_plan_edit({ edit, open }) -> EditPlan` — how the UI applies an edit: the text edits of
+    open editors, the backend's part (`code_apply_edit`), files to save first and tabs to
+    reopen or close. `code_apply_edit({ edit, skip? }) -> AppliedFile[]` (all or nothing) and
+    `code_revert_edit({ files })` (refused when a file changed since) write through the backend.
+  - `code_context_actions({ path, line, character, endLine?, endCharacter?, content? }) -> {
+    actions, bulb?: "fix" | "intention", missing? }` — the servers' code actions and the PHP
+    intentions in PHPStorm's order ("fix all" variants in `children`); `code_resolve_action`
+    fills an edit, `code_execute_command` runs a command (edits it makes arrive as
+    `lsp://apply-edit` and are applied like any other edit). An action may carry `caret: {
+    path, range }` (where the caret goes after the edit, opening that file) and `data` (the
+    arguments of its UI `action`, run by a handler from `registerContextActionHandler`; such
+    an entry is a fix, not a link).
+  - Create from usage (`phpforge_lang_php::create`, part of the PHP intentions): "Create
+    method / field / constant / enum case / function" edit the current file or, as a
+    workspace edit, the target class's file; "Create class / interface / trait" is the
+    action `PhpCreateClass` with `{ name, namespace, template, extends?, import, path }`,
+    which opens the Create New PHP Class dialog (`features/fileTemplates`); afterwards
+    `php_import_class({ path, content, fqn }) -> { start, end, newText }[]` (UTF-16) imports
+    the class when it went to another namespace. The command drops fixes for symbols the PHP
+    stubs declare (`Intention::unresolved`) or a language server already creates
+    (`forge_codeintel::lsp_creates`). `PhpCall::Intentions` carries the code style and code
+    templates (`GenerateOptions`).
+- UI: Go to Declaration (`GotoDeclaration`, `Ctrl+Click`, middle click) shows usages on a
+  declaration (`showUsagesAt`); `ShowUsages` (popup), `FindUsages` (Find tool window `find`,
+  `Alt+3`), `GotoImplementation` (also `Ctrl+Alt+Click`), `GotoTypeDeclaration`,
+  `GotoSuperMethod`, `TypeHierarchy` (Ctrl+H), `MethodHierarchy` (Ctrl+Shift+H) and
+  `CallHierarchy` (Ctrl+Alt+H, `features/hierarchy`) are registered commands, so the keymap and the main menu enable them;
+
+  `Alt+3`), `FindUsagesInFile` (scope Current File), `ShowSettingsAndFindUsages` (the Find
+  Usages dialog, `FindUsagesDialog.tsx`; also the Settings buttons of the popup and the Find
+  tool window; choices saved as settings), `HighlightUsagesInFile` (`highlightUsages.ts`:
+  sticky until Escape, F3 / Shift+F3 through `gotoHighlightedUsage`, the status bar text via
+  `showStatusMessage`) and the automatic highlighting at the caret
+  (`editor.highlightUsagesAtCaret`; state in `editor/usageHighlight.ts`, marks on the error
+  stripe `editor/errorStripe.ts`, which features feed through the `stripeMarks` facet), `GotoImplementation` (also `Ctrl+Alt+Click`), `GotoTypeDeclaration`,
+  `GotoSuperMethod` are registered commands, so the keymap and the main menu enable them;
+  several targets use `chooseDeclarationAt`. Browser mode: `mock/codeintelMock.ts` over the demo
+  project and `mock/demoStubs.ts`, grouping through `forge-codeintel` as WebAssembly.
+- Rename and context actions UI (`features/codeintel`): `RenameElement` (Shift+F6) starts the
+  in-place rename (`rename.ts`: a CodeMirror state field with the occurrences; keystrokes in
+  the edit box are mirrored to the others in the same transaction and kept out of the undo
+  history; Enter / Tab / leaving the box commits, Escape cancels, Shift+F6 again opens the
+  Rename dialog); in the Project view it renames the selected file. Committing reverts the live
+  edits, asks `code_rename`, shows the Refactoring Preview / Problems Detected dialog for
+  conflicts and applies the edit with `applyWorkspaceEdit` (`refactoring.ts`). Every affected
+  editor gets one history entry tagged with the refactoring (a `StateEffect` with
+  `invertedEffects`), so `Ctrl+Z` in any of them undoes the others (if unchanged since), reverts
+  the backend's files and moves renamed tabs back; redo re-applies. `ShowIntentionActions`
+  (Alt+Enter) opens the intention popup (`IntentionPopup.tsx`); the light bulb
+  (`intentions.ts`) asks `code_context_actions` after the caret rests for 500 ms.
+- Extract / Introduce and Inline UI (`features/codeintel/extract.ts`, `ExtractDialogs.tsx`):
+  `IntroduceVariable`, `IntroduceConstant`, `IntroduceField`, `IntroduceParameter`,
+  `ExtractMethod`, `Inline` and `Refactorings.QuickListPopupAction` (Refactor This) are
+  registered commands (editor context, so `Ctrl+Alt+V` beats the global Vim toggle in the
+  editor). The chooser popup ("Expressions", "Multiple occurrences found") highlights the row's
+  expression; Introduce Variable applies the edit as a preview and edits the name in place
+  through the rename machinery (`startLocalSession` in `rename.ts`: the live changes are kept
+  out of the history and reverted right before the final edit is applied with
+  `applyWorkspaceEdit`, so the refactoring is one undo step). The dialogs return their options;
+  conflicts go through the Problems Detected dialog. Browser mode approximates the refactorings
+  on the demo project in `mock/refactorMock.ts` (the tree-sitter grammar is not part of the
+  WebAssembly build).
+
+- Move, Copy, Safe Delete, Change Signature and Make Static UI
+  (`features/codeintel/moveRefactorings.ts`, `MoveDialogs.tsx`): `Move` (F6), `CopyElement`
+  (F5), `SafeDelete` (Alt+Delete), `ChangeSignature` (Ctrl+F6) and `MakeStatic` are registered
+  commands; with the focus in the Project view the first three act on the selected files and
+  folders (also drag and drop onto a folder row). The dialogs return their choices; the edit is
+  applied with `applyWorkspaceEdit`, whose `fileOps` (`move` / `copy` of files and folders)
+  run before the edit and are reversed on undo (and when the edit fails). Browser mode
+  approximates the refactorings in `mock/moveMock.ts`.
 
 ## PHP debugger (`forge-debug`)
 
@@ -949,6 +1419,356 @@ plugin manifest entry, and the chat UI needs no changes:
    through `pure_parser` (forge-wasm `agent_parse_lines`) and replay recorded CLI lines through
    it, as the Gemini demo does, so the mock exercises the same mapping as the desktop app.
 
+## Text files, code style and per-project state (`forge-text`, `forge_core::project_state`)
+
+- `crates/forge-text` (pure, also WebAssembly) knows everything about a text file besides its
+  language: line separators, encodings (UTF-8 with or without BOM, UTF-16 LE/BE, ISO-8859-1,
+  Windows-1252; detection and conversion), indent detection, the on-save cleanup (trailing
+  spaces on none / modified / all lines, final line break), EditorConfig and the effective
+  format of a file (`resolve_format`: EditorConfig > detected indent > the language's
+  `<language>.codeStyle.*` settings of the selected code style scheme > the file type's
+  indent), and commit message inspections.
+- IPC (`app/ui/src/ipc/text.ts`): `fs_read_text({ path, encoding? }) -> { text, eol, encoding,
+  bom, malformed }` (`\n`-only text), `fs_write_text({ path, text, eol, encoding, bom })`,
+  `text_prepare_save({ request: { text, saved?, caretLines, options } }) -> { text, changed }`,
+  `editor_file_format({ request: { path, languageId?, text?, fileTypeIndent? } }) -> FileFormat`
+  (settings and `.editorconfig` files are added in Rust), `vcs_inspect_commit_message({
+  message, rules })`. Files go through `Backend::read_bytes` / `write_bytes`, so remote projects
+  keep their encodings. `state/editor.ts` keeps `eol`, `encoding`, `bom` and the resolved
+  `format` per tab; `editor/codeStyle.ts` turns the format into CodeMirror extensions (indent
+  unit, tab size, continuation indent, right margin and guides); `shell/FileStatusItems.tsx` are
+  the status bar popups.
+- `forge_core::project_state`: the workbench layout per project in Forge's state dir
+  (`layout_load() -> ProjectLayout | null`, `layout_save({ layout })`; `{ active, sizes, splits,
+  toolWindows, tabs, openFiles, activeFile }`, sanitized in Rust; `active` is keyed by slot:
+  `left`/`leftSplit`/`right`/`rightSplit`/`bottom`/`bottomSplit` = PHPStorm's Left Top, Left
+  Bottom, Right Top, Right Bottom, Bottom Left, Bottom Right; `toolWindows` holds the user's
+  `{ slot, order, removed }` per moved tool window; `layout_default_load()` /
+  `layout_default_save({ layout })` keep Store Current Layout as Default, tool windows only).
+  Moving, ordering and resolving placements is the pure `state/toolWindowLayout.ts` (vitest);
+  `state/layout.ts` applies it (`showToolWindow(id)`, `toggleToolWindow(id)`,
+  `moveToolWindowTo`, `removeFromSidebar`, `isToolWindowVisible`) and the AI chat history per project in the data
+  dir (`agent_history_list() -> ChatSummary[]`, `agent_history_load({ id })`,
+  `agent_history_save({ record }) -> ChatSummary | null`, `agent_history_delete({ id })`). The
+  UI saves the layout a moment after every change (`state/layoutPersistence.ts`; tool windows
+  with tabs use `toolWindowTab` / `setToolWindowTab` from `state/layout.ts`) and restores it
+  when the project opens.
+- Inlay hints: `lsp_inlay_hints({ path, startLine, endLine, text, languageId? }) ->
+  EditorInlayHint[]` asks the servers (`textDocument/inlayHint`); `forge_codeintel::inlay`
+  sorts them into parameter names, variable types and return types and applies the Inlay Hints
+  settings. Code Vision ("2 implementations") comes from the PHP line markers
+  (`LineMarker.vision`, `editor/lineMarkers.ts`).
+- Code style schemes (`crates/forge-codestyle`, pure, also WebAssembly; UI
+  `features/codeStyle/`): the model of Settings | Editor | Code Style (General and 13
+  language pages, PHPStorm's tabs, "Set from…" presets), the schemes (Default = user layer and
+  Project = project layer under the `<language>.codeStyle.*` / `editor.codeStyle.*` keys,
+  further IDE schemes under `editor.codeStyle.schemes.<id>.*`, the selection in
+  `editor.codeStyle.scheme`), import/export (Forge JSON, PHPStorm XML), the previews and the
+  pass after Reformat Code. IPC (`app/ui/src/ipc/codeStyle.ts`): `code_style_model()`,
+  `code_style_schemes() -> { schemes, selected, hasProject }`, `code_style_save({ schemes })`
+  (written with `Settings::set_many`), `code_style_preview({ language, values }) -> string |
+  null`, `code_style_export({ name, values, format: "json" | "xml", path? }) -> string`,
+  `code_style_import({ text?, path? }) -> { name, values, applied }`,
+  `code_style_post_format({ request: { fileType, original, text } }) -> string`. The pages
+  keep the edited schemes as a draft of the Settings dialog (`registerDraftSource` in
+  `features/settings/dialogState.ts`). `editor_file_format`, the PHP code style and
+  Intelephense's settings read the selected scheme (`forge_codestyle::effective_settings`);
+  `lsp_format({ path, tabSize, insertSpaces, languageId })` pushes the language's options to the
+  server (`forge_codestyle::lsp::settings_patch`, `LspClient::update_settings`, which also
+  answers later `workspace/configuration` requests), and `lua_format` passes StyLua's options
+  when the project has no `stylua.toml`.
+- PHP code style beyond indents (`phpforge_lang_php::style`): brace placement (Intelephense's
+  `format.braces`, Generate) and `php_tidy_blank_lines({ text }) -> string | null`, the blank
+  line pass after Reformat Code. Format post-processors (`registerFormatPostProcessor(fn,
+  order)` in `features/lsp/format.ts`) run after the language server or a format provider and
+  get the text before formatting too; the code style pass runs last (order 100).
+  Composer (`phpforge_lang_php::composer`): `php_language_level() -> { level, fromComposer }`,
+  `php_composer_outdated() -> OutdatedPackage[]`.
+- Actions on Save (`crates/forge-save-actions`, `phpforge_lang_php::{imports, rearrange,
+  cleanup}`, UI `features/actionsOnSave/`): `saveFile(path, trigger)` in `state/editor.ts` takes
+  a `SaveTrigger` (`"explicit"` for `Ctrl+S`, `"autosave"`, `"plain"` for saves of other
+  operations) and calls the runner registered with `setSaveActionsRunner`.
+  `save_actions_plan({ path, trigger }) -> SavePlan` (`{ reformat: "whole" | "changed" | null,
+  optimizeImports, rearrange, codeCleanup, tools }`, from the `actionsOnSave.*` settings);
+  Reformat code uses `formattedText` (`features/lsp/format.ts`: format providers, LSP,
+  post-processors, without touching the document) and
+  `save_actions_changed_lines({ path, original, formatted }) -> string` (HEAD through the
+  backend's repo); `save_actions_php({ text, actions }) -> { text, applied }`; after the file is
+  written `save_actions_run_tools({ path, tools }) -> { changed, outcomes }` runs ESLint,
+  Prettier, PHP CS Fixer and Pint through `Backend::start_process` (rolling back a failing
+  tool); `save_actions_info() -> { fileTypes, tools }` feeds the settings page. The editor gets
+  the combined result as one transaction (`applyLineChanges` with `isolateHistory`), only
+  when nobody typed meanwhile. Browser mode: plan and changed lines through WebAssembly, the
+  rest mocked (no tool runs, no writes).
+- Git: `git_crlf_files({ paths })` (files that would commit CRLF), `git_pull({ rebase? })`
+  follows `vcs.git.updateMethod` without `rebase`, `git_commit` signs off with
+  `vcs.git.commit.signOff`, and `vcs.git.path` selects the git binary
+  (`forge_vcs::set_git_program`).
+
+## Live templates (`forge-livetemplates`)
+
+- `crates/forge-livetemplates` (pure, also WebAssembly) owns the template sets
+  (`data/*.toml`; Laravel, Blade and Symfony groups carry a `framework` and apply only when the
+  UI passes it in `frameworks`), the user's changes (`editor.liveTemplates.custom` entries:
+  string tables with `group`, `abbreviation`, `description`, `text`, `contexts`, `variables`
+  as JSON, `builtin`, `removed`, `key`; `editor.liveTemplates.disabled` ids
+  `group/abbreviation`), context detection, variable expressions, expansion, the Surround With
+  surrounders and Unwrap/Remove. All offsets are UTF-16.
+- IPC (`app/ui/src/ipc/liveTemplates.ts`, `commands/live_templates.rs`):
+  `live_templates_catalog({ settings }) -> { groups, contexts, functions }`,
+  `live_templates_applicable({ request: { text, offset, path, languageId?, settings } }) ->
+  { prefix, items, contexts }`, `live_templates_expand({ request: { …, offset, templateId?,
+  env } }) -> Expansion | null` (`{ from, to, text, fields: { from, to, index }[], end,
+  templateId }`; `env` carries the clock, time zone, clipboard, user and indent unit),
+  `live_templates_surround_items({ request: { …, from, to, env, templatesOnly? } })`,
+  `live_templates_surround({ request: { …, id } }) -> Expansion | null`,
+  `live_templates_unwrap({ request: { text, offset, path, languageId? } }) -> { label, from,
+  to, keep?, edits }[]`, `live_templates_variables({ text })`, `live_templates_user()`.
+- The UI (`features/liveTemplates`) binds the expand key (Tab/Space/Enter, a CodeMirror editor
+  key like Tab's indentation) and calls `live_templates_expand` in-process through
+  `forge-wasm` (`liveTemplatesApi.expandSync`), because the key handler must decide at once;
+  an expansion becomes a CodeMirror snippet (`toSnippet`), so Tab/Shift+Tab walk the fields.
+  The actions use PHPStorm's ids (`InsertLiveTemplate`, `SurroundWith`,
+  `SurroundWithLiveTemplate`, `Unwrap`, `SaveAsTemplate`). Save as Live Template opens the
+  settings page with `openSettings(page, args)`; pages read such arguments with
+  `takePageArgs(page)` (`features/settings/dialogState.ts`), which also works when the dialog
+  is its own window.
+
+## Emmet and colors (`forge-emmet`, `forge-colors`)
+
+- `crates/forge-emmet` (pure, also WebAssembly) parses Emmet abbreviations and expands them as
+  HTML, JSX or CSS (snippets, implicit tags, numbering, lorem, Emmet's formatting), decides
+  where Emmet applies for a file type (text of HTML-like files and PHP outside `<?php`, not in
+  `{{ }}` / `{% %}` / `@php`, `<style>` as CSS, JSX positions, CSS declaration starts) and
+  computes Surround with Emmet, edit points, Update Tag and Remove Tag. Offsets are UTF-16.
+- `crates/forge-colors` (pure, also WebAssembly) finds colors in CSS, markup and scripts
+  (hex, `rgb()`/`hsl()`/`hwb()` in both syntaxes, names, Tailwind classes), parses them and
+  formats a picked color in the notation of the original text.
+- IPC (`app/ui/src/ipc/emmet.ts`, `commands/emmet.rs`): `emmet_expand({ request: { text,
+  offset, languageId?, options, preview? } }) -> Expansion | null` (`{ from, to, text, fields,
+  end, abbreviation, syntax }`, the shape of a live template expansion; `options`: `{ html,
+  css, jsx, jsxClassAttr, hrefRecognition, indent }` from the `editor.emmet.*` settings),
+  `emmet_wrap({ request: { text, from, to, abbreviation, languageId?, options } }) ->
+  Expansion` (error text for invalid abbreviations), `emmet_edit_point({ request: { text,
+  offset, forward } }) -> number | null`, `emmet_update_tag` / `emmet_remove_tag({ request: {
+  text, offset, abbreviation?, options } }) -> { from, to, text }[]`, `colors_find({ request:
+  { text, languageId? } }) -> { from, to, color: { r, g, b, a }, hex, text, editable }[]`,
+  `colors_format({ request: { color, original } }) -> string`, `colors_parse({ text }) -> {
+  color, hex } | null`.
+- UI: `features/emmet` binds the expand key (`editor.emmet.expandKey`) as a `Prec.high`
+  CodeMirror key registered after live templates (which, like postfix completion, win when
+  they match) and calls `emmet_expand` in-process through `forge-wasm`; the expansion becomes
+  a snippet (`toSnippet` of live templates). The abbreviation preview is a CodeMirror tooltip
+  computed on typing. `features/colors` registers a line marker provider (gutter swatches,
+  `registerLineMarkerProvider`), an inline swatch plugin and the color picker, which writes
+  each change through `colors_format` (`userEvent: "input.color"`); recent colors are the
+  setting `editor.colorPicker.recentColors`.
+
+## Language injections (`forge-injections`)
+
+- `crates/forge-injections` (pure, also WebAssembly) decides which string literals of PHP and
+  JavaScript/TypeScript files carry another language (SQL, HTML, CSS, JSON, RegExp,
+  JavaScript, XML): `language=` comments, heredoc labels, then the built-in rules (calls,
+  tagged templates, assignments, strings starting with a statement or a tag). Literals joined
+  with `.` / `+` are one injection; interpolations are gaps. Settings: `editor.injections.disabled`
+  (rule ids, user) and `editor.injections.uninjected` (`path#key`, project). All offsets are
+  UTF-16.
+- IPC (`app/ui/src/ipc/injections.ts`, `commands/injections.rs`):
+  `injections_find({ request: { text, path, disabled, uninjected } }) -> Injection[]`
+  (`{ language, label, source: "comment" | "rule", rule?, from, to, ranges, literals: { from,
+  to, contentFrom, contentTo, kind }[], comment?, key, text }`), `injections_at({ request: { …,
+  offset } })`, `injections_fragment({ request }) -> { language, label, kind, from, to, text,
+  map } | null` (`map`: source offset of each UTF-16 unit of `text` and its end),
+  `injections_escape({ kind, text }) -> string`, `injections_inject({ request: { text, path,
+  offset, language } }) -> { from, to, text } | null`, `injections_rules()`,
+  `injections_languages()`. `code_context_actions` adds the intentions ("Inject language or
+  reference", "Edit SQL Fragment", "Un-inject Language"); they run the UI actions
+  `InjectLanguageAction`, `EditInjectedFragment` and `UnInjectLanguageAction` (or remove the
+  comment as an edit). Context actions that run a UI action rank as intentions unless their
+  title ends with "..." (links such as "Generate...", `ContextAction::is_link`).
+- UI (`features/injections`): the editor asks `injections_find` in-process (WebAssembly) shortly
+  after each edit and maps the last answer through changes meanwhile; each injected range is
+  parsed with the injected language's CodeMirror parser on every change (`tokenize`, cached)
+  and drawn as `cm-inj-*` marks over the host string. Edit Fragment is a CodeMirror bottom
+  panel whose edits are mapped through the fragment's offset map and escaped by Rust. `Ctrl+Enter`
+  (`EditorSplitLine` / `Console.Jdbc.Execute`) and the gutter run icon open a query console
+  with the injected SQL (`runSqlInConsole`).
+
+## Code structure in the editor (Sticky Lines, breadcrumbs, regions, rendered docs, File Structure, Navigation Bar)
+
+PHPStorm's Sticky Lines, structure breadcrumbs, custom folding regions, rendered doc
+comments and Reader mode (`app/ui/src/features/codeStructure`, user guide
+`docs/guide/user/code-structure.md`).
+
+- Rust computes: `forge_codeintel::structure::editor_structure(text, language)` scans a
+  document once (braces, tags, Lua block keywords outside strings and comments; no parser)
+  into scopes (kind, crumb name, header line/column, end, parent, sticky, crumb) and custom
+  folding regions; `group_by_regions` nests Structure view nodes under regions.
+  `forge_markdown::doc_comments` finds PHPDoc / JSDoc / LuaDoc comments and parses each into
+  a `HoverDoc` (the documentation popup's parts).
+- No IPC: Sticky Lines follow every scroll, breadcrumbs every caret move and folding asks per
+  line, so the UI calls these functions synchronously through WebAssembly
+  (`crates/forge-wasm/src/structure.rs`: `editor_structure`, `editor_doc_comments`,
+  `structure_group_by_regions`, `editor_structure_languages`) in the desktop app and in
+  browser mode, like the keymap resolver. `features/codeStructure/model.ts` caches the
+  answers per document version (CodeMirror's immutable `Text`).
+- The UI only draws: `sticky.ts` (a measured overlay at the top of the scroller, syntax colors
+  from the editor's tree), `breadcrumbs.tsx` (a CodeMirror panel at the bottom or top),
+  `regions.ts` (a `foldService` plus the placeholder with the region's name), `renderedDocs.ts`
+  (block replace decorations with the documentation popup's DOM, `buildHoverDom`) and
+  `readerMode.ts` (the Reader Mode button and editor classes). The Structure tool window
+  groups every provider's nodes by regions and gets a provider for web files.
+- Settings: `editor.stickyLines.*`, `editor.breadcrumbs.*`, `editor.renderDocComments` and
+  `editor.readerMode.*` (`core.toml`); per-language toggles are `list` settings of switched-off
+  file type ids, edited with checkboxes (`LanguageToggles`).
+- File Structure popup (`FileStructurePopup`, Ctrl+F12, `features/fileStructure`): the
+  Structure view's providers load the tree (`loadFileStructure` in
+  `features/php/StructureView.tsx`, PHP inherited members from the index), and
+  `forge_codeintel::file_structure::file_structure_view` (WebAssembly, synchronous) applies
+  the toggles and the fuzzy speed search and picks the node at the caret.
+- Navigation Bar (`features/navBar`): `forge_codeintel::navbar::nav_bar_segments`
+  (WebAssembly) turns the path and the scopes at the caret into segments; dropdowns list
+  `fs_list_dir` entries or structure nodes and filter them with `fuzzy_filter`. Placement
+  `appearance.navigationBar.location` (`top`: above every editor group, with the plain path in
+  the status bar; `statusBar`; `hidden`: `ShowNavBar` / Alt+Home shows it floating) and
+  `appearance.navigationBar.showMembers`; actions `ShowNavBar`, `NavBarLocationTop`,
+  `NavBarLocationBottom`, `NavBarLocationHide`, `ShowMembersInNavigationBar`.
+- Actions: `ToggleRenderedDocPresentation` (Ctrl+Alt+Q), `CollapseDocComments`,
+  `EditorToggleShowBreadcrumbs` (PHPStorm ids) and the Forge actions
+  `ToggleRenderedDocPresentationForAll`, `EditorToggleStickyLines`, `ToggleReaderMode`.
+
+## Spelling and grammar (`forge-spell`)
+
+- `crates/forge-spell` (pure, also WebAssembly) owns the dictionaries (a minimal Hunspell
+  `.aff`/`.dic` reader; the bundled SCOWL en_US dictionary, licence in
+  `crates/forge-spell/data/en_US.LICENSE`; programming terms; custom dictionaries), word
+  extraction per context (identifier splitting, skipped URLs/paths/code), suggestions
+  (weighted edit distance with keyboard proximity) and Forge's own rule-based English grammar
+  rules. All offsets are UTF-16.
+- IPC (`app/ui/src/ipc/spell.ts`, `commands/spell.rs`): `spell_inspect({ request: { segments:
+  { from, text, kind: "comment" | "docComment" | "string" | "identifier" | "text" |
+  "commitMessage" | "fileName" }[], options, words } }) -> { from, to, kind: "typo" |
+  "grammar", context, message, word?, identifier?: { from, to, text }, rule?, fixes?: { title,
+  from, to, text }[] }[]` (`options` from the `spelling.*` / `grammar.*` settings, `words` the
+  project-level and application-level dictionaries); `spell_context_actions({ request: {
+  problems, words, hasProject, limit? } }) -> ContextAction[]` (UI actions
+  `SpellCheck.ChangeTo` / `RenameTo` / `SaveTo` / `Replace` with `data`);
+  `spell_dictionaries() -> { name, path?, words, builtin, error? }[]`. The app loads
+  `spelling.customDictionaries` once per list of paths (absolute paths from this machine,
+  relative ones through the backend). Browser mode runs the same code through `forge-wasm`.
+- UI (`features/spelling`): an editor extension collects segments with the editor's own
+  highlighting (`highlightTree` over the Lezer tree: comment, doc comment and string tags,
+  definition tags and PHP `$variables`; Markdown and plain text files as prose without code),
+  checks whole files up to 200,000 characters and larger ones as they scroll into view, and
+  after edits only the changed lines grown to the surrounding comment or string. Problems
+  stay in document offsets (mapped through edits) and are published to the diagnostics store
+  as source `spelling` (`publishDiagnostics(path, diags, source)` keeps language server
+  diagnostics and Forge's own inspections side by side) with the severities `typo` and
+  `grammar`. Alt+Enter entries come from `registerContextActionProvider`
+  (`features/codeintel/intentions.ts`), suggestions open a second intention popup
+  (`showActionsPopup`), "Rename to..." runs the Rename refactoring. The commit message is
+  checked as one `commitMessage` segment with an underline overlay.
+
+## JSON Schema (`forge-jsonschema`)
+
+- `crates/forge-jsonschema` (pure, also WebAssembly; downloads behind the `remote` feature):
+  position-keeping JSON/JSON5 and YAML parsers (`Node` with byte ranges, tolerant of unfinished
+  input), schema documents and a `Registry` (`$id`, anchors, `$ref` to other files through
+  `missing()`), a validator for draft 4–2020-12 with PHPStorm's messages, completion contexts
+  and items, hover, Go to Declaration (`At::decl`), mappings (user > `$schema`/modeline >
+  built-in > SchemaStore catalog) and the bundled schemas of the built-in mappings
+  (`schemas/`, licences in `schemas/NOTICE`; compressed by `build.rs`). Answers use UTF-16
+  offsets.
+- IPC (`app/ui/src/ipc/jsonSchema.ts`, `commands/json_schema.rs`): `json_schema_validate({ path,
+  language, content }) -> { schema: { name, uri, source: "user" | "inline" | "builtin" |
+  "catalog", location?, error? } | null, problems: { from, to, message, severity: "warning" |
+  "weak" }[] }`, `json_schema_complete|hover|goto({ path, language, content, offset })`
+  (`{ from, replaceFrom, replaceTo, items }`, `{ from, to, title, markdown }`, `{ path, line,
+  column, preview }[]`), `json_schema_read({ location }) -> { text, detail }` for the read-only
+  `json-schema://bundled/…`, `json-schema://remote/<url>` and `json-schema://file/<path>`
+  tabs, `json_schema_builtins()`. Settings: `jsonSchema.mappings` (project objects `{ name,
+  schema, version, files }`), `jsonSchema.remote.enabled` (off), `jsonSchema.remote.schemaStore`.
+  Project schemas are read through the backend (remote projects work); URLs are downloaded only
+  with remote schemas on, into `<cache dir>/forge/json-schemas` (`RemoteCache`, daily refresh,
+  stale copy offline, failures retried after five minutes).
+- UI (`features/jsonSchema`): an editor extension for `json`, `yaml`, `docker-compose` and
+  `symfony-services` files publishes problems as source `json-schema`, adds a completion source
+  (options styled with `styleOption` from `features/lsp/completion.ts`: required bold,
+  deprecated struck through) and a hover; Compose and Symfony services keep their hand-written
+  key completion and hover. While `vscode-json-language-server` / `yaml-language-server` runs
+  for a file, problems, completion and hover are left to it. A declaration provider opens the
+  schema; `registerFileSystem("json-schema://")` shows schemas read-only. The status item
+  `json-schema` shows the file's schema and assigns another one (a project mapping); Settings
+  pages `lang.schemas`, `lang.json-schema` (master-detail mappings editor) and
+  `lang.json-schema.remote`. Browser mode runs the crate through `forge-wasm` (`json_schema.rs`;
+  the mock answers `needs` with demo files).
+
+## Composer (`packs/phpforge/composer`)
+
+- `phpforge-composer` (pure, also WebAssembly; Packagist and composer.phar downloads behind the
+  `net` feature): Composer versions and constraints, composer.json requirements with ranges,
+  installed packages (composer.lock, installed.json), outdated markers, `composer audit`
+  reports, Packagist p2 metadata and search, completion and hover in `require` /
+  `require-dev` (cursor context from `forge_jsonschema::complete::json_cursor`). Answers use
+  UTF-16 offsets plus line/character positions for files that are not open.
+- IPC (`app/ui/src/ipc/composer.ts`, `commands/composer.rs`): `composer_project() -> {
+  composerJson, exists, hasLock, requirements, installed }`, `composer_markers({ path, text })
+  -> OutdatedMarker[]`, `composer_complete({ path, text, offset })` (the JSON Schema completion
+  shape), `composer_hover({ path, text, offset })`, `composer_search({ query })`,
+  `composer_package({ name }) -> { …PackageInfo, suggested, url }`, `composer_audit() -> {
+  advisories, abandoned, composerJson, composerLock, jsonProblems, lockProblems }`,
+  `composer_download_phar() -> path`. Packagist is reached from Rust only, while
+  `php.composer.packagist` is on, cached in `<cache dir>/forge/packagist`; project files and
+  `composer audit` go through the backend (remote projects work).
+- Composer commands that change the project run as configurations of the hidden run type
+  `composer-command` (`forge_process` kind: `composer <command> --ansi --no-interaction` in the
+  folder of composer.json; `forge_process::composer_program` runs a `.phar` with the PHP
+  interpreter) and stream into the Run tool window; the UI reloads composer.json/lock and
+  bumps `composerRevision` afterwards.
+- UI (`features/composer`): the composer.json editor extension (toolbar panel, completion
+  source, hover, outdated markers as a line marker provider plus weak warnings of source
+  `composer-outdated`, the `Composer.UpdatePackage` context action), the Manage Composer
+  Dependencies dialog, the "Vulnerable Dependencies" Problems tab (`composer-audit` problems),
+  `Composer.*` keymap actions under Tools | Composer and the Settings page `lang.php.composer`.
+  Browser mode runs the crate through `forge-wasm` with a demo catalog instead of Packagist
+  (`mock/composerMock.ts`, `mock/demoComposer.ts`).
+
+## Vim emulation (`forge-vim`)
+
+Tools | Vim (`VimPluginToggle`, setting `vim.enabled`, plugin `forge.vim`) turns on IdeaVim-style
+Vim emulation in the editor. The engine is the pure crate `crates/forge-vim`; because a
+keydown handler must decide on `preventDefault` before it returns, it runs in-process as
+WebAssembly in the desktop app too (`forge-wasm/src/vim.rs`, `features/vim/engine.ts`), like
+the keymap resolver.
+
+- **Editor side** (`features/vim/extension.ts`, registered with `registerEditorExtension`): a
+  `ViewPlugin` attaches each editor (`vim_attach({ text }) -> { handle }`), records the
+  CodeMirror changes of every transaction it did not make itself, and a `Prec.highest`
+  `domEventHandlers.keydown` sends each key: `vim_key({ handle, event, sync }) -> Response`.
+  `sync` holds the change batches since the last call (UTF-16, `iterChanges` order), the
+  selection, the visible lines and the indent unit; the full text is sent only when the
+  copies went out of step (the response's `docLength` does not match). The response's
+  sequential `changes` are composed into one transaction (one undo step, annotated so they
+  are not sent back), with the new `selection`, `mode`, `cursor`, `cmdline` and `highlight`
+  in a `StateField`. `effects` (`undo`, `redo`, `action`, `actionOnRange`, `open`,
+  `clipboard`, `reveal`, `scrollTo`, `reloadRc`) run afterwards; with `resume` the queued
+  keys of a mapping or macro continue (`vim_key` without `event`) once the asynchronous
+  effects are done, and `wait` asks for `vim_timeout` after `timeoutlen`.
+- **Keymap**: no new listeners. `keymap_handle_key` asks `forge_vim::Vim::claims` for keydown
+  events in the `editor` focus context (unless a chord is pending): plain keys outside Insert
+  mode, `Escape`, and the `Ctrl` shortcuts whose handler is Vim in the current mode are left
+  unresolved, so they reach CodeMirror and the Vim handler. The focused editor is reported
+  with `vim_focus({ handle | null })`. The handler table (`vim_handlers`) comes from
+  `forge_vim::handlers` with the overrides of the `vim.shortcutHandlers` setting
+  (`vim_configure({ enabled, handlers })`) and `sethandler` lines of the rc file.
+- **`~/.ideavimrc`**: `vim_read_rc({ path? }) -> { path, text }` (desktop: `~/.ideavimrc`,
+  `~/_ideavimrc`, `$XDG_CONFIG_HOME/ideavim/ideavimrc` or the `vim.rcFile` setting, with
+  `source` lines inlined; browser mock: a demo file); the UI applies it with
+  `vim_load_rc({ text }) -> { applied, problems }`.
+- Rendering stays in TypeScript: the block caret, search highlights (the pattern is
+  translated to a regular expression valid in JavaScript and Rust), relative line numbers, the
+  command line panel (`showPanel`) and the status bar widget.
+
 ## Rust computes, TypeScript renders
 
 Logic, data models and parsers live in Rust crates; the TypeScript UI only renders and forwards
@@ -995,11 +1815,29 @@ TypeScript because a round trip per token would be slower.
   query, caseSensitive?, wholeWords?, regex?, fileMask?, directory?, limit? } }) -> { files: {
   path, matches: { line, column, length, text, ranges }[] }[], matchCount, truncated, error? }`
   (UTF-16 columns; `ranges` are inside the listed `text`). The pure crate `crates/forge-find`
-  compiles the query (`regex-lite`), file masks (`*.php, !*Test.php`) and matches lines;
+  compiles the query (`regex`), file masks (`*.php, !*Test.php`) and matches lines;
   `Workspace::find_in_files` walks the project honoring `.gitignore`, skipping binary and huge
   files. It is a `Backend` method (agent call `FindInFiles`), so remote projects are searched on
   their host. Browser mode runs `forge-find` as WebAssembly over the demo files. The Text tab of
   Search Everywhere uses the same command.
+- **Search index** (`crates/forge-search-core`, `crates/forge-search`): a persistent trigram
+  index with a symbol table. `forge-search-core` is pure (builds for `wasm32`; `rayon` sits
+  behind its `parallel` feature): trigram postings in roaring bitmaps, the literal prefilter of a
+  query, class and symbol extraction for PHP, Rust, JS/TS, Python, Go, Java-like languages, C/C++,
+  Ruby and Lua, and fuzzy ranking. `forge-search` adds the walk (`.gitignore`, excluded folders),
+  chunked parallel reads, the cache file (user cache dir, `Forge/search/<hash>.bin`) and
+  `SearchService`. `LocalBackend::with_search_index` (the app and the agent call it; the agent
+  behind its `search` feature) builds the index in the background and keeps it current from
+  `Backend::watch`. Until it covers the project, `find_in_files` and `find_files` walk the
+  directory as before; afterwards the index only narrows the candidate files and `forge-find`
+  still reads the lines, so both paths return identical results (test
+  `find_text_matches_a_directory_walk`). New `Backend` methods: `find_symbols(query, types_only,
+  limit, skip_extensions)` and `search_status()`; agent calls `FindSymbols` and `SearchStatus`.
+  The Classes and Symbols tabs (`core.classes`, `core.symbols`) skip the languages a running
+  language server or a pack index (PHP, Lua) already answers. The **Find tool window** (Alt+3,
+  "Open in Find Window" in the popup) lists every match; its limit is the setting
+  `search.findInFiles.maxMatches` (0 = unlimited), while Search Everywhere stays at a page. Browser
+  mode answers `search_find_symbols` with `forge-search-core` as WebAssembly.
 - **File types**: `crates/forge-filetypes` resolves files (bundled types plus manifest file
   types, inactive plugins skipped, `templates.dataLanguages` and soft-wrap patterns applied).
   `editor/fileTypes.ts` caches answers per path (and `#!` line) so `languageFor`,

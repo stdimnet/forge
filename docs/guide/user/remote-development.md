@@ -1,6 +1,6 @@
 ---
 title: Remote development
-description: Open a project on a Linux server over SSH - connections, authentication, host keys, the Forge agent, what runs on the host, reconnects and current limitations.
+description: Open a project on a Linux server over SSH - connections, authentication, host keys, the Forge agent, what runs on the host and what stays local, reconnects.
 order: 200
 tags: [remote, ssh, agent, gateway]
 ---
@@ -98,10 +98,20 @@ The project's root is shown as `user@host:/path`. Recent Projects keeps remote p
 | Go to File, Search Everywhere | yes |
 | Git (status, commit, diff, blame, branches, log) | yes; output is parsed locally |
 | Find in Files | yes, searched on the host |
+| Scopes (Find in Files, Find Usages, Structural Search), the Scopes page's file tree | yes, evaluated and listed on the host |
+| Structural Search and Replace | yes: the files are parsed on the host; Replace All writes through the agent |
+| Analyze Stack Trace | yes: files are looked up on the host; PHP servers' path mappings and Compose bind mounts are read from the host |
 | PHP index, Structure, Generate, Intelephense/Phpactor | yes; Intelephense indexes the remote files itself |
-| Catalog language servers (TypeScript, YAML, Python, …) | yes: scan, detection and the servers run on the host (install them there) |
+| Catalog language servers (TypeScript, YAML, Python, …) | yes: scan, detection and the servers run on the host |
+| Installing language servers (Settings, Intelephense offer) | yes: the agent downloads Node.js and the npm servers into Forge's directory on the host, with progress here; the Intelephense licence is accepted on your machine |
 | Laravel, Symfony and Doctrine analysis | yes, in the agent; artisan and `bin/console` run on the host |
-| LuaForge index | yes |
+| WebForge: npm tool window, React / Vue / Angular navigation and gutter icons | yes: `package.json` files, scripts, package managers and components are read in the agent; scripts run on the host |
+| LuaForge index | yes, all Lua files are read on the host in one batch |
+| StyLua (Reformat Code) | yes, StyLua runs on the host |
+| Code hosts (GitLab, Forgejo, GitHub) | yes: the repository is detected with git on the host; API calls go from your machine with your tokens |
+| HTTP client (`.http` files) | environment and body files are read on the host; requests are sent **from the host** through an SSH tunnel, so `localhost` URLs reach its services (Settings \| Tools \| HTTP Client \| **Send requests from**) |
+| Services: compose files and Dockerfile ▶ | compose files are read on the host and `docker compose` / `docker build` run there; by default Docker of the host is used through the project's SSH connection |
+| Browser Companion | files the browser reports (host paths, container paths like `/app/src/…`) open in the remote project |
 | Project settings (`.forge/settings.toml`) and other `.forge/` files | yes, read and written on the host |
 | Terminal | yes, a shell on the host |
 | Run/Debug configurations (run) | yes, processes run on the host |
@@ -111,11 +121,18 @@ The project's root is shown as `user@host:/path`. Recent Projects keeps remote p
 
 ![Remote terminal](../../screenshots/remote-terminal.png)
 
-> **Note:** still local-only, reporting "not available in remote projects yet": WebForge's npm
-> tool window and component navigation, StyLua formatting, code hosts (pull requests), the
-> Services tool window's project compose files, and HTTP request environments. Installing
-> language servers from the settings page is refused (install on the host). The Browser
-> Companion opens files of local projects only.
+Every feature works in remote projects. Things that are about your machine stay local on
+purpose: code host API calls (your tokens), the keychain, the Intelephense licence prompt and,
+when you choose it, HTTP requests ("Send requests from: This machine") and Docker or Kubernetes
+of this machine (see [Services](services.md#remote-projects)).
+
+![npm tool window of a remote project](../../screenshots/remote-finish-npm.png)
+
+![Compose on the remote host](../../screenshots/remote-finish-compose.png)
+
+![HTTP request sent from the remote host](../../screenshots/remote-finish-http.png)
+
+![Language server installed on the host](../../screenshots/remote-finish-langserver.png)
 
 ## Connection status and reconnects
 

@@ -2,8 +2,17 @@
 //! projects have none; `forge-remote` implements them over the project's SSH connection.
 
 use futures_util::future::BoxFuture;
+use tokio::io::{AsyncRead, AsyncWrite};
 
 use forge_core::Result;
+
+/// A byte stream opened through a tunnel.
+pub type TunnelStream = Box<dyn TunnelIo>;
+
+/// What a [`TunnelStream`] is: a bidirectional async byte stream.
+pub trait TunnelIo: AsyncRead + AsyncWrite + Send + Unpin {}
+
+impl<T: AsyncRead + AsyncWrite + Send + Unpin> TunnelIo for T {}
 
 /// A forwarded port; the forwarding stops when it is dropped.
 pub struct PortForward {
@@ -50,4 +59,8 @@ pub trait Tunnels: Send + Sync {
         remote_port: u16,
         local_port: u16,
     ) -> BoxFuture<'static, Result<PortForward>>;
+
+    /// A stream to a Unix socket on the remote host (`direct-streamlocal`, like
+    /// `ssh -L local:/var/run/docker.sock`). Used for Docker on the project's host.
+    fn open_socket(&self, path: String) -> BoxFuture<'static, Result<TunnelStream>>;
 }

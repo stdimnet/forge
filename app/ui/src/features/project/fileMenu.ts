@@ -4,7 +4,7 @@
  * reject paths outside the project.
  */
 import { askConfirm, askName } from "@/features/contextMenu/dialogs";
-import { item, separator, showContextMenu, submenu, type MenuEntry } from "@/features/contextMenu/state";
+import { item, providedEntries, separator, showContextMenu, submenu, type MenuEntry } from "@/features/contextMenu/state";
 import { workspaceApi, type FileEntry } from "@/ipc/workspace";
 import { showBalloon } from "@/keymap";
 import { closeTab, editor, isDirty, openFile, saveFile } from "@/state/editor";
@@ -12,6 +12,7 @@ import { isCollabGuest, workspace } from "@/state/workspace";
 import { guestCanEdit } from "@/features/code-with-me/guest";
 import { projectTree, refreshDirs, revealPath } from "./ProjectView";
 import { openFindInFiles } from "@/features/find/state";
+import { copyEntries, moveEntries, safeDeleteEntries } from "@/features/codeintel/moveRefactorings";
 
 const parentOf = (path: string) => path.split("/").slice(0, -1).join("/");
 const join = (dir: string, name: string) => (dir ? `${dir}/${name}` : name);
@@ -66,17 +67,22 @@ async function newEntry(dir: string, kind: "file" | "dir"): Promise<void> {
  * view, else the folder of the active editor, else the project root, like PHPStorm.
  */
 export async function newEntryFromSelection(kind: "file" | "dir"): Promise<void> {
+  await newEntry(await newTargetDir(), kind);
+}
+
+/**
+ * The folder File | New creates in: the folder selected in the Project view (or the folder
+ * of the selected file), else the folder of the active editor, else the project root.
+ */
+export async function newTargetDir(): Promise<string> {
   const active = editor.active && !editor.active.includes(":") ? editor.active : null;
   const path = projectTree.selected() ?? active;
-  let dir = "";
-  if (path) {
-    const entry = await workspaceApi
-      .listDir(parentOf(path))
-      .then((entries) => entries.find((e) => e.path === path) ?? null)
-      .catch(() => null);
-    dir = entry ? targetDir(entry) : parentOf(path);
-  }
-  await newEntry(dir, kind);
+  if (!path) return "";
+  const entry = await workspaceApi
+    .listDir(parentOf(path))
+    .then((entries) => entries.find((e) => e.path === path) ?? null)
+    .catch(() => null);
+  return entry ? targetDir(entry) : parentOf(path);
 }
 
 async function rename(entry: FileEntry): Promise<void> {
@@ -105,6 +111,21 @@ async function rename(entry: FileEntry): Promise<void> {
   refreshDirs([parentOf(entry.path)]);
   revealPath(parentOf(entry.path));
 }
+
+/**
+ * Rename (`RenameElement`, Shift+F6) in the Project view and Refactor | Rename File
+ * (`RenameFile`): the selected entry, else `path`.
+ */
+export async function renameEntryAt(path: string | null): Promise<void> {
+  if (!path) return;
+  const entry = await workspaceApi
+    .listDir(parentOf(path))
+    .then((entries) => entries.find((e) => e.path === path) ?? null)
+    .catch(() => null);
+  if (entry) await rename(entry);
+}
+
+export const renameSelection = () => renameEntryAt(projectTree.selected());
 
 async function remove(entry: FileEntry): Promise<void> {
   const tabs = affectedTabs(entry.path);
@@ -138,6 +159,19 @@ const absolute = (path: string) => {
   return path ? `${root.replace(/\/$/, "")}/${path}` : root;
 };
 
+/**
+ * File and Directory, then what other features add for the folder (`project.new` providers
+ * get the folder path: file templates such as PHP Class or HTML File).
+ */
+export function newMenuEntries(dir: string): MenuEntry[] {
+  return [
+    item("File", () => void newEntry(dir, "file"), "NewFile"),
+    item("Directory", () => void newEntry(dir, "dir"), "NewDir"),
+    separator,
+    ...providedEntries("project.new", dir),
+  ];
+}
+
 /** Menu of a tree row (`null` = the project root). */
 export function fileMenuEntries(entry: FileEntry | null): MenuEntry[] {
   const dir = targetDir(entry);
@@ -146,7 +180,7 @@ export function fileMenuEntries(entry: FileEntry | null): MenuEntry[] {
   const canEdit = guestCanEdit();
   const entries: MenuEntry[] = canEdit
     ? [
-        submenu("New", [item("File", () => void newEntry(dir, "file")), item("Directory", () => void newEntry(dir, "dir"))]),
+        submenu("New", newMenuEntries(dir)),
         separator,
       ]
     : [];
@@ -162,8 +196,23 @@ export function fileMenuEntries(entry: FileEntry | null): MenuEntry[] {
     );
   }
   entries.push(item("Find in Files…", () => openFindInFiles({ directory: dir }), "FindInPath"));
-  if (entry && canEdit) entries.push(item("Rename…", () => void rename(entry), "RenameElement"), item("Delete…", () => void remove(entry), "$Delete"));
-  entries.push(separator, item("Reload from Disk", () => refreshDirs([dir])));
+  if (entry && canEdit) {
+    // The selected rows (Ctrl+click) move and are deleted together.
+    const paths = () => (projectTree.selectedPaths().includes(entry.path) ? projectTree.selectedPaths() : [entry.path]);
+    entries.push(
+      submenu("Refactor", [
+        item("Rename…", () => void rename(entry), "RenameElement"),
+        item("Move…", () => void moveEntries(paths()), "Move"),
+        item("Copy…", () => void copyEntries([entry.path]), "CopyElement"),
+        item("Safe Delete…", () => void safeDeleteEntries(paths()), "SafeDelete"),
+      ]),
+      item("Delete…", () => void remove(entry), "$Delete"),
+    );
+  }
+  // Other features (Git) add their submenus next to Reload from Disk, like PHPStorm.
+  entries.push(separator, ...providedEntries("project", entry), item("Reload from Disk", () => refreshDirs([dir])));
+  // Compare With… / Compare Files below Reload from Disk, like PHPStorm.
+  entries.push(separator, ...providedEntries("project.compare", entry));
   return entries;
 }
 

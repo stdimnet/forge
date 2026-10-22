@@ -12,6 +12,8 @@
   padding-top: 11vh;
 }
 .popup-backdrop.modal {
+  /* Confirmations also open over the git modals (diff and merge windows). */
+  z-index: 360;
   align-items: center;
   padding-top: 0;
   background: rgba(0, 0, 0, 0.28);
@@ -429,6 +431,14 @@ mark.hl {
   opacity: 0.5;
   cursor: default;
 }
+/* "Do not ask me again": left-aligned in the button row, like PHPStorm. */
+.dialog-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: auto;
+  color: var(--fg);
+}
 .form-row {
   display: grid;
   grid-template-columns: 120px 1fr;
@@ -804,6 +814,22 @@ mark.hl {
   font-size: var(--fs-small);
   color: var(--fg-muted);
 }
+.decl-chooser-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 20px;
+  padding: 0 8px;
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--fg-faint);
+}
+.decl-chooser-group::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
 .decl-chooser-row {
   display: flex;
   align-items: center;
@@ -846,4 +872,26 @@ mark.hl {
 .decl-chooser-file {
   margin-right: 8px;
   color: var(--fg);
+}
+.decl-chooser-container {
+  overflow: hidden;
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.balloon-icon.warning {
+  color: var(--warning);
+}
+.balloon-icon.error {
+  color: var(--danger);
+}
+.decl-chooser-action svg {
+  flex-shrink: 0;
+  color: var(--fg-muted);
+}
+.decl-chooser-action:has(+ .decl-chooser-row:not(.decl-chooser-action)),
+.decl-chooser-action:has(+ .decl-chooser-group) {
+  margin-bottom: 4px;
+  box-shadow: 0 1px 0 0 var(--border);
 }

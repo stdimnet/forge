@@ -98,6 +98,12 @@
   align-items: center;
   padding: 6px 0;
   background: var(--bg-toolbar);
+  /* Stripe buttons are dragged with the pointer. */
+  user-select: none;
+  touch-action: none;
+}
+.tool-stripe.dragging {
+  cursor: grabbing;
 }
 .tool-stripe-left {
   border-right: 1px solid var(--border);
@@ -106,15 +112,77 @@
   border-left: 1px solid var(--border);
   justify-content: flex-start;
 }
+.stripe-part {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.tool-stripe-right .stripe-part:last-child {
+  margin-top: auto;
+}
 .stripe-group {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 4px;
   align-items: center;
 }
-.stripe-btn {
+.stripe-separator {
+  width: 20px;
+  height: 1px;
+  margin: 2px 0;
+  background: var(--border-strong);
+}
+/* While a stripe button is dragged, every group (also empty ones) is a drop target. */
+.tool-stripe.dragging .stripe-group {
+  min-height: 30px;
+  width: 30px;
+  border-radius: var(--radius);
+}
+.tool-stripe.dragging .stripe-group.drop-target {
+  background: var(--bg-hover);
+}
+.stripe-drop-indicator {
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  height: 2px;
+  margin-top: -1px;
+  border-radius: 1px;
+  background: var(--accent);
+  pointer-events: none;
+}
+.stripe-btn.dragged {
+  opacity: 0.35;
+}
+.stripe-drag-ghost {
+  position: fixed;
+  z-index: 450;
+  display: grid;
+  place-items: center;
   width: 30px;
   height: 30px;
+  border-radius: var(--radius);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow);
+  color: var(--accent);
+  pointer-events: none;
+}
+.stripe-btn {
+  position: relative;
+  width: 30px;
+  height: 30px;
+  position: relative;
+}
+/* Small state marker of a hidden tool window, e.g. terminal progress */
+.stripe-badge {
+  position: absolute;
+  right: 1px;
+  bottom: 1px;
+  display: flex;
+  pointer-events: none;
 }
 .stripe-btn.active {
   color: var(--accent);
@@ -132,6 +200,24 @@
 }
 .bottom-panel {
   border-top: 1px solid var(--border);
+}
+/* The one or two tool windows of an area (Left Top above Left Bottom, Bottom Left beside
+   Bottom Right). */
+.tool-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+.tool-area-bottom {
+  flex-direction: row;
+}
+.tool-area-part {
+  flex: 1;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
 }
 .tool-window {
   flex: 1;
@@ -274,6 +360,42 @@
   min-width: 0;
   background: var(--bg-editor);
 }
+.editor-groups {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  min-width: 0;
+}
+.editor-groups.horizontal {
+  flex-direction: column;
+}
+.editor-group {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+.editor-group-splitter {
+  flex: 0 0 1px;
+  background: var(--border);
+  position: relative;
+  z-index: 2;
+}
+.editor-group-splitter::after {
+  content: "";
+  position: absolute;
+  inset: 0 -3px;
+  cursor: col-resize;
+}
+.editor-group-splitter.h::after {
+  inset: -3px 0;
+  cursor: row-resize;
+}
+/* With several groups, only the active group's active tab carries the accent. */
+.editor-groups:has(.active-group) .editor-group:not(.active-group) .editor-tab.active {
+  border-bottom-color: var(--fg-faint);
+}
 .editor-tabs {
   display: flex;
   height: 36px;
@@ -335,6 +457,12 @@
 }
 .tab-close.dirty:hover svg {
   visibility: visible;
+}
+.tab-pin {
+  color: var(--fg-muted);
+}
+.tab-pin svg {
+  transform: rotate(45deg);
 }
 .breadcrumbs {
   display: flex;
@@ -420,6 +548,16 @@
   gap: 2px;
   min-width: 0;
 }
+/* Gives way before the navigation bar; the full text is its tooltip. */
+.status-message {
+  padding: 0 8px;
+  color: var(--fg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 60px;
+  flex-shrink: 20;
+}
 .status-item {
   display: inline-flex;
   align-items: center;
@@ -432,4 +570,10 @@
 button.status-item:hover {
   background: var(--bg-hover);
   color: var(--fg);
+}
+
+/* Project view drag and drop (Move). */
+.tree-row.drop-target {
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent);
 }

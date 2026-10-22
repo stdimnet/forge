@@ -158,7 +158,7 @@ pub async fn answer(manager: &LspManager, req: LspRequest) -> Result<Vec<u8>, St
             insert_spaces,
         } => json(
             &manager
-                .format(&abs(&path)?, tab_size, insert_spaces)
+                .format(&abs(&path)?, tab_size, insert_spaces, None)
                 .await
                 .map_err(err)?,
         ),

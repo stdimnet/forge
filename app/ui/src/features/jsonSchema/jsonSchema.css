@@ -1,0 +1,119 @@
+/* JSON Schema: settings page, status bar widget, completion. Colors come from theme.css. */
+.json-schema-split {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 18px;
+}
+.json-schema-list {
+  width: 220px;
+  flex: none;
+}
+.json-schema-names {
+  min-height: 240px;
+  max-height: 360px;
+}
+.json-schema-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 8px;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: var(--fg);
+  font-size: var(--fs-ui);
+  text-align: left;
+  cursor: default;
+}
+.json-schema-name svg {
+  flex: none;
+  color: var(--warning);
+}
+.json-schema-name span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.json-schema-name.selected {
+  background: var(--accent-soft);
+  color: var(--fg-strong);
+}
+.json-schema-hint {
+  padding-top: 8px;
+}
+.json-schema-form {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 6px 10px;
+  align-content: start;
+}
+.json-schema-form > .set-desc,
+.json-schema-form > .json-schema-entries {
+  grid-column: 1 / -1;
+}
+.json-schema-form .set-line > .set-input {
+  justify-self: stretch;
+  width: 100%;
+}
+.json-schema-label {
+  min-width: 0;
+}
+.json-schema-entries {
+  max-width: none;
+  margin-top: 6px;
+}
+.json-schema-entry {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-left: 8px;
+}
+.json-schema-entry.selected {
+  background: var(--accent-soft);
+}
+.json-schema-entry .set-list-item {
+  flex: 1;
+  min-width: 0;
+}
+.json-schema-entry-icon {
+  flex: none;
+  color: var(--fg-muted);
+}
+.json-schema-add {
+  position: relative;
+}
+.json-schema-add-menu {
+  position: absolute;
+  top: 26px;
+  left: 0;
+  z-index: 10;
+}
+.json-schema-add-menu .context-menu-item {
+  gap: 8px;
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: var(--fg);
+  font-size: var(--fs-small);
+}
+.json-schema-add-menu .context-menu-item:hover {
+  background: var(--bg-selection);
+  color: var(--fg-strong);
+}
+.json-schema-builtins {
+  max-width: 720px;
+  margin-bottom: 6px;
+}
+.json-schema-status-warning {
+  margin-right: 4px;
+  vertical-align: -2px;
+  color: var(--warning);
+}
+/* PHPStorm shows required properties in bold. */
+.cm-json-required .cm-completionLabel {
+  font-weight: 600;
+}

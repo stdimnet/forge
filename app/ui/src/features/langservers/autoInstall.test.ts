@@ -10,6 +10,7 @@ import {
   progressText,
   updateSummary,
   type PromptInput,
+  failureDetail,
 } from "./autoInstall";
 
 const missing: ServerRow = {
@@ -34,7 +35,6 @@ const missing: ServerRow = {
 
 const input = (extra: Partial<PromptInput> = {}): PromptInput => ({
   php: true,
-  remote: false,
   row: missing,
   autoInstall: "ask",
   server: "auto",
@@ -48,9 +48,17 @@ describe("Intelephense install offer", () => {
     expect(intelephenseAction(input({ autoInstall: "always" }))).toBe("install");
   });
 
+  it("asks before installing on a remote project's host", () => {
+    const host = "deploy@shop.example.com";
+    expect(intelephenseAction(input({ host }))).toBe("ask");
+    expect(intelephenseAction(input({ host, autoInstall: "always" }))).toBe("ask");
+    const showBalloon = vi.fn((..._args: unknown[]) => 1);
+    offerIntelephense(input({ host }), { showBalloon, install: vi.fn(async () => undefined), saveSetting: vi.fn() });
+    expect(showBalloon.mock.calls[0][0]).toBe(`${OFFER_TEXT} on ${host}`);
+  });
+
   it("stays quiet when there is nothing to offer or the user said no", () => {
     expect(intelephenseAction(input({ php: false }))).toBe("none");
-    expect(intelephenseAction(input({ remote: true }))).toBe("none");
     expect(intelephenseAction(input({ offered: true }))).toBe("none");
     expect(intelephenseAction(input({ autoInstall: "never" }))).toBe("none");
     expect(intelephenseAction(input({ server: "phpactor" }))).toBe("none");
@@ -102,5 +110,22 @@ describe("install progress text", () => {
     expect(progressFraction(1, 4)).toBe(0.25);
     expect(progressFraction(1, null)).toBeNull();
     expect(updateSummary([{ name: "intelephense", installed: "1.12.6", latest: "1.14.4" }])).toBe("intelephense 1.12.6 → 1.14.4");
+  });
+});
+
+describe("failureDetail", () => {
+  it("names npm's error and the exit code", () => {
+    const npm = [
+      "npm error code SELF_SIGNED_CERT_IN_CHAIN",
+      "npm error request to https://registry.npmjs.org/intelephense failed, reason: self-signed certificate in certificate chain",
+      "npm error A complete log of this run can be found in: /home/deploy/.npm/_logs/x.log",
+    ];
+    expect(failureDetail(1, npm)).toBe(
+      "request to https://registry.npmjs.org/intelephense failed, reason: self-signed certificate in certificate chain. Exit code 1.",
+    );
+  });
+  it("falls back to the last line, or to the settings page", () => {
+    expect(failureDetail(null, ["killed"])).toBe("killed.");
+    expect(failureDetail(undefined, [])).toBe("See Settings | Languages & Frameworks | Language Servers.");
   });
 });

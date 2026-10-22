@@ -1,0 +1,197 @@
+/* Hierarchy tool window (Type / Method / Call Hierarchy). Theme variables only. */
+.hierarchy-window {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+.hierarchy-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  padding: 3px 6px;
+  border-bottom: 1px solid var(--border);
+}
+.hierarchy-tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--fg-muted);
+}
+.hierarchy-tool:hover {
+  background: var(--bg-hover);
+  color: var(--fg);
+}
+.hierarchy-tool.on {
+  background: var(--bg-active);
+  color: var(--fg-strong);
+}
+.hierarchy-tool:disabled {
+  opacity: 0.5;
+}
+.hierarchy-sep {
+  width: 1px;
+  height: 16px;
+  margin: 0 4px;
+  background: var(--border);
+}
+.hierarchy-scope {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 26px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--fg-muted);
+  font: inherit;
+}
+.hierarchy-scope:hover {
+  background: var(--bg-hover);
+  color: var(--fg);
+}
+.hierarchy-scope-value {
+  color: var(--fg-strong);
+}
+.hierarchy-tree {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 4px 0;
+  outline: none;
+}
+.hierarchy-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding-right: 8px;
+  white-space: nowrap;
+  cursor: default;
+}
+.hierarchy-row:hover {
+  background: var(--bg-hover);
+}
+.hierarchy-row.selected {
+  background: var(--bg-selection);
+}
+.hierarchy-tree:focus .hierarchy-row.selected {
+  background: var(--accent-soft);
+}
+.hierarchy-twisty {
+  display: inline-flex;
+  width: 13px;
+  color: var(--fg-muted);
+}
+.hierarchy-name {
+  color: var(--fg);
+}
+.hierarchy-row.current .hierarchy-name {
+  color: var(--fg-strong);
+  font-weight: 600;
+}
+.hierarchy-container,
+.hierarchy-count {
+  display: inline-flex;
+  align-items: center;
+  overflow: hidden;
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+  text-overflow: ellipsis;
+}
+.hierarchy-message {
+  color: var(--fg-muted);
+  font-style: italic;
+}
+.hierarchy-row.error .hierarchy-message {
+  color: var(--danger);
+  font-style: normal;
+}
+.hierarchy-mark {
+  display: inline-flex;
+}
+.hierarchy-mark.mark-defined {
+  color: var(--success);
+}
+.hierarchy-mark.mark-abstract {
+  color: var(--info);
+}
+.hierarchy-mark.mark-shouldDefine {
+  color: var(--danger);
+}
+.hierarchy-mark.mark-inherited {
+  color: var(--fg-faint);
+}
+.hierarchy-usages {
+  flex: 0 0 auto;
+  max-height: 40%;
+  min-height: 60px;
+  overflow: auto;
+  padding: 4px 0;
+  border-top: 1px solid var(--border);
+}
+.hierarchy-usages-empty {
+  padding: 6px 10px;
+  font-size: var(--fs-small);
+}
+.hierarchy-usage {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  padding: 0 10px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.hierarchy-usage:hover {
+  background: var(--bg-hover);
+}
+.hierarchy-usage-file {
+  color: var(--fg-strong);
+}
+.hierarchy-usage-line {
+  min-width: 3ch;
+  color: var(--fg-faint);
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  text-align: right;
+}
+.hierarchy-usage-code {
+  overflow: hidden;
+  color: var(--fg);
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  text-overflow: ellipsis;
+}
+.hierarchy-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  padding: 5px 10px;
+  border-top: 1px solid var(--border);
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+.hierarchy-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.hierarchy-empty {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 0 24px;
+  color: var(--fg-muted);
+  text-align: center;
+}

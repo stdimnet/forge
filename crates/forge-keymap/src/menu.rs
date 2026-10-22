@@ -611,6 +611,10 @@ fn edit_menu() -> MenuEntry {
                         "StructuralSearchPlugin.StructuralSearchAction",
                         "Search Structurall_y...",
                     ),
+                    l(
+                        "StructuralSearchPlugin.StructuralReplaceAction",
+                        "Replace Structurall_y...",
+                    ),
                 ],
             ),
             g(
@@ -696,6 +700,7 @@ fn view_menu() -> MenuEntry {
             l("RecentChangedFiles", "Recently Changed Fi_les"),
             l("RecentLocations", "Recent L_ocations"),
             SEP,
+            l("CompareTwoFiles", "Compare _With..."),
             l("CompareClipboardWithSelection", "Compare with Clip_board"),
             SEP,
             g(
@@ -833,6 +838,11 @@ fn code_menu() -> MenuEntry {
             l("InspectCode", "In_spect Code..."),
             l("CodeInspection.OnEditor", "Code Cleanup..."),
             l("RunInspection", "Run Inspection by _Name..."),
+            SEP,
+            l(
+                "AnalyzeStacktraceOnError",
+                "Analyze Stack _Trace or Thread Dump...",
+            ),
         ],
     )
 }
@@ -868,6 +878,7 @@ fn refactor_menu() -> MenuEntry {
             SEP,
             l("MembersPullUp", "Pull Members _Up..."),
             l("MemberPushDown", "Push Members _Down..."),
+            l("MakeStatic", "Ma_ke Static..."),
         ],
     )
 }
@@ -949,6 +960,7 @@ fn git_menu() -> MenuEntry {
             SEP,
             l("Git.Merge", "_Merge..."),
             l("Git.Rebase", "_Rebase..."),
+            l("Git.ResolveConflicts", "Re_solve Conflicts..."),
             SEP,
             l("Git.Branches", "_Branches..."),
             l("Git.CreateNewBranch", "_New Branch..."),
@@ -973,9 +985,10 @@ fn git_menu() -> MenuEntry {
                 vec![
                     l("CheckinFiles", "_Commit File..."),
                     l("Git.Add", "_Add"),
+                    l("Git.Ignore.File", "Add to .git_ignore"),
                     l("Annotate", "Annotate with Git _Blame"),
-                    l("Compare.LastVersion", "Show _Diff"),
-                    l("Compare.SameVersion", "Compare with _Revision..."),
+                    l("Compare.SameVersion", "Show _Diff"),
+                    l("Compare.Selected", "Compare with _Revision..."),
                     l("Git.CompareWithBranch", "Compare with Bra_nch..."),
                     l("Vcs.ShowTabbedFileHistory", "Show _History"),
                     l("Vcs.ShowHistoryForBlock", "Show History for _Selection"),

@@ -14,7 +14,7 @@ use std::time::{Duration, Instant};
 use forge_backend::protocol::{BrowseResult, Call, Hello};
 use forge_backend::remote::Connection;
 use forge_backend::rpc::{connection_lost, RpcClient};
-use forge_backend::{PortForward, RemoteHost, Tunnels};
+use forge_backend::{PortForward, RemoteHost, TunnelStream, Tunnels};
 use serde::{Deserialize, Serialize};
 use tokio::sync::watch;
 
@@ -388,6 +388,24 @@ impl Tunnels for SshTunnels {
         Box::pin(async move {
             let conn = conn.upgrade().ok_or_else(connection_lost)?;
             conn.forward_remote(remote_port, local_port).await
+        })
+    }
+
+    fn open_socket(
+        &self,
+        path: String,
+    ) -> Pin<Box<dyn Future<Output = forge_core::Result<TunnelStream>> + Send>> {
+        let conn = self.conn.clone();
+        Box::pin(async move {
+            let session = conn
+                .upgrade()
+                .and_then(|c| c.session())
+                .ok_or_else(connection_lost)?;
+            let stream = session
+                .open_streamlocal(&path)
+                .await
+                .map_err(|e| forge_core::ForgeError::Other(e.to_string()))?;
+            Ok(Box::new(stream) as TunnelStream)
         })
     }
 }

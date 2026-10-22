@@ -136,7 +136,7 @@ describe("shared document events", () => {
   });
 
   it("marks a tab dirty when its text differs from the saved hash", () => {
-    const tab = { path: PATH, name: "Order.php", content: "abc", saved: "abc", eol: "\n", cursor: { line: 1, col: 1 }, shared: true, savedHash: contentHash("abc") } satisfies EditorTab;
+    const tab = { path: PATH, name: "Order.php", content: "abc", saved: "abc", eol: "\n", encoding: "UTF-8", bom: false, cursor: { line: 1, col: 1 }, shared: true, savedHash: contentHash("abc") } satisfies EditorTab;
     expect(isDirty(tab)).toBe(false);
     expect(isDirty({ ...tab, content: "abcd" })).toBe(true);
     expect(isDirty({ ...tab, content: "abcd", savedHash: contentHash("abcd") })).toBe(false);

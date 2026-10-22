@@ -22,7 +22,7 @@ fn is_ident(c: char) -> bool {
 }
 
 /// Word (identifier, qualified name or variable) around `offset`.
-fn word_at(src: &str, offset: usize) -> Option<(usize, usize)> {
+pub(crate) fn word_at(src: &str, offset: usize) -> Option<(usize, usize)> {
     let offset = offset.min(src.len());
     if !src.is_char_boundary(offset) {
         return None;
@@ -203,7 +203,7 @@ pub fn function_markdown(f: &FunctionDecl) -> String {
 }
 
 /// Find a member on `class` or its ancestors.
-fn find_member(
+pub(crate) fn find_member(
     index: &mut ProjectIndex,
     class: &ClassLike,
     name: &str,

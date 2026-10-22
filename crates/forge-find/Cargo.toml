@@ -7,7 +7,8 @@ license.workspace = true
 
 [dependencies]
 serde.workspace = true
-regex-lite = "0.1"
+regex = "1"
+forge-scopes.workspace = true
 
 [dev-dependencies]
 serde_json.workspace = true

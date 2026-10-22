@@ -1,17 +1,15 @@
-import { createEffect, onCleanup, onMount } from "solid-js";
-import { EditorState } from "@codemirror/state";
+import { createEffect, on, onCleanup, onMount } from "solid-js";
+import { Compartment, EditorState } from "@codemirror/state";
 import {
   EditorView,
   keymap,
   lineNumbers,
-  highlightActiveLine,
   highlightActiveLineGutter,
   drawSelection,
   highlightSpecialChars,
-  rectangularSelection,
 } from "@codemirror/view";
 import { defaultKeymap, historyKeymap, indentWithTab } from "@codemirror/commands";
-import { bracketMatching, foldGutter, indentOnInput, indentUnit } from "@codemirror/language";
+import { bracketMatching, foldGutter, indentOnInput } from "@codemirror/language";
 import { closeBrackets, autocompletion } from "@codemirror/autocomplete";
 import { highlightSelectionMatches, searchKeymap } from "@codemirror/search";
 import { forgeEditorTheme, forgeHighlight } from "./forgeTheme";
@@ -22,14 +20,29 @@ import { updateContent, updateCursor, saveFile, type EditorTab } from "@/state/e
 import { registerView } from "./views";
 import { replaceDocument, undoHistory } from "./reload";
 import { wordCompletion } from "./wordCompletion";
+import { highlightCaretRows } from "./caretRow";
+import { docSync, joinDocSync } from "./docSync";
+import { formatCompartment, formatExtensions } from "./codeStyle";
+import { errorStripe } from "./errorStripe";
+import { usageHighlighting } from "./usageHighlight";
+import "./fileFormat";
+import { getSetting } from "@/state/settings";
 
-/** One CodeMirror instance per open tab; kept alive while the tab exists. */
-export function CodeEditor(props: { tab: EditorTab }) {
+/** Caret blink period (Settings | Editor | General | Caret). */
+const caretBlink = () => drawSelection({ cursorBlinkRate: getSetting<number>("editor.caret.blinkPeriod", 500) });
+
+/**
+ * One CodeMirror instance per tab of an editor group; kept alive while the tab exists. Views
+ * of the same file in other groups edit the same document (`docSync`).
+ */
+export function CodeEditor(props: { tab: EditorTab; group?: number }) {
   let host!: HTMLDivElement;
   let view: EditorView | undefined;
   let unregister: (() => void) | undefined;
+  let leaveSync: (() => void) | undefined;
 
   let disposed = false;
+  const caretCompartment = new Compartment();
 
   onMount(() => {
     // Language, indentation and editor features depend on the file type (resolved in Rust);
@@ -45,22 +58,26 @@ export function CodeEditor(props: { tab: EditorTab }) {
       state: EditorState.create({
         doc: props.tab.content,
         extensions: [
+          // First, so other views of the file have the change before the store hears of it.
+          docSync(path),
           lineNumbers(),
-          highlightActiveLine(),
+          highlightCaretRows,
           highlightActiveLineGutter(),
           highlightSpecialChars(),
-          drawSelection(),
-          rectangularSelection(),
+          caretCompartment.of(caretBlink()),
+          // Rectangular selection and multi-caret clicks: features/carets.
           undoHistory(),
           indentOnInput(),
-          indentUnit.of(indentFor(path, props.tab.content)),
+          formatCompartment.of(formatExtensions(props.tab.format, indentFor(path, props.tab.content))),
           bracketMatching(),
           closeBrackets(),
           autocompletion(),
           wordCompletion,
           highlightSelectionMatches(),
+          usageHighlighting(),
+          errorStripe(),
           keymap.of([
-            { key: "Mod-s", run: () => (void saveFile(path), true) },
+            { key: "Mod-s", run: () => (void saveFile(path, "explicit"), true) },
             indentWithTab,
             ...defaultKeymap,
             ...historyKeymap,
@@ -77,14 +94,32 @@ export function CodeEditor(props: { tab: EditorTab }) {
             if (u.selectionSet || u.docChanged) {
               const head = u.state.selection.main.head;
               const line = u.state.doc.lineAt(head);
-              updateCursor(path, line.number, head - line.from + 1);
+              updateCursor(path, line.number, head - line.from + 1, u.state.selection.ranges.length);
             }
           }),
         ],
       }),
     });
-    unregister = registerView(path, view);
+    unregister = registerView(path, view, props.group);
+    leaveSync = joinDocSync(path, view);
   }
+
+  // The resolved format (code style, EditorConfig, detected indent) and the caret settings
+  // apply to the open editor.
+  createEffect(
+    on(
+      () => props.tab.format,
+      (format) => view?.dispatch({ effects: formatCompartment.reconfigure(formatExtensions(format, indentFor(props.tab.path))) }),
+      { defer: true },
+    ),
+  );
+  createEffect(
+    on(
+      () => getSetting<number>("editor.caret.blinkPeriod", 500),
+      () => view?.dispatch({ effects: caretCompartment.reconfigure(caretBlink()) }),
+      { defer: true },
+    ),
+  );
 
   // Content replaced from outside (e.g. reloaded after an AI agent edited the file). Shared
   // tabs (Code With Me) change through their editor binding, never as whole documents.
@@ -96,6 +131,7 @@ export function CodeEditor(props: { tab: EditorTab }) {
   onCleanup(() => {
     disposed = true;
     unregister?.();
+    leaveSync?.();
     view?.destroy();
   });
 

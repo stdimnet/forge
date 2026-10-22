@@ -67,6 +67,7 @@ Use the matching skill in `.claude/skills/<name>/SKILL.md` before starting a tas
 | `verify-ui-with-screenshots` | capture and review UI screenshots |
 | `quality-gates` | run all checks before committing |
 | `build-release` | build and smoke-test an AppImage / installer |
+| `auto-runner` | work through `docs/ROADMAP.md` autonomously: branch, PR, merge, clean up |
 
 ## Rules
 
@@ -130,4 +131,6 @@ Use the matching skill in `.claude/skills/<name>/SKILL.md` before starting a tas
 - Versions follow Pride Versioning (https://pridever.org, PROUD.DEFAULT.SHAME) and are changed
   only with `pnpm version:bump` (see `docs/guide/developer/versioning.md`). Never bump the
   version unless you were asked to.
-- Do not push or open pull requests unless you were asked to.
+- Do not push or open pull requests unless you were asked to. The `auto-runner` skill is the
+  owner's standing request for its own branches and pull requests (labelled `auto-runner`);
+  it never touches branches it did not create.

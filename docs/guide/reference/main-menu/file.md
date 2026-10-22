@@ -21,6 +21,8 @@ Projects, new files and scratches, settings and saving. Open it with ☰ (`Alt+\
 | New › File | — | — | yes | Creates a file in the folder selected in the Project view (or the project root) and opens it. [More](../../user/workbench.md#context-menu) |
 | New › Scratch File | `Ctrl+Alt+Shift+Insert` | `Cmd+Shift+N` | yes | Asks for a language and creates a new scratch file in Forge's global scratch folder. [More](../../user/scratches-and-http.md#creating-scratches) ([screenshot](../../../screenshots/docs-new-scratch.png)) |
 | New › Directory | — | — | yes | Creates a folder in the folder selected in the Project view (or the project root). [More](../../user/workbench.md#context-menu) |
+| New › PHP File, PHP Class, PHPUnit Test, … | — | — | yes | The file templates the project uses (PHP, Laravel, Symfony, web, Vue, React, Lua and your own); PHP Class opens the New PHP Class dialog with the PSR-4 namespace. [More](../../user/file-templates.md) ([screenshot](../../../screenshots/file-templates-main-menu.png)) |
+| New › Edit File Templates… | — | — | yes | Opens Settings \| Editor \| File and Code Templates. [More](../../user/file-templates.md#editing-templates) |
 | Open… | — | — | yes | Opens a folder as the project (native folder picker in the desktop app). [More](../../getting-started/projects.md#open-an-existing-project) |
 | **Recent Projects** | — | — | dynamic | Lists your recent projects (except the open one); click one to open it. |
 | Close Project | — | — | yes | Closes the project and returns to the Welcome screen. [More](../../getting-started/projects.md#open-an-existing-project) |

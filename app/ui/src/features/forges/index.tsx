@@ -14,6 +14,7 @@ import { registerCommand } from "@/state/commands";
 import { showToolWindow } from "@/state/layout";
 import { MergeRequestsPanel, PanelActions } from "./MergeRequestsPanel";
 import { AccountsPage } from "./AccountsPage";
+import { SchemaPage } from "@/features/settings/SchemaPage";
 import { ForgeDialogs } from "./Dialogs";
 import { openCreateDialog } from "./actions";
 import { branchPipeline, context, refreshAll, requestName, startForgesStore } from "./store";
@@ -37,12 +38,23 @@ const pages = [
   { id: "vcs.forgejo", title: "Forgejo / Gitea", kind: "forgejo", keywords: ["codeberg", "pull request", "token"] },
   { id: "vcs.github", title: "GitHub", kind: "github", keywords: ["pull request", "token", "enterprise"] },
 ] as const;
+// Version Control | Code Hosts: refresh interval and the status bar pipeline; the accounts
+// of each host are pages below it.
+registerSettingsPage({
+  id: "vcs.hosts",
+  title: "Code Hosts",
+  group: "Version Control",
+  order: 10,
+  keywords: ["pipeline", "ci", "merge request", "pull request", "refresh", "gitlab", "github", "forgejo"],
+  component: () => <SchemaPage pageId="vcs.hosts" />,
+});
 pages.forEach((p, i) =>
   registerSettingsPage({
     id: p.id,
     title: p.title,
     group: "Version Control",
-    order: 10 + i,
+    parent: "vcs.hosts",
+    order: i,
     keywords: [...p.keywords, "account", "log in"],
     component: () => <AccountsPage kind={p.kind} />,
   }),
@@ -53,7 +65,7 @@ registerCommand({
   id: "forges.showMergeRequests",
   title: "View Pull/Merge Requests",
   category: "Git",
-  run: () => showToolWindow("left", "pull-requests"),
+  run: () => showToolWindow("pull-requests"),
 });
 registerCommand({ id: "forges.refresh", title: "Refresh Pull/Merge Requests", category: "Git", run: () => void refreshAll() });
 
@@ -65,7 +77,7 @@ function PipelineStatus() {
           class="status-item fg-status-ci"
           data-status="pipeline"
           title={`Pipeline for ${p().ref ?? "this branch"}: ${ciLabels[p().status]}${p().jobs.length ? `\n${p().jobs.map((j) => `${ciLabels[j.status]}  ${j.name}`).join("\n")}` : ""}`}
-          onClick={() => (p().webUrl ? window.open(p().webUrl!, "_blank") : showToolWindow("left", "pull-requests"))}
+          onClick={() => (p().webUrl ? window.open(p().webUrl!, "_blank") : showToolWindow("pull-requests"))}
         >
           <CiIcon status={p().status} size={12} />
           CI: {ciLabels[p().status]}

@@ -14,7 +14,8 @@ export interface LspRange {
   end: LspPosition;
 }
 
-export type Severity = "error" | "warning" | "weak" | "info";
+/** `typo` and `grammar` come from the spelling and grammar inspections (`features/spelling`). */
+export type Severity = "error" | "warning" | "weak" | "info" | "typo" | "grammar";
 
 export interface EditorDiagnostic {
   range: LspRange;
@@ -24,6 +25,10 @@ export interface EditorDiagnostic {
   code?: string | null;
   unnecessary?: boolean;
   deprecated?: boolean;
+  /** About the file, not a range in it (a typo in the file name): no squiggle. */
+  fileLevel?: boolean;
+  /** Data of the inspection that reported it (Alt+Enter fixes). */
+  data?: unknown;
 }
 
 export interface EditorHover {
@@ -108,6 +113,32 @@ export interface LspServerConfig {
   settings?: unknown;
 }
 
+/** An inlay hint as a server reports it (`forge_codeintel::inlay::RawInlayHint`). */
+export interface RawInlayHint {
+  line: number;
+  character: number;
+  label: string;
+  /** LSP `InlayHintKind`: 1 = type, 2 = parameter. */
+  kind: number | null;
+  paddingLeft: boolean;
+  paddingRight: boolean;
+  tooltip?: string | null;
+}
+
+export type InlayGroup = "parameterName" | "variableType" | "returnType" | "other";
+
+/** An inlay hint to draw: grouped and filtered by Settings | Editor | Inlay Hints. */
+export interface EditorInlayHint {
+  line: number;
+  /** UTF-16 column. */
+  character: number;
+  label: string;
+  group: InlayGroup;
+  paddingLeft: boolean;
+  paddingRight: boolean;
+  tooltip?: string;
+}
+
 const at = (path: string, pos: LspPosition) => ({ path, line: pos.line, character: pos.character });
 
 export const lspApi = {
@@ -125,8 +156,12 @@ export const lspApi = {
   documentSymbols: (path: string) => invoke<EditorSymbol[]>("lsp_document_symbols", { path }),
   signatureHelp: (path: string, pos: LspPosition) =>
     invoke<EditorSignatureHelp | null>("lsp_signature_help", at(path, pos)),
-  format: (path: string, tabSize = 4, insertSpaces = true) =>
-    invoke<TextEdit[]>("lsp_format", { path, tabSize, insertSpaces }),
+  /** Reformat Code; `languageId` (the file type) selects the code style options for the server. */
+  format: (path: string, tabSize = 4, insertSpaces = true, languageId: string | null = null) =>
+    invoke<TextEdit[]>("lsp_format", { path, tabSize, insertSpaces, languageId }),
+  /** Hints of lines `startLine..=endLine` of the editor's `text`. */
+  inlayHints: (path: string, startLine: number, endLine: number, text: string, languageId: string | null) =>
+    invoke<EditorInlayHint[]>("lsp_inlay_hints", { path, startLine, endLine, text, languageId }),
   status: () => invoke<ServerStatus[]>("lsp_status"),
   registerServer: (config: LspServerConfig) => invoke<void>("lsp_register_server", { config }),
   onDiagnostics: (cb: (e: DiagnosticsEvent) => void) => listen<DiagnosticsEvent>("lsp://diagnostics", cb),

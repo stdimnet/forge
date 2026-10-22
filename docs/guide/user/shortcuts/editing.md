@@ -12,13 +12,34 @@ Typing, selecting, moving and commenting code, completion, generation, formattin
 | Action | Windows / Linux | macOS |
 | --- | --- | --- |
 | [Basic Completion](#basic-completion) | `Ctrl+Space`, `Shift+Space` | `Ctrl+Space`, `Shift+Space` |
+| [Cyclic Expand Word](#cyclic-expand-word) | `Alt+/` | `Alt+/` |
+| [Cyclic Expand Word (Backward)](#cyclic-expand-word-backward) | `Alt+Shift+/` | `Alt+Shift+/` |
+| [Complete Current Statement](#complete-current-statement) | `Ctrl+Shift+Enter` | `Cmd+Shift+Enter` |
 | [Parameter Info](#parameter-info) | `Ctrl+P` | `Cmd+P` |
+| [Quick Documentation](#quick-documentation) | `Ctrl+Q` | `F1`, `Ctrl+J` |
+| [External Documentation](#external-documentation) | `Shift+F1` | `Shift+F1` |
+| [Quick Definition](#quick-definition) | `Ctrl+Shift+I` | `Alt+Space`, `Cmd+Y` |
+| [Type Info](#type-info) | `Ctrl+Shift+P` | `Ctrl+Shift+P` |
+| [Context Info](#context-info) | `Alt+Q` | `Ctrl+Shift+Q` |
+| [Error Description](#error-description) | `Ctrl+F1` | `Cmd+F1` |
 | [Generate…](#generate) | `Alt+Insert` | `Cmd+N` |
+| [Insert Live Template…](#insert-live-template) | `Ctrl+J` | `Cmd+J` |
+| [Surround With…](#surround-with) | `Ctrl+Alt+T` | `Cmd+Alt+T` |
+| [Surround with Live Template…](#surround-with-live-template) | `Ctrl+Alt+J` | `Cmd+Alt+J` |
+| [Unwrap/Remove…](#unwrapremove) | `Ctrl+Shift+Delete` | `Cmd+Shift+Delete` |
+| [Expand Emmet abbreviation](#expand-emmet-abbreviation) | `Tab` | `Tab` |
+| [Surround with Emmet…](#surround-with-emmet) | — | — |
+| [Update Tag with Emmet…](#update-tag-with-emmet) | — | — |
+| [Remove Tag](#remove-tag) | — | — |
+| [Next Emmet Edit Point](#next-emmet-edit-point) | `Alt+Shift+]` | `Ctrl+Alt+]` |
+| [Previous Emmet Edit Point](#previous-emmet-edit-point) | `Alt+Shift+[` | `Ctrl+Alt+[` |
+| [Show Color Picker](#show-color-picker) | — | — |
 | [Undo](#undo) | `Ctrl+Z`, `Alt+Backspace` | `Cmd+Z` |
 | [Redo](#redo) | `Ctrl+Shift+Z`, `Alt+Shift+Backspace` | `Cmd+Shift+Z` |
 | [Cut](#cut) | `Ctrl+X`, `Shift+Delete` | `Cmd+X` |
 | [Copy](#copy) | `Ctrl+C`, `Ctrl+Insert` | `Cmd+C` |
 | [Paste](#paste) | `Ctrl+V`, `Shift+Insert` | `Cmd+V` |
+| [Paste from History…](#paste-from-history) | `Ctrl+Shift+V` | `Cmd+Shift+V` |
 | [Paste as Plain Text](#paste-as-plain-text) | `Ctrl+Alt+Shift+V` | `Cmd+Alt+Shift+V` |
 | [Select All](#select-all) | `Ctrl+A` | `Cmd+A` |
 | [Duplicate Line or Selection](#duplicate-line-or-selection) | `Ctrl+D` | `Cmd+D` |
@@ -34,6 +55,10 @@ Typing, selecting, moving and commenting code, completion, generation, formattin
 | [Add Selection for Next Occurrence](#add-selection-for-next-occurrence) | `Alt+J` | `Ctrl+G` |
 | [Unselect Occurrence](#unselect-occurrence) | `Alt+Shift+J` | `Ctrl+Shift+G` |
 | [Select All Occurrences](#select-all-occurrences) | `Ctrl+Alt+Shift+J` | `Ctrl+Cmd+G` |
+| [Clone Caret Above](#clone-caret-above) | `Double Ctrl+Up` (hold the second `Ctrl`) | `Double Alt+Up` |
+| [Clone Caret Below](#clone-caret-below) | `Double Ctrl+Down` | `Double Alt+Down` |
+| [Add Carets to Ends of Selected Lines](#add-carets-to-ends-of-selected-lines) | `Alt+Shift+G` | `Alt+Shift+G` |
+| [Column Selection Mode](#column-selection-mode) | `Alt+Shift+Insert` | `Cmd+Shift+8` |
 | [Join Lines](#join-lines) | `Ctrl+Shift+J` | `Ctrl+Shift+J` |
 | [Toggle Case](#toggle-case) | `Ctrl+Shift+U` | `Cmd+Shift+U` |
 | [Split Line](#split-line) | `Ctrl+Enter` | `Cmd+Enter` |
@@ -62,6 +87,34 @@ Opens code completion at the caret; also offers words from the document.
 
 More: [Editor](../../user/editor.md#code-completion)
 
+## Cyclic Expand Word
+
+**Shortcut:** `Alt+/` · macOS `Alt+/` · action id `HippieCompletion`
+
+Completes the word at the caret with the nearest word of the file that starts with it (above the caret first, then below, then the other open files); press again to cycle.
+
+**Menu:** Code | Code Completion | Cyclic Expand Word
+
+More: [Editor](../../user/editor.md#cyclic-expand-word)
+
+## Cyclic Expand Word (Backward)
+
+**Shortcut:** `Alt+Shift+/` · macOS `Alt+Shift+/` · action id `HippieBackwardCompletion`
+
+Like Cyclic Expand Word, but looks below the caret first and cycles the other way.
+
+**Menu:** Code | Code Completion | Cyclic Expand Word (Backward)
+
+More: [Editor](../../user/editor.md#cyclic-expand-word)
+
+## Complete Current Statement
+
+**Shortcut:** `Ctrl+Shift+Enter` · macOS `Cmd+Shift+Enter` · action id `EditorCompleteStatement`
+
+Closes open brackets, adds the missing `;` (PHP, JavaScript, TypeScript) or `then … end` (Lua), opens the block of control statements and moves the caret on.
+
+More: [Editor](../../user/editor.md#complete-current-statement)
+
 ## Parameter Info
 
 **Shortcut:** `Ctrl+P` · macOS `Cmd+P` · action id `ParameterInfo`
@@ -71,6 +124,82 @@ Shows the parameters of the call at the caret, the current one in bold.
 **Menu:** View | Parameter Info
 
 More: [Editor](../../user/editor.md#parameter-info)
+
+## Quick Documentation
+
+**Shortcut:** `Ctrl+Q` · macOS `F1`, `Ctrl+J` · action id `QuickJavaDoc`
+
+Shows the documentation of the symbol at the caret in a popup. Press it again to move the
+documentation to the Documentation tool window.
+
+**Menu:** View | Quick Documentation
+
+![Quick Documentation](../../../screenshots/quick-documentation.png)
+
+More: [Editor](../../user/editor.md#quick-documentation)
+
+## External Documentation
+
+**Shortcut:** `Shift+F1` · macOS `Shift+F1` · action id `ExternalJavaDoc`
+
+Opens the online documentation of the symbol at the caret in the browser (php.net, Laravel API,
+MDN, Vue, React, Lua manual).
+
+**Menu:** View | External Documentation
+
+More: [Editor](../../user/editor.md#external-documentation)
+
+## Quick Definition
+
+**Shortcut:** `Ctrl+Shift+I` · macOS `Alt+Space`, `Cmd+Y` · action id `QuickImplementations`
+
+Shows the source of the declaration at the caret in a popup, with its docblock.
+
+**Menu:** View | Quick Definition
+
+![Quick Definition](../../../screenshots/quick-definition.png)
+
+More: [Editor](../../user/editor.md#quick-definition)
+
+## Type Info
+
+**Shortcut:** `Ctrl+Shift+P` · macOS `Ctrl+Shift+P` · action id `ExpressionTypeInfo`
+
+Shows the type of the expression at the caret.
+
+**Menu:** View | Type Info
+
+More: [Editor](../../user/editor.md#type-info-context-info-and-error-description)
+
+## Context Info
+
+**Shortcut:** `Alt+Q` · macOS `Ctrl+Shift+Q` · action id `EditorContextInfo`
+
+Shows the headers of the class and method that enclose the caret at the top of the editor.
+
+**Menu:** View | Context Info
+
+More: [Editor](../../user/editor.md#type-info-context-info-and-error-description)
+
+## Toggle Rendered View
+
+**Shortcut:** `Ctrl+Alt+Q` · macOS `Ctrl+Alt+Q` · action id `ToggleRenderedDocPresentation`
+
+Shows the documentation comment at (or above) the caret as formatted text, or its text again.
+
+**Menu:** Tools | Render All Doc Comments (the whole file)
+
+More: [Sticky lines, breadcrumbs and Reader mode](../../user/code-structure.md#rendered-documentation-comments)
+
+## Error Description
+
+**Shortcut:** `Ctrl+F1` · macOS `Cmd+F1` · action id `ShowErrorDescription`
+
+Shows the full description of the problems at the caret.
+
+**Menu:** View | Error Description
+
+More: [Editor](../../user/editor.md#type-info-context-info-and-error-description)
 
 ## Generate
 
@@ -83,6 +212,123 @@ In PHP files: generates a constructor, getters, setters, overrides, `__toString(
 ![Generate…](../../../screenshots/docs-generate.png)
 
 More: [PHP](../../user/php.md#generate)
+
+## Insert Live Template
+
+**Shortcut:** `Ctrl+J` · macOS `Cmd+J` · action id `InsertLiveTemplate`
+
+Lists the live templates that apply at the caret, filtered by the word before it; type to
+narrow the list and press `Enter` to insert. Typing an abbreviation and pressing `Tab` expands
+it directly.
+
+**Menu:** Code | Insert Live Template…
+
+![Insert Live Template](../../../screenshots/live-template-insert.png)
+
+More: [Live templates](../../user/live-templates.md#expanding-a-template)
+
+## Surround With
+
+**Shortcut:** `Ctrl+Alt+T` · macOS `Cmd+Alt+T` · action id `SurroundWith`
+
+Wraps the selected lines (or the caret line) in `if`, `if / else`, loops, `try / catch`, a
+function, braces, a region or a live template that uses `$SELECTION$`.
+
+**Menu:** Code | Surround With…
+
+![Surround With](../../../screenshots/surround-with.png)
+
+More: [Live templates](../../user/live-templates.md#surround-with)
+
+## Surround with Live Template
+
+**Shortcut:** `Ctrl+Alt+J` · macOS `Cmd+Alt+J` · action id `SurroundWithLiveTemplate`
+
+Like Surround With, but lists only the live templates that use `$SELECTION$`.
+
+**Menu:** Code | Surround with Live Template…
+
+More: [Live templates](../../user/live-templates.md#surround-with)
+
+## Unwrap/Remove
+
+**Shortcut:** `Ctrl+Shift+Delete` · macOS `Cmd+Shift+Delete` · action id `Unwrap`
+
+Lists the statements around the caret: unwrap one (keep the body the caret is in) or remove
+an `else`, `elseif`, `catch` or `finally` branch. The editor previews the change.
+
+**Menu:** Code | Unwrap/Remove…
+
+![Unwrap/Remove](../../../screenshots/unwrap-remove.png)
+
+More: [Live templates](../../user/live-templates.md#unwrapremove)
+
+## Expand Emmet abbreviation
+
+**Shortcut:** `Tab` (Settings | Editor | Emmet: `Tab`, `Enter` or `Space`)
+
+Expands the Emmet abbreviation before the caret in HTML-like files, PHP, JSX and CSS:
+`ul>li.item$*3`, `a{Home}`, `m10-20`, `df`. Live templates and postfix templates win when they
+match; without an abbreviation the key does what it always does.
+
+![An Emmet abbreviation expanded](../../../screenshots/emmet-expand.png)
+
+More: [Emmet and color previews](../../user/emmet-and-colors.md)
+
+## Surround with Emmet
+
+**Shortcut:** none by default (also the **Emmet** entry of `Ctrl+Alt+J`) · action id `SurroundWithEmmet`
+
+Wraps the selection, or the current line, with an abbreviation entered in a popup that
+previews the result: `div.card`, `ul>li*` (one item per line), `a` around a URL.
+
+![Surround with Emmet](../../../screenshots/emmet-surround.png)
+
+More: [Emmet and color previews](../../user/emmet-and-colors.md#surround-with-emmet)
+
+## Update Tag with Emmet
+
+**Shortcut:** none by default · action id `EmmetUpdateTag`
+
+Renames the tag around the caret and adds the id, classes and attributes of an abbreviation
+(`section.hero[role=banner]`).
+
+More: [Emmet and color previews](../../user/emmet-and-colors.md#update-tag-remove-tag-and-edit-points)
+
+## Remove Tag
+
+**Shortcut:** none by default · action id `EmmetRemoveTag`
+
+Removes the tag around the caret and keeps its content, one indentation level further out.
+
+More: [Emmet and color previews](../../user/emmet-and-colors.md#update-tag-remove-tag-and-edit-points)
+
+## Next Emmet Edit Point
+
+**Shortcut:** `Alt+Shift+]` · macOS `Ctrl+Alt+]` · action id `EmmetNextEditPoint`
+
+Moves the caret to the next empty attribute value, empty element or empty line.
+
+More: [Emmet and color previews](../../user/emmet-and-colors.md#update-tag-remove-tag-and-edit-points)
+
+## Previous Emmet Edit Point
+
+**Shortcut:** `Alt+Shift+[` · macOS `Ctrl+Alt+[` · action id `EmmetPreviousEditPoint`
+
+Moves the caret to the previous edit point.
+
+More: [Emmet and color previews](../../user/emmet-and-colors.md#update-tag-remove-tag-and-edit-points)
+
+## Show Color Picker
+
+**Shortcut:** none by default (or click a color swatch in the gutter) · action id `ShowColorPicker`
+
+Opens the color picker for the color at the caret, or for a new color inserted at the caret.
+The color is written back in its notation.
+
+![The color picker](../../../screenshots/color-picker.png)
+
+More: [Emmet and color previews](../../user/emmet-and-colors.md#color-picker)
 
 ## Undo
 
@@ -133,6 +379,16 @@ Pastes from the clipboard.
 **Menu:** Edit | Paste
 
 More: [Editor](../../user/editor.md#editing-actions)
+
+## Paste from History
+
+**Shortcut:** `Ctrl+Shift+V` · macOS `Cmd+Shift+V` · action id `PasteMultiple`
+
+Lists the texts copied or cut in this session; type to filter, `Enter` pastes, `Delete` removes an entry.
+
+**Menu:** Edit | Paste Special | Paste from History…
+
+More: [Editor](../../user/editor.md#paste-from-history)
 
 ## Paste as Plain Text
 
@@ -260,7 +516,7 @@ Adds the next occurrence of the selected text as another selection (multiple car
 
 **Menu:** Edit | Find | Add Selection for Next Occurrence
 
-More: [Editor](../../user/editor.md#editing-actions)
+More: [Editor](../../user/editor.md#multiple-carets-and-column-selection)
 
 ## Unselect Occurrence
 
@@ -270,7 +526,7 @@ Removes the occurrence added last.
 
 **Menu:** Edit | Find | Unselect Occurrence
 
-More: [Editor](../../user/editor.md#editing-actions)
+More: [Editor](../../user/editor.md#multiple-carets-and-column-selection)
 
 ## Select All Occurrences
 
@@ -280,7 +536,41 @@ Selects every occurrence of the selected text.
 
 **Menu:** Edit | Find | Select All Occurrences
 
-More: [Editor](../../user/editor.md#editing-actions)
+More: [Editor](../../user/editor.md#multiple-carets-and-column-selection)
+
+## Clone Caret Above
+
+**Shortcut:** `Double Ctrl+Up` · macOS `Double Alt+Up` · action id `EditorCloneCaretAbove`
+
+Press `Ctrl` twice, keep it down and press `Up`: adds a caret on the line above every caret. `Down` takes the last clones back.
+
+More: [Editor](../../user/editor.md#multiple-carets-and-column-selection)
+
+## Clone Caret Below
+
+**Shortcut:** `Double Ctrl+Down` · macOS `Double Alt+Down` · action id `EditorCloneCaretBelow`
+
+Press `Ctrl` twice, keep it down and press `Down`: adds a caret on the line below every caret.
+
+More: [Editor](../../user/editor.md#multiple-carets-and-column-selection)
+
+## Add Carets to Ends of Selected Lines
+
+**Shortcut:** `Alt+Shift+G` · macOS `Alt+Shift+G` · action id `EditorAddCaretPerSelectedLine`
+
+Replaces the selection with a caret at the end of every selected line.
+
+More: [Editor](../../user/editor.md#multiple-carets-and-column-selection)
+
+## Column Selection Mode
+
+**Shortcut:** `Alt+Shift+Insert` · macOS `Cmd+Shift+8` · action id `EditorToggleColumnMode`
+
+Turns rectangular selection with `Shift`+arrow keys and mouse drags on or off for the editor.
+
+**Menu:** Edit | Column Selection Mode
+
+More: [Editor](../../user/editor.md#multiple-carets-and-column-selection)
 
 ## Join Lines
 

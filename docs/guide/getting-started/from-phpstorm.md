@@ -59,16 +59,14 @@ bound and show "*Action* is not available yet" so you are not surprised by somet
 happening.
 
 - Get from VCS
-- Replace in Files (`Ctrl+Shift+R`), Find Usages (`Alt+F7`), Find tool window
-- Refactorings: Rename (`Shift+F6`), Extract/Introduce, Move, Change Signature, Safe Delete
-- Show Context Actions / quick-fixes (`Alt+Enter`), Quick Documentation popup (`Ctrl+Q`; hover
-  documentation works with the mouse), File Structure popup (`Ctrl+F12`)
-- Bookmarks, TODO and Notifications tool windows, Local History
-- Live templates, Surround With, Optimize Imports, Type/Call/Method Hierarchy
-- Go to Implementation (`Ctrl+Alt+B`), Go to Super Method, Go to Test
-- Split editors, Distraction Free / Presentation / Zen modes
-- Get from VCS, stash/unstash, Commit and Push
-- Marketplace, settings export/import, automatic updates
+- Find Usages in File (`Ctrl+F7`), Highlight Usages in File
+- Extract Interface / Superclass, Pull Members Up / Push Members Down
+- File Structure popup (`Ctrl+F12`)
+- Local History
+- Optimize Imports
+- Go to Test (`Ctrl+Shift+T`)
+- Distraction Free / Presentation / Zen modes
+- Marketplace, settings export/import
 
 The [keymap reference](../reference/keymap.md) marks every action as implemented or not.
 

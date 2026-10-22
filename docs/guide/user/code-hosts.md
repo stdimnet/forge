@@ -16,7 +16,8 @@ The plugin **GitLab, Forgejo and GitHub** (`forge.code-hosts`) brings code revie
 | GitHub | REST + GraphQL for review threads | `#12` | GitHub Enterprise Server |
 
 The repository is detected from `git remote -v` (https, ssh and scp-style URLs, nested GitLab
-groups). Wording follows the host: "merge request" on GitLab, "pull request" elsewhere.
+groups); in a [remote project](remote-development.md) git runs on the host, while the API calls
+go from your machine with your tokens. Wording follows the host: "merge request" on GitLab, "pull request" elsewhere.
 
 ## Logging in
 
@@ -94,8 +95,7 @@ Actions runs) with their status and jobs.
 ## CI status in the status bar
 
 The status bar shows the CI status of the current branch ("CI: Running", "Passed", "Failed").
-Settings (not shown in the Settings dialog; set them in `settings.toml`, see
-[Settings and themes](settings-and-themes.md#settings-files)):
+Settings | Version Control | **Code Hosts** (the account pages are below it):
 
 | Setting | Default | Meaning |
 | --- | --- | --- |

@@ -1,6 +1,25 @@
 import { describe, expect, it } from "vitest";
 import type { ServerRow } from "@/ipc/langservers";
-import { activeHint, type HintInput } from "./hints";
+import { activeHint as activeHintIn, type HintInput, type ServerHint } from "./hints";
+
+/** Hints like the ones Forge had for `$schema` before its own JSON Schema support. */
+const HINTS: ServerHint[] = [
+  {
+    serverId: "vscode-json-language-server",
+    languageIds: ["json"],
+    applies: (head) => /"\$schema"\s*:\s*"/.test(head),
+    title: "JSON Language Server is not installed.",
+    detail: "",
+  },
+  {
+    serverId: "yaml-language-server",
+    languageIds: ["yaml", "docker-compose", "symfony-services"],
+    applies: (head) => /^#\s*yaml-language-server:\s*\$schema\s*=/m.test(head),
+    title: "YAML Language Server is not installed.",
+    detail: "",
+  },
+];
+const activeHint = (input: HintInput) => activeHintIn(input, HINTS);
 
 const row = (over: Partial<ServerRow> = {}): ServerRow =>
   ({
@@ -32,6 +51,10 @@ const input = (over: Partial<HintInput> = {}): HintInput => ({
 });
 
 describe("activeHint", () => {
+  it("has no built-in hints for $schema: Forge validates with it itself", () => {
+    expect(activeHintIn(input())).toBeNull();
+  });
+
   it("suggests the JSON server for a file with $schema", () => {
     const a = activeHint(input());
     expect(a?.hint.serverId).toBe("vscode-json-language-server");

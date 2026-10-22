@@ -12,6 +12,7 @@ import { isSymfonyDemo, symfonyDemoName } from "./demoSymfonyProject";
 import { webDemo } from "./demoWebProjects";
 import { isLuaDemo, luaDemoName } from "./demoLuaProject";
 import { scratchCommandLine, scratchRunSteps } from "./scratchesMock";
+import { mockSettingValue } from "./settingsMock";
 
 const ROOT = `~/Projects/${demoProjectName}`;
 const projectRoot = () =>
@@ -84,6 +85,8 @@ export function mockCommandLine(cfg: RunConfiguration): CommandLine {
       return { program: php, args: ["artisan", ...split(o.command), ...split(cfg.arguments), "--ansi"], cwd };
     case "composer":
       return { program: "composer", args: ["run-script", o.script ?? "", "--ansi"], cwd };
+    case "composer-command":
+      return { program: "composer", args: [...split(o.command), ...split(cfg.arguments), "--ansi", "--no-interaction"], cwd };
     case "npm":
       return { program: o.packageManager || "npm", args: [o.command || "run", ...(o.command && o.command !== "run" ? [] : [o.script ?? ""])], cwd };
     case "lua-script":
@@ -349,6 +352,8 @@ function stepsFor(cfg: RunConfiguration | undefined, cmd: CommandLine): Step[] {
       ];
     case "scratch":
       return scratchRunSteps(cfg);
+    case "composer-command":
+      return composerSteps(split(o.command));
     case "lua-script":
       return luaSteps(cfg);
     case "php-script":
@@ -360,6 +365,64 @@ function stepsFor(cfg: RunConfiguration | undefined, cmd: CommandLine): Step[] {
       ];
     default:
       return [[100, "Done.\n"], [50, { code: 0 }]];
+  }
+}
+
+const green = (s: string) => `\x1b[32m${s}\x1b[39m`;
+const yellow = (s: string) => `\x1b[33m${s}\x1b[39m`;
+
+/** Canned output of Composer commands (nothing is installed in browser mode). */
+function composerSteps(args: string[]): Step[] {
+  const [command, ...rest] = args;
+  const packages = rest.filter((a) => !a.startsWith("-"));
+  const autoload = [
+    [120, `${green("Generating optimized autoload files")}\n`],
+    [200, "> Illuminate\\Foundation\\ComposerScripts::postAutoloadDump\n> @php artisan package:discover --ansi\n\n"],
+    [150, "   \x1b[44;37m INFO \x1b[0m Discovering packages.\n\n  laravel/sail \x1b[90m........................................\x1b[0m \x1b[32;1mDONE\x1b[0m\n\n"],
+  ] as Step[];
+  switch (command) {
+    case "install":
+      return [
+        [150, `${green("Installing dependencies from lock file (including require-dev)")}\nVerifying lock file contents can be installed on current platform.\n`],
+        [200, "Nothing to install, update or remove\n"],
+        ...autoload,
+        [50, "No security vulnerability advisories found.\n"],
+        [20, { code: 0 }],
+      ];
+    case "update":
+    case "require": {
+      const [pkg, constraint] = (packages[0] ?? "laravel/framework").split(":");
+      const steps: Step[] = [];
+      if (command === "require") steps.push([120, `${green(`./composer.json has been updated`)}\nRunning composer update ${pkg}\n`]);
+      steps.push(
+        [200, `${green("Loading composer repositories with package information")}\n${green("Updating dependencies")}\n`],
+        [300, `Lock file operations: ${command === "require" ? "1 install" : "0 installs"}, ${command === "require" ? "0" : "1"} update, 0 removals\n`],
+        [100, `  - ${command === "require" ? "Locking" : "Upgrading"} ${green(pkg)} (${yellow(command === "require" ? (constraint ?? "v4.0.8").replace(/^\^/, "v") + ".0" : "v12.1.0 => v12.3.0")})\n`],
+        [100, `${green("Writing lock file")}\n${green("Installing dependencies from lock file (including require-dev)")}\n`],
+        [250, `Package operations: ${command === "require" ? "1 install, 0 updates" : "0 installs, 1 update"}, 0 removals\n  - ${command === "require" ? "Installing" : "Upgrading"} ${green(pkg)}: Extracting archive\n`],
+        ...autoload,
+        [20, { code: 0 }],
+      );
+      return steps;
+    }
+    case "remove":
+      return [
+        [120, `${green("./composer.json has been updated")}\nRunning composer update ${packages[0] ?? ""}\n`],
+        [250, `${green("Loading composer repositories with package information")}\n${green("Updating dependencies")}\nLock file operations: 0 installs, 0 updates, 1 removal\n  - Removing ${green(packages[0] ?? "")}\n`],
+        [200, `${green("Writing lock file")}\nPackage operations: 0 installs, 0 updates, 1 removal\n`],
+        ...autoload,
+        [20, { code: 0 }],
+      ];
+    case "validate":
+      return [[250, `${green("./composer.json is valid")}\n`], [20, { code: 0 }]];
+    case "outdated":
+      return [
+        [200, `${green("Color legend:")}\n- ${yellow("patch or minor")} release available - update recommended\n- \x1b[31mmajor\x1b[39m release available - update possible\n\n`],
+        [100, `${green("Direct dependencies required in composer.json:")}\nlaravel/framework v12.1.0 ${yellow("v12.3.0")} The Laravel Framework.\nphpunit/phpunit   11.4.0  \x1b[31m12.0.2\x1b[39m  The PHP Unit Testing framework.\n`],
+        [20, { code: 0 }],
+      ];
+    default:
+      return [[150, "Done.\n"], [20, { code: 0 }]];
   }
 }
 
@@ -388,7 +451,12 @@ registerMock("run_start", async ({ request }) => {
   const runId = r.runId ?? `mock-run-${++seq}`;
   const cmd = r.command ?? mockCommandLine(r.configuration!);
   const commandLine = display({ ...cmd, args: [...(r.interpreterArgs ?? []), ...cmd.args] });
-  const options = { testRunner: !!r.testRunner, root: projectRoot(), cwd: cmd.cwd || undefined };
+  const options = {
+    testRunner: !!r.testRunner,
+    root: projectRoot(),
+    cwd: cmd.cwd || undefined,
+    cycleBufferKb: Number(mockSettingValue("run.console.cycleBufferKb") ?? 1024),
+  };
   const old = runs.get(runId);
   if (old) wasm.run_output_drop(JSON.stringify({ handle: old.output }));
   runs.set(runId, { timers: [], done: false, output: Number(wasm.run_output_new(JSON.stringify(options))) });

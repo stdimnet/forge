@@ -8,6 +8,7 @@
 use std::io::Write;
 use std::path::Path;
 use std::process::{Command, Stdio};
+use std::sync::RwLock;
 
 use forge_core::{ForgeError, Result};
 use serde::{Deserialize, Serialize};
@@ -62,8 +63,27 @@ impl GitExec for LocalGit {
     }
 }
 
-/// Name of the git binary; `FORGE_GIT` overrides it (e.g. a bundled git on Windows).
-fn git_binary() -> String {
+/// The git executable chosen in the settings (`vcs.git.path`), if any.
+static PROGRAM: RwLock<Option<String>> = RwLock::new(None);
+
+/// Use `path` as the git executable for every later [`LocalGit`] invocation in this process
+/// (Settings | Version Control | Git, "Path to Git executable"). `None`, an empty path or
+/// plain `git` use the one on `PATH`. Remote agents are separate processes and keep the git
+/// of their host.
+pub fn set_git_program(path: Option<&str>) {
+    let program = path
+        .map(str::trim)
+        .filter(|p| !p.is_empty() && *p != "git")
+        .map(str::to_string);
+    *PROGRAM.write().unwrap_or_else(|e| e.into_inner()) = program;
+}
+
+/// Name of the git binary: the configured path, else `FORGE_GIT` (e.g. a bundled git on
+/// Windows), else `git` from `PATH`.
+pub fn git_binary() -> String {
+    if let Some(p) = PROGRAM.read().unwrap_or_else(|e| e.into_inner()).clone() {
+        return p;
+    }
     std::env::var("FORGE_GIT").unwrap_or_else(|_| "git".to_string())
 }
 
@@ -103,7 +123,8 @@ pub(crate) fn run_raw(
 }
 
 fn run_local(cwd: &Path, args: &[&str], opts: Run<'_>) -> Result<Output> {
-    let mut cmd = Command::new(git_binary());
+    let program = git_binary();
+    let mut cmd = Command::new(&program);
     cmd.current_dir(cwd)
         .args([
             "-c",
@@ -139,9 +160,11 @@ fn run_local(cwd: &Path, args: &[&str], opts: Run<'_>) -> Result<Output> {
     }
 
     tracing::debug!(?args, "git");
-    let mut child = cmd
-        .spawn()
-        .map_err(|e| ForgeError::Other(format!("could not run git (is it installed?): {e}")))?;
+    let mut child = cmd.spawn().map_err(|e| {
+        ForgeError::Other(format!(
+            "could not run {program} (is git installed? See Settings | Version Control | Git): {e}"
+        ))
+    })?;
     if let Some(input) = opts.stdin {
         if let Some(mut stdin) = child.stdin.take() {
             stdin
@@ -186,5 +209,23 @@ pub(crate) fn error_from(args: &[&str], out: &Output) -> ForgeError {
         ForgeError::Other(format!("git {sub} failed"))
     } else {
         ForgeError::Other(format!("git {sub}: {msg}"))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_configured_program_replaces_git_on_path() {
+        let default = git_binary();
+        set_git_program(Some("  /opt/git/bin/git "));
+        assert_eq!(git_binary(), "/opt/git/bin/git");
+        // Plain `git` or an empty path mean the one on PATH.
+        set_git_program(Some("git"));
+        assert_eq!(git_binary(), default);
+        set_git_program(Some("/x/git"));
+        set_git_program(None);
+        assert_eq!(git_binary(), default);
     }
 }

@@ -22,6 +22,7 @@ Code review is built in as well: pull and merge requests with inline threads, is
 pipelines for GitLab (also self-managed), Forgejo/Gitea and GitHub.
 
 The layout and keymap follow PHPStorm 1:1 so you feel at home immediately; the look is Forge's own.
+Vim users get IdeaVim-style emulation (Tools | Vim) that reads `~/.ideavimrc`.
 
 **Browser Companion**: click a React, Vue, Angular or Svelte component in your running app and
 its source opens in Forge ([browser-extension/](browser-extension/README.md)). Error pages

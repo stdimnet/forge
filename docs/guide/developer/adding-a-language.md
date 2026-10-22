@@ -84,6 +84,11 @@ language is chosen in Rust (`crates/forge-filetypes/src/data.rs`): the
 - Another template engine: describe it as a `TemplateSyntax` (delimiters, keywords, builtins)
   and register it with the `template(...)` helper in `languages.ts`; mark its type as a template
   in `builtin.rs` (`TEMPLATES`).
+- Configurable delimiters: list the engine with its delimiter fields and defaults in
+  `CONFIGURABLE_TEMPLATES` (`crates/forge-filetypes/src/delimiters.rs`) and give it a syntax
+  builder in `SYNTAX` (`src/editor/templateDelimiters.ts`). Rust resolves the delimiters of each
+  file from the `templates.delimiters` setting (one entry per template and data language pair;
+  the LaTeX entries are default data in `core.toml`) into `FileTypeInfo.delimiters`.
 
 ## Check
 

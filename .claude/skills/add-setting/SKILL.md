@@ -17,12 +17,16 @@ In the owning plugin manifest (`app/src-tauri/plugins/<plugin>.toml`):
 key = "projectView.openFilesWithSingleClick"
 title = "Open files with single click"
 description = "Shown under the option."
-type = "bool"          # bool | int | number | string | enum | path | list
+type = "bool"          # bool | int | number | string | enum | path | list | objects
 default = false
 group = "appearance"   # id of the settings page that shows it
 section = "Project View"  # optional heading inside the page
 order = 40
 ```
+
+`objects` is a list of tables with string values (optional `unique = ["a", "b"]` rejects
+duplicate entries); its page shows the editor registered with `registerObjectSettingEditor`
+(see `templates.delimiters`).
 
 Enums list their options as `{ value, label }` tables (see `appearance.theme` in
 `app/src-tauri/plugins/core.toml`).

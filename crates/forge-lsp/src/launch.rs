@@ -24,6 +24,10 @@ pub struct ServerIo {
     /// Diagnostics output, logged at debug level when present.
     pub stderr: Option<BoxRead>,
     pub process: Box<dyn ServerProcess>,
+    /// `processId` sent in `initialize`: a process on the server's machine whose exit tells
+    /// the server to exit too. `None` for a server on another machine, where Forge's own pid
+    /// means nothing (Intelephense exits when that process does not exist).
+    pub parent_pid: Option<u32>,
 }
 
 /// The process behind a [`ServerIo`].
@@ -95,5 +99,6 @@ pub fn spawn_local(command: &str, args: &[String], cwd: &Path) -> Result<ServerI
         stdout: Box::pin(stdout),
         stderr: Some(Box::pin(stderr)),
         process: Box::new(LocalProcess(child)),
+        parent_pid: Some(std::process::id()),
     })
 }

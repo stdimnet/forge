@@ -2,7 +2,8 @@
 //! action ids.
 //!
 //! Handles single keystrokes, two-stroke chords ("Ctrl+K Ctrl+C"), modifier double-taps
-//! ("Shift Shift") and focus contexts (editor / text input / terminal / everything else).
+//! ("Shift Shift"), keys pressed while a double-tapped modifier is held ("Double Ctrl+Up")
+//! and focus contexts (editor / text input / terminal / everything else).
 
 use std::collections::HashMap;
 
@@ -22,6 +23,8 @@ pub enum FocusContext {
     Input,
     Terminal,
     Toolwindow,
+    /// A diff or merge window (its editors included).
+    Diff,
     #[default]
     Global,
 }
@@ -121,6 +124,7 @@ pub fn context_matches(context: ActionContext, focus: FocusContext) -> bool {
         ActionContext::Toolwindow => {
             matches!(focus, FocusContext::Toolwindow | FocusContext::Terminal)
         }
+        ActionContext::Diff => focus == FocusContext::Diff,
     }
 }
 
@@ -317,6 +321,10 @@ struct Tap {
 pub struct Resolver {
     index: HashMap<String, StrokeEntry>,
     doubles: HashMap<Modifier, Vec<Binding>>,
+    /// "Double Ctrl+Up" bindings by stroke id ("Ctrl+Up").
+    double_keys: HashMap<String, Vec<Binding>>,
+    /// Modifier that was tapped and is held down again within the double-tap time.
+    double_held: Option<Modifier>,
     pending_chord: Option<(String, FocusContext)>,
     /// Modifier currently held as a potential tap.
     tap: Option<Modifier>,
@@ -337,6 +345,8 @@ impl Resolver {
         let mut r = Self {
             index: HashMap::new(),
             doubles: HashMap::new(),
+            double_keys: HashMap::new(),
+            double_held: None,
             pending_chord: None,
             tap: None,
             last_tap: None,
@@ -349,11 +359,16 @@ impl Resolver {
     pub fn set_bindings(&mut self, bindings: Vec<Binding>) {
         self.index.clear();
         self.doubles.clear();
+        self.double_keys.clear();
         self.reset();
         for b in bindings {
             let (first, second) = match &b.shortcut {
                 Shortcut::Double(m) => {
                     self.doubles.entry(*m).or_default().push(b);
+                    continue;
+                }
+                Shortcut::DoubleKey(_, stroke) => {
+                    self.double_keys.entry(stroke.id()).or_default().push(b);
                     continue;
                 }
                 Shortcut::Keys(strokes) => (strokes[0].id(), strokes.get(1).map(KeyStroke::id)),
@@ -375,17 +390,31 @@ impl Resolver {
         self.pending_chord = None;
         self.tap = None;
         self.last_tap = None;
+        self.double_held = None;
     }
 
     /// Mouse clicks and focus changes break a double-tap sequence.
     pub fn interrupt(&mut self) {
         self.tap = None;
         self.last_tap = None;
+        self.double_held = None;
     }
 
     pub fn handle(&mut self, input: &KeyInput) -> Resolution {
         match input.kind {
-            KeyInputKind::Keydown => self.key_down(&input.event, input.focus),
+            KeyInputKind::Keydown => {
+                // The second press of a double tap: keys pressed while it is held may fire
+                // "Double Ctrl+Up" bindings.
+                if let Some(m) = modifier_of_event(&input.event) {
+                    let again = self
+                        .last_tap
+                        .filter(|t| t.modifier == m && input.time - t.at <= self.double_tap_ms);
+                    if again.is_some() && !input.event.repeat {
+                        self.double_held = Some(m);
+                    }
+                }
+                self.key_down(&input.event, input.focus)
+            }
             KeyInputKind::Keyup => self.key_up(&input.event, input.focus, input.time),
             KeyInputKind::Interrupt => {
                 self.interrupt();
@@ -437,6 +466,23 @@ impl Resolver {
         let stroke = stroke_from_event(e);
         let sid = stroke.id();
 
+        if let Some(m) = self.double_held {
+            if held(e, m) {
+                let list = self.double_keys.get(&sid).map(|l| {
+                    l.iter()
+                        .filter(|b| matches!(b.shortcut, Shortcut::DoubleKey(bm, _) if bm == m))
+                        .cloned()
+                        .collect::<Vec<_>>()
+                });
+                // Holding the modifier, the key can be pressed again (more carets).
+                if let Some(action) = Self::pick(list.as_ref(), focus) {
+                    return Resolution::action(action);
+                }
+            } else {
+                self.double_held = None;
+            }
+        }
+
         if let Some((first, chord_focus)) = self.pending_chord.take() {
             let entry = self.index.get(&first);
             return match Self::pick(entry.and_then(|en| en.chords.get(&sid)), chord_focus) {
@@ -478,6 +524,9 @@ impl Resolver {
 
     pub fn key_up(&mut self, e: &KeyEvent, focus: FocusContext, time: f64) -> Resolution {
         let m = modifier_of_event(e);
+        if m.is_some() && m == self.double_held {
+            self.double_held = None;
+        }
         let tapped = self.tap.take();
         let Some(m) = m.filter(|m| tapped == Some(*m)) else {
             return Resolution::ignored();
@@ -504,6 +553,16 @@ impl Resolver {
     }
 }
 
+/// Whether modifier `m` is down during `e`.
+fn held(e: &KeyEvent, m: Modifier) -> bool {
+    match m {
+        Modifier::Ctrl => e.ctrl_key,
+        Modifier::Alt => e.alt_key,
+        Modifier::Shift => e.shift_key,
+        Modifier::Meta => e.meta_key,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -515,6 +574,7 @@ mod tests {
         match id {
             "Generate" | "EditorDuplicate" => ActionContext::Editor,
             "Rerun" => ActionContext::Toolwindow,
+            "NextDiff" => ActionContext::Diff,
             _ => ActionContext::Any,
         }
     }
@@ -615,6 +675,17 @@ mod tests {
             action(&mut r, "Alt+Insert", Global).as_deref(),
             Some("NewElement")
         );
+    }
+
+    #[test]
+    fn diff_windows_take_their_own_bindings() {
+        let mut r = resolver(&[("StepInto", &["F7"]), ("NextDiff", &["F7"])]);
+        assert_eq!(
+            action(&mut r, "F7", FocusContext::Diff).as_deref(),
+            Some("NextDiff")
+        );
+        assert_eq!(action(&mut r, "F7", Editor).as_deref(), Some("StepInto"));
+        assert_eq!(action(&mut r, "F7", Global).as_deref(), Some("StepInto"));
     }
 
     #[test]
@@ -763,6 +834,95 @@ mod tests {
         assert_eq!(tap(&mut r, 100.0, Global).action, None);
     }
 
+    fn input(kind: KeyInputKind, event: KeyEvent, time: f64) -> KeyInput {
+        KeyInput {
+            kind,
+            event,
+            focus: Editor,
+            time,
+        }
+    }
+
+    fn clone_caret_resolver() -> Resolver {
+        let mut r = resolver(&[
+            ("EditorCloneCaretAbove", &["Double Ctrl+Up"]),
+            ("EditorCloneCaretBelow", &["Double Ctrl+Down"]),
+            ("EditorScrollUp", &["Ctrl+Up"]),
+            ("RunAnything", &["Double Ctrl"]),
+        ]);
+        r.handle(&input(
+            KeyInputKind::Keydown,
+            modifier("Control", true),
+            0.0,
+        ));
+        r.handle(&input(
+            KeyInputKind::Keyup,
+            modifier("Control", false),
+            50.0,
+        ));
+        r
+    }
+
+    #[test]
+    fn keys_fire_while_a_double_tapped_modifier_is_held() {
+        let mut r = clone_caret_resolver();
+        r.handle(&input(
+            KeyInputKind::Keydown,
+            modifier("Control", true),
+            150.0,
+        ));
+        let up = |r: &mut Resolver, t| r.handle(&input(KeyInputKind::Keydown, key("Ctrl+Up"), t));
+        assert_eq!(
+            up(&mut r, 200.0).action.as_deref(),
+            Some("EditorCloneCaretAbove")
+        );
+        // Still held: every press clones again, also after the double-tap time.
+        assert_eq!(
+            up(&mut r, 2000.0).action.as_deref(),
+            Some("EditorCloneCaretAbove")
+        );
+        let down = r.handle(&input(KeyInputKind::Keydown, key("Ctrl+Down"), 2100.0));
+        assert_eq!(down.action.as_deref(), Some("EditorCloneCaretBelow"));
+        // Releasing the modifier neither fires "Double Ctrl" nor keeps the state.
+        let release = r.handle(&input(
+            KeyInputKind::Keyup,
+            modifier("Control", false),
+            2200.0,
+        ));
+        assert_eq!(release.action, None);
+        r.handle(&input(
+            KeyInputKind::Keydown,
+            modifier("Control", true),
+            5000.0,
+        ));
+        assert_eq!(up(&mut r, 5050.0).action.as_deref(), Some("EditorScrollUp"));
+    }
+
+    #[test]
+    fn a_plain_or_slow_modifier_press_keeps_the_normal_binding() {
+        let mut r = clone_caret_resolver();
+        r.handle(&input(
+            KeyInputKind::Keydown,
+            modifier("Control", true),
+            900.0,
+        ));
+        let res = r.handle(&input(KeyInputKind::Keydown, key("Ctrl+Up"), 950.0));
+        assert_eq!(res.action.as_deref(), Some("EditorScrollUp"));
+        // The double tap alone still fires "Double Ctrl".
+        let mut r = clone_caret_resolver();
+        r.handle(&input(
+            KeyInputKind::Keydown,
+            modifier("Control", true),
+            100.0,
+        ));
+        let res = r.handle(&input(
+            KeyInputKind::Keyup,
+            modifier("Control", false),
+            150.0,
+        ));
+        assert_eq!(res.action.as_deref(), Some("RunAnything"));
+    }
+
     #[test]
     fn double_tap_ignores_auto_repeat_of_a_held_modifier() {
         let mut r = tap_resolver();
@@ -858,6 +1018,10 @@ mod tests {
         assert!(!context_matches(ActionContext::Editor, Input));
         assert!(!context_matches(ActionContext::Toolwindow, Global));
         assert!(context_matches(ActionContext::Toolwindow, Terminal));
+        assert!(context_matches(ActionContext::Diff, FocusContext::Diff));
+        assert!(context_matches(ActionContext::Any, FocusContext::Diff));
+        assert!(!context_matches(ActionContext::Diff, Editor));
+        assert!(!context_matches(ActionContext::Editor, FocusContext::Diff));
     }
 
     #[test]

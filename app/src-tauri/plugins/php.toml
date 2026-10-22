@@ -100,6 +100,16 @@ project = true
 order = 10
 
 [[contributions.settings]]
+key = "php.stubs.path"
+title = "Default stubs path"
+description = "A phpstorm-stubs checkout used for PHP's own classes, functions and constants (Go to Declaration on \\Throwable, array_map). Empty: Forge downloads JetBrains' phpstorm-stubs into its cache folder on first use, or uses Intelephense's stubs."
+type = "path"
+default = ""
+group = "lang.php"
+section = "PHP Runtime"
+order = 20
+
+[[contributions.settings]]
 key = "php.lsp.server"
 title = "Language server"
 description = "Started automatically when a PHP project opens."
@@ -151,140 +161,52 @@ group = "lang.php"
 section = "Language Server"
 order = 20
 
-# ---- Editor > Code Style > PHP -------------------------------------------------------
+# Editor > Code Style > PHP is rendered from the code style model (`forge-codestyle`); its
+# options are stored under `php.codeStyle.*` (Default scheme: user settings, Project scheme:
+# project settings).
+
+# ---- Tools > Actions on Save (PHP tools) ------------------------------------------------
 
 [[contributions.settings]]
-key = "php.codeStyle.useTabs"
-title = "Use tab character"
+key = "actionsOnSave.phpCsFixer"
+title = "Run PHP CS Fixer"
+description = "Run `php-cs-fixer fix` on saved PHP files."
 type = "bool"
 default = false
-group = "editor.code-style.php"
-section = "Tabs and Indents"
+group = "tools.actions-on-save"
+project = true
+order = 60
+
+[[contributions.settings]]
+key = "actionsOnSave.pint"
+title = "Run Laravel Pint"
+description = "Run `pint` on saved PHP files."
+type = "bool"
+default = false
+group = "tools.actions-on-save"
+project = true
+order = 70
+
+# ---- Languages & Frameworks > PHP > Quality Tools --------------------------------------
+
+[[contributions.settings]]
+key = "php.tools.phpCsFixer.path"
+title = "PHP CS Fixer path"
+description = "Empty: vendor/bin/php-cs-fixer of the project. A relative path starts at the project root. The project's .php-cs-fixer.dist.php is used."
+type = "path"
+default = ""
+group = "lang.php.quality-tools"
+section = "PHP CS Fixer"
 project = true
 order = 0
 
 [[contributions.settings]]
-key = "php.codeStyle.tabSize"
-title = "Tab size"
-type = "int"
-min = 1
-max = 16
-default = 4
-group = "editor.code-style.php"
-section = "Tabs and Indents"
-project = true
-order = 1
-
-[[contributions.settings]]
-key = "php.codeStyle.indent"
-title = "Indent"
-type = "int"
-min = 0
-max = 16
-default = 4
-group = "editor.code-style.php"
-section = "Tabs and Indents"
-project = true
-order = 2
-
-[[contributions.settings]]
-key = "php.codeStyle.continuationIndent"
-title = "Continuation indent"
-type = "int"
-min = 0
-max = 16
-default = 4
-group = "editor.code-style.php"
-section = "Tabs and Indents"
-project = true
-order = 3
-
-[[contributions.settings]]
-key = "php.codeStyle.braces.classes"
-title = "In class declaration"
-type = "enum"
-options = [
-  { value = "endOfLine", label = "End of line" },
-  { value = "nextLine", label = "Next line" },
-]
-default = "nextLine"
-group = "editor.code-style.php"
-section = "Braces Placement"
+key = "php.tools.pint.path"
+title = "Laravel Pint path"
+description = "Empty: vendor/bin/pint of the project. A relative path starts at the project root. The project's pint.json is used."
+type = "path"
+default = ""
+group = "lang.php.quality-tools"
+section = "Laravel Pint"
 project = true
 order = 10
-
-[[contributions.settings]]
-key = "php.codeStyle.braces.functions"
-title = "In function declaration"
-type = "enum"
-options = [
-  { value = "endOfLine", label = "End of line" },
-  { value = "nextLine", label = "Next line" },
-]
-default = "nextLine"
-group = "editor.code-style.php"
-section = "Braces Placement"
-project = true
-order = 11
-
-[[contributions.settings]]
-key = "php.codeStyle.braces.other"
-title = "Other"
-type = "enum"
-options = [
-  { value = "endOfLine", label = "End of line" },
-  { value = "nextLine", label = "Next line" },
-]
-default = "endOfLine"
-group = "editor.code-style.php"
-section = "Braces Placement"
-project = true
-order = 12
-
-[[contributions.settings]]
-key = "php.codeStyle.blankLines.keepMax"
-title = "Keep maximum blank lines in code"
-type = "int"
-min = 0
-max = 10
-default = 2
-group = "editor.code-style.php"
-section = "Blank Lines"
-project = true
-order = 20
-
-[[contributions.settings]]
-key = "php.codeStyle.blankLines.afterNamespace"
-title = "After namespace"
-type = "int"
-min = 0
-max = 10
-default = 1
-group = "editor.code-style.php"
-section = "Blank Lines"
-project = true
-order = 21
-
-[[contributions.settings]]
-key = "php.codeStyle.blankLines.afterImports"
-title = "After imports"
-type = "int"
-min = 0
-max = 10
-default = 1
-group = "editor.code-style.php"
-section = "Blank Lines"
-project = true
-order = 22
-
-[[contributions.settings]]
-key = "php.codeStyle.blankLines.aroundMethods"
-title = "Around method"
-type = "int"
-min = 0
-max = 10
-default = 1
-group = "editor.code-style.php"
-section = "Blank Lines"
-project = true
-order = 23

@@ -4,7 +4,8 @@ use std::path::Path;
 use std::time::Duration;
 
 use forge_lsp::lsp_types::Position;
-use forge_lsp::{LspClient, LspEvent, LspManager, LspServerConfig, ServerState};
+use forge_lsp::lsp_types::Range;
+use forge_lsp::{Feature, LspClient, LspEvent, LspManager, LspServerConfig, ServerState};
 use serde_json::json;
 use tokio::sync::broadcast;
 
@@ -155,10 +156,39 @@ async fn manager_routes_by_extension_and_starts_lazily() {
     assert_eq!(sig.active_parameter, 1);
 
     manager.did_change(&php, "  <?php   \n").await.unwrap();
-    let edits = manager.format(&php, 4, true).await.unwrap();
+    let edits = manager
+        .format(&php, 4, true, Some(&json!({"fake": {"style": "psr"}})))
+        .await
+        .unwrap();
     assert_eq!(edits[0].new_text, "<?php");
 
     manager.shutdown_all().await;
+}
+
+#[tokio::test]
+async fn changed_settings_are_pushed_and_answered() {
+    let dir = tempfile::tempdir().unwrap();
+    let (tx, mut rx) = broadcast::channel(256);
+    let client = LspClient::start_with_events(config(), dir.path(), tx)
+        .await
+        .unwrap();
+    assert!(client
+        .update_settings(&json!({"fake": {"answer": 7}}))
+        .unwrap());
+    // The server pulls its settings again and gets the new value.
+    let log = next_matching(&mut rx, |e| match e {
+        LspEvent::Log { message, .. } if message == "config: [7,null]" => Some(message),
+        _ => None,
+    })
+    .await;
+    assert_eq!(log, "config: [7,null]");
+    assert_eq!(client.settings(), json!({"fake": {"answer": 7}}));
+    // The same settings again: nothing to send.
+    assert!(!client
+        .update_settings(&json!({"fake": {"answer": 7}}))
+        .unwrap());
+    assert!(!client.update_settings(&json!(null)).unwrap());
+    client.shutdown().await;
 }
 
 #[tokio::test]
@@ -247,7 +277,7 @@ async fn several_servers_per_file_are_merged() {
     assert_eq!(defs.len(), 1);
 
     // Formatting goes to the server that supports it.
-    let edits = manager.format(&php, 4, true).await.unwrap();
+    let edits = manager.format(&php, 4, true, None).await.unwrap();
     assert_eq!(edits[0].new_text, "<?php");
 
     // Workspace symbols come from every running server.
@@ -261,4 +291,243 @@ async fn several_servers_per_file_are_merged() {
     assert_eq!(servers, vec!["fake", "lint"]);
 
     manager.shutdown_all().await;
+}
+
+#[tokio::test]
+async fn rename_implementation_and_code_actions() {
+    let dir = tempfile::tempdir().unwrap();
+    let manager = LspManager::new(dir.path());
+    manager.register_server(config());
+    let mut lint = config();
+    lint.id = "lint".into();
+    lint.name = Some("Lint".into());
+    lint.args = vec!["secondary".into()];
+    lint.file_extensions = vec!["php".into(), "lint".into()];
+    manager.register_server(lint);
+    let mut rx = manager.subscribe();
+
+    let php = dir.path().join("User.php");
+    manager
+        .did_open(&php, "class User\n// TODO\n")
+        .await
+        .unwrap();
+    let (server, uri, diags) = next_matching(&mut rx, |e| match e {
+        LspEvent::Diagnostics {
+            server_id,
+            uri,
+            diagnostics,
+            ..
+        } if server_id == "fake" => Some((server_id, uri, diagnostics)),
+        _ => None,
+    })
+    .await;
+    manager.merge_diagnostics(&server, &uri, diags);
+
+    // A feature one of the servers supports is not missing; a file served only by the
+    // secondary server lacks it (the UI then explains why, e.g. Intelephense Premium).
+    assert_eq!(manager.missing_feature(&php, Feature::Rename).await, None);
+    let lint_file = dir.path().join("rules.lint");
+    assert_eq!(
+        manager.missing_feature(&lint_file, Feature::Rename).await,
+        Some(vec!["Lint".to_string()])
+    );
+    assert!(manager
+        .rename(&lint_file, Position::new(0, 0), "x")
+        .await
+        .is_err());
+
+    let prepared = manager
+        .prepare_rename(&php, Position::new(0, 7))
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(prepared.placeholder.as_deref(), Some("User"));
+    let edit = manager
+        .rename(&php, Position::new(0, 7), "Customer")
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(edit.paths(), vec![php.display().to_string()]);
+    let mut store = forge_lsp::forge_codeintel::MemoryStore::default();
+    store
+        .0
+        .insert(php.display().to_string(), "class User\n// TODO\n".into());
+    forge_lsp::forge_codeintel::apply_workspace_edit(&edit, &mut store).unwrap();
+    assert_eq!(
+        store.0[&php.display().to_string()],
+        "class Customer\n// TODO\n"
+    );
+
+    let impls = manager
+        .implementation(&php, Position::new(0, 7))
+        .await
+        .unwrap();
+    assert_eq!(impls.len(), 1);
+    assert_eq!(impls[0].range.start.line, 3);
+
+    // Code actions get the diagnostics under the range as context.
+    let line1 = Range::new(Position::new(1, 0), Position::new(1, 7));
+    let actions = manager.code_actions(&php, line1).await.unwrap();
+    assert_eq!(actions[0].title, "Fix 1 problem(s)");
+    assert!(actions[0].needs_resolve);
+    let resolved = manager
+        .resolve_code_action(&php, &actions[0].server, actions[0].raw.clone())
+        .await
+        .unwrap();
+    assert_eq!(resolved.edit.unwrap().edit_count(), 1);
+    let elsewhere = Range::new(Position::new(0, 0), Position::new(0, 1));
+    assert_eq!(
+        manager.code_actions(&php, elsewhere).await.unwrap()[0].title,
+        "Fix 0 problem(s)"
+    );
+
+    // A command's edit comes back as `workspace/applyEdit`.
+    let cmd = actions[1].command.clone().unwrap();
+    manager
+        .execute_command(&php, "fake", &cmd.command, cmd.arguments)
+        .await
+        .unwrap();
+    let label = next_matching(&mut rx, |e| match e {
+        LspEvent::ApplyEdit { label, edit, .. } => {
+            assert!(edit.changes.is_some());
+            label
+        }
+        _ => None,
+    })
+    .await;
+    assert_eq!(label, "fake");
+
+    manager.shutdown_all().await;
+}
+
+/// Starts the fake server locally but, like the launcher of a remote project, has no process
+/// on the server's machine for it to watch.
+struct RemoteLikeLauncher;
+
+impl forge_lsp::ServerLauncher for RemoteLikeLauncher {
+    fn launch<'a>(
+        &'a self,
+        config: &'a LspServerConfig,
+        root: &'a Path,
+    ) -> futures_util::future::BoxFuture<'a, forge_core::Result<forge_lsp::ServerIo>> {
+        Box::pin(async move {
+            let mut io = forge_lsp::LocalLauncher.launch(config, root).await?;
+            io.parent_pid = None;
+            Ok(io)
+        })
+    }
+}
+
+#[tokio::test]
+async fn sends_the_parent_process_only_for_servers_on_this_machine() {
+    let dir = tempfile::tempdir().unwrap();
+    let process_id = |launcher: Option<&'static dyn forge_lsp::ServerLauncher>| {
+        let root = dir.path().to_path_buf();
+        async move {
+            let (tx, mut rx) = broadcast::channel(256);
+            let client = match launcher {
+                Some(l) => LspClient::start_with_launcher(config(), &root, tx, l).await,
+                None => LspClient::start_with_events(config(), &root, tx).await,
+            }
+            .unwrap();
+            let log = next_matching(&mut rx, |e| match e {
+                LspEvent::Log { message, .. } if message.starts_with("processId:") => Some(message),
+                _ => None,
+            })
+            .await;
+            client.shutdown().await;
+            log
+        }
+    };
+    assert_eq!(
+        process_id(None).await,
+        format!("processId: {}", std::process::id())
+    );
+    // Intelephense exits when the given process does not exist on its machine.
+    assert_eq!(
+        process_id(Some(&RemoteLikeLauncher)).await,
+        "processId: null"
+    );
+}
+
+#[tokio::test]
+async fn type_and_call_hierarchy() {
+    let dir = tempfile::tempdir().unwrap();
+    let manager = LspManager::new(dir.path());
+    manager.register_server(config());
+    let mut lint = config();
+    lint.id = "lint".into();
+    lint.args = vec!["secondary".into()];
+    manager.register_server(lint);
+    let php = dir.path().join("User.php");
+    manager.did_open(&php, "class User\n").await.unwrap();
+
+    // Only the server announcing the feature is asked.
+    let types = manager
+        .prepare_type_hierarchy(&php, Position::new(0, 7))
+        .await
+        .unwrap();
+    assert_eq!(types.len(), 1);
+    let (server, item) = types.into_iter().next().unwrap();
+    assert_eq!((server.as_str(), item.name.as_str()), ("fake", "User"));
+    let supers = manager
+        .type_hierarchy(&server, item.clone(), false)
+        .await
+        .unwrap();
+    assert_eq!(supers[0].name, "Model");
+    assert!(manager
+        .type_hierarchy(&server, item, true)
+        .await
+        .unwrap()
+        .is_empty());
+
+    let calls = manager
+        .prepare_call_hierarchy(&php, Position::new(0, 7))
+        .await
+        .unwrap();
+    let (server, item) = calls.into_iter().next().unwrap();
+    let incoming = manager.incoming_calls(&server, item.clone()).await.unwrap();
+    assert_eq!(incoming[0].0.name, "main");
+    assert_eq!(incoming[0].1.len(), 2);
+    let outgoing = manager.outgoing_calls(&server, item.clone()).await.unwrap();
+    assert_eq!(outgoing[0].0.detail.as_deref(), Some("User"));
+    assert!(manager.incoming_calls("nope", item).await.is_err());
+
+    // As the hierarchy model: User extends Model; main() calls the root twice.
+    let graph = manager
+        .type_graph(&php, Position::new(0, 7))
+        .await
+        .unwrap()
+        .unwrap();
+    let root = graph
+        .types
+        .iter()
+        .find(|t| t.item.id == graph.root)
+        .unwrap();
+    assert_eq!(root.item.name, "User");
+    assert_eq!(root.extends.len(), 1);
+    assert_eq!(graph.types.len(), 2);
+    let base = manager
+        .call_root(&php, Position::new(0, 7))
+        .await
+        .unwrap()
+        .unwrap();
+    let callers = manager
+        .call_nodes(
+            &base,
+            forge_lsp::forge_codeintel::hierarchy::CallDirection::Callers,
+        )
+        .await
+        .unwrap();
+    assert_eq!(callers[0].item.name, "main()");
+    assert_eq!(callers[0].calls.len(), 2);
+    let callees = manager
+        .call_nodes(
+            &base,
+            forge_lsp::forge_codeintel::hierarchy::CallDirection::Callees,
+        )
+        .await
+        .unwrap();
+    assert_eq!(callees[0].item.name, "save()");
+    assert_eq!(callees[0].calls[0].path, base.path);
 }

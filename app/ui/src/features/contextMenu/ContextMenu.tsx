@@ -3,6 +3,7 @@
  * mnemonics, disabled and checkable entries, viewport clamping.
  */
 import { For, Show, createEffect, createSignal, onCleanup, onMount } from "solid-js";
+import { Dynamic } from "solid-js/web";
 import { Check, ChevronRight } from "lucide-solid";
 import { runAction, suspendKeymap } from "@/keymap";
 import { closeContextMenu, openMenu, type ResolvedEntry, type ResolvedItem } from "./state";
@@ -61,6 +62,8 @@ interface ListProps {
   focused: boolean;
   selectFirst?: boolean;
   class?: string;
+  /** `y` is the bottom edge (the menu opens upwards). */
+  above?: boolean;
   onPick: (item: ResolvedItem) => void;
   onLeave?: () => void;
   onCross?: (dir: 1 | -1) => void;
@@ -83,7 +86,7 @@ function MenuList(props: ListProps) {
     const r = root.getBoundingClientRect();
     let left = props.x;
     if (props.anchor && left + r.width > window.innerWidth - MARGIN) left = props.anchor.left - r.width + 2;
-    setPos({ left: clampToViewport(left, r.width, window.innerWidth), top: clampToViewport(props.y, r.height, window.innerHeight) });
+    setPos({ left: clampToViewport(left, r.width, window.innerWidth), top: clampToViewport(props.above ? props.y - r.height : props.y, r.height, window.innerHeight) });
     if (props.selectFirst) setActive(indexes()[0] ?? -1);
   });
   createEffect(() => {
@@ -192,6 +195,13 @@ function MenuList(props: ListProps) {
                       </Show>
                     </span>
                   </Show>
+                  <Show when={item.icon}>
+                    {(icon) => (
+                      <span class="context-menu-icon">
+                        <Dynamic component={icon()} size={14} stroke-width={1.75} />
+                      </span>
+                    )}
+                  </Show>
                   <span class="context-menu-label">
                     <MnemonicLabel label={item.label} mnemonic={item.mnemonic} />
                     <Show when={item.detail}>
@@ -257,6 +267,7 @@ export function ContextMenuHost() {
             y={menu.y}
             focused
             selectFirst={menu.selectFirst}
+            above={menu.above}
             class={menu.class}
             crossLevel={menu.crossTopLevel}
             onCross={menu.onCross}

@@ -1,0 +1,81 @@
+/* Structure breadcrumbs, language toggles and doc comment markers. Colours come from src/theme/theme.css. */
+
+.cm-breadcrumbs-panel {
+  background: var(--bg-editor);
+}
+.cm-panels-bottom .cm-breadcrumbs-panel {
+  border-top: 1px solid var(--border);
+}
+.cm-panels-top .cm-breadcrumbs-panel {
+  border-bottom: 1px solid var(--border);
+}
+.cm-structure-crumbs {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 24px;
+  padding: 0 10px;
+  overflow: hidden;
+  white-space: nowrap;
+  font-family: var(--font-ui);
+  font-size: var(--fs-small);
+  color: var(--fg-muted);
+}
+.cm-crumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 20px;
+  padding: 0 2px 0 4px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  min-width: 0;
+}
+.cm-crumb:hover {
+  background: var(--bg-hover);
+  color: var(--fg);
+}
+.cm-crumb.last {
+  color: var(--fg);
+}
+.cm-crumb-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cm-crumb-more {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 1px;
+  border: none;
+  background: transparent;
+  color: var(--fg-faint);
+  cursor: pointer;
+  visibility: hidden;
+}
+.cm-crumb:hover .cm-crumb-more {
+  visibility: visible;
+}
+.cm-crumb-more:hover {
+  color: var(--fg-strong);
+}
+.cm-crumb-sep {
+  flex-shrink: 0;
+  color: var(--fg-faint);
+}
+.cm-crumb .php-symbol-icon {
+  transform: scale(0.85);
+}
+
+.structure-languages {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 2px 12px;
+  margin-top: 4px;
+}
+
+.cm-line-marker.marker-doc {
+  color: var(--fg-muted);
+}
+.cm-line-marker.marker-doc:hover {
+  color: var(--accent);
+}

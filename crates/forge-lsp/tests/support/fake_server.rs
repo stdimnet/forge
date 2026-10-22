@@ -6,8 +6,13 @@
 //! - with the argument `secondary`, behaves like a linter attached next to a primary
 //!   server: no hover, its own completion item and diagnostics source,
 //! - answers `workspace/symbol` with `<query>Symbol` in every open document,
+//! - the primary server also renames (with `prepareRename`), finds implementations,
+//!   offers code actions (one resolved lazily, one running a command that sends
+//!   `workspace/applyEdit`); the secondary one announces none of these, like free
+//!   Intelephense,
 //! - after `initialized` asks the client for `workspace/configuration` and creates a
-//!   work-done progress, then echoes what it got back as `window/logMessage`.
+//!   work-done progress, then echoes what it got back as `window/logMessage`; it asks again
+//!   after `workspace/didChangeConfiguration`.
 
 use std::collections::HashMap;
 use std::io::{self, BufRead, Write};
@@ -96,6 +101,12 @@ fn main() {
             continue;
         }
 
+        if method == "initialize" {
+            notify(
+                "window/logMessage",
+                json!({"type": 3, "message": format!("processId: {}", params["processId"])}),
+            );
+        }
         let result = match method.as_str() {
             "initialize" => json!({
                 "capabilities": {
@@ -107,7 +118,13 @@ fn main() {
                     "documentSymbolProvider": true,
                     "signatureHelpProvider": {"triggerCharacters": ["(", ","]},
                     "documentFormattingProvider": !secondary,
-                    "workspaceSymbolProvider": true
+                    "workspaceSymbolProvider": true,
+                    "renameProvider": if secondary { Value::Null } else { json!({"prepareProvider": true}) },
+                    "implementationProvider": !secondary,
+                    "codeActionProvider": if secondary { Value::Null } else { json!({"resolveProvider": true}) },
+                    "typeHierarchyProvider": !secondary,
+                    "callHierarchyProvider": !secondary,
+                    "executeCommandProvider": {"commands": ["fake.apply"]}
                 },
                 "serverInfo": {"name": "fake", "version": "1"}
             }),
@@ -160,7 +177,15 @@ fn main() {
                 continue;
             }
             "exit" => std::process::exit(0),
-            "workspace/didChangeConfiguration" | "$/cancelRequest" => continue,
+            "workspace/didChangeConfiguration" => {
+                // Ask again, like servers that pull their settings.
+                write(
+                    json!({"jsonrpc": "2.0", "id": "cfg-1", "method": "workspace/configuration",
+                             "params": {"items": [{"section": "fake.answer"}, {"section": "missing"}]}}),
+                );
+                continue;
+            }
+            "$/cancelRequest" => continue,
             "shutdown" => Value::Null,
             "textDocument/hover" if secondary => Value::Null,
             "textDocument/completion" if secondary => json!([{"label": "lint-ignore", "kind": 15}]),
@@ -188,6 +213,62 @@ fn main() {
                 item
             }
             "textDocument/definition" => json!([{"uri": uri, "range": range(0, 0, 5)}]),
+            "textDocument/implementation" => json!([{"uri": uri, "range": range(3, 0, 4)}]),
+            // User (line 0) extends Model (line 5); calls: main (line 8) -> save (line 1).
+            "textDocument/prepareTypeHierarchy" | "textDocument/prepareCallHierarchy" => {
+                json!([{"name": "User", "kind": 5, "uri": uri, "range": range(0, 0, 10),
+                        "selectionRange": range(0, 6, 10), "data": {"id": 1}}])
+            }
+            "typeHierarchy/supertypes" => json!([{"name": "Model", "kind": 5,
+                "uri": params["item"]["uri"], "range": range(5, 0, 10), "selectionRange": range(5, 6, 11)}]),
+            "typeHierarchy/subtypes" => json!([]),
+            "callHierarchy/incomingCalls" => json!([{
+                "from": {"name": "main", "kind": 12, "uri": params["item"]["uri"],
+                         "range": range(8, 0, 20), "selectionRange": range(8, 9, 13)},
+                "fromRanges": [range(9, 4, 8), range(10, 4, 8)]
+            }]),
+            "callHierarchy/outgoingCalls" => json!([{
+                "to": {"name": "save", "kind": 6, "detail": "User", "uri": params["item"]["uri"],
+                       "range": range(1, 0, 20), "selectionRange": range(1, 20, 24)},
+                "fromRanges": [range(2, 8, 12)]
+            }]),
+            "textDocument/prepareRename" => {
+                json!({"range": range(0, 6, 10), "placeholder": "User"})
+            }
+            "textDocument/rename" => json!({"documentChanges": [{
+                "textDocument": {"uri": uri, "version": null},
+                "edits": [{"range": range(0, 6, 10), "newText": params["newName"]}]
+            }]}),
+            "textDocument/codeAction" => {
+                let n = params["context"]["diagnostics"]
+                    .as_array()
+                    .map_or(0, Vec::len);
+                json!([
+                    {"title": format!("Fix {n} problem(s)"), "kind": "quickfix", "data": {"uri": uri}},
+                    {"title": "Apply via command", "command": "fake.apply", "arguments": [uri]}
+                ])
+            }
+            "codeAction/resolve" => {
+                let mut action = params.clone();
+                let target = params["data"]["uri"]
+                    .as_str()
+                    .unwrap_or_default()
+                    .to_string();
+                action["edit"] = json!({"changes": {target: [{"range": range(0, 0, 0), "newText": "// fixed\n"}]}});
+                action
+            }
+            "workspace/executeCommand" => {
+                let target = params["arguments"][0]
+                    .as_str()
+                    .unwrap_or_default()
+                    .to_string();
+                write(
+                    json!({"jsonrpc": "2.0", "id": "apply-1", "method": "workspace/applyEdit",
+                             "params": {"label": "fake", "edit": {"changes": {target: [
+                                 {"range": range(0, 0, 0), "newText": "applied"}]}}}}),
+                );
+                Value::Null
+            }
             "textDocument/references" => {
                 json!([{"uri": uri, "range": range(1, 0, 2)}, {"uri": uri, "range": range(2, 0, 2)}])
             }

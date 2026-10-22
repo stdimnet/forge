@@ -18,6 +18,7 @@ import { LanguageServersPage } from "./LanguageServersPage";
 import { serverHintPanel } from "./serverHint";
 import { closeInstallRequest, installRequest, startLangserverListeners } from "./store";
 import { registerSymbolProviders } from "./symbols";
+import { isDialogWindow } from "@/shell/window/mode";
 import "./langservers.css";
 
 export { IntelephenseLicence } from "./Licence";
@@ -73,7 +74,8 @@ registerCommand({
 
 registerSymbolProviders();
 startLangserverListeners();
-startAutoInstall();
+// Offers and update checks belong to the main window, not to dialog windows (Settings).
+if (typeof document !== "undefined" && !isDialogWindow()) startAutoInstall();
 
 // Downloads of Forge-managed installs (Node.js, npm packages), like background tasks.
 registerStatusItem({ id: "langservers.install", align: "right", order: -30, component: InstallStatus });

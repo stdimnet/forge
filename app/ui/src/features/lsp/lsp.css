@@ -16,6 +16,13 @@
 .cm-lsp-diag-weak {
   text-decoration-color: color-mix(in srgb, var(--warning) 55%, var(--fg-faint));
 }
+/* Spelling and grammar (features/spelling): PHPStorm's green typo and grammar underlines. */
+.cm-lsp-diag-typo {
+  text-decoration-color: var(--success);
+}
+.cm-lsp-diag-grammar {
+  text-decoration-color: var(--info);
+}
 .cm-lsp-diag-info {
   text-decoration-style: dotted;
   text-decoration-color: var(--fg-faint);
@@ -58,6 +65,12 @@
   color: color-mix(in srgb, var(--warning) 50%, var(--fg-muted));
 }
 .sev-info {
+  color: var(--info);
+}
+.sev-typo {
+  color: var(--success);
+}
+.sev-grammar {
   color: var(--info);
 }
 
@@ -120,6 +133,12 @@
 }
 .cm-lsp-count.sev-weak svg {
   color: color-mix(in srgb, var(--warning) 50%, var(--fg-muted));
+}
+.cm-lsp-count.sev-typo svg {
+  color: var(--success);
+}
+.cm-lsp-count.sev-grammar svg {
+  color: var(--info);
 }
 .cm-lsp-inspection-nav {
   padding: 0 2px !important;

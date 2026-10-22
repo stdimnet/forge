@@ -2,22 +2,64 @@
  * Live CodeMirror views by file path, so features outside the editor (AI chat, ...) can
  * read the selection, insert text at the caret of the active editor, or open a file at a
  * position (`openFileAt`).
+ *
+ * With split editors one file can be shown by several views (one per editor group, all
+ * editing the same document, see `docSync.ts`). `viewFor(path)` answers the view in the
+ * active group, else the one focused last.
  */
 import type { Text } from "@codemirror/state";
+import { isolateHistory } from "@codemirror/commands";
 import { EditorView } from "@codemirror/view";
-import { editor, openFile } from "@/state/editor";
+import { editor, groupActive, openFile, setEditorBridge } from "@/state/editor";
 import { flashLineAt } from "./flash";
 
-const views = new Map<string, EditorView>();
+interface Entry {
+  view: EditorView;
+  /** Editor group that shows the view (undefined for views outside groups). */
+  group?: number;
+  focused: number;
+}
 
-export function registerView(path: string, view: EditorView): () => void {
-  views.set(path, view);
+const views = new Map<string, Entry[]>();
+let focusSeq = 0;
+
+export function registerView(path: string, view: EditorView, group?: number): () => void {
+  const entry: Entry = { view, group, focused: ++focusSeq };
+  views.set(path, [...(views.get(path) ?? []), entry]);
+  const onFocus = () => (entry.focused = ++focusSeq);
+  view.dom.addEventListener("focusin", onFocus);
   return () => {
-    if (views.get(path) === view) views.delete(path);
+    view.dom.removeEventListener("focusin", onFocus);
+    const rest = (views.get(path) ?? []).filter((e) => e !== entry);
+    if (rest.length) views.set(path, rest);
+    else views.delete(path);
   };
 }
 
-export const activeView = (): EditorView | undefined => (editor.active ? views.get(editor.active) : undefined);
+/**
+ * The view of `path`: in `group` when given, else in the active editor group, else the
+ * one focused last.
+ */
+export function viewFor(path: string, group?: number): EditorView | undefined {
+  const list = views.get(path);
+  if (!list?.length) return undefined;
+  const g = group ?? editor.layout.activeGroup;
+  const inGroup = list.find((e) => e.group === g);
+  if (inGroup) return inGroup.view;
+  if (group !== undefined) return undefined;
+  return [...list].sort((a, b) => b.focused - a.focused)[0].view;
+}
+
+/** Every view of `path` (one per editor group showing it). */
+export const viewsOf = (path: string): EditorView[] => (views.get(path) ?? []).map((e) => e.view);
+
+export const activeView = (): EditorView | undefined => (editor.active ? viewFor(editor.active) : undefined);
+
+/** The view of the active tab of a group. */
+export function groupView(group: number): EditorView | undefined {
+  const id = groupActive(group);
+  return id ? viewFor(id, group) : undefined;
+}
 
 export interface EditorSelection {
   path: string;
@@ -58,13 +100,13 @@ export function offsetAt(doc: Text, line: number, column = 1): number {
 const nextFrame = () => new Promise<void>((r) => requestAnimationFrame(() => r()));
 
 /** The view of `path` once it is mounted and visible (new tabs need a few frames). */
-async function visibleView(path: string): Promise<EditorView | undefined> {
+export async function visibleView(path: string): Promise<EditorView | undefined> {
   for (let i = 0; i < 60; i++) {
-    const view = views.get(path);
+    const view = viewFor(path);
     if (view?.dom.isConnected && view.dom.offsetParent !== null) return view;
     await nextFrame();
   }
-  return views.get(path);
+  return viewFor(path);
 }
 
 /**
@@ -87,3 +129,37 @@ export async function openFileAt(
   if (line && opts.flash !== false) flashLineAt(view, pos);
   return true;
 }
+
+/**
+ * Replace a document with `text` as an edit of only the lines that differ, so the caret,
+ * folds and undo history stay (used by the on-save cleanup and the Actions on Save).
+ */
+export function applyLineChanges(view: EditorView, text: string): void {
+  const doc = view.state.doc;
+  const lines = text.split("\n");
+  const changes: { from: number; to: number; insert: string }[] = [];
+  const common = Math.min(doc.lines, lines.length);
+  for (let i = 0; i < common; i++) {
+    const line = doc.line(i + 1);
+    if (line.text !== lines[i]) changes.push({ from: line.from, to: line.to, insert: lines[i] });
+  }
+  if (lines.length > doc.lines) changes.push({ from: doc.length, to: doc.length, insert: "\n" + lines.slice(doc.lines).join("\n") });
+  else if (lines.length < doc.lines) changes.push({ from: doc.line(lines.length).to, to: doc.length, insert: "" });
+  // One undo step of its own for everything saving changed (cleanup and Actions on Save).
+  if (changes.length) view.dispatch({ changes, userEvent: "save.cleanup", annotations: isolateHistory.of("full") });
+}
+
+setEditorBridge({
+  caretLines: (path) => {
+    const view = viewFor(path);
+    if (!view) return [];
+    return [...new Set(view.state.selection.ranges.map((r) => view.state.doc.lineAt(r.head).number - 1))];
+  },
+  // Other views of the file follow through the shared document (docSync.ts).
+  applyText: (path, text) => {
+    const view = viewFor(path);
+    if (!view) return false;
+    applyLineChanges(view, text);
+    return true;
+  },
+});

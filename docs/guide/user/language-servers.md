@@ -129,9 +129,10 @@ WebForge, Vue to `forge.vue`, Lua to `forge.lua`) start only while that plugin i
 ## Install suggestions in the editor
 
 When a file uses something only a language server provides, and that server is not installed,
-a banner above the editor offers it, for example for a JSON file with `"$schema"` or a YAML file
-with a `# yaml-language-server: $schema=…` modeline: "The $schema of this file is not used: no
-validation, completion or documentation from it."
+a banner above the editor offers it. A JSON `"$schema"` or a YAML
+`# yaml-language-server: $schema=…` modeline needs no server: Forge validates, completes and
+documents such files itself (see [JSON Schema](json-schema.md)). While the JSON or YAML server
+runs for a file, Forge leaves schema problems, completion and hover to it.
 
 - **Install…** opens the install dialog.
 - **Not now** hides the banner until Forge restarts.
@@ -212,9 +213,17 @@ the files: the PHP server (the Forge agent finds Intelephense or Phpactor on the
 catalog servers, whose project scan, detection (`node_modules/.bin`, `PATH`, npm/nvm/volta, …)
 and configuration happen on the host too.
 
-> **Note:** installing servers from the settings page is refused for remote projects; install
-> them on the host from the terminal. The Intelephense install offer is shown for local projects
-> only.
+**Install** on the Language Servers page installs on the host: the Forge agent downloads
+Node.js (when the host has none) and the npm package into Forge's directory on the host
+(`~/.local/share/forge`), checking their hashes, and streams its steps and download progress to
+the page. The page names the host, and so do the install dialog and the Intelephense offer, which
+always asks before downloading onto a host (also with `auto install` set to always). The
+Intelephense licence is accepted on your machine. Updates of the servers Forge installed are
+checked on the host too.
+
+![Language Servers page of a remote project](../../screenshots/remote-finish-langserver.png)
+
+![Installing on the host](../../screenshots/remote-finish-langserver-dialog.png)
 
 ## Troubleshooting
 

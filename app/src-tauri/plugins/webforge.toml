@@ -109,6 +109,60 @@ group = "lang.typescript"
 section = "Frameworks"
 order = 0
 
+# ---- Tools > Actions on Save (JavaScript tools) -----------------------------------------
+
+[[plugin.contributions.settings]]
+key = "actionsOnSave.eslint"
+title = "Run eslint --fix"
+description = "Fix ESLint problems in saved JavaScript, TypeScript and Vue files."
+type = "bool"
+default = false
+group = "tools.actions-on-save"
+project = true
+order = 40
+
+[[plugin.contributions.settings]]
+key = "actionsOnSave.prettier.enabled"
+title = "Run Prettier"
+description = "Run `prettier --write` on saved files that match the patterns below."
+type = "bool"
+default = false
+group = "tools.actions-on-save"
+project = true
+order = 50
+
+[[plugin.contributions.settings]]
+key = "actionsOnSave.prettier.files"
+title = "Run for files"
+description = "Patterns separated by `;`; patterns with a `/` match the path, the others the file name."
+type = "string"
+default = "*.js; *.ts; *.jsx; *.tsx; *.cjs; *.cts; *.mjs; *.mts; *.vue; *.astro"
+group = "tools.actions-on-save"
+project = true
+order = 51
+
+# ---- Languages & Frameworks > ESLint / Prettier -----------------------------------------
+
+[[plugin.contributions.settings]]
+key = "web.eslint.path"
+title = "ESLint package"
+description = "Empty: node_modules/.bin/eslint of the project. A relative path starts at the project root. The project's ESLint configuration is used."
+type = "path"
+default = ""
+group = "lang.eslint"
+project = true
+order = 0
+
+[[plugin.contributions.settings]]
+key = "web.prettier.path"
+title = "Prettier package"
+description = "Empty: node_modules/.bin/prettier of the project. A relative path starts at the project root. The project's Prettier configuration is used."
+type = "path"
+default = ""
+group = "lang.prettier"
+project = true
+order = 0
+
 [[plugin]]
 id = "forge.react"
 name = "React"

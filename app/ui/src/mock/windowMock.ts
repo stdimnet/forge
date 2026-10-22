@@ -32,3 +32,9 @@ const desktopOnly = () => {
 registerMock("dialog_window_open", desktopOnly);
 registerMock("dialog_window_close", desktopOnly);
 registerMock("dialog_window_message", desktopOnly);
+
+/** Browser mode has no file manager to open; the request is accepted and only logged. */
+export const revealedInFileManager: string[] = [];
+registerMock("reveal_in_file_manager", (args) => {
+  revealedInFileManager.push(String(args.path));
+});

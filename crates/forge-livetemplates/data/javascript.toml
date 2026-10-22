@@ -1,0 +1,106 @@
+# WebStorm's "JavaScript" live templates (also applicable in TypeScript).
+
+[group]
+name = "JavaScript"
+
+[[template]]
+abbreviation = "anf"
+description = "Inserts anonymous function"
+contexts = ["JS_EXPRESSION"]
+text = '''
+function ($ARGS$) {
+    $END$
+}'''
+
+[[template]]
+abbreviation = "arf"
+description = "Inserts arrow function"
+contexts = ["JS_EXPRESSION"]
+text = "($ARGS$) => $END$"
+
+[[template]]
+abbreviation = "fori"
+description = "Create iteration loop"
+contexts = ["JS_STATEMENT"]
+text = '''
+for (let $INDEX$ = 0; $INDEX$ < $LIMIT$; $INDEX$++) {
+    $END$
+}'''
+variables = [
+  { name = "INDEX", defaultValue = '"i"' },
+  { name = "LIMIT" },
+]
+
+[[template]]
+abbreviation = "imp"
+description = "import member from module"
+contexts = ["JS_STATEMENT"]
+text = "import {$MEMBER$} from \"$MODULE$\";"
+
+[[template]]
+abbreviation = "imd"
+description = "import default from module"
+contexts = ["JS_STATEMENT"]
+text = "import $NAME$ from \"$MODULE$\";"
+
+[[template]]
+abbreviation = "iter"
+description = "Iterate iterable (for ... of)"
+contexts = ["JS_STATEMENT"]
+text = '''
+for (const $VAR$ of $ITERABLE$) {
+    $END$
+}'''
+variables = [
+  { name = "ITERABLE", defaultValue = '"items"' },
+  { name = "VAR", expression = "suggestVariableName(ITERABLE)", defaultValue = '"item"' },
+]
+
+[[template]]
+abbreviation = "itar"
+description = "Iterate elements of array"
+contexts = ["JS_STATEMENT"]
+text = '''
+for (let $INDEX$ = 0; $INDEX$ < $ARRAY$.length; $INDEX$++) {
+    const $VAR$ = $ARRAY$[$INDEX$];
+    $END$
+}'''
+variables = [
+  { name = "INDEX", defaultValue = '"i"' },
+  { name = "ARRAY", defaultValue = '"array"' },
+  { name = "VAR", expression = "suggestVariableName(ARRAY)", defaultValue = '"element"' },
+]
+
+[[template]]
+abbreviation = "itin"
+description = "For-in loop"
+contexts = ["JS_STATEMENT"]
+text = '''
+for (const $PROPERTY$ in $OBJECT$) {
+    $END$
+}'''
+variables = [
+  { name = "PROPERTY", defaultValue = '"key"' },
+  { name = "OBJECT", defaultValue = '"object"' },
+]
+
+[[template]]
+abbreviation = "log"
+description = "Logs to console"
+contexts = ["JS_STATEMENT"]
+text = "console.log($END$);"
+
+[[template]]
+abbreviation = "ritar"
+description = "Iterate elements of array in reverse order"
+contexts = ["JS_STATEMENT"]
+text = '''
+for (let $INDEX$ = $ARRAY$.length - 1; $INDEX$ >= 0; $INDEX$--) {
+    const $VAR$ = $ARRAY$[$INDEX$];
+    $END$
+}'''
+variables = [
+  { name = "INDEX", defaultValue = '"i"' },
+  { name = "ARRAY", defaultValue = '"array"' },
+  { name = "VAR", expression = "suggestVariableName(ARRAY)", defaultValue = '"element"' },
+]

@@ -137,8 +137,10 @@ impl Policy {
             HostCall::ListDir { path } if path.is_empty() => Ok(()),
             HostCall::ListDir { path }
             | HostCall::ReadFile { path }
+            | HostCall::ReadBytes { path }
             | HostCall::ReadOptional { path } => self.check_path(path),
             HostCall::WriteFile { path, .. }
+            | HostCall::WriteBytes { path, .. }
             | HostCall::CreateFile { path }
             | HostCall::CreateDir { path }
             | HostCall::Delete { path } => self.check_write_path(path),
@@ -263,7 +265,15 @@ impl Policy {
             PhpCall::Index | PhpCall::Search { .. } => Ok(()),
             PhpCall::Structure { path, .. }
             | PhpCall::Hover { path, .. }
-            | PhpCall::GenerateTargets { path, .. } => self.check_path(path),
+            | PhpCall::GenerateTargets { path, .. }
+            | PhpCall::Usages { path, .. }
+            | PhpCall::Highlights { path, .. }
+            | PhpCall::Navigate { path, .. }
+            | PhpCall::Definition { path, .. }
+            | PhpCall::LineMarkers { path, .. }
+            | PhpCall::Hierarchy { path, .. }
+            // Intentions are proposals; applying one is an edit the host checks again.
+            | PhpCall::Intentions { path, .. } => self.check_path(path),
             PhpCall::Generate { path, .. } => {
                 self.check_path(path)?;
                 self.need_edit()
@@ -282,7 +292,17 @@ impl Policy {
             | FrameworkCall::LaravelArtisanCommands { .. } => Ok(()),
             FrameworkCall::LaravelComplete { path, .. }
             | FrameworkCall::LaravelGoto { path, .. }
-            | FrameworkCall::LaravelGutter { path, .. } => self.check_path(path),
+            | FrameworkCall::LaravelGutter { path, .. }
+            | FrameworkCall::Related { path, .. }
+            | FrameworkCall::TestTargets { path, .. } => self.check_path(path),
+            FrameworkCall::NewTestPlan {
+                path,
+                composer_path,
+                ..
+            } => {
+                self.check_path(path)?;
+                project_setting(composer_path)
+            }
             FrameworkCall::Symfony { config, query } => {
                 project_setting(&config.app_directory)?;
                 project_setting(&config.templates_directory)?;
@@ -368,6 +388,7 @@ mod tests {
             HostCall::FindFiles {
                 query: "x".into(),
                 limit: 10,
+                exact: false,
             },
             HostCall::FindInFiles(FindRequest {
                 query: "x".into(),

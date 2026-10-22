@@ -4,11 +4,13 @@
  */
 import { createSignal } from "solid-js";
 import { dbApi, DRIVER_LABELS, type DetectedDataSource } from "@/ipc/db";
-import { showBalloon } from "@/keymap";
+import { balloonsFor } from "@/keymap";
 import { getSetting } from "@/state/settings";
 import { showToolWindow } from "@/state/layout";
 import { isCollabGuest, workspace } from "@/state/workspace";
 import { connect, revealSource, setSelectedNode } from "./store";
+
+const showBalloon = balloonsFor("Database");
 
 const [detected, setDetected] = createSignal<DetectedDataSource[]>([]);
 export { detected };
@@ -50,7 +52,7 @@ export async function addFromEnv(): Promise<void> {
     setDetected([]);
     const ds = added[0];
     if (!ds) return;
-    showToolWindow("right", "database");
+    showToolWindow("database");
     setSelectedNode(`ds:${ds.id}`);
     if (await connect(ds.id)) revealSource(ds.id);
   } catch (e) {

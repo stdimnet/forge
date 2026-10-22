@@ -35,11 +35,25 @@ pub struct MatchOptions {
     /// but not "Collapse Recursively". Used for actions, classes and symbols.
     #[serde(default)]
     pub strict: bool,
+    /// Plain case-insensitive substring match instead of fuzzy matching.
+    #[serde(default)]
+    pub exact: bool,
+    /// Also accept a query with one swapped pair of neighbouring characters or one extra
+    /// character ("ordre" finds "Order"), scored below a clean match.
+    #[serde(default)]
+    pub typo: bool,
 }
 
 impl MatchOptions {
-    pub const STRICT: Self = Self { strict: true };
+    pub const STRICT: Self = Self {
+        strict: true,
+        exact: false,
+        typo: false,
+    };
 }
+
+const PENALTY_TYPO: i32 = 12;
+const TYPO_MIN_CHARS: usize = 4;
 
 fn is_separator(c: char) -> bool {
     matches!(c, '/' | '\\' | '_' | '-' | '.' | ' ' | ':' | '$')
@@ -63,6 +77,34 @@ pub fn fuzzy_match(query: &str, candidate: &str) -> Option<FuzzyMatch> {
 
 /// [`fuzzy_match`] with options (e.g. strict word matching).
 pub fn fuzzy_match_with(query: &str, candidate: &str, opts: MatchOptions) -> Option<FuzzyMatch> {
+    if opts.exact {
+        return exact_match(query, candidate);
+    }
+    if opts.typo {
+        let clean = MatchOptions {
+            typo: false,
+            ..opts
+        };
+        return fuzzy_match_with(query, candidate, clean)
+            .or_else(|| typo_match(query, candidate, clean));
+    }
+    // Most candidates fail the "characters in order" test, so reject them before any allocation.
+    let fold = |ch: char| ch.to_lowercase().next().unwrap_or(ch);
+    let mut wanted = query.chars().filter(|c| !c.is_whitespace()).map(fold);
+    let mut next = wanted.next();
+    if next.is_some() {
+        for ch in candidate.chars() {
+            if Some(fold(ch)) == next {
+                next = wanted.next();
+                if next.is_none() {
+                    break;
+                }
+            }
+        }
+        if next.is_some() {
+            return None;
+        }
+    }
     let q: Vec<char> = query.chars().filter(|c| !c.is_whitespace()).collect();
     let c: Vec<char> = candidate.chars().collect();
     let (m, n) = (q.len(), c.len());
@@ -149,6 +191,67 @@ pub fn fuzzy_match_with(query: &str, candidate: &str, opts: MatchOptions) -> Opt
     Some(FuzzyMatch { score, positions })
 }
 
+/// The best match of `query` with one adjacent pair swapped or one character left out.
+fn typo_match(query: &str, candidate: &str, opts: MatchOptions) -> Option<FuzzyMatch> {
+    let q: Vec<char> = query.chars().filter(|c| !c.is_whitespace()).collect();
+    if q.len() < TYPO_MIN_CHARS {
+        return None;
+    }
+    let mut variants: Vec<String> = Vec::new();
+    for i in 0..q.len() - 1 {
+        if q[i] != q[i + 1] {
+            let mut v = q.clone();
+            v.swap(i, i + 1);
+            variants.push(v.into_iter().collect());
+        }
+    }
+    for i in 0..q.len() {
+        let mut v = q.clone();
+        v.remove(i);
+        variants.push(v.into_iter().collect());
+    }
+    variants
+        .iter()
+        .filter_map(|v| fuzzy_match_with(v, candidate, opts))
+        .max_by_key(|m| m.score)
+        .map(|m| FuzzyMatch {
+            score: m.score - PENALTY_TYPO,
+            positions: m.positions,
+        })
+}
+
+/// The substring match behind [`MatchOptions::exact`]: of all occurrences the one at the best
+/// word boundary wins.
+fn exact_match(query: &str, candidate: &str) -> Option<FuzzyMatch> {
+    let lower = |ch: char| ch.to_lowercase().next().unwrap_or(ch);
+    let q: Vec<char> = query
+        .chars()
+        .filter(|c| !c.is_whitespace())
+        .map(lower)
+        .collect();
+    if q.is_empty() {
+        return Some(FuzzyMatch {
+            score: 0,
+            positions: vec![],
+        });
+    }
+    let c: Vec<char> = candidate.chars().collect();
+    let folded: Vec<char> = c.iter().copied().map(lower).collect();
+    let start = (0..=folded.len().checked_sub(q.len())?)
+        .filter(|&j| folded[j..j + q.len()] == q[..])
+        .max_by_key(|&j| {
+            (
+                position_bonus(j.checked_sub(1).map(|p| c[p]), c[j]),
+                -(j as i32),
+            )
+        })?;
+    Some(FuzzyMatch {
+        score: q.len() as i32 * (2 + BONUS_CONSECUTIVE)
+            + position_bonus(start.checked_sub(1).map(|p| c[p]), c[start]),
+        positions: (start..start + q.len()).collect(),
+    })
+}
+
 /// One "Go to File" hit.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -165,19 +268,60 @@ pub struct FileMatch {
 /// Score a workspace-relative path: queries with `/` match the whole path, others the
 /// file name.
 pub fn match_file(query: &str, path: &str) -> Option<FileMatch> {
+    match_file_with(query, path, MatchOptions::default())
+}
+
+/// [`match_file`] with options.
+pub fn match_file_with(query: &str, path: &str, opts: MatchOptions) -> Option<FileMatch> {
     let name = path.rsplit('/').next().unwrap_or(path);
     let matched_path = query.contains('/');
     let target = if matched_path { path } else { name };
-    let m = fuzzy_match(query, target)?;
+    let m = fuzzy_match_with(query, target, opts)?;
     // Prefer short names and shallow paths on ties.
     let tiebreak = (target.chars().count() as i32) / 8 + path.matches('/').count() as i32 / 3;
     Some(FileMatch {
         path: path.to_string(),
         name: name.to_string(),
-        score: m.score - tiebreak,
+        score: m.score - tiebreak + name_bonus(query, name, matched_path) - library_penalty(path),
         positions: m.positions,
         matched_path,
     })
+}
+
+const BONUS_EXACT_NAME: i32 = 40;
+const BONUS_EXACT_STEM: i32 = 30;
+const PENALTY_LIBRARY: i32 = 40;
+const LIBRARY_DIRS: [&str; 4] = ["vendor", "node_modules", "third_party", "bower_components"];
+
+/// A file called exactly what was typed (with or without its extension) comes first.
+fn name_bonus(query: &str, name: &str, matched_path: bool) -> i32 {
+    if matched_path {
+        return 0;
+    }
+    let query: String = query.chars().filter(|c| !c.is_whitespace()).collect();
+    if name.eq_ignore_ascii_case(&query) {
+        return BONUS_EXACT_NAME;
+    }
+    match name.rsplit_once('.') {
+        Some((stem, _)) if !stem.is_empty() && stem.eq_ignore_ascii_case(&query) => {
+            BONUS_EXACT_STEM
+        }
+        _ => 0,
+    }
+}
+
+/// Dependencies rank below the project's own files with the same match.
+fn library_penalty(path: &str) -> i32 {
+    let in_library = path
+        .split('/')
+        .rev()
+        .skip(1)
+        .any(|part| LIBRARY_DIRS.contains(&part));
+    if in_library {
+        PENALTY_LIBRARY
+    } else {
+        0
+    }
 }
 
 /// Rank `paths` for "Go to File": best first, ties by path; at most `limit` hits.
@@ -186,17 +330,45 @@ pub fn rank_files<'a>(
     paths: impl IntoIterator<Item = &'a str>,
     limit: usize,
 ) -> Vec<FileMatch> {
+    rank_files_with(query, paths, limit, MatchOptions::default())
+}
+
+/// [`rank_files`] with options.
+pub fn rank_files_with<'a>(
+    query: &str,
+    paths: impl IntoIterator<Item = &'a str>,
+    limit: usize,
+    opts: MatchOptions,
+) -> Vec<FileMatch> {
     let query = query.trim();
     if query.is_empty() || limit == 0 {
         return vec![];
     }
     let mut hits: Vec<FileMatch> = paths
         .into_iter()
-        .filter_map(|p| match_file(query, p))
+        .filter_map(|p| match_file_with(query, p, opts))
         .collect();
     hits.sort_by(|a, b| b.score.cmp(&a.score).then_with(|| a.path.cmp(&b.path)));
     hits.truncate(limit);
     hits
+}
+
+/// [`rank_files_with`]; when nothing matches and `opts.typo` is set, once more tolerating a typo.
+pub fn rank_files_tolerant(
+    query: &str,
+    paths: &[&str],
+    limit: usize,
+    opts: MatchOptions,
+) -> Vec<FileMatch> {
+    let clean = MatchOptions {
+        typo: false,
+        ..opts
+    };
+    let hits = rank_files_with(query, paths.iter().copied(), limit, clean);
+    if !hits.is_empty() || opts.exact || !opts.typo {
+        return hits;
+    }
+    rank_files_with(query, paths.iter().copied(), limit, opts)
 }
 
 /// A candidate for [`filter`]: one text, or several alternatives (a name and its aliases)
@@ -225,6 +397,8 @@ pub struct FilterRequest {
     pub candidates: Vec<FilterCandidate>,
     #[serde(default)]
     pub strict: bool,
+    #[serde(default)]
+    pub exact: bool,
     /// On equal scores, prefer shorter texts (otherwise the input order is kept).
     #[serde(default)]
     pub prefer_shorter: bool,
@@ -247,7 +421,11 @@ pub struct FilterHit {
 /// Keep the candidates that match `query`, best first. An empty query keeps everything in
 /// input order.
 pub fn filter(req: &FilterRequest) -> Vec<FilterHit> {
-    let opts = MatchOptions { strict: req.strict };
+    let opts = MatchOptions {
+        strict: req.strict,
+        exact: req.exact,
+        typo: false,
+    };
     let mut hits: Vec<(FilterHit, usize)> = req
         .candidates
         .iter()
@@ -292,6 +470,26 @@ mod tests {
 
     fn strict(q: &str, c: &str) -> Option<Vec<usize>> {
         fuzzy_match_with(q, c, MatchOptions::STRICT).map(|m| m.positions)
+    }
+
+    #[test]
+    fn exact_matches_substrings_only() {
+        let exact = MatchOptions {
+            strict: false,
+            exact: true,
+            typo: false,
+        };
+        assert!(fuzzy_match_with("orderc", "OrderController", exact).is_some());
+        assert!(fuzzy_match_with("odrc", "OrderController", exact).is_none());
+        let m = fuzzy_match_with("CON", "OrderController", exact).unwrap();
+        assert_eq!(m.positions, vec![5, 6, 7]);
+        let word = fuzzy_match_with("user", "User.php", exact).unwrap().score;
+        let inner = fuzzy_match_with("user", "AbuserLog.php", exact)
+            .unwrap()
+            .score;
+        assert!(word > inner);
+        assert!(rank_files_with("ordr", ["app/Order.php"], 5, exact).is_empty());
+        assert_eq!(rank_files_with("ord", ["app/Order.php"], 5, exact).len(), 1);
     }
 
     #[test]
@@ -361,6 +559,58 @@ mod tests {
         assert!(!hit.matched_path);
         assert_eq!(hit.positions, vec![0, 1, 5, 6]);
         assert!(match_file("Http", "app/Http/Controllers/OrderController.php").is_none());
+    }
+
+    #[test]
+    fn go_to_file_prefers_the_exact_name_and_the_project_over_dependencies() {
+        let paths = [
+            "database/seeders/UserSeeder.php",
+            "vendor/laravel/framework/src/Foundation/Auth/User.php",
+            "app/Http/Controllers/UserController.php",
+            "app/Models/User.php",
+            "tests/Feature/UserTest.php",
+            "vendor/x/y/z/index.php",
+            "resources/views/users/index.blade.php",
+            "public/index.php",
+        ];
+        let order = |q: &str| -> Vec<String> {
+            rank_files(q, paths, 8)
+                .into_iter()
+                .map(|h| h.path)
+                .collect()
+        };
+        let user = order("user");
+        assert_eq!(user[0], "app/Models/User.php");
+        assert_eq!(
+            user.last().unwrap(),
+            "vendor/laravel/framework/src/Foundation/Auth/User.php"
+        );
+        assert_eq!(order("User.php")[0], "app/Models/User.php");
+        assert_eq!(order("index.php")[0], "public/index.php");
+        assert_eq!(order("index.php")[1], "vendor/x/y/z/index.php");
+    }
+
+    #[test]
+    fn a_typo_in_the_query_still_finds_the_file_when_nothing_else_does() {
+        let paths = ["app/Models/Order.php", "README.md"];
+        let typo = MatchOptions {
+            typo: true,
+            ..MatchOptions::default()
+        };
+        assert!(rank_files("ordre", paths, 5).is_empty());
+        let hits = rank_files_tolerant("ordre", &paths, 5, typo);
+        assert_eq!(hits[0].path, "app/Models/Order.php");
+        assert_eq!(
+            rank_files_tolerant("ordeer", &paths, 5, typo)[0].path,
+            "app/Models/Order.php"
+        );
+        assert!(rank_files_tolerant("xyzq", &paths, 5, typo).is_empty());
+        let exact = MatchOptions {
+            exact: true,
+            typo: true,
+            ..MatchOptions::default()
+        };
+        assert!(rank_files_tolerant("ordre", &paths, 5, exact).is_empty());
     }
 
     #[test]

@@ -14,7 +14,7 @@ dialog, with the same tree as PHPStorm:
 
 - **Appearance & Behavior**: Appearance, System Settings
 - **Keymap**
-- **Editor**: General, Font, Code Style (PHP), Inlay Hints
+- **Editor**: General, Font, Code Style (schemes, General and one page per language), Inlay Hints
 - **Plugins**
 - **Version Control**: Git, GitLab, Forgejo / Gitea, GitHub
 - **Languages & Frameworks**: Language Servers, PHP (Composer, Debug, Servers, Laravel,
@@ -103,6 +103,8 @@ Scheme…** (`` Ctrl+` ``) toggle between dark and light.
 | Window controls | `appearance.windowControls` | Match the system |
 | Show tool window bars | `appearance.showToolWindowBars` | on |
 | Open files with single click (Project view) | `projectView.openFilesWithSingleClick` | on |
+| Always select opened file (Project view) | `projectView.autoscrollFromSource` | off |
+| Autoscroll to source / from source (Structure view) | `structureView.autoscrollToSource`, `structureView.autoscrollFromSource` | on |
 
 Editor fonts are under Settings | Editor | Font: JetBrains Mono (default), Fira Code, Cascadia
 Code, Source Code Pro, Menlo, Consolas or the system monospace font, size (13.5), line height
@@ -132,12 +134,20 @@ Sources and Drivers) open as their own windows with the same style:
 
 ![Settings window on KDE](../../screenshots/settings-window-kde.png)
 
-## Not applied yet
+## System Settings
 
-These options are shown in Settings but have no effect on this version: Show tool window
-numbers, Smooth scrolling (Appearance), everything under System Settings except **Default
-project directory** (reopen projects on startup, confirm exit, open project in, autosave,
-synchronize external changes), caret blink period, remove trailing spaces on save, ensure line
-break at end of file, Code Style, Inlay Hints, the Git page, the Composer page except the
-composer path, console cycle buffer size, terminal audible bell and shell integration. The
-[settings reference](../reference/settings.md) marks each of them.
+![System Settings](../../screenshots/settings-system.png)
+
+Settings | Appearance & Behavior | System Settings:
+
+| Option | Setting | What it does |
+| --- | --- | --- |
+| Reopen projects on startup | `system.reopenLastProject` | Forge starts with the last local project |
+| Confirm before exiting the IDE | `system.confirmExit` | closing the main window (or File \| Exit) asks "Are you sure you want to exit Forge?"; **Do not ask me again** turns it off. Open files are saved on exit. |
+| Default project directory | `system.defaultProjectDirectory` | where New Project creates projects |
+| Save files if the IDE is switched to a different application | `system.autosave.onFrameDeactivation` | saves all modified files when Forge loses the focus |
+| Save files if the IDE is idle, idle time | `system.autosave.onIdle`, `system.autosave.idleSeconds` | saves after that many seconds without typing or clicking |
+| Synchronize external changes when switching to the IDE window | `system.syncExternalChanges` | re-reads open files changed on disk and refreshes the Project view and Git status |
+
+Every option in the Settings dialog applies; the [settings reference](../reference/settings.md)
+lists them all.

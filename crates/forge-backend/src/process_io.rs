@@ -1,6 +1,7 @@
 //! Processes started through a [`Backend`] (on this machine or on a remote host) used like
 //! local child processes: line by line with cancelation ([`run_lines`], artisan and
-//! Symfony console runs) or as async stdio streams ([`spawn_stdio`], agent CLIs).
+//! Symfony console runs), as async stdio streams ([`spawn_stdio`], agent CLIs) or as one
+//! filter run with its whole output ([`capture`], formatters like StyLua).
 
 use std::pin::Pin;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -94,6 +95,62 @@ pub fn run_lines(
             Err(mpsc::RecvTimeoutError::Disconnected) => return Ok(None),
         }
     }
+}
+
+/// Output of a [`capture`] run.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Captured {
+    /// `None` when it was killed (timeout) or the connection was lost.
+    pub code: Option<i32>,
+    pub stdout: String,
+    pub stderr: String,
+}
+
+/// Run `cmd` through `backend` with `stdin` as its whole input and collect its output.
+/// Killed after `timeout`.
+pub fn capture(
+    backend: &dyn Backend,
+    cmd: &CommandLine,
+    stdin: &str,
+    timeout: Duration,
+) -> Result<Captured> {
+    let (tx, rx) = mpsc::channel::<Option<i32>>();
+    let out = Arc::new(std::sync::Mutex::new((String::new(), String::new())));
+    let collected = out.clone();
+    let sink: RunSink = Arc::new(move |event| match event {
+        RunEvent::Output { stream, text } => {
+            let mut o = collected.lock().expect("output lock");
+            match stream {
+                OutputStream::Stdout => o.0.push_str(&text),
+                OutputStream::Stderr => o.1.push_str(&text),
+                // Lines of the runner itself ("Process finished").
+                _ => {}
+            }
+        }
+        RunEvent::Exited { code, .. } => {
+            let _ = tx.send(code);
+        }
+        RunEvent::Started { .. } => {}
+    });
+    let process = backend.start_process(cmd, sink)?;
+    if !stdin.is_empty() {
+        process.write_stdin(stdin.as_bytes())?;
+    }
+    process.close_stdin()?;
+    let code = match rx.recv_timeout(timeout) {
+        Ok(code) => code,
+        Err(mpsc::RecvTimeoutError::Timeout) => {
+            process.kill(Duration::from_millis(500));
+            None
+        }
+        Err(mpsc::RecvTimeoutError::Disconnected) => None,
+    };
+    let (stdout, stderr) = std::mem::take(&mut *out.lock().expect("output lock"));
+    Ok(Captured {
+        code,
+        stdout,
+        stderr,
+    })
 }
 
 /// Async reader over chunks pushed from a sink.
@@ -299,6 +356,22 @@ mod tests {
         let cmd = CommandLine::new("sh").args(["-c", "sleep 30"]);
         let code = run_lines(&backend, &cmd, &cancel, &mut |_, _| {}).unwrap();
         assert_eq!(code, None);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn captures_a_filter_run() {
+        let dir = tempfile::tempdir().unwrap();
+        let backend = LocalBackend::open(dir.path()).unwrap();
+        let cmd = CommandLine::new("sh").args(["-c", "tr a-z A-Z; echo warn >&2; exit 3"]);
+        let out = capture(&backend, &cmd, "local x = 1\n", Duration::from_secs(10)).unwrap();
+        assert_eq!(out.code, Some(3));
+        assert_eq!(out.stdout, "LOCAL X = 1\n");
+        assert_eq!(out.stderr, "warn\n");
+
+        let slow = CommandLine::new("sh").args(["-c", "sleep 30"]);
+        let out = capture(&backend, &slow, "", Duration::from_millis(200)).unwrap();
+        assert_eq!(out.code, None);
     }
 
     #[cfg(unix)]

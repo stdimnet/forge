@@ -87,11 +87,37 @@ applies to files opened afterwards.
 
 ![Twig in SQL](../../screenshots/syntax-twig-sql.png)
 
-### Smarty delimiters
+### Template delimiters
 
-Smarty's delimiters are configurable on the same page (`templates.smarty.leftDelimiter`,
-`templates.smarty.rightDelimiter`, default `{` and `}`). Use e.g. `<{` and `}>` for LaTeX
-templates, where `{` is part of the content.
+In some data languages the default delimiters are part of the content, for example `{` in
+LaTeX. The **Delimiters** table on the same page (`templates.delimiters`) sets the delimiters
+of a template language *in a data language*, one row per pair, as the engines themselves allow
+(Smarty's `left_delimiter`, Twig's `tag_variable` / `tag_block` / `tag_comment`, Jinja's
+`*_start_string`, Go's `Delims`):
+
+| Template | Data language | Delimiters (default) |
+| --- | --- | --- |
+| Smarty | LaTeX | `[[ ]]` |
+| Twig, Jinja2 | LaTeX | `\VAR{ }`, `\BLOCK{ }`, `\#{ }` |
+
+Add a row with **+**, edit it with the pencil (or a double-click) and remove it with **−**.
+The form shows the delimiters of the chosen template language; a pair can only appear once.
+Files without a row use the language's usual delimiters (`{ }` for Smarty, `{{ }}`, `{% %}`
+and `{# #}` for Twig). The table can be stored per project, and open editors follow a change
+right away.
+
+![Template delimiters](../../screenshots/settings-template-delimiters.png)
+
+Everything that knows about tags uses the configured delimiters: highlighting, comment
+toggling (`Ctrl+/` inserts `[[* *]]` or `\#{ }`), folding of blocks, matching delimiters,
+auto-closing and completion of the end tag after `[[/` or `{/`. In a data language without
+its own parser (LaTeX, INI, Shell) a `%` or `#` inside a tag no longer starts a comment.
+Smarty's `{literal}` blocks and its auto-literal rule (`{ ` followed by a space is text) are
+respected.
+
+![Smarty in LaTeX](../../screenshots/syntax-smarty-latex.png)
+
+![Twig in LaTeX](../../screenshots/syntax-twig-latex-letter.png)
 
 ![Smarty](../../screenshots/syntax-smarty.png)
 
@@ -99,5 +125,5 @@ templates, where `{` is part of the content.
 
 Highlighting is built in. Completion, hover and diagnostics for most languages come from a
 [language server](language-servers.md); Forge suggests installing one when a file uses a
-feature only a server provides (for example a JSON `$schema` or a YAML
-`# yaml-language-server: $schema=` modeline).
+feature only a server provides. JSON and YAML files are validated, completed and documented
+from their [JSON schema](json-schema.md) without a server.

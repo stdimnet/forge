@@ -19,17 +19,20 @@ Put the logic in a crate with tests, then add a thin handler to
 
 ```rust
 #[tauri::command]
-pub fn routes_list(state: State<'_, AppState>) -> Result<Vec<Route>> {
-    state.with_workspace(|ws| forge_laravel::routes(ws.root()))
+pub async fn npm_packages(state: State<'_, AppState>) -> Result<Vec<NpmPackage>> {
+    let backend = state.backend()?;
+    blocking(move || web_call(backend.as_ref(), WebCall::NpmPackages { refresh: false, package_manager: "auto".into() })).await
 }
 ```
 
 - Return `forge_core::Result<T>`; errors serialize to strings for the UI.
 - Resolve user paths with `Workspace::resolve`, which rejects paths outside the project.
-- Project operations that must also work remotely go through `AppState::backend()` (the
-  `forge_backend::Backend` of the open project) and run on a blocking thread
-  (`commands::workspace::blocking`). `with_workspace` is for local-only features; it fails for
-  remote projects with "not available in remote projects yet".
+- Project operations go through `AppState::backend()` (the `forge_backend::Backend` of the open
+  project) and run on a blocking thread (`commands::workspace::blocking`), so they work in
+  remote projects too. Never touch the project with `std::fs` or `std::process` in a command;
+  analysis that reads many files belongs behind a backend call that runs next to the files
+  (see `forge_backend::web` or `frameworks`). `AppState::local_workspace()` is only for
+  questions about this machine (which local project a file opened from outside belongs to).
 - Long work: make the command `async` or spawn a task; stream progress with
   `app.emit("<area>://<event>", payload)`.
 - Feature state: a struct registered with `.manage(...)` in `lib.rs`, not more fields in

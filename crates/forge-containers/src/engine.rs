@@ -108,6 +108,11 @@ impl DockerClient {
                 crate::ssh::connect_params(user.as_deref(), host, *port),
                 socket.clone(),
             ))),
+            Endpoint::ProjectHost { via, .. } => {
+                return Err(crate::Error(format!(
+                    "Docker on {via} needs the project's connection"
+                )))
+            }
         };
         Ok(DockerClient {
             transport,

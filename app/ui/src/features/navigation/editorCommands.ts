@@ -16,7 +16,7 @@ import {
   selectParentSyntax,
   splitLine,
   toggleBlockComment,
-  toggleLineComment,
+  toggleComment,
 } from "@codemirror/commands";
 import { foldAll, foldCode, unfoldAll, unfoldCode } from "@codemirror/language";
 import {
@@ -30,6 +30,8 @@ import {
 import { startCompletion } from "@codemirror/autocomplete";
 import { registerEditorExtension } from "@/editor/extensions";
 import { editor } from "@/state/editor";
+import { viewFor as sharedViewFor } from "@/editor/views";
+import { gotoHighlightedUsage } from "@/editor/usageHighlight";
 
 const views = new Map<string, EditorView>();
 
@@ -45,7 +47,7 @@ registerEditorExtension(({ path }) =>
 );
 
 /** The CodeMirror view of the active editor tab, if any. */
-export const activeView = (): EditorView | undefined => (editor.active ? views.get(editor.active) : undefined);
+export const activeView = (): EditorView | undefined => (editor.active ? sharedViewFor(editor.active) : undefined);
 
 /** Selection history for Extend/Shrink Selection (Ctrl+W / Ctrl+Shift+W). */
 const selectionStack = new WeakMap<EditorView, { before: EditorSelection; after: EditorSelection }[]>();
@@ -147,6 +149,17 @@ const unselectOccurrence: CmCommand = (view) => {
   return true;
 };
 
+/** Select All Occurrences: without a selection, of the word at the caret (PHPStorm). */
+const selectAllOccurrences: CmCommand = (view) => {
+  const { state } = view;
+  if (state.selection.ranges.every((r) => r.empty)) {
+    const words = state.selection.ranges.map((r) => state.wordAt(r.head) ?? r);
+    if (words.every((r) => r.empty)) return false;
+    view.dispatch({ selection: EditorSelection.create(words, state.selection.mainIndex) });
+  }
+  return selectSelectionMatches(view);
+};
+
 const scrollBy = (lines: number): CmCommand => (view) => {
   view.scrollDOM.scrollTop += lines * view.defaultLineHeight;
   return true;
@@ -161,13 +174,14 @@ export const EDITOR_COMMANDS: Record<string, CmCommand> = {
   // Statement-aware moving needs a language model; line moving is the closest fallback.
   MoveStatementUp: moveLineUp,
   MoveStatementDown: moveLineDown,
-  CommentByLineComment: toggleLineComment,
+  // Line comments where the language has them, else block comments per line (CSS, Smarty), as in PHPStorm.
+  CommentByLineComment: toggleComment,
   CommentByBlockComment: toggleBlockComment,
   EditorSelectWord: extendSelection,
   EditorUnSelectWord: shrinkSelection,
   SelectNextOccurrence: selectNextOccurrence,
   UnselectPreviousOccurrence: unselectOccurrence,
-  SelectAllOccurrences: selectSelectionMatches,
+  SelectAllOccurrences: selectAllOccurrences,
   EditorJoinLines: joinLines,
   EditorToggleCase: toggleCase,
   EditorSplitLine: splitLine,
@@ -184,8 +198,9 @@ export const EDITOR_COMMANDS: Record<string, CmCommand> = {
   CodeCompletion: startCompletion,
   Find: openSearchPanel,
   Replace: openSearchPanel,
-  FindNext: findNext,
-  FindPrevious: findPrevious,
+  // After Highlight Usages in File (Ctrl+Shift+F7), F3 / Shift+F3 jump between the usages.
+  FindNext: (view) => gotoHighlightedUsage(view, 1) || findNext(view),
+  FindPrevious: (view) => gotoHighlightedUsage(view, -1) || findPrevious(view),
   GotoLine: gotoLine,
   EditorScrollUp: scrollBy(-1),
   EditorScrollDown: scrollBy(1),

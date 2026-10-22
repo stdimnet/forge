@@ -59,6 +59,8 @@ export const workspaceApi = {
   createFile: (path: string) => invoke<void>("fs_create_file", { path }),
   createDir: (path: string) => invoke<void>("fs_create_dir", { path }),
   rename: (from: string, to: string) => invoke<void>("fs_rename", { from, to }),
+  /** Copies a file, or a folder with its content; never replaces. */
+  copy: (from: string, to: string) => invoke<void>("fs_copy", { from, to }),
   /** Deletes a file, or a folder with its content. Ask the user first. */
   delete: (path: string) => invoke<void>("fs_delete", { path }),
 };

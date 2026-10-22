@@ -1,0 +1,73 @@
+# Lua live templates.
+
+[group]
+name = "Lua"
+
+[[template]]
+abbreviation = "fori"
+description = "for i = 1, n do ... end"
+contexts = ["LUA"]
+text = '''
+for $INDEX$ = 1, $LIMIT$ do
+    $END$
+end'''
+variables = [
+  { name = "INDEX", defaultValue = '"i"' },
+  { name = "LIMIT" },
+]
+
+[[template]]
+abbreviation = "forip"
+description = "for i, v in ipairs(t) do ... end"
+contexts = ["LUA"]
+text = '''
+for $INDEX$, $VALUE$ in ipairs($TABLE$) do
+    $END$
+end'''
+variables = [
+  { name = "INDEX", defaultValue = '"i"' },
+  { name = "VALUE", defaultValue = '"v"' },
+  { name = "TABLE", defaultValue = '"t"' },
+]
+
+[[template]]
+abbreviation = "forp"
+description = "for k, v in pairs(t) do ... end"
+contexts = ["LUA"]
+text = '''
+for $KEY$, $VALUE$ in pairs($TABLE$) do
+    $END$
+end'''
+variables = [
+  { name = "KEY", defaultValue = '"k"' },
+  { name = "VALUE", defaultValue = '"v"' },
+  { name = "TABLE", defaultValue = '"t"' },
+]
+
+[[template]]
+abbreviation = "fun"
+description = "function name() ... end"
+contexts = ["LUA"]
+text = '''
+function $NAME$($PARAMETERS$)
+    $END$
+end'''
+
+[[template]]
+abbreviation = "lfun"
+description = "local function name() ... end"
+contexts = ["LUA"]
+text = '''
+local function $NAME$($PARAMETERS$)
+    $END$
+end'''
+
+[[template]]
+abbreviation = "req"
+description = "local module = require(\"module\")"
+contexts = ["LUA"]
+text = 'local $NAME$ = require("$MODULE$")'
+variables = [
+  { name = "MODULE" },
+  { name = "NAME", expression = "camelCase(MODULE)", alwaysStopAt = false },
+]

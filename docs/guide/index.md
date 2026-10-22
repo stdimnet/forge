@@ -48,6 +48,45 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 
 ## Recently added
 
+- **Composer**: composer.json gets PHPStorm's Composer toolbar (Install, Update, Validate,
+  Show Outdated, Audit), outdated packages are marked in the gutter with an "Update package"
+  quick fix, package names and version constraints complete from Packagist with documentation
+  on hover, Tools | Composer | Add Dependency… opens Manage Composer Dependencies, and
+  `composer audit` lists security advisories in the Problems tool window
+  ([Composer](user/composer.md)).
+- **Scopes, file colors, Structural Search and Analyze Stack Trace**: named scopes in
+  PHPStorm's scope language for Find in Files, Replace in Files, Find Usages and Structural
+  Search, file colors in editor tabs and the Project view
+  ([Scopes and file colors](user/scopes-and-file-colors.md)); Search and Replace
+  Structurally with `$variables$` templates for PHP, JavaScript and TypeScript
+  ([Structural Search and Replace](user/structural-search.md)); Code | Analyze Stack Trace
+  with frames linked to project files and container paths mapped
+  ([Analyze Stack Trace](user/run-debug.md#analyze-stack-trace)).
+- **Vim emulation**: Tools | Vim turns on IdeaVim-style Vim emulation in the editor: Normal,
+  Insert, Visual (character, line, block), Replace and command-line modes, motions, operators
+  and text objects, registers (also the system clipboard), dot repeat, macros, marks, search,
+  `:s`, `:g`, `:normal` and other ex commands, `~/.ideavimrc` with mappings to IDE actions, and
+  Settings | Editor | Vim to choose Vim or the IDE per conflicting shortcut
+  ([Vim emulation](user/vim-emulation.md)).
+- **Markdown preview, image editor and Edit as Table**: Markdown files open with a live,
+  GitHub-flavored preview (tables, task lists, footnotes, alerts, Mermaid diagrams, project
+  images, front matter, links that open files in Forge) and synchronized scrolling; images open
+  in an image editor with zoom, grid and chessboard, SVG with a live preview; CSV/TSV files
+  can be edited as a table that keeps the file's quoting
+  ([Markdown, images and CSV](user/markdown-images-csv.md)).
+- **File and code templates**: New ▸ PHP Class / Interface / Trait / Enum with the PSR-4
+  namespace from composer.json, PHPUnit Test, Laravel and Symfony classes, HTML, CSS,
+  JavaScript, TypeScript, Vue, React and Lua files, the `Alt+Insert` New popup in the Project
+  view, and Settings | Editor | File and Code Templates with Velocity templates and the code
+  templates of the Generate actions ([File and code templates](user/file-templates.md)).
+- **Split editors, pinned tabs and the tab context menu**, a tab limit, **Recent Locations**
+  (`Ctrl+Shift+E`), **Bookmarks** (`F11`, `Ctrl+F11`, `Alt+2`), the **TODO** and
+  **Notifications** tool windows and Find in Files results in the **Find** tool window
+  ([Workbench](user/workbench.md#editor-tabs)).
+- **PHP navigation like PHPStorm**: `Ctrl+Click` on every PHP symbol (also `\Throwable` and
+  `array_map`, opened read-only in the PHP stubs), Show Usages on declarations, Find Usages
+  (`Alt+F7`) in the Find tool window, Implementation / Super Method / Type Declaration and the
+  implemented / overridden gutter icons ([PHP](user/php.md#navigation)).
 - **Splash screen and updates**: the wordmark fills with molten metal while Forge loads, the
   last project reopens, and signed updates are offered on startup or with Help | Check for
   Updates… ([First start](getting-started/first-start.md#the-splash-screen)).
@@ -68,9 +107,9 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 
 ## Not available yet
 
-Refactorings (Rename, Extract, Move), Find Usages, Replace in Files, quick-fixes (`Alt+Enter`),
-bookmarks, TODO, Local History, split editors, Get from VCS, stash, multiple project windows, a
-plugin Marketplace and automatic updates. The pages mark smaller gaps with notes.
+Refactorings other than Rename (Extract, Move, ...), Local History, Get from VCS, multiple
+project windows and a plugin Marketplace. The pages mark smaller gaps with notes; the
+[roadmap](../ROADMAP.md) lists what comes next.
 
 ## About this guide
 

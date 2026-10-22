@@ -2,14 +2,52 @@
  * Terminal tool window (Alt+F12): local shell sessions on a PTY, rendered with xterm.js.
  * Replaces the `terminal` placeholder.
  */
+import { Show } from "solid-js";
 import { SquareTerminal } from "lucide-solid";
 import { registerToolWindow } from "@/features/registry";
+import { registerStatusItem } from "@/features/statusItems";
+import { getSetting } from "@/state/settings";
 import { registerCommand } from "@/state/commands";
 import { registerKeymapActions } from "@/keymap";
 import { showToolWindow } from "@/state/layout";
 import { TerminalTabs, TerminalView, closeTerminalTab } from "./TerminalView";
-import { activeTab, newTab, type TerminalProgram } from "./store";
-import { focusSession } from "./sessions";
+import { activeTab, displayTitle, newTab, overallProgress, progressTab, tabs, type TerminalProgram } from "./store";
+import { focusSession, revealTerminalTab } from "./sessions";
+import { progressLabel } from "./osc";
+import { ProgressRing } from "./ProgressRing";
+
+/** Stripe marker while the Terminal is hidden: combined progress, else a bell dot. */
+function TerminalStripeBadge() {
+  const progress = () => overallProgress(tabs());
+  return (
+    <Show when={progress()} fallback={<Show when={tabs().some((t) => t.bell)}>{<span class="term-tab-bell" />}</Show>}>
+      {(p) => <ProgressRing progress={p()} size={13} />}
+    </Show>
+  );
+}
+
+/** Status bar: progress of a terminal program, e.g. "Claude Code: 42%"; click shows its tab. */
+function TerminalProgressStatus() {
+  const tab = () => (getSetting<boolean>("terminal.showProgressInStatusBar", true) ? progressTab(tabs(), activeTab()) : undefined);
+  return (
+    <Show when={tab()}>
+      {(t) => (
+        <button
+          class="status-item term-status"
+          classList={{ [t().progress!.state]: true }}
+          data-status="terminal-progress"
+          title={`${displayTitle(t())}: ${progressLabel(t().progress!)}\nClick to show the terminal tab`}
+          onClick={() => revealTerminalTab(t().id)}
+        >
+          <ProgressRing progress={t().progress!} size={12} />
+          <span class="term-status-text">{displayTitle(t())}:</span>
+          <span class="term-status-percent">{progressLabel(t().progress!)}</span>
+        </button>
+      )}
+    </Show>
+  );
+}
+registerStatusItem({ id: "terminal.progress", align: "right", order: -30, component: TerminalProgressStatus });
 
 registerToolWindow({
   id: "terminal",
@@ -20,19 +58,20 @@ registerToolWindow({
   shortcut: "Alt+F12",
   component: TerminalView,
   headerContent: TerminalTabs,
+  badge: TerminalStripeBadge,
 });
 
 /** Open a new terminal tab in `dir` (relative to the project root), e.g. "Open In > Terminal". */
 export function openTerminalAt(dir?: string): void {
   const tab = newTab(dir);
-  showToolWindow("bottom", "terminal");
+  showToolWindow("terminal");
   requestAnimationFrame(() => focusSession(tab.id));
 }
 
 /** Open a terminal tab running a program (Services: exec into a container or pod). */
 export function openTerminalWith(command: TerminalProgram & { title: string }): void {
   const tab = newTab(undefined, command);
-  showToolWindow("bottom", "terminal");
+  showToolWindow("terminal");
   requestAnimationFrame(() => focusSession(tab.id));
 }
 
@@ -58,7 +97,7 @@ registerCommand({
   title: "Terminal",
   category: "View",
   run: () => {
-    showToolWindow("bottom", "terminal");
+    showToolWindow("terminal");
     const id = activeTab();
     if (id) requestAnimationFrame(() => focusSession(id));
   },

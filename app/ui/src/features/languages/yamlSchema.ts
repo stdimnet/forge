@@ -4,8 +4,9 @@
  * the key path at the cursor is derived from the indentation of the lines above it.
  */
 import type { EditorState, Extension } from "@codemirror/state";
+import { syntaxTree } from "@codemirror/language";
 import type { Completion, CompletionContext, CompletionResult } from "@codemirror/autocomplete";
-import { docDom, hoverDocs } from "./shared";
+import { docDom, hoverDocs, type HoverHit } from "./shared";
 
 export interface SchemaNode {
   /** Markdown documentation shown on hover and next to the completion. */
@@ -23,6 +24,9 @@ export interface SchemaNode {
   /** Keys starting with this prefix are allowed anywhere and not completed (`x-`). */
   extensionPrefix?: string;
 }
+
+/** Custom YAML tags a file type understands (`!reset`), with Markdown documentation. */
+export type SchemaTags = Readonly<Record<string, string>>;
 
 export const key = (doc: string, type = "string", rest: Partial<SchemaNode> = {}): SchemaNode => ({ doc, type, ...rest });
 export const flag = (doc: string, rest: Partial<SchemaNode> = {}): SchemaNode => ({ doc, type: "bool", values: ["true", "false"], ...rest });
@@ -154,10 +158,12 @@ export interface SchemaCompletionOptions {
    * cursor's position in addition to the schema's own keys and values.
    */
   dynamic?: (at: Position, state: EditorState) => readonly Completion[] | null;
+  /** Custom tags offered as the first token of any value. */
+  tags?: SchemaTags;
 }
 
 /** Completion source for keys and values of a schema. */
-export function schemaCompletion({ root, dynamic }: SchemaCompletionOptions) {
+export function schemaCompletion({ root, dynamic, tags = {} }: SchemaCompletionOptions) {
   return (ctx: CompletionContext): CompletionResult | null => {
     const pos = positionAt(ctx.state, ctx.pos);
     const line = ctx.state.doc.lineAt(ctx.pos);
@@ -181,13 +187,20 @@ export function schemaCompletion({ root, dynamic }: SchemaCompletionOptions) {
       return options.length ? { from: word.from, options, validFor: /^[\w.-]*$/ } : null;
     }
     // Value position.
-    const word = ctx.matchBefore(/[\w.@/-]*/);
+    const tagNames = Object.keys(tags);
+    const word = ctx.matchBefore(tagNames.length ? /!?[\w.@/-]*/ : /[\w.@/-]*/);
     if (!word) return null;
     const node = pos.currentKey ? nodeAt(root, [...pos.path, pos.currentKey]) : null;
     const fixed: Completion[] = (node?.values ?? []).map((v) => ({ label: v, type: "constant" }));
-    const options = [...(dynamic?.(pos, ctx.state) ?? []), ...fixed];
+    // A tag is only valid as the first token of the value: `ports: !reset []`.
+    const firstToken = pos.currentKey !== null && /:\s+$/.test(before.slice(0, word.from - line.from));
+    const tagged: Completion[] =
+      firstToken && (word.text === "" || word.text.startsWith("!"))
+        ? tagNames.map((label) => ({ label, type: "keyword", detail: "tag", info: () => docDom({ title: label, doc: tags[label] }) }))
+        : [];
+    const options = word.text.startsWith("!") ? tagged : [...(dynamic?.(pos, ctx.state) ?? []), ...fixed, ...tagged];
     if (!options.length) return null;
-    return { from: word.from, options, validFor: /^[\w.@/-]*$/ };
+    return { from: word.from, options, validFor: tagNames.length ? /^!?[\w.@/-]*$/ : /^[\w.@/-]*$/ };
   };
 }
 
@@ -207,19 +220,29 @@ function siblingKeys(state: EditorState, pos: number, at: Position): Set<string>
   return out;
 }
 
-/** Hover documentation of the key under the pointer. */
-export function schemaHover(root: SchemaNode): Extension {
-  return hoverDocs((state, pos) => {
-    const line = state.doc.lineAt(pos);
-    const l = parseLine(line.text);
-    if (!l?.key) return null;
-    const from = line.from + l.keyStart;
-    const to = from + l.key.length;
-    if (pos < from || pos > to) return null;
-    const p = positionAt(state, from);
-    const node = nodeAt(root, [...p.path, l.key]);
-    if (!node?.doc) return null;
-    const title = node.type ? `${l.key}: ${node.type}` : l.key;
-    return { from, to, dom: () => docDom({ title, doc: node.doc! }) };
-  });
+/** Hover documentation of the key (or custom tag) under the pointer. */
+export function schemaHover(root: SchemaNode, tags: SchemaTags = {}): Extension {
+  return hoverDocs((state, pos) => schemaHoverAt(root, tags, state, pos));
+}
+
+/** The hover of `schemaHover` at `pos`: a known custom tag, or a key of the schema. */
+export function schemaHoverAt(root: SchemaNode, tags: SchemaTags, state: EditorState, pos: number): HoverHit | null {
+  const tree = syntaxTree(state);
+  const tag = [tree.resolveInner(pos, -1), tree.resolveInner(pos, 1)].find((n) => n.name === "Tag");
+  if (tag) {
+    const name = state.sliceDoc(tag.from, tag.to);
+    const doc = tags[name];
+    return doc ? { from: tag.from, to: tag.to, dom: () => docDom({ title: name, doc }) } : null;
+  }
+  const line = state.doc.lineAt(pos);
+  const l = parseLine(line.text);
+  if (!l?.key) return null;
+  const from = line.from + l.keyStart;
+  const to = from + l.key.length;
+  if (pos < from || pos > to) return null;
+  const p = positionAt(state, from);
+  const node = nodeAt(root, [...p.path, l.key]);
+  if (!node?.doc) return null;
+  const title = node.type ? `${l.key}: ${node.type}` : l.key;
+  return { from, to, dom: () => docDom({ title, doc: node.doc! }) };
 }

@@ -205,6 +205,133 @@ group = "appearance"
 section = "Project View"
 order = 40
 
+[[contributions.settings]]
+key = "projectView.autoscrollFromSource"
+title = "Always select opened file"
+description = "The Project tool window selects the file of the active editor whenever you switch editors (PHPStorm's Autoscroll from Source). Also in the tool window's Options menu."
+type = "bool"
+default = false
+group = "appearance"
+section = "Project View"
+order = 41
+
+# ---- Appearance & Behavior > Scopes and File Colors ------------------------------------
+
+[[contributions.settings]]
+key = "scopes.shared"
+title = "Shared scopes"
+description = "Named scopes stored in the project (`.forge/settings.toml`, shared with the team through version control): name and pattern in PHPStorm's scope language, e.g. `file:app//*.php&&!test:*..*`."
+type = "objects"
+unique = ["name"]
+default = []
+group = "appearance.scopes"
+project = true
+order = 0
+
+[[contributions.settings]]
+key = "scopes.local"
+title = "Local scopes"
+description = "Named scopes stored in your user settings only (not shared): name and pattern."
+type = "objects"
+unique = ["name"]
+default = []
+group = "appearance.scopes"
+order = 1
+
+[[contributions.settings]]
+key = "fileColors.enabled"
+title = "Enable file colors"
+description = "Tint files by scope with the colors below."
+type = "bool"
+default = true
+group = "appearance.fileColors"
+order = 0
+
+[[contributions.settings]]
+key = "fileColors.useInEditorTabs"
+title = "Use in editor tabs"
+type = "bool"
+default = true
+group = "appearance.fileColors"
+order = 1
+
+[[contributions.settings]]
+key = "fileColors.useInProjectView"
+title = "Use in project view"
+type = "bool"
+default = true
+group = "appearance.fileColors"
+order = 2
+
+[[contributions.settings]]
+key = "fileColors.local"
+title = "Local colors"
+description = "Colors stored in your user settings: scope name and color (Blue, Green, Orange, Rose, Violet, Yellow, Gray). The first scope containing a file wins; local colors come before shared ones."
+type = "objects"
+unique = ["scope"]
+default = [
+  { scope = "Non-Project Files", color = "Yellow" },
+  { scope = "Tests", color = "Green" },
+]
+group = "appearance.fileColors"
+order = 3
+
+[[contributions.settings]]
+key = "fileColors.shared"
+title = "Shared colors"
+description = "Colors stored in the project (`.forge/settings.toml`): scope name and color."
+type = "objects"
+unique = ["scope"]
+default = []
+group = "appearance.fileColors"
+project = true
+order = 4
+
+[[contributions.settings]]
+key = "structureView.autoscrollToSource"
+title = "Autoscroll to source"
+description = "A single click on a Structure tool window node moves the editor to it. Turn it off to select with a single click and navigate with a double click."
+type = "bool"
+default = true
+group = "appearance"
+section = "Structure View"
+order = 42
+
+[[contributions.settings]]
+key = "structureView.autoscrollFromSource"
+title = "Autoscroll from source"
+description = "The Structure tool window selects the member at the caret as you move through the editor."
+type = "bool"
+default = true
+group = "appearance"
+section = "Structure View"
+order = 43
+
+[[contributions.settings]]
+key = "appearance.navigationBar.location"
+title = "Navigation bar"
+description = "Where the navigation bar (project, folders, file and members at the caret) is shown: Top: above the editor, with the path in the status bar too. In status bar: only in the status bar. Don't show: Jump to Navigation Bar (Alt+Home) shows it as a popup. View | Appearance | Navigation Bar."
+type = "enum"
+options = [
+  { value = "top", label = "Top" },
+  { value = "statusBar", label = "In status bar" },
+  { value = "hidden", label = "Don't show" },
+]
+default = "top"
+group = "appearance"
+section = "Navigation Bar"
+order = 50
+
+[[contributions.settings]]
+key = "appearance.navigationBar.showMembers"
+title = "Show members in the navigation bar"
+description = "Add the class and function at the caret after the file name. View | Appearance | Members in Navigation Bar."
+type = "bool"
+default = true
+group = "appearance"
+section = "Navigation Bar"
+order = 51
+
 # ---- Languages & Frameworks > Template Data Languages --------------------------------
 
 [[contributions.settings]]
@@ -219,25 +346,30 @@ project = true
 order = 0
 
 [[contributions.settings]]
-key = "templates.smarty.leftDelimiter"
-title = "Left delimiter"
-description = "Smarty's left_delimiter. Use e.g. `<{` for LaTeX templates, where `{` is part of the content."
-type = "string"
-default = "{"
+key = "templates.delimiters"
+title = "Template delimiters"
+description = "Delimiters of a template language in a data language, e.g. Smarty in LaTeX, where `{` is part of the content. Templates without an entry use the language's default delimiters. Applies to open editors."
+type = "objects"
+unique = ["template", "language"]
+default = [
+  { template = "smarty", language = "latex", left = "[[", right = "]]" },
+  { template = "twig", language = "latex", variableStart = '\VAR{', variableEnd = "}", blockStart = '\BLOCK{', blockEnd = "}", commentStart = '\#{', commentEnd = "}" },
+  { template = "jinja", language = "latex", variableStart = '\VAR{', variableEnd = "}", blockStart = '\BLOCK{', blockEnd = "}", commentStart = '\#{', commentEnd = "}" },
+]
 group = "lang.templates"
-section = "Smarty"
+section = "Delimiters"
 project = true
 order = 10
 
 [[contributions.settings]]
-key = "templates.smarty.rightDelimiter"
-title = "Right delimiter"
-type = "string"
-default = "}"
-group = "lang.templates"
-section = "Smarty"
-project = true
-order = 11
+key = "fileTemplates.custom"
+title = "File and code templates"
+description = "Templates added in Settings | Editor | File and Code Templates and the changed text of built-in ones (kind \"file\", \"include\" or \"code\", name, extension, text). Built-in templates without an entry use their default text."
+type = "objects"
+unique = ["kind", "name"]
+default = []
+group = "editor.file-templates"
+order = 0
 
 # ---- Appearance & Behavior > System Settings ----------------------------------------
 
@@ -258,20 +390,6 @@ default = true
 group = "system"
 section = "Project"
 order = 1
-
-[[contributions.settings]]
-key = "system.openProjectIn"
-title = "Open project in"
-type = "enum"
-options = [
-  { value = "new", label = "New window" },
-  { value = "same", label = "Current window" },
-  { value = "ask", label = "Ask" },
-]
-default = "ask"
-group = "system"
-section = "Project"
-order = 2
 
 [[contributions.settings]]
 key = "system.defaultProjectDirectory"
@@ -457,6 +575,414 @@ group = "editor.general"
 section = "On Save"
 order = 41
 
+[[contributions.settings]]
+key = "editor.clipboard.maxContents"
+title = "Maximum number of contents to keep in clipboard"
+description = "Entries of Paste from History (Ctrl+Shift+V). The history is kept until Forge closes."
+type = "int"
+min = 1
+max = 100
+default = 20
+group = "editor.general"
+section = "Limits"
+order = 50
+
+# ---- Editor > General: Sticky Lines, rendered doc comments; Breadcrumbs; Reader Mode ----
+
+[[contributions.settings]]
+key = "editor.renderDocComments"
+title = "Render documentation comments"
+description = "Show PHPDoc, JSDoc and LuaDoc comments as formatted text. Toggle one with Ctrl+Alt+Q or its gutter icon."
+type = "bool"
+default = false
+group = "editor.general"
+section = "Appearance"
+order = 33
+
+[[contributions.settings]]
+key = "editor.stickyLines.enabled"
+title = "Show sticky lines while scrolling"
+description = "The headers of the classes, functions, blocks, rules and tags around the top of the editor stay visible. Click one to jump to it."
+type = "bool"
+default = true
+group = "editor.general"
+section = "Sticky Lines"
+order = 35
+
+[[contributions.settings]]
+key = "editor.stickyLines.maxLines"
+title = "Limit sticky lines"
+type = "int"
+min = 1
+max = 20
+default = 5
+group = "editor.general"
+section = "Sticky Lines"
+order = 36
+
+[[contributions.settings]]
+key = "editor.stickyLines.disabledLanguages"
+title = "Show sticky lines for"
+type = "list"
+default = []
+group = "editor.general"
+section = "Sticky Lines"
+order = 37
+
+[[contributions.settings]]
+key = "editor.breadcrumbs.show"
+title = "Show breadcrumbs"
+description = "The classes, functions, rules and tags around the caret. Click one to go there; the arrow next to it lists its siblings."
+type = "bool"
+default = true
+group = "editor.breadcrumbs"
+order = 0
+
+[[contributions.settings]]
+key = "editor.breadcrumbs.placement"
+title = "Placement"
+type = "enum"
+options = [
+  { value = "top", label = "Top" },
+  { value = "bottom", label = "Bottom" },
+]
+default = "bottom"
+group = "editor.breadcrumbs"
+order = 1
+
+[[contributions.settings]]
+key = "editor.breadcrumbs.disabledLanguages"
+title = "Show breadcrumbs for"
+type = "list"
+default = []
+group = "editor.breadcrumbs"
+section = "Languages"
+order = 2
+
+[[contributions.settings]]
+key = "editor.readerMode.enabled"
+title = "Use Reader mode"
+description = "Open files you only read in Reader mode. Toggle it with the Reader Mode button at the top right of the editor."
+type = "bool"
+default = true
+group = "editor.readerMode"
+order = 0
+
+[[contributions.settings]]
+key = "editor.readerMode.applyTo"
+title = "Use for"
+type = "enum"
+options = [
+  { value = "libraries", label = "Library files (vendor, node_modules, PHP stubs)" },
+  { value = "readOnly", label = "Read-only files" },
+  { value = "both", label = "Library and read-only files" },
+]
+default = "both"
+group = "editor.readerMode"
+order = 1
+
+[[contributions.settings]]
+key = "editor.readerMode.renderDocs"
+title = "Rendered documentation comments"
+type = "bool"
+default = true
+group = "editor.readerMode"
+section = "Show"
+order = 10
+
+[[contributions.settings]]
+key = "editor.readerMode.ligatures"
+title = "Ligatures"
+type = "bool"
+default = true
+group = "editor.readerMode"
+section = "Show"
+order = 11
+
+[[contributions.settings]]
+key = "editor.readerMode.increaseLineSpacing"
+title = "Increased line spacing"
+type = "bool"
+default = true
+group = "editor.readerMode"
+section = "Show"
+order = 12
+
+# ---- Editor > General > Postfix Completion ---------------------------------------------
+
+[[contributions.settings]]
+key = "editor.postfix.enabled"
+title = "Enable postfix completion"
+description = "Type a template key after an expression, e.g. $user.if or items.forof, to wrap it."
+type = "bool"
+default = true
+group = "editor.postfix"
+order = 0
+
+[[contributions.settings]]
+key = "editor.postfix.showInCompletion"
+title = "Show postfix templates in the completion autopopup"
+type = "bool"
+default = true
+group = "editor.postfix"
+order = 1
+
+[[contributions.settings]]
+key = "editor.postfix.expandKey"
+title = "Expand templates with"
+type = "enum"
+options = [
+  { value = "tab", label = "Tab" },
+  { value = "space", label = "Space" },
+  { value = "enter", label = "Enter" },
+]
+default = "tab"
+group = "editor.postfix"
+order = 2
+
+[[contributions.settings]]
+key = "editor.postfix.disabled"
+title = "Templates"
+description = "Clear a template to stop offering it."
+type = "list"
+default = []
+group = "editor.postfix"
+order = 3
+
+# ---- Editor > Emmet --------------------------------------------------------------------
+
+[[contributions.settings]]
+key = "editor.emmet.expandKey"
+title = "Expand abbreviation with"
+description = "Live templates and postfix templates expand first when they match."
+type = "enum"
+options = [
+  { value = "tab", label = "Tab" },
+  { value = "enter", label = "Enter" },
+  { value = "space", label = "Space" },
+]
+default = "tab"
+group = "editor.emmet"
+order = 0
+
+[[contributions.settings]]
+key = "editor.emmet.html.enabled"
+title = "Enable Emmet"
+description = "In HTML, Blade, Twig and other template files, Vue templates and the HTML of PHP files."
+type = "bool"
+default = true
+group = "editor.emmet.html"
+order = 0
+
+[[contributions.settings]]
+key = "editor.emmet.html.preview"
+title = "Enable abbreviation preview"
+description = "Show the expanded markup in a popup while typing an abbreviation."
+type = "bool"
+default = false
+group = "editor.emmet.html"
+order = 1
+
+[[contributions.settings]]
+key = "editor.emmet.html.hrefAutoDetect"
+title = "Enable automatic URL recognition while wrapping text with <a> tag"
+type = "bool"
+default = true
+group = "editor.emmet.html"
+order = 2
+
+[[contributions.settings]]
+key = "editor.emmet.css.enabled"
+title = "Enable Emmet"
+description = "In CSS, SCSS, Less, Sass and Stylus, and in <style> blocks: m10, p10-20, df, pos:a, bgc#fff …"
+type = "bool"
+default = true
+group = "editor.emmet.css"
+order = 0
+
+[[contributions.settings]]
+key = "editor.emmet.jsx.enabled"
+title = "Enable Emmet in JSX"
+type = "bool"
+default = true
+group = "editor.emmet.jsx"
+order = 0
+
+[[contributions.settings]]
+key = "editor.emmet.jsx.classAttribute"
+title = "Class attribute"
+description = "Attribute written for .class abbreviations in JSX and TSX files."
+type = "enum"
+options = [
+  { value = "className", label = "className" },
+  { value = "class", label = "class" },
+]
+default = "className"
+group = "editor.emmet.jsx"
+order = 1
+
+# ---- Editor > General > Appearance: color preview ----------------------------------------
+
+[[contributions.settings]]
+key = "editor.colorPreview.gutter"
+title = "Show color preview in the gutter"
+description = "Swatches next to colors in CSS, markup and scripts; click one to open the color picker."
+type = "bool"
+default = true
+group = "editor.general"
+section = "Appearance"
+order = 33
+
+[[contributions.settings]]
+key = "editor.colorPreview.inline"
+title = "Show color preview inline"
+type = "bool"
+default = false
+group = "editor.general"
+section = "Appearance"
+order = 34
+
+[[contributions.settings]]
+key = "editor.colorPicker.recentColors"
+title = "Recently used colors"
+description = "Colors picked in the color picker, newest first."
+type = "list"
+default = []
+group = "editor.colorPicker"
+order = 0
+
+# ---- Editor > General > Editor Tabs ---------------------------------------------------
+
+[[contributions.settings]]
+key = "editor.tabs.limit"
+title = "Tab limit"
+description = "Maximum number of tabs per editor group; 0 keeps every tab open. Pinned tabs are never closed by the limit."
+type = "int"
+min = 0
+max = 100
+default = 10
+group = "editor.tabs"
+section = "Closing Policy"
+order = 0
+
+[[contributions.settings]]
+key = "editor.tabs.closeUnmodifiedFirst"
+title = "When the tab limit is reached, close non-modified tabs first"
+type = "bool"
+default = true
+group = "editor.tabs"
+section = "Closing Policy"
+order = 1
+
+[[contributions.settings]]
+key = "editor.tabs.activateOnClose"
+title = "When the current tab is closed, activate"
+type = "enum"
+options = [
+  { value = "left", label = "The tab on the left" },
+  { value = "right", label = "The tab on the right" },
+  { value = "recent", label = "Most recently opened tab" },
+]
+default = "recent"
+group = "editor.tabs"
+section = "Closing Policy"
+order = 2
+
+[[contributions.settings]]
+key = "editor.tabs.showPinnedIcon"
+title = "Show pin icon on pinned tabs"
+type = "bool"
+default = true
+group = "editor.tabs"
+section = "Appearance"
+order = 10
+
+# ---- Editor > TODO ------------------------------------------------------------------
+
+[[contributions.settings]]
+key = "todo.patterns"
+title = "Patterns"
+description = "Regular expressions matched in comments, one per entry. Add a tab and `case` after a pattern to make it case-sensitive."
+type = "list"
+default = ["\\btodo\\b.*", "\\bfixme\\b.*"]
+group = "editor.todo"
+section = "Patterns"
+order = 0
+
+# ---- Editor > Live Templates ----------------------------------------------------------
+
+[[contributions.settings]]
+key = "editor.liveTemplates.expandKey"
+title = "By default expand with"
+description = "Key that expands a live template abbreviation."
+type = "enum"
+options = [
+  { value = "tab", label = "Tab" },
+  { value = "space", label = "Space" },
+  { value = "enter", label = "Enter" },
+]
+default = "tab"
+group = "editor.liveTemplates"
+order = 0
+
+[[contributions.settings]]
+key = "editor.liveTemplates.custom"
+title = "User and changed templates"
+description = "New templates and changes to built-in ones: group, abbreviation, description, text, contexts (comma-separated), variables (JSON), builtin (id of the replaced built-in template) and removed."
+type = "objects"
+default = []
+group = "editor.liveTemplates"
+order = 10
+
+[[contributions.settings]]
+key = "editor.liveTemplates.disabled"
+title = "Disabled templates"
+description = "Ids (`group/abbreviation`) of templates that do not expand."
+type = "list"
+default = []
+group = "editor.liveTemplates"
+order = 20
+
+# ---- Editor > Language Injections -----------------------------------------------------
+
+[[contributions.settings]]
+key = "editor.injections.disabled"
+title = "Disabled injection rules"
+description = "Ids of the built-in injection rules that are turned off, e.g. `php-html` or `js-sql-keywords`. `// language=` comments always inject."
+type = "list"
+default = []
+group = "editor.injections"
+order = 0
+
+[[contributions.settings]]
+key = "editor.injections.uninjected"
+title = "Un-injected places"
+description = "Strings turned off with Un-inject Language (`path#key`); a string is injected again when its text changes."
+type = "list"
+default = []
+group = "editor.injections"
+project = true
+order = 10
+
+# ---- Appearance & Behavior > Notifications --------------------------------------------
+
+[[contributions.settings]]
+key = "notifications.balloons"
+title = "Display balloon notifications"
+type = "bool"
+default = true
+group = "notifications"
+order = 0
+
+[[contributions.settings]]
+key = "notifications.groups"
+title = "Notification groups"
+description = "How each group is shown, one entry per group: the group name, a tab, then `balloon`, `sticky` or `log`."
+type = "list"
+default = []
+group = "notifications"
+order = 1
+
 # ---- Editor > Font -------------------------------------------------------------------
 
 [[contributions.settings]]
@@ -508,52 +1034,33 @@ group = "editor.font"
 order = 3
 
 # ---- Editor > Code Style -------------------------------------------------------------
-
-[[contributions.settings]]
-key = "editor.codeStyle.lineSeparator"
-title = "Line separator"
-type = "enum"
-options = [
-  { value = "lf", label = "Unix and macOS (\\n)" },
-  { value = "crlf", label = "Windows (\\r\\n)" },
-  { value = "system", label = "System-dependent" },
-]
-default = "lf"
-group = "editor.code-style"
-project = true
-order = 0
-
-[[contributions.settings]]
-key = "editor.codeStyle.hardWrapAt"
-title = "Hard wrap at (columns)"
-type = "int"
-min = 40
-max = 400
-default = 120
-group = "editor.code-style"
-project = true
-order = 1
-
-[[contributions.settings]]
-key = "editor.codeStyle.visualGuides"
-title = "Visual guides"
-description = "Comma-separated column numbers, e.g. 80, 120."
-type = "string"
-default = "120"
-group = "editor.code-style"
-project = true
-order = 2
+# The scheme options (line separator, hard wrap, visual guides, formatter markers and every
+# language page) come from the code style model (`forge-codestyle`); these two are plain
+# settings shown on the General page.
 
 [[contributions.settings]]
 key = "editor.codeStyle.useEditorConfig"
 title = "Enable EditorConfig support"
+description = "Indents, line separators, charset and the On Save options of .editorconfig files override these settings."
 type = "bool"
 default = true
 group = "editor.code-style"
 project = true
 order = 3
 
+[[contributions.settings]]
+key = "editor.codeStyle.detectIndents"
+title = "Detect and use existing file indents for editing"
+description = "Files indented differently from the code style keep their indent; the status bar marks it with *."
+type = "bool"
+default = true
+group = "editor.code-style"
+project = true
+order = 4
+
 # ---- Editor > Inlay Hints ------------------------------------------------------------
+# Hints come from the language servers (`textDocument/inlayHint`); Forge groups and filters
+# them (`forge_codeintel::inlay`).
 
 [[contributions.settings]]
 key = "editor.inlayHints.parameterNames"
@@ -568,6 +1075,7 @@ order = 0
 [[contributions.settings]]
 key = "editor.inlayHints.types"
 title = "Inferred variable types"
+description = "The type of variables and properties without a declared type."
 type = "bool"
 default = false
 group = "editor.inlay-hints"
@@ -576,7 +1084,8 @@ order = 10
 
 [[contributions.settings]]
 key = "editor.inlayHints.returnTypes"
-title = "Return types of closures"
+title = "Return types of closures and functions"
+description = "The inferred return type after the parameter list when none is declared."
 type = "bool"
 default = true
 group = "editor.inlay-hints"
@@ -584,32 +1093,51 @@ section = "Types"
 order = 11
 
 [[contributions.settings]]
-key = "editor.inlayHints.chainedCalls"
-title = "Types in method chains"
+key = "editor.inlayHints.languages.php"
+title = "PHP"
 type = "bool"
 default = true
 group = "editor.inlay-hints"
-section = "Types"
-order = 12
+section = "Languages"
+order = 30
 
 [[contributions.settings]]
-key = "editor.inlayHints.usages"
-title = "Usages"
-description = "Show the number of usages above classes and methods (Code Vision)."
+key = "editor.inlayHints.languages.javascript"
+title = "JavaScript and TypeScript"
+description = "Also Vue, Svelte and Astro files."
+type = "bool"
+default = true
+group = "editor.inlay-hints"
+section = "Languages"
+order = 31
+
+[[contributions.settings]]
+key = "editor.inlayHints.languages.lua"
+title = "Lua"
+type = "bool"
+default = true
+group = "editor.inlay-hints"
+section = "Languages"
+order = 32
+
+[[contributions.settings]]
+key = "editor.inlayHints.languages.other"
+title = "Other languages"
+type = "bool"
+default = true
+group = "editor.inlay-hints"
+section = "Languages"
+order = 33
+
+[[contributions.settings]]
+key = "editor.inlayHints.implementations"
+title = "Implementations and inheritors"
+description = "Show \"2 implementations\", \"3 inheritors\" and \"1 override\" above PHP classes and methods (Code Vision). Click to go there."
 type = "bool"
 default = true
 group = "editor.inlay-hints"
 section = "Code Vision"
 order = 20
-
-[[contributions.settings]]
-key = "editor.inlayHints.implementations"
-title = "Implementations and inheritors"
-type = "bool"
-default = true
-group = "editor.inlay-hints"
-section = "Code Vision"
-order = 21
 
 # ---- Tools > HTTP Client ---------------------------------------------------------------
 
@@ -622,3 +1150,423 @@ default = ""
 group = "tools.http-client"
 project = true
 order = 0
+
+# ---- Tools > Search --------------------------------------------------------------------
+
+[[contributions.settings]]
+key = "search.findInFiles.maxMatches"
+title = "Maximum matches in the Find window"
+description = "0 shows every match. Searches that match millions of lines are slow to transfer and display. The Search Everywhere popup always stays limited."
+type = "int"
+min = 0
+max = 100000000
+default = 0
+group = "tools.search"
+section = "Find in Files"
+order = 0
+
+[[contributions.settings]]
+key = "search.everywhere.fuzzy"
+title = "Fuzzy matching"
+description = "Search Everywhere (Files, Classes, Symbols) and Go to File match abbreviations such as \"orco\" for OrderController. Turn it off to match only text that contains what you typed."
+type = "bool"
+default = true
+group = "tools.search"
+section = "Search Everywhere"
+order = 0
+
+[[contributions.settings]]
+key = "search.indexing.lowPriority"
+title = "Index in the background at low CPU priority"
+description = "The search index of a project is built and refreshed on threads below normal priority, so the IDE and other programs keep their share of the CPU. Turn it off to index as fast as possible. Applies when a project is opened."
+type = "bool"
+default = true
+group = "tools.search"
+section = "Indexing"
+order = 10
+
+[[contributions.settings]]
+key = "httpClient.sendFrom"
+title = "Send requests from"
+description = "Remote projects only: \"Remote host\" sends the requests of .http files through an SSH tunnel from the project's host, so localhost URLs reach the services running there. \"This machine\" sends them from here."
+type = "enum"
+options = [
+  { value = "local", label = "This machine" },
+  { value = "remote", label = "Remote host" },
+]
+default = "remote"
+group = "tools.http-client"
+project = true
+order = 1
+
+# ---- Tools > Actions on Save -----------------------------------------------------------
+
+[[contributions.settings]]
+key = "actionsOnSave.reformat.enabled"
+title = "Reformat code"
+description = "Reformat Code (Ctrl+Alt+L) when the file is saved."
+type = "bool"
+default = false
+group = "tools.actions-on-save"
+project = true
+order = 0
+
+[[contributions.settings]]
+key = "actionsOnSave.reformat.scope"
+title = "Reformat"
+description = "\"Changed lines\" reformats only the lines changed since the last commit; files that are not committed yet are reformatted completely."
+type = "enum"
+options = [
+  { value = "whole", label = "Whole file" },
+  { value = "changed", label = "Changed lines" },
+]
+default = "whole"
+group = "tools.actions-on-save"
+project = true
+order = 1
+
+[[contributions.settings]]
+key = "actionsOnSave.reformat.fileTypes"
+title = "Reformat file types"
+description = "File type ids (php, javascript, ...) reformatted on save; empty means all file types."
+type = "list"
+default = []
+group = "tools.actions-on-save"
+project = true
+order = 2
+
+[[contributions.settings]]
+key = "actionsOnSave.optimizeImports"
+title = "Optimize imports"
+description = "Remove unused imports and sort the others (PHP)."
+type = "bool"
+default = false
+group = "tools.actions-on-save"
+project = true
+order = 10
+
+[[contributions.settings]]
+key = "actionsOnSave.rearrange"
+title = "Rearrange code"
+description = "Order class members: constants, properties, constructor, methods (PHP)."
+type = "bool"
+default = false
+group = "tools.actions-on-save"
+project = true
+order = 20
+
+[[contributions.settings]]
+key = "actionsOnSave.codeCleanup"
+title = "Run code cleanup"
+description = "Apply the safe quick fixes: unused imports, unnecessary semicolons, a redundant closing tag (PHP)."
+type = "bool"
+default = false
+group = "tools.actions-on-save"
+project = true
+order = 30
+
+[[contributions.settings]]
+key = "actionsOnSave.runOnAutosave"
+title = "Also run on autosave"
+description = "Run Reformat code, Optimize imports, Rearrange code and Run code cleanup when files are saved automatically too. External tools only run on explicit save (Ctrl+S)."
+type = "bool"
+default = false
+group = "tools.actions-on-save"
+project = true
+order = 90
+
+# ---- Markdown, images and CSV/TSV (file editors) --------------------------------------
+
+[[contributions.settings]]
+key = "markdown.defaultLayout"
+title = "Default layout"
+description = "How Markdown files open. The buttons in the top-right corner of the editor switch it per file."
+type = "enum"
+options = [
+  { value = "editor", label = "Editor only" },
+  { value = "split", label = "Editor and Preview" },
+  { value = "preview", label = "Preview only" },
+]
+default = "split"
+group = "lang.markdown"
+section = "Preview"
+order = 0
+
+[[contributions.settings]]
+key = "markdown.syncScroll"
+title = "Synchronize scrolling between the editor and the preview"
+type = "bool"
+default = true
+group = "lang.markdown"
+section = "Preview"
+order = 10
+
+[[contributions.settings]]
+key = "markdown.frontMatter"
+title = "Front matter"
+description = "The YAML (---) or TOML (+++) block at the start of a file."
+type = "enum"
+options = [
+  { value = "table", label = "Show as table" },
+  { value = "hidden", label = "Hide" },
+]
+default = "table"
+group = "lang.markdown"
+section = "Preview"
+order = 20
+
+[[contributions.settings]]
+key = "markdown.mermaid"
+title = "Mermaid"
+description = "Render ```mermaid code blocks as diagrams."
+type = "bool"
+default = true
+group = "lang.markdown"
+section = "Markdown Extensions"
+order = 30
+
+[[contributions.settings]]
+key = "images.showChessboard"
+title = "Show chessboard"
+description = "Transparent areas of images are drawn over a chessboard pattern."
+type = "bool"
+default = true
+group = "editor.image"
+section = "Image Viewer"
+order = 0
+
+[[contributions.settings]]
+key = "images.showGrid"
+title = "Show grid"
+description = "Pixel grid lines when the zoom is 300% or more."
+type = "bool"
+default = false
+group = "editor.image"
+section = "Image Viewer"
+order = 10
+
+[[contributions.settings]]
+key = "images.svgDefaultLayout"
+title = "SVG files open with"
+type = "enum"
+options = [
+  { value = "editor", label = "Editor only" },
+  { value = "split", label = "Editor and Preview" },
+  { value = "preview", label = "Preview only" },
+]
+default = "split"
+group = "editor.image"
+section = "SVG"
+order = 20
+
+[[contributions.settings]]
+key = "csv.defaultView"
+title = "Open CSV/TSV files as"
+type = "enum"
+options = [
+  { value = "text", label = "Text" },
+  { value = "table", label = "Table" },
+]
+default = "text"
+group = "editor.csv"
+order = 0
+
+[[contributions.settings]]
+key = "csv.firstRowIsHeader"
+title = "First row is header"
+description = "Default of the table view's header toggle."
+type = "bool"
+default = true
+group = "editor.csv"
+order = 10
+
+# ---- Highlight usages / Find Usages settings ------------------------------------------
+
+[[contributions.settings]]
+key = "editor.highlightUsagesAtCaret"
+title = "Highlight usages of element at caret"
+description = "Highlights the usages of the symbol at the caret in the file (reads and writes in different colors), also on the scrollbar."
+type = "bool"
+default = true
+group = "editor.general"
+section = "Highlight on Caret Movement"
+order = 38
+
+[[contributions.settings]]
+key = "findUsages.options.classUsages"
+title = "Usages"
+type = "bool"
+default = true
+group = "findUsages"
+order = 0
+
+[[contributions.settings]]
+key = "findUsages.options.classMethodUsages"
+title = "Usages of methods"
+type = "bool"
+default = false
+group = "findUsages"
+order = 1
+
+[[contributions.settings]]
+key = "findUsages.options.classFieldUsages"
+title = "Usages of fields"
+type = "bool"
+default = false
+group = "findUsages"
+order = 2
+
+[[contributions.settings]]
+key = "findUsages.options.classDerivedClasses"
+title = "Derived classes"
+type = "bool"
+default = false
+group = "findUsages"
+order = 3
+
+[[contributions.settings]]
+key = "findUsages.options.interfaceUsages"
+title = "Usages"
+type = "bool"
+default = true
+group = "findUsages"
+order = 4
+
+[[contributions.settings]]
+key = "findUsages.options.interfaceMethodUsages"
+title = "Usages of methods"
+type = "bool"
+default = false
+group = "findUsages"
+order = 5
+
+[[contributions.settings]]
+key = "findUsages.options.interfaceImplementingClasses"
+title = "Implementing classes"
+type = "bool"
+default = false
+group = "findUsages"
+order = 6
+
+[[contributions.settings]]
+key = "findUsages.options.interfaceDerivedInterfaces"
+title = "Derived interfaces"
+type = "bool"
+default = false
+group = "findUsages"
+order = 7
+
+[[contributions.settings]]
+key = "findUsages.options.methodUsages"
+title = "Usages"
+type = "bool"
+default = true
+group = "findUsages"
+order = 8
+
+[[contributions.settings]]
+key = "findUsages.options.methodOverridingMethods"
+title = "Overriding methods"
+type = "bool"
+default = false
+group = "findUsages"
+order = 9
+
+[[contributions.settings]]
+key = "findUsages.options.readAccess"
+title = "Read access"
+type = "bool"
+default = true
+group = "findUsages"
+order = 10
+
+[[contributions.settings]]
+key = "findUsages.options.writeAccess"
+title = "Write access"
+type = "bool"
+default = true
+group = "findUsages"
+order = 11
+
+[[contributions.settings]]
+key = "findUsages.options.usages"
+title = "Usages"
+type = "bool"
+default = true
+group = "findUsages"
+order = 12
+
+[[contributions.settings]]
+key = "findUsages.options.searchInCommentsAndStrings"
+title = "Search in comments and strings"
+type = "bool"
+default = false
+group = "findUsages"
+order = 13
+
+[[contributions.settings]]
+key = "findUsages.options.searchForTextOccurrences"
+title = "Search for text occurrences"
+type = "bool"
+default = false
+group = "findUsages"
+order = 14
+
+[[contributions.settings]]
+key = "findUsages.scope.kind"
+title = "Scope"
+type = "enum"
+options = [
+  { value = "projectFiles", label = "Project Files" },
+  { value = "projectAndLibraries", label = "Project and Libraries" },
+  { value = "openFiles", label = "Open Files" },
+  { value = "currentFile", label = "Current File" },
+  { value = "recentlyChangedFiles", label = "Recently Changed Files" },
+  { value = "directory", label = "Directory" },
+  { value = "custom", label = "Custom" },
+]
+default = "projectFiles"
+group = "findUsages"
+order = 20
+
+[[contributions.settings]]
+key = "findUsages.scope.directory"
+title = "Directory"
+type = "string"
+default = ""
+group = "findUsages"
+order = 21
+
+[[contributions.settings]]
+key = "findUsages.scope.includeSubdirectories"
+title = "Include subdirectories"
+type = "bool"
+default = true
+group = "findUsages"
+order = 22
+
+[[contributions.settings]]
+key = "findUsages.scope.pattern"
+title = "Custom scope"
+description = "A scope pattern (`file:app//*.php&&!test:*..*`, see Settings | Appearance & Behavior | Scopes) or file globs separated by ';', where '!' excludes (app/**/*.php; !app/Legacy/**)."
+type = "string"
+default = ""
+group = "findUsages"
+order = 23
+
+[[contributions.settings]]
+key = "findUsages.scope.name"
+title = "Named scope"
+description = "A scope of the Scopes page used as the custom scope; empty uses the pattern above."
+type = "string"
+default = ""
+group = "findUsages"
+order = 24
+
+[[contributions.settings]]
+key = "findUsages.openInNewTab"
+title = "Open in new tab"
+type = "bool"
+default = true
+group = "findUsages"
+order = 30

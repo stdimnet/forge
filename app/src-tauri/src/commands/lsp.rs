@@ -4,12 +4,16 @@
 //! Events:
 //! - `lsp://diagnostics` `{ path, diagnostics: EditorDiagnostic[] }`
 //! - `lsp://status` `ServerStatus[]`
+//! - `lsp://apply-edit` `{ label?, edit: WorkspaceEdit }` (a server applies an edit itself)
 
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
 use forge_core::{ForgeError, Result};
-use forge_lsp::lsp_types::{Position, TextEdit};
+use forge_lsp::forge_codeintel::inlay::{self, EditorInlayHint, InlayFilter, RawInlayHint};
+use forge_lsp::lsp_types::{
+    InlayHint, InlayHintKind, InlayHintLabel, InlayHintTooltip, Position, TextEdit,
+};
 use forge_lsp::model::{
     EditorCompletionItem, EditorCompletionList, EditorDiagnostic, EditorHover, EditorLocation,
     EditorSignatureHelp, EditorSymbol,
@@ -22,6 +26,12 @@ use tauri::{AppHandle, Emitter, State};
 use crate::commands::collab::{guest_lsp, guest_session};
 use crate::state::AppState;
 use forge_collab::guest_backend::LspQuery;
+
+#[derive(Serialize, Clone)]
+struct ApplyEditEvent {
+    label: Option<String>,
+    edit: forge_lsp::forge_codeintel::WorkspaceEdit,
+}
 
 #[derive(Serialize, Clone)]
 struct DiagnosticsEvent {
@@ -108,7 +118,7 @@ impl LspState {
 }
 
 /// Workspace-relative, `/`-separated path for the UI (absolute if outside the project).
-fn to_ui_path(root: &Path, abs: &Path) -> String {
+pub(crate) fn to_ui_path(root: &Path, abs: &Path) -> String {
     match abs.strip_prefix(root) {
         Ok(rel) => rel
             .components()
@@ -154,6 +164,11 @@ fn forward_events(app: AppHandle, manager: &Arc<LspManager>) {
                     let _ = app.emit("lsp://status", manager.statuses());
                 }
                 LspEvent::Log { .. } => {}
+                LspEvent::ApplyEdit { label, edit, .. } => {
+                    let mut edit = forge_lsp::model::workspace_edit(&edit);
+                    edit.map_paths(|p| to_ui_path(manager.root(), Path::new(p)));
+                    let _ = app.emit("lsp://apply-edit", ApplyEditEvent { label, edit });
+                }
             }
         }
     });
@@ -412,11 +427,15 @@ pub async fn lsp_signature_help(
         .await
 }
 
+/// Reformat Code through the file's server. `language_id` (the file type) selects the code
+/// style options the server gets in its settings (`typescript.format`, `Lua.format`, …).
+#[allow(clippy::too_many_arguments)]
 #[tauri::command]
 pub async fn lsp_format(
     path: String,
     tab_size: Option<u32>,
     insert_spaces: Option<bool>,
+    language_id: Option<String>,
     app: AppHandle,
     lsp: State<'_, LspState>,
     ws: State<'_, AppState>,
@@ -432,10 +451,81 @@ pub async fn lsp_format(
         )
         .await;
     }
+    let patch = language_id
+        .as_deref()
+        .and_then(|id| forge_codestyle::model().language_for_file_type(id))
+        .map(|l| {
+            forge_codestyle::lsp::settings_patch(
+                &l.id,
+                &crate::commands::code_style::code_style_values(&ws),
+            )
+        })
+        .filter(|p| !p.is_null());
     let c = Ctx::new(&path, &app, &lsp, &ws)?;
     c.manager
-        .format(&c.abs, tab_size.unwrap_or(4), insert_spaces.unwrap_or(true))
+        .format(
+            &c.abs,
+            tab_size.unwrap_or(4),
+            insert_spaces.unwrap_or(true),
+            patch.as_ref(),
+        )
         .await
+}
+
+/// Inlay hints of lines `start_line..=end_line` (Settings | Editor | Inlay Hints): asked
+/// from the file's servers, grouped and filtered by the settings in
+/// `forge_codeintel::inlay`. `text` is the editor's document, `language_id` its file type.
+#[allow(clippy::too_many_arguments)]
+#[tauri::command]
+pub async fn lsp_inlay_hints(
+    path: String,
+    start_line: u32,
+    end_line: u32,
+    text: String,
+    language_id: Option<String>,
+    app: AppHandle,
+    lsp: State<'_, LspState>,
+    ws: State<'_, AppState>,
+) -> Result<Vec<EditorInlayHint>> {
+    let filter = {
+        let settings = ws.read_settings();
+        InlayFilter::from_settings(language_id.as_deref(), |k| settings.get_bool(k))
+    };
+    if !filter.language_enabled || !(filter.parameter_names || filter.types || filter.return_types)
+    {
+        return Ok(Vec::new());
+    }
+    let c = Ctx::new(&path, &app, &lsp, &ws)?;
+    let range = forge_lsp::lsp_types::Range::new(
+        Position::new(start_line, 0),
+        Position::new(end_line.saturating_add(1), 0),
+    );
+    let raw = c
+        .manager
+        .inlay_hints(&c.abs, range)
+        .await
+        .into_iter()
+        .map(raw_inlay_hint)
+        .collect();
+    Ok(inlay::editor_hints(raw, &text, &filter))
+}
+
+fn raw_inlay_hint(h: InlayHint) -> RawInlayHint {
+    RawInlayHint {
+        line: h.position.line,
+        character: h.position.character,
+        label: match h.label {
+            InlayHintLabel::String(s) => s,
+            InlayHintLabel::LabelParts(parts) => parts.into_iter().map(|p| p.value).collect(),
+        },
+        kind: h.kind.map(|k| if k == InlayHintKind::TYPE { 1 } else { 2 }),
+        padding_left: h.padding_left.unwrap_or(false),
+        padding_right: h.padding_right.unwrap_or(false),
+        tooltip: h.tooltip.map(|t| match t {
+            InlayHintTooltip::String(s) => s,
+            InlayHintTooltip::MarkupContent(m) => m.value,
+        }),
+    }
 }
 
 /// Status of every registered server (for the status bar).

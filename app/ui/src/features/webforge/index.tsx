@@ -39,6 +39,24 @@ registerSettingsPage({
   component: () => <SchemaPage pageId="lang.node" />,
 });
 
+registerSettingsPage({
+  id: "lang.eslint",
+  title: "ESLint",
+  group: "Languages & Frameworks",
+  order: 22,
+  keywords: ["eslint", "lint", "code quality", "fix on save"],
+  component: () => <SchemaPage pageId="lang.eslint" />,
+});
+
+registerSettingsPage({
+  id: "lang.prettier",
+  title: "Prettier",
+  group: "Languages & Frameworks",
+  order: 23,
+  keywords: ["prettier", "formatter", "run on save"],
+  component: () => <SchemaPage pageId="lang.prettier" />,
+});
+
 /** Language servers of the web languages, shown on the TypeScript page like WebStorm's services. */
 const WEB_SERVER_GROUPS = ["JavaScript & TypeScript", "Vue", "Angular", "HTML & CSS"];
 
@@ -74,7 +92,7 @@ registerKeymapActions([
   { id: "npm.reload", title: "Reload npm Scripts", group: "Plugins/npm" },
   { id: "npm.install", title: "Install Dependencies", group: "Plugins/npm" },
 ]);
-registerCommand({ id: "ActivatenpmToolWindow", title: "npm", category: "View", run: () => toggleToolWindow("left", "npm") });
+registerCommand({ id: "ActivatenpmToolWindow", title: "npm", category: "View", run: () => toggleToolWindow("npm") });
 registerCommand({ id: "npm.reload", title: "Reload npm Scripts", category: "Tools", run: () => void loadPackages(true) });
 registerCommand({
   id: "npm.install",

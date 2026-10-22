@@ -140,6 +140,13 @@ When several targets match, a **Choose Declaration** popup lists them.
 Below these options, **Language Services** shows the web language servers (JavaScript &
 TypeScript, Vue, Angular, HTML & CSS) with the same controls as the Language Servers page.
 
+## ESLint and Prettier
+
+Settings | Tools | [Actions on Save](actions-on-save.md) runs `eslint --fix` and
+`prettier --write` on saved files with the project's own `node_modules/.bin/eslint` and
+`node_modules/.bin/prettier`. Settings | Languages & Frameworks | ESLint and Prettier set a
+different executable (`web.eslint.path`, `web.prettier.path`).
+
 ## Browser Companion
 
 Click a React, Vue, Angular or Svelte component in your running app and its source opens in
@@ -150,5 +157,6 @@ Forge: see [Browser Companion](browser-companion.md).
 The New Project wizard creates Vite, React, Vue.js, Angular, Svelte and static HTML projects,
 see [Opening and creating projects](../getting-started/projects.md).
 
-> **Note:** the npm tool window and framework navigation read the project through this
-> machine's file system; they are not available in [remote projects](remote-development.md) yet.
+In [remote projects](remote-development.md) the npm tool window, package manager detection,
+component navigation and gutter icons are computed by the Forge agent on the host, and scripts
+run there like every run configuration.

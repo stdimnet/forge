@@ -1,5 +1,9 @@
-/** AI chat state: selected agent/model/mode, the current conversation and history. */
-import { createEffect, createRoot, untrack } from "solid-js";
+/**
+ * AI chat state: selected agent/model/mode, the current conversation and the project's chat
+ * history. Chats are saved per project in the user data dir (`agent_history_*`, never in the
+ * project) after every turn, listed newest first and reopened from the history popup.
+ */
+import { createEffect, createRoot, on, untrack } from "solid-js";
 import { createStore, produce } from "solid-js/store";
 import { getSetting } from "@/state/settings";
 import {
@@ -11,16 +15,12 @@ import {
   type PermissionMode,
   type PermissionModeInfo,
 } from "@/ipc/agent";
+import { projectStateApi, type ChatSummary } from "@/ipc/projectState";
 import { reloadFile } from "@/state/editor";
+import { workspace } from "@/state/workspace";
 import { addTurn, applyChatUpdate, emptyConversation, failTurn, findPermission, type Conversation } from "./model";
 
-export interface HistoryEntry {
-  id: number;
-  title: string;
-  agentId: string;
-  at: number;
-  conv: Conversation;
-}
+export type HistoryEntry = ChatSummary;
 
 interface ChatState {
   agentId: string;
@@ -30,6 +30,9 @@ interface ChatState {
   running: boolean;
   /** Backend session id of the running CLI process. */
   sessionId: string | null;
+  /** History id of the current conversation (set when it is first saved). */
+  chatId: string | null;
+  /** Saved chats of the open project, newest first. */
   history: HistoryEntry[];
   /** Detection results from the backend, by agent id. */
   detected: Record<string, AgentInfo>;
@@ -42,6 +45,7 @@ const [chat, setChat] = createStore<ChatState>({
   conv: emptyConversation(),
   running: false,
   sessionId: null,
+  chatId: null,
   history: [],
   detected: {},
 });
@@ -78,7 +82,6 @@ createRoot(() =>
 );
 
 let unlisten: (() => void) | undefined;
-let historyId = 1;
 
 export async function detectAgents(): Promise<void> {
   try {
@@ -92,7 +95,10 @@ export async function detectAgents(): Promise<void> {
 function onEvent(ev: AgentEvent): void {
   if (ev.type === "chat") {
     setChat("conv", produce((conv) => applyChatUpdate(conv, ev)));
-    if (ev.turnEnded) setChat("running", false);
+    if (ev.turnEnded) {
+      setChat("running", false);
+      void saveChat();
+    }
     for (const path of ev.changedFiles) void reloadFile(path);
     return;
   }
@@ -118,12 +124,14 @@ export async function sendMessage(text: string, context: MessageContext): Promis
   let turnId = 0;
   setChat("conv", produce((conv) => void (turnId = addTurn(conv, text.trim(), context).id)));
   setChat("running", true);
+  void saveChat();
   try {
     const id = await ensureSession();
     await agentApi.send(id, text.trim(), context, turnId);
   } catch (e) {
     setChat("conv", produce((conv) => failTurn(conv, String(e instanceof Error ? e.message : e))));
     setChat("running", false);
+    void saveChat();
   }
 }
 
@@ -155,33 +163,82 @@ async function endSession(): Promise<void> {
   if (id) await agentApi.stop(id).catch(() => undefined);
 }
 
-function archive(): void {
-  const conv = chat.conv;
-  if (!conv.turns.length) return;
-  const entry: HistoryEntry = {
-    id: historyId++,
-    title: conv.turns[0].prompt.split("\n")[0].slice(0, 80),
+const newChatId = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+
+/** Put a saved chat into the history list (newest first). */
+function remember(entry: ChatSummary): void {
+  setChat("history", (h) => [entry, ...h.filter((x) => x.id !== entry.id)].sort((a, b) => b.at - a.at));
+}
+
+let saving: Promise<void> = Promise.resolve();
+
+/** Save the current conversation to the project's chat history (empty ones are not kept). */
+export function saveChat(): Promise<void> {
+  if (!chat.conv.turns.length || !workspace()) return saving;
+  const id = chat.chatId ?? newChatId();
+  if (!chat.chatId) setChat("chatId", id);
+  const record = {
+    id,
     agentId: chat.agentId,
     at: Date.now(),
-    conv: JSON.parse(JSON.stringify(conv)) as Conversation,
+    title: "",
+    conversation: JSON.parse(JSON.stringify(chat.conv)) as Conversation,
   };
-  setChat("history", (h) => [entry, ...h.filter((x) => x.conv.conversationId !== conv.conversationId || !conv.conversationId)]);
+  // One save at a time, in order.
+  saving = saving
+    .then(() => projectStateApi.saveChat(record))
+    .then((entry) => {
+      if (entry) remember(entry);
+    })
+    .catch((e) => console.warn("the chat could not be saved", e));
+  return saving;
 }
 
 export async function newChat(): Promise<void> {
   await endSession();
-  archive();
-  setChat("conv", emptyConversation());
+  await saveChat();
+  setChat({ conv: emptyConversation(), chatId: null });
 }
 
-export async function openHistory(id: number): Promise<void> {
-  const entry = chat.history.find((h) => h.id === id);
-  if (!entry) return;
-  await endSession();
-  archive();
-  setChat({ agentId: entry.agentId, conv: JSON.parse(JSON.stringify(entry.conv)) as Conversation });
-  setChat("history", (h) => h.filter((x) => x.id !== id));
+/** Turns that were still running when the chat was saved cannot continue. */
+function settle(conv: Conversation): Conversation {
+  for (const turn of conv.turns) {
+    if (turn.status === "running") Object.assign(turn, { status: "interrupted", working: false, awaitingPermission: false });
+  }
+  return conv;
 }
+
+export async function openHistory(id: string): Promise<void> {
+  if (id === chat.chatId) return;
+  const record = await projectStateApi.loadChat(id).catch((e) => {
+    console.warn("the chat could not be loaded", e);
+    return null;
+  });
+  if (!record) {
+    setChat("history", (h) => h.filter((x) => x.id !== id));
+    return;
+  }
+  await endSession();
+  await saveChat();
+  const conv = settle(record.conversation as Conversation);
+  setChat({ agentId: record.agentId, conv, chatId: record.id, ...agentDefaults(record.agentId) });
+}
+
+// Each project has its own chats: switching projects starts a new chat and loads its history.
+createRoot(() =>
+  createEffect(
+    on(
+      () => workspace()?.root,
+      async (root) => {
+        await endSession();
+        setChat({ conv: emptyConversation(), chatId: null, history: [] });
+        if (!root) return;
+        const list = await projectStateApi.listChats().catch(() => [] as ChatSummary[]);
+        if (workspace()?.root === root) setChat("history", list);
+      },
+    ),
+  ),
+);
 
 export async function setAgent(agentId: string): Promise<void> {
   if (agentId === chat.agentId) return;

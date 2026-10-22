@@ -292,6 +292,164 @@
           "order": 40
         },
         {
+          "key": "projectView.autoscrollFromSource",
+          "title": "Always select opened file",
+          "description": "The Project tool window selects the file of the active editor whenever you switch editors (PHPStorm's Autoscroll from Source). Also in the tool window's Options menu.",
+          "type": "bool",
+          "default": false,
+          "group": "appearance",
+          "section": "Project View",
+          "project": false,
+          "order": 41
+        },
+        {
+          "key": "scopes.shared",
+          "title": "Shared scopes",
+          "description": "Named scopes stored in the project (`.forge/settings.toml`, shared with the team through version control): name and pattern in PHPStorm's scope language, e.g. `file:app//*.php&&!test:*..*`.",
+          "type": "objects",
+          "unique": [
+            "name"
+          ],
+          "default": [],
+          "group": "appearance.scopes",
+          "project": true,
+          "order": 0
+        },
+        {
+          "key": "scopes.local",
+          "title": "Local scopes",
+          "description": "Named scopes stored in your user settings only (not shared): name and pattern.",
+          "type": "objects",
+          "unique": [
+            "name"
+          ],
+          "default": [],
+          "group": "appearance.scopes",
+          "project": false,
+          "order": 1
+        },
+        {
+          "key": "fileColors.enabled",
+          "title": "Enable file colors",
+          "description": "Tint files by scope with the colors below.",
+          "type": "bool",
+          "default": true,
+          "group": "appearance.fileColors",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "fileColors.useInEditorTabs",
+          "title": "Use in editor tabs",
+          "type": "bool",
+          "default": true,
+          "group": "appearance.fileColors",
+          "project": false,
+          "order": 1
+        },
+        {
+          "key": "fileColors.useInProjectView",
+          "title": "Use in project view",
+          "type": "bool",
+          "default": true,
+          "group": "appearance.fileColors",
+          "project": false,
+          "order": 2
+        },
+        {
+          "key": "fileColors.local",
+          "title": "Local colors",
+          "description": "Colors stored in your user settings: scope name and color (Blue, Green, Orange, Rose, Violet, Yellow, Gray). The first scope containing a file wins; local colors come before shared ones.",
+          "type": "objects",
+          "unique": [
+            "scope"
+          ],
+          "default": [
+            {
+              "color": "Yellow",
+              "scope": "Non-Project Files"
+            },
+            {
+              "color": "Green",
+              "scope": "Tests"
+            }
+          ],
+          "group": "appearance.fileColors",
+          "project": false,
+          "order": 3
+        },
+        {
+          "key": "fileColors.shared",
+          "title": "Shared colors",
+          "description": "Colors stored in the project (`.forge/settings.toml`): scope name and color.",
+          "type": "objects",
+          "unique": [
+            "scope"
+          ],
+          "default": [],
+          "group": "appearance.fileColors",
+          "project": true,
+          "order": 4
+        },
+        {
+          "key": "structureView.autoscrollToSource",
+          "title": "Autoscroll to source",
+          "description": "A single click on a Structure tool window node moves the editor to it. Turn it off to select with a single click and navigate with a double click.",
+          "type": "bool",
+          "default": true,
+          "group": "appearance",
+          "section": "Structure View",
+          "project": false,
+          "order": 42
+        },
+        {
+          "key": "structureView.autoscrollFromSource",
+          "title": "Autoscroll from source",
+          "description": "The Structure tool window selects the member at the caret as you move through the editor.",
+          "type": "bool",
+          "default": true,
+          "group": "appearance",
+          "section": "Structure View",
+          "project": false,
+          "order": 43
+        },
+        {
+          "key": "appearance.navigationBar.location",
+          "title": "Navigation bar",
+          "description": "Where the navigation bar (project, folders, file and members at the caret) is shown: Top: above the editor, with the path in the status bar too. In status bar: only in the status bar. Don't show: Jump to Navigation Bar (Alt+Home) shows it as a popup. View | Appearance | Navigation Bar.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "top",
+              "label": "Top"
+            },
+            {
+              "value": "statusBar",
+              "label": "In status bar"
+            },
+            {
+              "value": "hidden",
+              "label": "Don't show"
+            }
+          ],
+          "default": "top",
+          "group": "appearance",
+          "section": "Navigation Bar",
+          "project": false,
+          "order": 50
+        },
+        {
+          "key": "appearance.navigationBar.showMembers",
+          "title": "Show members in the navigation bar",
+          "description": "Add the class and function at the caret after the file name. View | Appearance | Members in Navigation Bar.",
+          "type": "bool",
+          "default": true,
+          "group": "appearance",
+          "section": "Navigation Bar",
+          "project": false,
+          "order": 51
+        },
+        {
           "key": "templates.dataLanguages",
           "title": "Template data languages",
           "description": "Language of the content between template tags, one entry per pattern: `legacy/latex/*.tpl=latex`, `*.mail.twig=text`. Languages: html, xml, latex, css, scss, less, javascript, typescript, json, sql, yaml, ini, shell, text. Compound names like `invoice.tex.twig` are detected automatically. Applies to files opened afterwards.",
@@ -303,25 +461,60 @@
           "order": 0
         },
         {
-          "key": "templates.smarty.leftDelimiter",
-          "title": "Left delimiter",
-          "description": "Smarty's left_delimiter. Use e.g. `<{` for LaTeX templates, where `{` is part of the content.",
-          "type": "string",
-          "default": "{",
+          "key": "templates.delimiters",
+          "title": "Template delimiters",
+          "description": "Delimiters of a template language in a data language, e.g. Smarty in LaTeX, where `{` is part of the content. Templates without an entry use the language's default delimiters. Applies to open editors.",
+          "type": "objects",
+          "unique": [
+            "template",
+            "language"
+          ],
+          "default": [
+            {
+              "language": "latex",
+              "left": "[[",
+              "right": "]]",
+              "template": "smarty"
+            },
+            {
+              "blockEnd": "}",
+              "blockStart": "\\BLOCK{",
+              "commentEnd": "}",
+              "commentStart": "\\#{",
+              "language": "latex",
+              "template": "twig",
+              "variableEnd": "}",
+              "variableStart": "\\VAR{"
+            },
+            {
+              "blockEnd": "}",
+              "blockStart": "\\BLOCK{",
+              "commentEnd": "}",
+              "commentStart": "\\#{",
+              "language": "latex",
+              "template": "jinja",
+              "variableEnd": "}",
+              "variableStart": "\\VAR{"
+            }
+          ],
           "group": "lang.templates",
-          "section": "Smarty",
+          "section": "Delimiters",
           "project": true,
           "order": 10
         },
         {
-          "key": "templates.smarty.rightDelimiter",
-          "title": "Right delimiter",
-          "type": "string",
-          "default": "}",
-          "group": "lang.templates",
-          "section": "Smarty",
-          "project": true,
-          "order": 11
+          "key": "fileTemplates.custom",
+          "title": "File and code templates",
+          "description": "Templates added in Settings | Editor | File and Code Templates and the changed text of built-in ones (kind \"file\", \"include\" or \"code\", name, extension, text). Built-in templates without an entry use their default text.",
+          "type": "objects",
+          "unique": [
+            "kind",
+            "name"
+          ],
+          "default": [],
+          "group": "editor.file-templates",
+          "project": false,
+          "order": 0
         },
         {
           "key": "system.reopenLastProject",
@@ -342,30 +535,6 @@
           "section": "Project",
           "project": false,
           "order": 1
-        },
-        {
-          "key": "system.openProjectIn",
-          "title": "Open project in",
-          "type": "enum",
-          "options": [
-            {
-              "value": "new",
-              "label": "New window"
-            },
-            {
-              "value": "same",
-              "label": "Current window"
-            },
-            {
-              "value": "ask",
-              "label": "Ask"
-            }
-          ],
-          "default": "ask",
-          "group": "system",
-          "section": "Project",
-          "project": false,
-          "order": 2
         },
         {
           "key": "system.defaultProjectDirectory",
@@ -581,6 +750,494 @@
           "order": 41
         },
         {
+          "key": "editor.clipboard.maxContents",
+          "title": "Maximum number of contents to keep in clipboard",
+          "description": "Entries of Paste from History (Ctrl+Shift+V). The history is kept until Forge closes.",
+          "type": "int",
+          "min": 1,
+          "max": 100,
+          "default": 20,
+          "group": "editor.general",
+          "section": "Limits",
+          "project": false,
+          "order": 50
+        },
+        {
+          "key": "editor.renderDocComments",
+          "title": "Render documentation comments",
+          "description": "Show PHPDoc, JSDoc and LuaDoc comments as formatted text. Toggle one with Ctrl+Alt+Q or its gutter icon.",
+          "type": "bool",
+          "default": false,
+          "group": "editor.general",
+          "section": "Appearance",
+          "project": false,
+          "order": 33
+        },
+        {
+          "key": "editor.stickyLines.enabled",
+          "title": "Show sticky lines while scrolling",
+          "description": "The headers of the classes, functions, blocks, rules and tags around the top of the editor stay visible. Click one to jump to it.",
+          "type": "bool",
+          "default": true,
+          "group": "editor.general",
+          "section": "Sticky Lines",
+          "project": false,
+          "order": 35
+        },
+        {
+          "key": "editor.stickyLines.maxLines",
+          "title": "Limit sticky lines",
+          "type": "int",
+          "min": 1,
+          "max": 20,
+          "default": 5,
+          "group": "editor.general",
+          "section": "Sticky Lines",
+          "project": false,
+          "order": 36
+        },
+        {
+          "key": "editor.stickyLines.disabledLanguages",
+          "title": "Show sticky lines for",
+          "type": "list",
+          "default": [],
+          "group": "editor.general",
+          "section": "Sticky Lines",
+          "project": false,
+          "order": 37
+        },
+        {
+          "key": "editor.breadcrumbs.show",
+          "title": "Show breadcrumbs",
+          "description": "The classes, functions, rules and tags around the caret. Click one to go there; the arrow next to it lists its siblings.",
+          "type": "bool",
+          "default": true,
+          "group": "editor.breadcrumbs",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "editor.breadcrumbs.placement",
+          "title": "Placement",
+          "type": "enum",
+          "options": [
+            {
+              "value": "top",
+              "label": "Top"
+            },
+            {
+              "value": "bottom",
+              "label": "Bottom"
+            }
+          ],
+          "default": "bottom",
+          "group": "editor.breadcrumbs",
+          "project": false,
+          "order": 1
+        },
+        {
+          "key": "editor.breadcrumbs.disabledLanguages",
+          "title": "Show breadcrumbs for",
+          "type": "list",
+          "default": [],
+          "group": "editor.breadcrumbs",
+          "section": "Languages",
+          "project": false,
+          "order": 2
+        },
+        {
+          "key": "editor.readerMode.enabled",
+          "title": "Use Reader mode",
+          "description": "Open files you only read in Reader mode. Toggle it with the Reader Mode button at the top right of the editor.",
+          "type": "bool",
+          "default": true,
+          "group": "editor.readerMode",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "editor.readerMode.applyTo",
+          "title": "Use for",
+          "type": "enum",
+          "options": [
+            {
+              "value": "libraries",
+              "label": "Library files (vendor, node_modules, PHP stubs)"
+            },
+            {
+              "value": "readOnly",
+              "label": "Read-only files"
+            },
+            {
+              "value": "both",
+              "label": "Library and read-only files"
+            }
+          ],
+          "default": "both",
+          "group": "editor.readerMode",
+          "project": false,
+          "order": 1
+        },
+        {
+          "key": "editor.readerMode.renderDocs",
+          "title": "Rendered documentation comments",
+          "type": "bool",
+          "default": true,
+          "group": "editor.readerMode",
+          "section": "Show",
+          "project": false,
+          "order": 10
+        },
+        {
+          "key": "editor.readerMode.ligatures",
+          "title": "Ligatures",
+          "type": "bool",
+          "default": true,
+          "group": "editor.readerMode",
+          "section": "Show",
+          "project": false,
+          "order": 11
+        },
+        {
+          "key": "editor.readerMode.increaseLineSpacing",
+          "title": "Increased line spacing",
+          "type": "bool",
+          "default": true,
+          "group": "editor.readerMode",
+          "section": "Show",
+          "project": false,
+          "order": 12
+        },
+        {
+          "key": "editor.postfix.enabled",
+          "title": "Enable postfix completion",
+          "description": "Type a template key after an expression, e.g. $user.if or items.forof, to wrap it.",
+          "type": "bool",
+          "default": true,
+          "group": "editor.postfix",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "editor.postfix.showInCompletion",
+          "title": "Show postfix templates in the completion autopopup",
+          "type": "bool",
+          "default": true,
+          "group": "editor.postfix",
+          "project": false,
+          "order": 1
+        },
+        {
+          "key": "editor.postfix.expandKey",
+          "title": "Expand templates with",
+          "type": "enum",
+          "options": [
+            {
+              "value": "tab",
+              "label": "Tab"
+            },
+            {
+              "value": "space",
+              "label": "Space"
+            },
+            {
+              "value": "enter",
+              "label": "Enter"
+            }
+          ],
+          "default": "tab",
+          "group": "editor.postfix",
+          "project": false,
+          "order": 2
+        },
+        {
+          "key": "editor.postfix.disabled",
+          "title": "Templates",
+          "description": "Clear a template to stop offering it.",
+          "type": "list",
+          "default": [],
+          "group": "editor.postfix",
+          "project": false,
+          "order": 3
+        },
+        {
+          "key": "editor.emmet.expandKey",
+          "title": "Expand abbreviation with",
+          "description": "Live templates and postfix templates expand first when they match.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "tab",
+              "label": "Tab"
+            },
+            {
+              "value": "enter",
+              "label": "Enter"
+            },
+            {
+              "value": "space",
+              "label": "Space"
+            }
+          ],
+          "default": "tab",
+          "group": "editor.emmet",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "editor.emmet.html.enabled",
+          "title": "Enable Emmet",
+          "description": "In HTML, Blade, Twig and other template files, Vue templates and the HTML of PHP files.",
+          "type": "bool",
+          "default": true,
+          "group": "editor.emmet.html",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "editor.emmet.html.preview",
+          "title": "Enable abbreviation preview",
+          "description": "Show the expanded markup in a popup while typing an abbreviation.",
+          "type": "bool",
+          "default": false,
+          "group": "editor.emmet.html",
+          "project": false,
+          "order": 1
+        },
+        {
+          "key": "editor.emmet.html.hrefAutoDetect",
+          "title": "Enable automatic URL recognition while wrapping text with <a> tag",
+          "type": "bool",
+          "default": true,
+          "group": "editor.emmet.html",
+          "project": false,
+          "order": 2
+        },
+        {
+          "key": "editor.emmet.css.enabled",
+          "title": "Enable Emmet",
+          "description": "In CSS, SCSS, Less, Sass and Stylus, and in <style> blocks: m10, p10-20, df, pos:a, bgc#fff …",
+          "type": "bool",
+          "default": true,
+          "group": "editor.emmet.css",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "editor.emmet.jsx.enabled",
+          "title": "Enable Emmet in JSX",
+          "type": "bool",
+          "default": true,
+          "group": "editor.emmet.jsx",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "editor.emmet.jsx.classAttribute",
+          "title": "Class attribute",
+          "description": "Attribute written for .class abbreviations in JSX and TSX files.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "className",
+              "label": "className"
+            },
+            {
+              "value": "class",
+              "label": "class"
+            }
+          ],
+          "default": "className",
+          "group": "editor.emmet.jsx",
+          "project": false,
+          "order": 1
+        },
+        {
+          "key": "editor.colorPreview.gutter",
+          "title": "Show color preview in the gutter",
+          "description": "Swatches next to colors in CSS, markup and scripts; click one to open the color picker.",
+          "type": "bool",
+          "default": true,
+          "group": "editor.general",
+          "section": "Appearance",
+          "project": false,
+          "order": 33
+        },
+        {
+          "key": "editor.colorPreview.inline",
+          "title": "Show color preview inline",
+          "type": "bool",
+          "default": false,
+          "group": "editor.general",
+          "section": "Appearance",
+          "project": false,
+          "order": 34
+        },
+        {
+          "key": "editor.colorPicker.recentColors",
+          "title": "Recently used colors",
+          "description": "Colors picked in the color picker, newest first.",
+          "type": "list",
+          "default": [],
+          "group": "editor.colorPicker",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "editor.tabs.limit",
+          "title": "Tab limit",
+          "description": "Maximum number of tabs per editor group; 0 keeps every tab open. Pinned tabs are never closed by the limit.",
+          "type": "int",
+          "min": 0,
+          "max": 100,
+          "default": 10,
+          "group": "editor.tabs",
+          "section": "Closing Policy",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "editor.tabs.closeUnmodifiedFirst",
+          "title": "When the tab limit is reached, close non-modified tabs first",
+          "type": "bool",
+          "default": true,
+          "group": "editor.tabs",
+          "section": "Closing Policy",
+          "project": false,
+          "order": 1
+        },
+        {
+          "key": "editor.tabs.activateOnClose",
+          "title": "When the current tab is closed, activate",
+          "type": "enum",
+          "options": [
+            {
+              "value": "left",
+              "label": "The tab on the left"
+            },
+            {
+              "value": "right",
+              "label": "The tab on the right"
+            },
+            {
+              "value": "recent",
+              "label": "Most recently opened tab"
+            }
+          ],
+          "default": "recent",
+          "group": "editor.tabs",
+          "section": "Closing Policy",
+          "project": false,
+          "order": 2
+        },
+        {
+          "key": "editor.tabs.showPinnedIcon",
+          "title": "Show pin icon on pinned tabs",
+          "type": "bool",
+          "default": true,
+          "group": "editor.tabs",
+          "section": "Appearance",
+          "project": false,
+          "order": 10
+        },
+        {
+          "key": "todo.patterns",
+          "title": "Patterns",
+          "description": "Regular expressions matched in comments, one per entry. Add a tab and `case` after a pattern to make it case-sensitive.",
+          "type": "list",
+          "default": [
+            "\\btodo\\b.*",
+            "\\bfixme\\b.*"
+          ],
+          "group": "editor.todo",
+          "section": "Patterns",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "editor.liveTemplates.expandKey",
+          "title": "By default expand with",
+          "description": "Key that expands a live template abbreviation.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "tab",
+              "label": "Tab"
+            },
+            {
+              "value": "space",
+              "label": "Space"
+            },
+            {
+              "value": "enter",
+              "label": "Enter"
+            }
+          ],
+          "default": "tab",
+          "group": "editor.liveTemplates",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "editor.liveTemplates.custom",
+          "title": "User and changed templates",
+          "description": "New templates and changes to built-in ones: group, abbreviation, description, text, contexts (comma-separated), variables (JSON), builtin (id of the replaced built-in template) and removed.",
+          "type": "objects",
+          "default": [],
+          "group": "editor.liveTemplates",
+          "project": false,
+          "order": 10
+        },
+        {
+          "key": "editor.liveTemplates.disabled",
+          "title": "Disabled templates",
+          "description": "Ids (`group/abbreviation`) of templates that do not expand.",
+          "type": "list",
+          "default": [],
+          "group": "editor.liveTemplates",
+          "project": false,
+          "order": 20
+        },
+        {
+          "key": "editor.injections.disabled",
+          "title": "Disabled injection rules",
+          "description": "Ids of the built-in injection rules that are turned off, e.g. `php-html` or `js-sql-keywords`. `// language=` comments always inject.",
+          "type": "list",
+          "default": [],
+          "group": "editor.injections",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "editor.injections.uninjected",
+          "title": "Un-injected places",
+          "description": "Strings turned off with Un-inject Language (`path#key`); a string is injected again when its text changes.",
+          "type": "list",
+          "default": [],
+          "group": "editor.injections",
+          "project": true,
+          "order": 10
+        },
+        {
+          "key": "notifications.balloons",
+          "title": "Display balloon notifications",
+          "type": "bool",
+          "default": true,
+          "group": "notifications",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "notifications.groups",
+          "title": "Notification groups",
+          "description": "How each group is shown, one entry per group: the group name, a tab, then `balloon`, `sticky` or `log`.",
+          "type": "list",
+          "default": [],
+          "group": "notifications",
+          "project": false,
+          "order": 1
+        },
+        {
           "key": "editor.font.family",
           "title": "Font",
           "type": "enum",
@@ -654,57 +1311,24 @@
           "order": 3
         },
         {
-          "key": "editor.codeStyle.lineSeparator",
-          "title": "Line separator",
-          "type": "enum",
-          "options": [
-            {
-              "value": "lf",
-              "label": "Unix and macOS (\\n)"
-            },
-            {
-              "value": "crlf",
-              "label": "Windows (\\r\\n)"
-            },
-            {
-              "value": "system",
-              "label": "System-dependent"
-            }
-          ],
-          "default": "lf",
-          "group": "editor.code-style",
-          "project": true,
-          "order": 0
-        },
-        {
-          "key": "editor.codeStyle.hardWrapAt",
-          "title": "Hard wrap at (columns)",
-          "type": "int",
-          "min": 40,
-          "max": 400,
-          "default": 120,
-          "group": "editor.code-style",
-          "project": true,
-          "order": 1
-        },
-        {
-          "key": "editor.codeStyle.visualGuides",
-          "title": "Visual guides",
-          "description": "Comma-separated column numbers, e.g. 80, 120.",
-          "type": "string",
-          "default": "120",
-          "group": "editor.code-style",
-          "project": true,
-          "order": 2
-        },
-        {
           "key": "editor.codeStyle.useEditorConfig",
           "title": "Enable EditorConfig support",
+          "description": "Indents, line separators, charset and the On Save options of .editorconfig files override these settings.",
           "type": "bool",
           "default": true,
           "group": "editor.code-style",
           "project": true,
           "order": 3
+        },
+        {
+          "key": "editor.codeStyle.detectIndents",
+          "title": "Detect and use existing file indents for editing",
+          "description": "Files indented differently from the code style keep their indent; the status bar marks it with *.",
+          "type": "bool",
+          "default": true,
+          "group": "editor.code-style",
+          "project": true,
+          "order": 4
         },
         {
           "key": "editor.inlayHints.parameterNames",
@@ -720,6 +1344,7 @@
         {
           "key": "editor.inlayHints.types",
           "title": "Inferred variable types",
+          "description": "The type of variables and properties without a declared type.",
           "type": "bool",
           "default": false,
           "group": "editor.inlay-hints",
@@ -729,7 +1354,8 @@
         },
         {
           "key": "editor.inlayHints.returnTypes",
-          "title": "Return types of closures",
+          "title": "Return types of closures and functions",
+          "description": "The inferred return type after the parameter list when none is declared.",
           "type": "bool",
           "default": true,
           "group": "editor.inlay-hints",
@@ -738,35 +1364,56 @@
           "order": 11
         },
         {
-          "key": "editor.inlayHints.chainedCalls",
-          "title": "Types in method chains",
+          "key": "editor.inlayHints.languages.php",
+          "title": "PHP",
           "type": "bool",
           "default": true,
           "group": "editor.inlay-hints",
-          "section": "Types",
+          "section": "Languages",
           "project": false,
-          "order": 12
+          "order": 30
         },
         {
-          "key": "editor.inlayHints.usages",
-          "title": "Usages",
-          "description": "Show the number of usages above classes and methods (Code Vision).",
+          "key": "editor.inlayHints.languages.javascript",
+          "title": "JavaScript and TypeScript",
+          "description": "Also Vue, Svelte and Astro files.",
+          "type": "bool",
+          "default": true,
+          "group": "editor.inlay-hints",
+          "section": "Languages",
+          "project": false,
+          "order": 31
+        },
+        {
+          "key": "editor.inlayHints.languages.lua",
+          "title": "Lua",
+          "type": "bool",
+          "default": true,
+          "group": "editor.inlay-hints",
+          "section": "Languages",
+          "project": false,
+          "order": 32
+        },
+        {
+          "key": "editor.inlayHints.languages.other",
+          "title": "Other languages",
+          "type": "bool",
+          "default": true,
+          "group": "editor.inlay-hints",
+          "section": "Languages",
+          "project": false,
+          "order": 33
+        },
+        {
+          "key": "editor.inlayHints.implementations",
+          "title": "Implementations and inheritors",
+          "description": "Show \"2 implementations\", \"3 inheritors\" and \"1 override\" above PHP classes and methods (Code Vision). Click to go there.",
           "type": "bool",
           "default": true,
           "group": "editor.inlay-hints",
           "section": "Code Vision",
           "project": false,
           "order": 20
-        },
-        {
-          "key": "editor.inlayHints.implementations",
-          "title": "Implementations and inheritors",
-          "type": "bool",
-          "default": true,
-          "group": "editor.inlay-hints",
-          "section": "Code Vision",
-          "project": false,
-          "order": 21
         },
         {
           "key": "httpClient.environment",
@@ -777,6 +1424,515 @@
           "group": "tools.http-client",
           "project": true,
           "order": 0
+        },
+        {
+          "key": "search.findInFiles.maxMatches",
+          "title": "Maximum matches in the Find window",
+          "description": "0 shows every match. Searches that match millions of lines are slow to transfer and display. The Search Everywhere popup always stays limited.",
+          "type": "int",
+          "min": 0,
+          "max": 100000000,
+          "default": 0,
+          "group": "tools.search",
+          "section": "Find in Files",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "search.everywhere.fuzzy",
+          "title": "Fuzzy matching",
+          "description": "Search Everywhere (Files, Classes, Symbols) and Go to File match abbreviations such as \"orco\" for OrderController. Turn it off to match only text that contains what you typed.",
+          "type": "bool",
+          "default": true,
+          "group": "tools.search",
+          "section": "Search Everywhere",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "search.indexing.lowPriority",
+          "title": "Index in the background at low CPU priority",
+          "description": "The search index of a project is built and refreshed on threads below normal priority, so the IDE and other programs keep their share of the CPU. Turn it off to index as fast as possible. Applies when a project is opened.",
+          "type": "bool",
+          "default": true,
+          "group": "tools.search",
+          "section": "Indexing",
+          "project": false,
+          "order": 10
+        },
+        {
+          "key": "httpClient.sendFrom",
+          "title": "Send requests from",
+          "description": "Remote projects only: \"Remote host\" sends the requests of .http files through an SSH tunnel from the project's host, so localhost URLs reach the services running there. \"This machine\" sends them from here.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "local",
+              "label": "This machine"
+            },
+            {
+              "value": "remote",
+              "label": "Remote host"
+            }
+          ],
+          "default": "remote",
+          "group": "tools.http-client",
+          "project": true,
+          "order": 1
+        },
+        {
+          "key": "actionsOnSave.reformat.enabled",
+          "title": "Reformat code",
+          "description": "Reformat Code (Ctrl+Alt+L) when the file is saved.",
+          "type": "bool",
+          "default": false,
+          "group": "tools.actions-on-save",
+          "project": true,
+          "order": 0
+        },
+        {
+          "key": "actionsOnSave.reformat.scope",
+          "title": "Reformat",
+          "description": "\"Changed lines\" reformats only the lines changed since the last commit; files that are not committed yet are reformatted completely.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "whole",
+              "label": "Whole file"
+            },
+            {
+              "value": "changed",
+              "label": "Changed lines"
+            }
+          ],
+          "default": "whole",
+          "group": "tools.actions-on-save",
+          "project": true,
+          "order": 1
+        },
+        {
+          "key": "actionsOnSave.reformat.fileTypes",
+          "title": "Reformat file types",
+          "description": "File type ids (php, javascript, ...) reformatted on save; empty means all file types.",
+          "type": "list",
+          "default": [],
+          "group": "tools.actions-on-save",
+          "project": true,
+          "order": 2
+        },
+        {
+          "key": "actionsOnSave.optimizeImports",
+          "title": "Optimize imports",
+          "description": "Remove unused imports and sort the others (PHP).",
+          "type": "bool",
+          "default": false,
+          "group": "tools.actions-on-save",
+          "project": true,
+          "order": 10
+        },
+        {
+          "key": "actionsOnSave.rearrange",
+          "title": "Rearrange code",
+          "description": "Order class members: constants, properties, constructor, methods (PHP).",
+          "type": "bool",
+          "default": false,
+          "group": "tools.actions-on-save",
+          "project": true,
+          "order": 20
+        },
+        {
+          "key": "actionsOnSave.codeCleanup",
+          "title": "Run code cleanup",
+          "description": "Apply the safe quick fixes: unused imports, unnecessary semicolons, a redundant closing tag (PHP).",
+          "type": "bool",
+          "default": false,
+          "group": "tools.actions-on-save",
+          "project": true,
+          "order": 30
+        },
+        {
+          "key": "actionsOnSave.runOnAutosave",
+          "title": "Also run on autosave",
+          "description": "Run Reformat code, Optimize imports, Rearrange code and Run code cleanup when files are saved automatically too. External tools only run on explicit save (Ctrl+S).",
+          "type": "bool",
+          "default": false,
+          "group": "tools.actions-on-save",
+          "project": true,
+          "order": 90
+        },
+        {
+          "key": "markdown.defaultLayout",
+          "title": "Default layout",
+          "description": "How Markdown files open. The buttons in the top-right corner of the editor switch it per file.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "editor",
+              "label": "Editor only"
+            },
+            {
+              "value": "split",
+              "label": "Editor and Preview"
+            },
+            {
+              "value": "preview",
+              "label": "Preview only"
+            }
+          ],
+          "default": "split",
+          "group": "lang.markdown",
+          "section": "Preview",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "markdown.syncScroll",
+          "title": "Synchronize scrolling between the editor and the preview",
+          "type": "bool",
+          "default": true,
+          "group": "lang.markdown",
+          "section": "Preview",
+          "project": false,
+          "order": 10
+        },
+        {
+          "key": "markdown.frontMatter",
+          "title": "Front matter",
+          "description": "The YAML (---) or TOML (+++) block at the start of a file.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "table",
+              "label": "Show as table"
+            },
+            {
+              "value": "hidden",
+              "label": "Hide"
+            }
+          ],
+          "default": "table",
+          "group": "lang.markdown",
+          "section": "Preview",
+          "project": false,
+          "order": 20
+        },
+        {
+          "key": "markdown.mermaid",
+          "title": "Mermaid",
+          "description": "Render ```mermaid code blocks as diagrams.",
+          "type": "bool",
+          "default": true,
+          "group": "lang.markdown",
+          "section": "Markdown Extensions",
+          "project": false,
+          "order": 30
+        },
+        {
+          "key": "images.showChessboard",
+          "title": "Show chessboard",
+          "description": "Transparent areas of images are drawn over a chessboard pattern.",
+          "type": "bool",
+          "default": true,
+          "group": "editor.image",
+          "section": "Image Viewer",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "images.showGrid",
+          "title": "Show grid",
+          "description": "Pixel grid lines when the zoom is 300% or more.",
+          "type": "bool",
+          "default": false,
+          "group": "editor.image",
+          "section": "Image Viewer",
+          "project": false,
+          "order": 10
+        },
+        {
+          "key": "images.svgDefaultLayout",
+          "title": "SVG files open with",
+          "type": "enum",
+          "options": [
+            {
+              "value": "editor",
+              "label": "Editor only"
+            },
+            {
+              "value": "split",
+              "label": "Editor and Preview"
+            },
+            {
+              "value": "preview",
+              "label": "Preview only"
+            }
+          ],
+          "default": "split",
+          "group": "editor.image",
+          "section": "SVG",
+          "project": false,
+          "order": 20
+        },
+        {
+          "key": "csv.defaultView",
+          "title": "Open CSV/TSV files as",
+          "type": "enum",
+          "options": [
+            {
+              "value": "text",
+              "label": "Text"
+            },
+            {
+              "value": "table",
+              "label": "Table"
+            }
+          ],
+          "default": "text",
+          "group": "editor.csv",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "csv.firstRowIsHeader",
+          "title": "First row is header",
+          "description": "Default of the table view's header toggle.",
+          "type": "bool",
+          "default": true,
+          "group": "editor.csv",
+          "project": false,
+          "order": 10
+        },
+        {
+          "key": "editor.highlightUsagesAtCaret",
+          "title": "Highlight usages of element at caret",
+          "description": "Highlights the usages of the symbol at the caret in the file (reads and writes in different colors), also on the scrollbar.",
+          "type": "bool",
+          "default": true,
+          "group": "editor.general",
+          "section": "Highlight on Caret Movement",
+          "project": false,
+          "order": 38
+        },
+        {
+          "key": "findUsages.options.classUsages",
+          "title": "Usages",
+          "type": "bool",
+          "default": true,
+          "group": "findUsages",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "findUsages.options.classMethodUsages",
+          "title": "Usages of methods",
+          "type": "bool",
+          "default": false,
+          "group": "findUsages",
+          "project": false,
+          "order": 1
+        },
+        {
+          "key": "findUsages.options.classFieldUsages",
+          "title": "Usages of fields",
+          "type": "bool",
+          "default": false,
+          "group": "findUsages",
+          "project": false,
+          "order": 2
+        },
+        {
+          "key": "findUsages.options.classDerivedClasses",
+          "title": "Derived classes",
+          "type": "bool",
+          "default": false,
+          "group": "findUsages",
+          "project": false,
+          "order": 3
+        },
+        {
+          "key": "findUsages.options.interfaceUsages",
+          "title": "Usages",
+          "type": "bool",
+          "default": true,
+          "group": "findUsages",
+          "project": false,
+          "order": 4
+        },
+        {
+          "key": "findUsages.options.interfaceMethodUsages",
+          "title": "Usages of methods",
+          "type": "bool",
+          "default": false,
+          "group": "findUsages",
+          "project": false,
+          "order": 5
+        },
+        {
+          "key": "findUsages.options.interfaceImplementingClasses",
+          "title": "Implementing classes",
+          "type": "bool",
+          "default": false,
+          "group": "findUsages",
+          "project": false,
+          "order": 6
+        },
+        {
+          "key": "findUsages.options.interfaceDerivedInterfaces",
+          "title": "Derived interfaces",
+          "type": "bool",
+          "default": false,
+          "group": "findUsages",
+          "project": false,
+          "order": 7
+        },
+        {
+          "key": "findUsages.options.methodUsages",
+          "title": "Usages",
+          "type": "bool",
+          "default": true,
+          "group": "findUsages",
+          "project": false,
+          "order": 8
+        },
+        {
+          "key": "findUsages.options.methodOverridingMethods",
+          "title": "Overriding methods",
+          "type": "bool",
+          "default": false,
+          "group": "findUsages",
+          "project": false,
+          "order": 9
+        },
+        {
+          "key": "findUsages.options.readAccess",
+          "title": "Read access",
+          "type": "bool",
+          "default": true,
+          "group": "findUsages",
+          "project": false,
+          "order": 10
+        },
+        {
+          "key": "findUsages.options.writeAccess",
+          "title": "Write access",
+          "type": "bool",
+          "default": true,
+          "group": "findUsages",
+          "project": false,
+          "order": 11
+        },
+        {
+          "key": "findUsages.options.usages",
+          "title": "Usages",
+          "type": "bool",
+          "default": true,
+          "group": "findUsages",
+          "project": false,
+          "order": 12
+        },
+        {
+          "key": "findUsages.options.searchInCommentsAndStrings",
+          "title": "Search in comments and strings",
+          "type": "bool",
+          "default": false,
+          "group": "findUsages",
+          "project": false,
+          "order": 13
+        },
+        {
+          "key": "findUsages.options.searchForTextOccurrences",
+          "title": "Search for text occurrences",
+          "type": "bool",
+          "default": false,
+          "group": "findUsages",
+          "project": false,
+          "order": 14
+        },
+        {
+          "key": "findUsages.scope.kind",
+          "title": "Scope",
+          "type": "enum",
+          "options": [
+            {
+              "value": "projectFiles",
+              "label": "Project Files"
+            },
+            {
+              "value": "projectAndLibraries",
+              "label": "Project and Libraries"
+            },
+            {
+              "value": "openFiles",
+              "label": "Open Files"
+            },
+            {
+              "value": "currentFile",
+              "label": "Current File"
+            },
+            {
+              "value": "recentlyChangedFiles",
+              "label": "Recently Changed Files"
+            },
+            {
+              "value": "directory",
+              "label": "Directory"
+            },
+            {
+              "value": "custom",
+              "label": "Custom"
+            }
+          ],
+          "default": "projectFiles",
+          "group": "findUsages",
+          "project": false,
+          "order": 20
+        },
+        {
+          "key": "findUsages.scope.directory",
+          "title": "Directory",
+          "type": "string",
+          "default": "",
+          "group": "findUsages",
+          "project": false,
+          "order": 21
+        },
+        {
+          "key": "findUsages.scope.includeSubdirectories",
+          "title": "Include subdirectories",
+          "type": "bool",
+          "default": true,
+          "group": "findUsages",
+          "project": false,
+          "order": 22
+        },
+        {
+          "key": "findUsages.scope.pattern",
+          "title": "Custom scope",
+          "description": "A scope pattern (`file:app//*.php&&!test:*..*`, see Settings | Appearance & Behavior | Scopes) or file globs separated by ';', where '!' excludes (app/**/*.php; !app/Legacy/**).",
+          "type": "string",
+          "default": "",
+          "group": "findUsages",
+          "project": false,
+          "order": 23
+        },
+        {
+          "key": "findUsages.scope.name",
+          "title": "Named scope",
+          "description": "A scope of the Scopes page used as the custom scope; empty uses the pattern above.",
+          "type": "string",
+          "default": "",
+          "group": "findUsages",
+          "project": false,
+          "order": 24
+        },
+        {
+          "key": "findUsages.openInNewTab",
+          "title": "Open in new tab",
+          "type": "bool",
+          "default": true,
+          "group": "findUsages",
+          "project": false,
+          "order": 30
         }
       ],
       "lspServers": [],
@@ -838,7 +1994,7 @@
         {
           "key": "vcs.git.path",
           "title": "Path to Git executable",
-          "description": "Leave as `git` to use the one on PATH.",
+          "description": "Leave as `git` to use the one on PATH. Remote projects always use the git of their host.",
           "type": "path",
           "default": "git",
           "group": "vcs.git",
@@ -848,6 +2004,7 @@
         {
           "key": "vcs.git.updateMethod",
           "title": "Update method",
+          "description": "How Update Project (Ctrl+T) brings in remote changes. Branch default follows the branch's git configuration (pull.rebase).",
           "type": "enum",
           "options": [
             {
@@ -871,11 +2028,23 @@
         {
           "key": "vcs.git.autoFetch",
           "title": "Fetch remotes automatically",
+          "description": "In the background, for repositories whose branch has an upstream. Failures are ignored.",
           "type": "bool",
           "default": true,
           "group": "vcs.git",
           "project": false,
           "order": 2
+        },
+        {
+          "key": "vcs.git.autoFetchInterval",
+          "title": "Fetch every (minutes)",
+          "type": "int",
+          "min": 1,
+          "max": 240,
+          "default": 10,
+          "group": "vcs.git",
+          "project": false,
+          "order": 3
         },
         {
           "key": "vcs.git.commit.subjectMaxLength",
@@ -1070,6 +2239,7 @@
         {
           "key": "terminal.audibleBell",
           "title": "Audible bell",
+          "description": "Play a short tone when a program rings the terminal bell.",
           "type": "bool",
           "default": false,
           "group": "tools.terminal",
@@ -1090,7 +2260,7 @@
         {
           "key": "terminal.shellIntegration",
           "title": "Shell integration",
-          "description": "Track the working directory and command boundaries of supported shells.",
+          "description": "bash and zsh report their working directory (shown in the tab tooltip) and command boundaries (green and red marks in the scrollbar for succeeded and failed commands). Applies to new sessions.",
           "type": "bool",
           "default": true,
           "group": "tools.terminal",
@@ -1119,6 +2289,148 @@
           "section": "Project Settings",
           "project": true,
           "order": 11
+        },
+        {
+          "key": "terminal.showApplicationTitle",
+          "title": "Show application title",
+          "description": "Name terminal tabs after the title the running program sets, e.g. Claude Code's current task.",
+          "type": "bool",
+          "default": true,
+          "group": "tools.terminal",
+          "section": "Application Settings",
+          "project": false,
+          "order": 5
+        },
+        {
+          "key": "terminal.showProgressInStatusBar",
+          "title": "Show progress in the status bar",
+          "description": "Programs such as Claude Code, winget and systemd report progress (OSC 9;4). It is always shown on the terminal tab.",
+          "type": "bool",
+          "default": true,
+          "group": "tools.terminal",
+          "section": "Application Settings",
+          "project": false,
+          "order": 6
+        },
+        {
+          "key": "terminal.optionAsMeta",
+          "title": "Use Option as Meta key",
+          "description": "macOS only.",
+          "type": "bool",
+          "default": true,
+          "group": "tools.terminal",
+          "section": "Application Settings",
+          "project": false,
+          "order": 7
+        },
+        {
+          "key": "terminal.cursorShape",
+          "title": "Cursor shape",
+          "type": "enum",
+          "options": [
+            {
+              "value": "block",
+              "label": "Block"
+            },
+            {
+              "value": "underline",
+              "label": "Underline"
+            },
+            {
+              "value": "vertical",
+              "label": "Vertical"
+            }
+          ],
+          "default": "block",
+          "group": "tools.terminal",
+          "section": "Application Settings",
+          "project": false,
+          "order": 8
+        },
+        {
+          "key": "terminal.cursorBlink",
+          "title": "Blinking cursor",
+          "type": "bool",
+          "default": true,
+          "group": "tools.terminal",
+          "section": "Application Settings",
+          "project": false,
+          "order": 9
+        },
+        {
+          "key": "terminal.font.family",
+          "title": "Font",
+          "description": "Leave empty to use the editor font. Missing symbols fall back to installed Nerd Fonts and emoji fonts.",
+          "type": "string",
+          "default": "",
+          "group": "tools.terminal",
+          "section": "Font",
+          "project": false,
+          "order": 20
+        },
+        {
+          "key": "terminal.font.size",
+          "title": "Size",
+          "type": "number",
+          "min": 6.0,
+          "max": 72.0,
+          "step": 0.5,
+          "default": 13,
+          "group": "tools.terminal",
+          "section": "Font",
+          "project": false,
+          "order": 21
+        },
+        {
+          "key": "terminal.font.lineHeight",
+          "title": "Line height",
+          "type": "number",
+          "min": 1.0,
+          "max": 3.0,
+          "step": 0.1,
+          "default": 1.2,
+          "group": "tools.terminal",
+          "section": "Font",
+          "project": false,
+          "order": 22
+        },
+        {
+          "key": "terminal.renderer",
+          "title": "Renderer",
+          "description": "WebGL draws on the GPU and is the fastest. Automatic falls back to DOM when WebGL is unavailable.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "auto",
+              "label": "Automatic"
+            },
+            {
+              "value": "webgl",
+              "label": "WebGL"
+            },
+            {
+              "value": "dom",
+              "label": "DOM"
+            }
+          ],
+          "default": "auto",
+          "group": "tools.terminal",
+          "section": "Rendering",
+          "project": false,
+          "order": 30
+        },
+        {
+          "key": "terminal.scrollback",
+          "title": "Scrollback buffer",
+          "description": "Number of lines kept above the visible area.",
+          "type": "int",
+          "min": 0,
+          "max": 1000000,
+          "default": 10000,
+          "group": "tools.terminal",
+          "section": "Rendering",
+          "project": false,
+          "order": 31
         }
       ],
       "lspServers": [],
@@ -1127,6 +2439,92 @@
       "chatAgents": [],
       "codeGenerators": [],
       "mainMenu": []
+    }
+  },
+  {
+    "id": "forge.vim",
+    "name": "Vim",
+    "version": "0.1.0",
+    "pack": "core",
+    "description": "Vim emulation like IdeaVim: Normal, Insert, Visual and command-line modes, motions, operators, text objects, registers, macros, ex commands and ~/.ideavimrc. Turn it on with Tools | Vim.",
+    "vendor": "Forge",
+    "depends": [
+      "forge.core"
+    ],
+    "required": false,
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "fileTypes": [],
+      "commands": [
+        {
+          "id": "VimPluginToggle",
+          "title": "Vim",
+          "category": "Tools"
+        },
+        {
+          "id": "IdeaVim.ReloadVimRc",
+          "title": "Reload .ideavimrc",
+          "category": "Tools"
+        }
+      ],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [
+        {
+          "key": "vim.enabled",
+          "title": "Enable Vim emulation",
+          "description": "Same as Tools | Vim (Ctrl+Alt+V).",
+          "type": "bool",
+          "default": false,
+          "group": "editor.vim",
+          "section": "Emulation",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "vim.rcFile",
+          "title": "Configuration file",
+          "description": "Leave empty to read ~/.ideavimrc (or ~/_ideavimrc, ~/.config/ideavim/ideavimrc). Supports set, map/noremap, let mapleader, sethandler and :action mappings.",
+          "type": "path",
+          "default": "",
+          "group": "editor.vim",
+          "section": "Emulation",
+          "project": false,
+          "order": 1
+        },
+        {
+          "key": "vim.shortcutHandlers",
+          "title": "Shortcuts",
+          "description": "Who handles a shortcut in the editor while Vim emulation is on: Vim or the IDE. sethandler lines in ~/.ideavimrc take precedence.",
+          "type": "objects",
+          "unique": [
+            "shortcut"
+          ],
+          "default": [],
+          "group": "editor.vim",
+          "section": "Shortcut Conflicts",
+          "project": false,
+          "order": 10
+        }
+      ],
+      "lspServers": [],
+      "runConfigurationTypes": [],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": [],
+      "mainMenu": [
+        {
+          "path": "Tools",
+          "items": [
+            {
+              "type": "action",
+              "id": "VimPluginToggle",
+              "label": "_Vim"
+            }
+          ]
+        }
+      ]
     }
   },
   {
@@ -1183,6 +2581,7 @@
         {
           "key": "run.console.cycleBufferKb",
           "title": "Override console cycle buffer size (KB)",
+          "description": "Run consoles drop their oldest lines beyond this size. Applies to runs started afterwards.",
           "type": "int",
           "min": 100,
           "max": 100000,
@@ -1417,13 +2816,24 @@
         {
           "key": "docker.ssh.socketPath",
           "title": "Docker socket on the host",
-          "description": "Empty: /var/run/docker.sock (rootless: /run/user/<uid>/docker.sock).",
+          "description": "For SSH connections and Docker on a remote project's host. Empty: /var/run/docker.sock (rootless: /run/user/<uid>/docker.sock).",
           "type": "string",
           "default": "",
           "group": "build.docker",
           "section": "Connection",
           "project": false,
           "order": 44
+        },
+        {
+          "key": "docker.remoteProjectHost",
+          "title": "In remote projects, connect to Docker on the remote host",
+          "description": "Uses the Docker daemon of the project's host through the project's SSH connection (no extra login); compose, builds and exec terminals run on that host. Off: the connection above.",
+          "type": "bool",
+          "default": true,
+          "group": "build.docker",
+          "section": "Connection",
+          "project": false,
+          "order": 45
         },
         {
           "key": "docker.context",
@@ -1628,6 +3038,17 @@
           "order": 10
         },
         {
+          "key": "php.stubs.path",
+          "title": "Default stubs path",
+          "description": "A phpstorm-stubs checkout used for PHP's own classes, functions and constants (Go to Declaration on \\Throwable, array_map). Empty: Forge downloads JetBrains' phpstorm-stubs into its cache folder on first use, or uses Intelephense's stubs.",
+          "type": "path",
+          "default": "",
+          "group": "lang.php",
+          "section": "PHP Runtime",
+          "project": false,
+          "order": 20
+        },
+        {
           "key": "php.lsp.server",
           "title": "Language server",
           "description": "Started automatically when a PHP project opens.",
@@ -1705,158 +3126,46 @@
           "order": 20
         },
         {
-          "key": "php.codeStyle.useTabs",
-          "title": "Use tab character",
+          "key": "actionsOnSave.phpCsFixer",
+          "title": "Run PHP CS Fixer",
+          "description": "Run `php-cs-fixer fix` on saved PHP files.",
           "type": "bool",
           "default": false,
-          "group": "editor.code-style.php",
-          "section": "Tabs and Indents",
+          "group": "tools.actions-on-save",
+          "project": true,
+          "order": 60
+        },
+        {
+          "key": "actionsOnSave.pint",
+          "title": "Run Laravel Pint",
+          "description": "Run `pint` on saved PHP files.",
+          "type": "bool",
+          "default": false,
+          "group": "tools.actions-on-save",
+          "project": true,
+          "order": 70
+        },
+        {
+          "key": "php.tools.phpCsFixer.path",
+          "title": "PHP CS Fixer path",
+          "description": "Empty: vendor/bin/php-cs-fixer of the project. A relative path starts at the project root. The project's .php-cs-fixer.dist.php is used.",
+          "type": "path",
+          "default": "",
+          "group": "lang.php.quality-tools",
+          "section": "PHP CS Fixer",
           "project": true,
           "order": 0
         },
         {
-          "key": "php.codeStyle.tabSize",
-          "title": "Tab size",
-          "type": "int",
-          "min": 1,
-          "max": 16,
-          "default": 4,
-          "group": "editor.code-style.php",
-          "section": "Tabs and Indents",
-          "project": true,
-          "order": 1
-        },
-        {
-          "key": "php.codeStyle.indent",
-          "title": "Indent",
-          "type": "int",
-          "min": 0,
-          "max": 16,
-          "default": 4,
-          "group": "editor.code-style.php",
-          "section": "Tabs and Indents",
-          "project": true,
-          "order": 2
-        },
-        {
-          "key": "php.codeStyle.continuationIndent",
-          "title": "Continuation indent",
-          "type": "int",
-          "min": 0,
-          "max": 16,
-          "default": 4,
-          "group": "editor.code-style.php",
-          "section": "Tabs and Indents",
-          "project": true,
-          "order": 3
-        },
-        {
-          "key": "php.codeStyle.braces.classes",
-          "title": "In class declaration",
-          "type": "enum",
-          "options": [
-            {
-              "value": "endOfLine",
-              "label": "End of line"
-            },
-            {
-              "value": "nextLine",
-              "label": "Next line"
-            }
-          ],
-          "default": "nextLine",
-          "group": "editor.code-style.php",
-          "section": "Braces Placement",
+          "key": "php.tools.pint.path",
+          "title": "Laravel Pint path",
+          "description": "Empty: vendor/bin/pint of the project. A relative path starts at the project root. The project's pint.json is used.",
+          "type": "path",
+          "default": "",
+          "group": "lang.php.quality-tools",
+          "section": "Laravel Pint",
           "project": true,
           "order": 10
-        },
-        {
-          "key": "php.codeStyle.braces.functions",
-          "title": "In function declaration",
-          "type": "enum",
-          "options": [
-            {
-              "value": "endOfLine",
-              "label": "End of line"
-            },
-            {
-              "value": "nextLine",
-              "label": "Next line"
-            }
-          ],
-          "default": "nextLine",
-          "group": "editor.code-style.php",
-          "section": "Braces Placement",
-          "project": true,
-          "order": 11
-        },
-        {
-          "key": "php.codeStyle.braces.other",
-          "title": "Other",
-          "type": "enum",
-          "options": [
-            {
-              "value": "endOfLine",
-              "label": "End of line"
-            },
-            {
-              "value": "nextLine",
-              "label": "Next line"
-            }
-          ],
-          "default": "endOfLine",
-          "group": "editor.code-style.php",
-          "section": "Braces Placement",
-          "project": true,
-          "order": 12
-        },
-        {
-          "key": "php.codeStyle.blankLines.keepMax",
-          "title": "Keep maximum blank lines in code",
-          "type": "int",
-          "min": 0,
-          "max": 10,
-          "default": 2,
-          "group": "editor.code-style.php",
-          "section": "Blank Lines",
-          "project": true,
-          "order": 20
-        },
-        {
-          "key": "php.codeStyle.blankLines.afterNamespace",
-          "title": "After namespace",
-          "type": "int",
-          "min": 0,
-          "max": 10,
-          "default": 1,
-          "group": "editor.code-style.php",
-          "section": "Blank Lines",
-          "project": true,
-          "order": 21
-        },
-        {
-          "key": "php.codeStyle.blankLines.afterImports",
-          "title": "After imports",
-          "type": "int",
-          "min": 0,
-          "max": 10,
-          "default": 1,
-          "group": "editor.code-style.php",
-          "section": "Blank Lines",
-          "project": true,
-          "order": 22
-        },
-        {
-          "key": "php.codeStyle.blankLines.aroundMethods",
-          "title": "Around method",
-          "type": "int",
-          "min": 0,
-          "max": 10,
-          "default": 1,
-          "group": "editor.code-style.php",
-          "section": "Blank Lines",
-          "project": true,
-          "order": 23
         }
       ],
       "lspServers": [
@@ -2123,14 +3432,34 @@
       "fileTypes": [],
       "commands": [
         {
-          "id": "composer.install",
-          "title": "Composer Install",
-          "category": "Tools"
+          "id": "Composer.AddDependency",
+          "title": "Add Dependency…",
+          "category": "Composer"
         },
         {
-          "id": "composer.update",
-          "title": "Composer Update",
-          "category": "Tools"
+          "id": "Composer.Install",
+          "title": "Install",
+          "category": "Composer"
+        },
+        {
+          "id": "Composer.Update",
+          "title": "Update",
+          "category": "Composer"
+        },
+        {
+          "id": "Composer.Validate",
+          "title": "Validate",
+          "category": "Composer"
+        },
+        {
+          "id": "Composer.ShowOutdated",
+          "title": "Show Outdated",
+          "category": "Composer"
+        },
+        {
+          "id": "Composer.Audit",
+          "title": "Audit",
+          "category": "Composer"
         }
       ],
       "keybindings": [],
@@ -2139,26 +3468,28 @@
         {
           "key": "php.composer.executable",
           "title": "Path to composer",
-          "description": "A composer executable or composer.phar.",
+          "description": "A composer executable, or a composer.phar (run with the PHP interpreter of Settings | PHP). Empty: `composer` from PATH.",
           "type": "path",
           "default": "composer",
+          "group": "lang.php.composer",
+          "section": "Execution",
+          "project": true,
+          "order": 1
+        },
+        {
+          "key": "php.composer.json",
+          "title": "Path to composer.json",
+          "description": "Relative to the project root.",
+          "type": "path",
+          "default": "composer.json",
           "group": "lang.php.composer",
           "project": true,
           "order": 0
         },
         {
-          "key": "php.composer.json",
-          "title": "Path to composer.json",
-          "type": "path",
-          "default": "composer.json",
-          "group": "lang.php.composer",
-          "project": true,
-          "order": 1
-        },
-        {
           "key": "php.composer.syncWithComposerJson",
           "title": "Synchronize IDE settings with composer.json",
-          "description": "Language level and source roots follow `require.php` and `autoload`.",
+          "description": "The PHP language level follows `require.php` of composer.json (the status bar shows it); the language level setting applies when there is no constraint.",
           "type": "bool",
           "default": true,
           "group": "lang.php.composer",
@@ -2168,6 +3499,7 @@
         {
           "key": "php.composer.addPackagesAsLibraries",
           "title": "Add packages as libraries",
+          "description": "Classes in vendor/ are resolved for navigation, completion and Intelephense. Off: vendor/ is left out.",
           "type": "bool",
           "default": true,
           "group": "lang.php.composer",
@@ -2177,11 +3509,22 @@
         {
           "key": "php.composer.checkUpdates",
           "title": "Check for package updates on project open",
+          "description": "Runs `composer outdated --direct` on the project's machine and reports updates in a balloon.",
           "type": "bool",
           "default": false,
           "group": "lang.php.composer",
           "project": false,
           "order": 4
+        },
+        {
+          "key": "php.composer.packagist",
+          "title": "Use Packagist for completion, versions and outdated packages",
+          "description": "Package names, versions and descriptions come from packagist.org (cached in Forge's cache directory). Off: only installed packages are used and Forge never contacts Packagist.",
+          "type": "bool",
+          "default": true,
+          "group": "lang.php.composer",
+          "project": false,
+          "order": 5
         }
       ],
       "lspServers": [],
@@ -2197,7 +3540,46 @@
       "aiProviders": [],
       "chatAgents": [],
       "codeGenerators": [],
-      "mainMenu": []
+      "mainMenu": [
+        {
+          "path": "Tools/_Composer",
+          "items": [
+            {
+              "type": "action",
+              "id": "Composer.AddDependency",
+              "label": "_Add Dependency..."
+            },
+            {
+              "type": "separator"
+            },
+            {
+              "type": "action",
+              "id": "Composer.Install",
+              "label": "_Install"
+            },
+            {
+              "type": "action",
+              "id": "Composer.Update",
+              "label": "_Update"
+            },
+            {
+              "type": "action",
+              "id": "Composer.Validate",
+              "label": "_Validate"
+            },
+            {
+              "type": "action",
+              "id": "Composer.ShowOutdated",
+              "label": "Show _Outdated"
+            },
+            {
+              "type": "action",
+              "id": "Composer.Audit",
+              "label": "Au_dit"
+            }
+          ]
+        }
+      ]
     }
   },
   {
@@ -2999,6 +4381,56 @@
           "group": "lang.typescript",
           "section": "Frameworks",
           "project": false,
+          "order": 0
+        },
+        {
+          "key": "actionsOnSave.eslint",
+          "title": "Run eslint --fix",
+          "description": "Fix ESLint problems in saved JavaScript, TypeScript and Vue files.",
+          "type": "bool",
+          "default": false,
+          "group": "tools.actions-on-save",
+          "project": true,
+          "order": 40
+        },
+        {
+          "key": "actionsOnSave.prettier.enabled",
+          "title": "Run Prettier",
+          "description": "Run `prettier --write` on saved files that match the patterns below.",
+          "type": "bool",
+          "default": false,
+          "group": "tools.actions-on-save",
+          "project": true,
+          "order": 50
+        },
+        {
+          "key": "actionsOnSave.prettier.files",
+          "title": "Run for files",
+          "description": "Patterns separated by `;`; patterns with a `/` match the path, the others the file name.",
+          "type": "string",
+          "default": "*.js; *.ts; *.jsx; *.tsx; *.cjs; *.cts; *.mjs; *.mts; *.vue; *.astro",
+          "group": "tools.actions-on-save",
+          "project": true,
+          "order": 51
+        },
+        {
+          "key": "web.eslint.path",
+          "title": "ESLint package",
+          "description": "Empty: node_modules/.bin/eslint of the project. A relative path starts at the project root. The project's ESLint configuration is used.",
+          "type": "path",
+          "default": "",
+          "group": "lang.eslint",
+          "project": true,
+          "order": 0
+        },
+        {
+          "key": "web.prettier.path",
+          "title": "Prettier package",
+          "description": "Empty: node_modules/.bin/prettier of the project. A relative path starts at the project root. The project's Prettier configuration is used.",
+          "type": "path",
+          "default": "",
+          "group": "lang.prettier",
+          "project": true,
           "order": 0
         }
       ],
@@ -3808,7 +5240,7 @@
     "name": "JSON",
     "version": "0.1.0",
     "pack": "configforge",
-    "description": "JSON and JSON with comments: highlighting, folding and syntax checks. With vscode-json-language-server (Settings > Language Servers), `$schema` (local file or URL) drives validation, completion and hover.",
+    "description": "JSON and JSON with comments: highlighting, folding and syntax checks. Validation, completion and documentation from JSON schemas (`$schema`, composer.json, package.json, ...) come from the JSON Schema plugin.",
     "vendor": "Forge",
     "depends": [],
     "required": false,
@@ -4499,6 +5931,315 @@
           ]
         }
       ]
+    }
+  },
+  {
+    "id": "forge.natural-languages",
+    "name": "Natural Languages",
+    "version": "0.1.0",
+    "pack": "core",
+    "description": "Spell checking of comments, strings, identifiers, text files and commit messages with quick fixes and dictionaries, plus a small rule-based English grammar checker.",
+    "vendor": "Forge",
+    "depends": [],
+    "required": false,
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "fileTypes": [],
+      "commands": [],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [
+        {
+          "key": "spelling.enabled",
+          "title": "Check spelling (Typo inspection)",
+          "type": "bool",
+          "default": true,
+          "group": "editor.natural-languages.spelling",
+          "section": "Inspection",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "spelling.severity",
+          "title": "Severity",
+          "type": "enum",
+          "options": [
+            {
+              "value": "typo",
+              "label": "Typo"
+            },
+            {
+              "value": "grammar",
+              "label": "Grammar Error"
+            },
+            {
+              "value": "weak",
+              "label": "Weak Warning"
+            },
+            {
+              "value": "warning",
+              "label": "Warning"
+            },
+            {
+              "value": "error",
+              "label": "Error"
+            }
+          ],
+          "default": "typo",
+          "group": "editor.natural-languages.spelling",
+          "section": "Inspection",
+          "project": false,
+          "order": 1
+        },
+        {
+          "key": "spelling.checkComments",
+          "title": "Process comments",
+          "type": "bool",
+          "default": true,
+          "group": "editor.natural-languages.spelling",
+          "section": "Inspection",
+          "project": false,
+          "order": 2
+        },
+        {
+          "key": "spelling.checkStrings",
+          "title": "Process literals",
+          "description": "String literals.",
+          "type": "bool",
+          "default": true,
+          "group": "editor.natural-languages.spelling",
+          "section": "Inspection",
+          "project": false,
+          "order": 3
+        },
+        {
+          "key": "spelling.checkIdentifiers",
+          "title": "Process code",
+          "description": "Names of declared variables, functions, classes and properties, split at camelCase humps and underscores.",
+          "type": "bool",
+          "default": true,
+          "group": "editor.natural-languages.spelling",
+          "section": "Inspection",
+          "project": false,
+          "order": 4
+        },
+        {
+          "key": "spelling.checkText",
+          "title": "Process Markdown and plain text files",
+          "type": "bool",
+          "default": true,
+          "group": "editor.natural-languages.spelling",
+          "section": "Inspection",
+          "project": false,
+          "order": 5
+        },
+        {
+          "key": "spelling.checkCommitMessages",
+          "title": "Process commit messages",
+          "type": "bool",
+          "default": true,
+          "group": "editor.natural-languages.spelling",
+          "section": "Inspection",
+          "project": false,
+          "order": 6
+        },
+        {
+          "key": "spelling.checkFileNames",
+          "title": "Process file names",
+          "description": "Reports typos in the name of the open file in the Problems tool window.",
+          "type": "bool",
+          "default": false,
+          "group": "editor.natural-languages.spelling",
+          "section": "Inspection",
+          "project": false,
+          "order": 7
+        },
+        {
+          "key": "spelling.projectWords",
+          "title": "Project-level dictionary",
+          "description": "Accepted words of this project, stored in the project settings (.forge/settings.toml). \"Save to project-level dictionary\" (Alt+Enter on a typo) adds words here.",
+          "type": "list",
+          "default": [],
+          "group": "editor.natural-languages.spelling",
+          "section": "Accepted Words",
+          "project": true,
+          "order": 10
+        },
+        {
+          "key": "spelling.applicationWords",
+          "title": "Application-level dictionary",
+          "description": "Accepted words of all projects, stored in the user settings.",
+          "type": "list",
+          "default": [],
+          "group": "editor.natural-languages.spelling",
+          "section": "Accepted Words",
+          "project": false,
+          "order": 11
+        },
+        {
+          "key": "spelling.customDictionaries",
+          "title": "Custom dictionaries",
+          "description": "Hunspell dictionaries (.dic; the .aff file with the same name next to it is read too) or plain word lists with one word per line. Absolute paths, or paths relative to the project root.",
+          "type": "list",
+          "default": [],
+          "group": "editor.natural-languages.spelling",
+          "section": "Dictionaries",
+          "project": false,
+          "order": 20
+        },
+        {
+          "key": "grammar.enabled",
+          "title": "Check grammar and style (Grammar inspection)",
+          "description": "Comments, Markdown and plain text files and commit messages.",
+          "type": "bool",
+          "default": true,
+          "group": "editor.natural-languages.grammar",
+          "section": "Inspection",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "grammar.severity",
+          "title": "Severity",
+          "type": "enum",
+          "options": [
+            {
+              "value": "grammar",
+              "label": "Grammar Error"
+            },
+            {
+              "value": "typo",
+              "label": "Typo"
+            },
+            {
+              "value": "weak",
+              "label": "Weak Warning"
+            },
+            {
+              "value": "warning",
+              "label": "Warning"
+            },
+            {
+              "value": "error",
+              "label": "Error"
+            }
+          ],
+          "default": "grammar",
+          "group": "editor.natural-languages.grammar",
+          "section": "Inspection",
+          "project": false,
+          "order": 1
+        },
+        {
+          "key": "grammar.rules.repeatedWord",
+          "title": "Repeated words",
+          "description": "\"the the\"",
+          "type": "bool",
+          "default": true,
+          "group": "editor.natural-languages.grammar",
+          "section": "Rules",
+          "project": false,
+          "order": 10
+        },
+        {
+          "key": "grammar.rules.articles",
+          "title": "Use of 'a' and 'an'",
+          "description": "\"a order\", \"an user\"; acronyms are read letter by letter (\"an HTML page\").",
+          "type": "bool",
+          "default": true,
+          "group": "editor.natural-languages.grammar",
+          "section": "Rules",
+          "project": false,
+          "order": 11
+        },
+        {
+          "key": "grammar.rules.sentenceStart",
+          "title": "Sentences start with an uppercase letter",
+          "description": "Doc comments only.",
+          "type": "bool",
+          "default": true,
+          "group": "editor.natural-languages.grammar",
+          "section": "Rules",
+          "project": false,
+          "order": 12
+        },
+        {
+          "key": "grammar.rules.doubleSpace",
+          "title": "Repeated whitespace",
+          "description": "Two or more spaces between words; aligned columns and doc tags are skipped.",
+          "type": "bool",
+          "default": true,
+          "group": "editor.natural-languages.grammar",
+          "section": "Rules",
+          "project": false,
+          "order": 13
+        }
+      ],
+      "lspServers": [],
+      "runConfigurationTypes": [],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": [],
+      "mainMenu": []
+    }
+  },
+  {
+    "id": "forge.json-schema",
+    "name": "JSON Schema",
+    "version": "0.1.0",
+    "pack": "core",
+    "description": "Validates, completes and documents JSON and YAML files with JSON Schema: composer.json, package.json, tsconfig.json, ESLint and Prettier configs, Docker Compose, GitHub Actions and GitLab CI out of the box, plus your own mappings and the file's $schema.",
+    "vendor": "Forge",
+    "depends": [
+      "forge.core"
+    ],
+    "required": false,
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "fileTypes": [],
+      "commands": [],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [
+        {
+          "key": "jsonSchema.mappings",
+          "title": "JSON Schema mappings",
+          "description": "Schemas for files of this project: name, schema (a file or URL), schema version and the files, directories (ending in /) or patterns it applies to, one per line. A mapping without a schema turns schemas off for its files.",
+          "type": "objects",
+          "default": [],
+          "group": "lang.json-schema",
+          "project": true,
+          "order": 0
+        },
+        {
+          "key": "jsonSchema.remote.enabled",
+          "title": "Allow downloading JSON schemas from remote sources",
+          "description": "Schemas named by a URL ($schema, mappings, $ref) are downloaded into Forge's cache folder and refreshed daily. Built-in schemas are bundled and need no download.",
+          "type": "bool",
+          "default": false,
+          "group": "lang.json-schema.remote",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "jsonSchema.remote.schemaStore",
+          "title": "Use schemastore.org JSON Schema catalog",
+          "description": "Find schemas for other well-known files (renovate.json, .babelrc, Helm charts, ...) in the SchemaStore catalog.",
+          "type": "bool",
+          "default": true,
+          "group": "lang.json-schema.remote",
+          "project": false,
+          "order": 1
+        }
+      ],
+      "lspServers": [],
+      "runConfigurationTypes": [],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": [],
+      "mainMenu": []
     }
   }
 ]

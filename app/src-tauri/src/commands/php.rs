@@ -9,11 +9,13 @@ use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, State};
 
 use forge_core::Result;
+use phpforge_lang_php::composer::{self, OutdatedPackage};
 use phpforge_lang_php::generate::{GenerateKind, GenerateOptions, GenerateTargets, TextEdit};
 use phpforge_lang_php::hover::Hover;
 use phpforge_lang_php::index::{SearchKind, SymbolHit};
 use phpforge_lang_php::lsp::{self, DetectedServers, LspServerConfig, PhpLspSettings};
 use phpforge_lang_php::structure::FileStructure;
+use phpforge_lang_php::style::{tidy_blank_lines, PhpCodeStyle};
 use phpforge_lang_php::IndexStats;
 
 use crate::commands::lsp::LspState;
@@ -42,13 +44,17 @@ pub async fn php_search_symbols(
     query: String,
     kind: Option<SearchKind>,
     limit: Option<usize>,
+    exact: Option<bool>,
     state: State<'_, AppState>,
 ) -> Result<Vec<SymbolHit>> {
     let backend = state.backend()?;
     blocking(move || {
-        backend
-            .php()
-            .search(&query, kind.unwrap_or_default(), limit.unwrap_or(100))
+        backend.php().search(
+            &query,
+            kind.unwrap_or_default(),
+            limit.unwrap_or(100),
+            exact.unwrap_or(false),
+        )
     })
     .await
 }
@@ -100,13 +106,109 @@ pub async fn php_generate(
     content: Option<String>,
     state: State<'_, AppState>,
 ) -> Result<Vec<TextEdit>> {
+    let mut options = options.unwrap_or_default();
+    // Braces and blank lines of Settings | Editor | Code Style | PHP.
+    options.style = php_code_style(&state);
+    // Settings | Editor | File and Code Templates | Code.
+    options.code_templates = crate::commands::templates::code_templates(&state);
     let backend = state.backend()?;
     blocking(move || {
         backend
             .php()
-            .generate(&path, offset, kind, options.unwrap_or_default(), content)
+            .generate(&path, offset, kind, options, content)
     })
     .await
+}
+
+/// The PHP options of the selected code style scheme.
+pub(crate) fn php_code_style(state: &AppState) -> PhpCodeStyle {
+    let settings = crate::commands::code_style::code_style_settings(state);
+    PhpCodeStyle::from_settings(|k| settings.get(k).cloned())
+}
+
+/// The PHP language level in effect and whether it comes from composer.json
+/// (Settings | PHP | Composer, "Synchronize IDE settings with composer.json").
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LanguageLevel {
+    pub level: String,
+    pub from_composer: bool,
+}
+
+#[tauri::command]
+pub async fn php_language_level(state: State<'_, AppState>) -> Result<LanguageLevel> {
+    let settings = lsp_settings(&state);
+    let backend = state.backend().ok();
+    blocking(move || {
+        let composer = match &backend {
+            Some(b) => b.read_optional(&settings.composer_json).ok().flatten(),
+            None => None,
+        };
+        let (level, from_composer) = settings.effective_level(composer.as_deref());
+        Ok(LanguageLevel {
+            level,
+            from_composer,
+        })
+    })
+    .await
+}
+
+/// "Check for package updates on project open": `composer outdated --direct` in the folder
+/// of the project's composer.json, on the project's machine.
+#[tauri::command]
+pub async fn php_composer_outdated(state: State<'_, AppState>) -> Result<Vec<OutdatedPackage>> {
+    let (program, lead, json_path) = {
+        let settings = state.read_settings();
+        let executable = settings
+            .get_as::<String>(composer::EXECUTABLE_KEY)
+            .unwrap_or_default();
+        let php = settings
+            .get_as::<String>("php.interpreter")
+            .unwrap_or_else(|| "php".into());
+        let (program, lead) = forge_process::composer_program(&executable, &php);
+        let json = lsp_settings(&state).composer_json;
+        (program, lead, json)
+    };
+    let backend = state.backend()?;
+    blocking(move || {
+        if backend.read_optional(&json_path)?.is_none() {
+            return Ok(Vec::new());
+        }
+        let dir = Path::new(&json_path).parent().unwrap_or(Path::new(""));
+        let mut cmd = forge_process::CommandLine::new(program).args(lead).args([
+            "outdated",
+            "--direct",
+            "--format=json",
+            "--no-interaction",
+        ]);
+        cmd.cwd = Path::new(&backend.info().root).join(dir);
+        let mut out = String::new();
+        let cancel = std::sync::atomic::AtomicBool::new(false);
+        forge_backend::process_io::run_lines(
+            backend.as_ref(),
+            &cmd,
+            &cancel,
+            &mut |line, stderr| {
+                if !stderr {
+                    out.push_str(&line);
+                    out.push('\n');
+                }
+            },
+        )?;
+        Ok(composer::parse_outdated(&out))
+    })
+    .await
+}
+
+/// Reformat Code, after the language server: apply the blank line settings of the PHP code
+/// style to `text` (the editor's buffer). `None` when nothing changes.
+#[tauri::command]
+pub async fn php_tidy_blank_lines(
+    text: String,
+    state: State<'_, AppState>,
+) -> Result<Option<String>> {
+    let style = php_code_style(&state);
+    blocking(move || Ok(tidy_blank_lines(&text, &style))).await
 }
 
 /// Language servers installed on the project's machine (this one when no project is open),
@@ -123,7 +225,7 @@ pub async fn php_detect_servers(
             blocking(move || backend.php().detect_servers(for_host(settings, remote))).await
         }
         Err(_) => {
-            let settings = for_host(settings, false);
+            let settings = forge_backend::php::with_managed_intelephense(settings);
             let path_env = std::env::var("PATH").ok();
             let dirs = lsp::search_dirs(path_env.as_deref(), dirs::home_dir().as_deref());
             Ok(lsp::detect(&settings, &dirs, &lsp::FsProbe))
@@ -149,29 +251,16 @@ pub async fn php_lsp_config(
 /// Settings for the machine the project lives on: local executable and cache paths mean
 /// nothing on a remote host, where the agent finds Intelephense / phpactor itself. Locally,
 /// Forge's managed Intelephense install comes before anything on `PATH`.
+/// Local paths do not apply on a remote host. The backend adds the managed Intelephense of
+/// the project's machine (`forge_backend::php`).
 fn for_host(mut settings: PhpLspSettings, remote: bool) -> PhpLspSettings {
     if remote {
         settings.intelephense_path = None;
         settings.intelephense_node = None;
         settings.phpactor_path = None;
         settings.storage_path = None;
-    } else {
-        with_managed_intelephense(&mut settings);
     }
     settings
-}
-
-/// Use Forge's managed Intelephense (`node …/intelephense.js`) unless a path is set.
-fn with_managed_intelephense(settings: &mut PhpLspSettings) {
-    if settings.intelephense_path.is_some() {
-        return;
-    }
-    if let Some((node, script)) =
-        forge_langservers::Detector::system().managed_launch("intelephense")
-    {
-        settings.intelephense_path = Some(script);
-        settings.intelephense_node = Some(node);
-    }
 }
 
 /// Id under which the PHP language server (Intelephense or phpactor) is registered.
@@ -184,7 +273,8 @@ pub fn intelephense_licence_key() -> Option<String> {
 
 /// The PHP language server settings from Forge's settings store.
 fn lsp_settings(state: &AppState) -> PhpLspSettings {
-    let settings = state.read_settings();
+    // Code style keys (brace placement) come from the selected scheme.
+    let settings = crate::commands::code_style::code_style_settings(state);
     let mut s = PhpLspSettings::from_settings(|k| settings.get(k).cloned());
     s.licence_key = intelephense_licence_key();
     s

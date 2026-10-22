@@ -1,0 +1,225 @@
+/* ---------- Color swatches (gutter and inline) ---------- */
+/* The checkerboard shows through transparent colors; the fill is the document's color. */
+.color-swatch,
+.cm-color-inline {
+  display: inline-flex;
+  box-sizing: border-box;
+  width: 11px;
+  height: 11px;
+  border: 1px solid var(--border-strong);
+  border-radius: 2px;
+  background: repeating-conic-gradient(var(--bg-hover) 0 25%, var(--bg-editor) 0 50%) 0 0 / 6px 6px;
+  overflow: hidden;
+  cursor: pointer;
+  vertical-align: middle;
+}
+.color-swatch > span,
+.cm-color-inline > span {
+  flex: 1;
+}
+.cm-line-marker.marker-color {
+  display: inline-flex;
+  align-items: center;
+}
+.cm-color-inline {
+  width: 10px;
+  height: 10px;
+  margin: 0 3px 2px 0;
+}
+
+/* ---------- Color picker ---------- */
+.color-picker {
+  position: fixed;
+  z-index: 1000;
+  width: 268px;
+  padding: 8px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  font-size: var(--fs-ui);
+  color: var(--fg);
+  outline: none;
+}
+.cp-sv {
+  position: relative;
+  height: 150px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  cursor: crosshair;
+  touch-action: none;
+}
+/* White and black overlays are part of the HSB color model, not theme colors. */
+.cp-sv-white,
+.cp-sv-black {
+  position: absolute;
+  inset: 0;
+}
+.cp-sv-white {
+  background: linear-gradient(to right, rgb(255 255 255), rgb(255 255 255 / 0));
+}
+.cp-sv-black {
+  background: linear-gradient(to top, rgb(0 0 0), rgb(0 0 0 / 0));
+}
+.cp-sv-thumb {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  margin: -7px 0 0 -7px;
+  border: 2px solid var(--fg-strong);
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px var(--bg-app);
+  pointer-events: none;
+}
+.cp-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+.cp-preview {
+  width: 30px;
+  height: 30px;
+  flex: none;
+  border: 1px solid var(--border-strong);
+  border-radius: 50%;
+  overflow: hidden;
+  background: repeating-conic-gradient(var(--bg-hover) 0 25%, var(--bg-editor) 0 50%) 0 0 / 8px 8px;
+}
+.cp-preview-color {
+  width: 100%;
+  height: 100%;
+}
+.cp-sliders {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+.cp-slider {
+  position: relative;
+  height: 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  touch-action: none;
+}
+/* The hue spectrum, part of the color model. */
+.cp-hue {
+  background: linear-gradient(
+    to right,
+    rgb(255 0 0),
+    rgb(255 255 0),
+    rgb(0 255 0),
+    rgb(0 255 255),
+    rgb(0 0 255),
+    rgb(255 0 255),
+    rgb(255 0 0)
+  );
+}
+.cp-alpha {
+  background: repeating-conic-gradient(var(--bg-hover) 0 25%, var(--bg-editor) 0 50%) 0 0 / 8px 8px;
+}
+.cp-alpha-fill {
+  position: absolute;
+  inset: 0;
+  border-radius: 5px;
+}
+.cp-slider-thumb {
+  position: absolute;
+  top: -3px;
+  width: 8px;
+  height: 14px;
+  margin-left: -5px;
+  border: 1px solid var(--border-strong);
+  border-radius: 3px;
+  background: var(--fg-strong);
+  box-shadow: 0 0 0 1px var(--bg-app);
+  pointer-events: none;
+}
+.cp-fields {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+}
+.cp-mode,
+.cp-num,
+.cp-hex {
+  box-sizing: border-box;
+  height: 24px;
+  padding: 0 4px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--fg);
+  font-size: var(--fs-small);
+  font-family: var(--font-ui);
+}
+.cp-mode:focus,
+.cp-num:focus,
+.cp-hex:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+.cp-mode {
+  width: 58px;
+}
+.cp-num {
+  width: 39px;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+.cp-num::-webkit-inner-spin-button,
+.cp-num::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.cp-percent,
+.cp-label {
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+.cp-label {
+  width: 58px;
+}
+.cp-hex {
+  flex: 1;
+  font-family: var(--font-mono);
+}
+.cp-recent-title {
+  margin: 10px 0 4px;
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+.cp-recent {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.cp-recent-color {
+  display: flex;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: 3px;
+  overflow: hidden;
+  cursor: pointer;
+  background: repeating-conic-gradient(var(--bg-hover) 0 25%, var(--bg-editor) 0 50%) 0 0 / 6px 6px;
+}
+.cp-recent-color > span {
+  flex: 1;
+}
+.cp-recent-color:hover {
+  border-color: var(--accent);
+}
+.color-picker.read-only .cp-sv,
+.color-picker.read-only .cp-slider {
+  cursor: default;
+}
+.cp-note {
+  margin-top: 8px;
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+  font-family: var(--font-mono);
+}

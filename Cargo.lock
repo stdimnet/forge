@@ -597,6 +597,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "bincode"
+version = "1.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b1f45e9417d87227c7a56d22e471c6206462cba514c7590c09aff4cf6d1ddcad"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "bit-set"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2224,16 +2233,26 @@ dependencies = [
  "forge-agent-cli",
  "forge-ai",
  "forge-backend",
+ "forge-bookmarks",
+ "forge-codestyle",
  "forge-collab",
+ "forge-colors",
  "forge-containers",
  "forge-core",
  "forge-db",
  "forge-debug",
+ "forge-diff",
+ "forge-editing",
+ "forge-emmet",
+ "forge-file-templates",
  "forge-filetypes",
  "forge-forges",
  "forge-fuzzy",
+ "forge-injections",
+ "forge-jsonschema",
  "forge-keymap",
  "forge-langservers",
+ "forge-livetemplates",
  "forge-lsp",
  "forge-markdown",
  "forge-open",
@@ -2241,12 +2260,20 @@ dependencies = [
  "forge-process",
  "forge-project",
  "forge-remote",
+ "forge-save-actions",
+ "forge-scopes",
  "forge-scratches",
+ "forge-spell",
+ "forge-ssr",
+ "forge-text",
  "forge-update",
  "forge-vcs",
+ "forge-viewers",
+ "forge-vim",
  "forge-window",
  "futures-util",
  "luaforge-lang-lua",
+ "phpforge-composer",
  "phpforge-dql",
  "phpforge-fw-laravel",
  "phpforge-fw-symfony",
@@ -2260,12 +2287,10 @@ dependencies = [
  "tauri-plugin-dialog",
  "tauri-plugin-single-instance",
  "tauri-plugin-updater",
+ "tempfile",
  "tokio",
  "tracing",
  "tracing-subscriber",
- "webforge-fw-angular",
- "webforge-fw-react",
- "webforge-fw-vue",
  "webforge-lang-web",
 ]
 
@@ -2274,11 +2299,18 @@ name = "forge-backend"
 version = "0.1.0"
 dependencies = [
  "dirs 6.0.0",
+ "forge-codeintel",
  "forge-core",
+ "forge-diff",
+ "forge-find",
  "forge-langservers",
  "forge-lsp",
  "forge-process",
  "forge-project",
+ "forge-scopes",
+ "forge-search",
+ "forge-search-core",
+ "forge-ssr",
  "forge-vcs",
  "futures-util",
  "phpforge-dql",
@@ -2293,6 +2325,37 @@ dependencies = [
  "tempfile",
  "tokio",
  "tracing",
+ "webforge-fw-angular",
+ "webforge-fw-react",
+ "webforge-fw-vue",
+ "webforge-lang-web",
+]
+
+[[package]]
+name = "forge-bookmarks"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "forge-codeintel"
+version = "0.1.0"
+dependencies = [
+ "forge-file-templates",
+ "forge-fuzzy",
+ "forge-scopes",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "forge-codestyle"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -2301,10 +2364,14 @@ version = "0.1.0"
 dependencies = [
  "data-encoding",
  "forge-backend",
+ "forge-codeintel",
  "forge-core",
+ "forge-diff",
+ "forge-langservers",
  "forge-lsp",
  "forge-process",
  "forge-project",
+ "forge-ssr",
  "forge-vcs",
  "futures-util",
  "getrandom 0.3.4",
@@ -2330,6 +2397,13 @@ dependencies = [
  "tokio",
  "tracing",
  "yrs",
+]
+
+[[package]]
+name = "forge-colors"
+version = "0.1.0"
+dependencies = [
+ "serde",
 ]
 
 [[package]]
@@ -2408,6 +2482,40 @@ dependencies = [
 ]
 
 [[package]]
+name = "forge-diff"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "tempfile",
+]
+
+[[package]]
+name = "forge-editing"
+version = "0.1.0"
+dependencies = [
+ "forge-bookmarks",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "forge-emmet"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "forge-file-templates"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "forge-filetypes"
 version = "0.1.0"
 dependencies = [
@@ -2419,7 +2527,8 @@ dependencies = [
 name = "forge-find"
 version = "0.1.0"
 dependencies = [
- "regex-lite",
+ "forge-scopes",
+ "regex",
  "serde",
  "serde_json",
 ]
@@ -2453,6 +2562,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "forge-injections"
+version = "0.1.0"
+dependencies = [
+ "forge-codeintel",
+ "regex-lite",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "forge-jsonschema"
+version = "0.1.0"
+dependencies = [
+ "flate2",
+ "regex-lite",
+ "reqwest 0.12.28",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "tempfile",
+ "tokio",
+]
+
+[[package]]
 name = "forge-keymap"
 version = "0.1.0"
 dependencies = [
@@ -2483,9 +2616,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "forge-livetemplates"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "toml 0.8.23",
+]
+
+[[package]]
 name = "forge-lsp"
 version = "0.1.0"
 dependencies = [
+ "forge-codeintel",
  "forge-core",
  "futures-util",
  "lsp-types",
@@ -2600,15 +2743,19 @@ version = "0.1.0"
 dependencies = [
  "dirs 6.0.0",
  "forge-backend",
+ "forge-codeintel",
  "forge-collab",
  "forge-core",
+ "forge-diff",
  "forge-langservers",
  "forge-lsp",
  "forge-process",
  "forge-project",
+ "forge-ssr",
  "forge-vcs",
  "phpforge-fw-laravel",
  "phpforge-fw-symfony",
+ "phpforge-lang-php",
  "phpforge-orm-doctrine",
  "serde",
  "serde_bytes",
@@ -2617,6 +2764,29 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
+ "webforge-lang-web",
+]
+
+[[package]]
+name = "forge-save-actions"
+version = "0.1.0"
+dependencies = [
+ "forge-backend",
+ "forge-core",
+ "forge-filetypes",
+ "forge-process",
+ "forge-text",
+ "serde",
+ "serde_json",
+ "tempfile",
+]
+
+[[package]]
+name = "forge-scopes"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -2634,10 +2804,79 @@ dependencies = [
 ]
 
 [[package]]
+name = "forge-search"
+version = "0.1.0"
+dependencies = [
+ "dirs 6.0.0",
+ "forge-core",
+ "forge-find",
+ "forge-fuzzy",
+ "forge-search-core",
+ "ignore",
+ "notify",
+ "rayon",
+ "regex",
+ "tempfile",
+ "thread-priority",
+ "tracing",
+ "tree-sitter",
+ "tree-sitter-javascript",
+ "tree-sitter-lua",
+ "tree-sitter-php",
+ "tree-sitter-typescript",
+]
+
+[[package]]
+name = "forge-search-core"
+version = "0.1.0"
+dependencies = [
+ "bincode",
+ "globset",
+ "nucleo-matcher",
+ "rayon",
+ "regex",
+ "regex-syntax",
+ "roaring",
+ "serde",
+]
+
+[[package]]
+name = "forge-spell"
+version = "0.1.0"
+dependencies = [
+ "flate2",
+ "forge-codeintel",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "forge-sql"
 version = "0.1.0"
 dependencies = [
  "hex",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "forge-ssr"
+version = "0.1.0"
+dependencies = [
+ "forge-scopes",
+ "regex",
+ "serde",
+ "serde_json",
+ "tree-sitter",
+ "tree-sitter-javascript",
+ "tree-sitter-php",
+ "tree-sitter-typescript",
+]
+
+[[package]]
+name = "forge-text"
+version = "0.1.0"
+dependencies = [
  "serde",
  "serde_json",
 ]
@@ -2661,28 +2900,71 @@ dependencies = [
  "forge-core",
  "serde",
  "serde_json",
+ "similar",
  "tempfile",
  "tracing",
+]
+
+[[package]]
+name = "forge-viewers"
+version = "0.1.0"
+dependencies = [
+ "base64 0.22.1",
+ "imagesize",
+ "regex-lite",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "forge-vim"
+version = "0.1.0"
+dependencies = [
+ "regex",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
 name = "forge-wasm"
 version = "0.1.0"
 dependencies = [
+ "base64 0.22.1",
  "forge-agent-cli",
+ "forge-bookmarks",
+ "forge-codeintel",
+ "forge-codestyle",
+ "forge-colors",
  "forge-containers",
+ "forge-diff",
+ "forge-editing",
+ "forge-emmet",
+ "forge-file-templates",
  "forge-filetypes",
  "forge-find",
  "forge-fuzzy",
+ "forge-injections",
+ "forge-jsonschema",
  "forge-keymap",
+ "forge-livetemplates",
  "forge-markdown",
  "forge-output",
  "forge-plugin-api",
  "forge-remote",
+ "forge-save-actions",
+ "forge-scopes",
  "forge-scratches",
+ "forge-search-core",
+ "forge-spell",
  "forge-sql",
+ "forge-ssr",
+ "forge-text",
+ "forge-vcs",
+ "forge-viewers",
+ "forge-vim",
  "forge-window",
  "luaforge-lang-lua",
+ "phpforge-composer",
  "phpforge-dql",
  "serde",
  "serde_json",
@@ -3504,7 +3786,7 @@ dependencies = [
  "tokio",
  "tower-service",
  "tracing",
- "windows-registry 0.6.1",
+ "windows-registry 0.5.3",
 ]
 
 [[package]]
@@ -3674,6 +3956,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "imagesize"
+version = "0.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "09e54e57b4c48b40f7aec75635392b12b3421fa26fe8b4332e63138ed278459c"
+
+[[package]]
 name = "indexmap"
 version = "1.9.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3817,9 +4105,9 @@ dependencies = [
 
 [[package]]
 name = "iroh-base"
-version = "1.3.0"
+version = "1.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6ae9092be76c9f5429776ab3394f5a5a78dc19dc2524267e884a5b9781546c3f"
+checksum = "43b72366b16001af3a51574233df88ca6d62da0215807549a769e7de887da803"
 dependencies = [
  "curve25519-dalek",
  "data-encoding",
@@ -3836,9 +4124,9 @@ dependencies = [
 
 [[package]]
 name = "iroh-dns"
-version = "1.3.0"
+version = "1.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "80276761b56e904e26ea71d0863beef0bb8d5ab6b639cbd1338e4b615209e3a1"
+checksum = "7481d0792dde1035a2b06ec06ed3cf6d01fcb1a494e6931b489e32073382048d"
 dependencies = [
  "arc-swap",
  "cfg_aliases 0.2.2",
@@ -4888,9 +5176,9 @@ dependencies = [
 
 [[package]]
 name = "noq"
-version = "1.3.0"
+version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b78be567e796cfa74bb9bdc4117790af2d505eb887019cf8803244353eb09d89"
+checksum = "6249a065adc1edbc1704a95436f38dd60476064dbc3b7c47cf279e02d1590eb5"
 dependencies = [
  "bytes",
  "cfg_aliases 0.2.2",
@@ -4910,9 +5198,9 @@ dependencies = [
 
 [[package]]
 name = "noq-proto"
-version = "1.3.0"
+version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7c1e5b6fe668491eca022f745a0a9402585626c73a7b839b3424ace15d6a9c8f"
+checksum = "c01a35be3ed37558c8db69554419f24eff8a63599b54f711bbe3863ec727c47d"
 dependencies = [
  "aes-gcm 0.10.3",
  "bytes",
@@ -4938,9 +5226,9 @@ dependencies = [
 
 [[package]]
 name = "noq-udp"
-version = "1.3.0"
+version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4dc50afea61aff926e150a36c31f06094608848e114a3fe667d76ec233163b1c"
+checksum = "8d0160422832eea1cc11c34be04ee6d5a046452b0b46cfb14695d55a1f24c954"
 dependencies = [
  "cfg_aliases 0.2.2",
  "libc",
@@ -4983,6 +5271,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7957b9740744892f114936ab4a57b3f487491bbeafaf8083688b16841a4240e5"
 dependencies = [
  "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "nucleo-matcher"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bf33f538733d1a5a3494b836ba913207f14d9d4a1d3cd67030c5061bdd2cac85"
+dependencies = [
+ "memchr",
+ "unicode-segmentation",
 ]
 
 [[package]]
@@ -5719,6 +6017,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "phpforge-composer"
+version = "0.1.0"
+dependencies = [
+ "dirs 6.0.0",
+ "forge-jsonschema",
+ "reqwest 0.12.28",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "tempfile",
+ "tokio",
+]
+
+[[package]]
 name = "phpforge-dql"
 version = "0.1.0"
 dependencies = [
@@ -5760,6 +6072,9 @@ name = "phpforge-lang-php"
 version = "0.1.0"
 dependencies = [
  "dirs 6.0.0",
+ "forge-codeintel",
+ "forge-file-templates",
+ "phpforge-composer",
  "rayon",
  "serde",
  "serde_json",
@@ -6667,6 +6982,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "72f81bee8c8ef9b577d1681a70ebbc962c232461e397b22c208c43c04b67a155"
 dependencies = [
  "rmp",
+ "serde",
+]
+
+[[package]]
+name = "roaring"
+version = "0.10.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "19e8d2cfa184d94d0726d650a9f4a1be7f9b76ac9fdb954219878dc00c1c1e7b"
+dependencies = [
+ "bytemuck",
+ "byteorder",
  "serde",
 ]
 
@@ -8705,6 +9031,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "thread-priority"
+version = "3.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8d2e834949be5111506bb252643498af1514f600d9e1dceedaa42afae155b67f"
+dependencies = [
+ "bitflags 2.13.2",
+ "cfg-if",
+ "libc",
+ "log",
+ "rustversion",
+ "windows",
+]
+
+[[package]]
 name = "thread_local"
 version = "1.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -9144,16 +9484,46 @@ dependencies = [
 ]
 
 [[package]]
+name = "tree-sitter-javascript"
+version = "0.23.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bf40bf599e0416c16c125c3cec10ee5ddc7d1bb8b0c60fa5c4de249ad34dc1b1"
+dependencies = [
+ "cc",
+ "tree-sitter-language",
+]
+
+[[package]]
 name = "tree-sitter-language"
 version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d0af592be68c579aa78a16846bd19422978c3c52e438523d45ff5d1bff1f9d4a"
 
 [[package]]
+name = "tree-sitter-lua"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5cdb9adf0965fec58e7660cbb3a059dbb12ebeec9459e6dcbae3db004739641e"
+dependencies = [
+ "cc",
+ "tree-sitter-language",
+]
+
+[[package]]
 name = "tree-sitter-php"
 version = "0.24.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0d8c17c3ab69052c5eeaa7ff5cd972dd1bc25d1b97ee779fec391ad3b5df5592"
+dependencies = [
+ "cc",
+ "tree-sitter-language",
+]
+
+[[package]]
+name = "tree-sitter-typescript"
+version = "0.23.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6c5f76ed8d947a75cc446d5fccd8b602ebf0cde64ccf2ffa434d873d7a575eff"
 dependencies = [
  "cc",
  "tree-sitter-language",

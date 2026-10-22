@@ -556,6 +556,21 @@ impl ProjectIndex {
 
     /// Classes (Go to Class) or every symbol (Go to Symbol) matching `query`.
     pub fn search(&self, query: &str, kind: SearchKind, limit: usize) -> Vec<SymbolHit> {
+        self.search_with(query, kind, limit, false)
+    }
+
+    /// [`ProjectIndex::search`], matching substrings instead of fuzzy when `exact` is set.
+    pub fn search_with(
+        &self,
+        query: &str,
+        kind: SearchKind,
+        limit: usize,
+        exact: bool,
+    ) -> Vec<SymbolHit> {
+        let opts = forge_fuzzy::MatchOptions {
+            exact,
+            ..forge_fuzzy::MatchOptions::STRICT
+        };
         let mut hits = Vec::new();
         let mut push = |name: &str,
                         kind: SymbolKind,
@@ -563,9 +578,7 @@ impl ProjectIndex {
                         path: &str,
                         pos: Pos,
                         deprecated: bool| {
-            if let Some(m) =
-                forge_fuzzy::fuzzy_match_with(query, name, forge_fuzzy::MatchOptions::STRICT)
-            {
+            if let Some(m) = forge_fuzzy::fuzzy_match_with(query, name, opts) {
                 hits.push(SymbolHit {
                     name: name.to_string(),
                     kind,
@@ -792,6 +805,16 @@ Game.reset()
             .search("len", SearchKind::Symbol, 10)
             .iter()
             .any(|h| h.kind == SymbolKind::Method && h.container == "Vec2"));
+    }
+
+    #[test]
+    fn exact_search_needs_a_substring() {
+        let p = project(&[("lib/vector.lua", VECTOR), ("util.lua", UTIL)]);
+        assert_eq!(
+            p.search_with("vec", SearchKind::Class, 10, true)[0].name,
+            "Vec2"
+        );
+        assert!(p.search_with("vc2", SearchKind::Class, 10, true).is_empty());
     }
 
     #[test]

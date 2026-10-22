@@ -5,6 +5,7 @@
  */
 import { TriangleAlert } from "lucide-solid";
 import { registerEditorExtension } from "@/editor/extensions";
+import { isLibraryPath } from "@/ipc/codeintel";
 import { registerToolWindow } from "@/features/registry";
 import { registerStatusItem } from "@/features/statusItems";
 import { registerCommand } from "@/state/commands";
@@ -14,6 +15,7 @@ import { gotoProblem, lspDiagnostics } from "./diagnostics";
 import { lspFormat, reformat } from "./format";
 import { gotoDeclaration, lspGoto } from "./goto";
 import { lspHover } from "./hover";
+import { lspInlayHints } from "./inlayHints";
 import { LspStatusItem } from "./LspStatusItem";
 import { activeView, trackView } from "./navigation";
 import { ProblemsView } from "./ProblemsView";
@@ -24,16 +26,23 @@ import "./lsp.css";
 
 startLspListeners();
 
-registerEditorExtension(({ path }) => [
-  trackView(path),
-  documentSync(path),
-  lspDiagnostics(path),
-  lspHover(path),
-  lspCompletion(path),
-  lspGoto(path),
-  lspSignatureHelp(path),
-  lspFormat(path),
-]);
+registerEditorExtension(({ path }) =>
+  // Read-only library files (PHP stubs) are not the servers' documents; navigation in them
+  // is answered from the stubs.
+  isLibraryPath(path)
+    ? [trackView(path), lspGoto(path)]
+    : [
+        trackView(path),
+        documentSync(path),
+        lspDiagnostics(path),
+        lspHover(path),
+        lspCompletion(path),
+        lspGoto(path),
+        lspSignatureHelp(path),
+        lspFormat(path),
+        lspInlayHints(path),
+      ],
+);
 
 registerToolWindow({
   id: "problems",
@@ -61,5 +70,5 @@ registerCommand({
   id: "ActivateProblemsViewToolWindow",
   title: "Problems",
   category: "Tool Windows",
-  run: () => showToolWindow("bottom", "problems"),
+  run: () => showToolWindow("problems"),
 });

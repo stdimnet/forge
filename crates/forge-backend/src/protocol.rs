@@ -16,22 +16,26 @@
 
 use std::path::PathBuf;
 
-use forge_core::search::FindRequest;
-use forge_core::{FsChanges, Result};
+use forge_codeintel::UsageOptions;
+use forge_core::search::{FindRequest, TodoRequest};
+use forge_core::{CollectRequest, FsChanges, Result};
 use forge_process::{CommandLine, PtyEvent, RunEvent};
 use forge_vcs::GitRequest;
 use phpforge_lang_php::generate::{GenerateKind, GenerateOptions};
+use phpforge_lang_php::hierarchy::HierarchyQuery;
 use phpforge_lang_php::index::SearchKind;
 use phpforge_lang_php::lsp::PhpLspSettings;
+use phpforge_lang_php::navigate::NavKind;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 
 use crate::frameworks::FrameworkCall;
-use crate::langservers::LangServersRequest;
+use crate::langservers::{InstallRequest, LangServersRequest};
+use crate::web::WebCall;
 use crate::TerminalSpec;
 
 /// Bumped on incompatible protocol changes; client and agent must agree.
-pub const PROTOCOL_VERSION: u32 = 2;
+pub const PROTOCOL_VERSION: u32 = 9;
 
 /// Frames larger than this are refused (protects both sides from garbage input).
 pub const MAX_FRAME: usize = 64 * 1024 * 1024;
@@ -93,6 +97,15 @@ pub enum Call {
         path: String,
         contents: String,
     },
+    /// -> `ByteBuf`: the raw bytes (files in other encodings than UTF-8). Protocol 4.
+    ReadBytes {
+        path: String,
+    },
+    /// -> `()`. Protocol 4.
+    WriteBytes {
+        path: String,
+        bytes: serde_bytes::ByteBuf,
+    },
     /// -> `()`
     CreateFile {
         path: String,
@@ -114,9 +127,40 @@ pub enum Call {
     FindFiles {
         query: String,
         limit: usize,
+        #[serde(default)]
+        exact: bool,
     },
     /// Find in Files -> `FindResult`
     FindInFiles(FindRequest),
+    /// Find in Files with the result kept on the agent for paging -> `FindPaged` (first rows)
+    FindStart {
+        req: FindRequest,
+        page_size: usize,
+    },
+    /// Rows `[offset, offset + count)` of the result `FindStart` returned `id` for
+    /// -> `Vec<FileMatches>`
+    FindPage {
+        id: u64,
+        offset: usize,
+        count: usize,
+    },
+    /// TODO tool window -> `TodoResult` (protocol 4)
+    FindTodos(TodoRequest),
+    /// The text of the project's files with some extensions (language indexes) ->
+    /// `Vec<SourceFile>`
+    CollectFiles(CollectRequest),
+    /// Every project file, at most `limit` (the Scopes page) -> `Vec<String>` (protocol 8)
+    ListFiles {
+        limit: usize,
+    },
+    /// Structural Search -> `SsrResult` (protocol 8)
+    StructuralSearch(forge_ssr::SsrRequest),
+    /// Compare Directories: the folder diff of two project folders -> `DirCompare`
+    /// (protocol 9)
+    CompareDirs {
+        left: String,
+        right: String,
+    },
     /// Run git on the agent's machine -> `GitOutput`
     Git(GitRequest),
     /// -> `ProjectInfo`
@@ -165,6 +209,34 @@ pub enum Call {
         args: Vec<String>,
     },
     Php(PhpCall),
+    /// Classes or symbols matching `query` -> `Vec<SymbolHit>`
+    FindSymbols {
+        query: String,
+        types_only: bool,
+        limit: usize,
+        skip_extensions: Vec<String>,
+        #[serde(default)]
+        exact: bool,
+    },
+    /// State of the project's search index -> `SearchStatus`
+    SearchStatus,
+    /// npm tool window and React / Vue / Angular analysis on the host -> the call's reply
+    /// type (see [`WebCall`])
+    Web(WebCall),
+    /// Install a language server on the host (Node.js and npm packages into the host's
+    /// Forge directories). Steps and progress arrive as [`Event::Install`] on `channel`;
+    /// closing the channel cancels it -> `InstallOutcome`
+    LangServerInstall {
+        channel: u32,
+        request: InstallRequest,
+    },
+    /// Newer versions of the npm servers Forge installed on the host ->
+    /// `Option<Vec<PackageUpdate>>`
+    LangServerUpdates {
+        registry: Option<String>,
+        node_mirror: Option<String>,
+        force: bool,
+    },
 }
 
 /// PHP index queries (see [`crate::PhpBackend`]).
@@ -177,6 +249,8 @@ pub enum PhpCall {
         query: String,
         kind: SearchKind,
         limit: usize,
+        #[serde(default)]
+        exact: bool,
     },
     /// -> `FileStructure`
     Structure {
@@ -204,6 +278,55 @@ pub enum PhpCall {
         options: GenerateOptions,
         content: Option<String>,
     },
+    /// -> `Option<PhpUsages>`
+    Usages {
+        path: String,
+        offset: usize,
+        /// The Find Usages options (protocol 7).
+        #[serde(default)]
+        options: UsageOptions,
+        content: Option<String>,
+    },
+    /// Highlight Usages in File -> `Option<HighlightAnswer>` (protocol 7)
+    Highlights {
+        path: String,
+        offset: usize,
+        content: Option<String>,
+    },
+    /// -> `Vec<NavTarget>`
+    Navigate {
+        path: String,
+        offset: usize,
+        kind: NavKind,
+        content: Option<String>,
+    },
+    /// -> `PhpDefinition`
+    Definition {
+        path: String,
+        offset: usize,
+        content: Option<String>,
+    },
+    /// -> `Vec<PhpLineMarker>`
+    LineMarkers {
+        path: String,
+        content: Option<String>,
+    },
+    /// -> `PhpHierarchy`
+    Hierarchy {
+        path: String,
+        offset: usize,
+        query: HierarchyQuery,
+        content: Option<String>,
+    },
+    /// -> `Vec<Intention>`
+    Intentions {
+        path: String,
+        offset: usize,
+        /// Code style and code templates (absent from older apps).
+        #[serde(default)]
+        options: GenerateOptions,
+        content: Option<String>,
+    },
     /// -> `Option<LspServerConfig>`
     LspConfig { settings: PhpLspSettings },
     /// -> `DetectedServers`
@@ -214,9 +337,23 @@ pub enum PhpCall {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Event {
     FsChanged(FsChanges),
-    Pty { channel: u32, event: PtyEvent },
-    Run { channel: u32, event: RunEvent },
-    PhpIndexProgress { done: usize, total: usize },
+    Pty {
+        channel: u32,
+        event: PtyEvent,
+    },
+    Run {
+        channel: u32,
+        event: RunEvent,
+    },
+    PhpIndexProgress {
+        done: usize,
+        total: usize,
+    },
+    /// A step, download progress or output line of [`Call::LangServerInstall`].
+    Install {
+        channel: u32,
+        event: forge_langservers::managed::Event,
+    },
 }
 
 /// Reply to [`Call::Hello`]: who and where the agent is.
@@ -421,6 +558,7 @@ mod tests {
                     env: vec![("A".into(), "b".into())],
                     cols: 80,
                     rows: 24,
+                    shell_integration: true,
                 },
             },
         });
@@ -442,6 +580,48 @@ mod tests {
                 custom: None,
             },
         });
+        roundtrip(Frame::Request {
+            id: 4,
+            call: Call::CollectFiles(CollectRequest {
+                extensions: vec!["lua".into()],
+                max_files: 10,
+                max_file_size: 1024,
+                max_total: 4096,
+            }),
+        });
+        roundtrip(Frame::Request {
+            id: 5,
+            call: Call::Web(WebCall::Gutter {
+                framework: "vue".into(),
+                path: "src/App.vue".into(),
+                content: "<template><Card/></template>".into(),
+            }),
+        });
+        roundtrip(Frame::Request {
+            id: 6,
+            call: Call::LangServerInstall {
+                channel: 12,
+                request: InstallRequest {
+                    target: crate::langservers::InstallTarget::Server {
+                        id: "intelephense".into(),
+                        index: 0,
+                    },
+                    registry: None,
+                    node_mirror: Some("https://mirror.example/node".into()),
+                },
+            },
+        });
+        roundtrip(Frame::Event(Event::Install {
+            channel: 12,
+            event: forge_langservers::managed::Event::progress("node.tar.xz", 10, Some(100)),
+        }));
+        roundtrip(Frame::Event(Event::Install {
+            channel: 12,
+            event: forge_langservers::managed::Event::Output {
+                stream: forge_langservers::install::Stream::Stderr,
+                line: "npm warn".into(),
+            },
+        }));
         roundtrip(Frame::Response {
             id: 7,
             result: Err("no such file".into()),

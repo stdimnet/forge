@@ -151,6 +151,7 @@ impl ServerLauncher for Fake {
                 stdout: Box::pin(client_in),
                 stderr: None,
                 process: Box::new(FakeProcess),
+                parent_pid: None,
             })
         })
     }

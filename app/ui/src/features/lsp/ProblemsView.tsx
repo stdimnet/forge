@@ -3,6 +3,7 @@
  * file -> problems tree. Clicking a problem opens the file at that position.
  */
 import { createMemo, createSignal, For, Show } from "solid-js";
+import { setToolWindowTab, toolWindowTab } from "@/state/layout";
 import { Dynamic } from "solid-js/web";
 import { ChevronDown, ChevronRight } from "lucide-solid";
 import { activeTab } from "@/state/editor";
@@ -12,10 +13,16 @@ import { diagnostics, filesWithProblems, sortDiagnostics } from "./store";
 import { revealLocation } from "./navigation";
 import { pluralize, severityIcon } from "./severity";
 import { baseName } from "./util";
+import { problemsTabs } from "./problemsTabs";
 
-export type ProblemsTab = "file" | "project";
+/** "file", "project" or the id of a registered tab (`registerProblemsTab`). */
+export type ProblemsTab = "file" | "project" | (string & {});
 
-const [tab, setTab] = createSignal<ProblemsTab>("file");
+const tab = (): ProblemsTab => {
+  const t = toolWindowTab("problems", "file");
+  return t === "project" || problemsTabs().some((x) => x.id === t) ? t : "file";
+};
+const setTab = (t: ProblemsTab) => setToolWindowTab("problems", t);
 const [collapsed, setCollapsed] = createSignal<Set<string>>(new Set());
 const [selected, setSelected] = createSignal<string | null>(null);
 
@@ -116,6 +123,22 @@ export function ProblemsView() {
             <span class="problems-count">{projectErrorCount()}</span>
           </Show>
         </button>
+        <For each={problemsTabs()}>
+          {(t) => (
+            <button
+              class="problems-tab"
+              classList={{ active: tab() === t.id }}
+              role="tab"
+              data-problems-tab={t.id}
+              onClick={() => setTab(t.id)}
+            >
+              {t.title}
+              <Show when={t.count?.()}>
+                <span class="problems-count">{t.count?.()}</span>
+              </Show>
+            </button>
+          )}
+        </For>
       </div>
       <div class="problems-tree">
         <Show when={tab() === "file"}>
@@ -132,6 +155,9 @@ export function ProblemsView() {
             <For each={projectErrors()}>{(f) => <FileNode path={f.path} diags={f.diags} />}</For>
           </Show>
         </Show>
+        <For each={problemsTabs()}>{(t) => <Show when={tab() === t.id}>
+              <Dynamic component={t.component} />
+            </Show>}</For>
       </div>
     </div>
   );

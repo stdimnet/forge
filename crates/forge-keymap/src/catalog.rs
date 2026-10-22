@@ -65,7 +65,8 @@ impl KeymapId {
     }
 }
 
-/// Where an action may fire: "editor" actions only while a code editor has focus.
+/// Where an action may fire: "editor" actions only while a code editor has focus, "diff"
+/// actions only inside a diff or merge window.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ActionContext {
@@ -73,6 +74,7 @@ pub enum ActionContext {
     Any,
     Editor,
     Toolwindow,
+    Diff,
 }
 
 /// An action as listed in Find Action and the keymap settings.
@@ -102,7 +104,7 @@ pub const ACTION_GROUP_ORDER: [&str; 5] = [
 
 /// Ids that Forge features already register under another name, plus common alternate
 /// spellings. The UI follows these when the PHPStorm id itself has no command.
-pub const ACTION_ALIASES: [(&str, &[&str]); 19] = [
+pub const ACTION_ALIASES: [(&str, &[&str]); 22] = [
     ("SearchEverywhere", &["search.everywhere"]),
     ("ShowSettings", &["settings.open"]),
     ("Run", &["run.run"]),
@@ -114,6 +116,9 @@ pub const ACTION_ALIASES: [(&str, &[&str]); 19] = [
     ("Vcs.UpdateProject", &["git.update"]),
     ("Git.Fetch", &["git.fetch"]),
     ("Git.CreateNewBranch", &["git.newBranch"]),
+    ("Git.Pull", &["git.update"]),
+    ("Git.CreateNewTag", &["Git.Tag"]),
+    ("Compare.SameVersion", &["git.showDiff"]),
     ("Vcs.Show.Log", &["git.log"]),
     ("Annotate", &["git.annotate"]),
     ("Generate", &["php.generate"]),
@@ -320,6 +325,8 @@ mod tests {
             "Meta+N", // New… / Generate (editor)
             "Alt+Insert",
             "Ctrl+Shift+Tab",
+            "F7", // Step Into / Next Difference (diff and merge windows)
+            "Shift+F7",
         ];
         for km in KeymapId::ALL {
             let non_native: Vec<(String, Vec<String>)> = c

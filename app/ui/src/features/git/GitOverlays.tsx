@@ -2,8 +2,12 @@
 import { createSignal, For, onCleanup, onMount, Show } from "solid-js";
 import { CircleAlert, CircleCheck, Info, X } from "lucide-solid";
 import { DiffViewer } from "./DiffViewer";
+import { ConflictsDialog } from "./ConflictsDialog";
+import { MergeWindow } from "./MergeWindow";
+import { conflictsOpen, mergeFile, setMergeFile } from "./conflicts";
 import { BranchesPopup } from "./BranchesPopup";
-import { blameCard, branchesOpen, diffRequest, inputDialog, setDiffRequest, setInputDialog, type InputDialog } from "./overlays";
+import { Chooser } from "./Chooser";
+import { blameCard, branchesOpen, chooserDialog, diffRequest, inputDialog, setDiffRequest, setInputDialog, type InputDialog } from "./overlays";
 import { dismissNotice, notices } from "./store";
 import { fullDate, timeAgo } from "./format";
 
@@ -13,7 +17,7 @@ function Dialog(props: { d: InputDialog }) {
   let input: HTMLInputElement | undefined;
   let okBtn!: HTMLButtonElement;
   const ok = async () => {
-    if (!props.d.noInput && !value().trim()) return;
+    if (!props.d.noInput && !props.d.optional && !value().trim()) return;
     setInputDialog(null);
     await props.d.onOk(value(), checked());
   };
@@ -53,7 +57,7 @@ function Dialog(props: { d: InputDialog }) {
           <button class="btn-secondary" onClick={() => setInputDialog(null)}>
             Cancel
           </button>
-          <button class="btn-primary" ref={okBtn} onClick={() => void ok()} disabled={!props.d.noInput && !value().trim()}>
+          <button class="btn-primary" ref={okBtn} onClick={() => void ok()} disabled={!props.d.noInput && !props.d.optional && !value().trim()}>
             {props.d.okLabel}
           </button>
         </footer>
@@ -65,6 +69,12 @@ function Dialog(props: { d: InputDialog }) {
 export function GitOverlays() {
   return (
     <>
+      <Show when={conflictsOpen()}>
+        <ConflictsDialog />
+      </Show>
+      <Show when={mergeFile()} keyed>
+        {(file) => <MergeWindow file={file} onClose={() => setMergeFile(null)} />}
+      </Show>
       <Show when={diffRequest()} keyed>
         {(req) => <DiffViewer request={req} onClose={() => setDiffRequest(null)} />}
       </Show>
@@ -88,6 +98,9 @@ export function GitOverlays() {
       </Show>
       <Show when={inputDialog()} keyed>
         {(d) => <Dialog d={d} />}
+      </Show>
+      <Show when={chooserDialog()} keyed>
+        {(d) => <Chooser d={d} />}
       </Show>
       <div class="balloons">
         <For each={notices()}>

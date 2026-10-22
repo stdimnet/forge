@@ -5,7 +5,7 @@
 import { createSignal, Show } from "solid-js";
 import { render } from "solid-js/web";
 import { ContextMenu, type MenuItem } from "@/features/database/ContextMenu";
-import { chooseDeclaration } from "@/features/navigation/chooseDeclaration";
+import { chooseDeclaration } from "@/features/navigation/declarationChooser";
 import type { WebLocation } from "@/ipc/web";
 
 type Popup = { kind: "menu"; x: number; y: number; items: MenuItem[] };

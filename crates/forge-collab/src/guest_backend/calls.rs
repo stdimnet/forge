@@ -13,6 +13,7 @@ use forge_backend::protocol::PhpCall;
 use forge_backend::FrameworkCall;
 use forge_core::search::FindRequest;
 use serde::{Deserialize, Serialize};
+use serde_bytes::ByteBuf;
 
 use crate::{Error, Result};
 
@@ -42,8 +43,17 @@ pub enum HostCall {
     Rename { from: String, to: String },
     /// Files Edit -> `()`
     Delete { path: String },
-    /// -> `Vec<FileMatch>`
-    FindFiles { query: String, limit: usize },
+    /// The file's raw bytes (other encodings than UTF-8) -> `ByteBuf`
+    ReadBytes { path: String },
+    /// Files Edit -> `()`
+    WriteBytes { path: String, bytes: ByteBuf },
+    /// -> `Vec<FileMatch>`; `exact` matches the query as a substring instead of fuzzy
+    FindFiles {
+        query: String,
+        limit: usize,
+        #[serde(default)]
+        exact: bool,
+    },
     /// -> `FindResult`
     FindInFiles(FindRequest),
     /// -> `ProjectInfo`
@@ -240,6 +250,8 @@ impl HostCall {
             HostCall::Open => "open",
             HostCall::ListDir { .. } => "list_dir",
             HostCall::ReadFile { .. } => "read_file",
+            HostCall::ReadBytes { .. } => "read_bytes",
+            HostCall::WriteBytes { .. } => "write_bytes",
             HostCall::ReadOptional { .. } => "read_optional",
             HostCall::WriteFile { .. } => "write_file",
             HostCall::CreateFile { .. } => "create_file",

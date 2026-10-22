@@ -15,12 +15,28 @@ Forge's rule of thumb is "Rust computes, TypeScript renders": logic lives in Rus
 ## User guide
 
 - [User guide overview](guide/user/index.md): all user topics
-- [Workbench](guide/user/workbench.md): main window, main menu, tool windows, editor tabs, status bar
-- [Editor](guide/user/editor.md): editing, completion, inspections, folding, multiple carets
+- [Workbench](guide/user/workbench.md): main window, main menu, tool windows, editor tabs and split editors, Recent Locations, Bookmarks, Find, TODO and Notifications tool windows, status bar
+- [Markdown, images and CSV](guide/user/markdown-images-csv.md): Markdown editor with live GitHub-flavored preview (Mermaid, tables, links, images, front matter, sync scroll), image editor (zoom, grid, chessboard), SVG preview, Edit as Table for CSV/TSV
+- [Editor](guide/user/editor.md): editing, completion, postfix completion, Complete Current Statement (Ctrl+Shift+Enter), Cyclic Expand Word (Alt+/), Quick Documentation (Ctrl+Q), Quick Definition, Go to Declaration, Find/Show Usages, Rename (Shift+F6), Show Context Actions (Alt+Enter), inspections, folding, multiple carets
+- [Emmet and color previews](guide/user/emmet-and-colors.md): Emmet abbreviations + Tab in HTML/Blade/Twig/Vue/PHP/JSX/CSS (`ul>li*3`, `m10`, `df`), abbreviation preview, Surround with Emmet, Update/Remove Tag, edit points (Alt+Shift+] / Alt+Shift+[), gutter color swatches and the color picker
+- [Sticky lines, breadcrumbs and Reader mode](guide/user/code-structure.md): Sticky Lines while scrolling, structure breadcrumbs (bottom/top, siblings), custom folding regions (`// region`, `#region`, `<!-- region -->`, `<editor-fold>`), rendered PHPDoc/JSDoc/LuaDoc comments (Ctrl+Alt+Q) and Reader mode for library files
+- [JSON Schema](guide/user/json-schema.md): validation (PHPStorm's messages), completion, hover and Go to Declaration from JSON schemas in JSON, JSON5 and YAML files; built-in schemas for composer.json, package.json, tsconfig, ESLint, Prettier, Docker Compose, GitHub Actions, GitLab CI; `$schema`, JSON Schema Mappings, status bar widget, remote schemas and the SchemaStore catalog
+- [Spelling and grammar](guide/user/spelling-and-grammar.md): Typo (green) and Grammar (blue) inspections in comments, strings, declared names, Markdown and commit messages, Alt+Enter Typo: Change to / Rename to, Save to project-level or application-level dictionary, custom Hunspell dictionaries, Settings | Editor | Natural Languages
+- [Actions on Save](guide/user/actions-on-save.md): Settings | Tools | Actions on Save: Reformat code (whole file or changed lines), Optimize imports, Rearrange code, code cleanup, eslint --fix, Prettier, PHP CS Fixer and Laravel Pint on Ctrl+S or autosave, one undo step
+- [Language injections](guide/user/language-injections.md): SQL/HTML/CSS/JSON/RegExp in PHP and JS strings, `// language=` comments, heredoc labels, Inject language or reference, Un-inject, Edit Fragment, Run SQL (Ctrl+Enter)
+- [Live templates](guide/user/live-templates.md): abbreviation + Tab, Insert Live Template (Ctrl+J), Surround With (Ctrl+Alt+T), Unwrap/Remove (Ctrl+Shift+Delete), Save as Live Template, PHP/JS/Lua/Twig/Laravel/Blade/Symfony sets
+- [File and code templates](guide/user/file-templates.md): New ▸ PHP Class/Interface/Trait/Enum with PSR-4 namespaces, framework, web and Lua file templates, the Alt+Insert New popup, Settings | Editor | File and Code Templates (Velocity syntax, variables, code templates of the Generate actions)
+- [Vim emulation](guide/user/vim-emulation.md): IdeaVim-style Vim emulation (Tools | Vim, Ctrl+Alt+V): Normal/Insert/Visual/Replace and command-line modes, motions, operators, text objects, registers incl. the clipboard, dot repeat, macros, marks, search, :s/:g/:normal and other ex commands, :set options, ~/.ideavimrc (set, map/noremap, let mapleader, :action and <Action>() mappings, sethandler), Settings | Editor | Vim shortcut conflicts
 - [Search Everywhere and navigation](guide/user/search-everywhere.md): Search Everywhere, Go to Class/File/Symbol, Find in Files
+- [Scopes and file colors](guide/user/scopes-and-file-colors.md): named scopes in PHPStorm's scope language, predefined scopes, file colors in tabs and the Project view
+- [Structural Search and Replace](guide/user/structural-search.md): templates with $variables$, filters, Replace All with preview
+- [Type, Method and Call Hierarchy](guide/user/hierarchies.md): the Hierarchy tool window: Type Hierarchy (Ctrl+H; class, supertypes, subtypes), Method Hierarchy (Ctrl+Shift+H) with defined / should define / inherited marks, Call Hierarchy (Ctrl+Alt+H; callers and callees with call sites), scopes, sorting, language servers and the PHP index
+- [Go to Test and Create Test](guide/user/go-to-test.md): Navigate | Test (Ctrl+Shift+T) between classes/modules and tests, Create New PHP Test / Create New Test dialog (PHPUnit, Pest, Vitest, Jest; PSR-4 autoload-dev, Laravel Unit/Feature, Symfony tests/)
+- [File Structure, Navigation Bar and Related Symbol](guide/user/navigation-bar-and-file-structure.md): File Structure popup (Ctrl+F12, Show Inherited), Navigation Bar (Alt+Home; Top, In Status Bar, Don't Show), Related Symbol (Ctrl+Alt+Home: tests, Laravel views/routes/migrations, Twig templates, component tests/stories/styles)
 - [Shortcuts by topic](guide/user/shortcuts/index.md): every implemented shortcut explained by area, with screenshots
-- [Keymap reference card](guide/user/shortcuts/reference-card.md): the 60 most important shortcuts on one page
-- [PHP](guide/user/php.md): the PHP index, Structure tool window, hover docs, Generate (Alt+Insert)
+- [Keymap reference card](guide/user/shortcuts/reference-card.md): the 62 most important shortcuts on one page
+- [PHP](guide/user/php.md): the PHP index, navigation (Ctrl+Click, usages, implementations, PHP stubs), Rename with the index fallback, Extract / Introduce (variable, constant, field, parameter, method) and Inline, PHP intentions, Structure tool window, hover docs, Generate (Alt+Insert)
+- [Composer](guide/user/composer.md): the composer.json toolbar (Install, Update, Validate, Show Outdated, Audit), outdated packages with the Update package quick fix, package and version completion from Packagist (cached, offline fallback), package hover, Manage Composer Dependencies (Tools | Composer | Add Dependency…), `composer audit` in the Problems tool window, composer.phar download with SHA-256 check
 - [Laravel](guide/user/laravel.md): Blade, routes, views, config, Eloquent, the Routes tool window and Run Artisan Command
 - [Symfony](guide/user/symfony.md) and [Doctrine](guide/user/doctrine.md): framework and ORM support
 - [WebForge](guide/user/webforge.md): HTML, CSS, JavaScript/TypeScript, Vue, React, Angular
@@ -51,7 +67,7 @@ Forge's rule of thumb is "Rust computes, TypeScript renders": logic lives in Rus
 - [Contribution points](guide/developer/contribution-points.md): tool windows, commands, settings pages, status items, editor extensions
 - [IPC commands and browser mocks](guide/developer/ipc-and-mocks.md) and [WASM bridge](guide/developer/wasm-bridge.md)
 - [Plugins and packs](guide/developer/plugins-and-packs.md), [Settings](guide/developer/settings.md), [Keymap actions](guide/developer/keymap-actions.md), [Adding a language](guide/developer/adding-a-language.md)
-- [Quality gates](guide/developer/quality-gates.md), [Screenshots](guide/developer/screenshots.md), [Git workflow](guide/developer/git-workflow.md), [Release builds](guide/developer/release-builds.md), [Versioning](guide/developer/versioning.md)
+- [Quality gates](guide/developer/quality-gates.md), [Screenshots](guide/developer/screenshots.md), [Git workflow](guide/developer/git-workflow.md), [Release builds](guide/developer/release-builds.md), [Versioning](guide/developer/versioning.md), [Search benchmark](guide/developer/search-benchmark.md)
 
 ## Optional
 

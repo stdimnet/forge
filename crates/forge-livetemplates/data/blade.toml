@@ -1,0 +1,66 @@
+# Blade live templates (active in Laravel projects).
+
+[group]
+name = "Blade"
+framework = "laravel"
+
+[[template]]
+abbreviation = "bextends"
+description = "@extends('')"
+contexts = ["BLADE"]
+text = "@extends('$LAYOUT$')$END$"
+variables = [{ name = "LAYOUT", defaultValue = '"layouts.app"' }]
+
+[[template]]
+abbreviation = "bforeach"
+description = "@foreach ... @endforeach"
+contexts = ["BLADE"]
+text = '''
+@foreach ($$$ITEMS$ as $$$ITEM$)
+    $END$
+@endforeach'''
+variables = [
+  { name = "ITEMS", defaultValue = '"items"' },
+  { name = "ITEM", expression = "suggestVariableName(ITEMS)", defaultValue = '"item"' },
+]
+
+[[template]]
+abbreviation = "bforelse"
+description = "@forelse ... @empty ... @endforelse"
+contexts = ["BLADE"]
+text = '''
+@forelse ($$$ITEMS$ as $$$ITEM$)
+    $END$
+@empty
+    $EMPTY$
+@endforelse'''
+variables = [
+  { name = "ITEMS", defaultValue = '"items"' },
+  { name = "ITEM", expression = "suggestVariableName(ITEMS)", defaultValue = '"item"' },
+  { name = "EMPTY" },
+]
+
+[[template]]
+abbreviation = "bif"
+description = "@if ... @endif"
+contexts = ["BLADE"]
+text = '''
+@if ($CONDITION$)
+    $END$
+@endif'''
+
+[[template]]
+abbreviation = "binclude"
+description = "@include('')"
+contexts = ["BLADE"]
+text = "@include('$VIEW$')$END$"
+
+[[template]]
+abbreviation = "bsection"
+description = "@section ... @endsection"
+contexts = ["BLADE"]
+text = '''
+@section('$NAME$')
+    $END$
+@endsection'''
+variables = [{ name = "NAME", defaultValue = '"content"' }]

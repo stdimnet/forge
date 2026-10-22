@@ -18,7 +18,9 @@ import {
   type SettingsDialogResult,
 } from "./dialogState";
 import { SettingsDialog } from "./SettingsDialog";
-import { SchemaPage } from "./SchemaPage";
+import { registerObjectSettingEditor, SchemaPage } from "./SchemaPage";
+import { TemplateDelimitersEditor } from "./TemplateDelimitersEditor";
+import { DELIMITERS_KEY } from "@/editor/templateDelimiters";
 import { PluginsPage } from "./PluginsPage";
 import { applySettingsToDocument } from "./apply";
 import { softWrapFor } from "@/editor/languages";
@@ -33,20 +35,23 @@ const schemaPages: SchemaPageDef[] = [
   { id: "appearance", title: "Appearance", group: "Appearance & Behavior", order: 0, keywords: ["theme", "dark", "light", "font"] },
   { id: "system", title: "System Settings", group: "Appearance & Behavior", order: 10, keywords: ["autosave", "startup", "exit"] },
   { id: "editor.general", title: "General", group: "Editor", order: 0 },
+  { id: "editor.tabs", title: "Editor Tabs", group: "Editor", parent: "editor.general", order: 0, keywords: ["tab limit", "closing policy", "pinned", "split"] },
   { id: "editor.font", title: "Font", group: "Editor", order: 10 },
-  { id: "editor.code-style", title: "Code Style", group: "Editor", order: 20, keywords: ["formatting"] },
-  { id: "editor.code-style.php", title: "PHP", group: "Editor", parent: "editor.code-style", order: 0, keywords: ["indent", "braces", "psr"] },
   { id: "editor.inlay-hints", title: "Inlay Hints", group: "Editor", order: 30, keywords: ["code vision"] },
+  { id: "editor.todo", title: "TODO", group: "Editor", order: 40, keywords: ["fixme", "patterns", "comments"] },
   { id: "vcs.git", title: "Git", group: "Version Control", order: 0, keywords: ["commit message"] },
   { id: "lang.php", title: "PHP", group: "Languages & Frameworks", order: 0, keywords: ["interpreter", "language level"] },
-  { id: "lang.php.composer", title: "Composer", group: "Languages & Frameworks", parent: "lang.php", order: 0 },
-  { id: "lang.templates", title: "Template Data Languages", group: "Languages & Frameworks", order: 50, keywords: ["twig", "smarty", "latte", "jinja", "latex", "delimiter"] },
+  { id: "lang.php.quality-tools", title: "Quality Tools", group: "Languages & Frameworks", parent: "lang.php", order: 1, keywords: ["php cs fixer", "php-cs-fixer", "laravel pint", "code style"] },
+  { id: "lang.templates", title: "Template Data Languages", group: "Languages & Frameworks", order: 50, keywords: ["twig", "smarty", "latte", "jinja", "go template", "latex", "delimiter"] },
   { id: "tools.terminal", title: "Terminal", group: "Tools", order: 0, keywords: ["shell"] },
+  { id: "tools.search", title: "Search", group: "Tools", order: 10, keywords: ["find in files", "matches", "limit"] },
 ];
 
 for (const page of schemaPages) {
   registerSettingsPage({ ...page, component: () => <SchemaPage pageId={page.id} /> });
 }
+
+registerObjectSettingEditor(DELIMITERS_KEY, TemplateDelimitersEditor);
 
 registerSettingsPage({
   id: "plugins",
@@ -62,8 +67,8 @@ registerCommand({ id: "settings.open", title: "Settings…", category: "File", r
 registerDialog<SettingsDialogProps, SettingsDialogResult>({
   id: SETTINGS_DIALOG,
   title: "Settings",
-  width: 900,
-  height: 640,
+  width: 1040,
+  height: 700,
   minWidth: 640,
   minHeight: 420,
   component: SettingsDialog,

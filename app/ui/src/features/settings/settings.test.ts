@@ -48,6 +48,8 @@ describe("applying settings", () => {
     "appearance.uiFont.size": 14,
     "appearance.compactMode": true,
     "appearance.showToolWindowBars": false,
+    "appearance.smoothScrolling": true,
+    "appearance.showToolWindowNumbers": false,
   };
   const get = <T,>(key: string) => values[key] as T;
 
@@ -57,7 +59,7 @@ describe("applying settings", () => {
     expect(vars["--font-mono"].startsWith('"Fira Code", "JetBrains Mono"')).toBe(true);
     expect(vars["--editor-ligatures"]).toBe("none");
     expect(vars["--fs-small"]).toBe("13px");
-    expect(rootFlags(get)).toMatchObject({ compact: true, hideStripes: true });
+    expect(rootFlags(get)).toMatchObject({ compact: true, hideStripes: true, smoothLists: true, toolWindowNumbers: false });
   });
 
   it("does not repeat the chosen font in the fallback stack", () => {

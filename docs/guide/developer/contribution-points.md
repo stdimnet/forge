@@ -44,6 +44,8 @@ On the Rust side, plugins contribute **data** through their manifest (see
 | `registerFileSystem` | `state/editor.ts` | editor tabs for a URI prefix (`scratch://`) |
 | `openCustomTab` | `state/editor.ts` | an editor tab that shows a feature view (`forge:<kind>/<id>`) |
 | `registerEditorView` | `shell/editorViews.ts` | non-file editor tabs opened with `openViewTab` (consoles, table editors) |
+| `registerFileEditor` | `shell/editorViews.ts` | an editor for some text files instead of the plain one (Markdown preview, SVG preview, CSV table) |
+| `registerBinaryFileView` | `state/editor.ts` | binary files that open as a view tab (images) |
 | `registerRunConfigurationType` | `features/run/types.ts` | a Run/Debug configuration type |
 | `registerDebugLauncher` | `features/run/types.ts` | a debugger for Debug (`Shift+F9`) |
 | `registerDialog` / `openDialogWindow` | `shell/window/dialogs.ts` | a large dialog in its own window |
@@ -61,8 +63,9 @@ registerToolWindow({
   id: "services",            // same id as a placeholder replaces it
   title: "Services",
   icon: Container,           // lucide-solid
-  anchor: "bottom",          // "left" | "right" | "bottom"
-  order: 30,                 // position in the stripe
+  anchor: "bottom",          // default place: "left" | "right" | "bottom"
+  split: false,              // optional: start in the split group (Left Bottom, Right Bottom, Bottom Right)
+  order: 30,                 // default position in the stripe group
   shortcut: "Alt+8",         // tooltip only; the binding comes from the keymap
   component: ServicesView,
   actions: () => <HeaderButtons />,   // optional header buttons
@@ -70,6 +73,11 @@ registerToolWindow({
   when: () => usesFramework("docker"), // optional: only for matching projects
 });
 ```
+
+Users can move every tool window to another place, reorder it or remove it from the sidebar
+(saved per project), so never assume a window sits at its `anchor`: open and check it with
+`showToolWindow(id)`, `toggleToolWindow(id)`, `hideToolWindow(id)` and `isToolWindowVisible(id)`
+from `state/layout.ts`.
 
 Recipe: [`add-tool-window`](../../../.claude/skills/add-tool-window/SKILL.md).
 
@@ -79,7 +87,7 @@ Recipe: [`add-tool-window`](../../../.claude/skills/add-tool-window/SKILL.md).
 import { registerCommand } from "@/state/commands";
 
 registerCommand({ id: "ActivateStructureToolWindow", title: "Structure", category: "View",
-  run: () => toggleToolWindow("left", "structure") });
+  run: () => toggleToolWindow("structure") });
 ```
 
 Use a PHPStorm action id when one exists: the command then gets PHPStorm's default shortcut and
@@ -148,9 +156,15 @@ When a provider finds several targets, show the shared popup instead of guessing
 ```ts
 import { chooseDeclarationAt } from "@/features/navigation/chooseDeclaration";
 
-chooseDeclarationAt(view, pos, targets /* { path, line, column?, preview? }[], 0-based */,
+chooseDeclarationAt(view, pos, targets /* { path, line, column?, preview?, name?, container? }[], 0-based */,
   { title: "Choose Declaration" });
 ```
+
+After the providers, Go to Declaration asks Rust (`code_goto_declaration`: language servers,
+then the PHP index and the PHP stubs). On a declaration the answer has `onDeclaration` and the
+UI shows the usages (`showUsagesAt` in `features/codeintel/usages.ts`); targets outside the
+project come as read-only `library://…` paths. Ctrl+hover asks `code_symbol_info` for the range
+to underline and the declaration for the tooltip.
 
 ## Main menu
 
@@ -224,11 +238,44 @@ in `dialog-windows.json`); in browser mode it opens in-page. The dialog ends wit
 - `openCustomTab({ id: "forge:mr/41", title: "#41 …", icon, component })` — feature views such as
   merge requests and issues. `activeTab()` stays file-only; check `isCustomTab(id)`.
 - `registerEditorView` + `openViewTab` — database consoles and table editors.
+- `registerFileEditor({ id, accepts(path), component })` (`shell/editorViews.ts`) — a richer
+  editor for some text files, like PHPStorm's file editor providers; the component gets the
+  tab and its editor group and usually embeds `CodeEditor` (Markdown and SVG with
+  `TextEditorWithPreview`, CSV/TSV with Text / Table tabs).
+- `registerBinaryFileView({ view, accepts(path) })` (`state/editor.ts`) — binary files that
+  `openFile` opens as a view tab without reading text (the image editor).
 - `registerFileSystem({ prefix: "scratch://", read, write, icon, breadcrumbs })` — files that
-  live elsewhere (scratches).
+  live elsewhere (scratches, read-only `library://` files: PHP stubs and files outside the
+  project, see `features/codeintel/library.ts`).
+
+## Editor groups and the Find tool window
+
+- Split editors keep one document per file (`state/editor.ts`, `editor.tabs`) and the tab
+  layout as plain data (`state/tabGroups.ts`: groups, pinned tabs, tab limit, closing
+  policy; tested in `tabGroups.test.ts`). Use `activeGroupId()`, `groupView(group)`,
+  `viewsOf(path)` and `openFileAt(path, line, column)`; never assume a single editor view.
+- `openInFindWindow(answer, { kind, title, header, rerun })` (`features/codeintel/usages.ts`)
+  pins results in the Find tool window (`Alt+3`): usages (`kind: "usages"`) or text matches
+  (`kind: "text"`, see `features/find/state.ts`). Next/Previous Occurrence walk the active tab.
+
+## Notifications
+
+`showBalloon(text, detail?, ms?, actions?, { group?, type?, log? })` (`@/keymap`) shows a
+balloon and logs it in the Notifications tool window (`state/notifications.ts`). Give a
+feature's balloons a group so users can make them sticky or log-only (Settings | Appearance &
+Behavior | Notifications, or the tool window's context menu):
+
+```ts
+const showBalloon = balloonsFor("Database"); // registers the group
+showBalloon("Database found in .env", "MySQL · shop@localhost", 0, [{ label: "Add data source", run }]);
+```
+
+`type` is `info` (default), `warning` or `error`; `log: false` is for transient hints
+("Path copied") that do not belong in the history.
 
 ## Project awareness
 
 Use `projectInfo()`, `usesFramework("laravel")` and `isPluginActive("forge.laravel")` from
 `src/state/project.ts` to activate a feature only when the project uses it, and
-`isRemoteProject()` from `state/workspace.ts` to hide local-only features.
+`isRemoteProject()` / `workspace()?.remote` from `state/workspace.ts` to name the host in the UI
+(features themselves work remotely through the project backend).

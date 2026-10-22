@@ -4,7 +4,8 @@
 //! (`~/.docker/contexts`), else the platform default (named pipe on Windows;
 //! `/var/run/docker.sock`, Docker Desktop's `~/.docker/run/docker.sock`, rootless
 //! `$XDG_RUNTIME_DIR/docker.sock` or Podman elsewhere). `ssh://user@host` daemons are reached
-//! through a forwarded Unix socket.
+//! through a forwarded Unix socket; the Docker daemon of a remote project's host through the
+//! project's own SSH connection ([`Endpoint::ProjectHost`]).
 
 use serde::{Deserialize, Serialize};
 
@@ -51,6 +52,15 @@ pub enum Endpoint {
         /// The Docker socket on the host.
         socket: String,
     },
+    /// The daemon on a remote project's host, reached through the project's SSH
+    /// connection; CLI commands (compose, exec) run on that host.
+    #[serde(rename_all = "camelCase")]
+    ProjectHost {
+        /// `user@host` of the project.
+        via: String,
+        /// The Docker socket on the host.
+        socket: String,
+    },
 }
 
 /// The Docker socket on SSH hosts unless the URL or the settings name another.
@@ -70,12 +80,15 @@ impl Endpoint {
                 format!("{}{socket}", self.docker_host())
             }
             Endpoint::Ssh { .. } => self.docker_host(),
+            Endpoint::ProjectHost { via, socket } => format!("ssh://{via}{socket}"),
         }
     }
 
     /// `-H` value for the docker CLI (exec, compose), so it talks to the same daemon.
     pub fn docker_host(&self) -> String {
         match self {
+            // The CLI runs on the project's host, next to the daemon.
+            Endpoint::ProjectHost { socket, .. } => format!("unix://{socket}"),
             Endpoint::Unix { path } => format!("unix://{path}"),
             Endpoint::NamedPipe { path } => format!("npipe://{}", path.replace('\\', "/")),
             Endpoint::Tcp { host, port, .. } => format!("tcp://{host}:{port}"),

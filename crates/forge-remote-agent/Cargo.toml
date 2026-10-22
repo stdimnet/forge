@@ -9,6 +9,11 @@ license.workspace = true
 name = "forge-remote-agent"
 path = "src/main.rs"
 
+[features]
+default = ["search"]
+# Keep a persistent search index of the open project on the agent.
+search = ["forge-backend/search"]
+
 [dependencies]
 forge-backend.workspace = true
 forge-core.workspace = true
@@ -26,11 +31,16 @@ serde_json.workspace = true
 
 [dev-dependencies]
 tempfile.workspace = true
+forge-diff.workspace = true
+forge-ssr.workspace = true
+forge-codeintel.workspace = true
+phpforge-lang-php = { path = "../../packs/phpforge/lang-php" }
 phpforge-fw-laravel = { path = "../../packs/phpforge/fw-laravel" }
 phpforge-fw-symfony = { path = "../../packs/phpforge/fw-symfony" }
 phpforge-orm-doctrine = { path = "../../packs/phpforge/orm-doctrine" }
 forge-langservers = { path = "../forge-langservers", default-features = false }
 forge-collab = { path = "../forge-collab", default-features = false, features = ["runtime"] }
+webforge-lang-web = { path = "../../packs/webforge/lang-web", default-features = false }
 
 # forge-lsp's fake language server, to test language servers started through the agent
 # (never shipped: `pnpm agents` builds only `forge-remote-agent`).

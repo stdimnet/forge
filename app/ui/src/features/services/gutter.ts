@@ -15,7 +15,7 @@ const COMPOSE = /(^|\/)(docker-)?compose(\.[\w.-]+)?\.ya?ml$/;
 const DOCKERFILE = /(^|\/)((Docker|Container)file(\.[\w.-]+)?|[\w.-]+\.(docker|container)file)$/i;
 
 async function run(m: GutterMarker, path: string): Promise<void> {
-  showToolWindow("bottom", "services");
+  showToolWindow("services");
   try {
     if (m.kind === "dockerfile") {
       selectNode("docker");

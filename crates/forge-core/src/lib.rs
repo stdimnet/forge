@@ -3,6 +3,7 @@
 pub mod error;
 pub(crate) mod gitignore;
 pub mod project_files;
+pub mod project_state;
 pub mod search;
 pub mod settings;
 pub mod watch;
@@ -10,7 +11,9 @@ pub mod workspace;
 
 pub use error::{ForgeError, Result};
 pub use project_files::{LocalFiles, MemoryFiles, ProjectFiles, SharedFiles};
-pub use search::{fuzzy_match, fuzzy_match_with, FileMatch, FuzzyMatch, MatchOptions};
+pub use search::{
+    fuzzy_match, fuzzy_match_with, CollectRequest, FileMatch, FuzzyMatch, MatchOptions, SourceFile,
+};
 pub use settings::{Settings, SettingsChange, SettingsScope};
 pub use watch::{FsChanges, ProjectWatcher};
 pub use workspace::{FileEntry, FileKind, Workspace};

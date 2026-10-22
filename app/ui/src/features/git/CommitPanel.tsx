@@ -12,16 +12,24 @@ import {
   RefreshCw,
   Settings,
   Sparkles,
+  TriangleAlert,
   Undo2,
 } from "lucide-solid";
 import { FileIcon } from "@/shell/FileIcon";
 import { openFile } from "@/state/editor";
 import { workspaceApi } from "@/ipc/workspace";
+import { textApi, type CommitMessageProblem } from "@/ipc/text";
+import { getSetting, saveSetting } from "@/state/settings";
+import { askChoice } from "@/features/contextMenu/dialogs";
+import { openSettings } from "@/features/settings/dialogState";
 import { displayStatus, gitApi, type StatusEntry } from "./api";
 import { notify, repositoryChanged, status } from "./store";
 import { commitChanges, confirmRollback, showDiff } from "./actions";
+import { setCommitSelectionSource } from "./context";
+import { openMerge, resolveConflicts } from "./conflicts";
 import { generateCommitMessage } from "./aiMessage";
 import { unifiedDiff } from "./textDiff";
+import { CommitSpellProblems, createCommitMessageCheck, SpellOverlay } from "@/features/spelling/commitMessage";
 
 // Panel state lives at module level so it survives hiding the tool window.
 const [message, setMessage] = createSignal("");
@@ -32,10 +40,55 @@ const [selected, setSelected] = createSignal<string | null>(null);
 const [collapsed, setCollapsed] = createSignal<Set<string>>(new Set());
 const [generating, setGenerating] = createSignal(false);
 const [busy, setBusy] = createSignal(false);
+const [problems, setProblems] = createSignal<CommitMessageProblem[]>([]);
 
 export { setMessage as setCommitMessage, message as commitMessage };
 
-const changes = () => (status()?.entries ?? []).filter((e) => e.worktree !== "untracked" && e.worktree !== "ignored");
+// Commit message inspections (Settings | Version Control | Git), computed in Rust while typing.
+createRoot(() => {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  createEffect(() => {
+    const text = message();
+    const rules = {
+      subjectMaxLength: getSetting<number>("vcs.git.commit.subjectMaxLength", 72),
+      blankLineAfterSubject: getSetting<boolean>("vcs.git.commit.blankLineAfterSubject", true),
+      bodyRightMargin: getSetting<number>("vcs.git.commit.bodyRightMargin", 72),
+    };
+    clearTimeout(timer);
+    if (!text.trim()) {
+      setProblems([]);
+      return;
+    }
+    timer = setTimeout(() => {
+      void textApi
+        .inspectCommitMessage(text, rules)
+        .then((p) => {
+          if (message() === text) setProblems(p);
+        })
+        .catch(() => setProblems([]));
+    }, 150);
+  });
+});
+
+/**
+ * "Warn if CRLF line separators are about to be committed": ask before committing files
+ * with CRLF separators (unless git converts them, see `git_crlf_files`).
+ */
+async function confirmLineSeparators(paths: string[]): Promise<boolean> {
+  if (!paths.length || !getSetting<boolean>("vcs.git.commit.warnOnCrlf", true)) return true;
+  const crlf = await gitApi.crlfFiles(paths).catch(() => [] as string[]);
+  if (!crlf.length) return true;
+  const list = crlf.slice(0, 5).join(", ") + (crlf.length > 5 ? ` and ${crlf.length - 5} more` : "");
+  const choice = await askChoice({
+    title: "Line Separators Warning",
+    message: `You are about to commit CRLF line separators (${list}). Setting the core.autocrlf Git attribute to true avoids line separator issues.`,
+    choices: [{ id: "commit", label: "Commit As Is" }],
+  });
+  return choice === "commit";
+}
+
+const changes = () => (status()?.entries ?? []).filter((e) => !e.conflict && e.worktree !== "untracked" && e.worktree !== "ignored");
+const conflicts = () => (status()?.entries ?? []).filter((e) => e.conflict);
 const unversioned = () => (status()?.entries ?? []).filter((e) => e.worktree === "untracked");
 
 // New tracked changes start checked, unversioned files unchecked (PHPStorm default).
@@ -46,7 +99,7 @@ createRoot(() =>
     const prev = known();
     const next = new Set(checked());
     const all = new Set(st.entries.map((e) => e.path));
-    for (const e of st.entries) if (!prev.has(e.path) && e.worktree !== "untracked") next.add(e.path);
+    for (const e of st.entries) if (!prev.has(e.path) && e.worktree !== "untracked" && !e.conflict) next.add(e.path);
     for (const p of next) if (!all.has(p)) next.delete(p);
     setKnown(all);
     setChecked(next);
@@ -161,6 +214,51 @@ function Group(props: { id: string; title: string; entries: StatusEntry[]; stron
   );
 }
 
+/** The "Merge Conflicts" node: unresolved files in red with a Resolve link, like PHPStorm. */
+function ConflictsGroup() {
+  const open = () => !collapsed().has("conflicts");
+  return (
+    <Show when={conflicts().length > 0}>
+      <div class="tree-row commit-group commit-conflicts" onClick={() => toggleCollapsed("conflicts")} style={{ "padding-left": "8px" }}>
+        <span class="tree-chevron">{open() ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</span>
+        <span class="tree-label strong">Merge Conflicts</span>
+        <span class="tree-hint">{plural(conflicts().length)}</span>
+        <button
+          class="link-btn commit-resolve"
+          onClick={(e) => {
+            e.stopPropagation();
+            resolveConflicts();
+          }}
+        >
+          Resolve
+        </button>
+      </div>
+      <Show when={open()}>
+        <For each={[...conflicts()].sort((a, b) => a.path.localeCompare(b.path))}>
+          {(e) => (
+            <div
+              class="tree-row commit-row"
+              classList={{ selected: selected() === e.path }}
+              style={{ "padding-left": "26px" }}
+              data-path={e.path}
+              onClick={() => setSelected(e.path)}
+              onDblClick={() => void openMerge(e.path)}
+              title={e.path}
+            >
+              <span class="tree-chevron" />
+              <FileIcon name={nameOf(e.path)} />
+              <span class="tree-label vcs-conflict">{nameOf(e.path)}</span>
+              <Show when={dirOf(e.path)}>
+                <span class="tree-hint">{dirOf(e.path)}</span>
+              </Show>
+            </div>
+          )}
+        </For>
+      </Show>
+    </Show>
+  );
+}
+
 const allPaths = () => [...changes(), ...unversioned()].map((e) => e.path);
 const checkedPaths = () => allPaths().filter((p) => checked().has(p));
 
@@ -190,6 +288,7 @@ async function doCommit(pushAfter: boolean) {
   if (busy()) return;
   setBusy(true);
   try {
+    if (!(await confirmLineSeparators(checkedPaths()))) return;
     const ok = await commitChanges({ message: message(), amend: amend(), paths: checkedPaths(), push: pushAfter });
     if (ok) {
       setMessage("");
@@ -213,15 +312,13 @@ async function toggleAmend(on: boolean) {
 
 export function CommitPanel() {
   const canCommit = () => !busy() && (checkedPaths().length > 0 || amend()) && message().trim().length > 0;
-  const total = () => changes().length + unversioned().length;
-  const onKey = (e: KeyboardEvent) => {
-    if (e.key.toLowerCase() === "d" && (e.ctrlKey || e.metaKey) && selected()) {
-      e.preventDefault();
-      void showDiff(selected()!, allPaths());
-    }
-  };
+  const total = () => conflicts().length + changes().length + unversioned().length;
+  let messageInput: HTMLTextAreaElement | undefined;
+  // Spelling and grammar of the message (Settings | Editor | Natural Languages).
+  const spellProblems = createCommitMessageCheck(message);
+  // Ctrl+D comes through the keymap (CompareTwoFiles → the Commit window's compare handler).
   return (
-    <div class="commit-panel" onKeyDown={onKey} tabIndex={-1}>
+    <div class="commit-panel" tabIndex={-1}>
       <div class="panel-toolbar">
         <button class="icon-btn" title="Refresh (Ctrl+F5)" onClick={() => void repositoryChanged()}>
           <RefreshCw size={15} />
@@ -249,7 +346,7 @@ export function CommitPanel() {
         <button
           class="icon-btn"
           title="Collapse All (Ctrl+NumPad -)"
-          onClick={() => setCollapsed(new Set(["changes", "unversioned"]))}
+          onClick={() => setCollapsed(new Set(["conflicts", "changes", "unversioned"]))}
         >
           <ChevronsDownUp size={15} />
         </button>
@@ -259,6 +356,7 @@ export function CommitPanel() {
           when={total() > 0}
           fallback={<div class="commit-empty">{status() ? "No changes" : "No Git repository for this project"}</div>}
         >
+          <ConflictsGroup />
           <Group id="changes" title="Changes" entries={changes()} strong />
           <Group id="unversioned" title="Unversioned Files" entries={unversioned()} />
         </Show>
@@ -289,22 +387,53 @@ export function CommitPanel() {
             </Show>
           </button>
         </div>
-        <textarea
-          placeholder="Commit Message"
-          value={message()}
-          spellcheck={false}
-          onInput={(e) => setMessage(e.currentTarget.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
-              e.preventDefault();
-              if (canCommit()) void doCommit(false);
-            }
-          }}
-        />
+        <div class="spell-textarea">
+          <textarea
+            ref={messageInput}
+            placeholder="Commit Message"
+            value={message()}
+            spellcheck={false}
+            onInput={(e) => setMessage(e.currentTarget.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                if (canCommit()) void doCommit(false);
+              }
+            }}
+          />
+          <SpellOverlay text={message()} problems={spellProblems()} textarea={() => messageInput} />
+        </div>
+        <Show when={problems().length || spellProblems().length}>
+          <ul class="commit-problems" data-commit-problems>
+            <For each={problems()}>
+              {(p) => (
+                <li title="Settings | Version Control | Git | Commit Message Inspections" onClick={() => openSettings("vcs.git")}>
+                  <TriangleAlert size={12} />
+                  <span>
+                    Line {p.line + 1}: {p.message}
+                  </span>
+                </li>
+              )}
+            </For>
+            <CommitSpellProblems
+              text={message()}
+              problems={spellProblems()}
+              onReplace={(r) => setMessage((m) => m.slice(0, r.from) + r.text + m.slice(r.to))}
+            />
+          </ul>
+        </Show>
         <div class="commit-options">
           <label class="commit-amend">
             <input type="checkbox" checked={amend()} onChange={(e) => void toggleAmend(e.currentTarget.checked)} />
             Amend
+          </label>
+          <label class="commit-amend" title="Add a Signed-off-by line (Settings | Version Control | Git)">
+            <input
+              type="checkbox"
+              checked={getSetting<boolean>("vcs.git.commit.signOff", false)}
+              onChange={(e) => void saveSetting("vcs.git.commit.signOff", e.currentTarget.checked)}
+            />
+            Sign-off
           </label>
           <Show when={generating()}>
             <span class="muted ai-status">Generating commit message…</span>
@@ -331,3 +460,11 @@ export function CommitPanel() {
 export function selectCommitFile(path: string): void {
   setSelected(path);
 }
+
+/** "Commit File…" / "Commit Directory…": include exactly these files in the next commit. */
+export function checkOnly(paths: string[]): void {
+  setChecked(new Set(paths));
+  if (paths.length) setSelected(paths[0]);
+}
+
+setCommitSelectionSource(selected, allPaths);

@@ -11,6 +11,7 @@ import {
   Star,
   Tag,
   Download,
+  X,
 } from "lucide-solid";
 import { FileIcon } from "@/shell/FileIcon";
 import { gitApi, type Branches, type Commit, type RefLabel } from "./api";
@@ -18,6 +19,8 @@ import { revision, status } from "./store";
 import { layoutGraph, type GraphRow } from "./graph";
 import { fullDate, logDate } from "./format";
 import { checkout, fetchAll, showCommitDiff } from "./actions";
+import { GitTabs, HistoryTabs } from "./FileHistoryPanel";
+import { activeGitTab } from "./history";
 
 const PAGE = 200;
 const LANE = 14;
@@ -25,6 +28,9 @@ const ROW = 26;
 
 const [filterRev, setFilterRev] = createSignal<string | null>(null);
 const [filterText, setFilterText] = createSignal("");
+/** Paths filter ("Show History" of a file or folder); `null` shows the whole repository. */
+const [filterPath, setFilterPath] = createSignal<string | null>(null);
+export { setFilterPath as setLogPathFilter };
 const [selectedSha, setSelectedSha] = createSignal<string | null>(null);
 export { setSelectedSha as selectLogCommit };
 
@@ -214,6 +220,7 @@ export function GitLogPanel() {
         all: rev === null,
         rev: rev,
         text: filterText() || null,
+        path: filterPath(),
       });
       setExhausted(page.length < PAGE);
       setCommits(reset ? page : [...commits(), ...page]);
@@ -226,7 +233,7 @@ export function GitLogPanel() {
   };
 
   createEffect(
-    on([filterRev, filterText, revision], () => {
+    on([filterRev, filterText, filterPath, revision], () => {
       void load(true);
       void refetchBranches();
     }),
@@ -248,11 +255,8 @@ export function GitLogPanel() {
 
   return (
     <div class="git-panel">
-      <div class="git-tabs">
-        <span class="git-tab active">Log</span>
-        <span class="git-tab">Console</span>
-      </div>
-      <div class="git-log">
+      <GitTabs />
+      <div class="git-log" classList={{ hidden: activeGitTab() !== "log" }}>
         <BranchTree branches={branches()} />
         <div class="log-main">
           <div class="panel-toolbar log-filters">
@@ -278,9 +282,19 @@ export function GitLogPanel() {
             <button class="pill-btn log-filter" title="Date filter">
               Date <ChevronDown size={12} class="muted" />
             </button>
-            <button class="pill-btn log-filter" title="Paths filter">
-              Paths <ChevronDown size={12} class="muted" />
-            </button>
+            <Show
+              when={filterPath() !== null}
+              fallback={
+                <button class="pill-btn log-filter" title="Paths filter">
+                  Paths <ChevronDown size={12} class="muted" />
+                </button>
+              }
+            >
+              <button class="pill-btn log-filter" title={`Paths: ${filterPath() || "/"} (click to clear)`} onClick={() => setFilterPath(null)}>
+                Paths: <b>{filterPath()!.split("/").pop() || "/"}</b>
+                <X size={12} class="muted" />
+              </button>
+            </Show>
             <span class="spacer" />
             <button class="icon-btn" title="Fetch All Remotes" onClick={() => void fetchAll()}>
               <Download size={15} />
@@ -329,6 +343,7 @@ export function GitLogPanel() {
         </div>
         <Details sha={selectedSha()} commit={selected()} />
       </div>
+      <HistoryTabs />
     </div>
   );
 }

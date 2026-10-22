@@ -171,3 +171,19 @@
   outline: 1px solid var(--accent);
   border-radius: 2px;
 }
+.find-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 10px 6px 14px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-panel);
+  font-size: var(--fs-small);
+}
+.find-open-window {
+  height: 24px;
+}
+.find-scope-select {
+  margin-left: 8px;
+}

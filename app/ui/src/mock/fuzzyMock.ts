@@ -12,5 +12,5 @@ registerMock("fuzzy_filter", async ({ request }) => callWasm((await wasm()).fuzz
 registerMock("search_rank", async ({ request }) => callWasm((await wasm()).search_rank, request));
 
 /** "Go to File" over a list of paths (the demo project instead of a file walk). */
-export const matchFiles = async (query: string, paths: string[], limit: number): Promise<FileMatch[]> =>
-  callWasm<FileMatch[]>((await wasm()).search_match_files, { query, paths, limit });
+export const matchFiles = async (query: string, paths: string[], limit: number, exact = false): Promise<FileMatch[]> =>
+  callWasm<FileMatch[]>((await wasm()).search_match_files, { query, paths, limit, exact });
