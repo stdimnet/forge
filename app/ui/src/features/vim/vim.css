@@ -1,0 +1,164 @@
+/* Vim emulation: block caret, search highlights, command line, status bar widget and the
+   Settings | Editor | Vim page. Colors come from theme.css variables. */
+
+/* Normal, Visual and Replace mode draw their own caret. */
+.cm-vim:not(.cm-vim-insert) .cm-cursorLayer {
+  display: none;
+}
+
+.cm-vim-cursor,
+.cm-vim-cursor * {
+  background: var(--fg);
+  color: var(--bg-editor) !important;
+}
+
+.cm-vim-cursor-eol {
+  display: inline-block;
+  width: 1ch;
+}
+
+.cm-editor:not(.cm-focused) .cm-vim-cursor,
+.cm-editor:not(.cm-focused) .cm-vim-cursor * {
+  background: transparent;
+  color: inherit !important;
+  outline: 1px solid var(--fg-muted);
+  outline-offset: -1px;
+}
+
+.cm-vim-cursor.cm-vim-cursor-replace,
+.cm-vim-cursor-replace * {
+  background: transparent;
+  color: inherit !important;
+  box-shadow: inset 0 -2px 0 var(--fg);
+}
+
+.cm-vim-search {
+  background: var(--accent-soft);
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
+}
+
+.cm-vim-nonumber .cm-lineNumbers {
+  display: none;
+}
+
+.cm-vim-bell {
+  outline: 1px solid var(--warning);
+  outline-offset: -1px;
+}
+
+.cm-panels .cm-vim-cmdline {
+  padding: 3px 8px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-panel);
+  color: var(--fg-strong);
+  font-family: var(--font-mono);
+  font-size: var(--fs-editor);
+  white-space: pre;
+}
+
+.cm-vim-cmdline-caret {
+  display: inline-block;
+  width: 1ch;
+  background: var(--fg);
+}
+
+/* Status bar */
+.status-item.vim-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.vim-status-mode {
+  font-weight: 600;
+  color: var(--fg-muted);
+}
+
+.vim-status[data-mode="insert"] .vim-status-mode {
+  color: var(--success);
+}
+
+.vim-status[data-mode^="visual"] .vim-status-mode {
+  color: var(--accent);
+}
+
+.vim-status[data-mode="replace"] .vim-status-mode {
+  color: var(--warning);
+}
+
+.vim-status-showcmd {
+  font-family: var(--font-mono);
+  color: var(--fg);
+}
+
+.vim-status-recording {
+  color: var(--danger);
+}
+
+.vim-status-message {
+  max-width: 420px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--fg);
+}
+
+.vim-status-message.error {
+  color: var(--danger);
+}
+
+/* Settings | Editor | Vim */
+.vim-rc-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+  color: var(--fg-muted);
+}
+
+.vim-handlers-toolbar {
+  display: flex;
+  gap: 6px;
+  margin: 4px 0 6px;
+}
+
+.vim-handlers-table {
+  border-collapse: collapse;
+  width: 100%;
+  max-width: 760px;
+  border: 1px solid var(--border);
+}
+
+.vim-handlers-table th,
+.vim-handlers-table td {
+  padding: 3px 8px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+
+.vim-handlers-table th {
+  background: var(--bg-panel);
+  color: var(--fg-muted);
+  font-weight: 500;
+}
+
+.vim-handlers-table tr:hover td {
+  background: var(--bg-hover);
+}
+
+.vim-handlers-key {
+  white-space: nowrap;
+  font-family: var(--font-mono);
+}
+
+.vim-handlers-rc {
+  margin-left: 8px;
+  color: var(--fg-faint);
+  font-family: var(--font-ui);
+  font-size: var(--fs-small);
+}
+
+.vim-handlers-table select {
+  width: 100%;
+}

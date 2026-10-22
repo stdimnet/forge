@@ -449,7 +449,8 @@ export function keymap_find_by_shortcut(json: string): string;
 export function keymap_format(json: string): string;
 
 /**
- * Resolve one `KeyInput` with the sync resolver → `Resolution`.
+ * Resolve one `KeyInput` with the sync resolver → `Resolution`. Keys that Vim emulation
+ * takes in the focused editor (`crate::vim::claims`) are left to the editor.
  */
 export function keymap_handle_key(input_json: string): string;
 
@@ -850,6 +851,57 @@ export function text_write(request_json: string): string;
 export function todo_scan(request_json: string): string;
 
 /**
+ * `{text}` → `{handle}`: start tracking an editor.
+ */
+export function vim_attach(json: string): string;
+
+/**
+ * `{enabled, handlers}` → `true`: apply the settings.
+ */
+export function vim_configure(json: string): string;
+
+/**
+ * `{handle}` → `true`: forget an editor.
+ */
+export function vim_detach(json: string): string;
+
+/**
+ * `{handle | null}` → `true`: the focused editor (null on blur).
+ */
+export function vim_focus(json: string): string;
+
+/**
+ * `{handlers}` → `HandlerRow[]`: the handler table with these settings (plus the rc file).
+ */
+export function vim_handlers(json: string): string;
+
+/**
+ * `{handle, event?, sync}` → `Response`. Without `event` it only syncs and continues
+ * queued keys (after the effects of a `resume` answer were performed).
+ */
+export function vim_key(json: string): string;
+
+/**
+ * `{text}` → `RcReport`: apply a `~/.ideavimrc`.
+ */
+export function vim_load_rc(json: string): string;
+
+/**
+ * `{text}` → `true`: the system clipboard changed (the `+` and `*` registers).
+ */
+export function vim_set_clipboard(json: string): string;
+
+/**
+ * `{handle}` → `Response`: the editor's mode and caret without a key.
+ */
+export function vim_state(json: string): string;
+
+/**
+ * `{handle, sync}` → `Response`: `timeoutlen` passed without a key.
+ */
+export function vim_timeout(json: string): string;
+
+/**
  * `{ framework, files, paths }` -> `Component[]`.
  */
 export function web_components(request_json: string): string;
@@ -1050,6 +1102,16 @@ export interface InitOutput {
     readonly text_read: (a: number, b: number, c: number) => void;
     readonly text_write: (a: number, b: number, c: number) => void;
     readonly todo_scan: (a: number, b: number, c: number) => void;
+    readonly vim_attach: (a: number, b: number, c: number) => void;
+    readonly vim_configure: (a: number, b: number, c: number) => void;
+    readonly vim_detach: (a: number, b: number, c: number) => void;
+    readonly vim_focus: (a: number, b: number, c: number) => void;
+    readonly vim_handlers: (a: number, b: number, c: number) => void;
+    readonly vim_key: (a: number, b: number, c: number) => void;
+    readonly vim_load_rc: (a: number, b: number, c: number) => void;
+    readonly vim_set_clipboard: (a: number, b: number, c: number) => void;
+    readonly vim_state: (a: number, b: number, c: number) => void;
+    readonly vim_timeout: (a: number, b: number, c: number) => void;
     readonly web_components: (a: number, b: number, c: number) => void;
     readonly web_goto: (a: number, b: number, c: number) => void;
     readonly web_gutter: (a: number, b: number, c: number) => void;

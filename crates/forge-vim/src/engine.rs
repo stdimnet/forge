@@ -169,6 +169,7 @@ pub struct Response {
     pub wait: bool,
     pub number: bool,
     pub relativenumber: bool,
+    pub scrolloff: usize,
     pub timeoutlen: u32,
 }
 
@@ -1016,6 +1017,7 @@ impl Vim {
             wait: out.wait,
             number: self.options.number,
             relativenumber: self.options.relativenumber,
+            scrolloff: self.options.scrolloff,
             timeoutlen: if self.options.timeout {
                 self.options.timeoutlen
             } else {
