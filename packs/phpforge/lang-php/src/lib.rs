@@ -32,6 +32,7 @@ pub mod imports;
 pub mod index;
 pub mod intentions;
 pub mod lsp;
+pub mod meta;
 pub mod model;
 pub mod navigate;
 pub mod offsets;
