@@ -275,6 +275,10 @@ Typos and grammar problems in comments, strings, names, text files and commit me
 inspections of their own (green and blue underlines, `Alt+Enter` for suggestions and the
 dictionaries); see [Spelling and grammar](spelling-and-grammar.md).
 
+JSON and YAML files with a JSON schema (`composer.json`, `package.json`, Compose files, CI
+pipelines, your own mappings) are checked against it, with schema-driven completion and hover;
+see [JSON Schema](json-schema.md).
+
 **Next Highlighted Error** `F2` and **Previous Highlighted Error** `Shift+F2` move the caret
 between problems.
 

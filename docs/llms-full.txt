@@ -672,6 +672,7 @@ not finished, the page says so.
 | [Actions on Save](docs/guide/user/actions-on-save.md) | Reformat code, Optimize imports, Rearrange code, code cleanup, ESLint, Prettier, PHP CS Fixer and Laravel Pint on save |
 | [Live templates](docs/guide/user/live-templates.md) | abbreviations + `Tab`, Insert Live Template, Surround With, Unwrap/Remove, Save as Live Template, template sets and settings |
 | [Emmet and color previews](docs/guide/user/emmet-and-colors.md) | Emmet abbreviations in HTML, Blade, Twig, Vue, PHP, JSX and CSS, abbreviation preview, Surround with Emmet, Update/Remove Tag, edit points, color swatches and the color picker |
+| [JSON Schema](docs/guide/user/json-schema.md) | validation, completion, hover and Go to Declaration from JSON schemas in JSON and YAML files: composer.json, package.json, tsconfig, ESLint, Prettier, Compose, GitHub Actions, GitLab CI, `$schema`, JSON Schema Mappings, the status bar widget, remote schemas |
 | [Spelling and grammar](docs/guide/user/spelling-and-grammar.md) | Typo and Grammar inspections in comments, strings, names, Markdown and commit messages, Alt+Enter suggestions, Rename to, project-level and application-level dictionaries, custom Hunspell dictionaries |
 | [Language injections](docs/guide/user/language-injections.md) | SQL, HTML, CSS, JSON and RegExp in PHP and JavaScript strings, `// language=` comments, Inject language or reference, Edit Fragment, Run SQL |
 | [File and code templates](docs/guide/user/file-templates.md) | New ▸ PHP Class and other templates, the New PHP Class dialog with PSR-4 namespaces, `Alt+Insert` New popup, Settings \| Editor \| File and Code Templates |
@@ -1359,6 +1360,10 @@ Bash, Python, Postfix and similar files) appear as:
 Typos and grammar problems in comments, strings, names, text files and commit messages are
 inspections of their own (green and blue underlines, `Alt+Enter` for suggestions and the
 dictionaries); see [Spelling and grammar](docs/guide/user/spelling-and-grammar.md).
+
+JSON and YAML files with a JSON schema (`composer.json`, `package.json`, Compose files, CI
+pipelines, your own mappings) are checked against it, with schema-driven completion and hover;
+see [JSON Schema](docs/guide/user/json-schema.md).
 
 **Next Highlighted Error** `F2` and **Previous Highlighted Error** `Shift+F2` move the caret
 between problems.
@@ -2428,6 +2433,170 @@ original color. With the caret outside a color, Show Color Picker inserts a new 
 
 ---
 
+Source: docs/guide/user/json-schema.md
+
+# JSON Schema
+
+Forge checks JSON and YAML files against a [JSON Schema](https://json-schema.org), like
+PHPStorm: properties a file must have, the types and values it allows, and the documentation
+of every key. Configuration files such as `composer.json`, `package.json`, Compose files and CI
+pipelines work out of the box; for your own formats you map a schema to the files.
+
+![Problems in composer.json](docs/screenshots/json-schema-problems.png)
+
+Everything is computed in Rust (`crates/forge-jsonschema`); the desktop app and browser mode
+behave the same, and remote projects read their schema files through the remote host. No
+language server is needed.
+
+## Which files
+
+- **JSON**, JSON with comments (`.jsonc`, `tsconfig.json`, `.eslintrc`) and JSON5 (unquoted
+  keys, single quotes, trailing commas).
+- **YAML**, including several documents in one file (`---`), anchors, aliases and `<<` merge keys.
+  Values with a custom tag (GitLab's `!reference [...]`, Compose's `!reset`) are not judged.
+
+## Problems
+
+The **Compliance with JSON schema** inspection reports problems as warnings (yellow); syntax
+errors stay red. They appear as you type, in the gutter, the scrollbar and the
+[Problems](docs/guide/user/editor.md#problems) tool window (`Alt+6`). The messages are PHPStorm's:
+
+| Message | When |
+| --- | --- |
+| Missing required property 'name' / Missing required properties 'a', 'b' | `required`; shown on the object's key (or its `{`) |
+| Incompatible types. Required: string. Actual: integer. | `type` (several types: "Required one of: …") |
+| Property 'x' is not allowed | `additionalProperties: false`, `unevaluatedProperties: false`, `propertyNames`, a `false` property schema |
+| Value should be one of: "dev", "alpha", "beta" | `enum` and `const` |
+| String violates the pattern: '…' | `pattern` (or the schema's `patternErrorMessage`) |
+| String is shorter than 2 / longer than 10 | `minLength`, `maxLength` |
+| Less than a minimum 1 / Greater than an exclusive maximum 10 / Is not multiple of 5 | `minimum`, `maximum`, `exclusiveMinimum`, `exclusiveMaximum`, `multipleOf` |
+| Array is shorter than 1 / longer than 3, Item is not unique, Additional items are not allowed | `minItems`, `maxItems`, `uniqueItems`, `items` / `prefixItems` / `additionalItems` |
+| Array does not contain an item that matches the 'contains' schema | `contains`, `minContains`, `maxContains` |
+| Number of properties is less than 1 / greater than 5 | `minProperties`, `maxProperties` |
+| Dependency is violated: property 'b' must be specified, since 'a' is specified | `dependencies`, `dependentRequired` |
+| Validates to more than one variant / Validates against 'not' schema | `oneOf`, `not` |
+| String violates the format 'email' | `format`: `date-time`, `date`, `time`, `email`, `ipv4`, `ipv6`, `uuid`, `uri` |
+| Property 'x' is deprecated: … | `deprecated: true` or `deprecationMessage` — a weak warning, struck through in completion |
+
+When none of the `anyOf`/`oneOf` alternatives matches, Forge reports the problems of the
+closest one, or one merged message when they differ only in type or value.
+
+The schema engine understands JSON Schema draft 4, 6, 7, 2019-09 and 2020-12: `$ref` (to the
+same file, other files and URLs), `$defs` / `definitions`, `$id`, `$anchor`, `allOf`, `anyOf`,
+`oneOf`, `not`, `if` / `then` / `else`, `dependentSchemas`, `patternProperties` and the
+keywords above. `$dynamicRef` and `$recursiveRef` are followed like `$ref`.
+
+## Completion
+
+`Ctrl+Space` (or just typing) offers what the schema allows at the caret:
+
+- **Property names**, required ones first and in bold, with their type and documentation.
+  Choosing one writes the key, the colon and a value template: `"name": "|"` for strings,
+  `{}` / `[]` for objects and arrays, the schema's `default`, and a comma when another property
+  follows. In YAML it writes `key: `, or `key:` with the next line indented for objects and
+  `- ` for lists. Properties already in the object are not offered again.
+- **Values**: `enum` values (with `enumDescriptions` / `markdownEnumDescriptions`), `const`,
+  `true` / `false`, `null`, the `default`, `examples`, and `{}` / `[]` in JSON. After choosing a
+  property whose value has choices, the popup opens again for the value.
+
+![Completion in composer.json](docs/screenshots/json-schema-completion.png)
+
+![Completion in a GitHub Actions workflow](docs/screenshots/json-schema-yaml.png)
+
+`anyOf` / `oneOf` alternatives and `if` / `then` / `else` are narrowed to the ones that fit
+what the file already contains (for example a `type` discriminator). Docker Compose and Symfony
+service files keep their own key completion and hover docs; their schema still validates them.
+
+## Documentation and navigation
+
+- **Hover** over a key shows its `title` and `markdownDescription` (or `description`); hovering
+  an enum value shows the description of that value.
+- **Go to Declaration** (`Ctrl+B`, `Ctrl+Click`) on a key opens the schema where the property
+  is declared. Bundled and downloaded schemas open read-only, with a banner saying where they
+  come from; a schema in the project opens as a normal file.
+
+![The documentation of a package.json key](docs/screenshots/json-schema-hover.png)
+
+## Which schema a file uses
+
+Forge picks the first match:
+
+1. **Your mappings** (see below) — they win over everything else.
+2. **The file's own schema**: `"$schema": "…"` at the top level of a JSON file, a `$schema:` key
+   or the `# yaml-language-server: $schema=…` modeline in YAML. A relative path is resolved
+   against the file's folder; a URL needs [remote schemas](#remote-schemas).
+3. **Built-in mappings**, with schemas bundled with Forge:
+
+   | Schema | Files |
+   | --- | --- |
+   | composer.json | `composer.json` |
+   | package.json | `package.json` |
+   | tsconfig.json | `tsconfig.json`, `tsconfig.*.json`, `tsconfig-*.json` |
+   | jsconfig.json | `jsconfig.json`, `jsconfig.*.json` |
+   | .eslintrc | `.eslintrc`, `.eslintrc.json`, `.eslintrc.yml`, `.eslintrc.yaml` |
+   | .prettierrc | `.prettierrc`, `.prettierrc.json`, `.prettierrc.json5`, `.prettierrc.yml`, `.prettierrc.yaml` |
+   | Docker Compose | `docker-compose.yml`, `docker-compose.*.yml`, `compose.yml`, `compose.*.yml` (and `.yaml`) |
+   | GitHub Workflow | `.github/workflows/*.yml`, `*.yaml` |
+   | GitHub Action | `action.yml`, `action.yaml` |
+   | GitLab CI | `.gitlab-ci.yml`, `*.gitlab-ci.yml` (and `.yaml`) |
+
+4. **The SchemaStore catalog** (schemastore.org), when remote schemas and the catalog are on:
+   hundreds of other well-known files such as `renovate.json`, `.babelrc` or Helm charts.
+
+### Status bar
+
+The status bar shows the schema of the active JSON or YAML file — `JSON schema: composer.json`,
+or `No JSON schema`. A warning sign means the schema could not be loaded (the tooltip says why,
+for example that downloads are off). Click it to pick another schema for the file: a built-in
+one, one of your mappings or **No JSON schema**. The choice is saved as a mapping of the project;
+**Edit Schema Mappings…** opens the settings.
+
+![Choosing a schema in the status bar](docs/screenshots/json-schema-status.png)
+
+## JSON Schema Mappings
+
+**Settings | Languages & Frameworks | Schemas and DTDs | JSON Schema Mappings** (`Ctrl+Alt+S`)
+lists your mappings on the left. For each one:
+
+- **Name** — shown in the status bar.
+- **Schema file or URL** — a path relative to the project root (`schemas/app.schema.json`), an
+  absolute path on this machine, or a URL. Leave it empty to turn schemas off for the files.
+- **Schema version** — Automatic (from the schema's `$schema`) or JSON Schema version 4, 6, 7,
+  2019-09 or 2020-12. The version decides where the drafts disagree (`items` as a list,
+  boolean `exclusiveMinimum`).
+- **Files** — `+` adds a file (`config/app.json`), a directory (`config/`, every file below
+  it) or a file path pattern (`*.app.json`, `config/**/*.yml`, `*.{yml,yaml}`). A pattern without
+  `/` matches the file name in any folder.
+
+Mappings are project settings (`jsonSchema.mappings` in `.forge/settings.toml`). The built-in
+mappings are listed below them.
+
+![JSON Schema Mappings](docs/screenshots/json-schema-settings.png)
+
+## Remote schemas
+
+**Settings | Languages & Frameworks | Schemas and DTDs | Remote JSON Schemas**:
+
+- **Allow downloading JSON schemas from remote sources** (`jsonSchema.remote.enabled`, off by
+  default). Schemas named by a URL — in `$schema`, a mapping or a `$ref` to another server — are
+  downloaded only when this is on. Built-in schemas never need a download.
+- **Use schemastore.org JSON Schema catalog** (`jsonSchema.remote.schemaStore`, on): look up
+  files without another schema in the catalog.
+
+Downloads are cached in `<cache dir>/forge/json-schemas/` (see
+[file locations](docs/guide/reference/file-locations.md)), never in the project, and refreshed once a
+day; offline, the cached copy is used. A schema that cannot be downloaded is retried after five
+minutes; until then its `$ref`s accept anything.
+
+## Language servers
+
+The JSON and YAML language servers validate with schemas too. While one of them runs for a
+file, Forge leaves problems, completion and hover of that file to the server, so nothing is
+reported twice; the status bar still shows the schema Forge would use.
+
+
+---
+
 Source: docs/guide/user/spelling-and-grammar.md
 
 # Spelling and grammar
@@ -3136,8 +3305,8 @@ respected.
 
 Highlighting is built in. Completion, hover and diagnostics for most languages come from a
 [language server](docs/guide/user/language-servers.md); Forge suggests installing one when a file uses a
-feature only a server provides (for example a JSON `$schema` or a YAML
-`# yaml-language-server: $schema=` modeline).
+feature only a server provides. JSON and YAML files are validated, completed and documented
+from their [JSON schema](docs/guide/user/json-schema.md) without a server.
 
 
 ---
@@ -3268,9 +3437,10 @@ WebForge, Vue to `forge.vue`, Lua to `forge.lua`) start only while that plugin i
 ## Install suggestions in the editor
 
 When a file uses something only a language server provides, and that server is not installed,
-a banner above the editor offers it, for example for a JSON file with `"$schema"` or a YAML file
-with a `# yaml-language-server: $schema=…` modeline: "The $schema of this file is not used: no
-validation, completion or documentation from it."
+a banner above the editor offers it. A JSON `"$schema"` or a YAML
+`# yaml-language-server: $schema=…` modeline needs no server: Forge validates, completes and
+documents such files itself (see [JSON Schema](docs/guide/user/json-schema.md)). While the JSON or YAML server
+runs for a file, Forge leaves schema problems, completion and hover to it.
 
 - **Install…** opens the install dialog.
 - **Not now** hides the banner until Forge restarts.
@@ -10409,6 +10579,23 @@ Page id `lang.lua`.
 | `lua.stylua.enabled` | bool | `true` | user | StyLua | Reformat Code with StyLua — Ctrl+Alt+L formats Lua files with StyLua when it is installed; stylua.toml in the project is honoured. |
 | `lua.stylua.path` | path | `stylua` | user | StyLua | StyLua executable |
 
+### Languages & Frameworks | Schemas and DTDs | JSON Schema Mappings
+
+Page id `lang.json-schema` (plugin `forge.json-schema`). See [JSON Schema](docs/guide/user/json-schema.md).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `jsonSchema.mappings` | objects | `[]` | user, project |  | JSON Schema mappings — `name`, `schema` (a project path, an absolute path or a URL; empty: no schema), `version` (`4`, `6`, `7`, `2019-09`, `2020-12` or empty for automatic) and `files` (one file, directory ending in `/` or pattern per line). |
+
+### Languages & Frameworks | Schemas and DTDs | Remote JSON Schemas
+
+Page id `lang.json-schema.remote` (plugin `forge.json-schema`).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `jsonSchema.remote.enabled` | bool | `false` | user |  | Allow downloading JSON schemas from remote sources — Schemas named by a URL ($schema, mappings, $ref) are downloaded into Forge's cache folder and refreshed daily. Built-in schemas are bundled and need no download. |
+| `jsonSchema.remote.schemaStore` | bool | `true` | user |  | Use schemastore.org JSON Schema catalog — Find schemas for other well-known files (renovate.json, .babelrc, Helm charts, ...) in the SchemaStore catalog. |
+
 ### Languages & Frameworks | Markdown
 
 Page id `lang.markdown`.
@@ -11086,6 +11273,7 @@ Forge uses the platform's standard folders (Rust's `dirs` crate):
 | Path | Content |
 | --- | --- |
 | `php-index/<project>-<hash>.json` | PHP index cache per project |
+| `json-schemas/<sha256 of the URL>.json` | downloaded JSON schemas and the SchemaStore catalog (only with remote JSON schemas allowed), refreshed daily |
 | `php-stubs/<version>/` | JetBrains phpstorm-stubs for Go to Declaration on PHP's own symbols (downloaded on first use, checked against a pinned digest of its files, with its `LICENSE`) |
 | `intelephense/` | Intelephense's storage (`storagePath`) |
 | `jdtls/…` | workspace data of the Java language server |
@@ -13002,6 +13190,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-forges](docs/guide/developer/crates/forge-forges.md) | Forge IDE code hosts: GitLab, Forgejo/Gitea and GitHub merge requests, issues and pipelines |
 | [forge-fuzzy](docs/guide/developer/crates/forge-fuzzy.md) | PHPStorm-style fuzzy matching and Search Everywhere ranking (pure, WebAssembly-friendly) |
 | [forge-injections](docs/guide/developer/crates/forge-injections.md) | Language injections: SQL, HTML, CSS, JSON and RegExp inside PHP and JavaScript/TypeScript strings, `// language=` comments, fragment escaping and the injection intentions (pure, WebAssembly-friendly) |
+| [forge-jsonschema](docs/guide/developer/crates/forge-jsonschema.md) | JSON Schema for JSON, JSON5/JSONC and YAML files: position-keeping parsers, a draft 4–2020-12 validator with PHPStorm's messages, completion, hover, Go to Declaration, schema mappings, bundled schemas and remote schema downloads |
 | [forge-keymap](docs/guide/developer/crates/forge-keymap.md) | PHPStorm-compatible keymap: shortcut model, default keymaps, overrides, conflicts and the key resolver |
 | [forge-langservers](docs/guide/developer/crates/forge-langservers.md) | Forge IDE: catalog, detection, configuration and installation of language servers |
 | [forge-livetemplates](docs/guide/developer/crates/forge-livetemplates.md) | Live templates: template sets, contexts, variables and expansion, Surround With and Unwrap/Remove (pure, WebAssembly-friendly) |
@@ -14284,6 +14473,89 @@ cargo test -p forge-injections
 
 ---
 
+Source: docs/guide/developer/crates/forge-jsonschema.md
+
+# forge-jsonschema
+
+`crates/forge-jsonschema` — JSON Schema for JSON, JSON5/JSONC and YAML files: position-keeping
+parsers, a validator with PHPStorm's messages, completion, hover, Go to Declaration, schema
+mappings, bundled schemas and remote schema downloads.
+
+## Purpose
+
+The logic behind [JSON Schema](docs/guide/user/json-schema.md) support. The crate is pure (no file
+system or network) and also runs in browser mode through `forge-wasm`; the `remote` cargo
+feature adds `remote::RemoteCache`, the download cache the desktop app uses. All public answers
+use UTF-16 offsets (CodeMirror positions); internally everything is byte offsets.
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `tree.rs` | The document tree both parsers produce: `Node { value, start, end, custom_tag }` with `Value::{Null, Bool, Number, String, Array, Object(Vec<Property>), Error}`; a `Property` keeps its key range, the colon and an optional value (a key being typed has none). |
+| `json.rs` | Tolerant JSON parser: comments, JSON5 (unquoted keys, single quotes, trailing commas, hex, `Infinity`), and unfinished input (`{"a": 1, "na` is a property `na` without colon). |
+| `yaml.rs` | Tolerant YAML parser: block mappings and sequences (`- key: v` compact items), flow collections, plain/quoted/block scalars, comments, documents, anchors, aliases, `<<` merge keys (reported at the `<<` key), tags (`!!str`; other tags mark the node as not judged). YAML 1.2 core schema scalars. |
+| `uri.rs` | `$id`/`$ref` resolution (RFC 3986 section 5), fragments, JSON pointer decoding; project files are `project:/<path>`. |
+| `schema.rs` | `SchemaDoc` (a parsed schema file with its `$id`s, anchors and external refs), `Registry` (loaded documents, aliases, failed URIs, `missing()`), `Sch` (a subschema with its base URI), `Draft`. |
+| `bundled.rs` | The bundled schemas (`schemas/*.json`, compressed by `build.rs`, parsed once) and the URLs they are published under. |
+| `validate.rs` | The validator: every keyword of draft 4–2020-12 (see the user page), best-branch reporting for `anyOf`/`oneOf`, evaluated properties/items for `unevaluated*`, ECMAScript patterns through `regex-lite`. |
+| `format.rs` | `format` checks: `date-time`, `date`, `time`, `email`, `ipv4`, `ipv6`, `uuid`, `uri`. |
+| `navigate.rs` | Schemas at a document path: `$ref`, `allOf`, the `anyOf`/`oneOf` branches compatible with the written value, `if`/`then`/`else`, `dependentSchemas`; `properties`/`patternProperties`/`additionalProperties`/`items` steps with the declaration's position. |
+| `complete.rs` | Completion contexts (JSON from the tree, YAML from indentation) and items: property names (required first) with value templates and commas, values (`enum`, `const`, booleans, `null`, `default`, `examples`, `{}`/`[]`). |
+| `mapping.rs` | Which schema a file uses: user mappings, `$schema` / the YAML modeline, built-in mappings, the SchemaStore catalog; glob matching. |
+| `remote.rs` | (`remote` feature) `RemoteCache`: downloads into `<cache dir>/forge/json-schemas/<sha256>.json`, fresh for a day, stale copies when offline. |
+| `lib.rs` | `validate`, `complete`, `hover`, `goto` on a registry and a root URI, `DocKind`, `load_bundled`. |
+
+## Main public items
+
+```rust
+pub fn validate(reg: &Registry, root_uri: &str, kind: DocKind, text: &str) -> Vec<ProblemOut>;
+pub fn complete(reg: &Registry, root_uri: &str, kind: DocKind, text: &str, offset: usize) -> Option<CompletionOut>;
+pub fn hover(reg: &Registry, root_uri: &str, kind: DocKind, text: &str, offset: usize) -> Option<HoverOut>;
+pub fn goto(reg: &Registry, root_uri: &str, kind: DocKind, text: &str, offset: usize) -> Vec<Target>;
+pub fn load_bundled(reg: &mut Registry, uri: &str) -> bool;
+pub mod mapping { pub fn select(path, text, kind, user: &[UserMapping], catalog: Option<&Catalog>) -> Option<Selection>; }
+impl Registry { pub fn insert(&mut self, doc: Arc<SchemaDoc>); pub fn missing(&self) -> Vec<String>; pub fn mark_failed(&mut self, uri: &str, error: String); }
+impl SchemaDoc { pub fn parse(uri: &str, location: &str, text: String) -> Result<SchemaDoc, String>; }
+```
+
+Loading is the caller's job: insert the root schema, then load what `Registry::missing()`
+lists (`$ref`s to other files) until it is empty; unloadable documents are marked failed and
+their refs accept anything.
+
+## Used by
+
+- IPC: `json_schema_validate`, `json_schema_complete`, `json_schema_hover`,
+  `json_schema_goto`, `json_schema_read`, `json_schema_builtins`
+  (`app/src-tauri/src/commands/json_schema.rs`: settings, project files through the backend,
+  remote downloads, parsed-schema caches).
+- UI: `app/ui/src/features/jsonSchema` (editor problems, completion, hover, Go to Declaration,
+  read-only `json-schema://` files, the status bar widget, the settings pages).
+- Browser mode: built into `forge-wasm` (`json_schema.rs`).
+
+## Bundled data
+
+`schemas/` holds the schemas of the built-in mappings, unmodified, with their licences in
+`schemas/NOTICE` and `schemas/LICENSE-APACHE-2.0`: SchemaStore's `package.json`,
+`tsconfig.json`, `jsconfig.json`, `eslintrc.json`, `prettierrc.json`, `github-workflow.json`
+and `github-action.json` and the Compose Specification's `compose-spec.json` (Apache-2.0);
+Composer's `composer.json` schema and GitLab's `gitlab-ci.json` (MIT).
+
+## Dependencies
+
+- External: `serde`, `serde_json`, `regex-lite` (`pattern`, `patternProperties`), `flate2`
+  (bundled schemas); with `remote`: `reqwest` (rustls), `sha2`, `tokio`. All MIT or Apache-2.0.
+
+## Tests
+
+`cargo test -p forge-jsonschema --features remote`: the parsers, URI resolution, every keyword,
+completion and hover in JSON and YAML, Go to Declaration, mappings and globs, the bundled
+schemas against composer.json, package.json, Compose, GitHub Actions and GitLab CI samples, and
+`RemoteCache` against a local HTTP server (no network).
+
+
+---
+
 Source: docs/guide/developer/crates/forge-keymap.md
 
 # forge-keymap
@@ -15544,6 +15816,7 @@ Rebuild the bundle with `pnpm --dir app/ui wasm` (output: `app/ui/src/wasm/pkg`)
 | `containers.rs` | Services tool window (`forge-containers`) for the browser-mode mock: the mock keeps a fake Docker daemon as Engine API JSON, compose files and a kubeconfig as text, and asks Rust for the models, the tree, the details pane, the gutter markers, command lines and pull progress, like the desktop app's hub. |
 | `editing.rs` | Editor actions (`forge-editing`): postfix templates and their expansion, Complete Current Statement and Cyclic Expand Word, mirroring the `editor_postfix_*`, `editor_complete_statement` and `editor_expand_word` commands. |
 | `emmet.rs` | Emmet (`forge-emmet`) and colors (`forge-colors`), mirroring the `emmet_*` and `colors_*` commands; the expand key, the abbreviation preview, color swatches and the color picker call them synchronously. |
+| `json_schema.rs` | JSON Schema (`forge-jsonschema`), mirroring the `json_schema_*` commands for the browser-mode mock: bundled schemas and the demo project's schema files (an answer with `needs` asks the mock for more files); no downloads. |
 | `spell.rs` | Spelling and grammar (`forge-spell`), mirroring `spell_inspect`, `spell_context_actions` and `spell_dictionaries` for the browser-mode mock (bundled dictionaries only). |
 | `filetypes.rs` | File type detection (`forge-filetypes`), mirroring the `filetypes_detect` IPC command. The desktop app builds the registry from its plugin manifests; browser mode loads the same manifests (the `builtinPlugins.json` snapshot) once with `filetypes_load`. |
 | `keymap.rs` | Keymap bridge (`forge-keymap`). |
@@ -15578,7 +15851,7 @@ pub fn bridge_version() -> String { … }
 
 ## Dependencies
 
-- Workspace crates: [`forge-agent-cli`](docs/guide/developer/crates/forge-agent-cli.md), [`forge-containers`](docs/guide/developer/crates/forge-containers.md), [`forge-colors`](docs/guide/developer/crates/forge-colors.md), [`forge-editing`](docs/guide/developer/crates/forge-editing.md), [`forge-emmet`](docs/guide/developer/crates/forge-emmet.md), [`forge-filetypes`](docs/guide/developer/crates/forge-filetypes.md), [`forge-find`](docs/guide/developer/crates/forge-find.md), [`forge-fuzzy`](docs/guide/developer/crates/forge-fuzzy.md), [`forge-keymap`](docs/guide/developer/crates/forge-keymap.md), [`forge-markdown`](docs/guide/developer/crates/forge-markdown.md), [`forge-output`](docs/guide/developer/crates/forge-output.md), [`forge-plugin-api`](docs/guide/developer/crates/forge-plugin-api.md), [`forge-remote`](docs/guide/developer/crates/forge-remote.md), [`forge-scratches`](docs/guide/developer/crates/forge-scratches.md), [`forge-spell`](docs/guide/developer/crates/forge-spell.md), [`forge-sql`](docs/guide/developer/crates/forge-sql.md), [`forge-viewers`](docs/guide/developer/crates/forge-viewers.md), [`forge-window`](docs/guide/developer/crates/forge-window.md), [`luaforge-lang-lua`](docs/guide/developer/crates/luaforge-lang-lua.md), [`phpforge-dql`](docs/guide/developer/crates/phpforge-dql.md), [`webforge-fw-angular`](docs/guide/developer/crates/webforge-fw-angular.md), [`webforge-fw-react`](docs/guide/developer/crates/webforge-fw-react.md), [`webforge-fw-vue`](docs/guide/developer/crates/webforge-fw-vue.md), [`webforge-lang-web`](docs/guide/developer/crates/webforge-lang-web.md)
+- Workspace crates: [`forge-agent-cli`](docs/guide/developer/crates/forge-agent-cli.md), [`forge-containers`](docs/guide/developer/crates/forge-containers.md), [`forge-colors`](docs/guide/developer/crates/forge-colors.md), [`forge-editing`](docs/guide/developer/crates/forge-editing.md), [`forge-emmet`](docs/guide/developer/crates/forge-emmet.md), [`forge-filetypes`](docs/guide/developer/crates/forge-filetypes.md), [`forge-find`](docs/guide/developer/crates/forge-find.md), [`forge-fuzzy`](docs/guide/developer/crates/forge-fuzzy.md), [`forge-jsonschema`](docs/guide/developer/crates/forge-jsonschema.md), [`forge-keymap`](docs/guide/developer/crates/forge-keymap.md), [`forge-markdown`](docs/guide/developer/crates/forge-markdown.md), [`forge-output`](docs/guide/developer/crates/forge-output.md), [`forge-plugin-api`](docs/guide/developer/crates/forge-plugin-api.md), [`forge-remote`](docs/guide/developer/crates/forge-remote.md), [`forge-scratches`](docs/guide/developer/crates/forge-scratches.md), [`forge-spell`](docs/guide/developer/crates/forge-spell.md), [`forge-sql`](docs/guide/developer/crates/forge-sql.md), [`forge-viewers`](docs/guide/developer/crates/forge-viewers.md), [`forge-window`](docs/guide/developer/crates/forge-window.md), [`luaforge-lang-lua`](docs/guide/developer/crates/luaforge-lang-lua.md), [`phpforge-dql`](docs/guide/developer/crates/phpforge-dql.md), [`webforge-fw-angular`](docs/guide/developer/crates/webforge-fw-angular.md), [`webforge-fw-react`](docs/guide/developer/crates/webforge-fw-react.md), [`webforge-fw-vue`](docs/guide/developer/crates/webforge-fw-vue.md), [`webforge-lang-web`](docs/guide/developer/crates/webforge-lang-web.md)
 - External: `serde`, `serde_json`, `wasm-bindgen`
 
 ## Tests

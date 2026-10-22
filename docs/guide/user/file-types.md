@@ -125,5 +125,5 @@ respected.
 
 Highlighting is built in. Completion, hover and diagnostics for most languages come from a
 [language server](language-servers.md); Forge suggests installing one when a file uses a
-feature only a server provides (for example a JSON `$schema` or a YAML
-`# yaml-language-server: $schema=` modeline).
+feature only a server provides. JSON and YAML files are validated, completed and documented
+from their [JSON schema](json-schema.md) without a server.
