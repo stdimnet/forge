@@ -170,6 +170,7 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Switcher | `Switcher` | `Ctrl+Tab`, `Ctrl+Shift+Tab` | `Ctrl+Tab`, `Ctrl+Shift+Tab` | yes |
 | Toggle Rendered View | `ToggleRenderedDocPresentation` | `Ctrl+Alt+Q` | `Ctrl+Alt+Q` | yes |
 | Compare Files | `CompareTwoFiles` | `Ctrl+D` | `Cmd+D` | — |
+| Compare with Clipboard | `CompareClipboardWithSelection` |  |  | — |
 | Inlay Hints | `ViewInplaceComments` |  |  | — |
 
 ### File > File Properties

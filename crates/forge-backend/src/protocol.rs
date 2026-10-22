@@ -35,7 +35,7 @@ use crate::web::WebCall;
 use crate::TerminalSpec;
 
 /// Bumped on incompatible protocol changes; client and agent must agree.
-pub const PROTOCOL_VERSION: u32 = 8;
+pub const PROTOCOL_VERSION: u32 = 9;
 
 /// Frames larger than this are refused (protects both sides from garbage input).
 pub const MAX_FRAME: usize = 64 * 1024 * 1024;
@@ -155,6 +155,12 @@ pub enum Call {
     },
     /// Structural Search -> `SsrResult` (protocol 8)
     StructuralSearch(forge_ssr::SsrRequest),
+    /// Compare Directories: the folder diff of two project folders -> `DirCompare`
+    /// (protocol 9)
+    CompareDirs {
+        left: String,
+        right: String,
+    },
     /// Run git on the agent's machine -> `GitOutput`
     Git(GitRequest),
     /// -> `ProjectInfo`

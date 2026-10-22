@@ -19,6 +19,7 @@ forge-codeintel.workspace = true
 forge-search-core.workspace = true
 forge-search = { workspace = true, optional = true }
 forge-vcs.workspace = true
+forge-diff.workspace = true
 forge-process.workspace = true
 forge-lsp.workspace = true
 forge-project.workspace = true

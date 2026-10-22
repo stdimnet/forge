@@ -476,7 +476,7 @@ registerMock("git_show", async ({ rev, path }) => {
   const p = String(path);
   if (rev === "") return index[p] ?? null;
   if (rev === "HEAD" || resolveRev(String(rev)) === state.head) return head[p] ?? null;
-  return head[p] ?? null;
+  return revisionContent(String(rev), p);
 });
 registerMock("git_diff", async (a) => {
   const wt = await working();
@@ -826,3 +826,32 @@ registerMock("ai_complete", async ({ request }) => {
 
 /** Paths git tracks in the demo repository (HEAD plus the index), for the file tree. */
 export const trackedPaths = (): string[] => [...new Set([...Object.keys(head), ...Object.keys(index)])];
+
+/**
+ * A file as it was in an older demo commit: the HEAD lines blamed on that commit or an older
+ * one (`null` before the file was added). Keeps file history, Compare with Revision and
+ * Annotate Revision consistent with the blame data.
+ */
+export function revisionContent(rev: string, path: string): string | null {
+  const base = head[path];
+  const sha = resolveRev(rev);
+  const at = sha ? bySha.get(sha) : undefined;
+  if (base === undefined || !at) return base ?? null;
+  const oldest = commits.filter((c) => c.files.some((file) => file.path === path)).pop();
+  if (oldest && at.time < oldest.time) return null;
+  return revisionLines(path, at.time)
+    .map((l) => l.text)
+    .join("");
+}
+
+/** HEAD lines of `path` (with their line breaks and 1-based HEAD numbers) that existed at `time`. */
+export function revisionLines(path: string, time: number): { text: string; line: number; sha: string }[] {
+  const base = head[path] ?? "";
+  const lines = base.match(/[^\n]*\n|[^\n]+$/g) ?? [];
+  return lines
+    .map((text, i) => ({ text, line: i + 1, sha: headLineCommit(path, i + 1) }))
+    .filter((l) => (bySha.get(l.sha)?.time ?? 0) <= time);
+}
+
+/** The demo repository for the history mocks (`gitHistoryMock.ts`). */
+export const mockRepo = { commits, bySha, head, state, log, ancestors, resolveRev, computeStatus };

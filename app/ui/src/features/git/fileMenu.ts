@@ -21,7 +21,7 @@ export function gitSubmenu(target: VcsTarget, entries: StatusEntry[]): MenuEntry
     entry("Annotate with Git Blame", "Annotate", s.fileTracked),
     entry("Show Diff", "Compare.SameVersion", s.changed.length > 0, "CompareTwoFiles"),
     entry("Compare with Revision…", "Compare.Selected", s.fileTracked),
-    entry("Compare with Branch…", "Git.CompareWithBranch", s.fileTracked),
+    entry("Compare with Branch…", "Git.CompareWithBranch", target.dir ? !s.ignored : s.fileTracked),
     entry("Show History", "Vcs.ShowTabbedFileHistory", target.dir ? !s.ignored : s.fileTracked),
     separator,
     entry("Rollback…", "ChangesView.Rollback", s.changed.length > 0),

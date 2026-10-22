@@ -191,6 +191,8 @@ export function fileMenuEntries(entry: FileEntry | null): MenuEntry[] {
   if (entry) entries.push(item("Rename…", () => void rename(entry), "RenameElement"), item("Delete…", () => void remove(entry), "$Delete"));
   // Other features (Git) add their submenus next to Reload from Disk, like PHPStorm.
   entries.push(separator, ...providedEntries("project", entry), item("Reload from Disk", () => refreshDirs([dir])));
+  // Compare With… / Compare Files below Reload from Disk, like PHPStorm.
+  entries.push(separator, ...providedEntries("project.compare", entry));
   return entries;
 }
 

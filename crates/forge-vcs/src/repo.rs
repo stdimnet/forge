@@ -1,6 +1,7 @@
 //! [`Repo`]: a git repository driven through the git command line.
 
 mod conflicts;
+mod history;
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;

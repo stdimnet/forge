@@ -32,6 +32,7 @@ forge-agent-cli = { path = "crates/forge-agent-cli" }
 forge-lsp = { path = "crates/forge-lsp" }
 forge-langservers = { path = "crates/forge-langservers" }
 forge-vcs = { path = "crates/forge-vcs" }
+forge-diff = { path = "crates/forge-diff" }
 forge-project = { path = "crates/forge-project" }
 forge-open = { path = "crates/forge-open" }
 forge-process = { path = "crates/forge-process" }

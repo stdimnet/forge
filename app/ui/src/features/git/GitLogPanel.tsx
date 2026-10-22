@@ -19,6 +19,8 @@ import { revision, status } from "./store";
 import { layoutGraph, type GraphRow } from "./graph";
 import { fullDate, logDate } from "./format";
 import { checkout, fetchAll, showCommitDiff } from "./actions";
+import { GitTabs, HistoryTabs } from "./FileHistoryPanel";
+import { activeGitTab } from "./history";
 
 const PAGE = 200;
 const LANE = 14;
@@ -253,11 +255,8 @@ export function GitLogPanel() {
 
   return (
     <div class="git-panel">
-      <div class="git-tabs">
-        <span class="git-tab active">Log</span>
-        <span class="git-tab">Console</span>
-      </div>
-      <div class="git-log">
+      <GitTabs />
+      <div class="git-log" classList={{ hidden: activeGitTab() !== "log" }}>
         <BranchTree branches={branches()} />
         <div class="log-main">
           <div class="panel-toolbar log-filters">
@@ -344,6 +343,7 @@ export function GitLogPanel() {
         </div>
         <Details sha={selectedSha()} commit={selected()} />
       </div>
+      <HistoryTabs />
     </div>
   );
 }
