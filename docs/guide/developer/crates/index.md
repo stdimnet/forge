@@ -22,6 +22,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-colors](forge-colors.md) | Color values in code: finding CSS colors (hex, rgb, hsl, hwb, named, Tailwind) in CSS, markup and script files, parsing and formatting them in their notation (pure, WebAssembly-friendly) |
 | [forge-containers](forge-containers.md) | Forge IDE containers: Docker Engine API, Docker Compose and Kubernetes for the Services tool window |
 | [forge-core](forge-core.md) | Forge IDE core: workspace, file system, settings and event bus |
+| [forge-diff](forge-diff.md) | Forge IDE comparisons: folder diff (Compare Directories), pure and WebAssembly-friendly |
 | [forge-db](forge-db.md) | Forge IDE database tools: data sources, introspection, query execution and data editing |
 | [forge-debug](forge-debug.md) | Forge IDE debugger: DBGp (Xdebug 3) server, path mappings and breakpoints |
 | [forge-editing](forge-editing.md) | Editor actions computed in Rust: postfix completion templates, Complete Current Statement and Cyclic Expand Word (pure, WebAssembly-friendly) |

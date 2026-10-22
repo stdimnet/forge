@@ -13,6 +13,7 @@ mod branch;
 #[cfg(feature = "git")]
 mod cmd;
 mod diff;
+mod history;
 mod log;
 #[cfg(feature = "git")]
 mod manage;
@@ -28,6 +29,9 @@ mod status;
 pub use blame::{parse_blame, Blame, BlameCommit};
 pub use branch::{parse_recent_checkouts, parse_refs, BranchInfo, Branches};
 pub use diff::{parse_diff, DiffLine, FileDiff, Hunk, LineKind};
+pub use history::{
+    parse_block_history, parse_file_history, BlockRevision, FileRevision, HistoryQuery,
+};
 pub use log::{
     parse_decorations, parse_log, parse_name_status, ChangedFile, Commit, CommitDetails, LogQuery,
     RefKind, RefLabel,

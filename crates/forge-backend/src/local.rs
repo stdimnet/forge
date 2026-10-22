@@ -311,6 +311,11 @@ impl Backend for LocalBackend {
         crate::ssr::search_workspace(&self.workspace, req)
     }
 
+    fn compare_dirs(&self, left: &str, right: &str) -> Result<forge_diff::DirCompare> {
+        let (l, r) = (self.resolve(left)?, self.resolve(right)?);
+        forge_diff::compare_trees(&l, &r).map_err(|e| forge_core::ForgeError::Other(e.to_string()))
+    }
+
     fn list_files(&self, limit: usize) -> Result<Vec<String>> {
         let mut files = self.workspace.list_files();
         files.sort();

@@ -1,6 +1,7 @@
 //! [`Repo`]: a git repository driven through the git command line.
 
 mod conflicts;
+mod history;
 mod ops;
 mod shelve;
 

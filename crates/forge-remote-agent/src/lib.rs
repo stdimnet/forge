@@ -223,6 +223,9 @@ impl Agent {
             Call::CollectFiles(req) => reply(self.backend()?.collect_files(&req)?),
             Call::ListFiles { limit } => reply(self.backend()?.list_files(limit)?),
             Call::StructuralSearch(req) => reply(self.backend()?.structural_search(&req)?),
+            Call::CompareDirs { left, right } => {
+                reply(self.backend()?.compare_dirs(&left, &right)?)
+            }
             Call::Git(req) => reply(LocalGit.exec(&req)?),
             Call::Detect => reply(self.backend()?.detect_project()?),
             Call::Watch => {

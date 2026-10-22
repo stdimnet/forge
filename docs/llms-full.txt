@@ -9015,6 +9015,95 @@ The **Git** tool window (`Alt+9`, bottom) has a **Log** tab with the commit grap
 - Select a commit to see its changed files; open their diffs from there.
 - **Fetch All Remotes** and **Refresh** (`Ctrl+F5`) in the toolbar.
 
+## File and folder history
+
+**Show History** (Git ▸ Current File, the editor's and the Project view's Git submenu) opens a
+**History: <name>** tab in the Git tool window, next to **Log**. For a file it lists every
+commit that changed it and follows renames (the old path is shown next to the message); for a
+folder, every commit that changed something below it.
+
+![File history](docs/screenshots/file-history.png)
+
+- The table has the commit message, author, date and hash. Below it are the full message and,
+  for a folder, the files the commit changed (click one to preview it).
+- The right side previews the file's change in the selected commit.
+- Toolbar and right-click menu:
+
+| Action | What it does |
+| --- | --- |
+| Show Diff (`Ctrl+D`, double-click) | the file's change in the commit in the diff viewer |
+| Compare with Local | the revision against your working copy (editable) |
+| Get | replaces your working copy with the revision, after a confirmation |
+| Annotate Revision | opens the file as it was in the revision, read-only, with its blame |
+| Checkout Revision | checks out the commit (detached HEAD) |
+| Copy Revision Number | copies the full hash |
+
+![History context menu](docs/screenshots/file-history-menu.png)
+
+Close a history tab with its **×** or a middle click.
+
+![Folder history](docs/screenshots/folder-history.png)
+
+### History for selection
+
+Select lines in the editor and choose **Show History for Selection** (Git ▸ Current File or the
+editor's Git submenu). The **History for Selection** tab lists the commits that changed those
+lines (`git log -L`, line numbers as in `HEAD`); the preview shows the block before and after
+each commit, so you can follow how it evolved.
+
+![History for selection](docs/screenshots/selection-history.png)
+
+### Annotate Revision
+
+**Annotate Revision** opens the file of that revision in a read-only editor tab named
+`User.php (49e9d6ef)` with the blame of the revision in the gutter.
+
+![Annotate Revision](docs/screenshots/annotate-revision.png)
+
+## Compare with Revision and Branch
+
+- **Compare with Revision…** lists the revisions of the file (renames followed) and compares
+  the picked one with your version.
+- **Compare with Branch…** picks a local or remote branch or a tag. For a file it opens the
+  diff; for a folder (Project view) it opens an editor tab with the files that differ between
+  the branch and the working tree. Double-click a file (or `Ctrl+D`) for its diff.
+- **Show Diff** is PHPStorm's Compare with the Same Repository Version: `HEAD` against your
+  version.
+
+## Compare files and folders
+
+In the Project view, select two files or two folders (`Ctrl`+click the second one) and press
+`Ctrl+D`, or right-click and choose **Compare Files** / **Compare Directories** (below Reload
+from Disk). With one entry selected the item is **Compare With…** and asks for the second file
+or folder in a **Select Path** dialog.
+
+![Select Path](docs/screenshots/compare-files.png)
+
+Two files open in the diff viewer; the right side can be edited and is saved when you close
+it. Two folders open a folder diff in an editor tab:
+
+![Compare Directories](docs/screenshots/compare-directories.png)
+
+- Every file and folder of both sides with size and date, and an indicator in the middle: `→`
+  only on the left, `≠` different, `=` equal, `←` only on the right. Folders can be collapsed.
+- The filter buttons in the toolbar show or hide each kind, with their counts.
+- Double-click a file (or `Ctrl+D`, **Compare Contents**) to open its diff.
+- **Copy to Right** / **Copy to Left** copy the selected file or folder to the other side
+  (folders are merged; replacing a different file asks first).
+- `.git`, `.hg` and `.svn` folders are not compared.
+
+The folders are read where the project is, so this works in remote projects too.
+
+![Compare Directories, light theme](docs/screenshots/compare-directories-light.png)
+
+## Compare with Clipboard
+
+**Compare with Clipboard** (View menu, editor context menu) compares the clipboard with the
+selected text, or with the whole file when nothing is selected; the whole file can then be
+edited in the diff viewer.
+
+![Compare with Clipboard](docs/screenshots/compare-with-clipboard.png)
+
 ## Code review
 
 Pull and merge requests, issues and CI pipelines of GitHub, GitLab and Forgejo/Gitea are in
@@ -9022,8 +9111,8 @@ Pull and merge requests, issues and CI pipelines of GitHub, GitLab and Forgejo/G
 
 ## Not available yet
 
-Get from VCS (clone), cherry-pick, interactive rebase, file history and Local History are not
-implemented yet.
+Get from VCS (clone), cherry-pick, interactive rebase and Local History are not implemented
+yet.
 
 
 ---
@@ -10723,6 +10812,7 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Switcher | `Switcher` | `Ctrl+Tab`, `Ctrl+Shift+Tab` | `Ctrl+Tab`, `Ctrl+Shift+Tab` | yes |
 | Toggle Rendered View | `ToggleRenderedDocPresentation` | `Ctrl+Alt+Q` | `Ctrl+Alt+Q` | yes |
 | Compare Files | `CompareTwoFiles` | `Ctrl+D` | `Cmd+D` | — |
+| Compare with Clipboard | `CompareClipboardWithSelection` |  |  | — |
 | Inlay Hints | `ViewInplaceComments` |  |  | — |
 
 ### File > File Properties
@@ -11327,7 +11417,8 @@ Tool windows, appearance toggles, documentation popups and recent files. Open it
 | Recent Files | `Ctrl+E` | `Cmd+E` | yes | Lists recently opened files and the tool windows; press again for recently edited files only. [More](docs/guide/user/workbench.md#recent-files-and-switcher) ([screenshot](docs/screenshots/docs-recent-files.png)) |
 | Recently Changed Files | — | — | yes | Lists recently edited files. [More](docs/guide/user/workbench.md#recent-files-and-switcher) |
 | Recent Locations | `Ctrl+Shift+E` | `Cmd+Shift+E` | yes | Lists recently visited and edited places with a code snippet each; press again for changed places only. [More](docs/guide/user/workbench.md#recent-locations) ([screenshot](docs/screenshots/recent-locations.png)) |
-| Compare with Clipboard | — | — | not yet | Not available yet; the entry is disabled. |
+| Compare With… | `Ctrl+D` | `Cmd+D` | yes | Compares the two files or folders selected in the Project view, or asks for the second one. [More](docs/guide/user/git.md#compare-files-and-folders) ([screenshot](docs/screenshots/compare-directories.png)) |
+| Compare with Clipboard | — | — | yes | Compares the clipboard with the selection or the whole file. [More](docs/guide/user/git.md#compare-with-clipboard) ([screenshot](docs/screenshots/compare-with-clipboard.png)) |
 | **Active Editor** | | | | submenu |
 | Active Editor › Soft-Wrap | — | — | not yet | Not available yet; the entry is disabled. |
 | Active Editor › Show Whitespaces | — | — | not yet | Not available yet; the entry is disabled. |
@@ -11605,11 +11696,11 @@ Commit, push, update, branches, the log and file actions. In projects without Gi
 | Current File › Commit File… | — | — | not yet | Not available yet; the entry is disabled. |
 | Current File › Add | — | — | not yet | Not available yet; the entry is disabled. |
 | Current File › Annotate with Git Blame | — | — | yes | Shows Git blame (author and date per line) in the editor gutter. [More](docs/guide/user/git.md#blame) ([screenshot](docs/screenshots/vcs-blame.png)) |
-| Current File › Show Diff | — | — | not yet | Not available yet; the entry is disabled. |
-| Current File › Compare with Revision… | — | — | not yet | Not available yet; the entry is disabled. |
-| Current File › Compare with Branch… | — | — | not yet | Not available yet; the entry is disabled. |
-| Current File › Show History | — | — | not yet | Not available yet; the entry is disabled. |
-| Current File › Show History for Selection | — | — | not yet | Not available yet; the entry is disabled. |
+| Current File › Show Diff | — | — | yes | Compares the file with the repository version (Compare with the Same Repository Version). [More](docs/guide/user/git.md#diff-viewer) |
+| Current File › Compare with Revision… | — | — | yes | Picks a revision of the file and compares it with your version. [More](docs/guide/user/git.md#compare-with-revision-and-branch) |
+| Current File › Compare with Branch… | — | — | yes | Compares the file with another branch; for a folder, lists the files that differ. [More](docs/guide/user/git.md#compare-with-revision-and-branch) |
+| Current File › Show History | — | — | yes | Opens a History tab of the file in the Git tool window. [More](docs/guide/user/git.md#file-and-folder-history) ([screenshot](docs/screenshots/file-history.png)) |
+| Current File › Show History for Selection | — | — | yes | Shows how the selected lines changed, revision by revision. [More](docs/guide/user/git.md#history-for-selection) ([screenshot](docs/screenshots/selection-history.png)) |
 | Current File › Rollback Lines | `Ctrl+Alt+Z` | `Cmd+Alt+Z` | not yet | Not available yet; the entry is disabled. |
 | Manage Remotes… | — | — | not yet | Not available yet; the entry is disabled. |
 | Clone… | — | — | not yet | Not available yet; the entry is disabled. |
@@ -14838,6 +14929,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-colors](docs/guide/developer/crates/forge-colors.md) | Color values in code: finding CSS colors (hex, rgb, hsl, hwb, named, Tailwind) in CSS, markup and script files, parsing and formatting them in their notation (pure, WebAssembly-friendly) |
 | [forge-containers](docs/guide/developer/crates/forge-containers.md) | Forge IDE containers: Docker Engine API, Docker Compose and Kubernetes for the Services tool window |
 | [forge-core](docs/guide/developer/crates/forge-core.md) | Forge IDE core: workspace, file system, settings and event bus |
+| [forge-diff](docs/guide/developer/crates/forge-diff.md) | Forge IDE comparisons: folder diff (Compare Directories), pure and WebAssembly-friendly |
 | [forge-db](docs/guide/developer/crates/forge-db.md) | Forge IDE database tools: data sources, introspection, query execution and data editing |
 | [forge-debug](docs/guide/developer/crates/forge-debug.md) | Forge IDE debugger: DBGp (Xdebug 3) server, path mappings and breakpoints |
 | [forge-editing](docs/guide/developer/crates/forge-editing.md) | Editor actions computed in Rust: postfix completion templates, Complete Current Statement and Cyclic Expand Word (pure, WebAssembly-friendly) |
@@ -15578,6 +15670,58 @@ pub use workspace::{FileEntry, FileKind, Workspace};
 
 ```sh
 cargo test -p forge-core
+```
+
+
+---
+
+Source: docs/guide/developer/crates/forge-diff.md
+
+# forge-diff
+
+`crates/forge-diff` — Forge IDE comparisons: folder diff (Compare Directories), pure and
+WebAssembly-friendly.
+
+## Purpose
+
+The folder diff of PHPStorm's Compare Directories (see the
+[user guide](docs/guide/user/git.md#compare-files-and-folders)). Text diffs of two files are
+computed by the diff viewer itself.
+
+- `compare_listings`: two listings (paths relative to the compared folders, a size and an
+  FNV-1a content digest per file) → rows in tree order (folders first, children after their
+  folder) with `equal`, `different`, `leftOnly` or `rightOnly`; a folder is equal when
+  everything below it is.
+- `list_tree` / `compare_trees`: read two folders on this machine (`.git`, `.hg`, `.svn`
+  skipped, symbolic links compared by their target, at most `MAX_ENTRIES` per side).
+
+## Main public items
+
+```rust
+pub fn compare_listings(left: &Listing, right: &Listing) -> DirCompare
+pub fn compare_trees(left: &Path, right: &Path) -> io::Result<DirCompare>
+pub fn list_tree(root: &Path, limit: usize) -> io::Result<Listing>
+pub struct DirDiffEntry { path, dir, depth, status: DiffStatus, left_size, right_size, left_modified, right_modified }
+```
+
+## Used by
+
+- `forge-backend`: `Backend::compare_dirs` (local: `compare_trees`; remote: the agent call
+  `CompareDirs`, protocol 9) and `compare::copy_entry` (Copy to Left / Right)
+- IPC: `compare_dirs`, `compare_copy` (`app/src-tauri/src/commands/compare.rs`)
+- Browser mode: `compare_dir_listings` in `forge-wasm` on the demo files
+
+## Dependencies
+
+- Workspace crates: none
+- External: `serde`
+
+## Tests
+
+Unit tests with fixture folders (every state, nesting, file against folder, limits).
+
+```sh
+cargo test -p forge-diff
 ```
 
 
@@ -17721,10 +17865,12 @@ The parsers and the three-way merge (`merge`) are pure and also build for WebAss
 | `branch.rs` | Branches and tags from `git for-each-ref`, plus recently checked out branches from the reflog. |
 | `cmd.rs` | Running the `git` executable. No shell is involved: arguments are passed as-is, so paths with spaces or quotes need no escaping on any platform. |
 | `diff.rs` | Parser for unified diffs as printed by `git diff`. |
+| `history.rs` | File, folder and selection history: `FileRevision`, `BlockRevision`, `HistoryQuery` and the parsers of `git log -z --name-status` and `git log -L` output. Pure. |
 | `log.rs` | Commit history: parser for a NUL/RS separated `git log` format, ref decorations and per-commit changed files. |
 | `merge.rs` | Three-way merge for the merge window: diff3 chunking of yours/base/theirs (`merge_three_way` → `MergeModel` with `left`/`right`/`both`/`conflict` chunks), word-level "Resolve Simple Conflicts" (`resolve_simple`), `auto_merge`, line separator helpers. Pure. |
 | `repo.rs` | `Repo`: every git operation of the IDE, through a `GitExec` (local or remote host). |
 | `repo/conflicts.rs` | Merge conflicts: unmerged files and their sides (`git ls-files -u`), the operation (merge, rebase, cherry-pick, revert, unstash) and pane titles, stage versions `:1:`/`:2:`/`:3:` (`merge_file`), Accept Yours/Theirs (`accept_conflict_side`). Yours is git's `theirs` in a rebase. |
+| `repo/history.rs` | Show History (`file_history`, `--follow` for files), Show History for Selection (`block_history`, `git log -L`), Annotate Revision (`blame_at`) and Compare with Branch on a folder (`changes_since`). |
 | `status.rs` | Parser for `git status --porcelain=v2 -z --branch`. |
 
 ## Main public items
@@ -17733,6 +17879,7 @@ The parsers and the three-way merge (`merge`) are pure and also build for WebAss
 pub use blame::{parse_blame, Blame, BlameCommit};
 pub use branch::{parse_recent_checkouts, parse_refs, BranchInfo, Branches};
 pub use diff::{parse_diff, DiffLine, FileDiff, Hunk, LineKind};
+pub use history::{parse_block_history, parse_file_history, BlockRevision, FileRevision, HistoryQuery};
 pub use log::{…};
 pub use status::{parse_status, FileState, RepoStatus, StatusEntry};
 pub use cmd::{GitExec, GitOutput, GitRequest, LocalGit};

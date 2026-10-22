@@ -41,7 +41,8 @@ Tool windows, appearance toggles, documentation popups and recent files. Open it
 | Recent Files | `Ctrl+E` | `Cmd+E` | yes | Lists recently opened files and the tool windows; press again for recently edited files only. [More](../../user/workbench.md#recent-files-and-switcher) ([screenshot](../../../screenshots/docs-recent-files.png)) |
 | Recently Changed Files | — | — | yes | Lists recently edited files. [More](../../user/workbench.md#recent-files-and-switcher) |
 | Recent Locations | `Ctrl+Shift+E` | `Cmd+Shift+E` | yes | Lists recently visited and edited places with a code snippet each; press again for changed places only. [More](../../user/workbench.md#recent-locations) ([screenshot](../../../screenshots/recent-locations.png)) |
-| Compare with Clipboard | — | — | not yet | Not available yet; the entry is disabled. |
+| Compare With… | `Ctrl+D` | `Cmd+D` | yes | Compares the two files or folders selected in the Project view, or asks for the second one. [More](../../user/git.md#compare-files-and-folders) ([screenshot](../../../screenshots/compare-directories.png)) |
+| Compare with Clipboard | — | — | yes | Compares the clipboard with the selection or the whole file. [More](../../user/git.md#compare-with-clipboard) ([screenshot](../../../screenshots/compare-with-clipboard.png)) |
 | **Active Editor** | | | | submenu |
 | Active Editor › Soft-Wrap | — | — | not yet | Not available yet; the entry is disabled. |
 | Active Editor › Show Whitespaces | — | — | not yet | Not available yet; the entry is disabled. |

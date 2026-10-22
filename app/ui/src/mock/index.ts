@@ -25,6 +25,8 @@ import "./ssrMock";
 import "./stacktraceMock";
 import "./workbenchMock";
 import "./gitMock";
+import "./gitHistoryMock";
+import "./compareMock";
 import "./phpMock";
 import "./codeintelMock";
 import "./refactorMock";

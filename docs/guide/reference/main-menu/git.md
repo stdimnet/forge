@@ -39,11 +39,11 @@ Commit, push, update, branches, the log and file actions. In projects without Gi
 | Current File › Commit File… | — | — | not yet | Not available yet; the entry is disabled. |
 | Current File › Add | — | — | not yet | Not available yet; the entry is disabled. |
 | Current File › Annotate with Git Blame | — | — | yes | Shows Git blame (author and date per line) in the editor gutter. [More](../../user/git.md#blame) ([screenshot](../../../screenshots/vcs-blame.png)) |
-| Current File › Show Diff | — | — | not yet | Not available yet; the entry is disabled. |
-| Current File › Compare with Revision… | — | — | not yet | Not available yet; the entry is disabled. |
-| Current File › Compare with Branch… | — | — | not yet | Not available yet; the entry is disabled. |
-| Current File › Show History | — | — | not yet | Not available yet; the entry is disabled. |
-| Current File › Show History for Selection | — | — | not yet | Not available yet; the entry is disabled. |
+| Current File › Show Diff | — | — | yes | Compares the file with the repository version (Compare with the Same Repository Version). [More](../../user/git.md#diff-viewer) |
+| Current File › Compare with Revision… | — | — | yes | Picks a revision of the file and compares it with your version. [More](../../user/git.md#compare-with-revision-and-branch) |
+| Current File › Compare with Branch… | — | — | yes | Compares the file with another branch; for a folder, lists the files that differ. [More](../../user/git.md#compare-with-revision-and-branch) |
+| Current File › Show History | — | — | yes | Opens a History tab of the file in the Git tool window. [More](../../user/git.md#file-and-folder-history) ([screenshot](../../../screenshots/file-history.png)) |
+| Current File › Show History for Selection | — | — | yes | Shows how the selected lines changed, revision by revision. [More](../../user/git.md#history-for-selection) ([screenshot](../../../screenshots/selection-history.png)) |
 | Current File › Rollback Lines | `Ctrl+Alt+Z` | `Cmd+Alt+Z` | not yet | Not available yet; the entry is disabled. |
 | Manage Remotes… | — | — | not yet | Not available yet; the entry is disabled. |
 | Clone… | — | — | not yet | Not available yet; the entry is disabled. |

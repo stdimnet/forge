@@ -234,6 +234,16 @@ async fn files_search_git_and_detection() {
         assert!(all.iter().any(|p| p == "app/Models/Order.php"), "{all:?}");
         assert!(all.iter().all(|p| !p.starts_with("vendor/")), "{all:?}");
 
+        // Compare Directories reads both folders on the agent's machine.
+        let diff = b.compare_dirs("app/Models", "vendor").unwrap();
+        let rows: Vec<(&str, forge_diff::DiffStatus)> = diff
+            .entries
+            .iter()
+            .map(|e| (e.path.as_str(), e.status))
+            .collect();
+        assert_eq!(rows, [("Order.php", forge_diff::DiffStatus::LeftOnly)]);
+        assert!(b.compare_dirs("app", "../outside").is_err());
+
         let info = b.detect_project().unwrap();
         assert!(info.uses("php"));
 
