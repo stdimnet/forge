@@ -125,6 +125,8 @@ pub fn run() {
             commands::editor::vcs_inspect_commit_message,
             commands::project_state::layout_load,
             commands::project_state::layout_save,
+            commands::project_state::layout_default_load,
+            commands::project_state::layout_default_save,
             commands::project_state::agent_history_list,
             commands::project_state::agent_history_load,
             commands::project_state::agent_history_save,
