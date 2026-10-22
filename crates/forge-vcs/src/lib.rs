@@ -10,10 +10,12 @@
 
 mod blame;
 mod branch;
+pub mod changelists;
 #[cfg(feature = "git")]
 mod cmd;
 mod diff;
 mod history;
+pub mod hunks;
 mod log;
 #[cfg(feature = "git")]
 mod manage;
@@ -44,8 +46,10 @@ pub use manage::{
 };
 pub use status::{parse_status, FileState, RepoStatus, StatusEntry};
 
+pub use changelists::{Changelist, ChangelistFile, ChangelistView, Changelists};
 #[cfg(feature = "git")]
 pub use cmd::{git_binary, set_git_program, GitExec, GitOutput, GitRequest, LocalGit};
+pub use hunks::ChangeHunk;
 pub use ops::{MergeOptions, OperationAction, PullOptions, RebaseOptions, ResetMode, TagOptions};
 pub use rebase::{
     ActionState, LogActionStates, RebaseAction, RebaseCommit, RebaseEntry, RebasePlan,
@@ -55,6 +59,8 @@ pub use repo::{
     parse_rebase_status, parse_unmerged, ConflictFile, ConflictSet, ConflictSide, MergeFile,
     MergeOperation, RemoteResult, Repo, RepoInfo, SideChange,
 };
+#[cfg(feature = "git")]
+pub use repo::{ApplyPatchResult, CommitFile, CommitOptions};
 #[cfg(feature = "git")]
 pub use repo::{OngoingOperation, OperationState, ShelfFileContents, StashFileContents};
 #[cfg(feature = "git")]

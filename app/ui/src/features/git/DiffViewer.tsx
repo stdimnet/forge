@@ -15,6 +15,7 @@ import { reloadOpenFiles, repositoryChanged } from "./store";
 import { showDiff } from "./actions";
 import type { DiffRequest } from "./overlays";
 import { lineDiffConfig } from "./lineDiff";
+import { partialCommitGutter } from "./partialGutter";
 
 const diffTheme = EditorView.theme({
   "&": { height: "auto" },
@@ -58,6 +59,7 @@ export function DiffViewer(props: { request: DiffRequest; onClose: () => void })
         doc: right,
         extensions: [
           ...base(req.editable),
+          ...(req.partial ? [partialCommitGutter(req.path)] : []),
           history(),
           keymap.of([...defaultKeymap, ...historyKeymap]),
           EditorView.updateListener.of(() => queueMicrotask(() => setCount(mv?.chunks.length ?? 0))),

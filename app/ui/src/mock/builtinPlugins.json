@@ -2120,6 +2120,112 @@
           "section": "Push",
           "project": false,
           "order": 30
+        },
+        {
+          "key": "vcs.changelists.createAutomatically",
+          "title": "Create changelists automatically",
+          "description": "Apply Patch and Unshelve put the changes into a new changelist named after the patch or the shelved changes.",
+          "type": "bool",
+          "default": true,
+          "group": "vcs.changelists",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "vcs.commit.reformat",
+          "title": "Reformat code",
+          "description": "Reformat the committed files with the code style before committing.",
+          "type": "bool",
+          "default": false,
+          "group": "vcs.commit",
+          "section": "Commit Checks",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "vcs.commit.rearrange",
+          "title": "Rearrange code",
+          "type": "bool",
+          "default": false,
+          "group": "vcs.commit",
+          "section": "Commit Checks",
+          "project": false,
+          "order": 1
+        },
+        {
+          "key": "vcs.commit.optimizeImports",
+          "title": "Optimize imports",
+          "type": "bool",
+          "default": false,
+          "group": "vcs.commit",
+          "section": "Commit Checks",
+          "project": false,
+          "order": 2
+        },
+        {
+          "key": "vcs.commit.analyze",
+          "title": "Analyze code",
+          "description": "Run the inspections on the committed files; errors and warnings ask Review or Commit Anyway.",
+          "type": "bool",
+          "default": false,
+          "group": "vcs.commit",
+          "section": "Commit Checks",
+          "project": false,
+          "order": 3
+        },
+        {
+          "key": "vcs.commit.checkTodo",
+          "title": "Check TODO",
+          "description": "Look for TODO items (Settings | Editor | TODO patterns) in the changed lines.",
+          "type": "bool",
+          "default": false,
+          "group": "vcs.commit",
+          "section": "Commit Checks",
+          "project": false,
+          "order": 4
+        },
+        {
+          "key": "vcs.commit.cleanup",
+          "title": "Cleanup",
+          "description": "Run code cleanup on the committed files.",
+          "type": "bool",
+          "default": false,
+          "group": "vcs.commit",
+          "section": "Commit Checks",
+          "project": false,
+          "order": 5
+        },
+        {
+          "key": "vcs.commit.runTests",
+          "title": "Run Tests",
+          "description": "Run the chosen run configuration before committing; failing tests ask Review or Commit Anyway.",
+          "type": "bool",
+          "default": false,
+          "group": "vcs.commit",
+          "section": "Advanced Commit Checks",
+          "project": false,
+          "order": 10
+        },
+        {
+          "key": "vcs.commit.testConfiguration",
+          "title": "Run configuration for Run Tests",
+          "type": "string",
+          "default": "",
+          "group": "vcs.commit",
+          "section": "Advanced Commit Checks",
+          "project": false,
+          "order": 11
+        },
+        {
+          "key": "vcs.commit.runHooks",
+          "title": "Run Git hooks",
+          "description": "Unchecked commits with --no-verify (pre-commit and commit-msg hooks are skipped).",
+          "type": "bool",
+          "default": true,
+          "group": "vcs.commit",
+          "section": "Git",
+          "project": false,
+          "order": 20
         }
       ],
       "lspServers": [],

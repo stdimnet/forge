@@ -23,6 +23,8 @@ pub struct PatchFile {
     pub binary: bool,
     /// Object id of the base version (`index <old>..<new>`), absent for new files.
     pub old_blob: Option<String>,
+    /// The old path of a renamed file (`rename from`).
+    pub old_path: Option<String>,
     /// The section text, from `diff --git` to the next one, with its line breaks.
     pub text: String,
 }
@@ -48,6 +50,7 @@ fn describe(text: String) -> PatchFile {
     let mut old_blob = None;
     let mut path: Option<String> = None;
     let mut minus: Option<String> = None;
+    let mut renamed_from: Option<String> = None;
     let header = text
         .lines()
         .next()
@@ -75,12 +78,16 @@ fn describe(text: String) -> PatchFile {
             if p != "/dev/null" {
                 minus = Some(unquote(p).trim_start_matches("a/").to_string());
             }
+        } else if let Some(p) = line.strip_prefix("rename from ") {
+            renamed_from = Some(unquote(p));
         } else if let Some(p) = line.strip_prefix("rename to ") {
             path = Some(unquote(p));
         } else if line.starts_with("Binary files ") {
             binary = true;
         }
     }
+    let old_path = renamed_from.or_else(|| minus.clone().filter(|m| path.as_ref() != Some(m)));
+    let old_path = old_path.filter(|_| status == PatchStatus::Modified);
     let path = path
         .or(minus)
         .unwrap_or_else(|| header_path(header).unwrap_or_default());
@@ -92,6 +99,7 @@ fn describe(text: String) -> PatchFile {
         status,
         binary,
         old_blob,
+        old_path,
         text,
     }
 }
@@ -239,6 +247,316 @@ fn hunk_old_range(h: &str) -> Option<(usize, usize)> {
     Some((start.parse().ok()?, len.parse().ok()?))
 }
 
+// ---- foreign patches, path prefixes and the Apply Patch preview ------------------------
+
+/// What a line of a patch is.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum LineRole {
+    /// File headers and anything between sections.
+    Header,
+    /// `@@` lines and the hunk body.
+    Hunk,
+}
+
+/// Classify every line of a patch (with its line break): hunk bodies are counted by their
+/// `@@ -a,b +c,d @@` lengths, so a removed line that starts with `--- ` is not a header.
+fn line_roles(patch: &str) -> Vec<(LineRole, &str)> {
+    let mut out = Vec::new();
+    let (mut old_left, mut new_left) = (0usize, 0usize);
+    for line in patch.split_inclusive('\n') {
+        let body = line.trim_end_matches(['\n', '\r']);
+        if old_left > 0 || new_left > 0 {
+            match body.as_bytes().first() {
+                Some(b' ') | None => {
+                    old_left = old_left.saturating_sub(1);
+                    new_left = new_left.saturating_sub(1);
+                }
+                Some(b'-') => old_left = old_left.saturating_sub(1),
+                Some(b'+') => new_left = new_left.saturating_sub(1),
+                Some(b'\\') => {}
+                _ => {
+                    old_left = 0;
+                    new_left = 0;
+                }
+            }
+            if old_left > 0
+                || new_left > 0
+                || matches!(
+                    body.as_bytes().first(),
+                    Some(b' ' | b'-' | b'+' | b'\\') | None
+                )
+            {
+                out.push((LineRole::Hunk, line));
+                continue;
+            }
+        }
+        if let Some(h) = body.strip_prefix("@@ ") {
+            let mut ranges = h.split_whitespace();
+            let len = |r: Option<&str>| -> usize {
+                r.and_then(|r| r.split_once(',').map(|(_, l)| l).or(Some("1")))
+                    .and_then(|l| l.parse().ok())
+                    .unwrap_or(0)
+            };
+            old_left = len(ranges.next());
+            new_left = len(ranges.next());
+            out.push((LineRole::Hunk, line));
+            continue;
+        }
+        if body.starts_with('\\') {
+            out.push((LineRole::Hunk, line));
+            continue;
+        }
+        out.push((LineRole::Header, line));
+    }
+    out
+}
+
+/// A path of a `---`/`+++` line without quotes and timestamps (`diff -u` writes
+/// `name<TAB>date`).
+fn header_file(p: &str) -> String {
+    let p = p.trim_end_matches(['\n', '\r']);
+    let p = if p.starts_with('"') {
+        p
+    } else {
+        p.split('\t').next().unwrap_or(p)
+    };
+    unquote(p)
+}
+
+/// Bring a unified diff from any tool into git's form, so it can be split and applied like
+/// git's own patches: sections without a `diff --git` header (`diff -u`, `svn diff`,
+/// PHPStorm patches) get one, and their paths get `a/` and `b/` prefixes. Git sections are
+/// kept as they are; text outside sections (mail headers, `Index:` lines) is dropped.
+pub fn normalize_patch(patch: &str) -> String {
+    let roles = line_roles(patch);
+    let mut out = String::with_capacity(patch.len() + 256);
+    // Inside a git section (its lines are kept as they are) …
+    let mut in_git = false;
+    // … whose own `---`/`+++` pair has not been seen yet.
+    let mut git_pending = false;
+    let mut i = 0;
+    while i < roles.len() {
+        let (role, line) = roles[i];
+        if role == LineRole::Hunk {
+            out.push_str(line);
+            git_pending = false;
+            i += 1;
+            continue;
+        }
+        if line.starts_with("diff --git ") {
+            in_git = true;
+            git_pending = true;
+            out.push_str(line);
+            i += 1;
+            continue;
+        }
+        let plus = roles
+            .get(i + 1)
+            .map(|r| r.1)
+            .filter(|n| line.starts_with("--- ") && n.starts_with("+++ "));
+        if let Some(plus) = plus {
+            if in_git && git_pending {
+                out.push_str(line);
+                out.push_str(plus);
+                git_pending = false;
+                i += 2;
+                continue;
+            }
+            in_git = false;
+            let old = header_file(&line[4..]);
+            let new = header_file(&plus[4..]);
+            let (a, b) = git_paths(&old, &new);
+            let shown = if b == "/dev/null" { &a } else { &b };
+            out.push_str(&format!("diff --git a/{shown} b/{shown}\n"));
+            if a == "/dev/null" {
+                out.push_str("new file mode 100644\n--- /dev/null\n");
+            } else {
+                if b == "/dev/null" {
+                    out.push_str("deleted file mode 100644\n");
+                }
+                out.push_str(&format!("--- a/{a}\n"));
+            }
+            if b == "/dev/null" {
+                out.push_str("+++ /dev/null\n");
+            } else {
+                out.push_str(&format!("+++ b/{b}\n"));
+            }
+            i += 2;
+            continue;
+        }
+        if in_git {
+            if line.starts_with("GIT binary patch") || line.starts_with("Binary files ") {
+                git_pending = false;
+            }
+            out.push_str(line);
+        }
+        i += 1;
+    }
+    out
+}
+
+/// The `a/` and `b/` paths of a foreign header pair, without prefixes: `a/x` and `b/x` lose
+/// them, `orig/x` and `new/x` (`diff -ru orig new`) lose the differing first component.
+fn git_paths(old: &str, new: &str) -> (String, String) {
+    let strip = |p: &str, prefix: &str| p.strip_prefix(prefix).unwrap_or(p).to_string();
+    if old == "/dev/null" || new == "/dev/null" {
+        let first = |p: &str| -> String {
+            if p == "/dev/null" {
+                return p.into();
+            }
+            if p.starts_with("a/") || p.starts_with("b/") {
+                p[2..].into()
+            } else {
+                p.into()
+            }
+        };
+        return (first(old), first(new));
+    }
+    if old.starts_with("a/") && new.starts_with("b/") {
+        return (strip(old, "a/"), strip(new, "b/"));
+    }
+    let head = |p: &str| {
+        p.split_once('/')
+            .map(|(h, rest)| (h.to_string(), rest.to_string()))
+    };
+    match (head(old), head(new)) {
+        (Some((ha, ra)), Some((hb, rb))) if ha != hb && ra == rb => (ra, rb),
+        _ => (old.to_string(), new.to_string()),
+    }
+}
+
+/// Rewrite the paths of a git patch made at the repository root so they are relative to
+/// `prefix` (`"sub/dir/"`, the project inside the repository): Create Patch writes paths
+/// relative to the project root, like PHPStorm. Hunk lines are left alone.
+pub fn strip_path_prefix(patch: &str, prefix: &str) -> String {
+    if prefix.is_empty() {
+        return patch.to_string();
+    }
+    let a = format!("a/{prefix}");
+    let b = format!("b/{prefix}");
+    let mut out = String::with_capacity(patch.len());
+    for (role, line) in line_roles(patch) {
+        if role == LineRole::Hunk {
+            out.push_str(line);
+            continue;
+        }
+        let rewritten = if let Some(rest) = line.strip_prefix("diff --git ") {
+            format!(
+                "diff --git {}",
+                rest.replacen(&a, "a/", 1).replacen(&b, "b/", 1)
+            )
+        } else if let Some(rest) = line.strip_prefix("--- ") {
+            format!("--- {}", rest.replacen(&a, "a/", 1))
+        } else if let Some(rest) = line.strip_prefix("+++ ") {
+            format!("+++ {}", rest.replacen(&b, "b/", 1))
+        } else {
+            let mut l = line.to_string();
+            for key in ["rename from ", "rename to ", "copy from ", "copy to "] {
+                if let Some(rest) = line.strip_prefix(key) {
+                    l = format!("{key}{}", rest.strip_prefix(prefix).unwrap_or(rest));
+                }
+            }
+            l
+        };
+        out.push_str(&rewritten);
+    }
+    out
+}
+
+/// One file of the Apply Patch dialog.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PatchPreviewFile {
+    /// Target path, relative to the project root (the base directory applied).
+    pub path: String,
+    /// Where the file was before a rename.
+    pub old_path: Option<String>,
+    pub status: PatchStatus,
+    pub binary: bool,
+    pub additions: usize,
+    pub deletions: usize,
+    /// The file as it is now (`None`: it does not exist).
+    pub before: Option<String>,
+    /// The file with the patch applied, when it applies.
+    pub after: Option<String>,
+    /// The patch fits the file as it is now. Files that do not fit are merged three-way.
+    pub applies: bool,
+    /// Why it does not apply.
+    pub message: Option<String>,
+}
+
+/// Join a base directory (`""` or `"sub/dir"`) and a patch path.
+pub fn join_base(base: &str, path: &str) -> String {
+    let base = base.trim_matches('/');
+    if base.is_empty() {
+        path.to_string()
+    } else {
+        format!("{base}/{path}")
+    }
+}
+
+/// Preview a patch against the files under `base`: per file the current text (`read`), the
+/// patched text and whether the patch fits. Works for git and foreign unified diffs.
+pub fn preview_patch(
+    patch: &str,
+    base: &str,
+    read: &dyn Fn(&str) -> Option<String>,
+) -> Vec<PatchPreviewFile> {
+    split_patch(&normalize_patch(patch))
+        .into_iter()
+        .map(|f| {
+            let (additions, deletions) = count_changes(&f.text);
+            let path = join_base(base, &f.path);
+            let old_path = f.old_path.as_deref().map(|p| join_base(base, p));
+            let before = read(old_path.as_deref().unwrap_or(&path));
+            let mut file = PatchPreviewFile {
+                path,
+                old_path,
+                status: f.status,
+                binary: f.binary,
+                additions,
+                deletions,
+                before: None,
+                after: None,
+                applies: false,
+                message: None,
+            };
+            let fit = match (f.status, &before) {
+                _ if f.binary => Err("binary patch".to_string()),
+                (PatchStatus::Added, Some(_)) => Err("the file already exists".into()),
+                (PatchStatus::Added, None) => apply_file_patch("", &f.text),
+                (_, None) => Err("the file does not exist".into()),
+                (_, Some(text)) => apply_file_patch(text, &f.text),
+            };
+            match fit {
+                Ok(after) => {
+                    file.applies = true;
+                    file.after = (f.status != PatchStatus::Deleted).then_some(after);
+                }
+                Err(e) => {
+                    // Binary patches are left to git.
+                    file.applies = f.binary;
+                    file.message = Some(e);
+                }
+            }
+            file.before = before;
+            file
+        })
+        .collect()
+}
+
+/// Added and removed lines of a file section.
+fn count_changes(section: &str) -> (usize, usize) {
+    line_roles(section)
+        .into_iter()
+        .filter(|(r, l)| *r == LineRole::Hunk && !l.starts_with("@@"))
+        .fold((0, 0), |(a, d), (_, l)| match l.as_bytes().first() {
+            Some(b'+') => (a + 1, d),
+            Some(b'-') => (a, d + 1),
+            _ => (a, d),
+        })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -331,6 +649,62 @@ KcmZ?wbYKJg0002<
             apply_file_patch(base, section).unwrap(),
             "A\r\nb\r\nc\r\nd\r\ne\r\nf\r\ng\r\nh\r\ni\r\n"
         );
+    }
+
+    #[test]
+    fn normalizes_foreign_patches() {
+        let plain = "Index: src/a.php\n===\n--- src/a.php\t2026-01-01 10:00\n+++ src/a.php\t2026-01-02 10:00\n@@ -1,2 +1,2 @@\n-x\n--- y\n+x2\n+--- y\n--- /dev/null\n+++ new.txt\n@@ -0,0 +1 @@\n+hi\n";
+        let git = normalize_patch(plain);
+        let files = split_patch(&git);
+        assert_eq!(files.len(), 2);
+        assert_eq!(files[0].path, "src/a.php");
+        assert!(files[0].text.contains("--- a/src/a.php\n+++ b/src/a.php\n"));
+        assert!(files[0].text.contains("\n--- y\n+x2\n+--- y\n"));
+        assert_eq!(files[1].path, "new.txt");
+        assert_eq!(files[1].status, PatchStatus::Added);
+        assert_eq!(normalize_patch(PATCH), PATCH);
+        // A git patch followed by a foreign section.
+        let mixed = format!("{PATCH}--- a/x.txt\n+++ b/x.txt\n@@ -1 +1 @@\n-a\n+b\n");
+        let files = split_patch(&normalize_patch(&mixed));
+        assert_eq!(files.len(), 5);
+        assert_eq!(files[3].text, split_patch(PATCH)[3].text);
+        assert_eq!(files[4].path, "x.txt");
+        let ru = normalize_patch("--- orig/x.txt\n+++ new/x.txt\n@@ -1 +1 @@\n-a\n+b\n");
+        assert_eq!(split_patch(&ru)[0].path, "x.txt");
+    }
+
+    #[test]
+    fn strips_the_project_prefix() {
+        let patch = "diff --git a/web/x.php b/web/x.php\n--- a/web/x.php\n+++ b/web/x.php\n@@ -1 +1 @@\n-a/web/\n+b/web/\n";
+        assert_eq!(
+            strip_path_prefix(patch, "web/"),
+            "diff --git a/x.php b/x.php\n--- a/x.php\n+++ b/x.php\n@@ -1 +1 @@\n-a/web/\n+b/web/\n"
+        );
+    }
+
+    #[test]
+    fn previews_a_patch() {
+        let read = |p: &str| match p {
+            "src/Cart.php" => Some("<?php\n$a = 1;\necho $a;\necho 'end';\n".to_string()),
+            "gone.txt" => Some("other\n".to_string()),
+            _ => None,
+        };
+        let files = preview_patch(PATCH, "", &read);
+        assert_eq!(files.len(), 4);
+        assert!(files[0].applies);
+        assert_eq!((files[0].additions, files[0].deletions), (2, 1));
+        assert_eq!(
+            files[0].after.as_deref(),
+            Some("<?php\n$a = 2;\n$b = 3;\necho $a;\necho 'end';\n")
+        );
+        assert!(files[1].applies);
+        assert_eq!(files[1].after.as_deref(), Some("hello\nworld"));
+        assert!(!files[2].applies, "the deleted file's content differs");
+        assert!(files[2].message.is_some());
+        assert!(files[3].binary && files[3].applies);
+        let based = preview_patch(PATCH, "sub/", &|_| None);
+        assert_eq!(based[0].path, "sub/src/Cart.php");
+        assert!(!based[0].applies);
     }
 
     #[test]

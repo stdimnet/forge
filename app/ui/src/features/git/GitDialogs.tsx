@@ -32,6 +32,7 @@ import {
 } from "./gitDialogs";
 import { Check, Frame, Row } from "./DialogFrame";
 import { InteractiveRebaseDialog, RewordDialog, SquashCommitsDialog } from "./LogDialogs";
+import { ApplyPatchDialog, ChangelistDialog, CreatePatchDialog, MoveChangelistDialog } from "./ChangesDialogs";
 import "./dialogs.css";
 
 const currentBranch = () => status()?.branch ?? "HEAD";
@@ -798,6 +799,14 @@ function render(d: GitDialog): JSX.Element {
       return <SquashCommitsDialog shas={d.shas} message={d.message} />;
     case "interactiveRebase":
       return <InteractiveRebaseDialog sha={d.sha} plan={d.plan} />;
+    case "changelist":
+      return <ChangelistDialog edit={d.edit} movePaths={d.movePaths} />;
+    case "moveChangelist":
+      return <MoveChangelistDialog paths={d.paths} hunks={d.hunks} from={d.from} />;
+    case "createPatch":
+      return <CreatePatchDialog paths={d.paths} shas={d.shas} name={d.name} />;
+    case "applyPatch":
+      return <ApplyPatchDialog patch={d.patch} name={d.name} files={d.files} />;
   }
 }
 

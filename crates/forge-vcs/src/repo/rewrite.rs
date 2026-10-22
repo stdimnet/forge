@@ -573,6 +573,7 @@ impl Repo {
             "--no-ext-diff",
             "--no-color",
             "--binary",
+            "--full-index",
             "-M",
             &base,
             newest,
