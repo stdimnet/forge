@@ -170,6 +170,8 @@ export function hoverAt(path: string, pos: LspPosition): { contents: string; ran
 // ---------- completion ----------
 
 export function completionAt(path: string, pos: LspPosition): EditorCompletionList {
+  // The simulated server is Intelephense: it completes PHP files only.
+  if (!/\.php$/.test(path)) return { isIncomplete: false, items: [] };
   const text = docs[path] ?? "";
   const offset = offsetAt(text, pos);
   const line = text.slice(text.lastIndexOf("\n", offset - 1) + 1, offset);
