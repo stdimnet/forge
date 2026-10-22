@@ -19,6 +19,7 @@ import "./langserversMock";
 import "./fuzzyMock";
 import "./searchMock";
 import "./findMock";
+import "./scopesMock";
 import "./replaceMock";
 import "./workbenchMock";
 import "./gitMock";

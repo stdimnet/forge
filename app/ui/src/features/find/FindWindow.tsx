@@ -1,4 +1,6 @@
 import { createEffect, createMemo, createSignal, For, onCleanup, Show } from "solid-js";
+import { ScopeSelect } from "@/features/scopes/ScopeSelect";
+import { scopeFilter } from "@/features/scopes/model";
 import { CaseSensitive, ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown, Regex, RefreshCw, WholeWord } from "lucide-solid";
 import type { FileMatches, FindSort, LineMatch } from "@/ipc/find";
 import { openFileAt } from "@/editor/views";
@@ -155,6 +157,15 @@ export function FindWindow() {
           spellcheck={false}
           onInput={(e) => setFindForm("directory", e.currentTarget.value)}
           onKeyDown={onEnter}
+        />
+        <ScopeSelect
+          class="fw-scope"
+          value={findForm.scopeName ?? "Project Files"}
+          onChange={(name) => {
+            // Project Files without a filter keeps the plain project walk.
+            setFindForm({ scopeName: name, scope: name === "Project Files" ? undefined : scopeFilter(name) });
+            void runFindWindow();
+          }}
         />
         <select
           class="fw-context-select"

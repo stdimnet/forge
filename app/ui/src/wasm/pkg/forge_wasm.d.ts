@@ -386,6 +386,11 @@ export function emmet_update_tag(request_json: string): string;
 export function emmet_wrap(request_json: string): string;
 
 /**
+ * `ColorsRequest` → `(string | null)[]`: the palette color of every target.
+ */
+export function file_colors_resolve(request_json: string): string;
+
+/**
  * `FileStructureRequest` → `{ rows, selected?, hasFields, hasLambdas, hasInherited }`.
  */
 export function file_structure_view(request_json: string): string;
@@ -721,6 +726,37 @@ export function save_actions_file_types(_request_json: string): string;
 export function save_actions_plan(request_json: string): string;
 
 /**
+ * `{ pattern }` → `ParseError | null`.
+ */
+export function scopes_check(request_json: string): string;
+
+/**
+ * `{ composerJson }` → `string[]`: the test folders of a `composer.json` (browser mode's
+ * `scopes_test_roots`).
+ */
+export function scopes_composer_test_roots(request_json: string): string;
+
+/**
+ * `{ filter, paths }` → `boolean[]`: which files a scope contains.
+ */
+export function scopes_contains(request_json: string): string;
+
+/**
+ * `EditRequest` → the new pattern (Include / Exclude buttons).
+ */
+export function scopes_edit(request_json: string): string;
+
+/**
+ * `ScopeSet` → `{ entries: ScopeEntry[], problems: [name, message][] }`.
+ */
+export function scopes_entries(request_json: string): string;
+
+/**
+ * `{ files, filter }` → `ScopeTree`.
+ */
+export function scopes_tree(request_json: string): string;
+
+/**
  * `{ public?, private?, name? }` → `{ names, default, variables }`: the environments of
  * `http-client.env.json` / `http-client.private.env.json` and the variables of `name`.
  */
@@ -865,6 +901,21 @@ export function sql_split(request_json: string): string;
  * Mirrors `db_statement_at`: `{ sql, from, to, dialect }` → `Statement | null`.
  */
 export function sql_statement_at(request_json: string): string;
+
+/**
+ * `{}` → `SavedTemplate[]` (the built-in templates).
+ */
+export function ssr_templates(_request_json: string): string;
+
+/**
+ * `{ template, replacement? }` → `TemplateCheck` without the syntax check.
+ */
+export function ssr_variables(request_json: string): string;
+
+/**
+ * `{ text, context, files }` → `TraceAnalysis`.
+ */
+export function stacktrace_analyze(request_json: string): string;
 
 /**
  * `{ nodes, regions }` → the nodes with region nodes (`kind: "region"`) around members.
@@ -1096,6 +1147,7 @@ export interface InitOutput {
     readonly emmet_remove_tag: (a: number, b: number, c: number) => void;
     readonly emmet_update_tag: (a: number, b: number, c: number) => void;
     readonly emmet_wrap: (a: number, b: number, c: number) => void;
+    readonly file_colors_resolve: (a: number, b: number, c: number) => void;
     readonly file_structure_view: (a: number, b: number, c: number) => void;
     readonly filetypes_detect: (a: number, b: number, c: number) => void;
     readonly filetypes_load: (a: number, b: number, c: number) => void;
@@ -1164,6 +1216,12 @@ export interface InitOutput {
     readonly save_actions_changed_lines: (a: number, b: number, c: number) => void;
     readonly save_actions_file_types: (a: number, b: number, c: number) => void;
     readonly save_actions_plan: (a: number, b: number, c: number) => void;
+    readonly scopes_check: (a: number, b: number, c: number) => void;
+    readonly scopes_composer_test_roots: (a: number, b: number, c: number) => void;
+    readonly scopes_contains: (a: number, b: number, c: number) => void;
+    readonly scopes_edit: (a: number, b: number, c: number) => void;
+    readonly scopes_entries: (a: number, b: number, c: number) => void;
+    readonly scopes_tree: (a: number, b: number, c: number) => void;
     readonly scratches_http_environments: (a: number, b: number, c: number) => void;
     readonly scratches_http_handler: (a: number, b: number, c: number) => void;
     readonly scratches_http_render: (a: number, b: number, c: number) => void;
@@ -1192,6 +1250,9 @@ export interface InitOutput {
     readonly sql_leading_keywords: (a: number, b: number, c: number) => void;
     readonly sql_split: (a: number, b: number, c: number) => void;
     readonly sql_statement_at: (a: number, b: number, c: number) => void;
+    readonly ssr_templates: (a: number, b: number, c: number) => void;
+    readonly ssr_variables: (a: number, b: number, c: number) => void;
+    readonly stacktrace_analyze: (a: number, b: number, c: number) => void;
     readonly structure_group_by_regions: (a: number, b: number, c: number) => void;
     readonly templates_list: (a: number, b: number, c: number) => void;
     readonly templates_new_file: (a: number, b: number, c: number) => void;

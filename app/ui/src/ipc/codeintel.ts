@@ -150,6 +150,10 @@ export interface UsageScope {
   directory?: string;
   includeSubdirectories?: boolean;
   pattern?: string;
+  /** The named scope the pattern comes from, for the label. */
+  scopeName?: string;
+  /** Test folders for `test:` / `src:` patterns. */
+  testRoots?: string[];
   currentFile?: string;
   openFiles?: string[];
   changedFiles?: string[];

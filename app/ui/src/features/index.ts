@@ -12,6 +12,7 @@ import "./lsp";
 import "./langservers";
 import "./navigation";
 import "./toolWindowLayout";
+import "./scopes";
 import "./find";
 import "./codeintel";
 import "./hierarchy";

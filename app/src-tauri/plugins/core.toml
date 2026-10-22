@@ -215,6 +215,78 @@ group = "appearance"
 section = "Project View"
 order = 41
 
+# ---- Appearance & Behavior > Scopes and File Colors ------------------------------------
+
+[[contributions.settings]]
+key = "scopes.shared"
+title = "Shared scopes"
+description = "Named scopes stored in the project (`.forge/settings.toml`, shared with the team through version control): name and pattern in PHPStorm's scope language, e.g. `file:app//*.php&&!test:*..*`."
+type = "objects"
+unique = ["name"]
+default = []
+group = "appearance.scopes"
+project = true
+order = 0
+
+[[contributions.settings]]
+key = "scopes.local"
+title = "Local scopes"
+description = "Named scopes stored in your user settings only (not shared): name and pattern."
+type = "objects"
+unique = ["name"]
+default = []
+group = "appearance.scopes"
+order = 1
+
+[[contributions.settings]]
+key = "fileColors.enabled"
+title = "Enable file colors"
+description = "Tint files by scope with the colors below."
+type = "bool"
+default = true
+group = "appearance.fileColors"
+order = 0
+
+[[contributions.settings]]
+key = "fileColors.useInEditorTabs"
+title = "Use in editor tabs"
+type = "bool"
+default = true
+group = "appearance.fileColors"
+order = 1
+
+[[contributions.settings]]
+key = "fileColors.useInProjectView"
+title = "Use in project view"
+type = "bool"
+default = true
+group = "appearance.fileColors"
+order = 2
+
+[[contributions.settings]]
+key = "fileColors.local"
+title = "Local colors"
+description = "Colors stored in your user settings: scope name and color (Blue, Green, Orange, Rose, Violet, Yellow, Gray). The first scope containing a file wins; local colors come before shared ones."
+type = "objects"
+unique = ["scope"]
+default = [
+  { scope = "Non-Project Files", color = "Yellow" },
+  { scope = "Tests", color = "Green" },
+]
+group = "appearance.fileColors"
+order = 3
+
+[[contributions.settings]]
+key = "fileColors.shared"
+title = "Shared colors"
+description = "Colors stored in the project (`.forge/settings.toml`): scope name and color."
+type = "objects"
+unique = ["scope"]
+default = []
+group = "appearance.fileColors"
+project = true
+order = 4
+
 [[contributions.settings]]
 key = "structureView.autoscrollToSource"
 title = "Autoscroll to source"
@@ -1476,11 +1548,20 @@ order = 22
 [[contributions.settings]]
 key = "findUsages.scope.pattern"
 title = "Custom scope"
-description = "File globs separated by ';', '!' excludes (app/**/*.php; !app/Legacy/**)."
+description = "A scope pattern (`file:app//*.php&&!test:*..*`, see Settings | Appearance & Behavior | Scopes) or file globs separated by ';', where '!' excludes (app/**/*.php; !app/Legacy/**)."
 type = "string"
 default = ""
 group = "findUsages"
 order = 23
+
+[[contributions.settings]]
+key = "findUsages.scope.name"
+title = "Named scope"
+description = "A scope of the Scopes page used as the custom scope; empty uses the pattern above."
+type = "string"
+default = ""
+group = "findUsages"
+order = 24
 
 [[contributions.settings]]
 key = "findUsages.openInNewTab"

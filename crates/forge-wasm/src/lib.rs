@@ -38,6 +38,8 @@ mod scopes;
 mod scratches;
 mod search;
 mod settings;
+mod ssr;
+mod stacktrace;
 mod spell;
 mod structure;
 mod templates;

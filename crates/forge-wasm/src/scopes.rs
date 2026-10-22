@@ -86,6 +86,21 @@ pub fn scopes_contains(request_json: &str) -> String {
     }
 }
 
+/// `{ composerJson }` → `string[]`: the test folders of a `composer.json` (browser mode's
+/// `scopes_test_roots`).
+#[wasm_bindgen]
+pub fn scopes_composer_test_roots(request_json: &str) -> String {
+    #[derive(Deserialize)]
+    #[serde(rename_all = "camelCase")]
+    struct Req {
+        composer_json: String,
+    }
+    match parse::<Req>(request_json) {
+        Ok(r) => to_json(&forge_scopes::composer_test_roots(&r.composer_json)),
+        Err(e) => error(e),
+    }
+}
+
 /// `ColorsRequest` → `(string | null)[]`: the palette color of every target.
 #[wasm_bindgen]
 pub fn file_colors_resolve(request_json: &str) -> String {

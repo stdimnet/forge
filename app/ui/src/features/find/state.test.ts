@@ -14,7 +14,7 @@ const result: FindResult = {
 
 describe("Find in Files in the Find tool window", () => {
   it("builds the request from the popup options", () => {
-    const options = { caseSensitive: true, wholeWords: false, regex: false, maskEnabled: false, fileMask: "*.php", scope: "directory" as const, directory: "app" };
+    const options = { caseSensitive: true, wholeWords: false, regex: false, maskEnabled: false, fileMask: "*.php", scope: "directory" as const, directory: "app", scopeName: "Project Files" };
     expect(findRequest("total", options)).toEqual({
       query: "total",
       caseSensitive: true,
