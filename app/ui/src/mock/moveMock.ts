@@ -521,7 +521,7 @@ registerMock("refactor_make_static_prepare", ({ path, position, content }): Make
   if (!found) throw new Error(`${CANNOT} Caret should be positioned at the method to be made static`);
   if (found.m.modifiers.isStatic) throw new Error(`${CANNOT} The method is already static`);
   const body = text.slice(found.m.start, found.m.end);
-  const fields = [...new Set([...body.matchAll(/\$this->(\w+)(?!\s*\()/g)].map((x) => x[1]))];
+  const fields = [...new Set([...body.matchAll(/\$this->(\w+)\b(?!\s*\()/g)].map((x) => x[1]))];
   return {
     path: String(path),
     position: positionOf(text, found.m.offset),
@@ -555,9 +555,9 @@ registerMock("refactor_make_static", async (args): Promise<RefactorAnswer> => {
   if (param) {
     for (const m of body.matchAll(/\$this\b/g)) edits.push({ start: found.m.start + m.index!, end: found.m.start + m.index! + 5, text: `$${param}` });
   } else if (options.fieldParameters) {
-    for (const m of body.matchAll(/\$this->(\w+)(?!\s*\()/g)) edits.push({ start: found.m.start + m.index!, end: found.m.start + m.index! + m[0].length, text: `$${m[1]}` });
+    for (const m of body.matchAll(/\$this->(\w+)\b(?!\s*\()/g)) edits.push({ start: found.m.start + m.index!, end: found.m.start + m.index! + m[0].length, text: `$${m[1]}` });
   }
-  const fields = [...new Set([...body.matchAll(/\$this->(\w+)(?!\s*\()/g)].map((x) => x[1]))];
+  const fields = [...new Set([...body.matchAll(/\$this->(\w+)\b(?!\s*\()/g)].map((x) => x[1]))];
   const added = param ? [`${found.cls.name} $${param}`] : options.fieldParameters ? fields.map((f) => `$${f}`) : [];
   const open = text.indexOf("(", nameAt);
   if (added.length) edits.push({ start: open + 1, end: open + 1, text: added.join(", ") + (text[open + 1] === ")" ? "" : ", ") });
