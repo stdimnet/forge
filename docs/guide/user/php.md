@@ -633,8 +633,10 @@ cleanup of PHP files run there too, see [Actions on Save](actions-on-save.md).
 - **PHP Script** run configurations run a file with the CLI interpreter — the project's, or
   the one the configuration picks ([CLI interpreters](#cli-interpreters): local, Docker,
   Docker Compose, SSH, WSL).
-- **PHPUnit** configurations run a class, method, directory or `phpunit.xml`; test classes
-  and methods get ▶ icons in the gutter and results appear as a test tree.
+- **PHPUnit**, **Pest**, **Codeception**, **Behat** and **PHPSpec** configurations run tests;
+  tests get ▶ icons in the gutter and results appear as a test tree with Rerun Failed Tests,
+  Test History and auto-test. Where each framework comes from is set in **Settings | PHP |
+  Test Frameworks**, see [PHP test frameworks](test-frameworks.md).
 - **PHP scratch files** run with the project's autoloader.
 
 See [Run/Debug configurations](run-debug.md), [Xdebug debugging](debugging.md) and

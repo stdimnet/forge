@@ -83,7 +83,7 @@ are in [research/jetbrains-gap-analysis.md](research/jetbrains-gap-analysis.md).
 - [x] Composer UI (add dependency, version completion, outdated markers, Install/Update, `composer audit`)
 - [x] Command Line Tool Support (Composer/Artisan/Symfony/WP-CLI console with completion)
 - [ ] `.phpstorm.meta.php` advanced metadata and JetBrains attributes; include paths and PSR-4 roots
-- [ ] Test frameworks: Pest configuration, Codeception, Behat, PHPSpec; test history and auto-test
+- [x] Test frameworks: Pest configuration, Codeception, Behat, PHPSpec; test history and auto-test
 - [x] Run Anything (double `Ctrl`), compound run configurations, External Tools
 
 ### Workbench and project

@@ -1,6 +1,6 @@
 ---
 title: Run/Debug configurations
-description: Create and run Run/Debug configurations for PHP scripts, PHPUnit, Artisan, Composer, npm, shell scripts and Lua, compound configurations, Before launch tasks, Run Anything (double Ctrl), External Tools, the run widget, the Run tool window and the PHPUnit test tree.
+description: Create and run Run/Debug configurations for PHP scripts, PHPUnit, Pest, Codeception, Behat, PHPSpec, Artisan, Composer, npm, shell scripts and Lua, compound configurations, Before launch tasks, Run Anything (double Ctrl), External Tools, the run widget, the Run tool window and the PHPUnit test tree.
 order: 140
 tags: [run, debug, configurations, phpunit, tests, npm, run anything, compound, before launch, external tools, macros]
 ---
@@ -94,7 +94,8 @@ type, so they run like configurations:
 | PHP Built-in Web Server | Host (`localhost`), Port (`8080`), Document root, Use router script, Open in browser after launch | `<php> <options> -S host:port -t <document root> [router]`, then opens `http://host:port/` | Xdebug for every request |
 | PHP Web Page | Server (Settings \| PHP \| Servers), Start URL | opens the page in the browser | adds `XDEBUG_SESSION_START=FORGE` |
 | PHP HTTP Request | Server (optional), URL, Request method, Headers, Request body | sends the request, the response appears in the Run tool window | adds the `XDEBUG_SESSION` cookie |
-| PHPUnit | Test scope: Directory, File, Class, Method or "Defined in the configuration file"; Configuration file (`phpunit.xml` detected); Test runner options | `phpunit --teamcity …` (from `vendor/bin`) | Xdebug |
+| PHPUnit | Test scope: Directory, File, Class, Method or "Defined in the configuration file"; Configuration file (`phpunit.xml` detected); Test runner options | `phpunit --teamcity …` (from `vendor/bin`, or as set in [Settings \| PHP \| Test Frameworks](test-frameworks.md#settings--php--test-frameworks)) | Xdebug |
+| Pest, Codeception, Behat, PHPSpec | see [PHP test frameworks](test-frameworks.md#run-configurations) | `pest --teamcity …`, `codecept run …`, `behat …`, `phpspec run …` | Xdebug |
 | Artisan | Command (`migrate --seed`) | `<php> artisan <command>` | Xdebug |
 | Composer Script | Script | `composer run <script>` with `php.composer.executable` | Xdebug |
 | npm | package.json, Command (`run`, `install`, …), Scripts, Package manager | `npm`/`pnpm`/`yarn`/`bun` | sets `NODE_OPTIONS=--inspect` |
@@ -184,9 +185,10 @@ Each task runs in its own tab of the Run tool window. Reorder tasks with **↑**
 
 ## Temporary configurations
 
-Gutter ▶ icons create temporary configurations: PHPUnit test classes and methods, `package.json`
-scripts, Lua main chunks, scratch files and HTTP requests. A double-click in the npm tool
-window and commands run from [Run Anything](#run-anything) do the same.
+Gutter ▶ icons create temporary configurations: tests of PHPUnit, Pest, Codeception, Behat and
+PHPSpec ([PHP test frameworks](test-frameworks.md#gutter-icons)), `package.json` scripts, Lua
+main chunks, scratch files and HTTP requests. A double-click in the npm tool window and
+commands run from [Run Anything](#run-anything) do the same.
 
 ## External Tools
 
@@ -308,14 +310,17 @@ Forge automatically is not supported.
 
 ## Test results
 
-Test runners that speak TeamCity service messages (PHPUnit with `--teamcity`, Pest, Jest)
-show a **Test Results** tree next to the console:
+Test runners that speak TeamCity service messages (PHPUnit with `--teamcity`, Pest, Jest) or
+write JUnit reports (Codeception, Behat, PHPSpec) show a **Test Results** tree next to the
+console:
 
 ![PHPUnit test tree](../../screenshots/run-phpunit-tree.png)
 
 - Pass/fail/ignored per test with durations; **Show Passed**, **Show Ignored**, **Sort
   Alphabetically**, **Sort by Duration**, **Expand/Collapse All**.
 - **Previous/Next Failed Test** and **Rerun Failed Tests**.
+- **Toggle Auto-Test** reruns the tests after files are saved, and **Test History** reopens the
+  last test runs of the project, see [PHP test frameworks](test-frameworks.md#test-history).
 - A failed assertion shows a **Comparison Failure** with Expected and Actual.
 - Double-click a test to open it.
 
