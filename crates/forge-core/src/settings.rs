@@ -286,48 +286,79 @@ impl Settings {
     /// key from the layer so the value is inherited again. Values must keep the JSON type of
     /// their default.
     pub fn set(&mut self, key: &str, value: Value, scope: SettingsScope) -> Result<()> {
-        if key.is_empty() || key.split('.').any(str::is_empty) {
-            return Err(ForgeError::Other(format!("invalid settings key `{key}`")));
-        }
-        if let Some(default) = self.defaults.get(key) {
-            if !value.is_null() && !same_kind(default, &value) {
-                return Err(ForgeError::Other(format!(
-                    "`{key}` expects a value like {default}, got {value}"
-                )));
+        self.set_many(vec![(key.to_string(), value, scope)])
+    }
+
+    /// Store several values (as [`Settings::set`] does), saving each changed layer once.
+    /// Nothing is stored when one of the values is invalid.
+    pub fn set_many(&mut self, changes: Vec<(String, Value, SettingsScope)>) -> Result<()> {
+        for (key, value, scope) in &changes {
+            if key.is_empty() || key.split('.').any(str::is_empty) {
+                return Err(ForgeError::Other(format!("invalid settings key `{key}`")));
+            }
+            if let Some(default) = self.defaults.get(key) {
+                if !value.is_null() && !same_kind(default, value) {
+                    return Err(ForgeError::Other(format!(
+                        "`{key}` expects a value like {default}, got {value}"
+                    )));
+                }
+            }
+            match scope {
+                SettingsScope::Default => {
+                    return Err(ForgeError::Other("built-in defaults are read-only".into()))
+                }
+                SettingsScope::Project if !self.has_project() => {
+                    return Err(ForgeError::Other("no project is open".into()))
+                }
+                _ => {}
+            }
+            if !value.is_null() {
+                json_to_toml(value)?;
             }
         }
-        match scope {
-            SettingsScope::Default => {
-                return Err(ForgeError::Other("built-in defaults are read-only".into()))
-            }
-            SettingsScope::Project if !self.has_project() => {
-                return Err(ForgeError::Other("no project is open".into()))
-            }
-            _ => {}
-        }
-        if !value.is_null() {
-            json_to_toml(&value)?;
-        }
-        let before = self.get(key).cloned();
-        let layer = match scope {
-            SettingsScope::Project => &mut self.project,
-            _ => &mut self.user,
-        };
-        if value.is_null() {
-            layer.values.remove(key);
-        } else {
-            layer.values.insert(key.to_string(), value);
-        }
-        layer.save()?;
-        let after = self.resolve(key);
-        if before.as_ref() != after.map(|(v, _)| v) {
-            let change = SettingsChange {
-                key: key.to_string(),
-                value: after.map(|(v, _)| v.clone()).unwrap_or(Value::Null),
-                scope: after.map_or(SettingsScope::Default, |(_, s)| s),
+        let before: Vec<Option<Value>> = changes
+            .iter()
+            .map(|(key, _, _)| self.get(key).cloned())
+            .collect();
+        let (mut user, mut project) = (false, false);
+        for (key, value, scope) in &changes {
+            let layer = match scope {
+                SettingsScope::Project => {
+                    project = true;
+                    &mut self.project
+                }
+                _ => {
+                    user = true;
+                    &mut self.user
+                }
             };
-            for l in &self.listeners {
-                l(&change);
+            if value.is_null() {
+                layer.values.remove(key);
+            } else {
+                layer.values.insert(key.clone(), value.clone());
+            }
+        }
+        if user {
+            self.user.save()?;
+        }
+        if project {
+            self.project.save()?;
+        }
+        let mut notified = std::collections::BTreeSet::new();
+        for ((key, _, _), before) in changes.iter().zip(before) {
+            if !notified.insert(key.clone()) {
+                continue;
+            }
+            let after = self.resolve(key);
+            if before.as_ref() != after.map(|(v, _)| v) {
+                let change = SettingsChange {
+                    key: key.clone(),
+                    value: after.map(|(v, _)| v.clone()).unwrap_or(Value::Null),
+                    scope: after.map_or(SettingsScope::Default, |(_, s)| s),
+                };
+                for l in &self.listeners {
+                    l(&change);
+                }
             }
         }
         Ok(())
@@ -349,6 +380,42 @@ mod tests {
         ]);
         s.load_user(dir.join("user/settings.toml")).unwrap();
         s
+    }
+
+    #[test]
+    fn set_many_saves_once_and_notifies_changes() {
+        let tmp = tempfile::tempdir().unwrap();
+        let mut s = settings(tmp.path());
+        let project = tmp.path().join("project");
+        fs::create_dir_all(&project).unwrap();
+        s.load_project(&project).unwrap();
+        let seen = Arc::new(Mutex::new(Vec::new()));
+        let sink = seen.clone();
+        s.subscribe(move |c| sink.lock().unwrap().push(c.key.clone()));
+        s.set_many(vec![
+            ("php.codeStyle.indent".into(), json!(2), SettingsScope::User),
+            ("php.codeStyle.useTabs".into(), json!(true), SettingsScope::Project),
+            ("editor.font.size".into(), json!(14), SettingsScope::User),
+        ])
+        .unwrap();
+        // The font size did not change.
+        assert_eq!(
+            *seen.lock().unwrap(),
+            vec!["php.codeStyle.indent", "php.codeStyle.useTabs"]
+        );
+        let user = fs::read_to_string(tmp.path().join("user/settings.toml")).unwrap();
+        assert!(user.contains("indent = 2"));
+        assert!(fs::read_to_string(project.join(PROJECT_SETTINGS_FILE))
+            .unwrap()
+            .contains("useTabs = true"));
+        // One invalid value: nothing is stored.
+        assert!(s
+            .set_many(vec![
+                ("a.b".into(), json!(1), SettingsScope::User),
+                ("editor.font.size".into(), json!("x"), SettingsScope::User),
+            ])
+            .is_err());
+        assert_eq!(s.get("a.b"), None);
     }
 
     #[test]

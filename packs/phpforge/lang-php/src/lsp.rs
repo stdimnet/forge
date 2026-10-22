@@ -48,7 +48,7 @@ pub struct PhpLspSettings {
     pub phpactor_path: Option<PathBuf>,
     /// Where Intelephense stores its cache; defaults to `<cache dir>/forge/intelephense`.
     pub storage_path: Option<PathBuf>,
-    /// Brace placement of Reformat Code (`php.codeStyle.braces`).
+    /// Brace placement of Reformat Code (`php.codeStyle.wrapping.*Braces`).
     pub braces: crate::style::Braces,
     /// composer.json, relative to the project root (`php.composer.json`).
     pub composer_json: String,
@@ -100,6 +100,9 @@ pub const LSP_SETTING_KEYS: &[&str] = &[
     "php.lsp.server",
     "php.lsp.maxFileSize",
     crate::style::BRACES_KEY,
+    crate::style::CLASS_BRACES_KEY,
+    crate::style::FUNCTION_BRACES_KEY,
+    crate::style::OTHER_BRACES_KEY,
     crate::composer::JSON_KEY,
     crate::composer::SYNC_KEY,
     crate::composer::LIBRARIES_KEY,
@@ -124,11 +127,7 @@ impl PhpLspSettings {
         if let Some(server) = get("php.lsp.server").and_then(|v| serde_json::from_value(v).ok()) {
             s.server = server;
         }
-        if let Some(braces) =
-            get(crate::style::BRACES_KEY).and_then(|v| serde_json::from_value(v).ok())
-        {
-            s.braces = braces;
-        }
+        s.braces = crate::style::Braces::from_settings(&get);
         if let Some(path) =
             get(crate::composer::JSON_KEY).and_then(|v| v.as_str().map(str::trim).map(String::from))
         {

@@ -1,12 +1,14 @@
 //! PHP code style (Settings | Editor | Code Style | PHP) beyond indentation: brace placement
-//! and blank lines. Indentation is resolved for every language in `forge-text`.
+//! and blank lines. Indentation is resolved for every language in `forge-text`; the scheme
+//! the values come from in `forge-codestyle`, which also runs the other PHP options (spaces,
+//! code conversion) after Reformat Code.
 //!
 //! - Brace placement is passed to Intelephense's formatter (`intelephense.format.braces`) and
 //!   used by the "Generate" actions.
 //! - Blank lines are applied by [`tidy_blank_lines`] after Reformat Code (Ctrl+Alt+L): runs of
 //!   blank lines are cut to "Keep maximum blank lines", and the blank lines after the
-//!   namespace declaration, after the imports and around methods are set. Strings, heredocs,
-//!   comments and inline HTML are never changed.
+//!   namespace declaration, after the imports, around methods and before `return` are set.
+//!   Strings, heredocs, comments and inline HTML are never changed.
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -14,12 +16,17 @@ use tree_sitter::Node;
 
 use crate::parser::{new_parser, parse_tree};
 
-/// Setting keys (see `app/src-tauri/plugins/php.toml`).
+/// Setting keys (the Default and Project schemes of `forge-codestyle`).
+pub const CLASS_BRACES_KEY: &str = "php.codeStyle.wrapping.classBraces";
+pub const FUNCTION_BRACES_KEY: &str = "php.codeStyle.wrapping.functionBraces";
+pub const OTHER_BRACES_KEY: &str = "php.codeStyle.wrapping.otherBraces";
+/// The single brace option of older versions (`psr12`, `allman`, `kr`).
 pub const BRACES_KEY: &str = "php.codeStyle.braces";
 pub const KEEP_MAX_KEY: &str = "php.codeStyle.blankLines.keepMax";
 pub const AFTER_NAMESPACE_KEY: &str = "php.codeStyle.blankLines.afterNamespace";
 pub const AFTER_IMPORTS_KEY: &str = "php.codeStyle.blankLines.afterImports";
 pub const AROUND_METHODS_KEY: &str = "php.codeStyle.blankLines.aroundMethods";
+pub const BEFORE_RETURN_KEY: &str = "php.codeStyle.blankLines.beforeReturn";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -48,6 +55,31 @@ impl Braces {
     pub fn functions_on_next_line(self) -> bool {
         self != Braces::KAndR
     }
+
+    /// The closest style for the three brace options (class, function, other: `true` = next
+    /// line).
+    pub fn from_placement(class: bool, function: bool, other: bool) -> Self {
+        match (class, function, other) {
+            (_, false, _) => Braces::KAndR,
+            (_, true, true) => Braces::Allman,
+            _ => Braces::Psr12,
+        }
+    }
+
+    /// The brace style from the settings: the three brace options, else the legacy one.
+    pub fn from_settings(get: &impl Fn(&str) -> Option<Value>) -> Self {
+        let next = |key: &str| get(key).and_then(|v| v.as_str().map(|s| s == "nextLine"));
+        match (
+            next(CLASS_BRACES_KEY),
+            next(FUNCTION_BRACES_KEY),
+            next(OTHER_BRACES_KEY),
+        ) {
+            (None, None, None) => get(BRACES_KEY)
+                .and_then(|v| serde_json::from_value(v).ok())
+                .unwrap_or_default(),
+            (c, f, o) => Self::from_placement(c.unwrap_or(true), f.unwrap_or(true), o.unwrap_or(false)),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -58,6 +90,7 @@ pub struct PhpCodeStyle {
     pub blank_lines_after_namespace: usize,
     pub blank_lines_after_imports: usize,
     pub blank_lines_around_methods: usize,
+    pub blank_lines_before_return: usize,
 }
 
 impl Default for PhpCodeStyle {
@@ -68,6 +101,7 @@ impl Default for PhpCodeStyle {
             blank_lines_after_namespace: 1,
             blank_lines_after_imports: 1,
             blank_lines_around_methods: 1,
+            blank_lines_before_return: 0,
         }
     }
 }
@@ -82,13 +116,12 @@ impl PhpCodeStyle {
                 .map_or(default, |n| n.min(10) as usize)
         };
         Self {
-            braces: get(BRACES_KEY)
-                .and_then(|v| serde_json::from_value(v).ok())
-                .unwrap_or(d.braces),
+            braces: Braces::from_settings(&get),
             keep_max_blank_lines: num(KEEP_MAX_KEY, d.keep_max_blank_lines),
             blank_lines_after_namespace: num(AFTER_NAMESPACE_KEY, d.blank_lines_after_namespace),
             blank_lines_after_imports: num(AFTER_IMPORTS_KEY, d.blank_lines_after_imports),
             blank_lines_around_methods: num(AROUND_METHODS_KEY, d.blank_lines_around_methods),
+            blank_lines_before_return: num(BEFORE_RETURN_KEY, d.blank_lines_before_return),
         }
     }
 }
@@ -143,6 +176,18 @@ fn collect(
                     style
                         .keep_max_blank_lines
                         .max(style.blank_lines_around_methods),
+                ))
+            }
+            (a, "return_statement")
+                if node.kind() == "compound_statement"
+                    && a != "comment"
+                    && style.blank_lines_before_return > 0 =>
+            {
+                Some((
+                    style.blank_lines_before_return,
+                    style
+                        .keep_max_blank_lines
+                        .max(style.blank_lines_before_return),
                 ))
             }
             _ => None,
@@ -264,6 +309,46 @@ mod tests {
             PhpCodeStyle::from_settings(|_| None),
             PhpCodeStyle::default()
         );
+        // The three brace options of the code style schemes win over the legacy one.
+        let get = |k: &str| match k {
+            BRACES_KEY => Some(json!("kr")),
+            CLASS_BRACES_KEY => Some(json!("nextLine")),
+            FUNCTION_BRACES_KEY => Some(json!("nextLine")),
+            OTHER_BRACES_KEY => Some(json!("nextLine")),
+            _ => None,
+        };
+        assert_eq!(PhpCodeStyle::from_settings(get).braces, Braces::Allman);
+        assert_eq!(Braces::from_placement(true, true, false), Braces::Psr12);
+        assert_eq!(Braces::from_placement(true, false, false), Braces::KAndR);
+    }
+
+    #[test]
+    fn sets_blank_lines_before_return() {
+        let style = PhpCodeStyle {
+            blank_lines_before_return: 1,
+            ..PhpCodeStyle::default()
+        };
+        let src = "<?php
+function f()
+{
+    return 1;
+}
+function g()
+{
+    $a = 1;
+    // why
+    return $a;
+}
+function h()
+{
+    $a = 1;
+    return $a;
+}
+";
+        let out = tidy_blank_lines(src, &style).unwrap();
+        assert!(out.contains("{\n    return 1;"));
+        assert!(out.contains("// why\n    return $a;"));
+        assert!(out.contains("$a = 1;\n\n    return $a;\n}\n"));
     }
 
     #[test]

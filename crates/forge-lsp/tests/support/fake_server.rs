@@ -11,7 +11,8 @@
 //!   `workspace/applyEdit`); the secondary one announces none of these, like free
 //!   Intelephense,
 //! - after `initialized` asks the client for `workspace/configuration` and creates a
-//!   work-done progress, then echoes what it got back as `window/logMessage`.
+//!   work-done progress, then echoes what it got back as `window/logMessage`; it asks again
+//!   after `workspace/didChangeConfiguration`.
 
 use std::collections::HashMap;
 use std::io::{self, BufRead, Write};
@@ -174,7 +175,15 @@ fn main() {
                 continue;
             }
             "exit" => std::process::exit(0),
-            "workspace/didChangeConfiguration" | "$/cancelRequest" => continue,
+            "workspace/didChangeConfiguration" => {
+                // Ask again, like servers that pull their settings.
+                write(
+                    json!({"jsonrpc": "2.0", "id": "cfg-1", "method": "workspace/configuration",
+                             "params": {"items": [{"section": "fake.answer"}, {"section": "missing"}]}}),
+                );
+                continue;
+            }
+            "$/cancelRequest" => continue,
             "shutdown" => Value::Null,
             "textDocument/hover" if secondary => Value::Null,
             "textDocument/completion" if secondary => json!([{"label": "lint-ignore", "kind": 15}]),

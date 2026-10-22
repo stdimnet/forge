@@ -352,7 +352,7 @@ pub async fn lsp_format(
 ) -> Result<Vec<TextEdit>> {
     let c = Ctx::new(&path, &app, &lsp, &ws)?;
     c.manager
-        .format(&c.abs, tab_size.unwrap_or(4), insert_spaces.unwrap_or(true))
+        .format(&c.abs, tab_size.unwrap_or(4), insert_spaces.unwrap_or(true), None)
         .await
 }
 
