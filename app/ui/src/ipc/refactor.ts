@@ -6,7 +6,7 @@
  */
 import { invoke } from "./index";
 import type { LspPosition, LspRange } from "./lsp";
-import type { ContextAction, FilePreview, RenameConflict, WorkspaceEdit } from "./codeintel";
+import type { ContextAction, FilePreview, RenameConflict, UsagesAnswer, WorkspaceEdit } from "./codeintel";
 
 export type IntroduceKind = "variable" | "constant" | "field" | "parameter";
 export type FieldInit = "currentMethod" | "fieldDeclaration" | "constructor";
@@ -109,6 +109,202 @@ export interface InlineInfo {
   occurrences: number;
   readOnly: boolean;
 }
+
+// ---- Move / Copy / Safe Delete / Change Signature / Make Static ----
+
+/** The class Move (F6) and Copy (F5) work on. */
+export interface ClassTarget {
+  kind: "class";
+  /** The declaring file and the class name's position there. */
+  path: string;
+  position: LspPosition;
+  name: string;
+  fqn: string;
+  namespace: string;
+  classKind: "class" | "interface" | "trait" | "enum";
+  /** Alone in its file (the file moves with it). */
+  sole: boolean;
+  directory: string;
+}
+
+export interface MovableMember {
+  name: string;
+  kind: "method" | "property" | "constant";
+  signature: string;
+  visibility: Visibility;
+}
+
+export interface MembersTarget {
+  path: string;
+  position: LspPosition;
+  className: string;
+  classFqn: string;
+  members: MovableMember[];
+  selected?: string | null;
+}
+
+/** A function Move Function moves to another file. */
+export interface FunctionTarget {
+  path: string;
+  position: LspPosition;
+  name: string;
+  fqn: string;
+  signature: string;
+}
+
+export interface MovePrepareAnswer {
+  kind: "class" | "members" | "function";
+  class?: ClassTarget | null;
+  members?: MembersTarget | null;
+  function?: FunctionTarget | null;
+}
+
+export interface PathMove {
+  from: string;
+  to: string;
+}
+
+export interface MoveFilesAnswer {
+  /** Text edits for the paths after the move (the UI moves the files first). */
+  answer: RefactorAnswer;
+  /** Every file that moves. */
+  files: PathMove[];
+}
+
+export interface SafeDeleteAnswer {
+  /** `class`, `method`, `parameter`, ... (`file`, `directory`, `files` in the Project view). */
+  kind: string;
+  name: string;
+  /** The Usages Detected text. */
+  message: string;
+  count: number;
+  inComments: number;
+  usages: UsagesAnswer;
+  answer: RefactorAnswer;
+  /** Folders and files to delete outside the workspace edit. */
+  paths: string[];
+}
+
+export interface SignatureParam {
+  name: string;
+  typeHint?: string | null;
+  defaultValue?: string | null;
+  byRef?: boolean;
+  variadic?: boolean;
+  promotion?: string | null;
+  attributes?: string | null;
+  used?: boolean;
+}
+
+export interface SignatureInfo {
+  path: string;
+  position: LspPosition;
+  kind: "method" | "function";
+  name: string;
+  className?: string | null;
+  visibility?: Visibility | null;
+  isStatic: boolean;
+  isAbstract: boolean;
+  constructor: boolean;
+  returnType?: string | null;
+  parameters: SignatureParam[];
+  /** The current signature as code. */
+  signature: string;
+}
+
+export interface NewParam {
+  /** Index in the current signature; `null` for an added parameter. */
+  original: number | null;
+  name: string;
+  typeHint?: string | null;
+  defaultValue?: string | null;
+  /** "Default value for call sites" of an added parameter. */
+  callValue?: string | null;
+  byRef?: boolean;
+  variadic?: boolean;
+}
+
+export interface ChangeSignatureOptions {
+  name: string;
+  visibility?: Visibility | null;
+  /** Empty for none. */
+  returnType: string;
+  parameters: NewParam[];
+}
+
+export interface MakeStaticInfo {
+  path: string;
+  position: LspPosition;
+  name: string;
+  className: string;
+  usesThis: boolean;
+  fields: string[];
+  needsObject: boolean;
+  parameter: string;
+}
+
+export interface MakeStaticOptions {
+  objectParameter?: string | null;
+  fieldParameters: boolean;
+}
+
+export const moveApi = {
+  prepare: (path: string, position: LspPosition, content: string, copy = false, buffers?: Record<string, string>) =>
+    invoke<MovePrepareAnswer>("refactor_move_prepare", { path, position, content, copy, buffers }),
+  moveClass: (
+    target: ClassTarget,
+    opts: { namespace: string; directory: string; searchInComments: boolean; content?: string },
+    buffers?: Record<string, string>,
+  ) =>
+    invoke<RefactorAnswer>("refactor_move_class", {
+      path: target.path,
+      position: target.position,
+      content: opts.content,
+      targetNamespace: opts.namespace,
+      targetDirectory: opts.directory,
+      searchInComments: opts.searchInComments,
+      buffers,
+    }),
+  copyClass: (
+    target: ClassTarget,
+    opts: { name: string; namespace: string; directory: string; content?: string },
+    buffers?: Record<string, string>,
+  ) =>
+    invoke<RefactorAnswer>("refactor_copy_class", {
+      path: target.path,
+      position: target.position,
+      content: opts.content,
+      newName: opts.name,
+      targetNamespace: opts.namespace,
+      targetDirectory: opts.directory,
+      buffers,
+    }),
+  moveMembers: (target: MembersTarget, members: string[], to: string, content?: string, buffers?: Record<string, string>) =>
+    invoke<RefactorAnswer>("refactor_move_members", {
+      path: target.path,
+      position: target.position,
+      content,
+      members,
+      target: to,
+      buffers,
+    }),
+  moveFunction: (target: FunctionTarget, to: string, content?: string, buffers?: Record<string, string>) =>
+    invoke<RefactorAnswer>("refactor_move_function", { path: target.path, position: target.position, content, target: to, buffers }),
+  moveFiles: (moves: PathMove[], searchForReferences: boolean, searchInComments: boolean, buffers?: Record<string, string>) =>
+    invoke<MoveFilesAnswer>("refactor_move_files", { moves, searchForReferences, searchInComments, buffers }),
+  safeDelete: (path: string, position: LspPosition, content: string, searchInComments: boolean, buffers?: Record<string, string>) =>
+    invoke<SafeDeleteAnswer>("refactor_safe_delete_prepare", { path, position, content, searchInComments, buffers }),
+  safeDeleteFiles: (paths: string[], searchInComments: boolean, buffers?: Record<string, string>) =>
+    invoke<SafeDeleteAnswer>("refactor_safe_delete_files", { paths, searchInComments, buffers }),
+  signature: (path: string, position: LspPosition, content: string, buffers?: Record<string, string>) =>
+    invoke<SignatureInfo>("refactor_change_signature_prepare", { path, position, content, buffers }),
+  changeSignature: (info: SignatureInfo, options: ChangeSignatureOptions, content?: string, buffers?: Record<string, string>) =>
+    invoke<RefactorAnswer>("refactor_change_signature", { path: info.path, position: info.position, content, options, buffers }),
+  makeStaticInfo: (path: string, position: LspPosition, content: string, buffers?: Record<string, string>) =>
+    invoke<MakeStaticInfo>("refactor_make_static_prepare", { path, position, content, buffers }),
+  makeStatic: (info: MakeStaticInfo, options: MakeStaticOptions, content?: string, buffers?: Record<string, string>) =>
+    invoke<RefactorAnswer>("refactor_make_static", { path: info.path, position: info.position, content, options, buffers }),
+};
 
 export const refactorApi = {
   introducePrepare: (path: string, kind: IntroduceKind, range: LspRange, content: string) =>

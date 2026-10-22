@@ -26,19 +26,19 @@ use tauri::State;
 use crate::commands::workspace::blocking;
 use crate::state::AppState;
 
-fn to_byte(text: &str, p: Position) -> usize {
+pub(crate) fn to_byte(text: &str, p: Position) -> usize {
     utf16_to_byte(text, codeintel::utf16_offset(text, p))
 }
 
-fn to_pos(text: &str, byte: usize) -> Position {
+pub(crate) fn to_pos(text: &str, byte: usize) -> Position {
     codeintel::position_at(text, byte_to_utf16(text, byte))
 }
 
-fn to_range(text: &str, s: Span) -> Range {
+pub(crate) fn to_range(text: &str, s: Span) -> Range {
     Range::new(to_pos(text, s.start), to_pos(text, s.end))
 }
 
-fn lsp_edits(text: &str, edits: &[TextEdit]) -> Vec<LspEdit> {
+pub(crate) fn lsp_edits(text: &str, edits: &[TextEdit]) -> Vec<LspEdit> {
     edits
         .iter()
         .map(|e| LspEdit {
@@ -48,11 +48,11 @@ fn lsp_edits(text: &str, edits: &[TextEdit]) -> Vec<LspEdit> {
         .collect()
 }
 
-fn refuse(message: String) -> ForgeError {
+pub(crate) fn refuse(message: String) -> ForgeError {
     ForgeError::Other(message)
 }
 
-fn require_php(path: &str) -> Result<()> {
+pub(crate) fn require_php(path: &str) -> Result<()> {
     let p = path.to_ascii_lowercase();
     if (p.ends_with(".php") || p.ends_with(".phtml") || p.ends_with(".inc"))
         && !p.ends_with(".blade.php")
@@ -66,13 +66,13 @@ fn require_php(path: &str) -> Result<()> {
 }
 
 /// Project files: editor buffers first, then the backend.
-struct Files {
-    backend: Arc<dyn Backend>,
-    buffers: HashMap<String, String>,
+pub(crate) struct Files {
+    pub(crate) backend: Arc<dyn Backend>,
+    pub(crate) buffers: HashMap<String, String>,
 }
 
 impl Files {
-    fn get(&mut self, path: &str) -> Option<String> {
+    pub(crate) fn get(&mut self, path: &str) -> Option<String> {
         if let Some(t) = self.buffers.get(path) {
             return Some(t.clone());
         }
@@ -83,7 +83,7 @@ impl Files {
 }
 
 /// The usages of the symbol at `byte` in `path` from the PHP index, as byte spans.
-fn usages_at(
+pub(crate) fn usages_at(
     backend: &Arc<dyn Backend>,
     files: &mut Files,
     path: &str,
@@ -439,7 +439,7 @@ fn declaration_of(
     Ok((decl.path, decl_text, span, usages))
 }
 
-fn is_library(path: &str) -> bool {
+pub(crate) fn is_library(path: &str) -> bool {
     path.starts_with("vendor/") || path.contains("://")
 }
 
