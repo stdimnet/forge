@@ -729,6 +729,22 @@ fn last_statement(header: &str, fam: Family) -> String {
     h[cut..].trim().to_string()
 }
 
+/// The first occurrence of `word` in `text` that is not part of a longer identifier (`c` in
+/// `function c()`, not the `c` of `function`), else the first occurrence at all.
+fn find_word(text: &str, word: &str) -> Option<usize> {
+    if word.is_empty() {
+        return None;
+    }
+    let ident = |c: char| c.is_alphanumeric() || c == '_' || c == '$';
+    text.match_indices(word)
+        .map(|(i, _)| i)
+        .find(|&i| {
+            !text[..i].chars().next_back().is_some_and(ident)
+                && !text[i + word.len()..].chars().next().is_some_and(ident)
+        })
+        .or_else(|| text.find(word))
+}
+
 /// The scopes of a brace language from its braces.
 fn brace_scopes(
     braces: &[Brace],
@@ -756,9 +772,7 @@ fn brace_scopes(
                     let text = lines.get(start).copied().unwrap_or("");
                     let start_column = indent_col(text);
                     let base = name.trim_end_matches("()").trim_end_matches(" callback");
-                    let column = text
-                        .find(base)
-                        .filter(|_| !base.is_empty())
+                    let column = find_word(text, base)
                         .map(|i| utf16_len(&text[..i]))
                         .unwrap_or(start_column);
                     out.push(Scope {
@@ -1706,6 +1720,12 @@ class User extends Model
         assert_eq!(method_target(&s, 10, 0, false), Some(at(7, 20)));
         assert_eq!(method_target(&s, 24, 0, true), None);
         assert_eq!(method_target(&s, 4, 6, false), None);
+
+        let one_line = editor_structure(
+            "<?php\nclass A {\n  function b() {}\n  function c() {}\n}\n",
+            "php",
+        );
+        assert_eq!(method_target(&one_line, 2, 20, true), Some(at(3, 11)));
 
         let css = editor_structure("a { b: c; }\n.x {\n  y: z;\n}\n", "css");
         assert_eq!(method_stops(&css).len(), 2);
