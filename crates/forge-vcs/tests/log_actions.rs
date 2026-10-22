@@ -248,7 +248,7 @@ fn local_changes_survive_a_rewrite() {
     let dir = f.tmp.path();
     write(dir, "a.txt", "local change\n");
     let repo = open(dir);
-    repo.drop_commits(&[f.c.clone()]).unwrap();
+    repo.drop_commits(std::slice::from_ref(&f.c)).unwrap();
     assert_eq!(subjects(dir), vec!["Add d", "Add b", "Add a"]);
     assert!(!dir.join("c.txt").exists());
     assert_eq!(read(dir, "a.txt"), "local change\n");
@@ -293,7 +293,9 @@ fn squash_commits_unite_at_the_oldest() {
             .collect::<Vec<_>>(),
         vec!["b.txt", "d.txt"]
     );
-    assert!(repo.squash_commits(&[f.a.clone()], "x").is_err());
+    assert!(repo
+        .squash_commits(std::slice::from_ref(&f.a), "x")
+        .is_err());
 }
 
 #[test]
@@ -403,13 +405,13 @@ fn pushed_and_protected_commits() {
     let protected = vec!["main".to_string(), "master".to_string()];
 
     let s = repo
-        .log_action_states(&[local.clone()], &protected)
+        .log_action_states(std::slice::from_ref(&local), &protected)
         .unwrap();
     assert!(s.undo_commit.enabled && s.edit_message.enabled);
     assert!(s.edit_message.warning.is_none());
 
     let s = repo
-        .log_action_states(&[pushed.clone()], &protected)
+        .log_action_states(std::slice::from_ref(&pushed), &protected)
         .unwrap();
     assert!(!s.undo_commit.enabled);
     assert!(s.edit_message.enabled);
@@ -420,7 +422,9 @@ fn pushed_and_protected_commits() {
         .unwrap()
         .contains("'origin/feature'"));
 
-    let s = repo.log_action_states(&[f.c.clone()], &protected).unwrap();
+    let s = repo
+        .log_action_states(std::slice::from_ref(&f.c), &protected)
+        .unwrap();
     assert!(!s.edit_message.enabled && !s.drop_commits.enabled);
     assert_eq!(
         s.interactive_rebase.reason.as_deref(),
@@ -436,7 +440,8 @@ fn pushed_and_protected_commits() {
 
     // Cherry-picking a protected commit adds the suffix.
     sh(dir, &["checkout", "-q", "-b", "other", &f.a]);
-    repo.cherry_pick(&[f.c.clone()], true, &protected).unwrap();
+    repo.cherry_pick(std::slice::from_ref(&f.c), true, &protected)
+        .unwrap();
     assert!(sh(dir, &["log", "-1", "--format=%B"]).contains("cherry picked from commit"));
 }
 
@@ -449,7 +454,9 @@ fn merges_after_the_selection_block_rebases() {
     sh(dir, &["checkout", "-q", "main"]);
     sh(dir, &["merge", "-q", "--no-ff", "--no-edit", "side"]);
     let repo = open(dir);
-    let s = repo.log_action_states(&[f.b.clone()], &[]).unwrap();
+    let s = repo
+        .log_action_states(std::slice::from_ref(&f.b), &[])
+        .unwrap();
     assert!(!s.interactive_rebase.enabled);
     assert!(s.revert.enabled);
     assert!(repo.rebase_plan(&f.b).is_err());
@@ -487,11 +494,11 @@ fn autosquash_and_patches_and_trees() {
     assert_eq!(read(dir, "b.txt"), "b fixed\n");
 
     let head = rev(dir, "HEAD");
-    let patch = repo.commits_patch(&[head.clone()]).unwrap();
+    let patch = repo.commits_patch(std::slice::from_ref(&head)).unwrap();
     assert!(patch.contains("+++ b/d.txt") && !patch.contains("c.txt"));
     let two = repo.commits_patch(&[head, rev(dir, "HEAD~1")]).unwrap();
     assert!(two.contains("+++ b/c.txt") && two.contains("+++ b/d.txt"));
-    let root = repo.commits_patch(&[f.a.clone()]).unwrap();
+    let root = repo.commits_patch(std::slice::from_ref(&f.a)).unwrap();
     assert!(root.contains("+++ b/a.txt"));
 
     assert_eq!(repo.tree_files(&f.b).unwrap(), vec!["a.txt", "b.txt"]);
