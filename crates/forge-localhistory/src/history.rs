@@ -268,8 +268,10 @@ impl<S: Storage> LocalHistory<S> {
         if before == FileState::Unknown {
             before = self.known(&e.path);
         }
+        // Nothing changed, or nothing known that could be restored.
         if (before == after && e.from.is_none())
-            || (before == FileState::Unknown && after == FileState::Unknown)
+            || (before == FileState::Unknown
+                && matches!(after, FileState::Unknown | FileState::Absent))
         {
             return Ok(None);
         }

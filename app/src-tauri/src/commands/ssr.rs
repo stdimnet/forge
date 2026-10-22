@@ -36,9 +36,11 @@ pub async fn ssr_search(request: SsrRequest, state: State<'_, AppState>) -> Resu
 pub async fn ssr_replace(
     request: SsrRequest,
     state: State<'_, AppState>,
+    lh: State<'_, crate::commands::local_history::LocalHistoryState>,
 ) -> Result<forge_backend::replace::ReplaceDone> {
     let backend = state.backend()?;
     let done = blocking(move || forge_backend::ssr::replace_all(&*backend, &request)).await?;
     *state.last_replace.lock().expect("last replace lock") = done.undo.clone();
+    crate::commands::local_history::replaced(&lh, "Structural Replace", &done.undo);
     Ok(done)
 }

@@ -39,6 +39,7 @@ forge-diff.workspace = true
 forge-ssr = { path = "../forge-ssr", default-features = false }
 forge-search-core.workspace = true
 forge-bookmarks.workspace = true
+forge-localhistory.workspace = true
 forge-codeintel.workspace = true
 forge-filetypes.workspace = true
 forge-text.workspace = true

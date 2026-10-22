@@ -34,6 +34,7 @@ mod injections;
 mod json_schema;
 mod keymap;
 mod livetemplates;
+mod localhistory;
 mod lua;
 mod php_interpreters;
 mod save_actions;

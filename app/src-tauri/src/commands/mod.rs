@@ -32,6 +32,7 @@ pub mod langservers;
 pub mod laravel;
 pub mod library;
 pub mod live_templates;
+pub mod local_history;
 pub mod lsp;
 pub mod lua;
 pub mod markdown;
