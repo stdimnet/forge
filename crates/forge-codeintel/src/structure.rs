@@ -1362,6 +1362,67 @@ fn nest(nodes: Vec<Value>, regions: &[&Region]) -> Vec<Value> {
     rest
 }
 
+// ---- Next / Previous Method ----
+
+/// A place Next Method / Previous Method (`Alt+Down` / `Alt+Up`) stops at.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MethodStop {
+    pub line: u32,
+    pub column: u32,
+}
+
+/// The stops of Next/Previous Method in document order, like PHPStorm: the names of classes,
+/// interfaces, traits, enums, functions and methods (not closures), CSS rules, and the
+/// closing brace of every class-like scope.
+pub fn method_stops(structure: &EditorStructure) -> Vec<MethodStop> {
+    let mut stops = Vec::new();
+    for s in &structure.scopes {
+        let class_like = matches!(
+            s.kind,
+            ScopeKind::Class | ScopeKind::Interface | ScopeKind::Trait | ScopeKind::Enum
+        );
+        if !(class_like
+            || matches!(
+                s.kind,
+                ScopeKind::Function | ScopeKind::Method | ScopeKind::Rule
+            ))
+        {
+            continue;
+        }
+        stops.push(MethodStop {
+            line: s.line,
+            column: s.column,
+        });
+        if class_like && s.end_line > s.line && s.end_column > 0 {
+            stops.push(MethodStop {
+                line: s.end_line,
+                column: s.end_column - 1,
+            });
+        }
+    }
+    stops.sort();
+    stops.dedup();
+    stops
+}
+
+/// Where Next Method (`forward`) or Previous Method moves the caret from `line`/`column`;
+/// `None` past the last (or before the first) stop.
+pub fn method_target(
+    structure: &EditorStructure,
+    line: u32,
+    column: u32,
+    forward: bool,
+) -> Option<MethodStop> {
+    let caret = MethodStop { line, column };
+    let stops = method_stops(structure);
+    if forward {
+        stops.into_iter().find(|s| *s > caret)
+    } else {
+        stops.into_iter().rev().find(|s| *s < caret)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1631,5 +1692,30 @@ class User extends Model
         let s = editor_structure(php, "php");
         assert_eq!(names(&s), ["if", "f()"]);
         assert_eq!(s.scopes[1].line, 7);
+    }
+
+    #[test]
+    fn method_stops_walk_declarations_and_class_ends() {
+        let s = editor_structure(USER, "php");
+        let at = |l, c| MethodStop { line: l, column: c };
+        let stops = method_stops(&s);
+        assert_eq!(stops, [at(4, 6), at(7, 20), at(16, 20), at(24, 0)]);
+        assert_eq!(method_target(&s, 0, 0, true), Some(at(4, 6)));
+        assert_eq!(method_target(&s, 7, 20, true), Some(at(16, 20)));
+        assert_eq!(method_target(&s, 7, 4, true), Some(at(7, 20)));
+        assert_eq!(method_target(&s, 10, 0, false), Some(at(7, 20)));
+        assert_eq!(method_target(&s, 24, 0, true), None);
+        assert_eq!(method_target(&s, 4, 6, false), None);
+
+        let css = editor_structure("a { b: c; }\n.x {\n  y: z;\n}\n", "css");
+        assert_eq!(method_stops(&css).len(), 2);
+        let lua = editor_structure("function a()\nend\nlocal b = function()\nend\n", "lua");
+        assert_eq!(
+            method_stops(&lua)
+                .iter()
+                .map(|s| s.line)
+                .collect::<Vec<_>>(),
+            [0, 2]
+        );
     }
 }
