@@ -472,13 +472,15 @@
   gap: 2px;
   min-width: 0;
 }
+/* Gives way before the navigation bar; the full text is its tooltip. */
 .status-message {
   padding: 0 8px;
-  color: var(--fg-muted);
+  color: var(--fg);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  min-width: 0;
+  min-width: 60px;
+  flex-shrink: 20;
 }
 .status-item {
   display: inline-flex;

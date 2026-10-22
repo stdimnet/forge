@@ -447,7 +447,8 @@ app/ui/            SolidJS UI
   protocol 4 added `FindTodos`, `CollectFiles`, `Web`, `LangServerInstall` and
   `LangServerUpdates`; protocol 5 added `FindStart`, `FindPage`, `FindSymbols` and
   `SearchStatus`, and `exact` on the search calls; protocol 6 added `ReadBytes` / `WriteBytes`
-  (files in other encodings than UTF-8) and `TerminalSpec.shell_integration`), `Event`
+  (files in other encodings than UTF-8) and `TerminalSpec.shell_integration`; protocol 7
+  added `PhpCall::Highlights` and the Find Usages `options` of `PhpCall::Usages`), `Event`
   (`FsChanged`, `Pty`, `Run`, `PhpIndexProgress`, `Install`), `Data` /
   `Close { channel }` (language server stdio, terminal and process input; channel ids are chosen
   by the client). The connection starts with `Call::Hello`. `forge_backend::rpc::RpcClient`
@@ -709,7 +710,9 @@ computes everything; `app/ui/src/features/codeintel` and `features/lsp/goto.ts` 
 - `crates/forge-codeintel` (pure, also WebAssembly): `UsageKind` and `classify_usage`
   (PHPStorm's usage types from the line around a reference), `group_usages` (the tree by usage
   type and file, without the declaration), workspace edits with LSP positions, context action
-  ordering.
+  ordering, the Find Usages settings (`usage_options`: `UsageOptions` per `ElementKind`,
+  `UsageScope`, `text_occurrences`, `apply_options`) and highlighting (`highlight`: read /
+  write access, `exit_points`, `lexical_highlights`).
 - `packs/phpforge/lang-php`: `navigate` resolves the symbol at a position on the index
   (classes through imports, aliases, group uses and the namespace; functions and constants with
   PHP's global fallback; members through `$this`, `self`/`static`/`parent`, typed variables,
@@ -739,9 +742,26 @@ computes everything; `app/ui/src/features/codeintel` and `features/lsp/goto.ts` 
     then the PHP index, then the stubs. `NavTarget` is `{ path, line, column, name, container? }`.
   - `code_symbol_info({ path, line, character, content? }) -> { range, container, signature } |
     null` — the Ctrl+hover link from the index (and the loaded stubs, never a download).
-  - `code_find_usages({ path, line, character, content?, buffers? }) -> { title, source,
-    declaration?, byType: UsageTree, byFile: UsageTree }` — `references` of the servers, else the
-    index (members also through parent and child classes; unknown receivers as dynamic usages).
+  - `code_find_usages({ path, line, character, content?, buffers?, options?, scope? }) -> {
+    title, source, declaration?, byType: UsageTree, byFile: UsageTree, element, scope }` —
+    `references` of the servers, else the index (members also through parent and child
+    classes; unknown receivers as dynamic usages). `options` are the `findUsages.options.*`
+    settings by field name (`UsageOptions`; Rust applies those of the element: usages of a
+    class's methods / fields, derived / implementing classes, derived interfaces, overriding
+    methods through `PhpCall::Usages { options }`, read / write access, comments and strings,
+    text occurrences found with `Backend::find_in_files`); `scope` is `UsageScope { kind:
+    projectFiles | projectAndLibraries | openFiles | currentFile | recentlyChangedFiles |
+    directory | custom, directory, includeSubdirectories, pattern, currentFile, openFiles,
+    changedFiles }`, `scope` in the answer its label ("Directory 'app'").
+  - `code_highlight_usages({ path, line, character, content? }) -> HighlightAnswer | null` —
+    Highlight Usages in File and the element at the caret: exit points on `return` / `throw`,
+    `documentHighlight` of the servers, else the PHP index (`PhpCall::Highlights`, also
+    implementing / overriding methods on `implements` / `extends`), else the lexical fallback.
+    `HighlightAnswer { target: usages | exitPoints | implementingMethods | overridingMethods,
+    title, highlights: { range, kind: read | write | text }[], source, element, summary }`.
+  - `code_usage_target({ path, line, character, content? }) -> { element, title, label,
+    fields: { key, label, section: find | options }[], scoped } | null` — the Find Usages
+    dialog's checkboxes for the element at the caret.
   - `code_navigate({ path, line, character, kind: "implementation" | "superMethod" |
     "typeDeclaration", content? }) -> { targets, missing? }` — `missing` explains a server
     without the feature (Intelephense Premium) when the index found nothing either.
@@ -799,7 +819,13 @@ computes everything; `app/ui/src/features/codeintel` and `features/lsp/goto.ts` 
     templates (`GenerateOptions`).
 - UI: Go to Declaration (`GotoDeclaration`, `Ctrl+Click`, middle click) shows usages on a
   declaration (`showUsagesAt`); `ShowUsages` (popup), `FindUsages` (Find tool window `find`,
-  `Alt+3`), `GotoImplementation` (also `Ctrl+Alt+Click`), `GotoTypeDeclaration`,
+  `Alt+3`), `FindUsagesInFile` (scope Current File), `ShowSettingsAndFindUsages` (the Find
+  Usages dialog, `FindUsagesDialog.tsx`; also the Settings buttons of the popup and the Find
+  tool window; choices saved as settings), `HighlightUsagesInFile` (`highlightUsages.ts`:
+  sticky until Escape, F3 / Shift+F3 through `gotoHighlightedUsage`, the status bar text via
+  `showStatusMessage`) and the automatic highlighting at the caret
+  (`editor.highlightUsagesAtCaret`; state in `editor/usageHighlight.ts`, marks on the error
+  stripe `editor/errorStripe.ts`, which features feed through the `stripeMarks` facet), `GotoImplementation` (also `Ctrl+Alt+Click`), `GotoTypeDeclaration`,
   `GotoSuperMethod` are registered commands, so the keymap and the main menu enable them;
   several targets use `chooseDeclarationAt`. Browser mode: `mock/codeintelMock.ts` over the demo
   project and `mock/demoStubs.ts`, grouping through `forge-codeintel` as WebAssembly.

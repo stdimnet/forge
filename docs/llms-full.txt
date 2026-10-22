@@ -1038,8 +1038,11 @@ clears or deletes it, or makes it the default list (new bookmarks go there).
 
 The **Find** tool window (`Alt+3`) keeps search results, one tab per search:
 
-- **Find Usages** (`Alt+F7`) and the pin button of **Show Usages** put usages there, grouped
-  by usage type and file (see [Find Usages](docs/guide/user/editor.md#find-usages-and-show-usages)).
+- **Find Usages** (`Alt+F7`), **Find Usages in File** (`Ctrl+F7`) and the pin button of
+  **Show Usages** put usages there, grouped by usage type and file (see
+  [Find Usages](docs/guide/user/editor.md#find-usages-and-show-usages)). The **Settings** button of a usages
+  tab opens the [Find Usages dialog](docs/guide/user/editor.md#find-usages-settings) and searches again; with
+  **Open in new tab** off the result replaces the active usages tab.
 - **Open in Find Window** in [Find in Files](docs/guide/user/search-everywhere.md#find-in-files)
   (`Ctrl+Enter` in the popup) pins the text matches there, grouped by file.
 
@@ -1373,6 +1376,74 @@ server answer, from the PHP index. Unsaved changes in open editors are taken int
 ![Show Usages](docs/screenshots/php-nav-show-usages.png)
 
 ![Find tool window](docs/screenshots/php-nav-find-window.png)
+
+### Find Usages settings
+
+**Find Usages Settings…** (`Ctrl+Alt+Shift+F7`, macOS `Cmd+Alt+Shift+F7`, or the **Settings**
+button of the Find tool window and the Show Usages popup) opens the **Find Usages** dialog for
+the element at the caret. What it offers depends on the element, like in PHPStorm:
+
+| Element | Find | Options |
+| --- | --- | --- |
+| Class, trait, enum | Usages, Usages of methods, Usages of fields, Derived classes (classes) | Search in comments and strings, Search for text occurrences |
+| Interface | Usages, Usages of methods, Implementing classes, Derived interfaces | Search in comments and strings, Search for text occurrences |
+| Method | Usages, Overriding methods (implementing methods of interfaces and abstract methods) | Search in comments and strings, Search for text occurrences |
+| Property | Read access, Write access | Search in comments and strings, Search for text occurrences |
+| Variable | Read access, Write access | — (searched in its file) |
+| Function, constant, other symbols | Usages | Search in comments and strings, Search for text occurrences |
+
+**Scope** is one of Project Files (the default; `vendor/` and `node_modules/` left out),
+Project and Libraries, Open Files, Current File, Recently Changed Files (the working tree's
+changes and unsaved editors), Directory (with **Include subdirectories**) or Custom (file globs
+separated by `;`, `!` excludes, e.g. `app/**/*.php; !app/Legacy/**`). **Open in new tab** off
+replaces the active usages tab of the Find tool window instead of adding one.
+
+**Find** saves the choices as settings (`findUsages.*`, see the
+[settings reference](docs/guide/reference/settings.md)), so later Find Usages (`Alt+F7`) and Show
+Usages (`Ctrl+Alt+F7`) runs use them too, and searches. **Search for text occurrences** adds
+the name in files of other languages (configuration, templates, Markdown) as **Non-code
+usages**; **Search in comments and strings** adds it in comments and string literals. The
+filtering and the extra occurrences are computed in Rust next to the files, so remote projects
+work the same.
+
+![Find Usages dialog](docs/screenshots/find-usages-dialog.png)
+
+### Find Usages in File
+
+**Find Usages in File** (`Ctrl+F7`, macOS `Cmd+F7`) finds the usages of the element at the
+caret in the current file and shows them in the Find tool window, like Find Usages with the
+scope Current File ("Usages of Order in File 'PriceCalculator.php'").
+
+![Find Usages in File](docs/screenshots/find-usages-in-file.png)
+
+## Highlight usages
+
+When the caret rests on a symbol, its usages in the file are highlighted: reads in blue, writes
+(assignments, declarations, parameters) in red, also as marks on the right edge of the editor
+(the error stripe; a click moves the caret there). Turn it off with **Settings | Editor |
+General | Highlight on Caret Movement | Highlight usages of element at caret**
+(`editor.highlightUsagesAtCaret`).
+
+**Highlight Usages in File** (`Ctrl+Shift+F7`, macOS `Cmd+Shift+F7`) keeps the highlighting
+until you press `Escape`; `F3` / `Shift+F3` jump to the next / previous usage, and the status
+bar says "4 usages of '$price' found (Press Escape to remove the highlighting)". Pressing it
+again on the same element removes the highlighting. Like PHPStorm it also highlights:
+
+- the **exit points** of a function or method (every `return` and `throw`, closures left out)
+  when the caret is on `return` or `throw`;
+- the **implementing methods** when the caret is on `implements`, and the overriding methods on
+  `extends` (PHP).
+
+The usages come from the language servers (`textDocument/documentHighlight`), in PHP files
+without a server answer from the PHP index (read and write access of properties and
+variables), else from a lexical search for the identifier in its scope (variables in their
+function; comments and strings left out).
+
+![Usages of the element at the caret](docs/screenshots/highlight-usages-at-caret.png)
+
+![Highlight Usages in File](docs/screenshots/highlight-usages-in-file.png)
+
+![Exit points](docs/screenshots/highlight-exit-points.png)
 
 ## Problems
 
@@ -5728,7 +5799,7 @@ Source: docs/guide/user/shortcuts/search.md
 
 # Shortcuts: Search
 
-Search Everywhere, Go to Class/File/Symbol, find in the current file, Find in Files and Find / Show Usages. Windows/Linux shortcuts first, macOS second; both are PHPStorm's defaults and can be changed in Settings | Keymap.
+Search Everywhere, Go to Class/File/Symbol, find in the current file, Find in Files, Find / Show Usages, Find Usages in File, Highlight Usages in File and the Find Usages settings. Windows/Linux shortcuts first, macOS second; both are PHPStorm's defaults and can be changed in Settings | Keymap.
 
 | Action | Windows / Linux | macOS |
 | --- | --- | --- |
@@ -5744,6 +5815,9 @@ Search Everywhere, Go to Class/File/Symbol, find in the current file, Find in Fi
 | [Find in Files…](#find-in-files) | `Ctrl+Shift+F` | `Cmd+Shift+F` |
 | [Find Usages](#find-usages) | `Alt+F7` | `Alt+F7` |
 | [Show Usages](#show-usages) | `Ctrl+Alt+F7` | `Cmd+Alt+F7` |
+| [Find Usages in File](#find-usages-in-file) | `Ctrl+F7` | `Cmd+F7` |
+| [Highlight Usages in File](#highlight-usages-in-file) | `Ctrl+Shift+F7` | `Cmd+Shift+F7` |
+| [Find Usages Settings…](#find-usages-settings) | `Ctrl+Alt+Shift+F7` | `Cmd+Alt+Shift+F7` |
 
 ## Search Everywhere
 
@@ -5882,6 +5956,42 @@ Shows the usages of the symbol at the caret in a popup; `Enter` opens one, the p
 ![Show Usages](docs/screenshots/php-nav-show-usages.png)
 
 More: [Editor](docs/guide/user/editor.md#find-usages-and-show-usages)
+
+## Find Usages in File
+
+**Shortcut:** `Ctrl+F7` · macOS `Cmd+F7` · action id `FindUsagesInFile`
+
+Finds the usages of the symbol at the caret in the current file and shows them in the Find tool window.
+
+**Menu:** Edit | Find Usages | Find Usages in File
+
+![Find Usages in File](docs/screenshots/find-usages-in-file.png)
+
+More: [Editor](docs/guide/user/editor.md#find-usages-in-file)
+
+## Highlight Usages in File
+
+**Shortcut:** `Ctrl+Shift+F7` · macOS `Cmd+Shift+F7` · action id `HighlightUsagesInFile`
+
+Highlights the usages of the symbol at the caret in the file (reads and writes in different colors) until `Escape`; `F3` / `Shift+F3` jump between them. On `return` / `throw` it highlights the exit points, on `implements` / `extends` the implementing / overriding methods.
+
+**Menu:** Edit | Find Usages | Highlight Usages in File
+
+![Highlight Usages in File](docs/screenshots/highlight-usages-in-file.png)
+
+More: [Editor](docs/guide/user/editor.md#highlight-usages)
+
+## Find Usages Settings…
+
+**Shortcut:** `Ctrl+Alt+Shift+F7` · macOS `Cmd+Alt+Shift+F7` · action id `ShowSettingsAndFindUsages`
+
+Opens the Find Usages dialog for the symbol at the caret (what to find, options, scope, Open in new tab), saves the choices for later searches and runs Find Usages.
+
+**Menu:** Edit | Find Usages | Find Usages Settings…
+
+![Find Usages dialog](docs/screenshots/find-usages-dialog.png)
+
+More: [Editor](docs/guide/user/editor.md#find-usages-settings)
 
 
 ---
@@ -7114,7 +7224,15 @@ and file. Click a usage to open it.
 ![Find tool window](docs/screenshots/php-nav-find-window.png)
 
 Members used on expressions the index cannot type (`$any->save()`) are listed as **Dynamic
-usages**. Comments and strings are not usages.
+usages**. Comments and strings are not usages unless **Search in comments and strings** is on
+in the [Find Usages dialog](docs/guide/user/editor.md#find-usages-settings) (`Ctrl+Alt+Shift+F7`), which also
+adds the usages of a class's methods and fields, derived and implementing classes, derived
+interfaces and overriding methods on request, and limits the search to a scope.
+
+**Highlight Usages in File** (`Ctrl+Shift+F7`) and the highlighting at the caret use the index
+when no language server answers: property and variable reads and writes, the exit points of a
+method on `return` / `throw`, and on `implements` / `extends` the methods that implement or
+override the parents' methods (see [Highlight usages](docs/guide/user/editor.md#highlight-usages)).
 
 ### Implementation, Super Method and Type Declaration
 
@@ -9836,10 +9954,10 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Find in Files… | `FindInPath` | `Ctrl+Shift+F` | `Cmd+Shift+F` | yes |
 | Replace in Files… | `ReplaceInPath` | `Ctrl+Shift+R` | `Cmd+Shift+R` | yes |
 | Find Usages | `FindUsages` | `Alt+F7` | `Alt+F7` | yes |
-| Find Usages in File | `FindUsagesInFile` | `Ctrl+F7` | `Cmd+F7` | — |
-| Highlight Usages in File | `HighlightUsagesInFile` | `Ctrl+Shift+F7` | `Cmd+Shift+F7` | — |
+| Find Usages in File | `FindUsagesInFile` | `Ctrl+F7` | `Cmd+F7` | yes |
+| Highlight Usages in File | `HighlightUsagesInFile` | `Ctrl+Shift+F7` | `Cmd+Shift+F7` | yes |
 | Show Usages | `ShowUsages` | `Ctrl+Alt+F7` | `Cmd+Alt+F7` | yes |
-| Find Usages Settings… | `ShowSettingsAndFindUsages` | `Ctrl+Alt+Shift+F7` | `Cmd+Alt+Shift+F7` | — |
+| Find Usages Settings… | `ShowSettingsAndFindUsages` | `Ctrl+Alt+Shift+F7` | `Cmd+Alt+Shift+F7` | yes |
 | Search Structurally… | `StructuralSearchPlugin.StructuralSearchAction` |  |  | — |
 
 ### View > Tool Windows
@@ -10309,10 +10427,10 @@ Undo, clipboard, find and replace, selection and line editing. Open it with ☰ 
 | Find › Search Structurally… | — | — | not yet | Not available yet; the entry is disabled. |
 | **Find Usages** | | | | submenu |
 | Find Usages › Find Usages | `Alt+F7` | `Alt+F7` | yes | Shows the usages of the symbol at the caret in the Find tool window. [More](docs/guide/user/editor.md#find-usages-and-show-usages) ([screenshot](docs/screenshots/php-nav-find-window.png)) |
-| Find Usages › Find Usages Settings… | `Ctrl+Alt+Shift+F7` | `Cmd+Alt+Shift+F7` | not yet | Not available yet; the entry is disabled. |
+| Find Usages › Find Usages Settings… | `Ctrl+Alt+Shift+F7` | `Cmd+Alt+Shift+F7` | yes | Opens the Find Usages dialog (options per element, scope, Open in new tab), then finds the usages. [More](docs/guide/user/editor.md#find-usages-settings) ([screenshot](docs/screenshots/find-usages-dialog.png)) |
 | Find Usages › Show Usages | `Ctrl+Alt+F7` | `Cmd+Alt+F7` | yes | Shows the usages of the symbol at the caret in a popup. [More](docs/guide/user/editor.md#find-usages-and-show-usages) ([screenshot](docs/screenshots/php-nav-show-usages.png)) |
-| Find Usages › Find Usages in File | `Ctrl+F7` | `Cmd+F7` | not yet | Not available yet; the entry is disabled. |
-| Find Usages › Highlight Usages in File | `Ctrl+Shift+F7` | `Cmd+Shift+F7` | not yet | Not available yet; the entry is disabled. |
+| Find Usages › Find Usages in File | `Ctrl+F7` | `Cmd+F7` | yes | Shows the usages of the symbol at the caret in the current file in the Find tool window. [More](docs/guide/user/editor.md#find-usages-in-file) ([screenshot](docs/screenshots/find-usages-in-file.png)) |
+| Find Usages › Highlight Usages in File | `Ctrl+Shift+F7` | `Cmd+Shift+F7` | yes | Highlights the usages (or exit points, implementing methods) in the file until Escape; F3 / Shift+F3 jump between them. [More](docs/guide/user/editor.md#highlight-usages) ([screenshot](docs/screenshots/highlight-usages-in-file.png)) |
 | Select All | `Ctrl+A` | `Cmd+A` | yes | Selects the whole document. [More](docs/guide/user/editor.md#editing-actions) |
 | Extend Selection | `Ctrl+W` | `Alt+Up` | yes | Extends the selection to the next larger syntactic unit (word, expression, statement, block). [More](docs/guide/user/editor.md#editing-actions) |
 | Shrink Selection | `Ctrl+Shift+W` | `Alt+Down` | yes | Shrinks the selection back. [More](docs/guide/user/editor.md#editing-actions) |
@@ -10842,6 +10960,34 @@ Page id `keymap`. The override lists are edited through the Keymap page, not as 
 | `keymap.overrides.default` | list | `[]` | user |  | Changed shortcuts (Windows / Linux) — One entry per action: the action id, then its shortcuts, separated by tabs. |
 | `keymap.overrides.macOS` | list | `[]` | user |  | Changed shortcuts (macOS) — One entry per action: the action id, then its shortcuts, separated by tabs. |
 
+### Find Usages
+
+Group `findUsages`, edited in the Find Usages dialog (`Ctrl+Alt+Shift+F7`), not on a Settings
+page. Every Find Usages and Show Usages run uses them.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `findUsages.options.classUsages` | bool | `true` | user |  | Usages (classes, traits, enums) |
+| `findUsages.options.classMethodUsages` | bool | `false` | user |  | Usages of methods (classes) |
+| `findUsages.options.classFieldUsages` | bool | `false` | user |  | Usages of fields (classes) |
+| `findUsages.options.classDerivedClasses` | bool | `false` | user |  | Derived classes |
+| `findUsages.options.interfaceUsages` | bool | `true` | user |  | Usages (interfaces) |
+| `findUsages.options.interfaceMethodUsages` | bool | `false` | user |  | Usages of methods (interfaces) |
+| `findUsages.options.interfaceImplementingClasses` | bool | `false` | user |  | Implementing classes |
+| `findUsages.options.interfaceDerivedInterfaces` | bool | `false` | user |  | Derived interfaces |
+| `findUsages.options.methodUsages` | bool | `true` | user |  | Usages (methods) |
+| `findUsages.options.methodOverridingMethods` | bool | `false` | user |  | Overriding methods |
+| `findUsages.options.readAccess` | bool | `true` | user |  | Read access (properties, variables) |
+| `findUsages.options.writeAccess` | bool | `true` | user |  | Write access (properties, variables) |
+| `findUsages.options.usages` | bool | `true` | user |  | Usages (functions, constants, other symbols) |
+| `findUsages.options.searchInCommentsAndStrings` | bool | `false` | user |  | Search in comments and strings |
+| `findUsages.options.searchForTextOccurrences` | bool | `false` | user |  | Search for text occurrences |
+| `findUsages.scope.kind` | enum: `projectFiles`, `projectAndLibraries`, `openFiles`, `currentFile`, `recentlyChangedFiles`, `directory`, `custom` | `projectFiles` | user |  | Scope |
+| `findUsages.scope.directory` | string | `""` | user |  | Directory |
+| `findUsages.scope.includeSubdirectories` | bool | `true` | user |  | Include subdirectories |
+| `findUsages.scope.pattern` | string | `""` | user |  | Custom scope — File globs separated by ';', '!' excludes (app/**/*.php; !app/Legacy/**). |
+| `findUsages.openInNewTab` | bool | `true` | user |  | Open in new tab |
+
 ### Editor | General
 
 Page id `editor.general`.
@@ -10863,6 +11009,7 @@ Page id `editor.general`.
 | `editor.stripTrailingSpaces` | enum: `none`, `modified`, `all` | `modified` | user | On Save | Remove trailing spaces on |
 | `editor.ensureNewlineAtEof` | bool | `true` | user | On Save | Ensure every saved file ends with a line break |
 | `editor.clipboard.maxContents` | int (1–100) | `20` | user | Limits | Maximum number of contents to keep in clipboard |
+| `editor.highlightUsagesAtCaret` | bool | `true` | user | Highlight on Caret Movement | Highlight usages of element at caret — Highlights the usages of the symbol at the caret in the file (reads and writes in different colors), also on the scrollbar. |
 | `editor.colorPreview.gutter` | bool | `true` | user | Appearance | Show color preview in the gutter — Swatches next to colors in CSS, markup and scripts; click one to open the color picker. |
 | `editor.colorPreview.inline` | bool | `false` | user | Appearance | Show color preview inline |
 | `run.console.softWrap` | bool | `false` | user | Console | Use soft wraps in console |
@@ -14172,6 +14319,14 @@ and the browser-mode UI. Pure Rust, so it also runs as WebAssembly.
   editors and the project backend.
 - `usages`: Find Usages: the usage type of each reference (method call, import, new
   instance, ...) from its line, and the result tree grouped by usage type and file.
+- `usage_options`: the Find Usages settings: options per kind of element
+  (`UsageOptions::effective`, the dialog's checkboxes in `UsageOptions::fields`,
+  `UsageTarget`), search scopes (`UsageScope`: Project Files, Open Files, Current File,
+  Recently Changed Files, Directory, custom globs) and the text occurrences added on request
+  (comments and strings, non-code files).
+- `highlight`: Highlight Usages in File and the highlighting of the element at the caret:
+  read / write access of usages, the exit points of a function on `return` / `throw` and a
+  lexical fallback (the identifier in its scope, comments and strings left out).
 - `docs`: the documentation actions of the View menu: External Documentation URLs, Quick
   Definition snippets, Context Info headers and Type Info from hovers and signatures.
 - `structure`: the scopes of a document (classes, functions, control blocks, CSS rules,
@@ -17074,7 +17229,10 @@ PHPForge language pack: PHP support built on tree-sitter.
   fuzzy symbol search, file structure and lazy vendor resolution.
 - `hover` renders index-based hover markdown.
 - `generate` implements the "Generate" actions (constructor, accessors, overrides, ...).
-- `navigate` Go to Declaration, Find Usages, implementations and gutter markers.
+- `navigate` Go to Declaration, Find Usages (with the Find Usages options), implementations
+  and gutter markers.
+- `highlight` Highlight Usages in File: the usages in the current file with read / write
+  access, the implementing / overriding methods on `implements` / `extends`.
 - `stubs` PHP's own symbols from phpstorm-stubs (the "PHP Runtime").
 - `lsp` describes how to launch Intelephense / phpactor.
 
@@ -17087,13 +17245,14 @@ PHPForge language pack: PHP support built on tree-sitter.
 | `docblock.rs` | PHPDoc parser: summary/description, the standard tags (`@param`, `@return`, `@throws`, `@var`, `@property[-read\|-write]`, `@method`, `@deprecated`, `@see`, `@template`, `@extends`/`@implements`), static-analysis prefixes (`@phpstan-`/`@psalm-`) and Doctrine/Symfony style annotations (`@ORM\Column(type="string")`, `@Route("/x")`). |
 | `fuzzy.rs` | Fuzzy matcher for Go to Class / Go to Symbol: subsequence matching with bonuses for word starts, camel humps (`OrCo` -> `OrderController`) and consecutive runs. |
 | `generate.rs` | "Generate" actions (Alt+Insert): constructor, getters/setters, `__toString()`, override/implement method stubs and PHPDoc blocks. |
+| `highlight.rs` | Highlight Usages in File on the index (when no language server answers `documentHighlight`): the usages of the symbol at the caret in its file, the declaration as a write, and on `implements` / `extends` the class's methods that implement / override the parents' methods. |
 | `hover.rs` | Index-based hover for project symbols: signature + attributes + parsed docblock as markdown. Complements a language server's hover (which covers built-ins). |
 | `intentions.rs` | Built-in intentions for Show Context Actions (Alt+Enter) on the index: import class, replace qualifier with an import, accessors, "Add 'readonly' modifier", method stubs, PHPDoc and the "Generate..." link. |
 | `imports.rs` | Optimize Imports: removes `use` imports nothing refers to (code, attributes, docblocks and annotations count) and sorts the rest (classes, functions, constants); group uses are expanded, braced namespaces handled separately. |
 | `index.rs` | Workspace-wide PHP index: parallel indexing, mtime-keyed persistent cache, fuzzy symbol search, ancestor lookup and lazy resolution of vendor classes through Composer's PSR-4 metadata. |
 | `lsp.rs` | How to launch a PHP language server: Intelephense (preferred, users bring their own licence key) with phpactor as fallback. Independent of the generic LSP client; the app turns `LspServerConfig` into a running server. |
 | `model.rs` | Symbol model produced by the indexer. Everything is serializable so it can be cached on disk and sent over IPC unchanged (camelCase field names for the UI). |
-| `navigate.rs` | Code navigation on the index when no language server answers: the symbol under the caret (classes with or without a leading backslash through imports, aliases, group uses and the namespace; functions and constants with PHP's global fallback; members through `$this`, `self`/`static`/`parent`, typed variables, `catch`, `@var`, property and return-type chains; variables), `definition` (target, "on a declaration" or an `ExternalSymbol` for the stubs), `find_usages` (usage kinds, dynamic usages, members through parent and child classes), Go to Implementation / Super Method / Type Declaration and the implemented / overridden `line_markers`. |
+| `navigate.rs` | Code navigation on the index when no language server answers: the symbol under the caret (classes with or without a leading backslash through imports, aliases, group uses and the namespace; functions and constants with PHP's global fallback; members through `$this`, `self`/`static`/`parent`, typed variables, `catch`, `@var`, property and return-type chains; variables), `definition` (target, "on a declaration" or an `ExternalSymbol` for the stubs), `find_usages` / `find_usages_with` (usage kinds, dynamic usages, members through parent and child classes; with the Find Usages options also usages of a class's methods and fields, derived / implementing classes, derived interfaces and overriding methods, comments and strings), Go to Implementation / Super Method / Type Declaration and the implemented / overridden `line_markers`. |
 | `rearrange.rs` | Rearrange Code: orders class members as trait uses, enum cases, constants, properties, constructor, methods; comments move with their member, blank lines stay in place. |
 | `rename.rs` | Rename (Shift+F6) on the index: PHPStorm's dialog label for a symbol and the name clashes reported as conflicts (`clashes`: the class / function / constant or member with the new name already exists). The edit itself comes from `find_usages` and `forge_codeintel::edit_from_locations`. |
 | `offsets.rs` | Offset conversion. The index works in UTF-8 byte offsets; the UI (CodeMirror / JS strings) uses UTF-16 code units. Convert at the IPC boundary. |
@@ -17113,7 +17272,7 @@ pub enum PhpError { … }
 
 ## Used by
 
-- IPC: `php_index_workspace`, `php_search_symbols`, `php_file_structure`, `php_hover`, `php_generate_targets`, `php_generate`, `php_detect_servers`, `php_lsp_config` (`app/src-tauri/src/commands/php.rs`); `code_goto_declaration`, `code_symbol_info`, `code_find_usages`, `code_navigate`, `code_line_markers`, `code_prepare_rename`, `code_rename`, `code_context_actions`, `library_read` (`commands/codeintel.rs`, `commands/library.rs`) through `forge_backend::PhpBackend`, so remote projects answer from the agent
+- IPC: `php_index_workspace`, `php_search_symbols`, `php_file_structure`, `php_hover`, `php_generate_targets`, `php_generate`, `php_detect_servers`, `php_lsp_config` (`app/src-tauri/src/commands/php.rs`); `code_goto_declaration`, `code_symbol_info`, `code_find_usages`, `code_highlight_usages`, `code_usage_target`, `code_navigate`, `code_line_markers`, `code_prepare_rename`, `code_rename`, `code_context_actions`, `library_read` (`commands/codeintel.rs`, `commands/library.rs`) through `forge_backend::PhpBackend`, so remote projects answer from the agent
 - UI: `app/ui/src/features/php`, `app/ui/src/features/codeintel`
 - Browser mode: not built to WebAssembly (runtime code); browser mode uses mocks
 

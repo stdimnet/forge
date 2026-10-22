@@ -20,7 +20,10 @@ PHPForge language pack: PHP support built on tree-sitter.
   fuzzy symbol search, file structure and lazy vendor resolution.
 - `hover` renders index-based hover markdown.
 - `generate` implements the "Generate" actions (constructor, accessors, overrides, ...).
-- `navigate` Go to Declaration, Find Usages, implementations and gutter markers.
+- `navigate` Go to Declaration, Find Usages (with the Find Usages options), implementations
+  and gutter markers.
+- `highlight` Highlight Usages in File: the usages in the current file with read / write
+  access, the implementing / overriding methods on `implements` / `extends`.
 - `stubs` PHP's own symbols from phpstorm-stubs (the "PHP Runtime").
 - `lsp` describes how to launch Intelephense / phpactor.
 
@@ -33,13 +36,14 @@ PHPForge language pack: PHP support built on tree-sitter.
 | `docblock.rs` | PHPDoc parser: summary/description, the standard tags (`@param`, `@return`, `@throws`, `@var`, `@property[-read\|-write]`, `@method`, `@deprecated`, `@see`, `@template`, `@extends`/`@implements`), static-analysis prefixes (`@phpstan-`/`@psalm-`) and Doctrine/Symfony style annotations (`@ORM\Column(type="string")`, `@Route("/x")`). |
 | `fuzzy.rs` | Fuzzy matcher for Go to Class / Go to Symbol: subsequence matching with bonuses for word starts, camel humps (`OrCo` -> `OrderController`) and consecutive runs. |
 | `generate.rs` | "Generate" actions (Alt+Insert): constructor, getters/setters, `__toString()`, override/implement method stubs and PHPDoc blocks. |
+| `highlight.rs` | Highlight Usages in File on the index (when no language server answers `documentHighlight`): the usages of the symbol at the caret in its file, the declaration as a write, and on `implements` / `extends` the class's methods that implement / override the parents' methods. |
 | `hover.rs` | Index-based hover for project symbols: signature + attributes + parsed docblock as markdown. Complements a language server's hover (which covers built-ins). |
 | `intentions.rs` | Built-in intentions for Show Context Actions (Alt+Enter) on the index: import class, replace qualifier with an import, accessors, "Add 'readonly' modifier", method stubs, PHPDoc and the "Generate..." link. |
 | `imports.rs` | Optimize Imports: removes `use` imports nothing refers to (code, attributes, docblocks and annotations count) and sorts the rest (classes, functions, constants); group uses are expanded, braced namespaces handled separately. |
 | `index.rs` | Workspace-wide PHP index: parallel indexing, mtime-keyed persistent cache, fuzzy symbol search, ancestor lookup and lazy resolution of vendor classes through Composer's PSR-4 metadata. |
 | `lsp.rs` | How to launch a PHP language server: Intelephense (preferred, users bring their own licence key) with phpactor as fallback. Independent of the generic LSP client; the app turns `LspServerConfig` into a running server. |
 | `model.rs` | Symbol model produced by the indexer. Everything is serializable so it can be cached on disk and sent over IPC unchanged (camelCase field names for the UI). |
-| `navigate.rs` | Code navigation on the index when no language server answers: the symbol under the caret (classes with or without a leading backslash through imports, aliases, group uses and the namespace; functions and constants with PHP's global fallback; members through `$this`, `self`/`static`/`parent`, typed variables, `catch`, `@var`, property and return-type chains; variables), `definition` (target, "on a declaration" or an `ExternalSymbol` for the stubs), `find_usages` (usage kinds, dynamic usages, members through parent and child classes), Go to Implementation / Super Method / Type Declaration and the implemented / overridden `line_markers`. |
+| `navigate.rs` | Code navigation on the index when no language server answers: the symbol under the caret (classes with or without a leading backslash through imports, aliases, group uses and the namespace; functions and constants with PHP's global fallback; members through `$this`, `self`/`static`/`parent`, typed variables, `catch`, `@var`, property and return-type chains; variables), `definition` (target, "on a declaration" or an `ExternalSymbol` for the stubs), `find_usages` / `find_usages_with` (usage kinds, dynamic usages, members through parent and child classes; with the Find Usages options also usages of a class's methods and fields, derived / implementing classes, derived interfaces and overriding methods, comments and strings), Go to Implementation / Super Method / Type Declaration and the implemented / overridden `line_markers`. |
 | `rearrange.rs` | Rearrange Code: orders class members as trait uses, enum cases, constants, properties, constructor, methods; comments move with their member, blank lines stay in place. |
 | `rename.rs` | Rename (Shift+F6) on the index: PHPStorm's dialog label for a symbol and the name clashes reported as conflicts (`clashes`: the class / function / constant or member with the new name already exists). The edit itself comes from `find_usages` and `forge_codeintel::edit_from_locations`. |
 | `offsets.rs` | Offset conversion. The index works in UTF-8 byte offsets; the UI (CodeMirror / JS strings) uses UTF-16 code units. Convert at the IPC boundary. |
@@ -59,7 +63,7 @@ pub enum PhpError { … }
 
 ## Used by
 
-- IPC: `php_index_workspace`, `php_search_symbols`, `php_file_structure`, `php_hover`, `php_generate_targets`, `php_generate`, `php_detect_servers`, `php_lsp_config` (`app/src-tauri/src/commands/php.rs`); `code_goto_declaration`, `code_symbol_info`, `code_find_usages`, `code_navigate`, `code_line_markers`, `code_prepare_rename`, `code_rename`, `code_context_actions`, `library_read` (`commands/codeintel.rs`, `commands/library.rs`) through `forge_backend::PhpBackend`, so remote projects answer from the agent
+- IPC: `php_index_workspace`, `php_search_symbols`, `php_file_structure`, `php_hover`, `php_generate_targets`, `php_generate`, `php_detect_servers`, `php_lsp_config` (`app/src-tauri/src/commands/php.rs`); `code_goto_declaration`, `code_symbol_info`, `code_find_usages`, `code_highlight_usages`, `code_usage_target`, `code_navigate`, `code_line_markers`, `code_prepare_rename`, `code_rename`, `code_context_actions`, `library_read` (`commands/codeintel.rs`, `commands/library.rs`) through `forge_backend::PhpBackend`, so remote projects answer from the agent
 - UI: `app/ui/src/features/php`, `app/ui/src/features/codeintel`
 - Browser mode: not built to WebAssembly (runtime code); browser mode uses mocks
 

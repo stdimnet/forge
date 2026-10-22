@@ -145,7 +145,15 @@ and file. Click a usage to open it.
 ![Find tool window](../../screenshots/php-nav-find-window.png)
 
 Members used on expressions the index cannot type (`$any->save()`) are listed as **Dynamic
-usages**. Comments and strings are not usages.
+usages**. Comments and strings are not usages unless **Search in comments and strings** is on
+in the [Find Usages dialog](editor.md#find-usages-settings) (`Ctrl+Alt+Shift+F7`), which also
+adds the usages of a class's methods and fields, derived and implementing classes, derived
+interfaces and overriding methods on request, and limits the search to a scope.
+
+**Highlight Usages in File** (`Ctrl+Shift+F7`) and the highlighting at the caret use the index
+when no language server answers: property and variable reads and writes, the exit points of a
+method on `return` / `throw`, and on `implements` / `extends` the methods that implement or
+override the parents' methods (see [Highlight usages](editor.md#highlight-usages)).
 
 ### Implementation, Super Method and Type Declaration
 

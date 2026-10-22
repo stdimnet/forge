@@ -303,3 +303,6 @@
 .find-usages-dialog .form-row {
   grid-template-columns: 80px 1fr;
 }
+.find-usages-dialog input[type="checkbox"] {
+  accent-color: var(--accent);
+}

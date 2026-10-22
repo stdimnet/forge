@@ -470,6 +470,9 @@ function usagesOf(sym: Sym, buffers?: Buffers): { declaration: UsageLocation | n
   for (const f of files) {
     const re = new RegExp(`(?<![\\w])${word.replace(/[$\\]/g, (c) => `\\${c}`)}(?![\\w])`, "g");
     for (const m of f.text.matchAll(re)) {
+      // A variable's name in a comment or PHPDoc is not a usage of it.
+      const lineStart = f.text.lastIndexOf("\n", m.index! - 1) + 1;
+      if (sym.kind === "variable" && /^\s*(\*|\/\/|\/\*|#)/.test(f.text.slice(lineStart, m.index!))) continue;
       const r = resolveAt(f.path, f.text, m.index! + 1, buffers);
       // Declarations (also of implementations) are no usages.
       if (!r || (r.decl && sym.kind !== "variable") || !sameSymbol(sym, r.sym, buffers)) continue;
