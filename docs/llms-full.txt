@@ -9468,14 +9468,18 @@ current branch is shown in the main toolbar and the status bar.
 
 ![Commit tool window](docs/screenshots/vcs-commit.png)
 
-- **Changes** and **Unversioned Files** are listed as trees grouped by folder. Tick the files
-  to include. Double-click a file (or **Show Diff**, `Ctrl+D`) to see its diff.
+- The changes are listed in their [changelists](#changelists) (**Changes** is the default
+  one) and **Unversioned Files**, as trees grouped by folder. Tick the files to include; new
+  changes of the active changelist are ticked. Double-click a file (or **Show Diff**,
+  `Ctrl+D`) to see its diff.
 - Toolbar: **Refresh** (`Ctrl+F5`), **Rollback…** (`Ctrl+Alt+Z`, discards the changes of the
-  selected files after a confirmation), **Show Diff**, **Expand All**, **Collapse All**.
+  selected files after a confirmation), **Show Diff**, **Expand All**, **Collapse All**,
+  **New Changelist…**.
 - Write the **Commit Message**. **Amend** amends the last commit (its message is loaded).
   **Sign-off** adds a `Signed-off-by` line (`git commit --signoff`; the same option as
   Settings | Version Control | Git | Sign-off commits).
-- **Commit** (`Ctrl+Enter` in the message) or **Commit and Push…**.
+- **Commit** (`Ctrl+Enter` in the message) or **Commit and Push…**. The gear next to them
+  opens the [Commit Options](#commit-options-and-commit-checks).
 - While there are shelved changes or stashes, the header shows the tabs **Changes**, **Shelf**
   and **Stash** (see [Shelf](#shelf) and [Stash](#stash)).
 
@@ -9494,8 +9498,81 @@ Before committing files with Windows line separators (CRLF), Forge asks whether 
 Is** (`vcs.git.commit.warnOnCrlf`), unless git converts them itself (`core.autocrlf` is `true`
 or `input`).
 
-> **Note:** "Commit Message History" (`Ctrl+M`) and the **Commit Options** gear are not
-> available yet.
+> **Note:** "Commit Message History" (`Ctrl+M`) is not available yet.
+
+### Changelists
+
+![Changelists](docs/screenshots/git-changelists.png)
+
+Changelists group local changes, like in PHPStorm. **Changes** is the default changelist; the
+**active** changelist is shown in bold and receives new changes. Forge keeps the changelists
+per project in its data directory (`changelists.json`, see
+[File locations](docs/guide/reference/file-locations.md)), never in the project, and git knows
+nothing about them.
+
+- **New Changelist…** (toolbar, context menu, Git ▸ Uncommitted Changes): name, comment and
+  **Set active**. The comment of the active changelist becomes the commit message draft.
+- Right-click a changelist: **Commit…** (ticks exactly its files), **Rollback…**,
+  **Edit Changelist…** (also double-click), **Delete Changelist** (its changes move to the
+  active list; the active list cannot be deleted), **Set Active Changelist**,
+  **Shelve Changes…** and **Create Patch…**.
+- **Move to Another Changelist…** (`F6` in the Commit tool window, file context menu) moves
+  the selected file to an existing or a new changelist. Files can also be **dragged** onto a
+  changelist.
+
+![Move to Another Changelist](docs/screenshots/git-move-to-changelist.png)
+
+Settings | Version Control | Changelists | **Create changelists automatically**
+(`vcs.changelists.createAutomatically`, on by default): applied patches and unshelved changes
+go to a new changelist named after the patch or the shelved changes.
+
+### Partial commits
+
+Single changes (hunks) of a file can be committed while the rest stays local, like PHPStorm's
+partial commits:
+
+- While the Commit tool window is open, the editor shows a checkbox at every change of a
+  tracked file (next to the [change markers](#change-markers)). Untick a change to leave it
+  out of the next commit. Unsaved edits count.
+- The diff of a file opened from the Commit tool window has the same checkboxes.
+- A partly included file shows a half-ticked checkbox in the Commit tool window.
+- Click a change marker and choose **Move to Another Changelist…** to move only that change;
+  the file then shows in both changelists with the number of its changes in each. Changes moved
+  to a list that is not active are left out of the commit.
+
+![Partial commit checkboxes in the editor](docs/screenshots/git-partial-commit-gutter.png)
+
+![Partial commit in the diff](docs/screenshots/git-partial-commit-diff.png)
+
+Forge builds the commit in the index without touching your files: it saves what was staged,
+writes the committed version of each partly included file (HEAD plus the included changes),
+commits, then restores the index, so the excluded changes stay local changes. This works in
+remote projects too, since git runs on the project's host.
+
+### Commit options and commit checks
+
+![Commit Options](docs/screenshots/git-commit-options.png)
+
+The gear next to **Commit and Push…** opens the **Commit Options**:
+
+- **Git**: **Author** (`Name <email>` for this commit only), **Sign-off commit**,
+  **Amend commit** and **Run Git hooks** (off commits with `--no-verify`, so `pre-commit` and
+  `commit-msg` hooks are skipped).
+- **Commit Checks**, run on the ticked files before committing:
+  - **Reformat code**, **Rearrange code**, **Optimize imports** and **Cleanup** change the
+    files like the [Actions on Save](docs/guide/user/actions-on-save.md) (Reformat uses the formatter of the
+    file type; the other three are PHP actions);
+  - **Analyze code** collects the errors and warnings of the language servers and
+    inspections. When there are any, Forge asks: *"N errors and M warnings found"* —
+    **Review** (opens the Problems tool window and does not commit) or **Commit Anyway**;
+  - **Check TODO** looks for TODO items (the patterns of the [TODO](docs/guide/user/todo.md) tool window) in
+    the added and changed lines, with **Review** (opens the TODO tool window) or
+    **Commit Anyway**.
+- **Advanced Commit Checks**: **Run Tests** runs the chosen run configuration and asks
+  **Review** or **Commit Anyway** when it fails.
+
+The checks are settings (Settings | Version Control | Commit, `vcs.commit.*`), so they stay as
+you leave them. "Update copyright" is not available.
 
 ### AI commit messages
 
@@ -9700,6 +9777,31 @@ its data directory (`<data dir>/forge/projects/<project>/shelf`, see
 ![Unshelve Changes](docs/screenshots/git-unshelve-dialog.png)
 
 In remote projects git runs on the remote host; the shelf stays on your machine.
+
+## Patches
+
+**Git ▸ Patch** creates and applies patches, like PHPStorm.
+
+**Create Patch…** (Git ▸ Patch, the context menu of changelists and files, the Git log's
+commit menu) writes the selected changes, or the changes of the selected commits, as a
+unified diff (`git diff --binary`, new files included) with paths relative to the project
+root: **Save to file** (a relative name is saved in the project; **Browse…** picks any file in
+the desktop app) or **Copy patch to clipboard**. **Reverse patch** swaps both sides.
+
+![Create Patch](docs/screenshots/git-create-patch.png)
+
+**Apply Patch…** picks a patch file, **Apply Patch from Clipboard…** reads the clipboard. Git
+patches and patches of other tools (`diff -u`, `svn diff`, PHPStorm) are accepted. The
+preview lists every file with its added and removed lines; double-click a file (or its diff
+button) to compare the current and the patched version. **Base directory** sets where the
+paths start (default: the project root), **Changelist** where the changes go.
+
+![Apply Patch](docs/screenshots/git-apply-patch.png)
+
+Files that no longer fit (marked with a warning) are merged three-way when the patch names the
+original versions (patches made by git and Forge do); conflicts open the
+[merge conflict](#merge-conflicts) resolver. Files that cannot be merged are reported and left
+unchanged. New files are added to git.
 
 ## Merge conflicts
 
@@ -12572,6 +12674,11 @@ Commit, push, update, branches, the log and file actions. In projects without Gi
 | Uncommitted Changes › Unstash Changes… | — | — | yes | Applies, pops, drops or branches a stash; View shows its files. [More](docs/guide/user/git.md#stash) ([screenshot](docs/screenshots/git-unstash-dialog.png)) |
 | Uncommitted Changes › Rollback… | `Ctrl+Alt+Z` | `Cmd+Alt+Z` | not yet | Not available yet; the entry is disabled. |
 | Uncommitted Changes › Show Local Changes | — | — | not yet | Not available yet; the entry is disabled. |
+| Uncommitted Changes › New Changelist… | — | — | yes | Creates a changelist, optionally the active one. [More](docs/guide/user/git.md#changelists) ([screenshot](docs/screenshots/git-changelists.png)) |
+| **Patch** | | | | submenu |
+| Patch › Create Patch… | — | — | yes | Writes the selected changes as a patch file or to the clipboard. [More](docs/guide/user/git.md#patches) ([screenshot](docs/screenshots/git-create-patch.png)) |
+| Patch › Apply Patch… | — | — | yes | Previews and applies a patch file; files that do not fit are merged three-way. [More](docs/guide/user/git.md#patches) ([screenshot](docs/screenshots/git-apply-patch.png)) |
+| Patch › Apply Patch from Clipboard… | — | — | yes | The same for a patch in the clipboard. [More](docs/guide/user/git.md#patches) |
 | **Current File** | | | | submenu |
 | Current File › Commit File… | — | — | not yet | Not available yet; the entry is disabled. |
 | Current File › Add | — | — | not yet | Not available yet; the entry is disabled. |
@@ -13928,6 +14035,7 @@ index falls back to `<project>/.forge/cache/php-index.json`.
 | `composer/composer.phar` | composer.phar downloaded from getcomposer.org with Settings \| PHP \| Composer, checked against its published SHA-256 sum |
 | `runtimes/node-<version>/` | the Node.js build Forge downloaded for language servers (only when no Node.js 18+ was installed) |
 | `projects/<name>-<hash>/bookmarks.json` | the bookmarks and bookmark lists of a project (`<hash>` of the project root, for remote projects of `user@host:/path`); kept out of the project |
+| `projects/<name>-<hash>/changelists.json` | the changelists of the Commit tool window (names, comments, the active list, which files and changes belong where); kept out of the project |
 | `projects/<name>-<hash>/shelf/<id>/` | shelved changelists (Git ▸ Shelve Changes): `changes.json` (name, date, branch, files) and `shelved.patch`; kept out of the project |
 | `chat-history/<project>-<hash>/<chat>.json` | the AI chats of each project (the newest 100), see [AI](docs/guide/user/ai.md) |
 
@@ -18770,18 +18878,22 @@ The parsers and the three-way merge (`merge`) are pure and also build for WebAss
 | --- | --- |
 | `blame.rs` | Parser for `git blame --porcelain`. |
 | `branch.rs` | Branches and tags from `git for-each-ref`, plus recently checked out branches from the reflog. |
+| `changelists.rs` | `Changelists`: the changelist model of the Commit tool window (lists, active list, file → list, moved hunks → list): `sync` with the status, `create`/`edit`/`delete`/`set_active`/`ensure`, `move_files`, `move_hunks`, `normalize_file`, `view`. Pure (also WebAssembly). |
 | `cmd.rs` | Running the `git` executable. No shell is involved: arguments are passed as-is, so paths with spaces or quotes need no escaping on any platform. |
 | `diff.rs` | Parser for unified diffs as printed by `git diff`. |
 | `history.rs` | File, folder and selection history: `FileRevision`, `BlockRevision`, `HistoryQuery` and the parsers of `git log -z --name-status` and `git log -L` output. Pure. |
+| `hunks.rs` | Change hunks of a file against its committed version for partial commits: `change_hunks` (stable ids from base position and content), `apply_hunks` (base plus the included hunks). Pure. |
 | `log.rs` | Commit history: parser for a NUL/RS separated `git log` format, ref decorations and per-commit changed files. |
 | `ops.rs` | Options of the Pull, Merge, Rebase, Reset HEAD and Tag dialogs (`PullOptions`, `MergeOptions`, `RebaseOptions`, `ResetMode`, `TagOptions`, `OperationAction`) and the git command lines they stand for; forbidden combinations are rejected. Pure. |
-| `patch.rs` | `git diff --binary` patches: split per file (`split_patch`, `join_patch`) and apply a file's hunks to its base text (`apply_file_patch`). Pure. |
+| `patch.rs` | `git diff --binary` patches: split per file (`split_patch`, `join_patch`), apply a file's hunks to its base text (`apply_file_patch`), give foreign unified diffs git headers (`normalize_patch`), make paths project-relative (`strip_path_prefix`) and the Apply Patch preview (`preview_patch`). Pure. |
 | `merge.rs` | Three-way merge for the merge window: diff3 chunking of yours/base/theirs (`merge_three_way` → `MergeModel` with `left`/`right`/`both`/`conflict` chunks), word-level "Resolve Simple Conflicts" (`resolve_simple`), `auto_merge`, line separator helpers. Pure. |
 | `rebase.rs` | Git Log actions that rewrite history and the interactive rebase: which actions a selection allows with PHPStorm's reasons (`log_action_states` from `SelectionFacts`, protected branch patterns), the initial plan with autosquash (`autosquash`) and the `git-rebase-todo` (`plan_todo`, `render_todo`: messages are applied with `exec` amend steps from blobs, the todo is copied in by `sequence.editor`). Pure. |
 | `repo.rs` | `Repo`: every git operation of the IDE, through a `GitExec` (local or remote host). |
 | `repo/rewrite.rs` | The Git Log context menu: `log_action_states` (pushed / protected detection via `for-each-ref --contains`), `cherry_pick` (skips empty picks, `-x` for protected commits), `revert_commits`, `undo_commit`, `reword`, `squash_commits`, `drop_commits`, `rebase_plan`, `interactive_rebase` (`git rebase -i --autostash` without an editor), `undo_rewrite`, `commits_patch`, `tree_files`. |
 | `repo/conflicts.rs` | Merge conflicts: unmerged files and their sides (`git ls-files -u`), the operation (merge, rebase, cherry-pick, revert, unstash; a rebase only when `git status` confirms it, since `rebase --skip` leaves a stale `REBASE_HEAD`) and pane titles, stage versions `:1:`/`:2:`/`:3:` (`merge_file`), Accept Yours/Theirs (`accept_conflict_side`). Yours is git's `theirs` in a rebase. |
 | `repo/ops.rs` | Pull/Merge/Rebase with options (`pull_with`, `merge_with`, `rebase_with`), the operation in progress (`operation_state`, via `REBASE_HEAD`/`MERGE_HEAD`/… and the long status, which also drops a stale `REBASE_HEAD`), Continue/Abort/Skip (`operation_action`), `reset_head`, `tag`, `resolve_commit`, `edit_remote`, stash details (`stash_files`, `stash_file`, `stash_clear`, `stash_branch`). |
+| `repo/partial.rs` | Commits with the commit panel's options (`CommitOptions`: amend, sign-off, `--no-verify`, author; `commit_opts`) and partial commits (`commit_files`: the index is saved with `write-tree`, rebuilt from HEAD plus whole files and `hash-object`/`update-index` blobs of the included hunks, committed, then restored), `file_hunks`. |
+| `repo/patches.rs` | Create Patch from local changes (`create_patch`, optionally reversed, project-relative) and Apply Patch (`apply_patch`: what fits in one go, the rest with `--3way` so conflicts reach the resolver; base directory via `--directory`). |
 | `repo/shelve.rs` | Shelve (`changes_patch` incl. untracked files, then roll back), Unshelve (`git apply`, falling back to `--3way` with conflicts for the resolver; partial by file) and `shelf_file` (before/after for Show Diff). |
 | `repo/history.rs` | Show History (`file_history`, `--follow` for files), Show History for Selection (`block_history`, `git log -L`), Annotate Revision (`blame_at`) and Compare with Branch on a folder (`changes_since`). |
 | `shelf.rs` | `Shelf`: shelved changelists stored in Forge's per-project data dir (`<id>/changes.json` + `shelved.patch`): list, create, rename, delete, remove files. |
@@ -18806,18 +18918,18 @@ pub struct Repo { … }
 
 ## Used by
 
-- IPC: `git_info`, `git_status`, `git_show`, `git_diff`, `git_diff_head`, `git_blame`, `git_log`, `git_commit_details`, `git_branches`, `git_checkout`, `git_create_branch`, `git_delete_branch`, `git_merge`, `git_rebase`, `git_stage`, `git_unstage`, `git_rollback`, `git_commit`, `git_push`, `git_pull`, `git_fetch`, `git_conflicts`, `git_merge_file`, `git_accept_conflict_side`, `git_resolve_merge` (`app/src-tauri/src/commands/git.rs`); `git_pull_with`, `git_merge_with`, `git_rebase_with`, `git_operation_state`, `git_operation_action`, `git_reset_head`, `git_tag_with`, `git_resolve_commit`, `git_edit_remote`, `git_stash_files`, `git_stash_file`, `git_stash_clear`, `git_stash_branch`, `git_shelf_list`, `git_shelve`, `git_unshelve`, `git_shelf_delete`, `git_shelf_rename`, `git_shelf_file` (`commands/git_ops.rs`)
+- IPC: `git_info`, `git_status`, `git_show`, `git_diff`, `git_diff_head`, `git_blame`, `git_log`, `git_commit_details`, `git_branches`, `git_checkout`, `git_create_branch`, `git_delete_branch`, `git_merge`, `git_rebase`, `git_stage`, `git_unstage`, `git_rollback`, `git_commit`, `git_push`, `git_pull`, `git_fetch`, `git_conflicts`, `git_merge_file`, `git_accept_conflict_side`, `git_resolve_merge` (`app/src-tauri/src/commands/git.rs`); `git_pull_with`, `git_merge_with`, `git_rebase_with`, `git_operation_state`, `git_operation_action`, `git_reset_head`, `git_tag_with`, `git_resolve_commit`, `git_edit_remote`, `git_stash_files`, `git_stash_file`, `git_stash_clear`, `git_stash_branch`, `git_shelf_list`, `git_shelve`, `git_unshelve`, `git_shelf_delete`, `git_shelf_rename`, `git_shelf_file` (`commands/git_ops.rs`); `git_changelists`, `git_changelist_create`, `git_changelist_edit`, `git_changelist_set_active`, `git_changelist_delete`, `git_changelist_move`, `git_file_hunks`, `git_commit_files`, `git_create_patch`, `git_read_patch`, `git_write_patch`, `git_patch_preview`, `git_apply_patch` (`commands/git_changes.rs`)
 - UI: `app/ui/src/features/git`
-- Browser mode: `merge` runs as WebAssembly (`vcs_merge` in `forge-wasm`) for the git mock; the rest uses mocks
+- Browser mode: `merge`, `changelists`, `hunks` and the patch preview run as WebAssembly (`vcs_merge`, `vcs_changelists`, `vcs_change_hunks`, `vcs_patch_preview` in `forge-wasm`) for the git mocks; the rest uses mocks
 
 ## Dependencies
 
 - Workspace crates: [`forge-core`](docs/guide/developer/crates/forge-core.md)
-- External: `serde`, `similar`, `tracing`
+- External: `serde`, `serde_json`, `similar`, `tracing`
 
 ## Tests
 
-10 source files; unit tests (including the three-way merge with fixture texts) and integration tests against temporary repositories in `tests/` (`repo.rs`, `conflicts.rs`: merges, rebases and unstashes that stop with conflicts).
+10 source files; unit tests (including the three-way merge with fixture texts) and integration tests against temporary repositories in `tests/` (`repo.rs`, `conflicts.rs`: merges, rebases and unstashes that stop with conflicts; `partial.rs`: partial commits, commit options, Create/Apply Patch with three-way merges).
 
 ```sh
 cargo test -p forge-vcs

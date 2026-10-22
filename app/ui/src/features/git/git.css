@@ -163,10 +163,75 @@
   font-size: var(--fs-small);
 }
 .commit-actions {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 0 10px 0 12px;
+}
+/* Changelists: drop target while dragging files, the share of a partly moved file. */
+.commit-group.drop-target {
+  background: var(--accent-soft);
+  outline: 1px dashed var(--accent);
+  outline-offset: -1px;
+}
+.commit-row .tree-hint.commit-partial {
+  margin-left: 6px;
+  color: var(--vcs-modified);
+}
+.commit-progress {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+/* Commit Options (the gear next to Commit and Push). */
+.commit-options-popup {
+  position: absolute;
+  right: 8px;
+  bottom: calc(100% + 6px);
+  z-index: 40;
+  width: 290px;
+  padding: 6px 0 8px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  font-size: var(--fs-ui);
+}
+.commit-options-section {
+  padding: 8px 14px 4px;
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+  font-weight: 600;
+}
+.commit-options-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 26px;
+  padding: 0 14px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.commit-options-row:hover {
+  background: var(--bg-hover);
+}
+.commit-options-row input[type="checkbox"] {
+  accent-color: var(--accent);
+  margin: 0;
+}
+.commit-options-row .gd-input,
+.commit-options-row .gd-select {
+  flex: 1;
+  min-width: 0;
+  height: 24px;
+}
+.commit-options-author {
+  cursor: default;
+}
+.commit-options-settings {
+  margin: 8px 14px 0;
+  font-size: var(--fs-small);
 }
 
 /* ---------- Modal + diff viewer ---------- */

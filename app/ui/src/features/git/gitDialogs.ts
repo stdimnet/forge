@@ -10,6 +10,8 @@ import { askConfirm } from "@/features/contextMenu/dialogs";
 import { gitApi, type StashEntry } from "./api";
 import { opsApi, type MergeOptions, type PullOptions, type RebaseOptions, type ResetMode, type ShelvedChangelist, type TagOptions } from "./opsApi";
 import type { RebasePlan } from "./logApi";
+import type { ChangelistView, PatchPreviewFile } from "./changesApi";
+import { intoNewChangelist } from "./changesDialogs";
 import { notify, reloadOpenFiles, runGit, status } from "./store";
 import { runMerging } from "./conflicts";
 import { setDiffRequest } from "./overlays";
@@ -28,7 +30,11 @@ export type GitDialog =
   | { kind: "unshelve"; changelist: ShelvedChangelist; paths: string[] }
   | { kind: "reword"; sha: string; message: string }
   | { kind: "squashCommits"; shas: string[]; message: string }
-  | { kind: "interactiveRebase"; sha: string; plan: RebasePlan };
+  | { kind: "interactiveRebase"; sha: string; plan: RebasePlan }
+  | { kind: "changelist"; edit: ChangelistView | null; movePaths: string[] }
+  | { kind: "moveChangelist"; paths: string[]; hunks: string[] | null; from: string | null }
+  | { kind: "createPatch"; paths: string[]; shas: string[]; name: string }
+  | { kind: "applyPatch"; patch: string; name: string; files: PatchPreviewFile[] };
 
 const [gitDialog, setGitDialog] = createSignal<GitDialog | null>(null);
 export { gitDialog, setGitDialog };
@@ -208,6 +214,8 @@ export async function unshelve(cl: ShelvedChangelist, paths: string[] | null, re
   const out = await runMerging("Unshelve failed", () => opsApi.unshelve(cl.id, paths, remove));
   if (out === undefined) return false;
   await done("Changes unshelved", `${out} from "${cl.name}"`);
+  // "Create changelists automatically": the changes come back in a list named after the shelf.
+  await intoNewChangelist(cl.name, paths ?? cl.files.map((f) => f.path));
   return true;
 }
 

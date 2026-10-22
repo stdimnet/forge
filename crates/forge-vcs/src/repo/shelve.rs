@@ -51,6 +51,12 @@ impl Repo {
     /// The patch of the changes in `paths` (workspace-relative files) against HEAD,
     /// unversioned files included as new files.
     pub fn changes_patch(&self, paths: &[String]) -> Result<String> {
+        self.changes_patch_with(paths, false)
+    }
+
+    /// [`Repo::changes_patch`], optionally reversed (`git diff -R`, Create Patch's "Reverse
+    /// patch").
+    pub(super) fn changes_patch_with(&self, paths: &[String], reverse: bool) -> Result<String> {
         if !self.has_head() {
             return Err(ForgeError::Other(
                 "changes can only be shelved after the first commit".into(),
@@ -79,6 +85,9 @@ impl Repo {
         if !tracked.is_empty() {
             let mut args = vec!["--literal-pathspecs", "diff"];
             args.extend(DIFF);
+            if reverse {
+                args.push("-R");
+            }
             args.extend(["HEAD", "--"]);
             args.extend(tracked.iter().map(String::as_str));
             patch.push_str(&self.git(&args)?);
@@ -86,6 +95,9 @@ impl Repo {
         for path in &untracked {
             let mut args = vec!["diff", "--no-index"];
             args.extend(DIFF);
+            if reverse {
+                args.push("-R");
+            }
             args.extend(["--", "/dev/null", path.as_str()]);
             // Exit code 1 means "differences found".
             let out = run_raw(self.exec.as_ref(), &self.root, &args, Run::default())?;

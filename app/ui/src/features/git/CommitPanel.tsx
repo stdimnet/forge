@@ -1,5 +1,9 @@
-/** Non-modal Commit tool window (Alt+0 / Ctrl+K), laid out like PHPStorm's. */
-import { createEffect, createMemo, createRoot, createSignal, For, on, Show } from "solid-js";
+/**
+ * Non-modal Commit tool window (Alt+0 / Ctrl+K), laid out like PHPStorm's: the changelists
+ * with their files (the active one in bold; drag files between them), Unversioned Files,
+ * the commit message and the Commit Options (gear) with the commit checks.
+ */
+import { createEffect, createMemo, createRoot, createSignal, For, on, onCleanup, Show } from "solid-js";
 import {
   ChevronDown,
   ChevronRight,
@@ -8,6 +12,7 @@ import {
   Clock,
   FileDiff,
   Folder,
+  ListPlus,
   LoaderCircle,
   RefreshCw,
   Settings,
@@ -15,6 +20,31 @@ import {
   TriangleAlert,
   Undo2,
 } from "lucide-solid";
+import { showContextMenu, item, separator, type MenuEntry } from "@/features/contextMenu/state";
+import { allConfigurations } from "@/features/run/configStore";
+import { changesApi, type ChangelistView, type CommitOptions } from "./changesApi";
+import {
+  activeChangelist,
+  changelists,
+  commitSpecs,
+  inclusionOf,
+  includedFiles,
+  setIncluded,
+  setInclusion,
+  setManyIncluded,
+  type Inclusion,
+} from "./changelists";
+import {
+  createPatchDialog,
+  deleteChangelist,
+  dropOnChangelist,
+  editChangelistDialog,
+  moveToChangelistDialog,
+  newChangelistDialog,
+  setActiveChangelist,
+} from "./changesDialogs";
+import { COMMIT_CHECKS, runCommitChecks } from "./commitChecks";
+import { shelveDialog } from "./gitDialogs";
 import { FileIcon } from "@/shell/FileIcon";
 import { openFile } from "@/state/editor";
 import { workspaceApi } from "@/ipc/workspace";
@@ -23,8 +53,8 @@ import { getSetting, saveSetting } from "@/state/settings";
 import { askChoice } from "@/features/contextMenu/dialogs";
 import { openSettings } from "@/features/settings/dialogState";
 import { displayStatus, gitApi, type StatusEntry } from "./api";
-import { notify, repositoryChanged, status } from "./store";
-import { commitChanges, confirmRollback, showDiff } from "./actions";
+import { notify, repositoryChanged, runGit, status } from "./store";
+import { confirmRollback, push, showDiff } from "./actions";
 import { setCommitSelectionSource } from "./context";
 import { openMerge, resolveConflicts } from "./conflicts";
 import { generateCommitMessage } from "./aiMessage";
@@ -34,9 +64,15 @@ import { CommitSpellProblems, createCommitMessageCheck, SpellOverlay } from "@/f
 // Panel state lives at module level so it survives hiding the tool window.
 const [message, setMessage] = createSignal("");
 const [amend, setAmend] = createSignal(false);
-const [checked, setChecked] = createSignal<Set<string>>(new Set());
-const [known, setKnown] = createSignal<Set<string>>(new Set());
+/** "Author:" of the Commit Options, for the next commit only. */
+const [author, setAuthor] = createSignal("");
 const [selected, setSelected] = createSignal<string | null>(null);
+/** The changelist the selected row belongs to (or the selected changelist node). */
+const [selectedList, setSelectedList] = createSignal<string | null>(null);
+const [optionsOpen, setOptionsOpen] = createSignal(false);
+const [progress, setProgress] = createSignal<string | null>(null);
+/** Drag and drop between changelists: the list under the pointer. */
+const [dropTarget, setDropTarget] = createSignal<string | null>(null);
 const [collapsed, setCollapsed] = createSignal<Set<string>>(new Set());
 const [generating, setGenerating] = createSignal(false);
 const [busy, setBusy] = createSignal(false);
@@ -91,33 +127,9 @@ const changes = () => (status()?.entries ?? []).filter((e) => !e.conflict && e.w
 const conflicts = () => (status()?.entries ?? []).filter((e) => e.conflict);
 const unversioned = () => (status()?.entries ?? []).filter((e) => e.worktree === "untracked");
 
-// New tracked changes start checked, unversioned files unchecked (PHPStorm default).
-createRoot(() =>
-  createEffect(
-  on(status, (st) => {
-    if (!st) return;
-    const prev = known();
-    const next = new Set(checked());
-    const all = new Set(st.entries.map((e) => e.path));
-    for (const e of st.entries) if (!prev.has(e.path) && e.worktree !== "untracked" && !e.conflict) next.add(e.path);
-    for (const p of next) if (!all.has(p)) next.delete(p);
-    setKnown(all);
-    setChecked(next);
-  }),
-  ),
-);
-
 const dirOf = (p: string) => (p.includes("/") ? p.slice(0, p.lastIndexOf("/")) : "");
 const nameOf = (p: string) => p.slice(p.lastIndexOf("/") + 1);
 const plural = (n: number) => `${n} file${n === 1 ? "" : "s"}`;
-
-function toggle(paths: string[], on: boolean) {
-  setChecked((prev) => {
-    const next = new Set(prev);
-    for (const p of paths) on ? next.add(p) : next.delete(p);
-    return next;
-  });
-}
 
 function toggleCollapsed(id: string) {
   setCollapsed((prev) => {
@@ -127,84 +139,155 @@ function toggleCollapsed(id: string) {
   });
 }
 
-function Checkbox(props: { paths: string[] }) {
-  const count = () => props.paths.filter((p) => checked().has(p)).length;
+/** A file of one changelist (`hunks`: its part of a partly moved file). */
+interface ListItem {
+  path: string;
+  hunks: string[] | null;
+}
+
+function Checkbox(props: { items: ListItem[] }) {
+  const state = (): Inclusion => {
+    const states = props.items.map((i) => inclusionOf(i.path, i.hunks));
+    if (!states.length || states.every((s) => s === "none")) return "none";
+    return states.every((s) => s === "all") ? "all" : "some";
+  };
   let ref!: HTMLInputElement;
-  createEffect(() => (ref.indeterminate = count() > 0 && count() < props.paths.length));
+  createEffect(() => (ref.indeterminate = state() === "some"));
   return (
     <input
       ref={ref}
       type="checkbox"
       class="commit-check"
-      checked={props.paths.length > 0 && count() === props.paths.length}
+      checked={props.items.length > 0 && state() === "all"}
       onClick={(e) => e.stopPropagation()}
-      onChange={(e) => toggle(props.paths, e.currentTarget.checked)}
+      onChange={(e) => setManyIncluded(props.items, e.currentTarget.checked)}
     />
   );
 }
 
-function FileRow(props: { entry: StatusEntry; depth: number; showDir: boolean }) {
+const dragType = "application/x-forge-changes";
+
+function FileRow(props: { entry: StatusEntry; item: ListItem; list: string; depth: number; showDir: boolean }) {
   const st = () => displayStatus(props.entry);
   return (
     <div
       class="tree-row commit-row"
-      classList={{ selected: selected() === props.entry.path }}
+      classList={{ selected: selected() === props.entry.path && selectedList() === props.list }}
       style={{ "padding-left": `${8 + props.depth * 18}px` }}
       data-path={props.entry.path}
-      onClick={() => setSelected(props.entry.path)}
+      data-changelist={props.list}
+      draggable={props.list !== "unversioned"}
+      onDragStart={(e) => {
+        e.dataTransfer?.setData(dragType, JSON.stringify({ from: props.list, items: [props.item] }));
+        if (e.dataTransfer) e.dataTransfer.effectAllowed = "move";
+      }}
+      onClick={() => select(props.entry.path, props.list)}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        select(props.entry.path, props.list);
+        showContextMenu(rowMenu(props.entry, props.item, props.list), e.clientX, e.clientY);
+      }}
       onDblClick={() => (st() === "untracked" ? void openFile(props.entry.path) : void showDiff(props.entry.path, allPaths()))}
       title={props.entry.path}
     >
       <span class="tree-chevron" />
-      <Checkbox paths={[props.entry.path]} />
+      <Checkbox items={[props.item]} />
       <FileIcon name={nameOf(props.entry.path)} />
       <span class={`tree-label vcs-${st()}`}>{nameOf(props.entry.path)}</span>
       <Show when={props.showDir && dirOf(props.entry.path)}>
         <span class="tree-hint">{dirOf(props.entry.path)}</span>
       </Show>
+      <Show when={props.item.hunks}>
+        <span class="tree-hint commit-partial" title="Some changes of this file are in another changelist">
+          {props.item.hunks!.length} {props.item.hunks!.length === 1 ? "change" : "changes"}
+        </span>
+      </Show>
     </div>
   );
 }
 
-/** One changelist node ("Changes", "Unversioned Files") with files grouped by directory. */
-function Group(props: { id: string; title: string; entries: StatusEntry[]; strong?: boolean }) {
+function select(path: string | null, list: string | null) {
+  setSelected(path);
+  setSelectedList(list);
+}
+
+/** One changelist node ("Changes", user lists, "Unversioned Files") with files grouped by directory. */
+function Group(props: { id: string; title: string; items: ListItem[]; strong?: boolean; list?: ChangelistView; showEmpty?: boolean }) {
   const open = () => !collapsed().has(props.id);
+  const byPath = () => new Map((status()?.entries ?? []).map((e) => [e.path, e]));
+  const entries = createMemo(() =>
+    props.items
+      .map((i) => ({ item: i, entry: byPath().get(i.path) }))
+      .filter((x): x is { item: ListItem; entry: StatusEntry } => !!x.entry)
+      .sort((a, b) => a.item.path.localeCompare(b.item.path)),
+  );
   const dirs = createMemo(() => {
-    const map = new Map<string, StatusEntry[]>();
-    for (const e of [...props.entries].sort((a, b) => a.path.localeCompare(b.path))) {
-      const d = dirOf(e.path);
+    const map = new Map<string, { item: ListItem; entry: StatusEntry }[]>();
+    for (const e of entries()) {
+      const d = dirOf(e.item.path);
       map.set(d, [...(map.get(d) ?? []), e]);
     }
     return [...map.entries()];
   });
+  const droppable = () => !!props.list;
   return (
-    <Show when={props.entries.length > 0}>
-      <div class="tree-row commit-group" onClick={() => toggleCollapsed(props.id)} style={{ "padding-left": "8px" }}>
+    <Show when={entries().length > 0 || props.showEmpty}>
+      <div
+        class="tree-row commit-group"
+        classList={{ selected: !selected() && selectedList() === props.id, "drop-target": dropTarget() === props.id }}
+        data-changelist={props.id}
+        onClick={() => {
+          select(null, props.id);
+          toggleCollapsed(props.id);
+        }}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          select(null, props.id);
+          if (props.list) showContextMenu(listMenu(props.list), e.clientX, e.clientY);
+        }}
+        onDblClick={() => props.list && editChangelistDialog(props.list)}
+        onDragOver={(e) => {
+          if (!droppable() || !e.dataTransfer?.types.includes(dragType)) return;
+          e.preventDefault();
+          setDropTarget(props.id);
+        }}
+        onDragLeave={() => dropTarget() === props.id && setDropTarget(null)}
+        onDrop={(e) => {
+          setDropTarget(null);
+          const data = e.dataTransfer?.getData(dragType);
+          if (!droppable() || !data) return;
+          e.preventDefault();
+          const { from, items } = JSON.parse(data) as { from: string; items: ListItem[] };
+          if (from !== props.id) dropOnChangelist(props.id, items);
+        }}
+        style={{ "padding-left": "8px" }}
+        title={props.list?.comment || undefined}
+      >
         <span class="tree-chevron">{open() ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</span>
-        <Checkbox paths={props.entries.map((e) => e.path)} />
+        <Checkbox items={entries().map((e) => e.item)} />
         <span class="tree-label" classList={{ strong: props.strong }}>
           {props.title}
         </span>
-        <span class="tree-hint">{plural(props.entries.length)}</span>
+        <span class="tree-hint">{entries().length ? plural(entries().length) : "empty"}</span>
       </div>
       <Show when={open()}>
         <For each={dirs()}>
           {([dir, files]) => (
             <Show
               when={dir && files.length > 1}
-              fallback={<For each={files}>{(e) => <FileRow entry={e} depth={1} showDir />}</For>}
+              fallback={<For each={files}>{(e) => <FileRow entry={e.entry} item={e.item} list={props.id} depth={1} showDir />}</For>}
             >
               <div class="tree-row" style={{ "padding-left": "26px" }} onClick={() => toggleCollapsed(`${props.id}:${dir}`)}>
                 <span class="tree-chevron">
                   {collapsed().has(`${props.id}:${dir}`) ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
                 </span>
-                <Checkbox paths={files.map((e) => e.path)} />
+                <Checkbox items={files.map((e) => e.item)} />
                 <Folder size={15} stroke-width={1.75} class="muted" />
                 <span class="tree-label">{dir}</span>
                 <span class="tree-hint">{plural(files.length)}</span>
               </div>
               <Show when={!collapsed().has(`${props.id}:${dir}`)}>
-                <For each={files}>{(e) => <FileRow entry={e} depth={2} showDir={false} />}</For>
+                <For each={files}>{(e) => <FileRow entry={e.entry} item={e.item} list={props.id} depth={2} showDir={false} />}</For>
               </Show>
             </Show>
           )}
@@ -212,6 +295,53 @@ function Group(props: { id: string; title: string; entries: StatusEntry[]; stron
       </Show>
     </Show>
   );
+}
+
+/** The context menu of a changelist node. */
+function listMenu(list: ChangelistView): MenuEntry[] {
+  const paths = list.files.map((f) => f.path);
+  return [
+    item("Commit…", () => commitList(list), "CheckinProject"),
+    item("Rollback…", () => confirmRollback(paths), "ChangesView.Rollback", { disabled: !paths.length }),
+    separator,
+    item("New Changelist…", () => newChangelistDialog(), "ChangesView.NewChangeList"),
+    item("Edit Changelist…", () => editChangelistDialog(list), "ChangesView.Rename"),
+    item("Delete Changelist", () => void deleteChangelist(list), "ChangesView.RemoveChangeList", { disabled: list.active }),
+    item("Set Active Changelist", () => void setActiveChangelist(list), "ChangesView.SetDefault", { disabled: list.active }),
+    separator,
+    item("Shelve Changes…", () => shelveDialog(paths), "ChangesView.Shelve", { disabled: !paths.length }),
+    item("Create Patch…", () => createPatchDialog(paths, list.name), "ChangesView.CreatePatch", { disabled: !paths.length }),
+  ];
+}
+
+/** The context menu of a file row. */
+function rowMenu(entry: StatusEntry, file: ListItem, list: string): MenuEntry[] {
+  const tracked = entry.worktree !== "untracked";
+  const target = [entry.path];
+  return [
+    item("Commit File…", () => checkOnly(target), "CheckinFiles"),
+    item("Rollback…", () => confirmRollback(target), "ChangesView.Rollback", { disabled: !tracked }),
+    item("Show Diff", () => void showDiff(entry.path, allPaths()), "Compare.SameVersion"),
+    item("Jump to Source", () => void openFile(entry.path), "EditSource"),
+    separator,
+    item(
+      "Move to Another Changelist…",
+      () => moveToChangelistDialog(target, { hunks: file.hunks ?? undefined, from: list }),
+      "ChangesView.Move",
+      { disabled: !tracked },
+    ),
+    item("New Changelist…", () => newChangelistDialog(tracked ? target : []), "ChangesView.NewChangeList"),
+    separator,
+    item("Shelve Changes…", () => shelveDialog(target), "ChangesView.Shelve", { disabled: !tracked }),
+    item("Create Patch…", () => createPatchDialog(target, nameOf(entry.path)), "ChangesView.CreatePatch"),
+  ];
+}
+
+/** Commit… on a changelist node: include exactly its files. */
+function commitList(list: ChangelistView) {
+  setIncluded([]);
+  setManyIncluded(list.files, true);
+  document.querySelector<HTMLTextAreaElement>(".commit-message textarea")?.focus();
 }
 
 /** The "Merge Conflicts" node: unresolved files in red with a Resolve link, like PHPStorm. */
@@ -260,7 +390,7 @@ function ConflictsGroup() {
 }
 
 const allPaths = () => [...changes(), ...unversioned()].map((e) => e.path);
-const checkedPaths = () => allPaths().filter((p) => checked().has(p));
+const checkedPaths = () => allPaths().filter((p) => includedFiles().has(p));
 
 async function generate() {
   const paths = checkedPaths();
@@ -284,17 +414,43 @@ async function generate() {
   }
 }
 
+/** The options of the next commit (Commit Options and the checkboxes below the message). */
+function commitOptions(): CommitOptions {
+  return {
+    amend: amend(),
+    signOff: getSetting<boolean>("vcs.git.commit.signOff", false),
+    noVerify: !getSetting<boolean>("vcs.commit.runHooks", true),
+    author: author().trim() || null,
+  };
+}
+
 async function doCommit(pushAfter: boolean) {
   if (busy()) return;
   setBusy(true);
+  setOptionsOpen(false);
   try {
-    if (!(await confirmLineSeparators(checkedPaths()))) return;
-    const ok = await commitChanges({ message: message(), amend: amend(), paths: checkedPaths(), push: pushAfter });
-    if (ok) {
-      setMessage("");
-      setAmend(false);
-    }
+    const paths = checkedPaths();
+    if (!(await confirmLineSeparators(paths))) return;
+    if (!(await runCommitChecks(paths, setProgress))) return;
+    setProgress("Committing…");
+    const specs = await commitSpecs(paths);
+    if (!specs.length && !amend()) return notify("info", "No changes are included in the commit");
+    const msg = message();
+    const sha = await runGit("Commit failed", () => changesApi.commitFiles(msg, specs, commitOptions()));
+    if (!sha) return;
+    const partial = specs.filter((s) => s.hunks).length;
+    notify(
+      "success",
+      `${specs.length} file${specs.length === 1 ? "" : "s"} committed${partial ? ` (${partial} partly)` : ""}: ${msg.split("\n")[0]}`,
+    );
+    // What is left of partly committed files is not included any more.
+    for (const s of specs) if (s.hunks) setInclusion(s.path, null, false);
+    setMessage("");
+    setAmend(false);
+    setAuthor("");
+    if (pushAfter) await push();
   } finally {
+    setProgress(null);
     setBusy(false);
   }
 }
@@ -308,6 +464,97 @@ async function toggleAmend(on: boolean) {
       setMessage(details?.message ?? last.subject);
     }
   }
+}
+
+/** The changelists with their files; changes no list knows yet show in the active list. */
+const listGroups = createMemo(() => {
+  const changed = new Set(changes().map((e) => e.path));
+  const lists = changelists();
+  const seen = new Set<string>();
+  const groups = lists.map((l) => {
+    const items = l.files.filter((f) => changed.has(f.path));
+    items.forEach((f) => seen.add(f.path));
+    return { list: l as ChangelistView | undefined, id: l.id, title: l.name, active: l.active, items: items as ListItem[] };
+  });
+  const rest: ListItem[] = [...changed].filter((p) => !seen.has(p)).map((path) => ({ path, hunks: null }));
+  const target = groups.find((g) => g.active) ?? groups[0];
+  if (target) target.items = [...target.items, ...rest];
+  else groups.push({ list: undefined, id: "changes", title: "Changes", active: true, items: rest });
+  return groups;
+});
+
+// The active changelist's comment is the commit message draft, like PHPStorm.
+let lastComment = "";
+createRoot(() =>
+  createEffect(
+    on(
+      () => activeChangelist()?.comment ?? "",
+      (comment) => {
+        if (!message().trim() || message() === lastComment) setMessage(comment);
+        lastComment = comment;
+      },
+    ),
+  ),
+);
+
+/** Commit Options (the gear): Git options and the commit checks, saved as settings. */
+function CommitOptionsPopup() {
+  let ref!: HTMLDivElement;
+  const close = (e: MouseEvent) => {
+    if (!ref.contains(e.target as Node) && !(e.target as HTMLElement).closest(".commit-options-btn")) setOptionsOpen(false);
+  };
+  document.addEventListener("mousedown", close, true);
+  onCleanup(() => document.removeEventListener("mousedown", close, true));
+  const setting = (key: string, fallback = false) => getSetting<boolean>(key, fallback);
+  const toggle = (key: string, value: boolean) => void saveSetting(key, value);
+  const configs = () => allConfigurations();
+  return (
+    <div class="commit-options-popup" ref={ref} role="dialog" aria-label="Commit Options">
+      <div class="commit-options-section">Git</div>
+      <label class="commit-options-row commit-options-author">
+        Author:
+        <input class="gd-input" value={author()} placeholder="Name <email>" spellcheck={false} onInput={(e) => setAuthor(e.currentTarget.value)} />
+      </label>
+      <label class="commit-options-row">
+        <input type="checkbox" checked={setting("vcs.git.commit.signOff")} onChange={(e) => toggle("vcs.git.commit.signOff", e.currentTarget.checked)} />
+        Sign-off commit
+      </label>
+      <label class="commit-options-row">
+        <input type="checkbox" checked={amend()} onChange={(e) => void toggleAmend(e.currentTarget.checked)} />
+        Amend commit
+      </label>
+      <label class="commit-options-row">
+        <input type="checkbox" checked={setting("vcs.commit.runHooks", true)} onChange={(e) => toggle("vcs.commit.runHooks", e.currentTarget.checked)} />
+        Run Git hooks
+      </label>
+      <div class="commit-options-section">Commit Checks</div>
+      <For each={COMMIT_CHECKS}>
+        {(c) => (
+          <label class="commit-options-row">
+            <input type="checkbox" checked={setting(c.key)} onChange={(e) => toggle(c.key, e.currentTarget.checked)} />
+            {c.label}
+          </label>
+        )}
+      </For>
+      <div class="commit-options-section">Advanced Commit Checks</div>
+      <label class="commit-options-row">
+        <input type="checkbox" checked={setting("vcs.commit.runTests")} onChange={(e) => toggle("vcs.commit.runTests", e.currentTarget.checked)} />
+        Run Tests:
+        <select
+          class="gd-select"
+          disabled={!setting("vcs.commit.runTests")}
+          value={getSetting<string>("vcs.commit.testConfiguration", "")}
+          onChange={(e) => void saveSetting("vcs.commit.testConfiguration", e.currentTarget.value)}
+        >
+          <option value="">Choose configuration…</option>
+          <For each={configs()}>{(c) => <option value={c.name}>{c.name}</option>}</For>
+        </select>
+      </label>
+      <button class="link-btn commit-options-settings" onClick={() => (setOptionsOpen(false), openSettings("vcs.commit"))}>
+        Settings | Version Control | Commit
+      </button>
+    </div>
+  );
 }
 
 export function CommitPanel() {
@@ -346,9 +593,13 @@ export function CommitPanel() {
         <button
           class="icon-btn"
           title="Collapse All (Ctrl+NumPad -)"
-          onClick={() => setCollapsed(new Set(["conflicts", "changes", "unversioned"]))}
+          onClick={() => setCollapsed(new Set(["conflicts", "unversioned", ...listGroups().map((g) => g.id)]))}
         >
           <ChevronsDownUp size={15} />
+        </button>
+        <div class="toolbar-sep" />
+        <button class="icon-btn" title="New Changelist…" onClick={() => newChangelistDialog()}>
+          <ListPlus size={15} />
         </button>
       </div>
       <div class="commit-tree" role="tree">
@@ -357,8 +608,10 @@ export function CommitPanel() {
           fallback={<div class="commit-empty">{status() ? "No changes" : "No Git repository for this project"}</div>}
         >
           <ConflictsGroup />
-          <Group id="changes" title="Changes" entries={changes()} strong />
-          <Group id="unversioned" title="Unversioned Files" entries={unversioned()} />
+          <For each={listGroups()}>
+            {(g) => <Group id={g.id} title={g.title} items={g.items} strong={g.active} list={g.list} showEmpty={listGroups().length > 1} />}
+          </For>
+          <Group id="unversioned" title="Unversioned Files" items={unversioned().map((e) => ({ path: e.path, hunks: null }))} />
         </Show>
       </div>
       <div class="commit-message">
@@ -438,6 +691,11 @@ export function CommitPanel() {
           <Show when={generating()}>
             <span class="muted ai-status">Generating commit message…</span>
           </Show>
+          <Show when={progress()}>
+            <span class="muted ai-status commit-progress">
+              <LoaderCircle size={13} class="spin" /> {progress()}
+            </span>
+          </Show>
         </div>
         <div class="commit-actions">
           <button class="btn-primary" disabled={!canCommit()} onClick={() => void doCommit(false)} title="Commit (Ctrl+Enter)">
@@ -447,9 +705,12 @@ export function CommitPanel() {
             {amend() ? "Amend Commit and Push…" : "Commit and Push…"}
           </button>
           <span class="spacer" />
-          <button class="icon-btn" title="Commit Options">
+          <button class="icon-btn commit-options-btn" classList={{ active: optionsOpen() }} title="Commit Options" onClick={() => setOptionsOpen(!optionsOpen())}>
             <Settings size={15} />
           </button>
+          <Show when={optionsOpen()}>
+            <CommitOptionsPopup />
+          </Show>
         </div>
       </div>
     </div>
@@ -463,8 +724,19 @@ export function selectCommitFile(path: string): void {
 
 /** "Commit File…" / "Commit Directory…": include exactly these files in the next commit. */
 export function checkOnly(paths: string[]): void {
-  setChecked(new Set(paths));
-  if (paths.length) setSelected(paths[0]);
+  setIncluded(paths);
+  if (paths.length) select(paths[0], null);
+}
+
+/** Move to Another Changelist (F6) for the Commit window's selection. */
+export function moveSelectionToChangelist(): boolean {
+  const path = selected();
+  const list = selectedList();
+  if (!path) return false;
+  const group = listGroups().find((g) => g.id === list);
+  const item = group?.items.find((i) => i.path === path);
+  moveToChangelistDialog([path], { hunks: item?.hunks ?? undefined, from: list ?? undefined });
+  return true;
 }
 
 setCommitSelectionSource(selected, allPaths);

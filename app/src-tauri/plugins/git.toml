@@ -142,3 +142,99 @@ default = "master;main"
 group = "vcs.git"
 section = "Push"
 order = 30
+
+[[contributions.settings]]
+key = "vcs.changelists.createAutomatically"
+title = "Create changelists automatically"
+description = "Apply Patch and Unshelve put the changes into a new changelist named after the patch or the shelved changes."
+type = "bool"
+default = true
+group = "vcs.changelists"
+order = 0
+
+[[contributions.settings]]
+key = "vcs.commit.reformat"
+title = "Reformat code"
+description = "Reformat the committed files with the code style before committing."
+type = "bool"
+default = false
+group = "vcs.commit"
+section = "Commit Checks"
+order = 0
+
+[[contributions.settings]]
+key = "vcs.commit.rearrange"
+title = "Rearrange code"
+type = "bool"
+default = false
+group = "vcs.commit"
+section = "Commit Checks"
+order = 1
+
+[[contributions.settings]]
+key = "vcs.commit.optimizeImports"
+title = "Optimize imports"
+type = "bool"
+default = false
+group = "vcs.commit"
+section = "Commit Checks"
+order = 2
+
+[[contributions.settings]]
+key = "vcs.commit.analyze"
+title = "Analyze code"
+description = "Run the inspections on the committed files; errors and warnings ask Review or Commit Anyway."
+type = "bool"
+default = false
+group = "vcs.commit"
+section = "Commit Checks"
+order = 3
+
+[[contributions.settings]]
+key = "vcs.commit.checkTodo"
+title = "Check TODO"
+description = "Look for TODO items (Settings | Editor | TODO patterns) in the changed lines."
+type = "bool"
+default = false
+group = "vcs.commit"
+section = "Commit Checks"
+order = 4
+
+[[contributions.settings]]
+key = "vcs.commit.cleanup"
+title = "Cleanup"
+description = "Run code cleanup on the committed files."
+type = "bool"
+default = false
+group = "vcs.commit"
+section = "Commit Checks"
+order = 5
+
+[[contributions.settings]]
+key = "vcs.commit.runTests"
+title = "Run Tests"
+description = "Run the chosen run configuration before committing; failing tests ask Review or Commit Anyway."
+type = "bool"
+default = false
+group = "vcs.commit"
+section = "Advanced Commit Checks"
+order = 10
+
+[[contributions.settings]]
+key = "vcs.commit.testConfiguration"
+title = "Run configuration for Run Tests"
+type = "string"
+default = ""
+group = "vcs.commit"
+section = "Advanced Commit Checks"
+order = 11
+
+[[contributions.settings]]
+key = "vcs.commit.runHooks"
+title = "Run Git hooks"
+description = "Unchecked commits with --no-verify (pre-commit and commit-msg hooks are skipped)."
+type = "bool"
+default = true
+group = "vcs.commit"
+section = "Git"
+order = 20

@@ -32,6 +32,7 @@ export async function showDiff(path: string, files?: string[]): Promise<void> {
     right: { title: deleted ? "Deleted" : "Your version", content: right },
     editable: !deleted,
     files,
+    partial: !!entry && !isNew && !deleted && !entry.conflict,
   });
 }
 
@@ -80,20 +81,6 @@ export function confirmRollback(paths: string[]): void {
       notify("success", "Rollback", `${paths.length} file${paths.length > 1 ? "s" : ""} rolled back`);
     },
   });
-}
-
-export async function commitChanges(opts: {
-  message: string;
-  amend: boolean;
-  paths: string[];
-  push: boolean;
-}): Promise<boolean> {
-  const sha = await runGit("Commit failed", () => gitApi.commit(opts.message, opts.amend, opts.paths));
-  if (!sha) return false;
-  const n = opts.paths.length;
-  notify("success", `${n} file${n === 1 ? "" : "s"} committed: ${opts.message.split("\n")[0]}`);
-  if (opts.push) await push();
-  return true;
 }
 
 export async function push(): Promise<void> {
