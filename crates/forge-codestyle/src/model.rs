@@ -1446,7 +1446,8 @@ mod tests {
                 "Spaces",
                 "Wrapping and Braces",
                 "Blank Lines",
-                "Code Conversion"
+                "Code Conversion",
+                "Imports"
             ]
         );
     }
