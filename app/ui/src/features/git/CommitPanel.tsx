@@ -30,6 +30,7 @@ import {
   inclusionOf,
   includedFiles,
   setIncluded,
+  setInclusion,
   setManyIncluded,
   type Inclusion,
 } from "./changelists";
@@ -442,6 +443,8 @@ async function doCommit(pushAfter: boolean) {
       "success",
       `${specs.length} file${specs.length === 1 ? "" : "s"} committed${partial ? ` (${partial} partly)` : ""}: ${msg.split("\n")[0]}`,
     );
+    // What is left of partly committed files is not included any more.
+    for (const s of specs) if (s.hunks) setInclusion(s.path, null, false);
     setMessage("");
     setAmend(false);
     setAuthor("");

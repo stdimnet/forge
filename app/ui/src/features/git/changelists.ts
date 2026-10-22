@@ -10,6 +10,8 @@ import { changesApi, type ChangeHunk, type ChangelistView, type CommitFileSpec }
 import { notify, revision, status } from "./store";
 
 const [lists, setLists] = createSignal<ChangelistView[]>([]);
+/** The changelists were read at least once (the default inclusion depends on them). */
+const [loaded, setLoaded] = createSignal(false);
 export { lists as changelists };
 
 let refreshing: Promise<void> | null = null;
@@ -27,7 +29,10 @@ export async function refreshChangelists(): Promise<void> {
       (l) => void setLists(l),
       () => void setLists([]),
     )
-    .finally(() => (refreshing = null));
+    .finally(() => {
+      refreshing = null;
+      setLoaded(true);
+    });
   await refreshing;
   if (queued) {
     queued = false;
@@ -178,8 +183,8 @@ export async function commitSpecs(paths: string[]): Promise<CommitFileSpec[]> {
 // (PHPStorm default); files without changes leave the inclusion.
 createRoot(() =>
   createEffect(
-    on(status, (st) => {
-      if (!st) return;
+    on([status, loaded], ([st, ready]) => {
+      if (!st || !ready) return;
       const prev = known();
       const next = new Set(checked());
       const all = new Set(st.entries.map((e) => e.path));

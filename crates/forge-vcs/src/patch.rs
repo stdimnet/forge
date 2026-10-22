@@ -325,44 +325,69 @@ fn header_file(p: &str) -> String {
 
 /// Bring a unified diff from any tool into git's form, so it can be split and applied like
 /// git's own patches: sections without a `diff --git` header (`diff -u`, `svn diff`,
-/// PHPStorm patches) get one, and their paths get `a/` and `b/` prefixes. Patches that
-/// already have git headers are returned unchanged.
+/// PHPStorm patches) get one, and their paths get `a/` and `b/` prefixes. Git sections are
+/// kept as they are; text outside sections (mail headers, `Index:` lines) is dropped.
 pub fn normalize_patch(patch: &str) -> String {
-    if patch.lines().any(|l| l.starts_with("diff --git ")) {
-        return patch.to_string();
-    }
     let roles = line_roles(patch);
     let mut out = String::with_capacity(patch.len() + 256);
+    // Inside a git section (its lines are kept as they are) …
+    let mut in_git = false;
+    // … whose own `---`/`+++` pair has not been seen yet.
+    let mut git_pending = false;
     let mut i = 0;
     while i < roles.len() {
         let (role, line) = roles[i];
-        let next = roles.get(i + 1).map(|r| r.1);
-        if role == LineRole::Header && line.starts_with("--- ") {
-            if let Some(plus) = next.filter(|n| n.starts_with("+++ ")) {
-                let old = header_file(&line[4..]);
-                let new = header_file(&plus[4..]);
-                let (a, b) = git_paths(&old, &new);
-                let shown = if b == "/dev/null" { &a } else { &b };
-                out.push_str(&format!("diff --git a/{shown} b/{shown}\n"));
-                if a == "/dev/null" {
-                    out.push_str("new file mode 100644\n");
-                    out.push_str("--- /dev/null\n");
-                } else {
-                    if b == "/dev/null" {
-                        out.push_str("deleted file mode 100644\n");
-                    }
-                    out.push_str(&format!("--- a/{a}\n"));
-                }
-                if b == "/dev/null" {
-                    out.push_str("+++ /dev/null\n");
-                } else {
-                    out.push_str(&format!("+++ b/{b}\n"));
-                }
+        if role == LineRole::Hunk {
+            out.push_str(line);
+            git_pending = false;
+            i += 1;
+            continue;
+        }
+        if line.starts_with("diff --git ") {
+            in_git = true;
+            git_pending = true;
+            out.push_str(line);
+            i += 1;
+            continue;
+        }
+        let plus = roles
+            .get(i + 1)
+            .map(|r| r.1)
+            .filter(|n| line.starts_with("--- ") && n.starts_with("+++ "));
+        if let Some(plus) = plus {
+            if in_git && git_pending {
+                out.push_str(line);
+                out.push_str(plus);
+                git_pending = false;
                 i += 2;
                 continue;
             }
+            in_git = false;
+            let old = header_file(&line[4..]);
+            let new = header_file(&plus[4..]);
+            let (a, b) = git_paths(&old, &new);
+            let shown = if b == "/dev/null" { &a } else { &b };
+            out.push_str(&format!("diff --git a/{shown} b/{shown}\n"));
+            if a == "/dev/null" {
+                out.push_str("new file mode 100644\n--- /dev/null\n");
+            } else {
+                if b == "/dev/null" {
+                    out.push_str("deleted file mode 100644\n");
+                }
+                out.push_str(&format!("--- a/{a}\n"));
+            }
+            if b == "/dev/null" {
+                out.push_str("+++ /dev/null\n");
+            } else {
+                out.push_str(&format!("+++ b/{b}\n"));
+            }
+            i += 2;
+            continue;
         }
-        if role == LineRole::Hunk {
+        if in_git {
+            if line.starts_with("GIT binary patch") || line.starts_with("Binary files ") {
+                git_pending = false;
+            }
             out.push_str(line);
         }
         i += 1;
@@ -638,6 +663,12 @@ KcmZ?wbYKJg0002<
         assert_eq!(files[1].path, "new.txt");
         assert_eq!(files[1].status, PatchStatus::Added);
         assert_eq!(normalize_patch(PATCH), PATCH);
+        // A git patch followed by a foreign section.
+        let mixed = format!("{PATCH}--- a/x.txt\n+++ b/x.txt\n@@ -1 +1 @@\n-a\n+b\n");
+        let files = split_patch(&normalize_patch(&mixed));
+        assert_eq!(files.len(), 5);
+        assert_eq!(files[3].text, split_patch(PATCH)[3].text);
+        assert_eq!(files[4].path, "x.txt");
         let ru = normalize_patch("--- orig/x.txt\n+++ new/x.txt\n@@ -1 +1 @@\n-a\n+b\n");
         assert_eq!(split_patch(&ru)[0].path, "x.txt");
     }

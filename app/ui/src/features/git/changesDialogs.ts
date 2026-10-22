@@ -77,13 +77,24 @@ export async function moveToChangelist(paths: string[], hunks: string[] | null, 
     id = changelists().find((l) => l.name === target.newName!.trim())?.id;
   }
   if (!id) return false;
-  return changelistOp("Could not move the changes", () => changesApi.move(paths, id!, hunks));
+  const ok = await changelistOp("Could not move the changes", () => changesApi.move(paths, id!, hunks));
+  if (ok) followInclusion(paths, hunks, id);
+  return ok;
+}
+
+/** Moved hunks are included when they land in the active list, else excluded (PHPStorm). */
+function followInclusion(paths: string[], hunks: string[] | null, listId: string): void {
+  if (!hunks || !paths[0]) return;
+  const active = changelists().find((l) => l.active)?.id === listId;
+  setInclusion(paths[0], hunks, active);
 }
 
 /** Drag and drop in the Commit tool window. */
 export function dropOnChangelist(listId: string, items: { path: string; hunks: string[] | null }[]): void {
   void (async () => {
-    for (const i of items) await changelistOp("Could not move the changes", () => changesApi.move([i.path], listId, i.hunks));
+    for (const i of items) {
+      if (await changelistOp("Could not move the changes", () => changesApi.move([i.path], listId, i.hunks))) followInclusion([i.path], i.hunks, listId);
+    }
   })();
 }
 
