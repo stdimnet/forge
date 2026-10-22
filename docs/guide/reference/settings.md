@@ -405,6 +405,17 @@ Page id `vcs.git`.
 | `vcs.git.commit.warnOnCrlf` | bool | `true` | user | Commit | Warn if CRLF line separators are about to be committed |
 | `vcs.git.commit.signOff` | bool | `false` | user | Commit | Sign-off commits |
 
+### Version Control | Local History
+
+Page id `vcs.local-history`. See [Local History](../user/local-history.md).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `localHistory.keepDays` | int (1–365) | `5` | user |  | Keep local history for (working days) — Only days with changes count. Older revisions and labels are removed when a project opens and every few hours. |
+| `localHistory.maxStorageMb` | int (16–10240) | `512` | user |  | Maximum history size per project (MB) — When the stored contents grow larger, the oldest revisions are removed first. |
+| `localHistory.maxFileSizeKb` | int (16–102400) | `1024` | user |  | Do not record files larger than (KB) — Larger files and binary files are left out of Local History. |
+| `localHistory.excludedFolders` | list | `.git`, `.hg`, `.svn`, `node_modules`, `vendor`, `.idea` | user |  | Excluded folders — Files in folders with these names (or project-relative paths like `storage/logs`) are never recorded. |
+
 ### Version Control | Code Hosts
 
 Page id `vcs.hosts`; the GitLab, Forgejo / Gitea and GitHub account pages are below it.
@@ -697,6 +708,14 @@ Page id `tools.browser-companion`.
 | `browserCompanion.enabled` | bool | `true` | user | Built-in Server | Accept open requests from paired browsers — Runs a small server on 127.0.0.1 that only paired browser extensions can use. |
 | `browserCompanion.port` | int (1024–65535) | `63342` | user | Built-in Server | Port — If the port is taken (for example by PhpStorm), the next 9 ports are tried. The extension finds Forge in this range. |
 | `browserCompanion.focusWindow` | bool | `true` | user | Built-in Server | Bring Forge to the front when a file is opened |
+
+### Tools | External Tools
+
+Page id `tools.external-tools`. See [External Tools](../user/run-debug.md#external-tools).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `tools.externalTools` | objects | `[]` | user |  | External Tools — Programs run from Tools \| External Tools, the editor and Project view context menus, the keymap and Before launch tasks: name, group, description, program, arguments and working directory with macros such as $FilePath$, plus the options and output filters ($FILE_PATH$:$LINE$, one per line). |
 
 ### Tools | HTTP Client
 

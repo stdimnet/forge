@@ -13,6 +13,7 @@ crate-type = ["cdylib", "rlib"]
 serde.workspace = true
 serde_json.workspace = true
 forge-output.workspace = true
+forge-runtools.workspace = true
 forge-sql.workspace = true
 forge-markdown.workspace = true
 forge-viewers.workspace = true
@@ -40,6 +41,7 @@ forge-diff.workspace = true
 forge-ssr = { path = "../forge-ssr", default-features = false }
 forge-search-core.workspace = true
 forge-bookmarks.workspace = true
+forge-localhistory.workspace = true
 forge-codeintel.workspace = true
 forge-filetypes.workspace = true
 forge-text.workspace = true

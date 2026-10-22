@@ -48,6 +48,7 @@ import "./goToTestMock";
 import "./companionMock";
 import "./terminalMock";
 import "./runMock";
+import "./runToolsMock";
 import "./scratchesMock";
 import "./debugMock";
 import "./dbMock";
@@ -70,6 +71,8 @@ import "./saveActionsMock";
 import "./windowMock";
 import "./updatesMock";
 import "./templatesMock";
+// Wraps the file mocks above, so it comes last.
+import "./localHistoryMock";
 
 // File types answer synchronously once the WebAssembly build is loaded; wait for it so the
 // first editors do not start as plain text.

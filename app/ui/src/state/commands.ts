@@ -17,6 +17,16 @@ export function registerCommand(cmd: Command): void {
   setCommands((prev) => new Map(prev).set(cmd.id, cmd));
 }
 
+/** Remove a command (e.g. a deleted External Tool's action). */
+export function unregisterCommand(id: string): void {
+  setCommands((prev) => {
+    if (!prev.has(id)) return prev;
+    const next = new Map(prev);
+    next.delete(id);
+    return next;
+  });
+}
+
 export { commands };
 
 export async function runCommand(id: string): Promise<void> {

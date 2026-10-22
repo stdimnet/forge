@@ -19,6 +19,7 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 forge-core.workspace = true
 forge-bookmarks.workspace = true
+forge-localhistory = { workspace = true, features = ["disk"] }
 forge-scopes.workspace = true
 forge-ssr.workspace = true
 forge-plugin-api.workspace = true
@@ -40,6 +41,7 @@ forge-forges.workspace = true
 forge-project.workspace = true
 forge-open.workspace = true
 forge-process.workspace = true
+forge-runtools.workspace = true
 forge-markdown.workspace = true
 forge-viewers.workspace = true
 forge-debug.workspace = true

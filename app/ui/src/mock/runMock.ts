@@ -17,7 +17,7 @@ import { scratchCommandLine, scratchRunSteps } from "./scratchesMock";
 import { mockSettingValue } from "./settingsMock";
 
 const ROOT = `~/Projects/${demoProjectName}`;
-const projectRoot = () =>
+export const projectRoot = () =>
   `~/Projects/${isSymfonyDemo() ? symfonyDemoName : isLuaDemo() ? luaDemoName : (webDemo()?.name ?? demoProjectName)}`;
 
 /** The Lua demo (`?project=lua`): the LÖVE game and its build script. */
@@ -99,7 +99,11 @@ export function mockCommandLine(cfg: RunConfiguration): CommandLine {
     case "composer-command":
       return { program: "composer", args: [...split(o.command), ...split(cfg.arguments), "--ansi", "--no-interaction"], cwd };
     case "npm":
-      return { program: o.packageManager || "npm", args: [o.command || "run", ...(o.command && o.command !== "run" ? [] : [o.script ?? ""])], cwd };
+      return {
+        program: o.packageManager || "npm",
+        args: [o.command || "run", ...(o.command && o.command !== "run" ? [] : [o.script ?? ""]), ...split(cfg.arguments)],
+        cwd,
+      };
     case "lua-script":
       return { program: cfg.interpreter || "lua", args: [...split(cfg.interpreterOptions), o.file ?? "", ...split(cfg.arguments)].filter(Boolean), cwd };
     case "shell":
@@ -358,7 +362,8 @@ function webNpmSteps(cfg: RunConfiguration): Step[] {
 }
 
 function stepsFor(cfg: RunConfiguration | undefined, cmd: CommandLine): Step[] {
-  if (!cfg) return [[50, `${cmd.program} finished.\n`], [10, { code: 0 }]];
+  // Commands built in the UI (External Tools, HTTP requests) arrive without a configuration.
+  if (!cfg) return externalToolSteps(cmd);
   const o = cfg.options ?? {};
   switch (cfg.type) {
     case "phpunit":
@@ -412,6 +417,8 @@ function stepsFor(cfg: RunConfiguration | undefined, cmd: CommandLine): Step[] {
       return composerSteps(split(o.command));
     case "lua-script":
       return luaSteps(cfg);
+    case "external-tool":
+      return externalToolSteps(cmd);
     case "php-script":
       return [
         [150, "Generating invoices for 3 orders…\n"],
@@ -482,6 +489,31 @@ export function composerSteps(args: string[]): Step[] {
   }
 }
 
+/** Canned output of the demo External Tools (PHPStan lines link through the tool's output filter). */
+function externalToolSteps(cmd: CommandLine): Step[] {
+  const program = cmd.program.split("/").pop() ?? cmd.program;
+  if (program === "phpstan") {
+    const file = cmd.args.find((a) => a.endsWith(".php")) ?? "app/Models/User.php";
+    return [
+      [300, `${file}:22:Method App\\Models\\User::fullName() has no return type specified.\n`],
+      [40, `${file}:34:Method App\\Models\\User::totalSpent() should return float but returns int.\n`],
+      [30, { code: 1 }],
+    ];
+  }
+  if (program === "php-cs-fixer")
+    return [
+      [300, "Loaded config default from \"" + ROOT + "/.php-cs-fixer.dist.php\".\n"],
+      [200, "   1) app/Models/User.php\n\nFixed 1 of 1 files in 0.042 seconds, 14.00 MB memory used\n"],
+      [30, { code: 0 }],
+    ];
+  if (program === "git")
+    return [
+      [150, "3f1c2d8e (Marlon 2026-09-12 10:41:07 +0200 19) class User extends Authenticatable\n"],
+      [20, { code: 0 }],
+    ];
+  return [[100, `${cmd.program} finished.\n`], [30, { code: 0 }]];
+}
+
 /** Canned output of the Lua demo: the LÖVE game keeps running, scripts finish. */
 function luaSteps(cfg: RunConfiguration): Step[] {
   if ((cfg.interpreter ?? "").endsWith("love"))
@@ -509,7 +541,7 @@ export async function startMockRun(
   runId: string,
   cmd: CommandLine,
   steps: Step[],
-  opts: { testRunner?: boolean; pathMappings?: Wrapped["pathMappings"] } = {},
+  opts: { testRunner?: boolean; pathMappings?: Wrapped["pathMappings"]; outputFilters?: string[] } = {},
 ): Promise<{ runId: string; commandLine: string }> {
   wasm ??= await forgeWasm();
   const commandLine = display(cmd);
@@ -519,6 +551,7 @@ export async function startMockRun(
     cwd: cmd.cwd || undefined,
     cycleBufferKb: Number(mockSettingValue("run.console.cycleBufferKb") ?? 1024),
     pathMappings: opts.pathMappings ?? [],
+    outputFilters: opts.outputFilters ?? [],
   };
   const old = runs.get(runId);
   if (old) wasm.run_output_drop(JSON.stringify({ handle: old.output }));
@@ -535,7 +568,7 @@ registerMock("run_start", async ({ request }) => {
   const local = r.command ?? mockCommandLine(r.configuration!);
   const { cmd, pathMappings } = await throughInterpreter(r.command ? undefined : r.configuration, { ...local, args: [...(r.interpreterArgs ?? []), ...local.args] }, r.env);
   const steps = stepsFor(r.configuration && r.env ? { ...r.configuration, env: { ...r.configuration.env, ...r.env } } : r.configuration, local);
-  return startMockRun(runId, cmd, steps, { testRunner: !!r.testRunner, pathMappings });
+  return startMockRun(runId, cmd, steps, { testRunner: !!r.testRunner, pathMappings, outputFilters: r.outputFilters });
 });
 
 function stop(runId: string): void {

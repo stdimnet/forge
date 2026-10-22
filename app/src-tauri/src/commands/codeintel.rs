@@ -1208,14 +1208,25 @@ pub async fn code_apply_edit(
     edit: WorkspaceEdit,
     skip: Option<Vec<String>>,
     state: State<'_, AppState>,
+    lh: State<'_, crate::commands::local_history::LocalHistoryState>,
 ) -> Result<Vec<AppliedFile>> {
     let backend = state.backend()?;
-    blocking(move || {
+    let applied = blocking(move || {
         let edit = edit.without_text_edits_of(&skip.unwrap_or_default());
         codeintel::apply_workspace_edit(&edit, &mut BackendStore(backend))
             .map_err(|e| ForgeError::Other(e.to_string()))
     })
-    .await
+    .await?;
+    // Joins the refactoring's change set when the UI started one.
+    crate::commands::local_history::edited(
+        &lh,
+        forge_localhistory::ChangeKind::Refactoring,
+        "Refactoring",
+        applied
+            .iter()
+            .map(|f| (f.path.as_str(), f.before.as_deref(), f.after.as_deref())),
+    );
+    Ok(applied)
 }
 
 /// Undo [`code_apply_edit`]; refused when a file changed since.
@@ -1943,6 +1954,7 @@ pub async fn code_new_test_plan(
 pub async fn code_create_test(
     request: codeintel::TestSourceRequest,
     ws: State<'_, AppState>,
+    lh: State<'_, crate::commands::local_history::LocalHistoryState>,
 ) -> Result<codeintel::TestSource> {
     let file = codeintel::test_source(&request).map_err(ForgeError::Other)?;
     let backend = ws.backend()?;
@@ -1952,6 +1964,11 @@ pub async fn code_create_test(
         backend.write_file(&path, &text)
     })
     .await?;
+    crate::commands::local_history::created(
+        &lh,
+        &file.path,
+        forge_localhistory::Content::Bytes(file.text.clone().into_bytes()),
+    );
     Ok(file)
 }
 

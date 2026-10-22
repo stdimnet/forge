@@ -37,6 +37,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-keymap](forge-keymap.md) | PHPStorm-compatible keymap: shortcut model, default keymaps, overrides, conflicts and the key resolver |
 | [forge-langservers](forge-langservers.md) | Forge IDE: catalog, detection, configuration and installation of language servers |
 | [forge-livetemplates](forge-livetemplates.md) | Live templates: template sets, contexts, variables and expansion, Surround With and Unwrap/Remove (pure, WebAssembly-friendly) |
+| [forge-localhistory](forge-localhistory.md) | Local History: file contents recorded on save, refactorings, VCS operations and external changes, with labels, revert and selection history |
 | [forge-lsp](forge-lsp.md) | Forge IDE: generic Language Server Protocol client and server manager |
 | [forge-markdown](forge-markdown.md) | Forge Markdown: a safe AST (no raw HTML) for chat messages and documentation popups, built with pulldown-cmark (pure, also built to WebAssembly) |
 | [forge-viewers](forge-viewers.md) | Forge file viewers: image metadata for the image editor and CSV/TSV tables for Edit as Table (pure, also built to WebAssembly) |
@@ -47,6 +48,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-project](forge-project.md) | Forge IDE projects: project type detection and New Project generators |
 | [forge-remote](forge-remote.md) | Forge IDE remote development: SSH connections, host keys, ~/.ssh/config and the Forge agent deployment |
 | [forge-remote-agent](forge-remote-agent.md) | Headless Forge agent: serves a project's files, git, processes, language servers and PHP index over stdio for remote development |
+| [forge-runtools](forge-runtools.md) | Run Anything, compound and before-launch plans, External Tools and their macros (pure, also built to WebAssembly) |
 | [forge-save-actions](forge-save-actions.md) | Actions on Save: which actions run for a saved file, reformatting only changed lines and running ESLint, Prettier, PHP CS Fixer and Laravel Pint through the project's backend |
 | [forge-scratches](forge-scratches.md) | Forge scratch files (PHPStorm's Scratches and Consoles): storage, naming, languages, run commands and the HTTP request client |
 | [forge-scopes](forge-scopes.md) | Scopes (PHPStorm's scope language, predefined and named scopes) and file colors (pure, WebAssembly-friendly) |

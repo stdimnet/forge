@@ -1416,6 +1416,20 @@
           "order": 20
         },
         {
+          "key": "tools.externalTools",
+          "title": "External Tools",
+          "description": "Programs run from Tools | External Tools, the editor and Project view context menus, the keymap and Before launch tasks: name, group, description, program, arguments and working directory with macros such as $FilePath$, plus the options and output filters ($FILE_PATH$:$LINE$, one per line).",
+          "type": "objects",
+          "unique": [
+            "group",
+            "name"
+          ],
+          "default": [],
+          "group": "tools.external-tools",
+          "project": false,
+          "order": 0
+        },
+        {
           "key": "httpClient.environment",
           "title": "Environment",
           "description": "Environment of http-client.env.json (and http-client.private.env.json) that requests of .http files run with. Empty: dev, else the first one; $none: no environment. Chosen in the toolbar of .http editors.",
@@ -1933,6 +1947,59 @@
           "group": "findUsages",
           "project": false,
           "order": 30
+        },
+        {
+          "key": "localHistory.keepDays",
+          "title": "Keep local history for (working days)",
+          "description": "Only days with changes count. Older revisions and labels are removed when a project opens and every few hours.",
+          "type": "int",
+          "min": 1,
+          "max": 365,
+          "default": 5,
+          "group": "vcs.local-history",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "localHistory.maxStorageMb",
+          "title": "Maximum history size per project (MB)",
+          "description": "When the stored contents grow larger, the oldest revisions are removed first.",
+          "type": "int",
+          "min": 16,
+          "max": 10240,
+          "default": 512,
+          "group": "vcs.local-history",
+          "project": false,
+          "order": 1
+        },
+        {
+          "key": "localHistory.maxFileSizeKb",
+          "title": "Do not record files larger than (KB)",
+          "description": "Larger files and binary files are left out of Local History.",
+          "type": "int",
+          "min": 16,
+          "max": 102400,
+          "default": 1024,
+          "group": "vcs.local-history",
+          "project": false,
+          "order": 2
+        },
+        {
+          "key": "localHistory.excludedFolders",
+          "title": "Excluded folders",
+          "description": "Files in folders with these names (or project-relative paths like `storage/logs`) are never recorded.",
+          "type": "list",
+          "default": [
+            ".git",
+            ".hg",
+            ".svn",
+            "node_modules",
+            "vendor",
+            ".idea"
+          ],
+          "group": "vcs.local-history",
+          "project": false,
+          "order": 3
         }
       ],
       "lspServers": [],

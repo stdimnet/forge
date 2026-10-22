@@ -5,7 +5,7 @@
 //! Cyclic Expand Word).
 
 use serde::Deserialize;
-use tauri::State;
+use tauri::{AppHandle, Manager, State};
 
 use forge_core::{ForgeError, Result};
 use forge_editing::{
@@ -18,6 +18,7 @@ use forge_text::file::{read_text, write_text, TextFile};
 use forge_text::save::{SaveRequest, SaveResult};
 use forge_text::{Encoding, FileFormat, FormatRequest, LineSeparator};
 
+use super::local_history::{self, LocalHistoryState, Msg};
 use super::workspace::blocking;
 use crate::state::AppState;
 
@@ -27,13 +28,20 @@ pub async fn fs_read_text(
     path: String,
     encoding: Option<Encoding>,
     state: State<'_, AppState>,
+    lh: State<'_, LocalHistoryState>,
 ) -> Result<TextFile> {
     let backend = state.backend()?;
-    blocking(move || {
+    let (file, bytes) = blocking(move || {
         let bytes = backend.read_bytes(&path)?;
-        Ok(read_text(&bytes, encoding))
+        Ok((read_text(&bytes, encoding), (path, bytes)))
     })
-    .await
+    .await?;
+    // Local History keeps the content Forge saw as the "before" of later changes.
+    lh.send(Msg::Baseline {
+        path: bytes.0,
+        bytes: bytes.1,
+    });
+    Ok(file)
 }
 
 /// Write `text` (`\n` separators) with the file's separator and encoding.
@@ -44,11 +52,17 @@ pub async fn fs_write_text(
     eol: Option<LineSeparator>,
     encoding: Option<Encoding>,
     bom: Option<bool>,
-    state: State<'_, AppState>,
+    app: AppHandle,
 ) -> Result<()> {
-    let backend = state.backend()?;
+    let backend = app.state::<AppState>().backend()?;
     let bytes = encode_text(&text, eol, encoding, bom)?;
-    blocking(move || backend.write_bytes(&path, &bytes)).await
+    blocking(move || {
+        let before = local_history::before_write(&app.state(), &*backend, &path);
+        backend.write_bytes(&path, &bytes)?;
+        local_history::saved(&app.state(), &path, before, bytes);
+        Ok(())
+    })
+    .await
 }
 
 fn encode_text(

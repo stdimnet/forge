@@ -1833,6 +1833,7 @@ dependencies = [
  "forge-keymap",
  "forge-langservers",
  "forge-livetemplates",
+ "forge-localhistory",
  "forge-lsp",
  "forge-markdown",
  "forge-open",
@@ -1840,6 +1841,7 @@ dependencies = [
  "forge-process",
  "forge-project",
  "forge-remote",
+ "forge-runtools",
  "forge-save-actions",
  "forge-scopes",
  "forge-scratches",
@@ -2168,6 +2170,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "forge-localhistory"
+version = "0.1.0"
+dependencies = [
+ "flate2",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "similar",
+ "tempfile",
+]
+
+[[package]]
 name = "forge-lsp"
 version = "0.1.0"
 dependencies = [
@@ -2237,6 +2251,7 @@ version = "0.1.0"
 dependencies = [
  "forge-core",
  "forge-output",
+ "forge-runtools",
  "libc",
  "portable-pty",
  "serde",
@@ -2307,6 +2322,16 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "webforge-lang-web",
+]
+
+[[package]]
+name = "forge-runtools"
+version = "0.1.0"
+dependencies = [
+ "forge-fuzzy",
+ "forge-output",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -2489,10 +2514,12 @@ dependencies = [
  "forge-jsonschema",
  "forge-keymap",
  "forge-livetemplates",
+ "forge-localhistory",
  "forge-markdown",
  "forge-output",
  "forge-plugin-api",
  "forge-remote",
+ "forge-runtools",
  "forge-save-actions",
  "forge-scopes",
  "forge-scratches",

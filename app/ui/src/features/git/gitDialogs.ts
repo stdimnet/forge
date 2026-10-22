@@ -17,6 +17,7 @@ import { runMerging } from "./conflicts";
 import { setDiffRequest } from "./overlays";
 import { refreshOperation } from "./operation";
 import type { CloneRequest } from "./extras";
+import { withLocalHistory } from "@/ipc/localHistory";
 
 export type GitDialog =
   | { kind: "stash" }
@@ -75,7 +76,7 @@ export function stashDialog(): void {
 }
 
 export async function createStash(message: string, keepIndex: boolean): Promise<void> {
-  const out = await runGit("Stash failed", () => gitApi.stash(message.trim(), keepIndex));
+  const out = await runGit("Stash failed", () => withLocalHistory("vcs", "Stash changes", () => gitApi.stash(message.trim(), keepIndex)));
   if (out !== undefined) await done("Changes stashed", out.split("\n")[0]);
 }
 
@@ -93,8 +94,10 @@ export async function reloadStashes(): Promise<StashEntry[]> {
 export async function applyStash(entry: StashEntry, opts: { pop: boolean; reinstateIndex: boolean; branch?: string }): Promise<boolean> {
   const branch = opts.branch?.trim();
   const out = branch
-    ? await runMerging("Unstash failed", () => opsApi.stashBranch(entry.index, branch))
-    : await runMerging("Unstash failed", () => gitApi.unstash(entry.index, opts.pop, opts.reinstateIndex));
+    ? await runMerging("Unstash failed", () => withLocalHistory("vcs", "Unstash changes", () => opsApi.stashBranch(entry.index, branch)))
+    : await runMerging("Unstash failed", () =>
+        withLocalHistory("vcs", "Unstash changes", () => gitApi.unstash(entry.index, opts.pop, opts.reinstateIndex)),
+      );
   if (out === undefined) return false;
   await done(branch ? `Unstashed to branch ${branch}` : opts.pop ? "Stash popped" : "Stash applied", entry.message);
   return true;
@@ -134,7 +137,7 @@ export function pullDialog(): void {
 }
 
 export async function pull(options: PullOptions): Promise<void> {
-  const res = await runMerging("Pull failed", () => opsApi.pull(options));
+  const res = await runMerging("Pull failed", () => withLocalHistory("vcs", "Update from VCS", () => opsApi.pull(options)));
   if (res) await done("Pulled", res.output.split("\n")[0] || "All files are up to date");
 }
 
@@ -144,7 +147,9 @@ export function mergeDialog(): void {
 }
 
 export async function merge(options: MergeOptions): Promise<void> {
-  const out = await runMerging(`Merge of ${options.branches.join(", ")} failed`, () => opsApi.merge(options));
+  const out = await runMerging(`Merge of ${options.branches.join(", ")} failed`, () =>
+    withLocalHistory("vcs", `Merge ${options.branches.join(", ")}`, () => opsApi.merge(options)),
+  );
   if (out !== undefined) await done(`Merged ${options.branches.join(", ")} into ${currentBranch()}`, out.split("\n")[0]);
 }
 
@@ -155,7 +160,7 @@ export function rebaseDialog(): void {
 
 export async function rebase(options: RebaseOptions): Promise<void> {
   const branch = options.branch || currentBranch();
-  const out = await runMerging(`Rebase of ${branch} failed`, () => opsApi.rebase(options));
+  const out = await runMerging(`Rebase of ${branch} failed`, () => withLocalHistory("vcs", `Rebase ${branch}`, () => opsApi.rebase(options)));
   await refreshOperation();
   if (out !== undefined) await done(`Rebased ${branch} onto ${options.onto || "root"}`);
 }
@@ -168,7 +173,7 @@ export function resetDialog(rev = "HEAD"): void {
 }
 
 export async function resetHead(rev: string, mode: ResetMode): Promise<void> {
-  const ok = await runGit("Reset failed", () => opsApi.reset(rev, mode).then(() => true));
+  const ok = await runGit("Reset failed", () => withLocalHistory("vcs", `Reset to ${rev || "HEAD"}`, () => opsApi.reset(rev, mode).then(() => true)));
   if (ok) await done("Reset successful", `${currentBranch()} was reset to ${rev || "HEAD"} (${mode})`);
 }
 
@@ -201,7 +206,7 @@ export function shelveDialog(paths?: string[]): void {
 }
 
 export async function shelve(paths: string[], name: string): Promise<boolean> {
-  const cl = await runGit("Shelve failed", () => opsApi.shelve(paths, name));
+  const cl = await runGit("Shelve failed", () => withLocalHistory("vcs", "Shelve changes", () => opsApi.shelve(paths, name), paths));
   if (!cl) return false;
   await reloadOpenFiles();
   notify("success", "Changes shelved", `${plural(cl.files.length, "file")} in "${cl.name}"`);
@@ -214,7 +219,8 @@ export function unshelveDialog(changelist: ShelvedChangelist, paths?: string[]):
 }
 
 export async function unshelve(cl: ShelvedChangelist, paths: string[] | null, remove: boolean): Promise<boolean> {
-  const out = await runMerging("Unshelve failed", () => opsApi.unshelve(cl.id, paths, remove));
+  const touched = paths ?? cl.files.map((f) => f.path);
+  const out = await runMerging("Unshelve failed", () => withLocalHistory("vcs", `Unshelve ${cl.name}`, () => opsApi.unshelve(cl.id, paths, remove), touched));
   if (out === undefined) return false;
   await done("Changes unshelved", `${out} from "${cl.name}"`);
   // "Create changelists automatically": the changes come back in a list named after the shelf.

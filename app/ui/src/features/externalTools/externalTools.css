@@ -1,0 +1,227 @@
+/* Settings | Tools | External Tools and the Create / Edit Tool and Macros dialogs. */
+.et-page {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  height: 100%;
+  min-height: 380px;
+}
+.et-list {
+  max-width: none;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.et-tree {
+  flex: 1;
+  overflow: auto;
+  padding: 2px 0;
+}
+.et-tree-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 8px;
+  cursor: default;
+  white-space: nowrap;
+}
+.et-tree-row input {
+  margin: 0;
+  accent-color: var(--accent);
+  box-shadow: none;
+}
+.et-tree-tool {
+  padding-left: 30px;
+}
+.et-tree-tool:hover {
+  background: var(--bg-hover);
+}
+.et-tree-tool.selected {
+  background: var(--accent-soft);
+  color: var(--fg-strong);
+}
+.et-tree-group {
+  font-weight: 600;
+}
+.et-chevron {
+  display: inline-grid;
+  place-items: center;
+  width: 14px;
+  color: var(--fg-muted);
+}
+.et-summary code {
+  font-family: var(--font-mono);
+  color: var(--fg);
+}
+.et-modal {
+  z-index: 400;
+}
+.et-dialog {
+  width: min(720px, calc(100vw - 32px));
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-panel);
+}
+.et-title {
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  color: var(--fg-strong);
+  border-bottom: 1px solid var(--border);
+}
+.et-form {
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.et-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.et-label {
+  width: 128px;
+  flex-shrink: 0;
+  color: var(--fg);
+}
+.et-group-label {
+  width: auto;
+}
+.et-grow {
+  flex: 1;
+  min-width: 0;
+}
+.et-group {
+  width: 180px;
+}
+.et-mono {
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+}
+.et-path {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  gap: 4px;
+}
+.et-path .set-input {
+  flex: 1;
+  min-width: 0;
+}
+.et-macro-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 28px;
+  white-space: nowrap;
+}
+.et-section {
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: var(--fg-strong);
+}
+.et-section::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+.et-toggle {
+  padding: 0;
+  text-align: left;
+}
+.et-advanced {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-left: 4px;
+}
+.et-indent {
+  margin-left: 22px;
+}
+.et-indent.disabled {
+  color: var(--fg-muted);
+}
+.et-filters-label {
+  margin-top: 4px;
+}
+.et-filters {
+  height: auto;
+  padding: 6px 8px;
+  resize: vertical;
+}
+.et-advanced code {
+  font-family: var(--font-mono);
+}
+.et-problems {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.et-buttons {
+  display: flex;
+  gap: 8px;
+}
+.et-spacer {
+  flex: 1;
+}
+.et-macros {
+  width: min(620px, calc(100vw - 32px));
+}
+.et-macro-list {
+  height: 300px;
+  overflow: auto;
+  margin: 10px 14px 0;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+  outline: none;
+}
+.et-macro {
+  display: flex;
+  gap: 12px;
+  height: 24px;
+  align-items: center;
+  padding: 0 8px;
+  cursor: default;
+  white-space: nowrap;
+}
+.et-macro.selected {
+  background: var(--bg-selection);
+}
+.et-macro-name {
+  width: 250px;
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  color: var(--fg-strong);
+}
+.et-macro-desc {
+  color: var(--fg-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.et-preview-label {
+  margin: 10px 14px 4px;
+  color: var(--fg-muted);
+}
+.et-preview {
+  margin: 0 14px 12px;
+  min-height: 44px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-app);
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  white-space: pre-wrap;
+  word-break: break-all;
+}

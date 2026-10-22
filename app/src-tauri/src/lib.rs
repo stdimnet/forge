@@ -98,6 +98,7 @@ pub fn run() {
         .manage(run_state)
         .manage(commands::symfony::SymfonyState::default())
         .manage(commands::workbench::BookmarksState::default())
+        .manage(commands::local_history::LocalHistoryState::default())
         .manage(commands::clipboard::ClipboardState::default())
         .manage(commands::git_clone::CloneState::default())
         .invoke_handler(tauri::generate_handler![
@@ -486,6 +487,14 @@ pub fn run() {
             commands::run::run_stop,
             commands::run::run_write,
             commands::run::run_dispose,
+            commands::runtools::run_anything_suggest,
+            commands::runtools::run_anything_resolve,
+            commands::runtools::run_anything_history,
+            commands::runtools::run_anything_history_add,
+            commands::runtools::run_launch_plan,
+            commands::runtools::external_tool_macros,
+            commands::runtools::external_tool_command,
+            commands::runtools::external_tool_validate,
             commands::scratches::scratches_list,
             commands::scratches::scratches_languages,
             commands::scratches::scratches_create,
@@ -507,6 +516,19 @@ pub fn run() {
             commands::injections::injections_inject,
             commands::injections::injections_rules,
             commands::injections::injections_languages,
+            commands::local_history::local_history_record,
+            commands::local_history::local_history_begin,
+            commands::local_history::local_history_end,
+            commands::local_history::local_history_snapshot,
+            commands::local_history::local_history_list,
+            commands::local_history::local_history_content,
+            commands::local_history::local_history_folder_changes,
+            commands::local_history::local_history_selection,
+            commands::local_history::local_history_recent,
+            commands::local_history::local_history_change_files,
+            commands::local_history::local_history_put_label,
+            commands::local_history::local_history_patch,
+            commands::local_history::local_history_revert,
             commands::live_templates::live_templates_catalog,
             commands::live_templates::live_templates_applicable,
             commands::live_templates::live_templates_expand,

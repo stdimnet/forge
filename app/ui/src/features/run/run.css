@@ -793,3 +793,24 @@
 .rc-save-error {
   color: var(--danger);
 }
+.rc-bl-kind {
+  flex: none;
+  color: var(--fg-muted);
+}
+.rc-bl-item .rc-bl-input {
+  flex: 1;
+  min-width: 0;
+}
+.rc-bl-item.invalid > span:nth-child(2) {
+  color: var(--danger);
+}
+.rc-compound-missing {
+  color: var(--danger);
+  font-size: var(--fs-small);
+}
+.rc-compound .rc-bl-list {
+  min-height: 120px;
+}
+.rc-compound-multiple {
+  margin-top: 10px;
+}
