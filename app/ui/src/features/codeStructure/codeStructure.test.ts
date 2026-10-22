@@ -74,7 +74,13 @@ describe("editor structure", () => {
   });
 
   it("groups Structure view nodes under regions", () => {
-    const nodes = [{ name: "Cart", line: 7, children: [{ name: "total", line: 10 }] }];
+    interface Node {
+      name: string;
+      line: number;
+      kind?: string;
+      children?: Node[];
+    }
+    const nodes: Node[] = [{ name: "Cart", line: 7, children: [{ name: "total", line: 10 }] }];
     const grouped = groupByRegions(nodes, structureOf(doc, "php").regions);
     expect(grouped[0].children?.[0]).toMatchObject({ name: "Totals", kind: "region" });
   });
