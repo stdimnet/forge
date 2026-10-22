@@ -592,7 +592,9 @@ editor context menu:
 | Column Selection Mode | not available yet (use `Alt`+drag) |
 | Find Usages | works |
 | Refactor > Rename… | works, see [Rename](#rename) |
-| Refactor > Refactor This… | not available yet |
+| Refactor > Refactor This… | works, see [Refactoring shortcuts](shortcuts/refactoring.md#refactor-this) |
+| Refactor > Extract/Introduce > Variable…, Constant…, Field…, Parameter…, Method… | works, see [PHP](php.md#extract-introduce-and-inline) |
+| Refactor > Inline… | works, see [PHP](php.md#extract-introduce-and-inline) |
 | Go To > Declaration or Usages, Line/Column | works |
 | Go To > Implementation(s) | works |
 | Generate… | works in PHP files, see [PHP](php.md#generate) |
