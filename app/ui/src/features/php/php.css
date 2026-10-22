@@ -700,3 +700,73 @@
     transform: rotate(360deg);
   }
 }
+
+/* ---------- Source roots (Mark Directory as) and External Libraries ---------- */
+.tree-row.php-source-root .file-icon {
+  color: var(--info) !important;
+}
+.tree-row.php-test-root .file-icon {
+  color: var(--success) !important;
+}
+.library-icon {
+  display: inline-flex;
+  color: var(--fg-muted);
+  flex-shrink: 0;
+}
+
+/* ---------- Settings | Directories ---------- */
+.php-dirs-root {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--fg);
+  margin-bottom: 6px;
+}
+.php-dirs-title::before {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  margin-right: 8px;
+  vertical-align: 1px;
+  background: var(--fg-faint);
+}
+.php-dirs-title.php-dirs-source::before {
+  background: var(--info);
+}
+.php-dirs-title.php-dirs-test::before {
+  background: var(--success);
+}
+.php-dirs-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) minmax(140px, 1.2fr) auto auto auto;
+  gap: 8px;
+  height: 30px;
+}
+.php-dirs-path {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.php-dirs-list[data-kind="source"] .php-dirs-path {
+  color: var(--info);
+}
+.php-dirs-list[data-kind="test"] .php-dirs-path {
+  color: var(--success);
+}
+.php-dirs-list[data-kind="none"] .php-dirs-path {
+  color: var(--fg-muted);
+}
+.php-settings .php-dirs-prefix {
+  height: 24px;
+}
+.php-dirs-origin {
+  white-space: nowrap;
+}
+.php-dirs-add {
+  display: grid;
+  grid-template-columns: 1fr 1fr 110px auto;
+  gap: 6px;
+  align-items: center;
+}

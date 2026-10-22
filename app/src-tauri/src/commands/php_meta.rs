@@ -114,13 +114,19 @@ pub async fn php_library_list(
 
 /// The source roots of Settings | Directories: composer.json's PSR-4 rules with the user's
 /// changes (`php.sourceRoots`).
+/// `overrides` are the settings dialog's unsaved changes (else the stored setting).
 #[tauri::command]
-pub async fn php_source_roots(state: State<'_, AppState>) -> Result<Vec<SourceRootEntry>> {
+pub async fn php_source_roots(
+    overrides: Option<Vec<SourceRootSetting>>,
+    state: State<'_, AppState>,
+) -> Result<Vec<SourceRootEntry>> {
     let settings = project_settings(&state);
-    let overrides: Vec<SourceRootSetting> = state
-        .read_settings()
-        .get_as::<Vec<SourceRootSetting>>(SOURCE_ROOTS_KEY)
-        .unwrap_or_default();
+    let overrides: Vec<SourceRootSetting> = overrides.unwrap_or_else(|| {
+        state
+            .read_settings()
+            .get_as::<Vec<SourceRootSetting>>(SOURCE_ROOTS_KEY)
+            .unwrap_or_default()
+    });
     let backend = state.backend()?;
     let json_path = settings.composer_json.clone();
     let text = blocking(move || backend.read_optional(&json_path)).await?;
