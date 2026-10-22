@@ -1345,6 +1345,38 @@ plugin manifest entry, and the chat UI needs no changes:
   (`EditorSplitLine` / `Console.Jdbc.Execute`) and the gutter run icon open a query console
   with the injected SQL (`runSqlInConsole`).
 
+## Spelling and grammar (`forge-spell`)
+
+- `crates/forge-spell` (pure, also WebAssembly) owns the dictionaries (a minimal Hunspell
+  `.aff`/`.dic` reader; the bundled SCOWL en_US dictionary, licence in
+  `crates/forge-spell/data/en_US.LICENSE`; programming terms; custom dictionaries), word
+  extraction per context (identifier splitting, skipped URLs/paths/code), suggestions
+  (weighted edit distance with keyboard proximity) and Forge's own rule-based English grammar
+  rules. All offsets are UTF-16.
+- IPC (`app/ui/src/ipc/spell.ts`, `commands/spell.rs`): `spell_inspect({ request: { segments:
+  { from, text, kind: "comment" | "docComment" | "string" | "identifier" | "text" |
+  "commitMessage" | "fileName" }[], options, words } }) -> { from, to, kind: "typo" |
+  "grammar", context, message, word?, identifier?: { from, to, text }, rule?, fixes?: { title,
+  from, to, text }[] }[]` (`options` from the `spelling.*` / `grammar.*` settings, `words` the
+  project-level and application-level dictionaries); `spell_context_actions({ request: {
+  problems, words, hasProject, limit? } }) -> ContextAction[]` (UI actions
+  `SpellCheck.ChangeTo` / `RenameTo` / `SaveTo` / `Replace` with `data`);
+  `spell_dictionaries() -> { name, path?, words, builtin, error? }[]`. The app loads
+  `spelling.customDictionaries` once per list of paths (absolute paths from this machine,
+  relative ones through the backend). Browser mode runs the same code through `forge-wasm`.
+- UI (`features/spelling`): an editor extension collects segments with the editor's own
+  highlighting (`highlightTree` over the Lezer tree: comment, doc comment and string tags,
+  definition tags and PHP `$variables`; Markdown and plain text files as prose without code),
+  checks whole files up to 200,000 characters and larger ones as they scroll into view, and
+  after edits only the changed lines grown to the surrounding comment or string. Problems
+  stay in document offsets (mapped through edits) and are published to the diagnostics store
+  as source `spelling` (`publishDiagnostics(path, diags, source)` keeps language server
+  diagnostics and Forge's own inspections side by side) with the severities `typo` and
+  `grammar`. Alt+Enter entries come from `registerContextActionProvider`
+  (`features/codeintel/intentions.ts`), suggestions open a second intention popup
+  (`showActionsPopup`), "Rename to..." runs the Rename refactoring. The commit message is
+  checked as one `commitMessage` segment with an underline overlay.
+
 ## Rust computes, TypeScript renders
 
 Logic, data models and parsers live in Rust crates; the TypeScript UI only renders and forwards

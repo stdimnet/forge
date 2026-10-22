@@ -19,6 +19,7 @@ script and config language plugins.
 | Plugin | Id | Pack | Depends on | Active for (project types) | Contributes |
 | --- | --- | --- | --- | --- | --- |
 | Browser Companion | `forge.browser-companion` | core |  | always | 1 commands; 3 settings |
+| Natural Languages | `forge.natural-languages` | core |  | always | 17 settings |
 | GitLab, Forgejo and GitHub | `forge.code-hosts` | core | `forge.git` | always | tool windows: Pull Requests; 2 commands; 2 settings |
 | Forge Platform (required) | `forge.core` | core |  | always | tool windows: Project; 2 commands; 49 settings; 3 keybindings |
 | Database Tools and SQL | `forge.database` | core |  | always | tool windows: Database; 2 commands; 3 settings |

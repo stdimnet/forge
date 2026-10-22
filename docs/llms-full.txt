@@ -671,6 +671,7 @@ not finished, the page says so.
 | [Actions on Save](docs/guide/user/actions-on-save.md) | Reformat code, Optimize imports, Rearrange code, code cleanup, ESLint, Prettier, PHP CS Fixer and Laravel Pint on save |
 | [Live templates](docs/guide/user/live-templates.md) | abbreviations + `Tab`, Insert Live Template, Surround With, Unwrap/Remove, Save as Live Template, template sets and settings |
 | [Emmet and color previews](docs/guide/user/emmet-and-colors.md) | Emmet abbreviations in HTML, Blade, Twig, Vue, PHP, JSX and CSS, abbreviation preview, Surround with Emmet, Update/Remove Tag, edit points, color swatches and the color picker |
+| [Spelling and grammar](docs/guide/user/spelling-and-grammar.md) | Typo and Grammar inspections in comments, strings, names, Markdown and commit messages, Alt+Enter suggestions, Rename to, project-level and application-level dictionaries, custom Hunspell dictionaries |
 | [Language injections](docs/guide/user/language-injections.md) | SQL, HTML, CSS, JSON and RegExp in PHP and JavaScript strings, `// language=` comments, Inject language or reference, Edit Fragment, Run SQL |
 | [File and code templates](docs/guide/user/file-templates.md) | New ▸ PHP Class and other templates, the New PHP Class dialog with PSR-4 namespaces, `Alt+Insert` New popup, Settings \| Editor \| File and Code Templates |
 | [Search Everywhere and Find Action](docs/guide/user/search-everywhere.md) | Double Shift, Go to Class/File/Symbol, Find Action, fuzzy matching |
@@ -1353,6 +1354,10 @@ Bash, Python, Postfix and similar files) appear as:
 - markers in the gutter;
 - the **inspection widget** in the top-right corner of the editor: a ✓ when the file is clean,
   otherwise the number of errors and warnings. Click it to open the Problems tool window.
+
+Typos and grammar problems in comments, strings, names, text files and commit messages are
+inspections of their own (green and blue underlines, `Alt+Enter` for suggestions and the
+dictionaries); see [Spelling and grammar](docs/guide/user/spelling-and-grammar.md).
 
 **Next Highlighted Error** `F2` and **Previous Highlighted Error** `Shift+F2` move the caret
 between problems.
@@ -2280,6 +2285,154 @@ original color. With the caret outside a color, Show Color Picker inserts a new 
 ![The color picker](docs/screenshots/color-picker.png)
 
 ![The color picker in the Anvil (light) theme with inline swatches](docs/screenshots/color-picker-light.png)
+
+
+---
+
+Source: docs/guide/user/spelling-and-grammar.md
+
+# Spelling and grammar
+
+Forge checks spelling and a few grammar rules as you type, like PHPStorm's **Typo** and
+**Grammar** inspections. Misspelled words get a green wavy underline, grammar problems a blue
+one. `Alt+Enter` on a marked word offers the fixes.
+
+![Typos and grammar problems in a PHP file](docs/screenshots/spelling-editor.png)
+
+Everything is computed in Rust (`crates/forge-spell`): the dictionaries, splitting text into
+words, suggestions and the grammar rules. The desktop app and browser mode behave the same.
+
+## What is checked
+
+| Where | What |
+| --- | --- |
+| Comments and doc comments | every word; doc tags (`@param`), `$variables`, `inline code`, URLs, e-mail addresses, paths and code references such as `Order::find()` are skipped |
+| String literals | every word; escape sequences (`\n`), format placeholders (`%s`) and regular expressions are skipped |
+| Code | the names of declared variables, parameters, functions, methods, classes and properties (and PHP `$variables`), split into words: `getHTTPResponse` → get, HTTP, Response; `max_retry_count` → max, retry, count. Names you only use (library functions, framework classes) are not checked. |
+| Markdown and plain text files | the prose, without code blocks, inline code, URLs and link targets |
+| Commit messages | the message in the Commit tool window |
+| File names | optional (off by default): typos in the name of the open file are listed in the Problems tool window |
+
+Words shorter than three letters, words with digits (`utf8`, `base64`), hex numbers and colors,
+UUIDs and acronyms in text (`HTML`, `PDFs`) are never reported. A built-in list of programming
+terms (`args`, `config`, `json`, `middleware`, `Laravel`, `Symfony`, `Eloquent`, …) is accepted
+everywhere. Upper and lower case do not matter.
+
+The problems appear like any other inspection: the squiggles, the inspection widget in the
+top-right corner of the editor (typos and grammar problems have their own counters), the
+editor tooltip, `F2` / `Shift+F2` and the **Problems** tool window (`Alt+6`).
+
+![Problems tool window with typos and grammar problems](docs/screenshots/spelling-problems.png)
+
+Large files are checked as they scroll into view; after an edit only the changed lines (and
+the comment or string around them) are checked again, a moment after you stop typing.
+
+## Fixing a typo (Alt+Enter)
+
+Put the caret on a marked word and press **Show Context Actions** `Alt+Enter`
+(macOS `Option+Enter`):
+
+| Entry | What it does |
+| --- | --- |
+| **Typo: Change to...** | opens the list of suggestions; choose one to replace the word |
+| **Typo: Rename to...** | for a word in a declared name: the suggested names, then the **Rename** refactoring renames every usage (as with `Shift+F6`) |
+| **Save 'word' to project-level dictionary** | accepts the word in this project (shown when a project is open) |
+| **Save 'word' to application-level dictionary** | accepts the word in all projects |
+
+![Alt+Enter on a typo](docs/screenshots/spelling-intentions.png)
+
+Suggestions are dictionary words close to what you typed, the most likely first: swapped
+letters (`recieve` → `receive`), a missing or extra double letter (`adress` → `address`),
+dropped vowels (`ordr` → `order`), neighbouring keys on the keyboard and similar-sounding
+spellings rank before other edits. Suggestions keep the case of the word (`Recieve` →
+`Receive`).
+
+![Typo: Change to... suggestions](docs/screenshots/spelling-change-to.png)
+
+![Typo: Rename to... suggestions for a property name](docs/screenshots/spelling-rename-to.png)
+
+## Grammar and style
+
+The grammar checker is a small set of Forge's own rules for English. It checks comments, doc
+comments, Markdown and plain text files and commit messages (not string literals):
+
+| Rule | Example | Fix |
+| --- | --- | --- |
+| Repeated words | "the the order" | Remove the repeated 'the' |
+| Use of 'a' and 'an' | "a order", "an user"; acronyms are read letter by letter: "an HTML page", "a URL" | Replace with 'an' / 'a' |
+| Sentences start with an uppercase letter | "/** returns the order. */" (doc comments only; tags and code such as `getName()` are skipped) | Replace with 'Returns' |
+| Repeated whitespace | "the  order" (aligned columns and doc tag lines are skipped) | Replace with a single space |
+
+`Alt+Enter` on a blue underline shows the fix.
+
+![Alt+Enter on a grammar problem](docs/screenshots/spelling-grammar.png)
+
+## Commit messages
+
+The commit message in the Commit tool window (`Alt+0`) is checked too: typos and grammar
+problems are underlined in the message and listed below it with the commit message
+inspections. Click an entry for its fixes (the suggestions, Save to dictionary or the grammar
+fix).
+
+![Typos in a commit message](docs/screenshots/spelling-commit-message.png)
+
+## Dictionaries
+
+| Dictionary | Where it is stored |
+| --- | --- |
+| English (USA) | bundled: the SCOWL-based en_US Hunspell dictionary (about 160,000 word forms), see [licences](#licences) |
+| Programming terms | bundled with Forge |
+| Project-level dictionary | the setting `spelling.projectWords` in the project settings (`<project>/.forge/settings.toml`), so it can be committed and shared with the team |
+| Application-level dictionary | the setting `spelling.applicationWords` in the user settings (`<config dir>/forge/settings.toml`) |
+| Custom dictionaries | Hunspell `.dic` files or plain word lists you add by path |
+
+Both word lists can be edited in **Settings | Editor | Natural Languages | Spelling**
+(`+` / `−` on the list). To check another language or a technical vocabulary, add a Hunspell
+dictionary under **Custom dictionaries**: the path of its `.dic` file (absolute, or relative to
+the project root); the `.aff` file with the same name next to it is read too, so prefixes and
+suffixes are expanded. A file without an `.aff` file is read as a word list with one word per
+line. Dictionaries of LibreOffice, Firefox and most Linux distributions (`/usr/share/hunspell`)
+work. Words of every dictionary are accepted; Forge does not mark a word as wrong because one
+dictionary lacks it.
+
+**Settings | Editor | Natural Languages** lists the dictionaries in use with their word counts,
+and a load error for a custom dictionary that cannot be read.
+
+![Settings | Editor | Natural Languages](docs/screenshots/spelling-natural-languages.png)
+
+## Settings
+
+**Settings | Editor | Natural Languages | Spelling**:
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| Check spelling (Typo inspection) | on | the whole spelling inspection |
+| Severity | Typo | how typos are shown: Typo (green), Grammar Error, Weak Warning, Warning or Error |
+| Process comments / literals / code | on | the contexts above |
+| Process Markdown and plain text files | on | |
+| Process commit messages | on | |
+| Process file names | off | typos in the open file's name in the Problems tool window |
+| Project-level dictionary | empty | accepted words of this project |
+| Application-level dictionary | empty | accepted words of all projects |
+| Custom dictionaries | empty | paths of Hunspell `.dic` files or word lists |
+
+![Settings | Editor | Natural Languages | Spelling](docs/screenshots/spelling-settings.png)
+
+**Settings | Editor | Natural Languages | Grammar and Style**: **Check grammar and style
+(Grammar inspection)**, its **Severity** (Grammar Error by default, blue) and one switch per
+rule.
+
+The inspections belong to the **Natural Languages** plugin (Settings | Plugins); disabling it
+turns both off. All keys are listed in the [settings reference](docs/guide/reference/settings.md#editor--natural-languages--spelling).
+
+## Licences
+
+The bundled English dictionary is the en_US Hunspell dictionary of SCOWL (Spell Checker
+Oriented Word Lists) by Kevin Atkinson, release 2020.12.07. Its licence is permissive
+(MIT/BSD-like, with public domain parts); the full text is in
+`crates/forge-spell/data/en_US.LICENSE`. The programming terms list and the grammar rules are
+Forge's own. Forge does not use LanguageTool or any other grammar service, and nothing leaves
+your machine.
 
 
 ---
@@ -6896,7 +7049,9 @@ Commit Message Inspections): the subject line is at most `vcs.git.commit.subject
 characters (72), a blank line separates subject and body
 (`vcs.git.commit.blankLineAfterSubject`) and body lines stay within
 `vcs.git.commit.bodyRightMargin` columns (72). Problems are listed below the message; they do
-not block the commit. Lines starting with `#` are ignored.
+not block the commit. Lines starting with `#` are ignored. Typos and grammar problems in the
+message are underlined and listed too, with their fixes on click (see
+[Spelling and grammar](docs/guide/user/spelling-and-grammar.md#commit-messages)).
 
 Before committing files with Windows line separators (CRLF), Forge asks whether to **Commit As
 Is** (`vcs.git.commit.warnOnCrlf`), unless git converts them itself (`core.autocrlf` is `true`
@@ -9888,6 +10043,37 @@ Page id `editor.csv`.
 | `csv.defaultView` | enum: `text`, `table` | `text` | user |  | Open CSV/TSV files as |
 | `csv.firstRowIsHeader` | bool | `true` | user |  | First row is header — Default of the table view's header toggle. |
 
+### Editor | Natural Languages | Spelling
+
+Page id `editor.natural-languages.spelling` (plugin `forge.natural-languages`).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `spelling.enabled` | bool | `true` | user | Inspection | Check spelling (Typo inspection) |
+| `spelling.severity` | enum: `typo`, `grammar`, `weak`, `warning`, `error` | `typo` | user | Inspection | Severity |
+| `spelling.checkComments` | bool | `true` | user | Inspection | Process comments |
+| `spelling.checkStrings` | bool | `true` | user | Inspection | Process literals — String literals. |
+| `spelling.checkIdentifiers` | bool | `true` | user | Inspection | Process code — Names of declared variables, functions, classes and properties, split at camelCase humps and underscores. |
+| `spelling.checkText` | bool | `true` | user | Inspection | Process Markdown and plain text files |
+| `spelling.checkCommitMessages` | bool | `true` | user | Inspection | Process commit messages |
+| `spelling.checkFileNames` | bool | `false` | user | Inspection | Process file names — Reports typos in the name of the open file in the Problems tool window. |
+| `spelling.projectWords` | list | `[]` | user, project | Accepted Words | Project-level dictionary — Accepted words of this project, stored in the project settings. "Save to project-level dictionary" (Alt+Enter on a typo) adds words here. |
+| `spelling.applicationWords` | list | `[]` | user | Accepted Words | Application-level dictionary — Accepted words of all projects, stored in the user settings. |
+| `spelling.customDictionaries` | list | `[]` | user | Dictionaries | Custom dictionaries — Hunspell dictionaries (.dic; the .aff file with the same name next to it is read too) or plain word lists with one word per line. Absolute paths, or paths relative to the project root. |
+
+### Editor | Natural Languages | Grammar and Style
+
+Page id `editor.natural-languages.grammar` (plugin `forge.natural-languages`).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `grammar.enabled` | bool | `true` | user | Inspection | Check grammar and style (Grammar inspection) — Comments, Markdown and plain text files and commit messages. |
+| `grammar.severity` | enum: `grammar`, `typo`, `weak`, `warning`, `error` | `grammar` | user | Inspection | Severity |
+| `grammar.rules.repeatedWord` | bool | `true` | user | Rules | Repeated words — "the the" |
+| `grammar.rules.articles` | bool | `true` | user | Rules | Use of 'a' and 'an' |
+| `grammar.rules.sentenceStart` | bool | `true` | user | Rules | Sentences start with an uppercase letter — Doc comments only. |
+| `grammar.rules.doubleSpace` | bool | `true` | user | Rules | Repeated whitespace |
+
 ### Version Control | Git
 
 Page id `vcs.git`.
@@ -10880,6 +11066,7 @@ script and config language plugins.
 | Plugin | Id | Pack | Depends on | Active for (project types) | Contributes |
 | --- | --- | --- | --- | --- | --- |
 | Browser Companion | `forge.browser-companion` | core |  | always | 1 commands; 3 settings |
+| Natural Languages | `forge.natural-languages` | core |  | always | 17 settings |
 | GitLab, Forgejo and GitHub | `forge.code-hosts` | core | `forge.git` | always | tool windows: Pull Requests; 2 commands; 2 settings |
 | Forge Platform (required) | `forge.core` | core |  | always | tool windows: Project; 2 commands; 49 settings; 3 keybindings |
 | Database Tools and SQL | `forge.database` | core |  | always | tool windows: Database; 2 commands; 3 settings |
@@ -12649,6 +12836,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-remote-agent](docs/guide/developer/crates/forge-remote-agent.md) | Headless Forge agent: serves a project's files, git, processes, language servers and PHP index over stdio for remote development |
 | [forge-save-actions](docs/guide/developer/crates/forge-save-actions.md) | Actions on Save: which actions run for a saved file, reformatting only changed lines and running ESLint, Prettier, PHP CS Fixer and Laravel Pint through the project's backend |
 | [forge-scratches](docs/guide/developer/crates/forge-scratches.md) | Forge scratch files (PHPStorm's Scratches and Consoles): storage, naming, languages, run commands and the HTTP request client |
+| [forge-spell](docs/guide/developer/crates/forge-spell.md) | Spelling and grammar inspections for comments, strings, identifiers and text: Hunspell dictionaries, word extraction, suggestions and a small rule-based English grammar checker (pure, WebAssembly-friendly) |
 | [forge-sql](docs/guide/developer/crates/forge-sql.md) | Forge SQL text: dialects, statement splitting, literals, row changes and export (pure, also built to WebAssembly) |
 | [forge-update](docs/guide/developer/crates/forge-update.md) | Forge update checks: when to check, which release is an update, the update feed, simulated updates and download speed |
 | [forge-vcs](docs/guide/developer/crates/forge-vcs.md) | Forge IDE version control: drives the git CLI and parses its output |
@@ -14874,6 +15062,89 @@ cargo test -p forge-scratches
 
 ---
 
+Source: docs/guide/developer/crates/forge-spell.md
+
+# forge-spell
+
+`crates/forge-spell` — Spelling and grammar inspections for comments, strings, identifiers and text: Hunspell dictionaries, word extraction, suggestions and a small rule-based English grammar checker (pure, WebAssembly-friendly).
+
+## Purpose
+
+The logic behind the "Typo" and "Grammar" inspections ([Spelling and
+grammar](docs/guide/user/spelling-and-grammar.md)). The editor collects the comments, strings,
+declared names and prose of the changed or visible part of a file from its syntax tree
+(`app/ui/src/features/spelling/segments.ts`) and sends them as `Segment`s (`{ from, text,
+kind }`, UTF-16 document offsets); this crate answers the problems. All offsets are UTF-16.
+
+- `hunspell`: a minimal reader for Hunspell `.aff` / `.dic` files: `PFX` / `SFX` rules with
+  conditions and cross products, twofold suffixes, `FLAG` (`char`, `long`, `num`, `UTF-8`),
+  `AF` aliases, `NEEDAFFIX`, `ONLYINCOMPOUND`, `FORBIDDENWORD`, `NOSUGGEST`, `REP` pairs and
+  `SET` (UTF-8 or single-byte encodings). Every stem is expanded into its word forms;
+  compounding is not supported.
+- `dictionary`: sorted, lowercase word lists with a by-length index for suggestions. The
+  bundled en_US dictionary (`data/en_US.aff`, `data/en_US.dic.gz`, SCOWL 2020.12.07,
+  licence in `data/en_US.LICENSE`) is parsed once on first use; `data/programming.txt` holds
+  programming terms; custom dictionaries come from `.dic` (+ `.aff`) bytes or word lists.
+- `words`: word extraction per `Context` (`comment`, `docComment`, `string`, `identifier`,
+  `text`, `commitMessage`, `fileName`): identifiers are split at camelCase humps, `_`, `-`,
+  ALLCAPS runs and digits; URLs, e-mail addresses, paths, hex numbers and colors, UUIDs, code
+  references (`::`, `->`, `()`), `$variables`, doc tags, inline code, escape sequences,
+  acronyms in text, words with digits and words under three letters are skipped.
+- `suggest`: a weighted Damerau-Levenshtein distance (neighbouring QWERTY keys, swapped
+  letters, double letters, dropped vowels and vowel confusions are cheap) over the
+  dictionary words of similar length, `REP` candidates, names and acronyms ranked behind
+  common words, and the case of the typed word applied to the suggestions.
+- `grammar`: Forge's own English rules: `repeated-word`, `a-an` (vowel sounds with
+  exceptions such as "an hour", "a user", acronyms read letter by letter), `sentence-start`
+  (doc comments) and `double-space`, each with a replacement fix.
+- `lib.rs`: `Speller` (the dictionaries), `inspect` (typos and grammar problems of the
+  segments, honouring `Options` and the user's words) and `context_actions` (the Alt+Enter
+  entries: "Typo: Change to...", "Typo: Rename to...", "Save 'word' to project-level /
+  application-level dictionary", grammar fixes; they run UI actions `SpellCheck.*` with
+  `data`).
+
+## Main public items
+
+```rust
+pub struct Speller { … }
+impl Speller {
+    pub fn new(custom: Vec<Arc<Dictionary>>) -> Speller;
+    pub fn knows(&self, word: &str, user: &UserWords) -> bool;
+    pub fn suggest(&self, word: &str, user: &UserWords, limit: usize) -> Vec<String>;
+}
+pub fn inspect(speller: &Speller, request: &InspectRequest) -> Vec<Problem> { … }
+pub fn context_actions(speller: &Speller, request: &ActionsRequest) -> Vec<ContextAction> { … }
+impl Dictionary {
+    pub fn english() -> Arc<Dictionary>;
+    pub fn from_hunspell(name: &str, aff: Option<&[u8]>, dic: &[u8]) -> Dictionary;
+}
+```
+
+## Used by
+
+- IPC: `spell_inspect`, `spell_context_actions`, `spell_dictionaries`
+  (`app/src-tauri/src/commands/spell.rs`; custom dictionaries from
+  `spelling.customDictionaries`, loaded once per list of paths).
+- UI: `app/ui/src/features/spelling` (the editor inspection, Alt+Enter handlers, the commit
+  message, Settings | Editor | Natural Languages).
+- Browser mode: built into `forge-wasm` (`spell.rs`).
+
+## Dependencies
+
+- Workspace crates: [`forge-codeintel`](docs/guide/developer/crates/forge-codeintel.md) (`ContextAction`)
+- External: `serde`, `serde_json`, `flate2` (MIT OR Apache-2.0, pure Rust `miniz_oxide`
+  backend) to unpack the bundled dictionary
+
+## Tests
+
+Unit tests for the Hunspell reader (affixes, conditions, cross products, flag types, aliases,
+special flags, Latin-1), the bundled dictionary, word extraction per context (identifier
+splitting, skipped tokens, UTF-16 offsets), the distance and ranking, every grammar rule
+with its exceptions, `inspect` with options and user words, and the context actions.
+
+
+---
+
 Source: docs/guide/developer/crates/forge-sql.md
 
 # forge-sql
@@ -15085,6 +15356,7 @@ Rebuild the bundle with `pnpm --dir app/ui wasm` (output: `app/ui/src/wasm/pkg`)
 | `containers.rs` | Services tool window (`forge-containers`) for the browser-mode mock: the mock keeps a fake Docker daemon as Engine API JSON, compose files and a kubeconfig as text, and asks Rust for the models, the tree, the details pane, the gutter markers, command lines and pull progress, like the desktop app's hub. |
 | `editing.rs` | Editor actions (`forge-editing`): postfix templates and their expansion, Complete Current Statement and Cyclic Expand Word, mirroring the `editor_postfix_*`, `editor_complete_statement` and `editor_expand_word` commands. |
 | `emmet.rs` | Emmet (`forge-emmet`) and colors (`forge-colors`), mirroring the `emmet_*` and `colors_*` commands; the expand key, the abbreviation preview, color swatches and the color picker call them synchronously. |
+| `spell.rs` | Spelling and grammar (`forge-spell`), mirroring `spell_inspect`, `spell_context_actions` and `spell_dictionaries` for the browser-mode mock (bundled dictionaries only). |
 | `filetypes.rs` | File type detection (`forge-filetypes`), mirroring the `filetypes_detect` IPC command. The desktop app builds the registry from its plugin manifests; browser mode loads the same manifests (the `builtinPlugins.json` snapshot) once with `filetypes_load`. |
 | `keymap.rs` | Keymap bridge (`forge-keymap`). |
 | `lua.rs` | LuaForge (`luaforge-lang-lua`), mirroring the `lua_*` IPC commands for the browser-mode mock: the mock hands over the demo project's Lua files once (`lua_index_files`), then asks for structure, hover, Go to Declaration, symbol search and run markers. |
@@ -15117,7 +15389,7 @@ pub fn bridge_version() -> String { … }
 
 ## Dependencies
 
-- Workspace crates: [`forge-agent-cli`](docs/guide/developer/crates/forge-agent-cli.md), [`forge-containers`](docs/guide/developer/crates/forge-containers.md), [`forge-colors`](docs/guide/developer/crates/forge-colors.md), [`forge-editing`](docs/guide/developer/crates/forge-editing.md), [`forge-emmet`](docs/guide/developer/crates/forge-emmet.md), [`forge-filetypes`](docs/guide/developer/crates/forge-filetypes.md), [`forge-find`](docs/guide/developer/crates/forge-find.md), [`forge-fuzzy`](docs/guide/developer/crates/forge-fuzzy.md), [`forge-keymap`](docs/guide/developer/crates/forge-keymap.md), [`forge-markdown`](docs/guide/developer/crates/forge-markdown.md), [`forge-output`](docs/guide/developer/crates/forge-output.md), [`forge-plugin-api`](docs/guide/developer/crates/forge-plugin-api.md), [`forge-remote`](docs/guide/developer/crates/forge-remote.md), [`forge-scratches`](docs/guide/developer/crates/forge-scratches.md), [`forge-sql`](docs/guide/developer/crates/forge-sql.md), [`forge-viewers`](docs/guide/developer/crates/forge-viewers.md), [`forge-window`](docs/guide/developer/crates/forge-window.md), [`luaforge-lang-lua`](docs/guide/developer/crates/luaforge-lang-lua.md), [`phpforge-dql`](docs/guide/developer/crates/phpforge-dql.md), [`webforge-fw-angular`](docs/guide/developer/crates/webforge-fw-angular.md), [`webforge-fw-react`](docs/guide/developer/crates/webforge-fw-react.md), [`webforge-fw-vue`](docs/guide/developer/crates/webforge-fw-vue.md), [`webforge-lang-web`](docs/guide/developer/crates/webforge-lang-web.md)
+- Workspace crates: [`forge-agent-cli`](docs/guide/developer/crates/forge-agent-cli.md), [`forge-containers`](docs/guide/developer/crates/forge-containers.md), [`forge-colors`](docs/guide/developer/crates/forge-colors.md), [`forge-editing`](docs/guide/developer/crates/forge-editing.md), [`forge-emmet`](docs/guide/developer/crates/forge-emmet.md), [`forge-filetypes`](docs/guide/developer/crates/forge-filetypes.md), [`forge-find`](docs/guide/developer/crates/forge-find.md), [`forge-fuzzy`](docs/guide/developer/crates/forge-fuzzy.md), [`forge-keymap`](docs/guide/developer/crates/forge-keymap.md), [`forge-markdown`](docs/guide/developer/crates/forge-markdown.md), [`forge-output`](docs/guide/developer/crates/forge-output.md), [`forge-plugin-api`](docs/guide/developer/crates/forge-plugin-api.md), [`forge-remote`](docs/guide/developer/crates/forge-remote.md), [`forge-scratches`](docs/guide/developer/crates/forge-scratches.md), [`forge-spell`](docs/guide/developer/crates/forge-spell.md), [`forge-sql`](docs/guide/developer/crates/forge-sql.md), [`forge-viewers`](docs/guide/developer/crates/forge-viewers.md), [`forge-window`](docs/guide/developer/crates/forge-window.md), [`luaforge-lang-lua`](docs/guide/developer/crates/luaforge-lang-lua.md), [`phpforge-dql`](docs/guide/developer/crates/phpforge-dql.md), [`webforge-fw-angular`](docs/guide/developer/crates/webforge-fw-angular.md), [`webforge-fw-react`](docs/guide/developer/crates/webforge-fw-react.md), [`webforge-fw-vue`](docs/guide/developer/crates/webforge-fw-vue.md), [`webforge-lang-web`](docs/guide/developer/crates/webforge-lang-web.md)
 - External: `serde`, `serde_json`, `wasm-bindgen`
 
 ## Tests

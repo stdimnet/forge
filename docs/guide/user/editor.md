@@ -271,6 +271,10 @@ Bash, Python, Postfix and similar files) appear as:
 - the **inspection widget** in the top-right corner of the editor: a ✓ when the file is clean,
   otherwise the number of errors and warnings. Click it to open the Problems tool window.
 
+Typos and grammar problems in comments, strings, names, text files and commit messages are
+inspections of their own (green and blue underlines, `Alt+Enter` for suggestions and the
+dictionaries); see [Spelling and grammar](spelling-and-grammar.md).
+
 **Next Highlighted Error** `F2` and **Previous Highlighted Error** `Shift+F2` move the caret
 between problems.
 

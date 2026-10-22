@@ -261,6 +261,37 @@ Page id `editor.csv`.
 | `csv.defaultView` | enum: `text`, `table` | `text` | user |  | Open CSV/TSV files as |
 | `csv.firstRowIsHeader` | bool | `true` | user |  | First row is header — Default of the table view's header toggle. |
 
+### Editor | Natural Languages | Spelling
+
+Page id `editor.natural-languages.spelling` (plugin `forge.natural-languages`).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `spelling.enabled` | bool | `true` | user | Inspection | Check spelling (Typo inspection) |
+| `spelling.severity` | enum: `typo`, `grammar`, `weak`, `warning`, `error` | `typo` | user | Inspection | Severity |
+| `spelling.checkComments` | bool | `true` | user | Inspection | Process comments |
+| `spelling.checkStrings` | bool | `true` | user | Inspection | Process literals — String literals. |
+| `spelling.checkIdentifiers` | bool | `true` | user | Inspection | Process code — Names of declared variables, functions, classes and properties, split at camelCase humps and underscores. |
+| `spelling.checkText` | bool | `true` | user | Inspection | Process Markdown and plain text files |
+| `spelling.checkCommitMessages` | bool | `true` | user | Inspection | Process commit messages |
+| `spelling.checkFileNames` | bool | `false` | user | Inspection | Process file names — Reports typos in the name of the open file in the Problems tool window. |
+| `spelling.projectWords` | list | `[]` | user, project | Accepted Words | Project-level dictionary — Accepted words of this project, stored in the project settings. "Save to project-level dictionary" (Alt+Enter on a typo) adds words here. |
+| `spelling.applicationWords` | list | `[]` | user | Accepted Words | Application-level dictionary — Accepted words of all projects, stored in the user settings. |
+| `spelling.customDictionaries` | list | `[]` | user | Dictionaries | Custom dictionaries — Hunspell dictionaries (.dic; the .aff file with the same name next to it is read too) or plain word lists with one word per line. Absolute paths, or paths relative to the project root. |
+
+### Editor | Natural Languages | Grammar and Style
+
+Page id `editor.natural-languages.grammar` (plugin `forge.natural-languages`).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `grammar.enabled` | bool | `true` | user | Inspection | Check grammar and style (Grammar inspection) — Comments, Markdown and plain text files and commit messages. |
+| `grammar.severity` | enum: `grammar`, `typo`, `weak`, `warning`, `error` | `grammar` | user | Inspection | Severity |
+| `grammar.rules.repeatedWord` | bool | `true` | user | Rules | Repeated words — "the the" |
+| `grammar.rules.articles` | bool | `true` | user | Rules | Use of 'a' and 'an' |
+| `grammar.rules.sentenceStart` | bool | `true` | user | Rules | Sentences start with an uppercase letter — Doc comments only. |
+| `grammar.rules.doubleSpace` | bool | `true` | user | Rules | Repeated whitespace |
+
 ### Version Control | Git
 
 Page id `vcs.git`.
