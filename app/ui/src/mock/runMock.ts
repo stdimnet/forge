@@ -130,7 +130,7 @@ interface Wrapped {
  * A PHP configuration's command line through its named interpreter (Docker, Compose, SSH,
  * WSL), built by the Rust `phpforge-interpreters` crate like in the desktop app.
  */
-async function throughInterpreter(cfg: RunConfiguration | undefined, cmd: CommandLine, env: Record<string, string> = {}): Promise<Wrapped> {
+export async function throughInterpreter(cfg: RunConfiguration | undefined, cmd: CommandLine, env: Record<string, string> = {}): Promise<Wrapped> {
   if (!cfg || !PHP_KINDS.has(cfg.type)) return { cmd, pathMappings: [] };
   const list = decodeInterpreters(mockSettingValue(GLOBAL_KEY) ?? [], mockSettingValue(PROJECT_KEY) ?? []);
   const selected = cfg.interpreter || String(mockSettingValue("php.interpreter") ?? "php");
@@ -185,7 +185,7 @@ function emitRun(runId: string, e: RunEvent): void {
   if (e.type === "exited") emitMock(`run://${runId}`, e);
 }
 
-type Step = [delayMs: number, text: string, stream?: "stdout" | "stderr"] | [delayMs: number, exit: { code: number }];
+export type Step = [delayMs: number, text: string, stream?: "stdout" | "stderr"] | [delayMs: number, exit: { code: number }];
 
 function play(runId: string, steps: Step[]): void {
   const run = runs.get(runId)!;
@@ -435,7 +435,7 @@ const green = (s: string) => `\x1b[32m${s}\x1b[39m`;
 const yellow = (s: string) => `\x1b[33m${s}\x1b[39m`;
 
 /** Canned output of Composer commands (nothing is installed in browser mode). */
-function composerSteps(args: string[]): Step[] {
+export function composerSteps(args: string[]): Step[] {
   const [command, ...rest] = args;
   const packages = rest.filter((a) => !a.startsWith("-"));
   const autoload = [
@@ -533,27 +533,42 @@ function luaSteps(cfg: RunConfiguration): Step[] {
   ];
 }
 
-registerMock("run_start", async ({ request }) => {
+/**
+ * Start a canned run: `started`, then `steps`, rendered by `forge-output` like a real one.
+ * Also used by other mocks that stream `run://` events (`cli_tools_run`).
+ */
+export async function startMockRun(
+  runId: string,
+  cmd: CommandLine,
+  steps: Step[],
+  opts: { testRunner?: boolean; pathMappings?: Wrapped["pathMappings"]; outputFilters?: string[] } = {},
+): Promise<{ runId: string; commandLine: string }> {
   wasm ??= await forgeWasm();
-  const r = request as RunRequest;
-  const runId = r.runId ?? `mock-run-${++seq}`;
-  const local = r.command ?? mockCommandLine(r.configuration!);
-  const { cmd, pathMappings } = await throughInterpreter(r.command ? undefined : r.configuration, { ...local, args: [...(r.interpreterArgs ?? []), ...local.args] }, r.env);
   const commandLine = display(cmd);
   const options = {
-    testRunner: !!r.testRunner,
+    testRunner: !!opts.testRunner,
     root: projectRoot(),
     cwd: cmd.cwd || undefined,
     cycleBufferKb: Number(mockSettingValue("run.console.cycleBufferKb") ?? 1024),
-    pathMappings,
-    outputFilters: r.outputFilters ?? [],
+    pathMappings: opts.pathMappings ?? [],
+    outputFilters: opts.outputFilters ?? [],
   };
   const old = runs.get(runId);
   if (old) wasm.run_output_drop(JSON.stringify({ handle: old.output }));
   runs.set(runId, { timers: [], done: false, output: Number(wasm.run_output_new(JSON.stringify(options))) });
-  setTimeout(() => emitRun(runId, { type: "started", pid: 40000 + seq, commandLine }), 0);
-  play(runId, stepsFor(r.configuration && r.env ? { ...r.configuration, env: { ...r.configuration.env, ...r.env } } : r.configuration, local));
+  const pid = 40000 + ++seq;
+  setTimeout(() => emitRun(runId, { type: "started", pid, commandLine }), 0);
+  play(runId, steps);
   return { runId, commandLine };
+}
+
+registerMock("run_start", async ({ request }) => {
+  const r = request as RunRequest;
+  const runId = r.runId ?? `mock-run-${++seq}`;
+  const local = r.command ?? mockCommandLine(r.configuration!);
+  const { cmd, pathMappings } = await throughInterpreter(r.command ? undefined : r.configuration, { ...local, args: [...(r.interpreterArgs ?? []), ...local.args] }, r.env);
+  const steps = stepsFor(r.configuration && r.env ? { ...r.configuration, env: { ...r.configuration.env, ...r.env } } : r.configuration, local);
+  return startMockRun(runId, cmd, steps, { testRunner: !!r.testRunner, pathMappings, outputFilters: r.outputFilters });
 });
 
 function stop(runId: string): void {

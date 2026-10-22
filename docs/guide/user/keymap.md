@@ -33,7 +33,7 @@ The complete list with both platforms is in the [keymap reference](../reference/
 | Run / Debug | `Shift+F10` / `Shift+F9` | `Ctrl+R` / `Ctrl+D` |
 | Project / Terminal tool window | `Alt+1` / `Alt+F12` | `Cmd+1` / `Alt+F12` |
 | New Scratch File | `Ctrl+Alt+Shift+Insert` | `Cmd+Shift+N` |
-| Run Artisan Command (Laravel) | `Ctrl+Shift+X` | `Cmd+Shift+X` |
+| Run Command (Command Line Tools Console) | `Ctrl+Shift+X` | `Cmd+Shift+X` |
 
 ## Settings | Keymap
 
@@ -93,7 +93,7 @@ Plugins add their own actions under **Plugins** (and some under Main Menu), for 
 
 | Action | Default shortcut |
 | --- | --- |
-| Laravel: Run Artisan Command… | `Ctrl+Shift+X` (macOS `Cmd+Shift+X`) |
+| Command Line Tool Support: Run Command… | `Ctrl+Shift+X` (macOS `Cmd+Shift+X`) |
 | Terminal: New Terminal Tab | `Ctrl+Shift+T` (macOS `Cmd+T`), in the terminal |
 | Database: Execute | `Ctrl+Enter` (macOS `Cmd+Enter`), in a console |
 | Database: Submit / Add Row / Delete Rows / Revert Selected | `Ctrl+Enter` / `Alt+Insert` / `Ctrl+Y` / `Ctrl+Alt+Z` in a data grid |

@@ -7,9 +7,10 @@ import { Show } from "solid-js";
 import { render } from "solid-js/web";
 import { registerCommand } from "@/state/commands";
 import { workspace } from "@/state/workspace";
-import { usesFramework } from "@/state/project";
+import { isPluginActive, usesFramework } from "@/state/project";
 import { laravelApi } from "@/ipc/laravel";
 import { symfonyApi } from "@/ipc/symfony";
+import { cliToolsApi } from "@/ipc/cliTools";
 import { showBalloon } from "@/keymap";
 import { RunAnything } from "./RunAnything";
 import { registerRunAnythingProvider } from "./providers";
@@ -45,6 +46,21 @@ registerRunAnythingProvider({
     (await symfonyApi.consoleCommands())
       .filter((c) => !c.hidden)
       .map((c) => ({ command: `php bin/console ${c.name}`, description: c.description })),
+});
+
+// Composer commands as Command Line Tool Support knows them (its cached `composer list`).
+registerRunAnythingProvider({
+  id: "composer-commands",
+  title: "Composer commands",
+  when: () => isPluginActive("forge.command-line-tools"),
+  commands: async () => {
+    const tool = (await cliToolsApi.list()).find((t) => t.kind === "composer" && t.enabled);
+    if (!tool) return [];
+    const list = await cliToolsApi.commands(tool.alias);
+    return list.commands
+      .filter((c) => !c.hidden && !c.group)
+      .map((c) => ({ command: `composer ${c.name}`, description: c.description }));
+  },
 });
 
 if (typeof document !== "undefined") {

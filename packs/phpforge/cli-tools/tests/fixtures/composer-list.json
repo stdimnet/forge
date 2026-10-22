@@ -1,0 +1,891 @@
+{
+    "application": {
+        "name": "Composer",
+        "version": "2.8.9"
+    },
+    "commands": [
+        {
+            "name": "install",
+            "hidden": false,
+            "usage": [
+                "install [--prefer-source] [--prefer-dist] [--prefer-install PREFER-INSTALL] [--dry-run] [--download-only] [--dev] [--no-suggest] [--no-dev] [--no-autoloader] [--no-progress] [--no-install] [--audit] [--audit-format AUDIT-FORMAT] [-o|--optimize-autoloader] [-a|--classmap-authoritative] [--apcu-autoloader] [--ignore-platform-req IGNORE-PLATFORM-REQ] [--ignore-platform-reqs] [--] [<packages>...]"
+            ],
+            "description": "Installs the project dependencies from the composer.lock file if present, or falls back on the composer.json",
+            "help": "Installs the project dependencies from the composer.lock file if present, or falls back on the composer.json",
+            "aliases": [],
+            "definition": {
+                "arguments": {
+                    "command": {
+                        "name": "command",
+                        "is_required": true,
+                        "is_array": false,
+                        "description": "The command to execute",
+                        "default": null
+                    },
+                    "packages": {
+                        "name": "packages",
+                        "is_required": false,
+                        "is_array": true,
+                        "description": "Should not be provided, use composer require instead to add a given package to composer.json.",
+                        "default": []
+                    }
+                },
+                "options": {
+                    "prefer-source": {
+                        "name": "--prefer-source",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Forces installation from package sources when possible, including VCS information.",
+                        "default": false
+                    },
+                    "dry-run": {
+                        "name": "--dry-run",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Outputs the operations but will not execute anything (implicitly enables --verbose).",
+                        "default": false
+                    },
+                    "no-dev": {
+                        "name": "--no-dev",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Disables installation of require-dev packages.",
+                        "default": false
+                    },
+                    "optimize-autoloader": {
+                        "name": "--optimize-autoloader",
+                        "shortcut": "-o",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Optimize autoloader during autoloader dump",
+                        "default": false
+                    },
+                    "ignore-platform-req": {
+                        "name": "--ignore-platform-req",
+                        "shortcut": "",
+                        "accept_value": true,
+                        "is_value_required": true,
+                        "is_multiple": true,
+                        "description": "Ignore a specific platform requirement (php & ext- packages).",
+                        "default": []
+                    },
+                    "help": {
+                        "name": "--help",
+                        "shortcut": "-h",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Display help for the given command. When no command is given display help for the <info>list</info> command",
+                        "default": false
+                    },
+                    "silent": {
+                        "name": "--silent",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Do not output any message",
+                        "default": false
+                    },
+                    "quiet": {
+                        "name": "--quiet",
+                        "shortcut": "-q",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Only errors are displayed. All other output is suppressed",
+                        "default": false
+                    },
+                    "verbose": {
+                        "name": "--verbose",
+                        "shortcut": "-v|-vv|-vvv",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Increase the verbosity of messages: 1 for normal output, 2 for more verbose output and 3 for debug",
+                        "default": false
+                    },
+                    "version": {
+                        "name": "--version",
+                        "shortcut": "-V",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Display this application version",
+                        "default": false
+                    },
+                    "ansi": {
+                        "name": "--ansi",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Force (or disable --no-ansi) ANSI output",
+                        "default": null
+                    },
+                    "no-ansi": {
+                        "name": "--no-ansi",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Negate the \"--ansi\" option",
+                        "default": false
+                    },
+                    "no-interaction": {
+                        "name": "--no-interaction",
+                        "shortcut": "-n",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Do not ask any interactive question",
+                        "default": false
+                    },
+                    "profile": {
+                        "name": "--profile",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Display timing and memory usage information",
+                        "default": false
+                    },
+                    "no-plugins": {
+                        "name": "--no-plugins",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Whether to disable plugins.",
+                        "default": false
+                    },
+                    "no-scripts": {
+                        "name": "--no-scripts",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Skips the execution of all scripts defined in composer.json file.",
+                        "default": false
+                    },
+                    "working-dir": {
+                        "name": "--working-dir",
+                        "shortcut": "-d",
+                        "accept_value": true,
+                        "is_value_required": true,
+                        "is_multiple": false,
+                        "description": "If specified, use the given directory as working directory.",
+                        "default": null
+                    },
+                    "no-cache": {
+                        "name": "--no-cache",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Prevent use of the cache",
+                        "default": false
+                    }
+                }
+            }
+        },
+        {
+            "name": "require",
+            "hidden": false,
+            "usage": [
+                "require [--dev] [--dry-run] [--prefer-source] [--prefer-dist] [--prefer-install PREFER-INSTALL] [--fixed] [--no-suggest] [--no-progress] [--no-update] [--no-install] [--no-audit] [--audit-format AUDIT-FORMAT] [--update-no-dev] [-w|--update-with-dependencies] [-W|--update-with-all-dependencies] [--with-dependencies] [--with-all-dependencies] [--ignore-platform-req IGNORE-PLATFORM-REQ] [--ignore-platform-reqs] [--prefer-stable] [--prefer-lowest] [-m|--minimal-changes] [--sort-packages] [-o|--optimize-autoloader] [-a|--classmap-authoritative] [--apcu-autoloader] [--apcu-autoloader-prefix APCU-AUTOLOADER-PREFIX] [--] [<packages>...]"
+            ],
+            "description": "Adds required packages to your composer.json and installs them",
+            "help": "Adds required packages to your composer.json and installs them",
+            "aliases": [],
+            "definition": {
+                "arguments": {
+                    "command": {
+                        "name": "command",
+                        "is_required": true,
+                        "is_array": false,
+                        "description": "The command to execute",
+                        "default": null
+                    },
+                    "packages": {
+                        "name": "packages",
+                        "is_required": false,
+                        "is_array": true,
+                        "description": "Optional package name can also include a version constraint, e.g. foo/bar or foo/bar:1.0.0 or foo/bar=1.0.0 or \"foo/bar 1.0.0\"",
+                        "default": []
+                    }
+                },
+                "options": {
+                    "dev": {
+                        "name": "--dev",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Add requirement to require-dev.",
+                        "default": false
+                    },
+                    "no-update": {
+                        "name": "--no-update",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Disables the automatic update of the dependencies (implies --no-install).",
+                        "default": false
+                    },
+                    "update-with-dependencies": {
+                        "name": "--update-with-dependencies",
+                        "shortcut": "-w",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Allows inherited dependencies to be updated, except those that are root requirements.",
+                        "default": false
+                    },
+                    "help": {
+                        "name": "--help",
+                        "shortcut": "-h",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Display help for the given command. When no command is given display help for the <info>list</info> command",
+                        "default": false
+                    },
+                    "silent": {
+                        "name": "--silent",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Do not output any message",
+                        "default": false
+                    },
+                    "quiet": {
+                        "name": "--quiet",
+                        "shortcut": "-q",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Only errors are displayed. All other output is suppressed",
+                        "default": false
+                    },
+                    "verbose": {
+                        "name": "--verbose",
+                        "shortcut": "-v|-vv|-vvv",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Increase the verbosity of messages: 1 for normal output, 2 for more verbose output and 3 for debug",
+                        "default": false
+                    },
+                    "version": {
+                        "name": "--version",
+                        "shortcut": "-V",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Display this application version",
+                        "default": false
+                    },
+                    "ansi": {
+                        "name": "--ansi",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Force (or disable --no-ansi) ANSI output",
+                        "default": null
+                    },
+                    "no-ansi": {
+                        "name": "--no-ansi",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Negate the \"--ansi\" option",
+                        "default": false
+                    },
+                    "no-interaction": {
+                        "name": "--no-interaction",
+                        "shortcut": "-n",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Do not ask any interactive question",
+                        "default": false
+                    },
+                    "profile": {
+                        "name": "--profile",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Display timing and memory usage information",
+                        "default": false
+                    },
+                    "no-plugins": {
+                        "name": "--no-plugins",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Whether to disable plugins.",
+                        "default": false
+                    },
+                    "no-scripts": {
+                        "name": "--no-scripts",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Skips the execution of all scripts defined in composer.json file.",
+                        "default": false
+                    },
+                    "working-dir": {
+                        "name": "--working-dir",
+                        "shortcut": "-d",
+                        "accept_value": true,
+                        "is_value_required": true,
+                        "is_multiple": false,
+                        "description": "If specified, use the given directory as working directory.",
+                        "default": null
+                    },
+                    "no-cache": {
+                        "name": "--no-cache",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Prevent use of the cache",
+                        "default": false
+                    }
+                }
+            }
+        },
+        {
+            "name": "update",
+            "hidden": false,
+            "usage": [
+                "update [--with WITH] [--prefer-source] [--prefer-dist] [--prefer-install PREFER-INSTALL] [--dry-run] [--dev] [--no-dev] [--lock] [--no-install] [--no-audit] [--audit-format AUDIT-FORMAT] [--no-autoloader] [--no-suggest] [--no-progress] [-w|--with-dependencies] [-W|--with-all-dependencies] [-v|vv|vvv|--verbose] [-o|--optimize-autoloader] [-a|--classmap-authoritative] [--apcu-autoloader] [--apcu-autoloader-prefix APCU-AUTOLOADER-PREFIX] [--ignore-platform-req IGNORE-PLATFORM-REQ] [--ignore-platform-reqs] [--prefer-stable] [--prefer-lowest] [-m|--minimal-changes] [--patch-only] [-i|--interactive] [--root-reqs] [--bump-after-update [BUMP-AFTER-UPDATE]] [--] [<packages>...]"
+            ],
+            "description": "Updates your dependencies to the latest version according to composer.json, and updates the composer.lock file",
+            "help": "Updates your dependencies to the latest version according to composer.json, and updates the composer.lock file",
+            "aliases": [],
+            "definition": {
+                "arguments": {
+                    "command": {
+                        "name": "command",
+                        "is_required": true,
+                        "is_array": false,
+                        "description": "The command to execute",
+                        "default": null
+                    },
+                    "packages": {
+                        "name": "packages",
+                        "is_required": false,
+                        "is_array": true,
+                        "description": "Packages that should be updated, if not provided all packages are.",
+                        "default": []
+                    }
+                },
+                "options": {
+                    "with": {
+                        "name": "--with",
+                        "shortcut": "",
+                        "accept_value": true,
+                        "is_value_required": true,
+                        "is_multiple": true,
+                        "description": "Temporary version constraint to add, e.g. foo/bar:1.0.0 or foo/bar=1.0.0",
+                        "default": []
+                    },
+                    "lock": {
+                        "name": "--lock",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Overwrites the lock file hash to suppress warning about the lock file being out of date without updating package versions.",
+                        "default": false
+                    },
+                    "with-all-dependencies": {
+                        "name": "--with-all-dependencies",
+                        "shortcut": "-W",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Update also dependencies of packages in the argument list, including those which are root requirements.",
+                        "default": false
+                    },
+                    "audit-format": {
+                        "name": "--audit-format",
+                        "shortcut": "",
+                        "accept_value": true,
+                        "is_value_required": true,
+                        "is_multiple": false,
+                        "description": "Audit output format. Must be \"table\", \"plain\", \"json\", or \"summary\".",
+                        "default": "summary"
+                    },
+                    "help": {
+                        "name": "--help",
+                        "shortcut": "-h",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Display help for the given command. When no command is given display help for the <info>list</info> command",
+                        "default": false
+                    },
+                    "silent": {
+                        "name": "--silent",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Do not output any message",
+                        "default": false
+                    },
+                    "quiet": {
+                        "name": "--quiet",
+                        "shortcut": "-q",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Only errors are displayed. All other output is suppressed",
+                        "default": false
+                    },
+                    "verbose": {
+                        "name": "--verbose",
+                        "shortcut": "-v|-vv|-vvv",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Increase the verbosity of messages: 1 for normal output, 2 for more verbose output and 3 for debug",
+                        "default": false
+                    },
+                    "version": {
+                        "name": "--version",
+                        "shortcut": "-V",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Display this application version",
+                        "default": false
+                    },
+                    "ansi": {
+                        "name": "--ansi",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Force (or disable --no-ansi) ANSI output",
+                        "default": null
+                    },
+                    "no-ansi": {
+                        "name": "--no-ansi",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Negate the \"--ansi\" option",
+                        "default": false
+                    },
+                    "no-interaction": {
+                        "name": "--no-interaction",
+                        "shortcut": "-n",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Do not ask any interactive question",
+                        "default": false
+                    },
+                    "profile": {
+                        "name": "--profile",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Display timing and memory usage information",
+                        "default": false
+                    },
+                    "no-plugins": {
+                        "name": "--no-plugins",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Whether to disable plugins.",
+                        "default": false
+                    },
+                    "no-scripts": {
+                        "name": "--no-scripts",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Skips the execution of all scripts defined in composer.json file.",
+                        "default": false
+                    },
+                    "working-dir": {
+                        "name": "--working-dir",
+                        "shortcut": "-d",
+                        "accept_value": true,
+                        "is_value_required": true,
+                        "is_multiple": false,
+                        "description": "If specified, use the given directory as working directory.",
+                        "default": null
+                    },
+                    "no-cache": {
+                        "name": "--no-cache",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Prevent use of the cache",
+                        "default": false
+                    }
+                }
+            }
+        },
+        {
+            "name": "dump-autoload",
+            "hidden": false,
+            "usage": [
+                "dump-autoload [--optimize] [-a|--classmap-authoritative] [--apcu] [--apcu-prefix APCU-PREFIX] [--dry-run] [--dev] [--no-dev] [--ignore-platform-req IGNORE-PLATFORM-REQ] [--ignore-platform-reqs] [--strict-psr] [--strict-ambiguous]"
+            ],
+            "description": "Dumps the autoloader",
+            "help": "Dumps the autoloader",
+            "aliases": [
+                "dumpautoload"
+            ],
+            "definition": {
+                "arguments": {
+                    "command": {
+                        "name": "command",
+                        "is_required": true,
+                        "is_array": false,
+                        "description": "The command to execute",
+                        "default": null
+                    }
+                },
+                "options": {
+                    "optimize": {
+                        "name": "--optimize",
+                        "shortcut": "-o",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Optimizes PSR0 and PSR4 packages to be loaded with classmaps too, good for production.",
+                        "default": false
+                    },
+                    "help": {
+                        "name": "--help",
+                        "shortcut": "-h",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Display help for the given command. When no command is given display help for the <info>list</info> command",
+                        "default": false
+                    },
+                    "silent": {
+                        "name": "--silent",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Do not output any message",
+                        "default": false
+                    },
+                    "quiet": {
+                        "name": "--quiet",
+                        "shortcut": "-q",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Only errors are displayed. All other output is suppressed",
+                        "default": false
+                    },
+                    "verbose": {
+                        "name": "--verbose",
+                        "shortcut": "-v|-vv|-vvv",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Increase the verbosity of messages: 1 for normal output, 2 for more verbose output and 3 for debug",
+                        "default": false
+                    },
+                    "version": {
+                        "name": "--version",
+                        "shortcut": "-V",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Display this application version",
+                        "default": false
+                    },
+                    "ansi": {
+                        "name": "--ansi",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Force (or disable --no-ansi) ANSI output",
+                        "default": null
+                    },
+                    "no-ansi": {
+                        "name": "--no-ansi",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Negate the \"--ansi\" option",
+                        "default": false
+                    },
+                    "no-interaction": {
+                        "name": "--no-interaction",
+                        "shortcut": "-n",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Do not ask any interactive question",
+                        "default": false
+                    },
+                    "profile": {
+                        "name": "--profile",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Display timing and memory usage information",
+                        "default": false
+                    },
+                    "no-plugins": {
+                        "name": "--no-plugins",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Whether to disable plugins.",
+                        "default": false
+                    },
+                    "no-scripts": {
+                        "name": "--no-scripts",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Skips the execution of all scripts defined in composer.json file.",
+                        "default": false
+                    },
+                    "working-dir": {
+                        "name": "--working-dir",
+                        "shortcut": "-d",
+                        "accept_value": true,
+                        "is_value_required": true,
+                        "is_multiple": false,
+                        "description": "If specified, use the given directory as working directory.",
+                        "default": null
+                    },
+                    "no-cache": {
+                        "name": "--no-cache",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Prevent use of the cache",
+                        "default": false
+                    }
+                }
+            }
+        },
+        {
+            "name": "show",
+            "hidden": false,
+            "usage": [
+                "show [--all] [--locked] [-i|--installed] [-p|--platform] [-a|--available] [-s|--self] [-N|--name-only] [-P|--path] [-t|--tree] [-l|--latest] [-o|--outdated] [--ignore IGNORE] [-M|--major-only] [-m|--minor-only] [--patch-only] [-A|--sort-by-age] [-D|--direct] [--strict] [-f|--format FORMAT] [--no-dev] [--ignore-platform-req IGNORE-PLATFORM-REQ] [--ignore-platform-reqs] [--] [<package> [<version>]]"
+            ],
+            "description": "Shows information about packages",
+            "help": "Shows information about packages",
+            "aliases": [
+                "info"
+            ],
+            "definition": {
+                "arguments": {
+                    "command": {
+                        "name": "command",
+                        "is_required": true,
+                        "is_array": false,
+                        "description": "The command to execute",
+                        "default": null
+                    },
+                    "package": {
+                        "name": "package",
+                        "is_required": false,
+                        "is_array": false,
+                        "description": "Package to inspect. Or a name including a wildcard (*) to filter lists of packages instead.",
+                        "default": null
+                    },
+                    "version": {
+                        "name": "version",
+                        "is_required": false,
+                        "is_array": false,
+                        "description": "Version or version constraint to inspect",
+                        "default": null
+                    }
+                },
+                "options": {
+                    "tree": {
+                        "name": "--tree",
+                        "shortcut": "-t",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "List the dependencies as a tree",
+                        "default": false
+                    },
+                    "latest": {
+                        "name": "--latest",
+                        "shortcut": "-l",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Show the latest version",
+                        "default": false
+                    },
+                    "format": {
+                        "name": "--format",
+                        "shortcut": "-f",
+                        "accept_value": true,
+                        "is_value_required": true,
+                        "is_multiple": false,
+                        "description": "Format of the output: text or json",
+                        "default": "text"
+                    },
+                    "help": {
+                        "name": "--help",
+                        "shortcut": "-h",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Display help for the given command. When no command is given display help for the <info>list</info> command",
+                        "default": false
+                    },
+                    "silent": {
+                        "name": "--silent",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Do not output any message",
+                        "default": false
+                    },
+                    "quiet": {
+                        "name": "--quiet",
+                        "shortcut": "-q",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Only errors are displayed. All other output is suppressed",
+                        "default": false
+                    },
+                    "verbose": {
+                        "name": "--verbose",
+                        "shortcut": "-v|-vv|-vvv",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Increase the verbosity of messages: 1 for normal output, 2 for more verbose output and 3 for debug",
+                        "default": false
+                    },
+                    "version": {
+                        "name": "--version",
+                        "shortcut": "-V",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Display this application version",
+                        "default": false
+                    },
+                    "ansi": {
+                        "name": "--ansi",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Force (or disable --no-ansi) ANSI output",
+                        "default": null
+                    },
+                    "no-ansi": {
+                        "name": "--no-ansi",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Negate the \"--ansi\" option",
+                        "default": false
+                    },
+                    "no-interaction": {
+                        "name": "--no-interaction",
+                        "shortcut": "-n",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Do not ask any interactive question",
+                        "default": false
+                    },
+                    "profile": {
+                        "name": "--profile",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Display timing and memory usage information",
+                        "default": false
+                    },
+                    "no-plugins": {
+                        "name": "--no-plugins",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Whether to disable plugins.",
+                        "default": false
+                    },
+                    "no-scripts": {
+                        "name": "--no-scripts",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Skips the execution of all scripts defined in composer.json file.",
+                        "default": false
+                    },
+                    "working-dir": {
+                        "name": "--working-dir",
+                        "shortcut": "-d",
+                        "accept_value": true,
+                        "is_value_required": true,
+                        "is_multiple": false,
+                        "description": "If specified, use the given directory as working directory.",
+                        "default": null
+                    },
+                    "no-cache": {
+                        "name": "--no-cache",
+                        "shortcut": "",
+                        "accept_value": false,
+                        "is_value_required": false,
+                        "is_multiple": false,
+                        "description": "Prevent use of the cache",
+                        "default": false
+                    }
+                }
+            }
+        }
+    ]
+}

@@ -21,6 +21,7 @@ mod remote;
 use wasm_bindgen::prelude::*;
 
 mod agents;
+mod cli_tools;
 mod codeintel;
 mod codestyle;
 mod compare;

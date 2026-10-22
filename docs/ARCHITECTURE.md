@@ -1316,14 +1316,12 @@ computes everything; `app/ui/src/features/codeintel` and `features/lsp/goto.ts` 
   `[Controller::class, 'method']`, `<x-component>` and custom directives. Offsets are UTF-16.
 - `laravel_gutter({ path, content }) -> { line, kind: "route" | "controller" | "view", tooltip,
   targets }[]`.
-- `laravel_artisan_commands() -> { commands, fromProject }` (`php artisan list --format=json`,
-  else a built-in list), `laravel_artisan_run({ commandLine, runId }) -> exitCode` streaming
-  `laravel://artisan/<runId>` events (`{ type: "started" | "output" | "error" | "exit", ... }`),
-  `laravel_artisan_cancel({ runId })`.
+- Artisan commands run in the Command Line Tools Console (see "Command Line Tool Support");
+  `artisan::builtin_commands` is its fallback list when artisan cannot run.
 - UI (`app/ui/src/features/laravel`): the Blade language (`registerLanguage("blade")`), a
   completion source next to the LSP one, `GotoDeclaration` / Ctrl+Click that try Laravel first,
-  gutter icons, the Routes tool window, Run Artisan Command… (`Laravel.RunArtisan`,
-  Ctrl+Shift+X), the `framework.laravel` status item and Settings | Languages & Frameworks |
+  gutter icons, the Routes tool window, Run Artisan Command… (`Laravel.RunArtisan`: the
+  Run Command popup with the artisan alias), the `framework.laravel` status item and Settings | Languages & Frameworks |
   PHP | Laravel. Tool windows and status items can declare `when` to show only for matching
   projects.
 ## Symfony (`phpforge-fw-symfony`) and Doctrine (`phpforge-orm-doctrine`)
@@ -1932,6 +1930,33 @@ comments and Reader mode (`app/ui/src/features/codeStructure`, user guide
   `Composer.*` keymap actions under Tools | Composer and the Settings page `lang.php.composer`.
   Browser mode runs the crate through `forge-wasm` with a demo catalog instead of Packagist
   (`mock/composerMock.ts`, `mock/demoComposer.ts`).
+
+## Command Line Tool Support (`phpforge-cli-tools`)
+
+- Plugin `forge.command-line-tools` (PHP and Composer projects): Tools | Run Command…
+  (`CommandLineToolsAction`, Ctrl+Shift+X), the "Command Line Tools Console" tool window
+  (`commandLineTools`) and Settings | Tools | Command Line Tool Support
+  (`tools.command-line-tools`; `commandLineTools.tools` is an `objects` setting with `kind`,
+  `name`, `alias`, `path`, `interpreter`, `showConsoleIn`, `enabled`;
+  `commandLineTools.autoDetect`).
+- The pure crate (also WebAssembly, `forge-wasm/src/cli_tools.rs`) holds the tool model and
+  detection, parsing of Symfony Console's `list --format=json` (Artisan, Symfony, Composer,
+  Drush, custom Symfony tools) and `wp cli cmd-dump`, console input tokenizing with UTF-16
+  offsets, completion with the command's help, the invocations and the cache fingerprint.
+- IPC (`app/ui/src/ipc/cliTools.ts`, `commands/command_line_tools.rs`): `cli_tools_list() ->
+  Tool[]` (configured, then detected), `cli_tools_commands({ alias, reload }) -> { alias,
+  commands, source: "cache" | "tool" | "builtin" | "none", error? }`, `cli_tools_complete({
+  input, offset }) -> { from, to, items, help?, hint? }` (loads the tool's commands on demand),
+  `cli_tools_run({ input, runId }) -> { runId, commandLine, alias, tool, showConsoleIn }`.
+  Lists run through the project backend (`process_io::capture`, 60 s timeout) and are cached
+  in `<cache dir>/forge/command-line-tools/<kind>-<hash>.json` until the tool's path,
+  interpreter or composer.lock changes. Scripts and `.phar` files run with the tool's PHP
+  interpreter (or the project's), programs (`composer`, `wp`) directly or inside the
+  interpreter's environment when the tool names one; runs start through
+  `commands::run::start_built`, so they stream `run://<runId>` (`console` lines with file links
+  mapped back from containers) and `run_stop` / `run_write` / `run_dispose` apply.
+- UI (`features/cliTools`): `ConsoleInput` (completion list, help panel, history, Ctrl+C),
+  the Run Command popup and the tool window with a tab per command.
 
 ## Vim emulation (`forge-vim`)
 

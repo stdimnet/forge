@@ -543,7 +543,9 @@ Actions that Forge's plugins add (group **Plugins** in Settings | Keymap, some u
 | Composer: Validate | `Composer.Validate` |  |  | any |
 | Composer: Show Outdated | `Composer.ShowOutdated` |  |  | any |
 | Composer: Audit | `Composer.Audit` |  |  | any |
-| Run Artisan Command… | `Laravel.RunArtisan` | `Ctrl+Shift+X` | `Cmd+Shift+X` | any |
+| Run Command… (Command Line Tools Console) | `CommandLineToolsAction` | `Ctrl+Shift+X` | `Cmd+Shift+X` | any |
+| Command Line Tools Console (tool window) | `ActivateCommandLineToolsConsoleToolWindow` |  |  | any |
+| Run Artisan Command… | `Laravel.RunArtisan` |  |  | any |
 | Routes (Laravel) | `Laravel.ShowRoutes` |  |  | any |
 | Run Console Command… (Symfony) | `Symfony.RunConsoleCommand` |  |  | any |
 | Symfony Routes | `Symfony.ShowRoutes` |  |  | any |

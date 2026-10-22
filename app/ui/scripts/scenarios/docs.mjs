@@ -186,5 +186,14 @@ export default {
   "docs-new-scratch": keys("Control+Alt+Shift+Insert", [".scratch-popup"]),
   "docs-new-project": action("NewProject", [".np-dialog"], undefined, undefined, { selectors: [".wf-titlebar", ".np-dialog"] }),
   "docs-about": action("About", [".about-dialog"]),
-  "docs-artisan": keys("Control+Shift+KeyX", [".artisan-popup"]),
+  "docs-run-command": keys(
+    "Control+Shift+KeyX",
+    [".cli-popup .cli-alias"],
+    undefined,
+    async (page) => {
+      await page.keyboard.type("a make:", { delay: 20 });
+      await page.waitForSelector('.cli-item[data-cli-item="make:model"]');
+    },
+    { selectors: [".cli-popup", ".cli-popup-list"] },
+  ),
 };

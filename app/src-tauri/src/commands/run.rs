@@ -169,17 +169,20 @@ const PHP_KINDS: &[&str] = &["php-script", "phpunit", "artisan", "php-builtin-se
 const COMPOSER_KINDS: &[&str] = &["composer", "composer-command"];
 
 /// A request's command line, plus what a run through a PHP interpreter needs.
-struct Built {
-    cmd: CommandLine,
+pub(crate) struct Built {
+    pub cmd: CommandLine,
     /// Container / remote paths and their local counterparts (Run console links).
-    path_mappings: Vec<OutputPathMapping>,
+    pub path_mappings: Vec<OutputPathMapping>,
     /// The debugger's server with the interpreter's mappings.
-    debug_server: Option<forge_debug::ServerConfig>,
+    pub debug_server: Option<forge_debug::ServerConfig>,
+    /// External Tools output filters (`$FILE_PATH$:$LINE$`).
+    pub output_filters: Vec<String>,
 }
 
 fn build(state: &AppState, runs: &RunState, req: RunRequest) -> Result<Built> {
     let root = root(state)?;
     let mut through: Option<(PhpInterpreter, bool)> = None;
+    let output_filters = req.output_filters;
     // Ports the built-in web server serves, published by container / SSH interpreters.
     let mut publish: Vec<u16> = Vec::new();
     let mut cmd = match (req.configuration, req.command) {
@@ -252,6 +255,7 @@ fn build(state: &AppState, runs: &RunState, req: RunRequest) -> Result<Built> {
             cmd,
             path_mappings: Vec::new(),
             debug_server: None,
+            output_filters,
         });
     };
     let backend = state.backend()?;
@@ -273,6 +277,7 @@ fn build(state: &AppState, runs: &RunState, req: RunRequest) -> Result<Built> {
         debug_server: phpforge_interpreters::command::is_debug(&cmd.env)
             .then(|| prepared.debug_server())
             .flatten(),
+        output_filters,
     })
 }
 
@@ -288,7 +293,7 @@ pub fn run_command_line(
 
 #[tauri::command]
 pub async fn run_start(
-    mut request: RunRequest,
+    request: RunRequest,
     app: AppHandle,
     state: State<'_, AppState>,
     runs: State<'_, RunState>,
@@ -298,12 +303,26 @@ pub async fn run_start(
         format!("run-{n}")
     });
     let test_runner = request.test_runner;
-    let output_filters = std::mem::take(&mut request.output_filters);
+    let built = build(&state, &runs, request)?;
+    start_built(run_id, built, test_runner, app, &state, &runs).await
+}
+
+/// Start a built command line as run `run_id`, streaming `run://<runId>` (also used by
+/// the Command Line Tools Console).
+pub(crate) async fn start_built(
+    run_id: String,
+    built: Built,
+    test_runner: bool,
+    app: AppHandle,
+    state: &AppState,
+    runs: &RunState,
+) -> Result<RunStarted> {
     let Built {
         cmd,
         path_mappings,
         debug_server,
-    } = build(&state, &runs, request)?;
+        output_filters,
+    } = built;
     if let Some(server) = debug_server {
         if let Some(debug) = app.try_state::<crate::commands::debug::DebugState>() {
             debug.add_interpreter_server(server);
@@ -316,7 +335,7 @@ pub async fn run_start(
         .or(Some(1024));
     let output = Arc::new(Mutex::new(RunOutput::new(&RunOutputOptions {
         test_runner,
-        root: Some(root(&state)?.display().to_string()),
+        root: Some(root(state)?.display().to_string()),
         cwd: Some(cmd.cwd.display().to_string()),
         cycle_buffer_kb,
         path_mappings,

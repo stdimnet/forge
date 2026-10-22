@@ -45,6 +45,27 @@ export function chat_new(): string;
 export function chat_set_permission(request_json: string): string;
 
 /**
+ * `{ input, offset, tools, commands }` → `Completion` (`cli_tools_complete`).
+ */
+export function cli_tools_complete(request_json: string): string;
+
+/**
+ * `{ configured, autoDetect, files, composer }` → `Tool[]` (`cli_tools_list`).
+ */
+export function cli_tools_effective(request_json: string): string;
+
+/**
+ * `{ input, tools }` → `{ tool, args, invocation, commandLine }`: what `cli_tools_run`
+ * starts (before the interpreter wraps it).
+ */
+export function cli_tools_parse_input(request_json: string): string;
+
+/**
+ * `{ kind, text }` → `CommandDef[]`: a recorded `list --format=json` / `wp cli cmd-dump`.
+ */
+export function cli_tools_parse_list(request_json: string): string;
+
+/**
  * `{ entry, max? }` → `bool`.
  */
 export function clipboard_history_add(args_json: string): string;
@@ -1260,6 +1281,10 @@ export interface InitOutput {
     readonly chat_drop: (a: number, b: number, c: number) => void;
     readonly chat_new: (a: number) => void;
     readonly chat_set_permission: (a: number, b: number, c: number) => void;
+    readonly cli_tools_complete: (a: number, b: number, c: number) => void;
+    readonly cli_tools_effective: (a: number, b: number, c: number) => void;
+    readonly cli_tools_parse_input: (a: number, b: number, c: number) => void;
+    readonly cli_tools_parse_list: (a: number, b: number, c: number) => void;
     readonly clipboard_history_add: (a: number, b: number, c: number) => void;
     readonly clipboard_history_list: (a: number, b: number, c: number) => void;
     readonly clipboard_history_promote: (a: number, b: number, c: number) => void;
