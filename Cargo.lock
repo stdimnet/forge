@@ -2386,6 +2386,7 @@ dependencies = [
  "forge-agent-cli",
  "forge-bookmarks",
  "forge-codeintel",
+ "forge-codestyle",
  "forge-colors",
  "forge-containers",
  "forge-editing",
