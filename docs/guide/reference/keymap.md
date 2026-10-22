@@ -367,6 +367,7 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Action | Action id | Windows / Linux | macOS | In Forge |
 | --- | --- | --- | --- | --- |
 | Toggle Line Breakpoint | `ToggleLineBreakpoint` | `Ctrl+F8` | `Cmd+F8` | yes |
+| Toggle Temporary Line Breakpoint | `ToggleTemporaryLineBreakpoint` | `Ctrl+Alt+Shift+F8` | `Cmd+Alt+Shift+F8` | yes |
 
 ### Git
 
@@ -506,6 +507,8 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Quick Evaluate Expression | `QuickEvaluateExpression` | `Ctrl+Alt+F8` | `Cmd+Alt+F8` | yes |
 | Show Execution Point | `ShowExecutionPoint` | `Alt+F10` | `Alt+F10` | yes |
 | Add to Watches | `Debugger.AddToWatch` |  |  | yes |
+| Set Value… | `XDebugger.SetValue` | `F2` | `F2` | yes |
+| Copy Value | `XDebugger.CopyValue` |  |  | yes |
 
 ## Other
 
@@ -541,6 +544,7 @@ Actions that Forge's plugins add (group **Plugins** in Settings | Keymap, some u
 | New Terminal Tab | `Terminal.NewTab` | `Ctrl+Shift+T` | `Cmd+T` | tool window |
 | Close Terminal Tab | `Terminal.CloseTab` |  |  | tool window |
 | Start Listening for PHP Debug Connections | `PhpListenDebugAction` |  |  | any |
+| Web Server Debug Validation | `WebServerDebugValidation` |  |  | any |
 | New Scratch Buffer | `NewScratchBuffer` |  |  | any |
 | Execute (database console) | `Console.Jdbc.Execute` | `Ctrl+Enter` | `Cmd+Enter` | editor |
 | Submit (data grid) | `Console.TableResult.SubmitChanges` | `Ctrl+Enter` | `Cmd+Enter` | tool window |

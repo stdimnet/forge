@@ -21,7 +21,9 @@ Running configurations, breakpoints and stepping through PHP code with Xdebug. W
 | [Stop](#stop) | `Ctrl+F2` | `Cmd+F2` |
 | [Rerun](#rerun) | `Ctrl+F5` | `Cmd+R` |
 | [Start Listening for PHP Debug Connections](#start-listening-for-php-debug-connections) | — | — |
+| [Web Server Debug Validation](#web-server-debug-validation) | — | — |
 | [Toggle Line Breakpoint](#toggle-line-breakpoint) | `Ctrl+F8` | `Cmd+F8` |
+| [Toggle Temporary Line Breakpoint](#toggle-temporary-line-breakpoint) | `Ctrl+Alt+Shift+F8` | `Cmd+Alt+Shift+F8` |
 | [View Breakpoints…](#view-breakpoints) | `Ctrl+Shift+F8` | `Cmd+Shift+F8` |
 | [Mute Breakpoints](#mute-breakpoints) | — | — |
 | [Resume Program](#resume-program) | `F9` | `Cmd+Alt+R` |
@@ -37,6 +39,7 @@ Running configurations, breakpoints and stepping through PHP code with Xdebug. W
 | [Quick Evaluate Expression](#quick-evaluate-expression) | `Ctrl+Alt+F8` | `Cmd+Alt+F8` |
 | [Show Execution Point](#show-execution-point) | `Alt+F10` | `Alt+F10` |
 | [Add to Watches](#add-to-watches) | — | — |
+| [Set Value](#set-value) | `F2` | `F2` |
 | [Run Artisan Command…](#run-artisan-command) | `Ctrl+Shift+X` | `Cmd+Shift+X` |
 | [Run Console Command…](#run-console-command) | — | — |
 | [Execute](#execute) | `Ctrl+Enter` | `Cmd+Enter` |
@@ -139,6 +142,17 @@ Starts or stops listening for incoming Xdebug connections on port 9003.
 
 More: [Xdebug debugging](../../user/debugging.md#listening-for-connections)
 
+## Web Server Debug Validation
+
+**Shortcut:** — · macOS — · action id `WebServerDebugValidation`
+
+Checks the Xdebug configuration of a web server or a CLI interpreter (mode, client host and
+port, start with request) and explains what to change.
+
+**Menu:** Run | Web Server Debug Validation…
+
+More: [Xdebug debugging](../../user/debugging.md#web-server-debug-validation)
+
 ## Toggle Line Breakpoint
 
 **Shortcut:** `Ctrl+F8` · macOS `Cmd+F8` · action id `ToggleLineBreakpoint`
@@ -148,6 +162,16 @@ Adds or removes a line breakpoint at the caret.
 **Menu:** Run | Toggle Breakpoint | Line Breakpoint
 
 More: [Xdebug debugging](../../user/debugging.md#breakpoints)
+
+## Toggle Temporary Line Breakpoint
+
+**Shortcut:** `Ctrl+Alt+Shift+F8` · macOS `Cmd+Alt+Shift+F8` · action id `ToggleTemporaryLineBreakpoint`
+
+Adds a breakpoint that is removed once it is hit, or removes the breakpoint at the caret.
+
+**Menu:** Run | Toggle Breakpoint | Temporary Line Breakpoint
+
+More: [Xdebug debugging](../../user/debugging.md#breakpoint-properties-logpoints-and-temporary-breakpoints)
 
 ## View Breakpoints
 
@@ -298,6 +322,15 @@ More: [Xdebug debugging](../../user/debugging.md#the-debug-tool-window)
 Adds the selected expression to the watches.
 
 More: [Xdebug debugging](../../user/debugging.md#the-debug-tool-window)
+
+## Set Value
+
+**Shortcut:** `F2` · macOS `F2` · action id `XDebugger.SetValue`
+
+Edits the value of the variable selected in the Debug tool window: type a PHP expression and
+press `Enter`.
+
+More: [Xdebug debugging](../../user/debugging.md#variables-set-value-and-copy-value)
 
 ## Run Artisan Command
 

@@ -6857,7 +6857,9 @@ Running configurations, breakpoints and stepping through PHP code with Xdebug. W
 | [Stop](#stop) | `Ctrl+F2` | `Cmd+F2` |
 | [Rerun](#rerun) | `Ctrl+F5` | `Cmd+R` |
 | [Start Listening for PHP Debug Connections](#start-listening-for-php-debug-connections) | — | — |
+| [Web Server Debug Validation](#web-server-debug-validation) | — | — |
 | [Toggle Line Breakpoint](#toggle-line-breakpoint) | `Ctrl+F8` | `Cmd+F8` |
+| [Toggle Temporary Line Breakpoint](#toggle-temporary-line-breakpoint) | `Ctrl+Alt+Shift+F8` | `Cmd+Alt+Shift+F8` |
 | [View Breakpoints…](#view-breakpoints) | `Ctrl+Shift+F8` | `Cmd+Shift+F8` |
 | [Mute Breakpoints](#mute-breakpoints) | — | — |
 | [Resume Program](#resume-program) | `F9` | `Cmd+Alt+R` |
@@ -6873,6 +6875,7 @@ Running configurations, breakpoints and stepping through PHP code with Xdebug. W
 | [Quick Evaluate Expression](#quick-evaluate-expression) | `Ctrl+Alt+F8` | `Cmd+Alt+F8` |
 | [Show Execution Point](#show-execution-point) | `Alt+F10` | `Alt+F10` |
 | [Add to Watches](#add-to-watches) | — | — |
+| [Set Value](#set-value) | `F2` | `F2` |
 | [Run Artisan Command…](#run-artisan-command) | `Ctrl+Shift+X` | `Cmd+Shift+X` |
 | [Run Console Command…](#run-console-command) | — | — |
 | [Execute](#execute) | `Ctrl+Enter` | `Cmd+Enter` |
@@ -6975,6 +6978,17 @@ Starts or stops listening for incoming Xdebug connections on port 9003.
 
 More: [Xdebug debugging](docs/guide/user/debugging.md#listening-for-connections)
 
+## Web Server Debug Validation
+
+**Shortcut:** — · macOS — · action id `WebServerDebugValidation`
+
+Checks the Xdebug configuration of a web server or a CLI interpreter (mode, client host and
+port, start with request) and explains what to change.
+
+**Menu:** Run | Web Server Debug Validation…
+
+More: [Xdebug debugging](docs/guide/user/debugging.md#web-server-debug-validation)
+
 ## Toggle Line Breakpoint
 
 **Shortcut:** `Ctrl+F8` · macOS `Cmd+F8` · action id `ToggleLineBreakpoint`
@@ -6984,6 +6998,16 @@ Adds or removes a line breakpoint at the caret.
 **Menu:** Run | Toggle Breakpoint | Line Breakpoint
 
 More: [Xdebug debugging](docs/guide/user/debugging.md#breakpoints)
+
+## Toggle Temporary Line Breakpoint
+
+**Shortcut:** `Ctrl+Alt+Shift+F8` · macOS `Cmd+Alt+Shift+F8` · action id `ToggleTemporaryLineBreakpoint`
+
+Adds a breakpoint that is removed once it is hit, or removes the breakpoint at the caret.
+
+**Menu:** Run | Toggle Breakpoint | Temporary Line Breakpoint
+
+More: [Xdebug debugging](docs/guide/user/debugging.md#breakpoint-properties-logpoints-and-temporary-breakpoints)
 
 ## View Breakpoints
 
@@ -7134,6 +7158,15 @@ More: [Xdebug debugging](docs/guide/user/debugging.md#the-debug-tool-window)
 Adds the selected expression to the watches.
 
 More: [Xdebug debugging](docs/guide/user/debugging.md#the-debug-tool-window)
+
+## Set Value
+
+**Shortcut:** `F2` · macOS `F2` · action id `XDebugger.SetValue`
+
+Edits the value of the variable selected in the Debug tool window: type a PHP expression and
+press `Enter`.
+
+More: [Xdebug debugging](docs/guide/user/debugging.md#variables-set-value-and-copy-value)
 
 ## Run Artisan Command
 
@@ -9986,6 +10019,9 @@ offers **Run Shell Command…** and **Edit Configuration…**.
 | Type | Fields | Runs | Debug |
 | --- | --- | --- | --- |
 | PHP Script | File | `<php> <options> <file> <arguments>` | Xdebug |
+| PHP Built-in Web Server | Host (`localhost`), Port (`8080`), Document root, Use router script, Open in browser after launch | `<php> <options> -S host:port -t <document root> [router]`, then opens `http://host:port/` | Xdebug for every request |
+| PHP Web Page | Server (Settings \| PHP \| Servers), Start URL | opens the page in the browser | adds `XDEBUG_SESSION_START=FORGE` |
+| PHP HTTP Request | Server (optional), URL, Request method, Headers, Request body | sends the request, the response appears in the Run tool window | adds the `XDEBUG_SESSION` cookie |
 | PHPUnit | Test scope: Directory, File, Class, Method or "Defined in the configuration file"; Configuration file (`phpunit.xml` detected); Test runner options | `phpunit --teamcity …` (from `vendor/bin`) | Xdebug |
 | Artisan | Command (`migrate --seed`) | `<php> artisan <command>` | Xdebug |
 | Composer Script | Script | `composer run <script>` with `php.composer.executable` | Xdebug |
@@ -10018,8 +10054,17 @@ Debugging (`Shift+F9`) through an interpreter works the same way: Xdebug connect
 back with `ssh -R 9003:127.0.0.1:9003`, and the run sets `PHP_IDE_CONFIG=serverName=<interpreter>`
 so breakpoints use the interpreter's path mappings.
 
-> **Note:** the types "PHP Built-in Web Server" and "PHP Remote Debug" are declared by the PHP
-> plugins but not available yet. To debug a web request, use
+![PHP Built-in Web Server](docs/screenshots/run-builtin-server.png)
+
+The built-in web server runs through the configuration's interpreter too: Docker and Compose
+interpreters publish the port (`-p 8080:8080`, the server binds `0.0.0.0` inside the
+container), SSH interpreters forward it (`ssh -L 8080:127.0.0.1:8080`), so the page opens on
+`localhost` either way.
+
+![PHP Web Page](docs/screenshots/run-web-page.png)
+
+> **Note:** the type "PHP Remote Debug" is declared by the Xdebug plugin but not available yet.
+> To debug requests started elsewhere, use
 > [Start Listening for PHP Debug Connections](docs/guide/user/debugging.md#listening-for-connections).
 
 ### Where configurations are stored
@@ -10105,9 +10150,11 @@ show a **Test Results** tree next to the console:
 
 ## Debugging
 
-**Debug** on a PHP configuration (PHP Script, PHPUnit, Artisan, Composer) starts Forge's Xdebug
-listener and runs the process with the Xdebug environment (`XDEBUG_MODE=debug`,
-`XDEBUG_SESSION`, `XDEBUG_CONFIG`). See [Xdebug debugging](docs/guide/user/debugging.md).
+**Debug** on a PHP configuration (PHP Script, PHPUnit, Artisan, Composer, PHP Built-in Web
+Server) starts Forge's Xdebug listener and runs the process with the Xdebug environment
+(`XDEBUG_MODE=debug`, `XDEBUG_SESSION`, `XDEBUG_CONFIG`). **Debug** on PHP Web Page, PHP HTTP
+Request and requests of `.http` files starts listening and adds the Xdebug trigger to the
+request. See [Xdebug debugging](docs/guide/user/debugging.md#debugging-web-pages-and-http-requests).
 
 > **Note:** Run/Debug configurations work in [remote projects](docs/guide/user/remote-development.md): the
 > process runs on the remote host.
@@ -10164,6 +10211,23 @@ parameter or browser extension).
 
 ![Incoming connection](docs/screenshots/debugger-incoming.png)
 
+### Debugging web pages and HTTP requests
+
+These configurations start listening by themselves when you press **Debug** (`Shift+F9`):
+
+| Configuration | Debug |
+| --- | --- |
+| **PHP Built-in Web Server** | runs `php -S host:port -t <document root> [router script]` with the Xdebug environment and `-dxdebug.start_with_request=yes`, so every request it serves is debugged; opens the page in the browser |
+| **PHP Web Page** | opens the start URL on a server of Settings \| PHP \| Servers with `?XDEBUG_SESSION_START=FORGE` (Xdebug then sets the `XDEBUG_SESSION` cookie for the following requests) |
+| **PHP HTTP Request** | sends the request (method, URL, headers, body) with the cookie `XDEBUG_SESSION=FORGE` |
+| Requests in `.http` files | click the gutter ▶ and choose **Debug '…' with Xdebug**: the request is sent with the cookie |
+
+![Debug an .http request](docs/screenshots/http-debug-menu.png)
+
+The Run tool window shows the cookie of a debugged request:
+
+![Debugged request](docs/screenshots/http-debug-run.png)
+
 When a connection comes from an unknown server whose script is not a project file, the
 **Incoming Connection From Xdebug** dialog asks which project file the server file maps to and
 creates a server with that path mapping. Turn on **Ignore external connections through
@@ -10186,6 +10250,35 @@ connections silently.
 
 Breakpoints are stored in `<project>/.forge/breakpoints.json`.
 
+### Breakpoint properties, logpoints and temporary breakpoints
+
+The right side of **View Breakpoints…** (and the popup of a right-click on a breakpoint) has
+PHPStorm's properties:
+
+| Property | Effect |
+| --- | --- |
+| **Enabled** | off keeps the breakpoint without stopping |
+| **Suspend execution** | off makes a **logpoint**: Forge logs and lets the script run on (yellow dot) |
+| **Condition** | a PHP expression; Xdebug stops only when it is true |
+| **Log: "Breakpoint hit" message** | prints `Breakpoint reached at <file>:<line>` to the session's Console |
+| **Log: Stack trace** | prints the frames |
+| **Evaluate and log** | evaluates a PHP expression in the frame and prints its value |
+| **Remove once hit** | a **temporary breakpoint**: removed after it suspended once (dot with a ring) |
+| **Pass count** | stops only from the n-th hit on (Xdebug's hit condition `>=`) |
+
+- **Shift+click** on a line number adds a logpoint ("Breakpoint hit" message, no suspend) and
+  opens its properties.
+- **Toggle Temporary Line Breakpoint** (`Ctrl+Alt+Shift+F8`, macOS `Cmd+Alt+Shift+F8`) adds a
+  breakpoint that is removed once hit.
+- **PHP Exception Breakpoints** (**+** in the dialog) stop when an exception of the class (or
+  a subclass) is thrown; `*` stops on any exception. They have the same log options.
+
+![Logpoint properties](docs/screenshots/debugger-logpoint.png)
+
+Logged lines appear in the **Console** tab of the debug session:
+
+![Logpoint output](docs/screenshots/debugger-logpoint-output.png)
+
 ## The Debug tool window
 
 ![Paused](docs/screenshots/debugger-paused.png)
@@ -10196,7 +10289,8 @@ has a tab per session with:
 
 - **Threads & Variables**: the frames on the left (click to switch), variables on the right.
   Arrays and objects expand lazily.
-- **Console**: the script's output.
+- **Console**: the script's output, logpoint messages, and a field at the bottom that
+  evaluates PHP expressions in the selected frame (see below).
 - The evaluate field at the top: type an expression and press `Enter` to evaluate it, or
   `Ctrl+Shift+Enter` to add it as a watch.
 
@@ -10216,8 +10310,32 @@ has a tab per session with:
 | Show Execution Point | `Alt+F10` | `Alt+F10` |
 | Stop | `Ctrl+F2` | `Cmd+F2` |
 | Add to Watches | context menu | context menu |
+| Set Value… | `F2` | `F2` |
+| Toggle Temporary Line Breakpoint | `Ctrl+Alt+Shift+F8` | `Cmd+Alt+Shift+F8` |
 
 ![Evaluate Expression](docs/screenshots/debugger-evaluate.png)
+
+### Variables: Set Value and Copy Value
+
+Right-click a variable or watch for **Set Value…** (`F2`), **Copy Value** (arrays and objects
+as `print_r` output), **Copy Name**, **Evaluate Expression…** and **Add to Watches**. Set Value
+edits the value in place: type a PHP expression (`'paid'`, `42`, `null`, `$other`) and press
+`Enter` (Xdebug's `property_set`); `Escape` cancels. The variables and watches reload after the
+change.
+
+![Set Value](docs/screenshots/debugger-set-value.png)
+
+![Variable context menu](docs/screenshots/debugger-variable-menu.png)
+
+### Evaluate Expression and the debugger console
+
+The **Evaluate** dialog (`Alt+F8`) and the field at the bottom of the **Console** tab evaluate a
+PHP expression in the selected frame (Xdebug's `eval`). Both complete variable names after `$`
+and properties after `->` (from the suspended script, `Enter` or `Tab` accepts) and keep a
+history of evaluated expressions: `Up` / `Down` in the field, or the history button. Console
+results are trees that expand like variables.
+
+![Debugger console](docs/screenshots/debugger-console.png)
 
 Smart Step Into currently behaves like Step Into. Pause depends on the engine and may
 report "Pause is not supported by this engine".
@@ -10226,14 +10344,38 @@ report "Pause is not supported by this engine".
 
 When PHP runs in a container or on another machine, its file paths differ from yours. Define a
 **server** in Settings | Languages & Frameworks | PHP | **Servers**: **Name**, **Host**,
-**Port**, **Debugger** (Xdebug) and **path mappings** (project file or directory → absolute
-path on the server).
+**Port**, **Debugger** (Xdebug) and **Use path mappings**: the project's folders as a tree,
+with the **Absolute path on the server** of each mapped folder (usually just the project root,
+e.g. `/var/www/html`; a deeper mapping such as `vendor` wins for its files).
 
 ![Servers](docs/screenshots/debugger-servers.png)
 
 A session finds its server from `PHP_IDE_CONFIG=serverName=<name>`, otherwise from
 `$_SERVER['SERVER_NAME']` and `SERVER_PORT`. Servers are stored in
 `<project>/.forge/php-servers.json`.
+
+## Web Server Debug Validation
+
+**Run | Web Server Debug Validation…** (PHPStorm's "Validate Debugger Configuration on Web
+Server") checks whether PHP can connect to Forge:
+
+- **Local Web Server or Shared Folder**: Forge writes a temporary script
+  `forge_xdebug_validator_*.php` into the project folder that the web server serves (**Path to
+  create validation script**, e.g. `public`), requests it under **URL to validation script**
+  and deletes it right after the check. Nothing is written before you press **Validate**.
+- **CLI Interpreter**: reads `php -i` of a [CLI interpreter](docs/guide/user/php.md#cli-interpreters) (also
+  Docker, Compose, SSH or WSL ones).
+
+Each check shows ✓ (fine), ⚠ (works with conditions) or ✗ (must be fixed) with a hint: the
+Xdebug version, `xdebug.mode` (must include `debug`), `xdebug.client_host` (localhost cannot
+reach Forge from a container or another machine), `xdebug.client_port` (must be Forge's
+`php.debug.port`), `xdebug.start_with_request` (`trigger` needs the cookie or
+`XDEBUG_SESSION_START`) and the server name used to find path mappings. For CLI interpreters,
+Forge sets mode, host, port and session itself for debug runs, so only the extension matters.
+The path and URL are remembered per project (`php.debug.validation.documentRoot`,
+`php.debug.validation.url`).
+
+![Web Server Debug Validation](docs/screenshots/debugger-validation.png)
 
 ## Settings | Languages & Frameworks | PHP | Debug
 
@@ -10249,6 +10391,8 @@ A session finds its server from `PHP_IDE_CONFIG=serverName=<name>`, otherwise fr
 | Max. children (array elements / properties per page) | `php.debug.maxChildren` | 100 |
 | Max. depth (levels fetched at once) | `php.debug.maxDepth` | 1 |
 | Max. string length (bytes) | `php.debug.maxData` | 65536 |
+| Path to create validation script | `php.debug.validation.documentRoot` | `public` |
+| URL to validation script | `php.debug.validation.url` | `http://localhost:8080` |
 
 ## Remote projects
 
@@ -10598,9 +10742,15 @@ query console of that data source with execution, results and transactions. See
 
 `.http` files hold one or more requests in PHPStorm's HTTP Client format. They work as
 scratches (New Scratch File → HTTP Request) and as files in your project. Each request gets a ▶
-icon in the gutter; click it to send the request. The response (status, headers, body) appears
+icon in the gutter; click it and choose **Run** to send the request (`Ctrl+Shift+F10` sends
+the request at the caret). The response (status, headers, body) appears
 in the Run tool window, followed by the report of its response handler. Project `.http` files
 run as an `http-request` run configuration.
+
+The ▶ menu also offers **Debug '…' with Xdebug**: it starts
+listening for Xdebug and sends the request with the cookie `XDEBUG_SESSION=FORGE`, so the PHP
+application stops at your breakpoints (see
+[Xdebug debugging](docs/guide/user/debugging.md#debugging-web-pages-and-http-requests)).
 
 ![HTTP request](docs/screenshots/scratches-http-request.png)
 
@@ -11750,6 +11900,7 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Action | Action id | Windows / Linux | macOS | In Forge |
 | --- | --- | --- | --- | --- |
 | Toggle Line Breakpoint | `ToggleLineBreakpoint` | `Ctrl+F8` | `Cmd+F8` | yes |
+| Toggle Temporary Line Breakpoint | `ToggleTemporaryLineBreakpoint` | `Ctrl+Alt+Shift+F8` | `Cmd+Alt+Shift+F8` | yes |
 
 ### Git
 
@@ -11889,6 +12040,8 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Quick Evaluate Expression | `QuickEvaluateExpression` | `Ctrl+Alt+F8` | `Cmd+Alt+F8` | yes |
 | Show Execution Point | `ShowExecutionPoint` | `Alt+F10` | `Alt+F10` | yes |
 | Add to Watches | `Debugger.AddToWatch` |  |  | yes |
+| Set Value… | `XDebugger.SetValue` | `F2` | `F2` | yes |
+| Copy Value | `XDebugger.CopyValue` |  |  | yes |
 
 ## Other
 
@@ -11924,6 +12077,7 @@ Actions that Forge's plugins add (group **Plugins** in Settings | Keymap, some u
 | New Terminal Tab | `Terminal.NewTab` | `Ctrl+Shift+T` | `Cmd+T` | tool window |
 | Close Terminal Tab | `Terminal.CloseTab` |  |  | tool window |
 | Start Listening for PHP Debug Connections | `PhpListenDebugAction` |  |  | any |
+| Web Server Debug Validation | `WebServerDebugValidation` |  |  | any |
 | New Scratch Buffer | `NewScratchBuffer` |  |  | any |
 | Execute (database console) | `Console.Jdbc.Execute` | `Ctrl+Enter` | `Cmd+Enter` | editor |
 | Submit (data grid) | `Console.TableResult.SubmitChanges` | `Ctrl+Enter` | `Cmd+Enter` | tool window |
@@ -12360,12 +12514,13 @@ Run/Debug configurations, debugging actions and breakpoints. Open it with ☰ (`
 | Debugging Actions › Show Execution Point | `Alt+F10` | `Alt+F10` | yes | Shows the line where the debugger is paused. [More](docs/guide/user/debugging.md#the-debug-tool-window) |
 | **Toggle Breakpoint** | | | | submenu |
 | Toggle Breakpoint › Line Breakpoint | `Ctrl+F8` | `Cmd+F8` | yes | Adds or removes a line breakpoint at the caret. [More](docs/guide/user/debugging.md#breakpoints) |
-| Toggle Breakpoint › Temporary Line Breakpoint | — | — | not yet | Not available yet; the entry is disabled. |
+| Toggle Breakpoint › Temporary Line Breakpoint | `Ctrl+Alt+Shift+F8` | `Cmd+Alt+Shift+F8` | yes | Adds a breakpoint that is removed once it is hit. [More](docs/guide/user/debugging.md#breakpoint-properties-logpoints-and-temporary-breakpoints) |
 | View Breakpoints… | `Ctrl+Shift+F8` | `Cmd+Shift+F8` | yes | Lists all breakpoints, with conditions and exception breakpoints. [More](docs/guide/user/debugging.md#breakpoints) ([screenshot](docs/screenshots/docs-view-breakpoints.png)) |
 | Mute Breakpoints | — | — | yes | Turns all breakpoints off temporarily, or on again. [More](docs/guide/user/debugging.md#breakpoints) |
 | Start Listening for PHP Debug Connections | — | — | yes | Starts or stops listening for incoming Xdebug connections on port 9003. [More](docs/guide/user/debugging.md#listening-for-connections) |
+| Web Server Debug Validation… | — | — | yes | Checks the Xdebug configuration of a web server or CLI interpreter. [More](docs/guide/user/debugging.md#web-server-debug-validation) |
 
-**Start Listening for PHP Debug Connections** is added by the Xdebug plugin (`forge.xdebug`) in PHP projects; it is a toggle with a check mark while Forge listens.
+**Start Listening for PHP Debug Connections** and **Web Server Debug Validation…** are added by the Xdebug plugin (`forge.xdebug`) in PHP projects; Start Listening is a toggle with a check mark while Forge listens.
 
 
 ---
@@ -12997,6 +13152,8 @@ Page id `lang.php.debug`.
 | `php.debug.maxChildren` | int (1–10000) | `100` | user | Evaluation | Max. children — Array elements and object properties loaded per page. |
 | `php.debug.maxDepth` | int (1–16) | `1` | user | Evaluation | Max. depth — Nesting levels fetched at once; deeper levels load when expanded. |
 | `php.debug.maxData` | int (128–10485760) | `65536` | user | Evaluation | Max. string length — Bytes of string data fetched per value. |
+| `php.debug.validation.documentRoot` | string | `"public"` | user, project | Web Server Debug Validation | Path to create validation script — Project folder served by the web server (its document root), e.g. public. Run \| Web Server Debug Validation places a temporary script there and deletes it after the check. |
+| `php.debug.validation.url` | string | `"http://localhost:8080"` | user, project | Web Server Debug Validation | URL to validation script — The URL of that folder, e.g. http://localhost:8080. |
 
 ### Languages & Frameworks | PHP | Laravel
 
@@ -16582,7 +16739,14 @@ Forge's PHP debugger: a DBGp server for Xdebug 3.
   project files (`PathMapper`), set the project's breakpoints and report state changes
   as `DebugEvent`s.
 - Breakpoints live in `<project>/.forge/breakpoints.json`, servers with their path
-  mappings in `<project>/.forge/php-servers.json`.
+  mappings in `<project>/.forge/php-servers.json`. Breakpoints carry PHPStorm's properties:
+  condition, suspend (off = logpoint), "Breakpoint hit" message, stack trace, evaluate and
+  log, remove once hit (temporary) and pass count. When a breakpoint with logging fires, the
+  session logs to the console (`DebugEvent::Output` with stream `log`), drops temporary
+  breakpoints and resumes logpoints.
+- `console`: completion of variables (`$`) and members (`->`) and the console text of values.
+- `validation`: "Web Server Debug Validation" (validation script, `php -i` parser, checks).
+- `web`: URLs of PHP Web Page configurations with the `XDEBUG_SESSION_START` trigger.
 
 ## Modules
 
@@ -16590,6 +16754,7 @@ Forge's PHP debugger: a DBGp server for Xdebug 3.
 | --- | --- |
 | `breakpoints.rs` | Project breakpoints, persisted in `<project>/.forge/breakpoints.json`. |
 | `config.rs` |  |
+| `console.rs` | The debugger console: values printed by logpoints and evaluations, and completion of variables and members while typing a PHP expression. |
 | `connection.rs` | One DBGp connection: writes commands with transaction ids and routes the engine's answers back to the waiting caller. Packets that are not answers (`stream`, `notify`) go to a callback. |
 | `error.rs` |  |
 | `events.rs` |  |
@@ -16598,6 +16763,8 @@ Forge's PHP debugger: a DBGp server for Xdebug 3.
 | `server.rs` | The DBGp listener ("Start Listening for PHP Debug Connections") and the registry of sessions, breakpoints and servers it shares with them. |
 | `servers.rs` | PHP servers (PHPStorm's "Settings > PHP > Servers"): which host a debug connection comes from and how its paths map into the project. Stored per project in `<project>/.forge/php-servers.json`. |
 | `session.rs` | A debug session: one script run connected through DBGp. |
+| `validation.rs` | "Web Server Debug Validation": what the PHP that runs a request or a CLI script reports about Xdebug (validation script, `php -i`), and whether that lets it connect to Forge. |
+| `web.rs` | URLs of the "PHP Web Page" run configuration and the Xdebug trigger that starts a debug session for a browser request. |
 | `xml.rs` | A tiny DOM for DBGp messages. Responses are small, so building a tree is simpler than streaming and keeps the typed parsers in `protocol.rs` readable. |
 
 ## Main public items
@@ -16617,7 +16784,7 @@ pub fn launch_env(port: u16, server_name: Option<&str>) -> Vec<(String, String)>
 
 ## Used by
 
-- IPC: `debug_status`, `debug_listen_start`, `debug_listen_stop`, `debug_sessions`, `debug_accept_connection`, `debug_ignore_connection`, `debug_step`, `debug_pause`, `debug_stop`, `debug_detach`, `debug_run_to_cursor`, `debug_stack`, `debug_contexts`, `debug_variables`, `debug_property`, `debug_eval`, `debug_set_value`, `debug_breakpoints`, `debug_breakpoint_add`, `debug_breakpoint_update`, `debug_breakpoint_remove`, `debug_breakpoint_toggle`, `debug_breakpoints_mute`, `debug_watches`, `debug_watches_set`, `debug_servers`, `debug_servers_save`, `debug_launch_env` (`app/src-tauri/src/commands/debug.rs`)
+- IPC: `debug_status`, `debug_listen_start`, `debug_listen_stop`, `debug_sessions`, `debug_accept_connection`, `debug_ignore_connection`, `debug_step`, `debug_pause`, `debug_stop`, `debug_detach`, `debug_run_to_cursor`, `debug_stack`, `debug_contexts`, `debug_variables`, `debug_property`, `debug_eval`, `debug_set_value`, `debug_breakpoints`, `debug_breakpoint_add`, `debug_breakpoint_update`, `debug_breakpoint_remove`, `debug_breakpoint_toggle`, `debug_breakpoints_mute`, `debug_watches`, `debug_watches_set`, `debug_servers`, `debug_servers_save`, `debug_launch_env`, `debug_complete`, `debug_page_url`, `debug_web_page_start`, `debug_validate_cli`, `debug_validate_web` (`app/src-tauri/src/commands/debug.rs`)
 - UI: `app/ui/src/features/debug`
 - Browser mode: not built to WebAssembly (runtime code); browser mode uses mocks
 
@@ -16628,7 +16795,7 @@ pub fn launch_env(port: u16, server_name: Option<&str>) -> Vec<(String, String)>
 
 ## Tests
 
-12 source files, about 3082 lines; 15 unit tests and 8 integration tests in `tests/` (`dbgp_server.rs`).
+15 source files, about 5190 lines; 25 unit tests and 10 integration tests in `tests/` (`dbgp_server.rs`, against a scripted fake Xdebug engine on localhost).
 
 ```sh
 cargo test -p forge-debug

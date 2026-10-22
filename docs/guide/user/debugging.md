@@ -1,8 +1,8 @@
 ---
 title: Xdebug debugging
-description: Step-debug PHP with Xdebug 3 - listening for connections, breakpoints and conditions, stepping, variables, watches, Evaluate Expression, servers and path mappings.
+description: Step-debug PHP with Xdebug 3 - listening for connections, web pages and HTTP requests, breakpoints, logpoints and temporary breakpoints, stepping, variables and Set Value, watches, Evaluate Expression, the debugger console, servers and path mappings, Web Server Debug Validation.
 order: 150
-tags: [debug, xdebug, php, breakpoints, dbgp]
+tags: [debug, xdebug, php, breakpoints, logpoints, dbgp, web server, validation]
 ---
 
 # Xdebug debugging
@@ -52,6 +52,23 @@ parameter or browser extension).
 
 ![Incoming connection](../../screenshots/debugger-incoming.png)
 
+### Debugging web pages and HTTP requests
+
+These configurations start listening by themselves when you press **Debug** (`Shift+F9`):
+
+| Configuration | Debug |
+| --- | --- |
+| **PHP Built-in Web Server** | runs `php -S host:port -t <document root> [router script]` with the Xdebug environment and `-dxdebug.start_with_request=yes`, so every request it serves is debugged; opens the page in the browser |
+| **PHP Web Page** | opens the start URL on a server of Settings \| PHP \| Servers with `?XDEBUG_SESSION_START=FORGE` (Xdebug then sets the `XDEBUG_SESSION` cookie for the following requests) |
+| **PHP HTTP Request** | sends the request (method, URL, headers, body) with the cookie `XDEBUG_SESSION=FORGE` |
+| Requests in `.http` files | click the gutter ▶ and choose **Debug '…' with Xdebug**: the request is sent with the cookie |
+
+![Debug an .http request](../../screenshots/http-debug-menu.png)
+
+The Run tool window shows the cookie of a debugged request:
+
+![Debugged request](../../screenshots/http-debug-run.png)
+
 When a connection comes from an unknown server whose script is not a project file, the
 **Incoming Connection From Xdebug** dialog asks which project file the server file maps to and
 creates a server with that path mapping. Turn on **Ignore external connections through
@@ -74,6 +91,35 @@ connections silently.
 
 Breakpoints are stored in `<project>/.forge/breakpoints.json`.
 
+### Breakpoint properties, logpoints and temporary breakpoints
+
+The right side of **View Breakpoints…** (and the popup of a right-click on a breakpoint) has
+PHPStorm's properties:
+
+| Property | Effect |
+| --- | --- |
+| **Enabled** | off keeps the breakpoint without stopping |
+| **Suspend execution** | off makes a **logpoint**: Forge logs and lets the script run on (yellow dot) |
+| **Condition** | a PHP expression; Xdebug stops only when it is true |
+| **Log: "Breakpoint hit" message** | prints `Breakpoint reached at <file>:<line>` to the session's Console |
+| **Log: Stack trace** | prints the frames |
+| **Evaluate and log** | evaluates a PHP expression in the frame and prints its value |
+| **Remove once hit** | a **temporary breakpoint**: removed after it suspended once (dot with a ring) |
+| **Pass count** | stops only from the n-th hit on (Xdebug's hit condition `>=`) |
+
+- **Shift+click** on a line number adds a logpoint ("Breakpoint hit" message, no suspend) and
+  opens its properties.
+- **Toggle Temporary Line Breakpoint** (`Ctrl+Alt+Shift+F8`, macOS `Cmd+Alt+Shift+F8`) adds a
+  breakpoint that is removed once hit.
+- **PHP Exception Breakpoints** (**+** in the dialog) stop when an exception of the class (or
+  a subclass) is thrown; `*` stops on any exception. They have the same log options.
+
+![Logpoint properties](../../screenshots/debugger-logpoint.png)
+
+Logged lines appear in the **Console** tab of the debug session:
+
+![Logpoint output](../../screenshots/debugger-logpoint-output.png)
+
 ## The Debug tool window
 
 ![Paused](../../screenshots/debugger-paused.png)
@@ -84,7 +130,8 @@ has a tab per session with:
 
 - **Threads & Variables**: the frames on the left (click to switch), variables on the right.
   Arrays and objects expand lazily.
-- **Console**: the script's output.
+- **Console**: the script's output, logpoint messages, and a field at the bottom that
+  evaluates PHP expressions in the selected frame (see below).
 - The evaluate field at the top: type an expression and press `Enter` to evaluate it, or
   `Ctrl+Shift+Enter` to add it as a watch.
 
@@ -104,8 +151,32 @@ has a tab per session with:
 | Show Execution Point | `Alt+F10` | `Alt+F10` |
 | Stop | `Ctrl+F2` | `Cmd+F2` |
 | Add to Watches | context menu | context menu |
+| Set Value… | `F2` | `F2` |
+| Toggle Temporary Line Breakpoint | `Ctrl+Alt+Shift+F8` | `Cmd+Alt+Shift+F8` |
 
 ![Evaluate Expression](../../screenshots/debugger-evaluate.png)
+
+### Variables: Set Value and Copy Value
+
+Right-click a variable or watch for **Set Value…** (`F2`), **Copy Value** (arrays and objects
+as `print_r` output), **Copy Name**, **Evaluate Expression…** and **Add to Watches**. Set Value
+edits the value in place: type a PHP expression (`'paid'`, `42`, `null`, `$other`) and press
+`Enter` (Xdebug's `property_set`); `Escape` cancels. The variables and watches reload after the
+change.
+
+![Set Value](../../screenshots/debugger-set-value.png)
+
+![Variable context menu](../../screenshots/debugger-variable-menu.png)
+
+### Evaluate Expression and the debugger console
+
+The **Evaluate** dialog (`Alt+F8`) and the field at the bottom of the **Console** tab evaluate a
+PHP expression in the selected frame (Xdebug's `eval`). Both complete variable names after `$`
+and properties after `->` (from the suspended script, `Enter` or `Tab` accepts) and keep a
+history of evaluated expressions: `Up` / `Down` in the field, or the history button. Console
+results are trees that expand like variables.
+
+![Debugger console](../../screenshots/debugger-console.png)
 
 Smart Step Into currently behaves like Step Into. Pause depends on the engine and may
 report "Pause is not supported by this engine".
@@ -114,14 +185,38 @@ report "Pause is not supported by this engine".
 
 When PHP runs in a container or on another machine, its file paths differ from yours. Define a
 **server** in Settings | Languages & Frameworks | PHP | **Servers**: **Name**, **Host**,
-**Port**, **Debugger** (Xdebug) and **path mappings** (project file or directory → absolute
-path on the server).
+**Port**, **Debugger** (Xdebug) and **Use path mappings**: the project's folders as a tree,
+with the **Absolute path on the server** of each mapped folder (usually just the project root,
+e.g. `/var/www/html`; a deeper mapping such as `vendor` wins for its files).
 
 ![Servers](../../screenshots/debugger-servers.png)
 
 A session finds its server from `PHP_IDE_CONFIG=serverName=<name>`, otherwise from
 `$_SERVER['SERVER_NAME']` and `SERVER_PORT`. Servers are stored in
 `<project>/.forge/php-servers.json`.
+
+## Web Server Debug Validation
+
+**Run | Web Server Debug Validation…** (PHPStorm's "Validate Debugger Configuration on Web
+Server") checks whether PHP can connect to Forge:
+
+- **Local Web Server or Shared Folder**: Forge writes a temporary script
+  `forge_xdebug_validator_*.php` into the project folder that the web server serves (**Path to
+  create validation script**, e.g. `public`), requests it under **URL to validation script**
+  and deletes it right after the check. Nothing is written before you press **Validate**.
+- **CLI Interpreter**: reads `php -i` of a [CLI interpreter](php.md#cli-interpreters) (also
+  Docker, Compose, SSH or WSL ones).
+
+Each check shows ✓ (fine), ⚠ (works with conditions) or ✗ (must be fixed) with a hint: the
+Xdebug version, `xdebug.mode` (must include `debug`), `xdebug.client_host` (localhost cannot
+reach Forge from a container or another machine), `xdebug.client_port` (must be Forge's
+`php.debug.port`), `xdebug.start_with_request` (`trigger` needs the cookie or
+`XDEBUG_SESSION_START`) and the server name used to find path mappings. For CLI interpreters,
+Forge sets mode, host, port and session itself for debug runs, so only the extension matters.
+The path and URL are remembered per project (`php.debug.validation.documentRoot`,
+`php.debug.validation.url`).
+
+![Web Server Debug Validation](../../screenshots/debugger-validation.png)
 
 ## Settings | Languages & Frameworks | PHP | Debug
 
@@ -137,6 +232,8 @@ A session finds its server from `PHP_IDE_CONFIG=serverName=<name>`, otherwise fr
 | Max. children (array elements / properties per page) | `php.debug.maxChildren` | 100 |
 | Max. depth (levels fetched at once) | `php.debug.maxDepth` | 1 |
 | Max. string length (bytes) | `php.debug.maxData` | 65536 |
+| Path to create validation script | `php.debug.validation.documentRoot` | `public` |
+| URL to validation script | `php.debug.validation.url` | `http://localhost:8080` |
 
 ## Remote projects
 
