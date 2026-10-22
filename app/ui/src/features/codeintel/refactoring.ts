@@ -15,6 +15,7 @@ import { EditorView } from "@codemirror/view";
 import { invertedEffects, isolateHistory, redo, undo } from "@codemirror/commands";
 import { listen } from "@/ipc";
 import { codeApi, isLibraryPath, type AppliedFile, type FileRename, type WorkspaceEdit } from "@/ipc/codeintel";
+import { workspaceApi } from "@/ipc/workspace";
 import { editor, closeTab, isDirty, openFile, saveFile } from "@/state/editor";
 import { showBalloon } from "@/keymap";
 import { refreshDirs } from "@/features/project/ProjectView";
@@ -31,6 +32,16 @@ interface EditorPart {
   after: Text;
 }
 
+/**
+ * A file or folder that moves or is copied as part of a refactoring (Project view Move and
+ * Copy). It happens before the edit, whose paths are the ones after it.
+ */
+export interface FileOp {
+  kind: "move" | "copy";
+  from: string;
+  to: string;
+}
+
 interface Refactoring {
   id: number;
   label: string;
@@ -39,6 +50,9 @@ interface Refactoring {
   applied: AppliedFile[];
   reopen: FileRename[];
   close: string[];
+  fileOps: FileOp[];
+  /** Tabs that moved with `fileOps`. */
+  movedTabs: FileRename[];
   undone: boolean;
 }
 
@@ -96,6 +110,32 @@ export interface ApplyOptions {
   label: string;
   /** Runs before anything changes (the in-place rename reverts its live edits). */
   beforeEditors?: () => void;
+  /** Files and folders to move or copy first (the edit refers to their new paths). */
+  fileOps?: FileOp[];
+}
+
+const under = (path: string, dir: string) => path === dir || path.startsWith(`${dir}/`);
+
+/** Run the file operations (or undo them, in reverse order); returns the tabs that moved. */
+async function runFileOps(ops: FileOp[], reverse: boolean): Promise<FileRename[]> {
+  const moved: FileRename[] = [];
+  const list = reverse ? [...ops].reverse() : ops;
+  for (const op of list) {
+    if (op.kind === "copy") {
+      if (reverse) await workspaceApi.delete(op.to);
+      else await workspaceApi.copy(op.from, op.to);
+      continue;
+    }
+    const [from, to] = reverse ? [op.to, op.from] : [op.from, op.to];
+    const tabs = editor.tabs.filter((t) => under(t.path, from));
+    // Unsaved edits go with the file.
+    for (const t of tabs.filter(isDirty)) await saveFile(t.path);
+    await workspaceApi.rename(from, to);
+    for (const t of tabs) moved.push({ from: t.path, to: to + t.path.slice(from.length) });
+  }
+  if (moved.length) for (const m of moved) closeTab(m.from);
+  refreshDirs([...new Set(ops.flatMap((o) => [parentOf(o.from), parentOf(o.to)]))]);
+  return moved;
 }
 
 export interface ApplyResult {
@@ -108,6 +148,8 @@ export interface ApplyResult {
  * nothing) when the backend cannot apply its part, e.g. a file changed in the meantime.
  */
 export async function applyWorkspaceEdit(edit: WorkspaceEdit, opts: ApplyOptions): Promise<ApplyResult> {
+  const fileOps = opts.fileOps ?? [];
+  const movedTabs = fileOps.length ? await runFileOps(fileOps, false) : [];
   const plan = await codeApi.planEdit(edit, openEditors());
   // Before saving: a file the backend rewrites must be saved as the edit expects it.
   opts.beforeEditors?.();
@@ -116,7 +158,15 @@ export async function applyWorkspaceEdit(edit: WorkspaceEdit, opts: ApplyOptions
     if (tab && isDirty(tab)) await saveFile(p);
   }
   const hasBackend = plan.backend.changes.length > 0;
-  const applied = hasBackend ? await codeApi.applyEdit(plan.backend) : [];
+  let applied: AppliedFile[] = [];
+  try {
+    applied = hasBackend ? await codeApi.applyEdit(plan.backend) : [];
+  } catch (e) {
+    // Put moved files back, so nothing changed.
+    if (fileOps.length) await runFileOps(fileOps, true).catch(() => undefined);
+    await moveTabs(movedTabs.map((m) => ({ from: m.to, to: m.from })));
+    throw e;
+  }
   const id = ++seq;
   const r: Refactoring = {
     id,
@@ -126,6 +176,8 @@ export async function applyWorkspaceEdit(edit: WorkspaceEdit, opts: ApplyOptions
     applied,
     reopen: plan.reopen,
     close: plan.close,
+    fileOps,
+    movedTabs,
     undone: false,
   };
   refactorings.set(id, r);
@@ -144,9 +196,10 @@ export async function applyWorkspaceEdit(edit: WorkspaceEdit, opts: ApplyOptions
   }
   for (const p of plan.close) closeTab(p);
   await moveTabs(plan.reopen);
+  for (const m of movedTabs) await openFile(m.to).catch(() => undefined);
   // Reopened files start a new history: give them the refactoring's entry, so Ctrl+Z there
   // undoes the refactoring too.
-  for (const m of plan.reopen) {
+  for (const m of [...plan.reopen, ...movedTabs]) {
     const view = await waitForView(m.to);
     if (!view) continue;
     view.dispatch({ effects: refactoringStep.of({ id, undo: false }), annotations: isolateHistory.of("full") });
@@ -203,6 +256,14 @@ async function undoRefactoring(id: number, source: EditorView): Promise<void> {
   }
   await moveTabs(r.reopen.map((m) => ({ from: m.to, to: m.from })));
   for (const p of r.close) await openFile(p).catch(() => undefined);
+  if (r.fileOps.length) {
+    try {
+      await runFileOps(r.fileOps, true);
+      for (const m of r.movedTabs) await openFile(m.from).catch(() => undefined);
+    } catch (e) {
+      skipped.push(String(e instanceof Error ? e.message : e));
+    }
+  }
   if (r.applied.length) refreshTree(r.backend);
   if (skipped.length) showBalloon(`${r.label} was undone only partly`, `Changed since: ${skipped.join(", ")}`, 6000);
 }
@@ -212,6 +273,14 @@ async function redoRefactoring(id: number, source: EditorView): Promise<void> {
   if (!r || !r.undone) return;
   r.undone = false;
   const skipped = driveOthers(r, source, "redo");
+  if (r.fileOps.length) {
+    try {
+      await runFileOps(r.fileOps, false);
+      for (const m of r.movedTabs) await openFile(m.to).catch(() => undefined);
+    } catch (e) {
+      skipped.push(String(e instanceof Error ? e.message : e));
+    }
+  }
   if (r.backend.changes.length) {
     try {
       r.applied = await codeApi.applyEdit(r.backend);

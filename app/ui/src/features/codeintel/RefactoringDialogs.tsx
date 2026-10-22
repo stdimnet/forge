@@ -4,7 +4,7 @@
  * workbench, like the other small modal dialogs.
  */
 import { createSignal, For, Show } from "solid-js";
-import { FilePen, TriangleAlert } from "lucide-solid";
+import { FilePen, FilePlus, FileX, TriangleAlert } from "lucide-solid";
 import { FileIcon } from "@/shell/FileIcon";
 import type { FilePreview, PreviewRow, RenameConflict, UsagesAnswer } from "@/ipc/codeintel";
 import { openFileAt } from "@/editor/views";
@@ -103,9 +103,20 @@ function FileBlock(props: { file: FilePreview }) {
         <Show when={props.file.operation === "rename" && props.file.newPath}>
           {(to) => (
             <span class="preview-file-op">
-              <FilePen size={12} /> Rename file to {fileName(to())}
+              <FilePen size={12} />{" "}
+              {dirName(to()) === dirName(props.file.path) ? `Rename file to ${fileName(to())}` : `Move file to ${to()}`}
             </span>
           )}
+        </Show>
+        <Show when={props.file.operation === "create"}>
+          <span class="preview-file-op">
+            <FilePlus size={12} /> Create file
+          </span>
+        </Show>
+        <Show when={props.file.operation === "delete"}>
+          <span class="preview-file-op">
+            <FileX size={12} /> Delete file
+          </span>
         </Show>
         <Show when={props.file.rows.length}>
           <span class="preview-file-count">{countLabel(props.file.rows.length, "occurrence")}</span>

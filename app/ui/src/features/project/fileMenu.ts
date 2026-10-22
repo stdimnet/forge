@@ -11,6 +11,7 @@ import { closeTab, editor, isDirty, openFile, saveFile } from "@/state/editor";
 import { workspace } from "@/state/workspace";
 import { projectTree, refreshDirs, revealPath } from "./ProjectView";
 import { openFindInFiles } from "@/features/find/state";
+import { copyEntries, moveEntries, safeDeleteEntries } from "@/features/codeintel/moveRefactorings";
 
 const parentOf = (path: string) => path.split("/").slice(0, -1).join("/");
 const join = (dir: string, name: string) => (dir ? `${dir}/${name}` : name);
@@ -188,7 +189,19 @@ export function fileMenuEntries(entry: FileEntry | null): MenuEntry[] {
     );
   }
   entries.push(item("Find in Files…", () => openFindInFiles({ directory: dir }), "FindInPath"));
-  if (entry) entries.push(item("Rename…", () => void rename(entry), "RenameElement"), item("Delete…", () => void remove(entry), "$Delete"));
+  if (entry) {
+    // The selected rows (Ctrl+click) move and are deleted together.
+    const paths = () => (projectTree.selectedPaths().includes(entry.path) ? projectTree.selectedPaths() : [entry.path]);
+    entries.push(
+      submenu("Refactor", [
+        item("Rename…", () => void rename(entry), "RenameElement"),
+        item("Move…", () => void moveEntries(paths()), "Move"),
+        item("Copy…", () => void copyEntries([entry.path]), "CopyElement"),
+        item("Safe Delete…", () => void safeDeleteEntries(paths()), "SafeDelete"),
+      ]),
+      item("Delete…", () => void remove(entry), "$Delete"),
+    );
+  }
   // Other features (Git) add their submenus next to Reload from Disk, like PHPStorm.
   entries.push(separator, ...providedEntries("project", entry), item("Reload from Disk", () => refreshDirs([dir])));
   // Compare With… / Compare Files below Reload from Disk, like PHPStorm.

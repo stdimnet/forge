@@ -571,3 +571,9 @@ button.status-item:hover {
   background: var(--bg-hover);
   color: var(--fg);
 }
+
+/* Project view drag and drop (Move). */
+.tree-row.drop-target {
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}

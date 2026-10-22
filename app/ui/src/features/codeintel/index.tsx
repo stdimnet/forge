@@ -18,6 +18,7 @@ import { registerToolWindow } from "@/features/registry";
 import { registerEditorExtension } from "@/editor/extensions";
 import { isLibraryPath } from "@/ipc/codeintel";
 import { renameEntryAt, renameSelection } from "@/features/project/fileMenu";
+import { projectTree } from "@/features/project/ProjectView";
 import { activeTab } from "@/state/editor";
 import { registerCommand } from "@/state/commands";
 import { actionById, isActionAvailable, runAction, shortcutLabel, showBalloon } from "@/keymap";
@@ -48,6 +49,17 @@ import {
   refactorThis,
 } from "./extract";
 import { listenForServerEdits, refactoringHistory } from "./refactoring";
+import { MoveDialogHost } from "./MoveDialogs";
+import {
+  changeSignatureAt,
+  copyAt,
+  copyEntries,
+  makeStaticAt,
+  moveAt,
+  moveEntries,
+  safeDeleteAt,
+  safeDeleteEntries,
+} from "./moveRefactorings";
 import { inPlaceRename, previewRequest, renameDialog, startRename } from "./rename";
 import { chooseTargetAt } from "./targets";
 import { findTabs, findUsagesAt, findUsagesInFileAt, searchTabOpen, gotoFindOccurrence, showUsagesAt, usagesPopup } from "./usages";
@@ -144,6 +156,27 @@ action("IntroduceField", "Introduce Field…", "Refactor", inEditor((p, v) => in
 action("IntroduceParameter", "Introduce Parameter…", "Refactor", inEditor((p, v) => introduce("parameter", p, v)));
 action("ExtractMethod", "Extract Method…", "Refactor", inEditor((p, v) => extractMethod(p, v)));
 action("Inline", "Inline…", "Refactor", inEditor((p, v) => inline(p, v)));
+// Move (F6), Copy (F5) and Safe Delete (Alt+Delete): the selected file or folder in the
+// Project view, else the element at the caret. Change Signature (Ctrl+F6), Make Static.
+function treeOrEditor(entries: (paths: string[]) => unknown, element: (path: string, view: EditorView) => unknown) {
+  return () => {
+    const focused = document.activeElement;
+    if (focused?.closest(".project-tree")) {
+      const selected = projectTree.selectedPaths().filter((p) => !p.includes("://"));
+      if (selected.length) void entries(selected);
+      return;
+    }
+    if (focused?.closest(".dialog")) return;
+    const a = activeView();
+    if (a) void element(a.path, a.view);
+  };
+}
+action("Move", "Move…", "Refactor", treeOrEditor(moveEntries, moveAt));
+action("CopyElement", "Copy…", "Refactor", treeOrEditor(copyEntries, copyAt));
+action("SafeDelete", "Safe Delete…", "Refactor", treeOrEditor(safeDeleteEntries, safeDeleteAt));
+action("ChangeSignature", "Change Signature…", "Refactor", inEditor((p, v) => changeSignatureAt(p, v)));
+action("MakeStatic", "Make Static…", "Refactor", inEditor((p, v) => makeStaticAt(p, v)));
+
 // Ctrl+Alt+Shift+T: the refactorings in a popup.
 action(
   "Refactorings.QuickListPopupAction",
@@ -216,6 +249,7 @@ if (typeof document !== "undefined" && !isDialogWindow()) {
           <Show when={inlineDialog()} keyed>
             {(r) => <InlineDialog req={r} />}
           </Show>
+          <MoveDialogHost />
         </>
       ),
       host,
