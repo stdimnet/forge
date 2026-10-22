@@ -1,8 +1,8 @@
 ---
 title: Git
-description: Git integration - the Commit tool window, AI commit messages, diff viewer, change markers, blame, branches, push, update, merge conflicts, the Git log, file and selection history, and comparing files, folders and the clipboard.
+description: Git integration - the Commit tool window, stash and shelf, Pull/Merge/Rebase/Reset/Tag/Remotes dialogs, AI commit messages, diff viewer, change markers, blame, branches, push, update, merge conflicts, the Git log, file and selection history, and comparing files, folders and the clipboard.
 order: 120
-tags: [git, vcs, commit, diff, blame, branches, merge, conflicts]
+tags: [git, vcs, commit, diff, blame, branches, merge, rebase, conflicts, stash, shelf]
 ---
 
 # Git
@@ -25,6 +25,8 @@ current branch is shown in the main toolbar and the status bar.
   **Sign-off** adds a `Signed-off-by` line (`git commit --signoff`; the same option as
   Settings | Version Control | Git | Sign-off commits).
 - **Commit** (`Ctrl+Enter` in the message) or **Commit and Push…**.
+- While there are shelved changes or stashes, the header shows the tabs **Changes**, **Shelf**
+  and **Stash** (see [Shelf](#shelf) and [Stash](#stash)).
 
 ![Commit message inspections](../../screenshots/vcs-commit-inspections.png)
 
@@ -134,9 +136,118 @@ Settings | Version Control | Git:
 Automatic fetching runs in the background while the branch has an upstream; failures
 (offline, missing credentials) are ignored.
 
+## Pull, merge and rebase
+
+![Pull dialog](../../screenshots/git-pull-dialog.png)
+
+- **Git ▸ Pull…** (`Git.Pull`) opens **Pull to main**: the remote (`origin`), the branch (or
+  several, separated by spaces) and **Modify options**: `--rebase`, `--ff-only`, `--no-ff`,
+  `--squash`, `--no-commit` and `--no-verify`. Options that cannot be combined are greyed out;
+  chosen options appear as chips you can remove with ×.
+- **Git ▸ Merge…** (`Git.Merge`) opens **Merge into main**: the branch to merge and the options
+  `--no-ff`, `--ff-only`, `--squash`, `-m` (shows a field for the merge commit message),
+  `--no-commit`, `--no-verify` and `--allow-unrelated-histories`.
+- **Git ▸ Rebase…** (`Git.Rebase`) opens **Rebase main**: the upstream (or new base) and the
+  options `--onto` (adds the *from* field: only the commits after it are moved onto the new
+  base), **Select another branch to rebase**, `--rebase-merges`, `--keep-empty`, `--root` and
+  `--update-refs`. Interactive rebase comes later.
+
+![Merge dialog](../../screenshots/git-merge-dialog.png)
+
+![Rebase dialog](../../screenshots/git-rebase-dialog.png)
+
+When an operation stops with conflicts, the [Conflicts dialog](#merge-conflicts) opens. While a
+rebase or merge waits for you, the branch widgets in the toolbar and the status bar say
+**Rebasing main** (or **Merging main**) and the Git menu offers **Continue Rebase**, **Skip
+Commit** and **Abort Rebase** (`Git.Rebase.Continue`, `Git.Rebase.Skip`, `Git.Rebase.Abort`), or
+**Abort Merge** (`Git.Merge.Abort`). Continuing may stop at the next conflict, which opens the
+Conflicts dialog again.
+
+![Rebase in progress](../../screenshots/git-rebasing.png)
+
+## Reset HEAD, tags and remotes
+
+**Git ▸ Reset HEAD…** (`Git.Reset`) resets the current branch to a commit (`HEAD`, `HEAD~2`, a
+hash, a branch or tag; **Validate** shows the hash) with one of the reset types:
+
+| Type | What happens |
+| --- | --- |
+| Soft | Files won't change, differences will be staged for commit. |
+| Mixed | Files won't change, differences won't be staged. |
+| Hard | Files will be reverted to the state of the selected commit. Any local changes are lost. |
+| Keep | Files will be reverted to the state of the selected commit, but local changes are kept intact. |
+
+![Reset dialog](../../screenshots/git-reset-dialog.png)
+
+**Git ▸ New Tag…** (`Git.CreateNewTag`) opens **Tag**: the tag name, **Force** (replace an
+existing tag), the commit (default `HEAD`, with **Validate**) and an optional **Message**, which
+makes it an annotated tag.
+
+![Tag dialog](../../screenshots/git-tag-dialog.png)
+
+**Git ▸ Manage Remotes…** (`Git.Configure.Remotes`) lists the remotes with their URLs. **+** adds
+one (**Define Remote**: name and URL), the pencil (or a double-click) edits the name and URL,
+the bin removes it.
+
+![Git Remotes](../../screenshots/git-remotes-dialog.png)
+
+## Stash
+
+**Git ▸ Uncommitted Changes ▸ Stash Changes…** (`Git.Stash`) shows the Git root and the current
+branch, asks for a **Message** and offers **Keep index** (staged changes stay staged and in the
+working tree). **Create Stash** runs `git stash push`.
+
+![Stash dialog](../../screenshots/git-stash-dialog.png)
+
+**Unstash Changes…** (`Git.Unstash`) lists the stashes of the repository:
+
+- **View** lists the files of the selected stash; a double-click (or the diff icon) shows the
+  diff between the stash's base and the stashed version.
+- **Drop** removes the selected stash, **Clear** all of them (both ask first).
+- **Pop stash** removes the stash after applying it; **Reinstate index** restores what was
+  staged. **As new branch** creates a branch at the stash's base commit, checks it out and pops
+  the stash there (`git stash branch`).
+- The button reads **Apply Stash**, **Pop Stash** or **Branch**. Conflicts open the Conflicts
+  dialog.
+
+![Unstash dialog](../../screenshots/git-unstash-dialog.png)
+
+The **Stash** tab of the Commit tool window (shown while there are stashes) lists them too:
+expand a stash to see its files, double-click a file (or **Show Diff**, `Ctrl+D`) for its diff,
+and **Apply**, **Pop** or **Drop** the selected stash from the toolbar.
+
+![Stash tab](../../screenshots/git-stash-tab.png)
+
+## Shelf
+
+The shelf keeps changes aside without git, like PHPStorm's shelf. Forge stores it per project in
+its data directory (`<data dir>/forge/projects/<project>/shelf`, see
+[File locations](../reference/file-locations.md)); nothing is written into the project.
+
+- **Git ▸ Uncommitted Changes ▸ Shelve Changes…** (`ChangesView.Shelve`) lists the local
+  changes (new files included) with checkboxes and a **Comment**. **Shelve Changes** saves the
+  ticked files as a patch and rolls them back (new files are removed).
+- **Show Shelf** (`Vcs.Show.Shelf`) opens the **Shelf** tab of the Commit tool window. Expand a
+  shelved changelist to see its files; `Ctrl`-click selects several.
+- Toolbar: **Unshelve…** (`ShelveChanges.UnshelveWithDialog`), **Unshelve Silently**,
+  **Delete**, **Show Diff** (`Ctrl+D`, also a double-click on a file) and **Rename**.
+- **Unshelve Changes** lists the files with checkboxes, preselected from the selection, so you
+  can unshelve part of a changelist. **Remove successfully applied files from the shelf** drops
+  them from the shelf afterwards. New files come back as added files.
+- A shelved patch that no longer applies cleanly is merged three-way; conflicts open the
+  Conflicts dialog and the changes stay on the shelf.
+
+![Shelve Changes](../../screenshots/git-shelve-dialog.png)
+
+![Shelf tab](../../screenshots/git-shelf-tab.png)
+
+![Unshelve Changes](../../screenshots/git-unshelve-dialog.png)
+
+In remote projects git runs on the remote host; the shelf stays on your machine.
+
 ## Merge conflicts
 
-When a merge, rebase, update (pull), cherry-pick or unstash stops with conflicts, Forge opens
+When a merge, rebase, update (pull), cherry-pick, unstash or unshelve stops with conflicts, Forge opens
 the **Conflicts** dialog. Later you get it with **Git ▸ Resolve Conflicts…** (Find Action:
 `Git.ResolveConflicts`), the **Resolve** link of the **Merge conflicts** balloon, or the
 **Resolve** link of the **Merge Conflicts** node in the Commit tool window.
