@@ -10,6 +10,10 @@
 //!   rename, conflicts, and the split between open editors and the backend.
 //! - [`usages`]: Find Usages: the usage type of each reference (method call, import, new
 //!   instance, ...) from its line, and the result tree grouped by usage type and file.
+//! - [`usage_options`]: the Find Usages settings: options per kind of element, search
+//!   scopes and text occurrences.
+//! - [`highlight`]: Highlight Usages in File and the highlighting of the element at the
+//!   caret: read / write access, exit points and a lexical fallback.
 //! - [`docs`]: External Documentation URLs, Quick Definition snippets, Context Info headers
 //!   and Type Info from hovers and signatures.
 //! - [`structure`]: the scopes around a line (Sticky Lines, breadcrumbs) and custom folding
@@ -25,12 +29,14 @@ pub mod docs;
 pub mod edit;
 pub mod file_structure;
 pub mod hierarchy;
+pub mod highlight;
 pub mod inlay;
 pub mod navbar;
 pub mod related;
 pub mod rename;
 pub mod structure;
 pub mod test_nav;
+pub mod usage_options;
 pub mod usages;
 
 pub use actions::{
@@ -53,6 +59,10 @@ pub use hierarchy::{
     HierarchyScope, HierarchyView, MethodMark, MethodPresence, MethodViewRequest, TypeEntry,
     TypeGraph, TypeView, TypeViewRequest,
 };
+pub use highlight::{
+    access_kind, classify_ranges, exit_points, lexical_highlights, lsp_highlight_kind,
+    HighlightAnswer, HighlightKind, HighlightTarget, UsageHighlight,
+};
 pub use navbar::{nav_bar_segments, NavBarRequest, NavSegment};
 pub use related::{related, RelatedItem, RelatedKind, RelatedRequest};
 pub use rename::{
@@ -67,6 +77,11 @@ pub use structure::{
 pub use test_nav::{
     new_test_plan, test_source, test_targets, NewTestPlan, TestFramework, TestMember,
     TestNavRequest, TestSource, TestSourceRequest, TestTargets,
+};
+pub use usage_options::{
+    apply_options, glob_match, is_library_path, same_language, text_occurrences, EffectiveOptions,
+    ElementKind, OptionField, OptionSection, SearchScope, UsageOptions, UsageScope, UsageTarget,
+    OPTIONS_PREFIX,
 };
 pub use usages::{
     classify_usage, group_usages, GroupRequest, UsageFile, UsageGroup, UsageKind, UsageLocation,

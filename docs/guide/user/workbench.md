@@ -364,8 +364,11 @@ clears or deletes it, or makes it the default list (new bookmarks go there).
 
 The **Find** tool window (`Alt+3`) keeps search results, one tab per search:
 
-- **Find Usages** (`Alt+F7`) and the pin button of **Show Usages** put usages there, grouped
-  by usage type and file (see [Find Usages](editor.md#find-usages-and-show-usages)).
+- **Find Usages** (`Alt+F7`), **Find Usages in File** (`Ctrl+F7`) and the pin button of
+  **Show Usages** put usages there, grouped by usage type and file (see
+  [Find Usages](editor.md#find-usages-and-show-usages)). The **Settings** button of a usages
+  tab opens the [Find Usages dialog](editor.md#find-usages-settings) and searches again; with
+  **Open in new tab** off the result replaces the active usages tab.
 - **Open in Find Window** in [Find in Files](search-everywhere.md#find-in-files)
   (`Ctrl+Enter` in the popup) pins the text matches there, grouped by file.
 

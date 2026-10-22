@@ -273,6 +273,128 @@ pub fn codeintel_word_range(request_json: &str) -> String {
     }
 }
 
+// ---- Highlight usages and Find Usages options ----
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct HighlightInput {
+    text: String,
+    path: String,
+    line: u32,
+    character: u32,
+    /// Usage ranges from an index (the PHP mocks); without them the lexical fallback.
+    #[serde(default)]
+    ranges: Option<Vec<forge_codeintel::Range>>,
+    #[serde(default)]
+    declaration: Option<forge_codeintel::Range>,
+    #[serde(default)]
+    title: String,
+    #[serde(default)]
+    element: forge_codeintel::ElementKind,
+}
+
+/// `{ text, path, line, character, ranges?, declaration?, title?, element? }` →
+/// `HighlightAnswer | null` (like `code_highlight_usages`): exit points on `return` /
+/// `throw`, the given ranges classified as reads and writes, else the lexical fallback.
+#[wasm_bindgen]
+pub fn codeintel_highlight_usages(request_json: &str) -> String {
+    match parse::<HighlightInput>(request_json) {
+        Ok(i) => {
+            let at = Position::new(i.line, i.character);
+            if let Some(exits) = forge_codeintel::exit_points(&i.text, &i.path, at) {
+                return to_json(&exits);
+            }
+            let answer = match i.ranges {
+                Some(ranges) => {
+                    let h = forge_codeintel::classify_ranges(&i.text, &ranges, i.declaration);
+                    (!h.is_empty()).then(|| {
+                        forge_codeintel::HighlightAnswer::new(
+                            forge_codeintel::HighlightTarget::Usages,
+                            i.title,
+                            h,
+                            "index",
+                        )
+                        .with_element(i.element)
+                    })
+                }
+                None => forge_codeintel::lexical_highlights(&i.text, &i.path, at),
+            };
+            to_json(&answer)
+        }
+        Err(e) => to_json(&json!({ "error": e })),
+    }
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct FilterInput {
+    usages: Vec<UsageLocation>,
+    #[serde(default)]
+    options: forge_codeintel::UsageOptions,
+    #[serde(default)]
+    scope: forge_codeintel::UsageScope,
+    #[serde(default)]
+    element: forge_codeintel::ElementKind,
+    /// The file Find Usages started in and the word searched (text occurrences).
+    path: String,
+    #[serde(default)]
+    word: String,
+    files: HashMap<String, String>,
+}
+
+/// `{ usages, options, scope, element, path, word, files }` → `{ usages, scope }`: the
+/// usages with text occurrences, in the scope and filtered by the options (like
+/// `code_find_usages`).
+#[wasm_bindgen]
+pub fn codeintel_filter_usages(request_json: &str) -> String {
+    match parse::<FilterInput>(request_json) {
+        Ok(i) => {
+            let effective = i.options.effective(i.element);
+            let mut usages = i.usages;
+            if i.element != forge_codeintel::ElementKind::Variable && !i.word.is_empty() {
+                let mut paths: Vec<&String> = i.files.keys().collect();
+                paths.sort();
+                let files = paths
+                    .into_iter()
+                    .filter(|p| i.scope.contains(p))
+                    .map(|p| (p.as_str(), i.files[p].as_str()));
+                let extra =
+                    forge_codeintel::text_occurrences(&i.word, &i.path, files, &usages, &effective);
+                usages.extend(extra);
+            }
+            let usages = i.scope.filter(usages);
+            let usages = forge_codeintel::apply_options(usages, &effective, |u| {
+                let line = i
+                    .files
+                    .get(&u.path)
+                    .and_then(|t| t.split('\n').nth(u.range.start.line as usize))
+                    .unwrap_or("");
+                forge_codeintel::classify_usage(
+                    line,
+                    u.range.start.character,
+                    u.range.end.character,
+                )
+            });
+            to_json(&json!({ "usages": usages, "scope": i.scope.label() }))
+        }
+        Err(e) => to_json(&json!({ "error": e })),
+    }
+}
+
+/// `{ element, title }` → `UsageTarget` (the Find Usages dialog's checkboxes).
+#[wasm_bindgen]
+pub fn codeintel_usage_target(request_json: &str) -> String {
+    #[derive(Deserialize)]
+    struct Input {
+        element: forge_codeintel::ElementKind,
+        title: String,
+    }
+    match parse::<Input>(request_json) {
+        Ok(i) => to_json(&forge_codeintel::UsageTarget::new(i.element, i.title)),
+        Err(e) => to_json(&json!({ "error": e })),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -481,6 +603,27 @@ mod doc_tests {
             codeintel_type_info(r#"{"signature":"public function total(): float"}"#),
             "\"float\""
         );
+    }
+
+    #[test]
+    fn highlights_and_usage_filters_over_json() {
+        let out = codeintel_highlight_usages(
+            r#"{"text":"<?php\n$a = 1;\necho $a;\n","path":"a.php","line":2,"character":6}"#,
+        );
+        let v: serde_json::Value = serde_json::from_str(&out).unwrap();
+        assert_eq!(v["highlights"][0]["kind"], "write");
+        assert_eq!(v["summary"], "2 usages of '$a' found");
+
+        let out = codeintel_filter_usages(
+            r#"{"usages":[],"options":{"searchForTextOccurrences":true},"scope":{"kind":"projectFiles"},"element":"class","path":"app/User.php","word":"User","files":{"config/a.yaml":"model: User","vendor/x.yaml":"User"}}"#,
+        );
+        let v: serde_json::Value = serde_json::from_str(&out).unwrap();
+        assert_eq!(v["usages"].as_array().unwrap().len(), 1);
+        assert_eq!(v["usages"][0]["kind"], "nonCode");
+        assert_eq!(v["scope"], "Project Files");
+
+        let out = codeintel_usage_target(r#"{"element":"method","title":"charge"}"#);
+        assert!(out.contains("\"label\":\"method charge\""));
     }
 
     #[test]

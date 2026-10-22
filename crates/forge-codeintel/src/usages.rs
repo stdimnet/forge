@@ -13,6 +13,12 @@ use crate::edit::Range;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum UsageKind {
+    /// Find Usages options of a class / interface / method: the inheritors themselves.
+    DerivedClass,
+    ImplementingClass,
+    DerivedInterface,
+    OverridingMethod,
+    ImplementingMethod,
     Import,
     TraitUse,
     Extends,
@@ -31,12 +37,19 @@ pub enum UsageKind {
     /// A member accessed on something the index cannot type (`$x->save()`).
     Dynamic,
     Unclassified,
+    /// "Search for text occurrences": the name in files of another language.
+    NonCode,
 }
 
 impl UsageKind {
     /// The group title in the Find tool window.
     pub fn label(self) -> &'static str {
         match self {
+            UsageKind::DerivedClass => "Derived classes",
+            UsageKind::ImplementingClass => "Implementing classes",
+            UsageKind::DerivedInterface => "Derived interfaces",
+            UsageKind::OverridingMethod => "Overriding methods",
+            UsageKind::ImplementingMethod => "Implementing methods",
             UsageKind::Import => "Usage in import",
             UsageKind::TraitUse => "Usage in trait use",
             UsageKind::Extends => "Usage in extends/implements clause",
@@ -54,6 +67,7 @@ impl UsageKind {
             UsageKind::StringLiteral => "Usage in string literals",
             UsageKind::Dynamic => "Dynamic usages",
             UsageKind::Unclassified => "Unclassified",
+            UsageKind::NonCode => "Non-code usages",
         }
     }
 }

@@ -1,22 +1,42 @@
 /**
- * Find Usages (Alt+F7) and Show Usages (Ctrl+Alt+F7, Ctrl+Click on a declaration): the
- * usages come from Rust (`code_find_usages`: language servers, else the PHP index), grouped
- * by usage type and file there; the popup and the Find tool window only render them.
+ * Find Usages (Alt+F7), Show Usages (Ctrl+Alt+F7, Ctrl+Click on a declaration) and Find
+ * Usages in File (Ctrl+F7): the usages come from Rust (`code_find_usages`: language
+ * servers, else the PHP index, filtered by the Find Usages options and scope), grouped by
+ * usage type and file there; the popup and the Find tool window only render them.
  */
 import { createSignal } from "solid-js";
 import type { EditorView } from "@codemirror/view";
 import { editor, isDirty } from "@/state/editor";
 import { showToolWindow } from "@/state/layout";
 import { openFileAt } from "@/editor/views";
-import { codeApi, isLibraryPath, type UsageRow, type UsagesAnswer, type UsageTree } from "@/ipc/codeintel";
+import { showBalloon } from "@/keymap";
+import { getSetting } from "@/state/settings";
+import type { LspPosition } from "@/ipc/lsp";
+import {
+  codeApi,
+  isLibraryPath,
+  type SearchScope,
+  type UsageRow,
+  type UsagesAnswer,
+  type UsageTree,
+} from "@/ipc/codeintel";
 import { showHint } from "@/features/lsp/hint";
 import { syncNow } from "@/features/lsp/sync";
 import { toLsp } from "@/features/lsp/util";
+import { openFindUsagesSettings, openUsageSettingsAt, usageOptions, usageScope } from "./findSettings";
+
+/** Where a search started, to run it again (Rerun, Settings). */
+export interface UsagesOrigin {
+  path: string;
+  pos: LspPosition;
+}
 
 export interface UsagesPopupState {
   answer: UsagesAnswer;
   x: number;
   y: number;
+  /** Where Show Usages ran (the popup's Settings button runs it again). */
+  origin?: { path: string; view: EditorView; pos: number };
 }
 
 const [usagesPopup, setUsagesPopup] = createSignal<UsagesPopupState | null>(null);
@@ -46,19 +66,27 @@ function dirtyBuffers(): Record<string, string> {
   return Object.fromEntries(editor.tabs.filter((t) => isDirty(t) && !isLibraryPath(t.path)).map((t) => [t.path, t.content]));
 }
 
-async function queryUsages(path: string, view: EditorView, pos: number): Promise<UsagesAnswer | null> {
+/** Find Usages at an LSP position with the Find Usages settings (or the scope `kind`). */
+export async function searchUsages(origin: UsagesOrigin, content?: string, scope?: SearchScope): Promise<UsagesAnswer> {
+  await syncNow(origin.path);
+  return codeApi.findUsages(origin.path, origin.pos, content, dirtyBuffers(), usageOptions(), usageScope(origin.path, scope));
+}
+
+async function queryUsages(path: string, view: EditorView, pos: number, scope?: SearchScope): Promise<UsagesAnswer | null> {
   if (isLibraryPath(path)) {
     showHint(view, pos, "Usages are searched in project files only");
     return null;
   }
-  await syncNow(path);
   try {
-    return await codeApi.findUsages(path, toLsp(view.state.doc, pos), view.state.doc.toString(), dirtyBuffers());
+    return await searchUsages({ path, pos: toLsp(view.state.doc, pos) }, view.state.doc.toString(), scope);
   } catch (e) {
     showHint(view, pos, String(e instanceof Error ? e.message : e));
     return null;
   }
 }
+
+/** "No usages of User found in Project Files" */
+const noUsages = (answer: UsagesAnswer) => `No usages of ${answer.title || "the symbol"} found in ${answer.scope ?? "Project Files"}`;
 
 /**
  * Show Usages popup below `pos`. With `jumpIfSingle` (Go to Declaration on a declaration)
@@ -69,7 +97,7 @@ export async function showUsagesAt(path: string, view: EditorView, pos: number, 
   if (!answer) return;
   const items = usageItems(answer.byFile);
   if (!items.length) {
-    showHint(view, pos, `No usages of ${answer.title || "the symbol"} found in Project Files`);
+    showHint(view, pos, noUsages(answer));
     return;
   }
   if (opts.jumpIfSingle && items.length === 1) {
@@ -77,7 +105,14 @@ export async function showUsagesAt(path: string, view: EditorView, pos: number, 
     return;
   }
   const coords = view.coordsAtPos(pos);
-  setUsagesPopup({ answer, x: coords?.left ?? 200, y: (coords?.bottom ?? 200) + 4 });
+  setUsagesPopup({ answer, x: coords?.left ?? 200, y: (coords?.bottom ?? 200) + 4, origin: { path, view, pos } });
+}
+
+/** The popup's Settings button: the Find Usages dialog, then Show Usages again. */
+export function showUsagesSettings(popup: UsagesPopupState): void {
+  const o = popup.origin;
+  closeUsagesPopup();
+  if (o) void openFindUsagesSettings(o.path, o.view, o.pos, () => void showUsagesAt(o.path, o.view, o.pos));
 }
 
 // ---- Find tool window ----
@@ -95,6 +130,8 @@ export interface FindTab {
   rerun?: () => Promise<UsagesAnswer>;
   /** The selected usage (`path:line:column`), for Next/Previous Occurrence. */
   selected?: string;
+  /** Where a usages search started (the Settings button). */
+  origin?: UsagesOrigin;
 }
 
 export interface FindTabOptions {
@@ -102,6 +139,9 @@ export interface FindTabOptions {
   title?: string;
   header?: string;
   rerun?: FindTab["rerun"];
+  origin?: UsagesOrigin;
+  /** Open a new tab even when "Open in new tab" is off. */
+  newTab?: boolean;
 }
 
 const [findTabs, setFindTabs] = createSignal<FindTab[]>([]);
@@ -125,17 +165,26 @@ export function showSearchTab(): void {
 
 let nextTab = 1;
 
-/** Pin results in the Find tool window (a new tab) and show it. */
+/**
+ * Pin results in the Find tool window and show it: a new tab, or (Find Usages with "Open in
+ * new tab" off) in place of the active usages tab, like PHPStorm.
+ */
 export function openInFindWindow(answer: UsagesAnswer, opts: FindTabOptions = {}): void {
   const tab: FindTab = {
     id: nextTab++,
     kind: opts.kind ?? "usages",
     title: opts.title ?? `Usages of ${answer.title}`,
-    header: opts.header ?? `Usages of ${answer.title} in Project Files`,
+    header: opts.header ?? `Usages of ${answer.title} in ${answer.scope ?? "Project Files"}`,
     answer,
     rerun: opts.rerun,
+    origin: opts.origin,
   };
-  setFindTabs((tabs) => [...tabs.slice(-9), tab]);
+  const reuse =
+    tab.kind === "usages" && !opts.newTab && !getSetting<boolean>("findUsages.openInNewTab", true)
+      ? findTabs().find((t) => t.id === activeFindTab() && t.kind === "usages")
+      : undefined;
+  if (reuse) setFindTabs((tabs) => tabs.map((t) => (t.id === reuse.id ? tab : t)));
+  else setFindTabs((tabs) => [...tabs.slice(-9), tab]);
   setActiveFindTab(tab.id);
   closeUsagesPopup();
   showToolWindow("find");
@@ -189,8 +238,43 @@ export async function findUsagesAt(path: string, view: EditorView, pos: number):
   const answer = await queryUsages(path, view, pos);
   if (!answer) return;
   if (!answer.byFile.total) {
-    showHint(view, pos, `No usages of ${answer.title || "the symbol"} found in Project Files`);
+    showHint(view, pos, noUsages(answer));
     return;
   }
-  openInFindWindow(answer);
+  const origin = { path, pos: toLsp(view.state.doc, pos) };
+  openInFindWindow(answer, { origin, rerun: () => searchUsages(origin) });
+}
+
+/** Find Usages in File (Ctrl+F7): the usages in the current file, in the Find tool window. */
+export async function findUsagesInFileAt(path: string, view: EditorView, pos: number): Promise<void> {
+  const answer = await queryUsages(path, view, pos, "currentFile");
+  if (!answer) return;
+  if (!answer.byFile.total) {
+    showHint(view, pos, noUsages(answer));
+    return;
+  }
+  const origin = { path, pos: toLsp(view.state.doc, pos) };
+  const file = path.split("/").pop() ?? path;
+  openInFindWindow(answer, {
+    title: `Usages of ${answer.title} in ${file}`,
+    rerun: () => searchUsages(origin, undefined, "currentFile"),
+  });
+}
+
+/**
+ * The Find tool window's Settings button: the Find Usages dialog for the tab's element,
+ * then Find Usages again (in a new tab or this one, as "Open in new tab" says).
+ */
+export function findUsagesSettingsFor(tab: FindTab): void {
+  const origin = tab.origin;
+  if (!origin) return;
+  const content = editor.tabs.find((t) => t.path === origin.path)?.content;
+  void openUsageSettingsAt(origin.path, origin.pos, content, async () => {
+    try {
+      const answer = await searchUsages(origin, content);
+      openInFindWindow(answer, { origin, rerun: () => searchUsages(origin) });
+    } catch (e) {
+      showBalloon("Find Usages failed", String(e instanceof Error ? e.message : e));
+    }
+  });
 }

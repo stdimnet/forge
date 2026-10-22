@@ -2,8 +2,11 @@
 //! lives (in the desktop app or in the remote development agent). Offsets crossing this
 //! boundary are UTF-16 (JS strings); the index works in bytes, so every query converts.
 
+use forge_codeintel::{HighlightAnswer, UsageOptions};
+
 use crate::generate::{self, GenerateKind, GenerateOptions, GenerateTargets, TextEdit};
 use crate::hierarchy::{self, HierarchyQuery, PhpHierarchy};
+use crate::highlight;
 use crate::hover::{self, Hover};
 use crate::index::ProjectIndex;
 use crate::intentions::{self, Intention};
@@ -84,8 +87,24 @@ fn edits_to_utf16(text: &str, edits: Vec<TextEdit>) -> Vec<TextEdit> {
 }
 
 /// Find Usages from the index for the symbol at a UTF-16 `offset` (LSP positions out).
-pub fn usages(idx: &mut ProjectIndex, path: &str, text: &str, offset: usize) -> Option<PhpUsages> {
-    navigate::find_usages(idx, path, text, utf16_to_byte(text, offset))
+pub fn usages(
+    idx: &mut ProjectIndex,
+    path: &str,
+    text: &str,
+    offset: usize,
+    options: &UsageOptions,
+) -> Option<PhpUsages> {
+    navigate::find_usages_with(idx, path, text, utf16_to_byte(text, offset), options)
+}
+
+/// Highlight Usages in File at a UTF-16 `offset` (see [`crate::highlight`]).
+pub fn highlights(
+    idx: &mut ProjectIndex,
+    path: &str,
+    text: &str,
+    offset: usize,
+) -> Option<HighlightAnswer> {
+    highlight::highlights(idx, path, text, utf16_to_byte(text, offset))
 }
 
 /// Go to Implementation / Super Method / Type Declaration at a UTF-16 `offset`.

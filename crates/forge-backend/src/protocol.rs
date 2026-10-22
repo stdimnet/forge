@@ -16,6 +16,7 @@
 
 use std::path::PathBuf;
 
+use forge_codeintel::UsageOptions;
 use forge_core::search::{FindRequest, TodoRequest};
 use forge_core::{CollectRequest, FsChanges, Result};
 use forge_process::{CommandLine, PtyEvent, RunEvent};
@@ -267,6 +268,15 @@ pub enum PhpCall {
     },
     /// -> `Option<PhpUsages>`
     Usages {
+        path: String,
+        offset: usize,
+        /// The Find Usages options (protocol 7).
+        #[serde(default)]
+        options: UsageOptions,
+        content: Option<String>,
+    },
+    /// Highlight Usages in File -> `Option<HighlightAnswer>` (protocol 7)
+    Highlights {
         path: String,
         offset: usize,
         content: Option<String>,

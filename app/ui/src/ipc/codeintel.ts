@@ -43,6 +43,11 @@ export interface SymbolHover {
 }
 
 export type UsageKind =
+  | "derivedClass"
+  | "implementingClass"
+  | "derivedInterface"
+  | "overridingMethod"
+  | "implementingMethod"
   | "import"
   | "traitUse"
   | "extends"
@@ -59,7 +64,8 @@ export type UsageKind =
   | "comment"
   | "stringLiteral"
   | "dynamic"
-  | "unclassified";
+  | "unclassified"
+  | "nonCode";
 
 export interface UsageLocation {
   path: string;
@@ -103,6 +109,87 @@ export interface UsagesAnswer {
   declaration?: UsageLocation | null;
   byType: UsageTree;
   byFile: UsageTree;
+  /** What was searched, for the Find Usages dialog. */
+  element?: ElementKind;
+  /** "Project Files", "Directory 'app'", "File 'User.php'". */
+  scope?: string;
+}
+
+/** What Find Usages searches (`forge_codeintel::ElementKind`). */
+export type ElementKind =
+  | "class"
+  | "interface"
+  | "trait"
+  | "enum"
+  | "method"
+  | "property"
+  | "constant"
+  | "enumCase"
+  | "function"
+  | "variable"
+  | "symbol";
+
+/**
+ * The Find Usages options by field name (`findUsages.options.<field>` settings), e.g.
+ * `{ classMethodUsages: true }`; Rust picks those of the element.
+ */
+export type UsageOptions = Record<string, boolean>;
+
+export type SearchScope =
+  | "projectFiles"
+  | "projectAndLibraries"
+  | "openFiles"
+  | "currentFile"
+  | "recentlyChangedFiles"
+  | "directory"
+  | "custom";
+
+/** Where Find Usages looks (`forge_codeintel::UsageScope`). */
+export interface UsageScope {
+  kind: SearchScope;
+  directory?: string;
+  includeSubdirectories?: boolean;
+  pattern?: string;
+  currentFile?: string;
+  openFiles?: string[];
+  changedFiles?: string[];
+}
+
+/** One checkbox of the Find Usages dialog. */
+export interface OptionField {
+  /** The setting that stores it (`findUsages.options.classMethodUsages`). */
+  key: string;
+  label: string;
+  section: "find" | "options";
+}
+
+/** What the Find Usages dialog shows for the element at the caret. */
+export interface UsageTarget {
+  element: ElementKind;
+  title: string;
+  /** "class User" */
+  label: string;
+  fields: OptionField[];
+  /** Whether the scope applies (variables live in their file). */
+  scoped: boolean;
+}
+
+export type HighlightKind = "read" | "write" | "text";
+
+export interface UsageHighlight {
+  range: LspRange;
+  kind: HighlightKind;
+}
+
+/** Highlight Usages in File / the element at the caret (`forge_codeintel::HighlightAnswer`). */
+export interface HighlightAnswer {
+  target: "usages" | "exitPoints" | "implementingMethods" | "overridingMethods";
+  title: string;
+  highlights: UsageHighlight[];
+  source: "lsp" | "index" | "text";
+  element: ElementKind;
+  /** "3 usages of 'total' found" */
+  summary: string;
 }
 
 export type NavKind = "implementation" | "superMethod" | "typeDeclaration";
@@ -313,8 +400,18 @@ export const codeApi = {
     invoke<DeclarationAnswer>("code_goto_declaration", at(path, pos, content)),
   symbolInfo: (path: string, pos: LspPosition, content?: string) =>
     invoke<SymbolHover | null>("code_symbol_info", at(path, pos, content)),
-  findUsages: (path: string, pos: LspPosition, content?: string, buffers?: Record<string, string>) =>
-    invoke<UsagesAnswer>("code_find_usages", { ...at(path, pos, content), buffers }),
+  findUsages: (
+    path: string,
+    pos: LspPosition,
+    content?: string,
+    buffers?: Record<string, string>,
+    options?: UsageOptions,
+    scope?: UsageScope,
+  ) => invoke<UsagesAnswer>("code_find_usages", { ...at(path, pos, content), buffers, options, scope }),
+  highlightUsages: (path: string, pos: LspPosition, content?: string) =>
+    invoke<HighlightAnswer | null>("code_highlight_usages", at(path, pos, content)),
+  usageTarget: (path: string, pos: LspPosition, content?: string) =>
+    invoke<UsageTarget | null>("code_usage_target", at(path, pos, content)),
   navigate: (path: string, pos: LspPosition, kind: NavKind, content?: string) =>
     invoke<NavigateAnswer>("code_navigate", { ...at(path, pos, content), kind }),
   lineMarkers: (path: string, content?: string) => invoke<LineMarkerInfo[]>("code_line_markers", { path, content }),

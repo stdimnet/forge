@@ -1612,6 +1612,228 @@
           "group": "editor.csv",
           "project": false,
           "order": 10
+        },
+        {
+          "key": "editor.highlightUsagesAtCaret",
+          "title": "Highlight usages of element at caret",
+          "description": "Highlights the usages of the symbol at the caret in the file (reads and writes in different colors), also on the scrollbar.",
+          "type": "bool",
+          "default": true,
+          "group": "editor.general",
+          "section": "Highlight on Caret Movement",
+          "project": false,
+          "order": 38
+        },
+        {
+          "key": "findUsages.options.classUsages",
+          "title": "Usages",
+          "type": "bool",
+          "default": true,
+          "group": "findUsages",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "findUsages.options.classMethodUsages",
+          "title": "Usages of methods",
+          "type": "bool",
+          "default": false,
+          "group": "findUsages",
+          "project": false,
+          "order": 1
+        },
+        {
+          "key": "findUsages.options.classFieldUsages",
+          "title": "Usages of fields",
+          "type": "bool",
+          "default": false,
+          "group": "findUsages",
+          "project": false,
+          "order": 2
+        },
+        {
+          "key": "findUsages.options.classDerivedClasses",
+          "title": "Derived classes",
+          "type": "bool",
+          "default": false,
+          "group": "findUsages",
+          "project": false,
+          "order": 3
+        },
+        {
+          "key": "findUsages.options.interfaceUsages",
+          "title": "Usages",
+          "type": "bool",
+          "default": true,
+          "group": "findUsages",
+          "project": false,
+          "order": 4
+        },
+        {
+          "key": "findUsages.options.interfaceMethodUsages",
+          "title": "Usages of methods",
+          "type": "bool",
+          "default": false,
+          "group": "findUsages",
+          "project": false,
+          "order": 5
+        },
+        {
+          "key": "findUsages.options.interfaceImplementingClasses",
+          "title": "Implementing classes",
+          "type": "bool",
+          "default": false,
+          "group": "findUsages",
+          "project": false,
+          "order": 6
+        },
+        {
+          "key": "findUsages.options.interfaceDerivedInterfaces",
+          "title": "Derived interfaces",
+          "type": "bool",
+          "default": false,
+          "group": "findUsages",
+          "project": false,
+          "order": 7
+        },
+        {
+          "key": "findUsages.options.methodUsages",
+          "title": "Usages",
+          "type": "bool",
+          "default": true,
+          "group": "findUsages",
+          "project": false,
+          "order": 8
+        },
+        {
+          "key": "findUsages.options.methodOverridingMethods",
+          "title": "Overriding methods",
+          "type": "bool",
+          "default": false,
+          "group": "findUsages",
+          "project": false,
+          "order": 9
+        },
+        {
+          "key": "findUsages.options.readAccess",
+          "title": "Read access",
+          "type": "bool",
+          "default": true,
+          "group": "findUsages",
+          "project": false,
+          "order": 10
+        },
+        {
+          "key": "findUsages.options.writeAccess",
+          "title": "Write access",
+          "type": "bool",
+          "default": true,
+          "group": "findUsages",
+          "project": false,
+          "order": 11
+        },
+        {
+          "key": "findUsages.options.usages",
+          "title": "Usages",
+          "type": "bool",
+          "default": true,
+          "group": "findUsages",
+          "project": false,
+          "order": 12
+        },
+        {
+          "key": "findUsages.options.searchInCommentsAndStrings",
+          "title": "Search in comments and strings",
+          "type": "bool",
+          "default": false,
+          "group": "findUsages",
+          "project": false,
+          "order": 13
+        },
+        {
+          "key": "findUsages.options.searchForTextOccurrences",
+          "title": "Search for text occurrences",
+          "type": "bool",
+          "default": false,
+          "group": "findUsages",
+          "project": false,
+          "order": 14
+        },
+        {
+          "key": "findUsages.scope.kind",
+          "title": "Scope",
+          "type": "enum",
+          "options": [
+            {
+              "value": "projectFiles",
+              "label": "Project Files"
+            },
+            {
+              "value": "projectAndLibraries",
+              "label": "Project and Libraries"
+            },
+            {
+              "value": "openFiles",
+              "label": "Open Files"
+            },
+            {
+              "value": "currentFile",
+              "label": "Current File"
+            },
+            {
+              "value": "recentlyChangedFiles",
+              "label": "Recently Changed Files"
+            },
+            {
+              "value": "directory",
+              "label": "Directory"
+            },
+            {
+              "value": "custom",
+              "label": "Custom"
+            }
+          ],
+          "default": "projectFiles",
+          "group": "findUsages",
+          "project": false,
+          "order": 20
+        },
+        {
+          "key": "findUsages.scope.directory",
+          "title": "Directory",
+          "type": "string",
+          "default": "",
+          "group": "findUsages",
+          "project": false,
+          "order": 21
+        },
+        {
+          "key": "findUsages.scope.includeSubdirectories",
+          "title": "Include subdirectories",
+          "type": "bool",
+          "default": true,
+          "group": "findUsages",
+          "project": false,
+          "order": 22
+        },
+        {
+          "key": "findUsages.scope.pattern",
+          "title": "Custom scope",
+          "description": "File globs separated by ';', '!' excludes (app/**/*.php; !app/Legacy/**).",
+          "type": "string",
+          "default": "",
+          "group": "findUsages",
+          "project": false,
+          "order": 23
+        },
+        {
+          "key": "findUsages.openInNewTab",
+          "title": "Open in new tab",
+          "type": "bool",
+          "default": true,
+          "group": "findUsages",
+          "project": false,
+          "order": 30
         }
       ],
       "lspServers": [],

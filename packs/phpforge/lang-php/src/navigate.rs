@@ -12,7 +12,9 @@
 
 use std::collections::{HashMap, HashSet};
 
-use forge_codeintel::{classify_usage, Position, Range, UsageKind, UsageLocation};
+use forge_codeintel::{
+    classify_usage, ElementKind, Position, Range, UsageKind, UsageLocation, UsageOptions,
+};
 use serde::{Deserialize, Serialize};
 
 use crate::hover::{find_member, word_at};
@@ -914,7 +916,12 @@ pub(crate) fn resolve_word(
     })
 }
 
-fn resolve_at(index: &mut ProjectIndex, file: &FileIndex, src: &str, offset: usize) -> Resolved {
+pub(crate) fn resolve_at(
+    index: &mut ProjectIndex,
+    file: &FileIndex,
+    src: &str,
+    offset: usize,
+) -> Resolved {
     match word_at(src, offset) {
         Some((start, end)) => resolve_word(index, file, src, start, end),
         None => Resolved::Nothing,
@@ -965,6 +972,9 @@ impl<'a> Lines<'a> {
 #[serde(rename_all = "camelCase")]
 pub struct PhpUsages {
     pub symbol: SymbolRef,
+    /// What the symbol is (class, interface, method, ...).
+    #[serde(default)]
+    pub element: ElementKind,
     /// `User`, `User::orders()`, ...
     pub title: String,
     pub declaration: Option<UsageLocation>,
@@ -972,7 +982,7 @@ pub struct PhpUsages {
 }
 
 /// Contents of the project's PHP files: the editor buffer of `rel`, the rest from disk.
-struct Sources<'a> {
+pub(crate) struct Sources<'a> {
     root: std::path::PathBuf,
     rel: &'a str,
     src: &'a str,
@@ -980,7 +990,7 @@ struct Sources<'a> {
 }
 
 impl<'a> Sources<'a> {
-    fn get(&mut self, path: &str) -> Option<String> {
+    pub(crate) fn get(&mut self, path: &str) -> Option<String> {
         if path == self.rel {
             return Some(self.src.to_string());
         }
@@ -992,7 +1002,7 @@ impl<'a> Sources<'a> {
     }
 }
 
-fn is_vendor(path: &str) -> bool {
+pub(crate) fn is_vendor(path: &str) -> bool {
     path.starts_with("vendor/") || path.contains("/vendor/")
 }
 
@@ -1013,7 +1023,7 @@ fn occurrences(text: &str, word: &str) -> Vec<usize> {
 
 /// Path and byte range of the name of `symbol`'s declaration. Classes and members of the
 /// current file come from its unsaved content.
-fn declaration_range(
+pub(crate) fn declaration_range(
     index: &mut ProjectIndex,
     current: &FileIndex,
     symbol: &SymbolRef,
@@ -1101,7 +1111,7 @@ fn declaration_of(
 
 /// The symbol Find Usages searches for at `offset`: a project symbol, or one of PHP's own
 /// classes / functions / constants (their declaration is in the stubs).
-fn usage_symbol(
+pub(crate) fn usage_symbol(
     index: &mut ProjectIndex,
     file: &FileIndex,
     src: &str,
@@ -1143,7 +1153,7 @@ fn external_matches(symbol: &SymbolRef, e: &ExternalSymbol) -> bool {
 }
 
 /// Usages of a variable inside its scope of the current file.
-fn variable_usages(
+pub(crate) fn variable_usages(
     file: &FileIndex,
     rel: &str,
     src: &str,
@@ -1162,50 +1172,55 @@ fn variable_usages(
         .collect()
 }
 
-/// Usages of the symbol at `offset` in the project's own files (vendor excluded). Members
-/// used on expressions the index cannot type are reported as dynamic usages.
-pub fn find_usages(
+/// What kind of element a symbol is, for the Find Usages options and dialog.
+pub(crate) fn element_kind(
+    index: &mut ProjectIndex,
+    current: &FileIndex,
+    symbol: &SymbolRef,
+) -> ElementKind {
+    match symbol {
+        SymbolRef::Class { fqn } => match find_class(index, current, fqn).map(|c| c.kind) {
+            Some(SymbolKind::Interface) => ElementKind::Interface,
+            Some(SymbolKind::Trait) => ElementKind::Trait,
+            Some(SymbolKind::Enum) => ElementKind::Enum,
+            _ => ElementKind::Class,
+        },
+        SymbolRef::Member { member, .. } => match member {
+            SymbolKind::Method => ElementKind::Method,
+            SymbolKind::Property => ElementKind::Property,
+            SymbolKind::EnumCase => ElementKind::EnumCase,
+            _ => ElementKind::Constant,
+        },
+        SymbolRef::Function { .. } => ElementKind::Function,
+        SymbolRef::Constant { .. } => ElementKind::Constant,
+        SymbolRef::Variable { .. } => ElementKind::Variable,
+    }
+}
+
+/// Occurrences of `symbol` in `paths`: references the index resolves to it (members also
+/// through parent and child classes), dynamic member accesses, PHPDoc mentions of classes
+/// and, with `comments`, the name in comments and strings.
+pub(crate) fn search_symbol(
     index: &mut ProjectIndex,
     rel: &str,
-    src: &str,
-    offset: usize,
-) -> Option<PhpUsages> {
-    let current = parser::index_source(rel, src);
-    let symbol = usage_symbol(index, &current, src, offset)?;
-    let mut sources = Sources {
-        root: index.root().to_path_buf(),
-        rel,
-        src,
-        cache: HashMap::new(),
-    };
-    let declaration = declaration_of(index, &current, &mut sources, &symbol);
-    if let SymbolRef::Variable { name, declared_at } = &symbol {
-        return Some(PhpUsages {
-            title: symbol.display(),
-            usages: variable_usages(&current, rel, src, name, *declared_at),
-            declaration,
-            symbol,
-        });
-    }
+    current: &FileIndex,
+    sources: &mut Sources,
+    symbol: &SymbolRef,
+    paths: &[String],
+    comments: bool,
+) -> Vec<UsageLocation> {
     let word = symbol.search_word().to_string();
-    let mut paths: Vec<String> = index
-        .files()
-        .map(|f| f.path.clone())
-        .filter(|p| !is_vendor(p) && p != rel)
-        .collect();
-    paths.sort();
-    paths.insert(0, rel.to_string());
     // Members also count where they are reached through a parent or child class (an
     // interface method called on an implementation and vice versa), like PHPStorm's
     // search for a base method.
-    let related: HashSet<String> = match &symbol {
+    let related: HashSet<String> = match symbol {
         SymbolRef::Member { class, .. } => {
             let mut set: HashSet<String> = subclasses(index, class)
                 .into_iter()
                 .map(|c| c.fqn.to_ascii_lowercase())
                 .collect();
             set.insert(class.to_ascii_lowercase());
-            if let Some(c) = find_class(index, &current, class) {
+            if let Some(c) = find_class(index, current, class) {
                 set.extend(
                     index
                         .ancestors(&c)
@@ -1218,8 +1233,8 @@ pub fn find_usages(
         _ => HashSet::new(),
     };
     let matches = |s: &SymbolRef| {
-        s.same(&symbol)
-            || matches!((s, &symbol), (
+        s.same(symbol)
+            || matches!((s, symbol), (
                 SymbolRef::Member { class, member, name },
                 SymbolRef::Member { member: m2, name: n2, .. },
             ) if member == m2
@@ -1229,7 +1244,7 @@ pub fn find_usages(
 
     let mut usages = Vec::new();
     for path in paths {
-        let Some(text) = sources.get(&path) else {
+        let Some(text) = sources.get(path) else {
             continue;
         };
         let hits = occurrences(&text, &word);
@@ -1239,9 +1254,9 @@ pub fn find_usages(
         let file = if path == rel {
             current.clone()
         } else {
-            match index.file(&path) {
+            match index.file(path) {
                 Some(f) => f.clone(),
-                None => parser::index_source(&path, &text),
+                None => parser::index_source(path, &text),
             }
         };
         let lines = Lines::new(&text);
@@ -1258,13 +1273,20 @@ pub fn find_usages(
                 start_col + word.encode_utf16().count() as u32,
             );
             if matches!(classified, UsageKind::Comment | UsageKind::StringLiteral) {
+                if comments && !matches!(symbol, SymbolRef::Variable { .. }) {
+                    usages.push(UsageLocation {
+                        path: path.clone(),
+                        range,
+                        kind: Some(classified),
+                    });
+                }
                 continue;
             }
             let kind = match resolve_at(index, &file, &text, at) {
                 Resolved::Symbol(s) if matches(&s) => None,
-                Resolved::External(e) if external_matches(&symbol, &e) => None,
+                Resolved::External(e) if external_matches(symbol, &e) => None,
                 Resolved::Dynamic { kind, name }
-                    if matches!(&symbol, SymbolRef::Member { member, name: n, .. }
+                    if matches!(symbol, SymbolRef::Member { member, name: n, .. }
                         if *member == kind && n.eq_ignore_ascii_case(&name)) =>
                 {
                     Some(UsageKind::Dynamic)
@@ -1272,7 +1294,7 @@ pub fn find_usages(
                 // PHPDoc mentions of a class (`@return User`, `@var User[]`).
                 Resolved::Nothing
                     if classified == UsageKind::Doc
-                        && matches!(&symbol, SymbolRef::Class { fqn }
+                        && matches!(symbol, SymbolRef::Class { fqn }
                             if file.resolve_class(&word, at).eq_ignore_ascii_case(fqn)) =>
                 {
                     None
@@ -1286,11 +1308,181 @@ pub fn find_usages(
             });
         }
     }
+    usages
+}
+
+/// The location of a class-like's or member's name in its file.
+fn name_location(
+    index: &ProjectIndex,
+    sources: &mut Sources,
+    class: &ClassLike,
+    range: crate::model::Range,
+    kind: UsageKind,
+) -> Option<UsageLocation> {
+    let path = index.class_path(&class.fqn)?.to_string();
+    let text = sources.get(&path)?;
+    Some(UsageLocation {
+        range: Lines::new(&text).range(range.start, range.end),
+        path,
+        kind: Some(kind),
+    })
+}
+
+/// Usages of the symbol at `offset` in the project's own files (vendor excluded). Members
+/// used on expressions the index cannot type are reported as dynamic usages.
+pub fn find_usages(
+    index: &mut ProjectIndex,
+    rel: &str,
+    src: &str,
+    offset: usize,
+) -> Option<PhpUsages> {
+    find_usages_with(index, rel, src, offset, &UsageOptions::default())
+}
+
+/// Find Usages with the options of the Find Usages dialog: for classes also the usages of
+/// their methods and fields and their inheritors, for methods the overriding methods, and
+/// comments and strings on request. Scopes and text occurrences are the caller's.
+pub fn find_usages_with(
+    index: &mut ProjectIndex,
+    rel: &str,
+    src: &str,
+    offset: usize,
+    options: &UsageOptions,
+) -> Option<PhpUsages> {
+    let current = parser::index_source(rel, src);
+    let symbol = usage_symbol(index, &current, src, offset)?;
+    let element = element_kind(index, &current, &symbol);
+    let opts = options.effective(element);
+    let mut sources = Sources {
+        root: index.root().to_path_buf(),
+        rel,
+        src,
+        cache: HashMap::new(),
+    };
+    let declaration = declaration_of(index, &current, &mut sources, &symbol);
+    if let SymbolRef::Variable { name, declared_at } = &symbol {
+        return Some(PhpUsages {
+            title: symbol.display(),
+            usages: variable_usages(&current, rel, src, name, *declared_at),
+            declaration,
+            symbol,
+            element,
+        });
+    }
+    let mut paths: Vec<String> = index
+        .files()
+        .map(|f| f.path.clone())
+        .filter(|p| !is_vendor(p) && p != rel)
+        .collect();
+    paths.sort();
+    paths.insert(0, rel.to_string());
+
+    let mut usages = if opts.usages || opts.comments_and_strings {
+        let found = search_symbol(
+            index,
+            rel,
+            &current,
+            &mut sources,
+            &symbol,
+            &paths,
+            opts.comments_and_strings,
+        );
+        if opts.usages {
+            found
+        } else {
+            found
+                .into_iter()
+                .filter(|u| u.kind.is_some_and(|k| k != UsageKind::Dynamic))
+                .collect()
+        }
+    } else {
+        Vec::new()
+    };
+
+    match &symbol {
+        SymbolRef::Class { fqn } => {
+            let class = find_class(index, &current, fqn);
+            if let Some(class) = class
+                .as_ref()
+                .filter(|_| opts.method_usages || opts.field_usages)
+            {
+                for m in &class.members {
+                    let wanted = match m.kind {
+                        SymbolKind::Method => opts.method_usages,
+                        _ => opts.field_usages,
+                    };
+                    if !wanted {
+                        continue;
+                    }
+                    let member = SymbolRef::Member {
+                        class: class.fqn.clone(),
+                        member: m.kind,
+                        name: m.name.clone(),
+                    };
+                    usages.extend(search_symbol(
+                        index,
+                        rel,
+                        &current,
+                        &mut sources,
+                        &member,
+                        &paths,
+                        false,
+                    ));
+                }
+            }
+            if opts.derived_classes || opts.implementing_classes || opts.derived_interfaces {
+                let base_is_interface = class
+                    .as_ref()
+                    .is_some_and(|c| c.kind == SymbolKind::Interface);
+                for sub in subclasses(index, fqn) {
+                    let kind = match (sub.kind, base_is_interface) {
+                        (SymbolKind::Interface, _) if opts.derived_interfaces => {
+                            UsageKind::DerivedInterface
+                        }
+                        (SymbolKind::Interface, _) => continue,
+                        (_, true) if opts.implementing_classes => UsageKind::ImplementingClass,
+                        (_, false) if opts.derived_classes => UsageKind::DerivedClass,
+                        _ => continue,
+                    };
+                    if let Some(l) = name_location(index, &mut sources, &sub, sub.name_range, kind)
+                    {
+                        usages.push(l);
+                    }
+                }
+            }
+        }
+        SymbolRef::Member {
+            class,
+            member: SymbolKind::Method,
+            name,
+        } if opts.overriding_methods => {
+            let base = find_class(index, &current, class);
+            let abstract_base = base.as_ref().is_some_and(|c| {
+                c.kind == SymbolKind::Interface
+                    || c.method(name).is_some_and(|m| m.modifiers.is_abstract)
+            });
+            let kind = if abstract_base {
+                UsageKind::ImplementingMethod
+            } else {
+                UsageKind::OverridingMethod
+            };
+            for sub in subclasses(index, class) {
+                if let Some(m) = sub.method(name) {
+                    let range = m.name_range;
+                    if let Some(l) = name_location(index, &mut sources, &sub, range, kind) {
+                        usages.push(l);
+                    }
+                }
+            }
+        }
+        _ => {}
+    }
     Some(PhpUsages {
         title: symbol.display(),
         symbol,
         declaration,
         usages,
+        element,
     })
 }
 
@@ -1392,7 +1584,7 @@ fn member_nav(
 }
 
 /// Every indexed class that extends or implements `fqn` (directly or not).
-fn subclasses(index: &mut ProjectIndex, fqn: &str) -> Vec<ClassLike> {
+pub(crate) fn subclasses(index: &mut ProjectIndex, fqn: &str) -> Vec<ClassLike> {
     let all: Vec<ClassLike> = index
         .files()
         .filter(|f| !is_vendor(&f.path))
@@ -1412,7 +1604,7 @@ fn subclasses(index: &mut ProjectIndex, fqn: &str) -> Vec<ClassLike> {
     out
 }
 
-fn sources<'a>(index: &ProjectIndex, rel: &'a str, src: &'a str) -> Sources<'a> {
+pub(crate) fn sources<'a>(index: &ProjectIndex, rel: &'a str, src: &'a str) -> Sources<'a> {
     Sources {
         root: index.root().to_path_buf(),
         rel,

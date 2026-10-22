@@ -1,6 +1,6 @@
 ---
 title: Editor
-description: Editing, completion, postfix templates, Complete Current Statement, hover documentation, Quick Documentation and the Documentation tool window, External Documentation, Quick Definition, Type Info, Context Info, Error Description, Parameter Info, Go to Declaration, Find and Show Usages, problems, formatting, folding, find and replace, gutter icons and the editor context menu.
+description: Editing, completion, postfix templates, Complete Current Statement, hover documentation, Quick Documentation and the Documentation tool window, External Documentation, Quick Definition, Type Info, Context Info, Error Description, Parameter Info, Go to Declaration, Find and Show Usages, Find Usages settings and Find Usages in File, Highlight Usages in File, problems, formatting, folding, find and replace, gutter icons and the editor context menu.
 order: 20
 tags: [editor, completion, postfix completion, hover, documentation, navigation, diagnostics, context menu]
 ---
@@ -259,6 +259,74 @@ server answer, from the PHP index. Unsaved changes in open editors are taken int
 ![Show Usages](../../screenshots/php-nav-show-usages.png)
 
 ![Find tool window](../../screenshots/php-nav-find-window.png)
+
+### Find Usages settings
+
+**Find Usages Settings…** (`Ctrl+Alt+Shift+F7`, macOS `Cmd+Alt+Shift+F7`, or the **Settings**
+button of the Find tool window and the Show Usages popup) opens the **Find Usages** dialog for
+the element at the caret. What it offers depends on the element, like in PHPStorm:
+
+| Element | Find | Options |
+| --- | --- | --- |
+| Class, trait, enum | Usages, Usages of methods, Usages of fields, Derived classes (classes) | Search in comments and strings, Search for text occurrences |
+| Interface | Usages, Usages of methods, Implementing classes, Derived interfaces | Search in comments and strings, Search for text occurrences |
+| Method | Usages, Overriding methods (implementing methods of interfaces and abstract methods) | Search in comments and strings, Search for text occurrences |
+| Property | Read access, Write access | Search in comments and strings, Search for text occurrences |
+| Variable | Read access, Write access | — (searched in its file) |
+| Function, constant, other symbols | Usages | Search in comments and strings, Search for text occurrences |
+
+**Scope** is one of Project Files (the default; `vendor/` and `node_modules/` left out),
+Project and Libraries, Open Files, Current File, Recently Changed Files (the working tree's
+changes and unsaved editors), Directory (with **Include subdirectories**) or Custom (file globs
+separated by `;`, `!` excludes, e.g. `app/**/*.php; !app/Legacy/**`). **Open in new tab** off
+replaces the active usages tab of the Find tool window instead of adding one.
+
+**Find** saves the choices as settings (`findUsages.*`, see the
+[settings reference](../reference/settings.md)), so later Find Usages (`Alt+F7`) and Show
+Usages (`Ctrl+Alt+F7`) runs use them too, and searches. **Search for text occurrences** adds
+the name in files of other languages (configuration, templates, Markdown) as **Non-code
+usages**; **Search in comments and strings** adds it in comments and string literals. The
+filtering and the extra occurrences are computed in Rust next to the files, so remote projects
+work the same.
+
+![Find Usages dialog](../../screenshots/find-usages-dialog.png)
+
+### Find Usages in File
+
+**Find Usages in File** (`Ctrl+F7`, macOS `Cmd+F7`) finds the usages of the element at the
+caret in the current file and shows them in the Find tool window, like Find Usages with the
+scope Current File ("Usages of Order in File 'PriceCalculator.php'").
+
+![Find Usages in File](../../screenshots/find-usages-in-file.png)
+
+## Highlight usages
+
+When the caret rests on a symbol, its usages in the file are highlighted: reads in blue, writes
+(assignments, declarations, parameters) in red, also as marks on the right edge of the editor
+(the error stripe; a click moves the caret there). Turn it off with **Settings | Editor |
+General | Highlight on Caret Movement | Highlight usages of element at caret**
+(`editor.highlightUsagesAtCaret`).
+
+**Highlight Usages in File** (`Ctrl+Shift+F7`, macOS `Cmd+Shift+F7`) keeps the highlighting
+until you press `Escape`; `F3` / `Shift+F3` jump to the next / previous usage, and the status
+bar says "4 usages of '$price' found (Press Escape to remove the highlighting)". Pressing it
+again on the same element removes the highlighting. Like PHPStorm it also highlights:
+
+- the **exit points** of a function or method (every `return` and `throw`, closures left out)
+  when the caret is on `return` or `throw`;
+- the **implementing methods** when the caret is on `implements`, and the overriding methods on
+  `extends` (PHP).
+
+The usages come from the language servers (`textDocument/documentHighlight`), in PHP files
+without a server answer from the PHP index (read and write access of properties and
+variables), else from a lexical search for the identifier in its scope (variables in their
+function; comments and strings left out).
+
+![Usages of the element at the caret](../../screenshots/highlight-usages-at-caret.png)
+
+![Highlight Usages in File](../../screenshots/highlight-usages-in-file.png)
+
+![Exit points](../../screenshots/highlight-exit-points.png)
 
 ## Problems
 

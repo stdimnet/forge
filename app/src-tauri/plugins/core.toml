@@ -1307,3 +1307,185 @@ type = "bool"
 default = true
 group = "editor.csv"
 order = 10
+
+# ---- Highlight usages / Find Usages settings ------------------------------------------
+
+[[contributions.settings]]
+key = "editor.highlightUsagesAtCaret"
+title = "Highlight usages of element at caret"
+description = "Highlights the usages of the symbol at the caret in the file (reads and writes in different colors), also on the scrollbar."
+type = "bool"
+default = true
+group = "editor.general"
+section = "Highlight on Caret Movement"
+order = 38
+
+[[contributions.settings]]
+key = "findUsages.options.classUsages"
+title = "Usages"
+type = "bool"
+default = true
+group = "findUsages"
+order = 0
+
+[[contributions.settings]]
+key = "findUsages.options.classMethodUsages"
+title = "Usages of methods"
+type = "bool"
+default = false
+group = "findUsages"
+order = 1
+
+[[contributions.settings]]
+key = "findUsages.options.classFieldUsages"
+title = "Usages of fields"
+type = "bool"
+default = false
+group = "findUsages"
+order = 2
+
+[[contributions.settings]]
+key = "findUsages.options.classDerivedClasses"
+title = "Derived classes"
+type = "bool"
+default = false
+group = "findUsages"
+order = 3
+
+[[contributions.settings]]
+key = "findUsages.options.interfaceUsages"
+title = "Usages"
+type = "bool"
+default = true
+group = "findUsages"
+order = 4
+
+[[contributions.settings]]
+key = "findUsages.options.interfaceMethodUsages"
+title = "Usages of methods"
+type = "bool"
+default = false
+group = "findUsages"
+order = 5
+
+[[contributions.settings]]
+key = "findUsages.options.interfaceImplementingClasses"
+title = "Implementing classes"
+type = "bool"
+default = false
+group = "findUsages"
+order = 6
+
+[[contributions.settings]]
+key = "findUsages.options.interfaceDerivedInterfaces"
+title = "Derived interfaces"
+type = "bool"
+default = false
+group = "findUsages"
+order = 7
+
+[[contributions.settings]]
+key = "findUsages.options.methodUsages"
+title = "Usages"
+type = "bool"
+default = true
+group = "findUsages"
+order = 8
+
+[[contributions.settings]]
+key = "findUsages.options.methodOverridingMethods"
+title = "Overriding methods"
+type = "bool"
+default = false
+group = "findUsages"
+order = 9
+
+[[contributions.settings]]
+key = "findUsages.options.readAccess"
+title = "Read access"
+type = "bool"
+default = true
+group = "findUsages"
+order = 10
+
+[[contributions.settings]]
+key = "findUsages.options.writeAccess"
+title = "Write access"
+type = "bool"
+default = true
+group = "findUsages"
+order = 11
+
+[[contributions.settings]]
+key = "findUsages.options.usages"
+title = "Usages"
+type = "bool"
+default = true
+group = "findUsages"
+order = 12
+
+[[contributions.settings]]
+key = "findUsages.options.searchInCommentsAndStrings"
+title = "Search in comments and strings"
+type = "bool"
+default = false
+group = "findUsages"
+order = 13
+
+[[contributions.settings]]
+key = "findUsages.options.searchForTextOccurrences"
+title = "Search for text occurrences"
+type = "bool"
+default = false
+group = "findUsages"
+order = 14
+
+[[contributions.settings]]
+key = "findUsages.scope.kind"
+title = "Scope"
+type = "enum"
+options = [
+  { value = "projectFiles", label = "Project Files" },
+  { value = "projectAndLibraries", label = "Project and Libraries" },
+  { value = "openFiles", label = "Open Files" },
+  { value = "currentFile", label = "Current File" },
+  { value = "recentlyChangedFiles", label = "Recently Changed Files" },
+  { value = "directory", label = "Directory" },
+  { value = "custom", label = "Custom" },
+]
+default = "projectFiles"
+group = "findUsages"
+order = 20
+
+[[contributions.settings]]
+key = "findUsages.scope.directory"
+title = "Directory"
+type = "string"
+default = ""
+group = "findUsages"
+order = 21
+
+[[contributions.settings]]
+key = "findUsages.scope.includeSubdirectories"
+title = "Include subdirectories"
+type = "bool"
+default = true
+group = "findUsages"
+order = 22
+
+[[contributions.settings]]
+key = "findUsages.scope.pattern"
+title = "Custom scope"
+description = "File globs separated by ';', '!' excludes (app/**/*.php; !app/Legacy/**)."
+type = "string"
+default = ""
+group = "findUsages"
+order = 23
+
+[[contributions.settings]]
+key = "findUsages.openInNewTab"
+title = "Open in new tab"
+type = "bool"
+default = true
+group = "findUsages"
+order = 30

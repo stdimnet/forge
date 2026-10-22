@@ -92,9 +92,23 @@ export function codeintel_definition_snippet(request_json: string): string;
 export function codeintel_doc_url(request_json: string): string;
 
 /**
+ * `{ usages, options, scope, element, path, word, files }` → `{ usages, scope }`: the
+ * usages with text occurrences, in the scope and filtered by the options (like
+ * `code_find_usages`).
+ */
+export function codeintel_filter_usages(request_json: string): string;
+
+/**
  * `{ usages, declaration?, files }` → `{ byType, byFile }` (like `code_find_usages`).
  */
 export function codeintel_group_usages(request_json: string): string;
+
+/**
+ * `{ text, path, line, character, ranges?, declaration?, title?, element? }` →
+ * `HighlightAnswer | null` (like `code_highlight_usages`): exit points on `return` /
+ * `throw`, the given ranges classified as reads and writes, else the lexical fallback.
+ */
+export function codeintel_highlight_usages(request_json: string): string;
 
 /**
  * `{ hints, text, languageId?, settings }` → the hints to draw (like `lsp_inlay_hints`).
@@ -146,6 +160,11 @@ export function codeintel_test_targets(request_json: string): string;
  * `{ hover?, signature? }` → the type Type Info shows, or `null`.
  */
 export function codeintel_type_info(request_json: string): string;
+
+/**
+ * `{ element, title }` → `UsageTarget` (the Find Usages dialog's checkboxes).
+ */
+export function codeintel_usage_target(request_json: string): string;
 
 /**
  * `{ text, position }` → `[range, word] | null`.
@@ -1035,7 +1054,9 @@ export interface InitOutput {
     readonly codeintel_context_headers: (a: number, b: number, c: number) => void;
     readonly codeintel_definition_snippet: (a: number, b: number, c: number) => void;
     readonly codeintel_doc_url: (a: number, b: number, c: number) => void;
+    readonly codeintel_filter_usages: (a: number, b: number, c: number) => void;
     readonly codeintel_group_usages: (a: number, b: number, c: number) => void;
+    readonly codeintel_highlight_usages: (a: number, b: number, c: number) => void;
     readonly codeintel_inlay_hints: (a: number, b: number, c: number) => void;
     readonly codeintel_new_test_plan: (a: number, b: number, c: number) => void;
     readonly codeintel_order_actions: (a: number, b: number, c: number) => void;
@@ -1046,6 +1067,7 @@ export interface InitOutput {
     readonly codeintel_test_source: (a: number, b: number, c: number) => void;
     readonly codeintel_test_targets: (a: number, b: number, c: number) => void;
     readonly codeintel_type_info: (a: number, b: number, c: number) => void;
+    readonly codeintel_usage_target: (a: number, b: number, c: number) => void;
     readonly codeintel_word_range: (a: number, b: number, c: number) => void;
     readonly codestyle_export: (a: number, b: number, c: number) => void;
     readonly codestyle_file_format: (a: number, b: number, c: number) => void;

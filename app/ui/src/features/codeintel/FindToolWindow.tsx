@@ -4,7 +4,7 @@
  * grouped by usage type and file like PHPStorm's; text occurrences are grouped by file.
  */
 import { createSignal, For, Show } from "solid-js";
-import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown, ListTree, RotateCw, Search, X } from "lucide-solid";
+import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown, ListTree, RotateCw, Search, Settings, X } from "lucide-solid";
 import { FileIcon } from "@/shell/FileIcon";
 import { showBalloon } from "@/keymap";
 import type { UsageGroup } from "@/ipc/codeintel";
@@ -15,6 +15,7 @@ import {
   closeFindTab,
   countLabel,
   findTabs,
+  findUsagesSettingsFor,
   gotoFindOccurrence,
   openUsage,
   SEARCH_TAB,
@@ -238,6 +239,11 @@ function ResultTab() {
               <button class="find-tool" title="Collapse All" onClick={() => setAll(t(), true)}>
                 <ChevronsDownUp size={15} />
               </button>
+              <Show when={t().kind === "usages" && t().origin}>
+                <button class="find-tool" title="Settings… (Ctrl+Alt+Shift+F7)" aria-label="Find Usages Settings" onClick={() => findUsagesSettingsFor(t())}>
+                  <Settings size={15} />
+                </button>
+              </Show>
               <button class="find-tool" title="Previous Occurrence" onClick={() => gotoFindOccurrence(-1, groupByType())}>
                 <ArrowUp size={15} />
               </button>

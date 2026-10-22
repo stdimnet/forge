@@ -306,6 +306,25 @@ async fn php_index_runs_on_the_agent() {
             .definition("app/Models/Order.php", at, Some(with_throwable))
             .unwrap();
         assert_eq!(def.external.unwrap().classes, vec!["Throwable"]);
+
+        // Find Usages with options and Highlight Usages in File answer from the agent too.
+        let usages = php
+            .usages(
+                "app/Models/Order.php",
+                offset,
+                Default::default(),
+                Some(text.clone()),
+            )
+            .unwrap()
+            .unwrap();
+        assert_eq!(usages.title, "Order");
+        let total = text.find("total()").unwrap() + 1;
+        let highlights = php
+            .highlights("app/Models/Order.php", total, Some(text.clone()))
+            .unwrap()
+            .unwrap();
+        assert_eq!(highlights.title, "total");
+        assert_eq!(highlights.highlights.len(), 1, "{highlights:?}");
     })
     .await;
 }
