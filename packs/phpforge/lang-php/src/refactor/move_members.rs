@@ -213,6 +213,7 @@ pub fn usage_edits(
 /// The code of the members as it goes into the target class: re-indented, `self::` /
 /// `static::` references to members that stay become `source_ref::`, class names that the
 /// target file resolves differently become fully qualified.
+#[allow(clippy::too_many_arguments)]
 pub fn moved_code(
     src: &str,
     path: &str,
