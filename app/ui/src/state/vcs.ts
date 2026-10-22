@@ -9,7 +9,13 @@ export type FileStatus = "modified" | "added" | "deleted" | "untracked" | "confl
 const [currentBranch, setCurrentBranch] = createSignal("main");
 const [fileStatuses, setFileStatuses] = createSignal<Record<string, FileStatus>>({});
 
-export { currentBranch, setCurrentBranch, fileStatuses, setFileStatuses };
+/** An operation in progress replaces the branch name in the widgets: "Rebasing main". */
+const [branchOperation, setBranchOperation] = createSignal<string | null>(null);
+
+export { currentBranch, setCurrentBranch, fileStatuses, setFileStatuses, branchOperation, setBranchOperation };
+
+/** Label of the branch widgets (toolbar, status bar). */
+export const branchLabel = (): string => branchOperation() ?? currentBranch();
 
 export const statusOf = (path: string): FileStatus | undefined => fileStatuses()[path];
 

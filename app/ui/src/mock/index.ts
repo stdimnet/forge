@@ -26,6 +26,7 @@ import "./stacktraceMock";
 import "./workbenchMock";
 import "./gitMock";
 import "./gitHistoryMock";
+import "./gitOpsMock";
 import "./compareMock";
 import "./phpMock";
 import "./codeintelMock";
