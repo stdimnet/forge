@@ -237,6 +237,12 @@ pub fn run() {
             commands::codeintel::code_revert_edit,
             commands::codeintel::code_context_actions,
             commands::codeintel::php_import_class,
+            commands::imports::imports_optimize,
+            commands::imports::imports_optimize_paths,
+            commands::imports::php_imports_on_the_fly,
+            commands::imports::php_import_hint,
+            commands::imports::php_import_reference,
+            commands::imports::code_imports_on_the_fly,
             commands::codeintel::code_resolve_action,
             commands::codeintel::code_execute_command,
             commands::langservers::langservers_list,
@@ -669,6 +675,20 @@ pub(crate) fn activate_plugins(app: &AppHandle) {
                 let h = handle.clone();
                 // Listeners run under the settings lock; read them on another thread.
                 std::thread::spawn(move || commands::services::reconfigure(&h));
+            }
+        });
+
+    // The PHP import style (code style Imports tab, Auto Import) of the refactorings.
+    let handle = app.clone();
+    app.state::<AppState>()
+        .write_settings()
+        .subscribe(move |change| {
+            if commands::imports::affects_import_style(&change.key) {
+                let h = handle.clone();
+                // Listeners run under the settings lock; read them on another thread.
+                std::thread::spawn(move || {
+                    commands::imports::import_style(&h.state::<AppState>());
+                });
             }
         });
 

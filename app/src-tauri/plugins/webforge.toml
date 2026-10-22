@@ -163,6 +163,64 @@ group = "lang.prettier"
 project = true
 order = 0
 
+# ---- Editor > General > Auto Import (JavaScript and TypeScript) --------------------------
+
+[[plugin.contributions.settings]]
+key = "javascript.autoImport.addOnTheFly"
+title = "Add unambiguous imports on the fly"
+description = "Import names the TypeScript server can resolve to exactly one module after you stop typing."
+type = "bool"
+default = false
+group = "editor.general.auto-import"
+section = "JavaScript and TypeScript"
+order = 10
+
+[[plugin.contributions.settings]]
+key = "javascript.autoImport.optimizeOnTheFly"
+title = "Optimize imports on the fly"
+description = "Remove unused imports while you edit, but not on the lines you are editing."
+type = "bool"
+default = false
+group = "editor.general.auto-import"
+section = "JavaScript and TypeScript"
+order = 11
+
+[[plugin.contributions.settings]]
+key = "javascript.autoImport.showPopup"
+title = "Show import popup"
+description = "Show a hint with the module to import from on unresolved names; press Alt+Enter to import."
+type = "bool"
+default = true
+group = "editor.general.auto-import"
+section = "JavaScript and TypeScript"
+order = 12
+
+[[plugin.contributions.settings]]
+key = "javascript.autoImport.pathStyle"
+title = "Use paths relative to"
+description = "How completion and Auto Import write the module path of a new import."
+type = "enum"
+options = [
+  { value = "shortest", label = "Shortest path" },
+  { value = "project-relative", label = "Project root (or path mapping)" },
+  { value = "relative", label = "Current file" },
+  { value = "non-relative", label = "Module (non-relative)" },
+]
+default = "shortest"
+group = "editor.general.auto-import"
+section = "JavaScript and TypeScript"
+order = 13
+
+[[plugin.contributions.settings]]
+key = "javascript.autoImport.typeImports"
+title = "Use type imports in TypeScript"
+description = "Import types with 'import type' when nothing else is imported from the module."
+type = "bool"
+default = false
+group = "editor.general.auto-import"
+section = "JavaScript and TypeScript"
+order = 14
+
 [[plugin]]
 id = "forge.react"
 name = "React"

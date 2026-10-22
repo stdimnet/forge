@@ -108,8 +108,19 @@ pub fn apply_php_actions(text: &str, actions: &PhpActions) -> PhpActionsResult {
 }
 
 #[tauri::command]
-pub async fn save_actions_php(text: String, actions: PhpActions) -> Result<PhpActionsResult> {
-    blocking(move || Ok(apply_php_actions(&text, &actions))).await
+pub async fn save_actions_php(
+    text: String,
+    actions: PhpActions,
+    state: State<'_, AppState>,
+) -> Result<PhpActionsResult> {
+    // Optimize imports arranges them as the code style's Imports tab says.
+    let style = crate::commands::imports::import_style(&state);
+    blocking(move || {
+        Ok(imports::with_style(style, || {
+            apply_php_actions(&text, &actions)
+        }))
+    })
+    .await
 }
 
 /// Run the external tools on the saved file `path`.

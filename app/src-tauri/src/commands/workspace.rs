@@ -94,6 +94,8 @@ pub fn project_opened(app: &AppHandle) {
         return;
     };
     crate::commands::project::emit_detection(app);
+    // The project's import style is the refactorings' default.
+    crate::commands::imports::import_style(&state);
     start_watching(app);
     let display = info.display_root();
     match &info.remote {

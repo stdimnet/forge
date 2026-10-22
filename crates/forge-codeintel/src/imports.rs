@@ -105,6 +105,38 @@ pub fn minimal_edit(old: &str, new: &str) -> Option<TextEdit> {
     })
 }
 
+/// Extensions Optimize Imports handles: PHP (Forge's own) and the TypeScript server's.
+pub const OPTIMIZE_EXTENSIONS: &[&str] = &[
+    "php", "phtml", "js", "jsx", "mjs", "cjs", "ts", "tsx", "mts", "cts", "vue",
+];
+
+/// The files of a folder Optimize Imports processes: the supported file types (no Blade
+/// templates, no minified files), only the VCS-changed ones when `changed` is given,
+/// sorted and without duplicates.
+pub fn optimize_targets(
+    files: &[String],
+    changed: Option<&std::collections::BTreeSet<String>>,
+) -> Vec<String> {
+    let mut out: Vec<String> = files
+        .iter()
+        .filter(|f| {
+            let lower = f.to_ascii_lowercase();
+            let ext = lower.rsplit_once('.').map_or("", |(_, e)| e);
+            OPTIMIZE_EXTENSIONS.contains(&ext)
+                && !lower.ends_with(".blade.php")
+                && !lower.contains(".min.")
+                && !lower
+                    .split('/')
+                    .any(|s| s == "node_modules" || s == "vendor")
+        })
+        .filter(|f| changed.is_none_or(|c| c.contains(*f)))
+        .cloned()
+        .collect();
+    out.sort();
+    out.dedup();
+    out
+}
+
 /// Whether an on-the-fly import edit (a language server's "add missing imports" or
 /// "remove unused imports") may be applied now: not when it changes the caret's line or
 /// the lines edited last, where the user is still typing.
@@ -166,6 +198,33 @@ mod tests {
             let e = minimal_edit(a, b).unwrap();
             assert_eq!(apply_text_edits(a, &[e]).unwrap(), b, "{a} -> {b}");
         }
+    }
+
+    #[test]
+    fn folder_targets() {
+        let files: Vec<String> = [
+            "app/User.php",
+            "resources/views/a.blade.php",
+            "src/main.ts",
+            "src/App.vue",
+            "public/app.min.js",
+            "README.md",
+            "vendor/x/Y.php",
+            "app/User.php",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect();
+        assert_eq!(
+            optimize_targets(&files, None),
+            vec!["app/User.php", "src/App.vue", "src/main.ts"]
+        );
+        let changed: std::collections::BTreeSet<String> =
+            ["src/main.ts".to_string()].into_iter().collect();
+        assert_eq!(
+            optimize_targets(&files, Some(&changed)),
+            vec!["src/main.ts"]
+        );
     }
 
     #[test]

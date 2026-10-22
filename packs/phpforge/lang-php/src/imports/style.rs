@@ -6,11 +6,13 @@
 //! Every place that adds or rewrites imports reads one [`ImportStyle`]: Optimize Imports,
 //! Actions on Save, Auto Import (completion, on the fly, Import class) and the refactorings
 //! (Move, Copy, Pull Members Up, Create from usage). The refactorings deep inside the crate
-//! read the style of the current call through [`with_style`] / [`current`], so the app sets
-//! it once around a call instead of threading it through every function.
+//! read the style through [`current`]: the one of the running call ([`with_style`], e.g.
+//! intentions on a remote agent) or the project's ([`set_default`], kept current by the
+//! app), so it is not threaded through every function.
 
 use std::cell::Cell;
 use std::cmp::Ordering;
+use std::sync::RwLock;
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -164,6 +166,14 @@ thread_local! {
     static CURRENT: Cell<Option<ImportStyle>> = const { Cell::new(None) };
 }
 
+/// The style of the project's settings, set by the app when they change.
+static DEFAULT: RwLock<Option<ImportStyle>> = RwLock::new(None);
+
+/// Set the style imports use outside [`with_style`] (the app: from the project's settings).
+pub fn set_default(style: ImportStyle) {
+    *DEFAULT.write().unwrap_or_else(|e| e.into_inner()) = Some(style);
+}
+
 /// Run `f` with `style` as the import style of every import the crate adds meanwhile
 /// (on this thread).
 pub fn with_style<T>(style: ImportStyle, f: impl FnOnce() -> T) -> T {
@@ -177,9 +187,12 @@ pub fn with_style<T>(style: ImportStyle, f: impl FnOnce() -> T) -> T {
     f()
 }
 
-/// The import style of the running call ([`with_style`]), else the default one.
+/// The import style of the running call ([`with_style`]), else the one [`set_default`]
+/// set, else the default one.
 pub fn current() -> ImportStyle {
-    CURRENT.with(|c| c.get()).unwrap_or_default()
+    CURRENT
+        .with(|c| c.get())
+        .unwrap_or_else(|| DEFAULT.read().ok().and_then(|d| *d).unwrap_or_default())
 }
 
 #[cfg(test)]
