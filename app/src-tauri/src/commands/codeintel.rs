@@ -1365,6 +1365,39 @@ pub async fn code_context_actions(
     })
 }
 
+/// The language servers' refactorings for a Refactor menu action in files Forge has no
+/// refactoring of its own for (typescript-language-server's "Extract to function in module
+/// scope", "Extract to constant in enclosing scope", "Inline variable"). The UI lets the user
+/// choose one and applies it like a context action.
+#[tauri::command]
+#[allow(clippy::too_many_arguments)]
+pub async fn code_refactor_actions(
+    path: String,
+    line: u32,
+    character: u32,
+    end_line: u32,
+    end_character: u32,
+    refactoring: String,
+    app: AppHandle,
+    lsp: State<'_, LspState>,
+    ws: State<'_, AppState>,
+) -> Result<Vec<ContextAction>> {
+    let c = Ctx::new(&path, &app, &lsp, &ws)?;
+    let range = lsp_types::Range::new(
+        lsp_types::Position::new(line, character),
+        lsp_types::Position::new(end_line, end_character),
+    );
+    let actions = c
+        .manager
+        .code_actions(&c.abs, range)
+        .await
+        .unwrap_or_default()
+        .into_iter()
+        .map(|a| from_lsp_action(a, &c))
+        .collect();
+    Ok(codeintel::refactor_actions(actions, &refactoring))
+}
+
 /// A PHP intention as a context action: its edits of the current file (UTF-16 offsets) and
 /// of other files in one workspace edit.
 fn php_action(

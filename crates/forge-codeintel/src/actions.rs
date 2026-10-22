@@ -187,9 +187,73 @@ pub fn lsp_creates(lsp_titles: &[&str], name: &str) -> bool {
     })
 }
 
+/// The language server code action kinds (typescript-language-server's `refactor.*`) that
+/// implement a Refactor menu action in JS/TS files.
+pub fn refactor_kinds(action: &str) -> &'static [&'static str] {
+    match action {
+        "IntroduceVariable" => &["refactor.extract.constant", "refactor.extract.variable"],
+        "IntroduceConstant" => &["refactor.extract.constant"],
+        "IntroduceField" => &["refactor.extract.field", "refactor.extract.property"],
+        "ExtractMethod" => &["refactor.extract.function", "refactor.extract.method"],
+        "Inline" => &["refactor.inline"],
+        _ => &[],
+    }
+}
+
+/// The server actions for a Refactor menu action ("Extract to function in module scope",
+/// "Extract to method in class 'Cart'"...), in the server's order.
+pub fn refactor_actions(actions: Vec<ContextAction>, action: &str) -> Vec<ContextAction> {
+    let kinds = refactor_kinds(action);
+    actions
+        .into_iter()
+        .filter(|a| {
+            a.lsp_kind().is_some_and(|k| {
+                kinds
+                    .iter()
+                    .any(|p| k == *p || k.strip_prefix(p).is_some_and(|r| r.starts_with('.')))
+            })
+        })
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn picks_the_servers_refactorings_for_a_menu_action() {
+        let with_kind = |title: &str, kind: &str| ContextAction {
+            raw: Some(serde_json::json!({ "kind": kind })),
+            ..action(title, ActionKind::Refactor)
+        };
+        let all = vec![
+            with_kind(
+                "Extract to function in module scope",
+                "refactor.extract.function",
+            ),
+            with_kind(
+                "Extract to constant in enclosing scope",
+                "refactor.extract.constant",
+            ),
+            with_kind("Extract to type alias", "refactor.extract.type"),
+            with_kind("Inline variable", "refactor.inline.variable"),
+            action("Fix", ActionKind::QuickFix),
+        ];
+        let titles = |a: Vec<ContextAction>| a.into_iter().map(|a| a.title).collect::<Vec<_>>();
+        assert_eq!(
+            titles(refactor_actions(all.clone(), "ExtractMethod")),
+            vec!["Extract to function in module scope"]
+        );
+        assert_eq!(
+            titles(refactor_actions(all.clone(), "IntroduceVariable")),
+            vec!["Extract to constant in enclosing scope"]
+        );
+        assert_eq!(
+            titles(refactor_actions(all.clone(), "Inline")),
+            vec!["Inline variable"]
+        );
+        assert!(refactor_actions(all, "Move").is_empty());
+    }
 
     fn action(title: &str, kind: ActionKind) -> ContextAction {
         ContextAction {
