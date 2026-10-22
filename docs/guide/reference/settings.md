@@ -401,8 +401,10 @@ Page id `lang.php`.
 
 | Key | Type | Default | Scope | Section | Title and description |
 | --- | --- | --- | --- | --- | --- |
-| `php.languageLevel` | enum: `7.4`, `8.0`, `8.1`, `8.2`, `8.3`, `8.4` | `8.3` | user, project | Development Environment | PHP language level — Inspections and completion follow the syntax of this version. |
-| `php.interpreter` | path | `php` | user, project | Development Environment | CLI Interpreter — Path to the php executable used to run scripts and tests. |
+| `php.languageLevel` | enum: `7.4`, `8.0`, `8.1`, `8.2`, `8.3`, `8.4`, `interpreter` | `8.3` | user, project | Development Environment | PHP language level — Inspections and completion follow the syntax of this version (`interpreter`: the CLI interpreter's version). |
+| `php.interpreter` | string | `php` | user, project | Development Environment | CLI Interpreter — The interpreter that runs scripts and tests: the name of an interpreter of the CLI Interpreters dialog, or the path of a local php executable. |
+| `php.interpreters` | objects (unique `name`) | `[]` | user | Development Environment | CLI Interpreters — PHP interpreters available in every project: local, Docker, Docker Compose, SSH and WSL (edited in the CLI Interpreters dialog). |
+| `php.projectInterpreters` | objects (unique `name`) | `[]` | user, project | Development Environment | CLI Interpreters of this project — Interpreters marked "Visible only for this project". |
 | `php.includePaths` | list | `[]` | user, project | Include Path | Include path — Extra directories indexed as libraries (e.g. global PEAR or framework stubs). |
 | `php.stubs.path` | path | `""` | user | PHP Runtime | Default stubs path — A phpstorm-stubs checkout used for PHP's own classes, functions and constants (Go to Declaration on \Throwable, array_map). Empty: Forge downloads JetBrains' phpstorm-stubs into its cache folder on first use, or uses Intelephense's stubs. |
 | `php.lsp.server` | enum: `auto`, `intelephense`, `phpactor`, `none` | `auto` | user | Language Server | Language server — Started automatically when a PHP project opens. |

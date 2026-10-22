@@ -58,8 +58,30 @@ offers **Run Shell Command…** and **Edit Configuration…**.
 | Shell Script | Execute: Script file or Script text; Script path / text | the shell | — |
 | Lua Script | File | `<lua> <options> <file> <arguments>`, LÖVE games as `love <dir>` | — |
 
-The PHP interpreter defaults to `php.interpreter` (Settings | Languages & Frameworks | PHP), the
-Lua interpreter to `lua.interpreter`.
+The PHP interpreter defaults to the project's CLI interpreter (`php.interpreter`, Settings |
+Languages & Frameworks | PHP), the Lua interpreter to `lua.interpreter`. The **Interpreter**
+field of PHP Script, PHPUnit and Artisan configurations lists the project default, every
+[CLI interpreter](php.md#cli-interpreters) and **Custom…** (a path to a local `php`):
+
+![Interpreter of a run configuration](../../screenshots/php-interpreters-run-config.png)
+
+A Docker, Docker Compose, SSH or WSL interpreter wraps the command line: `docker run --rm …`,
+`docker compose run/exec …`, `ssh user@host …` or `wsl.exe -d … --exec php …`, with paths in
+the arguments and the working directory mapped into the container or host, the environment
+variables passed along (`-e NAME=value`, `env NAME=value`) and the interpreter's
+configuration options as `-d name=value`. Paths in the output (stack traces, PHPUnit
+failures) are mapped back to project files, so they stay clickable in the Run console.
+Composer Script and Composer command configurations run `composer` through an interpreter
+when their Interpreter field names one; otherwise they use `php.composer.executable` locally.
+
+![Artisan through a Docker Compose interpreter](../../screenshots/php-interpreters-run.png)
+
+Debugging (`Shift+F9`) through an interpreter works the same way: Xdebug connects to
+`host.docker.internal` from containers (`docker run` adds
+`--add-host=host.docker.internal:host-gateway`; Compose services on Linux need an
+`extra_hosts: ["host.docker.internal:host-gateway"]` entry), SSH runs forward the debug port
+back with `ssh -R 9003:127.0.0.1:9003`, and the run sets `PHP_IDE_CONFIG=serverName=<interpreter>`
+so breakpoints use the interpreter's path mappings.
 
 > **Note:** the types "PHP Built-in Web Server" and "PHP Remote Debug" are declared by the PHP
 > plugins but not available yet. To debug a web request, use
