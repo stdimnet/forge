@@ -262,7 +262,8 @@ pub async fn lua_format(
     if !enabled {
         return Ok(None);
     }
-    let style = forge_codestyle::lsp::stylua_args(&crate::commands::code_style::code_style_values(&state));
+    let style =
+        forge_codestyle::lsp::stylua_args(&crate::commands::code_style::code_style_values(&state));
     let backend = state.backend()?;
     blocking(move || {
         let args = if has_stylua_config(backend.as_ref(), &path) {
@@ -280,7 +281,9 @@ pub async fn lua_format(
 fn has_stylua_config(backend: &dyn Backend, path: &str) -> bool {
     let mut dir = std::path::Path::new(path).parent();
     loop {
-        let base = dir.map(|d| d.to_string_lossy().replace('\\', "/")).unwrap_or_default();
+        let base = dir
+            .map(|d| d.to_string_lossy().replace('\\', "/"))
+            .unwrap_or_default();
         for name in ["stylua.toml", ".stylua.toml"] {
             let file = if base.is_empty() {
                 name.to_string()
@@ -348,7 +351,8 @@ mod tests {
     fn missing_stylua_is_not_an_error() {
         let dir = tempfile::tempdir().unwrap();
         let backend = LocalBackend::open(dir.path()).unwrap();
-        let out = format_with_stylua(&backend, "forge-no-such-stylua", "a.lua", "x=1", &[]).unwrap();
+        let out =
+            format_with_stylua(&backend, "forge-no-such-stylua", "a.lua", "x=1", &[]).unwrap();
         assert_eq!(out, None);
         let out = format_with_stylua(&backend, "/no/such/stylua", "a.lua", "x=1", &[]).unwrap();
         assert_eq!(out, None);
@@ -384,9 +388,16 @@ mod tests {
         let exe = fake.to_string_lossy().into_owned();
         let style = vec!["--indent-type".to_string(), "Tabs".to_string()];
         let out = format_with_stylua(&backend, &exe, "lua/a.lua", "x", &style).unwrap();
-        assert_eq!(out.as_deref(), Some("--indent-type Tabs --stdin-filepath\n"));
+        assert_eq!(
+            out.as_deref(),
+            Some("--indent-type Tabs --stdin-filepath\n")
+        );
         assert!(!has_stylua_config(&backend, "lua/a.lua"));
-        std::fs::write(dir.path().join(".stylua.toml"), "indent_type = \"Spaces\"\n").unwrap();
+        std::fs::write(
+            dir.path().join(".stylua.toml"),
+            "indent_type = \"Spaces\"\n",
+        )
+        .unwrap();
         assert!(has_stylua_config(&backend, "lua/a.lua"));
     }
 }

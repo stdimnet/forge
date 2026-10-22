@@ -77,7 +77,9 @@ impl Braces {
             (None, None, None) => get(BRACES_KEY)
                 .and_then(|v| serde_json::from_value(v).ok())
                 .unwrap_or_default(),
-            (c, f, o) => Self::from_placement(c.unwrap_or(true), f.unwrap_or(true), o.unwrap_or(false)),
+            (c, f, o) => {
+                Self::from_placement(c.unwrap_or(true), f.unwrap_or(true), o.unwrap_or(false))
+            }
         }
     }
 }

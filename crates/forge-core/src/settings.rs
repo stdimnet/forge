@@ -394,7 +394,11 @@ mod tests {
         s.subscribe(move |c| sink.lock().unwrap().push(c.key.clone()));
         s.set_many(vec![
             ("php.codeStyle.indent".into(), json!(2), SettingsScope::User),
-            ("php.codeStyle.useTabs".into(), json!(true), SettingsScope::Project),
+            (
+                "php.codeStyle.useTabs".into(),
+                json!(true),
+                SettingsScope::Project,
+            ),
             ("editor.font.size".into(), json!(14), SettingsScope::User),
         ])
         .unwrap();

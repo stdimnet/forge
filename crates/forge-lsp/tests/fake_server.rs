@@ -172,7 +172,9 @@ async fn changed_settings_are_pushed_and_answered() {
     let client = LspClient::start_with_events(config(), dir.path(), tx)
         .await
         .unwrap();
-    assert!(client.update_settings(&json!({"fake": {"answer": 7}})).unwrap());
+    assert!(client
+        .update_settings(&json!({"fake": {"answer": 7}}))
+        .unwrap());
     // The server pulls its settings again and gets the new value.
     let log = next_matching(&mut rx, |e| match e {
         LspEvent::Log { message, .. } if message == "config: [7,null]" => Some(message),
@@ -182,7 +184,9 @@ async fn changed_settings_are_pushed_and_answered() {
     assert_eq!(log, "config: [7,null]");
     assert_eq!(client.settings(), json!({"fake": {"answer": 7}}));
     // The same settings again: nothing to send.
-    assert!(!client.update_settings(&json!({"fake": {"answer": 7}})).unwrap());
+    assert!(!client
+        .update_settings(&json!({"fake": {"answer": 7}}))
+        .unwrap());
     assert!(!client.update_settings(&json!(null)).unwrap());
     client.shutdown().await;
 }

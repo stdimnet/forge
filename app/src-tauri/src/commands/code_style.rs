@@ -64,10 +64,7 @@ pub fn code_style_schemes(state: State<'_, AppState>) -> SchemesState {
 
 /// Store the schemes edited on the Code Style pages (Apply / OK).
 #[tauri::command]
-pub fn code_style_save(
-    schemes: SchemesState,
-    state: State<'_, AppState>,
-) -> Result<SchemesState> {
+pub fn code_style_save(schemes: SchemesState, state: State<'_, AppState>) -> Result<SchemesState> {
     let mut settings = state.write_settings();
     let (user, project) = layers(&settings);
     let writes = codestyle::plan_save(
@@ -123,7 +120,10 @@ pub async fn code_style_export(
 
 /// Read a scheme from `text`, or from the file at `path` (picked in an open dialog).
 #[tauri::command]
-pub async fn code_style_import(text: Option<String>, path: Option<String>) -> Result<ImportedScheme> {
+pub async fn code_style_import(
+    text: Option<String>,
+    path: Option<String>,
+) -> Result<ImportedScheme> {
     let text = match (text, path) {
         (Some(t), _) => t,
         (None, Some(p)) => tokio::fs::read_to_string(&p)
