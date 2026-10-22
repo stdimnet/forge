@@ -1,0 +1,24 @@
+/* The import popup ("? App\Models\User Alt+Enter"): PHPStorm's blue question hint. */
+.cm-tooltip:has(> .cm-import-hint) {
+  background: var(--accent-soft);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+}
+.cm-import-hint {
+  padding: 3px 8px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  color: var(--fg-strong);
+  white-space: nowrap;
+}
+
+/* The "Optimize Imports" dialog of the Project view. */
+.optimize-imports-scope {
+  color: var(--fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.optimize-imports-dialog .form-label.check.disabled {
+  color: var(--fg-muted);
+}

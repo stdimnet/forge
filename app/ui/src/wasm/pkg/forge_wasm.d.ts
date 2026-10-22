@@ -500,6 +500,27 @@ export function hierarchy_type_view(request_json: string): string;
 export function image_describe(request_json: string): string;
 
 /**
+ * `{ files, changed, removed }` → the folder notification.
+ */
+export function imports_folder_summary(files: number, changed: number, removed: number): string;
+
+/**
+ * `{ old, new }` → the one LSP edit turning `old` into `new` (or null).
+ */
+export function imports_minimal_edit(request_json: string): string;
+
+/**
+ * `{ old, new, removed, rearranged }` → `OptimizeAnswer` (like `imports_optimize`): the
+ * editor change and the notification.
+ */
+export function imports_optimize_answer(request_json: string): string;
+
+/**
+ * `{ files, changed? }` → the files Optimize Imports processes.
+ */
+export function imports_targets(request_json: string): string;
+
+/**
  * `{ text, path, offset, disabled?, uninjected? }` → `Injection | null`.
  */
 export function injections_at(request_json: string): string;
@@ -1272,6 +1293,10 @@ export interface InitOutput {
     readonly hierarchy_method_view: (a: number, b: number, c: number) => void;
     readonly hierarchy_type_view: (a: number, b: number, c: number) => void;
     readonly image_describe: (a: number, b: number, c: number) => void;
+    readonly imports_folder_summary: (a: number, b: number, c: number, d: number) => void;
+    readonly imports_minimal_edit: (a: number, b: number, c: number) => void;
+    readonly imports_optimize_answer: (a: number, b: number, c: number) => void;
+    readonly imports_targets: (a: number, b: number, c: number) => void;
     readonly injections_at: (a: number, b: number, c: number) => void;
     readonly injections_context_actions: (a: number, b: number, c: number) => void;
     readonly injections_escape: (a: number, b: number, c: number) => void;

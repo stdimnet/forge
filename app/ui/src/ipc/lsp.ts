@@ -48,6 +48,8 @@ export interface EditorCompletionItem {
   filterText?: string | null;
   sortText?: string | null;
   deprecated?: boolean;
+  /** Edits elsewhere in the file (the import of a completed name). */
+  additionalTextEdits?: TextEdit[];
   raw?: unknown;
 }
 

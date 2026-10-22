@@ -17,6 +17,7 @@ import "./ssr";
 import "./stacktrace";
 import "./find";
 import "./codeintel";
+import "./imports";
 import "./hierarchy";
 import "./liveTemplates";
 import "./documentation";
