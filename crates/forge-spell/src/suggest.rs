@@ -1,8 +1,8 @@
 //! Suggestions for a misspelled word: dictionary words within a small weighted edit
 //! distance (Damerau-Levenshtein with adjacent transpositions), where typing slips are
 //! cheaper than other edits: neighbouring keys on a QWERTY keyboard, swapped letters,
-//! doubled or missing double letters and vowel confusions. `REP` pairs of the Hunspell
-//! dictionary add phonetic candidates ("f" for "ph").
+//! doubled or missing double letters, dropped vowels and vowel confusions. `REP` pairs of
+//! the Hunspell dictionary add phonetic candidates ("f" for "ph").
 
 /// Position of a key on a QWERTY keyboard: (row, column with the row's stagger).
 fn key_position(c: char) -> Option<(f32, f32)> {
@@ -54,11 +54,20 @@ pub fn distance(a: &[char], b: &[char], max: f32) -> Option<f32> {
             1.0
         }
     };
+    // A letter missing from the typed word; dropped vowels are common ("ordr", "totl").
+    let insert = |i: usize| -> f32 {
+        let cost = indel(b, i);
+        if cost == 1.0 && is_vowel(b[i]) {
+            0.7
+        } else {
+            cost
+        }
+    };
     let mut prev2 = vec![0.0f32; m + 1];
     let mut prev = vec![0.0f32; m + 1];
     let mut cur = vec![0.0f32; m + 1];
     for j in 1..=m {
-        prev[j] = prev[j - 1] + indel(b, j - 1);
+        prev[j] = prev[j - 1] + insert(j - 1);
     }
     for i in 1..=n {
         cur[0] = prev[0] + indel(a, i - 1);
@@ -66,7 +75,7 @@ pub fn distance(a: &[char], b: &[char], max: f32) -> Option<f32> {
         for j in 1..=m {
             let mut d = (prev[j - 1] + substitution_cost(a[i - 1], b[j - 1]))
                 .min(prev[j] + indel(a, i - 1))
-                .min(cur[j - 1] + indel(b, j - 1));
+                .min(cur[j - 1] + insert(j - 1));
             if i > 1
                 && j > 1
                 && a[i - 1] == b[j - 2]
@@ -164,6 +173,7 @@ mod tests {
         assert_eq!(d("tesr", "test"), Some(0.6)); // r is next to t
         assert_eq!(d("seperate", "separate"), Some(0.8)); // vowels
         assert_eq!(d("cat", "xyzzy"), None);
+        assert_eq!(d("ordr", "order"), Some(0.7)); // dropped vowel
     }
 
     #[test]

@@ -39,6 +39,7 @@ export const setDiagnosticsEffect = StateEffect.define<EditorDiagnostic[]>();
 function place(state: EditorState, diags: EditorDiagnostic[]): PlacedDiagnostic[] {
   const doc = state.doc;
   return diags
+    .filter((diag) => !diag.fileLevel)
     .map((diag) => {
       let from = fromLsp(doc, diag.range.start);
       let to = fromLsp(doc, diag.range.end);
@@ -114,7 +115,7 @@ function gutterMarkers(state: EditorState): RangeSet<GutterMarker> {
   const items = state.field(diagnosticsField, false)?.items ?? [];
   const byLine = new Map<number, PlacedDiagnostic[]>();
   for (const item of items) {
-    if (item.diag.severity === "info") continue;
+    if (item.diag.severity === "info" || item.diag.severity === "typo" || item.diag.severity === "grammar") continue;
     const line = state.doc.lineAt(item.from).from;
     byLine.set(line, [...(byLine.get(line) ?? []), item]);
   }
@@ -170,7 +171,7 @@ class InspectionWidget implements PluginValue {
     this.signature = signature;
     this.dom.replaceChildren();
 
-    const total = counts.error + counts.warning + counts.weak;
+    const total = counts.error + counts.warning + counts.weak + counts.grammar + counts.typo;
     if (total === 0) {
       const ok = h("button", "cm-lsp-inspection-ok", iconNode(Check, 14));
       ok.title = "No problems found";
@@ -180,7 +181,7 @@ class InspectionWidget implements PluginValue {
     }
     const summary = h("button", "cm-lsp-inspection-counts");
     const tips: string[] = [];
-    for (const sev of ["error", "warning", "weak"] as const) {
+    for (const sev of ["error", "warning", "weak", "grammar", "typo"] as const) {
       if (!counts[sev]) continue;
       summary.append(h("span", `cm-lsp-count sev-${sev}`, iconNode(severityIcon[sev], 13), String(counts[sev])));
       tips.push(pluralize(counts[sev], severityLabel[sev].toLowerCase()));

@@ -599,6 +599,7 @@ mod tests {
         assert_eq!(speller.suggest("recieve", &user, 3)[0], "receive");
         assert_eq!(speller.suggest("Adress", &user, 3)[0], "Address");
         assert_eq!(speller.suggest("teh", &user, 3)[0], "the");
+        assert_eq!(speller.suggest("ordr", &user, 3)[0], "order");
         assert!(speller
             .suggest("definately", &user, 5)
             .contains(&"definitely".to_string()));

@@ -358,6 +358,28 @@ yaml
 yml
 zip
 
+# framework vocabulary
+appends
+autoconfigure
+autowire
+autowired
+autowiring
+arrayable
+castable
+casts
+enumerable
+fillable
+guarded
+jsonable
+morph
+morphs
+paginate
+paginator
+stringable
+timestamps
+unguarded
+upsert
+
 # frameworks, tools and products
 angular
 apache

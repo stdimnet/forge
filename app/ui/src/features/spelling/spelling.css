@@ -1,0 +1,96 @@
+/* Settings | Editor | Natural Languages */
+.spell-section-body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+.spell-language {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  color: var(--fg);
+}
+.spell-language svg {
+  color: var(--accent);
+}
+.spell-muted {
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+.spell-dictionaries td:nth-child(2) {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.spell-source {
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--fg-muted);
+}
+.spell-error {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--danger);
+}
+.spell-links {
+  display: flex;
+  gap: 16px;
+  margin-top: 10px;
+}
+
+/* Commit message: squiggles drawn under a transparent copy of the textarea text. */
+.spell-textarea {
+  position: relative;
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  margin: 0 10px;
+}
+.spell-textarea textarea {
+  flex: 1;
+  margin: 0 !important;
+}
+.spell-overlay {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  color: transparent;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  border: 1px solid transparent;
+}
+.spell-overlay-text {
+  display: block;
+}
+.spell-mark {
+  text-decoration-line: underline;
+  text-decoration-style: wavy;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  text-decoration-skip-ink: none;
+}
+.spell-mark.typo {
+  text-decoration-color: var(--success);
+}
+.spell-mark.grammar {
+  text-decoration-color: var(--info);
+}
+.commit-problems li.spell-problem {
+  color: var(--fg-muted);
+}
+.commit-problems li.spell-problem svg {
+  flex-shrink: 0;
+}
+.commit-problems li.spell-problem.typo svg {
+  color: var(--success);
+}
+.commit-problems li.spell-problem.grammar svg {
+  color: var(--info);
+}
+.spell-section-body .set-table-box {
+  width: 100%;
+}

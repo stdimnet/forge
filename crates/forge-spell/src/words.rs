@@ -301,13 +301,12 @@ fn prose_words(chars: &[char], offsets: &[usize], start: usize, end: usize, out:
         if n < MIN_WORD_LENGTH {
             continue;
         }
-        // Acronyms in text (`HTML`, `ORM`).
-        if n <= 5
-            && run
-                .iter()
-                .filter(|c| c.is_alphabetic())
-                .all(|c| c.is_uppercase())
-        {
+        // Acronyms in text (`HTML`, `ORM`) and their plurals (`PDFs`, `URLs`).
+        let stem = match run.split_last() {
+            Some((&'s', rest)) if rest.len() >= 2 && rest.iter().all(|c| c.is_uppercase()) => rest,
+            _ => run,
+        };
+        if stem.len() <= 5 && stem.iter().all(|c| c.is_uppercase()) {
             continue;
         }
         out.push(Word {
@@ -387,6 +386,7 @@ mod tests {
             texts("v2 utf8 abc123 ok", Context::Comment),
             Vec::<String>::new()
         );
+        assert_eq!(texts("PDFs and URLs", Context::Comment), ["and"]);
     }
 
     #[test]
