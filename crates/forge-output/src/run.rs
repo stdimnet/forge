@@ -31,6 +31,9 @@ pub struct RunOutputOptions {
     /// counterparts, so links in the output open project files.
     #[serde(default)]
     pub path_mappings: Vec<OutputPathMapping>,
+    /// External Tools output filters (`$FILE_PATH$:$LINE$`); invalid ones are ignored.
+    #[serde(default)]
+    pub output_filters: Vec<String>,
 }
 
 /// What happened to the process.
@@ -104,7 +107,8 @@ impl ConsoleDelta {
 impl RunOutput {
     pub fn new(opts: &RunOutputOptions) -> Self {
         let links = LinkContext::new(opts.root.as_deref(), opts.cwd.as_deref())
-            .with_mappings(opts.path_mappings.clone());
+            .with_mappings(opts.path_mappings.clone())
+            .with_filters(crate::filters::compile_filters(&opts.output_filters).0);
         RunOutput {
             ansi: AnsiParser::new(),
             console: ConsoleModel::new(links.clone()),

@@ -7,6 +7,8 @@ use std::sync::OnceLock;
 use regex_lite::Regex;
 use serde::{Deserialize, Serialize};
 
+use crate::filters::OutputFilter;
+
 /// A link in a line of text. `start`/`end` are byte offsets (end exclusive) unless a function
 /// says otherwise.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -143,6 +145,10 @@ pub struct LinkContext {
     /// Remote → local path pairs, most specific first.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub mappings: Vec<OutputPathMapping>,
+    /// Output filters of an External Tool (`$FILE_PATH$:$LINE$`); their matches win over the
+    /// built-in file link patterns.
+    #[serde(skip)]
+    pub filters: Vec<OutputFilter>,
 }
 
 /// A path where a process runs (`/var/www/html` in a container) and the local path it
@@ -176,7 +182,19 @@ impl LinkContext {
             root: root.map(str::to_string),
             cwd_rel,
             mappings: Vec::new(),
+            filters: Vec::new(),
         }
+    }
+
+    /// Link what these output filters match (External Tools).
+    pub fn with_filters(mut self, filters: Vec<OutputFilter>) -> Self {
+        self.filters = filters;
+        self
+    }
+
+    /// Whether a line can contain links without a path separator or dot in it.
+    pub fn has_filters(&self) -> bool {
+        !self.filters.is_empty()
     }
 
     /// Map paths of a container or remote host back to local ones first.
@@ -213,10 +231,40 @@ impl LinkContext {
 /// File links that resolve into the project (with `target` set) plus web links, sorted by
 /// position.
 pub fn find_links(text: &str, ctx: &LinkContext) -> Vec<FileLink> {
-    let mut links = find_urls(text);
-    let urls = links.len();
+    let mut links = Vec::new();
+    for filter in &ctx.filters {
+        for m in filter.find(text) {
+            if links
+                .iter()
+                .any(|l: &FileLink| m.start < l.end && l.start < m.end)
+            {
+                continue;
+            }
+            if let Some(target) = ctx.resolve(&m.path) {
+                links.push(FileLink {
+                    url: false,
+                    start: m.start,
+                    end: m.end,
+                    path: m.path,
+                    target: Some(target),
+                    line: m.line,
+                    column: m.column,
+                });
+            }
+        }
+    }
+    let filtered = links.len();
+    for u in find_urls(text) {
+        if !links[..filtered]
+            .iter()
+            .any(|l| u.start < l.end && l.start < u.end)
+        {
+            links.push(u);
+        }
+    }
+    let taken = links.len();
     for mut f in find_file_links(text) {
-        if links[..urls]
+        if links[..taken]
             .iter()
             .any(|u| f.start < u.end && u.start < f.end)
         {
@@ -348,6 +396,27 @@ mod tests {
             (l.start, l.end, l.target.as_deref()),
             (2, 14, Some("a/B.php"))
         );
+    }
+
+    #[test]
+    fn output_filters_link_their_matches_first() {
+        let filters = crate::filters::compile_filters(&["^$FILE_PATH$ \\[$LINE$\\]"]).0;
+        let ctx = LinkContext::new(Some("/p"), None).with_filters(filters);
+        assert!(ctx.has_filters());
+        // A bare file name without a line is no link for the built-in patterns.
+        let links = find_links("Makefile [12] see app/User.php:3", &ctx);
+        assert_eq!(
+            links
+                .iter()
+                .map(|l| (l.path.as_str(), l.target.as_deref(), l.line, l.start, l.end))
+                .collect::<Vec<_>>(),
+            vec![
+                ("Makefile", Some("Makefile"), Some(12), 0, 12),
+                ("app/User.php", Some("app/User.php"), Some(3), 18, 32),
+            ]
+        );
+        // Paths outside the project stay plain text.
+        assert!(find_links("/etc/hosts [1]", &ctx).is_empty());
     }
 
     #[test]

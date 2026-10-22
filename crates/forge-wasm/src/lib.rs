@@ -36,6 +36,7 @@ mod keymap;
 mod livetemplates;
 mod lua;
 mod php_interpreters;
+mod runtools;
 mod save_actions;
 mod scopes;
 mod scratches;

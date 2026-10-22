@@ -151,6 +151,9 @@ pub struct RunRequest {
     /// Build a test tree from TeamCity service messages on stdout.
     #[serde(default)]
     pub test_runner: bool,
+    /// External Tools output filters (`$FILE_PATH$:$LINE$`) that link file references.
+    #[serde(default)]
+    pub output_filters: Vec<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -285,7 +288,7 @@ pub fn run_command_line(
 
 #[tauri::command]
 pub async fn run_start(
-    request: RunRequest,
+    mut request: RunRequest,
     app: AppHandle,
     state: State<'_, AppState>,
     runs: State<'_, RunState>,
@@ -295,6 +298,7 @@ pub async fn run_start(
         format!("run-{n}")
     });
     let test_runner = request.test_runner;
+    let output_filters = std::mem::take(&mut request.output_filters);
     let Built {
         cmd,
         path_mappings,
@@ -316,6 +320,7 @@ pub async fn run_start(
         cwd: Some(cmd.cwd.display().to_string()),
         cycle_buffer_kb,
         path_mappings,
+        output_filters,
     })));
     let event = format!("run://{run_id}");
     let sink_output = output.clone();

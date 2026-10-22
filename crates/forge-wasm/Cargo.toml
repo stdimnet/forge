@@ -13,6 +13,7 @@ crate-type = ["cdylib", "rlib"]
 serde.workspace = true
 serde_json.workspace = true
 forge-output.workspace = true
+forge-runtools.workspace = true
 forge-sql.workspace = true
 forge-markdown.workspace = true
 forge-viewers.workspace = true

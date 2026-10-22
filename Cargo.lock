@@ -1840,6 +1840,7 @@ dependencies = [
  "forge-process",
  "forge-project",
  "forge-remote",
+ "forge-runtools",
  "forge-save-actions",
  "forge-scopes",
  "forge-scratches",
@@ -2236,6 +2237,7 @@ version = "0.1.0"
 dependencies = [
  "forge-core",
  "forge-output",
+ "forge-runtools",
  "libc",
  "portable-pty",
  "serde",
@@ -2306,6 +2308,16 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "webforge-lang-web",
+]
+
+[[package]]
+name = "forge-runtools"
+version = "0.1.0"
+dependencies = [
+ "forge-fuzzy",
+ "forge-output",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -2492,6 +2504,7 @@ dependencies = [
  "forge-output",
  "forge-plugin-api",
  "forge-remote",
+ "forge-runtools",
  "forge-save-actions",
  "forge-scopes",
  "forge-scratches",
