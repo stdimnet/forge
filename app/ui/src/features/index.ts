@@ -14,6 +14,7 @@ import "./navigation";
 import "./toolWindowLayout";
 import "./scopes";
 import "./ssr";
+import "./stacktrace";
 import "./find";
 import "./codeintel";
 import "./hierarchy";

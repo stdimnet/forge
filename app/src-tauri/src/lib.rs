@@ -230,6 +230,7 @@ pub fn run() {
             commands::ssr::ssr_check,
             commands::ssr::ssr_search,
             commands::ssr::ssr_replace,
+            commands::stacktrace::stacktrace_analyze,
             commands::workbench::bookmarks_get,
             commands::workbench::bookmarks_apply,
             commands::search::fuzzy_filter,

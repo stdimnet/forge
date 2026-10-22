@@ -22,6 +22,7 @@ import "./findMock";
 import "./scopesMock";
 import "./replaceMock";
 import "./ssrMock";
+import "./stacktraceMock";
 import "./workbenchMock";
 import "./gitMock";
 import "./phpMock";

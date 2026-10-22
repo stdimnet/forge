@@ -39,6 +39,7 @@ pub mod services;
 pub mod settings;
 pub mod spell;
 pub mod ssr;
+pub mod stacktrace;
 pub mod symfony;
 pub mod templates;
 pub mod terminal;

@@ -192,7 +192,10 @@ pub fn compose_mappings(compose_dir: &str, volumes: &[String]) -> Vec<PathMappin
             continue;
         };
         out.push(PathMapping {
-            local: local.trim_end_matches('/').trim_end_matches("/.").to_string(),
+            local: local
+                .trim_end_matches('/')
+                .trim_end_matches("/.")
+                .to_string(),
             remote: dst.trim_end_matches('/').to_string(),
         });
     }
@@ -203,7 +206,10 @@ pub fn compose_mappings(compose_dir: &str, volumes: &[String]) -> Vec<PathMappin
 pub fn normalize(text: &str) -> String {
     let text = text.replace("\r\n", "\n");
     if !text.trim_end().contains('\n') && text.contains("\\n") {
-        return text.replace("\\n", "\n").replace("\\/", "/").replace("\\\\", "\\");
+        return text
+            .replace("\\n", "\n")
+            .replace("\\/", "/")
+            .replace("\\\\", "\\");
     }
     text
 }
@@ -362,8 +368,14 @@ Stack trace:\n\
         );
         assert_eq!((a.frames, a.resolved), (4, 3));
         // The message is red, library frames are dimmed, unresolved ones have no link.
-        assert_eq!(a.lines[0].segments[0].style.fg.as_deref(), Some("var(--danger)"));
-        assert_eq!(a.lines[3].segments[0].style.fg.as_deref(), Some("var(--fg-muted)"));
+        assert_eq!(
+            a.lines[0].segments[0].style.fg.as_deref(),
+            Some("var(--danger)")
+        );
+        assert_eq!(
+            a.lines[3].segments[0].style.fg.as_deref(),
+            Some("var(--fg-muted)")
+        );
         assert!(a.lines[4].segments.iter().all(|s| s.link.is_none()));
         assert_eq!(a.lines[2].text(), "#0 /var/www/html/app/Http/Controllers/OrderController.php(31): App\\Models\\Order::findOrFail(12)");
     }
