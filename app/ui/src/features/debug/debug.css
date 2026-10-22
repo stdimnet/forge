@@ -891,8 +891,13 @@ textarea.dbg-input {
 }
 
 /* Web Server Debug Validation */
+.dbg-validate {
+  width: 820px;
+  max-width: calc(100vw - 40px);
+}
 .dbg-validate .dbg-dialog-body {
   gap: 10px;
+  overflow: auto;
 }
 .dbg-validate-mode {
   display: flex;
@@ -910,7 +915,7 @@ textarea.dbg-input {
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--bg-editor);
-  max-height: 300px;
+  max-height: 420px;
   overflow: auto;
 }
 .dbg-check-row {
@@ -951,4 +956,9 @@ textarea.dbg-input {
 }
 .dbg-console-value .dbg-row {
   padding-left: 0 !important;
+}
+/* The console's field is at the bottom: its popups open upwards. */
+.dbg-console-input .dbg-completions {
+  top: auto;
+  bottom: calc(100% + 2px);
 }

@@ -718,7 +718,13 @@ const RESET: &str = "\x1b[0m";
 
 /// Console text (with ANSI styles) shown before a request is sent.
 pub fn render_request(req: &HttpRequest) -> String {
-    format!("\x1b[1m{} {}{RESET}\n\n", req.method, req.url)
+    let mut out = format!("\x1b[1m{} {}{RESET}\n", req.method, req.url);
+    // A debugged request says so: the Xdebug cookie starts the debug session.
+    if let Some(cookie) = req.header("Cookie").filter(|c| c.contains("XDEBUG_SESSION=")) {
+        out.push_str(&format!("\x1b[90mCookie: {cookie} (debugging with Xdebug){RESET}\n"));
+    }
+    out.push('\n');
+    out
 }
 
 /// Console text of a response, laid out like PHPStorm's HTTP Client: status line, headers,
@@ -868,6 +874,8 @@ mod debug_cookie_tests {
         assert_eq!(b.header("Cookie"), Some("lang=de; XDEBUG_SESSION=FORGE"));
         b.add_debug_cookie("OTHER");
         assert_eq!(b.header("Cookie"), Some("lang=de; XDEBUG_SESSION=FORGE"));
+        assert!(render_request(&b).contains("XDEBUG_SESSION=FORGE (debugging with Xdebug)"));
+        assert!(!render_request(&file.requests[0]).contains("Cookie"));
     }
 }
 

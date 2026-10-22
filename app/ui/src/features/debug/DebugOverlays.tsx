@@ -252,7 +252,7 @@ function LazyInput(props: { id: string; value: string; placeholder?: string; dis
   return (
     <input
       id={props.id}
-      ref={props.inputRef}
+      ref={(el) => props.inputRef?.(el)}
       class="dbg-input"
       classList={{ "dbg-mono": props.mono !== false }}
       value={v()}

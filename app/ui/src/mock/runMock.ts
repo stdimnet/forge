@@ -48,6 +48,8 @@ let stored: RunConfigurations = isLuaDemo() ? LUA_CONFIGURATIONS : {
       type: "shell",
       options: { mode: "text", scriptText: "php artisan optimize:clear" },
     },
+    { name: "localhost:8080", type: "php-builtin-server", options: { host: "localhost", port: "8080", documentRoot: "public", openBrowser: "false" } },
+    { name: "Order page", type: "php-web-page", options: { server: "acme-shop-test", startUrl: "/orders/1042" } },
   ],
 };
 
@@ -73,6 +75,13 @@ export function mockCommandLine(cfg: RunConfiguration): CommandLine {
       return scratchCommandLine(cfg);
     case "php-script":
       return { program: php, args: [...split(cfg.interpreterOptions), o.file ?? "", ...split(cfg.arguments)], cwd };
+    case "php-builtin-server": {
+      const root = projectRoot();
+      const docroot = o.documentRoot ? (o.documentRoot.startsWith("/") ? o.documentRoot : `${root}/${o.documentRoot}`) : root;
+      const router = o.useRouter === "true" && o.routerScript ? [o.routerScript.startsWith("/") ? o.routerScript : `${root}/${o.routerScript}`] : [];
+      const address = `${o.host || "localhost"}:${o.port || "8080"}`;
+      return { program: php, args: [...split(cfg.interpreterOptions), "-S", address, "-t", docroot, ...router], cwd };
+    }
     case "phpunit": {
       const args = [...split(cfg.interpreterOptions), "vendor/bin/phpunit", "--teamcity", "--configuration", o.configFile || "phpunit.xml"];
       args.push(...split(o.testRunnerOptions));
@@ -106,7 +115,7 @@ const quote = (a: string) => (/^[\w./:=@%+,-]+$/.test(a) ? a : `'${a.replace(/'/
 const display = (c: CommandLine) => [c.program, ...c.args].map(quote).join(" ");
 
 /** Configuration types whose program is PHP (the desktop backend's `PHP_KINDS`). */
-const PHP_KINDS = new Set(["php-script", "phpunit", "artisan"]);
+const PHP_KINDS = new Set(["php-script", "phpunit", "artisan", "php-builtin-server"]);
 
 interface Wrapped {
   cmd: CommandLine;
@@ -354,6 +363,16 @@ function stepsFor(cfg: RunConfiguration | undefined, cmd: CommandLine): Step[] {
   switch (cfg.type) {
     case "phpunit":
       return phpunitSteps(cfg);
+    case "php-builtin-server": {
+      const address = `${o.host || "localhost"}:${o.port || "8080"}`;
+      const when = "[Thu Oct 22 09:14:02 2026]";
+      return [
+        [250, `${when} PHP 8.3.12 Development Server (http://${address}) started\n`],
+        [1200, `${when} 127.0.0.1:51034 Accepted\n`],
+        [40, `${when} 127.0.0.1:51034 [200]: GET /orders/1042\n`],
+        [10, `${when} 127.0.0.1:51034 Closing\n`],
+      ];
+    }
     case "artisan":
       if ((o.command ?? "").startsWith("serve"))
         return [
