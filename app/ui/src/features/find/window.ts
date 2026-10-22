@@ -6,6 +6,7 @@ import { searchApi } from "@/ipc/search";
 import { getSetting } from "@/state/settings";
 import { showSearchTab } from "@/features/codeintel/usages";
 import { onFsChanged } from "@/state/fsWatch";
+import type { ScopeFilter } from "@/ipc/scopes";
 
 /** Stands in for "no limit" in the request. */
 const UNLIMITED = 100_000_000;
@@ -20,6 +21,9 @@ export interface FindForm {
   fileMask: string;
   directory: string;
   paths?: string[];
+  /** A scope of the Scopes page; `scopeName` is its name in the chooser. */
+  scope?: ScopeFilter;
+  scopeName?: string;
   context: number;
   sort: FindSort;
 }

@@ -3,6 +3,7 @@
  * backend, so remote projects are searched on their host). Columns and ranges are UTF-16.
  */
 import { invoke } from "./index";
+import type { ScopeFilter } from "./scopes";
 
 export type FindSort = "path" | "matches" | "modified";
 
@@ -17,6 +18,8 @@ export interface FindRequest {
   directory?: string;
   /** Search only these project-relative files (open or changed files). */
   paths?: string[];
+  /** A scope of the Scopes page or a predefined one (`forge-scopes`). */
+  scope?: ScopeFilter;
   /** Lines of context around each match (0 to 5). */
   context?: number;
   /** Order of the files in the result. */

@@ -297,8 +297,16 @@ pub struct UsageScope {
     /// Project-relative directory of the Directory scope.
     pub directory: String,
     pub include_subdirectories: bool,
-    /// Globs of a custom scope, separated by `;` or `,`; `!` excludes (`app/**; !app/Legacy/**`).
+    /// A custom scope: a scope pattern of the Scopes page (`file:app//*&&!test:*..*`, see
+    /// `forge-scopes`), or globs separated by `;` or `,` where `!` excludes
+    /// (`app/**; !app/Legacy/**`).
     pub pattern: String,
+    /// The custom scope's name, for the label ("Scope 'Models'").
+    #[serde(skip_serializing_if = "String::is_empty")]
+    pub scope_name: String,
+    /// Test folders for `test:` and `src:` patterns.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub test_roots: Vec<String>,
     pub current_file: String,
     pub open_files: Vec<String>,
     pub changed_files: Vec<String>,
@@ -311,6 +319,8 @@ impl Default for UsageScope {
             directory: String::new(),
             include_subdirectories: true,
             pattern: String::new(),
+            scope_name: String::new(),
+            test_roots: Vec::new(),
             current_file: String::new(),
             open_files: Vec::new(),
             changed_files: Vec::new(),
@@ -347,6 +357,18 @@ pub fn glob_match(pattern: &str, path: &str) -> bool {
 
 impl UsageScope {
     fn pattern_matches(&self, path: &str) -> bool {
+        // Scope patterns always have a `file:` / `src:` / `test:` / `lib:` part; globs never
+        // contain `:`. A scope pattern that does not parse contains nothing.
+        if self.pattern.contains(':') {
+            let ctx = forge_scopes::ScopeContext {
+                test_roots: self.test_roots.clone(),
+                open_files: self.open_files.clone(),
+                changed_files: self.changed_files.clone(),
+                current_file: self.current_file.clone(),
+            };
+            return forge_scopes::Scope::pattern(&self.pattern, ctx)
+                .is_ok_and(|scope| scope.contains(path));
+        }
         let mut includes = 0;
         let mut included = false;
         for raw in self.pattern.split([';', ',']) {
@@ -411,6 +433,9 @@ impl UsageScope {
             SearchScope::Directory => {
                 let dir = self.directory.trim_matches('/');
                 format!("Directory '{}'", if dir.is_empty() { "/" } else { dir })
+            }
+            SearchScope::Custom if !self.scope_name.trim().is_empty() => {
+                format!("Scope '{}'", self.scope_name.trim())
             }
             SearchScope::Custom => format!("Scope '{}'", self.pattern.trim()),
         }
@@ -625,6 +650,17 @@ mod tests {
         s.pattern = "*.blade.php".into();
         assert!(s.contains("resources/views/welcome.blade.php"));
         assert!(!s.contains("app/Models/User.php"));
+        // Scope patterns of the Scopes page.
+        s.pattern = "file:app//*&&!file:app/Legacy//*".into();
+        s.scope_name = "App".into();
+        assert!(s.contains("app/Models/User.php"));
+        assert!(!s.contains("app/Legacy/Old.php"));
+        assert_eq!(s.label(), "Scope 'App'");
+        s.pattern = "test:*..*".into();
+        s.test_roots = vec!["qa".into()];
+        assert!(s.contains("qa/CheckoutCest.php") && !s.contains("app/Models/User.php"));
+        s.pattern = "file:a&&".into();
+        assert!(!s.contains("a"));
     }
 
     #[test]

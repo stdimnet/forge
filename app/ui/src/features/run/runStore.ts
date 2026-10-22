@@ -39,6 +39,8 @@ export interface RunSession {
   /** Bumped whenever console lines or the test tree change. */
   version: number;
   pinned: boolean;
+  /** Output without a process (Analyze Stack Trace); Rerun runs `SessionData.rerun`. */
+  staticOutput?: boolean;
 }
 
 interface SessionData {
@@ -47,6 +49,8 @@ interface SessionData {
   exited?: (code: number | null) => void;
   unlisten?: () => void;
   extra?: Pick<RunRequest, "env" | "interpreterArgs">;
+  /** Rerun of a tab without a process. */
+  rerun?: () => void;
 }
 
 const [state, setState] = createStore<{ sessions: RunSession[]; active: string | null }>({
@@ -288,6 +292,10 @@ export async function rerunSession(id: string | undefined = state.active ?? unde
     await runConfiguration();
     return;
   }
+  if (s.staticOutput) {
+    data.get(s.id)?.rerun?.();
+    return;
+  }
   if (isRunning(s) && s.runId) {
     await runApi.stop(s.runId).catch(() => undefined);
     await new Promise<void>((r) => {
@@ -324,6 +332,41 @@ export async function rerunFailedTests(id: string | undefined = state.active ?? 
   const options = { ...(s.config.options ?? {}) };
   options.testRunnerOptions = `${options.testRunnerOptions ?? ""} --filter '${filter}'`.trim();
   await launch({ ...s.config, options });
+}
+
+/**
+ * A tab of console lines without a process, e.g. an analyzed stack trace: replaces the
+ * unpinned tab of the same name. Returns the tab id.
+ */
+export function openOutputTab(opts: { name: string; type: string; lines: ConsoleLine[]; rerun?: () => void }): string {
+  const reusable = state.sessions.find((s) => s.name === opts.name && s.staticOutput && !s.pinned);
+  const id = reusable?.id ?? `tab-${++seq}`;
+  const now = Date.now();
+  if (!reusable) {
+    setState(
+      "sessions",
+      produce((list) =>
+        list.push({
+          id,
+          runId: null,
+          name: opts.name,
+          config: { name: opts.name, type: opts.type },
+          debug: false,
+          status: "finished",
+          startedAt: now,
+          endedAt: now,
+          version: 0,
+          pinned: false,
+          staticOutput: true,
+        }),
+      ),
+    );
+  }
+  data.set(id, { lines: [...opts.lines], rerun: opts.rerun });
+  bump(id);
+  setState("active", id);
+  showToolWindow("run");
+  return id;
 }
 
 export function clearConsole(id: string | undefined = state.active ?? undefined): void {

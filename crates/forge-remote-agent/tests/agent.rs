@@ -218,6 +218,22 @@ async fn files_search_git_and_detection() {
         assert!(paths.iter().all(|p| !p.starts_with("vendor/")), "{paths:?}");
         assert!(files.iter().any(|f| f.text.contains("function total")));
 
+        // Structural Search parses the files on the agent's machine.
+        let found = b
+            .structural_search(&forge_ssr::SsrRequest {
+                template: "public function $name$() { $body$; }".into(),
+                constraints: vec![forge_ssr::Constraint::named("body").count(0, None)],
+                ..Default::default()
+            })
+            .unwrap();
+        assert_eq!(found.files[0].path, "app/Models/Order.php");
+        assert_eq!(found.files[0].matches[0].bindings[0].text, "total");
+
+        // The Scopes page lists the project's files on the agent's machine.
+        let all = b.list_files(1000).unwrap();
+        assert!(all.iter().any(|p| p == "app/Models/Order.php"), "{all:?}");
+        assert!(all.iter().all(|p| !p.starts_with("vendor/")), "{all:?}");
+
         let info = b.detect_project().unwrap();
         assert!(info.uses("php"));
 

@@ -98,6 +98,9 @@ The project's root is shown as `user@host:/path`. Recent Projects keeps remote p
 | Go to File, Search Everywhere | yes |
 | Git (status, commit, diff, blame, branches, log) | yes; output is parsed locally |
 | Find in Files | yes, searched on the host |
+| Scopes (Find in Files, Find Usages, Structural Search), the Scopes page's file tree | yes, evaluated and listed on the host |
+| Structural Search and Replace | yes: the files are parsed on the host; Replace All writes through the agent |
+| Analyze Stack Trace | yes: files are looked up on the host; PHP servers' path mappings and Compose bind mounts are read from the host |
 | PHP index, Structure, Generate, Intelephense/Phpactor | yes; Intelephense indexes the remote files itself |
 | Catalog language servers (TypeScript, YAML, Python, …) | yes: scan, detection and the servers run on the host |
 | Installing language servers (Settings, Intelephense offer) | yes: the agent downloads Node.js and the npm servers into Forge's directory on the host, with progress here; the Intelephense licence is accepted on your machine |

@@ -13,6 +13,8 @@ search = ["dep:forge-search"]
 [dependencies]
 forge-core.workspace = true
 forge-find.workspace = true
+forge-ssr.workspace = true
+forge-scopes.workspace = true
 forge-codeintel.workspace = true
 forge-search-core.workspace = true
 forge-search = { workspace = true, optional = true }

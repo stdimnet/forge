@@ -17,6 +17,7 @@ import { editor } from "@/state/editor";
 import { FileIcon } from "@/shell/FileIcon";
 import { formatDuration } from "./duration";
 import { scopeRequest } from "./scope";
+import { ScopeSelect } from "@/features/scopes/ScopeSelect";
 import { openFindWindow } from "./window";
 import { closeFindInFiles, findOptions, findQuery, findRequest, openFindResultsInWindow, setFindQuery, updateFindOptions } from "./state";
 
@@ -216,6 +217,7 @@ export function FindInFilesPopup() {
       regex: o.regex,
       fileMask: o.maskEnabled ? o.fileMask : "",
       ...scopeRequest(o),
+      scopeName: o.scope === "scope" ? o.scopeName : undefined,
     });
   };
 
@@ -337,6 +339,18 @@ export function FindInFilesPopup() {
           >
             Changed Files
           </button>
+          <button
+            class="find-scope-tab"
+            classList={{ active: findOptions().scope === "scope" }}
+            role="tab"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => updateFindOptions({ scope: "scope" })}
+          >
+            Scope
+          </button>
+          <Show when={findOptions().scope === "scope"}>
+            <ScopeSelect class="find-scope-select" value={findOptions().scopeName} onChange={(scopeName) => updateFindOptions({ scopeName })} />
+          </Show>
           <Show when={findOptions().scope === "directory"}>
             <input
               class="find-dir-input"

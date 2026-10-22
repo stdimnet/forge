@@ -36,6 +36,21 @@ export { groupByType as findGroupByType };
 /** Collapsed nodes by key (`g:<label>`, `f:<label>:<path>`), per tab. */
 const [collapsed, setCollapsed] = createSignal<Record<number, Set<string>>>({});
 const [rerunning, setRerunning] = createSignal(false);
+/** Preview Replacement: show what replaces each match (Structural Replace). */
+const [previewReplacement, setPreviewReplacement] = createSignal(true);
+const [acting, setActing] = createSignal(false);
+
+async function runAction(tab: FindTab, run: (tab: FindTab) => void | Promise<void>): Promise<void> {
+  if (acting()) return;
+  setActing(true);
+  try {
+    await run(tab);
+  } catch (e) {
+    showBalloon("Action failed", String(e instanceof Error ? e.message : e));
+  } finally {
+    setActing(false);
+  }
+}
 
 function isCollapsed(tab: number, key: string): boolean {
   return collapsed()[tab]?.has(key) ?? false;
@@ -167,6 +182,12 @@ function Group(props: { tab: FindTab; group: UsageGroup; grouped: boolean }) {
                     >
                       <span class="find-line">{row.line + 1}</span>
                       <UsageCode row={row} />
+                      <Show when={row.after !== undefined && previewReplacement()}>
+                        <span class="find-after" title={row.after}>
+                          → {row.after!.split("\n")[0]}
+                          {row.after!.includes("\n") ? " …" : ""}
+                        </span>
+                      </Show>
                     </div>
                   );
                 }}
@@ -251,15 +272,33 @@ function ResultTab() {
                 <ArrowDown size={15} />
               </button>
             </div>
-            <div class="find-tree" role="tree">
-              <div class="find-node find-root">
-                <span>{t().header}</span>
-                <span class="find-count">
-                  {resultLabel(t(), tabTree(t(), groupByType()).total)} in{" "}
-                  {countLabel(tabTree(t(), groupByType()).fileCount, "file")}
-                </span>
+            <div class="find-main">
+              <div class="find-tree" role="tree">
+                <div class="find-node find-root">
+                  <span>{t().header}</span>
+                  <span class="find-count">
+                    {resultLabel(t(), tabTree(t(), groupByType()).total)} in{" "}
+                    {countLabel(tabTree(t(), groupByType()).fileCount, "file")}
+                  </span>
+                </div>
+                <For each={tabTree(t(), groupByType()).groups}>{(g) => <Group tab={t()} group={g} grouped={grouped(t())} />}</For>
               </div>
-              <For each={tabTree(t(), groupByType()).groups}>{(g) => <Group tab={t()} group={g} grouped={grouped(t())} />}</For>
+              <Show when={t().actions?.length}>
+                <div class="find-actions">
+                  <label class="form-label check">
+                    <input type="checkbox" checked={previewReplacement()} onChange={(e) => setPreviewReplacement(e.currentTarget.checked)} />
+                    Preview Replacement
+                  </label>
+                  <span class="find-actions-gap" />
+                  <For each={t().actions}>
+                    {(a) => (
+                      <button classList={{ "btn-primary": !!a.primary, "btn-secondary": !a.primary }} disabled={acting()} onClick={() => void runAction(t(), a.run)}>
+                        {a.label}
+                      </button>
+                    )}
+                  </For>
+                </div>
+              </Show>
             </div>
           </>
         )}

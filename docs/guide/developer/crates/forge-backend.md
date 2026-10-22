@@ -34,6 +34,7 @@ PHP index live.
 | `process_io.rs` | Processes started through a `Backend` (on this machine or on a remote host) used like local child processes: line by line with cancelation (`run_lines`, artisan and Symfony console runs) or as async stdio streams (`spawn_stdio`, agent CLIs). |
 | `protocol.rs` | The Forge agent protocol: MessagePack frames over a byte stream (the agent's stdio). |
 | `remote.rs` | A project on another machine, served by the Forge agent over an `RpcClient`. |
+| `ssr.rs` | Structural Search and Replace over a project (`forge-ssr`): `search_workspace` behind `Backend::structural_search` (agent call `StructuralSearch` for remote projects) and `replace_all`, which writes the matched files through the backend and keeps them for Undo like Replace in Files. |
 | `rpc.rs` | The client end of the agent `protocol`(crate::protocol): calls with out-of-order answers, pushed events and byte channels over one stream pair. |
 | `tunnels.rs` | Port forwarding between this machine and a remote project's host (SSH tunnels). Local projects have none; `forge-remote` implements them over the project's SSH connection. |
 
@@ -64,7 +65,7 @@ pub fn folder_name(root: &Path) -> String { … }
 
 ## Dependencies
 
-- Workspace crates: [`forge-codeintel`](forge-codeintel.md), [`forge-core`](forge-core.md), [`forge-langservers`](forge-langservers.md), [`forge-lsp`](forge-lsp.md), [`forge-process`](forge-process.md), [`forge-project`](forge-project.md), [`forge-vcs`](forge-vcs.md), [`phpforge-dql`](phpforge-dql.md), [`phpforge-fw-laravel`](phpforge-fw-laravel.md), [`phpforge-fw-symfony`](phpforge-fw-symfony.md), [`phpforge-lang-php`](phpforge-lang-php.md), [`phpforge-orm-doctrine`](phpforge-orm-doctrine.md)
+- Workspace crates: [`forge-codeintel`](forge-codeintel.md), [`forge-core`](forge-core.md), [`forge-scopes`](forge-scopes.md), [`forge-ssr`](forge-ssr.md), [`forge-langservers`](forge-langservers.md), [`forge-lsp`](forge-lsp.md), [`forge-process`](forge-process.md), [`forge-project`](forge-project.md), [`forge-vcs`](forge-vcs.md), [`phpforge-dql`](phpforge-dql.md), [`phpforge-fw-laravel`](phpforge-fw-laravel.md), [`phpforge-fw-symfony`](phpforge-fw-symfony.md), [`phpforge-lang-php`](phpforge-lang-php.md), [`phpforge-orm-doctrine`](phpforge-orm-doctrine.md)
 - External: `dirs`, `futures-util`, `rmp-serde`, `serde`, `serde_bytes`, `serde_json`, `tokio`, `tracing`
 
 ## Tests

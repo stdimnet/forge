@@ -306,3 +306,30 @@
 .find-usages-dialog input[type="checkbox"] {
   accent-color: var(--accent);
 }
+
+/* Structural Replace results: the replacement after each match, and the action buttons. */
+.find-after {
+  margin-left: 10px;
+  color: var(--vcs-added);
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  white-space: pre;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.find-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.find-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-top: 1px solid var(--border);
+}
+.find-actions-gap {
+  flex: 1;
+}

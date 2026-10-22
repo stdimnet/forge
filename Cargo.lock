@@ -1840,8 +1840,10 @@ dependencies = [
  "forge-project",
  "forge-remote",
  "forge-save-actions",
+ "forge-scopes",
  "forge-scratches",
  "forge-spell",
+ "forge-ssr",
  "forge-text",
  "forge-update",
  "forge-vcs",
@@ -1882,8 +1884,10 @@ dependencies = [
  "forge-lsp",
  "forge-process",
  "forge-project",
+ "forge-scopes",
  "forge-search",
  "forge-search-core",
+ "forge-ssr",
  "forge-vcs",
  "futures-util",
  "phpforge-dql",
@@ -1918,6 +1922,7 @@ version = "0.1.0"
 dependencies = [
  "forge-file-templates",
  "forge-fuzzy",
+ "forge-scopes",
  "serde",
  "serde_json",
 ]
@@ -2049,6 +2054,7 @@ dependencies = [
 name = "forge-find"
 version = "0.1.0"
 dependencies = [
+ "forge-scopes",
  "regex",
  "serde",
  "serde_json",
@@ -2270,6 +2276,7 @@ dependencies = [
  "forge-lsp",
  "forge-process",
  "forge-project",
+ "forge-ssr",
  "forge-vcs",
  "phpforge-fw-laravel",
  "phpforge-fw-symfony",
@@ -2297,6 +2304,14 @@ dependencies = [
  "serde",
  "serde_json",
  "tempfile",
+]
+
+[[package]]
+name = "forge-scopes"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -2367,6 +2382,20 @@ dependencies = [
  "hex",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "forge-ssr"
+version = "0.1.0"
+dependencies = [
+ "forge-scopes",
+ "regex",
+ "serde",
+ "serde_json",
+ "tree-sitter",
+ "tree-sitter-javascript",
+ "tree-sitter-php",
+ "tree-sitter-typescript",
 ]
 
 [[package]]
@@ -2446,10 +2475,12 @@ dependencies = [
  "forge-plugin-api",
  "forge-remote",
  "forge-save-actions",
+ "forge-scopes",
  "forge-scratches",
  "forge-search-core",
  "forge-spell",
  "forge-sql",
+ "forge-ssr",
  "forge-text",
  "forge-viewers",
  "forge-vim",

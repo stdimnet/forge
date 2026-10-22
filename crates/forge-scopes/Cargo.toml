@@ -1,0 +1,10 @@
+[package]
+name = "forge-scopes"
+description = "Scopes (PHPStorm's scope language, predefined and named scopes) and file colors (pure, WebAssembly-friendly)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true

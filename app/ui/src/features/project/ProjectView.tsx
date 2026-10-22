@@ -11,6 +11,7 @@ import { isToolWindowVisible } from "@/state/layout";
 import { showResolvedMenu, type ResolvedEntry } from "@/features/contextMenu/state";
 import { showFileMenu } from "./fileMenu";
 import { navigate, type VisibleRow } from "./treeNavigation";
+import { projectViewColor } from "@/features/scopes/model";
 
 const [expanded, setExpanded] = createSignal<Set<string>>(new Set(["app", "app/Models"]));
 
@@ -120,12 +121,18 @@ function TreeNode(props: { entry: FileEntry; depth: number }) {
   const isDir = () => props.entry.kind === "dir";
   const isOpen = () => expanded().has(props.entry.path);
   const status = () => (isDir() ? (dirHasChanges(props.entry.path) ? "modified" : undefined) : statusOf(props.entry.path));
+  const color = () => projectViewColor(props.entry.path, isDir());
   return (
     <>
       <div
         class="tree-row"
-        classList={{ selected: selected() === props.entry.path, "active-file": editor.active === props.entry.path, ignored: !!props.entry.ignored }}
-        style={{ "padding-left": `${8 + props.depth * 16}px` }}
+        classList={{
+          selected: selected() === props.entry.path,
+          "active-file": editor.active === props.entry.path,
+          ignored: !!props.entry.ignored,
+          "file-colored": !!color(),
+        }}
+        style={{ "padding-left": `${8 + props.depth * 16}px`, "--file-color": color() }}
         data-path={props.entry.path}
         data-dir={isDir() ? "" : undefined}
         data-expanded={isOpen() ? "" : undefined}
