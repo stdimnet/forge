@@ -53,3 +53,15 @@ default = 1024
 group = "editor.general"
 section = "Console"
 order = 91
+
+[[contributions.settings]]
+key = "run.autoTest.delay"
+title = "Auto-test delay (seconds)"
+description = "With Toggle Auto-Test on, a test run reruns this long after the last file was saved."
+type = "int"
+min = 0
+max = 600
+default = 3
+group = "lang.php.test-frameworks"
+section = "Auto-Test"
+order = 10

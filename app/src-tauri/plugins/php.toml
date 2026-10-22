@@ -113,6 +113,16 @@ project = true
 order = 3
 
 [[contributions.settings]]
+key = "php.testFrameworks"
+title = "Test frameworks"
+description = "PHPUnit, Pest, Codeception, Behat and PHPSpec per CLI interpreter: Composer autoloader or path to the executable, default configuration and bootstrap files. Frameworks the project uses are detected."
+type = "objects"
+default = []
+group = "lang.php.test-frameworks"
+project = true
+order = 0
+
+[[contributions.settings]]
 key = "php.includePaths"
 title = "Include path"
 description = "Extra directories indexed as libraries (e.g. global PEAR or framework stubs)."
