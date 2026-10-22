@@ -12,10 +12,12 @@ use forge_codeintel::{
 use serde::{Deserialize, Serialize};
 
 use super::classes::qualify;
+use super::make_static::{self, MakeStaticInfo, MakeStaticOptions};
 use super::move_class::{
     check_namespace, class_file_path, class_in_header, classes_in, extract_class_file, file_edits,
     fq_references, moved_text, remove_class, ClassMove,
 };
+use super::move_members::{self, MembersInfo};
 use super::safe_delete::{self, DeleteTarget};
 use super::signature::{self, ChangeSignatureOptions, SignatureInfo};
 use super::{cannot, conflict_at, Span};
@@ -722,6 +724,262 @@ fn signature_plan(
     Ok(())
 }
 
+// ---- Make Static ----
+
+/// The method Make Static works on (the caret in it, or on a call to it).
+pub fn make_static_target(
+    p: &mut dyn Project,
+    path: &str,
+    text: &str,
+    offset: usize,
+) -> Result<(String, MakeStaticInfo), String> {
+    let found = at_declaration(p, path, text, offset, |t, o| {
+        signature::signature_in_header(t, o)?;
+        make_static::make_static_at(t, o)
+    });
+    match found {
+        Ok((path, _, info)) => Ok((path, info)),
+        Err(e) => make_static::make_static_at(text, offset)
+            .map(|i| (path.to_string(), i))
+            .map_err(|_| e),
+    }
+}
+
+/// Make Static of the method whose name is at `offset` of `path`.
+pub fn make_static(
+    p: &mut dyn Project,
+    path: &str,
+    text: &str,
+    offset: usize,
+    options: &MakeStaticOptions,
+) -> Result<ProjectPlan, String> {
+    let info = make_static::make_static_at(text, offset)?;
+    let mut plan = ProjectPlan::default();
+    plan.edit(path, make_static::declaration_edits(text, &info, options)?);
+    let class = super::move_class::class_at(text, offset)
+        .ok_or_else(|| cannot("The method is not in a class"))?;
+    let found = p.usages(path, text, info.name_span.start, &UsageOptions::default());
+    let sites = match &found {
+        Some(f) => usage_spans(p, f),
+        None => vec![],
+    };
+    for (file, span, _) in sites {
+        let Some(t) = (if file == path {
+            Some(text.to_string())
+        } else {
+            p.read(&file)
+        }) else {
+            continue;
+        };
+        let reference = make_static::class_reference(
+            &crate::parser::index_source(&file, &t),
+            &class.fqn,
+            span.start,
+        );
+        match make_static::call_edits(&t, span, &info, options, &reference) {
+            Ok(edits) => plan.edit(&file, edits),
+            Err(e) => {
+                let c = conflict_at(e, &file, &t, span.start);
+                plan.conflicts.push(c);
+            }
+        }
+    }
+    Ok(plan)
+}
+
+// ---- Move Members ----
+
+/// The static members of the class at the caret (Move Members dialog).
+pub fn members_target(
+    p: &mut dyn Project,
+    path: &str,
+    text: &str,
+    offset: usize,
+) -> Result<(String, MembersInfo), String> {
+    let none = || cannot("Caret should be positioned at the static member to be moved");
+    let found = at_declaration(p, path, text, offset, |t, o| {
+        move_members::members_at(t, o)
+            .filter(|m| m.selected.is_some())
+            .ok_or_else(none)
+    });
+    match found {
+        Ok((path, _, info)) => Ok((path, info)),
+        Err(e) => move_members::members_at(text, offset)
+            .filter(|m| !m.members.is_empty())
+            .map(|m| (path.to_string(), m))
+            .ok_or(e),
+    }
+}
+
+/// Move Members: the static members `names` of the class at `offset` to the class
+/// `target` (fully qualified).
+pub fn move_members(
+    p: &mut dyn Project,
+    path: &str,
+    text: &str,
+    offset: usize,
+    names: &[String],
+    target: &str,
+) -> Result<ProjectPlan, String> {
+    let info = move_members::members_at(text, offset)
+        .ok_or_else(|| cannot("The class cannot be found"))?;
+    let target = target.trim().trim_start_matches('\\');
+    if target.eq_ignore_ascii_case(&info.class_fqn) {
+        return Err(cannot("Members cannot be moved to the class they are in"));
+    }
+    let short = target.rsplit('\\').next().unwrap_or(target);
+    let hit = p
+        .search(short, SearchKind::Class)
+        .into_iter()
+        .find(|h| h.fqn.eq_ignore_ascii_case(target))
+        .ok_or_else(|| cannot(format!("Class {target} does not exist")))?;
+    if is_vendor(&hit.path) || hit.path.contains("://") {
+        return Err(cannot("The target class is in a read-only library"));
+    }
+    let moving: Vec<_> = info
+        .members
+        .iter()
+        .filter(|m| names.contains(&m.name))
+        .cloned()
+        .collect();
+    if moving.is_empty() {
+        return Err(cannot("Select the members to move"));
+    }
+    let staying: Vec<String> = info
+        .members
+        .iter()
+        .filter(|m| !names.contains(&m.name))
+        .map(|m| m.name.clone())
+        .collect();
+    let same_file = hit.path == path;
+    let target_text = if same_file {
+        text.to_string()
+    } else {
+        p.read(&hit.path)
+            .ok_or_else(|| cannot("The target class cannot be read"))?
+    };
+    let target_class = super::move_class::classes_in(&target_text)
+        .into_iter()
+        .chain(super::move_class::class_at(&target_text, hit.offset))
+        .find(|c| c.fqn.eq_ignore_ascii_case(target))
+        .ok_or_else(|| cannot("The target class cannot be found"))?;
+    let mut plan = ProjectPlan::default();
+    let target_file = crate::parser::index_source(&hit.path, &target_text);
+    for m in &moving {
+        let taken = target_file
+            .classes
+            .iter()
+            .find(|c| c.fqn.eq_ignore_ascii_case(target))
+            .is_some_and(|c| {
+                c.members.iter().any(|x| {
+                    if m.kind == "method" {
+                        x.name.eq_ignore_ascii_case(&m.name)
+                    } else {
+                        x.name == m.name
+                    }
+                })
+            });
+        if taken {
+            plan.conflict(
+                format!(
+                    "Class {} already has a member named {}",
+                    target_class.name, m.name
+                ),
+                Some(&hit.path),
+                Some(line_of(&target_text, target_class.name_span.start)),
+            );
+        }
+    }
+    let close = move_members::class_body_end(&target_text, target_class.name_span)
+        .ok_or_else(|| cannot("The target class has no body"))?;
+    let source_ref = make_static::class_reference(&target_file, &info.class_fqn, close);
+    let indent = super::indent_unit(&target_text);
+    let code = move_members::moved_code(
+        text,
+        path,
+        &moving,
+        &staying,
+        &source_ref,
+        &target_text,
+        close,
+        &indent,
+    );
+    let moved_spans: Vec<Span> = moving.iter().map(|m| m.span).collect();
+    // Usages by file.
+    let mut by_file: Vec<(String, Vec<Span>)> = Vec::new();
+    for m in &moving {
+        let Some(found) = p.usages(path, text, m.name_span.start, &UsageOptions::default()) else {
+            continue;
+        };
+        for (file, span, _) in usage_spans(p, &found) {
+            if m.visibility == "private"
+                && !(file == path && moved_spans.iter().any(|s| s.contains(span)))
+            {
+                plan.conflict(format!("Private member {} is used by class {} and cannot be reached after the move", m.name, info.class_name), Some(&file), None);
+            }
+            match by_file.iter_mut().find(|(f, _)| *f == file) {
+                Some((_, v)) => v.push(span),
+                None => by_file.push((file, vec![span])),
+            }
+        }
+    }
+    if !by_file.iter().any(|(f, _)| f == path) {
+        by_file.push((path.to_string(), vec![]));
+    }
+    if !by_file.iter().any(|(f, _)| *f == hit.path) {
+        by_file.push((hit.path.clone(), vec![]));
+    }
+    for (file, spans) in by_file {
+        let t = if file == path {
+            text.to_string()
+        } else if file == hit.path {
+            target_text.clone()
+        } else {
+            match p.read(&file) {
+                Some(t) => t,
+                None => continue,
+            }
+        };
+        let inside_target = if file == hit.path {
+            Some(target_class.span)
+        } else {
+            None
+        };
+        let new_scope = |at: usize, _: &str| {
+            Some(move_members::scope_text(
+                &t,
+                &file,
+                target,
+                inside_target,
+                at,
+            ))
+        };
+        let skip: Vec<Span> = if file == path {
+            moved_spans.clone()
+        } else {
+            vec![]
+        };
+        let (mut edits, dynamic) = move_members::usage_edits(&t, &spans, &skip, &new_scope);
+        for at in dynamic {
+            let c = conflict_at(
+                "A dynamic class reference is not updated".into(),
+                &file,
+                &t,
+                at,
+            );
+            plan.conflicts.push(c);
+        }
+        if file == path {
+            edits.extend(moving.iter().map(|m| move_members::remove_member(&t, m)));
+        }
+        if file == hit.path {
+            edits.push(move_members::insert_members(&t, close, &code));
+        }
+        plan.edit(&file, super::classes::tidy(edits));
+    }
+    Ok(plan)
+}
+
 #[cfg(test)]
 pub(crate) mod tests {
     use super::*;
@@ -877,6 +1135,83 @@ pub(crate) mod tests {
         )
         .unwrap();
         assert!(p.apply(&plan).contains_key("app/Domain/User.php"));
+    }
+
+    const PRICE: &str = "<?php\n\nnamespace App\\Models;\n\nclass Price\n{\n    public const VAT = 0.2;\n\n    private float $rate = 1.0;\n\n    public static function gross(float $net): float\n    {\n        return $net * (1 + self::VAT);\n    }\n\n    public function scaled(float $x): float\n    {\n        return $x * $this->rate;\n    }\n}\n";
+    const SHOP: &str = "<?php\n\nnamespace App\\Http;\n\nuse App\\Models\\Price;\n\nclass Shop\n{\n    public function total(Price $p): float\n    {\n        return Price::gross($p->scaled(2)) + Price::VAT;\n    }\n}\n";
+    const TAX: &str = "<?php\n\nnamespace App\\Support;\n\nclass Tax\n{\n}\n";
+
+    #[test]
+    fn makes_a_method_static_with_its_calls() {
+        let mut p =
+            TestProject::new(&[("app/Models/Price.php", PRICE), ("app/Http/Shop.php", SHOP)]);
+        let (_, info) = make_static_target(
+            &mut p,
+            "app/Http/Shop.php",
+            SHOP,
+            SHOP.find("scaled").unwrap(),
+        )
+        .unwrap();
+        assert_eq!(info.fields, ["rate"]);
+        let at = PRICE.find("scaled").unwrap();
+        let o = MakeStaticOptions {
+            field_parameters: true,
+            ..Default::default()
+        };
+        let plan = make_static(&mut p, "app/Models/Price.php", PRICE, at, &o).unwrap();
+        let out = p.apply(&plan);
+        assert!(out["app/Models/Price.php"].clone().unwrap().contains("public static function scaled($rate, float $x): float\n    {\n        return $x * $rate;"));
+        assert!(out["app/Http/Shop.php"]
+            .clone()
+            .unwrap()
+            .contains("Price::gross(Price::scaled($p->rate, 2))"));
+    }
+
+    #[test]
+    fn moves_static_members_to_another_class() {
+        let mut p = TestProject::new(&[
+            ("app/Models/Price.php", PRICE),
+            ("app/Http/Shop.php", SHOP),
+            ("app/Support/Tax.php", TAX),
+        ]);
+        let (_, info) = members_target(
+            &mut p,
+            "app/Http/Shop.php",
+            SHOP,
+            SHOP.find("gross").unwrap(),
+        )
+        .unwrap();
+        assert_eq!(info.selected.as_deref(), Some("gross"));
+        assert_eq!(info.members.len(), 2);
+        let at = PRICE.find("gross").unwrap();
+        let plan = move_members(
+            &mut p,
+            "app/Models/Price.php",
+            PRICE,
+            at,
+            &["gross".into()],
+            "App\\Support\\Tax",
+        )
+        .unwrap();
+        assert!(plan.conflicts.is_empty(), "{:?}", plan.conflicts);
+        let out = p.apply(&plan);
+        let price = out["app/Models/Price.php"].clone().unwrap();
+        assert!(!price.contains("gross"));
+        let tax = out["app/Support/Tax.php"].clone().unwrap();
+        assert!(tax.contains("class Tax\n{\n    public static function gross(float $net): float\n    {\n        return $net * (1 + \\App\\Models\\Price::VAT);\n    }\n}"), "{tax}");
+        assert!(out["app/Http/Shop.php"]
+            .clone()
+            .unwrap()
+            .contains("return \\App\\Support\\Tax::gross($p->scaled(2)) + Price::VAT;"));
+        assert!(move_members(
+            &mut p,
+            "app/Models/Price.php",
+            PRICE,
+            at,
+            &["gross".into()],
+            "App\\Nope"
+        )
+        .is_err());
     }
 
     #[test]
