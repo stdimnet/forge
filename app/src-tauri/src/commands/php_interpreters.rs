@@ -190,11 +190,22 @@ impl Prepared {
     /// `cmd` (as if run locally) through the interpreter; `program` says whether its
     /// program is PHP (replaced by the interpreter's executable) or another tool.
     pub fn wrap(&self, program: Program, cmd: &CommandLine) -> Result<CommandLine> {
+        self.wrap_serving(program, cmd, Vec::new())
+    }
+
+    /// `wrap` for a program that serves `publish` ports (the built-in web server).
+    pub fn wrap_serving(
+        &self,
+        program: Program,
+        cmd: &CommandLine,
+        publish: Vec<u16>,
+    ) -> Result<CommandLine> {
         let inv = Invocation {
             program,
             args: cmd.args.clone(),
             cwd: cmd.cwd.to_string_lossy().into_owned(),
             env: cmd.env.clone(),
+            publish,
         };
         let w = wrap(&self.interp, &inv, &self.ctx).map_err(ForgeError::Other)?;
         Ok(CommandLine {
@@ -317,8 +328,13 @@ pub async fn php_interpreter_phpinfo(
     interpreter: PhpInterpreter,
     state: State<'_, AppState>,
 ) -> Result<String> {
+    phpinfo(&state, interpreter).await
+}
+
+/// `php -i` of an interpreter (stderr when it printed nothing).
+pub(crate) async fn phpinfo(state: &AppState, interpreter: PhpInterpreter) -> Result<String> {
     let backend = state.backend()?;
-    let prepared = prepare(&state, backend.as_ref(), interpreter);
+    let prepared = prepare(state, backend.as_ref(), interpreter);
     blocking(move || {
         let (_, stdout, stderr) = run_php(
             &prepared,

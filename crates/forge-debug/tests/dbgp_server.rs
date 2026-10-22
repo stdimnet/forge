@@ -707,3 +707,120 @@ async fn remote_project_listens_through_a_forwarded_port() {
     assert!(err.to_string().contains("busy on the host"));
     assert_eq!(server.listening_port(), None);
 }
+
+#[tokio::test]
+async fn logpoints_temporary_breakpoints_and_pass_counts() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path().canonicalize().unwrap();
+    let mut ide = Ide::start(&root, DebugConfig::default()).await;
+    let logpoint = ide
+        .server
+        .add_breakpoint(BreakpointSpec {
+            suspend: Some(false),
+            log_message: true,
+            log_expression: Some("$order->status".into()),
+            ..line_bp("app/Order.php", 5, None)
+        })
+        .unwrap();
+    let temporary = ide
+        .server
+        .add_breakpoint(BreakpointSpec {
+            temporary: true,
+            ..line_bp("app/Order.php", 8, None)
+        })
+        .unwrap();
+    ide.server
+        .add_breakpoint(BreakpointSpec {
+            pass_count: Some(3),
+            ..line_bp("app/Order.php", 10, None)
+        })
+        .unwrap();
+
+    let mut engine = Engine::connect(ide.port, &uri(&root, "index.php")).await;
+    engine.answer_identity(&[]).await;
+    let (run, bps) = engine.setup().await;
+    assert_eq!(bps.len(), 3);
+    assert_eq!(bps[0].arg('t'), Some("line"));
+    assert_eq!(bps[0].arg('r'), None);
+    assert_eq!(bps[1].arg('r'), Some("1"), "temporary");
+    assert_eq!(bps[2].arg('h'), Some("3"), "pass count");
+    assert_eq!(bps[2].arg('o'), Some(">="));
+
+    // The logpoint: evaluate, log, and run on without suspending.
+    engine
+        .reply_break(&run, &uri(&root, "app/Order.php"), 5)
+        .await;
+    let eval = engine.expect("eval").await;
+    assert_eq!(eval.data.as_deref(), Some("$order->status"));
+    engine
+        .reply(
+            &eval,
+            "",
+            &format!(
+                r#"<property type="string" size="4" encoding="base64"><![CDATA[{}]]></property>"#,
+                b64_encode("PAID")
+            ),
+        )
+        .await;
+    let resumed = engine.expect("run").await;
+    let DebugEvent::Output { stream, text, .. } = ide
+        .event(|e| matches!(e, DebugEvent::Output { stream, .. } if stream == "log"))
+        .await
+    else {
+        unreachable!()
+    };
+    assert_eq!(stream, "log");
+    assert_eq!(text, "Breakpoint reached at app/Order.php:5\n\"PAID\"\n");
+    assert!(ide
+        .server
+        .breakpoints()
+        .breakpoints
+        .iter()
+        .any(|b| b.id == logpoint.id));
+
+    // The temporary breakpoint suspends once and is removed.
+    engine
+        .reply_break(&resumed, &uri(&root, "app/Order.php"), 8)
+        .await;
+    let removed = ide
+        .event(|e| matches!(e, DebugEvent::Breakpoints { snapshot } if snapshot.breakpoints.len() == 2))
+        .await;
+    let DebugEvent::Breakpoints { snapshot } = removed else {
+        unreachable!()
+    };
+    assert!(snapshot.breakpoints.iter().all(|b| b.id != temporary.id));
+    let paused = ide.paused().await;
+    assert_eq!(paused.reason, Some(BreakReason::Breakpoint));
+    let stored = std::fs::read_to_string(root.join(".forge/breakpoints.json")).unwrap();
+    assert!(!stored.contains("\"line\": 8"), "{stored}");
+
+    // Console completion: variables after `$`, members after `->`.
+    let session = ide.server.session(&paused.id).unwrap();
+    let s = Arc::clone(&session);
+    let vars = tokio::spawn(async move { s.complete("count($or", 0).await });
+    let locals = engine.expect("context_get").await;
+    assert_eq!(locals.arg('c'), Some("0"));
+    engine
+        .reply(&locals, "", r#"<property name="$order" fullname="$order" type="object" classname="App\Order" children="1" numchildren="1"></property><property name="$total" fullname="$total" type="int"><![CDATA[3]]></property>"#)
+        .await;
+    let globals = engine.expect("context_get").await;
+    assert_eq!(globals.arg('c'), Some("1"));
+    engine
+        .reply(&globals, "", r#"<property name="$_ORIGIN" fullname="$_ORIGIN" type="array" children="0" numchildren="0"></property>"#)
+        .await;
+    let vars = vars.await.unwrap().unwrap();
+    assert_eq!(vars.len(), 1);
+    assert_eq!(vars[0].label, "$order");
+    assert_eq!(vars[0].detail, "App\\Order");
+
+    let s = Arc::clone(&session);
+    let members = tokio::spawn(async move { s.complete("$order->st", 0).await });
+    let get = engine.expect("property_get").await;
+    assert_eq!(get.arg('n'), Some("$order"));
+    engine
+        .reply(&get, "", r#"<property name="$order" fullname="$order" type="object" classname="App\Order" children="1" numchildren="2"><property name="status" fullname="$order-&gt;status" facet="public" type="string"><![CDATA[PAID]]></property><property name="id" fullname="$order-&gt;id" facet="public" type="int"><![CDATA[1]]></property></property>"#)
+        .await;
+    let members = members.await.unwrap().unwrap();
+    assert_eq!(members.len(), 1);
+    assert_eq!(members[0].insert, "status");
+}

@@ -14,7 +14,19 @@ const [evaluateRequest, setEvaluateRequest] = createSignal<{ expression: string 
 /** Breakpoints dialog, optionally with a breakpoint preselected. */
 const [breakpointsDialog, setBreakpointsDialog] = createSignal<{ select?: number } | null>(null);
 
-export { breakpointPopup, setBreakpointPopup, evaluateRequest, setEvaluateRequest, breakpointsDialog, setBreakpointsDialog };
+/** Run | Web Server Debug Validation. */
+const [validationDialog, setValidationDialog] = createSignal(false);
+
+export {
+  breakpointPopup,
+  setBreakpointPopup,
+  evaluateRequest,
+  setEvaluateRequest,
+  breakpointsDialog,
+  setBreakpointsDialog,
+  validationDialog,
+  setValidationDialog,
+};
 
 export function openBreakpointPopup(bp: Breakpoint, x: number, y: number): void {
   setBreakpointPopup({ id: bp.id, x, y });

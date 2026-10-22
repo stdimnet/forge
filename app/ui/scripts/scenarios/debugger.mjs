@@ -57,8 +57,8 @@ export default {
     await startPaused(page);
     await page.locator(".cm-content:visible").click({ position: { x: 600, y: 10 } });
     await page.keyboard.press("Alt+F8");
-    await page.waitForSelector(".dbg-evaluate textarea");
-    await page.fill(".dbg-evaluate textarea", "$order->attributes");
+    await page.waitForSelector(".dbg-evaluate #dbg-eval-expr");
+    await page.fill(".dbg-evaluate #dbg-eval-expr", "$order->attributes");
     await page.keyboard.press("Enter");
     await page.waitForSelector(`.dbg-evaluate .dbg-row[data-var="$order->attributes['total']"]`);
   },
@@ -67,14 +67,14 @@ export default {
     await page.keyboard.press("Control+Shift+F8");
     await page.waitForSelector(".dbg-breakpoints");
     await page.click('.dbg-bp-item:has-text("OrderController.php:28")');
-    await page.waitForSelector("#dbg-bp-cond");
+    await page.waitForSelector("#dbg-bp-cond-dlg");
   },
   "debugger-condition-popup": async (page) => {
     await openController(page);
-    const dot = page.locator(".cm-bp-dot").first();
+    const dot = page.locator(".cm-bp-dot.cm-bp-enabled").first();
     await dot.click({ button: "right" });
     await page.waitForSelector(".dbg-bp-popup");
-    await page.fill("#dbg-pop-cond", "$order->user_id === 7");
+    await page.fill("#dbg-bp-cond-pop", "$order->user_id === 7");
   },
   "debugger-servers": async (page) => {
     await openPhpSettings(page, "lang.php.servers");

@@ -445,38 +445,58 @@ impl Session {
         let mapper = self.mapper();
         let file = mapper.to_local(&file_uri);
         let skip_unmapped = self.shared.config().ignore_unmapped_files;
-        let mut st = self.state();
-        let first = std::mem::take(&mut st.first_step);
-        let stepping = matches!(
-            st.last_step,
-            Some(StepKind::StepInto | StepKind::StepOver | StepKind::StepOut)
-        );
-        if file.is_none()
-            && skip_unmapped
-            && stepping
-            && !first
-            && status.exception.is_none()
-            && st.auto_skips < MAX_AUTO_SKIPS
-        {
-            st.auto_skips += 1;
-            st.status = SessionStatus::Paused;
-            drop(st);
-            let _ = self.continue_with(StepKind::StepOut);
-            return;
+        let (first, last_step) = {
+            let mut st = self.state();
+            let first = std::mem::take(&mut st.first_step);
+            let stepping = matches!(
+                st.last_step,
+                Some(StepKind::StepInto | StepKind::StepOver | StepKind::StepOut)
+            );
+            if file.is_none()
+                && skip_unmapped
+                && stepping
+                && !first
+                && status.exception.is_none()
+                && st.auto_skips < MAX_AUTO_SKIPS
+            {
+                st.auto_skips += 1;
+                st.status = SessionStatus::Paused;
+                drop(st);
+                let _ = self.continue_with(StepKind::StepOut);
+                return;
+            }
+            st.auto_skips = 0;
+            (first, st.last_step)
+        };
+        // The breakpoint that fired: only after Resume (a step may end on a breakpoint's
+        // line without hitting it) or for an exception.
+        let resumed = matches!(last_step, Some(StepKind::Run) | None) && !first;
+        let hit = if status.exception.is_some() || resumed {
+            self.shared.with_breakpoints(|s| {
+                s.find_hit(file.as_deref(), line, status.exception.as_deref())
+                    .cloned()
+            })
+        } else {
+            None
+        };
+        if let Some(bp) = hit.as_ref().filter(|b| b.acts_on_hit()) {
+            self.on_hit(bp, file.as_deref(), &file_uri, line, &status)
+                .await;
+            if !bp.suspend {
+                // A logpoint: logged, now let the script run on.
+                self.state().status = SessionStatus::Paused;
+                let _ = self.continue_with(StepKind::Run);
+                return;
+            }
         }
-        st.auto_skips = 0;
         let reason = if status.exception.is_some() {
             BreakReason::Exception
         } else if first {
             BreakReason::FirstLine
         } else {
-            match st.last_step {
+            match last_step {
                 Some(StepKind::Run) | None => {
-                    let at_bp = file.as_deref().is_some_and(|f| {
-                        self.shared
-                            .with_breakpoints(|s| s.find_line(f, line).is_some())
-                    });
-                    if at_bp {
+                    if hit.is_some() {
                         BreakReason::Breakpoint
                     } else {
                         BreakReason::Pause
@@ -485,19 +505,75 @@ impl Session {
                 _ => BreakReason::Step,
             }
         };
-        st.status = SessionStatus::Paused;
-        st.reason = Some(reason);
-        st.exception = status.exception.map(|name| ExceptionInfo {
-            name,
-            message: status.message,
-        });
-        st.location = Some(Location {
-            file,
-            file_uri,
-            line,
-        });
-        drop(st);
+        {
+            let mut st = self.state();
+            st.status = SessionStatus::Paused;
+            st.reason = Some(reason);
+            st.exception = status.exception.map(|name| ExceptionInfo {
+                name,
+                message: status.message,
+            });
+            st.location = Some(Location {
+                file,
+                file_uri,
+                line,
+            });
+        }
         self.emit_changed();
+    }
+
+    /// Log what a breakpoint asks for and drop it when it is temporary.
+    async fn on_hit(
+        &self,
+        bp: &Breakpoint,
+        file: Option<&str>,
+        file_uri: &str,
+        line: u32,
+        status: &StatusResponse,
+    ) {
+        let place = file.unwrap_or(file_uri);
+        let mut text = String::new();
+        if bp.log_message {
+            match &status.exception {
+                Some(name) => text.push_str(&format!(
+                    "Exception breakpoint reached: {name} at {place}:{line}\n"
+                )),
+                None => text.push_str(&format!("Breakpoint reached at {place}:{line}\n")),
+            }
+        }
+        if bp.log_stack {
+            match self.stack_raw(None).await {
+                Ok(frames) => {
+                    let mapper = self.mapper();
+                    for f in frames {
+                        let at = mapper
+                            .to_local(&f.file_uri)
+                            .unwrap_or_else(|| f.file_uri.clone());
+                        text.push_str(&format!("\t{} ({at}:{})\n", f.r#where, f.line));
+                    }
+                }
+                Err(e) => text.push_str(&format!("\tstack trace unavailable: {e}\n")),
+            }
+        }
+        if let Some(expr) = bp.log_expression() {
+            let value = match self.eval_at(expr, 0).await {
+                Ok(p) => crate::console::display_value(&p),
+                Err(e) => format!("Cannot evaluate {expr}: {e}"),
+            };
+            text.push_str(&value);
+            text.push('\n');
+        }
+        if !text.is_empty() {
+            self.shared.emit(DebugEvent::Output {
+                session_id: self.id.clone(),
+                stream: "log".into(),
+                text,
+            });
+        }
+        if bp.temporary {
+            self.state().remote_bps.remove(&bp.id);
+            self.shared.remove_hit_breakpoint(bp.id);
+        }
     }
 
     /// Ask a running script to suspend (needs engine support for async commands).
@@ -584,11 +660,27 @@ impl Session {
             BreakpointKind::Exception => (
                 vec![
                     ('t', "exception".to_string()),
-                    ('x', bp.exception.clone().unwrap_or_else(|| "*".into())),
+                    (
+                        'x',
+                        bp.exception
+                            .as_deref()
+                            .map(|e| e.trim().trim_start_matches('\\'))
+                            .filter(|e| !e.is_empty())
+                            .unwrap_or("*")
+                            .to_string(),
+                    ),
                 ],
                 None,
             ),
         };
+        let mut args = args;
+        if bp.temporary {
+            args.push(('r', "1".into()));
+        }
+        if let Some(n) = bp.pass_count() {
+            args.push(('h', n.to_string()));
+            args.push(('o', ">=".into()));
+        }
         let el = self.conn.send("breakpoint_set", &args, data).await?;
         check_error(&el)?;
         if let Some(id) = el.attr("id") {
@@ -731,6 +823,12 @@ impl Session {
     /// Evaluate a PHP expression in the given frame's scope.
     pub async fn eval(&self, expression: &str, depth: u32) -> DebugResult<Property> {
         self.require_paused()?;
+        self.eval_at(expression, depth).await
+    }
+
+    /// `eval` without the state check (logpoints evaluate before the session counts as
+    /// suspended).
+    async fn eval_at(&self, expression: &str, depth: u32) -> DebugResult<Property> {
         let mut args = Vec::new();
         if depth > 0 {
             args.push(('d', depth.to_string()));
@@ -745,6 +843,34 @@ impl Session {
             p.name = expression.to_string();
         }
         Ok(p)
+    }
+
+    /// Completion items for the expression `text` (caret at its end) in a frame: variables
+    /// after `$`, properties after `->`.
+    pub async fn complete(
+        &self,
+        text: &str,
+        depth: u32,
+    ) -> DebugResult<Vec<crate::console::Completion>> {
+        use crate::console::{complete_members, complete_variables, completion_target};
+        self.require_paused()?;
+        Ok(match completion_target(text) {
+            crate::console::CompletionTarget::Variable { prefix } => {
+                let mut vars = self.variables(depth, 0).await?;
+                if let Ok(globals) = self.variables(depth, 1).await {
+                    vars.extend(globals);
+                }
+                complete_variables(&vars, &prefix)
+            }
+            crate::console::CompletionTarget::Member { object, prefix } => {
+                match self.property(&object, depth, 0, 0).await {
+                    Ok(p) => complete_members(&p, &prefix),
+                    Err(DebugError::Closed) => return Err(DebugError::Closed),
+                    Err(_) => Vec::new(),
+                }
+            }
+            crate::console::CompletionTarget::None => Vec::new(),
+        })
     }
 
     /// Assign a new value (`property_set`), e.g. from "Set Value…" in the Variables tree.

@@ -11,6 +11,7 @@
 pub mod breakpoints;
 pub mod config;
 pub mod connection;
+pub mod console;
 pub mod error;
 pub mod events;
 pub mod mapping;
@@ -18,6 +19,8 @@ pub mod protocol;
 pub mod server;
 pub mod servers;
 pub mod session;
+pub mod validation;
+pub mod web;
 pub mod xml;
 
 pub use breakpoints::{

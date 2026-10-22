@@ -70,8 +70,9 @@ export const scratchesApi = {
    * response handler) to `run://<runId>`. `source` is the editor path of the `.http` file
    * (`scratch://<name>` or a project path); `< ./body.json` files are relative to it.
    */
-  httpRun: (runId: string, content: string, line: number, env?: string, source?: string) =>
-    invoke<RunStarted>("scratches_http_run", { runId, content, line, env, source }),
+  /** `debug` adds the Xdebug session cookie. */
+  httpRun: (runId: string, content: string, line: number, env?: string, source?: string, debug = false) =>
+    invoke<RunStarted>("scratches_http_run", { runId, content, line, env, source, debug }),
   httpEnvironments: () => invoke<HttpEnvironments>("scratches_http_environments"),
   onChanged: (cb: () => void) => listen<null>("scratches://changed", () => cb()),
 };

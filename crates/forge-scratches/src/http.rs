@@ -83,6 +83,29 @@ impl HttpRequest {
             .find(|h| h.name.eq_ignore_ascii_case(name))
             .map(|h| h.value.as_str())
     }
+
+    /// Add the Xdebug session cookie (`XDEBUG_SESSION=<ide key>`), so the request is
+    /// debugged ("Debug" in `.http` files, PHP HTTP Request debug runs). An existing
+    /// `XDEBUG_SESSION` cookie is kept.
+    pub fn add_debug_cookie(&mut self, ide_key: &str) {
+        let cookie = format!("XDEBUG_SESSION={ide_key}");
+        match self
+            .headers
+            .iter_mut()
+            .find(|h| h.name.eq_ignore_ascii_case("Cookie"))
+        {
+            Some(h) if h.value.contains("XDEBUG_SESSION=") => {}
+            Some(h) if h.value.trim().is_empty() => h.value = cookie,
+            Some(h) => {
+                let v = h.value.trim_end().trim_end_matches(';').to_string();
+                h.value = format!("{v}; {cookie}");
+            }
+            None => self.headers.push(Header {
+                name: "Cookie".into(),
+                value: cookie,
+            }),
+        }
+    }
 }
 
 /// A parsed `.http` file.
@@ -695,7 +718,18 @@ const RESET: &str = "\x1b[0m";
 
 /// Console text (with ANSI styles) shown before a request is sent.
 pub fn render_request(req: &HttpRequest) -> String {
-    format!("\x1b[1m{} {}{RESET}\n\n", req.method, req.url)
+    let mut out = format!("\x1b[1m{} {}{RESET}\n", req.method, req.url);
+    // A debugged request says so: the Xdebug cookie starts the debug session.
+    if let Some(cookie) = req
+        .header("Cookie")
+        .filter(|c| c.contains("XDEBUG_SESSION="))
+    {
+        out.push_str(&format!(
+            "\x1b[90mCookie: {cookie} (debugging with Xdebug){RESET}\n"
+        ));
+    }
+    out.push('\n');
+    out
 }
 
 /// Console text of a response, laid out like PHPStorm's HTTP Client: status line, headers,
@@ -827,6 +861,27 @@ pub fn pretty_json(text: &str) -> Option<String> {
         }
     }
     Some(out)
+}
+
+#[cfg(test)]
+mod debug_cookie_tests {
+    use super::*;
+
+    #[test]
+    fn debug_cookie_is_added_or_merged() {
+        let file =
+            parse("GET http://shop.test/\n\n###\nPOST http://shop.test/a\nCookie: lang=de;\n");
+        let mut a = file.requests[0].clone();
+        a.add_debug_cookie("FORGE");
+        assert_eq!(a.header("cookie"), Some("XDEBUG_SESSION=FORGE"));
+        let mut b = file.requests[1].clone();
+        b.add_debug_cookie("FORGE");
+        assert_eq!(b.header("Cookie"), Some("lang=de; XDEBUG_SESSION=FORGE"));
+        b.add_debug_cookie("OTHER");
+        assert_eq!(b.header("Cookie"), Some("lang=de; XDEBUG_SESSION=FORGE"));
+        assert!(render_request(&b).contains("XDEBUG_SESSION=FORGE (debugging with Xdebug)"));
+        assert!(!render_request(&file.requests[0]).contains("Cookie"));
+    }
 }
 
 #[cfg(test)]

@@ -34,6 +34,7 @@ import { closeRunConfigurations, RUN_CONFIGURATIONS_DIALOG, type DialogRequest }
 import {
   fieldValue,
   findType,
+  fieldOptions,
   isCommonField,
   newConfiguration,
   runConfigurationTypes,
@@ -250,7 +251,7 @@ function Field(props: { field: RunConfigField; cfg: RunConfiguration }) {
           <div class="rc-row">
             <span class="rc-label">{props.field.label}:</span>
             <div class="rc-radios" role="radiogroup">
-              <For each={props.field.options}>
+              <For each={fieldOptions(props.field)}>
                 {(o) => (
                   <label class="rc-radio">
                     <input type="radio" name={`${props.field.key}`} checked={value() === o.value} onChange={() => set(o.value)} />
@@ -265,7 +266,7 @@ function Field(props: { field: RunConfigField; cfg: RunConfiguration }) {
           <label class="rc-row">
             <span class="rc-label">{props.field.label}:</span>
             <select class="rc-select" value={value()} onChange={(e) => set(e.currentTarget.value)}>
-              <For each={props.field.options}>{(o) => <option value={o.value}>{o.label}</option>}</For>
+              <For each={fieldOptions(props.field)}>{(o) => <option value={o.value}>{o.label}</option>}</For>
             </select>
           </label>
         </Match>

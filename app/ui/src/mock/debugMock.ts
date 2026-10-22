@@ -234,13 +234,28 @@ let servers: ServerConfig[] = [
   },
   { id: "docker-cli", name: "docker-cli", host: "localhost", port: 80, debugger: "Xdebug", usePathMappings: true, mappings: [{ local: "", remote: "/app" }] },
 ];
-const bp = (spec: BreakpointSpec): Breakpoint => ({ id: nextBp++, kind: spec.kind ?? "line", file: spec.file, line: spec.line, exception: spec.exception, condition: spec.condition, enabled: spec.enabled ?? true });
+const bp = (spec: BreakpointSpec): Breakpoint => ({
+  id: nextBp++,
+  kind: spec.kind ?? "line",
+  file: spec.file,
+  line: spec.line,
+  exception: spec.exception,
+  condition: spec.condition,
+  enabled: spec.enabled ?? true,
+  suspend: spec.suspend ?? true,
+  logMessage: spec.logMessage || undefined,
+  logStack: spec.logStack || undefined,
+  logExpression: spec.logExpression,
+  temporary: spec.temporary || undefined,
+  passCount: spec.passCount,
+});
 const state: BreakpointsSnapshot = {
   muted: false,
   breakpoints: [
     bp({ file: CONTROLLER, line: 24 }),
     bp({ file: CONTROLLER, line: 28, condition: "$order->total > 100" }),
     bp({ file: "app/Services/Checkout.php", line: 13, enabled: false }),
+    bp({ file: CONTROLLER, line: 22, suspend: false, logMessage: true, logExpression: "$order->status" }),
     bp({ kind: "exception", exception: "\\Illuminate\\Database\\QueryException" }),
   ],
 };
@@ -294,7 +309,10 @@ function connect(): void {
   sessions.set(id, s);
   emit({ type: "session", session: s.info });
   setTimeout(() => {
-    if (sessions.has(id)) suspend(s, START, state.muted ? "pause" : "breakpoint");
+    if (!sessions.has(id)) return;
+    // Logpoints before the first breakpoint log and run on.
+    for (let n = 0; n < START; n++) if (breakpointAt(n)?.suspend === false) hit(s, n);
+    suspend(s, START, state.muted ? "pause" : "breakpoint");
   }, 250);
 }
 
@@ -322,10 +340,33 @@ function session(args: Record<string, unknown>): MockSession {
   return s;
 }
 
-function isBreakpointHit(stepIdx: number): boolean {
-  if (state.muted) return false;
+function breakpointAt(stepIdx: number): Breakpoint | undefined {
+  if (state.muted) return undefined;
   const st = STEPS[stepIdx];
-  return state.breakpoints.some((b) => b.enabled && b.kind === "line" && b.file === st.file && b.line === st.line);
+  return state.breakpoints.find((b) => b.enabled && b.kind === "line" && b.file === st.file && b.line === st.line);
+}
+
+/** Like the Rust session: log what the breakpoint asks for, drop temporary ones; true = suspend. */
+function hit(s: MockSession, stepIdx: number): boolean {
+  const b = breakpointAt(stepIdx);
+  if (!b) return false;
+  const st = STEPS[stepIdx];
+  let text = "";
+  if (b.logMessage) text += `Breakpoint reached at ${st.file}:${st.line}\n`;
+  if (b.logExpression?.trim()) {
+    try {
+      const p = evaluate({ ...s, step: stepIdx }, b.logExpression);
+      text += `${p.type === "string" ? `"${p.value}"` : p.value ?? p.classname ?? p.type}\n`;
+    } catch (e) {
+      text += `Cannot evaluate ${b.logExpression}: ${String(e)}\n`;
+    }
+  }
+  if (text) emit({ type: "output", sessionId: s.info.id, stream: "log", text });
+  if (b.temporary) {
+    state.breakpoints = state.breakpoints.filter((x) => x.id !== b.id);
+    emitBreakpoints();
+  }
+  return b.suspend !== false;
 }
 
 function advance(s: MockSession, kind: StepKind): void {
@@ -345,7 +386,7 @@ function advance(s: MockSession, kind: StepKind): void {
     default: {
       next = null;
       for (let n = s.step + 1; n < STEPS.length && STEPS[n].file === CONTROLLER; n++) {
-        if (isBreakpointHit(n)) {
+        if (hit(s, n)) {
           next = n;
           break;
         }
@@ -506,7 +547,105 @@ registerMock("debug_property", (args) => {
   return toProperty(fullname.split(/->|\[/).pop()!.replace(/['"\]]/g, ""), fullname, node);
 });
 registerMock("debug_eval", (args) => evaluate(session(args), String(args.expression)));
-registerMock("debug_set_value", () => undefined);
+registerMock("debug_set_value", (args) => {
+  const s = session(args);
+  const node = lookup(s, String(args.fullname));
+  if (!node) throw new Error(`can not set ${String(args.fullname)}`);
+  const v = String(args.value).trim();
+  // PHP literals: 'text' / "text", numbers, true / false / null.
+  const str = /^(['"])(.*)\1$/s.exec(v);
+  if (str) Object.assign(node, { type: "string", value: str[2].replace(/\\(['"\\])/g, "$1"), children: undefined, classname: undefined });
+  else if (/^-?\d+$/.test(v)) Object.assign(node, { type: "int", value: v, children: undefined, classname: undefined });
+  else if (/^-?\d*\.\d+$/.test(v)) Object.assign(node, { type: "float", value: v, children: undefined, classname: undefined });
+  else if (/^(true|false)$/i.test(v)) Object.assign(node, { type: "bool", value: /^true$/i.test(v) ? "1" : "0", children: undefined, classname: undefined });
+  else if (/^null$/i.test(v)) Object.assign(node, { type: "null", value: undefined, children: undefined, classname: undefined });
+  else throw new Error(`Error evaluating code: syntax error, unexpected '${v}'`);
+});
+registerMock("debug_complete", (args) => {
+  const s = session(args);
+  const text = String(args.text);
+  const member = /(\$\w+(?:->\w+|\[[^\]]*\])*)->(\w*)$/.exec(text);
+  const variable = /\$(\w*)$/.exec(text);
+  const detail = (n: Node) => n.classname ?? n.type;
+  if (member) {
+    const node = lookup(s, member[1]);
+    const kids = node?.children ?? [];
+    // Eloquent models also offer their attributes.
+    const attrs = kids.find(([k]) => k === "attributes")?.[1].children ?? [];
+    return [...kids, ...attrs]
+      .filter(([k]) => !/^\d/.test(k) && k.toLowerCase().startsWith(member[2].toLowerCase()))
+      .map(([k, v]) => ({ label: k, insert: k, detail: detail(v) }))
+      .filter((c, n, all) => all.findIndex((x) => x.label === c.label) === n)
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }
+  if (variable) {
+    return [...varsOf(s), ["$_GET", arr([])] as [string, Node], ["$_SERVER", arr([])] as [string, Node]]
+      .filter(([n]) => n.slice(1).toLowerCase().startsWith(variable[1].toLowerCase()))
+      .map(([n, v]) => ({ label: n, insert: n.slice(1), detail: detail(v) }));
+  }
+  return [];
+});
+registerMock("debug_page_url", (args) => pageUrl(args));
+registerMock("debug_web_page_start", (args) => {
+  const url = pageUrl(args);
+  const event = `run://${String(args.runId)}`;
+  setTimeout(() => {
+    emitMock(event, { type: "started", pid: 0, commandLine: url });
+    const text = args.debug ? `Opening ${url}\nThe debug session starts when Xdebug connects.` : `Opening ${url}`;
+    emitMock(event, { type: "console", replaceLast: false, lines: text.split("\n").map((t) => ({ segments: [{ text: t, style: {} }] })) });
+    emitMock(event, { type: "exited", code: 0, signal: null });
+    // The page's request reaches the debugger when it listens.
+    if (args.debug && listening && ![...sessions.values()].length) setTimeout(connect, 400);
+  }, 0);
+  return { runId: String(args.runId), commandLine: url, url };
+});
+registerMock("debug_validate_cli", () => ({
+  ok: true,
+  environment: { phpVersion: "8.3.12", sapi: "cli", phpIni: "/etc/php/8.3/cli/php.ini", xdebug: "3.4.1" },
+  checks: [
+    { title: "PHP version", value: "8.3.12 (cli)", status: "info" },
+    { title: "Loaded php.ini", value: "/etc/php/8.3/cli/php.ini", status: "info" },
+    { title: "Debug extension", value: "Xdebug 3.4.1", status: "ok" },
+    { title: "xdebug.mode", value: "develop", status: "info", hint: "Debug runs start PHP with XDEBUG_MODE=debug." },
+    { title: "xdebug.client_host", value: "localhost", status: "info", hint: "Debug runs point Xdebug at Forge (host.docker.internal in containers, an SSH tunnel over SSH)." },
+    { title: "xdebug.client_port", value: "9003", status: "info", hint: "Debug runs pass Forge's port in XDEBUG_CONFIG." },
+    { title: "xdebug.start_with_request", value: "default", status: "info", hint: "Debug runs set XDEBUG_SESSION, which starts the session." },
+  ],
+}));
+registerMock("debug_validate_web", (args) => {
+  // Mocks never write into a project: the script is "placed" and "removed" in memory only.
+  const url = String(args.url ?? "");
+  if (!/^https?:\/\//.test(url) && !/^[\w.-]+(:\d+)?/.test(url)) throw new Error(`Cannot request ${url}: invalid URL`);
+  return {
+    ok: false,
+    environment: { phpVersion: "8.3.12", sapi: "fpm-fcgi", phpIni: "/usr/local/etc/php/php.ini", xdebug: "3.4.1", serverName: "acme-shop.test" },
+    checks: [
+      { title: "PHP version", value: "8.3.12 (fpm-fcgi)", status: "info" },
+      { title: "Loaded php.ini", value: "/usr/local/etc/php/php.ini", status: "info" },
+      { title: "Debug extension", value: "Xdebug 3.4.1", status: "ok" },
+      { title: "xdebug.mode", value: "debug,develop", status: "ok" },
+      {
+        title: "xdebug.client_host",
+        value: "localhost",
+        status: "warning",
+        hint: "The web server runs on another machine or in a container, so localhost is not Forge. Set xdebug.client_host to this machine's address (host.docker.internal for Docker) or enable xdebug.discover_client_host.",
+      },
+      {
+        title: "xdebug.client_port",
+        value: "9000",
+        status: "error",
+        hint: `Forge listens on port ${port} (Settings | PHP | Debug). Set xdebug.client_port=${port} or change the debug port.`,
+      },
+      {
+        title: "xdebug.start_with_request",
+        value: "trigger",
+        status: "warning",
+        hint: "Only requests with the XDEBUG_SESSION cookie or ?XDEBUG_SESSION_START=FORGE are debugged. PHP Web Page and PHP HTTP Request debug configurations and Debug in .http files add it; set yes to debug every request.",
+      },
+      { title: "Server name", value: "acme-shop.test", status: "info", hint: "Matched against Settings | PHP | Servers to map the server's paths to the project." },
+    ],
+  };
+});
 registerMock("debug_breakpoints", () => snapshot());
 registerMock("debug_breakpoint_add", (args) => {
   const spec = args.spec as BreakpointSpec;
@@ -559,6 +698,24 @@ registerMock("debug_launch_env", (args) => ({
   XDEBUG_CONFIG: `client_host=127.0.0.1 client_port=${port} idekey=FORGE`,
   ...(args.serverName ? { PHP_IDE_CONFIG: `serverName=${String(args.serverName)}` } : {}),
 }));
+
+/** Like `forge_debug::web::page_url`. */
+function pageUrl(args: Record<string, unknown>): string {
+  const start = String(args.startUrl ?? "").trim();
+  const id = args.serverId ? String(args.serverId) : "";
+  const srv = servers.find((x) => x.id === id || x.name === id);
+  if (id && !srv) throw new Error(`Server '${id}' is not configured (Settings | PHP | Servers)`);
+  let url = start;
+  if (!start.includes("://")) {
+    const host = srv?.host || "localhost";
+    const base = !srv || srv.port === 80 ? `http://${host}` : srv.port === 443 ? `https://${host}` : `http://${host}:${srv.port}`;
+    url = `${base}/${start.replace(/^\/+/, "")}`;
+  }
+  if (!args.debug || url.includes("XDEBUG_SESSION_START=")) return url;
+  const [head, frag] = url.split("#");
+  const sep = !head.includes("?") ? "?" : /[?&]$/.test(head) ? "" : "&";
+  return `${head}${sep}XDEBUG_SESSION_START=FORGE${frag !== undefined ? `#${frag}` : ""}`;
+}
 
 // Screenshot scenarios can simulate connections.
 if (import.meta.env.DEV && typeof window !== "undefined") {

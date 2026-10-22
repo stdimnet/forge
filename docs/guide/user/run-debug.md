@@ -51,6 +51,9 @@ offers **Run Shell Command…** and **Edit Configuration…**.
 | Type | Fields | Runs | Debug |
 | --- | --- | --- | --- |
 | PHP Script | File | `<php> <options> <file> <arguments>` | Xdebug |
+| PHP Built-in Web Server | Host (`localhost`), Port (`8080`), Document root, Use router script, Open in browser after launch | `<php> <options> -S host:port -t <document root> [router]`, then opens `http://host:port/` | Xdebug for every request |
+| PHP Web Page | Server (Settings \| PHP \| Servers), Start URL | opens the page in the browser | adds `XDEBUG_SESSION_START=FORGE` |
+| PHP HTTP Request | Server (optional), URL, Request method, Headers, Request body | sends the request, the response appears in the Run tool window | adds the `XDEBUG_SESSION` cookie |
 | PHPUnit | Test scope: Directory, File, Class, Method or "Defined in the configuration file"; Configuration file (`phpunit.xml` detected); Test runner options | `phpunit --teamcity …` (from `vendor/bin`) | Xdebug |
 | Artisan | Command (`migrate --seed`) | `<php> artisan <command>` | Xdebug |
 | Composer Script | Script | `composer run <script>` with `php.composer.executable` | Xdebug |
@@ -83,8 +86,17 @@ Debugging (`Shift+F9`) through an interpreter works the same way: Xdebug connect
 back with `ssh -R 9003:127.0.0.1:9003`, and the run sets `PHP_IDE_CONFIG=serverName=<interpreter>`
 so breakpoints use the interpreter's path mappings.
 
-> **Note:** the types "PHP Built-in Web Server" and "PHP Remote Debug" are declared by the PHP
-> plugins but not available yet. To debug a web request, use
+![PHP Built-in Web Server](../../screenshots/run-builtin-server.png)
+
+The built-in web server runs through the configuration's interpreter too: Docker and Compose
+interpreters publish the port (`-p 8080:8080`, the server binds `0.0.0.0` inside the
+container), SSH interpreters forward it (`ssh -L 8080:127.0.0.1:8080`), so the page opens on
+`localhost` either way.
+
+![PHP Web Page](../../screenshots/run-web-page.png)
+
+> **Note:** the type "PHP Remote Debug" is declared by the Xdebug plugin but not available yet.
+> To debug requests started elsewhere, use
 > [Start Listening for PHP Debug Connections](debugging.md#listening-for-connections).
 
 ### Where configurations are stored
@@ -170,9 +182,11 @@ show a **Test Results** tree next to the console:
 
 ## Debugging
 
-**Debug** on a PHP configuration (PHP Script, PHPUnit, Artisan, Composer) starts Forge's Xdebug
-listener and runs the process with the Xdebug environment (`XDEBUG_MODE=debug`,
-`XDEBUG_SESSION`, `XDEBUG_CONFIG`). See [Xdebug debugging](debugging.md).
+**Debug** on a PHP configuration (PHP Script, PHPUnit, Artisan, Composer, PHP Built-in Web
+Server) starts Forge's Xdebug listener and runs the process with the Xdebug environment
+(`XDEBUG_MODE=debug`, `XDEBUG_SESSION`, `XDEBUG_CONFIG`). **Debug** on PHP Web Page, PHP HTTP
+Request and requests of `.http` files starts listening and adds the Xdebug trigger to the
+request. See [Xdebug debugging](debugging.md#debugging-web-pages-and-http-requests).
 
 > **Note:** Run/Debug configurations work in [remote projects](remote-development.md): the
 > process runs on the remote host.

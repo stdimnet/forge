@@ -161,7 +161,7 @@ pub struct RunStarted {
 }
 
 /// Configuration types whose program is the PHP interpreter.
-const PHP_KINDS: &[&str] = &["php-script", "phpunit", "artisan"];
+const PHP_KINDS: &[&str] = &["php-script", "phpunit", "artisan", "php-builtin-server"];
 /// Composer types: they run through an interpreter only when they name one.
 const COMPOSER_KINDS: &[&str] = &["composer", "composer-command"];
 
@@ -177,6 +177,8 @@ struct Built {
 fn build(state: &AppState, runs: &RunState, req: RunRequest) -> Result<Built> {
     let root = root(state)?;
     let mut through: Option<(PhpInterpreter, bool)> = None;
+    // Ports the built-in web server serves, published by container / SSH interpreters.
+    let mut publish: Vec<u16> = Vec::new();
     let mut cmd = match (req.configuration, req.command) {
         (_, Some(mut cmd)) => {
             if cmd.cwd.as_os_str().is_empty() {
@@ -193,10 +195,21 @@ fn build(state: &AppState, runs: &RunState, req: RunRequest) -> Result<Built> {
                     .find(&cfg.interpreter)
                     .is_some();
             if php_kind || composer_kind {
-                through = Some((
-                    interpreters::resolve(state, &cfg.interpreter),
-                    composer_kind,
-                ));
+                let interp = interpreters::resolve(state, &cfg.interpreter);
+                if cfg.type_id == "php-builtin-server" && interp.kind.is_remote() {
+                    let (host, port) = forge_process::config::builtin_server_address(&cfg);
+                    publish.push(port);
+                    // Inside a container, localhost is not reachable from the browser.
+                    if matches!(
+                        interp.kind,
+                        phpforge_interpreters::InterpreterKind::Docker
+                            | phpforge_interpreters::InterpreterKind::Compose
+                    ) && matches!(host.as_str(), "localhost" | "127.0.0.1")
+                    {
+                        cfg.options.insert("host".into(), "0.0.0.0".into());
+                    }
+                }
+                through = Some((interp, composer_kind));
             }
             let settings = state.read_settings();
             if (cfg.type_id == "composer" || cfg.type_id == "composer-command")
@@ -252,7 +265,7 @@ fn build(state: &AppState, runs: &RunState, req: RunRequest) -> Result<Built> {
         Program::Php
     };
     Ok(Built {
-        cmd: prepared.wrap(program, &cmd)?,
+        cmd: prepared.wrap_serving(program, &cmd, publish)?,
         path_mappings: prepared.output_mappings(),
         debug_server: phpforge_interpreters::command::is_debug(&cmd.env)
             .then(|| prepared.debug_server())

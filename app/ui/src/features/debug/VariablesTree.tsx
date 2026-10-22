@@ -1,9 +1,23 @@
 /** Lazy variables tree (Variables pane, Watches, Evaluate result). */
-import { createEffect, createSignal, For, on, Show, type JSX } from "solid-js";
-import { Braces, Brackets, ChevronDown, ChevronRight, Glasses, Variable, X } from "lucide-solid";
+import { createEffect, createSignal, For, on, onMount, Show, type JSX } from "solid-js";
+import { Braces, Brackets, ChevronDown, ChevronRight, Copy, Eye, Glasses, Pencil, Variable, X } from "lucide-solid";
+import { shortcutLabel } from "@/keymap";
+import { openMenu } from "@/features/run/PopupMenu";
 import { debugApi, type Property } from "./api";
-import { formatValue, typeLabel, valueText } from "./format";
-import { contextVersion, pausedSession, selectedFrame } from "./store";
+import { formatValue, phpLiteral, typeLabel, valueText } from "./format";
+import { setEvaluateRequest } from "./overlays";
+import {
+  addWatch,
+  contextVersion,
+  editingVariable,
+  pausedSession,
+  selectedFrame,
+  selectedVariable,
+  setEditingVariable,
+  setSelectedVariable,
+  setVariableValue,
+  type SelectedVariable,
+} from "./store";
 
 function TypeIcon(props: { p: Property; watch?: boolean }) {
   if (props.watch) return <Glasses size={13} class="dbg-icon dbg-icon-watch" />;
@@ -36,8 +50,79 @@ export interface NodeProps {
   initiallyOpen?: boolean;
   selected?: string | null;
   onSelect?: (key: string) => void;
+  /** Rows of the Variables tree: selection, context menu and Set Value (F2). */
+  selectable?: boolean;
   /** Extra row content (e.g. error text). */
   children?: JSX.Element;
+}
+
+/** Copy Value: scalars as shown, arrays and objects as `print_r` output. */
+export async function copyValue(v: SelectedVariable): Promise<void> {
+  const p = v.property;
+  let text = p.type === "string" ? (p.value ?? "") : valueText(p);
+  const s = pausedSession();
+  if (s && (p.type === "array" || p.type === "object")) {
+    const printed = await debugApi.eval(s.id, `print_r(${v.watch ?? p.fullname}, true)`, selectedFrame()?.level ?? 0).catch(() => null);
+    if (printed?.value != null) text = printed.value;
+  }
+  await navigator.clipboard?.writeText(text).catch(() => undefined);
+}
+
+/** Set Value (F2) on the selected row. */
+export function editSelectedValue(): void {
+  const v = selectedVariable();
+  if (v && pausedSession()) setEditingVariable(v.key);
+}
+
+function openVariableMenu(e: MouseEvent, v: SelectedVariable, onRemove?: () => void): void {
+  e.preventDefault();
+  const expr = v.watch ?? v.property.fullname;
+  openMenu({
+    x: e.clientX,
+    y: e.clientY,
+    items: [
+      { label: "Set Value…", icon: Pencil, shortcut: shortcutLabel("XDebugger.SetValue"), disabled: !pausedSession(), run: () => setEditingVariable(v.key) },
+      { label: "Copy Value", icon: Copy, shortcut: shortcutLabel("XDebugger.CopyValue"), run: () => void copyValue(v) },
+      { label: "Copy Name", run: () => void navigator.clipboard?.writeText(expr).catch(() => undefined) },
+      { separator: true },
+      { label: "Evaluate Expression…", shortcut: shortcutLabel("EvaluateExpression"), run: () => setEvaluateRequest({ expression: expr }) },
+      { label: "Add to Watches", icon: Eye, disabled: !!v.watch, run: () => addWatch(expr) },
+      ...(onRemove ? [{ separator: true }, { label: "Remove Watch", icon: X, run: onRemove }] : []),
+    ],
+  });
+}
+
+/** Inline editor of Set Value: Enter assigns the PHP expression, Escape cancels. */
+function ValueEditor(props: { p: Property; expression: string }) {
+  let input!: HTMLInputElement;
+  const [text, setText] = createSignal(phpLiteral(props.p));
+  onMount(() => {
+    input.focus();
+    input.select();
+  });
+  const done = () => setEditingVariable(null);
+  return (
+    <input
+      ref={input}
+      class="dbg-input dbg-mono dbg-value-edit"
+      value={text()}
+      spellcheck={false}
+      onInput={(e) => setText(e.currentTarget.value)}
+      onClick={(e) => e.stopPropagation()}
+      onBlur={done}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") {
+          e.preventDefault();
+          e.stopPropagation();
+          done();
+        } else if (e.key === "Enter") {
+          e.preventDefault();
+          const value = text().trim();
+          if (value) void setVariableValue(props.expression, value).then((ok) => ok && done());
+        }
+      }}
+    />
+  );
 }
 
 /** Load all children of `p` up to the page `p` describes. */
@@ -52,6 +137,9 @@ export function VariableNode(props: NodeProps) {
   const [error, setError] = createSignal<string | null>(null);
   const [nextPage, setNextPage] = createSignal(0);
   const key = () => `${props.label ?? ""}|${props.p.fullname}`;
+  const isSelected = () => (props.selectable ? selectedVariable()?.key === key() : props.selected === key());
+  const editing = () => !!props.selectable && editingVariable() === key();
+  const asSelection = (): SelectedVariable => ({ key: key(), property: props.p, watch: props.watch ? props.label : undefined });
   const frame = () => props.frame ?? selectedFrame()?.level ?? 0;
   const complete = (p: Property) => p.children.length > 0 && p.children.length >= Math.min(p.numChildren, p.pageSize || p.numChildren);
 
@@ -103,10 +191,15 @@ export function VariableNode(props: NodeProps) {
     <>
       <div
         class="tree-row dbg-row"
-        classList={{ selected: props.selected === key() }}
+        classList={{ selected: isSelected() }}
         style={indent()}
-        onClick={() => props.onSelect?.(key())}
+        onClick={() => (props.selectable ? setSelectedVariable(asSelection()) : props.onSelect?.(key()))}
         onDblClick={toggle}
+        onContextMenu={(e) => {
+          if (!props.selectable) return;
+          setSelectedVariable(asSelection());
+          openVariableMenu(e, asSelection(), props.onRemove);
+        }}
         title={formatValue(props.p)}
         data-var={props.p.fullname}
       >
@@ -117,8 +210,18 @@ export function VariableNode(props: NodeProps) {
         <span class="dbg-name" classList={{ "dbg-name-watch": props.watch }}>
           {props.label ?? props.p.name}
         </span>
-        <Show when={props.children} fallback={<><span class="dbg-eq"> = </span><ValueSpan p={props.p} /></>}>
-          {props.children}
+        <Show
+          when={!editing()}
+          fallback={
+            <>
+              <span class="dbg-eq"> = </span>
+              <ValueEditor p={props.p} expression={props.watch ? (props.label ?? props.p.fullname) : props.p.fullname} />
+            </>
+          }
+        >
+          <Show when={props.children} fallback={<><span class="dbg-eq"> = </span><ValueSpan p={props.p} /></>}>
+            {props.children}
+          </Show>
         </Show>
         <Show when={props.onRemove}>
           <button class="icon-btn dbg-row-action" title="Remove Watch" onClick={(e) => (e.stopPropagation(), props.onRemove?.())}>
@@ -134,7 +237,14 @@ export function VariableNode(props: NodeProps) {
         </Show>
         <For each={children()}>
           {(c) => (
-            <VariableNode p={c} depth={props.depth + 1} frame={props.frame} selected={props.selected} onSelect={props.onSelect} />
+            <VariableNode
+              p={c}
+              depth={props.depth + 1}
+              frame={props.frame}
+              selected={props.selected}
+              onSelect={props.onSelect}
+              selectable={props.selectable}
+            />
           )}
         </For>
         <Show when={loading()}>

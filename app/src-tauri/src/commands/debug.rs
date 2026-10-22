@@ -11,14 +11,19 @@ use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};
 
 use forge_backend::{BackendFiles, PortForward};
-use forge_core::{Result, Settings};
+use forge_core::{ForgeError, Result, Settings};
+use forge_debug::console::Completion;
+use forge_debug::validation::{self, Expectation, ValidationReport};
 use forge_debug::{
     Breakpoint, BreakpointSpec, BreakpointsSnapshot, ContextName, DebugConfig, DebugError,
     DebugEvent, DebugServer, Frame, Property, ServerConfig, SessionInfo, StepKind,
 };
+use forge_process::output::{RunInput, RunOutput, RunOutputOptions};
+use forge_process::RunEvent;
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, State};
 
+use crate::commands::php_interpreters as interpreters;
 use crate::state::AppState;
 
 pub struct DebugState {
@@ -428,4 +433,230 @@ pub fn debug_launch_env(
     forge_debug::launch_env(port, server_name.as_deref())
         .into_iter()
         .collect()
+}
+
+/// Completion in the debugger console and the Evaluate dialog: variables after `$`,
+/// properties after `->` (the caret is at the end of `text`).
+#[tauri::command]
+pub async fn debug_complete(
+    session_id: String,
+    text: String,
+    depth: Option<u32>,
+    state: State<'_, AppState>,
+    debug: State<'_, DebugState>,
+) -> Result<Vec<Completion>> {
+    let session = server(&state, &debug).session(&session_id)?;
+    Ok(session.complete(&text, depth.unwrap_or(0)).await?)
+}
+
+// ---- PHP Web Page -----------------------------------------------------------------------
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WebPageStarted {
+    pub run_id: String,
+    pub command_line: String,
+    /// The page the UI opens in the browser.
+    pub url: String,
+}
+
+/// The configured server `server_id` (by id or name; `None`: no server).
+fn find_server(servers: &[ServerConfig], server_id: Option<&str>) -> Result<Option<ServerConfig>> {
+    match server_id.filter(|s| !s.is_empty()) {
+        Some(id) => servers
+            .iter()
+            .find(|s| s.id == id || s.name == id)
+            .cloned()
+            .map(Some)
+            .ok_or_else(|| {
+                ForgeError::Other(format!(
+                    "Server '{id}' is not configured (Settings | PHP | Servers)"
+                ))
+            }),
+        None => Ok(None),
+    }
+}
+
+/// The URL of `startUrl` on a server (PHP HTTP Request configurations), with the Xdebug
+/// trigger when `debug`.
+#[tauri::command]
+pub fn debug_page_url(
+    server_id: Option<String>,
+    start_url: String,
+    debug: Option<bool>,
+    state: State<'_, AppState>,
+    debug_state: State<'_, DebugState>,
+) -> Result<String> {
+    let servers = server(&state, &debug_state).servers();
+    let srv = find_server(&servers, server_id.as_deref())?;
+    Ok(forge_debug::web::page_url(
+        srv.as_ref(),
+        &start_url,
+        debug.unwrap_or(false),
+    ))
+}
+
+/// Start a "PHP Web Page" configuration: the URL of `startUrl` on the server `serverId`
+/// (with `XDEBUG_SESSION_START` when debugging), reported on `run://<runId>` like a
+/// finished process. The UI opens the returned URL in the browser.
+#[tauri::command]
+pub fn debug_web_page_start(
+    run_id: String,
+    server_id: Option<String>,
+    start_url: String,
+    debug: Option<bool>,
+    app: AppHandle,
+    state: State<'_, AppState>,
+    debug_state: State<'_, DebugState>,
+) -> Result<WebPageStarted> {
+    let servers = server(&state, &debug_state).servers();
+    let srv = find_server(&servers, server_id.as_deref())?;
+    let debugging = debug.unwrap_or(false);
+    let url = forge_debug::web::page_url(srv.as_ref(), &start_url, debugging);
+    let event = format!("run://{run_id}");
+    let mut output = RunOutput::new(&RunOutputOptions::default());
+    emit_run(
+        &app,
+        &event,
+        &RunEvent::Started {
+            pid: 0,
+            command_line: url.clone(),
+        },
+    );
+    let text = if debugging {
+        format!("Opening {url}\nThe debug session starts when Xdebug connects.\n")
+    } else {
+        format!("Opening {url}\n")
+    };
+    for rendered in output.handle(&RunInput::Output {
+        stream: "stdout".into(),
+        text,
+    }) {
+        emit_run(&app, &event, &rendered);
+    }
+    emit_run(
+        &app,
+        &event,
+        &RunEvent::Exited {
+            code: Some(0),
+            signal: None,
+        },
+    );
+    Ok(WebPageStarted {
+        run_id,
+        command_line: url.clone(),
+        url,
+    })
+}
+
+fn emit_run<T: Serialize>(app: &AppHandle, event: &str, payload: &T) {
+    if let Err(e) = app.emit(event, payload) {
+        tracing::warn!("cannot emit {event}: {e}");
+    }
+}
+
+// ---- Web Server Debug Validation --------------------------------------------------------
+
+fn expectation(state: &AppState, debug: &DebugState, cli: bool) -> Expectation {
+    let srv = server(state, debug);
+    Expectation {
+        ide_port: srv.listening_port().unwrap_or(srv.config().port),
+        cli,
+    }
+}
+
+/// Validate the debugger configuration of a CLI interpreter (by name; empty = the
+/// project's) from its `php -i`.
+#[tauri::command]
+pub async fn debug_validate_cli(
+    interpreter: Option<String>,
+    state: State<'_, AppState>,
+    debug: State<'_, DebugState>,
+) -> Result<ValidationReport> {
+    let expect = expectation(&state, &debug, true);
+    let interp = interpreters::resolve(&state, interpreter.as_deref().unwrap_or(""));
+    let text = interpreters::phpinfo(&state, interp).await?;
+    if !text.contains("PHP Version") {
+        let first: String = text.trim().chars().take(300).collect();
+        return Err(ForgeError::Other(format!(
+            "The interpreter did not print phpinfo(): {first}"
+        )));
+    }
+    Ok(validation::validate(
+        &validation::parse_phpinfo(&text),
+        expect,
+    ))
+}
+
+/// Validate a web server: place the validation script in `documentRoot` (a project
+/// folder, with the user's consent), request it under `url` (the URL of that folder) and
+/// delete it again.
+#[tauri::command]
+pub async fn debug_validate_web(
+    document_root: String,
+    url: String,
+    state: State<'_, AppState>,
+    debug: State<'_, DebugState>,
+) -> Result<ValidationReport> {
+    let expect = expectation(&state, &debug, false);
+    let backend = state.backend()?;
+    let token = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_nanos() as u64)
+        .unwrap_or(0);
+    let script = validation::script_name(token);
+    let dir = document_root.trim().trim_matches('/').replace('\\', "/");
+    let rel = if dir.is_empty() || dir == "." {
+        script.clone()
+    } else {
+        format!("{dir}/{script}")
+    };
+    let write_backend = backend.clone();
+    let write_rel = rel.clone();
+    crate::commands::workspace::blocking(move || {
+        write_backend.write_file(&write_rel, validation::VALIDATION_SCRIPT)
+    })
+    .await?;
+    let request = forge_scratches::http::HttpRequest {
+        index: 0,
+        line: 0,
+        end_line: 0,
+        name: None,
+        method: "GET".into(),
+        url: validation::script_url(&url, &script),
+        version: None,
+        headers: Vec::new(),
+        body: None,
+        handler: None,
+        handler_file: None,
+    };
+    let send_from_host = state
+        .read_settings()
+        .get_as::<String>(crate::commands::scratches::SEND_FROM_KEY)
+        .is_none_or(|v| v != "local");
+    let tunnels = backend.tunnels().filter(|_| send_from_host);
+    let timeout = std::time::Duration::from_secs(30);
+    let sent = match &tunnels {
+        Some(t) => {
+            let mut note = String::new();
+            crate::commands::scratches::send_from_host_of(t.as_ref(), &request, &mut note).await
+        }
+        None => forge_scratches::client::send(&request, timeout).await,
+    };
+    // The script never stays behind, whatever the answer was.
+    let delete_rel = rel.clone();
+    let deleted = crate::commands::workspace::blocking(move || backend.delete(&delete_rel)).await;
+    if let Err(e) = deleted {
+        tracing::warn!("cannot delete the validation script {rel}: {e}");
+    }
+    let resp =
+        sent.map_err(|e| ForgeError::Other(format!("Cannot request {}: {e}", request.url)))?;
+    if resp.status == 404 {
+        return Err(ForgeError::Other(format!(
+            "{} answered 404 Not Found: the URL does not point to the document root.",
+            request.url
+        )));
+    }
+    let env = validation::parse_script_output(&resp.body).map_err(ForgeError::Other)?;
+    Ok(validation::validate(&env, expect))
 }

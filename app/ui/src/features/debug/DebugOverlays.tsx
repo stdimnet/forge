@@ -18,8 +18,23 @@ import {
   setBreakpointPopup,
   setBreakpointsDialog,
   setEvaluateRequest,
+  validationDialog,
 } from "./overlays";
-import { addWatch, breakpoints, breakpointsMuted, incoming, pausedSession, removeBreakpoint, selectedFrame, setIncoming, toggleMuted, updateBreakpoint } from "./store";
+import { ValidationDialog } from "./ValidationDialog";
+import {
+  addWatch,
+  breakpoints,
+  breakpointsMuted,
+  incoming,
+  pausedSession,
+  rememberExpression,
+  removeBreakpoint,
+  selectedFrame,
+  setIncoming,
+  toggleMuted,
+  updateBreakpoint,
+} from "./store";
+import { ExpressionInput } from "./ExpressionInput";
 import { VariableNode } from "./VariablesTree";
 
 /** Escape closes the dialog it was pressed in (element-scoped, not a global shortcut). */
@@ -142,11 +157,12 @@ function EvaluateDialog(props: { expression: string }) {
   const [result, setResult] = createSignal<Property | null>(null);
   const [error, setError] = createSignal<string | null>(null);
   const [busy, setBusy] = createSignal(false);
-  let input!: HTMLTextAreaElement;
+  let input: HTMLInputElement | undefined;
   const evaluate = async () => {
     const s = pausedSession();
     const e = expr().trim();
     if (!s || !e) return;
+    rememberExpression(e);
     setBusy(true);
     setError(null);
     try {
@@ -159,8 +175,8 @@ function EvaluateDialog(props: { expression: string }) {
     }
   };
   onMount(() => {
-    input.focus();
-    input.select();
+    input?.focus();
+    input?.select();
     if (props.expression.trim()) void evaluate();
   });
   const close = () => setEvaluateRequest(null);
@@ -191,20 +207,14 @@ function EvaluateDialog(props: { expression: string }) {
         Expression:
       </label>
       <div class="dbg-eval-line">
-        <textarea
+        <ExpressionInput
           id="dbg-eval-expr"
-          ref={input}
           class="dbg-eval-expr"
-          rows={2}
-          spellcheck={false}
           value={expr()}
-          onInput={(e) => setExpr(e.currentTarget.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              void evaluate();
-            }
-          }}
+          onInput={setExpr}
+          onSubmit={() => void evaluate()}
+          placeholder="PHP expression, e.g. $order->total * 1.19"
+          ref={(el) => (input = el)}
         />
         <button class="btn-primary" disabled={busy() || !pausedSession()} onClick={() => void evaluate()}>
           Evaluate
@@ -235,54 +245,114 @@ function bpLabel(bp: Breakpoint): string {
   return bp.kind === "exception" ? bp.exception ?? "*" : `${basename(bp.file ?? "")}:${bp.line}`;
 }
 
-function BreakpointDetails(props: { bp: Breakpoint }) {
-  const [condition, setCondition] = createSignal(props.bp.condition ?? "");
-  const [exception, setException] = createSignal(props.bp.exception ?? "");
-  createEffect(on(() => props.bp.id, () => {
-    setCondition(props.bp.condition ?? "");
-    setException(props.bp.exception ?? "");
-  }));
-  const save = (patch: Partial<Breakpoint>) => void updateBreakpoint({ ...props.bp, ...patch });
+/** A field saved when it loses focus or Enter is pressed. */
+function LazyInput(props: { id: string; value: string; placeholder?: string; disabled?: boolean; mono?: boolean; onSave: (v: string) => void; inputRef?: (el: HTMLInputElement) => void }) {
+  const [v, setV] = createSignal(props.value);
+  createEffect(on(() => props.value, (x) => setV(x)));
   return (
-    <div class="dbg-bp-details">
-      <div class="dbg-bp-details-title">{props.bp.kind === "exception" ? `PHP Exception Breakpoint: ${bpLabel(props.bp)}` : `${props.bp.file}:${props.bp.line}`}</div>
+    <input
+      id={props.id}
+      ref={(el) => props.inputRef?.(el)}
+      class="dbg-input"
+      classList={{ "dbg-mono": props.mono !== false }}
+      value={v()}
+      placeholder={props.placeholder}
+      disabled={props.disabled}
+      spellcheck={false}
+      onInput={(e) => setV(e.currentTarget.value)}
+      onChange={() => props.onSave(v())}
+      onKeyDown={(e) => e.key === "Enter" && props.onSave(v())}
+    />
+  );
+}
+
+/** Enabled / Suspend / Condition / Log / Remove once hit / Pass count of a breakpoint. */
+export function BreakpointProperties(props: { bp: Breakpoint; compact?: boolean; conditionRef?: (el: HTMLInputElement) => void }) {
+  const save = (patch: Partial<Breakpoint>) => void updateBreakpoint({ ...props.bp, ...patch });
+  const text = (v: string) => v.trim() || undefined;
+  const id = (n: string) => `dbg-bp-${n}-${props.compact ? "pop" : "dlg"}`;
+  return (
+    <div class="dbg-bp-props">
       <label class="dbg-check">
         <input type="checkbox" checked={props.bp.enabled} onChange={(e) => save({ enabled: e.currentTarget.checked })} />
         Enabled
       </label>
       <label class="dbg-check">
-        <input type="checkbox" checked disabled />
+        <input type="checkbox" checked={props.bp.suspend !== false} onChange={(e) => save({ suspend: e.currentTarget.checked })} />
         Suspend execution
       </label>
       <Show when={props.bp.kind === "exception"}>
-        <label class="dbg-label" for="dbg-bp-exc">
+        <label class="dbg-label" for={id("exc")}>
           Exception class:
         </label>
-        <input
-          id="dbg-bp-exc"
-          class="dbg-input dbg-mono"
-          value={exception()}
-          placeholder="\RuntimeException or * for any"
-          onInput={(e) => setException(e.currentTarget.value)}
-          onChange={() => save({ exception: exception().trim() || "*" })}
-        />
+        <LazyInput id={id("exc")} value={props.bp.exception ?? ""} placeholder="\RuntimeException or * for any" onSave={(v) => save({ exception: v.trim() || "*" })} />
       </Show>
       <Show when={props.bp.kind === "line"}>
-        <label class="dbg-label" for="dbg-bp-cond">
+        <label class="dbg-label" for={id("cond")}>
           Condition:
         </label>
-        <textarea
-          id="dbg-bp-cond"
-          class="dbg-input dbg-mono"
-          rows={3}
-          spellcheck={false}
-          value={condition()}
-          placeholder="e.g. $order->total > 100"
-          onInput={(e) => setCondition(e.currentTarget.value)}
-          onChange={() => save({ condition: condition().trim() || undefined })}
-        />
-        <p class="muted dbg-hint">The script suspends only when the PHP expression evaluates to true.</p>
+        <LazyInput id={id("cond")} inputRef={props.conditionRef} value={props.bp.condition ?? ""} placeholder="e.g. $order->total > 100" onSave={(v) => save({ condition: text(v) })} />
       </Show>
+      <div class="dbg-bp-group-title">Log:</div>
+      <div class="dbg-bp-log">
+        <label class="dbg-check">
+          <input type="checkbox" checked={!!props.bp.logMessage} onChange={(e) => save({ logMessage: e.currentTarget.checked })} />
+          "Breakpoint hit" message
+        </label>
+        <Show when={!props.compact}>
+          <label class="dbg-check">
+            <input type="checkbox" checked={!!props.bp.logStack} onChange={(e) => save({ logStack: e.currentTarget.checked })} />
+            Stack trace
+          </label>
+        </Show>
+        <label class="dbg-check" for={id("log")}>
+          <input
+            type="checkbox"
+            checked={!!props.bp.logExpression?.trim()}
+            onChange={(e) => {
+              if (!e.currentTarget.checked) save({ logExpression: undefined });
+              else document.getElementById(id("log"))?.focus();
+            }}
+          />
+          Evaluate and log:
+        </label>
+        <LazyInput id={id("log")} value={props.bp.logExpression ?? ""} placeholder="e.g. $order->status" onSave={(v) => save({ logExpression: text(v) })} />
+      </div>
+      <Show when={!props.compact}>
+        <label class="dbg-check">
+          <input type="checkbox" checked={!!props.bp.temporary} onChange={(e) => save({ temporary: e.currentTarget.checked })} />
+          Remove once hit
+        </label>
+        <div class="dbg-form-row dbg-pass">
+          <label for={id("pass")}>Pass count:</label>
+          <input
+            id={id("pass")}
+            class="dbg-input dbg-port"
+            type="number"
+            min={0}
+            value={props.bp.passCount ?? ""}
+            onChange={(e) => {
+              const n = Math.floor(Number(e.currentTarget.value));
+              save({ passCount: n > 1 ? n : undefined });
+            }}
+          />
+          <span class="muted">Suspend from this hit on</span>
+        </div>
+        <p class="muted dbg-hint">
+          <Show when={props.bp.suspend === false} fallback="Conditions are evaluated by Xdebug; the script suspends only when they are true.">
+            The script does not stop here: Forge logs to the Console tab of the debug session and resumes.
+          </Show>
+        </p>
+      </Show>
+    </div>
+  );
+}
+
+function BreakpointDetails(props: { bp: Breakpoint }) {
+  return (
+    <div class="dbg-bp-details">
+      <div class="dbg-bp-details-title">{props.bp.kind === "exception" ? `PHP Exception Breakpoint: ${bpLabel(props.bp)}` : `${props.bp.file}:${props.bp.line}`}</div>
+      <BreakpointProperties bp={props.bp} />
     </div>
   );
 }
@@ -347,7 +417,10 @@ function BreakpointsDialog(props: { select?: number }) {
                 onClick={(e) => e.stopPropagation()}
                 onChange={(e) => void updateBreakpoint({ ...b, enabled: e.currentTarget.checked })}
               />
-              <span class="dbg-bp-dot" classList={{ off: !b.enabled, cond: !!b.condition?.trim() }} />
+              <span
+                class="dbg-bp-dot"
+                classList={{ off: !b.enabled, cond: !!b.condition?.trim(), log: b.suspend === false, temp: !!b.temporary }}
+              />
               <span>{bpLabel(b)}</span>
               <Show when={b.file}>
                 <span class="muted dbg-bp-dir">{b.file!.split("/").slice(0, -1).join("/")}</span>
@@ -411,40 +484,26 @@ function BreakpointsDialog(props: { select?: number }) {
 
 function BreakpointPopupView(props: { id: number; x: number; y: number }) {
   const bp = () => breakpoints().find((b) => b.id === props.id);
-  const [condition, setCondition] = createSignal(bp()?.condition ?? "");
-  let input!: HTMLInputElement;
+  let input: HTMLInputElement | undefined;
+  /** Saves a pending field edit (change fires on blur), then closes. */
   const close = () => {
-    const b = bp();
-    if (b && (b.condition ?? "") !== condition().trim()) void updateBreakpoint({ ...b, condition: condition().trim() || undefined });
+    (document.activeElement as HTMLElement | null)?.blur();
     setBreakpointPopup(null);
   };
   onMount(() => input?.focus());
-  const style = () => ({ left: `${Math.min(props.x + 6, window.innerWidth - 380)}px`, top: `${Math.min(props.y - 8, window.innerHeight - 200)}px` });
+  const style = () => ({ left: `${Math.min(props.x + 6, window.innerWidth - 380)}px`, top: `${Math.min(props.y - 8, window.innerHeight - 300)}px` });
   return (
-    <div class="dbg-popup-layer" onMouseDown={(e) => e.target === e.currentTarget && close()} onKeyDown={onEscape(() => setBreakpointPopup(null))}>
+    <div class="dbg-popup-layer" onMouseDown={(e) => e.target === e.currentTarget && close()} onKeyDown={onEscape(close)}>
       <Show when={bp()}>
         {(b) => (
           <div class="dbg-bp-popup" style={style()} role="dialog" aria-label="Breakpoint properties">
             <div class="dbg-bp-popup-title">
               {basename(b().file ?? "")}:{b().line}
+              <Show when={b().temporary}>
+                <span class="muted"> (removed once hit)</span>
+              </Show>
             </div>
-            <label class="dbg-check">
-              <input type="checkbox" checked={b().enabled} onChange={(e) => void updateBreakpoint({ ...b(), enabled: e.currentTarget.checked })} />
-              Enabled
-            </label>
-            <label class="dbg-label" for="dbg-pop-cond">
-              Condition:
-            </label>
-            <input
-              id="dbg-pop-cond"
-              ref={input}
-              class="dbg-input dbg-mono"
-              value={condition()}
-              placeholder="PHP expression, e.g. $total > 100"
-              spellcheck={false}
-              onInput={(e) => setCondition(e.currentTarget.value)}
-              onKeyDown={(e) => e.key === "Enter" && close()}
-            />
+            <BreakpointProperties bp={b()} compact conditionRef={(el) => (input = el)} />
             <div class="dbg-bp-popup-actions">
               <button
                 class="dbg-link"
@@ -480,6 +539,9 @@ export function DebugOverlays() {
       </Show>
       <Show when={incoming()} keyed>
         {(s) => <IncomingDialog session={s} />}
+      </Show>
+      <Show when={validationDialog()}>
+        <ValidationDialog />
       </Show>
     </>
   );

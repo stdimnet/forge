@@ -37,9 +37,10 @@ Run/Debug configurations, debugging actions and breakpoints. Open it with ☰ (`
 | Debugging Actions › Show Execution Point | `Alt+F10` | `Alt+F10` | yes | Shows the line where the debugger is paused. [More](../../user/debugging.md#the-debug-tool-window) |
 | **Toggle Breakpoint** | | | | submenu |
 | Toggle Breakpoint › Line Breakpoint | `Ctrl+F8` | `Cmd+F8` | yes | Adds or removes a line breakpoint at the caret. [More](../../user/debugging.md#breakpoints) |
-| Toggle Breakpoint › Temporary Line Breakpoint | — | — | not yet | Not available yet; the entry is disabled. |
+| Toggle Breakpoint › Temporary Line Breakpoint | `Ctrl+Alt+Shift+F8` | `Cmd+Alt+Shift+F8` | yes | Adds a breakpoint that is removed once it is hit. [More](../../user/debugging.md#breakpoint-properties-logpoints-and-temporary-breakpoints) |
 | View Breakpoints… | `Ctrl+Shift+F8` | `Cmd+Shift+F8` | yes | Lists all breakpoints, with conditions and exception breakpoints. [More](../../user/debugging.md#breakpoints) ([screenshot](../../../screenshots/docs-view-breakpoints.png)) |
 | Mute Breakpoints | — | — | yes | Turns all breakpoints off temporarily, or on again. [More](../../user/debugging.md#breakpoints) |
 | Start Listening for PHP Debug Connections | — | — | yes | Starts or stops listening for incoming Xdebug connections on port 9003. [More](../../user/debugging.md#listening-for-connections) |
+| Web Server Debug Validation… | — | — | yes | Checks the Xdebug configuration of a web server or CLI interpreter. [More](../../user/debugging.md#web-server-debug-validation) |
 
-**Start Listening for PHP Debug Connections** is added by the Xdebug plugin (`forge.xdebug`) in PHP projects; it is a toggle with a check mark while Forge listens.
+**Start Listening for PHP Debug Connections** and **Web Server Debug Validation…** are added by the Xdebug plugin (`forge.xdebug`) in PHP projects; Start Listening is a toggle with a check mark while Forge listens.
