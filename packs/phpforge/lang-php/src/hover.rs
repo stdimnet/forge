@@ -303,7 +303,10 @@ fn hover_markdown(
                 let fqn = file.resolve_class(recv, start);
                 index.resolve_class(&fqn)
             }
-            _ => None,
+            // Variables and call chains, also through `.phpstorm.meta.php`.
+            _ => crate::navigate::receiver_types(index, file, src, recv_src.len(), 0)
+                .into_iter()
+                .find_map(|fqn| crate::navigate::find_class(index, file, &fqn)),
         }?;
         let name = word.trim_start_matches('$');
         let kinds: &[SymbolKind] = match (op, is_call) {

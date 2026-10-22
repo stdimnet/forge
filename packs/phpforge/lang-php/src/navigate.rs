@@ -295,7 +295,12 @@ pub(crate) fn is_keyword(word: &str) -> bool {
 /// Class names inside a type as written (`?Order`, `Collection<int, Order>`, `A|B`,
 /// `Order[]`), resolved in `file` at `offset`; builtin types are left out and `self` /
 /// `static` / `$this` mean `owner`.
-fn type_classes(ty: &str, file: &FileIndex, offset: usize, owner: Option<&str>) -> Vec<String> {
+pub(crate) fn type_classes(
+    ty: &str,
+    file: &FileIndex,
+    offset: usize,
+    owner: Option<&str>,
+) -> Vec<String> {
     let mut out: Vec<String> = Vec::new();
     for part in ty.split(['|', '&', '<', '>', ',', '(', ')', ' ']) {
         let name = part.trim().trim_start_matches('?').trim_end_matches("[]");
@@ -473,9 +478,198 @@ pub(crate) fn access_before(before: &str) -> Option<(usize, &'static str)> {
     }
 }
 
+/// Byte ranges of the top-level arguments between the parentheses at `open` and `close`.
+pub(crate) fn split_call_args(src: &str, open: usize, close: usize) -> Vec<(usize, usize)> {
+    let mut out = Vec::new();
+    if close <= open + 1 {
+        return out;
+    }
+    let inner = &src[open + 1..close];
+    let mut pos = open + 1;
+    for part in crate::attributes::split_top(inner, ',') {
+        let lead = part.len() - part.trim_start().len();
+        let start = pos + lead;
+        let end = pos + part.trim_end().len();
+        if end > start {
+            out.push((start, end));
+        }
+        pos += part.len() + 1;
+    }
+    out
+}
+
+/// The value of an argument expression as metadata needs it: a string literal or
+/// `Foo::class`. Named arguments (`id: 'x'`) count by position.
+pub(crate) fn arg_value(
+    file: &FileIndex,
+    src: &str,
+    range: (usize, usize),
+) -> crate::meta::ArgValue {
+    use crate::meta::ArgValue;
+    let text = src[range.0..range.1].trim();
+    let text = match text.split_once(':') {
+        Some((name, rest))
+            if !name.contains("::")
+                && !rest.starts_with(':')
+                && name.trim().chars().all(|c| c.is_alphanumeric() || c == '_') =>
+        {
+            rest.trim()
+        }
+        _ => text,
+    };
+    if let Some(s) = crate::attributes::string_literal(text) {
+        return ArgValue::Str(s);
+    }
+    if let Some(class) = text.strip_suffix("::class") {
+        let class = class.trim();
+        if !class.is_empty() && !class.starts_with('$') {
+            let fqn = match class.to_ascii_lowercase().as_str() {
+                "self" | "static" => match file.class_at(range.0) {
+                    Some(c) => c.fqn.clone(),
+                    None => return ArgValue::Unknown,
+                },
+                _ => file.resolve_class(class, range.0),
+            };
+            return ArgValue::Class(fqn);
+        }
+    }
+    ArgValue::Unknown
+}
+
+/// The classes a metadata return type stands for at a call with `args`.
+fn meta_type_classes(
+    index: &mut ProjectIndex,
+    file: &FileIndex,
+    src: &str,
+    args: &[(usize, usize)],
+    t: crate::meta::MetaType,
+    depth: u8,
+) -> Vec<String> {
+    use crate::meta::MetaType;
+    match t {
+        MetaType::Named(ty) => type_classes(&ty, file, 0, None),
+        MetaType::ArgumentType(n) | MetaType::ArgumentElementType(n) => match args.get(n) {
+            Some(&(_, end)) => receiver_types(index, file, src, end, depth + 1),
+            None => vec![],
+        },
+    }
+}
+
+/// The class and its ancestors' names (metadata targets of methods apply to subclasses and
+/// implementations).
+pub(crate) fn class_chain(index: &mut ProjectIndex, file: &FileIndex, fqn: &str) -> Vec<String> {
+    let mut out = vec![fqn.trim_start_matches('\\').to_string()];
+    if let Some(class) = find_class(index, file, fqn) {
+        for a in index.ancestors(&class) {
+            out.push(a.fqn);
+        }
+        for n in class.extends.iter().chain(&class.implements) {
+            if !out.iter().any(|o| o.eq_ignore_ascii_case(n)) {
+                out.push(n.clone());
+            }
+        }
+    }
+    out
+}
+
+/// The function a call resolves to (`fqn`), from the index or as the first candidate.
+pub(crate) fn called_function(
+    index: &ProjectIndex,
+    file: &FileIndex,
+    name: &str,
+    at: usize,
+) -> Vec<String> {
+    let cands = function_candidates(file, name, at);
+    match find_function(index, file, &cands) {
+        Some(f) => vec![f],
+        None => cands,
+    }
+}
+
+/// The end (the `;`) of the expression last assigned to `var` before `end` in its scope:
+/// `$order = $container->get(Order::class);`.
+pub(crate) fn last_assignment_end(
+    file: &FileIndex,
+    src: &str,
+    end: usize,
+    var: &str,
+) -> Option<usize> {
+    let var_start = end.saturating_sub(var.len());
+    let (scope_start, _) = variable_scope(file, src, var_start);
+    let scope_start = scope_start.min(var_start);
+    let body = &src[scope_start..var_start];
+    let bytes = body.as_bytes();
+    let mut search_end = body.len();
+    while let Some(i) = body[..search_end].rfind(var) {
+        search_end = i;
+        let after_name = i + var.len();
+        // Whole variable name only (`$order` but not `$orders`).
+        if body[after_name..]
+            .chars()
+            .next()
+            .is_some_and(|c| c.is_alphanumeric() || c == '_')
+        {
+            continue;
+        }
+        let rest = &body[after_name..];
+        let trimmed = rest.trim_start();
+        let eq = after_name + (rest.len() - trimmed.len());
+        if bytes.get(eq) != Some(&b'=') || matches!(bytes.get(eq + 1), Some(b'=') | Some(b'>')) {
+            continue;
+        }
+        // The expression up to the end of the statement.
+        let expr_start = scope_start + eq + 1;
+        let mut depth = 0i32;
+        let mut quote: Option<u8> = None;
+        let all = src.as_bytes();
+        let mut j = expr_start;
+        while j < var_start {
+            let c = all[j];
+            if let Some(q) = quote {
+                if c == b'\\' {
+                    j += 1;
+                } else if c == q {
+                    quote = None;
+                }
+            } else {
+                match c {
+                    b'\'' | b'"' => quote = Some(c),
+                    b'(' | b'[' | b'{' => depth += 1,
+                    b')' | b']' | b'}' => depth -= 1,
+                    b';' if depth == 0 => break,
+                    _ => {}
+                }
+            }
+            j += 1;
+        }
+        if j >= var_start || src[expr_start..j].trim().is_empty() {
+            return None;
+        }
+        return Some(j);
+    }
+    None
+}
+
+/// Classes of a variable from its last assignment before `end` in its scope:
+/// `$order = $container->get(Order::class);`, `$cache = app('cache');`.
+fn assigned_classes(
+    index: &mut ProjectIndex,
+    file: &FileIndex,
+    src: &str,
+    end: usize,
+    var: &str,
+    depth: u8,
+) -> Vec<String> {
+    match last_assignment_end(file, src, end, var) {
+        Some(j) => receiver_types(index, file, src, j, depth + 1),
+        None => vec![],
+    }
+}
+
 /// Fully qualified names of the possible classes of the expression ending at `end` (just
 /// before `->` or `::`): variables, `$this`, `self` / `static` / `parent`, class names,
-/// property chains and method call chains through declared (or PHPDoc) types.
+/// property chains and method call chains through declared (or PHPDoc) types, and calls
+/// that `.phpstorm.meta.php` overrides.
 pub(crate) fn receiver_types(
     index: &mut ProjectIndex,
     file: &FileIndex,
@@ -489,6 +683,10 @@ pub(crate) fn receiver_types(
     let enclosing = file.class_at(end).cloned();
     // `$user->orders()->first()`, `User::query()->where()`: the call's return type.
     let head = src[..end].trim_end();
+    // `$data['customer']->`: the key's type from `#[ArrayShape]`.
+    if head.ends_with(']') {
+        return crate::callsite::subscript_classes(index, file, src, head.len(), depth);
+    }
     if head.ends_with(')') {
         let Some(open) = matching_open(src, head.len() - 1) else {
             return vec![];
@@ -500,9 +698,32 @@ pub(crate) fn receiver_types(
             return vec![];
         }
         let before = src[..name_start].trim_end();
+        let args = split_call_args(src, open, head.len() - 1);
+        let arg = |n: usize| match args.get(n) {
+            Some(r) => arg_value(file, src, *r),
+            None => crate::meta::ArgValue::Unknown,
+        };
+        // `new Foo(...)`.
+        if before
+            .rsplit(|c: char| !(c.is_alphanumeric() || c == '_'))
+            .next()
+            .is_some_and(|w| w.eq_ignore_ascii_case("new"))
+        {
+            return vec![file.resolve_class(name, name_start)];
+        }
         if let Some((recv_end, _)) = access_before(before) {
             let mut out = Vec::new();
             for owner in receiver_types(index, file, src, recv_end, depth + 1) {
+                // `.phpstorm.meta.php` overrides (also on parents and interfaces).
+                let chain = class_chain(index, file, &owner);
+                if let Some(t) = index.meta().method_return(&chain, name, arg) {
+                    for c in meta_type_classes(index, file, src, &args, t, depth) {
+                        if !out.iter().any(|o: &String| o.eq_ignore_ascii_case(&c)) {
+                            out.push(c);
+                        }
+                    }
+                    continue;
+                }
                 let Some(class) = find_class(index, file, &owner) else {
                     continue;
                 };
@@ -528,6 +749,11 @@ pub(crate) fn receiver_types(
         }
         // A function call: its return type.
         let candidates = function_candidates(file, name, name_start);
+        for cand in &candidates {
+            if let Some(t) = index.meta().function_return(cand, arg) {
+                return meta_type_classes(index, file, src, &args, t, depth);
+            }
+        }
         for cand in candidates {
             if let Some((f, decl)) = index.files().find_map(|f| {
                 f.functions
@@ -564,7 +790,11 @@ pub(crate) fn receiver_types(
                 };
                 return property_types(index, file, src, recv_end, &recv[1..], depth);
             }
-            variable_classes(file, src, end, recv)
+            let declared = variable_classes(file, src, end, recv);
+            if !declared.is_empty() {
+                return declared;
+            }
+            assigned_classes(index, file, src, end, recv, depth)
         }
         _ => {
             let before = src[..start].trim_end();
@@ -677,7 +907,7 @@ fn find_constant(index: &ProjectIndex, file: &FileIndex, cands: &[String]) -> Op
 }
 
 /// The scope of a variable at `offset`: the enclosing method or function, else the file.
-fn variable_scope(file: &FileIndex, src: &str, offset: usize) -> (usize, usize) {
+pub(crate) fn variable_scope(file: &FileIndex, src: &str, offset: usize) -> (usize, usize) {
     enclosing_callable(file, offset)
         .map(|(_, s, e)| (s, e.min(src.len())))
         .unwrap_or((0, src.len()))

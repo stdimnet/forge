@@ -20,7 +20,9 @@
 //!   Cleanup (also run as Actions on Save).
 
 pub mod attributes;
+pub mod callsite;
 pub mod cleanup;
+pub mod complete;
 pub mod composer;
 pub mod create;
 pub mod docblock;
