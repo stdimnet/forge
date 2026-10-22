@@ -453,6 +453,11 @@ Click the fold markers in the gutter, or use:
 | Expand / Collapse Recursively | `Ctrl+Alt+=` / `Ctrl+Alt+-` | `Cmd+Alt+=` / `Cmd+Alt+-` |
 | Expand All / Collapse All | `Ctrl+Shift+=` / `Ctrl+Shift+-` | `Cmd+Shift+=` / `Cmd+Shift+-` |
 
+Custom folding regions (`// region Name` … `// endregion`, `#region`, `<!-- region -->`,
+`// <editor-fold desc="…">`) fold too and show their name. Sticky lines, breadcrumbs, rendered
+doc comments and Reader mode are described in
+[Sticky lines, breadcrumbs and Reader mode](code-structure.md).
+
 ## Find and replace in a file
 
 **Find** (`Ctrl+F`, macOS `Cmd+F`) and **Replace** (`Ctrl+R`, macOS `Cmd+R`) open the search

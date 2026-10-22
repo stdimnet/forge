@@ -33,7 +33,7 @@ Completion, Generate, folding, comments, formatting and moving lines. Open it wi
 | Folding › Collapse Recursively | `Ctrl+Alt+-`, `Ctrl+Alt+NumPad-` | `Cmd+Alt+-`, `Cmd+Alt+NumPad-` | yes | Folds the region at the caret. [More](../../user/editor.md#folding) |
 | Folding › Expand All | `Ctrl+Shift+=`, `Ctrl+Shift+NumPad+` | `Cmd+Shift+=`, `Cmd+Shift+NumPad+` | yes | Unfolds every region of the file. [More](../../user/editor.md#folding) |
 | Folding › Collapse All | `Ctrl+Shift+-`, `Ctrl+Shift+NumPad-` | `Cmd+Shift+-`, `Cmd+Shift+NumPad-` | yes | Folds every region of the file. [More](../../user/editor.md#folding) ([screenshot](../../../screenshots/docs-folding.png)) |
-| Folding › Collapse Doc Comments | — | — | not yet | Not available yet; the entry is disabled. |
+| Folding › Collapse Doc Comments | — | — | yes | Folds every documentation comment of the file. [More](../../user/code-structure.md#rendered-documentation-comments) |
 | Folding › Fold Selection / Remove Region | `Ctrl+.` | `Cmd+.` | not yet | Not available yet; the entry is disabled. |
 | Insert Live Template… | `Ctrl+J` | `Cmd+J` | yes | Lists the live templates that apply at the caret and inserts the chosen one. [More](../../user/live-templates.md#expanding-a-template) ([screenshot](../../../screenshots/live-template-insert.png)) |
 | Surround with Live Template… | `Ctrl+Alt+J` | `Cmd+Alt+J` | yes | Wraps the selection in a live template that uses `$SELECTION$`. [More](../../user/live-templates.md#surround-with) |

@@ -174,6 +174,16 @@ Shows the headers of the class and method that enclose the caret at the top of t
 
 More: [Editor](../../user/editor.md#type-info-context-info-and-error-description)
 
+## Toggle Rendered View
+
+**Shortcut:** `Ctrl+Alt+Q` · macOS `Ctrl+Alt+Q` · action id `ToggleRenderedDocPresentation`
+
+Shows the documentation comment at (or above) the caret as formatted text, or its text again.
+
+**Menu:** Tools | Render All Doc Comments (the whole file)
+
+More: [Sticky lines, breadcrumbs and Reader mode](../../user/code-structure.md#rendered-documentation-comments)
+
 ## Error Description
 
 **Shortcut:** `Ctrl+F1` · macOS `Cmd+F1` · action id `ShowErrorDescription`

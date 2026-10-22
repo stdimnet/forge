@@ -162,7 +162,7 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Recently Changed Files | `RecentChangedFiles` |  |  | yes |
 | Recent Locations | `RecentLocations` | `Ctrl+Shift+E` | `Cmd+Shift+E` | yes |
 | Switcher | `Switcher` | `Ctrl+Tab`, `Ctrl+Shift+Tab` | `Ctrl+Tab`, `Ctrl+Shift+Tab` | yes |
-| Toggle Rendered View | `ToggleRenderedDocPresentation` | `Ctrl+Alt+Q` | `Ctrl+Alt+Q` | — |
+| Toggle Rendered View | `ToggleRenderedDocPresentation` | `Ctrl+Alt+Q` | `Ctrl+Alt+Q` | yes |
 | Compare Files | `CompareTwoFiles` | `Ctrl+D` | `Cmd+D` | — |
 | Inlay Hints | `ViewInplaceComments` |  |  | — |
 
@@ -302,7 +302,7 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Expand All | `ExpandAllRegions` | `Ctrl+Shift+=`, `Ctrl+Shift+NumPad+` | `Cmd+Shift+=`, `Cmd+Shift+NumPad+` | yes |
 | Collapse All | `CollapseAllRegions` | `Ctrl+Shift+-`, `Ctrl+Shift+NumPad-` | `Cmd+Shift+-`, `Cmd+Shift+NumPad-` | yes |
 | Fold Selection / Remove Region | `CollapseSelection` | `Ctrl+.` | `Cmd+.` | — |
-| Collapse Doc Comments | `CollapseDocComments` |  |  | — |
+| Collapse Doc Comments | `CollapseDocComments` |  |  | yes |
 
 ### Refactor
 
@@ -546,6 +546,9 @@ Actions that Forge's plugins add (group **Plugins** in Settings | Keymap, some u
 | Edit as Table (CSV/TSV) | `Csv.EditAsTable` |  |  | any |
 | Edit as Text (CSV/TSV) | `Csv.EditAsText` |  |  | any |
 | Select in Project View | `SelectInProjectView` |  |  | any |
+| Render All Doc Comments | `ToggleRenderedDocPresentationForAll` |  |  | any |
+| Show Sticky Lines | `EditorToggleStickyLines` |  |  | any |
+| Reader Mode | `ToggleReaderMode` |  |  | any |
 | Mark All Notifications as Read | `MarkNotificationsAsRead` |  |  | any |
 | Clear All Notifications | `ClearAllNotifications` |  |  | any |
 

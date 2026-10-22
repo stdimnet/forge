@@ -29,6 +29,9 @@ and the browser-mode UI. Pure Rust, so it also runs as WebAssembly.
   instance, ...) from its line, and the result tree grouped by usage type and file.
 - `docs`: the documentation actions of the View menu: External Documentation URLs, Quick
   Definition snippets, Context Info headers and Type Info from hovers and signatures.
+- `structure`: the scopes of a document (classes, functions, control blocks, CSS rules,
+  HTML elements, Lua blocks) for Sticky Lines, breadcrumbs and the Structure view of web
+  files, the custom folding regions, and the Structure view grouped by regions.
 
 ## Modules
 
@@ -37,6 +40,7 @@ and the browser-mode UI. Pure Rust, so it also runs as WebAssembly.
 | `actions.rs` | Context actions (`ContextAction`, `ActionKind`) and `order_actions`: quick fixes first, preferred ones on top, duplicates removed, "fix all" actions (`source.fixAll*`, "Fix all …") moved into the `children` of their server's quick fix (`nest_fix_all`); `bulb_for` picks the red / yellow light bulb. |
 | `docs.rs` | `symbol_at` (the identifier at the caret with its qualifier, call, tag and CSS context, imported frameworks) and `external_doc_url` (php.net, Laravel API, MDN, Vue, React, Lua manual); `definition_snippet` (docblock and attributes above, body to the matching brace or Lua `end`, at most 80 lines); `context_headers` (enclosing class, function and CSS rule headers); `type_from_hover` / `type_from_signature`; `language_of`. |
 | `edit.rs` | `TextEdit`, `WorkspaceEdit` (`edit` / `create` / `rename` / `delete` changes), `apply_workspace_edit` over a `FileStore` (all or nothing), `revert_applied`, `preview_workspace_edit`, `word_range`, UTF-16 offset helpers. |
+| `structure.rs` | `editor_structure(text, language)` → `EditorStructure { scopes, regions }`: braces (PHP without inline HTML and heredocs, JS/TS with template literals, CSS, C-like), tags (HTML/XML/Vue/templates, `<script>` / `<style>` bodies as code) and Lua's block keywords outside strings and comments; each `Scope` has its kind, crumb name (`User`, `orders()`, `forEach callback`, `div#app.card`), header line and column, end and parent, and whether it sticks or is a crumb. `Region`s come from `// region` / `#region` / `<!-- region -->` / `/* region */` / `-- region` / `<editor-fold desc defaultstate>` comments. `group_by_regions` nests Structure view nodes (JSON with `line`) under their regions; `STRUCTURE_LANGUAGES` lists the languages with scopes. |
 | `rename.rs` | `edit_from_locations` (references → `WorkspaceEdit`, keeping `$` where the old text had it, dynamic usages skipped), `validate_identifier`, `is_class_file` / `suggest_file_rename` / `renamed_path` (PHPStorm renames `User.php` with `class User`), `edit_conflicts` (overlapping edits, renames onto existing files) and `plan_edit` (`EditPlan`: text edits of open editors, the backend's part, files to save first, tabs to reopen or close). |
 | `usages.rs` | `UsageKind` (PHPStorm's usage types and their group labels), `classify_usage` from the line around a reference, `group_usages` into a `UsageTree` by usage type and file (the declaration and duplicates removed). |
 
@@ -47,6 +51,7 @@ pub use actions::{bulb_for, nest_fix_all, order_actions, ActionKind, Bulb, Conte
 pub use docs::{context_headers, definition_snippet, external_doc_url, symbol_at, type_from_hover, type_from_signature, … };
 pub use rename::{edit_conflicts, edit_from_locations, plan_edit, suggest_file_rename, validate_identifier, EditPlan, RenameConflict, … };
 pub use edit::{apply_text_edits, apply_workspace_edit, preview_workspace_edit, revert_applied, word_range, … };
+pub use structure::{editor_structure, group_by_regions, EditorStructure, Region, Scope, ScopeKind, STRUCTURE_LANGUAGES};
 pub use usages::{classify_usage, group_usages, GroupRequest, UsageKind, UsageLocation, UsageTree, … };
 ```
 

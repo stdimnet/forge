@@ -1315,6 +1315,37 @@ plugin manifest entry, and the chat UI needs no changes:
   (`EditorSplitLine` / `Console.Jdbc.Execute`) and the gutter run icon open a query console
   with the injected SQL (`runSqlInConsole`).
 
+## Code structure in the editor (Sticky Lines, breadcrumbs, regions, rendered docs)
+
+PHPStorm's Sticky Lines, structure breadcrumbs, custom folding regions, rendered doc
+comments and Reader mode (`app/ui/src/features/codeStructure`, user guide
+`docs/guide/user/code-structure.md`).
+
+- Rust computes: `forge_codeintel::structure::editor_structure(text, language)` scans a
+  document once (braces, tags, Lua block keywords outside strings and comments; no parser)
+  into scopes (kind, crumb name, header line/column, end, parent, sticky, crumb) and custom
+  folding regions; `group_by_regions` nests Structure view nodes under regions.
+  `forge_markdown::doc_comments` finds PHPDoc / JSDoc / LuaDoc comments and parses each into
+  a `HoverDoc` (the documentation popup's parts).
+- No IPC: Sticky Lines follow every scroll, breadcrumbs every caret move and folding asks per
+  line, so the UI calls these functions synchronously through WebAssembly
+  (`crates/forge-wasm/src/structure.rs`: `editor_structure`, `editor_doc_comments`,
+  `structure_group_by_regions`, `editor_structure_languages`) in the desktop app and in
+  browser mode, like the keymap resolver. `features/codeStructure/model.ts` caches the
+  answers per document version (CodeMirror's immutable `Text`).
+- The UI only draws: `sticky.ts` (a measured overlay at the top of the scroller, syntax colors
+  from the editor's tree), `breadcrumbs.tsx` (a CodeMirror panel at the bottom or top),
+  `regions.ts` (a `foldService` plus the placeholder with the region's name), `renderedDocs.ts`
+  (block replace decorations with the documentation popup's DOM, `buildHoverDom`) and
+  `readerMode.ts` (the Reader Mode button and editor classes). The Structure tool window
+  groups every provider's nodes by regions and gets a provider for web files.
+- Settings: `editor.stickyLines.*`, `editor.breadcrumbs.*`, `editor.renderDocComments` and
+  `editor.readerMode.*` (`core.toml`); per-language toggles are `list` settings of switched-off
+  file type ids, edited with checkboxes (`LanguageToggles`).
+- Actions: `ToggleRenderedDocPresentation` (Ctrl+Alt+Q), `CollapseDocComments`,
+  `EditorToggleShowBreadcrumbs` (PHPStorm ids) and the Forge actions
+  `ToggleRenderedDocPresentationForAll`, `EditorToggleStickyLines`, `ToggleReaderMode`.
+
 ## Rust computes, TypeScript renders
 
 Logic, data models and parsers live in Rust crates; the TypeScript UI only renders and forwards
