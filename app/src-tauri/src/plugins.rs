@@ -13,6 +13,7 @@ const MANIFESTS: &[(&str, &str)] = &[
         include_str!("../plugins/code-hosts.toml"),
     ),
     ("terminal.toml", include_str!("../plugins/terminal.toml")),
+    ("vim.toml", include_str!("../plugins/vim.toml")),
     ("run.toml", include_str!("../plugins/run.toml")),
     ("database.toml", include_str!("../plugins/database.toml")),
     ("services.toml", include_str!("../plugins/services.toml")),

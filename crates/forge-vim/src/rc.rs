@@ -90,6 +90,31 @@ fn strip_comment(name: &str, args: &str) -> String {
     args.to_string()
 }
 
+/// The file of a `source <file>` / `so <file>` line.
+fn source_target(line: &str) -> Option<&str> {
+    let t = line.trim().trim_start_matches(':').trim_start();
+    let rest = t
+        .strip_prefix("source ")
+        .or_else(|| t.strip_prefix("so "))?;
+    Some(rest.trim()).filter(|r| !r.is_empty())
+}
+
+/// Inline the files of `source <file>` lines (e.g. `source ~/.vimrc`) with `read`, up to
+/// three levels deep; lines whose file cannot be read stay (and are reported on load).
+pub fn expand_sources(text: &str, read: &dyn Fn(&str) -> Option<String>) -> String {
+    fn go(text: &str, read: &dyn Fn(&str) -> Option<String>, depth: usize) -> String {
+        let mut out = Vec::new();
+        for line in text.lines() {
+            match source_target(line).filter(|_| depth < 3).and_then(read) {
+                Some(inner) => out.push(go(&inner, read, depth + 1)),
+                None => out.push(line.to_string()),
+            }
+        }
+        out.join("\n")
+    }
+    go(text, read, 0)
+}
+
 impl Vim {
     /// Replace options, mappings, leader and rc handlers with those of `text`.
     pub fn load_rc(&mut self, text: &str) -> RcReport {
@@ -147,10 +172,10 @@ impl Vim {
                 message,
             };
             if name == "source" || name == "so" {
-                // Sourcing other files is not supported; the rc file itself is read on load.
+                // Readable files were inlined before loading (`expand_sources`).
                 report
                     .problems
-                    .push(problem("`source` is not supported".into()));
+                    .push(problem(format!("Cannot read {}", args.trim())));
                 continue;
             }
             match self.ex_global(&name, bang, &args) {
@@ -233,6 +258,18 @@ set bogus
         let lines: Vec<usize> = report.problems.iter().map(|p| p.line).collect();
         assert_eq!(lines, vec![24, 25], "{:?}", report.problems);
         assert!(report.problems[1].message.contains("E518"));
+    }
+
+    #[test]
+    fn inlines_sourced_files() {
+        let read = |p: &str| (p == "~/.vimrc").then(|| "set hls\nso ~/.vimrc".to_string());
+        assert_eq!(
+            expand_sources("set nu\nsource ~/.vimrc\nso /nope", &read),
+            "set nu\nset hls\nset hls\nset hls\nso ~/.vimrc\nso /nope"
+        );
+        let mut v = Vim::new();
+        let report = v.load_rc("so /nope");
+        assert_eq!(report.problems[0].message, "Cannot read /nope");
     }
 
     #[test]

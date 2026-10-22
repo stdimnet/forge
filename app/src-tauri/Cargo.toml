@@ -43,6 +43,7 @@ forge-debug.workspace = true
 forge-db.workspace = true
 forge-containers.workspace = true
 forge-keymap.workspace = true
+forge-vim.workspace = true
 forge-livetemplates.workspace = true
 forge-injections.workspace = true
 forge-emmet.workspace = true

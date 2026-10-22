@@ -2052,6 +2052,92 @@
     }
   },
   {
+    "id": "forge.vim",
+    "name": "Vim",
+    "version": "0.1.0",
+    "pack": "core",
+    "description": "Vim emulation like IdeaVim: Normal, Insert, Visual and command-line modes, motions, operators, text objects, registers, macros, ex commands and ~/.ideavimrc. Turn it on with Tools | Vim.",
+    "vendor": "Forge",
+    "depends": [
+      "forge.core"
+    ],
+    "required": false,
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "fileTypes": [],
+      "commands": [
+        {
+          "id": "VimPluginToggle",
+          "title": "Vim",
+          "category": "Tools"
+        },
+        {
+          "id": "IdeaVim.ReloadVimRc",
+          "title": "Reload .ideavimrc",
+          "category": "Tools"
+        }
+      ],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [
+        {
+          "key": "vim.enabled",
+          "title": "Enable Vim emulation",
+          "description": "Same as Tools | Vim (Ctrl+Alt+V).",
+          "type": "bool",
+          "default": false,
+          "group": "editor.vim",
+          "section": "Emulation",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "vim.rcFile",
+          "title": "Configuration file",
+          "description": "Leave empty to read ~/.ideavimrc (or ~/_ideavimrc, ~/.config/ideavim/ideavimrc). Supports set, map/noremap, let mapleader, sethandler and :action mappings.",
+          "type": "path",
+          "default": "",
+          "group": "editor.vim",
+          "section": "Emulation",
+          "project": false,
+          "order": 1
+        },
+        {
+          "key": "vim.shortcutHandlers",
+          "title": "Shortcuts",
+          "description": "Who handles a shortcut in the editor while Vim emulation is on: Vim or the IDE. sethandler lines in ~/.ideavimrc take precedence.",
+          "type": "objects",
+          "unique": [
+            "shortcut"
+          ],
+          "default": [],
+          "group": "editor.vim",
+          "section": "Shortcut Conflicts",
+          "project": false,
+          "order": 10
+        }
+      ],
+      "lspServers": [],
+      "runConfigurationTypes": [],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": [],
+      "mainMenu": [
+        {
+          "path": "Tools",
+          "items": [
+            {
+              "type": "action",
+              "id": "VimPluginToggle",
+              "label": "_Vim"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
     "id": "forge.run",
     "name": "Run/Debug",
     "version": "0.1.0",
