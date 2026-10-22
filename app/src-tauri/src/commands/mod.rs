@@ -14,6 +14,7 @@ pub mod editor;
 pub mod emmet;
 pub mod forges;
 pub mod git;
+pub mod hierarchy;
 pub mod injections;
 pub mod json_schema;
 pub mod keymap;
