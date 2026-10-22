@@ -4,7 +4,7 @@ import { ChevronDown, ChevronRight, ChevronsDownUp, EllipsisVertical, LocateFixe
 import { workspaceApi, type FileEntry } from "@/ipc/workspace";
 import { workspace } from "@/state/workspace";
 import { editor, isCustomTab, openFile } from "@/state/editor";
-import { statusOf, dirHasChanges } from "@/state/vcs";
+import { statusOf, dirHasChanges, dirHasConflicts } from "@/state/vcs";
 import { FileIcon } from "@/shell/FileIcon";
 import { getSetting, saveSetting } from "@/state/settings";
 import { isToolWindowVisible } from "@/state/layout";
@@ -119,7 +119,7 @@ function activate(entry: FileEntry): void {
 function TreeNode(props: { entry: FileEntry; depth: number }) {
   const isDir = () => props.entry.kind === "dir";
   const isOpen = () => expanded().has(props.entry.path);
-  const status = () => (isDir() ? (dirHasChanges(props.entry.path) ? "modified" : undefined) : statusOf(props.entry.path));
+  const status = () => (isDir() ? (dirHasConflicts(props.entry.path) ? "conflict" : dirHasChanges(props.entry.path) ? "modified" : undefined) : statusOf(props.entry.path));
   return (
     <>
       <div
