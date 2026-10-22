@@ -18,6 +18,7 @@
 //! - [`navbar`]: the Navigation Bar's segments.
 //! - [`related`]: Related Symbol: tests, views, templates, routes, migrations and more.
 //! - [`hierarchy`]: Type, Method and Call Hierarchy: the views, scopes and merging.
+//! - [`test_nav`]: Go to Test / Test Subject and the Create New Test dialog's plan and source.
 
 pub mod actions;
 pub mod docs;
@@ -29,6 +30,7 @@ pub mod navbar;
 pub mod related;
 pub mod rename;
 pub mod structure;
+pub mod test_nav;
 pub mod usages;
 
 pub use actions::{
@@ -61,6 +63,10 @@ pub use rename::{
 pub use structure::{
     editor_structure, group_by_regions, method_stops, method_target, EditorStructure, MethodStop,
     Region, Scope, ScopeKind, STRUCTURE_LANGUAGES,
+};
+pub use test_nav::{
+    new_test_plan, test_source, test_targets, NewTestPlan, TestFramework, TestMember,
+    TestNavRequest, TestSource, TestSourceRequest, TestTargets,
 };
 pub use usages::{
     classify_usage, group_usages, GroupRequest, UsageFile, UsageGroup, UsageKind, UsageLocation,
