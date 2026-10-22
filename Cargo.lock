@@ -2452,6 +2452,7 @@ dependencies = [
  "forge-spell",
  "forge-sql",
  "forge-text",
+ "forge-vcs",
  "forge-viewers",
  "forge-vim",
  "forge-window",

@@ -22,6 +22,7 @@ phpforge-dql = { path = "../../packs/phpforge/dql" }
 luaforge-lang-lua.workspace = true
 forge-keymap.workspace = true
 forge-vim.workspace = true
+forge-vcs = { path = "../forge-vcs", default-features = false }
 forge-livetemplates.workspace = true
 forge-injections.workspace = true
 forge-emmet.workspace = true
