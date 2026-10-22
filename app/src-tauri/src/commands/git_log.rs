@@ -43,7 +43,10 @@ pub async fn git_cherry_pick(
         .read_settings()
         .get_as::<bool>("vcs.git.cherryPickSuffix")
         .unwrap_or(true);
-    mutate(&app, &state, move |r| r.cherry_pick(&shas, suffix, &protected)).await
+    mutate(&app, &state, move |r| {
+        r.cherry_pick(&shas, suffix, &protected)
+    })
+    .await
 }
 
 #[tauri::command]
