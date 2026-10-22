@@ -6,12 +6,13 @@
 import { batch, createSignal } from "solid-js";
 import { createStore, produce } from "solid-js/store";
 import { runApi, type ConsoleLine, type RunConfiguration, type RunEvent, type RunRequest } from "@/ipc/run";
+import { runToolsApi, type LaunchPlan, type PlannedTask } from "@/ipc/runTools";
 import { balloonsFor } from "@/keymap";
 import { saveAll } from "@/state/editor";
 import { showToolWindow } from "@/state/layout";
 import { applyConsoleDelta, applyTestUpdates, emptyTestTree, type TestNode, type TestTreeState } from "./tests";
-import { debugLauncherFor, findType, validateConfiguration, type RunHandle } from "./types";
-import { findConfiguration, selectedConfiguration } from "./configStore";
+import { COMPOUND, compoundMembers, debugLauncherFor, findType, validateConfiguration, type RunHandle } from "./types";
+import { allConfigurations, findConfiguration, selectedConfiguration } from "./configStore";
 import { openRunConfigurations } from "./dialogState";
 import { publishTestResults } from "./testResults";
 
@@ -134,7 +135,13 @@ function onEvent(id: string, runId: string, e: RunEvent) {
 /** Build the backend request for a configuration. */
 function requestFor(cfg: RunConfiguration, runId: string, extra?: SessionData["extra"]): RunRequest {
   const type = findType(cfg.type);
-  const req: RunRequest = { runId, env: extra?.env, interpreterArgs: extra?.interpreterArgs, testRunner: !!type?.testRunner };
+  const req: RunRequest = {
+    runId,
+    env: extra?.env,
+    interpreterArgs: extra?.interpreterArgs,
+    testRunner: !!type?.testRunner,
+    outputFilters: type?.outputFilters?.(cfg),
+  };
   if (type?.buildCommand) {
     const cmd = type.buildCommand(cfg);
     req.command = { ...cmd, cwd: cmd.cwd || cfg.workingDirectory || "", env: { ...(cmd.env ?? {}), ...(cfg.env ?? {}) } };
@@ -195,35 +202,74 @@ function sessionFor(cfg: RunConfiguration, debug: boolean): string {
   return id;
 }
 
-async function runBeforeLaunch(cfg: RunConfiguration, depth: number): Promise<boolean> {
-  for (const task of cfg.beforeLaunch ?? []) {
-    let target: RunConfiguration | undefined;
-    if (task.type === "runConfiguration") target = findConfiguration(task.value);
-    else if (task.type === "shell")
-      target = { name: task.value, type: "shell", options: { mode: "text", scriptText: task.value }, workingDirectory: cfg.workingDirectory };
-    if (!target) {
-      showBalloon(`Before launch task failed`, `Configuration "${task.value}" not found`);
-      return false;
-    }
-    if (depth > 5) return false;
-    const handle = await launch(target, { depth: depth + 1 });
-    const code = handle ? await handle.exited : null;
-    if (code !== 0) {
-      showBalloon(`Before launch task "${target.name}" failed`, code === null ? undefined : `Exit code ${code}`);
-      return false;
-    }
+// ---- Launch plans: compound configurations and Before launch tasks ---------------------
+
+/**
+ * Runs a Before launch task kind the run feature does not know itself (`externalTool`);
+ * resolves `true` when the task succeeded.
+ */
+export type BeforeLaunchHandler = (task: PlannedTask, owner: RunConfiguration) => Promise<boolean>;
+const taskHandlers = new Map<string, BeforeLaunchHandler>();
+
+/** Handle a Before launch task kind, e.g. "Run External tool" from the External Tools feature. */
+export function registerBeforeLaunchHandler(kind: string, handler: BeforeLaunchHandler): void {
+  taskHandlers.set(kind, handler);
+}
+
+/** Open a URL in the browser ("Launch Web Browser"). */
+export function openInBrowser(url: string): void {
+  window.open(url, "_blank", "noopener");
+}
+
+/** What starting `cfg` runs, computed in Rust (`forge-runtools::launch`). */
+async function planFor(cfg: RunConfiguration): Promise<LaunchPlan | null> {
+  if (cfg.type !== COMPOUND && !cfg.beforeLaunch?.length) {
+    return { runs: [{ configuration: cfg.name, tasks: [] }], compound: false, allowMultipleInstances: false };
   }
-  return true;
+  const known = allConfigurations();
+  const list = known.some((c) => c.name === cfg.name) ? known.map((c) => (c.name === cfg.name ? cfg : c)) : [...known, cfg];
+  try {
+    return await runToolsApi.plan(list, cfg.name);
+  } catch (err) {
+    showBalloon(`Error running '${cfg.name}'`, String(err), 5000, [
+      { label: "Edit Configuration…", run: () => openRunConfigurations(cfg.name) },
+    ]);
+    return null;
+  }
+}
+
+const succeeded = async (handle: RunHandle | null) => !!handle && (await handle.exited) === 0;
+
+/** Run one Before launch task and wait for it; `false` aborts the launch. */
+async function runTask(task: PlannedTask, owner: RunConfiguration): Promise<boolean> {
+  let ok: boolean;
+  if (task.configuration) {
+    const target = findConfiguration(task.configuration);
+    ok = !!target && (await succeeded(await startConfiguration(target)));
+  } else if (task.run) {
+    ok = await succeeded(await startConfiguration(task.run));
+  } else if (task.type === "browser") {
+    openInBrowser(task.value);
+    ok = true;
+  } else {
+    const handler = taskHandlers.get(task.type);
+    if (!handler) {
+      showBalloon("Before launch task failed", `${task.label}: this task is not available`);
+      return false;
+    }
+    ok = await handler(task, owner).catch(() => false);
+  }
+  if (!ok) showBalloon(`Before launch task failed`, `${task.label} did not finish successfully, '${owner.name}' was not started.`);
+  return ok;
 }
 
 interface LaunchOptions {
   debug?: boolean;
   extra?: SessionData["extra"];
-  depth?: number;
 }
 
-/** Run a configuration in the Run tool window. Returns null when it could not start. */
-export async function launch(cfg: RunConfiguration, opts: LaunchOptions = {}): Promise<RunHandle | null> {
+/** Start one (non-compound) configuration in its Run tab, without Before launch tasks. */
+async function startConfiguration(cfg: RunConfiguration, opts: LaunchOptions = {}): Promise<RunHandle | null> {
   const problem = validateConfiguration(cfg);
   if (problem) {
     showBalloon(`Error running '${cfg.name}'`, problem, 5000, [
@@ -231,8 +277,6 @@ export async function launch(cfg: RunConfiguration, opts: LaunchOptions = {}): P
     ]);
     return null;
   }
-  await saveAll().catch(() => undefined);
-  if (!(await runBeforeLaunch(cfg, opts.depth ?? 0))) return null;
   const id = sessionFor(cfg, !!opts.debug);
   data.get(id)!.extra = opts.extra;
   // A debug launcher may switch to its own tool window once the session starts.
@@ -242,9 +286,68 @@ export async function launch(cfg: RunConfiguration, opts: LaunchOptions = {}): P
   return handle;
 }
 
+/** Stop a running session and wait until it exited. */
+async function stopAndWait(s: RunSession): Promise<void> {
+  if (!s.runId || !isRunning(s)) return;
+  const d = data.get(s.id);
+  const done = new Promise<void>((r) => {
+    const prev = d?.exited;
+    if (!d || !prev) return r();
+    d.exited = (c) => (prev(c), r());
+  });
+  await runApi.stop(s.runId).catch(() => undefined);
+  await done;
+}
+
+/**
+ * Run a configuration in the Run tool window: its Before launch tasks one after another
+ * (aborting on the first failure), then the configuration; a compound starts each member in
+ * its own tab. Returns the (first) started run, null when nothing started.
+ */
+export async function launch(cfg: RunConfiguration, opts: LaunchOptions = {}): Promise<RunHandle | null> {
+  const problem = validateConfiguration(cfg);
+  if (problem) {
+    showBalloon(`Error running '${cfg.name}'`, problem, 5000, [
+      { label: "Edit Configuration…", run: () => openRunConfigurations(cfg.name) },
+    ]);
+    return null;
+  }
+  await saveAll().catch(() => undefined);
+  const plan = await planFor(cfg);
+  if (!plan) return null;
+  let first: RunHandle | null = null;
+  for (const run of plan.runs) {
+    const target = run.configuration === cfg.name ? cfg : findConfiguration(run.configuration);
+    if (!target) continue;
+    // A compound without "Allow multiple instances" restarts members that still run.
+    if (plan.compound && !plan.allowMultipleInstances) {
+      const running = runningFor(target);
+      if (running) await stopAndWait(running);
+    }
+    let ok = true;
+    for (const task of run.tasks) {
+      if (!(await runTask(task, target))) {
+        ok = false;
+        break;
+      }
+    }
+    if (!ok) {
+      if (plan.compound) continue;
+      return null;
+    }
+    const handle = await startConfiguration(target, plan.compound ? {} : opts);
+    first ??= handle;
+  }
+  return first;
+}
+
 export async function runConfiguration(cfg: RunConfiguration | undefined = selectedConfiguration()): Promise<void> {
   if (!cfg) {
     openRunConfigurations();
+    return;
+  }
+  if (cfg.type === COMPOUND) {
+    await launch(cfg);
     return;
   }
   // Like PHPStorm's single-instance default: Run on a running configuration reruns it.
@@ -256,6 +359,14 @@ export async function runConfiguration(cfg: RunConfiguration | undefined = selec
 export async function debugConfiguration(cfg: RunConfiguration | undefined = selectedConfiguration()): Promise<void> {
   if (!cfg) {
     openRunConfigurations();
+    return;
+  }
+  // A compound debugs each member that can be debugged.
+  if (cfg.type === COMPOUND) {
+    for (const name of compoundMembers(cfg)) {
+      const member = findConfiguration(name);
+      if (member) await debugConfiguration(member);
+    }
     return;
   }
   const launcher = debugLauncherFor(cfg);
@@ -275,8 +386,31 @@ export const isRunning = (s: RunSession | undefined) => !!s && (s.status === "ru
 
 export const runningSessions = () => state.sessions.filter(isRunning);
 
-export const runningFor = (cfg: RunConfiguration | undefined) =>
-  cfg ? state.sessions.find((s) => s.name === cfg.name && isRunning(s)) : undefined;
+/** Names of the configurations a compound starts (nested compounds expanded). */
+export function memberNames(cfg: RunConfiguration, seen = new Set<string>()): string[] {
+  if (cfg.type !== COMPOUND) return [cfg.name];
+  if (seen.has(cfg.name)) return [];
+  seen.add(cfg.name);
+  return compoundMembers(cfg).flatMap((n) => {
+    const member = findConfiguration(n);
+    return member ? memberNames(member, seen) : [];
+  });
+}
+
+/** The running session of a configuration (a compound: of one of its members). */
+export const runningFor = (cfg: RunConfiguration | undefined) => {
+  if (!cfg) return undefined;
+  const names = memberNames(cfg);
+  return state.sessions.find((s) => names.includes(s.name) && isRunning(s));
+};
+
+/** Stop a configuration; a compound stops all its running members. */
+export async function stopConfiguration(cfg: RunConfiguration | undefined = selectedConfiguration()): Promise<void> {
+  if (!cfg) return stopSession();
+  const names = memberNames(cfg);
+  const running = state.sessions.filter((s) => names.includes(s.name) && isRunning(s));
+  await Promise.all(running.map((s) => stopSession(s.id)));
+}
 
 export async function stopSession(id: string | undefined = state.active ?? undefined): Promise<void> {
   const s = state.sessions.find((x) => x.id === id) ?? runningSessions()[0];

@@ -264,6 +264,11 @@ export function composer_markers(request_json: string): string;
 export function composer_project(request_json: string): string;
 
 /**
+ * Composer script names of a `composer.json` text.
+ */
+export function composer_scripts(composer_json: string): string;
+
+/**
  * `{ query, catalog }` → `SearchHit[]` (the demo search).
  */
 export function composer_search(request_json: string): string;
@@ -440,6 +445,21 @@ export function emmet_update_tag(request_json: string): string;
  * `WrapRequest` → `Expansion` (or `{ error }`).
  */
 export function emmet_wrap(request_json: string): string;
+
+/**
+ * `{ tool, context, root, name }` → `ToolCommand`.
+ */
+export function external_tool_command(request_json: string): string;
+
+/**
+ * `{ context, root, name }` → `MacroInfo[]`.
+ */
+export function external_tool_macros(request_json: string): string;
+
+/**
+ * `{ tool, others }` → problems.
+ */
+export function external_tool_validate(request_json: string): string;
 
 /**
  * `ColorsRequest` → `(string | null)[]`: the palette color of every target.
@@ -789,6 +809,26 @@ export function replace_in_files(request_json: string): string;
  * `{ request, with, files }` → the changed lines per file, like the `replace_preview` command.
  */
 export function replace_preview(request_json: string): string;
+
+/**
+ * `{ history, entry }` → the new history.
+ */
+export function run_anything_push_history(request_json: string): string;
+
+/**
+ * `{ command, cwd? }` → the temporary `RunConfiguration`.
+ */
+export function run_anything_resolve(request_json: string): string;
+
+/**
+ * `SuggestRequest` (with npm / Composer scripts and PHP files filled in) → `SuggestResponse`.
+ */
+export function run_anything_suggest(request_json: string): string;
+
+/**
+ * `{ configurations, target, packageManager? }` → `LaunchPlan`.
+ */
+export function run_launch_plan(request_json: string): string;
 
 export function run_output_drop(request_json: string): string;
 
@@ -1262,6 +1302,7 @@ export interface InitOutput {
     readonly composer_hover: (a: number, b: number, c: number) => void;
     readonly composer_markers: (a: number, b: number, c: number) => void;
     readonly composer_project: (a: number, b: number, c: number) => void;
+    readonly composer_scripts: (a: number, b: number, c: number) => void;
     readonly composer_search: (a: number, b: number, c: number) => void;
     readonly containers_compose_args: (a: number, b: number, c: number) => void;
     readonly containers_compose_parse: (a: number, b: number, c: number) => void;
@@ -1297,6 +1338,9 @@ export interface InitOutput {
     readonly emmet_remove_tag: (a: number, b: number, c: number) => void;
     readonly emmet_update_tag: (a: number, b: number, c: number) => void;
     readonly emmet_wrap: (a: number, b: number, c: number) => void;
+    readonly external_tool_command: (a: number, b: number, c: number) => void;
+    readonly external_tool_macros: (a: number, b: number, c: number) => void;
+    readonly external_tool_validate: (a: number, b: number, c: number) => void;
     readonly file_colors_resolve: (a: number, b: number, c: number) => void;
     readonly file_structure_view: (a: number, b: number, c: number) => void;
     readonly filetypes_detect: (a: number, b: number, c: number) => void;
@@ -1367,6 +1411,10 @@ export interface InitOutput {
     readonly remote_validate_config: (a: number, b: number, c: number) => void;
     readonly replace_in_files: (a: number, b: number, c: number) => void;
     readonly replace_preview: (a: number, b: number, c: number) => void;
+    readonly run_anything_push_history: (a: number, b: number, c: number) => void;
+    readonly run_anything_resolve: (a: number, b: number, c: number) => void;
+    readonly run_anything_suggest: (a: number, b: number, c: number) => void;
+    readonly run_launch_plan: (a: number, b: number, c: number) => void;
     readonly run_output_drop: (a: number, b: number, c: number) => void;
     readonly run_output_handle: (a: number, b: number, c: number) => void;
     readonly run_output_new: (a: number, b: number, c: number) => void;

@@ -17,7 +17,7 @@ import { scratchCommandLine, scratchRunSteps } from "./scratchesMock";
 import { mockSettingValue } from "./settingsMock";
 
 const ROOT = `~/Projects/${demoProjectName}`;
-const projectRoot = () =>
+export const projectRoot = () =>
   `~/Projects/${isSymfonyDemo() ? symfonyDemoName : isLuaDemo() ? luaDemoName : (webDemo()?.name ?? demoProjectName)}`;
 
 /** The Lua demo (`?project=lua`): the LÖVE game and its build script. */
@@ -99,7 +99,11 @@ export function mockCommandLine(cfg: RunConfiguration): CommandLine {
     case "composer-command":
       return { program: "composer", args: [...split(o.command), ...split(cfg.arguments), "--ansi", "--no-interaction"], cwd };
     case "npm":
-      return { program: o.packageManager || "npm", args: [o.command || "run", ...(o.command && o.command !== "run" ? [] : [o.script ?? ""])], cwd };
+      return {
+        program: o.packageManager || "npm",
+        args: [o.command || "run", ...(o.command && o.command !== "run" ? [] : [o.script ?? ""]), ...split(cfg.arguments)],
+        cwd,
+      };
     case "lua-script":
       return { program: cfg.interpreter || "lua", args: [...split(cfg.interpreterOptions), o.file ?? "", ...split(cfg.arguments)].filter(Boolean), cwd };
     case "shell":
@@ -514,6 +518,7 @@ registerMock("run_start", async ({ request }) => {
     cwd: cmd.cwd || undefined,
     cycleBufferKb: Number(mockSettingValue("run.console.cycleBufferKb") ?? 1024),
     pathMappings,
+    outputFilters: r.outputFilters ?? [],
   };
   const old = runs.get(runId);
   if (old) wasm.run_output_drop(JSON.stringify({ handle: old.output }));

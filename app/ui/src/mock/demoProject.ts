@@ -18,7 +18,11 @@ export const demoFiles: Record<string, string> = {
         "phpunit/phpunit": "^11.0"
     },
     "autoload": { "psr-4": { "App\\\\": "app/" } },
-    "autoload-dev": { "psr-4": { "Tests\\\\": "tests/" } }
+    "autoload-dev": { "psr-4": { "Tests\\\\": "tests/" } },
+    "scripts": {
+        "test": "phpunit",
+        "lint": "pint --test"
+    }
 }
 `,
   "composer.lock": DEMO_LOCK,

@@ -6,7 +6,11 @@
 import { invoke, listen } from "./index";
 
 export interface BeforeLaunchTask {
-  /** `runConfiguration` (by name) or `shell` (a command line). */
+  /**
+   * `runConfiguration` (by name), `externalTool` (`Group/Name`), `browser` (a URL), `npm`
+   * (a script), `composer` (a script or command), `artisan` (a command) or `shell` (a
+   * command line).
+   */
   type: string;
   value: string;
 }
@@ -55,6 +59,8 @@ export interface RunRequest {
   interpreterArgs?: string[];
   /** Build a test tree from TeamCity service messages (`tests` events). */
   testRunner?: boolean;
+  /** External Tools output filters (`$FILE_PATH$:$LINE$`) that link file references. */
+  outputFilters?: string[];
 }
 
 export interface RunStarted {

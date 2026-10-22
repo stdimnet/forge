@@ -66,7 +66,34 @@ export interface RunConfigurationTypeDef {
   hidden?: boolean;
   /** Called once a run or debug run has started (e.g. open the served page in the browser). */
   afterStart?: (cfg: RunConfiguration, handle: RunHandle, debug: boolean) => void;
+  /** Output filters (`$FILE_PATH$:$LINE$`) whose matches link files in the console. */
+  outputFilters?: (cfg: RunConfiguration) => string[] | undefined;
+  /** Extra check besides required fields; returns the problem. */
+  validate?: (cfg: RunConfiguration) => string | null;
+  /**
+   * The type's own form instead of fields, interpreter, working directory and Before launch
+   * (Compound). It changes the configuration through `update`; `configurations` are the ones
+   * the dialog currently shows.
+   */
+  form?: Component<{
+    cfg: RunConfiguration;
+    update: (fn: (cfg: RunConfiguration) => void) => void;
+    configurations: RunConfiguration[];
+  }>;
 }
+
+/** Type id of compound configurations (their members start together). */
+export const COMPOUND = "compound";
+
+/** Member names of a compound (option `configurations`, one per line). */
+export const compoundMembers = (cfg: RunConfiguration): string[] => [
+  ...new Set(
+    (cfg.options?.configurations ?? "")
+      .split("\n")
+      .map((n) => n.trim())
+      .filter(Boolean),
+  ),
+];
 
 const [registered, setRegistered] = createSignal<RunConfigurationTypeDef[]>([]);
 
@@ -183,7 +210,7 @@ export function validateConfiguration(cfg: RunConfiguration): string | null {
     if (!f.required || (f.visible && !f.visible(cfg))) continue;
     if (!fieldValue(cfg, f.key).trim()) return `${f.label} is not specified`;
   }
-  return null;
+  return type.validate?.(cfg) ?? null;
 }
 
 // ---- Debug launchers ------------------------------------------------------------------
