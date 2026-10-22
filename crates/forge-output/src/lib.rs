@@ -4,6 +4,7 @@
 //! - [`ansi`]: ANSI escape sequences (SGR colors and styles) into styled segments.
 //! - [`console`]: segments into console lines with `\r` progress lines, as deltas the UI
 //!   applies to its line list.
+//! - [`filters`]: External Tools output filters (`$FILE_PATH$:$LINE$`) as file links.
 //! - [`links`]: clickable file references (`app/User.php:42`, stack traces) and URLs.
 //! - [`teamcity`]: TeamCity service messages (`phpunit --teamcity`, Pest, Jest) into a test
 //!   tree that is sent to the UI as node updates.
@@ -16,6 +17,7 @@
 
 pub mod ansi;
 pub mod console;
+pub mod filters;
 pub mod links;
 pub mod osc;
 pub mod run;
@@ -25,6 +27,7 @@ mod utf16;
 
 pub use ansi::{AnsiParser, Segment, Style};
 pub use console::{ConsoleDelta, ConsoleLine, ConsoleModel, Span};
+pub use filters::{compile_filters, FilterMatch, OutputFilter, FILTER_MACROS};
 pub use links::{
     file_links_utf16, find_file_links, find_links, to_workspace_path, FileLink, LinkContext,
     OutputPathMapping,

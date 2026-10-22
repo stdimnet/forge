@@ -1,10 +1,11 @@
 /**
  * Built-in run configuration types: PHP Script, PHP Built-in Web Server, PHPUnit, Artisan,
- * Composer, Shell, npm.
+ * Composer, Shell, npm and Compound.
  */
-import { FileCode, FlaskConical, Globe, Hexagon, Package, SquareTerminal, Feather } from "lucide-solid";
+import { FileCode, FlaskConical, Globe, Hexagon, Layers, Package, SquareTerminal, Feather } from "lucide-solid";
 import type { RunConfiguration } from "@/ipc/run";
-import { baseName, registerRunConfigurationType } from "./types";
+import { CompoundForm } from "./CompoundForm";
+import { baseName, COMPOUND, compoundMembers, registerRunConfigurationType } from "./types";
 
 const opt = (cfg: RunConfiguration, key: string) => cfg.options?.[key] ?? "";
 const shortClass = (fqcn: string) => fqcn.split("\\").pop() ?? fqcn;
@@ -242,4 +243,17 @@ registerRunConfigurationType({
     },
   ],
   suggestName: (cfg) => opt(cfg, "script") || opt(cfg, "command") || undefined,
+});
+
+registerRunConfigurationType({
+  id: COMPOUND,
+  name: "Compound",
+  description: "Start several configurations together, each in its own Run tab.",
+  icon: Layers,
+  color: "var(--accent)",
+  argumentsLabel: false,
+  debuggable: true,
+  fields: [],
+  form: CompoundForm,
+  validate: (cfg) => (compoundMembers(cfg).length ? null : "No configurations to run"),
 });

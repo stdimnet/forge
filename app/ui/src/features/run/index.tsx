@@ -17,8 +17,19 @@ import { PopupMenuHost } from "./PopupMenu";
 import { openChooser, openRunConfigurations, RUN_CONFIGURATIONS_DIALOG, type DialogRequest } from "./dialogState";
 import { loadConfigurations, reloadConfigurations, selectedConfiguration, useTemporary } from "./configStore";
 import { registerDialog, usesDialogWindows } from "@/shell/window/dialogs";
-import { activeSession, closeSession, debugConfiguration, launch, rerunSession, runConfiguration, stopSession } from "./runStore";
+import {
+  activeSession,
+  closeSession,
+  debugConfiguration,
+  launch,
+  rerunSession,
+  runConfiguration,
+  runningFor,
+  stopConfiguration,
+  stopSession,
+} from "./runStore";
 import { testGutter } from "./gutter";
+import { COMPOUND } from "./types";
 import { findTests, scriptConfiguration, testAt, testConfiguration } from "./phpTests";
 import "./builtinTypes";
 import "./run.css";
@@ -31,7 +42,16 @@ export {
   type DebugLaunchContext,
   type RunHandle,
 } from "./types";
-export { launch, runConfiguration, debugConfiguration } from "./runStore";
+export {
+  launch,
+  runConfiguration,
+  debugConfiguration,
+  stopConfiguration,
+  registerBeforeLaunchHandler,
+  openInBrowser,
+  type BeforeLaunchHandler,
+} from "./runStore";
+export { COMPOUND } from "./types";
 
 registerToolWindow({
   id: "run",
@@ -81,7 +101,12 @@ cmd("run.debug", "Debug", () => debugConfiguration());
 cmd("run.editConfigurations", "Edit Configurations…", () => openRunConfigurations(selectedConfiguration()?.name));
 cmd("ChooseRunConfiguration", "Run…", () => openChooser("run"));
 cmd("ChooseDebugConfiguration", "Debug…", () => openChooser("debug"));
-cmd("Stop", "Stop", () => stopSession());
+cmd("Stop", "Stop", () => {
+  // A running compound stops all its members.
+  const selected = selectedConfiguration();
+  if (selected?.type === COMPOUND && runningFor(selected)) return stopConfiguration(selected);
+  return stopSession();
+});
 cmd("Rerun", "Rerun", () => rerunSession());
 cmd("RunClass", "Run Context Configuration", () => {
   const cfg = contextConfiguration();

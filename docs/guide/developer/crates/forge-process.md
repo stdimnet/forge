@@ -26,7 +26,7 @@ Forge processes: everything the IDE starts on behalf of the user.
 
 | Module | Summary |
 | --- | --- |
-| `args.rs` | Splitting and quoting of argument strings as typed into run configuration fields ("Arguments", "Interpreter options", "Test runner options"). |
+| `args` | Splitting and quoting of argument strings as typed into run configuration fields ("Arguments", "Interpreter options", "Test runner options"); re-exported from `forge-runtools`. |
 | `config.rs` | Run/Debug configurations. |
 | `pty.rs` | Interactive shell sessions on a pseudo terminal, used by the Terminal tool window. |
 | `runner.rs` | Non-interactive processes for run configurations: piped stdout/stderr streamed as text, stdin for input typed into the Run console, the exit code, and kill of the whole process tree (so `composer run` or `npm run` children stop too). |

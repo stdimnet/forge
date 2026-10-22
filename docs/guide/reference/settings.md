@@ -696,6 +696,14 @@ Page id `tools.browser-companion`.
 | `browserCompanion.port` | int (1024–65535) | `63342` | user | Built-in Server | Port — If the port is taken (for example by PhpStorm), the next 9 ports are tried. The extension finds Forge in this range. |
 | `browserCompanion.focusWindow` | bool | `true` | user | Built-in Server | Bring Forge to the front when a file is opened |
 
+### Tools | External Tools
+
+Page id `tools.external-tools`. See [External Tools](../user/run-debug.md#external-tools).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `tools.externalTools` | objects | `[]` | user |  | External Tools — Programs run from Tools \| External Tools, the editor and Project view context menus, the keymap and Before launch tasks: name, group, description, program, arguments and working directory with macros such as $FilePath$, plus the options and output filters ($FILE_PATH$:$LINE$, one per line). |
+
 ### Tools | HTTP Client
 
 Page id `tools.http-client`.

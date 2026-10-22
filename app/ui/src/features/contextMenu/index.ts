@@ -10,7 +10,7 @@ import { registerCommand } from "@/state/commands";
 import { activeView } from "@/features/navigation/editorCommands";
 import { copiedFrom, recordCopy } from "@/features/clipboard/clipboard";
 import { pasteClipboard } from "@/features/clipboard";
-import { action, menuEntries, registerContextMenu, separator, showContextMenu, submenu } from "./state";
+import { action, menuEntries, providedEntries, registerContextMenu, separator, showContextMenu, submenu } from "./state";
 import "./contextMenu.css";
 
 function command(id: string, run: () => void | Promise<void>): void {
@@ -100,7 +100,8 @@ registerContextMenu("editor", [
 
 /** Open the editor menu at a screen position and hand the focus back to the editor afterwards. */
 function showEditorMenu(view: EditorView, x: number, y: number): void {
-  showContextMenu(menuEntries("editor"), x, y, () => view.focus());
+  // Entries that depend on the moment (External Tools) come from providers.
+  showContextMenu([...menuEntries("editor"), ...providedEntries("editor", view)], x, y, () => view.focus());
 }
 
 registerEditorExtension(() =>

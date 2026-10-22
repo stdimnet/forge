@@ -156,6 +156,7 @@ fn command_line(
             cmd,
             path_mappings: Vec::new(),
             debug_server: None,
+            output_filters: Vec::new(),
         });
     };
     let prepared = interpreters::prepare(state, backend, interp);
@@ -167,6 +168,7 @@ fn command_line(
         cmd: prepared.wrap(program, &cmd)?,
         path_mappings: prepared.output_mappings(),
         debug_server: None,
+        output_filters: Vec::new(),
     })
 }
 

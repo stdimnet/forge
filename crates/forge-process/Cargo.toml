@@ -8,6 +8,7 @@ license.workspace = true
 [dependencies]
 forge-core.workspace = true
 forge-output.workspace = true
+forge-runtools.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 toml.workspace = true

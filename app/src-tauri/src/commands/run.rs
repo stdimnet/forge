@@ -151,6 +151,9 @@ pub struct RunRequest {
     /// Build a test tree from TeamCity service messages on stdout.
     #[serde(default)]
     pub test_runner: bool,
+    /// External Tools output filters (`$FILE_PATH$:$LINE$`) that link file references.
+    #[serde(default)]
+    pub output_filters: Vec<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -172,11 +175,14 @@ pub(crate) struct Built {
     pub path_mappings: Vec<OutputPathMapping>,
     /// The debugger's server with the interpreter's mappings.
     pub debug_server: Option<forge_debug::ServerConfig>,
+    /// External Tools output filters (`$FILE_PATH$:$LINE$`).
+    pub output_filters: Vec<String>,
 }
 
 fn build(state: &AppState, runs: &RunState, req: RunRequest) -> Result<Built> {
     let root = root(state)?;
     let mut through: Option<(PhpInterpreter, bool)> = None;
+    let output_filters = req.output_filters;
     // Ports the built-in web server serves, published by container / SSH interpreters.
     let mut publish: Vec<u16> = Vec::new();
     let mut cmd = match (req.configuration, req.command) {
@@ -249,6 +255,7 @@ fn build(state: &AppState, runs: &RunState, req: RunRequest) -> Result<Built> {
             cmd,
             path_mappings: Vec::new(),
             debug_server: None,
+            output_filters,
         });
     };
     let backend = state.backend()?;
@@ -270,6 +277,7 @@ fn build(state: &AppState, runs: &RunState, req: RunRequest) -> Result<Built> {
         debug_server: phpforge_interpreters::command::is_debug(&cmd.env)
             .then(|| prepared.debug_server())
             .flatten(),
+        output_filters,
     })
 }
 
@@ -313,6 +321,7 @@ pub(crate) async fn start_built(
         cmd,
         path_mappings,
         debug_server,
+        output_filters,
     } = built;
     if let Some(server) = debug_server {
         if let Some(debug) = app.try_state::<crate::commands::debug::DebugState>() {
@@ -330,6 +339,7 @@ pub(crate) async fn start_built(
         cwd: Some(cmd.cwd.display().to_string()),
         cycle_buffer_kb,
         path_mappings,
+        output_filters,
     })));
     let event = format!("run://{run_id}");
     let sink_output = output.clone();

@@ -356,6 +356,16 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | View Breakpoints… | `ViewBreakpoints` | `Ctrl+Shift+F8` | `Cmd+Shift+F8` | yes |
 | Attach to Process… | `XDebugger.AttachToProcess` | `Ctrl+Alt+F5` | `Cmd+Alt+F5` | — |
 
+### Tools
+
+| Action | Action id | Windows / Linux | macOS | In Forge |
+| --- | --- | --- | --- | --- |
+| Run Anything | `RunAnything` | `Double Ctrl` | `Double Ctrl` | yes |
+
+Every enabled [External Tool](../user/run-debug.md#external-tools) is an action too
+(`Tool_<group>_<name>`, e.g. `Tool_Linters_PHPStan`, group "External Tools"); they have no
+default shortcut and can be bound in Settings | Keymap.
+
 ### Build
 
 | Action | Action id | Windows / Linux | macOS | In Forge |

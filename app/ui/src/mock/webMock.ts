@@ -21,9 +21,14 @@ function project() {
 
 const wasm = () => forgeWasm();
 
-registerMock("npm_packages", async () =>
-  callWasm((await wasm()).web_npm_packages, { ...project(), packageManager: String(mockSettingValue("web.packageManager") ?? "auto") }),
-);
+/** The demo's `package.json` files with their scripts (also used by Run Anything). */
+export const mockNpmPackages = async () =>
+  callWasm<{ dir: string; packageManager: { manager: string }; scripts: { name: string }[] }[]>((await wasm()).web_npm_packages, {
+    ...project(),
+    packageManager: String(mockSettingValue("web.packageManager") ?? "auto"),
+  });
+
+registerMock("npm_packages", mockNpmPackages);
 registerMock("npm_gutter", async ({ path, content }) => callWasm((await wasm()).web_npm_gutter, { path, content }));
 registerMock("web_components", async ({ framework }) => callWasm((await wasm()).web_components, { framework, ...project() }));
 registerMock("web_goto", async ({ framework, path, content, offset }) =>

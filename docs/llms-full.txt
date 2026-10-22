@@ -10330,9 +10330,49 @@ Configurations…**; without configurations it reads **Add Configuration…**.
 | Stop | `Ctrl+F2` | `Cmd+F2` |
 | Rerun | `Ctrl+F5` | `Cmd+R` |
 | Edit Configurations… | Find Action | |
+| [Run Anything](#run-anything) | `Double Ctrl` | `Double Ctrl` |
 
 In the **Run…** chooser, `Enter` runs and `Shift+Enter` (or holding `Shift`) debugs; it also
 offers **Run Shell Command…** and **Edit Configuration…**.
+
+## Run Anything
+
+Press `Ctrl` twice (Tools | Run Anything…) to run almost anything from one popup:
+
+![Run Anything](docs/screenshots/run-anything.png)
+
+- **Recent**: what you ran from Run Anything in this project (kept outside the project, in
+  Forge's state directory).
+- **Run configurations**: run (or debug) a saved or temporary configuration by name.
+- **npm scripts** of every `package.json` with the detected package manager (`pnpm run dev`),
+  **Composer scripts** of `composer.json` (`composer test`).
+- **PHP files**: type `php ` and part of a file name (`php User`).
+- **Composer**, **Artisan** and **Symfony console commands** of
+  [Command Line Tool Support](docs/guide/user/command-line-tools.md) (Symfony projects without it use the
+  Symfony index);
+  other plugins add their commands with `registerRunAnythingProvider`.
+- **Commands**: anything else you type runs as a command in the project directory, in the Run
+  tool window. When no suggestion starts with what you typed, the command itself is the first
+  entry.
+
+![Suggestions for "php art"](docs/screenshots/run-anything-query.png)
+
+`Enter` runs the selected entry. Hold **Shift** to switch to **Debug Anything**: `Shift+Enter`
+debugs it (Xdebug for PHP, `--inspect` for npm). Type `?` for help on what can be typed; picking
+a help entry fills in its prefix.
+
+![Debug Anything](docs/screenshots/run-anything-debug.png)
+
+Typed commands become [temporary configurations](#temporary-configurations) of the matching
+type, so they run like configurations:
+
+| You type | Runs as |
+| --- | --- |
+| `php [options] script.php [args]` | PHP Script through the project's [CLI interpreter](docs/guide/user/php.md#cli-interpreters) (Docker, SSH, WSL included) |
+| `php artisan <command>` | Artisan |
+| `composer <command>` | Composer command (`composer` with `php.composer.executable`) |
+| `npm`, `pnpm`, `yarn`, `bun` `run <script> [-- args]` or any other command | npm (`npm install lodash`, `yarn add x`) |
+| anything else | Shell Script (`/bin/sh -c "<command>"`, `cmd.exe /C` on Windows) in the project directory |
 
 ## Run/Debug Configurations dialog
 
@@ -10343,8 +10383,8 @@ offers **Run Shell Command…** and **Edit Configuration…**.
   type.
 - Common fields: **Name**, **Store as project file**, the type's own fields, **Interpreter**
   and **Interpreter options** (PHP and Lua types), **Arguments**, **Working directory**
-  (default: the project root), **Environment variables** and **Before launch** tasks (another
-  run configuration or a shell command).
+  (default: the project root), **Environment variables** and [Before launch](#before-launch)
+  tasks.
 - The **Command Line** preview shows exactly what will run.
 
 ### Configuration types
@@ -10361,6 +10401,7 @@ offers **Run Shell Command…** and **Edit Configuration…**.
 | npm | package.json, Command (`run`, `install`, …), Scripts, Package manager | `npm`/`pnpm`/`yarn`/`bun` | sets `NODE_OPTIONS=--inspect` |
 | Shell Script | Execute: Script file or Script text; Script path / text | the shell | — |
 | Lua Script | File | `<lua> <options> <file> <arguments>`, LÖVE games as `love <dir>` | — |
+| Compound | Configurations, Allow multiple instances | starts every configuration, each in its own Run tab | debugs every member |
 
 The PHP interpreter defaults to the project's CLI interpreter (`php.interpreter`, Settings |
 Languages & Frameworks | PHP), the Lua interpreter to `lua.interpreter`. The **Interpreter**
@@ -10400,6 +10441,41 @@ container), SSH interpreters forward it (`ssh -L 8080:127.0.0.1:8080`), so the p
 > To debug requests started elsewhere, use
 > [Start Listening for PHP Debug Connections](docs/guide/user/debugging.md#listening-for-connections).
 
+### Compound configurations
+
+A **Compound** configuration starts several configurations together, for example the Laravel
+server and the Vite dev server. Add the configurations with **+** and order them with the
+arrows; a compound may contain other compounds.
+
+![Compound configuration](docs/screenshots/run-configurations-compound.png)
+
+- **Run** starts every member (after its own Before launch tasks), each in its own tab of the
+  Run tool window. **Debug** debugs each member that can be debugged.
+- **Stop** (`Ctrl+F2` or the toolbar's ■ while the compound is selected) stops all members.
+- Without **Allow multiple instances**, running the compound again restarts members that still
+  run; with it, new instances start next to them.
+- Missing members and cycles are reported before anything starts.
+
+### Before launch
+
+Every configuration (except compounds) can run tasks before it starts. They run one after
+another in the listed order; when a task fails (exit code other than 0, a missing
+configuration or tool), the launch stops and a balloon says which task failed.
+
+![Before launch tasks](docs/screenshots/run-configurations-before-launch.png)
+
+| Task (**+** menu) | Value | What it does |
+| --- | --- | --- |
+| Run External tool | a tool of [External Tools](#external-tools) | runs the tool and waits for it |
+| Run Another Configuration | a configuration | runs it (with its own Before launch tasks) and waits for it; a compound runs each member |
+| Launch Web Browser | a URL | opens the URL |
+| Run npm script | a script name | `<package manager> run <script>` in the configuration's working directory |
+| Run Composer script | a script or command | `composer <script>` |
+| Run Artisan command | a command (Laravel projects) | `php artisan <command>` through the configuration's interpreter |
+| Run Shell Command… | a command line | runs it with the shell |
+
+Each task runs in its own tab of the Run tool window. Reorder tasks with **↑** / **↓**.
+
 ### Where configurations are stored
 
 | | File |
@@ -10411,7 +10487,70 @@ container), SSH interpreters forward it (`ssh -L 8080:127.0.0.1:8080`), so the p
 
 Gutter ▶ icons create temporary configurations: PHPUnit test classes and methods, `package.json`
 scripts, Lua main chunks, scratch files and HTTP requests. A double-click in the npm tool
-window does the same.
+window and commands run from [Run Anything](#run-anything) do the same.
+
+## External Tools
+
+**Settings | Tools | External Tools** lists programs you start from Forge with arguments
+that come from the current file, caret or selection, such as linters, formatters or deploy
+scripts. Tools are kept in your user settings (`tools.externalTools`), so they exist in every
+project.
+
+![External Tools](docs/screenshots/external-tools-settings.png)
+
+The toolbar adds (**+**), removes, edits (or double-click), copies and moves tools; the check
+boxes of tools and groups hide them from menus and the keymap without deleting them.
+
+**Create Tool / Edit Tool**:
+
+![Edit Tool](docs/screenshots/external-tools-edit.png)
+
+- **Name**, **Group** (the submenu it appears in; default "External Tools") and
+  **Description**.
+- **Program**, **Arguments** and **Working directory** (default `$ProjectFileDir$`). Each can
+  contain macros; **Insert Macro…** lists them with a preview of their value for the current
+  editor:
+
+  ![Insert Macro](docs/screenshots/external-tools-macros.png)
+
+  | Macro | Value |
+  | --- | --- |
+  | `$FilePath$`, `$FileDir$`, `$FileName$`, `$FileNameWithoutExtension$`, `$FileNameWithoutAllExtensions$`, `$FileExt$`, `$FileDirName$`, `$FileParentDir$` | the file in the editor, or the file the Project view menu was opened on |
+  | `$FilePathRelativeToProjectRoot$`, `$FileDirRelativeToProjectRoot$`, `$FileRelativePath$`, `$FileRelativeDir$` | the same, relative to the project |
+  | `$ProjectFileDir$`, `$ContentRoot$`, `$ProjectName$` | the project |
+  | `$LineNumber$`, `$ColumnNumber$`, `$SelectedText$`, `$SelectionStartLine$`, `$SelectionEndLine$`, `$SelectionStartColumn$`, `$SelectionEndColumn$` | caret and selection (1-based) |
+  | `$ClipboardContent$` | the clipboard text |
+  | `$Prompt$` | asks for a value when the tool runs (once per occurrence) |
+  | `$PhpExecutable$` | the project's PHP interpreter |
+  | `$FileEncoding$`, `$OSName$`, `$UserHome$` | file encoding, operating system, home directory |
+
+  Arguments are split like a shell command line before the macros are expanded, so a path with
+  spaces stays one argument. A macro without a value here (`$FilePath$` with no file open) is
+  replaced by nothing and reported in a balloon.
+- **Advanced Options**: **Synchronize files after execution** (refreshes the Project view),
+  **Open console for tool output** (without it the tool runs in the background), **Make console
+  active on message in stdout / stderr** (the console appears with the first such message) and
+  **Output filters**.
+- **Output filters** turn tool output into links: one regular expression per line with
+  `$FILE_PATH$`, `$LINE$` and `$COLUMN$`, e.g. `$FILE_PATH$:$LINE$` or
+  `^$FILE_PATH$:$LINE$:` for PHPStan's raw format. Everything else is a regular expression
+  (escape `(` as `\(`). Invalid filters are reported when you click OK.
+
+  ![Invalid output filter](docs/screenshots/external-tools-light.png)
+
+Run a tool from:
+
+- **Tools | External Tools**, ![Tools | External Tools](docs/screenshots/external-tools-menu.png)
+- the editor's context menu (a submenu per group) and the Project view's context menu (the
+  macros then use the clicked file), ![Editor context menu](docs/screenshots/external-tools-editor-menu.png)
+- a shortcut: each tool is the action `Tool_<group>_<name>` in Settings | Keymap and Find
+  Action,
+- a [Before launch](#before-launch) task.
+
+The output appears in the Run tool window, with the output filters' matches as links; tools run
+on the machine that hosts the project (remote projects included).
+
+![PHPStan run with an output filter](docs/screenshots/external-tools-run.png)
 
 ## Run tool window
 
@@ -12356,6 +12495,16 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | View Breakpoints… | `ViewBreakpoints` | `Ctrl+Shift+F8` | `Cmd+Shift+F8` | yes |
 | Attach to Process… | `XDebugger.AttachToProcess` | `Ctrl+Alt+F5` | `Cmd+Alt+F5` | — |
 
+### Tools
+
+| Action | Action id | Windows / Linux | macOS | In Forge |
+| --- | --- | --- | --- | --- |
+| Run Anything | `RunAnything` | `Double Ctrl` | `Double Ctrl` | yes |
+
+Every enabled [External Tool](docs/guide/user/run-debug.md#external-tools) is an action too
+(`Tool_<group>_<name>`, e.g. `Tool_Linters_PHPStan`, group "External Tools"); they have no
+default shortcut and can be bound in Settings | Keymap.
+
 ### Build
 
 | Action | Action id | Windows / Linux | macOS | In Forge |
@@ -13006,12 +13155,13 @@ Terminal, Vim emulation, Run Command… and the tools of plugins (Composer, Dock
 
 | Entry | Windows / Linux | macOS | Available | What it does |
 | --- | --- | --- | --- | --- |
-| Run Anything… | — | — | not yet | Not available yet; the entry is disabled. |
+| Run Anything… | `Double Ctrl` | `Double Ctrl` | yes | Runs or debugs configurations, scripts, PHP files and commands from one popup. [More](docs/guide/user/run-debug.md#run-anything) ([screenshot](docs/screenshots/run-anything.png)) |
 | Run Command… | `Ctrl+Shift+X` | `Cmd+Shift+X` | yes | Opens the Command Line Tools Console popup: run Composer, Artisan, Symfony Console, WP-CLI, Drush and custom tools with completion (plugin `forge.command-line-tools`, PHP projects). [More](docs/guide/user/command-line-tools.md#run-command) ([screenshot](docs/screenshots/docs-run-command.png)) |
 | Save as Live Template… | — | — | yes | Opens Settings \| Editor \| Live Templates with a new template made from the selection. [More](docs/guide/user/live-templates.md#save-as-live-template) ([screenshot](docs/screenshots/save-as-live-template.png)) |
 | Save File as Template… | — | — | not yet | Not available yet; the entry is disabled. |
 | Open in Terminal | `Ctrl+Shift+T` | `Cmd+T` | yes | Opens a new terminal tab (Tools | Open in Terminal). [More](docs/guide/user/terminal.md#tabs) ([screenshot](docs/screenshots/docs-terminal.png)) |
 | IDE Scripting Console | — | — | not yet | Not available yet; the entry is disabled. |
+| **External Tools** | | | dynamic | submenu: the enabled [External Tools](docs/guide/user/run-debug.md#external-tools) (Settings \| Tools \| External Tools) ([screenshot](docs/screenshots/external-tools-menu.png)) |
 | Vim | `Ctrl+Alt+V` | `Cmd+Alt+V` | yes | Turns Vim emulation on or off (check mark; plugin `forge.vim`). [More](docs/guide/user/vim-emulation.md) ([screenshot](docs/screenshots/vim-emulation.png)) |
 | Render All Doc Comments | — | — | yes | Shows every documentation comment of the file as formatted text, or the text again. [More](docs/guide/user/code-structure.md#rendered-documentation-comments) ([screenshot](docs/screenshots/rendered-doc-comments.png)) |
 | **Composer** | | | | submenu |
@@ -13874,6 +14024,14 @@ Page id `tools.browser-companion`.
 | `browserCompanion.enabled` | bool | `true` | user | Built-in Server | Accept open requests from paired browsers — Runs a small server on 127.0.0.1 that only paired browser extensions can use. |
 | `browserCompanion.port` | int (1024–65535) | `63342` | user | Built-in Server | Port — If the port is taken (for example by PhpStorm), the next 9 ports are tried. The extension finds Forge in this range. |
 | `browserCompanion.focusWindow` | bool | `true` | user | Built-in Server | Bring Forge to the front when a file is opened |
+
+### Tools | External Tools
+
+Page id `tools.external-tools`. See [External Tools](docs/guide/user/run-debug.md#external-tools).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `tools.externalTools` | objects | `[]` | user |  | External Tools — Programs run from Tools \| External Tools, the editor and Project view context menus, the keymap and Before launch tasks: name, group, description, program, arguments and working directory with macros such as $FilePath$, plus the options and output filters ($FILE_PATH$:$LINE$, one per line). |
 
 ### Tools | HTTP Client
 
@@ -15135,6 +15293,8 @@ On the Rust side, plugins contribute **data** through their manifest (see
 | `registerBinaryFileView` | `state/editor.ts` | binary files that open as a view tab (images) |
 | `registerRunConfigurationType` | `features/run/types.ts` | a Run/Debug configuration type |
 | `registerDebugLauncher` | `features/run/types.ts` | a debugger for Debug (`Shift+F9`) |
+| `registerBeforeLaunchHandler` | `features/run/runStore.ts` | a Before launch task kind the run feature does not run itself (`externalTool`) |
+| `registerRunAnythingProvider` | `features/runAnything/providers.ts` | commands offered in Run Anything (Artisan, Symfony console, command line tools) |
 | `registerDialog` / `openDialogWindow` | `shell/window/dialogs.ts` | a large dialog in its own window |
 | `registerChatAgent` | `features/ai-chat/agents.ts` | an agent in the AI Chat picker |
 | `claimFrameworkStatus` | `features/project-type` | hide the generic framework status widget |
@@ -15305,6 +15465,31 @@ registerDebugLauncher({
 
 Without `buildCommand`, the backend's kind registry (`forge_process::config`) builds the command
 line. A manifest type with `fields` and a `command` template (see `lua-script`) needs no UI code.
+A type may also bring its own `form` (Compound), a `validate` check and `outputFilters` (External
+Tools' `$FILE_PATH$:$LINE$` links).
+
+Launching goes through a plan computed in Rust (`run_launch_plan`, `forge-runtools::launch`):
+compound members and the ordered Before launch tasks. Kinds the run feature does not handle
+itself are registered by their feature:
+
+```ts
+registerBeforeLaunchHandler("externalTool", (task) => runToolAndWait(task.value));
+```
+
+## Run Anything providers
+
+```ts
+registerRunAnythingProvider({
+  id: "symfony-index",
+  title: "Symfony console commands",
+  when: () => usesFramework("symfony"),
+  commands: async () => (await symfonyApi.consoleCommands()).map((c) => ({ command: `php bin/console ${c.name}`, description: c.description })),
+});
+```
+
+The popup asks active providers once when it opens; Rust ranks their commands with the other
+suggestions, and picking one runs the command line (resolved to a configuration type by
+`run_anything_resolve`).
 
 ## Dialog windows
 
@@ -16381,6 +16566,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-project](docs/guide/developer/crates/forge-project.md) | Forge IDE projects: project type detection and New Project generators |
 | [forge-remote](docs/guide/developer/crates/forge-remote.md) | Forge IDE remote development: SSH connections, host keys, ~/.ssh/config and the Forge agent deployment |
 | [forge-remote-agent](docs/guide/developer/crates/forge-remote-agent.md) | Headless Forge agent: serves a project's files, git, processes, language servers and PHP index over stdio for remote development |
+| [forge-runtools](docs/guide/developer/crates/forge-runtools.md) | Run Anything, compound and before-launch plans, External Tools and their macros (pure, also built to WebAssembly) |
 | [forge-save-actions](docs/guide/developer/crates/forge-save-actions.md) | Actions on Save: which actions run for a saved file, reformatting only changed lines and running ESLint, Prettier, PHP CS Fixer and Laravel Pint through the project's backend |
 | [forge-scratches](docs/guide/developer/crates/forge-scratches.md) | Forge scratch files (PHPStorm's Scratches and Consoles): storage, naming, languages, run commands and the HTTP request client |
 | [forge-scopes](docs/guide/developer/crates/forge-scopes.md) | Scopes (PHPStorm's scope language, predefined and named scopes) and file colors (pure, WebAssembly-friendly) |
@@ -18443,6 +18629,7 @@ renders it.
 - `ansi`: ANSI escape sequences (SGR colors and styles) into styled segments.
 - `console`: segments into console lines with `\r` progress lines, as deltas the UI
   applies to its line list.
+- `filters`: External Tools output filters (`$FILE_PATH$:$LINE$`) as file links.
 - `links`: clickable file references (`app/User.php:42`, stack traces) and URLs.
 - `teamcity`: TeamCity service messages (`phpunit --teamcity`, Pest, Jest) into a test
   tree that is sent to the UI as node updates.
@@ -18461,6 +18648,7 @@ The crate is pure (no I/O) so `forge-wasm` can run it in browser mode.
 | --- | --- |
 | `ansi.rs` | ANSI escape handling: SGR colors and styles become styled segments, other control sequences (cursor movement, OSC titles) are dropped. Colors are CSS values, either a theme variable (`var(--ansi-red)`) or `rgb(…)`. |
 | `console.rs` | Console lines built from styled segments, sent to the UI as deltas. |
+| `filters.rs` | External Tools output filters: a regular expression with `$FILE_PATH$`, `$LINE$` and `$COLUMN$` (`$FILE_PATH$:$LINE$`); `RunOutputOptions.outputFilters` links their matches before the built-in patterns. |
 | `links.rs` | File references in console and terminal output (`app/User.php:42`, `/abs/path/File.php on line 7`, `File.php(12)`, `#0 /path/x.php(31): …`) and web links, so the UI can make them clickable. |
 | `osc.rs` | Payloads of the OSC sequences the terminal understands beyond xterm.js: OSC 9;4 progress (normal, error, indeterminate, paused, remove), OSC 9 and OSC 777 notifications, OSC 7 and ConEmu 9;9 working directories, OSC 133 command boundaries, and which OSC 8 hyperlinks may open (web and mail links, `file://` links into the project). The terminal calls it synchronously through `forge-wasm` from xterm.js's OSC handlers. |
 | `stacktrace.rs` | Analyze External Stack Trace: `analyze(text, ctx, exists)` turns a pasted trace into console lines whose frames link to project files (message in red, library frames dimmed); `resolve` maps a path with `TraceContext.mappings`, the project root or the longest trailing part that exists; `compose_mappings` reads Docker Compose bind mounts; `normalize` splits one-line logs with escaped line breaks. |
@@ -18582,7 +18770,7 @@ Forge processes: everything the IDE starts on behalf of the user.
 
 | Module | Summary |
 | --- | --- |
-| `args.rs` | Splitting and quoting of argument strings as typed into run configuration fields ("Arguments", "Interpreter options", "Test runner options"). |
+| `args` | Splitting and quoting of argument strings as typed into run configuration fields ("Arguments", "Interpreter options", "Test runner options"); re-exported from `forge-runtools`. |
 | `config.rs` | Run/Debug configurations. |
 | `pty.rs` | Interactive shell sessions on a pseudo terminal, used by the Terminal tool window. |
 | `runner.rs` | Non-interactive processes for run configurations: piped stdout/stderr streamed as text, stdin for input typed into the Run console, the exit code, and kill of the whole process tree (so `composer run` or `npm run` children stop too). |
@@ -18792,6 +18980,65 @@ pub async fn serve<R, W>(reader: R, writer: W) -> Result<()>
 
 ```sh
 cargo test -p forge-remote-agent
+```
+
+
+---
+
+Source: docs/guide/developer/crates/forge-runtools.md
+
+# forge-runtools
+
+`crates/forge-runtools` — Run Anything, compound and before-launch plans, External Tools and their macros (pure, also built to WebAssembly).
+
+## Purpose
+
+Pure logic behind Run Anything, compound run configurations, "Before launch" tasks and
+External Tools. No I/O, so `forge-wasm` builds it for browser mode; the desktop app
+(`app/src-tauri/src/commands/runtools.rs`) collects the inputs (npm and Composer scripts,
+PHP files, settings) through the project backend and starts the processes with `run_start`.
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `args.rs` | Splitting and quoting of argument strings (shared with `forge-process`, which re-exports it). |
+| `macros.rs` | PHPStorm's macros (`$FilePath$`, `$ProjectFileDir$`, `$LineNumber$`, `$SelectedText$`, `$ClipboardContent$`, `$Prompt$`, `$PhpExecutable$`, …): the list with descriptions and previews for "Insert Macro…", and expansion with an `Expander` that hands out `$Prompt$` answers in order. Unknown `$Names$` stay as they are; macros without a value expand to nothing and are reported. |
+| `external.rs` | External Tools: the model, its settings object (`tools.externalTools`, string values), validation (name, program, output filters), the command of a run (arguments split first, then expanded) and grouping for menus; `action_id` is PHPStorm's `Tool_<group>_<name>`. |
+| `launch.rs` | Launch plans: `plan(configurations, target)` returns the configurations to start (a compound's members, nested compounds expanded, duplicates once) and each one's ordered before-launch tasks, with "Run Another Configuration" flattened; missing configurations and cycles are errors. npm, Composer, Artisan and shell tasks come with the temporary configuration that runs them. |
+| `anything.rs` | Run Anything: `suggest` groups and ranks (with `forge-fuzzy`) the history, run configurations, npm and Composer scripts, PHP files, plugin commands and the typed command; `?` returns help. `resolve` turns a command into a temporary configuration (`php file.php` → PHP Script, `php artisan …` → Artisan, `composer …`, `npm`/`pnpm`/`yarn`/`bun` → npm, else Shell Script); `push_history` keeps the newest 50 entries. |
+
+## Main public items
+
+```rust
+pub struct Configuration { … }   // { name, type, options, beforeLaunch, … }
+pub struct Task { … }            // { type, value }
+pub mod macros { pub struct MacroContext { … }; pub fn list(..); pub fn expand(..); pub struct Expander<'a> { … } }
+pub mod external { pub struct ExternalTool { … }; pub fn command(..); pub fn validate(..); pub fn groups(..) }
+pub mod launch { pub fn plan(..) -> Result<LaunchPlan, String>; pub fn task_label(..); pub fn task_run(..) }
+pub mod anything { pub fn suggest(..) -> SuggestResponse; pub fn resolve(..); pub fn push_history(..); pub fn composer_scripts(..) }
+```
+
+## Used by
+
+- IPC: `run_anything_suggest`, `run_anything_resolve`, `run_anything_history`,
+  `run_anything_history_add`, `run_launch_plan`, `external_tool_macros`,
+  `external_tool_command`, `external_tool_validate`
+- UI: `app/ui/src/features/runAnything`, `features/externalTools`, `features/run` (launch)
+- Crates: `forge-process` (argument splitting)
+- Browser mode: built into `forge-wasm` (`crates/forge-wasm/src/runtools.rs`)
+
+## Dependencies
+
+- Workspace crates: `forge-fuzzy`, `forge-output` (output filter compilation)
+- External: `serde`, `serde_json`
+
+## Tests
+
+6 source files; unit tests for macros, tools, plans, suggestions and command resolution.
+
+```sh
+cargo test -p forge-runtools
 ```
 
 

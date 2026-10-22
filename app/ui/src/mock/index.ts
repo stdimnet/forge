@@ -47,6 +47,7 @@ import "./goToTestMock";
 import "./companionMock";
 import "./terminalMock";
 import "./runMock";
+import "./runToolsMock";
 import "./scratchesMock";
 import "./debugMock";
 import "./dbMock";

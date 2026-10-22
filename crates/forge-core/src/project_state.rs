@@ -5,7 +5,9 @@
 //!   the state dir is `$XDG_STATE_HOME` on Linux and the local data dir elsewhere), plus the
 //!   layout stored with Window | Store Current Layout as Default (`layouts/_default.json`);
 //! - the AI chat history in the user data dir
-//!   (`<data dir>/forge/chat-history/<project key>/<id>.json`).
+//!   (`<data dir>/forge/chat-history/<project key>/<id>.json`);
+//! - small per-project lists such as the Run Anything history in the state dir
+//!   (`<state dir>/forge/<kind>/<project key>.json`, see [`load_list`]).
 //!
 //! Nothing is written into the project itself.
 
@@ -335,6 +337,26 @@ pub fn delete_chat(dir: &Path, root: &str, id: &str) -> Result<()> {
     }
 }
 
+// ---- Small per-project lists ---------------------------------------------------------
+
+/// `<state dir>/forge/<kind>` (e.g. `run-anything`), next to the layouts.
+pub fn default_list_dir(kind: &str) -> Option<PathBuf> {
+    default_layout_dir().and_then(|d| d.parent().map(|p| p.join(kind)))
+}
+
+/// A list stored for the project at `root` (the Run Anything history); empty when missing or
+/// unreadable.
+pub fn load_list<T: serde::de::DeserializeOwned>(dir: &Path, root: &str) -> Vec<T> {
+    fs::read_to_string(dir.join(format!("{}.json", project_key(root))))
+        .ok()
+        .and_then(|t| serde_json::from_str(&t).ok())
+        .unwrap_or_default()
+}
+
+pub fn save_list<T: Serialize>(dir: &Path, root: &str, items: &[T]) -> Result<()> {
+    write_json(&dir.join(format!("{}.json", project_key(root))), &items)
+}
+
 fn write_json<T: Serialize>(path: &Path, value: &T) -> Result<()> {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).map_err(|e| ForgeError::io(parent, e))?;
@@ -350,6 +372,16 @@ fn write_json<T: Serialize>(path: &Path, value: &T) -> Result<()> {
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn lists_are_stored_per_project() {
+        let dir = tempfile::tempdir().unwrap();
+        assert!(load_list::<String>(dir.path(), "/p/shop").is_empty());
+        save_list(dir.path(), "/p/shop", &["npm run dev".to_string()]).unwrap();
+        assert_eq!(load_list::<String>(dir.path(), "/p/shop"), ["npm run dev"]);
+        assert!(load_list::<String>(dir.path(), "/p/other").is_empty());
+        assert!(default_list_dir("run-anything").is_none_or(|d| d.ends_with("forge/run-anything")));
+    }
 
     #[test]
     fn project_keys_are_stable_and_distinct() {

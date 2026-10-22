@@ -47,6 +47,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-project](forge-project.md) | Forge IDE projects: project type detection and New Project generators |
 | [forge-remote](forge-remote.md) | Forge IDE remote development: SSH connections, host keys, ~/.ssh/config and the Forge agent deployment |
 | [forge-remote-agent](forge-remote-agent.md) | Headless Forge agent: serves a project's files, git, processes, language servers and PHP index over stdio for remote development |
+| [forge-runtools](forge-runtools.md) | Run Anything, compound and before-launch plans, External Tools and their macros (pure, also built to WebAssembly) |
 | [forge-save-actions](forge-save-actions.md) | Actions on Save: which actions run for a saved file, reformatting only changed lines and running ESLint, Prettier, PHP CS Fixer and Laravel Pint through the project's backend |
 | [forge-scratches](forge-scratches.md) | Forge scratch files (PHPStorm's Scratches and Consoles): storage, naming, languages, run commands and the HTTP request client |
 | [forge-scopes](forge-scopes.md) | Scopes (PHPStorm's scope language, predefined and named scopes) and file colors (pure, WebAssembly-friendly) |

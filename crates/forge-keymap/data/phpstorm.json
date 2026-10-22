@@ -220,6 +220,7 @@
   {"id":"Debug","title":"Debug","group":"Main Menu/Run","win":"Shift+F9","mac":"Ctrl+D"},
   {"id":"ChooseRunConfiguration","title":"Run…","group":"Main Menu/Run","win":"Alt+Shift+F10","mac":"Ctrl+Alt+R"},
   {"id":"ChooseDebugConfiguration","title":"Debug…","group":"Main Menu/Run","win":"Alt+Shift+F9","mac":"Ctrl+Alt+D"},
+  {"id":"RunAnything","title":"Run Anything","group":"Main Menu/Tools","win":"Double Ctrl","mac":"Double Ctrl"},
   {"id":"RunClass","title":"Run Context Configuration","group":"Main Menu/Run","win":"Ctrl+Shift+F10","mac":"Ctrl+Shift+R"},
   {"id":"DebugClass","title":"Debug Context Configuration","group":"Main Menu/Run","win":"Ctrl+Shift+F9","mac":"Ctrl+Shift+D"},
   {"id":"editRunConfigurations","title":"Edit Configurations…","group":"Main Menu/Run","win":"","mac":""},
