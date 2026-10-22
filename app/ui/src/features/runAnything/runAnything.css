@@ -1,0 +1,40 @@
+/* Run Anything popup: Search Everywhere's chrome (`se-*`) plus a title row and the mode icon. */
+.ra-popup {
+  width: min(640px, calc(100vw - 32px));
+}
+.ra-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px 0;
+}
+.ra-title {
+  font-weight: 600;
+  color: var(--fg-strong);
+}
+.ra-context {
+  margin-left: auto;
+  font-size: var(--fs-small);
+}
+.ra-mode {
+  display: inline-grid;
+  place-items: center;
+  color: var(--success);
+}
+.ra-popup.debug .ra-mode {
+  color: var(--warning);
+}
+.ra-results {
+  max-height: 380px;
+}
+.ra-footer {
+  display: flex;
+  gap: 6px;
+}
+.ra-footer-sep {
+  color: var(--fg-faint);
+}
+.ra-row .se-label {
+  flex-shrink: 0;
+  max-width: 70%;
+}
