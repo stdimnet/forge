@@ -15,6 +15,15 @@
   text-overflow: ellipsis;
   color: var(--fg);
 }
+/* The change's name wins over the file hint next to it. */
+.lh-row .lh-name {
+  flex: 0 0 auto;
+  max-width: 78%;
+}
+.lh-row .history-renamed {
+  flex: 1 1 0;
+  min-width: 0;
+}
 .lh-label .lh-name {
   font-weight: 600;
   color: var(--fg-strong);
