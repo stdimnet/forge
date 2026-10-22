@@ -9,14 +9,14 @@
 import { createEffect, createMemo, createResource, createSignal, For, Match, on, onCleanup, Show, Switch } from "solid-js";
 import { Portal } from "solid-js/web";
 import { ChevronRight, Search } from "lucide-solid";
-import { activeTab, openFile, type EditorTab } from "@/state/editor";
+import { activeTab, type EditorTab } from "@/state/editor";
 import { FileIcon } from "@/shell/FileIcon";
 import { SymbolIcon } from "@/features/php/SymbolIcon";
 import { revealStructureNode } from "@/features/php/StructureView";
 import { symbolKindOf } from "@/features/codeStructure/breadcrumbs";
 import { createFuzzyFilter } from "@/features/search/fuzzyFilter";
 import { Highlight } from "@/features/search/SearchEverywhere";
-import { viewFor } from "@/editor/views";
+import { openFileAt, viewFor } from "@/editor/views";
 import {
   childrenOf,
   clearNavBarFocusRequest,
@@ -150,7 +150,7 @@ export function NavigationBar(props: { placement: NavBarPlacement; group?: numbe
       return;
     }
     leave();
-    if (item.kind === "file") await openFile(item.path);
+    if (item.kind === "file") await openFileAt(item.path);
     else if (item.node) revealStructureNode(item.path, item.node);
   };
 
@@ -160,7 +160,7 @@ export function NavigationBar(props: { placement: NavBarPlacement; group?: numbe
     if (!seg) return;
     if (seg.kind === "file" && seg.path !== tab()?.path) {
       leave();
-      void openFile(seg.path);
+      void openFileAt(seg.path);
     } else if (seg.kind === "file" && i === segments().length - 1) {
       leave();
     } else openPopup(i);
