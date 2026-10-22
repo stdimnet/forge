@@ -236,6 +236,7 @@ fn tab(id: &str) -> TabSpec {
         WRAPPING => "Wrapping and Braces",
         BLANK_LINES => "Blank Lines",
         "codeConversion" => "Code Conversion",
+        "imports" => "Imports",
         "punctuation" => "Punctuation",
         "case" => "Case",
         "other" => "Other",
@@ -651,6 +652,44 @@ fn php() -> LanguageSpec {
             "LOWER_CASE_BOOLEAN_CONST",
             XmlConv::Map(&[("lower", "true"), ("upper", "false")]),
         );
+    // Optimize Imports (Ctrl+Alt+O), Auto Import and every refactoring that adds a `use`
+    // statement arrange imports with these options (`phpforge_lang_php::imports`).
+    b.tab("imports")
+        .section("'use' statements")
+        .choice(
+            "imports.sort",
+            "Sort 'use' statements",
+            &[
+                ("alphabetic", "Alphabetically"),
+                ("byLength", "By length"),
+                ("none", "Don't sort"),
+            ],
+            "alphabetic",
+        )
+        .choice(
+            "imports.groupBy",
+            "Group 'use' statements",
+            &[
+                ("kind", "By kind: classes, functions, constants"),
+                ("namespace", "By kind and top-level namespace"),
+                ("none", "Don't group"),
+            ],
+            "kind",
+        )
+        .int(
+            "imports.blankLinesBetweenGroups",
+            "Blank lines between groups",
+            0,
+            3,
+            0,
+        )
+        .section("Inserting classes")
+        .bool(
+            "imports.preferFqn",
+            "Prefer fully qualified names (FQN) over imports",
+            false,
+        )
+        .describe("Completion and Import class insert '\\App\\Models\\User' instead of adding a 'use' statement.");
 
     let psr12 = json!({
         "useTabs": false, "tabSize": 4, "indent": 4, "continuationIndent": 4,
@@ -695,7 +734,7 @@ fn php() -> LanguageSpec {
         "php",
         "PHP",
         &["php"],
-        &["codeConversion"],
+        &["codeConversion", "imports"],
         b,
         vec![
             preset("psr12", "PSR-12", psr12),

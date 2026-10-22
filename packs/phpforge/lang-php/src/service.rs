@@ -148,13 +148,15 @@ pub fn intentions(
     offset: usize,
     options: &GenerateOptions,
 ) -> Vec<Intention> {
-    intentions::intentions(idx, path, text, utf16_to_byte(text, offset), options)
-        .into_iter()
-        .map(|mut i| {
-            i.edits = edits_to_utf16(text, std::mem::take(&mut i.edits));
-            i
-        })
-        .collect()
+    crate::imports::with_style(options.style.imports, || {
+        intentions::intentions(idx, path, text, utf16_to_byte(text, offset), options)
+    })
+    .into_iter()
+    .map(|mut i| {
+        i.edits = edits_to_utf16(text, std::mem::take(&mut i.edits));
+        i
+    })
+    .collect()
 }
 
 /// The edit importing `fqn` into `text` (the content of `path`), UTF-16 offsets: nothing
@@ -176,7 +178,12 @@ pub fn import_class(path: &str, text: &str, fqn: &str) -> Vec<TextEdit> {
     if in_namespace || imported {
         return vec![];
     }
-    edits_to_utf16(text, vec![intentions::add_import(&file, text, fqn)])
+    edits_to_utf16(
+        text,
+        intentions::add_import(&file, text, fqn)
+            .into_iter()
+            .collect(),
+    )
 }
 
 #[cfg(test)]

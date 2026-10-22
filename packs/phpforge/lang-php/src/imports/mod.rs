@@ -1,45 +1,117 @@
 //! Optimize Imports (Ctrl+Alt+O) for PHP: removes `use` imports that the file does not
-//! reference and sorts the rest (classes, then functions, then constants, each
-//! alphabetically), like PHPStorm. Code Cleanup removes unused imports without sorting.
+//! reference and arranges the rest by the code style's Imports options (sorted
+//! alphabetically or by length, grouped by kind or top-level namespace, blank lines between
+//! groups; see [`style`]), like PHPStorm. Code Cleanup and "Optimize imports on the fly"
+//! remove unused imports without rearranging the others.
 //!
 //! The analysis is conservative: a name counts as used when it appears anywhere in the code
 //! (types, `new`, static calls, attributes, function calls, constants) or in a comment
 //! (docblock types and annotations such as `@ORM\Column`), so an import is only removed
 //! when nothing can refer to it. Files with syntax errors are left alone.
+//!
+//! - [`style`]: the options and the scoped style of a call.
+//! - [`insert`]: the one helper that adds `use` statements (Import class, completion,
+//!   Create from usage, Move, Copy, Pull Members Up).
+//! - [`auto`]: Auto Import: unresolved class names and their candidates, the "Import class"
+//!   quick fix, completion, the import popup and the on-the-fly decisions.
+
+pub mod auto;
+pub mod insert;
+pub mod style;
 
 use std::collections::HashSet;
 
+use serde::{Deserialize, Serialize};
 use tree_sitter::Node;
 
 use crate::model::UseKind;
 use crate::parser::new_parser;
+pub use insert::{insert_imports, NewImport};
+pub use style::{with_style, ImportGrouping, ImportSort, ImportStyle};
 
-/// Remove unused imports and sort the remaining ones. `None` when nothing changes.
+/// Remove unused imports and arrange the remaining ones with the current style
+/// ([`style::current`]). `None` when nothing changes.
 pub fn optimize_imports(src: &str) -> Option<String> {
-    rewrite_imports(src, true)
+    optimize_imports_with(src, &style::current()).text
 }
 
 /// Remove unused imports, keeping the order of the others. `None` when nothing changes.
 pub fn remove_unused_imports(src: &str) -> Option<String> {
-    rewrite_imports(src, false)
+    let edits = import_edits(src, Mode::RemoveUnused, &style::current(), &|_, _| false)?;
+    (!edits.edits.is_empty()).then(|| apply_edits(src, edits.edits))
+}
+
+/// What Optimize Imports did to one file.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OptimizeReport {
+    /// The new text, `None` when nothing changes (or the file has syntax errors).
+    pub text: Option<String>,
+    /// Imports removed (unused or duplicate).
+    pub removed: usize,
+    /// The order or the grouping of the kept imports changed.
+    pub rearranged: bool,
+}
+
+impl OptimizeReport {
+    /// PHPStorm's notification: "Removed 2 imports, rearranged imports".
+    pub fn message(&self) -> String {
+        summary(self.removed, self.rearranged, 0)
+    }
+}
+
+/// "Removed 2 imports, added 1 import, rearranged imports" / "Imports are already optimized".
+pub fn summary(removed: usize, rearranged: bool, added: usize) -> String {
+    let plural = |n: usize| if n == 1 { "import" } else { "imports" };
+    let mut parts = Vec::new();
+    if removed > 0 {
+        parts.push(format!("removed {removed} {}", plural(removed)));
+    }
+    if added > 0 {
+        parts.push(format!("added {added} {}", plural(added)));
+    }
+    if rearranged {
+        parts.push("rearranged imports".to_string());
+    }
+    if parts.is_empty() {
+        return "Imports are already optimized".into();
+    }
+    let text = parts.join(", ");
+    let mut chars = text.chars();
+    match chars.next() {
+        Some(first) => first.to_uppercase().chain(chars).collect(),
+        None => text,
+    }
+}
+
+/// Optimize Imports with an explicit style, with what it changed.
+pub fn optimize_imports_with(src: &str, style: &ImportStyle) -> OptimizeReport {
+    let Some(outcome) = import_edits(src, Mode::Optimize, style, &|_, _| false) else {
+        return OptimizeReport::default();
+    };
+    OptimizeReport {
+        text: (!outcome.edits.is_empty()).then(|| apply_edits(src, outcome.edits)),
+        removed: outcome.removed.len(),
+        rearranged: outcome.rearranged,
+    }
 }
 
 /// One imported name of a `use` statement (group uses are expanded).
 #[derive(Debug, Clone, PartialEq, Eq)]
-struct Clause {
-    kind: UseKind,
-    fqn: String,
-    alias: Option<String>,
+pub(crate) struct Clause {
+    pub kind: UseKind,
+    pub fqn: String,
+    pub alias: Option<String>,
 }
 
 impl Clause {
-    fn local_name(&self) -> &str {
+    pub(crate) fn local_name(&self) -> &str {
         self.alias
             .as_deref()
             .unwrap_or_else(|| self.fqn.rsplit('\\').next().unwrap_or(&self.fqn))
     }
 
-    fn render(&self) -> String {
+    pub(crate) fn render(&self) -> String {
         let keyword = match self.kind {
             UseKind::Class => "",
             UseKind::Function => "function ",
@@ -48,14 +120,6 @@ impl Clause {
         match &self.alias {
             Some(a) => format!("use {keyword}{} as {a};", self.fqn),
             None => format!("use {keyword}{};", self.fqn),
-        }
-    }
-
-    fn kind_rank(&self) -> u8 {
-        match self.kind {
-            UseKind::Class => 0,
-            UseKind::Function => 1,
-            UseKind::Const => 2,
         }
     }
 }
@@ -217,7 +281,60 @@ fn line_start(src: &str, at: usize) -> usize {
     src[..at].rfind('\n').map_or(0, |i| i + 1)
 }
 
-fn rewrite_imports(src: &str, sort: bool) -> Option<String> {
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Mode {
+    /// Remove unused imports and arrange the rest.
+    Optimize,
+    /// Remove unused imports only.
+    RemoveUnused,
+}
+
+/// The edits of [`import_edits`] and what they do.
+#[derive(Debug, Default)]
+pub(crate) struct ImportEdits {
+    /// `(start, end, text)` in bytes.
+    pub edits: Vec<(usize, usize, String)>,
+    /// Removed imports (fully qualified names).
+    pub removed: Vec<String>,
+    pub rearranged: bool,
+}
+
+/// One `use` block as Optimize Imports sees it (for the on-the-fly decisions).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct BlockSpan {
+    pub start: usize,
+    pub end: usize,
+}
+
+/// The `use` blocks of a file (byte ranges of the statements), empty with syntax errors.
+pub(crate) fn block_spans(src: &str) -> Vec<BlockSpan> {
+    let Some(tree) = new_parser().parse(src, None) else {
+        return vec![];
+    };
+    let root = tree.root_node();
+    if root.has_error() {
+        return vec![];
+    }
+    let mut blocks = Vec::new();
+    import_blocks(root, src, &mut blocks);
+    blocks
+        .iter()
+        .map(|b| BlockSpan {
+            start: b[0].start_byte(),
+            end: b[b.len() - 1].end_byte(),
+        })
+        .collect()
+}
+
+/// The edits removing unused imports (and arranging the rest in [`Mode::Optimize`]).
+/// `keep` protects imports from removal (on the fly: the one the user is typing a usage
+/// of). `None` for files with syntax errors.
+pub(crate) fn import_edits(
+    src: &str,
+    mode: Mode,
+    style: &ImportStyle,
+    keep: &dyn Fn(&str, usize) -> bool,
+) -> Option<ImportEdits> {
     let tree = new_parser().parse(src, None)?;
     let root = tree.root_node();
     if root.has_error() {
@@ -228,53 +345,113 @@ fn rewrite_imports(src: &str, sort: bool) -> Option<String> {
     let mut blocks = Vec::new();
     import_blocks(root, src, &mut blocks);
 
-    // (start, end, replacement), applied back to front.
-    let mut edits: Vec<(usize, usize, String)> = Vec::new();
+    let mut out = ImportEdits::default();
     for block in &blocks {
         let (first, last) = (block[0], block[block.len() - 1]);
-        let all: Vec<Clause> = block.iter().flat_map(|d| clauses_of(*d, src)).collect();
+        let (start, end) = (first.start_byte(), last.end_byte());
+        // Per statement: its clauses and whether each one stays.
         let mut kept: Vec<Clause> = Vec::new();
-        for c in all.iter().filter(|c| usages.uses(c)) {
-            let dup = kept.iter().any(|k| {
-                k.kind == c.kind && k.fqn.eq_ignore_ascii_case(&c.fqn) && k.alias == c.alias
-            });
-            if !dup {
-                kept.push(c.clone());
+        let mut decls: Vec<(Node, Vec<Clause>, Vec<bool>)> = Vec::new();
+        for decl in block {
+            let clauses = clauses_of(*decl, src);
+            let mut stays = Vec::with_capacity(clauses.len());
+            for c in &clauses {
+                let used = usages.uses(c) || keep(c.local_name(), start);
+                let dup = kept.iter().any(|k| {
+                    k.kind == c.kind && k.fqn.eq_ignore_ascii_case(&c.fqn) && k.alias == c.alias
+                });
+                if used && !dup {
+                    kept.push(c.clone());
+                } else {
+                    out.removed.push(c.fqn.clone());
+                }
+                stays.push(used && !dup);
             }
+            decls.push((*decl, clauses, stays));
         }
-        if sort {
-            kept.sort_by(|a, b| {
-                a.kind_rank()
-                    .cmp(&b.kind_rank())
-                    .then_with(|| a.fqn.to_lowercase().cmp(&b.fqn.to_lowercase()))
-                    .then_with(|| a.alias.cmp(&b.alias))
-            });
-        }
-        if kept == all && !sort {
-            continue;
-        }
-        let start = first.start_byte();
-        let end = last.end_byte();
+        let removed_here = decls.iter().any(|(_, _, stays)| stays.iter().any(|s| !s));
         if kept.is_empty() {
-            edits.push(remove_lines(src, start, end));
+            out.edits.push(remove_lines(src, start, end));
             continue;
         }
         let ls = line_start(src, start);
         let indent = &src[ls..start];
         let indent = if indent.trim().is_empty() { indent } else { "" };
-        let text = kept
-            .iter()
-            .map(Clause::render)
-            .collect::<Vec<_>>()
-            .join(&format!("\n{indent}"));
-        if text != src[start..end] {
-            edits.push((start, end, text));
+        match mode {
+            Mode::RemoveUnused => {
+                if !removed_here {
+                    continue;
+                }
+                // Statement by statement, so the others keep their layout.
+                for (decl, clauses, stays) in &decls {
+                    if stays.iter().all(|s| *s) {
+                        continue;
+                    }
+                    let (ds, de) = (decl.start_byte(), decl.end_byte());
+                    if stays.iter().all(|s| !s) {
+                        out.edits.push(remove_lines(src, ds, de));
+                        continue;
+                    }
+                    let text = clauses
+                        .iter()
+                        .zip(stays)
+                        .filter(|(_, s)| **s)
+                        .map(|(c, _)| c.render())
+                        .collect::<Vec<_>>()
+                        .join(&format!("\n{indent}"));
+                    out.edits.push((ds, de, text));
+                }
+            }
+            Mode::Optimize => {
+                let arranged = arrange(&kept, style);
+                let order_changed = arranged.iter().flatten().ne(kept.iter());
+                let text = arranged
+                    .iter()
+                    .map(|group| {
+                        group
+                            .iter()
+                            .map(Clause::render)
+                            .collect::<Vec<_>>()
+                            .join(&format!("\n{indent}"))
+                    })
+                    .collect::<Vec<_>>()
+                    .join(&format!("{}{indent}", style.group_separator()));
+                if text != src[start..end] {
+                    out.rearranged |= order_changed || !removed_here;
+                    out.edits.push((start, end, text));
+                }
+            }
         }
     }
-    if edits.is_empty() {
-        return None;
+    Some(out)
+}
+
+/// The kept imports of a block in groups, each sorted by the style.
+fn arrange(kept: &[Clause], style: &ImportStyle) -> Vec<Vec<Clause>> {
+    let mut groups: Vec<((u8, String), Vec<Clause>)> = Vec::new();
+    for c in kept {
+        let key = style.group_of(c.kind, &c.fqn);
+        match groups.iter_mut().find(|(k, _)| *k == key) {
+            Some((_, g)) => g.push(c.clone()),
+            None => groups.push((key, vec![c.clone()])),
+        }
     }
-    Some(apply_edits(src, edits))
+    groups.sort_by(|a, b| a.0.cmp(&b.0));
+    groups
+        .into_iter()
+        .map(|(_, mut g)| {
+            // Stable: "Don't sort" keeps the order.
+            g.sort_by(|a, b| {
+                style
+                    .compare(&a.fqn, &a.render(), &b.fqn, &b.render())
+                    .then_with(|| match style.sort {
+                        ImportSort::None => std::cmp::Ordering::Equal,
+                        _ => a.alias.cmp(&b.alias),
+                    })
+            });
+            g
+        })
+        .collect()
 }
 
 /// Apply non-overlapping `(start, end, text)` edits.
@@ -401,6 +578,61 @@ mod tests {
     fn files_with_syntax_errors_are_not_touched() {
         let src = "<?php\nuse A\\Gone;\nclass {\n";
         assert_eq!(optimize_imports(src), None);
+    }
+
+    #[test]
+    fn optimize_follows_the_code_style() {
+        let src = "<?php\nnamespace App;\n\nuse Symfony\\Yaml;\nuse function App\\helper;\nuse App\\Models\\User;\nuse Exception;\nuse App\\Gone;\nuse Illuminate\\Support\\Str;\n\nhelper(new User(), new Exception(), new Yaml(), Str::of(''));\n";
+        let grouped = ImportStyle {
+            group_by: ImportGrouping::Namespace,
+            blank_lines_between_groups: 1,
+            ..Default::default()
+        };
+        let report = optimize_imports_with(src, &grouped);
+        assert_eq!(
+            report.text.as_deref().unwrap(),
+            "<?php\nnamespace App;\n\nuse Exception;\n\nuse App\\Models\\User;\n\nuse Illuminate\\Support\\Str;\n\nuse Symfony\\Yaml;\n\nuse function App\\helper;\n\nhelper(new User(), new Exception(), new Yaml(), Str::of(''));\n"
+        );
+        assert_eq!(report.removed, 1);
+        assert!(report.rearranged);
+        assert_eq!(report.message(), "Removed 1 import, rearranged imports");
+        // Optimizing again changes nothing.
+        let again = optimize_imports_with(report.text.as_deref().unwrap(), &grouped);
+        assert_eq!(again.text, None);
+        assert_eq!(again.message(), "Imports are already optimized");
+
+        let by_length = ImportStyle {
+            sort: ImportSort::ByLength,
+            group_by: ImportGrouping::None,
+            ..Default::default()
+        };
+        assert_eq!(
+            optimize_imports_with(src, &by_length).text.unwrap(),
+            "<?php\nnamespace App;\n\nuse Exception;\nuse Symfony\\Yaml;\nuse App\\Models\\User;\nuse function App\\helper;\nuse Illuminate\\Support\\Str;\n\nhelper(new User(), new Exception(), new Yaml(), Str::of(''));\n"
+        );
+        // The scoped style is what `optimize_imports` (Actions on Save) uses.
+        assert_eq!(
+            with_style(by_length, || optimize_imports(src)),
+            optimize_imports_with(src, &by_length).text
+        );
+    }
+
+    #[test]
+    fn removing_only_keeps_the_layout_of_the_others() {
+        let src = "<?php\nuse B\\Two;\n\nuse A\\{One, Gone};\nuse function f\\gone;\n\nnew Two(); new One();\n";
+        let report = optimize_imports_with(src, &ImportStyle::default());
+        assert_eq!(report.removed, 2);
+        assert_eq!(
+            remove_unused_imports(src).unwrap(),
+            "<?php\nuse B\\Two;\n\nuse A\\One;\n\nnew Two(); new One();\n"
+        );
+    }
+
+    #[test]
+    fn summaries() {
+        assert_eq!(summary(2, false, 0), "Removed 2 imports");
+        assert_eq!(summary(0, true, 1), "Added 1 import, rearranged imports");
+        assert_eq!(summary(0, true, 0), "Rearranged imports");
     }
 
     #[test]
