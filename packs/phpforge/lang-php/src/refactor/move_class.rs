@@ -145,6 +145,26 @@ pub fn class_at(src: &str, pos: usize) -> Option<ClassInfo> {
     info_of(class, root, src)
 }
 
+/// The class whose header (name, `extends`, `implements`) the caret is in.
+pub fn class_in_header(src: &str, pos: usize) -> Option<ClassInfo> {
+    let tree = parse(src)?;
+    let root = tree.root_node();
+    let mut n = root.descendant_for_byte_range(pos, pos)?;
+    let class = loop {
+        if class_kind(n).is_some() {
+            break n;
+        }
+        n = n.parent()?;
+    };
+    if class
+        .child_by_field_name("body")
+        .is_some_and(|b| pos > b.start_byte())
+    {
+        return None;
+    }
+    info_of(class, root, src)
+}
+
 /// The class declarations of a file.
 pub fn classes_in(src: &str) -> Vec<ClassInfo> {
     let Some(tree) = parse(src) else {
@@ -742,6 +762,26 @@ pub fn copy_class_text(
     let renamed = apply_edits(&single, &tidy(renames));
     let moves = [ClassMove::new(info.fqn.clone(), qualify(new_ns, new_name))];
     moved_text(&renamed, "copy.php", &moves, &[], Some(new_ns))
+}
+
+/// Fully qualified references to `fqn` in the code and PHPDoc of `src` (a class naming
+/// itself in a file Move Class creates).
+pub fn fq_references(src: &str, fqn: &str) -> Vec<Span> {
+    let Some(tree) = parse(src) else {
+        return vec![];
+    };
+    let root = tree.root_node();
+    let mut names = code_class_names(root, src);
+    names.extend(all_doc_class_names(root, src));
+    names
+        .into_iter()
+        .filter(|n| n.is_fully_qualified() && n.text[1..].eq_ignore_ascii_case(fqn))
+        .map(|n| {
+            // The short name, like a usage Find Usages reports.
+            let short = short_name(&n.text).len();
+            Span::new(n.span.end - short, n.span.end)
+        })
+        .collect()
 }
 
 /// The PSR-4 file name of a class: `<dir>/<Name>.php`.

@@ -109,6 +109,22 @@ pub fn signature_at(src: &str, pos: usize) -> Result<SignatureInfo, String> {
     Ok(info_of(f, src))
 }
 
+/// The method or function whose header (name, parameters, return type) the caret is in.
+pub fn signature_in_header(src: &str, pos: usize) -> Result<SignatureInfo, String> {
+    let tree = parse(src).ok_or_else(|| cannot("The file cannot be parsed"))?;
+    let f = function_node(tree.root_node(), pos)
+        .filter(|f| {
+            f.child_by_field_name("body")
+                .is_none_or(|b| pos <= b.start_byte())
+        })
+        .ok_or_else(|| {
+            cannot(
+                "Caret should be positioned at the name of the method or function to be refactored",
+            )
+        })?;
+    Ok(info_of(f, src))
+}
+
 /// The signature of the declaration whose name is at `name_span` (overriding methods).
 pub fn signature_of(src: &str, name_span: Span) -> Option<SignatureInfo> {
     let tree = parse(src)?;
@@ -756,14 +772,7 @@ fn new_arguments(
             },
         };
         if values.is_empty() {
-            let optional = p.variadic
-                || match p.original {
-                    Some(i) => {
-                        info.parameters[i].default_value.is_some()
-                            || non_empty(&p.default_value).is_some()
-                    }
-                    None => non_empty(&p.default_value).is_some(),
-                };
+            let optional = p.variadic || non_empty(&p.default_value).is_some();
             if !optional {
                 return Err(format!("No value for the parameter ${new_name}"));
             }
