@@ -29,6 +29,9 @@ Settings written by Forge itself and not declared in a manifest:
 | `langservers.servers.<id>.path` | custom executable of a language server |
 | `langservers.servers.<id>.settings` | extra JSON settings of a language server |
 | `langservers.hints.dismissed` | servers whose install banner was turned off (also declared below) |
+| `<language>.codeStyle.<option>`, `editor.codeStyle.<option>` | the code style options of the Default scheme (user settings) and the Project scheme (project settings), e.g. `php.codeStyle.indent`, `php.codeStyle.spaces.afterComma`, `editor.codeStyle.hardWrapAt`; the options are listed in [Editor](../user/editor.md#code-style) and defined in `crates/forge-codestyle` |
+| `editor.codeStyle.scheme` | the scheme the project uses: `default`, `project` or an IDE scheme id |
+| `editor.codeStyle.schemes.<id>.name`, `editor.codeStyle.schemes.<id>.values.<language>.<option>` | further IDE code style schemes (Duplicate, Copy to IDE, Import Scheme) |
 
 ### Appearance & Behavior | Appearance
 
@@ -151,31 +154,14 @@ Page id `editor.font`.
 
 ### Editor | Code Style
 
-Page id `editor.code-style`.
+Page id `editor.code-style`; the language pages are `editor.code-style.<language>`
+(`editor.code-style.php`, …). The scheme options are not declared in a manifest, see the
+table of keys Forge writes itself above.
 
 | Key | Type | Default | Scope | Section | Title and description |
 | --- | --- | --- | --- | --- | --- |
-| `editor.codeStyle.lineSeparator` | enum: `lf`, `crlf`, `system` | `lf` | user, project |  | Line separator — For new files. Existing files keep theirs; change it in the status bar. |
-| `editor.codeStyle.hardWrapAt` | int (40–400) | `120` | user, project |  | Hard wrap at (columns) — The right margin, drawn as a line in the editor. EditorConfig's max_line_length overrides it. |
-| `editor.codeStyle.visualGuides` | string | `120` | user, project |  | Visual guides — Comma-separated column numbers, e.g. 80, 120. |
 | `editor.codeStyle.useEditorConfig` | bool | `true` | user, project |  | Enable EditorConfig support — Indents, line separators, charset and the On Save options of .editorconfig files override these settings. |
 | `editor.codeStyle.detectIndents` | bool | `true` | user, project |  | Detect and use existing file indents for editing — Files indented differently from the code style keep their indent; the status bar marks it with *. |
-
-### Editor | Code Style | PHP
-
-Page id `editor.code-style.php`.
-
-| Key | Type | Default | Scope | Section | Title and description |
-| --- | --- | --- | --- | --- | --- |
-| `php.codeStyle.useTabs` | bool | `false` | user, project | Tabs and Indents | Use tab character |
-| `php.codeStyle.tabSize` | int (1–16) | `4` | user, project | Tabs and Indents | Tab size |
-| `php.codeStyle.indent` | int (0–16) | `4` | user, project | Tabs and Indents | Indent |
-| `php.codeStyle.continuationIndent` | int (0–16) | `4` | user, project | Tabs and Indents | Continuation indent |
-| `php.codeStyle.braces` | enum: `psr12`, `allman`, `kr` | `psr12` | user, project | Braces Placement | Braces placement — Used by Reformat Code (Intelephense's formatter) and the Generate actions (Alt+Insert). |
-| `php.codeStyle.blankLines.keepMax` | int (0–10) | `2` | user, project | Blank Lines | Keep maximum blank lines in code — Blank lines are applied by Reformat Code (Ctrl+Alt+L); strings, heredocs and comments are left as they are. |
-| `php.codeStyle.blankLines.afterNamespace` | int (0–10) | `1` | user, project | Blank Lines | After namespace |
-| `php.codeStyle.blankLines.afterImports` | int (0–10) | `1` | user, project | Blank Lines | After imports |
-| `php.codeStyle.blankLines.aroundMethods` | int (0–10) | `1` | user, project | Blank Lines | Around method |
 
 ### Editor | File and Code Templates
 

@@ -48,7 +48,10 @@ Regenerate the snapshot: `FORGE_UPDATE_SNAPSHOTS=1 cargo test -p forge-app`.
 `registerSettingsPage` and usually render `<SchemaPage pageId="…" />` (optionally with extra
 content, see the Docker page's Test Connection). Custom pages (tables, test buttons) are plain
 components that use `draftValue`/`setDraft` from `features/settings/dialogState.ts` so OK,
-Cancel and Apply work. Open a page programmatically with `openSettings("<page id>")`.
+Cancel and Apply work. Pages whose edits are not plain settings keep them in their own store
+and register it with `registerDraftSource({ modified, hasChanges, apply, discard, resetPage })`
+(the Code Style schemes do), so the tree marks, Reset, Apply, OK and Cancel include them. Open
+a page programmatically with `openSettings("<page id>")`.
 
 The dialog's search, highlighting and validation are computed in Rust
 (`forge_plugin_api::settings_model`, `settings_validate`).

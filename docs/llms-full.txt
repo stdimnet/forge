@@ -1433,7 +1433,9 @@ after a short pause (red when a quick fix is available); click it to open the po
 
 **Reformat Code** (`Ctrl+Alt+L`, macOS `Cmd+Alt+L`) formats the file with the language
 server's document formatting. Lua files use StyLua when it is installed (see
-[LuaForge](docs/guide/user/luaforge.md)).
+[LuaForge](docs/guide/user/luaforge.md)). The server gets the [code style](#code-style) of the file's
+language, and Forge then applies the options the server does not know (see
+[Code style](#code-style)).
 
 ## Editing actions
 
@@ -1641,25 +1643,111 @@ the Project view and Git status (`system.syncExternalChanges`).
 
 ## Code style
 
-Settings | Editor | Code Style sets what new code looks like:
+![Code style of PHP](docs/screenshots/code-style-php-spaces.png)
 
-- **Line separator** for new files (`editor.codeStyle.lineSeparator`: LF, CRLF or the
-  system's); existing files keep theirs.
-- **Hard wrap at** (`editor.codeStyle.hardWrapAt`, 120) draws the right margin, **Visual
-  guides** (`editor.codeStyle.visualGuides`, e.g. `80, 120`) more vertical lines.
+Settings | Editor | Code Style works like PHPStorm's: a **scheme** holds every option, the
+**Code Style** page sets the general ones and each language has a page of its own (PHP,
+HTML, CSS/SCSS/Less, JavaScript, TypeScript, JSON, YAML, Lua, Blade, Twig, SQL, XML,
+Markdown).
+
+### Schemes
+
+The **Scheme** box at the top of every page selects the scheme the project uses, and the
+pages edit the selected scheme:
+
+- **Default** (stored in the IDE, in your user settings) applies to projects that have no
+  scheme of their own.
+- **Project** (stored in the project, `.forge/settings.toml`, so it can be committed) is the
+  project's own scheme. Options it does not set come from Default.
+- More IDE schemes come from **Duplicate…**, **Copy to IDE…** and **Import Scheme**.
+
+The ⚙ button next to the box opens the scheme actions: **Copy to Project…** (the current IDE
+scheme becomes the Project scheme), **Copy to IDE…**, **Duplicate…**, **Rename…** and
+**Delete** (for your own IDE schemes), **Reset** (the built-in defaults; the Project scheme
+goes back to Default's values), **Export** and **Import Scheme**. Schemes are exported as
+**IntelliJ IDEA code style XML** (the `<code_scheme>` format of PHPStorm's
+`.idea/codeStyles/*.xml`; options PHPStorm has no name for are kept in a
+`<ForgeCodeStyleSettings>` element) or as **Forge code style JSON** with every option.
+Importing reads either format, also a PHPStorm `Project.xml`, into the current scheme or a new
+one. Like every page of the Settings dialog, the changes apply with **Apply** or **OK**.
+
+![Scheme actions](docs/screenshots/code-style-scheme-menu.png)
+
+The settings keys did not change: the Default scheme is stored under `<language>.codeStyle.*`
+(`php.codeStyle.indent`) and `editor.codeStyle.*` in the user settings, the Project scheme
+under the same keys in the project settings, other IDE schemes under
+`editor.codeStyle.schemes.<id>.*`, and `editor.codeStyle.scheme` names the project's scheme.
+Settings files of older versions keep working; their single PHP brace option
+(`php.codeStyle.braces`) becomes the three brace options of the PHP page.
+
+### General
+
+![Code Style General](docs/screenshots/code-style-general.png)
+
+- **Line separator** for new files (LF, CRLF or the system's); existing files keep theirs.
+- **Hard wrap at** (120) draws the right margin, **Visual guides** (e.g. `80, 120`) more
+  vertical lines.
+- **Detect and use existing file indents for editing** (`editor.codeStyle.detectIndents`): a
+  file indented differently from the code style (2 spaces in a 4-space project, tabs) keeps
+  its indent while you edit it.
 - **Enable EditorConfig support** (`editor.codeStyle.useEditorConfig`): `.editorconfig` files
   from the project root down to the file set `indent_style`, `indent_size`, `tab_width`,
   `end_of_line` (for new files), `max_line_length`, `trim_trailing_whitespace` and
-  `insert_final_newline`; they win over the settings. A `charset` the file does not have is
+  `insert_final_newline`; they win over the scheme. A `charset` the file does not have is
   named in the encoding tooltip.
-- **Detect and use existing file indents for editing**
-  (`editor.codeStyle.detectIndents`): a file indented differently from the code style (2
-  spaces in a 4-space project, tabs) keeps its indent while you edit it.
+- The **Formatter** tab: **Turn formatter on/off with markers in code comments**. Lines
+  between a comment with `@formatter:off` and one with `@formatter:on` (the markers can be
+  changed) keep their text when you reformat; the preview shows it.
 
-The language pages (Code Style | PHP) set **Use tab character**, **Tab size**, **Indent** and
-**Continuation indent** (method chains continue one continuation indent deeper). Enter, `Tab`
-and Reformat Code use the result; PHP's brace placement and blank lines are described in
-[PHP](docs/guide/user/php.md#code-style).
+### Language pages
+
+![Code style of JavaScript](docs/screenshots/code-style-javascript.png)
+
+Each language page has PHPStorm's tabs, the options on the left and a preview on the right
+that is formatted again as you change an option:
+
+- **Tabs and Indents**: Use tab character, Tab size, Indent, Continuation indent and Keep
+  indents on empty lines (YAML: Indent sequence value). Enter, `Tab`, the status bar's indent
+  and Reformat Code use them.
+- **Spaces**: before parentheses, around operators, within parentheses, brackets and braces,
+  before and after commas and colons, … (as far as the language has them).
+- **Wrapping and Braces**: brace placement (End of line / Next line), `else`/`catch`/`finally`
+  on a new line (PHP), one selector per line (CSS), wrapping of objects and arrays (JSON),
+  attributes (HTML, XML), long text (YAML), simple statements on one line (Lua).
+- **Blank Lines**: Keep maximum blank lines in code, plus minimums (PHP: after namespace,
+  after imports, around methods, before `return`; CSS: around rules; Markdown: around headers
+  and block elements).
+- Language tabs: **Code Conversion** (PHP: short or long array syntax, a comma after the last
+  element of multi-line arrays, the case of `true`/`false`/`null`), **Punctuation**
+  (JavaScript/TypeScript: semicolons, quotes), **Case** (SQL keywords), **Other** (CSS hex
+  color case, YAML quotes, HTML "Do not indent children of", Lua quotes and call parentheses
+  for StyLua and lua-language-server).
+
+**Set from…** (top right) sets a language's options from a predefined style: PHP **PSR-12**,
+**PER Coding Style 2.0**, **Symfony**, **Laravel**, **WordPress** and **Drupal**; JavaScript
+and TypeScript **JavaScript Standard Style**, **Airbnb-like** and **Prettier defaults**;
+CSS **stylelint-config-standard**; Lua **StyLua defaults** and **2 spaces, single quotes**;
+SQL **Upper case keywords**.
+
+![PHP set from WordPress](docs/screenshots/code-style-php-wordpress.png)
+
+### What Reformat Code uses
+
+Indents come from the scheme unless EditorConfig or the detected indent of the file wins
+(see above). Then:
+
+- The language server gets the options in its settings before it formats: Intelephense the
+  brace placement, typescript-language-server the spaces, braces, semicolons and quote
+  preference (`typescript.format` / `javascript.format`), the CSS, HTML, JSON, YAML and XML
+  servers their `format` settings, lua-language-server its `Lua.format.defaultConfig`.
+  StyLua gets indent, column width, quotes, call parentheses and simple statements on its
+  command line when the project has no `stylua.toml`.
+- Forge then applies what the formatter does not know, on the lines as they are: in PHP the
+  spaces, brace and `else`/`catch`/`finally` placement and the code conversions (and the blank
+  lines, see [PHP](docs/guide/user/php.md#code-style)); quotes in `.js`/`.ts` files without JSX; hex colors in
+  CSS; SQL keyword case; Markdown's spaces and blank lines; the spaces inside Blade and Twig
+  delimiters; Keep maximum blank lines; Keep indents on empty lines; and the formatter
+  markers. Strings, heredocs, comments and code blocks keep their text.
 
 ## Line separator, encoding and indent
 
@@ -1891,7 +1979,7 @@ project ("For current project"), so a team can share them in `.forge/settings.to
 
 | Action | Files | What it does | Configure… |
 | --- | --- | --- | --- |
-| **Reformat code** | the chosen file types (default: all) | Reformat Code (`Ctrl+Alt+L`): the language server's formatter, StyLua for Lua, plus the blank lines of the PHP code style. **Whole file** or **Changed lines** (only lines changed since the last commit; files that are not committed yet are reformatted completely). | Editor \| Code Style |
+| **Reformat code** | the chosen file types (default: all) | Reformat Code (`Ctrl+Alt+L`): the language server's formatter, StyLua for Lua, plus the options of the [code style](docs/guide/user/editor.md#code-style) the formatter does not know. **Whole file** or **Changed lines** (only lines changed since the last commit; files that are not committed yet are reformatted completely). | Editor \| Code Style |
 | **Optimize imports** | PHP | Removes unused `use` imports and sorts the rest: classes, then functions, then constants, each alphabetically. Group uses (`use A\{B, C};`) are split into single imports. | |
 | **Rearrange code** | PHP | Orders the members of classes, interfaces, traits and enums: trait `use`, enum cases, constants, properties, the constructor, the other methods. Members keep their order inside a group; docblocks, attributes and comments move with their member and blank lines stay where they were. | |
 | **Run code cleanup** | PHP | Applies the safe quick fixes: removes unused imports, unnecessary semicolons (`;;`, `};`) and the redundant closing tag `?>` at the end of a pure PHP file. | |
@@ -5716,7 +5804,7 @@ dialog, with the same tree as PHPStorm:
 
 - **Appearance & Behavior**: Appearance, System Settings
 - **Keymap**
-- **Editor**: General, Font, Code Style (PHP), Inlay Hints
+- **Editor**: General, Font, Code Style (schemes, General and one page per language), Inlay Hints
 - **Plugins**
 - **Version Control**: Git, GitLab, Forgejo / Gitea, GitHub
 - **Languages & Frameworks**: Language Servers, PHP (Composer, Debug, Servers, Laravel,
@@ -6243,17 +6331,34 @@ Run Composer scripts with a **Composer Script** run configuration, see
 
 ![PHP code style](docs/screenshots/settings-code-style-php.png)
 
-Settings | Editor | Code Style | PHP:
+Settings | Editor | Code Style | PHP (schemes, presets and the preview are described in
+[Editor](docs/guide/user/editor.md#code-style)):
 
-- **Tabs and Indents** (tab character, tab size, indent, continuation indent) apply while you
-  type, to Reformat Code and to the status bar's indent, see [Editor](docs/guide/user/editor.md#code-style).
-- **Braces placement** (`php.codeStyle.braces`): PSR-12 (next line for classes and functions,
-  end of line otherwise), next line everywhere or end of line everywhere. Reformat Code passes
-  it to Intelephense's formatter; the [Generate](#generate) actions write methods with it.
-- **Blank Lines**: after Reformat Code (`Ctrl+Alt+L`) Forge cuts runs of blank lines to
-  **Keep maximum blank lines in code** and sets the blank lines **After namespace**, **After
-  imports** and **Around method** (at least). Strings, heredocs and comments are never
-  changed. Generated methods are separated by "Around method" blank lines.
+- **Set from…** sets every PHP option from **PSR-12**, **PER Coding Style 2.0**, **Symfony**,
+  **Laravel** (Pint's `laravel` preset), **WordPress** or **Drupal**.
+- **Tabs and Indents** (tab character, tab size, indent, continuation indent, indents on
+  empty lines) apply while you type, to Reformat Code and to the status bar's indent.
+- **Spaces**: before the parentheses of declarations, calls, anonymous and arrow functions,
+  `if`, `for`/`foreach`, `while`, `switch`/`match` and `catch`; around assignment, logical,
+  equality, relational, additive and multiplicative operators, concatenation (`.`), `??`
+  and `=>`; within parentheses (WordPress' `foo( $a )`); before/after commas, after type
+  casts (`(int) $a`) and after `!` (Laravel's `! $a`).
+- **Wrapping and Braces**: brace placement in class declarations, function declarations and
+  other blocks (End of line / Next line; a multi-line parameter list keeps `) {` together as
+  PSR-12 says, and empty bodies stay `{}`), and `else`, `catch` and `finally` on a new line.
+  Intelephense formats with the closest of its brace styles; the Generate actions write
+  methods with the function brace placement.
+- **Blank Lines**: Forge cuts runs of blank lines to **Keep maximum blank lines in code** and
+  sets the blank lines **After namespace**, **After imports**, **Around method** (at least)
+  and **Before return statement** (Symfony and Laravel: one). Generated methods are separated
+  by "Around method" blank lines.
+- **Code Conversion**: array declaration style (keep, short `[]` or long `array()`), a comma
+  after the last element of multi-line arrays, and `true`/`false`/`null` in lower or upper
+  case.
+
+Reformat Code (`Ctrl+Alt+L`) lets Intelephense format the file and then applies the spaces,
+brace placement, blank lines and conversions on the lines as they are. Strings, heredocs,
+comments and inline HTML are never changed.
 
 ### Quality Tools
 
@@ -6843,7 +6948,9 @@ lua-language-server`) or from its releases.
 ## StyLua
 
 **Reformat Code** (`Ctrl+Alt+L`) formats Lua files with StyLua when it is installed; the
-project's `stylua.toml` is honoured. Settings: **Reformat Code with StyLua**
+project's `stylua.toml` is honoured. Without one, StyLua gets the Lua
+[code style](docs/guide/user/editor.md#code-style) (indent, hard wrap, quotes, call parentheses, simple
+statements on one line) on its command line. Settings: **Reformat Code with StyLua**
 (`lua.stylua.enabled`, on) and **StyLua executable** (`lua.stylua.path`, `stylua`). In a
 [remote project](docs/guide/user/remote-development.md) StyLua runs on the host (install it there).
 
@@ -9656,6 +9763,9 @@ Settings written by Forge itself and not declared in a manifest:
 | `langservers.servers.<id>.path` | custom executable of a language server |
 | `langservers.servers.<id>.settings` | extra JSON settings of a language server |
 | `langservers.hints.dismissed` | servers whose install banner was turned off (also declared below) |
+| `<language>.codeStyle.<option>`, `editor.codeStyle.<option>` | the code style options of the Default scheme (user settings) and the Project scheme (project settings), e.g. `php.codeStyle.indent`, `php.codeStyle.spaces.afterComma`, `editor.codeStyle.hardWrapAt`; the options are listed in [Editor](docs/guide/user/editor.md#code-style) and defined in `crates/forge-codestyle` |
+| `editor.codeStyle.scheme` | the scheme the project uses: `default`, `project` or an IDE scheme id |
+| `editor.codeStyle.schemes.<id>.name`, `editor.codeStyle.schemes.<id>.values.<language>.<option>` | further IDE code style schemes (Duplicate, Copy to IDE, Import Scheme) |
 
 ### Appearance & Behavior | Appearance
 
@@ -9778,31 +9888,14 @@ Page id `editor.font`.
 
 ### Editor | Code Style
 
-Page id `editor.code-style`.
+Page id `editor.code-style`; the language pages are `editor.code-style.<language>`
+(`editor.code-style.php`, …). The scheme options are not declared in a manifest, see the
+table of keys Forge writes itself above.
 
 | Key | Type | Default | Scope | Section | Title and description |
 | --- | --- | --- | --- | --- | --- |
-| `editor.codeStyle.lineSeparator` | enum: `lf`, `crlf`, `system` | `lf` | user, project |  | Line separator — For new files. Existing files keep theirs; change it in the status bar. |
-| `editor.codeStyle.hardWrapAt` | int (40–400) | `120` | user, project |  | Hard wrap at (columns) — The right margin, drawn as a line in the editor. EditorConfig's max_line_length overrides it. |
-| `editor.codeStyle.visualGuides` | string | `120` | user, project |  | Visual guides — Comma-separated column numbers, e.g. 80, 120. |
 | `editor.codeStyle.useEditorConfig` | bool | `true` | user, project |  | Enable EditorConfig support — Indents, line separators, charset and the On Save options of .editorconfig files override these settings. |
 | `editor.codeStyle.detectIndents` | bool | `true` | user, project |  | Detect and use existing file indents for editing — Files indented differently from the code style keep their indent; the status bar marks it with *. |
-
-### Editor | Code Style | PHP
-
-Page id `editor.code-style.php`.
-
-| Key | Type | Default | Scope | Section | Title and description |
-| --- | --- | --- | --- | --- | --- |
-| `php.codeStyle.useTabs` | bool | `false` | user, project | Tabs and Indents | Use tab character |
-| `php.codeStyle.tabSize` | int (1–16) | `4` | user, project | Tabs and Indents | Tab size |
-| `php.codeStyle.indent` | int (0–16) | `4` | user, project | Tabs and Indents | Indent |
-| `php.codeStyle.continuationIndent` | int (0–16) | `4` | user, project | Tabs and Indents | Continuation indent |
-| `php.codeStyle.braces` | enum: `psr12`, `allman`, `kr` | `psr12` | user, project | Braces Placement | Braces placement — Used by Reformat Code (Intelephense's formatter) and the Generate actions (Alt+Insert). |
-| `php.codeStyle.blankLines.keepMax` | int (0–10) | `2` | user, project | Blank Lines | Keep maximum blank lines in code — Blank lines are applied by Reformat Code (Ctrl+Alt+L); strings, heredocs and comments are left as they are. |
-| `php.codeStyle.blankLines.afterNamespace` | int (0–10) | `1` | user, project | Blank Lines | After namespace |
-| `php.codeStyle.blankLines.afterImports` | int (0–10) | `1` | user, project | Blank Lines | After imports |
-| `php.codeStyle.blankLines.aroundMethods` | int (0–10) | `1` | user, project | Blank Lines | Around method |
 
 ### Editor | File and Code Templates
 
@@ -12011,7 +12104,10 @@ Regenerate the snapshot: `FORGE_UPDATE_SNAPSHOTS=1 cargo test -p forge-app`.
 `registerSettingsPage` and usually render `<SchemaPage pageId="…" />` (optionally with extra
 content, see the Docker page's Test Connection). Custom pages (tables, test buttons) are plain
 components that use `draftValue`/`setDraft` from `features/settings/dialogState.ts` so OK,
-Cancel and Apply work. Open a page programmatically with `openSettings("<page id>")`.
+Cancel and Apply work. Pages whose edits are not plain settings keep them in their own store
+and register it with `registerDraftSource({ modified, hasChanges, apply, discard, resetPage })`
+(the Code Style schemes do), so the tree marks, Reset, Apply, OK and Cancel include them. Open
+a page programmatically with `openSettings("<page id>")`.
 
 The dialog's search, highlighting and validation are computed in Rust
 (`forge_plugin_api::settings_model`, `settings_validate`).
@@ -12621,6 +12717,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-backend](docs/guide/developer/crates/forge-backend.md) | Forge IDE project backends: the Backend trait, the local backend and the remote agent protocol |
 | [forge-bookmarks](docs/guide/developer/crates/forge-bookmarks.md) | Bookmarks: lists, mnemonics and line tracking through edits (pure, WebAssembly-friendly) |
 | [forge-codeintel](docs/guide/developer/crates/forge-codeintel.md) | Code intelligence models: workspace edits with LSP positions and Find Usages grouping (pure, WebAssembly-friendly) |
+| [forge-codestyle](docs/guide/developer/crates/forge-codestyle.md) | Code style schemes (Settings \| Editor \| Code Style): options per language, presets, scheme storage and resolution, import/export and the formatting passes and previews (pure, WebAssembly-friendly) |
 | [forge-colors](docs/guide/developer/crates/forge-colors.md) | Color values in code: finding CSS colors (hex, rgb, hsl, hwb, named, Tailwind) in CSS, markup and script files, parsing and formatting them in their notation (pure, WebAssembly-friendly) |
 | [forge-containers](docs/guide/developer/crates/forge-containers.md) | Forge IDE containers: Docker Engine API, Docker Compose and Kubernetes for the Services tool window |
 | [forge-core](docs/guide/developer/crates/forge-core.md) | Forge IDE core: workspace, file system, settings and event bus |
@@ -13020,6 +13117,117 @@ cargo test -p forge-codeintel
 
 ---
 
+Source: docs/guide/developer/crates/forge-codestyle.md
+
+# forge-codestyle
+
+`crates/forge-codestyle` — Code style schemes (Settings | Editor | Code Style): options per language, presets, scheme storage and resolution, import/export and the formatting passes and previews (pure, WebAssembly-friendly).
+
+## Purpose
+
+Everything behind Settings | Editor | Code Style, as in PHPStorm. The UI
+(`app/ui/src/features/codeStyle`) renders the pages from the model and keeps the edited
+schemes as a draft of the Settings dialog; everything else happens here.
+
+- `model`: the options of the General page and of the 13 language pages (PHP, HTML,
+  CSS/SCSS/Less, JavaScript, TypeScript, JSON, YAML, Lua, Blade, Twig, SQL, XML, Markdown).
+  Each option has a key (`spaces.afterComma`), title, tab ("Tabs and Indents", "Spaces",
+  "Wrapping and Braces", "Blank Lines" and language tabs such as "Code Conversion",
+  "Punctuation", "Case", "Other"), section, kind (bool, int range, choice, text), default and
+  its name in PHPStorm's XML. Languages list the file types they format (`scss` → CSS,
+  `tsx` → TypeScript) and their "Set from…" presets: PSR-12, PER Coding Style 2.0, Symfony,
+  Laravel, WordPress and Drupal for PHP; JavaScript Standard Style, Airbnb-like and Prettier
+  defaults for JavaScript and TypeScript; stylelint-config-standard; StyLua defaults; …
+- `scheme`: where schemes live. Values are keyed `<language>.<option>`. The **Default**
+  scheme is the user settings layer under the keys every page always used
+  (`php.codeStyle.indent`, `editor.codeStyle.hardWrapAt`), the **Project** scheme the same
+  keys in the project layer (options it does not set come from Default), further IDE schemes
+  are stored under `editor.codeStyle.schemes.<id>.name` / `.values.<language>.<option>`.
+  `editor.codeStyle.scheme` selects the project's scheme; without it a project with code
+  style settings uses its Project scheme. `load` builds the schemes from the layers,
+  `selected_values` gives the values formatting uses, `effective_settings` replaces the code
+  style keys of the effective settings with them (for `forge_text::resolve_format` and the
+  PHP code style), `plan_save` turns edited schemes into settings writes (only values that
+  differ from the scheme's base, removed schemes deleted) and `apply_preset` is "Set from…".
+  The single PHP brace option of older versions (`php.codeStyle.braces`: `psr12`, `allman`,
+  `kr`) is read as the three brace options and removed on the next save.
+- `io`: export and import. Forge's JSON (`{ "forgeCodeStyle": 1, "name", "values" }`) has every
+  option; the PHPStorm XML subset (`<code_scheme>` with root options, `<…CodeStyleSettings>`,
+  `<codeStyleSettings language="…">` and `<indentOptions>`, also inside
+  `.idea/codeStyles/Project.xml`) maps Forge's options to PHPStorm's names, and options
+  PHPStorm has no name for go into a `<ForgeCodeStyleSettings>` element so a scheme survives
+  the round trip. The XML reader is a small built-in parser.
+- `format`: a lossless lexer (`format::lexer`) for PHP, JavaScript/TypeScript, CSS, JSON,
+  Lua and SQL, and the formatters:
+  - `preview(language, values)` lays the page's sample out completely with the options
+    (indentation from the nesting, brace placement, spaces, blank lines, conversions; markup
+    by element/directive nesting, YAML by nesting, SQL clauses, Markdown blocks). The
+    General page's sample shows the formatter markers.
+  - `post_format(request, values)` runs after a language server or tool formatted a file:
+    for PHP the spaces, brace and `else`/`catch`/`finally` placement and the code conversions
+    (array syntax, trailing commas, `true`/`false`/`null` case) on the existing lines (it
+    never re-indents), quotes in plain JavaScript/TypeScript files (not JSX), hex color case in
+    CSS, SQL keyword case, the Markdown spaces and blank lines, Blade/Twig delimiters, blank
+    lines, indents on empty lines and the `@formatter:off` / `@formatter:on` regions, which get
+    their text from before formatting.
+- `lsp`: the options handed to external formatters: `settings_patch(language, values)` for
+  the language servers (`intelephense.format.braces`, `typescript.format` /
+  `javascript.format` and the quote preference, `css`/`scss`/`less.format`, `html.format`,
+  `json.format.keepLines`, `yaml.format`, `xml.format`, `Lua.format.defaultConfig`) and
+  `stylua_args(values)` for StyLua when the project has no `stylua.toml`.
+
+## Main public items
+
+```rust
+pub fn model() -> &'static CodeStyleModel { … }
+pub fn load(layers: Layers<'_>) -> SchemesState { … }
+pub fn selected_values(layers: Layers<'_>) -> Values { … }
+pub fn effective_settings(effective: &Map<String, Value>, layers: Layers<'_>) -> Map<String, Value> { … }
+pub fn plan_save(layers: Layers<'_>, state: &SchemesState) -> Result<Vec<SettingWrite>, String> { … }
+pub fn apply_preset(values: &Values, language: &str, preset: &str) -> Option<Values> { … }
+pub fn export(name: &str, values: &Values, format: ExportFormat) -> String { … }
+pub fn import(text: &str) -> Result<ImportedScheme, String> { … }
+pub fn preview(language: &str, values: &Values) -> Option<String> { … }
+pub fn post_format(req: &PostFormatRequest, values: &Values) -> String { … }
+pub fn lsp::settings_patch(language: &str, values: &Values) -> Value { … }
+pub fn lsp::stylua_args(values: &Values) -> Vec<String> { … }
+```
+
+## Used by
+
+- IPC (`app/src-tauri/src/commands/code_style.rs`, client `app/ui/src/ipc/codeStyle.ts`):
+  `code_style_model`, `code_style_schemes`, `code_style_save({ schemes })`,
+  `code_style_preview({ language, values })`, `code_style_export({ name, values, format,
+  path? })`, `code_style_import({ text?, path? })` and `code_style_post_format({ request })`
+  (registered as the last format post-processor of Reformat Code).
+- `editor_file_format` resolves indents with the selected scheme (`effective_settings`, file
+  types mapped to their code style language); the PHP code style (braces, blank lines) and
+  Intelephense's settings read it too; `lsp_format({ …, languageId })` pushes
+  `settings_patch` to the file's server (`LspClient::update_settings`); `lua_format` passes
+  `stylua_args`.
+- Browser mode: built into `forge-wasm` (`codestyle.rs`); the mocks in
+  `app/ui/src/mock/codeStyleMock.ts` store schemes in the mock settings layers.
+
+## Dependencies
+
+- Workspace crates: none
+- External: `serde`, `serde_json`
+
+## Tests
+
+Unit tests for the model (tabs, presets, sanitizing), scheme storage (legacy keys and the
+brace migration, Project inheriting from Default, IDE schemes, selection, removal, duplicate
+names), JSON and XML round trips and a PHPStorm project file, the lexer (lossless for every
+language), the layout of PHP (PSR-12, WordPress), JavaScript (Standard, Prettier), CSS, JSON,
+Lua, markup, YAML, SQL and Markdown, the PHP spacing pass (alignment kept, braces moved,
+keyword method names, attributes, array conversion), the formatter markers, the language
+server settings and StyLua's command line. The PHP spacing pass was also checked on several
+hundred PHP files (stubs and fixtures) with every preset: idempotent, and `php -l` stays
+clean.
+
+
+---
+
 Source: docs/guide/developer/crates/forge-colors.md
 
 # forge-colors
@@ -13179,7 +13387,7 @@ Forge core: the language-agnostic foundation every pack builds on.
 | `gitignore.rs` | Which project files git ignores, so the project tree can gray them out like PHPStorm. |
 | `project_files.rs` | Project-relative files that Forge itself keeps in a project (`.forge/settings.toml`, `.forge/dataSources.toml`, `.forge/breakpoints.json`, ...) and project files it reads (`.env`), wherever the project lives: `LocalFiles` for a folder on this machine, the project backend (`forge_backend::BackendFiles`) for a project on a remote host. |
 | `search.rs` | Fuzzy file search for "Go to File" / Search Everywhere, and Find in Files. |
-| `settings.rs` | Layered settings: built-in defaults < user < project. |
+| `settings.rs` | Layered settings: built-in defaults < user < project. `Settings::set_many` stores several values and saves each layer once (the Code Style schemes). |
 | `watch.rs` | Watches the open project for changes made outside the editor (git checkouts, composer, code generators, other editors) and reports them in debounced batches. |
 | `workspace.rs` |  |
 
@@ -14150,6 +14358,10 @@ Forge's generic Language Server Protocol client.
 - `launch`: how server processes start (`LocalLauncher` here, or on a remote host).
 
 Nothing here is language specific; language packs contribute `LspServerConfig`s.
+`LspClient::update_settings` merges later changes (the code style options before Reformat
+Code, `LspManager::format`'s `settings`) into a server's settings, pushes them with
+`workspace/didChangeConfiguration` and answers later `workspace/configuration` requests with
+them.
 
 ## Modules
 
@@ -15084,6 +15296,7 @@ Rebuild the bundle with `pnpm --dir app/ui wasm` (output: `app/ui/src/wasm/pkg`)
 | `agents.rs` | Agent CLIs (`forge_agent_cli`) for the browser-mode agent mock: the built-in agents' profiles (what `agent_list` reports besides detection) and the stream parsers, so the mock replays recorded CLI output through the same Rust code as the desktop app. |
 | `containers.rs` | Services tool window (`forge-containers`) for the browser-mode mock: the mock keeps a fake Docker daemon as Engine API JSON, compose files and a kubeconfig as text, and asks Rust for the models, the tree, the details pane, the gutter markers, command lines and pull progress, like the desktop app's hub. |
 | `editing.rs` | Editor actions (`forge-editing`): postfix templates and their expansion, Complete Current Statement and Cyclic Expand Word, mirroring the `editor_postfix_*`, `editor_complete_statement` and `editor_expand_word` commands. |
+| `codestyle.rs` | Code style schemes (`forge-codestyle`), mirroring the `code_style_*` commands and `editor_file_format` with the selected scheme; the schemes are stored in the mock settings layers. |
 | `emmet.rs` | Emmet (`forge-emmet`) and colors (`forge-colors`), mirroring the `emmet_*` and `colors_*` commands; the expand key, the abbreviation preview, color swatches and the color picker call them synchronously. |
 | `filetypes.rs` | File type detection (`forge-filetypes`), mirroring the `filetypes_detect` IPC command. The desktop app builds the registry from its plugin manifests; browser mode loads the same manifests (the `builtinPlugins.json` snapshot) once with `filetypes_load`. |
 | `keymap.rs` | Keymap bridge (`forge-keymap`). |
