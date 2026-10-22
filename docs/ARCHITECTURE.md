@@ -37,7 +37,8 @@ app/ui/            SolidJS UI
   registered with `registerMock` (see `src/mock/`), so every feature works without Rust and can
   be screenshotted.
 - Contribution points (the UI side of plugins):
-  - `registerToolWindow` (`src/features/registry.ts`) — panels on the left/right/bottom stripes.
+  - `registerToolWindow` (`src/features/registry.ts`) — panels on the left/right/bottom stripes
+    (`anchor` and optional `split` are the default place; users move them, see `state/layout.ts`).
   - `registerStatusItem` (`src/features/statusItems.ts`) — status bar widgets.
   - `registerCommand` (`src/state/commands.ts`) — actions with PHPStorm-style ids, bindable to keys.
   - `registerSettingsPage` (`src/features/settingsPages.ts`) — pages in the Settings dialog.
@@ -447,6 +448,9 @@ app/ui/            SolidJS UI
   protocol 4 added `FindTodos`, `CollectFiles`, `Web`, `LangServerInstall` and
   `LangServerUpdates`; protocol 5 added `FindStart`, `FindPage`, `FindSymbols` and
   `SearchStatus`, and `exact` on the search calls; protocol 6 added `ReadBytes` / `WriteBytes`
+  (files in other encodings than UTF-8) and `TerminalSpec.shell_integration`; protocol 7 added
+  the PHP index's `Hierarchy` call), `Event`
+
   (files in other encodings than UTF-8) and `TerminalSpec.shell_integration`; protocol 7
   added `PhpCall::Highlights` and the Find Usages `options` of `PhpCall::Usages`), `Event`
   (`FsChanged`, `Pty`, `Run`, `PhpIndexProgress`, `Install`), `Data` /
@@ -768,6 +772,19 @@ computes everything; `app/ui/src/features/codeintel` and `features/lsp/goto.ts` 
   - `code_line_markers({ path, content? }) -> { line, kind: "subclassed" | "implemented" |
     "overridden" | "implements" | "overrides", title, targets }[]` — PHP gutter icons.
   - `library_read({ path }) -> { text, library, detail }`.
+  - Hierarchies (`app/ui/src/ipc/hierarchy.ts`, `commands/hierarchy.rs`, model in
+    `forge_codeintel::hierarchy`): `code_type_hierarchy({ path, line, character, content? })`
+    and `code_method_hierarchy(…)` `-> { title, graph: TypeGraph | null, source, message? }`
+    (`TypeGraph { root, types: { item, extends, implements, method? }[], method? }`);
+    `code_call_hierarchy(…) -> { title, root: HierarchyItem | null, source, message? }` and
+    `code_call_hierarchy_calls({ item, direction: "callers" | "callees" }) -> CallNode[]`
+    (`{ item, calls: { path, range, preview }[] }`, one level per call). Language servers
+    (`LspManager::type_graph`, `call_root`, `call_nodes`; items carry the server's item as
+    `handle`) first, the PHP index (`PhpCall::Hierarchy`, `phpforge_lang_php::hierarchy`)
+    for PHP files, merged (`merge_type_graphs`, `merge_call_nodes`). The Hierarchy tool window
+    (`features/hierarchy`, right side) computes its trees with `forge_codeintel::hierarchy`
+    through WebAssembly (`hierarchy_type_view`, `hierarchy_method_view`,
+    `hierarchy_call_view`), so views, scopes and sorting need no new query.
   - Documentation actions of the View menu (`forge_codeintel::docs`):
     `code_external_doc({ path, line, character, content? }) -> { url?, name? }` (Shift+F1; PHP
     symbols resolved like `code_goto_declaration`),
@@ -819,6 +836,10 @@ computes everything; `app/ui/src/features/codeintel` and `features/lsp/goto.ts` 
     templates (`GenerateOptions`).
 - UI: Go to Declaration (`GotoDeclaration`, `Ctrl+Click`, middle click) shows usages on a
   declaration (`showUsagesAt`); `ShowUsages` (popup), `FindUsages` (Find tool window `find`,
+  `Alt+3`), `GotoImplementation` (also `Ctrl+Alt+Click`), `GotoTypeDeclaration`,
+  `GotoSuperMethod`, `TypeHierarchy` (Ctrl+H), `MethodHierarchy` (Ctrl+Shift+H) and
+  `CallHierarchy` (Ctrl+Alt+H, `features/hierarchy`) are registered commands, so the keymap and the main menu enable them;
+
   `Alt+3`), `FindUsagesInFile` (scope Current File), `ShowSettingsAndFindUsages` (the Find
   Usages dialog, `FindUsagesDialog.tsx`; also the Settings buttons of the popup and the Find
   tool window; choices saved as settings), `HighlightUsagesInFile` (`highlightUsages.ts`:
@@ -1252,8 +1273,15 @@ plugin manifest entry, and the chat UI needs no changes:
   unit, tab size, continuation indent, right margin and guides); `shell/FileStatusItems.tsx` are
   the status bar popups.
 - `forge_core::project_state`: the workbench layout per project in Forge's state dir
-  (`layout_load() -> ProjectLayout | null`, `layout_save({ layout })`; `{ active, sizes, tabs,
-  openFiles, activeFile }`, sanitized in Rust) and the AI chat history per project in the data
+  (`layout_load() -> ProjectLayout | null`, `layout_save({ layout })`; `{ active, sizes, splits,
+  toolWindows, tabs, openFiles, activeFile }`, sanitized in Rust; `active` is keyed by slot:
+  `left`/`leftSplit`/`right`/`rightSplit`/`bottom`/`bottomSplit` = PHPStorm's Left Top, Left
+  Bottom, Right Top, Right Bottom, Bottom Left, Bottom Right; `toolWindows` holds the user's
+  `{ slot, order, removed }` per moved tool window; `layout_default_load()` /
+  `layout_default_save({ layout })` keep Store Current Layout as Default, tool windows only).
+  Moving, ordering and resolving placements is the pure `state/toolWindowLayout.ts` (vitest);
+  `state/layout.ts` applies it (`showToolWindow(id)`, `toggleToolWindow(id)`,
+  `moveToolWindowTo`, `removeFromSidebar`, `isToolWindowVisible`) and the AI chat history per project in the data
   dir (`agent_history_list() -> ChatSummary[]`, `agent_history_load({ id })`,
   `agent_history_save({ record }) -> ChatSummary | null`, `agent_history_delete({ id })`). The
   UI saves the layout a moment after every change (`state/layoutPersistence.ts`; tool windows

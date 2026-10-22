@@ -2,7 +2,7 @@
 title: Workbench and tool windows
 description: The main window - main toolbar, tool window stripes, the Project view, editor tabs and split editors, Recent Files and Locations, Bookmarks, TODO, Notifications and the status bar.
 order: 10
-tags: [workbench, tool windows, project view, status bar, tabs, split editors, bookmarks, todo, notifications]
+tags: [workbench, tool windows, move to, remove from sidebar, layout, project view, status bar, tabs, split editors, bookmarks, todo, notifications]
 ---
 
 # Workbench and tool windows
@@ -14,7 +14,7 @@ The workbench is the main window of an open project. It follows PHPStorm's New U
 | Area | Where | What it holds |
 | --- | --- | --- |
 | Main toolbar | top | ☰ main menu, project widget, Git branch widget, run widget, AI Chat, Search Everywhere, theme toggle, Settings; it is also the window's title bar |
-| Tool window stripes | left, right and bottom edges | buttons that show and hide tool windows |
+| Tool window stripes | left and right edges | buttons that show and hide tool windows; drag them to move tool windows |
 | Editor | center | tabs, navigation bar and the code editor |
 | Status bar | bottom | path of the current file, background tasks, project information, caret position, file type, Git branch |
 
@@ -77,9 +77,11 @@ opens Settings | Keymap; **Help | Check for Updates…** checks for a new versio
 ## Tool windows
 
 Tool windows are the panels along the edges. Click a stripe button, or press the tool window's
-shortcut, to show it; pressing the shortcut again hides it, as in PHPStorm.
+shortcut, to show it; pressing the shortcut again hides it, as in PHPStorm. The table lists
+where each tool window sits by default; you can move every one of them (see
+[Moving and hiding tool windows](#moving-and-hiding-tool-windows)).
 
-| Tool window | Stripe | Shortcut | Page |
+| Tool window | Default stripe | Shortcut | Page |
 | --- | --- | --- | --- |
 | Project | left | `Alt+1` (macOS `Cmd+1`) | below |
 | Bookmarks | left | `Alt+2` (macOS `Cmd+2`) | [below](#bookmarks) |
@@ -101,10 +103,54 @@ shortcut, to show it; pressing the shortcut again hides it, as in PHPStorm.
 | Database | right | — | [Database tools](database.md) |
 | Documentation | right | — | [Editor](editor.md#documentation-tool-window) |
 | Doctrine | right | — | [Doctrine](doctrine.md) |
+| Hierarchy | right | — | [Type, Method and Call Hierarchy](hierarchies.md) |
 | Notifications | right | — | [below](#notifications) |
 
 Framework tool windows (Routes, Symfony, Doctrine, npm) only appear in projects that use the
 framework. The Find tool window appears once a search put results into it.
+
+### Moving and hiding tool windows
+
+As in PHPStorm's New UI, each stripe has a top and a bottom group, and the stripes' feet hold
+the bottom tool windows:
+
+| Place | Stripe | Opens |
+| --- | --- | --- |
+| Left Top | left stripe, upper group | in the left area |
+| Left Bottom | left stripe, below the separator | in the left area, below the Left Top window |
+| Bottom Left | foot of the left stripe | in the bottom area, on the left |
+| Right Top | right stripe, upper group | in the right area |
+| Right Bottom | right stripe, below the separator | in the right area, below the Right Top window |
+| Bottom Right | foot of the right stripe | in the bottom area, on the right |
+
+One tool window per place is open at a time, so an area can show two: the left area shows the
+Left Top window above the Left Bottom one, the bottom area shows Bottom Left and Bottom Right
+side by side. Drag the line between them to change the split.
+
+![Bookmarks in Left Bottom, Terminal in Bottom Right](../../screenshots/tool-window-split-areas.png)
+
+- **Move To**: right-click a stripe button, or open the **⋮** (Options) menu in the tool
+  window's header, and pick Left Top, Left Bottom, Right Top, Right Bottom, Bottom Left or
+  Bottom Right. An open tool window stays open at its new place.
+- **Drag and drop**: drag a stripe button up or down to reorder it, or onto another group or
+  the other stripe to move the tool window there. A line shows where it will land.
+- **Remove from Sidebar** (same menus) hides the tool window and its stripe button. It stays
+  available in View | Tool Windows, Find Action, the **⋯** button and its shortcut; opening
+  it that way puts its button back on the sidebar.
+- **⋯** (More Tool Windows) at the bottom of the left stripe's upper part lists every tool
+  window of the project, alphabetically, including removed ones ("not on sidebar").
+- **Hide** (header ⋮ menu or the **−** button, `Shift+Escape` while the tool window has the
+  focus) closes the tool window.
+- View | Appearance | **Tool Window Bars** shows or hides both stripes.
+- Window | Layouts | **Store Current Layout as Default** keeps where every tool window sits,
+  which are open and their sizes as the default for all projects; **Restore Default Layout**
+  (`Shift+F12`) goes back to it, or to Forge's own layout when you never stored one.
+
+![Move To on a stripe button](../../screenshots/tool-window-move-to.png)
+
+![Terminal moved to the right stripe, with the header's Options menu](../../screenshots/tool-window-moved-right.png)
+
+![More Tool Windows lists a tool window removed from the sidebar](../../screenshots/tool-window-more-list.png)
 
 ### Managing tool windows
 
@@ -112,6 +158,7 @@ framework. The Find tool window appears once a search put results into it.
 | --- | --- | --- |
 | Hide the active tool window | `Shift+Escape` | `Shift+Escape` |
 | Hide all tool windows (again: restore) | `Ctrl+Shift+F12` | `Cmd+Shift+F12` |
+| Restore Default Layout | `Shift+F12` | `Shift+F12` |
 | Jump to the last tool window | `F12` | `F12` |
 | Stretch the focused tool window | `Ctrl+Shift+Left/Right/Up/Down` | `Ctrl+Alt+Shift+Left/Right/Up/Down` |
 | Close the active tab of a tool window (Run, Terminal) | `Ctrl+Shift+F4` | `Cmd+Shift+F4` |
@@ -128,13 +175,16 @@ scrolling** animates scrolling in lists and trees.
 
 ![Restored layout](../../screenshots/layout-restored.png)
 
-Forge remembers the layout of each project and restores it when the project opens again: which
-tool window is open on each side, their sizes, the selected tab of tool windows with tabs
+Forge remembers the layout of each project and restores it when the project opens again: where
+each tool window sits (moved, reordered or removed from the sidebar), which tool windows are
+open, the sizes of the areas and their splits, the selected tab of tool windows with tabs
 (Problems, Pull Requests) and the open editor tabs with the active one. It is kept in Forge's
 state directory (`~/.local/state/forge/layouts` on Linux, see
-[File locations](../reference/file-locations.md)), never in the project.
+[File locations](../reference/file-locations.md)), never in the project. The layout stored
+with Store Current Layout as Default is `_default.json` in the same folder. Layouts saved by
+older Forge versions still open; their tool windows start at their default places.
 
-> **Note:** "Restore Default Layout" and "Maximize Tool Window" are not available yet.
+> **Note:** "Maximize Tool Window", floating and windowed tool windows are not available yet.
 
 ## Project view
 

@@ -71,7 +71,7 @@ export async function runConsoleCommand(command: string, args = ""): Promise<voi
   // Keep the last five runs, like PHPStorm's run tabs.
   setRuns((all) => [...all.filter((r) => r.running || all.indexOf(r) >= all.length - 4), run]);
   setActiveTab(id);
-  showToolWindow("bottom", "symfony");
+  showToolWindow("symfony");
   try {
     await symfonyApi.runConsole(command, args, id);
   } catch (e) {

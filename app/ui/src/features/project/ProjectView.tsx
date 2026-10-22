@@ -7,7 +7,7 @@ import { editor, isCustomTab, openFile } from "@/state/editor";
 import { statusOf, dirHasChanges } from "@/state/vcs";
 import { FileIcon } from "@/shell/FileIcon";
 import { getSetting, saveSetting } from "@/state/settings";
-import { layout } from "@/state/layout";
+import { isToolWindowVisible } from "@/state/layout";
 import { showResolvedMenu, type ResolvedEntry } from "@/features/contextMenu/state";
 import { showFileMenu } from "./fileMenu";
 import { navigate, type VisibleRow } from "./treeNavigation";
@@ -64,7 +64,7 @@ const isProjectFile = (path: string) => !path.includes("://") && !isCustomTab(pa
 // active editor while the Project tool window is shown.
 createRoot(() =>
   createEffect(
-    on([() => editor.active, () => getSetting<boolean>(ALWAYS_SELECT, false), () => layout.active.left === "project"], ([path, on, shown]) => {
+    on([() => editor.active, () => getSetting<boolean>(ALWAYS_SELECT, false), () => isToolWindowVisible("project")], ([path, on, shown]) => {
       if (path && on && shown && isProjectFile(path)) selectInTree(path);
     }),
   ),

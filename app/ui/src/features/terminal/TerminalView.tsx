@@ -4,7 +4,7 @@
  */
 import { createEffect, For, on, onCleanup, onMount, Show } from "solid-js";
 import { ChevronDown, Plus, X } from "lucide-solid";
-import { layout } from "@/state/layout";
+import { isToolWindowVisible } from "@/state/layout";
 import { theme } from "@/state/theme";
 import { openMenu, type MenuItem } from "@/features/run/PopupMenu";
 import {
@@ -161,7 +161,7 @@ export function TerminalTabs() {
 
 function TerminalHost(props: { id: string; cwd?: string; command?: TerminalProgram }) {
   let host!: HTMLDivElement;
-  const visible = () => activeTab() === props.id && layout.active.bottom === "terminal";
+  const visible = () => activeTab() === props.id && isToolWindowVisible("terminal");
   onMount(() => {
     attachSession(props.id, host, props.cwd, props.command);
     const ro = new ResizeObserver(() => visible() && fitSession(props.id));
@@ -209,7 +209,7 @@ function TerminalHost(props: { id: string; cwd?: string; command?: TerminalProgr
 export function TerminalView() {
   // Opening the tool window without a session starts one, like PHPStorm.
   createEffect(() => {
-    if (layout.active.bottom === "terminal" && tabs().length === 0) newTab();
+    if (isToolWindowVisible("terminal") && tabs().length === 0) newTab();
   });
   createEffect(on(theme, () => requestAnimationFrame(applyThemeToAll), { defer: true }));
   return (

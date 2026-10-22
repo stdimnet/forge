@@ -15,7 +15,10 @@ use std::time::Duration;
 
 use forge_core::{ForgeError, Result};
 use futures_util::future::join_all;
-use lsp_types::{Diagnostic, FormattingOptions, Position, Range, TextEdit, Url};
+use lsp_types::{
+    CallHierarchyItem, Diagnostic, FormattingOptions, Position, Range, TextEdit, TypeHierarchyItem,
+    Url,
+};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tokio::sync::{broadcast, OnceCell};
@@ -696,6 +699,117 @@ impl LspManager {
             c.type_definition(path, position).await
         })
         .await
+    }
+
+    /// `prepareTypeHierarchy` of the servers of `path` that support it: their items with the
+    /// server id (to ask that server for supertypes and subtypes).
+    pub async fn prepare_type_hierarchy(
+        &self,
+        path: &Path,
+        position: Position,
+    ) -> Result<Vec<(String, TypeHierarchyItem)>> {
+        let clients = self.supporting(path, Feature::TypeHierarchy).await;
+        let results = join_all(
+            clients
+                .iter()
+                .map(|c| c.prepare_type_hierarchy(path, position)),
+        )
+        .await;
+        Self::with_servers(clients, results)
+    }
+
+    /// Supertypes (or subtypes) of an item `server` handed out.
+    pub async fn type_hierarchy(
+        &self,
+        server: &str,
+        item: TypeHierarchyItem,
+        subtypes: bool,
+    ) -> Result<Vec<TypeHierarchyItem>> {
+        let client = self.running_server(server)?;
+        Ok(client
+            .type_hierarchy(item, subtypes)
+            .await?
+            .unwrap_or_default())
+    }
+
+    /// `prepareCallHierarchy` of the servers of `path` that support it, with the server id.
+    pub async fn prepare_call_hierarchy(
+        &self,
+        path: &Path,
+        position: Position,
+    ) -> Result<Vec<(String, CallHierarchyItem)>> {
+        let clients = self.supporting(path, Feature::CallHierarchy).await;
+        let results = join_all(
+            clients
+                .iter()
+                .map(|c| c.prepare_call_hierarchy(path, position)),
+        )
+        .await;
+        Self::with_servers(clients, results)
+    }
+
+    /// Callers of an item `server` handed out: each caller with the ranges it calls from.
+    pub async fn incoming_calls(
+        &self,
+        server: &str,
+        item: CallHierarchyItem,
+    ) -> Result<Vec<(CallHierarchyItem, Vec<Range>)>> {
+        let client = self.running_server(server)?;
+        Ok(client
+            .incoming_calls(item)
+            .await?
+            .unwrap_or_default()
+            .into_iter()
+            .map(|c| (c.from, c.from_ranges))
+            .collect())
+    }
+
+    /// Callees of an item `server` handed out: each callee with the ranges (in the item's
+    /// file) it is called at.
+    pub async fn outgoing_calls(
+        &self,
+        server: &str,
+        item: CallHierarchyItem,
+    ) -> Result<Vec<(CallHierarchyItem, Vec<Range>)>> {
+        let client = self.running_server(server)?;
+        Ok(client
+            .outgoing_calls(item)
+            .await?
+            .unwrap_or_default()
+            .into_iter()
+            .map(|c| (c.to, c.from_ranges))
+            .collect())
+    }
+
+    fn running_server(&self, id: &str) -> Result<LspClient> {
+        self.running(id)
+            .ok_or_else(|| ForgeError::Other(format!("language server {id} is not running")))
+    }
+
+    /// Items of several servers, tagged with the server id; fails only when all failed.
+    fn with_servers<T>(
+        clients: Vec<LspClient>,
+        results: Vec<Result<Option<Vec<T>>>>,
+    ) -> Result<Vec<(String, T)>> {
+        let mut ok = Vec::new();
+        let mut first_err = None;
+        for (client, r) in clients.into_iter().zip(results) {
+            match r {
+                Ok(items) => ok.extend(
+                    items
+                        .unwrap_or_default()
+                        .into_iter()
+                        .map(|i| (client.id().to_string(), i)),
+                ),
+                Err(e) => {
+                    first_err.get_or_insert(e);
+                }
+            }
+        }
+        match first_err {
+            Some(e) if ok.is_empty() => Err(e),
+            _ => Ok(ok),
+        }
     }
 
     /// What can be renamed at `position`: `Ok(None)` when nothing can (the server said so);

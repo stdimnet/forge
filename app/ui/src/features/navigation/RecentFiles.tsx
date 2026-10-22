@@ -6,7 +6,7 @@ import { For, Show, createEffect, createMemo, createSignal, on, onMount } from "
 import { Dynamic } from "solid-js/web";
 import { Search } from "lucide-solid";
 import { toolWindows, type ToolWindow } from "@/features/registry";
-import { layout, showToolWindow } from "@/state/layout";
+import { isToolWindowVisible, showToolWindow } from "@/state/layout";
 import { editor, isDirty, openFile } from "@/state/editor";
 import { FileIcon } from "@/shell/FileIcon";
 import { shortcutLabel } from "@/keymap";
@@ -125,7 +125,7 @@ export function RecentFilesPopup() {
     } else {
       const tw = windows()[twIdx()];
       closeRecentFiles();
-      if (tw) showToolWindow(tw.anchor, tw.id);
+      if (tw) showToolWindow(tw.id);
     }
   }
 
@@ -205,7 +205,7 @@ export function RecentFilesPopup() {
               {(tw, i) => (
                 <div
                   class="recent-row"
-                  classList={{ selected: column() === "windows" && twIdx() === i(), active: layout.active[tw.anchor] === tw.id }}
+                  classList={{ selected: column() === "windows" && twIdx() === i(), active: isToolWindowVisible(tw.id) }}
                   data-tw={i()}
                   onMouseMove={() => {
                     setColumn("windows");

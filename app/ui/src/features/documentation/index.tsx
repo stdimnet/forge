@@ -12,7 +12,7 @@ import { registerToolWindow } from "@/features/registry";
 import { registerEditorExtension } from "@/editor/extensions";
 import { codeApi, type QuickDefinition } from "@/ipc/codeintel";
 import { registerCommand } from "@/state/commands";
-import { layout, showToolWindow } from "@/state/layout";
+import { isToolWindowVisible, showToolWindow } from "@/state/layout";
 import { actionById, shortcutLabel } from "@/keymap";
 import { activeView, revealLocation, viewFor } from "@/features/lsp/navigation";
 import { diagnosticsAt } from "@/features/lsp/diagnostics";
@@ -29,7 +29,7 @@ import "./documentation.css";
 
 const TOOL_WINDOW = "documentation";
 
-const toolWindowVisible = () => layout.active.right === TOOL_WINDOW;
+const toolWindowVisible = () => isToolWindowVisible(TOOL_WINDOW);
 
 const withShortcut = (title: string, actionId: string) => {
   const s = shortcutLabel(actionId);
@@ -55,7 +55,7 @@ let popupDoc: Documentation | null = null;
 
 function openInToolWindow(doc: Documentation, view?: EditorView): void {
   setShown(doc);
-  showToolWindow("right", TOOL_WINDOW);
+  showToolWindow(TOOL_WINDOW);
   if (view) closePopup(view);
 }
 

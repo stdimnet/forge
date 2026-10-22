@@ -63,7 +63,7 @@ registerCommand({
   title: "Open AI Chat",
   category: "AI",
   run: () => {
-    showToolWindow("right", "ai-chat");
+    showToolWindow("ai-chat");
     queueMicrotask(focusChatInput);
   },
 });

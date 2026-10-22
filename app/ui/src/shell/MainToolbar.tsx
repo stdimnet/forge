@@ -53,7 +53,7 @@ export function MainToolbar() {
         <For each={toolbarItems()}>{(item) => <Dynamic component={item.component} />}</For>
         <RunWidget />
         <div class="toolbar-sep" />
-        <button class="icon-btn" title="AI Chat" onClick={() => showToolWindow("right", "ai-chat")}>
+        <button class="icon-btn" title="AI Chat" onClick={() => showToolWindow("ai-chat")}>
           <Sparkles size={16} />
         </button>
         <button class="icon-btn" title="Search Everywhere (Double Shift)" onClick={() => runCommand("search.everywhere")}>

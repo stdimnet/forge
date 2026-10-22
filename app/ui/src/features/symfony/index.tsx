@@ -51,7 +51,7 @@ registerKeymapActions([
 ]);
 registerCommand({ id: "Symfony.RunConsoleCommand", title: "Run Console Command…", category: "Tools", run: () => openConsolePopup() });
 registerCommand({ id: "symfony.runConsoleCommand", title: "Run Console Command…", category: "Tools", run: () => openConsolePopup() });
-registerCommand({ id: "Symfony.ShowRoutes", title: "Symfony Routes", category: "View", run: () => toggleToolWindow("bottom", "symfony") });
+registerCommand({ id: "Symfony.ShowRoutes", title: "Symfony Routes", category: "View", run: () => toggleToolWindow("symfony") });
 registerCommand({ id: "symfony.refresh", title: "Refresh Symfony Index", category: "Tools", run: () => void loadSymfony(true) });
 
 if (typeof document !== "undefined") {

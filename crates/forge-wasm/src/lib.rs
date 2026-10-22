@@ -27,6 +27,7 @@ mod containers;
 mod editing;
 mod emmet;
 mod filetypes;
+mod hierarchy;
 mod injections;
 mod json_schema;
 mod keymap;

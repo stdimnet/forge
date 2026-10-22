@@ -102,7 +102,7 @@ function DebugStatusItem() {
         class="status-item dbg-status"
         classList={{ paused: !!pausedSession() }}
         title={title()}
-        onClick={() => (activeSession() ? showToolWindow("bottom", "debug") : void toggleListening())}
+        onClick={() => (activeSession() ? showToolWindow("debug") : void toggleListening())}
       >
         <PhoneCall size={12} />
         {label()}

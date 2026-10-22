@@ -92,7 +92,7 @@ registerKeymapActions([
   { id: "npm.reload", title: "Reload npm Scripts", group: "Plugins/npm" },
   { id: "npm.install", title: "Install Dependencies", group: "Plugins/npm" },
 ]);
-registerCommand({ id: "ActivatenpmToolWindow", title: "npm", category: "View", run: () => toggleToolWindow("left", "npm") });
+registerCommand({ id: "ActivatenpmToolWindow", title: "npm", category: "View", run: () => toggleToolWindow("npm") });
 registerCommand({ id: "npm.reload", title: "Reload npm Scripts", category: "Tools", run: () => void loadPackages(true) });
 registerCommand({
   id: "npm.install",

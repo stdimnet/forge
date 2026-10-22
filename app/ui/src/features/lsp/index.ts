@@ -70,5 +70,5 @@ registerCommand({
   id: "ActivateProblemsViewToolWindow",
   title: "Problems",
   category: "Tool Windows",
-  run: () => showToolWindow("bottom", "problems"),
+  run: () => showToolWindow("problems"),
 });

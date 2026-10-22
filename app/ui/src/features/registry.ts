@@ -12,8 +12,14 @@ export interface ToolWindow {
   id: string;
   title: string;
   icon: Component<{ size?: number; "stroke-width"?: number }>;
+  /** Default stripe; users can move the window (`state/layout.ts`: `moveToolWindowTo`). */
   anchor: ToolWindowAnchor;
-  /** Sort order inside its stripe (lower first). */
+  /**
+   * Starts in the split group of its anchor (Left Bottom, Right Bottom, Bottom Right) like
+   * PHPStorm's secondary tool windows.
+   */
+  split?: boolean;
+  /** Default sort order inside its stripe group (lower first). */
   order: number;
   component: Component;
   /** PHPStorm-style shortcut hint shown in tooltips, e.g. "Alt+1". */
@@ -39,6 +45,7 @@ export function registerToolWindow(tw: ToolWindow): void {
 
 export { toolWindows };
 
+/** Tool windows registered for `anchor` (their default place; see `stripeToolWindows`). */
 export const toolWindowsFor = (anchor: ToolWindowAnchor) =>
   toolWindows().filter((t) => t.anchor === anchor && (t.when?.() ?? true));
 

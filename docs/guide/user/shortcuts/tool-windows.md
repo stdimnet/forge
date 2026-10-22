@@ -27,6 +27,7 @@ Opening, hiding, resizing and switching tool windows. Windows/Linux shortcuts fi
 | [Database tool window](#database-tool-window) | — | — |
 | [AI Chat tool window](#ai-chat-tool-window) | — | — |
 | [Documentation tool window](#documentation-tool-window) | — | — |
+| [Hierarchy tool window](#hierarchy-tool-window) | — | — |
 | [Pull Requests tool window](#pull-requests-tool-window) | — | — |
 | [npm tool window](#npm-tool-window) | — | — |
 | [Doctrine tool window](#doctrine-tool-window) | — | — |
@@ -35,6 +36,8 @@ Opening, hiding, resizing and switching tool windows. Windows/Linux shortcuts fi
 | [Hide Active Tool Window](#hide-active-tool-window) | `Shift+Escape` | `Shift+Escape` |
 | [Hide All Tool Windows](#hide-all-tool-windows) | `Ctrl+Shift+F12` | `Cmd+Shift+F12` |
 | [Hide Side Tool Windows](#hide-side-tool-windows) | — | — |
+| [Restore Default Layout](#restore-default-layout) | `Shift+F12` | `Shift+F12` |
+| [Store Current Layout as Default](#store-current-layout-as-default) | — | — |
 | [Jump to Last Tool Window](#jump-to-last-tool-window) | `F12` | `F12` |
 | [Stretch to Left](#stretch-to-left) | `Ctrl+Shift+Left` | `Ctrl+Alt+Shift+Left` |
 | [Stretch to Right](#stretch-to-right) | `Ctrl+Shift+Right` | `Ctrl+Alt+Shift+Right` |
@@ -223,6 +226,16 @@ the caret open (Quick Documentation, `Ctrl+Q`, pinned).
 
 More: [Editor](../../user/editor.md#documentation-tool-window)
 
+## Hierarchy tool window
+
+**Shortcut:** — · macOS — · action id `ActivateHierarchyToolWindow`
+
+Shows or hides the Hierarchy tool window with the results of Type Hierarchy (`Ctrl+H`), Method Hierarchy (`Ctrl+Shift+H`) and Call Hierarchy (`Ctrl+Alt+H`).
+
+**Menu:** View | Tool Windows | Hierarchy
+
+More: [Type, Method and Call Hierarchy](../../user/hierarchies.md)
+
 ## Pull Requests tool window
 
 **Shortcut:** — · macOS — · action id `ActivatePullRequestsToolWindow`
@@ -298,6 +311,26 @@ Hides the left and right tool windows.
 **Menu:** Window | Active Tool Window | Hide Side Tool Windows
 
 More: [Workbench and tool windows](../../user/workbench.md#managing-tool-windows)
+
+## Restore Default Layout
+
+**Shortcut:** `Shift+F12` · macOS `Shift+F12` · action id `RestoreDefaultLayout`
+
+Puts every tool window back where the default layout has it (the one stored with Store Current Layout as Default, else Forge's own) and opens the tool windows it had open.
+
+**Menu:** Window | Layouts | Restore Default Layout
+
+More: [Workbench and tool windows](../../user/workbench.md#moving-and-hiding-tool-windows)
+
+## Store Current Layout as Default
+
+**Shortcut:** — · macOS — · action id `StoreDefaultLayout`
+
+Stores where the tool windows sit, which are open and their sizes as the default layout for all projects.
+
+**Menu:** Window | Layouts | Store Current Layout as Default
+
+More: [Workbench and tool windows](../../user/workbench.md#moving-and-hiding-tool-windows)
 
 ## Jump to Last Tool Window
 

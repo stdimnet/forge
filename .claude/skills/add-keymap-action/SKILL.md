@@ -18,7 +18,7 @@ Most actions already exist in `crates/forge-keymap/data/phpstorm.json` with the 
 keys. Just register a command with that id:
 
 ```ts
-registerCommand({ id: "ActivateStructureToolWindow", title: "Structure", run: () => toggleToolWindow("left", "structure") });
+registerCommand({ id: "ActivateStructureToolWindow", title: "Structure", run: () => toggleToolWindow("structure") });
 ```
 
 If your feature already uses another id (e.g. `php.generate`), alias it in `ACTION_ALIASES`

@@ -110,7 +110,7 @@ action("CloseAllToTheRight", withCurrent((g, id) => closeTabsToSide(g, id, "righ
 /** Select a file in the Project tool window (Alt+F1, 1 in PHPStorm). */
 function selectInProject(path: string): void {
   if (isCustomTab(path) || path.includes("://")) return;
-  showToolWindow("left", "project");
+  showToolWindow("project");
   selectInTree(path);
 }
 action("SelectInProjectView", () => {

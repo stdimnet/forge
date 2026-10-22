@@ -95,7 +95,7 @@ registerCommand({
   category: "Laravel",
   run: () => {
     if (!laravelActive()) return;
-    showToolWindow("bottom", "laravel.routes");
+    showToolWindow("laravel.routes");
     void loadRoutes();
   },
 });

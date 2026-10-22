@@ -13,6 +13,7 @@
 pub mod client;
 pub mod config;
 pub mod framing;
+pub mod hierarchy;
 pub mod launch;
 pub mod manager;
 pub mod model;

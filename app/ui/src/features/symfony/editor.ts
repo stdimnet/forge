@@ -144,7 +144,7 @@ registerLineMarkerProvider({
             className: "marker-route",
             onClick: () => {
               setActiveTab("routes");
-              showToolWindow("bottom", "symfony");
+              showToolWindow("symfony");
             },
           };
         case "command":

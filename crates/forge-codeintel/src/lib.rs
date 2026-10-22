@@ -21,11 +21,13 @@
 //! - [`file_structure`]: the File Structure popup's rows (toggles, speed search, caret).
 //! - [`navbar`]: the Navigation Bar's segments.
 //! - [`related`]: Related Symbol: tests, views, templates, routes, migrations and more.
+//! - [`hierarchy`]: Type, Method and Call Hierarchy: the views, scopes and merging.
 
 pub mod actions;
 pub mod docs;
 pub mod edit;
 pub mod file_structure;
+pub mod hierarchy;
 pub mod highlight;
 pub mod inlay;
 pub mod navbar;
@@ -49,6 +51,12 @@ pub use edit::{
     FileStore, MemoryStore, Position, PreviewRow, Range, TextEdit, WorkspaceEdit,
 };
 pub use file_structure::{file_structure_view, FileStructureRequest, FileStructureView};
+pub use hierarchy::{
+    call_view, merge_call_nodes, merge_type_graphs, method_view, type_view, CallDirection,
+    CallNode, CallSite, CallViewRequest, HierarchyItem, HierarchyKind, HierarchyNode,
+    HierarchyScope, HierarchyView, MethodMark, MethodPresence, MethodViewRequest, TypeEntry,
+    TypeGraph, TypeView, TypeViewRequest,
+};
 pub use highlight::{
     access_kind, classify_ranges, exit_points, lexical_highlights, lsp_highlight_kind,
     HighlightAnswer, HighlightKind, HighlightTarget, UsageHighlight,

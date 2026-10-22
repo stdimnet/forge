@@ -4,7 +4,7 @@
  * menu reuses the same renderer with entries resolved in Rust (`showResolvedMenu`), which
  * adds disabled entries, mnemonics and check marks.
  */
-import { createSignal } from "solid-js";
+import { createSignal, type Component } from "solid-js";
 import { actionById, isActionAvailable, shortcutLabel } from "@/keymap";
 
 export type MenuEntry =
@@ -33,6 +33,8 @@ export interface ResolvedItem {
   checked?: boolean;
   /** Secondary text after the label (e.g. the path of a recent project). */
   detail?: string;
+  /** Icon before the label (e.g. the tool windows of the ⋯ stripe button). */
+  icon?: Component<{ size?: number; "stroke-width"?: number }>;
 }
 
 export type ResolvedEntry = ResolvedItem | "separator";

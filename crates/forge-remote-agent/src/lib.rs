@@ -492,6 +492,12 @@ impl Agent {
                 content,
             } => reply(php.definition(&path, offset, content)?),
             PhpCall::LineMarkers { path, content } => reply(php.line_markers(&path, content)?),
+            PhpCall::Hierarchy {
+                path,
+                offset,
+                query,
+                content,
+            } => reply(php.hierarchy(&path, offset, query, content)?),
             PhpCall::Intentions {
                 path,
                 offset,

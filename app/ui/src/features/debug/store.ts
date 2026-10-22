@@ -219,7 +219,7 @@ function onSession(session: SessionInfo): void {
   if (session.status === "paused") {
     if (activeId() !== session.id && activeSession()?.status !== "paused") setActiveId(session.id);
     if (activeId() !== session.id) return;
-    showToolWindow("bottom", "debug");
+    showToolWindow("debug");
     const loc = session.location;
     if (loc?.file) void showLine(loc.file, loc.line);
     if (session.exception) log(session.id, "stderr", `${session.exception.name}: ${session.exception.message ?? ""}\n`);

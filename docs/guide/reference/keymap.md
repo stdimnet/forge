@@ -62,9 +62,9 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Test | `GotoTest` | `Ctrl+Shift+T` | `Cmd+Shift+T` | — |
 | Related Symbol… | `GotoRelated` | `Ctrl+Alt+Home` | `Ctrl+Cmd+Up` | yes |
 | File Structure | `FileStructurePopup` | `Ctrl+F12` | `Cmd+F12` | yes |
-| Type Hierarchy | `TypeHierarchy` | `Ctrl+H` | `Ctrl+H` | — |
-| Method Hierarchy | `MethodHierarchy` | `Ctrl+Shift+H` | `Cmd+Shift+H` | — |
-| Call Hierarchy | `CallHierarchy` | `Ctrl+Alt+H` | `Ctrl+Alt+H` | — |
+| Type Hierarchy | `TypeHierarchy` | `Ctrl+H` | `Ctrl+H` | yes |
+| Method Hierarchy | `MethodHierarchy` | `Ctrl+Shift+H` | `Cmd+Shift+H` | yes |
+| Call Hierarchy | `CallHierarchy` | `Ctrl+Alt+H` | `Ctrl+Alt+H` | yes |
 | Next Highlighted Error | `GotoNextError` | `F2` | `F2` | yes |
 | Previous Highlighted Error | `GotoPreviousError` | `Shift+F2` | `Shift+F2` | yes |
 | Next Method | `MethodDown` | `Alt+Down` | `Ctrl+Down` | yes |
@@ -408,8 +408,8 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Hide Active Tool Window | `HideActiveWindow` | `Shift+Escape` | `Shift+Escape` | yes |
 | Hide Side Tool Windows | `HideSideWindows` |  |  | yes |
 | Maximize Tool Window | `MaximizeToolWindow` | `Ctrl+Shift+'` | `Cmd+Shift+'` | — |
-| Restore Default Layout | `RestoreDefaultLayout` | `Shift+F12` | `Shift+F12` | — |
-| Store Current Layout as Default | `StoreDefaultLayout` |  |  | — |
+| Restore Default Layout | `RestoreDefaultLayout` | `Shift+F12` | `Shift+F12` | yes |
+| Store Current Layout as Default | `StoreDefaultLayout` |  |  | yes |
 | Close Active Tool Window Tab | `CloseActiveTab` | `Ctrl+Shift+F4` | `Cmd+Shift+F4` | yes |
 | Next Project Window | `NextProjectWindow` | `Ctrl+Alt+]` | `` Cmd+` `` | — |
 | Previous Project Window | `PreviousProjectWindow` | `Ctrl+Alt+[` | `` Cmd+Shift+` `` | — |

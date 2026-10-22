@@ -635,7 +635,7 @@ happening.
 - Refactorings other than Rename: Extract/Introduce, Move, Change Signature, Safe Delete
 - File Structure popup (`Ctrl+F12`)
 - Local History
-- Optimize Imports, Type/Call/Method Hierarchy
+- Optimize Imports
 - Go to Test (`Ctrl+Shift+T`)
 - Distraction Free / Presentation / Zen modes
 - Marketplace, settings export/import
@@ -684,6 +684,7 @@ not finished, the page says so.
 | [File and code templates](docs/guide/user/file-templates.md) | New ▸ PHP Class and other templates, the New PHP Class dialog with PSR-4 namespaces, `Alt+Insert` New popup, Settings \| Editor \| File and Code Templates |
 | [Vim emulation](docs/guide/user/vim-emulation.md) | Tools \| Vim, Normal/Insert/Visual/Replace modes, motions, operators, text objects, registers, macros, ex commands, `~/.ideavimrc`, shortcut conflicts |
 | [Search Everywhere and Find Action](docs/guide/user/search-everywhere.md) | Double Shift, Go to Class/File/Symbol, Find Action, fuzzy matching |
+| [Type, Method and Call Hierarchy](docs/guide/user/hierarchies.md) | the Hierarchy tool window: Type Hierarchy (`Ctrl+H`: class, supertypes, subtypes), Method Hierarchy (`Ctrl+Shift+H`) with PHPStorm's marks, Call Hierarchy (`Ctrl+Alt+H`: callers and callees with call sites), scopes and sorting |
 | [File Structure, Navigation Bar and Related Symbol](docs/guide/user/navigation-bar-and-file-structure.md) | File Structure popup (`Ctrl+F12`, Show Inherited, speed search), Navigation Bar (`Alt+Home`, Top / In Status Bar / Don't Show, members), Related Symbol (`Ctrl+Alt+Home`: tests, views, templates, routes, migrations) |
 | [File types and syntax highlighting](docs/guide/user/file-types.md) | file type detection, highlighted languages, config formats, template data languages |
 | [Language servers](docs/guide/user/language-servers.md) | detection, installation, per-server settings, Intelephense licence |
@@ -738,7 +739,7 @@ The workbench is the main window of an open project. It follows PHPStorm's New U
 | Area | Where | What it holds |
 | --- | --- | --- |
 | Main toolbar | top | ☰ main menu, project widget, Git branch widget, run widget, AI Chat, Search Everywhere, theme toggle, Settings; it is also the window's title bar |
-| Tool window stripes | left, right and bottom edges | buttons that show and hide tool windows |
+| Tool window stripes | left and right edges | buttons that show and hide tool windows; drag them to move tool windows |
 | Editor | center | tabs, navigation bar and the code editor |
 | Status bar | bottom | path of the current file, background tasks, project information, caret position, file type, Git branch |
 
@@ -801,9 +802,11 @@ opens Settings | Keymap; **Help | Check for Updates…** checks for a new versio
 ## Tool windows
 
 Tool windows are the panels along the edges. Click a stripe button, or press the tool window's
-shortcut, to show it; pressing the shortcut again hides it, as in PHPStorm.
+shortcut, to show it; pressing the shortcut again hides it, as in PHPStorm. The table lists
+where each tool window sits by default; you can move every one of them (see
+[Moving and hiding tool windows](#moving-and-hiding-tool-windows)).
 
-| Tool window | Stripe | Shortcut | Page |
+| Tool window | Default stripe | Shortcut | Page |
 | --- | --- | --- | --- |
 | Project | left | `Alt+1` (macOS `Cmd+1`) | below |
 | Bookmarks | left | `Alt+2` (macOS `Cmd+2`) | [below](#bookmarks) |
@@ -825,10 +828,54 @@ shortcut, to show it; pressing the shortcut again hides it, as in PHPStorm.
 | Database | right | — | [Database tools](docs/guide/user/database.md) |
 | Documentation | right | — | [Editor](docs/guide/user/editor.md#documentation-tool-window) |
 | Doctrine | right | — | [Doctrine](docs/guide/user/doctrine.md) |
+| Hierarchy | right | — | [Type, Method and Call Hierarchy](docs/guide/user/hierarchies.md) |
 | Notifications | right | — | [below](#notifications) |
 
 Framework tool windows (Routes, Symfony, Doctrine, npm) only appear in projects that use the
 framework. The Find tool window appears once a search put results into it.
+
+### Moving and hiding tool windows
+
+As in PHPStorm's New UI, each stripe has a top and a bottom group, and the stripes' feet hold
+the bottom tool windows:
+
+| Place | Stripe | Opens |
+| --- | --- | --- |
+| Left Top | left stripe, upper group | in the left area |
+| Left Bottom | left stripe, below the separator | in the left area, below the Left Top window |
+| Bottom Left | foot of the left stripe | in the bottom area, on the left |
+| Right Top | right stripe, upper group | in the right area |
+| Right Bottom | right stripe, below the separator | in the right area, below the Right Top window |
+| Bottom Right | foot of the right stripe | in the bottom area, on the right |
+
+One tool window per place is open at a time, so an area can show two: the left area shows the
+Left Top window above the Left Bottom one, the bottom area shows Bottom Left and Bottom Right
+side by side. Drag the line between them to change the split.
+
+![Bookmarks in Left Bottom, Terminal in Bottom Right](docs/screenshots/tool-window-split-areas.png)
+
+- **Move To**: right-click a stripe button, or open the **⋮** (Options) menu in the tool
+  window's header, and pick Left Top, Left Bottom, Right Top, Right Bottom, Bottom Left or
+  Bottom Right. An open tool window stays open at its new place.
+- **Drag and drop**: drag a stripe button up or down to reorder it, or onto another group or
+  the other stripe to move the tool window there. A line shows where it will land.
+- **Remove from Sidebar** (same menus) hides the tool window and its stripe button. It stays
+  available in View | Tool Windows, Find Action, the **⋯** button and its shortcut; opening
+  it that way puts its button back on the sidebar.
+- **⋯** (More Tool Windows) at the bottom of the left stripe's upper part lists every tool
+  window of the project, alphabetically, including removed ones ("not on sidebar").
+- **Hide** (header ⋮ menu or the **−** button, `Shift+Escape` while the tool window has the
+  focus) closes the tool window.
+- View | Appearance | **Tool Window Bars** shows or hides both stripes.
+- Window | Layouts | **Store Current Layout as Default** keeps where every tool window sits,
+  which are open and their sizes as the default for all projects; **Restore Default Layout**
+  (`Shift+F12`) goes back to it, or to Forge's own layout when you never stored one.
+
+![Move To on a stripe button](docs/screenshots/tool-window-move-to.png)
+
+![Terminal moved to the right stripe, with the header's Options menu](docs/screenshots/tool-window-moved-right.png)
+
+![More Tool Windows lists a tool window removed from the sidebar](docs/screenshots/tool-window-more-list.png)
 
 ### Managing tool windows
 
@@ -836,6 +883,7 @@ framework. The Find tool window appears once a search put results into it.
 | --- | --- | --- |
 | Hide the active tool window | `Shift+Escape` | `Shift+Escape` |
 | Hide all tool windows (again: restore) | `Ctrl+Shift+F12` | `Cmd+Shift+F12` |
+| Restore Default Layout | `Shift+F12` | `Shift+F12` |
 | Jump to the last tool window | `F12` | `F12` |
 | Stretch the focused tool window | `Ctrl+Shift+Left/Right/Up/Down` | `Ctrl+Alt+Shift+Left/Right/Up/Down` |
 | Close the active tab of a tool window (Run, Terminal) | `Ctrl+Shift+F4` | `Cmd+Shift+F4` |
@@ -852,13 +900,16 @@ scrolling** animates scrolling in lists and trees.
 
 ![Restored layout](docs/screenshots/layout-restored.png)
 
-Forge remembers the layout of each project and restores it when the project opens again: which
-tool window is open on each side, their sizes, the selected tab of tool windows with tabs
+Forge remembers the layout of each project and restores it when the project opens again: where
+each tool window sits (moved, reordered or removed from the sidebar), which tool windows are
+open, the sizes of the areas and their splits, the selected tab of tool windows with tabs
 (Problems, Pull Requests) and the open editor tabs with the active one. It is kept in Forge's
 state directory (`~/.local/state/forge/layouts` on Linux, see
-[File locations](docs/guide/reference/file-locations.md)), never in the project.
+[File locations](docs/guide/reference/file-locations.md)), never in the project. The layout stored
+with Store Current Layout as Default is `_default.json` in the same folder. Layouts saved by
+older Forge versions still open; their tool windows start at their default places.
 
-> **Note:** "Restore Default Layout" and "Maximize Tool Window" are not available yet.
+> **Note:** "Maximize Tool Window", floating and windowed tool windows are not available yet.
 
 ## Project view
 
@@ -3616,6 +3667,106 @@ text as the query and the caret in **Replace with**.
 
 ---
 
+Source: docs/guide/user/hierarchies.md
+
+# Type, Method and Call Hierarchy
+
+PHPStorm's three hierarchies, with the same shortcuts, toolbar and wording. Put the caret on a
+class, a method or a function and press the shortcut; the result opens in the **Hierarchy**
+tool window on the right (one tab per run; a new run of the same symbol replaces its tab).
+
+| Action | Windows / Linux | macOS | Menu |
+| --- | --- | --- | --- |
+| Type Hierarchy | `Ctrl+H` | `Ctrl+H` | Navigate \| Type Hierarchy |
+| Method Hierarchy | `Ctrl+Shift+H` | `Cmd+Shift+H` | Navigate \| Method Hierarchy |
+| Call Hierarchy | `Ctrl+Alt+H` | `Ctrl+Alt+H` | Navigate \| Call Hierarchy |
+| Hierarchy tool window | — | — | View \| Tool Windows \| Hierarchy |
+
+All of them can be rebound in Settings | Keymap (action ids `TypeHierarchy`,
+`MethodHierarchy`, `CallHierarchy`, `ActivateHierarchyToolWindow`).
+
+## Type Hierarchy
+
+![Subtypes of an interface](docs/screenshots/hierarchy-type.png)
+
+Opens for the class, interface, trait or enum at the caret (a name in the code, or the class
+the caret is in). The toolbar switches between PHPStorm's three views:
+
+- **Class Hierarchy**: the chain of parent classes down to the class, then everything that
+  extends it. For an interface or trait this is the list of its subtypes.
+- **Supertypes Hierarchy**: the class at the top, its parent class, interfaces and traits
+  below it, recursively.
+- **Subtypes Hierarchy**: every class extending or implementing it, and every class using a
+  trait.
+
+The class the hierarchy was opened for is shown in bold. Icons tell classes, abstract
+classes, interfaces, traits and enums apart.
+
+## Method Hierarchy
+
+![Method Hierarchy with its legend](docs/screenshots/hierarchy-method.png)
+
+Opens for the method at the caret (its declaration, a call that Forge can resolve, or the
+method the caret is in). The tree shows the classes below the topmost declaration of the
+method, each with PHPStorm's mark:
+
+| Mark | Meaning |
+| --- | --- |
+| ✓ (green) | Method is defined in the class |
+| ✓ (blue) | Method is declared abstract in the class, or in an interface |
+| ! (red) | Method should be defined since the class is not abstract |
+| − | Method is not defined in the class but defined in a superclass (or a used trait) |
+
+**Hide Classes Where Method Is Not Implemented** (the filter button) leaves only the classes
+that define the method, and the classes on the way to them. Method Hierarchy is available for
+PHP files.
+
+## Call Hierarchy
+
+![Callers of a method with the call sites](docs/screenshots/hierarchy-call.png)
+
+Opens for the method or function at the caret and shows its callers. **Caller Methods
+Hierarchy** and **Callee Methods Hierarchy** switch between the functions that call it and
+the functions it calls. Each level is loaded when you expand a node, so large call graphs stay
+fast; a function that calls itself further up is marked and not expanded again. Calls from
+outside any function (a route file, a script) show the file.
+
+The list below the tree shows the call sites of the selected node, with the line number and
+the source line; click one to open it. Several calls from the same method are one node with
+"(2 usages)".
+
+![Callees in the light theme](docs/screenshots/hierarchy-call-light.png)
+
+## Toolbar
+
+| Button | What it does |
+| --- | --- |
+| Sort Alphabetically | Sorts every level by name; otherwise the order is the sources' (superclass before interfaces, files in project order) |
+| Scope: All / Production / Test / This Class | **Production** hides test code and library code, **Test** shows only test code (`tests/`, `__tests__/`, `*Test.php`, `*.spec.ts`), **This Class** only the class itself (Type and Method Hierarchy) or the calls inside its class (Call Hierarchy). Parents of a match stay visible so the tree keeps its shape |
+| Expand All / Collapse All | Expands or collapses the tree (Call Hierarchy: only the levels already loaded) |
+| Autoscroll to Source | Opens the selected node in the editor while you move through the tree |
+| Refresh | Computes the hierarchy again for the same place, keeping the view options |
+
+![Scope menu](docs/screenshots/hierarchy-type-scope.png)
+
+In the tree, `Up` / `Down` select, `Right` / `Left` expand and collapse, `Enter` or `F4` and a
+double click open the declaration.
+
+## Where the data comes from
+
+- **Language servers** first: their `typeHierarchy` and `callHierarchy` requests (for example
+  the TypeScript server for JavaScript and TypeScript, Intelephense Premium for PHP).
+- **Forge's PHP index** for PHP files: classes, interfaces, traits and enums of the project
+  with their parents (vendor classes are resolved through Composer's PSR-4 autoloading when
+  vendor packages are indexed as libraries), method declarations and calls. It works without
+  any language server and fills in what a server leaves out (traits, abstract classes). When
+  both answer, the results are merged.
+
+Remote projects work the same way: the PHP index runs on the remote host next to the files.
+
+
+---
+
 Source: docs/guide/user/navigation-bar-and-file-structure.md
 
 # File Structure, Navigation Bar and Related Symbol
@@ -5254,6 +5405,9 @@ Jumping to declarations, implementations, super methods, lines, problems, recent
 | [Go to Implementation(s)](#go-to-implementations) | `Ctrl+Alt+B` | `Cmd+Alt+B` |
 | [Go to Type Declaration](#go-to-type-declaration) | `Ctrl+Shift+B` | `Cmd+Shift+B` |
 | [Go to Super Method](#go-to-super-method) | `Ctrl+U` | `Cmd+U` |
+| [Type Hierarchy](#type-hierarchy) | `Ctrl+H` | `Ctrl+H` |
+| [Method Hierarchy](#method-hierarchy) | `Ctrl+Shift+H` | `Cmd+Shift+H` |
+| [Call Hierarchy](#call-hierarchy) | `Ctrl+Alt+H` | `Ctrl+Alt+H` |
 | [Back](#back) | `Ctrl+Alt+Left` | `Cmd+[`, `Cmd+Alt+Left` |
 | [Forward](#forward) | `Ctrl+Alt+Right` | `Cmd+]`, `Cmd+Alt+Right` |
 | [Last Edit Location](#last-edit-location) | `Ctrl+Shift+Backspace` | `Cmd+Shift+Backspace` |
@@ -5338,6 +5492,38 @@ Jumps to the method the current method overrides or implements; on a class, to i
 **Menu:** Navigate | Super Method
 
 More: [Editor](docs/guide/user/editor.md#implementation-type-declaration-super-method)
+
+## Type Hierarchy
+
+**Shortcut:** `Ctrl+H` · macOS `Ctrl+H` · action id `TypeHierarchy`
+
+Shows the class at the caret in the Hierarchy tool window: its parent classes and subtypes (Class Hierarchy), its supertypes or its subtypes.
+
+**Menu:** Navigate | Type Hierarchy
+
+More: [Type, Method and Call Hierarchy](docs/guide/user/hierarchies.md#type-hierarchy)
+
+![Type Hierarchy](docs/screenshots/hierarchy-type.png)
+
+## Method Hierarchy
+
+**Shortcut:** `Ctrl+Shift+H` · macOS `Cmd+Shift+H` · action id `MethodHierarchy`
+
+Shows which classes define the method at the caret, which inherit it and which should define it.
+
+**Menu:** Navigate | Method Hierarchy
+
+More: [Type, Method and Call Hierarchy](docs/guide/user/hierarchies.md#method-hierarchy)
+
+## Call Hierarchy
+
+**Shortcut:** `Ctrl+Alt+H` · macOS `Ctrl+Alt+H` · action id `CallHierarchy`
+
+Shows the callers (or callees) of the method or function at the caret, one level per expanded node, with the call sites.
+
+**Menu:** Navigate | Call Hierarchy
+
+More: [Type, Method and Call Hierarchy](docs/guide/user/hierarchies.md#call-hierarchy)
 
 ## Back
 
@@ -6529,6 +6715,7 @@ Opening, hiding, resizing and switching tool windows. Windows/Linux shortcuts fi
 | [Database tool window](#database-tool-window) | — | — |
 | [AI Chat tool window](#ai-chat-tool-window) | — | — |
 | [Documentation tool window](#documentation-tool-window) | — | — |
+| [Hierarchy tool window](#hierarchy-tool-window) | — | — |
 | [Pull Requests tool window](#pull-requests-tool-window) | — | — |
 | [npm tool window](#npm-tool-window) | — | — |
 | [Doctrine tool window](#doctrine-tool-window) | — | — |
@@ -6537,6 +6724,8 @@ Opening, hiding, resizing and switching tool windows. Windows/Linux shortcuts fi
 | [Hide Active Tool Window](#hide-active-tool-window) | `Shift+Escape` | `Shift+Escape` |
 | [Hide All Tool Windows](#hide-all-tool-windows) | `Ctrl+Shift+F12` | `Cmd+Shift+F12` |
 | [Hide Side Tool Windows](#hide-side-tool-windows) | — | — |
+| [Restore Default Layout](#restore-default-layout) | `Shift+F12` | `Shift+F12` |
+| [Store Current Layout as Default](#store-current-layout-as-default) | — | — |
 | [Jump to Last Tool Window](#jump-to-last-tool-window) | `F12` | `F12` |
 | [Stretch to Left](#stretch-to-left) | `Ctrl+Shift+Left` | `Ctrl+Alt+Shift+Left` |
 | [Stretch to Right](#stretch-to-right) | `Ctrl+Shift+Right` | `Ctrl+Alt+Shift+Right` |
@@ -6725,6 +6914,16 @@ the caret open (Quick Documentation, `Ctrl+Q`, pinned).
 
 More: [Editor](docs/guide/user/editor.md#documentation-tool-window)
 
+## Hierarchy tool window
+
+**Shortcut:** — · macOS — · action id `ActivateHierarchyToolWindow`
+
+Shows or hides the Hierarchy tool window with the results of Type Hierarchy (`Ctrl+H`), Method Hierarchy (`Ctrl+Shift+H`) and Call Hierarchy (`Ctrl+Alt+H`).
+
+**Menu:** View | Tool Windows | Hierarchy
+
+More: [Type, Method and Call Hierarchy](docs/guide/user/hierarchies.md)
+
 ## Pull Requests tool window
 
 **Shortcut:** — · macOS — · action id `ActivatePullRequestsToolWindow`
@@ -6800,6 +6999,26 @@ Hides the left and right tool windows.
 **Menu:** Window | Active Tool Window | Hide Side Tool Windows
 
 More: [Workbench and tool windows](docs/guide/user/workbench.md#managing-tool-windows)
+
+## Restore Default Layout
+
+**Shortcut:** `Shift+F12` · macOS `Shift+F12` · action id `RestoreDefaultLayout`
+
+Puts every tool window back where the default layout has it (the one stored with Store Current Layout as Default, else Forge's own) and opens the tool windows it had open.
+
+**Menu:** Window | Layouts | Restore Default Layout
+
+More: [Workbench and tool windows](docs/guide/user/workbench.md#moving-and-hiding-tool-windows)
+
+## Store Current Layout as Default
+
+**Shortcut:** — · macOS — · action id `StoreDefaultLayout`
+
+Stores where the tool windows sit, which are open and their sizes as the default layout for all projects.
+
+**Menu:** Window | Layouts | Store Current Layout as Default
+
+More: [Workbench and tool windows](docs/guide/user/workbench.md#moving-and-hiding-tool-windows)
 
 ## Jump to Last Tool Window
 
@@ -7245,6 +7464,13 @@ override the parents' methods (see [Highlight usages](docs/guide/user/editor.md#
 Several targets open the Choose Declaration popup with names and namespaces. Go to
 Implementation needs Intelephense Premium in Intelephense; without a licence Forge answers from
 the index, and says so when the index finds nothing either.
+
+### Hierarchies
+
+Type Hierarchy (`Ctrl+H`), Method Hierarchy (`Ctrl+Shift+H`) and Call Hierarchy
+(`Ctrl+Alt+H`) work from the index too, with traits, abstract classes and interfaces, and are
+merged with Intelephense Premium's type and call hierarchy when it runs. See
+[Type, Method and Call Hierarchy](docs/guide/user/hierarchies.md).
 
 ### Gutter icons
 
@@ -9779,9 +10005,9 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Test | `GotoTest` | `Ctrl+Shift+T` | `Cmd+Shift+T` | — |
 | Related Symbol… | `GotoRelated` | `Ctrl+Alt+Home` | `Ctrl+Cmd+Up` | yes |
 | File Structure | `FileStructurePopup` | `Ctrl+F12` | `Cmd+F12` | yes |
-| Type Hierarchy | `TypeHierarchy` | `Ctrl+H` | `Ctrl+H` | — |
-| Method Hierarchy | `MethodHierarchy` | `Ctrl+Shift+H` | `Cmd+Shift+H` | — |
-| Call Hierarchy | `CallHierarchy` | `Ctrl+Alt+H` | `Ctrl+Alt+H` | — |
+| Type Hierarchy | `TypeHierarchy` | `Ctrl+H` | `Ctrl+H` | yes |
+| Method Hierarchy | `MethodHierarchy` | `Ctrl+Shift+H` | `Cmd+Shift+H` | yes |
+| Call Hierarchy | `CallHierarchy` | `Ctrl+Alt+H` | `Ctrl+Alt+H` | yes |
 | Next Highlighted Error | `GotoNextError` | `F2` | `F2` | yes |
 | Previous Highlighted Error | `GotoPreviousError` | `Shift+F2` | `Shift+F2` | yes |
 | Next Method | `MethodDown` | `Alt+Down` | `Ctrl+Down` | yes |
@@ -10125,8 +10351,8 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Hide Active Tool Window | `HideActiveWindow` | `Shift+Escape` | `Shift+Escape` | yes |
 | Hide Side Tool Windows | `HideSideWindows` |  |  | yes |
 | Maximize Tool Window | `MaximizeToolWindow` | `Ctrl+Shift+'` | `Cmd+Shift+'` | — |
-| Restore Default Layout | `RestoreDefaultLayout` | `Shift+F12` | `Shift+F12` | — |
-| Store Current Layout as Default | `StoreDefaultLayout` |  |  | — |
+| Restore Default Layout | `RestoreDefaultLayout` | `Shift+F12` | `Shift+F12` | yes |
+| Store Current Layout as Default | `StoreDefaultLayout` |  |  | yes |
 | Close Active Tool Window Tab | `CloseActiveTab` | `Ctrl+Shift+F4` | `Cmd+Shift+F4` | yes |
 | Next Project Window | `NextProjectWindow` | `Ctrl+Alt+]` | `` Cmd+` `` | — |
 | Previous Project Window | `PreviousProjectWindow` | `Ctrl+Alt+[` | `` Cmd+Shift+` `` | — |
@@ -10541,9 +10767,9 @@ Back and forward, Search Everywhere, Go to Class/File/Symbol/Line, declarations 
 | Test | `Ctrl+Shift+T` | `Cmd+Shift+T` | not yet | Not available yet; the entry is disabled. |
 | Related Symbol… | `Ctrl+Alt+Home` | `Ctrl+Cmd+Up` | yes | Jumps to related files: tests, views, templates, routes, migrations, stories and styles. [More](docs/guide/user/navigation-bar-and-file-structure.md#related-symbol) ([screenshot](docs/screenshots/related-symbol.png)) |
 | File Structure | `Ctrl+F12` | `Cmd+F12` | yes | Shows the file's structure in a popup with speed search; press again for inherited members. [More](docs/guide/user/navigation-bar-and-file-structure.md#file-structure-popup) ([screenshot](docs/screenshots/file-structure-popup.png)) |
-| Type Hierarchy | `Ctrl+H` | `Ctrl+H` | not yet | Not available yet; the entry is disabled. |
-| Method Hierarchy | `Ctrl+Shift+H` | `Cmd+Shift+H` | not yet | Not available yet; the entry is disabled. |
-| Call Hierarchy | `Ctrl+Alt+H` | `Ctrl+Alt+H` | not yet | Not available yet; the entry is disabled. |
+| Type Hierarchy | `Ctrl+H` | `Ctrl+H` | yes | Shows the class, supertypes or subtypes hierarchy of the type at the caret in the Hierarchy tool window. [More](docs/guide/user/hierarchies.md#type-hierarchy) ([screenshot](docs/screenshots/hierarchy-type.png)) |
+| Method Hierarchy | `Ctrl+Shift+H` | `Cmd+Shift+H` | yes | Shows the classes that define, inherit or should define the method at the caret. [More](docs/guide/user/hierarchies.md#method-hierarchy) ([screenshot](docs/screenshots/hierarchy-method.png)) |
+| Call Hierarchy | `Ctrl+Alt+H` | `Ctrl+Alt+H` | yes | Shows the callers or callees of the method or function at the caret, level by level, with the call sites. [More](docs/guide/user/hierarchies.md#call-hierarchy) ([screenshot](docs/screenshots/hierarchy-call.png)) |
 | Next Highlighted Error | `F2` | `F2` | yes | Moves the caret to the next problem in the file. [More](docs/guide/user/editor.md#problems) |
 | Previous Highlighted Error | `Shift+F2` | `Shift+F2` | yes | Moves the caret to the previous problem in the file. [More](docs/guide/user/editor.md#problems) |
 | Next Occurrence | `Ctrl+Alt+Down` | `Cmd+Alt+Down` | yes | Opens the next result of the Find tool window's active tab. [More](docs/guide/user/workbench.md#find-tool-window) |
@@ -10792,8 +11018,8 @@ Layouts, the active tool window, editor tabs and project windows. Open it with �
 | Entry | Windows / Linux | macOS | Available | What it does |
 | --- | --- | --- | --- | --- |
 | **Layouts** | | | | submenu |
-| Layouts › Store Current Layout as Default | — | — | not yet | Not available yet; the entry is disabled. |
-| Layouts › Restore Default Layout | `Shift+F12` | `Shift+F12` | not yet | Not available yet; the entry is disabled. |
+| Layouts › Store Current Layout as Default | — | — | yes | Stores where the tool windows sit, which are open and their sizes as the default for all projects. [More](docs/guide/user/workbench.md#moving-and-hiding-tool-windows) |
+| Layouts › Restore Default Layout | `Shift+F12` | `Shift+F12` | yes | Goes back to the stored default layout, or Forge's own. [More](docs/guide/user/workbench.md#moving-and-hiding-tool-windows) |
 | **Active Tool Window** | | | | submenu |
 | Active Tool Window › Hide Active Tool Window | `Shift+Escape` | `Shift+Escape` | yes | Hides the tool window that has the focus and returns to the editor. [More](docs/guide/user/workbench.md#managing-tool-windows) |
 | Active Tool Window › Hide Side Tool Windows | — | — | yes | Hides the left and right tool windows. [More](docs/guide/user/workbench.md#managing-tool-windows) |
@@ -12076,7 +12302,8 @@ index falls back to `<project>/.forge/cache/php-index.json`.
 
 | Path | Content |
 | --- | --- |
-| `layouts/<project>-<hash>.json` | the tool window layout and open editor tabs of each project |
+| `layouts/<project>-<hash>.json` | the tool window layout (placements, open tool windows, sizes) and open editor tabs of each project |
+| `layouts/_default.json` | the layout stored with Window \| Layouts \| Store Current Layout as Default |
 
 ## In the project — `<project>/.forge/`
 
@@ -12768,8 +12995,9 @@ registerToolWindow({
   id: "services",            // same id as a placeholder replaces it
   title: "Services",
   icon: Container,           // lucide-solid
-  anchor: "bottom",          // "left" | "right" | "bottom"
-  order: 30,                 // position in the stripe
+  anchor: "bottom",          // default place: "left" | "right" | "bottom"
+  split: false,              // optional: start in the split group (Left Bottom, Right Bottom, Bottom Right)
+  order: 30,                 // default position in the stripe group
   shortcut: "Alt+8",         // tooltip only; the binding comes from the keymap
   component: ServicesView,
   actions: () => <HeaderButtons />,   // optional header buttons
@@ -12777,6 +13005,11 @@ registerToolWindow({
   when: () => usesFramework("docker"), // optional: only for matching projects
 });
 ```
+
+Users can move every tool window to another place, reorder it or remove it from the sidebar
+(saved per project), so never assume a window sits at its `anchor`: open and check it with
+`showToolWindow(id)`, `toggleToolWindow(id)`, `hideToolWindow(id)` and `isToolWindowVisible(id)`
+from `state/layout.ts`.
 
 Recipe: [`add-tool-window`](.claude/skills/add-tool-window/SKILL.md).
 
@@ -12786,7 +13019,7 @@ Recipe: [`add-tool-window`](.claude/skills/add-tool-window/SKILL.md).
 import { registerCommand } from "@/state/commands";
 
 registerCommand({ id: "ActivateStructureToolWindow", title: "Structure", category: "View",
-  run: () => toggleToolWindow("left", "structure") });
+  run: () => toggleToolWindow("structure") });
 ```
 
 Use a PHPStorm action id when one exists: the command then gets PHPStorm's default shortcut and
@@ -13407,7 +13640,7 @@ Most actions already exist with the right default keys. Register a command with 
 
 ```ts
 registerCommand({ id: "ActivateStructureToolWindow", title: "Structure",
-  run: () => toggleToolWindow("left", "structure") });
+  run: () => toggleToolWindow("structure") });
 ```
 
 If your feature already uses another id, alias it in `ACTION_ALIASES`
@@ -14338,6 +14571,8 @@ and the browser-mode UI. Pure Rust, so it also runs as WebAssembly.
 - `navbar`: the Navigation Bar's segments (project, folders, file, members at the caret).
 - `related`: Related Symbol (Ctrl+Alt+Home): tests, Laravel views / routes / migrations /
   factories / policies, Twig templates, component tests, stories and styles.
+- `hierarchy`: Type, Method and Call Hierarchy: the data model sources fill (`TypeGraph`,
+  `CallNode`), the views of the Hierarchy tool window, scopes, sorting and merging.
 
 ## Modules
 
@@ -14346,6 +14581,7 @@ and the browser-mode UI. Pure Rust, so it also runs as WebAssembly.
 | `actions.rs` | Context actions (`ContextAction`, `ActionKind`) and `order_actions`: quick fixes first, preferred ones on top, duplicates removed, "fix all" actions (`source.fixAll*`, "Fix all …") moved into the `children` of their server's quick fix (`nest_fix_all`); `bulb_for` picks the red / yellow light bulb. |
 | `docs.rs` | `symbol_at` (the identifier at the caret with its qualifier, call, tag and CSS context, imported frameworks) and `external_doc_url` (php.net, Laravel API, MDN, Vue, React, Lua manual); `definition_snippet` (docblock and attributes above, body to the matching brace or Lua `end`, at most 80 lines); `context_headers` (enclosing class, function and CSS rule headers); `type_from_hover` / `type_from_signature`; `language_of`. |
 | `file_structure.rs` | `file_structure_view(FileStructureRequest)` → `FileStructureView { rows, selected, hasFields, hasLambdas, hasInherited }` over Structure view nodes (JSON): "Show Fields" / "Show Inherited" / "Show Lambdas" / "Sort Alphabetically", fuzzy matching with `forge-fuzzy` keeping the parents of matches, the best match or the node at the caret (`caretLine`, `enclosing` scope headers) selected. |
+| `hierarchy.rs` | The model of Type / Method / Call Hierarchy: `HierarchyItem` (id, name, kind, container, LSP position, `handle` with a server's own item), `TypeGraph { root, types: TypeEntry { item, extends, implements, method? }[], method? }` and `CallNode { item, calls: CallSite { path, range, preview }[] }`. `type_view` (Class Hierarchy: superclass chain then subtypes; Supertypes; Subtypes), `method_view` (subtypes of the topmost declaring type with `MethodMark` defined / abstract / shouldDefine / inherited, "Hide Classes Where Method Is Not Implemented"), `call_view` (one level of callers / callees), `HierarchyScope` All / Production / Test / This Class (parents of matches stay), alphabetical sorting, `merge_type_graphs` / `merge_call_nodes` (entries at the same place are one), `is_test_path`. Cycles and huge graphs are cut. |
 | `navbar.rs` | `nav_bar_segments(NavBarRequest { project, path, scopes, showMembers })` → `NavSegment { kind: project / directory / file / member, label, path, scopeKind?, line?, column? }[]`; members are the class-like and function scopes around the caret. |
 | `related.rs` | `related(RelatedRequest { path, text }, files, read)` → `RelatedItem { kind, group, name, path, line, column }[]` grouped in a fixed order. Text scans, no parser: PHP class ↔ `*Test.php`, Laravel `view()` / `View::make` / `Route::view` / Inertia, `routes/*.php` lines naming a controller, model ↔ migrations (`_create_<table>_table`, `$table`), factory, policy, seeder; Symfony `render()` / `#[Template]` ↔ `templates/`; JS/TS/Vue/Svelte files ↔ `*.test.*`, `*.spec.*`, `__tests__/`, `tests/`, `*.stories.*`, style sheets. The caller lists the files and reads them lazily. |
 | `edit.rs` | `TextEdit`, `WorkspaceEdit` (`edit` / `create` / `rename` / `delete` changes), `apply_workspace_edit` over a `FileStore` (all or nothing), `revert_applied`, `preview_workspace_edit`, `word_range`, UTF-16 offset helpers. |
@@ -14360,6 +14596,7 @@ pub use actions::{bulb_for, nest_fix_all, order_actions, ActionKind, Bulb, Conte
 pub use docs::{context_headers, definition_snippet, external_doc_url, symbol_at, type_from_hover, type_from_signature, … };
 pub use rename::{edit_conflicts, edit_from_locations, plan_edit, suggest_file_rename, validate_identifier, EditPlan, RenameConflict, … };
 pub use file_structure::{file_structure_view, FileStructureRequest, FileStructureView};
+pub use hierarchy::{call_view, merge_call_nodes, merge_type_graphs, method_view, type_view, CallNode, HierarchyItem, TypeGraph, … };
 pub use navbar::{nav_bar_segments, NavBarRequest, NavSegment};
 pub use related::{related, RelatedItem, RelatedKind, RelatedRequest};
 pub use edit::{apply_text_edits, apply_workspace_edit, preview_workspace_edit, revert_applied, word_range, … };
@@ -15737,6 +15974,7 @@ them.
 | `client.rs` | An LSP client talking to one language server process over stdio. |
 | `config.rs` | Language server configuration as contributed by language packs. |
 | `framing.rs` | JSON-RPC message framing used by LSP over stdio: a `Content-Length` header block, an empty line, then exactly that many bytes of UTF-8 JSON. |
+| `hierarchy.rs` | Type and Call Hierarchy from the servers as `forge_codeintel::hierarchy`'s model: `LspManager::type_graph` (prepare, then supertypes and subtypes breadth-first, at most 300 types), `call_root` and `call_nodes` (incoming / outgoing calls of an item); items keep the server id and the server's own item as their `handle`. The manager's `prepare_type_hierarchy`, `type_hierarchy`, `prepare_call_hierarchy`, `incoming_calls` and `outgoing_calls` ask only servers announcing `typeHierarchyProvider` / `callHierarchyProvider` (`Feature::TypeHierarchy`, `Feature::CallHierarchy`). |
 | `launch.rs` | Starting language server processes. `LocalLauncher` spawns them on this machine; other launchers start them elsewhere (on a remote development host) and hand back their stdio as streams, so `LspClient`(crate::LspClient) works the same either way. |
 | `manager.rs` | Routes files to language servers: one server per registered config, started lazily the first time a matching file is used. |
 | `model.rs` | Editor-friendly views of LSP results. |
@@ -16828,6 +17066,7 @@ Rebuild the bundle with `pnpm --dir app/ui wasm` (output: `app/ui/src/wasm/pkg`)
 | `editing.rs` | Editor actions (`forge-editing`): postfix templates and their expansion, Complete Current Statement and Cyclic Expand Word, mirroring the `editor_postfix_*`, `editor_complete_statement` and `editor_expand_word` commands. |
 | `codestyle.rs` | Code style schemes (`forge-codestyle`), mirroring the `code_style_*` commands and `editor_file_format` with the selected scheme; the schemes are stored in the mock settings layers. |
 | `emmet.rs` | Emmet (`forge-emmet`) and colors (`forge-colors`), mirroring the `emmet_*` and `colors_*` commands; the expand key, the abbreviation preview, color swatches and the color picker call them synchronously. |
+| `hierarchy.rs` | The Hierarchy tool window's views (`forge_codeintel::hierarchy`), called synchronously in the desktop app and in browser mode alike: `hierarchy_type_view`, `hierarchy_method_view` and `hierarchy_call_view` recompute a tree from the data the `code_*_hierarchy` commands answered when the view, scope or sorting changes. |
 | `json_schema.rs` | JSON Schema (`forge-jsonschema`), mirroring the `json_schema_*` commands for the browser-mode mock: bundled schemas and the demo project's schema files (an answer with `needs` asks the mock for more files); no downloads. |
 | `spell.rs` | Spelling and grammar (`forge-spell`), mirroring `spell_inspect`, `spell_context_actions` and `spell_dictionaries` for the browser-mode mock (bundled dictionaries only). |
 | `filetypes.rs` | File type detection (`forge-filetypes`), mirroring the `filetypes_detect` IPC command. The desktop app builds the registry from its plugin manifests; browser mode loads the same manifests (the `builtinPlugins.json` snapshot) once with `filetypes_load`. |
@@ -17233,6 +17472,7 @@ PHPForge language pack: PHP support built on tree-sitter.
   and gutter markers.
 - `highlight` Highlight Usages in File: the usages in the current file with read / write
   access, the implementing / overriding methods on `implements` / `extends`.
+- `hierarchy` Type, Method and Call Hierarchy.
 - `stubs` PHP's own symbols from phpstorm-stubs (the "PHP Runtime").
 - `lsp` describes how to launch Intelephense / phpactor.
 
@@ -17249,6 +17489,7 @@ PHPForge language pack: PHP support built on tree-sitter.
 | `hover.rs` | Index-based hover for project symbols: signature + attributes + parsed docblock as markdown. Complements a language server's hover (which covers built-ins). |
 | `intentions.rs` | Built-in intentions for Show Context Actions (Alt+Enter) on the index: import class, replace qualifier with an import, accessors, "Add 'readonly' modifier", method stubs, PHPDoc and the "Generate..." link. |
 | `imports.rs` | Optimize Imports: removes `use` imports nothing refers to (code, attributes, docblocks and annotations count) and sorts the rest (classes, functions, constants); group uses are expanded, braced namespaces handled separately. |
+| `hierarchy.rs` | Type, Method and Call Hierarchy on the index (`HierarchyQuery`, answer `PhpHierarchy { graph?, title?, root?, calls }` in `forge_codeintel::hierarchy`'s model): the class at the caret with all its supertypes (parents, interfaces, traits; vendor classes resolved lazily, unknown ones by name) and every project class below it; for a method also the subtypes of its topmost declaration and each type's `MethodPresence`; the callable at the caret, its callers (`find_usages` call sites grouped by the enclosing method, function or file) and callees (calls in its body resolved like Go to Declaration, constructors through `new`, PHP's own functions as library items). |
 | `index.rs` | Workspace-wide PHP index: parallel indexing, mtime-keyed persistent cache, fuzzy symbol search, ancestor lookup and lazy resolution of vendor classes through Composer's PSR-4 metadata. |
 | `lsp.rs` | How to launch a PHP language server: Intelephense (preferred, users bring their own licence key) with phpactor as fallback. Independent of the generic LSP client; the app turns `LspServerConfig` into a running server. |
 | `model.rs` | Symbol model produced by the indexer. Everything is serializable so it can be cached on disk and sent over IPC unchanged (camelCase field names for the UI). |

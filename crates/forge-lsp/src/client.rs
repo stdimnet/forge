@@ -10,19 +10,19 @@ use forge_core::{ForgeError, Result};
 use lsp_types::notification::{self as notif, Notification};
 use lsp_types::request::{self as req, Request};
 use lsp_types::{
-    ClientCapabilities, CodeAction, CodeActionContext, CodeActionOrCommand, CodeActionParams,
-    CodeActionProviderCapability, CompletionItem, CompletionParams, CompletionResponse, Diagnostic,
-    DidChangeConfigurationParams, DidChangeTextDocumentParams, DidCloseTextDocumentParams,
-    DidOpenTextDocumentParams, DidSaveTextDocumentParams, DocumentFormattingParams,
-    DocumentHighlight, DocumentHighlightParams, DocumentSymbolParams, DocumentSymbolResponse,
-    ExecuteCommandParams, FormattingOptions, GotoDefinitionParams, GotoDefinitionResponse, Hover,
-    HoverParams, ImplementationProviderCapability, InitializeParams, InitializeResult,
-    InitializedParams, Location, OneOf, Position, PrepareRenameResponse, Range, ReferenceContext,
-    ReferenceParams, RenameParams, ServerCapabilities, SignatureHelp, SignatureHelpParams,
-    TextDocumentContentChangeEvent, TextDocumentIdentifier, TextDocumentItem,
+    CallHierarchyItem, ClientCapabilities, CodeAction, CodeActionContext, CodeActionOrCommand,
+    CodeActionParams, CodeActionProviderCapability, CompletionItem, CompletionParams,
+    CompletionResponse, Diagnostic, DidChangeConfigurationParams, DidChangeTextDocumentParams,
+    DidCloseTextDocumentParams, DidOpenTextDocumentParams, DidSaveTextDocumentParams,
+    DocumentFormattingParams, DocumentHighlight, DocumentHighlightParams, DocumentSymbolParams,
+    DocumentSymbolResponse, ExecuteCommandParams, FormattingOptions, GotoDefinitionParams,
+    GotoDefinitionResponse, Hover, HoverParams, ImplementationProviderCapability, InitializeParams,
+    InitializeResult, InitializedParams, Location, OneOf, Position, PrepareRenameResponse, Range,
+    ReferenceContext, ReferenceParams, RenameParams, ServerCapabilities, SignatureHelp,
+    SignatureHelpParams, TextDocumentContentChangeEvent, TextDocumentIdentifier, TextDocumentItem,
     TextDocumentPositionParams, TextDocumentSyncSaveOptions, TextEdit,
-    TypeDefinitionProviderCapability, Url, VersionedTextDocumentIdentifier, WorkspaceEdit,
-    WorkspaceFolder, WorkspaceSymbolParams, WorkspaceSymbolResponse,
+    TypeDefinitionProviderCapability, TypeHierarchyItem, Url, VersionedTextDocumentIdentifier,
+    WorkspaceEdit, WorkspaceFolder, WorkspaceSymbolParams, WorkspaceSymbolResponse,
 };
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
@@ -98,6 +98,8 @@ pub enum Feature {
     CodeAction,
     SignatureHelp,
     DocumentHighlight,
+    TypeHierarchy,
+    CallHierarchy,
 }
 
 impl Feature {
@@ -113,6 +115,8 @@ impl Feature {
             Feature::CodeAction => "Show Context Actions",
             Feature::SignatureHelp => "Parameter Info",
             Feature::DocumentHighlight => "Highlight Usages in File",
+            Feature::TypeHierarchy => "Type Hierarchy",
+            Feature::CallHierarchy => "Call Hierarchy",
         }
     }
 }
@@ -134,6 +138,8 @@ struct Inner {
     pending: Pending,
     events: broadcast::Sender<LspEvent>,
     capabilities: OnceLock<ServerCapabilities>,
+    /// The capabilities as sent, for ones `lsp_types` does not model (`typeHierarchyProvider`).
+    raw_capabilities: OnceLock<Value>,
     versions: Mutex<HashMap<Url, i32>>,
     state: Mutex<ServerState>,
     progress: Mutex<HashMap<String, String>>,
@@ -206,6 +212,7 @@ impl LspClient {
                 pending: Mutex::new(HashMap::new()),
                 events,
                 capabilities: OnceLock::new(),
+                raw_capabilities: OnceLock::new(),
                 versions: Mutex::new(HashMap::new()),
                 state: Mutex::new(ServerState::Starting),
                 progress: Mutex::new(HashMap::new()),
@@ -642,6 +649,9 @@ impl LspClient {
         let result = self
             .request_raw(req::Initialize::METHOD, params, Duration::from_secs(60))
             .await?;
+        if let Some(raw) = result.get("capabilities") {
+            let _ = self.inner.raw_capabilities.set(raw.clone());
+        }
         let result: InitializeResult = serde_json::from_value(result).map_err(other)?;
         let _ = self.inner.capabilities.set(result.capabilities);
         self.notify::<notif::Initialized>(InitializedParams {})?;
@@ -948,6 +958,20 @@ impl LspClient {
             ),
             Feature::SignatureHelp => c.signature_help_provider.is_some(),
             Feature::DocumentHighlight => one_of(c.document_highlight_provider.as_ref()),
+            Feature::CallHierarchy => !matches!(
+                c.call_hierarchy_provider,
+                None | Some(lsp_types::CallHierarchyServerCapability::Simple(false))
+            ),
+            Feature::TypeHierarchy => match self
+                .inner
+                .raw_capabilities
+                .get()
+                .and_then(|r| r.get("typeHierarchyProvider"))
+            {
+                Some(Value::Bool(b)) => *b,
+                Some(Value::Object(_)) => true,
+                _ => false,
+            },
         }
     }
 
@@ -999,6 +1023,85 @@ impl LspClient {
             work_done_progress_params: Default::default(),
             partial_result_params: Default::default(),
         })
+        .await
+    }
+
+    /// `textDocument/prepareTypeHierarchy`.
+    pub async fn prepare_type_hierarchy(
+        &self,
+        path: &Path,
+        position: Position,
+    ) -> Result<Option<Vec<TypeHierarchyItem>>> {
+        self.request::<req::TypeHierarchyPrepare>(lsp_types::TypeHierarchyPrepareParams {
+            text_document_position_params: Self::position_params(path, position)?,
+            work_done_progress_params: Default::default(),
+        })
+        .await
+    }
+
+    /// `typeHierarchy/supertypes` (`subtypes: false`) or `typeHierarchy/subtypes`.
+    pub async fn type_hierarchy(
+        &self,
+        item: TypeHierarchyItem,
+        subtypes: bool,
+    ) -> Result<Option<Vec<TypeHierarchyItem>>> {
+        if subtypes {
+            self.request::<req::TypeHierarchySubtypes>(lsp_types::TypeHierarchySubtypesParams {
+                item,
+                work_done_progress_params: Default::default(),
+                partial_result_params: Default::default(),
+            })
+            .await
+        } else {
+            self.request::<req::TypeHierarchySupertypes>(lsp_types::TypeHierarchySupertypesParams {
+                item,
+                work_done_progress_params: Default::default(),
+                partial_result_params: Default::default(),
+            })
+            .await
+        }
+    }
+
+    /// `textDocument/prepareCallHierarchy`.
+    pub async fn prepare_call_hierarchy(
+        &self,
+        path: &Path,
+        position: Position,
+    ) -> Result<Option<Vec<CallHierarchyItem>>> {
+        self.request::<req::CallHierarchyPrepare>(lsp_types::CallHierarchyPrepareParams {
+            text_document_position_params: Self::position_params(path, position)?,
+            work_done_progress_params: Default::default(),
+        })
+        .await
+    }
+
+    /// `callHierarchy/incomingCalls`.
+    pub async fn incoming_calls(
+        &self,
+        item: CallHierarchyItem,
+    ) -> Result<Option<Vec<lsp_types::CallHierarchyIncomingCall>>> {
+        self.request::<req::CallHierarchyIncomingCalls>(
+            lsp_types::CallHierarchyIncomingCallsParams {
+                item,
+                work_done_progress_params: Default::default(),
+                partial_result_params: Default::default(),
+            },
+        )
+        .await
+    }
+
+    /// `callHierarchy/outgoingCalls`.
+    pub async fn outgoing_calls(
+        &self,
+        item: CallHierarchyItem,
+    ) -> Result<Option<Vec<lsp_types::CallHierarchyOutgoingCall>>> {
+        self.request::<req::CallHierarchyOutgoingCalls>(
+            lsp_types::CallHierarchyOutgoingCallsParams {
+                item,
+                work_done_progress_params: Default::default(),
+                partial_result_params: Default::default(),
+            },
+        )
         .await
     }
 
@@ -1139,6 +1242,8 @@ fn client_capabilities() -> Value {
             "typeDefinition": { "linkSupport": true },
             "references": {},
             "documentHighlight": {},
+            "typeHierarchy": { "dynamicRegistration": false },
+            "callHierarchy": { "dynamicRegistration": false },
             "rename": { "prepareSupport": true },
             "documentSymbol": { "hierarchicalDocumentSymbolSupport": true },
             "formatting": {},

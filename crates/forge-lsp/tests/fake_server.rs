@@ -449,3 +449,85 @@ async fn sends_the_parent_process_only_for_servers_on_this_machine() {
         "processId: null"
     );
 }
+
+#[tokio::test]
+async fn type_and_call_hierarchy() {
+    let dir = tempfile::tempdir().unwrap();
+    let manager = LspManager::new(dir.path());
+    manager.register_server(config());
+    let mut lint = config();
+    lint.id = "lint".into();
+    lint.args = vec!["secondary".into()];
+    manager.register_server(lint);
+    let php = dir.path().join("User.php");
+    manager.did_open(&php, "class User\n").await.unwrap();
+
+    // Only the server announcing the feature is asked.
+    let types = manager
+        .prepare_type_hierarchy(&php, Position::new(0, 7))
+        .await
+        .unwrap();
+    assert_eq!(types.len(), 1);
+    let (server, item) = types.into_iter().next().unwrap();
+    assert_eq!((server.as_str(), item.name.as_str()), ("fake", "User"));
+    let supers = manager
+        .type_hierarchy(&server, item.clone(), false)
+        .await
+        .unwrap();
+    assert_eq!(supers[0].name, "Model");
+    assert!(manager
+        .type_hierarchy(&server, item, true)
+        .await
+        .unwrap()
+        .is_empty());
+
+    let calls = manager
+        .prepare_call_hierarchy(&php, Position::new(0, 7))
+        .await
+        .unwrap();
+    let (server, item) = calls.into_iter().next().unwrap();
+    let incoming = manager.incoming_calls(&server, item.clone()).await.unwrap();
+    assert_eq!(incoming[0].0.name, "main");
+    assert_eq!(incoming[0].1.len(), 2);
+    let outgoing = manager.outgoing_calls(&server, item.clone()).await.unwrap();
+    assert_eq!(outgoing[0].0.detail.as_deref(), Some("User"));
+    assert!(manager.incoming_calls("nope", item).await.is_err());
+
+    // As the hierarchy model: User extends Model; main() calls the root twice.
+    let graph = manager
+        .type_graph(&php, Position::new(0, 7))
+        .await
+        .unwrap()
+        .unwrap();
+    let root = graph
+        .types
+        .iter()
+        .find(|t| t.item.id == graph.root)
+        .unwrap();
+    assert_eq!(root.item.name, "User");
+    assert_eq!(root.extends.len(), 1);
+    assert_eq!(graph.types.len(), 2);
+    let base = manager
+        .call_root(&php, Position::new(0, 7))
+        .await
+        .unwrap()
+        .unwrap();
+    let callers = manager
+        .call_nodes(
+            &base,
+            forge_lsp::forge_codeintel::hierarchy::CallDirection::Callers,
+        )
+        .await
+        .unwrap();
+    assert_eq!(callers[0].item.name, "main()");
+    assert_eq!(callers[0].calls.len(), 2);
+    let callees = manager
+        .call_nodes(
+            &base,
+            forge_lsp::forge_codeintel::hierarchy::CallDirection::Callees,
+        )
+        .await
+        .unwrap();
+    assert_eq!(callees[0].item.name, "save()");
+    assert_eq!(callees[0].calls[0].path, base.path);
+}

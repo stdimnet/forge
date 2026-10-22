@@ -1,11 +1,40 @@
 import { Show } from "solid-js";
-import { layout } from "@/state/layout";
+import type { ToolWindowAnchor } from "@/features/registry";
+import { layout, openInArea } from "@/state/layout";
+import { slotFor } from "@/state/toolWindowLayout";
 import { MainToolbar } from "./MainToolbar";
 import { ToolStripe } from "./ToolStripe";
 import { ToolWindowPanel } from "./ToolWindowPanel";
-import { Splitter } from "./Splitter";
+import { SplitDivider, Splitter } from "./Splitter";
 import { EditorArea } from "./EditorArea";
 import { StatusBar } from "./StatusBar";
+
+/**
+ * The tool windows of one area: the primary group's window and the split group's window,
+ * stacked on the sides (Left Top above Left Bottom) or side by side at the bottom (Bottom
+ * Left, Bottom Right), like PHPStorm's New UI.
+ */
+function ToolArea(props: { anchor: ToolWindowAnchor }) {
+  const both = () => openInArea(props.anchor).length === 2;
+  const primary = slotFor(props.anchor);
+  return (
+    <div class={`tool-area tool-area-${props.anchor}`} classList={{ split: both() }}>
+      <Show when={layout.active[primary]}>
+        <div class="tool-area-part" style={both() ? { flex: `0 0 ${layout.splits[props.anchor] / 10}%` } : undefined}>
+          <ToolWindowPanel slot={primary} />
+        </div>
+      </Show>
+      <Show when={both()}>
+        <SplitDivider anchor={props.anchor} />
+      </Show>
+      <Show when={layout.active[slotFor(props.anchor, true)]}>
+        <div class="tool-area-part">
+          <ToolWindowPanel slot={slotFor(props.anchor, true)} />
+        </div>
+      </Show>
+    </div>
+  );
+}
 
 /** The main IDE window: toolbar, stripes, side panels, editor, bottom panel, status bar. */
 export function Workbench() {
@@ -16,24 +45,24 @@ export function Workbench() {
         <ToolStripe side="left" />
         <div class="workbench-center">
           <div class="workbench-main">
-            <Show when={layout.active.left}>
+            <Show when={openInArea("left").length}>
               <div class="side-panel" style={{ width: `${layout.size.left}px` }}>
-                <ToolWindowPanel anchor="left" />
+                <ToolArea anchor="left" />
               </div>
               <Splitter anchor="left" />
             </Show>
             <EditorArea />
-            <Show when={layout.active.right}>
+            <Show when={openInArea("right").length}>
               <Splitter anchor="right" />
               <div class="side-panel" style={{ width: `${layout.size.right}px` }}>
-                <ToolWindowPanel anchor="right" />
+                <ToolArea anchor="right" />
               </div>
             </Show>
           </div>
-          <Show when={layout.active.bottom}>
+          <Show when={openInArea("bottom").length}>
             <Splitter anchor="bottom" />
             <div class="bottom-panel" style={{ height: `${layout.size.bottom}px` }}>
-              <ToolWindowPanel anchor="bottom" />
+              <ToolArea anchor="bottom" />
             </div>
           </Show>
         </div>

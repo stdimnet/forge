@@ -41,9 +41,9 @@ Back and forward, Search Everywhere, Go to Class/File/Symbol/Line, declarations 
 | Test | `Ctrl+Shift+T` | `Cmd+Shift+T` | not yet | Not available yet; the entry is disabled. |
 | Related Symbol… | `Ctrl+Alt+Home` | `Ctrl+Cmd+Up` | yes | Jumps to related files: tests, views, templates, routes, migrations, stories and styles. [More](../../user/navigation-bar-and-file-structure.md#related-symbol) ([screenshot](../../../screenshots/related-symbol.png)) |
 | File Structure | `Ctrl+F12` | `Cmd+F12` | yes | Shows the file's structure in a popup with speed search; press again for inherited members. [More](../../user/navigation-bar-and-file-structure.md#file-structure-popup) ([screenshot](../../../screenshots/file-structure-popup.png)) |
-| Type Hierarchy | `Ctrl+H` | `Ctrl+H` | not yet | Not available yet; the entry is disabled. |
-| Method Hierarchy | `Ctrl+Shift+H` | `Cmd+Shift+H` | not yet | Not available yet; the entry is disabled. |
-| Call Hierarchy | `Ctrl+Alt+H` | `Ctrl+Alt+H` | not yet | Not available yet; the entry is disabled. |
+| Type Hierarchy | `Ctrl+H` | `Ctrl+H` | yes | Shows the class, supertypes or subtypes hierarchy of the type at the caret in the Hierarchy tool window. [More](../../user/hierarchies.md#type-hierarchy) ([screenshot](../../../screenshots/hierarchy-type.png)) |
+| Method Hierarchy | `Ctrl+Shift+H` | `Cmd+Shift+H` | yes | Shows the classes that define, inherit or should define the method at the caret. [More](../../user/hierarchies.md#method-hierarchy) ([screenshot](../../../screenshots/hierarchy-method.png)) |
+| Call Hierarchy | `Ctrl+Alt+H` | `Ctrl+Alt+H` | yes | Shows the callers or callees of the method or function at the caret, level by level, with the call sites. [More](../../user/hierarchies.md#call-hierarchy) ([screenshot](../../../screenshots/hierarchy-call.png)) |
 | Next Highlighted Error | `F2` | `F2` | yes | Moves the caret to the next problem in the file. [More](../../user/editor.md#problems) |
 | Previous Highlighted Error | `Shift+F2` | `Shift+F2` | yes | Moves the caret to the previous problem in the file. [More](../../user/editor.md#problems) |
 | Next Occurrence | `Ctrl+Alt+Down` | `Cmd+Alt+Down` | yes | Opens the next result of the Find tool window's active tab. [More](../../user/workbench.md#find-tool-window) |

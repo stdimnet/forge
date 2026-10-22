@@ -18,11 +18,11 @@ export async function runSqlInConsole(sql: string): Promise<boolean> {
   const id = selectedSourceId();
   if (!id) {
     showBalloon("No data source", "Add a data source in the Database tool window to run SQL.", 6000);
-    showToolWindow("right", "database");
+    showToolWindow("database");
     openDataSources({ newDriver: "mysql" });
     return false;
   }
-  showToolWindow("right", "database");
+  showToolWindow("database");
   const path = openConsole(id, text);
   // The console registers its controller when its view mounts.
   for (let i = 0; i < 100; i++) {

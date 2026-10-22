@@ -46,6 +46,8 @@ and the browser-mode UI. Pure Rust, so it also runs as WebAssembly.
 - `navbar`: the Navigation Bar's segments (project, folders, file, members at the caret).
 - `related`: Related Symbol (Ctrl+Alt+Home): tests, Laravel views / routes / migrations /
   factories / policies, Twig templates, component tests, stories and styles.
+- `hierarchy`: Type, Method and Call Hierarchy: the data model sources fill (`TypeGraph`,
+  `CallNode`), the views of the Hierarchy tool window, scopes, sorting and merging.
 
 ## Modules
 
@@ -54,6 +56,7 @@ and the browser-mode UI. Pure Rust, so it also runs as WebAssembly.
 | `actions.rs` | Context actions (`ContextAction`, `ActionKind`) and `order_actions`: quick fixes first, preferred ones on top, duplicates removed, "fix all" actions (`source.fixAll*`, "Fix all …") moved into the `children` of their server's quick fix (`nest_fix_all`); `bulb_for` picks the red / yellow light bulb. |
 | `docs.rs` | `symbol_at` (the identifier at the caret with its qualifier, call, tag and CSS context, imported frameworks) and `external_doc_url` (php.net, Laravel API, MDN, Vue, React, Lua manual); `definition_snippet` (docblock and attributes above, body to the matching brace or Lua `end`, at most 80 lines); `context_headers` (enclosing class, function and CSS rule headers); `type_from_hover` / `type_from_signature`; `language_of`. |
 | `file_structure.rs` | `file_structure_view(FileStructureRequest)` → `FileStructureView { rows, selected, hasFields, hasLambdas, hasInherited }` over Structure view nodes (JSON): "Show Fields" / "Show Inherited" / "Show Lambdas" / "Sort Alphabetically", fuzzy matching with `forge-fuzzy` keeping the parents of matches, the best match or the node at the caret (`caretLine`, `enclosing` scope headers) selected. |
+| `hierarchy.rs` | The model of Type / Method / Call Hierarchy: `HierarchyItem` (id, name, kind, container, LSP position, `handle` with a server's own item), `TypeGraph { root, types: TypeEntry { item, extends, implements, method? }[], method? }` and `CallNode { item, calls: CallSite { path, range, preview }[] }`. `type_view` (Class Hierarchy: superclass chain then subtypes; Supertypes; Subtypes), `method_view` (subtypes of the topmost declaring type with `MethodMark` defined / abstract / shouldDefine / inherited, "Hide Classes Where Method Is Not Implemented"), `call_view` (one level of callers / callees), `HierarchyScope` All / Production / Test / This Class (parents of matches stay), alphabetical sorting, `merge_type_graphs` / `merge_call_nodes` (entries at the same place are one), `is_test_path`. Cycles and huge graphs are cut. |
 | `navbar.rs` | `nav_bar_segments(NavBarRequest { project, path, scopes, showMembers })` → `NavSegment { kind: project / directory / file / member, label, path, scopeKind?, line?, column? }[]`; members are the class-like and function scopes around the caret. |
 | `related.rs` | `related(RelatedRequest { path, text }, files, read)` → `RelatedItem { kind, group, name, path, line, column }[]` grouped in a fixed order. Text scans, no parser: PHP class ↔ `*Test.php`, Laravel `view()` / `View::make` / `Route::view` / Inertia, `routes/*.php` lines naming a controller, model ↔ migrations (`_create_<table>_table`, `$table`), factory, policy, seeder; Symfony `render()` / `#[Template]` ↔ `templates/`; JS/TS/Vue/Svelte files ↔ `*.test.*`, `*.spec.*`, `__tests__/`, `tests/`, `*.stories.*`, style sheets. The caller lists the files and reads them lazily. |
 | `edit.rs` | `TextEdit`, `WorkspaceEdit` (`edit` / `create` / `rename` / `delete` changes), `apply_workspace_edit` over a `FileStore` (all or nothing), `revert_applied`, `preview_workspace_edit`, `word_range`, UTF-16 offset helpers. |
@@ -68,6 +71,7 @@ pub use actions::{bulb_for, nest_fix_all, order_actions, ActionKind, Bulb, Conte
 pub use docs::{context_headers, definition_snippet, external_doc_url, symbol_at, type_from_hover, type_from_signature, … };
 pub use rename::{edit_conflicts, edit_from_locations, plan_edit, suggest_file_rename, validate_identifier, EditPlan, RenameConflict, … };
 pub use file_structure::{file_structure_view, FileStructureRequest, FileStructureView};
+pub use hierarchy::{call_view, merge_call_nodes, merge_type_graphs, method_view, type_view, CallNode, HierarchyItem, TypeGraph, … };
 pub use navbar::{nav_bar_segments, NavBarRequest, NavSegment};
 pub use related::{related, RelatedItem, RelatedKind, RelatedRequest};
 pub use edit::{apply_text_edits, apply_workspace_edit, preview_workspace_edit, revert_applied, word_range, … };

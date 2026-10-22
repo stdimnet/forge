@@ -23,8 +23,8 @@ Tool windows are registered from a feature folder through `registerToolWindow`
      id: "services",          // reuse a placeholder id to replace it
      title: "Services",
      icon: Container,          // lucide-solid icon
-     anchor: "bottom",         // "left" | "right" | "bottom"
-     order: 30,                // position inside the stripe
+     anchor: "bottom",         // default place: "left" | "right" | "bottom" (users can move it)
+     order: 30,                // default position inside the stripe group
      shortcut: "Alt+8",        // tooltip hint only; real binding goes through the keymap
      component: ServicesView,
      actions: () => <HeaderButtons />, // optional header buttons
@@ -32,14 +32,17 @@ Tool windows are registered from a feature folder through `registerToolWindow`
    ```
 
 3. Import the feature once in `app/ui/src/features/index.ts` (`import "./<name>";`).
-4. Shortcut: add or alias the PHPStorm action (e.g. `ActivateServicesToolWindow`) – see the
+4. Open or check the window only by id (`showToolWindow("services")`, `toggleToolWindow`,
+   `isToolWindowVisible` from `@/state/layout`): users move tool windows to other stripes, so
+   never read `layout.active.bottom`.
+5. Shortcut: add or alias the PHPStorm action (e.g. `ActivateServicesToolWindow`) – see the
    `add-keymap-action` skill. Never add a `window.addEventListener("keydown", ...)`.
-5. Data: call the backend through a typed client in `app/ui/src/ipc/<name>.ts`; add a browser
+6. Data: call the backend through a typed client in `app/ui/src/ipc/<name>.ts`; add a browser
    mock (`add-ipc-command` skill) so the window works in `pnpm dev`.
-6. Styling: a `<name>.css` next to the component using only variables from
+7. Styling: a `<name>.css` next to the component using only variables from
    `app/ui/src/theme/theme.css` (both themes). Reuse shared classes: `.tree-row`, `.icon-btn`,
    `.pill-btn`, `.btn-primary`, `.btn-secondary`, `.muted`, `.vcs-*`.
-7. Verify with a screenshot scenario (`verify-ui-with-screenshots` skill) and compare against
+8. Verify with a screenshot scenario (`verify-ui-with-screenshots` skill) and compare against
    PHPStorm's New UI: same layout, wording and behaviour, Forge colors.
 
 ## Reference implementations

@@ -22,6 +22,7 @@ use forge_core::{CollectRequest, FsChanges, Result};
 use forge_process::{CommandLine, PtyEvent, RunEvent};
 use forge_vcs::GitRequest;
 use phpforge_lang_php::generate::{GenerateKind, GenerateOptions};
+use phpforge_lang_php::hierarchy::HierarchyQuery;
 use phpforge_lang_php::index::SearchKind;
 use phpforge_lang_php::lsp::PhpLspSettings;
 use phpforge_lang_php::navigate::NavKind;
@@ -296,6 +297,13 @@ pub enum PhpCall {
     /// -> `Vec<PhpLineMarker>`
     LineMarkers {
         path: String,
+        content: Option<String>,
+    },
+    /// -> `PhpHierarchy`
+    Hierarchy {
+        path: String,
+        offset: usize,
+        query: HierarchyQuery,
         content: Option<String>,
     },
     /// -> `Vec<Intention>`

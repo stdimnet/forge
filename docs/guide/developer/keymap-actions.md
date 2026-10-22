@@ -36,7 +36,7 @@ Most actions already exist with the right default keys. Register a command with 
 
 ```ts
 registerCommand({ id: "ActivateStructureToolWindow", title: "Structure",
-  run: () => toggleToolWindow("left", "structure") });
+  run: () => toggleToolWindow("structure") });
 ```
 
 If your feature already uses another id, alias it in `ACTION_ALIASES`

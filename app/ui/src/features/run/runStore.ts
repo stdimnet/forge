@@ -232,7 +232,7 @@ export async function launch(cfg: RunConfiguration, opts: LaunchOptions = {}): P
   const id = sessionFor(cfg, !!opts.debug);
   data.get(id)!.extra = opts.extra;
   // A debug launcher may switch to its own tool window once the session starts.
-  showToolWindow("bottom", "run");
+  showToolWindow("run");
   return startProcess(id, opts.extra);
 }
 

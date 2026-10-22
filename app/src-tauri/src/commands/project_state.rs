@@ -39,6 +39,17 @@ pub async fn layout_save(layout: ProjectLayout, state: State<'_, AppState>) -> R
     blocking(move || project_state::save_layout(&layout_dir()?, &root, &layout)).await
 }
 
+/// The layout stored with Window | Store Current Layout as Default (tool windows only).
+#[tauri::command]
+pub async fn layout_default_load() -> Result<Option<ProjectLayout>> {
+    blocking(move || Ok(project_state::load_default_layout(&layout_dir()?))).await
+}
+
+#[tauri::command]
+pub async fn layout_default_save(layout: ProjectLayout) -> Result<()> {
+    blocking(move || project_state::save_default_layout(&layout_dir()?, &layout)).await
+}
+
 /// The open project's AI chats, newest first.
 #[tauri::command]
 pub async fn agent_history_list(state: State<'_, AppState>) -> Result<Vec<ChatSummary>> {
