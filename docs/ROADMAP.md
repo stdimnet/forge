@@ -69,7 +69,7 @@ are in [research/jetbrains-gap-analysis.md](research/jetbrains-gap-analysis.md).
 - [ ] Optimize Imports and auto-import settings (on the fly, on save, grouping)
 
 ### Version control
-- [ ] Merge conflict resolver (three-way merge, Resolve Simple Conflicts)
+- [x] Merge conflict resolver (three-way merge, Resolve Simple Conflicts)
 - [ ] File and selection history, Compare with Revision/Branch, Compare Files/Folders/Clipboard
 - [ ] Stash/Unstash, Pull/Merge/Rebase/Reset/Tag/Remotes dialogs, shelf
 - [ ] Log actions (revert, undo, reset, edit message, squash/fixup), interactive rebase, cherry-pick
