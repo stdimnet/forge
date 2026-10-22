@@ -72,13 +72,13 @@ are in [research/jetbrains-gap-analysis.md](research/jetbrains-gap-analysis.md).
 - [x] Merge conflict resolver (three-way merge, Resolve Simple Conflicts)
 - [x] File and selection history, Compare with Revision/Branch, Compare Files/Folders/Clipboard
 - [x] Stash/Unstash, Pull/Merge/Rebase/Reset/Tag/Remotes dialogs, shelf
-- [ ] Log actions (revert, undo, reset, edit message, squash/fixup), interactive rebase, cherry-pick
+- [x] Log actions (revert, undo, reset, edit message, squash/fixup), interactive rebase, cherry-pick
 - [ ] Changelists and partial commits, commit checks, patches
 - [ ] Get from VCS (clone), Commit Message History (`Ctrl+M`), worktrees, GPG/SSH signing
 - [ ] Local History with labels, selection history and Recent Changes
 
 ### Run, debug, PHP
-- [ ] PHP CLI interpreters: several local ones, Docker, Docker Compose, SSH, WSL, with path mappings
+- [x] PHP CLI interpreters: several local ones, Docker, Docker Compose, SSH, WSL, with path mappings
 - [ ] PHP Built-in Web Server, PHP Web Page and HTTP request debugging; Xdebug validation; logpoints, temporary breakpoints, Set Value, debugger console
 - [x] Composer UI (add dependency, version completion, outdated markers, Install/Update, `composer audit`)
 - [ ] Command Line Tool Support (Composer/Artisan/Symfony/WP-CLI console with completion)

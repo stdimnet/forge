@@ -58,6 +58,7 @@ struct Options {
 }
 
 fn options(state: &AppState) -> Options {
+    let php = crate::commands::php_interpreters::local_php(state);
     let s = state.read_settings();
     Options {
         json: s
@@ -66,9 +67,7 @@ fn options(state: &AppState) -> Options {
             .filter(|p| !p.is_empty())
             .unwrap_or_else(|| "composer.json".into()),
         executable: s.get_as::<String>(EXECUTABLE_KEY).unwrap_or_default(),
-        php: s
-            .get_as::<String>("php.interpreter")
-            .unwrap_or_else(|| "php".into()),
+        php,
         packagist: s.get_as::<bool>(PACKAGIST_KEY).unwrap_or(true),
     }
 }

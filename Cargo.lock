@@ -1857,6 +1857,7 @@ dependencies = [
  "phpforge-dql",
  "phpforge-fw-laravel",
  "phpforge-fw-symfony",
+ "phpforge-interpreters",
  "phpforge-lang-php",
  "phpforge-orm-doctrine",
  "serde",
@@ -2506,6 +2507,7 @@ dependencies = [
  "luaforge-lang-lua",
  "phpforge-composer",
  "phpforge-dql",
+ "phpforge-interpreters",
  "serde",
  "serde_json",
  "wasm-bindgen",
@@ -4818,6 +4820,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "phpforge-interpreters"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "tempfile",
+]
+
+[[package]]
 name = "phpforge-lang-php"
 version = "0.1.0"
 dependencies = [
@@ -4825,6 +4836,7 @@ dependencies = [
  "forge-codeintel",
  "forge-file-templates",
  "phpforge-composer",
+ "phpforge-interpreters",
  "rayon",
  "serde",
  "serde_json",

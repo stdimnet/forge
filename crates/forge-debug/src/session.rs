@@ -201,7 +201,7 @@ impl Session {
             self.detach().await;
             return;
         };
-        let servers = self.shared.servers();
+        let servers = self.shared.known_servers();
         // CLI scripts carry no server name: fall back to a server whose mappings cover the
         // script.
         let server = find_server(&servers, &identity)

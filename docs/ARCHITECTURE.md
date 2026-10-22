@@ -216,6 +216,24 @@ app/ui/            SolidJS UI
   else `--3way`), `git_shelf_delete({ id })`, `git_shelf_rename({ id, name })`,
   `git_shelf_file({ id, path }) -> { before, after, binary }`. Browser mode: `mock/gitOpsMock.ts`
   (`?rebasing` starts in a stopped rebase).
+- Git Log actions (`forge_vcs::rebase`, `repo/rewrite.rs`, `commands/git_log.rs`, UI
+  `features/git/logActions.ts`, `logIndex.ts`, `LogDialogs.tsx`, `rebaseModel.ts`); commit lists
+  are in log order (newest first): `git_log_actions({ shas }) -> { cherryPick, revert,
+  undoCommit, editMessage, fixup, squashInto, squashCommits, dropCommits, interactiveRebase:
+  { enabled, reason?, warning? } }` (protected branches from `vcs.git.protectedBranches`),
+  `git_cherry_pick({ shas })` (`-x` per `vcs.git.cherryPickSuffix`), `git_revert_commits({ shas
+  })`, `git_undo_commit({ sha }) -> { message }`, `git_reword({ sha, message })`,
+  `git_squash_commits({ shas, message })`, `git_drop_commits({ shas })`,
+  `git_interactive_rebase({ sha, entries: { sha, action: "pick" | "edit" | "reword" | "squash" |
+  "fixup" | "drop", message? }[] /* oldest first */ })` -> `{ output, oldHead, newHead?,
+  stopped }`, `git_undo_rewrite({ oldHead, newHead })`, `git_rebase_plan({ sha }) -> { base?,
+  branch?, commits: { sha, subject, message, author, time }[], entries }` (autosquash applied),
+  `git_commits_patch({ shas }) -> string`, `git_tree_files({ rev }) -> string[]`. Rewrites run
+  `git rebase -i --autostash` with `-c sequence.editor="git cat-file blob <todo> >"` and `exec`
+  amend steps reading message blobs, so no editor opens and remote projects work; stops
+  (conflicts, `edit`) hand over to `git_operation_action` and the conflict resolver. Browser
+  mode: `mock/gitLogMock.ts` (states, autosquash and the todo via WebAssembly:
+  `vcs_log_action_states`, `vcs_rebase_autosquash`, `vcs_rebase_todo`).
 - Merge conflicts (`forge_vcs::merge`, `Repo::conflicts`, `features/git/conflicts.ts`):
   `git_conflicts() -> { operation: "merge" | "rebase" | "cherryPick" | "revert" | "unstash",
   description, yoursName, theirsName, yoursTitle, theirsTitle, reversed, files: { path, yours,
@@ -689,7 +707,10 @@ app/ui/            SolidJS UI
 - Configuration types: the backend's `KindRegistry` builds command lines for `php-script`,
   `phpunit` (always `--teamcity`), `artisan`, `composer`, `shell` and `npm` (npm, pnpm, yarn or
   bun; `--` before script arguments only for npm); the PHP interpreter
-  defaults to the setting `php.interpreter`. A manifest `runConfigurationTypes` entry can declare
+  defaults to the setting `php.interpreter`. `run_start` / `run_command_line` then wrap PHP
+  kinds (and Composer kinds that name an interpreter) with the resolved CLI interpreter
+  (see "PHP CLI interpreters"); `RunOutputOptions.pathMappings` (remote → local) make
+  container paths in the output clickable. A manifest `runConfigurationTypes` entry can declare
   `fields` and a `command` template (`["${interpreter}", "${file}", "${arguments}"]`, see
   `lua-script`) and works without code; `interpreterSetting` names the setting with the project's
   default interpreter (`lua.interpreter`). In the UI, `registerRunConfigurationType({ id, name, icon,
@@ -1080,6 +1101,37 @@ computes everything; `app/ui/src/features/codeintel` and `features/lsp/goto.ts` 
   `debugLauncher.setStopFallback(fn)` lets "Stop" (Ctrl+F2) stop a run when no debug session is active.
 - Main toolbar widgets left of the run configuration selector: `registerToolbarItem`
   (`src/features/toolbarItems.ts`).
+## PHP CLI interpreters (`packs/phpforge/interpreters`)
+
+- `phpforge-interpreters` (pure except `detect`; also in `forge-wasm`,
+  `crates/forge-wasm/src/php_interpreters.rs`): the model (`PhpInterpreter`: `local | docker |
+  compose | ssh | wsl`, PHP executable, image, compose files / service / lifecycle `run |
+  exec`, SSH configuration id, WSL distribution, user path mappings, `-d` configuration
+  options, debugger extension and the cached Reload results), `probe` (parsers for `php -v`,
+  `php --ini`, `php -m`, `wsl.exe -l -q`), `detect` (PATH, system folders, Homebrew, phpenv,
+  phpbrew, asdf, mise, Herd, Laragon, XAMPP; versions via `php -v` with a timeout),
+  `mapping` (automatic mappings: Docker `/opt/project`, compose bind mounts, WSL `/mnt/<drive>`;
+  `Mapper` both ways, `map_arg`) and `command::wrap` (the local, `docker run`, `docker compose
+  run/exec`, `ssh`, `wsl.exe` command lines; debug runs get `host.docker.internal`, `ssh -R`
+  and `PHP_IDE_CONFIG=serverName=<debug_server_name>`).
+- Settings: `php.interpreters` (user) and `php.projectInterpreters` (project) are `objects`
+  settings with string values (compose files one per line, mappings `local<TAB>remote`, options
+  `name=value`, extensions comma separated; the UI codec is `features/php/interpreters.ts`).
+  `php.interpreter` is an interpreter name or a local path (`InterpreterSet::resolve`).
+  `php.languageLevel = "interpreter"` takes the level from the interpreter's detected version
+  (`PhpLspSettings::from_settings`, `level_from_interpreter`).
+- IPC (`app/src-tauri/src/commands/php_interpreters.rs`): `php_interpreters_detect() ->
+  { path, version }[]`, `php_interpreter_info({ interpreter }) -> { version, configFile,
+  additionalIni, xdebug, extensions }`, `php_interpreter_phpinfo({ interpreter }) -> string`,
+  `php_interpreter_mappings({ interpreter }) -> { local, remote }[]` (automatic ones),
+  `php_interpreter_compose_services({ files }) -> string[]`,
+  `php_interpreter_wsl_distributions() -> string[]`. Probes run through the project backend.
+  Framework helpers (Laravel routes, Symfony console, Composer phar) use `local_php`, the
+  project interpreter's path when it is local.
+- Debugging: a debug run through a remote interpreter registers a server
+  (`DebugServer::set_interpreter_servers`, not stored) named like the interpreter, so
+  `PHP_IDE_CONFIG` picks its mappings.
+
 ## Database tools (`forge-db`)
 
 - Data sources live in `<root>/.forge/dataSources.toml` (project) and

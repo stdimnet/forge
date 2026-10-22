@@ -496,8 +496,10 @@ Methods.
 
 | Option | Setting | Default |
 | --- | --- | --- |
-| PHP language level (7.4 – 8.4) | `php.languageLevel` | 8.3 |
-| CLI Interpreter (path to `php`) | `php.interpreter` | `php` |
+| PHP language level (7.4 – 8.4, or "From the CLI interpreter") | `php.languageLevel` | 8.3 |
+| CLI Interpreter (an interpreter's name, or the path of a local `php`) | `php.interpreter` | `php` |
+| CLI Interpreters (available in every project) | `php.interpreters` | empty |
+| CLI Interpreters "Visible only for this project" | `php.projectInterpreters` | empty |
 | Language server (Auto, Intelephense, phpactor, None) | `php.lsp.server` | Auto |
 | Max indexed file size for the server (KB) | `php.lsp.maxFileSize` | 5000 |
 | When Intelephense is not installed (`ask`, `always`, `never`), see [Installing Intelephense](language-servers.md#installing-intelephense) | `php.intelephense.autoInstall` | `ask` |
@@ -511,6 +513,58 @@ says when it comes from composer.json); click it to open this page. The page als
 
 Sub-pages: **Composer**, **Debug**, **Servers** (see [Xdebug debugging](debugging.md)),
 **Laravel**, **Symfony**, **Doctrine**.
+
+### CLI interpreters
+
+**CLI Interpreter** picks the PHP that runs scripts, tests, Artisan and Composer commands of
+the project. The **…** button next to it opens the **CLI Interpreters** dialog:
+
+![CLI Interpreters dialog](../../screenshots/php-interpreters-dialog.png)
+
+- The list on the left has **+** (add), **−** (remove) and copy. **+** offers **Local Path to
+  Interpreter…**, **From Docker, Vagrant, VM, WSL, Remote…** and the PHP executables Forge
+  detected on this machine (with their versions): `PATH`, `/usr/bin/php8.x`, Homebrew
+  (`/opt/homebrew`, `/usr/local/opt/php@8.x`), phpenv, phpbrew, asdf, mise, Laravel Herd, and
+  Laragon, XAMPP or `C:\php` on Windows.
+- **Name** and **Visible only for this project**: interpreters are stored in your user
+  settings and offered in every project, unless they are visible only for this project
+  (then they are stored in the project's `.forge/settings.toml`).
+- **General**: the **PHP executable** (with a file chooser for local interpreters) and what
+  Reload (↻) detected: **PHP version**, **Configuration file** (the loaded php.ini) and
+  additional .ini files, **Debugger** (Xdebug and its version) and the **Debugger
+  extension** — a path to `xdebug.so` that Forge loads with `-dzend_extension=` when you debug
+  and Xdebug is not loaded by php.ini. Reload runs `php -v`, `php --ini` and `php -m` through
+  the interpreter (a Docker image may be pulled the first time).
+- **Additional**: configuration options, passed as `-d name=value` to every run.
+- **Show phpinfo** shows the output of `php -i`.
+
+![Adding a remote interpreter](../../screenshots/php-interpreters-remote.png)
+
+**From Docker, Vagrant, VM, WSL, Remote…** opens **Configure Remote PHP Interpreter**:
+
+| Kind | Fields | Runs as |
+| --- | --- | --- |
+| Docker | Server (the default Docker or a Docker context), Image name | `docker run --rm -i -v <project>:/opt/project -w <dir> <image> php …` |
+| Docker Compose | Server, Configuration files, Service, Lifecycle: **Always start a new container** (`docker compose run --rm`) or **Connect to existing container** (`docker compose exec`) | `docker compose -f <file> run --rm -T -w <dir> <service> php …` |
+| SSH | An SSH configuration of [Settings &#124; Tools &#124; SSH Configurations](remote-development.md#saved-configurations) | `ssh -o BatchMode=yes user@host "cd <dir> && php …"` |
+| WSL (Windows only) | Linux distribution | `wsl.exe -d <distribution> --cd <dir> --exec php …` |
+
+All kinds take the **PHP interpreter path** inside the container or on the host (default
+`php`). SSH interpreters use your SSH agent or the configuration's key file (password
+authentication is not available for interpreters).
+
+**Path mappings** say where the project's files are where PHP runs. Forge derives them
+("auto" rows): Docker mounts the project at `/opt/project`, Docker Compose services use the
+bind mounts of their `volumes` (`.:/var/www/html`), WSL sees `C:\work\shop` as
+`/mnt/c/work/shop`. Your own rows win over the automatic ones; SSH interpreters need at least
+one (for example the project root ↔ `/srv/shop`). Runs map paths in arguments and the working
+directory, the Run console maps paths in the output back so they stay clickable, and the
+debugger uses the same mappings.
+
+**PHP language level** can follow the interpreter: choose **From the CLI interpreter** and
+Forge uses the version Reload detected (8.2.27 → 8.2). "Synchronize IDE settings with
+composer.json" still wins when composer.json requires a PHP version; the status bar tooltip
+says where the level comes from.
 
 ### Composer
 
@@ -573,7 +627,9 @@ cleanup of PHP files run there too, see [Actions on Save](actions-on-save.md).
 
 ## Running and testing PHP
 
-- **PHP Script** run configurations run a file with the CLI interpreter.
+- **PHP Script** run configurations run a file with the CLI interpreter — the project's, or
+  the one the configuration picks ([CLI interpreters](#cli-interpreters): local, Docker,
+  Docker Compose, SSH, WSL).
 - **PHPUnit** configurations run a class, method, directory or `phpunit.xml`; test classes
   and methods get ▶ icons in the gutter and results appear as a test tree.
 - **PHP scratch files** run with the project's autoloader.

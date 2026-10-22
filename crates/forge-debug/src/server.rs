@@ -30,6 +30,9 @@ pub(crate) struct Shared {
     /// The project's files (breakpoints and servers are stored there).
     files: RwLock<Option<SharedFiles>>,
     servers: RwLock<Vec<ServerConfig>>,
+    /// Servers of PHP interpreters (Docker, Compose, SSH, WSL) with their path mappings,
+    /// matched by the interpreter's name; not stored in the project.
+    interpreter_servers: RwLock<Vec<ServerConfig>>,
     breakpoints: Mutex<BreakpointStore>,
     sessions: Mutex<HashMap<String, Arc<Session>>>,
     sink: EventSink,
@@ -51,6 +54,20 @@ impl Shared {
 
     pub(crate) fn servers(&self) -> Vec<ServerConfig> {
         self.servers.read().expect("servers lock").clone()
+    }
+
+    /// The configured servers, then the interpreters' (a configured server of the same
+    /// name wins).
+    pub(crate) fn known_servers(&self) -> Vec<ServerConfig> {
+        let mut all = self.servers();
+        all.extend(
+            self.interpreter_servers
+                .read()
+                .expect("servers lock")
+                .iter()
+                .cloned(),
+        );
+        all
     }
 
     pub(crate) fn with_breakpoints<T>(&self, f: impl FnOnce(&mut BreakpointStore) -> T) -> T {
@@ -94,6 +111,7 @@ impl DebugServer {
                 root: RwLock::new(None),
                 files: RwLock::new(None),
                 servers: RwLock::new(Vec::new()),
+                interpreter_servers: RwLock::new(Vec::new()),
                 breakpoints: Mutex::new(BreakpointStore::memory()),
                 sessions: Mutex::new(HashMap::new()),
                 sink,
@@ -144,6 +162,16 @@ impl DebugServer {
 
     pub fn servers(&self) -> Vec<ServerConfig> {
         self.shared.servers()
+    }
+
+    /// The path mappings of PHP interpreters, as servers named like the interpreters (runs
+    /// through an interpreter set `PHP_IDE_CONFIG=serverName=<name>`).
+    pub fn set_interpreter_servers(&self, servers: Vec<ServerConfig>) {
+        *self
+            .shared
+            .interpreter_servers
+            .write()
+            .expect("servers lock") = servers;
     }
 
     /// Replace the server list and persist it in the project.

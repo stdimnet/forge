@@ -1,5 +1,9 @@
-/** Git tool window (Alt+9), Log tab: branches | commit graph | details. */
-import { createEffect, createMemo, createResource, createSignal, For, on, Show } from "solid-js";
+/**
+ * Git tool window (Alt+9), Log tab: branches | commit graph | details. Commits are selected
+ * with click, Ctrl+click and Shift+click; the context menu holds the Log actions
+ * (`logActions.ts`).
+ */
+import { createEffect, createMemo, createResource, createSignal, For, on, onCleanup, Show } from "solid-js";
 import {
   ChevronDown,
   ChevronRight,
@@ -20,7 +24,9 @@ import { layoutGraph, type GraphRow } from "./graph";
 import { fullDate, logDate } from "./format";
 import { checkout, fetchAll, showCommitDiff } from "./actions";
 import { GitTabs, HistoryTabs } from "./FileHistoryPanel";
-import { activeGitTab } from "./history";
+import { activeGitTab, setActiveGitTab } from "./history";
+import { goToRelative, openLogMenu, setLogView } from "./logActions";
+import { showToolWindow } from "@/state/layout";
 
 const PAGE = 200;
 const LANE = 14;
@@ -31,8 +37,22 @@ const [filterText, setFilterText] = createSignal("");
 /** Paths filter ("Show History" of a file or folder); `null` shows the whole repository. */
 const [filterPath, setFilterPath] = createSignal<string | null>(null);
 export { setFilterPath as setLogPathFilter };
+/** The lead selection (details pane) and every selected commit. */
 const [selectedSha, setSelectedSha] = createSignal<string | null>(null);
-export { setSelectedSha as selectLogCommit };
+const [selectedSet, setSelectedSet] = createSignal<Set<string>>(new Set());
+
+/** Select one commit (and only that one). */
+export function selectLogCommit(sha: string | null): void {
+  setSelectedSha(sha);
+  setSelectedSet(new Set(sha ? [sha] : []));
+}
+
+/** Show the log of a branch or range (`main..feature`) in the Git tool window. */
+export function showLogFor(rev: string | null): void {
+  setFilterRev(rev);
+  setActiveGitTab("log");
+  showToolWindow("git");
+}
 
 function Graph(props: { row: GraphRow; width: number }) {
   const x = (lane: number) => lane * LANE + LANE / 2 + 2;
@@ -224,7 +244,8 @@ export function GitLogPanel() {
       });
       setExhausted(page.length < PAGE);
       setCommits(reset ? page : [...commits(), ...page]);
-      if (reset && !commits().some((c) => c.sha === selectedSha())) setSelectedSha(page[0]?.sha ?? null);
+      if (reset && !commits().some((c) => c.sha === selectedSha())) selectLogCommit(page[0]?.sha ?? null);
+      if (reset) setSelectedSet((set) => new Set([...set].filter((sha) => commits().some((c) => c.sha === sha))));
     } catch {
       setCommits([]);
     } finally {
@@ -244,13 +265,51 @@ export function GitLogPanel() {
   const selected = () => commits().find((c) => c.sha === selectedSha());
   let filterTimer: number | undefined;
 
+  let listEl!: HTMLDivElement;
+  const reveal = (sha: string) => queueMicrotask(() => listEl?.querySelector(`[data-sha="${sha}"]`)?.scrollIntoView({ block: "nearest" }));
+  const selectedInOrder = () => commits().filter((c) => selectedSet().has(c.sha)).map((c) => c.sha);
+  setLogView({
+    commits,
+    selected: selectedInOrder,
+    select: (sha) => {
+      selectLogCommit(sha);
+      reveal(sha);
+    },
+  });
+  onCleanup(() => setLogView(null));
+
+  const click = (e: MouseEvent, c: Commit) => {
+    const list = commits();
+    const lead = selectedSha();
+    if (e.shiftKey && lead) {
+      const a = list.findIndex((x) => x.sha === lead);
+      const b = list.indexOf(c);
+      if (a >= 0) {
+        setSelectedSet(new Set(list.slice(Math.min(a, b), Math.max(a, b) + 1).map((x) => x.sha)));
+        return;
+      }
+    }
+    if (e.ctrlKey || e.metaKey) {
+      const next = new Set(selectedSet());
+      next.has(c.sha) ? next.delete(c.sha) : next.add(c.sha);
+      setSelectedSet(next);
+      setSelectedSha(c.sha);
+      return;
+    }
+    selectLogCommit(c.sha);
+  };
+
+  /** Arrow keys move the selection; Left / Right go to the child / parent commit. */
   const onKey = (e: KeyboardEvent) => {
     const list = commits();
     const i = list.findIndex((c) => c.sha === selectedSha());
-    if (e.key === "ArrowDown" && i < list.length - 1) setSelectedSha(list[i + 1].sha);
-    else if (e.key === "ArrowUp" && i > 0) setSelectedSha(list[i - 1].sha);
+    const sha = selectedSha();
+    if (e.key === "ArrowDown" && i < list.length - 1) selectLogCommit(list[i + 1].sha);
+    else if (e.key === "ArrowUp" && i > 0) selectLogCommit(list[i - 1].sha);
+    else if ((e.key === "ArrowLeft" || e.key === "ArrowRight") && sha && !e.altKey && !e.ctrlKey && !e.metaKey) goToRelative(sha, e.key === "ArrowRight");
     else return;
     e.preventDefault();
+    if (selectedSha()) reveal(selectedSha()!);
   };
 
   return (
@@ -305,6 +364,7 @@ export function GitLogPanel() {
           </div>
           <div
             class="log-list"
+            ref={listEl}
             tabIndex={0}
             onKeyDown={onKey}
             onScroll={(e) => {
@@ -317,12 +377,18 @@ export function GitLogPanel() {
                 <div
                   class="log-row"
                   classList={{
-                    selected: selectedSha() === c.sha,
+                    selected: selectedSet().has(c.sha),
+                    lead: selectedSha() === c.sha,
                     head: c.sha === status()?.head,
                     merge: c.parents.length > 1,
                   }}
                   data-sha={c.sha}
-                  onClick={() => setSelectedSha(c.sha)}
+                  onClick={(e) => click(e, c)}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    if (!selectedSet().has(c.sha)) selectLogCommit(c.sha);
+                    void openLogMenu(e.clientX, e.clientY);
+                  }}
                 >
                   <div class="log-subject-cell">
                     <Graph row={graph()[i()]} width={graphWidth()} />

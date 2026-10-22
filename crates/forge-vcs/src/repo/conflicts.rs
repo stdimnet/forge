@@ -175,7 +175,7 @@ impl Repo {
     }
 
     /// Stages of the unmerged paths (repository paths) in the workspace.
-    fn unmerged(&self, paths: &[String]) -> Result<Vec<(String, [bool; 3])>> {
+    pub(super) fn unmerged(&self, paths: &[String]) -> Result<Vec<(String, [bool; 3])>> {
         let specs = self.pathspecs(paths);
         let mut args = vec!["--literal-pathspecs", "ls-files", "-u", "-z", "--"];
         if specs.is_empty() && !self.prefix.is_empty() {
@@ -191,9 +191,11 @@ impl Repo {
     pub fn conflicts(&self) -> Result<ConflictSet> {
         let current = self.current_branch_name();
         let (operation, description, yours_name, theirs_name, yours_title, theirs_title) =
-            if let Some(sha) = self.ref_sha("REBASE_HEAD") {
-                let status = self.git(&["status"]).unwrap_or_default();
-                let (branch, onto) = match parse_rebase_status(&status) {
+            if let Some((sha, progress)) = self
+                .ref_sha("REBASE_HEAD")
+                .and_then(|sha| Some((sha, self.rebase_in_progress()?)))
+            {
+                let (branch, onto) = match progress.branch_onto {
                     Some((branch, onto)) => (branch, self.name_of(&onto)),
                     None => (self.name_of(&sha), "upstream".to_string()),
                 };
@@ -332,7 +334,7 @@ impl Repo {
         if paths.is_empty() {
             return Ok(());
         }
-        let reversed = self.ref_sha("REBASE_HEAD").is_some();
+        let reversed = self.ref_sha("REBASE_HEAD").is_some() && self.rebase_in_progress().is_some();
         // git's stage of the chosen side: 2 is `--ours`, 3 is `--theirs`.
         let ours = (side == ConflictSide::Yours) != reversed;
         let mut keep = Vec::new();

@@ -28,6 +28,8 @@ pub struct DebugState {
     project: Mutex<Option<String>>,
     /// The SSH forward of a remote project's debug port while listening.
     forward: Mutex<Option<PortForward>>,
+    /// Servers of the PHP interpreters debug runs went through (their path mappings).
+    interpreter_servers: Mutex<Vec<ServerConfig>>,
 }
 
 impl DebugState {
@@ -42,7 +44,17 @@ impl DebugState {
             watches: Mutex::new(Vec::new()),
             project: Mutex::new(None),
             forward: Mutex::new(None),
+            interpreter_servers: Mutex::new(Vec::new()),
         }
+    }
+
+    /// Make the debugger map paths of runs through a PHP interpreter (Docker, Compose,
+    /// SSH, WSL) with the interpreter's mappings.
+    pub fn add_interpreter_server(&self, server: ServerConfig) {
+        let mut list = self.interpreter_servers.lock().expect("servers lock");
+        list.retain(|s| s.id != server.id && s.name != server.name);
+        list.push(server);
+        self.server.set_interpreter_servers(list.clone());
     }
 }
 

@@ -728,6 +728,21 @@ export function nav_bar_segments(request_json: string): string;
 export function output_file_links(request_json: string): string;
 
 /**
+ * `{ interpreter, root, composeDir?, volumes? }` → the automatic `PathMapping[]`.
+ */
+export function php_interpreter_automatic_mappings(request_json: string): string;
+
+/**
+ * `{ phpV, phpIni, phpM }` (outputs of `php -v`, `php --ini`, `php -m`) → `InterpreterInfo`.
+ */
+export function php_interpreter_parse_info(request_json: string): string;
+
+/**
+ * `WrapRequest` → `{ program, args, cwd, env, kind, pathMappings }`.
+ */
+export function php_interpreter_wrap(request_json: string): string;
+
+/**
  * `{ knownHosts, host, port, keyType, key, accept? }` → `{ status, fingerprint, ..., knownHosts? }`
  * (the verdict, and the updated file when a confirmed key was added).
  */
@@ -1044,9 +1059,24 @@ export function text_write(request_json: string): string;
 export function todo_scan(request_json: string): string;
 
 /**
+ * `SelectionFacts` → `LogActionStates`: which Git Log actions the git mock's selection allows.
+ */
+export function vcs_log_action_states(facts_json: string): string;
+
+/**
  * `{ base, left, right }` → `MergeModel`.
  */
 export function vcs_merge(request_json: string): string;
+
+/**
+ * `RebaseCommit[]` (oldest first) → the initial `RebaseEntry[]` of the rebase dialog.
+ */
+export function vcs_rebase_autosquash(commits_json: string): string;
+
+/**
+ * `RebaseEntry[]` (oldest first) → `{ steps, messages }`, the todo the git mock applies.
+ */
+export function vcs_rebase_todo(entries_json: string): string;
 
 /**
  * `{text}` → `{handle}`: start tracking an editor.
@@ -1287,6 +1317,9 @@ export interface InitOutput {
     readonly markdown_parse: (a: number, b: number, c: number) => void;
     readonly nav_bar_segments: (a: number, b: number, c: number) => void;
     readonly output_file_links: (a: number, b: number, c: number) => void;
+    readonly php_interpreter_automatic_mappings: (a: number, b: number, c: number) => void;
+    readonly php_interpreter_parse_info: (a: number, b: number, c: number) => void;
+    readonly php_interpreter_wrap: (a: number, b: number, c: number) => void;
     readonly remote_check_host_key: (a: number, b: number, c: number) => void;
     readonly remote_ssh_hosts: (a: number, b: number, c: number) => void;
     readonly remote_validate_config: (a: number, b: number, c: number) => void;
@@ -1349,7 +1382,10 @@ export interface InitOutput {
     readonly text_read: (a: number, b: number, c: number) => void;
     readonly text_write: (a: number, b: number, c: number) => void;
     readonly todo_scan: (a: number, b: number, c: number) => void;
+    readonly vcs_log_action_states: (a: number, b: number, c: number) => void;
     readonly vcs_merge: (a: number, b: number, c: number) => void;
+    readonly vcs_rebase_autosquash: (a: number, b: number, c: number) => void;
+    readonly vcs_rebase_todo: (a: number, b: number, c: number) => void;
     readonly vim_attach: (a: number, b: number, c: number) => void;
     readonly vim_configure: (a: number, b: number, c: number) => void;
     readonly vim_detach: (a: number, b: number, c: number) => void;

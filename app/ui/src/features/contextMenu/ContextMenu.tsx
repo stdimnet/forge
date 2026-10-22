@@ -174,6 +174,7 @@ function MenuList(props: ListProps) {
                   classList={{ active: active() === i(), open: opened() === i(), disabled: !!item.disabled }}
                   role={item.checkable ? "menuitemcheckbox" : "menuitem"}
                   aria-disabled={item.disabled ? "true" : undefined}
+                  title={item.hint}
                   aria-checked={item.checkable ? !!item.checked : undefined}
                   aria-haspopup={item.kind === "submenu" ? "menu" : undefined}
                   onMouseEnter={() => {
