@@ -22,6 +22,34 @@ fn parse<T: for<'de> Deserialize<'de>>(json: &str) -> Result<T, String> {
 }
 
 #[derive(Deserialize)]
+struct RelatedInput {
+    path: String,
+    text: String,
+    /// The project's files and their texts.
+    files: BTreeMap<String, String>,
+}
+
+/// `{ path, text, files }` → `RelatedItem[]` (like `code_related`).
+#[wasm_bindgen]
+pub fn codeintel_related(request_json: &str) -> String {
+    match parse::<RelatedInput>(request_json) {
+        Ok(input) => {
+            let list: Vec<String> = input.files.keys().cloned().collect();
+            let read = |p: &str| input.files.get(p).cloned();
+            to_json(&forge_codeintel::related(
+                &forge_codeintel::RelatedRequest {
+                    path: input.path,
+                    text: input.text,
+                },
+                &list,
+                &read,
+            ))
+        }
+        Err(e) => to_json(&json!({ "error": e })),
+    }
+}
+
+#[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct UsagesInput {
     usages: Vec<UsageLocation>,
@@ -399,5 +427,14 @@ mod doc_tests {
             codeintel_type_info(r#"{"signature":"public function total(): float"}"#),
             "\"float\""
         );
+    }
+
+    #[test]
+    fn related_files_over_json() {
+        let out = codeintel_related(
+            r#"{"path":"app/Checkout.php","text":"<?php","files":{"app/Checkout.php":"<?php","tests/CheckoutTest.php":"<?php"}}"#,
+        );
+        assert!(out.contains("\"path\":\"tests/CheckoutTest.php\""));
+        assert!(out.contains("\"group\":\"Tests\""));
     }
 }

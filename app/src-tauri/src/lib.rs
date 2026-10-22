@@ -186,6 +186,7 @@ pub fn run() {
             commands::codeintel::code_quick_definition,
             commands::codeintel::code_type_info,
             commands::codeintel::code_context_info,
+            commands::codeintel::code_related,
             commands::codeintel::code_line_markers,
             commands::library::library_read,
             commands::codeintel::code_prepare_rename,
