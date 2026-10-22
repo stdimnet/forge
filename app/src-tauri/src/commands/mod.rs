@@ -16,6 +16,7 @@ pub mod editor;
 pub mod emmet;
 pub mod forges;
 pub mod git;
+pub mod git_changes;
 pub mod git_history;
 pub mod git_log;
 pub mod git_ops;
