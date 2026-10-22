@@ -10,7 +10,7 @@ export type Platform = "mac" | "other";
 /** Where an action may fire: "editor" actions only while a code editor has focus. */
 export type ActionContext = "any" | "editor" | "toolwindow" | "diff";
 /** Where keyboard focus currently is. */
-export type FocusContext = "editor" | "input" | "terminal" | "toolwindow" | "diff" | "global";
+export type FocusContext = "editor" | "input" | "toolwindow-input" | "terminal" | "toolwindow" | "diff" | "global";
 
 export interface ActionDef {
   id: string;

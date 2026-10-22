@@ -23,6 +23,11 @@ pub enum FocusContext {
     Input,
     Terminal,
     Toolwindow,
+    /// A text field of a tool window that also takes the tool window's actions, like
+    /// PHPStorm's commit message editor (`Ctrl+M`, `Ctrl+D`). Keys a text field needs stay
+    /// with it, as in [`FocusContext::Input`].
+    #[serde(rename = "toolwindow-input")]
+    ToolwindowInput,
     /// A diff or merge window (its editors included).
     Diff,
     #[default]
@@ -121,9 +126,10 @@ pub fn context_matches(context: ActionContext, focus: FocusContext) -> bool {
     match context {
         ActionContext::Any => true,
         ActionContext::Editor => focus == FocusContext::Editor,
-        ActionContext::Toolwindow => {
-            matches!(focus, FocusContext::Toolwindow | FocusContext::Terminal)
-        }
+        ActionContext::Toolwindow => matches!(
+            focus,
+            FocusContext::Toolwindow | FocusContext::Terminal | FocusContext::ToolwindowInput
+        ),
         ActionContext::Diff => focus == FocusContext::Diff,
     }
 }
@@ -495,7 +501,8 @@ impl Resolver {
             };
         }
 
-        if focus == FocusContext::Input && !allowed_in_input(&stroke) {
+        let text_field = matches!(focus, FocusContext::Input | FocusContext::ToolwindowInput);
+        if text_field && !allowed_in_input(&stroke) {
             return Resolution::ignored();
         }
         if focus == FocusContext::Terminal && !allowed_in_terminal(&stroke) {
@@ -706,6 +713,15 @@ mod tests {
             action(&mut r, "Ctrl+F5", Toolwindow).as_deref(),
             Some("Rerun")
         );
+        // A tool window's text field (the commit message) takes them too …
+        assert_eq!(
+            action(&mut r, "Ctrl+F5", FocusContext::ToolwindowInput).as_deref(),
+            Some("Rerun")
+        );
+        // … but keeps its own editing keys.
+        let mut plain = resolver(&[("Z", &["Ctrl+A"]), ("Y", &["F"])]);
+        assert!(!plain.key_down(&key("Ctrl+A"), FocusContext::ToolwindowInput).consumed);
+        assert!(!plain.key_down(&key("F"), FocusContext::ToolwindowInput).consumed);
     }
 
     #[test]
@@ -1022,6 +1038,14 @@ mod tests {
         assert!(context_matches(ActionContext::Any, FocusContext::Diff));
         assert!(!context_matches(ActionContext::Diff, Editor));
         assert!(!context_matches(ActionContext::Editor, FocusContext::Diff));
+        // The commit message takes tool window actions, but not editor ones.
+        assert!(context_matches(ActionContext::Toolwindow, FocusContext::ToolwindowInput));
+        assert!(!context_matches(ActionContext::Toolwindow, Input));
+        assert!(!context_matches(ActionContext::Editor, FocusContext::ToolwindowInput));
+        assert_eq!(
+            serde_json::to_string(&FocusContext::ToolwindowInput).unwrap(),
+            "\"toolwindow-input\""
+        );
     }
 
     #[test]
