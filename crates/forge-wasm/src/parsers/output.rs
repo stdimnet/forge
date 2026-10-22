@@ -61,6 +61,25 @@ pub fn run_output_drop(request_json: &str) -> String {
     "null".into()
 }
 
+/// `{ handle }` → `{ tree, summary, counts }` of a test run (`null` without tests), for the
+/// browser-mode Test History.
+#[wasm_bindgen]
+pub fn run_output_export(request_json: &str) -> String {
+    match parse::<DropRequest>(request_json) {
+        Ok(req) => RUNS.with(
+            |r| match r.borrow().1.get(&req.handle).and_then(|o| o.tests()) {
+                Some(t) => to_json(&serde_json::json!({
+                    "tree": t.export(),
+                    "summary": t.summary(),
+                    "counts": t.counts(),
+                })),
+                None => "null".into(),
+            },
+        ),
+        Err(e) => e,
+    }
+}
+
 #[derive(Deserialize)]
 struct LinksRequest {
     text: String,

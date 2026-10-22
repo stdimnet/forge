@@ -1,0 +1,15 @@
+
+##teamcity[testCount count='3' flowId='81234']
+##teamcity[testSuiteStarted name='Tests\Feature\CartTest' locationHint='pest_qn://tests/Feature/CartTest.php' flowId='81234']
+##teamcity[testStarted name='an empty cart costs nothing' locationHint='pest_qn://tests/Feature/CartTest.php::an empty cart costs nothing' flowId='81234']
+##teamcity[testFinished name='an empty cart costs nothing' duration='3' flowId='81234']
+##teamcity[testStarted name='`totals` → it adds the tax with data set "ten euros"' locationHint='pest_qn://tests/Feature/CartTest.php::`totals` → it adds the tax with data set "ten euros"' flowId='81234']
+##teamcity[testFinished name='`totals` → it adds the tax with data set "ten euros"' duration='2' flowId='81234']
+##teamcity[testStarted name='`totals` → it rounds to cents' locationHint='pest_qn://tests/Feature/CartTest.php::`totals` → it rounds to cents' flowId='81234']
+##teamcity[testFailed name='`totals` → it rounds to cents' message='Failed asserting that 1.1781 is identical to 1.18.' details='at tests/Feature/CartTest.php:17' type='comparisonFailure' actual='1.1781' expected='1.18' flowId='81234']
+##teamcity[testFinished name='`totals` → it rounds to cents' duration='5' flowId='81234']
+##teamcity[testSuiteFinished name='Tests\Feature\CartTest' flowId='81234']
+
+  Tests:    1 failed, 2 passed (3 assertions)
+  Duration: 0.12s
+

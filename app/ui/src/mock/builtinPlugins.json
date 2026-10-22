@@ -2820,6 +2820,19 @@
           "section": "Console",
           "project": false,
           "order": 91
+        },
+        {
+          "key": "run.autoTest.delay",
+          "title": "Auto-test delay (seconds)",
+          "description": "With Toggle Auto-Test on, a test run reruns this long after the last file was saved.",
+          "type": "int",
+          "min": 0,
+          "max": 600,
+          "default": 3,
+          "group": "lang.php.test-frameworks",
+          "section": "Auto-Test",
+          "project": false,
+          "order": 10
         }
       ],
       "lspServers": [],
@@ -3287,6 +3300,16 @@
           "section": "Development Environment",
           "project": true,
           "order": 3
+        },
+        {
+          "key": "php.testFrameworks",
+          "title": "Test frameworks",
+          "description": "PHPUnit, Pest, Codeception, Behat and PHPSpec per CLI interpreter: Composer autoloader or path to the executable, default configuration and bootstrap files. Frameworks the project uses are detected.",
+          "type": "objects",
+          "default": [],
+          "group": "lang.php.test-frameworks",
+          "project": true,
+          "order": 0
         },
         {
           "key": "php.includePaths",
@@ -4062,6 +4085,13 @@
           "description": "Run a test class, method, directory or phpunit.xml configuration.",
           "icon": "flask-conical",
           "debuggable": true
+        },
+        {
+          "id": "pest",
+          "name": "Pest",
+          "description": "Run Pest tests: a directory, a file, a test or describe block, or phpunit.xml.",
+          "icon": "flask-conical",
+          "debuggable": true
         }
       ],
       "aiProviders": [],
@@ -4075,6 +4105,120 @@
           ]
         }
       ],
+      "mainMenu": []
+    }
+  },
+  {
+    "id": "forge.codeception",
+    "name": "Codeception Framework",
+    "version": "0.1.0",
+    "pack": "phpforge",
+    "description": "Run and debug Codeception suites, Cest/Cept files and tests, with groups and environments.",
+    "vendor": "Forge",
+    "depends": [
+      "forge.php"
+    ],
+    "required": false,
+    "projectTypes": [
+      "codeception"
+    ],
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "fileTypes": [],
+      "commands": [],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [],
+      "lspServers": [],
+      "runConfigurationTypes": [
+        {
+          "id": "codeception",
+          "name": "Codeception",
+          "description": "Run a Codeception suite, directory, file or test.",
+          "icon": "flask-conical",
+          "debuggable": true
+        }
+      ],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": [],
+      "mainMenu": []
+    }
+  },
+  {
+    "id": "forge.behat",
+    "name": "Behat",
+    "version": "0.1.0",
+    "pack": "phpforge",
+    "description": "Run Behat features and scenarios, navigate from steps to their definitions.",
+    "vendor": "Forge",
+    "depends": [
+      "forge.php"
+    ],
+    "required": false,
+    "projectTypes": [
+      "behat"
+    ],
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "fileTypes": [],
+      "commands": [],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [],
+      "lspServers": [],
+      "runConfigurationTypes": [
+        {
+          "id": "behat",
+          "name": "Behat",
+          "description": "Run Behat features, a feature file or a scenario.",
+          "icon": "flask-conical",
+          "debuggable": true
+        }
+      ],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": [],
+      "mainMenu": []
+    }
+  },
+  {
+    "id": "forge.phpspec",
+    "name": "PHPSpec",
+    "version": "0.1.0",
+    "pack": "phpforge",
+    "description": "Run PHPSpec specs and examples.",
+    "vendor": "Forge",
+    "depends": [
+      "forge.php"
+    ],
+    "required": false,
+    "projectTypes": [
+      "phpspec"
+    ],
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "fileTypes": [],
+      "commands": [],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [],
+      "lspServers": [],
+      "runConfigurationTypes": [
+        {
+          "id": "phpspec",
+          "name": "PHPSpec",
+          "description": "Run PHPSpec specs: a directory, a spec file or an example.",
+          "icon": "flask-conical",
+          "debuggable": true
+        }
+      ],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": [],
       "mainMenu": []
     }
   },

@@ -1,5 +1,6 @@
 import { demoDocFiles } from "./demoDocs";
 import { DEMO_LOCK } from "./demoComposer";
+import { demoTestFrameworkFiles } from "./demoTestFrameworks";
 
 /** In-memory demo project used when the UI runs without the Rust backend. */
 export const demoProjectName = "acme-shop";
@@ -557,6 +558,8 @@ class CheckoutTest extends TestCase
     }
 }
 `,
+  // Pest, Behat, PHPSpec and Codeception tests (Settings | PHP | Test Frameworks).
+  ...demoTestFrameworkFiles,
   // README.md, docs, a CSV export and images (Markdown preview, image editor, Edit as Table).
   ...demoDocFiles,
 };

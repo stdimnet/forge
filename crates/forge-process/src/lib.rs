@@ -6,6 +6,7 @@
 //! - [`config`]: Run/Debug configurations, their persistence in
 //!   `<project>/.forge/runConfigurations.toml` and the registry of configuration kinds that
 //!   turns a configuration into a command line.
+//! - [`test_history`]: the results of the last test runs per project (Test History).
 //! - [`output`]: the pure output models of the `forge-output` crate (ANSI, console lines,
 //!   file links, TeamCity test trees), re-exported for the run backend.
 
@@ -17,6 +18,7 @@ pub mod pty;
 pub mod runner;
 pub mod shell;
 pub mod termenv;
+pub mod test_history;
 mod utf8;
 
 pub use forge_output as output;

@@ -15,6 +15,7 @@ import { webDemo } from "./demoWebProjects";
 import { isLuaDemo, luaDemoName } from "./demoLuaProject";
 import { scratchCommandLine, scratchRunSteps } from "./scratchesMock";
 import { mockSettingValue } from "./settingsMock";
+import { recordTestRun, TEST_TYPES, testCommandLine, testSteps } from "./testFrameworksMock";
 
 const ROOT = `~/Projects/${demoProjectName}`;
 export const projectRoot = () =>
@@ -119,7 +120,7 @@ const quote = (a: string) => (/^[\w./:=@%+,-]+$/.test(a) ? a : `'${a.replace(/'/
 const display = (c: CommandLine) => [c.program, ...c.args].map(quote).join(" ");
 
 /** Configuration types whose program is PHP (the desktop backend's `PHP_KINDS`). */
-const PHP_KINDS = new Set(["php-script", "phpunit", "artisan", "php-builtin-server"]);
+const PHP_KINDS = new Set(["php-script", "phpunit", "pest", "codeception", "behat", "phpspec", "artisan", "php-builtin-server"]);
 
 interface Wrapped {
   cmd: CommandLine;
@@ -153,9 +154,16 @@ export async function throughInterpreter(cfg: RunConfiguration | undefined, cmd:
   return { cmd: { program: out.program, args: out.args, cwd: cmd.cwd }, pathMappings: out.pathMappings };
 }
 
+/** The command line of a configuration; test frameworks are built by Rust (WebAssembly). */
+async function commandLineOf(cfg: RunConfiguration): Promise<CommandLine> {
+  if (!TEST_TYPES.has(cfg.type)) return mockCommandLine(cfg);
+  const { report: _, ...cmd } = await testCommandLine(cfg);
+  return cmd;
+}
+
 registerMock("run_command_line", async ({ request }) => {
   const r = request as RunRequest;
-  return r.command ?? (await throughInterpreter(r.configuration, mockCommandLine(r.configuration!))).cmd;
+  return r.command ?? (await throughInterpreter(r.configuration, await commandLineOf(r.configuration!))).cmd;
 });
 
 interface MockRun {
@@ -163,6 +171,9 @@ interface MockRun {
   done: boolean;
   /** Handle of the run's `RunOutput` in the WebAssembly module. */
   output: number;
+  /** Test runs: the configuration stored in the Test History. */
+  configuration?: RunConfiguration;
+  startedAt: number;
 }
 const runs = new Map<string, MockRun>();
 let seq = 0;
@@ -182,10 +193,27 @@ function emitRun(runId: string, e: RunEvent): void {
   const rendered: RunEvent[] = run && input && wasm ? JSON.parse(wasm.run_output_handle(JSON.stringify({ handle: run.output, input }))) : [];
   if (e.type !== "exited") emitMock(`run://${runId}`, e);
   rendered.forEach((r) => emitMock(`run://${runId}`, r));
-  if (e.type === "exited") emitMock(`run://${runId}`, e);
+  if (e.type === "exited") {
+    if (run?.configuration && wasm) {
+      const exported = JSON.parse(wasm.run_output_export(JSON.stringify({ handle: run.output })));
+      if (exported) recordTestRun(run.configuration, run.startedAt, exported);
+    }
+    emitMock(`run://${runId}`, e);
+  }
 }
 
-export type Step = [delayMs: number, text: string, stream?: "stdout" | "stderr"] | [delayMs: number, exit: { code: number }];
+/** A JUnit report the runner wrote (Codeception, Behat), read before the exit. */
+function emitReport(runId: string, xml: string): void {
+  const run = runs.get(runId);
+  if (!run || !wasm) return;
+  const rendered: RunEvent[] = JSON.parse(wasm.run_output_handle(JSON.stringify({ handle: run.output, input: { type: "report", xml } })));
+  rendered.forEach((r) => emitMock(`run://${runId}`, r));
+}
+
+export type Step =
+  | [delayMs: number, text: string, stream?: "stdout" | "stderr"]
+  | [delayMs: number, exit: { code: number }]
+  | [delayMs: number, report: { report: string }];
 
 function play(runId: string, steps: Step[]): void {
   const run = runs.get(runId)!;
@@ -197,6 +225,7 @@ function play(runId: string, steps: Step[]): void {
       setTimeout(() => {
         if (run.done) return;
         if (typeof step[1] === "string") emit({ type: "output", stream: step[2] ?? "stdout", text: step[1] });
+        else if ("report" in step[1]) emitReport(runId, step[1].report);
         else {
           run.done = true;
           emit({ type: "exited", code: step[1].code, signal: null });
@@ -365,6 +394,7 @@ function stepsFor(cfg: RunConfiguration | undefined, cmd: CommandLine): Step[] {
   // Commands built in the UI (External Tools, HTTP requests) arrive without a configuration.
   if (!cfg) return externalToolSteps(cmd);
   const o = cfg.options ?? {};
+  if (TEST_TYPES.has(cfg.type)) return testSteps(cfg);
   switch (cfg.type) {
     case "phpunit":
       return phpunitSteps(cfg);
@@ -541,7 +571,14 @@ export async function startMockRun(
   runId: string,
   cmd: CommandLine,
   steps: Step[],
-  opts: { testRunner?: boolean; pathMappings?: Wrapped["pathMappings"]; outputFilters?: string[] } = {},
+  opts: {
+    testRunner?: boolean;
+    pathMappings?: Wrapped["pathMappings"];
+    outputFilters?: string[];
+    testReport?: string;
+    junitFlavor?: string;
+    configuration?: RunConfiguration;
+  } = {},
 ): Promise<{ runId: string; commandLine: string }> {
   wasm ??= await forgeWasm();
   const commandLine = display(cmd);
@@ -552,10 +589,18 @@ export async function startMockRun(
     cycleBufferKb: Number(mockSettingValue("run.console.cycleBufferKb") ?? 1024),
     pathMappings: opts.pathMappings ?? [],
     outputFilters: opts.outputFilters ?? [],
+    testReport: opts.testReport ?? "teamCity",
+    junitFlavor: opts.junitFlavor ?? "generic",
   };
   const old = runs.get(runId);
   if (old) wasm.run_output_drop(JSON.stringify({ handle: old.output }));
-  runs.set(runId, { timers: [], done: false, output: Number(wasm.run_output_new(JSON.stringify(options))) });
+  runs.set(runId, {
+    timers: [],
+    done: false,
+    output: Number(wasm.run_output_new(JSON.stringify(options))),
+    configuration: opts.testRunner ? opts.configuration : undefined,
+    startedAt: Date.now(),
+  });
   const pid = 40000 + ++seq;
   setTimeout(() => emitRun(runId, { type: "started", pid, commandLine }), 0);
   play(runId, steps);
@@ -565,10 +610,19 @@ export async function startMockRun(
 registerMock("run_start", async ({ request }) => {
   const r = request as RunRequest;
   const runId = r.runId ?? `mock-run-${++seq}`;
-  const local = r.command ?? mockCommandLine(r.configuration!);
+  const test = !r.command && r.configuration && TEST_TYPES.has(r.configuration.type) ? (await testCommandLine(r.configuration)).report : undefined;
+  const local = r.command ?? (await commandLineOf(r.configuration!));
   const { cmd, pathMappings } = await throughInterpreter(r.command ? undefined : r.configuration, { ...local, args: [...(r.interpreterArgs ?? []), ...local.args] }, r.env);
   const steps = stepsFor(r.configuration && r.env ? { ...r.configuration, env: { ...r.configuration.env, ...r.env } } : r.configuration, local);
-  return startMockRun(runId, cmd, steps, { testRunner: !!r.testRunner, pathMappings, outputFilters: r.outputFilters });
+  const recorded = r.configuration && (r.configuration.type === "phpunit" || test) ? r.configuration : undefined;
+  return startMockRun(runId, cmd, steps, {
+    testRunner: !!r.testRunner,
+    pathMappings,
+    outputFilters: r.outputFilters,
+    testReport: test?.report,
+    junitFlavor: test?.flavor,
+    configuration: recorded,
+  });
 });
 
 function stop(runId: string): void {

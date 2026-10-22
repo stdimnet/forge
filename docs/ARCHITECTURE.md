@@ -849,8 +849,25 @@ or without Git, for local and remote projects.
   launch(cfg, ctx) })` that accepts the configuration; `ctx.run({ env, interpreterArgs })` starts it
   in the Run tool window (e.g. with `XDEBUG_SESSION` and `-dxdebug.mode=debug`) and returns
   `{ started, exited }`.
-- Test runners: the backend turns TeamCity service messages into the test tree (`forge-output`);
-  PHPUnit test classes and methods get gutter run icons that create temporary configurations.
+- Test runners: the backend turns TeamCity service messages and JUnit reports into the test
+  tree (`forge-output`; `RunOutputOptions.testReport`: `teamCity`, `jUnitStdout` (parsed at the
+  exit) or `jUnitFile` (files handed in as `RunInput::Report { xml }` before the exit),
+  `junitFlavor` for locations). PHP test frameworks (`packs/phpforge/test-frameworks`, also in
+  `forge-wasm`; IPC in `commands/test_frameworks.rs`): the `pest`, `codeception`, `behat` and
+  `phpspec` types are built there (not by the `KindRegistry`) with the entry of the setting
+  `php.testFrameworks` for the run's interpreter (`phpunit` configurations get its executable,
+  configuration and bootstrap files); Codeception and Behat reports go to the system temp dir
+  (local project and interpreter) or `.forge/test-reports/<run>` and are read and deleted at the
+  exit. `test_frameworks_list() -> FrameworkConfig[]` (configured plus detected),
+  `test_discover({ path, text }) -> { framework?, targets: { line, kind, label, key,
+  configuration }[], file? }` (gutter icons, Run Context Configuration; `key` is `<path>` or
+  `<path>::<test>`, like the UI's result keys of a finished tree),
+  `test_rerun_failed({ configuration, failed: { name, member?, path? }[] }) ->
+  RunConfiguration | null`, `behat_step_definitions({ text, line }) -> { keyword, pattern, path,
+  line, column, method, class? }[]`. Test History: finished runs with tests of a configuration
+  are stored by `run_start` (`forge_process::test_history`, `<data dir>/forge/test-history`, last
+  10 per project); `test_history_list() -> { id, name, type, at, summary, counts }[]`,
+  `test_history_open({ id }) -> { entry, configuration, nodes, summary }`.
 
 ## Language servers (`forge-lsp`)
 

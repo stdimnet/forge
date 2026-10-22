@@ -3,6 +3,7 @@
  * backend (`forge-output`) and applied here as deltas / node updates.
  */
 import type { ConsoleDelta, ConsoleLine, TestNodeData, TestSummary } from "@/ipc/run";
+import type { TestTarget } from "@/ipc/testFrameworks";
 
 export type { TestStatus } from "@/ipc/run";
 
@@ -49,3 +50,10 @@ export function applyConsoleDelta(lines: ConsoleLine[], delta: ConsoleDelta): vo
 
 /** Text of a console line without styles. */
 export const lineText = (line: ConsoleLine) => line.segments.map((s) => s.text).join("");
+
+/** The test at a 0-based line: the last declaration at or above it (not a dataset row). */
+export function testAt(targets: TestTarget[], line: number): TestTarget | undefined {
+  let found: TestTarget | undefined;
+  for (const t of targets) if (t.line <= line && t.kind !== "dataset" && t.kind !== "example") found = t;
+  return found;
+}

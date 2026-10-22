@@ -23,6 +23,7 @@ use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager, State};
 
 use crate::commands::php_interpreters as interpreters;
+use crate::commands::test_frameworks::{self, TestSetup};
 use crate::commands::workspace::blocking;
 use crate::state::AppState;
 
@@ -164,7 +165,16 @@ pub struct RunStarted {
 }
 
 /// Configuration types whose program is the PHP interpreter.
-const PHP_KINDS: &[&str] = &["php-script", "phpunit", "artisan", "php-builtin-server"];
+const PHP_KINDS: &[&str] = &[
+    "php-script",
+    "phpunit",
+    "pest",
+    "codeception",
+    "behat",
+    "phpspec",
+    "artisan",
+    "php-builtin-server",
+];
 /// Composer types: they run through an interpreter only when they name one.
 const COMPOSER_KINDS: &[&str] = &["composer", "composer-command"];
 
@@ -177,12 +187,16 @@ pub(crate) struct Built {
     pub debug_server: Option<forge_debug::ServerConfig>,
     /// External Tools output filters (`$FILE_PATH$:$LINE$`).
     pub output_filters: Vec<String>,
+    /// Test runs: how results are reported and what the Test History stores.
+    pub tests: TestSetup,
 }
 
 fn build(state: &AppState, runs: &RunState, req: RunRequest) -> Result<Built> {
+    let run_id = req.run_id.clone().unwrap_or_else(|| "preview".into());
     let root = root(state)?;
     let mut through: Option<(PhpInterpreter, bool)> = None;
     let output_filters = req.output_filters;
+    let mut tests = TestSetup::default();
     // Ports the built-in web server serves, published by container / SSH interpreters.
     let mut publish: Vec<u16> = Vec::new();
     let mut cmd = match (req.configuration, req.command) {
@@ -242,7 +256,25 @@ fn build(state: &AppState, runs: &RunState, req: RunRequest) -> Result<Built> {
                 root,
             };
             drop(settings);
-            runs.kinds.build(&cfg, &ctx)?
+            if cfg.type_id == "phpunit" {
+                test_frameworks::apply_phpunit_defaults(state, &mut cfg)?;
+            }
+            if test_frameworks::is_test_type(&cfg.type_id) {
+                let (cmd, setup) = test_frameworks::command_line(
+                    state,
+                    &cfg,
+                    &ctx.php_interpreter,
+                    &ctx.root,
+                    &run_id,
+                )?;
+                tests = setup;
+                cmd
+            } else {
+                if cfg.type_id == "phpunit" {
+                    tests.configuration = Some(cfg.clone());
+                }
+                runs.kinds.build(&cfg, &ctx)?
+            }
         }
         (None, None) => return Err(ForgeError::Other("nothing to run".into())),
     };
@@ -256,6 +288,7 @@ fn build(state: &AppState, runs: &RunState, req: RunRequest) -> Result<Built> {
             path_mappings: Vec::new(),
             debug_server: None,
             output_filters,
+            tests,
         });
     };
     let backend = state.backend()?;
@@ -278,6 +311,7 @@ fn build(state: &AppState, runs: &RunState, req: RunRequest) -> Result<Built> {
             .then(|| prepared.debug_server())
             .flatten(),
         output_filters,
+        tests,
     })
 }
 
@@ -322,6 +356,7 @@ pub(crate) async fn start_built(
         path_mappings,
         debug_server,
         output_filters,
+        tests,
     } = built;
     if let Some(server) = debug_server {
         if let Some(debug) = app.try_state::<crate::commands::debug::DebugState>() {
@@ -340,9 +375,22 @@ pub(crate) async fn start_built(
         cycle_buffer_kb,
         path_mappings,
         output_filters,
+        test_report: tests.report,
+        junit_flavor: tests.flavor,
     })));
     let event = format!("run://{run_id}");
     let sink_output = output.clone();
+    let backend = state.backend()?;
+    let sink_backend = backend.clone();
+    if let Some(dir) = &tests.report_dir {
+        let (dir, b) = (dir.clone(), backend.clone());
+        blocking(move || dir.prepare(b.as_ref())).await?;
+    }
+    let started_at = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis() as u64)
+        .unwrap_or_default();
+    let sink_app = app.clone();
     let sink: RunSink = Arc::new(move |e: RunEvent| {
         let input = match &e {
             RunEvent::Started { command_line, .. } => RunInput::Started {
@@ -361,11 +409,27 @@ pub(crate) async fn start_built(
                 signal: *signal,
             },
         };
-        let rendered = sink_output
-            .lock()
-            .expect("run output poisoned")
-            .handle(&input);
         let exited = matches!(e, RunEvent::Exited { .. });
+        let mut out = sink_output.lock().expect("run output poisoned");
+        let mut rendered = Vec::new();
+        if exited {
+            // JUnit reports (Codeception, Behat) are complete once the runner exited.
+            if let Some(dir) = &tests.report_dir {
+                for xml in dir.take(sink_backend.as_ref()) {
+                    rendered.extend(out.handle(&RunInput::Report { xml }));
+                }
+            }
+        }
+        rendered.extend(out.handle(&input));
+        if exited {
+            if let (Some(cfg), Some(tree)) = (&tests.configuration, out.tests()) {
+                if tree.counts().total > 0 {
+                    let state = sink_app.state::<AppState>();
+                    test_frameworks::record_run(&state, cfg.clone(), started_at, tree);
+                }
+            }
+        }
+        drop(out);
         if !exited {
             emit(&app, &event, &e);
         }
@@ -376,7 +440,6 @@ pub(crate) async fn start_built(
             emit(&app, &event, &e);
         }
     });
-    let backend = state.backend()?;
     let start_cmd = cmd.clone();
     let process = blocking(move || backend.start_process(&start_cmd, sink)).await?;
     runs.runs
