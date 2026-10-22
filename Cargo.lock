@@ -1827,6 +1827,7 @@ dependencies = [
  "forge-forges",
  "forge-fuzzy",
  "forge-injections",
+ "forge-jsonschema",
  "forge-keymap",
  "forge-langservers",
  "forge-livetemplates",
