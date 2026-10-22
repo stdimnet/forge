@@ -460,6 +460,127 @@ group = "editor.general"
 section = "Limits"
 order = 50
 
+# ---- Editor > General: Sticky Lines, rendered doc comments; Breadcrumbs; Reader Mode ----
+
+[[contributions.settings]]
+key = "editor.renderDocComments"
+title = "Render documentation comments"
+description = "Show PHPDoc, JSDoc and LuaDoc comments as formatted text. Toggle one with Ctrl+Alt+Q or its gutter icon."
+type = "bool"
+default = false
+group = "editor.general"
+section = "Appearance"
+order = 33
+
+[[contributions.settings]]
+key = "editor.stickyLines.enabled"
+title = "Show sticky lines while scrolling"
+description = "The headers of the classes, functions, blocks, rules and tags around the top of the editor stay visible. Click one to jump to it."
+type = "bool"
+default = true
+group = "editor.general"
+section = "Sticky Lines"
+order = 35
+
+[[contributions.settings]]
+key = "editor.stickyLines.maxLines"
+title = "Limit sticky lines"
+type = "int"
+min = 1
+max = 20
+default = 5
+group = "editor.general"
+section = "Sticky Lines"
+order = 36
+
+[[contributions.settings]]
+key = "editor.stickyLines.disabledLanguages"
+title = "Show sticky lines for"
+type = "list"
+default = []
+group = "editor.general"
+section = "Sticky Lines"
+order = 37
+
+[[contributions.settings]]
+key = "editor.breadcrumbs.show"
+title = "Show breadcrumbs"
+description = "The classes, functions, rules and tags around the caret. Click one to go there; the arrow next to it lists its siblings."
+type = "bool"
+default = true
+group = "editor.breadcrumbs"
+order = 0
+
+[[contributions.settings]]
+key = "editor.breadcrumbs.placement"
+title = "Placement"
+type = "enum"
+options = [
+  { value = "top", label = "Top" },
+  { value = "bottom", label = "Bottom" },
+]
+default = "bottom"
+group = "editor.breadcrumbs"
+order = 1
+
+[[contributions.settings]]
+key = "editor.breadcrumbs.disabledLanguages"
+title = "Show breadcrumbs for"
+type = "list"
+default = []
+group = "editor.breadcrumbs"
+section = "Languages"
+order = 2
+
+[[contributions.settings]]
+key = "editor.readerMode.enabled"
+title = "Use Reader mode"
+description = "Open files you only read in Reader mode. Toggle it with the Reader Mode button at the top right of the editor."
+type = "bool"
+default = true
+group = "editor.readerMode"
+order = 0
+
+[[contributions.settings]]
+key = "editor.readerMode.applyTo"
+title = "Use for"
+type = "enum"
+options = [
+  { value = "libraries", label = "Library files (vendor, node_modules, PHP stubs)" },
+  { value = "readOnly", label = "Read-only files" },
+  { value = "both", label = "Library and read-only files" },
+]
+default = "both"
+group = "editor.readerMode"
+order = 1
+
+[[contributions.settings]]
+key = "editor.readerMode.renderDocs"
+title = "Rendered documentation comments"
+type = "bool"
+default = true
+group = "editor.readerMode"
+section = "Show"
+order = 10
+
+[[contributions.settings]]
+key = "editor.readerMode.ligatures"
+title = "Ligatures"
+type = "bool"
+default = true
+group = "editor.readerMode"
+section = "Show"
+order = 11
+
+[[contributions.settings]]
+key = "editor.readerMode.increaseLineSpacing"
+title = "Increased line spacing"
+type = "bool"
+default = true
+group = "editor.readerMode"
+section = "Show"
+order = 12
+
 # ---- Editor > General > Postfix Completion ---------------------------------------------
 
 [[contributions.settings]]

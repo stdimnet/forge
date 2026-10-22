@@ -12,12 +12,15 @@
 //!   instance, ...) from its line, and the result tree grouped by usage type and file.
 //! - [`docs`]: External Documentation URLs, Quick Definition snippets, Context Info headers
 //!   and Type Info from hovers and signatures.
+//! - [`structure`]: the scopes around a line (Sticky Lines, breadcrumbs) and custom folding
+//!   regions, grouped into the Structure view.
 
 pub mod actions;
 pub mod docs;
 pub mod edit;
 pub mod inlay;
 pub mod rename;
+pub mod structure;
 pub mod usages;
 
 pub use actions::{
@@ -37,6 +40,10 @@ pub use rename::{
     edit_conflicts, edit_from_locations, is_class_file, plan_edit, ranges_in, renamed_path,
     suggest_file_rename, validate_identifier, EditPlan, EditorEdits, FileRename, LocationEdit,
     RenameConflict,
+};
+pub use structure::{
+    editor_structure, group_by_regions, EditorStructure, Region, Scope, ScopeKind,
+    STRUCTURE_LANGUAGES,
 };
 pub use usages::{
     classify_usage, group_usages, GroupRequest, UsageFile, UsageGroup, UsageKind, UsageLocation,

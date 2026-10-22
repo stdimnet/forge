@@ -182,7 +182,18 @@ const TAG: Surrounder = Surrounder {
 const HTML: &[Surrounder] = &[
     TAG,
     expression("html.comment", "<!-- -->", "<!-- $SELECTION$ -->$END$"),
+    statement(
+        "html.region",
+        "region...endregion Comments",
+        "<!-- region $END$ -->\n$SELECTION$\n<!-- endregion -->",
+    ),
 ];
+
+const CSS: &[Surrounder] = &[statement(
+    "css.region",
+    "region...endregion Comments",
+    "/* region $END$ */\n$SELECTION$\n/* endregion */",
+)];
 
 const BLADE: &[Surrounder] = &[
     TAG,
@@ -234,6 +245,8 @@ pub fn surrounders(contexts: &[String]) -> Vec<Surrounder> {
         TWIG
     } else if has("HTML") {
         HTML
+    } else if has("CSS") {
+        CSS
     } else {
         &[]
     };
@@ -258,8 +271,9 @@ mod tests {
         assert_eq!(ids(&["LUA"])[0], "lua.if");
         assert_eq!(ids(&["BLADE", "HTML"])[1], "blade.if");
         assert_eq!(ids(&["TWIG", "HTML"])[1], "twig.if");
-        assert_eq!(ids(&["HTML"]), ["html.tag", "html.comment"]);
-        assert!(ids(&["CSS"]).is_empty());
+        assert_eq!(ids(&["HTML"]), ["html.tag", "html.comment", "html.region"]);
+        assert_eq!(ids(&["CSS"]), ["css.region"]);
+        assert!(ids(&["JSON"]).is_empty());
         for s in PHP
             .iter()
             .chain(JS)
@@ -267,6 +281,7 @@ mod tests {
             .chain(HTML)
             .chain(BLADE)
             .chain(TWIG)
+            .chain(CSS)
         {
             assert!(crate::template::uses_selection(s.text), "{}", s.id);
         }

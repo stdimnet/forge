@@ -41,6 +41,10 @@
 .php-badge-module { background: var(--syn-keyword); }
 .php-badge-alias { background: var(--syn-type); }
 .php-badge-variable { background: var(--syn-variable); }
+.php-symbol-glyph { width: 15px; justify-content: center; }
+.php-glyph-tag { color: var(--syn-tag); }
+.php-glyph-rule { color: var(--syn-type); }
+.php-glyph-region { color: var(--fg-muted); }
 .php-badge.abstract.php-badge-method { color: var(--danger); }
 .php-badge.abstract.php-badge-interface { color: var(--success); }
 .php-badge-static {

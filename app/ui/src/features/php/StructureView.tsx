@@ -5,6 +5,8 @@
 import { createEffect, createSignal, For, on, onCleanup, Show } from "solid-js";
 import { ArrowDownAZ, ChevronDown, ChevronRight, Layers2 } from "lucide-solid";
 import { activeTab } from "@/state/editor";
+import { languageIdFor } from "@/editor/languages";
+import { groupByRegions, structureOfText } from "@/features/codeStructure/model";
 import { phpApi, type FileStructure, type StructureNode } from "./api";
 import { revealSymbol } from "./editorViews";
 import { SymbolIcon } from "./SymbolIcon";
@@ -53,7 +55,10 @@ function refresh() {
   clearTimeout(timer);
   timer = setTimeout(async () => {
     try {
-      setStructure(provider ? await provider.load(path, content) : await phpApi.fileStructure(path, content, showInherited()));
+      const s = provider ? await provider.load(path, content) : await phpApi.fileStructure(path, content, showInherited());
+      // Custom folding regions group the members inside them, like PHPStorm.
+      const regions = structureOfText(content, languageIdFor(path)).regions;
+      setStructure(s && { ...s, nodes: groupByRegions(s.nodes, regions) });
     } catch {
       setStructure(null);
     }

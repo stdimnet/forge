@@ -63,14 +63,14 @@ fn has_braces(language: &str) -> bool {
 
 // ---- Lines and columns ----
 
-fn lines_of(text: &str) -> Vec<&str> {
+pub(crate) fn lines_of(text: &str) -> Vec<&str> {
     text.split('\n')
         .map(|l| l.strip_suffix('\r').unwrap_or(l))
         .collect()
 }
 
 /// The byte index of a UTF-16 column in `line` (clamped to its end).
-fn byte_col(line: &str, utf16: u32) -> usize {
+pub(crate) fn byte_col(line: &str, utf16: u32) -> usize {
     let mut units = 0u32;
     for (i, ch) in line.char_indices() {
         if units >= utf16 {
@@ -1038,7 +1038,7 @@ fn is_declaration_header(header: &str, language: &str) -> bool {
 
 /// The first line of the header whose block opens on `open_line`: the line above a lone `{`
 /// and the start of a multi-line parameter list.
-fn header_start(lines: &[&str], open_line: usize) -> usize {
+pub(crate) fn header_start(lines: &[&str], open_line: usize) -> usize {
     let mut l = open_line;
     if lines[l].trim().starts_with('{') {
         while l > 0 {
