@@ -1,6 +1,8 @@
 //! [`Repo`]: a git repository driven through the git command line.
 
 mod conflicts;
+mod ops;
+mod shelve;
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -22,6 +24,8 @@ pub use conflicts::{
     parse_rebase_status, parse_unmerged, ConflictFile, ConflictSet, ConflictSide, MergeFile,
     MergeOperation, SideChange,
 };
+pub use ops::{OngoingOperation, OperationState, StashFileContents};
+pub use shelve::ShelfFileContents;
 
 /// Summary of the repository a workspace belongs to.
 #[derive(Debug, Clone, Serialize)]
