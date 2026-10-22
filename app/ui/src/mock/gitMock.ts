@@ -339,10 +339,16 @@ function resolveRev(rev: string): string | undefined {
 
 function log(q: LogQuery): Commit[] {
   let list = commits.slice().sort((a, b) => b.time - a.time);
-  const tips = q.rev ? [resolveRev(q.rev)] : q.all ? [state.head, ...state.local.values(), ...state.remote.values(), ...state.tags.values()] : [state.head];
+  // `a..b`: the commits of b that are not in a (Compare with Current).
+  const range = q.rev?.includes("..") ? q.rev.split("..") : null;
+  const tips = range ? [resolveRev(range[1] || "HEAD")] : q.rev ? [resolveRev(q.rev)] : q.all ? [state.head, ...state.local.values(), ...state.remote.values(), ...state.tags.values()] : [state.head];
   const reachable = new Set<string>();
   for (const t of tips) if (t) ancestors(t).forEach((s) => reachable.add(s));
   list = list.filter((c) => reachable.has(c.sha));
+  if (range) {
+    const excluded = ancestors(resolveRev(range[0] || "HEAD") ?? "");
+    list = list.filter((c) => !excluded.has(c.sha));
+  }
   if (q.text) {
     const t = q.text.toLowerCase();
     list = list.filter((c) => c.subject.toLowerCase().includes(t) || (c.body ?? "").toLowerCase().includes(t));

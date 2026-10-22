@@ -38,7 +38,7 @@ pub struct RebaseEntry {
 }
 
 /// A commit of the interactive rebase dialog.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RebaseCommit {
     pub sha: String,
@@ -67,7 +67,8 @@ pub struct RebasePlan {
 }
 
 /// One instruction of the todo file.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase", tag = "kind", content = "value")]
 pub enum TodoStep {
     Pick(String),
     Edit(String),

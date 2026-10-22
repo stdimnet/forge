@@ -17,6 +17,7 @@ import {
 import { gitApi, type BranchInfo } from "./api";
 import { revision, status } from "./store";
 import { setBranchesOpen } from "./overlays";
+import { showLogFor } from "./GitLogPanel";
 import {
   checkout,
   checkoutRevisionDialog,
@@ -134,6 +135,8 @@ export function BranchesPopup() {
       : [
           { label: "Checkout", run: () => void checkout(b.name, h.row.remote) },
           { label: `New Branch from '${b.name}'…`, run: () => newBranchDialog(b.name) },
+          null,
+          { label: `Compare with '${cur}'`, run: () => (setBranchesOpen(false), showLogFor(`${cur}..${b.name}`)) },
           null,
           { label: `Rebase '${cur}' onto '${b.name}'`, run: () => void rebaseOnto(b.name) },
           { label: `Merge '${b.name}' into '${cur}'`, run: () => void mergeIntoCurrent(b.name) },

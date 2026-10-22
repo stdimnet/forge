@@ -128,7 +128,7 @@ export async function checkout(name: string, remote = false): Promise<void> {
 export function newBranchDialog(start: string | null = null): void {
   setBranchesOpen(false);
   setInputDialog({
-    title: start ? `Create Branch from ${start}` : "Create New Branch",
+    title: start ? `Create Branch from ${/^[0-9a-f]{40,64}$/.test(start) ? start.slice(0, 8) : start}` : "Create New Branch",
     label: "New branch name:",
     value: "",
     okLabel: "Create",
