@@ -11,6 +11,7 @@ import { diffSiblings, targetState, vcsTargets, type VcsTarget } from "./context
 import { setLogPathFilter } from "./GitLogPanel";
 import { logDate, timeAgo } from "./format";
 import { notify, reloadOpenFiles, runGit, status } from "./store";
+import { runMerging } from "./conflicts";
 import { setChooserDialog, setInputDialog, toggleAnnotate } from "./overlays";
 import { confirmRollback, openCommitWindow, showDiff, showRevisionDiff } from "./actions";
 
@@ -172,7 +173,7 @@ export async function unstashDialog(): Promise<void> {
       },
     ],
     onOk: async (item, [pop, reinstate]) => {
-      const out = await runGit("Unstash failed", () => gitApi.unstash(Number(item.id), pop, reinstate));
+      const out = await runMerging("Unstash failed", () => gitApi.unstash(Number(item.id), pop, reinstate));
       if (out === undefined) return;
       await reloadOpenFiles();
       notify("success", pop ? "Stash popped" : "Stash applied", item.label);

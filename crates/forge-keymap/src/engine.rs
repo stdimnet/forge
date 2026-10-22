@@ -23,6 +23,8 @@ pub enum FocusContext {
     Input,
     Terminal,
     Toolwindow,
+    /// A diff or merge window (its editors included).
+    Diff,
     #[default]
     Global,
 }
@@ -122,6 +124,7 @@ pub fn context_matches(context: ActionContext, focus: FocusContext) -> bool {
         ActionContext::Toolwindow => {
             matches!(focus, FocusContext::Toolwindow | FocusContext::Terminal)
         }
+        ActionContext::Diff => focus == FocusContext::Diff,
     }
 }
 
@@ -571,6 +574,7 @@ mod tests {
         match id {
             "Generate" | "EditorDuplicate" => ActionContext::Editor,
             "Rerun" => ActionContext::Toolwindow,
+            "NextDiff" => ActionContext::Diff,
             _ => ActionContext::Any,
         }
     }
@@ -671,6 +675,17 @@ mod tests {
             action(&mut r, "Alt+Insert", Global).as_deref(),
             Some("NewElement")
         );
+    }
+
+    #[test]
+    fn diff_windows_take_their_own_bindings() {
+        let mut r = resolver(&[("StepInto", &["F7"]), ("NextDiff", &["F7"])]);
+        assert_eq!(
+            action(&mut r, "F7", FocusContext::Diff).as_deref(),
+            Some("NextDiff")
+        );
+        assert_eq!(action(&mut r, "F7", Editor).as_deref(), Some("StepInto"));
+        assert_eq!(action(&mut r, "F7", Global).as_deref(), Some("StepInto"));
     }
 
     #[test]
@@ -1003,6 +1018,10 @@ mod tests {
         assert!(!context_matches(ActionContext::Editor, Input));
         assert!(!context_matches(ActionContext::Toolwindow, Global));
         assert!(context_matches(ActionContext::Toolwindow, Terminal));
+        assert!(context_matches(ActionContext::Diff, FocusContext::Diff));
+        assert!(context_matches(ActionContext::Any, FocusContext::Diff));
+        assert!(!context_matches(ActionContext::Diff, Editor));
+        assert!(!context_matches(ActionContext::Editor, FocusContext::Diff));
     }
 
     #[test]

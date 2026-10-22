@@ -4,8 +4,8 @@
 
 use forge_core::{FileKind, ForgeError, Result};
 use forge_vcs::{
-    Blame, Branches, Commit, CommitDetails, LogQuery, Remote, RemoteResult, Repo, RepoInfo,
-    RepoStatus, StashEntry,
+    Blame, Branches, Commit, CommitDetails, ConflictSet, ConflictSide, LogQuery, MergeFile, Remote,
+    RemoteResult, Repo, RepoInfo, RepoStatus, StashEntry,
 };
 use tauri::{AppHandle, Emitter, State};
 
@@ -406,6 +406,48 @@ pub async fn git_remove_remote(
     state: State<'_, AppState>,
 ) -> Result<()> {
     mutate(&app, &state, move |r| r.remove_remote(&name)).await
+}
+
+// ---- merge conflicts --------------------------------------------------------------------
+
+/// The unmerged files and the labels of both sides (Conflicts dialog).
+#[tauri::command]
+pub async fn git_conflicts(state: State<'_, AppState>) -> Result<ConflictSet> {
+    with_repo(&state, |r| r.conflicts()).await
+}
+
+/// Base, yours and theirs of a conflicted file plus its three-way merge (merge window).
+#[tauri::command]
+pub async fn git_merge_file(path: String, state: State<'_, AppState>) -> Result<MergeFile> {
+    with_repo(&state, move |r| r.merge_file(&path)).await
+}
+
+/// Accept Yours / Accept Theirs (also "Keep File" / "Accept Deletion" and binary files).
+#[tauri::command]
+pub async fn git_accept_conflict_side(
+    paths: Vec<String>,
+    side: ConflictSide,
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> Result<()> {
+    mutate(&app, &state, move |r| r.accept_conflict_side(&paths, side)).await
+}
+
+/// Apply in the merge window: write the merged `text` (with `\r\n` again when the file
+/// used it) through the backend and mark the file resolved (`git add`).
+#[tauri::command]
+pub async fn git_resolve_merge(
+    path: String,
+    text: String,
+    crlf: bool,
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> Result<()> {
+    let backend = state.backend()?;
+    let content = forge_vcs::merge::restore_eol(&text, crlf);
+    let file = path.clone();
+    blocking(move || backend.write_file(&file, &content)).await?;
+    mutate(&app, &state, move |r| r.stage(&[path])).await
 }
 
 #[cfg(test)]

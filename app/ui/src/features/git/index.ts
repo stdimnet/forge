@@ -21,6 +21,8 @@ import { branchesOpen, setBranchesOpen } from "./overlays";
 import { repoAvailable, startGitStore, status } from "./store";
 import { fetchAll, newBranchDialog, openCommitWindow, push, updateProject } from "./actions";
 import { gitSubmenu } from "./fileMenu";
+import { activeMerge, resolveConflicts, watchConflicts } from "./conflicts";
+import { conflictBanner } from "./conflictBanner";
 import {
   addTargets,
   annotateTarget,
@@ -59,6 +61,7 @@ registerToolWindow({
 });
 
 registerEditorExtension(({ path }) => gitEditorExtensions(path));
+registerEditorExtension(({ path }) => conflictBanner(path));
 
 const commands: { id: string; title: string; run: () => void | Promise<void> }[] = [
   { id: "git.commit", title: "Commit…", run: openCommitWindow },
@@ -85,6 +88,18 @@ const commands: { id: string; title: string; run: () => void | Promise<void> }[]
 ];
 for (const c of commands) registerCommand({ ...c, category: "Git" });
 
+// Merge conflicts: Git ▸ Resolve Conflicts… and the merge window's actions ("diff" focus context).
+registerCommand({ id: "Git.ResolveConflicts", title: "Resolve Conflicts…", category: "Git", run: resolveConflicts });
+const mergeCommands: { id: string; title: string; run: () => void }[] = [
+  { id: "NextDiff", title: "Next Difference", run: () => activeMerge()?.step(true) },
+  { id: "PreviousDiff", title: "Previous Difference", run: () => activeMerge()?.step(false) },
+  { id: "Diff.ApplyNonConflicts.Left", title: "Apply Non-Conflicting Changes from the Left Side", run: () => activeMerge()?.applyAll("left") },
+  { id: "Diff.ApplyNonConflicts", title: "Apply All Non-Conflicting Changes", run: () => activeMerge()?.applyAll("all") },
+  { id: "Diff.ApplyNonConflicts.Right", title: "Apply Non-Conflicting Changes from the Right Side", run: () => activeMerge()?.applyAll("right") },
+  { id: "Diff.MagicResolveConflicts", title: "Resolve Simple Conflicts", run: () => activeMerge()?.magic() },
+];
+for (const c of mergeCommands) registerCommand({ ...c, category: "Diff" });
+
 /** Next Change / Previous Change: the hunk order comes from `forge_editing::change_target`. */
 async function gotoChange(forward: boolean): Promise<void> {
   const path = editor.active;
@@ -110,6 +125,7 @@ if (typeof window !== "undefined") {
   document.body.append(host);
   render(GitOverlays, host);
   startGitStore();
+  watchConflicts();
 }
 
 export { status as gitStatus };

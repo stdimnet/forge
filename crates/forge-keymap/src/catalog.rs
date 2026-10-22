@@ -65,7 +65,8 @@ impl KeymapId {
     }
 }
 
-/// Where an action may fire: "editor" actions only while a code editor has focus.
+/// Where an action may fire: "editor" actions only while a code editor has focus, "diff"
+/// actions only inside a diff or merge window.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ActionContext {
@@ -73,6 +74,7 @@ pub enum ActionContext {
     Any,
     Editor,
     Toolwindow,
+    Diff,
 }
 
 /// An action as listed in Find Action and the keymap settings.
@@ -325,6 +327,8 @@ mod tests {
             "Meta+N", // New… / Generate (editor)
             "Alt+Insert",
             "Ctrl+Shift+Tab",
+            "F7", // Step Into / Next Difference (diff and merge windows)
+            "Shift+F7",
         ];
         for km in KeymapId::ALL {
             let non_native: Vec<(String, Vec<String>)> = c

@@ -8947,6 +8947,63 @@ Settings | Version Control | Git:
 Automatic fetching runs in the background while the branch has an upstream; failures
 (offline, missing credentials) are ignored.
 
+## Merge conflicts
+
+When a merge, rebase, update (pull), cherry-pick or unstash stops with conflicts, Forge opens
+the **Conflicts** dialog. Later you get it with **Git ▸ Resolve Conflicts…** (Find Action:
+`Git.ResolveConflicts`), the **Resolve** link of the **Merge conflicts** balloon, or the
+**Resolve** link of the **Merge Conflicts** node in the Commit tool window.
+
+![Conflicts dialog](docs/screenshots/merge-conflicts-dialog.png)
+
+- The header says what is going on ("Merging branch feature into branch main").
+- **Yours** and **Theirs** show how each side changed a file: Modified, Added or Deleted. In a
+  rebase, *yours* is the commit being replayed and *theirs* the branch you rebase onto, like
+  in PHPStorm.
+- **Accept Yours** / **Accept Theirs** take that side's version of the selected files (a side
+  that deleted the file deletes it) and mark them resolved (`git add` / `git rm`).
+- **Merge…** (or a double-click) opens the merge window. For a file deleted on one side it asks
+  **Keep File** or **Accept Deletion**; for a binary file, which version to keep.
+- **Group files by directory** shows the files under their folders.
+
+Until they are resolved, conflicted files are red in the Project view (and their folders), the
+editor tabs and the **Merge Conflicts** node of the Commit tool window. An editor of such a file
+shows the banner **File has merge conflicts** with a **Resolve…** link to the merge window.
+
+![Conflicts in the Commit tool window and the editor](docs/screenshots/merge-conflicts-commit.png)
+
+### Merge window
+
+**Merge Revisions for …** shows your version (**Changes from main**) on the left, the editable
+**Result** in the middle and the other side (**Changes from feature**) on the right. The result
+starts with the common base version; the three panes scroll together and bands connect the
+changes.
+
+![Merge window](docs/screenshots/merge-window.png)
+
+- Colours: blue for modified, green for inserted, grey for deleted lines, red for conflicts.
+  Handled changes lose their colour.
+- `»` / `«` next to a change applies it to the result; `×` ignores it. After you applied one
+  side of a conflict, the arrow of the other side appends its text after the first.
+- Toolbar: **Previous / Next Difference** (`Shift+F7` / `F7`), **Apply Non-Conflicting
+  Changes from the Left Side**, **Apply All Non-Conflicting Changes**, **Apply Non-Conflicting
+  Changes from the Right Side**, **Resolve Simple Conflicts** (the magic wand) and **Compare
+  Contents** (left, base, right and result side by side in the diff viewer). The counter on the
+  right shows the unresolved changes: "3 changes. 2 conflicts".
+- **Resolve Simple Conflicts** merges conflicts where both sides changed *different* words of
+  the same lines (`$price * $qty` → `$netPrice * $qty` and `$price * $quantity` become
+  `$netPrice * $quantity`). Conflicts where both sides changed the same words stay for you.
+- Edit the result freely; `Ctrl+Z` also undoes applied changes.
+- **Accept Left** / **Accept Right** take one side for the whole file. **Apply** writes the
+  result and marks the file resolved (`git add`); with unresolved changes left it asks first
+  ("There are unresolved changes"). **Cancel** (`Escape`) asks before it discards your edits.
+
+![Merge window after applying changes](docs/screenshots/merge-window-resolved.png)
+
+Files with `\r\n` line separators keep them. In remote projects the stage versions are read
+and the result is written on the remote host. When the last conflict is resolved, Forge
+reminds you to commit (merge, cherry-pick) or continue the rebase.
+
 ## Log
 
 The **Git** tool window (`Alt+9`, bottom) has a **Log** tab with the commit graph and a
@@ -8965,8 +9022,8 @@ Pull and merge requests, issues and CI pipelines of GitHub, GitLab and Forgejo/G
 
 ## Not available yet
 
-Get from VCS (clone), stash/unstash, cherry-pick, interactive rebase, file history, Local
-History and merge conflict resolution are not implemented yet.
+Get from VCS (clone), cherry-pick, interactive rebase, file history and Local History are not
+implemented yet.
 
 
 ---
@@ -11531,6 +11588,7 @@ Commit, push, update, branches, the log and file actions. In projects without Gi
 | Fetch | — | — | yes | Fetches all remotes. [More](docs/guide/user/git.md#push-update-and-fetch) |
 | Merge… | — | — | not yet | Not available yet; the entry is disabled. |
 | Rebase… | — | — | not yet | Not available yet; the entry is disabled. |
+| Resolve Conflicts… | — | — | yes | Opens the Conflicts dialog for the files with merge conflicts. [More](docs/guide/user/git.md#merge-conflicts) ([screenshot](docs/screenshots/merge-conflicts-dialog.png)) |
 | Branches… | — | — | yes | Opens the Git Branches popup: checkout, new branch, merge, rebase, push, delete. [More](docs/guide/user/git.md#branches) ([screenshot](docs/screenshots/docs-branches.png)) |
 | New Branch… | — | — | yes | Creates a branch from the current one and optionally checks it out. [More](docs/guide/user/git.md#branches) |
 | New Tag… | — | — | not yet | Not available yet; the entry is disabled. |
@@ -14203,7 +14261,7 @@ breaks user overrides, focus contexts and conflict detection, and causes double 
 - `catalog`: PHPStorm's default keymaps from `data/phpstorm.json` (id, title, group,
   Windows/Linux and macOS shortcuts, `native` flag) and `ACTION_ALIASES`;
 - `engine`: bindings, conflicts and the `Resolver` state machine (chords, double taps, focus
-  contexts `editor`, `input`, `toolwindow`, `global`, `terminal`);
+  contexts `editor`, `input`, `toolwindow`, `diff`, `global`, `terminal`);
 - `keymap`: `KeymapService` combining the catalog, plugin actions, registered commands and user
   overrides from the `keymap.*` settings.
 
@@ -14245,8 +14303,10 @@ registerCommand({ id: "Laravel.RunArtisan", title: "Run Artisan Command…", run
 
 - `group` places the action in the Keymap tree (`Plugins/<Name>` by convention, or a
   `Main Menu/...` group).
-- `context: "editor" | "toolwindow"` limits where the shortcut applies, so the same keys can
-  mean different things (`Alt+Insert` adds a row in a data grid, opens Generate in the editor).
+- `context: "editor" | "toolwindow" | "diff"` limits where the shortcut applies, so the same
+  keys can mean different things (`Alt+Insert` adds a row in a data grid, opens Generate in the
+  editor; `F7` is Next Difference inside the merge window, an element with
+  `data-focus-context="diff"`, and Step Into elsewhere).
 - Shortcut syntax: `Ctrl+Shift+A`, `Alt+Insert`, chords `Ctrl+K Ctrl+C`, double taps
   `Shift Shift`, macOS `Cmd`/`Opt`. Physical key codes are used, so layouts work.
 
@@ -17650,6 +17710,9 @@ its machine-readable output into serializable types for the UI.
 Paths in and out are relative to the *workspace* root, which may be a subdirectory of the
 repository; `Repo` converts them to and from repository paths.
 
+The parsers and the three-way merge (`merge`) are pure and also build for WebAssembly
+(`default-features = false`); running git needs the default `git` feature.
+
 ## Modules
 
 | Module | Summary |
@@ -17659,6 +17722,9 @@ repository; `Repo` converts them to and from repository paths.
 | `cmd.rs` | Running the `git` executable. No shell is involved: arguments are passed as-is, so paths with spaces or quotes need no escaping on any platform. |
 | `diff.rs` | Parser for unified diffs as printed by `git diff`. |
 | `log.rs` | Commit history: parser for a NUL/RS separated `git log` format, ref decorations and per-commit changed files. |
+| `merge.rs` | Three-way merge for the merge window: diff3 chunking of yours/base/theirs (`merge_three_way` → `MergeModel` with `left`/`right`/`both`/`conflict` chunks), word-level "Resolve Simple Conflicts" (`resolve_simple`), `auto_merge`, line separator helpers. Pure. |
+| `repo.rs` | `Repo`: every git operation of the IDE, through a `GitExec` (local or remote host). |
+| `repo/conflicts.rs` | Merge conflicts: unmerged files and their sides (`git ls-files -u`), the operation (merge, rebase, cherry-pick, revert, unstash) and pane titles, stage versions `:1:`/`:2:`/`:3:` (`merge_file`), Accept Yours/Theirs (`accept_conflict_side`). Yours is git's `theirs` in a rebase. |
 | `status.rs` | Parser for `git status --porcelain=v2 -z --branch`. |
 
 ## Main public items
@@ -17670,6 +17736,8 @@ pub use diff::{parse_diff, DiffLine, FileDiff, Hunk, LineKind};
 pub use log::{…};
 pub use status::{parse_status, FileState, RepoStatus, StatusEntry};
 pub use cmd::{GitExec, GitOutput, GitRequest, LocalGit};
+pub mod merge; // merge_three_way, resolve_simple, auto_merge, MergeModel, MergeChunk
+pub use repo::{ConflictSet, ConflictFile, ConflictSide, MergeFile, MergeOperation, SideChange, …};
 pub struct RepoInfo { … }
 pub struct RemoteResult { … }
 pub struct Repo { … }
@@ -17677,18 +17745,18 @@ pub struct Repo { … }
 
 ## Used by
 
-- IPC: `git_info`, `git_status`, `git_show`, `git_diff`, `git_diff_head`, `git_blame`, `git_log`, `git_commit_details`, `git_branches`, `git_checkout`, `git_create_branch`, `git_delete_branch`, `git_merge`, `git_rebase`, `git_stage`, `git_unstage`, `git_rollback`, `git_commit`, `git_push`, `git_pull`, `git_fetch` (`app/src-tauri/src/commands/git.rs`)
+- IPC: `git_info`, `git_status`, `git_show`, `git_diff`, `git_diff_head`, `git_blame`, `git_log`, `git_commit_details`, `git_branches`, `git_checkout`, `git_create_branch`, `git_delete_branch`, `git_merge`, `git_rebase`, `git_stage`, `git_unstage`, `git_rollback`, `git_commit`, `git_push`, `git_pull`, `git_fetch`, `git_conflicts`, `git_merge_file`, `git_accept_conflict_side`, `git_resolve_merge` (`app/src-tauri/src/commands/git.rs`)
 - UI: `app/ui/src/features/git`
-- Browser mode: not built to WebAssembly (runtime code); browser mode uses mocks
+- Browser mode: `merge` runs as WebAssembly (`vcs_merge` in `forge-wasm`) for the git mock; the rest uses mocks
 
 ## Dependencies
 
 - Workspace crates: [`forge-core`](docs/guide/developer/crates/forge-core.md)
-- External: `serde`, `tracing`
+- External: `serde`, `similar`, `tracing`
 
 ## Tests
 
-7 source files, about 1737 lines; 10 unit tests and 11 integration tests in `tests/` (`repo.rs`).
+10 source files; unit tests (including the three-way merge with fixture texts) and integration tests against temporary repositories in `tests/` (`repo.rs`, `conflicts.rs`: merges, rebases and unstashes that stop with conflicts).
 
 ```sh
 cargo test -p forge-vcs

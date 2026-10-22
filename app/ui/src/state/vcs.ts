@@ -13,6 +13,10 @@ export { currentBranch, setCurrentBranch, fileStatuses, setFileStatuses };
 
 export const statusOf = (path: string): FileStatus | undefined => fileStatuses()[path];
 
+/** A directory holds files with unresolved merge conflicts (shown red like the files). */
+export const dirHasConflicts = (dir: string): boolean =>
+  Object.entries(fileStatuses()).some(([p, s]) => s === "conflict" && p.startsWith(`${dir}/`));
+
 /** Status for a directory: modified if any descendant has a status. */
 export const dirHasChanges = (dir: string): boolean =>
   Object.keys(fileStatuses()).some((p) => p.startsWith(`${dir}/`));

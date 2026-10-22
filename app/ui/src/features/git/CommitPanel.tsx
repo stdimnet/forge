@@ -26,6 +26,7 @@ import { displayStatus, gitApi, type StatusEntry } from "./api";
 import { notify, repositoryChanged, status } from "./store";
 import { commitChanges, confirmRollback, showDiff } from "./actions";
 import { setCommitSelectionSource } from "./context";
+import { openMerge, resolveConflicts } from "./conflicts";
 import { generateCommitMessage } from "./aiMessage";
 import { unifiedDiff } from "./textDiff";
 import { CommitSpellProblems, createCommitMessageCheck, SpellOverlay } from "@/features/spelling/commitMessage";
@@ -86,7 +87,8 @@ async function confirmLineSeparators(paths: string[]): Promise<boolean> {
   return choice === "commit";
 }
 
-const changes = () => (status()?.entries ?? []).filter((e) => e.worktree !== "untracked" && e.worktree !== "ignored");
+const changes = () => (status()?.entries ?? []).filter((e) => !e.conflict && e.worktree !== "untracked" && e.worktree !== "ignored");
+const conflicts = () => (status()?.entries ?? []).filter((e) => e.conflict);
 const unversioned = () => (status()?.entries ?? []).filter((e) => e.worktree === "untracked");
 
 // New tracked changes start checked, unversioned files unchecked (PHPStorm default).
@@ -97,7 +99,7 @@ createRoot(() =>
     const prev = known();
     const next = new Set(checked());
     const all = new Set(st.entries.map((e) => e.path));
-    for (const e of st.entries) if (!prev.has(e.path) && e.worktree !== "untracked") next.add(e.path);
+    for (const e of st.entries) if (!prev.has(e.path) && e.worktree !== "untracked" && !e.conflict) next.add(e.path);
     for (const p of next) if (!all.has(p)) next.delete(p);
     setKnown(all);
     setChecked(next);
@@ -212,6 +214,51 @@ function Group(props: { id: string; title: string; entries: StatusEntry[]; stron
   );
 }
 
+/** The "Merge Conflicts" node: unresolved files in red with a Resolve link, like PHPStorm. */
+function ConflictsGroup() {
+  const open = () => !collapsed().has("conflicts");
+  return (
+    <Show when={conflicts().length > 0}>
+      <div class="tree-row commit-group commit-conflicts" onClick={() => toggleCollapsed("conflicts")} style={{ "padding-left": "8px" }}>
+        <span class="tree-chevron">{open() ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</span>
+        <span class="tree-label strong">Merge Conflicts</span>
+        <span class="tree-hint">{plural(conflicts().length)}</span>
+        <button
+          class="link-btn commit-resolve"
+          onClick={(e) => {
+            e.stopPropagation();
+            resolveConflicts();
+          }}
+        >
+          Resolve
+        </button>
+      </div>
+      <Show when={open()}>
+        <For each={[...conflicts()].sort((a, b) => a.path.localeCompare(b.path))}>
+          {(e) => (
+            <div
+              class="tree-row commit-row"
+              classList={{ selected: selected() === e.path }}
+              style={{ "padding-left": "26px" }}
+              data-path={e.path}
+              onClick={() => setSelected(e.path)}
+              onDblClick={() => void openMerge(e.path)}
+              title={e.path}
+            >
+              <span class="tree-chevron" />
+              <FileIcon name={nameOf(e.path)} />
+              <span class="tree-label vcs-conflict">{nameOf(e.path)}</span>
+              <Show when={dirOf(e.path)}>
+                <span class="tree-hint">{dirOf(e.path)}</span>
+              </Show>
+            </div>
+          )}
+        </For>
+      </Show>
+    </Show>
+  );
+}
+
 const allPaths = () => [...changes(), ...unversioned()].map((e) => e.path);
 const checkedPaths = () => allPaths().filter((p) => checked().has(p));
 
@@ -265,7 +312,7 @@ async function toggleAmend(on: boolean) {
 
 export function CommitPanel() {
   const canCommit = () => !busy() && (checkedPaths().length > 0 || amend()) && message().trim().length > 0;
-  const total = () => changes().length + unversioned().length;
+  const total = () => conflicts().length + changes().length + unversioned().length;
   let messageInput: HTMLTextAreaElement | undefined;
   // Spelling and grammar of the message (Settings | Editor | Natural Languages).
   const spellProblems = createCommitMessageCheck(message);
@@ -299,7 +346,7 @@ export function CommitPanel() {
         <button
           class="icon-btn"
           title="Collapse All (Ctrl+NumPad -)"
-          onClick={() => setCollapsed(new Set(["changes", "unversioned"]))}
+          onClick={() => setCollapsed(new Set(["conflicts", "changes", "unversioned"]))}
         >
           <ChevronsDownUp size={15} />
         </button>
@@ -309,6 +356,7 @@ export function CommitPanel() {
           when={total() > 0}
           fallback={<div class="commit-empty">{status() ? "No changes" : "No Git repository for this project"}</div>}
         >
+          <ConflictsGroup />
           <Group id="changes" title="Changes" entries={changes()} strong />
           <Group id="unversioned" title="Unversioned Files" entries={unversioned()} />
         </Show>

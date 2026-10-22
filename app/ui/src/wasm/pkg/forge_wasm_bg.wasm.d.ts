@@ -199,6 +199,7 @@ export const text_prepare_save: (a: number, b: number, c: number) => void;
 export const text_read: (a: number, b: number, c: number) => void;
 export const text_write: (a: number, b: number, c: number) => void;
 export const todo_scan: (a: number, b: number, c: number) => void;
+export const vcs_merge: (a: number, b: number, c: number) => void;
 export const vim_attach: (a: number, b: number, c: number) => void;
 export const vim_configure: (a: number, b: number, c: number) => void;
 export const vim_detach: (a: number, b: number, c: number) => void;

@@ -93,3 +93,35 @@ describe("browser-mode git backend", () => {
     expect(msg.split("\n")[0].length).toBeLessThanOrEqual(72);
   });
 });
+
+describe("browser-mode merge conflicts", () => {
+  it("stops a merge of feature/checkout-flow with conflicts and resolves them", async () => {
+    await expect(gitApi.merge("feature/checkout-flow")).rejects.toThrow(/CONFLICT/);
+    const set = await gitApi.conflicts();
+    expect(set.operation).toBe("merge");
+    expect(set.description).toMatch(/^Merging branch feature\/checkout-flow into branch /);
+    expect(set.files.map((f) => [f.path, f.yours, f.theirs])).toEqual([
+      ["app/Services/PriceCalculator.php", "modified", "modified"],
+      ["app/Reports/SalesReport.php", "modified", "deleted"],
+      ["public/images/logo.png", "modified", "modified"],
+    ]);
+    const st = await gitApi.status();
+    expect(st.entries.filter((e) => e.conflict).length).toBe(3);
+    const marked = await invoke<string>("fs_read_file", { path: "app/Services/PriceCalculator.php" });
+    expect(marked).toContain("<<<<<<< HEAD");
+
+    const file = await gitApi.mergeFile("app/Services/PriceCalculator.php");
+    expect(file.model?.chunks.map((c) => c.kind)).toEqual(["right", "left", "conflict", "right", "conflict", "conflict"]);
+    expect(file.model?.simpleConflicts).toBe(1);
+    expect((await gitApi.mergeFile("app/Reports/SalesReport.php")).theirs).toBeNull();
+
+    await gitApi.resolveMerge(file.path, file.yours!, false);
+    await gitApi.acceptConflictSide(["app/Reports/SalesReport.php"], "theirs");
+    await expect(invoke("fs_read_file", { path: "app/Reports/SalesReport.php" })).rejects.toThrow();
+    await expect(gitApi.commit("Merge", false, null)).rejects.toThrow(/unmerged/);
+    await gitApi.acceptConflictSide(["public/images/logo.png"], "yours");
+    expect((await gitApi.conflicts()).files).toEqual([]);
+    const sha = await gitApi.commit("Merge branch 'feature/checkout-flow'", false, ["app/Services/PriceCalculator.php"]);
+    expect((await gitApi.commitDetails(sha)).parents.length).toBe(2);
+  });
+});

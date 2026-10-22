@@ -45,6 +45,7 @@ mod structure;
 mod templates;
 mod terminal;
 mod text;
+mod vcs;
 mod viewers;
 mod vim;
 mod web;

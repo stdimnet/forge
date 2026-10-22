@@ -2425,6 +2425,7 @@ dependencies = [
  "forge-core",
  "serde",
  "serde_json",
+ "similar",
  "tempfile",
  "tracing",
 ]
@@ -2482,6 +2483,7 @@ dependencies = [
  "forge-sql",
  "forge-ssr",
  "forge-text",
+ "forge-vcs",
  "forge-viewers",
  "forge-vim",
  "forge-window",
