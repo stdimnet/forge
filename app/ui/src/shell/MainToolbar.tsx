@@ -3,7 +3,7 @@ import { RunWidget } from "@/features/run/RunWidget";
 import { workspace } from "@/state/workspace";
 import { theme, toggleTheme } from "@/state/theme";
 import { showToolWindow } from "@/state/layout";
-import { currentBranch } from "@/state/vcs";
+import { branchLabel } from "@/state/vcs";
 import { runCommand } from "@/state/commands";
 import { For, Show } from "solid-js";
 import { Dynamic } from "solid-js/web";
@@ -41,7 +41,7 @@ export function MainToolbar() {
         </button>
         <button class="pill-btn" title="Git Branches" onClick={() => runCommand("git.branches")}>
           <GitBranch size={15} class="muted" />
-          <span>{currentBranch()}</span>
+          <span>{branchLabel()}</span>
           <ChevronDown size={14} class="muted" />
         </button>
       </div>

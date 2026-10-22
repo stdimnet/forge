@@ -1,0 +1,333 @@
+/* Git menu dialogs (GitDialogs.tsx) and the Stash / Shelf tabs of the Commit tool window.
+   Colors come from theme.css only. */
+.gd.gd-wide {
+  width: 600px;
+}
+.gd-body {
+  gap: 12px;
+}
+.gd-grid {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  align-items: center;
+  gap: 8px 12px;
+}
+.gd-label {
+  color: var(--fg-muted);
+}
+.gd-value {
+  min-width: 0;
+}
+.gd-static {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gd-input,
+.gd-select {
+  height: 28px;
+  min-width: 0;
+  width: 100%;
+  padding: 0 8px;
+}
+.gd-select {
+  width: auto;
+  min-width: 96px;
+}
+.gd-textarea {
+  width: 100%;
+  min-height: 64px;
+  padding: 6px 8px;
+  resize: vertical;
+  font-family: var(--font-ui);
+}
+.gd-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.gd-line .gd-input {
+  flex: 1;
+}
+.gd-cmd {
+  color: var(--fg-muted);
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  white-space: nowrap;
+}
+.gd-inline,
+.gd-commit {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.gd-commit .gd-input {
+  flex: 1;
+}
+.gd-valid {
+  color: var(--success);
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+}
+.gd-invalid {
+  color: var(--danger);
+  font-size: var(--fs-small);
+}
+.gd-note {
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+.git-dialog-check.disabled {
+  color: var(--fg-faint);
+}
+
+/* "Modify options" */
+.gd-options {
+  display: grid;
+  gap: 6px;
+}
+.gd-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.gd-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 4px 0 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 11px;
+  background: var(--bg-input);
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+}
+.gd-chip-x {
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--fg-muted);
+  cursor: pointer;
+}
+.gd-chip-x:hover {
+  background: var(--bg-hover);
+  color: var(--fg-strong);
+}
+.gd-modify {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.gd-option-list {
+  display: grid;
+  padding: 4px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow);
+}
+.gd-option {
+  display: grid;
+  grid-template-columns: 16px max-content 1fr;
+  align-items: center;
+  gap: 8px;
+  height: 26px;
+  padding: 0 6px;
+  border-radius: var(--radius-sm);
+}
+.gd-option:hover {
+  background: var(--bg-hover);
+}
+.gd-option input {
+  accent-color: var(--accent);
+  margin: 0;
+}
+.gd-option-flag {
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+}
+.gd-option-desc {
+  overflow: hidden;
+  color: var(--fg-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gd-option.disabled .gd-option-flag,
+.gd-option.disabled .gd-option-desc {
+  color: var(--fg-faint);
+}
+
+/* Unstash: list with buttons on the right */
+.gd-split {
+  display: grid;
+  grid-template-columns: 1fr max-content;
+  gap: 8px;
+}
+.gd-list {
+  height: 180px;
+}
+.gd-side-buttons {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+}
+.gd-stash-ref {
+  flex-shrink: 0;
+  color: var(--fg-muted);
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+}
+.gd-checks {
+  display: flex;
+  gap: 18px;
+}
+.gd-files {
+  max-height: 160px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-editor);
+  padding: 2px;
+}
+.gd-files-title {
+  padding: 4px 8px;
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+.gd-file {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+}
+.gd-file:hover {
+  background: var(--bg-hover);
+}
+.gd-file input {
+  accent-color: var(--accent);
+  margin: 0;
+}
+.gd-file-indent {
+  padding-left: 26px;
+}
+.gd-file-diff {
+  margin-left: auto;
+}
+.gd-file-checks {
+  height: 200px;
+}
+
+/* Reset */
+.gd-group-title {
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 4px;
+}
+.gd-radios {
+  display: grid;
+  gap: 8px;
+}
+.gd-radio {
+  display: grid;
+  grid-template-columns: 16px 56px 1fr;
+  align-items: baseline;
+  gap: 6px;
+}
+.gd-radio input {
+  accent-color: var(--accent);
+  margin: 0;
+}
+.gd-radio-label {
+  font-weight: 600;
+}
+.gd-radio-text {
+  color: var(--fg-muted);
+}
+.gd-radio-text.warn {
+  color: var(--warning);
+}
+
+/* Git Remotes */
+.gd-table-box {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-editor);
+  overflow: hidden;
+}
+.gd-table-toolbar {
+  display: flex;
+  gap: 2px;
+  padding: 2px 4px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-panel);
+}
+.gd-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.gd-table th {
+  text-align: left;
+  font-weight: normal;
+  color: var(--fg-muted);
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border);
+}
+.gd-table td {
+  padding: 3px 8px;
+  white-space: nowrap;
+}
+.gd-table tbody tr:hover {
+  background: var(--bg-hover);
+}
+.gd-table tbody tr.selected {
+  background: var(--bg-selection);
+  color: var(--fg-strong);
+}
+.gd-table tbody {
+  display: table-row-group;
+}
+.gd-table-box .gd-table {
+  min-height: 140px;
+}
+
+/* Commit tool window: Stash and Shelf tabs */
+.vcs-tab-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+.vcs-tab-tree {
+  flex: 1;
+  overflow: auto;
+  padding: 2px 0;
+}
+.vcs-tab-empty {
+  padding: 24px 16px;
+  color: var(--fg-muted);
+  text-align: center;
+}
+.vcs-tab-node .tree-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.vcs-tab-ref {
+  color: var(--fg-muted);
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+}
+.vcs-tab-panel .tree-row.selected {
+  background: var(--bg-selection);
+}

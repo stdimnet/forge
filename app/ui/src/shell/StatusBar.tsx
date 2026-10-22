@@ -2,7 +2,7 @@ import { For, Show } from "solid-js";
 import { Dynamic } from "solid-js/web";
 import { GitBranch, Lock } from "lucide-solid";
 import { activeTab } from "@/state/editor";
-import { currentBranch } from "@/state/vcs";
+import { branchLabel } from "@/state/vcs";
 import { statusMessage, visibleStatusItems } from "@/features/statusItems";
 import { languageLabel } from "@/editor/languages";
 import { NavigationBar, navBarLocation } from "@/features/navBar";
@@ -39,7 +39,7 @@ export function StatusBar() {
           </>
         )}
         <button class="status-item">
-          <GitBranch size={12} /> {currentBranch()}
+          <GitBranch size={12} /> {branchLabel()}
         </button>
         <button class="status-item" title="File is writable">
           <Lock size={12} />
