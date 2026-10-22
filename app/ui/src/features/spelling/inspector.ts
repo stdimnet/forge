@@ -6,7 +6,7 @@
  * in document offsets (mapped through edits) and published to the shared diagnostics store
  * as source `spelling`, which draws the squiggles and fills the Problems tool window.
  */
-import { syntaxTree } from "@codemirror/language";
+import { language, syntaxTree } from "@codemirror/language";
 import type { EditorState, Extension } from "@codemirror/state";
 import { ViewPlugin, type EditorView, type PluginValue, type ViewUpdate } from "@codemirror/view";
 import type { EditorDiagnostic, Severity } from "@/ipc/lsp";
@@ -38,6 +38,8 @@ export class SpellInspector implements PluginValue {
   private dirty: Range[] = [];
   private inflight: Range[] = [];
   private fileNameDirty = true;
+  /** Where the syntax tree ended at the last check, when it did not cover the checked text. */
+  private parsedTo: number | null = null;
   private timer: ReturnType<typeof setTimeout> | undefined;
   private running = false;
   private destroyed = false;
@@ -82,9 +84,12 @@ export class SpellInspector implements PluginValue {
       u.changes.iterChangedRanges((_fa, _ta, fb, tb) => this.dirty.push([fb, tb]));
     }
     const treeGrew = !u.docChanged && syntaxTree(u.startState) !== syntaxTree(u.state);
-    if (treeGrew) {
-      // The parser got further (large files parse in the background): check what is on screen.
-      this.dirty.push(...this.visible());
+    if (treeGrew && this.parsedTo !== null) {
+      // The parser got further than at the last check (it parses large files in the
+      // background): check the rest now.
+      const from = this.parsedTo;
+      this.parsedTo = null;
+      this.dirty.push(...(this.whole ? [[from, u.state.doc.length] as Range] : this.visible()));
     } else if (!this.whole && (u.viewportChanged || u.docChanged)) {
       for (const r of this.visible()) if (!this.checked.some((c) => c[0] <= r[0] && c[1] >= r[1])) this.dirty.push(r);
     }
@@ -123,6 +128,8 @@ export class SpellInspector implements PluginValue {
       const words = dictionaryWords();
       const prose = isProseFile(fileTypeOf(this.path).id);
       const segments = collectSegments(state, ranges, prose);
+      const parsed = syntaxTree(state).length;
+      this.parsedTo = state.facet(language) && parsed < (ranges[ranges.length - 1]?.[1] ?? 0) ? parsed : null;
       const doc = state.doc;
       const [found, names] = await Promise.all([
         segments.length ? spellApi.inspect({ segments, options, words }) : Promise.resolve([]),
