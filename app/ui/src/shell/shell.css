@@ -98,6 +98,12 @@
   align-items: center;
   padding: 6px 0;
   background: var(--bg-toolbar);
+  /* Stripe buttons are dragged with the pointer. */
+  user-select: none;
+  touch-action: none;
+}
+.tool-stripe.dragging {
+  cursor: grabbing;
 }
 .tool-stripe-left {
   border-right: 1px solid var(--border);
