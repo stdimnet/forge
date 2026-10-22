@@ -210,6 +210,22 @@ app/ui/            SolidJS UI
   `Diff.ApplyNonConflicts[.Left|.Right]`, `Diff.MagicResolveConflicts`). Browser mode runs the
   merge as WebAssembly (`vcs_merge`); merging `feature/checkout-flow` in the demo (or
   `?conflicts`) stops with conflicts.
+- History and comparisons (`forge_vcs` `repo/history.rs`, `forge-diff`, `commands/git_history.rs`,
+  `commands/compare.rs`): `git_file_history({ path, dir, query: { skip?, limit? } }) ->
+  { sha, parents, author, email, time, subject, files: ChangedFile[] }[]` (files follow renames;
+  for a folder every changed file below it), `git_block_history({ path, start, end }) ->
+  { sha, parents, author, email, time, subject, path, before: string | null, after, startLine }[]`
+  (`git log -L`, lines as in `HEAD`), `git_blame_revision({ rev, path }) -> Blame`,
+  `git_changes_since({ rev, path }) -> ChangedFile[]` (rev against the working tree),
+  `compare_dirs({ left, right }) -> { entries: { path, dir, depth, status: "equal" | "different" |
+  "leftOnly" | "rightOnly", leftSize, rightSize, leftModified, rightModified }[], truncated }`
+  (computed where the files are: `Backend::compare_dirs`, agent call `CompareDirs`) and
+  `compare_copy({ from, to, dir })`. History tabs live in the Git tool window
+  (`features/git/history.ts`); files of a revision open as read-only `gitrev://<sha>/<path>`
+  tabs. `CompareTwoFiles` (`Ctrl+D`) runs the handler registered for the focused view with
+  `registerCompareHandler(selector, run)` (`features/compare/state.ts`), else compares the
+  Project view selection (`projectTree.selectedPaths()`, Ctrl+click adds rows); the Project
+  view menu asks `providedEntries("project.compare", entry)` below Reload from Disk.
 - Context-dependent menu entries: `registerContextMenuProvider(menuId, (context) => MenuEntry[])`
   (`features/contextMenu/state.ts`); the Project view asks `providedEntries("project", entry)`
   for its menu. `item(label, run, actionId, { disabled, shortcutAction })` shows greyed-out items.
