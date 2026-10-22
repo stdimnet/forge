@@ -51,6 +51,60 @@ pub fn codeintel_related(request_json: &str) -> String {
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
+struct TestNavInput {
+    path: String,
+    text: String,
+    #[serde(default)]
+    composer_path: String,
+    /// The project's files and their texts.
+    files: BTreeMap<String, String>,
+}
+
+fn with_test_nav<T: serde::Serialize>(
+    request_json: &str,
+    f: impl Fn(&forge_codeintel::TestNavRequest, &[String], &dyn Fn(&str) -> Option<String>) -> T,
+) -> String {
+    match parse::<TestNavInput>(request_json) {
+        Ok(input) => {
+            let list: Vec<String> = input.files.keys().cloned().collect();
+            let read = |p: &str| input.files.get(p).cloned();
+            let req = forge_codeintel::TestNavRequest {
+                path: input.path,
+                text: input.text,
+                composer_path: input.composer_path,
+            };
+            to_json(&f(&req, &list, &read))
+        }
+        Err(e) => to_json(&json!({ "error": e })),
+    }
+}
+
+/// `{ path, text, files }` → `TestTargets` (like `code_test_targets`).
+#[wasm_bindgen]
+pub fn codeintel_test_targets(request_json: &str) -> String {
+    with_test_nav(request_json, forge_codeintel::test_targets)
+}
+
+/// `{ path, text, composerPath?, files }` → `NewTestPlan | null` (like `code_new_test_plan`).
+#[wasm_bindgen]
+pub fn codeintel_new_test_plan(request_json: &str) -> String {
+    with_test_nav(request_json, forge_codeintel::new_test_plan)
+}
+
+/// `TestSourceRequest` → `TestSource` or `{ error }` (the rendering of `code_create_test`).
+#[wasm_bindgen]
+pub fn codeintel_test_source(request_json: &str) -> String {
+    match parse::<forge_codeintel::TestSourceRequest>(request_json) {
+        Ok(req) => match forge_codeintel::test_source(&req) {
+            Ok(file) => to_json(&file),
+            Err(e) => to_json(&json!({ "error": e })),
+        },
+        Err(e) => to_json(&json!({ "error": e })),
+    }
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct UsagesInput {
     usages: Vec<UsageLocation>,
     #[serde(default)]
@@ -436,5 +490,23 @@ mod doc_tests {
         );
         assert!(out.contains("\"path\":\"tests/CheckoutTest.php\""));
         assert!(out.contains("\"group\":\"Tests\""));
+    }
+
+    #[test]
+    fn go_to_test_and_create_test_over_json() {
+        let out = codeintel_test_targets(
+            r#"{"path":"app/Checkout.php","text":"<?php","files":{"app/Checkout.php":"<?php","tests/CheckoutTest.php":"<?php"}}"#,
+        );
+        assert!(out.contains("\"path\":\"tests/CheckoutTest.php\""));
+        assert!(out.contains("\"canCreate\":true"));
+        let plan = codeintel_new_test_plan(
+            r#"{"path":"app/Checkout.php","text":"<?php\nnamespace App;\nclass Checkout {}","files":{"composer.json":"{\"autoload\":{\"psr-4\":{\"App\\\\\":\"app/\"}}}"}}"#,
+        );
+        assert!(plan.contains("\"className\":\"CheckoutTest\""), "{plan}");
+        let src = codeintel_test_source(
+            r#"{"framework":"PHPUnit","className":"CheckoutTest","namespace":"Tests","directory":"tests","fileName":"CheckoutTest.php","superclass":"PHPUnit\\Framework\\TestCase"}"#,
+        );
+        assert!(src.contains("\"path\":\"tests/CheckoutTest.php\""), "{src}");
+        assert!(codeintel_test_source(r#"{"fileName":"x.php"}"#).contains("error"));
     }
 }
