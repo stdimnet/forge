@@ -62,6 +62,9 @@ app/ui/            SolidJS UI
   emulation on, the focused editor's Vim takes the keys it needs first (see "Vim emulation").
   - `registerLineMarkerProvider` (`src/editor/lineMarkers.ts`) — gutter icons per line (route on a
     controller action, "go to template", entity <-> repository), recomputed after edits.
+  - `registerProblemsTab({ id, title, order?, count?, visible?, component })`
+    (`src/features/lsp/problemsTabs.ts`) — a tab of the Problems tool window after "Current
+    File" and "Project Errors" (Composer's "Vulnerable Dependencies").
   - `registerDeclarationProvider` (`src/features/lsp/goto.ts`) — framework targets for Ctrl+B /
     Ctrl+Click that a language server cannot resolve (route names, service ids, DQL fields); tried
     before the language servers and the PHP index (see "Code intelligence" below). Several targets (from a provider or the language server) open the shared
@@ -1646,6 +1649,36 @@ comments and Reader mode (`app/ui/src/features/codeStructure`, user guide
   pages `lang.schemas`, `lang.json-schema` (master-detail mappings editor) and
   `lang.json-schema.remote`. Browser mode runs the crate through `forge-wasm` (`json_schema.rs`;
   the mock answers `needs` with demo files).
+
+## Composer (`packs/phpforge/composer`)
+
+- `phpforge-composer` (pure, also WebAssembly; Packagist and composer.phar downloads behind the
+  `net` feature): Composer versions and constraints, composer.json requirements with ranges,
+  installed packages (composer.lock, installed.json), outdated markers, `composer audit`
+  reports, Packagist p2 metadata and search, completion and hover in `require` /
+  `require-dev` (cursor context from `forge_jsonschema::complete::json_cursor`). Answers use
+  UTF-16 offsets plus line/character positions for files that are not open.
+- IPC (`app/ui/src/ipc/composer.ts`, `commands/composer.rs`): `composer_project() -> {
+  composerJson, exists, hasLock, requirements, installed }`, `composer_markers({ path, text })
+  -> OutdatedMarker[]`, `composer_complete({ path, text, offset })` (the JSON Schema completion
+  shape), `composer_hover({ path, text, offset })`, `composer_search({ query })`,
+  `composer_package({ name }) -> { …PackageInfo, suggested, url }`, `composer_audit() -> {
+  advisories, abandoned, composerJson, composerLock, jsonProblems, lockProblems }`,
+  `composer_download_phar() -> path`. Packagist is reached from Rust only, while
+  `php.composer.packagist` is on, cached in `<cache dir>/forge/packagist`; project files and
+  `composer audit` go through the backend (remote projects work).
+- Composer commands that change the project run as configurations of the hidden run type
+  `composer-command` (`forge_process` kind: `composer <command> --ansi --no-interaction` in the
+  folder of composer.json; `forge_process::composer_program` runs a `.phar` with the PHP
+  interpreter) and stream into the Run tool window; the UI reloads composer.json/lock and
+  bumps `composerRevision` afterwards.
+- UI (`features/composer`): the composer.json editor extension (toolbar panel, completion
+  source, hover, outdated markers as a line marker provider plus weak warnings of source
+  `composer-outdated`, the `Composer.UpdatePackage` context action), the Manage Composer
+  Dependencies dialog, the "Vulnerable Dependencies" Problems tab (`composer-audit` problems),
+  `Composer.*` keymap actions under Tools | Composer and the Settings page `lang.php.composer`.
+  Browser mode runs the crate through `forge-wasm` with a demo catalog instead of Packagist
+  (`mock/composerMock.ts`, `mock/demoComposer.ts`).
 
 ## Vim emulation (`forge-vim`)
 

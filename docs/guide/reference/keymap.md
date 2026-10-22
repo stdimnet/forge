@@ -523,6 +523,12 @@ Actions that Forge's plugins add (group **Plugins** in Settings | Keymap, some u
 | --- | --- | --- | --- | --- |
 | Vim (Tools \| Vim) | `VimPluginToggle` | `Ctrl+Alt+V` | `Cmd+Alt+V` | any (in the editor `Introduce Variable` wins) |
 | Reload .ideavimrc | `IdeaVim.ReloadVimRc` |  |  | any |
+| Composer: Add Dependency… | `Composer.AddDependency` |  |  | any |
+| Composer: Install | `Composer.Install` |  |  | any |
+| Composer: Update | `Composer.Update` |  |  | any |
+| Composer: Validate | `Composer.Validate` |  |  | any |
+| Composer: Show Outdated | `Composer.ShowOutdated` |  |  | any |
+| Composer: Audit | `Composer.Audit` |  |  | any |
 | Run Artisan Command… | `Laravel.RunArtisan` | `Ctrl+Shift+X` | `Cmd+Shift+X` | any |
 | Routes (Laravel) | `Laravel.ShowRoutes` |  |  | any |
 | Run Console Command… (Symfony) | `Symfony.RunConsoleCommand` |  |  | any |

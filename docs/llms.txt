@@ -36,6 +36,7 @@ Forge's rule of thumb is "Rust computes, TypeScript renders": logic lives in Rus
 - [Shortcuts by topic](guide/user/shortcuts/index.md): every implemented shortcut explained by area, with screenshots
 - [Keymap reference card](guide/user/shortcuts/reference-card.md): the 62 most important shortcuts on one page
 - [PHP](guide/user/php.md): the PHP index, navigation (Ctrl+Click, usages, implementations, PHP stubs), Rename with the index fallback, Extract / Introduce (variable, constant, field, parameter, method) and Inline, PHP intentions, Structure tool window, hover docs, Generate (Alt+Insert)
+- [Composer](guide/user/composer.md): the composer.json toolbar (Install, Update, Validate, Show Outdated, Audit), outdated packages with the Update package quick fix, package and version completion from Packagist (cached, offline fallback), package hover, Manage Composer Dependencies (Tools | Composer | Add Dependency…), `composer audit` in the Problems tool window, composer.phar download with SHA-256 check
 - [Laravel](guide/user/laravel.md): Blade, routes, views, config, Eloquent, the Routes tool window and Run Artisan Command
 - [Symfony](guide/user/symfony.md) and [Doctrine](guide/user/doctrine.md): framework and ORM support
 - [WebForge](guide/user/webforge.md): HTML, CSS, JavaScript/TypeScript, Vue, React, Angular
