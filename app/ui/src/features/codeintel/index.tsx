@@ -22,7 +22,7 @@ import { renameEntryAt, renameSelection } from "@/features/project/fileMenu";
 import { projectTree } from "@/features/project/ProjectView";
 import { activeTab } from "@/state/editor";
 import { registerCommand } from "@/state/commands";
-import { actionById, isActionAvailable, runAction, shortcutLabel, showBalloon } from "@/keymap";
+import { actionById, isActionAvailable, registerKeymapActions, runAction, shortcutLabel, showBalloon } from "@/keymap";
 import { codeApi, type NavKind } from "@/ipc/codeintel";
 import { activeView } from "@/features/lsp/navigation";
 import { showHint } from "@/features/lsp/hint";
@@ -52,6 +52,8 @@ import { refactorThisAt, refactorThisPopup } from "./refactorThis";
 import { RefactorThisPopup } from "./RefactorThisPopup";
 import { extractInterfaceAt, extractSuperclassAt, pullUpAt, pushDownAt } from "./hierarchyRefactorings";
 import { HierarchyDialogHost } from "./HierarchyDialogs";
+import { EXTRACT_COMPONENT, extractComponentAt, extractComponentDialog } from "./extractComponent";
+import { ExtractComponentDialog } from "./ExtractComponentDialog";
 import { listenForServerEdits, refactoringHistory } from "./refactoring";
 import { MoveDialogHost } from "./MoveDialogs";
 import {
@@ -185,6 +187,9 @@ action("ExtractInterface", "Extract Interface…", "Refactor", inEditor((p, v) =
 action("ExtractSuperclass", "Extract Superclass…", "Refactor", inEditor((p, v) => extractSuperclassAt(p, v)));
 action("MembersPullUp", "Pull Members Up…", "Refactor", inEditor((p, v) => pullUpAt(p, v)));
 action("MemberPushDown", "Push Members Down…", "Refactor", inEditor((p, v) => pushDownAt(p, v)));
+// WebForge: Extract Component (Vue template elements, React JSX).
+registerKeymapActions([{ id: EXTRACT_COMPONENT, title: "Extract Component…", group: "Main Menu/Refactor/Extract/Introduce", shortcuts: {} }]);
+action(EXTRACT_COMPONENT, "Extract Component…", "Refactor", inEditor((p, v) => extractComponentAt(p, v)));
 
 // Ctrl+Alt+Shift+T: the refactorings that apply at the caret, in a popup.
 action(
@@ -259,6 +264,9 @@ if (typeof document !== "undefined" && !isDialogWindow()) {
           </Show>
           <MoveDialogHost />
           <HierarchyDialogHost />
+          <Show when={extractComponentDialog()} keyed>
+            {(r) => <ExtractComponentDialog req={r} />}
+          </Show>
           <Show when={refactorThisPopup()} keyed>
             {(r) => <RefactorThisPopup req={r} />}
           </Show>

@@ -25,6 +25,7 @@ Refactorings and code generation. Windows/Linux shortcuts first, macOS second; b
 | [Safe Delete…](#safe-delete) | `Alt+Delete` | `Cmd+Delete` |
 | [Extract Interface…](#extract-interface) | — | — |
 | [Extract Superclass…](#extract-superclass) | — | — |
+| [Extract Component…](#extract-component) | — | — |
 | [Pull Members Up…](#pull-members-up) | — | — |
 | [Push Members Down…](#push-members-down) | — | — |
 | [Make Static…](#make-static) | — | — |
@@ -54,8 +55,9 @@ A popup with only the refactorings that apply at the caret or to the selection, 
 shortcuts: on a PHP class Rename, Move, Copy, Safe Delete, Extract Interface / Superclass and Pull
 Members Up / Push Members Down; on a method Rename, Change Signature, Move, Safe Delete, Inline,
 Pull Up / Push Down and Make Static; on an expression or a selection Introduce Variable /
-Constant / Field / Parameter and Extract Method. In JavaScript and TypeScript files it adds the
-language server's refactorings. Pick one with its number (`1`-`9`, `0`), the arrow keys and
+Constant / Field / Parameter and Extract Method. In JavaScript, TypeScript and Vue files it
+offers Rename, Extract Component (for whole elements), Move and Copy, and the language server's
+refactorings worded like PHPStorm (see [WebForge](../webforge.md#language-server-refactorings)). Pick one with its number (`1`-`9`, `0`), the arrow keys and
 `Enter`, or a click; typing filters the list (speed search), `Escape` clears the filter.
 
 ![Refactor This on a class](../../../screenshots/refactor-this-class.png)
@@ -202,6 +204,18 @@ the superclass.
 **Menu:** Refactor | Extract/Introduce | Superclass…
 
 ![Extract Superclass](../../../screenshots/extract-superclass-dialog.png)
+
+## Extract Component
+
+**Shortcut:** none by default · action id `WebForge.ExtractComponent`
+
+Moves the selected Vue template elements or React JSX into a new component file with props for
+the names they use; the parent renders and imports it. See
+[WebForge](../webforge.md#extract-component).
+
+**Menu:** Refactor | Extract/Introduce | Component…
+
+![Extract Component](../../../screenshots/extract-component-vue-dialog.png)
 
 ## Pull Members Up
 

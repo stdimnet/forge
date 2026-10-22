@@ -484,3 +484,27 @@ export const refactorThisApi = {
       content,
     }),
 };
+
+// ---- Extract Component (Vue, React) ----
+
+export interface ExtractComponentInfo {
+  framework: "vue" | "react";
+  /** A suggested name. */
+  name: string;
+  /** The props the new component gets. */
+  props: string[];
+  /** Names the new component imports itself. */
+  imports: string[];
+  /** The new file's extension (`vue`, `tsx`, `jsx`). */
+  extension: string;
+  /** The extracted range (bytes, trimmed). */
+  start: number;
+  end: number;
+}
+
+export const extractComponentApi = {
+  prepare: (path: string, range: LspRange, content: string) =>
+    invoke<ExtractComponentInfo>("refactor_extract_component_prepare", { path, start: range.start, end: range.end, content }),
+  extract: (path: string, range: LspRange, content: string, name: string, directory: string) =>
+    invoke<RefactorAnswer>("refactor_extract_component", { path, start: range.start, end: range.end, content, name, directory }),
+};

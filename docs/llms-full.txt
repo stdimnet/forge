@@ -6577,6 +6577,7 @@ Refactorings and code generation. Windows/Linux shortcuts first, macOS second; b
 | [Safe Delete…](#safe-delete) | `Alt+Delete` | `Cmd+Delete` |
 | [Extract Interface…](#extract-interface) | — | — |
 | [Extract Superclass…](#extract-superclass) | — | — |
+| [Extract Component…](#extract-component) | — | — |
 | [Pull Members Up…](#pull-members-up) | — | — |
 | [Push Members Down…](#push-members-down) | — | — |
 | [Make Static…](#make-static) | — | — |
@@ -6606,8 +6607,9 @@ A popup with only the refactorings that apply at the caret or to the selection, 
 shortcuts: on a PHP class Rename, Move, Copy, Safe Delete, Extract Interface / Superclass and Pull
 Members Up / Push Members Down; on a method Rename, Change Signature, Move, Safe Delete, Inline,
 Pull Up / Push Down and Make Static; on an expression or a selection Introduce Variable /
-Constant / Field / Parameter and Extract Method. In JavaScript and TypeScript files it adds the
-language server's refactorings. Pick one with its number (`1`-`9`, `0`), the arrow keys and
+Constant / Field / Parameter and Extract Method. In JavaScript, TypeScript and Vue files it
+offers Rename, Extract Component (for whole elements), Move and Copy, and the language server's
+refactorings worded like PHPStorm (see [WebForge](docs/guide/user/webforge.md#language-server-refactorings)). Pick one with its number (`1`-`9`, `0`), the arrow keys and
 `Enter`, or a click; typing filters the list (speed search), `Escape` clears the filter.
 
 ![Refactor This on a class](docs/screenshots/refactor-this-class.png)
@@ -6754,6 +6756,18 @@ the superclass.
 **Menu:** Refactor | Extract/Introduce | Superclass…
 
 ![Extract Superclass](docs/screenshots/extract-superclass-dialog.png)
+
+## Extract Component
+
+**Shortcut:** none by default · action id `WebForge.ExtractComponent`
+
+Moves the selected Vue template elements or React JSX into a new component file with props for
+the names they use; the parent renders and imports it. See
+[WebForge](docs/guide/user/webforge.md#extract-component).
+
+**Menu:** Refactor | Extract/Introduce | Component…
+
+![Extract Component](docs/screenshots/extract-component-vue-dialog.png)
 
 ## Pull Members Up
 
@@ -9092,6 +9106,49 @@ Single-file components with `<script setup>` or the Options API:
 ![Angular template navigation](docs/screenshots/webforge-angular-template.png)
 
 When several targets match, a **Choose Declaration** popup lists them.
+
+## Refactoring
+
+### Extract Component
+
+Select whole elements of a Vue `<template>` or JSX elements in a React component and choose
+Refactor | Extract/Introduce | **Component…** (also in Refactor This, `Ctrl+Alt+Shift+T`, and
+`Alt+Enter`). The dialog asks for the component name (PascalCase) and the directory and shows
+the props the new component gets: every name the markup takes from its parent (`{{ total }}`,
+`:user="user"`, `@click="save"`, `{items.map(...)}`, `onClick={() => remove(item)}`). Names
+bound inside the selection (`v-for` aliases, slot props, arrow function parameters) are not
+props, and components and helpers the parent imports are imported by the new component
+(relative imports are rewritten for its folder).
+
+- **Vue**: a new `.vue` file with the markup in its `<template>` and `defineProps([...])` in a
+  `<script setup>` (the `lang` of the parent's script), or `props` / `components` for the
+  Options API. The parent renders `<NewComponent :total="total" />` and imports it (Options API:
+  also registers it in `components`).
+- **React**: a new `.jsx` / `.tsx` file with `export default function NewComponent({ ... })`
+  returning the markup (several elements are wrapped in `<>…</>`, TypeScript gets a props
+  interface). The parent renders `<NewComponent total={total} />` and imports it in its own
+  import style.
+
+The new file and the parent's changes are one undo step; **Preview** shows them first. The
+analysis is Forge's own (Rust), so it needs no language server and works in remote projects.
+
+![Extract Component (Vue)](docs/screenshots/extract-component-vue-dialog.png)
+
+![The extracted React component](docs/screenshots/extract-component-react-result.png)
+
+### Language server refactorings
+
+In JavaScript and TypeScript files Refactor This adds the refactorings of the TypeScript
+language server for the caret or selection, worded like PHPStorm where it has its own name:
+**Extract Method** (function in module scope, method in class), **Introduce Constant**,
+**Extract Type Alias** / **Extract Interface**, **Inline Variable**, **Move to New File**,
+**Convert to function declaration** / **expression**, and the conversions the server offers as
+they are (convert to arrow function, async function, template string, destructured parameters
+or object, named / namespace imports, optional chain). `Alt+Enter` shows them with the same
+wording. Introduce Variable, Extract Method and Inline (`Ctrl+Alt+V`, `Ctrl+Alt+M`,
+`Ctrl+Alt+N`) use the server's refactorings directly.
+
+![Refactor This on JSX](docs/screenshots/refactor-this-react.png)
 
 ## Settings | Languages & Frameworks | TypeScript
 
@@ -12068,7 +12125,7 @@ Source: docs/guide/reference/main-menu/refactor.md
 
 # Refactor menu
 
-Refactorings. Every entry works: Refactor This, Rename, Rename File, Change Signature, Extract/Introduce Variable, Constant, Field, Parameter, Method, Interface and Superclass, Inline, Move, Copy, Safe Delete, Pull Members Up, Push Members Down and Make Static. Open it with ☰ (`Alt+\`) or from the menu bar, see [Main menu](docs/guide/user/workbench.md#main-menu).
+Refactorings. Every entry works: Refactor This, Rename, Rename File, Change Signature, Extract/Introduce Variable, Constant, Field, Parameter, Method, Interface, Superclass and Component (Vue, React), Inline, Move, Copy, Safe Delete, Pull Members Up, Push Members Down and Make Static. Open it with ☰ (`Alt+\`) or from the menu bar, see [Main menu](docs/guide/user/workbench.md#main-menu).
 
 ![Refactor menu](docs/screenshots/docs-menu-refactor.png)
 
@@ -12088,6 +12145,7 @@ Refactorings. Every entry works: Refactor This, Rename, Rename File, Change Sign
 | Extract/Introduce › Method… | `Ctrl+Alt+M` | `Cmd+Alt+M` | yes | Moves the selected code into a new method or function. [More](docs/guide/user/php.md#extract-introduce-and-inline) ([screenshot](docs/screenshots/extract-method-dialog.png)) |
 | Extract/Introduce › Interface… | — | — | yes | Extracts an interface with the chosen public methods and constants; the class implements it. [More](docs/guide/user/php.md#extract-interface-and-superclass-pull-members-up-and-push-members-down) ([screenshot](docs/screenshots/extract-interface-dialog.png)) |
 | Extract/Introduce › Superclass… | — | — | yes | Moves the chosen members into a new parent class (abstract declarations on request). [More](docs/guide/user/php.md#extract-interface-and-superclass-pull-members-up-and-push-members-down) ([screenshot](docs/screenshots/extract-superclass-dialog.png)) |
+| Extract/Introduce › Component… | — | — | yes | Moves the selected Vue template elements or JSX into a new component file with props, used and imported by the parent. [More](docs/guide/user/webforge.md#extract-component) ([screenshot](docs/screenshots/extract-component-vue-dialog.png)) |
 | Inline… | `Ctrl+Alt+N` | `Cmd+Alt+N` | yes | Inlines a variable, method, function or constant. [More](docs/guide/user/php.md#extract-introduce-and-inline) ([screenshot](docs/screenshots/inline-method-dialog.png)) |
 | Move… | `F6` | `F6` | yes | Moves a class to another namespace, static members to another class, a function to another file, or files and folders in the Project view. [More](docs/guide/user/php.md#move-copy-safe-delete-change-signature-and-make-static) ([screenshot](docs/screenshots/move-class-dialog.png)) |
 | Copy File… | `F5` | `F5` | yes | Copies a class under a new name, or files and folders in the Project view. [More](docs/guide/user/php.md#move-copy-safe-delete-change-signature-and-make-static) |

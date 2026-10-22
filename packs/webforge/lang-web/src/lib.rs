@@ -6,6 +6,7 @@
 //! WebAssembly (`crates/forge-wasm/src/web.rs`).
 
 pub mod component;
+pub mod extract;
 #[cfg(feature = "fs")]
 pub mod fs;
 pub mod imports;
@@ -15,6 +16,7 @@ pub mod markup;
 pub mod npm;
 pub mod package_json;
 pub mod pm;
+pub mod scope;
 pub mod source;
 pub mod text;
 

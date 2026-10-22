@@ -734,3 +734,15 @@
   padding: 4px 10px;
   color: var(--fg-muted);
 }
+/* Extract Component. */
+.extract-component-props {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.extract-component-prop {
+  padding: 1px 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-editor);
+}

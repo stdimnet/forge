@@ -7,9 +7,9 @@ use std::collections::{BTreeMap, HashMap};
 
 use forge_codeintel::{
     apply_workspace_edit, bulb_for, edit_conflicts, edit_from_locations, group_usages,
-    order_actions, plan_edit, preview_workspace_edit, suggest_file_rename, validate_identifier,
-    ContextAction, DocumentChange, GroupRequest, MemoryStore, Position, UsageLocation,
-    WorkspaceEdit,
+    order_actions, plan_edit, preview_workspace_edit, refactor_this_actions, suggest_file_rename,
+    validate_identifier, ContextAction, DocumentChange, GroupRequest, MemoryStore, Position,
+    UsageLocation, WorkspaceEdit,
 };
 use serde::Deserialize;
 use serde_json::json;
@@ -651,5 +651,15 @@ mod doc_tests {
         );
         assert!(src.contains("\"path\":\"tests/CheckoutTest.php\""), "{src}");
         assert!(codeintel_test_source(r#"{"fileName":"x.php"}"#).contains("error"));
+    }
+}
+
+/// Refactor This in JS/TS: the language server's refactorings worded like PHPStorm
+/// (`ContextAction[]` -> `ContextAction[]`).
+#[wasm_bindgen]
+pub fn codeintel_refactor_this_actions(request_json: &str) -> String {
+    match parse::<Vec<ContextAction>>(request_json) {
+        Ok(actions) => to_json(&refactor_this_actions(actions)),
+        Err(e) => to_json(&json!({ "error": e })),
     }
 }

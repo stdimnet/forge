@@ -65,7 +65,7 @@ are in [research/jetbrains-gap-analysis.md](research/jetbrains-gap-analysis.md).
 - [x] Extract Method/Variable/Constant, Introduce Field/Parameter, Inline
 - [x] Move, Copy, Safe Delete, Change Signature, Make Static
 - [x] Extract Interface/Superclass, Pull Members Up/Push Members Down, Refactor This popup
-- [ ] JS/TS refactorings (extract component, arrow/async conversions, destructuring)
+- [x] JS/TS refactorings (extract component, arrow/async conversions, destructuring)
 - [ ] Optimize Imports and auto-import settings (on the fly, on save, grouping)
 
 ### Version control

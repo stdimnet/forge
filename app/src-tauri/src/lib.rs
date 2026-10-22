@@ -230,6 +230,8 @@ pub fn run() {
             commands::refactor_hierarchy::refactor_extract_superclass,
             commands::refactor_hierarchy::refactor_pull_up,
             commands::refactor_hierarchy::refactor_push_down,
+            commands::extract_component::refactor_extract_component_prepare,
+            commands::extract_component::refactor_extract_component,
             commands::codeintel::code_plan_edit,
             commands::codeintel::code_apply_edit,
             commands::codeintel::code_revert_edit,

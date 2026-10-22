@@ -1043,6 +1043,17 @@ computes everything; `app/ui/src/features/codeintel` and `features/lsp/goto.ts` 
   `null` for files without an analysis of their own) and the language servers' refactorings;
   the popup numbers the rows and filters by typing. Browser mode:
   `mock/refactorHierarchyMock.ts`.
+- Extract Component and the JS/TS refactorings (`webforge_fw_vue::extract`,
+  `webforge_fw_react::extract`, shared pieces in `webforge_lang_web::{scope, extract}`,
+  `commands/extract_component.rs`, UI `features/codeintel/extractComponent.ts`):
+  `refactor_extract_component_prepare({ path, start, end, content })` answers the props and
+  imports of the selected elements, `refactor_extract_component({ ..., name, directory })` a
+  `RefactorAnswer` that creates the component and edits the parent. `WebForge.ExtractComponent`
+  is a keymap action (Refactor | Extract/Introduce | Component…, Refactor This, a link in
+  `Alt+Enter`). The language servers' code actions are worded like PHPStorm
+  (`forge_codeintel::phpstorm_title`, used for `Alt+Enter`) and filtered for Refactor This
+  (`refactor_this_actions`). Browser mode runs the same Rust code through
+  `web_extract_component*` and `codeintel_refactor_this_actions` (`mock/extractComponentMock.ts`).
 
 ## PHP debugger (`forge-debug`)
 

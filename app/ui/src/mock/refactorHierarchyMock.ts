@@ -24,6 +24,7 @@ import { offsetOf, positionOf } from "./codeintelMock";
 import { CANNOT, Plan, allClasses, dirOf, isPhp, lineRange, qualify, textOf, type Buffers, type Edit } from "./moveMock";
 import { parsePhp, type MockClass, type MockMember } from "./phpMockParser";
 import { mockFiles } from "./workspaceMock";
+import { isWebScript, webRefactorThis } from "./extractComponentMock";
 
 const idOf = (m: MockMember) => (m.kind === "method" ? `${m.name}()` : m.kind === "property" ? `$${m.name}` : m.name);
 
@@ -339,7 +340,7 @@ export function phpRefactorings(text: string, start: number, end: number): strin
   return ["RenameElement", "SafeDelete", ...pullUp, "MemberPushDown"];
 }
 
-registerMock("code_refactor_this", (args): RefactorThisAnswer => {
+registerMock("code_refactor_this", async (args): Promise<RefactorThisAnswer> => {
   const { path, line, character, endLine, endCharacter, content } = args as {
     path: string;
     line: number;
@@ -348,8 +349,10 @@ registerMock("code_refactor_this", (args): RefactorThisAnswer => {
     endCharacter: number;
     content?: string;
   };
-  if (!isPhp(path)) return { actions: null, lsp: [] };
   const text = content ?? mockFiles[path] ?? "";
+  if (isWebScript(path))
+    return webRefactorThis(path, text, { start: { line, character }, end: { line: endLine, character: endCharacter } });
+  if (!isPhp(path)) return { actions: null, lsp: [] };
   const a = offsetOf(text, { line, character });
   const b = offsetOf(text, { line: endLine, character: endCharacter });
   return { actions: phpRefactorings(text, Math.min(a, b), Math.max(a, b)), lsp: [] };

@@ -139,3 +139,59 @@ mod tests {
         assert!(web_components(r#"{"framework":"svelte"}"#).contains("error"));
     }
 }
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ExtractComponentRequest {
+    path: String,
+    content: String,
+    /// Bytes of `content`.
+    start: usize,
+    end: usize,
+    #[serde(default)]
+    name: Option<String>,
+    #[serde(default)]
+    new_path: Option<String>,
+}
+
+fn is_vue(path: &str) -> bool {
+    path.to_ascii_lowercase().ends_with(".vue")
+}
+
+/// Extract Component's analysis: `{ path, content, start, end }` -> `ExtractComponentInfo`.
+#[wasm_bindgen]
+pub fn web_extract_component_prepare(request_json: &str) -> String {
+    let r = match parse::<ExtractComponentRequest>(request_json) {
+        Ok(r) => r,
+        Err(e) => return e,
+    };
+    let found = if is_vue(&r.path) {
+        webforge_fw_vue::extract::prepare(&r.content, r.start, r.end)
+    } else {
+        webforge_fw_react::extract::prepare(&r.path, &r.content, r.start, r.end)
+    };
+    match found {
+        Ok(info) => to_json(&info),
+        Err(e) => to_json(&serde_json::json!({ "error": e })),
+    }
+}
+
+/// Extract Component: `{ path, content, start, end, name, newPath }` -> `ExtractedComponent`.
+#[wasm_bindgen]
+pub fn web_extract_component(request_json: &str) -> String {
+    let r = match parse::<ExtractComponentRequest>(request_json) {
+        Ok(r) => r,
+        Err(e) => return e,
+    };
+    let name = r.name.unwrap_or_default();
+    let new_path = r.new_path.unwrap_or_default();
+    let done = if is_vue(&r.path) {
+        webforge_fw_vue::extract::extract(&r.path, &r.content, r.start, r.end, &name, &new_path)
+    } else {
+        webforge_fw_react::extract::extract(&r.path, &r.content, r.start, r.end, &name, &new_path)
+    };
+    match done {
+        Ok(out) => to_json(&out),
+        Err(e) => to_json(&serde_json::json!({ "error": e })),
+    }
+}
