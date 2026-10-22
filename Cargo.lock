@@ -2505,6 +2505,7 @@ dependencies = [
  "luaforge-lang-lua",
  "phpforge-composer",
  "phpforge-dql",
+ "phpforge-interpreters",
  "serde",
  "serde_json",
  "wasm-bindgen",
