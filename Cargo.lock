@@ -4816,6 +4816,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "phpforge-interpreters"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "tempfile",
+]
+
+[[package]]
 name = "phpforge-lang-php"
 version = "0.1.0"
 dependencies = [
