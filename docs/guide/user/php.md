@@ -47,6 +47,8 @@ entry to jump to it.
   caret is selected as you move through the editor). Both are also settings
   (`structureView.autoscrollToSource`, `structureView.autoscrollFromSource`).
 
+![Structure view options](../../screenshots/structure-autoscroll.png)
+
 ![Structure tool window](../../screenshots/php-structure.png)
 
 ![Inherited members](../../screenshots/php-structure-inherited.png)

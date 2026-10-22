@@ -864,6 +864,15 @@ The Project tool window (`Alt+1`) shows the project folder as a tree.
   the parent, `Home`/`End` jump to the first/last row, `Enter` or `F4` opens.
 - Files and folders ignored by Git (`.gitignore`, `.git/info/exclude`, the global excludes
   file) are grayed out.
+- **Header buttons**: **Select Opened File** (the target icon) expands the tree to the
+  active editor's file and selects it, **Collapse All** folds every folder, and **Options**
+  (⋮) holds **Always Select Opened File** (the tree follows the active editor, PHPStorm's
+  "Autoscroll from Source", setting `projectView.autoscrollFromSource`) and **Open Files with
+  Single Click**.
+- **Select In…** (`Alt+F1`) shows the current file in the Project view and other places, see
+  [Select In](docs/guide/user/shortcuts/navigation.md#select-in).
+
+![Project view options](docs/screenshots/project-view-options.png)
 - **Scratches and Consoles** appear at the bottom of the tree, see
   [Scratches, consoles and HTTP client](docs/guide/user/scratches-and-http.md).
 
@@ -971,12 +980,21 @@ The **Switcher** (`Ctrl+Tab`, `Ctrl+Shift+Tab`) is the same popup for quick swit
 **Back** and **Forward** (`Ctrl+Alt+Left` / `Ctrl+Alt+Right`, macOS `Cmd+[` / `Cmd+]`) move
 through your navigation history.
 
+**Last Edit Location** (`Ctrl+Shift+Backspace`, macOS `Cmd+Shift+Backspace`) and **Next Edit
+Location** move through a separate history: the places where you changed text, across files.
+Edits a line or two apart count as one place, and places follow later edits (lines inserted
+above move them down), renames and deletions. The first jump skips the place the caret is
+already at, so after typing it goes to the edit before.
+
+![Recently Changed Locations after Last Edit Location](docs/screenshots/last-edit-location.png)
+
 ## Recent Locations
 
 **Recent Locations** (`Ctrl+Shift+E`, macOS `Cmd+Shift+E`, View | Recent Locations) lists the
 places you recently looked at or edited, newest first, each with its file and a few lines of
 code around the caret. Type to filter by file name or code. Press `Ctrl+Shift+E` again, or tick
-**Show changed only**, to see only places you edited. `Enter` or a click jumps there. The
+**Show changed only**, to see only places you edited (the same edit history as Last Edit
+Location). `Enter` or a click jumps there. The
 places follow edits (inserted lines above move them down) and file renames.
 
 ![Recent Locations](docs/screenshots/recent-locations.png)
@@ -4915,6 +4933,13 @@ Jumping to declarations, implementations, super methods, lines, problems, recent
 | [Go to Super Method](#go-to-super-method) | `Ctrl+U` | `Cmd+U` |
 | [Back](#back) | `Ctrl+Alt+Left` | `Cmd+[`, `Cmd+Alt+Left` |
 | [Forward](#forward) | `Ctrl+Alt+Right` | `Cmd+]`, `Cmd+Alt+Right` |
+| [Last Edit Location](#last-edit-location) | `Ctrl+Shift+Backspace` | `Cmd+Shift+Backspace` |
+| [Next Edit Location](#next-edit-location) | — | — |
+| [Select In](#select-in) | `Alt+F1` | `Alt+F1` |
+| [Next Method](#next-method) | `Alt+Down` | `Ctrl+Down` |
+| [Previous Method](#previous-method) | `Alt+Up` | `Ctrl+Up` |
+| [Next Change](#next-change) | `Ctrl+Alt+Shift+Down` | `Ctrl+Alt+Shift+Down` |
+| [Previous Change](#previous-change) | `Ctrl+Alt+Shift+Up` | `Ctrl+Alt+Shift+Up` |
 | [Go to Line/Column](#go-to-linecolumn) | `Ctrl+G` | `Cmd+L` |
 | [Move Caret to Matching Brace](#move-caret-to-matching-brace) | `Ctrl+Shift+M` | `Ctrl+M` |
 | [Next Highlighted Error](#next-highlighted-error) | `F2` | `F2` |
@@ -5010,6 +5035,93 @@ Goes forward in the navigation history.
 **Menu:** Navigate | Forward
 
 More: [Editor](docs/guide/user/editor.md#go-to-declaration)
+
+## Last Edit Location
+
+**Shortcut:** `Ctrl+Shift+Backspace` · macOS `Cmd+Shift+Backspace` · action id `JumpToLastChange`
+
+Goes back to the previous place where you changed text, across files. This edit history is separate from Back/Forward: edits a line or two apart count as one place, places follow later edits, renames and deletions, and the place the caret is already at is skipped. Recent Locations' **Show changed only** lists the same places.
+
+**Menu:** Navigate | Last Edit Location
+
+More: [Workbench](docs/guide/user/workbench.md#recent-files-and-switcher)
+
+## Next Edit Location
+
+**Shortcut:** none by default · action id `JumpToNextChange`
+
+Goes forward again through the edit history after Last Edit Location. A new edit starts over at the newest place.
+
+**Menu:** Navigate | Next Edit Location
+
+More: [Workbench](docs/guide/user/workbench.md#recent-files-and-switcher)
+
+## Select In
+
+**Shortcut:** `Alt+F1` · macOS `Alt+F1` · action id `SelectIn`
+
+Shows the current file somewhere else. Pick a target with its number, the arrow keys and `Enter`, or a click:
+
+| Target | What it does |
+| --- | --- |
+| Project View | Opens the Project tool window and selects the file. |
+| Commit | Selects the file in the Commit tool window (only when it has local changes). |
+| Structure | Opens the Structure tool window with the member at the caret selected. |
+| File Structure | Opens the File Structure popup (`Ctrl+F12`). |
+| Navigation Bar | Focuses the navigation bar (`Alt+Home`). |
+| Git Log | Opens the Git log filtered to the file's history (Git projects). |
+| Explorer / Finder / File Manager | Shows the file selected in the system file manager (local projects). |
+| Terminal | Opens a terminal tab in the file's folder. |
+
+From the Project view (with the focus in the tree) the targets apply to the selected file and Project View is left out.
+
+**Menu:** Navigate | Select In...
+
+![Select In](docs/screenshots/select-in.png)
+
+More: [Project view](docs/guide/user/workbench.md#project-view)
+
+## Next Method
+
+**Shortcut:** `Alt+Down` · macOS `Ctrl+Down` · action id `MethodDown`
+
+Moves the caret to the name of the next class, interface, trait, enum, function or method, or to the closing brace of a class. Works in every language with Sticky Lines: PHP, JavaScript/TypeScript (also in Vue and HTML scripts), CSS/SCSS/Less rules, Lua and other brace languages.
+
+**Menu:** Navigate | Next Method
+
+More: [Code structure](docs/guide/user/code-structure.md)
+
+## Previous Method
+
+**Shortcut:** `Alt+Up` · macOS `Ctrl+Up` · action id `MethodUp`
+
+Moves the caret to the previous class, function, method or CSS rule.
+
+**Menu:** Navigate | Previous Method
+
+More: [Code structure](docs/guide/user/code-structure.md)
+
+## Next Change
+
+**Shortcut:** `Ctrl+Alt+Shift+Down` · macOS `Ctrl+Alt+Shift+Down` · action id `VcsShowNextChangeMarker`
+
+Moves the caret to the next block that differs from Git `HEAD` (the gutter change markers), wrapping around at the end of the file, and shows its popup with the old text, **Rollback** and **Show Diff**, like a click on the marker.
+
+**Menu:** Navigate | Next Change
+
+![Next Change](docs/screenshots/next-change.png)
+
+More: [Git change markers](docs/guide/user/git.md#change-markers)
+
+## Previous Change
+
+**Shortcut:** `Ctrl+Alt+Shift+Up` · macOS `Ctrl+Alt+Shift+Up` · action id `VcsShowPrevChangeMarker`
+
+Moves the caret to the previous changed block and shows its popup.
+
+**Menu:** Navigate | Previous Change
+
+More: [Git change markers](docs/guide/user/git.md#change-markers)
 
 ## Go to Line/Column
 
@@ -6510,6 +6622,8 @@ Scheme…** (`` Ctrl+` ``) toggle between dark and light.
 | Window controls | `appearance.windowControls` | Match the system |
 | Show tool window bars | `appearance.showToolWindowBars` | on |
 | Open files with single click (Project view) | `projectView.openFilesWithSingleClick` | on |
+| Always select opened file (Project view) | `projectView.autoscrollFromSource` | off |
+| Autoscroll to source / from source (Structure view) | `structureView.autoscrollToSource`, `structureView.autoscrollFromSource` | on |
 
 Editor fonts are under Settings | Editor | Font: JetBrains Mono (default), Fira Code, Cascadia
 Code, Source Code Pro, Menlo, Consolas or the system monospace font, size (13.5), line height
@@ -6645,6 +6759,12 @@ entry to jump to it.
 - **Show Inherited** adds members of parent classes, traits and interfaces, grayed and with
   the declaring class.
 - **Sort Alphabetically** sorts within each kind.
+- **Options** (⋮): **Autoscroll to Source** (on: a single click jumps to the member; off: a
+  click selects and a double click jumps) and **Autoscroll from Source** (the member at the
+  caret is selected as you move through the editor). Both are also settings
+  (`structureView.autoscrollToSource`, `structureView.autoscrollFromSource`).
+
+![Structure view options](docs/screenshots/structure-autoscroll.png)
 
 ![Structure tool window](docs/screenshots/php-structure.png)
 
@@ -7663,6 +7783,11 @@ side.
 
 Lines that differ from `HEAD` are marked in the gutter: added, modified and deleted. Click a
 marker to see the old text and choose **Rollback** (`Ctrl+Alt+Z`) or **Show Diff** (`Ctrl+D`).
+**Next Change** / **Previous Change** (`Ctrl+Alt+Shift+Down` / `Ctrl+Alt+Shift+Up`, Navigate
+menu) move the caret to the next or previous changed block, wrapping around at the end of the
+file, and open the same popup.
+
+![Next Change popup](docs/screenshots/next-change.png)
 
 ### Blame
 
@@ -9274,9 +9399,9 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Line/Column… | `GotoLine` | `Ctrl+G` | `Cmd+L` | yes |
 | Back | `Back` | `Ctrl+Alt+Left` | `Cmd+[`, `Cmd+Alt+Left` | yes |
 | Forward | `Forward` | `Ctrl+Alt+Right` | `Cmd+]`, `Cmd+Alt+Right` | yes |
-| Last Edit Location | `JumpToLastChange` | `Ctrl+Shift+Backspace` | `Cmd+Shift+Backspace` | — |
-| Next Edit Location | `JumpToNextChange` |  |  | — |
-| Select In… | `SelectIn` | `Alt+F1` | `Alt+F1` | — |
+| Last Edit Location | `JumpToLastChange` | `Ctrl+Shift+Backspace` | `Cmd+Shift+Backspace` | yes |
+| Next Edit Location | `JumpToNextChange` |  |  | yes |
+| Select In… | `SelectIn` | `Alt+F1` | `Alt+F1` | yes |
 | Declaration or Usages | `GotoDeclaration` | `Ctrl+B` | `Cmd+B` | yes |
 | Implementation(s) | `GotoImplementation` | `Ctrl+Alt+B` | `Cmd+Alt+B` | yes |
 | Type Declaration | `GotoTypeDeclaration` | `Ctrl+Shift+B` | `Cmd+Shift+B` | yes |
@@ -9289,8 +9414,8 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Call Hierarchy | `CallHierarchy` | `Ctrl+Alt+H` | `Ctrl+Alt+H` | — |
 | Next Highlighted Error | `GotoNextError` | `F2` | `F2` | yes |
 | Previous Highlighted Error | `GotoPreviousError` | `Shift+F2` | `Shift+F2` | yes |
-| Next Method | `MethodDown` | `Alt+Down` | `Ctrl+Down` | — |
-| Previous Method | `MethodUp` | `Alt+Up` | `Ctrl+Up` | — |
+| Next Method | `MethodDown` | `Alt+Down` | `Ctrl+Down` | yes |
+| Previous Method | `MethodUp` | `Alt+Up` | `Ctrl+Up` | yes |
 | Next Occurrence | `NextOccurence` | `Ctrl+Alt+Down` | `Cmd+Alt+Down` | yes |
 | Previous Occurrence | `PreviousOccurence` | `Ctrl+Alt+Up` | `Cmd+Alt+Up` | yes |
 | Jump to Source | `EditSource` | `F4` | `F4`, `Cmd+Down` | — |
@@ -9301,8 +9426,8 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Move Caret to Code Block End with Selection | `EditorCodeBlockEndWithSelection` | `Ctrl+Shift+]` | `Cmd+Alt+Shift+]` | — |
 | Next Emmet Edit Point | `EmmetNextEditPoint` | `Alt+Shift+]` | `Ctrl+Alt+]` | yes |
 | Previous Emmet Edit Point | `EmmetPreviousEditPoint` | `Alt+Shift+[` | `Ctrl+Alt+[` | yes |
-| Next Change | `VcsShowNextChangeMarker` | `Ctrl+Alt+Shift+Down` | `Ctrl+Alt+Shift+Down` | — |
-| Previous Change | `VcsShowPrevChangeMarker` | `Ctrl+Alt+Shift+Up` | `Ctrl+Alt+Shift+Up` | — |
+| Next Change | `VcsShowNextChangeMarker` | `Ctrl+Alt+Shift+Down` | `Ctrl+Alt+Shift+Down` | yes |
+| Previous Change | `VcsShowPrevChangeMarker` | `Ctrl+Alt+Shift+Up` | `Ctrl+Alt+Shift+Up` | yes |
 
 ### Help
 
@@ -10020,8 +10145,8 @@ Back and forward, Search Everywhere, Go to Class/File/Symbol/Line, declarations 
 | --- | --- | --- | --- | --- |
 | Back | `Ctrl+Alt+Left` | `Cmd+[`, `Cmd+Alt+Left` | yes | Goes back to the previous caret location in your navigation history. [More](docs/guide/user/editor.md#go-to-declaration) |
 | Forward | `Ctrl+Alt+Right` | `Cmd+]`, `Cmd+Alt+Right` | yes | Goes forward in the navigation history. [More](docs/guide/user/editor.md#go-to-declaration) |
-| Last Edit Location | `Ctrl+Shift+Backspace` | `Cmd+Shift+Backspace` | not yet | Not available yet; the entry is disabled. |
-| Next Edit Location | — | — | not yet | Not available yet; the entry is disabled. |
+| Last Edit Location | `Ctrl+Shift+Backspace` | `Cmd+Shift+Backspace` | yes | Goes back to the previous place where you changed text, across files. [More](docs/guide/user/shortcuts/navigation.md#last-edit-location) |
+| Next Edit Location | — | — | yes | Goes forward again through the places where you changed text. [More](docs/guide/user/shortcuts/navigation.md#next-edit-location) |
 | **Bookmarks** | | | | submenu |
 | Bookmarks › Toggle Bookmark | `F11` | `F3` | yes | Adds or removes a bookmark on the caret line. [More](docs/guide/user/workbench.md#bookmarks) |
 | Bookmarks › Toggle Bookmark with Mnemonic | `Ctrl+F11` | `Alt+F3` | yes | Adds a bookmark with a digit or letter you pick in a popup, or changes or removes it. [More](docs/guide/user/workbench.md#bookmarks) ([screenshot](docs/screenshots/bookmark-mnemonic.png)) |
@@ -10035,7 +10160,7 @@ Back and forward, Search Everywhere, Go to Class/File/Symbol/Line, declarations 
 | Symbol… | `Ctrl+Alt+Shift+N` | `Cmd+Alt+O` | yes | Finds a function, method, property or constant by name. [More](docs/guide/user/search-everywhere.md) ([screenshot](docs/screenshots/docs-goto-symbol.png)) |
 | Action… | `Ctrl+Shift+A` | `Cmd+Shift+A` | yes | Finds any action by name and runs it (Find Action). [More](docs/guide/user/search-everywhere.md#find-action) ([screenshot](docs/screenshots/docs-find-action.png)) |
 | Line/Column… | `Ctrl+G` | `Cmd+L` | yes | Moves the caret to a line (and column) of the current file. [More](docs/guide/user/editor.md#editing-actions) ([screenshot](docs/screenshots/docs-goto-line.png)) |
-| Select In… | `Alt+F1` | `Alt+F1` | not yet | Not available yet; the entry is disabled. |
+| Select In… | `Alt+F1` | `Alt+F1` | yes | Shows the current file in the Project view, Commit, Structure, File Structure, Navigation Bar, Git Log, the system file manager or a terminal. [More](docs/guide/user/shortcuts/navigation.md#select-in) ([screenshot](docs/screenshots/select-in.png)) |
 | Navigation Bar | `Alt+Home` | `Cmd+Up` | yes | Focuses the navigation bar with the file's folder open (shows the bar as a popup when it is hidden). [More](docs/guide/user/navigation-bar-and-file-structure.md#navigation-bar) ([screenshot](docs/screenshots/navigation-bar-alt-home.png)) |
 | Declaration or Usages | `Ctrl+B` | `Cmd+B` | yes | Jumps to the declaration of the symbol at the caret; on a declaration it shows the usages; several targets open the Choose Declaration popup. [More](docs/guide/user/editor.md#go-to-declaration) ([screenshot](docs/screenshots/php-nav-stub.png)) |
 | Implementation(s) | `Ctrl+Alt+B` | `Cmd+Alt+B` | yes | Lists the implementations of the class, interface or method at the caret. [More](docs/guide/user/editor.md#implementation-type-declaration-super-method) ([screenshot](docs/screenshots/php-nav-gutter.png)) |
@@ -10051,10 +10176,10 @@ Back and forward, Search Everywhere, Go to Class/File/Symbol/Line, declarations 
 | Previous Highlighted Error | `Shift+F2` | `Shift+F2` | yes | Moves the caret to the previous problem in the file. [More](docs/guide/user/editor.md#problems) |
 | Next Occurrence | `Ctrl+Alt+Down` | `Cmd+Alt+Down` | yes | Opens the next result of the Find tool window's active tab. [More](docs/guide/user/workbench.md#find-tool-window) |
 | Previous Occurrence | `Ctrl+Alt+Up` | `Cmd+Alt+Up` | yes | Opens the previous result of the Find tool window's active tab. [More](docs/guide/user/workbench.md#find-tool-window) |
-| Next Method | `Alt+Down` | `Ctrl+Down` | not yet | Not available yet; the entry is disabled. |
-| Previous Method | `Alt+Up` | `Ctrl+Up` | not yet | Not available yet; the entry is disabled. |
-| Next Change | `Ctrl+Alt+Shift+Down` | `Ctrl+Alt+Shift+Down` | not yet | Not available yet; the entry is disabled. |
-| Previous Change | `Ctrl+Alt+Shift+Up` | `Ctrl+Alt+Shift+Up` | not yet | Not available yet; the entry is disabled. |
+| Next Method | `Alt+Down` | `Ctrl+Down` | yes | Moves the caret to the next class, function, method or CSS rule. [More](docs/guide/user/shortcuts/navigation.md#next-method) |
+| Previous Method | `Alt+Up` | `Ctrl+Up` | yes | Moves the caret to the previous class, function, method or CSS rule. [More](docs/guide/user/shortcuts/navigation.md#previous-method) |
+| Next Change | `Ctrl+Alt+Shift+Down` | `Ctrl+Alt+Shift+Down` | yes | Moves to the next changed block (Git gutter marker) and shows its popup with Rollback and Show Diff. [More](docs/guide/user/shortcuts/navigation.md#next-change) ([screenshot](docs/screenshots/next-change.png)) |
+| Previous Change | `Ctrl+Alt+Shift+Up` | `Ctrl+Alt+Shift+Up` | yes | Moves to the previous changed block and shows its popup. [More](docs/guide/user/shortcuts/navigation.md#previous-change) |
 
 
 ---
@@ -10411,6 +10536,9 @@ Page id `appearance`.
 | `appearance.navigationBar.location` | enum: `top`, `statusBar`, `hidden` | `top` | user | Navigation Bar | Navigation bar — Where the navigation bar (project, folders, file and members at the caret) is shown: Top: above the editor, with the path in the status bar too. In status bar: only in the status bar. Don't show: Jump to Navigation Bar (Alt+Home) shows it as a popup. View \| Appearance \| Navigation Bar. |
 | `appearance.navigationBar.showMembers` | bool | `true` | user | Navigation Bar | Show members in the navigation bar — Add the class and function at the caret after the file name. View \| Appearance \| Members in Navigation Bar. |
 | `projectView.openFilesWithSingleClick` | bool | `true` | user | Project View | Open files with single click — In the Project tool window a single click opens files and expands folders. Turn it off to select with a single click and open with a double click, like PHPStorm. |
+| `projectView.autoscrollFromSource` | bool | `false` | user | Project View | Always select opened file — The Project tool window selects the file of the active editor whenever you switch editors (PHPStorm's Autoscroll from Source). Also in the tool window's Options menu. |
+| `structureView.autoscrollToSource` | bool | `true` | user | Structure View | Autoscroll to source — A single click on a Structure tool window node moves the editor to it. Turn it off to select with a single click and navigate with a double click. |
+| `structureView.autoscrollFromSource` | bool | `true` | user | Structure View | Autoscroll from source — The Structure tool window selects the member at the caret as you move through the editor. |
 
 ### Appearance & Behavior | System Settings
 
@@ -13780,7 +13908,8 @@ and the browser-mode UI. Pure Rust, so it also runs as WebAssembly.
   Definition snippets, Context Info headers and Type Info from hovers and signatures.
 - `structure`: the scopes of a document (classes, functions, control blocks, CSS rules,
   HTML elements, Lua blocks) for Sticky Lines, breadcrumbs and the Structure view of web
-  files, the custom folding regions, and the Structure view grouped by regions.
+  files, the custom folding regions, the Structure view grouped by regions, and the stops of
+  Next/Previous Method (`Alt+Down` / `Alt+Up`).
 - `file_structure`: the File Structure popup's rows (Ctrl+F12): toggles, fuzzy speed search
   that keeps parents, the node at the caret.
 - `navbar`: the Navigation Bar's segments (project, folders, file, members at the caret).
@@ -13797,7 +13926,7 @@ and the browser-mode UI. Pure Rust, so it also runs as WebAssembly.
 | `navbar.rs` | `nav_bar_segments(NavBarRequest { project, path, scopes, showMembers })` → `NavSegment { kind: project / directory / file / member, label, path, scopeKind?, line?, column? }[]`; members are the class-like and function scopes around the caret. |
 | `related.rs` | `related(RelatedRequest { path, text }, files, read)` → `RelatedItem { kind, group, name, path, line, column }[]` grouped in a fixed order. Text scans, no parser: PHP class ↔ `*Test.php`, Laravel `view()` / `View::make` / `Route::view` / Inertia, `routes/*.php` lines naming a controller, model ↔ migrations (`_create_<table>_table`, `$table`), factory, policy, seeder; Symfony `render()` / `#[Template]` ↔ `templates/`; JS/TS/Vue/Svelte files ↔ `*.test.*`, `*.spec.*`, `__tests__/`, `tests/`, `*.stories.*`, style sheets. The caller lists the files and reads them lazily. |
 | `edit.rs` | `TextEdit`, `WorkspaceEdit` (`edit` / `create` / `rename` / `delete` changes), `apply_workspace_edit` over a `FileStore` (all or nothing), `revert_applied`, `preview_workspace_edit`, `word_range`, UTF-16 offset helpers. |
-| `structure.rs` | `editor_structure(text, language)` → `EditorStructure { scopes, regions }`: braces (PHP without inline HTML and heredocs, JS/TS with template literals, CSS, C-like), tags (HTML/XML/Vue/templates, `<script>` / `<style>` bodies as code) and Lua's block keywords outside strings and comments; each `Scope` has its kind, crumb name (`User`, `orders()`, `forEach callback`, `div#app.card`), header line and column, end and parent, and whether it sticks or is a crumb. `Region`s come from `// region` / `#region` / `<!-- region -->` / `/* region */` / `-- region` / `<editor-fold desc defaultstate>` comments. `group_by_regions` nests Structure view nodes (JSON with `line`) under their regions; `STRUCTURE_LANGUAGES` lists the languages with scopes. |
+| `structure.rs` | `editor_structure(text, language)` → `EditorStructure { scopes, regions }`: braces (PHP without inline HTML and heredocs, JS/TS with template literals, CSS, C-like), tags (HTML/XML/Vue/templates, `<script>` / `<style>` bodies as code) and Lua's block keywords outside strings and comments; each `Scope` has its kind, crumb name (`User`, `orders()`, `forEach callback`, `div#app.card`), header line and column, end and parent, and whether it sticks or is a crumb. `Region`s come from `// region` / `#region` / `<!-- region -->` / `/* region */` / `-- region` / `<editor-fold desc defaultstate>` comments. `group_by_regions` nests Structure view nodes (JSON with `line`) under their regions; `method_stops` / `method_target` give Next/Previous Method's stops (class-like, function, method and CSS rule names, closing braces of classes); `STRUCTURE_LANGUAGES` lists the languages with scopes. |
 | `rename.rs` | `edit_from_locations` (references → `WorkspaceEdit`, keeping `$` where the old text had it, dynamic usages skipped), `validate_identifier`, `is_class_file` / `suggest_file_rename` / `renamed_path` (PHPStorm renames `User.php` with `class User`), `edit_conflicts` (overlapping edits, renames onto existing files) and `plan_edit` (`EditPlan`: text edits of open editors, the backend's part, files to save first, tabs to reopen or close). |
 | `usages.rs` | `UsageKind` (PHPStorm's usage types and their group labels), `classify_usage` from the line around a reference, `group_usages` into a `UsageTree` by usage type and file (the declaration and duplicates removed). |
 
@@ -13811,7 +13940,7 @@ pub use file_structure::{file_structure_view, FileStructureRequest, FileStructur
 pub use navbar::{nav_bar_segments, NavBarRequest, NavSegment};
 pub use related::{related, RelatedItem, RelatedKind, RelatedRequest};
 pub use edit::{apply_text_edits, apply_workspace_edit, preview_workspace_edit, revert_applied, word_range, … };
-pub use structure::{editor_structure, group_by_regions, EditorStructure, Region, Scope, ScopeKind, STRUCTURE_LANGUAGES};
+pub use structure::{editor_structure, group_by_regions, method_stops, method_target, EditorStructure, MethodStop, Region, Scope, ScopeKind, STRUCTURE_LANGUAGES};
 pub use usages::{classify_usage, group_usages, GroupRequest, UsageKind, UsageLocation, UsageTree, … };
 ```
 
@@ -14293,7 +14422,7 @@ Source: docs/guide/developer/crates/forge-editing.md
 
 # forge-editing
 
-`crates/forge-editing` — Editor actions computed in Rust: postfix completion templates, Complete Current Statement and Cyclic Expand Word (pure, WebAssembly-friendly).
+`crates/forge-editing` — Editor actions computed in Rust: postfix completion templates, Complete Current Statement, Cyclic Expand Word and the edit history (pure, WebAssembly-friendly).
 
 ## Purpose
 
@@ -14316,6 +14445,11 @@ CodeMirror positions.
 - `hippie`: Cyclic Expand Word. The words that start with the prefix at the caret: above the
   caret first (nearest first), then below, then in the other open files; the backward action
   looks below first.
+- `clipboard`: the clipboard history behind Paste from History (`Ctrl+Shift+V`).
+- `navigation`: `EditHistory`, the places where text was changed behind Last/Next Edit
+  Location and Recent Locations' "Show changed only" (consecutive edits up to two lines
+  apart merge, places follow `LineEdit`s, renames and deletions, Back/Forward skip the caret's
+  place), and `change_target`, the hunk Next/Previous Change moves to (wrapping around).
 - `lang`: the language families (`php`, `js`, `lua`) and their Forge file type ids.
 
 ## Main public items
@@ -14326,6 +14460,8 @@ pub fn templates() -> Vec<TemplateInfo> { … }
 pub fn complete_postfix(request: &PostfixRequest) -> Option<PostfixCompletion> { … }
 pub fn complete_statement(request: &StatementRequest) -> Option<StatementEdit> { … }
 pub fn expand_word(request: &ExpandRequest) -> ExpandResult { … }
+pub struct EditHistory { … } // apply(EditOp) -> Option<EditPlace>, places()
+pub fn change_target(ranges: &[LineRange], line: usize, forward: bool) -> Option<usize> { … }
 ```
 
 ## Used by
@@ -14335,11 +14471,14 @@ pub fn expand_word(request: &ExpandRequest) -> ExpandResult { … }
 - UI: `app/ui/src/features/editing` (completion source, expand key, Settings | Editor |
   General | Postfix Completion, the `EditorCompleteStatement`, `HippieCompletion` and
   `HippieBackwardCompletion` actions)
-- Browser mode: built into `forge-wasm` (`editing_*`)
+- UI: `app/ui/src/features/editorNavigation` (Last/Next Edit Location) and `features/git`
+  (Next/Previous Change) call `edit_history` and `editor_change_target` synchronously through
+  WebAssembly in the desktop app too
+- Browser mode: built into `forge-wasm` (`editing_*`, `edit_history`, `editor_change_target`)
 
 ## Dependencies
 
-- Workspace crates: none
+- Workspace crates: `forge-bookmarks` (`LineEdit`, `map_line`)
 - External: `serde`, `serde_json`
 
 ## Tests
@@ -16254,6 +16393,9 @@ Window chrome for Forge's own (undecorated) windows.
   including GNOME's `button-layout` and KDE's `kwinrc` button order.
 - `geometry`: where a dialog window opens (centered on its parent, or where the user left
   it) and the remembered size and position of every dialog.
+- `reveal`: the commands that show a file in the system file manager (Explorer's `/select,`,
+  `open -R`, the freedesktop `FileManager1.ShowItems` D-Bus call with `xdg-open` as fallback)
+  and the file manager's name for Select In….
 
 The crate is pure (no file system, processes or windowing): the Tauri shell reads the
 environment and files and passes them in, and the browser-mode UI runs the same code as
@@ -16266,6 +16408,7 @@ WebAssembly.
 | `chrome.rs` | Title bar style and button layout for `appearance.windowControls`. |
 | `desktop.rs` | Operating system and desktop environment detection. |
 | `geometry.rs` | Where dialog windows open and the geometry Forge remembers for each dialog. |
+| `reveal.rs` | Commands that reveal a file in Explorer, Finder or the Linux file manager. |
 
 ## Main public items
 
@@ -16273,13 +16416,14 @@ WebAssembly.
 pub use chrome::{…};
 pub use desktop::{detect_desktop, Desktop, Os};
 pub use geometry::{place_dialog, DialogStates, Rect, Size};
+pub use reveal::{file_manager_name, reveal_commands, RevealCommand};
 pub fn dialog_label(id: &str) -> Option<String> { … }
 pub fn dialog_id(label: &str) -> Option<&str> { … }
 ```
 
 ## Used by
 
-- IPC: `window_chrome`, `dialog_window_open`, `dialog_window_close`, `dialog_window_message` (`app/src-tauri/src/commands/window.rs`)
+- IPC: `window_chrome`, `reveal_in_file_manager`, `dialog_window_open`, `dialog_window_close`, `dialog_window_message` (`app/src-tauri/src/commands/window.rs`)
 - UI: `app/ui/src/shell/window`
 - Browser mode: built into `forge-wasm`
 

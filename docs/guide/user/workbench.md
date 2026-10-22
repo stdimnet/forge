@@ -154,6 +154,8 @@ The Project tool window (`Alt+1`) shows the project folder as a tree.
   Single Click**.
 - **Select In…** (`Alt+F1`) shows the current file in the Project view and other places, see
   [Select In](shortcuts/navigation.md#select-in).
+
+![Project view options](../../screenshots/project-view-options.png)
 - **Scratches and Consoles** appear at the bottom of the tree, see
   [Scratches, consoles and HTTP client](scratches-and-http.md).
 
@@ -266,6 +268,8 @@ Location** move through a separate history: the places where you changed text, a
 Edits a line or two apart count as one place, and places follow later edits (lines inserted
 above move them down), renames and deletions. The first jump skips the place the caret is
 already at, so after typing it goes to the edit before.
+
+![Recently Changed Locations after Last Edit Location](../../screenshots/last-edit-location.png)
 
 ## Recent Locations
 
