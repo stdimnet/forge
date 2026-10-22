@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/*", "packs/phpforge/lang-php", "packs/phpforge/fw-laravel", "packs/phpforge/fw-symfony", "packs/phpforge/orm-doctrine", "packs/phpforge/dql", "packs/phpforge/composer", "packs/phpforge/interpreters", "packs/phpforge/cli-tools", "packs/webforge/lang-web", "packs/webforge/fw-react", "packs/webforge/fw-vue", "packs/webforge/fw-angular", "packs/luaforge/lang-lua", "app/src-tauri"]
+members = ["crates/*", "packs/phpforge/lang-php", "packs/phpforge/fw-laravel", "packs/phpforge/fw-symfony", "packs/phpforge/orm-doctrine", "packs/phpforge/dql", "packs/phpforge/composer", "packs/phpforge/interpreters", "packs/phpforge/cli-tools", "packs/phpforge/test-frameworks", "packs/webforge/lang-web", "packs/webforge/fw-react", "packs/webforge/fw-vue", "packs/webforge/fw-angular", "packs/luaforge/lang-lua", "app/src-tauri"]
 
 [workspace.package]
 version = "0.1.0"
@@ -61,6 +61,7 @@ forge-update = { path = "crates/forge-update" }
 phpforge-composer = { path = "packs/phpforge/composer" }
 phpforge-interpreters = { path = "packs/phpforge/interpreters" }
 phpforge-cli-tools = { path = "packs/phpforge/cli-tools" }
+phpforge-test-frameworks = { path = "packs/phpforge/test-frameworks" }
 luaforge-lang-lua = { path = "packs/luaforge/lang-lua" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
