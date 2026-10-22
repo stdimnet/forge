@@ -166,6 +166,7 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Error Description | `ShowErrorDescription` | `Ctrl+F1` | `Cmd+F1` | yes |
 | Recent Files | `RecentFiles` | `Ctrl+E` | `Cmd+E` | yes |
 | Recently Changed Files | `RecentChangedFiles` |  |  | yes |
+| Recent Changes | `RecentChanges` | `Alt+Shift+C` | `Alt+Shift+C` | yes |
 | Recent Locations | `RecentLocations` | `Ctrl+Shift+E` | `Cmd+Shift+E` | yes |
 | Switcher | `Switcher` | `Ctrl+Tab`, `Ctrl+Shift+Tab` | `Ctrl+Tab`, `Ctrl+Shift+Tab` | yes |
 | Toggle Rendered View | `ToggleRenderedDocPresentation` | `Ctrl+Alt+Q` | `Ctrl+Alt+Q` | yes |
@@ -412,7 +413,9 @@ default shortcut and can be bound in Settings | Keymap.
 
 | Action | Action id | Windows / Linux | macOS | In Forge |
 | --- | --- | --- | --- | --- |
-| Show Local History | `LocalHistory.ShowHistory` |  |  | — |
+| Show Local History | `LocalHistory.ShowHistory` |  |  | yes |
+| Show History for Selection | `LocalHistory.ShowSelectionHistory` |  |  | yes |
+| Put Label… | `LocalHistory.PutLabel` |  |  | yes |
 
 ### Window
 

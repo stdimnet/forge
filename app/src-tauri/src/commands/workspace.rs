@@ -11,8 +11,10 @@ use forge_core::search::{FileMatches, FindPaged, FindRequest, FindResult};
 
 use forge_core::{FileEntry, FileMatch, ForgeError, FsChanges, Result, Workspace};
 
+use crate::commands::local_history::{self, LocalHistoryState};
 use crate::recent::{RecentProject, RecentRemote};
 use crate::state::AppState;
+use forge_localhistory::Content;
 
 /// Emitted with [`FsChanges`] when files change outside the editor.
 pub const FS_CHANGED_EVENT: &str = "fs://changed";
@@ -33,6 +35,7 @@ pub fn start_watching(app: &AppHandle) {
     tauri::async_runtime::spawn_blocking(move || {
         let handle = app.clone();
         let watcher = backend.watch(Arc::new(move |changes: FsChanges| {
+            crate::commands::local_history::fs_changed(&handle, &changes);
             if let Err(e) = handle.emit(FS_CHANGED_EVENT, &changes) {
                 tracing::warn!("cannot emit {FS_CHANGED_EVENT}: {e}");
             }
@@ -96,6 +99,7 @@ pub fn project_opened(app: &AppHandle) {
     crate::commands::project::emit_detection(app);
     // The project's import style is the refactorings' default.
     crate::commands::imports::import_style(&state);
+    crate::commands::local_history::project_opened(app);
     start_watching(app);
     let display = info.display_root();
     match &info.remote {
@@ -211,45 +215,83 @@ pub async fn fs_read_file(path: String, state: State<'_, AppState>) -> Result<St
 }
 
 #[tauri::command]
-pub async fn fs_write_file(
+pub async fn fs_write_file(path: String, contents: String, app: AppHandle) -> Result<()> {
+    let backend = app.state::<AppState>().backend()?;
+    blocking(move || {
+        let state = app.state::<AppState>();
+        let before = local_history::before_write(&state, &*backend, &path);
+        backend.write_file(&path, &contents)?;
+        local_history::saved(&app.state(), &path, before, contents.into_bytes());
+        Ok(())
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn fs_create_file(
     path: String,
-    contents: String,
     state: State<'_, AppState>,
+    lh: State<'_, LocalHistoryState>,
 ) -> Result<()> {
     let backend = state.backend()?;
-    blocking(move || backend.write_file(&path, &contents)).await
+    blocking(move || backend.create_file(&path).map(|_| path))
+        .await
+        .map(|path| local_history::created(&lh, &path, Content::Bytes(Vec::new())))
 }
 
 #[tauri::command]
-pub async fn fs_create_file(path: String, state: State<'_, AppState>) -> Result<()> {
+pub async fn fs_create_dir(
+    path: String,
+    state: State<'_, AppState>,
+    lh: State<'_, LocalHistoryState>,
+) -> Result<()> {
     let backend = state.backend()?;
-    blocking(move || backend.create_file(&path)).await
+    blocking(move || backend.create_dir(&path).map(|_| path))
+        .await
+        .map(|path| local_history::created(&lh, &path, Content::Dir))
 }
 
 #[tauri::command]
-pub async fn fs_create_dir(path: String, state: State<'_, AppState>) -> Result<()> {
+pub async fn fs_rename(
+    from: String,
+    to: String,
+    state: State<'_, AppState>,
+    lh: State<'_, LocalHistoryState>,
+) -> Result<()> {
     let backend = state.backend()?;
-    blocking(move || backend.create_dir(&path)).await
+    let (f, t) = (from.clone(), to.clone());
+    blocking(move || backend.rename(&f, &t)).await?;
+    local_history::moved(&lh, &from, &to);
+    Ok(())
 }
 
+/// Delete a file or a folder with its content (the UI asks for confirmation first). Its
+/// content goes into Local History first.
 #[tauri::command]
-pub async fn fs_rename(from: String, to: String, state: State<'_, AppState>) -> Result<()> {
-    let backend = state.backend()?;
-    blocking(move || backend.rename(&from, &to)).await
-}
-
-/// Delete a file or a folder with its content (the UI asks for confirmation first).
-#[tauri::command]
-pub async fn fs_delete(path: String, state: State<'_, AppState>) -> Result<()> {
-    let backend = state.backend()?;
-    blocking(move || backend.delete(&path)).await
+pub async fn fs_delete(path: String, app: AppHandle) -> Result<()> {
+    let backend = app.state::<AppState>().backend()?;
+    blocking(move || {
+        let contents = local_history::before_delete(&app.state(), &*backend, &path);
+        backend.delete(&path)?;
+        local_history::deleted(&app.state(), &path, contents);
+        Ok(())
+    })
+    .await
 }
 
 /// Copy a file or a folder with its content (Project view Copy, F5); never replaces.
 #[tauri::command]
-pub async fn fs_copy(from: String, to: String, state: State<'_, AppState>) -> Result<()> {
+pub async fn fs_copy(
+    from: String,
+    to: String,
+    state: State<'_, AppState>,
+    lh: State<'_, LocalHistoryState>,
+) -> Result<()> {
     let backend = state.backend()?;
-    blocking(move || crate::commands::refactor_move::copy_path(&backend, &from, &to)).await
+    let (f, t) = (from.clone(), to.clone());
+    blocking(move || crate::commands::refactor_move::copy_path(&backend, &f, &t)).await?;
+    local_history::copied(&lh, &from, &to);
+    Ok(())
 }
 
 /// "Go to File" backend: fuzzy file-name search over the project, honoring `.gitignore`.
@@ -341,11 +383,13 @@ pub async fn replace_in_files(
     request: FindRequest,
     with: String,
     state: State<'_, AppState>,
+    lh: State<'_, LocalHistoryState>,
 ) -> Result<forge_backend::replace::ReplaceDone> {
     let backend = state.backend()?;
     let done =
         blocking(move || forge_backend::replace::replace_all(&*backend, &request, &with)).await?;
     *state.last_replace.lock().expect("last replace lock") = done.undo.clone();
+    local_history::replaced(&lh, "Replace in Files", &done.undo);
     Ok(done)
 }
 

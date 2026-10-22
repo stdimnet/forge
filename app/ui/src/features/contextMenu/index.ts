@@ -95,6 +95,12 @@ registerContextMenu("editor", [
     action("Vcs.ShowTabbedFileHistory"),
     action("Vcs.ShowHistoryForBlock"),
   ]),
+  submenu("Local History", [
+    action("LocalHistory.ShowHistory", "Show History"),
+    action("LocalHistory.ShowSelectionHistory", "Show History for Selection"),
+    separator,
+    action("LocalHistory.PutLabel", "Put Label…"),
+  ]),
   action("CompareClipboardWithSelection"),
 ]);
 
