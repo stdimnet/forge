@@ -11,7 +11,17 @@
  * edit, so Ctrl+Z restores the old name in one go.
  */
 import { createSignal } from "solid-js";
-import { EditorSelection, EditorState, Prec, StateEffect, StateField, Transaction, type Extension } from "@codemirror/state";
+import {
+  EditorSelection,
+  EditorState,
+  Prec,
+  StateEffect,
+  StateField,
+  Transaction,
+  type ChangeSet,
+  type Extension,
+  type Text,
+} from "@codemirror/state";
 import { Decoration, EditorView, keymap, showTooltip, ViewPlugin, type DecorationSet, type Tooltip } from "@codemirror/view";
 import { closeCompletion, completionStatus } from "@codemirror/autocomplete";
 import { lspApi } from "@/ipc/lsp";
@@ -42,6 +52,24 @@ export interface RenameSession {
   answer: PrepareRenameAnswer;
   /** PHPStorm's "Rename file" option for class files. */
   renameFile: boolean;
+  /**
+   * Introduce Variable: the refactoring is shown with the new name, edited in place; the
+   * real (undoable) edit is made with the final name when the editing ends.
+   */
+  local?: LocalSession;
+}
+
+export interface LocalSession {
+  /** The document before the preview. */
+  before: Text;
+  /** Every change since `before` (the preview and the typed name). */
+  applied: ChangeSet;
+  /** Name suggestions (Up / Down or a click picks one). */
+  suggestions: string[];
+  /** Hint under the name. */
+  hint: string;
+  /** Make the real edit with `name`; `revert` puts `before` back right before it applies. */
+  finish: (name: string, revert: () => void) => Promise<boolean>;
 }
 
 const startRenameEffect = StateEffect.define<RenameSession>();
@@ -52,6 +80,7 @@ function mapSession(s: RenameSession, tr: Transaction): RenameSession {
   return {
     ...s,
     ranges: s.ranges.map((r) => ({ from: tr.changes.mapPos(r.from, -1), to: tr.changes.mapPos(r.to, 1) })),
+    local: s.local && { ...s.local, applied: s.local.applied.compose(tr.changes) },
   };
 }
 
@@ -84,7 +113,57 @@ const occurrenceMark = Decoration.mark({ class: "cm-rename-occurrence" });
 
 const fileName = (p: string) => p.split("/").pop() ?? p;
 
+/** Replace the name being edited (a picked suggestion); the mirror updates the others. */
+function setName(view: EditorView, name: string): void {
+  const s = renameSessionOf(view);
+  if (!s) return;
+  const p = s.ranges[s.primary];
+  view.dispatch({ changes: { from: p.from, to: p.to, insert: name }, selection: { anchor: p.from + name.length }, userEvent: "input.complete" });
+}
+
+/** Up / Down: the next or previous suggested name. */
+function cycleName(view: EditorView, delta: number): boolean {
+  const s = renameSessionOf(view);
+  const list = s?.local?.suggestions ?? [];
+  if (!s || list.length < 2) return false;
+  const p = s.ranges[s.primary];
+  const cur = list.indexOf(view.state.sliceDoc(p.from, p.to));
+  setName(view, list[(cur + delta + list.length) % list.length]);
+  return true;
+}
+
+function localTooltip(s: RenameSession, local: LocalSession): Tooltip {
+  const primary = s.ranges[s.primary];
+  return {
+    pos: primary.from,
+    above: false,
+    create: (view) => {
+      const dom = h("div", "cm-rename-hint cm-introduce-hint");
+      dom.addEventListener("mousedown", (e) => e.preventDefault());
+      const list = h("div", "cm-introduce-names");
+      const rows = local.suggestions.map((name) => {
+        const row = h("div", "cm-introduce-name", `$${name}`);
+        row.addEventListener("click", () => setName(view, name));
+        list.append(row);
+        return { name, row };
+      });
+      const current = () => {
+        const cur = view.state.field(renameField, false);
+        if (!cur) return "";
+        const p = cur.ranges[cur.primary];
+        return view.state.sliceDoc(p.from, p.to);
+      };
+      const mark = () => rows.forEach((r) => r.row.classList.toggle("selected", r.name === current()));
+      mark();
+      if (rows.length > 1) dom.append(list);
+      dom.append(h("div", "cm-rename-hint-text", local.hint));
+      return { dom, update: mark };
+    },
+  };
+}
+
 function renameTooltip(s: RenameSession): Tooltip {
+  if (s.local) return localTooltip(s, s.local);
   const primary = s.ranges[s.primary];
   return {
     pos: primary.from,
@@ -170,6 +249,8 @@ const renameKeys = Prec.highest(
     { key: "Enter", run: (v) => (v.state.field(renameField, false) ? (closeCompletion(v), void commitRename(v), true) : false) },
     { key: "Tab", run: (v) => (v.state.field(renameField, false) ? (void commitRename(v), true) : false) },
     { key: "Escape", run: (v) => (v.state.field(renameField, false) ? (cancelRename(v), true) : false) },
+    { key: "ArrowDown", run: (v) => cycleName(v, 1) },
+    { key: "ArrowUp", run: (v) => cycleName(v, -1) },
   ]),
 );
 
@@ -195,17 +276,23 @@ function revertSpec(view: EditorView, s: RenameSession) {
     .filter((c) => view.state.sliceDoc(c.from, c.to) !== c.insert);
 }
 
-/** Escape: put the old name back. */
+/** Escape: put the old name back (Introduce Variable keeps the variable with the name). */
 export function cancelRename(view: EditorView): void {
   const s = renameSessionOf(view);
   if (!s) return;
+  if (s.local) {
+    void commitRename(view);
+    return;
+  }
   view.dispatch({ changes: revertSpec(view, s), effects: endRenameEffect.of(null), annotations: internal });
 }
 
 /** Start the in-place rename at the caret (Shift+F6), or open the dialog when it runs. */
 export async function startRename(path: string, view: EditorView): Promise<void> {
-  if (renameSessionOf(view)) {
-    openRenameDialog(view);
+  const running = renameSessionOf(view);
+  if (running) {
+    if (running.local) void commitRename(view);
+    else openRenameDialog(view);
     return;
   }
   const pos = view.state.selection.main.head;
@@ -344,6 +431,10 @@ let committing = false;
 export async function commitRename(view: EditorView, opts: { name?: string; preview?: boolean } = {}): Promise<void> {
   const s = renameSessionOf(view);
   if (!s || committing) return;
+  if (s.local) {
+    await commitLocal(view, s.local);
+    return;
+  }
   const p = s.ranges[s.primary];
   const typed = (opts.name ?? view.state.sliceDoc(p.from, p.to)).replace(/^\$/, "");
   if (typed === s.original && !opts.preview) {
@@ -396,6 +487,60 @@ export async function commitRename(view: EditorView, opts: { name?: string; prev
     if (!premiumHint(answer) && answer.skipped > 0) {
       showBalloon(`${answer.skipped} dynamic usage${answer.skipped === 1 ? " was" : "s were"} not renamed`, "Find them with Find Usages (Alt+F7).");
     }
+    if (view.dom.isConnected) view.focus();
+  } finally {
+    committing = false;
+  }
+}
+
+/**
+ * Start editing a new name in place over a preview of a refactoring (Introduce Variable):
+ * `changes` turn the current document into the preview, `ranges` are the name's occurrences
+ * in the preview.
+ */
+export function startLocalSession(
+  path: string,
+  view: EditorView,
+  changes: ChangeSet,
+  ranges: Span[],
+  local: Omit<LocalSession, "before" | "applied">,
+): void {
+  const before = view.state.doc;
+  view.dispatch({ changes, annotations: internal });
+  const sorted = [...ranges].sort((a, b) => a.from - b.from);
+  const head = view.state.selection.main.head;
+  const near = sorted.reduce((best, r, i) => (Math.abs(r.from - head) < Math.abs(sorted[best].from - head) ? i : best), 0);
+  const primarySpan = sorted[near];
+  const session: RenameSession = {
+    path,
+    ranges: sorted,
+    primary: near,
+    original: view.state.sliceDoc(primarySpan.from, primarySpan.to),
+    answer: { invalid: false, source: "index", occurrences: [], sigil: false },
+    renameFile: false,
+    local: { ...local, before, applied: changes },
+  };
+  view.dispatch({
+    effects: [startRenameEffect.of(session), EditorView.scrollIntoView(primarySpan.from, { y: "nearest" })],
+    selection: EditorSelection.range(primarySpan.from, primarySpan.to),
+  });
+  view.focus();
+}
+
+/** Finish an in-place Introduce Variable with the typed name. */
+async function commitLocal(view: EditorView, local: LocalSession): Promise<void> {
+  const name = currentName(view).replace(/^\$/, "");
+  const revert = () => {
+    const cur = renameSessionOf(view);
+    if (!cur?.local) return;
+    view.dispatch({ changes: cur.local.applied.invert(cur.local.before), effects: endRenameEffect.of(null), annotations: internal });
+  };
+  committing = true;
+  try {
+    // Not applied (an invalid name): the edit box stays, like PHPStorm.
+    if (!(await local.finish(name, revert))) return;
+    // The edit failed before it reverted the preview: put the document back.
+    revert();
     if (view.dom.isConnected) view.focus();
   } finally {
     committing = false;

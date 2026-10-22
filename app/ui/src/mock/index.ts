@@ -24,6 +24,7 @@ import "./workbenchMock";
 import "./gitMock";
 import "./phpMock";
 import "./codeintelMock";
+import "./refactorMock";
 import "./hierarchyMock";
 import "./documentationMock";
 import "./relatedMock";
