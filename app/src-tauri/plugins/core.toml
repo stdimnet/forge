@@ -786,43 +786,9 @@ group = "editor.font"
 order = 3
 
 # ---- Editor > Code Style -------------------------------------------------------------
-
-[[contributions.settings]]
-key = "editor.codeStyle.lineSeparator"
-title = "Line separator"
-description = "For new files. Existing files keep theirs; change it in the status bar."
-type = "enum"
-options = [
-  { value = "lf", label = "Unix and macOS (\\n)" },
-  { value = "crlf", label = "Windows (\\r\\n)" },
-  { value = "system", label = "System-dependent" },
-]
-default = "lf"
-group = "editor.code-style"
-project = true
-order = 0
-
-[[contributions.settings]]
-key = "editor.codeStyle.hardWrapAt"
-title = "Hard wrap at (columns)"
-description = "The right margin, drawn as a line in the editor. EditorConfig's max_line_length overrides it."
-type = "int"
-min = 40
-max = 400
-default = 120
-group = "editor.code-style"
-project = true
-order = 1
-
-[[contributions.settings]]
-key = "editor.codeStyle.visualGuides"
-title = "Visual guides"
-description = "Comma-separated column numbers, e.g. 80, 120."
-type = "string"
-default = "120"
-group = "editor.code-style"
-project = true
-order = 2
+# The scheme options (line separator, hard wrap, visual guides, formatter markers and every
+# language page) come from the code style model (`forge-codestyle`); these two are plain
+# settings shown on the General page.
 
 [[contributions.settings]]
 key = "editor.codeStyle.useEditorConfig"

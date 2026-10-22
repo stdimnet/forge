@@ -1815,6 +1815,7 @@ dependencies = [
  "forge-ai",
  "forge-backend",
  "forge-bookmarks",
+ "forge-codestyle",
  "forge-colors",
  "forge-containers",
  "forge-core",

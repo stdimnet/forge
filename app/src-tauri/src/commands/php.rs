@@ -120,8 +120,9 @@ pub async fn php_generate(
     .await
 }
 
+/// The PHP options of the selected code style scheme.
 pub(crate) fn php_code_style(state: &AppState) -> PhpCodeStyle {
-    let settings = state.read_settings();
+    let settings = crate::commands::code_style::code_style_settings(state);
     PhpCodeStyle::from_settings(|k| settings.get(k).cloned())
 }
 
@@ -270,7 +271,8 @@ pub fn intelephense_licence_key() -> Option<String> {
 
 /// The PHP language server settings from Forge's settings store.
 fn lsp_settings(state: &AppState) -> PhpLspSettings {
-    let settings = state.read_settings();
+    // Code style keys (brace placement) come from the selected scheme.
+    let settings = crate::commands::code_style::code_style_settings(state);
     let mut s = PhpLspSettings::from_settings(|k| settings.get(k).cloned());
     s.licence_key = intelephense_licence_key();
     s

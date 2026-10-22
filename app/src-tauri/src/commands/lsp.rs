@@ -341,18 +341,37 @@ pub async fn lsp_signature_help(
         .await
 }
 
+/// Reformat Code through the file's server. `language_id` (the file type) selects the code
+/// style options the server gets in its settings (`typescript.format`, `Lua.format`, …).
+#[allow(clippy::too_many_arguments)]
 #[tauri::command]
 pub async fn lsp_format(
     path: String,
     tab_size: Option<u32>,
     insert_spaces: Option<bool>,
+    language_id: Option<String>,
     app: AppHandle,
     lsp: State<'_, LspState>,
     ws: State<'_, AppState>,
 ) -> Result<Vec<TextEdit>> {
+    let patch = language_id
+        .as_deref()
+        .and_then(|id| forge_codestyle::model().language_for_file_type(id))
+        .map(|l| {
+            forge_codestyle::lsp::settings_patch(
+                &l.id,
+                &crate::commands::code_style::code_style_values(&ws),
+            )
+        })
+        .filter(|p| !p.is_null());
     let c = Ctx::new(&path, &app, &lsp, &ws)?;
     c.manager
-        .format(&c.abs, tab_size.unwrap_or(4), insert_spaces.unwrap_or(true), None)
+        .format(
+            &c.abs,
+            tab_size.unwrap_or(4),
+            insert_spaces.unwrap_or(true),
+            patch.as_ref(),
+        )
         .await
 }
 
