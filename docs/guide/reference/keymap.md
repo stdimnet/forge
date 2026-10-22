@@ -316,16 +316,17 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 
 | Action | Action id | Windows / Linux | macOS | In Forge |
 | --- | --- | --- | --- | --- |
-| Refactor This… | `Refactorings.QuickListPopupAction` | `Ctrl+Alt+Shift+T` | `Ctrl+T` | — |
+| Refactor This… | `Refactorings.QuickListPopupAction` | `Ctrl+Alt+Shift+T` | `Ctrl+T` | yes |
 | Rename… | `RenameElement` | `Shift+F6` | `Shift+F6` | yes |
 | Rename File… | `RenameFile` |  |  | yes |
-| Change Signature… | `ChangeSignature` | `Ctrl+F6` | `Cmd+F6` | — |
-| Move… | `Move` | `F6` | `F6` | — |
-| Copy File… | `CopyElement` | `F5` | `F5` | — |
-| Safe Delete… | `SafeDelete` | `Alt+Delete` | `Cmd+Delete` | — |
-| Inline… | `Inline` | `Ctrl+Alt+N` | `Cmd+Alt+N` | — |
+| Change Signature… | `ChangeSignature` | `Ctrl+F6` | `Cmd+F6` | yes |
+| Move… | `Move` | `F6` | `F6` | yes |
+| Copy File… | `CopyElement` | `F5` | `F5` | yes |
+| Safe Delete… | `SafeDelete` | `Alt+Delete` | `Cmd+Delete` | yes |
+| Inline… | `Inline` | `Ctrl+Alt+N` | `Cmd+Alt+N` | yes |
 | Push Members Down… | `MemberPushDown` |  |  | — |
 | Pull Members Up… | `MembersPullUp` |  |  | — |
+| Make Static… | `MakeStatic` |  |  | yes |
 
 ### Refactor > Extract > Introduce
 

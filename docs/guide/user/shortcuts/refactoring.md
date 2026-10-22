@@ -9,11 +9,9 @@ tags: [shortcuts, keymap, refactoring]
 
 Refactorings and code generation. Windows/Linux shortcuts first, macOS second; both are PHPStorm's defaults and can be changed in Settings | Keymap.
 
-> **Note:** the other refactorings of PHPStorm's Refactor menu (Change Signature `Ctrl+F6`,
-> Move, Copy File, Safe Delete, Extract Interface / Superclass, Pull Members Up / Push Members
-> Down) are not implemented yet. Their shortcuts stay reserved and show "*Action* is not
-> available yet"; see the [Refactor menu](../../reference/main-menu/refactor.md). The actions
-> below are the refactorings and code transformations Forge has today.
+> **Note:** Extract Interface / Superclass and Pull Members Up / Push Members Down are not
+> implemented yet. Their entries stay disabled; see the
+> [Refactor menu](../../reference/main-menu/refactor.md).
 
 | Action | Windows / Linux | macOS |
 | --- | --- | --- |
@@ -25,6 +23,11 @@ Refactorings and code generation. Windows/Linux shortcuts first, macOS second; b
 | [Introduce Parameter…](#introduce-parameter) | `Ctrl+Alt+P` | `Cmd+Alt+P` |
 | [Extract Method…](#extract-method) | `Ctrl+Alt+M` | `Cmd+Alt+M` |
 | [Inline…](#inline) | `Ctrl+Alt+N` | `Cmd+Alt+N` |
+| [Change Signature…](#change-signature) | `Ctrl+F6` | `Cmd+F6` |
+| [Move…](#move) | `F6` | `F6` |
+| [Copy…](#copy) | `F5` | `F5` |
+| [Safe Delete…](#safe-delete) | `Alt+Delete` | `Cmd+Delete` |
+| [Make Static…](#make-static) | — | — |
 | [Show Context Actions](#show-context-actions) | `Alt+Enter` | `Alt+Enter` |
 | [Generate…](#generate) | `Alt+Insert` | `Cmd+N` |
 | [Reformat Code](#reformat-code) | `Ctrl+Alt+L` | `Cmd+Alt+L` |
@@ -47,8 +50,9 @@ More: [Editor](../../user/editor.md#rename), [PHP](../../user/php.md#rename)
 
 **Shortcut:** `Ctrl+Alt+Shift+T` · macOS `Ctrl+T` · action id `Refactorings.QuickListPopupAction`
 
-A popup with the refactorings Forge has (Rename, Introduce Variable / Constant / Field /
-Parameter, Extract Method, Inline) and their shortcuts. Pick one with the arrow keys and
+A popup with the refactorings Forge has (Rename, Change Signature, Move, Copy, Safe Delete,
+Make Static, Introduce Variable / Constant / Field / Parameter, Extract Method, Inline) and their
+shortcuts. Pick one with the arrow keys and
 `Enter`, a click or its number.
 
 **Menu:** Refactor | Refactor This…
@@ -119,6 +123,64 @@ its value: every reference (removing or keeping the declaration) or only the one
 **Menu:** Refactor | Inline…
 
 ![Inline Method](../../../screenshots/inline-method-dialog.png)
+
+## Change Signature
+
+**Shortcut:** `Ctrl+F6` · macOS `Cmd+F6` · action id `ChangeSignature`
+
+Changes the name, visibility, return type and parameters of a PHP method or function (add,
+remove, reorder; type, name, default value and the value new parameters get at call sites) and
+updates the overriding methods and every call.
+
+**Menu:** Refactor | Change Signature…
+
+![Change Signature](../../../screenshots/change-signature-dialog.png)
+
+More: [PHP](../../user/php.md#move-copy-safe-delete-change-signature-and-make-static)
+
+## Move
+
+**Shortcut:** `F6` · macOS `F6` · action id `Move`
+
+In the editor: moves the PHP class at the caret to another namespace and directory (Move
+Class), static members to another class (Move Members) or a function to another file. In the
+Project view: moves the selected files and folders (also by drag and drop), updating namespaces
+and references of PHP classes.
+
+**Menu:** Refactor | Move…
+
+![Move Class](../../../screenshots/move-class-dialog.png)
+
+## Copy
+
+**Shortcut:** `F5` · macOS `F5` · action id `CopyElement`
+
+Copies the PHP class at the caret under a new name (Copy Class), or the selected file or folder
+in the Project view.
+
+**Menu:** Refactor | Copy File…
+
+## Safe Delete
+
+**Shortcut:** `Alt+Delete` · macOS `Cmd+Delete` · action id `SafeDelete`
+
+Deletes the element at the caret (or the selected files in the Project view) after checking
+that nothing uses it; **Usages Detected** offers View Usages and Delete Anyway.
+
+**Menu:** Refactor | Safe Delete…
+
+![Usages Detected](../../../screenshots/safe-delete-usages-detected.png)
+
+## Make Static
+
+**Shortcut:** none by default · action id `MakeStatic`
+
+Makes a PHP instance method static, passing the object or the fields it reads as parameters,
+and updates its calls.
+
+**Menu:** Refactor | Make Static…
+
+![Make Method Static](../../../screenshots/make-static-dialog.png)
 
 ## Show Context Actions
 

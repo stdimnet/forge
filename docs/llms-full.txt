@@ -640,7 +640,7 @@ happening.
 
 - Get from VCS
 - Find Usages in File (`Ctrl+F7`), Highlight Usages in File
-- Refactorings other than Rename, Extract/Introduce and Inline: Move, Change Signature, Safe Delete
+- Extract Interface / Superclass, Pull Members Up / Push Members Down
 - File Structure popup (`Ctrl+F12`)
 - Local History
 - Optimize Imports
@@ -6553,11 +6553,9 @@ Source: docs/guide/user/shortcuts/refactoring.md
 
 Refactorings and code generation. Windows/Linux shortcuts first, macOS second; both are PHPStorm's defaults and can be changed in Settings | Keymap.
 
-> **Note:** the other refactorings of PHPStorm's Refactor menu (Change Signature `Ctrl+F6`,
-> Move, Copy File, Safe Delete, Extract Interface / Superclass, Pull Members Up / Push Members
-> Down) are not implemented yet. Their shortcuts stay reserved and show "*Action* is not
-> available yet"; see the [Refactor menu](docs/guide/reference/main-menu/refactor.md). The actions
-> below are the refactorings and code transformations Forge has today.
+> **Note:** Extract Interface / Superclass and Pull Members Up / Push Members Down are not
+> implemented yet. Their entries stay disabled; see the
+> [Refactor menu](docs/guide/reference/main-menu/refactor.md).
 
 | Action | Windows / Linux | macOS |
 | --- | --- | --- |
@@ -6569,6 +6567,11 @@ Refactorings and code generation. Windows/Linux shortcuts first, macOS second; b
 | [Introduce Parameter…](#introduce-parameter) | `Ctrl+Alt+P` | `Cmd+Alt+P` |
 | [Extract Method…](#extract-method) | `Ctrl+Alt+M` | `Cmd+Alt+M` |
 | [Inline…](#inline) | `Ctrl+Alt+N` | `Cmd+Alt+N` |
+| [Change Signature…](#change-signature) | `Ctrl+F6` | `Cmd+F6` |
+| [Move…](#move) | `F6` | `F6` |
+| [Copy…](#copy) | `F5` | `F5` |
+| [Safe Delete…](#safe-delete) | `Alt+Delete` | `Cmd+Delete` |
+| [Make Static…](#make-static) | — | — |
 | [Show Context Actions](#show-context-actions) | `Alt+Enter` | `Alt+Enter` |
 | [Generate…](#generate) | `Alt+Insert` | `Cmd+N` |
 | [Reformat Code](#reformat-code) | `Ctrl+Alt+L` | `Cmd+Alt+L` |
@@ -6591,8 +6594,9 @@ More: [Editor](docs/guide/user/editor.md#rename), [PHP](docs/guide/user/php.md#r
 
 **Shortcut:** `Ctrl+Alt+Shift+T` · macOS `Ctrl+T` · action id `Refactorings.QuickListPopupAction`
 
-A popup with the refactorings Forge has (Rename, Introduce Variable / Constant / Field /
-Parameter, Extract Method, Inline) and their shortcuts. Pick one with the arrow keys and
+A popup with the refactorings Forge has (Rename, Change Signature, Move, Copy, Safe Delete,
+Make Static, Introduce Variable / Constant / Field / Parameter, Extract Method, Inline) and their
+shortcuts. Pick one with the arrow keys and
 `Enter`, a click or its number.
 
 **Menu:** Refactor | Refactor This…
@@ -6663,6 +6667,64 @@ its value: every reference (removing or keeping the declaration) or only the one
 **Menu:** Refactor | Inline…
 
 ![Inline Method](docs/screenshots/inline-method-dialog.png)
+
+## Change Signature
+
+**Shortcut:** `Ctrl+F6` · macOS `Cmd+F6` · action id `ChangeSignature`
+
+Changes the name, visibility, return type and parameters of a PHP method or function (add,
+remove, reorder; type, name, default value and the value new parameters get at call sites) and
+updates the overriding methods and every call.
+
+**Menu:** Refactor | Change Signature…
+
+![Change Signature](docs/screenshots/change-signature-dialog.png)
+
+More: [PHP](docs/guide/user/php.md#move-copy-safe-delete-change-signature-and-make-static)
+
+## Move
+
+**Shortcut:** `F6` · macOS `F6` · action id `Move`
+
+In the editor: moves the PHP class at the caret to another namespace and directory (Move
+Class), static members to another class (Move Members) or a function to another file. In the
+Project view: moves the selected files and folders (also by drag and drop), updating namespaces
+and references of PHP classes.
+
+**Menu:** Refactor | Move…
+
+![Move Class](docs/screenshots/move-class-dialog.png)
+
+## Copy
+
+**Shortcut:** `F5` · macOS `F5` · action id `CopyElement`
+
+Copies the PHP class at the caret under a new name (Copy Class), or the selected file or folder
+in the Project view.
+
+**Menu:** Refactor | Copy File…
+
+## Safe Delete
+
+**Shortcut:** `Alt+Delete` · macOS `Cmd+Delete` · action id `SafeDelete`
+
+Deletes the element at the caret (or the selected files in the Project view) after checking
+that nothing uses it; **Usages Detected** offers View Usages and Delete Anyway.
+
+**Menu:** Refactor | Safe Delete…
+
+![Usages Detected](docs/screenshots/safe-delete-usages-detected.png)
+
+## Make Static
+
+**Shortcut:** none by default · action id `MakeStatic`
+
+Makes a PHP instance method static, passing the object or the fields it reads as parameters,
+and updates its calls.
+
+**Menu:** Refactor | Make Static…
+
+![Make Method Static](docs/screenshots/make-static-dialog.png)
 
 ## Show Context Actions
 
@@ -8017,6 +8079,67 @@ enclosing scope", "Inline variable"…) in a popup.
 ![Extract Method dialog](docs/screenshots/extract-method-dialog.png)
 
 ![After Extract Method](docs/screenshots/extract-method-result.png)
+
+## Move, copy, safe delete, change signature and make static
+
+The other refactorings of the Refactor menu work like PHPStorm's too. Forge finds the usages
+with its PHP index and computes every edit itself (no language server or licence needed); the
+whole refactoring, file moves included, is one undo step (`Ctrl+Z` in any changed editor) and
+works in remote projects. **Preview** lists every change first, **Problems Detected** the
+conflicts (a class that already exists, a call that cannot be updated).
+
+- **Move** (`F6`) on a class (its name or header, or a reference to it): the **Move Class**
+  dialog asks for the namespace and the target directory, which follows the namespace through
+  the PSR-4 rules of `composer.json` until you edit it. The namespace statement, every `use`
+  import (group imports too), fully qualified name and PHPDoc type is updated, files of the old
+  namespace that used the class by its short name get an import, and the moved file imports the
+  classes of its old namespace it uses. A class alone in its file moves with the file
+  (`app/Models/Order.php` → `app/Domain/Sales/Order.php`); otherwise it goes into a new file.
+  **Search in comments and strings** also updates `'App\Models\Order'` and comments.
+- **Move** on a static method, static property or constant: the **Move Members** dialog lists
+  the class's static members; checked ones move to the class you name (fully qualified).
+  `Source::member` references become `Target::member` (`self::` inside the target), `self::`
+  references in the moved code to members that stay become `Source::`, and class names in the
+  moved code are fully qualified where the target file would resolve them differently. Private
+  members still used by the class are reported.
+- **Move** on a function: **Move Function** moves it to another PHP file; calls and
+  `use function` imports follow when the namespace changes.
+- **Move** in the Project view (`F6`, or drag and drop onto a folder): a PHP file with one class
+  opens Move Class; files and folders otherwise move to the folder you choose. PHP files that
+  follow PSR-4 get the namespace of their new folder and the references to their classes are
+  updated (**Search for references**).
+- **Copy** (`F5`) on a class: **Copy Class** creates a copy with a new name in a namespace and
+  directory of your choice; the class's references to itself are renamed and the copy imports
+  what it used from its old namespace. In the Project view `F5` copies files and folders.
+- **Safe Delete** (`Alt+Delete`) on a class, interface, trait, enum, method, property, constant,
+  enum case, function or parameter (or files and folders in the Project view) asks first
+  (**Search in comments and strings**), then searches for usages. Without usages the element is
+  deleted (a class alone in its file deletes the file). With usages, **Usages Detected** says how
+  many usages are not safe to delete: **View Usages** lists them in the Find tool window (with
+  **Delete Anyway** below), **Delete Anyway** deletes right away. A parameter is removed with its
+  arguments at every call site and in overriding methods; its uses in the body are the usages
+  that are not safe to delete.
+- **Change Signature** (`Ctrl+F6`) on a method or function (its declaration, a call or the
+  caret in its body): change the name, visibility and return type, and add, remove, reorder and
+  edit parameters (type, name, default value). A new parameter needs a **value at call sites**
+  (or a default value). The declaration, the overriding and implementing methods and every call
+  site change: positional arguments are reordered, removed ones dropped, named arguments keep
+  their names, and once an argument is left out the following ones become named. Renamed
+  parameters are renamed in the body and the PHPDoc; removing a parameter the body uses is a
+  problem. On a constructor, `new` expressions are updated.
+- **Make Static** (Refactor | Make Static…) on an instance method: a method without `$this`
+  just becomes `static`; otherwise **Add object as a parameter** passes the object (`$this` →
+  `$price`) or **Add parameters for fields** passes the fields it reads. Calls change from
+  `$obj->m()` to `Class::m()` (`self::m()` inside the class) with the object or its fields as the
+  first arguments.
+
+![Move Class dialog](docs/screenshots/move-class-dialog.png)
+
+![Move Class preview](docs/screenshots/move-class-preview.png)
+
+![Usages Detected](docs/screenshots/safe-delete-usages-detected.png)
+
+![Change Signature dialog](docs/screenshots/change-signature-dialog.png)
 
 ## Context actions and intentions
 
@@ -10958,16 +11081,17 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 
 | Action | Action id | Windows / Linux | macOS | In Forge |
 | --- | --- | --- | --- | --- |
-| Refactor This… | `Refactorings.QuickListPopupAction` | `Ctrl+Alt+Shift+T` | `Ctrl+T` | — |
+| Refactor This… | `Refactorings.QuickListPopupAction` | `Ctrl+Alt+Shift+T` | `Ctrl+T` | yes |
 | Rename… | `RenameElement` | `Shift+F6` | `Shift+F6` | yes |
 | Rename File… | `RenameFile` |  |  | yes |
-| Change Signature… | `ChangeSignature` | `Ctrl+F6` | `Cmd+F6` | — |
-| Move… | `Move` | `F6` | `F6` | — |
-| Copy File… | `CopyElement` | `F5` | `F5` | — |
-| Safe Delete… | `SafeDelete` | `Alt+Delete` | `Cmd+Delete` | — |
-| Inline… | `Inline` | `Ctrl+Alt+N` | `Cmd+Alt+N` | — |
+| Change Signature… | `ChangeSignature` | `Ctrl+F6` | `Cmd+F6` | yes |
+| Move… | `Move` | `F6` | `F6` | yes |
+| Copy File… | `CopyElement` | `F5` | `F5` | yes |
+| Safe Delete… | `SafeDelete` | `Alt+Delete` | `Cmd+Delete` | yes |
+| Inline… | `Inline` | `Ctrl+Alt+N` | `Cmd+Alt+N` | yes |
 | Push Members Down… | `MemberPushDown` |  |  | — |
 | Pull Members Up… | `MembersPullUp` |  |  | — |
+| Make Static… | `MakeStatic` |  |  | yes |
 
 ### Refactor > Extract > Introduce
 
@@ -11546,7 +11670,7 @@ Source: docs/guide/reference/main-menu/refactor.md
 
 # Refactor menu
 
-Refactorings. Refactor This, Rename, Rename File, Extract/Introduce Variable, Constant, Field, Parameter and Method, and Inline work; the menu shows PHPStorm's other entries disabled. Open it with ☰ (`Alt+\`) or from the menu bar, see [Main menu](docs/guide/user/workbench.md#main-menu).
+Refactorings. Refactor This, Rename, Rename File, Change Signature, Extract/Introduce Variable, Constant, Field, Parameter and Method, Inline, Move, Copy, Safe Delete and Make Static work; the menu shows PHPStorm's other entries disabled. Open it with ☰ (`Alt+\`) or from the menu bar, see [Main menu](docs/guide/user/workbench.md#main-menu).
 
 ![Refactor menu](docs/screenshots/docs-menu-refactor.png)
 
@@ -11557,7 +11681,7 @@ Refactorings. Refactor This, Rename, Rename File, Extract/Introduce Variable, Co
 | Refactor This… | `Ctrl+Alt+Shift+T` | `Ctrl+T` | yes | A popup with the refactorings and their shortcuts. [More](docs/guide/user/shortcuts/refactoring.md#refactor-this) |
 | Rename… | `Shift+F6` | `Shift+F6` | yes | Renames the symbol at the caret in place across the project (the file or folder in the Project view). [More](docs/guide/user/editor.md#rename) ([screenshot](docs/screenshots/rename-in-place.png)) |
 | Rename File… | — | — | yes | Renames the file of the current editor. [More](docs/guide/user/editor.md#rename) |
-| Change Signature… | `Ctrl+F6` | `Cmd+F6` | not yet | Not available yet; the entry is disabled. |
+| Change Signature… | `Ctrl+F6` | `Cmd+F6` | yes | Changes the name, visibility, return type and parameters of a method or function and updates every call. [More](docs/guide/user/php.md#move-copy-safe-delete-change-signature-and-make-static) ([screenshot](docs/screenshots/change-signature-dialog.png)) |
 | **Extract/Introduce** | | | | submenu |
 | Extract/Introduce › Variable… | `Ctrl+Alt+V` | `Cmd+Alt+V` | yes | Puts the expression into a new local variable, named in place. [More](docs/guide/user/php.md#extract-introduce-and-inline) ([screenshot](docs/screenshots/introduce-variable-in-place.png)) |
 | Extract/Introduce › Constant… | `Ctrl+Alt+C` | `Cmd+Alt+C` | yes | Turns a constant expression into a class constant or a global `const`. [More](docs/guide/user/php.md#extract-introduce-and-inline) ([screenshot](docs/screenshots/introduce-constant-dialog.png)) |
@@ -11567,11 +11691,12 @@ Refactorings. Refactor This, Rename, Rename File, Extract/Introduce Variable, Co
 | Extract/Introduce › Interface… | — | — | not yet | Not available yet; the entry is disabled. |
 | Extract/Introduce › Superclass… | — | — | not yet | Not available yet; the entry is disabled. |
 | Inline… | `Ctrl+Alt+N` | `Cmd+Alt+N` | yes | Inlines a variable, method, function or constant. [More](docs/guide/user/php.md#extract-introduce-and-inline) ([screenshot](docs/screenshots/inline-method-dialog.png)) |
-| Move… | `F6` | `F6` | not yet | Not available yet; the entry is disabled. |
-| Copy File… | `F5` | `F5` | not yet | Not available yet; the entry is disabled. |
-| Safe Delete… | `Alt+Delete` | `Cmd+Delete` | not yet | Not available yet; the entry is disabled. |
+| Move… | `F6` | `F6` | yes | Moves a class to another namespace, static members to another class, a function to another file, or files and folders in the Project view. [More](docs/guide/user/php.md#move-copy-safe-delete-change-signature-and-make-static) ([screenshot](docs/screenshots/move-class-dialog.png)) |
+| Copy File… | `F5` | `F5` | yes | Copies a class under a new name, or files and folders in the Project view. [More](docs/guide/user/php.md#move-copy-safe-delete-change-signature-and-make-static) |
+| Safe Delete… | `Alt+Delete` | `Cmd+Delete` | yes | Deletes the element (or files) after checking for usages. [More](docs/guide/user/php.md#move-copy-safe-delete-change-signature-and-make-static) ([screenshot](docs/screenshots/safe-delete-usages-detected.png)) |
 | Pull Members Up… | — | — | not yet | Not available yet; the entry is disabled. |
 | Push Members Down… | — | — | not yet | Not available yet; the entry is disabled. |
+| Make Static… | — | — | yes | Makes an instance method static and updates its calls. [More](docs/guide/user/php.md#move-copy-safe-delete-change-signature-and-make-static) ([screenshot](docs/screenshots/make-static-dialog.png)) |
 
 
 ---

@@ -910,6 +910,29 @@ computes everything; `app/ui/src/features/codeintel` and `features/lsp/goto.ts` 
     character, endLine, endCharacter, refactoring }) -> ContextAction[]`, the servers'
     `refactor.extract.*` / `refactor.inline.*` code actions for a Refactor menu action
     (`forge_codeintel::refactor_actions`).
+  - Move, Copy, Safe Delete, Change Signature and Make Static
+    (`app/src-tauri/src/commands/refactor_move.rs`, `phpforge_lang_php::refactor::project` over
+    the `Project` trait: Find Usages, Go to Declaration, symbol search and files through the
+    backend, so remote projects work; the plan is `FileOp`s (byte edits, create, rename,
+    delete) and conflicts, turned into a `RefactorAnswer`): `refactor_move_prepare({ path,
+    position, content, copy? }) -> { kind: "class" | "members" | "function", class?, members?,
+    function? }` (the declaration's path and name position, also from a reference),
+    `refactor_move_class({ path, position, content?, targetNamespace, targetDirectory,
+    searchInComments })`, `refactor_copy_class({ ..., newName, targetNamespace,
+    targetDirectory })`, `refactor_move_members({ ..., members, target })`,
+    `refactor_move_function({ ..., target })`, `refactor_move_files({ moves: { from, to }[],
+    searchForReferences, searchInComments }) -> { answer, files }` (text edits for the paths
+    after the move; the UI moves the files first), `refactor_safe_delete_prepare({ path,
+    position, content, searchInComments }) -> { kind, name, message, count, inComments,
+    usages: UsagesAnswer, answer, paths }` and `refactor_safe_delete_files({ paths,
+    searchInComments })` (`paths`: folders and files the UI deletes itself),
+    `refactor_change_signature_prepare(...) -> SignatureInfo & { path, position, signature }`,
+    `refactor_change_signature({ ..., options: { name, visibility?, returnType, parameters: {
+    original, name, typeHint?, defaultValue?, callValue?, byRef?, variadic? }[] } })`,
+    `refactor_make_static_prepare(...) -> { name, className, usesThis, fields, needsObject,
+    parameter, path, position }` and `refactor_make_static({ ..., options: { objectParameter?,
+    fieldParameters } })`. All take `buffers` (unsaved editors). `fs_copy({ from, to })` copies
+    a file or folder through the backend (never replaces).
   - `code_plan_edit({ edit, open }) -> EditPlan` — how the UI applies an edit: the text edits of
     open editors, the backend's part (`code_apply_edit`), files to save first and tabs to
     reopen or close. `code_apply_edit({ edit, skip? }) -> AppliedFile[]` (all or nothing) and
@@ -972,6 +995,15 @@ computes everything; `app/ui/src/features/codeintel` and `features/lsp/goto.ts` 
   conflicts go through the Problems Detected dialog. Browser mode approximates the refactorings
   on the demo project in `mock/refactorMock.ts` (the tree-sitter grammar is not part of the
   WebAssembly build).
+
+- Move, Copy, Safe Delete, Change Signature and Make Static UI
+  (`features/codeintel/moveRefactorings.ts`, `MoveDialogs.tsx`): `Move` (F6), `CopyElement`
+  (F5), `SafeDelete` (Alt+Delete), `ChangeSignature` (Ctrl+F6) and `MakeStatic` are registered
+  commands; with the focus in the Project view the first three act on the selected files and
+  folders (also drag and drop onto a folder row). The dialogs return their choices; the edit is
+  applied with `applyWorkspaceEdit`, whose `fileOps` (`move` / `copy` of files and folders)
+  run before the edit and are reversed on undo (and when the edit fails). Browser mode
+  approximates the refactorings in `mock/moveMock.ts`.
 
 ## PHP debugger (`forge-debug`)
 
