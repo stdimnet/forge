@@ -35,6 +35,7 @@ mod scratches;
 mod search;
 mod settings;
 mod spell;
+mod structure;
 mod templates;
 mod terminal;
 mod text;

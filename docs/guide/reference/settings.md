@@ -108,6 +108,10 @@ Page id `editor.general`.
 | `editor.showWhitespace` | bool | `false` | user | Appearance | Show whitespaces |
 | `editor.showLineNumbers` | bool | `true` | user | Appearance | Show line numbers |
 | `editor.highlightCurrentLine` | bool | `true` | user | Appearance | Highlight caret row |
+| `editor.renderDocComments` | bool | `false` | user | Appearance | Render documentation comments — Show PHPDoc, JSDoc and LuaDoc comments as formatted text. Toggle one with Ctrl+Alt+Q or its gutter icon. |
+| `editor.stickyLines.enabled` | bool | `true` | user | Sticky Lines | Show sticky lines while scrolling — The headers of the classes, functions, blocks, rules and tags around the top of the editor stay visible. Click one to jump to it. |
+| `editor.stickyLines.maxLines` | int (1–20) | `5` | user | Sticky Lines | Limit sticky lines |
+| `editor.stickyLines.disabledLanguages` | list | `[]` | user | Sticky Lines | Show sticky lines for — one checkbox per language; holds the file type ids switched off (`php`, `vue`, `lua`). |
 | `editor.stripTrailingSpaces` | enum: `none`, `modified`, `all` | `modified` | user | On Save | Remove trailing spaces on |
 | `editor.ensureNewlineAtEof` | bool | `true` | user | On Save | Ensure every saved file ends with a line break |
 | `editor.clipboard.maxContents` | int (1–100) | `20` | user | Limits | Maximum number of contents to keep in clipboard |
@@ -126,6 +130,16 @@ Page id `editor.tabs`.
 | `editor.tabs.closeUnmodifiedFirst` | bool | `true` | user | Closing Policy | When the tab limit is reached, close non-modified tabs first |
 | `editor.tabs.activateOnClose` | enum: `left`, `right`, `recent` | `recent` | user | Closing Policy | When the current tab is closed, activate |
 | `editor.tabs.showPinnedIcon` | bool | `true` | user | Appearance | Show pin icon on pinned tabs |
+
+### Editor | General | Breadcrumbs
+
+Page id `editor.breadcrumbs`.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `editor.breadcrumbs.show` | bool | `true` | user |  | Show breadcrumbs — The classes, functions, rules and tags around the caret. Click one to go there; the arrow next to it lists its siblings. |
+| `editor.breadcrumbs.placement` | enum: `top`, `bottom` | `bottom` | user |  | Placement |
+| `editor.breadcrumbs.disabledLanguages` | list | `[]` | user | Languages | Show breadcrumbs for — one checkbox per language; holds the file type ids switched off. |
 
 ### Editor | General | Postfix Completion
 
@@ -224,6 +238,18 @@ Page ids `editor.emmet`, `editor.emmet.html`, `editor.emmet.css`, `editor.emmet.
 
 The color picker keeps `editor.colorPicker.recentColors` (list, user scope, not shown on a
 page): the recently used colors, newest first.
+
+### Editor | Reader Mode
+
+Page id `editor.readerMode`.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `editor.readerMode.enabled` | bool | `true` | user |  | Use Reader mode — Open files you only read in Reader mode. Toggle it with the Reader Mode button at the top right of the editor. |
+| `editor.readerMode.applyTo` | enum: `libraries`, `readOnly`, `both` | `both` | user |  | Use for |
+| `editor.readerMode.renderDocs` | bool | `true` | user | Show | Rendered documentation comments |
+| `editor.readerMode.ligatures` | bool | `true` | user | Show | Ligatures |
+| `editor.readerMode.increaseLineSpacing` | bool | `true` | user | Show | Increased line spacing |
 
 ### Editor | Language Injections
 

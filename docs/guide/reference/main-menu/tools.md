@@ -20,6 +20,7 @@ Terminal and the tools of plugins (Docker, Laravel, Symfony). Open it with ☰ (
 | Save File as Template… | — | — | not yet | Not available yet; the entry is disabled. |
 | Open in Terminal | `Ctrl+Shift+T` | `Cmd+T` | yes | Opens a new terminal tab (Tools | Open in Terminal). [More](../../user/terminal.md#tabs) ([screenshot](../../../screenshots/docs-terminal.png)) |
 | IDE Scripting Console | — | — | not yet | Not available yet; the entry is disabled. |
+| Render All Doc Comments | — | — | yes | Shows every documentation comment of the file as formatted text, or the text again. [More](../../user/code-structure.md#rendered-documentation-comments) ([screenshot](../../../screenshots/rendered-doc-comments.png)) |
 | **Docker** | | | | submenu |
 | Docker › Pull Image… | — | — | yes | Pulls a Docker image. [More](../../user/services.md#pulling-images-and-registries) |
 | Docker › Refresh Services | — | — | yes | Refreshes the Services tree. [More](../../user/services.md) |

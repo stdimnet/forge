@@ -667,6 +667,7 @@ not finished, the page says so.
 | --- | --- |
 | [Workbench and tool windows](docs/guide/user/workbench.md) | main toolbar, tool windows, Project view, tabs, Recent Files, Switcher, status bar |
 | [Editor](docs/guide/user/editor.md) | completion, hover, Parameter Info, Go to Declaration, problems, formatting, editing actions, folding, find, gutter, context menu |
+| [Sticky lines, breadcrumbs and Reader mode](docs/guide/user/code-structure.md) | Sticky Lines, structure breadcrumbs, custom folding regions, rendered doc comments (`Ctrl+Alt+Q`), Reader mode |
 | [Markdown, images and CSV](docs/guide/user/markdown-images-csv.md) | Markdown preview (Mermaid, tables, links, images, front matter), image editor and SVG preview, Edit as Table for CSV/TSV |
 | [Actions on Save](docs/guide/user/actions-on-save.md) | Reformat code, Optimize imports, Rearrange code, code cleanup, ESLint, Prettier, PHP CS Fixer and Laravel Pint on save |
 | [Live templates](docs/guide/user/live-templates.md) | abbreviations + `Tab`, Insert Live Template, Surround With, Unwrap/Remove, Save as Live Template, template sets and settings |
@@ -1541,6 +1542,11 @@ Click the fold markers in the gutter, or use:
 | Expand / Collapse Recursively | `Ctrl+Alt+=` / `Ctrl+Alt+-` | `Cmd+Alt+=` / `Cmd+Alt+-` |
 | Expand All / Collapse All | `Ctrl+Shift+=` / `Ctrl+Shift+-` | `Cmd+Shift+=` / `Cmd+Shift+-` |
 
+Custom folding regions (`// region Name` … `// endregion`, `#region`, `<!-- region -->`,
+`// <editor-fold desc="…">`) fold too and show their name. Sticky lines, breadcrumbs, rendered
+doc comments and Reader mode are described in
+[Sticky lines, breadcrumbs and Reader mode](docs/guide/user/code-structure.md).
+
 ## Find and replace in a file
 
 **Find** (`Ctrl+F`, macOS `Cmd+F`) and **Replace** (`Ctrl+R`, macOS `Cmd+R`) open the search
@@ -1717,6 +1723,137 @@ Settings | Editor | General controls soft wrapping (`editor.softWraps` with the 
 the caret row highlight, caret blinking with its blink period (`editor.caret.blinkPeriod`) and
 smooth scrolling. Settings | Editor | Font sets the font, size, line height and ligatures. See
 the [settings reference](docs/guide/reference/settings.md).
+
+
+---
+
+Source: docs/guide/user/code-structure.md
+
+# Sticky lines, breadcrumbs and Reader mode
+
+These editor features show where you are in a file and make code you only read easier to
+read. They work for PHP, Blade, Twig, HTML, XML, Vue, JavaScript, TypeScript (and JSX/TSX),
+CSS, SCSS, Less and Lua, plus the brace languages Java, Kotlin, Go, Rust, C, C++ and C#.
+Forge finds the classes, functions, blocks, rules and tags of a file itself, so they work
+without a language server.
+
+## Sticky lines
+
+![Sticky lines](docs/screenshots/sticky-lines.png)
+
+While you scroll, the first lines of the scopes around the top of the editor stay pinned
+there: the namespace, class and method, `if` / `foreach` / `try` / `match` blocks, CSS rules
+and at-rules, HTML parent elements and Lua functions and blocks. Each sticky line shows its
+line number and keeps its syntax colors.
+
+- **Click** a sticky line to jump to it.
+- **Right-click** the sticky lines for **Configure Sticky Lines…** and **Disable Sticky Lines
+  for** the file's language.
+- **View | Active Editor | Show Sticky Lines** switches them for the current language.
+
+Settings | Editor | General | **Sticky Lines**:
+
+| Setting | Default | |
+| --- | --- | --- |
+| Show sticky lines while scrolling | on | `editor.stickyLines.enabled` |
+| Limit sticky lines | 5 | `editor.stickyLines.maxLines`, 1–20 |
+| Show sticky lines for | all languages | one checkbox per language (`editor.stickyLines.disabledLanguages`) |
+
+![Sticky lines settings](docs/screenshots/sticky-lines-settings.png)
+
+## Breadcrumbs
+
+![Breadcrumbs and siblings](docs/screenshots/breadcrumbs-siblings.png)
+
+The breadcrumbs at the bottom of the editor show the declarations around the caret, e.g.
+`PriceCalculator › total()`, `@media (max-width: 600px) › .card` or
+`html › body.antialiased › div#app`.
+
+- **Click** a crumb to move the caret to that declaration.
+- The small arrow next to a crumb (on hover) lists its **siblings**, e.g. the other methods of
+  the class; pick one to go there.
+- **View | Active Editor | Show Breadcrumbs** switches them for the current language.
+
+The file path stays in the bar above the editor, which is PHPStorm's navigation bar.
+
+Settings | Editor | General | **Breadcrumbs**: *Show breadcrumbs* (`editor.breadcrumbs.show`),
+*Placement* **Top** or **Bottom** (`editor.breadcrumbs.placement`, default Bottom) and one
+checkbox per language (`editor.breadcrumbs.disabledLanguages`).
+
+![Breadcrumbs at the top](docs/screenshots/breadcrumbs-top.png)
+
+HTML, Vue and template files list elements as `tag#id.class`; `<script>` and `<style>`
+blocks contain the functions and rules inside them.
+
+![Breadcrumbs and Structure of an HTML file](docs/screenshots/breadcrumbs-web.png)
+
+## Custom folding regions
+
+![Folding regions](docs/screenshots/folding-regions.png)
+
+Comments mark regions that fold like any other block and show their name when folded:
+
+| Language | Start | End |
+| --- | --- | --- |
+| PHP, JavaScript, TypeScript, CSS preprocessors, C-like | `// region Name` or `//region Name` | `// endregion` |
+| PHP, C# | `#region Name` | `#endregion` |
+| HTML, Vue, Blade, Twig | `<!-- region Name -->`, `{{-- region Name --}}`, `{# region Name #}` | `<!-- endregion -->`, … |
+| CSS | `/* region Name */` | `/* endregion */` |
+| Lua | `-- region Name` or `--region Name` | `-- endregion` |
+| NetBeans style, any language | `// <editor-fold desc="Name">` | `// </editor-fold>` |
+
+- Regions can be nested. A region without a name folds to `...`.
+- `<editor-fold desc="Name" defaultstate="collapsed">` regions start folded.
+- **Code | Surround With** (`Ctrl+Alt+T`, macOS `Cmd+Alt+T`) › **region...endregion
+  Comments** wraps the selected lines in a region (PHP, JavaScript, Lua, HTML and CSS); type
+  its name at the caret. See [Live templates](docs/guide/user/live-templates.md).
+- The **Structure** tool window (`Alt+7`, macOS `Cmd+7`) groups the members inside a region
+  under the region's name.
+
+![Structure view with regions](docs/screenshots/structure-regions.png)
+
+## Rendered documentation comments
+
+![Rendered doc comments](docs/screenshots/rendered-doc-comments.png)
+
+PHPDoc, JSDoc / TSDoc and LuaDoc (LuaCATS `---@param`) comments can be shown as formatted
+text, like Quick Documentation: the description with its Markdown, then the tags as a table
+(**Params:**, **Returns:**, **Throws:**, **Properties:**, **Since:**, **See also:**,
+**Author:** …) and `@deprecated` as a red note. `{@link https://… text}` becomes a link that
+opens in the browser, `{@see Class::method()}` code.
+
+| Action | Windows/Linux | macOS |
+| --- | --- | --- |
+| Toggle Rendered View of the comment at (or above) the caret | `Ctrl+Alt+Q` | `Ctrl+Alt+Q` |
+| Toggle with the mouse | book icon in the gutter; pencil icon on a rendered comment | |
+| Render All Doc Comments of the file | Tools \| Render All Doc Comments | |
+| Collapse Doc Comments | Code \| Folding \| Collapse Doc Comments | |
+
+Settings | Editor | General | Appearance | **Render documentation comments**
+(`editor.renderDocComments`, off by default) renders every comment of the files you open.
+
+## Reader mode
+
+![Reader mode](docs/screenshots/reader-mode.png)
+
+Files you only read open in **Reader mode**: library files (under `vendor/` and
+`node_modules/`, and the PHP stubs Go to Declaration opens) and read-only files. Reader mode
+renders the documentation comments, turns on font ligatures and increases the line spacing.
+
+The **Reader Mode** button at the top right of the editor switches it off (to read the
+comments as code) and on again; **View | Active Editor | Reader Mode** does the same.
+
+Settings | Editor | **Reader Mode**:
+
+| Setting | Default | |
+| --- | --- | --- |
+| Use Reader mode | on | `editor.readerMode.enabled` |
+| Use for | Library and read-only files | `editor.readerMode.applyTo`: library files, read-only files, or both |
+| Rendered documentation comments | on | `editor.readerMode.renderDocs` |
+| Ligatures | on | `editor.readerMode.ligatures` |
+| Increased line spacing | on | `editor.readerMode.increaseLineSpacing` |
+
+![Reader mode settings](docs/screenshots/reader-mode-settings.png)
 
 
 ---
@@ -2072,6 +2209,8 @@ caret line, in a statement. In PHP and JavaScript: `if`, `if / else`, `while`,
 `!(expr)`; Lua, HTML, Blade and Twig have their own lists (`if … then … end`, `<tag></tag>`,
 `@if`, `{% if %}`, …). Press the number or letter in front of an entry to pick it. The
 selection is re-indented inside the new block and the caret lands in the condition.
+`region...endregion Comments` (also in HTML and CSS) makes a
+[custom folding region](docs/guide/user/code-structure.md#custom-folding-regions); type its name at the caret.
 
 Below them, under "Live templates", the popup lists the templates that use `$SELECTION$`.
 **Code | Surround with Live Template** (`Ctrl+Alt+J`, macOS `Cmd+Alt+J`) lists only those.
@@ -3841,6 +3980,16 @@ Shows the headers of the class and method that enclose the caret at the top of t
 **Menu:** View | Context Info
 
 More: [Editor](docs/guide/user/editor.md#type-info-context-info-and-error-description)
+
+## Toggle Rendered View
+
+**Shortcut:** `Ctrl+Alt+Q` · macOS `Ctrl+Alt+Q` · action id `ToggleRenderedDocPresentation`
+
+Shows the documentation comment at (or above) the caret as formatted text, or its text again.
+
+**Menu:** Tools | Render All Doc Comments (the whole file)
+
+More: [Sticky lines, breadcrumbs and Reader mode](docs/guide/user/code-structure.md#rendered-documentation-comments)
 
 ## Error Description
 
@@ -8818,7 +8967,7 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Recently Changed Files | `RecentChangedFiles` |  |  | yes |
 | Recent Locations | `RecentLocations` | `Ctrl+Shift+E` | `Cmd+Shift+E` | yes |
 | Switcher | `Switcher` | `Ctrl+Tab`, `Ctrl+Shift+Tab` | `Ctrl+Tab`, `Ctrl+Shift+Tab` | yes |
-| Toggle Rendered View | `ToggleRenderedDocPresentation` | `Ctrl+Alt+Q` | `Ctrl+Alt+Q` | — |
+| Toggle Rendered View | `ToggleRenderedDocPresentation` | `Ctrl+Alt+Q` | `Ctrl+Alt+Q` | yes |
 | Compare Files | `CompareTwoFiles` | `Ctrl+D` | `Cmd+D` | — |
 | Inlay Hints | `ViewInplaceComments` |  |  | — |
 
@@ -8958,7 +9107,7 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Expand All | `ExpandAllRegions` | `Ctrl+Shift+=`, `Ctrl+Shift+NumPad+` | `Cmd+Shift+=`, `Cmd+Shift+NumPad+` | yes |
 | Collapse All | `CollapseAllRegions` | `Ctrl+Shift+-`, `Ctrl+Shift+NumPad-` | `Cmd+Shift+-`, `Cmd+Shift+NumPad-` | yes |
 | Fold Selection / Remove Region | `CollapseSelection` | `Ctrl+.` | `Cmd+.` | — |
-| Collapse Doc Comments | `CollapseDocComments` |  |  | — |
+| Collapse Doc Comments | `CollapseDocComments` |  |  | yes |
 
 ### Refactor
 
@@ -9202,6 +9351,9 @@ Actions that Forge's plugins add (group **Plugins** in Settings | Keymap, some u
 | Edit as Table (CSV/TSV) | `Csv.EditAsTable` |  |  | any |
 | Edit as Text (CSV/TSV) | `Csv.EditAsText` |  |  | any |
 | Select in Project View | `SelectInProjectView` |  |  | any |
+| Render All Doc Comments | `ToggleRenderedDocPresentationForAll` |  |  | any |
+| Show Sticky Lines | `EditorToggleStickyLines` |  |  | any |
+| Reader Mode | `ToggleReaderMode` |  |  | any |
 | Mark All Notifications as Read | `MarkNotificationsAsRead` |  |  | any |
 | Clear All Notifications | `ClearAllNotifications` |  |  | any |
 
@@ -9423,7 +9575,9 @@ Tool windows, appearance toggles, documentation popups and recent files. Open it
 | Active Editor › Show Whitespaces | — | — | not yet | Not available yet; the entry is disabled. |
 | Active Editor › Show Line Numbers | — | — | not yet | Not available yet; the entry is disabled. |
 | Active Editor › Show Indent Guides | — | — | not yet | Not available yet; the entry is disabled. |
-| Active Editor › Show Breadcrumbs | — | — | not yet | Not available yet; the entry is disabled. |
+| Active Editor › Show Breadcrumbs | — | — | yes | Shows or hides the structure breadcrumbs for the file's language. [More](docs/guide/user/code-structure.md#breadcrumbs) ([screenshot](docs/screenshots/breadcrumbs-siblings.png)) |
+| Active Editor › Show Sticky Lines | — | — | yes | Shows or hides the sticky lines for the file's language. [More](docs/guide/user/code-structure.md#sticky-lines) ([screenshot](docs/screenshots/sticky-lines.png)) |
+| Active Editor › Reader Mode | — | — | yes | Switches Reader mode in the editor. [More](docs/guide/user/code-structure.md#reader-mode) ([screenshot](docs/screenshots/reader-mode.png)) |
 
 The three toggles under **Appearance** (Compact Mode, Show Main Menu in Separate Toolbar, Tool Window Bars) show a check mark when on.
 
@@ -9513,7 +9667,7 @@ Completion, Generate, folding, comments, formatting and moving lines. Open it wi
 | Folding › Collapse Recursively | `Ctrl+Alt+-`, `Ctrl+Alt+NumPad-` | `Cmd+Alt+-`, `Cmd+Alt+NumPad-` | yes | Folds the region at the caret. [More](docs/guide/user/editor.md#folding) |
 | Folding › Expand All | `Ctrl+Shift+=`, `Ctrl+Shift+NumPad+` | `Cmd+Shift+=`, `Cmd+Shift+NumPad+` | yes | Unfolds every region of the file. [More](docs/guide/user/editor.md#folding) |
 | Folding › Collapse All | `Ctrl+Shift+-`, `Ctrl+Shift+NumPad-` | `Cmd+Shift+-`, `Cmd+Shift+NumPad-` | yes | Folds every region of the file. [More](docs/guide/user/editor.md#folding) ([screenshot](docs/screenshots/docs-folding.png)) |
-| Folding › Collapse Doc Comments | — | — | not yet | Not available yet; the entry is disabled. |
+| Folding › Collapse Doc Comments | — | — | yes | Folds every documentation comment of the file. [More](docs/guide/user/code-structure.md#rendered-documentation-comments) |
 | Folding › Fold Selection / Remove Region | `Ctrl+.` | `Cmd+.` | not yet | Not available yet; the entry is disabled. |
 | Insert Live Template… | `Ctrl+J` | `Cmd+J` | yes | Lists the live templates that apply at the caret and inserts the chosen one. [More](docs/guide/user/live-templates.md#expanding-a-template) ([screenshot](docs/screenshots/live-template-insert.png)) |
 | Surround with Live Template… | `Ctrl+Alt+J` | `Cmd+Alt+J` | yes | Wraps the selection in a live template that uses `$SELECTION$`. [More](docs/guide/user/live-templates.md#surround-with) |
@@ -9633,6 +9787,7 @@ Terminal and the tools of plugins (Docker, Laravel, Symfony). Open it with ☰ (
 | Save File as Template… | — | — | not yet | Not available yet; the entry is disabled. |
 | Open in Terminal | `Ctrl+Shift+T` | `Cmd+T` | yes | Opens a new terminal tab (Tools | Open in Terminal). [More](docs/guide/user/terminal.md#tabs) ([screenshot](docs/screenshots/docs-terminal.png)) |
 | IDE Scripting Console | — | — | not yet | Not available yet; the entry is disabled. |
+| Render All Doc Comments | — | — | yes | Shows every documentation comment of the file as formatted text, or the text again. [More](docs/guide/user/code-structure.md#rendered-documentation-comments) ([screenshot](docs/screenshots/rendered-doc-comments.png)) |
 | **Docker** | | | | submenu |
 | Docker › Pull Image… | — | — | yes | Pulls a Docker image. [More](docs/guide/user/services.md#pulling-images-and-registries) |
 | Docker › Refresh Services | — | — | yes | Refreshes the Services tree. [More](docs/guide/user/services.md) |
@@ -9890,6 +10045,10 @@ Page id `editor.general`.
 | `editor.showWhitespace` | bool | `false` | user | Appearance | Show whitespaces |
 | `editor.showLineNumbers` | bool | `true` | user | Appearance | Show line numbers |
 | `editor.highlightCurrentLine` | bool | `true` | user | Appearance | Highlight caret row |
+| `editor.renderDocComments` | bool | `false` | user | Appearance | Render documentation comments — Show PHPDoc, JSDoc and LuaDoc comments as formatted text. Toggle one with Ctrl+Alt+Q or its gutter icon. |
+| `editor.stickyLines.enabled` | bool | `true` | user | Sticky Lines | Show sticky lines while scrolling — The headers of the classes, functions, blocks, rules and tags around the top of the editor stay visible. Click one to jump to it. |
+| `editor.stickyLines.maxLines` | int (1–20) | `5` | user | Sticky Lines | Limit sticky lines |
+| `editor.stickyLines.disabledLanguages` | list | `[]` | user | Sticky Lines | Show sticky lines for — one checkbox per language; holds the file type ids switched off (`php`, `vue`, `lua`). |
 | `editor.stripTrailingSpaces` | enum: `none`, `modified`, `all` | `modified` | user | On Save | Remove trailing spaces on |
 | `editor.ensureNewlineAtEof` | bool | `true` | user | On Save | Ensure every saved file ends with a line break |
 | `editor.clipboard.maxContents` | int (1–100) | `20` | user | Limits | Maximum number of contents to keep in clipboard |
@@ -9908,6 +10067,16 @@ Page id `editor.tabs`.
 | `editor.tabs.closeUnmodifiedFirst` | bool | `true` | user | Closing Policy | When the tab limit is reached, close non-modified tabs first |
 | `editor.tabs.activateOnClose` | enum: `left`, `right`, `recent` | `recent` | user | Closing Policy | When the current tab is closed, activate |
 | `editor.tabs.showPinnedIcon` | bool | `true` | user | Appearance | Show pin icon on pinned tabs |
+
+### Editor | General | Breadcrumbs
+
+Page id `editor.breadcrumbs`.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `editor.breadcrumbs.show` | bool | `true` | user |  | Show breadcrumbs — The classes, functions, rules and tags around the caret. Click one to go there; the arrow next to it lists its siblings. |
+| `editor.breadcrumbs.placement` | enum: `top`, `bottom` | `bottom` | user |  | Placement |
+| `editor.breadcrumbs.disabledLanguages` | list | `[]` | user | Languages | Show breadcrumbs for — one checkbox per language; holds the file type ids switched off. |
 
 ### Editor | General | Postfix Completion
 
@@ -10006,6 +10175,18 @@ Page ids `editor.emmet`, `editor.emmet.html`, `editor.emmet.css`, `editor.emmet.
 
 The color picker keeps `editor.colorPicker.recentColors` (list, user scope, not shown on a
 page): the recently used colors, newest first.
+
+### Editor | Reader Mode
+
+Page id `editor.readerMode`.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `editor.readerMode.enabled` | bool | `true` | user |  | Use Reader mode — Open files you only read in Reader mode. Toggle it with the Reader Mode button at the top right of the editor. |
+| `editor.readerMode.applyTo` | enum: `libraries`, `readOnly`, `both` | `both` | user |  | Use for |
+| `editor.readerMode.renderDocs` | bool | `true` | user | Show | Rendered documentation comments |
+| `editor.readerMode.ligatures` | bool | `true` | user | Show | Ligatures |
+| `editor.readerMode.increaseLineSpacing` | bool | `true` | user | Show | Increased line spacing |
 
 ### Editor | Language Injections
 
@@ -13164,6 +13345,9 @@ and the browser-mode UI. Pure Rust, so it also runs as WebAssembly.
   instance, ...) from its line, and the result tree grouped by usage type and file.
 - `docs`: the documentation actions of the View menu: External Documentation URLs, Quick
   Definition snippets, Context Info headers and Type Info from hovers and signatures.
+- `structure`: the scopes of a document (classes, functions, control blocks, CSS rules,
+  HTML elements, Lua blocks) for Sticky Lines, breadcrumbs and the Structure view of web
+  files, the custom folding regions, and the Structure view grouped by regions.
 
 ## Modules
 
@@ -13172,6 +13356,7 @@ and the browser-mode UI. Pure Rust, so it also runs as WebAssembly.
 | `actions.rs` | Context actions (`ContextAction`, `ActionKind`) and `order_actions`: quick fixes first, preferred ones on top, duplicates removed, "fix all" actions (`source.fixAll*`, "Fix all …") moved into the `children` of their server's quick fix (`nest_fix_all`); `bulb_for` picks the red / yellow light bulb. |
 | `docs.rs` | `symbol_at` (the identifier at the caret with its qualifier, call, tag and CSS context, imported frameworks) and `external_doc_url` (php.net, Laravel API, MDN, Vue, React, Lua manual); `definition_snippet` (docblock and attributes above, body to the matching brace or Lua `end`, at most 80 lines); `context_headers` (enclosing class, function and CSS rule headers); `type_from_hover` / `type_from_signature`; `language_of`. |
 | `edit.rs` | `TextEdit`, `WorkspaceEdit` (`edit` / `create` / `rename` / `delete` changes), `apply_workspace_edit` over a `FileStore` (all or nothing), `revert_applied`, `preview_workspace_edit`, `word_range`, UTF-16 offset helpers. |
+| `structure.rs` | `editor_structure(text, language)` → `EditorStructure { scopes, regions }`: braces (PHP without inline HTML and heredocs, JS/TS with template literals, CSS, C-like), tags (HTML/XML/Vue/templates, `<script>` / `<style>` bodies as code) and Lua's block keywords outside strings and comments; each `Scope` has its kind, crumb name (`User`, `orders()`, `forEach callback`, `div#app.card`), header line and column, end and parent, and whether it sticks or is a crumb. `Region`s come from `// region` / `#region` / `<!-- region -->` / `/* region */` / `-- region` / `<editor-fold desc defaultstate>` comments. `group_by_regions` nests Structure view nodes (JSON with `line`) under their regions; `STRUCTURE_LANGUAGES` lists the languages with scopes. |
 | `rename.rs` | `edit_from_locations` (references → `WorkspaceEdit`, keeping `$` where the old text had it, dynamic usages skipped), `validate_identifier`, `is_class_file` / `suggest_file_rename` / `renamed_path` (PHPStorm renames `User.php` with `class User`), `edit_conflicts` (overlapping edits, renames onto existing files) and `plan_edit` (`EditPlan`: text edits of open editors, the backend's part, files to save first, tabs to reopen or close). |
 | `usages.rs` | `UsageKind` (PHPStorm's usage types and their group labels), `classify_usage` from the line around a reference, `group_usages` into a `UsageTree` by usage type and file (the declaration and duplicates removed). |
 
@@ -13182,6 +13367,7 @@ pub use actions::{bulb_for, nest_fix_all, order_actions, ActionKind, Bulb, Conte
 pub use docs::{context_headers, definition_snippet, external_doc_url, symbol_at, type_from_hover, type_from_signature, … };
 pub use rename::{edit_conflicts, edit_from_locations, plan_edit, suggest_file_rename, validate_identifier, EditPlan, RenameConflict, … };
 pub use edit::{apply_text_edits, apply_workspace_edit, preview_workspace_edit, revert_applied, word_range, … };
+pub use structure::{editor_structure, group_by_regions, EditorStructure, Region, Scope, ScopeKind, STRUCTURE_LANGUAGES};
 pub use usages::{classify_usage, group_usages, GroupRequest, UsageKind, UsageLocation, UsageTree, … };
 ```
 
@@ -14408,6 +14594,7 @@ documentation `<br>`/`<p>` become line breaks and every other tag is dropped.
 | Module | Summary |
 | --- | --- |
 | `ast.rs` | The Markdown AST sent to the UI (JSON tagged by `t`). |
+| `doc_comment.rs` | Documentation comments for the editor's rendered view and Reader mode: `doc_comments(text, language)` finds `/** … */` (PHPDoc, JSDoc / TSDoc) and `---` (LuaDoc / LuaCATS) comments, `parse_doc_comment` turns one into a `HoverDoc`: the description as Markdown (inline `{@link url text}` / `{@see X}` as links and code), the tags as `Params:` / `Returns:` / `Throws:` / `Properties:` / `See also:` … sections, `@deprecated` as the note and `@example` as a code block. |
 | `document.rs` | The Markdown preview of a file: GitHub-flavored blocks with the source lines of every top-level block, the front matter and the footnotes; `anchor_line` for links into a file. |
 | `hover.rs` | Language server hovers (Markdown as Intelephense, phpactor & co. send it) split into the parts of a PHPStorm-style documentation popup: owner FQCN, signature, description and `Params:` / `Returns:` / `Throws:` sections. |
 | `parse.rs` | pulldown-cmark events into the `Block` tree. |
@@ -14416,6 +14603,7 @@ documentation `<br>`/`<p>` become line breaks and every other tag is dropped.
 
 ```rust
 pub use ast::{Block, Inline, ListItem};
+pub use doc_comment::{doc_comments, doc_style, parse_doc_comment, DocComment, DocStyle};
 pub use document::{anchor_line, parse_document, Document, Footnote, FrontMatter, FrontMatterEntry, LineRange};
 pub use hover::{parse_hover, HoverDoc, HoverSection};
 pub use parse::{parse, parse_inline, Flavor};
@@ -15371,6 +15559,7 @@ Rebuild the bundle with `pnpm --dir app/ui wasm` (output: `app/ui/src/wasm/pkg`)
 | `search.rs` | Fuzzy matching and Search Everywhere ranking (`forge-fuzzy`), mirroring the `fuzzy_filter`, `search_rank` and `fs_find_files` IPC commands. |
 | `viewers.rs` | Image metadata and CSV/TSV tables (`forge-viewers`) for browser mode, mirroring `image_read` (from the mock's demo bytes), `csv_parse`, `csv_edit` and `csv_sort_order`. |
 | `settings.rs` | The Settings dialog model (`forge_plugin_api::settings_model`), mirroring the `settings_search` and `settings_validate` IPC commands. |
+| `structure.rs` | The editor's code structure, called synchronously by the editor in the desktop app and in browser mode alike (like the keymap and the terminal sequences): `editor_structure` (scopes and folding regions for Sticky Lines, breadcrumbs and folding), `editor_doc_comments` (rendered doc comments), `structure_group_by_regions` (Structure view) and `editor_structure_languages`. |
 | `terminal.rs` | Terminal sequences (`forge_output::osc`), called synchronously by the terminal in the desktop app and in browser mode alike: xterm.js runs OSC handlers inside its parser, so the answer is needed before the handler returns, which an IPC round trip cannot give. |
 | `web.rs` | WebForge (`packs/webforge/*`) for the browser-mode mock: npm packages and scripts, package manager detection, and React/Vue/Angular component navigation over the demo project's files, mirroring the `npm_*` and `web_*` IPC commands. |
 | `window.rs` | Window chrome (`forge_window`), mirroring the `window_chrome` IPC command for browser mode. |

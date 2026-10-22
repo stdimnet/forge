@@ -605,6 +605,152 @@
           "order": 50
         },
         {
+          "key": "editor.renderDocComments",
+          "title": "Render documentation comments",
+          "description": "Show PHPDoc, JSDoc and LuaDoc comments as formatted text. Toggle one with Ctrl+Alt+Q or its gutter icon.",
+          "type": "bool",
+          "default": false,
+          "group": "editor.general",
+          "section": "Appearance",
+          "project": false,
+          "order": 33
+        },
+        {
+          "key": "editor.stickyLines.enabled",
+          "title": "Show sticky lines while scrolling",
+          "description": "The headers of the classes, functions, blocks, rules and tags around the top of the editor stay visible. Click one to jump to it.",
+          "type": "bool",
+          "default": true,
+          "group": "editor.general",
+          "section": "Sticky Lines",
+          "project": false,
+          "order": 35
+        },
+        {
+          "key": "editor.stickyLines.maxLines",
+          "title": "Limit sticky lines",
+          "type": "int",
+          "min": 1,
+          "max": 20,
+          "default": 5,
+          "group": "editor.general",
+          "section": "Sticky Lines",
+          "project": false,
+          "order": 36
+        },
+        {
+          "key": "editor.stickyLines.disabledLanguages",
+          "title": "Show sticky lines for",
+          "type": "list",
+          "default": [],
+          "group": "editor.general",
+          "section": "Sticky Lines",
+          "project": false,
+          "order": 37
+        },
+        {
+          "key": "editor.breadcrumbs.show",
+          "title": "Show breadcrumbs",
+          "description": "The classes, functions, rules and tags around the caret. Click one to go there; the arrow next to it lists its siblings.",
+          "type": "bool",
+          "default": true,
+          "group": "editor.breadcrumbs",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "editor.breadcrumbs.placement",
+          "title": "Placement",
+          "type": "enum",
+          "options": [
+            {
+              "value": "top",
+              "label": "Top"
+            },
+            {
+              "value": "bottom",
+              "label": "Bottom"
+            }
+          ],
+          "default": "bottom",
+          "group": "editor.breadcrumbs",
+          "project": false,
+          "order": 1
+        },
+        {
+          "key": "editor.breadcrumbs.disabledLanguages",
+          "title": "Show breadcrumbs for",
+          "type": "list",
+          "default": [],
+          "group": "editor.breadcrumbs",
+          "section": "Languages",
+          "project": false,
+          "order": 2
+        },
+        {
+          "key": "editor.readerMode.enabled",
+          "title": "Use Reader mode",
+          "description": "Open files you only read in Reader mode. Toggle it with the Reader Mode button at the top right of the editor.",
+          "type": "bool",
+          "default": true,
+          "group": "editor.readerMode",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "editor.readerMode.applyTo",
+          "title": "Use for",
+          "type": "enum",
+          "options": [
+            {
+              "value": "libraries",
+              "label": "Library files (vendor, node_modules, PHP stubs)"
+            },
+            {
+              "value": "readOnly",
+              "label": "Read-only files"
+            },
+            {
+              "value": "both",
+              "label": "Library and read-only files"
+            }
+          ],
+          "default": "both",
+          "group": "editor.readerMode",
+          "project": false,
+          "order": 1
+        },
+        {
+          "key": "editor.readerMode.renderDocs",
+          "title": "Rendered documentation comments",
+          "type": "bool",
+          "default": true,
+          "group": "editor.readerMode",
+          "section": "Show",
+          "project": false,
+          "order": 10
+        },
+        {
+          "key": "editor.readerMode.ligatures",
+          "title": "Ligatures",
+          "type": "bool",
+          "default": true,
+          "group": "editor.readerMode",
+          "section": "Show",
+          "project": false,
+          "order": 11
+        },
+        {
+          "key": "editor.readerMode.increaseLineSpacing",
+          "title": "Increased line spacing",
+          "type": "bool",
+          "default": true,
+          "group": "editor.readerMode",
+          "section": "Show",
+          "project": false,
+          "order": 12
+        },
+        {
           "key": "editor.postfix.enabled",
           "title": "Enable postfix completion",
           "description": "Type a template key after an expression, e.g. $user.if or items.forof, to wrap it.",

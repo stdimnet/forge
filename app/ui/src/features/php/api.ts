@@ -19,7 +19,11 @@ export type SymbolKind =
   // Kinds of other languages shown in the Structure tool window (Lua).
   | "module"
   | "alias"
-  | "variable";
+  | "variable"
+  // Markup and style sheets (WebForge), custom folding regions.
+  | "tag"
+  | "rule"
+  | "region";
 
 export type Visibility = "public" | "protected" | "private";
 

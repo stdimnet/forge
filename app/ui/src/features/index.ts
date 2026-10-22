@@ -53,4 +53,5 @@ import "./colors";
 import "./markdown";
 import "./images";
 import "./csv";
+import "./codeStructure";
 import "./spelling";

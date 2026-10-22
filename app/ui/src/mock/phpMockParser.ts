@@ -169,7 +169,12 @@ export function parsePhp(src: string): MockFile {
       const start = open + 1 + mm.index!;
       // Only direct members (inside the class braces, outside method bodies).
       if (dep[start] !== level) continue;
-      const before = src.slice(0, start).trimEnd();
+      // Line comments above a member (`// region Name`) do not hide it.
+      let before = src.slice(0, start).trimEnd();
+      for (let nl = before.lastIndexOf("\n"); /^\s*(\/\/|#(?!\[))/.test(before.slice(nl + 1)); nl = before.lastIndexOf("\n")) {
+        before = before.slice(0, Math.max(0, nl)).trimEnd();
+        if (nl < 0) break;
+      }
       if (!/[;{}\]/]$/.test(before) && !before.endsWith("*/")) continue;
       const { visibility, modifiers } = modifiersOf(mm[1]);
       const l = leading(src, start);

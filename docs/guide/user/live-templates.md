@@ -100,6 +100,8 @@ caret line, in a statement. In PHP and JavaScript: `if`, `if / else`, `while`,
 `!(expr)`; Lua, HTML, Blade and Twig have their own lists (`if … then … end`, `<tag></tag>`,
 `@if`, `{% if %}`, …). Press the number or letter in front of an entry to pick it. The
 selection is re-indented inside the new block and the caret lands in the condition.
+`region...endregion Comments` (also in HTML and CSS) makes a
+[custom folding region](code-structure.md#custom-folding-regions); type its name at the caret.
 
 Below them, under "Live templates", the popup lists the templates that use `$SELECTION$`.
 **Code | Surround with Live Template** (`Ctrl+Alt+J`, macOS `Cmd+Alt+J`) lists only those.
