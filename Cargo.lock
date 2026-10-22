@@ -4769,6 +4769,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "phpforge-cli-tools"
+version = "0.1.0"
+dependencies = [
+ "phpforge-interpreters",
+ "serde",
+ "serde_json",
+ "tempfile",
+]
+
+[[package]]
 name = "phpforge-composer"
 version = "0.1.0"
 dependencies = [
