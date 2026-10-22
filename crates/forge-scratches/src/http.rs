@@ -720,8 +720,13 @@ const RESET: &str = "\x1b[0m";
 pub fn render_request(req: &HttpRequest) -> String {
     let mut out = format!("\x1b[1m{} {}{RESET}\n", req.method, req.url);
     // A debugged request says so: the Xdebug cookie starts the debug session.
-    if let Some(cookie) = req.header("Cookie").filter(|c| c.contains("XDEBUG_SESSION=")) {
-        out.push_str(&format!("\x1b[90mCookie: {cookie} (debugging with Xdebug){RESET}\n"));
+    if let Some(cookie) = req
+        .header("Cookie")
+        .filter(|c| c.contains("XDEBUG_SESSION="))
+    {
+        out.push_str(&format!(
+            "\x1b[90mCookie: {cookie} (debugging with Xdebug){RESET}\n"
+        ));
     }
     out.push('\n');
     out
