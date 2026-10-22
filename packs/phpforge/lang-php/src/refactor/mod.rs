@@ -11,8 +11,10 @@
 //! locations the caller passes in, with the texts of those files; the app converts offsets
 //! to LSP positions and applies the result as one workspace edit.
 
+pub mod available;
 pub mod classes;
 pub mod extract_method;
+pub mod hierarchy;
 pub mod inline;
 pub mod introduce;
 pub mod make_static;
