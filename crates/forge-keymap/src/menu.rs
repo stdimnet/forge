@@ -949,6 +949,7 @@ fn git_menu() -> MenuEntry {
             SEP,
             l("Git.Merge", "_Merge..."),
             l("Git.Rebase", "_Rebase..."),
+            l("Git.ResolveConflicts", "Re_solve Conflicts..."),
             SEP,
             l("Git.Branches", "_Branches..."),
             l("Git.CreateNewBranch", "_New Branch..."),
