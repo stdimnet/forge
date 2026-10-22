@@ -56,7 +56,7 @@ app/ui/            SolidJS UI
   - `registerRunConfigurationType` / `registerDebugLauncher` (`src/features/run`) — Run/Debug
     configuration types and debuggers (see "Terminal and Run/Debug" below).
 - Tool windows may render tabs next to their title with `headerContent` (Terminal, Run).
-- Keymap focus contexts: `editor`, `input`, `toolwindow`, `global` and `terminal` (xterm.js has
+- Keymap focus contexts: `editor`, `input`, `toolwindow`, `diff` (diff and merge windows, `[data-focus-context="diff"]`; "diff" actions such as Next Difference only fire there), `global` and `terminal` (xterm.js has
   focus). In the terminal plain Ctrl+letter, Alt+letter and Escape go to the shell; function
   keys, Alt+digit, Ctrl+Shift and Ctrl+Alt combinations still reach the IDE. With Vim
   emulation on, the focused editor's Vim takes the keys it needs first (see "Vim emulation").
@@ -192,6 +192,40 @@ app/ui/            SolidJS UI
   Git submenu of the Project view (`features/git/fileMenu.ts`); file actions there run PHPStorm
   action ids (`CheckinFiles`, `Git.Add`, `Compare.Selected`, …) inside `withVcsTargets`, and the
   same commands use the focused tree, Commit window or editor (`vcsTargets()`) for shortcuts.
+- Merge conflicts (`forge_vcs::merge`, `Repo::conflicts`, `features/git/conflicts.ts`):
+  `git_conflicts() -> { operation: "merge" | "rebase" | "cherryPick" | "revert" | "unstash",
+  description, yoursName, theirsName, yoursTitle, theirsTitle, reversed, files: { path, yours,
+  theirs: "modified" | "added" | "deleted" }[] }` (yours is git's `theirs` in a rebase);
+  `git_merge_file({ path }) -> { path, yoursTitle, theirsTitle, base?, yours?, theirs?, binary,
+  crlf, model?: { chunks: { kind: "left" | "right" | "both" | "conflict", base, left, right
+  (0-based line ranges), baseText, leftText, rightText, simple? }[], changes, conflicts,
+  simpleConflicts } }` (stage versions `:1:`/`:2:`/`:3:` with `\n` line breaks and their
+  three-way merge; `simple` is the word-level merge of "Resolve Simple Conflicts");
+  `git_accept_conflict_side({ paths, side: "yours" | "theirs" })` (checkout of that stage and
+  `git add`, or `git rm` when that side deleted the file); `git_resolve_merge({ path, text,
+  crlf })` writes the merged result through the backend and stages it. The merge window keeps
+  the chunk positions and applied/ignored sides in a CodeMirror state field
+  (`features/git/mergeState.ts`, undoable); its actions use the keymap's `diff` focus context
+  (`[data-focus-context='diff']`: `NextDiff`/`PreviousDiff` on `F7`/`Shift+F7` there,
+  `Diff.ApplyNonConflicts[.Left|.Right]`, `Diff.MagicResolveConflicts`). Browser mode runs the
+  merge as WebAssembly (`vcs_merge`); merging `feature/checkout-flow` in the demo (or
+  `?conflicts`) stops with conflicts.
+- History and comparisons (`forge_vcs` `repo/history.rs`, `forge-diff`, `commands/git_history.rs`,
+  `commands/compare.rs`): `git_file_history({ path, dir, query: { skip?, limit? } }) ->
+  { sha, parents, author, email, time, subject, files: ChangedFile[] }[]` (files follow renames;
+  for a folder every changed file below it), `git_block_history({ path, start, end }) ->
+  { sha, parents, author, email, time, subject, path, before: string | null, after, startLine }[]`
+  (`git log -L`, lines as in `HEAD`), `git_blame_revision({ rev, path }) -> Blame`,
+  `git_changes_since({ rev, path }) -> ChangedFile[]` (rev against the working tree),
+  `compare_dirs({ left, right }) -> { entries: { path, dir, depth, status: "equal" | "different" |
+  "leftOnly" | "rightOnly", leftSize, rightSize, leftModified, rightModified }[], truncated }`
+  (computed where the files are: `Backend::compare_dirs`, agent call `CompareDirs`) and
+  `compare_copy({ from, to, dir })`. History tabs live in the Git tool window
+  (`features/git/history.ts`); files of a revision open as read-only `gitrev://<sha>/<path>`
+  tabs. `CompareTwoFiles` (`Ctrl+D`) runs the handler registered for the focused view with
+  `registerCompareHandler(selector, run)` (`features/compare/state.ts`), else compares the
+  Project view selection (`projectTree.selectedPaths()`, Ctrl+click adds rows); the Project
+  view menu asks `providedEntries("project.compare", entry)` below Reload from Disk.
 - Context-dependent menu entries: `registerContextMenuProvider(menuId, (context) => MenuEntry[])`
   (`features/contextMenu/state.ts`); the Project view asks `providedEntries("project", entry)`
   for its menu. `item(label, run, actionId, { disabled, shortcutAction })` shows greyed-out items.

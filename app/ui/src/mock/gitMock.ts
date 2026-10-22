@@ -25,6 +25,9 @@ import { demoFiles } from "./demoProject";
 import { createIgnoreMatcher } from "./gitignoreMatcher";
 import { isLuaDemo } from "./demoLuaProject";
 import { demoStatus } from "./demoStatus";
+import { CONFLICT_BRANCH, demoConflicts, type DemoConflict } from "./demoConflicts";
+import { callWasm, forgeWasm } from "@/wasm";
+import type { ConflictSet, MergeFile, MergeModel, SideChange } from "@/features/git/api";
 
 
 const DAY = 86400;
@@ -266,9 +269,13 @@ function sideState(from: string | undefined, to: string | undefined): FileState 
 
 async function computeStatus(): Promise<RepoStatus> {
   const wt = await working();
-  const paths = new Set([...Object.keys(head), ...Object.keys(index), ...Object.keys(wt)]);
+  const paths = new Set([...Object.keys(head), ...Object.keys(index), ...Object.keys(wt), ...merging.conflicts.keys()]);
   const entries: StatusEntry[] = [];
   for (const path of [...paths].sort()) {
+    if (merging.conflicts.has(path)) {
+      entries.push({ path, origPath: null, index: "conflicted", worktree: "conflicted", conflict: true });
+      continue;
+    }
     const h = head[path];
     const i = index[path];
     const w = wt[path];
@@ -469,7 +476,7 @@ registerMock("git_show", async ({ rev, path }) => {
   const p = String(path);
   if (rev === "") return index[p] ?? null;
   if (rev === "HEAD" || resolveRev(String(rev)) === state.head) return head[p] ?? null;
-  return head[p] ?? null;
+  return revisionContent(String(rev), p);
 });
 registerMock("git_diff", async (a) => {
   const wt = await working();
@@ -531,7 +538,14 @@ registerMock("git_delete_branch", ({ name }) => {
   state.upstream.delete(n);
   changed();
 });
-registerMock("git_merge", ({ rev }) => {
+registerMock("git_merge", async ({ rev }) => {
+  if (String(rev) === CONFLICT_BRANCH || String(rev) === `origin/${CONFLICT_BRANCH}`) {
+    await startConflictMerge(String(rev));
+    changed();
+    throw new Error(
+      `git merge: Auto-merging app/Services/PriceCalculator.php\nCONFLICT (content): Merge conflict in app/Services/PriceCalculator.php\nCONFLICT (modify/delete): app/Reports/SalesReport.php deleted in ${rev} and modified in HEAD.\nCONFLICT (binary): Merge conflict in public/images/logo.png\nAutomatic merge failed; fix conflicts and then commit the result.`,
+    );
+  }
   const sha = resolveRev(String(rev));
   if (!sha) throw new Error(`git merge: ${rev} - not something we can merge`);
   if (ancestors(state.head).has(sha)) return "Already up to date.";
@@ -546,6 +560,7 @@ registerMock("git_rebase", async ({ onto }) => {
 });
 registerMock("git_stage", async (a) => {
   for (const p of paths(a)) {
+    merging.conflicts.delete(p);
     const w = await readWorking(p);
     if (w === null) delete index[p];
     else index[p] = w;
@@ -572,6 +587,7 @@ registerMock("git_commit", async ({ message, amend, paths: ps }) => {
   await delay(250);
   const msg = String(message ?? "").trim();
   if (!msg && !amend) throw new Error("git commit: commit message is empty");
+  if (merging.conflicts.size) throw new Error("git commit: Committing is not possible because you have unmerged files.");
   const st = await computeStatus();
   const selected = (ps as string[] | null) ?? st.entries.filter((e) => e.index !== "unmodified" && e.index !== "untracked").map((e) => e.path);
   if (!selected.length && !amend) throw new Error("git commit: nothing to commit");
@@ -594,7 +610,8 @@ registerMock("git_commit", async ({ message, amend, paths: ps }) => {
     const prev = bySha.get(state.head)!;
     commits.splice(commits.indexOf(prev), 1);
     sha = newCommit(subject || prev.subject, body ?? prev.body, prev.parents, [...prev.files, ...files]);
-  } else sha = newCommit(subject, body, [state.head], files);
+  } else sha = newCommit(subject, body, merging.theirs ? [state.head, merging.theirsSha] : [state.head], files);
+  merging.theirs = null;
   changed();
   return sha;
 });
@@ -697,6 +714,110 @@ registerMock("git_remove_remote", ({ name }) => {
   changed();
 });
 
+// ---- merge conflicts (demoConflicts.ts) ------------------------------------------------
+
+const merging = {
+  /** The branch being merged, while a merge is in progress. */
+  theirs: null as string | null,
+  theirsSha: "",
+  conflicts: new Map<string, DemoConflict>(),
+};
+
+const mergeModel = async (c: DemoConflict) =>
+  callWasm<MergeModel>((await forgeWasm()).vcs_merge, { base: c.base ?? "", left: c.ours ?? "", right: c.theirs ?? "" });
+
+/** What git leaves in the working tree: merged text with conflict markers. */
+async function withMarkers(c: DemoConflict, theirs: string): Promise<string> {
+  const model = await mergeModel(c);
+  const lines = (c.base ?? "").split(/(?<=\n)/);
+  let out = "";
+  let pos = 0;
+  for (const ch of model.chunks) {
+    out += lines.slice(pos, ch.base.start).join("");
+    if (ch.kind === "conflict") out += `<<<<<<< HEAD\n${ch.leftText}=======\n${ch.rightText}>>>>>>> ${theirs}\n`;
+    else out += ch.kind === "right" ? ch.rightText : ch.leftText;
+    pos = ch.base.end;
+  }
+  return out + lines.slice(pos).join("");
+}
+
+async function startConflictMerge(rev: string): Promise<void> {
+  merging.theirs = rev.replace(/^origin\//, "");
+  merging.theirsSha = resolveRev(rev) ?? shaOf("c3");
+  for (const [path, c] of Object.entries(demoConflicts())) {
+    merging.conflicts.set(path, c);
+    if (c.binary) continue;
+    const text = c.ours !== null && c.theirs !== null ? await withMarkers(c, merging.theirs) : (c.ours ?? c.theirs ?? "");
+    await invoke("fs_write_file", { path, contents: text });
+  }
+}
+
+// `?conflicts` opens the demo in the middle of that merge (screenshots).
+if (!web && !isLuaDemo() && typeof location !== "undefined" && new URLSearchParams(location.search).has("conflicts")) {
+  void Promise.resolve()
+    .then(() => startConflictMerge(CONFLICT_BRANCH))
+    .then(changed)
+    .catch(() => {});
+}
+
+const sideChange = (base: string | null, side: string | null): SideChange => (base === null ? "added" : side === null ? "deleted" : "modified");
+
+registerMock("git_conflicts", (): ConflictSet => {
+  const current = state.current ?? state.head.slice(0, 7);
+  const theirs = merging.theirs ?? "stash";
+  return {
+    operation: merging.theirs ? "merge" : "unstash",
+    description: merging.theirs ? `Merging branch ${theirs} into branch ${current}` : `Unstashing changes into branch ${current}`,
+    yoursName: current,
+    theirsName: theirs,
+    yoursTitle: `Changes from ${current}`,
+    theirsTitle: `Changes from ${theirs}`,
+    reversed: false,
+    files: [...merging.conflicts].map(([path, c]) => ({ path, yours: sideChange(c.base, c.ours), theirs: sideChange(c.base, c.theirs) })),
+  };
+});
+registerMock("git_merge_file", async ({ path }): Promise<MergeFile> => {
+  const p = String(path);
+  const c = merging.conflicts.get(p);
+  if (!c) throw new Error(`${p} has no merge conflict`);
+  const current = state.current ?? state.head.slice(0, 7);
+  return {
+    path: p,
+    yoursTitle: `Changes from ${current}`,
+    theirsTitle: `Changes from ${merging.theirs ?? "stash"}`,
+    base: c.base,
+    yours: c.ours,
+    theirs: c.theirs,
+    binary: !!c.binary,
+    crlf: false,
+    model: c.binary || c.ours === null || c.theirs === null ? null : await mergeModel(c),
+  };
+});
+registerMock("git_accept_conflict_side", async ({ paths: ps, side }) => {
+  for (const p of ps as string[]) {
+    const c = merging.conflicts.get(p);
+    if (!c) continue;
+    merging.conflicts.delete(p);
+    if (c.binary) continue;
+    const text = side === "yours" ? c.ours : c.theirs;
+    if (text === null) {
+      await invoke("fs_delete", { path: p });
+      delete index[p];
+    } else {
+      await invoke("fs_write_file", { path: p, contents: text });
+      index[p] = text;
+    }
+  }
+  changed();
+});
+registerMock("git_resolve_merge", async ({ path, text }) => {
+  const p = String(path);
+  await invoke("fs_write_file", { path: p, contents: String(text) });
+  index[p] = String(text);
+  merging.conflicts.delete(p);
+  changed();
+});
+
 registerMock("ai_complete", async ({ request }) => {
   const req = request as { messages?: { content: string }[] };
   await delay(900);
@@ -705,3 +826,32 @@ registerMock("ai_complete", async ({ request }) => {
 
 /** Paths git tracks in the demo repository (HEAD plus the index), for the file tree. */
 export const trackedPaths = (): string[] => [...new Set([...Object.keys(head), ...Object.keys(index)])];
+
+/**
+ * A file as it was in an older demo commit: the HEAD lines blamed on that commit or an older
+ * one (`null` before the file was added). Keeps file history, Compare with Revision and
+ * Annotate Revision consistent with the blame data.
+ */
+export function revisionContent(rev: string, path: string): string | null {
+  const base = head[path];
+  const sha = resolveRev(rev);
+  const at = sha ? bySha.get(sha) : undefined;
+  if (base === undefined || !at) return base ?? null;
+  const oldest = commits.filter((c) => c.files.some((file) => file.path === path)).pop();
+  if (oldest && at.time < oldest.time) return null;
+  return revisionLines(path, at.time)
+    .map((l) => l.text)
+    .join("");
+}
+
+/** HEAD lines of `path` (with their line breaks and 1-based HEAD numbers) that existed at `time`. */
+export function revisionLines(path: string, time: number): { text: string; line: number; sha: string }[] {
+  const base = head[path] ?? "";
+  const lines = base.match(/[^\n]*\n|[^\n]+$/g) ?? [];
+  return lines
+    .map((text, i) => ({ text, line: i + 1, sha: headLineCommit(path, i + 1) }))
+    .filter((l) => (bySha.get(l.sha)?.time ?? 0) <= time);
+}
+
+/** The demo repository for the history mocks (`gitHistoryMock.ts`). */
+export const mockRepo = { commits, bySha, head, state, log, ancestors, resolveRev, computeStatus };

@@ -561,6 +561,16 @@ impl Backend for RemoteBackend {
             .call(Call::StructuralSearch(req.clone()), SCAN_TIMEOUT)
     }
 
+    fn compare_dirs(&self, left: &str, right: &str) -> Result<forge_diff::DirCompare> {
+        self.shared.call(
+            Call::CompareDirs {
+                left: left.to_string(),
+                right: right.to_string(),
+            },
+            SCAN_TIMEOUT,
+        )
+    }
+
     fn list_files(&self, limit: usize) -> Result<Vec<String>> {
         self.shared.call(Call::ListFiles { limit }, SCAN_TIMEOUT)
     }

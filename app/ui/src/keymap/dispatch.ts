@@ -97,6 +97,8 @@ export async function runAction(actionId: string): Promise<void> {
 export function focusContextOf(el: Element | null): FocusContext {
   if (!el || !(el instanceof Element)) return "global";
   if (el.closest(".xterm")) return "terminal";
+  // Diff and merge windows: their own Next/Previous Difference etc., also in their editors.
+  if (el.closest("[data-focus-context='diff']")) return "diff";
   const textInput =
     el.matches("textarea, select, [contenteditable=''], [contenteditable='true']") ||
     (el.matches("input") && !/^(checkbox|radio|button|submit|range|color)$/.test((el as HTMLInputElement).type));

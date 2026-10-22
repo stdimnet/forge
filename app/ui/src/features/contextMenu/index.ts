@@ -80,7 +80,15 @@ registerContextMenu("editor", [
   action("OptimizeImports"),
   action("CommentByLineComment"),
   separator,
-  submenu("Git", [action("Annotate")]),
+  submenu("Git", [
+    action("Annotate"),
+    action("Compare.SameVersion"),
+    action("Compare.Selected"),
+    action("Git.CompareWithBranch"),
+    action("Vcs.ShowTabbedFileHistory"),
+    action("Vcs.ShowHistoryForBlock"),
+  ]),
+  action("CompareClipboardWithSelection"),
 ]);
 
 /** Open the editor menu at a screen position and hand the focus back to the editor afterwards. */

@@ -22,6 +22,7 @@ import "./liveTemplates";
 import "./documentation";
 import "./keymapSettings";
 import "./git";
+import "./compare";
 import "./forges";
 import "./php";
 import "./laravel";

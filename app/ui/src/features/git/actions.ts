@@ -5,6 +5,7 @@ import { showToolWindow } from "@/state/layout";
 import { gitApi, type StatusEntry } from "./api";
 import { notify, reloadOpenFiles, repositoryChanged, runGit, status } from "./store";
 import { setBranchesOpen, setDiffRequest, setInputDialog } from "./overlays";
+import { runMerging } from "./conflicts";
 
 const shortSha = (sha?: string | null) => (sha ? sha.slice(0, 8) : "HEAD");
 
@@ -34,9 +35,12 @@ export async function showDiff(path: string, files?: string[]): Promise<void> {
   });
 }
 
-/** A revision or branch (`rev`, shown as `label`) vs the working copy: Compare with Revision / Branch. */
-export async function showRevisionDiff(path: string, rev: string, label: string): Promise<void> {
-  const [before, after] = await Promise.all([gitApi.show(rev, path).catch(() => null), workingContent(path)]);
+/**
+ * A revision or branch (`rev`, shown as `label`) vs the working copy: Compare with Revision /
+ * Branch. `revPath` is the file's path in `rev` when it was renamed since.
+ */
+export async function showRevisionDiff(path: string, rev: string, label: string, revPath = path): Promise<void> {
+  const [before, after] = await Promise.all([gitApi.show(rev, revPath).catch(() => null), workingContent(path)]);
   setDiffRequest({
     path,
     left: { title: before === null ? `${label} (file does not exist)` : `${label} (Read-only)`, content: before ?? "" },
@@ -100,7 +104,7 @@ export async function push(): Promise<void> {
 
 /** "Update Project" (Ctrl+T): pull with the update method of the Git settings (merge, rebase or the branch default). */
 export async function updateProject(): Promise<void> {
-  const res = await runGit("Update failed", () => gitApi.pull());
+  const res = await runMerging("Update failed", () => gitApi.pull());
   if (res) {
     await reloadOpenFiles();
     notify("success", "Project updated", res.output.split("\n")[0] || "All files are up to date");
@@ -151,7 +155,7 @@ export function checkoutRevisionDialog(): void {
 
 export async function mergeIntoCurrent(name: string): Promise<void> {
   setBranchesOpen(false);
-  const out = await runGit(`Merge of ${name} failed`, () => gitApi.merge(name));
+  const out = await runMerging(`Merge of ${name} failed`, () => gitApi.merge(name));
   if (out !== undefined) {
     await reloadOpenFiles();
     notify("success", `Merged ${name} into ${status()?.branch ?? "HEAD"}`, out.split("\n")[0]);
@@ -160,7 +164,7 @@ export async function mergeIntoCurrent(name: string): Promise<void> {
 
 export async function rebaseOnto(name: string): Promise<void> {
   setBranchesOpen(false);
-  const out = await runGit(`Rebase onto ${name} failed`, () => gitApi.rebase(name));
+  const out = await runMerging(`Rebase onto ${name} failed`, () => gitApi.rebase(name));
   if (out !== undefined) {
     await reloadOpenFiles();
     notify("success", `Rebased ${status()?.branch ?? "HEAD"} onto ${name}`);

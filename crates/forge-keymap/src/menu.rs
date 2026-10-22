@@ -700,6 +700,7 @@ fn view_menu() -> MenuEntry {
             l("RecentChangedFiles", "Recently Changed Fi_les"),
             l("RecentLocations", "Recent L_ocations"),
             SEP,
+            l("CompareTwoFiles", "Compare _With..."),
             l("CompareClipboardWithSelection", "Compare with Clip_board"),
             SEP,
             g(
@@ -958,6 +959,7 @@ fn git_menu() -> MenuEntry {
             SEP,
             l("Git.Merge", "_Merge..."),
             l("Git.Rebase", "_Rebase..."),
+            l("Git.ResolveConflicts", "Re_solve Conflicts..."),
             SEP,
             l("Git.Branches", "_Branches..."),
             l("Git.CreateNewBranch", "_New Branch..."),

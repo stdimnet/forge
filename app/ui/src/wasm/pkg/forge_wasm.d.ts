@@ -228,6 +228,11 @@ export function colors_format(request_json: string): string;
 export function colors_parse(request_json: string): string;
 
 /**
+ * `{ left: {path, dir, text}[], right: … }` (paths relative to each folder) → `DirCompare`.
+ */
+export function compare_dir_listings(request_json: string): string;
+
+/**
  * `ComposeCommand` → arguments after `docker`.
  */
 export function containers_compose_args(request_json: string): string;
@@ -1003,6 +1008,11 @@ export function text_write(request_json: string): string;
 export function todo_scan(request_json: string): string;
 
 /**
+ * `{ base, left, right }` → `MergeModel`.
+ */
+export function vcs_merge(request_json: string): string;
+
+/**
  * `{text}` → `{handle}`: start tracking an editor.
  */
 export function vim_attach(json: string): string;
@@ -1131,6 +1141,7 @@ export interface InitOutput {
     readonly colors_find: (a: number, b: number, c: number) => void;
     readonly colors_format: (a: number, b: number, c: number) => void;
     readonly colors_parse: (a: number, b: number, c: number) => void;
+    readonly compare_dir_listings: (a: number, b: number, c: number) => void;
     readonly containers_compose_args: (a: number, b: number, c: number) => void;
     readonly containers_compose_parse: (a: number, b: number, c: number) => void;
     readonly containers_docker_contexts: (a: number, b: number, c: number) => void;
@@ -1285,6 +1296,7 @@ export interface InitOutput {
     readonly text_read: (a: number, b: number, c: number) => void;
     readonly text_write: (a: number, b: number, c: number) => void;
     readonly todo_scan: (a: number, b: number, c: number) => void;
+    readonly vcs_merge: (a: number, b: number, c: number) => void;
     readonly vim_attach: (a: number, b: number, c: number) => void;
     readonly vim_configure: (a: number, b: number, c: number) => void;
     readonly vim_detach: (a: number, b: number, c: number) => void;

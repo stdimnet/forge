@@ -9,6 +9,7 @@
 //!   [`protocol`]. [`rpc::RpcClient`] multiplexes calls, events and byte channels over any
 //!   stream (SSH in `crates/forge-remote`, an in-memory pipe in tests).
 
+pub mod compare;
 pub mod frameworks;
 pub mod langservers;
 pub mod local;
@@ -261,6 +262,8 @@ pub trait Backend: Send + Sync {
     /// Structural Search: the matches of a template in the project's files, searched where
     /// they are.
     fn structural_search(&self, req: &forge_ssr::SsrRequest) -> Result<forge_ssr::SsrResult>;
+    /// Compare Directories: the folder diff of two project folders, read where they are.
+    fn compare_dirs(&self, left: &str, right: &str) -> Result<forge_diff::DirCompare>;
 
     /// [`Backend::find_in_files`] for a result that is paged: a local backend with an index keeps
     /// match ranges instead of building every row.

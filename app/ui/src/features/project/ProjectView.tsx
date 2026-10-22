@@ -4,7 +4,7 @@ import { ChevronDown, ChevronRight, ChevronsDownUp, EllipsisVertical, LocateFixe
 import { workspaceApi, type FileEntry } from "@/ipc/workspace";
 import { workspace } from "@/state/workspace";
 import { editor, isCustomTab, openFile } from "@/state/editor";
-import { statusOf, dirHasChanges } from "@/state/vcs";
+import { statusOf, dirHasChanges, dirHasConflicts } from "@/state/vcs";
 import { FileIcon } from "@/shell/FileIcon";
 import { getSetting, saveSetting } from "@/state/settings";
 import { isToolWindowVisible } from "@/state/layout";
@@ -37,8 +37,31 @@ export function revealPath(dir: string): void {
 /** Tree selection, independent of the active editor tab (like PHPStorm). */
 const [selected, setSelected] = createSignal<string | null>(null);
 
+/** Rows selected together with `selected` (Ctrl+click), e.g. the two files of Compare Files. */
+const [alsoSelected, setAlsoSelected] = createSignal<string[]>([]);
+
+/** Every selected row, the lead row first. */
+export const selectedPaths = (): string[] => {
+  const lead = selected();
+  return lead ? [lead, ...alsoSelected().filter((p) => p !== lead)] : alsoSelected();
+};
+
+/** Select one row only (clears a Ctrl+click selection). */
+function selectOnly(path: string | null): void {
+  setAlsoSelected([]);
+  setSelected(path);
+}
+
+/** Ctrl+click: add the row to the selection or take it out. */
+function toggleSelected(path: string): void {
+  const all = selectedPaths();
+  const next = all.includes(path) ? all.filter((p) => p !== path) : [path, ...all];
+  setSelected(next[0] ?? null);
+  setAlsoSelected(next.slice(1));
+}
+
 /** Select a row (Select in Project View); call `revealPath` for its folder first. */
-export const selectPath = (path: string) => setSelected(path);
+export const selectPath = (path: string) => selectOnly(path);
 
 const rowOf = (path: string) => document.querySelector<HTMLElement>(`.project-tree .tree-row[data-path="${CSS.escape(path)}"]`);
 
@@ -48,7 +71,7 @@ const rowOf = (path: string) => document.querySelector<HTMLElement>(`.project-tr
  */
 export function selectInTree(path: string): void {
   revealPath(path.split("/").slice(0, -1).join("/"));
-  setSelected(path);
+  selectOnly(path);
   let frames = 0;
   const scroll = () => {
     const row = rowOf(path);
@@ -120,14 +143,14 @@ function activate(entry: FileEntry): void {
 function TreeNode(props: { entry: FileEntry; depth: number }) {
   const isDir = () => props.entry.kind === "dir";
   const isOpen = () => expanded().has(props.entry.path);
-  const status = () => (isDir() ? (dirHasChanges(props.entry.path) ? "modified" : undefined) : statusOf(props.entry.path));
+  const status = () => (isDir() ? (dirHasConflicts(props.entry.path) ? "conflict" : dirHasChanges(props.entry.path) ? "modified" : undefined) : statusOf(props.entry.path));
   const color = () => projectViewColor(props.entry.path, isDir());
   return (
     <>
       <div
         class="tree-row"
         classList={{
-          selected: selected() === props.entry.path,
+          selected: selected() === props.entry.path || alsoSelected().includes(props.entry.path),
           "active-file": editor.active === props.entry.path,
           ignored: !!props.entry.ignored,
           "file-colored": !!color(),
@@ -137,8 +160,9 @@ function TreeNode(props: { entry: FileEntry; depth: number }) {
         data-dir={isDir() ? "" : undefined}
         data-expanded={isOpen() ? "" : undefined}
         data-depth={props.depth}
-        onClick={() => {
-          setSelected(props.entry.path);
+        onClick={(e) => {
+          if (e.ctrlKey || e.metaKey) return toggleSelected(props.entry.path);
+          selectOnly(props.entry.path);
           if (singleClickOpens()) activate(props.entry);
         }}
         onDblClick={() => {
@@ -147,7 +171,8 @@ function TreeNode(props: { entry: FileEntry; depth: number }) {
         onContextMenu={(e) => {
           e.preventDefault();
           e.stopPropagation();
-          setSelected(props.entry.path);
+          // A row of a multiple selection keeps it (Compare Files acts on both).
+          if (!selectedPaths().includes(props.entry.path)) selectOnly(props.entry.path);
           showFileMenu(props.entry, e.clientX, e.clientY);
         }}
       >
@@ -157,7 +182,7 @@ function TreeNode(props: { entry: FileEntry; depth: number }) {
             // The arrow toggles on a single click, as in PHPStorm.
             if (!isDir()) return;
             e.stopPropagation();
-            setSelected(props.entry.path);
+            selectOnly(props.entry.path);
             toggle(props.entry.path);
           }}
         >
@@ -217,7 +242,7 @@ export function registerProjectViewSection(section: { id: string; order: number;
 }
 
 /** Expansion and selection of the Project tree, for sections. */
-export const projectTree = { expanded, setOpen, toggle, selected, setSelected, singleClickOpens };
+export const projectTree = { expanded, setOpen, toggle, selected, setSelected: selectOnly, selectedPaths, singleClickOpens };
 
 export function ProjectView() {
   let root!: HTMLDivElement;
@@ -226,7 +251,7 @@ export function ProjectView() {
     if (action.type === "none") return;
     e.preventDefault();
     if (action.type === "select") {
-      setSelected(action.path);
+      selectOnly(action.path);
       root.querySelector(`.tree-row[data-path="${CSS.escape(action.path)}"]`)?.scrollIntoView({ block: "nearest" });
     } else if (action.type === "expand") setOpen(action.path, true);
     else if (action.type === "collapse") setOpen(action.path, false);
@@ -241,7 +266,7 @@ export function ProjectView() {
       onContextMenu={(e) => {
         // Rows handle their own menu; the root row and the empty area act on the project root.
         e.preventDefault();
-        setSelected(null);
+        selectOnly(null);
         showFileMenu(null, e.clientX, e.clientY);
       }}
     >
