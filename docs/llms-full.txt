@@ -649,7 +649,6 @@ happening.
 - Extract Interface / Superclass, Pull Members Up / Push Members Down
 - File Structure popup (`Ctrl+F12`)
 - Local History
-- Optimize Imports
 - Go to Test (`Ctrl+Shift+T`)
 - Distraction Free / Presentation / Zen modes
 - Marketplace, settings export/import
@@ -689,6 +688,7 @@ not finished, the page says so.
 | [Editor](docs/guide/user/editor.md) | completion, hover, Parameter Info, Go to Declaration, problems, formatting, editing actions, folding, find, gutter, context menu |
 | [Sticky lines, breadcrumbs and Reader mode](docs/guide/user/code-structure.md) | Sticky Lines, structure breadcrumbs, custom folding regions, rendered doc comments (`Ctrl+Alt+Q`), Reader mode |
 | [Markdown, images and CSV](docs/guide/user/markdown-images-csv.md) | Markdown preview (Mermaid, tables, links, images, front matter), image editor and SVG preview, Edit as Table for CSV/TSV |
+| [Optimize Imports and Auto Import](docs/guide/user/imports.md) | Optimize Imports (`Ctrl+Alt+O`) for files, folders and the project, Auto Import on the fly and on completion, the import popup, Import class, the PHP code style's Imports tab |
 | [Actions on Save](docs/guide/user/actions-on-save.md) | Reformat code, Optimize imports, Rearrange code, code cleanup, ESLint, Prettier, PHP CS Fixer and Laravel Pint on save |
 | [Live templates](docs/guide/user/live-templates.md) | abbreviations + `Tab`, Insert Live Template, Surround With, Unwrap/Remove, Save as Live Template, template sets and settings |
 | [Emmet and color previews](docs/guide/user/emmet-and-colors.md) | Emmet abbreviations in HTML, Blade, Twig, Vue, PHP, JSX and CSS, abbreviation preview, Surround with Emmet, Update/Remove Tag, edit points, color swatches and the color picker |
@@ -1796,7 +1796,7 @@ editor context menu:
 | Go To > Implementation(s) | works |
 | Generate… | works in PHP files, see [PHP](docs/guide/user/php.md#generate) |
 | Reformat Code | works |
-| Optimize Imports | not available yet |
+| Optimize Imports | works, see [Optimize Imports and Auto Import](docs/guide/user/imports.md) |
 | Comment with Line Comment | works |
 | Git > Annotate with Git Blame | works |
 
@@ -2294,6 +2294,124 @@ Settings | Editor | CSV/TSV:
 
 ---
 
+Source: docs/guide/user/imports.md
+
+# Optimize Imports and Auto Import
+
+Forge keeps `use` statements and `import` declarations tidy like PHPStorm: **Optimize
+Imports** removes unused ones and sorts the rest, and **Auto Import** adds them while you
+write code. PHP imports are Forge's own (they follow the PHP code style's **Imports** tab);
+JavaScript, TypeScript and Vue imports come from the TypeScript language server.
+
+## Optimize Imports
+
+**Code | Optimize Imports** (`Ctrl+Alt+O`, also in the editor's context menu) works on the
+file in the editor:
+
+- **PHP**: removes the `use` statements nothing in the file refers to (code, attributes,
+  PHPDoc types and annotations such as `@ORM\Column` count) and arranges the rest as the
+  code style says. Group uses (`use A\{B, C};`) become single statements. Files with syntax
+  errors are left alone.
+- **JavaScript, TypeScript, Vue**: the TypeScript server's "Organize Imports" (removes unused
+  imports, sorts and merges them).
+
+A hint above the caret says what happened: "Removed 2 imports, rearranged imports" or
+"Imports are already optimized". The change is one undo step.
+
+![Optimize Imports in the editor](docs/screenshots/optimize-imports-editor.png)
+
+### Folders and the whole project
+
+In the Project view, select folders or files and press `Ctrl+Alt+O`, or right-click and
+choose **Optimize Imports…**. The **Optimize Imports** dialog shows what is optimized and
+offers:
+
+- **Include subdirectories**: also the files in subfolders (on by default).
+- **Only VCS changed files**: only the files Git reports as changed or new.
+
+**Run** optimizes every PHP, JavaScript, TypeScript and Vue file (Blade templates, minified
+files, `vendor` and `node_modules` are skipped), applies the changes as one undoable step
+(open editors included) and reports "Optimized imports in 3 files: removed 5 imports".
+
+![Optimize Imports dialog](docs/screenshots/optimize-imports-dialog.png)
+
+On save, **Settings | Tools | Actions on Save | Optimize imports** does the same for PHP
+files, see [Actions on Save](docs/guide/user/actions-on-save.md).
+
+## PHP code style: Imports
+
+Settings | Editor | Code Style | PHP | **Imports** decides how Optimize Imports, Auto Import,
+Actions on Save and every refactoring that adds imports (Import class, completion, Create
+from usage, Move, Copy, Extract Interface, Pull Members Up) write `use` statements:
+
+| Option | Values |
+| --- | --- |
+| Sort 'use' statements | **Alphabetically** (default), **By length** (shorter statements first), **Don't sort** (new imports go last) |
+| Group 'use' statements | **By kind** (classes, then functions, then constants; default), **By kind and namespace** (also by the top-level namespace: `App`, `Illuminate`; global classes first), **Don't group** |
+| Blank lines between groups | 0 (default) to 3 |
+| Prefer fully qualified names (FQN) over imports | Completion and Import class write `\App\Models\User` instead of adding a `use` statement |
+
+New imports are inserted in their group and in sort order among the existing ones; existing
+imports are never reordered except by Optimize Imports.
+
+![PHP code style Imports tab](docs/screenshots/code-style-php-imports.png)
+
+## Auto Import settings
+
+Settings | Editor | General | **Auto Import**:
+
+![Auto Import settings](docs/screenshots/auto-import-settings.png)
+
+### PHP
+
+| Option | Default | What it does |
+| --- | --- | --- |
+| Add unambiguous imports on the fly | off | After you stop typing, unresolved class names with exactly one candidate class get their `use` statement. The name you are still typing is left alone. |
+| Optimize imports on the fly | off | Removes unused `use` statements while you edit, but not while the caret or your last edit is in the `use` block, and not an import whose name you are just typing (`Us` keeps `use App\Models\User;`). |
+| Show import popup | on | The blue hint `? App\Models\User Alt+Enter` on an unresolved class name (`? Multiple choices… Alt+Enter` when several classes match). |
+| Enable auto-import in namespace scope | on | Completing a class in a file with a namespace adds its `use` statement; off: the fully qualified name is inserted. |
+| Enable auto-import in file scope | off | The same for files without a namespace. |
+| Prefer FQN in PHPDoc | off | Classes completed or imported inside PHPDoc comments are written fully qualified. |
+| Import classes from the global namespace | on | `use Exception;` for PHP's own classes in namespaced files; off: `\Exception`. |
+
+A class with the same short name as an existing import or a class of the file is always
+written fully qualified.
+
+### JavaScript and TypeScript
+
+| Option | Default | What it does |
+| --- | --- | --- |
+| Add unambiguous imports on the fly | off | The TypeScript server's "add missing imports" after you stop typing, unless it would change the caret's line or the lines you just edited. |
+| Optimize imports on the fly | off | The TypeScript server's "remove unused imports", with the same restriction. |
+| Show import popup | on | `? Name from "module" Alt+Enter` on a name TypeScript cannot find; `Alt+Enter` lists the "Add import from" fixes. |
+| Use paths relative to | Shortest path | How new import paths are written: shortest, project root (or `tsconfig` path mapping), current file, or module (non-relative). |
+| Use type imports in TypeScript | off | `import type { … }` when only types are imported. |
+
+Completion also adds the import of a completed name (the server's import edit), in PHP with
+Forge's own rules above.
+
+## Import class and the import popup
+
+On an unresolved class name, **Alt+Enter** offers **Import class**. The candidates come from
+the PHP index (project and `vendor` packages, also ones that are not indexed yet) and PHP's own
+classes. With one candidate the import is added right away; with several, the **Class to
+Import** chooser lists them with their namespaces.
+
+While the import popup is shown, `Alt+Enter` imports its class directly (or opens the
+chooser).
+
+![Import popup](docs/screenshots/import-popup.png)
+
+![Class to Import](docs/screenshots/import-class-chooser.png)
+
+## Remote projects
+
+Everything works in [remote projects](docs/guide/user/remote-development.md): the PHP index that finds the
+candidates runs on the remote host, and folders are read and written there.
+
+
+---
+
 Source: docs/guide/user/actions-on-save.md
 
 # Actions on Save
@@ -2309,7 +2427,7 @@ project ("For current project"), so a team can share them in `.forge/settings.to
 | Action | Files | What it does | Configure… |
 | --- | --- | --- | --- |
 | **Reformat code** | the chosen file types (default: all) | Reformat Code (`Ctrl+Alt+L`): the language server's formatter, StyLua for Lua, plus the options of the [code style](docs/guide/user/editor.md#code-style) the formatter does not know. **Whole file** or **Changed lines** (only lines changed since the last commit; files that are not committed yet are reformatted completely). | Editor \| Code Style |
-| **Optimize imports** | PHP | Removes unused `use` imports and sorts the rest: classes, then functions, then constants, each alphabetically. Group uses (`use A\{B, C};`) are split into single imports. | |
+| **Optimize imports** | PHP | Removes unused `use` imports and arranges the rest as Settings \| Editor \| Code Style \| PHP \| Imports says (by default classes, then functions, then constants, each alphabetically), see [Optimize Imports](docs/guide/user/imports.md). Group uses (`use A\{B, C};`) are split into single imports. | |
 | **Rearrange code** | PHP | Orders the members of classes, interfaces, traits and enums: trait `use`, enum cases, constants, properties, the constructor, the other methods. Members keep their order inside a group; docblocks, attributes and comments move with their member and blank lines stay where they were. | |
 | **Run code cleanup** | PHP | Applies the safe quick fixes: removes unused imports, unnecessary semicolons (`;;`, `};`) and the redundant closing tag `?>` at the end of a pure PHP file. | |
 | **Run eslint --fix** | `.js`, `.jsx`, `.ts`, `.tsx`, `.mjs`, `.cjs`, `.mts`, `.cts`, `.vue`, `.html`, `.svelte`, `.astro` | `eslint --fix <file>` with the project's ESLint configuration. | Languages & Frameworks \| ESLint |
@@ -6857,7 +6975,9 @@ Running configurations, breakpoints and stepping through PHP code with Xdebug. W
 | [Stop](#stop) | `Ctrl+F2` | `Cmd+F2` |
 | [Rerun](#rerun) | `Ctrl+F5` | `Cmd+R` |
 | [Start Listening for PHP Debug Connections](#start-listening-for-php-debug-connections) | — | — |
+| [Web Server Debug Validation](#web-server-debug-validation) | — | — |
 | [Toggle Line Breakpoint](#toggle-line-breakpoint) | `Ctrl+F8` | `Cmd+F8` |
+| [Toggle Temporary Line Breakpoint](#toggle-temporary-line-breakpoint) | `Ctrl+Alt+Shift+F8` | `Cmd+Alt+Shift+F8` |
 | [View Breakpoints…](#view-breakpoints) | `Ctrl+Shift+F8` | `Cmd+Shift+F8` |
 | [Mute Breakpoints](#mute-breakpoints) | — | — |
 | [Resume Program](#resume-program) | `F9` | `Cmd+Alt+R` |
@@ -6873,6 +6993,7 @@ Running configurations, breakpoints and stepping through PHP code with Xdebug. W
 | [Quick Evaluate Expression](#quick-evaluate-expression) | `Ctrl+Alt+F8` | `Cmd+Alt+F8` |
 | [Show Execution Point](#show-execution-point) | `Alt+F10` | `Alt+F10` |
 | [Add to Watches](#add-to-watches) | — | — |
+| [Set Value](#set-value) | `F2` | `F2` |
 | [Run Artisan Command…](#run-artisan-command) | `Ctrl+Shift+X` | `Cmd+Shift+X` |
 | [Run Console Command…](#run-console-command) | — | — |
 | [Execute](#execute) | `Ctrl+Enter` | `Cmd+Enter` |
@@ -6975,6 +7096,17 @@ Starts or stops listening for incoming Xdebug connections on port 9003.
 
 More: [Xdebug debugging](docs/guide/user/debugging.md#listening-for-connections)
 
+## Web Server Debug Validation
+
+**Shortcut:** — · macOS — · action id `WebServerDebugValidation`
+
+Checks the Xdebug configuration of a web server or a CLI interpreter (mode, client host and
+port, start with request) and explains what to change.
+
+**Menu:** Run | Web Server Debug Validation…
+
+More: [Xdebug debugging](docs/guide/user/debugging.md#web-server-debug-validation)
+
 ## Toggle Line Breakpoint
 
 **Shortcut:** `Ctrl+F8` · macOS `Cmd+F8` · action id `ToggleLineBreakpoint`
@@ -6984,6 +7116,16 @@ Adds or removes a line breakpoint at the caret.
 **Menu:** Run | Toggle Breakpoint | Line Breakpoint
 
 More: [Xdebug debugging](docs/guide/user/debugging.md#breakpoints)
+
+## Toggle Temporary Line Breakpoint
+
+**Shortcut:** `Ctrl+Alt+Shift+F8` · macOS `Cmd+Alt+Shift+F8` · action id `ToggleTemporaryLineBreakpoint`
+
+Adds a breakpoint that is removed once it is hit, or removes the breakpoint at the caret.
+
+**Menu:** Run | Toggle Breakpoint | Temporary Line Breakpoint
+
+More: [Xdebug debugging](docs/guide/user/debugging.md#breakpoint-properties-logpoints-and-temporary-breakpoints)
 
 ## View Breakpoints
 
@@ -7134,6 +7276,15 @@ More: [Xdebug debugging](docs/guide/user/debugging.md#the-debug-tool-window)
 Adds the selected expression to the watches.
 
 More: [Xdebug debugging](docs/guide/user/debugging.md#the-debug-tool-window)
+
+## Set Value
+
+**Shortcut:** `F2` · macOS `F2` · action id `XDebugger.SetValue`
+
+Edits the value of the variable selected in the Debug tool window: type a PHP expression and
+press `Enter`.
+
+More: [Xdebug debugging](docs/guide/user/debugging.md#variables-set-value-and-copy-value)
 
 ## Run Artisan Command
 
@@ -8265,7 +8416,7 @@ Premium) and Forge's own PHP intentions, see [Editor](docs/guide/user/editor.md#
 
 | Intention | Where |
 | --- | --- |
-| Import class 'App\Models\Order' | on a class name that is neither imported nor declared in the namespace (one entry per candidate) |
+| Import class | on a class name that is neither imported nor declared in the namespace: candidates from the index (project and vendor) and PHP's own classes, the "Class to Import" chooser when there are several, see [Auto Import](docs/guide/user/imports.md#import-class-and-the-import-popup) |
 | Replace qualifier with an import | on a fully qualified name (`\App\Models\Order`) |
 | Generate getter and setter / getter / setter | on a property without accessors |
 | Add 'readonly' modifier | on a typed, non-static property without a default value (also promoted constructor properties) |
@@ -8495,6 +8646,9 @@ Settings | Editor | Code Style | PHP (schemes, presets and the preview are descr
 - **Code Conversion**: array declaration style (keep, short `[]` or long `array()`), a comma
   after the last element of multi-line arrays, and `true`/`false`/`null` in lower or upper
   case.
+- **Imports**: sorting (alphabetically, by length), grouping (by kind, by kind and
+  namespace), blank lines between groups and "Prefer FQN"; Optimize Imports, Auto Import and
+  the refactorings follow them, see [Optimize Imports and Auto Import](docs/guide/user/imports.md#php-code-style-imports).
 
 Reformat Code (`Ctrl+Alt+L`) lets Intelephense format the file and then applies the spaces,
 brace placement, blank lines and conversions on the lines as they are. Strings, heredocs,
@@ -10191,6 +10345,9 @@ offers **Run Shell Command…** and **Edit Configuration…**.
 | Type | Fields | Runs | Debug |
 | --- | --- | --- | --- |
 | PHP Script | File | `<php> <options> <file> <arguments>` | Xdebug |
+| PHP Built-in Web Server | Host (`localhost`), Port (`8080`), Document root, Use router script, Open in browser after launch | `<php> <options> -S host:port -t <document root> [router]`, then opens `http://host:port/` | Xdebug for every request |
+| PHP Web Page | Server (Settings \| PHP \| Servers), Start URL | opens the page in the browser | adds `XDEBUG_SESSION_START=FORGE` |
+| PHP HTTP Request | Server (optional), URL, Request method, Headers, Request body | sends the request, the response appears in the Run tool window | adds the `XDEBUG_SESSION` cookie |
 | PHPUnit | Test scope: Directory, File, Class, Method or "Defined in the configuration file"; Configuration file (`phpunit.xml` detected); Test runner options | `phpunit --teamcity …` (from `vendor/bin`) | Xdebug |
 | Artisan | Command (`migrate --seed`) | `<php> artisan <command>` | Xdebug |
 | Composer Script | Script | `composer run <script>` with `php.composer.executable` | Xdebug |
@@ -10223,8 +10380,17 @@ Debugging (`Shift+F9`) through an interpreter works the same way: Xdebug connect
 back with `ssh -R 9003:127.0.0.1:9003`, and the run sets `PHP_IDE_CONFIG=serverName=<interpreter>`
 so breakpoints use the interpreter's path mappings.
 
-> **Note:** the types "PHP Built-in Web Server" and "PHP Remote Debug" are declared by the PHP
-> plugins but not available yet. To debug a web request, use
+![PHP Built-in Web Server](docs/screenshots/run-builtin-server.png)
+
+The built-in web server runs through the configuration's interpreter too: Docker and Compose
+interpreters publish the port (`-p 8080:8080`, the server binds `0.0.0.0` inside the
+container), SSH interpreters forward it (`ssh -L 8080:127.0.0.1:8080`), so the page opens on
+`localhost` either way.
+
+![PHP Web Page](docs/screenshots/run-web-page.png)
+
+> **Note:** the type "PHP Remote Debug" is declared by the Xdebug plugin but not available yet.
+> To debug requests started elsewhere, use
 > [Start Listening for PHP Debug Connections](docs/guide/user/debugging.md#listening-for-connections).
 
 ### Where configurations are stored
@@ -10310,9 +10476,11 @@ show a **Test Results** tree next to the console:
 
 ## Debugging
 
-**Debug** on a PHP configuration (PHP Script, PHPUnit, Artisan, Composer) starts Forge's Xdebug
-listener and runs the process with the Xdebug environment (`XDEBUG_MODE=debug`,
-`XDEBUG_SESSION`, `XDEBUG_CONFIG`). See [Xdebug debugging](docs/guide/user/debugging.md).
+**Debug** on a PHP configuration (PHP Script, PHPUnit, Artisan, Composer, PHP Built-in Web
+Server) starts Forge's Xdebug listener and runs the process with the Xdebug environment
+(`XDEBUG_MODE=debug`, `XDEBUG_SESSION`, `XDEBUG_CONFIG`). **Debug** on PHP Web Page, PHP HTTP
+Request and requests of `.http` files starts listening and adds the Xdebug trigger to the
+request. See [Xdebug debugging](docs/guide/user/debugging.md#debugging-web-pages-and-http-requests).
 
 > **Note:** Run/Debug configurations work in [remote projects](docs/guide/user/remote-development.md): the
 > process runs on the remote host.
@@ -10369,6 +10537,23 @@ parameter or browser extension).
 
 ![Incoming connection](docs/screenshots/debugger-incoming.png)
 
+### Debugging web pages and HTTP requests
+
+These configurations start listening by themselves when you press **Debug** (`Shift+F9`):
+
+| Configuration | Debug |
+| --- | --- |
+| **PHP Built-in Web Server** | runs `php -S host:port -t <document root> [router script]` with the Xdebug environment and `-dxdebug.start_with_request=yes`, so every request it serves is debugged; opens the page in the browser |
+| **PHP Web Page** | opens the start URL on a server of Settings \| PHP \| Servers with `?XDEBUG_SESSION_START=FORGE` (Xdebug then sets the `XDEBUG_SESSION` cookie for the following requests) |
+| **PHP HTTP Request** | sends the request (method, URL, headers, body) with the cookie `XDEBUG_SESSION=FORGE` |
+| Requests in `.http` files | click the gutter ▶ and choose **Debug '…' with Xdebug**: the request is sent with the cookie |
+
+![Debug an .http request](docs/screenshots/http-debug-menu.png)
+
+The Run tool window shows the cookie of a debugged request:
+
+![Debugged request](docs/screenshots/http-debug-run.png)
+
 When a connection comes from an unknown server whose script is not a project file, the
 **Incoming Connection From Xdebug** dialog asks which project file the server file maps to and
 creates a server with that path mapping. Turn on **Ignore external connections through
@@ -10391,6 +10576,35 @@ connections silently.
 
 Breakpoints are stored in `<project>/.forge/breakpoints.json`.
 
+### Breakpoint properties, logpoints and temporary breakpoints
+
+The right side of **View Breakpoints…** (and the popup of a right-click on a breakpoint) has
+PHPStorm's properties:
+
+| Property | Effect |
+| --- | --- |
+| **Enabled** | off keeps the breakpoint without stopping |
+| **Suspend execution** | off makes a **logpoint**: Forge logs and lets the script run on (yellow dot) |
+| **Condition** | a PHP expression; Xdebug stops only when it is true |
+| **Log: "Breakpoint hit" message** | prints `Breakpoint reached at <file>:<line>` to the session's Console |
+| **Log: Stack trace** | prints the frames |
+| **Evaluate and log** | evaluates a PHP expression in the frame and prints its value |
+| **Remove once hit** | a **temporary breakpoint**: removed after it suspended once (dot with a ring) |
+| **Pass count** | stops only from the n-th hit on (Xdebug's hit condition `>=`) |
+
+- **Shift+click** on a line number adds a logpoint ("Breakpoint hit" message, no suspend) and
+  opens its properties.
+- **Toggle Temporary Line Breakpoint** (`Ctrl+Alt+Shift+F8`, macOS `Cmd+Alt+Shift+F8`) adds a
+  breakpoint that is removed once hit.
+- **PHP Exception Breakpoints** (**+** in the dialog) stop when an exception of the class (or
+  a subclass) is thrown; `*` stops on any exception. They have the same log options.
+
+![Logpoint properties](docs/screenshots/debugger-logpoint.png)
+
+Logged lines appear in the **Console** tab of the debug session:
+
+![Logpoint output](docs/screenshots/debugger-logpoint-output.png)
+
 ## The Debug tool window
 
 ![Paused](docs/screenshots/debugger-paused.png)
@@ -10401,7 +10615,8 @@ has a tab per session with:
 
 - **Threads & Variables**: the frames on the left (click to switch), variables on the right.
   Arrays and objects expand lazily.
-- **Console**: the script's output.
+- **Console**: the script's output, logpoint messages, and a field at the bottom that
+  evaluates PHP expressions in the selected frame (see below).
 - The evaluate field at the top: type an expression and press `Enter` to evaluate it, or
   `Ctrl+Shift+Enter` to add it as a watch.
 
@@ -10421,8 +10636,32 @@ has a tab per session with:
 | Show Execution Point | `Alt+F10` | `Alt+F10` |
 | Stop | `Ctrl+F2` | `Cmd+F2` |
 | Add to Watches | context menu | context menu |
+| Set Value… | `F2` | `F2` |
+| Toggle Temporary Line Breakpoint | `Ctrl+Alt+Shift+F8` | `Cmd+Alt+Shift+F8` |
 
 ![Evaluate Expression](docs/screenshots/debugger-evaluate.png)
+
+### Variables: Set Value and Copy Value
+
+Right-click a variable or watch for **Set Value…** (`F2`), **Copy Value** (arrays and objects
+as `print_r` output), **Copy Name**, **Evaluate Expression…** and **Add to Watches**. Set Value
+edits the value in place: type a PHP expression (`'paid'`, `42`, `null`, `$other`) and press
+`Enter` (Xdebug's `property_set`); `Escape` cancels. The variables and watches reload after the
+change.
+
+![Set Value](docs/screenshots/debugger-set-value.png)
+
+![Variable context menu](docs/screenshots/debugger-variable-menu.png)
+
+### Evaluate Expression and the debugger console
+
+The **Evaluate** dialog (`Alt+F8`) and the field at the bottom of the **Console** tab evaluate a
+PHP expression in the selected frame (Xdebug's `eval`). Both complete variable names after `$`
+and properties after `->` (from the suspended script, `Enter` or `Tab` accepts) and keep a
+history of evaluated expressions: `Up` / `Down` in the field, or the history button. Console
+results are trees that expand like variables.
+
+![Debugger console](docs/screenshots/debugger-console.png)
 
 Smart Step Into currently behaves like Step Into. Pause depends on the engine and may
 report "Pause is not supported by this engine".
@@ -10431,14 +10670,38 @@ report "Pause is not supported by this engine".
 
 When PHP runs in a container or on another machine, its file paths differ from yours. Define a
 **server** in Settings | Languages & Frameworks | PHP | **Servers**: **Name**, **Host**,
-**Port**, **Debugger** (Xdebug) and **path mappings** (project file or directory → absolute
-path on the server).
+**Port**, **Debugger** (Xdebug) and **Use path mappings**: the project's folders as a tree,
+with the **Absolute path on the server** of each mapped folder (usually just the project root,
+e.g. `/var/www/html`; a deeper mapping such as `vendor` wins for its files).
 
 ![Servers](docs/screenshots/debugger-servers.png)
 
 A session finds its server from `PHP_IDE_CONFIG=serverName=<name>`, otherwise from
 `$_SERVER['SERVER_NAME']` and `SERVER_PORT`. Servers are stored in
 `<project>/.forge/php-servers.json`.
+
+## Web Server Debug Validation
+
+**Run | Web Server Debug Validation…** (PHPStorm's "Validate Debugger Configuration on Web
+Server") checks whether PHP can connect to Forge:
+
+- **Local Web Server or Shared Folder**: Forge writes a temporary script
+  `forge_xdebug_validator_*.php` into the project folder that the web server serves (**Path to
+  create validation script**, e.g. `public`), requests it under **URL to validation script**
+  and deletes it right after the check. Nothing is written before you press **Validate**.
+- **CLI Interpreter**: reads `php -i` of a [CLI interpreter](docs/guide/user/php.md#cli-interpreters) (also
+  Docker, Compose, SSH or WSL ones).
+
+Each check shows ✓ (fine), ⚠ (works with conditions) or ✗ (must be fixed) with a hint: the
+Xdebug version, `xdebug.mode` (must include `debug`), `xdebug.client_host` (localhost cannot
+reach Forge from a container or another machine), `xdebug.client_port` (must be Forge's
+`php.debug.port`), `xdebug.start_with_request` (`trigger` needs the cookie or
+`XDEBUG_SESSION_START`) and the server name used to find path mappings. For CLI interpreters,
+Forge sets mode, host, port and session itself for debug runs, so only the extension matters.
+The path and URL are remembered per project (`php.debug.validation.documentRoot`,
+`php.debug.validation.url`).
+
+![Web Server Debug Validation](docs/screenshots/debugger-validation.png)
 
 ## Settings | Languages & Frameworks | PHP | Debug
 
@@ -10454,6 +10717,8 @@ A session finds its server from `PHP_IDE_CONFIG=serverName=<name>`, otherwise fr
 | Max. children (array elements / properties per page) | `php.debug.maxChildren` | 100 |
 | Max. depth (levels fetched at once) | `php.debug.maxDepth` | 1 |
 | Max. string length (bytes) | `php.debug.maxData` | 65536 |
+| Path to create validation script | `php.debug.validation.documentRoot` | `public` |
+| URL to validation script | `php.debug.validation.url` | `http://localhost:8080` |
 
 ## Remote projects
 
@@ -10803,9 +11068,15 @@ query console of that data source with execution, results and transactions. See
 
 `.http` files hold one or more requests in PHPStorm's HTTP Client format. They work as
 scratches (New Scratch File → HTTP Request) and as files in your project. Each request gets a ▶
-icon in the gutter; click it to send the request. The response (status, headers, body) appears
+icon in the gutter; click it and choose **Run** to send the request (`Ctrl+Shift+F10` sends
+the request at the caret). The response (status, headers, body) appears
 in the Run tool window, followed by the report of its response handler. Project `.http` files
 run as an `http-request` run configuration.
+
+The ▶ menu also offers **Debug '…' with Xdebug**: it starts
+listening for Xdebug and sends the request with the cookie `XDEBUG_SESSION=FORGE`, so the PHP
+application stops at your breakpoints (see
+[Xdebug debugging](docs/guide/user/debugging.md#debugging-web-pages-and-http-requests)).
 
 ![HTTP request](docs/screenshots/scratches-http-request.png)
 
@@ -11955,6 +12226,7 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Action | Action id | Windows / Linux | macOS | In Forge |
 | --- | --- | --- | --- | --- |
 | Toggle Line Breakpoint | `ToggleLineBreakpoint` | `Ctrl+F8` | `Cmd+F8` | yes |
+| Toggle Temporary Line Breakpoint | `ToggleTemporaryLineBreakpoint` | `Ctrl+Alt+Shift+F8` | `Cmd+Alt+Shift+F8` | yes |
 
 ### Git
 
@@ -12094,6 +12366,8 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Quick Evaluate Expression | `QuickEvaluateExpression` | `Ctrl+Alt+F8` | `Cmd+Alt+F8` | yes |
 | Show Execution Point | `ShowExecutionPoint` | `Alt+F10` | `Alt+F10` | yes |
 | Add to Watches | `Debugger.AddToWatch` |  |  | yes |
+| Set Value… | `XDebugger.SetValue` | `F2` | `F2` | yes |
+| Copy Value | `XDebugger.CopyValue` |  |  | yes |
 
 ## Other
 
@@ -12129,6 +12403,7 @@ Actions that Forge's plugins add (group **Plugins** in Settings | Keymap, some u
 | New Terminal Tab | `Terminal.NewTab` | `Ctrl+Shift+T` | `Cmd+T` | tool window |
 | Close Terminal Tab | `Terminal.CloseTab` |  |  | tool window |
 | Start Listening for PHP Debug Connections | `PhpListenDebugAction` |  |  | any |
+| Web Server Debug Validation | `WebServerDebugValidation` |  |  | any |
 | New Scratch Buffer | `NewScratchBuffer` |  |  | any |
 | Execute (database console) | `Console.Jdbc.Execute` | `Ctrl+Enter` | `Cmd+Enter` | editor |
 | Submit (data grid) | `Console.TableResult.SubmitChanges` | `Ctrl+Enter` | `Cmd+Enter` | tool window |
@@ -12479,7 +12754,7 @@ Completion, Generate, folding, comments, formatting and moving lines. Open it wi
 | Reformat Code | `Ctrl+Alt+L` | `Cmd+Alt+L` | yes | Formats the file with the language server's formatter (StyLua for Lua). [More](docs/guide/user/editor.md#reformat-code) |
 | Reformat File… | `Ctrl+Alt+Shift+L` | `Cmd+Alt+Shift+L` | not yet | Not available yet; the entry is disabled. |
 | Auto-Indent Lines | `Ctrl+Alt+I` | `Ctrl+Alt+I` | yes | Re-indents the current line or the selection. [More](docs/guide/user/editor.md#editing-actions) |
-| Optimize Imports | `Ctrl+Alt+O` | `Ctrl+Alt+O` | not yet | Not available yet; the entry is disabled. |
+| Optimize Imports | `Ctrl+Alt+O` | `Ctrl+Alt+O` | yes | Removes unused imports and sorts the rest in the current file (PHP, JavaScript, TypeScript, Vue); in the Project view in the selected folders and files. [More](docs/guide/user/imports.md#optimize-imports) |
 | Rearrange Code | — | — | not yet | Not available yet; the entry is disabled. |
 | Move Statement Down | `Ctrl+Shift+Down` | `Cmd+Shift+Down` | yes | Moves the current line or selection down. [More](docs/guide/user/editor.md#editing-actions) |
 | Move Statement Up | `Ctrl+Shift+Up` | `Cmd+Shift+Up` | yes | Moves the current line or selection up. [More](docs/guide/user/editor.md#editing-actions) |
@@ -12565,12 +12840,13 @@ Run/Debug configurations, debugging actions and breakpoints. Open it with ☰ (`
 | Debugging Actions › Show Execution Point | `Alt+F10` | `Alt+F10` | yes | Shows the line where the debugger is paused. [More](docs/guide/user/debugging.md#the-debug-tool-window) |
 | **Toggle Breakpoint** | | | | submenu |
 | Toggle Breakpoint › Line Breakpoint | `Ctrl+F8` | `Cmd+F8` | yes | Adds or removes a line breakpoint at the caret. [More](docs/guide/user/debugging.md#breakpoints) |
-| Toggle Breakpoint › Temporary Line Breakpoint | — | — | not yet | Not available yet; the entry is disabled. |
+| Toggle Breakpoint › Temporary Line Breakpoint | `Ctrl+Alt+Shift+F8` | `Cmd+Alt+Shift+F8` | yes | Adds a breakpoint that is removed once it is hit. [More](docs/guide/user/debugging.md#breakpoint-properties-logpoints-and-temporary-breakpoints) |
 | View Breakpoints… | `Ctrl+Shift+F8` | `Cmd+Shift+F8` | yes | Lists all breakpoints, with conditions and exception breakpoints. [More](docs/guide/user/debugging.md#breakpoints) ([screenshot](docs/screenshots/docs-view-breakpoints.png)) |
 | Mute Breakpoints | — | — | yes | Turns all breakpoints off temporarily, or on again. [More](docs/guide/user/debugging.md#breakpoints) |
 | Start Listening for PHP Debug Connections | — | — | yes | Starts or stops listening for incoming Xdebug connections on port 9003. [More](docs/guide/user/debugging.md#listening-for-connections) |
+| Web Server Debug Validation… | — | — | yes | Checks the Xdebug configuration of a web server or CLI interpreter. [More](docs/guide/user/debugging.md#web-server-debug-validation) |
 
-**Start Listening for PHP Debug Connections** is added by the Xdebug plugin (`forge.xdebug`) in PHP projects; it is a toggle with a check mark while Forge listens.
+**Start Listening for PHP Debug Connections** and **Web Server Debug Validation…** are added by the Xdebug plugin (`forge.xdebug`) in PHP projects; Start Listening is a toggle with a check mark while Forge listens.
 
 
 ---
@@ -12959,6 +13235,25 @@ Page id `editor.breadcrumbs`.
 | `editor.breadcrumbs.placement` | enum: `top`, `bottom` | `bottom` | user |  | Placement |
 | `editor.breadcrumbs.disabledLanguages` | list | `[]` | user | Languages | Show breadcrumbs for — one checkbox per language; holds the file type ids switched off. |
 
+### Editor | General | Auto Import
+
+Page id `editor.general.auto-import`. See [Optimize Imports and Auto Import](docs/guide/user/imports.md).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `php.autoImport.addOnTheFly` | bool | `false` | user | PHP | Add unambiguous imports on the fly — Import a class as soon as you stop typing its name when exactly one class has that name. |
+| `php.autoImport.optimizeOnTheFly` | bool | `false` | user | PHP | Optimize imports on the fly — Remove unused 'use' statements while you edit, but not while you work on the imports or type a name one of them provides. |
+| `php.autoImport.showPopup` | bool | `true` | user | PHP | Show import popup — Show a hint with the class to import on unresolved class names; press Alt+Enter to import it. |
+| `php.autoImport.namespaceScope` | bool | `true` | user | PHP | Enable auto-import in namespace scope — Completion adds a 'use' statement in files with a namespace; otherwise it inserts the fully qualified name. |
+| `php.autoImport.fileScope` | bool | `false` | user | PHP | Enable auto-import in file scope — Completion adds a 'use' statement in files without a namespace. |
+| `php.autoImport.fqnInPhpDoc` | bool | `false` | user | PHP | Prefer FQN in PHPDoc — Class names completed or imported in PHPDoc comments are written fully qualified. |
+| `php.autoImport.globalNamespace` | bool | `true` | user | PHP | Import classes from the global namespace — Add 'use Exception;' for PHP's own classes in namespaced files instead of writing '\Exception'. |
+| `javascript.autoImport.addOnTheFly` | bool | `false` | user | JavaScript and TypeScript | Add unambiguous imports on the fly — Import names the TypeScript server can resolve to exactly one module after you stop typing. |
+| `javascript.autoImport.optimizeOnTheFly` | bool | `false` | user | JavaScript and TypeScript | Optimize imports on the fly — Remove unused imports while you edit, but not on the lines you are editing. |
+| `javascript.autoImport.showPopup` | bool | `true` | user | JavaScript and TypeScript | Show import popup — Show a hint with the module to import from on unresolved names; press Alt+Enter to import. |
+| `javascript.autoImport.pathStyle` | enum: `shortest`, `project-relative`, `relative`, `non-relative` | `shortest` | user | JavaScript and TypeScript | Use paths relative to — How completion and Auto Import write the module path of a new import. |
+| `javascript.autoImport.typeImports` | bool | `false` | user | JavaScript and TypeScript | Use type imports in TypeScript — Import types with 'import type' when nothing else is imported from the module. |
+
 ### Editor | General | Postfix Completion
 
 Page id `editor.postfix`.
@@ -13207,6 +13502,8 @@ Page id `lang.php.debug`.
 | `php.debug.maxChildren` | int (1–10000) | `100` | user | Evaluation | Max. children — Array elements and object properties loaded per page. |
 | `php.debug.maxDepth` | int (1–16) | `1` | user | Evaluation | Max. depth — Nesting levels fetched at once; deeper levels load when expanded. |
 | `php.debug.maxData` | int (128–10485760) | `65536` | user | Evaluation | Max. string length — Bytes of string data fetched per value. |
+| `php.debug.validation.documentRoot` | string | `"public"` | user, project | Web Server Debug Validation | Path to create validation script — Project folder served by the web server (its document root), e.g. public. Run \| Web Server Debug Validation places a temporary script there and deletes it after the check. |
+| `php.debug.validation.url` | string | `"http://localhost:8080"` | user, project | Web Server Debug Validation | URL to validation script — The URL of that folder, e.g. http://localhost:8080. |
 
 ### Languages & Frameworks | PHP | Laravel
 
@@ -16295,6 +16592,7 @@ and the browser-mode UI. Pure Rust, so it also runs as WebAssembly.
 | `docs.rs` | `symbol_at` (the identifier at the caret with its qualifier, call, tag and CSS context, imported frameworks) and `external_doc_url` (php.net, Laravel API, MDN, Vue, React, Lua manual); `definition_snippet` (docblock and attributes above, body to the matching brace or Lua `end`, at most 80 lines); `context_headers` (enclosing class, function and CSS rule headers); `type_from_hover` / `type_from_signature`; `language_of`. |
 | `file_structure.rs` | `file_structure_view(FileStructureRequest)` → `FileStructureView { rows, selected, hasFields, hasLambdas, hasInherited }` over Structure view nodes (JSON): "Show Fields" / "Show Inherited" / "Show Lambdas" / "Sort Alphabetically", fuzzy matching with `forge-fuzzy` keeping the parents of matches, the best match or the node at the caret (`caretLine`, `enclosing` scope headers) selected. |
 | `hierarchy.rs` | The model of Type / Method / Call Hierarchy: `HierarchyItem` (id, name, kind, container, LSP position, `handle` with a server's own item), `TypeGraph { root, types: TypeEntry { item, extends, implements, method? }[], method? }` and `CallNode { item, calls: CallSite { path, range, preview }[] }`. `type_view` (Class Hierarchy: superclass chain then subtypes; Supertypes; Subtypes), `method_view` (subtypes of the topmost declaring type with `MethodMark` defined / abstract / shouldDefine / inherited, "Hide Classes Where Method Is Not Implemented"), `call_view` (one level of callers / callees), `HierarchyScope` All / Production / Test / This Class (parents of matches stay), alphabetical sorting, `merge_type_graphs` / `merge_call_nodes` (entries at the same place are one), `is_test_path`. Cycles and huge graphs are cut. |
+| `imports.rs` | Optimize Imports and Auto Import for every language: `summary` / `folder_summary` (PHPStorm's notifications), `minimal_edit` (one replacement for an optimized text, so the caret stays), `optimize_targets` (the files of a folder: supported types, "Only VCS changed files"), `on_the_fly_allowed` (a language server's on-the-fly import edit only away from the caret's line and the last edit). |
 | `navbar.rs` | `nav_bar_segments(NavBarRequest { project, path, scopes, showMembers })` → `NavSegment { kind: project / directory / file / member, label, path, scopeKind?, line?, column? }[]`; members are the class-like and function scopes around the caret. |
 | `related.rs` | `related(RelatedRequest { path, text }, files, read)` → `RelatedItem { kind, group, name, path, line, column }[]` grouped in a fixed order. Text scans, no parser: PHP class ↔ `*Test.php`, Laravel `view()` / `View::make` / `Route::view` / Inertia, `routes/*.php` lines naming a controller, model ↔ migrations (`_create_<table>_table`, `$table`), factory, policy, seeder; Symfony `render()` / `#[Template]` ↔ `templates/`; JS/TS/Vue/Svelte files ↔ `*.test.*`, `*.spec.*`, `__tests__/`, `tests/`, `*.stories.*`, style sheets. The caller lists the files and reads them lazily. |
 | `test_nav.rs` | `test_targets(TestNavRequest { path, text, composerPath }, files, read)` → `TestTargets { isTest, name, targets, canCreate }` (Related Symbol's test items, best folder match first); `new_test_plan` → `NewTestPlan { frameworks, framework, subject, subjectFqn, className, namespace, directory, superclass, superclasses, fileName, members }`: PHPUnit / Pest from composer.json, namespace and folder from `autoload-dev` PSR-4 rules (`forge-file-templates`), Laravel `tests/Unit` / `tests/Feature` mirroring `app/`, Symfony `App\Tests` and `WebTestCase`, public methods from `editor_structure`; Vitest / Jest from package.json and the project's test layout (colocated, `__tests__`, `tests/`, `.test` / `.spec`), exports from a line scan. `test_source(TestSourceRequest)` → `TestSource { path, text, line }`: PHPUnit class with `setUp()` / `tearDown()` and `test<Method>()` stubs, Pest `beforeEach` / `test()` blocks, Vitest / Jest `describe` / `it` with the subject imported. |
@@ -16793,7 +17091,14 @@ Forge's PHP debugger: a DBGp server for Xdebug 3.
   project files (`PathMapper`), set the project's breakpoints and report state changes
   as `DebugEvent`s.
 - Breakpoints live in `<project>/.forge/breakpoints.json`, servers with their path
-  mappings in `<project>/.forge/php-servers.json`.
+  mappings in `<project>/.forge/php-servers.json`. Breakpoints carry PHPStorm's properties:
+  condition, suspend (off = logpoint), "Breakpoint hit" message, stack trace, evaluate and
+  log, remove once hit (temporary) and pass count. When a breakpoint with logging fires, the
+  session logs to the console (`DebugEvent::Output` with stream `log`), drops temporary
+  breakpoints and resumes logpoints.
+- `console`: completion of variables (`$`) and members (`->`) and the console text of values.
+- `validation`: "Web Server Debug Validation" (validation script, `php -i` parser, checks).
+- `web`: URLs of PHP Web Page configurations with the `XDEBUG_SESSION_START` trigger.
 
 ## Modules
 
@@ -16801,6 +17106,7 @@ Forge's PHP debugger: a DBGp server for Xdebug 3.
 | --- | --- |
 | `breakpoints.rs` | Project breakpoints, persisted in `<project>/.forge/breakpoints.json`. |
 | `config.rs` |  |
+| `console.rs` | The debugger console: values printed by logpoints and evaluations, and completion of variables and members while typing a PHP expression. |
 | `connection.rs` | One DBGp connection: writes commands with transaction ids and routes the engine's answers back to the waiting caller. Packets that are not answers (`stream`, `notify`) go to a callback. |
 | `error.rs` |  |
 | `events.rs` |  |
@@ -16809,6 +17115,8 @@ Forge's PHP debugger: a DBGp server for Xdebug 3.
 | `server.rs` | The DBGp listener ("Start Listening for PHP Debug Connections") and the registry of sessions, breakpoints and servers it shares with them. |
 | `servers.rs` | PHP servers (PHPStorm's "Settings > PHP > Servers"): which host a debug connection comes from and how its paths map into the project. Stored per project in `<project>/.forge/php-servers.json`. |
 | `session.rs` | A debug session: one script run connected through DBGp. |
+| `validation.rs` | "Web Server Debug Validation": what the PHP that runs a request or a CLI script reports about Xdebug (validation script, `php -i`), and whether that lets it connect to Forge. |
+| `web.rs` | URLs of the "PHP Web Page" run configuration and the Xdebug trigger that starts a debug session for a browser request. |
 | `xml.rs` | A tiny DOM for DBGp messages. Responses are small, so building a tree is simpler than streaming and keeps the typed parsers in `protocol.rs` readable. |
 
 ## Main public items
@@ -16828,7 +17136,7 @@ pub fn launch_env(port: u16, server_name: Option<&str>) -> Vec<(String, String)>
 
 ## Used by
 
-- IPC: `debug_status`, `debug_listen_start`, `debug_listen_stop`, `debug_sessions`, `debug_accept_connection`, `debug_ignore_connection`, `debug_step`, `debug_pause`, `debug_stop`, `debug_detach`, `debug_run_to_cursor`, `debug_stack`, `debug_contexts`, `debug_variables`, `debug_property`, `debug_eval`, `debug_set_value`, `debug_breakpoints`, `debug_breakpoint_add`, `debug_breakpoint_update`, `debug_breakpoint_remove`, `debug_breakpoint_toggle`, `debug_breakpoints_mute`, `debug_watches`, `debug_watches_set`, `debug_servers`, `debug_servers_save`, `debug_launch_env` (`app/src-tauri/src/commands/debug.rs`)
+- IPC: `debug_status`, `debug_listen_start`, `debug_listen_stop`, `debug_sessions`, `debug_accept_connection`, `debug_ignore_connection`, `debug_step`, `debug_pause`, `debug_stop`, `debug_detach`, `debug_run_to_cursor`, `debug_stack`, `debug_contexts`, `debug_variables`, `debug_property`, `debug_eval`, `debug_set_value`, `debug_breakpoints`, `debug_breakpoint_add`, `debug_breakpoint_update`, `debug_breakpoint_remove`, `debug_breakpoint_toggle`, `debug_breakpoints_mute`, `debug_watches`, `debug_watches_set`, `debug_servers`, `debug_servers_save`, `debug_launch_env`, `debug_complete`, `debug_page_url`, `debug_web_page_start`, `debug_validate_cli`, `debug_validate_web` (`app/src-tauri/src/commands/debug.rs`)
 - UI: `app/ui/src/features/debug`
 - Browser mode: not built to WebAssembly (runtime code); browser mode uses mocks
 
@@ -16839,7 +17147,7 @@ pub fn launch_env(port: u16, server_name: Option<&str>) -> Vec<(String, String)>
 
 ## Tests
 
-12 source files, about 3082 lines; 15 unit tests and 8 integration tests in `tests/` (`dbgp_server.rs`).
+15 source files, about 5190 lines; 25 unit tests and 10 integration tests in `tests/` (`dbgp_server.rs`, against a scripted fake Xdebug engine on localhost).
 
 ```sh
 cargo test -p forge-debug
@@ -19494,8 +19802,8 @@ PHPForge language pack: PHP support built on tree-sitter.
 | `generate.rs` | "Generate" actions (Alt+Insert): constructor, getters/setters, `__toString()`, override/implement method stubs and PHPDoc blocks. |
 | `highlight.rs` | Highlight Usages in File on the index (when no language server answers `documentHighlight`): the usages of the symbol at the caret in its file, the declaration as a write, and on `implements` / `extends` the class's methods that implement / override the parents' methods. |
 | `hover.rs` | Index-based hover for project symbols: signature + attributes + parsed docblock as markdown. Complements a language server's hover (which covers built-ins). |
-| `intentions.rs` | Built-in intentions for Show Context Actions (Alt+Enter) on the index: import class, replace qualifier with an import, accessors, "Add 'readonly' modifier", method stubs, PHPDoc and the "Generate..." link. |
-| `imports.rs` | Optimize Imports: removes `use` imports nothing refers to (code, attributes, docblocks and annotations count) and sorts the rest (classes, functions, constants); group uses are expanded, braced namespaces handled separately. |
+| `intentions.rs` | Built-in intentions for Show Context Actions (Alt+Enter) on the index: replace qualifier with an import, accessors, "Add 'readonly' modifier", method stubs, PHPDoc and the "Generate..." link. |
+| `imports/` | Optimize Imports: removes `use` imports nothing refers to (code, attributes, docblocks and annotations count) and arranges the rest by the code style's Imports tab; group uses are expanded, braced namespaces handled separately. `style.rs`: `ImportStyle` (sorting, grouping, blank lines, Prefer FQN and the PHP Auto Import settings) and the style of the running call (`with_style`, `set_default`). `insert.rs`: `insert_imports`, the one helper every import goes through (Import class, completion, Create from usage, Move, Copy, Pull Members Up). `auto.rs`: Auto Import: unresolved class names with candidates (`ProjectIndex::class_candidates`, project and vendor by file name), `reference_edits` (import, short name or FQN), the "Import class" fix with the chooser, the import popup and the on-the-fly decisions. |
 | `hierarchy.rs` | Type, Method and Call Hierarchy on the index (`HierarchyQuery`, answer `PhpHierarchy { graph?, title?, root?, calls }` in `forge_codeintel::hierarchy`'s model): the class at the caret with all its supertypes (parents, interfaces, traits; vendor classes resolved lazily, unknown ones by name) and every project class below it; for a method also the subtypes of its topmost declaration and each type's `MethodPresence`; the callable at the caret, its callers (`find_usages` call sites grouped by the enclosing method, function or file) and callees (calls in its body resolved like Go to Declaration, constructors through `new`, PHP's own functions as library items). |
 | `index.rs` | Workspace-wide PHP index: parallel indexing, mtime-keyed persistent cache, fuzzy symbol search, ancestor lookup and lazy resolution of vendor classes through Composer's PSR-4 metadata. |
 | `lsp.rs` | How to launch a PHP language server: Intelephense (preferred, users bring their own licence key) with phpactor as fallback. Independent of the generic LSP client; the app turns `LspServerConfig` into a running server. |

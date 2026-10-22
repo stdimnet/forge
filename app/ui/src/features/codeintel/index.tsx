@@ -72,6 +72,7 @@ import { findTabs, findUsagesAt, findUsagesInFileAt, searchTabOpen, gotoFindOccu
 import { findUsagesDialog, openFindUsagesSettings } from "./findSettings";
 import { FindUsagesDialog } from "./FindUsagesDialog";
 import { caretUsageHighlighter, highlightUsagesInFile } from "./highlightUsages";
+import { takeImportHint } from "@/features/imports/hint";
 import "./library";
 import "./markers";
 import "./codeintel.css";
@@ -133,7 +134,15 @@ registerMainMenuEntries("Navigate", [menuAction("NextOccurence"), menuAction("Pr
   after: "GotoPreviousError",
 });
 
-action("ShowIntentionActions", "Show Context Actions", "Code", inEditor((p, v) => showContextActions(p, v)));
+// While the import popup shows, Alt+Enter imports its class (PHPStorm's Auto Import).
+action(
+  "ShowIntentionActions",
+  "Show Context Actions",
+  "Code",
+  inEditor((p, v) => {
+    if (!takeImportHint(p, v)) void showContextActions(p, v);
+  }),
+);
 
 /**
  * Shift+F6: the Project view renames the selected file or folder; the editor renames the

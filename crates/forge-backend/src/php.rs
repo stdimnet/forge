@@ -9,6 +9,7 @@ use forge_core::{ForgeError, FsChanges, Result, Workspace};
 use phpforge_lang_php::generate::{GenerateKind, GenerateOptions, GenerateTargets, TextEdit};
 use phpforge_lang_php::hierarchy::{HierarchyQuery, PhpHierarchy};
 use phpforge_lang_php::hover::Hover;
+use phpforge_lang_php::imports::auto::{self, UnresolvedClass};
 use phpforge_lang_php::index::VendorMode;
 use phpforge_lang_php::index::{SearchKind, SymbolHit};
 use phpforge_lang_php::intentions::Intention;
@@ -105,6 +106,13 @@ pub trait PhpBackend: Send + Sync {
         options: GenerateOptions,
         content: Option<String>,
     ) -> Result<Vec<Intention>>;
+    /// Class names of a file that resolve to no known class, with the classes of the index
+    /// (project and vendor) an import could bring in (Auto Import, "Import class").
+    fn unresolved_classes(
+        &self,
+        path: &str,
+        content: Option<String>,
+    ) -> Result<Vec<UnresolvedClass>>;
     /// The language server to start for the project (Intelephense or phpactor found on the
     /// project's machine), according to `settings`.
     fn lsp_config(&self, settings: PhpLspSettings) -> Result<Option<LspServerConfig>>;
@@ -327,6 +335,15 @@ impl PhpBackend for LocalPhp {
     ) -> Result<Vec<Intention>> {
         let text = self.source(path, content)?;
         self.with_index(|idx| service::intentions(idx, path, &text, offset, &options))
+    }
+
+    fn unresolved_classes(
+        &self,
+        path: &str,
+        content: Option<String>,
+    ) -> Result<Vec<UnresolvedClass>> {
+        let text = self.source(path, content)?;
+        self.with_index(|idx| auto::unresolved_classes(idx, path, &text))
     }
 
     fn lsp_config(&self, settings: PhpLspSettings) -> Result<Option<LspServerConfig>> {

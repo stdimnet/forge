@@ -43,7 +43,7 @@ Completion, Generate, folding, comments, formatting and moving lines. Open it wi
 | Reformat Code | `Ctrl+Alt+L` | `Cmd+Alt+L` | yes | Formats the file with the language server's formatter (StyLua for Lua). [More](../../user/editor.md#reformat-code) |
 | Reformat File… | `Ctrl+Alt+Shift+L` | `Cmd+Alt+Shift+L` | not yet | Not available yet; the entry is disabled. |
 | Auto-Indent Lines | `Ctrl+Alt+I` | `Ctrl+Alt+I` | yes | Re-indents the current line or the selection. [More](../../user/editor.md#editing-actions) |
-| Optimize Imports | `Ctrl+Alt+O` | `Ctrl+Alt+O` | not yet | Not available yet; the entry is disabled. |
+| Optimize Imports | `Ctrl+Alt+O` | `Ctrl+Alt+O` | yes | Removes unused imports and sorts the rest in the current file (PHP, JavaScript, TypeScript, Vue); in the Project view in the selected folders and files. [More](../../user/imports.md#optimize-imports) |
 | Rearrange Code | — | — | not yet | Not available yet; the entry is disabled. |
 | Move Statement Down | `Ctrl+Shift+Down` | `Cmd+Shift+Down` | yes | Moves the current line or selection down. [More](../../user/editor.md#editing-actions) |
 | Move Statement Up | `Ctrl+Shift+Up` | `Cmd+Shift+Up` | yes | Moves the current line or selection up. [More](../../user/editor.md#editing-actions) |

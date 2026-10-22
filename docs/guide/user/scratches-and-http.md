@@ -65,9 +65,15 @@ query console of that data source with execution, results and transactions. See
 
 `.http` files hold one or more requests in PHPStorm's HTTP Client format. They work as
 scratches (New Scratch File → HTTP Request) and as files in your project. Each request gets a ▶
-icon in the gutter; click it to send the request. The response (status, headers, body) appears
+icon in the gutter; click it and choose **Run** to send the request (`Ctrl+Shift+F10` sends
+the request at the caret). The response (status, headers, body) appears
 in the Run tool window, followed by the report of its response handler. Project `.http` files
 run as an `http-request` run configuration.
+
+The ▶ menu also offers **Debug '…' with Xdebug**: it starts
+listening for Xdebug and sends the request with the cookie `XDEBUG_SESSION=FORGE`, so the PHP
+application stops at your breakpoints (see
+[Xdebug debugging](debugging.md#debugging-web-pages-and-http-requests)).
 
 ![HTTP request](../../screenshots/scratches-http-request.png)
 

@@ -750,7 +750,7 @@ app/ui/            SolidJS UI
   `run_stop({ runId })` (SIGTERM to the process group, SIGKILL after 2 s; `taskkill /T` on
   Windows), `run_write({ runId, data })` (stdin), `run_dispose({ runId })`,
   `run_command_line({ request })` (preview).
-- Configuration types: the backend's `KindRegistry` builds command lines for `php-script`,
+- Configuration types: the backend's `KindRegistry` builds command lines for `php-script`, `php-builtin-server`,
   `phpunit` (always `--teamcity`), `artisan`, `composer`, `shell` and `npm` (npm, pnpm, yarn or
   bun; `--` before script arguments only for npm); the PHP interpreter
   defaults to the setting `php.interpreter`. `run_start` / `run_command_line` then wrap PHP
@@ -760,8 +760,11 @@ app/ui/            SolidJS UI
   `fields` and a `command` template (`["${interpreter}", "${file}", "${arguments}"]`, see
   `lua-script`) and works without code; `interpreterSetting` names the setting with the project's
   default interpreter (`lua.interpreter`). In the UI, `registerRunConfigurationType({ id, name, icon,
-  fields, interpreter?, argumentsLabel?, testRunner?, buildCommand? })` adds the form to the
-  Run/Debug Configurations dialog; `buildCommand` builds the command in the UI instead.
+  fields, interpreter?, argumentsLabel?, testRunner?, buildCommand?, start?, afterStart? })` adds
+  the form to the Run/Debug Configurations dialog; `buildCommand` builds the command in the UI
+  instead, `start` starts runs through another command that streams `run://` events (HTTP
+  requests, PHP Web Page) and `afterStart(cfg, handle, debug)` runs once a run started (the
+  built-in web server opens the browser). `enum` field `options` may be a function (servers).
 - Debugging: Debug (Shift+F9) calls the first `registerDebugLauncher({ id, canDebug(cfg, type),
   launch(cfg, ctx) })` that accepts the configuration; `ctx.run({ env, interpreterArgs })` starts it
   in the Run tool window (e.g. with `XDEBUG_SESSION` and `-dxdebug.mode=debug`) and returns
@@ -1137,10 +1140,31 @@ computes everything; `app/ui/src/features/codeintel` and `features/lsp/goto.ts` 
   `debug_property({ sessionId, fullname, depth, context?, page? })`, `debug_eval({ sessionId, expression, depth? })`,
   `debug_set_value`, `debug_breakpoints`, `debug_breakpoint_add|update|remove|toggle`,
   `debug_breakpoints_mute`, `debug_watches|debug_watches_set`, `debug_servers|debug_servers_save`,
-  `debug_launch_env({ serverName? }) -> env`. Files are project relative, lines 1-based.
+  `debug_launch_env({ serverName? }) -> env`, `debug_complete({ sessionId, text, depth? }) ->
+  { label, insert, detail }[]` (console / Evaluate completion: variables after `$`, members after
+  `->`), `debug_page_url({ serverId?, startUrl, debug? }) -> url`,
+  `debug_web_page_start({ runId, serverId?, startUrl, debug }) -> { runId, commandLine, url }`
+  (PHP Web Page: reports on `run://<runId>`, the UI opens `url`), `debug_validate_cli({
+  interpreter? })` and `debug_validate_web({ documentRoot, url })` -> `ValidationReport { checks:
+  { title, value, status: ok|warning|error|info, hint? }[], ok, environment }` (Run | Web Server
+  Debug Validation; the web variant writes `forge_xdebug_validator_*.php` into the project folder
+  through the backend, requests it like the HTTP client and deletes it). Files are project
+  relative, lines 1-based.
+- Breakpoints have PHPStorm's properties: `condition`, `suspend` (false = logpoint),
+  `logMessage`, `logStack`, `logExpression`, `temporary` (remove once hit, DBGp `-r 1`) and
+  `passCount` (DBGp hit condition `>=`). The session acts on a hit in Rust: it logs
+  (`debug://output` with `stream: "log"`), removes temporary breakpoints (`debug://breakpoints`)
+  and resumes logpoints without reporting a pause.
 - Events (tagged `DebugEvent` JSON, `type` = last path segment): `debug://listening`, `debug://session`
   (`SessionInfo` with status and location), `debug://incoming`, `debug://ended`, `debug://output`,
   `debug://breakpoints`, `debug://error`. Typed client: `app/ui/src/features/debug/api.ts`.
+- Web debugging: the PHP Built-in Web Server kind (`forge_process::config::PhpBuiltinServer`,
+  `php -S host:port -t <docroot> [router]`; through Docker / Compose / SSH interpreters the
+  port is published with `Invocation::publish`) is debugged with
+  `-dxdebug.start_with_request=yes`; PHP Web Page and PHP HTTP Request
+  (`features/debug/runTypes.ts`) and `.http` requests add `XDEBUG_SESSION_START=FORGE` or the
+  `XDEBUG_SESSION` cookie (`scratches_http_run({ …, debug })`,
+  `forge_scratches::http::HttpRequest::add_debug_cookie`).
 - Run configurations start debugging through `debugLauncher` (`app/ui/src/features/debug/index.tsx`):
   `await debugLauncher.prepare(serverName?)` starts listening and returns the environment
   (`XDEBUG_MODE`, `XDEBUG_SESSION`, `XDEBUG_CONFIG`, `PHP_IDE_CONFIG`) for the PHP process;
@@ -1608,6 +1632,32 @@ plugin manifest entry, and the chat UI needs no changes:
   get the text before formatting too; the code style pass runs last (order 100).
   Composer (`phpforge_lang_php::composer`): `php_language_level() -> { level, fromComposer }`,
   `php_composer_outdated() -> OutdatedPackage[]`.
+- Optimize Imports and Auto Import (`phpforge_lang_php::imports`, `forge_codeintel::imports`,
+  `app/src-tauri/src/commands/imports.rs`, UI `features/imports/`, client `src/ipc/imports.ts`):
+  `imports_optimize({ path, content }) -> { edit: TextEdit | null, message }` (PHP with the
+  import style; JS/TS/Vue through the TypeScript server's `source.organizeImports`);
+  `imports_optimize_paths({ paths, includeSubdirectories, onlyVcsChanged, buffers? }) -> { edit:
+  WorkspaceEdit, files, changed, message }` (Project view, applied as one undo step);
+  `php_import_hint({ path, content, offset }) -> UnresolvedClass | null` (the import popup);
+  `php_import_reference({ content, start, end, fqn, doc?, auto? }) -> { start, end, newText }[]`
+  (the chosen class of "Class to Import" and completed class names: import or FQN);
+  `php_imports_on_the_fly({ path, content, request: { caret, editedFrom?, editedTo?, add,
+  optimize } }) -> { edits, added, removed }`; `code_imports_on_the_fly({ path, content, add,
+  optimize, caret, edited? }) -> WorkspaceEdit | null` (TypeScript server's
+  `source.addMissingImports` / `source.removeUnusedImports`, only away from the edit). Offsets
+  UTF-16. The import style (`ImportStyle`: code style `php.codeStyle.imports.*` and
+  `php.autoImport.*`) reaches the refactorings through `imports::style::set_default` (kept
+  current from settings changes and project opening) and remote intentions through
+  `GenerateOptions.style.imports`; every `use` statement is inserted by
+  `imports::insert_imports`. Unresolved classes come from the backend's index
+  (`PhpBackend::unresolved_classes`, agent call `PhpCall::UnresolvedClasses`) plus PHP's own
+  classes from the stubs; "Import class" is built in `code_context_actions` (the ambiguous one
+  is the action `PhpImportClass` with `{ start, end, name, doc, candidates }`). Completion
+  items carry `additionalTextEdits`; `registerCompletionApplyHook` lets PHP replace the
+  server's `use` edit. The JavaScript settings `javascript.autoImport.pathStyle` /
+  `typeImports` become the TypeScript server's `importModuleSpecifierPreference` /
+  `preferTypeOnlyAutoImports` (`forge-langservers`). Browser mode: notifications, edits and
+  folder targets through WebAssembly, the PHP analysis approximated in `mock/importsMock.ts`.
 - Actions on Save (`crates/forge-save-actions`, `phpforge_lang_php::{imports, rearrange,
   cleanup}`, UI `features/actionsOnSave/`): `saveFile(path, trigger)` in `state/editor.ts` takes
   a `SaveTrigger` (`"explicit"` for `Ctrl+S`, `"autosave"`, `"plain"` for saves of other

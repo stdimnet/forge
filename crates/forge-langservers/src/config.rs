@@ -156,7 +156,21 @@ pub fn build_config(
                 &mut init,
                 &json!({ "preferences": TS_INLAY_PREFERENCES.clone() }),
             );
+            // Auto Import (Settings | Editor | General | Auto Import).
+            let imports = json!({
+                "includeCompletionsForModuleExports": true,
+                "importModuleSpecifierPreference": ctx.prefs.js_import_paths,
+                "preferTypeOnlyAutoImports": ctx.prefs.ts_type_imports,
+            });
+            merge_json(&mut init, &json!({ "preferences": imports }));
             for language in ["typescript", "javascript"] {
+                merge_json(
+                    &mut settings,
+                    &json!({ language: { "preferences": {
+                        "importModuleSpecifier": ctx.prefs.js_import_paths,
+                        "preferTypeOnlyAutoImports": ctx.prefs.ts_type_imports,
+                    } } }),
+                );
                 merge_json(
                     &mut settings,
                     &json!({ language: { "inlayHints": TS_INLAY_PREFERENCES.clone() } }),
@@ -381,6 +395,27 @@ mod tests {
         assert_eq!(cfg.initialization_options["hostInfo"], "forge");
         let ts_prefs = &cfg.initialization_options["preferences"];
         assert_eq!(ts_prefs["includeInlayParameterNameHints"], "literals");
+        assert_eq!(ts_prefs["importModuleSpecifierPreference"], "shortest");
+        assert_eq!(ts_prefs["preferTypeOnlyAutoImports"], false);
+        let relative = Prefs {
+            js_import_paths: "relative".into(),
+            ts_type_imports: true,
+            ..Prefs::default()
+        };
+        let cfg2 = build_config(
+            c,
+            ts,
+            Path::new("/bin/tls"),
+            &ctx(tmp.path(), &d, &relative, &scan),
+        );
+        assert_eq!(
+            cfg2.initialization_options["preferences"]["importModuleSpecifierPreference"],
+            "relative"
+        );
+        assert_eq!(
+            cfg2.settings["typescript"]["preferences"]["preferTypeOnlyAutoImports"],
+            true
+        );
         assert_eq!(
             cfg.settings["typescript"]["inlayHints"]["variableTypes"]["enabled"],
             true

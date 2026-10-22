@@ -63,6 +63,18 @@ export interface Breakpoint {
   exception?: string;
   condition?: string;
   enabled: boolean;
+  /** "Suspend execution"; false makes a logpoint. Missing = true. */
+  suspend?: boolean;
+  /** "Log: 'Breakpoint hit' message". */
+  logMessage?: boolean;
+  /** "Log: Stack trace". */
+  logStack?: boolean;
+  /** "Evaluate and log". */
+  logExpression?: string;
+  /** "Remove once hit". */
+  temporary?: boolean;
+  /** "Pass count": suspend from the n-th hit on. */
+  passCount?: number;
 }
 
 export interface BreakpointSpec {
@@ -72,6 +84,42 @@ export interface BreakpointSpec {
   exception?: string;
   condition?: string;
   enabled?: boolean;
+  suspend?: boolean;
+  logMessage?: boolean;
+  logStack?: boolean;
+  logExpression?: string;
+  temporary?: boolean;
+  passCount?: number;
+}
+
+/** A completion item of the debugger console / Evaluate dialog. */
+export interface Completion {
+  label: string;
+  /** Replaces the typed prefix. */
+  insert: string;
+  detail: string;
+}
+
+export type CheckStatus = "ok" | "warning" | "error" | "info";
+
+export interface ValidationCheck {
+  title: string;
+  value: string;
+  status: CheckStatus;
+  hint?: string;
+}
+
+/** Result of Run | Web Server Debug Validation. */
+export interface ValidationReport {
+  checks: ValidationCheck[];
+  ok: boolean;
+  environment: { phpVersion: string; sapi: string; phpIni: string; xdebug: string | null; serverName?: string | null };
+}
+
+export interface WebPageStarted {
+  runId: string;
+  commandLine: string;
+  url: string;
 }
 
 export interface BreakpointsSnapshot {
@@ -115,6 +163,7 @@ export type DebugEvent =
   | { type: "session"; session: SessionInfo }
   | { type: "incoming"; session: SessionInfo }
   | { type: "ended"; sessionId: string }
+  /** `stream`: stdout, stderr or log (logpoints). */
   | { type: "output"; sessionId: string; stream: string; text: string }
   | { type: "breakpoints"; snapshot: BreakpointsSnapshot }
   | { type: "error"; sessionId: string | null; message: string };
@@ -156,6 +205,18 @@ export const debugApi = {
   setWatches: (watches: string[]) => invoke<void>("debug_watches_set", { watches }),
   servers: () => invoke<ServerConfig[]>("debug_servers"),
   saveServers: (servers: ServerConfig[]) => invoke<void>("debug_servers_save", { servers }),
+  /** Completion of `text` (caret at its end) in a frame: variables after `$`, members after `->`. */
+  complete: (sessionId: string, text: string, depth = 0) => invoke<Completion[]>("debug_complete", { sessionId, text, depth }),
+  /** PHP Web Page: report the URL on `run://<runId>` and return it for the browser. */
+  webPageStart: (runId: string, serverId: string | undefined, startUrl: string, debug: boolean) =>
+    invoke<WebPageStarted>("debug_web_page_start", { runId, serverId, startUrl, debug }),
+  /** The URL of `startUrl` on a server (with `XDEBUG_SESSION_START` when debugging). */
+  pageUrl: (serverId: string | undefined, startUrl: string, debug = false) =>
+    invoke<string>("debug_page_url", { serverId, startUrl, debug }),
+  /** Validate a CLI interpreter (by name, empty = the project's) from `php -i`. */
+  validateCli: (interpreter?: string) => invoke<ValidationReport>("debug_validate_cli", { interpreter }),
+  /** Place the validation script in `documentRoot`, request it under `url`, delete it. */
+  validateWeb: (documentRoot: string, url: string) => invoke<ValidationReport>("debug_validate_web", { documentRoot, url }),
   /** Env vars that make a PHP process connect to the debugger (for Debug run configurations). */
   launchEnv: (serverName?: string) => invoke<Record<string, string>>("debug_launch_env", { serverName }),
   /** Subscribe to every `debug://*` event. */

@@ -24,6 +24,7 @@ pub mod git_history;
 pub mod git_log;
 pub mod git_ops;
 pub mod hierarchy;
+pub mod imports;
 pub mod injections;
 pub mod json_schema;
 pub mod keymap;

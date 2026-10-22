@@ -237,7 +237,9 @@ export async function launch(cfg: RunConfiguration, opts: LaunchOptions = {}): P
   data.get(id)!.extra = opts.extra;
   // A debug launcher may switch to its own tool window once the session starts.
   showToolWindow("run");
-  return startProcess(id, opts.extra);
+  const handle = await startProcess(id, opts.extra);
+  if (handle) findType(cfg.type)?.afterStart?.(cfg, handle, !!opts.debug);
+  return handle;
 }
 
 export async function runConfiguration(cfg: RunConfiguration | undefined = selectedConfiguration()): Promise<void> {

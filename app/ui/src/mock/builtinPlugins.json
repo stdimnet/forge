@@ -3361,6 +3361,83 @@
           "section": "Laravel Pint",
           "project": true,
           "order": 10
+        },
+        {
+          "key": "php.autoImport.addOnTheFly",
+          "title": "Add unambiguous imports on the fly",
+          "description": "Import a class as soon as you stop typing its name when exactly one class has that name.",
+          "type": "bool",
+          "default": false,
+          "group": "editor.general.auto-import",
+          "section": "PHP",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "php.autoImport.optimizeOnTheFly",
+          "title": "Optimize imports on the fly",
+          "description": "Remove unused 'use' statements while you edit, but not while you work on the imports or type a name one of them provides.",
+          "type": "bool",
+          "default": false,
+          "group": "editor.general.auto-import",
+          "section": "PHP",
+          "project": false,
+          "order": 1
+        },
+        {
+          "key": "php.autoImport.showPopup",
+          "title": "Show import popup",
+          "description": "Show a hint with the class to import on unresolved class names; press Alt+Enter to import it.",
+          "type": "bool",
+          "default": true,
+          "group": "editor.general.auto-import",
+          "section": "PHP",
+          "project": false,
+          "order": 2
+        },
+        {
+          "key": "php.autoImport.namespaceScope",
+          "title": "Enable auto-import in namespace scope",
+          "description": "Completion adds a 'use' statement in files with a namespace; otherwise it inserts the fully qualified name.",
+          "type": "bool",
+          "default": true,
+          "group": "editor.general.auto-import",
+          "section": "PHP",
+          "project": false,
+          "order": 3
+        },
+        {
+          "key": "php.autoImport.fileScope",
+          "title": "Enable auto-import in file scope",
+          "description": "Completion adds a 'use' statement in files without a namespace.",
+          "type": "bool",
+          "default": false,
+          "group": "editor.general.auto-import",
+          "section": "PHP",
+          "project": false,
+          "order": 4
+        },
+        {
+          "key": "php.autoImport.fqnInPhpDoc",
+          "title": "Prefer FQN in PHPDoc",
+          "description": "Class names completed or imported in PHPDoc comments are written fully qualified.",
+          "type": "bool",
+          "default": false,
+          "group": "editor.general.auto-import",
+          "section": "PHP",
+          "project": false,
+          "order": 5
+        },
+        {
+          "key": "php.autoImport.globalNamespace",
+          "title": "Import classes from the global namespace",
+          "description": "Add 'use Exception;' for PHP's own classes in namespaced files instead of writing '\\Exception'.",
+          "type": "bool",
+          "default": true,
+          "group": "editor.general.auto-import",
+          "section": "PHP",
+          "project": false,
+          "order": 6
         }
       ],
       "lspServers": [
@@ -3847,6 +3924,11 @@
           "id": "PhpListenDebugAction",
           "title": "Start Listening for PHP Debug Connections",
           "category": "Run"
+        },
+        {
+          "id": "WebServerDebugValidation",
+          "title": "Web Server Debug Validation",
+          "category": "Run"
         }
       ],
       "keybindings": [],
@@ -3916,6 +3998,28 @@
           "order": 12
         },
         {
+          "key": "php.debug.validation.documentRoot",
+          "title": "Path to create validation script",
+          "description": "Project folder served by the web server (its document root), e.g. public. Run | Web Server Debug Validation places a temporary script there and deletes it after the check.",
+          "type": "string",
+          "default": "public",
+          "group": "lang.php.debug",
+          "section": "Web Server Debug Validation",
+          "project": true,
+          "order": 30
+        },
+        {
+          "key": "php.debug.validation.url",
+          "title": "URL to validation script",
+          "description": "The URL of that folder, e.g. http://localhost:8080.",
+          "type": "string",
+          "default": "http://localhost:8080",
+          "group": "lang.php.debug",
+          "section": "Web Server Debug Validation",
+          "project": true,
+          "order": 31
+        },
+        {
           "key": "php.debug.maxChildren",
           "title": "Max. children",
           "description": "Array elements and object properties loaded per page.",
@@ -3963,6 +4067,20 @@
           "description": "Listen for incoming Xdebug connections.",
           "icon": "bug",
           "debuggable": true
+        },
+        {
+          "id": "php-web-page",
+          "name": "PHP Web Page",
+          "description": "Open a page of a server in the browser; Debug adds the Xdebug trigger.",
+          "icon": "globe",
+          "debuggable": true
+        },
+        {
+          "id": "php-http-request",
+          "name": "PHP HTTP Request",
+          "description": "Send an HTTP request to a server; Debug adds the Xdebug session cookie.",
+          "icon": "send",
+          "debuggable": true
         }
       ],
       "aiProviders": [],
@@ -3980,6 +4098,11 @@
               "id": "PhpListenDebugAction",
               "label": "Start _Listening for PHP Debug Connections",
               "checkable": true
+            },
+            {
+              "type": "action",
+              "id": "WebServerDebugValidation",
+              "label": "_Web Server Debug Validation..."
             }
           ],
           "after": "XDebugger.MuteBreakpoints"
@@ -4627,6 +4750,79 @@
           "group": "lang.prettier",
           "project": true,
           "order": 0
+        },
+        {
+          "key": "javascript.autoImport.addOnTheFly",
+          "title": "Add unambiguous imports on the fly",
+          "description": "Import names the TypeScript server can resolve to exactly one module after you stop typing.",
+          "type": "bool",
+          "default": false,
+          "group": "editor.general.auto-import",
+          "section": "JavaScript and TypeScript",
+          "project": false,
+          "order": 10
+        },
+        {
+          "key": "javascript.autoImport.optimizeOnTheFly",
+          "title": "Optimize imports on the fly",
+          "description": "Remove unused imports while you edit, but not on the lines you are editing.",
+          "type": "bool",
+          "default": false,
+          "group": "editor.general.auto-import",
+          "section": "JavaScript and TypeScript",
+          "project": false,
+          "order": 11
+        },
+        {
+          "key": "javascript.autoImport.showPopup",
+          "title": "Show import popup",
+          "description": "Show a hint with the module to import from on unresolved names; press Alt+Enter to import.",
+          "type": "bool",
+          "default": true,
+          "group": "editor.general.auto-import",
+          "section": "JavaScript and TypeScript",
+          "project": false,
+          "order": 12
+        },
+        {
+          "key": "javascript.autoImport.pathStyle",
+          "title": "Use paths relative to",
+          "description": "How completion and Auto Import write the module path of a new import.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "shortest",
+              "label": "Shortest path"
+            },
+            {
+              "value": "project-relative",
+              "label": "Project root (or path mapping)"
+            },
+            {
+              "value": "relative",
+              "label": "Current file"
+            },
+            {
+              "value": "non-relative",
+              "label": "Module (non-relative)"
+            }
+          ],
+          "default": "shortest",
+          "group": "editor.general.auto-import",
+          "section": "JavaScript and TypeScript",
+          "project": false,
+          "order": 13
+        },
+        {
+          "key": "javascript.autoImport.typeImports",
+          "title": "Use type imports in TypeScript",
+          "description": "Import types with 'import type' when nothing else is imported from the module.",
+          "type": "bool",
+          "default": false,
+          "group": "editor.general.auto-import",
+          "section": "JavaScript and TypeScript",
+          "project": false,
+          "order": 14
         }
       ],
       "lspServers": [

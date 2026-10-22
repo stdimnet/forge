@@ -74,6 +74,24 @@ impl Shared {
         f(&mut self.breakpoints.lock().expect("breakpoints lock"))
     }
 
+    /// Remove a breakpoint that fired with "Remove once hit" and tell the UI and the other
+    /// sessions.
+    pub(crate) fn remove_hit_breakpoint(&self, id: u64) {
+        match self.with_breakpoints(|s| s.remove(id)) {
+            Ok(Some(_)) => {}
+            Ok(None) => return,
+            Err(e) => {
+                tracing::warn!("cannot remove temporary breakpoint {id}: {e}");
+                return;
+            }
+        }
+        for session in self.sessions() {
+            tokio::spawn(async move { session.sync_breakpoint(id, None, false).await });
+        }
+        let snapshot = self.with_breakpoints(|s| s.snapshot());
+        self.emit(DebugEvent::Breakpoints { snapshot });
+    }
+
     pub(crate) fn remove_session(&self, id: &str) {
         self.sessions.lock().expect("sessions lock").remove(id);
     }

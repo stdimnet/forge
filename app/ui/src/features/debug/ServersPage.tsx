@@ -4,6 +4,7 @@ import { createStore, produce, reconcile } from "solid-js/store";
 import { Copy, Minus, Plus, Server } from "lucide-solid";
 import { debugApi, type ServerConfig } from "./api";
 import { slug } from "./mapping";
+import { MappingsTree } from "./MappingsTree";
 
 export function ServersPage() {
   const [servers, setServers] = createStore<ServerConfig[]>([]);
@@ -113,43 +114,19 @@ export function ServersPage() {
                   <input type="checkbox" checked={s().usePathMappings} onChange={(e) => edit((x) => (x.usePathMappings = e.currentTarget.checked))} />
                   Use path mappings (select if the server is remote or symlinks are used)
                 </label>
-                <div class="dbg-mappings" classList={{ disabled: !s().usePathMappings }}>
-                  <div class="dbg-mappings-head">
-                    <span>File/Directory</span>
-                    <span>Absolute path on the server</span>
-                  </div>
-                  <For each={s().mappings}>
-                    {(m, i) => (
-                      <div class="dbg-mapping-row" data-mapping={i()}>
-                        <input
-                          class="dbg-input dbg-mono"
-                          title="Project relative file or directory; empty for the project root"
-                          placeholder="Project root"
-                          value={m.local}
-                          disabled={!s().usePathMappings}
-                          onChange={(e) => edit((x) => (x.mappings[i()].local = e.currentTarget.value.trim()))}
-                        />
-                        <input
-                          class="dbg-input dbg-mono"
-                          placeholder="/var/www/html"
-                          value={m.remote}
-                          disabled={!s().usePathMappings}
-                          onChange={(e) => edit((x) => (x.mappings[i()].remote = e.currentTarget.value.trim()))}
-                        />
-                        <button class="icon-btn" title="Remove Mapping" disabled={!s().usePathMappings} onClick={() => edit((x) => x.mappings.splice(i(), 1))}>
-                          <Minus size={13} />
-                        </button>
-                      </div>
-                    )}
-                  </For>
-                  <button
-                    class="dbg-link dbg-add-mapping"
-                    disabled={!s().usePathMappings}
-                    onClick={() => edit((x) => x.mappings.push({ local: x.mappings.some((m) => m.local === "") ? "vendor" : "", remote: "" }))}
-                  >
-                    <Plus size={12} /> Add mapping
-                  </button>
-                </div>
+                <MappingsTree
+                  mappings={s().mappings}
+                  disabled={!s().usePathMappings}
+                  onChange={(local, remote) =>
+                    edit((x) => {
+                      const i = x.mappings.findIndex((m) => m.local === local);
+                      if (!remote) {
+                        if (i >= 0) x.mappings.splice(i, 1);
+                      } else if (i >= 0) x.mappings[i].remote = remote;
+                      else x.mappings.push({ local, remote });
+                    })
+                  }
+                />
                 <p class="muted dbg-hint">
                   Requests are matched by <code>PHP_IDE_CONFIG=serverName={s().name}</code>, otherwise by <code>$_SERVER['SERVER_NAME']</code> and port.
                 </p>

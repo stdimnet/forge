@@ -303,7 +303,7 @@ interface Resolved {
   handler?: string | null;
 }
 
-registerMock("scratches_http_run", async ({ runId, content, line, env, source }) => {
+registerMock("scratches_http_run", async ({ runId, content, line, env, source, debug }) => {
   const w = await ready;
   const { variables } = callWasmSync<{ variables: Record<string, string> }>(w.scratches_http_environments, {
     ...envFiles(),
@@ -321,6 +321,8 @@ registerMock("scratches_http_run", async ({ runId, content, line, env, source })
     // Body and handler files: next to a scratch, or relative to the project file.
     base: scratch ? "" : src.split("/").slice(0, -1).join("/"),
     files: scratch ? Object.fromEntries([...files].map(([n, f]) => [n, f.content])) : mockFiles,
+    // Debug: the Xdebug session cookie.
+    debug: !!debug,
   });
   if (!resolved) throw new Error("no request at the caret");
   const { request } = resolved;

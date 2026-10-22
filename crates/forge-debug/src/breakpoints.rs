@@ -36,10 +36,32 @@ pub struct Breakpoint {
     pub condition: Option<String>,
     #[serde(default = "yes")]
     pub enabled: bool,
+    /// "Suspend execution": off makes a logpoint that logs and lets the script run on.
+    #[serde(default = "yes")]
+    pub suspend: bool,
+    /// "Log: 'Breakpoint hit' message".
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub log_message: bool,
+    /// "Log: Stack trace".
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub log_stack: bool,
+    /// "Evaluate and log": a PHP expression whose value is printed to the console.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub log_expression: Option<String>,
+    /// "Remove once hit" (temporary breakpoints, Ctrl+Alt+Shift+F8).
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub temporary: bool,
+    /// "Pass count": suspend only from the n-th hit on.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pass_count: Option<u32>,
 }
 
 fn yes() -> bool {
     true
+}
+
+fn is_false(b: &bool) -> bool {
+    !*b
 }
 
 impl Breakpoint {
@@ -48,6 +70,36 @@ impl Breakpoint {
             .as_deref()
             .map(str::trim)
             .filter(|c| !c.is_empty())
+    }
+
+    pub fn log_expression(&self) -> Option<&str> {
+        self.log_expression
+            .as_deref()
+            .map(str::trim)
+            .filter(|c| !c.is_empty())
+    }
+
+    /// The pass count when it changes anything (more than one pass).
+    pub fn pass_count(&self) -> Option<u32> {
+        self.pass_count.filter(|n| *n > 1)
+    }
+
+    /// Whether a hit writes something to the console.
+    pub fn logs(&self) -> bool {
+        self.log_message || self.log_stack || self.log_expression().is_some()
+    }
+
+    /// Whether a hit needs Forge's attention beyond suspending (logging, removal, or
+    /// resuming a logpoint).
+    pub fn acts_on_hit(&self) -> bool {
+        self.logs() || self.temporary || !self.suspend
+    }
+
+    /// Whether the engine reported exception `name` for this exception breakpoint.
+    pub fn matches_exception(&self, name: &str) -> bool {
+        let want = self.exception.as_deref().unwrap_or("*").trim();
+        let want = want.trim_start_matches('\\');
+        want == "*" || want.eq_ignore_ascii_case(name.trim().trim_start_matches('\\'))
     }
 }
 
@@ -67,6 +119,18 @@ pub struct BreakpointSpec {
     pub condition: Option<String>,
     #[serde(default)]
     pub enabled: Option<bool>,
+    #[serde(default)]
+    pub suspend: Option<bool>,
+    #[serde(default)]
+    pub log_message: bool,
+    #[serde(default)]
+    pub log_stack: bool,
+    #[serde(default)]
+    pub log_expression: Option<String>,
+    #[serde(default)]
+    pub temporary: bool,
+    #[serde(default)]
+    pub pass_count: Option<u32>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -163,6 +227,34 @@ impl BreakpointStore {
         self.data.breakpoints.iter().find(|b| b.id == id)
     }
 
+    /// The enabled breakpoint the engine stopped at: an exception breakpoint for
+    /// `exception` (the exact class first, else any, since the engine also reports
+    /// subclasses), otherwise the line breakpoint at `file:line`.
+    pub fn find_hit(
+        &self,
+        file: Option<&str>,
+        line: u32,
+        exception: Option<&str>,
+    ) -> Option<&Breakpoint> {
+        let enabled = || self.data.breakpoints.iter().filter(|b| b.enabled);
+        match exception {
+            Some(name) => {
+                let exceptions = || enabled().filter(|b| b.kind == BreakpointKind::Exception);
+                exceptions()
+                    .find(|b| b.matches_exception(name))
+                    .or_else(|| exceptions().next())
+            }
+            None => {
+                let file = file?;
+                enabled().find(|b| {
+                    b.kind == BreakpointKind::Line
+                        && b.file.as_deref() == Some(file)
+                        && b.line == Some(line)
+                })
+            }
+        }
+    }
+
     pub fn find_line(&self, file: &str, line: u32) -> Option<&Breakpoint> {
         self.data.breakpoints.iter().find(|b| {
             b.kind == BreakpointKind::Line
@@ -207,6 +299,12 @@ impl BreakpointStore {
             exception: spec.exception.map(|e| e.trim().to_string()),
             condition: spec.condition,
             enabled: spec.enabled.unwrap_or(true),
+            suspend: spec.suspend.unwrap_or(true),
+            log_message: spec.log_message,
+            log_stack: spec.log_stack,
+            log_expression: spec.log_expression,
+            temporary: spec.temporary,
+            pass_count: spec.pass_count,
         };
         self.data.breakpoints.push(bp.clone());
         self.save()?;
@@ -280,6 +378,76 @@ mod tests {
         store.remove(a.id).unwrap();
         assert!(store.find_line("app/A.php", 3).is_none());
         assert!(store.add(BreakpointSpec::default()).is_err());
+    }
+
+    #[test]
+    fn logpoints_temporary_and_pass_count_persist() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut store = BreakpointStore::load(dir.path());
+        let lp = store
+            .add(BreakpointSpec {
+                suspend: Some(false),
+                log_message: true,
+                log_expression: Some(" $order->id ".into()),
+                ..line("app/A.php", 7)
+            })
+            .unwrap();
+        assert!(!lp.suspend && lp.logs() && lp.acts_on_hit());
+        assert_eq!(lp.log_expression(), Some("$order->id"));
+        let tmp = store
+            .add(BreakpointSpec {
+                temporary: true,
+                pass_count: Some(3),
+                ..line("app/A.php", 9)
+            })
+            .unwrap();
+        assert_eq!(tmp.pass_count(), Some(3));
+        let json = std::fs::read_to_string(breakpoints_path(dir.path())).unwrap();
+        assert!(json.contains("\"logExpression\""), "{json}");
+        assert!(
+            !json.contains("logStack"),
+            "defaults are not written: {json}"
+        );
+        let reloaded = BreakpointStore::load(dir.path());
+        assert_eq!(reloaded.get(lp.id), Some(&lp));
+        assert!(reloaded.get(tmp.id).unwrap().temporary);
+        // Files of older versions have no suspend flag: they suspend.
+        let old: Breakpoint = serde_json::from_str(r#"{"id":1,"file":"a.php","line":2}"#).unwrap();
+        assert!(old.suspend && old.enabled && !old.acts_on_hit());
+    }
+
+    #[test]
+    fn hits_are_found_by_location_or_exception() {
+        let mut store = BreakpointStore::memory();
+        let a = store.add(line("a.php", 3)).unwrap();
+        let mut off = store.add(line("a.php", 4)).unwrap();
+        off.enabled = false;
+        store.update(off).unwrap();
+        let any = store
+            .add(BreakpointSpec {
+                kind: BreakpointKind::Exception,
+                exception: Some("\\LogicException".into()),
+                ..Default::default()
+            })
+            .unwrap();
+        let rt = store
+            .add(BreakpointSpec {
+                kind: BreakpointKind::Exception,
+                exception: Some("RuntimeException".into()),
+                ..Default::default()
+            })
+            .unwrap();
+        assert_eq!(
+            store.find_hit(Some("a.php"), 3, None).map(|b| b.id),
+            Some(a.id)
+        );
+        assert!(store.find_hit(Some("a.php"), 4, None).is_none(), "disabled");
+        assert!(store.find_hit(None, 3, None).is_none());
+        let hit = |e: &str| store.find_hit(None, 0, Some(e)).map(|b| b.id);
+        assert_eq!(hit("RuntimeException"), Some(rt.id));
+        assert_eq!(hit("logicexception"), Some(any.id));
+        // A subclass the engine matched by hierarchy.
+        assert_eq!(hit("App\\OrderFailed"), Some(any.id));
     }
 
     #[test]

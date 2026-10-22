@@ -124,3 +124,27 @@ export function expressionAt(line: string, col: number): string {
   }
   return "";
 }
+
+/** The PHP literal Set Value starts with: `'text'`, `42`, `true`, `null` ("" for compound values). */
+export function phpLiteral(p: Property): string {
+  switch (p.type) {
+    case "string":
+      return `'${(p.value ?? "").replace(/\\/g, "\\\\").replace(/'/g, "\\'")}'`;
+    case "bool":
+      return p.value === "1" || p.value === "true" ? "true" : "false";
+    case "null":
+    case "uninitialized":
+      return "null";
+    case "int":
+    case "float":
+      return p.value ?? "0";
+    default:
+      return "";
+  }
+}
+
+/** The text Copy Value puts on the clipboard for a scalar (strings unquoted). */
+export function copyText(p: Property): string {
+  if (p.type === "string") return p.value ?? "";
+  return valueText(p);
+}

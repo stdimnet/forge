@@ -174,7 +174,27 @@ after = "XDebugger.MuteBreakpoints"
 items = [
   { type = "separator" },
   { type = "action", id = "PhpListenDebugAction", label = "Start _Listening for PHP Debug Connections", checkable = true },
+  { type = "action", id = "WebServerDebugValidation", label = "_Web Server Debug Validation..." },
 ]
+
+[[plugin.contributions.commands]]
+id = "WebServerDebugValidation"
+title = "Web Server Debug Validation"
+category = "Run"
+
+[[plugin.contributions.runConfigurationTypes]]
+id = "php-web-page"
+name = "PHP Web Page"
+description = "Open a page of a server in the browser; Debug adds the Xdebug trigger."
+icon = "globe"
+debuggable = true
+
+[[plugin.contributions.runConfigurationTypes]]
+id = "php-http-request"
+name = "PHP HTTP Request"
+description = "Send an HTTP request to a server; Debug adds the Xdebug session cookie."
+icon = "send"
+debuggable = true
 
 # ---- Languages & Frameworks > PHP > Debug ----------------------------------------------
 
@@ -227,6 +247,28 @@ default = true
 group = "lang.php.debug"
 section = "Settings"
 order = 12
+
+[[plugin.contributions.settings]]
+key = "php.debug.validation.documentRoot"
+title = "Path to create validation script"
+description = "Project folder served by the web server (its document root), e.g. public. Run | Web Server Debug Validation places a temporary script there and deletes it after the check."
+type = "string"
+default = "public"
+group = "lang.php.debug"
+section = "Web Server Debug Validation"
+project = true
+order = 30
+
+[[plugin.contributions.settings]]
+key = "php.debug.validation.url"
+title = "URL to validation script"
+description = "The URL of that folder, e.g. http://localhost:8080."
+type = "string"
+default = "http://localhost:8080"
+group = "lang.php.debug"
+section = "Web Server Debug Validation"
+project = true
+order = 31
 
 [[plugin.contributions.settings]]
 key = "php.debug.maxChildren"

@@ -1178,6 +1178,7 @@ impl LspClient {
         path: &Path,
         range: Range,
         diagnostics: Vec<Diagnostic>,
+        only: Option<Vec<lsp_types::CodeActionKind>>,
     ) -> Result<Option<Vec<CodeActionOrCommand>>> {
         self.request::<req::CodeActionRequest>(CodeActionParams {
             text_document: TextDocumentIdentifier {
@@ -1186,7 +1187,7 @@ impl LspClient {
             range,
             context: CodeActionContext {
                 diagnostics,
-                only: None,
+                only,
                 trigger_kind: None,
             },
             work_done_progress_params: Default::default(),

@@ -19,7 +19,8 @@ export interface RunConfigField {
   key: string;
   label: string;
   kind?: FieldKind;
-  options?: { value: string; label: string }[];
+  /** Choices of `enum` and `segmented` fields; a function for choices that change (servers). */
+  options?: { value: string; label: string }[] | (() => { value: string; label: string }[]);
   placeholder?: string;
   default?: string;
   required?: boolean;
@@ -63,6 +64,8 @@ export interface RunConfigurationTypeDef {
   start?: (cfg: RunConfiguration, request: RunRequest) => Promise<RunStarted>;
   /** Not offered in the Run/Debug Configurations dialog (runs are started from the editor). */
   hidden?: boolean;
+  /** Called once a run or debug run has started (e.g. open the served page in the browser). */
+  afterStart?: (cfg: RunConfiguration, handle: RunHandle, debug: boolean) => void;
 }
 
 const [registered, setRegistered] = createSignal<RunConfigurationTypeDef[]>([]);
@@ -160,6 +163,10 @@ export function newConfiguration(type: RunConfigurationTypeDef, name: string): R
 }
 
 export const isCommonField = (key: string) => key === "arguments" || key === "interpreterOptions";
+
+/** The choices of an `enum` / `segmented` field. */
+export const fieldOptions = (f: RunConfigField): { value: string; label: string }[] =>
+  typeof f.options === "function" ? f.options() : (f.options ?? []);
 
 export function fieldValue(cfg: RunConfiguration, key: string): string {
   if (key === "arguments") return cfg.arguments ?? "";

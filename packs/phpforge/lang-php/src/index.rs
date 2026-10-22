@@ -125,6 +125,9 @@ pub struct ProjectIndex {
     psr4: Vec<(String, PathBuf)>,
     /// lowercase FQNs already looked up in vendor (hit or miss).
     vendor_tried: HashSet<String>,
+    /// Lowercase short name -> FQNs of the classes vendor packages can autoload (PSR-4 /
+    /// PSR-0 file names and Composer's class map), built on the first import lookup.
+    vendor_names: Option<HashMap<String, Vec<String>>>,
 }
 
 fn to_rel(root: &Path, p: &Path) -> String {
@@ -151,6 +154,7 @@ impl ProjectIndex {
             class_map: HashMap::new(),
             psr4: Vec::new(),
             vendor_tried: HashSet::new(),
+            vendor_names: None,
         }
     }
 
@@ -467,6 +471,46 @@ impl ProjectIndex {
         self.find_class(fqn).cloned()
     }
 
+    /// Classes named `short` (case-insensitive) that a `use` statement could import: the
+    /// indexed ones and, unless vendor is skipped, the ones vendor packages autoload (found
+    /// by file name, without parsing the files). Sorted, project classes first.
+    pub fn class_candidates(&mut self, short: &str) -> Vec<String> {
+        let key = short.trim_start_matches('\\').to_ascii_lowercase();
+        let mut project: Vec<String> = Vec::new();
+        let mut vendor: Vec<String> = Vec::new();
+        for f in self.files.iter() {
+            for c in &f.1.index.classes {
+                if c.name.eq_ignore_ascii_case(&key) {
+                    if Self::is_vendor(f.0) {
+                        vendor.push(c.fqn.clone());
+                    } else {
+                        project.push(c.fqn.clone());
+                    }
+                }
+            }
+        }
+        if self.config.vendor != VendorMode::Skip {
+            if self.vendor_names.is_none() {
+                if self.psr4.is_empty() {
+                    self.psr4 = load_psr4(&self.root);
+                }
+                self.vendor_names = Some(vendor_class_names(&self.root, &self.psr4));
+            }
+            if let Some(names) = self.vendor_names.as_ref().and_then(|m| m.get(&key)) {
+                vendor.extend(names.iter().cloned());
+            }
+        }
+        let mut seen = HashSet::new();
+        let sort = |v: &mut Vec<String>| v.sort_by_key(|f| f.to_ascii_lowercase());
+        sort(&mut project);
+        sort(&mut vendor);
+        project
+            .into_iter()
+            .chain(vendor)
+            .filter(|f| seen.insert(f.to_ascii_lowercase()))
+            .collect()
+    }
+
     /// All ancestors (parents, interfaces, traits; transitively), nearest first.
     pub fn ancestors(&mut self, class: &ClassLike) -> Vec<ClassLike> {
         let mut out: Vec<ClassLike> = Vec::new();
@@ -741,6 +785,80 @@ fn load_psr4(root: &Path) -> Vec<(String, PathBuf)> {
     out
 }
 
+/// Upper bound of the vendor files [`vendor_class_names`] looks at.
+const VENDOR_NAME_LIMIT: usize = 200_000;
+
+/// Short name -> FQNs of vendor classes: every `.php` file below a vendor PSR-4 / PSR-0
+/// folder whose name starts with an upper-case letter, and the entries of Composer's
+/// `autoload_classmap.php`.
+fn vendor_class_names(root: &Path, psr4: &[(String, PathBuf)]) -> HashMap<String, Vec<String>> {
+    let mut out: HashMap<String, Vec<String>> = HashMap::new();
+    let mut add = |fqn: String| {
+        let short = short_name(&fqn).to_ascii_lowercase();
+        let list = out.entry(short).or_default();
+        if !list.iter().any(|f| f.eq_ignore_ascii_case(&fqn)) {
+            list.push(fqn);
+        }
+    };
+    let vendor = root.join("vendor");
+    let mut seen = 0usize;
+    for (prefix, dir) in psr4 {
+        if !dir.starts_with(&vendor) {
+            continue;
+        }
+        for entry in walkdir::WalkDir::new(dir)
+            .into_iter()
+            .filter_map(|e| e.ok())
+            .filter(|e| e.file_type().is_file())
+        {
+            seen += 1;
+            if seen > VENDOR_NAME_LIMIT {
+                break;
+            }
+            let path = entry.path();
+            if path.extension().and_then(|e| e.to_str()) != Some("php") {
+                continue;
+            }
+            let Ok(rel) = path.strip_prefix(dir) else {
+                continue;
+            };
+            let rel = rel.with_extension("");
+            let parts: Vec<String> = rel
+                .components()
+                .map(|c| c.as_os_str().to_string_lossy().into_owned())
+                .collect();
+            let valid = |p: &str| {
+                p.chars()
+                    .next()
+                    .is_some_and(|c| c.is_alphabetic() || c == '_')
+                    && p.chars().all(|c| c.is_alphanumeric() || c == '_')
+            };
+            let Some(last) = parts.last() else { continue };
+            if !last.chars().next().is_some_and(char::is_uppercase)
+                || !parts.iter().all(|p| valid(p))
+            {
+                continue;
+            }
+            add(format!("{prefix}{}", parts.join("\\"))
+                .trim_start_matches('\\')
+                .to_string());
+        }
+    }
+    if let Ok(map) = std::fs::read_to_string(vendor.join("composer/autoload_classmap.php")) {
+        for line in map.lines() {
+            let line = line.trim_start();
+            let Some(rest) = line.strip_prefix('\'') else {
+                continue;
+            };
+            let Some((fqn, _)) = rest.split_once("' =>") else {
+                continue;
+            };
+            add(fqn.replace("\\\\", "\\"));
+        }
+    }
+    out
+}
+
 fn psr4_candidates(psr4: &[(String, PathBuf)], fqn: &str) -> Vec<PathBuf> {
     psr4.iter()
         .filter(|(prefix, _)| {
@@ -915,6 +1033,36 @@ mod tests {
             inherited,
             vec!["save", "table", "attributes", "getAttribute"]
         );
+    }
+
+    #[test]
+    fn import_candidates_include_vendor_classes_by_file_name() {
+        let dir = project();
+        write(
+            dir.path(),
+            "vendor/composer/autoload_classmap.php",
+            "<?php\n\nreturn array(\n    'Legacy\\\\Order' => $vendorDir . '/legacy/Order.php',\n);\n",
+        );
+        let mut idx = ProjectIndex::new(dir.path(), IndexConfig::default());
+        idx.index_workspace(|_, _| {});
+        assert_eq!(
+            idx.class_candidates("controller"),
+            vec!["Illuminate\\Routing\\Controller"]
+        );
+        assert_eq!(
+            idx.class_candidates("Order"),
+            vec!["App\\Models\\Order", "Legacy\\Order"]
+        );
+        assert!(idx.class_candidates("Nothing").is_empty());
+        let mut skip = ProjectIndex::new(
+            dir.path(),
+            IndexConfig {
+                vendor: VendorMode::Skip,
+                ..Default::default()
+            },
+        );
+        skip.index_workspace(|_, _| {});
+        assert!(skip.class_candidates("Controller").is_empty());
     }
 
     #[test]

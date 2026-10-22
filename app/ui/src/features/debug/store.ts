@@ -15,6 +15,7 @@ import {
   type DebugEvent,
   type Frame,
   type Property,
+  type ServerConfig,
   type SessionInfo,
   type StepKind,
 } from "./api";
@@ -23,8 +24,20 @@ const showBalloon = balloonsFor("Debugger");
 
 export interface ConsoleLine {
   sessionId: string;
-  stream: "stdout" | "stderr" | "system";
+  /** `log`: logpoints; `input`: an expression evaluated in the console; `result`: its value. */
+  stream: "stdout" | "stderr" | "system" | "log" | "input" | "result";
   text: string;
+  /** The value of a console evaluation (shown as an expandable tree). */
+  value?: Property;
+}
+
+/** A row of the Variables tree, for Set Value (F2), Copy Value and Add to Watches. */
+export interface SelectedVariable {
+  /** Row key (unique in the tree). */
+  key: string;
+  property: Property;
+  /** Watch expression of a watch row. */
+  watch?: string;
 }
 
 export type WatchResult = { value: Property } | { error: string } | { pending: true };
@@ -46,6 +59,13 @@ const [breakpointState, setBreakpointState] = createSignal<BreakpointsSnapshot>(
 const [incoming, setIncoming] = createSignal<SessionInfo | null>(null);
 /** Bumped whenever variables were reloaded, so expanded tree nodes refetch. */
 const [contextVersion, setContextVersion] = createSignal(0);
+const [selectedVariable, setSelectedVariable] = createSignal<SelectedVariable | null>(null);
+/** Row key whose value is being edited (Set Value). */
+const [editingVariable, setEditingVariable] = createSignal<string | null>(null);
+/** Expressions evaluated in the Evaluate dialog and the console, newest first. */
+const [expressionHistory, setExpressionHistory] = createSignal<string[]>([]);
+/** Settings | PHP | Servers (for PHP Web Page / HTTP Request configurations). */
+const [knownServers, setKnownServers] = createSignal<ServerConfig[]>([]);
 
 export {
   listening,
@@ -62,6 +82,12 @@ export {
   consoleLines,
   incoming,
   contextVersion,
+  selectedVariable,
+  setSelectedVariable,
+  editingVariable,
+  setEditingVariable,
+  expressionHistory,
+  knownServers,
 };
 
 export const breakpoints = () => breakpointState().breakpoints;
@@ -103,8 +129,8 @@ function clearContext(): void {
   });
 }
 
-function log(sessionId: string, stream: ConsoleLine["stream"], text: string): void {
-  setConsoleLines((lines) => [...lines.slice(-2000), { sessionId, stream, text }]);
+function log(sessionId: string, stream: ConsoleLine["stream"], text: string, value?: Property): void {
+  setConsoleLines((lines) => [...lines.slice(-2000), { sessionId, stream, text, value }]);
 }
 
 async function loadVariables(sessionId: string, depth: number): Promise<void> {
@@ -260,7 +286,7 @@ export function handleDebugEvent(e: DebugEvent): void {
       onEnded(e.sessionId);
       break;
     case "output":
-      log(e.sessionId, e.stream === "stderr" ? "stderr" : "stdout", e.text);
+      log(e.sessionId, e.stream === "stderr" ? "stderr" : e.stream === "log" ? "log" : "stdout", e.text);
       break;
     case "breakpoints":
       setBreakpointState(e.snapshot);
@@ -285,6 +311,7 @@ export async function startDebugStore(): Promise<void> {
 export async function reloadDebugState(): Promise<void> {
   try {
     const [status, bps, w] = await Promise.all([debugApi.status(), debugApi.breakpoints(), debugApi.watches()]);
+    void reloadServers();
     batch(() => {
       setListening(status.listening);
       setPort(status.port);
@@ -371,3 +398,83 @@ export function clearConsole(): void {
 }
 
 export { setIncoming };
+
+/** Re-read Settings | PHP | Servers. */
+export async function reloadServers(): Promise<ServerConfig[]> {
+  const list = await debugApi.servers().catch(() => [] as ServerConfig[]);
+  setKnownServers(list);
+  return list;
+}
+
+// ---- breakpoints in the editor ------------------------------------------------------------
+
+/** Ctrl+Alt+Shift+F8: add a breakpoint that is removed once hit, or remove the one there. */
+export async function toggleTemporaryLineBreakpoint(file: string, line: number): Promise<void> {
+  const existing = breakpoints().find((b) => b.kind === "line" && b.file === file && b.line === line);
+  if (existing) return removeBreakpoint(existing.id);
+  await debugApi.addBreakpoint({ file, line, temporary: true }).catch((e) => showBalloon("Cannot add breakpoint", String(e)));
+}
+
+/** Shift+click in the gutter: a non-suspending breakpoint that logs "Breakpoint reached". */
+export async function addLogpoint(file: string, line: number): Promise<Breakpoint | null> {
+  const existing = breakpoints().find((b) => b.kind === "line" && b.file === file && b.line === line);
+  if (existing) return existing;
+  return debugApi
+    .addBreakpoint({ file, line, suspend: false, logMessage: true })
+    .catch((e) => (showBalloon("Cannot add breakpoint", String(e)), null));
+}
+
+// ---- evaluation ---------------------------------------------------------------------------
+
+/** Remember an evaluated expression (newest first, no duplicates). */
+export function rememberExpression(expression: string): void {
+  const e = expression.trim();
+  if (!e) return;
+  setExpressionHistory((h) => [e, ...h.filter((x) => x !== e)].slice(0, 50));
+}
+
+/** Evaluate in the console: echo the expression, then print its value or the error. */
+export async function evaluateInConsole(expression: string): Promise<void> {
+  const s = pausedSession();
+  const e = expression.trim();
+  if (!e) return;
+  const id = s?.id ?? activeId();
+  if (!id) return;
+  rememberExpression(e);
+  log(id, "input", `${e}\n`);
+  if (!s) {
+    log(id, "stderr", "The script is not suspended: expressions can be evaluated only while it is paused.\n");
+    return;
+  }
+  try {
+    const value = await debugApi.eval(s.id, e, selectedFrame()?.level ?? 0);
+    log(s.id, "result", "", value);
+  } catch (err) {
+    log(s.id, "stderr", `${String(err).replace(/^Error: /, "")}\n`);
+  }
+}
+
+/** Completion for an expression in the current frame (empty when not suspended). */
+export async function completeExpression(text: string) {
+  const s = pausedSession();
+  if (!s) return [];
+  return debugApi.complete(s.id, text, selectedFrame()?.level ?? 0).catch(() => []);
+}
+
+/**
+ * Set Value (F2): assign the PHP expression `value` to a variable, then reload the
+ * variables and watches.
+ */
+export async function setVariableValue(fullname: string, value: string): Promise<boolean> {
+  const s = pausedSession();
+  if (!s) return false;
+  const depth = selectedFrame()?.level ?? 0;
+  try {
+    await debugApi.setValue(s.id, fullname, value, depth);
+  } catch (e) {
+    showBalloon("Cannot set value", String(e).replace(/^Error: /, ""), 5000);
+    return false;
+  }
+  await loadVariables(s.id, depth);
+  return true;
+}

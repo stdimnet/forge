@@ -233,7 +233,8 @@ fn read_referenced(
 /// Send the request of an `.http` file at `line` (0-based) of `content` and stream the
 /// console text of the response and of its response handler to `run://<runId>`, like a
 /// finished process. `source` is the editor path of the file (`scratch://<name>` or a
-/// project path) that referenced files are relative to.
+/// project path) that referenced files are relative to. `debug` adds the Xdebug session
+/// cookie ("Debug" in the gutter, PHP HTTP Request debug runs).
 #[tauri::command]
 #[allow(clippy::too_many_arguments)] // Tauri passes every argument and state separately.
 pub async fn scratches_http_run(
@@ -242,6 +243,7 @@ pub async fn scratches_http_run(
     line: usize,
     env: Option<String>,
     source: Option<String>,
+    debug: Option<bool>,
     app: AppHandle,
     state: State<'_, AppState>,
     http_state: State<'_, HttpClientState>,
@@ -274,7 +276,10 @@ pub async fn scratches_http_run(
         Ok((resolved, script))
     })
     .await?;
-    let request = resolved.request;
+    let mut request = resolved.request;
+    if debug.unwrap_or(false) {
+        request.add_debug_cookie(forge_debug::IDE_KEY);
+    }
     let command_line = format!("{} {}", request.method, request.url);
     let started = HttpStarted {
         run_id: run_id.clone(),
@@ -350,7 +355,7 @@ const TIMEOUT: Duration = Duration::from_secs(60);
 
 /// Send `request` from the remote project's host: a local port forwarded through the
 /// project's SSH connection to the URL's host and port as the host sees them.
-async fn send_from_host_of(
+pub(crate) async fn send_from_host_of(
     tunnels: &dyn forge_backend::Tunnels,
     request: &http::HttpRequest,
     text: &mut String,
