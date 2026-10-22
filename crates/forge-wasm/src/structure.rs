@@ -8,6 +8,7 @@
 //! - `structure_group_by_regions`: Structure view nodes grouped under their regions.
 //! - `file_structure_view`: the File Structure popup's rows (toggles, speed search, caret).
 //! - `nav_bar_segments`: the Navigation Bar's segments for a file and the caret's scopes.
+//! - `editor_method_target`: where Next/Previous Method moves the caret.
 
 use forge_codeintel::{
     editor_structure as structure_of, group_by_regions, Region, STRUCTURE_LANGUAGES,
@@ -43,6 +44,29 @@ pub fn editor_structure(request_json: &str) -> String {
 pub fn editor_doc_comments(request_json: &str) -> String {
     match parse::<DocumentRequest>(request_json) {
         Ok(r) => to_json(&forge_markdown::doc_comments(&r.text, &r.language)),
+        Err(e) => e,
+    }
+}
+
+#[derive(Deserialize)]
+struct MethodRequest {
+    text: String,
+    language: String,
+    line: u32,
+    column: u32,
+    forward: bool,
+}
+
+/// `{ text, language, line, column, forward }` → `{ line, column } | null`.
+#[wasm_bindgen]
+pub fn editor_method_target(request_json: &str) -> String {
+    match parse::<MethodRequest>(request_json) {
+        Ok(r) => to_json(&forge_codeintel::method_target(
+            &structure_of(&r.text, &r.language),
+            r.line,
+            r.column,
+            r.forward,
+        )),
         Err(e) => e,
     }
 }
@@ -103,6 +127,14 @@ mod tests {
         assert_eq!(out["scopes"][0]["name"], "A");
         assert_eq!(out["scopes"][1]["name"], "b()");
         assert_eq!(out["regions"][0]["name"], "R");
+        let next: Value = serde_json::from_str(&editor_method_target(
+            r#"{"text":"<?php\nclass A {\n  function b() {\n  }\n}\n","language":"php","line":1,"column":7,"forward":true}"#,
+        ))
+        .unwrap();
+        assert_eq!(
+            (next["line"].clone(), next["column"].clone()),
+            (2.into(), 11.into())
+        );
 
         let docs: Value = serde_json::from_str(&editor_doc_comments(
             r#"{"text":"/** Hi. @return int */","language":"php"}"#,

@@ -292,6 +292,11 @@ export function dql_goto(request_json: string): string;
 export function dql_highlight(request_json: string): string;
 
 /**
+ * `{ ops: EditOp[], list? }` → `{ place: EditPlace | null, places?: EditPlace[] }`.
+ */
+export function edit_history(request_json: string): string;
+
+/**
  * `StatementRequest` → `StatementEdit | null`.
  */
 export function editing_complete_statement(request_json: string): string;
@@ -312,9 +317,19 @@ export function editing_postfix_complete(request_json: string): string;
 export function editing_postfix_templates(_request_json: string): string;
 
 /**
+ * `{ ranges, line, forward }` → the index of the hunk to show, or `null`.
+ */
+export function editor_change_target(request_json: string): string;
+
+/**
  * `{ text, language }` → `{ line, endLine, column, doc: HoverDoc }[]`.
  */
 export function editor_doc_comments(request_json: string): string;
+
+/**
+ * `{ text, language, line, column, forward }` → `{ line, column } | null`.
+ */
+export function editor_method_target(request_json: string): string;
 
 /**
  * `{ text, language }` → `{ scopes: Scope[], regions: Region[] }`.
@@ -986,11 +1001,14 @@ export interface InitOutput {
     readonly dql_diagnostics: (a: number, b: number, c: number) => void;
     readonly dql_goto: (a: number, b: number, c: number) => void;
     readonly dql_highlight: (a: number, b: number, c: number) => void;
+    readonly edit_history: (a: number, b: number, c: number) => void;
     readonly editing_complete_statement: (a: number, b: number, c: number) => void;
     readonly editing_expand_word: (a: number, b: number, c: number) => void;
     readonly editing_postfix_complete: (a: number, b: number, c: number) => void;
     readonly editing_postfix_templates: (a: number, b: number, c: number) => void;
+    readonly editor_change_target: (a: number, b: number, c: number) => void;
     readonly editor_doc_comments: (a: number, b: number, c: number) => void;
+    readonly editor_method_target: (a: number, b: number, c: number) => void;
     readonly editor_structure: (a: number, b: number, c: number) => void;
     readonly editor_structure_languages: (a: number) => void;
     readonly emmet_edit_point: (a: number, b: number, c: number) => void;
