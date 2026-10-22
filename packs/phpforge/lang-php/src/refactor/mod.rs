@@ -17,6 +17,7 @@ pub mod inline;
 pub mod introduce;
 pub mod move_class;
 pub mod names;
+pub mod signature;
 pub mod vars;
 
 use forge_codeintel::RenameConflict;
