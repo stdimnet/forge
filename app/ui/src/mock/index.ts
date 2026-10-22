@@ -30,6 +30,7 @@ import "./compareMock";
 import "./phpMock";
 import "./codeintelMock";
 import "./refactorMock";
+import "./moveMock";
 import "./hierarchyMock";
 import "./documentationMock";
 import "./relatedMock";
