@@ -6,6 +6,7 @@
  * regex parser of the PHP mocks; grouping usages, applying and previewing edits and ordering
  * context actions run the Rust code (`forge-codeintel`) as WebAssembly.
  */
+import { demoLibraryFiles } from "./demoLibraries";
 import { invoke, registerMock } from "@/ipc";
 import { extractComponentInfo } from "./extractComponentMock";
 import { injectionContextActions } from "./injectionsMock";
@@ -854,6 +855,9 @@ registerMock("code_line_markers", (args): LineMarkerInfo[] => {
 
 registerMock("library_read", ({ path }): LibraryFile => {
   const p = String(path);
+  // Include path files ("External Libraries").
+  const lib = p.startsWith("library://file/") ? demoLibraryFiles[p.slice("library://file/".length)] : undefined;
+  if (lib !== undefined) return { text: lib, library: "External Libraries", detail: p.slice("library://file/".length) };
   const text = p.startsWith(STUBS) ? demoStubs[p.slice(STUBS.length)] : undefined;
   if (text === undefined) throw new Error(`not a library file: ${p}`);
   return { text, library: "PHP Runtime", detail: demoStubsDetail };
