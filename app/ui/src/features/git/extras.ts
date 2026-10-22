@@ -8,6 +8,8 @@ import { askChoice, askConfirm } from "@/features/contextMenu/dialogs";
 import { setInputDialog } from "./overlays";
 import { setGitDialog } from "./gitDialogs";
 import { openRemoteProject, openWorkspace, workspace, isRemoteProject } from "@/state/workspace";
+import { joinDir, suggestWorktreePath } from "./extrasModel";
+export { joinDir, suggestWorktreePath };
 import { extrasApi, type CloneProgress, type NewWorktree, type Worktree } from "./extrasApi";
 import { notify, repositoryChanged, runGit } from "./store";
 import { setCommitMessage } from "./CommitPanel";
@@ -41,12 +43,6 @@ export async function openCloneDialog(url?: string): Promise<void> {
     if (id && r) target = { connectionId: id, label: r.label };
   }
   setGitDialog({ kind: "clone", request: { target, url } });
-}
-
-/** Join a parent directory and a name with the separator the parent uses. */
-export function joinDir(parent: string, name: string): string {
-  const sep = parent.includes("\\") && !parent.includes("/") ? "\\" : "/";
-  return parent.replace(/[\\/]+$/, "") + sep + name;
 }
 
 /** Run the clone; resolves with the new working copy, or null when it failed / was cancelled. */
@@ -107,17 +103,6 @@ export async function refreshWorktrees(): Promise<void> {
 export async function newWorktreeDialog(branch: string | null = null): Promise<void> {
   await refreshWorktrees();
   setGitDialog({ kind: "newWorktree", branch });
-}
-
-/** A sibling folder of the main worktree named after the branch, like PHPStorm suggests. */
-export function suggestWorktreePath(list: Worktree[], branch: string): string {
-  const main = list.find((w) => w.main) ?? list[0];
-  if (!main) return "";
-  const parts = main.path.replace(/[\\/]+$/, "").split(/[\\/]/);
-  const repo = parts.pop() ?? "worktree";
-  const parent = main.path.slice(0, main.path.replace(/[\\/]+$/, "").length - repo.length).replace(/[\\/]+$/, "");
-  const suffix = branch.replace(/[^A-Za-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "");
-  return joinDir(parent || "/", suffix ? `${repo}-${suffix}` : `${repo}-worktree`);
 }
 
 export async function createWorktree(options: NewWorktree, open: boolean): Promise<boolean> {
