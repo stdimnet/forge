@@ -46,6 +46,12 @@ pub struct StashFileContents {
     pub after: Option<String>,
 }
 
+/// A rebase in progress (see [`Repo::rebase_in_progress`]).
+pub(super) struct RebaseProgress {
+    /// The branch being rebased and the commit it is rebased onto, when git says so.
+    pub branch_onto: Option<(String, String)>,
+}
+
 const PSEUDO_REFS: [(&str, OngoingOperation); 4] = [
     ("REBASE_HEAD", OngoingOperation::Rebase),
     ("MERGE_HEAD", OngoingOperation::Merge),
@@ -109,11 +115,8 @@ impl Repo {
                 .filter(|s| !s.is_empty())
         };
         if present.first() == Some(&true) {
-            // git leaves REBASE_HEAD behind after `rebase --skip`; the long status knows
-            // whether a rebase really is in progress.
-            let status = self.git(&["status"]).unwrap_or_default();
-            if status.contains("rebase in progress") {
-                let (branch, onto) = match parse_rebase_status(&status) {
+            if let Some(progress) = self.rebase_in_progress() {
+                let (branch, onto) = match progress.branch_onto {
                     Some((branch, onto)) => (Some(branch), Some(self.ref_name(&onto))),
                     None => (current(), None),
                 };
@@ -135,6 +138,18 @@ impl Repo {
             operation,
             onto: None,
         })
+    }
+
+    /// A rebase that really is in progress, from the long `git status`. `REBASE_HEAD` alone
+    /// is not enough: git leaves it behind after `rebase --skip`, which would make later
+    /// merge or unstash conflicts look like a rebase (and swap Yours and Theirs).
+    pub(super) fn rebase_in_progress(&self) -> Option<RebaseProgress> {
+        let status = self.git(&["status"]).ok()?;
+        status
+            .contains("rebase in progress")
+            .then(|| RebaseProgress {
+                branch_onto: parse_rebase_status(&status),
+            })
     }
 
     /// A branch or tag name for a commit (`name-rev`), else the short hash.

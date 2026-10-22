@@ -2099,6 +2099,27 @@
           "section": "Commit",
           "project": false,
           "order": 21
+        },
+        {
+          "key": "vcs.git.cherryPickSuffix",
+          "title": "Add the 'cherry-picked from <hash>' suffix when picking commits pushed to protected branches",
+          "type": "bool",
+          "default": true,
+          "group": "vcs.git",
+          "section": "Commit",
+          "project": false,
+          "order": 22
+        },
+        {
+          "key": "vcs.git.protectedBranches",
+          "title": "Protected branches",
+          "description": "Branch names or patterns (`*` wildcards) separated by `;`. Log actions never rewrite commits that are already pushed to them.",
+          "type": "string",
+          "default": "master;main",
+          "group": "vcs.git",
+          "section": "Push",
+          "project": false,
+          "order": 30
         }
       ],
       "lspServers": [],
