@@ -2167,6 +2167,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "forge-localhistory"
+version = "0.1.0"
+dependencies = [
+ "flate2",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "similar",
+ "tempfile",
+]
+
+[[package]]
 name = "forge-lsp"
 version = "0.1.0"
 dependencies = [
