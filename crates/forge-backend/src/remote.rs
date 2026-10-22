@@ -14,6 +14,7 @@ use forge_project::ProjectInfo;
 use forge_vcs::{GitExec, GitOutput, GitRequest};
 use futures_util::future::BoxFuture;
 use phpforge_lang_php::generate::{GenerateKind, GenerateOptions, GenerateTargets, TextEdit};
+use phpforge_lang_php::hierarchy::{HierarchyQuery, PhpHierarchy};
 use phpforge_lang_php::hover::Hover;
 use phpforge_lang_php::index::{SearchKind, SymbolHit};
 use phpforge_lang_php::intentions::Intention;
@@ -849,6 +850,21 @@ impl PhpBackend for RemoteBackend {
     fn line_markers(&self, path: &str, content: Option<String>) -> Result<Vec<PhpLineMarker>> {
         self.php_call(PhpCall::LineMarkers {
             path: path.to_string(),
+            content,
+        })
+    }
+
+    fn hierarchy(
+        &self,
+        path: &str,
+        offset: usize,
+        query: HierarchyQuery,
+        content: Option<String>,
+    ) -> Result<PhpHierarchy> {
+        self.php_call(PhpCall::Hierarchy {
+            path: path.to_string(),
+            offset,
+            query,
             content,
         })
     }

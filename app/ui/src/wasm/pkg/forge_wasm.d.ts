@@ -408,6 +408,12 @@ export function find_paged(request_json: string): string;
  */
 export function fuzzy_filter(request_json: string): string;
 
+export function hierarchy_call_view(request_json: string): string;
+
+export function hierarchy_method_view(request_json: string): string;
+
+export function hierarchy_type_view(request_json: string): string;
+
 /**
  * `{ path, base64 }` → `ImageData` (the mock reads demo images from base64).
  */
@@ -1076,6 +1082,9 @@ export interface InitOutput {
     readonly find_page: (a: number, b: number, c: number) => void;
     readonly find_paged: (a: number, b: number, c: number) => void;
     readonly fuzzy_filter: (a: number, b: number, c: number) => void;
+    readonly hierarchy_call_view: (a: number, b: number, c: number) => void;
+    readonly hierarchy_method_view: (a: number, b: number, c: number) => void;
+    readonly hierarchy_type_view: (a: number, b: number, c: number) => void;
     readonly image_describe: (a: number, b: number, c: number) => void;
     readonly injections_at: (a: number, b: number, c: number) => void;
     readonly injections_context_actions: (a: number, b: number, c: number) => void;

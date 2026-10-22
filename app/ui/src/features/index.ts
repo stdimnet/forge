@@ -14,6 +14,7 @@ import "./navigation";
 import "./toolWindowLayout";
 import "./find";
 import "./codeintel";
+import "./hierarchy";
 import "./liveTemplates";
 import "./documentation";
 import "./keymapSettings";

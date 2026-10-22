@@ -11,6 +11,7 @@ use forge_backend::{Backend, RemoteBackend, RemoteHost, TerminalSpec};
 use forge_core::FsChanges;
 use forge_lsp::LspServerConfig;
 use forge_process::{CommandLine, PtyEvent, RunEvent};
+use phpforge_lang_php::hierarchy::HierarchyQuery;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 const T: Duration = Duration::from_secs(20);
@@ -284,6 +285,21 @@ async fn php_index_runs_on_the_agent() {
         assert!(php
             .line_markers("app/Models/Order.php", Some(text.clone()))
             .is_ok());
+        // Type and Call Hierarchy from the agent's index.
+        let types = php
+            .hierarchy("app/Models/Order.php", offset, HierarchyQuery::Type, None)
+            .unwrap();
+        assert_eq!(types.graph.unwrap().root, "App\\Models\\Order");
+        let at_total = text.find("total()").unwrap() + 1;
+        let call = php
+            .hierarchy(
+                "app/Models/Order.php",
+                at_total,
+                HierarchyQuery::Call,
+                Some(text.clone()),
+            )
+            .unwrap();
+        assert_eq!(call.title.as_deref(), Some("Order::total()"));
         let with_throwable = format!("{text}\nfunction f(\\Throwable $e) {{}}\n");
         let at = with_throwable.find("Throwable $e").unwrap() + 1;
         let def = php

@@ -3,6 +3,7 @@
 //! boundary are UTF-16 (JS strings); the index works in bytes, so every query converts.
 
 use crate::generate::{self, GenerateKind, GenerateOptions, GenerateTargets, TextEdit};
+use crate::hierarchy::{self, HierarchyQuery, PhpHierarchy};
 use crate::hover::{self, Hover};
 use crate::index::ProjectIndex;
 use crate::intentions::{self, Intention};
@@ -101,6 +102,17 @@ pub fn navigate(
 /// Go to Declaration at a UTF-16 `offset` (LSP positions out).
 pub fn definition(idx: &mut ProjectIndex, path: &str, text: &str, offset: usize) -> PhpDefinition {
     navigate::definition(idx, path, text, utf16_to_byte(text, offset))
+}
+
+/// Type, Method or Call Hierarchy at a UTF-16 `offset` (LSP positions out).
+pub fn hierarchy(
+    idx: &mut ProjectIndex,
+    path: &str,
+    text: &str,
+    offset: usize,
+    query: HierarchyQuery,
+) -> PhpHierarchy {
+    hierarchy::hierarchy(idx, path, text, utf16_to_byte(text, offset), query)
 }
 
 /// The implemented / overridden gutter markers of a file.

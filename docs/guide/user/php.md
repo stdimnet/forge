@@ -159,6 +159,13 @@ Several targets open the Choose Declaration popup with names and namespaces. Go 
 Implementation needs Intelephense Premium in Intelephense; without a licence Forge answers from
 the index, and says so when the index finds nothing either.
 
+### Hierarchies
+
+Type Hierarchy (`Ctrl+H`), Method Hierarchy (`Ctrl+Shift+H`) and Call Hierarchy
+(`Ctrl+Alt+H`) work from the index too, with traits, abstract classes and interfaces, and are
+merged with Intelephense Premium's type and call hierarchy when it runs. See
+[Type, Method and Call Hierarchy](hierarchies.md).
+
 ### Gutter icons
 
 Like PHPStorm, the gutter marks inheritance:

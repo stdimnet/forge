@@ -83,6 +83,7 @@ export const TOOL_WINDOW_ACTIONS: Record<string, string> = {
   ActivatePullRequestsToolWindow: "pull-requests",
   ActivateTODOToolWindow: "todo",
   ActivateDocumentationToolWindow: "documentation",
+  ActivateHierarchyToolWindow: "hierarchy",
 };
 
 let lastToolWindow: string | null = null;

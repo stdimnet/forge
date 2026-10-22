@@ -27,6 +27,7 @@ Opening, hiding, resizing and switching tool windows. Windows/Linux shortcuts fi
 | [Database tool window](#database-tool-window) | — | — |
 | [AI Chat tool window](#ai-chat-tool-window) | — | — |
 | [Documentation tool window](#documentation-tool-window) | — | — |
+| [Hierarchy tool window](#hierarchy-tool-window) | — | — |
 | [Pull Requests tool window](#pull-requests-tool-window) | — | — |
 | [npm tool window](#npm-tool-window) | — | — |
 | [Doctrine tool window](#doctrine-tool-window) | — | — |
@@ -224,6 +225,16 @@ the caret open (Quick Documentation, `Ctrl+Q`, pinned).
 ![Documentation tool window](../../../screenshots/documentation-tool-window.png)
 
 More: [Editor](../../user/editor.md#documentation-tool-window)
+
+## Hierarchy tool window
+
+**Shortcut:** — · macOS — · action id `ActivateHierarchyToolWindow`
+
+Shows or hides the Hierarchy tool window with the results of Type Hierarchy (`Ctrl+H`), Method Hierarchy (`Ctrl+Shift+H`) and Call Hierarchy (`Ctrl+Alt+H`).
+
+**Menu:** View | Tool Windows | Hierarchy
+
+More: [Type, Method and Call Hierarchy](../../user/hierarchies.md)
 
 ## Pull Requests tool window
 
