@@ -368,7 +368,7 @@ export function CloneDialog(props: { request: CloneRequest }) {
                           when={accountsOf(host().kind).length > 1}
                           fallback={
                             <span class="clone-account-name">
-                              {account().username ?? "?"} <span class="muted">{account().server}</span>
+                              {account().username ?? "?"} <span class="clone-account-server">{account().server}</span>
                             </span>
                           }
                         >
@@ -429,7 +429,9 @@ export function CloneDialog(props: { request: CloneRequest }) {
               </div>
             )}
           </Show>
-          <span class="spacer" />
+          <Show when={!cloneProgress()}>
+            <span class="spacer" />
+          </Show>
           <button class="btn-secondary" onClick={cancel}>
             Cancel
           </button>
@@ -637,7 +639,7 @@ export function MessageHistoryPopup(props: { messages: string[] }) {
   const style = () => {
     const r = anchor();
     if (!r) return { left: "40%", top: "30%" };
-    const top = Math.max(8, r.top - 330);
+    const top = Math.max(8, r.top - 424);
     return { left: `${Math.max(8, r.left)}px`, top: `${top}px`, width: `${Math.max(360, Math.min(560, r.width + 120))}px` };
   };
   return (

@@ -151,7 +151,7 @@ export function BranchesPopup() {
           null,
           { label: `Rebase '${cur}' onto '${b.name}'`, run: () => void rebaseOnto(b.name) },
           { label: `Merge '${b.name}' into '${cur}'`, run: () => void mergeIntoCurrent(b.name) },
-          ...(h.row.remote ? [] : [null, { label: "Delete", run: () => deleteBranch(b.name), danger: true }]),
+          ...(h.row.remote || b.worktree ? [] : [null, { label: "Delete", run: () => deleteBranch(b.name), danger: true }]),
         ];
     const rect = root.getBoundingClientRect();
     return (

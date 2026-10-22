@@ -69,6 +69,10 @@
 .clone-account-name {
   font-weight: 600;
 }
+.clone-account-server {
+  font-weight: normal;
+  color: var(--fg-muted);
+}
 .clone-repos {
   flex: 1;
   min-height: 120px;
@@ -87,10 +91,14 @@
   border-bottom: 1px solid var(--border);
   background: var(--bg-input);
 }
-.clone-search input {
+.clone-search input,
+.clone-search input:focus {
   flex: 1;
   min-width: 0;
+  height: 100%;
+  padding: 0;
   border: 0;
+  box-shadow: none;
   background: transparent;
   color: var(--fg);
   outline: none;
@@ -253,7 +261,7 @@
   position: fixed;
   display: flex;
   flex-direction: column;
-  max-height: 340px;
+  max-height: 420px;
   background: var(--bg-elevated);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius);
@@ -285,6 +293,7 @@
   color: var(--fg-strong);
 }
 .message-history-preview {
+  flex: none;
   margin: 0;
   max-height: 120px;
   overflow: auto;
