@@ -18,6 +18,7 @@ Forge core: the language-agnostic foundation every pack builds on.
 | Module | Summary |
 | --- | --- |
 | `error.rs` |  |
+| `excludes.rs` | The project's excluded paths (`Excludes`, a handle shared by every clone of a `Workspace`, computed by `forge_scopes::structure::ExcludeSet`): walks, `list_dir` (`FileEntry::excluded`) and the watcher follow it. |
 | `gitignore.rs` | Which project files git ignores, so the project tree can gray them out like PHPStorm. |
 | `project_files.rs` | Project-relative files that Forge itself keeps in a project (`.forge/settings.toml`, `.forge/dataSources.toml`, `.forge/breakpoints.json`, ...) and project files it reads (`.env`), wherever the project lives: `LocalFiles` for a folder on this machine, the project backend (`forge_backend::BackendFiles`) for a project on a remote host. |
 | `search.rs` | Fuzzy file search for "Go to File" / Search Everywhere, and Find in Files. |

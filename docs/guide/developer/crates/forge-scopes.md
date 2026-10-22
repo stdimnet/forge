@@ -30,6 +30,15 @@ Colors (see the [user guide](../../user/scopes-and-file-colors.md)).
 - `tree`: the Scopes page's preview tree with per-folder counts.
 - `colors`: file colors per scope with PHPStorm's precedence (local rows first, first match
   wins) and the theme palette.
+- `structure`: the project structure of Settings | Directories and "Mark Directory as":
+  `StructureConfig` (settings `projectStructure.folders` / `projectStructure.excludePatterns`),
+  `ExcludeSet` (the one helper every walk, index and the watcher asks: user-excluded folders,
+  default-excluded names like `node_modules` unless cancelled, "Exclude files" globs, hidden
+  `.git`), `mark` (Excluded / Cancel Exclusion / Resource Root / Test Resources Root /
+  Unmark), `state` and `describe`.
+- `view`: the Project view's rows of one folder (`arrange`): Show Excluded Files, Compact
+  Middle Packages (looks into single child folders through a callback), File Nesting
+  (`nest`, PHPStorm's `default_nesting_rules`), Folders Always on Top and Sort by Type.
 
 ## Main public items
 
@@ -44,16 +53,21 @@ pub struct ScopeSet { shared, local } // resolve, entries, problems
 pub mod edit;   // EditRequest, EditOp, apply, file_pattern
 pub mod tree;   // build -> ScopeTree
 pub mod colors; // ColorsRequest, FileColor, resolve, PALETTE
+pub mod structure; // StructureConfig, ExcludeSet, mark, state, describe, DEFAULT_EXCLUDED
+pub mod view;      // ViewOptions, ViewEntry, TreeRow, arrange, nest, default_nesting_rules
 ```
 
 ## Used by
 
 - `forge-find` (`FindRequest.scope`), `forge-codeintel` (`UsageScope` custom patterns),
   `forge-ssr` (`SsrRequest.scope`)
-- IPC: `scopes_files` (`Backend::list_files`, agent call `ListFiles`) and `scopes_test_roots`
+- `forge-core` (`Excludes`, shared by every clone of a `Workspace`), `forge-search` (index
+  scan), `phpforge-lang-php` (`IndexConfig::structure`)
+- IPC: `project_tree_list` (`app/src-tauri/src/commands/project_structure.rs`), `scopes_files` (`Backend::list_files`, agent call `ListFiles`) and `scopes_test_roots`
   (`app/src-tauri/src/commands/scopes.rs`)
 - UI: `app/ui/src/features/scopes` calls it synchronously through `forge-wasm` (`scopes_*`,
-  `file_colors_resolve`) in the desktop app and in browser mode
+  `file_colors_resolve`) and `app/ui/src/features/projectStructure` (`project_structure_*`,
+  `project_view_*`) in the desktop app and in browser mode
 
 ## Dependencies
 
