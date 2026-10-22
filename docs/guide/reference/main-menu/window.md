@@ -16,8 +16,8 @@ Layouts, the active tool window, editor tabs and project windows. Open it with �
 | Entry | Windows / Linux | macOS | Available | What it does |
 | --- | --- | --- | --- | --- |
 | **Layouts** | | | | submenu |
-| Layouts › Store Current Layout as Default | — | — | not yet | Not available yet; the entry is disabled. |
-| Layouts › Restore Default Layout | `Shift+F12` | `Shift+F12` | not yet | Not available yet; the entry is disabled. |
+| Layouts › Store Current Layout as Default | — | — | yes | Stores where the tool windows sit, which are open and their sizes as the default for all projects. [More](../../user/workbench.md#moving-and-hiding-tool-windows) |
+| Layouts › Restore Default Layout | `Shift+F12` | `Shift+F12` | yes | Goes back to the stored default layout, or Forge's own. [More](../../user/workbench.md#moving-and-hiding-tool-windows) |
 | **Active Tool Window** | | | | submenu |
 | Active Tool Window › Hide Active Tool Window | `Shift+Escape` | `Shift+Escape` | yes | Hides the tool window that has the focus and returns to the editor. [More](../../user/workbench.md#managing-tool-windows) |
 | Active Tool Window › Hide Side Tool Windows | — | — | yes | Hides the left and right tool windows. [More](../../user/workbench.md#managing-tool-windows) |

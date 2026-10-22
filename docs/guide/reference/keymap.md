@@ -408,8 +408,8 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Hide Active Tool Window | `HideActiveWindow` | `Shift+Escape` | `Shift+Escape` | yes |
 | Hide Side Tool Windows | `HideSideWindows` |  |  | yes |
 | Maximize Tool Window | `MaximizeToolWindow` | `Ctrl+Shift+'` | `Cmd+Shift+'` | — |
-| Restore Default Layout | `RestoreDefaultLayout` | `Shift+F12` | `Shift+F12` | — |
-| Store Current Layout as Default | `StoreDefaultLayout` |  |  | — |
+| Restore Default Layout | `RestoreDefaultLayout` | `Shift+F12` | `Shift+F12` | yes |
+| Store Current Layout as Default | `StoreDefaultLayout` |  |  | yes |
 | Close Active Tool Window Tab | `CloseActiveTab` | `Ctrl+Shift+F4` | `Cmd+Shift+F4` | yes |
 | Next Project Window | `NextProjectWindow` | `Ctrl+Alt+]` | `` Cmd+` `` | — |
 | Previous Project Window | `PreviousProjectWindow` | `Ctrl+Alt+[` | `` Cmd+Shift+` `` | — |

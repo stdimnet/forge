@@ -37,7 +37,8 @@ app/ui/            SolidJS UI
   registered with `registerMock` (see `src/mock/`), so every feature works without Rust and can
   be screenshotted.
 - Contribution points (the UI side of plugins):
-  - `registerToolWindow` (`src/features/registry.ts`) — panels on the left/right/bottom stripes.
+  - `registerToolWindow` (`src/features/registry.ts`) — panels on the left/right/bottom stripes
+    (`anchor` and optional `split` are the default place; users move them, see `state/layout.ts`).
   - `registerStatusItem` (`src/features/statusItems.ts`) — status bar widgets.
   - `registerCommand` (`src/state/commands.ts`) — actions with PHPStorm-style ids, bindable to keys.
   - `registerSettingsPage` (`src/features/settingsPages.ts`) — pages in the Settings dialog.
@@ -1225,8 +1226,15 @@ plugin manifest entry, and the chat UI needs no changes:
   unit, tab size, continuation indent, right margin and guides); `shell/FileStatusItems.tsx` are
   the status bar popups.
 - `forge_core::project_state`: the workbench layout per project in Forge's state dir
-  (`layout_load() -> ProjectLayout | null`, `layout_save({ layout })`; `{ active, sizes, tabs,
-  openFiles, activeFile }`, sanitized in Rust) and the AI chat history per project in the data
+  (`layout_load() -> ProjectLayout | null`, `layout_save({ layout })`; `{ active, sizes, splits,
+  toolWindows, tabs, openFiles, activeFile }`, sanitized in Rust; `active` is keyed by slot:
+  `left`/`leftSplit`/`right`/`rightSplit`/`bottom`/`bottomSplit` = PHPStorm's Left Top, Left
+  Bottom, Right Top, Right Bottom, Bottom Left, Bottom Right; `toolWindows` holds the user's
+  `{ slot, order, removed }` per moved tool window; `layout_default_load()` /
+  `layout_default_save({ layout })` keep Store Current Layout as Default, tool windows only).
+  Moving, ordering and resolving placements is the pure `state/toolWindowLayout.ts` (vitest);
+  `state/layout.ts` applies it (`showToolWindow(id)`, `toggleToolWindow(id)`,
+  `moveToolWindowTo`, `removeFromSidebar`, `isToolWindowVisible`) and the AI chat history per project in the data
   dir (`agent_history_list() -> ChatSummary[]`, `agent_history_load({ id })`,
   `agent_history_save({ record }) -> ChatSummary | null`, `agent_history_delete({ id })`). The
   UI saves the layout a moment after every change (`state/layoutPersistence.ts`; tool windows

@@ -731,7 +731,7 @@ The workbench is the main window of an open project. It follows PHPStorm's New U
 | Area | Where | What it holds |
 | --- | --- | --- |
 | Main toolbar | top | ☰ main menu, project widget, Git branch widget, run widget, AI Chat, Search Everywhere, theme toggle, Settings; it is also the window's title bar |
-| Tool window stripes | left, right and bottom edges | buttons that show and hide tool windows |
+| Tool window stripes | left and right edges | buttons that show and hide tool windows; drag them to move tool windows |
 | Editor | center | tabs, navigation bar and the code editor |
 | Status bar | bottom | path of the current file, background tasks, project information, caret position, file type, Git branch |
 
@@ -794,9 +794,11 @@ opens Settings | Keymap; **Help | Check for Updates…** checks for a new versio
 ## Tool windows
 
 Tool windows are the panels along the edges. Click a stripe button, or press the tool window's
-shortcut, to show it; pressing the shortcut again hides it, as in PHPStorm.
+shortcut, to show it; pressing the shortcut again hides it, as in PHPStorm. The table lists
+where each tool window sits by default; you can move every one of them (see
+[Moving and hiding tool windows](#moving-and-hiding-tool-windows)).
 
-| Tool window | Stripe | Shortcut | Page |
+| Tool window | Default stripe | Shortcut | Page |
 | --- | --- | --- | --- |
 | Project | left | `Alt+1` (macOS `Cmd+1`) | below |
 | Bookmarks | left | `Alt+2` (macOS `Cmd+2`) | [below](#bookmarks) |
@@ -823,12 +825,56 @@ shortcut, to show it; pressing the shortcut again hides it, as in PHPStorm.
 Framework tool windows (Routes, Symfony, Doctrine, npm) only appear in projects that use the
 framework. The Find tool window appears once a search put results into it.
 
+### Moving and hiding tool windows
+
+As in PHPStorm's New UI, each stripe has a top and a bottom group, and the stripes' feet hold
+the bottom tool windows:
+
+| Place | Stripe | Opens |
+| --- | --- | --- |
+| Left Top | left stripe, upper group | in the left area |
+| Left Bottom | left stripe, below the separator | in the left area, below the Left Top window |
+| Bottom Left | foot of the left stripe | in the bottom area, on the left |
+| Right Top | right stripe, upper group | in the right area |
+| Right Bottom | right stripe, below the separator | in the right area, below the Right Top window |
+| Bottom Right | foot of the right stripe | in the bottom area, on the right |
+
+One tool window per place is open at a time, so an area can show two: the left area shows the
+Left Top window above the Left Bottom one, the bottom area shows Bottom Left and Bottom Right
+side by side. Drag the line between them to change the split.
+
+![Bookmarks in Left Bottom, Terminal in Bottom Right](docs/screenshots/tool-window-split-areas.png)
+
+- **Move To**: right-click a stripe button, or open the **⋮** (Options) menu in the tool
+  window's header, and pick Left Top, Left Bottom, Right Top, Right Bottom, Bottom Left or
+  Bottom Right. An open tool window stays open at its new place.
+- **Drag and drop**: drag a stripe button up or down to reorder it, or onto another group or
+  the other stripe to move the tool window there. A line shows where it will land.
+- **Remove from Sidebar** (same menus) hides the tool window and its stripe button. It stays
+  available in View | Tool Windows, Find Action, the **⋯** button and its shortcut; opening
+  it that way puts its button back on the sidebar.
+- **⋯** (More Tool Windows) at the bottom of the left stripe's upper part lists every tool
+  window of the project, alphabetically, including removed ones ("not on sidebar").
+- **Hide** (header ⋮ menu or the **−** button, `Shift+Escape` while the tool window has the
+  focus) closes the tool window.
+- View | Appearance | **Tool Window Bars** shows or hides both stripes.
+- Window | Layouts | **Store Current Layout as Default** keeps where every tool window sits,
+  which are open and their sizes as the default for all projects; **Restore Default Layout**
+  (`Shift+F12`) goes back to it, or to Forge's own layout when you never stored one.
+
+![Move To on a stripe button](docs/screenshots/tool-window-move-to.png)
+
+![Terminal moved to the right stripe, with the header's Options menu](docs/screenshots/tool-window-moved-right.png)
+
+![More Tool Windows lists a tool window removed from the sidebar](docs/screenshots/tool-window-more-list.png)
+
 ### Managing tool windows
 
 | Action | Shortcut (Windows/Linux) | macOS |
 | --- | --- | --- |
 | Hide the active tool window | `Shift+Escape` | `Shift+Escape` |
 | Hide all tool windows (again: restore) | `Ctrl+Shift+F12` | `Cmd+Shift+F12` |
+| Restore Default Layout | `Shift+F12` | `Shift+F12` |
 | Jump to the last tool window | `F12` | `F12` |
 | Stretch the focused tool window | `Ctrl+Shift+Left/Right/Up/Down` | `Ctrl+Alt+Shift+Left/Right/Up/Down` |
 | Close the active tab of a tool window (Run, Terminal) | `Ctrl+Shift+F4` | `Cmd+Shift+F4` |
@@ -845,13 +891,16 @@ scrolling** animates scrolling in lists and trees.
 
 ![Restored layout](docs/screenshots/layout-restored.png)
 
-Forge remembers the layout of each project and restores it when the project opens again: which
-tool window is open on each side, their sizes, the selected tab of tool windows with tabs
+Forge remembers the layout of each project and restores it when the project opens again: where
+each tool window sits (moved, reordered or removed from the sidebar), which tool windows are
+open, the sizes of the areas and their splits, the selected tab of tool windows with tabs
 (Problems, Pull Requests) and the open editor tabs with the active one. It is kept in Forge's
 state directory (`~/.local/state/forge/layouts` on Linux, see
-[File locations](docs/guide/reference/file-locations.md)), never in the project.
+[File locations](docs/guide/reference/file-locations.md)), never in the project. The layout stored
+with Store Current Layout as Default is `_default.json` in the same folder. Layouts saved by
+older Forge versions still open; their tool windows start at their default places.
 
-> **Note:** "Restore Default Layout" and "Maximize Tool Window" are not available yet.
+> **Note:** "Maximize Tool Window", floating and windowed tool windows are not available yet.
 
 ## Project view
 
@@ -6063,6 +6112,8 @@ Opening, hiding, resizing and switching tool windows. Windows/Linux shortcuts fi
 | [Hide Active Tool Window](#hide-active-tool-window) | `Shift+Escape` | `Shift+Escape` |
 | [Hide All Tool Windows](#hide-all-tool-windows) | `Ctrl+Shift+F12` | `Cmd+Shift+F12` |
 | [Hide Side Tool Windows](#hide-side-tool-windows) | — | — |
+| [Restore Default Layout](#restore-default-layout) | `Shift+F12` | `Shift+F12` |
+| [Store Current Layout as Default](#store-current-layout-as-default) | — | — |
 | [Jump to Last Tool Window](#jump-to-last-tool-window) | `F12` | `F12` |
 | [Stretch to Left](#stretch-to-left) | `Ctrl+Shift+Left` | `Ctrl+Alt+Shift+Left` |
 | [Stretch to Right](#stretch-to-right) | `Ctrl+Shift+Right` | `Ctrl+Alt+Shift+Right` |
@@ -6326,6 +6377,26 @@ Hides the left and right tool windows.
 **Menu:** Window | Active Tool Window | Hide Side Tool Windows
 
 More: [Workbench and tool windows](docs/guide/user/workbench.md#managing-tool-windows)
+
+## Restore Default Layout
+
+**Shortcut:** `Shift+F12` · macOS `Shift+F12` · action id `RestoreDefaultLayout`
+
+Puts every tool window back where the default layout has it (the one stored with Store Current Layout as Default, else Forge's own) and opens the tool windows it had open.
+
+**Menu:** Window | Layouts | Restore Default Layout
+
+More: [Workbench and tool windows](docs/guide/user/workbench.md#moving-and-hiding-tool-windows)
+
+## Store Current Layout as Default
+
+**Shortcut:** — · macOS — · action id `StoreDefaultLayout`
+
+Stores where the tool windows sit, which are open and their sizes as the default layout for all projects.
+
+**Menu:** Window | Layouts | Store Current Layout as Default
+
+More: [Workbench and tool windows](docs/guide/user/workbench.md#moving-and-hiding-tool-windows)
 
 ## Jump to Last Tool Window
 
@@ -9630,8 +9701,8 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Hide Active Tool Window | `HideActiveWindow` | `Shift+Escape` | `Shift+Escape` | yes |
 | Hide Side Tool Windows | `HideSideWindows` |  |  | yes |
 | Maximize Tool Window | `MaximizeToolWindow` | `Ctrl+Shift+'` | `Cmd+Shift+'` | — |
-| Restore Default Layout | `RestoreDefaultLayout` | `Shift+F12` | `Shift+F12` | — |
-| Store Current Layout as Default | `StoreDefaultLayout` |  |  | — |
+| Restore Default Layout | `RestoreDefaultLayout` | `Shift+F12` | `Shift+F12` | yes |
+| Store Current Layout as Default | `StoreDefaultLayout` |  |  | yes |
 | Close Active Tool Window Tab | `CloseActiveTab` | `Ctrl+Shift+F4` | `Cmd+Shift+F4` | yes |
 | Next Project Window | `NextProjectWindow` | `Ctrl+Alt+]` | `` Cmd+` `` | — |
 | Previous Project Window | `PreviousProjectWindow` | `Ctrl+Alt+[` | `` Cmd+Shift+` `` | — |
@@ -10293,8 +10364,8 @@ Layouts, the active tool window, editor tabs and project windows. Open it with �
 | Entry | Windows / Linux | macOS | Available | What it does |
 | --- | --- | --- | --- | --- |
 | **Layouts** | | | | submenu |
-| Layouts › Store Current Layout as Default | — | — | not yet | Not available yet; the entry is disabled. |
-| Layouts › Restore Default Layout | `Shift+F12` | `Shift+F12` | not yet | Not available yet; the entry is disabled. |
+| Layouts › Store Current Layout as Default | — | — | yes | Stores where the tool windows sit, which are open and their sizes as the default for all projects. [More](docs/guide/user/workbench.md#moving-and-hiding-tool-windows) |
+| Layouts › Restore Default Layout | `Shift+F12` | `Shift+F12` | yes | Goes back to the stored default layout, or Forge's own. [More](docs/guide/user/workbench.md#moving-and-hiding-tool-windows) |
 | **Active Tool Window** | | | | submenu |
 | Active Tool Window › Hide Active Tool Window | `Shift+Escape` | `Shift+Escape` | yes | Hides the tool window that has the focus and returns to the editor. [More](docs/guide/user/workbench.md#managing-tool-windows) |
 | Active Tool Window › Hide Side Tool Windows | — | — | yes | Hides the left and right tool windows. [More](docs/guide/user/workbench.md#managing-tool-windows) |
@@ -11535,7 +11606,8 @@ index falls back to `<project>/.forge/cache/php-index.json`.
 
 | Path | Content |
 | --- | --- |
-| `layouts/<project>-<hash>.json` | the tool window layout and open editor tabs of each project |
+| `layouts/<project>-<hash>.json` | the tool window layout (placements, open tool windows, sizes) and open editor tabs of each project |
+| `layouts/_default.json` | the layout stored with Window \| Layouts \| Store Current Layout as Default |
 
 ## In the project — `<project>/.forge/`
 
@@ -12226,8 +12298,9 @@ registerToolWindow({
   id: "services",            // same id as a placeholder replaces it
   title: "Services",
   icon: Container,           // lucide-solid
-  anchor: "bottom",          // "left" | "right" | "bottom"
-  order: 30,                 // position in the stripe
+  anchor: "bottom",          // default place: "left" | "right" | "bottom"
+  split: false,              // optional: start in the split group (Left Bottom, Right Bottom, Bottom Right)
+  order: 30,                 // default position in the stripe group
   shortcut: "Alt+8",         // tooltip only; the binding comes from the keymap
   component: ServicesView,
   actions: () => <HeaderButtons />,   // optional header buttons
@@ -12235,6 +12308,11 @@ registerToolWindow({
   when: () => usesFramework("docker"), // optional: only for matching projects
 });
 ```
+
+Users can move every tool window to another place, reorder it or remove it from the sidebar
+(saved per project), so never assume a window sits at its `anchor`: open and check it with
+`showToolWindow(id)`, `toggleToolWindow(id)`, `hideToolWindow(id)` and `isToolWindowVisible(id)`
+from `state/layout.ts`.
 
 Recipe: [`add-tool-window`](.claude/skills/add-tool-window/SKILL.md).
 
@@ -12244,7 +12322,7 @@ Recipe: [`add-tool-window`](.claude/skills/add-tool-window/SKILL.md).
 import { registerCommand } from "@/state/commands";
 
 registerCommand({ id: "ActivateStructureToolWindow", title: "Structure", category: "View",
-  run: () => toggleToolWindow("left", "structure") });
+  run: () => toggleToolWindow("structure") });
 ```
 
 Use a PHPStorm action id when one exists: the command then gets PHPStorm's default shortcut and
@@ -12865,7 +12943,7 @@ Most actions already exist with the right default keys. Register a command with 
 
 ```ts
 registerCommand({ id: "ActivateStructureToolWindow", title: "Structure",
-  run: () => toggleToolWindow("left", "structure") });
+  run: () => toggleToolWindow("structure") });
 ```
 
 If your feature already uses another id, alias it in `ACTION_ALIASES`
