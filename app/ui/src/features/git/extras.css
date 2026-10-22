@@ -1,0 +1,412 @@
+/* Get from Version Control, worktrees, Commit Message History and signing (ExtrasDialogs.tsx,
+   SigningSettings.tsx). Colors come from theme.css only. */
+.gd.clone-dialog {
+  width: 820px;
+  max-width: calc(100vw - 40px);
+  height: 540px;
+  max-height: calc(100vh - 40px);
+  display: flex;
+  flex-direction: column;
+}
+.clone-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.clone-nav {
+  width: 190px;
+  flex: none;
+  padding: 8px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--bg-panel);
+  border-right: 1px solid var(--border);
+}
+.clone-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 28px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--fg);
+  text-align: left;
+  cursor: pointer;
+}
+.clone-nav-item:hover {
+  background: var(--bg-hover);
+}
+.clone-nav-item.active {
+  background: var(--bg-selection);
+  color: var(--fg-strong);
+}
+.clone-main {
+  flex: 1;
+  min-width: 0;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: auto;
+}
+.clone-account {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.clone-account-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.clone-account-name {
+  font-weight: 600;
+}
+.clone-repos {
+  flex: 1;
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.clone-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px;
+  height: 30px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-input);
+}
+.clone-search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--fg);
+  outline: none;
+}
+.clone-repo-list {
+  flex: 1;
+  overflow: auto;
+}
+.clone-repo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 26px;
+  padding: 0 10px;
+  cursor: default;
+  white-space: nowrap;
+}
+.clone-repo:hover {
+  background: var(--bg-hover);
+}
+.clone-repo.selected {
+  background: var(--bg-selection);
+}
+.clone-repo-icon {
+  display: flex;
+  color: var(--fg-muted);
+}
+.clone-repo-path {
+  color: var(--fg-strong);
+}
+.clone-repo-desc {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+.clone-empty {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px;
+  color: var(--fg-muted);
+}
+.clone-login {
+  margin: auto;
+  text-align: center;
+}
+.clone-login p {
+  margin: 0 0 8px;
+}
+.clone-test-ok {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.clone-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+.clone-progress-bar {
+  width: 220px;
+  height: 6px;
+  flex: none;
+  border-radius: 3px;
+  background: var(--bg-active);
+  overflow: hidden;
+}
+.clone-progress-fill {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.2s;
+}
+.clone-progress-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+
+/* Worktrees tab of the Git tool window */
+.worktrees-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+.worktrees-table {
+  flex: 1;
+  overflow: auto;
+}
+.worktrees-row {
+  display: grid;
+  grid-template-columns: minmax(240px, 3fr) minmax(120px, 1.5fr) 100px;
+  align-items: center;
+  gap: 12px;
+  height: 26px;
+  padding: 0 10px;
+  white-space: nowrap;
+}
+.worktrees-row:not(.worktrees-head):hover {
+  background: var(--bg-hover);
+}
+.worktrees-row.selected {
+  background: var(--bg-selection);
+}
+.worktrees-row.prunable .worktrees-path-text {
+  color: var(--fg-muted);
+  text-decoration: line-through;
+}
+.worktrees-head {
+  position: sticky;
+  top: 0;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+.worktrees-path {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.worktrees-path-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.worktrees-branch {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--ref-local);
+}
+.worktrees-badge {
+  padding: 0 5px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-active);
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+  line-height: 16px;
+}
+.worktrees-badge.current {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+.worktrees-badge.warn {
+  color: var(--warning);
+}
+
+/* Commit Message History (Ctrl+M) */
+.message-history-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+}
+.message-history {
+  position: fixed;
+  display: flex;
+  flex-direction: column;
+  max-height: 340px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.message-history-title {
+  padding: 6px 10px;
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+  border-bottom: 1px solid var(--border);
+}
+.message-history-list {
+  flex: 1;
+  min-height: 60px;
+  overflow: auto;
+}
+.message-history-item {
+  height: 24px;
+  line-height: 24px;
+  padding: 0 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: default;
+}
+.message-history-item.selected {
+  background: var(--bg-selection);
+  color: var(--fg-strong);
+}
+.message-history-preview {
+  margin: 0;
+  max-height: 120px;
+  overflow: auto;
+  padding: 8px 10px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-panel);
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  white-space: pre-wrap;
+}
+
+/* Log: signature column, branch popup worktree marker */
+.log-signature {
+  display: inline-flex;
+  flex: none;
+  color: var(--fg-faint);
+}
+.log-signature.good {
+  color: var(--success);
+}
+.log-signature.bad {
+  color: var(--danger);
+}
+.log-signature.unverified {
+  color: var(--warning);
+}
+.branch-worktree {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+
+/* Settings | Version Control | Git: signing */
+.signing-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.signing-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.signing-key {
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+.signing-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--bg-app) 50%, transparent);
+}
+.signing-box {
+  width: 560px;
+  max-width: calc(100vw - 40px);
+  max-height: calc(100vh - 60px);
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+.signing-box header {
+  padding: 10px 14px;
+  font-weight: 600;
+  border-bottom: 1px solid var(--border);
+}
+.signing-body {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow: auto;
+}
+.signing-config {
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-panel);
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+.signing-group {
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+  margin-top: 4px;
+}
+.signing-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 4px 6px;
+  border-radius: var(--radius-sm);
+}
+.signing-option:hover {
+  background: var(--bg-hover);
+}
+.signing-option.invalid {
+  color: var(--fg-muted);
+}
+.signing-option-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.signing-option-sub {
+  color: var(--fg-muted);
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.signing-box footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--border);
+}
