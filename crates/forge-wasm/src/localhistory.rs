@@ -29,6 +29,9 @@ struct File {
     path: String,
     before: Option<String>,
     after: Option<String>,
+    /// Renames and moves: where the file came from.
+    #[serde(default)]
+    from: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -164,7 +167,12 @@ fn call(h: &mut LocalHistory<MemStorage>, c: Call) -> std::io::Result<Value> {
         } => {
             let entries = files
                 .into_iter()
-                .map(|f| NewEntry::new(f.path, Content::text(f.before), Content::text(f.after)))
+                .map(|f| NewEntry {
+                    path: f.path,
+                    before: Content::text(f.before),
+                    after: Content::text(f.after),
+                    from: f.from,
+                })
                 .collect();
             json!(h.record(NewChange {
                 kind,

@@ -688,6 +688,11 @@ export function live_templates_unwrap(request_json: string): string;
 export function live_templates_variables(request_json: string): string;
 
 /**
+ * `{ op, … }` → the result of the operation (see [`Call`]).
+ */
+export function local_history_call(request_json: string): string;
+
+/**
  * `{ path, content? }` -> `FileStructure | null`.
  */
 export function lua_file_structure(request_json: string): string;
@@ -1347,6 +1352,7 @@ export interface InitOutput {
     readonly live_templates_surround_items: (a: number, b: number, c: number) => void;
     readonly live_templates_unwrap: (a: number, b: number, c: number) => void;
     readonly live_templates_variables: (a: number, b: number, c: number) => void;
+    readonly local_history_call: (a: number, b: number, c: number) => void;
     readonly lua_file_structure: (a: number, b: number, c: number) => void;
     readonly lua_goto: (a: number, b: number, c: number) => void;
     readonly lua_hover: (a: number, b: number, c: number) => void;

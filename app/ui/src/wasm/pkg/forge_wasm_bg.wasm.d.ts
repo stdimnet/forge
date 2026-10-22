@@ -137,6 +137,7 @@ export const live_templates_surround: (a: number, b: number, c: number) => void;
 export const live_templates_surround_items: (a: number, b: number, c: number) => void;
 export const live_templates_unwrap: (a: number, b: number, c: number) => void;
 export const live_templates_variables: (a: number, b: number, c: number) => void;
+export const local_history_call: (a: number, b: number, c: number) => void;
 export const lua_file_structure: (a: number, b: number, c: number) => void;
 export const lua_goto: (a: number, b: number, c: number) => void;
 export const lua_hover: (a: number, b: number, c: number) => void;

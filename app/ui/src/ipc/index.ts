@@ -20,6 +20,11 @@ export function registerMock(cmd: string, handler: MockHandler): void {
   mocks.set(cmd, handler);
 }
 
+/** The registered browser-mode handler of a command (to wrap it in another mock). */
+export function mockHandler(cmd: string): MockHandler | undefined {
+  return mocks.get(cmd);
+}
+
 /** Emit an event in browser mode (used by mocks to simulate streaming backends). */
 export function emitMock(event: string, payload: unknown): void {
   mockListeners.get(event)?.forEach((l) => l(payload));
