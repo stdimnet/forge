@@ -178,6 +178,14 @@ export default {
     await page.waitForSelector(".editor-slot:not(.hidden) .cm-crumb.last");
     await quiet(page);
   },
+  "code-structure-menu": async (page) => {
+    await page.click("[data-main-menu-button]");
+    await page.waitForSelector(".context-menu.main-menu-popup");
+    for (const label of ["View", "Active Editor"]) {
+      await page.locator(".context-menu-label", { hasText: new RegExp(`^${label}$`) }).last().hover();
+      await page.waitForTimeout(120);
+    }
+  },
   "sticky-lines-settings": async (page) => {
     await page.keyboard.press("Control+Alt+KeyS");
     await page.click('.set-tree-row[data-node="editor.general"]');

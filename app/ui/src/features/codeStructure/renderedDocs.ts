@@ -87,6 +87,8 @@ const isEmpty = (c: DocCommentInfo) => !c.doc.body.length && !c.doc.sections.len
 export const commentStart = (state: EditorState, c: DocCommentInfo): number => state.doc.line(c.line + 1).from;
 
 function decorations(state: EditorState, all: boolean, flipped: ReadonlySet<number>): DecorationSet {
+  // Nothing rendered: no need to parse the comments on every keystroke.
+  if (!all && !flipped.size) return Decoration.none;
   const language = state.facet(docLanguage);
   const ranges: Range<Decoration>[] = [];
   for (const c of docCommentsOf(state.doc, language)) {
