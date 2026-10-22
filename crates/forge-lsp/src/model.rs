@@ -149,6 +149,10 @@ pub struct EditorCompletionItem {
     pub filter_text: Option<String>,
     pub sort_text: Option<String>,
     pub deprecated: bool,
+    /// Edits elsewhere in the file, applied with the completion (auto-import: the server's
+    /// `import` / `use` statement). Often only filled in by `completionItem/resolve`.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub additional_text_edits: Vec<lsp_types::TextEdit>,
     /// The original item, passed back to `lsp_completion_resolve`.
     pub raw: Value,
 }
@@ -183,6 +187,7 @@ impl From<&CompletionItem> for EditorCompletionItem {
                     .as_deref()
                     .unwrap_or_default()
                     .contains(&CompletionItemTag::DEPRECATED),
+            additional_text_edits: c.additional_text_edits.clone().unwrap_or_default(),
             raw: serde_json::to_value(c).unwrap_or(Value::Null),
         }
     }

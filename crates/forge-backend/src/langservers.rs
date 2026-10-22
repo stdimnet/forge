@@ -25,6 +25,15 @@ use tokio::sync::Notify;
 /// Prefix of the settings the planner reads.
 pub const SETTINGS_PREFIX: &str = "langservers.";
 
+/// The other settings server configurations depend on (Auto Import of JavaScript and
+/// TypeScript: the TypeScript server's import preferences).
+pub const EXTRA_SETTINGS_PREFIXES: &[&str] = &["javascript.autoImport."];
+
+/// Whether the planner reads the setting `key`.
+pub fn is_planner_setting(key: &str) -> bool {
+    key.starts_with(SETTINGS_PREFIX) || EXTRA_SETTINGS_PREFIXES.iter().any(|p| key.starts_with(p))
+}
+
 /// What the app knows that the planner needs.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

@@ -179,6 +179,26 @@ fn find_from(s: &str) -> Option<usize> {
     None
 }
 
+/// What Optimize Imports (the TypeScript server's `source.organizeImports`) did:
+/// the number of removed import bindings and whether the kept ones changed order.
+pub fn organize_report(before: &str, after: &str) -> (usize, bool) {
+    let old = imports(before);
+    let new = imports(after);
+    let key = |i: &Import| (i.local.clone(), i.source.clone());
+    let removed = old
+        .iter()
+        .filter(|o| !new.iter().any(|n| key(n) == key(o)))
+        .count();
+    let kept: Vec<_> = old
+        .iter()
+        .filter(|o| new.iter().any(|n| key(n) == key(o)))
+        .map(key)
+        .collect();
+    let order: Vec<_> = new.iter().map(key).collect();
+    let rearranged = before != after && (kept != order || removed == 0);
+    (removed, rearranged)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -226,5 +246,16 @@ const x = "import y from 'z'";
         );
         assert_eq!(re[1].exported, "*");
         assert_eq!(re[2].source, "./Modal");
+    }
+
+    #[test]
+    fn organize_report_counts_removed_and_reordered_bindings() {
+        let before = "import { b, a } from \"./x\";\nimport C from \"c\";\nimport D from \"d\";\n";
+        let after = "import C from \"c\";\nimport { a, b } from \"./x\";\n";
+        assert_eq!(organize_report(before, after), (1, true));
+        let removed_only =
+            "import { b } from \"./x\";\nimport C from \"c\";\nimport D from \"d\";\n";
+        assert_eq!(organize_report(before, removed_only), (1, false));
+        assert_eq!(organize_report(before, before), (0, false));
     }
 }

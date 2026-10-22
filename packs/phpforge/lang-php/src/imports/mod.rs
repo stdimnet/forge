@@ -60,29 +60,7 @@ impl OptimizeReport {
     }
 }
 
-/// "Removed 2 imports, added 1 import, rearranged imports" / "Imports are already optimized".
-pub fn summary(removed: usize, rearranged: bool, added: usize) -> String {
-    let plural = |n: usize| if n == 1 { "import" } else { "imports" };
-    let mut parts = Vec::new();
-    if removed > 0 {
-        parts.push(format!("removed {removed} {}", plural(removed)));
-    }
-    if added > 0 {
-        parts.push(format!("added {added} {}", plural(added)));
-    }
-    if rearranged {
-        parts.push("rearranged imports".to_string());
-    }
-    if parts.is_empty() {
-        return "Imports are already optimized".into();
-    }
-    let text = parts.join(", ");
-    let mut chars = text.chars();
-    match chars.next() {
-        Some(first) => first.to_uppercase().chain(chars).collect(),
-        None => text,
-    }
-}
+pub use forge_codeintel::imports::summary;
 
 /// Optimize Imports with an explicit style, with what it changed.
 pub fn optimize_imports_with(src: &str, style: &ImportStyle) -> OptimizeReport {

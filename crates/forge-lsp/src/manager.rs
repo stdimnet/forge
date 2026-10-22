@@ -887,7 +887,7 @@ impl LspManager {
         let clients = self.supporting(path, Feature::CodeAction).await;
         let results = join_all(clients.iter().map(|c| {
             let diagnostics = self.diagnostics_in(c.id(), &uri, range);
-            async move { c.code_action(path, range, diagnostics).await }
+            async move { c.code_action(path, range, diagnostics, None).await }
         }))
         .await;
         let mut out = Vec::new();
@@ -911,6 +911,50 @@ impl LspManager {
             Some(e) if out.is_empty() && !clients.is_empty() => Err(e),
             _ => Ok(out),
         }
+    }
+
+    /// Source actions of one kind for `range` (the whole document): `source.organizeImports`
+    /// for Optimize Imports, `source.addMissingImports` / `source.removeUnusedImports` for
+    /// Auto Import on the fly. Servers without code actions or that fail answer nothing.
+    pub async fn source_actions(
+        &self,
+        path: &Path,
+        range: Range,
+        kind: &str,
+    ) -> Vec<EditorCodeAction> {
+        let clients = self.supporting(path, Feature::CodeAction).await;
+        let only = vec![lsp_types::CodeActionKind::from(kind.to_string())];
+        let results = join_all(
+            clients
+                .iter()
+                .map(|c| c.code_action(path, range, vec![], Some(only.clone()))),
+        )
+        .await;
+        let mut out = Vec::new();
+        for (client, r) in clients.iter().zip(results) {
+            match r {
+                Ok(actions) => out.extend(
+                    actions
+                        .unwrap_or_default()
+                        .iter()
+                        .map(|a| {
+                            EditorCodeAction::from_lsp(
+                                a,
+                                client.id(),
+                                client.supports_code_action_resolve(),
+                            )
+                        })
+                        // Servers may answer more than asked for.
+                        .filter(|a| {
+                            a.kind
+                                .as_deref()
+                                .is_some_and(|k| k == kind || k.starts_with(&format!("{kind}.")))
+                        }),
+                ),
+                Err(e) => tracing::debug!("{} {kind} failed: {e}", client.id()),
+            }
+        }
+        out
     }
 
     /// Inlay hints of every server of `path` that announces them, for `range`. Failing
