@@ -77,6 +77,8 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Move Caret to Code Block End | `EditorCodeBlockEnd` | `Ctrl+]` | `Cmd+Alt+]` | — |
 | Move Caret to Code Block Start with Selection | `EditorCodeBlockStartWithSelection` | `Ctrl+Shift+[` | `Cmd+Alt+Shift+[` | — |
 | Move Caret to Code Block End with Selection | `EditorCodeBlockEndWithSelection` | `Ctrl+Shift+]` | `Cmd+Alt+Shift+]` | — |
+| Next Emmet Edit Point | `EmmetNextEditPoint` | `Alt+Shift+]` | `Ctrl+Alt+]` | yes |
+| Previous Emmet Edit Point | `EmmetPreviousEditPoint` | `Alt+Shift+[` | `Ctrl+Alt+[` | yes |
 | Next Change | `VcsShowNextChangeMarker` | `Ctrl+Alt+Shift+Down` | `Ctrl+Alt+Shift+Down` | — |
 | Previous Change | `VcsShowPrevChangeMarker` | `Ctrl+Alt+Shift+Up` | `Ctrl+Alt+Shift+Up` | — |
 
@@ -106,6 +108,9 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Unwrap/Remove… | `Unwrap` | `Ctrl+Shift+Delete` | `Cmd+Shift+Delete` | yes |
 | Insert Live Template… | `InsertLiveTemplate` | `Ctrl+J` | `Cmd+J` | yes |
 | Surround with Live Template… | `SurroundWithLiveTemplate` | `Ctrl+Alt+J` | `Cmd+Alt+J` | yes |
+| Surround with Emmet… | `SurroundWithEmmet` |  |  | yes |
+| Update Tag with Emmet… | `EmmetUpdateTag` |  |  | yes |
+| Show Color Picker | `ShowColorPicker` |  |  | yes |
 | Comment with Line Comment | `CommentByLineComment` | `Ctrl+/`, `Ctrl+NumPad/` | `Cmd+/`, `Cmd+NumPad/` | yes |
 | Comment with Block Comment | `CommentByBlockComment` | `Ctrl+Shift+/`, `Ctrl+Shift+NumPad/` | `Cmd+Alt+/`, `Cmd+Alt+NumPad/` | yes |
 | Reformat Code | `ReformatCode` | `Ctrl+Alt+L` | `Cmd+Alt+L` | yes |

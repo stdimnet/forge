@@ -671,6 +671,7 @@ not finished, the page says so.
 | [Markdown, images and CSV](docs/guide/user/markdown-images-csv.md) | Markdown preview (Mermaid, tables, links, images, front matter), image editor and SVG preview, Edit as Table for CSV/TSV |
 | [Actions on Save](docs/guide/user/actions-on-save.md) | Reformat code, Optimize imports, Rearrange code, code cleanup, ESLint, Prettier, PHP CS Fixer and Laravel Pint on save |
 | [Live templates](docs/guide/user/live-templates.md) | abbreviations + `Tab`, Insert Live Template, Surround With, Unwrap/Remove, Save as Live Template, template sets and settings |
+| [Emmet and color previews](docs/guide/user/emmet-and-colors.md) | Emmet abbreviations in HTML, Blade, Twig, Vue, PHP, JSX and CSS, abbreviation preview, Surround with Emmet, Update/Remove Tag, edit points, color swatches and the color picker |
 | [Language injections](docs/guide/user/language-injections.md) | SQL, HTML, CSS, JSON and RegExp in PHP and JavaScript strings, `// language=` comments, Inject language or reference, Edit Fragment, Run SQL |
 | [File and code templates](docs/guide/user/file-templates.md) | New ▸ PHP Class and other templates, the New PHP Class dialog with PSR-4 namespaces, `Alt+Insert` New popup, Settings \| Editor \| File and Code Templates |
 | [Search Everywhere and Find Action](docs/guide/user/search-everywhere.md) | Double Shift, Go to Class/File/Symbol, Find Action, fuzzy matching |
@@ -1577,6 +1578,8 @@ markers.
 - **Bookmarks**: a bookmark icon, or the bookmark's mnemonic, on bookmarked lines (`F11`,
   `Ctrl+F11`). See [Bookmarks](docs/guide/user/workbench.md#bookmarks).
 - **Annotate with Git Blame**: right-click the gutter. See [Git](docs/guide/user/git.md#blame).
+- **Color swatches** next to colors in CSS, markup and scripts; click one to open the color
+  picker. See [Emmet and color previews](docs/guide/user/emmet-and-colors.md#color-previews).
 
 ## Context menu
 
@@ -2255,6 +2258,167 @@ OK.
 User templates and changes to built-in ones are stored in the user settings
 (`editor.liveTemplates.custom`), disabled templates in `editor.liveTemplates.disabled`;
 Apply, Cancel and Reset work as on every other settings page.
+
+
+---
+
+Source: docs/guide/user/emmet-and-colors.md
+
+# Emmet and color previews
+
+Emmet works as in PHPStorm: type an abbreviation such as `ul.nav>li*3>a` and press `Tab`, and
+Forge writes the markup it stands for. Colors in stylesheets, markup and scripts get a swatch
+in the gutter; click it to change the color with the color picker.
+
+![An Emmet abbreviation expanded in a Blade view](docs/screenshots/emmet-expand.png)
+
+Parsing and expanding abbreviations is done in Rust (`crates/forge-emmet`), and so is finding,
+parsing and writing colors (`crates/forge-colors`); the desktop app and browser mode behave the
+same.
+
+## Where Emmet works
+
+| Files | What expands |
+| --- | --- |
+| HTML, Blade, Twig, Smarty, Latte, Jinja, Handlebars, Vue templates | markup abbreviations in text (not inside a tag, a comment, `{{ }}` / `{% %}` / `@php` code or `<script>`) |
+| PHP | markup abbreviations in the HTML outside `<?php … ?>` |
+| JSX and TSX (also `.js` files with JSX) | markup abbreviations where an element can start: after `(`, `>`, `return`, `=>`, `&&`, `\|\|`, `?` or `:`; `.class` becomes `className` |
+| CSS, SCSS, Less, Sass, Stylus and `<style>` blocks | property abbreviations where a declaration starts |
+
+The expand key is `Tab` by default (Settings | Editor | Emmet: `Tab`, `Enter` or `Space`). When
+no abbreviation ends at the caret the key does what it always does. Live templates and postfix
+templates come first: `fore` + `Tab` in a Blade view still expands the live template.
+
+After an expansion, empty attribute values and empty elements are tab stops: `Tab` and
+`Shift+Tab` move between them, `Escape` leaves them.
+
+## Markup abbreviations
+
+| Syntax | Example | Result |
+| --- | --- | --- |
+| Child `>` | `nav>ul>li` | `<nav><ul><li></li></ul></nav>` (formatted on lines) |
+| Sibling `+` | `header+main+footer` | three siblings |
+| Climb up `^` | `div>p^span` | `span` next to `div`, not inside it (`^^` climbs two levels) |
+| Multiplication `*N` | `li*3` | three `li` elements |
+| Grouping `( )` | `(dt+dd)*2` | the group twice |
+| Id and class `#` `.` | `section#main.page.dark` | `<section id="main" class="page dark">` |
+| Attributes `[ ]` | `a[href=/home title="Go home" data-x]` | values in quotes may contain spaces; an attribute without value becomes a tab stop; `[disabled.]` writes a boolean attribute |
+| Text `{ }` | `button{Save}` | `<button>Save</button>`; `{Click }+a` puts text next to an element |
+| Numbering `$` | `li.item$*3`, `h$*2` | `item1`, `item2`, `item3`; `$$` pads to `01`; `$@-` counts down; `$@3` starts at 3 |
+| Implicit tags | `ul>.item`, `table>.row>.cell`, `em>.x` | `li`, `tr`/`td`, `span`; `div` elsewhere |
+| Lorem ipsum | `lorem`, `lorem10`, `p*3>lorem5` | placeholder text (30 words by default) |
+
+Snippets give elements their usual attributes and shortcuts: `a` → `<a href="">`, `img` →
+`<img src="" alt="">`, `input:checkbox` (or `input:c`), `link:css`, `meta:vp`, `script:src`,
+`btn:s`, `form:post`, `bq`, `ul+` (a list with an item), `table+` and `!` for an HTML5 document.
+In JSX, `img` and other void elements close with ` />` and `label[for=x]` becomes `htmlFor`.
+
+### Abbreviation preview
+
+With Settings | Editor | Emmet | HTML | **Enable abbreviation preview**, a popup below the
+abbreviation shows the markup while you type. It only appears for abbreviations that are clearly
+Emmet (an operator, attributes, text, a known element or snippet).
+
+![The abbreviation preview](docs/screenshots/emmet-preview.png)
+
+## CSS abbreviations
+
+| Abbreviation | Result |
+| --- | --- |
+| `m10`, `p10-20`, `m10-20-30-40` | `margin: 10px;`, `padding: 10px 20px;`, four values |
+| `m-10`, `m10--20` | negative values: `margin: -10px;`, `margin: 10px -20px;` |
+| `w100p`, `m2e`, `p1r`, `h50vh`, `m1.5`, `lh1.5`, `z10` | `%`, `em`, `rem`, any unit; decimals are `em`; unitless properties stay unitless |
+| `df`, `dib`, `dn`, `pos:a`, `posr`, `tac`, `fwb`, `ovh`, `jcsb` | `display: flex;` … `justify-content: space-between;` (keyword by first letters or initials) |
+| `c#f`, `bgc#fff`, `bd1-s#f00` | `color: #fff;`, `background-color: #fff;`, `border: 1px solid #f00;` |
+| `c#3!` | `color: #333 !important;` |
+| `m10+p5` | several declarations at once |
+| `pos`, `d`, `bd` | the property with its default value selected as a tab stop |
+| `@m`, `@kf`, `@f`, `@i` | `@media`, `@keyframes`, `@font-face`, `@import` |
+
+Full property names expand too (`color` → `color: #000;`), and unknown abbreviations are matched
+fuzzily against property names (`bxsz` → `box-sizing`). In Sass and Stylus no `;` is written.
+
+![CSS abbreviations](docs/screenshots/emmet-css.png)
+
+## Surround with Emmet
+
+Select some text (or put the caret on a line) and run **Surround with Emmet** (Find Action, or
+`Ctrl+Alt+J` Surround with Live Template and choose **Emmet**, the first entry in markup
+files). Enter an abbreviation; the popup previews the result and `Enter` applies it. `Up` and
+`Down` bring back abbreviations used before.
+
+- The selection goes into the innermost last element: `div.card>.body` wraps it in both.
+- An element repeated with a bare `*` repeats once per selected line: `ul>li*` turns lines into
+  list items.
+- `$#` places the text explicitly: `a[title=$#]{$#}`.
+- Wrapping a URL or an e-mail address with `a` fills its `href` (Settings | Editor | Emmet |
+  HTML | Enable automatic URL recognition while wrapping text with `<a>` tag).
+
+![Surround with Emmet](docs/screenshots/emmet-surround.png)
+
+## Update Tag, Remove Tag and edit points
+
+- **Update Tag with Emmet** (Find Action, action id `EmmetUpdateTag`): enter an abbreviation for
+  the tag around the caret. A name renames the opening and closing tag, `#id` sets the id,
+  `.class` adds classes and `[a=b]` sets attributes: `section.hero[role=banner]`.
+- **Remove Tag** (Find Action, action id `EmmetRemoveTag`): removes the tag around the caret and
+  keeps its content. Tags on lines of their own remove the line, and the content moves one
+  indentation level out.
+- **Next Emmet Edit Point** (`Alt+Shift+]`, macOS `Ctrl+Alt+]`) and **Previous Emmet Edit
+  Point** (`Alt+Shift+[`, macOS `Ctrl+Alt+[`): move the caret to the next empty attribute value
+  (`href="|"`), empty element (`<p>|</p>`) or empty line.
+
+## Settings | Editor | Emmet
+
+| Page | Setting | Default |
+| --- | --- | --- |
+| Emmet | Expand abbreviation with: `Tab`, `Enter`, `Space` | `Tab` |
+| Emmet \| HTML | Enable Emmet | on |
+| Emmet \| HTML | Enable abbreviation preview | off |
+| Emmet \| HTML | Enable automatic URL recognition while wrapping text with `<a>` tag | on |
+| Emmet \| CSS | Enable Emmet | on |
+| Emmet \| JSX | Enable Emmet in JSX | on |
+| Emmet \| JSX | Class attribute: `className` or `class` | `className` |
+
+![Settings | Editor | Emmet | HTML](docs/screenshots/emmet-settings.png)
+
+## Color previews
+
+Forge shows a swatch in the gutter next to each color (up to two per line):
+
+- in CSS, SCSS, Less, Sass, Stylus, `<style>` blocks and `style="…"` attributes: hex colors
+  (`#fff`, `#ffffff80`), `rgb()`/`rgba()`, `hsl()`/`hsla()` and `hwb()` in the legacy comma and
+  the modern space syntax (`rgb(0 0 255 / 50%)`, `hsl(240deg 100% 50%)`) and the CSS color names
+  (`tomato`, `transparent`), in declarations and custom properties (`--brand: #6d28d9`);
+- in JavaScript, TypeScript, JSX, TSX and Vue scripts: colors in strings (`'#1e90ff'`,
+  `"rgba(0,0,0,.5)"`, `'tomato'`, CSS in template literals);
+- Tailwind CSS color classes in `class` / `className` attributes and strings: `bg-blue-500`,
+  `text-white/50`, `hover:border-red-600` (read-only swatches).
+
+Selectors (`#main {`), `var(--x)` and colors in comments are left alone. Settings | Editor |
+General | Appearance has **Show color preview in the gutter** (on) and **Show color preview
+inline** (off), which draws the swatch in front of the color in the text.
+
+![Color swatches in the gutter](docs/screenshots/color-preview.png)
+
+## Color picker
+
+Click a swatch (or run **Show Color Picker** from Find Action with the caret in a color) to
+open the color picker:
+
+- the saturation/brightness square, the hue slider and the opacity slider;
+- `RGB` or `HSB` fields and the opacity in percent, the hex field;
+- **Recently used** colors (kept in the setting `editor.colorPicker.recentColors`).
+
+Every change is written into the document at once in the notation the color was written in:
+`#abc` stays short while the color allows it, `rgba(…)` keeps its separators, `hsl()` stays
+`hsl()`, a color name becomes another name or hex, and an alpha below 100% adds the alpha
+(`#0000ff80`, `rgba(…)`). `Enter` or a click outside closes the picker; `Escape` restores the
+original color. With the caret outside a color, Show Color Picker inserts a new hex color.
+
+![The color picker](docs/screenshots/color-picker.png)
+
+![The color picker in the Anvil (light) theme with inline swatches](docs/screenshots/color-picker-light.png)
 
 
 ---
@@ -3510,6 +3674,13 @@ Typing, selecting, moving and commenting code, completion, generation, formattin
 | [Surround With…](#surround-with) | `Ctrl+Alt+T` | `Cmd+Alt+T` |
 | [Surround with Live Template…](#surround-with-live-template) | `Ctrl+Alt+J` | `Cmd+Alt+J` |
 | [Unwrap/Remove…](#unwrapremove) | `Ctrl+Shift+Delete` | `Cmd+Shift+Delete` |
+| [Expand Emmet abbreviation](#expand-emmet-abbreviation) | `Tab` | `Tab` |
+| [Surround with Emmet…](#surround-with-emmet) | — | — |
+| [Update Tag with Emmet…](#update-tag-with-emmet) | — | — |
+| [Remove Tag](#remove-tag) | — | — |
+| [Next Emmet Edit Point](#next-emmet-edit-point) | `Alt+Shift+]` | `Ctrl+Alt+]` |
+| [Previous Emmet Edit Point](#previous-emmet-edit-point) | `Alt+Shift+[` | `Ctrl+Alt+[` |
+| [Show Color Picker](#show-color-picker) | — | — |
 | [Undo](#undo) | `Ctrl+Z`, `Alt+Backspace` | `Cmd+Z` |
 | [Redo](#redo) | `Ctrl+Shift+Z`, `Alt+Shift+Backspace` | `Cmd+Shift+Z` |
 | [Cut](#cut) | `Ctrl+X`, `Shift+Delete` | `Cmd+X` |
@@ -3738,6 +3909,73 @@ an `else`, `elseif`, `catch` or `finally` branch. The editor previews the change
 ![Unwrap/Remove](docs/screenshots/unwrap-remove.png)
 
 More: [Live templates](docs/guide/user/live-templates.md#unwrapremove)
+
+## Expand Emmet abbreviation
+
+**Shortcut:** `Tab` (Settings | Editor | Emmet: `Tab`, `Enter` or `Space`)
+
+Expands the Emmet abbreviation before the caret in HTML-like files, PHP, JSX and CSS:
+`ul>li.item$*3`, `a{Home}`, `m10-20`, `df`. Live templates and postfix templates win when they
+match; without an abbreviation the key does what it always does.
+
+![An Emmet abbreviation expanded](docs/screenshots/emmet-expand.png)
+
+More: [Emmet and color previews](docs/guide/user/emmet-and-colors.md)
+
+## Surround with Emmet
+
+**Shortcut:** none by default (also the **Emmet** entry of `Ctrl+Alt+J`) · action id `SurroundWithEmmet`
+
+Wraps the selection, or the current line, with an abbreviation entered in a popup that
+previews the result: `div.card`, `ul>li*` (one item per line), `a` around a URL.
+
+![Surround with Emmet](docs/screenshots/emmet-surround.png)
+
+More: [Emmet and color previews](docs/guide/user/emmet-and-colors.md#surround-with-emmet)
+
+## Update Tag with Emmet
+
+**Shortcut:** none by default · action id `EmmetUpdateTag`
+
+Renames the tag around the caret and adds the id, classes and attributes of an abbreviation
+(`section.hero[role=banner]`).
+
+More: [Emmet and color previews](docs/guide/user/emmet-and-colors.md#update-tag-remove-tag-and-edit-points)
+
+## Remove Tag
+
+**Shortcut:** none by default · action id `EmmetRemoveTag`
+
+Removes the tag around the caret and keeps its content, one indentation level further out.
+
+More: [Emmet and color previews](docs/guide/user/emmet-and-colors.md#update-tag-remove-tag-and-edit-points)
+
+## Next Emmet Edit Point
+
+**Shortcut:** `Alt+Shift+]` · macOS `Ctrl+Alt+]` · action id `EmmetNextEditPoint`
+
+Moves the caret to the next empty attribute value, empty element or empty line.
+
+More: [Emmet and color previews](docs/guide/user/emmet-and-colors.md#update-tag-remove-tag-and-edit-points)
+
+## Previous Emmet Edit Point
+
+**Shortcut:** `Alt+Shift+[` · macOS `Ctrl+Alt+[` · action id `EmmetPreviousEditPoint`
+
+Moves the caret to the previous edit point.
+
+More: [Emmet and color previews](docs/guide/user/emmet-and-colors.md#update-tag-remove-tag-and-edit-points)
+
+## Show Color Picker
+
+**Shortcut:** none by default (or click a color swatch in the gutter) · action id `ShowColorPicker`
+
+Opens the color picker for the color at the caret, or for a new color inserted at the caret.
+The color is written back in its notation.
+
+![The color picker](docs/screenshots/color-picker.png)
+
+More: [Emmet and color previews](docs/guide/user/emmet-and-colors.md#color-picker)
 
 ## Undo
 
@@ -8484,6 +8722,8 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Move Caret to Code Block End | `EditorCodeBlockEnd` | `Ctrl+]` | `Cmd+Alt+]` | — |
 | Move Caret to Code Block Start with Selection | `EditorCodeBlockStartWithSelection` | `Ctrl+Shift+[` | `Cmd+Alt+Shift+[` | — |
 | Move Caret to Code Block End with Selection | `EditorCodeBlockEndWithSelection` | `Ctrl+Shift+]` | `Cmd+Alt+Shift+]` | — |
+| Next Emmet Edit Point | `EmmetNextEditPoint` | `Alt+Shift+]` | `Ctrl+Alt+]` | yes |
+| Previous Emmet Edit Point | `EmmetPreviousEditPoint` | `Alt+Shift+[` | `Ctrl+Alt+[` | yes |
 | Next Change | `VcsShowNextChangeMarker` | `Ctrl+Alt+Shift+Down` | `Ctrl+Alt+Shift+Down` | — |
 | Previous Change | `VcsShowPrevChangeMarker` | `Ctrl+Alt+Shift+Up` | `Ctrl+Alt+Shift+Up` | — |
 
@@ -8513,6 +8753,9 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Unwrap/Remove… | `Unwrap` | `Ctrl+Shift+Delete` | `Cmd+Shift+Delete` | yes |
 | Insert Live Template… | `InsertLiveTemplate` | `Ctrl+J` | `Cmd+J` | yes |
 | Surround with Live Template… | `SurroundWithLiveTemplate` | `Ctrl+Alt+J` | `Cmd+Alt+J` | yes |
+| Surround with Emmet… | `SurroundWithEmmet` |  |  | yes |
+| Update Tag with Emmet… | `EmmetUpdateTag` |  |  | yes |
+| Show Color Picker | `ShowColorPicker` |  |  | yes |
 | Comment with Line Comment | `CommentByLineComment` | `Ctrl+/`, `Ctrl+NumPad/` | `Cmd+/`, `Cmd+NumPad/` | yes |
 | Comment with Block Comment | `CommentByBlockComment` | `Ctrl+Shift+/`, `Ctrl+Shift+NumPad/` | `Cmd+Alt+/`, `Cmd+Alt+NumPad/` | yes |
 | Reformat Code | `ReformatCode` | `Ctrl+Alt+L` | `Cmd+Alt+L` | yes |
@@ -9654,6 +9897,8 @@ Page id `editor.general`.
 | `editor.stripTrailingSpaces` | enum: `none`, `modified`, `all` | `modified` | user | On Save | Remove trailing spaces on |
 | `editor.ensureNewlineAtEof` | bool | `true` | user | On Save | Ensure every saved file ends with a line break |
 | `editor.clipboard.maxContents` | int (1–100) | `20` | user | Limits | Maximum number of contents to keep in clipboard |
+| `editor.colorPreview.gutter` | bool | `true` | user | Appearance | Show color preview in the gutter — Swatches next to colors in CSS, markup and scripts; click one to open the color picker. |
+| `editor.colorPreview.inline` | bool | `false` | user | Appearance | Show color preview inline |
 | `run.console.softWrap` | bool | `false` | user | Console | Use soft wraps in console |
 | `run.console.cycleBufferKb` | int (100–100000) | `1024` | user | Console | Override console cycle buffer size (KB) — Run consoles drop their oldest lines beyond this size. Applies to runs started afterwards. |
 
@@ -9758,6 +10003,23 @@ Page id `editor.liveTemplates`.
 | `editor.liveTemplates.expandKey` | enum: `tab`, `space`, `enter` | `tab` | user |  | By default expand with — Key that expands a live template abbreviation. |
 | `editor.liveTemplates.custom` | objects | `[]` | user |  | User and changed templates — New templates and changes to built-in ones: group, abbreviation, description, text, contexts (comma-separated), variables (JSON), builtin (id of the replaced built-in template) and removed. |
 | `editor.liveTemplates.disabled` | list | `[]` | user |  | Disabled templates — Ids (`group/abbreviation`) of templates that do not expand. |
+
+### Editor | Emmet
+
+Page ids `editor.emmet`, `editor.emmet.html`, `editor.emmet.css`, `editor.emmet.jsx`.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `editor.emmet.expandKey` | enum: `tab`, `enter`, `space` | `tab` | user |  | Expand abbreviation with — Live templates and postfix templates expand first when they match. |
+| `editor.emmet.html.enabled` | bool | `true` | user |  | Enable Emmet (HTML) — In HTML, Blade, Twig and other template files, Vue templates and the HTML of PHP files. |
+| `editor.emmet.html.preview` | bool | `false` | user |  | Enable abbreviation preview — Show the expanded markup in a popup while typing an abbreviation. |
+| `editor.emmet.html.hrefAutoDetect` | bool | `true` | user |  | Enable automatic URL recognition while wrapping text with `<a>` tag |
+| `editor.emmet.css.enabled` | bool | `true` | user |  | Enable Emmet (CSS) — In CSS, SCSS, Less, Sass and Stylus, and in `<style>` blocks. |
+| `editor.emmet.jsx.enabled` | bool | `true` | user |  | Enable Emmet in JSX |
+| `editor.emmet.jsx.classAttribute` | enum: `className`, `class` | `className` | user |  | Class attribute — Attribute written for .class abbreviations in JSX and TSX files. |
+
+The color picker keeps `editor.colorPicker.recentColors` (list, user scope, not shown on a
+page): the recently used colors, newest first.
 
 ### Editor | Reader Mode
 
@@ -12540,11 +12802,13 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-backend](docs/guide/developer/crates/forge-backend.md) | Forge IDE project backends: the Backend trait, the local backend and the remote agent protocol |
 | [forge-bookmarks](docs/guide/developer/crates/forge-bookmarks.md) | Bookmarks: lists, mnemonics and line tracking through edits (pure, WebAssembly-friendly) |
 | [forge-codeintel](docs/guide/developer/crates/forge-codeintel.md) | Code intelligence models: workspace edits with LSP positions and Find Usages grouping (pure, WebAssembly-friendly) |
+| [forge-colors](docs/guide/developer/crates/forge-colors.md) | Color values in code: finding CSS colors (hex, rgb, hsl, hwb, named, Tailwind) in CSS, markup and script files, parsing and formatting them in their notation (pure, WebAssembly-friendly) |
 | [forge-containers](docs/guide/developer/crates/forge-containers.md) | Forge IDE containers: Docker Engine API, Docker Compose and Kubernetes for the Services tool window |
 | [forge-core](docs/guide/developer/crates/forge-core.md) | Forge IDE core: workspace, file system, settings and event bus |
 | [forge-db](docs/guide/developer/crates/forge-db.md) | Forge IDE database tools: data sources, introspection, query execution and data editing |
 | [forge-debug](docs/guide/developer/crates/forge-debug.md) | Forge IDE debugger: DBGp (Xdebug 3) server, path mappings and breakpoints |
 | [forge-editing](docs/guide/developer/crates/forge-editing.md) | Editor actions computed in Rust: postfix completion templates, Complete Current Statement and Cyclic Expand Word (pure, WebAssembly-friendly) |
+| [forge-emmet](docs/guide/developer/crates/forge-emmet.md) | Emmet: abbreviation parser and expander for HTML, JSX and CSS, Surround with Emmet, edit points, Update/Remove Tag (pure, WebAssembly-friendly) |
 | [forge-file-templates](docs/guide/developer/crates/forge-file-templates.md) | File and code templates (Settings \| Editor \| File and Code Templates): a Velocity subset renderer, the built-in templates, PSR-4 namespace mapping and New-file rendering (pure, WebAssembly-friendly) |
 | [forge-filetypes](docs/guide/developer/crates/forge-filetypes.md) | File type recognition for Forge: names, extensions, shebangs and template data languages (pure, WebAssembly-friendly) |
 | [forge-find](docs/guide/developer/crates/forge-find.md) | Find in Files and TODO scanning: query compilation, file masks, line matching and comment patterns (pure, WebAssembly-friendly) |
@@ -12942,6 +13206,64 @@ cargo test -p forge-codeintel
 
 ---
 
+Source: docs/guide/developer/crates/forge-colors.md
+
+# forge-colors
+
+`crates/forge-colors` — Color values in code: finding CSS colors (hex, rgb, hsl, hwb, named, Tailwind) in CSS, markup and script files, parsing and formatting them in their notation (pure, WebAssembly-friendly).
+
+## Purpose
+
+The logic behind the editor's color previews and the color picker. The UI
+(`app/ui/src/features/colors`) draws the swatches and the picker; offsets are UTF-16.
+
+- `color`: `Rgba` (channels 0–255 with fractions, alpha 0–1), `parse` for every CSS notation
+  (hex with 3/4/6/8 digits, `rgb()`/`rgba()`, `hsl()`/`hsla()`, `hwb()`, legacy commas and
+  modern spaces with `/ alpha`, percentages, `deg`/`rad`/`grad`/`turn`, `none`, names) with
+  its `Notation`, and `format`, which writes a color in the notation of the original text
+  (short hex while possible, the same function name and separators, `rgb` → `rgba` in legacy
+  syntax when an alpha appears, percentages kept, names kept or replaced by hex).
+- `named`: the 148 CSS color names plus `transparent`, and Tailwind CSS's default palette
+  (22 colors × 11 shades, `black`, `white`).
+- `find`: colors of a document by language: declarations in CSS/SCSS/Less (selectors and
+  comments skipped, `var()` and `url()` left alone) and Sass/Stylus lines, `<style>` blocks and
+  `style` attributes of markup, strings of scripts (whole-string color names, hex and color
+  functions), and Tailwind color classes (`bg-blue-500`, `text-white/50`) in class attributes
+  and strings (not editable).
+
+## Main public items
+
+```rust
+pub fn find(req: &FindRequest) -> Vec<ColorMatch> { … }
+pub fn find_colors(text: &str, language: &str) -> Vec<ColorMatch> { … }
+pub fn parse(text: &str) -> Option<(Rgba, Notation)> { … }
+pub fn format(color: Rgba, original: &str) -> String { … }
+pub fn format_color(req: &FormatRequest) -> String { … }
+pub fn parse_color(text: &str) -> Option<Parsed> { … }
+```
+
+## Used by
+
+- IPC: `colors_find`, `colors_format`, `colors_parse` (`app/src-tauri/src/commands/emmet.rs`).
+- UI: `app/ui/src/features/colors` (gutter swatches as line markers, inline swatches, the color
+  picker, Show Color Picker). Swatches and the picker call Rust in-process through
+  `forge-wasm` in both modes.
+- Browser mode: built into `forge-wasm` (`emmet.rs`).
+
+## Dependencies
+
+- Workspace crates: none
+- External: `serde`
+
+## Tests
+
+Unit tests for parsing every notation, HSL/HWB conversions, formatting in each notation, the
+named colors and the Tailwind palette, finding colors in CSS, SCSS, Sass, HTML, Vue and TSX,
+and UTF-16 offsets.
+
+
+---
+
 Source: docs/guide/developer/crates/forge-containers.md
 
 # forge-containers
@@ -13286,6 +13608,82 @@ word expansion order.
 ```sh
 cargo test -p forge-editing
 ```
+
+
+---
+
+Source: docs/guide/developer/crates/forge-emmet.md
+
+# forge-emmet
+
+`crates/forge-emmet` — Emmet: abbreviation parser and expander for HTML, JSX and CSS, Surround with Emmet, edit points, Update/Remove Tag (pure, WebAssembly-friendly).
+
+## Purpose
+
+Everything behind PHPStorm's Emmet support except the key binding and the popups: where an
+abbreviation ends and starts, which syntax applies at the caret, the parsed abbreviation, the
+expanded text with its tab stops, and the edits of the tag actions. The UI
+(`app/ui/src/features/emmet`) binds the expand key and applies the result as a CodeMirror
+snippet. All offsets the UI sends and receives are UTF-16.
+
+- `abbr`: the parser. Child `>`, sibling `+`, climb `^`, multiplication `*N` (a bare `*`
+  repeats once per wrapped line), groups `( )`, `#id`, `.class`, `[a=b c="d" e. f={expr}]`,
+  `{text}`, numbering `$`, `$$`, `$@-`, `$@3`, self-closing `/`, names with `:` and `!` and
+  the expanding snippets with `+` (`ul+`). The result is an arena tree (`Tree`).
+- `snippets`: Emmet's HTML snippets (`a` → `a[href]`, `input:c`, `link:css`, `!`), the inline,
+  void and known element names and the implicit tag of an element without a name.
+- `markup`: resolves snippets, implicit tags, numbering, lorem and repeats, inserts wrapped
+  text (`$#` or the innermost last element, URL recognition for `a`), and writes HTML or JSX
+  formatted like Emmet (block elements on their own lines, runs of fewer than three inline
+  elements kept on one line, `html` children not indented) with tab stops for empty attribute
+  values and empty elements.
+- `css`: property abbreviations (a table of Emmet's CSS snippets, exact and fuzzy property
+  names, keywords by prefix or initials, numbers with units and unit aliases, unitless
+  properties, colors, `!important`, `+` for several declarations, at-rules).
+- `lorem`: deterministic placeholder text.
+- `context`: the syntax family of a file type, template code where markup does not apply
+  (`{{ }}`, `{% %}`, `@php`), CSS declaration positions, the JSX positions, and the extraction
+  of the abbreviation before the caret (balanced brackets, a `>` that closes a tag ends it).
+- `html`: a tolerant tag scanner: the state at a position (text, tag, comment, PHP, script,
+  style), tags, element pairs and the attributes of an opening tag.
+- `actions`: edit points, Update Tag with Emmet and Remove Tag as byte edits.
+
+## Main public items
+
+```rust
+pub fn expand(req: &ExpandRequest) -> Option<Expansion> { … }
+pub fn wrap(req: &WrapRequest) -> Result<Expansion, String> { … }
+pub fn edit_point(req: &EditPointRequest) -> Option<usize> { … }
+pub fn update_tag(req: &TagRequest) -> Result<Vec<Edit>, String> { … }
+pub fn remove_tag(req: &TagRequest) -> Result<Vec<Edit>, String> { … }
+pub fn markup::expand(abbr: &str, opts: &MarkupOptions, wrap: Option<&[String]>) -> Result<Output, String> { … }
+pub fn css::expand(abbr: &str, opts: &CssOptions) -> Result<Output, String> { … }
+```
+
+`Expansion` (`{ from, to, text, fields: { from, to, index }[], end, abbreviation, syntax }`)
+has the shape of a live template expansion, so the UI inserts both with the same snippet code.
+
+## Used by
+
+- IPC: `emmet_expand`, `emmet_wrap`, `emmet_edit_point`, `emmet_update_tag`,
+  `emmet_remove_tag` (`app/src-tauri/src/commands/emmet.rs`).
+- UI: `app/ui/src/features/emmet` (expand key, abbreviation preview, Surround with Emmet,
+  Update Tag, Remove Tag, edit points, Settings | Editor | Emmet). The expand key and the
+  preview call `emmet_expand` in-process through `forge-wasm` in both modes.
+- Browser mode: built into `forge-wasm` (`emmet.rs`).
+
+## Dependencies
+
+- Workspace crates: none
+- External: `serde` (`serde_json` for tests)
+
+## Tests
+
+Unit tests for the parser (operators, climbing, groups, attributes, text, numbering, errors),
+every snippet, formatting, implicit tags, numbering variants, lorem, the HTML5 document, JSX,
+tab stops, wrapping (lines, `$#`, URLs), limits, CSS numbers, units, keywords, colors and
+rules, the HTML scanner, extraction and contexts per language, edit points, Update Tag, Remove
+Tag and UTF-16 offsets.
 
 
 ---
@@ -14874,6 +15272,7 @@ Rebuild the bundle with `pnpm --dir app/ui wasm` (output: `app/ui/src/wasm/pkg`)
 | `agents.rs` | Agent CLIs (`forge_agent_cli`) for the browser-mode agent mock: the built-in agents' profiles (what `agent_list` reports besides detection) and the stream parsers, so the mock replays recorded CLI output through the same Rust code as the desktop app. |
 | `containers.rs` | Services tool window (`forge-containers`) for the browser-mode mock: the mock keeps a fake Docker daemon as Engine API JSON, compose files and a kubeconfig as text, and asks Rust for the models, the tree, the details pane, the gutter markers, command lines and pull progress, like the desktop app's hub. |
 | `editing.rs` | Editor actions (`forge-editing`): postfix templates and their expansion, Complete Current Statement and Cyclic Expand Word, mirroring the `editor_postfix_*`, `editor_complete_statement` and `editor_expand_word` commands. |
+| `emmet.rs` | Emmet (`forge-emmet`) and colors (`forge-colors`), mirroring the `emmet_*` and `colors_*` commands; the expand key, the abbreviation preview, color swatches and the color picker call them synchronously. |
 | `filetypes.rs` | File type detection (`forge-filetypes`), mirroring the `filetypes_detect` IPC command. The desktop app builds the registry from its plugin manifests; browser mode loads the same manifests (the `builtinPlugins.json` snapshot) once with `filetypes_load`. |
 | `keymap.rs` | Keymap bridge (`forge-keymap`). |
 | `lua.rs` | LuaForge (`luaforge-lang-lua`), mirroring the `lua_*` IPC commands for the browser-mode mock: the mock hands over the demo project's Lua files once (`lua_index_files`), then asks for structure, hover, Go to Declaration, symbol search and run markers. |
@@ -14907,7 +15306,7 @@ pub fn bridge_version() -> String { … }
 
 ## Dependencies
 
-- Workspace crates: [`forge-agent-cli`](docs/guide/developer/crates/forge-agent-cli.md), [`forge-containers`](docs/guide/developer/crates/forge-containers.md), [`forge-editing`](docs/guide/developer/crates/forge-editing.md), [`forge-filetypes`](docs/guide/developer/crates/forge-filetypes.md), [`forge-find`](docs/guide/developer/crates/forge-find.md), [`forge-fuzzy`](docs/guide/developer/crates/forge-fuzzy.md), [`forge-keymap`](docs/guide/developer/crates/forge-keymap.md), [`forge-markdown`](docs/guide/developer/crates/forge-markdown.md), [`forge-output`](docs/guide/developer/crates/forge-output.md), [`forge-plugin-api`](docs/guide/developer/crates/forge-plugin-api.md), [`forge-remote`](docs/guide/developer/crates/forge-remote.md), [`forge-scratches`](docs/guide/developer/crates/forge-scratches.md), [`forge-sql`](docs/guide/developer/crates/forge-sql.md), [`forge-viewers`](docs/guide/developer/crates/forge-viewers.md), [`forge-window`](docs/guide/developer/crates/forge-window.md), [`luaforge-lang-lua`](docs/guide/developer/crates/luaforge-lang-lua.md), [`phpforge-dql`](docs/guide/developer/crates/phpforge-dql.md), [`webforge-fw-angular`](docs/guide/developer/crates/webforge-fw-angular.md), [`webforge-fw-react`](docs/guide/developer/crates/webforge-fw-react.md), [`webforge-fw-vue`](docs/guide/developer/crates/webforge-fw-vue.md), [`webforge-lang-web`](docs/guide/developer/crates/webforge-lang-web.md)
+- Workspace crates: [`forge-agent-cli`](docs/guide/developer/crates/forge-agent-cli.md), [`forge-containers`](docs/guide/developer/crates/forge-containers.md), [`forge-colors`](docs/guide/developer/crates/forge-colors.md), [`forge-editing`](docs/guide/developer/crates/forge-editing.md), [`forge-emmet`](docs/guide/developer/crates/forge-emmet.md), [`forge-filetypes`](docs/guide/developer/crates/forge-filetypes.md), [`forge-find`](docs/guide/developer/crates/forge-find.md), [`forge-fuzzy`](docs/guide/developer/crates/forge-fuzzy.md), [`forge-keymap`](docs/guide/developer/crates/forge-keymap.md), [`forge-markdown`](docs/guide/developer/crates/forge-markdown.md), [`forge-output`](docs/guide/developer/crates/forge-output.md), [`forge-plugin-api`](docs/guide/developer/crates/forge-plugin-api.md), [`forge-remote`](docs/guide/developer/crates/forge-remote.md), [`forge-scratches`](docs/guide/developer/crates/forge-scratches.md), [`forge-sql`](docs/guide/developer/crates/forge-sql.md), [`forge-viewers`](docs/guide/developer/crates/forge-viewers.md), [`forge-window`](docs/guide/developer/crates/forge-window.md), [`luaforge-lang-lua`](docs/guide/developer/crates/luaforge-lang-lua.md), [`phpforge-dql`](docs/guide/developer/crates/phpforge-dql.md), [`webforge-fw-angular`](docs/guide/developer/crates/webforge-fw-angular.md), [`webforge-fw-react`](docs/guide/developer/crates/webforge-fw-react.md), [`webforge-fw-vue`](docs/guide/developer/crates/webforge-fw-vue.md), [`webforge-lang-web`](docs/guide/developer/crates/webforge-lang-web.md)
 - External: `serde`, `serde_json`, `wasm-bindgen`
 
 ## Tests

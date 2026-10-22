@@ -38,6 +38,7 @@ import "./markdownMock";
 import "./viewersMock";
 import "./liveTemplatesMock";
 import "./injectionsMock";
+import "./emmetMock";
 import "./servicesMock";
 import "./webMock";
 import "./saveActionsMock";

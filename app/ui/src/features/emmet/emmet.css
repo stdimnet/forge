@@ -1,0 +1,70 @@
+/* ---------- Abbreviation preview below the caret (Settings | Editor | Emmet | HTML) ---------- */
+.cm-tooltip:has(> .emmet-preview) {
+  background: transparent;
+  border: none;
+}
+.emmet-preview {
+  max-width: 560px;
+  padding: 6px 10px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+.emmet-preview pre,
+.emmet-popup-preview {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  line-height: 1.45;
+  color: var(--fg);
+  white-space: pre;
+  overflow: auto;
+}
+
+/* ---------- "Enter Abbreviation" popup (Surround with Emmet, Update Tag) ---------- */
+.emmet-popup {
+  position: fixed;
+  z-index: 1000;
+  width: max-content;
+  min-width: 320px;
+  max-width: 640px;
+  padding: 6px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  font-size: var(--fs-ui);
+}
+.emmet-popup-title {
+  padding: 2px 4px 6px;
+  font-weight: 600;
+  color: var(--fg-strong);
+}
+.emmet-popup-input {
+  width: 100%;
+  box-sizing: border-box;
+  height: 26px;
+  padding: 0 8px;
+  background: var(--bg-input);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  color: var(--fg);
+  font-family: var(--font-mono);
+  font-size: var(--fs-ui);
+  outline: none;
+}
+.emmet-popup-preview {
+  max-height: 260px;
+  margin-top: 6px;
+  padding: 6px 8px;
+  background: var(--bg-editor);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.emmet-popup-error {
+  margin-top: 6px;
+  padding: 4px;
+  color: var(--danger);
+  font-size: var(--fs-small);
+}

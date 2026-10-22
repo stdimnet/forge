@@ -44,6 +44,8 @@ forge-containers.workspace = true
 forge-keymap.workspace = true
 forge-livetemplates.workspace = true
 forge-injections.workspace = true
+forge-emmet.workspace = true
+forge-colors.workspace = true
 forge-scratches = { workspace = true, features = ["client"] }
 forge-backend = { workspace = true, features = ["search"] }
 forge-remote.workspace = true

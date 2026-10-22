@@ -24,6 +24,7 @@ mod agents;
 mod codeintel;
 mod containers;
 mod editing;
+mod emmet;
 mod filetypes;
 mod injections;
 mod keymap;
