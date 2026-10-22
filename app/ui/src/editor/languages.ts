@@ -11,6 +11,7 @@ import { html } from "@codemirror/lang-html";
 import { xml } from "@codemirror/lang-xml";
 import { properties } from "@codemirror/legacy-modes/mode/properties";
 import { dotenv } from "./dotenv";
+import { gherkin } from "./gherkin";
 import { streamLanguage } from "./tokens";
 import { latteSyntax, mustacheSyntax, templateParser, type TemplateSyntax } from "./templates";
 import { templateOverlay } from "./templateOverlay";
@@ -44,7 +45,6 @@ import { stylus } from "@codemirror/legacy-modes/mode/stylus";
 import { pug } from "@codemirror/legacy-modes/mode/pug";
 import { protobuf } from "@codemirror/legacy-modes/mode/protobuf";
 import { cmake } from "@codemirror/legacy-modes/mode/cmake";
-import { gherkin } from "@codemirror/legacy-modes/mode/gherkin";
 import { http } from "@codemirror/legacy-modes/mode/http";
 import { puppet } from "@codemirror/legacy-modes/mode/puppet";
 import { tcl } from "@codemirror/legacy-modes/mode/tcl";
@@ -182,7 +182,7 @@ const loaders = new Map<string, LanguageDef["load"]>(
     textile: stream(textile),
     protobuf: stream(protobuf),
     cmake: stream(cmake),
-    gherkin: stream(gherkin),
+    gherkin: () => streamLanguage(gherkin),
     http: stream(http),
     puppet: stream(puppet),
     makefile: stream(shell),

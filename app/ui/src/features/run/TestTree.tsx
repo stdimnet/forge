@@ -58,7 +58,27 @@ export function flattenTree(root: TestNode, view: TreeView): FlatRow[] {
   return rows;
 }
 
-/** Open the test's source: the method or class named in its location hint. */
+const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+/**
+ * Where a member is declared: a PHP method or class, a Pest `test()` / `it()` call (the last
+ * part of `` `describe` → it … ``), a Behat scenario.
+ */
+export function declarationPattern(member: string, kind: TestNode["kind"], path: string): RegExp {
+  const name = member.replace(/ with (data set .*|\(.*\))$/, "");
+  if (/\.feature$/i.test(path)) {
+    const scenario = name.replace(/ #\d+$/, "");
+    return new RegExp(`^\\s*(?:Scenario(?: Outline| Template)?|Example):\\s*${escapeRe(scenario)}\\s*$`);
+  }
+  const short = name.split("\\").pop()!;
+  if (/^[A-Za-z_]\w*$/.test(short)) return kind === "test" ? new RegExp(`function\\s+${short}\\s*\\(`) : new RegExp(`(class|trait)\\s+${short}\\b`);
+  const own = name.split(" → ").pop()!;
+  const it = /^it (.*)$/.exec(own);
+  const [fn, desc] = it ? ["it", it[1]] : ["test", own];
+  return new RegExp(`\\b${fn}\\(\\s*['"]${escapeRe(desc)}['"]`);
+}
+
+/** Open the test's source: its line, else the declaration of the member in its location. */
 export async function navigateToTest(node: TestNode): Promise<void> {
   const loc = node.location ?? node.parent?.location;
   if (!loc) return;
@@ -68,13 +88,12 @@ export async function navigateToTest(node: TestNode): Promise<void> {
   let character = 0;
   if (!loc.line && loc.member) {
     const text = await workspaceApi.readFile(rel).catch(() => "");
-    const short = loc.member.split("\\").pop()!;
-    const re = node.kind === "test" ? new RegExp(`function\\s+${short}\\s*\\(`) : new RegExp(`(class|trait)\\s+${short}\\b`);
+    const re = declarationPattern(loc.member, node.location ? node.kind : "suite", rel);
     const lines = text.split("\n");
     const idx = lines.findIndex((l) => re.test(l));
     if (idx >= 0) {
       line = idx;
-      character = Math.max(0, lines[idx].indexOf(short));
+      character = Math.max(0, lines[idx].search(/\S/));
     }
   }
   await revealLocation(rel, { line, character });
