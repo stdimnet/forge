@@ -1,6 +1,6 @@
 import { For, Show, createSignal, type JSX } from "solid-js";
 import { Dynamic } from "solid-js/web";
-import { ChevronRight, Pin, X } from "lucide-solid";
+import { Pin, X } from "lucide-solid";
 import {
   editor,
   activateTab,
@@ -23,6 +23,7 @@ import { CodeEditor } from "@/editor/CodeEditor";
 import { FileIcon } from "./FileIcon";
 import { editorViewFor, fileEditorFor } from "./editorViews";
 import { openTabMenu } from "./tabMenu";
+import { NavigationBar, navBarLocation } from "@/features/navBar";
 
 const docOf = (id: string): EditorTab | undefined => editor.tabs.find((t) => t.path === id);
 const customOf = (id: string) => customTabs().find((t) => t.id === id);
@@ -122,32 +123,6 @@ function Tabs(props: { group: TabGroup }) {
   );
 }
 
-function Breadcrumbs(props: { group: TabGroup }) {
-  const parts = () => {
-    const tab = props.group.active ? docOf(props.group.active) : undefined;
-    if (!tab) return [];
-    const fs = fileSystemFor(tab.path);
-    if (fs) return fs.breadcrumbs?.(tab.path) ?? [tab.name];
-    const view = editorViewFor(tab);
-    if (view) return view.breadcrumbs?.(tab) ?? [tab.name];
-    return tab.path.split("/");
-  };
-  return (
-    <div class="breadcrumbs">
-      <For each={parts()}>
-        {(p, i) => (
-          <>
-            <Show when={i() > 0}>
-              <ChevronRight size={12} class="muted" />
-            </Show>
-            <span class="crumb">{p}</span>
-          </>
-        )}
-      </For>
-    </div>
-  );
-}
-
 function Welcome() {
   const rows: [string, string][] = [
     ["Search Everywhere", "Double Shift"],
@@ -210,7 +185,7 @@ function Slot(props: { group: TabGroup; id: string }) {
   );
 }
 
-/** One editor group (a split): its own tabs, breadcrumbs and editors. */
+/** One editor group (a split): its own tabs, navigation bar and editors. */
 function GroupView(props: { group: TabGroup; weight: number }) {
   const isActive = () => editor.layout.activeGroup === props.group.id;
   return (
@@ -223,8 +198,8 @@ function GroupView(props: { group: TabGroup; weight: number }) {
       onMouseDown={() => focusGroup(props.group.id)}
     >
       <Tabs group={props.group} />
-      <Show when={props.group.active && !isCustomTab(props.group.active)}>
-        <Breadcrumbs group={props.group} />
+      <Show when={props.group.active && !isCustomTab(props.group.active) && navBarLocation() === "top"}>
+        <NavigationBar placement="top" group={props.group.id} tab={() => (props.group.active ? docOf(props.group.active) : undefined)} />
       </Show>
       <div class="editor-stack">
         <For each={props.group.tabs}>{(id) => <Slot group={props.group} id={id} />}</For>

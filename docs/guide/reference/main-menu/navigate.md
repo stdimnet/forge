@@ -33,14 +33,14 @@ Back and forward, Search Everywhere, Go to Class/File/Symbol/Line, declarations 
 | Action… | `Ctrl+Shift+A` | `Cmd+Shift+A` | yes | Finds any action by name and runs it (Find Action). [More](../../user/search-everywhere.md#find-action) ([screenshot](../../../screenshots/docs-find-action.png)) |
 | Line/Column… | `Ctrl+G` | `Cmd+L` | yes | Moves the caret to a line (and column) of the current file. [More](../../user/editor.md#editing-actions) ([screenshot](../../../screenshots/docs-goto-line.png)) |
 | Select In… | `Alt+F1` | `Alt+F1` | not yet | Not available yet; the entry is disabled. |
-| Navigation Bar | `Alt+Home` | `Cmd+Up` | not yet | Not available yet; the entry is disabled. |
+| Navigation Bar | `Alt+Home` | `Cmd+Up` | yes | Focuses the navigation bar with the file's folder open (shows the bar as a popup when it is hidden). [More](../../user/navigation-bar-and-file-structure.md#navigation-bar) ([screenshot](../../../screenshots/navigation-bar-alt-home.png)) |
 | Declaration or Usages | `Ctrl+B` | `Cmd+B` | yes | Jumps to the declaration of the symbol at the caret; on a declaration it shows the usages; several targets open the Choose Declaration popup. [More](../../user/editor.md#go-to-declaration) ([screenshot](../../../screenshots/php-nav-stub.png)) |
 | Implementation(s) | `Ctrl+Alt+B` | `Cmd+Alt+B` | yes | Lists the implementations of the class, interface or method at the caret. [More](../../user/editor.md#implementation-type-declaration-super-method) ([screenshot](../../../screenshots/php-nav-gutter.png)) |
 | Type Declaration | `Ctrl+Shift+B` | `Cmd+Shift+B` | yes | Jumps to the class of the variable, property or method return type at the caret. [More](../../user/editor.md#implementation-type-declaration-super-method) |
 | Super Method | `Ctrl+U` | `Cmd+U` | yes | Jumps to the method the current method overrides or implements. [More](../../user/editor.md#implementation-type-declaration-super-method) |
 | Test | `Ctrl+Shift+T` | `Cmd+Shift+T` | not yet | Not available yet; the entry is disabled. |
-| Related Symbol… | `Ctrl+Alt+Home` | `Ctrl+Cmd+Up` | not yet | Not available yet; the entry is disabled. |
-| File Structure | `Ctrl+F12` | `Cmd+F12` | not yet | Not available yet; the entry is disabled. |
+| Related Symbol… | `Ctrl+Alt+Home` | `Ctrl+Cmd+Up` | yes | Jumps to related files: tests, views, templates, routes, migrations, stories and styles. [More](../../user/navigation-bar-and-file-structure.md#related-symbol) ([screenshot](../../../screenshots/related-symbol.png)) |
+| File Structure | `Ctrl+F12` | `Cmd+F12` | yes | Shows the file's structure in a popup with speed search; press again for inherited members. [More](../../user/navigation-bar-and-file-structure.md#file-structure-popup) ([screenshot](../../../screenshots/file-structure-popup.png)) |
 | Type Hierarchy | `Ctrl+H` | `Ctrl+H` | not yet | Not available yet; the entry is disabled. |
 | Method Hierarchy | `Ctrl+Shift+H` | `Cmd+Shift+H` | not yet | Not available yet; the entry is disabled. |
 | Call Hierarchy | `Ctrl+Alt+H` | `Ctrl+Alt+H` | not yet | Not available yet; the entry is disabled. |

@@ -6,6 +6,8 @@
 //! - `editor_doc_comments`: PHPDoc / JSDoc / LuaDoc comments rendered into documentation
 //!   parts (`forge_markdown::doc_comments`).
 //! - `structure_group_by_regions`: Structure view nodes grouped under their regions.
+//! - `file_structure_view`: the File Structure popup's rows (toggles, speed search, caret).
+//! - `nav_bar_segments`: the Navigation Bar's segments for a file and the caret's scopes.
 
 use forge_codeintel::{
     editor_structure as structure_of, group_by_regions, Region, STRUCTURE_LANGUAGES,
@@ -70,6 +72,24 @@ pub fn structure_group_by_regions(request_json: &str) -> String {
     }
 }
 
+/// `FileStructureRequest` → `{ rows, selected?, hasFields, hasLambdas, hasInherited }`.
+#[wasm_bindgen]
+pub fn file_structure_view(request_json: &str) -> String {
+    match parse::<forge_codeintel::FileStructureRequest>(request_json) {
+        Ok(r) => to_json(&forge_codeintel::file_structure_view(&r)),
+        Err(e) => e,
+    }
+}
+
+/// `{ project, path, scopes, showMembers }` → `NavSegment[]`.
+#[wasm_bindgen]
+pub fn nav_bar_segments(request_json: &str) -> String {
+    match parse::<forge_codeintel::NavBarRequest>(request_json) {
+        Ok(r) => to_json(&forge_codeintel::nav_bar_segments(&r)),
+        Err(e) => e,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -96,6 +116,18 @@ mod tests {
         .unwrap();
         assert_eq!(grouped[0]["kind"], "region");
         assert!(editor_structure("{").contains("error"));
+
+        let view: Value = serde_json::from_str(&file_structure_view(
+            r#"{"nodes":[{"name":"A","kind":"class","line":0,"children":[{"name":"run","kind":"method","line":1}]}],"query":"run"}"#,
+        ))
+        .unwrap();
+        assert_eq!(view["rows"][1]["node"]["name"], "run");
+        assert_eq!(view["selected"], 1);
+        let segs: Value = serde_json::from_str(&nav_bar_segments(
+            r#"{"project":"p","path":"a/b.ts","scopes":[],"showMembers":true}"#,
+        ))
+        .unwrap();
+        assert_eq!(segs[2]["kind"], "file");
         assert!(editor_structure_languages().contains("\"PHP\""));
     }
 }

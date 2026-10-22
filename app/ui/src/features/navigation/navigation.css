@@ -812,6 +812,22 @@ mark.hl {
   font-size: var(--fs-small);
   color: var(--fg-muted);
 }
+.decl-chooser-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 20px;
+  padding: 0 8px;
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--fg-faint);
+}
+.decl-chooser-group::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
 .decl-chooser-row {
   display: flex;
   align-items: center;

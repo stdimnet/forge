@@ -1874,6 +1874,7 @@ name = "forge-backend"
 version = "0.1.0"
 dependencies = [
  "dirs 6.0.0",
+ "forge-codeintel",
  "forge-core",
  "forge-find",
  "forge-langservers",
@@ -1914,6 +1915,7 @@ dependencies = [
 name = "forge-codeintel"
 version = "0.1.0"
 dependencies = [
+ "forge-fuzzy",
  "serde",
  "serde_json",
 ]
@@ -2259,6 +2261,7 @@ version = "0.1.0"
 dependencies = [
  "dirs 6.0.0",
  "forge-backend",
+ "forge-codeintel",
  "forge-core",
  "forge-langservers",
  "forge-lsp",

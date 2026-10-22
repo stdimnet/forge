@@ -27,6 +27,7 @@ not finished, the page says so.
 | [Language injections](language-injections.md) | SQL, HTML, CSS, JSON and RegExp in PHP and JavaScript strings, `// language=` comments, Inject language or reference, Edit Fragment, Run SQL |
 | [File and code templates](file-templates.md) | New ▸ PHP Class and other templates, the New PHP Class dialog with PSR-4 namespaces, `Alt+Insert` New popup, Settings \| Editor \| File and Code Templates |
 | [Search Everywhere and Find Action](search-everywhere.md) | Double Shift, Go to Class/File/Symbol, Find Action, fuzzy matching |
+| [File Structure, Navigation Bar and Related Symbol](navigation-bar-and-file-structure.md) | File Structure popup (`Ctrl+F12`, Show Inherited, speed search), Navigation Bar (`Alt+Home`, Top / In Status Bar / Don't Show, members), Related Symbol (`Ctrl+Alt+Home`: tests, views, templates, routes, migrations) |
 | [File types and syntax highlighting](file-types.md) | file type detection, highlighted languages, config formats, template data languages |
 | [Language servers](language-servers.md) | detection, installation, per-server settings, Intelephense licence |
 | [Keymap](keymap.md) | PHPStorm keymaps, changing shortcuts, contexts |

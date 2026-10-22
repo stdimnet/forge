@@ -1,6 +1,6 @@
 [package]
 name = "forge-codeintel"
-description = "Code intelligence models: workspace edits with LSP positions, Find Usages grouping and documentation helpers (pure, WebAssembly-friendly)"
+description = "Code intelligence models: workspace edits with LSP positions, Find Usages grouping, documentation helpers, file structure, navigation bar and related files (pure, WebAssembly-friendly)"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -8,3 +8,4 @@ license.workspace = true
 [dependencies]
 serde.workspace = true
 serde_json.workspace = true
+forge-fuzzy.workspace = true

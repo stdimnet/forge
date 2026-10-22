@@ -1,6 +1,6 @@
 ---
 title: "Shortcuts: Navigation"
-description: "Jumping to declarations, implementations, super methods, lines, problems, recent files and between editor tabs."
+description: "Jumping to declarations, implementations, super methods, lines, problems, recent files, the file structure, the navigation bar, related files and between editor tabs."
 order: 30
 tags: [shortcuts, keymap, navigation]
 ---
@@ -32,6 +32,9 @@ Jumping to declarations, implementations, super methods, lines, problems, recent
 | [Close Unmodified Tabs](#close-unmodified-tabs) | — | — |
 | [Reopen Closed Tab](#reopen-closed-tab) | — | — |
 | [Recent Locations](#recent-locations) | `Ctrl+Shift+E` | `Cmd+Shift+E` |
+| [File Structure](#file-structure) | `Ctrl+F12` | `Cmd+F12` |
+| [Jump to Navigation Bar](#jump-to-navigation-bar) | `Alt+Home` | `Cmd+Up` |
+| [Related Symbol](#related-symbol) | `Ctrl+Alt+Home` | `Ctrl+Cmd+Up` |
 | [Next Occurrence](#next-occurrence) | `Ctrl+Alt+Down` | `Cmd+Alt+Down` |
 | [Previous Occurrence](#previous-occurrence) | `Ctrl+Alt+Up` | `Cmd+Alt+Up` |
 | [Toggle Bookmark](#toggle-bookmark) | `F11` | `F3` |
@@ -263,6 +266,42 @@ Lists recently visited and edited places with a few lines of code each; press ag
 ![Recent Locations](../../../screenshots/recent-locations.png)
 
 More: [Workbench and tool windows](../../user/workbench.md#recent-locations)
+
+## File Structure
+
+**Shortcut:** `Ctrl+F12` · macOS `Cmd+F12` · action id `FileStructurePopup`
+
+Shows the structure of the current file in a popup with the member at the caret selected; type to filter, `Enter` jumps. Press the shortcut again to show inherited members (PHP).
+
+**Menu:** Navigate | File Structure
+
+![File Structure popup](../../../screenshots/file-structure-popup.png)
+
+More: [File Structure, Navigation Bar and Related Symbol](../../user/navigation-bar-and-file-structure.md#file-structure-popup)
+
+## Jump to Navigation Bar
+
+**Shortcut:** `Alt+Home` · macOS `Cmd+Up` · action id `ShowNavBar`
+
+Focuses the navigation bar with the file's folder open; `Left` / `Right` move between the segments, `Down` opens a dropdown, `Enter` opens a file, `Escape` returns to the editor. While the bar is hidden it opens as a popup.
+
+**Menu:** Navigate | Navigation Bar
+
+![Jump to Navigation Bar](../../../screenshots/navigation-bar-alt-home.png)
+
+More: [File Structure, Navigation Bar and Related Symbol](../../user/navigation-bar-and-file-structure.md#navigation-bar)
+
+## Related Symbol
+
+**Shortcut:** `Ctrl+Alt+Home` · macOS `Ctrl+Cmd+Up` · action id `GotoRelated`
+
+Jumps to the files that belong to the current one: a class's tests, a controller's views and routes, a view's controllers, a model's migrations, factory and policy, a component's tests, stories and styles. Several results open the Choose Target popup.
+
+**Menu:** Navigate | Related Symbol...
+
+![Related Symbol](../../../screenshots/related-symbol.png)
+
+More: [File Structure, Navigation Bar and Related Symbol](../../user/navigation-bar-and-file-structure.md#related-symbol)
 
 ## Next Occurrence
 

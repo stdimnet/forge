@@ -21,6 +21,10 @@ export interface DeclarationTarget {
   name?: string;
   /** Greyed out after the name: namespace, declaring class or PHP extension. */
   container?: string | null;
+  /** Group the target belongs to (Related Symbol: "Tests", "Views", ...); shown as a separator. */
+  group?: string;
+  /** The target is a whole file: no line number after the name. */
+  wholeFile?: boolean;
 }
 
 export interface Chooser {

@@ -8,6 +8,7 @@
 import { createSignal } from "solid-js";
 import type { Text } from "@codemirror/state";
 import type { HoverDoc } from "@/ipc/markdown";
+import type { StructureNode } from "@/features/php/api";
 import { getSetting } from "@/state/settings";
 import { forgeWasm, type ForgeWasm } from "@/wasm";
 
@@ -180,6 +181,64 @@ export function scopesAt(structure: EditorStructure, line: number, column: numbe
       (s.line < line || (s.line === line && s.startColumn <= column)) &&
       (s.endLine > line || (s.endLine === line && s.endColumn >= column)),
   );
+}
+
+// ---- File Structure popup and Navigation Bar (`forge_codeintel::file_structure`, `navbar`) ----
+
+export interface FileStructureRequest {
+  nodes: StructureNode[];
+  query: string;
+  sortAlpha: boolean;
+  showFields: boolean;
+  showInherited: boolean;
+  showLambdas: boolean;
+  /** 0-based line of the caret. */
+  caretLine?: number;
+  /** Header lines of the scopes around the caret. */
+  enclosing?: { line: number; openLine?: number }[];
+}
+
+export interface FileStructureRow {
+  /** Child indices from the root (`0/2/1`). */
+  id: string;
+  depth: number;
+  /** The node without its children. */
+  node: StructureNode;
+  positions: number[];
+  matched: boolean;
+  hasChildren: boolean;
+}
+
+export interface FileStructureView {
+  rows: FileStructureRow[];
+  selected?: number | null;
+  hasFields: boolean;
+  hasLambdas: boolean;
+  hasInherited: boolean;
+}
+
+const NO_VIEW: FileStructureView = { rows: [], selected: null, hasFields: false, hasLambdas: false, hasInherited: false };
+
+/** The File Structure popup's rows after its toggles and speed search. */
+export function fileStructureView(req: FileStructureRequest): FileStructureView {
+  return wasm ? call<FileStructureView>(wasm.file_structure_view, req, NO_VIEW) : NO_VIEW;
+}
+
+export type NavSegmentKind = "project" | "directory" | "file" | "member";
+
+export interface NavSegment {
+  kind: NavSegmentKind;
+  label: string;
+  /** Directory or file, workspace-relative (`""` for the project). */
+  path: string;
+  scopeKind?: ScopeKind;
+  line?: number;
+  column?: number;
+}
+
+/** The Navigation Bar's segments of a file; `scopes` are the scopes at the caret. */
+export function navBarSegments(req: { project: string; path: string; scopes: Scope[]; showMembers: boolean }): NavSegment[] {
+  return wasm ? call<NavSegment[]>(wasm.nav_bar_segments, req, []) : [];
 }
 
 // ---- Settings ----

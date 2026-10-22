@@ -756,6 +756,12 @@ computes everything; `app/ui/src/features/codeintel` and `features/lsp/goto.ts` 
     `code_type_info({ path, line, character, content? }) -> string | null` (Ctrl+Shift+P; the
     servers' hover, else the PHP index's signature) and
     `code_context_info({ path, line, content? }) -> { line, text }[]` (Alt+Q).
+  - `code_related({ path, content? }) -> { kind, group, name, path, line, column }[]` —
+    Related Symbol (Ctrl+Alt+Home, `forge_codeintel::related`): tests, views, templates,
+    routes, migrations, factories, policies, stories and styles. It is a
+    `FrameworkCall::Related`, so the project's files are listed and read where they are (the
+    agent for a remote project). The UI (`features/related`) opens one result directly and
+    several in the shared chooser, grouped (`DeclarationTarget.group`).
   - `code_prepare_rename({ path, line, character, content? }) -> { range?, placeholder?,
     invalid, message?, missing?, source: "lsp" | "index", occurrences, label?, classFile?,
     sigil }` — starts Rename (Shift+F6): the server's `prepareRename` and the occurrences in the
@@ -1367,7 +1373,7 @@ plugin manifest entry, and the chat UI needs no changes:
   (`EditorSplitLine` / `Console.Jdbc.Execute`) and the gutter run icon open a query console
   with the injected SQL (`runSqlInConsole`).
 
-## Code structure in the editor (Sticky Lines, breadcrumbs, regions, rendered docs)
+## Code structure in the editor (Sticky Lines, breadcrumbs, regions, rendered docs, File Structure, Navigation Bar)
 
 PHPStorm's Sticky Lines, structure breadcrumbs, custom folding regions, rendered doc
 comments and Reader mode (`app/ui/src/features/codeStructure`, user guide
@@ -1394,6 +1400,18 @@ comments and Reader mode (`app/ui/src/features/codeStructure`, user guide
 - Settings: `editor.stickyLines.*`, `editor.breadcrumbs.*`, `editor.renderDocComments` and
   `editor.readerMode.*` (`core.toml`); per-language toggles are `list` settings of switched-off
   file type ids, edited with checkboxes (`LanguageToggles`).
+- File Structure popup (`FileStructurePopup`, Ctrl+F12, `features/fileStructure`): the
+  Structure view's providers load the tree (`loadFileStructure` in
+  `features/php/StructureView.tsx`, PHP inherited members from the index), and
+  `forge_codeintel::file_structure::file_structure_view` (WebAssembly, synchronous) applies
+  the toggles and the fuzzy speed search and picks the node at the caret.
+- Navigation Bar (`features/navBar`): `forge_codeintel::navbar::nav_bar_segments`
+  (WebAssembly) turns the path and the scopes at the caret into segments; dropdowns list
+  `fs_list_dir` entries or structure nodes and filter them with `fuzzy_filter`. Placement
+  `appearance.navigationBar.location` (`top`: above every editor group, with the plain path in
+  the status bar; `statusBar`; `hidden`: `ShowNavBar` / Alt+Home shows it floating) and
+  `appearance.navigationBar.showMembers`; actions `ShowNavBar`, `NavBarLocationTop`,
+  `NavBarLocationBottom`, `NavBarLocationHide`, `ShowMembersInNavigationBar`.
 - Actions: `ToggleRenderedDocPresentation` (Ctrl+Alt+Q), `CollapseDocComments`,
   `EditorToggleShowBreadcrumbs` (PHPStorm ids) and the Forge actions
   `ToggleRenderedDocPresentationForAll`, `EditorToggleStickyLines`, `ToggleReaderMode`.

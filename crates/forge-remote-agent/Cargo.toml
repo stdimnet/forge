@@ -31,6 +31,7 @@ serde_json.workspace = true
 
 [dev-dependencies]
 tempfile.workspace = true
+forge-codeintel.workspace = true
 phpforge-fw-laravel = { path = "../../packs/phpforge/fw-laravel" }
 phpforge-fw-symfony = { path = "../../packs/phpforge/fw-symfony" }
 phpforge-orm-doctrine = { path = "../../packs/phpforge/orm-doctrine" }

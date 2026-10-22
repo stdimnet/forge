@@ -14,11 +14,17 @@
 //!   and Type Info from hovers and signatures.
 //! - [`structure`]: the scopes around a line (Sticky Lines, breadcrumbs) and custom folding
 //!   regions, grouped into the Structure view.
+//! - [`file_structure`]: the File Structure popup's rows (toggles, speed search, caret).
+//! - [`navbar`]: the Navigation Bar's segments.
+//! - [`related`]: Related Symbol: tests, views, templates, routes, migrations and more.
 
 pub mod actions;
 pub mod docs;
 pub mod edit;
+pub mod file_structure;
 pub mod inlay;
+pub mod navbar;
+pub mod related;
 pub mod rename;
 pub mod structure;
 pub mod usages;
@@ -36,6 +42,9 @@ pub use edit::{
     utf16_offset, word_range, AppliedFile, Caret, DocumentChange, EditError, FilePreview,
     FileStore, MemoryStore, Position, PreviewRow, Range, TextEdit, WorkspaceEdit,
 };
+pub use file_structure::{file_structure_view, FileStructureRequest, FileStructureView};
+pub use navbar::{nav_bar_segments, NavBarRequest, NavSegment};
+pub use related::{related, RelatedItem, RelatedKind, RelatedRequest};
 pub use rename::{
     edit_conflicts, edit_from_locations, is_class_file, plan_edit, ranges_in, renamed_path,
     suggest_file_rename, validate_identifier, EditPlan, EditorEdits, FileRename, LocationEdit,
