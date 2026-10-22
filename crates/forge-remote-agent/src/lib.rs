@@ -472,8 +472,14 @@ impl Agent {
             PhpCall::Usages {
                 path,
                 offset,
+                options,
                 content,
-            } => reply(php.usages(&path, offset, content)?),
+            } => reply(php.usages(&path, offset, options, content)?),
+            PhpCall::Highlights {
+                path,
+                offset,
+                content,
+            } => reply(php.highlights(&path, offset, content)?),
             PhpCall::Navigate {
                 path,
                 offset,

@@ -4,6 +4,7 @@
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
+use forge_codeintel::{HighlightAnswer, UsageOptions};
 use forge_core::{ForgeError, FsChanges, Result, Workspace};
 use phpforge_lang_php::generate::{GenerateKind, GenerateOptions, GenerateTargets, TextEdit};
 use phpforge_lang_php::hover::Hover;
@@ -51,13 +52,23 @@ pub trait PhpBackend: Send + Sync {
         options: GenerateOptions,
         content: Option<String>,
     ) -> Result<Vec<TextEdit>>;
-    /// Find Usages of the symbol at `offset` from the index (when no language server answers).
+    /// Find Usages of the symbol at `offset` from the index (when no language server answers),
+    /// with the options of the Find Usages dialog.
     fn usages(
         &self,
         path: &str,
         offset: usize,
+        options: UsageOptions,
         content: Option<String>,
     ) -> Result<Option<PhpUsages>>;
+    /// Highlight Usages in File: the usages of the symbol at `offset` in its file (or the
+    /// methods implementing / overriding the parents on `implements` / `extends`).
+    fn highlights(
+        &self,
+        path: &str,
+        offset: usize,
+        content: Option<String>,
+    ) -> Result<Option<HighlightAnswer>>;
     /// Go to Implementation / Super Method / Type Declaration from the index.
     fn navigate(
         &self,
@@ -244,10 +255,21 @@ impl PhpBackend for LocalPhp {
         &self,
         path: &str,
         offset: usize,
+        options: UsageOptions,
         content: Option<String>,
     ) -> Result<Option<PhpUsages>> {
         let text = self.source(path, content)?;
-        self.with_index(|idx| service::usages(idx, path, &text, offset))
+        self.with_index(|idx| service::usages(idx, path, &text, offset, &options))
+    }
+
+    fn highlights(
+        &self,
+        path: &str,
+        offset: usize,
+        content: Option<String>,
+    ) -> Result<Option<HighlightAnswer>> {
+        let text = self.source(path, content)?;
+        self.with_index(|idx| service::highlights(idx, path, &text, offset))
     }
 
     fn navigate(

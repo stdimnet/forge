@@ -180,6 +180,8 @@ pub fn run() {
             commands::lsp::lsp_status,
             commands::lsp::lsp_register_server,
             commands::codeintel::code_find_usages,
+            commands::codeintel::code_highlight_usages,
+            commands::codeintel::code_usage_target,
             commands::codeintel::code_navigate,
             commands::codeintel::code_goto_declaration,
             commands::codeintel::code_symbol_info,

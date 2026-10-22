@@ -5,6 +5,7 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, Weak};
 use std::time::Duration;
 
+use forge_codeintel::{HighlightAnswer, UsageOptions};
 use forge_core::search::{FindRequest, FindResult, TodoRequest, TodoResult};
 use forge_core::{CollectRequest, FileEntry, FileMatch, Result, SourceFile};
 use forge_lsp::launch::{ServerIo, ServerProcess};
@@ -809,9 +810,24 @@ impl PhpBackend for RemoteBackend {
         &self,
         path: &str,
         offset: usize,
+        options: UsageOptions,
         content: Option<String>,
     ) -> Result<Option<PhpUsages>> {
         self.php_call(PhpCall::Usages {
+            path: path.to_string(),
+            offset,
+            options,
+            content,
+        })
+    }
+
+    fn highlights(
+        &self,
+        path: &str,
+        offset: usize,
+        content: Option<String>,
+    ) -> Result<Option<HighlightAnswer>> {
+        self.php_call(PhpCall::Highlights {
             path: path.to_string(),
             offset,
             content,

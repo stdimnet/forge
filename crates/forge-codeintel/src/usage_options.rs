@@ -232,19 +232,16 @@ impl UsageOptions {
 }
 
 impl EffectiveOptions {
-    /// Whether a usage of this kind is kept (read / write access of properties and
-    /// variables; comments and strings only on request).
+    /// Whether a usage of this kind is kept: read / write access of properties and
+    /// variables, comments and strings and text occurrences only on request. Whether to
+    /// look for usages at all (`usages`) is the search's own decision.
     pub fn keeps(&self, kind: UsageKind) -> bool {
         match kind {
-            UsageKind::Write => self.write_access && self.usages,
+            UsageKind::Write => self.write_access,
+            UsageKind::Read => self.read_access,
             UsageKind::Comment | UsageKind::StringLiteral => self.comments_and_strings,
             UsageKind::NonCode => self.text_occurrences,
-            UsageKind::DerivedClass => self.derived_classes,
-            UsageKind::ImplementingClass => self.implementing_classes,
-            UsageKind::DerivedInterface => self.derived_interfaces,
-            UsageKind::OverridingMethod | UsageKind::ImplementingMethod => self.overriding_methods,
-            UsageKind::Read => self.read_access && self.usages,
-            _ => self.usages,
+            _ => true,
         }
     }
 }
