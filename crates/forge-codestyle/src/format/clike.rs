@@ -2101,7 +2101,7 @@ mod tests {
         );
         assert_eq!(
             out,
-            "a,\nb > c\n{\n    color: #fff; margin: 0\n}\n\nd\n{}\n"
+            "a,\nb > c\n{\n    color: #fff; margin: 0\n}\n\nd {}\n"
         );
         let v = model().defaults();
         let out = format(
