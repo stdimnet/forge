@@ -19,7 +19,8 @@ export const CONFLICT_BRANCH = "feature/checkout-flow";
 
 const swap = (s: string, from: string, to: string) => {
   if (!s.includes(from)) throw new Error(`demoConflicts: snippet not found: ${from.slice(0, 40)}`);
-  return s.replace(from, to);
+  // A function, so `$'` and `$&` in PHP code are not replacement patterns.
+  return s.replace(from, () => to);
 };
 
 const edits = (s: string, list: [string, string][]) => list.reduce((acc, [a, b]) => swap(acc, a, b), s);

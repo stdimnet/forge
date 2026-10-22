@@ -170,10 +170,12 @@
 }
 
 /* ---------- Modal + diff viewer ---------- */
+/* Above CodeMirror's sticky editor panels (z-index 300: banners, breadcrumbs), which are not
+   inside a stacking context of their own. */
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 100;
+  z-index: 350;
   display: grid;
   place-items: center;
   background: color-mix(in srgb, var(--bg-app) 55%, transparent);
@@ -846,7 +848,7 @@
 
 /* ---------- Merge conflicts: Conflicts dialog, merge window, editor banner ---------- */
 .conflicts-dialog {
-  width: min(760px, calc(100vw - 48px));
+  width: min(860px, calc(100vw - 48px));
 }
 .conflicts-body {
   display: grid;
@@ -876,7 +878,7 @@
 }
 .conflicts-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 150px 150px;
+  grid-template-columns: minmax(0, 1fr) 190px 190px;
   align-items: center;
   height: 24px;
   padding: 0 8px;
@@ -1033,7 +1035,6 @@
   place-items: center;
   border-radius: var(--radius-sm);
   color: var(--fg-muted);
-  background: var(--bg-editor);
 }
 .merge-chunk-btn.apply {
   color: var(--accent);

@@ -407,24 +407,24 @@
 :root,
 :root[data-theme="dark"],
 :root[data-theme="solarized-dark"] {
-  --merge-conflict-bg: rgba(239, 95, 95, 0.16);
-  --merge-conflict-band: rgba(239, 95, 95, 0.3);
+  --merge-conflict-bg: rgba(239, 95, 95, 0.22);
+  --merge-conflict-band: rgba(239, 95, 95, 0.36);
   --merge-conflict-mark: #ef6f6f;
-  --merge-modified-bg: rgba(94, 164, 255, 0.14);
-  --merge-modified-band: rgba(94, 164, 255, 0.28);
+  --merge-modified-bg: rgba(94, 164, 255, 0.2);
+  --merge-modified-band: rgba(94, 164, 255, 0.34);
   --merge-modified-mark: #6aa7ff;
-  --merge-inserted-bg: rgba(95, 191, 119, 0.14);
-  --merge-inserted-band: rgba(95, 191, 119, 0.28);
+  --merge-inserted-bg: rgba(95, 191, 119, 0.2);
+  --merge-inserted-band: rgba(95, 191, 119, 0.34);
   --merge-inserted-mark: #73c48a;
-  --merge-deleted-bg: rgba(150, 150, 165, 0.16);
-  --merge-deleted-band: rgba(150, 150, 165, 0.3);
+  --merge-deleted-bg: rgba(150, 150, 165, 0.2);
+  --merge-deleted-band: rgba(150, 150, 165, 0.34);
   --merge-deleted-mark: #9a9aa8;
 }
 
 :root[data-theme="light"],
 :root[data-theme="solarized-light"] {
-  --merge-conflict-bg: rgba(214, 58, 58, 0.12);
-  --merge-conflict-band: rgba(214, 58, 58, 0.22);
+  --merge-conflict-bg: rgba(214, 58, 58, 0.14);
+  --merge-conflict-band: rgba(214, 58, 58, 0.26);
   --merge-conflict-mark: #d64545;
   --merge-modified-bg: rgba(36, 99, 199, 0.1);
   --merge-modified-band: rgba(36, 99, 199, 0.2);
