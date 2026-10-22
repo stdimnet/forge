@@ -34,6 +34,7 @@ pub mod php;
 pub mod project;
 pub mod project_state;
 pub mod refactor;
+pub mod refactor_hierarchy;
 pub mod refactor_move;
 pub mod remote;
 pub mod run;

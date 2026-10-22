@@ -5,6 +5,8 @@
 //! - [`extract_method`]: Extract Method / Function (Ctrl+Alt+M) with parameters, return
 //!   values and duplicates.
 //! - [`inline`]: Inline (Ctrl+Alt+N) of variables, methods, functions and constants.
+//! - [`hierarchy`]: Extract Interface / Superclass, Pull Members Up / Push Members Down.
+//! - [`available`]: Refactor This (Ctrl+Alt+Shift+T), the refactorings that apply.
 //!
 //! Everything here is a pure function over source text (byte offsets). Edits of other files
 //! (call sites of Introduce Parameter and Inline Method) are computed from Find Usages

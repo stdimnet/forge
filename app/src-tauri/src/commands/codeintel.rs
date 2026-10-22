@@ -1398,6 +1398,53 @@ pub async fn code_refactor_actions(
     Ok(codeintel::refactor_actions(actions, &refactoring))
 }
 
+/// Refactor This (Ctrl+Alt+Shift+T): the refactorings that apply at the caret or to the
+/// selection.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RefactorThisAnswer {
+    /// Forge's refactorings (action ids, PHPStorm's order); `None` when Forge has no
+    /// analysis of its own for the file (the UI offers every enabled refactoring).
+    pub actions: Option<Vec<String>>,
+    /// The language servers' refactorings (JS/TS), worded like PHPStorm.
+    pub lsp: Vec<ContextAction>,
+}
+
+/// Refactor This: in PHP files Rust decides which refactorings apply (a class, a method, an
+/// expression or a selection each have their own).
+#[tauri::command]
+#[allow(clippy::too_many_arguments)]
+pub async fn code_refactor_this(
+    path: String,
+    line: u32,
+    character: u32,
+    end_line: u32,
+    end_character: u32,
+    content: Option<String>,
+    ws: State<'_, AppState>,
+) -> Result<RefactorThisAnswer> {
+    let start = Position::new(line, character);
+    let end = Position::new(end_line, end_character);
+    if is_php(&path) {
+        let backend = ws.backend()?;
+        let actions = blocking(move || {
+            let text = current_text(&backend, &path, &content);
+            Ok(crate::commands::refactor_hierarchy::php_refactorings(
+                &text, start, end,
+            ))
+        })
+        .await?;
+        return Ok(RefactorThisAnswer {
+            actions: Some(actions),
+            lsp: vec![],
+        });
+    }
+    Ok(RefactorThisAnswer {
+        actions: None,
+        lsp: vec![],
+    })
+}
+
 /// A PHP intention as a context action: its edits of the current file (UTF-16 offsets) and
 /// of other files in one workspace edit.
 fn php_action(

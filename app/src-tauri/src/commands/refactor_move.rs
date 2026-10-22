@@ -36,13 +36,13 @@ use crate::state::AppState;
 
 /// The project as the refactorings see it: the backend's PHP index and files (editor
 /// buffers first).
-struct BackendProject {
+pub(crate) struct BackendProject {
     backend: Arc<dyn Backend>,
-    files: Files,
+    pub(crate) files: Files,
 }
 
 impl BackendProject {
-    fn new(backend: Arc<dyn Backend>, buffers: Option<HashMap<String, String>>) -> Self {
+    pub(crate) fn new(backend: Arc<dyn Backend>, buffers: Option<HashMap<String, String>>) -> Self {
         Self {
             files: Files {
                 backend: backend.clone(),
@@ -53,7 +53,7 @@ impl BackendProject {
     }
 
     /// `content` (the editor's text) or the file.
-    fn text(&mut self, path: &str, content: Option<String>) -> Result<String> {
+    pub(crate) fn text(&mut self, path: &str, content: Option<String>) -> Result<String> {
         match content {
             Some(c) => {
                 self.files.buffers.insert(path.to_string(), c.clone());
@@ -118,7 +118,7 @@ impl Project for BackendProject {
 
 /// The plan as a workspace edit with its preview. `source` maps a path of the plan to the
 /// file holding its current text (moved files are edited at their new path).
-fn plan_answer(
+pub(crate) fn plan_answer(
     plan: ProjectPlan,
     files: &mut Files,
     source: &dyn Fn(&str) -> String,
@@ -158,7 +158,7 @@ fn plan_answer(
     }
 }
 
-fn same(p: &str) -> String {
+pub(crate) fn same(p: &str) -> String {
     p.to_string()
 }
 

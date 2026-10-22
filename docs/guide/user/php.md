@@ -333,6 +333,48 @@ conflicts (a class that already exists, a call that cannot be updated).
 
 ![Change Signature dialog](../../screenshots/change-signature-dialog.png)
 
+## Extract interface and superclass, pull members up and push members down
+
+The class hierarchy refactorings work like PHPStorm's and, like the others, are computed by
+Forge from its PHP index: one undo step, a **Preview**, conflicts in **Problems Detected**, and
+remote projects work. Members a chosen member uses are highlighted in the member table, and
+class names in moved code are imported in the target file. New files come from your
+**PHP Interface** / **PHP Class** file templates (Settings | Editor | File and Code Templates).
+
+- **Extract Interface** (Refactor | Extract/Introduce | Interface…) in a class or enum: name,
+  namespace and directory (the directory follows the namespace through the PSR-4 rules), and the
+  **Members to Form Interface**: public methods (declared in the interface with their PHPDoc)
+  and constants (moved there). The class gets `implements NewInterface` (and the import).
+  **Replace class references with interface where possible** changes parameter types to the
+  interface where the function only calls the interface's methods on the parameter.
+- **Extract Superclass** (Refactor | Extract/Introduce | Superclass…) in a class: the chosen
+  members move into a new class; **Make abstract** keeps a method in the class and declares it
+  `abstract` in the superclass (which then becomes abstract). The class extends the new
+  superclass, which extends the class's old parent. Private members the class still uses become
+  protected; a moved member that uses a member that stays is a problem.
+- **Pull Members Up** (Refactor | Pull Members Up…): choose a superclass or interface of the
+  class (the whole hierarchy in the project) and the members. Into a class, members move
+  (**Make abstract** declares them abstract there instead); into an interface, public methods
+  are declared and constants move (properties cannot). Problems: the target already has the
+  member, a moved member uses a member that is not pulled up (or a private one).
+- **Push Members Down** (Refactor | Push Members Down…): the chosen members are copied into
+  every direct subclass that does not declare them itself (implementing classes of an
+  interface get its constants) and leave the class; **Keep abstract** leaves an abstract
+  declaration behind. Members of the class that still use a pushed member, and usages outside
+  the subclasses, are problems.
+- **Refactor This** (`Ctrl+Alt+Shift+T`) lists only what applies: on a class Rename, Move,
+  Copy, Safe Delete, Extract Interface / Superclass and Pull Members Up / Push Members Down; on a
+  method Rename, Change Signature, Move (static), Safe Delete, Inline, Pull Up / Push Down and
+  Make Static; on an expression or a selection the Introduce refactorings and Extract Method.
+
+![Extract Interface dialog](../../screenshots/extract-interface-dialog.png)
+
+![Extract Superclass dialog](../../screenshots/extract-superclass-dialog.png)
+
+![Pull Members Up dialog](../../screenshots/pull-members-up-dialog.png)
+
+![Refactor This on a class](../../screenshots/refactor-this-class.png)
+
 ## Context actions and intentions
 
 **Show Context Actions** (`Alt+Enter`) lists the language server's quick fixes (Intelephense

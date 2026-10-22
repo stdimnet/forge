@@ -780,7 +780,7 @@ fn chosen<'a>(info: &'a ClassMembers, ids: &[String]) -> Result<Vec<&'a ClassMem
     Ok(info
         .members
         .iter()
-        .filter(|m| ids.iter().any(|i| *i == m.id))
+        .filter(|m| ids.contains(&m.id))
         .collect())
 }
 
@@ -1070,7 +1070,7 @@ pub struct ExtractSuperclassOptions {
 fn used_by_staying(info: &ClassMembers, m: &ClassMember, moving: &HashSet<String>) -> bool {
     info.members
         .iter()
-        .any(|s| !moving.contains(&s.id) && s.uses.iter().any(|u| *u == m.id))
+        .any(|s| !moving.contains(&s.id) && s.uses.contains(&m.id))
 }
 
 /// Extract Superclass: a new class with the chosen members, between the class and its

@@ -468,38 +468,3 @@ export const FIELD_INIT_LABELS: Record<FieldInit, string> = {
   fieldDeclaration: "Field declaration",
   constructor: "Class constructor",
 };
-
-// ---------- Refactor This ----------
-
-/** The refactorings of the Refactor This popup (Ctrl+Alt+Shift+T), PHPStorm's order. */
-export const REFACTOR_THIS = [
-  "RenameElement",
-  "ChangeSignature",
-  "Move",
-  "CopyElement",
-  "SafeDelete",
-  "MakeStatic",
-  "IntroduceVariable",
-  "IntroduceConstant",
-  "IntroduceField",
-  "IntroduceParameter",
-  "ExtractMethod",
-  "Inline",
-];
-
-/** Refactor This: the refactorings that are available, with their shortcuts. */
-export async function refactorThis(
-  view: EditorView,
-  available: (id: string) => boolean,
-  title: (id: string) => string,
-  shortcut: (id: string) => string,
-  run: (id: string) => void,
-): Promise<void> {
-  const ids = REFACTOR_THIS.filter(available);
-  const i = await choose(
-    view,
-    "Refactor This",
-    ids.map((id) => ({ label: title(id), detail: shortcut(id) })),
-  );
-  if (i != null) run(ids[i]);
-}
