@@ -35,6 +35,7 @@ forge-agent-cli.workspace = true
 forge-lsp.workspace = true
 forge-langservers.workspace = true
 forge-vcs.workspace = true
+forge-diff.workspace = true
 forge-forges.workspace = true
 forge-project.workspace = true
 forge-open.workspace = true

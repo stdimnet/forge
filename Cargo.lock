@@ -1821,6 +1821,7 @@ dependencies = [
  "forge-core",
  "forge-db",
  "forge-debug",
+ "forge-diff",
  "forge-editing",
  "forge-emmet",
  "forge-file-templates",
