@@ -1,6 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { invoke } from "@/ipc";
-import type { DeclarationAnswer, LibraryFile, LineMarkerInfo, NavigateAnswer, SymbolHover, UsagesAnswer } from "@/ipc/codeintel";
+import type {
+  DeclarationAnswer,
+  HighlightAnswer,
+  LibraryFile,
+  LineMarkerInfo,
+  NavigateAnswer,
+  SymbolHover,
+  UsagesAnswer,
+  UsageTarget,
+} from "@/ipc/codeintel";
 import { demoLaravelFiles } from "./demoLaravel";
 import { demoFiles } from "./demoProject";
 import { offsetOf, positionOf } from "./codeintelMock";
@@ -77,6 +86,43 @@ describe("code intelligence mock", () => {
       "app/Services/Payments/PaymentService.php",
       "tests/Unit/PaymentServiceTest.php",
     ]);
+  });
+
+  it("applies the Find Usages options and scopes", async () => {
+    const args = at("app/Contracts/PaymentGateway.php", gateway, "PaymentGateway");
+    const impl = await invoke<UsagesAnswer>("code_find_usages", {
+      ...args,
+      options: { interfaceUsages: false, interfaceImplementingClasses: true },
+    });
+    expect(impl.element).toBe("interface");
+    expect(impl.byType.groups.map((g) => g.label)).toEqual(["Implementing classes"]);
+    expect(impl.byFile.groups[0].files.map((f) => f.path).sort()).toEqual([
+      "app/Services/Payments/FakeGateway.php",
+      "app/Services/Payments/StripeGateway.php",
+    ]);
+    const inFile = await invoke<UsagesAnswer>("code_find_usages", { ...at("app/Services/Payments/StripeGateway.php", stripe, "Order $order"), scope: { kind: "currentFile" } });
+    expect(inFile.scope).toBe("File 'StripeGateway.php'");
+    expect(new Set(inFile.byFile.groups[0].files.map((f) => f.path))).toEqual(new Set(["app/Services/Payments/StripeGateway.php"]));
+    const dir = await invoke<UsagesAnswer>("code_find_usages", { ...args, scope: { kind: "directory", directory: "tests" } });
+    expect(dir.scope).toBe("Directory 'tests'");
+    expect(dir.byFile.groups.flatMap((g) => g.files.map((f) => f.path)).every((p) => p.startsWith("tests/"))).toBe(true);
+  });
+
+  it("highlights usages in the file, exit points and implementing methods", async () => {
+    const path = "app/Services/Payments/StripeGateway.php";
+    const order = await invoke<HighlightAnswer>("code_highlight_usages", { ...at(path, stripe, "$order", 1), content: stripe });
+    expect(order.target).toBe("usages");
+    expect(order.highlights.map((h) => h.kind)).toEqual(["write", "read"]);
+    expect(order.summary).toBe("2 usages of '$order' found");
+    const exits = await invoke<HighlightAnswer>("code_highlight_usages", { ...at(path, stripe, "return"), content: stripe });
+    expect(exits.target).toBe("exitPoints");
+    expect(exits.highlights).toHaveLength(2);
+    const methods = await invoke<HighlightAnswer>("code_highlight_usages", { ...at(path, stripe, "implements"), content: stripe });
+    expect(methods.target).toBe("implementingMethods");
+    expect(methods.summary).toBe("2 methods implementing 'PaymentGateway' found");
+    const target = await invoke<UsageTarget>("code_usage_target", at("app/Contracts/PaymentGateway.php", gateway, "PaymentGateway"));
+    expect(target.label).toBe("interface PaymentGateway");
+    expect(target.fields.map((f) => f.label)).toContain("Implementing classes");
   });
 
   it("navigates to implementations and super methods", async () => {

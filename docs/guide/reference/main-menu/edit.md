@@ -43,10 +43,10 @@ Undo, clipboard, find and replace, selection and line editing. Open it with ☰ 
 | Find › Search Structurally… | — | — | not yet | Not available yet; the entry is disabled. |
 | **Find Usages** | | | | submenu |
 | Find Usages › Find Usages | `Alt+F7` | `Alt+F7` | yes | Shows the usages of the symbol at the caret in the Find tool window. [More](../../user/editor.md#find-usages-and-show-usages) ([screenshot](../../../screenshots/php-nav-find-window.png)) |
-| Find Usages › Find Usages Settings… | `Ctrl+Alt+Shift+F7` | `Cmd+Alt+Shift+F7` | not yet | Not available yet; the entry is disabled. |
+| Find Usages › Find Usages Settings… | `Ctrl+Alt+Shift+F7` | `Cmd+Alt+Shift+F7` | yes | Opens the Find Usages dialog (options per element, scope, Open in new tab), then finds the usages. [More](../../user/editor.md#find-usages-settings) ([screenshot](../../../screenshots/find-usages-dialog.png)) |
 | Find Usages › Show Usages | `Ctrl+Alt+F7` | `Cmd+Alt+F7` | yes | Shows the usages of the symbol at the caret in a popup. [More](../../user/editor.md#find-usages-and-show-usages) ([screenshot](../../../screenshots/php-nav-show-usages.png)) |
-| Find Usages › Find Usages in File | `Ctrl+F7` | `Cmd+F7` | not yet | Not available yet; the entry is disabled. |
-| Find Usages › Highlight Usages in File | `Ctrl+Shift+F7` | `Cmd+Shift+F7` | not yet | Not available yet; the entry is disabled. |
+| Find Usages › Find Usages in File | `Ctrl+F7` | `Cmd+F7` | yes | Shows the usages of the symbol at the caret in the current file in the Find tool window. [More](../../user/editor.md#find-usages-in-file) ([screenshot](../../../screenshots/find-usages-in-file.png)) |
+| Find Usages › Highlight Usages in File | `Ctrl+Shift+F7` | `Cmd+Shift+F7` | yes | Highlights the usages (or exit points, implementing methods) in the file until Escape; F3 / Shift+F3 jump between them. [More](../../user/editor.md#highlight-usages) ([screenshot](../../../screenshots/highlight-usages-in-file.png)) |
 | Select All | `Ctrl+A` | `Cmd+A` | yes | Selects the whole document. [More](../../user/editor.md#editing-actions) |
 | Extend Selection | `Ctrl+W` | `Alt+Up` | yes | Extends the selection to the next larger syntactic unit (word, expression, statement, block). [More](../../user/editor.md#editing-actions) |
 | Shrink Selection | `Ctrl+Shift+W` | `Alt+Down` | yes | Shrinks the selection back. [More](../../user/editor.md#editing-actions) |

@@ -3,7 +3,7 @@ import { Dynamic } from "solid-js/web";
 import { GitBranch, Lock } from "lucide-solid";
 import { activeTab } from "@/state/editor";
 import { currentBranch } from "@/state/vcs";
-import { visibleStatusItems } from "@/features/statusItems";
+import { statusMessage, visibleStatusItems } from "@/features/statusItems";
 import { languageLabel } from "@/editor/languages";
 import { NavigationBar, navBarLocation } from "@/features/navBar";
 import { EncodingStatus, IndentStatus, LineSeparatorStatus } from "./FileStatusItems";
@@ -17,6 +17,13 @@ export function StatusBar() {
           <NavigationBar placement="statusBar" />
         </Show>
         <For each={visibleStatusItems("left")}>{(s) => <Dynamic component={s.component} />}</For>
+        <Show when={statusMessage()}>
+          {(text) => (
+            <span class="status-message" title={text()}>
+              {text()}
+            </span>
+          )}
+        </Show>
       </div>
       <div class="status-right">
         <For each={visibleStatusItems("right")}>{(s) => <Dynamic component={s.component} />}</For>

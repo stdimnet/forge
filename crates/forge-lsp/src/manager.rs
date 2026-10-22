@@ -526,6 +526,43 @@ impl LspManager {
         )))
     }
 
+    /// `documentHighlight` of the servers that announce it: the first non-empty answer as
+    /// `(range, kind)` with LSP's kind numbers (1 text, 2 read, 3 write).
+    pub async fn document_highlights(
+        &self,
+        path: &Path,
+        position: Position,
+    ) -> Result<Vec<(lsp_types::Range, Option<u8>)>> {
+        let clients = self.supporting(path, Feature::DocumentHighlight).await;
+        let answers = join_all(
+            clients
+                .into_iter()
+                .map(|c| async move { c.document_highlight(path, position).await }),
+        )
+        .await;
+        Ok(answers
+            .into_iter()
+            .filter_map(|r| r.ok().flatten())
+            .find(|h| !h.is_empty())
+            .map(|h| {
+                h.into_iter()
+                    .map(|d| {
+                        let kind = d.kind.map(|k| {
+                            if k == lsp_types::DocumentHighlightKind::WRITE {
+                                3
+                            } else if k == lsp_types::DocumentHighlightKind::READ {
+                                2
+                            } else {
+                                1
+                            }
+                        });
+                        (d.range, kind)
+                    })
+                    .collect()
+            })
+            .unwrap_or_default())
+    }
+
     pub async fn document_symbols(&self, path: &Path) -> Result<Vec<EditorSymbol>> {
         let answers = self
             .ask_all(path, |c| async move { c.document_symbols(path).await })

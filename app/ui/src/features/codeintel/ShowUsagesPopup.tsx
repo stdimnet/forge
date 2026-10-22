@@ -3,15 +3,19 @@
  * and file, keyboard navigable; Enter opens, the pin button keeps them in the Find tool
  * window.
  */
-import { createMemo, createSignal, For, Match, onCleanup, onMount, Switch, type JSX } from "solid-js";
-import { Pin } from "lucide-solid";
+import { createMemo, createSignal, For, Match, onCleanup, onMount, Show, Switch, type JSX } from "solid-js";
+import { Pin, Settings } from "lucide-solid";
 import { FileIcon } from "@/shell/FileIcon";
+import { toLsp } from "@/features/lsp/util";
 import type { UsageRow } from "@/ipc/codeintel";
-import { closeUsagesPopup, countLabel, openInFindWindow, openUsage, type UsageItem, type UsagesPopupState } from "./usages";
+import { closeUsagesPopup, countLabel, openInFindWindow, openUsage, showUsagesSettings, type UsageItem, type UsagesPopupState } from "./usages";
 
 type Line = { kind: "group"; label: string; count: number } | ({ kind: "usage"; index: number } & UsageItem);
 
 const fileName = (path: string) => path.split("/").pop() ?? path;
+
+/** Where the popup's search started, for the Find tool window's Settings button. */
+const popupOrigin = (p: UsagesPopupState) => (p.origin ? { path: p.origin.path, pos: toLsp(p.origin.view.state.doc, p.origin.pos) } : undefined);
 
 /** The code of a usage with the reference (every match of a text search) highlighted. */
 export function UsageCode(props: { row: UsageRow }) {
@@ -99,14 +103,24 @@ export function ShowUsagesPopup(props: { popup: UsagesPopupState }) {
     >
       <div class="usages-popup-header">
         <span class="usages-popup-title">
-          Usages of <strong>{props.popup.answer.title}</strong> in Project Files
+          Usages of <strong>{props.popup.answer.title}</strong> in {props.popup.answer.scope ?? "Project Files"}
         </span>
         <span class="usages-popup-count">{countLabel(total())}</span>
+        <Show when={props.popup.origin}>
+          <button
+            class="usages-popup-pin"
+            title="Settings… (Ctrl+Alt+Shift+F7)"
+            aria-label="Find Usages Settings"
+            onClick={() => showUsagesSettings(props.popup)}
+          >
+            <Settings size={14} />
+          </button>
+        </Show>
         <button
           class="usages-popup-pin"
           title="Open in Find Window"
           aria-label="Open in Find Window"
-          onClick={() => openInFindWindow(props.popup.answer)}
+          onClick={() => openInFindWindow(props.popup.answer, { origin: popupOrigin(props.popup) })}
         >
           <Pin size={14} />
         </button>

@@ -23,6 +23,8 @@ import { wordCompletion } from "./wordCompletion";
 import { highlightCaretRows } from "./caretRow";
 import { docSync, joinDocSync } from "./docSync";
 import { formatCompartment, formatExtensions } from "./codeStyle";
+import { errorStripe } from "./errorStripe";
+import { usageHighlighting } from "./usageHighlight";
 import "./fileFormat";
 import { getSetting } from "@/state/settings";
 
@@ -72,6 +74,8 @@ export function CodeEditor(props: { tab: EditorTab; group?: number }) {
           autocompletion(),
           wordCompletion,
           highlightSelectionMatches(),
+          usageHighlighting(),
+          errorStripe(),
           keymap.of([
             { key: "Mod-s", run: () => (void saveFile(path, "explicit"), true) },
             indentWithTab,

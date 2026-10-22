@@ -102,6 +102,34 @@ Page id `keymap`. The override lists are edited through the Keymap page, not as 
 | `keymap.overrides.default` | list | `[]` | user |  | Changed shortcuts (Windows / Linux) — One entry per action: the action id, then its shortcuts, separated by tabs. |
 | `keymap.overrides.macOS` | list | `[]` | user |  | Changed shortcuts (macOS) — One entry per action: the action id, then its shortcuts, separated by tabs. |
 
+### Find Usages
+
+Group `findUsages`, edited in the Find Usages dialog (`Ctrl+Alt+Shift+F7`), not on a Settings
+page. Every Find Usages and Show Usages run uses them.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `findUsages.options.classUsages` | bool | `true` | user |  | Usages (classes, traits, enums) |
+| `findUsages.options.classMethodUsages` | bool | `false` | user |  | Usages of methods (classes) |
+| `findUsages.options.classFieldUsages` | bool | `false` | user |  | Usages of fields (classes) |
+| `findUsages.options.classDerivedClasses` | bool | `false` | user |  | Derived classes |
+| `findUsages.options.interfaceUsages` | bool | `true` | user |  | Usages (interfaces) |
+| `findUsages.options.interfaceMethodUsages` | bool | `false` | user |  | Usages of methods (interfaces) |
+| `findUsages.options.interfaceImplementingClasses` | bool | `false` | user |  | Implementing classes |
+| `findUsages.options.interfaceDerivedInterfaces` | bool | `false` | user |  | Derived interfaces |
+| `findUsages.options.methodUsages` | bool | `true` | user |  | Usages (methods) |
+| `findUsages.options.methodOverridingMethods` | bool | `false` | user |  | Overriding methods |
+| `findUsages.options.readAccess` | bool | `true` | user |  | Read access (properties, variables) |
+| `findUsages.options.writeAccess` | bool | `true` | user |  | Write access (properties, variables) |
+| `findUsages.options.usages` | bool | `true` | user |  | Usages (functions, constants, other symbols) |
+| `findUsages.options.searchInCommentsAndStrings` | bool | `false` | user |  | Search in comments and strings |
+| `findUsages.options.searchForTextOccurrences` | bool | `false` | user |  | Search for text occurrences |
+| `findUsages.scope.kind` | enum: `projectFiles`, `projectAndLibraries`, `openFiles`, `currentFile`, `recentlyChangedFiles`, `directory`, `custom` | `projectFiles` | user |  | Scope |
+| `findUsages.scope.directory` | string | `""` | user |  | Directory |
+| `findUsages.scope.includeSubdirectories` | bool | `true` | user |  | Include subdirectories |
+| `findUsages.scope.pattern` | string | `""` | user |  | Custom scope — File globs separated by ';', '!' excludes (app/**/*.php; !app/Legacy/**). |
+| `findUsages.openInNewTab` | bool | `true` | user |  | Open in new tab |
+
 ### Editor | General
 
 Page id `editor.general`.
@@ -123,6 +151,7 @@ Page id `editor.general`.
 | `editor.stripTrailingSpaces` | enum: `none`, `modified`, `all` | `modified` | user | On Save | Remove trailing spaces on |
 | `editor.ensureNewlineAtEof` | bool | `true` | user | On Save | Ensure every saved file ends with a line break |
 | `editor.clipboard.maxContents` | int (1–100) | `20` | user | Limits | Maximum number of contents to keep in clipboard |
+| `editor.highlightUsagesAtCaret` | bool | `true` | user | Highlight on Caret Movement | Highlight usages of element at caret — Highlights the usages of the symbol at the caret in the file (reads and writes in different colors), also on the scrollbar. |
 | `editor.colorPreview.gutter` | bool | `true` | user | Appearance | Show color preview in the gutter — Swatches next to colors in CSS, markup and scripts; click one to open the color picker. |
 | `editor.colorPreview.inline` | bool | `false` | user | Appearance | Show color preview inline |
 | `run.console.softWrap` | bool | `false` | user | Console | Use soft wraps in console |

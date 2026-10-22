@@ -14,12 +14,12 @@ use lsp_types::{
     CodeActionParams, CodeActionProviderCapability, CompletionItem, CompletionParams,
     CompletionResponse, Diagnostic, DidChangeConfigurationParams, DidChangeTextDocumentParams,
     DidCloseTextDocumentParams, DidOpenTextDocumentParams, DidSaveTextDocumentParams,
-    DocumentFormattingParams, DocumentSymbolParams, DocumentSymbolResponse, ExecuteCommandParams,
-    FormattingOptions, GotoDefinitionParams, GotoDefinitionResponse, Hover, HoverParams,
-    ImplementationProviderCapability, InitializeParams, InitializeResult, InitializedParams,
-    Location, OneOf, Position, PrepareRenameResponse, Range, ReferenceContext, ReferenceParams,
-    RenameParams, ServerCapabilities, SignatureHelp, SignatureHelpParams,
-    TextDocumentContentChangeEvent, TextDocumentIdentifier, TextDocumentItem,
+    DocumentFormattingParams, DocumentHighlight, DocumentHighlightParams, DocumentSymbolParams,
+    DocumentSymbolResponse, ExecuteCommandParams, FormattingOptions, GotoDefinitionParams,
+    GotoDefinitionResponse, Hover, HoverParams, ImplementationProviderCapability, InitializeParams,
+    InitializeResult, InitializedParams, Location, OneOf, Position, PrepareRenameResponse, Range,
+    ReferenceContext, ReferenceParams, RenameParams, ServerCapabilities, SignatureHelp,
+    SignatureHelpParams, TextDocumentContentChangeEvent, TextDocumentIdentifier, TextDocumentItem,
     TextDocumentPositionParams, TextDocumentSyncSaveOptions, TextEdit,
     TypeDefinitionProviderCapability, TypeHierarchyItem, Url, VersionedTextDocumentIdentifier,
     WorkspaceEdit, WorkspaceFolder, WorkspaceSymbolParams, WorkspaceSymbolResponse,
@@ -97,6 +97,7 @@ pub enum Feature {
     Rename,
     CodeAction,
     SignatureHelp,
+    DocumentHighlight,
     TypeHierarchy,
     CallHierarchy,
 }
@@ -113,6 +114,7 @@ impl Feature {
             Feature::Rename => "Rename",
             Feature::CodeAction => "Show Context Actions",
             Feature::SignatureHelp => "Parameter Info",
+            Feature::DocumentHighlight => "Highlight Usages in File",
             Feature::TypeHierarchy => "Type Hierarchy",
             Feature::CallHierarchy => "Call Hierarchy",
         }
@@ -835,6 +837,20 @@ impl LspClient {
         .await
     }
 
+    /// Usages of the symbol at `position` in its document (`textDocument/documentHighlight`).
+    pub async fn document_highlight(
+        &self,
+        path: &Path,
+        position: Position,
+    ) -> Result<Option<Vec<DocumentHighlight>>> {
+        self.request::<req::DocumentHighlightRequest>(DocumentHighlightParams {
+            text_document_position_params: Self::position_params(path, position)?,
+            work_done_progress_params: Default::default(),
+            partial_result_params: Default::default(),
+        })
+        .await
+    }
+
     pub async fn document_symbols(&self, path: &Path) -> Result<Option<DocumentSymbolResponse>> {
         self.request::<req::DocumentSymbolRequest>(DocumentSymbolParams {
             text_document: TextDocumentIdentifier {
@@ -941,6 +957,7 @@ impl LspClient {
                 None | Some(CodeActionProviderCapability::Simple(false))
             ),
             Feature::SignatureHelp => c.signature_help_provider.is_some(),
+            Feature::DocumentHighlight => one_of(c.document_highlight_provider.as_ref()),
             Feature::CallHierarchy => !matches!(
                 c.call_hierarchy_provider,
                 None | Some(lsp_types::CallHierarchyServerCapability::Simple(false))
@@ -1224,6 +1241,7 @@ fn client_capabilities() -> Value {
             "implementation": { "linkSupport": true },
             "typeDefinition": { "linkSupport": true },
             "references": {},
+            "documentHighlight": {},
             "typeHierarchy": { "dynamicRegistration": false },
             "callHierarchy": { "dynamicRegistration": false },
             "rename": { "prepareSupport": true },

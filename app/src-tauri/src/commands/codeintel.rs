@@ -1,5 +1,6 @@
 //! Code intelligence actions on top of the language servers and the PHP index: Find Usages
-//! (Alt+F7) / Show Usages, Rename (Shift+F6), Show Context Actions (Alt+Enter), Go to
+//! (Alt+F7) / Show Usages / Find Usages in File with the Find Usages options, Highlight Usages
+//! in File (and of the element at the caret), Rename (Shift+F6), Show Context Actions (Alt+Enter), Go to
 //! Implementation / Type Declaration / Super Method, applying workspace edits to the files
 //! that are not open in an editor, and the documentation actions of the View menu (External
 //! Documentation, Quick Definition, Type Info, Context Info) and Related Symbol. Paths are workspace-relative;
@@ -14,11 +15,13 @@ use std::path::Path;
 use std::sync::Arc;
 
 use forge_backend::Backend;
+use forge_core::search::FindRequest;
 use forge_core::{ForgeError, Result};
 use forge_lsp::forge_codeintel::{
     self as codeintel, order_actions, preview_workspace_edit, ActionKind, AppliedFile, Bulb,
-    ContextAction, EditPlan, FilePreview, FileRename, FileStore, GroupRequest, Position, Range,
-    RenameConflict, UsageLocation, UsageTree, WorkspaceEdit,
+    ContextAction, EditPlan, ElementKind, FilePreview, FileRename, FileStore, GroupRequest,
+    HighlightAnswer, HighlightTarget, Position, Range, RenameConflict, UsageHighlight,
+    UsageLocation, UsageOptions, UsageScope, UsageTarget, UsageTree, WorkspaceEdit,
 };
 use forge_lsp::model::{EditorCodeAction, EditorLocation};
 use forge_lsp::{lsp_types, Feature, LspManager};
@@ -212,11 +215,16 @@ pub struct UsagesAnswer {
     pub declaration: Option<UsageLocation>,
     pub by_type: UsageTree,
     pub by_file: UsageTree,
+    /// What was searched (class, method, ...), for the Find Usages dialog.
+    pub element: ElementKind,
+    /// The scope's name: "Project Files", "Directory 'app'".
+    pub scope: String,
 }
 
-/// Find Usages / Show Usages: references from the language servers, from the PHP index
-/// when they have none, grouped by usage type and by file. `buffers` are unsaved editor
-/// contents by path.
+/// Find Usages / Show Usages / Find Usages in File: references from the language servers,
+/// from the PHP index when they have none, filtered by the Find Usages options and scope,
+/// with text occurrences on request, grouped by usage type and by file. `buffers` are
+/// unsaved editor contents by path.
 #[tauri::command]
 #[allow(clippy::too_many_arguments)]
 pub async fn code_find_usages(
@@ -225,10 +233,17 @@ pub async fn code_find_usages(
     character: u32,
     content: Option<String>,
     buffers: Option<HashMap<String, String>>,
+    options: Option<UsageOptions>,
+    scope: Option<UsageScope>,
     app: AppHandle,
     lsp: State<'_, LspState>,
     ws: State<'_, AppState>,
 ) -> Result<UsagesAnswer> {
+    let options = options.unwrap_or_default();
+    let mut scope = scope.unwrap_or_default();
+    if scope.current_file.is_empty() {
+        scope.current_file = path.clone();
+    }
     let c = Ctx::new(&path, &app, &lsp, &ws)?;
     let pos = lsp_types::Position::new(line, character);
     let refs = c.manager.references(&c.abs, pos).await.unwrap_or_default();
@@ -245,26 +260,90 @@ pub async fn code_find_usages(
     let backend = c.backend.clone();
     blocking(move || {
         let text = current_text(&backend, &path, &content);
-        let mut title = codeintel::word_range(&text, Position::new(line, character))
+        let word = codeintel::word_range(&text, Position::new(line, character))
             .map(|(_, w)| w)
             .unwrap_or_default();
-        if usages.is_empty() && is_php(&path) {
+        let mut title = word.clone();
+        let mut element = ElementKind::Symbol;
+        if !usages.is_empty() {
+            // The PHP index knows what the servers' symbol is (cheap: one file).
+            if is_php(&path) {
+                let offset = codeintel::utf16_offset(&text, Position::new(line, character));
+                if let Ok(Some(h)) = backend.php().highlights(&path, offset, Some(text.clone())) {
+                    element = h.element;
+                }
+            }
+            if !options.effective(element).usages {
+                usages.clear();
+            }
+        } else if is_php(&path) {
             let offset = codeintel::utf16_offset(&text, Position::new(line, character));
-            if let Some(found) = backend.php().usages(&path, offset, Some(text.clone()))? {
+            if let Some(found) =
+                backend
+                    .php()
+                    .usages(&path, offset, options.clone(), Some(text.clone()))?
+            {
                 title = found.title;
                 declaration = found.declaration;
                 usages = found.usages;
+                element = found.element;
                 source = "index";
             }
         }
-        if usages.is_empty() {
-            source = "none";
-        }
+        let effective = options.effective(element);
         let mut buffers = buffers.unwrap_or_default();
         buffers.insert(path.clone(), text);
         let mut texts = Texts { backend, buffers };
+
+        // Text occurrences: the files containing the word, searched where they live.
+        if (effective.comments_and_strings || effective.text_occurrences)
+            && !word.is_empty()
+            && element != ElementKind::Variable
+        {
+            let bare = word.trim_start_matches('$').to_string();
+            let found = texts.backend.find_in_files(&FindRequest {
+                query: bare.clone(),
+                case_sensitive: true,
+                whole_words: true,
+                limit: 5000,
+                ..FindRequest::default()
+            });
+            if let Ok(found) = found {
+                let paths: Vec<String> = found
+                    .files
+                    .into_iter()
+                    .map(|f| f.path)
+                    .filter(|p| scope.contains(p))
+                    .collect();
+                for p in &paths {
+                    texts.load(p);
+                }
+                let files = paths
+                    .iter()
+                    .filter_map(|p| texts.get(p).map(|t| (p.as_str(), t)));
+                let extra = codeintel::text_occurrences(&bare, &path, files, &usages, &effective);
+                usages.extend(extra);
+            }
+        }
+
+        let mut usages = scope.filter(usages);
         for u in &usages {
             texts.load(&u.path);
+        }
+        usages = codeintel::apply_options(usages, &effective, |u| {
+            let line = texts
+                .get(&u.path)
+                .and_then(|t| t.split('\n').nth(u.range.start.line as usize))
+                .unwrap_or("");
+            let end = if u.range.end.line == u.range.start.line {
+                u.range.end.character
+            } else {
+                u.range.start.character
+            };
+            codeintel::classify_usage(line, u.range.start.character, end)
+        });
+        if usages.is_empty() {
+            source = "none";
         }
         let mut req = GroupRequest {
             usages,
@@ -280,7 +359,112 @@ pub async fn code_find_usages(
             declaration,
             by_type,
             by_file,
+            element,
+            scope: scope.label(),
         })
+    })
+    .await
+}
+
+/// Highlight Usages in File (Ctrl+Shift+F7) and the highlighting of the element at the
+/// caret: exit points on `return` / `throw`, the implementing / overriding methods on
+/// `implements` / `extends` (PHP index), the servers' `documentHighlight`, the PHP index,
+/// else the lexical fallback. `None` when there is nothing to highlight.
+#[tauri::command]
+pub async fn code_highlight_usages(
+    path: String,
+    line: u32,
+    character: u32,
+    content: Option<String>,
+    app: AppHandle,
+    lsp: State<'_, LspState>,
+    ws: State<'_, AppState>,
+) -> Result<Option<HighlightAnswer>> {
+    let c = Ctx::new(&path, &app, &lsp, &ws)?;
+    let backend = c.backend.clone();
+    let p = path.clone();
+    let text = blocking(move || Ok(current_text(&backend, &p, &content))).await?;
+    let at = Position::new(line, character);
+    if let Some(exits) = codeintel::exit_points(&text, &path, at) {
+        return Ok(Some(exits));
+    }
+    let word = codeintel::word_range(&text, at);
+    let on_parents = word
+        .as_ref()
+        .is_some_and(|(_, w)| w == "implements" || w == "extends");
+    if !on_parents {
+        let pos = lsp_types::Position::new(line, character);
+        let found = c
+            .manager
+            .document_highlights(&c.abs, pos)
+            .await
+            .unwrap_or_default();
+        if !found.is_empty() {
+            let highlights = found
+                .into_iter()
+                .map(|(r, kind)| UsageHighlight {
+                    range: lsp_range(r),
+                    kind: codeintel::lsp_highlight_kind(kind),
+                })
+                .collect();
+            let title = word.map(|(_, w)| w).unwrap_or_default();
+            return Ok(Some(HighlightAnswer::new(
+                HighlightTarget::Usages,
+                title,
+                highlights,
+                "lsp",
+            )));
+        }
+    }
+    let backend = c.backend.clone();
+    blocking(move || {
+        if is_php(&path) {
+            let offset = codeintel::utf16_offset(&text, at);
+            if let Some(found) = backend
+                .php()
+                .highlights(&path, offset, Some(text.clone()))?
+            {
+                return Ok(Some(found));
+            }
+        }
+        if on_parents {
+            return Ok(None);
+        }
+        Ok(codeintel::lexical_highlights(&text, &path, at))
+    })
+    .await
+}
+
+/// What the Find Usages dialog (Ctrl+Shift+Alt+F7) shows for the element at the caret.
+#[tauri::command]
+pub async fn code_usage_target(
+    path: String,
+    line: u32,
+    character: u32,
+    content: Option<String>,
+    ws: State<'_, AppState>,
+) -> Result<Option<UsageTarget>> {
+    let backend = ws.backend()?;
+    blocking(move || {
+        let text = current_text(&backend, &path, &content);
+        let at = Position::new(line, character);
+        let Some((_, word)) = codeintel::word_range(&text, at) else {
+            return Ok(None);
+        };
+        let mut element = ElementKind::Symbol;
+        let mut title = word;
+        if is_php(&path) {
+            let offset = codeintel::utf16_offset(&text, at);
+            if let Ok(Some(h)) = backend.php().highlights(&path, offset, Some(text.clone())) {
+                if h.target == HighlightTarget::Usages {
+                    element = h.element;
+                    title = h.title;
+                }
+            }
+        } else if let Some(h) = codeintel::lexical_highlights(&text, &path, at) {
+            element = h.element;
+        }
+        Ok(Some(UsageTarget::new(element, title)))
     })
     .await
 }
@@ -746,7 +930,12 @@ pub async fn code_prepare_rename(
         }
         if php {
             let offset = codeintel::utf16_offset(&text, Position::new(line, character));
-            match backend.php().usages(&path, offset, Some(text.clone()))? {
+            match backend.php().usages(
+                &path,
+                offset,
+                UsageOptions::default(),
+                Some(text.clone()),
+            )? {
                 Some(found) => {
                     answer.label = Some(phpforge_lang_php::rename::rename_label(&found.symbol));
                     if let (phpforge_lang_php::navigate::SymbolRef::Class { fqn }, Some(decl)) =
@@ -912,7 +1101,11 @@ pub async fn code_rename(
         let mut declaration = None;
         if edit.is_none() && php {
             let offset = codeintel::utf16_offset(&text, Position::new(line, character));
-            if let Some(found) = backend.php().usages(&path, offset, Some(text.clone()))? {
+            if let Some(found) =
+                backend
+                    .php()
+                    .usages(&path, offset, UsageOptions::default(), Some(text.clone()))?
+            {
                 let mut all = found.declaration.iter().cloned().collect::<Vec<_>>();
                 all.extend(found.usages);
                 let built = codeintel::edit_from_locations(&all, &new_name, |p| {
@@ -931,7 +1124,7 @@ pub async fn code_rename(
             let offset = codeintel::utf16_offset(&text, Position::new(line, character));
             symbol = backend
                 .php()
-                .usages(&path, offset, Some(text.clone()))
+                .usages(&path, offset, UsageOptions::default(), Some(text.clone()))
                 .ok()
                 .flatten()
                 .map(|found| found.symbol);

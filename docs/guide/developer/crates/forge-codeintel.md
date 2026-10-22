@@ -27,6 +27,14 @@ and the browser-mode UI. Pure Rust, so it also runs as WebAssembly.
   editors and the project backend.
 - `usages`: Find Usages: the usage type of each reference (method call, import, new
   instance, ...) from its line, and the result tree grouped by usage type and file.
+- `usage_options`: the Find Usages settings: options per kind of element
+  (`UsageOptions::effective`, the dialog's checkboxes in `UsageOptions::fields`,
+  `UsageTarget`), search scopes (`UsageScope`: Project Files, Open Files, Current File,
+  Recently Changed Files, Directory, custom globs) and the text occurrences added on request
+  (comments and strings, non-code files).
+- `highlight`: Highlight Usages in File and the highlighting of the element at the caret:
+  read / write access of usages, the exit points of a function on `return` / `throw` and a
+  lexical fallback (the identifier in its scope, comments and strings left out).
 - `docs`: the documentation actions of the View menu: External Documentation URLs, Quick
   Definition snippets, Context Info headers and Type Info from hovers and signatures.
 - `structure`: the scopes of a document (classes, functions, control blocks, CSS rules,

@@ -237,10 +237,10 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Find in Files… | `FindInPath` | `Ctrl+Shift+F` | `Cmd+Shift+F` | yes |
 | Replace in Files… | `ReplaceInPath` | `Ctrl+Shift+R` | `Cmd+Shift+R` | yes |
 | Find Usages | `FindUsages` | `Alt+F7` | `Alt+F7` | yes |
-| Find Usages in File | `FindUsagesInFile` | `Ctrl+F7` | `Cmd+F7` | — |
-| Highlight Usages in File | `HighlightUsagesInFile` | `Ctrl+Shift+F7` | `Cmd+Shift+F7` | — |
+| Find Usages in File | `FindUsagesInFile` | `Ctrl+F7` | `Cmd+F7` | yes |
+| Highlight Usages in File | `HighlightUsagesInFile` | `Ctrl+Shift+F7` | `Cmd+Shift+F7` | yes |
 | Show Usages | `ShowUsages` | `Ctrl+Alt+F7` | `Cmd+Alt+F7` | yes |
-| Find Usages Settings… | `ShowSettingsAndFindUsages` | `Ctrl+Alt+Shift+F7` | `Cmd+Alt+Shift+F7` | — |
+| Find Usages Settings… | `ShowSettingsAndFindUsages` | `Ctrl+Alt+Shift+F7` | `Cmd+Alt+Shift+F7` | yes |
 | Search Structurally… | `StructuralSearchPlugin.StructuralSearchAction` |  |  | — |
 
 ### View > Tool Windows

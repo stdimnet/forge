@@ -24,6 +24,7 @@ pub mod docblock;
 pub mod fuzzy;
 pub mod generate;
 pub mod hierarchy;
+pub mod highlight;
 pub mod hover;
 pub mod imports;
 pub mod index;
