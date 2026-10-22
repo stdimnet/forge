@@ -349,7 +349,7 @@
 
 .git-dialog.rebase-dialog {
   width: min(1040px, calc(100vw - 32px));
-  height: min(620px, calc(100vh - 48px));
+  height: min(560px, calc(100vh - 48px));
   display: flex;
   flex-direction: column;
 }
