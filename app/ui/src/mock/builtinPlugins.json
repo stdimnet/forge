@@ -292,6 +292,39 @@
           "order": 40
         },
         {
+          "key": "projectView.autoscrollFromSource",
+          "title": "Always select opened file",
+          "description": "The Project tool window selects the file of the active editor whenever you switch editors (PHPStorm's Autoscroll from Source). Also in the tool window's Options menu.",
+          "type": "bool",
+          "default": false,
+          "group": "appearance",
+          "section": "Project View",
+          "project": false,
+          "order": 41
+        },
+        {
+          "key": "structureView.autoscrollToSource",
+          "title": "Autoscroll to source",
+          "description": "A single click on a Structure tool window node moves the editor to it. Turn it off to select with a single click and navigate with a double click.",
+          "type": "bool",
+          "default": true,
+          "group": "appearance",
+          "section": "Structure View",
+          "project": false,
+          "order": 42
+        },
+        {
+          "key": "structureView.autoscrollFromSource",
+          "title": "Autoscroll from source",
+          "description": "The Structure tool window selects the member at the caret as you move through the editor.",
+          "type": "bool",
+          "default": true,
+          "group": "appearance",
+          "section": "Structure View",
+          "project": false,
+          "order": 43
+        },
+        {
           "key": "appearance.navigationBar.location",
           "title": "Navigation bar",
           "description": "Where the navigation bar (project, folders, file and members at the caret) is shown: Top: above the editor, with the path in the status bar too. In status bar: only in the status bar. Don't show: Jump to Navigation Bar (Alt+Home) shows it as a popup. View | Appearance | Navigation Bar.",
@@ -2085,6 +2118,92 @@
       "chatAgents": [],
       "codeGenerators": [],
       "mainMenu": []
+    }
+  },
+  {
+    "id": "forge.vim",
+    "name": "Vim",
+    "version": "0.1.0",
+    "pack": "core",
+    "description": "Vim emulation like IdeaVim: Normal, Insert, Visual and command-line modes, motions, operators, text objects, registers, macros, ex commands and ~/.ideavimrc. Turn it on with Tools | Vim.",
+    "vendor": "Forge",
+    "depends": [
+      "forge.core"
+    ],
+    "required": false,
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "fileTypes": [],
+      "commands": [
+        {
+          "id": "VimPluginToggle",
+          "title": "Vim",
+          "category": "Tools"
+        },
+        {
+          "id": "IdeaVim.ReloadVimRc",
+          "title": "Reload .ideavimrc",
+          "category": "Tools"
+        }
+      ],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [
+        {
+          "key": "vim.enabled",
+          "title": "Enable Vim emulation",
+          "description": "Same as Tools | Vim (Ctrl+Alt+V).",
+          "type": "bool",
+          "default": false,
+          "group": "editor.vim",
+          "section": "Emulation",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "vim.rcFile",
+          "title": "Configuration file",
+          "description": "Leave empty to read ~/.ideavimrc (or ~/_ideavimrc, ~/.config/ideavim/ideavimrc). Supports set, map/noremap, let mapleader, sethandler and :action mappings.",
+          "type": "path",
+          "default": "",
+          "group": "editor.vim",
+          "section": "Emulation",
+          "project": false,
+          "order": 1
+        },
+        {
+          "key": "vim.shortcutHandlers",
+          "title": "Shortcuts",
+          "description": "Who handles a shortcut in the editor while Vim emulation is on: Vim or the IDE. sethandler lines in ~/.ideavimrc take precedence.",
+          "type": "objects",
+          "unique": [
+            "shortcut"
+          ],
+          "default": [],
+          "group": "editor.vim",
+          "section": "Shortcut Conflicts",
+          "project": false,
+          "order": 10
+        }
+      ],
+      "lspServers": [],
+      "runConfigurationTypes": [],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": [],
+      "mainMenu": [
+        {
+          "path": "Tools",
+          "items": [
+            {
+              "type": "action",
+              "id": "VimPluginToggle",
+              "label": "_Vim"
+            }
+          ]
+        }
+      ]
     }
   },
   {

@@ -1,11 +1,18 @@
 //! Editor actions (`forge-editing`), mirroring `editor_postfix_templates`,
 //! `editor_postfix_complete`, `editor_complete_statement` and `editor_expand_word`, and the
 //! session clipboard history of Paste from History (`clipboard_history_*`).
+//!
+//! The edit history of Last/Next Edit Location (`edit_history`) and the order of Next/Previous
+//! Change (`editor_change_target`) run here in the desktop app too: the editor reports every
+//! document change synchronously, so places stay mapped without an IPC round trip.
 
 use std::cell::RefCell;
 
-use forge_editing::{ClipEntry, ClipboardHistory, ExpandRequest, PostfixRequest, StatementRequest};
-use serde::Deserialize;
+use forge_editing::{
+    ClipEntry, ClipboardHistory, EditHistory, EditOp, EditPlace, ExpandRequest, LineRange,
+    PostfixRequest, StatementRequest,
+};
+use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 
 use crate::to_json;
@@ -103,6 +110,61 @@ pub fn clipboard_history_promote(args_json: &str) -> String {
     with_clipboard(args_json, |h, a| a.index.and_then(|i| h.promote(i)))
 }
 
+thread_local! {
+    static EDITS: RefCell<EditHistory> = RefCell::new(EditHistory::default());
+}
+
+#[derive(Deserialize)]
+struct EditHistoryRequest {
+    ops: Vec<EditOp>,
+    /// Also return the places (newest first).
+    #[serde(default)]
+    list: bool,
+}
+
+#[derive(Serialize)]
+struct EditHistoryAnswer {
+    /// The place the last Back/Forward goes to.
+    place: Option<EditPlace>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    places: Option<Vec<EditPlace>>,
+}
+
+/// `{ ops: EditOp[], list? }` → `{ place: EditPlace | null, places?: EditPlace[] }`.
+#[wasm_bindgen]
+pub fn edit_history(request_json: &str) -> String {
+    match parse::<EditHistoryRequest>(request_json) {
+        Ok(r) => EDITS.with(|h| {
+            let mut h = h.borrow_mut();
+            let mut place = None;
+            for op in r.ops {
+                place = h.apply(op);
+            }
+            to_json(&EditHistoryAnswer {
+                place,
+                places: r.list.then(|| h.places()),
+            })
+        }),
+        Err(e) => e,
+    }
+}
+
+#[derive(Deserialize)]
+struct ChangeTargetRequest {
+    ranges: Vec<LineRange>,
+    line: usize,
+    forward: bool,
+}
+
+/// `{ ranges, line, forward }` → the index of the hunk to show, or `null`.
+#[wasm_bindgen]
+pub fn editor_change_target(request_json: &str) -> String {
+    match parse::<ChangeTargetRequest>(request_json) {
+        Ok(r) => to_json(&forge_editing::change_target(&r.ranges, r.line, r.forward)),
+        Err(e) => e,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -117,6 +179,15 @@ mod tests {
         );
         assert!(editing_expand_word("{").contains("error"));
         assert!(editing_postfix_templates("{}").starts_with('['));
+        let out = edit_history(
+            r#"{"ops":[{"op":"record","path":"a","line":3},{"op":"record","path":"a","line":30},{"op":"back","caret":{"path":"a","line":30}}],"list":true}"#,
+        );
+        assert!(out.starts_with(r#"{"place":{"path":"a","line":3"#), "{out}");
+        assert!(out.contains(r#""places":[{"path":"a","line":30"#), "{out}");
+        assert_eq!(
+            editor_change_target(r#"{"ranges":[{"start":1,"end":2}],"line":5,"forward":true}"#),
+            "0"
+        );
     }
 
     #[test]

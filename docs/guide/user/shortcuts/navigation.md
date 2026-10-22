@@ -17,6 +17,13 @@ Jumping to declarations, implementations, super methods, lines, problems, recent
 | [Go to Super Method](#go-to-super-method) | `Ctrl+U` | `Cmd+U` |
 | [Back](#back) | `Ctrl+Alt+Left` | `Cmd+[`, `Cmd+Alt+Left` |
 | [Forward](#forward) | `Ctrl+Alt+Right` | `Cmd+]`, `Cmd+Alt+Right` |
+| [Last Edit Location](#last-edit-location) | `Ctrl+Shift+Backspace` | `Cmd+Shift+Backspace` |
+| [Next Edit Location](#next-edit-location) | — | — |
+| [Select In](#select-in) | `Alt+F1` | `Alt+F1` |
+| [Next Method](#next-method) | `Alt+Down` | `Ctrl+Down` |
+| [Previous Method](#previous-method) | `Alt+Up` | `Ctrl+Up` |
+| [Next Change](#next-change) | `Ctrl+Alt+Shift+Down` | `Ctrl+Alt+Shift+Down` |
+| [Previous Change](#previous-change) | `Ctrl+Alt+Shift+Up` | `Ctrl+Alt+Shift+Up` |
 | [Go to Line/Column](#go-to-linecolumn) | `Ctrl+G` | `Cmd+L` |
 | [Move Caret to Matching Brace](#move-caret-to-matching-brace) | `Ctrl+Shift+M` | `Ctrl+M` |
 | [Next Highlighted Error](#next-highlighted-error) | `F2` | `F2` |
@@ -112,6 +119,93 @@ Goes forward in the navigation history.
 **Menu:** Navigate | Forward
 
 More: [Editor](../../user/editor.md#go-to-declaration)
+
+## Last Edit Location
+
+**Shortcut:** `Ctrl+Shift+Backspace` · macOS `Cmd+Shift+Backspace` · action id `JumpToLastChange`
+
+Goes back to the previous place where you changed text, across files. This edit history is separate from Back/Forward: edits a line or two apart count as one place, places follow later edits, renames and deletions, and the place the caret is already at is skipped. Recent Locations' **Show changed only** lists the same places.
+
+**Menu:** Navigate | Last Edit Location
+
+More: [Workbench](../../user/workbench.md#recent-files-and-switcher)
+
+## Next Edit Location
+
+**Shortcut:** none by default · action id `JumpToNextChange`
+
+Goes forward again through the edit history after Last Edit Location. A new edit starts over at the newest place.
+
+**Menu:** Navigate | Next Edit Location
+
+More: [Workbench](../../user/workbench.md#recent-files-and-switcher)
+
+## Select In
+
+**Shortcut:** `Alt+F1` · macOS `Alt+F1` · action id `SelectIn`
+
+Shows the current file somewhere else. Pick a target with its number, the arrow keys and `Enter`, or a click:
+
+| Target | What it does |
+| --- | --- |
+| Project View | Opens the Project tool window and selects the file. |
+| Commit | Selects the file in the Commit tool window (only when it has local changes). |
+| Structure | Opens the Structure tool window with the member at the caret selected. |
+| File Structure | Opens the File Structure popup (`Ctrl+F12`). |
+| Navigation Bar | Focuses the navigation bar (`Alt+Home`). |
+| Git Log | Opens the Git log filtered to the file's history (Git projects). |
+| Explorer / Finder / File Manager | Shows the file selected in the system file manager (local projects). |
+| Terminal | Opens a terminal tab in the file's folder. |
+
+From the Project view (with the focus in the tree) the targets apply to the selected file and Project View is left out.
+
+**Menu:** Navigate | Select In...
+
+![Select In](../../../screenshots/select-in.png)
+
+More: [Project view](../../user/workbench.md#project-view)
+
+## Next Method
+
+**Shortcut:** `Alt+Down` · macOS `Ctrl+Down` · action id `MethodDown`
+
+Moves the caret to the name of the next class, interface, trait, enum, function or method, or to the closing brace of a class. Works in every language with Sticky Lines: PHP, JavaScript/TypeScript (also in Vue and HTML scripts), CSS/SCSS/Less rules, Lua and other brace languages.
+
+**Menu:** Navigate | Next Method
+
+More: [Code structure](../../user/code-structure.md)
+
+## Previous Method
+
+**Shortcut:** `Alt+Up` · macOS `Ctrl+Up` · action id `MethodUp`
+
+Moves the caret to the previous class, function, method or CSS rule.
+
+**Menu:** Navigate | Previous Method
+
+More: [Code structure](../../user/code-structure.md)
+
+## Next Change
+
+**Shortcut:** `Ctrl+Alt+Shift+Down` · macOS `Ctrl+Alt+Shift+Down` · action id `VcsShowNextChangeMarker`
+
+Moves the caret to the next block that differs from Git `HEAD` (the gutter change markers), wrapping around at the end of the file, and shows its popup with the old text, **Rollback** and **Show Diff**, like a click on the marker.
+
+**Menu:** Navigate | Next Change
+
+![Next Change](../../../screenshots/next-change.png)
+
+More: [Git change markers](../../user/git.md#change-markers)
+
+## Previous Change
+
+**Shortcut:** `Ctrl+Alt+Shift+Up` · macOS `Ctrl+Alt+Shift+Up` · action id `VcsShowPrevChangeMarker`
+
+Moves the caret to the previous changed block and shows its popup.
+
+**Menu:** Navigate | Previous Change
+
+More: [Git change markers](../../user/git.md#change-markers)
 
 ## Go to Line/Column
 

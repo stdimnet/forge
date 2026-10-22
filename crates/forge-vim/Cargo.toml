@@ -1,0 +1,13 @@
+[package]
+name = "forge-vim"
+description = "Vim emulation (IdeaVim-style): modes, motions, operators, text objects, registers, ex commands and ~/.ideavimrc parsing"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+# Pure logic (no file system, processes or tokio) so it also compiles to wasm32: the UI runs
+# it synchronously for every key press in the editor (crates/forge-wasm).
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+regex = "1"

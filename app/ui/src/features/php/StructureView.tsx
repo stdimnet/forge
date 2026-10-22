@@ -1,12 +1,17 @@
 /**
  * Structure tool window (Alt+7): members of the active PHP file's classes. Other language
  * packs (LuaForge) contribute the structure of their files with `registerStructureProvider`.
+ * Options (⋮): Autoscroll to Source (a click navigates) and Autoscroll from Source (the node
+ * at the caret is selected; picked in Rust like the File Structure popup's caret node).
  */
 import { createEffect, createSignal, For, on, onCleanup, Show } from "solid-js";
-import { ArrowDownAZ, ChevronDown, ChevronRight, Layers2 } from "lucide-solid";
+import { ArrowDownAZ, ChevronDown, ChevronRight, EllipsisVertical, Layers2 } from "lucide-solid";
 import { activeTab } from "@/state/editor";
 import { languageIdFor } from "@/editor/languages";
-import { groupByRegions, structureOfText } from "@/features/codeStructure/model";
+import { fileStructureView, groupByRegions, scopesAt, structureOf, structureOfText } from "@/features/codeStructure/model";
+import { activeView } from "@/features/lsp/navigation";
+import { getSetting, saveSetting } from "@/state/settings";
+import { showResolvedMenu, type ResolvedEntry } from "@/features/contextMenu/state";
 import { phpApi, type FileStructure, type StructureNode } from "./api";
 import { revealSymbol } from "./editorViews";
 import { SymbolIcon } from "./SymbolIcon";
@@ -88,7 +93,65 @@ function refresh() {
   }, 150);
 }
 
+const TO_SOURCE = "structureView.autoscrollToSource";
+const FROM_SOURCE = "structureView.autoscrollFromSource";
+const nodeKey = (parent: string, node: StructureNode) => `${parent}/${node.name}:${node.kind}`;
+
+/** The keys from the root to the node at the caret of the active editor, if any. */
+function caretPath(s: FileStructure): string[] {
+  const a = activeView();
+  if (!a || a.path !== s.path) return [];
+  const { state } = a.view;
+  const head = state.selection.main.head;
+  const line = state.doc.lineAt(head);
+  const scopes = scopesAt(structureOf(state.doc, languageIdFor(a.path)), line.number - 1, head - line.from);
+  const view = fileStructureView({
+    nodes: s.nodes,
+    query: "",
+    sortAlpha: false,
+    showFields: true,
+    showInherited: showInherited(),
+    showLambdas: true,
+    caretLine: line.number - 1,
+    enclosing: scopes.map((sc) => ({ line: sc.line, openLine: sc.openLine })),
+  });
+  const row = view.selected == null ? undefined : view.rows[view.selected];
+  if (!row) return [];
+  const keys: string[] = [];
+  let nodes = s.nodes;
+  let parent = "";
+  for (const i of row.id.split("/").map(Number)) {
+    const node = nodes[i];
+    if (!node) break;
+    parent = nodeKey(parent, node);
+    keys.push(parent);
+    nodes = node.children ?? [];
+  }
+  return keys;
+}
+
+/** Select the node at the caret, expanding its parents (Autoscroll from Source, Select In… › Structure). */
+export function selectStructureAtCaret(): void {
+  const s = structure();
+  const keys = s ? caretPath(s) : [];
+  const key = keys[keys.length - 1];
+  if (!key) return;
+  setCollapsed((c) => (keys.some((k) => c.has(k)) ? new Set([...c].filter((k) => !keys.includes(k))) : c));
+  setSelected(key);
+  requestAnimationFrame(() =>
+    document.querySelector(`.php-structure .tree-row[data-key="${CSS.escape(key)}"]`)?.scrollIntoView({ block: "nearest" }),
+  );
+}
+
 export function StructureActions() {
+  const options = (e: MouseEvent) => {
+    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const toggle = (key: string, label: string): ResolvedEntry => {
+      const value = getSetting<boolean>(key, true);
+      return { kind: "action", label, checkable: true, checked: value, run: () => void saveSetting(key, !value) };
+    };
+    showResolvedMenu([toggle(TO_SOURCE, "Autoscroll to Source"), toggle(FROM_SOURCE, "Autoscroll from Source")], r.left, r.bottom + 2);
+  };
   return (
     <>
       <button
@@ -109,26 +172,32 @@ export function StructureActions() {
       >
         <Layers2 size={15} />
       </button>
+      <button class="icon-btn" title="Options" aria-label="Options" onClick={options}>
+        <EllipsisVertical size={15} />
+      </button>
     </>
   );
 }
 
 function NodeRow(props: { node: StructureNode; depth: number; parent: string; file: string }) {
-  const key = () => `${props.parent}/${props.node.name}:${props.node.kind}`;
+  const key = () => nodeKey(props.parent, props.node);
   const kids = () => (props.node.children ?? []).filter((c) => showInherited() || !c.inheritedFrom);
   const open = () => !collapsed().has(key());
   const navigate = () => {
     setSelected(key());
     revealStructureNode(props.file, props.node);
   };
+  const toSource = () => getSetting<boolean>(TO_SOURCE, true);
   return (
     <>
       <div
         class="tree-row php-structure-row"
         classList={{ selected: selected() === key(), inherited: !!props.node.inheritedFrom, deprecated: !!props.node.deprecated }}
         style={{ "padding-left": `${8 + props.depth * 16}px` }}
+        data-key={key()}
         title={props.node.inheritedFrom ? `Inherited from ${props.node.inheritedFrom}` : undefined}
-        onClick={navigate}
+        onClick={() => (toSource() ? navigate() : setSelected(key()))}
+        onDblClick={() => !toSource() && navigate()}
       >
         <span
           class="tree-chevron"
@@ -162,6 +231,12 @@ function NodeRow(props: { node: StructureNode; depth: number; parent: string; fi
 
 export function StructureView() {
   createEffect(on([() => activeTab()?.path, () => activeTab()?.content, showInherited], refresh));
+  // Autoscroll from Source: follow the caret.
+  createEffect(
+    on([structure, () => activeTab()?.cursor.line, () => getSetting<boolean>(FROM_SOURCE, true)], ([, , on]) => {
+      if (on) selectStructureAtCaret();
+    }),
+  );
   onCleanup(() => clearTimeout(timer));
   return (
     <div class="project-tree php-structure">

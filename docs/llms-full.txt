@@ -50,6 +50,12 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 
 ## Recently added
 
+- **Vim emulation**: Tools | Vim turns on IdeaVim-style Vim emulation in the editor: Normal,
+  Insert, Visual (character, line, block), Replace and command-line modes, motions, operators
+  and text objects, registers (also the system clipboard), dot repeat, macros, marks, search,
+  `:s`, `:g`, `:normal` and other ex commands, `~/.ideavimrc` with mappings to IDE actions, and
+  Settings | Editor | Vim to choose Vim or the IDE per conflicting shortcut
+  ([Vim emulation](docs/guide/user/vim-emulation.md)).
 - **Markdown preview, image editor and Edit as Table**: Markdown files open with a live,
   GitHub-flavored preview (tables, task lists, footnotes, alerts, Mermaid diagrams, project
   images, front matter, links that open files in Forge) and synchronized scrolling; images open
@@ -676,6 +682,7 @@ not finished, the page says so.
 | [Spelling and grammar](docs/guide/user/spelling-and-grammar.md) | Typo and Grammar inspections in comments, strings, names, Markdown and commit messages, Alt+Enter suggestions, Rename to, project-level and application-level dictionaries, custom Hunspell dictionaries |
 | [Language injections](docs/guide/user/language-injections.md) | SQL, HTML, CSS, JSON and RegExp in PHP and JavaScript strings, `// language=` comments, Inject language or reference, Edit Fragment, Run SQL |
 | [File and code templates](docs/guide/user/file-templates.md) | New ▸ PHP Class and other templates, the New PHP Class dialog with PSR-4 namespaces, `Alt+Insert` New popup, Settings \| Editor \| File and Code Templates |
+| [Vim emulation](docs/guide/user/vim-emulation.md) | Tools \| Vim, Normal/Insert/Visual/Replace modes, motions, operators, text objects, registers, macros, ex commands, `~/.ideavimrc`, shortcut conflicts |
 | [Search Everywhere and Find Action](docs/guide/user/search-everywhere.md) | Double Shift, Go to Class/File/Symbol, Find Action, fuzzy matching |
 | [File Structure, Navigation Bar and Related Symbol](docs/guide/user/navigation-bar-and-file-structure.md) | File Structure popup (`Ctrl+F12`, Show Inherited, speed search), Navigation Bar (`Alt+Home`, Top / In Status Bar / Don't Show, members), Related Symbol (`Ctrl+Alt+Home`: tests, views, templates, routes, migrations) |
 | [File types and syntax highlighting](docs/guide/user/file-types.md) | file type detection, highlighted languages, config formats, template data languages |
@@ -913,6 +920,15 @@ The Project tool window (`Alt+1`) shows the project folder as a tree.
   the parent, `Home`/`End` jump to the first/last row, `Enter` or `F4` opens.
 - Files and folders ignored by Git (`.gitignore`, `.git/info/exclude`, the global excludes
   file) are grayed out.
+- **Header buttons**: **Select Opened File** (the target icon) expands the tree to the
+  active editor's file and selects it, **Collapse All** folds every folder, and **Options**
+  (⋮) holds **Always Select Opened File** (the tree follows the active editor, PHPStorm's
+  "Autoscroll from Source", setting `projectView.autoscrollFromSource`) and **Open Files with
+  Single Click**.
+- **Select In…** (`Alt+F1`) shows the current file in the Project view and other places, see
+  [Select In](docs/guide/user/shortcuts/navigation.md#select-in).
+
+![Project view options](docs/screenshots/project-view-options.png)
 - **Scratches and Consoles** appear at the bottom of the tree, see
   [Scratches, consoles and HTTP client](docs/guide/user/scratches-and-http.md).
 
@@ -1020,12 +1036,21 @@ The **Switcher** (`Ctrl+Tab`, `Ctrl+Shift+Tab`) is the same popup for quick swit
 **Back** and **Forward** (`Ctrl+Alt+Left` / `Ctrl+Alt+Right`, macOS `Cmd+[` / `Cmd+]`) move
 through your navigation history.
 
+**Last Edit Location** (`Ctrl+Shift+Backspace`, macOS `Cmd+Shift+Backspace`) and **Next Edit
+Location** move through a separate history: the places where you changed text, across files.
+Edits a line or two apart count as one place, and places follow later edits (lines inserted
+above move them down), renames and deletions. The first jump skips the place the caret is
+already at, so after typing it goes to the edit before.
+
+![Recently Changed Locations after Last Edit Location](docs/screenshots/last-edit-location.png)
+
 ## Recent Locations
 
 **Recent Locations** (`Ctrl+Shift+E`, macOS `Cmd+Shift+E`, View | Recent Locations) lists the
 places you recently looked at or edited, newest first, each with its file and a few lines of
 code around the caret. Type to filter by file name or code. Press `Ctrl+Shift+E` again, or tick
-**Show changed only**, to see only places you edited. `Enter` or a click jumps there. The
+**Show changed only**, to see only places you edited (the same edit history as Last Edit
+Location). `Enter` or a click jumps there. The
 places follow edits (inserted lines above move them down) and file renames.
 
 ![Recent Locations](docs/screenshots/recent-locations.png)
@@ -3052,7 +3077,17 @@ The templates appear in three places, always for the folder you are in:
 
 ![New submenu of the Project view](docs/screenshots/file-templates-new-menu.png)
 
-The list shows **File** and **Directory**, then the templates the project uses:
+The list shows **File** and **Directory**, then the templates the project uses, grouped in
+submenus so the common choices are two clicks away:
+
+- **PHP ▸** **Class**, **Interface**, **Trait** and **Enum** (each opens the New PHP Class
+  dialog with that kind selected), then **File** and **PHPUnit Test**, then the project's
+  framework templates (Laravel or Symfony).
+- **Web ▸** HTML, CSS, JavaScript and TypeScript files, Vue and React components.
+- **Lua ▸** Lua file and module.
+- Your own templates follow directly in the New menu, then **Edit File Templates…**.
+
+The templates:
 
 | Template | Offered when | Creates |
 | --- | --- | --- |
@@ -3181,6 +3216,241 @@ code.
 
 > **Note:** templates are user settings; PHPStorm's per-project template scheme is not
 > available yet.
+
+
+---
+
+Source: docs/guide/user/vim-emulation.md
+
+# Vim emulation
+
+Forge emulates Vim in the editor the way PHPStorm's IdeaVim plugin does. The emulation is part
+of the bundled **Vim** plugin (`forge.vim`) and is off until you turn it on with
+**Tools | Vim** (`VimPluginToggle`, `Ctrl+Alt+V`, macOS `Cmd+Alt+V`), Find Action ("Vim") or
+Settings | Editor | Vim. The choice is remembered in the setting `vim.enabled`.
+
+![Visual Line mode with search highlights](docs/screenshots/vim-emulation.png)
+
+While it is on, every editor tab starts in Normal mode and shows a block caret. The status bar
+shows the mode (`NORMAL`, `INSERT`, `VISUAL`, `VISUAL LINE`, `VISUAL BLOCK`, `REPLACE`), the
+keys of an unfinished command (`2d`, `"a`), `recording @q` while a macro is recorded, and
+messages such as `E486: Pattern not found`. Click it to open Settings | Editor | Vim.
+
+Tool windows, dialogs, the terminal and other text fields keep their normal keys; only the
+editor goes through Vim. The engine is written in Rust (`crates/forge-vim`) and runs in-process
+as WebAssembly, so every key is answered synchronously, in the desktop app and in browser mode.
+
+> **Note:** `Ctrl+Alt+V` is also PHPStorm's Introduce Variable shortcut. In the editor the
+> refactoring's binding wins (as in PHPStorm, where the conflict is shown in Settings |
+> Keymap); use Tools | Vim, Find Action or the status bar there, or give `VimPluginToggle`
+> another shortcut in Settings | Keymap.
+
+## Modes
+
+| Mode | Enter with | Leave with |
+| --- | --- | --- |
+| Normal | `Escape`, `Ctrl+[`, `Ctrl+C` | |
+| Insert | `i` `a` `I` `A` `o` `O` `gi` `gI`, `c`/`s`/`C`/`S` commands | `Escape`, `Ctrl+[`, `Ctrl+C` |
+| Replace | `R`, `Insert` in Insert mode | `Escape` |
+| Visual (character, line, block) | `v`, `V`, `Ctrl+V`; selecting with the mouse | `Escape`, the same key again |
+| Command line | `:`, `/`, `?` | `Enter` runs it, `Escape` cancels |
+
+In Insert mode the editor types as usual: completion, auto-closing brackets, live templates
+and Emmet keep working, and `Escape` also closes the completion popup. Vim handles `Ctrl+W`
+(delete word), `Ctrl+U` (delete to line start), `Ctrl+H`, `Ctrl+R {register}`, `Ctrl+O`
+(one Normal mode command), `Ctrl+T`/`Ctrl+D` (indent), `Ctrl+E`/`Ctrl+Y` (character below or
+above) and `Ctrl+J`, as far as the shortcut handlers give these keys to Vim.
+
+## Motions
+
+Every motion takes a count (`3w`, `5j`, `2f,`).
+
+| Keys | Motion |
+| --- | --- |
+| `h` `j` `k` `l`, arrow keys, `Space`, `Backspace` | left, down, up, right |
+| `w` `b` `e` `ge`, `W` `B` `E` `gE` | words (letters, digits, `_`) and WORDs (non-blank runs) |
+| `0` `^` `$` `g_` `\|` | line start, first non-blank, line end, last non-blank, column |
+| `gg` `G`, `{count}G`, `{count}%` | first, last or numbered line, percentage of the file |
+| `f` `t` `F` `T` + character, `;` `,` | find a character on the line and repeat |
+| `%` | matching `(` `)` `[` `]` `{` `}` |
+| `{` `}` | paragraphs |
+| `H` `M` `L` | top, middle and bottom of the visible lines (with `scrolloff`) |
+| `+` `-` `Enter` `_` | next, previous, current line (first non-blank) |
+| `/pattern` `?pattern` `n` `N` `*` `#` `g*` `g#` | search |
+| `` `a `` `'a`, ``` `` ``` `''` | marks |
+
+## Operators and text objects
+
+An operator is followed by a motion or a text object (`dw`, `c$`, `yi(`, `>ip`), or doubled
+for whole lines (`dd`, `cc`, `yy`, `>>`, `<<`, `==`, `g~~`, `guu`, `gUU`).
+
+| Operator | Meaning |
+| --- | --- |
+| `d` | delete |
+| `c` | change (delete and enter Insert mode) |
+| `y` | yank (copy into a register) |
+| `>` `<` | shift lines right and left by `shiftwidth` (default: the editor's indent) |
+| `=` | re-indent lines (Forge's Auto-Indent Lines, or Reformat Code) |
+| `g~` `gu` `gU` `g?` | toggle case, lower case, upper case, ROT13 |
+
+| Text object | Selects |
+| --- | --- |
+| `iw` `aw`, `iW` `aW` | word, WORD (`a…` with the following blanks) |
+| `i"` `a"`, `i'` `a'`, `` i` `` `` a` `` | quoted string on the line |
+| `i(` `a(` (`ib`), `i[` `a[`, `i{` `a{` (`iB`), `i<` `a<` | brackets; a count selects outer pairs (`2di(`) |
+| `it` `at` | the content of an HTML/XML tag, or the whole element |
+| `ip` `ap` | paragraph |
+
+Other commands: `x` `X` `s` `S` `C` `D` `Y`, `p` `P` `gp` `gP`, `J` `gJ`, `r{char}`, `~`,
+`Ctrl+A`/`Ctrl+X` (increment and decrement numbers, also hexadecimal), `.` (repeat the last
+change, with a new count `3.`), `u` and `Ctrl+R` (undo and redo through the editor's
+history), `zz` `zt` `zb` `z.` `z-` `z<CR>`, `Ctrl+D` `Ctrl+U` `Ctrl+F` `Ctrl+B` `Ctrl+E`
+`Ctrl+Y` (scrolling), `zo` `zc` `za` `zR` `zM` (folding), `gd` and `Ctrl+]` (Go to
+Declaration), `gt`/`gT` (next and previous tab), `Ctrl+O`/`Ctrl+I` (Back and Forward), `K`
+(Quick Documentation), `ZZ` and `ZQ`.
+
+`Ctrl+W` followed by `w`/`h`/`j`/`k`/`l`/`p`, `v`, `s`, `c`/`q` or `o` moves between split
+editors, splits vertically or horizontally, unsplits, or closes the other splits.
+
+## Visual mode
+
+`v` selects characters, `V` whole lines and `Ctrl+V` a block (one caret per line, `$` extends
+every line to its end). Motions and text objects (`viw`, `vi{`) extend the selection; `o`
+jumps to the other end and `gv` selects the previous selection again.
+
+![A block selection with $](docs/screenshots/vim-visual-block.png)
+
+Commands on the selection: `d` `x` `c` `s` `y`, `D` `X` `C` `S` `R` `Y` (whole lines), `>` `<`
+(with a count), `=`, `~` `u` `U`, `J` `gJ`, `r{char}`, `p` `P` (replace the selection),
+`Ctrl+A`/`Ctrl+X`, `:` (an ex command on the selected lines), and in block mode `I` and `A`,
+which insert the typed text on every line when you press `Escape`.
+
+## Registers, macros and marks
+
+- `"{register}` before a command chooses the register: `"ayy`, `"ap`. `a`–`z` are named
+  registers (`A`–`Z` append), `0` holds the last yank, `1`–`9` the last deleted lines, `-`
+  the last small deletion, `_` discards, `.` is the last inserted text, `:` the last command
+  line and `/` the last search.
+- `"+` and `"*` are the system clipboard. Yanks into them are copied to the clipboard and to
+  Paste from History; pasting from them uses the last text copied in Forge or pasted into an
+  editor. With `set clipboard=unnamed` (or `unnamedplus`) every yank and delete goes to the
+  clipboard.
+- `q{register}` records a macro, `q` stops, `@{register}` plays it (`3@a`), `@@` repeats the
+  last macro and `@:` the last command line.
+- `m{a-z}` sets a mark; `'a` jumps to its line, `` `a `` to its position. `''` returns to
+  the position before the last jump. Marks move with the text when lines are added or removed.
+
+## Search and the command line
+
+`/` and `?` search forward and backward with Vim's regular expressions (`\<word\>`, `\(…\)`,
+`\|`, `\{n,m}`, `\v`, `\V`, `\c`), `n` and `N` repeat, `*` and `#` search the word under the
+caret. `ignorecase` and `smartcase` decide case sensitivity; with `hlsearch` all matches stay
+highlighted until `:noh`, with `incsearch` the caret moves to the match while you type. The
+command line opens at the bottom of the editor.
+
+![The command line](docs/screenshots/vim-command-line.png)
+
+| Command | Does |
+| --- | --- |
+| `:w`, `:wa`, `:update` | save (Save All) |
+| `:q`, `:q!`, `:close`; `:qa` | close the tab; close all tabs |
+| `:wq`, `:x`, `ZZ` | save and close |
+| `:e {file}` | open a file (relative to the project) |
+| `:{line}`, `:$` | go to a line |
+| `:s/pattern/replacement/flags`, `:%s/…/…/g`, `:'<,'>s/…`, `:&&`, `&` | substitute (flags `g`, `i`, `I`, `n`, `e`; `\1`, `&`, `\r`, `\u`, `\U` in the replacement) |
+| `:g/pattern/command`, `:v/pattern/command` | run a command on matching (or other) lines, e.g. `:g/^$/d` |
+| `:normal {keys}`, `:%normal A;` | run Normal mode keys on each line |
+| `:d [x]`, `:y [x]`, `:j`, `:>`, `:<`, `:m {line}`, `:t {line}`, `:sort [i] [n] [u]` | line commands with ranges (`.`, `$`, `%`, `'a`, `+n`, `/pattern/`) |
+| `:noh` | hide search highlights |
+| `:set {option}` | change an option (see below) |
+| `:action {ActionId}` | run any Forge action by its PHPStorm id, e.g. `:action GotoClass` |
+| `:registers`, `:marks`, `:map` | list registers, marks and mappings |
+| `:bn` `:bp`, `:sp` `:vs`, `:only` | next and previous tab, split, unsplit |
+| `:source ~/.ideavimrc` | read the configuration file again |
+
+### Options
+
+`:set` (and `~/.ideavimrc`) understands `number` (`nu`), `relativenumber` (`rnu`),
+`ignorecase` (`ic`), `smartcase` (`scs`), `hlsearch` (`hls`), `incsearch` (`is`),
+`wrapscan` (`ws`), `scrolloff` (`so`), `shiftwidth` (`sw`), `tabstop` (`ts`), `expandtab`
+(`et`), `clipboard` (`cb`), `timeout`, `timeoutlen` (`tm`), `showmode`, `showcmd`, `ideajoin`
+(`J` uses the IDE's Join Lines) and `visualbell`. `no…`, `inv…`, `…!`, `…?`, `…=`, `…+=` and
+`…-=` work as in Vim. Common IdeaVim extension options (`set surround`, `set commentary`, …)
+are accepted and ignored.
+
+## ~/.ideavimrc
+
+When the emulation is turned on, Forge reads `~/.ideavimrc` (or `~/_ideavimrc`, or
+`~/.config/ideavim/ideavimrc`; another file can be set in Settings | Editor | Vim |
+Configuration file). `source ~/.vimrc` lines are replaced by that file's text. Use **Reload**
+on the settings page, the action **Reload .ideavimrc** (`IdeaVim.ReloadVimRc`) or `:source`
+after editing it.
+
+```vim
+" ~/.ideavimrc
+let mapleader = " "
+set number relativenumber
+set ignorecase smartcase hlsearch incsearch scrolloff=5
+set clipboard+=unnamedplus
+
+inoremap jk <Esc>
+nnoremap Y y$
+vnoremap < <gv
+vnoremap > >gv
+
+" IDE actions
+nmap <leader>r <Action>(RenameElement)
+nmap <leader>f :action ReformatCode<CR>
+nmap <leader>e :action SearchEverywhere<CR>
+nmap gi <Action>(GotoImplementation)
+
+sethandler <C-V> n-v:vim i:ide
+if has('ide')
+  nnoremap <leader>b :action ToggleLineBreakpoint<CR>
+endif
+```
+
+Supported: `set`, `let mapleader`, the mapping commands `map`, `nmap`, `vmap`/`xmap`, `omap`,
+`imap`, `cmap`, `noremap`, `nnoremap`, `vnoremap`/`xnoremap`, `onoremap`, `inoremap`,
+`cnoremap` with their `unmap` and `mapclear` forms (`<silent>` and the other `<…>` flags are
+accepted), `sethandler`, `if has('ide')` / `else` / `endif` blocks and `"` comments. Mappings
+use Vim's key notation (`<leader>`, `<CR>`, `<Esc>`, `<C-w>`, `<Space>`, `<lt>`, `<Bar>`,
+`<Nop>`). A right-hand side can run IDE actions with `:action ActionId<CR>` or IdeaVim's
+`<Action>(ActionId)`; the ids are PHPStorm's (see the [keymap reference](docs/guide/reference/keymap.md)
+or Find Action). Mappings wait `timeoutlen` milliseconds (default 1000) for the next key when
+a longer mapping could still match (`jk` after `j`).
+
+Lines Forge does not support are skipped and reported in a balloon with their line number
+(for example `wincmd` or an unknown option); `syntax`, `filetype`, `colorscheme`, `autocmd`
+and `Plug` lines are skipped silently.
+
+## Shortcut conflicts
+
+Many `Ctrl` shortcuts mean something in Vim and in the IDE: `Ctrl+R` is Redo in Vim and
+Replace in PHPStorm, `Ctrl+W` window commands or Extend Selection, `Ctrl+V` Visual Block or
+Paste. Settings | Editor | Vim | **Shortcut Conflicts** lists each of them with what Vim does,
+and lets you choose **Vim** or **IDE** for Normal, Insert and Visual mode separately (the
+setting `vim.shortcutHandlers`). By default Vim handles a shortcut in every mode where it has
+a meaning, and the IDE keeps it elsewhere (for example `Ctrl+V` in Insert mode pastes).
+**All Vim**, **All IDE** and **Defaults** change the whole table. `sethandler` lines in
+`~/.ideavimrc` take precedence; such rows are marked `.ideavimrc` and cannot be changed in the
+table.
+
+![Settings | Editor | Vim](docs/screenshots/vim-settings.png)
+
+Shortcuts that are not in the table (`Ctrl+S`, `Ctrl+Shift+…`, `Alt+…`, function keys) always
+reach the IDE, also in Normal mode.
+
+## Limitations
+
+- Undo granularity follows the editor's history: a Normal mode command is one undo step,
+  typing in Insert mode is grouped by the editor.
+- Pasting from `"+` uses the clipboard text Forge knows about (copied in Forge or pasted into
+  an editor); text copied in another application is pasted with `Ctrl+V` (IDE handler) or
+  after pasting it once.
+- Not supported yet: `:s` with the `c` flag, IdeaVim extensions (surround, commentary,
+  easymotion, …), `:wincmd`, functions and `autocmd` in `~/.ideavimrc`, Select mode, the
+  jump and change lists (`Ctrl+O`/`Ctrl+I` use the IDE's Back and Forward).
 
 
 ---
@@ -4964,6 +5234,13 @@ Jumping to declarations, implementations, super methods, lines, problems, recent
 | [Go to Super Method](#go-to-super-method) | `Ctrl+U` | `Cmd+U` |
 | [Back](#back) | `Ctrl+Alt+Left` | `Cmd+[`, `Cmd+Alt+Left` |
 | [Forward](#forward) | `Ctrl+Alt+Right` | `Cmd+]`, `Cmd+Alt+Right` |
+| [Last Edit Location](#last-edit-location) | `Ctrl+Shift+Backspace` | `Cmd+Shift+Backspace` |
+| [Next Edit Location](#next-edit-location) | — | — |
+| [Select In](#select-in) | `Alt+F1` | `Alt+F1` |
+| [Next Method](#next-method) | `Alt+Down` | `Ctrl+Down` |
+| [Previous Method](#previous-method) | `Alt+Up` | `Ctrl+Up` |
+| [Next Change](#next-change) | `Ctrl+Alt+Shift+Down` | `Ctrl+Alt+Shift+Down` |
+| [Previous Change](#previous-change) | `Ctrl+Alt+Shift+Up` | `Ctrl+Alt+Shift+Up` |
 | [Go to Line/Column](#go-to-linecolumn) | `Ctrl+G` | `Cmd+L` |
 | [Move Caret to Matching Brace](#move-caret-to-matching-brace) | `Ctrl+Shift+M` | `Ctrl+M` |
 | [Next Highlighted Error](#next-highlighted-error) | `F2` | `F2` |
@@ -5059,6 +5336,93 @@ Goes forward in the navigation history.
 **Menu:** Navigate | Forward
 
 More: [Editor](docs/guide/user/editor.md#go-to-declaration)
+
+## Last Edit Location
+
+**Shortcut:** `Ctrl+Shift+Backspace` · macOS `Cmd+Shift+Backspace` · action id `JumpToLastChange`
+
+Goes back to the previous place where you changed text, across files. This edit history is separate from Back/Forward: edits a line or two apart count as one place, places follow later edits, renames and deletions, and the place the caret is already at is skipped. Recent Locations' **Show changed only** lists the same places.
+
+**Menu:** Navigate | Last Edit Location
+
+More: [Workbench](docs/guide/user/workbench.md#recent-files-and-switcher)
+
+## Next Edit Location
+
+**Shortcut:** none by default · action id `JumpToNextChange`
+
+Goes forward again through the edit history after Last Edit Location. A new edit starts over at the newest place.
+
+**Menu:** Navigate | Next Edit Location
+
+More: [Workbench](docs/guide/user/workbench.md#recent-files-and-switcher)
+
+## Select In
+
+**Shortcut:** `Alt+F1` · macOS `Alt+F1` · action id `SelectIn`
+
+Shows the current file somewhere else. Pick a target with its number, the arrow keys and `Enter`, or a click:
+
+| Target | What it does |
+| --- | --- |
+| Project View | Opens the Project tool window and selects the file. |
+| Commit | Selects the file in the Commit tool window (only when it has local changes). |
+| Structure | Opens the Structure tool window with the member at the caret selected. |
+| File Structure | Opens the File Structure popup (`Ctrl+F12`). |
+| Navigation Bar | Focuses the navigation bar (`Alt+Home`). |
+| Git Log | Opens the Git log filtered to the file's history (Git projects). |
+| Explorer / Finder / File Manager | Shows the file selected in the system file manager (local projects). |
+| Terminal | Opens a terminal tab in the file's folder. |
+
+From the Project view (with the focus in the tree) the targets apply to the selected file and Project View is left out.
+
+**Menu:** Navigate | Select In...
+
+![Select In](docs/screenshots/select-in.png)
+
+More: [Project view](docs/guide/user/workbench.md#project-view)
+
+## Next Method
+
+**Shortcut:** `Alt+Down` · macOS `Ctrl+Down` · action id `MethodDown`
+
+Moves the caret to the name of the next class, interface, trait, enum, function or method, or to the closing brace of a class. Works in every language with Sticky Lines: PHP, JavaScript/TypeScript (also in Vue and HTML scripts), CSS/SCSS/Less rules, Lua and other brace languages.
+
+**Menu:** Navigate | Next Method
+
+More: [Code structure](docs/guide/user/code-structure.md)
+
+## Previous Method
+
+**Shortcut:** `Alt+Up` · macOS `Ctrl+Up` · action id `MethodUp`
+
+Moves the caret to the previous class, function, method or CSS rule.
+
+**Menu:** Navigate | Previous Method
+
+More: [Code structure](docs/guide/user/code-structure.md)
+
+## Next Change
+
+**Shortcut:** `Ctrl+Alt+Shift+Down` · macOS `Ctrl+Alt+Shift+Down` · action id `VcsShowNextChangeMarker`
+
+Moves the caret to the next block that differs from Git `HEAD` (the gutter change markers), wrapping around at the end of the file, and shows its popup with the old text, **Rollback** and **Show Diff**, like a click on the marker.
+
+**Menu:** Navigate | Next Change
+
+![Next Change](docs/screenshots/next-change.png)
+
+More: [Git change markers](docs/guide/user/git.md#change-markers)
+
+## Previous Change
+
+**Shortcut:** `Ctrl+Alt+Shift+Up` · macOS `Ctrl+Alt+Shift+Up` · action id `VcsShowPrevChangeMarker`
+
+Moves the caret to the previous changed block and shows its popup.
+
+**Menu:** Navigate | Previous Change
+
+More: [Git change markers](docs/guide/user/git.md#change-markers)
 
 ## Go to Line/Column
 
@@ -6581,6 +6945,8 @@ Scheme…** (`` Ctrl+` ``) toggle between dark and light.
 | Window controls | `appearance.windowControls` | Match the system |
 | Show tool window bars | `appearance.showToolWindowBars` | on |
 | Open files with single click (Project view) | `projectView.openFilesWithSingleClick` | on |
+| Always select opened file (Project view) | `projectView.autoscrollFromSource` | off |
+| Autoscroll to source / from source (Structure view) | `structureView.autoscrollToSource`, `structureView.autoscrollFromSource` | on |
 
 Editor fonts are under Settings | Editor | Font: JetBrains Mono (default), Fira Code, Cascadia
 Code, Source Code Pro, Menlo, Consolas or the system monospace font, size (13.5), line height
@@ -6716,6 +7082,12 @@ entry to jump to it.
 - **Show Inherited** adds members of parent classes, traits and interfaces, grayed and with
   the declaring class.
 - **Sort Alphabetically** sorts within each kind.
+- **Options** (⋮): **Autoscroll to Source** (on: a single click jumps to the member; off: a
+  click selects and a double click jumps) and **Autoscroll from Source** (the member at the
+  caret is selected as you move through the editor). Both are also settings
+  (`structureView.autoscrollToSource`, `structureView.autoscrollFromSource`).
+
+![Structure view options](docs/screenshots/structure-autoscroll.png)
 
 ![Structure tool window](docs/screenshots/php-structure.png)
 
@@ -7734,6 +8106,11 @@ side.
 
 Lines that differ from `HEAD` are marked in the gutter: added, modified and deleted. Click a
 marker to see the old text and choose **Rollback** (`Ctrl+Alt+Z`) or **Show Diff** (`Ctrl+D`).
+**Next Change** / **Previous Change** (`Ctrl+Alt+Shift+Down` / `Ctrl+Alt+Shift+Up`, Navigate
+menu) move the caret to the next or previous changed block, wrapping around at the end of the
+file, and open the same popup.
+
+![Next Change popup](docs/screenshots/next-change.png)
 
 ### Blame
 
@@ -9345,9 +9722,9 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Line/Column… | `GotoLine` | `Ctrl+G` | `Cmd+L` | yes |
 | Back | `Back` | `Ctrl+Alt+Left` | `Cmd+[`, `Cmd+Alt+Left` | yes |
 | Forward | `Forward` | `Ctrl+Alt+Right` | `Cmd+]`, `Cmd+Alt+Right` | yes |
-| Last Edit Location | `JumpToLastChange` | `Ctrl+Shift+Backspace` | `Cmd+Shift+Backspace` | — |
-| Next Edit Location | `JumpToNextChange` |  |  | — |
-| Select In… | `SelectIn` | `Alt+F1` | `Alt+F1` | — |
+| Last Edit Location | `JumpToLastChange` | `Ctrl+Shift+Backspace` | `Cmd+Shift+Backspace` | yes |
+| Next Edit Location | `JumpToNextChange` |  |  | yes |
+| Select In… | `SelectIn` | `Alt+F1` | `Alt+F1` | yes |
 | Declaration or Usages | `GotoDeclaration` | `Ctrl+B` | `Cmd+B` | yes |
 | Implementation(s) | `GotoImplementation` | `Ctrl+Alt+B` | `Cmd+Alt+B` | yes |
 | Type Declaration | `GotoTypeDeclaration` | `Ctrl+Shift+B` | `Cmd+Shift+B` | yes |
@@ -9360,8 +9737,8 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Call Hierarchy | `CallHierarchy` | `Ctrl+Alt+H` | `Ctrl+Alt+H` | — |
 | Next Highlighted Error | `GotoNextError` | `F2` | `F2` | yes |
 | Previous Highlighted Error | `GotoPreviousError` | `Shift+F2` | `Shift+F2` | yes |
-| Next Method | `MethodDown` | `Alt+Down` | `Ctrl+Down` | — |
-| Previous Method | `MethodUp` | `Alt+Up` | `Ctrl+Up` | — |
+| Next Method | `MethodDown` | `Alt+Down` | `Ctrl+Down` | yes |
+| Previous Method | `MethodUp` | `Alt+Up` | `Ctrl+Up` | yes |
 | Next Occurrence | `NextOccurence` | `Ctrl+Alt+Down` | `Cmd+Alt+Down` | yes |
 | Previous Occurrence | `PreviousOccurence` | `Ctrl+Alt+Up` | `Cmd+Alt+Up` | yes |
 | Jump to Source | `EditSource` | `F4` | `F4`, `Cmd+Down` | — |
@@ -9372,8 +9749,8 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Move Caret to Code Block End with Selection | `EditorCodeBlockEndWithSelection` | `Ctrl+Shift+]` | `Cmd+Alt+Shift+]` | — |
 | Next Emmet Edit Point | `EmmetNextEditPoint` | `Alt+Shift+]` | `Ctrl+Alt+]` | yes |
 | Previous Emmet Edit Point | `EmmetPreviousEditPoint` | `Alt+Shift+[` | `Ctrl+Alt+[` | yes |
-| Next Change | `VcsShowNextChangeMarker` | `Ctrl+Alt+Shift+Down` | `Ctrl+Alt+Shift+Down` | — |
-| Previous Change | `VcsShowPrevChangeMarker` | `Ctrl+Alt+Shift+Up` | `Ctrl+Alt+Shift+Up` | — |
+| Next Change | `VcsShowNextChangeMarker` | `Ctrl+Alt+Shift+Down` | `Ctrl+Alt+Shift+Down` | yes |
+| Previous Change | `VcsShowPrevChangeMarker` | `Ctrl+Alt+Shift+Up` | `Ctrl+Alt+Shift+Up` | yes |
 
 ### Help
 
@@ -9811,6 +10188,8 @@ Actions that Forge's plugins add (group **Plugins** in Settings | Keymap, some u
 
 | Action | Action id | Windows / Linux | macOS | Context |
 | --- | --- | --- | --- | --- |
+| Vim (Tools \| Vim) | `VimPluginToggle` | `Ctrl+Alt+V` | `Cmd+Alt+V` | any (in the editor `Introduce Variable` wins) |
+| Reload .ideavimrc | `IdeaVim.ReloadVimRc` |  |  | any |
 | Run Artisan Command… | `Laravel.RunArtisan` | `Ctrl+Shift+X` | `Cmd+Shift+X` | any |
 | Routes (Laravel) | `Laravel.ShowRoutes` |  |  | any |
 | Run Console Command… (Symfony) | `Symfony.RunConsoleCommand` |  |  | any |
@@ -10091,8 +10470,8 @@ Back and forward, Search Everywhere, Go to Class/File/Symbol/Line, declarations 
 | --- | --- | --- | --- | --- |
 | Back | `Ctrl+Alt+Left` | `Cmd+[`, `Cmd+Alt+Left` | yes | Goes back to the previous caret location in your navigation history. [More](docs/guide/user/editor.md#go-to-declaration) |
 | Forward | `Ctrl+Alt+Right` | `Cmd+]`, `Cmd+Alt+Right` | yes | Goes forward in the navigation history. [More](docs/guide/user/editor.md#go-to-declaration) |
-| Last Edit Location | `Ctrl+Shift+Backspace` | `Cmd+Shift+Backspace` | not yet | Not available yet; the entry is disabled. |
-| Next Edit Location | — | — | not yet | Not available yet; the entry is disabled. |
+| Last Edit Location | `Ctrl+Shift+Backspace` | `Cmd+Shift+Backspace` | yes | Goes back to the previous place where you changed text, across files. [More](docs/guide/user/shortcuts/navigation.md#last-edit-location) |
+| Next Edit Location | — | — | yes | Goes forward again through the places where you changed text. [More](docs/guide/user/shortcuts/navigation.md#next-edit-location) |
 | **Bookmarks** | | | | submenu |
 | Bookmarks › Toggle Bookmark | `F11` | `F3` | yes | Adds or removes a bookmark on the caret line. [More](docs/guide/user/workbench.md#bookmarks) |
 | Bookmarks › Toggle Bookmark with Mnemonic | `Ctrl+F11` | `Alt+F3` | yes | Adds a bookmark with a digit or letter you pick in a popup, or changes or removes it. [More](docs/guide/user/workbench.md#bookmarks) ([screenshot](docs/screenshots/bookmark-mnemonic.png)) |
@@ -10106,7 +10485,7 @@ Back and forward, Search Everywhere, Go to Class/File/Symbol/Line, declarations 
 | Symbol… | `Ctrl+Alt+Shift+N` | `Cmd+Alt+O` | yes | Finds a function, method, property or constant by name. [More](docs/guide/user/search-everywhere.md) ([screenshot](docs/screenshots/docs-goto-symbol.png)) |
 | Action… | `Ctrl+Shift+A` | `Cmd+Shift+A` | yes | Finds any action by name and runs it (Find Action). [More](docs/guide/user/search-everywhere.md#find-action) ([screenshot](docs/screenshots/docs-find-action.png)) |
 | Line/Column… | `Ctrl+G` | `Cmd+L` | yes | Moves the caret to a line (and column) of the current file. [More](docs/guide/user/editor.md#editing-actions) ([screenshot](docs/screenshots/docs-goto-line.png)) |
-| Select In… | `Alt+F1` | `Alt+F1` | not yet | Not available yet; the entry is disabled. |
+| Select In… | `Alt+F1` | `Alt+F1` | yes | Shows the current file in the Project view, Commit, Structure, File Structure, Navigation Bar, Git Log, the system file manager or a terminal. [More](docs/guide/user/shortcuts/navigation.md#select-in) ([screenshot](docs/screenshots/select-in.png)) |
 | Navigation Bar | `Alt+Home` | `Cmd+Up` | yes | Focuses the navigation bar with the file's folder open (shows the bar as a popup when it is hidden). [More](docs/guide/user/navigation-bar-and-file-structure.md#navigation-bar) ([screenshot](docs/screenshots/navigation-bar-alt-home.png)) |
 | Declaration or Usages | `Ctrl+B` | `Cmd+B` | yes | Jumps to the declaration of the symbol at the caret; on a declaration it shows the usages; several targets open the Choose Declaration popup. [More](docs/guide/user/editor.md#go-to-declaration) ([screenshot](docs/screenshots/php-nav-stub.png)) |
 | Implementation(s) | `Ctrl+Alt+B` | `Cmd+Alt+B` | yes | Lists the implementations of the class, interface or method at the caret. [More](docs/guide/user/editor.md#implementation-type-declaration-super-method) ([screenshot](docs/screenshots/php-nav-gutter.png)) |
@@ -10122,10 +10501,10 @@ Back and forward, Search Everywhere, Go to Class/File/Symbol/Line, declarations 
 | Previous Highlighted Error | `Shift+F2` | `Shift+F2` | yes | Moves the caret to the previous problem in the file. [More](docs/guide/user/editor.md#problems) |
 | Next Occurrence | `Ctrl+Alt+Down` | `Cmd+Alt+Down` | yes | Opens the next result of the Find tool window's active tab. [More](docs/guide/user/workbench.md#find-tool-window) |
 | Previous Occurrence | `Ctrl+Alt+Up` | `Cmd+Alt+Up` | yes | Opens the previous result of the Find tool window's active tab. [More](docs/guide/user/workbench.md#find-tool-window) |
-| Next Method | `Alt+Down` | `Ctrl+Down` | not yet | Not available yet; the entry is disabled. |
-| Previous Method | `Alt+Up` | `Ctrl+Up` | not yet | Not available yet; the entry is disabled. |
-| Next Change | `Ctrl+Alt+Shift+Down` | `Ctrl+Alt+Shift+Down` | not yet | Not available yet; the entry is disabled. |
-| Previous Change | `Ctrl+Alt+Shift+Up` | `Ctrl+Alt+Shift+Up` | not yet | Not available yet; the entry is disabled. |
+| Next Method | `Alt+Down` | `Ctrl+Down` | yes | Moves the caret to the next class, function, method or CSS rule. [More](docs/guide/user/shortcuts/navigation.md#next-method) |
+| Previous Method | `Alt+Up` | `Ctrl+Up` | yes | Moves the caret to the previous class, function, method or CSS rule. [More](docs/guide/user/shortcuts/navigation.md#previous-method) |
+| Next Change | `Ctrl+Alt+Shift+Down` | `Ctrl+Alt+Shift+Down` | yes | Moves to the next changed block (Git gutter marker) and shows its popup with Rollback and Show Diff. [More](docs/guide/user/shortcuts/navigation.md#next-change) ([screenshot](docs/screenshots/next-change.png)) |
+| Previous Change | `Ctrl+Alt+Shift+Up` | `Ctrl+Alt+Shift+Up` | yes | Moves to the previous changed block and shows its popup. [More](docs/guide/user/shortcuts/navigation.md#previous-change) |
 
 
 ---
@@ -10267,7 +10646,7 @@ Source: docs/guide/reference/main-menu/tools.md
 
 # Tools menu
 
-Terminal and the tools of plugins (Docker, Laravel, Symfony). Open it with ☰ (`Alt+\`) or from the menu bar, see [Main menu](docs/guide/user/workbench.md#main-menu).
+Terminal, Vim emulation and the tools of plugins (Docker, Laravel, Symfony). Open it with ☰ (`Alt+\`) or from the menu bar, see [Main menu](docs/guide/user/workbench.md#main-menu).
 
 ![Tools menu](docs/screenshots/docs-menu-tools.png)
 
@@ -10280,6 +10659,7 @@ Terminal and the tools of plugins (Docker, Laravel, Symfony). Open it with ☰ (
 | Save File as Template… | — | — | not yet | Not available yet; the entry is disabled. |
 | Open in Terminal | `Ctrl+Shift+T` | `Cmd+T` | yes | Opens a new terminal tab (Tools | Open in Terminal). [More](docs/guide/user/terminal.md#tabs) ([screenshot](docs/screenshots/docs-terminal.png)) |
 | IDE Scripting Console | — | — | not yet | Not available yet; the entry is disabled. |
+| Vim | `Ctrl+Alt+V` | `Cmd+Alt+V` | yes | Turns Vim emulation on or off (check mark; plugin `forge.vim`). [More](docs/guide/user/vim-emulation.md) ([screenshot](docs/screenshots/vim-emulation.png)) |
 | Render All Doc Comments | — | — | yes | Shows every documentation comment of the file as formatted text, or the text again. [More](docs/guide/user/code-structure.md#rendered-documentation-comments) ([screenshot](docs/screenshots/rendered-doc-comments.png)) |
 | **Docker** | | | | submenu |
 | Docker › Pull Image… | — | — | yes | Pulls a Docker image. [More](docs/guide/user/services.md#pulling-images-and-registries) |
@@ -10294,6 +10674,7 @@ Tools collects the actions of active plugins; the screenshot shows a Laravel pro
 
 | Submenu | Entries | Appears in |
 | --- | --- | --- |
+| — | Vim (check mark) | always (plugin `forge.vim`) |
 | Docker | Pull Image…, Refresh Services | always (plugin `forge.services`) |
 | Laravel | Run Artisan Command… (`Ctrl+Shift+X`), Show Routes | Laravel projects (`forge.laravel`) |
 | Symfony | Run Console Command…, Show Routes, Refresh Symfony Index | Symfony projects (`forge.symfony`) |
@@ -10482,6 +10863,9 @@ Page id `appearance`.
 | `appearance.navigationBar.location` | enum: `top`, `statusBar`, `hidden` | `top` | user | Navigation Bar | Navigation bar — Where the navigation bar (project, folders, file and members at the caret) is shown: Top: above the editor, with the path in the status bar too. In status bar: only in the status bar. Don't show: Jump to Navigation Bar (Alt+Home) shows it as a popup. View \| Appearance \| Navigation Bar. |
 | `appearance.navigationBar.showMembers` | bool | `true` | user | Navigation Bar | Show members in the navigation bar — Add the class and function at the caret after the file name. View \| Appearance \| Members in Navigation Bar. |
 | `projectView.openFilesWithSingleClick` | bool | `true` | user | Project View | Open files with single click — In the Project tool window a single click opens files and expands folders. Turn it off to select with a single click and open with a double click, like PHPStorm. |
+| `projectView.autoscrollFromSource` | bool | `false` | user | Project View | Always select opened file — The Project tool window selects the file of the active editor whenever you switch editors (PHPStorm's Autoscroll from Source). Also in the tool window's Options menu. |
+| `structureView.autoscrollToSource` | bool | `true` | user | Structure View | Autoscroll to source — A single click on a Structure tool window node moves the editor to it. Turn it off to select with a single click and navigate with a double click. |
+| `structureView.autoscrollFromSource` | bool | `true` | user | Structure View | Autoscroll from source — The Structure tool window selects the member at the caret as you move through the editor. |
 
 ### Appearance & Behavior | System Settings
 
@@ -10704,6 +11088,16 @@ Page id `editor.csv`.
 | --- | --- | --- | --- | --- | --- |
 | `csv.defaultView` | enum: `text`, `table` | `text` | user |  | Open CSV/TSV files as |
 | `csv.firstRowIsHeader` | bool | `true` | user |  | First row is header — Default of the table view's header toggle. |
+
+### Editor | Vim
+
+Page id `editor.vim` (plugin `forge.vim`, see [Vim emulation](docs/guide/user/vim-emulation.md)).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `vim.enabled` | bool | `false` | user | Emulation | Enable Vim emulation — Same as Tools \| Vim (Ctrl+Alt+V). |
+| `vim.rcFile` | path | `""` | user | Emulation | Configuration file — Leave empty to read ~/.ideavimrc (or ~/_ideavimrc, ~/.config/ideavim/ideavimrc). Supports set, map/noremap, let mapleader, sethandler and :action mappings. |
+| `vim.shortcutHandlers` | objects | `[]` | user | Shortcut Conflicts | Shortcuts — Who handles a shortcut in the editor while Vim emulation is on: Vim or the IDE. sethandler lines in ~/.ideavimrc take precedence. Entries `{ shortcut = "Ctrl+R", normal = "vim" \| "ide", insert = …, visual = … }` for the rows changed from the defaults. |
 
 ### Editor | Natural Languages | Spelling
 
@@ -11779,6 +12173,7 @@ script and config language plugins.
 | Run/Debug | `forge.run` | core |  | always | tool windows: Run; 3 commands; 2 settings; run types: Shell Script |
 | Docker and Kubernetes | `forge.services` | core |  | always | tool windows: Services; 2 commands; 15 settings; 1 main menu entries |
 | Terminal | `forge.terminal` | core |  | always | tool windows: Terminal; 1 commands; 7 settings; 1 keybindings |
+| Vim | `forge.vim` | core | `forge.core` | always | 2 commands; 3 settings; 1 main menu entries |
 | HTML, CSS & JavaScript | `forge.web` | webforge |  | `webforge` | tool windows: npm; 2 commands; 4 settings; 3 LSP servers; run types: npm |
 | React | `forge.react` | webforge | `forge.web` | `react`, `next` |  |
 | Vue.js | `forge.vue` | webforge | `forge.web` | `vue`, `nuxt` | 1 LSP servers |
@@ -13532,6 +13927,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-sql](docs/guide/developer/crates/forge-sql.md) | Forge SQL text: dialects, statement splitting, literals, row changes and export (pure, also built to WebAssembly) |
 | [forge-update](docs/guide/developer/crates/forge-update.md) | Forge update checks: when to check, which release is an update, the update feed, simulated updates and download speed |
 | [forge-vcs](docs/guide/developer/crates/forge-vcs.md) | Forge IDE version control: drives the git CLI and parses its output |
+| [forge-vim](docs/guide/developer/crates/forge-vim.md) | Vim emulation (IdeaVim-style): modes, motions, operators, text objects, registers, ex commands and ~/.ideavimrc parsing (pure, built to WebAssembly) |
 | [forge-wasm](docs/guide/developer/crates/forge-wasm.md) | WebAssembly build of Forge's pure Rust logic for the browser-mode UI |
 | [forge-window](docs/guide/developer/crates/forge-window.md) | Forge window chrome: desktop detection, title bar button layouts and dialog window geometry (pure, also built to WebAssembly) |
 
@@ -13858,7 +14254,8 @@ and the browser-mode UI. Pure Rust, so it also runs as WebAssembly.
   Definition snippets, Context Info headers and Type Info from hovers and signatures.
 - `structure`: the scopes of a document (classes, functions, control blocks, CSS rules,
   HTML elements, Lua blocks) for Sticky Lines, breadcrumbs and the Structure view of web
-  files, the custom folding regions, and the Structure view grouped by regions.
+  files, the custom folding regions, the Structure view grouped by regions, and the stops of
+  Next/Previous Method (`Alt+Down` / `Alt+Up`).
 - `file_structure`: the File Structure popup's rows (Ctrl+F12): toggles, fuzzy speed search
   that keeps parents, the node at the caret.
 - `navbar`: the Navigation Bar's segments (project, folders, file, members at the caret).
@@ -13875,7 +14272,7 @@ and the browser-mode UI. Pure Rust, so it also runs as WebAssembly.
 | `navbar.rs` | `nav_bar_segments(NavBarRequest { project, path, scopes, showMembers })` → `NavSegment { kind: project / directory / file / member, label, path, scopeKind?, line?, column? }[]`; members are the class-like and function scopes around the caret. |
 | `related.rs` | `related(RelatedRequest { path, text }, files, read)` → `RelatedItem { kind, group, name, path, line, column }[]` grouped in a fixed order. Text scans, no parser: PHP class ↔ `*Test.php`, Laravel `view()` / `View::make` / `Route::view` / Inertia, `routes/*.php` lines naming a controller, model ↔ migrations (`_create_<table>_table`, `$table`), factory, policy, seeder; Symfony `render()` / `#[Template]` ↔ `templates/`; JS/TS/Vue/Svelte files ↔ `*.test.*`, `*.spec.*`, `__tests__/`, `tests/`, `*.stories.*`, style sheets. The caller lists the files and reads them lazily. |
 | `edit.rs` | `TextEdit`, `WorkspaceEdit` (`edit` / `create` / `rename` / `delete` changes), `apply_workspace_edit` over a `FileStore` (all or nothing), `revert_applied`, `preview_workspace_edit`, `word_range`, UTF-16 offset helpers. |
-| `structure.rs` | `editor_structure(text, language)` → `EditorStructure { scopes, regions }`: braces (PHP without inline HTML and heredocs, JS/TS with template literals, CSS, C-like), tags (HTML/XML/Vue/templates, `<script>` / `<style>` bodies as code) and Lua's block keywords outside strings and comments; each `Scope` has its kind, crumb name (`User`, `orders()`, `forEach callback`, `div#app.card`), header line and column, end and parent, and whether it sticks or is a crumb. `Region`s come from `// region` / `#region` / `<!-- region -->` / `/* region */` / `-- region` / `<editor-fold desc defaultstate>` comments. `group_by_regions` nests Structure view nodes (JSON with `line`) under their regions; `STRUCTURE_LANGUAGES` lists the languages with scopes. |
+| `structure.rs` | `editor_structure(text, language)` → `EditorStructure { scopes, regions }`: braces (PHP without inline HTML and heredocs, JS/TS with template literals, CSS, C-like), tags (HTML/XML/Vue/templates, `<script>` / `<style>` bodies as code) and Lua's block keywords outside strings and comments; each `Scope` has its kind, crumb name (`User`, `orders()`, `forEach callback`, `div#app.card`), header line and column, end and parent, and whether it sticks or is a crumb. `Region`s come from `// region` / `#region` / `<!-- region -->` / `/* region */` / `-- region` / `<editor-fold desc defaultstate>` comments. `group_by_regions` nests Structure view nodes (JSON with `line`) under their regions; `method_stops` / `method_target` give Next/Previous Method's stops (class-like, function, method and CSS rule names, closing braces of classes); `STRUCTURE_LANGUAGES` lists the languages with scopes. |
 | `rename.rs` | `edit_from_locations` (references → `WorkspaceEdit`, keeping `$` where the old text had it, dynamic usages skipped), `validate_identifier`, `is_class_file` / `suggest_file_rename` / `renamed_path` (PHPStorm renames `User.php` with `class User`), `edit_conflicts` (overlapping edits, renames onto existing files) and `plan_edit` (`EditPlan`: text edits of open editors, the backend's part, files to save first, tabs to reopen or close). |
 | `usages.rs` | `UsageKind` (PHPStorm's usage types and their group labels), `classify_usage` from the line around a reference, `group_usages` into a `UsageTree` by usage type and file (the declaration and duplicates removed). |
 
@@ -13889,7 +14286,7 @@ pub use file_structure::{file_structure_view, FileStructureRequest, FileStructur
 pub use navbar::{nav_bar_segments, NavBarRequest, NavSegment};
 pub use related::{related, RelatedItem, RelatedKind, RelatedRequest};
 pub use edit::{apply_text_edits, apply_workspace_edit, preview_workspace_edit, revert_applied, word_range, … };
-pub use structure::{editor_structure, group_by_regions, EditorStructure, Region, Scope, ScopeKind, STRUCTURE_LANGUAGES};
+pub use structure::{editor_structure, group_by_regions, method_stops, method_target, EditorStructure, MethodStop, Region, Scope, ScopeKind, STRUCTURE_LANGUAGES};
 pub use usages::{classify_usage, group_usages, GroupRequest, UsageKind, UsageLocation, UsageTree, … };
 ```
 
@@ -14371,7 +14768,7 @@ Source: docs/guide/developer/crates/forge-editing.md
 
 # forge-editing
 
-`crates/forge-editing` — Editor actions computed in Rust: postfix completion templates, Complete Current Statement and Cyclic Expand Word (pure, WebAssembly-friendly).
+`crates/forge-editing` — Editor actions computed in Rust: postfix completion templates, Complete Current Statement, Cyclic Expand Word and the edit history (pure, WebAssembly-friendly).
 
 ## Purpose
 
@@ -14394,6 +14791,11 @@ CodeMirror positions.
 - `hippie`: Cyclic Expand Word. The words that start with the prefix at the caret: above the
   caret first (nearest first), then below, then in the other open files; the backward action
   looks below first.
+- `clipboard`: the clipboard history behind Paste from History (`Ctrl+Shift+V`).
+- `navigation`: `EditHistory`, the places where text was changed behind Last/Next Edit
+  Location and Recent Locations' "Show changed only" (consecutive edits up to two lines
+  apart merge, places follow `LineEdit`s, renames and deletions, Back/Forward skip the caret's
+  place), and `change_target`, the hunk Next/Previous Change moves to (wrapping around).
 - `lang`: the language families (`php`, `js`, `lua`) and their Forge file type ids.
 
 ## Main public items
@@ -14404,6 +14806,8 @@ pub fn templates() -> Vec<TemplateInfo> { … }
 pub fn complete_postfix(request: &PostfixRequest) -> Option<PostfixCompletion> { … }
 pub fn complete_statement(request: &StatementRequest) -> Option<StatementEdit> { … }
 pub fn expand_word(request: &ExpandRequest) -> ExpandResult { … }
+pub struct EditHistory { … } // apply(EditOp) -> Option<EditPlace>, places()
+pub fn change_target(ranges: &[LineRange], line: usize, forward: bool) -> Option<usize> { … }
 ```
 
 ## Used by
@@ -14413,11 +14817,14 @@ pub fn expand_word(request: &ExpandRequest) -> ExpandResult { … }
 - UI: `app/ui/src/features/editing` (completion source, expand key, Settings | Editor |
   General | Postfix Completion, the `EditorCompleteStatement`, `HippieCompletion` and
   `HippieBackwardCompletion` actions)
-- Browser mode: built into `forge-wasm` (`editing_*`)
+- UI: `app/ui/src/features/editorNavigation` (Last/Next Edit Location) and `features/git`
+  (Next/Previous Change) call `edit_history` and `editor_change_target` synchronously through
+  WebAssembly in the desktop app too
+- Browser mode: built into `forge-wasm` (`editing_*`, `edit_history`, `editor_change_target`)
 
 ## Dependencies
 
-- Workspace crates: none
+- Workspace crates: `forge-bookmarks` (`LineEdit`, `map_line`)
 - External: `serde`, `serde_json`
 
 ## Tests
@@ -16232,6 +16639,84 @@ cargo test -p forge-vcs
 
 ---
 
+Source: docs/guide/developer/crates/forge-vim.md
+
+# forge-vim
+
+`crates/forge-vim` — Vim emulation (IdeaVim-style): modes, motions, operators, text objects, registers, ex commands and ~/.ideavimrc parsing (pure, built to WebAssembly).
+
+## Purpose
+
+The engine behind [Vim emulation](docs/guide/user/vim-emulation.md). It is pure Rust so it compiles
+to WebAssembly: the editor calls it synchronously for every key press (a keydown handler
+must decide on `preventDefault` before it returns), in the desktop app and in browser mode.
+
+- `Vim` holds the global state (options, registers, mappings, macros, search, the
+  shortcut handlers) and one buffer per attached editor: a copy of the document, mode,
+  caret, marks and pending keys.
+- The UI sends each key with a `Sync`: the document changes since the last call (batches
+  of CodeMirror changes, UTF-16 offsets), the selection, the visible lines and the indent
+  unit. The `Response` carries sequential edits, the new selection, the mode, the pending
+  keys, the command line, a message and effects for the UI: undo/redo through the
+  editor's history, IDE actions (`:action`, `gd`, `:w`), opening files, clipboard writes,
+  scrolling and reloading the rc file. Effects the UI performs asynchronously pause the
+  remaining keys of a mapping or macro (`resume`).
+- `claims` tells the keymap resolver which keys Vim takes from the IDE keymap in the focused
+  editor (plain keys outside Insert mode, `Escape`, and the `Ctrl` shortcuts whose handler is
+  Vim in the current mode).
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `engine.rs` | The state machine: typeahead and mappings (with `timeoutlen`), Normal/Visual/Insert/Replace/command-line modes, operators, dot repeat, macros, marks, search, scrolling and responses. |
+| `command.rs` | Parsing of Normal and Visual mode commands (`"a2d3w`, `ci"`, `gUU`, `<C-w>v`). |
+| `motions.rs` | Word, paragraph, bracket and character motions. |
+| `textobj.rs` | `iw aw iW aW`, quotes, brackets (with counts), tags and paragraphs. |
+| `ex.rs` | Ex commands with ranges: `:w :q :e :s :g :v :normal :d :y :j :> :< :m :t :sort :set :map :action :registers :marks …`. |
+| `rc.rs` | `~/.ideavimrc`: `set`, mappings, `let mapleader`, `sethandler`, `if has('ide')`, `source` inlining, problem reports. |
+| `handlers.rs` | The shortcut conflict table (Vim or IDE per `Ctrl` shortcut and mode) and `sethandler`. |
+| `keys.rs` | Vim key notation (`<C-r>`, `<leader>`, `<Action>(Id)`) and DOM key events. |
+| `pattern.rs` | Vim regular expressions translated to a syntax shared by Rust's `regex` and JavaScript (search highlights), and `:s` replacement strings. |
+| `registers.rs` | Unnamed, numbered, small delete, named (append), black hole, read-only and clipboard registers. |
+| `options.rs` | `:set` options with Vim's abbreviations and `no…`/`inv…`/`…!`/`…?`/`…+=`. |
+| `buffer.rs` | The document copy: lines, character classes, UTF-16 conversion. |
+
+## Main public items
+
+```rust
+pub use engine::{Change, Effect, Handle, Response, SelRange, Sync, Viewport, Vim};
+pub use handlers::{HandlerOverride, HandlerRow};
+pub use keys::DomKey;
+pub use rc::RcReport;
+```
+
+## Used by
+
+- Browser mode and the desktop UI: `forge-wasm` (`vim.rs`: `vim_attach`, `vim_key`,
+  `vim_timeout`, `vim_configure`, `vim_load_rc`, `vim_handlers`, …); `keymap_handle_key` asks
+  `claims` before resolving a key in the editor
+- IPC: `vim_read_rc` (`app/src-tauri/src/commands/vim.rs`, inlines `source` lines with
+  `rc::expand_sources`)
+- UI: `app/ui/src/features/vim/`
+
+## Dependencies
+
+- Workspace crates: none
+- External: `regex`, `serde`, `serde_json`
+
+## Tests
+
+```sh
+cargo test -p forge-vim
+```
+
+Unit tests per module plus behaviour tests in `tests/engine.rs` that type keys into a buffer
+with the caret marked as `|` (`check("foo b|ar", "ciwqux<Esc>", "foo qu|x")`).
+
+
+---
+
 Source: docs/guide/developer/crates/forge-wasm.md
 
 # forge-wasm
@@ -16332,6 +16817,9 @@ Window chrome for Forge's own (undecorated) windows.
   including GNOME's `button-layout` and KDE's `kwinrc` button order.
 - `geometry`: where a dialog window opens (centered on its parent, or where the user left
   it) and the remembered size and position of every dialog.
+- `reveal`: the commands that show a file in the system file manager (Explorer's `/select,`,
+  `open -R`, the freedesktop `FileManager1.ShowItems` D-Bus call with `xdg-open` as fallback)
+  and the file manager's name for Select In….
 
 The crate is pure (no file system, processes or windowing): the Tauri shell reads the
 environment and files and passes them in, and the browser-mode UI runs the same code as
@@ -16344,6 +16832,7 @@ WebAssembly.
 | `chrome.rs` | Title bar style and button layout for `appearance.windowControls`. |
 | `desktop.rs` | Operating system and desktop environment detection. |
 | `geometry.rs` | Where dialog windows open and the geometry Forge remembers for each dialog. |
+| `reveal.rs` | Commands that reveal a file in Explorer, Finder or the Linux file manager. |
 
 ## Main public items
 
@@ -16351,13 +16840,14 @@ WebAssembly.
 pub use chrome::{…};
 pub use desktop::{detect_desktop, Desktop, Os};
 pub use geometry::{place_dialog, DialogStates, Rect, Size};
+pub use reveal::{file_manager_name, reveal_commands, RevealCommand};
 pub fn dialog_label(id: &str) -> Option<String> { … }
 pub fn dialog_id(label: &str) -> Option<&str> { … }
 ```
 
 ## Used by
 
-- IPC: `window_chrome`, `dialog_window_open`, `dialog_window_close`, `dialog_window_message` (`app/src-tauri/src/commands/window.rs`)
+- IPC: `window_chrome`, `reveal_in_file_manager`, `dialog_window_open`, `dialog_window_close`, `dialog_window_message` (`app/src-tauri/src/commands/window.rs`)
 - UI: `app/ui/src/shell/window`
 - Browser mode: built into `forge-wasm`
 

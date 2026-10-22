@@ -76,6 +76,11 @@ side.
 
 Lines that differ from `HEAD` are marked in the gutter: added, modified and deleted. Click a
 marker to see the old text and choose **Rollback** (`Ctrl+Alt+Z`) or **Show Diff** (`Ctrl+D`).
+**Next Change** / **Previous Change** (`Ctrl+Alt+Shift+Down` / `Ctrl+Alt+Shift+Up`, Navigate
+menu) move the caret to the next or previous changed block, wrapping around at the end of the
+file, and open the same popup.
+
+![Next Change popup](../../screenshots/next-change.png)
 
 ### Blame
 

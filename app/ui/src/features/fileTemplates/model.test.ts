@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { TemplateInfo } from "@/ipc/templates";
-import { offeredTemplates, phpClassTemplates, templateLabel, validateClassName, validateNamespace, variableLabel } from "./model";
+import { newMenuGroups, newMenuLabel, offeredTemplates, phpClassTemplates, templateLabel, validateClassName, validateNamespace, variableLabel } from "./model";
 import { freeName, withChange } from "./FileTemplatesPage";
 
 const t = (name: string, extra: Partial<TemplateInfo> = {}): TemplateInfo => ({
@@ -38,6 +38,19 @@ describe("file templates model", () => {
     const groups = offeredTemplates(ALL, laravel).map((g) => g.map((x) => x.name));
     expect(groups).toEqual([["PHP File", "PHP Class"], ["Laravel Model"], ["HTML File"], ["Action"]]);
     expect(offeredTemplates(ALL, () => false).flat().map((x) => x.name)).toEqual(["HTML File", "Action"]);
+  });
+
+  it("groups the New menu into PHP, Web and Lua submenus with the class kinds first", () => {
+    const groups = newMenuGroups(ALL, laravel).map((g) => ({
+      label: g.label,
+      sections: g.sections.map((s) => s.map((x) => newMenuLabel(x, g.label))),
+    }));
+    expect(groups).toEqual([
+      { label: "PHP", sections: [["Class", "Interface", "Trait", "Enum"], ["File"], ["Laravel Model"]] },
+      { label: "Web", sections: [["HTML File"]] },
+      { label: "", sections: [["Action"]] },
+    ]);
+    expect(newMenuGroups(ALL, () => false).map((g) => g.label)).toEqual(["Web", ""]);
   });
 
   it("lists the class kinds and project templates in the New PHP Class dialog", () => {

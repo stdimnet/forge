@@ -52,6 +52,9 @@ Page id `appearance`.
 | `appearance.navigationBar.location` | enum: `top`, `statusBar`, `hidden` | `top` | user | Navigation Bar | Navigation bar — Where the navigation bar (project, folders, file and members at the caret) is shown: Top: above the editor, with the path in the status bar too. In status bar: only in the status bar. Don't show: Jump to Navigation Bar (Alt+Home) shows it as a popup. View \| Appearance \| Navigation Bar. |
 | `appearance.navigationBar.showMembers` | bool | `true` | user | Navigation Bar | Show members in the navigation bar — Add the class and function at the caret after the file name. View \| Appearance \| Members in Navigation Bar. |
 | `projectView.openFilesWithSingleClick` | bool | `true` | user | Project View | Open files with single click — In the Project tool window a single click opens files and expands folders. Turn it off to select with a single click and open with a double click, like PHPStorm. |
+| `projectView.autoscrollFromSource` | bool | `false` | user | Project View | Always select opened file — The Project tool window selects the file of the active editor whenever you switch editors (PHPStorm's Autoscroll from Source). Also in the tool window's Options menu. |
+| `structureView.autoscrollToSource` | bool | `true` | user | Structure View | Autoscroll to source — A single click on a Structure tool window node moves the editor to it. Turn it off to select with a single click and navigate with a double click. |
+| `structureView.autoscrollFromSource` | bool | `true` | user | Structure View | Autoscroll from source — The Structure tool window selects the member at the caret as you move through the editor. |
 
 ### Appearance & Behavior | System Settings
 
@@ -274,6 +277,16 @@ Page id `editor.csv`.
 | --- | --- | --- | --- | --- | --- |
 | `csv.defaultView` | enum: `text`, `table` | `text` | user |  | Open CSV/TSV files as |
 | `csv.firstRowIsHeader` | bool | `true` | user |  | First row is header — Default of the table view's header toggle. |
+
+### Editor | Vim
+
+Page id `editor.vim` (plugin `forge.vim`, see [Vim emulation](../user/vim-emulation.md)).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `vim.enabled` | bool | `false` | user | Emulation | Enable Vim emulation — Same as Tools \| Vim (Ctrl+Alt+V). |
+| `vim.rcFile` | path | `""` | user | Emulation | Configuration file — Leave empty to read ~/.ideavimrc (or ~/_ideavimrc, ~/.config/ideavim/ideavimrc). Supports set, map/noremap, let mapleader, sethandler and :action mappings. |
+| `vim.shortcutHandlers` | objects | `[]` | user | Shortcut Conflicts | Shortcuts — Who handles a shortcut in the editor while Vim emulation is on: Vim or the IDE. sethandler lines in ~/.ideavimrc take precedence. Entries `{ shortcut = "Ctrl+R", normal = "vim" \| "ide", insert = …, visual = … }` for the rows changed from the defaults. |
 
 ### Editor | Natural Languages | Spelling
 

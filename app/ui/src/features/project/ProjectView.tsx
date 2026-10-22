@@ -1,12 +1,14 @@
-import { createResource, createSignal, For, Show, type Component } from "solid-js";
+import { createEffect, createResource, createRoot, createSignal, For, on, Show, type Component } from "solid-js";
 import { Dynamic } from "solid-js/web";
-import { ChevronDown, ChevronRight } from "lucide-solid";
+import { ChevronDown, ChevronRight, ChevronsDownUp, EllipsisVertical, LocateFixed } from "lucide-solid";
 import { workspaceApi, type FileEntry } from "@/ipc/workspace";
 import { workspace } from "@/state/workspace";
-import { editor, openFile } from "@/state/editor";
+import { editor, isCustomTab, openFile } from "@/state/editor";
 import { statusOf, dirHasChanges } from "@/state/vcs";
 import { FileIcon } from "@/shell/FileIcon";
-import { getSetting } from "@/state/settings";
+import { getSetting, saveSetting } from "@/state/settings";
+import { isToolWindowVisible } from "@/state/layout";
+import { showResolvedMenu, type ResolvedEntry } from "@/features/contextMenu/state";
 import { showFileMenu } from "./fileMenu";
 import { navigate, type VisibleRow } from "./treeNavigation";
 
@@ -36,6 +38,75 @@ const [selected, setSelected] = createSignal<string | null>(null);
 
 /** Select a row (Select in Project View); call `revealPath` for its folder first. */
 export const selectPath = (path: string) => setSelected(path);
+
+const rowOf = (path: string) => document.querySelector<HTMLElement>(`.project-tree .tree-row[data-path="${CSS.escape(path)}"]`);
+
+/**
+ * Select a file in the tree: expand its folders, select its row and scroll it into view once
+ * the folders' listings are loaded (Select In… › Project View, Always Select Opened File).
+ */
+export function selectInTree(path: string): void {
+  revealPath(path.split("/").slice(0, -1).join("/"));
+  setSelected(path);
+  let frames = 0;
+  const scroll = () => {
+    const row = rowOf(path);
+    if (row) row.scrollIntoView({ block: "nearest" });
+    else if (++frames < 60) requestAnimationFrame(scroll);
+  };
+  requestAnimationFrame(scroll);
+}
+
+const ALWAYS_SELECT = "projectView.autoscrollFromSource";
+const isProjectFile = (path: string) => !path.includes("://") && !isCustomTab(path);
+
+// Always Select Opened File (PHPStorm's "Autoscroll from Source"): the tree follows the
+// active editor while the Project tool window is shown.
+createRoot(() =>
+  createEffect(
+    on([() => editor.active, () => getSetting<boolean>(ALWAYS_SELECT, false), () => isToolWindowVisible("project")], ([path, on, shown]) => {
+      if (path && on && shown && isProjectFile(path)) selectInTree(path);
+    }),
+  ),
+);
+
+/** The tool window header: Select Opened File, Collapse All and the Options menu. */
+export function ProjectActions() {
+  const options = (e: MouseEvent) => {
+    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const toggle = (key: string, label: string, fallback: boolean): ResolvedEntry => {
+      const value = getSetting<boolean>(key, fallback);
+      return { kind: "action", label, checkable: true, checked: value, run: () => void saveSetting(key, !value) };
+    };
+    showResolvedMenu(
+      [
+        toggle(ALWAYS_SELECT, "Always Select Opened File", false),
+        toggle("projectView.openFilesWithSingleClick", "Open Files with Single Click", true),
+      ],
+      r.left,
+      r.bottom + 2,
+    );
+  };
+  return (
+    <>
+      <button
+        class="icon-btn"
+        title="Select Opened File"
+        aria-label="Select Opened File"
+        disabled={!editor.active || !isProjectFile(editor.active)}
+        onClick={() => editor.active && selectInTree(editor.active)}
+      >
+        <LocateFixed size={15} />
+      </button>
+      <button class="icon-btn" title="Collapse All" aria-label="Collapse All" onClick={() => setExpanded(new Set<string>())}>
+        <ChevronsDownUp size={15} />
+      </button>
+      <button class="icon-btn" title="Options" aria-label="Options" onClick={options}>
+        <EllipsisVertical size={15} />
+      </button>
+    </>
+  );
+}
 
 const singleClickOpens = () => getSetting<boolean>("projectView.openFilesWithSingleClick", true);
 

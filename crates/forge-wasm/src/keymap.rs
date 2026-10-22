@@ -12,11 +12,12 @@
 
 use std::cell::RefCell;
 
-use forge_keymap::engine::Resolver;
+use forge_keymap::engine::{KeyInputKind, Resolver};
 use forge_keymap::shortcut::{format_shortcut_text, modifier_of_event, stroke_from_event};
 use forge_keymap::{
-    legacy_changes, ActionRegistration, CommandInfo, KeyEvent, KeyInput, KeymapChange,
-    KeymapService, KeymapSettings, KeymapSnapshot, MainMenuRequest, Platform,
+    legacy_changes, ActionRegistration, CommandInfo, FocusContext, KeyEvent, KeyInput,
+    KeymapChange, KeymapService, KeymapSettings, KeymapSnapshot, MainMenuRequest, Platform,
+    Resolution,
 };
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
@@ -188,12 +189,22 @@ pub fn keymap_load_bindings(snapshot_json: &str) -> String {
     }))
 }
 
-/// Resolve one `KeyInput` with the sync resolver → `Resolution`.
+/// Resolve one `KeyInput` with the sync resolver → `Resolution`. Keys that Vim emulation
+/// takes in the focused editor (`crate::vim::claims`) are left to the editor.
 #[wasm_bindgen]
 pub fn keymap_handle_key(input_json: &str) -> String {
-    result_json(
-        parse::<KeyInput>(input_json).map(|input| SYNC.with_borrow_mut(|r| r.handle(&input))),
-    )
+    result_json(parse::<KeyInput>(input_json).map(|input| {
+        SYNC.with_borrow_mut(|r| {
+            let editor_key = input.kind == KeyInputKind::Keydown
+                && input.focus == FocusContext::Editor
+                && !r.chord_pending();
+            if editor_key && crate::vim::claims(&input.event) {
+                r.interrupt();
+                return Resolution::default();
+            }
+            r.handle(&input)
+        })
+    }))
 }
 
 #[derive(Serialize)]
