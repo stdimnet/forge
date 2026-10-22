@@ -2078,6 +2078,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "forge-jsonschema"
+version = "0.1.0"
+dependencies = [
+ "flate2",
+ "regex-lite",
+ "reqwest 0.12.28",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "tempfile",
+ "tokio",
+]
+
+[[package]]
 name = "forge-keymap"
 version = "0.1.0"
 dependencies = [

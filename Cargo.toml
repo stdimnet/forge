@@ -46,6 +46,7 @@ forge-injections = { path = "crates/forge-injections" }
 forge-emmet = { path = "crates/forge-emmet" }
 forge-colors = { path = "crates/forge-colors" }
 forge-spell = { path = "crates/forge-spell" }
+forge-jsonschema = { path = "crates/forge-jsonschema" }
 forge-scratches = { path = "crates/forge-scratches", default-features = false }
 forge-backend = { path = "crates/forge-backend", default-features = false }
 forge-remote = { path = "crates/forge-remote" }
