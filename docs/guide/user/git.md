@@ -1,8 +1,8 @@
 ---
 title: Git
-description: Git integration - the Commit tool window, stash and shelf, Pull/Merge/Rebase/Reset/Tag/Remotes dialogs, AI commit messages, diff viewer, change markers, blame, branches, push, update, merge conflicts, the Git log with its actions (cherry-pick, revert, undo, edit message, squash, fixup, drop, interactive rebase), file and selection history, and comparing files, folders and the clipboard.
+description: Git integration - the Commit tool window with changelists, partial commits and commit checks, patches, stash and shelf, Pull/Merge/Rebase/Reset/Tag/Remotes dialogs, AI commit messages, diff viewer, change markers, blame, branches, push, update, merge conflicts, the Git log with its actions (cherry-pick, revert, undo, edit message, squash, fixup, drop, interactive rebase), file and selection history, and comparing files, folders and the clipboard.
 order: 120
-tags: [git, vcs, commit, diff, blame, branches, merge, rebase, interactive rebase, cherry-pick, conflicts, stash, shelf]
+tags: [git, vcs, commit, changelists, partial commit, commit checks, patch, diff, blame, branches, merge, rebase, interactive rebase, cherry-pick, conflicts, stash, shelf]
 ---
 
 # Git
@@ -17,14 +17,18 @@ current branch is shown in the main toolbar and the status bar.
 
 ![Commit tool window](../../screenshots/vcs-commit.png)
 
-- **Changes** and **Unversioned Files** are listed as trees grouped by folder. Tick the files
-  to include. Double-click a file (or **Show Diff**, `Ctrl+D`) to see its diff.
+- The changes are listed in their [changelists](#changelists) (**Changes** is the default
+  one) and **Unversioned Files**, as trees grouped by folder. Tick the files to include; new
+  changes of the active changelist are ticked. Double-click a file (or **Show Diff**,
+  `Ctrl+D`) to see its diff.
 - Toolbar: **Refresh** (`Ctrl+F5`), **Rollback…** (`Ctrl+Alt+Z`, discards the changes of the
-  selected files after a confirmation), **Show Diff**, **Expand All**, **Collapse All**.
+  selected files after a confirmation), **Show Diff**, **Expand All**, **Collapse All**,
+  **New Changelist…**.
 - Write the **Commit Message**. **Amend** amends the last commit (its message is loaded).
   **Sign-off** adds a `Signed-off-by` line (`git commit --signoff`; the same option as
   Settings | Version Control | Git | Sign-off commits).
-- **Commit** (`Ctrl+Enter` in the message) or **Commit and Push…**.
+- **Commit** (`Ctrl+Enter` in the message) or **Commit and Push…**. The gear next to them
+  opens the [Commit Options](#commit-options-and-commit-checks).
 - While there are shelved changes or stashes, the header shows the tabs **Changes**, **Shelf**
   and **Stash** (see [Shelf](#shelf) and [Stash](#stash)).
 
@@ -43,8 +47,81 @@ Before committing files with Windows line separators (CRLF), Forge asks whether 
 Is** (`vcs.git.commit.warnOnCrlf`), unless git converts them itself (`core.autocrlf` is `true`
 or `input`).
 
-> **Note:** "Commit Message History" (`Ctrl+M`) and the **Commit Options** gear are not
-> available yet.
+> **Note:** "Commit Message History" (`Ctrl+M`) is not available yet.
+
+### Changelists
+
+![Changelists](../../screenshots/git-changelists.png)
+
+Changelists group local changes, like in PHPStorm. **Changes** is the default changelist; the
+**active** changelist is shown in bold and receives new changes. Forge keeps the changelists
+per project in its data directory (`changelists.json`, see
+[File locations](../reference/file-locations.md)), never in the project, and git knows
+nothing about them.
+
+- **New Changelist…** (toolbar, context menu, Git ▸ Uncommitted Changes): name, comment and
+  **Set active**. The comment of the active changelist becomes the commit message draft.
+- Right-click a changelist: **Commit…** (ticks exactly its files), **Rollback…**,
+  **Edit Changelist…** (also double-click), **Delete Changelist** (its changes move to the
+  active list; the active list cannot be deleted), **Set Active Changelist**,
+  **Shelve Changes…** and **Create Patch…**.
+- **Move to Another Changelist…** (`F6` in the Commit tool window, file context menu) moves
+  the selected file to an existing or a new changelist. Files can also be **dragged** onto a
+  changelist.
+
+![Move to Another Changelist](../../screenshots/git-move-to-changelist.png)
+
+Settings | Version Control | Changelists | **Create changelists automatically**
+(`vcs.changelists.createAutomatically`, on by default): applied patches and unshelved changes
+go to a new changelist named after the patch or the shelved changes.
+
+### Partial commits
+
+Single changes (hunks) of a file can be committed while the rest stays local, like PHPStorm's
+partial commits:
+
+- While the Commit tool window is open, the editor shows a checkbox at every change of a
+  tracked file (next to the [change markers](#change-markers)). Untick a change to leave it
+  out of the next commit. Unsaved edits count.
+- The diff of a file opened from the Commit tool window has the same checkboxes.
+- A partly included file shows a half-ticked checkbox in the Commit tool window.
+- Click a change marker and choose **Move to Another Changelist…** to move only that change;
+  the file then shows in both changelists with the number of its changes in each. Changes moved
+  to a list that is not active are left out of the commit.
+
+![Partial commit checkboxes in the editor](../../screenshots/git-partial-commit-gutter.png)
+
+![Partial commit in the diff](../../screenshots/git-partial-commit-diff.png)
+
+Forge builds the commit in the index without touching your files: it saves what was staged,
+writes the committed version of each partly included file (HEAD plus the included changes),
+commits, then restores the index, so the excluded changes stay local changes. This works in
+remote projects too, since git runs on the project's host.
+
+### Commit options and commit checks
+
+![Commit Options](../../screenshots/git-commit-options.png)
+
+The gear next to **Commit and Push…** opens the **Commit Options**:
+
+- **Git**: **Author** (`Name <email>` for this commit only), **Sign-off commit**,
+  **Amend commit** and **Run Git hooks** (off commits with `--no-verify`, so `pre-commit` and
+  `commit-msg` hooks are skipped).
+- **Commit Checks**, run on the ticked files before committing:
+  - **Reformat code**, **Rearrange code**, **Optimize imports** and **Cleanup** change the
+    files like the [Actions on Save](actions-on-save.md) (Reformat uses the formatter of the
+    file type; the other three are PHP actions);
+  - **Analyze code** collects the errors and warnings of the language servers and
+    inspections. When there are any, Forge asks: *"N errors and M warnings found"* —
+    **Review** (opens the Problems tool window and does not commit) or **Commit Anyway**;
+  - **Check TODO** looks for TODO items (the patterns of the [TODO](todo.md) tool window) in
+    the added and changed lines, with **Review** (opens the TODO tool window) or
+    **Commit Anyway**.
+- **Advanced Commit Checks**: **Run Tests** runs the chosen run configuration and asks
+  **Review** or **Commit Anyway** when it fails.
+
+The checks are settings (Settings | Version Control | Commit, `vcs.commit.*`), so they stay as
+you leave them. "Update copyright" is not available.
 
 ### AI commit messages
 
@@ -249,6 +326,31 @@ its data directory (`<data dir>/forge/projects/<project>/shelf`, see
 ![Unshelve Changes](../../screenshots/git-unshelve-dialog.png)
 
 In remote projects git runs on the remote host; the shelf stays on your machine.
+
+## Patches
+
+**Git ▸ Patch** creates and applies patches, like PHPStorm.
+
+**Create Patch…** (Git ▸ Patch, the context menu of changelists and files, the Git log's
+commit menu) writes the selected changes, or the changes of the selected commits, as a
+unified diff (`git diff --binary`, new files included) with paths relative to the project
+root: **Save to file** (a relative name is saved in the project; **Browse…** picks any file in
+the desktop app) or **Copy patch to clipboard**. **Reverse patch** swaps both sides.
+
+![Create Patch](../../screenshots/git-create-patch.png)
+
+**Apply Patch…** picks a patch file, **Apply Patch from Clipboard…** reads the clipboard. Git
+patches and patches of other tools (`diff -u`, `svn diff`, PHPStorm) are accepted. The
+preview lists every file with its added and removed lines; double-click a file (or its diff
+button) to compare the current and the patched version. **Base directory** sets where the
+paths start (default: the project root), **Changelist** where the changes go.
+
+![Apply Patch](../../screenshots/git-apply-patch.png)
+
+Files that no longer fit (marked with a warning) are merged three-way when the patch names the
+original versions (patches made by git and Forge do); conflicts open the
+[merge conflict](#merge-conflicts) resolver. Files that cannot be merged are reported and left
+unchanged. New files are added to git.
 
 ## Merge conflicts
 

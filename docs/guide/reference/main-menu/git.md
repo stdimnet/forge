@@ -36,6 +36,11 @@ Commit, push, update, branches, the log and file actions. In projects without Gi
 | Uncommitted Changes › Unstash Changes… | — | — | yes | Applies, pops, drops or branches a stash; View shows its files. [More](../../user/git.md#stash) ([screenshot](../../../screenshots/git-unstash-dialog.png)) |
 | Uncommitted Changes › Rollback… | `Ctrl+Alt+Z` | `Cmd+Alt+Z` | not yet | Not available yet; the entry is disabled. |
 | Uncommitted Changes › Show Local Changes | — | — | not yet | Not available yet; the entry is disabled. |
+| Uncommitted Changes › New Changelist… | — | — | yes | Creates a changelist, optionally the active one. [More](../../user/git.md#changelists) ([screenshot](../../../screenshots/git-changelists.png)) |
+| **Patch** | | | | submenu |
+| Patch › Create Patch… | — | — | yes | Writes the selected changes as a patch file or to the clipboard. [More](../../user/git.md#patches) ([screenshot](../../../screenshots/git-create-patch.png)) |
+| Patch › Apply Patch… | — | — | yes | Previews and applies a patch file; files that do not fit are merged three-way. [More](../../user/git.md#patches) ([screenshot](../../../screenshots/git-apply-patch.png)) |
+| Patch › Apply Patch from Clipboard… | — | — | yes | The same for a patch in the clipboard. [More](../../user/git.md#patches) |
 | **Current File** | | | | submenu |
 | Current File › Commit File… | — | — | not yet | Not available yet; the entry is disabled. |
 | Current File › Add | — | — | not yet | Not available yet; the entry is disabled. |
