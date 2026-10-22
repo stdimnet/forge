@@ -4,7 +4,7 @@
  * right (Name, Store as project file, type fields, interpreter, working directory,
  * environment variables, Before launch), OK / Cancel / Apply at the bottom.
  */
-import { batch, createMemo, createSignal, For, Match, onMount, Show, Switch } from "solid-js";
+import { batch, createMemo, createSignal, For, Index, Match, onMount, Show, Switch } from "solid-js";
 import { createStore, produce, unwrap } from "solid-js/store";
 import { Dynamic } from "solid-js/web";
 import {
@@ -578,36 +578,37 @@ function BeforeLaunch(props: { cfg: RunConfiguration }) {
             </button>
           </div>
           <div class="rc-bl-list">
-            <For each={tasks()} fallback={<div class="rc-bl-empty muted">There are no tasks to run before launch</div>}>
+            {/* Index keeps rows (and the focused input) while values change. */}
+            <Index each={tasks()} fallback={<div class="rc-bl-empty muted">There are no tasks to run before launch</div>}>
               {(t, i) => {
-                const kind = () => TASK_KINDS[t.type];
+                const kind = () => TASK_KINDS[t().type];
                 return (
-                  <div class="rc-bl-item" classList={{ selected: sel() === i() }} onClick={() => setSel(i())}>
+                  <div class="rc-bl-item" classList={{ selected: sel() === i }} onClick={() => setSel(i)}>
                     <Dynamic
-                      component={t.type === "runConfiguration" ? (findType(findConfigType(t.value))?.icon ?? Settings2) : (kind()?.icon ?? Wrench)}
+                      component={t().type === "runConfiguration" ? (findType(findConfigType(t().value))?.icon ?? Settings2) : (kind()?.icon ?? Wrench)}
                       size={13}
                     />
                     <Switch
                       fallback={
                         <>
-                          <span class="rc-bl-kind">{kind()?.label ?? t.type}</span>
+                          <span class="rc-bl-kind">{kind()?.label ?? t().type}</span>
                           <input
                             class="rc-input rc-bl-input"
-                            value={t.value}
+                            value={t().value}
                             placeholder={kind()?.placeholder}
-                            onInput={(e) => setValue(i(), e.currentTarget.value)}
+                            onInput={(e) => setValue(i, e.currentTarget.value)}
                           />
                         </>
                       }
                     >
-                      <Match when={t.type === "runConfiguration"}>
-                        <span>Run '{t.value}'</span>
+                      <Match when={t().type === "runConfiguration"}>
+                        <span>Run '{t().value}'</span>
                       </Match>
-                      <Match when={t.type === "externalTool"}>
+                      <Match when={t().type === "externalTool"}>
                         <span class="rc-bl-kind">{kind()!.label}</span>
-                        <select class="rc-select rc-bl-input" value={t.value} onChange={(e) => setValue(i(), e.currentTarget.value)}>
-                          <Show when={!findTool(t.value)}>
-                            <option value={t.value}>{t.value || "Select a tool"} (not found)</option>
+                        <select class="rc-select rc-bl-input" value={t().value} onChange={(e) => setValue(i, e.currentTarget.value)}>
+                          <Show when={!findTool(t().value)}>
+                            <option value={t().value}>{t().value || "Select a tool"} (not found)</option>
                           </Show>
                           <For each={toolGroups()}>
                             {(g) => (
@@ -622,7 +623,7 @@ function BeforeLaunch(props: { cfg: RunConfiguration }) {
                   </div>
                 );
               }}
-            </For>
+            </Index>
           </div>
         </div>
       </Show>

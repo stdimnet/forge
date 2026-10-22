@@ -362,7 +362,8 @@ function webNpmSteps(cfg: RunConfiguration): Step[] {
 }
 
 function stepsFor(cfg: RunConfiguration | undefined, cmd: CommandLine): Step[] {
-  if (!cfg) return [[50, `${cmd.program} finished.\n`], [10, { code: 0 }]];
+  // Commands built in the UI (External Tools, HTTP requests) arrive without a configuration.
+  if (!cfg) return externalToolSteps(cmd);
   const o = cfg.options ?? {};
   switch (cfg.type) {
     case "phpunit":
