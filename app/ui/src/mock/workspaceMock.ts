@@ -4,6 +4,7 @@ import { demoFiles, demoProjectName } from "./demoProject";
 import { demoConfigFiles } from "./demoConfigFiles";
 import { demoLaravelFiles } from "./demoLaravel";
 import { createIgnoreMatcher } from "./gitignoreMatcher";
+import { excludedFlags } from "./projectStructureMock";
 import {
   adoptRemoteProject,
   closeRemoteProject,
@@ -67,7 +68,10 @@ function listDir(dir: string): FileEntry[] {
     const kind = tail.length ? "dir" : "file";
     seen.set(full, { name: head, path: full, kind, ignored: isIgnored(full, kind === "dir", tracked) });
   }
-  return [...seen.values()].sort(
+  const listed = [...seen.values()];
+  const flags = excludedFlags(listed.map((e) => [e.path, e.kind === "dir"]));
+  listed.forEach((e, i) => flags[i] && (e.excluded = true));
+  return listed.sort(
     (a, b) =>
       Number(a.kind !== "dir") - Number(b.kind !== "dir") ||
       a.name.toLowerCase().localeCompare(b.name.toLowerCase()),

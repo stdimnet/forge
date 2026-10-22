@@ -9,11 +9,12 @@ import type { SearchStatus, SymbolHit } from "@/ipc/search";
 import { callWasm, forgeWasm } from "@/wasm";
 import { createIgnoreMatcher } from "./gitignoreMatcher";
 import { mockFiles } from "./workspaceMock";
+import { withoutExcluded } from "./projectStructureMock";
 
-/** `[path, text]` of the demo project without `.gitignore`d files. */
+/** `[path, text]` of the demo project without `.gitignore`d and excluded files. */
 export function projectFiles(): [string, string][] {
   const ignores = createIgnoreMatcher((dir) => mockFiles[dir ? `${dir}/.gitignore` : ".gitignore"]);
-  return Object.keys(mockFiles)
+  return withoutExcluded(Object.keys(mockFiles))
     .filter((p) => !ignores.isIgnored(p, false))
     .sort()
     .map((p) => [p, mockFiles[p]]);

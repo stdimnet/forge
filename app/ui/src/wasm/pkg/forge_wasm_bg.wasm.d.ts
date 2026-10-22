@@ -162,6 +162,12 @@ export const php_interpreter_automatic_mappings: (a: number, b: number, c: numbe
 export const php_interpreter_parse_info: (a: number, b: number, c: number) => void;
 export const php_interpreter_wrap: (a: number, b: number, c: number) => void;
 export const php_source_roots: (a: number, b: number, c: number) => void;
+export const project_structure_describe: (a: number, b: number, c: number) => void;
+export const project_structure_excluded: (a: number, b: number, c: number) => void;
+export const project_structure_mark: (a: number, b: number, c: number) => void;
+export const project_structure_state: (a: number, b: number, c: number) => void;
+export const project_view_arrange: (a: number, b: number, c: number) => void;
+export const project_view_nesting_defaults: (a: number) => void;
 export const remote_check_host_key: (a: number, b: number, c: number) => void;
 export const remote_ssh_hosts: (a: number, b: number, c: number) => void;
 export const remote_validate_config: (a: number, b: number, c: number) => void;

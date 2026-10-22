@@ -6,10 +6,11 @@
 import { registerMock } from "@/ipc";
 import { mockFiles } from "./workspaceMock";
 import { matchFiles } from "./fuzzyMock";
+import { withoutExcluded } from "./projectStructureMock";
 
 /** Files of the open demo project (including files created in the UI). */
 const projectFiles = mockFiles;
 
 registerMock("fs_find_files", ({ query, limit, exact }) =>
-  matchFiles(String(query ?? ""), Object.keys(projectFiles), Number(limit ?? 100), exact === true),
+  matchFiles(String(query ?? ""), withoutExcluded(Object.keys(projectFiles)), Number(limit ?? 100), exact === true),
 );
