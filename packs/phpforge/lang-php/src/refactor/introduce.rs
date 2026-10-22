@@ -1166,7 +1166,11 @@ pub(crate) fn receiver(call: Node, src: &str) -> Option<String> {
         "member_call_expression" | "nullsafe_member_call_expression" => call
             .child_by_field_name("object")
             .map(|o| text(o, src).to_string()),
-        "scoped_call_expression" => Some("$this".into()),
+        "scoped_call_expression" => {
+            // `self::foo()` / `static::` / `parent::` run on `$this`; `Foo::bar()` has none.
+            let scope = call.child_by_field_name("scope")?;
+            (scope.kind() == "relative_scope").then(|| "$this".into())
+        }
         _ => None,
     }
 }
@@ -1598,6 +1602,43 @@ class User
         assert_eq!(
             prepare(&src, s, e, IntroduceKind::Parameter).unwrap_err(),
             "Cannot perform refactoring. The expression uses the local variable $x"
+        );
+    }
+
+    #[test]
+    fn works_in_script_code_and_closures() {
+        let (out, _) = run(
+            "<?php
+$total = ‹count($items)› * 2;
+",
+            IntroduceKind::Variable,
+            opts("count", false),
+        );
+        assert_eq!(
+            out,
+            "<?php
+$count = count($items);
+$total = $count * 2;
+"
+        );
+        let src = "<?php
+class A
+{
+    public function f($xs)
+    {
+        return array_map(function ($x) {
+            return ‹$x * 2› + 1;
+        }, $xs);
+    }
+}
+";
+        let (out, _) = run(src, IntroduceKind::Variable, opts("double", false));
+        assert!(out.contains("        return array_map(function ($x) {\n            $double = $x * 2;\n            return $double + 1;\n        }, $xs);"), "{out}");
+        // Arrow functions have no statements to put the variable before.
+        let (src, s, e) = sel("<?php\n$f = fn($x) => ‹$x + 1›;\n");
+        assert_eq!(
+            prepare(&src, s, e, IntroduceKind::Variable).unwrap_err(),
+            "Cannot perform refactoring. The expression is not inside a statement"
         );
     }
 }

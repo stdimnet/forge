@@ -1313,4 +1313,48 @@ class A
         let out = apply(src, &files[0].edits);
         assert_eq!(out, "<?php\nclass A\n{\n    const RATE = 0.2;\n\n    function f() { return self::RATE * 10 + self::RATE * 10; }\n}\n");
     }
+
+    #[test]
+    fn inlines_a_call_statement_and_function_calls() {
+        let src = "<?php
+function greet($name)
+{
+    $text = \"Hi \" . $name;
+    echo $text;
+}
+
+greet('Ann');
+";
+        let at = src.find("greet(").unwrap() + 9;
+        let at = src[..at].rfind("greet").unwrap();
+        let body = callable_body(src, "a.php", Span::new(at, at + 5)).unwrap();
+        assert!(body.returns.is_none());
+        let call = src.rfind("greet(").unwrap();
+        let edits = inline_call(&body, "a.php", src, Span::new(call, call + 5)).unwrap();
+        let out = apply(src, &edits);
+        assert!(
+            out.ends_with("\n$text = \"Hi \" . 'Ann';\necho $text;\n"),
+            "{out}"
+        );
+    }
+
+    #[test]
+    fn static_calls_cannot_inline_this() {
+        let src = "<?php
+class A
+{
+    public function name()
+    {
+        return $this->n;
+    }
+}
+
+echo A::name();
+";
+        let at = src.find("name()").unwrap();
+        let body = callable_body(src, "a.php", Span::new(at, at + 4)).unwrap();
+        let call = src.rfind("name()").unwrap();
+        let err = inline_call(&body, "a.php", src, Span::new(call, call + 4)).unwrap_err();
+        assert_eq!(err.message, "name() uses $this and is called statically");
+    }
 }

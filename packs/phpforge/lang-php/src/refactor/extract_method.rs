@@ -1104,4 +1104,52 @@ class Report
             "{out}"
         );
     }
+
+    #[test]
+    fn extracts_from_closures_and_script_code() {
+        let src = "<?php
+class A
+{
+    public function f($xs)
+    {
+        return array_map(function ($x) {
+            return ‹$x * $this->rate›;
+        }, $xs);
+    }
+}
+";
+        let i = info(src);
+        assert_eq!(
+            i.parameters
+                .iter()
+                .map(|p| p.name.as_str())
+                .collect::<Vec<_>>(),
+            vec!["x"]
+        );
+        assert!(i.uses_this);
+        let (out, _) = run(src, named("scaled"));
+        assert!(out.contains("return $this->scaled($x);"), "{out}");
+        assert!(out.contains("    private function scaled($x)\n    {\n        return $x * $this->rate;\n    }\n}\n"), "{out}");
+        let (out, _) = run(
+            "<?php
+$a = 1;
+‹echo $a;
+echo $a + 1;›
+",
+            named("show"),
+        );
+        assert_eq!(
+            out,
+            "<?php
+$a = 1;
+show($a);
+
+function show($a)
+{
+    echo $a;
+    echo $a + 1;
+}
+"
+        );
+    }
 }
