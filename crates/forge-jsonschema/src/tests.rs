@@ -724,3 +724,32 @@ fn ref_cycles_terminate() {
     assert!(json_problems(s, r#""x""#).is_empty());
     assert!(started.elapsed().as_secs() < 2);
 }
+
+#[test]
+fn json_cursor_reports_keys_and_values() {
+    use crate::complete::json_cursor;
+    use crate::tree::Seg;
+    let text = r#"{"require": {"lara": "", "php": "^8.3"}}"#;
+    let at = |needle: &str, delta: usize| text.find(needle).unwrap() + delta;
+
+    let key = json_cursor(text, at("lara", 2)).unwrap();
+    assert!(key.key && key.colon);
+    assert_eq!(key.path, vec![Seg::Key("require".into())]);
+    assert_eq!(&text[key.from..at("lara", 2)], "la");
+    assert_eq!(&text[key.replace.0..key.replace.1], "\"lara\"");
+
+    let value = json_cursor(text, at("^8", 1)).unwrap();
+    assert!(!value.key);
+    assert_eq!(
+        value.path,
+        vec![Seg::Key("require".into()), Seg::Key("php".into())]
+    );
+    assert_eq!(&text[value.replace.0..value.replace.1], "\"^8.3\"");
+
+    let empty = json_cursor(text, at("\"\"", 1)).unwrap();
+    assert_eq!(
+        empty.path,
+        vec![Seg::Key("require".into()), Seg::Key("lara".into())]
+    );
+    assert!(!empty.comma);
+}
