@@ -24,6 +24,7 @@ import {
   X,
   Bug,
   RefreshCcwDot,
+  ScrollText,
 } from "lucide-solid";
 import { shortcutLabel } from "@/keymap";
 import { getSetting } from "@/state/settings";
@@ -110,7 +111,7 @@ function TabIcon(props: { session: RunSession }) {
   const type = () => findType(props.session.config.type);
   return (
     <span class="run-tab-icon" style={{ color: type()?.color }}>
-      <Dynamic component={props.session.debug ? Bug : (type()?.icon ?? Play)} size={14} />
+      <Dynamic component={props.session.debug ? Bug : props.session.staticOutput ? ScrollText : (type()?.icon ?? Play)} size={14} />
       <Show when={isRunning(props.session)}>
         <span class="run-tab-live" />
       </Show>

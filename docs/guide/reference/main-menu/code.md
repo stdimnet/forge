@@ -54,3 +54,4 @@ Completion, Generate, folding, comments, formatting and moving lines. Open it wi
 | Inspect Code… | — | — | not yet | Not available yet; the entry is disabled. |
 | Code Cleanup… | `Alt+Shift+I` | `Ctrl+Alt+Shift+I` | not yet | Not available yet; the entry is disabled. |
 | Run Inspection by Name… | `Ctrl+Alt+Shift+I` | `Cmd+Alt+Shift+I` | not yet | Not available yet; the entry is disabled. |
+| Analyze Stack Trace or Thread Dump… | — | — | yes | Opens a pasted stack trace in a Stack Trace tab of the Run tool window with frames linked to project files; server and container paths are mapped. [More](../../user/run-debug.md#analyze-stack-trace) ([screenshot](../../../screenshots/stack-trace-tab.png)) |

@@ -66,6 +66,8 @@
   {"id":"ShowUsages","title":"Show Usages","group":"Main Menu/Edit/Find","win":"Ctrl+Alt+F7","mac":"Cmd+Alt+F7"},
   {"id":"ShowSettingsAndFindUsages","title":"Find Usages Settings…","group":"Main Menu/Edit/Find","win":"Ctrl+Alt+Shift+F7","mac":"Cmd+Alt+Shift+F7"},
   {"id":"StructuralSearchPlugin.StructuralSearchAction","title":"Search Structurally…","group":"Main Menu/Edit/Find","win":"","mac":""},
+  {"id":"StructuralSearchPlugin.StructuralReplaceAction","title":"Replace Structurally…","group":"Main Menu/Edit/Find","win":"","mac":""},
+  {"id":"AnalyzeStacktraceOnError","title":"Analyze Stack Trace or Thread Dump…","group":"Main Menu/Code","win":"","mac":""},
   {"id":"ActivateProjectToolWindow","title":"Project","group":"Main Menu/View/Tool Windows","win":"Alt+1","mac":"Cmd+1"},
   {"id":"ActivateBookmarksToolWindow","title":"Bookmarks","group":"Main Menu/View/Tool Windows","win":"Alt+2","mac":"Cmd+2"},
   {"id":"ActivateFindToolWindow","title":"Find","group":"Main Menu/View/Tool Windows","win":"Alt+3","mac":"Cmd+3"},

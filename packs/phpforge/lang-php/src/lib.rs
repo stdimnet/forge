@@ -10,6 +10,8 @@
 //! - [`navigate`] Go to Declaration, Find Usages, implementations and gutter markers.
 //! - [`hierarchy`] Type, Method and Call Hierarchy.
 //! - [`rename`] Rename on the index: dialog labels and name clashes.
+//! - [`refactor`] Extract / Introduce (variable, constant, field, parameter, method) and
+//!   Inline.
 //! - [`create`] Create symbols from usage (methods, fields, constants, functions, classes).
 //! - [`stubs`] PHP's own symbols from phpstorm-stubs (the "PHP Runtime").
 //! - [`lsp`] describes how to launch Intelephense / phpactor.
@@ -35,6 +37,7 @@ pub mod navigate;
 pub mod offsets;
 pub mod parser;
 pub mod rearrange;
+pub mod refactor;
 pub mod rename;
 pub mod resolve;
 pub mod service;

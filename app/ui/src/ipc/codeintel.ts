@@ -83,6 +83,8 @@ export interface UsageRow {
   /** UTF-16 offsets into `text`. */
   ranges: [number, number][];
   kind: UsageKind;
+  /** What replaces the match (Structural Replace results, shown with Preview Replacement). */
+  after?: string;
 }
 
 export interface UsageFile {
@@ -150,6 +152,10 @@ export interface UsageScope {
   directory?: string;
   includeSubdirectories?: boolean;
   pattern?: string;
+  /** The named scope the pattern comes from, for the label. */
+  scopeName?: string;
+  /** Test folders for `test:` / `src:` patterns. */
+  testRoots?: string[];
   currentFile?: string;
   openFiles?: string[];
   changedFiles?: string[];

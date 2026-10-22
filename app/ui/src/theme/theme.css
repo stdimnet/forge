@@ -63,6 +63,15 @@
   --ref-remote: #b48cff;
   --ref-tag: #e5b449;
 
+  /* File colors (Settings | Appearance & Behavior | File Colors): tints of tabs and rows */
+  --file-color-blue: rgba(94, 164, 255, 0.16);
+  --file-color-green: rgba(95, 191, 119, 0.15);
+  --file-color-orange: rgba(255, 138, 61, 0.16);
+  --file-color-rose: rgba(239, 127, 159, 0.16);
+  --file-color-violet: rgba(180, 140, 255, 0.17);
+  --file-color-yellow: rgba(229, 180, 73, 0.15);
+  --file-color-gray: rgba(140, 140, 152, 0.18);
+
   /* Syntax */
   --syn-keyword: #ff9a57;
   --syn-string: #a5d17f;
@@ -168,6 +177,14 @@
   --ref-local: #d45608;
   --ref-remote: #7a3fc4;
   --ref-tag: #9a7400;
+
+  --file-color-blue: rgba(36, 99, 199, 0.1);
+  --file-color-green: rgba(47, 138, 70, 0.11);
+  --file-color-orange: rgba(232, 98, 12, 0.1);
+  --file-color-rose: rgba(196, 63, 106, 0.1);
+  --file-color-violet: rgba(122, 63, 196, 0.1);
+  --file-color-yellow: rgba(181, 138, 0, 0.14);
+  --file-color-gray: rgba(107, 110, 120, 0.12);
 
   --syn-keyword: #b8460b;
   --syn-string: #3c7d24;

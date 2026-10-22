@@ -24,6 +24,7 @@ import { FileIcon } from "./FileIcon";
 import { editorViewFor, fileEditorFor } from "./editorViews";
 import { openTabMenu } from "./tabMenu";
 import { NavigationBar, navBarLocation } from "@/features/navBar";
+import { tabColor } from "@/features/scopes/model";
 
 const docOf = (id: string): EditorTab | undefined => editor.tabs.find((t) => t.path === id);
 const customOf = (id: string) => customTabs().find((t) => t.id === id);
@@ -58,10 +59,12 @@ function Tab(props: { group: TabGroup; id: string }) {
     closeTabIn(props.group.id, props.id);
   };
   const label = (): JSX.Element => doc()?.name ?? custom()?.title ?? props.id;
+  const color = () => (doc() ? tabColor(props.id) : undefined);
   return (
     <div
       class="editor-tab"
-      classList={{ active: active(), pinned: pinned() }}
+      classList={{ active: active(), pinned: pinned(), "file-colored": !!color() }}
+      style={{ "--file-color": color() }}
       role="tab"
       aria-selected={active()}
       title={custom()?.tooltip ?? custom()?.title ?? props.id}

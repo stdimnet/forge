@@ -6,7 +6,7 @@ import type { UsagesAnswer } from "@/ipc/codeintel";
 import { openInFindWindow } from "@/features/codeintel/usages";
 import { scopeRequest } from "./scope";
 
-export type FindScope = "project" | "directory" | "openFiles" | "changedFiles";
+export type FindScope = "project" | "directory" | "openFiles" | "changedFiles" | "scope";
 
 export interface FindOptions {
   caseSensitive: boolean;
@@ -17,6 +17,8 @@ export interface FindOptions {
   fileMask: string;
   scope: FindScope;
   directory: string;
+  /** The scope of the "Scope" tab (a predefined or named scope). */
+  scopeName: string;
 }
 
 const [findOpen, setFindOpen] = createSignal(false);
@@ -29,6 +31,7 @@ const [findOptions, setFindOptions] = createSignal<FindOptions>({
   fileMask: "*.php",
   scope: "project",
   directory: "",
+  scopeName: "Project Files",
 });
 
 export { findOpen, findQuery, setFindQuery, findOptions };
@@ -84,7 +87,16 @@ export function occurrencesAnswer(query: string, r: FindResult): UsagesAnswer {
 /** "Open in Find Window": pin Find in Files results as a tab of the Find tool window. */
 export function openFindResultsInWindow(query: string, options: FindOptions, result: FindResult): void {
   const o = { ...options };
-  const where = o.scope === "directory" && o.directory ? `Directory ${o.directory}` : "Project Files";
+  const where =
+    o.scope === "directory" && o.directory
+      ? `Directory ${o.directory}`
+      : o.scope === "scope"
+        ? `Scope '${o.scopeName}'`
+        : o.scope === "openFiles"
+          ? "Open Files"
+          : o.scope === "changedFiles"
+            ? "Changed Files"
+            : "Project Files";
   const mask = o.maskEnabled && o.fileMask ? ` with Mask '${o.fileMask}'` : "";
   openInFindWindow(occurrencesAnswer(query, result), {
     kind: "text",

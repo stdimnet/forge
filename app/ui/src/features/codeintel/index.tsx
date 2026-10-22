@@ -6,8 +6,8 @@
  * and the highlighting of the element at the caret, the Find Usages dialog
  * (Ctrl+Alt+Shift+F7), Go to Implementation (Ctrl+Alt+B), Type Declaration (Ctrl+Shift+B), Super
  * Method (Ctrl+U), the Find tool window (Alt+3), implemented / overridden gutter icons,
- * read-only library files, Rename (Shift+F6, in place) and Show Context Actions (Alt+Enter,
- * with the light bulb). Go to Declaration (Ctrl+B, Ctrl+Click) lives in
+ * read-only library files, Rename (Shift+F6, in place), Extract / Introduce and Inline
+ * (`extract.ts`), Refactor This and Show Context Actions (Alt+Enter, with the light bulb). Go to Declaration (Ctrl+B, Ctrl+Click) lives in
  * `features/lsp/goto.ts` and shows usages on a declaration through this feature.
  */
 import { createRoot, Show } from "solid-js";
@@ -20,7 +20,7 @@ import { isLibraryPath } from "@/ipc/codeintel";
 import { renameEntryAt, renameSelection } from "@/features/project/fileMenu";
 import { activeTab } from "@/state/editor";
 import { registerCommand } from "@/state/commands";
-import { actionById, showBalloon } from "@/keymap";
+import { actionById, isActionAvailable, runAction, shortcutLabel, showBalloon } from "@/keymap";
 import { codeApi, type NavKind } from "@/ipc/codeintel";
 import { activeView } from "@/features/lsp/navigation";
 import { showHint } from "@/features/lsp/hint";
@@ -35,6 +35,18 @@ import { ShowUsagesPopup } from "./ShowUsagesPopup";
 import { IntentionPopup } from "./IntentionPopup";
 import { intentionBulb, intentionPopup, showContextActions } from "./intentions";
 import { RefactoringPreviewDialog, RenameDialog } from "./RefactoringDialogs";
+import { ChooserPopup, ExtractMethodDialog, InlineDialog, IntroduceDialog } from "./ExtractDialogs";
+import {
+  chooser,
+  extractMethod,
+  extractMethodDialog,
+  inline,
+  inlineDialog,
+  introduce,
+  introduceDialog,
+  refactorHighlight,
+  refactorThis,
+} from "./extract";
 import { listenForServerEdits, refactoringHistory } from "./refactoring";
 import { inPlaceRename, previewRequest, renameDialog, startRename } from "./rename";
 import { chooseTargetAt } from "./targets";
@@ -124,9 +136,35 @@ action("RenameFile", "Rename File…", "Refactor", () => {
   if (tab && !isLibraryPath(tab.path)) void renameEntryAt(tab.path);
 });
 
+// Extract / Introduce (Ctrl+Alt+V / C / F / P, Ctrl+Alt+M) and Inline (Ctrl+Alt+N). In the
+// editor these win over global bindings of the same keys (the Vim toggle on Ctrl+Alt+V).
+action("IntroduceVariable", "Introduce Variable…", "Refactor", inEditor((p, v) => introduce("variable", p, v)));
+action("IntroduceConstant", "Introduce Constant…", "Refactor", inEditor((p, v) => introduce("constant", p, v)));
+action("IntroduceField", "Introduce Field…", "Refactor", inEditor((p, v) => introduce("field", p, v)));
+action("IntroduceParameter", "Introduce Parameter…", "Refactor", inEditor((p, v) => introduce("parameter", p, v)));
+action("ExtractMethod", "Extract Method…", "Refactor", inEditor((p, v) => extractMethod(p, v)));
+action("Inline", "Inline…", "Refactor", inEditor((p, v) => inline(p, v)));
+// Ctrl+Alt+Shift+T: the refactorings in a popup.
+action(
+  "Refactorings.QuickListPopupAction",
+  "Refactor This…",
+  "Refactor",
+  inEditor((_p, v) =>
+    refactorThis(
+      v,
+      isActionAvailable,
+      (id) => actionById(id)?.title ?? id,
+      shortcutLabel,
+      (id) => void runAction(id),
+    ),
+  ),
+);
+
 // Rename, the light bulb and refactoring undo in every project file editor.
 registerEditorExtension(({ path }) =>
-  isLibraryPath(path) ? [] : [refactoringHistory(), inPlaceRename(), intentionBulb(path), caretUsageHighlighter(path)],
+  isLibraryPath(path)
+    ? []
+    : [refactoringHistory(), inPlaceRename(), intentionBulb(path), caretUsageHighlighter(path), refactorHighlight()],
 );
 
 registerToolWindow({
@@ -165,6 +203,18 @@ if (typeof document !== "undefined" && !isDialogWindow()) {
           </Show>
           <Show when={findUsagesDialog()} keyed>
             {(r) => <FindUsagesDialog req={r} />}
+          </Show>
+          <Show when={chooser()} keyed>
+            {(r) => <ChooserPopup req={r} />}
+          </Show>
+          <Show when={introduceDialog()} keyed>
+            {(r) => <IntroduceDialog req={r} />}
+          </Show>
+          <Show when={extractMethodDialog()} keyed>
+            {(r) => <ExtractMethodDialog req={r} />}
+          </Show>
+          <Show when={inlineDialog()} keyed>
+            {(r) => <InlineDialog req={r} />}
           </Show>
         </>
       ),
