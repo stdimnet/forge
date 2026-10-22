@@ -325,6 +325,7 @@ mod tests {
             "Meta+N", // New… / Generate (editor)
             "Alt+Insert",
             "Ctrl+Shift+Tab",
+            "F6", // Move (refactoring) / Move to Another Changelist (Commit tool window)
             "F7", // Step Into / Next Difference (diff and merge windows)
             "Shift+F7",
         ];

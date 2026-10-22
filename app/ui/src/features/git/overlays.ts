@@ -15,6 +15,8 @@ export interface DiffRequest {
   editable: boolean;
   /** Other files the viewer can step through (Commit window selection). */
   files?: string[];
+  /** HEAD vs working copy of a tracked change: checkboxes include single hunks in the commit. */
+  partial?: boolean;
 }
 
 const [diffRequest, setDiffRequest] = createSignal<DiffRequest | null>(null);

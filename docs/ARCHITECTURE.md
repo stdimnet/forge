@@ -216,6 +216,25 @@ app/ui/            SolidJS UI
   else `--3way`), `git_shelf_delete({ id })`, `git_shelf_rename({ id, name })`,
   `git_shelf_file({ id, path }) -> { before, after, binary }`. Browser mode: `mock/gitOpsMock.ts`
   (`?rebasing` starts in a stopped rebase).
+- Changelists, partial commits and patches (`forge_vcs::{changelists, hunks, patch}`,
+  `repo/partial.rs`, `repo/patches.rs`, `commands/git_changes.rs`, UI `features/git/
+  changelists.ts`, `changesDialogs.ts`, `ChangesDialogs.tsx`, `partialGutter.ts`,
+  `commitChecks.ts`): changelists live in `<data dir>/forge/projects/<name>-<hash>/
+  changelists.json`; every changelist command answers the lists `{ id, name, comment, active,
+  files: { path, hunks: string[] | null }[] }[]`: `git_changelists()`,
+  `git_changelist_create({ name, comment, active })`, `git_changelist_edit({ id, name, comment,
+  active })`, `git_changelist_set_active({ id })`, `git_changelist_delete({ id })`,
+  `git_changelist_move({ paths, hunks?, target, create? })`. Hunks:
+  `git_file_hunks({ path, content? }) -> { id, oldStart, oldLen, newStart, newLen, removed,
+  added }[]` (0-based lines; ids stay stable while other parts change). Commit:
+  `git_commit_files({ message, files: { path, hunks }[], options: { amend, signOff, noVerify,
+  author } }) -> sha`. Patches: `git_create_patch({ paths, reverse })`,
+  `git_read_patch({ path })` / `git_write_patch({ path, patch })` (absolute = local file,
+  else project file), `git_patch_preview({ patch, base }) -> { path, oldPath, status, binary,
+  additions, deletions, before, after, applies, message }[]`, `git_apply_patch({ patch, base,
+  paths? }) -> { applied, conflicts, failed: [path, reason][] }`. Browser mode:
+  `mock/gitChangesMock.ts` with the Rust models as WebAssembly (`vcs_changelists`,
+  `vcs_change_hunks`, `vcs_patch_preview`).
 - Git Log actions (`forge_vcs::rebase`, `repo/rewrite.rs`, `commands/git_log.rs`, UI
   `features/git/logActions.ts`, `logIndex.ts`, `LogDialogs.tsx`, `rebaseModel.ts`); commit lists
   are in log order (newest first): `git_log_actions({ shas }) -> { cherryPick, revert,

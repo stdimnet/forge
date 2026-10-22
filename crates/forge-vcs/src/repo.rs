@@ -3,6 +3,8 @@
 mod conflicts;
 mod history;
 mod ops;
+mod partial;
+mod patches;
 mod rewrite;
 mod shelve;
 
@@ -27,6 +29,8 @@ pub use conflicts::{
     MergeOperation, SideChange,
 };
 pub use ops::{OngoingOperation, OperationState, StashFileContents};
+pub use partial::{CommitFile, CommitOptions};
+pub use patches::ApplyPatchResult;
 pub use rewrite::{RewriteResult, UndoneCommit};
 pub use shelve::ShelfFileContents;
 
@@ -542,44 +546,15 @@ impl Repo {
         paths: Option<&[String]>,
         sign_off: bool,
     ) -> Result<String> {
-        if message.trim().is_empty() && !amend {
-            return Err(ForgeError::Other("commit message is empty".into()));
-        }
-        let specs = paths.map(|p| self.pathspecs(p)).unwrap_or_default();
-        if !specs.is_empty() {
-            // Make new files known so `--only` can commit them; deletions are fine as is.
-            let untracked: Vec<String> = self
-                .status()?
-                .entries
-                .into_iter()
-                .filter(|e| e.is_untracked())
-                .map(|e| self.ws_to_repo(&e.path))
-                .filter(|p| specs.contains(p))
-                .collect();
-            if !untracked.is_empty() {
-                let mut args = vec!["add", "--"];
-                args.extend(untracked.iter().map(String::as_str));
-                self.git(&args)?;
-            }
-        }
-        let mut args = vec!["commit", "-q", "--cleanup=strip"];
-        if amend {
-            args.push("--amend");
-        }
-        if sign_off {
-            args.push("--signoff");
-        }
-        if message.trim().is_empty() {
-            args.push("--no-edit");
-        } else {
-            args.extend(["-F", "-"]);
-        }
-        if !specs.is_empty() {
-            args.extend(["--only", "--"]);
-            args.extend(specs.iter().map(String::as_str));
-        }
-        self.git_stdin(&args, message)?;
-        Ok(self.git(&["rev-parse", "HEAD"])?.trim().to_string())
+        self.commit_opts(
+            message,
+            paths,
+            &CommitOptions {
+                amend,
+                sign_off,
+                ..CommitOptions::default()
+            },
+        )
     }
 
     // ---- ignore rules, tags and stashes -------------------------------------------------

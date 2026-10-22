@@ -17,7 +17,7 @@ pub const CHANGED_EVENT: &str = "git://changed";
 
 /// Settings | Version Control | Git, "Path to Git executable" (`vcs.git.path`), applied
 /// before every git command so a changed path takes effect at once.
-fn apply_git_path(state: &AppState) {
+pub(crate) fn apply_git_path(state: &AppState) {
     let path = state.read_settings().get_as::<String>("vcs.git.path");
     forge_vcs::set_git_program(path.as_deref());
 }
