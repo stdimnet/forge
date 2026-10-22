@@ -2214,6 +2214,7 @@ dependencies = [
 name = "forge-output"
 version = "0.1.0"
 dependencies = [
+ "quick-xml",
  "regex-lite",
  "serde",
  "serde_json",

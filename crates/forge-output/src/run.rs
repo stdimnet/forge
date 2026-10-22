@@ -8,8 +8,24 @@ use serde::{Deserialize, Serialize};
 
 use crate::ansi::{AnsiParser, Style};
 use crate::console::{ConsoleDelta, ConsoleModel};
+use crate::junit::{junit_messages, JUnitFlavor};
 use crate::links::{LinkContext, OutputPathMapping};
 use crate::teamcity::{parse_service_message, TestNode, TestSummary, TestTree};
+
+/// Where a test run reports its results.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum TestReport {
+    /// TeamCity service messages on stdout (PHPUnit `--teamcity`, Pest, Jest).
+    #[default]
+    TeamCity,
+    /// A JUnit XML document on stdout (PHPSpec `--format=junit`): stdout is collected and
+    /// turned into the tree when the process exits.
+    JUnitStdout,
+    /// JUnit XML files the runner writes (Codeception `--xml`, Behat `--format=junit`): the
+    /// console shows stdout, the backend hands the files over as [`RunInput::Report`].
+    JUnitFile,
+}
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -34,6 +50,12 @@ pub struct RunOutputOptions {
     /// External Tools output filters (`$FILE_PATH$:$LINE$`); invalid ones are ignored.
     #[serde(default)]
     pub output_filters: Vec<String>,
+    /// How a test runner reports results (with `test_runner`).
+    #[serde(default)]
+    pub test_report: TestReport,
+    /// The tool that writes JUnit reports (locations are derived differently).
+    #[serde(default)]
+    pub junit_flavor: JUnitFlavor,
 }
 
 /// What happened to the process.
@@ -46,6 +68,9 @@ pub enum RunInput {
     Output { stream: String, text: String },
     /// Text the user typed into the console (echoed).
     Input { text: String },
+    /// A JUnit XML report written by the test runner, read after it exited (before
+    /// [`RunInput::Exited`]).
+    Report { xml: String },
     Exited {
         code: Option<i32>,
         signal: Option<i32>,
@@ -76,6 +101,10 @@ pub struct RunOutput {
     ansi: AnsiParser,
     console: ConsoleModel,
     tests: Option<TestTree>,
+    report: TestReport,
+    flavor: JUnitFlavor,
+    /// Stdout of a [`TestReport::JUnitStdout`] run, parsed when it exits.
+    junit: String,
     /// Incomplete stdout line of a test run (service messages are line based).
     partial: String,
     current_test: Option<usize>,
@@ -115,6 +144,9 @@ impl RunOutput {
             tests: opts
                 .test_runner
                 .then(|| TestTree::new("Test Results", links)),
+            report: opts.test_report,
+            flavor: opts.junit_flavor,
+            junit: String::new(),
             partial: String::new(),
             current_test: None,
             delta: ConsoleDelta::default(),
@@ -158,16 +190,41 @@ impl RunOutput {
                 } else {
                     Stream::Stdout
                 };
-                if self.tests.is_some() && stream == Stream::Stdout {
+                if self.tests.is_some()
+                    && stream == Stream::Stdout
+                    && self.report == TestReport::JUnitStdout
+                {
+                    self.junit.push_str(text);
+                } else if self.tests.is_some()
+                    && stream == Stream::Stdout
+                    && self.report == TestReport::TeamCity
+                {
                     self.write_test_output(text, false);
                 } else {
                     self.write(text, stream);
                 }
             }
             RunInput::Input { text } => self.write(text, Stream::Stdout),
+            RunInput::Report { xml } => {
+                self.apply_report(xml);
+            }
             RunInput::Exited { code, signal } => {
                 if self.tests.is_some() && !self.partial.is_empty() {
                     self.write_test_output("", true);
+                }
+                if self.tests.is_some() && !self.junit.is_empty() {
+                    let all = std::mem::take(&mut self.junit);
+                    // Anything before the document (warnings, deprecations) is console text.
+                    let start = all
+                        .find("<?xml")
+                        .or_else(|| all.find("<testsuites"))
+                        .unwrap_or(all.len());
+                    if start > 0 {
+                        self.write(&all[..start], Stream::Stdout);
+                    }
+                    if start < all.len() && !self.apply_report(&all[start..]) {
+                        self.write(&all[start..], Stream::Stdout);
+                    }
                 }
                 if let Some(tree) = &mut self.tests {
                     tree.finish(*code);
@@ -226,6 +283,33 @@ impl RunOutput {
                 tree.add_output(test, text);
             }
         }
+    }
+
+    /// Apply a JUnit report to the tree; `false` when it is not one.
+    fn apply_report(&mut self, xml: &str) -> bool {
+        let Some(tree) = self.tests.as_mut() else {
+            return false;
+        };
+        match junit_messages(xml, self.flavor) {
+            Ok(messages) => {
+                for m in &messages {
+                    self.tests_changed |= tree.apply(m);
+                }
+                true
+            }
+            Err(e) => {
+                self.write(
+                    &format!("Cannot read the test report: {e}\n"),
+                    Stream::Stderr,
+                );
+                false
+            }
+        }
+    }
+
+    /// The test tree (for the test history), `None` for runs without tests.
+    pub fn tests(&self) -> Option<&TestTree> {
+        self.tests.as_ref()
     }
 
     /// Test output: `##teamcity[...]` lines go to the tree, the rest to the console.
@@ -381,6 +465,72 @@ mod tests {
             "T.php"
         );
         assert_eq!(summary.unwrap().text, "Tests failed: 1 of 1 test – 5 ms");
+    }
+
+    #[test]
+    fn junit_on_stdout_builds_the_tree_when_the_process_exits() {
+        let mut o = RunOutput::new(&RunOutputOptions {
+            test_runner: true,
+            test_report: TestReport::JUnitStdout,
+            junit_flavor: crate::junit::JUnitFlavor::PhpSpec,
+            root: Some("/p".into()),
+            ..RunOutputOptions::default()
+        });
+        let xml = r#"<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites tests="1"><testsuite name="Acme\Cart" tests="1">
+<testcase name="it is empty" classname="spec\Acme\CartSpec" status="passed" time="0.001"/>
+</testsuite></testsuites>
+"#;
+        let (lines, events) = run(
+            &mut o,
+            &[
+                out("Deprecated: something\n"),
+                out(&xml[..40]),
+                out(&xml[40..]),
+                RunInput::Exited {
+                    code: Some(0),
+                    signal: None,
+                },
+            ],
+        );
+        let text: Vec<String> = lines.iter().map(ConsoleLine::text).collect();
+        assert_eq!(text[0], "Deprecated: something");
+        assert!(!text.iter().any(|l| l.contains("testsuite")));
+        let OutputEvent::Tests { summary, .. } = events.last().unwrap() else {
+            panic!("no tests event");
+        };
+        assert_eq!(summary.text, "Tests passed: 1 of 1 test – 1 ms");
+        let tree = o.tests().unwrap().snapshot();
+        assert_eq!(tree[2].name, "it is empty");
+        assert_eq!(tree[2].status, TestStatus::Passed);
+    }
+
+    #[test]
+    fn junit_files_arrive_as_reports_before_the_exit() {
+        let mut o = RunOutput::new(&RunOutputOptions {
+            test_runner: true,
+            test_report: TestReport::JUnitFile,
+            ..RunOutputOptions::default()
+        });
+        let (lines, _) = run(
+            &mut o,
+            &[
+                out("..F\n"),
+                RunInput::Report {
+                    xml: "<testsuite name='F'><testcase name='a'/><testcase name='b'><failure message='x'/></testcase></testsuite>".into(),
+                },
+                RunInput::Report { xml: "garbage".into() },
+                RunInput::Exited {
+                    code: Some(1),
+                    signal: None,
+                },
+            ],
+        );
+        let text: Vec<String> = lines.iter().map(ConsoleLine::text).collect();
+        assert_eq!(text[0], "..F");
+        assert!(text[1].starts_with("Cannot read the test report"));
+        let c = o.tests().unwrap().counts();
+        assert_eq!((c.passed, c.failed), (1, 1));
     }
 
     #[test]
