@@ -1,6 +1,7 @@
 /* ---------- Local History tabs ---------- */
 .local-history {
   background: var(--bg-panel);
+  grid-template-columns: minmax(280px, 38%) minmax(0, 1fr);
 }
 .lh-columns,
 .lh-row {
