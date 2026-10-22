@@ -3177,6 +3177,7 @@ In this order, the first that applies wins:
 
    | Host | Language | Places |
    | --- | --- | --- |
+   | PHP | (from the attribute) | arguments of parameters marked `#[Language('SQL')]` (JetBrains PhpStorm attributes, found by the PHP index in the project, vendor and include paths) |
    | PHP | SQL | strings starting with a statement: `SELECT … FROM`, `INSERT INTO`, `UPDATE … SET`, `DELETE FROM`, `WITH … AS (`, `CREATE`/`ALTER`/`DROP TABLE`, `TRUNCATE`, `SHOW TABLES`, …; `SELECT` in capitals also without `FROM` |
    | PHP | SQL | `PDO::query()`/`prepare()`/`exec()` on database objects (`$pdo`, `$this->db`, `$connection`, …), `mysqli_query()`, `pg_query()`, `pg_prepare()`, Doctrine DBAL `executeQuery()`, `fetchAllAssociative()`, … and `createNativeQuery()` |
    | PHP | SQL | Laravel: `DB::select()`, `DB::statement()`, `DB::unprepared()`, `DB::raw()`, …; `selectRaw()`, `whereRaw()`, `havingRaw()`, `orderByRaw()`, `groupByRaw()` |
@@ -8240,7 +8241,11 @@ progress bar; afterwards the index follows file changes on its own.
   next start only re-reads changed files. Nothing is written into the project.
 - **Reindex PHP Files** (Find Action) rebuilds it.
 - Extra library folders can be added under Settings | Languages & Frameworks | PHP |
-  **Include Path** (`php.includePaths`); they are also passed to the language server.
+  **Include Path** (`php.includePaths`). Forge indexes them as libraries and passes them to
+  the language server; see [Include paths and External
+  Libraries](#include-paths-and-external-libraries).
+- `.phpstorm.meta.php` files are read with the index, in the project and in vendor packages;
+  see [PHPStorm metadata](#phpstorm-metadata-phpstormmetaphp).
 
 ## Structure
 
@@ -8699,6 +8704,108 @@ New ▸ PHP Class in the Project view ([New PHP Class dialog](docs/guide/user/fi
 `Ctrl+O` and `Ctrl+I` work directly in PHP editors as shortcuts for Override/Implement
 Methods.
 
+## PHPStorm metadata (`.phpstorm.meta.php`)
+
+Like PHPStorm, Forge reads advanced metadata from `.phpstorm.meta.php` files — or the PHP files
+in a `.phpstorm.meta.php/` folder — anywhere in the project and in vendor packages (Laravel IDE
+Helper, Symfony and Doctrine plugins ship them). Everything inside
+`namespace PHPSTORM_META { … }` is used:
+
+```php
+<?php
+
+namespace PHPSTORM_META {
+    // The return type from the argument: `$container->get(Mailer::class)` is a Mailer,
+    // `app('cache')` the mapped class, `factory('User')` a UserFactory.
+    override(\Psr\Container\ContainerInterface::get(0), map([
+        '' => '@',
+        'cache' => \Illuminate\Cache\Repository::class,
+    ]));
+    override(\factory(0), map(['' => '@Factory']));
+    override(\tap(0), type(0));          // returns the argument's type
+    override(\head(0), elementType(0));  // returns the array argument's element type
+
+    registerArgumentsSet('statuses', 'draft', 'paid');
+    expectedArguments(\App\Models\Order::setStatus(), 0, argumentsSet('statuses'));
+    expectedArguments(\json_encode(), 1, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+    expectedReturnValues(\App\Models\Order::status(), argumentsSet('statuses'));
+    exitPoint(\abort());
+}
+```
+
+- **Types**: overridden calls give their result a type for Go to Declaration, hover and the
+  inspections below. A method override also applies to the subclasses and implementations of
+  the class or interface it names. The type of a variable assigned from such a call follows
+  (`$mailer = $container->get('mailer');`).
+- **Go to Declaration** (`Ctrl+B`) on a mapped key such as `app('cache')` opens the class it
+  maps to (or the map entry).
+- **Completion**: the arguments of `expectedArguments()` and the keys of `override()` maps
+  (service ids) are offered in the argument, inside a string without quotes; flags written
+  `A | B` again after `|`. `expectedReturnValues()` completes comparisons such as
+  `$order->status() === '…'`.
+- **Exit points**: statements after an `exitPoint()` call are reported as unreachable.
+
+Changed metadata files are read again at once. Forge reads PHPStorm's current syntax; the old
+`$STATIC_METHOD_TYPES` array is not supported.
+
+## JetBrains attributes
+
+The attributes of the `jetbrains/phpstorm-attributes` package (and PHP 8.4's own
+`#[\Deprecated]`) work as in PHPStorm:
+
+| Attribute | What Forge does |
+| --- | --- |
+| `#[Deprecated(reason: …, replacement: …, since: …)]` | Usages are struck through with the reason; with a `replacement` (`%class%->pay(%parametersList%)`, `%parameter0%`, `%name%`) Alt+Enter offers **Replace with '…'**. `@deprecated` in PHPDoc counts too. |
+| `#[ExpectedValues(['asc', 'desc'])]`, `flags:`, `valuesFromClass:`, `flagsFromClass:` | Completion of the values (or the constants of the class) in the argument, and the warning **Value should be one of: …** for other literals. On a function or method it lists its return values. |
+| `#[ArrayShape(['id' => 'int', 'user' => User::class])]` | Completion of the keys in `$data['…']` and the type of `$data['user']->…`, for calls, parameters, variables and properties. |
+| `#[Immutable]` (also `PRIVATE_WRITE_SCOPE`, `PROTECTED_WRITE_SCOPE`) | Writing the property (or a property of an immutable class) outside its write scope: **Immutable property '$x' cannot be written outside of the constructor**. |
+| `#[Pure]` | **The result of the pure function call is not used** when the call is a statement of its own. |
+| `#[NoReturn]` | Statements after the call are unreachable (greyed out). |
+| `#[Language('SQL')]` | String arguments of the parameter are a [language injection](docs/guide/user/language-injections.md) (rule "#[Language] parameters"). |
+
+![Deprecated method with its quick-fix](docs/screenshots/php-meta-quickfix.png)
+
+![Expected values in completion](docs/screenshots/php-meta-completion.png)
+
+The inspections are Forge's own (from the PHP index, next to the language server's problems)
+and appear in the editor and the Problems tool window. Turn them off with **Inspections from
+PHPStorm metadata and attributes** (`php.inspections.enabled`) on Settings | Languages &
+Frameworks | PHP.
+
+## Source roots and the PSR-4 namespace check
+
+PHPStorm derives the source roots of a PHP project from composer.json's PSR-4 rules
+(`autoload`, `autoload-dev`) and lets you change them. Forge does the same:
+
+- **Settings | Directories** lists the **Source Folders** and **Test Source Folders** with
+  their **package prefix** (the namespace of the folder). Change a prefix, unmark a
+  composer.json root (it stays listed and can be marked again), reset it, or add a folder.
+- In the Project view, right-click a folder › **Mark Directory as** › **Sources Root**, **Test
+  Sources Root** or **Unmark as Sources Root**. A new root gets the namespace the folder maps
+  to now as its prefix. Source roots get blue folders, test roots green ones, with the prefix
+  next to the name.
+- The changes are stored in the project setting `php.sourceRoots` (shared through
+  `.forge/settings.toml`). **New ▸ PHP Class** fills its namespace from them, **Move** of
+  classes and files updates namespaces with them, and the inspection **Namespace name doesn't
+  match PSR-0/PSR-4 project structure** checks every file below a root, with the quick-fix
+  **Set namespace to '…'**.
+
+![Settings | Directories](docs/screenshots/php-directories-settings.png)
+
+![Set namespace to](docs/screenshots/php-meta-namespace.png)
+
+## Include paths and External Libraries
+
+Folders outside the project — a global PEAR folder, framework stubs, a shared library — are
+added under Settings | Languages & Frameworks | PHP | **Include Path**. Forge indexes them as
+libraries: their classes appear in Go to Class (after the project's), resolve as types and
+open read-only on Go to Declaration. They are listed under **External Libraries** at the end
+of the Project view, where folders can be browsed and files opened read-only; right-click ›
+**Configure PHP Include Paths…** opens the settings page. A path may start with `~/` or be
+relative to the project. Changing the include paths indexes the project again.
+
+![External Libraries](docs/screenshots/php-external-libraries.png)
+
 ## Settings | Languages & Frameworks | PHP
 
 ![PHP settings](docs/screenshots/settings-php.png)
@@ -8714,6 +8821,7 @@ Methods.
 | When Intelephense is not installed (`ask`, `always`, `never`), see [Installing Intelephense](docs/guide/user/language-servers.md#installing-intelephense) | `php.intelephense.autoInstall` | `ask` |
 | I accept the Intelephense licence | `php.intelephense.licenceAccepted` | off |
 | Include Path | `php.includePaths` | empty |
+| Inspections from PHPStorm metadata and attributes | `php.inspections.enabled` | on |
 | Default stubs path (PHP Runtime), see [PHP's own classes and functions](#phps-own-classes-and-functions) | `php.stubs.path` | empty (managed download) |
 
 The language level and the interpreter can be stored per project ("For current project" in
@@ -8853,7 +8961,8 @@ See [Run/Debug configurations](docs/guide/user/run-debug.md), [Xdebug debugging]
 
 In a [remote project](docs/guide/user/remote-development.md) the PHP index and the language server run on the
 remote host through the Forge agent; Structure, search, hover, Generate, navigation, usages,
-gutter icons, Rename and context actions work as locally; renamed and fixed files are written on
+gutter icons, Rename, context actions, metadata and attribute inspections and completion,
+include paths (folders on the remote host) and source roots work as locally; renamed and fixed files are written on
 the remote host. The PHP stubs are read on this machine.
 
 
@@ -14105,6 +14214,8 @@ Page id `lang.php`.
 | `php.interpreters` | objects (unique `name`) | `[]` | user | Development Environment | CLI Interpreters — PHP interpreters available in every project: local, Docker, Docker Compose, SSH and WSL (edited in the CLI Interpreters dialog). |
 | `php.projectInterpreters` | objects (unique `name`) | `[]` | user, project | Development Environment | CLI Interpreters of this project — Interpreters marked "Visible only for this project". |
 | `php.includePaths` | list | `[]` | user, project | Include Path | Include path — Extra directories indexed as libraries (e.g. global PEAR or framework stubs). |
+| `php.sourceRoots` | objects (unique `path`) | `[]` | user, project | Directories | Source roots — Folders marked as Sources Root or Test Sources Root with their package prefix (Settings \| Directories, Project view: Mark Directory as). They change the PSR-4 roots composer.json declares (kind `none` unmarks one); New PHP Class, Move Class and the namespace inspection use them. |
+| `php.inspections.enabled` | bool | `true` | user | Inspections | Inspections from PHPStorm metadata and attributes — Deprecated symbols, expected values, #[Immutable] writes, unused #[Pure] results, unreachable code after exit points and the PSR-0/PSR-4 namespace check. |
 | `php.stubs.path` | path | `""` | user | PHP Runtime | Default stubs path — A phpstorm-stubs checkout used for PHP's own classes, functions and constants (Go to Declaration on \Throwable, array_map). Empty: Forge downloads JetBrains' phpstorm-stubs into its cache folder on first use, or uses Intelephense's stubs. |
 | `php.lsp.server` | enum: `auto`, `intelephense`, `phpactor`, `none` | `auto` | user | Language Server | Language server — Started automatically when a PHP project opens. |
 | `php.lsp.maxFileSize` | int (100–100000) | `5000` | user | Language Server | Max indexed file size (KB) |
@@ -20784,7 +20895,10 @@ PHPForge language pack: PHP support built on tree-sitter.
 
 | Module | Summary |
 | --- | --- |
+| `attributes.rs` | JetBrains PhpStorm attributes from the indexed attributes (parameters included): `deprecated` (also PHP 8.4's `#[\Deprecated]`), `render_replacement` (`%parametersList%`, `%parameterN%`, `%class%`, `%name%`), `expected_values` (`values`, `flags`, `valuesFromClass`, `flagsFromClass`), `array_shape` / `object_shape`, `immutable` (write scope), `language`, `has(attrs, "Pure")`, plus PHP literal helpers (`array_elements`, `key_value`, `string_literal`). |
+| `callsite.rs` | The call around a position, text based so it works while typing (`call_at`, `scan_to`: open brackets, argument index, the string literal the caret is in), the `Callee` (function candidates, method of a class chain, constructor) with `matches(MetaCallable)`, its declaration (`callee_decl` → `Decl`) and `#[ArrayShape]` resolution (`shape_of`, `subscript_classes`). |
 | `cleanup.rs` | Code Cleanup: removes unused imports, unnecessary semicolons (empty statements in statement lists, never a loop's empty body) and a redundant closing tag `?>` at the end of a pure PHP file. Used by Actions on Save. |
+| `complete.rs` | Completion from metadata and attributes (`complete`): expected arguments (`expectedArguments()`, `#[ExpectedValues]`, `override()` map keys), expected return values in comparisons, `#[ArrayShape]` keys; values inside a string without quotes. |
 | `create.rs` | Create from usage (Alt+Enter on an unresolved name): "Create method / field / constant / enum case / function" as edits (another file's as a `WorkspaceEdit` with LSP positions) with the caret after the edit, parameters and return types inferred from the usage, bodies from the code template "PHP Implemented Method Body"; "Create class / interface / trait" as the `PhpCreateClass` action with the dialog's data. Each fix carries the `ExternalSymbol` the PHP stubs must not declare. |
 | `docblock.rs` | PHPDoc parser: summary/description, the standard tags (`@param`, `@return`, `@throws`, `@var`, `@property[-read\|-write]`, `@method`, `@deprecated`, `@see`, `@template`, `@extends`/`@implements`), static-analysis prefixes (`@phpstan-`/`@psalm-`) and Doctrine/Symfony style annotations (`@ORM\Column(type="string")`, `@Route("/x")`). |
 | `fuzzy.rs` | Fuzzy matcher for Go to Class / Go to Symbol: subsequence matching with bonuses for word starts, camel humps (`OrCo` -> `OrderController`) and consecutive runs. |
@@ -20795,12 +20909,16 @@ PHPForge language pack: PHP support built on tree-sitter.
 | `imports/` | Optimize Imports: removes `use` imports nothing refers to (code, attributes, docblocks and annotations count) and arranges the rest by the code style's Imports tab; group uses are expanded, braced namespaces handled separately. `style.rs`: `ImportStyle` (sorting, grouping, blank lines, Prefer FQN and the PHP Auto Import settings) and the style of the running call (`with_style`, `set_default`). `insert.rs`: `insert_imports`, the one helper every import goes through (Import class, completion, Create from usage, Move, Copy, Pull Members Up). `auto.rs`: Auto Import: unresolved class names with candidates (`ProjectIndex::class_candidates`, project and vendor by file name), `reference_edits` (import, short name or FQN), the "Import class" fix with the chooser, the import popup and the on-the-fly decisions. |
 | `hierarchy.rs` | Type, Method and Call Hierarchy on the index (`HierarchyQuery`, answer `PhpHierarchy { graph?, title?, root?, calls }` in `forge_codeintel::hierarchy`'s model): the class at the caret with all its supertypes (parents, interfaces, traits; vendor classes resolved lazily, unknown ones by name) and every project class below it; for a method also the subtypes of its topmost declaration and each type's `MethodPresence`; the callable at the caret, its callers (`find_usages` call sites grouped by the enclosing method, function or file) and callees (calls in its body resolved like Go to Declaration, constructors through `new`, PHP's own functions as library items). |
 | `index.rs` | Workspace-wide PHP index: parallel indexing, mtime-keyed persistent cache, fuzzy symbol search, ancestor lookup and lazy resolution of vendor classes through Composer's PSR-4 metadata. |
+| `injections.rs` | `language_places`: every `#[Language]` parameter of the indexed functions, methods and constructors, handed to `forge-injections` (`InjectionSettings::places`). |
+| `inspections.rs` | Forge's PHP inspections (`inspect`, `fixes_at`): deprecated symbols with "Replace with …", expected values, `#[Immutable]` writes, unused `#[Pure]` results, unreachable statements after `#[NoReturn]` / `exitPoint()` calls, and "Namespace name doesn't match PSR-0/PSR-4 project structure" with "Set namespace to …" (source roots of the index). Calls and names resolve through `navigate::resolve_word`. |
 | `lsp.rs` | How to launch a PHP language server: Intelephense (preferred, users bring their own licence key) with phpactor as fallback. Independent of the generic LSP client; the app turns `LspServerConfig` into a running server. |
+| `meta.rs` | `.phpstorm.meta.php` (`is_meta_path`, `parse` → `PhpMeta`): `override()` with `map()` (`@` patterns, `::class` keys), `type()`, `elementType()`; `expectedArguments()`, `expectedReturnValues()`, `registerArgumentsSet()` / `argumentsSet()`, `exitPoint()`; lookups `function_return` / `method_return` (→ `MetaType`), `map_entry`, `map_keys`, `expected_arguments`, `expected_return_values`, `is_exit_point`. `ProjectIndex::meta()` merges the files of the project, vendor packages and include paths (cached with the index, read again on change). |
 | `model.rs` | Symbol model produced by the indexer. Everything is serializable so it can be cached on disk and sent over IPC unchanged (camelCase field names for the UI). |
 | `navigate.rs` | Code navigation on the index when no language server answers: the symbol under the caret (classes with or without a leading backslash through imports, aliases, group uses and the namespace; functions and constants with PHP's global fallback; members through `$this`, `self`/`static`/`parent`, typed variables, `catch`, `@var`, property and return-type chains; variables), `definition` (target, "on a declaration" or an `ExternalSymbol` for the stubs), `find_usages` / `find_usages_with` (usage kinds, dynamic usages, members through parent and child classes; with the Find Usages options also usages of a class's methods and fields, derived / implementing classes, derived interfaces and overriding methods, comments and strings), Go to Implementation / Super Method / Type Declaration and the implemented / overridden `line_markers`. |
 | `rearrange.rs` | Rearrange Code: orders class members as trait uses, enum cases, constants, properties, constructor, methods; comments move with their member, blank lines stay in place. |
 | `rename.rs` | Rename (Shift+F6) on the index: PHPStorm's dialog label for a symbol and the name clashes reported as conflicts (`clashes`: the class / function / constant or member with the new name already exists). The edit itself comes from `find_usages` and `forge_codeintel::edit_from_locations`. |
 | `offsets.rs` | Offset conversion. The index works in UTF-8 byte offsets; the UI (CodeMirror / JS strings) uses UTF-16 code units. Convert at the IPC boundary. |
+| `project.rs` | `PhpProjectSettings` (include paths, `php.sourceRoots`, composer.json path; `effective_roots`), "External Libraries" (`library_roots`, `list_library`, `read_library`, only inside include paths). |
 | `parser.rs` | Tree-sitter based PHP file indexer: turns source into a `FileIndex`. |
 | `resolve.rs` | Name resolution through namespaces and use-imports (PHP's rules, simplified to what an index needs: classes and type hints). |
 | `service.rs` | Editor-facing PHP queries on a `ProjectIndex`: the same answers wherever the index lives (in the desktop app or in the remote development agent). Offsets crossing this boundary are UTF-16 (JS strings); the index works in bytes, so every query converts. |
@@ -20817,13 +20935,13 @@ pub enum PhpError { … }
 
 ## Used by
 
-- IPC: `php_index_workspace`, `php_search_symbols`, `php_file_structure`, `php_hover`, `php_generate_targets`, `php_generate`, `php_detect_servers`, `php_lsp_config` (`app/src-tauri/src/commands/php.rs`); `code_goto_declaration`, `code_symbol_info`, `code_find_usages`, `code_highlight_usages`, `code_usage_target`, `code_navigate`, `code_line_markers`, `code_prepare_rename`, `code_rename`, `code_context_actions`, `library_read` (`commands/codeintel.rs`, `commands/library.rs`) through `forge_backend::PhpBackend`, so remote projects answer from the agent
+- IPC: `php_inspect`, `php_complete`, `php_language_places`, `php_libraries`, `php_library_list`, `php_source_roots` (`commands/php_meta.rs`), `php_index_workspace`, `php_search_symbols`, `php_file_structure`, `php_hover`, `php_generate_targets`, `php_generate`, `php_detect_servers`, `php_lsp_config` (`app/src-tauri/src/commands/php.rs`); `code_goto_declaration`, `code_symbol_info`, `code_find_usages`, `code_highlight_usages`, `code_usage_target`, `code_navigate`, `code_line_markers`, `code_prepare_rename`, `code_rename`, `code_context_actions`, `library_read` (`commands/codeintel.rs`, `commands/library.rs`) through `forge_backend::PhpBackend`, so remote projects answer from the agent
 - UI: `app/ui/src/features/php`, `app/ui/src/features/codeintel`
 - Browser mode: not built to WebAssembly (runtime code); browser mode uses mocks
 
 ## Dependencies
 
-- Workspace crates: `forge-codeintel`
+- Workspace crates: `forge-codeintel`, `forge-file-templates`, `phpforge-composer`, `phpforge-interpreters`
 - External: `dirs`, `rayon`, `serde`, `serde_json`, `thiserror`, `tracing`, `tree-sitter`, `tree-sitter-php`, `walkdir`
 
 ## Tests

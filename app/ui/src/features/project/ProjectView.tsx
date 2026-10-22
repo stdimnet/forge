@@ -160,15 +160,33 @@ function activate(entry: FileEntry): void {
   else void openFile(entry.path);
 }
 
+/**
+ * Extra classes and a hint for tree rows, e.g. PHP source roots ("Mark Directory as"): a
+ * decorator returns `{ class, hint }` for a path, or nothing.
+ */
+type RowDecorator = (path: string, dir: boolean) => { class?: string; hint?: string } | undefined;
+const [decorators, setDecorators] = createSignal<RowDecorator[]>([]);
+
+export function registerRowDecorator(d: RowDecorator): void {
+  setDecorators((prev) => [...prev, d]);
+}
+
 function TreeNode(props: { entry: FileEntry; depth: number }) {
   const isDir = () => props.entry.kind === "dir";
+  const decoration = () => {
+    for (const d of decorators()) {
+      const r = d(props.entry.path, isDir());
+      if (r) return r;
+    }
+    return undefined;
+  };
   const isOpen = () => expanded().has(props.entry.path);
   const status = () => (isDir() ? (dirHasConflicts(props.entry.path) ? "conflict" : dirHasChanges(props.entry.path) ? "modified" : undefined) : statusOf(props.entry.path));
   const color = () => projectViewColor(props.entry.path, isDir());
   return (
     <>
       <div
-        class="tree-row"
+        class={`tree-row ${decoration()?.class ?? ""}`}
         classList={{
           selected: selected() === props.entry.path || alsoSelected().includes(props.entry.path),
           "active-file": editor.active === props.entry.path,
@@ -234,6 +252,9 @@ function TreeNode(props: { entry: FileEntry; depth: number }) {
         </span>
         <FileIcon name={props.entry.name} dir={isDir()} open={isOpen()} dimmed={props.entry.ignored} />
         <span class={`tree-label ${status() ? `vcs-${status()}` : ""}`}>{props.entry.name}</span>
+        <Show when={decoration()?.hint}>
+          <span class="tree-hint">{decoration()?.hint}</span>
+        </Show>
       </div>
       <Show when={isDir() && isOpen()}>
         <DirChildren path={props.entry.path} depth={props.depth + 1} />

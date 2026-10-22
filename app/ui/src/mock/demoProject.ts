@@ -39,6 +39,101 @@ export const demoFiles: Record<string, string> = {
   "config/packages/framework.yaml": "framework:\n    secret: '%env(APP_SECRET)%'\n    session: true\n",
   "artisan": "#!/usr/bin/env php\n<?php\n\nrequire __DIR__.'/vendor/autoload.php';\n",
   ".env.example": "APP_NAME=AcmeShop\nAPP_ENV=local\nDB_CONNECTION=mysql\nDB_HOST=127.0.0.1\nDB_DATABASE=shop\n",
+  ".phpstorm.meta.php": `<?php
+
+namespace PHPSTORM_META {
+
+    override(\\app(0), map([
+        '' => '@',
+        'payments' => \\App\\Services\\PaymentGateway::class,
+        'invoices' => \\App\\Services\\InvoiceService::class,
+    ]));
+
+    registerArgumentsSet('currencies', 'EUR', 'USD', 'GBP');
+    expectedArguments(\\App\\Services\\PaymentGateway::charge(), 1, argumentsSet('currencies'));
+    expectedReturnValues(\\App\\Services\\PaymentGateway::status(), 'pending', 'captured', 'failed');
+    exitPoint(\\abort());
+}
+`,
+  "app/Services/PaymentGateway.php": `<?php
+
+namespace App\\Services;
+
+use JetBrains\\PhpStorm\\ArrayShape;
+use JetBrains\\PhpStorm\\Deprecated;
+use JetBrains\\PhpStorm\\ExpectedValues;
+use JetBrains\\PhpStorm\\Pure;
+
+class PaymentGateway
+{
+    #[Deprecated(reason: 'Use charge() with a currency', replacement: '%class%->charge(%parameter0%, \\'EUR\\')')]
+    public function payNow(int $cents): bool
+    {
+        return $this->charge($cents, 'EUR');
+    }
+
+    public function charge(int $cents, string $currency): bool
+    {
+        return true;
+    }
+
+    public function capture(#[ExpectedValues(['auto', 'manual'])] string $mode): void
+    {
+    }
+
+    #[Pure]
+    public function fee(int $cents): int
+    {
+        return intdiv($cents, 40);
+    }
+
+    public function status(): string
+    {
+        return 'pending';
+    }
+
+    #[ArrayShape(['id' => 'string', 'cents' => 'int', 'currency' => 'string'])]
+    public function lastPayment(): array
+    {
+        return ['id' => 'pay_1', 'cents' => 100, 'currency' => 'EUR'];
+    }
+}
+`,
+  "app/Http/Controllers/PaymentController.php": `<?php
+
+namespace App\\Http\\Controllers;
+
+use App\\Services\\PaymentGateway;
+
+final class PaymentController extends Controller
+{
+    public function store(PaymentGateway $gateway): void
+    {
+        $gateway->payNow(1999);
+        $gateway->charge(1999, 'YEN');
+        $gateway->capture('later');
+        $gateway->fee(1999);
+
+        if ($gateway->status() === 'failed') {
+            abort(402);
+        }
+
+        $payment = $gateway->lastPayment();
+        app('payments')->charge($payment['cents'], 'EUR');
+    }
+}
+`,
+  "app/Support/Money.php": `<?php
+
+namespace App\\Helpers;
+
+final class Money
+{
+    public function __construct(public readonly int $cents)
+    {
+    }
+}
+`,
   "app/Models/User.php": `<?php
 
 declare(strict_types=1);

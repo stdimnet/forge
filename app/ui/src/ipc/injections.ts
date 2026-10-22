@@ -81,6 +81,8 @@ export interface InjectableLanguage {
 export interface InjectionSettings {
   disabled: string[];
   uninjected: string[];
+  /** Parameters marked `#[Language]` (from the PHP index). */
+  places?: { name: string; argument: number; method: boolean; language: string }[];
 }
 
 export interface FindRequest extends InjectionSettings {

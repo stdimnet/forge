@@ -514,6 +514,17 @@ impl Agent {
             }
             PhpCall::LspConfig { settings } => reply(php.lsp_config(settings)?),
             PhpCall::DetectServers { settings } => reply(php.detect_servers(settings)?),
+            PhpCall::Configure { settings } => reply(php.configure(settings)?),
+            PhpCall::Inspect { path, content } => reply(php.inspect(&path, content)?),
+            PhpCall::Complete {
+                path,
+                offset,
+                content,
+            } => reply(php.complete(&path, offset, content)?),
+            PhpCall::LanguagePlaces => reply(php.language_places()?),
+            PhpCall::Libraries => reply(php.libraries()?),
+            PhpCall::LibraryList { path } => reply(php.library_list(&path)?),
+            PhpCall::LibraryRead { path } => reply(php.library_read(&path)?),
         }
     }
 

@@ -3340,6 +3340,30 @@
           "order": 10
         },
         {
+          "key": "php.sourceRoots",
+          "title": "Source roots",
+          "description": "Folders marked as Sources Root or Test Sources Root with their package prefix (Settings | Directories, Project view: Mark Directory as). They change the PSR-4 roots composer.json declares (kind `none` unmarks one); New PHP Class, Move Class and the namespace inspection use them.",
+          "type": "objects",
+          "unique": [
+            "path"
+          ],
+          "default": [],
+          "group": "directories",
+          "project": true,
+          "order": 0
+        },
+        {
+          "key": "php.inspections.enabled",
+          "title": "Inspections from PHPStorm metadata and attributes",
+          "description": "Deprecated symbols, expected values, #[Immutable] writes, unused #[Pure] results, unreachable code after exit points and the PSR-0/PSR-4 namespace check.",
+          "type": "bool",
+          "default": true,
+          "group": "lang.php",
+          "section": "Inspections",
+          "project": false,
+          "order": 30
+        },
+        {
           "key": "php.stubs.path",
           "title": "Default stubs path",
           "description": "A phpstorm-stubs checkout used for PHP's own classes, functions and constants (Go to Declaration on \\Throwable, array_map). Empty: Forge downloads JetBrains' phpstorm-stubs into its cache folder on first use, or uses Intelephense's stubs.",

@@ -14,14 +14,18 @@ use forge_process::{CommandLine, PtyEvent, PtySink, RunEvent, RunSink};
 use forge_project::ProjectInfo;
 use forge_vcs::{GitExec, GitOutput, GitRequest};
 use futures_util::future::BoxFuture;
+use phpforge_lang_php::complete::PhpCompletion;
 use phpforge_lang_php::generate::{GenerateKind, GenerateOptions, GenerateTargets, TextEdit};
 use phpforge_lang_php::hierarchy::{HierarchyQuery, PhpHierarchy};
 use phpforge_lang_php::hover::Hover;
 use phpforge_lang_php::imports::auto::UnresolvedClass;
 use phpforge_lang_php::index::{SearchKind, SymbolHit};
+use phpforge_lang_php::injections::LanguagePlace;
+use phpforge_lang_php::inspections::PhpProblem;
 use phpforge_lang_php::intentions::Intention;
 use phpforge_lang_php::lsp::{DetectedServers, LspServerConfig, PhpLspSettings};
 use phpforge_lang_php::navigate::{NavKind, NavTarget, PhpDefinition, PhpLineMarker, PhpUsages};
+use phpforge_lang_php::project::{LibraryEntry, LibraryRoot, PhpProjectSettings};
 use phpforge_lang_php::structure::FileStructure;
 use phpforge_lang_php::IndexStats;
 use serde::de::DeserializeOwned;
@@ -937,5 +941,49 @@ impl PhpBackend for RemoteBackend {
 
     fn detect_servers(&self, settings: PhpLspSettings) -> Result<DetectedServers> {
         self.php_call(PhpCall::DetectServers { settings })
+    }
+
+    fn configure(&self, settings: PhpProjectSettings) -> Result<()> {
+        self.php_call(PhpCall::Configure { settings })
+    }
+
+    fn inspect(&self, path: &str, content: Option<String>) -> Result<Vec<PhpProblem>> {
+        self.php_call(PhpCall::Inspect {
+            path: path.to_string(),
+            content,
+        })
+    }
+
+    fn complete(
+        &self,
+        path: &str,
+        offset: usize,
+        content: Option<String>,
+    ) -> Result<Option<PhpCompletion>> {
+        self.php_call(PhpCall::Complete {
+            path: path.to_string(),
+            offset,
+            content,
+        })
+    }
+
+    fn language_places(&self) -> Result<Vec<LanguagePlace>> {
+        self.php_call(PhpCall::LanguagePlaces)
+    }
+
+    fn libraries(&self) -> Result<Vec<LibraryRoot>> {
+        self.php_call(PhpCall::Libraries)
+    }
+
+    fn library_list(&self, path: &str) -> Result<Vec<LibraryEntry>> {
+        self.php_call(PhpCall::LibraryList {
+            path: path.to_string(),
+        })
+    }
+
+    fn library_read(&self, path: &str) -> Result<String> {
+        self.php_call(PhpCall::LibraryRead {
+            path: path.to_string(),
+        })
     }
 }

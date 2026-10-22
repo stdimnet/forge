@@ -366,6 +366,83 @@ async fn php_index_runs_on_the_agent() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn php_metadata_inspections_and_libraries_on_the_agent() {
+    let dir = project();
+    let p = dir.path();
+    std::fs::write(
+        p.join("composer.json"),
+        r#"{"autoload":{"psr-4":{"App\\":"app/"}}}"#,
+    )
+    .unwrap();
+    std::fs::write(
+        p.join(".phpstorm.meta.php"),
+        "<?php\nnamespace PHPSTORM_META {\n    expectedArguments(\\App\\Models\\Order::setStatus(), 0, 'draft', 'paid');\n}\n",
+    )
+    .unwrap();
+    std::fs::write(
+        p.join("app/Models/Order.php"),
+        "<?php\nnamespace App\\Models;\n\nclass Order\n{\n    #[\\JetBrains\\PhpStorm\\Deprecated('Use pay()')]\n    public function settle(): void {}\n    public function setStatus(string $s): void {}\n    public function check(#[\\JetBrains\\PhpStorm\\Language('SQL')] string $where): void {}\n}\n",
+    )
+    .unwrap();
+    std::fs::create_dir_all(p.join("app/Misc")).unwrap();
+    std::fs::write(
+        p.join("app/Misc/Thing.php"),
+        "<?php\nnamespace App\\Wrong;\n\nclass Thing {}\n",
+    )
+    .unwrap();
+    let lib = tempfile::tempdir().unwrap();
+    std::fs::create_dir_all(lib.path().join("Legacy")).unwrap();
+    std::fs::write(
+        lib.path().join("Legacy/Helper.php"),
+        "<?php\nnamespace Legacy;\nclass Helper {}\n",
+    )
+    .unwrap();
+    let lib_dir = lib.path().to_string_lossy().into_owned();
+    let root = p.to_string_lossy().into_owned();
+    let client = connect();
+    let backend =
+        blocking(move || RemoteBackend::open(Arc::new(client), host(), &root).unwrap()).await;
+    blocking(move || {
+        let php = backend.php();
+        php.configure(phpforge_lang_php::project::PhpProjectSettings {
+            include_paths: vec![lib_dir.clone()],
+            ..Default::default()
+        })
+        .unwrap();
+        php.index_workspace(Arc::new(|_, _| {})).unwrap();
+        // The include path is indexed on the agent and browsable as a library.
+        let hits = php.search("Helper", Default::default(), 10, false).unwrap();
+        assert_eq!(hits[0].fqn, "Legacy\\Helper");
+        let roots = php.libraries().unwrap();
+        assert_eq!(roots.len(), 1);
+        let entries = php.library_list(&roots[0].path).unwrap();
+        assert_eq!(entries[0].name, "Legacy");
+        let helper = format!("{}/Legacy/Helper.php", roots[0].path);
+        assert!(php.library_read(&helper).unwrap().contains("class Helper"));
+        assert!(php.library_read("/etc/hostname").is_err());
+
+        // Inspections: deprecation, PSR-4 namespace.
+        let src = "<?php\nnamespace App\\Http;\nuse App\\Models\\Order;\nfunction f(Order $o) { $o->settle(); $o->setStatus(''); }\n";
+        let problems = php.inspect("app/Http/F.php", Some(src.into())).unwrap();
+        assert_eq!(problems[0].code, "deprecated", "{problems:?}");
+        let thing = php.inspect("app/Misc/Thing.php", None).unwrap();
+        assert_eq!(thing[0].code, "psr4Namespace", "{thing:?}");
+        // Completion from the metadata.
+        let at = src.find("('')").unwrap() + 2;
+        let c = php
+            .complete("app/Http/F.php", at, Some(src.into()))
+            .unwrap()
+            .unwrap();
+        let values: Vec<&str> = c.items.iter().map(|i| i.insert.as_str()).collect();
+        assert_eq!(values, vec!["draft", "paid"]);
+        let places = php.language_places().unwrap();
+        assert_eq!(places[0].name, "check");
+        assert_eq!(places[0].language, "SQL");
+    })
+    .await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn terminals_processes_and_watching() {
     let dir = project();
     let root = dir.path().canonicalize().unwrap();

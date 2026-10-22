@@ -99,6 +99,13 @@ pub const RULES: &[Rule] = &[
         places: "wp_add_inline_style()",
     },
     Rule {
+        id: "php-language-attribute",
+        name: "#[Language] parameters",
+        language: "sql",
+        host: Host::Php,
+        places: "Arguments of parameters marked #[Language('…')] (JetBrains PhpStorm attributes); the attribute names the language",
+    },
+    Rule {
         id: "js-sql-keywords",
         name: "SQL statements in strings",
         language: "sql",
@@ -154,6 +161,8 @@ pub fn rule_infos() -> Vec<RuleInfo> {
                 // Heredoc labels name their own language.
                 language_label: if r.id == "php-heredoc" {
                     "(from the label)".into()
+                } else if r.id == "php-language-attribute" {
+                    "(from the attribute)".into()
                 } else {
                     lang.into()
                 },
@@ -740,7 +749,42 @@ fn excluded_call(call: &Call) -> bool {
 }
 
 /// All injections of a source, in source order.
-pub fn detect(src: &str, host: Host, lexed: &Lexed, disabled: &[String]) -> Vec<Found> {
+/// A parameter marked `#[Language]`: arguments of calls to `name` (a function, or a method
+/// when `method` is set) at position `argument` carry `language`. The PHP index finds them.
+#[derive(Debug, Clone, Default, PartialEq, Eq, serde::Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct InjectionPlace {
+    pub name: String,
+    pub argument: usize,
+    pub method: bool,
+    /// Language id or name (`SQL`, `RegExp`, `JSON`).
+    pub language: String,
+}
+
+fn place_language(call: &Call, places: &[InjectionPlace]) -> Option<&'static Language> {
+    let name = call.name.trim_start_matches('\\');
+    let name = name.rsplit('\\').next().unwrap_or(name);
+    places
+        .iter()
+        .find(|p| {
+            p.argument == call.arg
+                && p.method == !call.object.is_empty()
+                && p.name
+                    .rsplit('\\')
+                    .next()
+                    .unwrap_or(&p.name)
+                    .eq_ignore_ascii_case(name)
+        })
+        .and_then(|p| languages::language(&p.language))
+}
+
+pub fn detect(
+    src: &str,
+    host: Host,
+    lexed: &Lexed,
+    disabled: &[String],
+    places: &[InjectionPlace],
+) -> Vec<Found> {
     let lits = &lexed.literals;
     let ctx = Ctx {
         src,
@@ -814,6 +858,19 @@ pub fn detect(src: &str, host: Host, lexed: &Lexed, disabled: &[String]) -> Vec<
                         hit = Some(found(lang, Source::Rule, Some("php-heredoc"), None));
                     }
                 }
+            }
+        }
+        if hit.is_none() && host == Host::Php && enabled("php-language-attribute") {
+            if let Some(lang) = ctx
+                .call_of(first.start)
+                .and_then(|call| place_language(&call, places))
+            {
+                hit = Some(found(
+                    lang,
+                    Source::Rule,
+                    Some("php-language-attribute"),
+                    None,
+                ));
             }
         }
         if hit.is_none() && first.label.as_deref() != Some("DQL") {

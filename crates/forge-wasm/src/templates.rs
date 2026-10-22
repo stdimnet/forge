@@ -57,13 +57,28 @@ struct Psr4Request {
     composer_path: String,
     dir: Option<String>,
     namespace: Option<String>,
+    /// The `php.sourceRoots` setting.
+    source_roots: Vec<psr4::SourceRootSetting>,
 }
 
-fn roots(r: &Psr4Request) -> Vec<psr4::Psr4Root> {
+fn composer_roots(r: &Psr4Request) -> Vec<psr4::Psr4Root> {
     r.composer_json
         .as_deref()
         .map(|t| psr4::roots(t, &psr4::composer_dir(&r.composer_path)))
         .unwrap_or_default()
+}
+
+fn roots(r: &Psr4Request) -> Vec<psr4::Psr4Root> {
+    psr4::apply_overrides(&composer_roots(r), &r.source_roots)
+}
+
+/// `{ composerJson, composerPath, sourceRoots }` → `SourceRootEntry[]` (Settings | Directories).
+#[wasm_bindgen]
+pub fn php_source_roots(request_json: &str) -> String {
+    match parse::<Psr4Request>(request_json) {
+        Ok(r) => to_json(&psr4::describe_roots(&composer_roots(&r), &r.source_roots)),
+        Err(e) => e,
+    }
 }
 
 /// `{ composerJson, composerPath, dir }` → `string | null`.
