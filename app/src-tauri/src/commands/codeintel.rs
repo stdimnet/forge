@@ -682,6 +682,10 @@ async fn resolve_declaration(
         answer.message = None;
     } else if !def.targets.is_empty() {
         answer.targets = def.targets;
+        // Include path files open as read-only library files.
+        for t in &mut answer.targets {
+            t.path = lib.ui_path(&t.path);
+        }
         answer.source = "index".into();
         answer.message = None;
     } else if let Some(external) = def.external {
