@@ -59,6 +59,7 @@ pub mod stacktrace;
 pub mod symfony;
 pub mod templates;
 pub mod terminal;
+pub mod test_frameworks;
 pub mod updates;
 pub mod viewers;
 pub mod vim;
