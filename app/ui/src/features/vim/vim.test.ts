@@ -42,14 +42,14 @@ afterEach(() => {
 });
 
 /** An editor with the caret at `|`, attached to the engine. */
-async function editor(doc: string): Promise<EditorView> {
+async function editor(doc: string, readOnly = false): Promise<EditorView> {
   const caret = Math.max(0, doc.indexOf("|"));
   const view = new EditorView({
     parent: document.body,
     state: EditorState.create({
       doc: doc.replace("|", ""),
       selection: EditorSelection.cursor(caret),
-      extensions: [history(), EditorState.allowMultipleSelections.of(true), vimExtension()],
+      extensions: [history(), EditorState.allowMultipleSelections.of(true), EditorState.readOnly.of(readOnly), vimExtension()],
     }),
   });
   views.push(view);
@@ -154,6 +154,16 @@ describe("Vim emulation in the editor", () => {
     type(view, "<Esc>i");
     expect(last?.mode).toBe("insert");
     expect(view.dom.classList.contains("cm-vim-insert")).toBe(true);
+  });
+
+  it("does not edit read-only documents", async () => {
+    const view = await editor("|a\nb", true);
+    type(view, "dd");
+    expect(text(view)).toBe("a\nb");
+    expect(last?.message?.text).toBe("File is read-only");
+    // The engine's copy is in step again: motions still work.
+    type(view, "jx");
+    expect(view.state.selection.main.head).toBe(2);
   });
 
   it("detaches when the emulation is turned off", async () => {

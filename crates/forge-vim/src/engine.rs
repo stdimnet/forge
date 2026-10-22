@@ -632,7 +632,7 @@ impl Vim {
 
     /// Whether the IDE keymap should leave this key to the focused editor's Vim.
     pub fn claims(&self, e: &DomKey) -> bool {
-        if !self.enabled || e.alt_key || e.meta_key {
+        if !self.enabled {
             return false;
         }
         let Some(st) = self.active.and_then(|h| self.bufs.get(&h)) else {
@@ -644,20 +644,28 @@ impl Vim {
         if k.starts_with("<F") || k == "<S-Esc>" {
             return false;
         }
+        // Characters typed with AltGr or Option count as plain keys (`key_of_event`).
+        let ctrl_esc = e.ctrl_key && k == "<Esc>";
+        let modified =
+            ctrl_esc || k.starts_with("<C-") || k.starts_with("<A-") || k.starts_with("<D-");
+        if modified && (k.contains("A-") || k.contains("D-")) {
+            return false;
+        }
         if st.cmdline.is_some() {
-            return !e.ctrl_key
+            return !modified
+                || ctrl_esc
                 || matches!(
                     k.as_str(),
-                    "<C-r>" | "<C-w>" | "<C-u>" | "<C-h>" | "<Esc>" | "<C-c>" | "<C-j>" | "<C-m>"
+                    "<C-r>" | "<C-w>" | "<C-u>" | "<C-h>" | "<C-c>" | "<C-j>" | "<C-m>"
                 );
         }
-        if e.ctrl_key {
+        if modified {
             let mode = match st.mode {
                 Mode::Insert | Mode::Replace => HandlerMode::Insert,
                 Mode::Visual(_) => HandlerMode::Visual,
                 Mode::Normal => HandlerMode::Normal,
             };
-            let key = if k == "<Esc>" { "<C-[>".to_string() } else { k };
+            let key = if ctrl_esc { "<C-[>".to_string() } else { k };
             return self.handlers.handler(&key, mode) == Handler::Vim;
         }
         match st.mode {
@@ -897,7 +905,11 @@ impl Vim {
                         head: u(b.line_end(lc)),
                     }]
                 } else {
-                    let to = if la + 1 < b.line_count() { b.line_end(la) + 1 } else { b.line_end(la) };
+                    let to = if la + 1 < b.line_count() {
+                        b.line_end(la) + 1
+                    } else {
+                        b.line_end(la)
+                    };
                     vec![SelRange {
                         anchor: u(to),
                         head: u(b.line_start(lc)),

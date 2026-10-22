@@ -309,6 +309,16 @@ fn claims_keys_from_the_ide_keymap() {
     assert!(v.claims(&ev("r", "KeyR", true)));
     assert!(!v.claims(&ev("s", "KeyS", true)));
     assert!(!v.claims(&ev("F5", "F5", false)));
+    let altgr = DomKey {
+        alt_key: true,
+        ..ev("{", "Digit7", true)
+    };
+    assert!(v.claims(&altgr), "AltGr characters are typed text");
+    let ctrl_alt_v = DomKey {
+        alt_key: true,
+        ..ev("v", "KeyV", true)
+    };
+    assert!(!v.claims(&ctrl_alt_v));
     v.feed(h, "i");
     assert!(!v.claims(&ev("j", "KeyJ", false)));
     assert!(v.claims(&ev("Escape", "Escape", false)));

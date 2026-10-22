@@ -249,6 +249,11 @@ class VimController {
     const state = view.state;
     let length = state.doc.length;
     const spec: TransactionSpec = { annotations: [vimEcho.of(true)] };
+    if (res.changes.length && state.readOnly) {
+      // The engine edited its copy of a read-only document: drop the edits and resync.
+      res = { ...res, changes: [], selection: null, message: { text: "File is read-only", error: true } };
+      this.needText = true;
+    }
     if (res.changes.length) {
       let cs = ChangeSet.empty(length);
       for (const c of res.changes) {
@@ -281,7 +286,7 @@ class VimController {
     }
     spec.effects = effects;
     view.dispatch(spec);
-    if (view.state.doc.length !== res.docLength) this.needText = true;
+    if (view.state.doc.length !== res.docLength && !state.readOnly) this.needText = true;
     host.status(view, res);
     if (res.wait && res.timeoutlen > 0) this.timer = setTimeout(() => this.timeout(), res.timeoutlen);
     if (res.effects.length || res.resume) void this.runEffects(res);

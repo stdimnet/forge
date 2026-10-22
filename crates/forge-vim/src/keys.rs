@@ -101,6 +101,11 @@ pub fn key_of_event(e: &DomKey) -> Option<Key> {
     if mods.is_empty() {
         return Some(c.to_string());
     }
+    // A character composed with AltGr (Ctrl+Alt on Windows) or Option on macOS, e.g. `{` on
+    // a German keyboard: the key differs from the physical key's own character.
+    if e.alt_key && !e.meta_key && code_char(&e.code).is_some_and(|b| b != c.to_ascii_lowercase()) {
+        return Some(c.to_string());
+    }
     // Ctrl/Alt combinations use the physical key so layouts do not matter.
     let base = code_char(&e.code).unwrap_or(c.to_ascii_lowercase());
     if mods == "C-" && base == '[' {
@@ -337,6 +342,16 @@ mod tests {
         assert_eq!(key_of_event(&ev(" ", "Space", false, false)).unwrap(), " ");
         assert_eq!(key_of_event(&ev("Shift", "ShiftLeft", false, true)), None);
         assert_eq!(key_of_event(&ev("F5", "F5", false, false)).unwrap(), "<F5>");
+        let altgr = DomKey {
+            alt_key: true,
+            ..ev("{", "Digit7", true, false)
+        };
+        assert_eq!(key_of_event(&altgr).unwrap(), "{");
+        let ctrl_alt_v = DomKey {
+            alt_key: true,
+            ..ev("v", "KeyV", true, false)
+        };
+        assert_eq!(key_of_event(&ctrl_alt_v).unwrap(), "<C-A-v>");
     }
 
     #[test]
