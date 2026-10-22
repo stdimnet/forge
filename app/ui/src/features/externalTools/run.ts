@@ -4,7 +4,8 @@
  * command (`external_tool_command`) and run it in the Run tool window with the tool's
  * output filters. "Synchronize files after execution" refreshes the Project view.
  */
-import type { RunConfiguration } from "@/ipc/run";
+import { runApi, type RunConfiguration } from "@/ipc/run";
+import { showToolWindow } from "@/state/layout";
 import { runToolsApi, type ExternalTool, type MacroContext } from "@/ipc/runTools";
 import { balloonsFor } from "@/keymap";
 import { activeView } from "@/features/lsp/navigation";
@@ -109,7 +110,18 @@ export async function runExternalTool(tool: ExternalTool, path?: string): Promis
       outputFilters: JSON.stringify(cmd.outputFilters),
     },
   };
-  const handle = await launch(cfg, { background: !tool.openConsole });
+  // "Make console active on message in stdout / stderr": show the console with the first
+  // such message instead of right away.
+  const activateLater = tool.openConsole && (tool.activateOnStdout || tool.activateOnStderr);
+  const handle = await launch(cfg, { background: !tool.openConsole || activateLater });
+  if (handle && activateLater) {
+    const stop = await runApi.onEvent(handle.started.runId, (e) => {
+      if (e.type !== "output" || !(e.stream === "stderr" ? tool.activateOnStderr : tool.activateOnStdout)) return;
+      showToolWindow("run");
+      stop();
+    });
+    void handle.exited.then(() => stop());
+  }
   if (handle && tool.synchronize) {
     void handle.exited.then(() => {
       const dir = context.filePath?.includes("/") ? context.filePath.slice(0, context.filePath.lastIndexOf("/")) : "";
