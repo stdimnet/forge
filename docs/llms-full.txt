@@ -109,7 +109,7 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 
 ## Not available yet
 
-Refactorings other than Rename (Extract, Move, ...), Local History, Get from VCS, multiple
+Refactorings other than Rename (Extract, Move, ...), Get from VCS, multiple
 project windows and a plugin Marketplace. The pages mark smaller gaps with notes; the
 [roadmap](docs/ROADMAP.md) lists what comes next.
 
@@ -648,7 +648,6 @@ happening.
 - Find Usages in File (`Ctrl+F7`), Highlight Usages in File
 - Extract Interface / Superclass, Pull Members Up / Push Members Down
 - File Structure popup (`Ctrl+F12`)
-- Local History
 - Go to Test (`Ctrl+Shift+T`)
 - Distraction Free / Presentation / Zen modes
 - Marketplace, settings export/import
@@ -727,6 +726,7 @@ not finished, the page says so.
 | Page | Covers |
 | --- | --- |
 | [Git](docs/guide/user/git.md) | Commit tool window, AI commit messages, diff, blame, branches, log |
+| [Local History](docs/guide/user/local-history.md) | revisions recorded on save, refactorings, VCS operations and external changes; Show History, Show History for Selection, Revert, Create Patch, labels, Recent Changes (`Alt+Shift+C`) |
 | [Code hosts](docs/guide/user/code-hosts.md) | GitHub, GitLab, Forgejo/Gitea pull/merge requests, issues, pipelines |
 
 ## Running, debugging and tools
@@ -7335,6 +7335,7 @@ Commit, push, update, branches, the log and blame. Windows/Linux shortcuts first
 | [New Branch](#new-branch) | — | — |
 | [Show Git Log](#show-git-log) | — | — |
 | [Annotate with Git Blame](#annotate-with-git-blame) | — | — |
+| [Recent Changes](#recent-changes) | `Alt+Shift+C` | `Alt+Shift+C` |
 
 ## Commit
 
@@ -7423,6 +7424,19 @@ Shows Git blame (author and date per line) in the editor gutter.
 ![Annotate with Git Blame](docs/screenshots/vcs-blame.png)
 
 More: [Git](docs/guide/user/git.md#blame)
+
+## Recent Changes
+
+**Shortcut:** `Alt+Shift+C` · macOS `Alt+Shift+C` · action id `RecentChanges`
+
+Lists the latest Local History changes of the project (refactorings, external changes, VCS
+operations, labels, saves); `Enter` opens one with its diff and Revert.
+
+**Menu:** View | Recent Changes
+
+![Recent Changes](docs/screenshots/recent-changes.png)
+
+More: [Local History](docs/guide/user/local-history.md#recent-changes)
 
 
 ---
@@ -10189,8 +10203,160 @@ Pull and merge requests, issues and CI pipelines of GitHub, GitLab and Forgejo/G
 
 ## Not available yet
 
-Push All up to Here and Local History are not implemented yet. Projects (cloned repositories,
+Push All up to Here is not implemented yet. Local History (revisions without commits, labels,
+Recent Changes) has its own page: [Local History](docs/guide/user/local-history.md). Projects (cloned repositories,
 worktrees) open in the current window until Forge supports several project windows.
+
+
+---
+
+Source: docs/guide/user/local-history.md
+
+# Local History
+
+Local History is Forge's own record of how your project files changed, independent of Git.
+It works in every project (with or without a repository, local or
+[remote](docs/guide/user/remote-development.md)) and lets you look at and restore earlier contents of a file,
+a folder or a few lines, even of files you never committed.
+
+![Local History of a file](docs/screenshots/local-history-file.png)
+
+## What is recorded
+
+Forge records the content of a file:
+
+| Event | Shown as |
+| --- | --- |
+| Every save (`Ctrl+S`, autosave, Actions on Save) | `Saved` |
+| A refactoring (rename, move, extract, quick fixes that change several files, Replace in Files, Structural Replace): all files it changes, open editors included, as one change | `Refactoring: Rename spent() to totalSpent()`, `Replace in Files` |
+| VCS operations: Update Project / Pull, Checkout, Merge, Rebase, Reset, Rollback, Stash / Unstash, Shelve / Unshelve | `Update from VCS`, `Checkout main`, `Rollback`, `Unshelve <name>`, … |
+| Changes made outside Forge (another editor, a terminal, `composer`, a code generator), found by the file watcher | `External change` |
+| Creating, deleting, renaming, moving and copying files and folders (Project view, refactorings, file templates) | `Create file A.php`, `Delete Legacy`, `Rename A.php to B.php`, `Move A.php to app/Models` |
+| Labels you put | the label's name, in bold |
+| Local History's own Revert | `Revert to …` |
+
+Forge also keeps the content of a file when it first opens it, so the first change of a file
+can be compared with and reverted to how it was before. A file that changed while Forge was
+closed is recorded as an `External change` the next time Forge reads it.
+
+Recording happens in the background: saving never waits for it.
+
+**Not recorded:** files in excluded folders (by default `.git`, `.hg`, `.svn`, `node_modules`,
+`vendor` and `.idea`, at any depth), binary files and files larger than the size limit
+(1024 KB by default). See [Settings](#settings).
+
+## Show History
+
+Open the history of a file, a folder or the whole project:
+
+- **File | Local History | Show History** (in projects without Git also **VCS | Local History |
+  Show History**): the file or folder selected in the Project view, otherwise the file in the
+  editor;
+- **Project view** context menu ▸ **Local History** ▸ **Show History** (on the project root:
+  the whole project);
+- **editor** context menu ▸ **Local History** ▸ **Show History**.
+
+The history opens as an editor tab, **Local History: _name_**:
+
+- the **revision list**, newest first: what happened (`Saved`, `Refactoring: …`,
+  `External change`, labels in bold) and when. A revision is the state of the file **before**
+  that change (for a label: at the label), so the newest revision compared with the current
+  version shows the latest change. Renamed and moved files keep their history; the old path
+  is shown next to the revision.
+- the **diff** of the selected revision against the current version (the editor's text when
+  the file is open, unsaved edits included). Double-click a revision or press `Ctrl+D` for the
+  full diff viewer.
+- **Filter by text** in the toolbar keeps the revisions whose name or content contains the
+  text, e.g. a method name you deleted somewhere along the way.
+
+For a **folder**, a revision lists every file in the folder that differs from now: changed
+files, files created since (Revert deletes them) and files deleted since (shown struck
+through; Revert recreates them). Select a file to see its diff.
+
+![Local History of the project with a deleted file](docs/screenshots/local-history-folder.png)
+
+### Toolbar and context menu
+
+| Action | What it does |
+| --- | --- |
+| **Revert** | Restores the selected revision: the file gets its old content back. For a folder (after a confirmation) every listed file is restored, deleted files and folders are recreated and files created since are deleted. Unsaved edits are saved first; the revert itself is recorded, so it can be reverted too. |
+| **Show Diff** (`Ctrl+D`) | The selected revision against the current version in the diff viewer. |
+| **Create Patch…** | The difference between the revision and now as a unified diff (git format), copied to the clipboard or saved to a file. Apply it later with Git ▸ Patch ▸ Apply Patch. |
+| **Put Label…** | See [Labels](#labels). |
+| **Refresh** | Reloads the list (it also refreshes by itself when something is recorded). |
+
+## Show History for Selection
+
+Select lines in the editor (or put the caret on one line) and choose **Local History ▸ Show
+History for Selection** in the editor context menu (action `LocalHistory.ShowSelectionHistory`,
+also in Find Action). The **History for Selection** tab lists only the revisions in which those
+lines were different, with the lines as they were next to the lines now. The lines are
+followed through the file's history, also when code above them was added or removed.
+
+![Show History for Selection](docs/screenshots/local-history-selection.png)
+
+## Labels
+
+**File | Local History | Put Label…** (or the Project view and editor menus, VCS | Local
+History in projects without Git, or the tag button in a history tab) names the current moment for the whole
+project, e.g. "Before upgrading Laravel". Unsaved edits are saved first.
+
+![Put Label](docs/screenshots/local-history-put-label.png)
+
+Labels appear in bold in the history of every file and folder. Select a label and press
+**Revert** to put a file, a folder or (in the project's history, or from Recent Changes) the
+whole project back to that moment.
+
+## Recent Changes
+
+**View | Recent Changes** (`Alt+Shift+C`, macOS `Opt+Shift+C`) lists what happened recently in
+the whole project, newest first: refactorings, external changes, VCS operations, labels,
+created and deleted files; saves in a row are one entry. Type to filter, use the arrow keys and
+press `Enter` (or click) to open the change.
+
+![Recent Changes](docs/screenshots/recent-changes.png)
+
+The change opens as a tab with its files and the diff of each file before and after the change.
+**Revert** there gives the files the content they had before the change (for a label: the
+whole project goes back to the label).
+
+![A recent change with its files](docs/screenshots/recent-change.png)
+
+## Settings
+
+Settings | Version Control | Local History:
+
+| Setting | Default | |
+| --- | --- | --- |
+| Keep local history for (working days) | 5 | Only days on which something was recorded count, like PHPStorm's "working days". Older revisions and labels are removed when a project opens and every few hours. |
+| Maximum history size per project (MB) | 512 | When the stored contents grow larger, the oldest revisions are removed first. |
+| Do not record files larger than (KB) | 1024 | Binary files are never recorded. |
+| Excluded folders | `.git`, `.hg`, `.svn`, `node_modules`, `vendor`, `.idea` | Folder names (at any depth) or project-relative paths like `storage/logs`. |
+
+![Local History settings](docs/screenshots/local-history-settings.png)
+
+## Where it is stored
+
+Local History is kept on this computer, never inside the project:
+`<data dir>/forge/projects/<name>-<hash>/local-history/` (see
+[File locations](docs/guide/reference/file-locations.md)). `changes.jsonl` lists the changes, one per
+line; `content/` holds each file content once (contents are compressed and stored by their
+hash, so saving the same text again costs nothing). For a remote project the contents are read
+through the SSH connection and stored locally.
+
+> **Note:** Local History is not a backup. It is cleaned up after the configured working days,
+> and it is lost when Forge's data directory is deleted. Commit important work.
+
+## Shortcuts and actions
+
+| Action | Action id | Windows / Linux | macOS |
+| --- | --- | --- | --- |
+| Show History | `LocalHistory.ShowHistory` | — | — |
+| Show History for Selection | `LocalHistory.ShowSelectionHistory` | — | — |
+| Put Label… | `LocalHistory.PutLabel` | — | — |
+| Recent Changes | `RecentChanges` | `Alt+Shift+C` | `Opt+Shift+C` |
+
+Assign shortcuts in Settings | [Keymap](docs/guide/user/keymap.md).
 
 
 ---
@@ -12025,6 +12191,7 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Error Description | `ShowErrorDescription` | `Ctrl+F1` | `Cmd+F1` | yes |
 | Recent Files | `RecentFiles` | `Ctrl+E` | `Cmd+E` | yes |
 | Recently Changed Files | `RecentChangedFiles` |  |  | yes |
+| Recent Changes | `RecentChanges` | `Alt+Shift+C` | `Alt+Shift+C` | yes |
 | Recent Locations | `RecentLocations` | `Ctrl+Shift+E` | `Cmd+Shift+E` | yes |
 | Switcher | `Switcher` | `Ctrl+Tab`, `Ctrl+Shift+Tab` | `Ctrl+Tab`, `Ctrl+Shift+Tab` | yes |
 | Toggle Rendered View | `ToggleRenderedDocPresentation` | `Ctrl+Alt+Q` | `Ctrl+Alt+Q` | yes |
@@ -12261,7 +12428,9 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 
 | Action | Action id | Windows / Linux | macOS | In Forge |
 | --- | --- | --- | --- | --- |
-| Show Local History | `LocalHistory.ShowHistory` |  |  | — |
+| Show Local History | `LocalHistory.ShowHistory` |  |  | yes |
+| Show History for Selection | `LocalHistory.ShowSelectionHistory` |  |  | yes |
+| Put Label… | `LocalHistory.PutLabel` |  |  | yes |
 
 ### Window
 
@@ -12522,8 +12691,8 @@ Projects, new files and scratches, settings and saving. Open it with ☰ (`Alt+\
 | File Properties › Make File Read-Only | — | — | not yet | Not available yet; the entry is disabled. |
 | File Properties › File Path | `Ctrl+Alt+F12` | `Cmd+Alt+F12` | not yet | Not available yet; the entry is disabled. |
 | **Local History** | | | | submenu |
-| Local History › Show History | — | — | not yet | Not available yet; the entry is disabled. |
-| Local History › Put Label… | — | — | not yet | Not available yet; the entry is disabled. |
+| Local History › Show History | — | — | yes | Revisions of the selected file or folder (or the editor's file) recorded on save, refactorings, VCS operations and external changes, with diff, Revert and Create Patch. [More](docs/guide/user/local-history.md#show-history) ([screenshot](docs/screenshots/local-history-file.png)) |
+| Local History › Put Label… | — | — | yes | Names the current moment for the whole project; revert files, folders or the project to it. [More](docs/guide/user/local-history.md#labels) ([screenshot](docs/screenshots/local-history-put-label.png)) |
 | Save All | `Ctrl+S` | `Cmd+S` | yes | Saves all modified files. [More](docs/guide/user/workbench.md#editor-tabs) |
 | Reload All from Disk | `Ctrl+Alt+Y` | `Cmd+Alt+Y` | not yet | Not available yet; the entry is disabled. |
 | Invalidate Caches… | — | — | not yet | Not available yet; the entry is disabled. |
@@ -12644,6 +12813,7 @@ Tool windows, appearance toggles, documentation popups and recent files. Open it
 | Error Description | `Ctrl+F1` | `Cmd+F1` | yes | Shows the full description of the problems at the caret. [More](docs/guide/user/editor.md#type-info-context-info-and-error-description) ([screenshot](docs/screenshots/error-description.png)) |
 | Recent Files | `Ctrl+E` | `Cmd+E` | yes | Lists recently opened files and the tool windows; press again for recently edited files only. [More](docs/guide/user/workbench.md#recent-files-and-switcher) ([screenshot](docs/screenshots/docs-recent-files.png)) |
 | Recently Changed Files | — | — | yes | Lists recently edited files. [More](docs/guide/user/workbench.md#recent-files-and-switcher) |
+| Recent Changes | `Alt+Shift+C` | `Alt+Shift+C` | yes | Lists the latest Local History changes of the project (refactorings, external changes, VCS operations, labels, saves); open one to see its diff and revert it. [More](docs/guide/user/local-history.md#recent-changes) ([screenshot](docs/screenshots/recent-changes.png)) |
 | Recent Locations | `Ctrl+Shift+E` | `Cmd+Shift+E` | yes | Lists recently visited and edited places with a code snippet each; press again for changed places only. [More](docs/guide/user/workbench.md#recent-locations) ([screenshot](docs/screenshots/recent-locations.png)) |
 | Compare With… | `Ctrl+D` | `Cmd+D` | yes | Compares the two files or folders selected in the Project view, or asks for the second one. [More](docs/guide/user/git.md#compare-files-and-folders) ([screenshot](docs/screenshots/compare-directories.png)) |
 | Compare with Clipboard | — | — | yes | Compares the clipboard with the selection or the whole file. [More](docs/guide/user/git.md#compare-with-clipboard) ([screenshot](docs/screenshots/compare-with-clipboard.png)) |
@@ -13439,6 +13609,17 @@ Page id `vcs.git`.
 | `vcs.git.commit.bodyRightMargin` | int (40–200) | `72` | user | Commit Message Inspections | Right margin for body (columns) |
 | `vcs.git.commit.warnOnCrlf` | bool | `true` | user | Commit | Warn if CRLF line separators are about to be committed |
 | `vcs.git.commit.signOff` | bool | `false` | user | Commit | Sign-off commits |
+
+### Version Control | Local History
+
+Page id `vcs.local-history`. See [Local History](docs/guide/user/local-history.md).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `localHistory.keepDays` | int (1–365) | `5` | user |  | Keep local history for (working days) — Only days with changes count. Older revisions and labels are removed when a project opens and every few hours. |
+| `localHistory.maxStorageMb` | int (16–10240) | `512` | user |  | Maximum history size per project (MB) — When the stored contents grow larger, the oldest revisions are removed first. |
+| `localHistory.maxFileSizeKb` | int (16–102400) | `1024` | user |  | Do not record files larger than (KB) — Larger files and binary files are left out of Local History. |
+| `localHistory.excludedFolders` | list | `.git`, `.hg`, `.svn`, `node_modules`, `vendor`, `.idea` | user |  | Excluded folders — Files in folders with these names (or project-relative paths like `storage/logs`) are never recorded. |
 
 ### Version Control | Code Hosts
 
@@ -14295,6 +14476,7 @@ index falls back to `<project>/.forge/cache/php-index.json`.
 | `composer/composer.phar` | composer.phar downloaded from getcomposer.org with Settings \| PHP \| Composer, checked against its published SHA-256 sum |
 | `runtimes/node-<version>/` | the Node.js build Forge downloaded for language servers (only when no Node.js 18+ was installed) |
 | `projects/<name>-<hash>/bookmarks.json` | the bookmarks and bookmark lists of a project (`<hash>` of the project root, for remote projects of `user@host:/path`); kept out of the project |
+| `projects/<name>-<hash>/local-history/` | the project's [Local History](docs/guide/user/local-history.md): `changes.jsonl` (one change set per line: saves, refactorings, VCS operations, external changes, labels) and `content/` (file contents, zlib-compressed and stored once per content hash); cleaned up after the configured working days and size; kept out of the project |
 | `projects/<name>-<hash>/changelists.json` | the changelists of the Commit tool window (names, comments, the active list, which files and changes belong where); kept out of the project |
 | `projects/<name>-<hash>/shelf/<id>/` | shelved changelists (Git ▸ Shelve Changes): `changes.json` (name, date, branch, files) and `shelved.patch`; kept out of the project |
 | `chat-history/<project>-<hash>/<chat>.json` | the AI chats of each project (the newest 100), see [AI](docs/guide/user/ai.md) |
@@ -16217,6 +16399,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-keymap](docs/guide/developer/crates/forge-keymap.md) | PHPStorm-compatible keymap: shortcut model, default keymaps, overrides, conflicts and the key resolver |
 | [forge-langservers](docs/guide/developer/crates/forge-langservers.md) | Forge IDE: catalog, detection, configuration and installation of language servers |
 | [forge-livetemplates](docs/guide/developer/crates/forge-livetemplates.md) | Live templates: template sets, contexts, variables and expansion, Surround With and Unwrap/Remove (pure, WebAssembly-friendly) |
+| [forge-localhistory](docs/guide/developer/crates/forge-localhistory.md) | Local History: file contents recorded on save, refactorings, VCS operations and external changes, with labels, revert and selection history |
 | [forge-lsp](docs/guide/developer/crates/forge-lsp.md) | Forge IDE: generic Language Server Protocol client and server manager |
 | [forge-markdown](docs/guide/developer/crates/forge-markdown.md) | Forge Markdown: a safe AST (no raw HTML) for chat messages and documentation popups, built with pulldown-cmark (pure, also built to WebAssembly) |
 | [forge-viewers](docs/guide/developer/crates/forge-viewers.md) | Forge file viewers: image metadata for the image editor and CSV/TSV tables for Edit as Table (pure, also built to WebAssembly) |
@@ -18023,6 +18206,90 @@ expressions), Surround With and Unwrap/Remove in PHP, JavaScript and Lua.
 
 ```sh
 cargo test -p forge-livetemplates
+```
+
+
+---
+
+Source: docs/guide/developer/crates/forge-localhistory.md
+
+# forge-localhistory
+
+`crates/forge-localhistory` — Local History: file contents recorded on save, refactorings, VCS operations and external changes, with labels, revert and selection history.
+
+## Purpose
+
+The model and store behind PHPStorm's Local History ([user guide](docs/guide/user/local-history.md)).
+
+- **Event model** (`model`): a `ChangeSet` (id, time, `ChangeKind`, name) holds `Entry`s, one
+  per path, with the path's `FileState` before and after (`Unknown`, `Absent`, `Dir` or
+  `File(hash)`; renames and moves carry `from`). Labels are change sets without entries;
+  `Baseline` sets keep the content a file had when Forge first read it and are never listed.
+  `Limits` decide what is recorded (excluded folders, size limit, no binary files).
+- **Storage** (`storage`): `Storage` is implemented in memory (`MemStorage`, used by
+  WebAssembly and tests) and on disk (`DiskStorage`, feature `disk`): an append-only
+  `changes.jsonl` (a set written again replaces the earlier line; compacted on load) and
+  `content/<2 hex>/<hash>`, zlib-compressed and deduplicated by the first 128 bits of the
+  SHA-256 of the content.
+- **`LocalHistory`**: `record` (unknown "before" states come from the last recorded state;
+  changes of one operation share a `group` and are merged into one set), `baseline`
+  (detects external changes), `put_label`, and the queries: `history` (file revisions
+  following renames, or folder revisions, with labels and a name/content filter), `state_at` /
+  `content` (a revision is the state *before* its change set), `folder_changes`,
+  `revert_file` / `revert_folder` / `revert_change` (plans of writes, deletes and folders to
+  create, in a safe order), `selection_history` (lines followed back through the revisions with
+  a line diff), `recent_changes` (saves in a row grouped), `change_files`, `patch` (git-style
+  unified diff) and `purge` (keep the last N working days, then drop the oldest sets until the
+  contents fit the size limit, delete unreferenced contents).
+
+The crate does no file system work on the project: callers hand it contents and apply the
+revert plans through the project backend.
+
+## Main public items
+
+```rust
+pub enum FileState { Unknown, Absent, Dir, File(String) }
+pub enum ChangeKind { Save, Edit, Refactoring, External, Vcs, Create, Delete, Rename, Move, Copy, Revert, Label, Baseline }
+pub struct ChangeSet { … }
+pub struct NewChange { … }
+pub struct Limits { … }
+pub trait Storage { … }
+pub struct MemStorage { … }
+pub struct DiskStorage { … }
+pub struct LocalHistory<S: Storage> { … }
+pub struct RevertPlan { … }
+pub fn content_hash(bytes: &[u8]) -> String { … }
+```
+
+## Used by
+
+- IPC: `local_history_list`, `local_history_content`, `local_history_folder_changes`,
+  `local_history_selection`, `local_history_recent`, `local_history_change_files`,
+  `local_history_put_label`, `local_history_patch`, `local_history_revert`,
+  `local_history_record`, `local_history_begin` / `local_history_end`,
+  `local_history_snapshot` (`app/src-tauri/src/commands/local_history.rs`). A recorder thread
+  per project receives messages from the file commands (`fs_write_text`, `fs_write_file`,
+  `fs_create_*`, `fs_rename`, `fs_delete`, `fs_copy`, `fs_read_text`), `code_apply_edit`,
+  Replace in Files, file templates and the file watcher; stored in
+  `<data dir>/forge/projects/<name>-<hash>/local-history/`.
+- UI: `app/ui/src/features/localHistory` (history tabs, Recent Changes popup);
+  `withLocalHistory` (`app/ui/src/ipc/localHistory.ts`) brackets refactorings and VCS
+  operations.
+- Browser mode: built into `forge-wasm` (`local_history_call`, in-memory store).
+
+## Dependencies
+
+- Workspace crates: none
+- External: `serde`, `serde_json`, `sha2`, `similar`, `flate2` (feature `disk`)
+
+## Tests
+
+5 source files; 14 unit tests (revisions before saves, exclusions, grouped operations, renames
+and folder reverts with labels, selection history, baselines and external changes, Recent
+Changes grouping, retention by working days and size, the disk log and compressed contents).
+
+```sh
+cargo test -p forge-localhistory
 ```
 
 

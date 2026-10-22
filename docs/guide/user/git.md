@@ -705,5 +705,6 @@ Pull and merge requests, issues and CI pipelines of GitHub, GitLab and Forgejo/G
 
 ## Not available yet
 
-Push All up to Here and Local History are not implemented yet. Projects (cloned repositories,
+Push All up to Here is not implemented yet. Local History (revisions without commits, labels,
+Recent Changes) has its own page: [Local History](local-history.md). Projects (cloned repositories,
 worktrees) open in the current window until Forge supports several project windows.

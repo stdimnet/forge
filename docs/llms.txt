@@ -43,6 +43,7 @@ Forge's rule of thumb is "Rust computes, TypeScript renders": logic lives in Rus
 - [WebForge](guide/user/webforge.md): HTML, CSS, JavaScript/TypeScript, Vue, React, Angular
 - [Run and debug](guide/user/run-debug.md) and [Debugging](guide/user/debugging.md): run configurations (PHP Built-in Web Server, PHP Web Page, PHP HTTP Request), Xdebug, breakpoints and logpoints, debugger console, Web Server Debug Validation
 - [Git](guide/user/git.md) and [Code hosts](guide/user/code-hosts.md): clone (Get from VCS), commit, message history, signing, branches, worktrees, log, blame, pull requests
+- [Local History](guide/user/local-history.md): revisions recorded on save, refactorings, VCS operations and external changes; Show History, Show History for Selection, Revert, Create Patch, labels, Recent Changes
 - [AI](guide/user/ai.md): AI providers, agent chat and AI commit messages
 - [Language servers](guide/user/language-servers.md): installing and configuring external language servers
 - [Settings and themes](guide/user/settings-and-themes.md): the Settings dialog, Ember and Anvil themes

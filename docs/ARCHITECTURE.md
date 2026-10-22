@@ -390,6 +390,60 @@ app/ui/            SolidJS UI
   in `<data dir>/forge/projects/<name>-<hash of the root>/bookmarks.json`, never in the
   project.
 
+- Local History (`src/ipc/localHistory.ts`, `forge-localhistory`, see the next section):
+  `local_history_list({ path, dir, filter? }) -> LhRevision[]`,
+  `local_history_content({ path, rev }) -> { state, text? }` (`state` `current` means
+  unchanged since the revision), `local_history_folder_changes({ path, rev })`,
+  `local_history_selection({ path, text, start, end })`, `local_history_recent({ limit })`,
+  `local_history_change_files({ from, to })`, `local_history_put_label({ name })`,
+  `local_history_patch({ path, dir, revPath, rev }) -> string`,
+  `local_history_revert({ target: { kind: "file" | "folder" | "change", … }, name })`,
+  `local_history_record({ kind, name, files })`, `local_history_begin({ kind, name }) -> token`,
+  `local_history_end({ token })`, `local_history_snapshot({ paths })`; event
+  `local-history://changed` after new change sets are written.
+
+## Local History (`forge-localhistory`)
+
+PHPStorm's Local History: Forge records the contents of project files and restores them, with
+or without Git, for local and remote projects.
+
+- **Store.** One per project in `<data dir>/forge/projects/<name>-<hash>/local-history/`
+  (never in the project): `changes.jsonl` (change sets: id, time, kind, name, entries with the
+  path's state before and after) and `content/` (zlib-compressed contents, stored once per
+  SHA-256 hash). A revision is the state *before* its change set; labels are change sets
+  without entries. Retention: the last `localHistory.keepDays` working days (days with
+  changes), then `localHistory.maxStorageMb`; run when a project opens and every six hours.
+  `localHistory.maxFileSizeKb`, binary detection and `localHistory.excludedFolders` decide what
+  is recorded.
+- **Recorder** (`app/src-tauri/src/commands/local_history.rs`). `project_opened` starts a
+  thread per project that receives `Msg`s over a channel, reads what it needs through the
+  project's `Backend` (outside the store lock) and batches the writes, so recording never
+  delays saving. Hooks: `fs_write_text` / `fs_write_file` (Saved; local projects read the old
+  bytes first, remote ones use the last recorded state), `fs_read_text` (baseline: the
+  content Forge saw, which also detects changes made while Forge was closed),
+  `fs_create_file` / `fs_create_dir`, `fs_delete` (contents read before deleting, folders
+  included), `fs_rename` (Rename / Move with `from`), `fs_copy`, `code_apply_edit`,
+  `replace_in_files`, `ssr_replace`, `templates_create`, `code_create_test` and the file
+  watcher (External change: a content that differs from the last recorded one; Forge's own
+  writes match and are skipped).
+- **Operations.** `local_history_begin(kind, name)` / `local_history_end(token)` bracket an
+  operation; everything recorded meanwhile, and watcher batches up to three seconds after the
+  end, becomes one change set with the operation's name. The UI uses `withLocalHistory`
+  (`src/ipc/localHistory.ts`) for refactorings (`applyWorkspaceEdit`, which also records the
+  open editors' before/after text with `local_history_record`) and VCS operations (Update /
+  Pull, Checkout, Merge, Rebase, Reset, Rollback, Stash, Unstash, Shelve, Unshelve);
+  Rollback, Shelve and Unshelve first call `local_history_snapshot` for the files they touch.
+- **Queries and revert** are computed in Rust (`LocalHistory`); `local_history_revert`
+  applies the plan through the backend and records it as a `Revert` change set.
+- **UI** (`src/features/localHistory`): history tabs (file, folder, selection, a Recent
+  Changes entry) as editor custom tabs reusing the Git history layout and `InlineDiff`; the
+  Recent Changes popup (`RecentChanges`, `Alt+Shift+C`); actions `LocalHistory.ShowHistory`,
+  `LocalHistory.ShowSelectionHistory`, `LocalHistory.PutLabel` in the File / VCS menus and the
+  Project view and editor context menus.
+- **Browser mode** runs the same crate as WebAssembly over an in-memory store
+  (`local_history_call`); `mock/localHistoryMock.ts` wraps the file mocks and records a few
+  days of demo history.
+
 ## Scopes, file colors, Structural Search and Analyze Stack Trace
 
 - **Scopes** (`crates/forge-scopes`, pure): PHPStorm's scope language (`file:`, `src:`,
