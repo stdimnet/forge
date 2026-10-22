@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::ansi::{AnsiParser, Style};
 use crate::console::{ConsoleDelta, ConsoleModel};
-use crate::links::LinkContext;
+use crate::links::{LinkContext, OutputPathMapping};
 use crate::teamcity::{parse_service_message, TestNode, TestSummary, TestTree};
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -27,6 +27,10 @@ pub struct RunOutputOptions {
     /// than this (Settings | Editor | General | Console). `None` keeps everything.
     #[serde(default)]
     pub cycle_buffer_kb: Option<usize>,
+    /// Paths where the process runs (a container, an SSH host) and their local
+    /// counterparts, so links in the output open project files.
+    #[serde(default)]
+    pub path_mappings: Vec<OutputPathMapping>,
 }
 
 /// What happened to the process.
@@ -99,7 +103,8 @@ impl ConsoleDelta {
 
 impl RunOutput {
     pub fn new(opts: &RunOutputOptions) -> Self {
-        let links = LinkContext::new(opts.root.as_deref(), opts.cwd.as_deref());
+        let links = LinkContext::new(opts.root.as_deref(), opts.cwd.as_deref())
+            .with_mappings(opts.path_mappings.clone());
         RunOutput {
             ansi: AnsiParser::new(),
             console: ConsoleModel::new(links.clone()),
@@ -326,6 +331,7 @@ mod tests {
             root: Some("/p".into()),
             cwd: None,
             cycle_buffer_kb: None,
+            ..Default::default()
         });
         let (lines, events) = run(
             &mut o,

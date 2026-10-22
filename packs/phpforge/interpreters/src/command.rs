@@ -170,10 +170,10 @@ pub fn wrap(
     inner.extend(inv.args.iter().map(|a| mapper.map_arg(a)));
     let remote_cwd = mapper.to_remote(&cwd);
     if debug {
-        if !env.contains_key("PHP_IDE_CONFIG") && !interp.name.trim().is_empty() {
+        if !env.contains_key("PHP_IDE_CONFIG") {
             env.insert(
                 "PHP_IDE_CONFIG".into(),
-                format!("serverName={}", interp.name.trim()),
+                format!("serverName={}", interp.debug_server_name()),
             );
         }
         if matches!(

@@ -781,6 +781,7 @@ impl Hub {
                         root,
                         cwd: None,
                         cycle_buffer_kb: None,
+                        ..Default::default()
                     }),
                     lines: Vec::new(),
                 });

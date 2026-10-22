@@ -140,6 +140,29 @@ pub struct LinkContext {
     /// Working directory relative to the root (empty = the root).
     #[serde(default)]
     pub cwd_rel: String,
+    /// Remote → local path pairs, most specific first.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub mappings: Vec<OutputPathMapping>,
+}
+
+/// A path where a process runs (`/var/www/html` in a container) and the local path it
+/// stands for.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OutputPathMapping {
+    pub remote: String,
+    pub local: String,
+}
+
+/// `path` inside `dir` (forward slashes): the rest after it.
+fn under<'a>(path: &'a str, dir: &str) -> Option<&'a str> {
+    let dir = dir.trim_end_matches('/');
+    let rest = path.strip_prefix(dir)?;
+    if rest.is_empty() {
+        Some("")
+    } else {
+        rest.strip_prefix('/')
+    }
 }
 
 impl LinkContext {
@@ -152,11 +175,38 @@ impl LinkContext {
         LinkContext {
             root: root.map(str::to_string),
             cwd_rel,
+            mappings: Vec::new(),
         }
     }
 
+    /// Map paths of a container or remote host back to local ones first.
+    pub fn with_mappings(mut self, mut mappings: Vec<OutputPathMapping>) -> Self {
+        mappings.retain(|m| !m.remote.trim().is_empty());
+        for m in &mut mappings {
+            m.remote = m.remote.replace('\\', "/");
+            m.local = m.local.replace('\\', "/");
+        }
+        mappings.sort_by_key(|m| std::cmp::Reverse(m.remote.len()));
+        self.mappings = mappings;
+        self
+    }
+
     pub fn resolve(&self, path: &str) -> Option<String> {
-        to_workspace_path(path, self.root.as_deref(), &self.cwd_rel)
+        let normalized = path.replace('\\', "/");
+        let mapped = self.mappings.iter().find_map(|m| {
+            let rest = under(&normalized, &m.remote)?;
+            let local = m.local.trim_end_matches('/');
+            Some(if rest.is_empty() {
+                local.to_string()
+            } else {
+                format!("{local}/{rest}")
+            })
+        });
+        to_workspace_path(
+            mapped.as_deref().unwrap_or(path),
+            self.root.as_deref(),
+            &self.cwd_rel,
+        )
     }
 }
 
@@ -316,5 +366,31 @@ mod tests {
         assert_eq!(w("/etc/passwd.txt", "/r", ""), None);
         assert_eq!(w("../../x.php", "/r", ""), None);
         assert_eq!(LinkContext::new(Some("/r"), Some("/r/sub")).cwd_rel, "sub");
+    }
+
+    #[test]
+    fn maps_container_paths_back_to_the_project() {
+        let ctx = LinkContext::new(Some("/home/u/shop"), None).with_mappings(vec![
+            OutputPathMapping {
+                remote: "/var/www/html".into(),
+                local: "/home/u/shop".into(),
+            },
+            OutputPathMapping {
+                remote: "/var/www/html/vendor".into(),
+                local: "/home/u/shop/lib".into(),
+            },
+        ]);
+        assert_eq!(
+            ctx.resolve("/var/www/html/app/User.php").as_deref(),
+            Some("app/User.php")
+        );
+        assert_eq!(
+            ctx.resolve("/var/www/html/vendor/a.php").as_deref(),
+            Some("lib/a.php")
+        );
+        assert_eq!(ctx.resolve("/var/www/htmlx/a.php"), None);
+        let links = find_links("Error in /var/www/html/app/User.php:12", &ctx);
+        assert_eq!(links[0].target.as_deref(), Some("app/User.php"));
+        assert_eq!(links[0].line, Some(12));
     }
 }

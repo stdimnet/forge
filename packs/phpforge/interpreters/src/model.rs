@@ -151,6 +151,28 @@ impl PhpInterpreter {
         }
     }
 
+    /// The server name of debug runs (`PHP_IDE_CONFIG=serverName=…`), which picks this
+    /// interpreter's path mappings in the debugger: the name without spaces and separators.
+    pub fn debug_server_name(&self) -> String {
+        let name: String = self
+            .name
+            .trim()
+            .chars()
+            .map(|c| {
+                if c.is_whitespace() || c == '&' || c == ';' {
+                    '-'
+                } else {
+                    c
+                }
+            })
+            .collect();
+        if name.is_empty() {
+            format!("interpreter-{}", self.id)
+        } else {
+            name
+        }
+    }
+
     /// `major.minor.patch` of the detected version, if known.
     pub fn version(&self) -> Option<&str> {
         Some(self.version.trim()).filter(|v| !v.is_empty())
@@ -394,6 +416,7 @@ mod tests {
         assert_eq!(legacy.kind, InterpreterKind::Local);
         assert_eq!(legacy.php(), "/opt/php/bin/php");
         assert_eq!(set.resolve("").php(), "php");
+        assert_eq!(set.resolve("PHP 8.3").debug_server_name(), "PHP-8.3");
         let (g, p) = set.to_settings();
         assert_eq!(g[0]["name"], "PHP 8.3");
         assert_eq!(p[0]["kind"], "docker");
