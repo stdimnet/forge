@@ -405,6 +405,17 @@ Page id `vcs.git`.
 | `vcs.git.commit.warnOnCrlf` | bool | `true` | user | Commit | Warn if CRLF line separators are about to be committed |
 | `vcs.git.commit.signOff` | bool | `false` | user | Commit | Sign-off commits |
 
+### Version Control | Local History
+
+Page id `vcs.local-history`. See [Local History](../user/local-history.md).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `localHistory.keepDays` | int (1–365) | `5` | user |  | Keep local history for (working days) — Only days with changes count. Older revisions and labels are removed when a project opens and every few hours. |
+| `localHistory.maxStorageMb` | int (16–10240) | `512` | user |  | Maximum history size per project (MB) — When the stored contents grow larger, the oldest revisions are removed first. |
+| `localHistory.maxFileSizeKb` | int (16–102400) | `1024` | user |  | Do not record files larger than (KB) — Larger files and binary files are left out of Local History. |
+| `localHistory.excludedFolders` | list | `.git`, `.hg`, `.svn`, `node_modules`, `vendor`, `.idea` | user |  | Excluded folders — Files in folders with these names (or project-relative paths like `storage/logs`) are never recorded. |
+
 ### Version Control | Code Hosts
 
 Page id `vcs.hosts`; the GitLab, Forgejo / Gitea and GitHub account pages are below it.

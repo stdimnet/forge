@@ -114,6 +114,7 @@ pub(crate) fn render_context(
 pub async fn templates_create(
     mut request: NewFileRequest,
     state: State<'_, AppState>,
+    lh: State<'_, crate::commands::local_history::LocalHistoryState>,
 ) -> Result<NewFile> {
     let backend = state.backend()?;
     if request.context.project_name.is_empty() {
@@ -132,5 +133,10 @@ pub async fn templates_create(
         backend.write_file(&path, &text)
     })
     .await?;
+    crate::commands::local_history::created(
+        &lh,
+        &file.path,
+        forge_localhistory::Content::Bytes(file.text.clone().into_bytes()),
+    );
     Ok(file)
 }

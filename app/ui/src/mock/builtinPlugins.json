@@ -1947,6 +1947,59 @@
           "group": "findUsages",
           "project": false,
           "order": 30
+        },
+        {
+          "key": "localHistory.keepDays",
+          "title": "Keep local history for (working days)",
+          "description": "Only days with changes count. Older revisions and labels are removed when a project opens and every few hours.",
+          "type": "int",
+          "min": 1,
+          "max": 365,
+          "default": 5,
+          "group": "vcs.local-history",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "localHistory.maxStorageMb",
+          "title": "Maximum history size per project (MB)",
+          "description": "When the stored contents grow larger, the oldest revisions are removed first.",
+          "type": "int",
+          "min": 16,
+          "max": 10240,
+          "default": 512,
+          "group": "vcs.local-history",
+          "project": false,
+          "order": 1
+        },
+        {
+          "key": "localHistory.maxFileSizeKb",
+          "title": "Do not record files larger than (KB)",
+          "description": "Larger files and binary files are left out of Local History.",
+          "type": "int",
+          "min": 16,
+          "max": 102400,
+          "default": 1024,
+          "group": "vcs.local-history",
+          "project": false,
+          "order": 2
+        },
+        {
+          "key": "localHistory.excludedFolders",
+          "title": "Excluded folders",
+          "description": "Files in folders with these names (or project-relative paths like `storage/logs`) are never recorded.",
+          "type": "list",
+          "default": [
+            ".git",
+            ".hg",
+            ".svn",
+            "node_modules",
+            "vendor",
+            ".idea"
+          ],
+          "group": "vcs.local-history",
+          "project": false,
+          "order": 3
         }
       ],
       "lspServers": [],

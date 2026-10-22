@@ -58,6 +58,7 @@ not finished, the page says so.
 | Page | Covers |
 | --- | --- |
 | [Git](git.md) | Commit tool window, AI commit messages, diff, blame, branches, log |
+| [Local History](local-history.md) | revisions recorded on save, refactorings, VCS operations and external changes; Show History, Show History for Selection, Revert, Create Patch, labels, Recent Changes (`Alt+Shift+C`) |
 | [Code hosts](code-hosts.md) | GitHub, GitLab, Forgejo/Gitea pull/merge requests, issues, pipelines |
 
 ## Running, debugging and tools

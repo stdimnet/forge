@@ -40,8 +40,8 @@ Projects, new files and scratches, settings and saving. Open it with ☰ (`Alt+\
 | File Properties › Make File Read-Only | — | — | not yet | Not available yet; the entry is disabled. |
 | File Properties › File Path | `Ctrl+Alt+F12` | `Cmd+Alt+F12` | not yet | Not available yet; the entry is disabled. |
 | **Local History** | | | | submenu |
-| Local History › Show History | — | — | not yet | Not available yet; the entry is disabled. |
-| Local History › Put Label… | — | — | not yet | Not available yet; the entry is disabled. |
+| Local History › Show History | — | — | yes | Revisions of the selected file or folder (or the editor's file) recorded on save, refactorings, VCS operations and external changes, with diff, Revert and Create Patch. [More](../../user/local-history.md#show-history) ([screenshot](../../../screenshots/local-history-file.png)) |
+| Local History › Put Label… | — | — | yes | Names the current moment for the whole project; revert files, folders or the project to it. [More](../../user/local-history.md#labels) ([screenshot](../../../screenshots/local-history-put-label.png)) |
 | Save All | `Ctrl+S` | `Cmd+S` | yes | Saves all modified files. [More](../../user/workbench.md#editor-tabs) |
 | Reload All from Disk | `Ctrl+Alt+Y` | `Cmd+Alt+Y` | not yet | Not available yet; the entry is disabled. |
 | Invalidate Caches… | — | — | not yet | Not available yet; the entry is disabled. |

@@ -19,6 +19,7 @@ forge-ssr = { path = "crates/forge-ssr" }
 forge-search = { path = "crates/forge-search" }
 forge-search-core = { path = "crates/forge-search-core" }
 forge-bookmarks = { path = "crates/forge-bookmarks" }
+forge-localhistory = { path = "crates/forge-localhistory", default-features = false }
 forge-text = { path = "crates/forge-text" }
 forge-codestyle = { path = "crates/forge-codestyle" }
 forge-save-actions = { path = "crates/forge-save-actions", default-features = false }

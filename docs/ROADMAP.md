@@ -75,7 +75,7 @@ are in [research/jetbrains-gap-analysis.md](research/jetbrains-gap-analysis.md).
 - [x] Log actions (revert, undo, reset, edit message, squash/fixup), interactive rebase, cherry-pick
 - [x] Changelists and partial commits, commit checks, patches
 - [x] Get from VCS (clone), Commit Message History (`Ctrl+M`), worktrees, GPG/SSH signing
-- [ ] Local History with labels, selection history and Recent Changes
+- [x] Local History with labels, selection history and Recent Changes
 
 ### Run, debug, PHP
 - [x] PHP CLI interpreters: several local ones, Docker, Docker Compose, SSH, WSL, with path mappings

@@ -19,6 +19,7 @@ Commit, push, update, branches, the log and blame. Windows/Linux shortcuts first
 | [New Branch](#new-branch) | — | — |
 | [Show Git Log](#show-git-log) | — | — |
 | [Annotate with Git Blame](#annotate-with-git-blame) | — | — |
+| [Recent Changes](#recent-changes) | `Alt+Shift+C` | `Alt+Shift+C` |
 
 ## Commit
 
@@ -107,3 +108,16 @@ Shows Git blame (author and date per line) in the editor gutter.
 ![Annotate with Git Blame](../../../screenshots/vcs-blame.png)
 
 More: [Git](../../user/git.md#blame)
+
+## Recent Changes
+
+**Shortcut:** `Alt+Shift+C` · macOS `Alt+Shift+C` · action id `RecentChanges`
+
+Lists the latest Local History changes of the project (refactorings, external changes, VCS
+operations, labels, saves); `Enter` opens one with its diff and Revert.
+
+**Menu:** View | Recent Changes
+
+![Recent Changes](../../../screenshots/recent-changes.png)
+
+More: [Local History](../../user/local-history.md#recent-changes)

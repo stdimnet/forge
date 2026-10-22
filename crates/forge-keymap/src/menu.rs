@@ -698,6 +698,7 @@ fn view_menu() -> MenuEntry {
             SEP,
             l("RecentFiles", "Recent F_iles"),
             l("RecentChangedFiles", "Recently Changed Fi_les"),
+            l("RecentChanges", "Recent C_hanges"),
             l("RecentLocations", "Recent L_ocations"),
             SEP,
             l("CompareTwoFiles", "Compare _With..."),

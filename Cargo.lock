@@ -1833,6 +1833,7 @@ dependencies = [
  "forge-keymap",
  "forge-langservers",
  "forge-livetemplates",
+ "forge-localhistory",
  "forge-lsp",
  "forge-markdown",
  "forge-open",
@@ -2170,6 +2171,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "forge-localhistory"
+version = "0.1.0"
+dependencies = [
+ "flate2",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "similar",
+ "tempfile",
+]
+
+[[package]]
 name = "forge-lsp"
 version = "0.1.0"
 dependencies = [
@@ -2503,6 +2516,7 @@ dependencies = [
  "forge-jsonschema",
  "forge-keymap",
  "forge-livetemplates",
+ "forge-localhistory",
  "forge-markdown",
  "forge-output",
  "forge-plugin-api",
