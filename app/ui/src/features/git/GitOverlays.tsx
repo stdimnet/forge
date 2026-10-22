@@ -2,6 +2,9 @@
 import { createSignal, For, onCleanup, onMount, Show } from "solid-js";
 import { CircleAlert, CircleCheck, Info, X } from "lucide-solid";
 import { DiffViewer } from "./DiffViewer";
+import { ConflictsDialog } from "./ConflictsDialog";
+import { MergeWindow } from "./MergeWindow";
+import { conflictsOpen, mergeFile, setMergeFile } from "./conflicts";
 import { BranchesPopup } from "./BranchesPopup";
 import { Chooser } from "./Chooser";
 import { blameCard, branchesOpen, chooserDialog, diffRequest, inputDialog, setDiffRequest, setInputDialog, type InputDialog } from "./overlays";
@@ -66,6 +69,12 @@ function Dialog(props: { d: InputDialog }) {
 export function GitOverlays() {
   return (
     <>
+      <Show when={conflictsOpen()}>
+        <ConflictsDialog />
+      </Show>
+      <Show when={mergeFile()} keyed>
+        {(file) => <MergeWindow file={file} onClose={() => setMergeFile(null)} />}
+      </Show>
       <Show when={diffRequest()} keyed>
         {(req) => <DiffViewer request={req} onClose={() => setDiffRequest(null)} />}
       </Show>

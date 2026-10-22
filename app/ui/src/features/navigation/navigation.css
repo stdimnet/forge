@@ -12,6 +12,8 @@
   padding-top: 11vh;
 }
 .popup-backdrop.modal {
+  /* Confirmations also open over the git modals (diff and merge windows). */
+  z-index: 360;
   align-items: center;
   padding-top: 0;
   background: rgba(0, 0, 0, 0.28);

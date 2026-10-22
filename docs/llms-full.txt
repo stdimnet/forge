@@ -640,7 +640,7 @@ happening.
 
 - Get from VCS
 - Find Usages in File (`Ctrl+F7`), Highlight Usages in File
-- Refactorings other than Rename: Extract/Introduce, Move, Change Signature, Safe Delete
+- Refactorings other than Rename, Extract/Introduce and Inline: Move, Change Signature, Safe Delete
 - File Structure popup (`Ctrl+F12`)
 - Local History
 - Optimize Imports
@@ -1781,7 +1781,9 @@ editor context menu:
 | Column Selection Mode | not available yet (use `Alt`+drag) |
 | Find Usages | works |
 | Refactor > Rename… | works, see [Rename](#rename) |
-| Refactor > Refactor This… | not available yet |
+| Refactor > Refactor This… | works, see [Refactoring shortcuts](docs/guide/user/shortcuts/refactoring.md#refactor-this) |
+| Refactor > Extract/Introduce > Variable…, Constant…, Field…, Parameter…, Method… | works, see [PHP](docs/guide/user/php.md#extract-introduce-and-inline) |
+| Refactor > Inline… | works, see [PHP](docs/guide/user/php.md#extract-introduce-and-inline) |
 | Go To > Declaration or Usages, Line/Column | works |
 | Go To > Implementation(s) | works |
 | Generate… | works in PHP files, see [PHP](docs/guide/user/php.md#generate) |
@@ -6552,15 +6554,21 @@ Source: docs/guide/user/shortcuts/refactoring.md
 Refactorings and code generation. Windows/Linux shortcuts first, macOS second; both are PHPStorm's defaults and can be changed in Settings | Keymap.
 
 > **Note:** the other refactorings of PHPStorm's Refactor menu (Change Signature `Ctrl+F6`,
-> Extract/Introduce Variable, Constant, Field, Parameter and Method, Inline, Move, Copy File,
-> Safe Delete, Pull Members Up / Push Members Down) are not implemented yet. Their shortcuts
-> stay reserved and show "*Action* is not available yet"; see the
-> [Refactor menu](docs/guide/reference/main-menu/refactor.md). The actions below are the
-> refactorings and code transformations Forge has today.
+> Move, Copy File, Safe Delete, Extract Interface / Superclass, Pull Members Up / Push Members
+> Down) are not implemented yet. Their shortcuts stay reserved and show "*Action* is not
+> available yet"; see the [Refactor menu](docs/guide/reference/main-menu/refactor.md). The actions
+> below are the refactorings and code transformations Forge has today.
 
 | Action | Windows / Linux | macOS |
 | --- | --- | --- |
+| [Refactor This…](#refactor-this) | `Ctrl+Alt+Shift+T` | `Ctrl+T` |
 | [Rename…](#rename) | `Shift+F6` | `Shift+F6` |
+| [Introduce Variable…](#introduce-variable) | `Ctrl+Alt+V` | `Cmd+Alt+V` |
+| [Introduce Constant…](#introduce-constant) | `Ctrl+Alt+C` | `Cmd+Alt+C` |
+| [Introduce Field…](#introduce-field) | `Ctrl+Alt+F` | `Cmd+Alt+F` |
+| [Introduce Parameter…](#introduce-parameter) | `Ctrl+Alt+P` | `Cmd+Alt+P` |
+| [Extract Method…](#extract-method) | `Ctrl+Alt+M` | `Cmd+Alt+M` |
+| [Inline…](#inline) | `Ctrl+Alt+N` | `Cmd+Alt+N` |
 | [Show Context Actions](#show-context-actions) | `Alt+Enter` | `Alt+Enter` |
 | [Generate…](#generate) | `Alt+Insert` | `Cmd+N` |
 | [Reformat Code](#reformat-code) | `Ctrl+Alt+L` | `Cmd+Alt+L` |
@@ -6578,6 +6586,83 @@ renames the selected file or folder. One undo step (`Ctrl+Z`) undoes the whole r
 ![In-place rename](docs/screenshots/rename-in-place.png)
 
 More: [Editor](docs/guide/user/editor.md#rename), [PHP](docs/guide/user/php.md#rename)
+
+## Refactor This
+
+**Shortcut:** `Ctrl+Alt+Shift+T` · macOS `Ctrl+T` · action id `Refactorings.QuickListPopupAction`
+
+A popup with the refactorings Forge has (Rename, Introduce Variable / Constant / Field /
+Parameter, Extract Method, Inline) and their shortcuts. Pick one with the arrow keys and
+`Enter`, a click or its number.
+
+**Menu:** Refactor | Refactor This…
+
+## Introduce Variable
+
+**Shortcut:** `Ctrl+Alt+V` · macOS `Cmd+Alt+V` · action id `IntroduceVariable`
+
+Puts the selected expression (or the one picked in the **Expressions** popup when nothing is
+selected) into a new local variable. With several occurrences it asks whether to replace this
+one or all of them. The name is then edited in place: `Up` / `Down` choose another suggested
+name, `Enter` finishes. In the editor this shortcut wins over the Vim toggle.
+
+**Menu:** Refactor | Extract/Introduce | Variable…
+
+![Expressions popup](docs/screenshots/introduce-variable-expressions.png)
+
+More: [PHP](docs/guide/user/php.md#extract-introduce-and-inline)
+
+## Introduce Constant
+
+**Shortcut:** `Ctrl+Alt+C` · macOS `Cmd+Alt+C` · action id `IntroduceConstant`
+
+Turns a constant expression into a class constant (`self::NAME`), or a global `const` outside
+classes. The dialog asks for the name, the visibility and whether to replace all occurrences.
+
+**Menu:** Refactor | Extract/Introduce | Constant…
+
+![Introduce Constant](docs/screenshots/introduce-constant-dialog.png)
+
+## Introduce Field
+
+**Shortcut:** `Ctrl+Alt+F` · macOS `Cmd+Alt+F` · action id `IntroduceField`
+
+Moves an expression of a method into a new property (`$this->name`), initialized in the current
+method, the field declaration or the constructor.
+
+**Menu:** Refactor | Extract/Introduce | Field…
+
+## Introduce Parameter
+
+**Shortcut:** `Ctrl+Alt+P` · macOS `Cmd+Alt+P` · action id `IntroduceParameter`
+
+Adds a parameter for an expression to the enclosing function or method and passes the
+expression at every call (or makes it the parameter's default value).
+
+**Menu:** Refactor | Extract/Introduce | Parameter…
+
+## Extract Method
+
+**Shortcut:** `Ctrl+Alt+M` · macOS `Cmd+Alt+M` · action id `ExtractMethod`
+
+Moves the selected statements or expression into a new method (a function outside classes).
+The dialog shows the parameters (reorder and rename them), what is returned, the visibility,
+**Declare static** and a signature preview, and offers to replace duplicate fragments.
+
+**Menu:** Refactor | Extract/Introduce | Method…
+
+![Extract Method](docs/screenshots/extract-method-dialog.png)
+
+## Inline
+
+**Shortcut:** `Ctrl+Alt+N` · macOS `Cmd+Alt+N` · action id `Inline`
+
+Replaces a local variable by its value, a method or function call by the body, or a constant by
+its value: every reference (removing or keeping the declaration) or only the one at the caret.
+
+**Menu:** Refactor | Inline…
+
+![Inline Method](docs/screenshots/inline-method-dialog.png)
 
 ## Show Context Actions
 
@@ -7871,6 +7956,68 @@ the dialog and undo.
 
 ![Premium hint after a rename with the index](docs/screenshots/rename-premium-hint.png)
 
+## Extract, introduce and inline
+
+The Refactor menu's **Extract/Introduce** and **Inline** refactorings work like PHPStorm's. Forge
+computes them itself from the PHP syntax tree, so they need no language server (and no
+Intelephense licence); call sites and usages in other files come from the PHP index. Every
+refactoring is one undo step, also when it changes several files, and works in remote projects.
+Problems (a name that is taken, a call that cannot be updated, an initializer with side
+effects) are listed in **Problems Detected** first; **Preview** in the dialogs lists every
+change before anything is written.
+
+- **Introduce Variable** (`Ctrl+Alt+V`): select an expression, or put the caret in it. When the
+  caret is in several expressions (`$order`, `$order->lines()`, `$order->lines()->get()`), the
+  **Expressions** popup lets you pick one; the editor highlights the expression of the selected
+  row. With several occurrences in the function, **Multiple occurrences found** asks whether to
+  replace this one only or all of them. The variable is declared before the statement (a body of
+  `if` / a loop without braces gets braces) and its name is edited in place: names are suggested
+  from the method or property the expression reads (`getUserName()` → `$userName`, `$name`), the
+  class it creates, the variable it is assigned to or its type. `Up` / `Down` pick another
+  suggestion, `Enter`, `Tab` or `Escape` finish.
+- **Introduce Constant** (`Ctrl+Alt+C`): a literal or other constant expression becomes a class
+  constant (after the other constants, referenced as `self::NAME`) or, outside classes, a global
+  `const` after the imports. The dialog asks for the name (suggested in `UPPER_CASE`), the
+  visibility and **Replace all occurrences**.
+- **Introduce Field** (`Ctrl+Alt+F`): an expression of a method becomes a property, initialized
+  in the **current method**, the **field declaration** (constant expressions) or the **class
+  constructor** (created when the class has none; not for expressions with local variables). In
+  a static method the field is static (`self::$name`).
+- **Introduce Parameter** (`Ctrl+Alt+P`): adds a parameter to the enclosing function or method
+  (before a variadic one) and passes the expression at every call the PHP index finds; the
+  function's parameters in the expression are replaced by the call's arguments and `$this` by
+  the receiver. **Optional parameter** makes a constant expression the default value instead
+  and leaves the calls alone. Expressions with other local variables cannot become parameters.
+- **Extract Method** (`Ctrl+Alt+M`): select whole statements or an expression. Variables the
+  fragment reads before it writes them become parameters (reorder and rename them in the
+  dialog); variables it changes that are used afterwards (also in the next loop iteration) are
+  returned, several as an array: `[$min, $max] = $this->bounds($xs);`. A fragment that ends with
+  `return` is returned as a whole. The method is private and **Declare static** is on when the
+  fragment does not use `$this`; outside classes Forge extracts a function. When other code of
+  the class is the same (up to variable names), the dialog offers to replace those fragments
+  with calls too. Fragments with `break` / `continue` out of them or several exit points cannot
+  be extracted.
+- **Inline** (`Ctrl+Alt+N`) on a variable, method, function or constant, at the declaration or a
+  usage. A variable used once is inlined right away; otherwise the dialog offers **Inline all
+  references and remove the variable** or **Inline this reference only and keep the variable**
+  (methods and functions also **Inline all invocations and keep the method**). Values get
+  parentheses where the context needs them. A variable that is assigned more than once cannot be
+  inlined; an initializer with side effects that would run several times, or whose variables
+  change before a reference, is reported as a problem. Methods with several `return` statements,
+  recursive methods and generators cannot be inlined. A method body of statements is put before
+  the call's statement, with locals renamed when they clash and arguments assigned to variables
+  when the body changes them.
+
+In JavaScript and TypeScript files the same shortcuts offer the language server's refactorings
+(typescript-language-server: "Extract to function in module scope", "Extract to constant in
+enclosing scope", "Inline variable"…) in a popup.
+
+![Introduce Variable with the name edited in place](docs/screenshots/introduce-variable-in-place.png)
+
+![Extract Method dialog](docs/screenshots/extract-method-dialog.png)
+
+![After Extract Method](docs/screenshots/extract-method-result.png)
+
 ## Context actions and intentions
 
 **Show Context Actions** (`Alt+Enter`) lists the language server's quick fixes (Intelephense
@@ -8800,6 +8947,63 @@ Settings | Version Control | Git:
 Automatic fetching runs in the background while the branch has an upstream; failures
 (offline, missing credentials) are ignored.
 
+## Merge conflicts
+
+When a merge, rebase, update (pull), cherry-pick or unstash stops with conflicts, Forge opens
+the **Conflicts** dialog. Later you get it with **Git ▸ Resolve Conflicts…** (Find Action:
+`Git.ResolveConflicts`), the **Resolve** link of the **Merge conflicts** balloon, or the
+**Resolve** link of the **Merge Conflicts** node in the Commit tool window.
+
+![Conflicts dialog](docs/screenshots/merge-conflicts-dialog.png)
+
+- The header says what is going on ("Merging branch feature into branch main").
+- **Yours** and **Theirs** show how each side changed a file: Modified, Added or Deleted. In a
+  rebase, *yours* is the commit being replayed and *theirs* the branch you rebase onto, like
+  in PHPStorm.
+- **Accept Yours** / **Accept Theirs** take that side's version of the selected files (a side
+  that deleted the file deletes it) and mark them resolved (`git add` / `git rm`).
+- **Merge…** (or a double-click) opens the merge window. For a file deleted on one side it asks
+  **Keep File** or **Accept Deletion**; for a binary file, which version to keep.
+- **Group files by directory** shows the files under their folders.
+
+Until they are resolved, conflicted files are red in the Project view (and their folders), the
+editor tabs and the **Merge Conflicts** node of the Commit tool window. An editor of such a file
+shows the banner **File has merge conflicts** with a **Resolve…** link to the merge window.
+
+![Conflicts in the Commit tool window and the editor](docs/screenshots/merge-conflicts-commit.png)
+
+### Merge window
+
+**Merge Revisions for …** shows your version (**Changes from main**) on the left, the editable
+**Result** in the middle and the other side (**Changes from feature**) on the right. The result
+starts with the common base version; the three panes scroll together and bands connect the
+changes.
+
+![Merge window](docs/screenshots/merge-window.png)
+
+- Colours: blue for modified, green for inserted, grey for deleted lines, red for conflicts.
+  Handled changes lose their colour.
+- `»` / `«` next to a change applies it to the result; `×` ignores it. After you applied one
+  side of a conflict, the arrow of the other side appends its text after the first.
+- Toolbar: **Previous / Next Difference** (`Shift+F7` / `F7`), **Apply Non-Conflicting
+  Changes from the Left Side**, **Apply All Non-Conflicting Changes**, **Apply Non-Conflicting
+  Changes from the Right Side**, **Resolve Simple Conflicts** (the magic wand) and **Compare
+  Contents** (left, base, right and result side by side in the diff viewer). The counter on the
+  right shows the unresolved changes: "3 changes. 2 conflicts".
+- **Resolve Simple Conflicts** merges conflicts where both sides changed *different* words of
+  the same lines (`$price * $qty` → `$netPrice * $qty` and `$price * $quantity` become
+  `$netPrice * $quantity`). Conflicts where both sides changed the same words stay for you.
+- Edit the result freely; `Ctrl+Z` also undoes applied changes.
+- **Accept Left** / **Accept Right** take one side for the whole file. **Apply** writes the
+  result and marks the file resolved (`git add`); with unresolved changes left it asks first
+  ("There are unresolved changes"). **Cancel** (`Escape`) asks before it discards your edits.
+
+![Merge window after applying changes](docs/screenshots/merge-window-resolved.png)
+
+Files with `\r\n` line separators keep them. In remote projects the stage versions are read
+and the result is written on the remote host. When the last conflict is resolved, Forge
+reminds you to commit (merge, cherry-pick) or continue the rebase.
+
 ## Log
 
 The **Git** tool window (`Alt+9`, bottom) has a **Log** tab with the commit graph and a
@@ -8818,8 +9022,8 @@ Pull and merge requests, issues and CI pipelines of GitHub, GitLab and Forgejo/G
 
 ## Not available yet
 
-Get from VCS (clone), stash/unstash, cherry-pick, interactive rebase, file history, Local
-History and merge conflict resolution are not implemented yet.
+Get from VCS (clone), cherry-pick, interactive rebase, file history and Local History are not
+implemented yet.
 
 
 ---
@@ -11251,7 +11455,7 @@ Source: docs/guide/reference/main-menu/refactor.md
 
 # Refactor menu
 
-Refactorings. Rename and Rename File work; the menu shows PHPStorm's other entries disabled. Open it with ☰ (`Alt+\`) or from the menu bar, see [Main menu](docs/guide/user/workbench.md#main-menu).
+Refactorings. Refactor This, Rename, Rename File, Extract/Introduce Variable, Constant, Field, Parameter and Method, and Inline work; the menu shows PHPStorm's other entries disabled. Open it with ☰ (`Alt+\`) or from the menu bar, see [Main menu](docs/guide/user/workbench.md#main-menu).
 
 ![Refactor menu](docs/screenshots/docs-menu-refactor.png)
 
@@ -11259,19 +11463,19 @@ Refactorings. Rename and Rename File work; the menu shows PHPStorm's other entri
 
 | Entry | Windows / Linux | macOS | Available | What it does |
 | --- | --- | --- | --- | --- |
-| Refactor This… | `Ctrl+Alt+Shift+T` | `Ctrl+T` | not yet | Not available yet; the entry is disabled. |
+| Refactor This… | `Ctrl+Alt+Shift+T` | `Ctrl+T` | yes | A popup with the refactorings and their shortcuts. [More](docs/guide/user/shortcuts/refactoring.md#refactor-this) |
 | Rename… | `Shift+F6` | `Shift+F6` | yes | Renames the symbol at the caret in place across the project (the file or folder in the Project view). [More](docs/guide/user/editor.md#rename) ([screenshot](docs/screenshots/rename-in-place.png)) |
 | Rename File… | — | — | yes | Renames the file of the current editor. [More](docs/guide/user/editor.md#rename) |
 | Change Signature… | `Ctrl+F6` | `Cmd+F6` | not yet | Not available yet; the entry is disabled. |
 | **Extract/Introduce** | | | | submenu |
-| Extract/Introduce › Variable… | `Ctrl+Alt+V` | `Cmd+Alt+V` | not yet | Not available yet; the entry is disabled. |
-| Extract/Introduce › Constant… | `Ctrl+Alt+C` | `Cmd+Alt+C` | not yet | Not available yet; the entry is disabled. |
-| Extract/Introduce › Field… | `Ctrl+Alt+F` | `Cmd+Alt+F` | not yet | Not available yet; the entry is disabled. |
-| Extract/Introduce › Parameter… | `Ctrl+Alt+P` | `Cmd+Alt+P` | not yet | Not available yet; the entry is disabled. |
-| Extract/Introduce › Method… | `Ctrl+Alt+M` | `Cmd+Alt+M` | not yet | Not available yet; the entry is disabled. |
+| Extract/Introduce › Variable… | `Ctrl+Alt+V` | `Cmd+Alt+V` | yes | Puts the expression into a new local variable, named in place. [More](docs/guide/user/php.md#extract-introduce-and-inline) ([screenshot](docs/screenshots/introduce-variable-in-place.png)) |
+| Extract/Introduce › Constant… | `Ctrl+Alt+C` | `Cmd+Alt+C` | yes | Turns a constant expression into a class constant or a global `const`. [More](docs/guide/user/php.md#extract-introduce-and-inline) ([screenshot](docs/screenshots/introduce-constant-dialog.png)) |
+| Extract/Introduce › Field… | `Ctrl+Alt+F` | `Cmd+Alt+F` | yes | Moves the expression into a new property. [More](docs/guide/user/php.md#extract-introduce-and-inline) |
+| Extract/Introduce › Parameter… | `Ctrl+Alt+P` | `Cmd+Alt+P` | yes | Adds a parameter for the expression and passes it at every call. [More](docs/guide/user/php.md#extract-introduce-and-inline) |
+| Extract/Introduce › Method… | `Ctrl+Alt+M` | `Cmd+Alt+M` | yes | Moves the selected code into a new method or function. [More](docs/guide/user/php.md#extract-introduce-and-inline) ([screenshot](docs/screenshots/extract-method-dialog.png)) |
 | Extract/Introduce › Interface… | — | — | not yet | Not available yet; the entry is disabled. |
 | Extract/Introduce › Superclass… | — | — | not yet | Not available yet; the entry is disabled. |
-| Inline… | `Ctrl+Alt+N` | `Cmd+Alt+N` | not yet | Not available yet; the entry is disabled. |
+| Inline… | `Ctrl+Alt+N` | `Cmd+Alt+N` | yes | Inlines a variable, method, function or constant. [More](docs/guide/user/php.md#extract-introduce-and-inline) ([screenshot](docs/screenshots/inline-method-dialog.png)) |
 | Move… | `F6` | `F6` | not yet | Not available yet; the entry is disabled. |
 | Copy File… | `F5` | `F5` | not yet | Not available yet; the entry is disabled. |
 | Safe Delete… | `Alt+Delete` | `Cmd+Delete` | not yet | Not available yet; the entry is disabled. |
@@ -11384,6 +11588,7 @@ Commit, push, update, branches, the log and file actions. In projects without Gi
 | Fetch | — | — | yes | Fetches all remotes. [More](docs/guide/user/git.md#push-update-and-fetch) |
 | Merge… | — | — | not yet | Not available yet; the entry is disabled. |
 | Rebase… | — | — | not yet | Not available yet; the entry is disabled. |
+| Resolve Conflicts… | — | — | yes | Opens the Conflicts dialog for the files with merge conflicts. [More](docs/guide/user/git.md#merge-conflicts) ([screenshot](docs/screenshots/merge-conflicts-dialog.png)) |
 | Branches… | — | — | yes | Opens the Git Branches popup: checkout, new branch, merge, rebase, push, delete. [More](docs/guide/user/git.md#branches) ([screenshot](docs/screenshots/docs-branches.png)) |
 | New Branch… | — | — | yes | Creates a branch from the current one and optionally checks it out. [More](docs/guide/user/git.md#branches) |
 | New Tag… | — | — | not yet | Not available yet; the entry is disabled. |
@@ -14056,7 +14261,7 @@ breaks user overrides, focus contexts and conflict detection, and causes double 
 - `catalog`: PHPStorm's default keymaps from `data/phpstorm.json` (id, title, group,
   Windows/Linux and macOS shortcuts, `native` flag) and `ACTION_ALIASES`;
 - `engine`: bindings, conflicts and the `Resolver` state machine (chords, double taps, focus
-  contexts `editor`, `input`, `toolwindow`, `global`, `terminal`);
+  contexts `editor`, `input`, `toolwindow`, `diff`, `global`, `terminal`);
 - `keymap`: `KeymapService` combining the catalog, plugin actions, registered commands and user
   overrides from the `keymap.*` settings.
 
@@ -14098,8 +14303,10 @@ registerCommand({ id: "Laravel.RunArtisan", title: "Run Artisan Command…", run
 
 - `group` places the action in the Keymap tree (`Plugins/<Name>` by convention, or a
   `Main Menu/...` group).
-- `context: "editor" | "toolwindow"` limits where the shortcut applies, so the same keys can
-  mean different things (`Alt+Insert` adds a row in a data grid, opens Generate in the editor).
+- `context: "editor" | "toolwindow" | "diff"` limits where the shortcut applies, so the same
+  keys can mean different things (`Alt+Insert` adds a row in a data grid, opens Generate in the
+  editor; `F7` is Next Difference inside the merge window, an element with
+  `data-focus-context="diff"`, and Step Into elsewhere).
 - Shortcut syntax: `Ctrl+Shift+A`, `Alt+Insert`, chords `Ctrl+K Ctrl+C`, double taps
   `Shift Shift`, macOS `Cmd`/`Opt`. Physical key codes are used, so layouts work.
 
@@ -17503,6 +17710,9 @@ its machine-readable output into serializable types for the UI.
 Paths in and out are relative to the *workspace* root, which may be a subdirectory of the
 repository; `Repo` converts them to and from repository paths.
 
+The parsers and the three-way merge (`merge`) are pure and also build for WebAssembly
+(`default-features = false`); running git needs the default `git` feature.
+
 ## Modules
 
 | Module | Summary |
@@ -17512,6 +17722,9 @@ repository; `Repo` converts them to and from repository paths.
 | `cmd.rs` | Running the `git` executable. No shell is involved: arguments are passed as-is, so paths with spaces or quotes need no escaping on any platform. |
 | `diff.rs` | Parser for unified diffs as printed by `git diff`. |
 | `log.rs` | Commit history: parser for a NUL/RS separated `git log` format, ref decorations and per-commit changed files. |
+| `merge.rs` | Three-way merge for the merge window: diff3 chunking of yours/base/theirs (`merge_three_way` → `MergeModel` with `left`/`right`/`both`/`conflict` chunks), word-level "Resolve Simple Conflicts" (`resolve_simple`), `auto_merge`, line separator helpers. Pure. |
+| `repo.rs` | `Repo`: every git operation of the IDE, through a `GitExec` (local or remote host). |
+| `repo/conflicts.rs` | Merge conflicts: unmerged files and their sides (`git ls-files -u`), the operation (merge, rebase, cherry-pick, revert, unstash) and pane titles, stage versions `:1:`/`:2:`/`:3:` (`merge_file`), Accept Yours/Theirs (`accept_conflict_side`). Yours is git's `theirs` in a rebase. |
 | `status.rs` | Parser for `git status --porcelain=v2 -z --branch`. |
 
 ## Main public items
@@ -17523,6 +17736,8 @@ pub use diff::{parse_diff, DiffLine, FileDiff, Hunk, LineKind};
 pub use log::{…};
 pub use status::{parse_status, FileState, RepoStatus, StatusEntry};
 pub use cmd::{GitExec, GitOutput, GitRequest, LocalGit};
+pub mod merge; // merge_three_way, resolve_simple, auto_merge, MergeModel, MergeChunk
+pub use repo::{ConflictSet, ConflictFile, ConflictSide, MergeFile, MergeOperation, SideChange, …};
 pub struct RepoInfo { … }
 pub struct RemoteResult { … }
 pub struct Repo { … }
@@ -17530,18 +17745,18 @@ pub struct Repo { … }
 
 ## Used by
 
-- IPC: `git_info`, `git_status`, `git_show`, `git_diff`, `git_diff_head`, `git_blame`, `git_log`, `git_commit_details`, `git_branches`, `git_checkout`, `git_create_branch`, `git_delete_branch`, `git_merge`, `git_rebase`, `git_stage`, `git_unstage`, `git_rollback`, `git_commit`, `git_push`, `git_pull`, `git_fetch` (`app/src-tauri/src/commands/git.rs`)
+- IPC: `git_info`, `git_status`, `git_show`, `git_diff`, `git_diff_head`, `git_blame`, `git_log`, `git_commit_details`, `git_branches`, `git_checkout`, `git_create_branch`, `git_delete_branch`, `git_merge`, `git_rebase`, `git_stage`, `git_unstage`, `git_rollback`, `git_commit`, `git_push`, `git_pull`, `git_fetch`, `git_conflicts`, `git_merge_file`, `git_accept_conflict_side`, `git_resolve_merge` (`app/src-tauri/src/commands/git.rs`)
 - UI: `app/ui/src/features/git`
-- Browser mode: not built to WebAssembly (runtime code); browser mode uses mocks
+- Browser mode: `merge` runs as WebAssembly (`vcs_merge` in `forge-wasm`) for the git mock; the rest uses mocks
 
 ## Dependencies
 
 - Workspace crates: [`forge-core`](docs/guide/developer/crates/forge-core.md)
-- External: `serde`, `tracing`
+- External: `serde`, `similar`, `tracing`
 
 ## Tests
 
-7 source files, about 1737 lines; 10 unit tests and 11 integration tests in `tests/` (`repo.rs`).
+10 source files; unit tests (including the three-way merge with fixture texts) and integration tests against temporary repositories in `tests/` (`repo.rs`, `conflicts.rs`: merges, rebases and unstashes that stop with conflicts).
 
 ```sh
 cargo test -p forge-vcs

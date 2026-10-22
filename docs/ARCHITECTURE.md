@@ -56,7 +56,7 @@ app/ui/            SolidJS UI
   - `registerRunConfigurationType` / `registerDebugLauncher` (`src/features/run`) — Run/Debug
     configuration types and debuggers (see "Terminal and Run/Debug" below).
 - Tool windows may render tabs next to their title with `headerContent` (Terminal, Run).
-- Keymap focus contexts: `editor`, `input`, `toolwindow`, `global` and `terminal` (xterm.js has
+- Keymap focus contexts: `editor`, `input`, `toolwindow`, `diff` (diff and merge windows, `[data-focus-context="diff"]`; "diff" actions such as Next Difference only fire there), `global` and `terminal` (xterm.js has
   focus). In the terminal plain Ctrl+letter, Alt+letter and Escape go to the shell; function
   keys, Alt+digit, Ctrl+Shift and Ctrl+Alt combinations still reach the IDE. With Vim
   emulation on, the focused editor's Vim takes the keys it needs first (see "Vim emulation").
@@ -192,6 +192,24 @@ app/ui/            SolidJS UI
   Git submenu of the Project view (`features/git/fileMenu.ts`); file actions there run PHPStorm
   action ids (`CheckinFiles`, `Git.Add`, `Compare.Selected`, …) inside `withVcsTargets`, and the
   same commands use the focused tree, Commit window or editor (`vcsTargets()`) for shortcuts.
+- Merge conflicts (`forge_vcs::merge`, `Repo::conflicts`, `features/git/conflicts.ts`):
+  `git_conflicts() -> { operation: "merge" | "rebase" | "cherryPick" | "revert" | "unstash",
+  description, yoursName, theirsName, yoursTitle, theirsTitle, reversed, files: { path, yours,
+  theirs: "modified" | "added" | "deleted" }[] }` (yours is git's `theirs` in a rebase);
+  `git_merge_file({ path }) -> { path, yoursTitle, theirsTitle, base?, yours?, theirs?, binary,
+  crlf, model?: { chunks: { kind: "left" | "right" | "both" | "conflict", base, left, right
+  (0-based line ranges), baseText, leftText, rightText, simple? }[], changes, conflicts,
+  simpleConflicts } }` (stage versions `:1:`/`:2:`/`:3:` with `\n` line breaks and their
+  three-way merge; `simple` is the word-level merge of "Resolve Simple Conflicts");
+  `git_accept_conflict_side({ paths, side: "yours" | "theirs" })` (checkout of that stage and
+  `git add`, or `git rm` when that side deleted the file); `git_resolve_merge({ path, text,
+  crlf })` writes the merged result through the backend and stages it. The merge window keeps
+  the chunk positions and applied/ignored sides in a CodeMirror state field
+  (`features/git/mergeState.ts`, undoable); its actions use the keymap's `diff` focus context
+  (`[data-focus-context='diff']`: `NextDiff`/`PreviousDiff` on `F7`/`Shift+F7` there,
+  `Diff.ApplyNonConflicts[.Left|.Right]`, `Diff.MagicResolveConflicts`). Browser mode runs the
+  merge as WebAssembly (`vcs_merge`); merging `feature/checkout-flow` in the demo (or
+  `?conflicts`) stops with conflicts.
 - Context-dependent menu entries: `registerContextMenuProvider(menuId, (context) => MenuEntry[])`
   (`features/contextMenu/state.ts`); the Project view asks `providedEntries("project", entry)`
   for its menu. `item(label, run, actionId, { disabled, shortcutAction })` shows greyed-out items.
@@ -856,6 +874,26 @@ computes everything; `app/ui/src/features/codeintel` and `features/lsp/goto.ts` 
     file named after the class is renamed with it (`fileRename`, in `edit` unless `renameFile`
     is false). `conflicts` lists overlapping edits, renames onto existing files and name clashes
     (`phpforge_lang_php::rename::clashes`).
+  - Extract / Introduce and Inline (`app/src-tauri/src/commands/refactor.rs`,
+    `phpforge_lang_php::refactor`: pure functions over the tree-sitter syntax tree with byte
+    offsets; call sites and usages come from the PHP index through the backend, so remote
+    projects work): `refactor_introduce_prepare({ path, kind: "variable" | "constant" | "field" |
+    "parameter", start, end, content }) -> { expressions: { range, text }[], info? }` (several
+    expressions at the caret: the "Expressions" popup; `info`: occurrences, name suggestions,
+    field init places, call sites), `refactor_introduce({ ..., options: { name, replaceAll,
+    visibility?, init?, defaultValue? }, buffers? }) -> RefactorAnswer`,
+    `refactor_extract_method_prepare({ path, start, end, content }) -> ExtractMethodInfo`
+    (parameters, returned variables, `usesThis`, duplicates), `refactor_extract_method({ ...,
+    options: { name, visibility?, isStatic, parameters: { original, name }[], replaceDuplicates }
+    }) -> RefactorAnswer`, `refactor_inline_prepare({ path, position, content, buffers? }) -> {
+    kind, title, name, onReference, occurrences, readOnly }` and `refactor_inline({ ..., mode:
+    "all" | "allKeep" | "this" }) -> RefactorAnswer`. `RefactorAnswer` is `{ edit, preview,
+    conflicts, nameRanges, skipped }`; `nameRanges` are the new name's ranges in the current file
+    after the edit (the in-place name of Introduce Variable). Errors are PHPStorm's "Cannot
+    perform refactoring. …" hints. Other languages: `code_refactor_actions({ path, line,
+    character, endLine, endCharacter, refactoring }) -> ContextAction[]`, the servers'
+    `refactor.extract.*` / `refactor.inline.*` code actions for a Refactor menu action
+    (`forge_codeintel::refactor_actions`).
   - `code_plan_edit({ edit, open }) -> EditPlan` — how the UI applies an edit: the text edits of
     open editors, the backend's part (`code_apply_edit`), files to save first and tabs to
     reopen or close. `code_apply_edit({ edit, skip? }) -> AppliedFile[]` (all or nothing) and
@@ -906,6 +944,18 @@ computes everything; `app/ui/src/features/codeintel` and `features/lsp/goto.ts` 
   the backend's files and moves renamed tabs back; redo re-applies. `ShowIntentionActions`
   (Alt+Enter) opens the intention popup (`IntentionPopup.tsx`); the light bulb
   (`intentions.ts`) asks `code_context_actions` after the caret rests for 500 ms.
+- Extract / Introduce and Inline UI (`features/codeintel/extract.ts`, `ExtractDialogs.tsx`):
+  `IntroduceVariable`, `IntroduceConstant`, `IntroduceField`, `IntroduceParameter`,
+  `ExtractMethod`, `Inline` and `Refactorings.QuickListPopupAction` (Refactor This) are
+  registered commands (editor context, so `Ctrl+Alt+V` beats the global Vim toggle in the
+  editor). The chooser popup ("Expressions", "Multiple occurrences found") highlights the row's
+  expression; Introduce Variable applies the edit as a preview and edits the name in place
+  through the rename machinery (`startLocalSession` in `rename.ts`: the live changes are kept
+  out of the history and reverted right before the final edit is applied with
+  `applyWorkspaceEdit`, so the refactoring is one undo step). The dialogs return their options;
+  conflicts go through the Problems Detected dialog. Browser mode approximates the refactorings
+  on the demo project in `mock/refactorMock.ts` (the tree-sitter grammar is not part of the
+  WebAssembly build).
 
 ## PHP debugger (`forge-debug`)
 

@@ -1008,6 +1008,11 @@ export function text_write(request_json: string): string;
 export function todo_scan(request_json: string): string;
 
 /**
+ * `{ base, left, right }` → `MergeModel`.
+ */
+export function vcs_merge(request_json: string): string;
+
+/**
  * `{text}` → `{handle}`: start tracking an editor.
  */
 export function vim_attach(json: string): string;
@@ -1291,6 +1296,7 @@ export interface InitOutput {
     readonly text_read: (a: number, b: number, c: number) => void;
     readonly text_write: (a: number, b: number, c: number) => void;
     readonly todo_scan: (a: number, b: number, c: number) => void;
+    readonly vcs_merge: (a: number, b: number, c: number) => void;
     readonly vim_attach: (a: number, b: number, c: number) => void;
     readonly vim_configure: (a: number, b: number, c: number) => void;
     readonly vim_detach: (a: number, b: number, c: number) => void;

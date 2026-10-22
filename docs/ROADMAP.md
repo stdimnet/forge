@@ -62,14 +62,14 @@ are in [research/jetbrains-gap-analysis.md](research/jetbrains-gap-analysis.md).
 - [x] Go to Test and Create Test (PHPUnit/Pest, JS test ↔ subject)
 
 ### Refactoring
-- [ ] Extract Method/Variable/Constant, Introduce Field/Parameter, Inline
+- [x] Extract Method/Variable/Constant, Introduce Field/Parameter, Inline
 - [ ] Move, Copy, Safe Delete, Change Signature, Make Static
 - [ ] Extract Interface/Superclass, Pull Members Up/Push Members Down, Refactor This popup
 - [ ] JS/TS refactorings (extract component, arrow/async conversions, destructuring)
 - [ ] Optimize Imports and auto-import settings (on the fly, on save, grouping)
 
 ### Version control
-- [ ] Merge conflict resolver (three-way merge, Resolve Simple Conflicts)
+- [x] Merge conflict resolver (three-way merge, Resolve Simple Conflicts)
 - [ ] File and selection history, Compare with Revision/Branch, Compare Files/Folders/Clipboard
 - [ ] Stash/Unstash, Pull/Merge/Rebase/Reset/Tag/Remotes dialogs, shelf
 - [ ] Log actions (revert, undo, reset, edit message, squash/fixup), interactive rebase, cherry-pick

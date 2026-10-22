@@ -31,6 +31,7 @@ pub mod output;
 pub mod php;
 pub mod project;
 pub mod project_state;
+pub mod refactor;
 pub mod remote;
 pub mod run;
 pub mod save_actions;

@@ -4,6 +4,7 @@
 use serde::{Deserialize, Serialize};
 
 /// Field separator (unit separator) and record separator used in the log format.
+#[cfg_attr(not(feature = "git"), allow(dead_code))]
 pub(crate) const LOG_FORMAT: &str = "--format=%H%x1f%P%x1f%D%x1f%an%x1f%ae%x1f%at%x1f%s%x1e";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]

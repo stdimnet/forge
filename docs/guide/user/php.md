@@ -1,8 +1,8 @@
 ---
 title: PHP
-description: PHP support in PHPForge - the PHP index, navigation (Ctrl+Click, Show Usages, implementations, PHP stubs), Rename (Shift+F6), context actions and create from usage (Alt+Enter), Structure tool window, hover documentation, class and symbol search, Generate (Alt+Insert) and the PHP settings.
+description: PHP support in PHPForge - the PHP index, navigation (Ctrl+Click, Show Usages, implementations, PHP stubs), Rename (Shift+F6), Extract / Introduce and Inline refactorings, context actions and create from usage (Alt+Enter), Structure tool window, hover documentation, class and symbol search, Generate (Alt+Insert) and the PHP settings.
 order: 60
-tags: [php, phpforge, generate, structure, index, navigation, usages, stubs, rename, intentions]
+tags: [php, phpforge, generate, structure, index, navigation, usages, stubs, rename, refactoring, extract, inline, intentions]
 ---
 
 # PHP
@@ -209,6 +209,68 @@ the dialog and undo.
   changes.
 
 ![Premium hint after a rename with the index](../../screenshots/rename-premium-hint.png)
+
+## Extract, introduce and inline
+
+The Refactor menu's **Extract/Introduce** and **Inline** refactorings work like PHPStorm's. Forge
+computes them itself from the PHP syntax tree, so they need no language server (and no
+Intelephense licence); call sites and usages in other files come from the PHP index. Every
+refactoring is one undo step, also when it changes several files, and works in remote projects.
+Problems (a name that is taken, a call that cannot be updated, an initializer with side
+effects) are listed in **Problems Detected** first; **Preview** in the dialogs lists every
+change before anything is written.
+
+- **Introduce Variable** (`Ctrl+Alt+V`): select an expression, or put the caret in it. When the
+  caret is in several expressions (`$order`, `$order->lines()`, `$order->lines()->get()`), the
+  **Expressions** popup lets you pick one; the editor highlights the expression of the selected
+  row. With several occurrences in the function, **Multiple occurrences found** asks whether to
+  replace this one only or all of them. The variable is declared before the statement (a body of
+  `if` / a loop without braces gets braces) and its name is edited in place: names are suggested
+  from the method or property the expression reads (`getUserName()` → `$userName`, `$name`), the
+  class it creates, the variable it is assigned to or its type. `Up` / `Down` pick another
+  suggestion, `Enter`, `Tab` or `Escape` finish.
+- **Introduce Constant** (`Ctrl+Alt+C`): a literal or other constant expression becomes a class
+  constant (after the other constants, referenced as `self::NAME`) or, outside classes, a global
+  `const` after the imports. The dialog asks for the name (suggested in `UPPER_CASE`), the
+  visibility and **Replace all occurrences**.
+- **Introduce Field** (`Ctrl+Alt+F`): an expression of a method becomes a property, initialized
+  in the **current method**, the **field declaration** (constant expressions) or the **class
+  constructor** (created when the class has none; not for expressions with local variables). In
+  a static method the field is static (`self::$name`).
+- **Introduce Parameter** (`Ctrl+Alt+P`): adds a parameter to the enclosing function or method
+  (before a variadic one) and passes the expression at every call the PHP index finds; the
+  function's parameters in the expression are replaced by the call's arguments and `$this` by
+  the receiver. **Optional parameter** makes a constant expression the default value instead
+  and leaves the calls alone. Expressions with other local variables cannot become parameters.
+- **Extract Method** (`Ctrl+Alt+M`): select whole statements or an expression. Variables the
+  fragment reads before it writes them become parameters (reorder and rename them in the
+  dialog); variables it changes that are used afterwards (also in the next loop iteration) are
+  returned, several as an array: `[$min, $max] = $this->bounds($xs);`. A fragment that ends with
+  `return` is returned as a whole. The method is private and **Declare static** is on when the
+  fragment does not use `$this`; outside classes Forge extracts a function. When other code of
+  the class is the same (up to variable names), the dialog offers to replace those fragments
+  with calls too. Fragments with `break` / `continue` out of them or several exit points cannot
+  be extracted.
+- **Inline** (`Ctrl+Alt+N`) on a variable, method, function or constant, at the declaration or a
+  usage. A variable used once is inlined right away; otherwise the dialog offers **Inline all
+  references and remove the variable** or **Inline this reference only and keep the variable**
+  (methods and functions also **Inline all invocations and keep the method**). Values get
+  parentheses where the context needs them. A variable that is assigned more than once cannot be
+  inlined; an initializer with side effects that would run several times, or whose variables
+  change before a reference, is reported as a problem. Methods with several `return` statements,
+  recursive methods and generators cannot be inlined. A method body of statements is put before
+  the call's statement, with locals renamed when they clash and arguments assigned to variables
+  when the body changes them.
+
+In JavaScript and TypeScript files the same shortcuts offer the language server's refactorings
+(typescript-language-server: "Extract to function in module scope", "Extract to constant in
+enclosing scope", "Inline variable"…) in a popup.
+
+![Introduce Variable with the name edited in place](../../screenshots/introduce-variable-in-place.png)
+
+![Extract Method dialog](../../screenshots/extract-method-dialog.png)
+
+![After Extract Method](../../screenshots/extract-method-result.png)
 
 ## Context actions and intentions
 

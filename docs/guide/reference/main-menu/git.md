@@ -22,6 +22,7 @@ Commit, push, update, branches, the log and file actions. In projects without Gi
 | Fetch | — | — | yes | Fetches all remotes. [More](../../user/git.md#push-update-and-fetch) |
 | Merge… | — | — | not yet | Not available yet; the entry is disabled. |
 | Rebase… | — | — | not yet | Not available yet; the entry is disabled. |
+| Resolve Conflicts… | — | — | yes | Opens the Conflicts dialog for the files with merge conflicts. [More](../../user/git.md#merge-conflicts) ([screenshot](../../../screenshots/merge-conflicts-dialog.png)) |
 | Branches… | — | — | yes | Opens the Git Branches popup: checkout, new branch, merge, rebase, push, delete. [More](../../user/git.md#branches) ([screenshot](../../../screenshots/docs-branches.png)) |
 | New Branch… | — | — | yes | Creates a branch from the current one and optionally checks it out. [More](../../user/git.md#branches) |
 | New Tag… | — | — | not yet | Not available yet; the entry is disabled. |
