@@ -243,6 +243,13 @@ pub async fn fs_delete(path: String, state: State<'_, AppState>) -> Result<()> {
     blocking(move || backend.delete(&path)).await
 }
 
+/// Copy a file or a folder with its content (Project view Copy, F5); never replaces.
+#[tauri::command]
+pub async fn fs_copy(from: String, to: String, state: State<'_, AppState>) -> Result<()> {
+    let backend = state.backend()?;
+    blocking(move || crate::commands::refactor_move::copy_path(&backend, &from, &to)).await
+}
+
 /// "Go to File" backend: fuzzy file-name search over the project, honoring `.gitignore`.
 #[tauri::command]
 pub async fn fs_find_files(

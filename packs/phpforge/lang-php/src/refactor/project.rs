@@ -278,6 +278,49 @@ pub fn move_class(
     Ok(plan)
 }
 
+/// What Move (F6) moves at the caret.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+pub enum MoveTarget {
+    /// Move Class: the declaration's file and class.
+    Class {
+        path: String,
+        class: super::move_class::ClassInfo,
+    },
+}
+
+/// The class Move / Copy works on: the class whose header the caret is in, the class a
+/// reference at the caret names, the class around the caret, or the only class of the file.
+pub fn move_target(
+    p: &mut dyn Project,
+    path: &str,
+    text: &str,
+    offset: usize,
+) -> Result<MoveTarget, String> {
+    let found = at_declaration(p, path, text, offset, |t, o| {
+        class_in_header(t, o).ok_or_else(String::new)
+    });
+    if let Ok((path, _, class)) = found {
+        return Ok(MoveTarget::Class { path, class });
+    }
+    if let Some(class) = super::move_class::class_at(text, offset) {
+        return Ok(MoveTarget::Class {
+            path: path.to_string(),
+            class,
+        });
+    }
+    let mut classes = classes_in(text);
+    if classes.len() == 1 {
+        return Ok(MoveTarget::Class {
+            path: path.to_string(),
+            class: classes.remove(0),
+        });
+    }
+    Err(cannot(
+        "Caret should be positioned at the class or member to be moved",
+    ))
+}
+
 /// Copy Class (F5): a copy of the class at `offset` named `new_name` in `target_ns`, in
 /// a new file in `target_dir`.
 pub fn copy_class(
@@ -834,6 +877,33 @@ pub(crate) mod tests {
         )
         .unwrap();
         assert!(p.apply(&plan).contains_key("app/Domain/User.php"));
+    }
+
+    #[test]
+    fn finds_what_to_move() {
+        let mut p = project();
+        let target = |p: &mut TestProject, path: &str, text: &str, at: usize| match move_target(
+            p, path, text, at,
+        ) {
+            Ok(MoveTarget::Class { path, class }) => format!("{path}:{}", class.fqn),
+            Err(e) => e,
+        };
+        let at = CONTROLLER.find("User $user").unwrap();
+        assert_eq!(
+            target(&mut p, "app/Http/UserController.php", CONTROLLER, at),
+            "app/Models/User.php:App\\Models\\User"
+        );
+        let at = CONTROLLER.find("return").unwrap();
+        assert_eq!(
+            target(&mut p, "app/Http/UserController.php", CONTROLLER, at),
+            "app/Http/UserController.php:App\\Http\\UserController"
+        );
+        assert_eq!(
+            target(&mut p, "app/Http/UserController.php", CONTROLLER, 2),
+            "app/Http/UserController.php:App\\Http\\UserController"
+        );
+        assert!(target(&mut p, "x.php", "<?php\nfoo();\n", 7)
+            .starts_with("Cannot perform refactoring."));
     }
 
     #[test]

@@ -59,7 +59,7 @@ pub fn templates_validate(text: String) -> Option<String> {
 }
 
 /// The PSR-4 rules of the project's composer.json (Settings | PHP | Composer picks the file).
-async fn psr4_roots(state: &AppState) -> Result<Vec<psr4::Psr4Root>> {
+pub(crate) async fn psr4_roots(state: &AppState) -> Result<Vec<psr4::Psr4Root>> {
     let json_path = state
         .read_settings()
         .get_as::<String>("php.composer.json")
