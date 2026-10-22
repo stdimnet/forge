@@ -51,6 +51,9 @@ mod tests {
     fn bridges_json() {
         assert!(ssr_templates("{}").contains("method calls"));
         let out = ssr_variables(r#"{"template":"$a$->$m$()","replacement":"$a$->$x$()"}"#);
-        assert_eq!(out, r#"{"variables":["a","m"],"unknownInReplacement":["x"]}"#);
+        assert_eq!(
+            out,
+            r#"{"variables":["a","m"],"unknownInReplacement":["x"]}"#
+        );
     }
 }

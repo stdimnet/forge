@@ -153,6 +153,8 @@ pub enum Call {
     ListFiles {
         limit: usize,
     },
+    /// Structural Search -> `SsrResult` (protocol 8)
+    StructuralSearch(forge_ssr::SsrRequest),
     /// Run git on the agent's machine -> `GitOutput`
     Git(GitRequest),
     /// -> `ProjectInfo`

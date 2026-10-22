@@ -132,6 +132,14 @@ export interface FindTab {
   selected?: string;
   /** Where a usages search started (the Settings button). */
   origin?: UsagesOrigin;
+  /** Buttons below the results (Structural Replace: Replace All). */
+  actions?: FindTabAction[];
+}
+
+export interface FindTabAction {
+  label: string;
+  run: (tab: FindTab) => void | Promise<void>;
+  primary?: boolean;
 }
 
 export interface FindTabOptions {
@@ -140,6 +148,7 @@ export interface FindTabOptions {
   header?: string;
   rerun?: FindTab["rerun"];
   origin?: UsagesOrigin;
+  actions?: FindTabAction[];
   /** Open a new tab even when "Open in new tab" is off. */
   newTab?: boolean;
 }
@@ -178,6 +187,7 @@ export function openInFindWindow(answer: UsagesAnswer, opts: FindTabOptions = {}
     answer,
     rerun: opts.rerun,
     origin: opts.origin,
+    actions: opts.actions,
   };
   const reuse =
     tab.kind === "usages" && !opts.newTab && !getSetting<boolean>("findUsages.openInNewTab", true)

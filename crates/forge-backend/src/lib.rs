@@ -19,6 +19,7 @@ pub mod protocol;
 pub mod remote;
 pub mod replace;
 pub mod rpc;
+pub mod ssr;
 pub mod tunnels;
 pub mod web;
 
@@ -257,6 +258,9 @@ pub trait Backend: Send + Sync {
     fn collect_files(&self, req: &CollectRequest) -> Result<Vec<SourceFile>>;
     /// Every project file (`.gitignore` respected), at most `limit`: the Scopes page's tree.
     fn list_files(&self, limit: usize) -> Result<Vec<String>>;
+    /// Structural Search: the matches of a template in the project's files, searched where
+    /// they are.
+    fn structural_search(&self, req: &forge_ssr::SsrRequest) -> Result<forge_ssr::SsrResult>;
 
     /// [`Backend::find_in_files`] for a result that is paged: a local backend with an index keeps
     /// match ranges instead of building every row.

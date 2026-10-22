@@ -13,6 +13,7 @@ import "./langservers";
 import "./navigation";
 import "./toolWindowLayout";
 import "./scopes";
+import "./ssr";
 import "./find";
 import "./codeintel";
 import "./hierarchy";

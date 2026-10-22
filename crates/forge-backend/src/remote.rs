@@ -556,6 +556,11 @@ impl Backend for RemoteBackend {
             .call(Call::CollectFiles(req.clone()), SCAN_TIMEOUT)
     }
 
+    fn structural_search(&self, req: &forge_ssr::SsrRequest) -> Result<forge_ssr::SsrResult> {
+        self.shared
+            .call(Call::StructuralSearch(req.clone()), SCAN_TIMEOUT)
+    }
+
     fn list_files(&self, limit: usize) -> Result<Vec<String>> {
         self.shared.call(Call::ListFiles { limit }, SCAN_TIMEOUT)
     }

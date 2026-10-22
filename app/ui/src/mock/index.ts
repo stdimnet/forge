@@ -21,6 +21,7 @@ import "./searchMock";
 import "./findMock";
 import "./scopesMock";
 import "./replaceMock";
+import "./ssrMock";
 import "./workbenchMock";
 import "./gitMock";
 import "./phpMock";

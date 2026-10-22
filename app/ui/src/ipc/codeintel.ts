@@ -83,6 +83,8 @@ export interface UsageRow {
   /** UTF-16 offsets into `text`. */
   ranges: [number, number][];
   kind: UsageKind;
+  /** What replaces the match (Structural Replace results, shown with Preview Replacement). */
+  after?: string;
 }
 
 export interface UsageFile {
