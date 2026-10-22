@@ -41,6 +41,7 @@ forge-forges.workspace = true
 forge-project.workspace = true
 forge-open.workspace = true
 forge-process.workspace = true
+forge-runtools.workspace = true
 forge-markdown.workspace = true
 forge-viewers.workspace = true
 forge-debug.workspace = true
@@ -61,6 +62,7 @@ forge-window.workspace = true
 forge-update.workspace = true
 phpforge-lang-php = { path = "../../packs/phpforge/lang-php" }
 phpforge-interpreters.workspace = true
+phpforge-cli-tools.workspace = true
 phpforge-composer = { workspace = true, features = ["net"] }
 phpforge-fw-laravel = { path = "../../packs/phpforge/fw-laravel" }
 phpforge-fw-symfony = { path = "../../packs/phpforge/fw-symfony" }

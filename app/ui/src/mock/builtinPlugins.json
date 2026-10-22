@@ -1416,6 +1416,20 @@
           "order": 20
         },
         {
+          "key": "tools.externalTools",
+          "title": "External Tools",
+          "description": "Programs run from Tools | External Tools, the editor and Project view context menus, the keymap and Before launch tasks: name, group, description, program, arguments and working directory with macros such as $FilePath$, plus the options and output filters ($FILE_PATH$:$LINE$, one per line).",
+          "type": "objects",
+          "unique": [
+            "group",
+            "name"
+          ],
+          "default": [],
+          "group": "tools.external-tools",
+          "project": false,
+          "order": 0
+        },
+        {
           "key": "httpClient.environment",
           "title": "Environment",
           "description": "Environment of http-client.env.json (and http-client.private.env.json) that requests of .http files run with. Empty: dev, else the first one; $none: no environment. Chosen in the toolbar of .http editors.",
@@ -3908,6 +3922,92 @@
     }
   },
   {
+    "id": "forge.command-line-tools",
+    "name": "Command Line Tool Support",
+    "version": "0.1.0",
+    "pack": "phpforge",
+    "description": "Run Composer, Laravel Artisan, Symfony Console, WP-CLI, Drush and custom tools in a console with command, option and argument completion (Tools | Run Command…, Ctrl+Shift+X).",
+    "vendor": "Forge",
+    "depends": [
+      "forge.php"
+    ],
+    "required": false,
+    "projectTypes": [
+      "php",
+      "composer"
+    ],
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "fileTypes": [],
+      "commands": [
+        {
+          "id": "CommandLineToolsAction",
+          "title": "Run Command…",
+          "category": "Tools"
+        }
+      ],
+      "keybindings": [
+        {
+          "command": "CommandLineToolsAction",
+          "key": "Ctrl+Shift+X"
+        }
+      ],
+      "toolWindows": [
+        {
+          "id": "commandLineTools",
+          "title": "Command Line Tools Console",
+          "anchor": "bottom",
+          "icon": "square-terminal",
+          "order": 45
+        }
+      ],
+      "settings": [
+        {
+          "key": "commandLineTools.tools",
+          "title": "Command line tools",
+          "description": "Tools that Tools | Run Command… (Ctrl+Shift+X) runs. The alias starts the command line, e.g. c install or a make:model Order. Tools run with the PHP interpreter of the project unless they name another one.",
+          "type": "objects",
+          "unique": [
+            "alias"
+          ],
+          "default": [],
+          "group": "tools.command-line-tools",
+          "project": true,
+          "order": 0
+        },
+        {
+          "key": "commandLineTools.autoDetect",
+          "title": "Add the tools the project uses automatically",
+          "description": "Composer (composer.json), Laravel Artisan (artisan), Symfony Console (bin/console), WP-CLI (wp-cli.phar, vendor/bin/wp or a WordPress site) and Drush (vendor/bin/drush), unless a tool of that kind or alias is configured.",
+          "type": "bool",
+          "default": true,
+          "group": "tools.command-line-tools",
+          "project": true,
+          "order": 1
+        }
+      ],
+      "lspServers": [],
+      "runConfigurationTypes": [],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": [],
+      "mainMenu": [
+        {
+          "path": "Tools",
+          "items": [
+            {
+              "type": "action",
+              "id": "CommandLineToolsAction",
+              "label": "Run _Command..."
+            }
+          ],
+          "after": "RunAnything"
+        }
+      ]
+    }
+  },
+  {
     "id": "forge.phpunit",
     "name": "PHPUnit",
     "version": "0.1.0",
@@ -4189,12 +4289,7 @@
           "category": "Tools"
         }
       ],
-      "keybindings": [
-        {
-          "command": "Laravel.RunArtisan",
-          "key": "Ctrl+Shift+X"
-        }
-      ],
+      "keybindings": [],
       "toolWindows": [
         {
           "id": "laravel.routes",

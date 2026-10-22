@@ -43,7 +43,7 @@ sit at the toolbar's ends, styled for your desktop (see
 The main menu has PHPStorm's menus: **File, Edit, View, Navigate, Code, Refactor, Run, Tools,
 Git** (**VCS** in projects without Git), **Window** and **Help**. Every entry shows its shortcut;
 actions Forge has not implemented yet stay visible but disabled. Plugins add their own entries,
-for example Tools | Laravel (Run Artisan Command…, Show Routes), Tools | Symfony and
+for example Tools | Run Command…, Tools | Laravel (Run Artisan Command…, Show Routes), Tools | Symfony and
 Run | Start Listening for PHP Debug Connections. File | Open Recent and View | Tool Windows are
 filled with your recent projects and the available tool windows.
 File | New | **File** and **Directory** create the entry in the folder selected in the Project

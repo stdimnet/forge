@@ -665,6 +665,15 @@ Page id `tools.terminal`.
 | `terminal.renderer` | enum: `auto`, `webgl`, `dom` | `auto` | user | Rendering | Renderer — WebGL draws on the GPU and is the fastest. Automatic falls back to DOM when WebGL is unavailable. |
 | `terminal.scrollback` | int (0–1000000) | `10000` | user | Rendering | Scrollback buffer — Number of lines kept above the visible area. |
 
+### Tools | Command Line Tool Support
+
+Page id `tools.command-line-tools`. See [Command Line Tool Support](../user/command-line-tools.md).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `commandLineTools.tools` | objects | `[]` | user, project | — | Command line tools — Tools that Tools \| Run Command… (Ctrl+Shift+X) runs. Entries: `kind` (`composer`, `artisan`, `symfony`, `wp-cli`, `drush`, `symfony-based`, `php-script`), `name`, `alias` (unique), `path`, `interpreter` (empty: the project default), `showConsoleIn` (`toolWindow` or `popup`), `enabled` (`false` turns it off). |
+| `commandLineTools.autoDetect` | bool | `true` | user, project | — | Add the tools the project uses automatically — Composer, Laravel Artisan, Symfony Console, WP-CLI and Drush, unless a tool of that kind or alias is configured. |
+
 ### Tools | Database
 
 Page id `tools.database`.
@@ -697,6 +706,14 @@ Page id `tools.browser-companion`.
 | `browserCompanion.enabled` | bool | `true` | user | Built-in Server | Accept open requests from paired browsers — Runs a small server on 127.0.0.1 that only paired browser extensions can use. |
 | `browserCompanion.port` | int (1024–65535) | `63342` | user | Built-in Server | Port — If the port is taken (for example by PhpStorm), the next 9 ports are tried. The extension finds Forge in this range. |
 | `browserCompanion.focusWindow` | bool | `true` | user | Built-in Server | Bring Forge to the front when a file is opened |
+
+### Tools | External Tools
+
+Page id `tools.external-tools`. See [External Tools](../user/run-debug.md#external-tools).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `tools.externalTools` | objects | `[]` | user |  | External Tools — Programs run from Tools \| External Tools, the editor and Project view context menus, the keymap and Before launch tasks: name, group, description, program, arguments and working directory with macros such as $FilePath$, plus the options and output filters ($FILE_PATH$:$LINE$, one per line). |
 
 ### Tools | HTTP Client
 

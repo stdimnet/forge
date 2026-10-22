@@ -1,8 +1,8 @@
 ---
 title: Run/Debug configurations
-description: Create and run Run/Debug configurations for PHP scripts, PHPUnit, Artisan, Composer, npm, shell scripts and Lua, the run widget, the Run tool window and the PHPUnit test tree.
+description: Create and run Run/Debug configurations for PHP scripts, PHPUnit, Artisan, Composer, npm, shell scripts and Lua, compound configurations, Before launch tasks, Run Anything (double Ctrl), External Tools, the run widget, the Run tool window and the PHPUnit test tree.
 order: 140
-tags: [run, debug, configurations, phpunit, tests, npm]
+tags: [run, debug, configurations, phpunit, tests, npm, run anything, compound, before launch, external tools, macros]
 ---
 
 # Run/Debug configurations
@@ -29,9 +29,49 @@ Configurations…**; without configurations it reads **Add Configuration…**.
 | Stop | `Ctrl+F2` | `Cmd+F2` |
 | Rerun | `Ctrl+F5` | `Cmd+R` |
 | Edit Configurations… | Find Action | |
+| [Run Anything](#run-anything) | `Double Ctrl` | `Double Ctrl` |
 
 In the **Run…** chooser, `Enter` runs and `Shift+Enter` (or holding `Shift`) debugs; it also
 offers **Run Shell Command…** and **Edit Configuration…**.
+
+## Run Anything
+
+Press `Ctrl` twice (Tools | Run Anything…) to run almost anything from one popup:
+
+![Run Anything](../../screenshots/run-anything.png)
+
+- **Recent**: what you ran from Run Anything in this project (kept outside the project, in
+  Forge's state directory).
+- **Run configurations**: run (or debug) a saved or temporary configuration by name.
+- **npm scripts** of every `package.json` with the detected package manager (`pnpm run dev`),
+  **Composer scripts** of `composer.json` (`composer test`).
+- **PHP files**: type `php ` and part of a file name (`php User`).
+- **Composer**, **Artisan** and **Symfony console commands** of
+  [Command Line Tool Support](command-line-tools.md) (Symfony projects without it use the
+  Symfony index);
+  other plugins add their commands with `registerRunAnythingProvider`.
+- **Commands**: anything else you type runs as a command in the project directory, in the Run
+  tool window. When no suggestion starts with what you typed, the command itself is the first
+  entry.
+
+![Suggestions for "php art"](../../screenshots/run-anything-query.png)
+
+`Enter` runs the selected entry. Hold **Shift** to switch to **Debug Anything**: `Shift+Enter`
+debugs it (Xdebug for PHP, `--inspect` for npm). Type `?` for help on what can be typed; picking
+a help entry fills in its prefix.
+
+![Debug Anything](../../screenshots/run-anything-debug.png)
+
+Typed commands become [temporary configurations](#temporary-configurations) of the matching
+type, so they run like configurations:
+
+| You type | Runs as |
+| --- | --- |
+| `php [options] script.php [args]` | PHP Script through the project's [CLI interpreter](php.md#cli-interpreters) (Docker, SSH, WSL included) |
+| `php artisan <command>` | Artisan |
+| `composer <command>` | Composer command (`composer` with `php.composer.executable`) |
+| `npm`, `pnpm`, `yarn`, `bun` `run <script> [-- args]` or any other command | npm (`npm install lodash`, `yarn add x`) |
+| anything else | Shell Script (`/bin/sh -c "<command>"`, `cmd.exe /C` on Windows) in the project directory |
 
 ## Run/Debug Configurations dialog
 
@@ -42,8 +82,8 @@ offers **Run Shell Command…** and **Edit Configuration…**.
   type.
 - Common fields: **Name**, **Store as project file**, the type's own fields, **Interpreter**
   and **Interpreter options** (PHP and Lua types), **Arguments**, **Working directory**
-  (default: the project root), **Environment variables** and **Before launch** tasks (another
-  run configuration or a shell command).
+  (default: the project root), **Environment variables** and [Before launch](#before-launch)
+  tasks.
 - The **Command Line** preview shows exactly what will run.
 
 ### Configuration types
@@ -60,6 +100,7 @@ offers **Run Shell Command…** and **Edit Configuration…**.
 | npm | package.json, Command (`run`, `install`, …), Scripts, Package manager | `npm`/`pnpm`/`yarn`/`bun` | sets `NODE_OPTIONS=--inspect` |
 | Shell Script | Execute: Script file or Script text; Script path / text | the shell | — |
 | Lua Script | File | `<lua> <options> <file> <arguments>`, LÖVE games as `love <dir>` | — |
+| Compound | Configurations, Allow multiple instances | starts every configuration, each in its own Run tab | debugs every member |
 
 The PHP interpreter defaults to the project's CLI interpreter (`php.interpreter`, Settings |
 Languages & Frameworks | PHP), the Lua interpreter to `lua.interpreter`. The **Interpreter**
@@ -99,6 +140,41 @@ container), SSH interpreters forward it (`ssh -L 8080:127.0.0.1:8080`), so the p
 > To debug requests started elsewhere, use
 > [Start Listening for PHP Debug Connections](debugging.md#listening-for-connections).
 
+### Compound configurations
+
+A **Compound** configuration starts several configurations together, for example the Laravel
+server and the Vite dev server. Add the configurations with **+** and order them with the
+arrows; a compound may contain other compounds.
+
+![Compound configuration](../../screenshots/run-configurations-compound.png)
+
+- **Run** starts every member (after its own Before launch tasks), each in its own tab of the
+  Run tool window. **Debug** debugs each member that can be debugged.
+- **Stop** (`Ctrl+F2` or the toolbar's ■ while the compound is selected) stops all members.
+- Without **Allow multiple instances**, running the compound again restarts members that still
+  run; with it, new instances start next to them.
+- Missing members and cycles are reported before anything starts.
+
+### Before launch
+
+Every configuration (except compounds) can run tasks before it starts. They run one after
+another in the listed order; when a task fails (exit code other than 0, a missing
+configuration or tool), the launch stops and a balloon says which task failed.
+
+![Before launch tasks](../../screenshots/run-configurations-before-launch.png)
+
+| Task (**+** menu) | Value | What it does |
+| --- | --- | --- |
+| Run External tool | a tool of [External Tools](#external-tools) | runs the tool and waits for it |
+| Run Another Configuration | a configuration | runs it (with its own Before launch tasks) and waits for it; a compound runs each member |
+| Launch Web Browser | a URL | opens the URL |
+| Run npm script | a script name | `<package manager> run <script>` in the configuration's working directory |
+| Run Composer script | a script or command | `composer <script>` |
+| Run Artisan command | a command (Laravel projects) | `php artisan <command>` through the configuration's interpreter |
+| Run Shell Command… | a command line | runs it with the shell |
+
+Each task runs in its own tab of the Run tool window. Reorder tasks with **↑** / **↓**.
+
 ### Where configurations are stored
 
 | | File |
@@ -110,7 +186,70 @@ container), SSH interpreters forward it (`ssh -L 8080:127.0.0.1:8080`), so the p
 
 Gutter ▶ icons create temporary configurations: PHPUnit test classes and methods, `package.json`
 scripts, Lua main chunks, scratch files and HTTP requests. A double-click in the npm tool
-window does the same.
+window and commands run from [Run Anything](#run-anything) do the same.
+
+## External Tools
+
+**Settings | Tools | External Tools** lists programs you start from Forge with arguments
+that come from the current file, caret or selection, such as linters, formatters or deploy
+scripts. Tools are kept in your user settings (`tools.externalTools`), so they exist in every
+project.
+
+![External Tools](../../screenshots/external-tools-settings.png)
+
+The toolbar adds (**+**), removes, edits (or double-click), copies and moves tools; the check
+boxes of tools and groups hide them from menus and the keymap without deleting them.
+
+**Create Tool / Edit Tool**:
+
+![Edit Tool](../../screenshots/external-tools-edit.png)
+
+- **Name**, **Group** (the submenu it appears in; default "External Tools") and
+  **Description**.
+- **Program**, **Arguments** and **Working directory** (default `$ProjectFileDir$`). Each can
+  contain macros; **Insert Macro…** lists them with a preview of their value for the current
+  editor:
+
+  ![Insert Macro](../../screenshots/external-tools-macros.png)
+
+  | Macro | Value |
+  | --- | --- |
+  | `$FilePath$`, `$FileDir$`, `$FileName$`, `$FileNameWithoutExtension$`, `$FileNameWithoutAllExtensions$`, `$FileExt$`, `$FileDirName$`, `$FileParentDir$` | the file in the editor, or the file the Project view menu was opened on |
+  | `$FilePathRelativeToProjectRoot$`, `$FileDirRelativeToProjectRoot$`, `$FileRelativePath$`, `$FileRelativeDir$` | the same, relative to the project |
+  | `$ProjectFileDir$`, `$ContentRoot$`, `$ProjectName$` | the project |
+  | `$LineNumber$`, `$ColumnNumber$`, `$SelectedText$`, `$SelectionStartLine$`, `$SelectionEndLine$`, `$SelectionStartColumn$`, `$SelectionEndColumn$` | caret and selection (1-based) |
+  | `$ClipboardContent$` | the clipboard text |
+  | `$Prompt$` | asks for a value when the tool runs (once per occurrence) |
+  | `$PhpExecutable$` | the project's PHP interpreter |
+  | `$FileEncoding$`, `$OSName$`, `$UserHome$` | file encoding, operating system, home directory |
+
+  Arguments are split like a shell command line before the macros are expanded, so a path with
+  spaces stays one argument. A macro without a value here (`$FilePath$` with no file open) is
+  replaced by nothing and reported in a balloon.
+- **Advanced Options**: **Synchronize files after execution** (refreshes the Project view),
+  **Open console for tool output** (without it the tool runs in the background), **Make console
+  active on message in stdout / stderr** (the console appears with the first such message) and
+  **Output filters**.
+- **Output filters** turn tool output into links: one regular expression per line with
+  `$FILE_PATH$`, `$LINE$` and `$COLUMN$`, e.g. `$FILE_PATH$:$LINE$` or
+  `^$FILE_PATH$:$LINE$:` for PHPStan's raw format. Everything else is a regular expression
+  (escape `(` as `\(`). Invalid filters are reported when you click OK.
+
+  ![Invalid output filter](../../screenshots/external-tools-light.png)
+
+Run a tool from:
+
+- **Tools | External Tools**, ![Tools | External Tools](../../screenshots/external-tools-menu.png)
+- the editor's context menu (a submenu per group) and the Project view's context menu (the
+  macros then use the clicked file), ![Editor context menu](../../screenshots/external-tools-editor-menu.png)
+- a shortcut: each tool is the action `Tool_<group>_<name>` in Settings | Keymap and Find
+  Action,
+- a [Before launch](#before-launch) task.
+
+The output appears in the Run tool window, with the output filters' matches as links; tools run
+on the machine that hosts the project (remote projects included).
+
+![PHPStan run with an output filter](../../screenshots/external-tools-run.png)
 
 ## Run tool window
 

@@ -53,8 +53,11 @@ app/ui/            SolidJS UI
     "View/Tool Windows"); manifests do the same with `[[contributions.mainMenu]]`.
     `registerMainMenuDynamic(source, provider)` fills dynamic lists (`recentProjects`,
     `toolWindows`), `registerMainMenuToggle(actionId, isOn)` reports check marks.
-  - `registerRunConfigurationType` / `registerDebugLauncher` (`src/features/run`) — Run/Debug
-    configuration types and debuggers (see "Terminal and Run/Debug" below).
+  - `registerRunConfigurationType` / `registerDebugLauncher` / `registerBeforeLaunchHandler`
+    (`src/features/run`) — Run/Debug configuration types, debuggers and Before launch task
+    kinds (see "Terminal and Run/Debug" below).
+  - `registerRunAnythingProvider` (`src/features/runAnything`) — commands offered in Run
+    Anything (double Ctrl), e.g. Artisan and Symfony console commands.
 - Tool windows may render tabs next to their title with `headerContent` (Terminal, Run).
 - Keymap focus contexts: `editor`, `input`, `toolwindow`, `diff` (diff and merge windows, `[data-focus-context="diff"]`; "diff" actions such as Next Difference only fire there), `global` and `terminal` (xterm.js has
   focus). In the terminal plain Ctrl+letter, Alt+letter and Escape go to the shell; function
@@ -803,7 +806,8 @@ or without Git, for local and remote projects.
   terminal line.
   `run_stop({ runId })` (SIGTERM to the process group, SIGKILL after 2 s; `taskkill /T` on
   Windows), `run_write({ runId, data })` (stdin), `run_dispose({ runId })`,
-  `run_command_line({ request })` (preview).
+  `run_command_line({ request })` (preview). `RunRequest.outputFilters` adds External Tools
+  output filters to the console's links.
 - Configuration types: the backend's `KindRegistry` builds command lines for `php-script`, `php-builtin-server`,
   `phpunit` (always `--teamcity`), `artisan`, `composer`, `shell` and `npm` (npm, pnpm, yarn or
   bun; `--` before script arguments only for npm); the PHP interpreter
@@ -819,6 +823,28 @@ or without Git, for local and remote projects.
   instead, `start` starts runs through another command that streams `run://` events (HTTP
   requests, PHP Web Page) and `afterStart(cfg, handle, debug)` runs once a run started (the
   built-in web server opens the browser). `enum` field `options` may be a function (servers).
+- Launch plans, Run Anything and External Tools (`crates/forge-runtools`, pure, also in
+  `forge-wasm`; IPC in `commands/runtools.rs`): `run_launch_plan({ configurations, target })
+  -> { runs: { configuration, tasks }[], compound, allowMultipleInstances }` expands compound
+  configurations (type `compound`, members in `options.configurations`, one per line;
+  `options.allowMultipleInstances`) and flattens "Before launch" tasks (`runConfiguration`,
+  `externalTool` (`Group/Name`), `browser`, `npm`, `composer`, `artisan`, `shell`) in order;
+  missing configurations and cycles are errors. The UI (`features/run/runStore.ts`) runs the
+  tasks one after another, aborts on the first failure and starts each member in its own tab;
+  kinds it does not run itself come from `registerBeforeLaunchHandler`. Run Anything:
+  `run_anything_suggest({ request: { query, recent, configurations, providers, laravel } }) ->
+  { groups: { id, title, items: { label, detail?, icon, typeId?, matches, action }[], more }[],
+  help }` (the backend adds npm and Composer scripts and PHP files; `action` is `configuration`,
+  `command` or `insert`), `run_anything_resolve({ command, cwd? }) -> RunConfiguration` (a
+  temporary configuration of the matching type), `run_anything_history()` /
+  `run_anything_history_add({ entry })` (state dir, `forge_core::project_state::load_list`).
+  External Tools live in the user setting `tools.externalTools` (`objects`):
+  `external_tool_macros({ context }) -> { name, description, preview? }[]`,
+  `external_tool_command({ tool, context }) -> { program, args, cwd, outputFilters,
+  commandLine, missing? }` (context: project-relative `filePath`, caret, selection, clipboard,
+  `$Prompt$` answers) and `external_tool_validate({ tool, others }) -> string[]`. A run's
+  `RunRequest.outputFilters` (`$FILE_PATH$:$LINE$`, `forge_output::filters`) link file
+  references in the console.
 - Debugging: Debug (Shift+F9) calls the first `registerDebugLauncher({ id, canDebug(cfg, type),
   launch(cfg, ctx) })` that accepts the configuration; `ctx.run({ env, interpreterArgs })` starts it
   in the Run tool window (e.g. with `XDEBUG_SESSION` and `-dxdebug.mode=debug`) and returns
@@ -1344,14 +1370,12 @@ computes everything; `app/ui/src/features/codeintel` and `features/lsp/goto.ts` 
   `[Controller::class, 'method']`, `<x-component>` and custom directives. Offsets are UTF-16.
 - `laravel_gutter({ path, content }) -> { line, kind: "route" | "controller" | "view", tooltip,
   targets }[]`.
-- `laravel_artisan_commands() -> { commands, fromProject }` (`php artisan list --format=json`,
-  else a built-in list), `laravel_artisan_run({ commandLine, runId }) -> exitCode` streaming
-  `laravel://artisan/<runId>` events (`{ type: "started" | "output" | "error" | "exit", ... }`),
-  `laravel_artisan_cancel({ runId })`.
+- Artisan commands run in the Command Line Tools Console (see "Command Line Tool Support");
+  `artisan::builtin_commands` is its fallback list when artisan cannot run.
 - UI (`app/ui/src/features/laravel`): the Blade language (`registerLanguage("blade")`), a
   completion source next to the LSP one, `GotoDeclaration` / Ctrl+Click that try Laravel first,
-  gutter icons, the Routes tool window, Run Artisan Command… (`Laravel.RunArtisan`,
-  Ctrl+Shift+X), the `framework.laravel` status item and Settings | Languages & Frameworks |
+  gutter icons, the Routes tool window, Run Artisan Command… (`Laravel.RunArtisan`: the
+  Run Command popup with the artisan alias), the `framework.laravel` status item and Settings | Languages & Frameworks |
   PHP | Laravel. Tool windows and status items can declare `when` to show only for matching
   projects.
 ## Symfony (`phpforge-fw-symfony`) and Doctrine (`phpforge-orm-doctrine`)
@@ -1960,6 +1984,33 @@ comments and Reader mode (`app/ui/src/features/codeStructure`, user guide
   `Composer.*` keymap actions under Tools | Composer and the Settings page `lang.php.composer`.
   Browser mode runs the crate through `forge-wasm` with a demo catalog instead of Packagist
   (`mock/composerMock.ts`, `mock/demoComposer.ts`).
+
+## Command Line Tool Support (`phpforge-cli-tools`)
+
+- Plugin `forge.command-line-tools` (PHP and Composer projects): Tools | Run Command…
+  (`CommandLineToolsAction`, Ctrl+Shift+X), the "Command Line Tools Console" tool window
+  (`commandLineTools`) and Settings | Tools | Command Line Tool Support
+  (`tools.command-line-tools`; `commandLineTools.tools` is an `objects` setting with `kind`,
+  `name`, `alias`, `path`, `interpreter`, `showConsoleIn`, `enabled`;
+  `commandLineTools.autoDetect`).
+- The pure crate (also WebAssembly, `forge-wasm/src/cli_tools.rs`) holds the tool model and
+  detection, parsing of Symfony Console's `list --format=json` (Artisan, Symfony, Composer,
+  Drush, custom Symfony tools) and `wp cli cmd-dump`, console input tokenizing with UTF-16
+  offsets, completion with the command's help, the invocations and the cache fingerprint.
+- IPC (`app/ui/src/ipc/cliTools.ts`, `commands/command_line_tools.rs`): `cli_tools_list() ->
+  Tool[]` (configured, then detected), `cli_tools_commands({ alias, reload }) -> { alias,
+  commands, source: "cache" | "tool" | "builtin" | "none", error? }`, `cli_tools_complete({
+  input, offset }) -> { from, to, items, help?, hint? }` (loads the tool's commands on demand),
+  `cli_tools_run({ input, runId }) -> { runId, commandLine, alias, tool, showConsoleIn }`.
+  Lists run through the project backend (`process_io::capture`, 60 s timeout) and are cached
+  in `<cache dir>/forge/command-line-tools/<kind>-<hash>.json` until the tool's path,
+  interpreter or composer.lock changes. Scripts and `.phar` files run with the tool's PHP
+  interpreter (or the project's), programs (`composer`, `wp`) directly or inside the
+  interpreter's environment when the tool names one; runs start through
+  `commands::run::start_built`, so they stream `run://<runId>` (`console` lines with file links
+  mapped back from containers) and `run_stop` / `run_write` / `run_dispose` apply.
+- UI (`features/cliTools`): `ConsoleInput` (completion list, help panel, history, Ctrl+C),
+  the Run Command popup and the tool window with a tab per command.
 
 ## Vim emulation (`forge-vim`)
 

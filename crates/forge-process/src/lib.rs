@@ -9,7 +9,8 @@
 //! - [`output`]: the pure output models of the `forge-output` crate (ANSI, console lines,
 //!   file links, TeamCity test trees), re-exported for the run backend.
 
-pub mod args;
+/// Argument splitting and quoting, shared with the pure `forge-runtools` crate.
+pub use forge_runtools::args;
 pub mod config;
 pub mod integration;
 pub mod pty;

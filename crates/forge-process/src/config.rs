@@ -596,7 +596,8 @@ impl RunConfigurationKind for ShellScript {
     }
 }
 
-/// `npm run <script> [-- arguments]`. Options: `script`, `command` (default `run`),
+/// `npm run <script> [-- arguments]`, or `npm <command> [arguments]` (`install`, `add x`).
+/// Options: `script`, `command` (default `run`),
 /// `packageJson` (its directory is the default working directory), `packageManager`
 /// (`npm`, `pnpm`, `yarn`, `bun`). Only npm needs `--` before script arguments.
 struct NpmScript;
@@ -619,7 +620,8 @@ impl RunConfigurationKind for NpmScript {
         }
         let extra = split_args(&cfg.arguments);
         if !extra.is_empty() {
-            if manager == "npm" {
+            // Script arguments; other commands (`npm install lodash`) take them directly.
+            if manager == "npm" && command == "run" {
                 cmd = cmd.arg("--");
             }
             cmd = cmd.args(extra);
@@ -924,6 +926,9 @@ mod tests {
             r.build(&c, &ctx()).unwrap().args,
             ["run", "dev", "--", "--port", "3000"]
         );
+        let mut c = cfg("npm", &[("command", "install"), ("packageManager", "npm")]);
+        c.arguments = "lodash".into();
+        assert_eq!(r.build(&c, &ctx()).unwrap().args, ["install", "lodash"]);
 
         let cmd = r
             .build(

@@ -106,7 +106,7 @@ impl ConsoleDelta {
 /// Split segments at link boundaries.
 fn render(segments: &[Segment], ctx: &LinkContext) -> ConsoleLine {
     let text: String = segments.iter().map(|s| s.text.as_str()).collect();
-    let links = if text.contains(['/', '\\', '.']) {
+    let links = if ctx.has_filters() || text.contains(['/', '\\', '.']) {
         find_links(&text, ctx)
     } else {
         Vec::new()

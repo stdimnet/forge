@@ -21,6 +21,7 @@ mod remote;
 use wasm_bindgen::prelude::*;
 
 mod agents;
+mod cli_tools;
 mod codeintel;
 mod codestyle;
 mod compare;
@@ -37,6 +38,7 @@ mod livetemplates;
 mod localhistory;
 mod lua;
 mod php_interpreters;
+mod runtools;
 mod save_actions;
 mod scopes;
 mod scratches;

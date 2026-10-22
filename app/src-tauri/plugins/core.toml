@@ -1139,6 +1139,18 @@ group = "editor.inlay-hints"
 section = "Code Vision"
 order = 20
 
+# ---- Tools > External Tools ------------------------------------------------------------
+
+[[contributions.settings]]
+key = "tools.externalTools"
+title = "External Tools"
+description = "Programs run from Tools | External Tools, the editor and Project view context menus, the keymap and Before launch tasks: name, group, description, program, arguments and working directory with macros such as $FilePath$, plus the options and output filters ($FILE_PATH$:$LINE$, one per line)."
+type = "objects"
+unique = ["group", "name"]
+default = []
+group = "tools.external-tools"
+order = 0
+
 # ---- Tools > HTTP Client ---------------------------------------------------------------
 
 [[contributions.settings]]

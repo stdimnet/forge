@@ -13,6 +13,7 @@ crate-type = ["cdylib", "rlib"]
 serde.workspace = true
 serde_json.workspace = true
 forge-output.workspace = true
+forge-runtools.workspace = true
 forge-sql.workspace = true
 forge-markdown.workspace = true
 forge-viewers.workspace = true
@@ -21,6 +22,7 @@ forge-agent-cli = { path = "../forge-agent-cli", default-features = false }
 phpforge-dql = { path = "../../packs/phpforge/dql" }
 phpforge-composer = { path = "../../packs/phpforge/composer" }
 phpforge-interpreters = { path = "../../packs/phpforge/interpreters" }
+phpforge-cli-tools = { path = "../../packs/phpforge/cli-tools" }
 luaforge-lang-lua.workspace = true
 forge-keymap.workspace = true
 forge-vim.workspace = true
