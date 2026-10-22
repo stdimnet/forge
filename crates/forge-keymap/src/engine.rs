@@ -720,8 +720,16 @@ mod tests {
         );
         // … but keeps its own editing keys.
         let mut plain = resolver(&[("Z", &["Ctrl+A"]), ("Y", &["F"])]);
-        assert!(!plain.key_down(&key("Ctrl+A"), FocusContext::ToolwindowInput).consumed);
-        assert!(!plain.key_down(&key("F"), FocusContext::ToolwindowInput).consumed);
+        assert!(
+            !plain
+                .key_down(&key("Ctrl+A"), FocusContext::ToolwindowInput)
+                .consumed
+        );
+        assert!(
+            !plain
+                .key_down(&key("F"), FocusContext::ToolwindowInput)
+                .consumed
+        );
     }
 
     #[test]
@@ -1039,9 +1047,15 @@ mod tests {
         assert!(!context_matches(ActionContext::Diff, Editor));
         assert!(!context_matches(ActionContext::Editor, FocusContext::Diff));
         // The commit message takes tool window actions, but not editor ones.
-        assert!(context_matches(ActionContext::Toolwindow, FocusContext::ToolwindowInput));
+        assert!(context_matches(
+            ActionContext::Toolwindow,
+            FocusContext::ToolwindowInput
+        ));
         assert!(!context_matches(ActionContext::Toolwindow, Input));
-        assert!(!context_matches(ActionContext::Editor, FocusContext::ToolwindowInput));
+        assert!(!context_matches(
+            ActionContext::Editor,
+            FocusContext::ToolwindowInput
+        ));
         assert_eq!(
             serde_json::to_string(&FocusContext::ToolwindowInput).unwrap(),
             "\"toolwindow-input\""
