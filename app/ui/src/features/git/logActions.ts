@@ -8,14 +8,14 @@
  * the conflict resolver, `edit` steps to Continue Rebase.
  */
 import { showBalloon } from "@/keymap";
-import { askConfirm, askName } from "@/features/contextMenu/dialogs";
+import { askConfirm } from "@/features/contextMenu/dialogs";
 import { item, separator, showContextMenu, type ItemOptions, type MenuEntry } from "@/features/contextMenu/state";
-import { workspaceApi } from "@/ipc/workspace";
 import { openFile } from "@/state/editor";
 import { showToolWindow } from "@/state/layout";
 import { gitApi, type Commit } from "./api";
 import { logApi, type ActionState, type LogActionStates, type RewriteResult } from "./logApi";
-import { notify, reloadOpenFiles, repositoryChanged, runGit, VCS_GROUP } from "./store";
+import { notify, reloadOpenFiles, runGit, VCS_GROUP } from "./store";
+import { createCommitsPatchDialog } from "./changesDialogs";
 import { runMerging } from "./conflicts";
 import { refreshOperation } from "./operation";
 import { newBranchDialog } from "./actions";
@@ -169,26 +169,10 @@ export async function startRebase(sha: string, entries: import("./logApi").Rebas
   await afterRewrite(res, "Rebase successful");
 }
 
-/** Create Patch…: the selected commits as one patch file in the project. */
+/** Create Patch…: the selected commits as one patch, to a file or the clipboard. */
 export async function createPatch(shas: string[]): Promise<void> {
   const name = (subjectOf(shas[shas.length - 1]) || "changes").replace(/[^\w.-]+/g, "_").slice(0, 60);
-  const path = await askName({
-    title: "Create Patch",
-    label: "Patch file (relative to the project):",
-    initial: `${name}.patch`,
-    confirm: "Create",
-    validate: (p) => (p.trim() ? null : "Enter a file name"),
-  });
-  if (!path) return;
-  const patch = await runGit("Create Patch failed", () => logApi.patch(shas));
-  if (patch === undefined) return;
-  try {
-    await workspaceApi.writeFile(path.trim(), patch);
-  } catch (e) {
-    return notify("error", "Create Patch failed", errorText(e));
-  }
-  await repositoryChanged();
-  notify("success", "Patch created", path.trim());
+  createCommitsPatchDialog(shas, name);
 }
 
 /** Show Repository at Revision: the files of the revision, opened read-only. */

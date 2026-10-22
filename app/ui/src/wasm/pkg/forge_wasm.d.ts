@@ -1053,6 +1053,18 @@ export function text_write(request_json: string): string;
 export function todo_scan(request_json: string): string;
 
 /**
+ * `{ base, current }` → `ChangeHunk[]`; with `include` (hunk ids) → the text a partial
+ * commit stores (`string`).
+ */
+export function vcs_change_hunks(request_json: string): string;
+
+/**
+ * `{ state, changed, hunks, op }` → `{ state, view, error }`: the changelist model of
+ * `git_changelist_*` for the git mock (`forge_vcs::changelists`).
+ */
+export function vcs_changelists(request_json: string): string;
+
+/**
  * `SelectionFacts` → `LogActionStates`: which Git Log actions the git mock's selection allows.
  */
 export function vcs_log_action_states(facts_json: string): string;
@@ -1061,6 +1073,11 @@ export function vcs_log_action_states(facts_json: string): string;
  * `{ base, left, right }` → `MergeModel`.
  */
 export function vcs_merge(request_json: string): string;
+
+/**
+ * `{ patch, base, files }` → `PatchPreviewFile[]` (Apply Patch dialog in the git mock).
+ */
+export function vcs_patch_preview(request_json: string): string;
 
 /**
  * `RebaseCommit[]` (oldest first) → the initial `RebaseEntry[]` of the rebase dialog.
@@ -1365,8 +1382,11 @@ export interface InitOutput {
     readonly text_read: (a: number, b: number, c: number) => void;
     readonly text_write: (a: number, b: number, c: number) => void;
     readonly todo_scan: (a: number, b: number, c: number) => void;
+    readonly vcs_change_hunks: (a: number, b: number, c: number) => void;
+    readonly vcs_changelists: (a: number, b: number, c: number) => void;
     readonly vcs_log_action_states: (a: number, b: number, c: number) => void;
     readonly vcs_merge: (a: number, b: number, c: number) => void;
+    readonly vcs_patch_preview: (a: number, b: number, c: number) => void;
     readonly vcs_rebase_autosquash: (a: number, b: number, c: number) => void;
     readonly vcs_rebase_todo: (a: number, b: number, c: number) => void;
     readonly vim_attach: (a: number, b: number, c: number) => void;

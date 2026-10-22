@@ -503,3 +503,49 @@
   padding-top: 12px;
   border-top: 1px solid var(--border);
 }
+
+/* Changelists and patches */
+.gd-radio-row {
+  display: grid;
+  grid-template-columns: 16px max-content 1fr;
+  align-items: center;
+  gap: 6px;
+}
+.gd-radio-row input[type="radio"] {
+  accent-color: var(--accent);
+  margin: 0;
+}
+.gd-grow {
+  min-width: 0;
+}
+.gd-grow .gd-input {
+  flex: 1;
+}
+.gd-note.gd-error {
+  color: var(--danger);
+}
+.gd-note.gd-warn {
+  color: var(--warning);
+}
+.gd .gd-patch-files {
+  height: 220px;
+}
+.gd-patch-counts {
+  margin-left: auto;
+  font-size: var(--fs-small);
+  color: var(--fg-muted);
+  white-space: nowrap;
+}
+.gd-plus {
+  color: var(--vcs-added);
+}
+.gd-minus {
+  color: var(--vcs-deleted);
+}
+.gd-patch-warn {
+  display: inline-flex;
+  color: var(--warning);
+}
+.gd-patch-files .gd-file-diff {
+  margin-left: 4px;
+}

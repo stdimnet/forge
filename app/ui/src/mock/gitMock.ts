@@ -863,4 +863,4 @@ export function revisionLines(path: string, time: number): { text: string; line:
 export const mockRepo = { commits, bySha, head, state, log, ancestors, resolveRev, computeStatus };
 
 /** Working-tree and ref helpers for the dialog and shelf mocks (`gitOpsMock.ts`). */
-export const mockRepoOps = { index, changed, readWorking, newCommit, checkout, merging, startConflictMerge, CONFLICT_BRANCH };
+export const mockRepoOps = { index, changed, readWorking, working, newCommit, checkout, merging, startConflictMerge, CONFLICT_BRANCH };

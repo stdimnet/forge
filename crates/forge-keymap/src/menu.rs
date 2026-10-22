@@ -978,6 +978,16 @@ fn git_menu() -> MenuEntry {
                     l("Git.Unstash", "_Unstash Changes..."),
                     l("ChangesView.Rollback", "_Rollback..."),
                     l("Vcs.Show.Local.Changes", "Show _Local Changes"),
+                    SEP,
+                    l("ChangesView.NewChangeList", "_New Changelist..."),
+                ],
+            ),
+            g(
+                "P_atch",
+                vec![
+                    l("ChangesView.CreatePatch", "_Create Patch..."),
+                    l("ChangesView.ApplyPatch", "_Apply Patch..."),
+                    l("ChangesView.ApplyPatchFromClipboard", "Apply Patch from Clip_board..."),
                 ],
             ),
             g(

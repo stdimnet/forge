@@ -32,6 +32,7 @@ export async function showDiff(path: string, files?: string[]): Promise<void> {
     right: { title: deleted ? "Deleted" : "Your version", content: right },
     editable: !deleted,
     files,
+    partial: !!entry && !isNew && !deleted && !entry.conflict,
   });
 }
 

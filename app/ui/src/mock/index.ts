@@ -27,6 +27,7 @@ import "./workbenchMock";
 import "./gitMock";
 import "./gitHistoryMock";
 import "./gitOpsMock";
+import "./gitChangesMock";
 import "./gitLogMock";
 import "./compareMock";
 import "./phpMock";
