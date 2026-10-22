@@ -16,6 +16,7 @@ import { invertedEffects, isolateHistory, redo, undo } from "@codemirror/command
 import { listen } from "@/ipc";
 import { codeApi, isLibraryPath, type AppliedFile, type FileRename, type WorkspaceEdit } from "@/ipc/codeintel";
 import { workspaceApi } from "@/ipc/workspace";
+import { localHistoryApi, withLocalHistory } from "@/ipc/localHistory";
 import { editor, closeTab, isDirty, openFile, saveFile } from "@/state/editor";
 import { showBalloon } from "@/keymap";
 import { refreshDirs } from "@/features/project/ProjectView";
@@ -146,8 +147,22 @@ export interface ApplyResult {
 /**
  * Apply `edit` across the project as one undoable refactoring. Throws (and changes
  * nothing) when the backend cannot apply its part, e.g. a file changed in the meantime.
+ * Local History records it as one change ("Refactoring: Rename A to B").
  */
 export async function applyWorkspaceEdit(edit: WorkspaceEdit, opts: ApplyOptions): Promise<ApplyResult> {
+  const name = `Refactoring: ${opts.label}`;
+  return withLocalHistory("refactoring", name, async () => {
+    const result = await applyNow(edit, opts);
+    const r = refactorings.get(result.id);
+    const files = (r?.editors ?? [])
+      .filter((e) => !e.before.eq(e.after))
+      .map((e) => ({ path: e.path, before: e.before.toString(), after: e.after.toString() }));
+    if (files.length) await localHistoryApi.record("refactoring", name, files).catch(() => undefined);
+    return result;
+  });
+}
+
+async function applyNow(edit: WorkspaceEdit, opts: ApplyOptions): Promise<ApplyResult> {
   const fileOps = opts.fileOps ?? [];
   const movedTabs = fileOps.length ? await runFileOps(fileOps, false) : [];
   const plan = await codeApi.planEdit(edit, openEditors());

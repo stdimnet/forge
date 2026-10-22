@@ -185,8 +185,9 @@ registerMock("local_history_begin", async ({ kind, name }) => {
   return token;
 });
 registerMock("local_history_end", async ({ token }) => {
-  if (operation?.token !== token) return;
-  const group = operation.group;
+  const op = operation;
+  if (!op || op.token !== token) return;
+  const group = op.group;
   operation = null;
   await lh({ op: "closeGroup", group });
 });

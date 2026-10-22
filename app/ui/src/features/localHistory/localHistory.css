@@ -1,0 +1,124 @@
+/* ---------- Local History tabs ---------- */
+.local-history {
+  background: var(--bg-panel);
+}
+.lh-columns,
+.lh-row {
+  grid-template-columns: minmax(0, 1fr) 140px;
+}
+.lh-row .history-subject {
+  gap: 6px;
+}
+.lh-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--fg);
+}
+.lh-label .lh-name {
+  font-weight: 600;
+  color: var(--fg-strong);
+}
+.lh-kind {
+  flex-shrink: 0;
+  color: var(--fg-muted);
+}
+.lh-kind-label {
+  color: var(--ref-tag);
+}
+.lh-kind-refactoring,
+.lh-kind-revert {
+  color: var(--accent);
+}
+.lh-kind-external {
+  color: var(--warning);
+}
+.lh-kind-vcs {
+  color: var(--ref-local);
+}
+.lh-kind-create {
+  color: var(--vcs-added);
+}
+.lh-kind-delete {
+  color: var(--vcs-deleted);
+}
+.lh-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 24px;
+  padding: 0 6px;
+  min-width: 120px;
+  max-width: 220px;
+  flex: 1 1 160px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+}
+.lh-filter:focus-within {
+  border-color: var(--accent);
+}
+.lh-filter input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--fg);
+  font: inherit;
+  font-size: var(--fs-small);
+}
+.lh-details-title {
+  padding: 6px 10px 2px;
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+.lh-change-header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+}
+.lh-change-header .lh-name {
+  font-weight: 600;
+  color: var(--fg-strong);
+}
+.lh-change-files {
+  flex: 1;
+  overflow: auto;
+  border-bottom: none;
+}
+
+/* ---------- Recent Changes popup ---------- */
+.recent-changes-popup {
+  width: min(620px, calc(100vw - 32px));
+}
+.recent-changes-list {
+  height: 360px;
+  padding: 6px;
+  overflow-y: auto;
+}
+.recent-changes-list .recent-row {
+  height: 40px;
+  align-items: center;
+}
+.rc-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+  line-height: 1.3;
+}
+.rc-files {
+  color: var(--fg-faint);
+  font-size: var(--fs-small);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rc-time {
+  margin-left: auto;
+  padding-left: 12px;
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+  flex-shrink: 0;
+}

@@ -23,6 +23,7 @@ import "./liveTemplates";
 import "./documentation";
 import "./keymapSettings";
 import "./git";
+import "./localHistory";
 import "./compare";
 import "./forges";
 import "./php";
