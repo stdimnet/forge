@@ -42,6 +42,7 @@ pub mod model;
 pub mod navigate;
 pub mod offsets;
 pub mod parser;
+pub mod project;
 pub mod rearrange;
 pub mod refactor;
 pub mod rename;
