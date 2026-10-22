@@ -980,6 +980,108 @@ pub fn move_members(
     Ok(plan)
 }
 
+/// Move Function: the function at `offset` into the file `target`, its calls and imports
+/// updated when the namespace changes.
+pub fn move_function(
+    p: &mut dyn Project,
+    path: &str,
+    text: &str,
+    offset: usize,
+    target: &str,
+) -> Result<ProjectPlan, String> {
+    let (f, ns) = move_members::function_at(text, offset)
+        .ok_or_else(|| cannot("Caret should be positioned at the function to be moved"))?;
+    let target = target.trim().trim_start_matches('/');
+    if target == path {
+        return Err(cannot("The function is already in this file"));
+    }
+    let target_text = p
+        .read(target)
+        .ok_or_else(|| cannot(format!("File {target} does not exist")))?;
+    let Some(tree) = super::parse(&target_text) else {
+        return Err(cannot("The target file cannot be parsed"));
+    };
+    let target_ns = super::move_class::file_namespace(tree.root_node(), &target_text);
+    let old_fqn = qualify(&ns, &f.name);
+    let new_fqn = qualify(&target_ns, &f.name);
+    let mut plan = ProjectPlan::default();
+    let target_index = crate::parser::index_source(target, &target_text);
+    if target_index
+        .functions
+        .iter()
+        .any(|x| x.name.eq_ignore_ascii_case(&f.name))
+    {
+        plan.conflict(
+            format!("Function {}() already exists in {target}", f.name),
+            Some(target),
+            None,
+        );
+    }
+    let code = move_members::moved_code(
+        text,
+        path,
+        std::slice::from_ref(&f),
+        &[],
+        "",
+        &target_text,
+        target_text.len(),
+        "",
+    );
+    let end = target_text.len();
+    let sep = if target_text.ends_with("\n\n") {
+        ""
+    } else if target_text.ends_with('\n') {
+        "\n"
+    } else {
+        "\n\n"
+    };
+    let found = p.usages(path, text, f.name_span.start, &UsageOptions::default());
+    let mut by_file: Vec<(String, Vec<Span>)> = Vec::new();
+    if let Some(found) = &found {
+        for (file, span, _) in usage_spans(p, found) {
+            match by_file.iter_mut().find(|(x, _)| *x == file) {
+                Some((_, v)) => v.push(span),
+                None => by_file.push((file, vec![span])),
+            }
+        }
+    }
+    for want in [path.to_string(), target.to_string()] {
+        if !by_file.iter().any(|(x, _)| *x == want) {
+            by_file.push((want, vec![]));
+        }
+    }
+    for (file, spans) in by_file {
+        let t = if file == path {
+            text.to_string()
+        } else if file == target {
+            target_text.clone()
+        } else {
+            match p.read(&file) {
+                Some(t) => t,
+                None => continue,
+            }
+        };
+        let skip = if file == path { vec![f.span] } else { vec![] };
+        let mut edits = if old_fqn.eq_ignore_ascii_case(&new_fqn) {
+            vec![]
+        } else {
+            move_members::function_usage_edits(&t, &spans, &skip, &old_fqn, &new_fqn)
+        };
+        if file == path {
+            edits.push(move_members::remove_member(&t, &f));
+        }
+        if file == target {
+            edits.push(TextEdit {
+                start: end,
+                end,
+                new_text: format!("{sep}{code}\n"),
+            });
+        }
+        plan.edit(&file, super::classes::tidy(edits));
+    }
+    Ok(plan)
+}
+
 #[cfg(test)]
 pub(crate) mod tests {
     use super::*;
@@ -1210,6 +1312,46 @@ pub(crate) mod tests {
             at,
             &["gross".into()],
             "App\\Nope"
+        )
+        .is_err());
+    }
+
+    #[test]
+    fn moves_a_function_to_another_file() {
+        let helpers = "<?php\n\nnamespace App\\Support;\n\nuse App\\Models\\Price;\n\n/** Formats money. */\nfunction money(float $x): Price\n{\n    return new Price();\n}\n\nfunction other() {}\n";
+        let target = "<?php\n\nnamespace App\\Util;\n\nfunction first() {}\n";
+        let caller = "<?php\n\nnamespace App\\Http;\n\nuse function App\\Support\\money;\n\necho money(1) . \\App\\Support\\money(2);\n";
+        let mut p = TestProject::new(&[
+            ("app/Models/Price.php", PRICE),
+            ("app/Support/helpers.php", helpers),
+            ("app/Util/fmt.php", target),
+            ("app/Http/caller.php", caller),
+        ]);
+        let plan = move_function(
+            &mut p,
+            "app/Support/helpers.php",
+            helpers,
+            helpers.find("function money").unwrap() + 9,
+            "app/Util/fmt.php",
+        )
+        .unwrap();
+        let out = p.apply(&plan);
+        let h = out["app/Support/helpers.php"].clone().unwrap();
+        assert!(
+            !h.contains("money") && h.contains("function other()"),
+            "{h}"
+        );
+        let t = out["app/Util/fmt.php"].clone().unwrap();
+        assert!(t.ends_with("function first() {}\n\n/** Formats money. */\nfunction money(float $x): \\App\\Models\\Price\n{\n    return new \\App\\Models\\Price();\n}\n"), "{t}");
+        let c = out["app/Http/caller.php"].clone().unwrap();
+        assert!(c.contains("use function App\\Util\\money;"), "{c}");
+        assert!(c.contains("\\App\\Util\\money(2)"), "{c}");
+        assert!(move_function(
+            &mut p,
+            "app/Support/helpers.php",
+            helpers,
+            helpers.find("function money").unwrap() + 9,
+            "app/Nope.php"
         )
         .is_err());
     }

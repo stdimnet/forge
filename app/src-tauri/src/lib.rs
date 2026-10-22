@@ -222,6 +222,7 @@ pub fn run() {
             commands::refactor_move::refactor_make_static_prepare,
             commands::refactor_move::refactor_make_static,
             commands::refactor_move::refactor_move_members,
+            commands::refactor_move::refactor_move_function,
             commands::codeintel::code_plan_edit,
             commands::codeintel::code_apply_edit,
             commands::codeintel::code_revert_edit,

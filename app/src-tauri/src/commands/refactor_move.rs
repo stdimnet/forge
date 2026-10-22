@@ -212,13 +212,25 @@ pub struct MembersTarget {
     pub info: MembersInfo,
 }
 
-/// What F6 / F5 work on: a class, or static members (`kind`: `class` | `members`).
+/// A function Move Function moves to another file.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FunctionTarget {
+    pub path: String,
+    pub position: Position,
+    pub name: String,
+    pub fqn: String,
+    pub signature: String,
+}
+
+/// What F6 / F5 work on (`kind`: `class` | `members` | `function`).
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MovePrepareAnswer {
     pub kind: String,
     pub class: Option<ClassTarget>,
     pub members: Option<MembersTarget>,
+    pub function: Option<FunctionTarget>,
 }
 
 /// Move / Copy (F6 / F5) in the editor: the static member at the caret (Move Members),
@@ -247,11 +259,35 @@ pub async fn refactor_move_prepare(
             if let Ok((decl_path, decl, info)) = members {
                 return Ok(MovePrepareAnswer {
                     kind: "members".into(),
+                    function: None,
                     class: None,
                     members: Some(MembersTarget {
                         position: to_pos(&decl, class_name_start(&decl, &info)),
                         path: decl_path,
                         info,
+                    }),
+                });
+            }
+        }
+        if !copy.unwrap_or(false) {
+            let function = project::at_declaration(&mut p, &path, &text, at, |t, o| {
+                move_members::function_at(t, o).ok_or_else(String::new)
+            });
+            if let Ok((decl_path, decl, (f, ns))) = function {
+                return Ok(MovePrepareAnswer {
+                    kind: "function".into(),
+                    class: None,
+                    members: None,
+                    function: Some(FunctionTarget {
+                        position: to_pos(&decl, f.name_span.start),
+                        fqn: if ns.is_empty() {
+                            f.name.clone()
+                        } else {
+                            format!("{ns}\\{}", f.name)
+                        },
+                        name: f.name,
+                        signature: f.signature,
+                        path: decl_path,
                     }),
                 });
             }
@@ -263,6 +299,7 @@ pub async fn refactor_move_prepare(
                     kind: "class".into(),
                     class: Some(class_target(path, class, &decl)),
                     members: None,
+                    function: None,
                 })
             }
         }
@@ -677,6 +714,28 @@ pub async fn refactor_change_signature(
         let text = p.text(&path, content)?;
         let at = to_byte(&text, position);
         let plan = project::change_signature(&mut p, &path, &text, at, &options).map_err(refuse)?;
+        Ok(plan_answer(plan, &mut p.files, &same))
+    })
+    .await
+}
+
+/// Move Function: the function whose name is at `position` into the file `target`.
+#[tauri::command]
+pub async fn refactor_move_function(
+    path: String,
+    position: Position,
+    content: Option<String>,
+    target: String,
+    buffers: Option<HashMap<String, String>>,
+    state: State<'_, AppState>,
+) -> Result<RefactorAnswer> {
+    require_php(&path)?;
+    let backend = state.backend()?;
+    blocking(move || {
+        let mut p = BackendProject::new(backend, buffers);
+        let text = p.text(&path, content)?;
+        let at = to_byte(&text, position);
+        let plan = project::move_function(&mut p, &path, &text, at, &target).map_err(refuse)?;
         Ok(plan_answer(plan, &mut p.files, &same))
     })
     .await

@@ -155,6 +155,91 @@ pub fn members_at(src: &str, pos: usize) -> Option<MembersInfo> {
     })
 }
 
+/// The function declared at `pos` (outside classes).
+pub fn function_at(src: &str, pos: usize) -> Option<(MovableMember, String)> {
+    let tree = parse(src)?;
+    let root = tree.root_node();
+    let mut n = root.descendant_for_byte_range(pos, pos)?;
+    let f = loop {
+        if n.kind() == "function_definition" {
+            break n;
+        }
+        if matches!(
+            n.kind(),
+            "class_declaration"
+                | "interface_declaration"
+                | "trait_declaration"
+                | "enum_declaration"
+        ) {
+            return None;
+        }
+        n = n.parent()?;
+    };
+    let name = f.child_by_field_name("name")?;
+    let head_end = f
+        .child_by_field_name("body")
+        .map_or(f.end_byte(), |b| b.start_byte());
+    let ns = super::move_class::file_namespace(root, src);
+    let m = MovableMember {
+        name: text(name, src).to_string(),
+        kind: "function".into(),
+        signature: one_line(src[f.start_byte()..head_end].trim()),
+        visibility: "public".into(),
+        span: with_doc(f, src),
+        name_span: Span::of(name),
+    };
+    Some((m, ns))
+}
+
+/// The edits of a usage of a function that moves from `old_fqn` to `new_fqn`: calls and
+/// `use function` imports name it fully qualified (by its short name in the new namespace).
+pub fn function_usage_edits(
+    src: &str,
+    spans: &[Span],
+    skip: &[Span],
+    old_fqn: &str,
+    new_fqn: &str,
+) -> Vec<TextEdit> {
+    let Some(tree) = parse(src) else {
+        return vec![];
+    };
+    let root = tree.root_node();
+    let file_ns = super::move_class::file_namespace(root, src);
+    let new_ns = new_fqn.rsplit_once('\\').map_or("", |(n, _)| n);
+    let mut edits = Vec::new();
+    for s in spans {
+        if skip.iter().any(|k| k.contains(*s)) {
+            continue;
+        }
+        let Some(mut n) = root.descendant_for_byte_range(s.start, s.end) else {
+            continue;
+        };
+        if n.parent().is_some_and(|p| p.kind() == "qualified_name") {
+            n = n.parent().expect("checked");
+        }
+        let in_use = n
+            .parent()
+            .is_some_and(|p| p.kind() == "namespace_use_clause");
+        let written = text(n, src);
+        let new_text = if in_use {
+            new_fqn.to_string()
+        } else if !written.contains('\\') && file_ns.eq_ignore_ascii_case(new_ns) {
+            continue;
+        } else {
+            format!("\\{new_fqn}")
+        };
+        let _ = old_fqn;
+        if new_text != written {
+            edits.push(TextEdit {
+                start: n.start_byte(),
+                end: n.end_byte(),
+                new_text,
+            });
+        }
+    }
+    edits
+}
+
 /// The scope node of a static access to a member whose name is at `span` (`Foo` of
 /// `Foo::bar()`, `Foo::$x`, `Foo::X`).
 fn scope_of(root: Node, span: Span) -> Option<Node> {
@@ -229,8 +314,14 @@ pub fn moved_code(
     let mut parts = Vec::new();
     for m in members {
         let code = &src[m.span.start..m.span.end];
-        let wrapped = format!("<?php class __Forge_Move {{\n{code}\n}}");
-        let base = "<?php class __Forge_Move {\n".len();
+        // Members parse inside a class, functions on their own.
+        let head = if m.kind == "function" {
+            "<?php\n"
+        } else {
+            "<?php class __Forge_Move {\n"
+        };
+        let wrapped = format!("{head}{code}\n}}");
+        let base = head.len();
         let Some(tree) = parse(&wrapped) else {
             parts.push(code.to_string());
             continue;

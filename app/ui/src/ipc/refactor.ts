@@ -143,10 +143,20 @@ export interface MembersTarget {
   selected?: string | null;
 }
 
+/** A function Move Function moves to another file. */
+export interface FunctionTarget {
+  path: string;
+  position: LspPosition;
+  name: string;
+  fqn: string;
+  signature: string;
+}
+
 export interface MovePrepareAnswer {
-  kind: "class" | "members";
+  kind: "class" | "members" | "function";
   class?: ClassTarget | null;
   members?: MembersTarget | null;
+  function?: FunctionTarget | null;
 }
 
 export interface PathMove {
@@ -278,6 +288,8 @@ export const moveApi = {
       target: to,
       buffers,
     }),
+  moveFunction: (target: FunctionTarget, to: string, content?: string, buffers?: Record<string, string>) =>
+    invoke<RefactorAnswer>("refactor_move_function", { path: target.path, position: target.position, content, target: to, buffers }),
   moveFiles: (moves: PathMove[], searchForReferences: boolean, searchInComments: boolean, buffers?: Record<string, string>) =>
     invoke<MoveFilesAnswer>("refactor_move_files", { moves, searchForReferences, searchInComments, buffers }),
   safeDelete: (path: string, position: LspPosition, content: string, searchInComments: boolean, buffers?: Record<string, string>) =>

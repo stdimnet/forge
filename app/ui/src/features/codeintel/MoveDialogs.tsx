@@ -20,6 +20,7 @@ import {
   type MoveClassRequest,
   type MoveDialog,
   type MoveFilesRequest,
+  type MoveFunctionRequest,
   type MoveMembersRequest,
   type SafeDeleteRequest,
   type UsagesDetectedRequest,
@@ -247,6 +248,26 @@ export function MoveMembersDialog(props: { req: MoveMembersRequest }) {
             </For>
           </div>
         </fieldset>
+      </div>
+      <Buttons ok="Refactor" disabled={!valid()} preview={() => valid() && close(true)} cancel={() => close(null)} run={run} />
+    </Frame>
+  );
+}
+
+export function MoveFunctionDialog(props: { req: MoveFunctionRequest }) {
+  const t = props.req.target;
+  const [file, setFile] = createSignal(t.path);
+  const valid = () => /\.(php|phtml|inc)$/i.test(file().trim()) && file().trim() !== t.path;
+  const close = (preview: boolean | null) => props.req.done(preview === null ? null : { file: file().trim(), preview });
+  const run = () => valid() && close(false);
+  return (
+    <Frame title="Move Function" class="move-class-dialog" onKeyDown={keys(() => close(null), run)}>
+      <div class="dialog-body">
+        <div class="refactor-note">
+          Move function <code>{t.fqn}()</code>
+        </div>
+        <label class="form-label">To file:</label>
+        <input ref={focusSelect} class="move-input" value={file()} spellcheck={false} aria-label="To file" onInput={(e) => setFile(e.currentTarget.value)} />
       </div>
       <Buttons ok="Refactor" disabled={!valid()} preview={() => valid() && close(true)} cancel={() => close(null)} run={run} />
     </Frame>
@@ -527,6 +548,8 @@ export function MoveDialogHost() {
             return <CopyClassDialog req={x.req} />;
           case "moveMembers":
             return <MoveMembersDialog req={x.req} />;
+          case "moveFunction":
+            return <MoveFunctionDialog req={x.req} />;
           case "moveFiles":
             return <MoveFilesDialog req={x.req} />;
           case "copyFiles":

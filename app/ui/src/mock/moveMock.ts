@@ -193,6 +193,26 @@ registerMock("refactor_move_prepare", ({ path, position, content, copy }): MoveP
   return { kind: "class", class: target };
 });
 
+registerMock("refactor_move_function", async (args): Promise<RefactorAnswer> => {
+  const { path, position, target, buffers } = args as { path: string; position: LspPosition; target: string; buffers: Buffers };
+  const plan = new Plan(buffers);
+  const text = plan.text(path);
+  const dest = mockFiles[target];
+  if (dest === undefined) throw new Error(`${CANNOT} File ${target} does not exist`);
+  const at = offsetOf(text, position);
+  const start = text.lastIndexOf("function", at);
+  let depth = 0;
+  let end = text.indexOf("{", at);
+  for (; end < text.length; end++) {
+    if (text[end] === "{") depth++;
+    if (text[end] === "}" && --depth === 0) break;
+  }
+  const [s, e] = lineRange(text, start, end + 1);
+  plan.edits(path, [{ start: s, end: e, text: "" }]);
+  plan.edits(target, [{ start: dest.length, end: dest.length, text: `\n${text.slice(s, e).trim()}\n` }]);
+  return plan.answer();
+});
+
 registerMock("refactor_move_class", async (args): Promise<RefactorAnswer> => {
   const { path, position, targetNamespace, targetDirectory, buffers } = args as {
     path: string;

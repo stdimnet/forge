@@ -15,6 +15,7 @@ import {
   moveApi,
   type ChangeSignatureOptions,
   type ClassTarget,
+  type FunctionTarget,
   type MakeStaticInfo,
   type MakeStaticOptions,
   type MembersTarget,
@@ -56,6 +57,9 @@ export interface CopyClassRequest extends Request<{ name: string; namespace: str
 export interface MoveMembersRequest extends Request<{ members: string[]; target: string; preview: boolean }> {
   target: MembersTarget;
 }
+export interface MoveFunctionRequest extends Request<{ file: string; preview: boolean }> {
+  target: FunctionTarget;
+}
 export interface MoveFilesRequest extends Request<{ directory: string; searchForReferences: boolean; searchInComments: boolean }> {
   /** "file 'User.php'", "directory 'Models'", "2 items". */
   what: string;
@@ -85,6 +89,7 @@ export type MoveDialog =
   | { kind: "moveClass"; req: MoveClassRequest }
   | { kind: "copyClass"; req: CopyClassRequest }
   | { kind: "moveMembers"; req: MoveMembersRequest }
+  | { kind: "moveFunction"; req: MoveFunctionRequest }
   | { kind: "moveFiles"; req: MoveFilesRequest }
   | { kind: "copyFiles"; req: CopyFilesRequest }
   | { kind: "safeDelete"; req: SafeDeleteRequest }
@@ -176,6 +181,7 @@ export async function moveAt(path: string, view: EditorView): Promise<void> {
     return fail(view, "Move", e);
   }
   if (found.members) await moveMembers(found.members, path, view);
+  else if (found.function) await moveFunction(found.function, path, view);
   else if (found.class) await moveClass(found.class, path, view);
 }
 
@@ -211,6 +217,19 @@ async function moveMembers(target: MembersTarget, editorPath: string, view: Edit
     return fail(view, "Move Members", e);
   }
   await applyAnswer("Move Members", answer, { preview: choice.preview });
+}
+
+async function moveFunction(target: FunctionTarget, editorPath: string, view: EditorView): Promise<void> {
+  const choice = await ask("moveFunction", { target });
+  view.focus();
+  if (!choice) return;
+  let answer: RefactorAnswer;
+  try {
+    answer = await moveApi.moveFunction(target, choice.file, contentFor(target.path, editorPath, view), dirtyBuffers());
+  } catch (e) {
+    return fail(view, "Move", e);
+  }
+  await applyAnswer(`Move function ${target.name}()`, answer, { preview: choice.preview });
 }
 
 /** "file 'User.php'", "directory 'Models'", "3 items". */
