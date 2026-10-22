@@ -15,6 +15,9 @@ Jumping to declarations, implementations, super methods, lines, problems, recent
 | [Go to Implementation(s)](#go-to-implementations) | `Ctrl+Alt+B` | `Cmd+Alt+B` |
 | [Go to Type Declaration](#go-to-type-declaration) | `Ctrl+Shift+B` | `Cmd+Shift+B` |
 | [Go to Super Method](#go-to-super-method) | `Ctrl+U` | `Cmd+U` |
+| [Type Hierarchy](#type-hierarchy) | `Ctrl+H` | `Ctrl+H` |
+| [Method Hierarchy](#method-hierarchy) | `Ctrl+Shift+H` | `Cmd+Shift+H` |
+| [Call Hierarchy](#call-hierarchy) | `Ctrl+Alt+H` | `Ctrl+Alt+H` |
 | [Back](#back) | `Ctrl+Alt+Left` | `Cmd+[`, `Cmd+Alt+Left` |
 | [Forward](#forward) | `Ctrl+Alt+Right` | `Cmd+]`, `Cmd+Alt+Right` |
 | [Last Edit Location](#last-edit-location) | `Ctrl+Shift+Backspace` | `Cmd+Shift+Backspace` |
@@ -99,6 +102,38 @@ Jumps to the method the current method overrides or implements; on a class, to i
 **Menu:** Navigate | Super Method
 
 More: [Editor](../../user/editor.md#implementation-type-declaration-super-method)
+
+## Type Hierarchy
+
+**Shortcut:** `Ctrl+H` · macOS `Ctrl+H` · action id `TypeHierarchy`
+
+Shows the class at the caret in the Hierarchy tool window: its parent classes and subtypes (Class Hierarchy), its supertypes or its subtypes.
+
+**Menu:** Navigate | Type Hierarchy
+
+More: [Type, Method and Call Hierarchy](../../user/hierarchies.md#type-hierarchy)
+
+![Type Hierarchy](../../../screenshots/hierarchy-type.png)
+
+## Method Hierarchy
+
+**Shortcut:** `Ctrl+Shift+H` · macOS `Cmd+Shift+H` · action id `MethodHierarchy`
+
+Shows which classes define the method at the caret, which inherit it and which should define it.
+
+**Menu:** Navigate | Method Hierarchy
+
+More: [Type, Method and Call Hierarchy](../../user/hierarchies.md#method-hierarchy)
+
+## Call Hierarchy
+
+**Shortcut:** `Ctrl+Alt+H` · macOS `Ctrl+Alt+H` · action id `CallHierarchy`
+
+Shows the callers (or callees) of the method or function at the caret, one level per expanded node, with the call sites.
+
+**Menu:** Navigate | Call Hierarchy
+
+More: [Type, Method and Call Hierarchy](../../user/hierarchies.md#call-hierarchy)
 
 ## Back
 

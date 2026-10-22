@@ -63,7 +63,7 @@ happening.
 - Refactorings other than Rename: Extract/Introduce, Move, Change Signature, Safe Delete
 - File Structure popup (`Ctrl+F12`)
 - Local History
-- Optimize Imports, Type/Call/Method Hierarchy
+- Optimize Imports
 - Go to Test (`Ctrl+Shift+T`)
 - Distraction Free / Presentation / Zen modes
 - Marketplace, settings export/import

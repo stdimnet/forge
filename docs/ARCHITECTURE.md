@@ -448,7 +448,8 @@ app/ui/            SolidJS UI
   protocol 4 added `FindTodos`, `CollectFiles`, `Web`, `LangServerInstall` and
   `LangServerUpdates`; protocol 5 added `FindStart`, `FindPage`, `FindSymbols` and
   `SearchStatus`, and `exact` on the search calls; protocol 6 added `ReadBytes` / `WriteBytes`
-  (files in other encodings than UTF-8) and `TerminalSpec.shell_integration`), `Event`
+  (files in other encodings than UTF-8) and `TerminalSpec.shell_integration`; protocol 7 added
+  the PHP index's `Hierarchy` call), `Event`
   (`FsChanged`, `Pty`, `Run`, `PhpIndexProgress`, `Install`), `Data` /
   `Close { channel }` (language server stdio, terminal and process input; channel ids are chosen
   by the client). The connection starts with `Call::Hello`. `forge_backend::rpc::RpcClient`
@@ -749,6 +750,19 @@ computes everything; `app/ui/src/features/codeintel` and `features/lsp/goto.ts` 
   - `code_line_markers({ path, content? }) -> { line, kind: "subclassed" | "implemented" |
     "overridden" | "implements" | "overrides", title, targets }[]` — PHP gutter icons.
   - `library_read({ path }) -> { text, library, detail }`.
+  - Hierarchies (`app/ui/src/ipc/hierarchy.ts`, `commands/hierarchy.rs`, model in
+    `forge_codeintel::hierarchy`): `code_type_hierarchy({ path, line, character, content? })`
+    and `code_method_hierarchy(…)` `-> { title, graph: TypeGraph | null, source, message? }`
+    (`TypeGraph { root, types: { item, extends, implements, method? }[], method? }`);
+    `code_call_hierarchy(…) -> { title, root: HierarchyItem | null, source, message? }` and
+    `code_call_hierarchy_calls({ item, direction: "callers" | "callees" }) -> CallNode[]`
+    (`{ item, calls: { path, range, preview }[] }`, one level per call). Language servers
+    (`LspManager::type_graph`, `call_root`, `call_nodes`; items carry the server's item as
+    `handle`) first, the PHP index (`PhpCall::Hierarchy`, `phpforge_lang_php::hierarchy`)
+    for PHP files, merged (`merge_type_graphs`, `merge_call_nodes`). The Hierarchy tool window
+    (`features/hierarchy`, right side) computes its trees with `forge_codeintel::hierarchy`
+    through WebAssembly (`hierarchy_type_view`, `hierarchy_method_view`,
+    `hierarchy_call_view`), so views, scopes and sorting need no new query.
   - Documentation actions of the View menu (`forge_codeintel::docs`):
     `code_external_doc({ path, line, character, content? }) -> { url?, name? }` (Shift+F1; PHP
     symbols resolved like `code_goto_declaration`),
@@ -801,7 +815,8 @@ computes everything; `app/ui/src/features/codeintel` and `features/lsp/goto.ts` 
 - UI: Go to Declaration (`GotoDeclaration`, `Ctrl+Click`, middle click) shows usages on a
   declaration (`showUsagesAt`); `ShowUsages` (popup), `FindUsages` (Find tool window `find`,
   `Alt+3`), `GotoImplementation` (also `Ctrl+Alt+Click`), `GotoTypeDeclaration`,
-  `GotoSuperMethod` are registered commands, so the keymap and the main menu enable them;
+  `GotoSuperMethod`, `TypeHierarchy` (Ctrl+H), `MethodHierarchy` (Ctrl+Shift+H) and
+  `CallHierarchy` (Ctrl+Alt+H, `features/hierarchy`) are registered commands, so the keymap and the main menu enable them;
   several targets use `chooseDeclarationAt`. Browser mode: `mock/codeintelMock.ts` over the demo
   project and `mock/demoStubs.ts`, grouping through `forge-codeintel` as WebAssembly.
 - Rename and context actions UI (`features/codeintel`): `RenameElement` (Shift+F6) starts the

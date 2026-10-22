@@ -103,6 +103,7 @@ where each tool window sits by default; you can move every one of them (see
 | Database | right | — | [Database tools](database.md) |
 | Documentation | right | — | [Editor](editor.md#documentation-tool-window) |
 | Doctrine | right | — | [Doctrine](doctrine.md) |
+| Hierarchy | right | — | [Type, Method and Call Hierarchy](hierarchies.md) |
 | Notifications | right | — | [below](#notifications) |
 
 Framework tool windows (Routes, Symfony, Doctrine, npm) only appear in projects that use the
