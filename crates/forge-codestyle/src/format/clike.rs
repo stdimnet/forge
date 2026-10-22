@@ -339,7 +339,8 @@ fn php_array_literal(t: &[Tok], i: usize) -> bool {
 
 fn php_long_array_call(t: &[Tok], i: usize) -> bool {
     t[i].is_word("array")
-        && t.get(i + 1).is_some_and(|n| n.is("(") && n.ws.is_empty())
+        && t.get(i + 1)
+            .is_some_and(|n| n.is("(") && n.kind == Kind::Open)
         && !prev_sig(t, i).is_some_and(|p| {
             t[p].is_op("->") || t[p].is_op("?->") || t[p].is_op("::") || t[p].is_word("function")
         })
@@ -804,6 +805,15 @@ impl F<'_> {
                     return Fk::Group;
                 };
                 match p.kind {
+                    Kind::Word if self.lang == Lang::Php && self.is_name(pi) => {
+                        if prev_sig(&self.t, pi)
+                            .is_some_and(|q| self.t[q].is_word("function") || self.t[q].is("&"))
+                        {
+                            Fk::Decl
+                        } else {
+                            Fk::Call
+                        }
+                    }
                     Kind::Word => {
                         let w = p.text.to_ascii_lowercase();
                         match w.as_str() {
@@ -971,6 +981,9 @@ impl F<'_> {
         let mut j = i;
         while j > 0 {
             let t = &self.t[j - 1];
+            if depth == 0 && t.is("}") {
+                return j;
+            }
             match t.kind {
                 Kind::Close => depth += 1,
                 Kind::Open => {
@@ -984,9 +997,6 @@ impl F<'_> {
                 }
                 Kind::Tag => return j,
                 _ => {}
-            }
-            if depth == 0 && t.is("}") {
-                return j;
             }
             j -= 1;
         }
@@ -1268,9 +1278,35 @@ impl F<'_> {
         Some(Some(within))
     }
 
+    /// The word at `i` names a member or a declared function (`->match(`, `function switch(`).
+    fn is_name(&self, i: usize) -> bool {
+        prev_sig(&self.t, i).is_some_and(|q| {
+            let t = &self.t[q];
+            t.is_op("->")
+                || t.is_op("?->")
+                || t.is_op("::")
+                || t.is_word("function")
+                || t.is_word("fn")
+                || (t.is("&")
+                    && prev_sig(&self.t, q).is_some_and(|r| self.t[r].is_word("function")))
+        })
+    }
+
     fn before_paren_php(&self, p: &Tok) -> Option<bool> {
         let o = self.o;
         let pi = self.last?;
+        if p.kind == Kind::Word && self.is_name(pi) {
+            let decl = prev_sig(&self.t, pi).is_some_and(|q| {
+                self.t[q].is_word("function")
+                    || (self.t[q].is("&")
+                        && prev_sig(&self.t, q).is_some_and(|r| self.t[r].is_word("function")))
+            });
+            return Some(if decl {
+                o.bool("spaces.beforeFunctionDeclarationParentheses")
+            } else {
+                o.bool("spaces.beforeFunctionCallParentheses")
+            });
+        }
         Some(match p.kind {
             Kind::Word => {
                 let w = p.text.to_ascii_lowercase();
@@ -1312,10 +1348,11 @@ impl F<'_> {
     fn space_php(&self, i: usize, p: &Tok, t: &Tok) -> Option<bool> {
         let o = self.o;
         let pi = self.last?;
+        // An attribute (`#[A] ?int $x`) is not an operand.
         let operand_before = |idx: usize| {
-            prev_sig(&self.t, idx)
-                .map(|q| &self.t[q])
-                .is_some_and(is_operand)
+            prev_sig(&self.t, idx).is_some_and(|q| {
+                is_operand(&self.t[q]) && !self.closed[q].is_some_and(|(k, _)| k == Fk::Attr)
+            })
         };
         // Casts.
         if p.kind == Kind::Cast {
@@ -2050,6 +2087,13 @@ mod tests {
     }
 
     #[test]
+    fn keyword_names_and_attributes() {
+        let v = model().defaults();
+        let src = "<?php\nclass A\n{\n    public function match(string $v) {}\n    public function function(#[Attr(from: '8.0')] ?string $a = null) {}\n}\n$x->switch(1);\n";
+        assert_eq!(php(src, &v, Mode::Spacing), src);
+    }
+
+    #[test]
     fn converts_php_arrays() {
         let v = values("php", &[("codeConversion.arraySyntax", json!("short"))]);
         assert_eq!(
@@ -2099,10 +2143,7 @@ mod tests {
             &Opts::new("css", &v),
             Mode::Layout,
         );
-        assert_eq!(
-            out,
-            "a,\nb > c\n{\n    color: #fff; margin: 0\n}\n\nd {}\n"
-        );
+        assert_eq!(out, "a,\nb > c\n{\n    color: #fff; margin: 0\n}\n\nd {}\n");
         let v = model().defaults();
         let out = format(
             "{\"a\":[1,2],\"b\":{}}",

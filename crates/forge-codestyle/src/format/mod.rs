@@ -153,9 +153,11 @@ pub fn post_format(req: &PostFormatRequest, values: &Values) -> String {
     let text = &req.text;
     let mut out = match lang.id.as_str() {
         "php" => clike::format(text, lexer::Lang::Php, &opts, clike::Mode::Spacing),
-        // Quotes in plain JavaScript/TypeScript files (the language server does the rest).
+        // Quotes in plain JavaScript/TypeScript files (the language server does the rest);
+        // files with JSX are left alone, its text and attributes are not JavaScript strings.
         "javascript" | "typescript"
-            if matches!(req.file_type.as_str(), "javascript" | "typescript") =>
+            if matches!(req.file_type.as_str(), "javascript" | "typescript")
+                && !looks_like_jsx(text) =>
         {
             let lang = if lang.id == "typescript" {
                 lexer::Lang::Ts
@@ -181,6 +183,21 @@ pub fn post_format(req: &PostFormatRequest, values: &Values) -> String {
     }
     let general = Opts::new(GENERAL, values);
     markers::restore(&req.original, &out, &general).unwrap_or(out)
+}
+
+/// JSX in a `.js`/`.ts` file: closing tags (`</div>`) or self-closing ones (`<Foo />`).
+fn looks_like_jsx(text: &str) -> bool {
+    let b = text.as_bytes();
+    b.windows(3)
+        .any(|w| w[0] == b'<' && w[1] == b'/' && w[2].is_ascii_alphabetic())
+        || b.windows(2).enumerate().any(|(i, w)| {
+            w == b"/>"
+                && b[..i]
+                    .iter()
+                    .rev()
+                    .take_while(|c| **c != b'\n')
+                    .any(|c| *c == b'<')
+        })
 }
 
 /// Byte ranges that must not change (strings and comments), for line based passes.
@@ -299,6 +316,20 @@ mod tests {
             text: "a();\n\n\n\nb(`x\n\n\n\ny`);\n".into(),
         };
         assert_eq!(post_format(&req, &values), "a();\n\nb(`x\n\n\n\ny`);\n");
+    }
+
+    #[test]
+    fn quotes_skip_jsx() {
+        let mut values = model().defaults();
+        values.insert("javascript.punctuation.quotes".into(), json!("single"));
+        let req = |text: &str| PostFormatRequest {
+            file_type: "javascript".into(),
+            original: String::new(),
+            text: text.into(),
+        };
+        assert_eq!(post_format(&req("a(\"x\");\n"), &values), "a('x');\n");
+        let jsx = "const a = <p>Don't \"x\"</p>;\n";
+        assert_eq!(post_format(&req(jsx), &values), jsx);
     }
 
     #[test]

@@ -697,18 +697,15 @@ mod tests {
     fn blade_and_twig_blocks() {
         let src = "@if($a)\n<p>{{$b}}</p>\n@else\n<p>x</p>\n@endif\n";
         assert_eq!(
-            fmt("blade", src, &[]),
-            "@if($a)\n    <p>{{ $b }}</p>\n@else\n    <p>x</p>\n@endif\n"
-        );
-        assert_eq!(
             fmt(
                 "blade",
                 src,
-                &[
-                    ("spaces.beforeDirectiveParentheses", json!(true)),
-                    ("spaces.withinEchoBraces", json!(false))
-                ]
+                &[("spaces.beforeDirectiveParentheses", json!(false))]
             ),
+            "@if($a)\n    <p>{{ $b }}</p>\n@else\n    <p>x</p>\n@endif\n"
+        );
+        assert_eq!(
+            fmt("blade", src, &[("spaces.withinEchoBraces", json!(false))]),
             "@if ($a)\n    <p>{{$b}}</p>\n@else\n    <p>x</p>\n@endif\n"
         );
         let twig = "{% for a in b %}\n<li>{{a}}</li>\n{% else %}\n{{- 'x' -}}\n{% endfor %}\n";

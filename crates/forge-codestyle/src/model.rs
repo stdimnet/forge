@@ -1206,7 +1206,7 @@ fn blade() -> LanguageSpec {
         .bool(
             "spaces.beforeDirectiveParentheses",
             "Before directive parentheses (@if (…))",
-            false,
+            true,
         )
         .custom("SPACE_BEFORE_DIRECTIVE_PARENTHESES");
     b.keep_max(2);
