@@ -476,12 +476,15 @@ Settings | Languages & Frameworks | PHP | Composer:
 
 | Option | Setting | Default | What it does |
 | --- | --- | --- | --- |
-| Path to composer | `php.composer.executable` | `composer` | used by Composer run configurations and the update check |
 | Path to composer.json | `php.composer.json` | `composer.json` | relative to the project root |
+| Path to composer | `php.composer.executable` | `composer` | a composer executable or a composer.phar (run with the PHP interpreter); "Download composer.phar from getcomposer.org" fetches one with your consent |
 | Synchronize IDE settings with composer.json | `php.composer.syncWithComposerJson` | on | the language level follows `require.php` (`^8.2` → 8.2, `^7.3 \|\| ^8.0` → 7.4); without a constraint the language level setting applies |
 | Add packages as libraries | `php.composer.addPackagesAsLibraries` | on | classes in `vendor/` are resolved for navigation and completion and indexed by Intelephense; off leaves `vendor/` out |
 | Check for package updates on project open | `php.composer.checkUpdates` | off | runs `composer outdated --direct` on the project's machine and lists the updates in a balloon |
+| Use Packagist for completion, versions and outdated packages | `php.composer.packagist` | on | package names, versions and outdated markers from packagist.org (cached); off: installed packages only |
 
+The composer.json toolbar, outdated packages, completion of packages and versions, Manage
+Composer Dependencies and `composer audit` are described on the [Composer](composer.md) page.
 Run Composer scripts with a **Composer Script** run configuration, see
 [Run/Debug configurations](run-debug.md).
 

@@ -862,6 +862,41 @@ pub fn complete(
     })
 }
 
+/// Where the cursor is in a JSON document, for completions that add items of their own
+/// (package names and versions in composer.json).
+#[derive(Debug, Clone, PartialEq)]
+pub struct Cursor {
+    /// The object whose key is typed, or the value's path (its key last).
+    pub path: Vec<Seg>,
+    /// A property name is typed (`colon`: it already has its colon).
+    pub key: bool,
+    pub colon: bool,
+    /// Byte offsets: start of the filter text (after an opening quote) and the range an
+    /// item replaces (quotes included).
+    pub from: usize,
+    pub replace: (usize, usize),
+    /// A comma is needed after the inserted text.
+    pub comma: bool,
+}
+
+/// The cursor context at byte `offset` of a JSON (JSONC, JSON5) text.
+pub fn json_cursor(text: &str, offset: usize) -> Option<Cursor> {
+    let doc = crate::json::parse(text)?;
+    let ctx = json_ctx(text, &doc, offset, &mut Vec::new())?;
+    let (key, colon) = match ctx.place {
+        Place::Key { colon } => (true, colon),
+        _ => (false, false),
+    };
+    Some(Cursor {
+        path: ctx.path,
+        key,
+        colon,
+        from: ctx.from,
+        replace: ctx.replace,
+        comma: ctx.comma,
+    })
+}
+
 /// The key or value under `offset` in a document, for hover and navigation.
 pub fn hit_at(docs: &[Node], offset: usize) -> Option<Hit<'_>> {
     navigate::locate(crate::document_at(docs, offset)?, offset)

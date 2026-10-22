@@ -41,7 +41,6 @@ const schemaPages: SchemaPageDef[] = [
   { id: "editor.todo", title: "TODO", group: "Editor", order: 40, keywords: ["fixme", "patterns", "comments"] },
   { id: "vcs.git", title: "Git", group: "Version Control", order: 0, keywords: ["commit message"] },
   { id: "lang.php", title: "PHP", group: "Languages & Frameworks", order: 0, keywords: ["interpreter", "language level"] },
-  { id: "lang.php.composer", title: "Composer", group: "Languages & Frameworks", parent: "lang.php", order: 0 },
   { id: "lang.php.quality-tools", title: "Quality Tools", group: "Languages & Frameworks", parent: "lang.php", order: 1, keywords: ["php cs fixer", "php-cs-fixer", "laravel pint", "code style"] },
   { id: "lang.templates", title: "Template Data Languages", group: "Languages & Frameworks", order: 50, keywords: ["twig", "smarty", "latte", "jinja", "go template", "latex", "delimiter"] },
   { id: "tools.terminal", title: "Terminal", group: "Tools", order: 0, keywords: ["shell"] },

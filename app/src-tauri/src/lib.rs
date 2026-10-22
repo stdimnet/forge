@@ -52,6 +52,7 @@ pub fn run() {
         .manage(commands::services::ServicesState::default())
         .manage(commands::spell::SpellState::default())
         .manage(commands::json_schema::JsonSchemaState::default())
+        .manage(commands::composer::ComposerState::default())
         .manage(commands::window::DialogWindowsState::default())
         .on_window_event(|window, event| {
             startup::on_splash_event(window, event);
@@ -362,6 +363,14 @@ pub fn run() {
             commands::code_style::code_style_post_format,
             commands::php::php_language_level,
             commands::php::php_composer_outdated,
+            commands::composer::composer_project,
+            commands::composer::composer_markers,
+            commands::composer::composer_complete,
+            commands::composer::composer_hover,
+            commands::composer::composer_search,
+            commands::composer::composer_package,
+            commands::composer::composer_audit,
+            commands::composer::composer_download_phar,
             commands::php::php_detect_servers,
             commands::php::php_lsp_config,
             commands::lua::lua_index_workspace,

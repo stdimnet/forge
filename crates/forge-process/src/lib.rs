@@ -22,8 +22,8 @@ pub use forge_output as output;
 
 pub use args::{quote_arg, split_args};
 pub use config::{
-    BeforeLaunchTask, BuildContext, KindRegistry, RunConfiguration, RunConfigurationKind,
-    RunConfigurations, TemplateKind,
+    composer_program, BeforeLaunchTask, BuildContext, KindRegistry, RunConfiguration,
+    RunConfigurationKind, RunConfigurations, TemplateKind,
 };
 pub use pty::{PtyEvent, PtyOptions, PtySession, PtySink};
 pub use runner::{CommandLine, OutputStream, RunEvent, RunSink, RunningProcess};

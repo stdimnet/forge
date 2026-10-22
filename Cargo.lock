@@ -1853,6 +1853,7 @@ dependencies = [
  "forge-window",
  "futures-util",
  "luaforge-lang-lua",
+ "phpforge-composer",
  "phpforge-dql",
  "phpforge-fw-laravel",
  "phpforge-fw-symfony",
@@ -2501,6 +2502,7 @@ dependencies = [
  "forge-vim",
  "forge-window",
  "luaforge-lang-lua",
+ "phpforge-composer",
  "phpforge-dql",
  "serde",
  "serde_json",
@@ -4763,6 +4765,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "phpforge-composer"
+version = "0.1.0"
+dependencies = [
+ "dirs 6.0.0",
+ "forge-jsonschema",
+ "reqwest 0.12.28",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "tempfile",
+ "tokio",
+]
+
+[[package]]
 name = "phpforge-dql"
 version = "0.1.0"
 dependencies = [
@@ -4806,6 +4822,7 @@ dependencies = [
  "dirs 6.0.0",
  "forge-codeintel",
  "forge-file-templates",
+ "phpforge-composer",
  "rayon",
  "serde",
  "serde_json",

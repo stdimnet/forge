@@ -25,6 +25,7 @@ import "./git";
 import "./compare";
 import "./forges";
 import "./php";
+import "./composer";
 import "./laravel";
 import "./symfony";
 import "./doctrine";

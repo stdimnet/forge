@@ -50,6 +50,12 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 
 ## Recently added
 
+- **Composer**: composer.json gets PHPStorm's Composer toolbar (Install, Update, Validate,
+  Show Outdated, Audit), outdated packages are marked in the gutter with an "Update package"
+  quick fix, package names and version constraints complete from Packagist with documentation
+  on hover, Tools | Composer | Add Dependency… opens Manage Composer Dependencies, and
+  `composer audit` lists security advisories in the Problems tool window
+  ([Composer](docs/guide/user/composer.md)).
 - **Scopes, file colors, Structural Search and Analyze Stack Trace**: named scopes in
   PHPStorm's scope language for Find in Files, Replace in Files, Find Usages and Structural
   Search, file colors in editor tabs and the Project view
@@ -709,6 +715,7 @@ not finished, the page says so.
 | Page | Covers |
 | --- | --- |
 | [PHP](docs/guide/user/php.md) | PHP index, Structure, hover, Generate (`Alt+Insert`), PHP settings |
+| [Composer](docs/guide/user/composer.md) | composer.json toolbar (Install, Update, Validate, Show Outdated, Audit), outdated packages with Update package, package and version completion from Packagist, Manage Composer Dependencies, `composer audit` (Vulnerable Dependencies), composer.phar download |
 | [Laravel](docs/guide/user/laravel.md) | Blade, routes, views, config, Eloquent, Routes tool window, artisan |
 | [Symfony](docs/guide/user/symfony.md) | services, routes, Twig, console, Symfony tool window |
 | [Doctrine and DQL](docs/guide/user/doctrine.md) | entity mappings, Doctrine tool window, DQL in PHP strings |
@@ -8284,12 +8291,15 @@ Settings | Languages & Frameworks | PHP | Composer:
 
 | Option | Setting | Default | What it does |
 | --- | --- | --- | --- |
-| Path to composer | `php.composer.executable` | `composer` | used by Composer run configurations and the update check |
 | Path to composer.json | `php.composer.json` | `composer.json` | relative to the project root |
+| Path to composer | `php.composer.executable` | `composer` | a composer executable or a composer.phar (run with the PHP interpreter); "Download composer.phar from getcomposer.org" fetches one with your consent |
 | Synchronize IDE settings with composer.json | `php.composer.syncWithComposerJson` | on | the language level follows `require.php` (`^8.2` → 8.2, `^7.3 \|\| ^8.0` → 7.4); without a constraint the language level setting applies |
 | Add packages as libraries | `php.composer.addPackagesAsLibraries` | on | classes in `vendor/` are resolved for navigation and completion and indexed by Intelephense; off leaves `vendor/` out |
 | Check for package updates on project open | `php.composer.checkUpdates` | off | runs `composer outdated --direct` on the project's machine and lists the updates in a balloon |
+| Use Packagist for completion, versions and outdated packages | `php.composer.packagist` | on | package names, versions and outdated markers from packagist.org (cached); off: installed packages only |
 
+The composer.json toolbar, outdated packages, completion of packages and versions, Manage
+Composer Dependencies and `composer audit` are described on the [Composer](docs/guide/user/composer.md) page.
 Run Composer scripts with a **Composer Script** run configuration, see
 [Run/Debug configurations](docs/guide/user/run-debug.md).
 
@@ -8350,6 +8360,181 @@ In a [remote project](docs/guide/user/remote-development.md) the PHP index and t
 remote host through the Forge agent; Structure, search, hover, Generate, navigation, usages,
 gutter icons, Rename and context actions work as locally; renamed and fixed files are written on
 the remote host. The PHP stubs are read on this machine.
+
+
+---
+
+Source: docs/guide/user/composer.md
+
+# Composer
+
+Forge works with [Composer](https://getcomposer.org) the way PHPStorm does: composer.json gets
+a toolbar with the Composer commands, outdated packages are marked, package names and version
+constraints complete from [Packagist](https://packagist.org), Tools | Composer | Add
+Dependency… searches and installs packages, and `composer audit` reports security advisories
+as problems. The Composer plugin (`forge.composer`, part of PHPForge) is active in projects
+with a composer.json.
+
+Composer runs on the project's machine (also in [remote projects](docs/guide/user/remote-development.md)) and
+its output goes to the [Run tool window](docs/guide/user/run-debug.md). Which composer.json is the project's
+and which Composer runs is set in
+[Settings | Languages & Frameworks | PHP | Composer](#settings).
+
+![composer.json with the Composer toolbar, outdated packages and the Update package quick fix](docs/screenshots/composer-editor.png)
+
+## The composer.json toolbar
+
+A composer.json of the project (not the ones inside `vendor/`) shows the Composer toolbar
+above the editor:
+
+| Action | Runs | What it does |
+| --- | --- | --- |
+| Install | `composer install` | installs the packages of composer.lock (creates it when it is missing) |
+| Update | `composer update` | updates all packages within their constraints and writes composer.lock |
+| Validate | `composer validate` | checks composer.json and composer.lock |
+| Show Outdated | `composer outdated --direct` | lists the direct dependencies that have newer releases |
+| Audit | `composer audit` | checks the installed packages for security advisories, see [Composer audit](#composer-audit) |
+| Add Dependency… | | opens [Manage Composer Dependencies](#manage-composer-dependencies) |
+
+The toolbar also says how many packages have updates, and the gear opens the Composer
+settings. The same actions are in **Tools | Composer** and in Find Action (`Ctrl+Shift+A`,
+"Composer"); they have no default shortcut, assign one in [Settings | Keymap](docs/guide/user/keymap.md).
+
+Every command runs in its own tab of the Run tool window ("composer install"); Rerun and Stop
+work as for any run. When Composer is done, composer.json and composer.lock reload in open
+editors and the markers below are computed again.
+
+![composer install in the Run tool window](docs/screenshots/composer-install.png)
+
+## Outdated packages
+
+Forge compares the installed version of every package in `require` and `require-dev`
+(from composer.lock, or `vendor/composer/installed.json` when there is no lock file) with the
+latest stable release on Packagist. An outdated package gets
+
+- an arrow icon in the gutter; click it to update the package,
+- a weak warning on its constraint: "Package 'laravel/framework' is outdated: v12.1.0 is
+  installed, v12.3.0 is available",
+- the quick fix **Update 'laravel/framework' to v12.3.0** on `Alt+Enter`.
+
+When the constraint allows the new release (Composer's `semver-safe-update`), the update
+runs `composer update <package> --with-dependencies`. When it does not
+(`update-possible`, e.g. a new major version), it runs `composer require <package>:<new
+constraint>` (with `--dev` in `require-dev`), which also rewrites the constraint in
+composer.json; the new constraint is what Composer itself would write (`^13.0`).
+
+Platform requirements (`php`, `ext-*`, `lib-*`) are not checked. Without network the markers
+use the releases Forge saw last (see [Packagist access](#packagist-access)).
+
+## Completion and documentation
+
+In `require` and `require-dev`:
+
+- **Package names** complete from the installed packages and a Packagist search for what you
+  typed (description on the right), plus `php` and `ext-…` extensions. Packages already in
+  the file are not offered again. Choosing a package writes `"vendor/package": ""` and
+  continues with the version.
+- **Version constraints** complete with the recommended constraint of the latest release
+  (`^12.3`, "latest: v12.3.0"), one caret constraint per release line (`^11.44`), the released
+  versions (the installed one is marked "installed") and `*`.
+- **Hover** over a package name or constraint shows the package's description, the installed
+  and the latest version and links to its homepage, source repository and Packagist page.
+
+Completion of the other composer.json keys (`autoload`, `config`, …) comes from the
+[JSON Schema](docs/guide/user/json-schema.md) support.
+
+![Version completion](docs/screenshots/composer-completion-versions.png)
+
+![Package documentation on hover](docs/screenshots/composer-hover.png)
+
+## Manage Composer Dependencies
+
+**Tools | Composer | Add Dependency…** (or "Add Dependency…" in the toolbar) opens PHPStorm's
+Manage Composer Dependencies dialog:
+
+- **Search** Packagist as you type; the list shows each package's description, downloads and
+  stars, and marks installed and abandoned packages. `Up`/`Down` move through the results.
+- **Description**: the selected package's description and links (Homepage, Source,
+  Packagist).
+- **Version to install**: "Latest (Composer chooses)", the recommended constraint
+  (`^4.0 (recommended)`) or any released version.
+- **Development (require-dev)** adds the package to `require-dev`.
+- **Install** (or `Enter`, or a double click) runs `composer require vendor/package:<version>`
+  in the Run tool window.
+- **Installed Packages** lists the packages composer.json requires with their constraint and
+  installed version. **Update** runs `composer update <package> --with-dependencies`,
+  **Remove** runs `composer remove <package>`. The list reloads when Composer is done.
+
+![Manage Composer Dependencies](docs/screenshots/composer-dependencies.png)
+
+## Composer audit
+
+**Tools | Composer | Audit** (or "Audit" in the toolbar) runs `composer audit --format=json`
+(with `--locked` when there is a composer.lock) on the project's machine. The result is shown
+
+- in the **Vulnerable Dependencies** tab of the [Problems tool window](docs/guide/user/editor.md#problems) (`Alt+6`):
+  package, advisory (CVE or Packagist advisory id, linking to the advisory), affected
+  versions, severity and title; click a row to go to the package; the refresh button runs the
+  audit again,
+- as errors on the package in composer.json (direct dependencies) and in composer.lock (every
+  affected package), so they also appear under Current File and Project Errors,
+- as warnings for abandoned packages ("Package swiftmailer/swiftmailer is abandoned, use
+  symfony/mailer instead"),
+- in a balloon: "Found 2 security vulnerability advisories affecting 2 packages".
+
+![Vulnerable Dependencies tab of the Problems tool window](docs/screenshots/composer-audit.png)
+
+## Settings
+
+Settings | Languages & Frameworks | PHP | Composer:
+
+| Option | Setting | Default | What it does |
+| --- | --- | --- | --- |
+| Path to composer.json | `php.composer.json` | `composer.json` | relative to the project root; the toolbar, Tools \| Composer and the dialog work on this file |
+| Path to composer (Execution) | `php.composer.executable` | `composer` | a composer executable, or a `composer.phar` that runs with the [PHP interpreter](docs/guide/user/php.md#settings--languages--frameworks--php) (`php.interpreter`) |
+| Download composer.phar from getcomposer.org | | | downloads the latest stable composer.phar, see below |
+| Synchronize IDE settings with composer.json | `php.composer.syncWithComposerJson` | on | the PHP language level follows `require.php` |
+| Add packages as libraries | `php.composer.addPackagesAsLibraries` | on | classes in `vendor/` are resolved for navigation and completion |
+| Check for package updates on project open | `php.composer.checkUpdates` | off | runs `composer outdated --direct` when the project opens and lists the updates in a balloon |
+| Use Packagist for completion, versions and outdated packages | `php.composer.packagist` | on | see [Packagist access](#packagist-access) |
+
+![Settings | PHP | Composer](docs/screenshots/composer-settings.png)
+
+### Download composer.phar
+
+Without Composer on your machine, click **Download composer.phar from getcomposer.org**.
+Forge asks first; after you click **Download** it fetches
+`https://getcomposer.org/download/latest-stable/composer.phar`, checks it against the SHA-256
+sum getcomposer.org publishes next to it (`composer.phar.sha256sum`), saves it in Forge's data
+directory (`<data dir>/forge/composer/composer.phar`, see
+[File locations](docs/guide/reference/file-locations.md)) and puts the path into "Path to composer";
+**Apply** saves it. A file with the wrong checksum is not saved. Nothing is downloaded without
+your click, and composer.phar is never bundled with Forge.
+
+> **Note:** the downloaded composer.phar is on your machine. For a
+> [remote project](docs/guide/user/remote-development.md) set "Path to composer" to a Composer on the remote
+> host.
+
+### Packagist access
+
+Package names, versions, descriptions and the outdated markers come from Packagist's API
+(`https://repo.packagist.org/p2/<vendor>/<package>.json` and `https://packagist.org/search.json`).
+Forge reaches it from its own process (not from the UI), with the system proxy settings, and
+caches the answers in `<cache dir>/forge/packagist` (package metadata for 6 hours, searches
+for one hour), never in the project. Without network the cached answers are used; with
+nothing cached, completion falls back to the installed packages and the outdated markers stay
+away.
+
+Turn off "Use Packagist for completion, versions and outdated packages" and Forge never
+contacts Packagist: completion uses the installed packages only, there are no outdated
+markers, and the dialog's search is unavailable. Composer itself still downloads packages
+when you run it.
+
+## Composer scripts
+
+Scripts of composer.json run with a **Composer Script** run configuration
+(`composer run-script <script>`), see [Run/Debug configurations](docs/guide/user/run-debug.md). It uses the
+same "Path to composer", so a downloaded composer.phar works there too.
 
 
 ---
@@ -11400,6 +11585,12 @@ Actions that Forge's plugins add (group **Plugins** in Settings | Keymap, some u
 | --- | --- | --- | --- | --- |
 | Vim (Tools \| Vim) | `VimPluginToggle` | `Ctrl+Alt+V` | `Cmd+Alt+V` | any (in the editor `Introduce Variable` wins) |
 | Reload .ideavimrc | `IdeaVim.ReloadVimRc` |  |  | any |
+| Composer: Add Dependency… | `Composer.AddDependency` |  |  | any |
+| Composer: Install | `Composer.Install` |  |  | any |
+| Composer: Update | `Composer.Update` |  |  | any |
+| Composer: Validate | `Composer.Validate` |  |  | any |
+| Composer: Show Outdated | `Composer.ShowOutdated` |  |  | any |
+| Composer: Audit | `Composer.Audit` |  |  | any |
 | Run Artisan Command… | `Laravel.RunArtisan` | `Ctrl+Shift+X` | `Cmd+Shift+X` | any |
 | Routes (Laravel) | `Laravel.ShowRoutes` |  |  | any |
 | Run Console Command… (Symfony) | `Symfony.RunConsoleCommand` |  |  | any |
@@ -11860,7 +12051,7 @@ Source: docs/guide/reference/main-menu/tools.md
 
 # Tools menu
 
-Terminal, Vim emulation and the tools of plugins (Docker, Laravel, Symfony). Open it with ☰ (`Alt+\`) or from the menu bar, see [Main menu](docs/guide/user/workbench.md#main-menu).
+Terminal, Vim emulation and the tools of plugins (Composer, Docker, Laravel, Symfony). Open it with ☰ (`Alt+\`) or from the menu bar, see [Main menu](docs/guide/user/workbench.md#main-menu).
 
 ![Tools menu](docs/screenshots/docs-menu-tools.png)
 
@@ -11875,6 +12066,13 @@ Terminal, Vim emulation and the tools of plugins (Docker, Laravel, Symfony). Ope
 | IDE Scripting Console | — | — | not yet | Not available yet; the entry is disabled. |
 | Vim | `Ctrl+Alt+V` | `Cmd+Alt+V` | yes | Turns Vim emulation on or off (check mark; plugin `forge.vim`). [More](docs/guide/user/vim-emulation.md) ([screenshot](docs/screenshots/vim-emulation.png)) |
 | Render All Doc Comments | — | — | yes | Shows every documentation comment of the file as formatted text, or the text again. [More](docs/guide/user/code-structure.md#rendered-documentation-comments) ([screenshot](docs/screenshots/rendered-doc-comments.png)) |
+| **Composer** | | | | submenu |
+| Composer › Add Dependency… | — | — | yes | Opens Manage Composer Dependencies: search Packagist, choose a version, install, update or remove packages. [More](docs/guide/user/composer.md#manage-composer-dependencies) ([screenshot](docs/screenshots/composer-dependencies.png)) |
+| Composer › Install | — | — | yes | Runs `composer install` in the Run tool window. [More](docs/guide/user/composer.md#the-composerjson-toolbar) |
+| Composer › Update | — | — | yes | Runs `composer update`. [More](docs/guide/user/composer.md#the-composerjson-toolbar) |
+| Composer › Validate | — | — | yes | Runs `composer validate`. [More](docs/guide/user/composer.md#the-composerjson-toolbar) |
+| Composer › Show Outdated | — | — | yes | Runs `composer outdated --direct`. [More](docs/guide/user/composer.md#outdated-packages) |
+| Composer › Audit | — | — | yes | Runs `composer audit` and shows the advisories in the Problems tool window. [More](docs/guide/user/composer.md#composer-audit) ([screenshot](docs/screenshots/composer-audit.png)) |
 | **Docker** | | | | submenu |
 | Docker › Pull Image… | — | — | yes | Pulls a Docker image. [More](docs/guide/user/services.md#pulling-images-and-registries) |
 | Docker › Refresh Services | — | — | yes | Refreshes the Services tree. [More](docs/guide/user/services.md) |
@@ -11889,6 +12087,7 @@ Tools collects the actions of active plugins; the screenshot shows a Laravel pro
 | Submenu | Entries | Appears in |
 | --- | --- | --- |
 | — | Vim (check mark) | always (plugin `forge.vim`) |
+| Composer | Add Dependency…, Install, Update, Validate, Show Outdated, Audit | Composer projects (`forge.composer`) |
 | Docker | Pull Image…, Refresh Services | always (plugin `forge.services`) |
 | Laravel | Run Artisan Command… (`Ctrl+Shift+X`), Show Routes | Laravel projects (`forge.laravel`) |
 | Symfony | Run Console Command…, Show Routes, Refresh Symfony Index | Symfony projects (`forge.symfony`) |
@@ -12443,11 +12642,12 @@ Page id `lang.php.composer`.
 
 | Key | Type | Default | Scope | Section | Title and description |
 | --- | --- | --- | --- | --- | --- |
-| `php.composer.executable` | path | `composer` | user, project |  | Path to composer — A composer executable or composer.phar. |
 | `php.composer.json` | path | `composer.json` | user, project |  | Path to composer.json — Relative to the project root. |
+| `php.composer.executable` | path | `composer` | user, project | Execution | Path to composer — A composer executable, or a composer.phar (run with the PHP interpreter of Settings \| PHP). Empty: `composer` from PATH. |
 | `php.composer.syncWithComposerJson` | bool | `true` | user, project |  | Synchronize IDE settings with composer.json — The PHP language level follows `require.php` of composer.json (the status bar shows it); the language level setting applies when there is no constraint. |
 | `php.composer.addPackagesAsLibraries` | bool | `true` | user, project |  | Add packages as libraries — Classes in vendor/ are resolved for navigation, completion and Intelephense. Off: vendor/ is left out. |
 | `php.composer.checkUpdates` | bool | `false` | user |  | Check for package updates on project open — Runs `composer outdated --direct` on the project's machine and reports updates in a balloon. |
+| `php.composer.packagist` | bool | `true` | user |  | Use Packagist for completion, versions and outdated packages — Package names, versions and descriptions come from packagist.org (cached in Forge's cache directory). Off: only installed packages are used and Forge never contacts Packagist. |
 
 ### Languages & Frameworks | PHP | Quality Tools
 
@@ -13247,6 +13447,7 @@ Forge uses the platform's standard folders (Rust's `dirs` crate):
 | `php-index/<project>-<hash>.json` | PHP index cache per project |
 | `json-schemas/<sha256 of the URL>.json` | downloaded JSON schemas and the SchemaStore catalog (only with remote JSON schemas allowed), refreshed daily |
 | `php-stubs/<version>/` | JetBrains phpstorm-stubs for Go to Declaration on PHP's own symbols (downloaded on first use, checked against a pinned digest of its files, with its `LICENSE`) |
+| `packagist/p2/<vendor>/<package>.json`, `packagist/search/` | Packagist package metadata (6 hours) and searches (1 hour) for Composer completion, versions and outdated packages (only while `php.composer.packagist` is on) |
 | `intelephense/` | Intelephense's storage (`storagePath`) |
 | `jdtls/…` | workspace data of the Java language server |
 | `shell-integration/` | the bash and zsh scripts of the terminal's shell integration (also on remote hosts, in their cache dir) |
@@ -13259,6 +13460,7 @@ index falls back to `<project>/.forge/cache/php-index.json`.
 | Path | Content |
 | --- | --- |
 | `langservers/` | language servers installed by Forge (`node_modules/.bin`, `package.json`, `.forge-update-check.json`) |
+| `composer/composer.phar` | composer.phar downloaded from getcomposer.org with Settings \| PHP \| Composer, checked against its published SHA-256 sum |
 | `runtimes/node-<version>/` | the Node.js build Forge downloaded for language servers (only when no Node.js 18+ was installed) |
 | `projects/<name>-<hash>/bookmarks.json` | the bookmarks and bookmark lists of a project (`<hash>` of the project root, for remote projects of `user@host:/path`); kept out of the project |
 | `projects/<name>-<hash>/shelf/<id>/` | shelved changelists (Git ▸ Shelve Changes): `changes.json` (name, date, branch, files) and `shelved.patch`; kept out of the project |
@@ -13431,7 +13633,7 @@ script and config language plugins.
 | Claude Code | `forge.claude-code` | core | `forge.ai` | always | 3 settings; 1 AI providers; 1 chat agents |
 | Gemini CLI | `forge.gemini-cli` | core | `forge.ai` | always | 3 settings; 1 AI providers; 1 chat agents |
 | PHP | `forge.php` | phpforge |  | `php` | 1 commands; 18 settings; 1 LSP servers; run types: PHP Script, PHP Built-in Web Server; 4 code generators |
-| Composer | `forge.composer` | phpforge | `forge.php` | `composer` | 2 commands; 5 settings; run types: Composer Script |
+| Composer | `forge.composer` | phpforge | `forge.php` | `composer` | 6 commands; 6 settings; run types: Composer Script; 1 main menu entries |
 | PHPUnit | `forge.phpunit` | phpforge | `forge.php` | `phpunit`, `pest` | run types: PHPUnit; 1 code generators |
 | Xdebug | `forge.xdebug` | phpforge | `forge.php` | `php` | tool windows: Debug; 1 commands; 8 settings; run types: PHP Remote Debug; 1 main menu entries |
 | Laravel | `forge.laravel` | phpforge | `forge.php`, `forge.composer` | `laravel` | tool windows: Routes; 1 commands; 6 settings; run types: Artisan; 1 code generators; 1 keybindings; 1 main menu entries |
@@ -15209,6 +15411,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | Crate | Description |
 | --- | --- |
 | [luaforge-lang-lua](docs/guide/developer/crates/luaforge-lang-lua.md) | LuaForge: Lua language support (lexer, structural parser, EmmyLua/LuaLS annotations, project index, require resolution, hover, navigation; pure, also built to WebAssembly) |
+| [phpforge-composer](docs/guide/developer/crates/phpforge-composer.md) | PHPForge: Composer support (version constraints, composer.json/lock analysis, Packagist metadata, outdated packages, audit advisories, completion) |
 | [phpforge-dql](docs/guide/developer/crates/phpforge-dql.md) | PHPForge: Doctrine DQL tokenizer, parser, highlighting, completion and diagnostics, and DQL sites in PHP source (pure, also built to WebAssembly) |
 | [phpforge-fw-laravel](docs/guide/developer/crates/phpforge-fw-laravel.md) | PHPForge: Laravel support (routes, views, Blade components, config/env, Eloquent, translations, artisan) |
 | [phpforge-fw-symfony](docs/guide/developer/crates/phpforge-fw-symfony.md) | PHPForge: Symfony support (service container, routes, Twig templates, console commands) |
@@ -18444,6 +18647,67 @@ pub use project::{IndexStats, Location, ProjectIndex, SearchKind, SymbolHit, Sym
 
 ```sh
 cargo test -p luaforge-lang-lua
+```
+
+
+---
+
+Source: docs/guide/developer/crates/phpforge-composer.md
+
+# phpforge-composer
+
+`packs/phpforge/composer` — PHPForge: Composer support (version constraints, composer.json/lock analysis, Packagist metadata, outdated packages, audit advisories, completion).
+
+## Purpose
+
+Everything the [Composer](docs/guide/user/composer.md) UI shows is computed here. The crate is pure
+and builds to WebAssembly for browser mode; the `net` feature (desktop app only) adds the
+Packagist client and the composer.phar download.
+
+- Composer's version and constraint semantics: `^`, `~`, wildcards, ranges, `||`, hyphen
+  ranges, `@dev`/`@beta` stability flags, branches and aliases, the recommended constraint of
+  `composer require`.
+- composer.json requirements with their source ranges, installed packages from composer.lock or
+  installed.json, outdated markers with Composer's statuses, `composer audit` reports placed as
+  problems in composer.json and composer.lock.
+- Packagist's Composer 2 metadata (minified version lists) and search results; completion and
+  hover in `require` / `require-dev` built on `forge_jsonschema::complete::json_cursor`.
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `version.rs` | Versions (`v1.2.3`, `2.0.0-RC1`, `1.x-dev`, `dev-main`), normalized and ordered like Composer (`dev < alpha < beta < RC < stable < patch`), stability. |
+| `constraint.rs` | Constraint parsing and matching (`Constraint::matches`, `allows` with a minimum stability, `latest_allowed`) and `recommended(version)` (`^2.1`, `^0.4.2`, `^3.0@beta`). |
+| `lock.rs` | Installed packages from composer.lock (`packages`, `packages-dev`) and vendor/composer/installed.json (Composer 1 and 2 formats). |
+| `manifest.rs` | Requirements of composer.json with byte ranges, platform packages, package name validation, lock file entries and UTF-16 / line-column offsets. |
+| `packagist.rs` | Packagist p2 metadata (minified lists expanded, `__unset`), search results, URLs. |
+| `outdated.rs` | Outdated markers (installed vs latest, `semver-safe-update` / `update-possible`, the constraint for the update) and `composer outdated --format=json`. |
+| `audit.rs` | `composer audit --format=json` (advisories as arrays or index-keyed objects, abandoned packages) and their problems in composer.json and composer.lock. |
+| `complete.rs` | Completion of package names and versions and the package hover, in two steps (`request` / `hover_target`, then `items` / `hover` with the fetched data). |
+| `net.rs` (`net`) | `Packagist`: metadata and search cached in `<cache dir>/forge/packagist` with a time to live and a stale fallback offline; `download_phar` (getcomposer.org, SHA-256 checked, into `<data dir>/forge/composer`). |
+
+## Used by
+
+- IPC: `composer_project`, `composer_markers`, `composer_complete`, `composer_hover`,
+  `composer_search`, `composer_package`, `composer_audit`, `composer_download_phar`
+  (`app/src-tauri/src/commands/composer.rs`); `php_composer_outdated` (through
+  phpforge-lang-php)
+- UI: `app/ui/src/features/composer/`
+- Browser mode: built into `forge-wasm` (`composer.rs`)
+
+## Dependencies
+
+- Workspace crates: forge-jsonschema
+- External: `serde`, `serde_json`; with `net`: `reqwest`, `sha2`, `tokio`, `dirs`
+
+## Tests
+
+10 source files, about 2800 lines; 29 unit tests. Network tests talk to a local fake server
+(`testserver.rs`), never to Packagist.
+
+```sh
+cargo test -p phpforge-composer --features net
 ```
 
 
