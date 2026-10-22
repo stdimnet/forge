@@ -118,6 +118,60 @@ group = "lang.php.composer"
 order = 5
 
 [[plugin]]
+id = "forge.command-line-tools"
+name = "Command Line Tool Support"
+version = "0.1.0"
+pack = "phpforge"
+vendor = "Forge"
+depends = ["forge.php"]
+description = "Run Composer, Laravel Artisan, Symfony Console, WP-CLI, Drush and custom tools in a console with command, option and argument completion (Tools | Run Command…, Ctrl+Shift+X)."
+projectTypes = ["php", "composer"]
+
+[[plugin.contributions.commands]]
+id = "CommandLineToolsAction"
+title = "Run Command…"
+category = "Tools"
+
+[[plugin.contributions.keybindings]]
+command = "CommandLineToolsAction"
+key = "Ctrl+Shift+X"
+
+[[plugin.contributions.mainMenu]]
+path = "Tools"
+after = "RunAnything"
+items = [
+  { type = "action", id = "CommandLineToolsAction", label = "Run _Command..." },
+]
+
+[[plugin.contributions.toolWindows]]
+id = "commandLineTools"
+title = "Command Line Tools Console"
+anchor = "bottom"
+icon = "square-terminal"
+order = 45
+
+[[plugin.contributions.settings]]
+key = "commandLineTools.tools"
+title = "Command line tools"
+description = "Tools the console runs, each with an alias (`c install`, `a make:model Order`), the path of its script or program, the PHP interpreter (empty: the project default) and where its output is shown (`toolWindow` or `popup`). Kinds: composer, artisan, symfony, wp-cli, drush, symfony-based (Tool based on Symfony Console) and php-script (Tool based on PHP script)."
+type = "objects"
+unique = ["alias"]
+default = []
+group = "tools.command-line-tools"
+project = true
+order = 0
+
+[[plugin.contributions.settings]]
+key = "commandLineTools.autoDetect"
+title = "Add the tools the project uses automatically"
+description = "Composer (composer.json), Laravel Artisan (artisan), Symfony Console (bin/console), WP-CLI (wp-cli.phar, vendor/bin/wp or a WordPress site) and Drush (vendor/bin/drush), unless a tool of that kind or alias is configured."
+type = "bool"
+default = true
+group = "tools.command-line-tools"
+project = true
+order = 1
+
+[[plugin]]
 id = "forge.phpunit"
 name = "PHPUnit"
 version = "0.1.0"
@@ -346,10 +400,6 @@ title = "Routes"
 anchor = "bottom"
 icon = "route"
 order = 35
-
-[[plugin.contributions.keybindings]]
-command = "Laravel.RunArtisan"
-key = "Ctrl+Shift+X"
 
 [[plugin.contributions.settings]]
 key = "laravel.routes.source"

@@ -90,7 +90,7 @@ pub fn run() {
         .manage(commands::library::LibraryState::default())
         .manage(commands::workspace::WatchState::default())
         .manage(commands::remote::RemoteState::default())
-        .manage(commands::laravel::LaravelState::default())
+        .manage(commands::command_line_tools::CliToolsState::default())
         .manage(commands::lua::LuaState::default())
         .manage(commands::project::CreateState::default())
         .manage(commands::langservers::LangServersState::default())
@@ -436,9 +436,10 @@ pub fn run() {
             commands::laravel::laravel_complete,
             commands::laravel::laravel_goto,
             commands::laravel::laravel_gutter,
-            commands::laravel::laravel_artisan_commands,
-            commands::laravel::laravel_artisan_run,
-            commands::laravel::laravel_artisan_cancel,
+            commands::command_line_tools::cli_tools_list,
+            commands::command_line_tools::cli_tools_commands,
+            commands::command_line_tools::cli_tools_complete,
+            commands::command_line_tools::cli_tools_run,
             commands::project::project_detect,
             commands::project::project_generators_list,
             commands::project::project_plan,

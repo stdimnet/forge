@@ -1853,6 +1853,7 @@ dependencies = [
  "forge-window",
  "futures-util",
  "luaforge-lang-lua",
+ "phpforge-cli-tools",
  "phpforge-composer",
  "phpforge-dql",
  "phpforge-fw-laravel",
