@@ -15,8 +15,9 @@ const objectEditors = new Map<string, Component<{ spec: SettingSpec }>>();
 
 /**
  * Register the editor of an `objects` setting, or one that replaces the plain string list
- * editor of a `list` setting; schema pages show it in the setting's row. It reads and writes
- * the value with `draftValue` / `setDraft`, so Apply and Cancel work.
+ * editor of a `list` setting; schema pages show it in the setting's row. For other types it
+ * replaces the whole row (label included), e.g. a checkbox with a "Configure…" button. It
+ * reads and writes the value with `draftValue` / `setDraft`, so Apply and Cancel work.
  */
 export function registerObjectSettingEditor(key: string, editor: Component<{ spec: SettingSpec }>): void {
   objectEditors.set(key, editor);
@@ -163,6 +164,9 @@ export function SettingRow(props: { spec: SettingSpec }) {
   return (
     <div class="set-row" classList={{ hit: hit(), modified: modified() }} data-setting={spec.key}>
       <Switch>
+        <Match when={spec.type !== "list" && spec.type !== "objects" && objectEditors.get(spec.key)}>
+          {(editor) => <Dynamic component={editor()} spec={spec} />}
+        </Match>
         <Match when={spec.type === "bool"}>
           <label class="set-check">
             <input
@@ -214,7 +218,7 @@ export function SchemaPage(props: {
   sectionHeader?: (section: string) => JSX.Element;
 }) {
   const specs = createMemo(() =>
-    settingsState.schema.filter((s) => s.group === props.pageId).sort((a, b) => a.order - b.order),
+    settingsState.schema.filter((s) => s.group === props.pageId && !s.hidden).sort((a, b) => a.order - b.order),
   );
   /** Consecutive runs of settings with the same section, in schema order. */
   const sections = createMemo(() => {

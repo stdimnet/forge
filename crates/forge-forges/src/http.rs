@@ -41,6 +41,9 @@ pub struct Paged<T> {
     pub total: Option<u64>,
 }
 
+/// Pages fetched when listing an account's repositories.
+pub const REPO_PAGES: usize = 5;
+
 pub fn client() -> reqwest::Client {
     reqwest::Client::builder()
         .connect_timeout(Duration::from_secs(10))

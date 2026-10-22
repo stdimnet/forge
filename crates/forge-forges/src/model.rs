@@ -65,6 +65,25 @@ impl RepoRef {
     }
 }
 
+/// A repository of the account (Get from VCS lists them for cloning).
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HostRepository {
+    /// `owner/repo` (`group/subgroup/project` on GitLab).
+    pub path: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub private: bool,
+    pub fork: bool,
+    /// HTTPS clone URL.
+    pub clone_url: String,
+    /// SSH clone URL.
+    pub ssh_url: Option<String>,
+    pub web_url: String,
+    /// Last activity (ISO 8601).
+    pub updated_at: String,
+}
+
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct User {

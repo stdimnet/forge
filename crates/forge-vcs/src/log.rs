@@ -3,9 +3,11 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::signing::SignatureStatus;
+
 /// Field separator (unit separator) and record separator used in the log format.
 #[cfg_attr(not(feature = "git"), allow(dead_code))]
-pub(crate) const LOG_FORMAT: &str = "--format=%H%x1f%P%x1f%D%x1f%an%x1f%ae%x1f%at%x1f%s%x1e";
+pub(crate) const LOG_FORMAT: &str = "--format=%H%x1f%P%x1f%D%x1f%an%x1f%ae%x1f%at%x1f%G?%x1f%s%x1e";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "lowercase")]
@@ -37,6 +39,9 @@ pub struct Commit {
     /// Author time, seconds since the Unix epoch.
     pub time: i64,
     pub subject: String,
+    /// GPG/SSH signature status (`%G?`).
+    #[serde(skip_serializing_if = "SignatureStatus::is_none")]
+    pub signature: SignatureStatus,
 }
 
 /// What to list in the log, with paging.
@@ -79,6 +84,12 @@ pub struct CommitDetails {
     /// Full message (subject + body).
     pub message: String,
     pub files: Vec<ChangedFile>,
+    /// GPG/SSH signature status (`%G?`).
+    pub signature: SignatureStatus,
+    /// The signer as the signature names it (`%GS`), e.g. `Marlon <marlon@acme.dev>`.
+    pub signer: Option<String>,
+    /// The key that made the signature (`%GK`).
+    pub signing_key: Option<String>,
 }
 
 pub fn parse_log(out: &str) -> Vec<Commit> {
@@ -86,8 +97,8 @@ pub fn parse_log(out: &str) -> Vec<Commit> {
         .map(|r| r.trim_start_matches('\n'))
         .filter(|r| !r.is_empty())
         .filter_map(|rec| {
-            let f: Vec<&str> = rec.splitn(7, '\x1f').collect();
-            if f.len() < 7 {
+            let f: Vec<&str> = rec.splitn(8, '\x1f').collect();
+            if f.len() < 8 {
                 return None;
             }
             Some(Commit {
@@ -97,7 +108,8 @@ pub fn parse_log(out: &str) -> Vec<Commit> {
                 author: f[3].to_string(),
                 email: f[4].to_string(),
                 time: f[5].trim().parse().unwrap_or(0),
-                subject: f[6].trim_end_matches('\n').to_string(),
+                signature: SignatureStatus::from_code(f[6]),
+                subject: f[7].trim_end_matches('\n').to_string(),
             })
         })
         .collect()
@@ -187,8 +199,8 @@ mod tests {
 
     #[test]
     fn parses_log_records() {
-        let out = "aaa\x1fbbb ccc\x1fHEAD -> refs/heads/main, refs/remotes/origin/main, tag: refs/tags/v1.0\x1fMarlon\x1fm@x.io\x1f1700000000\x1fMerge branch 'x'\x1e\n\
-                   bbb\x1f\x1f\x1fAnna\x1fa@x.io\x1f1690000000\x1fInitial commit\x1e\n";
+        let out = "aaa\x1fbbb ccc\x1fHEAD -> refs/heads/main, refs/remotes/origin/main, tag: refs/tags/v1.0\x1fMarlon\x1fm@x.io\x1f1700000000\x1fG\x1fMerge branch 'x'\x1e\n\
+                   bbb\x1f\x1f\x1fAnna\x1fa@x.io\x1f1690000000\x1fN\x1fInitial commit\x1e\n";
         let log = parse_log(out);
         assert_eq!(log.len(), 2);
         assert_eq!(log[0].parents, vec!["bbb", "ccc"]);
@@ -202,11 +214,13 @@ mod tests {
         assert!(log[1].parents.is_empty());
         assert_eq!(log[1].time, 1_690_000_000);
         assert_eq!(log[1].subject, "Initial commit");
+        assert_eq!(log[0].signature, SignatureStatus::Good);
+        assert_eq!(log[1].signature, SignatureStatus::None);
     }
 
     #[test]
     fn subject_may_contain_separators_of_other_formats() {
-        let out = "a\x1f\x1f\x1fX\x1fx@x\x1f1\x1ffix: a, b -> c\x1e";
+        let out = "a\x1f\x1f\x1fX\x1fx@x\x1f1\x1fN\x1ffix: a, b -> c\x1e";
         assert_eq!(parse_log(out)[0].subject, "fix: a, b -> c");
     }
 

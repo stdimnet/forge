@@ -87,6 +87,7 @@ export function WelcomeScreen() {
 
   const open = () => pickAndOpenWorkspace().catch((e) => setError(String(e)));
   const newProject = () => void runCommand("NewProject");
+  const getFromVcs = () => void runCommand("Vcs.Checkout");
 
   return (
     <div class="welcome">
@@ -143,7 +144,7 @@ export function WelcomeScreen() {
                       <FolderOpen size={22} />
                       <span>Open</span>
                     </button>
-                    <button class="welcome-big" disabled title="Coming soon">
+                    <button class="welcome-big" onClick={getFromVcs} data-testid="welcome-vcs">
                       <GitBranch size={22} />
                       <span>Get from VCS</span>
                     </button>
@@ -164,7 +165,9 @@ export function WelcomeScreen() {
                   New Project
                 </button>
                 <button class="btn-primary" onClick={open}>Open</button>
-                <button class="btn-secondary" disabled title="Coming soon">Get from VCS</button>
+                <button class="btn-secondary" onClick={getFromVcs} data-testid="welcome-vcs">
+                  Get from VCS
+                </button>
               </div>
               <div class="welcome-list">
                 <For each={filtered()}>{(p) => row(p)}</For>

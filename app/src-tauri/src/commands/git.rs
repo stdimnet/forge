@@ -218,10 +218,21 @@ pub async fn git_commit(
         .read_settings()
         .get_bool("vcs.git.commit.signOff")
         .unwrap_or(false);
-    mutate(&app, &state, move |r| {
-        r.commit_with(&message, amend, paths.as_deref(), sign_off)
+    let opts = forge_vcs::CommitOptions {
+        amend,
+        sign_off,
+        signing: crate::commands::git_extras::commit_signing(&state),
+        ..forge_vcs::CommitOptions::default()
+    };
+    let msg = message.clone();
+    let res = mutate(&app, &state, move |r| {
+        r.commit_opts(&msg, paths.as_deref(), &opts)
     })
-    .await
+    .await;
+    if res.is_ok() {
+        crate::commands::git_extras::record_commit_message(&state, &message);
+    }
+    res
 }
 
 /// "Warn if CRLF line separators are about to be committed": the files among `paths`

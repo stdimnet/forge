@@ -16,6 +16,7 @@ import { notify, reloadOpenFiles, runGit, status } from "./store";
 import { runMerging } from "./conflicts";
 import { setDiffRequest } from "./overlays";
 import { refreshOperation } from "./operation";
+import type { CloneRequest } from "./extras";
 
 export type GitDialog =
   | { kind: "stash" }
@@ -34,7 +35,9 @@ export type GitDialog =
   | { kind: "changelist"; edit: ChangelistView | null; movePaths: string[] }
   | { kind: "moveChangelist"; paths: string[]; hunks: string[] | null; from: string | null }
   | { kind: "createPatch"; paths: string[]; shas: string[]; name: string }
-  | { kind: "applyPatch"; patch: string; name: string; files: PatchPreviewFile[] };
+  | { kind: "applyPatch"; patch: string; name: string; files: PatchPreviewFile[] }
+  | { kind: "clone"; request: CloneRequest }
+  | { kind: "newWorktree"; branch: string | null };
 
 const [gitDialog, setGitDialog] = createSignal<GitDialog | null>(null);
 export { gitDialog, setGitDialog };

@@ -11,6 +11,7 @@
 mod blame;
 mod branch;
 pub mod changelists;
+pub mod clone;
 #[cfg(feature = "git")]
 mod cmd;
 mod diff;
@@ -20,6 +21,7 @@ mod log;
 #[cfg(feature = "git")]
 mod manage;
 pub mod merge;
+pub mod message_history;
 pub mod ops;
 pub mod patch;
 pub mod rebase;
@@ -27,7 +29,9 @@ pub mod rebase;
 mod repo;
 #[cfg(feature = "git")]
 pub mod shelf;
+pub mod signing;
 mod status;
+pub mod worktree;
 
 pub use blame::{parse_blame, Blame, BlameCommit};
 pub use branch::{parse_recent_checkouts, parse_refs, BranchInfo, Branches};
@@ -44,7 +48,11 @@ pub use manage::{
     append_ignore_patterns, ignore_pattern, ignore_patterns_for, parse_remotes, parse_stash_list,
     Remote, StashEntry,
 };
+pub use signing::{
+    GitSigningConfig, GpgKey, SignatureStatus, Signing, SigningFormat, SigningKey, SshKey,
+};
 pub use status::{parse_status, FileState, RepoStatus, StatusEntry};
+pub use worktree::{NewWorktree, Worktree};
 
 pub use changelists::{Changelist, ChangelistFile, ChangelistView, Changelists};
 #[cfg(feature = "git")]

@@ -58,6 +58,7 @@ import { confirmRollback, push, showDiff } from "./actions";
 import { setCommitSelectionSource } from "./context";
 import { openMerge, resolveConflicts } from "./conflicts";
 import { generateCommitMessage } from "./aiMessage";
+import { showMessageHistory } from "./extras";
 import { unifiedDiff } from "./textDiff";
 import { CommitSpellProblems, createCommitMessageCheck, SpellOverlay } from "@/features/spelling/commitMessage";
 
@@ -625,7 +626,7 @@ export function CommitPanel() {
             </span>
           </Show>
           <span class="spacer" />
-          <button class="icon-btn" title="Commit Message History (Ctrl+M)">
+          <button class="icon-btn" title="Commit Message History (Ctrl+M)" onClick={() => void showMessageHistory()} data-testid="message-history-btn">
             <Clock size={14} />
           </button>
           <button
@@ -644,6 +645,7 @@ export function CommitPanel() {
           <textarea
             ref={messageInput}
             placeholder="Commit Message"
+            data-focus-context="toolwindow-input"
             value={message()}
             spellcheck={false}
             onInput={(e) => setMessage(e.currentTarget.value)}

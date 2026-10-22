@@ -29,6 +29,7 @@ import "./gitHistoryMock";
 import "./gitOpsMock";
 import "./gitChangesMock";
 import "./gitLogMock";
+import "./gitExtrasMock";
 import "./compareMock";
 import "./phpMock";
 import "./phpInterpretersMock";

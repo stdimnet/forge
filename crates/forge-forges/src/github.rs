@@ -9,7 +9,7 @@ use serde_json::{json, Value};
 
 use crate::error::{HostError, HostResult};
 use crate::host::{count_changes, parse_patch, CodeHost};
-use crate::http::{enc, enc_path, query, Auth, Http};
+use crate::http::{enc, enc_path, query, Auth, Http, REPO_PAGES};
 use crate::json::*;
 use crate::model::*;
 
@@ -189,6 +189,31 @@ impl CodeHost for GitHub {
     async fn current_user(&self) -> HostResult<User> {
         let v: Value = self.http.get("user", "user").await?;
         Ok(user(&v))
+    }
+
+    async fn repositories(&self) -> HostResult<Vec<HostRepository>> {
+        let list: Vec<Value> = self
+            .http
+            .get_all(
+                "user/repos?per_page=100&sort=updated&affiliation=owner,collaborator,organization_member",
+                "repositories",
+                REPO_PAGES,
+            )
+            .await?;
+        Ok(list
+            .iter()
+            .map(|v| HostRepository {
+                path: s(v, "full_name"),
+                name: s(v, "name"),
+                description: os(v, "description").filter(|d| !d.is_empty()),
+                private: b(v, "private"),
+                fork: b(v, "fork"),
+                clone_url: s(v, "clone_url"),
+                ssh_url: os(v, "ssh_url"),
+                web_url: s(v, "html_url"),
+                updated_at: os(v, "pushed_at").unwrap_or_else(|| s(v, "updated_at")),
+            })
+            .collect())
     }
 
     async fn merge_requests(

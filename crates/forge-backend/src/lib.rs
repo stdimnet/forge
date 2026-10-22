@@ -22,6 +22,7 @@ pub mod replace;
 pub mod rpc;
 pub mod ssr;
 pub mod tunnels;
+pub mod vcs;
 pub mod web;
 
 use std::path::{Path, PathBuf};

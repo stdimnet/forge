@@ -9495,6 +9495,42 @@ The Git plugin (`forge.git`) drives the `git` command line (no libgit2) and work
 that is a Git repository (also when the project is a sub-folder of the repository). The
 current branch is shown in the main toolbar and the status bar.
 
+## Get from VCS
+
+**Git ▸ Clone…** (`Git.Clone`), **VCS ▸ Get from Version Control…** / **File ▸ New ▸ Project
+from Version Control…** (`Vcs.Checkout`) and **Get from VCS** on the Welcome screen open **Get
+from Version Control**:
+
+![Get from Version Control](docs/screenshots/git-clone-url.png)
+
+- **Repository URL**: the URL (`https://…`, `git@host:owner/repo.git`, `ssh://…` or a local
+  path) and the **Directory** (by default `<Settings | System | default project directory>/<name
+  from the URL>`; the folder button picks another one). **Test** runs `git ls-remote` and shows
+  "Connection successful" or git's error.
+- **GitHub**, **GitLab** and **Forgejo / Gitea** list the repositories of your
+  [code host accounts](docs/guide/user/code-hosts.md) (owned, member and collaborator repositories, recently
+  active first) with a search field; double-click a repository to clone it. Without an account
+  the page offers **Log In…**.
+
+  ![Repositories of an account](docs/screenshots/git-clone-account.png)
+
+- **Clone to**: **This computer**, the host of the open remote project or a saved SSH
+  connection (Settings | Tools | SSH Configurations). Remote clones run `git clone` on that host
+  through the Forge agent; the folder button browses the host.
+- **Clone** shows git's progress (Receiving objects, Resolving deltas, …) with **Cancel**; a
+  cancelled clone removes the half-cloned folder. Afterwards the project opens; with a project
+  open, Forge asks **Open Project** (**This Window**; **New Window** comes with several project
+  windows).
+
+![Clone progress](docs/screenshots/git-clone-progress.png)
+
+Credentials: for HTTPS URLs on the server of one of your code host accounts, Forge gives git
+that account's token (from the OS keychain) for this one `git clone` / `git ls-remote` through a
+`-c credential.helper=…` that reads it from the environment. Nothing is written to git config or
+a credential store, and the token is never on the command line. SSH URLs use your SSH keys and
+SSH agent (on a remote host: the host's keys and agent); Forge never asks for passwords in a
+terminal, so a missing key fails with git's message.
+
 ## Commit tool window
 
 **Commit…** (`Ctrl+K`, macOS `Cmd+K`) opens the **Commit** tool window (`Alt+0`, left stripe).
@@ -9607,6 +9643,44 @@ The gear next to **Commit and Push…** opens the **Commit Options**:
 The checks are settings (Settings | Version Control | Commit, `vcs.commit.*`), so they stay as
 you leave them. "Update copyright" is not available.
 
+### Commit Message History
+
+**Commit Message History** (`Ctrl+M`, macOS `Cmd+M`, in the commit message, or the clock icon
+above it; `Vcs.ShowMessageHistory`) lists recent messages: the ones committed from Forge in this
+project, then your own recent commits (`git log --author=<your email>`). Type to filter, `Up` /
+`Down` select (the preview shows the whole message), `Enter` or a click puts the message into
+the commit message, `Escape` closes the popup.
+
+![Commit Message History](docs/screenshots/git-message-history.png)
+
+The history is kept per project in Forge's data directory
+(`<data dir>/forge/projects/<project>/commit-messages.json`), never in the project. Settings |
+Version Control | Commit | **Commit message history size** (`vcs.commit.messageHistorySize`,
+20) limits it.
+
+### Signing commits with GPG or SSH keys
+
+Settings | Version Control | Git | **Sign commits with GPG/SSH key**
+(`vcs.git.commit.gpgSign`, per project) signs the commits Forge makes (`git commit -S`).
+**Configure GPG Key…** shows the signing setup in git config (`user.signingkey`, `gpg.format`,
+`commit.gpgsign`; read-only) and lets you choose a key:
+
+![Configure GPG Key](docs/screenshots/git-signing-settings.png)
+
+- **Use the key from git config**: git signs with `user.signingkey` (or its default key).
+- **GPG keys**: your secret keys from `gpg --list-secret-keys` (expired and revoked keys are
+  shown but cannot be chosen).
+- **SSH keys**: the public keys in `~/.ssh/*.pub` (`gpg.format=ssh`).
+
+The choice is stored in the Forge setting `vcs.git.commit.signingKey` (`openpgp:<key id>` or
+`ssh:<public key file>`) and applied to each commit with `-c user.signingkey=… -c gpg.format=…`
+only; Forge never changes git config. For remote projects the keys are listed and used on the
+host. GPG asks for a passphrase through your `gpg-agent` pinentry as usual.
+
+The [Log](#log) marks signed commits with a shield: green for a verified signature, yellow for
+a signature that cannot be checked (unknown or untrusted key, expired), red for a bad or revoked
+one. The commit details name the signer and the key.
+
 ### AI commit messages
 
 Click **Generate Commit Message with AI** (the sparkle icon above the message). Forge sends the
@@ -9670,9 +9744,35 @@ Branches**:
   'current'** (the Git log of the commits of the branch that are not in the current branch,
   ready to [cherry-pick](#cherry-pick-revert-and-undo)), **Rebase 'current' onto '…'**,
   **Merge '…' into 'current'** and, for local branches, **Delete** (with "Force delete" for
-  unmerged branches).
+  unmerged branches). For a local branch that no worktree has checked out, **New Worktree…**
+  creates a [worktree](#worktrees) for it.
+- Branches checked out in another worktree are marked **worktree**; clicking them (or **Open
+  Worktree** in their submenu) opens that worktree instead of checking them out.
 
 **New Branch…** asks for the name and whether to check it out.
+
+![Branch in another worktree](docs/screenshots/git-branches-worktree.png)
+
+## Worktrees
+
+The **Worktrees** tab of the **Git** tool window (**Git.Show.Worktrees**) lists the repository's
+worktrees (`git worktree list`): path, branch (or "detached") and revision; the main worktree
+and the one of this project are marked.
+
+![Worktrees](docs/screenshots/git-worktrees.png)
+
+- **New Worktree…** (`+`, **Git ▸ New Worktree…**, `Git.Worktree.Create`): a **new branch**
+  based on a branch of your choice, or an **existing branch** that is not checked out anywhere,
+  and the **Directory** (suggested next to the main worktree: `<repo>-<branch>`). "Open the
+  worktree after creating it" opens it as the project.
+
+  ![New Worktree](docs/screenshots/git-new-worktree.png)
+
+- **Open** (or double-click) opens a worktree as the project (on the same host for remote
+  projects).
+- **Lock…** / **Unlock** (`git worktree lock --reason`), **Remove…** (asks again with "Force
+  Remove" when the worktree has local changes or is locked) and **Prune Worktrees** (forgets
+  worktrees whose folder is gone, shown struck through).
 
 ## Push, update and fetch
 
@@ -9895,8 +9995,8 @@ reminds you to commit (merge, cherry-pick) or continue the rebase.
 
 ## Log
 
-The **Git** tool window (`Alt+9`, bottom) has a **Log** tab with the commit graph and a
-**Console** tab with the git commands Forge ran.
+The **Git** tool window (`Alt+9`, bottom) has a **Log** tab with the commit graph, the
+[Worktrees](#worktrees) tab and a **Console** tab with the git commands Forge ran.
 
 ![Git log](docs/screenshots/vcs-log.png)
 
@@ -9906,6 +10006,8 @@ The **Git** tool window (`Alt+9`, bottom) has a **Log** tab with the commit grap
   `Shift+click` select several commits; `Up`/`Down` move the selection, `Left`/`Right` go to the
   child / parent commit.
 - **Fetch All Remotes** and **Refresh** (`Ctrl+F5`) in the toolbar.
+- Signed commits show a shield after the subject (see
+  [Signing commits](#signing-commits-with-gpg-or-ssh-keys)); the details name the signer.
 
 ### Log actions
 
@@ -10087,7 +10189,8 @@ Pull and merge requests, issues and CI pipelines of GitHub, GitLab and Forgejo/G
 
 ## Not available yet
 
-Get from VCS (clone), Push All up to Here and Local History are not implemented yet.
+Push All up to Here and Local History are not implemented yet. Projects (cloned repositories,
+worktrees) open in the current window until Forge supports several project windows.
 
 
 ---

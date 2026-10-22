@@ -20,17 +20,41 @@ use crate::{Backend, Process};
 #[derive(Debug, Default)]
 pub struct LineSplitter {
     partial: String,
+    /// A lone `\r` ends a line too (progress output that rewrites its line).
+    carriage_returns: bool,
 }
 
 impl LineSplitter {
+    /// A splitter that also ends lines at a lone `\r`, for progress meters like git's.
+    pub fn with_carriage_returns() -> Self {
+        Self {
+            partial: String::new(),
+            carriage_returns: true,
+        }
+    }
+
     pub fn push(&mut self, text: &str) -> Vec<String> {
         self.partial.push_str(text);
         let mut out = Vec::new();
-        while let Some(i) = self.partial.find('\n') {
+        loop {
+            let end = if self.carriage_returns {
+                self.partial.find(['\n', '\r'])
+            } else {
+                self.partial.find('\n')
+            };
+            let Some(i) = end else { break };
+            // `\r\n` is one line end; a trailing `\r` waits for the next chunk.
+            if self.partial.as_bytes()[i] == b'\r' && i + 1 == self.partial.len() {
+                break;
+            }
             let mut line: String = self.partial.drain(..=i).collect();
+            let ended_by_cr = line.ends_with('\r');
             line.pop();
-            if line.ends_with('\r') {
+            if !ended_by_cr && line.ends_with('\r') {
                 line.pop();
+            }
+            if ended_by_cr && self.partial.starts_with('\n') {
+                self.partial.remove(0);
             }
             out.push(line);
         }
@@ -57,8 +81,36 @@ pub fn run_lines(
     cancel: &AtomicBool,
     on_line: &mut dyn FnMut(String, bool),
 ) -> Result<Option<i32>> {
+    run_split(backend, cmd, cancel, on_line, false)
+}
+
+/// [`run_lines`] that also ends lines at a lone `\r`, so progress meters that rewrite
+/// their line (git's `Receiving objects:  45%`) arrive while they change.
+pub fn run_progress_lines(
+    backend: &dyn Backend,
+    cmd: &CommandLine,
+    cancel: &AtomicBool,
+    on_line: &mut dyn FnMut(String, bool),
+) -> Result<Option<i32>> {
+    run_split(backend, cmd, cancel, on_line, true)
+}
+
+fn run_split(
+    backend: &dyn Backend,
+    cmd: &CommandLine,
+    cancel: &AtomicBool,
+    on_line: &mut dyn FnMut(String, bool),
+    carriage_returns: bool,
+) -> Result<Option<i32>> {
     let (tx, rx) = mpsc::channel::<Msg>();
-    let splitters = std::sync::Mutex::new((LineSplitter::default(), LineSplitter::default()));
+    let splitter = || {
+        if carriage_returns {
+            LineSplitter::with_carriage_returns()
+        } else {
+            LineSplitter::default()
+        }
+    };
+    let splitters = std::sync::Mutex::new((splitter(), splitter()));
     let sink: RunSink = Arc::new(move |event| match event {
         RunEvent::Output { stream, text } => {
             let stderr = stream != OutputStream::Stdout;
@@ -327,6 +379,22 @@ mod tests {
         assert_eq!(s.push("a\r\nb"), vec!["a"]);
         assert_eq!(s.push("c\n\nd"), vec!["bc", ""]);
         assert_eq!(s.finish().as_deref(), Some("d"));
+        assert_eq!(s.finish(), None);
+    }
+
+    #[test]
+    fn progress_lines_end_at_carriage_returns() {
+        let mut s = LineSplitter::with_carriage_returns();
+        assert_eq!(
+            s.push("Receiving:  1%\rReceiving:  5%\r"),
+            vec!["Receiving:  1%"]
+        );
+        // A `\r` at the end of a chunk may be the start of `\r\n`.
+        assert_eq!(
+            s.push("\nResolving: 10%\r\n"),
+            vec!["Receiving:  5%", "Resolving: 10%"]
+        );
+        assert_eq!(s.push("done\n"), vec!["done"]);
         assert_eq!(s.finish(), None);
     }
 

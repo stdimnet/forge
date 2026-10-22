@@ -235,6 +235,33 @@ app/ui/            SolidJS UI
   paths? }) -> { applied, conflicts, failed: [path, reason][] }`. Browser mode:
   `mock/gitChangesMock.ts` with the Rust models as WebAssembly (`vcs_changelists`,
   `vcs_change_hunks`, `vcs_patch_preview`).
+- Get from VCS, worktrees, Commit Message History and signing (`forge_vcs::{clone, worktree,
+  message_history, signing}`, `repo/worktrees.rs`, `forge_backend::vcs`, `commands/git_clone.rs`,
+  `commands/git_extras.rs`, UI `features/git/extras.ts`, `ExtrasDialogs.tsx`,
+  `SigningSettings.tsx`): `forges_repositories({ accountId }) -> HostRepository[]`
+  (`CodeHost::repositories`), `git_clone_directory_name({ url })`, `git_clone_home({
+  connectionId? })`, `git_clone_test({ url, accountId?, connectionId? }) -> { sha, name }[]`
+  (`git ls-remote --heads`), `git_clone({ url, directory, accountId?, connectionId? }) -> { path
+  }` with `git://clone-progress` `{ phase, percent, fraction, text }` and `git_clone_cancel()`.
+  Clones run through a `Backend` (`LocalBackend` at home, the project's backend or a
+  `RemoteBackend` of a browsing connection, `remote::clone_target`) with
+  `process_io::run_progress_lines` (lines also end at `\r`); HTTPS tokens of the matching
+  account (`ForgeService::credential_for_url`) reach git only through `-c credential.helper=`
+  plus an inline helper reading `FORGE_GIT_USERNAME` / `FORGE_GIT_PASSWORD`.
+  `remote_project_connection() -> string | null`. Worktrees: `git_worktrees() -> Worktree[]`,
+  `git_worktree_add({ options: { path, branch?, newBranch?, base?, detach? } })`,
+  `git_worktree_remove({ path, force })`, `git_worktree_prune()`, `git_worktree_lock({ path,
+  reason? })`, `git_worktree_unlock({ path })`; `BranchInfo.worktree` comes from
+  `%(worktreepath)`. `git_message_history() -> string[]` (Forge's history in `<data
+  dir>/forge/projects/<project>/commit-messages.json`, recorded after `git_commit` /
+  `git_commit_files`, plus `git log --author=<git var GIT_AUTHOR_IDENT email>`).
+  `git_signing_info() -> { config, gpgKeys, gpgError?, sshKeys, remote }`; commits read
+  `vcs.git.commit.gpgSign` / `vcs.git.commit.signingKey` (`SigningKey::from_setting`) into
+  `CommitOptions.signing` (`-c gpg.format=… -c user.signingkey=… commit -S`). `Commit.signature`
+  (`%G?`) and `CommitDetails.{signature, signer, signingKey}` (`%G? %GS %GK`). Settings with
+  `hidden = true` have no row; `registerObjectSettingEditor` can replace any row. The commit
+  message textarea opts into tool window shortcuts with `data-focus-context="toolwindow-input"`
+  (`FocusContext::ToolwindowInput`). Browser mode: `mock/gitExtrasMock.ts`.
 - Git Log actions (`forge_vcs::rebase`, `repo/rewrite.rs`, `commands/git_log.rs`, UI
   `features/git/logActions.ts`, `logIndex.ts`, `LogDialogs.tsx`, `rebaseModel.ts`); commit lists
   are in log order (newest first): `git_log_actions({ shas }) -> { cherryPick, revert,
