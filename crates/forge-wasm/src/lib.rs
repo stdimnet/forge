@@ -28,6 +28,7 @@ mod editing;
 mod emmet;
 mod filetypes;
 mod injections;
+mod json_schema;
 mod keymap;
 mod livetemplates;
 mod lua;

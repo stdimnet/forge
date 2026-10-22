@@ -50,7 +50,8 @@ The breadcrumbs at the bottom of the editor show the declarations around the car
   the class; pick one to go there.
 - **View | Active Editor | Show Breadcrumbs** switches them for the current language.
 
-The file path stays in the bar above the editor, which is PHPStorm's navigation bar.
+The file path is in the [navigation bar](navigation-bar-and-file-structure.md#navigation-bar)
+above the editor or in the status bar.
 
 Settings | Editor | General | **Breadcrumbs**: *Show breadcrumbs* (`editor.breadcrumbs.show`),
 *Placement* **Top** or **Bottom** (`editor.breadcrumbs.placement`, default Bottom) and one

@@ -1,0 +1,78 @@
+/* File Structure popup (Ctrl+F12) */
+.fs-popup {
+  width: min(620px, calc(100vw - 32px));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.fs-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 34px;
+  padding: 6px 10px 0 14px;
+}
+.fs-title {
+  font-weight: 600;
+  color: var(--fg-strong);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.fs-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 2px 8px;
+  margin-left: auto;
+}
+.fs-toggle-hint {
+  color: var(--fg-faint);
+}
+.fs-search {
+  margin-top: 6px;
+}
+.fs-tree {
+  max-height: 440px;
+  min-height: 72px;
+  overflow-y: auto;
+  padding: 0 6px 6px;
+}
+.fs-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  padding-right: 8px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.fs-row.selected {
+  background: var(--bg-selection);
+}
+.fs-name {
+  flex-shrink: 0;
+  color: var(--fg-strong);
+}
+.fs-name.deprecated {
+  text-decoration: line-through;
+}
+.fs-row.dimmed .fs-name,
+.fs-row.inherited .fs-name {
+  color: var(--fg-muted);
+}
+.fs-detail {
+  white-space: pre;
+  color: var(--fg-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.fs-owner {
+  margin-left: auto;
+  padding-left: 8px;
+  color: var(--fg-faint);
+  font-size: var(--fs-small);
+}

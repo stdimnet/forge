@@ -680,10 +680,10 @@ app/ui/            SolidJS UI
   merged into the server settings; `initializationOptions` key for startup options). Global:
   `langservers.autoStart`, `langservers.scanLimit`, `langservers.lua.environment|version`,
   `langservers.hints.enabled|dismissed`.
-- Install hint: files that use a feature only a server provides (a JSON `"$schema"`, a YAML
-  `# yaml-language-server: $schema=` modeline) get a banner above the editor when that server is
-  not installed (`src/features/langservers/hints.ts`, `serverHint.ts`). Add an entry to
-  `SERVER_HINTS` for another server. "Install…" opens the install dialog (`requestInstall`),
+- Install hint: files that use a feature only a server provides get a banner above the editor
+  when that server is not installed (`src/features/langservers/hints.ts`, `serverHint.ts`). Add
+  an entry to `SERVER_HINTS` for a server (it is empty: `$schema` and YAML schema modelines are
+  handled by Forge's own JSON Schema support). "Install…" opens the install dialog (`requestInstall`),
   "Not now" hides it until Forge restarts, "Don't show again" stores the server id in
   `langservers.hints.dismissed`.
 - IPC: `langservers_list() -> ServerRow[]`, `langservers_apply() -> ServerRow[]` (re-plan after
@@ -757,6 +757,12 @@ computes everything; `app/ui/src/features/codeintel` and `features/lsp/goto.ts` 
     `code_type_info({ path, line, character, content? }) -> string | null` (Ctrl+Shift+P; the
     servers' hover, else the PHP index's signature) and
     `code_context_info({ path, line, content? }) -> { line, text }[]` (Alt+Q).
+  - `code_related({ path, content? }) -> { kind, group, name, path, line, column }[]` —
+    Related Symbol (Ctrl+Alt+Home, `forge_codeintel::related`): tests, views, templates,
+    routes, migrations, factories, policies, stories and styles. It is a
+    `FrameworkCall::Related`, so the project's files are listed and read where they are (the
+    agent for a remote project). The UI (`features/related`) opens one result directly and
+    several in the shared chooser, grouped (`DeclarationTarget.group`).
   - `code_prepare_rename({ path, line, character, content? }) -> { range?, placeholder?,
     invalid, message?, missing?, source: "lsp" | "index", occurrences, label?, classFile?,
     sigil }` — starts Rename (Shift+F6): the server's `prepareRename` and the occurrences in the
@@ -1368,7 +1374,7 @@ plugin manifest entry, and the chat UI needs no changes:
   (`EditorSplitLine` / `Console.Jdbc.Execute`) and the gutter run icon open a query console
   with the injected SQL (`runSqlInConsole`).
 
-## Code structure in the editor (Sticky Lines, breadcrumbs, regions, rendered docs)
+## Code structure in the editor (Sticky Lines, breadcrumbs, regions, rendered docs, File Structure, Navigation Bar)
 
 PHPStorm's Sticky Lines, structure breadcrumbs, custom folding regions, rendered doc
 comments and Reader mode (`app/ui/src/features/codeStructure`, user guide
@@ -1395,6 +1401,18 @@ comments and Reader mode (`app/ui/src/features/codeStructure`, user guide
 - Settings: `editor.stickyLines.*`, `editor.breadcrumbs.*`, `editor.renderDocComments` and
   `editor.readerMode.*` (`core.toml`); per-language toggles are `list` settings of switched-off
   file type ids, edited with checkboxes (`LanguageToggles`).
+- File Structure popup (`FileStructurePopup`, Ctrl+F12, `features/fileStructure`): the
+  Structure view's providers load the tree (`loadFileStructure` in
+  `features/php/StructureView.tsx`, PHP inherited members from the index), and
+  `forge_codeintel::file_structure::file_structure_view` (WebAssembly, synchronous) applies
+  the toggles and the fuzzy speed search and picks the node at the caret.
+- Navigation Bar (`features/navBar`): `forge_codeintel::navbar::nav_bar_segments`
+  (WebAssembly) turns the path and the scopes at the caret into segments; dropdowns list
+  `fs_list_dir` entries or structure nodes and filter them with `fuzzy_filter`. Placement
+  `appearance.navigationBar.location` (`top`: above every editor group, with the plain path in
+  the status bar; `statusBar`; `hidden`: `ShowNavBar` / Alt+Home shows it floating) and
+  `appearance.navigationBar.showMembers`; actions `ShowNavBar`, `NavBarLocationTop`,
+  `NavBarLocationBottom`, `NavBarLocationHide`, `ShowMembersInNavigationBar`.
 - Actions: `ToggleRenderedDocPresentation` (Ctrl+Alt+Q), `CollapseDocComments`,
   `EditorToggleShowBreadcrumbs` (PHPStorm ids) and the Forge actions
   `ToggleRenderedDocPresentationForAll`, `EditorToggleStickyLines`, `ToggleReaderMode`.
@@ -1430,6 +1448,40 @@ comments and Reader mode (`app/ui/src/features/codeStructure`, user guide
   (`features/codeintel/intentions.ts`), suggestions open a second intention popup
   (`showActionsPopup`), "Rename to..." runs the Rename refactoring. The commit message is
   checked as one `commitMessage` segment with an underline overlay.
+
+## JSON Schema (`forge-jsonschema`)
+
+- `crates/forge-jsonschema` (pure, also WebAssembly; downloads behind the `remote` feature):
+  position-keeping JSON/JSON5 and YAML parsers (`Node` with byte ranges, tolerant of unfinished
+  input), schema documents and a `Registry` (`$id`, anchors, `$ref` to other files through
+  `missing()`), a validator for draft 4–2020-12 with PHPStorm's messages, completion contexts
+  and items, hover, Go to Declaration (`At::decl`), mappings (user > `$schema`/modeline >
+  built-in > SchemaStore catalog) and the bundled schemas of the built-in mappings
+  (`schemas/`, licences in `schemas/NOTICE`; compressed by `build.rs`). Answers use UTF-16
+  offsets.
+- IPC (`app/ui/src/ipc/jsonSchema.ts`, `commands/json_schema.rs`): `json_schema_validate({ path,
+  language, content }) -> { schema: { name, uri, source: "user" | "inline" | "builtin" |
+  "catalog", location?, error? } | null, problems: { from, to, message, severity: "warning" |
+  "weak" }[] }`, `json_schema_complete|hover|goto({ path, language, content, offset })`
+  (`{ from, replaceFrom, replaceTo, items }`, `{ from, to, title, markdown }`, `{ path, line,
+  column, preview }[]`), `json_schema_read({ location }) -> { text, detail }` for the read-only
+  `json-schema://bundled/…`, `json-schema://remote/<url>` and `json-schema://file/<path>`
+  tabs, `json_schema_builtins()`. Settings: `jsonSchema.mappings` (project objects `{ name,
+  schema, version, files }`), `jsonSchema.remote.enabled` (off), `jsonSchema.remote.schemaStore`.
+  Project schemas are read through the backend (remote projects work); URLs are downloaded only
+  with remote schemas on, into `<cache dir>/forge/json-schemas` (`RemoteCache`, daily refresh,
+  stale copy offline, failures retried after five minutes).
+- UI (`features/jsonSchema`): an editor extension for `json`, `yaml`, `docker-compose` and
+  `symfony-services` files publishes problems as source `json-schema`, adds a completion source
+  (options styled with `styleOption` from `features/lsp/completion.ts`: required bold,
+  deprecated struck through) and a hover; Compose and Symfony services keep their hand-written
+  key completion and hover. While `vscode-json-language-server` / `yaml-language-server` runs
+  for a file, problems, completion and hover are left to it. A declaration provider opens the
+  schema; `registerFileSystem("json-schema://")` shows schemas read-only. The status item
+  `json-schema` shows the file's schema and assigns another one (a project mapping); Settings
+  pages `lang.schemas`, `lang.json-schema` (master-detail mappings editor) and
+  `lang.json-schema.remote`. Browser mode runs the crate through `forge-wasm` (`json_schema.rs`;
+  the mock answers `needs` with demo files).
 
 ## Vim emulation (`forge-vim`)
 

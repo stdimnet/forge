@@ -60,6 +60,11 @@ pub enum FrameworkCall {
     },
     /// -> [`ArtisanCommands`]
     LaravelArtisanCommands { php: String },
+    /// Related Symbol (Ctrl+Alt+Home) -> `Vec<forge_codeintel::RelatedItem>`
+    Related {
+        path: String,
+        content: Option<String>,
+    },
     Symfony {
         config: SymfonyConfig,
         query: SymfonyQuery,
@@ -369,6 +374,16 @@ impl LocalFrameworks {
                     from_project,
                 })
             }
+            FrameworkCall::Related { path, content } => {
+                let text = self.source(&path, content)?;
+                let files = self.workspace.list_files();
+                let read = |rel: &str| self.workspace.read_file(rel).ok();
+                reply(forge_codeintel::related(
+                    &forge_codeintel::RelatedRequest { path, text },
+                    &files,
+                    &read,
+                ))
+            }
             FrameworkCall::Symfony { config, query } => self.symfony_query(&root, &config, query),
             FrameworkCall::Doctrine { config, query } => self.doctrine_query(&config, query),
         }
@@ -497,6 +512,34 @@ mod tests {
         )
         .unwrap();
         dir
+    }
+
+    #[test]
+    fn related_items_are_found_next_to_the_files() {
+        let dir = laravel_project();
+        std::fs::create_dir_all(dir.path().join("tests/Feature")).unwrap();
+        std::fs::write(
+            dir.path().join("tests/Feature/OrderControllerTest.php"),
+            "<?php\n",
+        )
+        .unwrap();
+        let fw = LocalFrameworks::new(Workspace::open(dir.path()).unwrap());
+        let items: Vec<forge_codeintel::RelatedItem> = decode_value(
+            &fw.call(FrameworkCall::Related {
+                path: "app/Http/Controllers/OrderController.php".into(),
+                content: None,
+            })
+            .unwrap(),
+        )
+        .unwrap();
+        let found: Vec<(&str, u32)> = items.iter().map(|i| (i.path.as_str(), i.line)).collect();
+        assert_eq!(
+            found,
+            [
+                ("tests/Feature/OrderControllerTest.php", 0),
+                ("routes/web.php", 2)
+            ]
+        );
     }
 
     #[test]

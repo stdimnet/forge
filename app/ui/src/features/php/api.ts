@@ -78,6 +78,8 @@ export interface StructureNode {
   deprecated?: boolean;
   inheritedFrom?: string;
   path?: string;
+  /** An anonymous function (hidden by the File Structure popup's "Show Lambdas"). */
+  lambda?: boolean;
   children?: StructureNode[];
 }
 

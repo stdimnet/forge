@@ -60,6 +60,42 @@ export function offeredTemplates(
   );
 }
 
+/** A submenu of the New menu: its label and its sections (separated in the menu). */
+export interface NewMenuGroup {
+  label: string;
+  sections: TemplateInfo[][];
+}
+
+const SUBMENU_LABELS: Record<string, string> = { php: "PHP", web: "Web", lua: "Lua" };
+
+/**
+ * The New menu's file templates as submenus: PHP (Class, Interface, Trait, Enum, then the
+ * other PHP files, then the project's framework templates), Web and Lua; user templates
+ * stay top-level (label "").
+ */
+export function newMenuGroups(
+  templates: TemplateInfo[],
+  uses: (projectType: string) => boolean = (t) => usesProjectType(t, projectInfo()),
+): NewMenuGroup[] {
+  const files = templates.filter((t) => t.kind === "file" && (!t.when || uses(t.when)));
+  const of = (group: string) => files.filter((t) => t.group === group);
+  const php = of("php");
+  const classes = php.filter((t) => t.builtin && (t.name === "PHP Class" || DIALOG_ONLY.has(t.name)));
+  const groups: NewMenuGroup[] = [
+    { label: "PHP", sections: [classes, php.filter((t) => !classes.includes(t)), of("framework")] },
+    { label: SUBMENU_LABELS.web, sections: [of("web")] },
+    { label: SUBMENU_LABELS.lua, sections: [of("lua")] },
+    { label: "", sections: [of("user")] },
+  ];
+  return groups
+    .map((g) => ({ ...g, sections: g.sections.filter((s) => s.length > 0) }))
+    .filter((g) => g.sections.length > 0);
+}
+
+/** `PHP Interface` → `Interface` inside the PHP submenu; other names stay as they are. */
+export const newMenuLabel = (t: TemplateInfo, submenu: string): string =>
+  submenu === "PHP" && t.builtin ? t.name.replace(/^PHP (?=Class$|Interface$|Trait$|Enum$|File$)/, "") : t.name;
+
 /** Class-like PHP templates the New PHP Class dialog offers in its Template list. */
 export function phpClassTemplates(templates: TemplateInfo[], current: TemplateInfo, uses?: (t: string) => boolean): TemplateInfo[] {
   const offered = offeredTemplates(templates, uses).flat();

@@ -45,6 +45,7 @@ pub fn filter(req: &FilterRequest) -> Vec<FilterHit> { … }
 
 - IPC: `fuzzy_filter`, `search_rank`, `fs_find_files`
 - UI: `app/ui/src/features/search`
+- Crates: `forge-codeintel` (File Structure popup speed search)
 - Browser mode: built into `forge-wasm`
 
 ## Dependencies

@@ -233,6 +233,7 @@ function toNodes(structure: EditorStructure): StructureNode[] {
       offset: 0,
       line: s.line,
       column: s.column,
+      lambda: s.kind === "closure" || undefined,
       children: [],
     };
     byIndex.set(index, node);

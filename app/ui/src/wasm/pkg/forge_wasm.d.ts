@@ -117,6 +117,11 @@ export function codeintel_plan_edit(request_json: string): string;
 export function codeintel_preview_edit(request_json: string): string;
 
 /**
+ * `{ path, text, files }` → `RelatedItem[]` (like `code_related`).
+ */
+export function codeintel_related(request_json: string): string;
+
+/**
  * `{ locations, oldName, newName, declaration?, renameFile?, files }` → `{ edit, skipped,
  * fileRename, conflicts }` or `{ error }`: the index part of `code_rename`.
  */
@@ -347,6 +352,11 @@ export function emmet_update_tag(request_json: string): string;
 export function emmet_wrap(request_json: string): string;
 
 /**
+ * `FileStructureRequest` → `{ rows, selected?, hasFields, hasLambdas, hasInherited }`.
+ */
+export function file_structure_view(request_json: string): string;
+
+/**
  * `DetectRequest` → `FileTypeInfo[]`.
  */
 export function filetypes_detect(request_json: string): string;
@@ -427,6 +437,37 @@ export function injections_languages(): string;
  * The built-in rules for Settings | Editor | Language Injections.
  */
 export function injections_rules(): string;
+
+/**
+ * Like `json_schema_builtins`.
+ */
+export function json_schema_builtins(): string;
+
+/**
+ * Like `json_schema_complete`.
+ */
+export function json_schema_complete(request_json: string): string;
+
+/**
+ * Like `json_schema_goto`.
+ */
+export function json_schema_goto(request_json: string): string;
+
+/**
+ * Like `json_schema_hover`.
+ */
+export function json_schema_hover(request_json: string): string;
+
+/**
+ * A bundled schema's text for `json_schema_read`, or `{ error }`.
+ */
+export function json_schema_read(location: string): string;
+
+/**
+ * `{ path, language, content, mappings, files }` → `{ answer: { schema, problems } }` or
+ * `{ needs: [path] }`, like `json_schema_validate`.
+ */
+export function json_schema_validate(request_json: string): string;
 
 /**
  * `{settings, hostPlatform}` → `KeymapSnapshot`.
@@ -574,6 +615,11 @@ export function markdown_hover(request_json: string): string;
  * `{ text, flavor? }` → `Block[]`.
  */
 export function markdown_parse(request_json: string): string;
+
+/**
+ * `{ project, path, scopes, showMembers }` → `NavSegment[]`.
+ */
+export function nav_bar_segments(request_json: string): string;
 
 /**
  * Mirrors the `output_file_links` command: `{ text, root }` → `FileLink[]`.
@@ -958,6 +1004,7 @@ export interface InitOutput {
     readonly codeintel_order_actions: (a: number, b: number, c: number) => void;
     readonly codeintel_plan_edit: (a: number, b: number, c: number) => void;
     readonly codeintel_preview_edit: (a: number, b: number, c: number) => void;
+    readonly codeintel_related: (a: number, b: number, c: number) => void;
     readonly codeintel_rename_edit: (a: number, b: number, c: number) => void;
     readonly codeintel_type_info: (a: number, b: number, c: number) => void;
     readonly codeintel_word_range: (a: number, b: number, c: number) => void;
@@ -1003,6 +1050,7 @@ export interface InitOutput {
     readonly emmet_remove_tag: (a: number, b: number, c: number) => void;
     readonly emmet_update_tag: (a: number, b: number, c: number) => void;
     readonly emmet_wrap: (a: number, b: number, c: number) => void;
+    readonly file_structure_view: (a: number, b: number, c: number) => void;
     readonly filetypes_detect: (a: number, b: number, c: number) => void;
     readonly filetypes_load: (a: number, b: number, c: number) => void;
     readonly filetypes_template_delimiters: (a: number) => void;
@@ -1019,6 +1067,12 @@ export interface InitOutput {
     readonly injections_inject: (a: number, b: number, c: number) => void;
     readonly injections_languages: (a: number) => void;
     readonly injections_rules: (a: number) => void;
+    readonly json_schema_builtins: (a: number) => void;
+    readonly json_schema_complete: (a: number, b: number, c: number) => void;
+    readonly json_schema_goto: (a: number, b: number, c: number) => void;
+    readonly json_schema_hover: (a: number, b: number, c: number) => void;
+    readonly json_schema_read: (a: number, b: number, c: number) => void;
+    readonly json_schema_validate: (a: number, b: number, c: number) => void;
     readonly keymap_actions: (a: number, b: number, c: number) => void;
     readonly keymap_conflicts: (a: number, b: number, c: number) => void;
     readonly keymap_find_by_shortcut: (a: number, b: number, c: number) => void;
@@ -1048,6 +1102,7 @@ export interface InitOutput {
     readonly markdown_document: (a: number, b: number, c: number) => void;
     readonly markdown_hover: (a: number, b: number, c: number) => void;
     readonly markdown_parse: (a: number, b: number, c: number) => void;
+    readonly nav_bar_segments: (a: number, b: number, c: number) => void;
     readonly output_file_links: (a: number, b: number, c: number) => void;
     readonly remote_check_host_key: (a: number, b: number, c: number) => void;
     readonly remote_ssh_hosts: (a: number, b: number, c: number) => void;

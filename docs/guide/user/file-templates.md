@@ -23,7 +23,17 @@ The templates appear in three places, always for the folder you are in:
 
 ![New submenu of the Project view](../../screenshots/file-templates-new-menu.png)
 
-The list shows **File** and **Directory**, then the templates the project uses:
+The list shows **File** and **Directory**, then the templates the project uses, grouped in
+submenus so the common choices are two clicks away:
+
+- **PHP ▸** **Class**, **Interface**, **Trait** and **Enum** (each opens the New PHP Class
+  dialog with that kind selected), then **File** and **PHPUnit Test**, then the project's
+  framework templates (Laravel or Symfony).
+- **Web ▸** HTML, CSS, JavaScript and TypeScript files, Vue and React components.
+- **Lua ▸** Lua file and module.
+- Your own templates follow directly in the New menu, then **Edit File Templates…**.
+
+The templates:
 
 | Template | Offered when | Creates |
 | --- | --- | --- |

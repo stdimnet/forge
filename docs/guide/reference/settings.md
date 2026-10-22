@@ -49,6 +49,8 @@ Page id `appearance`.
 | `appearance.windowControls` | enum: `auto`, `windows`, `macos`, `gnome`, `kde`, `linux`, `native` | `auto` | user | Window | Window controls — Look of the title bar buttons of the main window and dialogs. "Native" lets the operating system draw the title bar. |
 | `appearance.showToolWindowBars` | bool | `true` | user | Tool Windows | Show tool window bars — The stripes with tool window buttons along the window edges. |
 | `appearance.showToolWindowNumbers` | bool | `true` | user | Tool Windows | Show tool window numbers |
+| `appearance.navigationBar.location` | enum: `top`, `statusBar`, `hidden` | `top` | user | Navigation Bar | Navigation bar — Where the navigation bar (project, folders, file and members at the caret) is shown: Top: above the editor, with the path in the status bar too. In status bar: only in the status bar. Don't show: Jump to Navigation Bar (Alt+Home) shows it as a popup. View \| Appearance \| Navigation Bar. |
+| `appearance.navigationBar.showMembers` | bool | `true` | user | Navigation Bar | Show members in the navigation bar — Add the class and function at the caret after the file name. View \| Appearance \| Members in Navigation Bar. |
 | `projectView.openFilesWithSingleClick` | bool | `true` | user | Project View | Open files with single click — In the Project tool window a single click opens files and expands folders. Turn it off to select with a single click and open with a double click, like PHPStorm. |
 
 ### Appearance & Behavior | System Settings
@@ -467,6 +469,23 @@ Page id `lang.lua`.
 | `langservers.lua.libraries` | list | `[]` | user, project | Lua Language Server | Library paths — Extra folders with Lua definitions or third-party code (workspace.library), e.g. ~/.luarocks/share/lua/5.4. |
 | `lua.stylua.enabled` | bool | `true` | user | StyLua | Reformat Code with StyLua — Ctrl+Alt+L formats Lua files with StyLua when it is installed; stylua.toml in the project is honoured. |
 | `lua.stylua.path` | path | `stylua` | user | StyLua | StyLua executable |
+
+### Languages & Frameworks | Schemas and DTDs | JSON Schema Mappings
+
+Page id `lang.json-schema` (plugin `forge.json-schema`). See [JSON Schema](../user/json-schema.md).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `jsonSchema.mappings` | objects | `[]` | user, project |  | JSON Schema mappings — `name`, `schema` (a project path, an absolute path or a URL; empty: no schema), `version` (`4`, `6`, `7`, `2019-09`, `2020-12` or empty for automatic) and `files` (one file, directory ending in `/` or pattern per line). |
+
+### Languages & Frameworks | Schemas and DTDs | Remote JSON Schemas
+
+Page id `lang.json-schema.remote` (plugin `forge.json-schema`).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `jsonSchema.remote.enabled` | bool | `false` | user |  | Allow downloading JSON schemas from remote sources — Schemas named by a URL ($schema, mappings, $ref) are downloaded into Forge's cache folder and refreshed daily. Built-in schemas are bundled and need no download. |
+| `jsonSchema.remote.schemaStore` | bool | `true` | user |  | Use schemastore.org JSON Schema catalog — Find schemas for other well-known files (renovate.json, .babelrc, Helm charts, ...) in the SchemaStore catalog. |
 
 ### Languages & Frameworks | Markdown
 

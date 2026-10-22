@@ -678,11 +678,13 @@ not finished, the page says so.
 | [Actions on Save](docs/guide/user/actions-on-save.md) | Reformat code, Optimize imports, Rearrange code, code cleanup, ESLint, Prettier, PHP CS Fixer and Laravel Pint on save |
 | [Live templates](docs/guide/user/live-templates.md) | abbreviations + `Tab`, Insert Live Template, Surround With, Unwrap/Remove, Save as Live Template, template sets and settings |
 | [Emmet and color previews](docs/guide/user/emmet-and-colors.md) | Emmet abbreviations in HTML, Blade, Twig, Vue, PHP, JSX and CSS, abbreviation preview, Surround with Emmet, Update/Remove Tag, edit points, color swatches and the color picker |
+| [JSON Schema](docs/guide/user/json-schema.md) | validation, completion, hover and Go to Declaration from JSON schemas in JSON and YAML files: composer.json, package.json, tsconfig, ESLint, Prettier, Compose, GitHub Actions, GitLab CI, `$schema`, JSON Schema Mappings, the status bar widget, remote schemas |
 | [Spelling and grammar](docs/guide/user/spelling-and-grammar.md) | Typo and Grammar inspections in comments, strings, names, Markdown and commit messages, Alt+Enter suggestions, Rename to, project-level and application-level dictionaries, custom Hunspell dictionaries |
 | [Language injections](docs/guide/user/language-injections.md) | SQL, HTML, CSS, JSON and RegExp in PHP and JavaScript strings, `// language=` comments, Inject language or reference, Edit Fragment, Run SQL |
 | [File and code templates](docs/guide/user/file-templates.md) | New ▸ PHP Class and other templates, the New PHP Class dialog with PSR-4 namespaces, `Alt+Insert` New popup, Settings \| Editor \| File and Code Templates |
 | [Vim emulation](docs/guide/user/vim-emulation.md) | Tools \| Vim, Normal/Insert/Visual/Replace modes, motions, operators, text objects, registers, macros, ex commands, `~/.ideavimrc`, shortcut conflicts |
 | [Search Everywhere and Find Action](docs/guide/user/search-everywhere.md) | Double Shift, Go to Class/File/Symbol, Find Action, fuzzy matching |
+| [File Structure, Navigation Bar and Related Symbol](docs/guide/user/navigation-bar-and-file-structure.md) | File Structure popup (`Ctrl+F12`, Show Inherited, speed search), Navigation Bar (`Alt+Home`, Top / In Status Bar / Don't Show, members), Related Symbol (`Ctrl+Alt+Home`: tests, views, templates, routes, migrations) |
 | [File types and syntax highlighting](docs/guide/user/file-types.md) | file type detection, highlighted languages, config formats, template data languages |
 | [Language servers](docs/guide/user/language-servers.md) | detection, installation, per-server settings, Intelephense licence |
 | [Keymap](docs/guide/user/keymap.md) | PHPStorm keymaps, changing shortcuts, contexts |
@@ -737,7 +739,7 @@ The workbench is the main window of an open project. It follows PHPStorm's New U
 | --- | --- | --- |
 | Main toolbar | top | ☰ main menu, project widget, Git branch widget, run widget, AI Chat, Search Everywhere, theme toggle, Settings; it is also the window's title bar |
 | Tool window stripes | left, right and bottom edges | buttons that show and hide tool windows |
-| Editor | center | tabs, breadcrumbs and the code editor |
+| Editor | center | tabs, navigation bar and the code editor |
 | Status bar | bottom | path of the current file, background tasks, project information, caret position, file type, Git branch |
 
 ## Main toolbar
@@ -899,7 +901,9 @@ Right-click a file, a folder or the empty area below the tree:
 - Some tabs are not files: merge requests, issues, database consoles and table editors open as
   tabs as well.
 
-Breadcrumbs above the editor show the file's folder path.
+The [navigation bar](docs/guide/user/navigation-bar-and-file-structure.md#navigation-bar) above the editor
+shows the file's path and the class and method at the caret; every part opens a dropdown
+(`Alt+Home`). View | Appearance | Navigation Bar moves it into the status bar or hides it.
 
 ### Tab context menu
 
@@ -1366,6 +1370,10 @@ Bash, Python, Postfix and similar files) appear as:
 Typos and grammar problems in comments, strings, names, text files and commit messages are
 inspections of their own (green and blue underlines, `Alt+Enter` for suggestions and the
 dictionaries); see [Spelling and grammar](docs/guide/user/spelling-and-grammar.md).
+
+JSON and YAML files with a JSON schema (`composer.json`, `package.json`, Compose files, CI
+pipelines, your own mappings) are checked against it, with schema-driven completion and hover;
+see [JSON Schema](docs/guide/user/json-schema.md).
 
 **Next Highlighted Error** `F2` and **Previous Highlighted Error** `Shift+F2` move the caret
 between problems.
@@ -1869,7 +1877,8 @@ The breadcrumbs at the bottom of the editor show the declarations around the car
   the class; pick one to go there.
 - **View | Active Editor | Show Breadcrumbs** switches them for the current language.
 
-The file path stays in the bar above the editor, which is PHPStorm's navigation bar.
+The file path is in the [navigation bar](docs/guide/user/navigation-bar-and-file-structure.md#navigation-bar)
+above the editor or in the status bar.
 
 Settings | Editor | General | **Breadcrumbs**: *Show breadcrumbs* (`editor.breadcrumbs.show`),
 *Placement* **Top** or **Bottom** (`editor.breadcrumbs.placement`, default Bottom) and one
@@ -2523,6 +2532,170 @@ original color. With the caret outside a color, Show Color Picker inserts a new 
 
 ---
 
+Source: docs/guide/user/json-schema.md
+
+# JSON Schema
+
+Forge checks JSON and YAML files against a [JSON Schema](https://json-schema.org), like
+PHPStorm: properties a file must have, the types and values it allows, and the documentation
+of every key. Configuration files such as `composer.json`, `package.json`, Compose files and CI
+pipelines work out of the box; for your own formats you map a schema to the files.
+
+![Problems in composer.json](docs/screenshots/json-schema-problems.png)
+
+Everything is computed in Rust (`crates/forge-jsonschema`); the desktop app and browser mode
+behave the same, and remote projects read their schema files through the remote host. No
+language server is needed.
+
+## Which files
+
+- **JSON**, JSON with comments (`.jsonc`, `tsconfig.json`, `.eslintrc`) and JSON5 (unquoted
+  keys, single quotes, trailing commas).
+- **YAML**, including several documents in one file (`---`), anchors, aliases and `<<` merge keys.
+  Values with a custom tag (GitLab's `!reference [...]`, Compose's `!reset`) are not judged.
+
+## Problems
+
+The **Compliance with JSON schema** inspection reports problems as warnings (yellow); syntax
+errors stay red. They appear as you type, in the gutter, the scrollbar and the
+[Problems](docs/guide/user/editor.md#problems) tool window (`Alt+6`). The messages are PHPStorm's:
+
+| Message | When |
+| --- | --- |
+| Missing required property 'name' / Missing required properties 'a', 'b' | `required`; shown on the object's key (or its `{`) |
+| Incompatible types. Required: string. Actual: integer. | `type` (several types: "Required one of: …") |
+| Property 'x' is not allowed | `additionalProperties: false`, `unevaluatedProperties: false`, `propertyNames`, a `false` property schema |
+| Value should be one of: "dev", "alpha", "beta" | `enum` and `const` |
+| String violates the pattern: '…' | `pattern` (or the schema's `patternErrorMessage`) |
+| String is shorter than 2 / longer than 10 | `minLength`, `maxLength` |
+| Less than a minimum 1 / Greater than an exclusive maximum 10 / Is not multiple of 5 | `minimum`, `maximum`, `exclusiveMinimum`, `exclusiveMaximum`, `multipleOf` |
+| Array is shorter than 1 / longer than 3, Item is not unique, Additional items are not allowed | `minItems`, `maxItems`, `uniqueItems`, `items` / `prefixItems` / `additionalItems` |
+| Array does not contain an item that matches the 'contains' schema | `contains`, `minContains`, `maxContains` |
+| Number of properties is less than 1 / greater than 5 | `minProperties`, `maxProperties` |
+| Dependency is violated: property 'b' must be specified, since 'a' is specified | `dependencies`, `dependentRequired` |
+| Validates to more than one variant / Validates against 'not' schema | `oneOf`, `not` |
+| String violates the format 'email' | `format`: `date-time`, `date`, `time`, `email`, `ipv4`, `ipv6`, `uuid`, `uri` |
+| Property 'x' is deprecated: … | `deprecated: true` or `deprecationMessage` — a weak warning, struck through in completion |
+
+When none of the `anyOf`/`oneOf` alternatives matches, Forge reports the problems of the
+closest one, or one merged message when they differ only in type or value.
+
+The schema engine understands JSON Schema draft 4, 6, 7, 2019-09 and 2020-12: `$ref` (to the
+same file, other files and URLs), `$defs` / `definitions`, `$id`, `$anchor`, `allOf`, `anyOf`,
+`oneOf`, `not`, `if` / `then` / `else`, `dependentSchemas`, `patternProperties` and the
+keywords above. `$dynamicRef` and `$recursiveRef` are followed like `$ref`.
+
+## Completion
+
+`Ctrl+Space` (or just typing) offers what the schema allows at the caret:
+
+- **Property names**, required ones first and in bold, with their type and documentation.
+  Choosing one writes the key, the colon and a value template: `"name": "|"` for strings,
+  `{}` / `[]` for objects and arrays, the schema's `default`, and a comma when another property
+  follows. In YAML it writes `key: `, or `key:` with the next line indented for objects and
+  `- ` for lists. Properties already in the object are not offered again.
+- **Values**: `enum` values (with `enumDescriptions` / `markdownEnumDescriptions`), `const`,
+  `true` / `false`, `null`, the `default`, `examples`, and `{}` / `[]` in JSON. After choosing a
+  property whose value has choices, the popup opens again for the value.
+
+![Completion in composer.json](docs/screenshots/json-schema-completion.png)
+
+![Completion in a GitHub Actions workflow](docs/screenshots/json-schema-yaml.png)
+
+`anyOf` / `oneOf` alternatives and `if` / `then` / `else` are narrowed to the ones that fit
+what the file already contains (for example a `type` discriminator). Docker Compose and Symfony
+service files keep their own key completion and hover docs; their schema still validates them.
+
+## Documentation and navigation
+
+- **Hover** over a key shows its `title` and `markdownDescription` (or `description`); hovering
+  an enum value shows the description of that value.
+- **Go to Declaration** (`Ctrl+B`, `Ctrl+Click`) on a key opens the schema where the property
+  is declared. Bundled and downloaded schemas open read-only, with a banner saying where they
+  come from; a schema in the project opens as a normal file.
+
+![The documentation of a package.json key](docs/screenshots/json-schema-hover.png)
+
+## Which schema a file uses
+
+Forge picks the first match:
+
+1. **Your mappings** (see below) — they win over everything else.
+2. **The file's own schema**: `"$schema": "…"` at the top level of a JSON file, a `$schema:` key
+   or the `# yaml-language-server: $schema=…` modeline in YAML. A relative path is resolved
+   against the file's folder; a URL needs [remote schemas](#remote-schemas).
+3. **Built-in mappings**, with schemas bundled with Forge:
+
+   | Schema | Files |
+   | --- | --- |
+   | composer.json | `composer.json` |
+   | package.json | `package.json` |
+   | tsconfig.json | `tsconfig.json`, `tsconfig.*.json`, `tsconfig-*.json` |
+   | jsconfig.json | `jsconfig.json`, `jsconfig.*.json` |
+   | .eslintrc | `.eslintrc`, `.eslintrc.json`, `.eslintrc.yml`, `.eslintrc.yaml` |
+   | .prettierrc | `.prettierrc`, `.prettierrc.json`, `.prettierrc.json5`, `.prettierrc.yml`, `.prettierrc.yaml` |
+   | Docker Compose | `docker-compose.yml`, `docker-compose.*.yml`, `compose.yml`, `compose.*.yml` (and `.yaml`) |
+   | GitHub Workflow | `.github/workflows/*.yml`, `*.yaml` |
+   | GitHub Action | `action.yml`, `action.yaml` |
+   | GitLab CI | `.gitlab-ci.yml`, `*.gitlab-ci.yml` (and `.yaml`) |
+
+4. **The SchemaStore catalog** (schemastore.org), when remote schemas and the catalog are on:
+   hundreds of other well-known files such as `renovate.json`, `.babelrc` or Helm charts.
+
+### Status bar
+
+The status bar shows the schema of the active JSON or YAML file — `JSON schema: composer.json`,
+or `No JSON schema`. A warning sign means the schema could not be loaded (the tooltip says why,
+for example that downloads are off). Click it to pick another schema for the file: a built-in
+one, one of your mappings or **No JSON schema**. The choice is saved as a mapping of the project;
+**Edit Schema Mappings…** opens the settings.
+
+![Choosing a schema in the status bar](docs/screenshots/json-schema-status.png)
+
+## JSON Schema Mappings
+
+**Settings | Languages & Frameworks | Schemas and DTDs | JSON Schema Mappings** (`Ctrl+Alt+S`)
+lists your mappings on the left. For each one:
+
+- **Name** — shown in the status bar.
+- **Schema file or URL** — a path relative to the project root (`schemas/app.schema.json`), an
+  absolute path on this machine, or a URL. Leave it empty to turn schemas off for the files.
+- **Schema version** — Automatic (from the schema's `$schema`) or JSON Schema version 4, 6, 7,
+  2019-09 or 2020-12. The version decides where the drafts disagree (`items` as a list,
+  boolean `exclusiveMinimum`).
+- **Files** — `+` adds a file (`config/app.json`), a directory (`config/`, every file below
+  it) or a file path pattern (`*.app.json`, `config/**/*.yml`, `*.{yml,yaml}`). A pattern without
+  `/` matches the file name in any folder.
+
+Mappings are project settings (`jsonSchema.mappings` in `.forge/settings.toml`). The built-in
+mappings are listed below them.
+
+![JSON Schema Mappings](docs/screenshots/json-schema-settings.png)
+
+## Remote schemas
+
+**Settings | Languages & Frameworks | Schemas and DTDs | Remote JSON Schemas**:
+
+- **Allow downloading JSON schemas from remote sources** (`jsonSchema.remote.enabled`, off by
+  default). Schemas named by a URL — in `$schema`, a mapping or a `$ref` to another server — are
+  downloaded only when this is on. Built-in schemas never need a download.
+- **Use schemastore.org JSON Schema catalog** (`jsonSchema.remote.schemaStore`, on): look up
+  files without another schema in the catalog.
+
+Downloads are cached in `<cache dir>/forge/json-schemas/` (see
+[file locations](docs/guide/reference/file-locations.md)), never in the project, and refreshed once a
+day; offline, the cached copy is used. A schema that cannot be downloaded is retried after five
+minutes; until then its `$ref`s accept anything.
+
+## Language servers
+
+The JSON and YAML language servers validate with schemas too. While one of them runs for a
+file, Forge leaves problems, completion and hover of that file to the server, so nothing is
+reported twice; the status bar still shows the schema Forge would use.
+
+
+---
+
 Source: docs/guide/user/spelling-and-grammar.md
 
 # Spelling and grammar
@@ -2837,7 +3010,17 @@ The templates appear in three places, always for the folder you are in:
 
 ![New submenu of the Project view](docs/screenshots/file-templates-new-menu.png)
 
-The list shows **File** and **Directory**, then the templates the project uses:
+The list shows **File** and **Directory**, then the templates the project uses, grouped in
+submenus so the common choices are two clicks away:
+
+- **PHP ▸** **Class**, **Interface**, **Trait** and **Enum** (each opens the New PHP Class
+  dialog with that kind selected), then **File** and **PHPUnit Test**, then the project's
+  framework templates (Laravel or Symfony).
+- **Web ▸** HTML, CSS, JavaScript and TypeScript files, Vue and React components.
+- **Lua ▸** Lua file and module.
+- Your own templates follow directly in the New menu, then **Edit File Templates…**.
+
+The templates:
 
 | Template | Offered when | Creates |
 | --- | --- | --- |
@@ -3344,6 +3527,108 @@ text as the query and the caret in **Replace with**.
 
 ---
 
+Source: docs/guide/user/navigation-bar-and-file-structure.md
+
+# File Structure, Navigation Bar and Related Symbol
+
+Three of PHPStorm's navigation helpers, with the same shortcuts and wording. All three work
+for PHP, Laravel, Symfony, Lua, HTML, CSS, JavaScript, TypeScript and Vue files, and in
+remote projects.
+
+## File Structure popup
+
+**Navigate | File Structure** (`Ctrl+F12`, macOS `Cmd+F12`) shows the structure of the
+current file as a tree: namespaces, classes, interfaces, traits and enums with their
+constants, properties and methods (signatures, visibility and static/abstract badges as in
+the [Structure tool window](docs/guide/user/php.md#structure)), functions, Lua tables and modules, CSS rules, HTML
+elements and custom folding regions. The member at the caret is selected when it opens.
+
+![File Structure popup](docs/screenshots/file-structure-popup.png)
+
+- **Type to search**: the tree keeps the matching members and their classes; matched
+  characters are highlighted and the best match is selected. Matching is fuzzy with camel
+  humps, as in [Search Everywhere](docs/guide/user/search-everywhere.md#fuzzy-matching).
+- `Up` / `Down`, `PageUp` / `PageDown` move the selection, `Enter` or a click jumps to the
+  member, `Escape` closes the popup.
+- **Show Inherited** (PHP): also lists the members a class inherits from its parent classes
+  and interfaces, read from the PHP index; they are grayed out with `↑Parent` on the right.
+  Press `Ctrl+F12` again while the popup is open to switch it.
+- **Show Fields**: properties, constants and variables (shown when the file has some).
+- **Show Lambdas**: anonymous functions and callbacks in JavaScript and TypeScript.
+- **Sort Alphabetically**: sorts each level by name, keeping constants, properties and
+  methods grouped.
+
+![File Structure with inherited members and speed search](docs/screenshots/file-structure-inherited.png)
+
+## Navigation Bar
+
+The navigation bar shows where you are: the project, the folders, the file and, with
+**Members in Navigation Bar**, the class and method at the caret:
+`acme-shop › app › Http › Controllers › ProductController.php › ProductController › show()`.
+
+![Navigation Bar with a folder's dropdown](docs/screenshots/navigation-bar.png)
+
+- Click a segment to open its dropdown: a folder lists its folders and files, a file its
+  classes and functions, a class its members. Type to filter the list; `Enter` opens a file,
+  jumps to a member, or moves into a folder and shows its content.
+- **Jump to Navigation Bar** (`Alt+Home`, macOS `Cmd+Up`) focuses the bar with the file's
+  folder open and the file selected. `Left` / `Right` move between segments (and their
+  dropdowns), `Down` opens the dropdown, `Enter` opens the selected file, `Escape` returns to
+  the editor.
+
+![Alt+Home with speed search](docs/screenshots/navigation-bar-alt-home.png)
+
+![A class's members in the Navigation Bar](docs/screenshots/navigation-bar-members.png)
+
+**View | Appearance | Navigation Bar** chooses where it is shown:
+
+| Option | Where |
+| --- | --- |
+| **Top** (default) | above the editor of every editor group; the status bar keeps the file's path (project, folders, file) and works the same way |
+| **In Status Bar** | only in the status bar, members included; dropdowns open upwards |
+| **Don't Show** | hidden; `Alt+Home` shows the bar as a popup over the editor |
+
+![Navigation Bar in the status bar](docs/screenshots/navigation-bar-status-bar.png)
+
+![Alt+Home while the bar is hidden](docs/screenshots/navigation-bar-floating.png)
+
+The same options are in **Settings | Appearance & Behavior | Appearance | Navigation Bar**:
+*Navigation bar* (`appearance.navigationBar.location`: `top`, `statusBar`, `hidden`) and
+*Show members in the navigation bar* (`appearance.navigationBar.showMembers`, on by default).
+Library files (PHP stubs), scratches and data editors show their own path, without
+dropdowns.
+
+![View | Appearance | Navigation Bar](docs/screenshots/navigation-bar-menu.png)
+
+The structure breadcrumbs at the bottom of the editor are a separate feature, see
+[Sticky lines, breadcrumbs and Reader mode](docs/guide/user/code-structure.md#breadcrumbs).
+
+## Related Symbol
+
+**Navigate | Related Symbol...** (`Ctrl+Alt+Home`, macOS `Ctrl+Cmd+Up`) jumps to the files
+that belong to the current one. With one result Forge opens it directly; with several the
+**Choose Target** popup lists them grouped by kind.
+
+![Related Symbol of a Laravel controller](docs/screenshots/related-symbol.png)
+
+| From | To |
+| --- | --- |
+| PHP class | its PHPUnit or Pest test (`OrderTest.php`), and back from the test |
+| Laravel controller | the views it renders (`view('products.show')`, `View::make`, Inertia pages) and its routes in `routes/*.php` |
+| Blade view | the controller methods that render it and `Route::view` routes |
+| Laravel model | its migrations (`create_orders_table`, `add_…_to_orders_table`, or the model's `$table`), factory, policy and seeder, and back |
+| Symfony controller | the Twig templates it renders (`render()`, `renderView()`, `#[Template]`) |
+| Twig template | the controller actions that render it |
+| Vue, React, Svelte component or JS/TS module | its tests (`*.test.ts`, `*.spec.ts`, `__tests__/`, a `tests/` folder), stories (`*.stories.ts`) and style sheets (`*.module.css`, `*.scss`), and back |
+
+![Related Symbol of a model](docs/screenshots/related-symbol-model.png)
+
+If nothing is related, a hint says "No related symbols". The files are found in Rust next
+to the project's files, so remote projects are searched on their host.
+
+
+---
+
 Source: docs/guide/user/file-types.md
 
 # File types and syntax highlighting
@@ -3466,8 +3751,8 @@ respected.
 
 Highlighting is built in. Completion, hover and diagnostics for most languages come from a
 [language server](docs/guide/user/language-servers.md); Forge suggests installing one when a file uses a
-feature only a server provides (for example a JSON `$schema` or a YAML
-`# yaml-language-server: $schema=` modeline).
+feature only a server provides. JSON and YAML files are validated, completed and documented
+from their [JSON schema](docs/guide/user/json-schema.md) without a server.
 
 
 ---
@@ -3598,9 +3883,10 @@ WebForge, Vue to `forge.vue`, Lua to `forge.lua`) start only while that plugin i
 ## Install suggestions in the editor
 
 When a file uses something only a language server provides, and that server is not installed,
-a banner above the editor offers it, for example for a JSON file with `"$schema"` or a YAML file
-with a `# yaml-language-server: $schema=…` modeline: "The $schema of this file is not used: no
-validation, completion or documentation from it."
+a banner above the editor offers it. A JSON `"$schema"` or a YAML
+`# yaml-language-server: $schema=…` modeline needs no server: Forge validates, completes and
+documents such files itself (see [JSON Schema](docs/guide/user/json-schema.md)). While the JSON or YAML server
+runs for a file, Forge leaves schema problems, completion and hover to it.
 
 - **Install…** opens the install dialog.
 - **Not now** hides the banner until Forge restarts.
@@ -4896,6 +5182,9 @@ Jumping to declarations, implementations, super methods, lines, problems, recent
 | [Close Unmodified Tabs](#close-unmodified-tabs) | — | — |
 | [Reopen Closed Tab](#reopen-closed-tab) | — | — |
 | [Recent Locations](#recent-locations) | `Ctrl+Shift+E` | `Cmd+Shift+E` |
+| [File Structure](#file-structure) | `Ctrl+F12` | `Cmd+F12` |
+| [Jump to Navigation Bar](#jump-to-navigation-bar) | `Alt+Home` | `Cmd+Up` |
+| [Related Symbol](#related-symbol) | `Ctrl+Alt+Home` | `Ctrl+Cmd+Up` |
 | [Next Occurrence](#next-occurrence) | `Ctrl+Alt+Down` | `Cmd+Alt+Down` |
 | [Previous Occurrence](#previous-occurrence) | `Ctrl+Alt+Up` | `Cmd+Alt+Up` |
 | [Toggle Bookmark](#toggle-bookmark) | `F11` | `F3` |
@@ -5127,6 +5416,42 @@ Lists recently visited and edited places with a few lines of code each; press ag
 ![Recent Locations](docs/screenshots/recent-locations.png)
 
 More: [Workbench and tool windows](docs/guide/user/workbench.md#recent-locations)
+
+## File Structure
+
+**Shortcut:** `Ctrl+F12` · macOS `Cmd+F12` · action id `FileStructurePopup`
+
+Shows the structure of the current file in a popup with the member at the caret selected; type to filter, `Enter` jumps. Press the shortcut again to show inherited members (PHP).
+
+**Menu:** Navigate | File Structure
+
+![File Structure popup](docs/screenshots/file-structure-popup.png)
+
+More: [File Structure, Navigation Bar and Related Symbol](docs/guide/user/navigation-bar-and-file-structure.md#file-structure-popup)
+
+## Jump to Navigation Bar
+
+**Shortcut:** `Alt+Home` · macOS `Cmd+Up` · action id `ShowNavBar`
+
+Focuses the navigation bar with the file's folder open; `Left` / `Right` move between the segments, `Down` opens a dropdown, `Enter` opens a file, `Escape` returns to the editor. While the bar is hidden it opens as a popup.
+
+**Menu:** Navigate | Navigation Bar
+
+![Jump to Navigation Bar](docs/screenshots/navigation-bar-alt-home.png)
+
+More: [File Structure, Navigation Bar and Related Symbol](docs/guide/user/navigation-bar-and-file-structure.md#navigation-bar)
+
+## Related Symbol
+
+**Shortcut:** `Ctrl+Alt+Home` · macOS `Ctrl+Cmd+Up` · action id `GotoRelated`
+
+Jumps to the files that belong to the current one: a class's tests, a controller's views and routes, a view's controllers, a model's migrations, factory and policy, a component's tests, stories and styles. Several results open the Choose Target popup.
+
+**Menu:** Navigate | Related Symbol...
+
+![Related Symbol](docs/screenshots/related-symbol.png)
+
+More: [File Structure, Navigation Bar and Related Symbol](docs/guide/user/navigation-bar-and-file-structure.md#related-symbol)
 
 ## Next Occurrence
 
@@ -9209,8 +9534,8 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Type Declaration | `GotoTypeDeclaration` | `Ctrl+Shift+B` | `Cmd+Shift+B` | yes |
 | Super Method | `GotoSuperMethod` | `Ctrl+U` | `Cmd+U` | yes |
 | Test | `GotoTest` | `Ctrl+Shift+T` | `Cmd+Shift+T` | — |
-| Related Symbol… | `GotoRelated` | `Ctrl+Alt+Home` | `Ctrl+Cmd+Up` | — |
-| File Structure | `FileStructurePopup` | `Ctrl+F12` | `Cmd+F12` | — |
+| Related Symbol… | `GotoRelated` | `Ctrl+Alt+Home` | `Ctrl+Cmd+Up` | yes |
+| File Structure | `FileStructurePopup` | `Ctrl+F12` | `Cmd+F12` | yes |
 | Type Hierarchy | `TypeHierarchy` | `Ctrl+H` | `Ctrl+H` | — |
 | Method Hierarchy | `MethodHierarchy` | `Ctrl+Shift+H` | `Cmd+Shift+H` | — |
 | Call Hierarchy | `CallHierarchy` | `Ctrl+Alt+H` | `Ctrl+Alt+H` | — |
@@ -9304,7 +9629,7 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Toggle Presentation Mode | `TogglePresentationMode` |  |  | — |
 | Toggle Distraction Free Mode | `ToggleDistractionFreeMode` |  |  | — |
 | Toggle Zen Mode | `ToggleZenMode` |  |  | — |
-| Jump to Navigation Bar | `ShowNavBar` | `Alt+Home` | `Cmd+Up` | — |
+| Jump to Navigation Bar | `ShowNavBar` | `Alt+Home` | `Cmd+Up` | yes |
 | Quick Documentation | `QuickJavaDoc` | `Ctrl+Q` | `F1`, `Ctrl+J` | yes |
 | External Documentation | `ExternalJavaDoc` | `Shift+F1` | `Shift+F1` | yes |
 | Quick Definition | `QuickImplementations` | `Ctrl+Shift+I` | `Alt+Space`, `Cmd+Y` | yes |
@@ -9905,10 +10230,10 @@ Tool windows, appearance toggles, documentation popups and recent files. Open it
 | Appearance › Tool Window Bars | — | — | yes | Shows or hides the tool window stripes along the window edges. [More](docs/guide/user/workbench.md#managing-tool-windows) |
 | Appearance › Status Bar | — | — | not yet | Not available yet; the entry is disabled. |
 | Appearance › **Navigation Bar** | | | | submenu |
-| Appearance › Navigation Bar › Top | — | — | not yet | Not available yet; the entry is disabled. |
-| Appearance › Navigation Bar › In Status Bar | — | — | not yet | Not available yet; the entry is disabled. |
-| Appearance › Navigation Bar › Don't Show | — | — | not yet | Not available yet; the entry is disabled. |
-| Appearance › Members in Navigation Bar | — | — | not yet | Not available yet; the entry is disabled. |
+| Appearance › Navigation Bar › Top | — | — | yes | Shows the navigation bar above the editor (the default). [More](docs/guide/user/navigation-bar-and-file-structure.md#navigation-bar) ([screenshot](docs/screenshots/navigation-bar.png)) |
+| Appearance › Navigation Bar › In Status Bar | — | — | yes | Shows the navigation bar only in the status bar. [More](docs/guide/user/navigation-bar-and-file-structure.md#navigation-bar) ([screenshot](docs/screenshots/navigation-bar-status-bar.png)) |
+| Appearance › Navigation Bar › Don't Show | — | — | yes | Hides the navigation bar; `Alt+Home` shows it as a popup. [More](docs/guide/user/navigation-bar-and-file-structure.md#navigation-bar) ([screenshot](docs/screenshots/navigation-bar-floating.png)) |
+| Appearance › Members in Navigation Bar | — | — | yes | Adds the class and method at the caret to the navigation bar. [More](docs/guide/user/navigation-bar-and-file-structure.md#navigation-bar) ([screenshot](docs/screenshots/navigation-bar-members.png)) |
 | Quick Switch Scheme… | `` Ctrl+` `` | `` Ctrl+` `` | yes | Switches between the dark and the light theme. [More](docs/guide/user/settings-and-themes.md#themes) |
 | Quick Definition | `Ctrl+Shift+I` | `Alt+Space`, `Cmd+Y` | yes | Shows the source of the declaration at the caret in a popup. [More](docs/guide/user/editor.md#quick-definition) ([screenshot](docs/screenshots/quick-definition.png)) |
 | Quick Documentation | `Ctrl+Q` | `F1`, `Ctrl+J` | yes | Shows the documentation of the symbol at the caret; press again to move it to the Documentation tool window. [More](docs/guide/user/editor.md#quick-documentation) ([screenshot](docs/screenshots/quick-documentation.png)) |
@@ -9930,7 +10255,7 @@ Tool windows, appearance toggles, documentation popups and recent files. Open it
 | Active Editor › Show Sticky Lines | — | — | yes | Shows or hides the sticky lines for the file's language. [More](docs/guide/user/code-structure.md#sticky-lines) ([screenshot](docs/screenshots/sticky-lines.png)) |
 | Active Editor › Reader Mode | — | — | yes | Switches Reader mode in the editor. [More](docs/guide/user/code-structure.md#reader-mode) ([screenshot](docs/screenshots/reader-mode.png)) |
 
-The three toggles under **Appearance** (Compact Mode, Show Main Menu in Separate Toolbar, Tool Window Bars) show a check mark when on.
+The toggles under **Appearance** (Compact Mode, Show Main Menu in Separate Toolbar, Tool Window Bars, the Navigation Bar placement and Members in Navigation Bar) show a check mark when on.
 
 
 ---
@@ -9965,14 +10290,14 @@ Back and forward, Search Everywhere, Go to Class/File/Symbol/Line, declarations 
 | Action… | `Ctrl+Shift+A` | `Cmd+Shift+A` | yes | Finds any action by name and runs it (Find Action). [More](docs/guide/user/search-everywhere.md#find-action) ([screenshot](docs/screenshots/docs-find-action.png)) |
 | Line/Column… | `Ctrl+G` | `Cmd+L` | yes | Moves the caret to a line (and column) of the current file. [More](docs/guide/user/editor.md#editing-actions) ([screenshot](docs/screenshots/docs-goto-line.png)) |
 | Select In… | `Alt+F1` | `Alt+F1` | not yet | Not available yet; the entry is disabled. |
-| Navigation Bar | `Alt+Home` | `Cmd+Up` | not yet | Not available yet; the entry is disabled. |
+| Navigation Bar | `Alt+Home` | `Cmd+Up` | yes | Focuses the navigation bar with the file's folder open (shows the bar as a popup when it is hidden). [More](docs/guide/user/navigation-bar-and-file-structure.md#navigation-bar) ([screenshot](docs/screenshots/navigation-bar-alt-home.png)) |
 | Declaration or Usages | `Ctrl+B` | `Cmd+B` | yes | Jumps to the declaration of the symbol at the caret; on a declaration it shows the usages; several targets open the Choose Declaration popup. [More](docs/guide/user/editor.md#go-to-declaration) ([screenshot](docs/screenshots/php-nav-stub.png)) |
 | Implementation(s) | `Ctrl+Alt+B` | `Cmd+Alt+B` | yes | Lists the implementations of the class, interface or method at the caret. [More](docs/guide/user/editor.md#implementation-type-declaration-super-method) ([screenshot](docs/screenshots/php-nav-gutter.png)) |
 | Type Declaration | `Ctrl+Shift+B` | `Cmd+Shift+B` | yes | Jumps to the class of the variable, property or method return type at the caret. [More](docs/guide/user/editor.md#implementation-type-declaration-super-method) |
 | Super Method | `Ctrl+U` | `Cmd+U` | yes | Jumps to the method the current method overrides or implements. [More](docs/guide/user/editor.md#implementation-type-declaration-super-method) |
 | Test | `Ctrl+Shift+T` | `Cmd+Shift+T` | not yet | Not available yet; the entry is disabled. |
-| Related Symbol… | `Ctrl+Alt+Home` | `Ctrl+Cmd+Up` | not yet | Not available yet; the entry is disabled. |
-| File Structure | `Ctrl+F12` | `Cmd+F12` | not yet | Not available yet; the entry is disabled. |
+| Related Symbol… | `Ctrl+Alt+Home` | `Ctrl+Cmd+Up` | yes | Jumps to related files: tests, views, templates, routes, migrations, stories and styles. [More](docs/guide/user/navigation-bar-and-file-structure.md#related-symbol) ([screenshot](docs/screenshots/related-symbol.png)) |
+| File Structure | `Ctrl+F12` | `Cmd+F12` | yes | Shows the file's structure in a popup with speed search; press again for inherited members. [More](docs/guide/user/navigation-bar-and-file-structure.md#file-structure-popup) ([screenshot](docs/screenshots/file-structure-popup.png)) |
 | Type Hierarchy | `Ctrl+H` | `Ctrl+H` | not yet | Not available yet; the entry is disabled. |
 | Method Hierarchy | `Ctrl+Shift+H` | `Cmd+Shift+H` | not yet | Not available yet; the entry is disabled. |
 | Call Hierarchy | `Ctrl+Alt+H` | `Ctrl+Alt+H` | not yet | Not available yet; the entry is disabled. |
@@ -10339,6 +10664,8 @@ Page id `appearance`.
 | `appearance.windowControls` | enum: `auto`, `windows`, `macos`, `gnome`, `kde`, `linux`, `native` | `auto` | user | Window | Window controls — Look of the title bar buttons of the main window and dialogs. "Native" lets the operating system draw the title bar. |
 | `appearance.showToolWindowBars` | bool | `true` | user | Tool Windows | Show tool window bars — The stripes with tool window buttons along the window edges. |
 | `appearance.showToolWindowNumbers` | bool | `true` | user | Tool Windows | Show tool window numbers |
+| `appearance.navigationBar.location` | enum: `top`, `statusBar`, `hidden` | `top` | user | Navigation Bar | Navigation bar — Where the navigation bar (project, folders, file and members at the caret) is shown: Top: above the editor, with the path in the status bar too. In status bar: only in the status bar. Don't show: Jump to Navigation Bar (Alt+Home) shows it as a popup. View \| Appearance \| Navigation Bar. |
+| `appearance.navigationBar.showMembers` | bool | `true` | user | Navigation Bar | Show members in the navigation bar — Add the class and function at the caret after the file name. View \| Appearance \| Members in Navigation Bar. |
 | `projectView.openFilesWithSingleClick` | bool | `true` | user | Project View | Open files with single click — In the Project tool window a single click opens files and expands folders. Turn it off to select with a single click and open with a double click, like PHPStorm. |
 
 ### Appearance & Behavior | System Settings
@@ -10757,6 +11084,23 @@ Page id `lang.lua`.
 | `langservers.lua.libraries` | list | `[]` | user, project | Lua Language Server | Library paths — Extra folders with Lua definitions or third-party code (workspace.library), e.g. ~/.luarocks/share/lua/5.4. |
 | `lua.stylua.enabled` | bool | `true` | user | StyLua | Reformat Code with StyLua — Ctrl+Alt+L formats Lua files with StyLua when it is installed; stylua.toml in the project is honoured. |
 | `lua.stylua.path` | path | `stylua` | user | StyLua | StyLua executable |
+
+### Languages & Frameworks | Schemas and DTDs | JSON Schema Mappings
+
+Page id `lang.json-schema` (plugin `forge.json-schema`). See [JSON Schema](docs/guide/user/json-schema.md).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `jsonSchema.mappings` | objects | `[]` | user, project |  | JSON Schema mappings — `name`, `schema` (a project path, an absolute path or a URL; empty: no schema), `version` (`4`, `6`, `7`, `2019-09`, `2020-12` or empty for automatic) and `files` (one file, directory ending in `/` or pattern per line). |
+
+### Languages & Frameworks | Schemas and DTDs | Remote JSON Schemas
+
+Page id `lang.json-schema.remote` (plugin `forge.json-schema`).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `jsonSchema.remote.enabled` | bool | `false` | user |  | Allow downloading JSON schemas from remote sources — Schemas named by a URL ($schema, mappings, $ref) are downloaded into Forge's cache folder and refreshed daily. Built-in schemas are bundled and need no download. |
+| `jsonSchema.remote.schemaStore` | bool | `true` | user |  | Use schemastore.org JSON Schema catalog — Find schemas for other well-known files (renovate.json, .babelrc, Helm charts, ...) in the SchemaStore catalog. |
 
 ### Languages & Frameworks | Markdown
 
@@ -11435,6 +11779,7 @@ Forge uses the platform's standard folders (Rust's `dirs` crate):
 | Path | Content |
 | --- | --- |
 | `php-index/<project>-<hash>.json` | PHP index cache per project |
+| `json-schemas/<sha256 of the URL>.json` | downloaded JSON schemas and the SchemaStore catalog (only with remote JSON schemas allowed), refreshed daily |
 | `php-stubs/<version>/` | JetBrains phpstorm-stubs for Go to Declaration on PHP's own symbols (downloaded on first use, checked against a pinned digest of its files, with its `LICENSE`) |
 | `intelephense/` | Intelephense's storage (`storagePath`) |
 | `jdtls/…` | workspace data of the Java language server |
@@ -13356,6 +13701,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-forges](docs/guide/developer/crates/forge-forges.md) | Forge IDE code hosts: GitLab, Forgejo/Gitea and GitHub merge requests, issues and pipelines |
 | [forge-fuzzy](docs/guide/developer/crates/forge-fuzzy.md) | PHPStorm-style fuzzy matching and Search Everywhere ranking (pure, WebAssembly-friendly) |
 | [forge-injections](docs/guide/developer/crates/forge-injections.md) | Language injections: SQL, HTML, CSS, JSON and RegExp inside PHP and JavaScript/TypeScript strings, `// language=` comments, fragment escaping and the injection intentions (pure, WebAssembly-friendly) |
+| [forge-jsonschema](docs/guide/developer/crates/forge-jsonschema.md) | JSON Schema for JSON, JSON5/JSONC and YAML files: position-keeping parsers, a draft 4–2020-12 validator with PHPStorm's messages, completion, hover, Go to Declaration, schema mappings, bundled schemas and remote schema downloads |
 | [forge-keymap](docs/guide/developer/crates/forge-keymap.md) | PHPStorm-compatible keymap: shortcut model, default keymaps, overrides, conflicts and the key resolver |
 | [forge-langservers](docs/guide/developer/crates/forge-langservers.md) | Forge IDE: catalog, detection, configuration and installation of language servers |
 | [forge-livetemplates](docs/guide/developer/crates/forge-livetemplates.md) | Live templates: template sets, contexts, variables and expansion, Surround With and Unwrap/Remove (pure, WebAssembly-friendly) |
@@ -13562,7 +13908,7 @@ PHP index live.
 
 | Module | Summary |
 | --- | --- |
-| `frameworks.rs` | Laravel, Symfony and Doctrine analysis of a project, run where its files are. |
+| `frameworks.rs` | Laravel, Symfony and Doctrine analysis of a project, and Related Symbol (`FrameworkCall::Related`, `forge_codeintel::related` over the project's files), run where its files are. |
 | `langservers.rs` | Which catalog language servers (`forge-langservers`) start for a project, planned on the machine that has the project's files and the installed servers: the desktop app for a local project, the Forge agent for a remote one (its servers then start on the host through the LSP byte channel). |
 | `local.rs` | A project folder on this machine. |
 | `paths.rs` | Path helpers that do not touch the file system (the project may live on another machine). |
@@ -13600,7 +13946,7 @@ pub fn folder_name(root: &Path) -> String { … }
 
 ## Dependencies
 
-- Workspace crates: [`forge-core`](docs/guide/developer/crates/forge-core.md), [`forge-langservers`](docs/guide/developer/crates/forge-langservers.md), [`forge-lsp`](docs/guide/developer/crates/forge-lsp.md), [`forge-process`](docs/guide/developer/crates/forge-process.md), [`forge-project`](docs/guide/developer/crates/forge-project.md), [`forge-vcs`](docs/guide/developer/crates/forge-vcs.md), [`phpforge-dql`](docs/guide/developer/crates/phpforge-dql.md), [`phpforge-fw-laravel`](docs/guide/developer/crates/phpforge-fw-laravel.md), [`phpforge-fw-symfony`](docs/guide/developer/crates/phpforge-fw-symfony.md), [`phpforge-lang-php`](docs/guide/developer/crates/phpforge-lang-php.md), [`phpforge-orm-doctrine`](docs/guide/developer/crates/phpforge-orm-doctrine.md)
+- Workspace crates: [`forge-codeintel`](docs/guide/developer/crates/forge-codeintel.md), [`forge-core`](docs/guide/developer/crates/forge-core.md), [`forge-langservers`](docs/guide/developer/crates/forge-langservers.md), [`forge-lsp`](docs/guide/developer/crates/forge-lsp.md), [`forge-process`](docs/guide/developer/crates/forge-process.md), [`forge-project`](docs/guide/developer/crates/forge-project.md), [`forge-vcs`](docs/guide/developer/crates/forge-vcs.md), [`phpforge-dql`](docs/guide/developer/crates/phpforge-dql.md), [`phpforge-fw-laravel`](docs/guide/developer/crates/phpforge-fw-laravel.md), [`phpforge-fw-symfony`](docs/guide/developer/crates/phpforge-fw-symfony.md), [`phpforge-lang-php`](docs/guide/developer/crates/phpforge-lang-php.md), [`phpforge-orm-doctrine`](docs/guide/developer/crates/phpforge-orm-doctrine.md)
 - External: `dirs`, `futures-util`, `rmp-serde`, `serde`, `serde_bytes`, `serde_json`, `tokio`, `tracing`
 
 ## Tests
@@ -13678,7 +14024,7 @@ Source: docs/guide/developer/crates/forge-codeintel.md
 
 # forge-codeintel
 
-`crates/forge-codeintel` — Code intelligence models: workspace edits with LSP positions, Find Usages grouping and documentation helpers (pure, WebAssembly-friendly).
+`crates/forge-codeintel` — Code intelligence models: workspace edits with LSP positions, Find Usages grouping, documentation helpers, file structure, navigation bar and related files (pure, WebAssembly-friendly).
 
 ## Purpose
 
@@ -13703,6 +14049,11 @@ and the browser-mode UI. Pure Rust, so it also runs as WebAssembly.
 - `structure`: the scopes of a document (classes, functions, control blocks, CSS rules,
   HTML elements, Lua blocks) for Sticky Lines, breadcrumbs and the Structure view of web
   files, the custom folding regions, and the Structure view grouped by regions.
+- `file_structure`: the File Structure popup's rows (Ctrl+F12): toggles, fuzzy speed search
+  that keeps parents, the node at the caret.
+- `navbar`: the Navigation Bar's segments (project, folders, file, members at the caret).
+- `related`: Related Symbol (Ctrl+Alt+Home): tests, Laravel views / routes / migrations /
+  factories / policies, Twig templates, component tests, stories and styles.
 
 ## Modules
 
@@ -13710,6 +14061,9 @@ and the browser-mode UI. Pure Rust, so it also runs as WebAssembly.
 | --- | --- |
 | `actions.rs` | Context actions (`ContextAction`, `ActionKind`) and `order_actions`: quick fixes first, preferred ones on top, duplicates removed, "fix all" actions (`source.fixAll*`, "Fix all …") moved into the `children` of their server's quick fix (`nest_fix_all`); `bulb_for` picks the red / yellow light bulb. |
 | `docs.rs` | `symbol_at` (the identifier at the caret with its qualifier, call, tag and CSS context, imported frameworks) and `external_doc_url` (php.net, Laravel API, MDN, Vue, React, Lua manual); `definition_snippet` (docblock and attributes above, body to the matching brace or Lua `end`, at most 80 lines); `context_headers` (enclosing class, function and CSS rule headers); `type_from_hover` / `type_from_signature`; `language_of`. |
+| `file_structure.rs` | `file_structure_view(FileStructureRequest)` → `FileStructureView { rows, selected, hasFields, hasLambdas, hasInherited }` over Structure view nodes (JSON): "Show Fields" / "Show Inherited" / "Show Lambdas" / "Sort Alphabetically", fuzzy matching with `forge-fuzzy` keeping the parents of matches, the best match or the node at the caret (`caretLine`, `enclosing` scope headers) selected. |
+| `navbar.rs` | `nav_bar_segments(NavBarRequest { project, path, scopes, showMembers })` → `NavSegment { kind: project / directory / file / member, label, path, scopeKind?, line?, column? }[]`; members are the class-like and function scopes around the caret. |
+| `related.rs` | `related(RelatedRequest { path, text }, files, read)` → `RelatedItem { kind, group, name, path, line, column }[]` grouped in a fixed order. Text scans, no parser: PHP class ↔ `*Test.php`, Laravel `view()` / `View::make` / `Route::view` / Inertia, `routes/*.php` lines naming a controller, model ↔ migrations (`_create_<table>_table`, `$table`), factory, policy, seeder; Symfony `render()` / `#[Template]` ↔ `templates/`; JS/TS/Vue/Svelte files ↔ `*.test.*`, `*.spec.*`, `__tests__/`, `tests/`, `*.stories.*`, style sheets. The caller lists the files and reads them lazily. |
 | `edit.rs` | `TextEdit`, `WorkspaceEdit` (`edit` / `create` / `rename` / `delete` changes), `apply_workspace_edit` over a `FileStore` (all or nothing), `revert_applied`, `preview_workspace_edit`, `word_range`, UTF-16 offset helpers. |
 | `structure.rs` | `editor_structure(text, language)` → `EditorStructure { scopes, regions }`: braces (PHP without inline HTML and heredocs, JS/TS with template literals, CSS, C-like), tags (HTML/XML/Vue/templates, `<script>` / `<style>` bodies as code) and Lua's block keywords outside strings and comments; each `Scope` has its kind, crumb name (`User`, `orders()`, `forEach callback`, `div#app.card`), header line and column, end and parent, and whether it sticks or is a crumb. `Region`s come from `// region` / `#region` / `<!-- region -->` / `/* region */` / `-- region` / `<editor-fold desc defaultstate>` comments. `group_by_regions` nests Structure view nodes (JSON with `line`) under their regions; `STRUCTURE_LANGUAGES` lists the languages with scopes. |
 | `rename.rs` | `edit_from_locations` (references → `WorkspaceEdit`, keeping `$` where the old text had it, dynamic usages skipped), `validate_identifier`, `is_class_file` / `suggest_file_rename` / `renamed_path` (PHPStorm renames `User.php` with `class User`), `edit_conflicts` (overlapping edits, renames onto existing files) and `plan_edit` (`EditPlan`: text edits of open editors, the backend's part, files to save first, tabs to reopen or close). |
@@ -13721,6 +14075,9 @@ and the browser-mode UI. Pure Rust, so it also runs as WebAssembly.
 pub use actions::{bulb_for, nest_fix_all, order_actions, ActionKind, Bulb, ContextAction};
 pub use docs::{context_headers, definition_snippet, external_doc_url, symbol_at, type_from_hover, type_from_signature, … };
 pub use rename::{edit_conflicts, edit_from_locations, plan_edit, suggest_file_rename, validate_identifier, EditPlan, RenameConflict, … };
+pub use file_structure::{file_structure_view, FileStructureRequest, FileStructureView};
+pub use navbar::{nav_bar_segments, NavBarRequest, NavSegment};
+pub use related::{related, RelatedItem, RelatedKind, RelatedRequest};
 pub use edit::{apply_text_edits, apply_workspace_edit, preview_workspace_edit, revert_applied, word_range, … };
 pub use structure::{editor_structure, group_by_regions, EditorStructure, Region, Scope, ScopeKind, STRUCTURE_LANGUAGES};
 pub use usages::{classify_usage, group_usages, GroupRequest, UsageKind, UsageLocation, UsageTree, … };
@@ -13728,19 +14085,19 @@ pub use usages::{classify_usage, group_usages, GroupRequest, UsageKind, UsageLoc
 
 ## Used by
 
-- IPC: `code_find_usages`, `code_navigate`, `code_goto_declaration`, `code_symbol_info`, `code_line_markers`, `code_prepare_rename`, `code_rename`, `code_plan_edit`, `code_apply_edit`, `code_revert_edit`, `code_context_actions`, `code_resolve_action`, `code_execute_command`, `code_external_doc`, `code_quick_definition`, `code_type_info`, `code_context_info` (`app/src-tauri/src/commands/codeintel.rs`), `library_read` (`commands/library.rs`)
-- Crates: `forge-lsp` (workspace edits, locations), `phpforge-lang-php` (usage locations and classification)
-- UI: `app/ui/src/features/documentation` (Quick Documentation, Documentation tool window, Quick Definition, Type Info, Context Info, Error Description), `app/ui/src/features/codeintel` (Show Usages popup, Find tool window, gutter markers, library files, in-place rename, Refactoring Preview, intention popup and light bulb, refactoring undo), `app/ui/src/features/lsp/goto.ts`
-- Browser mode: `codeintel_group_usages`, `codeintel_apply_edit`, `codeintel_preview_edit`, `codeintel_order_actions`, `codeintel_context_actions`, `codeintel_rename_edit`, `codeintel_plan_edit`, `codeintel_word_range`, `codeintel_doc_url`, `codeintel_definition_snippet`, `codeintel_context_headers`, `codeintel_type_info` in `crates/forge-wasm/src/codeintel.rs`, used by `app/ui/src/mock/codeintelMock.ts` and `documentationMock.ts`
+- IPC: `code_find_usages`, `code_navigate`, `code_goto_declaration`, `code_symbol_info`, `code_line_markers`, `code_prepare_rename`, `code_rename`, `code_plan_edit`, `code_apply_edit`, `code_revert_edit`, `code_context_actions`, `code_resolve_action`, `code_execute_command`, `code_external_doc`, `code_quick_definition`, `code_type_info`, `code_context_info`, `code_related` (`app/src-tauri/src/commands/codeintel.rs`), `library_read` (`commands/library.rs`)
+- Crates: `forge-lsp` (workspace edits, locations), `phpforge-lang-php` (usage locations and classification), `forge-backend` (`FrameworkCall::Related`, run next to the files)
+- UI: `app/ui/src/features/documentation` (Quick Documentation, Documentation tool window, Quick Definition, Type Info, Context Info, Error Description), `app/ui/src/features/codeintel` (Show Usages popup, Find tool window, gutter markers, library files, in-place rename, Refactoring Preview, intention popup and light bulb, refactoring undo), `app/ui/src/features/lsp/goto.ts`, `features/fileStructure` (File Structure popup), `features/navBar` (Navigation Bar), `features/related` (Related Symbol)
+- Browser mode: `codeintel_group_usages`, `codeintel_apply_edit`, `codeintel_preview_edit`, `codeintel_order_actions`, `codeintel_context_actions`, `codeintel_rename_edit`, `codeintel_plan_edit`, `codeintel_word_range`, `codeintel_doc_url`, `codeintel_definition_snippet`, `codeintel_context_headers`, `codeintel_type_info`, `codeintel_related` in `crates/forge-wasm/src/codeintel.rs`, used by `app/ui/src/mock/codeintelMock.ts` `documentationMock.ts` and `relatedMock.ts`; `file_structure_view` and `nav_bar_segments` (`crates/forge-wasm/src/structure.rs`) run synchronously in the desktop app too
 
 ## Dependencies
 
-- Workspace crates: none
+- Workspace crates: [`forge-fuzzy`](docs/guide/developer/crates/forge-fuzzy.md)
 - External: `serde`, `serde_json`
 
 ## Tests
 
-6 source files, about 4150 lines; 35 unit tests.
+9 source files, about 7300 lines; 59 unit tests.
 
 ```sh
 cargo test -p forge-codeintel
@@ -14647,6 +15004,7 @@ pub fn filter(req: &FilterRequest) -> Vec<FilterHit> { … }
 
 - IPC: `fuzzy_filter`, `search_rank`, `fs_find_files`
 - UI: `app/ui/src/features/search`
+- Crates: `forge-codeintel` (File Structure popup speed search)
 - Browser mode: built into `forge-wasm`
 
 ## Dependencies
@@ -14746,6 +15104,89 @@ literal kind, fragment offset maps, the inserted and replaced comments and the i
 ```sh
 cargo test -p forge-injections
 ```
+
+
+---
+
+Source: docs/guide/developer/crates/forge-jsonschema.md
+
+# forge-jsonschema
+
+`crates/forge-jsonschema` — JSON Schema for JSON, JSON5/JSONC and YAML files: position-keeping
+parsers, a validator with PHPStorm's messages, completion, hover, Go to Declaration, schema
+mappings, bundled schemas and remote schema downloads.
+
+## Purpose
+
+The logic behind [JSON Schema](docs/guide/user/json-schema.md) support. The crate is pure (no file
+system or network) and also runs in browser mode through `forge-wasm`; the `remote` cargo
+feature adds `remote::RemoteCache`, the download cache the desktop app uses. All public answers
+use UTF-16 offsets (CodeMirror positions); internally everything is byte offsets.
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `tree.rs` | The document tree both parsers produce: `Node { value, start, end, custom_tag }` with `Value::{Null, Bool, Number, String, Array, Object(Vec<Property>), Error}`; a `Property` keeps its key range, the colon and an optional value (a key being typed has none). |
+| `json.rs` | Tolerant JSON parser: comments, JSON5 (unquoted keys, single quotes, trailing commas, hex, `Infinity`), and unfinished input (`{"a": 1, "na` is a property `na` without colon). |
+| `yaml.rs` | Tolerant YAML parser: block mappings and sequences (`- key: v` compact items), flow collections, plain/quoted/block scalars, comments, documents, anchors, aliases, `<<` merge keys (reported at the `<<` key), tags (`!!str`; other tags mark the node as not judged). YAML 1.2 core schema scalars. |
+| `uri.rs` | `$id`/`$ref` resolution (RFC 3986 section 5), fragments, JSON pointer decoding; project files are `project:/<path>`. |
+| `schema.rs` | `SchemaDoc` (a parsed schema file with its `$id`s, anchors and external refs), `Registry` (loaded documents, aliases, failed URIs, `missing()`), `Sch` (a subschema with its base URI), `Draft`. |
+| `bundled.rs` | The bundled schemas (`schemas/*.json`, compressed by `build.rs`, parsed once) and the URLs they are published under. |
+| `validate.rs` | The validator: every keyword of draft 4–2020-12 (see the user page), best-branch reporting for `anyOf`/`oneOf`, evaluated properties/items for `unevaluated*`, ECMAScript patterns through `regex-lite`. |
+| `format.rs` | `format` checks: `date-time`, `date`, `time`, `email`, `ipv4`, `ipv6`, `uuid`, `uri`. |
+| `navigate.rs` | Schemas at a document path: `$ref`, `allOf`, the `anyOf`/`oneOf` branches compatible with the written value, `if`/`then`/`else`, `dependentSchemas`; `properties`/`patternProperties`/`additionalProperties`/`items` steps with the declaration's position. |
+| `complete.rs` | Completion contexts (JSON from the tree, YAML from indentation) and items: property names (required first) with value templates and commas, values (`enum`, `const`, booleans, `null`, `default`, `examples`, `{}`/`[]`). |
+| `mapping.rs` | Which schema a file uses: user mappings, `$schema` / the YAML modeline, built-in mappings, the SchemaStore catalog; glob matching. |
+| `remote.rs` | (`remote` feature) `RemoteCache`: downloads into `<cache dir>/forge/json-schemas/<sha256>.json`, fresh for a day, stale copies when offline. |
+| `lib.rs` | `validate`, `complete`, `hover`, `goto` on a registry and a root URI, `DocKind`, `load_bundled`. |
+
+## Main public items
+
+```rust
+pub fn validate(reg: &Registry, root_uri: &str, kind: DocKind, text: &str) -> Vec<ProblemOut>;
+pub fn complete(reg: &Registry, root_uri: &str, kind: DocKind, text: &str, offset: usize) -> Option<CompletionOut>;
+pub fn hover(reg: &Registry, root_uri: &str, kind: DocKind, text: &str, offset: usize) -> Option<HoverOut>;
+pub fn goto(reg: &Registry, root_uri: &str, kind: DocKind, text: &str, offset: usize) -> Vec<Target>;
+pub fn load_bundled(reg: &mut Registry, uri: &str) -> bool;
+pub mod mapping { pub fn select(path, text, kind, user: &[UserMapping], catalog: Option<&Catalog>) -> Option<Selection>; }
+impl Registry { pub fn insert(&mut self, doc: Arc<SchemaDoc>); pub fn missing(&self) -> Vec<String>; pub fn mark_failed(&mut self, uri: &str, error: String); }
+impl SchemaDoc { pub fn parse(uri: &str, location: &str, text: String) -> Result<SchemaDoc, String>; }
+```
+
+Loading is the caller's job: insert the root schema, then load what `Registry::missing()`
+lists (`$ref`s to other files) until it is empty; unloadable documents are marked failed and
+their refs accept anything.
+
+## Used by
+
+- IPC: `json_schema_validate`, `json_schema_complete`, `json_schema_hover`,
+  `json_schema_goto`, `json_schema_read`, `json_schema_builtins`
+  (`app/src-tauri/src/commands/json_schema.rs`: settings, project files through the backend,
+  remote downloads, parsed-schema caches).
+- UI: `app/ui/src/features/jsonSchema` (editor problems, completion, hover, Go to Declaration,
+  read-only `json-schema://` files, the status bar widget, the settings pages).
+- Browser mode: built into `forge-wasm` (`json_schema.rs`).
+
+## Bundled data
+
+`schemas/` holds the schemas of the built-in mappings, unmodified, with their licences in
+`schemas/NOTICE` and `schemas/LICENSE-APACHE-2.0`: SchemaStore's `package.json`,
+`tsconfig.json`, `jsconfig.json`, `eslintrc.json`, `prettierrc.json`, `github-workflow.json`
+and `github-action.json` and the Compose Specification's `compose-spec.json` (Apache-2.0);
+Composer's `composer.json` schema and GitLab's `gitlab-ci.json` (MIT).
+
+## Dependencies
+
+- External: `serde`, `serde_json`, `regex-lite` (`pattern`, `patternProperties`), `flate2`
+  (bundled schemas); with `remote`: `reqwest` (rustls), `sha2`, `tokio`. All MIT or Apache-2.0.
+
+## Tests
+
+`cargo test -p forge-jsonschema --features remote`: the parsers, URI resolution, every keyword,
+completion and hover in JSON and YAML, Go to Declaration, mappings and globs, the bundled
+schemas against composer.json, package.json, Compose, GitHub Actions and GitLab CI samples, and
+`RemoteCache` against a local HTTP server (no network).
 
 
 ---
@@ -16093,6 +16534,7 @@ Rebuild the bundle with `pnpm --dir app/ui wasm` (output: `app/ui/src/wasm/pkg`)
 | `editing.rs` | Editor actions (`forge-editing`): postfix templates and their expansion, Complete Current Statement and Cyclic Expand Word, mirroring the `editor_postfix_*`, `editor_complete_statement` and `editor_expand_word` commands. |
 | `codestyle.rs` | Code style schemes (`forge-codestyle`), mirroring the `code_style_*` commands and `editor_file_format` with the selected scheme; the schemes are stored in the mock settings layers. |
 | `emmet.rs` | Emmet (`forge-emmet`) and colors (`forge-colors`), mirroring the `emmet_*` and `colors_*` commands; the expand key, the abbreviation preview, color swatches and the color picker call them synchronously. |
+| `json_schema.rs` | JSON Schema (`forge-jsonschema`), mirroring the `json_schema_*` commands for the browser-mode mock: bundled schemas and the demo project's schema files (an answer with `needs` asks the mock for more files); no downloads. |
 | `spell.rs` | Spelling and grammar (`forge-spell`), mirroring `spell_inspect`, `spell_context_actions` and `spell_dictionaries` for the browser-mode mock (bundled dictionaries only). |
 | `filetypes.rs` | File type detection (`forge-filetypes`), mirroring the `filetypes_detect` IPC command. The desktop app builds the registry from its plugin manifests; browser mode loads the same manifests (the `builtinPlugins.json` snapshot) once with `filetypes_load`. |
 | `keymap.rs` | Keymap bridge (`forge-keymap`). |
@@ -16127,7 +16569,7 @@ pub fn bridge_version() -> String { … }
 
 ## Dependencies
 
-- Workspace crates: [`forge-agent-cli`](docs/guide/developer/crates/forge-agent-cli.md), [`forge-containers`](docs/guide/developer/crates/forge-containers.md), [`forge-colors`](docs/guide/developer/crates/forge-colors.md), [`forge-editing`](docs/guide/developer/crates/forge-editing.md), [`forge-emmet`](docs/guide/developer/crates/forge-emmet.md), [`forge-filetypes`](docs/guide/developer/crates/forge-filetypes.md), [`forge-find`](docs/guide/developer/crates/forge-find.md), [`forge-fuzzy`](docs/guide/developer/crates/forge-fuzzy.md), [`forge-keymap`](docs/guide/developer/crates/forge-keymap.md), [`forge-markdown`](docs/guide/developer/crates/forge-markdown.md), [`forge-output`](docs/guide/developer/crates/forge-output.md), [`forge-plugin-api`](docs/guide/developer/crates/forge-plugin-api.md), [`forge-remote`](docs/guide/developer/crates/forge-remote.md), [`forge-scratches`](docs/guide/developer/crates/forge-scratches.md), [`forge-spell`](docs/guide/developer/crates/forge-spell.md), [`forge-sql`](docs/guide/developer/crates/forge-sql.md), [`forge-viewers`](docs/guide/developer/crates/forge-viewers.md), [`forge-window`](docs/guide/developer/crates/forge-window.md), [`luaforge-lang-lua`](docs/guide/developer/crates/luaforge-lang-lua.md), [`phpforge-dql`](docs/guide/developer/crates/phpforge-dql.md), [`webforge-fw-angular`](docs/guide/developer/crates/webforge-fw-angular.md), [`webforge-fw-react`](docs/guide/developer/crates/webforge-fw-react.md), [`webforge-fw-vue`](docs/guide/developer/crates/webforge-fw-vue.md), [`webforge-lang-web`](docs/guide/developer/crates/webforge-lang-web.md)
+- Workspace crates: [`forge-agent-cli`](docs/guide/developer/crates/forge-agent-cli.md), [`forge-containers`](docs/guide/developer/crates/forge-containers.md), [`forge-colors`](docs/guide/developer/crates/forge-colors.md), [`forge-editing`](docs/guide/developer/crates/forge-editing.md), [`forge-emmet`](docs/guide/developer/crates/forge-emmet.md), [`forge-filetypes`](docs/guide/developer/crates/forge-filetypes.md), [`forge-find`](docs/guide/developer/crates/forge-find.md), [`forge-fuzzy`](docs/guide/developer/crates/forge-fuzzy.md), [`forge-jsonschema`](docs/guide/developer/crates/forge-jsonschema.md), [`forge-keymap`](docs/guide/developer/crates/forge-keymap.md), [`forge-markdown`](docs/guide/developer/crates/forge-markdown.md), [`forge-output`](docs/guide/developer/crates/forge-output.md), [`forge-plugin-api`](docs/guide/developer/crates/forge-plugin-api.md), [`forge-remote`](docs/guide/developer/crates/forge-remote.md), [`forge-scratches`](docs/guide/developer/crates/forge-scratches.md), [`forge-spell`](docs/guide/developer/crates/forge-spell.md), [`forge-sql`](docs/guide/developer/crates/forge-sql.md), [`forge-viewers`](docs/guide/developer/crates/forge-viewers.md), [`forge-window`](docs/guide/developer/crates/forge-window.md), [`luaforge-lang-lua`](docs/guide/developer/crates/luaforge-lang-lua.md), [`phpforge-dql`](docs/guide/developer/crates/phpforge-dql.md), [`webforge-fw-angular`](docs/guide/developer/crates/webforge-fw-angular.md), [`webforge-fw-react`](docs/guide/developer/crates/webforge-fw-react.md), [`webforge-fw-vue`](docs/guide/developer/crates/webforge-fw-vue.md), [`webforge-lang-web`](docs/guide/developer/crates/webforge-lang-web.md)
 - External: `serde`, `serde_json`, `wasm-bindgen`
 
 ## Tests

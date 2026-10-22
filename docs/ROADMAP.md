@@ -50,11 +50,11 @@ are in [research/jetbrains-gap-analysis.md](research/jetbrains-gap-analysis.md).
 - [x] Sticky lines, structure breadcrumbs, Reader mode / rendered doc comments, custom folding regions
 - [x] Spellchecking and grammar for comments, strings and identifiers
 - [x] Code style schemes with presets (PSR-12, PER-CS, Symfony, Laravel, WordPress) and per-language pages
-- [ ] JSON Schema validation and completion (composer.json, package.json, compose, CI files)
+- [x] JSON Schema validation and completion (composer.json, package.json, compose, CI files)
 - [x] Vim emulation
 
 ### Navigation and search
-- [ ] File Structure popup (`Ctrl+F12`), Navigation Bar (`Alt+Home`), Related Symbol (`Ctrl+Alt+Home`)
+- [x] File Structure popup (`Ctrl+F12`), Navigation Bar (`Alt+Home`), Related Symbol (`Ctrl+Alt+Home`)
 - [ ] Last/Next Edit Location, Next/Previous Method, Next/Previous Change, Select In… and autoscroll from source
 - [ ] Highlight Usages in File, Find Usages in File, Find Usages settings (scope, options)
 - [ ] Type/Call/Method Hierarchy

@@ -58,19 +58,25 @@ impl Workspace {
         if query.is_empty() || limit == 0 {
             return Ok(vec![]);
         }
+        let paths = self.list_files();
+        let paths: Vec<&str> = paths.iter().map(String::as_str).collect();
+        Ok(forge_fuzzy::rank_files_tolerant(query, &paths, limit, opts))
+    }
+
+    /// Every project file (workspace-relative; `.gitignore`/`.ignore` and the default
+    /// excludes respected), at most 200,000.
+    pub fn list_files(&self) -> Vec<String> {
         let walker = ignore::WalkBuilder::new(self.root())
             .hidden(false)
             .require_git(false)
             .filter_entry(|e| !DEFAULT_EXCLUDES.contains(&e.file_name().to_string_lossy().as_ref()))
             .build();
-        let paths: Vec<String> = walker
+        walker
             .filter_map(|e| e.ok())
             .filter(|e| e.file_type().is_some_and(|t| t.is_file()))
             .take(MAX_WALKED_FILES)
             .map(|e| self.relative(e.path()))
-            .collect();
-        let paths: Vec<&str> = paths.iter().map(String::as_str).collect();
-        Ok(forge_fuzzy::rank_files_tolerant(query, &paths, limit, opts))
+            .collect()
     }
 
     /// Find in Files: search the text of every file in scope (`.gitignore`/`.ignore` and the

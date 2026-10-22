@@ -1828,6 +1828,7 @@ dependencies = [
  "forge-forges",
  "forge-fuzzy",
  "forge-injections",
+ "forge-jsonschema",
  "forge-keymap",
  "forge-langservers",
  "forge-livetemplates",
@@ -1874,6 +1875,7 @@ name = "forge-backend"
 version = "0.1.0"
 dependencies = [
  "dirs 6.0.0",
+ "forge-codeintel",
  "forge-core",
  "forge-find",
  "forge-langservers",
@@ -1914,6 +1916,7 @@ dependencies = [
 name = "forge-codeintel"
 version = "0.1.0"
 dependencies = [
+ "forge-fuzzy",
  "serde",
  "serde_json",
 ]
@@ -2088,6 +2091,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "forge-jsonschema"
+version = "0.1.0"
+dependencies = [
+ "flate2",
+ "regex-lite",
+ "reqwest 0.12.28",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "tempfile",
+ "tokio",
+]
+
+[[package]]
 name = "forge-keymap"
 version = "0.1.0"
 dependencies = [
@@ -2245,6 +2262,7 @@ version = "0.1.0"
 dependencies = [
  "dirs 6.0.0",
  "forge-backend",
+ "forge-codeintel",
  "forge-core",
  "forge-langservers",
  "forge-lsp",
@@ -2417,6 +2435,7 @@ dependencies = [
  "forge-find",
  "forge-fuzzy",
  "forge-injections",
+ "forge-jsonschema",
  "forge-keymap",
  "forge-livetemplates",
  "forge-markdown",

@@ -292,6 +292,42 @@
           "order": 40
         },
         {
+          "key": "appearance.navigationBar.location",
+          "title": "Navigation bar",
+          "description": "Where the navigation bar (project, folders, file and members at the caret) is shown: Top: above the editor, with the path in the status bar too. In status bar: only in the status bar. Don't show: Jump to Navigation Bar (Alt+Home) shows it as a popup. View | Appearance | Navigation Bar.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "top",
+              "label": "Top"
+            },
+            {
+              "value": "statusBar",
+              "label": "In status bar"
+            },
+            {
+              "value": "hidden",
+              "label": "Don't show"
+            }
+          ],
+          "default": "top",
+          "group": "appearance",
+          "section": "Navigation Bar",
+          "project": false,
+          "order": 50
+        },
+        {
+          "key": "appearance.navigationBar.showMembers",
+          "title": "Show members in the navigation bar",
+          "description": "Add the class and function at the caret after the file name. View | Appearance | Members in Navigation Bar.",
+          "type": "bool",
+          "default": true,
+          "group": "appearance",
+          "section": "Navigation Bar",
+          "project": false,
+          "order": 51
+        },
+        {
           "key": "templates.dataLanguages",
           "title": "Template data languages",
           "description": "Language of the content between template tags, one entry per pattern: `legacy/latex/*.tpl=latex`, `*.mail.twig=text`. Languages: html, xml, latex, css, scss, less, javascript, typescript, json, sql, yaml, ini, shell, text. Compound names like `invoice.tex.twig` are detected automatically. Applies to files opened afterwards.",
@@ -4780,7 +4816,7 @@
     "name": "JSON",
     "version": "0.1.0",
     "pack": "configforge",
-    "description": "JSON and JSON with comments: highlighting, folding and syntax checks. With vscode-json-language-server (Settings > Language Servers), `$schema` (local file or URL) drives validation, completion and hover.",
+    "description": "JSON and JSON with comments: highlighting, folding and syntax checks. Validation, completion and documentation from JSON schemas (`$schema`, composer.json, package.json, ...) come from the JSON Schema plugin.",
     "vendor": "Forge",
     "depends": [],
     "required": false,
@@ -5471,6 +5507,64 @@
           "section": "Rules",
           "project": false,
           "order": 13
+        }
+      ],
+      "lspServers": [],
+      "runConfigurationTypes": [],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": [],
+      "mainMenu": []
+    }
+  },
+  {
+    "id": "forge.json-schema",
+    "name": "JSON Schema",
+    "version": "0.1.0",
+    "pack": "core",
+    "description": "Validates, completes and documents JSON and YAML files with JSON Schema: composer.json, package.json, tsconfig.json, ESLint and Prettier configs, Docker Compose, GitHub Actions and GitLab CI out of the box, plus your own mappings and the file's $schema.",
+    "vendor": "Forge",
+    "depends": [
+      "forge.core"
+    ],
+    "required": false,
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "fileTypes": [],
+      "commands": [],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [
+        {
+          "key": "jsonSchema.mappings",
+          "title": "JSON Schema mappings",
+          "description": "Schemas for files of this project: name, schema (a file or URL), schema version and the files, directories (ending in /) or patterns it applies to, one per line. A mapping without a schema turns schemas off for its files.",
+          "type": "objects",
+          "default": [],
+          "group": "lang.json-schema",
+          "project": true,
+          "order": 0
+        },
+        {
+          "key": "jsonSchema.remote.enabled",
+          "title": "Allow downloading JSON schemas from remote sources",
+          "description": "Schemas named by a URL ($schema, mappings, $ref) are downloaded into Forge's cache folder and refreshed daily. Built-in schemas are bundled and need no download.",
+          "type": "bool",
+          "default": false,
+          "group": "lang.json-schema.remote",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "jsonSchema.remote.schemaStore",
+          "title": "Use schemastore.org JSON Schema catalog",
+          "description": "Find schemas for other well-known files (renovate.json, .babelrc, Helm charts, ...) in the SchemaStore catalog.",
+          "type": "bool",
+          "default": true,
+          "group": "lang.json-schema.remote",
+          "project": false,
+          "order": 1
         }
       ],
       "lspServers": [],

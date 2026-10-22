@@ -15,7 +15,7 @@ The workbench is the main window of an open project. It follows PHPStorm's New U
 | --- | --- | --- |
 | Main toolbar | top | ☰ main menu, project widget, Git branch widget, run widget, AI Chat, Search Everywhere, theme toggle, Settings; it is also the window's title bar |
 | Tool window stripes | left, right and bottom edges | buttons that show and hide tool windows |
-| Editor | center | tabs, breadcrumbs and the code editor |
+| Editor | center | tabs, navigation bar and the code editor |
 | Status bar | bottom | path of the current file, background tasks, project information, caret position, file type, Git branch |
 
 ## Main toolbar
@@ -177,7 +177,9 @@ Right-click a file, a folder or the empty area below the tree:
 - Some tabs are not files: merge requests, issues, database consoles and table editors open as
   tabs as well.
 
-Breadcrumbs above the editor show the file's folder path.
+The [navigation bar](navigation-bar-and-file-structure.md#navigation-bar) above the editor
+shows the file's path and the class and method at the caret; every part opens a dropdown
+(`Alt+Home`). View | Appearance | Navigation Bar moves it into the status bar or hides it.
 
 ### Tab context menu
 

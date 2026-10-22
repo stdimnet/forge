@@ -353,7 +353,36 @@ export const codeApi = {
   contextInfo: (path: string, line: number, content?: string) =>
     invoke<ContextLine[]>("code_context_info", { path, line, content }),
   readLibrary: (path: string) => invoke<LibraryFile>("library_read", { path }),
+  /** Related Symbol (Ctrl+Alt+Home): tests, views, templates, routes, migrations, ... */
+  related: (path: string, content?: string) => invoke<RelatedItem[]>("code_related", { path, content }),
   /** Create class: the edit importing `fqn` into `content` (UTF-16 offsets), empty when not needed. */
   importClass: (path: string, content: string, fqn: string) =>
     invoke<{ start: number; end: number; newText: string }[]>("php_import_class", { path, content, fqn }),
 };
+
+export type RelatedKind =
+  | "test"
+  | "testSubject"
+  | "controller"
+  | "view"
+  | "template"
+  | "route"
+  | "model"
+  | "migration"
+  | "factory"
+  | "policy"
+  | "seeder"
+  | "component"
+  | "story"
+  | "style";
+
+/** An item of Related Symbol (`forge_codeintel::related`); `line`/`column` are 0-based. */
+export interface RelatedItem {
+  kind: RelatedKind;
+  /** Group title: "Tests", "Views", "Routes", ... */
+  group: string;
+  name: string;
+  path: string;
+  line: number;
+  column: number;
+}

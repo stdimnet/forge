@@ -2,7 +2,7 @@
 //! (Alt+F7) / Show Usages, Rename (Shift+F6), Show Context Actions (Alt+Enter), Go to
 //! Implementation / Type Declaration / Super Method, applying workspace edits to the files
 //! that are not open in an editor, and the documentation actions of the View menu (External
-//! Documentation, Quick Definition, Type Info, Context Info). Paths are workspace-relative;
+//! Documentation, Quick Definition, Type Info, Context Info) and Related Symbol. Paths are workspace-relative;
 //! positions are LSP positions (0-based line, UTF-16 character). File access goes through
 //! the project's backend, so everything works for remote projects too.
 //!
@@ -1487,6 +1487,25 @@ pub async fn code_context_info(
         line,
         codeintel::language_of(&path),
     ))
+}
+
+/// Related Symbol (Ctrl+Alt+Home): tests, views, templates, routes, migrations and other
+/// files that belong to `path`. Computed next to the files (in the agent for a remote
+/// project), see `forge_codeintel::related`.
+#[tauri::command]
+pub async fn code_related(
+    path: String,
+    content: Option<String>,
+    ws: State<'_, AppState>,
+) -> Result<Vec<codeintel::RelatedItem>> {
+    let backend = ws.backend()?;
+    blocking(move || {
+        forge_backend::frameworks::framework_call(
+            backend.as_ref(),
+            forge_backend::frameworks::FrameworkCall::Related { path, content },
+        )
+    })
+    .await
 }
 
 #[cfg(test)]
