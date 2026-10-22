@@ -1099,10 +1099,10 @@ pub(crate) fn call_at<'t>(root: Node<'t>, span: Span) -> Option<Node<'t>> {
             }
             "member_call_expression"
             | "nullsafe_member_call_expression"
-            | "scoped_call_expression" => {
-                if p.child_by_field_name("name") == Some(n) {
-                    return Some(p);
-                }
+            | "scoped_call_expression"
+                if p.child_by_field_name("name") == Some(n) =>
+            {
+                return Some(p);
             }
             _ => {}
         }

@@ -605,36 +605,6 @@ pub(crate) fn has_side_effects(n: Node) -> bool {
     any
 }
 
-/// A "primary" expression that never needs parentheses where an operand is expected.
-pub(crate) fn is_primary(n: Node) -> bool {
-    matches!(
-        n.kind(),
-        "variable_name"
-            | "member_access_expression"
-            | "nullsafe_member_access_expression"
-            | "member_call_expression"
-            | "nullsafe_member_call_expression"
-            | "scoped_call_expression"
-            | "scoped_property_access_expression"
-            | "class_constant_access_expression"
-            | "function_call_expression"
-            | "array_creation_expression"
-            | "encapsed_string"
-            | "string"
-            | "integer"
-            | "float"
-            | "boolean"
-            | "null"
-            | "parenthesized_expression"
-            | "subscript_expression"
-            | "name"
-            | "qualified_name"
-            | "heredoc"
-            | "nowdoc"
-            | "match_expression"
-    )
-}
-
 /// The context of `at` needs an operand, so a non-primary expression put there needs
 /// parentheses (`$a * <x>`, `<x>->foo()`, `!<x>`).
 pub(crate) fn needs_parens(at: Node, replacement_kind: &str) -> bool {
@@ -690,10 +660,56 @@ pub(crate) fn needs_parens(at: Node, replacement_kind: &str) -> bool {
 
 /// `code` for the place of `at`, in parentheses when the context needs them.
 pub(crate) fn fit(at: Node, code: &str, kind: &str) -> String {
-    if needs_parens(at, kind) {
-        format!("({code})")
-    } else {
-        code.to_string()
+    if !needs_parens(at, kind) {
+        return code.to_string();
+    }
+    // A binary operator that binds tighter than the one around it needs none.
+    if kind == "binary_expression" {
+        if let Some(parent) = at.parent().filter(|p| p.kind() == "binary_expression") {
+            let wrapped = format!("<?php {code};");
+            let inner_op = parse(&wrapped).and_then(|t| {
+                let stmt = t.root_node().named_child(1)?;
+                let e = stmt.named_child(0)?;
+                (e.kind() == "binary_expression" && e.byte_range() == (6..6 + code.len()))
+                    .then(|| e.child_by_field_name("operator"))
+                    .flatten()
+                    .map(|o| wrapped[o.byte_range()].to_string())
+            });
+            let outer_op = parent.child_by_field_name("operator");
+            if let (Some(inner), Some(outer)) = (inner_op, outer_op) {
+                let (pi, po) = (precedence(&inner), precedence(outer.kind()));
+                let right = parent.child_by_field_name("right") == Some(at);
+                let right_assoc = matches!(outer.kind(), "**" | "??");
+                let fine = pi > po || (pi == po && (right_assoc == right) && inner == outer.kind());
+                if fine {
+                    return code.to_string();
+                }
+            }
+        }
+    }
+    format!("({code})")
+}
+
+/// Binary operator precedence (PHP 8: `+`/`-` bind tighter than `.`).
+fn precedence(op: &str) -> u8 {
+    match op.to_ascii_lowercase().as_str() {
+        "**" => 17,
+        "instanceof" => 16,
+        "*" | "/" | "%" => 14,
+        "+" | "-" => 13,
+        "<<" | ">>" => 12,
+        "." => 11,
+        "<" | "<=" | ">" | ">=" => 10,
+        "==" | "!=" | "===" | "!==" | "<>" | "<=>" => 9,
+        "&" => 8,
+        "^" => 7,
+        "|" => 6,
+        "&&" => 5,
+        "||" => 4,
+        "??" => 3,
+        "and" => 2,
+        "xor" => 1,
+        _ => 0,
     }
 }
 
@@ -710,11 +726,6 @@ pub(crate) fn statement_of(n: Node) -> Option<Node> {
         }
         cur = p;
     }
-}
-
-/// Whitespace-only text between two offsets.
-pub(crate) fn blank_between(src: &str, a: usize, b: usize) -> bool {
-    a <= b && src[a..b].trim().is_empty()
 }
 
 /// The range to delete for a whole statement: its line(s) when it is alone on them.
