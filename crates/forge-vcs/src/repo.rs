@@ -7,6 +7,7 @@ mod partial;
 mod patches;
 mod rewrite;
 mod shelve;
+mod worktrees;
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -21,6 +22,7 @@ use crate::manage::{
     append_ignore_patterns, ignore_patterns_for, parse_remotes, parse_stash_list, Remote,
     StashEntry, STASH_FORMAT,
 };
+use crate::signing::SignatureStatus;
 use crate::status::{parse_status, RepoStatus};
 use crate::{parse_blame, parse_diff, Blame, FileDiff};
 
@@ -351,11 +353,11 @@ impl Repo {
         let meta = self.git(&[
             "show",
             "-s",
-            "--format=%H%x1f%P%x1f%an%x1f%ae%x1f%at%x1f%cn%x1f%ct%x1f%B",
+            "--format=%H%x1f%P%x1f%an%x1f%ae%x1f%at%x1f%cn%x1f%ct%x1f%G?%x1f%GS%x1f%GK%x1f%B",
             sha,
         ])?;
-        let f: Vec<&str> = meta.splitn(8, '\x1f').collect();
-        if f.len() < 8 {
+        let f: Vec<&str> = meta.splitn(11, '\x1f').collect();
+        if f.len() < 11 {
             return Err(ForgeError::Other(format!(
                 "unexpected git show output for {sha}"
             )));
@@ -381,7 +383,14 @@ impl Repo {
             time: f[4].parse().unwrap_or(0),
             committer: f[5].to_string(),
             commit_time: f[6].parse().unwrap_or(0),
-            message: f[7].trim_end().to_string(),
+            signature: SignatureStatus::from_code(f[7]),
+            signer: Some(f[8].trim())
+                .filter(|s| !s.is_empty())
+                .map(str::to_string),
+            signing_key: Some(f[9].trim())
+                .filter(|s| !s.is_empty())
+                .map(str::to_string),
+            message: f[10].trim_end().to_string(),
             files,
         })
     }

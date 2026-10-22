@@ -4,7 +4,7 @@
 use serde::Serialize;
 
 #[cfg_attr(not(feature = "git"), allow(dead_code))]
-pub(crate) const REF_FORMAT: &str = "--format=%(refname)%1f%(objectname)%1f%(upstream:short)%1f%(upstream:track,nobracket)%1f%(committerdate:unix)%1f%(HEAD)%1f%(contents:subject)";
+pub(crate) const REF_FORMAT: &str = "--format=%(refname)%1f%(objectname)%1f%(upstream:short)%1f%(upstream:track,nobracket)%1f%(committerdate:unix)%1f%(HEAD)%1f%(worktreepath)%1f%(contents:subject)";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -19,6 +19,9 @@ pub struct BranchInfo {
     pub time: i64,
     pub subject: String,
     pub current: bool,
+    /// Absolute path of another worktree that has this branch checked out (`None` when it
+    /// is checked out nowhere or in this worktree).
+    pub worktree: Option<String>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
@@ -36,10 +39,11 @@ pub struct Branches {
 pub fn parse_refs(out: &str) -> Branches {
     let mut b = Branches::default();
     for line in out.lines().filter(|l| !l.is_empty()) {
-        let f: Vec<&str> = line.splitn(7, '\x1f').collect();
-        if f.len() < 7 {
+        let f: Vec<&str> = line.splitn(8, '\x1f').collect();
+        if f.len() < 8 {
             continue;
         }
+        let current = f[5] == "*";
         let (ahead, behind) = parse_track(f[3]);
         let mut info = BranchInfo {
             name: String::new(),
@@ -48,8 +52,9 @@ pub fn parse_refs(out: &str) -> Branches {
             ahead,
             behind,
             time: f[4].parse().unwrap_or(0),
-            subject: f[6].to_string(),
-            current: f[5] == "*",
+            subject: f[7].to_string(),
+            current,
+            worktree: (!current && !f[6].is_empty()).then(|| f[6].to_string()),
         };
         if let Some(n) = f[0].strip_prefix("refs/heads/") {
             info.name = n.to_string();
@@ -119,17 +124,20 @@ mod tests {
 
     #[test]
     fn parses_refs() {
-        let out = "refs/heads/main\x1fabc\x1forigin/main\x1fahead 2, behind 1\x1f1700000000\x1f*\x1fFix bug\n\
-                   refs/heads/feature/x\x1fdef\x1f\x1f\x1f1690000000\x1f \x1fWIP\n\
-                   refs/remotes/origin/HEAD\x1fabc\x1f\x1f\x1f1700000000\x1f \x1fFix bug\n\
-                   refs/remotes/origin/main\x1fabc\x1f\x1f\x1f1700000000\x1f \x1fFix bug\n\
-                   refs/tags/v1.0\x1fabc\x1f\x1f\x1f1700000000\x1f \x1fRelease\n";
+        let out = "refs/heads/main\x1fabc\x1forigin/main\x1fahead 2, behind 1\x1f1700000000\x1f*\x1f/src/shop\x1fFix bug\n\
+                   refs/heads/feature/x\x1fdef\x1f\x1f\x1f1690000000\x1f \x1f/src/shop-x\x1fWIP\n\
+                   refs/remotes/origin/HEAD\x1fabc\x1f\x1f\x1f1700000000\x1f \x1f\x1fFix bug\n\
+                   refs/remotes/origin/main\x1fabc\x1f\x1f\x1f1700000000\x1f \x1f\x1fFix bug\n\
+                   refs/tags/v1.0\x1fabc\x1f\x1f\x1f1700000000\x1f \x1f\x1fRelease\n";
         let b = parse_refs(out);
         assert_eq!(b.current.as_deref(), Some("main"));
         assert_eq!(b.local.len(), 2);
         assert_eq!((b.local[0].ahead, b.local[0].behind), (2, 1));
         assert_eq!(b.local[0].upstream.as_deref(), Some("origin/main"));
         assert_eq!(b.local[1].upstream, None);
+        // Checked out here: no other worktree; checked out elsewhere: that worktree.
+        assert_eq!(b.local[0].worktree, None);
+        assert_eq!(b.local[1].worktree.as_deref(), Some("/src/shop-x"));
         assert_eq!(b.remote.len(), 1);
         assert_eq!(b.remote[0].name, "origin/main");
         assert_eq!(b.tags[0].name, "v1.0");
@@ -148,6 +156,7 @@ mod tests {
                 time: 0,
                 subject: String::new(),
                 current: false,
+                worktree: None,
             })
             .collect();
         let out = "checkout: moving from dev to main\ncommit: x\ncheckout: moving from feature/x to dev\ncheckout: moving from main to 1234abc\n";
