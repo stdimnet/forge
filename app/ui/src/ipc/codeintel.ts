@@ -355,6 +355,12 @@ export const codeApi = {
   readLibrary: (path: string) => invoke<LibraryFile>("library_read", { path }),
   /** Related Symbol (Ctrl+Alt+Home): tests, views, templates, routes, migrations, ... */
   related: (path: string, content?: string) => invoke<RelatedItem[]>("code_related", { path, content }),
+  /** Go to Test (Ctrl+Shift+T): a class's tests or a test's subjects (`forge_codeintel::test_nav`). */
+  testTargets: (path: string, content?: string) => invoke<TestTargets>("code_test_targets", { path, content }),
+  /** Create New Test: the dialog's initial values; `null` for a test or an unsupported file. */
+  newTestPlan: (path: string, content?: string) => invoke<NewTestPlan | null>("code_new_test_plan", { path, content }),
+  /** Create New Test: render the test and create its file. */
+  createTest: (request: TestSourceRequest) => invoke<TestSource>("code_create_test", { request }),
   /** Create class: the edit importing `fqn` into `content` (UTF-16 offsets), empty when not needed. */
   importClass: (path: string, content: string, fqn: string) =>
     invoke<{ start: number; end: number; newText: string }[]>("php_import_class", { path, content, fqn }),
@@ -385,4 +391,63 @@ export interface RelatedItem {
   path: string;
   line: number;
   column: number;
+}
+
+/** What Go to Test found (`forge_codeintel::TestTargets`). */
+export interface TestTargets {
+  /** The file is a test: the targets are its subjects. */
+  isTest: boolean;
+  /** `Order`, `OrderTest`: for the chooser's title. */
+  name: string;
+  /** Best match first. */
+  targets: RelatedItem[];
+  /** Create New Test… is offered. */
+  canCreate: boolean;
+}
+
+export type TestFramework = "PHPUnit" | "Pest" | "Vitest" | "Jest";
+
+/** A public method (PHP) or export (JS/TS) to generate a test for. */
+export interface TestMember {
+  name: string;
+  /** JS/TS default export. */
+  defaultExport?: boolean;
+}
+
+/** The Create New Test dialog's initial values (`forge_codeintel::NewTestPlan`). */
+export interface NewTestPlan {
+  frameworks: TestFramework[];
+  framework: TestFramework;
+  subject: string;
+  subjectFqn: string;
+  subjectPath: string;
+  className: string;
+  namespace: string;
+  directory: string;
+  superclass: string;
+  superclasses: string[];
+  fileName: string;
+  members: TestMember[];
+}
+
+export interface TestSourceRequest {
+  framework: TestFramework;
+  subject: string;
+  subjectFqn: string;
+  subjectPath: string;
+  className: string;
+  namespace: string;
+  directory: string;
+  superclass: string;
+  fileName: string;
+  members: TestMember[];
+  setUp: boolean;
+  tearDown: boolean;
+}
+
+/** The created test; `line` is the caret's 0-based line. */
+export interface TestSource {
+  path: string;
+  text: string;
+  line: number;
 }
