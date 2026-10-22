@@ -1,8 +1,8 @@
 ---
 title: Git
-description: Git integration - the Commit tool window, stash and shelf, Pull/Merge/Rebase/Reset/Tag/Remotes dialogs, AI commit messages, diff viewer, change markers, blame, branches, push, update, merge conflicts, the Git log, file and selection history, and comparing files, folders and the clipboard.
+description: Git integration - the Commit tool window, stash and shelf, Pull/Merge/Rebase/Reset/Tag/Remotes dialogs, AI commit messages, diff viewer, change markers, blame, branches, push, update, merge conflicts, the Git log with its actions (cherry-pick, revert, undo, edit message, squash, fixup, drop, interactive rebase), file and selection history, and comparing files, folders and the clipboard.
 order: 120
-tags: [git, vcs, commit, diff, blame, branches, merge, rebase, conflicts, stash, shelf]
+tags: [git, vcs, commit, diff, blame, branches, merge, rebase, interactive rebase, cherry-pick, conflicts, stash, shelf]
 ---
 
 # Git
@@ -105,9 +105,11 @@ Branches**:
   (`Ctrl+Shift+K`), **New Branch…** and **Checkout Tag or Revision…**.
 - **Local** and **Remote** branches with a search field ("Search for branches and actions").
 - A branch's submenu: for the current branch **New Branch from '…'…**, **Push…** and
-  **Update**; for other branches **Checkout**, **New Branch from '…'…**, **Rebase 'current'
-  onto '…'**, **Merge '…' into 'current'** and, for local branches, **Delete** (with "Force
-  delete" for unmerged branches).
+  **Update**; for other branches **Checkout**, **New Branch from '…'…**, **Compare with
+  'current'** (the Git log of the commits of the branch that are not in the current branch,
+  ready to [cherry-pick](#cherry-pick-revert-and-undo)), **Rebase 'current' onto '…'**,
+  **Merge '…' into 'current'** and, for local branches, **Delete** (with "Force delete" for
+  unmerged branches).
 
 **New Branch…** asks for the name and whether to check it out.
 
@@ -132,6 +134,8 @@ Settings | Version Control | Git:
 | Path to Git executable | `vcs.git.path` | `git` (the one on `PATH`; `FORGE_GIT` also overrides it). Remote projects always use the git of their host. |
 | Update method: Merge, Rebase or Branch default (`pull.rebase` of the branch) | `vcs.git.updateMethod` | Merge |
 | Fetch remotes automatically, every n minutes | `vcs.git.autoFetch`, `vcs.git.autoFetchInterval` | on, 10 |
+| Add the 'cherry-picked from <hash>' suffix when picking commits pushed to protected branches (`git cherry-pick -x`) | `vcs.git.cherryPickSuffix` | on |
+| Protected branches: names or patterns with `*`, separated by `;`. The Log never rewrites commits pushed to them. | `vcs.git.protectedBranches` | `master;main` |
 
 Automatic fetching runs in the background while the branch has an upstream; failures
 (offline, missing credentials) are ignored.
@@ -150,7 +154,8 @@ Automatic fetching runs in the background while the branch has an upstream; fail
 - **Git ▸ Rebase…** (`Git.Rebase`) opens **Rebase main**: the upstream (or new base) and the
   options `--onto` (adds the *from* field: only the commits after it are moved onto the new
   base), **Select another branch to rebase**, `--rebase-merges`, `--keep-empty`, `--root` and
-  `--update-refs`. Interactive rebase comes later.
+  `--update-refs`. For an interactive rebase use
+  [Interactively Rebase from Here…](#interactive-rebase) in the Log.
 
 ![Merge dialog](../../screenshots/git-merge-dialog.png)
 
@@ -309,9 +314,94 @@ The **Git** tool window (`Alt+9`, bottom) has a **Log** tab with the commit grap
 
 ![Git log](../../screenshots/vcs-log.png)
 
-- Filter by text or hash, branch, user, date and paths; **Show all branches**.
-- Select a commit to see its changed files; open their diffs from there.
+- Filter by text or hash, branch, user, date and paths; **Show all branches**. Click
+  **HEAD (Current Branch)** in the branches pane to see only the current branch.
+- Select a commit to see its changed files; open their diffs from there. `Ctrl+click` and
+  `Shift+click` select several commits; `Up`/`Down` move the selection, `Left`/`Right` go to the
+  child / parent commit.
 - **Fetch All Remotes** and **Refresh** (`Ctrl+F5`) in the toolbar.
+
+### Log actions
+
+Right-click commits for PHPStorm's Log context menu. Every action is also in Find Action and
+the keymap (Settings | Keymap) under its PHPStorm id and works on the selection of the Log.
+
+![Log context menu](../../screenshots/git-log-context-menu.png)
+
+| Action | Id | What it does |
+| --- | --- | --- |
+| Copy Revision Number | `Vcs.CopyRevisionNumberAction` | copies the full hashes |
+| Create Patch… | `Vcs.Log.CreatePatch` | writes the changes of the selected commits as a patch file into the project |
+| Cherry-Pick | `Vcs.CherryPick` | applies commits of other branches to the current branch (oldest first) |
+| Checkout Revision | `Git.CheckoutRevision` | detached HEAD at the commit |
+| Show Repository at Revision | `Git.BrowseRepoAtRevision` | lists the files of the commit; opens them read-only |
+| Compare with Local | `Vcs.Log.CompareWithLocal` | the files that differ between the commit and the working tree |
+| Reset Current Branch to Here… | `Git.Reset.In.Log` | the [Reset dialog](#reset-head-tags-and-remotes) with the commit |
+| Revert Commit | `Git.Revert.In.Log` | new commits that undo the selected ones |
+| Undo Commit… | `Git.Uncommit` | removes the last, unpushed commit and keeps its changes |
+| Edit Commit Message… | `Git.Reword.Commit` (`F2` in the Log) | rewords a commit |
+| Fixup… / Squash Into… | `Git.Fixup.To.Commit`, `Git.Squash.Into.Commit` | commit the local changes as `fixup! <subject>` / `squash! <subject>` |
+| Squash Commits… | `Git.Squash.Commits` | several selected commits become one, with an editable message |
+| Drop Commits | `Git.Drop.Commits` | removes commits from the branch |
+| Interactively Rebase from Here… | `Git.Interactive.Rebase` | the [Rebasing Commits](#interactive-rebase) dialog |
+| New Branch… / New Tag… | | a branch or tag at the commit |
+| Go to Child Commit / Go to Parent Commit | `Vcs.Log.GoToChild`, `Vcs.Log.GoToParent` | selects the neighbour in the Log |
+
+![Several commits selected](../../screenshots/git-log-multiple-commits.png)
+
+Actions that cannot run are greyed out; hover them for the reason, like PHPStorm:
+
+- The actions that rewrite history (Undo, Edit Commit Message, Fixup, Squash, Drop, the
+  interactive rebase) need commits of the current branch, no merge commits in between and no
+  operation in progress.
+- Commits already pushed to a **protected branch** (Settings | Version Control | Git,
+  `master;main` by default) are never rewritten: "The selected commit is already pushed to
+  protected branch 'origin/main'". Commits pushed to other branches can be rewritten after a
+  warning (you will need a force push).
+- **Undo Commit** is available only for the last commit of the current branch and only while
+  it is not pushed. The changes go back to the Commit tool window (the "Changes" changelist)
+  and the message into the commit message field.
+
+![Pushed commit warning](../../screenshots/git-log-pushed-warning.png)
+
+After a rewrite a balloon offers **Undo**, which moves the branch back as long as nothing
+changed since. Local changes are kept (`git rebase --autostash`).
+
+![Edit Commit Message](../../screenshots/git-edit-commit-message.png)
+
+### Cherry-pick, revert and undo
+
+**Cherry-Pick** applies the selected commits to the current branch, oldest first. Commits whose
+changes are already in the branch are skipped. With "Add the 'cherry-picked from <hash>'
+suffix…" on, commits that are pushed to a protected branch get git's "(cherry picked from
+commit …)" line. **Revert Commit** creates one revert commit per selected commit. A cherry-pick
+or revert that stops with conflicts opens the [Conflicts dialog](#merge-conflicts); commit the
+result to finish it, or abort it from the Git menu.
+
+### Interactive rebase
+
+**Interactively Rebase from Here…** opens **Rebasing Commits** with the commits from the
+selected one up to `HEAD` (newest at the top):
+
+![Rebasing Commits](../../screenshots/git-interactive-rebase.png)
+
+- The toolbar sets the action of the selected commits: **Pick**, **Edit** (stop after the
+  commit to amend it), **Reword** (new message), **Squash** (meld into the older commit below
+  and combine the messages), **Fixup** (meld and keep the older message) and **Drop**. With
+  several commits selected, **Squash** becomes **Unite**: the commits are moved together and
+  squashed into the oldest of them.
+- Reorder commits by drag and drop or with **Move Up** / **Move Down** (`Alt+Up` / `Alt+Down`,
+  `Git.Interactive.Rebase.MoveUp` / `Git.Interactive.Rebase.MoveDown`).
+- For a reworded commit or a squash the right side is the message editor; otherwise it shows
+  the commit's files and message. **Reset** restores the initial plan.
+- `fixup!`, `squash!` and `amend!` commits (from **Fixup…** / **Squash Into…**) start right
+  after the commit they target, like `git rebase --autosquash`.
+
+**Start Rebasing** (`Ctrl+Enter`) runs `git rebase -i`. Forge writes the todo list itself and
+applies new messages with `exec` steps, so git never opens an editor; this also works in
+remote projects. When the rebase stops at an **Edit** step or with conflicts, the branch widget
+shows **Rebasing …**, conflicts open the [Conflicts dialog](#merge-conflicts), and **Git ▸
+Continue Rebase / Skip Commit / Abort Rebase** take it from there.
 
 ## File and folder history
 
@@ -409,5 +499,4 @@ Pull and merge requests, issues and CI pipelines of GitHub, GitLab and Forgejo/G
 
 ## Not available yet
 
-Get from VCS (clone), cherry-pick, interactive rebase and Local History are not implemented
-yet.
+Get from VCS (clone), Push All up to Here and Local History are not implemented yet.
