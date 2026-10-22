@@ -8,6 +8,7 @@ pub mod code_style;
 pub mod codeintel;
 pub mod companion;
 pub mod compare;
+pub mod composer;
 pub mod db;
 pub mod debug;
 pub mod doctrine;

@@ -48,6 +48,12 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 
 ## Recently added
 
+- **Composer**: composer.json gets PHPStorm's Composer toolbar (Install, Update, Validate,
+  Show Outdated, Audit), outdated packages are marked in the gutter with an "Update package"
+  quick fix, package names and version constraints complete from Packagist with documentation
+  on hover, Tools | Composer | Add Dependency… opens Manage Composer Dependencies, and
+  `composer audit` lists security advisories in the Problems tool window
+  ([Composer](user/composer.md)).
 - **Scopes, file colors, Structural Search and Analyze Stack Trace**: named scopes in
   PHPStorm's scope language for Find in Files, Replace in Files, Find Usages and Structural
   Search, file colors in editor tabs and the Project view

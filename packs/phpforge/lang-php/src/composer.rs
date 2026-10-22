@@ -3,7 +3,6 @@
 //! the outdated packages `composer outdated` reports ("Check for package updates on
 //! project open").
 
-use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 /// Setting keys (see `app/src-tauri/plugins/phpforge.toml`).
@@ -63,39 +62,7 @@ fn versions_in(constraint: &str) -> Vec<(u32, u32)> {
     out
 }
 
-/// A package `composer outdated` reports.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct OutdatedPackage {
-    pub name: String,
-    pub version: String,
-    pub latest: String,
-    /// `semver-safe-update` (within the constraint) or `update-possible`.
-    pub status: String,
-}
-
-/// Parse `composer outdated --direct --format=json`.
-pub fn parse_outdated(json: &str) -> Vec<OutdatedPackage> {
-    let Ok(v) = serde_json::from_str::<Value>(json) else {
-        return Vec::new();
-    };
-    v.get("installed")
-        .and_then(Value::as_array)
-        .into_iter()
-        .flatten()
-        .filter_map(|p| {
-            let s = |k: &str| p.get(k).and_then(Value::as_str).map(str::to_string);
-            let status = s("latest-status")?;
-            let name = s("name")?;
-            (status != "up-to-date").then(|| OutdatedPackage {
-                name,
-                version: s("version").unwrap_or_default(),
-                latest: s("latest").unwrap_or_default(),
-                status,
-            })
-        })
-        .collect()
-}
+pub use phpforge_composer::outdated::{parse_outdated, OutdatedPackage};
 
 #[cfg(test)]
 mod tests {
@@ -115,19 +82,5 @@ mod tests {
             None
         );
         assert_eq!(language_level("{not json"), None);
-    }
-
-    #[test]
-    fn parses_composer_outdated() {
-        let json = r#"{"installed": [
-            {"name": "laravel/framework", "version": "v12.1.0", "latest": "v12.3.0", "latest-status": "semver-safe-update"},
-            {"name": "guzzlehttp/guzzle", "version": "7.9.2", "latest": "7.9.2", "latest-status": "up-to-date"},
-            {"name": "phpunit/phpunit", "version": "10.5.0", "latest": "11.4.0", "latest-status": "update-possible"}
-        ]}"#;
-        let out = parse_outdated(json);
-        assert_eq!(out.len(), 2);
-        assert_eq!(out[0].name, "laravel/framework");
-        assert_eq!(out[1].status, "update-possible");
-        assert!(parse_outdated("garbage").is_empty());
     }
 }

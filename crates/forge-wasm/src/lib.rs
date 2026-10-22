@@ -24,6 +24,7 @@ mod agents;
 mod codeintel;
 mod codestyle;
 mod compare;
+mod composer;
 mod containers;
 mod editing;
 mod emmet;

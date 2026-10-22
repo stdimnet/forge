@@ -45,6 +45,7 @@ not finished, the page says so.
 | Page | Covers |
 | --- | --- |
 | [PHP](php.md) | PHP index, Structure, hover, Generate (`Alt+Insert`), PHP settings |
+| [Composer](composer.md) | composer.json toolbar (Install, Update, Validate, Show Outdated, Audit), outdated packages with Update package, package and version completion from Packagist, Manage Composer Dependencies, `composer audit` (Vulnerable Dependencies), composer.phar download |
 | [Laravel](laravel.md) | Blade, routes, views, config, Eloquent, Routes tool window, artisan |
 | [Symfony](symfony.md) | services, routes, Twig, console, Symfony tool window |
 | [Doctrine and DQL](doctrine.md) | entity mappings, Doctrine tool window, DQL in PHP strings |

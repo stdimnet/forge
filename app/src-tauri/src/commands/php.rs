@@ -157,15 +157,17 @@ pub async fn php_language_level(state: State<'_, AppState>) -> Result<LanguageLe
 /// of the project's composer.json, on the project's machine.
 #[tauri::command]
 pub async fn php_composer_outdated(state: State<'_, AppState>) -> Result<Vec<OutdatedPackage>> {
-    let (program, json_path) = {
+    let (program, lead, json_path) = {
         let settings = state.read_settings();
-        let program = settings
+        let executable = settings
             .get_as::<String>(composer::EXECUTABLE_KEY)
-            .map(|p| p.trim().to_string())
-            .filter(|p| !p.is_empty())
-            .unwrap_or_else(|| "composer".into());
+            .unwrap_or_default();
+        let php = settings
+            .get_as::<String>("php.interpreter")
+            .unwrap_or_else(|| "php".into());
+        let (program, lead) = forge_process::composer_program(&executable, &php);
         let json = lsp_settings(&state).composer_json;
-        (program, json)
+        (program, lead, json)
     };
     let backend = state.backend()?;
     blocking(move || {
@@ -173,7 +175,7 @@ pub async fn php_composer_outdated(state: State<'_, AppState>) -> Result<Vec<Out
             return Ok(Vec::new());
         }
         let dir = Path::new(&json_path).parent().unwrap_or(Path::new(""));
-        let mut cmd = forge_process::CommandLine::new(program).args([
+        let mut cmd = forge_process::CommandLine::new(program).args(lead).args([
             "outdated",
             "--direct",
             "--format=json",

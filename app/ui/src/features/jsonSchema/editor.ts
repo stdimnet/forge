@@ -77,7 +77,7 @@ function applyItem(item: SchemaCompletionItem, answer: SchemaCompletion, request
   };
 }
 
-function toOption(item: SchemaCompletionItem, rank: number, answer: SchemaCompletion, pos: number): Completion {
+export function toOption(item: SchemaCompletionItem, rank: number, answer: SchemaCompletion, pos: number): Completion {
   return styleOption(
     {
       label: item.label,

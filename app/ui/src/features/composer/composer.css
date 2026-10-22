@@ -1,0 +1,346 @@
+/* Composer: composer.json toolbar, outdated markers, the dependencies dialog, the
+   Vulnerable Dependencies tab and the settings page. Colors come from theme.css only. */
+
+/* ---------- composer.json toolbar ---------- */
+.composer-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 12px;
+  font-size: var(--fs-small);
+  color: var(--fg);
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+}
+.composer-banner[hidden] {
+  display: none;
+}
+.composer-banner-icon {
+  flex-shrink: 0;
+  color: var(--syn-function);
+}
+.composer-banner-title {
+  font-weight: 600;
+  color: var(--fg-strong);
+  margin-right: 2px;
+}
+.composer-banner-link:disabled {
+  color: var(--fg-faint);
+  text-decoration: none;
+  cursor: default;
+}
+.composer-banner-info {
+  flex: 1;
+  min-width: 0;
+  text-align: right;
+  color: var(--fg-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.composer-banner-settings {
+  width: 22px;
+  height: 22px;
+}
+
+/* Gutter icon of an outdated package. */
+.cm-line-marker.marker-composer-outdated {
+  color: var(--info);
+  cursor: pointer;
+}
+
+/* ---------- Manage Composer Dependencies ---------- */
+.composer-dialog {
+  width: min(880px, calc(100vw - 32px));
+  height: min(640px, calc(100vh - 48px));
+}
+.composer-dialog-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+}
+.composer-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.composer-search input {
+  flex: 1;
+  height: 30px;
+  padding-left: 28px;
+}
+.composer-search-icon {
+  position: absolute;
+  left: 9px;
+  color: var(--fg-muted);
+  pointer-events: none;
+}
+.composer-panes {
+  flex: 3;
+  min-height: 0;
+  display: flex;
+  gap: 10px;
+}
+.composer-pane {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-editor);
+  overflow: hidden;
+}
+.composer-pane-title {
+  flex-shrink: 0;
+  padding: 5px 10px;
+  font-size: var(--fs-small);
+  font-weight: 600;
+  color: var(--fg-muted);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-panel);
+}
+.composer-results {
+  flex: 1.2;
+}
+.composer-details {
+  flex: 1;
+}
+.composer-list {
+  flex: 1;
+  overflow: auto;
+}
+.composer-empty {
+  padding: 18px;
+  text-align: center;
+  color: var(--fg-muted);
+}
+.composer-hit {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+.composer-hit:hover {
+  background: var(--bg-hover);
+}
+.composer-hit.selected {
+  background: var(--accent-soft);
+}
+.composer-hit-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.composer-hit-name {
+  font-weight: 600;
+  color: var(--fg-strong);
+}
+.composer-hit-stats {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--fg-muted);
+}
+.composer-hit-stats svg + svg,
+.composer-hit-stats svg:not(:first-child) {
+  margin-left: 6px;
+}
+.composer-hit-desc {
+  margin-top: 2px;
+  font-size: var(--fs-small);
+  color: var(--fg-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.composer-tag {
+  padding: 0 5px;
+  border-radius: var(--radius-sm);
+  font-size: 10.5px;
+  line-height: 15px;
+  color: var(--fg-muted);
+  background: var(--bg-hover);
+}
+.composer-tag.warn {
+  color: var(--warning);
+}
+.composer-details-body {
+  flex: 1;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+}
+.composer-details-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--fg-strong);
+}
+.composer-details-desc {
+  color: var(--fg);
+  line-height: 1.45;
+}
+.composer-links {
+  display: flex;
+  gap: 14px;
+}
+.composer-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--accent);
+  text-decoration: none;
+  cursor: pointer;
+}
+.composer-link:hover {
+  text-decoration: underline;
+}
+.composer-version-label {
+  margin-top: 6px;
+}
+.composer-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.composer-muted {
+  color: var(--fg-muted);
+  font-weight: normal;
+}
+.composer-warning {
+  color: var(--warning);
+}
+.composer-installed {
+  flex: 2;
+}
+.composer-installed-list {
+  flex: 1;
+  overflow: auto;
+}
+.composer-table,
+.composer-audit-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-small);
+}
+.composer-table th,
+.composer-audit-table th {
+  position: sticky;
+  top: 0;
+  text-align: left;
+  font-weight: 600;
+  color: var(--fg-muted);
+  padding: 4px 10px;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+}
+.composer-table td,
+.composer-audit-table td {
+  padding: 4px 10px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.composer-table td .composer-tag {
+  margin-left: 6px;
+}
+.composer-table tr.selected td {
+  background: var(--accent-soft);
+}
+.composer-mono {
+  font-family: var(--font-mono);
+}
+.composer-row-actions {
+  text-align: right;
+}
+.composer-row-actions .link-btn + .link-btn {
+  margin-left: 12px;
+}
+.composer-row-actions .link-btn:disabled {
+  color: var(--fg-faint);
+  text-decoration: none;
+}
+.composer-status {
+  margin-right: auto;
+  align-self: center;
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+
+/* ---------- Vulnerable Dependencies (Problems tool window) ---------- */
+.composer-audit {
+  display: flex;
+  flex-direction: column;
+}
+.composer-audit-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+.composer-audit-row {
+  cursor: pointer;
+}
+.composer-audit-row:hover td {
+  background: var(--bg-hover);
+}
+.composer-audit-package {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--fg-strong);
+}
+.composer-audit-icon {
+  color: var(--danger);
+  flex-shrink: 0;
+}
+.composer-audit-title {
+  white-space: normal;
+  width: 100%;
+}
+.composer-severity {
+  text-transform: capitalize;
+}
+.composer-severity.sev-critical,
+.composer-severity.sev-high {
+  color: var(--danger);
+}
+.composer-severity.sev-medium {
+  color: var(--warning);
+}
+.composer-severity.sev-low {
+  color: var(--info);
+}
+
+/* ---------- Settings | PHP | Composer ---------- */
+.composer-phar {
+  grid-column: 1 / -1;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  margin: 2px 0 6px;
+}
+.composer-phar-consent {
+  max-width: 640px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-elevated);
+  line-height: 1.45;
+}
+.composer-phar-buttons {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+.composer-phar-error {
+  color: var(--danger);
+}

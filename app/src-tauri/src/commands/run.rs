@@ -171,7 +171,9 @@ fn build(state: &AppState, runs: &RunState, req: RunRequest) -> Result<CommandLi
         }
         (Some(mut cfg), None) => {
             let settings = state.read_settings();
-            if cfg.type_id == "composer" && cfg.option("composerPath").trim().is_empty() {
+            if (cfg.type_id == "composer" || cfg.type_id == "composer-command")
+                && cfg.option("composerPath").trim().is_empty()
+            {
                 if let Some(composer) = settings
                     .get_as::<String>("php.composer.executable")
                     .filter(|c| !c.trim().is_empty() && c != "composer")

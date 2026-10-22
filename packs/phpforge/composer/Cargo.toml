@@ -1,0 +1,25 @@
+[package]
+name = "phpforge-composer"
+description = "PHPForge: Composer support (version constraints, composer.json/lock analysis, Packagist metadata, outdated packages, audit advisories, completion)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[features]
+default = []
+# Packagist downloads cached in the user cache dir and the composer.phar download. The pure
+# part builds to WebAssembly without it.
+net = ["dep:reqwest", "dep:sha2", "dep:tokio", "dep:dirs"]
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+forge-jsonschema.workspace = true
+reqwest = { version = "0.12", optional = true, default-features = false, features = ["rustls-tls", "rustls-tls-native-roots", "http2"] }
+sha2 = { version = "0.10", optional = true }
+tokio = { workspace = true, optional = true }
+dirs = { workspace = true, optional = true }
+
+[dev-dependencies]
+tempfile.workspace = true
+tokio.workspace = true
