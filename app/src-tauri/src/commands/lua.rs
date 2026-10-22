@@ -387,7 +387,18 @@ mod tests {
         let backend = LocalBackend::open(dir.path()).unwrap();
         let exe = fake.to_string_lossy().into_owned();
         let style = vec!["--indent-type".to_string(), "Tabs".to_string()];
-        let out = format_with_stylua(&backend, &exe, "lua/a.lua", "x", &style).unwrap();
+        // A freshly written script can be "busy" while other tests spawn processes.
+        let mut attempt = 0;
+        let out = loop {
+            match format_with_stylua(&backend, &exe, "lua/a.lua", "x", &style) {
+                Ok(out) => break out,
+                Err(_) if attempt < 20 => {
+                    attempt += 1;
+                    std::thread::sleep(std::time::Duration::from_millis(50));
+                }
+                Err(e) => panic!("{e}"),
+            }
+        };
         assert_eq!(
             out.as_deref(),
             Some("--indent-type Tabs --stdin-filepath\n")
