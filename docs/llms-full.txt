@@ -9023,6 +9023,8 @@ current branch is shown in the main toolbar and the status bar.
   **Sign-off** adds a `Signed-off-by` line (`git commit --signoff`; the same option as
   Settings | Version Control | Git | Sign-off commits).
 - **Commit** (`Ctrl+Enter` in the message) or **Commit and Push…**.
+- While there are shelved changes or stashes, the header shows the tabs **Changes**, **Shelf**
+  and **Stash** (see [Shelf](#shelf) and [Stash](#stash)).
 
 ![Commit message inspections](docs/screenshots/vcs-commit-inspections.png)
 
@@ -9132,9 +9134,118 @@ Settings | Version Control | Git:
 Automatic fetching runs in the background while the branch has an upstream; failures
 (offline, missing credentials) are ignored.
 
+## Pull, merge and rebase
+
+![Pull dialog](docs/screenshots/git-pull-dialog.png)
+
+- **Git ▸ Pull…** (`Git.Pull`) opens **Pull to main**: the remote (`origin`), the branch (or
+  several, separated by spaces) and **Modify options**: `--rebase`, `--ff-only`, `--no-ff`,
+  `--squash`, `--no-commit` and `--no-verify`. Options that cannot be combined are greyed out;
+  chosen options appear as chips you can remove with ×.
+- **Git ▸ Merge…** (`Git.Merge`) opens **Merge into main**: the branch to merge and the options
+  `--no-ff`, `--ff-only`, `--squash`, `-m` (shows a field for the merge commit message),
+  `--no-commit`, `--no-verify` and `--allow-unrelated-histories`.
+- **Git ▸ Rebase…** (`Git.Rebase`) opens **Rebase main**: the upstream (or new base) and the
+  options `--onto` (adds the *from* field: only the commits after it are moved onto the new
+  base), **Select another branch to rebase**, `--rebase-merges`, `--keep-empty`, `--root` and
+  `--update-refs`. Interactive rebase comes later.
+
+![Merge dialog](docs/screenshots/git-merge-dialog.png)
+
+![Rebase dialog](docs/screenshots/git-rebase-dialog.png)
+
+When an operation stops with conflicts, the [Conflicts dialog](#merge-conflicts) opens. While a
+rebase or merge waits for you, the branch widgets in the toolbar and the status bar say
+**Rebasing main** (or **Merging main**) and the Git menu offers **Continue Rebase**, **Skip
+Commit** and **Abort Rebase** (`Git.Rebase.Continue`, `Git.Rebase.Skip`, `Git.Rebase.Abort`), or
+**Abort Merge** (`Git.Merge.Abort`). Continuing may stop at the next conflict, which opens the
+Conflicts dialog again.
+
+![Rebase in progress](docs/screenshots/git-rebasing.png)
+
+## Reset HEAD, tags and remotes
+
+**Git ▸ Reset HEAD…** (`Git.Reset`) resets the current branch to a commit (`HEAD`, `HEAD~2`, a
+hash, a branch or tag; **Validate** shows the hash) with one of the reset types:
+
+| Type | What happens |
+| --- | --- |
+| Soft | Files won't change, differences will be staged for commit. |
+| Mixed | Files won't change, differences won't be staged. |
+| Hard | Files will be reverted to the state of the selected commit. Any local changes are lost. |
+| Keep | Files will be reverted to the state of the selected commit, but local changes are kept intact. |
+
+![Reset dialog](docs/screenshots/git-reset-dialog.png)
+
+**Git ▸ New Tag…** (`Git.CreateNewTag`) opens **Tag**: the tag name, **Force** (replace an
+existing tag), the commit (default `HEAD`, with **Validate**) and an optional **Message**, which
+makes it an annotated tag.
+
+![Tag dialog](docs/screenshots/git-tag-dialog.png)
+
+**Git ▸ Manage Remotes…** (`Git.Configure.Remotes`) lists the remotes with their URLs. **+** adds
+one (**Define Remote**: name and URL), the pencil (or a double-click) edits the name and URL,
+the bin removes it.
+
+![Git Remotes](docs/screenshots/git-remotes-dialog.png)
+
+## Stash
+
+**Git ▸ Uncommitted Changes ▸ Stash Changes…** (`Git.Stash`) shows the Git root and the current
+branch, asks for a **Message** and offers **Keep index** (staged changes stay staged and in the
+working tree). **Create Stash** runs `git stash push`.
+
+![Stash dialog](docs/screenshots/git-stash-dialog.png)
+
+**Unstash Changes…** (`Git.Unstash`) lists the stashes of the repository:
+
+- **View** lists the files of the selected stash; a double-click (or the diff icon) shows the
+  diff between the stash's base and the stashed version.
+- **Drop** removes the selected stash, **Clear** all of them (both ask first).
+- **Pop stash** removes the stash after applying it; **Reinstate index** restores what was
+  staged. **As new branch** creates a branch at the stash's base commit, checks it out and pops
+  the stash there (`git stash branch`).
+- The button reads **Apply Stash**, **Pop Stash** or **Branch**. Conflicts open the Conflicts
+  dialog.
+
+![Unstash dialog](docs/screenshots/git-unstash-dialog.png)
+
+The **Stash** tab of the Commit tool window (shown while there are stashes) lists them too:
+expand a stash to see its files, double-click a file (or **Show Diff**, `Ctrl+D`) for its diff,
+and **Apply**, **Pop** or **Drop** the selected stash from the toolbar.
+
+![Stash tab](docs/screenshots/git-stash-tab.png)
+
+## Shelf
+
+The shelf keeps changes aside without git, like PHPStorm's shelf. Forge stores it per project in
+its data directory (`<data dir>/forge/projects/<project>/shelf`, see
+[File locations](docs/guide/reference/file-locations.md)); nothing is written into the project.
+
+- **Git ▸ Uncommitted Changes ▸ Shelve Changes…** (`ChangesView.Shelve`) lists the local
+  changes (new files included) with checkboxes and a **Comment**. **Shelve Changes** saves the
+  ticked files as a patch and rolls them back (new files are removed).
+- **Show Shelf** (`Vcs.Show.Shelf`) opens the **Shelf** tab of the Commit tool window. Expand a
+  shelved changelist to see its files; `Ctrl`-click selects several.
+- Toolbar: **Unshelve…** (`ShelveChanges.UnshelveWithDialog`), **Unshelve Silently**,
+  **Delete**, **Show Diff** (`Ctrl+D`, also a double-click on a file) and **Rename**.
+- **Unshelve Changes** lists the files with checkboxes, preselected from the selection, so you
+  can unshelve part of a changelist. **Remove successfully applied files from the shelf** drops
+  them from the shelf afterwards. New files come back as added files.
+- A shelved patch that no longer applies cleanly is merged three-way; conflicts open the
+  Conflicts dialog and the changes stay on the shelf.
+
+![Shelve Changes](docs/screenshots/git-shelve-dialog.png)
+
+![Shelf tab](docs/screenshots/git-shelf-tab.png)
+
+![Unshelve Changes](docs/screenshots/git-unshelve-dialog.png)
+
+In remote projects git runs on the remote host; the shelf stays on your machine.
+
 ## Merge conflicts
 
-When a merge, rebase, update (pull), cherry-pick or unstash stops with conflicts, Forge opens
+When a merge, rebase, update (pull), cherry-pick, unstash or unshelve stops with conflicts, Forge opens
 the **Conflicts** dialog. Later you get it with **Git ▸ Resolve Conflicts…** (Find Action:
 `Git.ResolveConflicts`), the **Resolve** link of the **Merge conflicts** balloon, or the
 **Resolve** link of the **Merge Conflicts** node in the Commit tool window.
@@ -11874,21 +11985,22 @@ Commit, push, update, branches, the log and file actions. In projects without Gi
 | Commit… | `Ctrl+K` | `Cmd+K` | yes | Opens the Commit tool window to commit the selected changes. [More](docs/guide/user/git.md#commit-tool-window) ([screenshot](docs/screenshots/docs-commit.png)) |
 | Push… | `Ctrl+Shift+K` | `Cmd+Shift+K` | yes | Pushes the current branch. [More](docs/guide/user/git.md#push-update-and-fetch) |
 | Update Project… | `Ctrl+T` | `Cmd+T` | yes | Pulls the current branch. [More](docs/guide/user/git.md#push-update-and-fetch) |
-| Pull… | — | — | not yet | Not available yet; the entry is disabled. |
+| Pull… | — | — | yes | Opens the Pull dialog: remote, branches and options (--rebase, --ff-only, --no-ff, …). [More](docs/guide/user/git.md#pull-merge-and-rebase) ([screenshot](docs/screenshots/git-pull-dialog.png)) |
 | Fetch | — | — | yes | Fetches all remotes. [More](docs/guide/user/git.md#push-update-and-fetch) |
-| Merge… | — | — | not yet | Not available yet; the entry is disabled. |
-| Rebase… | — | — | not yet | Not available yet; the entry is disabled. |
+| Merge… | — | — | yes | Opens the Merge dialog: branches and options (--no-ff, --squash, -m, …). [More](docs/guide/user/git.md#pull-merge-and-rebase) ([screenshot](docs/screenshots/git-merge-dialog.png)) |
+| Rebase… | — | — | yes | Opens the Rebase dialog: upstream or --onto base and options. While a rebase stops, Continue Rebase, Skip Commit and Abort Rebase follow. [More](docs/guide/user/git.md#pull-merge-and-rebase) ([screenshot](docs/screenshots/git-rebase-dialog.png)) |
+| Continue Rebase / Skip Commit / Abort Rebase | — | — | dynamic | Shown while a rebase is stopped; Abort Merge while a merge is. [More](docs/guide/user/git.md#pull-merge-and-rebase) ([screenshot](docs/screenshots/git-rebasing.png)) |
 | Resolve Conflicts… | — | — | yes | Opens the Conflicts dialog for the files with merge conflicts. [More](docs/guide/user/git.md#merge-conflicts) ([screenshot](docs/screenshots/merge-conflicts-dialog.png)) |
 | Branches… | — | — | yes | Opens the Git Branches popup: checkout, new branch, merge, rebase, push, delete. [More](docs/guide/user/git.md#branches) ([screenshot](docs/screenshots/docs-branches.png)) |
 | New Branch… | — | — | yes | Creates a branch from the current one and optionally checks it out. [More](docs/guide/user/git.md#branches) |
-| New Tag… | — | — | not yet | Not available yet; the entry is disabled. |
-| Reset HEAD… | — | — | not yet | Not available yet; the entry is disabled. |
+| New Tag… | — | — | yes | Creates a tag on a commit, optionally annotated or forced. [More](docs/guide/user/git.md#reset-head-tags-and-remotes) ([screenshot](docs/screenshots/git-tag-dialog.png)) |
+| Reset HEAD… | — | — | yes | Resets the current branch to a commit: Soft, Mixed, Hard or Keep. [More](docs/guide/user/git.md#reset-head-tags-and-remotes) ([screenshot](docs/screenshots/git-reset-dialog.png)) |
 | Show Git Log | — | — | yes | Opens the Log tab of the Git tool window. [More](docs/guide/user/git.md#log) ([screenshot](docs/screenshots/docs-git-log.png)) |
 | **Uncommitted Changes** | | | | submenu |
-| Uncommitted Changes › Shelve Changes… | — | — | not yet | Not available yet; the entry is disabled. |
-| Uncommitted Changes › Show Shelf | — | — | not yet | Not available yet; the entry is disabled. |
-| Uncommitted Changes › Stash Changes… | — | — | not yet | Not available yet; the entry is disabled. |
-| Uncommitted Changes › Unstash Changes… | — | — | not yet | Not available yet; the entry is disabled. |
+| Uncommitted Changes › Shelve Changes… | — | — | yes | Shelves the selected changes in Forge's per-project shelf and rolls them back. [More](docs/guide/user/git.md#shelf) ([screenshot](docs/screenshots/git-shelve-dialog.png)) |
+| Uncommitted Changes › Show Shelf | — | — | yes | Opens the Shelf tab of the Commit tool window. [More](docs/guide/user/git.md#shelf) ([screenshot](docs/screenshots/git-shelf-tab.png)) |
+| Uncommitted Changes › Stash Changes… | — | — | yes | Stashes the local changes with a message, optionally keeping the index. [More](docs/guide/user/git.md#stash) ([screenshot](docs/screenshots/git-stash-dialog.png)) |
+| Uncommitted Changes › Unstash Changes… | — | — | yes | Applies, pops, drops or branches a stash; View shows its files. [More](docs/guide/user/git.md#stash) ([screenshot](docs/screenshots/git-unstash-dialog.png)) |
 | Uncommitted Changes › Rollback… | `Ctrl+Alt+Z` | `Cmd+Alt+Z` | not yet | Not available yet; the entry is disabled. |
 | Uncommitted Changes › Show Local Changes | — | — | not yet | Not available yet; the entry is disabled. |
 | **Current File** | | | | submenu |
@@ -11901,7 +12013,7 @@ Commit, push, update, branches, the log and file actions. In projects without Gi
 | Current File › Show History | — | — | yes | Opens a History tab of the file in the Git tool window. [More](docs/guide/user/git.md#file-and-folder-history) ([screenshot](docs/screenshots/file-history.png)) |
 | Current File › Show History for Selection | — | — | yes | Shows how the selected lines changed, revision by revision. [More](docs/guide/user/git.md#history-for-selection) ([screenshot](docs/screenshots/selection-history.png)) |
 | Current File › Rollback Lines | `Ctrl+Alt+Z` | `Cmd+Alt+Z` | not yet | Not available yet; the entry is disabled. |
-| Manage Remotes… | — | — | not yet | Not available yet; the entry is disabled. |
+| Manage Remotes… | — | — | yes | Adds, edits and removes remotes. [More](docs/guide/user/git.md#reset-head-tags-and-remotes) ([screenshot](docs/screenshots/git-remotes-dialog.png)) |
 | Clone… | — | — | not yet | Not available yet; the entry is disabled. |
 | VCS Operations… | `` Alt+` `` | `Ctrl+V` | not yet | Not available yet; the entry is disabled. |
 
@@ -13226,6 +13338,7 @@ index falls back to `<project>/.forge/cache/php-index.json`.
 | `composer/composer.phar` | composer.phar downloaded from getcomposer.org with Settings \| PHP \| Composer, checked against its published SHA-256 sum |
 | `runtimes/node-<version>/` | the Node.js build Forge downloaded for language servers (only when no Node.js 18+ was installed) |
 | `projects/<name>-<hash>/bookmarks.json` | the bookmarks and bookmark lists of a project (`<hash>` of the project root, for remote projects of `user@host:/path`); kept out of the project |
+| `projects/<name>-<hash>/shelf/<id>/` | shelved changelists (Git ▸ Shelve Changes): `changes.json` (name, date, branch, files) and `shelved.patch`; kept out of the project |
 | `chat-history/<project>-<hash>/<chat>.json` | the AI chats of each project (the newest 100), see [AI](docs/guide/user/ai.md) |
 
 ## State — `<state dir>/forge/`
@@ -18070,10 +18183,15 @@ The parsers and the three-way merge (`merge`) are pure and also build for WebAss
 | `diff.rs` | Parser for unified diffs as printed by `git diff`. |
 | `history.rs` | File, folder and selection history: `FileRevision`, `BlockRevision`, `HistoryQuery` and the parsers of `git log -z --name-status` and `git log -L` output. Pure. |
 | `log.rs` | Commit history: parser for a NUL/RS separated `git log` format, ref decorations and per-commit changed files. |
+| `ops.rs` | Options of the Pull, Merge, Rebase, Reset HEAD and Tag dialogs (`PullOptions`, `MergeOptions`, `RebaseOptions`, `ResetMode`, `TagOptions`, `OperationAction`) and the git command lines they stand for; forbidden combinations are rejected. Pure. |
+| `patch.rs` | `git diff --binary` patches: split per file (`split_patch`, `join_patch`) and apply a file's hunks to its base text (`apply_file_patch`). Pure. |
 | `merge.rs` | Three-way merge for the merge window: diff3 chunking of yours/base/theirs (`merge_three_way` → `MergeModel` with `left`/`right`/`both`/`conflict` chunks), word-level "Resolve Simple Conflicts" (`resolve_simple`), `auto_merge`, line separator helpers. Pure. |
 | `repo.rs` | `Repo`: every git operation of the IDE, through a `GitExec` (local or remote host). |
 | `repo/conflicts.rs` | Merge conflicts: unmerged files and their sides (`git ls-files -u`), the operation (merge, rebase, cherry-pick, revert, unstash) and pane titles, stage versions `:1:`/`:2:`/`:3:` (`merge_file`), Accept Yours/Theirs (`accept_conflict_side`). Yours is git's `theirs` in a rebase. |
+| `repo/ops.rs` | Pull/Merge/Rebase with options (`pull_with`, `merge_with`, `rebase_with`), the operation in progress (`operation_state`, via `REBASE_HEAD`/`MERGE_HEAD`/… and the long status, which also drops a stale `REBASE_HEAD`), Continue/Abort/Skip (`operation_action`), `reset_head`, `tag`, `resolve_commit`, `edit_remote`, stash details (`stash_files`, `stash_file`, `stash_clear`, `stash_branch`). |
+| `repo/shelve.rs` | Shelve (`changes_patch` incl. untracked files, then roll back), Unshelve (`git apply`, falling back to `--3way` with conflicts for the resolver; partial by file) and `shelf_file` (before/after for Show Diff). |
 | `repo/history.rs` | Show History (`file_history`, `--follow` for files), Show History for Selection (`block_history`, `git log -L`), Annotate Revision (`blame_at`) and Compare with Branch on a folder (`changes_since`). |
+| `shelf.rs` | `Shelf`: shelved changelists stored in Forge's per-project data dir (`<id>/changes.json` + `shelved.patch`): list, create, rename, delete, remove files. |
 | `status.rs` | Parser for `git status --porcelain=v2 -z --branch`. |
 
 ## Main public items
@@ -18095,7 +18213,7 @@ pub struct Repo { … }
 
 ## Used by
 
-- IPC: `git_info`, `git_status`, `git_show`, `git_diff`, `git_diff_head`, `git_blame`, `git_log`, `git_commit_details`, `git_branches`, `git_checkout`, `git_create_branch`, `git_delete_branch`, `git_merge`, `git_rebase`, `git_stage`, `git_unstage`, `git_rollback`, `git_commit`, `git_push`, `git_pull`, `git_fetch`, `git_conflicts`, `git_merge_file`, `git_accept_conflict_side`, `git_resolve_merge` (`app/src-tauri/src/commands/git.rs`)
+- IPC: `git_info`, `git_status`, `git_show`, `git_diff`, `git_diff_head`, `git_blame`, `git_log`, `git_commit_details`, `git_branches`, `git_checkout`, `git_create_branch`, `git_delete_branch`, `git_merge`, `git_rebase`, `git_stage`, `git_unstage`, `git_rollback`, `git_commit`, `git_push`, `git_pull`, `git_fetch`, `git_conflicts`, `git_merge_file`, `git_accept_conflict_side`, `git_resolve_merge` (`app/src-tauri/src/commands/git.rs`); `git_pull_with`, `git_merge_with`, `git_rebase_with`, `git_operation_state`, `git_operation_action`, `git_reset_head`, `git_tag_with`, `git_resolve_commit`, `git_edit_remote`, `git_stash_files`, `git_stash_file`, `git_stash_clear`, `git_stash_branch`, `git_shelf_list`, `git_shelve`, `git_unshelve`, `git_shelf_delete`, `git_shelf_rename`, `git_shelf_file` (`commands/git_ops.rs`)
 - UI: `app/ui/src/features/git`
 - Browser mode: `merge` runs as WebAssembly (`vcs_merge` in `forge-wasm`) for the git mock; the rest uses mocks
 

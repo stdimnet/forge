@@ -55,6 +55,7 @@ index falls back to `<project>/.forge/cache/php-index.json`.
 | `composer/composer.phar` | composer.phar downloaded from getcomposer.org with Settings \| PHP \| Composer, checked against its published SHA-256 sum |
 | `runtimes/node-<version>/` | the Node.js build Forge downloaded for language servers (only when no Node.js 18+ was installed) |
 | `projects/<name>-<hash>/bookmarks.json` | the bookmarks and bookmark lists of a project (`<hash>` of the project root, for remote projects of `user@host:/path`); kept out of the project |
+| `projects/<name>-<hash>/shelf/<id>/` | shelved changelists (Git ▸ Shelve Changes): `changes.json` (name, date, branch, files) and `shelved.patch`; kept out of the project |
 | `chat-history/<project>-<hash>/<chat>.json` | the AI chats of each project (the newest 100), see [AI](../user/ai.md) |
 
 ## State — `<state dir>/forge/`

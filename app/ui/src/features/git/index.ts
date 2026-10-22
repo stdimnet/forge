@@ -10,7 +10,7 @@ import { registerEditorExtension } from "@/editor/extensions";
 import { registerContextMenuProvider } from "@/features/contextMenu/state";
 import type { FileEntry } from "@/ipc/workspace";
 import { showToolWindow } from "@/state/layout";
-import { CommitPanel } from "./CommitPanel";
+import { CommitTabs, CommitToolWindow } from "./StashShelfPanels";
 import { GitLogPanel } from "./GitLogPanel";
 import { GitOverlays } from "./GitOverlays";
 import { gitEditorExtensions, showChangeMarker } from "./editorGit";
@@ -41,6 +41,7 @@ import {
 } from "./fileActions";
 import { registerCompareHandler } from "@/features/compare/state";
 import "./revisionFiles";
+import "./opsIndex";
 import "./git.css";
 
 registerToolWindow({
@@ -50,7 +51,8 @@ registerToolWindow({
   anchor: "left",
   order: 10,
   shortcut: "Alt+0",
-  component: CommitPanel,
+  component: CommitToolWindow,
+  headerContent: CommitTabs,
 });
 
 registerToolWindow({

@@ -195,6 +195,27 @@ app/ui/            SolidJS UI
   Git submenu of the Project view (`features/git/fileMenu.ts`); file actions there run PHPStorm
   action ids (`CheckinFiles`, `Git.Add`, `Compare.Selected`, …) inside `withVcsTargets`, and the
   same commands use the focused tree, Commit window or editor (`vcsTargets()`) for shortcuts.
+- Git menu dialogs and the shelf (`forge_vcs::ops`, `repo/ops.rs`, `repo/shelve.rs`,
+  `forge_vcs::shelf`, `commands/git_ops.rs`, UI `features/git/gitDialogs.ts`, `GitDialogs.tsx`,
+  `StashShelfPanels.tsx`, `operation.ts`): `git_pull_with({ options: { remote, branches, rebase?,
+  ffOnly?, noFf?, squash?, noCommit?, noVerify? } }) -> { output }`, `git_merge_with({ options: {
+  branches, noFf?, ffOnly?, squash?, message?, noCommit?, allowUnrelatedHistories?, noVerify? }
+  }) -> string`, `git_rebase_with({ options: { onto, from?, branch?, root?, rebaseMerges?,
+  keepEmpty?, updateRefs? } }) -> string` (incompatible options are rejected in Rust; conflicts
+  fail and leave unmerged files for the resolver), `git_operation_state() -> { operation:
+  "rebase" | "merge" | "cherryPick" | "revert" | null, branch, onto }` (branch widget label
+  `branchLabel()` in `state/vcs.ts`), `git_operation_action({ action: "continue" | "abort" |
+  "skip" })`, `git_reset_head({ rev, mode: "soft" | "mixed" | "hard" | "keep" })`,
+  `git_tag_with({ options: { name, commit?, message?, force? } })`, `git_resolve_commit({ rev })
+  -> sha | null`, `git_edit_remote({ oldName, name, url })`, `git_stash_files({ index }) ->
+  ChangedFile[]`, `git_stash_file({ index, path }) -> { before, after }`, `git_stash_clear()`,
+  `git_stash_branch({ index, branch })`; shelf (stored in `<data dir>/forge/projects/<name>-
+  <hash>/shelf/<id>/{changes.json, shelved.patch}`, never in the project): `git_shelf_list() ->
+  { id, name, date, branch, files: { path, status: "added" | "modified" | "deleted", binary }[]
+  }[]`, `git_shelve({ paths, name })`, `git_unshelve({ id, paths?, remove })` (plain `git apply`,
+  else `--3way`), `git_shelf_delete({ id })`, `git_shelf_rename({ id, name })`,
+  `git_shelf_file({ id, path }) -> { before, after, binary }`. Browser mode: `mock/gitOpsMock.ts`
+  (`?rebasing` starts in a stopped rebase).
 - Merge conflicts (`forge_vcs::merge`, `Repo::conflicts`, `features/git/conflicts.ts`):
   `git_conflicts() -> { operation: "merge" | "rebase" | "cherryPick" | "revert" | "unstash",
   description, yoursName, theirsName, yoursTitle, theirsTitle, reversed, files: { path, yours,
