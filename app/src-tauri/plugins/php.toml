@@ -234,3 +234,75 @@ group = "lang.php.quality-tools"
 section = "Laravel Pint"
 project = true
 order = 10
+
+# ---- Editor > General > Auto Import (PHP) ------------------------------------------------
+
+[[contributions.settings]]
+key = "php.autoImport.addOnTheFly"
+title = "Add unambiguous imports on the fly"
+description = "Import a class as soon as you stop typing its name when exactly one class has that name."
+type = "bool"
+default = false
+group = "editor.general.auto-import"
+section = "PHP"
+order = 0
+
+[[contributions.settings]]
+key = "php.autoImport.optimizeOnTheFly"
+title = "Optimize imports on the fly"
+description = "Remove unused 'use' statements while you edit, but not while you work on the imports or type a name one of them provides."
+type = "bool"
+default = false
+group = "editor.general.auto-import"
+section = "PHP"
+order = 1
+
+[[contributions.settings]]
+key = "php.autoImport.showPopup"
+title = "Show import popup"
+description = "Show a hint with the class to import on unresolved class names; press Alt+Enter to import it."
+type = "bool"
+default = true
+group = "editor.general.auto-import"
+section = "PHP"
+order = 2
+
+[[contributions.settings]]
+key = "php.autoImport.namespaceScope"
+title = "Enable auto-import in namespace scope"
+description = "Completion adds a 'use' statement in files with a namespace; otherwise it inserts the fully qualified name."
+type = "bool"
+default = true
+group = "editor.general.auto-import"
+section = "PHP"
+order = 3
+
+[[contributions.settings]]
+key = "php.autoImport.fileScope"
+title = "Enable auto-import in file scope"
+description = "Completion adds a 'use' statement in files without a namespace."
+type = "bool"
+default = false
+group = "editor.general.auto-import"
+section = "PHP"
+order = 4
+
+[[contributions.settings]]
+key = "php.autoImport.fqnInPhpDoc"
+title = "Prefer FQN in PHPDoc"
+description = "Class names completed or imported in PHPDoc comments are written fully qualified."
+type = "bool"
+default = false
+group = "editor.general.auto-import"
+section = "PHP"
+order = 5
+
+[[contributions.settings]]
+key = "php.autoImport.globalNamespace"
+title = "Import classes from the global namespace"
+description = "Add 'use Exception;' for PHP's own classes in namespaced files instead of writing '\\Exception'."
+type = "bool"
+default = true
+group = "editor.general.auto-import"
+section = "PHP"
+order = 6

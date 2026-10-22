@@ -200,6 +200,25 @@ Page id `editor.breadcrumbs`.
 | `editor.breadcrumbs.placement` | enum: `top`, `bottom` | `bottom` | user |  | Placement |
 | `editor.breadcrumbs.disabledLanguages` | list | `[]` | user | Languages | Show breadcrumbs for — one checkbox per language; holds the file type ids switched off. |
 
+### Editor | General | Auto Import
+
+Page id `editor.general.auto-import`. See [Optimize Imports and Auto Import](../user/imports.md).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `php.autoImport.addOnTheFly` | bool | `false` | user | PHP | Add unambiguous imports on the fly — Import a class as soon as you stop typing its name when exactly one class has that name. |
+| `php.autoImport.optimizeOnTheFly` | bool | `false` | user | PHP | Optimize imports on the fly — Remove unused 'use' statements while you edit, but not while you work on the imports or type a name one of them provides. |
+| `php.autoImport.showPopup` | bool | `true` | user | PHP | Show import popup — Show a hint with the class to import on unresolved class names; press Alt+Enter to import it. |
+| `php.autoImport.namespaceScope` | bool | `true` | user | PHP | Enable auto-import in namespace scope — Completion adds a 'use' statement in files with a namespace; otherwise it inserts the fully qualified name. |
+| `php.autoImport.fileScope` | bool | `false` | user | PHP | Enable auto-import in file scope — Completion adds a 'use' statement in files without a namespace. |
+| `php.autoImport.fqnInPhpDoc` | bool | `false` | user | PHP | Prefer FQN in PHPDoc — Class names completed or imported in PHPDoc comments are written fully qualified. |
+| `php.autoImport.globalNamespace` | bool | `true` | user | PHP | Import classes from the global namespace — Add 'use Exception;' for PHP's own classes in namespaced files instead of writing '\Exception'. |
+| `javascript.autoImport.addOnTheFly` | bool | `false` | user | JavaScript and TypeScript | Add unambiguous imports on the fly — Import names the TypeScript server can resolve to exactly one module after you stop typing. |
+| `javascript.autoImport.optimizeOnTheFly` | bool | `false` | user | JavaScript and TypeScript | Optimize imports on the fly — Remove unused imports while you edit, but not on the lines you are editing. |
+| `javascript.autoImport.showPopup` | bool | `true` | user | JavaScript and TypeScript | Show import popup — Show a hint with the module to import from on unresolved names; press Alt+Enter to import. |
+| `javascript.autoImport.pathStyle` | enum: `shortest`, `project-relative`, `relative`, `non-relative` | `shortest` | user | JavaScript and TypeScript | Use paths relative to — How completion and Auto Import write the module path of a new import. |
+| `javascript.autoImport.typeImports` | bool | `false` | user | JavaScript and TypeScript | Use type imports in TypeScript — Import types with 'import type' when nothing else is imported from the module. |
+
 ### Editor | General | Postfix Completion
 
 Page id `editor.postfix`.

@@ -1605,6 +1605,32 @@ plugin manifest entry, and the chat UI needs no changes:
   get the text before formatting too; the code style pass runs last (order 100).
   Composer (`phpforge_lang_php::composer`): `php_language_level() -> { level, fromComposer }`,
   `php_composer_outdated() -> OutdatedPackage[]`.
+- Optimize Imports and Auto Import (`phpforge_lang_php::imports`, `forge_codeintel::imports`,
+  `app/src-tauri/src/commands/imports.rs`, UI `features/imports/`, client `src/ipc/imports.ts`):
+  `imports_optimize({ path, content }) -> { edit: TextEdit | null, message }` (PHP with the
+  import style; JS/TS/Vue through the TypeScript server's `source.organizeImports`);
+  `imports_optimize_paths({ paths, includeSubdirectories, onlyVcsChanged, buffers? }) -> { edit:
+  WorkspaceEdit, files, changed, message }` (Project view, applied as one undo step);
+  `php_import_hint({ path, content, offset }) -> UnresolvedClass | null` (the import popup);
+  `php_import_reference({ content, start, end, fqn, doc?, auto? }) -> { start, end, newText }[]`
+  (the chosen class of "Class to Import" and completed class names: import or FQN);
+  `php_imports_on_the_fly({ path, content, request: { caret, editedFrom?, editedTo?, add,
+  optimize } }) -> { edits, added, removed }`; `code_imports_on_the_fly({ path, content, add,
+  optimize, caret, edited? }) -> WorkspaceEdit | null` (TypeScript server's
+  `source.addMissingImports` / `source.removeUnusedImports`, only away from the edit). Offsets
+  UTF-16. The import style (`ImportStyle`: code style `php.codeStyle.imports.*` and
+  `php.autoImport.*`) reaches the refactorings through `imports::style::set_default` (kept
+  current from settings changes and project opening) and remote intentions through
+  `GenerateOptions.style.imports`; every `use` statement is inserted by
+  `imports::insert_imports`. Unresolved classes come from the backend's index
+  (`PhpBackend::unresolved_classes`, agent call `PhpCall::UnresolvedClasses`) plus PHP's own
+  classes from the stubs; "Import class" is built in `code_context_actions` (the ambiguous one
+  is the action `PhpImportClass` with `{ start, end, name, doc, candidates }`). Completion
+  items carry `additionalTextEdits`; `registerCompletionApplyHook` lets PHP replace the
+  server's `use` edit. The JavaScript settings `javascript.autoImport.pathStyle` /
+  `typeImports` become the TypeScript server's `importModuleSpecifierPreference` /
+  `preferTypeOnlyAutoImports` (`forge-langservers`). Browser mode: notifications, edits and
+  folder targets through WebAssembly, the PHP analysis approximated in `mock/importsMock.ts`.
 - Actions on Save (`crates/forge-save-actions`, `phpforge_lang_php::{imports, rearrange,
   cleanup}`, UI `features/actionsOnSave/`): `saveFile(path, trigger)` in `state/editor.ts` takes
   a `SaveTrigger` (`"explicit"` for `Ctrl+S`, `"autosave"`, `"plain"` for saves of other

@@ -66,7 +66,7 @@ are in [research/jetbrains-gap-analysis.md](research/jetbrains-gap-analysis.md).
 - [x] Move, Copy, Safe Delete, Change Signature, Make Static
 - [x] Extract Interface/Superclass, Pull Members Up/Push Members Down, Refactor This popup
 - [x] JS/TS refactorings (extract component, arrow/async conversions, destructuring)
-- [ ] Optimize Imports and auto-import settings (on the fly, on save, grouping)
+- [x] Optimize Imports and auto-import settings (on the fly, on save, grouping)
 
 ### Version control
 - [x] Merge conflict resolver (three-way merge, Resolve Simple Conflicts)

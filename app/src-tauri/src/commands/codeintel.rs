@@ -75,7 +75,7 @@ fn missing_feature(feature: Feature, servers: &[String]) -> MissingFeature {
     }
 }
 
-fn is_php(path: &str) -> bool {
+pub(crate) fn is_php(path: &str) -> bool {
     let p = path.to_ascii_lowercase();
     (p.ends_with(".php") || p.ends_with(".phtml") || p.ends_with(".inc"))
         && !p.ends_with(".blade.php")
@@ -115,14 +115,14 @@ impl Texts {
     }
 }
 
-struct Ctx {
-    manager: Arc<LspManager>,
-    backend: Arc<dyn Backend>,
-    abs: std::path::PathBuf,
+pub(crate) struct Ctx {
+    pub(crate) manager: Arc<LspManager>,
+    pub(crate) backend: Arc<dyn Backend>,
+    pub(crate) abs: std::path::PathBuf,
 }
 
 impl Ctx {
-    fn new(path: &str, app: &AppHandle, lsp: &LspState, ws: &AppState) -> Result<Self> {
+    pub(crate) fn new(path: &str, app: &AppHandle, lsp: &LspState, ws: &AppState) -> Result<Self> {
         let manager = lsp.manager(app, ws)?;
         let backend = ws.backend()?;
         let abs = backend.resolve(path)?;
@@ -137,7 +137,7 @@ impl Ctx {
         to_ui_path(self.manager.root(), Path::new(abs))
     }
 
-    fn relative_edit(&self, mut edit: WorkspaceEdit) -> WorkspaceEdit {
+    pub(crate) fn relative_edit(&self, mut edit: WorkspaceEdit) -> WorkspaceEdit {
         let root = self.manager.root().to_path_buf();
         edit.map_paths(|p| to_ui_path(&root, Path::new(p)));
         edit
@@ -196,7 +196,11 @@ fn lsp_range(r: lsp_types::Range) -> Range {
 }
 
 /// The caret's text: the editor buffer, else the file.
-fn current_text(backend: &Arc<dyn Backend>, path: &str, content: &Option<String>) -> String {
+pub(crate) fn current_text(
+    backend: &Arc<dyn Backend>,
+    path: &str,
+    content: &Option<String>,
+) -> String {
     content
         .clone()
         .or_else(|| backend.read_optional(path).ok().flatten())
@@ -1337,6 +1341,19 @@ pub async fn code_context_actions(
             }
             actions.push(php_action(&path, &text, i));
         }
+        // "Import class" on an unresolved class name: candidates from the index (project
+        // and vendor) and PHP's own classes, a chooser when there are several.
+        let style = crate::commands::imports::import_style(&ws);
+        let list = crate::commands::imports::unresolved_with_stubs(
+            &c.backend, &path, &text, &app, &ws, &lib,
+        )
+        .await;
+        let offset = codeintel::utf16_offset(&text, Position::new(line, character));
+        if let Some(fix) =
+            phpforge_lang_php::imports::auto::import_class_fix(&text, &list, offset, &style)
+        {
+            actions.push(php_action(&path, &text, fix));
+        }
     }
     // Extract Component on whole Vue template or JSX elements.
     if is_web_script(&path) && end != start {
@@ -1523,7 +1540,7 @@ pub async fn code_refactor_this(
 pub(crate) const EXTRACT_COMPONENT: &str = "WebForge.ExtractComponent";
 
 /// Files the TypeScript language server and Extract Component work on.
-fn is_web_script(path: &str) -> bool {
+pub(crate) fn is_web_script(path: &str) -> bool {
     let p = path.to_ascii_lowercase();
     [
         ".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs", ".mts", ".cts", ".vue",
@@ -1587,8 +1604,12 @@ pub fn php_import_class(
     path: String,
     content: String,
     fqn: String,
+    ws: State<'_, AppState>,
 ) -> Vec<phpforge_lang_php::generate::TextEdit> {
-    phpforge_lang_php::service::import_class(&path, &content, &fqn)
+    let style = crate::commands::imports::import_style(&ws);
+    phpforge_lang_php::imports::with_style(style, || {
+        phpforge_lang_php::service::import_class(&path, &content, &fqn)
+    })
 }
 
 /// Fill in a code action's edit (`codeAction/resolve`).

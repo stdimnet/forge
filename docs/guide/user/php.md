@@ -382,7 +382,7 @@ Premium) and Forge's own PHP intentions, see [Editor](editor.md#show-context-act
 
 | Intention | Where |
 | --- | --- |
-| Import class 'App\Models\Order' | on a class name that is neither imported nor declared in the namespace (one entry per candidate) |
+| Import class | on a class name that is neither imported nor declared in the namespace: candidates from the index (project and vendor) and PHP's own classes, the "Class to Import" chooser when there are several, see [Auto Import](imports.md#import-class-and-the-import-popup) |
 | Replace qualifier with an import | on a fully qualified name (`\App\Models\Order`) |
 | Generate getter and setter / getter / setter | on a property without accessors |
 | Add 'readonly' modifier | on a typed, non-static property without a default value (also promoted constructor properties) |
@@ -612,6 +612,9 @@ Settings | Editor | Code Style | PHP (schemes, presets and the preview are descr
 - **Code Conversion**: array declaration style (keep, short `[]` or long `array()`), a comma
   after the last element of multi-line arrays, and `true`/`false`/`null` in lower or upper
   case.
+- **Imports**: sorting (alphabetically, by length), grouping (by kind, by kind and
+  namespace), blank lines between groups and "Prefer FQN"; Optimize Imports, Auto Import and
+  the refactorings follow them, see [Optimize Imports and Auto Import](imports.md#php-code-style-imports).
 
 Reformat Code (`Ctrl+Alt+L`) lets Intelephense format the file and then applies the spaces,
 brace placement, blank lines and conversions on the lines as they are. Strings, heredocs,

@@ -604,7 +604,7 @@ editor context menu:
 | Go To > Implementation(s) | works |
 | Generate… | works in PHP files, see [PHP](php.md#generate) |
 | Reformat Code | works |
-| Optimize Imports | not available yet |
+| Optimize Imports | works, see [Optimize Imports and Auto Import](imports.md) |
 | Comment with Line Comment | works |
 | Git > Annotate with Git Blame | works |
 
