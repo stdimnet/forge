@@ -2506,6 +2506,7 @@ dependencies = [
  "forge-vim",
  "forge-window",
  "luaforge-lang-lua",
+ "phpforge-cli-tools",
  "phpforge-composer",
  "phpforge-dql",
  "phpforge-interpreters",
