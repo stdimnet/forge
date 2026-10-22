@@ -19,6 +19,7 @@
 //! - [`imports`], [`rearrange`] and [`cleanup`]: Optimize Imports, Rearrange Code and Code
 //!   Cleanup (also run as Actions on Save).
 
+pub mod attributes;
 pub mod cleanup;
 pub mod composer;
 pub mod create;

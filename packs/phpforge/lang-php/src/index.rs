@@ -114,7 +114,7 @@ struct CacheFile {
     files: HashMap<String, Entry>,
 }
 
-const CACHE_VERSION: u32 = 1;
+const CACHE_VERSION: u32 = 2;
 
 pub struct ProjectIndex {
     root: PathBuf,
