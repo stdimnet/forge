@@ -16,6 +16,10 @@ pub trait CodeHost: Send + Sync {
     /// The token owner (used to verify a token).
     async fn current_user(&self) -> HostResult<User>;
 
+    /// Repositories the account owns or is a member of, recently active first (Get from
+    /// VCS). At most a few hundred.
+    async fn repositories(&self) -> HostResult<Vec<HostRepository>>;
+
     async fn merge_requests(
         &self,
         repo: &RepoRef,

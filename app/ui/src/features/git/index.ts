@@ -44,6 +44,7 @@ import "./revisionFiles";
 import "./opsIndex";
 import "./changesIndex";
 import "./logIndex";
+import "./extrasIndex";
 import "./git.css";
 
 registerToolWindow({

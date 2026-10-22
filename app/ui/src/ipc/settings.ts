@@ -37,6 +37,8 @@ export type SettingSpec = SettingType & {
   section?: string;
   /** Stored in `.forge/settings.toml` of the open project. */
   project: boolean;
+  /** Edited by a dialog of its page instead of a row. */
+  hidden?: boolean;
   order: number;
 };
 

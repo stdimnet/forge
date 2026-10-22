@@ -12,8 +12,9 @@ use crate::github::GitHub;
 use crate::gitlab::GitLab;
 use crate::host::CodeHost;
 use crate::http::client;
-use crate::model::{HostKind, RepoRef, User};
+use crate::model::{HostKind, HostRepository, RepoRef, User};
 use crate::remote::{detect, normalize_server};
+use forge_vcs::clone::{http_host, HttpsCredential};
 
 /// Build a host client for an API root.
 pub fn open_host(
@@ -211,6 +212,45 @@ impl ForgeService {
             .await
     }
 
+    /// The account's repositories (Get from VCS).
+    pub async fn repositories(&self, id: &str) -> HostResult<Vec<HostRepository>> {
+        let acc = self.account(id)?;
+        let (token, _) = self.token(&acc);
+        let Some(token) = token else {
+            return Err(HostError::Unauthorized {
+                host: acc.kind.display_name().into(),
+            });
+        };
+        open_host(acc.kind, self.client.clone(), &acc.api_base(), Some(token))
+            .repositories()
+            .await
+    }
+
+    /// The HTTPS credential for cloning `url`: the token of the account on its server
+    /// (`account_id` picks one explicitly). `None` for SSH URLs and unknown servers.
+    pub fn credential_for_url(
+        &self,
+        url: &str,
+        account_id: Option<&str>,
+    ) -> Option<HttpsCredential> {
+        let host = http_host(url)?;
+        let accounts = self.lock().clone();
+        let acc = match account_id {
+            Some(id) => accounts.into_iter().find(|a| a.id == id)?,
+            None => accounts.into_iter().find(|a| {
+                http_host(&normalize_server(&a.server)).as_deref() == Some(host.as_str())
+            })?,
+        };
+        if http_host(&normalize_server(&acc.server)).as_deref() != Some(host.as_str()) {
+            return None;
+        }
+        let (token, _) = self.token(&acc);
+        Some(HttpsCredential {
+            username: clone_username(&acc),
+            password: token?,
+        })
+    }
+
     /// Code-host repositories among git remotes (`(name, url)` pairs).
     pub fn detect(&self, remotes: &[(String, String)]) -> Vec<RepoRef> {
         detect(remotes, &self.lock())
@@ -247,10 +287,68 @@ impl ForgeService {
     }
 }
 
+/// The user name that goes with a token over HTTPS.
+fn clone_username(acc: &Account) -> String {
+    match acc.kind {
+        HostKind::Github => "x-access-token".into(),
+        HostKind::Gitlab => "oauth2".into(),
+        HostKind::Forgejo => acc
+            .username
+            .clone()
+            .filter(|u| !u.is_empty())
+            .unwrap_or_else(|| "forge".into()),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::accounts::MemoryStore;
+
+    #[test]
+    fn https_credentials_only_for_the_accounts_server() {
+        let store = Arc::new(MemoryStore::default());
+        store.set("gitlab-git.acme.dev", "glpat-1").unwrap();
+        store.set("forgejo-codeberg.org", "fj-1").unwrap();
+        let svc = ForgeService::new(None, store).unwrap().with_env(|_| None);
+        *svc.lock() = vec![
+            Account {
+                id: "gitlab-git.acme.dev".into(),
+                kind: HostKind::Gitlab,
+                server: "https://git.acme.dev".into(),
+                username: Some("marlon".into()),
+                api_url: None,
+            },
+            Account {
+                id: "forgejo-codeberg.org".into(),
+                kind: HostKind::Forgejo,
+                server: "https://codeberg.org".into(),
+                username: Some("marlon".into()),
+                api_url: None,
+            },
+        ];
+        let gl = svc
+            .credential_for_url("https://git.acme.dev/team/shop.git", None)
+            .unwrap();
+        assert_eq!(
+            (gl.username.as_str(), gl.password.as_str()),
+            ("oauth2", "glpat-1")
+        );
+        let fj = svc
+            .credential_for_url("https://codeberg.org/marlon/forge.git", None)
+            .unwrap();
+        assert_eq!(fj.username, "marlon");
+        assert!(svc
+            .credential_for_url("git@git.acme.dev:team/shop.git", None)
+            .is_none());
+        assert!(svc
+            .credential_for_url("https://github.com/acme/shop.git", None)
+            .is_none());
+        // An explicitly chosen account must match the URL's server.
+        assert!(svc
+            .credential_for_url("https://evil.example/x.git", Some("gitlab-git.acme.dev"))
+            .is_none());
+    }
 
     #[test]
     fn env_token_only_for_public_servers() {

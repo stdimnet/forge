@@ -13,7 +13,9 @@ import {
   Clock,
   Cloud,
   RefreshCw,
+  FolderTree,
 } from "lucide-solid";
+import { newWorktreeDialog, openWorktree } from "./extras";
 import { gitApi, type BranchInfo } from "./api";
 import { revision, status } from "./store";
 import { setBranchesOpen } from "./overlays";
@@ -96,7 +98,8 @@ export function BranchesPopup() {
         class="popup-row branch-row"
         classList={{ hovered: hovered()?.row.key === row.key }}
         onMouseEnter={(e) => setHovered({ row, top: e.currentTarget.getBoundingClientRect().top })}
-        onClick={() => !p.b.current && void checkout(p.b.name, p.remote)}
+        onClick={() => !p.b.current && (p.b.worktree ? (setBranchesOpen(false), void openWorktree(p.b.worktree)) : void checkout(p.b.name, p.remote))}
+        data-branch={p.b.name}
       >
         <span class="popup-icon">
           <Show when={p.b.current} fallback={p.remote ? <Cloud size={14} /> : <GitBranch size={14} />}>
@@ -112,6 +115,11 @@ export function BranchesPopup() {
         <Show when={p.b.behind > 0}>
           <span class="branch-track incoming" title={`${p.b.behind} incoming commits`}>
             ↓{p.b.behind}
+          </span>
+        </Show>
+        <Show when={p.b.worktree}>
+          <span class="branch-worktree" title={`Checked out in the worktree ${p.b.worktree}`} data-testid="branch-worktree">
+            <FolderTree size={12} /> worktree
           </span>
         </Show>
         <Show when={p.b.upstream && !p.remote}>
@@ -133,14 +141,17 @@ export function BranchesPopup() {
           { label: "Update", run: () => (setBranchesOpen(false), void updateProject()) },
         ]
       : [
-          { label: "Checkout", run: () => void checkout(b.name, h.row.remote) },
+          b.worktree
+            ? { label: "Open Worktree", run: () => (setBranchesOpen(false), void openWorktree(b.worktree!)) }
+            : { label: "Checkout", run: () => void checkout(b.name, h.row.remote) },
           { label: `New Branch from '${b.name}'…`, run: () => newBranchDialog(b.name) },
+          ...(h.row.remote || b.worktree ? [] : [{ label: "New Worktree…", run: () => (setBranchesOpen(false), void newWorktreeDialog(b.name)) }]),
           null,
           { label: `Compare with '${cur}'`, run: () => (setBranchesOpen(false), showLogFor(`${cur}..${b.name}`)) },
           null,
           { label: `Rebase '${cur}' onto '${b.name}'`, run: () => void rebaseOnto(b.name) },
           { label: `Merge '${b.name}' into '${cur}'`, run: () => void mergeIntoCurrent(b.name) },
-          ...(h.row.remote ? [] : [null, { label: "Delete", run: () => deleteBranch(b.name), danger: true }]),
+          ...(h.row.remote || b.worktree ? [] : [null, { label: "Delete", run: () => deleteBranch(b.name), danger: true }]),
         ];
     const rect = root.getBoundingClientRect();
     return (

@@ -30,6 +30,10 @@ impl ForgesState {
         });
         Self { service }
     }
+
+    pub(crate) fn service(&self) -> &ForgeService {
+        &self.service
+    }
 }
 
 /// What the UI needs to know about the project's code host.

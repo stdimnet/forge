@@ -249,6 +249,10 @@ pub struct SettingSpec {
     /// Stored per project (`.forge/settings.toml`) rather than per user when a project is open.
     #[serde(default)]
     pub project: bool,
+    /// Not shown as a row of its page: a dialog of the page edits it (e.g. the signing key
+    /// chosen in "Configure GPG Key…").
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub hidden: bool,
     #[serde(default)]
     pub order: i32,
 }
