@@ -1,5 +1,6 @@
 /** The "Choose Declaration" list (state and API in `chooseDeclaration.ts`). */
 import { createSignal, For, onCleanup, onMount, Show, type JSX } from "solid-js";
+import { Plus } from "lucide-solid";
 import { FileIcon } from "@/shell/FileIcon";
 import { closeChooser, type Chooser, type DeclarationTarget } from "./declarationChooser";
 
@@ -20,16 +21,28 @@ export function ChooseDeclarationPopup(props: { chooser: Chooser }) {
     el.focus();
   });
   onCleanup(() => window.removeEventListener("mousedown", away, true));
+  const actions = () => props.chooser.actions ?? [];
   const open = (t: DeclarationTarget) => {
     closeChooser();
     props.chooser.open(t);
   };
+  /** Rows are the actions first, then the targets. */
+  const activate = (i: number) => {
+    const a = actions()[i];
+    if (a) {
+      closeChooser();
+      a.run();
+    } else {
+      const t = props.chooser.targets[i - actions().length];
+      if (t) open(t);
+    }
+  };
   // List navigation while the popup has focus (not a shortcut: the popup owns these keys).
   const onKey: JSX.EventHandler<HTMLDivElement, KeyboardEvent> = (e) => {
-    const n = props.chooser.targets.length;
+    const n = actions().length + props.chooser.targets.length;
     if (e.key === "ArrowDown") setIndex((i) => (i + 1) % n);
     else if (e.key === "ArrowUp") setIndex((i) => (i + n - 1) % n);
-    else if (e.key === "Enter") open(props.chooser.targets[index()]);
+    else if (e.key === "Enter") activate(index());
     else if (e.key === "Escape") closeChooser();
     else return;
     e.preventDefault();
@@ -46,10 +59,27 @@ export function ChooseDeclarationPopup(props: { chooser: Chooser }) {
       onKeyDown={onKey}
     >
       <div class="decl-chooser-title">{props.chooser.title}</div>
+      <For each={actions()}>
+        {(a, i) => (
+          <button
+            class="decl-chooser-row decl-chooser-action"
+            classList={{ selected: i() === index() }}
+            role="option"
+            aria-selected={i() === index()}
+            onMouseEnter={() => setIndex(i())}
+            onClick={() => activate(i())}
+          >
+            <Plus size={14} />
+            <span class="decl-chooser-name">{a.label}</span>
+          </button>
+        )}
+      </For>
       <For each={props.chooser.targets}>
-        {(t, i) => (
+        {(t, j) => {
+          const i = () => j() + actions().length;
+          return (
           <>
-          <Show when={t.group && t.group !== props.chooser.targets[i() - 1]?.group}>
+          <Show when={t.group && t.group !== props.chooser.targets[j() - 1]?.group}>
             <div class="decl-chooser-group" role="presentation">
               {t.group}
             </div>
@@ -93,7 +123,8 @@ export function ChooseDeclarationPopup(props: { chooser: Chooser }) {
             </span>
           </button>
           </>
-        )}
+          );
+        }}
       </For>
     </div>
   );

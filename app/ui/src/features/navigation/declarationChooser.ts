@@ -27,12 +27,20 @@ export interface DeclarationTarget {
   wholeFile?: boolean;
 }
 
+/** A row above the targets that runs an action (Go to Test: "Create New Test..."). */
+export interface ChooserAction {
+  label: string;
+  run: () => void;
+}
+
 export interface Chooser {
   title: string;
   x: number;
   y: number;
   targets: DeclarationTarget[];
   open: (t: DeclarationTarget) => void;
+  /** Rows shown before the targets. */
+  actions?: ChooserAction[];
 }
 
 const [chooser, setChooser] = createSignal<Chooser | null>(null);
@@ -42,18 +50,22 @@ export const closeChooser = () => setChooser(null);
 
 export const revealTarget = (t: DeclarationTarget) => void openFileAt(t.path, t.line + 1, (t.column ?? 0) + 1);
 
+export interface ChooseOptions {
+  title?: string;
+  open?: (t: DeclarationTarget) => void;
+  /** Rows above the targets; with actions the popup also opens without targets. */
+  actions?: ChooserAction[];
+}
+
 /**
  * Open the only target, or let the user choose between several at screen position x/y.
  * `open` replaces the default navigation (e.g. a pack's own reveal).
  */
-export function chooseDeclaration(
-  targets: DeclarationTarget[],
-  at: { x: number; y: number; title?: string; open?: (t: DeclarationTarget) => void },
-): void {
+export function chooseDeclaration(targets: DeclarationTarget[], at: { x: number; y: number } & ChooseOptions): void {
   const open = at.open ?? revealTarget;
   if (targets.length === 1) open(targets[0]);
-  else if (targets.length > 1)
-    setChooser({ title: at.title ?? "Choose Declaration", x: at.x, y: at.y, targets, open });
+  else if (targets.length > 1 || at.actions?.length)
+    setChooser({ title: at.title ?? "Choose Declaration", x: at.x, y: at.y, targets, open, actions: at.actions });
 }
 
 /** {@link chooseDeclaration} below the editor position `pos`. */
@@ -61,7 +73,7 @@ export function chooseDeclarationAt(
   view: EditorView,
   pos: number,
   targets: DeclarationTarget[],
-  opts: { title?: string; open?: (t: DeclarationTarget) => void } = {},
+  opts: ChooseOptions = {},
 ): void {
   const coords = view.coordsAtPos(pos);
   chooseDeclaration(targets, { x: coords?.left ?? 200, y: (coords?.bottom ?? 200) + 4, ...opts });
