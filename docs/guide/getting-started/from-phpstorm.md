@@ -60,7 +60,7 @@ happening.
 
 - Get from VCS
 - Find Usages in File (`Ctrl+F7`), Highlight Usages in File
-- Refactorings other than Rename, Extract/Introduce and Inline: Move, Change Signature, Safe Delete
+- Extract Interface / Superclass, Pull Members Up / Push Members Down
 - File Structure popup (`Ctrl+F12`)
 - Local History
 - Optimize Imports

@@ -1,8 +1,8 @@
 ---
 title: PHP
-description: PHP support in PHPForge - the PHP index, navigation (Ctrl+Click, Show Usages, implementations, PHP stubs), Rename (Shift+F6), Extract / Introduce and Inline refactorings, context actions and create from usage (Alt+Enter), Structure tool window, hover documentation, class and symbol search, Generate (Alt+Insert) and the PHP settings.
+description: PHP support in PHPForge - the PHP index, navigation (Ctrl+Click, Show Usages, implementations, PHP stubs), Rename (Shift+F6), Extract / Introduce and Inline, Move, Copy, Safe Delete, Change Signature and Make Static refactorings, context actions and create from usage (Alt+Enter), Structure tool window, hover documentation, class and symbol search, Generate (Alt+Insert) and the PHP settings.
 order: 60
-tags: [php, phpforge, generate, structure, index, navigation, usages, stubs, rename, refactoring, extract, inline, intentions]
+tags: [php, phpforge, generate, structure, index, navigation, usages, stubs, rename, refactoring, extract, inline, move, safe delete, change signature, intentions]
 ---
 
 # PHP
@@ -271,6 +271,67 @@ enclosing scope", "Inline variable"…) in a popup.
 ![Extract Method dialog](../../screenshots/extract-method-dialog.png)
 
 ![After Extract Method](../../screenshots/extract-method-result.png)
+
+## Move, copy, safe delete, change signature and make static
+
+The other refactorings of the Refactor menu work like PHPStorm's too. Forge finds the usages
+with its PHP index and computes every edit itself (no language server or licence needed); the
+whole refactoring, file moves included, is one undo step (`Ctrl+Z` in any changed editor) and
+works in remote projects. **Preview** lists every change first, **Problems Detected** the
+conflicts (a class that already exists, a call that cannot be updated).
+
+- **Move** (`F6`) on a class (its name or header, or a reference to it): the **Move Class**
+  dialog asks for the namespace and the target directory, which follows the namespace through
+  the PSR-4 rules of `composer.json` until you edit it. The namespace statement, every `use`
+  import (group imports too), fully qualified name and PHPDoc type is updated, files of the old
+  namespace that used the class by its short name get an import, and the moved file imports the
+  classes of its old namespace it uses. A class alone in its file moves with the file
+  (`app/Models/Order.php` → `app/Domain/Sales/Order.php`); otherwise it goes into a new file.
+  **Search in comments and strings** also updates `'App\Models\Order'` and comments.
+- **Move** on a static method, static property or constant: the **Move Members** dialog lists
+  the class's static members; checked ones move to the class you name (fully qualified).
+  `Source::member` references become `Target::member` (`self::` inside the target), `self::`
+  references in the moved code to members that stay become `Source::`, and class names in the
+  moved code are fully qualified where the target file would resolve them differently. Private
+  members still used by the class are reported.
+- **Move** on a function: **Move Function** moves it to another PHP file; calls and
+  `use function` imports follow when the namespace changes.
+- **Move** in the Project view (`F6`, or drag and drop onto a folder): a PHP file with one class
+  opens Move Class; files and folders otherwise move to the folder you choose. PHP files that
+  follow PSR-4 get the namespace of their new folder and the references to their classes are
+  updated (**Search for references**).
+- **Copy** (`F5`) on a class: **Copy Class** creates a copy with a new name in a namespace and
+  directory of your choice; the class's references to itself are renamed and the copy imports
+  what it used from its old namespace. In the Project view `F5` copies files and folders.
+- **Safe Delete** (`Alt+Delete`) on a class, interface, trait, enum, method, property, constant,
+  enum case, function or parameter (or files and folders in the Project view) asks first
+  (**Search in comments and strings**), then searches for usages. Without usages the element is
+  deleted (a class alone in its file deletes the file). With usages, **Usages Detected** says how
+  many usages are not safe to delete: **View Usages** lists them in the Find tool window (with
+  **Delete Anyway** below), **Delete Anyway** deletes right away. A parameter is removed with its
+  arguments at every call site and in overriding methods; its uses in the body are the usages
+  that are not safe to delete.
+- **Change Signature** (`Ctrl+F6`) on a method or function (its declaration, a call or the
+  caret in its body): change the name, visibility and return type, and add, remove, reorder and
+  edit parameters (type, name, default value). A new parameter needs a **value at call sites**
+  (or a default value). The declaration, the overriding and implementing methods and every call
+  site change: positional arguments are reordered, removed ones dropped, named arguments keep
+  their names, and once an argument is left out the following ones become named. Renamed
+  parameters are renamed in the body and the PHPDoc; removing a parameter the body uses is a
+  problem. On a constructor, `new` expressions are updated.
+- **Make Static** (Refactor | Make Static…) on an instance method: a method without `$this`
+  just becomes `static`; otherwise **Add object as a parameter** passes the object (`$this` →
+  `$price`) or **Add parameters for fields** passes the fields it reads. Calls change from
+  `$obj->m()` to `Class::m()` (`self::m()` inside the class) with the object or its fields as the
+  first arguments.
+
+![Move Class dialog](../../screenshots/move-class-dialog.png)
+
+![Move Class preview](../../screenshots/move-class-preview.png)
+
+![Usages Detected](../../screenshots/safe-delete-usages-detected.png)
+
+![Change Signature dialog](../../screenshots/change-signature-dialog.png)
 
 ## Context actions and intentions
 

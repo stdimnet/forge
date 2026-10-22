@@ -34,6 +34,26 @@ export function revealPath(dir: string): void {
   });
 }
 
+/** The rows being dragged and the folder they would be dropped on (Move by drag and drop). */
+const [dragged, setDragged] = createSignal<string[]>([]);
+const [dropTarget, setDropTarget] = createSignal<string | null>(null);
+
+/** Whether `path` can be dropped into the folder `dir` ("" is the project root). */
+export function canDrop(path: string, dir: string): boolean {
+  const parent = path.includes("/") ? path.slice(0, path.lastIndexOf("/")) : "";
+  return !path.includes("://") && dir !== parent && dir !== path && !dir.startsWith(`${path}/`);
+}
+
+const canDropAll = (dir: string) => dragged().length > 0 && dragged().every((p) => canDrop(p, dir));
+
+function dropInto(dir: string): void {
+  const paths = dragged();
+  setDragged([]);
+  setDropTarget(null);
+  if (!paths.length || !paths.every((p) => canDrop(p, dir))) return;
+  void import("@/features/codeintel/moveRefactorings").then((m) => m.moveEntries(paths, dir));
+}
+
 /** Tree selection, independent of the active editor tab (like PHPStorm). */
 const [selected, setSelected] = createSignal<string | null>(null);
 
@@ -154,12 +174,36 @@ function TreeNode(props: { entry: FileEntry; depth: number }) {
           "active-file": editor.active === props.entry.path,
           ignored: !!props.entry.ignored,
           "file-colored": !!color(),
+          "drop-target": isDir() && dropTarget() === props.entry.path,
         }}
         style={{ "padding-left": `${8 + props.depth * 16}px`, "--file-color": color() }}
         data-path={props.entry.path}
         data-dir={isDir() ? "" : undefined}
         data-expanded={isOpen() ? "" : undefined}
         data-depth={props.depth}
+        draggable={true}
+        onDragStart={(e) => {
+          const all = selectedPaths();
+          setDragged(all.includes(props.entry.path) ? all : [props.entry.path]);
+          e.dataTransfer?.setData("text/plain", props.entry.path);
+          if (e.dataTransfer) e.dataTransfer.effectAllowed = "move";
+        }}
+        onDragEnd={() => {
+          setDragged([]);
+          setDropTarget(null);
+        }}
+        onDragOver={(e) => {
+          const dir = isDir() ? props.entry.path : props.entry.path.split("/").slice(0, -1).join("/");
+          if (!canDropAll(dir)) return;
+          e.preventDefault();
+          if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+          setDropTarget(dir);
+        }}
+        onDragLeave={() => setDropTarget(null)}
+        onDrop={(e) => {
+          e.preventDefault();
+          dropInto(isDir() ? props.entry.path : props.entry.path.split("/").slice(0, -1).join("/"));
+        }}
         onClick={(e) => {
           if (e.ctrlKey || e.metaKey) return toggleSelected(props.entry.path);
           selectOnly(props.entry.path);
@@ -273,7 +317,21 @@ export function ProjectView() {
       <Show when={workspace()}>
         {(ws) => (
           <>
-            <div class="tree-row tree-root" style={{ "padding-left": "8px" }}>
+            <div
+              class="tree-row tree-root"
+              classList={{ "drop-target": dropTarget() === "" }}
+              style={{ "padding-left": "8px" }}
+              onDragOver={(e) => {
+                if (!canDropAll("")) return;
+                e.preventDefault();
+                setDropTarget("");
+              }}
+              onDragLeave={() => setDropTarget(null)}
+              onDrop={(e) => {
+                e.preventDefault();
+                dropInto("");
+              }}
+            >
               <span class="tree-chevron">
                 <ChevronDown size={14} />
               </span>

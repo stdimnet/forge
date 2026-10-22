@@ -214,6 +214,7 @@
   {"id":"ExtractInterface","title":"Extract Interface…","group":"Main Menu/Refactor/Extract/Introduce","win":"","mac":""},
   {"id":"ExtractSuperclass","title":"Extract Superclass…","group":"Main Menu/Refactor/Extract/Introduce","win":"","mac":""},
   {"id":"MemberPushDown","title":"Push Members Down…","group":"Main Menu/Refactor","win":"","mac":""},
+  {"id":"MakeStatic","title":"Make Static…","group":"Main Menu/Refactor","win":"","mac":""},
   {"id":"MembersPullUp","title":"Pull Members Up…","group":"Main Menu/Refactor","win":"","mac":""},
   {"id":"Run","title":"Run","group":"Main Menu/Run","win":"Shift+F10","mac":"Ctrl+R"},
   {"id":"Debug","title":"Debug","group":"Main Menu/Run","win":"Shift+F9","mac":"Ctrl+D"},

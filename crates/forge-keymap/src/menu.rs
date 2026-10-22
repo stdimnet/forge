@@ -878,6 +878,7 @@ fn refactor_menu() -> MenuEntry {
             SEP,
             l("MembersPullUp", "Pull Members _Up..."),
             l("MemberPushDown", "Push Members _Down..."),
+            l("MakeStatic", "Ma_ke Static..."),
         ],
     )
 }

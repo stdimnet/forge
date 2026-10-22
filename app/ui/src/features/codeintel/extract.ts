@@ -40,7 +40,7 @@ import { showBalloon } from "@/keymap";
 import { showHint } from "@/features/lsp/hint";
 import { syncNow } from "@/features/lsp/sync";
 import { fromLsp, toLsp } from "@/features/lsp/util";
-import { applyWorkspaceEdit } from "./refactoring";
+import { applyWorkspaceEdit, type FileOp } from "./refactoring";
 import { renameSessionOf, showRefactoringPreview, startLocalSession } from "./rename";
 import { runContextAction } from "./intentions";
 
@@ -49,7 +49,7 @@ const isPhp = (path: string) => /\.(php|phtml|inc)$/i.test(path) && !/\.blade\.p
 const message = (e: unknown) => String(e instanceof Error ? e.message : e);
 
 /** Unsaved editor contents, so Rust refactors what is on screen. */
-function dirtyBuffers(): Record<string, string> {
+export function dirtyBuffers(): Record<string, string> {
   return Object.fromEntries(editor.tabs.filter((t) => isDirty(t) && !isLibraryPath(t.path)).map((t) => [t.path, t.content]));
 }
 
@@ -172,10 +172,10 @@ const TITLES: Record<IntroduceKind, string> = {
 };
 
 /** Problems Detected / Refactoring Preview, then the edit as one undoable step. */
-async function applyAnswer(
+export async function applyAnswer(
   title: string,
   answer: RefactorAnswer,
-  opts: { preview?: boolean; beforeEditors?: () => void } = {},
+  opts: { preview?: boolean; beforeEditors?: () => void; fileOps?: FileOp[] } = {},
 ): Promise<boolean> {
   if (answer.conflicts.length || opts.preview) {
     const asRename: RenameAnswer = {
@@ -187,11 +187,12 @@ async function applyAnswer(
     const ok = await showRefactoringPreview(title, asRename);
     if (!ok) return false;
   }
-  if (!answer.edit.changes.length) return false;
+  if (!answer.edit.changes.length && !opts.fileOps?.length) return false;
   try {
     await applyWorkspaceEdit(answer.edit, {
       label: title,
       beforeEditors: opts.beforeEditors,
+      fileOps: opts.fileOps,
     });
   } catch (e) {
     showBalloon(`${title} failed`, message(e), 6000);
@@ -473,6 +474,11 @@ export const FIELD_INIT_LABELS: Record<FieldInit, string> = {
 /** The refactorings of the Refactor This popup (Ctrl+Alt+Shift+T), PHPStorm's order. */
 export const REFACTOR_THIS = [
   "RenameElement",
+  "ChangeSignature",
+  "Move",
+  "CopyElement",
+  "SafeDelete",
+  "MakeStatic",
   "IntroduceVariable",
   "IntroduceConstant",
   "IntroduceField",

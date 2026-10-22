@@ -11,10 +11,17 @@
 //! locations the caller passes in, with the texts of those files; the app converts offsets
 //! to LSP positions and applies the result as one workspace edit.
 
+pub mod classes;
 pub mod extract_method;
 pub mod inline;
 pub mod introduce;
+pub mod make_static;
+pub mod move_class;
+pub mod move_members;
 pub mod names;
+pub mod project;
+pub mod safe_delete;
+pub mod signature;
 pub mod vars;
 
 use forge_codeintel::RenameConflict;
