@@ -131,6 +131,34 @@ pub enum OptionSection {
     Options,
 }
 
+/// What the Find Usages dialog shows for an element.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UsageTarget {
+    pub element: ElementKind,
+    /// "User", "total"
+    pub title: String,
+    /// "class User", for "Find Usages of class User".
+    pub label: String,
+    /// The dialog's checkboxes for this element (settings keys and labels).
+    pub fields: Vec<OptionField>,
+    /// Whether the scope applies (variables are searched in their file only).
+    pub scoped: bool,
+}
+
+impl UsageTarget {
+    pub fn new(element: ElementKind, title: impl Into<String>) -> Self {
+        let title = title.into();
+        UsageTarget {
+            label: format!("{} {title}", element.label()),
+            fields: UsageOptions::fields(element),
+            scoped: element != ElementKind::Variable,
+            element,
+            title,
+        }
+    }
+}
+
 /// Prefix of the option settings.
 pub const OPTIONS_PREFIX: &str = "findUsages.options.";
 
@@ -534,6 +562,9 @@ mod tests {
         assert_eq!(keys[2], "findUsages.options.interfaceImplementingClasses");
         assert_eq!(keys.len(), 6);
         assert_eq!(UsageOptions::fields(ElementKind::Variable).len(), 2);
+        let t = UsageTarget::new(ElementKind::Interface, "Gateway");
+        assert_eq!(t.label, "interface Gateway");
+        assert!(t.scoped && !UsageTarget::new(ElementKind::Variable, "$x").scoped);
     }
 
     #[test]

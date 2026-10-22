@@ -66,7 +66,8 @@ pub use structure::{
 };
 pub use usage_options::{
     apply_options, glob_match, is_library_path, same_language, text_occurrences, EffectiveOptions,
-    ElementKind, OptionField, OptionSection, SearchScope, UsageOptions, UsageScope, OPTIONS_PREFIX,
+    ElementKind, OptionField, OptionSection, SearchScope, UsageOptions, UsageScope, UsageTarget,
+    OPTIONS_PREFIX,
 };
 pub use usages::{
     classify_usage, group_usages, GroupRequest, UsageFile, UsageGroup, UsageKind, UsageLocation,

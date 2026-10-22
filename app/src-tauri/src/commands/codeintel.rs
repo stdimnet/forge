@@ -20,8 +20,8 @@ use forge_core::{ForgeError, Result};
 use forge_lsp::forge_codeintel::{
     self as codeintel, order_actions, preview_workspace_edit, ActionKind, AppliedFile, Bulb,
     ContextAction, EditPlan, ElementKind, FilePreview, FileRename, FileStore, GroupRequest,
-    HighlightAnswer, HighlightTarget, OptionField, Position, Range, RenameConflict, UsageHighlight,
-    UsageLocation, UsageOptions, UsageScope, UsageTree, WorkspaceEdit,
+    HighlightAnswer, HighlightTarget, Position, Range, RenameConflict, UsageHighlight,
+    UsageLocation, UsageOptions, UsageScope, UsageTarget, UsageTree, WorkspaceEdit,
 };
 use forge_lsp::model::{EditorCodeAction, EditorLocation};
 use forge_lsp::{lsp_types, Feature, LspManager};
@@ -435,20 +435,6 @@ pub async fn code_highlight_usages(
     .await
 }
 
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct UsageTarget {
-    pub element: ElementKind,
-    /// "User", "total"
-    pub title: String,
-    /// "class User", for "Find Usages of class User".
-    pub label: String,
-    /// The dialog's checkboxes for this element (settings keys and labels).
-    pub fields: Vec<OptionField>,
-    /// Variables are searched in their file only.
-    pub scoped: bool,
-}
-
 /// What the Find Usages dialog (Ctrl+Shift+Alt+F7) shows for the element at the caret.
 #[tauri::command]
 pub async fn code_usage_target(
@@ -478,19 +464,9 @@ pub async fn code_usage_target(
         } else if let Some(h) = codeintel::lexical_highlights(&text, &path, at) {
             element = h.element;
         }
-        Ok(Some(usage_target(element, title)))
+        Ok(Some(UsageTarget::new(element, title)))
     })
     .await
-}
-
-fn usage_target(element: ElementKind, title: String) -> UsageTarget {
-    UsageTarget {
-        label: format!("{} {title}", element.label()),
-        fields: UsageOptions::fields(element),
-        scoped: element != ElementKind::Variable,
-        element,
-        title,
-    }
 }
 
 // ---- Navigate: Implementation, Type Declaration, Super Method ----
@@ -1728,15 +1704,6 @@ pub async fn code_related(
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn usage_targets_name_the_element() {
-        let t = usage_target(ElementKind::Interface, "Gateway".into());
-        assert_eq!(t.label, "interface Gateway");
-        assert_eq!(t.fields.len(), 6);
-        assert!(t.scoped);
-        assert!(!usage_target(ElementKind::Variable, "$x".into()).scoped);
-    }
 
     #[test]
     fn missing_features_mention_intelephense_premium() {
