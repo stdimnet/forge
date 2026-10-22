@@ -492,4 +492,42 @@ async fn type_and_call_hierarchy() {
     let outgoing = manager.outgoing_calls(&server, item.clone()).await.unwrap();
     assert_eq!(outgoing[0].0.detail.as_deref(), Some("User"));
     assert!(manager.incoming_calls("nope", item).await.is_err());
+
+    // As the hierarchy model: User extends Model; main() calls the root twice.
+    let graph = manager
+        .type_graph(&php, Position::new(0, 7))
+        .await
+        .unwrap()
+        .unwrap();
+    let root = graph
+        .types
+        .iter()
+        .find(|t| t.item.id == graph.root)
+        .unwrap();
+    assert_eq!(root.item.name, "User");
+    assert_eq!(root.extends.len(), 1);
+    assert_eq!(graph.types.len(), 2);
+    let base = manager
+        .call_root(&php, Position::new(0, 7))
+        .await
+        .unwrap()
+        .unwrap();
+    let callers = manager
+        .call_nodes(
+            &base,
+            forge_lsp::forge_codeintel::hierarchy::CallDirection::Callers,
+        )
+        .await
+        .unwrap();
+    assert_eq!(callers[0].item.name, "main()");
+    assert_eq!(callers[0].calls.len(), 2);
+    let callees = manager
+        .call_nodes(
+            &base,
+            forge_lsp::forge_codeintel::hierarchy::CallDirection::Callees,
+        )
+        .await
+        .unwrap();
+    assert_eq!(callees[0].item.name, "save()");
+    assert_eq!(callees[0].calls[0].path, base.path);
 }
