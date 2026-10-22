@@ -31,6 +31,7 @@ forge-jsonschema.workspace = true
 wasm-bindgen = "=0.2.129"
 forge-fuzzy.workspace = true
 forge-find.workspace = true
+forge-scopes.workspace = true
 forge-search-core.workspace = true
 forge-bookmarks.workspace = true
 forge-codeintel.workspace = true

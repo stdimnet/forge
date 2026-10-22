@@ -224,6 +224,8 @@ pub fn run() {
             commands::workspace::replace_in_files,
             commands::workspace::undo_replace,
             commands::workbench::todo_scan,
+            commands::scopes::scopes_files,
+            commands::scopes::scopes_test_roots,
             commands::workbench::bookmarks_get,
             commands::workbench::bookmarks_apply,
             commands::search::fuzzy_filter,

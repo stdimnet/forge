@@ -34,6 +34,7 @@ mod keymap;
 mod livetemplates;
 mod lua;
 mod save_actions;
+mod scopes;
 mod scratches;
 mod search;
 mod settings;

@@ -35,7 +35,7 @@ use crate::web::WebCall;
 use crate::TerminalSpec;
 
 /// Bumped on incompatible protocol changes; client and agent must agree.
-pub const PROTOCOL_VERSION: u32 = 7;
+pub const PROTOCOL_VERSION: u32 = 8;
 
 /// Frames larger than this are refused (protects both sides from garbage input).
 pub const MAX_FRAME: usize = 64 * 1024 * 1024;
@@ -149,6 +149,10 @@ pub enum Call {
     /// The text of the project's files with some extensions (language indexes) ->
     /// `Vec<SourceFile>`
     CollectFiles(CollectRequest),
+    /// Every project file, at most `limit` (the Scopes page) -> `Vec<String>` (protocol 8)
+    ListFiles {
+        limit: usize,
+    },
     /// Run git on the agent's machine -> `GitOutput`
     Git(GitRequest),
     /// -> `ProjectInfo`

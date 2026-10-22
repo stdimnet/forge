@@ -307,6 +307,13 @@ impl Backend for LocalBackend {
         self.workspace.collect_files(req)
     }
 
+    fn list_files(&self, limit: usize) -> Result<Vec<String>> {
+        let mut files = self.workspace.list_files();
+        files.sort();
+        files.truncate(limit);
+        Ok(files)
+    }
+
     fn git(&self) -> Arc<dyn GitExec> {
         Arc::new(LocalGit)
     }

@@ -62,6 +62,9 @@ pub struct FindRequest {
     /// Search only these project-relative files (open or changed files); `None` = no restriction.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub paths: Option<Vec<String>>,
+    /// A scope (predefined or a scope pattern, see `forge-scopes`); `None` = the project.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scope: Option<forge_scopes::ScopeFilter>,
     /// Lines of context kept before and after each matching line (at most [`MAX_CONTEXT`]).
     #[serde(default)]
     pub context: usize,
@@ -83,6 +86,7 @@ impl Default for FindRequest {
             file_mask: String::new(),
             directory: String::new(),
             paths: None,
+            scope: None,
             context: 0,
             sort: SortBy::Path,
             limit: DEFAULT_LIMIT,
@@ -298,6 +302,7 @@ pub struct Finder {
     mask: FileMask,
     directory: String,
     only: Option<std::collections::HashSet<String>>,
+    scope: Option<forge_scopes::Scope>,
     context: usize,
     sort: SortBy,
     regex: bool,
@@ -316,7 +321,14 @@ impl Finder {
             .build()
             .map_err(|e| format!("Bad regular expression: {e}"))?;
         let directory = req.directory.trim_matches('/').to_string();
+        let scope = match &req.scope {
+            Some(filter) => Some(
+                forge_scopes::Scope::new(filter).map_err(|e| format!("Bad scope pattern: {e}"))?,
+            ),
+            None => None,
+        };
         Ok(Finder {
+            scope,
             re,
             mask: FileMask::parse(&req.file_mask),
             directory,
@@ -350,6 +362,7 @@ impl Finder {
                 .is_some_and(|rest| rest.starts_with('/'));
         in_dir
             && self.only.as_ref().is_none_or(|only| only.contains(path))
+            && self.scope.as_ref().is_none_or(|s| s.contains(path))
             && self.mask.matches(path)
     }
 
@@ -736,6 +749,29 @@ mod tests {
         assert_eq!(r.files[0].path, "tests/UserTest.php");
         q.paths = Some(vec![]);
         assert!(find_in(&q, files).files.is_empty());
+
+        // Scopes from the Scopes page (`forge-scopes`).
+        let mut q = req("User");
+        q.scope = Some(forge_scopes::ScopeFilter {
+            scope: forge_scopes::ScopeSpec::Pattern("file:app*//*&&!test:*..*".into()),
+            ..Default::default()
+        });
+        let r = find_in(&q, files);
+        let paths: Vec<&str> = r.files.iter().map(|f| f.path.as_str()).collect();
+        assert_eq!(paths, ["app/Models/User.php", "application/User.php"]);
+        q.scope = Some(forge_scopes::ScopeFilter {
+            scope: forge_scopes::ScopeSpec::Predefined(forge_scopes::Predefined::ProjectTestFiles),
+            ..Default::default()
+        });
+        assert_eq!(find_in(&q, files).files[0].path, "tests/UserTest.php");
+        q.scope = Some(forge_scopes::ScopeFilter {
+            scope: forge_scopes::ScopeSpec::Pattern("file:a&&".into()),
+            ..Default::default()
+        });
+        assert!(find_in(&q, files)
+            .error
+            .unwrap()
+            .starts_with("Bad scope pattern"));
     }
 
     #[test]

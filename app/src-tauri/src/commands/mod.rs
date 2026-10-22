@@ -32,6 +32,7 @@ pub mod project_state;
 pub mod remote;
 pub mod run;
 pub mod save_actions;
+pub mod scopes;
 pub mod scratches;
 pub mod search;
 pub mod services;

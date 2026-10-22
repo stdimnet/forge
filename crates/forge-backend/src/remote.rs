@@ -556,6 +556,10 @@ impl Backend for RemoteBackend {
             .call(Call::CollectFiles(req.clone()), SCAN_TIMEOUT)
     }
 
+    fn list_files(&self, limit: usize) -> Result<Vec<String>> {
+        self.shared.call(Call::ListFiles { limit }, SCAN_TIMEOUT)
+    }
+
     fn git(&self) -> Arc<dyn GitExec> {
         Arc::new(RemoteGit {
             shared: self.shared.clone(),

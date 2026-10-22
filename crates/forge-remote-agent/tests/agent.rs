@@ -218,6 +218,11 @@ async fn files_search_git_and_detection() {
         assert!(paths.iter().all(|p| !p.starts_with("vendor/")), "{paths:?}");
         assert!(files.iter().any(|f| f.text.contains("function total")));
 
+        // The Scopes page lists the project's files on the agent's machine.
+        let all = b.list_files(1000).unwrap();
+        assert!(all.iter().any(|p| p == "app/Models/Order.php"), "{all:?}");
+        assert!(all.iter().all(|p| !p.starts_with("vendor/")), "{all:?}");
+
         let info = b.detect_project().unwrap();
         assert!(info.uses("php"));
 

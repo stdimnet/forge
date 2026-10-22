@@ -221,6 +221,7 @@ impl Agent {
             Call::SearchStatus => reply(self.backend()?.search_status()?),
             Call::FindTodos(req) => reply(self.backend()?.find_todos(&req)?),
             Call::CollectFiles(req) => reply(self.backend()?.collect_files(&req)?),
+            Call::ListFiles { limit } => reply(self.backend()?.list_files(limit)?),
             Call::Git(req) => reply(LocalGit.exec(&req)?),
             Call::Detect => reply(self.backend()?.detect_project()?),
             Call::Watch => {

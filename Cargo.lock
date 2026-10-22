@@ -1840,6 +1840,7 @@ dependencies = [
  "forge-project",
  "forge-remote",
  "forge-save-actions",
+ "forge-scopes",
  "forge-scratches",
  "forge-spell",
  "forge-text",
@@ -1917,6 +1918,7 @@ name = "forge-codeintel"
 version = "0.1.0"
 dependencies = [
  "forge-fuzzy",
+ "forge-scopes",
  "serde",
  "serde_json",
 ]
@@ -2048,6 +2050,7 @@ dependencies = [
 name = "forge-find"
 version = "0.1.0"
 dependencies = [
+ "forge-scopes",
  "regex",
  "serde",
  "serde_json",
@@ -2299,6 +2302,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "forge-scopes"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "forge-scratches"
 version = "0.1.0"
 dependencies = [
@@ -2366,6 +2377,20 @@ dependencies = [
  "hex",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "forge-ssr"
+version = "0.1.0"
+dependencies = [
+ "forge-scopes",
+ "regex",
+ "serde",
+ "serde_json",
+ "tree-sitter",
+ "tree-sitter-javascript",
+ "tree-sitter-php",
+ "tree-sitter-typescript",
 ]
 
 [[package]]
@@ -2445,6 +2470,7 @@ dependencies = [
  "forge-plugin-api",
  "forge-remote",
  "forge-save-actions",
+ "forge-scopes",
  "forge-scratches",
  "forge-search-core",
  "forge-spell",
