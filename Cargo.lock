@@ -2502,6 +2502,7 @@ dependencies = [
  "forge-vim",
  "forge-window",
  "luaforge-lang-lua",
+ "phpforge-composer",
  "phpforge-dql",
  "serde",
  "serde_json",

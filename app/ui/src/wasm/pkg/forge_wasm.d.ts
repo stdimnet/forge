@@ -233,6 +233,36 @@ export function colors_parse(request_json: string): string;
 export function compare_dir_listings(request_json: string): string;
 
 /**
+ * `{ report, text (composer.json), lock }` → `{ jsonProblems, lockProblems }`.
+ */
+export function composer_audit_problems(request_json: string): string;
+
+/**
+ * `{ text, offset, lock, catalog }` → `CompletionOut | null`.
+ */
+export function composer_complete(request_json: string): string;
+
+/**
+ * `{ text, offset, lock, catalog }` → `HoverOut | null`.
+ */
+export function composer_hover(request_json: string): string;
+
+/**
+ * `{ text, lock, catalog }` → `OutdatedMarker[]`.
+ */
+export function composer_markers(request_json: string): string;
+
+/**
+ * `{ text, lock?, installedJson? }` → `ComposerProject` without the path fields.
+ */
+export function composer_project(request_json: string): string;
+
+/**
+ * `{ query, catalog }` → `SearchHit[]` (the demo search).
+ */
+export function composer_search(request_json: string): string;
+
+/**
  * `ComposeCommand` → arguments after `docker`.
  */
 export function containers_compose_args(request_json: string): string;
@@ -1142,6 +1172,12 @@ export interface InitOutput {
     readonly colors_format: (a: number, b: number, c: number) => void;
     readonly colors_parse: (a: number, b: number, c: number) => void;
     readonly compare_dir_listings: (a: number, b: number, c: number) => void;
+    readonly composer_audit_problems: (a: number, b: number, c: number) => void;
+    readonly composer_complete: (a: number, b: number, c: number) => void;
+    readonly composer_hover: (a: number, b: number, c: number) => void;
+    readonly composer_markers: (a: number, b: number, c: number) => void;
+    readonly composer_project: (a: number, b: number, c: number) => void;
+    readonly composer_search: (a: number, b: number, c: number) => void;
     readonly containers_compose_args: (a: number, b: number, c: number) => void;
     readonly containers_compose_parse: (a: number, b: number, c: number) => void;
     readonly containers_docker_contexts: (a: number, b: number, c: number) => void;

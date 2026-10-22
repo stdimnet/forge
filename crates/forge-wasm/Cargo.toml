@@ -19,6 +19,7 @@ forge-viewers.workspace = true
 base64 = "0.22"
 forge-agent-cli = { path = "../forge-agent-cli", default-features = false }
 phpforge-dql = { path = "../../packs/phpforge/dql" }
+phpforge-composer = { path = "../../packs/phpforge/composer" }
 luaforge-lang-lua.workspace = true
 forge-keymap.workspace = true
 forge-vim.workspace = true
