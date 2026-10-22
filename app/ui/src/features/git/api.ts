@@ -135,6 +135,75 @@ export interface Remote {
   pushUrl: string | null;
 }
 
+// ---- merge conflicts (`forge_vcs::merge`, `Repo::conflicts`) ---------------------------
+
+export type MergeOperation = "merge" | "rebase" | "cherryPick" | "revert" | "unstash";
+export type SideChange = "modified" | "added" | "deleted";
+
+export interface ConflictFile {
+  path: string;
+  yours: SideChange;
+  theirs: SideChange;
+}
+
+export interface ConflictSet {
+  operation: MergeOperation;
+  /** "Merging branch feature into branch main". */
+  description: string;
+  /** For the column headers: "Yours (main)", "Theirs (feature)". */
+  yoursName: string;
+  theirsName: string;
+  /** Merge window pane titles: "Changes from main", "Changes from feature". */
+  yoursTitle: string;
+  theirsTitle: string;
+  /** Yours is git's `theirs` (rebase). */
+  reversed: boolean;
+  files: ConflictFile[];
+}
+
+/** 0-based lines `start..end` (end-exclusive). */
+export interface LineRange {
+  start: number;
+  end: number;
+}
+
+/** `left`/`right`: only that side changed; `both`: the same change on both sides. */
+export type ChunkKind = "left" | "right" | "both" | "conflict";
+
+export interface MergeChunk {
+  kind: ChunkKind;
+  base: LineRange;
+  left: LineRange;
+  right: LineRange;
+  baseText: string;
+  leftText: string;
+  rightText: string;
+  /** Word-level merge of a simple conflict ("Resolve Simple Conflicts"). */
+  simple: string | null;
+}
+
+export interface MergeModel {
+  chunks: MergeChunk[];
+  changes: number;
+  conflicts: number;
+  simpleConflicts: number;
+}
+
+/** A conflicted file for the merge window; texts use `\n` line breaks. */
+export interface MergeFile {
+  path: string;
+  yoursTitle: string;
+  theirsTitle: string;
+  base: string | null;
+  yours: string | null;
+  theirs: string | null;
+  binary: boolean;
+  crlf: boolean;
+  model: MergeModel | null;
+}
+
+export type ConflictSide = "yours" | "theirs";
+
 export const GIT_CHANGED_EVENT = "git://changed";
 
 export const gitApi = {
@@ -177,6 +246,12 @@ export const gitApi = {
   remotes: () => invoke<Remote[]>("git_remotes"),
   addRemote: (name: string, url: string) => invoke<void>("git_add_remote", { name, url }),
   removeRemote: (name: string) => invoke<void>("git_remove_remote", { name }),
+  conflicts: () => invoke<ConflictSet>("git_conflicts"),
+  mergeFile: (path: string) => invoke<MergeFile>("git_merge_file", { path }),
+  /** Accept Yours / Accept Theirs; a side that deleted the file deletes it. */
+  acceptConflictSide: (paths: string[], side: ConflictSide) => invoke<void>("git_accept_conflict_side", { paths, side }),
+  /** Write the merged text and mark the file resolved. */
+  resolveMerge: (path: string, text: string, crlf: boolean) => invoke<void>("git_resolve_merge", { path, text, crlf }),
 };
 
 /** Single status for display (tree/tab colors, commit window icons). */
