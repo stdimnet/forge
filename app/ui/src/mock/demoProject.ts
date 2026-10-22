@@ -190,6 +190,99 @@ final class InvoiceService
     }
 }
 `,
+  "app/Services/PriceCalculator.php": `<?php
+
+declare(strict_types=1);
+
+namespace App\\Services;
+
+use App\\Models\\Order;
+use App\\Models\\User;
+use InvalidArgumentException;
+
+/**
+ * Prices orders: line totals, **customer discounts** and taxes.
+ *
+ * See {@link https://example.com/pricing the pricing rules} and {@see Checkout}.
+ *
+ * @author Acme Shop
+ * @since 2.1
+ */
+final class PriceCalculator
+{
+    // region Configuration
+    private const DEFAULT_TAX_RATE = 0.19;
+
+    private const LOYALTY_THRESHOLD = 1000.0;
+    // endregion
+
+    // <editor-fold desc="Constructor" defaultstate="collapsed">
+    public function __construct(private readonly Checkout $checkout)
+    {
+    }
+    // </editor-fold>
+
+    /**
+     * The total of an order after discounts and taxes.
+     *
+     * @param Order $order The order to price
+     * @param float|null $taxRate Overrides the shop's tax rate
+     * @return float The gross total, rounded to cents
+     * @throws InvalidArgumentException when a line has a negative quantity
+     */
+    public function total(Order $order, ?float $taxRate = null): float
+    {
+        $net = 0.0;
+        foreach ($order->lines as $line) {
+            if ($line->quantity < 0) {
+                throw new InvalidArgumentException('Negative quantity');
+            }
+
+            $price = $line->price * $line->quantity;
+            if ($line->discount !== null) {
+                $price -= $price * $line->discount;
+            }
+
+            $net += $price;
+        }
+
+        $net -= $this->loyaltyDiscount($order->user, $net);
+        $rate = $taxRate ?? self::DEFAULT_TAX_RATE;
+
+        return round($net * (1 + $rate), 2);
+    }
+
+    /**
+     * The loyalty discount of a customer.
+     *
+     * Customers who spent more than the threshold get 5 %.
+     *
+     * @param User $user The customer
+     * @param float $net The net total of the order
+     * @return float The discount in the shop's currency
+     * @deprecated Use {@see DiscountPolicy::loyalty()} instead.
+     */
+    public function loyaltyDiscount(User $user, float $net): float
+    {
+        if ($user->totalSpent() > self::LOYALTY_THRESHOLD) {
+            return $net * 0.05;
+        }
+
+        return 0.0;
+    }
+
+    // region Formatting
+    public function format(float $amount, string $currency = 'EUR'): string
+    {
+        return match ($currency) {
+            'EUR' => number_format($amount, 2, ',', '.') . ' €',
+            'USD' => '$' . number_format($amount, 2),
+            default => number_format($amount, 2) . ' ' . $currency,
+        };
+    }
+    // endregion
+}
+`,
   "app/Reports/SalesReport.php": `<?php
 
 declare(strict_types=1);

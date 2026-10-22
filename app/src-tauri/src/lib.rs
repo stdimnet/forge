@@ -50,6 +50,7 @@ pub fn run() {
         .manage(commands::db::DbState::load())
         .manage(commands::forges::ForgesState::load())
         .manage(commands::services::ServicesState::default())
+        .manage(commands::spell::SpellState::default())
         .manage(commands::window::DialogWindowsState::default())
         .on_window_event(|window, event| {
             startup::on_splash_event(window, event);
@@ -375,6 +376,9 @@ pub fn run() {
             commands::emmet::colors_find,
             commands::emmet::colors_format,
             commands::emmet::colors_parse,
+            commands::spell::spell_inspect,
+            commands::spell::spell_context_actions,
+            commands::spell::spell_dictionaries,
             commands::markdown::markdown_hover,
             commands::markdown::markdown_document,
             commands::markdown::markdown_anchor_line,

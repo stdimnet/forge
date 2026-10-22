@@ -29,6 +29,7 @@ documentation `<br>`/`<p>` become line breaks and every other tag is dropped.
 | Module | Summary |
 | --- | --- |
 | `ast.rs` | The Markdown AST sent to the UI (JSON tagged by `t`). |
+| `doc_comment.rs` | Documentation comments for the editor's rendered view and Reader mode: `doc_comments(text, language)` finds `/** … */` (PHPDoc, JSDoc / TSDoc) and `---` (LuaDoc / LuaCATS) comments, `parse_doc_comment` turns one into a `HoverDoc`: the description as Markdown (inline `{@link url text}` / `{@see X}` as links and code), the tags as `Params:` / `Returns:` / `Throws:` / `Properties:` / `See also:` … sections, `@deprecated` as the note and `@example` as a code block. |
 | `document.rs` | The Markdown preview of a file: GitHub-flavored blocks with the source lines of every top-level block, the front matter and the footnotes; `anchor_line` for links into a file. |
 | `hover.rs` | Language server hovers (Markdown as Intelephense, phpactor & co. send it) split into the parts of a PHPStorm-style documentation popup: owner FQCN, signature, description and `Params:` / `Returns:` / `Throws:` sections. |
 | `parse.rs` | pulldown-cmark events into the `Block` tree. |
@@ -37,6 +38,7 @@ documentation `<br>`/`<p>` become line breaks and every other tag is dropped.
 
 ```rust
 pub use ast::{Block, Inline, ListItem};
+pub use doc_comment::{doc_comments, doc_style, parse_doc_comment, DocComment, DocStyle};
 pub use document::{anchor_line, parse_document, Document, Footnote, FrontMatter, FrontMatterEntry, LineRange};
 pub use hover::{parse_hover, HoverDoc, HoverSection};
 pub use parse::{parse, parse_inline, Flavor};

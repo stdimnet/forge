@@ -307,6 +307,21 @@ export function editing_postfix_complete(request_json: string): string;
 export function editing_postfix_templates(_request_json: string): string;
 
 /**
+ * `{ text, language }` → `{ line, endLine, column, doc: HoverDoc }[]`.
+ */
+export function editor_doc_comments(request_json: string): string;
+
+/**
+ * `{ text, language }` → `{ scopes: Scope[], regions: Region[] }`.
+ */
+export function editor_structure(request_json: string): string;
+
+/**
+ * `{ id, label }[]` of the languages with Sticky Lines and breadcrumbs.
+ */
+export function editor_structure_languages(): string;
+
+/**
  * `EditPointRequest` → offset | null.
  */
 export function emmet_edit_point(request_json: string): string;
@@ -725,6 +740,21 @@ export function settings_search(request_json: string): string;
 export function settings_validate(request_json: string): string;
 
 /**
+ * `ActionsRequest` → `ContextAction[]`, like `spell_context_actions`.
+ */
+export function spell_context_actions(request_json: string): string;
+
+/**
+ * The bundled dictionaries, like `spell_dictionaries` without custom ones.
+ */
+export function spell_dictionaries(): string;
+
+/**
+ * `InspectRequest` → `Problem[]`, like `spell_inspect`.
+ */
+export function spell_inspect(request_json: string): string;
+
+/**
  * `{ dialect, schema, table, pk, changes }` → the statements, or `{ error }`.
  */
 export function sql_change_statements(request_json: string): string;
@@ -748,6 +778,11 @@ export function sql_split(request_json: string): string;
  * Mirrors `db_statement_at`: `{ sql, from, to, dialect }` → `Statement | null`.
  */
 export function sql_statement_at(request_json: string): string;
+
+/**
+ * `{ nodes, regions }` → the nodes with region nodes (`kind: "region"`) around members.
+ */
+export function structure_group_by_regions(request_json: string): string;
 
 /**
  * `{ custom }` (the `fileTemplates.custom` value) → `{ templates, variables }`.
@@ -908,6 +943,9 @@ export interface InitOutput {
     readonly editing_expand_word: (a: number, b: number, c: number) => void;
     readonly editing_postfix_complete: (a: number, b: number, c: number) => void;
     readonly editing_postfix_templates: (a: number, b: number, c: number) => void;
+    readonly editor_doc_comments: (a: number, b: number, c: number) => void;
+    readonly editor_structure: (a: number, b: number, c: number) => void;
+    readonly editor_structure_languages: (a: number) => void;
     readonly emmet_edit_point: (a: number, b: number, c: number) => void;
     readonly emmet_expand: (a: number, b: number, c: number) => void;
     readonly emmet_remove_tag: (a: number, b: number, c: number) => void;
@@ -990,11 +1028,15 @@ export interface InitOutput {
     readonly services_tree: (a: number, b: number, c: number) => void;
     readonly settings_search: (a: number, b: number, c: number) => void;
     readonly settings_validate: (a: number, b: number, c: number) => void;
+    readonly spell_context_actions: (a: number, b: number, c: number) => void;
+    readonly spell_dictionaries: (a: number) => void;
+    readonly spell_inspect: (a: number, b: number, c: number) => void;
     readonly sql_change_statements: (a: number, b: number, c: number) => void;
     readonly sql_export: (a: number, b: number, c: number) => void;
     readonly sql_leading_keywords: (a: number, b: number, c: number) => void;
     readonly sql_split: (a: number, b: number, c: number) => void;
     readonly sql_statement_at: (a: number, b: number, c: number) => void;
+    readonly structure_group_by_regions: (a: number, b: number, c: number) => void;
     readonly templates_list: (a: number, b: number, c: number) => void;
     readonly templates_new_file: (a: number, b: number, c: number) => void;
     readonly templates_php_directory: (a: number, b: number, c: number) => void;

@@ -1840,6 +1840,7 @@ dependencies = [
  "forge-remote",
  "forge-save-actions",
  "forge-scratches",
+ "forge-spell",
  "forge-text",
  "forge-update",
  "forge-vcs",
@@ -2328,6 +2329,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "forge-spell"
+version = "0.1.0"
+dependencies = [
+ "flate2",
+ "forge-codeintel",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "forge-sql"
 version = "0.1.0"
 dependencies = [
@@ -2405,6 +2416,7 @@ dependencies = [
  "forge-save-actions",
  "forge-scratches",
  "forge-search-core",
+ "forge-spell",
  "forge-sql",
  "forge-text",
  "forge-viewers",

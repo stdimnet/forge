@@ -30,7 +30,7 @@ pub struct HoverDoc {
     pub deprecated: Option<Vec<Inline>>,
 }
 
-fn section_title(tag: &str) -> String {
+pub(crate) fn section_title(tag: &str) -> String {
     match tag {
         "param" => "Params:".into(),
         "return" | "returns" => "Returns:".into(),

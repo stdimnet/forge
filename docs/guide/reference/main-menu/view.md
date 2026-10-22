@@ -47,6 +47,8 @@ Tool windows, appearance toggles, documentation popups and recent files. Open it
 | Active Editor › Show Whitespaces | — | — | not yet | Not available yet; the entry is disabled. |
 | Active Editor › Show Line Numbers | — | — | not yet | Not available yet; the entry is disabled. |
 | Active Editor › Show Indent Guides | — | — | not yet | Not available yet; the entry is disabled. |
-| Active Editor › Show Breadcrumbs | — | — | not yet | Not available yet; the entry is disabled. |
+| Active Editor › Show Breadcrumbs | — | — | yes | Shows or hides the structure breadcrumbs for the file's language. [More](../../user/code-structure.md#breadcrumbs) ([screenshot](../../../screenshots/breadcrumbs-siblings.png)) |
+| Active Editor › Show Sticky Lines | — | — | yes | Shows or hides the sticky lines for the file's language. [More](../../user/code-structure.md#sticky-lines) ([screenshot](../../../screenshots/sticky-lines.png)) |
+| Active Editor › Reader Mode | — | — | yes | Switches Reader mode in the editor. [More](../../user/code-structure.md#reader-mode) ([screenshot](../../../screenshots/reader-mode.png)) |
 
 The three toggles under **Appearance** (Compact Mode, Show Main Menu in Separate Toolbar, Tool Window Bars) show a check mark when on.

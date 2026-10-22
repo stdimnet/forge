@@ -271,6 +271,10 @@ Bash, Python, Postfix and similar files) appear as:
 - the **inspection widget** in the top-right corner of the editor: a ✓ when the file is clean,
   otherwise the number of errors and warnings. Click it to open the Problems tool window.
 
+Typos and grammar problems in comments, strings, names, text files and commit messages are
+inspections of their own (green and blue underlines, `Alt+Enter` for suggestions and the
+dictionaries); see [Spelling and grammar](spelling-and-grammar.md).
+
 **Next Highlighted Error** `F2` and **Previous Highlighted Error** `Shift+F2` move the caret
 between problems.
 
@@ -454,6 +458,11 @@ Click the fold markers in the gutter, or use:
 | Expand / Collapse | `Ctrl+=` / `Ctrl+-` | `Cmd+=` / `Cmd+-` |
 | Expand / Collapse Recursively | `Ctrl+Alt+=` / `Ctrl+Alt+-` | `Cmd+Alt+=` / `Cmd+Alt+-` |
 | Expand All / Collapse All | `Ctrl+Shift+=` / `Ctrl+Shift+-` | `Cmd+Shift+=` / `Cmd+Shift+-` |
+
+Custom folding regions (`// region Name` … `// endregion`, `#region`, `<!-- region -->`,
+`// <editor-fold desc="…">`) fold too and show their name. Sticky lines, breadcrumbs, rendered
+doc comments and Reader mode are described in
+[Sticky lines, breadcrumbs and Reader mode](code-structure.md).
 
 ## Find and replace in a file
 
