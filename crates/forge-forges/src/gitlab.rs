@@ -10,7 +10,7 @@ use serde_json::{json, Value};
 
 use crate::error::{HostError, HostResult};
 use crate::host::{count_changes, parse_patch, strip_draft_prefix, CodeHost};
-use crate::http::{enc, query, Auth, Http};
+use crate::http::{enc, query, Auth, Http, REPO_PAGES};
 use crate::json::*;
 use crate::model::*;
 
@@ -184,6 +184,31 @@ impl CodeHost for GitLab {
     async fn current_user(&self) -> HostResult<User> {
         let v: Value = self.http.get("user", "user").await?;
         Ok(user(&v))
+    }
+
+    async fn repositories(&self) -> HostResult<Vec<HostRepository>> {
+        let list: Vec<Value> = self
+            .http
+            .get_all(
+                "projects?membership=true&per_page=100&order_by=last_activity_at&sort=desc",
+                "projects",
+                REPO_PAGES,
+            )
+            .await?;
+        Ok(list
+            .iter()
+            .map(|v| HostRepository {
+                path: s(v, "path_with_namespace"),
+                name: s(v, "name"),
+                description: os(v, "description").filter(|d| !d.is_empty()),
+                private: os(v, "visibility").is_some_and(|vis| vis != "public"),
+                fork: v.get("forked_from_project").is_some_and(|f| !f.is_null()),
+                clone_url: s(v, "http_url_to_repo"),
+                ssh_url: os(v, "ssh_url_to_repo"),
+                web_url: s(v, "web_url"),
+                updated_at: s(v, "last_activity_at"),
+            })
+            .collect())
     }
 
     async fn merge_requests(

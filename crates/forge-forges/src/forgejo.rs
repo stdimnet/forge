@@ -11,7 +11,7 @@ use serde_json::{json, Value};
 
 use crate::error::{HostError, HostResult};
 use crate::host::{count_changes, strip_draft_prefix, CodeHost};
-use crate::http::{enc, enc_path, query, Auth, Http};
+use crate::http::{enc, enc_path, query, Auth, Http, REPO_PAGES};
 use crate::json::*;
 use crate::model::*;
 
@@ -249,6 +249,29 @@ impl CodeHost for Forgejo {
     async fn current_user(&self) -> HostResult<User> {
         let v: Value = self.http.get("user", "user").await?;
         Ok(user(&v))
+    }
+
+    async fn repositories(&self) -> HostResult<Vec<HostRepository>> {
+        let list: Vec<Value> = self
+            .http
+            .get_all("user/repos?limit=50", "repositories", REPO_PAGES)
+            .await?;
+        let mut repos: Vec<HostRepository> = list
+            .iter()
+            .map(|v| HostRepository {
+                path: s(v, "full_name"),
+                name: s(v, "name"),
+                description: os(v, "description").filter(|d| !d.is_empty()),
+                private: b(v, "private"),
+                fork: b(v, "fork"),
+                clone_url: s(v, "clone_url"),
+                ssh_url: os(v, "ssh_url").filter(|u| !u.is_empty()),
+                web_url: s(v, "html_url"),
+                updated_at: s(v, "updated_at"),
+            })
+            .collect();
+        repos.sort_by(|a, b| b.updated_at.cmp(&a.updated_at));
+        Ok(repos)
     }
 
     async fn merge_requests(
