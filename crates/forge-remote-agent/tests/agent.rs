@@ -572,7 +572,7 @@ async fn frameworks_are_analysed_on_the_agent() {
 
     let dir = laravel_project();
     let b = open_remote(&dir).await;
-    let (info, routes, gutter, symfony, entities) = blocking(move || {
+    let (info, routes, gutter, symfony, entities, related) = blocking(move || {
         let info: phpforge_fw_laravel::LaravelInfo =
             framework_call(b.as_ref(), FrameworkCall::LaravelDetect).unwrap();
         let routes: LaravelRoutes = framework_call(
@@ -608,9 +608,23 @@ async fn frameworks_are_analysed_on_the_agent() {
             },
         )
         .unwrap();
-        (info, routes, gutter, symfony, entities)
+        // Related Symbol: the agent lists and reads the project's files.
+        let related: Vec<forge_codeintel::RelatedItem> = framework_call(
+            b.as_ref(),
+            FrameworkCall::Related {
+                path: "app/Http/Controllers/OrderController.php".into(),
+                content: None,
+            },
+        )
+        .unwrap();
+        (info, routes, gutter, symfony, entities, related)
     })
     .await;
+    assert_eq!(related.len(), 1, "{related:?}");
+    assert_eq!(
+        (related[0].path.as_str(), related[0].line),
+        ("routes/web.php", 2)
+    );
     assert!(info.detected);
     assert_eq!(info.routes, 1);
     assert_eq!(routes.routes[0].name.as_deref(), Some("orders.show"));
