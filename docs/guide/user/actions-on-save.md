@@ -17,7 +17,7 @@ project ("For current project"), so a team can share them in `.forge/settings.to
 
 | Action | Files | What it does | Configure… |
 | --- | --- | --- | --- |
-| **Reformat code** | the chosen file types (default: all) | Reformat Code (`Ctrl+Alt+L`): the language server's formatter, StyLua for Lua, plus the blank lines of the PHP code style. **Whole file** or **Changed lines** (only lines changed since the last commit; files that are not committed yet are reformatted completely). | Editor \| Code Style |
+| **Reformat code** | the chosen file types (default: all) | Reformat Code (`Ctrl+Alt+L`): the language server's formatter, StyLua for Lua, plus the options of the [code style](editor.md#code-style) the formatter does not know. **Whole file** or **Changed lines** (only lines changed since the last commit; files that are not committed yet are reformatted completely). | Editor \| Code Style |
 | **Optimize imports** | PHP | Removes unused `use` imports and sorts the rest: classes, then functions, then constants, each alphabetically. Group uses (`use A\{B, C};`) are split into single imports. | |
 | **Rearrange code** | PHP | Orders the members of classes, interfaces, traits and enums: trait `use`, enum cases, constants, properties, the constructor, the other methods. Members keep their order inside a group; docblocks, attributes and comments move with their member and blank lines stay where they were. | |
 | **Run code cleanup** | PHP | Applies the safe quick fixes: removes unused imports, unnecessary semicolons (`;;`, `};`) and the redundant closing tag `?>` at the end of a pure PHP file. | |

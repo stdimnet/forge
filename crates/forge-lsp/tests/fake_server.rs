@@ -156,10 +156,39 @@ async fn manager_routes_by_extension_and_starts_lazily() {
     assert_eq!(sig.active_parameter, 1);
 
     manager.did_change(&php, "  <?php   \n").await.unwrap();
-    let edits = manager.format(&php, 4, true).await.unwrap();
+    let edits = manager
+        .format(&php, 4, true, Some(&json!({"fake": {"style": "psr"}})))
+        .await
+        .unwrap();
     assert_eq!(edits[0].new_text, "<?php");
 
     manager.shutdown_all().await;
+}
+
+#[tokio::test]
+async fn changed_settings_are_pushed_and_answered() {
+    let dir = tempfile::tempdir().unwrap();
+    let (tx, mut rx) = broadcast::channel(256);
+    let client = LspClient::start_with_events(config(), dir.path(), tx)
+        .await
+        .unwrap();
+    assert!(client
+        .update_settings(&json!({"fake": {"answer": 7}}))
+        .unwrap());
+    // The server pulls its settings again and gets the new value.
+    let log = next_matching(&mut rx, |e| match e {
+        LspEvent::Log { message, .. } if message == "config: [7,null]" => Some(message),
+        _ => None,
+    })
+    .await;
+    assert_eq!(log, "config: [7,null]");
+    assert_eq!(client.settings(), json!({"fake": {"answer": 7}}));
+    // The same settings again: nothing to send.
+    assert!(!client
+        .update_settings(&json!({"fake": {"answer": 7}}))
+        .unwrap());
+    assert!(!client.update_settings(&json!(null)).unwrap());
+    client.shutdown().await;
 }
 
 #[tokio::test]
@@ -248,7 +277,7 @@ async fn several_servers_per_file_are_merged() {
     assert_eq!(defs.len(), 1);
 
     // Formatting goes to the server that supports it.
-    let edits = manager.format(&php, 4, true).await.unwrap();
+    let edits = manager.format(&php, 4, true, None).await.unwrap();
     assert_eq!(edits[0].new_text, "<?php");
 
     // Workspace symbols come from every running server.

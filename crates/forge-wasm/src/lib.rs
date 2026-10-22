@@ -22,6 +22,7 @@ use wasm_bindgen::prelude::*;
 
 mod agents;
 mod codeintel;
+mod codestyle;
 mod containers;
 mod editing;
 mod emmet;

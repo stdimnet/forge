@@ -5,6 +5,7 @@ import { lspApi, type TextEdit } from "@/ipc/lsp";
 import { syncNow } from "./sync";
 import { fromLsp } from "./util";
 import { editor } from "@/state/editor";
+import { languageIdFor } from "@/editor/languages";
 
 /** Apply LSP text edits (positions relative to the current document) in one transaction. */
 export function applyTextEdits(view: EditorView, edits: TextEdit[], userEvent = "format"): void {
@@ -28,13 +29,18 @@ export function registerFormatProvider(provider: FormatProvider): void {
   formatProviders.push(provider);
 }
 
-/** A step after the language server's formatting (PHP blank lines from the code style). */
-export type FormatPostProcessor = (path: string, text: string) => Promise<string>;
+/**
+ * A step after the formatter (PHP blank lines, the code style pass): gets the formatted text
+ * and the text before formatting.
+ */
+export type FormatPostProcessor = (path: string, text: string, original: string) => Promise<string>;
 
-const postProcessors: FormatPostProcessor[] = [];
+const postProcessors: { processor: FormatPostProcessor; order: number }[] = [];
 
-export function registerFormatPostProcessor(processor: FormatPostProcessor): void {
-  postProcessors.push(processor);
+/** Post-processors run by ascending `order` (default 0), then in registration order. */
+export function registerFormatPostProcessor(processor: FormatPostProcessor, order = 0): void {
+  postProcessors.push({ processor, order });
+  postProcessors.sort((a, b) => a.order - b.order);
 }
 
 /** Replace the document with `text` as one change of the part that differs. */
@@ -53,31 +59,43 @@ export function replaceChangedPart(view: EditorView, text: string, userEvent = "
   });
 }
 
+/** The language server's formatting of the document, applied to its text. */
+async function serverFormatted(path: string, view: EditorView, text: string): Promise<string> {
+  await syncNow(path);
+  // Indent options from the code style (or EditorConfig / the detected indent); the other
+  // code style options reach the server through its settings (by file type).
+  const indent = editor.tabs.find((t) => t.path === path)?.format?.indent;
+  const languageId = languageIdFor(path, text) ?? null;
+  const edits = await lspApi
+    .format(path, indent?.size ?? 4, !(indent?.useTabs ?? false), languageId)
+    .catch(() => [] as TextEdit[]);
+  if (!edits.length || view.state.doc.toString() !== text) return text;
+  const doc = view.state.doc;
+  const changes: ChangeSpec[] = edits
+    .map((e) => ({ from: fromLsp(doc, e.range.start), to: fromLsp(doc, e.range.end), insert: e.newText }))
+    .sort((a, b) => a.from - b.from);
+  return view.state.update({ changes }).state.doc.toString();
+}
+
 /**
  * The reformatted text of the document without changing it: a language pack's formatter,
- * else the language server, then the post-processors. Used by Reformat Code and by the
- * Actions on Save (which apply all their changes as one edit).
+ * else the language server, then the post-processors (the code style options the formatter
+ * does not know). Used by Reformat Code and by the Actions on Save (which apply all their
+ * changes as one edit).
  */
 export async function formattedText(path: string, view: EditorView): Promise<string> {
   const text = view.state.doc.toString();
+  let out: string | null = null;
   for (const provider of formatProviders) {
-    const out = await provider(path, text).catch(() => null);
-    if (out !== null) return out;
+    out = await provider(path, text).catch(() => null);
+    if (out !== null) break;
   }
-  await syncNow(path);
-  // Indent options from the code style (or EditorConfig / the detected indent).
-  const indent = editor.tabs.find((t) => t.path === path)?.format?.indent;
-  const edits = await lspApi.format(path, indent?.size ?? 4, !(indent?.useTabs ?? false)).catch(() => [] as TextEdit[]);
-  let out = text;
-  if (edits.length && view.state.doc.toString() === text) {
-    const doc = view.state.doc;
-    const changes: ChangeSpec[] = edits
-      .map((e) => ({ from: fromLsp(doc, e.range.start), to: fromLsp(doc, e.range.end), insert: e.newText }))
-      .sort((a, b) => a.from - b.from);
-    out = view.state.update({ changes }).state.doc.toString();
+  let result: string = out ?? (await serverFormatted(path, view, text));
+  for (const { processor } of postProcessors) {
+    const before: string = result;
+    result = await processor(path, before, text).catch(() => before);
   }
-  for (const processor of postProcessors) out = await processor(path, out).catch(() => out);
-  return out;
+  return result;
 }
 
 export async function reformat(path: string, view: EditorView): Promise<void> {

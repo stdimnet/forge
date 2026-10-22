@@ -358,7 +358,9 @@ after a short pause (red when a quick fix is available); click it to open the po
 
 **Reformat Code** (`Ctrl+Alt+L`, macOS `Cmd+Alt+L`) formats the file with the language
 server's document formatting. Lua files use StyLua when it is installed (see
-[LuaForge](luaforge.md)).
+[LuaForge](luaforge.md)). The server gets the [code style](#code-style) of the file's
+language, and Forge then applies the options the server does not know (see
+[Code style](#code-style)).
 
 ## Editing actions
 
@@ -571,25 +573,111 @@ the Project view and Git status (`system.syncExternalChanges`).
 
 ## Code style
 
-Settings | Editor | Code Style sets what new code looks like:
+![Code style of PHP](../../screenshots/code-style-php-spaces.png)
 
-- **Line separator** for new files (`editor.codeStyle.lineSeparator`: LF, CRLF or the
-  system's); existing files keep theirs.
-- **Hard wrap at** (`editor.codeStyle.hardWrapAt`, 120) draws the right margin, **Visual
-  guides** (`editor.codeStyle.visualGuides`, e.g. `80, 120`) more vertical lines.
+Settings | Editor | Code Style works like PHPStorm's: a **scheme** holds every option, the
+**Code Style** page sets the general ones and each language has a page of its own (PHP,
+HTML, CSS/SCSS/Less, JavaScript, TypeScript, JSON, YAML, Lua, Blade, Twig, SQL, XML,
+Markdown).
+
+### Schemes
+
+The **Scheme** box at the top of every page selects the scheme the project uses, and the
+pages edit the selected scheme:
+
+- **Default** (stored in the IDE, in your user settings) applies to projects that have no
+  scheme of their own.
+- **Project** (stored in the project, `.forge/settings.toml`, so it can be committed) is the
+  project's own scheme. Options it does not set come from Default.
+- More IDE schemes come from **Duplicate…**, **Copy to IDE…** and **Import Scheme**.
+
+The ⚙ button next to the box opens the scheme actions: **Copy to Project…** (the current IDE
+scheme becomes the Project scheme), **Copy to IDE…**, **Duplicate…**, **Rename…** and
+**Delete** (for your own IDE schemes), **Reset** (the built-in defaults; the Project scheme
+goes back to Default's values), **Export** and **Import Scheme**. Schemes are exported as
+**IntelliJ IDEA code style XML** (the `<code_scheme>` format of PHPStorm's
+`.idea/codeStyles/*.xml`; options PHPStorm has no name for are kept in a
+`<ForgeCodeStyleSettings>` element) or as **Forge code style JSON** with every option.
+Importing reads either format, also a PHPStorm `Project.xml`, into the current scheme or a new
+one. Like every page of the Settings dialog, the changes apply with **Apply** or **OK**.
+
+![Scheme actions](../../screenshots/code-style-scheme-menu.png)
+
+The settings keys did not change: the Default scheme is stored under `<language>.codeStyle.*`
+(`php.codeStyle.indent`) and `editor.codeStyle.*` in the user settings, the Project scheme
+under the same keys in the project settings, other IDE schemes under
+`editor.codeStyle.schemes.<id>.*`, and `editor.codeStyle.scheme` names the project's scheme.
+Settings files of older versions keep working; their single PHP brace option
+(`php.codeStyle.braces`) becomes the three brace options of the PHP page.
+
+### General
+
+![Code Style General](../../screenshots/code-style-general.png)
+
+- **Line separator** for new files (LF, CRLF or the system's); existing files keep theirs.
+- **Hard wrap at** (120) draws the right margin, **Visual guides** (e.g. `80, 120`) more
+  vertical lines.
+- **Detect and use existing file indents for editing** (`editor.codeStyle.detectIndents`): a
+  file indented differently from the code style (2 spaces in a 4-space project, tabs) keeps
+  its indent while you edit it.
 - **Enable EditorConfig support** (`editor.codeStyle.useEditorConfig`): `.editorconfig` files
   from the project root down to the file set `indent_style`, `indent_size`, `tab_width`,
   `end_of_line` (for new files), `max_line_length`, `trim_trailing_whitespace` and
-  `insert_final_newline`; they win over the settings. A `charset` the file does not have is
+  `insert_final_newline`; they win over the scheme. A `charset` the file does not have is
   named in the encoding tooltip.
-- **Detect and use existing file indents for editing**
-  (`editor.codeStyle.detectIndents`): a file indented differently from the code style (2
-  spaces in a 4-space project, tabs) keeps its indent while you edit it.
+- The **Formatter** tab: **Turn formatter on/off with markers in code comments**. Lines
+  between a comment with `@formatter:off` and one with `@formatter:on` (the markers can be
+  changed) keep their text when you reformat; the preview shows it.
 
-The language pages (Code Style | PHP) set **Use tab character**, **Tab size**, **Indent** and
-**Continuation indent** (method chains continue one continuation indent deeper). Enter, `Tab`
-and Reformat Code use the result; PHP's brace placement and blank lines are described in
-[PHP](php.md#code-style).
+### Language pages
+
+![Code style of JavaScript](../../screenshots/code-style-javascript.png)
+
+Each language page has PHPStorm's tabs, the options on the left and a preview on the right
+that is formatted again as you change an option:
+
+- **Tabs and Indents**: Use tab character, Tab size, Indent, Continuation indent and Keep
+  indents on empty lines (YAML: Indent sequence value). Enter, `Tab`, the status bar's indent
+  and Reformat Code use them.
+- **Spaces**: before parentheses, around operators, within parentheses, brackets and braces,
+  before and after commas and colons, … (as far as the language has them).
+- **Wrapping and Braces**: brace placement (End of line / Next line), `else`/`catch`/`finally`
+  on a new line (PHP), one selector per line (CSS), wrapping of objects and arrays (JSON),
+  attributes (HTML, XML), long text (YAML), simple statements on one line (Lua).
+- **Blank Lines**: Keep maximum blank lines in code, plus minimums (PHP: after namespace,
+  after imports, around methods, before `return`; CSS: around rules; Markdown: around headers
+  and block elements).
+- Language tabs: **Code Conversion** (PHP: short or long array syntax, a comma after the last
+  element of multi-line arrays, the case of `true`/`false`/`null`), **Punctuation**
+  (JavaScript/TypeScript: semicolons, quotes), **Case** (SQL keywords), **Other** (CSS hex
+  color case, YAML quotes, HTML "Do not indent children of", Lua quotes and call parentheses
+  for StyLua and lua-language-server).
+
+**Set from…** (top right) sets a language's options from a predefined style: PHP **PSR-12**,
+**PER Coding Style 2.0**, **Symfony**, **Laravel**, **WordPress** and **Drupal**; JavaScript
+and TypeScript **JavaScript Standard Style**, **Airbnb-like** and **Prettier defaults**;
+CSS **stylelint-config-standard**; Lua **StyLua defaults** and **2 spaces, single quotes**;
+SQL **Upper case keywords**.
+
+![PHP set from WordPress](../../screenshots/code-style-php-wordpress.png)
+
+### What Reformat Code uses
+
+Indents come from the scheme unless EditorConfig or the detected indent of the file wins
+(see above). Then:
+
+- The language server gets the options in its settings before it formats: Intelephense the
+  brace placement, typescript-language-server the spaces, braces, semicolons and quote
+  preference (`typescript.format` / `javascript.format`), the CSS, HTML, JSON, YAML and XML
+  servers their `format` settings, lua-language-server its `Lua.format.defaultConfig`.
+  StyLua gets indent, column width, quotes, call parentheses and simple statements on its
+  command line when the project has no `stylua.toml`.
+- Forge then applies what the formatter does not know, on the lines as they are: in PHP the
+  spaces, brace and `else`/`catch`/`finally` placement and the code conversions (and the blank
+  lines, see [PHP](php.md#code-style)); quotes in `.js`/`.ts` files without JSX; hex colors in
+  CSS; SQL keyword case; Markdown's spaces and blank lines; the spaces inside Blade and Twig
+  delimiters; Keep maximum blank lines; Keep indents on empty lines; and the formatter
+  markers. Strings, heredocs, comments and code blocks keep their text.
 
 ## Line separator, encoding and indent
 

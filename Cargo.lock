@@ -1815,6 +1815,7 @@ dependencies = [
  "forge-ai",
  "forge-backend",
  "forge-bookmarks",
+ "forge-codestyle",
  "forge-colors",
  "forge-containers",
  "forge-core",
@@ -1911,6 +1912,14 @@ dependencies = [
 
 [[package]]
 name = "forge-codeintel"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "forge-codestyle"
 version = "0.1.0"
 dependencies = [
  "serde",
@@ -2403,6 +2412,7 @@ dependencies = [
  "forge-agent-cli",
  "forge-bookmarks",
  "forge-codeintel",
+ "forge-codestyle",
  "forge-colors",
  "forge-containers",
  "forge-editing",

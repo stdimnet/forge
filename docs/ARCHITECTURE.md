@@ -1206,7 +1206,8 @@ plugin manifest entry, and the chat UI needs no changes:
   Windows-1252; detection and conversion), indent detection, the on-save cleanup (trailing
   spaces on none / modified / all lines, final line break), EditorConfig and the effective
   format of a file (`resolve_format`: EditorConfig > detected indent > the language's
-  `<language>.codeStyle.*` settings > the file type's indent), and commit message inspections.
+  `<language>.codeStyle.*` settings of the selected code style scheme > the file type's
+  indent), and commit message inspections.
 - IPC (`app/ui/src/ipc/text.ts`): `fs_read_text({ path, encoding? }) -> { text, eol, encoding,
   bom, malformed }` (`\n`-only text), `fs_write_text({ path, text, eol, encoding, bom })`,
   `text_prepare_save({ request: { text, saved?, caretLines, options } }) -> { text, changed }`,
@@ -1230,9 +1231,30 @@ plugin manifest entry, and the chat UI needs no changes:
   sorts them into parameter names, variable types and return types and applies the Inlay Hints
   settings. Code Vision ("2 implementations") comes from the PHP line markers
   (`LineMarker.vision`, `editor/lineMarkers.ts`).
+- Code style schemes (`crates/forge-codestyle`, pure, also WebAssembly; UI
+  `features/codeStyle/`): the model of Settings | Editor | Code Style (General and 13
+  language pages, PHPStorm's tabs, "Set from…" presets), the schemes (Default = user layer and
+  Project = project layer under the `<language>.codeStyle.*` / `editor.codeStyle.*` keys,
+  further IDE schemes under `editor.codeStyle.schemes.<id>.*`, the selection in
+  `editor.codeStyle.scheme`), import/export (Forge JSON, PHPStorm XML), the previews and the
+  pass after Reformat Code. IPC (`app/ui/src/ipc/codeStyle.ts`): `code_style_model()`,
+  `code_style_schemes() -> { schemes, selected, hasProject }`, `code_style_save({ schemes })`
+  (written with `Settings::set_many`), `code_style_preview({ language, values }) -> string |
+  null`, `code_style_export({ name, values, format: "json" | "xml", path? }) -> string`,
+  `code_style_import({ text?, path? }) -> { name, values, applied }`,
+  `code_style_post_format({ request: { fileType, original, text } }) -> string`. The pages
+  keep the edited schemes as a draft of the Settings dialog (`registerDraftSource` in
+  `features/settings/dialogState.ts`). `editor_file_format`, the PHP code style and
+  Intelephense's settings read the selected scheme (`forge_codestyle::effective_settings`);
+  `lsp_format({ path, tabSize, insertSpaces, languageId })` pushes the language's options to the
+  server (`forge_codestyle::lsp::settings_patch`, `LspClient::update_settings`, which also
+  answers later `workspace/configuration` requests), and `lua_format` passes StyLua's options
+  when the project has no `stylua.toml`.
 - PHP code style beyond indents (`phpforge_lang_php::style`): brace placement (Intelephense's
   `format.braces`, Generate) and `php_tidy_blank_lines({ text }) -> string | null`, the blank
-  line pass after Reformat Code (`registerFormatPostProcessor` in `features/lsp/format.ts`).
+  line pass after Reformat Code. Format post-processors (`registerFormatPostProcessor(fn,
+  order)` in `features/lsp/format.ts`) run after the language server or a format provider and
+  get the text before formatting too; the code style pass runs last (order 100).
   Composer (`phpforge_lang_php::composer`): `php_language_level() -> { level, fromComposer }`,
   `php_composer_outdated() -> OutdatedPackage[]`.
 - Actions on Save (`crates/forge-save-actions`, `phpforge_lang_php::{imports, rearrange,

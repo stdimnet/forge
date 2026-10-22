@@ -81,14 +81,37 @@ impl LspServerConfig {
 
     /// Value for a `workspace/configuration` section (dot separated) from `settings`.
     pub fn setting(&self, section: Option<&str>) -> Value {
-        let Some(section) = section.filter(|s| !s.is_empty()) else {
-            return self.settings.clone();
-        };
-        section
-            .split('.')
-            .try_fold(&self.settings, |v, key| v.get(key))
-            .cloned()
-            .unwrap_or(Value::Null)
+        setting_of(&self.settings, section)
+    }
+}
+
+/// Value for a `workspace/configuration` section (dot separated) of a settings tree.
+pub fn setting_of(settings: &Value, section: Option<&str>) -> Value {
+    let Some(section) = section.filter(|s| !s.is_empty()) else {
+        return settings.clone();
+    };
+    section
+        .split('.')
+        .try_fold(settings, |v, key| v.get(key))
+        .cloned()
+        .unwrap_or(Value::Null)
+}
+
+/// Recursively merge `patch` into `base`: objects merge key by key, everything else is
+/// replaced.
+pub fn merge_settings(base: &mut Value, patch: &Value) {
+    match (base, patch) {
+        (Value::Object(b), Value::Object(p)) => {
+            for (k, v) in p {
+                match b.get_mut(k) {
+                    Some(existing) => merge_settings(existing, v),
+                    None => {
+                        b.insert(k.clone(), v.clone());
+                    }
+                }
+            }
+        }
+        (b, p) => *b = p.clone(),
     }
 }
 

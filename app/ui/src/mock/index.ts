@@ -6,6 +6,7 @@ import "./projectMock";
 import "./remoteMock";
 import "./workspaceMock";
 import "./textMock";
+import "./codeStyleMock";
 import "./editingMock";
 import "./clipboardMock";
 import "./projectStateMock";

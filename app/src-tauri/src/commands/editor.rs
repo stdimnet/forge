@@ -119,8 +119,14 @@ pub async fn editor_file_format(
     request: FileFormatRequest,
     state: State<'_, AppState>,
 ) -> Result<FileFormat> {
-    let settings: serde_json::Map<String, serde_json::Value> =
-        state.read_settings().effective().into_iter().collect();
+    // Code style keys come from the selected scheme.
+    let settings = crate::commands::code_style::code_style_settings(&state);
+    // `scss` files use the CSS/SCSS/Less page, `tsx` the TypeScript one, ….
+    let language_id = request.language_id.map(|id| {
+        forge_codestyle::model()
+            .language_for_file_type(&id)
+            .map_or(id, |l| l.id.clone())
+    });
     let backend = state.backend().ok();
     let path = request.path.clone();
     let editorconfigs = blocking(move || {
@@ -143,7 +149,7 @@ pub async fn editor_file_format(
     .await?;
     Ok(forge_text::resolve_format(&FormatRequest {
         path: request.path,
-        language_id: request.language_id,
+        language_id,
         text: request.text,
         file_type_indent: request.file_type_indent,
         settings,

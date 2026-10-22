@@ -133,6 +133,47 @@ export function codeintel_type_info(request_json: string): string;
 export function codeintel_word_range(request_json: string): string;
 
 /**
+ * `{ name, values, format }` → the exported text.
+ */
+export function codestyle_export(request_json: string): string;
+
+/**
+ * `{ user, project, request }` → `FileFormat`, with the selected scheme's code style
+ * (as `editor_file_format` resolves it).
+ */
+export function codestyle_file_format(request_json: string): string;
+
+/**
+ * `{ text }` → `ImportedScheme` or `{ error }`.
+ */
+export function codestyle_import(request_json: string): string;
+
+/**
+ * `()` → `CodeStyleModel`.
+ */
+export function codestyle_model(): string;
+
+/**
+ * `{ user, project, schemes }` → `{ writes: SettingWrite[] }` or `{ error }`.
+ */
+export function codestyle_plan_save(request_json: string): string;
+
+/**
+ * `{ user, project, request }` → the text after the code style pass.
+ */
+export function codestyle_post_format(request_json: string): string;
+
+/**
+ * `{ language, values }` → the formatted sample (or `null`).
+ */
+export function codestyle_preview(request_json: string): string;
+
+/**
+ * `{ user, project }` → `SchemesState`.
+ */
+export function codestyle_schemes(request_json: string): string;
+
+/**
  * `FindRequest` → `ColorMatch[]`.
  */
 export function colors_find(request_json: string): string;
@@ -899,6 +940,14 @@ export interface InitOutput {
     readonly codeintel_rename_edit: (a: number, b: number, c: number) => void;
     readonly codeintel_type_info: (a: number, b: number, c: number) => void;
     readonly codeintel_word_range: (a: number, b: number, c: number) => void;
+    readonly codestyle_export: (a: number, b: number, c: number) => void;
+    readonly codestyle_file_format: (a: number, b: number, c: number) => void;
+    readonly codestyle_import: (a: number, b: number, c: number) => void;
+    readonly codestyle_model: (a: number) => void;
+    readonly codestyle_plan_save: (a: number, b: number, c: number) => void;
+    readonly codestyle_post_format: (a: number, b: number, c: number) => void;
+    readonly codestyle_preview: (a: number, b: number, c: number) => void;
+    readonly codestyle_schemes: (a: number, b: number, c: number) => void;
     readonly colors_find: (a: number, b: number, c: number) => void;
     readonly colors_format: (a: number, b: number, c: number) => void;
     readonly colors_parse: (a: number, b: number, c: number) => void;

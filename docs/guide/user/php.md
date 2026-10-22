@@ -345,17 +345,34 @@ Run Composer scripts with a **Composer Script** run configuration, see
 
 ![PHP code style](../../screenshots/settings-code-style-php.png)
 
-Settings | Editor | Code Style | PHP:
+Settings | Editor | Code Style | PHP (schemes, presets and the preview are described in
+[Editor](editor.md#code-style)):
 
-- **Tabs and Indents** (tab character, tab size, indent, continuation indent) apply while you
-  type, to Reformat Code and to the status bar's indent, see [Editor](editor.md#code-style).
-- **Braces placement** (`php.codeStyle.braces`): PSR-12 (next line for classes and functions,
-  end of line otherwise), next line everywhere or end of line everywhere. Reformat Code passes
-  it to Intelephense's formatter; the [Generate](#generate) actions write methods with it.
-- **Blank Lines**: after Reformat Code (`Ctrl+Alt+L`) Forge cuts runs of blank lines to
-  **Keep maximum blank lines in code** and sets the blank lines **After namespace**, **After
-  imports** and **Around method** (at least). Strings, heredocs and comments are never
-  changed. Generated methods are separated by "Around method" blank lines.
+- **Set from…** sets every PHP option from **PSR-12**, **PER Coding Style 2.0**, **Symfony**,
+  **Laravel** (Pint's `laravel` preset), **WordPress** or **Drupal**.
+- **Tabs and Indents** (tab character, tab size, indent, continuation indent, indents on
+  empty lines) apply while you type, to Reformat Code and to the status bar's indent.
+- **Spaces**: before the parentheses of declarations, calls, anonymous and arrow functions,
+  `if`, `for`/`foreach`, `while`, `switch`/`match` and `catch`; around assignment, logical,
+  equality, relational, additive and multiplicative operators, concatenation (`.`), `??`
+  and `=>`; within parentheses (WordPress' `foo( $a )`); before/after commas, after type
+  casts (`(int) $a`) and after `!` (Laravel's `! $a`).
+- **Wrapping and Braces**: brace placement in class declarations, function declarations and
+  other blocks (End of line / Next line; a multi-line parameter list keeps `) {` together as
+  PSR-12 says, and empty bodies stay `{}`), and `else`, `catch` and `finally` on a new line.
+  Intelephense formats with the closest of its brace styles; the Generate actions write
+  methods with the function brace placement.
+- **Blank Lines**: Forge cuts runs of blank lines to **Keep maximum blank lines in code** and
+  sets the blank lines **After namespace**, **After imports**, **Around method** (at least)
+  and **Before return statement** (Symfony and Laravel: one). Generated methods are separated
+  by "Around method" blank lines.
+- **Code Conversion**: array declaration style (keep, short `[]` or long `array()`), a comma
+  after the last element of multi-line arrays, and `true`/`false`/`null` in lower or upper
+  case.
+
+Reformat Code (`Ctrl+Alt+L`) lets Intelephense format the file and then applies the spaces,
+brace placement, blank lines and conversions on the lines as they are. Strings, heredocs,
+comments and inline HTML are never changed.
 
 ### Quality Tools
 
