@@ -20,6 +20,9 @@ export interface PhpSettings {
 
 export const LANGUAGE_LEVELS = ["7.4", "8.0", "8.1", "8.2", "8.3", "8.4"] as const;
 
+/** `php.languageLevel` value: the level follows the CLI interpreter's version. */
+export const LEVEL_FROM_INTERPRETER = "interpreter";
+
 /** Settings key of each field. */
 export const PHP_SETTING_KEYS: Record<keyof PhpSettings, string> = {
   languageLevel: "php.languageLevel",
