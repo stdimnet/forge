@@ -235,6 +235,14 @@ mod tests {
     use forge_backend::LocalBackend;
     use std::os::unix::fs::PermissionsExt;
 
+    /// Writing a script while another test thread forks can leave the new file open for
+    /// writing in that child, so `exec` fails with "Text file busy". The tests that write
+    /// and run scripts take turns.
+    fn serial() -> std::sync::MutexGuard<'static, ()> {
+        static LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+        LOCK.lock().unwrap_or_else(|e| e.into_inner())
+    }
+
     fn script(dir: &std::path::Path, rel: &str, body: &str) {
         let path = dir.join(rel);
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
@@ -248,6 +256,7 @@ mod tests {
 
     #[test]
     fn runs_project_tools_in_order() {
+        let _serial = serial();
         let dir = tempfile::tempdir().unwrap();
         // php-cs-fixer fix --no-interaction --show-progress=none <file>
         script(
@@ -276,6 +285,7 @@ mod tests {
 
     #[test]
     fn missing_tools_are_skipped() {
+        let _serial = serial();
         let dir = tempfile::tempdir().unwrap();
         std::fs::write(dir.path().join("a.js"), "x\n").unwrap();
         let backend = LocalBackend::open(dir.path()).unwrap();
@@ -289,6 +299,7 @@ mod tests {
 
     #[test]
     fn a_failing_tool_restores_the_file() {
+        let _serial = serial();
         let dir = tempfile::tempdir().unwrap();
         script(
             dir.path(),
@@ -309,6 +320,7 @@ mod tests {
 
     #[test]
     fn eslint_problems_left_after_fixing_are_reported_but_kept() {
+        let _serial = serial();
         let dir = tempfile::tempdir().unwrap();
         script(
             dir.path(),
@@ -325,6 +337,7 @@ mod tests {
 
     #[test]
     fn custom_paths_win_and_detection_reports_relative_paths() {
+        let _serial = serial();
         let dir = tempfile::tempdir().unwrap();
         script(dir.path(), "tools/pint", "exit 0");
         script(dir.path(), "vendor/bin/php-cs-fixer", "exit 0");
