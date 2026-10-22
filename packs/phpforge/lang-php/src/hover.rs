@@ -483,8 +483,11 @@ class OrderController
     #[test]
     fn hovers_members_through_variables_and_static_access() {
         let (_d, mut idx) = setup();
-        // `$order->markPaid` — variable receivers are unknown to the index.
-        assert!(hover_on(&mut idx, "markPaid", 2).is_none());
+        // `$order->markPaid`: the variable's type comes from the parameter.
+        let h = hover_on(&mut idx, "markPaid", 2).unwrap();
+        assert!(h
+            .markdown
+            .contains("function markPaid(string $ref): static"));
         let h = hover_on(&mut idx, "PAID .", 1).unwrap();
         assert!(h.markdown.contains("public const PAID = 'paid'"));
     }

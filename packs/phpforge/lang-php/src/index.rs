@@ -140,6 +140,9 @@ pub struct ProjectIndex {
     /// Metadata per `.phpstorm.meta.php` file and all of it merged.
     meta_files: HashMap<String, PhpMeta>,
     meta: PhpMeta,
+    /// PSR-4 source roots (composer.json with the user's Mark Directory as changes), for
+    /// the namespace inspection.
+    source_roots: Vec<forge_file_templates::psr4::Psr4Root>,
 }
 
 fn to_rel(root: &Path, p: &Path) -> String {
@@ -169,7 +172,17 @@ impl ProjectIndex {
             vendor_names: None,
             meta_files: HashMap::new(),
             meta: PhpMeta::default(),
+            source_roots: Vec::new(),
         }
+    }
+
+    /// The PSR-4 source roots (see [`ProjectIndex::set_source_roots`]).
+    pub fn source_roots(&self) -> &[forge_file_templates::psr4::Psr4Root] {
+        &self.source_roots
+    }
+
+    pub fn set_source_roots(&mut self, roots: Vec<forge_file_templates::psr4::Psr4Root>) {
+        self.source_roots = roots;
     }
 
     /// The advanced metadata of all `.phpstorm.meta.php` files.

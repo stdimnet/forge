@@ -136,3 +136,163 @@ fn edited_metadata_is_read_again() {
         .meta()
         .is_exit_point(|t| t.is_function("Acme\\Toolkit\\halt")));
 }
+
+fn complete_at(idx: &mut ProjectIndex, src_with_caret: &str) -> Vec<String> {
+    let offset = src_with_caret.find('|').expect("caret");
+    let src = src_with_caret.replacen('|', "", 1);
+    phpforge_lang_php::complete::complete(idx, "app/Http/Draft.php", &src, offset)
+        .map(|c| c.items.into_iter().map(|i| i.insert).collect())
+        .unwrap_or_default()
+}
+
+const DRAFT_HEAD: &str = "<?php\nnamespace App\\Http;\nuse App\\Container;\nuse App\\Models\\Order;\nuse App\\Services\\Mailer;\nclass Draft {\n  public function run(Container $c, Order $order) {\n";
+
+#[test]
+fn completes_expected_arguments_and_map_keys() {
+    let (_c, mut idx) = project();
+    let src = format!("{DRAFT_HEAD}    $order->setStatus('|');\n  }}\n}}\n");
+    assert_eq!(
+        complete_at(&mut idx, &src),
+        vec!["draft", "paid", "shipped"]
+    );
+    // Outside a string: literals with quotes and constants.
+    let src = format!("{DRAFT_HEAD}    $order->sortBy('total', |);\n  }}\n}}\n");
+    assert_eq!(
+        complete_at(&mut idx, &src),
+        vec!["\\App\\Models\\Order::ASC", "\\App\\Models\\Order::DESC"]
+    );
+    // `#[ExpectedValues]` on the parameter.
+    let src = format!("{DRAFT_HEAD}    $order->priority('|');\n  }}\n}}\n");
+    assert_eq!(complete_at(&mut idx, &src), vec!["low", "normal", "high"]);
+    // Flags after `|`.
+    let src = format!("{DRAFT_HEAD}    (new Mailer())->send('a', Mailer::HTML | |);\n  }}\n}}\n");
+    assert_eq!(
+        complete_at(&mut idx, &src),
+        vec![
+            "\\App\\Services\\Mailer::HTML",
+            "\\App\\Services\\Mailer::QUEUED"
+        ]
+    );
+    // Service ids of an override map.
+    let src = format!("{DRAFT_HEAD}    $c->get('|');\n  }}\n}}\n");
+    assert_eq!(complete_at(&mut idx, &src), vec!["cache", "mailer"]);
+    let src = format!("{DRAFT_HEAD}    app('ca|');\n  }}\n}}\n");
+    let c = phpforge_lang_php::complete::complete(
+        &mut idx,
+        "app/Http/Draft.php",
+        &src.replacen('|', "", 1),
+        src.find('|').unwrap(),
+    )
+    .unwrap();
+    assert_eq!(&src[c.from..c.to + 1], "ca|");
+    // Nothing for other arguments.
+    let src = format!("{DRAFT_HEAD}    $order->sortBy(|);\n  }}\n}}\n");
+    assert!(complete_at(&mut idx, &src).is_empty());
+}
+
+#[test]
+fn completes_return_values_and_array_shape_keys() {
+    let (_c, mut idx) = project();
+    let src = format!("{DRAFT_HEAD}    if ($order->status() === '|') {{}}\n  }}\n}}\n");
+    assert_eq!(
+        complete_at(&mut idx, &src),
+        vec!["draft", "paid", "shipped"]
+    );
+    let src = format!("{DRAFT_HEAD}    $data = $order->toArray();\n    $data['|'];\n  }}\n}}\n");
+    assert_eq!(complete_at(&mut idx, &src), vec!["id", "mailer", "tags"]);
+    let src = format!("{DRAFT_HEAD}    $order->toArray()[|];\n  }}\n}}\n");
+    assert_eq!(
+        complete_at(&mut idx, &src),
+        vec!["'id'", "'mailer'", "'tags'"]
+    );
+}
+
+#[test]
+fn array_shape_keys_have_types() {
+    let (_c, mut idx) = project();
+    let d = def(&mut idx, "send('i@j.k')", 0);
+    assert_eq!(target(&d), "app/Services/Mailer.php#Mailer::send()");
+}
+
+fn problems(idx: &mut ProjectIndex, rel: &str) -> Vec<(String, String, String)> {
+    let src = read(rel);
+    phpforge_lang_php::inspections::inspect(idx, rel, &src)
+        .into_iter()
+        .map(|p| (p.code, src[p.start..p.end].to_string(), p.message))
+        .collect()
+}
+
+#[test]
+fn inspections_use_attributes_and_metadata() {
+    let (_c, mut idx) = project();
+    let found = problems(&mut idx, "app/Http/Checkout.php");
+    let has = |code: &str, text: &str| found.iter().any(|(c, t, _)| c == code && t == text);
+    assert!(has("deprecated", "settle"), "{found:#?}");
+    let msg = &found.iter().find(|p| p.0 == "deprecated").unwrap().2;
+    assert_eq!(msg, "Method 'settle' is deprecated: Use pay() instead");
+    assert!(has("pureFunction", "$order->total()"), "{found:#?}");
+    assert!(has("expectedValues", "'cancelled'"), "{found:#?}");
+    assert!(has("expectedValues", "'urgent'"), "{found:#?}");
+    assert!(has("immutable", "number"), "{found:#?}");
+    assert!(has("unreachable", "$order->pay(1);"), "{found:#?}");
+    let urgent = found.iter().find(|p| p.1 == "'urgent'").unwrap();
+    assert_eq!(urgent.2, "Value should be one of: 'low', 'normal', 'high'");
+    // Valid values, the constructor's write and other calls are fine.
+    assert!(!found.iter().any(|p| p.1 == "'a@b.c'"));
+    assert_eq!(found.iter().filter(|p| p.0 == "immutable").count(), 1);
+    // The constructor writes `number` in its own class.
+    assert!(problems(&mut idx, "app/Models/Order.php")
+        .iter()
+        .all(|p| p.0 != "immutable"));
+}
+
+#[test]
+fn deprecated_calls_offer_their_replacement() {
+    let (_c, mut idx) = project();
+    let src = read("app/Http/Checkout.php");
+    let offset = at(&src, "settle(10)", 0, 2);
+    let fixes =
+        phpforge_lang_php::inspections::fixes_at(&mut idx, "app/Http/Checkout.php", &src, offset);
+    assert_eq!(fixes.len(), 1);
+    assert_eq!(fixes[0].title, "Replace with '$order->pay(10)'");
+    let e = &fixes[0].edits[0];
+    assert_eq!(&src[e.start..e.end], "$order->settle(10)");
+}
+
+#[test]
+fn namespace_must_match_source_roots() {
+    let (_c, mut idx) = project();
+    let composer = read("composer.json");
+    let roots = forge_file_templates::psr4::roots(&composer, "");
+    idx.set_source_roots(roots.clone());
+    let found = problems(&mut idx, "app/Wrong/Thing.php");
+    assert_eq!(
+        found,
+        vec![(
+            "psr4Namespace".to_string(),
+            "App\\Other".to_string(),
+            "Namespace name doesn't match PSR-0/PSR-4 project structure".to_string()
+        )]
+    );
+    let src = read("app/Wrong/Thing.php");
+    let fixes = phpforge_lang_php::inspections::fixes_at(
+        &mut idx,
+        "app/Wrong/Thing.php",
+        &src,
+        at(&src, "Other", 0, 1),
+    );
+    assert_eq!(fixes[0].title, "Set namespace to 'App\\Wrong'");
+    // A user's package prefix for the folder wins.
+    let marked = forge_file_templates::psr4::apply_overrides(
+        &roots,
+        &[forge_file_templates::psr4::SourceRootSetting {
+            path: "app/Wrong".into(),
+            prefix: "App\\Other".into(),
+            kind: "source".into(),
+        }],
+    );
+    idx.set_source_roots(marked);
+    assert!(problems(&mut idx, "app/Wrong/Thing.php").is_empty());
+    // Correct files and files outside the roots are fine.
+    assert!(problems(&mut idx, "app/Services/Mailer.php").is_empty());
+}

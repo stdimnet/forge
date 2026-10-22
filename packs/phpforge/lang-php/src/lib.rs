@@ -33,6 +33,7 @@ pub mod highlight;
 pub mod hover;
 pub mod imports;
 pub mod index;
+pub mod inspections;
 pub mod intentions;
 pub mod lsp;
 pub mod meta;

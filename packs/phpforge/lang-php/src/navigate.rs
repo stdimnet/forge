@@ -694,7 +694,11 @@ pub(crate) fn receiver_types(
         let name_end = src[..open].trim_end().len();
         let name_start = ident_start(src, name_end);
         let name = &src[name_start..name_end];
-        if name.is_empty() || name.starts_with('$') {
+        if name.is_empty() {
+            // `(new Mailer())->send()`: the parenthesized expression.
+            return receiver_types(index, file, src, head.len() - 1, depth + 1);
+        }
+        if name.starts_with('$') {
             return vec![];
         }
         let before = src[..name_start].trim_end();
