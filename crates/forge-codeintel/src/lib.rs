@@ -51,8 +51,8 @@ pub use rename::{
     RenameConflict,
 };
 pub use structure::{
-    editor_structure, group_by_regions, EditorStructure, Region, Scope, ScopeKind,
-    STRUCTURE_LANGUAGES,
+    editor_structure, group_by_regions, method_stops, method_target, EditorStructure, MethodStop,
+    Region, Scope, ScopeKind, STRUCTURE_LANGUAGES,
 };
 pub use usages::{
     classify_usage, group_usages, GroupRequest, UsageFile, UsageGroup, UsageKind, UsageLocation,

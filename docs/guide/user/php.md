@@ -42,6 +42,12 @@ entry to jump to it.
 - **Show Inherited** adds members of parent classes, traits and interfaces, grayed and with
   the declaring class.
 - **Sort Alphabetically** sorts within each kind.
+- **Options** (⋮): **Autoscroll to Source** (on: a single click jumps to the member; off: a
+  click selects and a double click jumps) and **Autoscroll from Source** (the member at the
+  caret is selected as you move through the editor). Both are also settings
+  (`structureView.autoscrollToSource`, `structureView.autoscrollFromSource`).
+
+![Structure view options](../../screenshots/structure-autoscroll.png)
 
 ![Structure tool window](../../screenshots/php-structure.png)
 

@@ -2015,6 +2015,7 @@ dependencies = [
 name = "forge-editing"
 version = "0.1.0"
 dependencies = [
+ "forge-bookmarks",
  "serde",
  "serde_json",
 ]

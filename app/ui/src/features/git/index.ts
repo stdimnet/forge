@@ -13,7 +13,10 @@ import { showToolWindow } from "@/state/layout";
 import { CommitPanel } from "./CommitPanel";
 import { GitLogPanel } from "./GitLogPanel";
 import { GitOverlays } from "./GitOverlays";
-import { gitEditorExtensions } from "./editorGit";
+import { gitEditorExtensions, showChangeMarker } from "./editorGit";
+import { editor } from "@/state/editor";
+import { viewFor } from "@/editor/views";
+import { callWasmSync, forgeWasm } from "@/wasm";
 import { branchesOpen, setBranchesOpen } from "./overlays";
 import { repoAvailable, startGitStore, status } from "./store";
 import { fetchAll, newBranchDialog, openCommitWindow, push, updateProject } from "./actions";
@@ -81,6 +84,17 @@ const commands: { id: string; title: string; run: () => void | Promise<void> }[]
   { id: "git.log", title: "Show Git Log", run: () => showToolWindow("bottom", "git") },
 ];
 for (const c of commands) registerCommand({ ...c, category: "Git" });
+
+/** Next Change / Previous Change: the hunk order comes from `forge_editing::change_target`. */
+async function gotoChange(forward: boolean): Promise<void> {
+  const path = editor.active;
+  const view = path ? viewFor(path) : undefined;
+  if (!path || !view) return;
+  const w = await forgeWasm();
+  showChangeMarker(view, path, (ranges, line) => callWasmSync<number | null>(w.editor_change_target, { ranges, line, forward }));
+}
+registerCommand({ id: "VcsShowNextChangeMarker", title: "Next Change", category: "Navigate", run: () => gotoChange(true) });
+registerCommand({ id: "VcsShowPrevChangeMarker", title: "Previous Change", category: "Navigate", run: () => gotoChange(false) });
 
 // Project view: the Git submenu, only when the project is a Git repository.
 registerContextMenuProvider<FileEntry | null>("project", (entry) => {

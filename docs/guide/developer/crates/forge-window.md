@@ -20,6 +20,9 @@ Window chrome for Forge's own (undecorated) windows.
   including GNOME's `button-layout` and KDE's `kwinrc` button order.
 - `geometry`: where a dialog window opens (centered on its parent, or where the user left
   it) and the remembered size and position of every dialog.
+- `reveal`: the commands that show a file in the system file manager (Explorer's `/select,`,
+  `open -R`, the freedesktop `FileManager1.ShowItems` D-Bus call with `xdg-open` as fallback)
+  and the file manager's name for Select In….
 
 The crate is pure (no file system, processes or windowing): the Tauri shell reads the
 environment and files and passes them in, and the browser-mode UI runs the same code as
@@ -32,6 +35,7 @@ WebAssembly.
 | `chrome.rs` | Title bar style and button layout for `appearance.windowControls`. |
 | `desktop.rs` | Operating system and desktop environment detection. |
 | `geometry.rs` | Where dialog windows open and the geometry Forge remembers for each dialog. |
+| `reveal.rs` | Commands that reveal a file in Explorer, Finder or the Linux file manager. |
 
 ## Main public items
 
@@ -39,13 +43,14 @@ WebAssembly.
 pub use chrome::{…};
 pub use desktop::{detect_desktop, Desktop, Os};
 pub use geometry::{place_dialog, DialogStates, Rect, Size};
+pub use reveal::{file_manager_name, reveal_commands, RevealCommand};
 pub fn dialog_label(id: &str) -> Option<String> { … }
 pub fn dialog_id(label: &str) -> Option<&str> { … }
 ```
 
 ## Used by
 
-- IPC: `window_chrome`, `dialog_window_open`, `dialog_window_close`, `dialog_window_message` (`app/src-tauri/src/commands/window.rs`)
+- IPC: `window_chrome`, `reveal_in_file_manager`, `dialog_window_open`, `dialog_window_close`, `dialog_window_message` (`app/src-tauri/src/commands/window.rs`)
 - UI: `app/ui/src/shell/window`
 - Browser mode: built into `forge-wasm`
 

@@ -31,7 +31,7 @@ import { groupView } from "@/editor/views";
 import { item, separator, showContextMenu, submenu, type MenuEntry } from "@/features/contextMenu/state";
 import { registerMainMenuEntries } from "@/features/mainMenu";
 import { action as menuAction } from "@/features/mainMenu/model";
-import { revealPath, selectPath } from "@/features/project/ProjectView";
+import { selectInTree } from "@/features/project/ProjectView";
 import { setTabMenuProvider } from "@/shell/tabMenu";
 import "./recentLocations";
 import "./editorTabs.css";
@@ -111,8 +111,7 @@ action("CloseAllToTheRight", withCurrent((g, id) => closeTabsToSide(g, id, "righ
 function selectInProject(path: string): void {
   if (isCustomTab(path) || path.includes("://")) return;
   showToolWindow("left", "project");
-  revealPath(path.split("/").slice(0, -1).join("/"));
-  selectPath(path);
+  selectInTree(path);
 }
 action("SelectInProjectView", () => {
   if (editor.active) selectInProject(editor.active);

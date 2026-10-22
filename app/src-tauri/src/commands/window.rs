@@ -125,6 +125,43 @@ pub fn window_chrome(style: Option<String>, state: State<'_, AppState>) -> Windo
     chrome_for(&style.unwrap_or_else(|| setting(&state)))
 }
 
+/// Select In… › Explorer / Finder / File Manager: show a project file (or folder) selected in
+/// the system file manager. Only for local projects.
+#[tauri::command]
+pub async fn reveal_in_file_manager(path: String, state: State<'_, AppState>) -> Result<()> {
+    if state.is_remote() {
+        return Err(ForgeError::Other(
+            "files of remote projects cannot be shown in the local file manager".into(),
+        ));
+    }
+    let rel = std::path::Path::new(&path);
+    if rel.is_absolute()
+        || rel
+            .components()
+            .any(|c| !matches!(c, std::path::Component::Normal(_)))
+    {
+        return Err(ForgeError::Other(format!("not a project path: {path}")));
+    }
+    let target = state.project_root()?.join(rel);
+    let target = target.to_string_lossy().into_owned();
+    tauri::async_runtime::spawn_blocking(move || {
+        for cmd in forge_window::reveal_commands(Os::current(), &target) {
+            let status = std::process::Command::new(&cmd.program)
+                .args(&cmd.args)
+                .stdout(std::process::Stdio::null())
+                .stderr(std::process::Stdio::null())
+                .status();
+            // Explorer exits with 1 even when it shows the file.
+            if status.is_ok_and(|s| s.success() || cfg!(windows)) {
+                return Ok(());
+            }
+        }
+        Err(ForgeError::Other("no file manager could be started".into()))
+    })
+    .await
+    .map_err(|e| ForgeError::Other(e.to_string()))?
+}
+
 /// Give every window OS decorations (`native`) or none (Forge draws the title bar). The
 /// splash window never has decorations.
 pub fn apply_decorations(app: &AppHandle) {

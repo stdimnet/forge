@@ -103,6 +103,8 @@ Scheme…** (`` Ctrl+` ``) toggle between dark and light.
 | Window controls | `appearance.windowControls` | Match the system |
 | Show tool window bars | `appearance.showToolWindowBars` | on |
 | Open files with single click (Project view) | `projectView.openFilesWithSingleClick` | on |
+| Always select opened file (Project view) | `projectView.autoscrollFromSource` | off |
+| Autoscroll to source / from source (Structure view) | `structureView.autoscrollToSource`, `structureView.autoscrollFromSource` | on |
 
 Editor fonts are under Settings | Editor | Font: JetBrains Mono (default), Fira Code, Cascadia
 Code, Source Code Pro, Menlo, Consolas or the system monospace font, size (13.5), line height

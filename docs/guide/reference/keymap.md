@@ -52,9 +52,9 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Line/Column… | `GotoLine` | `Ctrl+G` | `Cmd+L` | yes |
 | Back | `Back` | `Ctrl+Alt+Left` | `Cmd+[`, `Cmd+Alt+Left` | yes |
 | Forward | `Forward` | `Ctrl+Alt+Right` | `Cmd+]`, `Cmd+Alt+Right` | yes |
-| Last Edit Location | `JumpToLastChange` | `Ctrl+Shift+Backspace` | `Cmd+Shift+Backspace` | — |
-| Next Edit Location | `JumpToNextChange` |  |  | — |
-| Select In… | `SelectIn` | `Alt+F1` | `Alt+F1` | — |
+| Last Edit Location | `JumpToLastChange` | `Ctrl+Shift+Backspace` | `Cmd+Shift+Backspace` | yes |
+| Next Edit Location | `JumpToNextChange` |  |  | yes |
+| Select In… | `SelectIn` | `Alt+F1` | `Alt+F1` | yes |
 | Declaration or Usages | `GotoDeclaration` | `Ctrl+B` | `Cmd+B` | yes |
 | Implementation(s) | `GotoImplementation` | `Ctrl+Alt+B` | `Cmd+Alt+B` | yes |
 | Type Declaration | `GotoTypeDeclaration` | `Ctrl+Shift+B` | `Cmd+Shift+B` | yes |
@@ -67,8 +67,8 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Call Hierarchy | `CallHierarchy` | `Ctrl+Alt+H` | `Ctrl+Alt+H` | — |
 | Next Highlighted Error | `GotoNextError` | `F2` | `F2` | yes |
 | Previous Highlighted Error | `GotoPreviousError` | `Shift+F2` | `Shift+F2` | yes |
-| Next Method | `MethodDown` | `Alt+Down` | `Ctrl+Down` | — |
-| Previous Method | `MethodUp` | `Alt+Up` | `Ctrl+Up` | — |
+| Next Method | `MethodDown` | `Alt+Down` | `Ctrl+Down` | yes |
+| Previous Method | `MethodUp` | `Alt+Up` | `Ctrl+Up` | yes |
 | Next Occurrence | `NextOccurence` | `Ctrl+Alt+Down` | `Cmd+Alt+Down` | yes |
 | Previous Occurrence | `PreviousOccurence` | `Ctrl+Alt+Up` | `Cmd+Alt+Up` | yes |
 | Jump to Source | `EditSource` | `F4` | `F4`, `Cmd+Down` | — |
@@ -79,8 +79,8 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Move Caret to Code Block End with Selection | `EditorCodeBlockEndWithSelection` | `Ctrl+Shift+]` | `Cmd+Alt+Shift+]` | — |
 | Next Emmet Edit Point | `EmmetNextEditPoint` | `Alt+Shift+]` | `Ctrl+Alt+]` | yes |
 | Previous Emmet Edit Point | `EmmetPreviousEditPoint` | `Alt+Shift+[` | `Ctrl+Alt+[` | yes |
-| Next Change | `VcsShowNextChangeMarker` | `Ctrl+Alt+Shift+Down` | `Ctrl+Alt+Shift+Down` | — |
-| Previous Change | `VcsShowPrevChangeMarker` | `Ctrl+Alt+Shift+Up` | `Ctrl+Alt+Shift+Up` | — |
+| Next Change | `VcsShowNextChangeMarker` | `Ctrl+Alt+Shift+Down` | `Ctrl+Alt+Shift+Down` | yes |
+| Previous Change | `VcsShowPrevChangeMarker` | `Ctrl+Alt+Shift+Up` | `Ctrl+Alt+Shift+Up` | yes |
 
 ### Help
 

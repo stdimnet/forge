@@ -147,6 +147,15 @@ The Project tool window (`Alt+1`) shows the project folder as a tree.
   the parent, `Home`/`End` jump to the first/last row, `Enter` or `F4` opens.
 - Files and folders ignored by Git (`.gitignore`, `.git/info/exclude`, the global excludes
   file) are grayed out.
+- **Header buttons**: **Select Opened File** (the target icon) expands the tree to the
+  active editor's file and selects it, **Collapse All** folds every folder, and **Options**
+  (⋮) holds **Always Select Opened File** (the tree follows the active editor, PHPStorm's
+  "Autoscroll from Source", setting `projectView.autoscrollFromSource`) and **Open Files with
+  Single Click**.
+- **Select In…** (`Alt+F1`) shows the current file in the Project view and other places, see
+  [Select In](shortcuts/navigation.md#select-in).
+
+![Project view options](../../screenshots/project-view-options.png)
 - **Scratches and Consoles** appear at the bottom of the tree, see
   [Scratches, consoles and HTTP client](scratches-and-http.md).
 
@@ -254,12 +263,21 @@ The **Switcher** (`Ctrl+Tab`, `Ctrl+Shift+Tab`) is the same popup for quick swit
 **Back** and **Forward** (`Ctrl+Alt+Left` / `Ctrl+Alt+Right`, macOS `Cmd+[` / `Cmd+]`) move
 through your navigation history.
 
+**Last Edit Location** (`Ctrl+Shift+Backspace`, macOS `Cmd+Shift+Backspace`) and **Next Edit
+Location** move through a separate history: the places where you changed text, across files.
+Edits a line or two apart count as one place, and places follow later edits (lines inserted
+above move them down), renames and deletions. The first jump skips the place the caret is
+already at, so after typing it goes to the edit before.
+
+![Recently Changed Locations after Last Edit Location](../../screenshots/last-edit-location.png)
+
 ## Recent Locations
 
 **Recent Locations** (`Ctrl+Shift+E`, macOS `Cmd+Shift+E`, View | Recent Locations) lists the
 places you recently looked at or edited, newest first, each with its file and a few lines of
 code around the caret. Type to filter by file name or code. Press `Ctrl+Shift+E` again, or tick
-**Show changed only**, to see only places you edited. `Enter` or a click jumps there. The
+**Show changed only**, to see only places you edited (the same edit history as Last Edit
+Location). `Enter` or a click jumps there. The
 places follow edits (inserted lines above move them down) and file renames.
 
 ![Recent Locations](../../screenshots/recent-locations.png)

@@ -17,8 +17,8 @@ Back and forward, Search Everywhere, Go to Class/File/Symbol/Line, declarations 
 | --- | --- | --- | --- | --- |
 | Back | `Ctrl+Alt+Left` | `Cmd+[`, `Cmd+Alt+Left` | yes | Goes back to the previous caret location in your navigation history. [More](../../user/editor.md#go-to-declaration) |
 | Forward | `Ctrl+Alt+Right` | `Cmd+]`, `Cmd+Alt+Right` | yes | Goes forward in the navigation history. [More](../../user/editor.md#go-to-declaration) |
-| Last Edit Location | `Ctrl+Shift+Backspace` | `Cmd+Shift+Backspace` | not yet | Not available yet; the entry is disabled. |
-| Next Edit Location | — | — | not yet | Not available yet; the entry is disabled. |
+| Last Edit Location | `Ctrl+Shift+Backspace` | `Cmd+Shift+Backspace` | yes | Goes back to the previous place where you changed text, across files. [More](../../user/shortcuts/navigation.md#last-edit-location) |
+| Next Edit Location | — | — | yes | Goes forward again through the places where you changed text. [More](../../user/shortcuts/navigation.md#next-edit-location) |
 | **Bookmarks** | | | | submenu |
 | Bookmarks › Toggle Bookmark | `F11` | `F3` | yes | Adds or removes a bookmark on the caret line. [More](../../user/workbench.md#bookmarks) |
 | Bookmarks › Toggle Bookmark with Mnemonic | `Ctrl+F11` | `Alt+F3` | yes | Adds a bookmark with a digit or letter you pick in a popup, or changes or removes it. [More](../../user/workbench.md#bookmarks) ([screenshot](../../../screenshots/bookmark-mnemonic.png)) |
@@ -32,7 +32,7 @@ Back and forward, Search Everywhere, Go to Class/File/Symbol/Line, declarations 
 | Symbol… | `Ctrl+Alt+Shift+N` | `Cmd+Alt+O` | yes | Finds a function, method, property or constant by name. [More](../../user/search-everywhere.md) ([screenshot](../../../screenshots/docs-goto-symbol.png)) |
 | Action… | `Ctrl+Shift+A` | `Cmd+Shift+A` | yes | Finds any action by name and runs it (Find Action). [More](../../user/search-everywhere.md#find-action) ([screenshot](../../../screenshots/docs-find-action.png)) |
 | Line/Column… | `Ctrl+G` | `Cmd+L` | yes | Moves the caret to a line (and column) of the current file. [More](../../user/editor.md#editing-actions) ([screenshot](../../../screenshots/docs-goto-line.png)) |
-| Select In… | `Alt+F1` | `Alt+F1` | not yet | Not available yet; the entry is disabled. |
+| Select In… | `Alt+F1` | `Alt+F1` | yes | Shows the current file in the Project view, Commit, Structure, File Structure, Navigation Bar, Git Log, the system file manager or a terminal. [More](../../user/shortcuts/navigation.md#select-in) ([screenshot](../../../screenshots/select-in.png)) |
 | Navigation Bar | `Alt+Home` | `Cmd+Up` | yes | Focuses the navigation bar with the file's folder open (shows the bar as a popup when it is hidden). [More](../../user/navigation-bar-and-file-structure.md#navigation-bar) ([screenshot](../../../screenshots/navigation-bar-alt-home.png)) |
 | Declaration or Usages | `Ctrl+B` | `Cmd+B` | yes | Jumps to the declaration of the symbol at the caret; on a declaration it shows the usages; several targets open the Choose Declaration popup. [More](../../user/editor.md#go-to-declaration) ([screenshot](../../../screenshots/php-nav-stub.png)) |
 | Implementation(s) | `Ctrl+Alt+B` | `Cmd+Alt+B` | yes | Lists the implementations of the class, interface or method at the caret. [More](../../user/editor.md#implementation-type-declaration-super-method) ([screenshot](../../../screenshots/php-nav-gutter.png)) |
@@ -48,7 +48,7 @@ Back and forward, Search Everywhere, Go to Class/File/Symbol/Line, declarations 
 | Previous Highlighted Error | `Shift+F2` | `Shift+F2` | yes | Moves the caret to the previous problem in the file. [More](../../user/editor.md#problems) |
 | Next Occurrence | `Ctrl+Alt+Down` | `Cmd+Alt+Down` | yes | Opens the next result of the Find tool window's active tab. [More](../../user/workbench.md#find-tool-window) |
 | Previous Occurrence | `Ctrl+Alt+Up` | `Cmd+Alt+Up` | yes | Opens the previous result of the Find tool window's active tab. [More](../../user/workbench.md#find-tool-window) |
-| Next Method | `Alt+Down` | `Ctrl+Down` | not yet | Not available yet; the entry is disabled. |
-| Previous Method | `Alt+Up` | `Ctrl+Up` | not yet | Not available yet; the entry is disabled. |
-| Next Change | `Ctrl+Alt+Shift+Down` | `Ctrl+Alt+Shift+Down` | not yet | Not available yet; the entry is disabled. |
-| Previous Change | `Ctrl+Alt+Shift+Up` | `Ctrl+Alt+Shift+Up` | not yet | Not available yet; the entry is disabled. |
+| Next Method | `Alt+Down` | `Ctrl+Down` | yes | Moves the caret to the next class, function, method or CSS rule. [More](../../user/shortcuts/navigation.md#next-method) |
+| Previous Method | `Alt+Up` | `Ctrl+Up` | yes | Moves the caret to the previous class, function, method or CSS rule. [More](../../user/shortcuts/navigation.md#previous-method) |
+| Next Change | `Ctrl+Alt+Shift+Down` | `Ctrl+Alt+Shift+Down` | yes | Moves to the next changed block (Git gutter marker) and shows its popup with Rollback and Show Diff. [More](../../user/shortcuts/navigation.md#next-change) ([screenshot](../../../screenshots/next-change.png)) |
+| Previous Change | `Ctrl+Alt+Shift+Up` | `Ctrl+Alt+Shift+Up` | yes | Moves to the previous changed block and shows its popup. [More](../../user/shortcuts/navigation.md#previous-change) |

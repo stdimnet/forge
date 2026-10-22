@@ -506,6 +506,7 @@ pub fn run() {
             commands::remote::remote_status,
             commands::remote::remote_reconnect,
             commands::window::window_chrome,
+            commands::window::reveal_in_file_manager,
             commands::updates::updates_check,
             commands::updates::updates_respond,
             commands::updates::updates_status,
