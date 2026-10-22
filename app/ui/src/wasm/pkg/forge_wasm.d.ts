@@ -699,6 +699,21 @@ export function settings_search(request_json: string): string;
 export function settings_validate(request_json: string): string;
 
 /**
+ * `ActionsRequest` → `ContextAction[]`, like `spell_context_actions`.
+ */
+export function spell_context_actions(request_json: string): string;
+
+/**
+ * The bundled dictionaries, like `spell_dictionaries` without custom ones.
+ */
+export function spell_dictionaries(): string;
+
+/**
+ * `InspectRequest` → `Problem[]`, like `spell_inspect`.
+ */
+export function spell_inspect(request_json: string): string;
+
+/**
  * `{ dialect, schema, table, pk, changes }` → the statements, or `{ error }`.
  */
 export function sql_change_statements(request_json: string): string;
@@ -964,6 +979,9 @@ export interface InitOutput {
     readonly services_tree: (a: number, b: number, c: number) => void;
     readonly settings_search: (a: number, b: number, c: number) => void;
     readonly settings_validate: (a: number, b: number, c: number) => void;
+    readonly spell_context_actions: (a: number, b: number, c: number) => void;
+    readonly spell_dictionaries: (a: number) => void;
+    readonly spell_inspect: (a: number, b: number, c: number) => void;
     readonly sql_change_statements: (a: number, b: number, c: number) => void;
     readonly sql_export: (a: number, b: number, c: number) => void;
     readonly sql_leading_keywords: (a: number, b: number, c: number) => void;

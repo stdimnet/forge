@@ -20,16 +20,24 @@ export function onDiagnostics(cb: DiagnosticsListener): () => void {
   return () => listeners.delete(cb);
 }
 
-export function publishDiagnostics(path: string, diags: EditorDiagnostic[]): void {
-  setDiagnostics(path, reconcile(diags));
-  listeners.forEach((l) => l(path, diags));
+/** Diagnostics per file and source: language servers (`lsp`) and Forge's own inspections. */
+const bySource = new Map<string, Map<string, EditorDiagnostic[]>>();
+
+/** Replace the diagnostics `source` reported for `path`; the store keeps all sources merged. */
+export function publishDiagnostics(path: string, diags: EditorDiagnostic[], source = "lsp"): void {
+  let sources = bySource.get(path);
+  if (!sources) bySource.set(path, (sources = new Map()));
+  sources.set(source, diags);
+  const merged = sources.size === 1 ? diags : [...sources.values()].flat();
+  setDiagnostics(path, reconcile(merged));
+  listeners.forEach((l) => l(path, merged));
 }
 
 export function setServerStatuses(s: ServerStatus[]): void {
   setServers(s);
 }
 
-export const severityRank: Record<Severity, number> = { error: 0, warning: 1, weak: 2, info: 3 };
+export const severityRank: Record<Severity, number> = { error: 0, warning: 1, weak: 2, grammar: 3, typo: 4, info: 5 };
 
 export function sortDiagnostics(diags: EditorDiagnostic[]): EditorDiagnostic[] {
   return [...diags].sort(
@@ -45,10 +53,12 @@ export interface ProblemCounts {
   warning: number;
   weak: number;
   info: number;
+  typo: number;
+  grammar: number;
 }
 
 export function countBySeverity(diags: readonly EditorDiagnostic[] | undefined): ProblemCounts {
-  const c: ProblemCounts = { error: 0, warning: 0, weak: 0, info: 0 };
+  const c: ProblemCounts = { error: 0, warning: 0, weak: 0, info: 0, typo: 0, grammar: 0 };
   for (const d of diags ?? []) c[d.severity]++;
   return c;
 }

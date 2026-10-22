@@ -42,11 +42,41 @@ export function closeIntentionPopup(focus = true): void {
   if (focus) p?.view.focus();
 }
 
+/**
+ * Entries a UI feature adds for the caret, before the language servers' and the packs'
+ * (the spelling and grammar fixes of `features/spelling`).
+ */
+export type ContextActionProvider = (path: string, view: EditorView) => Promise<ContextAction[]>;
+const providers: ContextActionProvider[] = [];
+
+export function registerContextActionProvider(provider: ContextActionProvider): void {
+  providers.push(provider);
+}
+
 async function queryActions(path: string, view: EditorView): Promise<ContextActionsAnswer> {
   const sel = view.state.selection.main;
   const doc = view.state.doc;
-  await syncNow(path);
-  return codeApi.contextActions(path, { start: toLsp(doc, sel.from), end: toLsp(doc, sel.to) }, doc.toString());
+  const extra = Promise.all(providers.map((p) => p(path, view).catch(() => [] as ContextAction[])));
+  let answer: ContextActionsAnswer;
+  try {
+    await syncNow(path);
+    answer = await codeApi.contextActions(path, { start: toLsp(doc, sel.from), end: toLsp(doc, sel.to) }, doc.toString());
+  } catch (e) {
+    if (!(await extra).flat().length) throw e;
+    answer = { actions: [] };
+  }
+  const added = (await extra).flat();
+  if (!added.length) return answer;
+  const fix = added.some((a) => a.kind === "quickFix" && !a.disabled);
+  return { ...answer, actions: [...added, ...answer.actions], bulb: fix ? "fix" : (answer.bulb ?? "intention") };
+}
+
+/** Open the intention popup with the given entries at the caret (e.g. "Typo: Change to..." suggestions). */
+export function showActionsPopup(path: string, view: EditorView, actions: ContextAction[]): void {
+  const pos = view.state.selection.main.head;
+  const line = view.state.doc.lineAt(pos);
+  const coords = view.coordsAtPos(pos) ?? view.coordsAtPos(line.from);
+  setIntentionPopup({ path, view, actions, x: Math.max(8, (coords?.left ?? 200) - 24), y: (coords?.bottom ?? 200) + 2 });
 }
 
 /** Alt+Enter: the intention popup below the caret. */

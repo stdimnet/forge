@@ -5309,5 +5309,256 @@
       "codeGenerators": [],
       "mainMenu": []
     }
+  },
+  {
+    "id": "forge.natural-languages",
+    "name": "Natural Languages",
+    "version": "0.1.0",
+    "pack": "core",
+    "description": "Spell checking of comments, strings, identifiers, text files and commit messages with quick fixes and dictionaries, plus a small rule-based English grammar checker.",
+    "vendor": "Forge",
+    "depends": [],
+    "required": false,
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "fileTypes": [],
+      "commands": [],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [
+        {
+          "key": "spelling.enabled",
+          "title": "Check spelling (Typo inspection)",
+          "type": "bool",
+          "default": true,
+          "group": "editor.natural-languages.spelling",
+          "section": "Inspection",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "spelling.severity",
+          "title": "Severity",
+          "type": "enum",
+          "options": [
+            {
+              "value": "typo",
+              "label": "Typo"
+            },
+            {
+              "value": "grammar",
+              "label": "Grammar Error"
+            },
+            {
+              "value": "weak",
+              "label": "Weak Warning"
+            },
+            {
+              "value": "warning",
+              "label": "Warning"
+            },
+            {
+              "value": "error",
+              "label": "Error"
+            }
+          ],
+          "default": "typo",
+          "group": "editor.natural-languages.spelling",
+          "section": "Inspection",
+          "project": false,
+          "order": 1
+        },
+        {
+          "key": "spelling.checkComments",
+          "title": "Process comments",
+          "type": "bool",
+          "default": true,
+          "group": "editor.natural-languages.spelling",
+          "section": "Inspection",
+          "project": false,
+          "order": 2
+        },
+        {
+          "key": "spelling.checkStrings",
+          "title": "Process literals",
+          "description": "String literals.",
+          "type": "bool",
+          "default": true,
+          "group": "editor.natural-languages.spelling",
+          "section": "Inspection",
+          "project": false,
+          "order": 3
+        },
+        {
+          "key": "spelling.checkIdentifiers",
+          "title": "Process code",
+          "description": "Names of declared variables, functions, classes and properties, split at camelCase humps and underscores.",
+          "type": "bool",
+          "default": true,
+          "group": "editor.natural-languages.spelling",
+          "section": "Inspection",
+          "project": false,
+          "order": 4
+        },
+        {
+          "key": "spelling.checkText",
+          "title": "Process Markdown and plain text files",
+          "type": "bool",
+          "default": true,
+          "group": "editor.natural-languages.spelling",
+          "section": "Inspection",
+          "project": false,
+          "order": 5
+        },
+        {
+          "key": "spelling.checkCommitMessages",
+          "title": "Process commit messages",
+          "type": "bool",
+          "default": true,
+          "group": "editor.natural-languages.spelling",
+          "section": "Inspection",
+          "project": false,
+          "order": 6
+        },
+        {
+          "key": "spelling.checkFileNames",
+          "title": "Process file names",
+          "description": "Reports typos in the name of the open file in the Problems tool window.",
+          "type": "bool",
+          "default": false,
+          "group": "editor.natural-languages.spelling",
+          "section": "Inspection",
+          "project": false,
+          "order": 7
+        },
+        {
+          "key": "spelling.projectWords",
+          "title": "Project-level dictionary",
+          "description": "Accepted words of this project, stored in the project settings (.forge/settings.toml). \"Save to project-level dictionary\" (Alt+Enter on a typo) adds words here.",
+          "type": "list",
+          "default": [],
+          "group": "editor.natural-languages.spelling",
+          "section": "Accepted Words",
+          "project": true,
+          "order": 10
+        },
+        {
+          "key": "spelling.applicationWords",
+          "title": "Application-level dictionary",
+          "description": "Accepted words of all projects, stored in the user settings.",
+          "type": "list",
+          "default": [],
+          "group": "editor.natural-languages.spelling",
+          "section": "Accepted Words",
+          "project": false,
+          "order": 11
+        },
+        {
+          "key": "spelling.customDictionaries",
+          "title": "Custom dictionaries",
+          "description": "Hunspell dictionaries (.dic; the .aff file with the same name next to it is read too) or plain word lists with one word per line. Absolute paths, or paths relative to the project root.",
+          "type": "list",
+          "default": [],
+          "group": "editor.natural-languages.spelling",
+          "section": "Dictionaries",
+          "project": false,
+          "order": 20
+        },
+        {
+          "key": "grammar.enabled",
+          "title": "Check grammar and style (Grammar inspection)",
+          "description": "Comments, Markdown and plain text files and commit messages.",
+          "type": "bool",
+          "default": true,
+          "group": "editor.natural-languages.grammar",
+          "section": "Inspection",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "grammar.severity",
+          "title": "Severity",
+          "type": "enum",
+          "options": [
+            {
+              "value": "grammar",
+              "label": "Grammar Error"
+            },
+            {
+              "value": "typo",
+              "label": "Typo"
+            },
+            {
+              "value": "weak",
+              "label": "Weak Warning"
+            },
+            {
+              "value": "warning",
+              "label": "Warning"
+            },
+            {
+              "value": "error",
+              "label": "Error"
+            }
+          ],
+          "default": "grammar",
+          "group": "editor.natural-languages.grammar",
+          "section": "Inspection",
+          "project": false,
+          "order": 1
+        },
+        {
+          "key": "grammar.rules.repeatedWord",
+          "title": "Repeated words",
+          "description": "\"the the\"",
+          "type": "bool",
+          "default": true,
+          "group": "editor.natural-languages.grammar",
+          "section": "Rules",
+          "project": false,
+          "order": 10
+        },
+        {
+          "key": "grammar.rules.articles",
+          "title": "Use of 'a' and 'an'",
+          "description": "\"a order\", \"an user\"; acronyms are read letter by letter (\"an HTML page\").",
+          "type": "bool",
+          "default": true,
+          "group": "editor.natural-languages.grammar",
+          "section": "Rules",
+          "project": false,
+          "order": 11
+        },
+        {
+          "key": "grammar.rules.sentenceStart",
+          "title": "Sentences start with an uppercase letter",
+          "description": "Doc comments only.",
+          "type": "bool",
+          "default": true,
+          "group": "editor.natural-languages.grammar",
+          "section": "Rules",
+          "project": false,
+          "order": 12
+        },
+        {
+          "key": "grammar.rules.doubleSpace",
+          "title": "Repeated whitespace",
+          "description": "Two or more spaces between words; aligned columns and doc tags are skipped.",
+          "type": "bool",
+          "default": true,
+          "group": "editor.natural-languages.grammar",
+          "section": "Rules",
+          "project": false,
+          "order": 13
+        }
+      ],
+      "lspServers": [],
+      "runConfigurationTypes": [],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": [],
+      "mainMenu": []
+    }
   }
 ]

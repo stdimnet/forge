@@ -33,7 +33,9 @@ Commit Message Inspections): the subject line is at most `vcs.git.commit.subject
 characters (72), a blank line separates subject and body
 (`vcs.git.commit.blankLineAfterSubject`) and body lines stay within
 `vcs.git.commit.bodyRightMargin` columns (72). Problems are listed below the message; they do
-not block the commit. Lines starting with `#` are ignored.
+not block the commit. Lines starting with `#` are ignored. Typos and grammar problems in the
+message are underlined and listed too, with their fixes on click (see
+[Spelling and grammar](spelling-and-grammar.md#commit-messages)).
 
 Before committing files with Windows line separators (CRLF), Forge asks whether to **Commit As
 Is** (`vcs.git.commit.warnOnCrlf`), unless git converts them itself (`core.autocrlf` is `true`

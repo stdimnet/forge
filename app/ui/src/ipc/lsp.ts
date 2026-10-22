@@ -14,7 +14,8 @@ export interface LspRange {
   end: LspPosition;
 }
 
-export type Severity = "error" | "warning" | "weak" | "info";
+/** `typo` and `grammar` come from the spelling and grammar inspections (`features/spelling`). */
+export type Severity = "error" | "warning" | "weak" | "info" | "typo" | "grammar";
 
 export interface EditorDiagnostic {
   range: LspRange;
@@ -24,6 +25,10 @@ export interface EditorDiagnostic {
   code?: string | null;
   unnecessary?: boolean;
   deprecated?: boolean;
+  /** About the file, not a range in it (a typo in the file name): no squiggle. */
+  fileLevel?: boolean;
+  /** Data of the inspection that reported it (Alt+Enter fixes). */
+  data?: unknown;
 }
 
 export interface EditorHover {

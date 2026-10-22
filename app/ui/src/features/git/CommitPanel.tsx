@@ -28,6 +28,7 @@ import { commitChanges, confirmRollback, showDiff } from "./actions";
 import { setCommitSelectionSource } from "./context";
 import { generateCommitMessage } from "./aiMessage";
 import { unifiedDiff } from "./textDiff";
+import { CommitSpellProblems, createCommitMessageCheck, SpellOverlay } from "@/features/spelling/commitMessage";
 
 // Panel state lives at module level so it survives hiding the tool window.
 const [message, setMessage] = createSignal("");
@@ -265,6 +266,9 @@ async function toggleAmend(on: boolean) {
 export function CommitPanel() {
   const canCommit = () => !busy() && (checkedPaths().length > 0 || amend()) && message().trim().length > 0;
   const total = () => changes().length + unversioned().length;
+  let messageInput: HTMLTextAreaElement | undefined;
+  // Spelling and grammar of the message (Settings | Editor | Natural Languages).
+  const spellProblems = createCommitMessageCheck(message);
   // Ctrl+D comes through the keymap (CompareTwoFiles → git.showDiff on the selected file).
   return (
     <div class="commit-panel" tabIndex={-1}>
@@ -335,19 +339,23 @@ export function CommitPanel() {
             </Show>
           </button>
         </div>
-        <textarea
-          placeholder="Commit Message"
-          value={message()}
-          spellcheck={false}
-          onInput={(e) => setMessage(e.currentTarget.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
-              e.preventDefault();
-              if (canCommit()) void doCommit(false);
-            }
-          }}
-        />
-        <Show when={problems().length}>
+        <div class="spell-textarea">
+          <textarea
+            ref={messageInput}
+            placeholder="Commit Message"
+            value={message()}
+            spellcheck={false}
+            onInput={(e) => setMessage(e.currentTarget.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                if (canCommit()) void doCommit(false);
+              }
+            }}
+          />
+          <SpellOverlay text={message()} problems={spellProblems()} textarea={() => messageInput} />
+        </div>
+        <Show when={problems().length || spellProblems().length}>
           <ul class="commit-problems" data-commit-problems>
             <For each={problems()}>
               {(p) => (
@@ -359,6 +367,11 @@ export function CommitPanel() {
                 </li>
               )}
             </For>
+            <CommitSpellProblems
+              text={message()}
+              problems={spellProblems()}
+              onReplace={(r) => setMessage((m) => m.slice(0, r.from) + r.text + m.slice(r.to))}
+            />
           </ul>
         </Show>
         <div class="commit-options">
