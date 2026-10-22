@@ -17,7 +17,9 @@ use forge_lsp::forge_codeintel::{
 use phpforge_lang_php::index::{SearchKind, SymbolHit};
 use phpforge_lang_php::navigate::PhpUsages;
 use phpforge_lang_php::offsets::byte_to_utf16;
-use phpforge_lang_php::refactor::move_class::ClassInfo;
+use phpforge_lang_php::refactor::make_static::{MakeStaticInfo, MakeStaticOptions};
+use phpforge_lang_php::refactor::move_class::{self, ClassInfo};
+use phpforge_lang_php::refactor::move_members::{self, MembersInfo};
 use phpforge_lang_php::refactor::project::{
     self, FileMove, FileOp, MoveTarget, Project, ProjectPlan,
 };
@@ -199,29 +201,79 @@ fn class_target(path: String, class: ClassInfo, text: &str) -> ClassTarget {
     }
 }
 
-/// Move / Copy (F6 / F5) in the editor: the class at the caret (a reference's class too).
+/// The static members Move Members offers (F6 on a static member).
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MembersTarget {
+    pub path: String,
+    /// The class name's position.
+    pub position: Position,
+    #[serde(flatten)]
+    pub info: MembersInfo,
+}
+
+/// What F6 / F5 work on: a class, or static members (`kind`: `class` | `members`).
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MovePrepareAnswer {
+    pub kind: String,
+    pub class: Option<ClassTarget>,
+    pub members: Option<MembersTarget>,
+}
+
+/// Move / Copy (F6 / F5) in the editor: the static member at the caret (Move Members),
+/// else the class at the caret (a reference's class too). `copy` asks for a class only.
 #[tauri::command]
 pub async fn refactor_move_prepare(
     path: String,
     position: Position,
     content: String,
+    copy: Option<bool>,
     buffers: Option<HashMap<String, String>>,
     state: State<'_, AppState>,
-) -> Result<ClassTarget> {
+) -> Result<MovePrepareAnswer> {
     require_php(&path)?;
     let backend = state.backend()?;
     blocking(move || {
         let mut p = BackendProject::new(backend, buffers);
         let text = p.text(&path, Some(content))?;
         let at = to_byte(&text, position);
+        if !copy.unwrap_or(false) {
+            let members = project::at_declaration(&mut p, &path, &text, at, |t, o| {
+                move_members::members_at(t, o)
+                    .filter(|m| m.selected.is_some())
+                    .ok_or_else(String::new)
+            });
+            if let Ok((decl_path, decl, info)) = members {
+                return Ok(MovePrepareAnswer {
+                    kind: "members".into(),
+                    class: None,
+                    members: Some(MembersTarget {
+                        position: to_pos(&decl, class_name_start(&decl, &info)),
+                        path: decl_path,
+                        info,
+                    }),
+                });
+            }
+        }
         match project::move_target(&mut p, &path, &text, at).map_err(refuse)? {
             MoveTarget::Class { path, class } => {
                 let decl = p.text(&path, None)?;
-                Ok(class_target(path, class, &decl))
+                Ok(MovePrepareAnswer {
+                    kind: "class".into(),
+                    class: Some(class_target(path, class, &decl)),
+                    members: None,
+                })
             }
         }
     })
     .await
+}
+
+/// Where the class of `info` has its name (for later calls at that position).
+fn class_name_start(text: &str, info: &MembersInfo) -> usize {
+    move_class::class_at(text, info.class_span.start)
+        .map_or(info.class_span.start, |c| c.name_span.start)
 }
 
 /// Move Class: into `targetNamespace`, its file into `targetDirectory`, updating the
@@ -625,6 +677,95 @@ pub async fn refactor_change_signature(
         let text = p.text(&path, content)?;
         let at = to_byte(&text, position);
         let plan = project::change_signature(&mut p, &path, &text, at, &options).map_err(refuse)?;
+        Ok(plan_answer(plan, &mut p.files, &same))
+    })
+    .await
+}
+
+// ---- Make Static ----
+
+/// The Make Static dialog's data.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MakeStaticAnswer {
+    pub path: String,
+    pub position: Position,
+    #[serde(flatten)]
+    pub info: MakeStaticInfo,
+}
+
+/// Make Static: the method at the caret (or the one a call at the caret calls).
+#[tauri::command]
+pub async fn refactor_make_static_prepare(
+    path: String,
+    position: Position,
+    content: String,
+    buffers: Option<HashMap<String, String>>,
+    state: State<'_, AppState>,
+) -> Result<MakeStaticAnswer> {
+    require_php(&path)?;
+    let backend = state.backend()?;
+    blocking(move || {
+        let mut p = BackendProject::new(backend, buffers);
+        let text = p.text(&path, Some(content))?;
+        let at = to_byte(&text, position);
+        let (decl_path, info) =
+            project::make_static_target(&mut p, &path, &text, at).map_err(refuse)?;
+        let decl = p.text(&decl_path, None)?;
+        Ok(MakeStaticAnswer {
+            position: to_pos(&decl, info.name_span.start),
+            path: decl_path,
+            info,
+        })
+    })
+    .await
+}
+
+/// Make the method whose name is at `position` static, updating its calls.
+#[tauri::command]
+pub async fn refactor_make_static(
+    path: String,
+    position: Position,
+    content: Option<String>,
+    options: MakeStaticOptions,
+    buffers: Option<HashMap<String, String>>,
+    state: State<'_, AppState>,
+) -> Result<RefactorAnswer> {
+    require_php(&path)?;
+    let backend = state.backend()?;
+    blocking(move || {
+        let mut p = BackendProject::new(backend, buffers);
+        let text = p.text(&path, content)?;
+        let at = to_byte(&text, position);
+        let plan = project::make_static(&mut p, &path, &text, at, &options).map_err(refuse)?;
+        Ok(plan_answer(plan, &mut p.files, &same))
+    })
+    .await
+}
+
+// ---- Move Members ----
+
+/// Move the static `members` of the class whose name is at `position` to `target` (a
+/// fully qualified class name).
+#[tauri::command]
+#[allow(clippy::too_many_arguments)]
+pub async fn refactor_move_members(
+    path: String,
+    position: Position,
+    content: Option<String>,
+    members: Vec<String>,
+    target: String,
+    buffers: Option<HashMap<String, String>>,
+    state: State<'_, AppState>,
+) -> Result<RefactorAnswer> {
+    require_php(&path)?;
+    let backend = state.backend()?;
+    blocking(move || {
+        let mut p = BackendProject::new(backend, buffers);
+        let text = p.text(&path, content)?;
+        let at = to_byte(&text, position);
+        let plan =
+            project::move_members(&mut p, &path, &text, at, &members, &target).map_err(refuse)?;
         Ok(plan_answer(plan, &mut p.files, &same))
     })
     .await
