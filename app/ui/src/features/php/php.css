@@ -740,7 +740,7 @@
 }
 .php-dirs-row {
   display: grid;
-  grid-template-columns: minmax(120px, 1fr) minmax(140px, 1.2fr) auto auto auto;
+  grid-template-columns: minmax(120px, 1fr) minmax(140px, 1.2fr) 150px 52px;
   gap: 8px;
   height: 30px;
 }
@@ -763,6 +763,11 @@
 }
 .php-dirs-origin {
   white-space: nowrap;
+}
+.php-dirs-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 2px;
 }
 .php-dirs-add {
   display: grid;

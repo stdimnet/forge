@@ -10,7 +10,11 @@
 import { createResource, createSignal, For, Show } from "solid-js";
 import { FolderOpen, Plus, RotateCcw, X } from "lucide-solid";
 import type { FileEntry } from "@/ipc/workspace";
-import { phpMetaApi, type SourceRootEntry, type SourceRootSetting } from "@/ipc/phpMeta";
+import {
+  phpMetaApi,
+  type SourceRootEntry,
+  type SourceRootSetting,
+} from "@/ipc/phpMeta";
 import { templatesApi } from "@/ipc/templates";
 import { getSetting, saveSetting } from "@/state/settings";
 import type { SettingObject, SettingValue } from "@/ipc/settings";
@@ -18,7 +22,11 @@ import { isPluginActive } from "@/state/project";
 import { workspace } from "@/state/workspace";
 import { registerSettingsPage } from "@/features/settingsPages";
 import { draftValue, setDraft } from "@/features/settings/dialogState";
-import { item, registerContextMenuProvider, submenu } from "@/features/contextMenu/state";
+import {
+  item,
+  registerContextMenuProvider,
+  submenu,
+} from "@/features/contextMenu/state";
 import { registerRowDecorator } from "@/features/project/ProjectView";
 
 export const SOURCE_ROOTS_KEY = "php.sourceRoots";
@@ -26,9 +34,15 @@ export const SOURCE_ROOTS_KEY = "php.sourceRoots";
 type Kind = SourceRootSetting["kind"];
 
 /** `overrides` with the entry for `path` replaced (`null` removes it). */
-export function upsertRoot(overrides: SourceRootSetting[], path: string, next: SourceRootSetting | null): SourceRootSetting[] {
+export function upsertRoot(
+  overrides: SourceRootSetting[],
+  path: string,
+  next: SourceRootSetting | null,
+): SourceRootSetting[] {
   const clean = path.replace(/^\.?\/+|\/+$/g, "");
-  const rest = overrides.filter((o) => o.path.replace(/^\.?\/+|\/+$/g, "") !== clean);
+  const rest = overrides.filter(
+    (o) => o.path.replace(/^\.?\/+|\/+$/g, "") !== clean,
+  );
   return next ? [...rest, { ...next, path: clean }] : rest;
 }
 
@@ -43,37 +57,66 @@ export function markChange(
   const current = roots.find((r) => r.path === path);
   if (kind) {
     // Marking a composer.json root as it already is drops the change.
-    if (current?.origin === "composer" && !current.overridden && current.kind === kind) return overrides;
+    if (
+      current?.origin === "composer" &&
+      !current.overridden &&
+      current.kind === kind
+    )
+      return overrides;
     return upsertRoot(overrides, path, { path, prefix, kind });
   }
   if (!current) return overrides;
   // A composer.json root stays unmarked through a `none` entry; the user's own goes away.
-  return current.origin === "composer" ? upsertRoot(overrides, path, { path, prefix: current.prefix, kind: "none" }) : upsertRoot(overrides, path, null);
+  return current.origin === "composer"
+    ? upsertRoot(overrides, path, {
+        path,
+        prefix: current.prefix,
+        kind: "none",
+      })
+    : upsertRoot(overrides, path, null);
 }
 
-const storedOverrides = () => (getSetting<SettingObject[]>(SOURCE_ROOTS_KEY, []) ?? []) as unknown as SourceRootSetting[];
+const storedOverrides = () =>
+  (getSetting<SettingObject[]>(SOURCE_ROOTS_KEY, []) ??
+    []) as unknown as SourceRootSetting[];
 
 // The effective roots of the open project (for the tree and the menu).
 const [roots, { refetch }] = createResource(
-  () => (workspace() && isPluginActive("forge.php") ? JSON.stringify(storedOverrides()) : null),
+  () =>
+    workspace() && isPluginActive("forge.php")
+      ? JSON.stringify(storedOverrides())
+      : null,
   () => phpMetaApi.sourceRoots().catch((): SourceRootEntry[] => []),
 );
 
-export const sourceRoots = () => (roots() ?? []).filter((r) => r.kind !== "none");
+export const sourceRoots = () =>
+  (roots() ?? []).filter((r) => r.kind !== "none");
 
 registerRowDecorator((path, dir) => {
   if (!dir) return undefined;
   const r = sourceRoots().find((x) => x.path === path);
   if (!r) return undefined;
-  return { class: r.kind === "test" ? "php-test-root" : "php-source-root", hint: r.prefix ? `${r.prefix}\\` : undefined };
+  return {
+    class: r.kind === "test" ? "php-test-root" : "php-source-root",
+    hint: r.prefix ? `${r.prefix}\\` : undefined,
+  };
 });
 
-async function mark(entry: FileEntry, kind: Exclude<Kind, "none"> | null): Promise<void> {
+async function mark(
+  entry: FileEntry,
+  kind: Exclude<Kind, "none"> | null,
+): Promise<void> {
   const all = roots() ?? [];
   // A new root's prefix: the namespace the folder maps to now (PSR-4), else none.
-  const prefix = kind ? ((await templatesApi.phpNamespace(entry.path).catch(() => null)) ?? "") : "";
+  const prefix = kind
+    ? ((await templatesApi.phpNamespace(entry.path).catch(() => null)) ?? "")
+    : "";
   const next = markChange(storedOverrides(), all, entry.path, kind, prefix);
-  await saveSetting(SOURCE_ROOTS_KEY, next as unknown as SettingValue, "project");
+  await saveSetting(
+    SOURCE_ROOTS_KEY,
+    next as unknown as SettingValue,
+    "project",
+  );
   void refetch();
 }
 
@@ -83,29 +126,55 @@ registerContextMenuProvider<FileEntry | null>("project.compare", (entry) => {
   const r = sourceRoots().find((x) => x.path === entry.path);
   const items = [];
   // Like PHPStorm, the folder's current mark is offered as "Unmark".
-  if (r?.kind !== "source") items.push(item("Sources Root", () => void mark(entry, "source")));
-  if (r?.kind !== "test") items.push(item("Test Sources Root", () => void mark(entry, "test")));
-  if (r) items.push(item(r.kind === "test" ? "Unmark as Test Sources Root" : "Unmark as Sources Root", () => void mark(entry, null)));
+  if (r?.kind !== "source")
+    items.push(item("Sources Root", () => void mark(entry, "source")));
+  if (r?.kind !== "test")
+    items.push(item("Test Sources Root", () => void mark(entry, "test")));
+  if (r)
+    items.push(
+      item(
+        r.kind === "test"
+          ? "Unmark as Test Sources Root"
+          : "Unmark as Sources Root",
+        () => void mark(entry, null),
+      ),
+    );
   return [submenu("Mark Directory as", items)];
 });
 
-const KIND_LABEL: Record<Kind, string> = { source: "Source Folders", test: "Test Source Folders", none: "Unmarked composer.json Roots" };
+const KIND_LABEL: Record<Kind, string> = {
+  source: "Source Folders",
+  test: "Test Source Folders",
+  none: "Unmarked composer.json Roots",
+};
 
 /** Settings | Directories. */
 function DirectoriesPage() {
-  const overrides = () => (draftValue<SettingObject[]>(SOURCE_ROOTS_KEY) ?? []) as unknown as SourceRootSetting[];
+  const overrides = () =>
+    (draftValue<SettingObject[]>(SOURCE_ROOTS_KEY) ??
+      []) as unknown as SourceRootSetting[];
   const [entries] = createResource(
     () => JSON.stringify(overrides()),
-    () => phpMetaApi.sourceRoots(overrides()).catch((): SourceRootEntry[] => []),
+    () =>
+      phpMetaApi.sourceRoots(overrides()).catch((): SourceRootEntry[] => []),
   );
   const [path, setPath] = createSignal("");
   const [kind, setKind] = createSignal<Exclude<Kind, "none">>("source");
   const [prefix, setPrefix] = createSignal("");
-  const set = (next: SourceRootSetting[]) => setDraft(SOURCE_ROOTS_KEY, next as unknown as SettingValue);
+  const set = (next: SourceRootSetting[]) =>
+    setDraft(SOURCE_ROOTS_KEY, next as unknown as SettingValue);
   const add = () => {
-    const p = path().trim().replace(/^\.?\/+|\/+$/g, "");
+    const p = path()
+      .trim()
+      .replace(/^\.?\/+|\/+$/g, "");
     if (!p) return;
-    set(upsertRoot(overrides(), p, { path: p, prefix: prefix().trim().replace(/\\+$/, ""), kind: kind() }));
+    set(
+      upsertRoot(overrides(), p, {
+        path: p,
+        prefix: prefix().trim().replace(/\\+$/, ""),
+        kind: kind(),
+      }),
+    );
     setPath("");
     setPrefix("");
   };
@@ -119,8 +188,11 @@ function DirectoriesPage() {
           <span>{workspace()?.root ?? ""}</span>
         </div>
         <p class="php-hint">
-          Folders marked as sources or test sources and their package prefix (the namespace of the folder). They start from the PSR-4 rules of composer.json; New PHP Class, Move Class and the
-          namespace inspection follow them. In the Project view: right-click a folder › Mark Directory as.
+          Folders marked as sources or test sources and their package prefix
+          (the namespace of the folder). They start from the PSR-4 rules of
+          composer.json; New PHP Class, Move Class and the namespace inspection
+          follow them. In the Project view: right-click a folder › Mark
+          Directory as.
         </p>
       </section>
       <For each={["source", "test", "none"] as Kind[]}>
@@ -129,7 +201,10 @@ function DirectoriesPage() {
             <section>
               <h3 class={`php-dirs-title php-dirs-${k}`}>{KIND_LABEL[k]}</h3>
               <div class="php-list php-dirs-list" data-kind={k}>
-                <For each={of(k)} fallback={<div class="php-hint">Nothing to show</div>}>
+                <For
+                  each={of(k)}
+                  fallback={<div class="php-hint">Nothing to show</div>}
+                >
                   {(e) => (
                     <div class="php-list-row php-dirs-row" data-path={e.path}>
                       <span class="php-dirs-path">{e.path || "."}</span>
@@ -140,26 +215,70 @@ function DirectoriesPage() {
                         title="Package prefix"
                         disabled={k === "none"}
                         value={e.prefix}
-                        onChange={(ev) => set(upsertRoot(overrides(), e.path, { path: e.path, prefix: ev.currentTarget.value.trim().replace(/\\+$/, ""), kind: k }))}
-                      />
-                      <span class="php-hint php-dirs-origin">{e.origin === "composer" ? (e.overridden ? "composer.json, changed" : "composer.json") : ""}</span>
-                      <Show
-                        when={k !== "none"}
-                        fallback={
-                          <button class="icon-btn" title="Mark Again" onClick={() => set(upsertRoot(overrides(), e.path, null))}>
-                            <RotateCcw size={13} />
-                          </button>
+                        onChange={(ev) =>
+                          set(
+                            upsertRoot(overrides(), e.path, {
+                              path: e.path,
+                              prefix: ev.currentTarget.value
+                                .trim()
+                                .replace(/\\+$/, ""),
+                              kind: k,
+                            }),
+                          )
                         }
-                      >
-                        <Show when={e.overridden}>
-                          <button class="icon-btn" title="Reset to composer.json" onClick={() => set(upsertRoot(overrides(), e.path, null))}>
-                            <RotateCcw size={13} />
+                      />
+                      <span class="php-hint php-dirs-origin">
+                        {e.origin === "composer"
+                          ? e.overridden
+                            ? "composer.json, changed"
+                            : "composer.json"
+                          : "added"}
+                      </span>
+                      <span class="php-dirs-actions">
+                        <Show
+                          when={k !== "none"}
+                          fallback={
+                            <button
+                              class="icon-btn"
+                              title="Mark Again"
+                              onClick={() =>
+                                set(upsertRoot(overrides(), e.path, null))
+                              }
+                            >
+                              <RotateCcw size={13} />
+                            </button>
+                          }
+                        >
+                          <Show when={e.overridden}>
+                            <button
+                              class="icon-btn"
+                              title="Reset to composer.json"
+                              onClick={() =>
+                                set(upsertRoot(overrides(), e.path, null))
+                              }
+                            >
+                              <RotateCcw size={13} />
+                            </button>
+                          </Show>
+                          <button
+                            class="icon-btn"
+                            title="Unmark"
+                            onClick={() =>
+                              set(
+                                markChange(
+                                  overrides(),
+                                  entries() ?? [],
+                                  e.path,
+                                  null,
+                                  e.prefix,
+                                ),
+                              )
+                            }
+                          >
+                            <X size={13} />
                           </button>
                         </Show>
-                        <button class="icon-btn" title="Unmark" onClick={() => set(markChange(overrides(), entries() ?? [], e.path, null, e.prefix))}>
-                          <X size={13} />
-                        </button>
-                      </Show>
+                      </span>
                     </div>
                   )}
                 </For>
@@ -171,9 +290,26 @@ function DirectoriesPage() {
       <section>
         <h3>Add Folder</h3>
         <div class="php-dirs-add">
-          <input type="text" placeholder="src/Domain" value={path()} onInput={(e) => setPath(e.currentTarget.value)} onKeyDown={(e) => e.key === "Enter" && add()} />
-          <input type="text" placeholder="Package prefix" value={prefix()} onInput={(e) => setPrefix(e.currentTarget.value)} onKeyDown={(e) => e.key === "Enter" && add()} />
-          <select value={kind()} onChange={(e) => setKind(e.currentTarget.value as Exclude<Kind, "none">)}>
+          <input
+            type="text"
+            placeholder="src/Domain"
+            value={path()}
+            onInput={(e) => setPath(e.currentTarget.value)}
+            onKeyDown={(e) => e.key === "Enter" && add()}
+          />
+          <input
+            type="text"
+            placeholder="Package prefix"
+            value={prefix()}
+            onInput={(e) => setPrefix(e.currentTarget.value)}
+            onKeyDown={(e) => e.key === "Enter" && add()}
+          />
+          <select
+            value={kind()}
+            onChange={(e) =>
+              setKind(e.currentTarget.value as Exclude<Kind, "none">)
+            }
+          >
             <option value="source">Sources</option>
             <option value="test">Tests</option>
           </select>
@@ -191,6 +327,16 @@ registerSettingsPage({
   title: "Directories",
   group: "Directories",
   order: 0,
-  keywords: ["sources root", "source folder", "test sources", "package prefix", "psr-4", "psr-0", "namespace", "mark directory as", "content root"],
+  keywords: [
+    "sources root",
+    "source folder",
+    "test sources",
+    "package prefix",
+    "psr-4",
+    "psr-0",
+    "namespace",
+    "mark directory as",
+    "content root",
+  ],
   component: DirectoriesPage,
 });

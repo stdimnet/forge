@@ -6,6 +6,7 @@
  * regex parser of the PHP mocks; grouping usages, applying and previewing edits and ordering
  * context actions run the Rust code (`forge-codeintel`) as WebAssembly.
  */
+import type { PhpProblem } from "@/ipc/phpMeta";
 import { demoLibraryFiles } from "./demoLibraries";
 import { invoke, registerMock } from "@/ipc";
 import { extractComponentInfo } from "./extractComponentMock";
@@ -1148,6 +1149,13 @@ async function phpIntentions(path: string, text: string, offset: number): Promis
   const lineStart = text.lastIndexOf("\n", offset - 1) + 1;
   const lineEnd = text.indexOf("\n", offset) < 0 ? text.length : text.indexOf("\n", offset);
   const line = text.slice(lineStart, lineEnd);
+  // Quick-fixes of the metadata / attribute inspections ("Replace with …", "Set namespace to …").
+  const problems = await invoke<PhpProblem[]>("php_inspect", { path, content: text }).catch((): PhpProblem[] => []);
+  for (const p of problems) {
+    if (!p.fix || offset < p.start || offset > p.end) continue;
+    const edits = p.fix.edits.map((e) => ({ range: { start: positionOf(text, e.start), end: positionOf(text, e.end) }, newText: e.newText }));
+    out.push(action(p.fix.title, "quickFix", { edit: { changes: [{ kind: "edit", path, edits }] }, isPreferred: true }));
+  }
   out.push(...createFromUsage(path, text, offset));
   const file = parse(path, text);
   const cls = classAt(file, offset);
