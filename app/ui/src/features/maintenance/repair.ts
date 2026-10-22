@@ -74,7 +74,7 @@ export async function runRepairStep(index: number): Promise<void> {
   if (!next) return;
   showBalloon(
     `Repair IDE: step ${index + 1} of ${REPAIR_STEPS.length}`,
-    `${step.done} If the problem persists, try the next step: ${next.title}.`,
+    `${step.done} If the problem persists, try the next step.`,
     0,
     [
       { label: next.title, run: () => void runRepairStep(index + 1) },

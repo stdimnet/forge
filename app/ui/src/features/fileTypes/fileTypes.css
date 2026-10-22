@@ -27,6 +27,11 @@
   height: 280px;
   max-height: none;
 }
+.ft-items .set-list-item,
+.ft-ignored-items .set-list-item {
+  text-align: left;
+  justify-content: flex-start;
+}
 .ft-filter {
   margin-left: auto;
   width: 140px;
@@ -133,7 +138,20 @@
   align-items: center;
   gap: 12px;
 }
+.ft-inline .set-input {
+  flex: none;
+  width: 120px;
+}
+.ft-inline .set-check {
+  white-space: nowrap;
+}
+.ft-inline .set-check input {
+  flex: none;
+  width: 15px;
+  height: 15px;
+}
 .ft-short {
+  justify-self: start;
   width: 120px;
   font-family: var(--font-mono);
 }

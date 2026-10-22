@@ -368,11 +368,13 @@ mark.hl {
 }
 .balloon-actions {
   display: flex;
-  gap: 14px;
+  flex-wrap: wrap;
+  gap: 4px 14px;
   margin-top: 8px;
 }
 .balloon-action {
   color: var(--info);
+  white-space: nowrap;
 }
 .balloon-action:hover {
   text-decoration: underline;
