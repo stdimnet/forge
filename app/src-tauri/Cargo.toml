@@ -19,6 +19,8 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 forge-core.workspace = true
 forge-bookmarks.workspace = true
+forge-scopes.workspace = true
+forge-ssr.workspace = true
 forge-plugin-api.workspace = true
 forge-fuzzy.workspace = true
 forge-filetypes.workspace = true

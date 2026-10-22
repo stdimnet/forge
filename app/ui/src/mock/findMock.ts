@@ -11,7 +11,7 @@ import { createIgnoreMatcher } from "./gitignoreMatcher";
 import { mockFiles } from "./workspaceMock";
 
 /** `[path, text]` of the demo project without `.gitignore`d files. */
-function projectFiles(): [string, string][] {
+export function projectFiles(): [string, string][] {
   const ignores = createIgnoreMatcher((dir) => mockFiles[dir ? `${dir}/.gitignore` : ".gitignore"]);
   return Object.keys(mockFiles)
     .filter((p) => !ignores.isIgnored(p, false))

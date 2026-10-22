@@ -1,0 +1,24 @@
+[package]
+name = "forge-ssr"
+description = "Structural Search and Replace: templates with $variables$ matched on tree-sitter syntax trees (PHP, JavaScript, TypeScript)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[features]
+default = ["engine"]
+# The matcher (tree-sitter grammars in C). Without it only the request types, the template
+# library and `variables` remain, which build to WebAssembly.
+engine = ["dep:tree-sitter", "dep:tree-sitter-php", "dep:tree-sitter-javascript", "dep:tree-sitter-typescript"]
+
+[dependencies]
+serde.workspace = true
+forge-scopes.workspace = true
+regex = "1"
+tree-sitter = { version = "0.25", optional = true }
+tree-sitter-php = { version = "0.24", optional = true }
+tree-sitter-javascript = { version = "0.23", optional = true }
+tree-sitter-typescript = { version = "0.23", optional = true }
+
+[dev-dependencies]
+serde_json.workspace = true

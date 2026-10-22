@@ -277,8 +277,12 @@ the element at the caret. What it offers depends on the element, like in PHPStor
 
 **Scope** is one of Project Files (the default; `vendor/` and `node_modules/` left out),
 Project and Libraries, Open Files, Current File, Recently Changed Files (the working tree's
-changes and unsaved editors), Directory (with **Include subdirectories**) or Custom (file globs
-separated by `;`, `!` excludes, e.g. `app/**/*.php; !app/Legacy/**`). **Open in new tab** off
+changes and unsaved editors), Directory (with **Include subdirectories**) or Custom (a pattern
+in PHPStorm's scope language such as `file:app//*.php&&!test:*..*`, or file globs separated by
+`;` where `!` excludes, e.g. `app/**/*.php; !app/Legacy/**`). Below them the list offers
+Project Production Files, Project Test Files and your named scopes from Settings | Appearance &
+Behavior | Scopes (`findUsages.scope.name`; see [Scopes and file colors](scopes-and-file-colors.md)),
+and **…** opens that page. **Open in new tab** off
 replaces the active usages tab of the Find tool window instead of adding one.
 
 **Find** saves the choices as settings (`findUsages.*`, see the

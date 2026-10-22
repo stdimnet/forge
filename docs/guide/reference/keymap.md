@@ -127,6 +127,7 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Inspect Code… | `InspectCode` |  |  | — |
 | Code Cleanup / Inspect File | `CodeInspection.OnEditor` | `Alt+Shift+I` | `Ctrl+Alt+Shift+I` | — |
 | Run Inspection by Name… | `RunInspection` | `Ctrl+Alt+Shift+I` | `Cmd+Alt+Shift+I` | — |
+| Analyze Stack Trace or Thread Dump… | `AnalyzeStacktraceOnError` |  |  | yes |
 | Show Quick-Fixes | `ShowIntentionsGroup` |  |  | — |
 
 ### File
@@ -241,7 +242,8 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Highlight Usages in File | `HighlightUsagesInFile` | `Ctrl+Shift+F7` | `Cmd+Shift+F7` | yes |
 | Show Usages | `ShowUsages` | `Ctrl+Alt+F7` | `Cmd+Alt+F7` | yes |
 | Find Usages Settings… | `ShowSettingsAndFindUsages` | `Ctrl+Alt+Shift+F7` | `Cmd+Alt+Shift+F7` | yes |
-| Search Structurally… | `StructuralSearchPlugin.StructuralSearchAction` |  |  | — |
+| Search Structurally… | `StructuralSearchPlugin.StructuralSearchAction` |  |  | yes |
+| Replace Structurally… | `StructuralSearchPlugin.StructuralReplaceAction` |  |  | yes |
 
 ### View > Tool Windows
 

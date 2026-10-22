@@ -56,6 +56,27 @@ Page id `appearance`.
 | `structureView.autoscrollToSource` | bool | `true` | user | Structure View | Autoscroll to source — A single click on a Structure tool window node moves the editor to it. Turn it off to select with a single click and navigate with a double click. |
 | `structureView.autoscrollFromSource` | bool | `true` | user | Structure View | Autoscroll from source — The Structure tool window selects the member at the caret as you move through the editor. |
 
+### Appearance & Behavior | Scopes
+
+Page id `appearance.scopes` (custom page).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `scopes.shared` | objects (`name`, `pattern`) | `[]` | project |  | Shared scopes, stored in `.forge/settings.toml` |
+| `scopes.local` | objects (`name`, `pattern`) | `[]` | user |  | Local scopes |
+
+### Appearance & Behavior | File Colors
+
+Page id `appearance.fileColors` (custom page).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `fileColors.enabled` | bool | `true` | user |  | Enable file colors |
+| `fileColors.useInEditorTabs` | bool | `true` | user |  | Use in editor tabs |
+| `fileColors.useInProjectView` | bool | `true` | user |  | Use in project view |
+| `fileColors.local` | objects (`scope`, `color`) | Non-Project Files: Yellow, Tests: Green | user |  | Local colors |
+| `fileColors.shared` | objects (`scope`, `color`) | `[]` | project |  | Shared colors |
+
 ### Appearance & Behavior | System Settings
 
 Page id `system`.
@@ -127,7 +148,8 @@ page. Every Find Usages and Show Usages run uses them.
 | `findUsages.scope.kind` | enum: `projectFiles`, `projectAndLibraries`, `openFiles`, `currentFile`, `recentlyChangedFiles`, `directory`, `custom` | `projectFiles` | user |  | Scope |
 | `findUsages.scope.directory` | string | `""` | user |  | Directory |
 | `findUsages.scope.includeSubdirectories` | bool | `true` | user |  | Include subdirectories |
-| `findUsages.scope.pattern` | string | `""` | user |  | Custom scope — File globs separated by ';', '!' excludes (app/**/*.php; !app/Legacy/**). |
+| `findUsages.scope.pattern` | string | `""` | user |  | Custom scope — A scope pattern (`file:app//*.php&&!test:*..*`) or file globs separated by ';', where '!' excludes (app/**/*.php; !app/Legacy/**). |
+| `findUsages.scope.name` | string | `""` | user |  | Named scope — a scope of the Scopes page used as the custom scope; empty uses the pattern. |
 | `findUsages.openInNewTab` | bool | `true` | user |  | Open in new tab |
 
 ### Editor | General

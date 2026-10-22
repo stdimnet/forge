@@ -208,6 +208,8 @@ The Project tool window (`Alt+1`) shows the project folder as a tree.
 ![Project view options](../../screenshots/project-view-options.png)
 - **Scratches and Consoles** appear at the bottom of the tree, see
   [Scratches, consoles and HTTP client](scratches-and-http.md).
+- **File colors** tint rows by scope (test folders green, your own scopes in their colors), see
+  [Scopes and file colors](scopes-and-file-colors.md#settings--appearance--behavior--file-colors).
 
 ![Project view](../../screenshots/project-tree-double-click.png)
 
@@ -235,6 +237,8 @@ Right-click a file, a folder or the empty area below the tree:
 - `Ctrl+S` (macOS `Cmd+S`) saves all files (**Save All**).
 - Some tabs are not files: merge requests, issues, database consoles and table editors open as
   tabs as well.
+- **File colors** tint tabs by scope: test files green, files outside the project yellow (see
+  [Scopes and file colors](scopes-and-file-colors.md)).
 
 The [navigation bar](navigation-bar-and-file-structure.md#navigation-bar) above the editor
 shows the file's path and the class and method at the caret; every part opens a dropdown
@@ -371,6 +375,8 @@ The **Find** tool window (`Alt+3`) keeps search results, one tab per search:
   **Open in new tab** off the result replaces the active usages tab.
 - **Open in Find Window** in [Find in Files](search-everywhere.md#find-in-files)
   (`Ctrl+Enter` in the popup) pins the text matches there, grouped by file.
+- [Structural Search and Replace](structural-search.md) lists its matches there; a Replace
+  tab adds **Preview Replacement** and **Replace All**.
 
 The toolbar on the left has **Rerun** (text searches), **Group by Usage Type**, **Expand All**,
 **Collapse All** and **Previous/Next Occurrence**. A click on a line opens it in the editor.

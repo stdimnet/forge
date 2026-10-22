@@ -15,6 +15,7 @@ import { codeApi, isLibraryPath, type SearchScope, type UsageOptions, type Usage
 import { showHint } from "@/features/lsp/hint";
 import { toLsp } from "@/features/lsp/util";
 import type { LspPosition } from "@/ipc/lsp";
+import { scopeContext, scopeEntries } from "@/features/scopes/model";
 
 export const OPTIONS_PREFIX = "findUsages.options.";
 
@@ -44,13 +45,37 @@ function changedFiles(): string[] {
   return [...out];
 }
 
+/** Patterns of predefined scopes that Find Usages has no scope kind for. */
+const PREDEFINED_PATTERNS: Record<string, string> = {
+  projectProductionFiles: "src:*..*",
+  projectTestFiles: "test:*..*",
+};
+
+/**
+ * The custom scope's pattern: a named scope of the Scopes page (`findUsages.scope.name`),
+ * else the typed pattern (a scope pattern or globs, decided in Rust).
+ */
+export function customScopePattern(name: string, pattern: string): { pattern: string; scopeName?: string } {
+  if (!name) return { pattern };
+  const entry = scopeEntries().entries.find((e) => e.name === name);
+  const named = entry?.pattern ?? (entry?.predefined ? PREDEFINED_PATTERNS[entry.predefined] : undefined);
+  return named !== undefined ? { pattern: named, scopeName: name } : { pattern };
+}
+
+/** Scopes the Find Usages dialog offers besides its own kinds: named and test/production scopes. */
+export const extraUsageScopes = () =>
+  scopeEntries().entries.filter((e) => !e.predefined || PREDEFINED_PATTERNS[e.predefined] !== undefined);
+
 /** The scope from the settings (or `kind`), with the workbench's files. */
 export function usageScope(currentFile: string, kind?: SearchScope): UsageScope {
+  const custom = customScopePattern(getSetting<string>("findUsages.scope.name", ""), getSetting<string>("findUsages.scope.pattern", ""));
   return {
     kind: kind ?? getSetting<SearchScope>("findUsages.scope.kind", "projectFiles"),
     directory: getSetting<string>("findUsages.scope.directory", ""),
     includeSubdirectories: getSetting<boolean>("findUsages.scope.includeSubdirectories", true),
-    pattern: getSetting<string>("findUsages.scope.pattern", ""),
+    pattern: custom.pattern,
+    scopeName: custom.scopeName,
+    testRoots: scopeContext().testRoots,
     currentFile,
     openFiles: editor.tabs.map((t) => t.path).filter((p) => !isLibraryPath(p)),
     changedFiles: changedFiles(),

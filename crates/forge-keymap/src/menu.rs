@@ -611,6 +611,10 @@ fn edit_menu() -> MenuEntry {
                         "StructuralSearchPlugin.StructuralSearchAction",
                         "Search Structurall_y...",
                     ),
+                    l(
+                        "StructuralSearchPlugin.StructuralReplaceAction",
+                        "Replace Structurall_y...",
+                    ),
                 ],
             ),
             g(
@@ -833,6 +837,11 @@ fn code_menu() -> MenuEntry {
             l("InspectCode", "In_spect Code..."),
             l("CodeInspection.OnEditor", "Code Cleanup..."),
             l("RunInspection", "Run Inspection by _Name..."),
+            SEP,
+            l(
+                "AnalyzeStacktraceOnError",
+                "Analyze Stack _Trace or Thread Dump...",
+            ),
         ],
     )
 }

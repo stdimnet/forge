@@ -10,6 +10,11 @@ interface Replaced {
 
 let last: { path: string; before: string; after: string }[] = [];
 
+/** Keep files a replace changed for `undo_replace` (Structural Replace's mock uses it too). */
+export function rememberReplace(changed: { path: string; before: string; after: string }[]): void {
+  last = changed;
+}
+
 const filesOf = (): [string, string][] => Object.keys(mockFiles).sort().map((p) => [p, mockFiles[p]]);
 
 registerMock("replace_preview", async ({ request, with: withText }) => {

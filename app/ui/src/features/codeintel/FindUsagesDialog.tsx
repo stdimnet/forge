@@ -8,7 +8,9 @@ import { createSignal, For, Show } from "solid-js";
 import { getSetting, saveSettings } from "@/state/settings";
 import type { SettingValue } from "@/ipc/settings";
 import type { OptionField, SearchScope } from "@/ipc/codeintel";
-import { closeFindUsagesDialog, SCOPES, type FindUsagesDialogRequest } from "./findSettings";
+import { closeFindUsagesDialog, extraUsageScopes, SCOPES, type FindUsagesDialogRequest } from "./findSettings";
+import { checkPattern } from "@/features/scopes/model";
+import { openSettings } from "@/features/settings/dialogState";
 
 const capitalized = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -20,11 +22,27 @@ export function FindUsagesDialog(props: { req: FindUsagesDialogRequest }) {
     "findUsages.scope.directory": getSetting<string>("findUsages.scope.directory", "") || props.req.directory,
     "findUsages.scope.includeSubdirectories": getSetting<boolean>("findUsages.scope.includeSubdirectories", true),
     "findUsages.scope.pattern": getSetting<string>("findUsages.scope.pattern", ""),
+    "findUsages.scope.name": getSetting<string>("findUsages.scope.name", ""),
     "findUsages.openInNewTab": getSetting<boolean>("findUsages.openInNewTab", true),
   });
   const value = <T extends SettingValue>(key: string) => values()[key] as T;
   const set = (key: string, v: SettingValue) => setValues((all) => ({ ...all, [key]: v }));
   const scope = () => value<SearchScope>("findUsages.scope.kind");
+  // A named scope is the custom kind with `findUsages.scope.name`; the select shows it as `scope:<name>`.
+  const selectValue = () => (scope() === "custom" && value<string>("findUsages.scope.name") ? `scope:${value<string>("findUsages.scope.name")}` : scope());
+  const choose = (v: string) => {
+    if (v.startsWith("scope:")) {
+      set("findUsages.scope.kind", "custom");
+      set("findUsages.scope.name", v.slice("scope:".length));
+    } else {
+      set("findUsages.scope.kind", v);
+      set("findUsages.scope.name", "");
+    }
+  };
+  const patternError = () => {
+    const p = value<string>("findUsages.scope.pattern");
+    return p.includes(":") ? checkPattern(p) : null;
+  };
   const find = target.fields.filter((f) => f.section === "find");
   const options = target.fields.filter((f) => f.section === "options");
   // Nothing to look for: "Find" is disabled, like PHPStorm.
@@ -83,9 +101,17 @@ export function FindUsagesDialog(props: { req: FindUsagesDialogRequest }) {
               <label class="form-label" for="find-usages-scope">
                 Scope:
               </label>
-              <select id="find-usages-scope" value={scope()} onChange={(e) => set("findUsages.scope.kind", e.currentTarget.value)}>
+              <select id="find-usages-scope" value={selectValue()} onChange={(e) => choose(e.currentTarget.value)}>
                 <For each={SCOPES}>{(s) => <option value={s.value}>{s.label}</option>}</For>
+                <Show when={extraUsageScopes().length}>
+                  <optgroup label="Scopes">
+                    <For each={extraUsageScopes()}>{(s) => <option value={`scope:${s.name}`}>{s.name}</option>}</For>
+                  </optgroup>
+                </Show>
               </select>
+              <button class="icon-btn" title="Edit Scopes…" aria-label="Edit Scopes" onClick={() => openSettings("appearance.scopes")}>
+                …
+              </button>
             </div>
             <Show when={scope() === "directory"}>
               <div class="form-row">
@@ -109,13 +135,15 @@ export function FindUsagesDialog(props: { req: FindUsagesDialogRequest }) {
                 </label>
               </div>
             </Show>
-            <Show when={scope() === "custom"}>
+            <Show when={scope() === "custom" && !value<string>("findUsages.scope.name")}>
               <div class="form-row">
                 <label class="form-label">Pattern:</label>
                 <input
                   value={value<string>("findUsages.scope.pattern")}
-                  placeholder="app/**/*.php; !app/Legacy/**"
+                  placeholder="file:app//*.php&&!test:*..*"
                   spellcheck={false}
+                  classList={{ invalid: !!patternError() }}
+                  title={patternError()?.message}
                   onInput={(e) => set("findUsages.scope.pattern", e.currentTarget.value)}
                 />
               </div>

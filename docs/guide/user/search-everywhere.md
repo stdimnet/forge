@@ -98,9 +98,13 @@ The status bar shows the size of the search index ("272,700 files", or "Indexing
 - Type the text; results update as you type, one row per matching line with the file name and
   line number. The header counts matches and files.
 - Options next to the field: **Cc** match case, **W** whole words, **.\*** regular expression.
-- **Scope** tabs under the field: **In Project**, **Directory** (a project-relative folder), **Open Files** (the editor tabs) and **Changed Files** (files git reports as modified, added or untracked). The open and changed lists are taken when the search runs; the Find window keeps the list it was opened with.
+- **Scope** tabs under the field: **In Project**, **Directory** (a project-relative folder), **Open Files** (the editor tabs), **Changed Files** (files git reports as modified, added or untracked) and **Scope**, which offers PHPStorm's predefined scopes and your named scopes ([Scopes and file colors](scopes-and-file-colors.md)); **…** opens Settings | Appearance & Behavior | Scopes. The open and changed lists are taken when the search runs; the Find window keeps the list it was opened with.
 
 ![Find in Files scopes](../../screenshots/search-index-find-scopes.png)
+
+![Find in Files in a named scope](../../screenshots/find-in-files-scope.png)
+
+- The Find window (and Replace in Files) has the same scope chooser in its toolbar.
 
 - In the Find window, the list next to the directory field adds **lines of context** (1 to 5) above and below each match. Context lines are dimmed, shown once even when two matches share them, and a click opens the file there.
 

@@ -50,6 +50,14 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 
 ## Recently added
 
+- **Scopes, file colors, Structural Search and Analyze Stack Trace**: named scopes in
+  PHPStorm's scope language for Find in Files, Replace in Files, Find Usages and Structural
+  Search, file colors in editor tabs and the Project view
+  ([Scopes and file colors](docs/guide/user/scopes-and-file-colors.md)); Search and Replace
+  Structurally with `$variables$` templates for PHP, JavaScript and TypeScript
+  ([Structural Search and Replace](docs/guide/user/structural-search.md)); Code | Analyze Stack Trace
+  with frames linked to project files and container paths mapped
+  ([Analyze Stack Trace](docs/guide/user/run-debug.md#analyze-stack-trace)).
 - **Vim emulation**: Tools | Vim turns on IdeaVim-style Vim emulation in the editor: Normal,
   Insert, Visual (character, line, block), Replace and command-line modes, motions, operators
   and text objects, registers (also the system clipboard), dot repeat, macros, marks, search,
@@ -684,6 +692,8 @@ not finished, the page says so.
 | [File and code templates](docs/guide/user/file-templates.md) | New ▸ PHP Class and other templates, the New PHP Class dialog with PSR-4 namespaces, `Alt+Insert` New popup, Settings \| Editor \| File and Code Templates |
 | [Vim emulation](docs/guide/user/vim-emulation.md) | Tools \| Vim, Normal/Insert/Visual/Replace modes, motions, operators, text objects, registers, macros, ex commands, `~/.ideavimrc`, shortcut conflicts |
 | [Search Everywhere and Find Action](docs/guide/user/search-everywhere.md) | Double Shift, Go to Class/File/Symbol, Find Action, fuzzy matching |
+| [Scopes and file colors](docs/guide/user/scopes-and-file-colors.md) | named scopes in PHPStorm's scope language (`file:app//*.php`, `src:`, `test:`, `lib:`, `&&`, `\|\|`, `!`), predefined scopes, scopes in Find in Files, Replace in Files and Find Usages, file colors in editor tabs and the Project view |
+| [Structural Search and Replace](docs/guide/user/structural-search.md) | templates with `$variables$` for PHP, JavaScript and TypeScript, Count / Text / Type filters, the template library, Replace with preview, Replace All and Undo |
 | [Type, Method and Call Hierarchy](docs/guide/user/hierarchies.md) | the Hierarchy tool window: Type Hierarchy (`Ctrl+H`: class, supertypes, subtypes), Method Hierarchy (`Ctrl+Shift+H`) with PHPStorm's marks, Call Hierarchy (`Ctrl+Alt+H`: callers and callees with call sites), scopes and sorting |
 | [Go to Test and Create Test](docs/guide/user/go-to-test.md) | Navigate \| Test (`Ctrl+Shift+T`) between classes, components and their tests, Choose Test popup, Create New PHP Test / Create New Test dialog (PHPUnit, Pest, Vitest, Jest, PSR-4 `autoload-dev`, Laravel Unit/Feature and Symfony layouts, test method stubs) |
 | [File Structure, Navigation Bar and Related Symbol](docs/guide/user/navigation-bar-and-file-structure.md) | File Structure popup (`Ctrl+F12`, Show Inherited, speed search), Navigation Bar (`Alt+Home`, Top / In Status Bar / Don't Show, members), Related Symbol (`Ctrl+Alt+Home`: tests, views, templates, routes, migrations) |
@@ -716,7 +726,7 @@ not finished, the page says so.
 
 | Page | Covers |
 | --- | --- |
-| [Run/Debug configurations](docs/guide/user/run-debug.md) | configuration types, run widget, Run tool window, test results |
+| [Run/Debug configurations](docs/guide/user/run-debug.md) | configuration types, run widget, Run tool window, Analyze Stack Trace, test results |
 | [Xdebug debugging](docs/guide/user/debugging.md) | listening, breakpoints, stepping, evaluate, servers and path mappings |
 | [Terminal](docs/guide/user/terminal.md) | tabs, shells, links |
 | [Database tools and SQL console](docs/guide/user/database.md) | data sources, consoles, data grid, export |
@@ -934,6 +944,8 @@ The Project tool window (`Alt+1`) shows the project folder as a tree.
 ![Project view options](docs/screenshots/project-view-options.png)
 - **Scratches and Consoles** appear at the bottom of the tree, see
   [Scratches, consoles and HTTP client](docs/guide/user/scratches-and-http.md).
+- **File colors** tint rows by scope (test folders green, your own scopes in their colors), see
+  [Scopes and file colors](docs/guide/user/scopes-and-file-colors.md#settings--appearance--behavior--file-colors).
 
 ![Project view](docs/screenshots/project-tree-double-click.png)
 
@@ -961,6 +973,8 @@ Right-click a file, a folder or the empty area below the tree:
 - `Ctrl+S` (macOS `Cmd+S`) saves all files (**Save All**).
 - Some tabs are not files: merge requests, issues, database consoles and table editors open as
   tabs as well.
+- **File colors** tint tabs by scope: test files green, files outside the project yellow (see
+  [Scopes and file colors](docs/guide/user/scopes-and-file-colors.md)).
 
 The [navigation bar](docs/guide/user/navigation-bar-and-file-structure.md#navigation-bar) above the editor
 shows the file's path and the class and method at the caret; every part opens a dropdown
@@ -1097,6 +1111,8 @@ The **Find** tool window (`Alt+3`) keeps search results, one tab per search:
   **Open in new tab** off the result replaces the active usages tab.
 - **Open in Find Window** in [Find in Files](docs/guide/user/search-everywhere.md#find-in-files)
   (`Ctrl+Enter` in the popup) pins the text matches there, grouped by file.
+- [Structural Search and Replace](docs/guide/user/structural-search.md) lists its matches there; a Replace
+  tab adds **Preview Replacement** and **Replace All**.
 
 The toolbar on the left has **Rerun** (text searches), **Group by Usage Type**, **Expand All**,
 **Collapse All** and **Previous/Next Occurrence**. A click on a line opens it in the editor.
@@ -1446,8 +1462,12 @@ the element at the caret. What it offers depends on the element, like in PHPStor
 
 **Scope** is one of Project Files (the default; `vendor/` and `node_modules/` left out),
 Project and Libraries, Open Files, Current File, Recently Changed Files (the working tree's
-changes and unsaved editors), Directory (with **Include subdirectories**) or Custom (file globs
-separated by `;`, `!` excludes, e.g. `app/**/*.php; !app/Legacy/**`). **Open in new tab** off
+changes and unsaved editors), Directory (with **Include subdirectories**) or Custom (a pattern
+in PHPStorm's scope language such as `file:app//*.php&&!test:*..*`, or file globs separated by
+`;` where `!` excludes, e.g. `app/**/*.php; !app/Legacy/**`). Below them the list offers
+Project Production Files, Project Test Files and your named scopes from Settings | Appearance &
+Behavior | Scopes (`findUsages.scope.name`; see [Scopes and file colors](docs/guide/user/scopes-and-file-colors.md)),
+and **…** opens that page. **Open in new tab** off
 replaces the active usages tab of the Find tool window instead of adding one.
 
 **Find** saves the choices as settings (`findUsages.*`, see the
@@ -3624,9 +3644,13 @@ The status bar shows the size of the search index ("272,700 files", or "Indexing
 - Type the text; results update as you type, one row per matching line with the file name and
   line number. The header counts matches and files.
 - Options next to the field: **Cc** match case, **W** whole words, **.\*** regular expression.
-- **Scope** tabs under the field: **In Project**, **Directory** (a project-relative folder), **Open Files** (the editor tabs) and **Changed Files** (files git reports as modified, added or untracked). The open and changed lists are taken when the search runs; the Find window keeps the list it was opened with.
+- **Scope** tabs under the field: **In Project**, **Directory** (a project-relative folder), **Open Files** (the editor tabs), **Changed Files** (files git reports as modified, added or untracked) and **Scope**, which offers PHPStorm's predefined scopes and your named scopes ([Scopes and file colors](docs/guide/user/scopes-and-file-colors.md)); **…** opens Settings | Appearance & Behavior | Scopes. The open and changed lists are taken when the search runs; the Find window keeps the list it was opened with.
 
 ![Find in Files scopes](docs/screenshots/search-index-find-scopes.png)
+
+![Find in Files in a named scope](docs/screenshots/find-in-files-scope.png)
+
+- The Find window (and Replace in Files) has the same scope chooser in its toolbar.
 
 - In the Find window, the list next to the directory field adds **lines of context** (1 to 5) above and below each match. Context lines are dimmed, shown once even when two matches share them, and a click opens the file there.
 
@@ -3664,6 +3688,212 @@ The **Text** tab of Search Everywhere uses the same search (from two characters 
 
 **Replace in Files** (`Ctrl+Shift+R`, macOS `Cmd+Shift+R`) opens the same tab with the selected
 text as the query and the caret in **Replace with**.
+
+
+---
+
+Source: docs/guide/user/scopes-and-file-colors.md
+
+# Scopes and file colors
+
+A **scope** is a named set of files. Forge uses scopes like PHPStorm: in Find in Files and
+Replace in Files, in the Find Usages dialog, in Structural Search and Replace and for file
+colors. Scopes are written in PHPStorm's scope language, so patterns you know from PHPStorm
+work unchanged.
+
+## Predefined scopes
+
+| Scope | Contains |
+| --- | --- |
+| All Places | every project file, libraries (`vendor/`, `node_modules/`) included |
+| Project Files | the project's files without libraries |
+| Project Production Files | project files that are not tests |
+| Project Test Files | test files: below a test folder of `composer.json`'s `autoload-dev`, below a `tests`, `test`, `spec` or `__tests__` folder, or named like a test (`UserTest.php`, `cart.test.ts`, `cart.spec.js`, `util_spec.lua`) |
+| Open Files | the files open in editor tabs |
+| Changed Files | files with uncommitted changes |
+| Current File | the file of the active editor |
+
+The file colors also know **Non-Project Files** (library files from language servers and other
+files outside the project) and **Tests** (the same as Project Test Files).
+
+## Settings | Appearance & Behavior | Scopes
+
+![Scopes settings](docs/screenshots/scopes-settings.png)
+
+The page lists your scopes on the left, grouped like PHPStorm:
+
+- **Local** scopes are stored in your user settings (`scopes.local`) and are not shared.
+- **Shared** scopes are stored in the project (`scopes.shared` in `.forge/settings.toml`), so
+  your team gets them through version control.
+
+**+** adds a Local or Shared scope, **−** removes it, **Copy** duplicates it. On the right you
+edit the **Name** and the **Pattern**; a pattern that does not parse is underlined and the
+message says where the problem is. Below, the project tree shows which files the pattern
+contains: files in the scope are green, folders show how many of their files are in it
+(`4 of 5`). Select a file or folder and use the buttons to change the pattern:
+
+| Button | Adds |
+| --- | --- |
+| Include | `file:app/Http/*` for a folder (its files), `file:app/User.php` for a file |
+| Include Recursively | `file:app/Http//*` (the folder with everything below it) |
+| Exclude | `&&!file:app/Http/*` |
+| Exclude Recursively | `&&!file:app/Http//*` |
+
+Including something you excluded before removes the exclusion; excluding an alternative you
+included removes that alternative.
+
+### Scope language
+
+| Pattern | Meaning |
+| --- | --- |
+| `file:app//*` | every file below `app` |
+| `file:app/*` | the files directly in `app` |
+| `file:app//*.php` | PHP files below `app` |
+| `file:*.php` | PHP files in every folder (a pattern without `/` matches the file name) |
+| `file:/*` | the files in the project root |
+| `src:*..*` | production files (no tests, no libraries); `src:app//*` limits them to `app` |
+| `test:*..*` | test files |
+| `lib:*..*` | library files (`vendor/`, `node_modules/`); `lib:vendor/laravel//*` |
+| `file[module]:app//*` | the module name is accepted and ignored (a Forge project is one module) |
+| `a&&b`, `a\|\|b`, `!a`, `(a\|\|b)&&c` | and, or, not, grouping; `!` binds tightest, then `&&`, then `\|\|` |
+
+`*` matches within one file or folder name, `?` one character and `//` any number of folders.
+Examples: `file:app//*&&!file:app/Legacy//*`, `file:*.js&&!file:*.min.*`,
+`file:resources/views//*.blade.php||file:resources/js//*`.
+
+## Using scopes
+
+- **Find in Files** (`Ctrl+Shift+F`): the **Scope** tab next to In Project, Directory, Open
+  Files and Changed Files offers every predefined and named scope; **…** opens the Scopes page.
+  See [Find in Files](docs/guide/user/search-everywhere.md#find-in-files).
+- **Find tool window and Replace in Files** (`Ctrl+Shift+R`): the scope chooser in the toolbar
+  limits the search and the replacement.
+- **Find Usages dialog** (`Ctrl+Alt+Shift+F7`): the Scope list ends with your named scopes and
+  Project Production / Test Files. The Custom scope's pattern accepts the scope language as
+  well as the older file globs (`app/**/*.php; !app/Legacy/**`). See
+  [Find Usages settings](docs/guide/user/editor.md#find-usages-settings).
+- **Structural Search and Replace**: the dialog's Scope chooser. See
+  [Structural Search and Replace](docs/guide/user/structural-search.md).
+
+Scopes are evaluated by the backend, so searches in [remote projects](docs/guide/user/remote-development.md)
+use them on the host.
+
+## Settings | Appearance & Behavior | File Colors
+
+![File colors](docs/screenshots/file-colors.png)
+
+File colors tint the background of editor tabs and Project view rows by scope, like PHPStorm.
+
+![File Colors settings](docs/screenshots/file-colors-settings.png)
+
+| Option | Default | Setting |
+| --- | --- | --- |
+| Enable file colors | on | `fileColors.enabled` |
+| Use in editor tabs | on | `fileColors.useInEditorTabs` |
+| Use in project view | on | `fileColors.useInProjectView` |
+
+The **Local colors** table (`fileColors.local`, user settings) starts with PHPStorm's rows
+**Non-Project Files** (Yellow) and **Tests** (Green); **Shared colors** (`fileColors.shared`)
+live in the project. Each row is a scope and a color of the theme's palette: Blue, Green,
+Orange, Rose, Violet, Yellow or Gray. The first row whose scope contains a file wins, local rows
+before shared ones; **Move Up** / **Move Down** change the order and **Share** / **Unshare**
+move a row between the tables. Folders get a color when the scope contains the whole folder
+(for example `file:tests//*`, or a test folder for Tests).
+
+The colors come from the theme (`--file-color-*` in `theme.css`), so they suit both the dark
+and the light theme:
+
+![File colors in the light theme](docs/screenshots/file-colors-light.png)
+
+
+---
+
+Source: docs/guide/user/structural-search.md
+
+# Structural Search and Replace
+
+Structural Search finds code by its syntax instead of its text: `$Instance$->save()` finds
+every `save()` call, whatever the receiver, line breaks or comments in between. Structural
+Replace rewrites every match with a replacement template. Both work like PHPStorm's.
+
+| Action | Where | Action id |
+| --- | --- | --- |
+| Search Structurally… | Edit \| Find, Find Action | `StructuralSearchPlugin.StructuralSearchAction` |
+| Replace Structurally… | Edit \| Find, Find Action | `StructuralSearchPlugin.StructuralReplaceAction` |
+
+Neither action has a default shortcut in PHPStorm; assign one in Settings | Keymap if you use
+them often. A selection in the editor becomes the template.
+
+![Structural Search dialog](docs/screenshots/structural-search.png)
+
+## Templates
+
+A template is code of the chosen **File type** (PHP, JavaScript or TypeScript) where
+`$Name$` stands for any code. The template may be an expression (`new $Class$($Args$)`), a
+statement (`if ($Condition$) { $Statement$; }`), several statements, or a class member
+(`public function $Method$($Params$) { $Body$; }`). What counts:
+
+- Node types, names, literals, keywords and operators must match; whitespace, line breaks,
+  comments and the kind of quotes around the code do not matter.
+- A variable used twice must match the same code both times: `$a$ = $a$` finds
+  self-assignments.
+- In PHP, `$$name$` matches only variables (`$order`), while `$name$` matches any expression.
+- A declaration in the template without a return type, attributes or `static` / `final` /
+  `abstract` / `readonly` modifiers matches declarations with any of them.
+- **Match case** compares names and literals case-sensitively.
+
+The editor highlights the variables; a template that is not valid code is reported below it.
+
+### Existing templates
+
+The left panel (toggle it with the button in the title) lists the built-in templates:
+
+| File type | Templates |
+| --- | --- |
+| PHP | method calls, static method calls, function calls, new expressions, assignments, string literals, if statements, foreach loops, try without catch, catch with empty body, echo statements, methods of a class |
+| JavaScript | method calls, new expressions, console.log calls, if statements |
+| TypeScript | method calls, variables with a type |
+
+## Filters
+
+Select a variable on the right to edit its filters:
+
+| Filter | Meaning |
+| --- | --- |
+| Count | how many nodes the variable stands for. `0` to **Unlimited** lets `$Args$` match a whole argument list, `$Statements$;` any number of statements (also none). The default is exactly one. |
+| Text | a regular expression the whole matched text must match (`get.*`, `(log\|flush)`); **Invert** keeps the other matches. For PHP variables the `$` is optional (`order` matches `$order`). |
+| Type | a regular expression for the type of the expression, where the code shows it: literals (`string`, `int`, `float`, `bool`, `array`, `null`), `new Order()`, `$this`, parameters with a declared type and variables assigned with `new` in the same function. Class names match with or without namespace. **Invert** keeps the others. |
+
+## Scope and results
+
+The **Scope** chooser offers the predefined scopes and your [named scopes](docs/guide/user/scopes-and-file-colors.md).
+**Find** (`Ctrl+Enter`) lists the matches in the Find tool window, grouped by file, with
+Rerun and Next / Previous Occurrence:
+
+![Structural Search results](docs/screenshots/structural-search-results.png)
+
+Unsaved editor contents are searched as they are on screen. The search runs where the project
+lives, so [remote projects](docs/guide/user/remote-development.md) are parsed on their host.
+
+## Replace
+
+![Structural Replace dialog](docs/screenshots/structural-replace.png)
+
+Replace Structurally adds a **Replace template**. Its `$variables$` are filled with the code
+each variable matched; line breaks in the template are indented like the matched code. A
+variable that the search template does not define is reported. **Replace** shows the matches
+in the Find tool window with **Preview Replacement** (the new code after each match) and
+**Replace All**:
+
+![Replace preview](docs/screenshots/structural-replace-preview.png)
+
+Replace All saves open editors, replaces every match (nested matches inside a replaced one are
+left alone) and offers **Undo** in the notification, which restores the files unless they
+changed since.
+
+> **Note:** browser mode (`pnpm dev`) cannot run the tree-sitter grammars as WebAssembly; its
+> demo answers searches with an approximation of the template. The desktop app always matches
+> syntax trees.
 
 
 ---
@@ -8786,6 +9016,46 @@ Settings | Editor | General | Console: **Use soft wraps in console** (`run.conso
 and **Override console cycle buffer size (KB)** (`run.console.cycleBufferKb`, 1024): a console
 keeps the newest output up to that size and drops the oldest lines.
 
+## Analyze Stack Trace
+
+**Code | Analyze Stack Trace or Thread Dump…** (`AnalyzeStacktraceOnError`, no default
+shortcut) opens a dialog to paste a stack trace from a log file, a bug report, an error page or
+a server. When the clipboard holds a trace, the dialog starts with it.
+
+![Analyze Stack Trace dialog](docs/screenshots/analyze-stack-trace.png)
+
+**Analyze** opens it in a **Stack Trace** tab of the Run tool window. Every frame that names a
+project file is a link to its line; the exception message is red, frames in libraries
+(`vendor/`, `node_modules/`) and files outside the project are dimmed. **Rerun** opens the
+dialog again with the same text.
+
+![Stack trace in the Run tool window](docs/screenshots/stack-trace-tab.png)
+
+Recognized formats:
+
+| Language | Frames |
+| --- | --- |
+| PHP | `#0 /var/www/app/User.php(12): …`, `… in /path/File.php:42`, `… on line 7`, Laravel and Symfony exception traces and logs, Xdebug's `0.0012 402456 1. {main}() /path/index.php:0` |
+| JavaScript / Node | `at fn (/app/src/cart.ts:10:5)`, `at /app/src/x.js:3:1`, `file:///…`, `webpack:///./src/…` |
+| Lua | `main.lua:12: attempt to …`, `lib/util.lua:4: in function 'load'` |
+| Others | any `path:line[:column]` or `path(line)` |
+
+A trace copied from a JSON log as one line with escaped line breaks (`\n#1 …`) is split into
+lines first.
+
+Paths of a server or container are mapped into the project:
+
+1. the path mappings of the PHP servers (Settings | PHP | Servers,
+   [Xdebug debugging](docs/guide/user/debugging.md)),
+2. the bind mounts of the project's Docker Compose file (`./:/var/www/html`),
+3. the project root,
+4. otherwise the longest trailing part of the path that exists in the project
+   (`/srv/app/releases/42/app/Models/Order.php` → `app/Models/Order.php`).
+
+Files are looked up through the project's backend, so this works in
+[remote projects](docs/guide/user/remote-development.md) too. Detecting traces copied to the clipboard outside
+Forge automatically is not supported.
+
 ## Test results
 
 Test runners that speak TeamCity service messages (PHPUnit with `--teamcity`, Pest, Jest)
@@ -9716,6 +9986,9 @@ The project's root is shown as `user@host:/path`. Recent Projects keeps remote p
 | Go to File, Search Everywhere | yes |
 | Git (status, commit, diff, blame, branches, log) | yes; output is parsed locally |
 | Find in Files | yes, searched on the host |
+| Scopes (Find in Files, Find Usages, Structural Search), the Scopes page's file tree | yes, evaluated and listed on the host |
+| Structural Search and Replace | yes: the files are parsed on the host; Replace All writes through the agent |
+| Analyze Stack Trace | yes: files are looked up on the host; PHP servers' path mappings and Compose bind mounts are read from the host |
 | PHP index, Structure, Generate, Intelephense/Phpactor | yes; Intelephense indexes the remote files itself |
 | Catalog language servers (TypeScript, YAML, Python, …) | yes: scan, detection and the servers run on the host |
 | Installing language servers (Settings, Intelephense offer) | yes: the agent downloads Node.js and the npm servers into Forge's directory on the host, with progress here; the Intelephense licence is accepted on your machine |
@@ -10203,6 +10476,7 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Inspect Code… | `InspectCode` |  |  | — |
 | Code Cleanup / Inspect File | `CodeInspection.OnEditor` | `Alt+Shift+I` | `Ctrl+Alt+Shift+I` | — |
 | Run Inspection by Name… | `RunInspection` | `Ctrl+Alt+Shift+I` | `Cmd+Alt+Shift+I` | — |
+| Analyze Stack Trace or Thread Dump… | `AnalyzeStacktraceOnError` |  |  | yes |
 | Show Quick-Fixes | `ShowIntentionsGroup` |  |  | — |
 
 ### File
@@ -10317,7 +10591,8 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Highlight Usages in File | `HighlightUsagesInFile` | `Ctrl+Shift+F7` | `Cmd+Shift+F7` | yes |
 | Show Usages | `ShowUsages` | `Ctrl+Alt+F7` | `Cmd+Alt+F7` | yes |
 | Find Usages Settings… | `ShowSettingsAndFindUsages` | `Ctrl+Alt+Shift+F7` | `Cmd+Alt+Shift+F7` | yes |
-| Search Structurally… | `StructuralSearchPlugin.StructuralSearchAction` |  |  | — |
+| Search Structurally… | `StructuralSearchPlugin.StructuralSearchAction` |  |  | yes |
+| Replace Structurally… | `StructuralSearchPlugin.StructuralReplaceAction` |  |  | yes |
 
 ### View > Tool Windows
 
@@ -10783,7 +11058,8 @@ Undo, clipboard, find and replace, selection and line editing. Open it with ☰ 
 | Find › Unselect Occurrence | `Alt+Shift+J` | `Ctrl+Shift+G` | yes | Removes the occurrence added last. [More](docs/guide/user/editor.md#multiple-carets-and-column-selection) |
 | Find › Find in Files… | `Ctrl+Shift+F` | `Cmd+Shift+F` | yes | Searches the text of all project files, with match case, whole words, regular expressions, file masks and a folder scope. [More](docs/guide/user/search-everywhere.md#find-in-files) ([screenshot](docs/screenshots/docs-find-in-files.png)) |
 | Find › Replace in Files… | `Ctrl+Shift+R` | `Cmd+Shift+R` | yes | Opens the Find tool window's Find in Files tab with a **Replace with** field, a preview of every changed line and undo. [More](docs/guide/user/search-everywhere.md#find-in-files) |
-| Find › Search Structurally… | — | — | not yet | Not available yet; the entry is disabled. |
+| Find › Search Structurally… | — | — | yes | Opens the Structural Search dialog: a code template with `$variables$`, filters, file type and scope; matches in the Find tool window. [More](docs/guide/user/structural-search.md) ([screenshot](docs/screenshots/structural-search.png)) |
+| Find › Replace Structurally… | — | — | yes | Opens the Structural Replace dialog: search and replace templates, Preview Replacement and Replace All with Undo. [More](docs/guide/user/structural-search.md#replace) ([screenshot](docs/screenshots/structural-replace.png)) |
 | **Find Usages** | | | | submenu |
 | Find Usages › Find Usages | `Alt+F7` | `Alt+F7` | yes | Shows the usages of the symbol at the caret in the Find tool window. [More](docs/guide/user/editor.md#find-usages-and-show-usages) ([screenshot](docs/screenshots/php-nav-find-window.png)) |
 | Find Usages › Find Usages Settings… | `Ctrl+Alt+Shift+F7` | `Cmd+Alt+Shift+F7` | yes | Opens the Find Usages dialog (options per element, scope, Open in new tab), then finds the usages. [More](docs/guide/user/editor.md#find-usages-settings) ([screenshot](docs/screenshots/find-usages-dialog.png)) |
@@ -10966,6 +11242,7 @@ Completion, Generate, folding, comments, formatting and moving lines. Open it wi
 | Inspect Code… | — | — | not yet | Not available yet; the entry is disabled. |
 | Code Cleanup… | `Alt+Shift+I` | `Ctrl+Alt+Shift+I` | not yet | Not available yet; the entry is disabled. |
 | Run Inspection by Name… | `Ctrl+Alt+Shift+I` | `Cmd+Alt+Shift+I` | not yet | Not available yet; the entry is disabled. |
+| Analyze Stack Trace or Thread Dump… | — | — | yes | Opens a pasted stack trace in a Stack Trace tab of the Run tool window with frames linked to project files; server and container paths are mapped. [More](docs/guide/user/run-debug.md#analyze-stack-trace) ([screenshot](docs/screenshots/stack-trace-tab.png)) |
 
 
 ---
@@ -11273,6 +11550,27 @@ Page id `appearance`.
 | `structureView.autoscrollToSource` | bool | `true` | user | Structure View | Autoscroll to source — A single click on a Structure tool window node moves the editor to it. Turn it off to select with a single click and navigate with a double click. |
 | `structureView.autoscrollFromSource` | bool | `true` | user | Structure View | Autoscroll from source — The Structure tool window selects the member at the caret as you move through the editor. |
 
+### Appearance & Behavior | Scopes
+
+Page id `appearance.scopes` (custom page).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `scopes.shared` | objects (`name`, `pattern`) | `[]` | project |  | Shared scopes, stored in `.forge/settings.toml` |
+| `scopes.local` | objects (`name`, `pattern`) | `[]` | user |  | Local scopes |
+
+### Appearance & Behavior | File Colors
+
+Page id `appearance.fileColors` (custom page).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `fileColors.enabled` | bool | `true` | user |  | Enable file colors |
+| `fileColors.useInEditorTabs` | bool | `true` | user |  | Use in editor tabs |
+| `fileColors.useInProjectView` | bool | `true` | user |  | Use in project view |
+| `fileColors.local` | objects (`scope`, `color`) | Non-Project Files: Yellow, Tests: Green | user |  | Local colors |
+| `fileColors.shared` | objects (`scope`, `color`) | `[]` | project |  | Shared colors |
+
 ### Appearance & Behavior | System Settings
 
 Page id `system`.
@@ -11344,7 +11642,8 @@ page. Every Find Usages and Show Usages run uses them.
 | `findUsages.scope.kind` | enum: `projectFiles`, `projectAndLibraries`, `openFiles`, `currentFile`, `recentlyChangedFiles`, `directory`, `custom` | `projectFiles` | user |  | Scope |
 | `findUsages.scope.directory` | string | `""` | user |  | Directory |
 | `findUsages.scope.includeSubdirectories` | bool | `true` | user |  | Include subdirectories |
-| `findUsages.scope.pattern` | string | `""` | user |  | Custom scope — File globs separated by ';', '!' excludes (app/**/*.php; !app/Legacy/**). |
+| `findUsages.scope.pattern` | string | `""` | user |  | Custom scope — A scope pattern (`file:app//*.php&&!test:*..*`) or file globs separated by ';', where '!' excludes (app/**/*.php; !app/Legacy/**). |
+| `findUsages.scope.name` | string | `""` | user |  | Named scope — a scope of the Scopes page used as the custom scope; empty uses the pattern. |
 | `findUsages.openInNewTab` | bool | `true` | user |  | Open in new tab |
 
 ### Editor | General
@@ -14358,7 +14657,9 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-remote-agent](docs/guide/developer/crates/forge-remote-agent.md) | Headless Forge agent: serves a project's files, git, processes, language servers and PHP index over stdio for remote development |
 | [forge-save-actions](docs/guide/developer/crates/forge-save-actions.md) | Actions on Save: which actions run for a saved file, reformatting only changed lines and running ESLint, Prettier, PHP CS Fixer and Laravel Pint through the project's backend |
 | [forge-scratches](docs/guide/developer/crates/forge-scratches.md) | Forge scratch files (PHPStorm's Scratches and Consoles): storage, naming, languages, run commands and the HTTP request client |
+| [forge-scopes](docs/guide/developer/crates/forge-scopes.md) | Scopes (PHPStorm's scope language, predefined and named scopes) and file colors (pure, WebAssembly-friendly) |
 | [forge-spell](docs/guide/developer/crates/forge-spell.md) | Spelling and grammar inspections for comments, strings, identifiers and text: Hunspell dictionaries, word extraction, suggestions and a small rule-based English grammar checker (pure, WebAssembly-friendly) |
+| [forge-ssr](docs/guide/developer/crates/forge-ssr.md) | Structural Search and Replace: templates with `$variables$` matched on tree-sitter syntax trees (PHP, JavaScript, TypeScript) |
 | [forge-sql](docs/guide/developer/crates/forge-sql.md) | Forge SQL text: dialects, statement splitting, literals, row changes and export (pure, also built to WebAssembly) |
 | [forge-update](docs/guide/developer/crates/forge-update.md) | Forge update checks: when to check, which release is an update, the update feed, simulated updates and download speed |
 | [forge-vcs](docs/guide/developer/crates/forge-vcs.md) | Forge IDE version control: drives the git CLI and parses its output |
@@ -14557,6 +14858,7 @@ PHP index live.
 | `process_io.rs` | Processes started through a `Backend` (on this machine or on a remote host) used like local child processes: line by line with cancelation (`run_lines`, artisan and Symfony console runs) or as async stdio streams (`spawn_stdio`, agent CLIs). |
 | `protocol.rs` | The Forge agent protocol: MessagePack frames over a byte stream (the agent's stdio). |
 | `remote.rs` | A project on another machine, served by the Forge agent over an `RpcClient`. |
+| `ssr.rs` | Structural Search and Replace over a project (`forge-ssr`): `search_workspace` behind `Backend::structural_search` (agent call `StructuralSearch` for remote projects) and `replace_all`, which writes the matched files through the backend and keeps them for Undo like Replace in Files. |
 | `rpc.rs` | The client end of the agent `protocol`(crate::protocol): calls with out-of-order answers, pushed events and byte channels over one stream pair. |
 | `tunnels.rs` | Port forwarding between this machine and a remote project's host (SSH tunnels). Local projects have none; `forge-remote` implements them over the project's SSH connection. |
 
@@ -14587,7 +14889,7 @@ pub fn folder_name(root: &Path) -> String { … }
 
 ## Dependencies
 
-- Workspace crates: [`forge-codeintel`](docs/guide/developer/crates/forge-codeintel.md), [`forge-core`](docs/guide/developer/crates/forge-core.md), [`forge-langservers`](docs/guide/developer/crates/forge-langservers.md), [`forge-lsp`](docs/guide/developer/crates/forge-lsp.md), [`forge-process`](docs/guide/developer/crates/forge-process.md), [`forge-project`](docs/guide/developer/crates/forge-project.md), [`forge-vcs`](docs/guide/developer/crates/forge-vcs.md), [`phpforge-dql`](docs/guide/developer/crates/phpforge-dql.md), [`phpforge-fw-laravel`](docs/guide/developer/crates/phpforge-fw-laravel.md), [`phpforge-fw-symfony`](docs/guide/developer/crates/phpforge-fw-symfony.md), [`phpforge-lang-php`](docs/guide/developer/crates/phpforge-lang-php.md), [`phpforge-orm-doctrine`](docs/guide/developer/crates/phpforge-orm-doctrine.md)
+- Workspace crates: [`forge-codeintel`](docs/guide/developer/crates/forge-codeintel.md), [`forge-core`](docs/guide/developer/crates/forge-core.md), [`forge-scopes`](docs/guide/developer/crates/forge-scopes.md), [`forge-ssr`](docs/guide/developer/crates/forge-ssr.md), [`forge-langservers`](docs/guide/developer/crates/forge-langservers.md), [`forge-lsp`](docs/guide/developer/crates/forge-lsp.md), [`forge-process`](docs/guide/developer/crates/forge-process.md), [`forge-project`](docs/guide/developer/crates/forge-project.md), [`forge-vcs`](docs/guide/developer/crates/forge-vcs.md), [`phpforge-dql`](docs/guide/developer/crates/phpforge-dql.md), [`phpforge-fw-laravel`](docs/guide/developer/crates/phpforge-fw-laravel.md), [`phpforge-fw-symfony`](docs/guide/developer/crates/phpforge-fw-symfony.md), [`phpforge-lang-php`](docs/guide/developer/crates/phpforge-lang-php.md), [`phpforge-orm-doctrine`](docs/guide/developer/crates/phpforge-orm-doctrine.md)
 - External: `dirs`, `futures-util`, `rmp-serde`, `serde`, `serde_bytes`, `serde_json`, `tokio`, `tracing`
 
 ## Tests
@@ -15530,6 +15832,11 @@ expressions, PHPStorm's `\btodo\b.*` and `\bfixme\b.*` by default) inside commen
 plain text and Markdown are scanned as a whole. `TodoRequest` can limit the scan to some
 `paths` and pass unsaved editor `buffers` that replace the files on disk.
 
+A request may carry a `scope` (`forge_scopes::ScopeFilter`: a predefined scope or a scope
+pattern of the Scopes page with its context); `Finder::wants` applies it with the directory,
+the path list and the file mask, so the index, the directory walk, the agent and Replace in
+Files all honor it.
+
 ## Main public items
 
 ```rust
@@ -15556,7 +15863,7 @@ pub mod todo; // TodoRequest, TodoPattern, TodoItem, TodoFile, TodoResult, TodoS
 
 ## Dependencies
 
-- Workspace crates: none
+- Workspace crates: `forge-scopes`
 - External: `regex`, `serde`
 
 ## Tests
@@ -16351,6 +16658,9 @@ renders it.
 - `run`: everything above combined for one run.
 - `osc`: terminal OSC sequences (progress, notifications, working directory) and OSC 8
   link targets.
+- `stacktrace`: Analyze External Stack Trace: frames of PHP, Laravel/Symfony, Xdebug,
+  JavaScript/Node and Lua traces linked to project files, with server and container paths
+  mapped (`PathMapping`, `compose_mappings`, longest existing tail).
 
 The crate is pure (no I/O) so `forge-wasm` can run it in browser mode.
 
@@ -16362,6 +16672,7 @@ The crate is pure (no I/O) so `forge-wasm` can run it in browser mode.
 | `console.rs` | Console lines built from styled segments, sent to the UI as deltas. |
 | `links.rs` | File references in console and terminal output (`app/User.php:42`, `/abs/path/File.php on line 7`, `File.php(12)`, `#0 /path/x.php(31): …`) and web links, so the UI can make them clickable. |
 | `osc.rs` | Payloads of the OSC sequences the terminal understands beyond xterm.js: OSC 9;4 progress (normal, error, indeterminate, paused, remove), OSC 9 and OSC 777 notifications, OSC 7 and ConEmu 9;9 working directories, OSC 133 command boundaries, and which OSC 8 hyperlinks may open (web and mail links, `file://` links into the project). The terminal calls it synchronously through `forge-wasm` from xterm.js's OSC handlers. |
+| `stacktrace.rs` | Analyze External Stack Trace: `analyze(text, ctx, exists)` turns a pasted trace into console lines whose frames link to project files (message in red, library frames dimmed); `resolve` maps a path with `TraceContext.mappings`, the project root or the longest trailing part that exists; `compose_mappings` reads Docker Compose bind mounts; `normalize` splits one-line logs with escaped line breaks. |
 | `run.rs` | The output of one run: console lines for every stream, and for test runners the test tree built from TeamCity service messages on stdout (those lines are not shown in the console). Output while a test runs is attributed to that test. |
 | `teamcity.rs` | TeamCity service messages (`phpunit --teamcity`, Pest, Jest reporters) turned into the test tree of the Run tool window. The tree lives here; the UI receives changed nodes. |
 | `utf16.rs` | Offsets for the UI: JavaScript strings and CodeMirror count UTF-16 code units, Rust counts bytes. |
@@ -16380,8 +16691,9 @@ pub use utf16::{byte_to_utf16, utf16_to_byte};
 
 ## Used by
 
-- IPC: `output_file_links`, and the `console`/`tests` events of `run://<runId>`
-- UI: `app/ui/src/features/run`, `app/ui/src/features/terminal`
+- IPC: `output_file_links`, the `console`/`tests` events of `run://<runId>` and
+  `stacktrace_analyze` (`app/src-tauri/src/commands/stacktrace.rs`)
+- UI: `app/ui/src/features/run`, `app/ui/src/features/terminal`, `app/ui/src/features/stacktrace`
 - Browser mode: built into `forge-wasm`; the terminal uses `osc` through `forge-wasm` in the desktop app too
 
 ## Dependencies
@@ -16835,6 +17147,75 @@ cargo test -p forge-scratches
 
 ---
 
+Source: docs/guide/developer/crates/forge-scopes.md
+
+# forge-scopes
+
+`crates/forge-scopes` — Scopes (PHPStorm's scope language, predefined and named scopes) and file colors (pure, WebAssembly-friendly).
+
+## Purpose
+
+Scopes and file colors, like PHPStorm's Settings | Appearance & Behavior | Scopes and File
+Colors (see the [user guide](docs/guide/user/scopes-and-file-colors.md)).
+
+- `pattern`: the scope language: `file:` / `src:` / `test:` / `lib:` path patterns (`*`, `?`,
+  `//` for any folders, a pattern without `/` matches file names), `file[module]:`, `&&`,
+  `||`, `!`, parentheses, with parse errors that carry an offset. `Expr::matches` for files,
+  `Expr::matches_dir` for folders as a whole.
+- `Predefined` scopes (All Places, Project Files, Project Production Files, Project Test
+  Files, Open Files, Changed Files, Current File, Non-Project Files), `NamedScope` and
+  `ScopeSet` (shared and local scopes of the settings: entries for choosers, name lookup,
+  problems).
+- `ScopeFilter` (a `ScopeSpec` plus its `ScopeContext`: test roots, open, changed and current
+  files) is what searches carry to the backend; `Scope` is it compiled.
+- `context`: test detection (`composer_test_roots` from `autoload-dev`, conventional folders
+  and file names) and library paths.
+- `edit`: the Include / Include Recursively / Exclude / Exclude Recursively buttons.
+- `tree`: the Scopes page's preview tree with per-folder counts.
+- `colors`: file colors per scope with PHPStorm's precedence (local rows first, first match
+  wins) and the theme palette.
+
+## Main public items
+
+```rust
+pub fn parse(text: &str) -> Result<Option<Expr>, ParseError>
+pub enum Predefined { AllPlaces, ProjectFiles, ProjectProductionFiles, ProjectTestFiles, OpenFiles, ChangedFiles, CurrentFile, NonProjectFiles }
+pub struct ScopeContext { test_roots, open_files, changed_files, current_file }
+pub enum ScopeSpec { Predefined(Predefined), Pattern(String) }
+pub struct ScopeFilter { scope: ScopeSpec, context: ScopeContext }
+pub struct Scope { … } // new(&ScopeFilter), contains(path), contains_dir(dir)
+pub struct ScopeSet { shared, local } // resolve, entries, problems
+pub mod edit;   // EditRequest, EditOp, apply, file_pattern
+pub mod tree;   // build -> ScopeTree
+pub mod colors; // ColorsRequest, FileColor, resolve, PALETTE
+```
+
+## Used by
+
+- `forge-find` (`FindRequest.scope`), `forge-codeintel` (`UsageScope` custom patterns),
+  `forge-ssr` (`SsrRequest.scope`)
+- IPC: `scopes_files` (`Backend::list_files`, agent call `ListFiles`) and `scopes_test_roots`
+  (`app/src-tauri/src/commands/scopes.rs`)
+- UI: `app/ui/src/features/scopes` calls it synchronously through `forge-wasm` (`scopes_*`,
+  `file_colors_resolve`) in the desktop app and in browser mode
+
+## Dependencies
+
+- Workspace crates: none
+- External: `serde`, `serde_json`
+
+## Tests
+
+6 source files; unit tests for patterns, operators, sources, folders, errors, predefined and
+named scopes, Include / Exclude, the preview tree and file colors.
+
+```sh
+cargo test -p forge-scopes
+```
+
+
+---
+
 Source: docs/guide/developer/crates/forge-spell.md
 
 # forge-spell
@@ -16914,6 +17295,79 @@ Unit tests for the Hunspell reader (affixes, conditions, cross products, flag ty
 special flags, Latin-1), the bundled dictionary, word extraction per context (identifier
 splitting, skipped tokens, UTF-16 offsets), the distance and ranking, every grammar rule
 with its exceptions, `inspect` with options and user words, and the context actions.
+
+
+---
+
+Source: docs/guide/developer/crates/forge-ssr.md
+
+# forge-ssr
+
+`crates/forge-ssr` — Structural Search and Replace: templates with `$variables$` matched on tree-sitter syntax trees (PHP, JavaScript, TypeScript).
+
+## Purpose
+
+PHPStorm's Edit | Find | Search Structurally… and Replace Structurally… (see the
+[user guide](docs/guide/user/structural-search.md)).
+
+- `template`: the template becomes a syntax tree. Every `$name$` is replaced by a placeholder
+  the grammar accepts at that place (in PHP an identifier after `->`, `::`, `new`, in types
+  and declarations, a variable elsewhere; `$$name$` only matches variables); the template may
+  be an expression, statements or a class member (parsed inside a wrapper class).
+- `matcher` (private): node kinds, named leaves, keywords and operators must be equal;
+  comments and punctuation are skipped; a placeholder matches any node, or a run of sibling
+  nodes within the variable's count (greedy, with backtracking); a variable used twice must
+  match the same text. Declarations in the template without return types, attributes or
+  modifiers match declarations with them.
+- `types` (private): the Type modifier's types from the tree (literals, `new X`, `$this`,
+  typed parameters, `$x = new X` in the same function).
+- `Compiled::search` / `replace`, `search_files` with a `forge_scopes::ScopeFilter`, unsaved
+  buffers and a limit, `check` for the dialog, `library::builtin` templates.
+
+The feature `engine` (default) holds everything that needs tree-sitter (C code). Without it
+the crate keeps the request types, `variables` and the template library, which
+`forge-wasm` builds for browser mode.
+
+## Main public items
+
+```rust
+pub enum FileType { Php, JavaScript, TypeScript }
+pub struct Constraint { name, min_count, max_count, text, invert_text, type_, invert_type }
+pub struct SsrRequest { template, file_type, constraints, match_case, replacement, scope, buffers, limit }
+pub struct SsrResult { files: Vec<SsrFile>, match_count, searched_files, truncated, error }
+pub struct Compiled { … } // new, wants, search, replace
+pub fn search_files<'a>(req: &SsrRequest, files: impl IntoIterator<Item = (&'a str, &'a str)>) -> SsrResult
+pub fn check(req: &SsrRequest) -> TemplateCheck
+pub fn variables(template: &str) -> Vec<String>
+pub mod library; // SavedTemplate, builtin()
+```
+
+## Used by
+
+- `forge-backend`: `Backend::structural_search` (local: `ssr::search_workspace`; remote: agent
+  call `StructuralSearch`) and `ssr::replace_all` (writes through the backend, undo like
+  Replace in Files)
+- IPC: `ssr_templates`, `ssr_check`, `ssr_search`, `ssr_replace`
+  (`app/src-tauri/src/commands/ssr.rs`)
+- UI: `app/ui/src/features/ssr`
+- Browser mode: `forge-wasm` without the engine (`ssr_templates`, `ssr_variables`)
+
+## Dependencies
+
+- Workspace crates: `forge-scopes`
+- External: `regex`, `serde`, `tree-sitter`, `tree-sitter-php`, `tree-sitter-javascript`,
+  `tree-sitter-typescript`
+
+## Tests
+
+Unit tests for placeholders and template parsing, every built-in template compiling, and
+fixture tests (`tests/fixtures/OrderService.php`, `cart.ts`) for method calls, counts, text and
+type modifiers, statements, sequences, class members, repeated variables, positions,
+replacement with indentation, TypeScript/TSX/JavaScript, scopes, buffers and limits.
+
+```sh
+cargo test -p forge-ssr
+```
 
 
 ---
