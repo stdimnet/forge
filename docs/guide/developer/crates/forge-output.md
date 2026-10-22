@@ -17,6 +17,7 @@ renders it.
 - `ansi`: ANSI escape sequences (SGR colors and styles) into styled segments.
 - `console`: segments into console lines with `\r` progress lines, as deltas the UI
   applies to its line list.
+- `filters`: External Tools output filters (`$FILE_PATH$:$LINE$`) as file links.
 - `links`: clickable file references (`app/User.php:42`, stack traces) and URLs.
 - `teamcity`: TeamCity service messages (`phpunit --teamcity`, Pest, Jest) into a test
   tree that is sent to the UI as node updates.
@@ -35,6 +36,7 @@ The crate is pure (no I/O) so `forge-wasm` can run it in browser mode.
 | --- | --- |
 | `ansi.rs` | ANSI escape handling: SGR colors and styles become styled segments, other control sequences (cursor movement, OSC titles) are dropped. Colors are CSS values, either a theme variable (`var(--ansi-red)`) or `rgb(…)`. |
 | `console.rs` | Console lines built from styled segments, sent to the UI as deltas. |
+| `filters.rs` | External Tools output filters: a regular expression with `$FILE_PATH$`, `$LINE$` and `$COLUMN$` (`$FILE_PATH$:$LINE$`); `RunOutputOptions.outputFilters` links their matches before the built-in patterns. |
 | `links.rs` | File references in console and terminal output (`app/User.php:42`, `/abs/path/File.php on line 7`, `File.php(12)`, `#0 /path/x.php(31): …`) and web links, so the UI can make them clickable. |
 | `osc.rs` | Payloads of the OSC sequences the terminal understands beyond xterm.js: OSC 9;4 progress (normal, error, indeterminate, paused, remove), OSC 9 and OSC 777 notifications, OSC 7 and ConEmu 9;9 working directories, OSC 133 command boundaries, and which OSC 8 hyperlinks may open (web and mail links, `file://` links into the project). The terminal calls it synchronously through `forge-wasm` from xterm.js's OSC handlers. |
 | `stacktrace.rs` | Analyze External Stack Trace: `analyze(text, ctx, exists)` turns a pasted trace into console lines whose frames link to project files (message in red, library frames dimmed); `resolve` maps a path with `TraceContext.mappings`, the project root or the longest trailing part that exists; `compose_mappings` reads Docker Compose bind mounts; `normalize` splits one-line logs with escaped line breaks. |

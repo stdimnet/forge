@@ -48,6 +48,8 @@ On the Rust side, plugins contribute **data** through their manifest (see
 | `registerBinaryFileView` | `state/editor.ts` | binary files that open as a view tab (images) |
 | `registerRunConfigurationType` | `features/run/types.ts` | a Run/Debug configuration type |
 | `registerDebugLauncher` | `features/run/types.ts` | a debugger for Debug (`Shift+F9`) |
+| `registerBeforeLaunchHandler` | `features/run/runStore.ts` | a Before launch task kind the run feature does not run itself (`externalTool`) |
+| `registerRunAnythingProvider` | `features/runAnything/providers.ts` | commands offered in Run Anything (Artisan, Symfony console, command line tools) |
 | `registerDialog` / `openDialogWindow` | `shell/window/dialogs.ts` | a large dialog in its own window |
 | `registerChatAgent` | `features/ai-chat/agents.ts` | an agent in the AI Chat picker |
 | `claimFrameworkStatus` | `features/project-type` | hide the generic framework status widget |
@@ -218,6 +220,31 @@ registerDebugLauncher({
 
 Without `buildCommand`, the backend's kind registry (`forge_process::config`) builds the command
 line. A manifest type with `fields` and a `command` template (see `lua-script`) needs no UI code.
+A type may also bring its own `form` (Compound), a `validate` check and `outputFilters` (External
+Tools' `$FILE_PATH$:$LINE$` links).
+
+Launching goes through a plan computed in Rust (`run_launch_plan`, `forge-runtools::launch`):
+compound members and the ordered Before launch tasks. Kinds the run feature does not handle
+itself are registered by their feature:
+
+```ts
+registerBeforeLaunchHandler("externalTool", (task) => runToolAndWait(task.value));
+```
+
+## Run Anything providers
+
+```ts
+registerRunAnythingProvider({
+  id: "artisan",
+  title: "Artisan commands",
+  when: () => usesFramework("laravel"),
+  commands: async () => (await laravelApi.artisanCommands()).commands.map((c) => ({ command: `php artisan ${c.name}`, description: c.description })),
+});
+```
+
+The popup asks active providers once when it opens; Rust ranks their commands with the other
+suggestions, and picking one runs the command line (resolved to a configuration type by
+`run_anything_resolve`).
 
 ## Dialog windows
 

@@ -53,8 +53,11 @@ app/ui/            SolidJS UI
     "View/Tool Windows"); manifests do the same with `[[contributions.mainMenu]]`.
     `registerMainMenuDynamic(source, provider)` fills dynamic lists (`recentProjects`,
     `toolWindows`), `registerMainMenuToggle(actionId, isOn)` reports check marks.
-  - `registerRunConfigurationType` / `registerDebugLauncher` (`src/features/run`) — Run/Debug
-    configuration types and debuggers (see "Terminal and Run/Debug" below).
+  - `registerRunConfigurationType` / `registerDebugLauncher` / `registerBeforeLaunchHandler`
+    (`src/features/run`) — Run/Debug configuration types, debuggers and Before launch task
+    kinds (see "Terminal and Run/Debug" below).
+  - `registerRunAnythingProvider` (`src/features/runAnything`) — commands offered in Run
+    Anything (double Ctrl), e.g. Artisan and Symfony console commands.
 - Tool windows may render tabs next to their title with `headerContent` (Terminal, Run).
 - Keymap focus contexts: `editor`, `input`, `toolwindow`, `diff` (diff and merge windows, `[data-focus-context="diff"]`; "diff" actions such as Next Difference only fire there), `global` and `terminal` (xterm.js has
   focus). In the terminal plain Ctrl+letter, Alt+letter and Escape go to the shell; function
@@ -722,7 +725,8 @@ app/ui/            SolidJS UI
   terminal line.
   `run_stop({ runId })` (SIGTERM to the process group, SIGKILL after 2 s; `taskkill /T` on
   Windows), `run_write({ runId, data })` (stdin), `run_dispose({ runId })`,
-  `run_command_line({ request })` (preview).
+  `run_command_line({ request })` (preview). `RunRequest.outputFilters` adds External Tools
+  output filters to the console's links.
 - Configuration types: the backend's `KindRegistry` builds command lines for `php-script`, `php-builtin-server`,
   `phpunit` (always `--teamcity`), `artisan`, `composer`, `shell` and `npm` (npm, pnpm, yarn or
   bun; `--` before script arguments only for npm); the PHP interpreter
@@ -738,6 +742,28 @@ app/ui/            SolidJS UI
   instead, `start` starts runs through another command that streams `run://` events (HTTP
   requests, PHP Web Page) and `afterStart(cfg, handle, debug)` runs once a run started (the
   built-in web server opens the browser). `enum` field `options` may be a function (servers).
+- Launch plans, Run Anything and External Tools (`crates/forge-runtools`, pure, also in
+  `forge-wasm`; IPC in `commands/runtools.rs`): `run_launch_plan({ configurations, target })
+  -> { runs: { configuration, tasks }[], compound, allowMultipleInstances }` expands compound
+  configurations (type `compound`, members in `options.configurations`, one per line;
+  `options.allowMultipleInstances`) and flattens "Before launch" tasks (`runConfiguration`,
+  `externalTool` (`Group/Name`), `browser`, `npm`, `composer`, `artisan`, `shell`) in order;
+  missing configurations and cycles are errors. The UI (`features/run/runStore.ts`) runs the
+  tasks one after another, aborts on the first failure and starts each member in its own tab;
+  kinds it does not run itself come from `registerBeforeLaunchHandler`. Run Anything:
+  `run_anything_suggest({ request: { query, recent, configurations, providers, laravel } }) ->
+  { groups: { id, title, items: { label, detail?, icon, typeId?, matches, action }[], more }[],
+  help }` (the backend adds npm and Composer scripts and PHP files; `action` is `configuration`,
+  `command` or `insert`), `run_anything_resolve({ command, cwd? }) -> RunConfiguration` (a
+  temporary configuration of the matching type), `run_anything_history()` /
+  `run_anything_history_add({ entry })` (state dir, `forge_core::project_state::load_list`).
+  External Tools live in the user setting `tools.externalTools` (`objects`):
+  `external_tool_macros({ context }) -> { name, description, preview? }[]`,
+  `external_tool_command({ tool, context }) -> { program, args, cwd, outputFilters,
+  commandLine, missing? }` (context: project-relative `filePath`, caret, selection, clipboard,
+  `$Prompt$` answers) and `external_tool_validate({ tool, others }) -> string[]`. A run's
+  `RunRequest.outputFilters` (`$FILE_PATH$:$LINE$`, `forge_output::filters`) link file
+  references in the console.
 - Debugging: Debug (Shift+F9) calls the first `registerDebugLauncher({ id, canDebug(cfg, type),
   launch(cfg, ctx) })` that accepts the configuration; `ctx.run({ env, interpreterArgs })` starts it
   in the Run tool window (e.g. with `XDEBUG_SESSION` and `-dxdebug.mode=debug`) and returns

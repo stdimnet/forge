@@ -15,11 +15,12 @@ Terminal, Vim emulation and the tools of plugins (Composer, Docker, Laravel, Sym
 
 | Entry | Windows / Linux | macOS | Available | What it does |
 | --- | --- | --- | --- | --- |
-| Run Anything… | — | — | not yet | Not available yet; the entry is disabled. |
+| Run Anything… | `Double Ctrl` | `Double Ctrl` | yes | Runs or debugs configurations, scripts, PHP files and commands from one popup. [More](../../user/run-debug.md#run-anything) ([screenshot](../../../screenshots/run-anything.png)) |
 | Save as Live Template… | — | — | yes | Opens Settings \| Editor \| Live Templates with a new template made from the selection. [More](../../user/live-templates.md#save-as-live-template) ([screenshot](../../../screenshots/save-as-live-template.png)) |
 | Save File as Template… | — | — | not yet | Not available yet; the entry is disabled. |
 | Open in Terminal | `Ctrl+Shift+T` | `Cmd+T` | yes | Opens a new terminal tab (Tools | Open in Terminal). [More](../../user/terminal.md#tabs) ([screenshot](../../../screenshots/docs-terminal.png)) |
 | IDE Scripting Console | — | — | not yet | Not available yet; the entry is disabled. |
+| **External Tools** | | | dynamic | submenu: the enabled [External Tools](../../user/run-debug.md#external-tools) (Settings \| Tools \| External Tools) ([screenshot](../../../screenshots/external-tools-menu.png)) |
 | Vim | `Ctrl+Alt+V` | `Cmd+Alt+V` | yes | Turns Vim emulation on or off (check mark; plugin `forge.vim`). [More](../../user/vim-emulation.md) ([screenshot](../../../screenshots/vim-emulation.png)) |
 | Render All Doc Comments | — | — | yes | Shows every documentation comment of the file as formatted text, or the text again. [More](../../user/code-structure.md#rendered-documentation-comments) ([screenshot](../../../screenshots/rendered-doc-comments.png)) |
 | **Composer** | | | | submenu |

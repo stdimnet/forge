@@ -84,7 +84,7 @@ are in [research/jetbrains-gap-analysis.md](research/jetbrains-gap-analysis.md).
 - [ ] Command Line Tool Support (Composer/Artisan/Symfony/WP-CLI console with completion)
 - [ ] `.phpstorm.meta.php` advanced metadata and JetBrains attributes; include paths and PSR-4 roots
 - [ ] Test frameworks: Pest configuration, Codeception, Behat, PHPSpec; test history and auto-test
-- [ ] Run Anything (double `Ctrl`), compound run configurations, External Tools
+- [x] Run Anything (double `Ctrl`), compound run configurations, External Tools
 
 ### Workbench and project
 - [ ] Project Structure (Mark Directory As sources/tests/excluded), file nesting, Show Members
