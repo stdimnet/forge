@@ -2525,6 +2525,7 @@ dependencies = [
  "phpforge-composer",
  "phpforge-dql",
  "phpforge-interpreters",
+ "phpforge-test-frameworks",
  "serde",
  "serde_json",
  "wasm-bindgen",

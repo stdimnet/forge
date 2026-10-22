@@ -13,6 +13,11 @@ export function agent_parse_lines(request_json: string): string;
 export function agent_profiles(): string;
 
 /**
+ * `{ text, line, files }` → `StepDefinition[]` (`behat_step_definitions`).
+ */
+export function behat_step_definitions(request_json: string): string;
+
+/**
  * `{ state, ops }` → the new `Bookmarks`.
  */
 export function bookmarks_apply(request_json: string): string;
@@ -854,6 +859,12 @@ export function run_launch_plan(request_json: string): string;
 export function run_output_drop(request_json: string): string;
 
 /**
+ * `{ handle }` → `{ tree, summary, counts }` of a test run (`null` without tests), for the
+ * browser-mode Test History.
+ */
+export function run_output_export(request_json: string): string;
+
+/**
  * `{ handle, input: RunInput }` → `OutputEvent[]`.
  */
 export function run_output_handle(request_json: string): string;
@@ -1111,6 +1122,31 @@ export function terminal_link_target(request_json: string): string;
 export function terminal_parse_osc(request_json: string): string;
 
 /**
+ * `{ configuration, framework, reportDir }` → `TestCommand` (the mock command lines).
+ */
+export function test_command(request_json: string): string;
+
+/**
+ * `{ path, text }` → `TestFile` (`test_discover`).
+ */
+export function test_discover(request_json: string): string;
+
+/**
+ * `{ configured, files, composerJson }` → `FrameworkConfig[]` (`test_frameworks_list`).
+ */
+export function test_frameworks_effective(request_json: string): string;
+
+/**
+ * `{ tree, root }` → `{ nodes, summary }` (`test_history_open`).
+ */
+export function test_history_import(request_json: string): string;
+
+/**
+ * `{ configuration, failed }` → `Configuration | null` (`test_rerun_failed`).
+ */
+export function test_rerun_failed(request_json: string): string;
+
+/**
  * `FormatRequest` (settings and `.editorconfig` files included) → `FileFormat`.
  */
 export function text_file_format(request_json: string): string;
@@ -1274,6 +1310,7 @@ export interface InitOutput {
     readonly memory: WebAssembly.Memory;
     readonly agent_parse_lines: (a: number, b: number, c: number) => void;
     readonly agent_profiles: (a: number) => void;
+    readonly behat_step_definitions: (a: number, b: number, c: number) => void;
     readonly bookmarks_apply: (a: number, b: number, c: number) => void;
     readonly bridge_version: (a: number) => void;
     readonly chat_apply: (a: number, b: number, c: number) => void;
@@ -1441,6 +1478,7 @@ export interface InitOutput {
     readonly run_anything_suggest: (a: number, b: number, c: number) => void;
     readonly run_launch_plan: (a: number, b: number, c: number) => void;
     readonly run_output_drop: (a: number, b: number, c: number) => void;
+    readonly run_output_export: (a: number, b: number, c: number) => void;
     readonly run_output_handle: (a: number, b: number, c: number) => void;
     readonly run_output_new: (a: number, b: number, c: number) => void;
     readonly save_actions_changed_lines: (a: number, b: number, c: number) => void;
@@ -1491,6 +1529,11 @@ export interface InitOutput {
     readonly templates_validate: (a: number, b: number, c: number) => void;
     readonly terminal_link_target: (a: number, b: number, c: number) => void;
     readonly terminal_parse_osc: (a: number, b: number, c: number) => void;
+    readonly test_command: (a: number, b: number, c: number) => void;
+    readonly test_discover: (a: number, b: number, c: number) => void;
+    readonly test_frameworks_effective: (a: number, b: number, c: number) => void;
+    readonly test_history_import: (a: number, b: number, c: number) => void;
+    readonly test_rerun_failed: (a: number, b: number, c: number) => void;
     readonly text_file_format: (a: number, b: number, c: number) => void;
     readonly text_inspect_commit_message: (a: number, b: number, c: number) => void;
     readonly text_prepare_save: (a: number, b: number, c: number) => void;

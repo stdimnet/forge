@@ -49,6 +49,7 @@ mod stacktrace;
 mod structure;
 mod templates;
 mod terminal;
+mod test_frameworks;
 mod text;
 mod vcs;
 mod viewers;
