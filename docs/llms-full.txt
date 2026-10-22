@@ -640,7 +640,7 @@ happening.
 
 - Get from VCS
 - Find Usages in File (`Ctrl+F7`), Highlight Usages in File
-- Refactorings other than Rename: Extract/Introduce, Move, Change Signature, Safe Delete
+- Refactorings other than Rename, Extract/Introduce and Inline: Move, Change Signature, Safe Delete
 - File Structure popup (`Ctrl+F12`)
 - Local History
 - Optimize Imports
@@ -1781,7 +1781,9 @@ editor context menu:
 | Column Selection Mode | not available yet (use `Alt`+drag) |
 | Find Usages | works |
 | Refactor > Rename… | works, see [Rename](#rename) |
-| Refactor > Refactor This… | not available yet |
+| Refactor > Refactor This… | works, see [Refactoring shortcuts](docs/guide/user/shortcuts/refactoring.md#refactor-this) |
+| Refactor > Extract/Introduce > Variable…, Constant…, Field…, Parameter…, Method… | works, see [PHP](docs/guide/user/php.md#extract-introduce-and-inline) |
+| Refactor > Inline… | works, see [PHP](docs/guide/user/php.md#extract-introduce-and-inline) |
 | Go To > Declaration or Usages, Line/Column | works |
 | Go To > Implementation(s) | works |
 | Generate… | works in PHP files, see [PHP](docs/guide/user/php.md#generate) |
@@ -6552,15 +6554,21 @@ Source: docs/guide/user/shortcuts/refactoring.md
 Refactorings and code generation. Windows/Linux shortcuts first, macOS second; both are PHPStorm's defaults and can be changed in Settings | Keymap.
 
 > **Note:** the other refactorings of PHPStorm's Refactor menu (Change Signature `Ctrl+F6`,
-> Extract/Introduce Variable, Constant, Field, Parameter and Method, Inline, Move, Copy File,
-> Safe Delete, Pull Members Up / Push Members Down) are not implemented yet. Their shortcuts
-> stay reserved and show "*Action* is not available yet"; see the
-> [Refactor menu](docs/guide/reference/main-menu/refactor.md). The actions below are the
-> refactorings and code transformations Forge has today.
+> Move, Copy File, Safe Delete, Extract Interface / Superclass, Pull Members Up / Push Members
+> Down) are not implemented yet. Their shortcuts stay reserved and show "*Action* is not
+> available yet"; see the [Refactor menu](docs/guide/reference/main-menu/refactor.md). The actions
+> below are the refactorings and code transformations Forge has today.
 
 | Action | Windows / Linux | macOS |
 | --- | --- | --- |
+| [Refactor This…](#refactor-this) | `Ctrl+Alt+Shift+T` | `Ctrl+T` |
 | [Rename…](#rename) | `Shift+F6` | `Shift+F6` |
+| [Introduce Variable…](#introduce-variable) | `Ctrl+Alt+V` | `Cmd+Alt+V` |
+| [Introduce Constant…](#introduce-constant) | `Ctrl+Alt+C` | `Cmd+Alt+C` |
+| [Introduce Field…](#introduce-field) | `Ctrl+Alt+F` | `Cmd+Alt+F` |
+| [Introduce Parameter…](#introduce-parameter) | `Ctrl+Alt+P` | `Cmd+Alt+P` |
+| [Extract Method…](#extract-method) | `Ctrl+Alt+M` | `Cmd+Alt+M` |
+| [Inline…](#inline) | `Ctrl+Alt+N` | `Cmd+Alt+N` |
 | [Show Context Actions](#show-context-actions) | `Alt+Enter` | `Alt+Enter` |
 | [Generate…](#generate) | `Alt+Insert` | `Cmd+N` |
 | [Reformat Code](#reformat-code) | `Ctrl+Alt+L` | `Cmd+Alt+L` |
@@ -6578,6 +6586,83 @@ renames the selected file or folder. One undo step (`Ctrl+Z`) undoes the whole r
 ![In-place rename](docs/screenshots/rename-in-place.png)
 
 More: [Editor](docs/guide/user/editor.md#rename), [PHP](docs/guide/user/php.md#rename)
+
+## Refactor This
+
+**Shortcut:** `Ctrl+Alt+Shift+T` · macOS `Ctrl+T` · action id `Refactorings.QuickListPopupAction`
+
+A popup with the refactorings Forge has (Rename, Introduce Variable / Constant / Field /
+Parameter, Extract Method, Inline) and their shortcuts. Pick one with the arrow keys and
+`Enter`, a click or its number.
+
+**Menu:** Refactor | Refactor This…
+
+## Introduce Variable
+
+**Shortcut:** `Ctrl+Alt+V` · macOS `Cmd+Alt+V` · action id `IntroduceVariable`
+
+Puts the selected expression (or the one picked in the **Expressions** popup when nothing is
+selected) into a new local variable. With several occurrences it asks whether to replace this
+one or all of them. The name is then edited in place: `Up` / `Down` choose another suggested
+name, `Enter` finishes. In the editor this shortcut wins over the Vim toggle.
+
+**Menu:** Refactor | Extract/Introduce | Variable…
+
+![Expressions popup](docs/screenshots/introduce-variable-expressions.png)
+
+More: [PHP](docs/guide/user/php.md#extract-introduce-and-inline)
+
+## Introduce Constant
+
+**Shortcut:** `Ctrl+Alt+C` · macOS `Cmd+Alt+C` · action id `IntroduceConstant`
+
+Turns a constant expression into a class constant (`self::NAME`), or a global `const` outside
+classes. The dialog asks for the name, the visibility and whether to replace all occurrences.
+
+**Menu:** Refactor | Extract/Introduce | Constant…
+
+![Introduce Constant](docs/screenshots/introduce-constant-dialog.png)
+
+## Introduce Field
+
+**Shortcut:** `Ctrl+Alt+F` · macOS `Cmd+Alt+F` · action id `IntroduceField`
+
+Moves an expression of a method into a new property (`$this->name`), initialized in the current
+method, the field declaration or the constructor.
+
+**Menu:** Refactor | Extract/Introduce | Field…
+
+## Introduce Parameter
+
+**Shortcut:** `Ctrl+Alt+P` · macOS `Cmd+Alt+P` · action id `IntroduceParameter`
+
+Adds a parameter for an expression to the enclosing function or method and passes the
+expression at every call (or makes it the parameter's default value).
+
+**Menu:** Refactor | Extract/Introduce | Parameter…
+
+## Extract Method
+
+**Shortcut:** `Ctrl+Alt+M` · macOS `Cmd+Alt+M` · action id `ExtractMethod`
+
+Moves the selected statements or expression into a new method (a function outside classes).
+The dialog shows the parameters (reorder and rename them), what is returned, the visibility,
+**Declare static** and a signature preview, and offers to replace duplicate fragments.
+
+**Menu:** Refactor | Extract/Introduce | Method…
+
+![Extract Method](docs/screenshots/extract-method-dialog.png)
+
+## Inline
+
+**Shortcut:** `Ctrl+Alt+N` · macOS `Cmd+Alt+N` · action id `Inline`
+
+Replaces a local variable by its value, a method or function call by the body, or a constant by
+its value: every reference (removing or keeping the declaration) or only the one at the caret.
+
+**Menu:** Refactor | Inline…
+
+![Inline Method](docs/screenshots/inline-method-dialog.png)
 
 ## Show Context Actions
 
@@ -7870,6 +7955,68 @@ the dialog and undo.
   changes.
 
 ![Premium hint after a rename with the index](docs/screenshots/rename-premium-hint.png)
+
+## Extract, introduce and inline
+
+The Refactor menu's **Extract/Introduce** and **Inline** refactorings work like PHPStorm's. Forge
+computes them itself from the PHP syntax tree, so they need no language server (and no
+Intelephense licence); call sites and usages in other files come from the PHP index. Every
+refactoring is one undo step, also when it changes several files, and works in remote projects.
+Problems (a name that is taken, a call that cannot be updated, an initializer with side
+effects) are listed in **Problems Detected** first; **Preview** in the dialogs lists every
+change before anything is written.
+
+- **Introduce Variable** (`Ctrl+Alt+V`): select an expression, or put the caret in it. When the
+  caret is in several expressions (`$order`, `$order->lines()`, `$order->lines()->get()`), the
+  **Expressions** popup lets you pick one; the editor highlights the expression of the selected
+  row. With several occurrences in the function, **Multiple occurrences found** asks whether to
+  replace this one only or all of them. The variable is declared before the statement (a body of
+  `if` / a loop without braces gets braces) and its name is edited in place: names are suggested
+  from the method or property the expression reads (`getUserName()` → `$userName`, `$name`), the
+  class it creates, the variable it is assigned to or its type. `Up` / `Down` pick another
+  suggestion, `Enter`, `Tab` or `Escape` finish.
+- **Introduce Constant** (`Ctrl+Alt+C`): a literal or other constant expression becomes a class
+  constant (after the other constants, referenced as `self::NAME`) or, outside classes, a global
+  `const` after the imports. The dialog asks for the name (suggested in `UPPER_CASE`), the
+  visibility and **Replace all occurrences**.
+- **Introduce Field** (`Ctrl+Alt+F`): an expression of a method becomes a property, initialized
+  in the **current method**, the **field declaration** (constant expressions) or the **class
+  constructor** (created when the class has none; not for expressions with local variables). In
+  a static method the field is static (`self::$name`).
+- **Introduce Parameter** (`Ctrl+Alt+P`): adds a parameter to the enclosing function or method
+  (before a variadic one) and passes the expression at every call the PHP index finds; the
+  function's parameters in the expression are replaced by the call's arguments and `$this` by
+  the receiver. **Optional parameter** makes a constant expression the default value instead
+  and leaves the calls alone. Expressions with other local variables cannot become parameters.
+- **Extract Method** (`Ctrl+Alt+M`): select whole statements or an expression. Variables the
+  fragment reads before it writes them become parameters (reorder and rename them in the
+  dialog); variables it changes that are used afterwards (also in the next loop iteration) are
+  returned, several as an array: `[$min, $max] = $this->bounds($xs);`. A fragment that ends with
+  `return` is returned as a whole. The method is private and **Declare static** is on when the
+  fragment does not use `$this`; outside classes Forge extracts a function. When other code of
+  the class is the same (up to variable names), the dialog offers to replace those fragments
+  with calls too. Fragments with `break` / `continue` out of them or several exit points cannot
+  be extracted.
+- **Inline** (`Ctrl+Alt+N`) on a variable, method, function or constant, at the declaration or a
+  usage. A variable used once is inlined right away; otherwise the dialog offers **Inline all
+  references and remove the variable** or **Inline this reference only and keep the variable**
+  (methods and functions also **Inline all invocations and keep the method**). Values get
+  parentheses where the context needs them. A variable that is assigned more than once cannot be
+  inlined; an initializer with side effects that would run several times, or whose variables
+  change before a reference, is reported as a problem. Methods with several `return` statements,
+  recursive methods and generators cannot be inlined. A method body of statements is put before
+  the call's statement, with locals renamed when they clash and arguments assigned to variables
+  when the body changes them.
+
+In JavaScript and TypeScript files the same shortcuts offer the language server's refactorings
+(typescript-language-server: "Extract to function in module scope", "Extract to constant in
+enclosing scope", "Inline variable"…) in a popup.
+
+![Introduce Variable with the name edited in place](docs/screenshots/introduce-variable-in-place.png)
+
+![Extract Method dialog](docs/screenshots/extract-method-dialog.png)
+
+![After Extract Method](docs/screenshots/extract-method-result.png)
 
 ## Context actions and intentions
 
@@ -11251,7 +11398,7 @@ Source: docs/guide/reference/main-menu/refactor.md
 
 # Refactor menu
 
-Refactorings. Rename and Rename File work; the menu shows PHPStorm's other entries disabled. Open it with ☰ (`Alt+\`) or from the menu bar, see [Main menu](docs/guide/user/workbench.md#main-menu).
+Refactorings. Refactor This, Rename, Rename File, Extract/Introduce Variable, Constant, Field, Parameter and Method, and Inline work; the menu shows PHPStorm's other entries disabled. Open it with ☰ (`Alt+\`) or from the menu bar, see [Main menu](docs/guide/user/workbench.md#main-menu).
 
 ![Refactor menu](docs/screenshots/docs-menu-refactor.png)
 
@@ -11259,19 +11406,19 @@ Refactorings. Rename and Rename File work; the menu shows PHPStorm's other entri
 
 | Entry | Windows / Linux | macOS | Available | What it does |
 | --- | --- | --- | --- | --- |
-| Refactor This… | `Ctrl+Alt+Shift+T` | `Ctrl+T` | not yet | Not available yet; the entry is disabled. |
+| Refactor This… | `Ctrl+Alt+Shift+T` | `Ctrl+T` | yes | A popup with the refactorings and their shortcuts. [More](docs/guide/user/shortcuts/refactoring.md#refactor-this) |
 | Rename… | `Shift+F6` | `Shift+F6` | yes | Renames the symbol at the caret in place across the project (the file or folder in the Project view). [More](docs/guide/user/editor.md#rename) ([screenshot](docs/screenshots/rename-in-place.png)) |
 | Rename File… | — | — | yes | Renames the file of the current editor. [More](docs/guide/user/editor.md#rename) |
 | Change Signature… | `Ctrl+F6` | `Cmd+F6` | not yet | Not available yet; the entry is disabled. |
 | **Extract/Introduce** | | | | submenu |
-| Extract/Introduce › Variable… | `Ctrl+Alt+V` | `Cmd+Alt+V` | not yet | Not available yet; the entry is disabled. |
-| Extract/Introduce › Constant… | `Ctrl+Alt+C` | `Cmd+Alt+C` | not yet | Not available yet; the entry is disabled. |
-| Extract/Introduce › Field… | `Ctrl+Alt+F` | `Cmd+Alt+F` | not yet | Not available yet; the entry is disabled. |
-| Extract/Introduce › Parameter… | `Ctrl+Alt+P` | `Cmd+Alt+P` | not yet | Not available yet; the entry is disabled. |
-| Extract/Introduce › Method… | `Ctrl+Alt+M` | `Cmd+Alt+M` | not yet | Not available yet; the entry is disabled. |
+| Extract/Introduce › Variable… | `Ctrl+Alt+V` | `Cmd+Alt+V` | yes | Puts the expression into a new local variable, named in place. [More](docs/guide/user/php.md#extract-introduce-and-inline) ([screenshot](docs/screenshots/introduce-variable-in-place.png)) |
+| Extract/Introduce › Constant… | `Ctrl+Alt+C` | `Cmd+Alt+C` | yes | Turns a constant expression into a class constant or a global `const`. [More](docs/guide/user/php.md#extract-introduce-and-inline) ([screenshot](docs/screenshots/introduce-constant-dialog.png)) |
+| Extract/Introduce › Field… | `Ctrl+Alt+F` | `Cmd+Alt+F` | yes | Moves the expression into a new property. [More](docs/guide/user/php.md#extract-introduce-and-inline) |
+| Extract/Introduce › Parameter… | `Ctrl+Alt+P` | `Cmd+Alt+P` | yes | Adds a parameter for the expression and passes it at every call. [More](docs/guide/user/php.md#extract-introduce-and-inline) |
+| Extract/Introduce › Method… | `Ctrl+Alt+M` | `Cmd+Alt+M` | yes | Moves the selected code into a new method or function. [More](docs/guide/user/php.md#extract-introduce-and-inline) ([screenshot](docs/screenshots/extract-method-dialog.png)) |
 | Extract/Introduce › Interface… | — | — | not yet | Not available yet; the entry is disabled. |
 | Extract/Introduce › Superclass… | — | — | not yet | Not available yet; the entry is disabled. |
-| Inline… | `Ctrl+Alt+N` | `Cmd+Alt+N` | not yet | Not available yet; the entry is disabled. |
+| Inline… | `Ctrl+Alt+N` | `Cmd+Alt+N` | yes | Inlines a variable, method, function or constant. [More](docs/guide/user/php.md#extract-introduce-and-inline) ([screenshot](docs/screenshots/inline-method-dialog.png)) |
 | Move… | `F6` | `F6` | not yet | Not available yet; the entry is disabled. |
 | Copy File… | `F5` | `F5` | not yet | Not available yet; the entry is disabled. |
 | Safe Delete… | `Alt+Delete` | `Cmd+Delete` | not yet | Not available yet; the entry is disabled. |

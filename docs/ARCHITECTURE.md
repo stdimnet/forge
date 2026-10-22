@@ -856,6 +856,26 @@ computes everything; `app/ui/src/features/codeintel` and `features/lsp/goto.ts` 
     file named after the class is renamed with it (`fileRename`, in `edit` unless `renameFile`
     is false). `conflicts` lists overlapping edits, renames onto existing files and name clashes
     (`phpforge_lang_php::rename::clashes`).
+  - Extract / Introduce and Inline (`app/src-tauri/src/commands/refactor.rs`,
+    `phpforge_lang_php::refactor`: pure functions over the tree-sitter syntax tree with byte
+    offsets; call sites and usages come from the PHP index through the backend, so remote
+    projects work): `refactor_introduce_prepare({ path, kind: "variable" | "constant" | "field" |
+    "parameter", start, end, content }) -> { expressions: { range, text }[], info? }` (several
+    expressions at the caret: the "Expressions" popup; `info`: occurrences, name suggestions,
+    field init places, call sites), `refactor_introduce({ ..., options: { name, replaceAll,
+    visibility?, init?, defaultValue? }, buffers? }) -> RefactorAnswer`,
+    `refactor_extract_method_prepare({ path, start, end, content }) -> ExtractMethodInfo`
+    (parameters, returned variables, `usesThis`, duplicates), `refactor_extract_method({ ...,
+    options: { name, visibility?, isStatic, parameters: { original, name }[], replaceDuplicates }
+    }) -> RefactorAnswer`, `refactor_inline_prepare({ path, position, content, buffers? }) -> {
+    kind, title, name, onReference, occurrences, readOnly }` and `refactor_inline({ ..., mode:
+    "all" | "allKeep" | "this" }) -> RefactorAnswer`. `RefactorAnswer` is `{ edit, preview,
+    conflicts, nameRanges, skipped }`; `nameRanges` are the new name's ranges in the current file
+    after the edit (the in-place name of Introduce Variable). Errors are PHPStorm's "Cannot
+    perform refactoring. …" hints. Other languages: `code_refactor_actions({ path, line,
+    character, endLine, endCharacter, refactoring }) -> ContextAction[]`, the servers'
+    `refactor.extract.*` / `refactor.inline.*` code actions for a Refactor menu action
+    (`forge_codeintel::refactor_actions`).
   - `code_plan_edit({ edit, open }) -> EditPlan` — how the UI applies an edit: the text edits of
     open editors, the backend's part (`code_apply_edit`), files to save first and tabs to
     reopen or close. `code_apply_edit({ edit, skip? }) -> AppliedFile[]` (all or nothing) and
@@ -906,6 +926,18 @@ computes everything; `app/ui/src/features/codeintel` and `features/lsp/goto.ts` 
   the backend's files and moves renamed tabs back; redo re-applies. `ShowIntentionActions`
   (Alt+Enter) opens the intention popup (`IntentionPopup.tsx`); the light bulb
   (`intentions.ts`) asks `code_context_actions` after the caret rests for 500 ms.
+- Extract / Introduce and Inline UI (`features/codeintel/extract.ts`, `ExtractDialogs.tsx`):
+  `IntroduceVariable`, `IntroduceConstant`, `IntroduceField`, `IntroduceParameter`,
+  `ExtractMethod`, `Inline` and `Refactorings.QuickListPopupAction` (Refactor This) are
+  registered commands (editor context, so `Ctrl+Alt+V` beats the global Vim toggle in the
+  editor). The chooser popup ("Expressions", "Multiple occurrences found") highlights the row's
+  expression; Introduce Variable applies the edit as a preview and edits the name in place
+  through the rename machinery (`startLocalSession` in `rename.ts`: the live changes are kept
+  out of the history and reverted right before the final edit is applied with
+  `applyWorkspaceEdit`, so the refactoring is one undo step). The dialogs return their options;
+  conflicts go through the Problems Detected dialog. Browser mode approximates the refactorings
+  on the demo project in `mock/refactorMock.ts` (the tree-sitter grammar is not part of the
+  WebAssembly build).
 
 ## PHP debugger (`forge-debug`)
 

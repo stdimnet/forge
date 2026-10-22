@@ -35,7 +35,7 @@ Forge's rule of thumb is "Rust computes, TypeScript renders": logic lives in Rus
 - [File Structure, Navigation Bar and Related Symbol](guide/user/navigation-bar-and-file-structure.md): File Structure popup (Ctrl+F12, Show Inherited), Navigation Bar (Alt+Home; Top, In Status Bar, Don't Show), Related Symbol (Ctrl+Alt+Home: tests, Laravel views/routes/migrations, Twig templates, component tests/stories/styles)
 - [Shortcuts by topic](guide/user/shortcuts/index.md): every implemented shortcut explained by area, with screenshots
 - [Keymap reference card](guide/user/shortcuts/reference-card.md): the 62 most important shortcuts on one page
-- [PHP](guide/user/php.md): the PHP index, navigation (Ctrl+Click, usages, implementations, PHP stubs), Rename with the index fallback, PHP intentions, Structure tool window, hover docs, Generate (Alt+Insert)
+- [PHP](guide/user/php.md): the PHP index, navigation (Ctrl+Click, usages, implementations, PHP stubs), Rename with the index fallback, Extract / Introduce (variable, constant, field, parameter, method) and Inline, PHP intentions, Structure tool window, hover docs, Generate (Alt+Insert)
 - [Laravel](guide/user/laravel.md): Blade, routes, views, config, Eloquent, the Routes tool window and Run Artisan Command
 - [Symfony](guide/user/symfony.md) and [Doctrine](guide/user/doctrine.md): framework and ORM support
 - [WebForge](guide/user/webforge.md): HTML, CSS, JavaScript/TypeScript, Vue, React, Angular
