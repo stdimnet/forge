@@ -55,5 +55,8 @@ import "./markdown";
 import "./images";
 import "./csv";
 import "./codeStructure";
+import "./fileStructure";
+import "./navBar";
+import "./related";
 import "./spelling";
 import "./jsonSchema";

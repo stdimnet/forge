@@ -43,11 +43,37 @@ export function orderNodes(nodes: StructureNode[], alpha: boolean): StructureNod
   return [...nodes].sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
 }
 
+/** Whether a file has a structure (a provider or the PHP index). */
+export const hasFileStructure = (path: string): boolean => !!providerFor(path) || path.endsWith(".php");
+
+/** Whether "Show Inherited" applies (PHP classes: members from parents via the PHP index). */
+export const supportsInherited = (path: string): boolean => !providerFor(path) && path.endsWith(".php");
+
+/**
+ * The structure of a file from its provider (or the PHP index), with custom folding regions
+ * grouping the members inside them like PHPStorm. Shared by the Structure tool window, the
+ * File Structure popup (Ctrl+F12) and the Navigation Bar.
+ */
+export async function loadFileStructure(path: string, content: string, inherited = false): Promise<FileStructure | null> {
+  const provider = providerFor(path);
+  if (!provider && !path.endsWith(".php")) return null;
+  const s = provider ? await provider.load(path, content) : await phpApi.fileStructure(path, content, inherited);
+  const regions = structureOfText(content, languageIdFor(path)).regions;
+  return s && { ...s, nodes: groupByRegions(s.nodes, regions) };
+}
+
+/** Move to a node of `file`'s structure (inherited members open their own file). */
+export function revealStructureNode(file: string, node: StructureNode): void {
+  const path = node.path ?? file;
+  const custom = providerFor(path)?.reveal;
+  if (custom) return custom(path, node);
+  void revealSymbol(path, node.path ? { line: node.line, name: node.name } : { offset: node.offset, line: node.line, name: node.name });
+}
+
 let timer: ReturnType<typeof setTimeout> | undefined;
 function refresh() {
   const tab = activeTab();
-  const provider = tab && providerFor(tab.path);
-  if (!tab || (!provider && !tab.path.endsWith(".php"))) {
+  if (!tab || !hasFileStructure(tab.path)) {
     setStructure(null);
     return;
   }
@@ -55,10 +81,7 @@ function refresh() {
   clearTimeout(timer);
   timer = setTimeout(async () => {
     try {
-      const s = provider ? await provider.load(path, content) : await phpApi.fileStructure(path, content, showInherited());
-      // Custom folding regions group the members inside them, like PHPStorm.
-      const regions = structureOfText(content, languageIdFor(path)).regions;
-      setStructure(s && { ...s, nodes: groupByRegions(s.nodes, regions) });
+      setStructure(await loadFileStructure(path, content, showInherited()));
     } catch {
       setStructure(null);
     }
@@ -96,10 +119,7 @@ function NodeRow(props: { node: StructureNode; depth: number; parent: string; fi
   const open = () => !collapsed().has(key());
   const navigate = () => {
     setSelected(key());
-    const path = props.node.path ?? props.file;
-    const custom = providerFor(path)?.reveal;
-    if (custom) return custom(path, props.node);
-    void revealSymbol(path, props.node.path ? { line: props.node.line, name: props.node.name } : { offset: props.node.offset, line: props.node.line, name: props.node.name });
+    revealStructureNode(props.file, props.node);
   };
   return (
     <>

@@ -48,6 +48,12 @@ export function ChooseDeclarationPopup(props: { chooser: Chooser }) {
       <div class="decl-chooser-title">{props.chooser.title}</div>
       <For each={props.chooser.targets}>
         {(t, i) => (
+          <>
+          <Show when={t.group && t.group !== props.chooser.targets[i() - 1]?.group}>
+            <div class="decl-chooser-group" role="presentation">
+              {t.group}
+            </div>
+          </Show>
           <button
             class="decl-chooser-row"
             classList={{ selected: i() === index() }}
@@ -78,7 +84,7 @@ export function ChooseDeclarationPopup(props: { chooser: Chooser }) {
               </Show>
             </Show>
             <span class="decl-chooser-path">
-              <Show when={t.preview || t.name}>
+              <Show when={(t.preview || t.name) && !t.wholeFile}>
                 <span class="decl-chooser-file">
                   {fileName(t.path)}:{t.line + 1}
                 </span>
@@ -86,6 +92,7 @@ export function ChooseDeclarationPopup(props: { chooser: Chooser }) {
               <Show when={!t.name}>{dirName(t.path)}</Show>
             </span>
           </button>
+          </>
         )}
       </For>
     </div>

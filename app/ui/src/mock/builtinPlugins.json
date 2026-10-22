@@ -292,6 +292,42 @@
           "order": 40
         },
         {
+          "key": "appearance.navigationBar.location",
+          "title": "Navigation bar",
+          "description": "Where the navigation bar (project, folders, file and members at the caret) is shown: Top: above the editor, with the path in the status bar too. In status bar: only in the status bar. Don't show: Jump to Navigation Bar (Alt+Home) shows it as a popup. View | Appearance | Navigation Bar.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "top",
+              "label": "Top"
+            },
+            {
+              "value": "statusBar",
+              "label": "In status bar"
+            },
+            {
+              "value": "hidden",
+              "label": "Don't show"
+            }
+          ],
+          "default": "top",
+          "group": "appearance",
+          "section": "Navigation Bar",
+          "project": false,
+          "order": 50
+        },
+        {
+          "key": "appearance.navigationBar.showMembers",
+          "title": "Show members in the navigation bar",
+          "description": "Add the class and function at the caret after the file name. View | Appearance | Members in Navigation Bar.",
+          "type": "bool",
+          "default": true,
+          "group": "appearance",
+          "section": "Navigation Bar",
+          "project": false,
+          "order": 51
+        },
+        {
           "key": "templates.dataLanguages",
           "title": "Template data languages",
           "description": "Language of the content between template tags, one entry per pattern: `legacy/latex/*.tpl=latex`, `*.mail.twig=text`. Languages: html, xml, latex, css, scss, less, javascript, typescript, json, sql, yaml, ini, shell, text. Compound names like `invoice.tex.twig` are detected automatically. Applies to files opened afterwards.",

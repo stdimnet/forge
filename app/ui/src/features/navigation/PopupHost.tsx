@@ -9,6 +9,8 @@ import { seOpen } from "@/features/search/state";
 import { RecentFilesPopup, recentOpen } from "./RecentFiles";
 import { ChooseDeclarationPopup } from "./ChooseDeclaration";
 import { chooser } from "./declarationChooser";
+import { FileStructurePopup, fileStructureSession } from "@/features/fileStructure/FileStructurePopup";
+import { FloatingNavBar } from "@/features/navBar";
 
 export function PopupHost() {
   return (
@@ -19,6 +21,10 @@ export function PopupHost() {
       <Show when={recentOpen()}>
         <RecentFilesPopup />
       </Show>
+      <Show when={fileStructureSession()} keyed>
+        {(s) => <FileStructurePopup session={s} />}
+      </Show>
+      <FloatingNavBar />
       <Show when={chooser()} keyed>
         {(c) => <ChooseDeclarationPopup chooser={c} />}
       </Show>

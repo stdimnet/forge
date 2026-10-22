@@ -1,0 +1,132 @@
+/* Navigation Bar (View | Appearance | Navigation Bar, Alt+Home) */
+.navbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  overflow: hidden;
+  outline: none;
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+  white-space: nowrap;
+}
+.navbar-top {
+  height: 26px;
+  padding: 0 10px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
+}
+.navbar-statusBar {
+  height: 100%;
+  flex-shrink: 1;
+}
+.navbar-floating {
+  height: 30px;
+  padding: 0 8px;
+}
+.navbar-floating-host {
+  position: fixed;
+  z-index: 120;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+.navbar-sep {
+  flex-shrink: 0;
+  color: var(--fg-faint);
+}
+.navbar-seg {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 20px;
+  padding: 0 4px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  min-width: 0;
+  flex-shrink: 0;
+}
+.navbar-seg.plain {
+  cursor: default;
+}
+.navbar-seg:not(.plain):hover,
+.navbar-seg.open {
+  background: var(--bg-hover);
+  color: var(--fg);
+}
+.navbar.focused .navbar-seg.selected {
+  background: var(--bg-selection);
+  color: var(--fg-strong);
+}
+.navbar-seg.last {
+  color: var(--fg);
+}
+.navbar-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.navbar-popup {
+  position: fixed;
+  z-index: 1000;
+  min-width: 220px;
+  max-width: 420px;
+  max-height: min(420px, 60vh);
+  overflow-y: auto;
+  padding: 4px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  color: var(--fg);
+  font-size: var(--fs-ui);
+}
+.navbar-popup-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  padding: 0 8px;
+  margin-bottom: 2px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+  color: var(--fg-strong);
+  font-size: var(--fs-small);
+}
+.navbar-popup-empty {
+  padding: 6px 10px;
+  color: var(--fg-muted);
+}
+.navbar-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.navbar-item.selected {
+  background: var(--bg-selection);
+}
+.navbar-item.ignored .navbar-item-label {
+  color: var(--vcs-ignored);
+}
+.navbar-item-label {
+  color: var(--fg-strong);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.navbar-item-detail {
+  color: var(--fg-muted);
+  white-space: pre;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.navbar-item-more {
+  margin-left: auto;
+  flex-shrink: 0;
+  color: var(--fg-faint);
+}

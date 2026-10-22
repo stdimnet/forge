@@ -24,6 +24,7 @@ import "./gitMock";
 import "./phpMock";
 import "./codeintelMock";
 import "./documentationMock";
+import "./relatedMock";
 import "./companionMock";
 import "./terminalMock";
 import "./runMock";
