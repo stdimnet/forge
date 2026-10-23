@@ -39,6 +39,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-livetemplates](forge-livetemplates.md) | Live templates: template sets, contexts, variables and expansion, Surround With and Unwrap/Remove (pure, WebAssembly-friendly) |
 | [forge-localhistory](forge-localhistory.md) | Local History: file contents recorded on save, refactorings, VCS operations and external changes, with labels, revert and selection history |
 | [forge-lsp](forge-lsp.md) | Forge IDE: generic Language Server Protocol client and server manager |
+| [forge-maintenance](forge-maintenance.md) | Repairing and resetting the IDE: Invalidate Caches, Restore Default Settings, Export / Import Settings |
 | [forge-markdown](forge-markdown.md) | Forge Markdown: a safe AST (no raw HTML) for chat messages and documentation popups, built with pulldown-cmark (pure, also built to WebAssembly) |
 | [forge-viewers](forge-viewers.md) | Forge file viewers: image metadata for the image editor and CSV/TSV tables for Edit as Table (pure, also built to WebAssembly) |
 | [forge-open](forge-open.md) | Forge IDE open requests: forge:// links, the CLI launcher and the Browser Companion local server |
@@ -67,6 +68,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | --- | --- |
 | [luaforge-lang-lua](luaforge-lang-lua.md) | LuaForge: Lua language support (lexer, structural parser, EmmyLua/LuaLS annotations, project index, require resolution, hover, navigation; pure, also built to WebAssembly) |
 | [phpforge-cli-tools](phpforge-cli-tools.md) | PHPForge: Command Line Tool Support (tool model and detection, `list --format=json` and `wp cli cmd-dump` parsing, console input parsing and completion; pure, also built to WebAssembly) |
+| [phpforge-test-frameworks](phpforge-test-frameworks.md) | PHPForge: PHP test frameworks (PHPUnit, Pest, Codeception, Behat, PHPSpec): settings and detection, run configuration command lines, test discovery for gutter icons, Gherkin and Behat step definitions, Rerun Failed Tests (pure, also built to WebAssembly) |
 | [phpforge-composer](phpforge-composer.md) | PHPForge: Composer support (version constraints, composer.json/lock analysis, Packagist metadata, outdated packages, audit advisories, completion) |
 | [phpforge-dql](phpforge-dql.md) | PHPForge: Doctrine DQL tokenizer, parser, highlighting, completion and diagnostics, and DQL sites in PHP source (pure, also built to WebAssembly) |
 | [phpforge-fw-laravel](phpforge-fw-laravel.md) | PHPForge: Laravel support (routes, views, Blade components, config/env, Eloquent, translations, artisan) |

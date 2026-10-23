@@ -43,6 +43,11 @@ impl AppState {
                 tracing::warn!("user settings not loaded: {e}");
             }
         }
+        if let Some(path) = Settings::default_new_projects_path() {
+            if let Err(e) = settings.load_new_projects(path) {
+                tracing::warn!("settings for new projects not loaded: {e}");
+            }
+        }
         let state = Self {
             workspace: RwLock::default(),
             backend: RwLock::default(),

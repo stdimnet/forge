@@ -205,6 +205,16 @@ mod tests {
     /// The UI's browser mode serves the same plugins from a JSON copy. Run with
     /// `FORGE_UPDATE_SNAPSHOTS=1 cargo test -p forge-app` after editing a manifest.
     #[test]
+    fn ignored_files_default_matches_forge_filetypes() {
+        let registry = builtin_registry().unwrap();
+        let spec = registry
+            .all_settings()
+            .find(|s| s.key == crate::commands::workspace::IGNORED_FILES_KEY)
+            .unwrap();
+        assert_eq!(spec.default, forge_filetypes::DEFAULT_IGNORED_FILES);
+    }
+
+    #[test]
     fn browser_mock_snapshot_is_current() {
         let registry = builtin_registry().unwrap();
         let json = serde_json::to_string_pretty(registry.list()).unwrap() + "\n";

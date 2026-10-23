@@ -1,0 +1,87 @@
+/* Invalidate Caches, Export / Import Settings (File menu dialogs). */
+.mnt-dialog {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: var(--bg-panel);
+  color: var(--fg);
+  outline: none;
+}
+.mnt-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 16px 20px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.mnt-body p {
+  margin: 0;
+}
+.mnt-section {
+  margin-top: 6px;
+  color: var(--fg-strong);
+  font-weight: 600;
+}
+.mnt-warning {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--warning);
+}
+.mnt-muted,
+.mnt-detail {
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+.mnt-detail {
+  display: block;
+}
+.mnt-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 3px 0;
+  cursor: default;
+}
+.mnt-check input {
+  margin-top: 2px;
+  accent-color: var(--accent);
+}
+.mnt-groups {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-editor);
+  padding: 6px 10px;
+  overflow: auto;
+  min-height: 120px;
+}
+.mnt-all {
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+  padding-bottom: 6px;
+}
+.mnt-path {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+.mnt-path input {
+  flex: 1;
+  min-width: 0;
+}
+.mnt-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 52px;
+  padding: 0 14px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-panel);
+}
+.mnt-spacer {
+  flex: 1;
+}

@@ -14,6 +14,9 @@ pub fn run() {
         .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
         .init();
 
+    // Invalidate Caches / Restore Default Settings of the previous session, before the
+    // settings and caches are opened.
+    commands::maintenance::startup();
     let app_state = AppState::new();
     let run_state = commands::run::RunState::new(&app_state);
 
@@ -185,6 +188,15 @@ pub fn run() {
             commands::settings::plugin_set_enabled,
             commands::settings::settings_search,
             commands::settings::settings_validate,
+            commands::maintenance::maintenance_invalidate_model,
+            commands::maintenance::maintenance_invalidate_caches,
+            commands::maintenance::maintenance_restart,
+            commands::maintenance::maintenance_rescan_indexes,
+            commands::maintenance::settings_export_info,
+            commands::maintenance::settings_export,
+            commands::maintenance::settings_import_preview,
+            commands::maintenance::settings_import,
+            commands::maintenance::settings_restore_defaults,
             commands::lsp::lsp_did_open,
             commands::lsp::lsp_did_change,
             commands::lsp::lsp_did_save,
@@ -292,6 +304,7 @@ pub fn run() {
             commands::search::fuzzy_filter,
             commands::search::search_rank,
             commands::search::filetypes_detect,
+            commands::search::filetypes_list,
             commands::search::filetypes_template_delimiters,
             commands::search::search_find_symbols,
             commands::search::search_status,
@@ -485,6 +498,12 @@ pub fn run() {
             commands::run::run_configurations_save,
             commands::run::run_command_line,
             commands::run::run_start,
+            commands::test_frameworks::test_frameworks_list,
+            commands::test_frameworks::test_discover,
+            commands::test_frameworks::test_rerun_failed,
+            commands::test_frameworks::behat_step_definitions,
+            commands::test_frameworks::test_history_list,
+            commands::test_frameworks::test_history_open,
             commands::run::run_stop,
             commands::run::run_write,
             commands::run::run_dispose,

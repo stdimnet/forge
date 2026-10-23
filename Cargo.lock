@@ -1835,6 +1835,7 @@ dependencies = [
  "forge-livetemplates",
  "forge-localhistory",
  "forge-lsp",
+ "forge-maintenance",
  "forge-markdown",
  "forge-open",
  "forge-plugin-api",
@@ -1863,6 +1864,7 @@ dependencies = [
  "phpforge-interpreters",
  "phpforge-lang-php",
  "phpforge-orm-doctrine",
+ "phpforge-test-frameworks",
  "serde",
  "serde_json",
  "tauri",
@@ -2198,6 +2200,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "forge-maintenance"
+version = "0.1.0"
+dependencies = [
+ "dirs 6.0.0",
+ "forge-core",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "zip 2.6.1",
+]
+
+[[package]]
 name = "forge-markdown"
 version = "0.1.0"
 dependencies = [
@@ -2228,6 +2242,7 @@ dependencies = [
 name = "forge-output"
 version = "0.1.0"
 dependencies = [
+ "quick-xml",
  "regex-lite",
  "serde",
  "serde_json",
@@ -2516,6 +2531,7 @@ dependencies = [
  "forge-keymap",
  "forge-livetemplates",
  "forge-localhistory",
+ "forge-maintenance",
  "forge-markdown",
  "forge-output",
  "forge-plugin-api",
@@ -2538,6 +2554,7 @@ dependencies = [
  "phpforge-composer",
  "phpforge-dql",
  "phpforge-interpreters",
+ "phpforge-test-frameworks",
  "serde",
  "serde_json",
  "wasm-bindgen",
@@ -4903,6 +4920,17 @@ dependencies = [
  "tree-sitter",
  "walkdir",
  "yaml-rust2",
+]
+
+[[package]]
+name = "phpforge-test-frameworks"
+version = "0.1.0"
+dependencies = [
+ "forge-output",
+ "forge-runtools",
+ "regex-lite",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

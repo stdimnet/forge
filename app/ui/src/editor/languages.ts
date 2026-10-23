@@ -11,6 +11,7 @@ import { html } from "@codemirror/lang-html";
 import { xml } from "@codemirror/lang-xml";
 import { properties } from "@codemirror/legacy-modes/mode/properties";
 import { dotenv } from "./dotenv";
+import { gherkin } from "./gherkin";
 import { streamLanguage } from "./tokens";
 import { latteSyntax, mustacheSyntax, templateParser, type TemplateSyntax } from "./templates";
 import { templateOverlay } from "./templateOverlay";
@@ -44,7 +45,6 @@ import { stylus } from "@codemirror/legacy-modes/mode/stylus";
 import { pug } from "@codemirror/legacy-modes/mode/pug";
 import { protobuf } from "@codemirror/legacy-modes/mode/protobuf";
 import { cmake } from "@codemirror/legacy-modes/mode/cmake";
-import { gherkin } from "@codemirror/legacy-modes/mode/gherkin";
 import { http } from "@codemirror/legacy-modes/mode/http";
 import { puppet } from "@codemirror/legacy-modes/mode/puppet";
 import { tcl } from "@codemirror/legacy-modes/mode/tcl";
@@ -67,6 +67,7 @@ import { toml } from "@codemirror/legacy-modes/mode/toml";
 import { nginx } from "@codemirror/legacy-modes/mode/nginx";
 import { lua } from "@codemirror/legacy-modes/mode/lua";
 import { diff } from "@codemirror/legacy-modes/mode/diff";
+import { customFileTypeLanguage } from "./customFileType";
 
 /**
  * Syntax modes by file type id. Which file type a file has (names, extensions, shebangs,
@@ -182,7 +183,7 @@ const loaders = new Map<string, LanguageDef["load"]>(
     textile: stream(textile),
     protobuf: stream(protobuf),
     cmake: stream(cmake),
-    gherkin: stream(gherkin),
+    gherkin: () => streamLanguage(gherkin),
     http: stream(http),
     puppet: stream(puppet),
     makefile: stream(shell),
@@ -200,6 +201,8 @@ export function registerLanguage(def: LanguageDef): void {
 /** The editor extensions for a file's language (empty for plain text). */
 export function languageFor(path: string, content?: string): Extension[] {
   const info = fileTypeOf(path, content);
+  // Custom file types (Settings | Editor | File Types) bring their syntax from Rust.
+  if (info.custom) return [customFileTypeLanguage(info.custom)];
   const load = info.id ? loaders.get(info.id) : undefined;
   return load ? [load(path, info)] : [];
 }

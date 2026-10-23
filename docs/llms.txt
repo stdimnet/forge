@@ -42,12 +42,14 @@ Forge's rule of thumb is "Rust computes, TypeScript renders": logic lives in Rus
 - [Symfony](guide/user/symfony.md) and [Doctrine](guide/user/doctrine.md): framework and ORM support
 - [WebForge](guide/user/webforge.md): HTML, CSS, JavaScript/TypeScript, Vue, React, Angular
 - [Command Line Tool Support](guide/user/command-line-tools.md): Tools | Run Command… (Ctrl+Shift+X): Composer, Laravel Artisan, Symfony Console, WP-CLI, Drush and custom tools as `alias command args` with completion of commands, options and arguments, command help, history, the Command Line Tools Console tool window, command lists cached until composer.lock changes, Settings | Tools | Command Line Tool Support
+- [PHP test frameworks](guide/user/test-frameworks.md): Settings | PHP | Test Frameworks, PHPUnit, Pest, Codeception, Behat and PHPSpec run configurations, gutter icons, test tree, Rerun Failed Tests, Test History, auto-test, Gherkin highlighting and Behat step definitions
 - [Run and debug](guide/user/run-debug.md) and [Debugging](guide/user/debugging.md): run configurations (PHP Built-in Web Server, PHP Web Page, PHP HTTP Request, Compound), Before launch tasks, Run Anything (double Ctrl), External Tools and macros, Xdebug, breakpoints and logpoints, debugger console, Web Server Debug Validation
 - [Git](guide/user/git.md) and [Code hosts](guide/user/code-hosts.md): clone (Get from VCS), commit, message history, signing, branches, worktrees, log, blame, pull requests
 - [Local History](guide/user/local-history.md): revisions recorded on save, refactorings, VCS operations and external changes; Show History, Show History for Selection, Revert, Create Patch, labels, Recent Changes
 - [AI](guide/user/ai.md): AI providers, agent chat and AI commit messages
 - [Language servers](guide/user/language-servers.md): installing and configuring external language servers
-- [Settings and themes](guide/user/settings-and-themes.md): the Settings dialog, Ember and Anvil themes
+- [Settings and themes](guide/user/settings-and-themes.md): the Settings dialog, Settings for New Projects, Restore Defaults, Export / Import Settings, Restore Default Settings, Ember and Anvil themes
+- [Invalidate Caches and Repair IDE](guide/user/repair-ide.md): Reload All from Disk, the step-by-step Repair IDE, Invalidate Caches and which caches it clears
 
 ## Reference
 

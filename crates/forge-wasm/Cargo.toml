@@ -23,6 +23,7 @@ phpforge-dql = { path = "../../packs/phpforge/dql" }
 phpforge-composer = { path = "../../packs/phpforge/composer" }
 phpforge-interpreters = { path = "../../packs/phpforge/interpreters" }
 phpforge-cli-tools = { path = "../../packs/phpforge/cli-tools" }
+phpforge-test-frameworks = { path = "../../packs/phpforge/test-frameworks" }
 luaforge-lang-lua.workspace = true
 forge-keymap.workspace = true
 forge-vim.workspace = true
@@ -44,6 +45,7 @@ forge-bookmarks.workspace = true
 forge-localhistory.workspace = true
 forge-codeintel.workspace = true
 forge-filetypes.workspace = true
+forge-maintenance.workspace = true
 forge-text.workspace = true
 forge-codestyle.workspace = true
 forge-save-actions.workspace = true

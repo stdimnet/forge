@@ -13,6 +13,11 @@ export function agent_parse_lines(request_json: string): string;
 export function agent_profiles(): string;
 
 /**
+ * `{ text, line, files }` → `StepDefinition[]` (`behat_step_definitions`).
+ */
+export function behat_step_definitions(request_json: string): string;
+
+/**
  * `{ state, ops }` → the new `Bookmarks`.
  */
 export function bookmarks_apply(request_json: string): string;
@@ -498,6 +503,17 @@ export function file_structure_view(request_json: string): string;
 export function filetypes_detect(request_json: string): string;
 
 /**
+ * `{ names, patterns }` → for each name whether "Ignored Files and Folders" hides it (the
+ * filter of `fs_list_dir`).
+ */
+export function filetypes_ignored(request_json: string): string;
+
+/**
+ * Mirrors the `filetypes_list` IPC command: `DetectRequest` → `FileTypeRow[]`.
+ */
+export function filetypes_list(request_json: string): string;
+
+/**
  * Register the file types of plugins (`PluginInfo[]` JSON) on top of the bundled ones.
  * Returns the number of known file types.
  */
@@ -765,6 +781,17 @@ export function lua_run_markers(request_json: string): string;
 export function lua_search_symbols(request_json: string): string;
 
 /**
+ * The Invalidate Caches dialog.
+ */
+export function maintenance_invalidate_model(): string;
+
+/**
+ * `{ keys, files }` (user setting keys, existing config files) → the settings groups with
+ * their counts.
+ */
+export function maintenance_settings_groups(request_json: string): string;
+
+/**
  * `{ text, anchor }` → 0-based line or `null`.
  */
 export function markdown_anchor_line(request_json: string): string;
@@ -892,6 +919,12 @@ export function run_anything_suggest(request_json: string): string;
 export function run_launch_plan(request_json: string): string;
 
 export function run_output_drop(request_json: string): string;
+
+/**
+ * `{ handle }` → `{ tree, summary, counts }` of a test run (`null` without tests), for the
+ * browser-mode Test History.
+ */
+export function run_output_export(request_json: string): string;
 
 /**
  * `{ handle, input: RunInput }` → `OutputEvent[]`.
@@ -1151,6 +1184,31 @@ export function terminal_link_target(request_json: string): string;
 export function terminal_parse_osc(request_json: string): string;
 
 /**
+ * `{ configuration, framework, reportDir }` → `TestCommand` (the mock command lines).
+ */
+export function test_command(request_json: string): string;
+
+/**
+ * `{ path, text }` → `TestFile` (`test_discover`).
+ */
+export function test_discover(request_json: string): string;
+
+/**
+ * `{ configured, files, composerJson }` → `FrameworkConfig[]` (`test_frameworks_list`).
+ */
+export function test_frameworks_effective(request_json: string): string;
+
+/**
+ * `{ tree, root }` → `{ nodes, summary }` (`test_history_open`).
+ */
+export function test_history_import(request_json: string): string;
+
+/**
+ * `{ configuration, failed }` → `Configuration | null` (`test_rerun_failed`).
+ */
+export function test_rerun_failed(request_json: string): string;
+
+/**
  * `FormatRequest` (settings and `.editorconfig` files included) → `FileFormat`.
  */
 export function text_file_format(request_json: string): string;
@@ -1314,6 +1372,7 @@ export interface InitOutput {
     readonly memory: WebAssembly.Memory;
     readonly agent_parse_lines: (a: number, b: number, c: number) => void;
     readonly agent_profiles: (a: number) => void;
+    readonly behat_step_definitions: (a: number, b: number, c: number) => void;
     readonly bookmarks_apply: (a: number, b: number, c: number) => void;
     readonly bridge_version: (a: number) => void;
     readonly chat_apply: (a: number, b: number, c: number) => void;
@@ -1409,6 +1468,8 @@ export interface InitOutput {
     readonly file_colors_resolve: (a: number, b: number, c: number) => void;
     readonly file_structure_view: (a: number, b: number, c: number) => void;
     readonly filetypes_detect: (a: number, b: number, c: number) => void;
+    readonly filetypes_ignored: (a: number, b: number, c: number) => void;
+    readonly filetypes_list: (a: number, b: number, c: number) => void;
     readonly filetypes_load: (a: number, b: number, c: number) => void;
     readonly filetypes_template_delimiters: (a: number) => void;
     readonly find_in_files: (a: number, b: number, c: number) => void;
@@ -1463,6 +1524,8 @@ export interface InitOutput {
     readonly lua_index_files: (a: number, b: number, c: number) => void;
     readonly lua_run_markers: (a: number, b: number, c: number) => void;
     readonly lua_search_symbols: (a: number, b: number, c: number) => void;
+    readonly maintenance_invalidate_model: (a: number) => void;
+    readonly maintenance_settings_groups: (a: number, b: number, c: number) => void;
     readonly markdown_anchor_line: (a: number, b: number, c: number) => void;
     readonly markdown_document: (a: number, b: number, c: number) => void;
     readonly markdown_hover: (a: number, b: number, c: number) => void;
@@ -1489,6 +1552,7 @@ export interface InitOutput {
     readonly run_anything_suggest: (a: number, b: number, c: number) => void;
     readonly run_launch_plan: (a: number, b: number, c: number) => void;
     readonly run_output_drop: (a: number, b: number, c: number) => void;
+    readonly run_output_export: (a: number, b: number, c: number) => void;
     readonly run_output_handle: (a: number, b: number, c: number) => void;
     readonly run_output_new: (a: number, b: number, c: number) => void;
     readonly save_actions_changed_lines: (a: number, b: number, c: number) => void;
@@ -1539,6 +1603,11 @@ export interface InitOutput {
     readonly templates_validate: (a: number, b: number, c: number) => void;
     readonly terminal_link_target: (a: number, b: number, c: number) => void;
     readonly terminal_parse_osc: (a: number, b: number, c: number) => void;
+    readonly test_command: (a: number, b: number, c: number) => void;
+    readonly test_discover: (a: number, b: number, c: number) => void;
+    readonly test_frameworks_effective: (a: number, b: number, c: number) => void;
+    readonly test_history_import: (a: number, b: number, c: number) => void;
+    readonly test_rerun_failed: (a: number, b: number, c: number) => void;
     readonly text_file_format: (a: number, b: number, c: number) => void;
     readonly text_inspect_commit_message: (a: number, b: number, c: number) => void;
     readonly text_prepare_save: (a: number, b: number, c: number) => void;

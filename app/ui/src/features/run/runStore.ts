@@ -8,13 +8,15 @@ import { createStore, produce } from "solid-js/store";
 import { runApi, type ConsoleLine, type RunConfiguration, type RunEvent, type RunRequest } from "@/ipc/run";
 import { runToolsApi, type LaunchPlan, type PlannedTask } from "@/ipc/runTools";
 import { balloonsFor } from "@/keymap";
-import { saveAll } from "@/state/editor";
+import { onFileSaved, saveAll } from "@/state/editor";
 import { showToolWindow } from "@/state/layout";
+import { getSetting } from "@/state/settings";
+import { testFrameworksApi, type FailedTest, type StoredRun } from "@/ipc/testFrameworks";
 import { applyConsoleDelta, applyTestUpdates, emptyTestTree, type TestNode, type TestTreeState } from "./tests";
 import { COMPOUND, compoundMembers, debugLauncherFor, findType, validateConfiguration, type RunHandle } from "./types";
 import { allConfigurations, findConfiguration, selectedConfiguration } from "./configStore";
 import { openRunConfigurations } from "./dialogState";
-import { publishTestResults } from "./testResults";
+import { fileOf, publishTestResults } from "./testResults";
 
 const showBalloon = balloonsFor("Run");
 
@@ -42,6 +44,8 @@ export interface RunSession {
   pinned: boolean;
   /** Output without a process (Analyze Stack Trace); Rerun runs `SessionData.rerun`. */
   staticOutput?: boolean;
+  /** Toggle Auto-Test: rerun after files are saved. */
+  autoTest?: boolean;
 }
 
 interface SessionData {
@@ -454,23 +458,93 @@ export async function rerunSession(id: string | undefined = state.active ?? unde
   await startProcess(s.id, extra);
 }
 
-/** Rerun only the failed tests of a test run. */
+/** The failed tests of a run's tree. */
+export function failedTests(root: TestNode): FailedTest[] {
+  const out: FailedTest[] = [];
+  const walk = (n: TestNode) => {
+    if (n.kind === "test" && n.status === "failed") out.push({ name: n.name, member: n.location?.member, path: fileOf(n) });
+    n.children.forEach(walk);
+  };
+  walk(root);
+  return out;
+}
+
+/**
+ * Rerun only the failed tests of a test run, with the configuration Rust derives for the
+ * framework (PHPUnit / Pest `--filter`, Codeception `-g failed`, Behat `--rerun`, PHPSpec
+ * the failed spec).
+ */
 export async function rerunFailedTests(id: string | undefined = state.active ?? undefined): Promise<void> {
   const s = state.sessions.find((x) => x.id === id);
   const tree = s && data.get(s.id)?.tests;
   if (!s || !tree) return;
-  const failed: string[] = [];
-  const walk = (n: TestNode) => {
-    if (n.kind === "test" && n.status === "failed") failed.push(n.location?.member ?? n.name);
-    n.children.forEach(walk);
-  };
-  walk(tree.root);
+  const failed = failedTests(tree.root);
   if (!failed.length) return;
-  const filter = `/::(${failed.map((f) => f.replace(/[\\^$.*+?()[\]{}|/]/g, "\\$&")).join("|")})( .*)?$/`;
-  const options = { ...(s.config.options ?? {}) };
-  options.testRunnerOptions = `${options.testRunnerOptions ?? ""} --filter '${filter}'`.trim();
-  await launch({ ...s.config, options });
+  const base = findConfiguration(s.name) ?? s.config;
+  const cfg = await testFrameworksApi.rerunFailed(base, failed).catch((err) => {
+    showBalloon("Cannot rerun the failed tests", String(err));
+    return null;
+  });
+  if (cfg) await launch(cfg);
 }
+
+/** Open a run of the Test History in a Run tab; Rerun runs its configuration again. */
+export function openHistoryRun(run: StoredRun): void {
+  const id = sessionFor(run.configuration, false);
+  const d = data.get(id)!;
+  const tree = emptyTestTree();
+  applyTestUpdates(tree, run.nodes, run.summary);
+  d.tests = tree;
+  d.lines = [
+    {
+      segments: [{ text: `Test results of ${new Date(run.entry.at).toLocaleString()} from the Test History`, style: { fg: "var(--fg-muted)" } }],
+    },
+  ];
+  setState("sessions", (x) => x.id === id, {
+    runId: null,
+    status: "finished",
+    startedAt: run.entry.at,
+    endedAt: run.entry.at + (tree.root.duration ?? 0),
+    exitCode: run.entry.counts.failed ? 1 : 0,
+  });
+  bump(id);
+  showToolWindow("run");
+}
+
+// ---- Auto-test -----------------------------------------------------------------------
+
+const autoTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
+/** Toggle Auto-Test: the session reruns `run.autoTest.delay` seconds after files are saved. */
+export function toggleAutoTest(id: string | undefined = state.active ?? undefined): void {
+  const s = state.sessions.find((x) => x.id === id);
+  if (!s) return;
+  setState("sessions", (x) => x.id === s.id, "autoTest", (v) => !v);
+  if (!state.sessions.find((x) => x.id === s.id)?.autoTest) {
+    clearTimeout(autoTimers.get(s.id));
+    autoTimers.delete(s.id);
+  }
+}
+
+function scheduleAutoTest(id: string): void {
+  clearTimeout(autoTimers.get(id));
+  const delay = Math.max(0, Number(getSetting<number>("run.autoTest.delay", 3)) || 0) * 1000;
+  autoTimers.set(
+    id,
+    setTimeout(() => {
+      autoTimers.delete(id);
+      const s = state.sessions.find((x) => x.id === id);
+      if (!s?.autoTest) return;
+      // A run in progress finishes first; the saved changes rerun afterwards.
+      if (isRunning(s)) return scheduleAutoTest(id);
+      void rerunSession(id);
+    }, delay),
+  );
+}
+
+onFileSaved(() => {
+  for (const s of state.sessions) if (s.autoTest) scheduleAutoTest(s.id);
+});
 
 /**
  * A tab of console lines without a process, e.g. an analyzed stack trace: replaces the
@@ -524,6 +598,8 @@ export async function closeSession(id: string): Promise<void> {
   if (s.runId) await runApi.dispose(s.runId).catch(() => undefined);
   data.get(id)?.unlisten?.();
   data.delete(id);
+  clearTimeout(autoTimers.get(id));
+  autoTimers.delete(id);
   const idx = state.sessions.findIndex((x) => x.id === id);
   batch(() => {
     setState("sessions", (list) => list.filter((x) => x.id !== id));

@@ -7,6 +7,9 @@
 //! file names and path patterns, the longest matching extension (so `x.blade.php` beats
 //! `php`), and the interpreter of a `#!` line. Later registrations win ties.
 //!
+//! The user's changes from Settings | Editor | File Types (patterns added to or removed from
+//! a type, custom file types with their own highlighting) are applied on top ([`user`]).
+//!
 //! Template files also get the delimiters of their (template language, data language) pair
 //! from the `templates.delimiters` setting ([`delimiters`]).
 //!
@@ -19,11 +22,16 @@ mod builtin;
 pub mod data;
 pub mod delimiters;
 pub mod glob;
+pub mod user;
 
 pub use builtin::builtin_file_types;
 pub use data::{data_language_for, DataLanguage, DATA_LANGUAGES};
 pub use delimiters::{delimiter_catalog, resolve_delimiters, DelimiterCatalog, Delimiters};
 pub use glob::{matches_glob_list, wildcard_match};
+pub use user::{
+    custom_id, Association, CustomFileType, CustomSyntax, FileTypeRow, UserFileTypes,
+    DEFAULT_IGNORED_FILES,
+};
 
 /// Indentation used when a file type does not set one.
 pub const DEFAULT_INDENT_SIZE: u8 = 4;
@@ -69,6 +77,10 @@ struct Entry {
 #[derive(Debug, Clone, Default)]
 pub struct FileTypeRegistry {
     entries: Vec<Entry>,
+    /// Syntax of the user's custom file types by id.
+    custom: std::collections::BTreeMap<String, CustomSyntax>,
+    /// Descriptions of custom file types by id.
+    descriptions: std::collections::BTreeMap<String, String>,
 }
 
 /// Request of the `filetypes_detect` IPC command (and its WebAssembly twin).
@@ -89,6 +101,19 @@ pub struct DetectRequest {
     /// The `templates.delimiters` setting: delimiters per (template, data language) pair.
     #[serde(default)]
     pub template_delimiters: Vec<serde_json::Value>,
+    /// The `fileTypes.associations` setting: patterns added to or removed from file types.
+    #[serde(default)]
+    pub associations: Vec<serde_json::Value>,
+    /// The `fileTypes.custom` setting: the user's own file types.
+    #[serde(default)]
+    pub custom_types: Vec<serde_json::Value>,
+}
+
+impl DetectRequest {
+    /// The user's file type settings of this request.
+    pub fn user_file_types(&self) -> UserFileTypes {
+        UserFileTypes::parse(&self.associations, &self.custom_types)
+    }
 }
 
 #[derive(Debug, Clone, Default, Deserialize)]
@@ -117,6 +142,9 @@ pub struct FileTypeInfo {
     /// Template delimiters by field key (`left`, `variableStart`, …) for template languages
     /// whose delimiters are configurable; `None` for the others.
     pub delimiters: Option<Delimiters>,
+    /// Highlighting of a custom file type (Settings | Editor | File Types).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub custom: Option<CustomSyntax>,
 }
 
 impl FileTypeRegistry {
@@ -216,6 +244,7 @@ impl FileTypeRegistry {
                 data_language: None,
                 soft_wrap,
                 delimiters: None,
+                custom: None,
             };
         };
         let data_language = spec
@@ -234,12 +263,18 @@ impl FileTypeRegistry {
             data_language,
             soft_wrap,
             delimiters,
+            custom: self.custom.get(&spec.id).cloned(),
         }
     }
 
-    /// Resolve every file of a request.
+    /// Resolve every file of a request, with the user's file type settings applied.
     pub fn resolve(&self, req: &DetectRequest) -> Vec<FileTypeInfo> {
-        req.files.iter().map(|f| self.info(f, req)).collect()
+        let user = req.user_file_types();
+        if user.is_empty() {
+            return req.files.iter().map(|f| self.info(f, req)).collect();
+        }
+        let registry = self.customized(&user);
+        req.files.iter().map(|f| registry.info(f, req)).collect()
     }
 }
 

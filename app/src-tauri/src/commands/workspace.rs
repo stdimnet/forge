@@ -207,8 +207,18 @@ pub async fn blocking<T: Send + 'static>(
 #[tauri::command]
 pub async fn fs_list_dir(path: String, state: State<'_, AppState>) -> Result<Vec<FileEntry>> {
     let backend = state.backend()?;
-    blocking(move || backend.list_dir(&path)).await
+    // Settings | Editor | File Types | Ignored Files and Folders.
+    let ignored: String = state
+        .read_settings()
+        .get_as(IGNORED_FILES_KEY)
+        .unwrap_or_else(|| forge_filetypes::DEFAULT_IGNORED_FILES.to_string());
+    let mut entries = blocking(move || backend.list_dir(&path)).await?;
+    entries.retain(|e| !forge_filetypes::matches_glob_list(&e.name, &ignored));
+    Ok(entries)
 }
+
+/// The `;`-separated name patterns the Project view hides.
+pub const IGNORED_FILES_KEY: &str = "fileTypes.ignoredFiles";
 
 #[tauri::command]
 pub async fn fs_read_file(path: String, state: State<'_, AppState>) -> Result<String> {

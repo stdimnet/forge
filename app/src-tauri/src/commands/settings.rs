@@ -17,6 +17,8 @@ pub struct SettingsSnapshot {
     pub values: BTreeMap<String, Value>,
     pub user: BTreeMap<String, Value>,
     pub project: BTreeMap<String, Value>,
+    /// Settings for New Projects (defaults of project-level settings).
+    pub new_projects: BTreeMap<String, Value>,
     pub has_project: bool,
 }
 
@@ -27,12 +29,14 @@ pub fn settings_get_all(state: State<'_, AppState>) -> SettingsSnapshot {
         values: s.effective(),
         user: s.layer_values(SettingsScope::User).clone(),
         project: s.layer_values(SettingsScope::Project).clone(),
+        new_projects: s.layer_values(SettingsScope::NewProjects).clone(),
         has_project: s.has_project(),
     }
 }
 
-/// Store a setting in the `user` or `project` layer; `null` removes the override.
-/// Change events reach the UI as `settings://changed`.
+/// Store a setting in the `user`, `newProjects` or `project` layer; `null` removes the
+/// override. Only project-level settings have Settings for New Projects. Change events reach
+/// the UI as `settings://changed`.
 #[tauri::command]
 pub fn settings_set(
     key: String,
@@ -40,15 +44,21 @@ pub fn settings_set(
     scope: SettingsScope,
     state: State<'_, AppState>,
 ) -> Result<()> {
+    let plugins = state.plugins.read().expect("plugins lock poisoned");
+    let spec = plugins.all_settings().find(|s| s.key == key);
+    if scope == SettingsScope::NewProjects && !spec.is_some_and(|s| s.project) {
+        return Err(ForgeError::Other(format!(
+            "`{key}` is not a project setting and has no value for new projects"
+        )));
+    }
     if !value.is_null() {
-        let plugins = state.plugins.read().expect("plugins lock poisoned");
-        let spec = plugins.all_settings().find(|s| s.key == key);
         if let Some(spec) = spec {
             spec.kind
                 .validate(&value)
                 .map_err(|e| ForgeError::Other(format!("{}: {e}", spec.title)))?;
         }
     }
+    drop(plugins);
     state.write_settings().set(&key, value, scope)
 }
 

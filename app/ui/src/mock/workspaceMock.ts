@@ -1,5 +1,7 @@
 import { registerMock } from "@/ipc";
 import type { FileEntry } from "@/ipc/workspace";
+import { callWasmSync, forgeWasm } from "@/wasm";
+import { mockSettingValue } from "./settingsMock";
 import { demoFiles, demoProjectName } from "./demoProject";
 import { demoConfigFiles } from "./demoConfigFiles";
 import { demoLaravelFiles } from "./demoLaravel";
@@ -98,7 +100,15 @@ registerMock("workspace_open", () => {
   closeRemoteProject();
   return { name: openName, root: `~/Projects/${openName}` };
 });
-registerMock("fs_list_dir", ({ path }) => listDir(String(path ?? "")));
+/** Settings | Editor | File Types | Ignored Files and Folders, matched by Rust. */
+async function withoutIgnored(entries: FileEntry[]): Promise<FileEntry[]> {
+  const patterns = mockSettingValue("fileTypes.ignoredFiles");
+  if (typeof patterns !== "string" || !entries.length) return entries;
+  const hidden = callWasmSync<boolean[]>((await forgeWasm()).filetypes_ignored, { names: entries.map((e) => e.name), patterns });
+  return entries.filter((_, i) => !hidden[i]);
+}
+
+registerMock("fs_list_dir", ({ path }) => withoutIgnored(listDir(String(path ?? ""))));
 registerMock("fs_read_file", ({ path }) => {
   const content = files[String(path)];
   if (content === undefined) throw new Error(`not found: ${path}`);

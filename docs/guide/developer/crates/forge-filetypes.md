@@ -30,6 +30,7 @@ The UI only maps a file type id to its CodeMirror syntax mode.
 | `builtin.rs` | File types every Forge installation knows (PHPStorm's bundled file types). Plugins add more, or replace one of these by contributing a file type with the same id, through `[[plugin.contributions.fileTypes]]` in their manifests. |
 | `data.rs` | Template Data Languages (as in PHPStorm): the language of the content *between* template tags. |
 | `glob.rs` | The two pattern flavours of file type settings. |
+| `user.rs` | Settings \| Editor \| File Types: patterns added to or removed from a type (`fileTypes.associations`; a pattern added to one type leaves the others), custom file types with their `CustomSyntax` (`fileTypes.custom`), `FileTypeRegistry::customized` and `rows` (the page's list), `DEFAULT_IGNORED_FILES`. |
 
 ## Main public items
 
@@ -46,8 +47,9 @@ pub struct FileTypeInfo { … }
 
 ## Used by
 
-- IPC: `filetypes_detect`
-- UI: `app/ui/src/editor/fileTypes.ts`
+- IPC: `filetypes_detect`, `filetypes_list`; `fs_list_dir` hides `fileTypes.ignoredFiles`
+- UI: `app/ui/src/editor/fileTypes.ts`, `app/ui/src/features/fileTypes` (the settings page),
+  `app/ui/src/editor/customFileType.ts` (highlighting of custom types)
 - Browser mode: built into `forge-wasm`
 
 ## Dependencies

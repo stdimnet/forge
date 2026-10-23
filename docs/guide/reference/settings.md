@@ -9,7 +9,8 @@ tags: [settings, reference, configuration]
 
 All settings are declared by plugin manifests (`[[contributions.settings]]` in
 `app/src-tauri/plugins/*.toml`) and shown on the Settings page whose id is their `group`. Values
-are layered: default < user (`<config dir>/forge/settings.toml`) < project
+are layered: default < user (`<config dir>/forge/settings.toml`) < Settings for New Projects
+(`<config dir>/forge/new-project-settings.toml`, project-level settings only) < project
 (`<project>/.forge/settings.toml`). See [Settings and themes](../user/settings-and-themes.md).
 
 - **Type**: `bool`, `int`, `number`, `string`, `enum` (allowed values listed), `path`,
@@ -265,6 +266,17 @@ table of keys Forge writes itself above.
 | --- | --- | --- | --- | --- | --- |
 | `fileTemplates.custom` | objects | `[]` | user | — | File and code templates — Templates added in Settings \| Editor \| File and Code Templates and the changed text of built-in ones (`kind` `file`, `include` or `code`, `name`, `extension`, `text`). Built-in templates without an entry use their default text. One entry per `kind` + `name` pair. Edited on the page, see [File and code templates](../user/file-templates.md). |
 
+### Editor | File Types
+
+Page id `editor.file-types`. The options are edited on the page itself, see
+[File types](../user/file-types.md#changing-file-types).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `fileTypes.associations` | objects | `[]` | user | — | File name patterns — Patterns added to a file type (`fileType`, `pattern`) or removed from it (`action` `remove`). A pattern added to one type is taken away from the others. One entry per `fileType` + `pattern` pair. |
+| `fileTypes.custom` | objects | `[]` | user | — | Custom file types — `id`, `name`, `description`, `lineComment`, `lineCommentAtStart`, `blockCommentStart`, `blockCommentEnd`, `hexPrefix`, `numberPostfixes`, `keywords1`–`keywords4` (one keyword per line), `ignoreCase`, `pairedBraces`, `pairedBrackets`, `pairedParens`, `stringEscapes` (`"true"` / `"false"`). One entry per `name`. |
+| `fileTypes.ignoredFiles` | string | `*.hprof;*.pyc;*.pyo;*.rbc;*.yarb;*~;.DS_Store;.git;.hg;.svn;CVS;__pycache__;_svn;vssver.scc;vssver2.scc` | user | — | Ignored Files and Folders — Names hidden from the Project view, separated by `;` (`*` and `?` wildcards). |
+
 ### Editor | Inlay Hints
 
 Page id `editor.inlay-hints`.
@@ -474,6 +486,15 @@ Page id `lang.php.quality-tools`.
 | --- | --- | --- | --- | --- | --- |
 | `php.tools.phpCsFixer.path` | path | `""` | user, project | PHP CS Fixer | PHP CS Fixer path — Empty: vendor/bin/php-cs-fixer of the project. A relative path starts at the project root. The project's .php-cs-fixer.dist.php is used. |
 | `php.tools.pint.path` | path | `""` | user, project | Laravel Pint | Laravel Pint path — Empty: vendor/bin/pint of the project. A relative path starts at the project root. The project's pint.json is used. |
+
+### Languages & Frameworks | PHP | Test Frameworks
+
+Page id `lang.php.test-frameworks`.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `php.testFrameworks` | objects | `[]` | user, project |  | Test frameworks — PHPUnit, Pest, Codeception, Behat and PHPSpec per CLI interpreter. Entries: `framework` (`phpunit`, `pest`, `codeception`, `behat`, `phpspec`), `interpreter` (empty: Local), `mode` (`composer`: `path` is `vendor/autoload.php`; `path`: the executable or phar), `path`, `configFile`, `bootstrapFile`. Frameworks the project uses are detected. |
+| `run.autoTest.delay` | int (0–600) | `3` | user | Auto-Test | Auto-test delay (seconds) — With Toggle Auto-Test on, a test run reruns this long after the last file was saved. |
 
 ### Languages & Frameworks | PHP | Debug
 

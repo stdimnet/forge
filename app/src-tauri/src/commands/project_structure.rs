@@ -12,7 +12,7 @@ use forge_scopes::structure::{FOLDERS_KEY, PATTERNS_KEY};
 use forge_scopes::view::{arrange, TreeRow, ViewEntry, ViewOptions};
 use tauri::{AppHandle, Emitter, Manager, State};
 
-use crate::commands::workspace::blocking;
+use crate::commands::workspace::{blocking, IGNORED_FILES_KEY};
 use crate::state::AppState;
 
 /// Emitted when the excluded paths changed: the UI re-reads the tree and reindexes.
@@ -67,20 +67,23 @@ fn view_entry(e: FileEntry) -> ViewEntry {
     }
 }
 
-/// The rows of one folder with the view options applied.
-pub fn tree_rows(backend: &dyn Backend, path: &str, options: &ViewOptions) -> Result<Vec<TreeRow>> {
-    let entries = backend.list_dir(path)?;
-    let mut list = |dir: &str| {
-        backend
-            .list_dir(dir)
-            .map(|v| v.into_iter().map(view_entry).collect())
-            .unwrap_or_default()
+/// The rows of one folder with the view options applied; names matching `ignored`
+/// (Settings | Editor | File Types | Ignored Files and Folders) are left out.
+pub fn tree_rows(
+    backend: &dyn Backend,
+    path: &str,
+    options: &ViewOptions,
+    ignored: &str,
+) -> Result<Vec<TreeRow>> {
+    let shown = |v: Vec<FileEntry>| -> Vec<ViewEntry> {
+        v.into_iter()
+            .filter(|e| !forge_filetypes::matches_glob_list(&e.name, ignored))
+            .map(view_entry)
+            .collect()
     };
-    Ok(arrange(
-        entries.into_iter().map(view_entry).collect(),
-        &mut list,
-        options,
-    ))
+    let entries = backend.list_dir(path)?;
+    let mut list = |dir: &str| backend.list_dir(dir).map(shown).unwrap_or_default();
+    Ok(arrange(shown(entries), &mut list, options))
 }
 
 /// The Project view's rows of a folder ("" is the project root).
@@ -92,7 +95,11 @@ pub async fn project_tree_list(
 ) -> Result<Vec<TreeRow>> {
     let backend = state.backend()?;
     let options = options.unwrap_or_default();
-    blocking(move || tree_rows(backend.as_ref(), &path, &options)).await
+    let ignored: String = state
+        .read_settings()
+        .get_as(IGNORED_FILES_KEY)
+        .unwrap_or_else(|| forge_filetypes::DEFAULT_IGNORED_FILES.to_string());
+    blocking(move || tree_rows(backend.as_ref(), &path, &options, &ignored)).await
 }
 
 #[cfg(test)]
@@ -113,7 +120,7 @@ mod tests {
             compact_middle_packages: true,
             ..ViewOptions::default()
         };
-        let rows = tree_rows(&backend, "", &options).unwrap();
+        let rows = tree_rows(&backend, "", &options, "").unwrap();
         let names: Vec<&str> = rows.iter().map(|r| r.name.as_str()).collect();
         assert_eq!(names, vec!["node_modules", "src/Acme/Shop", "a.ts"]);
         assert!(rows[0].excluded);
@@ -122,7 +129,13 @@ mod tests {
             show_excluded: false,
             ..ViewOptions::default()
         };
-        assert_eq!(tree_rows(&backend, "", &hidden).unwrap().len(), 2);
+        // Without excluded entries; ignored names (`*.ts`) leave the tree and free `a.js`.
+        let names: Vec<String> = tree_rows(&backend, "", &hidden, "*.ts")
+            .unwrap()
+            .into_iter()
+            .map(|r| r.name)
+            .collect();
+        assert_eq!(names, vec!["src", "a.js"]);
         assert!(affects(FOLDERS_KEY) && affects(PATTERNS_KEY) && !affects("x"));
     }
 }

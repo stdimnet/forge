@@ -666,6 +666,82 @@ impl TestTree {
     }
 }
 
+/// A node of a finished tree as the test history stores it: only what the tree needs to be
+/// shown again (console lines are rebuilt from `output` and the failure).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StoredNode {
+    pub name: String,
+    pub kind: TestNodeKind,
+    pub status: TestStatus,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub duration: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub location: Option<TestLocation>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub message: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub details: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub expected: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub actual: Option<String>,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub output: String,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub children: Vec<StoredNode>,
+}
+
+impl TestTree {
+    /// The tree in its stored form (the root node with everything below it).
+    pub fn export(&self) -> StoredNode {
+        fn node(t: &TestTree, n: usize) -> StoredNode {
+            let x = &t.nodes[n];
+            StoredNode {
+                name: x.name.clone(),
+                kind: x.kind(),
+                status: t.display_status(n),
+                duration: x.duration,
+                location: x.location.clone(),
+                message: x.message.clone(),
+                details: x.details.clone(),
+                expected: x.expected.clone(),
+                actual: x.actual.clone(),
+                output: x.output.clone(),
+                children: x.children.iter().map(|&c| node(t, c)).collect(),
+            }
+        }
+        node(self, 0)
+    }
+
+    /// A finished tree from its stored form (Test History).
+    pub fn import(root: &StoredNode, links: LinkContext) -> Self {
+        let mut tree = TestTree::new(&root.name, links);
+        fn add(t: &mut TestTree, s: &StoredNode, parent: Option<usize>) {
+            let id = match parent {
+                Some(p) => t.add(&s.name, s.kind, p),
+                None => 0,
+            };
+            let n = &mut t.nodes[id];
+            n.kind = Some(s.kind);
+            n.status = Some(s.status);
+            n.duration = s.duration;
+            n.location = s.location.clone();
+            n.message = s.message.clone();
+            n.details = s.details.clone();
+            n.expected = s.expected.clone();
+            n.actual = s.actual.clone();
+            n.output = s.output.clone();
+            for c in &s.children {
+                add(t, c, Some(id));
+            }
+        }
+        add(&mut tree, root, None);
+        tree.finished = true;
+        tree
+    }
+}
+
 /// "1 s 245 ms", "87 ms" like PHPStorm's test durations; empty without a duration.
 pub fn format_duration(ms: Option<u64>) -> String {
     let Some(ms) = ms else {
@@ -803,6 +879,30 @@ mod tests {
         let ids: Vec<u32> = b.take_updates().iter().map(|n| n.id).collect();
         assert_eq!(ids, [0, 1, 2]);
         assert!(b.take_updates().is_empty());
+    }
+
+    #[test]
+    fn exported_trees_import_with_the_same_nodes() {
+        let mut b = TestTree::new("Test Results", LinkContext::new(Some("/p"), None));
+        for l in [
+            "##teamcity[testSuiteStarted name='S' locationHint='php_qn:///p/STest.php::\\S']",
+            "##teamcity[testStarted name='a']",
+            "##teamcity[testStdOut name='a' out='hello|n']",
+            "##teamcity[testFinished name='a' duration='5']",
+            "##teamcity[testStarted name='b']",
+            "##teamcity[testFailed name='b' message='nope' expected='1' actual='2']",
+            "##teamcity[testFinished name='b' duration='7']",
+            "##teamcity[testSuiteFinished name='S']",
+        ] {
+            b.apply(&parse_service_message(l).unwrap());
+        }
+        b.finish(Some(1));
+        let stored = b.export();
+        let json = serde_json::to_string(&stored).unwrap();
+        let back: StoredNode = serde_json::from_str(&json).unwrap();
+        let again = TestTree::import(&back, LinkContext::new(Some("/p"), None));
+        assert_eq!(again.snapshot(), b.snapshot());
+        assert_eq!(again.summary(), b.summary());
     }
 
     #[test]

@@ -9,7 +9,8 @@ import type { MainMenuContribution } from "./keymap";
 export type SettingObject = Record<string, string>;
 
 export type SettingValue = boolean | number | string | string[] | SettingObject[];
-export type SettingsScope = "user" | "project";
+/** `newProjects`: Settings for New Projects (defaults of project-level settings). */
+export type SettingsScope = "user" | "newProjects" | "project";
 
 export interface EnumOption {
   value: string;
@@ -164,10 +165,12 @@ export interface PluginInfo {
 }
 
 export interface SettingsSnapshot {
-  /** Effective values (defaults < user < project). */
+  /** Effective values (defaults < user < settings for new projects < project). */
   values: Record<string, SettingValue>;
   user: Record<string, SettingValue>;
   project: Record<string, SettingValue>;
+  /** Settings for New Projects. */
+  newProjects?: Record<string, SettingValue>;
   hasProject: boolean;
 }
 
