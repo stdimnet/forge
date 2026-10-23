@@ -4,7 +4,9 @@
 
 use forge_backend::{SearchStatus, SymbolHit};
 use forge_core::Result;
-use forge_filetypes::{delimiter_catalog, DelimiterCatalog, DetectRequest, FileTypeInfo};
+use forge_filetypes::{
+    delimiter_catalog, DelimiterCatalog, DetectRequest, FileTypeInfo, FileTypeRow,
+};
 use forge_fuzzy::everywhere::{self, RankRequest, RankResponse};
 use forge_fuzzy::{FilterHit, FilterRequest};
 use forge_lsp::{LspManager, ServerState};
@@ -31,6 +33,16 @@ pub fn search_rank(request: RankRequest) -> RankResponse {
 pub fn filetypes_detect(request: DetectRequest, state: State<'_, AppState>) -> Vec<FileTypeInfo> {
     let plugins = state.plugins.read().expect("plugins lock poisoned");
     plugins.file_type_registry().resolve(&request)
+}
+
+/// Settings | Editor | File Types: every active file type with its patterns after the
+/// user's changes (`request.associations`, `request.customTypes`; `files` is unused).
+#[tauri::command]
+pub fn filetypes_list(request: DetectRequest, state: State<'_, AppState>) -> Vec<FileTypeRow> {
+    let plugins = state.plugins.read().expect("plugins lock poisoned");
+    plugins
+        .file_type_registry()
+        .rows(&request.inactive_plugins, &request.user_file_types())
 }
 
 /// Template languages with configurable delimiters and the data languages (Settings |

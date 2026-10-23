@@ -37,6 +37,7 @@ mod keymap;
 mod livetemplates;
 mod localhistory;
 mod lua;
+mod maintenance;
 mod php_interpreters;
 mod runtools;
 mod save_actions;

@@ -21,6 +21,7 @@ Forge uses the platform's standard folders (Rust's `dirs` crate):
 | File | Content |
 | --- | --- |
 | `settings.toml` | user settings (including keymap changes and disabled plugins) |
+| `new-project-settings.toml` | [Settings for New Projects](../user/settings-and-themes.md#settings-for-new-projects): defaults of project-level settings |
 | `recent-projects.json` | the Welcome screen's recent projects |
 | `ai.toml` | AI providers and model choices (no keys) |
 | `forges.toml` | GitHub/GitLab/Forgejo accounts (no tokens) |
@@ -44,7 +45,12 @@ Forge uses the platform's standard folders (Rust's `dirs` crate):
 | `jdtls/…` | workspace data of the Java language server |
 | `shell-integration/` | the bash and zsh scripts of the terminal's shell integration (also on remote hosts, in their cache dir) |
 
-Caches can be deleted at any time; Forge rebuilds them. Without a platform cache folder the PHP
+The search index lives in `<cache dir>/Forge/search/<hash of the project root>.bin`. The
+embedded browser engine (the webview) keeps its cache in `<cache dir>/dev.forge.ide` (WebView2 on
+Windows: the `Cache` folders of `%LOCALAPPDATA%\dev.forge.ide\EBWebView\Default`).
+
+Caches can be deleted at any time; Forge rebuilds them. File | [Invalidate Caches…](../user/repair-ide.md#invalidate-caches)
+deletes them for you on the next start. Without a platform cache folder the PHP
 index falls back to `<project>/.forge/cache/php-index.json`.
 
 ## Data — `<data dir>/forge/`
@@ -58,7 +64,11 @@ index falls back to `<project>/.forge/cache/php-index.json`.
 | `projects/<name>-<hash>/local-history/` | the project's [Local History](../user/local-history.md): `changes.jsonl` (one change set per line: saves, refactorings, VCS operations, external changes, labels) and `content/` (file contents, zlib-compressed and stored once per content hash); cleaned up after the configured working days and size; kept out of the project |
 | `projects/<name>-<hash>/changelists.json` | the changelists of the Commit tool window (names, comments, the active list, which files and changes belong where); kept out of the project |
 | `projects/<name>-<hash>/shelf/<id>/` | shelved changelists (Git ▸ Shelve Changes): `changes.json` (name, date, branch, files) and `shelved.patch`; kept out of the project |
+| `pending-maintenance.json` | work for the next start written by Invalidate Caches and Restore Default Settings; removed once it ran |
 | `chat-history/<project>-<hash>/<chat>.json` | the AI chats of each project (the newest 100), see [AI](../user/ai.md) |
+
+Restore Default Settings copies `<config dir>/forge` to `<config dir>/forge-backup-<date>-<time>`
+first (the time is UTC).
 
 ## State — `<state dir>/forge/`
 

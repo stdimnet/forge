@@ -57,6 +57,41 @@ pub fn filetypes_detect(request_json: &str) -> String {
     }
 }
 
+/// Mirrors the `filetypes_list` IPC command: `DetectRequest` → `FileTypeRow[]`.
+#[wasm_bindgen]
+pub fn filetypes_list(request_json: &str) -> String {
+    match serde_json::from_str::<DetectRequest>(request_json) {
+        Ok(req) => REGISTRY.with(|r| {
+            to_json(
+                &r.borrow()
+                    .rows(&req.inactive_plugins, &req.user_file_types()),
+            )
+        }),
+        Err(e) => to_json(&serde_json::json!({ "error": e.to_string() })),
+    }
+}
+
+#[derive(Deserialize)]
+struct IgnoredRequest {
+    names: Vec<String>,
+    patterns: String,
+}
+
+/// `{ names, patterns }` → for each name whether "Ignored Files and Folders" hides it (the
+/// filter of `fs_list_dir`).
+#[wasm_bindgen]
+pub fn filetypes_ignored(request_json: &str) -> String {
+    match serde_json::from_str::<IgnoredRequest>(request_json) {
+        Ok(req) => to_json(
+            &req.names
+                .iter()
+                .map(|n| forge_filetypes::matches_glob_list(n, &req.patterns))
+                .collect::<Vec<_>>(),
+        ),
+        Err(e) => to_json(&serde_json::json!({ "error": e.to_string() })),
+    }
+}
+
 /// Mirrors the `filetypes_template_delimiters` IPC command.
 #[wasm_bindgen]
 pub fn filetypes_template_delimiters() -> String {
@@ -84,6 +119,19 @@ mod tests {
             r#"{"files":[{"path":"compose.yaml"}],"inactivePlugins":["forge.compose"]}"#,
         );
         assert!(out.contains(r#""id":"yaml""#), "{out}");
+    }
+
+    #[test]
+    fn lists_types_with_user_patterns() {
+        let out = filetypes_list(
+            r#"{"files":[],"associations":[{"fileType":"php","pattern":"*.module"}],"customTypes":[{"name":"DSL"}]}"#,
+        );
+        let rows: Vec<serde_json::Value> = serde_json::from_str(&out).unwrap();
+        let php = rows.iter().find(|r| r["id"] == "php").unwrap();
+        assert_eq!(php["added"][0], "*.module");
+        assert!(rows
+            .iter()
+            .any(|r| r["id"] == "custom-dsl" && r["custom"] == true));
     }
 
     #[test]

@@ -20,6 +20,8 @@ interface SettingsState {
   values: Record<string, SettingValue>;
   user: Record<string, SettingValue>;
   project: Record<string, SettingValue>;
+  /** Settings for New Projects: defaults of project-level settings. */
+  newProjects: Record<string, SettingValue>;
   hasProject: boolean;
   schema: SettingSpec[];
   plugins: PluginInfo[];
@@ -30,6 +32,7 @@ const [settingsState, setState] = createStore<SettingsState>({
   values: {},
   user: {},
   project: {},
+  newProjects: {},
   hasProject: false,
   schema: [],
   plugins: [],
@@ -46,9 +49,31 @@ export function getSetting<T extends SettingValue>(key: string, fallback?: T): T
   return v as T;
 }
 
-/** The layer a setting is written to: project-level settings go to the open project. */
-export const scopeFor = (key: string): SettingsScope =>
-  findSpec(key)?.project && settingsState.hasProject ? "project" : "user";
+/**
+ * The layer a setting is written to: project-level settings go to the open project, or to
+ * the Settings for New Projects when no project is open or `forNewProjects` is set (File |
+ * New Projects Setup | Settings for New Projects).
+ */
+export function scopeFor(key: string, forNewProjects = false): SettingsScope {
+  if (!findSpec(key)?.project) return "user";
+  return settingsState.hasProject && !forNewProjects ? "project" : "newProjects";
+}
+
+/** The value a setting has for new projects: their default, else the user's or the schema's. */
+export function newProjectValue<T extends SettingValue>(key: string): T {
+  const v = settingsState.newProjects[key] ?? settingsState.user[key] ?? findSpec(key)?.default;
+  return v as T;
+}
+
+/** The value `key` would have without the layer `scope` (what removing the override gives). */
+export function inheritedValue(key: string, scope: SettingsScope): SettingValue | undefined {
+  const layers: SettingsScope[] = ["project", "newProjects", "user"];
+  for (const layer of layers.slice(layers.indexOf(scope) + 1)) {
+    const v = settingsState[layer][key];
+    if (v !== undefined) return v;
+  }
+  return findSpec(key)?.default;
+}
 
 /** Set a value only in the UI (no persistence), e.g. to adopt state that already applies. */
 export function setLocalSetting(key: string, value: SettingValue): void {
@@ -60,6 +85,7 @@ async function refreshSnapshot(): Promise<void> {
   setState("values", reconcile(snap.values));
   setState("user", reconcile(snap.user));
   setState("project", reconcile(snap.project));
+  setState("newProjects", reconcile(snap.newProjects ?? {}));
   setState("hasProject", snap.hasProject);
 }
 
@@ -88,9 +114,19 @@ export async function saveSetting(key: string, value: SettingValue | null, scope
   await refreshSnapshot();
 }
 
-/** Persist several settings at once, then refresh the layers once. */
-export async function saveSettings(changes: Record<string, SettingValue | null>): Promise<void> {
-  for (const [key, value] of Object.entries(changes)) await settingsApi.set(key, value, scopeFor(key));
+const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+
+/**
+ * Persist several settings at once, then refresh the layers once. A value equal to what the
+ * layers below give removes the override instead of storing a copy.
+ */
+export async function saveSettings(changes: Record<string, SettingValue | null>, forNewProjects = false): Promise<void> {
+  for (const [key, value] of Object.entries(changes)) {
+    const scope = scopeFor(key, forNewProjects);
+    const stored = value !== null && same(value, inheritedValue(key, scope)) ? null : value;
+    if (stored === null && settingsState[scope][key] === undefined) continue;
+    await settingsApi.set(key, stored, scope);
+  }
   await refreshSnapshot();
 }
 

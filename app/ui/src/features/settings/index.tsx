@@ -12,6 +12,7 @@ import { registerDialog, isDialogOpen } from "@/shell/window/dialogs";
 import {
   closeSettings,
   openSettings,
+  openSettingsForNewProjects,
   setSelected,
   SETTINGS_DIALOG,
   type SettingsDialogProps,
@@ -26,7 +27,7 @@ import { applySettingsToDocument } from "./apply";
 import { softWrapFor } from "@/editor/languages";
 import "./settings.css";
 
-export { openSettings, closeSettings };
+export { openSettings, openSettingsForNewProjects, closeSettings };
 
 type SchemaPageDef = Omit<SettingsPage, "component">;
 
@@ -67,10 +68,16 @@ registerSettingsPage({
 });
 
 registerCommand({ id: "settings.open", title: "Settings…", category: "File", run: () => openSettings() });
+registerCommand({
+  id: "TemplateProjectProperties",
+  title: "Settings for New Projects…",
+  category: "File",
+  run: () => openSettingsForNewProjects(),
+});
 
 registerDialog<SettingsDialogProps, SettingsDialogResult>({
   id: SETTINGS_DIALOG,
-  title: "Settings",
+  title: (props) => (props?.forNewProjects ? "Settings for New Projects" : "Settings"),
   width: 1040,
   height: 700,
   minWidth: 640,

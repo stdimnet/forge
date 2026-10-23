@@ -48,7 +48,8 @@ Forge's rule of thumb is "Rust computes, TypeScript renders": logic lives in Rus
 - [Local History](guide/user/local-history.md): revisions recorded on save, refactorings, VCS operations and external changes; Show History, Show History for Selection, Revert, Create Patch, labels, Recent Changes
 - [AI](guide/user/ai.md): AI providers, agent chat and AI commit messages
 - [Language servers](guide/user/language-servers.md): installing and configuring external language servers
-- [Settings and themes](guide/user/settings-and-themes.md): the Settings dialog, Ember and Anvil themes
+- [Settings and themes](guide/user/settings-and-themes.md): the Settings dialog, Settings for New Projects, Restore Defaults, Export / Import Settings, Restore Default Settings, Ember and Anvil themes
+- [Invalidate Caches and Repair IDE](guide/user/repair-ide.md): Reload All from Disk, the step-by-step Repair IDE, Invalidate Caches and which caches it clears
 
 ## Reference
 

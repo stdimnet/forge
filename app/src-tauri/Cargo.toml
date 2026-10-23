@@ -25,6 +25,7 @@ forge-ssr.workspace = true
 forge-plugin-api.workspace = true
 forge-fuzzy.workspace = true
 forge-filetypes.workspace = true
+forge-maintenance = { workspace = true, features = ["disk"] }
 forge-text.workspace = true
 forge-codestyle.workspace = true
 forge-save-actions = { workspace = true, features = ["backend"] }

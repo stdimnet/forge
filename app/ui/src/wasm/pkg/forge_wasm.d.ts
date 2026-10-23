@@ -503,6 +503,17 @@ export function file_structure_view(request_json: string): string;
 export function filetypes_detect(request_json: string): string;
 
 /**
+ * `{ names, patterns }` → for each name whether "Ignored Files and Folders" hides it (the
+ * filter of `fs_list_dir`).
+ */
+export function filetypes_ignored(request_json: string): string;
+
+/**
+ * Mirrors the `filetypes_list` IPC command: `DetectRequest` → `FileTypeRow[]`.
+ */
+export function filetypes_list(request_json: string): string;
+
+/**
  * Register the file types of plugins (`PluginInfo[]` JSON) on top of the bundled ones.
  * Returns the number of known file types.
  */
@@ -768,6 +779,17 @@ export function lua_run_markers(request_json: string): string;
  * `{ query, kind: "class" | "symbol", limit? }` -> `SymbolHit[]`.
  */
 export function lua_search_symbols(request_json: string): string;
+
+/**
+ * The Invalidate Caches dialog.
+ */
+export function maintenance_invalidate_model(): string;
+
+/**
+ * `{ keys, files }` (user setting keys, existing config files) → the settings groups with
+ * their counts.
+ */
+export function maintenance_settings_groups(request_json: string): string;
 
 /**
  * `{ text, anchor }` → 0-based line or `null`.
@@ -1416,6 +1438,8 @@ export interface InitOutput {
     readonly file_colors_resolve: (a: number, b: number, c: number) => void;
     readonly file_structure_view: (a: number, b: number, c: number) => void;
     readonly filetypes_detect: (a: number, b: number, c: number) => void;
+    readonly filetypes_ignored: (a: number, b: number, c: number) => void;
+    readonly filetypes_list: (a: number, b: number, c: number) => void;
     readonly filetypes_load: (a: number, b: number, c: number) => void;
     readonly filetypes_template_delimiters: (a: number) => void;
     readonly find_in_files: (a: number, b: number, c: number) => void;
@@ -1470,6 +1494,8 @@ export interface InitOutput {
     readonly lua_index_files: (a: number, b: number, c: number) => void;
     readonly lua_run_markers: (a: number, b: number, c: number) => void;
     readonly lua_search_symbols: (a: number, b: number, c: number) => void;
+    readonly maintenance_invalidate_model: (a: number) => void;
+    readonly maintenance_settings_groups: (a: number, b: number, c: number) => void;
     readonly markdown_anchor_line: (a: number, b: number, c: number) => void;
     readonly markdown_document: (a: number, b: number, c: number) => void;
     readonly markdown_hover: (a: number, b: number, c: number) => void;

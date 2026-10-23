@@ -4,7 +4,7 @@
  */
 import { createEffect, createMemo, createSignal, For, on, onCleanup, onMount, Show } from "solid-js";
 import { Dynamic } from "solid-js/web";
-import { ChevronDown, ChevronRight, CircleHelp, FolderGit2, Search, X } from "lucide-solid";
+import { ChevronDown, ChevronRight, CircleHelp, FolderGit2, FolderPlus, Search, X } from "lucide-solid";
 import { settingsPages } from "@/features/settingsPages";
 import { settingsState } from "@/state/settings";
 import {
@@ -14,11 +14,14 @@ import {
   dialogClosed,
   dialogOpened,
   error,
+  forNewProjects,
   hasChanges,
   isOpen,
+  pageDiffersFromDefaults,
   pageModified,
   query,
   resetPage,
+  restorePageDefaults,
   selected,
   setQuery,
   setSelected,
@@ -119,8 +122,9 @@ export function SettingsDialog(props: { props: SettingsDialogProps }) {
   );
   const current = () => selectedPath()[selectedPath().length - 1];
   const currentPageId = () => (current()?.page ? current()!.id : undefined);
-  const projectScoped = () =>
-    settingsState.schema.some((s) => s.group === currentPageId() && s.project) && settingsState.hasProject;
+  const pageHasProjectSettings = () => settingsState.schema.some((s) => s.group === currentPageId() && s.project);
+  const projectScoped = () => pageHasProjectSettings() && settingsState.hasProject && !forNewProjects();
+  const newProjectsScoped = () => pageHasProjectSettings() && (forNewProjects() || !settingsState.hasProject);
 
   // Searching selects the first page that matches if the current one does not.
   createEffect(
@@ -199,10 +203,25 @@ export function SettingsDialog(props: { props: SettingsDialogProps }) {
                   <FolderGit2 size={13} /> For current project
                 </span>
               </Show>
+              <Show when={newProjectsScoped()}>
+                <span class="set-scope" title="Defaults for projects without their own value (new-project-settings.toml)">
+                  <FolderPlus size={13} /> For new projects
+                </span>
+              </Show>
             </div>
             <Show when={currentPageId() && pageModified(currentPageId()!)}>
               <button class="set-reset" onClick={() => resetPage(currentPageId()!)}>
                 Reset
+              </button>
+            </Show>
+            <Show when={currentPageId() && pageDiffersFromDefaults(currentPageId()!)}>
+              <button
+                class="set-reset"
+                data-testid="restore-page-defaults"
+                title="Set every option of this page to its default; Apply stores it"
+                onClick={() => restorePageDefaults(currentPageId()!)}
+              >
+                Restore Defaults
               </button>
             </Show>
           </div>

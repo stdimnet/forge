@@ -371,6 +371,40 @@ default = []
 group = "editor.file-templates"
 order = 0
 
+# ---- Editor > File Types -------------------------------------------------------------
+
+[[contributions.settings]]
+key = "fileTypes.associations"
+title = "File name patterns"
+description = "Patterns added to a file type (`{ fileType = \"php\", pattern = \"*.module\" }`) or removed from it (`action = \"remove\"`). A pattern added to one type is taken away from the others."
+type = "objects"
+unique = ["fileType", "pattern"]
+default = []
+group = "editor.file-types"
+hidden = true
+order = 0
+
+[[contributions.settings]]
+key = "fileTypes.custom"
+title = "Custom file types"
+description = "File types created in Settings | Editor | File Types with their syntax highlighting: name, description, comments, number formats, keyword lists 1-4 and options."
+type = "objects"
+unique = ["name"]
+default = []
+group = "editor.file-types"
+hidden = true
+order = 10
+
+[[contributions.settings]]
+key = "fileTypes.ignoredFiles"
+title = "Ignored Files and Folders"
+description = "Files and folders with these names are hidden from the Project view, separated by ';' (`*` and `?` wildcards)."
+type = "string"
+default = "*.hprof;*.pyc;*.pyo;*.rbc;*.yarb;*~;.DS_Store;.git;.hg;.svn;CVS;__pycache__;_svn;vssver.scc;vssver2.scc"
+group = "editor.file-types"
+hidden = true
+order = 20
+
 # ---- Appearance & Behavior > System Settings ----------------------------------------
 
 [[contributions.settings]]

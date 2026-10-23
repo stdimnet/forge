@@ -16,6 +16,7 @@ import { runCommand } from "@/state/commands";
 import { frameworkLabel } from "@/state/project";
 import { ProjectTypeIcon } from "@/shell/ProjectTypeIcon";
 import { RemoteDevelopmentPage, SshBadge } from "@/features/remote/RemoteDevelopmentPage";
+import { action, separator, showContextMenu } from "@/features/contextMenu/state";
 import { openRecentRemote } from "@/features/remote/store";
 import "./welcome.css";
 
@@ -117,7 +118,28 @@ export function WelcomeScreen() {
           <Puzzle size={15} /> Plugins
         </button>
         <div class="welcome-nav-foot">
-          <button class="icon-btn" title="Settings" onClick={() => runCommand("settings.open")}>
+          <button
+            class="icon-btn"
+            title="Manage IDE Settings"
+            data-testid="welcome-manage"
+            onClick={(e) => {
+              const r = e.currentTarget.getBoundingClientRect();
+              showContextMenu(
+                [
+                  action("ShowSettings", "Settings..."),
+                  action("TemplateProjectProperties", "Settings for New Projects..."),
+                  separator,
+                  action("ImportSettings", "Import Settings..."),
+                  action("ExportSettings", "Export Settings..."),
+                  action("RestoreDefaultSettings", "Restore Default Settings..."),
+                  separator,
+                  action("InvalidateCaches", "Invalidate Caches..."),
+                ],
+                r.left,
+                r.top - 8,
+              );
+            }}
+          >
             <Settings size={16} />
           </button>
         </div>
