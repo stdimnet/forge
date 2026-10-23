@@ -67,6 +67,7 @@ not finished, the page says so.
 | Page | Covers |
 | --- | --- |
 | [Run/Debug configurations](run-debug.md) | configuration types, run widget, Run tool window, Analyze Stack Trace, test results |
+| [PHP test frameworks](test-frameworks.md) | Settings \| PHP \| Test Frameworks, PHPUnit, Pest, Codeception, Behat and PHPSpec configurations, gutter icons, Rerun Failed Tests, Test History, auto-test, Gherkin and Behat step navigation |
 | [Command Line Tool Support](command-line-tools.md) | Tools \| Run Command… (`Ctrl+Shift+X`): Composer, Artisan, Symfony Console, WP-CLI, Drush and custom tools with completion, the Command Line Tools Console, Settings \| Tools \| Command Line Tool Support |
 | [Xdebug debugging](debugging.md) | listening, breakpoints, stepping, evaluate, servers and path mappings |
 | [Terminal](terminal.md) | tabs, shells, links |

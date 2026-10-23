@@ -157,6 +157,7 @@ fn command_line(
             path_mappings: Vec::new(),
             debug_server: None,
             output_filters: Vec::new(),
+            tests: Default::default(),
         });
     };
     let prepared = interpreters::prepare(state, backend, interp);
@@ -169,6 +170,7 @@ fn command_line(
         path_mappings: prepared.output_mappings(),
         debug_server: None,
         output_filters: Vec::new(),
+        tests: Default::default(),
     })
 }
 

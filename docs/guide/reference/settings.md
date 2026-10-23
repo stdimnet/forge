@@ -478,6 +478,15 @@ Page id `lang.php.quality-tools`.
 | `php.tools.phpCsFixer.path` | path | `""` | user, project | PHP CS Fixer | PHP CS Fixer path — Empty: vendor/bin/php-cs-fixer of the project. A relative path starts at the project root. The project's .php-cs-fixer.dist.php is used. |
 | `php.tools.pint.path` | path | `""` | user, project | Laravel Pint | Laravel Pint path — Empty: vendor/bin/pint of the project. A relative path starts at the project root. The project's pint.json is used. |
 
+### Languages & Frameworks | PHP | Test Frameworks
+
+Page id `lang.php.test-frameworks`.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `php.testFrameworks` | objects | `[]` | user, project |  | Test frameworks — PHPUnit, Pest, Codeception, Behat and PHPSpec per CLI interpreter. Entries: `framework` (`phpunit`, `pest`, `codeception`, `behat`, `phpspec`), `interpreter` (empty: Local), `mode` (`composer`: `path` is `vendor/autoload.php`; `path`: the executable or phar), `path`, `configFile`, `bootstrapFile`. Frameworks the project uses are detected. |
+| `run.autoTest.delay` | int (0–600) | `3` | user | Auto-Test | Auto-test delay (seconds) — With Toggle Auto-Test on, a test run reruns this long after the last file was saved. |
+
 ### Languages & Frameworks | PHP | Debug
 
 Page id `lang.php.debug`.

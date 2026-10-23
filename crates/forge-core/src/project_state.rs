@@ -6,6 +6,8 @@
 //!   layout stored with Window | Store Current Layout as Default (`layouts/_default.json`);
 //! - the AI chat history in the user data dir
 //!   (`<data dir>/forge/chat-history/<project key>/<id>.json`);
+//! - the Test History of the Run tool window in the user data dir
+//!   (`<data dir>/forge/test-history/<project key>/<id>.json`);
 //! - small per-project lists such as the Run Anything history in the state dir
 //!   (`<state dir>/forge/<kind>/<project key>.json`, see [`load_list`]).
 //!
@@ -247,6 +249,12 @@ pub fn chat_title(conversation: &Value) -> String {
 
 fn turns(conversation: &Value) -> usize {
     conversation["turns"].as_array().map_or(0, Vec::len)
+}
+
+/// `<data dir>/forge/test-history` (the Run tool window's Test History, see
+/// `forge_process::test_history`).
+pub fn default_test_history_dir() -> Option<PathBuf> {
+    dirs::data_dir().map(|d| d.join("forge").join("test-history"))
 }
 
 /// `<data dir>/forge/chat-history`.

@@ -25,8 +25,12 @@ import {
   Bug,
   RefreshCcwDot,
   ScrollText,
+  History,
+  TimerReset,
+  CircleX,
 } from "lucide-solid";
-import { shortcutLabel } from "@/keymap";
+import { balloonsFor, shortcutLabel } from "@/keymap";
+import { testFrameworksApi } from "@/ipc/testFrameworks";
 import { getSetting } from "@/state/settings";
 import { openMenu } from "./PopupMenu";
 import { Console } from "./Console";
@@ -39,7 +43,9 @@ import {
   clearConsole,
   closeSession,
   isRunning,
+  openHistoryRun,
   rerunFailedTests,
+  toggleAutoTest,
   rerunSession,
   sendInput,
   sessionData,
@@ -187,6 +193,38 @@ function showComparison(n: TestNode) {
   });
 }
 
+const historyBalloon = balloonsFor("Test History");
+
+/** "Oct 23, 14:02". */
+const when = (at: number) =>
+  new Date(at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+
+/** Test History: the last test runs of the project; picking one opens it in a Run tab. */
+export async function showTestHistory(x: number, y: number): Promise<void> {
+  const runs = await testFrameworksApi.history().catch((err) => {
+    historyBalloon("Cannot read the test history", String(err));
+    return null;
+  });
+  if (!runs) return;
+  openMenu({
+    x,
+    y,
+    items: runs.length
+      ? runs.map((r) => ({
+          label: `${r.name} – ${r.summary.replace(/ – .*$/, "")}`,
+          icon: r.counts.failed ? CircleX : CircleCheck,
+          iconColor: r.counts.failed ? "var(--danger)" : "var(--success)",
+          shortcut: when(r.at),
+          run: () =>
+            void testFrameworksApi
+              .openHistory(r.id)
+              .then(openHistoryRun)
+              .catch((err) => historyBalloon("Cannot open the test run", String(err))),
+        }))
+      : [{ label: "No test runs yet", disabled: true }],
+  });
+}
+
 function findNode(root: TestNode, id: number | null): TestNode | undefined {
   if (id === null) return undefined;
   if (root.id === id) return root;
@@ -282,6 +320,13 @@ function SessionView(props: { session: RunSession }) {
             disabled={running() || !tests() || tests()!.summary.counts.failed === 0}
             onClick={() => void rerunFailedTests(id())}
           />
+          <ToolButton
+            title="Toggle Auto-Test"
+            class="run-auto-test"
+            icon={<TimerReset size={15} />}
+            active={!!props.session.autoTest}
+            onClick={() => toggleAutoTest(id())}
+          />
         </Show>
         <div class="run-tool-sep" />
         <ToolButton
@@ -356,6 +401,17 @@ function SessionView(props: { session: RunSession }) {
                     />
                     <ToolButton title="Previous Failed Test" icon={<ArrowUp size={15} />} onClick={() => stepFailed(-1)} />
                     <ToolButton title="Next Failed Test" icon={<ArrowDown size={15} />} onClick={() => stepFailed(1)} />
+                    <div class="run-tool-sep vertical" />
+                    <button
+                      class="icon-btn run-tool run-test-history"
+                      title="Test History"
+                      onClick={(e) => {
+                        const r = e.currentTarget.getBoundingClientRect();
+                        void showTestHistory(r.left, r.bottom + 2);
+                      }}
+                    >
+                      <History size={15} />
+                    </button>
                   </div>
                   <div class="run-tests-status" classList={{ failed: status().failed }}>
                     <StatusIcon status={running() ? "running" : t().root.status} />

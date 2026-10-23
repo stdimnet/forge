@@ -193,6 +193,64 @@ id = "phpunit.testMethod"
 title = "Test Method"
 languages = ["php"]
 
+[[plugin.contributions.runConfigurationTypes]]
+id = "pest"
+name = "Pest"
+description = "Run Pest tests: a directory, a file, a test or describe block, or phpunit.xml."
+icon = "flask-conical"
+debuggable = true
+
+[[plugin]]
+id = "forge.codeception"
+name = "Codeception Framework"
+version = "0.1.0"
+pack = "phpforge"
+vendor = "Forge"
+depends = ["forge.php"]
+description = "Run and debug Codeception suites, Cest/Cept files and tests, with groups and environments."
+projectTypes = ["codeception"]
+
+[[plugin.contributions.runConfigurationTypes]]
+id = "codeception"
+name = "Codeception"
+description = "Run a Codeception suite, directory, file or test."
+icon = "flask-conical"
+debuggable = true
+
+[[plugin]]
+id = "forge.behat"
+name = "Behat"
+version = "0.1.0"
+pack = "phpforge"
+vendor = "Forge"
+depends = ["forge.php"]
+description = "Run Behat features and scenarios, navigate from steps to their definitions."
+projectTypes = ["behat"]
+
+[[plugin.contributions.runConfigurationTypes]]
+id = "behat"
+name = "Behat"
+description = "Run Behat features, a feature file or a scenario."
+icon = "flask-conical"
+debuggable = true
+
+[[plugin]]
+id = "forge.phpspec"
+name = "PHPSpec"
+version = "0.1.0"
+pack = "phpforge"
+vendor = "Forge"
+depends = ["forge.php"]
+description = "Run PHPSpec specs and examples."
+projectTypes = ["phpspec"]
+
+[[plugin.contributions.runConfigurationTypes]]
+id = "phpspec"
+name = "PHPSpec"
+description = "Run PHPSpec specs: a directory, a spec file or an example."
+icon = "flask-conical"
+debuggable = true
+
 [[plugin]]
 id = "forge.xdebug"
 name = "Xdebug"

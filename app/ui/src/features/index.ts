@@ -40,6 +40,7 @@ import "./languages";
 import "./browserCompanion";
 import "./terminal";
 import "./run";
+import "./testFrameworks";
 import "./runAnything";
 import "./externalTools";
 import "./debug";

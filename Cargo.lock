@@ -1864,6 +1864,7 @@ dependencies = [
  "phpforge-interpreters",
  "phpforge-lang-php",
  "phpforge-orm-doctrine",
+ "phpforge-test-frameworks",
  "serde",
  "serde_json",
  "tauri",
@@ -2240,6 +2241,7 @@ dependencies = [
 name = "forge-output"
 version = "0.1.0"
 dependencies = [
+ "quick-xml",
  "regex-lite",
  "serde",
  "serde_json",
@@ -2551,6 +2553,7 @@ dependencies = [
  "phpforge-composer",
  "phpforge-dql",
  "phpforge-interpreters",
+ "phpforge-test-frameworks",
  "serde",
  "serde_json",
  "wasm-bindgen",
@@ -4915,6 +4918,17 @@ dependencies = [
  "tree-sitter",
  "walkdir",
  "yaml-rust2",
+]
+
+[[package]]
+name = "phpforge-test-frameworks"
+version = "0.1.0"
+dependencies = [
+ "forge-output",
+ "forge-runtools",
+ "regex-lite",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

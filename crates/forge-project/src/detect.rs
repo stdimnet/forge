@@ -103,6 +103,9 @@ const COMPOSER_FRAMEWORKS: &[(&str, &str, &str)] = &[
     ("livewire/livewire", "livewire", "Livewire"),
     ("phpunit/phpunit", "phpunit", "PHPUnit"),
     ("pestphp/pest", "pest", "Pest"),
+    ("codeception/codeception", "codeception", "Codeception"),
+    ("behat/behat", "behat", "Behat"),
+    ("phpspec/phpspec", "phpspec", "PHPSpec"),
 ];
 
 /// npm packages that identify a framework: (package, id, name).
