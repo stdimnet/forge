@@ -11,7 +11,7 @@ async function quiet(page) {
 
 /** @param {import("playwright-core").Page} page @param {string} label */
 async function menuItem(page, label) {
-  return page.locator(".context-menu-item", { hasText: label }).first();
+  return page.locator(".context-menu-label", { hasText: label }).last();
 }
 
 /** Expand `storage` and right-click `storage/logs`. @param {import("playwright-core").Page} page */
