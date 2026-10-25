@@ -60,6 +60,7 @@ forge-jsonschema = { path = "crates/forge-jsonschema" }
 forge-scratches = { path = "crates/forge-scratches", default-features = false }
 forge-backend = { path = "crates/forge-backend", default-features = false }
 forge-remote = { path = "crates/forge-remote" }
+forge-devenv = { path = "crates/forge-devenv" }
 forge-deploy = { path = "crates/forge-deploy" }
 forge-window = { path = "crates/forge-window" }
 forge-update = { path = "crates/forge-update" }

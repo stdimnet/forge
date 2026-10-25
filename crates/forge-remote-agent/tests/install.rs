@@ -63,6 +63,7 @@ fn remote(dir: &tempfile::TempDir) -> Arc<dyn Backend> {
         port: 22,
         user: "deploy".into(),
         config_id: None,
+        kind: Default::default(),
     };
     Arc::new(RemoteBackend::open(Arc::new(client), host, &dir.path().to_string_lossy()).unwrap())
 }

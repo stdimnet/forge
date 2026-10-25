@@ -2080,6 +2080,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "forge-devenv"
+version = "0.1.0"
+dependencies = [
+ "forge-backend",
+ "forge-core",
+ "forge-remote",
+ "forge-remote-agent",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "forge-diff"
 version = "0.1.0"
 dependencies = [
