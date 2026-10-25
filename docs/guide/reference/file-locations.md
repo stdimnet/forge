@@ -38,6 +38,7 @@ Forge uses the platform's standard folders (Rust's `dirs` crate):
 | Path | Content |
 | --- | --- |
 | `php-index/<project>-<hash>.json` | PHP index cache per project |
+| `project-windows.json` | the running project windows (one Forge instance each) and their local control ports, for Window \| Next Project Window |
 | `json-schemas/<sha256 of the URL>.json` | downloaded JSON schemas and the SchemaStore catalog (only with remote JSON schemas allowed), refreshed daily |
 | `php-stubs/<version>/` | JetBrains phpstorm-stubs for Go to Declaration on PHP's own symbols (downloaded on first use, checked against a pinned digest of its files, with its `LICENSE`) |
 | `packagist/p2/<vendor>/<package>.json`, `packagist/search/` | Packagist package metadata (6 hours) and searches (1 hour) for Composer completion, versions and outdated packages (only while `php.composer.packagist` is on) |
