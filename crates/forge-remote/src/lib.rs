@@ -15,6 +15,7 @@
 //! - [`agent`]: installing and starting the agent.
 //! - [`connection`]: a live connection to an agent with reconnects and latency.
 //! - [`store`]: saved configurations on disk and their secrets in the keychain.
+//! - [`shell`]: interactive SSH terminal sessions (a pseudo terminal on an SSH channel).
 
 pub mod config;
 pub mod deploy;
@@ -27,6 +28,8 @@ pub mod agent;
 pub mod connection;
 #[cfg(feature = "client")]
 pub mod session;
+#[cfg(feature = "client")]
+pub mod shell;
 #[cfg(feature = "client")]
 pub mod store;
 

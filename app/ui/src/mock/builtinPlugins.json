@@ -2706,7 +2706,7 @@
     "name": "Terminal",
     "version": "0.1.0",
     "pack": "core",
-    "description": "Integrated terminal emulator with shell integration.",
+    "description": "Integrated terminal emulator with shell integration and SSH sessions.",
     "vendor": "Forge",
     "depends": [],
     "required": false,
@@ -2719,6 +2719,11 @@
           "id": "terminal.open",
           "title": "Terminal",
           "category": "View"
+        },
+        {
+          "id": "RunSshConsole",
+          "title": "Start SSH Session…",
+          "category": "Tools"
         }
       ],
       "keybindings": [
@@ -2960,7 +2965,19 @@
       "aiProviders": [],
       "chatAgents": [],
       "codeGenerators": [],
-      "mainMenu": []
+      "mainMenu": [
+        {
+          "path": "Tools",
+          "items": [
+            {
+              "type": "action",
+              "id": "RunSshConsole",
+              "label": "Start SSH _Session..."
+            }
+          ],
+          "after": "Terminal.NewTab"
+        }
+      ]
     }
   },
   {
@@ -3489,7 +3506,7 @@
     "name": "Deployment",
     "version": "0.1.0",
     "pack": "core",
-    "description": "Deployment to SFTP, FTP/FTPS and local or mounted folders: path mappings, excluded paths, upload, download, sync and compare with the deployed version, automatic upload on save and the File Transfer tool window.",
+    "description": "Deployment to SFTP, FTP/FTPS and local or mounted folders: path mappings, excluded paths, upload, download, sync and compare with the deployed version, automatic upload on save, the Remote Host and File Transfer tool windows.",
     "vendor": "Forge",
     "depends": [],
     "required": false,
@@ -3534,6 +3551,11 @@
           "category": "Deployment"
         },
         {
+          "id": "PublishGroup.BrowseServers",
+          "title": "Browse Remote Host",
+          "category": "Deployment"
+        },
+        {
           "id": "PublishGroup.ToggleAutoUpload",
           "title": "Automatic Upload (Always)",
           "category": "Deployment"
@@ -3541,6 +3563,13 @@
       ],
       "keybindings": [],
       "toolWindows": [
+        {
+          "id": "remoteHost",
+          "title": "Remote Host",
+          "anchor": "right",
+          "icon": "server",
+          "order": 40
+        },
         {
           "id": "fileTransfer",
           "title": "File Transfer",

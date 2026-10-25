@@ -13,6 +13,7 @@ use forge_deploy::fs::ServerFs;
 use forge_deploy::ftp::{FtpFs, FtpParams};
 use forge_deploy::local::LocalFolder;
 use forge_deploy::options::{DeployOptions, WarnNewer};
+use forge_deploy::remote_host;
 use forge_deploy::sftp::SftpFs;
 use forge_deploy::transfer::{Deployer, Direction, FileStatus};
 use forge_diff::DiffStatus;
@@ -239,6 +240,75 @@ fn exercise(remote: &mut dyn ServerFs, remote_dir: &Path) {
         .transfer(Direction::Upload, &paths(&["composer.json"]), true);
     assert!(summary.cancelled);
     assert!(summary.results.is_empty());
+
+    remote_host_operations(remote, remote_dir, &server);
+}
+
+/// The Remote Host tool window's tree and context menu on `remote`.
+fn remote_host_operations(remote: &mut dyn ServerFs, remote_dir: &Path, server: &DeployServer) {
+    // The tree: folders first, mappings and the project paths they lead to.
+    let top = remote_host::list(remote, server, "").unwrap();
+    let names: Vec<&str> = top.iter().map(|n| n.name.as_str()).collect();
+    assert_eq!(&names[..2], ["app", "htdocs"], "{names:?}");
+    let htdocs = top.iter().find(|n| n.name == "htdocs").unwrap();
+    assert!(htdocs.dir && htdocs.mapping_root);
+    assert_eq!(htdocs.local.as_deref(), Some("public"));
+    let inner = remote_host::list(remote, server, "htdocs").unwrap();
+    let index = inner.iter().find(|n| n.name == "index.php").unwrap();
+    assert_eq!(index.local.as_deref(), Some("public/index.php"));
+    assert!(index.size > 0);
+
+    // New Directory, New File, Rename, Delete.
+    remote_host::create(remote, "htdocs", "assets", true).unwrap();
+    remote_host::create(remote, "htdocs/assets", "site.css", false).unwrap();
+    assert!(remote_dir.join("htdocs/assets/site.css").is_file());
+    assert!(remote_host::create(remote, "htdocs", "assets", true).is_err());
+    let moved = remote_host::rename(remote, "htdocs/assets/site.css", "main.css").unwrap();
+    assert_eq!(moved, "htdocs/assets/main.css");
+    assert!(remote_dir.join("htdocs/assets/main.css").is_file());
+    assert!(!remote_dir.join("htdocs/assets/site.css").exists());
+    // Refresh sees changes made by others.
+    std::fs::write(remote_dir.join("htdocs/robots.txt"), "User-agent: *").unwrap();
+    let inner = remote_host::list(remote, server, "htdocs").unwrap();
+    assert!(inner.iter().any(|n| n.name == "robots.txt"), "{inner:?}");
+
+    // Edit Remote File: the temporary copy uploads back; a changed server copy conflicts.
+    let cache = tempfile::tempdir().unwrap();
+    let mut edited =
+        remote_host::start_edit(remote, &server.id, "htdocs/robots.txt", cache.path()).unwrap();
+    assert!(edited.temp.starts_with(cache.path()));
+    assert_eq!(
+        std::fs::read_to_string(&edited.temp).unwrap(),
+        "User-agent: *"
+    );
+    let saved = remote_host::save_edit(remote, &mut edited, b"Disallow: /admin", false).unwrap();
+    assert_eq!(saved, remote_host::SaveOutcome::Uploaded);
+    assert_eq!(
+        std::fs::read_to_string(remote_dir.join("htdocs/robots.txt")).unwrap(),
+        "Disallow: /admin"
+    );
+    std::fs::write(
+        remote_dir.join("htdocs/robots.txt"),
+        "changed by a colleague",
+    )
+    .unwrap();
+    remote.invalidate();
+    let saved = remote_host::save_edit(remote, &mut edited, b"mine", false).unwrap();
+    assert_eq!(saved, remote_host::SaveOutcome::Conflict { deleted: false });
+    remote_host::save_edit(remote, &mut edited, b"mine", true).unwrap();
+    assert_eq!(
+        remote_host::read_text(remote, "htdocs/robots.txt")
+            .unwrap()
+            .text
+            .as_deref(),
+        Some("mine")
+    );
+
+    let deleted =
+        remote_host::delete(remote, &paths(&["htdocs/assets", "htdocs/robots.txt"])).unwrap();
+    assert_eq!(deleted, 2);
+    assert!(!remote_dir.join("htdocs/assets").exists());
+    assert!(remote_host::delete(remote, &paths(&[""])).is_err());
 }
 
 #[test]

@@ -40,6 +40,7 @@ pub fn connect_params(user: Option<&str>, host: &str, port: Option<u16>) -> Conn
         key_file: None,
         dont_save_secret: true,
         name: None,
+        parse_config: true,
     };
     let mut p = ConnectParams::for_configuration(
         &config,

@@ -184,6 +184,13 @@ impl ServerFs for SftpFs {
             .map_err(|e| sftp_err(format!("Cannot delete {full}"), e))
     }
 
+    fn rename(&mut self, from: &str, to: &str) -> Result<()> {
+        let (full_from, full_to) = (self.full(from), self.full(to));
+        self.rt
+            .block_on(self.sftp.rename(full_from.clone(), full_to))
+            .map_err(|e| sftp_err(format!("Cannot rename {full_from}"), e))
+    }
+
     fn set_modified(&mut self, path: &str, secs: i64) -> Result<bool> {
         let full = self.full(path);
         let Ok(secs) = u32::try_from(secs) else {

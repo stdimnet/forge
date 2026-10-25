@@ -1066,6 +1066,26 @@ or without Git, for local and remote projects.
   upload from `onFileSaved` (the listener gets the `SaveTrigger`). Browser mode:
   `mock/deploymentMock.ts` keeps the demo servers' files in memory and uses
   `crates/forge-wasm/src/deploy.rs` for validation, mappings and the comparison.
+- Remote Host (`commands/remote_host.rs`, `forge_deploy::{browse, remote_host}`, UI
+  `src/features/remoteHost`): `remote_host_list({ serverId, path }) -> { root, rootNode, nodes:
+  RemoteNode[] }` (`{ path, name, dir, size, modified, local, mappingRoot, excluded }`),
+  `remote_host_create({ serverId, dir, name, folder })`, `remote_host_rename({ serverId,
+  path, newName })`, `remote_host_delete({ serverId, paths })`, `remote_host_edit({ serverId,
+  path }) -> { text, temp, remote }`, `remote_host_save_edit({ serverId, path, text, force? })
+  -> { status: "uploaded" } | { status: "conflict", deleted }`, `remote_host_close_edit`,
+  `remote_host_disconnect({ serverId? })`. Connections stay open between calls
+  (`remote_host::Connections`). Edit Remote File tabs are `remote-host://<server>/<path>`
+  (a `registerFileSystem` provider); the temporary copy lives in `<cache dir>/forge/remote-edit`.
+  Download from Here / Upload to Here / Compare with Local Version call `deploy_transfer` /
+  `deploy_read_remote` with the node's mapped `local` path. Browsing and editing are allowed in
+  Safe Mode. Browser mode: `mock/remoteHostMock.ts` over the deployment mock's in-memory files,
+  with `deploy_remote_nodes` / `deploy_entry_path` from WebAssembly.
+- SSH terminal sessions: `terminal_open({ options: { ssh: { configId? | serverId?, secret?,
+  confirmed? } } })` opens `forge_remote::shell::SshShell` (a `Terminal` on a pseudo terminal
+  of an SSH channel) instead of a shell; write / resize / close are the terminal commands. A
+  `serverId` target in Safe Mode needs `confirmed` (`forge_trust::ssh_session_needs_confirmation`),
+  the UI asks first. UI: `src/features/terminal/ssh.tsx` (the chooser of `RunSshConsole` and the
+  new-tab dropdown's "SSH Session…").
 
 ## Language servers (`forge-lsp`)
 

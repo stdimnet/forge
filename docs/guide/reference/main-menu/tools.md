@@ -23,6 +23,7 @@ Terminal, Vim emulation, Run Command… and the tools of plugins (Composer, Depl
 | Save as Live Template… | — | — | yes | Opens Settings \| Editor \| Live Templates with a new template made from the selection. [More](../../user/live-templates.md#save-as-live-template) ([screenshot](../../../screenshots/save-as-live-template.png)) |
 | Save File as Template… | — | — | not yet | Not available yet; the entry is disabled. |
 | Open in Terminal | `Ctrl+Shift+T` | `Cmd+T` | yes | Opens a new terminal tab (Tools | Open in Terminal). [More](../../user/terminal.md#tabs) ([screenshot](../../../screenshots/docs-terminal.png)) |
+| Start SSH Session… | — | — | yes | Chooses an SSH configuration or an SFTP deployment server and opens a Terminal tab connected over SSH. [More](../../user/remote-host-and-ssh.md#ssh-sessions) ([screenshot](../../../screenshots/ssh-session-chooser.png)) |
 | IDE Scripting Console | — | — | not yet | Not available yet; the entry is disabled. |
 | **External Tools** | | | dynamic | submenu: the enabled [External Tools](../../user/run-debug.md#external-tools) (Settings \| Tools \| External Tools) ([screenshot](../../../screenshots/external-tools-menu.png)) |
 | Vim | `Ctrl+Alt+V` | `Cmd+Alt+V` | yes | Turns Vim emulation on or off (check mark; plugin `forge.vim`). [More](../../user/vim-emulation.md) ([screenshot](../../../screenshots/vim-emulation.png)) |
@@ -44,7 +45,7 @@ Terminal, Vim emulation, Run Command… and the tools of plugins (Composer, Depl
 | Deployment › Configuration… | — | — | yes | Opens Settings \| Build, Execution, Deployment \| Deployment. [More](../../user/deployment.md#servers) ([screenshot](../../../screenshots/deployment-settings.png)) |
 | Deployment › Options… | — | — | yes | Opens Deployment \| Options. [More](../../user/deployment.md#options) ([screenshot](../../../screenshots/deployment-options.png)) |
 | Deployment › Automatic Upload (Always) | — | — | yes | Switches automatic upload on save between Always and Never (check mark). [More](../../user/deployment.md#options) |
-| Deployment › Browse Remote Host | — | — | yes | Opens Sync with Deployed for the project root until the Remote Host tool window exists. [More](../../user/deployment.md#safe-mode) |
+| Deployment › Browse Remote Host | — | — | yes | Opens the Remote Host tool window on the default server. [More](../../user/remote-host-and-ssh.md#remote-host-tool-window) ([screenshot](../../../screenshots/remote-host-tree.png)) |
 | **Docker** | | | | submenu |
 | Docker › Pull Image… | — | — | yes | Pulls a Docker image. [More](../../user/services.md#pulling-images-and-registries) |
 | Docker › Refresh Services | — | — | yes | Refreshes the Services tree. [More](../../user/services.md) |

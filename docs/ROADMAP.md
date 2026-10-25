@@ -95,7 +95,7 @@ are in [research/jetbrains-gap-analysis.md](research/jetbrains-gap-analysis.md).
 
 ### Deployment and remote
 - [x] Deployment (SFTP/FTP/local servers, mappings, upload on save, compare with server)
-- [ ] Remote Host tool window, SSH configurations and SSH terminal sessions in local projects
+- [x] Remote Host tool window, SSH configurations and SSH terminal sessions in local projects
 - [ ] Dev Containers and WSL projects
 
 ### Frameworks

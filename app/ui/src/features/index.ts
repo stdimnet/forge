@@ -56,6 +56,7 @@ import "./lua";
 import "./services";
 import "./remote";
 import "./deployment";
+import "./remoteHost";
 import "./webforge";
 import "./clipboard";
 import "./carets";

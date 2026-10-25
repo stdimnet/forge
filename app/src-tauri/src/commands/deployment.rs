@@ -39,12 +39,12 @@ pub struct DeploymentState {
     auto: tokio::sync::Mutex<()>,
 }
 
-fn err(e: DeployError) -> ForgeError {
+pub(crate) fn err(e: DeployError) -> ForgeError {
     ForgeError::Other(e.to_string())
 }
 
 /// The project folder on this machine; transfers of remote projects are not supported.
-fn local_project(state: &AppState) -> Result<PathBuf> {
+pub(crate) fn local_project(state: &AppState) -> Result<PathBuf> {
     match state.local_workspace() {
         Some(ws) if !state.is_remote() => Ok(ws.root().to_path_buf()),
         _ => Err(ForgeError::Other(
@@ -54,7 +54,7 @@ fn local_project(state: &AppState) -> Result<PathBuf> {
     }
 }
 
-fn load(state: &AppState) -> Result<DeploymentConfig> {
+pub(crate) fn load(state: &AppState) -> Result<DeploymentConfig> {
     let text = state
         .backend()?
         .read_optional(PROJECT_FILE)?

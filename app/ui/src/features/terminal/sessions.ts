@@ -14,7 +14,7 @@ import { WebLinksAddon } from "@xterm/addon-web-links";
 import { WebglAddon } from "@xterm/addon-webgl";
 import { UnicodeGraphemesAddon } from "@xterm/addon-unicode-graphemes";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
-import { terminalApi } from "@/ipc/terminal";
+import { terminalApi, type SshTarget } from "@/ipc/terminal";
 import { getSetting } from "@/state/settings";
 import { runApi } from "@/ipc/run";
 import { isToolWindowVisible, showToolWindow } from "@/state/layout";
@@ -340,7 +340,7 @@ function registerHandlers(id: string, s: Session): void {
 }
 
 /** Create the xterm instance for a tab inside `host` and start its shell. */
-export function attachSession(id: string, host: HTMLElement, cwd?: string, command?: TerminalProgram): void {
+export function attachSession(id: string, host: HTMLElement, cwd?: string, command?: TerminalProgram, ssh?: SshTarget): void {
   const existing = sessions.get(id);
   if (existing) {
     if (existing.term.element && existing.term.element.parentElement !== host) host.appendChild(existing.term.element);
@@ -417,10 +417,16 @@ export function attachSession(id: string, host: HTMLElement, cwd?: string, comma
   term.onData((data) => {
     if (session.opened && !session.exited) void terminalApi.write(id, data).catch(() => undefined);
   });
-  void start(id, session, cwd, command);
+  void start(id, session, cwd, command, ssh);
 }
 
-async function start(id: string, s: Session, cwd?: string, command?: TerminalProgram): Promise<void> {
+let sshHostKeys: (target: SshTarget) => Promise<boolean> = async () => false;
+/** Asks about an unknown or changed host key of an SSH session (the SSH feature sets it). */
+export function setSshHostKeyResolver(resolve: (target: SshTarget) => Promise<boolean>): void {
+  sshHostKeys = resolve;
+}
+
+async function start(id: string, s: Session, cwd?: string, command?: TerminalProgram, ssh?: SshTarget): Promise<void> {
   s.unlisten = await terminalApi.onEvent(id, (e) => {
     if (e.type === "output") s.term.write(e.data);
     else {
@@ -432,19 +438,30 @@ async function start(id: string, s: Session, cwd?: string, command?: TerminalPro
       } else s.term.write(`\r\n\x1b[2m[Process completed with exit code ${e.code}]\x1b[0m\r\n`);
     }
   });
-  try {
-    await terminalApi.open({
+  const open = () =>
+    terminalApi.open({
       id,
       cwd,
       cols: s.term.cols,
       rows: s.term.rows,
       ...(command && { shell: command.program, args: command.args, env: Object.fromEntries(command.env ?? []), local: command.local }),
+      ...(ssh && { ssh }),
     });
+  try {
+    if (ssh) s.term.write(`\x1b[2mConnecting…\x1b[0m\r\n`);
+    try {
+      await open();
+    } catch (err) {
+      // An unknown host key: ask like Test Connection does, then connect again.
+      if (!ssh || !String(err).includes("not trusted yet") || !(await sshHostKeys(ssh))) throw err;
+      await open();
+    }
     s.opened = true;
     s.lastSize = `${s.term.cols}x${s.term.rows}`;
   } catch (err) {
     s.exited = true;
-    s.term.write(`\x1b[31mCannot open the terminal: ${String(err)}\x1b[0m\r\n`);
+    const what = ssh ? "Cannot start the SSH session" : "Cannot open the terminal";
+    s.term.write(`\x1b[31m${what}: ${String(err)}\x1b[0m\r\n`);
   }
 }
 

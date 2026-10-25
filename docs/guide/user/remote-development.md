@@ -154,7 +154,10 @@ authentication errors stop the retries. **Reconnect to Remote Host** (Find Actio
 ## Saved configurations
 
 Settings | Tools | **SSH Configurations** lists, adds, edits and removes saved configurations.
-They are stored in `ssh.toml` in Forge's config folder; secrets stay in the keychain.
+They are stored in `ssh.toml` in Forge's config folder; secrets stay in the keychain. **Parse
+config file `~/.ssh/config`** (on by default) resolves `Host` aliases, jump hosts and proxy
+commands from your OpenSSH config. The same configurations connect SFTP deployment servers and
+SSH terminal sessions, see [Remote Host and SSH sessions](remote-host-and-ssh.md).
 
 ![SSH Configurations](../../screenshots/remote-ssh-settings.png)
 

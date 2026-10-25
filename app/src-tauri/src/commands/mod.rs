@@ -53,6 +53,7 @@ pub mod refactor;
 pub mod refactor_hierarchy;
 pub mod refactor_move;
 pub mod remote;
+pub mod remote_host;
 pub mod run;
 pub mod runtools;
 pub mod save_actions;

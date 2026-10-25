@@ -107,6 +107,10 @@ impl ServerFs for LocalFolder {
         std::fs::remove_dir(self.full(path)?).map_err(|e| self.io(path, e))
     }
 
+    fn rename(&mut self, from: &str, to: &str) -> Result<()> {
+        std::fs::rename(self.full(from)?, self.full(to)?).map_err(|e| self.io(from, e))
+    }
+
     fn set_modified(&mut self, path: &str, secs: i64) -> Result<bool> {
         let time = filetime::FileTime::from_unix_time(secs, 0);
         filetime::set_file_mtime(self.full(path)?, time).map_err(|e| self.io(path, e))?;
@@ -147,6 +151,9 @@ mod tests {
         assert!(listed[0].dir && listed[0].path == "a/b");
         assert!(fs.read("../outside").is_err());
         assert!(fs.mkdir_all("a/b/c.txt/d").is_err());
+        fs.rename("a/b/c.txt", "a/d.txt").unwrap();
+        assert_eq!(fs.read("a/d.txt").unwrap(), b"hello");
+        assert!(fs.rename("a/missing", "a/x").is_err());
         fs.remove_all("a").unwrap();
         assert_eq!(fs.stat("a").unwrap(), None);
         assert!(fs.describe("x").ends_with("x"));

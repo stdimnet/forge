@@ -185,3 +185,69 @@
   margin: 2px;
   box-shadow: 0 0 0 2px var(--bg-toolbar);
 }
+
+/* ---------- Start SSH Session ---------- */
+.term-ssh-chooser {
+  width: 380px;
+  padding: 5px;
+  display: flex;
+  flex-direction: column;
+  outline: none;
+}
+.term-ssh-title {
+  padding: 4px 8px 6px;
+  font-weight: 600;
+  color: var(--fg-strong);
+}
+.term-ssh-list {
+  max-height: 340px;
+  overflow-y: auto;
+}
+.term-ssh-group {
+  padding: 6px 8px 2px;
+  font-size: var(--fs-small);
+}
+.term-ssh-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 26px;
+  padding: 0 8px;
+  border-radius: 5px;
+  cursor: default;
+  white-space: nowrap;
+}
+.term-ssh-item.selected {
+  background: var(--accent-soft);
+}
+.term-ssh-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.term-ssh-detail {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: var(--fs-small);
+}
+.term-ssh-config-icon {
+  color: var(--fg-muted);
+  flex-shrink: 0;
+}
+.term-ssh-server-icon {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+.term-ssh-empty {
+  padding: 10px 8px;
+  font-size: var(--fs-small);
+}
+.term-ssh-footer {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border);
+  color: var(--fg-muted);
+}
+.term-ssh-credentials {
+  width: 560px;
+}

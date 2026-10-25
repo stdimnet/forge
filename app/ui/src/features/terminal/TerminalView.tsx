@@ -24,6 +24,8 @@ import {
   type TerminalProgram,
   type TerminalTab,
 } from "./store";
+import type { SshTarget } from "@/ipc/terminal";
+import { chooseSshSession } from "./ssh";
 import {
   applyThemeToAll,
   attachSession,
@@ -137,7 +139,7 @@ export function TerminalTabs() {
       </button>
       <button
         class="icon-btn term-new"
-        title="Options"
+        title="New Tab Options"
         onClick={(e) => {
           const r = e.currentTarget.getBoundingClientRect();
           const id = activeTab();
@@ -147,6 +149,8 @@ export function TerminalTabs() {
             items: [
               { label: "New Tab", shortcut: "Ctrl+Shift+T", run: () => newTab() },
               { label: "New Tab in Current Directory", disabled: !id, run: () => newTabHere() },
+              { label: "SSH Session…", run: () => void chooseSshSession() },
+              { separator: true },
               { label: "Rename Session", disabled: !id, run: () => id && setRenaming(id) },
               { label: "Clear Buffer", disabled: !id, run: () => id && clearBuffer(id) },
             ],
@@ -159,11 +163,11 @@ export function TerminalTabs() {
   );
 }
 
-function TerminalHost(props: { id: string; cwd?: string; command?: TerminalProgram }) {
+function TerminalHost(props: { id: string; cwd?: string; command?: TerminalProgram; ssh?: SshTarget }) {
   let host!: HTMLDivElement;
   const visible = () => activeTab() === props.id && isToolWindowVisible("terminal");
   onMount(() => {
-    attachSession(props.id, host, props.cwd, props.command);
+    attachSession(props.id, host, props.cwd, props.command, props.ssh);
     const ro = new ResizeObserver(() => visible() && fitSession(props.id));
     ro.observe(host);
     onCleanup(() => ro.disconnect());
@@ -214,7 +218,7 @@ export function TerminalView() {
   createEffect(on(theme, () => requestAnimationFrame(applyThemeToAll), { defer: true }));
   return (
     <div class="terminal-view">
-      <For each={tabIds()}>{(id) => <TerminalHost id={id} cwd={tabById(id)?.cwd} command={tabById(id)?.command} />}</For>
+      <For each={tabIds()}>{(id) => <TerminalHost id={id} cwd={tabById(id)?.cwd} command={tabById(id)?.command} ssh={tabById(id)?.ssh} />}</For>
       <Show when={tabs().length === 0}>
         <div class="placeholder-panel">
           No terminal sessions.{" "}
