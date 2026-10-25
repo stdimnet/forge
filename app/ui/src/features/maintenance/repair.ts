@@ -45,7 +45,7 @@ async function reopenProject(): Promise<void> {
     return;
   }
   closeWorkspace();
-  await openWorkspace(ws.root);
+  await openWorkspace(ws.root, { askTrust: false });
 }
 
 export const REPAIR_STEPS: RepairStep[] = [

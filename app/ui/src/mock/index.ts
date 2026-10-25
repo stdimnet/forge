@@ -73,6 +73,8 @@ import "./saveActionsMock";
 import "./windowMock";
 import "./updatesMock";
 import "./templatesMock";
+// Wraps workspace_open and the run mocks (Safe Mode).
+import "./trustMock";
 // Wraps the file mocks above, so it comes last.
 import "./localHistoryMock";
 

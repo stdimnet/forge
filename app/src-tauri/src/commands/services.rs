@@ -281,8 +281,14 @@ pub fn services_details(
 pub async fn services_action(
     node_id: String,
     action: Action,
+    app: AppHandle,
     state: State<'_, ServicesState>,
 ) -> Result<()> {
+    // `docker compose up` builds the project's images.
+    if action == Action::Up {
+        app.state::<AppState>()
+            .require_trusted("Running Docker Compose")?;
+    }
     let hub = state.hub()?.clone();
     hub.action(&node_id, action).await.map_err(e)
 }
@@ -372,15 +378,24 @@ pub async fn services_pull(image: String, state: State<'_, ServicesState>) -> Re
 pub async fn services_compose_up(
     path: String,
     service: Option<String>,
+    app: AppHandle,
     state: State<'_, ServicesState>,
 ) -> Result<()> {
+    app.state::<AppState>()
+        .require_trusted("Running Docker Compose")?;
     let hub = state.hub()?.clone();
     hub.compose_up_file(&path, service).await.map_err(e)
 }
 
 /// Gutter ▶ in a Dockerfile: build the image and run a container.
 #[tauri::command]
-pub async fn services_dockerfile_run(path: String, state: State<'_, ServicesState>) -> Result<()> {
+pub async fn services_dockerfile_run(
+    path: String,
+    app: AppHandle,
+    state: State<'_, ServicesState>,
+) -> Result<()> {
+    app.state::<AppState>()
+        .require_trusted("Building Dockerfiles")?;
     let hub = state.hub()?.clone();
     hub.dockerfile_run(&path).await.map_err(e)
 }

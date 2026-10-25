@@ -110,6 +110,7 @@ pub async fn project_create(
     options: Option<BTreeMap<String, Value>>,
     app: AppHandle,
     creating: State<'_, CreateState>,
+    state: State<'_, AppState>,
 ) -> Result<String> {
     let cancel = Arc::new(AtomicBool::new(false));
     {
@@ -132,7 +133,10 @@ pub async fn project_create(
     .await
     .map_err(|e| ForgeError::Other(e.to_string()));
     *creating.cancel.lock().expect("create lock poisoned") = None;
-    Ok(result??.display().to_string())
+    let root = result??;
+    // Projects Forge created are trusted (no "Trust and Open Project?" for them).
+    crate::commands::trust::trust_created(&state, &root);
+    Ok(root.display().to_string())
 }
 
 #[tauri::command]

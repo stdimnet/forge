@@ -168,6 +168,8 @@ pub async fn php_language_level(state: State<'_, AppState>) -> Result<LanguageLe
 /// of the project's composer.json, on the project's machine.
 #[tauri::command]
 pub async fn php_composer_outdated(state: State<'_, AppState>) -> Result<Vec<OutdatedPackage>> {
+    // Composer loads the project's plugins.
+    state.require_trusted("Composer")?;
     let (program, lead, json_path) = {
         let settings = state.read_settings();
         let executable = settings

@@ -186,6 +186,7 @@ pub fn symfony_console_run(
     state: State<'_, AppState>,
     sf: State<'_, SymfonyState>,
 ) -> Result<()> {
+    state.require_trusted("Running Symfony console commands")?;
     let backend = state.backend()?;
     let cfg = config(&state);
     let php = crate::commands::php_interpreters::local_php(&state);

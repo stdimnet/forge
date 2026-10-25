@@ -1849,6 +1849,7 @@ dependencies = [
  "forge-spell",
  "forge-ssr",
  "forge-text",
+ "forge-trust",
  "forge-update",
  "forge-vcs",
  "forge-viewers",
@@ -2462,6 +2463,17 @@ version = "0.1.0"
 dependencies = [
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "forge-trust"
+version = "0.1.0"
+dependencies = [
+ "dirs 6.0.0",
+ "forge-core",
+ "serde",
+ "tempfile",
+ "toml 0.8.23",
 ]
 
 [[package]]

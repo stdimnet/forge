@@ -56,6 +56,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-spell](forge-spell.md) | Spelling and grammar inspections for comments, strings, identifiers and text: Hunspell dictionaries, word extraction, suggestions and a small rule-based English grammar checker (pure, WebAssembly-friendly) |
 | [forge-ssr](forge-ssr.md) | Structural Search and Replace: templates with `$variables$` matched on tree-sitter syntax trees (PHP, JavaScript, TypeScript) |
 | [forge-sql](forge-sql.md) | Forge SQL text: dialects, statement splitting, literals, row changes and export (pure, also built to WebAssembly) |
+| [forge-trust](forge-trust.md) | Project trust and Safe Mode: trusted projects and locations, and what may run |
 | [forge-update](forge-update.md) | Forge update checks: when to check, which release is an update, the update feed, simulated updates and download speed |
 | [forge-vcs](forge-vcs.md) | Forge IDE version control: drives the git CLI and parses its output |
 | [forge-vim](forge-vim.md) | Vim emulation (IdeaVim-style): modes, motions, operators, text objects, registers, ex commands and ~/.ideavimrc parsing (pure, built to WebAssembly) |

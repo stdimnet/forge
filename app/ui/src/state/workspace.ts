@@ -21,13 +21,42 @@ function adopt(info: WorkspaceInfo): void {
   setWorkspace(info);
 }
 
-export async function openWorkspace(path: string): Promise<void> {
+/** The answer to "Trust and Open Project?": open trusted, open in Safe Mode, or not at all. */
+export type TrustDecision = "trust" | "safe" | "cancel";
+
+/** "Trust and Open Project?" (registered by the trust feature). */
+export interface TrustPrompt {
+  /** Before a local folder opens; resolves at once for trusted folders. */
+  beforeOpen(path: string): Promise<TrustDecision>;
+  /** After a remote project opened (its folder is only known then); it is in Safe Mode until trusted. */
+  afterRemoteOpen(): Promise<TrustDecision>;
+}
+
+let trustPrompt: TrustPrompt | null = null;
+
+export function setTrustPrompt(prompt: TrustPrompt): void {
+  trustPrompt = prompt;
+}
+
+/**
+ * Open a local folder as the project. An untrusted folder asks first (Trust Project,
+ * Preview in Safe Mode, Don't Open); `askTrust: false` skips that for a folder that is
+ * open already (Repair IDE reopens it).
+ */
+export async function openWorkspace(path: string, options: { askTrust?: boolean } = {}): Promise<boolean> {
+  if (options.askTrust !== false && trustPrompt && (await trustPrompt.beforeOpen(path)) === "cancel") return false;
   adopt(await workspaceApi.open(path));
+  return true;
 }
 
 /** Open `path` on a host connected with `remoteApi.connect` as the project. */
 export async function openRemoteProject(connectionId: string, path: string): Promise<void> {
   adopt(await remoteApi.openProject(connectionId, path));
+  if (trustPrompt && (await trustPrompt.afterRemoteOpen()) === "cancel") {
+    // Don't Open: nothing of the project ran (it was in Safe Mode); leave it again.
+    closeWorkspace();
+    await remoteApi.disconnect(connectionId).catch(() => undefined);
+  }
 }
 
 /** Adopt the project the backend already has open (passed on the command line). */
