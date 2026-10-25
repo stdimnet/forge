@@ -8,6 +8,8 @@
 //! - [`geometry`]: where a dialog window opens (centered on its parent, or where the user left
 //!   it) and the remembered size and position of every dialog.
 //! - [`reveal`]: the commands that show a file in the system file manager.
+//! - [`projects`]: the registry of running project windows (one Forge instance each), Next /
+//!   Previous Project Window and the control protocol between instances.
 //!
 //! The crate is pure (no file system, processes or windowing): the Tauri shell reads the
 //! environment and files and passes them in, and the browser-mode UI runs the same code as
@@ -16,6 +18,7 @@
 pub mod chrome;
 pub mod desktop;
 pub mod geometry;
+pub mod projects;
 pub mod reveal;
 
 pub use chrome::{
@@ -23,6 +26,10 @@ pub use chrome::{
 };
 pub use desktop::{detect_desktop, Desktop, Os};
 pub use geometry::{place_dialog, DialogStates, Rect, Size};
+pub use projects::{
+    control_line, open_target, parse_control_line, ControlRequest, OpenTarget, ProjectWindowEntry,
+    ProjectWindowInfo, ProjectWindows,
+};
 pub use reveal::{file_manager_name, reveal_commands, RevealCommand};
 
 /// Label prefix of dialog windows (`dialog-settings`); the Tauri capabilities match it.

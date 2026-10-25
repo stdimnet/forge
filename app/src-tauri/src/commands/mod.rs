@@ -45,6 +45,7 @@ pub mod php_meta;
 pub mod project;
 pub mod project_state;
 pub mod project_structure;
+pub mod project_windows;
 pub mod refactor;
 pub mod refactor_hierarchy;
 pub mod refactor_move;

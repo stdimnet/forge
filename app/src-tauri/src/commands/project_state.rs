@@ -3,8 +3,10 @@
 
 use tauri::State;
 
-use forge_core::project_state::{self, ChatRecord, ChatSummary, ProjectLayout};
-use forge_core::{ForgeError, Result};
+use forge_core::project_state::{
+    self, ChatRecord, ChatSummary, NamedLayout, ProjectLayout, LAYOUTS_SETTING,
+};
+use forge_core::{ForgeError, Result, SettingsScope};
 
 use super::workspace::blocking;
 use crate::state::AppState;
@@ -48,6 +50,51 @@ pub async fn layout_default_load() -> Result<Option<ProjectLayout>> {
 #[tauri::command]
 pub async fn layout_default_save(layout: ProjectLayout) -> Result<()> {
     blocking(move || project_state::save_default_layout(&layout_dir()?, &layout)).await
+}
+
+/// The layouts saved with Window | Layouts | Save Current Layout as New… (user setting
+/// `workbench.layouts`), in the order they were saved.
+#[tauri::command]
+pub fn layouts_list(state: State<'_, AppState>) -> Vec<NamedLayout> {
+    named_layouts(&state)
+}
+
+fn named_layouts(state: &AppState) -> Vec<NamedLayout> {
+    project_state::named_layouts(state.read_settings().get(LAYOUTS_SETTING))
+}
+
+fn write_layouts(state: &AppState, layouts: &[NamedLayout]) -> Result<()> {
+    state.write_settings().set(
+        LAYOUTS_SETTING,
+        project_state::named_layouts_value(layouts),
+        SettingsScope::User,
+    )
+}
+
+/// Save the tool window part of `layout` as `name`; with `replace` an existing layout of
+/// that name is overwritten, otherwise that is an error.
+#[tauri::command]
+pub fn layouts_save(
+    name: String,
+    layout: ProjectLayout,
+    replace: bool,
+    state: State<'_, AppState>,
+) -> Result<NamedLayout> {
+    let mut layouts = named_layouts(&state);
+    let saved = project_state::save_named_layout(&mut layouts, &name, &layout, replace)?;
+    write_layouts(&state, &layouts)?;
+    Ok(saved)
+}
+
+/// Window | Layouts | Delete Layout.
+#[tauri::command]
+pub fn layouts_delete(name: String, state: State<'_, AppState>) -> Result<bool> {
+    let mut layouts = named_layouts(&state);
+    if !project_state::delete_named_layout(&mut layouts, &name) {
+        return Ok(false);
+    }
+    write_layouts(&state, &layouts)?;
+    Ok(true)
 }
 
 /// The open project's AI chats, newest first.
