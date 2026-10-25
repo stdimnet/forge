@@ -13,7 +13,8 @@ import { mockProjectName } from "./workspaceMock";
 const demoRoot = `~/Projects/${mockProjectName}`;
 
 const locations = new Set<string>(["~/Projects"]);
-const projects = new Set<string>(["~/.config/nvim"]);
+// The remote demo project (`?project=remote`) is trusted too, so its screenshots show no banner.
+const projects = new Set<string>(["~/.config/nvim", remoteWorkspace().root]);
 /** The folder the UI last opened (`null`: the demo project itself). */
 let opened: string | null = null;
 
@@ -44,7 +45,7 @@ function status(): TrustStatus {
 }
 
 /** The open demo project is in Safe Mode (read by the run mocks). */
-export const mockSafeMode = (): boolean => !isRemoteDemo() && !check(openRoot()).trusted;
+export const mockSafeMode = (): boolean => !check(openRoot()).trusted;
 
 const changed = () => emitMock(TRUST_CHANGED_EVENT, status());
 
