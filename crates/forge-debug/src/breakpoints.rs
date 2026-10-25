@@ -14,6 +14,10 @@ pub enum BreakpointKind {
     #[default]
     Line,
     Exception,
+    /// Suspends when a function is entered (DAP `setFunctionBreakpoints`).
+    Function,
+    /// A watchpoint: suspends when a value changes (DAP `setDataBreakpoints`).
+    Data,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -54,6 +58,22 @@ pub struct Breakpoint {
     /// "Pass count": suspend only from the n-th hit on.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub pass_count: Option<u32>,
+    /// Function name (function breakpoints).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub function: Option<String>,
+    /// The adapter's data id (data breakpoints).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub data_id: Option<String>,
+    /// `write` (default), `read` or `readWrite` (data breakpoints).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub access_type: Option<String>,
+    /// What a data breakpoint watches, as shown in the Breakpoints dialog (`counter`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    /// Debug adapter type an exception filter or data breakpoint belongs to (`lldb`);
+    /// `None` for PHP exception breakpoints.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub adapter: Option<String>,
 }
 
 fn yes() -> bool {
@@ -95,6 +115,16 @@ impl Breakpoint {
         self.logs() || self.temporary || !self.suspend
     }
 
+    /// Whether Xdebug (DBGp) handles this breakpoint: line breakpoints and PHP exception
+    /// breakpoints. Function, data and adapter exception breakpoints are DAP only.
+    pub fn for_dbgp(&self) -> bool {
+        match self.kind {
+            BreakpointKind::Line => true,
+            BreakpointKind::Exception => self.adapter.is_none(),
+            BreakpointKind::Function | BreakpointKind::Data => false,
+        }
+    }
+
     /// Whether the engine reported exception `name` for this exception breakpoint.
     pub fn matches_exception(&self, name: &str) -> bool {
         let want = self.exception.as_deref().unwrap_or("*").trim();
@@ -131,6 +161,16 @@ pub struct BreakpointSpec {
     pub temporary: bool,
     #[serde(default)]
     pub pass_count: Option<u32>,
+    #[serde(default)]
+    pub function: Option<String>,
+    #[serde(default)]
+    pub data_id: Option<String>,
+    #[serde(default)]
+    pub access_type: Option<String>,
+    #[serde(default)]
+    pub description: Option<String>,
+    #[serde(default)]
+    pub adapter: Option<String>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -281,6 +321,35 @@ impl BreakpointStore {
                         "an exception breakpoint needs an exception class".into(),
                     ));
                 }
+                if let Some(adapter) = &spec.adapter {
+                    let filter = spec.exception.as_deref().map(str::trim);
+                    if let Some(existing) = self.data.breakpoints.iter().find(|b| {
+                        b.kind == BreakpointKind::Exception
+                            && b.adapter.as_ref() == Some(adapter)
+                            && b.exception.as_deref() == filter
+                    }) {
+                        return Ok(existing.clone());
+                    }
+                }
+            }
+            BreakpointKind::Function => {
+                if spec.function.as_deref().unwrap_or("").trim().is_empty() {
+                    return Err(DebugError::Other(
+                        "a function breakpoint needs a function name".into(),
+                    ));
+                }
+            }
+            BreakpointKind::Data => {
+                let Some(data_id) = spec.data_id.as_deref().filter(|d| !d.is_empty()) else {
+                    return Err(DebugError::Other(
+                        "a data breakpoint needs the adapter's data id".into(),
+                    ));
+                };
+                if let Some(existing) = self.data.breakpoints.iter().find(|b| {
+                    b.kind == BreakpointKind::Data && b.data_id.as_deref() == Some(data_id)
+                }) {
+                    return Ok(existing.clone());
+                }
             }
         }
         let id = self
@@ -305,6 +374,11 @@ impl BreakpointStore {
             log_expression: spec.log_expression,
             temporary: spec.temporary,
             pass_count: spec.pass_count,
+            function: spec.function.map(|f| f.trim().to_string()),
+            data_id: spec.data_id,
+            access_type: spec.access_type,
+            description: spec.description,
+            adapter: spec.adapter,
         };
         self.data.breakpoints.push(bp.clone());
         self.save()?;
@@ -448,6 +522,57 @@ mod tests {
         assert_eq!(hit("logicexception"), Some(any.id));
         // A subclass the engine matched by hierarchy.
         assert_eq!(hit("App\\OrderFailed"), Some(any.id));
+    }
+
+    #[test]
+    fn function_data_and_adapter_exception_breakpoints() {
+        let mut store = BreakpointStore::memory();
+        let f = store
+            .add(BreakpointSpec {
+                kind: BreakpointKind::Function,
+                function: Some(" compute ".into()),
+                ..Default::default()
+            })
+            .unwrap();
+        assert_eq!(f.function.as_deref(), Some("compute"));
+        assert!(!f.for_dbgp());
+        let d = store
+            .add(BreakpointSpec {
+                kind: BreakpointKind::Data,
+                data_id: Some("0x1000/4".into()),
+                description: Some("counter".into()),
+                ..Default::default()
+            })
+            .unwrap();
+        let again = store
+            .add(BreakpointSpec {
+                kind: BreakpointKind::Data,
+                data_id: Some("0x1000/4".into()),
+                ..Default::default()
+            })
+            .unwrap();
+        assert_eq!(d.id, again.id, "one watchpoint per data id");
+        let filter = BreakpointSpec {
+            kind: BreakpointKind::Exception,
+            exception: Some("cpp_throw".into()),
+            adapter: Some("lldb".into()),
+            ..Default::default()
+        };
+        let e = store.add(filter.clone()).unwrap();
+        assert_eq!(store.add(filter).unwrap().id, e.id);
+        assert!(!e.for_dbgp());
+        assert!(store
+            .add(BreakpointSpec {
+                kind: BreakpointKind::Function,
+                ..Default::default()
+            })
+            .is_err());
+        assert!(store
+            .add(BreakpointSpec {
+                kind: BreakpointKind::Data,
+                ..Default::default()
+            })
+            .is_err());
     }
 
     #[test]

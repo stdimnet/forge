@@ -373,6 +373,16 @@ pub struct Property {
     pub page: u32,
     pub page_size: u32,
     pub children: Vec<Property>,
+    /// DAP `variablesReference`: children are fetched with it (0/absent: none or DBGp).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reference: Option<i64>,
+    /// DAP: reference of the scope or variable that holds this one (for Set Value and
+    /// data breakpoints).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub container: Option<i64>,
+    /// DAP: memory location of the value (View Memory).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub memory_reference: Option<String>,
 }
 
 fn decoded_text(el: &Element) -> String {
@@ -427,6 +437,7 @@ impl Property {
             page: el.attr_u32("page").unwrap_or(0),
             page_size: el.attr_u32("pagesize").unwrap_or(0),
             children: el.children_named("property").map(Property::parse).collect(),
+            ..Default::default()
         }
     }
 }

@@ -30,21 +30,24 @@ pub enum StepKind {
     ForceStepInto,
     StepOver,
     StepOut,
+    /// One machine instruction (DAP `steppingGranularity: "instruction"`); DBGp steps a line.
+    StepIntoInstruction,
+    StepOverInstruction,
 }
 
 impl StepKind {
     fn command(self) -> &'static str {
         match self {
             Self::Run => "run",
-            Self::StepInto | Self::ForceStepInto => "step_into",
-            Self::StepOver => "step_over",
+            Self::StepInto | Self::ForceStepInto | Self::StepIntoInstruction => "step_into",
+            Self::StepOver | Self::StepOverInstruction => "step_over",
             Self::StepOut => "step_out",
         }
     }
 }
 
 /// A stack frame with its file mapped into the project.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Frame {
     pub level: u32,
@@ -52,6 +55,12 @@ pub struct Frame {
     pub file_uri: String,
     pub line: u32,
     pub r#where: String,
+    /// DAP: the adapter's frame id.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub id: Option<i64>,
+    /// DAP: the instruction pointer (Disassembly view).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub address: Option<String>,
 }
 
 struct State {
@@ -147,6 +156,7 @@ impl Session {
             location: st.location.clone(),
             reason: st.reason,
             exception: st.exception.clone(),
+            ..Default::default()
         }
     }
 
@@ -450,7 +460,13 @@ impl Session {
             let first = std::mem::take(&mut st.first_step);
             let stepping = matches!(
                 st.last_step,
-                Some(StepKind::StepInto | StepKind::StepOver | StepKind::StepOut)
+                Some(
+                    StepKind::StepInto
+                        | StepKind::StepOver
+                        | StepKind::StepOut
+                        | StepKind::StepIntoInstruction
+                        | StepKind::StepOverInstruction
+                )
             );
             if file.is_none()
                 && skip_unmapped
@@ -638,7 +654,7 @@ impl Session {
     }
 
     async fn set_remote(&self, bp: &Breakpoint) -> DebugResult<()> {
-        if !bp.enabled {
+        if !bp.enabled || !bp.for_dbgp() {
             return Ok(());
         }
         let (args, data) = match bp.kind {
@@ -657,6 +673,7 @@ impl Session {
                     bp.condition(),
                 )
             }
+            BreakpointKind::Function | BreakpointKind::Data => return Ok(()),
             BreakpointKind::Exception => (
                 vec![
                     ('t', "exception".to_string()),
@@ -768,6 +785,7 @@ impl Session {
                 file_uri: f.file_uri,
                 line: f.line,
                 r#where: f.r#where,
+                ..Default::default()
             })
             .collect())
     }
