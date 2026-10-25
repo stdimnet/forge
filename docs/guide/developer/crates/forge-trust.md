@@ -31,6 +31,11 @@ The logic behind [Project trust and Safe Mode](../../user/project-trust.md):
   the project (the program or a path argument lies inside `root`), lexically so it works for
   remote roots; `server_runs_project_code(id)` lists catalog language servers that execute
   project files (`SERVERS_RUNNING_PROJECT_CODE`).
+- `ssh_session_needs_confirmation(safe_mode, SshTarget)`: an SSH terminal session to a
+  deployment server (`SshTarget::ProjectServer`, defined in the project's files) needs the
+  user's confirmation in Safe Mode; the user's own SSH configurations
+  (`SshTarget::UserConfiguration`) never do. `ssh_confirmation_required(server)` is the error
+  `terminal_open` returns without it.
 
 ## IPC
 
