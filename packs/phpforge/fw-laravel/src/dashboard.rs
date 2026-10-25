@@ -88,15 +88,23 @@ pub fn app_commands(laravel: &Laravel) -> Vec<AppCommand> {
     let root = &laravel.root;
     let mut out = Vec::new();
     for path in files_under(root, "app/Console/Commands", ".php") {
-        let Some(src) = read(root, &path) else { continue };
+        let Some(src) = read(root, &path) else {
+            continue;
+        };
         let Some((signature, at)) = quoted_after(&src, "$signature") else {
             continue;
         };
-        let name = signature.split_whitespace().next().unwrap_or("").to_string();
+        let name = signature
+            .split_whitespace()
+            .next()
+            .unwrap_or("")
+            .to_string();
         if name.is_empty() {
             continue;
         }
-        let description = quoted_after(&src, "$description").map(|(d, _)| d).unwrap_or_default();
+        let description = quoted_after(&src, "$description")
+            .map(|(d, _)| d)
+            .unwrap_or_default();
         out.push(AppCommand {
             name,
             signature: signature.split_whitespace().collect::<Vec<_>>().join(" "),
@@ -118,7 +126,11 @@ pub fn app_commands(laravel: &Laravel) -> Vec<AppCommand> {
                 .map(|(d, _)| d)
                 .unwrap_or_default();
             out.push(AppCommand {
-                name: signature.split_whitespace().next().unwrap_or("").to_string(),
+                name: signature
+                    .split_whitespace()
+                    .next()
+                    .unwrap_or("")
+                    .to_string(),
                 signature,
                 description,
                 location: Location::at("routes/console.php", &src, at + off),
@@ -130,7 +142,13 @@ pub fn app_commands(laravel: &Laravel) -> Vec<AppCommand> {
 }
 
 pub fn overview(laravel: &Laravel) -> LaravelOverview {
-    let env = |k: &str| laravel.env.iter().find(|e| e.key == k).map(|e| e.value.trim_matches('"').to_string());
+    let env = |k: &str| {
+        laravel
+            .env
+            .iter()
+            .find(|e| e.key == k)
+            .map(|e| e.value.trim_matches('"').to_string())
+    };
     let php = read(&laravel.root, "composer.json")
         .and_then(|s| serde_json::from_str::<serde_json::Value>(&s).ok())
         .and_then(|j| j["require"]["php"].as_str().map(String::from));

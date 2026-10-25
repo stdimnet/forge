@@ -596,19 +596,32 @@ fn dashboard_overview() {
     let l = load();
     let o = phpforge_fw_laravel::dashboard::overview(&l);
     assert_eq!(o.version.as_deref(), Some("12.4.1"));
-    assert!(o.models.iter().any(|m| m.name == "Order" && m.table == "orders"));
+    assert!(o
+        .models
+        .iter()
+        .any(|m| m.name == "Order" && m.table == "orders"));
     let names: Vec<&str> = o.commands.iter().map(|c| c.name.as_str()).collect();
     assert_eq!(names, vec!["inspire", "orders:prune"]);
     assert_eq!(o.commands[1].description, "Delete abandoned orders");
-    assert_eq!(o.commands[1].location.path, "app/Console/Commands/PruneOrders.php");
+    assert_eq!(
+        o.commands[1].location.path,
+        "app/Console/Commands/PruneOrders.php"
+    );
     assert_eq!(o.ide_json.code_generations[0].name, "Create DTO");
 
     let generation = &o.ide_json.code_generations[0];
     let root = root();
     let read = |p: &str| std::fs::read_to_string(root.join(p)).ok();
-    let class_path = |fqn: &str| format!("app/{}.php", fqn.trim_start_matches("App\\").replace('\\', "/"));
+    let class_path = |fqn: &str| {
+        format!(
+            "app/{}.php",
+            fqn.trim_start_matches("App\\").replace('\\', "/")
+        )
+    };
     let files = phpforge_fw_laravel::ide_json::generate(generation, "Invoice", &read, &class_path);
     assert_eq!(files[0].path, "app/Data/InvoiceData.php");
-    assert!(files[0].content.contains("final readonly class InvoiceData"));
+    assert!(files[0]
+        .content
+        .contains("final readonly class InvoiceData"));
     assert!(!files[0].exists);
 }

@@ -158,9 +158,12 @@ impl Laravel {
                 .flatten()
         };
         let class_path = |fqn: &str| {
-            self.psr4
-                .path_for(fqn)
-                .unwrap_or_else(|| format!("app/{}.php", fqn.trim_start_matches("App\\").replace('\\', "/")))
+            self.psr4.path_for(fqn).unwrap_or_else(|| {
+                format!(
+                    "app/{}.php",
+                    fqn.trim_start_matches("App\\").replace('\\', "/")
+                )
+            })
         };
         ide_json::generate(g, input, &read, &class_path)
     }

@@ -170,7 +170,8 @@ impl<'a> PathMapper<'a> {
                 break;
             }
             if (self.exists)(rest) {
-                self.prefixes.insert(file[..cut].to_string(), Some(String::new()));
+                self.prefixes
+                    .insert(file[..cut].to_string(), Some(String::new()));
                 return Some(rest.to_string());
             }
         }
@@ -188,11 +189,16 @@ fn header(line: &str) -> Option<(String, String, String, String)> {
     let rest = line.strip_prefix('[')?;
     let close = rest.find(']')?;
     let time = &rest[..close];
-    if time.len() < 10 || !time.as_bytes()[..4].iter().all(|b| b.is_ascii_digit()) || time.as_bytes()[4] != b'-' {
+    if time.len() < 10
+        || !time.as_bytes()[..4].iter().all(|b| b.is_ascii_digit())
+        || time.as_bytes()[4] != b'-'
+    {
         return None;
     }
     let rest = rest[close + 1..].trim_start();
-    let colon = rest.find(": ").or_else(|| rest.strip_suffix(':').map(|r| r.len()))?;
+    let colon = rest
+        .find(": ")
+        .or_else(|| rest.strip_suffix(':').map(|r| r.len()))?;
     let head = &rest[..colon];
     let (channel, level) = head.rsplit_once('.')?;
     let level = level_of(level)?;
@@ -251,7 +257,9 @@ fn frame(line: &str, map: &mut PathMapper) -> Option<StackFrame> {
 
 /// Undo the JSON escaping of exception text inside the context (`App\\X` -> `App\X`).
 fn unescape(s: &str) -> String {
-    s.replace("\\\\", "\\").replace("\\\"", "\"").replace("\\/", "/")
+    s.replace("\\\\", "\\")
+        .replace("\\\"", "\"")
+        .replace("\\/", "/")
 }
 
 /// `[object] (RuntimeException(code: 0): Payment failed at /app/x.php:42)`
@@ -291,7 +299,11 @@ fn split_context(message: &str) -> (String, String) {
     for marker in [" {\"", " {}", " [{", " []"] {
         if let Some(i) = message.find(marker) {
             let ctx = message[i + 1..].trim().to_string();
-            let ctx = if ctx == "[] []" || ctx == "[]" || ctx == "{} []" { String::new() } else { ctx };
+            let ctx = if ctx == "[] []" || ctx == "[]" || ctx == "{} []" {
+                String::new()
+            } else {
+                ctx
+            };
             return (message[..i].to_string(), ctx);
         }
     }
@@ -310,7 +322,10 @@ pub fn parse(text: &str, first_line: u32, map: &mut PathMapper) -> Vec<LogEntry>
         }
         if let Some(e) = exception(&full, map) {
             entry.exception = Some(e);
-            let i = entry.message.find(" {\"exception\"").unwrap_or(entry.message.len());
+            let i = entry
+                .message
+                .find(" {\"exception\"")
+                .unwrap_or(entry.message.len());
             entry.message.truncate(i);
             entry.context.clear();
         }
@@ -452,7 +467,10 @@ mod tests {
         mapper_test(|m| {
             let e = parse(LOG, 0, m);
             assert_eq!(e.len(), 3);
-            assert_eq!((e[0].level.as_str(), e[0].channel.as_str()), ("info", "local"));
+            assert_eq!(
+                (e[0].level.as_str(), e[0].channel.as_str()),
+                ("info", "local")
+            );
             assert_eq!(e[0].message, "Order placed");
             assert_eq!(e[0].context, "{\"order\":1042} []");
             let err = &e[1];
@@ -464,10 +482,16 @@ mod tests {
             assert_eq!(ex.frame.path.as_deref(), Some("app/Services/Payment.php"));
             assert_eq!(ex.frame.line, Some(42));
             assert_eq!(err.frames.len(), 4);
-            assert_eq!(err.frames[0].path.as_deref(), Some("app/Http/Controllers/OrderController.php"));
+            assert_eq!(
+                err.frames[0].path.as_deref(),
+                Some("app/Http/Controllers/OrderController.php")
+            );
             assert_eq!(err.frames[0].line, Some(31));
             assert!(err.frames[1].vendor);
-            assert_eq!(err.frames[2].call, "Illuminate\\Routing\\Controller->callAction()");
+            assert_eq!(
+                err.frames[2].call,
+                "Illuminate\\Routing\\Controller->callAction()"
+            );
             assert_eq!(err.frames[3].call, "{main}");
             assert_eq!(e[2].time, "2026-10-26 09:16:00");
             assert_eq!(e[2].message, "Slow query: select * from orders");
@@ -477,14 +501,20 @@ mod tests {
     #[test]
     fn maps_project_paths() {
         mapper_test(|m| {
-            assert_eq!(m.map("/home/me/shop/app/X.php").as_deref(), Some("app/X.php"));
+            assert_eq!(
+                m.map("/home/me/shop/app/X.php").as_deref(),
+                Some("app/X.php")
+            );
             assert_eq!(m.map("/srv/other/Thing.php"), None);
             assert_eq!(
                 m.map("/var/www/html/app/Services/Payment.php").as_deref(),
                 Some("app/Services/Payment.php")
             );
             // The container prefix is remembered.
-            assert_eq!(m.map("/var/www/html/routes/web.php").as_deref(), Some("routes/web.php"));
+            assert_eq!(
+                m.map("/var/www/html/routes/web.php").as_deref(),
+                Some("routes/web.php")
+            );
         });
     }
 

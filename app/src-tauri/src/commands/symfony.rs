@@ -16,8 +16,8 @@ use forge_backend::{framework_call, FrameworkCall};
 use forge_core::{ForgeError, Result};
 use phpforge_fw_symfony::complete::CompletionList;
 use phpforge_fw_symfony::events::EventListener;
-use phpforge_fw_symfony::translations::TranslationTable;
 use phpforge_fw_symfony::gutter::GutterMark;
+use phpforge_fw_symfony::translations::TranslationTable;
 use phpforge_fw_symfony::{
     Config, ConsoleCommand, Location, Parameter, Route, Service, SymfonyInfo, Template,
 };

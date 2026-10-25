@@ -177,11 +177,49 @@ impl Imports {
 
 /// Validation rules for `validationRule` completions of `ide.json`.
 const VALIDATION_RULES: &[&str] = &[
-    "accepted", "active_url", "after", "alpha", "alpha_dash", "alpha_num", "array", "before",
-    "between", "boolean", "confirmed", "date", "decimal", "different", "digits", "email",
-    "enum", "exists", "file", "filled", "image", "in", "integer", "ip", "json", "max",
-    "mimes", "min", "not_in", "nullable", "numeric", "present", "regex", "required",
-    "required_if", "same", "size", "sometimes", "string", "timezone", "unique", "url", "uuid",
+    "accepted",
+    "active_url",
+    "after",
+    "alpha",
+    "alpha_dash",
+    "alpha_num",
+    "array",
+    "before",
+    "between",
+    "boolean",
+    "confirmed",
+    "date",
+    "decimal",
+    "different",
+    "digits",
+    "email",
+    "enum",
+    "exists",
+    "file",
+    "filled",
+    "image",
+    "in",
+    "integer",
+    "ip",
+    "json",
+    "max",
+    "mimes",
+    "min",
+    "not_in",
+    "nullable",
+    "numeric",
+    "present",
+    "regex",
+    "required",
+    "required_if",
+    "same",
+    "size",
+    "sometimes",
+    "string",
+    "timezone",
+    "unique",
+    "url",
+    "uuid",
 ];
 
 const PHP_KEYWORDS: &[&str] = &[
@@ -400,7 +438,13 @@ impl Laravel {
 
     /// Completion at a byte offset of a PHP or Blade buffer.
     /// Values `ide.json` completions offer for a string argument.
-    fn ide_items(&self, s: &StringArg, imports: &Imports, path: &str, src: &str) -> Vec<CompletionItem> {
+    fn ide_items(
+        &self,
+        s: &StringArg,
+        imports: &Imports,
+        path: &str,
+        src: &str,
+    ) -> Vec<CompletionItem> {
         if self.ide.completions.is_empty() {
             return Vec::new();
         }
@@ -456,7 +500,10 @@ impl Laravel {
                     .iter()
                     .map(|e| (e.key.clone(), Some(e.value.clone())))
                     .collect(),
-                "validationRule" => VALIDATION_RULES.iter().map(|r| (r.to_string(), None)).collect(),
+                "validationRule" => VALIDATION_RULES
+                    .iter()
+                    .map(|r| (r.to_string(), None))
+                    .collect(),
                 _ => Vec::new(),
             };
             for (label, doc) in values {

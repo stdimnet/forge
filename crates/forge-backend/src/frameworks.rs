@@ -561,8 +561,13 @@ impl LocalFrameworks {
             } => {
                 let snap = self.symfony(config, false)?;
                 let read = |rel: &str| self.workspace.read_file(rel).ok();
-                let edits =
-                    translations::create_key_edits(&snap.translations, &domain, &key, &locales, &read);
+                let edits = translations::create_key_edits(
+                    &snap.translations,
+                    &domain,
+                    &key,
+                    &locales,
+                    &read,
+                );
                 let mut created = Vec::new();
                 for e in &edits {
                     let current = if e.create {
@@ -763,7 +768,11 @@ mod tests {
             r#"{"codeGenerations":[{"id":"dto","name":"DTO","files":[{"name":"${INPUT_CLASS}.php","appNamespace":"Data","template":{"path":"stub.txt"}}]}]}"#,
         )
         .unwrap();
-        std::fs::write(p.join("stub.txt"), "<?php namespace ${NAMESPACE}; class ${CLASS} {}").unwrap();
+        std::fs::write(
+            p.join("stub.txt"),
+            "<?php namespace ${NAMESPACE}; class ${CLASS} {}",
+        )
+        .unwrap();
         let fw = LocalFrameworks::new(Workspace::open(p).unwrap());
         let page: phpforge_fw_laravel::logs::LogPage = decode_value(
             &fw.call(FrameworkCall::LaravelLogs {
@@ -806,8 +815,16 @@ mod tests {
         std::fs::create_dir_all(p.join("config")).unwrap();
         std::fs::create_dir_all(p.join("translations")).unwrap();
         std::fs::write(p.join("config/bundles.php"), "<?php return [];").unwrap();
-        std::fs::write(p.join("translations/messages.en.yaml"), "order:\n    title: Orders\n").unwrap();
-        std::fs::write(p.join("translations/messages.de.yaml"), "order:\n    title: Bestellungen\n").unwrap();
+        std::fs::write(
+            p.join("translations/messages.en.yaml"),
+            "order:\n    title: Orders\n",
+        )
+        .unwrap();
+        std::fs::write(
+            p.join("translations/messages.de.yaml"),
+            "order:\n    title: Bestellungen\n",
+        )
+        .unwrap();
         let fw = LocalFrameworks::new(Workspace::open(p).unwrap());
         let sf = |query| FrameworkCall::Symfony {
             config: SymfonyConfig::default(),

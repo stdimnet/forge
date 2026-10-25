@@ -326,7 +326,12 @@ pub fn directory_values(root: &Path, c: &IdeCompletion) -> Vec<String> {
         .filter_map(|e| e.ok())
         .filter(|e| e.file_type().is_file())
         .filter_map(|e| {
-            let rel = e.path().strip_prefix(&base).ok()?.to_string_lossy().replace('\\', "/");
+            let rel = e
+                .path()
+                .strip_prefix(&base)
+                .ok()?
+                .to_string_lossy()
+                .replace('\\', "/");
             Some(match &c.suffix_to_clear {
                 Some(s) => rel.strip_suffix(s.as_str()).unwrap_or(&rel).to_string(),
                 None => rel,
@@ -375,7 +380,10 @@ fn modify(value: &str, modifiers: &[&str]) -> String {
     for m in modifiers {
         v = match *m {
             "className" => v.rsplit(['\\', '/']).next().unwrap_or(&v).to_string(),
-            "namespace" => v.rsplit_once(['\\', '/']).map(|(n, _)| n.replace('/', "\\")).unwrap_or_default(),
+            "namespace" => v
+                .rsplit_once(['\\', '/'])
+                .map(|(n, _)| n.replace('/', "\\"))
+                .unwrap_or_default(),
             "upperCamelCase" | "studly" => words(&v).iter().map(|w| upper_first(w)).collect(),
             "camelCase" => {
                 let w = words(&v);
@@ -462,8 +470,15 @@ pub fn generate(
             ("CLASS", class.clone()),
         ];
         let file_name = expand(&f.name, &vars);
-        let file_name = file_name.rsplit(['\\', '/']).next().unwrap_or(&file_name).to_string();
-        let stem = file_name.strip_suffix(".php").unwrap_or(&file_name).to_string();
+        let file_name = file_name
+            .rsplit(['\\', '/'])
+            .next()
+            .unwrap_or(&file_name)
+            .to_string();
+        let stem = file_name
+            .strip_suffix(".php")
+            .unwrap_or(&file_name)
+            .to_string();
         let vars = [
             ("INPUT_CLASS", base.clone()),
             ("INPUT_FQN", format!("{namespace}\\{stem}")),
@@ -529,10 +544,22 @@ mod tests {
     fn parses_completions_and_generations() {
         let ide = parse(IDE, "ide.json").unwrap();
         assert_eq!(ide.completions.len(), 4);
-        assert_eq!(ide.completions[0].strings, vec!["paid", "shipped", "cancelled"]);
-        assert_eq!(ide.completions[0].conditions[1].class_fqn, vec!["App\\Models\\Order"]);
-        assert_eq!(ide.completions[1].directory.as_deref(), Some("resources/svg"));
-        assert_eq!(ide.code_generations[0].files[0].template_path, "stubs/dto.stub");
+        assert_eq!(
+            ide.completions[0].strings,
+            vec!["paid", "shipped", "cancelled"]
+        );
+        assert_eq!(
+            ide.completions[0].conditions[1].class_fqn,
+            vec!["App\\Models\\Order"]
+        );
+        assert_eq!(
+            ide.completions[1].directory.as_deref(),
+            Some("resources/svg")
+        );
+        assert_eq!(
+            ide.code_generations[0].files[0].template_path,
+            "stubs/dto.stub"
+        );
         assert!(parse("{", "x").is_err());
     }
 
@@ -546,11 +573,20 @@ mod tests {
             is_method: method,
             arg_index: arg,
         };
-        assert_eq!(applicable(&ide, &site("order_status", None, false, 0)).len(), 1);
+        assert_eq!(
+            applicable(&ide, &site("order_status", None, false, 0)).len(),
+            1
+        );
         assert!(applicable(&ide, &site("order_status", None, false, 1)).is_empty());
-        assert_eq!(applicable(&ide, &site("markAs", Some("App\\Models\\Order"), true, 0)).len(), 1);
+        assert_eq!(
+            applicable(&ide, &site("markAs", Some("App\\Models\\Order"), true, 0)).len(),
+            1
+        );
         assert!(applicable(&ide, &site("markAs", Some("App\\Models\\User"), true, 0)).is_empty());
-        assert_eq!(applicable(&ide, &site("linkTo", None, true, 1))[0].complete, "routeName");
+        assert_eq!(
+            applicable(&ide, &site("linkTo", None, true, 1))[0].complete,
+            "routeName"
+        );
     }
 
     #[test]
@@ -560,16 +596,34 @@ mod tests {
         std::fs::write(dir.path().join("resources/svg/logo.svg"), "").unwrap();
         std::fs::write(dir.path().join("resources/svg/icons/cart.svg"), "").unwrap();
         let ide = parse(IDE, "ide.json").unwrap();
-        assert_eq!(directory_values(dir.path(), &ide.completions[1]), vec!["icons/cart", "logo"]);
+        assert_eq!(
+            directory_values(dir.path(), &ide.completions[1]),
+            vec!["icons/cart", "logo"]
+        );
 
         let read = |p: &str| {
-            (p == "stubs/dto.stub").then(|| "<?php\n\nnamespace ${NAMESPACE};\n\nfinal class ${CLASS}\n{\n}\n".to_string())
+            (p == "stubs/dto.stub").then(|| {
+                "<?php\n\nnamespace ${NAMESPACE};\n\nfinal class ${CLASS}\n{\n}\n".to_string()
+            })
         };
-        let class_path = |fqn: &str| format!("app/{}.php", fqn.trim_start_matches("App\\").replace('\\', "/"));
-        let files = generate(&ide.code_generations[0], "Orders/invoice", &read, &class_path);
+        let class_path = |fqn: &str| {
+            format!(
+                "app/{}.php",
+                fqn.trim_start_matches("App\\").replace('\\', "/")
+            )
+        };
+        let files = generate(
+            &ide.code_generations[0],
+            "Orders/invoice",
+            &read,
+            &class_path,
+        );
         assert_eq!(files[0].path, "app/Data/Orders/InvoiceData.php");
         assert!(files[0].content.contains("namespace App\\Data\\Orders;"));
         assert!(files[0].content.contains("final class InvoiceData"));
-        assert_eq!(expand("${X|snakeCase}-${Y}", &[("X", "OrderLine".into())]), "order_line-${Y}");
+        assert_eq!(
+            expand("${X|snakeCase}-${Y}", &[("X", "OrderLine".into())]),
+            "order_line-${Y}"
+        );
     }
 }
