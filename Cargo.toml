@@ -11,6 +11,7 @@ rust-version = "1.80"
 
 [workspace.dependencies]
 forge-core = { path = "crates/forge-core" }
+forge-trust = { path = "crates/forge-trust" }
 forge-wasm = { path = "crates/forge-wasm" }
 forge-fuzzy = { path = "crates/forge-fuzzy" }
 forge-find = { path = "crates/forge-find" }
