@@ -8,8 +8,11 @@
 //! - [`twig`] lists templates, Twig tags/filters/functions/tests (core, Symfony bridge and
 //!   project extensions) and which controller renders which template.
 //! - [`console`] finds console commands and builds `bin/console` command lines.
+//! - [`translations`] indexes the message catalogues by domain and locale; [`forms`] knows
+//!   form type options and data classes; [`events`] indexes event listeners and subscribers.
 //! - [`complete`] answers completion and Go to Declaration for route names, service ids,
-//!   templates, parameters and Twig syntax; [`gutter`] computes the editor gutter marks.
+//!   templates, parameters, Twig syntax, translation keys, form options and event names;
+//!   [`gutter`] computes the editor gutter marks.
 //!
 //! [`scan`] builds a [`Snapshot`] of a project once; the IDE caches it and rescans when files
 //! change.
@@ -17,9 +20,13 @@
 pub mod complete;
 pub mod console;
 pub mod container;
+pub mod events;
+pub mod forms;
 pub mod gutter;
+pub mod phparray;
 pub mod routes;
 pub mod strings;
+pub mod translations;
 pub mod twig;
 
 use std::path::{Path, PathBuf};
@@ -101,6 +108,13 @@ pub struct SymfonyInfo {
     pub services: usize,
     pub templates: usize,
     pub commands: usize,
+    /// Translation keys (distinct per domain).
+    #[serde(default)]
+    pub translations: usize,
+    #[serde(default)]
+    pub listeners: usize,
+    #[serde(default)]
+    pub forms: usize,
 }
 
 /// One indexed PHP file of the application.
@@ -125,6 +139,10 @@ pub struct Snapshot {
     /// Template name -> controller actions that render it.
     pub renders: Vec<twig::RenderRef>,
     pub commands: Vec<ConsoleCommand>,
+    pub translations: translations::Translations,
+    pub form_types: Vec<forms::FormType>,
+    pub listeners: Vec<events::EventListener>,
+    pub event_defs: Vec<events::EventDef>,
     pub php: Vec<PhpFile>,
 }
 
@@ -331,6 +349,10 @@ pub fn scan(root: &Path, config: &Config) -> Snapshot {
     twig_symbols.extend(twig::project_extensions(&php));
     let renders = twig::render_refs(&php);
     let commands = console::commands(&php);
+    let translations = translations::scan(root);
+    let form_types = forms::project_types(&php);
+    let listeners = events::listeners(root, &php);
+    let event_defs = events::event_defs(&php);
 
     let kernel_class = php
         .iter()
@@ -348,6 +370,9 @@ pub fn scan(root: &Path, config: &Config) -> Snapshot {
         services: services.len(),
         templates: templates.len(),
         commands: commands.len(),
+        translations: translations.table().rows.len(),
+        listeners: listeners.len(),
+        forms: form_types.len(),
     };
     Snapshot {
         root: root.to_path_buf(),
@@ -360,6 +385,10 @@ pub fn scan(root: &Path, config: &Config) -> Snapshot {
         twig: twig_symbols,
         renders,
         commands,
+        translations,
+        form_types,
+        listeners,
+        event_defs,
         php,
     }
 }
