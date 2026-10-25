@@ -108,6 +108,12 @@ an untrusted remote project in Safe Mode first and then asks. **Don't Open** clo
 and the connection again; nothing of it ran in the meantime. Trusted locations on this machine
 never cover remote projects, and the other way round.
 
+Dev containers are built from a folder on this machine, so the **local folder's** trust counts:
+Forge asks before the image build and `postCreateCommand` (they run the project's code), refuses
+both for an untrusted folder, and the project in the container is trusted with its sources. A
+WSL project is trusted by its `\\wsl.localhost\<distro>\…` path. See
+[Dev Containers and WSL](dev-containers-and-wsl.md).
+
 ## Browser mode
 
 The demo projects of browser mode live in `~/Projects`, a trusted location, so they open

@@ -849,6 +849,50 @@ or without Git, for local and remote projects.
   opens `deploy@shop.example.com:/var/www/shop` (the demo project), `?welcome=remote` shows
   Welcome > Remote Development.
 
+## Dev Containers and WSL (`forge-devenv`)
+
+- A project in a dev container or a WSL distribution is a `RemoteBackend` like an SSH project;
+  only the transport differs: the Forge agent runs over the stdio of `docker exec -i` /
+  `wsl.exe -d <distro> --exec` (`forge_devenv::agent::start_agent` with an `AgentTarget`;
+  probe, `cat` upload and start commands and the ready marker are `forge_remote::deploy` /
+  `forge_remote::agent::read_until_ready`, so the protocol is unchanged).
+  `forge_devenv::connection::StdioConnection` is the backend's `Connection` (no tunnels);
+  it restarts the agent with backoff when the process ends and runs the reattach hooks.
+  `RemoteHost.kind` is `RemoteKind::DevContainer { container, source, config }` or
+  `RemoteKind::Wsl { distro }` (`host` = the container's name / the distribution, `port` 0);
+  labels are `Dev Container: <name>` / `WSL: <distro>`, roots
+  `<name> [Dev Container]:/workspaces/x` / `\\wsl.localhost\<distro>\…`. Trust keys: the
+  container's local source folder (`forge_trust::local_key`), the WSL folder's normalized UNC
+  path (`commands::devenv::trust_key`).
+- Pure modules (also in `forge-wasm`): `devcontainer` (JSONC `devcontainer.json`, locations,
+  `resolve` with variables and defaults), `docker` (build / pull / run / compose / exec command
+  lines, the compose override file in the user cache dir, labels `forge.devcontainer.*` and
+  `devcontainer.local_folder` / `devcontainer.config_file`, the `docker ps` list), `wsl`
+  (UTF-16 `wsl.exe -l -v`, command lines, Windows ↔ Linux paths). `runner::Runner` hides the
+  processes so tests use fakes; `up::up` builds or starts a container and reports `LogLine`s.
+- **Trust:** `devcontainer_up` and `devcontainer_action` (`start`) refuse untrusted source
+  folders with `forge_trust::refusal` (the image build and the lifecycle commands run the
+  project's code); the UI asks "Trust and Open Project?" (`trustBeforeOpen`) first.
+- IPC (`src/ipc/devenv.ts`): `devcontainer_configs({ folder? }) -> { path, rel, config?,
+  source?, error? }[]`, `devcontainer_gutter({ path, content }) -> number | null`,
+  `devcontainer_list() -> { available, error?, containers: DevContainerInstance[] }`,
+  `devcontainer_up({ folder, configPath, rebuild? }) -> { containerId, created }` (log on
+  `devcontainer://log`: `{ kind: "step" | "command" | "warning", text } | { kind: "output",
+  stream, text }`), `devcontainer_cancel()`, `devcontainer_action({ containerId, action:
+  "start" | "stop" | "remove" })`, `devcontainer_open({ containerId }) -> WorkspaceInfo`,
+  `wsl_distributions() -> { available, error?, distros: { name, state, version, default }[] }`
+  (always unavailable off Windows), `wsl_map_path({ path }) -> { distro?, path } | null`,
+  `wsl_windows_path({ distro, path })`, `wsl_connect({ distro }) -> { connectionId, label,
+  home }`, `wsl_browse({ connectionId, path })`, `wsl_open_project({ connectionId, distro,
+  path }) -> WorkspaceInfo`, `wsl_disconnect({ connectionId })`. `remote_status` /
+  `remote_reconnect` and `remote://status` also cover these projects; `WorkspaceInfo.remote.kind`
+  carries the `RemoteKind`.
+- UI (`src/features/devenv`): Welcome > Remote Development > Dev Containers / WSL
+  (`?welcome=devcontainers|wsl`), the "Create Dev Container and Mount Sources" dialog with the
+  build log, the `devcontainer.json` line marker, `registerPathHandler` (`\\wsl$` folders open
+  in WSL), `setRecentDevEnvOpener` (recent projects) and `registerShellProfiles` (Terminal ›
+  WSL). `devcontainer.json` is JSON with comments in the editor.
+
 ## Opening files from outside (`forge-open`, Browser Companion)
 
 - Entry points: the browser extension (`browser-extension/`) via the local HTTP API, `forge://`
@@ -998,7 +1042,8 @@ or without Git, for local and remote projects.
   (`forge_trust::TrustStore`), never in settings (a project's `.forge/settings.toml` must not
   trust itself) and never in the project. Keys are canonical local paths
   (`forge_trust::local_key`) or `ssh://user@host:port/path` for remote projects
-  (`remote_key`); a location covers the projects below it on the same machine.
+  (`remote_key`); a location covers the projects below it on the same machine. Dev container
+  projects use their local source folder's key, WSL projects their `//wsl.localhost/…` path.
 - `AppState::safe_mode` (`forge_trust::SafeMode`) is set by `set_workspace` /
   `set_remote_project` (`refresh_safe_mode`): on while the open project is untrusted.
   **Every command that starts project programs calls `state.require_trusted("<action>")?`**

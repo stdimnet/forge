@@ -29,6 +29,11 @@ reports, see below), **Rename Session**, **Close Tab** and **Close Other Tabs**.
 area's context menu has **Copy** (`Ctrl+Shift+C`), **Paste** (`Ctrl+Shift+V`), **Select All**
 and **Clear Buffer**.
 
+On Windows, the arrow next to **+** also offers `WSL: <distro>` for every WSL distribution: a
+shell in that distribution, in the project folder (see
+[Dev Containers and WSL](dev-containers-and-wsl.md#terminal--wsl)). In projects opened in a dev
+container or a WSL distribution, every tab is a shell there.
+
 ## Program progress
 
 Programs such as Claude Code, winget or systemd report their progress with the OSC 9;4
