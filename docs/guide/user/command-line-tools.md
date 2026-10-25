@@ -102,8 +102,12 @@ italics) as long as no tool of that kind or alias is configured:
 | Composer | `composer.json` | `c` | the Composer executable of Settings \| PHP \| Composer (`composer`) |
 | Laravel Artisan | `artisan` | `a` | `artisan` |
 | Symfony Console | `bin/console` | `s` | `bin/console` |
-| WP-CLI | `wp-cli.phar`, `vendor/bin/wp`, or a WordPress site (`wp-config.php`) | `wp` | `wp-cli.phar`, `vendor/bin/wp` or `wp` |
+| WP-CLI | `wp-cli.phar`, `vendor/bin/wp`, or a WordPress site (`wp-config.php`, `wp-content/`) | `wp` | `wp-cli.phar`, `vendor/bin/wp` or `wp` |
 | Drush | `vendor/bin/drush` | `drush` | `vendor/bin/drush` |
+
+**Tools | WP-CLI…** ([WordPress](wordpress.md#wp-cli)), **Tools | Drush…** and **Tools |
+Shopware Console…** ([Drupal, Joomla and Shopware](cms.md#drush-and-the-shopware-console))
+open the console with the tool's alias typed in.
 
 **+** opens **Choose Tool to Add** with these tools plus **Tool based on Symfony Console** and
 **Tool based on PHP script** (any PHP script, run as `php <script> <arguments>`). **−**

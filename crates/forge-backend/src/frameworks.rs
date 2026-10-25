@@ -1,4 +1,5 @@
-//! Laravel, Symfony and Doctrine analysis of a project, run where its files are.
+//! Laravel, Symfony, Doctrine, WordPress and CMS (Drupal, Joomla, Shopware) analysis of a
+//! project, run where its files are.
 //!
 //! The analysis reads hundreds of project files, so it never goes file by file over the
 //! network: [`LocalFrameworks`] scans and caches next to the files (in the desktop app for a
@@ -96,6 +97,12 @@ pub enum FrameworkCall {
         config: DoctrineConfig,
         query: DoctrineQuery,
     },
+    /// The reply of [`phpforge_fw_wordpress::api::answer`] (JSON).
+    WordPress {
+        query: phpforge_fw_wordpress::api::Query,
+    },
+    /// The reply of [`phpforge_fw_cms::api::answer`] (JSON).
+    Cms { query: phpforge_fw_cms::api::Query },
 }
 
 /// Symfony requests on the project snapshot.
@@ -253,6 +260,8 @@ pub struct LocalFrameworks {
     laravel: Mutex<Option<CachedLaravel>>,
     symfony: Mutex<Option<Cached<SymfonySnapshot>>>,
     doctrine: Mutex<Option<Cached<DoctrineSnapshot>>>,
+    wordpress: Mutex<Option<Cached<phpforge_fw_wordpress::Snapshot>>>,
+    cms: Mutex<Option<Cached<phpforge_fw_cms::Snapshot>>>,
 }
 
 fn err(e: impl std::fmt::Display) -> ForgeError {
@@ -284,6 +293,8 @@ impl LocalFrameworks {
             laravel: Mutex::new(None),
             symfony: Mutex::new(None),
             doctrine: Mutex::new(None),
+            wordpress: Mutex::new(None),
+            cms: Mutex::new(None),
         }
     }
 
@@ -352,6 +363,25 @@ impl LocalFrameworks {
         *guard = Some(Cached {
             at: Instant::now(),
             key,
+            snapshot: snapshot.clone(),
+        });
+        Ok(snapshot)
+    }
+
+    /// A cached snapshot, scanned again after [`SNAPSHOT_TTL`] or with `force`.
+    fn cached<T>(
+        slot: &Mutex<Option<Cached<T>>>,
+        force: bool,
+        scan: impl FnOnce() -> T,
+    ) -> Result<Arc<T>> {
+        let mut guard = slot.lock().map_err(err)?;
+        if let Some(s) = guard.as_ref().filter(|_| !force).and_then(|c| c.fresh("")) {
+            return Ok(s);
+        }
+        let snapshot = Arc::new(scan());
+        *guard = Some(Cached {
+            at: Instant::now(),
+            key: String::new(),
             snapshot: snapshot.clone(),
         });
         Ok(snapshot)
@@ -477,6 +507,20 @@ impl LocalFrameworks {
             }
             FrameworkCall::Symfony { config, query } => self.symfony_query(&root, &config, query),
             FrameworkCall::Doctrine { config, query } => self.doctrine_query(&config, query),
+            FrameworkCall::WordPress { query } => {
+                use phpforge_fw_wordpress::api::{answer, Query};
+                let force = query == Query::Refresh;
+                let snap = Self::cached(&self.wordpress, force, || {
+                    phpforge_fw_wordpress::scan(&root)
+                })?;
+                reply(answer(&snap, query))
+            }
+            FrameworkCall::Cms { query } => {
+                use phpforge_fw_cms::api::{answer, Query};
+                let force = query == Query::Refresh;
+                let snap = Self::cached(&self.cms, force, || phpforge_fw_cms::scan(&root))?;
+                reply(answer(&snap, query))
+            }
         }
     }
 
@@ -631,6 +675,32 @@ impl LocalFrameworks {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn answers_wordpress_and_cms_calls() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(
+            dir.path().join("acme.php"),
+            "<?php\n/* Plugin Name: Acme */\nadd_action( 'acme_ready', 'acme_boot' );\ndo_action( 'acme_ready' );\n",
+        )
+        .unwrap();
+        let fw = LocalFrameworks::new(Workspace::open(dir.path()).unwrap());
+        let call = |query| {
+            let bytes = fw.call(FrameworkCall::WordPress { query }).unwrap();
+            decode_value::<serde_json::Value>(&bytes).unwrap()
+        };
+        use phpforge_fw_wordpress::api::Query;
+        assert_eq!(call(Query::Detect)["kind"], "plugin");
+        assert_eq!(call(Query::Hooks)[0]["name"], "acme_ready");
+        let cms = decode_value::<serde_json::Value>(
+            &fw.call(FrameworkCall::Cms {
+                query: phpforge_fw_cms::api::Query::Detect,
+            })
+            .unwrap(),
+        )
+        .unwrap();
+        assert_eq!(cms, serde_json::json!([]));
+    }
 
     fn laravel_project() -> tempfile::TempDir {
         let dir = tempfile::tempdir().unwrap();

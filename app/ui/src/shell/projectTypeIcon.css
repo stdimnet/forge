@@ -20,6 +20,7 @@
 .pt-icon[data-type="php"],
 .pt-icon[data-type="vite"] { --pt: var(--graph-3); }
 .pt-icon[data-type="laravel"],
+.pt-icon[data-type="joomla"],
 .pt-icon[data-type="angular"] { --pt: var(--danger); }
 .pt-icon[data-type="symfony"],
 .pt-icon[data-type="next"] { --pt: var(--fg-strong); }
@@ -32,6 +33,7 @@
 .pt-icon[data-type="typescript"],
 .pt-icon[data-type="solid"] { --pt: var(--info); }
 .pt-icon[data-type="magento"],
+.pt-icon[data-type="shopware"],
 .pt-icon[data-type="html"],
 .pt-icon[data-type="svelte"],
 .pt-icon[data-type="rust"] { --pt: var(--graph-0); }

@@ -22,6 +22,10 @@ pub enum UsageKind {
     Import,
     TraitUse,
     Extends,
+    /// WordPress `add_action` / `add_filter` of a hook.
+    HookRegistration,
+    /// WordPress `do_action` / `apply_filters` of a hook.
+    HookInvocation,
     NewInstance,
     MethodCall,
     FunctionCall,
@@ -53,6 +57,8 @@ impl UsageKind {
             UsageKind::Import => "Usage in import",
             UsageKind::TraitUse => "Usage in trait use",
             UsageKind::Extends => "Usage in extends/implements clause",
+            UsageKind::HookRegistration => "Hook registration",
+            UsageKind::HookInvocation => "Hook invocation",
             UsageKind::NewInstance => "New instance creation",
             UsageKind::MethodCall => "Method call",
             UsageKind::FunctionCall => "Function call",

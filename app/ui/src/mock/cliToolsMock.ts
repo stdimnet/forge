@@ -12,6 +12,8 @@ import { callWasm, forgeWasm } from "@/wasm";
 import { mockArtisanCommands, simulatedArtisanOutput } from "./laravelMock";
 import { composerSteps, startMockRun, throughInterpreter, type Step } from "./runMock";
 import { isSymfonyDemo } from "./demoSymfonyProject";
+import { isWordPressDemo } from "./demoWordPressProject";
+import { isDrupalDemo } from "./demoDrupalProject";
 import { isLuaDemo } from "./demoLuaProject";
 import { webDemo } from "./demoWebProjects";
 import { mockSettingValue } from "./settingsMock";
@@ -20,6 +22,8 @@ import { mockSettingValue } from "./settingsMock";
 function demoFiles(): string[] {
   if (isLuaDemo() || webDemo()) return [];
   if (isSymfonyDemo()) return ["composer.json", "bin/console"];
+  if (isWordPressDemo()) return ["composer.json", "vendor/bin/wp"];
+  if (isDrupalDemo()) return ["composer.json", "vendor/bin/drush"];
   return ["composer.json", "composer.lock", "artisan"];
 }
 
@@ -172,10 +176,29 @@ function symfonyList(): string {
   ]);
 }
 
+/** A short `wp cli cmd-dump` (WP-CLI's own format). */
+function wpCliDump(): string {
+  const cmd = (name: string, description: string, synopsis = "", subcommands: unknown[] = []) => ({ name, description, synopsis, longdesc: "", subcommands });
+  return JSON.stringify({
+    name: "wp",
+    description: "Manage WordPress through the command-line.",
+    longdesc: "",
+    subcommands: [
+      cmd("cache", "Adds, removes, fetches, and flushes the WP Object Cache object.", "", [cmd("flush", "Flushes the object cache."), cmd("get", "Gets a value from the object cache.", "<key> [<group>] [--format=<format>]")]),
+      cmd("cron", "Tests, runs, and deletes WP-Cron events; manages WP-Cron schedules.", "", [cmd("event", "Schedules, runs, and deletes WP-Cron events.", "", [cmd("list", "Lists scheduled cron events.", "[--fields=<fields>] [--format=<format>]"), cmd("run", "Runs the next scheduled cron event for the given hook.", "[<hook>...] [--due-now] [--all]")])]),
+      cmd("option", "Retrieves and sets site options, including plugin and WordPress settings.", "", [cmd("get", "Gets the value for an option.", "<key> [--format=<format>]"), cmd("update", "Updates an option value.", "<key> [<value>] [--autoload=<autoload>] [--format=<format>]")]),
+      cmd("plugin", "Manages plugins, including installs, activations, and updates.", "", [cmd("activate", "Activates one or more plugins.", "[<plugin>...] [--all] [--network]"), cmd("deactivate", "Deactivates one or more plugins.", "[<plugin>...] [--uninstall] [--all] [--network]"), cmd("list", "Gets a list of plugins.", "[--status=<status>] [--fields=<fields>] [--format=<format>]")]),
+      cmd("post", "Manages posts, content, and meta.", "", [cmd("create", "Creates a new post.", "[--post_type=<post_type>] [--post_title=<post_title>] [--post_status=<post_status>] [--porcelain]"), cmd("list", "Gets a list of posts.", "[--post_type=<post_type>] [--fields=<fields>] [--format=<format>]")]),
+      cmd("rewrite", "Lists or flushes the site's rewrite rules, updates the permalink structure.", "", [cmd("flush", "Flushes rewrite rules.", "[--hard]")]),
+    ],
+  });
+}
+
 const LISTS: Partial<Record<CliTool["kind"], () => string>> = {
   artisan: artisanList,
   composer: composerList,
   symfony: symfonyList,
+  "wp-cli": wpCliDump,
 };
 
 // ---- IPC -----------------------------------------------------------------------------
@@ -238,6 +261,19 @@ function symfonySteps(args: string[]): Step[] {
   return [lines(`\n \x1b[30;42m[OK] ${name ?? "list"} finished.\x1b[39;49m\n\n`, "stdout", 200), [20, { code: 0 }]];
 }
 
+function wpCliSteps(args: string[]): Step[] {
+  const line = args.join(" ");
+  if (line.startsWith("plugin list"))
+    return [
+      lines("+-------------+----------+-----------+---------+\n| name        | status   | update    | version |\n+-------------+----------+-----------+---------+\n", "stdout", 200),
+      lines("| acme-events | active   | none      | 1.2.0   |\n| akismet     | inactive | available | 5.3.3   |\n+-------------+----------+-----------+---------+\n", "stdout", 80),
+      [20, { code: 0 }],
+    ];
+  if (line.startsWith("cache flush") || line.startsWith("rewrite flush"))
+    return [lines(`\x1b[32mSuccess:\x1b[0m ${line.startsWith("cache") ? "The cache was flushed." : "Rewrite rules flushed."}\n`, "stdout", 250), [20, { code: 0 }]];
+  return [lines(`\x1b[32mSuccess:\x1b[0m wp ${line} finished.\n`, "stdout", 200), [20, { code: 0 }]];
+}
+
 registerMock("cli_tools_run", async ({ input, runId }) => {
   const all = await tools();
   const wasm = await forgeWasm();
@@ -258,6 +294,7 @@ registerMock("cli_tools_run", async ({ input, runId }) => {
     steps = [...out.lines.map(([text, stderr]): Step => [25, `${text}\n`, stderr ? "stderr" : "stdout"]), [20, { code: out.code }]];
   } else if (tool.kind === "composer") steps = composerSteps(args);
   else if (tool.kind === "symfony") steps = symfonySteps(args);
+  else if (tool.kind === "wp-cli") steps = wpCliSteps(args);
   else steps = [lines(`Could not open input file: ${tool.path}\n`, "stderr", 120), [20, { code: 1 }]];
   const started = await startMockRun(String(runId), cmd, steps, { pathMappings });
   return { ...started, alias: tool.alias, tool: toolName(tool), showConsoleIn: tool.showConsoleIn };

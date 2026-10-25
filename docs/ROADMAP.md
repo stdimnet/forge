@@ -99,7 +99,7 @@ are in [research/jetbrains-gap-analysis.md](research/jetbrains-gap-analysis.md).
 - [ ] Dev Containers and WSL projects
 
 ### Frameworks
-- [ ] WordPress (hooks, WP-CLI, code style); Drupal, Joomla, Shopware basics
+- [x] WordPress (hooks, WP-CLI, code style); Drupal, Joomla, Shopware basics
 - [x] Symfony translations, forms and events; Laravel dashboard (logs, `ide.json`)
 - [ ] Kubernetes contexts from the project's host
 

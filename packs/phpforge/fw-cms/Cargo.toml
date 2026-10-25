@@ -1,0 +1,13 @@
+[package]
+name = "phpforge-fw-cms"
+description = "PHPForge: Drupal, Joomla and Shopware basics (detection, Drupal hook completion, implementations and hook docs; pure, WebAssembly-friendly)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

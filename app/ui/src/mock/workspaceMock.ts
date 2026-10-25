@@ -19,13 +19,20 @@ import { recentPrimaries } from "./projectMock";
 import { isSymfonyDemo, symfonyDemoFiles, symfonyDemoName } from "./demoSymfonyProject";
 import { webDemo } from "./demoWebProjects";
 import { isLuaDemo, luaDemoFiles, luaDemoName } from "./demoLuaProject";
+import { isWordPressDemo, wordpressDemoFiles, wordpressDemoName } from "./demoWordPressProject";
+import { drupalDemoFiles, drupalDemoName, isDrupalDemo } from "./demoDrupalProject";
 
 /** The in-memory project (demo files plus whatever the UI saved); read by other mocks. */
 // `?project=symfony` opens the Symfony demo project instead of the Laravel one,
-// `?project=react|vue|angular` a WebForge demo (demoWebProjects.ts), `?project=lua` the LÖVE game.
+// `?project=react|vue|angular` a WebForge demo (demoWebProjects.ts), `?project=lua` the LÖVE game,
+// `?project=wordpress` a WordPress plugin, `?project=drupal` a Drupal module.
 export const mockFiles: Record<string, string> = isSymfonyDemo()
   ? { ...symfonyDemoFiles }
-  : isLuaDemo()
+  : isWordPressDemo()
+    ? { ...wordpressDemoFiles }
+    : isDrupalDemo()
+      ? { ...drupalDemoFiles }
+      : isLuaDemo()
     ? { ...luaDemoFiles }
     : webDemo()
       ? { ...webDemo()!.files }
@@ -34,7 +41,11 @@ const files = mockFiles;
 /** Name of the open demo project. */
 export const mockProjectName = isSymfonyDemo()
   ? symfonyDemoName
-  : isLuaDemo()
+  : isWordPressDemo()
+    ? wordpressDemoName
+    : isDrupalDemo()
+      ? drupalDemoName
+      : isLuaDemo()
     ? luaDemoName
     : (webDemo()?.name ?? demoProjectName);
 const openName = mockProjectName;
