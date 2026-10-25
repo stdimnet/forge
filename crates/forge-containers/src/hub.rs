@@ -528,10 +528,7 @@ impl Hub {
     pub fn details(&self, node_id: &str) -> Option<Details> {
         let mut d = tree::details(&self.input(), node_id)?;
         // Build output of Dockerfile runs and pulls lands on the Docker node.
-        // So do `kubectl apply` / `delete` runs on the Kubernetes node.
-        if matches!(d.target, Target::Docker | Target::KubeRoot)
-            && !d.tabs.contains(&tree::Tab::Log)
-        {
+        if d.target == Target::Docker && !d.tabs.contains(&tree::Tab::Log) {
             d.tabs.push(tree::Tab::Log);
         }
         Some(d)
@@ -663,7 +660,7 @@ impl Hub {
     pub async fn refresh(self: &Arc<Self>) {
         let project = self.lock().project.clone();
         let compose_files = load_compose_files(project).await;
-        {
+        let place = {
             let mut s = self.lock();
             s.compose_files = compose_files;
             let settings = s.settings.clone();
@@ -674,11 +671,11 @@ impl Hub {
             s.kube.namespaces = namespaces;
             s.kube.workloads = workloads;
             Self::apply_selection(&mut s);
-            drop(s);
+            place
+        };
+        if let Some((host, _, kubectl)) = place {
             self.emit_tree();
-            if let Some((host, _, kubectl)) = place {
-                self.load_host_kube(host, kubectl).await;
-            }
+            self.load_host_kube(host, kubectl).await;
         }
         if self.lock().client.is_some() {
             let _ = self.refresh_docker().await;
@@ -2817,6 +2814,273 @@ mod tests {
         assert_eq!(cwd, Path::new("/srv/shop/worker"));
         assert!(!env.iter().any(|(k, _)| k == "DOCKER_HOST"));
         drop(runs);
+        hub.shutdown();
+    }
+
+    /// A remote project whose host has `kubectl` (faked: canned JSON per command line) and
+    /// a port reachable through the SSH connection (an echo server).
+    struct KubeHost {
+        files: BTreeMap<String, String>,
+        echo_port: u16,
+        runs: Mutex<Vec<(String, Vec<String>)>>,
+        tcp: Mutex<Vec<u16>>,
+    }
+
+    const HOST_KUBECONFIG: &str = r#"{"kind":"Config","current-context":"k3s-shop",
+        "clusters":[{"name":"k3s","cluster":{"server":"https://127.0.0.1:6443","certificate-authority-data":"DATA+OMITTED"}},
+                    {"name":"prod","cluster":{"server":"https://k8s.acme.example:6443"}}],
+        "contexts":[{"name":"k3s-shop","context":{"cluster":"k3s","user":"k3s","namespace":"shop"}},
+                    {"name":"prod-eu","context":{"cluster":"prod","user":"deploy"}}],
+        "users":[{"name":"k3s","user":{"client-certificate-data":"DATA+OMITTED"}}]}"#;
+
+    impl ProjectHost for KubeHost {
+        fn root(&self) -> &Path {
+            Path::new("/srv/shop")
+        }
+        fn remote(&self) -> Option<&str> {
+            Some("deploy@shop.example.com")
+        }
+        fn read(&self, rel: &str) -> Option<String> {
+            self.files.get(rel).cloned()
+        }
+        fn dirs(&self) -> Vec<String> {
+            Vec::new()
+        }
+        fn run<'a>(
+            &'a self,
+            program: &'a str,
+            args: &'a [String],
+            _env: &'a [(String, String)],
+            _cwd: &'a Path,
+            mut sink: crate::project::OutputSink<'a>,
+        ) -> crate::project::BoxFuture<'a, Result<Option<i32>>> {
+            self.runs
+                .lock()
+                .unwrap()
+                .push((program.to_string(), args.to_vec()));
+            let line = args.join(" ");
+            let out = |t: &str| (LogStream::Stdout, t.to_string());
+            let (stream, text, code) = if program != "/opt/k3s/kubectl" {
+                (
+                    LogStream::Stderr,
+                    format!("sh: {program}: not found\n"),
+                    127,
+                )
+            } else if line == "config view -o json" {
+                let (s, t) = out(HOST_KUBECONFIG);
+                (s, t, 0)
+            } else if line.ends_with("get namespaces -o json") {
+                let (s, t) = out(
+                    r#"{"items":[{"metadata":{"name":"shop"}},{"metadata":{"name":"kube-system"}}]}"#,
+                );
+                (s, t, 0)
+            } else if line.contains("get pods -o json") {
+                let (s, t) = out(
+                    r#"{"kind":"List","items":[{"metadata":{"name":"web-1","namespace":"shop"},"spec":{"containers":[{"name":"php"}]},"status":{"phase":"Running"}}]}"#,
+                );
+                (s, t, 0)
+            } else if line.contains(" get ") {
+                let (s, t) = out(r#"{"items":[]}"#);
+                (s, t, 0)
+            } else if line.contains(" logs -f ") {
+                let (s, t) = out("[12:00:01] GET /orders 200\n");
+                (s, t, 0)
+            } else if line.contains(" port-forward ") {
+                // kubectl keeps running while it forwards.
+                sink(
+                    LogStream::Stdout,
+                    format!("Forwarding from 127.0.0.1:{} -> 80\n", self.echo_port),
+                );
+                return Box::pin(std::future::pending());
+            } else if line.contains(" apply -f ") {
+                let (s, t) = out("deployment.apps/web configured\n");
+                (s, t, 0)
+            } else {
+                (LogStream::Stderr, "error: unknown command\n".into(), 1)
+            };
+            sink(stream, text);
+            Box::pin(async move { Ok(Some(code)) })
+        }
+        fn open_tcp(
+            &self,
+            port: u16,
+        ) -> crate::project::BoxFuture<'static, Result<crate::http::BoxIo>> {
+            self.tcp.lock().unwrap().push(port);
+            Box::pin(async move {
+                let s = tokio::net::TcpStream::connect(("127.0.0.1", port)).await?;
+                Ok(Box::new(s) as crate::http::BoxIo)
+            })
+        }
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn remote_projects_use_kubernetes_of_the_host() {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        let echo = tokio::net::TcpListener::bind(("127.0.0.1", 0))
+            .await
+            .unwrap();
+        let echo_port = echo.local_addr().unwrap().port();
+        tokio::spawn(async move {
+            while let Ok((mut s, _)) = echo.accept().await {
+                tokio::spawn(async move {
+                    let (mut r, mut w) = s.split();
+                    let _ = tokio::io::copy(&mut r, &mut w).await;
+                });
+            }
+        });
+        let mut files = BTreeMap::new();
+        files.insert(
+            "k8s/web.yaml".to_string(),
+            "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: web\n".to_string(),
+        );
+        let host = Arc::new(KubeHost {
+            files,
+            echo_port,
+            runs: Mutex::new(Vec::new()),
+            tcp: Mutex::new(Vec::new()),
+        });
+        let project: Arc<dyn ProjectHost> = host.clone();
+        let (emit, _events) = collect();
+        let hub = Hub::new(emit, tokio::runtime::Handle::current());
+        let settings = HubSettings {
+            kubeconfig: "/nonexistent/kubeconfig".into(),
+            project_kube: true,
+            host_kubectl: vec!["deploy@shop.example.com\t/opt/k3s/kubectl".into()],
+            docker: DockerSettings {
+                connection: "unix".into(),
+                socket_path: "/nonexistent/docker.sock".into(),
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        let (h, p, s) = (hub.clone(), project.clone(), settings.clone());
+        tokio::task::spawn_blocking(move || h.configure(s, Some(p)))
+            .await
+            .unwrap();
+        wait_until(|| hub.input().kube.config.is_some()).await;
+
+        // Contexts come from the host's kubeconfig, and the tree says so.
+        let tree = hub.tree();
+        let kube = tree.iter().find(|n| n.id == "kube").unwrap();
+        assert_eq!(
+            kube.detail.as_deref(),
+            Some("from host deploy@shop.example.com")
+        );
+        assert_eq!(kube.children.len(), 2);
+        let sel = hub.kube_selection().unwrap();
+        assert_eq!(sel.contexts, ["k3s-shop", "prod-eu"]);
+        assert_eq!(
+            (sel.context.as_deref(), sel.namespace.as_deref()),
+            (Some("k3s-shop"), Some("shop"))
+        );
+
+        // Namespaces and workloads through the host's kubectl.
+        let ctx = Target::KubeContext {
+            context: "k3s-shop".into(),
+        }
+        .node_id();
+        hub.expand(&ctx).await;
+        let sel = hub.kube_selection().unwrap();
+        assert_eq!(sel.namespaces, ["kube-system", "shop"]);
+        let pod = Target::Pod {
+            context: "k3s-shop".into(),
+            namespace: "shop".into(),
+            name: "web-1".into(),
+        }
+        .node_id();
+        assert!(hub.loaded_pod("k3s-shop", "shop", "web-1").is_some());
+        assert!(host
+            .runs
+            .lock()
+            .unwrap()
+            .iter()
+            .any(|(_, a)| a.join(" ") == "--context k3s-shop -n shop get pods -o json"));
+
+        // Logs: `kubectl logs -f` on the host.
+        let key = hub.start_logs(&pod, 100, None).unwrap();
+        wait_until(|| {
+            hub.console(&key)
+                .iter()
+                .any(|l| l.text().contains("GET /orders"))
+        })
+        .await;
+
+        // Exec: a terminal on the host with the host's kubectl and kubeconfig.
+        let cmd = hub.terminal_command(&pod, false, None).unwrap();
+        assert_eq!(cmd.program, "/opt/k3s/kubectl");
+        assert!(cmd.on_host);
+        assert!(cmd.env.is_empty(), "{:?}", cmd.env);
+        assert_eq!(cmd.args[..2], ["--context", "k3s-shop"]);
+
+        // Port forward: kubectl port-forward on the host, tunnelled back here.
+        let f = hub.start_port_forward(&pod, 0, 80).await.unwrap();
+        assert_eq!(f.via.as_deref(), Some("deploy@shop.example.com"));
+        let mut tcp = tokio::net::TcpStream::connect(("127.0.0.1", f.local_port))
+            .await
+            .unwrap();
+        tcp.write_all(b"ping").await.unwrap();
+        let mut buf = [0u8; 4];
+        tokio::time::timeout(Duration::from_secs(10), tcp.read_exact(&mut buf))
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(&buf, b"ping");
+        assert_eq!(host.tcp.lock().unwrap().as_slice(), [echo_port]);
+        hub.stop_port_forward(f.id).unwrap();
+
+        // Apply a project manifest in the selected context and namespace, on the host.
+        hub.apply_manifest("k8s/web.yaml", ManifestAction::Apply)
+            .await
+            .unwrap();
+        assert!(host
+            .runs
+            .lock()
+            .unwrap()
+            .iter()
+            .any(|(p, a)| p == "/opt/k3s/kubectl"
+                && a.join(" ") == "--context k3s-shop -n shop apply -f k8s/web.yaml"));
+        assert!(hub
+            .console("run:kube")
+            .iter()
+            .any(|l| l.text().contains("deployment.apps/web configured")));
+        assert!(hub
+            .apply_manifest("missing.yaml", ManifestAction::Delete)
+            .await
+            .is_err());
+
+        // Another context from the selector.
+        let sel = hub.select_kube("prod-eu", None).await.unwrap().unwrap();
+        assert_eq!(sel.context.as_deref(), Some("prod-eu"));
+        assert_eq!(sel.namespace.as_deref(), Some("default"));
+        assert!(hub.select_kube("nope", None).await.is_err());
+
+        // A missing kubectl on the host is reported with the setting to change.
+        let other = HubSettings {
+            host_kubectl: Vec::new(),
+            ..settings.clone()
+        };
+        let (h, p) = (hub.clone(), project.clone());
+        tokio::task::spawn_blocking(move || h.configure(other, Some(p)))
+            .await
+            .unwrap();
+        wait_until(|| hub.input().kube.error.is_some()).await;
+        assert!(hub
+            .input()
+            .kube
+            .error
+            .unwrap()
+            .contains("Settings | Build, Execution, Deployment | Kubernetes"));
+
+        // Kubernetes of this machine: the local kubeconfig, not the host.
+        let local = HubSettings {
+            project_kube: false,
+            ..settings
+        };
+        let (h, p) = (hub.clone(), project.clone());
+        tokio::task::spawn_blocking(move || h.configure(local, Some(p)))
+            .await
+            .unwrap();
+        assert_eq!(hub.input().kube.host, None);
         hub.shutdown();
     }
 }

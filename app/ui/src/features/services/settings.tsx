@@ -1,7 +1,7 @@
 /**
  * Settings | Build, Execution, Deployment | Docker (connection incl. SSH hosts and Docker
  * contexts, Test Connection), | Docker | Docker Registry (accounts; passwords in the OS
- * keychain) and | Kubernetes.
+ * keychain) and | Kubernetes (with the kubectl of each remote project host).
  */
 import { createResource, createSignal, For, Show } from "solid-js";
 import { CircleCheck, CircleX, LoaderCircle, Plus, Trash2 } from "lucide-solid";
@@ -9,6 +9,7 @@ import { registerSettingsPage } from "@/features/settingsPages";
 import { SchemaPage } from "@/features/settings/SchemaPage";
 import { draftValue, setDraft } from "@/features/settings/dialogState";
 import { servicesApi } from "@/ipc/services";
+import { workspace } from "@/state/workspace";
 
 function TestConnection() {
   const [state, setState] = createSignal<{ ok: boolean; text: string } | "testing" | null>(null);
@@ -202,6 +203,86 @@ function RegistryPage() {
   );
 }
 
+/** `kubernetes.hostKubectlPaths`: the kubectl of each remote project host (`host<TAB>path`). */
+function HostKubectl() {
+  const entries = () =>
+    (draftValue<string[]>("kubernetes.hostKubectlPaths") ?? [])
+      .map((line) => line.split("\t"))
+      .filter((p) => p.length >= 2)
+      .map(([host, path]) => ({ host, path }));
+  const current = () => workspace()?.remote?.label;
+  const [host, setHost] = createSignal(current() ?? "");
+  const [path, setPath] = createSignal("");
+  const save = (list: { host: string; path: string }[]) =>
+    setDraft(
+      "kubernetes.hostKubectlPaths",
+      list.map((e) => `${e.host}\t${e.path}`),
+    );
+  const add = () => {
+    const h = host().trim();
+    if (!h || !path().trim()) return;
+    save([...entries().filter((e) => e.host !== h), { host: h, path: path().trim() }]);
+    setPath("");
+  };
+  return (
+    <section class="set-section svc-host-kubectl" data-testid="kubectl-hosts">
+      <div class="set-section-title">
+        <span>kubectl from the Project Host</span>
+      </div>
+      <div class="set-section-body indented">
+        <p class="muted">
+          In remote projects kubectl runs on the project's host with the host's kubeconfig. Hosts without an entry use kubectl from their PATH.
+        </p>
+        <table class="svc-table">
+          <thead>
+            <tr>
+              <th>Host</th>
+              <th>kubectl path on the host</th>
+              <th />
+            </tr>
+          </thead>
+          <tbody>
+            <For
+              each={entries()}
+              fallback={
+                <tr>
+                  <td colSpan={3} class="muted">
+                    No hosts. kubectl from the host's PATH is used.
+                  </td>
+                </tr>
+              }
+            >
+              {(e) => (
+                <tr>
+                  <td>
+                    {e.host}
+                    <Show when={e.host === current()}>
+                      <span class="muted"> (this project)</span>
+                    </Show>
+                  </td>
+                  <td class="mono">{e.path}</td>
+                  <td>
+                    <button class="icon-btn" title="Remove" onClick={() => save(entries().filter((x) => x.host !== e.host))}>
+                      <Trash2 size={13} />
+                    </button>
+                  </td>
+                </tr>
+              )}
+            </For>
+          </tbody>
+        </table>
+        <div class="svc-registry-form">
+          <input placeholder="user@host" value={host()} onInput={(e) => setHost(e.currentTarget.value)} spellcheck={false} />
+          <input placeholder="/usr/local/bin/kubectl" value={path()} onInput={(e) => setPath(e.currentTarget.value)} spellcheck={false} />
+          <button class="btn-secondary" onClick={add} disabled={!host().trim() || !path().trim()}>
+            <Plus size={13} /> Add
+          </button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 registerSettingsPage({
   id: "build.docker",
   title: "Docker",
@@ -226,6 +307,11 @@ registerSettingsPage({
   title: "Kubernetes",
   group: "Build, Execution, Deployment",
   order: 20,
-  keywords: ["kubeconfig", "kubectl", "context", "namespace", "k8s"],
-  component: () => <SchemaPage pageId="build.kubernetes" />,
+  keywords: ["kubeconfig", "kubectl", "context", "namespace", "k8s", "remote", "host", "ssh"],
+  component: () => (
+    <>
+      <SchemaPage pageId="build.kubernetes" />
+      <HostKubectl />
+    </>
+  ),
 });

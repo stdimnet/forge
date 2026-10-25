@@ -5,6 +5,8 @@
 //! - [`compose`]: `compose.yaml` / `docker-compose.yml` parsing, project names, command lines
 //!   and the mapping of containers to services by their labels.
 //! - [`kube`]: kubeconfig parsing and Kubernetes API objects (pods, deployments, services).
+//! - [`kubectl`]: kubectl command lines and output for Kubernetes on a remote project's
+//!   host (its client runs them there with the `runtime` feature).
 //! - [`logs`]: the multiplexed Docker log stream and Kubernetes log lines.
 //! - [`pull`]: image pull progress from the Engine's JSON messages.
 //! - [`endpoint`]: where the Docker daemon is (`DOCKER_HOST`, settings, platform defaults).

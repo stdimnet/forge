@@ -12,6 +12,7 @@ import type { ConsoleLine } from "@/ipc/run";
 import {
   servicesApi,
   type DetailsTab,
+  type KubeSelection,
   type ServiceAction,
   type ServiceDetails,
   type ServiceNode,
@@ -31,8 +32,34 @@ const [loading, setLoading] = createSignal(new Set<string>());
 const [containers, setContainers] = createSignal<Record<string, string>>({});
 /** The pod whose Forward Ports dialog is open. */
 const [forwardDialog, setForwardDialog] = createSignal<ServiceDetails | null>(null);
+/** The Kubernetes context / namespace selector (from the backend, after every tree change). */
+const [kubeSelection, setKubeSelection] = createSignal<KubeSelection | null>(null);
 
-export { nodes, expanded, selected, tab, setTab, version, status, loading, forwardDialog, setForwardDialog };
+export { nodes, expanded, selected, tab, setTab, version, status, loading, forwardDialog, setForwardDialog, kubeSelection };
+
+let selectionSeq = 0;
+function reloadKubeSelection(): void {
+  const seq = ++selectionSeq;
+  void servicesApi
+    .kubeSelection()
+    .then((s) => {
+      if (seq === selectionSeq) setKubeSelection(s);
+    })
+    .catch(() => undefined);
+}
+
+/** Pick a context (its own namespace) or a namespace of the selected context. */
+export async function selectKube(context: string, namespace?: string): Promise<void> {
+  try {
+    const s = await servicesApi.kubeSelect(context, namespace);
+    selectionSeq++;
+    setKubeSelection(s);
+    const node = findNode("kube")?.children?.find((n) => n.icon === "context" && n.label === context);
+    if (node) select(node.id);
+  } catch (err) {
+    showBalloon("Cannot switch the Kubernetes context", String(err).replace(/^Error: /, ""));
+  }
+}
 
 /** The container picked for a pod node, else its default container. */
 export function containerOf(d: ServiceDetails): string | undefined {
@@ -64,6 +91,7 @@ function applyNodes(list: ServiceNode[]): void {
   setExpanded(open);
   setNodes(list);
   setVersion((v) => v + 1);
+  reloadKubeSelection();
   if (!selected() && list.length) setSelected(list[0].id);
 }
 

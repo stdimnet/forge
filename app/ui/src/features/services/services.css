@@ -483,3 +483,35 @@ h4.svc-section-title {
   color: var(--success);
   font-size: var(--fs-small);
 }
+
+/* ---- Kubernetes context / namespace selector ---- */
+.svc-kube-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border);
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+.svc-kube-bar label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+.svc-kube-bar select {
+  height: 22px;
+  max-width: 130px;
+  padding: 0 4px;
+  color: var(--fg);
+  background: var(--bg-input);
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+}
+.svc-kube-source {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

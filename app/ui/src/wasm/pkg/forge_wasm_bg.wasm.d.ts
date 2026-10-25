@@ -222,6 +222,7 @@ export const search_match_files: (a: number, b: number, c: number) => void;
 export const search_rank: (a: number, b: number, c: number) => void;
 export const services_details: (a: number, b: number, c: number) => void;
 export const services_gutter: (a: number, b: number, c: number) => void;
+export const services_kube_selection: (a: number, b: number, c: number) => void;
 export const services_tree: (a: number, b: number, c: number) => void;
 export const settings_search: (a: number, b: number, c: number) => void;
 export const settings_validate: (a: number, b: number, c: number) => void;

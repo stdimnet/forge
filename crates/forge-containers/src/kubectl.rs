@@ -335,18 +335,24 @@ mod client {
             .await
             .map_err(|e| not_found(program, e))?;
         let (stdout, stderr) = out.into_inner().unwrap_or_else(|e| e.into_inner());
-        if code == Some(0) {
-            Ok(stdout)
-        } else {
-            err(failure(program, args, code, &stderr))
+        match code {
+            Some(0) => Ok(stdout),
+            // The shell on the host did not find the program.
+            Some(127) => Err(not_found(program, Error(stderr.trim().to_string()))),
+            _ => err(failure(program, args, code, &stderr)),
         }
     }
 
     fn not_found(program: &str, e: Error) -> Error {
         let lower = e.0.to_ascii_lowercase();
-        if lower.contains("not found") || lower.contains("no such file") {
+        if lower.is_empty() || lower.contains("not found") || lower.contains("no such file") {
+            let detail = if e.0.trim().is_empty() {
+                String::new()
+            } else {
+                format!(" ({})", e.0.trim())
+            };
             Error(format!(
-                "`{program}` was not found on the project host. Install kubectl there or set its path in Settings | Build, Execution, Deployment | Kubernetes ({e})"
+                "`{program}` was not found on the project host. Install kubectl there or set its path in Settings | Build, Execution, Deployment | Kubernetes{detail}"
             ))
         } else {
             e

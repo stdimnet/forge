@@ -1127,6 +1127,11 @@ export function services_details(request_json: string): string;
 export function services_gutter(request_json: string): string;
 
 /**
+ * `KubeInput` → `KubeSelection | null`, mirroring `services_kube_selection`.
+ */
+export function services_kube_selection(kube_json: string): string;
+
+/**
  * `ServicesInput` → `Node[]`, mirroring `services_tree`.
  */
 export function services_tree(input_json: string): string;
@@ -1649,6 +1654,7 @@ export interface InitOutput {
     readonly search_rank: (a: number, b: number, c: number) => void;
     readonly services_details: (a: number, b: number, c: number) => void;
     readonly services_gutter: (a: number, b: number, c: number) => void;
+    readonly services_kube_selection: (a: number, b: number, c: number) => void;
     readonly services_tree: (a: number, b: number, c: number) => void;
     readonly settings_search: (a: number, b: number, c: number) => void;
     readonly settings_validate: (a: number, b: number, c: number) => void;

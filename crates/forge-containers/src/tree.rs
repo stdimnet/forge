@@ -1840,6 +1840,10 @@ pub fn details(input: &ServicesInput, node_id: &str) -> Option<Details> {
             }
             d.sections.push(section("Kubernetes", rows));
             d.port_forwards = input.port_forwards.clone();
+            // `kubectl apply` / `delete` output of manifests.
+            if !d.tabs.contains(&Tab::Log) {
+                d.tabs.push(Tab::Log);
+            }
         }
         Target::KubeContext { context } => {
             d.port_forwards = input

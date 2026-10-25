@@ -102,6 +102,7 @@ for (const [cmd, what] of [
   ["symfony_console_run", "Running Symfony console commands"],
   ["cli_tools_run", "Running command line tools"],
   ["save_actions_run_tools", "Running external tools on save"],
+  ["services_kube_apply", "Applying Kubernetes manifests"],
 ] as const) {
   const inner = mockHandler(cmd);
   if (!inner) continue;
@@ -109,4 +110,14 @@ for (const [cmd, what] of [
     if (mockSafeMode()) throw new Error(refusal(what));
     return inner(args);
   });
+}
+
+// Exec into a pod (Attached Console too) runs against the project's cluster.
+{
+  const inner = mockHandler("services_terminal");
+  if (inner)
+    registerMock("services_terminal", (args) => {
+      if (mockSafeMode() && /^kube\/[^/]+\/[^/]+\/pods\//.test(String(args.nodeId))) throw new Error(refusal("Opening a terminal in a pod"));
+      return inner(args);
+    });
 }
