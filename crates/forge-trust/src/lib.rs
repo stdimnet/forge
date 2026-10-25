@@ -228,6 +228,19 @@ pub fn remote_key(user: &str, host: &str, port: u16, path: &str) -> String {
     normalize(&format!("{REMOTE}{user}@{host}:{port}{path}"))
 }
 
+/// The key of a local project folder: its canonical absolute path (symlinks resolved, without
+/// Windows' `\\?\` prefix), or the path itself when it cannot be resolved.
+pub fn local_key(path: &Path) -> String {
+    let resolved = std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf());
+    let text = resolved.to_string_lossy();
+    let text = match text.strip_prefix(r"\\?\") {
+        Some(rest) if rest.starts_with("UNC\\") => format!(r"\\{}", &rest[4..]),
+        Some(rest) => rest.to_string(),
+        None => text.into_owned(),
+    };
+    normalize(&text)
+}
+
 /// A key as the UI shows it: local paths unchanged, remote ones as `user@host:/path`
 /// (`user@host:2222:/path` for another port than 22).
 pub fn display(key: &str) -> String {
@@ -429,6 +442,19 @@ mod tests {
         assert_eq!(
             normalize("ssh://me@box:22/srv/www/../shop/"),
             "ssh://me@box:22/srv/shop"
+        );
+    }
+
+    #[test]
+    fn local_keys_resolve_symlinks_and_dots() {
+        let dir = tempfile::tempdir().unwrap();
+        let shop = dir.path().join("shop");
+        std::fs::create_dir(&shop).unwrap();
+        let canonical = local_key(&shop);
+        assert_eq!(local_key(&dir.path().join("shop/./../shop")), canonical);
+        assert_eq!(
+            local_key(Path::new("/no/such/forge/dir/")),
+            "/no/such/forge/dir"
         );
     }
 

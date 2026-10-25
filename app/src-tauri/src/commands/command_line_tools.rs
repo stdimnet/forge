@@ -287,6 +287,20 @@ fn load_commands(
             source: "cache".into(),
             error: None,
         }
+    } else if state.safe_mode.is_on() {
+        // Listing runs the tool (`php artisan list` boots the application).
+        let commands = builtin(tool.kind);
+        ToolCommands {
+            alias: tool.alias.clone(),
+            source: if commands.is_empty() {
+                "none"
+            } else {
+                "builtin"
+            }
+            .into(),
+            commands,
+            error: Some(forge_trust::refusal("Listing the tool's commands")),
+        }
     } else if let Some(inv) = list_invocation(tool) {
         let built = command_line(state, backend, tool, inv)?;
         let (parsed, error) = match list_commands(backend, &built.cmd, tool.kind.format()) {
@@ -417,6 +431,7 @@ pub async fn cli_tools_run(
     state: State<'_, AppState>,
     runs: State<'_, RunState>,
 ) -> Result<CliRunStarted> {
+    state.require_trusted("Running command line tools")?;
     let handle = app.clone();
     // Preparing a remote interpreter reads compose files through the backend.
     let (tool, built) = blocking(move || {

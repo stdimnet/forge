@@ -1849,6 +1849,7 @@ dependencies = [
  "forge-spell",
  "forge-ssr",
  "forge-text",
+ "forge-trust",
  "forge-update",
  "forge-vcs",
  "forge-viewers",

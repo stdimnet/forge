@@ -130,6 +130,8 @@ pub async fn save_actions_run_tools(
     tools: Vec<Tool>,
     state: State<'_, AppState>,
 ) -> Result<ToolsReport> {
+    // The tools are the project's own installations (node_modules, vendor/bin).
+    state.require_trusted("Running external tools on save")?;
     let custom = custom_paths(&state);
     let backend = state.backend()?;
     blocking(move || {
