@@ -376,10 +376,10 @@ export function updateCursor(path: string, line: number, col: number, carets = 1
   setEditor("tabs", (t) => t.path === path, "cursor", { line, col, carets });
 }
 
-type SaveListener = (path: string, content: string) => void;
+type SaveListener = (path: string, content: string, trigger: SaveTrigger) => void;
 const saveListeners = new Set<SaveListener>();
 
-/** Notified after a file was written (e.g. to send `didSave` to language servers). */
+/** Notified after a file was written (e.g. to send `didSave` to language servers, automatic upload). */
 export function onFileSaved(cb: SaveListener): () => void {
   saveListeners.add(cb);
   return () => saveListeners.delete(cb);
@@ -509,7 +509,7 @@ async function saveFileNow(path: string, trigger: SaveTrigger): Promise<void> {
     if (!bridge?.applyText(path, final)) updateContent(path, final);
   }
   setEditor("tabs", (t) => t.path === path, "saved", final);
-  saveListeners.forEach((l) => l(path, final));
+  saveListeners.forEach((l) => l(path, final, trigger));
 }
 
 export async function saveAll(trigger: SaveTrigger = "autosave"): Promise<void> {

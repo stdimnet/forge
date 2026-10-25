@@ -50,6 +50,7 @@ script and config language plugins.
 | Symfony Services | `forge.symfony-services` | phpforge | `forge.yaml` | `symfony` | file types: Symfony Services |
 | Doctrine | `forge.doctrine` | phpforge | `forge.php` | `doctrine` | tool windows: Doctrine; 1 commands; 6 settings |
 | Run/Debug | `forge.run` | core |  | always | tool windows: Run; 3 commands; 2 settings; run types: Shell Script |
+| Deployment | `forge.deployment` | core |  | always | tool windows: File Transfer; 8 commands; 8 settings; 1 main menu entries |
 | Docker and Kubernetes | `forge.services` | core |  | always | tool windows: Services; 2 commands; 15 settings; 1 main menu entries |
 | Terminal | `forge.terminal` | core |  | always | tool windows: Terminal; 1 commands; 7 settings; 1 keybindings |
 | Vim | `forge.vim` | core | `forge.core` | always | 2 commands; 3 settings; 1 main menu entries |

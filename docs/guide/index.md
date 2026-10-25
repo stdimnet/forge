@@ -48,6 +48,11 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 
 ## Recently added
 
+- **Deployment**: Settings | Build, Execution, Deployment | Deployment configures SFTP, FTP,
+  FTPS and local-folder servers with root path, web server URL, path mappings and excluded
+  paths; Tools | Deployment and the Project view upload, download, compare with the deployed
+  version and sync folders, files upload automatically on save, and the File Transfer tool
+  window shows every transfer ([Deployment](user/deployment.md)).
 - **Windows, modes and layouts**: several project windows (Open Project asks New Window or
   This Window, Window | Next / Previous Project Window `Ctrl+Alt+]` / `Ctrl+Alt+[`),
   Presentation, Distraction-Free, Zen and Full Screen modes that restore the layout when you

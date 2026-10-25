@@ -772,6 +772,26 @@ Page id `tools.http-client`.
 | --- | --- | --- | --- | --- | --- |
 | `httpClient.environment` | string | `""` | user, project |  | Environment — Environment of http-client.env.json (and http-client.private.env.json) that requests of .http files run with. Empty: dev, else the first one; $none: no environment. Chosen in the toolbar of .http editors. |
 
+### Build, Execution, Deployment | Deployment
+
+Page id `build.deployment`. No settings keys: the servers are project data in
+`.forge/deployment.toml` (FTP passwords in the OS keychain), see [Deployment](../user/deployment.md).
+
+### Build, Execution, Deployment | Deployment | Options
+
+Page id `build.deployment.options`.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `deployment.excludeNames` | string | `.svn;.cvs;.idea;.DS_Store;.git;.hg;.forge` | user, project |  | Exclude items by name — Names separated by semicolons; * and ? are wildcards. These files and folders are never uploaded, downloaded or compared. |
+| `deployment.overwriteUpToDate` | bool | `false` | user, project | Transfer | Overwrite up-to-date files — Off: files whose deployed copy has the same size and is not older are skipped. |
+| `deployment.preserveTimestamps` | bool | `true` | user, project | Transfer | Preserve files timestamps — The copy gets the modification time of the source (FTP servers need MFMT). |
+| `deployment.deleteTargetItems` | bool | `false` | user, project | Transfer | Delete target items when source ones do not exist — When a folder is uploaded or downloaded, files that exist only on the target are deleted. |
+| `deployment.createEmptyDirs` | bool | `false` | user, project | Transfer | Create empty directories |
+| `deployment.warnOverNewer` | enum: `timestampAndSize`, `content`, `no` | `timestampAndSize` | user, project | Transfer | Warn when uploading over newer file |
+| `deployment.compareBy` | enum: `content`, `size`, `timestamp` | `content` | user, project | Transfer | Sync with Deployed compares by |
+| `deployment.autoUpload` | enum: `always`, `explicit`, `never` | `never` | user, project | Automatic upload | Upload changed files automatically to the default server — Off in Safe Mode: an untrusted project never uploads on its own. |
+
 ### Build, Execution, Deployment | Docker
 
 Page id `build.docker`.

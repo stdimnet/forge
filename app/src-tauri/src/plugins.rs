@@ -17,6 +17,10 @@ const MANIFESTS: &[(&str, &str)] = &[
     ("run.toml", include_str!("../plugins/run.toml")),
     ("database.toml", include_str!("../plugins/database.toml")),
     ("services.toml", include_str!("../plugins/services.toml")),
+    (
+        "deployment.toml",
+        include_str!("../plugins/deployment.toml"),
+    ),
     ("php.toml", include_str!("../plugins/php.toml")),
     (
         "langservers.toml",

@@ -130,7 +130,8 @@ export function EncodingStatus(props: { tab: EditorTab }) {
 }
 
 export function IndentStatus(props: { tab: EditorTab }) {
-  const format = () => props.tab.format;
+  // The status bar may still read this while the active tab switches to a custom tab.
+  const format = () => props.tab?.format;
   const tooltip = () => {
     const f = format();
     if (!f) return "Indent";
