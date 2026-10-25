@@ -1,5 +1,5 @@
 //! A tiny in-process FTP server on 127.0.0.1 for the tests: passive mode, `MLSD` (or only
-//! `LIST`), `STOR`, `RETR`, `MKD`, `RMD`, `DELE`, `MFMT`, backed by a temporary folder.
+//! `LIST`), `STOR`, `RETR`, `MKD`, `RMD`, `DELE`, `RNFR`/`RNTO`, `MFMT`, backed by a temporary folder.
 
 use std::io::{BufRead, BufReader, Read, Write};
 use std::net::{TcpListener, TcpStream};
@@ -117,6 +117,7 @@ fn session(
     let mut user = String::new();
     let mut logged_in = false;
     let mut passive: Option<TcpListener> = None;
+    let mut rename_from: Option<PathBuf> = None;
     writeln!(out, "220 Forge test FTP\r")?;
     let mut line = String::new();
     loop {
@@ -263,6 +264,23 @@ fn session(
                 match std::fs::remove_dir(&path) {
                     Ok(()) => reply("250 Removed")?,
                     Err(_) => reply("550 Cannot remove")?,
+                }
+            }
+            "RNFR" => {
+                let (_, path) = resolve(root, &cwd, &arg);
+                if path.exists() {
+                    rename_from = Some(path);
+                    reply("350 Ready for RNTO")?;
+                } else {
+                    reply("550 No such file or directory")?;
+                }
+            }
+            "RNTO" => {
+                let (_, path) = resolve(root, &cwd, &arg);
+                match rename_from.take().map(|from| std::fs::rename(from, &path)) {
+                    Some(Ok(())) => reply("250 Renamed")?,
+                    Some(Err(_)) => reply("550 Cannot rename")?,
+                    None => reply("503 RNFR first")?,
                 }
             }
             "DELE" => {

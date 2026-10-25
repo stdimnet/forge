@@ -38,7 +38,7 @@ export function SshForm(props: {
 
   /** Picking a `~/.ssh/config` alias fills in its user and port. */
   const onHost = (value: string) => {
-    const entry = hosts()?.find((h) => h.alias === value);
+    const entry = props.config.parseConfig === false ? undefined : hosts()?.find((h) => h.alias === value);
     props.update({
       host: value,
       ...(entry?.user && !props.config.user ? { user: entry.user } : {}),
@@ -187,6 +187,17 @@ export function SshForm(props: {
           </p>
         </Match>
       </Switch>
+
+      <span />
+      <label class="ssh-check ssh-parse-config">
+        <input
+          type="checkbox"
+          checked={props.config.parseConfig !== false}
+          onChange={(e) => props.update({ parseConfig: e.currentTarget.checked })}
+          data-testid="ssh-parse-config"
+        />
+        Parse config file <code>~/.ssh/config</code>
+      </label>
 
       <Show when={props.problems?.length}>
         <span />

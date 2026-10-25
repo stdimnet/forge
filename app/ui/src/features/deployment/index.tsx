@@ -161,12 +161,7 @@ command("PublishGroup.DeleteOnServer", () => deleteOnServer());
 command("PublishGroup.Configuration", () => openDeploymentSettings());
 command("PublishGroup.Options", () => openDeploymentOptions());
 command("PublishGroup.ToggleAutoUpload", () => toggleAutoUpload());
-// The Remote Host browser is its own roadmap item; until then Browse Remote Host syncs the
-// project root, which lists the deployed files next to the local ones.
-command("PublishGroup.BrowseServers", async () => {
-  const s = defaultServer() ?? (await chooseServer("Browse Remote Host"));
-  if (s) await syncWith(s, "");
-});
+// PublishGroup.BrowseServers opens the Remote Host tool window (features/remoteHost).
 registerMainMenuToggle("PublishGroup.ToggleAutoUpload", autoUploadAlways);
 
 // Project view: Deployment submenu, like PHPStorm.

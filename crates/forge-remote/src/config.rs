@@ -39,10 +39,18 @@ pub struct SshConfiguration {
     /// Optional display name; the UI shows `user@host:port` otherwise.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
+    /// "Parse config file ~/.ssh/config": resolve the host as a `Host` alias and use its
+    /// host name, port, user, identity files and jump hosts. On by default.
+    #[serde(default = "default_true")]
+    pub parse_config: bool,
 }
 
 fn default_port() -> u16 {
     22
+}
+
+fn default_true() -> bool {
+    true
 }
 
 impl SshConfiguration {
@@ -155,6 +163,7 @@ mod tests {
             key_file: Some("~/.ssh/id_ed25519".into()),
             dont_save_secret: false,
             name: None,
+            parse_config: true,
         }
     }
 
@@ -186,6 +195,15 @@ mod tests {
         assert!(!text.to_lowercase().contains("password\":"));
         assert!(all.remove("c1"));
         assert!(!all.remove("c1"));
+    }
+
+    #[test]
+    fn parse_config_defaults_to_on_for_older_files() {
+        let old: SshConfiguration =
+            serde_json::from_str(r#"{"id":"a","host":"h","user":"u"}"#).unwrap();
+        assert!(old.parse_config);
+        assert_eq!(old.port, 22);
+        assert_eq!(old.auth, AuthMethod::Agent);
     }
 
     fn toml_like(all: &SshConfigurations) -> String {

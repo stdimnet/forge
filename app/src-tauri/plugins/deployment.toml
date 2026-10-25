@@ -6,7 +6,7 @@ name = "Deployment"
 version = "0.1.0"
 pack = "core"
 vendor = "Forge"
-description = "Deployment to SFTP, FTP/FTPS and local or mounted folders: path mappings, excluded paths, upload, download, sync and compare with the deployed version, automatic upload on save and the File Transfer tool window."
+description = "Deployment to SFTP, FTP/FTPS and local or mounted folders: path mappings, excluded paths, upload, download, sync and compare with the deployed version, automatic upload on save, the Remote Host and File Transfer tool windows."
 
 [[contributions.commands]]
 id = "PublishGroup.Upload"
@@ -44,6 +44,11 @@ title = "Sync with Deployed to…"
 category = "Deployment"
 
 [[contributions.commands]]
+id = "PublishGroup.BrowseServers"
+title = "Browse Remote Host"
+category = "Deployment"
+
+[[contributions.commands]]
 id = "PublishGroup.ToggleAutoUpload"
 title = "Automatic Upload (Always)"
 category = "Deployment"
@@ -67,6 +72,13 @@ items = [
   { type = "action", id = "PublishGroup.ToggleAutoUpload", label = "_Automatic Upload (Always)", checkable = true },
   { type = "action", id = "PublishGroup.BrowseServers", label = "_Browse Remote Host" },
 ]
+
+[[contributions.toolWindows]]
+id = "remoteHost"
+title = "Remote Host"
+anchor = "right"
+icon = "server"
+order = 40
 
 [[contributions.toolWindows]]
 id = "fileTransfer"

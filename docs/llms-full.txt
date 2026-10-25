@@ -779,6 +779,7 @@ not finished, the page says so.
 | [Services](docs/guide/user/services.md) | Docker, Docker Compose, Kubernetes |
 | [Remote development](docs/guide/user/remote-development.md) | SSH, the Forge agent, what runs remotely |
 | [Deployment](docs/guide/user/deployment.md) | SFTP, FTP/FTPS and local servers, mappings, upload on save, Sync with Deployed |
+| [Remote Host and SSH sessions](docs/guide/user/remote-host-and-ssh.md) | Remote Host tool window, Edit Remote File, SSH configurations, SSH terminal sessions |
 | [AI](docs/guide/user/ai.md) | providers, AI commit messages, Claude Code and Gemini CLI chat |
 | [Browser Companion](docs/guide/user/browser-companion.md) | browser extension, `forge://` links, error page integrations |
 
@@ -11661,12 +11662,14 @@ blocked even if a plugin or the UI tries to start them:
 | StyLua installed in the project | not run |
 | AI agents (Claude Code, Gemini CLI) | not started (they run the project's hooks and MCP servers) |
 | Deployment: automatic upload on save | off (the servers and the option come from the project's own files) |
+| SSH session to a deployment server (Tools \| Start SSH Session…) | asks first: the server comes from the project's files; your own SSH configurations connect without asking |
 
 What still works: the editor, the Project view, search, the PHP and Lua indexes, Go to
 Declaration, completion from the built-in analysis, language servers installed outside the
 project (for example Intelephense from npm or Forge's own install), Git, Local History,
 databases, the HTTP client and [Deployment](docs/guide/user/deployment.md) actions you start yourself (upload,
-download, compare and sync only copy files).
+download, compare and sync only copy files), and the [Remote Host](docs/guide/user/remote-host-and-ssh.md)
+tool window with Edit Remote File.
 
 The **terminal** opens in Safe Mode, because you type the commands yourself. The project's own
 settings (`.forge/settings.toml`) cannot choose its shell or environment variables then; your
@@ -12589,7 +12592,8 @@ terminal (xterm.js in the UI, a PTY in Rust), so interactive programs such as `v
 
 Tabs are named "Local", "Local (2)", …; while a program runs that sets a title (OSC 0 / OSC 2,
 e.g. Claude Code's current task), the tab shows that title instead (**Show application title**).
-Double-click a tab or use **Rename Session** to rename it; a renamed tab keeps its name. A
+Double-click a tab or use **Rename Session** to rename it; a renamed tab keeps its name. The arrow next to **+** has **New Tab**, **New Tab in Current Directory**, **SSH Session…**
+(see [SSH sessions](#ssh-sessions)), **Rename Session** and **Clear Buffer**. A
 tab's context menu has **New Tab**, **New Tab in Current Directory** (the directory the shell
 reports, see below), **Rename Session**, **Close Tab** and **Close Other Tabs**. The terminal
 area's context menu has **Copy** (`Ctrl+Shift+C`), **Paste** (`Ctrl+Shift+V`), **Select All**
@@ -12701,6 +12705,17 @@ still run: bash starts with an init file that sources `~/.bashrc` (or the profil
 login shell), zsh with a `ZDOTDIR` whose files source yours. The scripts live in
 `<cache dir>/forge/shell-integration` of the machine the shell runs on (also on remote hosts).
 fish, sh and PowerShell start without it; it applies to new sessions.
+
+## SSH sessions
+
+**Tools | Start SSH Session…** and **SSH Session…** in the new-tab dropdown (the arrow next
+to **+**) open a terminal tab on another host over SSH: pick one of your SSH configurations, an
+SFTP deployment server of the project or **Edit credentials…**. The tab is named after the
+host and runs on a pseudo terminal on the SSH channel, so full-screen programs and resizing
+work. See [Remote Host and SSH sessions](docs/guide/user/remote-host-and-ssh.md#ssh-sessions); in Safe Mode a
+session to a deployment server asks first.
+
+![SSH session](docs/screenshots/ssh-session-terminal.png)
 
 ## Other terminals
 
@@ -13446,7 +13461,10 @@ authentication errors stop the retries. **Reconnect to Remote Host** (Find Actio
 ## Saved configurations
 
 Settings | Tools | **SSH Configurations** lists, adds, edits and removes saved configurations.
-They are stored in `ssh.toml` in Forge's config folder; secrets stay in the keychain.
+They are stored in `ssh.toml` in Forge's config folder; secrets stay in the keychain. **Parse
+config file `~/.ssh/config`** (on by default) resolves `Host` aliases, jump hosts and proxy
+commands from your OpenSSH config. The same configurations connect SFTP deployment servers and
+SSH terminal sessions, see [Remote Host and SSH sessions](docs/guide/user/remote-host-and-ssh.md).
 
 ![SSH Configurations](docs/screenshots/remote-ssh-settings.png)
 
@@ -13594,9 +13612,144 @@ you choosing to.
 
 > **Note:** Deployment works with projects on this machine. In a [remote
 > project](docs/guide/user/remote-development.md) the files already are on the server; the Deployment actions
-> report that they are not available there. Browsing the server's files (Tools | Deployment |
-> Browse Remote Host, PHPStorm's Remote Host tool window) is not built yet; until then the
-> action opens Sync with Deployed for the project root.
+> report that they are not available there.
+
+## Browse Remote Host
+
+Tools | Deployment | **Browse Remote Host** opens the **Remote Host** tool window with the
+files of a server: a lazy tree with the mapped folders highlighted, Edit Remote File (a
+temporary copy uploaded back on save, with a check for changes on the server), Download from
+Here, Upload to Here, Compare with Local Version, New File / New Directory, Rename, Delete and
+Copy Path. See [Remote Host and SSH sessions](docs/guide/user/remote-host-and-ssh.md); the same page describes
+SSH terminal sessions to the SFTP servers of the project (Tools | Start SSH Session…).
+
+![Remote Host tool window](docs/screenshots/remote-host-tree.png)
+
+
+---
+
+Source: docs/guide/user/remote-host-and-ssh.md
+
+# Remote Host and SSH sessions
+
+Like PHPStorm, Forge lets you look at and change the files of a
+[deployment server](docs/guide/user/deployment.md) without leaving the IDE, and open a shell on any host you
+have an SSH configuration for, also in projects that live on this machine.
+
+## Remote Host tool window
+
+**Tools | Deployment | Browse Remote Host** opens the **Remote Host** tool window (right
+stripe) on the project's default server; without a default server Forge asks which one. The
+selector at the top switches to another server of the project; **Refresh** reads the selected
+folder again (with the folders open below it), **Collapse All** closes the tree and the gear
+opens the server settings. Find Action has **Remote Host** (`ActivateRemoteHostToolWindow`)
+to show the window; it has no default shortcut, bind one in Settings | Keymap.
+
+![Remote Host tool window](docs/screenshots/remote-host-tree.png)
+
+The tree starts at the server's root path (`/var/www/shop`; the login folder when the root path
+is empty) and loads each folder when you expand it. It works for every server type: SFTP,
+FTP/FTPS and local or mounted folders.
+
+- Folders that are the deployment path of a [mapping](docs/guide/user/deployment.md#mappings-tab) are
+  **green**, with the project folder they belong to next to them ("project root", "public").
+- Paths excluded on the deployment side (Excluded Paths tab) are dimmed.
+- Hover a file or folder to see the project path it is mapped to.
+
+Double-click a folder to expand it, a file to edit it.
+
+### Context menu
+
+![Remote Host context menu](docs/screenshots/remote-host-context-menu.png)
+
+| Entry | What it does |
+| --- | --- |
+| Edit Remote File | Downloads the file into a temporary copy and opens it in the editor. Saving (`Ctrl+S`, automatic saves) uploads it back, see below. |
+| Download from Here | Downloads the file or folder into the project path it is mapped to, like Download from… (the transfer appears in the File Transfer tool window). |
+| Upload to Here | Uploads the project file or folder mapped to this path, like Upload to…. |
+| Compare with Local Version | Opens the diff of the server file and the project file it is mapped to. |
+| New › File / Directory | Creates an empty file (opened with Edit Remote File) or a folder in the selected folder. |
+| Rename… | Renames the file or folder on the server. |
+| Delete… | Deletes the file, or the folder with everything in it, after a confirmation. The root folder is never deleted. |
+| Copy Path | Copies the absolute path on the server. |
+| Refresh | Reads the folder again. |
+
+Download from Here, Upload to Here and Compare with Local Version need a mapping that covers
+the path; the entries are disabled otherwise. They follow the
+[Deployment options](docs/guide/user/deployment.md#options) (excluded names, overwrite rules, timestamps) and
+ask before overwriting newer files, like every transfer.
+
+### Edit Remote File
+
+![Edit Remote File](docs/screenshots/remote-host-edit.png)
+
+The editor tab shows the server and the path in the breadcrumbs. The temporary copy lives in
+Forge's cache folder (`<cache dir>/forge/remote-edit/<server>/…`), never in the project, and
+is removed when you close the tab. Each save uploads the text, but first checks the server copy:
+when someone else changed (or deleted) the file since you opened it, Forge asks before it
+overwrites their version (**Overwrite** / **Upload**, or **Cancel** to keep your changes
+unsaved).
+
+## SSH configurations
+
+Settings | Tools | **SSH Configurations** keeps the SSH connections of
+[remote development](docs/guide/user/remote-development.md#saved-configurations), SFTP deployment servers and
+SSH sessions in one list: **+** adds, **−** removes and the copy button duplicates a
+configuration.
+
+![SSH Configurations](docs/screenshots/ssh-configurations.png)
+
+| Field | Notes |
+| --- | --- |
+| Host, Port | A host name, an address or a `Host` alias of `~/.ssh/config`; port 22 by default |
+| Username | The account on the host |
+| Authentication type | **Password**, **Key pair (OpenSSH or PuTTY)** with the private key file and its passphrase, or **OpenSSH config and authentication agent** (keys of the running ssh-agent, the `IdentityFile`s of `~/.ssh/config` and the default keys in `~/.ssh`) |
+| Save password / Save passphrase | Stores the secret in the OS keychain (service `forge-ssh`); off: Forge asks every time |
+| Parse config file `~/.ssh/config` | On (the default): the host may be a `Host` alias, and the host name, port, user, identity files, `ProxyJump` and `ProxyCommand` come from `~/.ssh/config`. Off: the host is taken literally. |
+
+**Test Connection** connects with the values in the form, including a password you have not
+saved yet. An unknown host key is shown with its fingerprint; trusting it adds it to
+`~/.ssh/known_hosts`.
+
+## SSH sessions
+
+**Tools | Start SSH Session…** (`RunSshConsole`, no default shortcut) and **SSH Session…** in
+the Terminal's new-tab dropdown (the arrow next to **+**) open a chooser:
+
+![Start SSH Session](docs/screenshots/ssh-session-chooser.png)
+
+- **SSH Configurations**: your saved configurations.
+- **Deployment Servers**: the project's SFTP servers, connected with their SSH configuration.
+- **Edit credentials…**: host, port, user name and authentication typed in; Forge saves them as
+  an SSH configuration (an existing one for the same account is updated) and connects.
+
+The session opens as a new tab of the [Terminal](docs/guide/user/terminal.md) tool window, named after the
+host (`shop.example.com`, `shop.example.com (2)`). It is a real pseudo terminal on the SSH
+channel (`xterm-256color`), so `htop`, `vim` or `php artisan tinker` work and the window size
+follows the tool window. Typing `exit` closes the tab; other exit codes stay visible.
+Configurations that do not save their password or passphrase ask for it first, and an unknown
+host key is asked about like in Test Connection.
+
+![SSH session in the Terminal](docs/screenshots/ssh-session-terminal.png)
+
+![The Terminal's new-tab dropdown](docs/screenshots/terminal-ssh-dropdown.png)
+
+## Safe Mode
+
+Browsing a server, Edit Remote File and the transfers only copy files and never run project
+code, so they work in an untrusted project opened in [Safe Mode](docs/guide/user/project-trust.md).
+
+An SSH session logs you in on a host with your credentials. Your own SSH configurations
+connect right away. A deployment server, however, comes from the project's
+`.forge/deployment.toml`: in Safe Mode Forge asks before it starts a session to it ("The
+deployment server … is defined in the files of this untrusted project. Connect … over SSH with
+your credentials?"), so an untrusted project cannot choose a host for you. The backend refuses
+the session without that confirmation. Trusted projects never ask.
+
+> **Note:** Download from Here, Upload to Here and Compare with Local Version need a project on
+> this machine, like every [Deployment](docs/guide/user/deployment.md) transfer. In a
+> [remote project](docs/guide/user/remote-development.md) the project files and the terminal already are on
+> the host.
 
 
 ---
@@ -14286,6 +14439,8 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Deployment Options… | `PublishGroup.Options` | — | — | yes |
 | Automatic Upload (Always) | `PublishGroup.ToggleAutoUpload` | — | — | yes |
 | Browse Remote Host | `PublishGroup.BrowseServers` | — | — | yes |
+| Remote Host (tool window) | `ActivateRemoteHostToolWindow` | — | — | yes |
+| Start SSH Session… | `RunSshConsole` | — | — | yes |
 
 Every enabled [External Tool](docs/guide/user/run-debug.md#external-tools) is an action too
 (`Tool_<group>_<name>`, e.g. `Tool_Linters_PHPStan`, group "External Tools"); they have no
@@ -14964,6 +15119,7 @@ Terminal, Vim emulation, Run Command… and the tools of plugins (Composer, Depl
 | Save as Live Template… | — | — | yes | Opens Settings \| Editor \| Live Templates with a new template made from the selection. [More](docs/guide/user/live-templates.md#save-as-live-template) ([screenshot](docs/screenshots/save-as-live-template.png)) |
 | Save File as Template… | — | — | not yet | Not available yet; the entry is disabled. |
 | Open in Terminal | `Ctrl+Shift+T` | `Cmd+T` | yes | Opens a new terminal tab (Tools | Open in Terminal). [More](docs/guide/user/terminal.md#tabs) ([screenshot](docs/screenshots/docs-terminal.png)) |
+| Start SSH Session… | — | — | yes | Chooses an SSH configuration or an SFTP deployment server and opens a Terminal tab connected over SSH. [More](docs/guide/user/remote-host-and-ssh.md#ssh-sessions) ([screenshot](docs/screenshots/ssh-session-chooser.png)) |
 | IDE Scripting Console | — | — | not yet | Not available yet; the entry is disabled. |
 | **External Tools** | | | dynamic | submenu: the enabled [External Tools](docs/guide/user/run-debug.md#external-tools) (Settings \| Tools \| External Tools) ([screenshot](docs/screenshots/external-tools-menu.png)) |
 | Vim | `Ctrl+Alt+V` | `Cmd+Alt+V` | yes | Turns Vim emulation on or off (check mark; plugin `forge.vim`). [More](docs/guide/user/vim-emulation.md) ([screenshot](docs/screenshots/vim-emulation.png)) |
@@ -14985,7 +15141,7 @@ Terminal, Vim emulation, Run Command… and the tools of plugins (Composer, Depl
 | Deployment › Configuration… | — | — | yes | Opens Settings \| Build, Execution, Deployment \| Deployment. [More](docs/guide/user/deployment.md#servers) ([screenshot](docs/screenshots/deployment-settings.png)) |
 | Deployment › Options… | — | — | yes | Opens Deployment \| Options. [More](docs/guide/user/deployment.md#options) ([screenshot](docs/screenshots/deployment-options.png)) |
 | Deployment › Automatic Upload (Always) | — | — | yes | Switches automatic upload on save between Always and Never (check mark). [More](docs/guide/user/deployment.md#options) |
-| Deployment › Browse Remote Host | — | — | yes | Opens Sync with Deployed for the project root until the Remote Host tool window exists. [More](docs/guide/user/deployment.md#safe-mode) |
+| Deployment › Browse Remote Host | — | — | yes | Opens the Remote Host tool window on the default server. [More](docs/guide/user/remote-host-and-ssh.md#remote-host-tool-window) ([screenshot](docs/screenshots/remote-host-tree.png)) |
 | **Docker** | | | | submenu |
 | Docker › Pull Image… | — | — | yes | Pulls a Docker image. [More](docs/guide/user/services.md#pulling-images-and-registries) |
 | Docker › Refresh Services | — | — | yes | Refreshes the Services tree. [More](docs/guide/user/services.md) |
@@ -16526,6 +16682,7 @@ Forge uses the platform's standard folders (Rust's `dirs` crate):
 | `intelephense/` | Intelephense's storage (`storagePath`) |
 | `jdtls/…` | workspace data of the Java language server |
 | `shell-integration/` | the bash and zsh scripts of the terminal's shell integration (also on remote hosts, in their cache dir) |
+| `remote-edit/<server>/…` | temporary copies of the files opened with Edit Remote File (Remote Host tool window); removed when the tab closes |
 
 The search index lives in `<cache dir>/Forge/search/<hash of the project root>.bin`. The
 embedded browser engine (the webview) keeps its cache in `<cache dir>/dev.forge.ide` (WebView2 on
@@ -19397,12 +19554,17 @@ Pure modules (also built for WebAssembly with `default-features = false`):
 - `compare`: `Entry` (path, dir, size, modified, digest), `compare(local, remote, by)` on top
   of `forge_diff::compare_listings` (the digest carries content, nothing or the timestamp),
   `is_up_to_date` and `is_newer_on_target`.
+- `browse`: the Remote Host tree. `nodes(server, entries)` → `RemoteNode { path, name, dir,
+  size, modified, local, mapping_root, excluded }` (folders first, by name ignoring case;
+  `local` is the mapped project path, `mapping_root` a mapping's deployment path),
+  `check_name`, `child_path`, `renamed_path` (New File / New Directory / Rename) and
+  `absolute_path` (Copy Path).
 
 With `client` (the default):
 
 - `fs::ServerFs`: `stat`, `list`, `read`, `write`, `mkdir`, `remove_file`, `remove_dir`,
-  `set_modified`, `describe`, plus `mkdir_all` / `remove_all`; paths are relative to the
-  server's root path.
+  `rename`, `set_modified`, `describe`, `invalidate` (forget cached listings), plus
+  `mkdir_all` / `remove_all`; paths are relative to the server's root path.
 - `local::LocalFolder` (local servers and the project side of every transfer),
   `ftp::FtpFs` (suppaftp, MIT OR Apache-2.0; FTPS is explicit TLS with rustls and
   `webpki-roots`; `MLSD` with a `LIST` fallback, `MFMT` for timestamps, a listing cache per
@@ -19418,6 +19580,12 @@ With `client` (the default):
   Connection.
 - `secrets`: FTP passwords in the keychain (service `forge-deploy`, account
   `ftp://user@host:port`).
+- `remote_host`: `Connections` (open connections by server id, reused while the server is
+  unchanged and `stat("")` works, closed after a failed operation), `list`, `create`,
+  `rename`, `delete`, `read_text`, and Edit Remote File: `start_edit(fs, server, path, cache)`
+  downloads into `<cache>/remote-edit/<server>/<path>` (`temp_path`), `save_edit(fs, edited,
+  data, force)` uploads unless the server copy's digest changed (`SaveOutcome::Uploaded |
+  Conflict { deleted }`).
 
 ## IPC
 
@@ -19429,7 +19597,15 @@ serverId?, direction, paths, overwriteNewer? })`, `deploy_delete({ id, serverId?
 `deploy_sync_compare({ serverId?, path })`, `deploy_read_remote({ serverId?, path })`; events
 `deploy://transfer` (`started`, `file`, `finished`). Browser mode: `app/ui/src/mock/deploymentMock.ts`
 with `crates/forge-wasm/src/deploy.rs` (`deploy_validate`, `deploy_resolve`,
-`deploy_compare`).
+`deploy_compare`, `deploy_remote_nodes`, `deploy_entry_path`).
+
+Remote Host (`app/src-tauri/src/commands/remote_host.rs`): `remote_host_list({ serverId, path
+}) -> { root, rootNode, nodes }`, `remote_host_create({ serverId, dir, name, folder })`,
+`remote_host_rename({ serverId, path, newName })`, `remote_host_delete({ serverId, paths })`,
+`remote_host_edit({ serverId, path }) -> { text, temp, remote }`, `remote_host_save_edit({
+serverId, path, text, force? }) -> { status: "uploaded" } | { status: "conflict", deleted }`,
+`remote_host_close_edit`, `remote_host_disconnect({ serverId? })`. Browser mode:
+`app/ui/src/mock/remoteHostMock.ts`.
 
 Transfers never run project code, so they work in Safe Mode; `deploy_auto_upload` does
 nothing in Safe Mode.
@@ -19447,7 +19623,10 @@ mappings and exclusions, up-to-date skips, newer files, Sync with Deployed, down
 Compare with Deployed Version, delete target items, delete on server, cancel) against a local
 folder, an in-process FTP server (`tests/common/ftp.rs`, also without `MLSD`/`MFMT`, wrong
 passwords, refused TLS) and an in-process SSH server with the SFTP subsystem
-(`tests/common/sftp.rs`, host key confirmation). No network beyond 127.0.0.1.
+(`tests/common/sftp.rs`, host key confirmation). The same run covers the Remote Host tree
+and its operations (listing with mappings, New Directory / New File, Rename, Refresh after
+outside changes, Edit Remote File with the conflict check, Delete) on every server type. No
+network beyond 127.0.0.1.
 
 
 ---
@@ -21169,17 +21348,20 @@ With `client` (the default):
 - `agent`: installing and starting the agent.
 - `connection`: a live connection to an agent with reconnects and latency.
 - `store`: saved configurations on disk and their secrets in the keychain.
+- `shell`: SSH terminal sessions (`SshShell::open(params, cols, rows, sink)`, a
+  `forge_backend::Terminal` on a pseudo terminal of an SSH channel).
 
 ## Modules
 
 | Module | Summary |
 | --- | --- |
 | `agent.rs` | Installing and starting the Forge agent over an SSH session. |
-| `config.rs` | Saved SSH configurations (Settings \| Tools \| SSH Configurations), stored in `<config dir>/forge/ssh.toml`. Passwords and key passphrases never go there: they live in the OS keychain. |
+| `config.rs` | Saved SSH configurations (Settings \| Tools \| SSH Configurations), stored in `<config dir>/forge/ssh.toml`. Passwords and key passphrases never go there: they live in the OS keychain. `parse_config` ("Parse config file ~/.ssh/config", on by default) decides whether `~/.ssh/config` resolves the host. |
 | `connection.rs` | A live connection to the Forge agent on a host: connects (SSH + agent start), measures latency, notices a dead connection and reconnects with backoff. |
 | `deploy.rs` | Installing the Forge agent on a remote host: probe the host with one shell command, decide whether the agent must be uploaded, upload it through `cat` (no SFTP needed) and start it. |
 | `known_hosts.rs` | OpenSSH `known_hosts`: which host keys are trusted. |
 | `session.rs` | SSH sessions with russh: host key verification against `known_hosts` (unknown and changed keys need the user's confirmation of the fingerprint), password, key file and ssh-agent authentication, command execution and streams, jump hosts (`ProxyJump`, one session tunnelled through the previous one) and `ProxyCommand`, port forwarding (`direct-tcpip` channels and remote `tcpip-forward` listeners) and forwarded Unix sockets (the Docker API over SSH). |
+| `shell.rs` | SSH terminal sessions (Tools \| Start SSH Session…): `SshSession::open_shell` (`pty-req` for `xterm-256color` + `shell`), output as UTF-8 to a `forge_process::PtySink`, input, window changes, the exit status and closing. |
 | `ssh_config.rs` | OpenSSH client configuration (`~/.ssh/config`): host blocks with patterns and the keywords Forge uses to connect. Like `ssh`, the first value obtained for a keyword wins and `IdentityFile` accumulates. |
 | `store.rs` | Saved SSH configurations on disk (`<config dir>/forge/ssh.toml`), their passwords and passphrases in the OS keychain (service `forge-ssh`, account = configuration id), and the user's OpenSSH files (`~/.ssh/config`, `~/.ssh/known_hosts`). |
 
@@ -21193,18 +21375,19 @@ pub use known_hosts::HostKeyStatus;
 ## Used by
 
 - IPC: `remote_ssh_configs`, `remote_ssh_config_save`, `remote_validate_config`, `remote_ssh_config_delete`, `remote_ssh_hosts`, `remote_test_connection`, `remote_connect`, `remote_browse`, `remote_open_project`, `remote_disconnect`, `remote_status`, `remote_reconnect` (`app/src-tauri/src/commands/remote.rs`)
-- UI: `app/ui/src/features/remote`
+- IPC: `terminal_open({ options: { ssh: { configId? | serverId?, secret?, confirmed? } } })` (`app/src-tauri/src/commands/terminal.rs`)
+- UI: `app/ui/src/features/remote`, `app/ui/src/features/terminal/ssh.tsx`
 - Browser mode: built into `forge-wasm`
 
 ## Dependencies
 
-- Workspace crates: [`forge-backend`](docs/guide/developer/crates/forge-backend.md), [`forge-core`](docs/guide/developer/crates/forge-core.md)
+- Workspace crates: [`forge-backend`](docs/guide/developer/crates/forge-backend.md), [`forge-core`](docs/guide/developer/crates/forge-core.md), [`forge-process`](docs/guide/developer/crates/forge-process.md)
 - External: `base64`, `dirs`, `flate2`, `hmac`, `keyring`, `russh`, `serde`, `serde_json`, `sha1`, `sha2`, `tokio`, `toml`, `tracing`
-- Features: `default` = `client`; `client` = `dep:forge-backend`, `dep:forge-core`, `dep:russh`, `dep:tokio`, `dep:tracing`, `dep:dirs`, `dep:keyring`, `dep:toml`, `dep:flate2`
+- Features: `default` = `client`; `client` = `dep:forge-backend`, `dep:forge-core`, `dep:forge-process`, `dep:russh`, `dep:tokio`, `dep:tracing`, `dep:dirs`, `dep:keyring`, `dep:toml`, `dep:flate2`
 
 ## Tests
 
-9 source files, about 3257 lines; 32 unit tests and 5 integration tests in `tests/` (`ssh.rs`).
+10 source files; unit tests and integration tests in `tests/`: `ssh.rs` (agent, reconnects, port forwarding, jump hosts) and `ssh_shell.rs` (SSH terminal sessions against an in-process server: pty request, UTF-8 output split across packets, input, window changes, exit codes, closing, wrong passwords).
 
 ```sh
 cargo test -p forge-remote
@@ -21786,6 +21969,11 @@ The logic behind [Project trust and Safe Mode](docs/guide/user/project-trust.md)
   the project (the program or a path argument lies inside `root`), lexically so it works for
   remote roots; `server_runs_project_code(id)` lists catalog language servers that execute
   project files (`SERVERS_RUNNING_PROJECT_CODE`).
+- `ssh_session_needs_confirmation(safe_mode, SshTarget)`: an SSH terminal session to a
+  deployment server (`SshTarget::ProjectServer`, defined in the project's files) needs the
+  user's confirmation in Safe Mode; the user's own SSH configurations
+  (`SshTarget::UserConfiguration`) never do. `ssh_confirmation_required(server)` is the error
+  `terminal_open` returns without it.
 
 ## IPC
 

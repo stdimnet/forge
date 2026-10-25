@@ -317,6 +317,19 @@ impl ServerFs for FtpFs {
             .map_err(|e| ftp_err(format!("Cannot delete {full}"), e))
     }
 
+    fn rename(&mut self, from: &str, to: &str) -> Result<()> {
+        let (full_from, full_to) = (self.full(from), self.full(to));
+        self.changed(from);
+        self.changed(to);
+        self.stream
+            .rename(&full_from, &full_to)
+            .map_err(|e| ftp_err(format!("Cannot rename {full_from}"), e))
+    }
+
+    fn invalidate(&mut self) {
+        self.cache.clear();
+    }
+
     fn set_modified(&mut self, path: &str, secs: i64) -> Result<bool> {
         if !self.mfmt {
             return Ok(false);

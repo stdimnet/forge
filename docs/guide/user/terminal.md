@@ -1,6 +1,6 @@
 ---
 title: Terminal
-description: The integrated terminal - tabs, program titles and progress, shells, clickable links, copy and paste, and terminal settings.
+description: The integrated terminal - tabs, program titles and progress, shells, SSH sessions, clickable links, copy and paste, and terminal settings.
 order: 160
 tags: [terminal, shell, pty, progress]
 ---
@@ -23,7 +23,8 @@ terminal (xterm.js in the UI, a PTY in Rust), so interactive programs such as `v
 
 Tabs are named "Local", "Local (2)", …; while a program runs that sets a title (OSC 0 / OSC 2,
 e.g. Claude Code's current task), the tab shows that title instead (**Show application title**).
-Double-click a tab or use **Rename Session** to rename it; a renamed tab keeps its name. A
+Double-click a tab or use **Rename Session** to rename it; a renamed tab keeps its name. The arrow next to **+** has **New Tab**, **New Tab in Current Directory**, **SSH Session…**
+(see [SSH sessions](#ssh-sessions)), **Rename Session** and **Clear Buffer**. A
 tab's context menu has **New Tab**, **New Tab in Current Directory** (the directory the shell
 reports, see below), **Rename Session**, **Close Tab** and **Close Other Tabs**. The terminal
 area's context menu has **Copy** (`Ctrl+Shift+C`), **Paste** (`Ctrl+Shift+V`), **Select All**
@@ -135,6 +136,17 @@ still run: bash starts with an init file that sources `~/.bashrc` (or the profil
 login shell), zsh with a `ZDOTDIR` whose files source yours. The scripts live in
 `<cache dir>/forge/shell-integration` of the machine the shell runs on (also on remote hosts).
 fish, sh and PowerShell start without it; it applies to new sessions.
+
+## SSH sessions
+
+**Tools | Start SSH Session…** and **SSH Session…** in the new-tab dropdown (the arrow next
+to **+**) open a terminal tab on another host over SSH: pick one of your SSH configurations, an
+SFTP deployment server of the project or **Edit credentials…**. The tab is named after the
+host and runs on a pseudo terminal on the SSH channel, so full-screen programs and resizing
+work. See [Remote Host and SSH sessions](remote-host-and-ssh.md#ssh-sessions); in Safe Mode a
+session to a deployment server asks first.
+
+![SSH session](../../screenshots/ssh-session-terminal.png)
 
 ## Other terminals
 

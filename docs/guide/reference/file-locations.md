@@ -46,6 +46,7 @@ Forge uses the platform's standard folders (Rust's `dirs` crate):
 | `intelephense/` | Intelephense's storage (`storagePath`) |
 | `jdtls/…` | workspace data of the Java language server |
 | `shell-integration/` | the bash and zsh scripts of the terminal's shell integration (also on remote hosts, in their cache dir) |
+| `remote-edit/<server>/…` | temporary copies of the files opened with Edit Remote File (Remote Host tool window); removed when the tab closes |
 
 The search index lives in `<cache dir>/Forge/search/<hash of the project root>.bin`. The
 embedded browser engine (the webview) keeps its cache in `<cache dir>/dev.forge.ide` (WebView2 on

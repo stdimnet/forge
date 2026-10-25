@@ -13,6 +13,7 @@ default = ["client"]
 client = [
     "dep:forge-backend",
     "dep:forge-core",
+    "dep:forge-process",
     "dep:russh",
     "dep:tokio",
     "dep:tracing",
@@ -32,6 +33,7 @@ hmac = "0.12"
 base64 = "0.22"
 forge-backend = { workspace = true, optional = true }
 forge-core = { workspace = true, optional = true }
+forge-process = { workspace = true, optional = true }
 russh = { version = "0.64", default-features = false, features = ["ring", "rsa", "flate2"], optional = true }
 tokio = { workspace = true, optional = true, features = ["net", "io-util", "sync", "rt", "macros", "time", "fs"] }
 tracing = { workspace = true, optional = true }
