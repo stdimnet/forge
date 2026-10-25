@@ -447,6 +447,12 @@ pub fn on_window_event(window: &Window, event: &WindowEvent) {
         }
     }
     if label == crate::startup::MAIN_LABEL {
+        if let WindowEvent::Focused(true) = event {
+            // Another project window (a Forge process of its own) may have changed the user
+            // settings; pick them up. Listeners run under the settings lock: use a thread.
+            let app = app.clone();
+            std::thread::spawn(move || app.state::<AppState>().write_settings().reload_shared());
+        }
         if let WindowEvent::Destroyed = event {
             // Editor tabs and tool windows in their own windows close with the project window.
             let owned: Vec<String> = {

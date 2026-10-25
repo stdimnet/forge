@@ -102,6 +102,23 @@ impl Layer {
         !matches!(self.store, Store::None)
     }
 
+    /// Read a local layer's file again (another Forge process may have written it). A file
+    /// that cannot be read or parsed keeps the values in memory.
+    fn reread(&mut self) {
+        let Store::Path(path) = &self.store else {
+            return;
+        };
+        let values = match fs::read_to_string(path) {
+            Ok(src) => match parse_layer(&src, || path.display().to_string()) {
+                Ok(values) => values,
+                Err(_) => return,
+            },
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => BTreeMap::new(),
+            Err(_) => return,
+        };
+        self.values = values;
+    }
+
     fn save(&self) -> Result<()> {
         if !self.is_persisted() {
             return Ok(());
@@ -253,6 +270,57 @@ impl Settings {
         self.project.is_persisted()
     }
 
+    /// Read the user settings and the Settings for New Projects from disk again: every
+    /// project window is a Forge process of its own, and another one may have changed them.
+    /// Listeners hear about each effective value that changed.
+    pub fn reload_shared(&mut self) {
+        self.reload_layers(true, true);
+    }
+
+    fn reload_layers(&mut self, user: bool, new_projects: bool) {
+        let keys: std::collections::BTreeSet<String> = self
+            .user
+            .values
+            .keys()
+            .chain(self.new_projects.values.keys())
+            .cloned()
+            .collect();
+        let before: BTreeMap<String, Option<Value>> = keys
+            .iter()
+            .map(|k| (k.clone(), self.get(k).cloned()))
+            .collect();
+        if user {
+            self.user.reread();
+        }
+        if new_projects {
+            self.new_projects.reread();
+        }
+        let mut changed: std::collections::BTreeSet<String> = self
+            .user
+            .values
+            .keys()
+            .chain(self.new_projects.values.keys())
+            .filter(|k| !before.contains_key(*k))
+            .cloned()
+            .collect();
+        for (key, old) in &before {
+            if self.get(key) != old.as_ref() {
+                changed.insert(key.clone());
+            }
+        }
+        for key in changed {
+            let after = self.resolve(&key);
+            let change = SettingsChange {
+                value: after.map(|(v, _)| v.clone()).unwrap_or(Value::Null),
+                scope: after.map_or(SettingsScope::Default, |(_, s)| s),
+                key,
+            };
+            for l in &self.listeners {
+                l(&change);
+            }
+        }
+    }
+
     /// Call `f` after every change of an effective value.
     pub fn subscribe(&mut self, f: impl Fn(&SettingsChange) + Send + Sync + 'static) {
         self.listeners.push(Box::new(f));
@@ -352,6 +420,16 @@ impl Settings {
                 json_to_toml(value)?;
             }
         }
+        // Another project window may have written the shared layers since they were read:
+        // start from the file, so its changes are not overwritten.
+        let writes = |s: SettingsScope| changes.iter().any(|(_, _, scope)| *scope == s);
+        let (shared_user, shared_new) = (
+            writes(SettingsScope::User),
+            writes(SettingsScope::NewProjects),
+        );
+        if shared_user || shared_new {
+            self.reload_layers(shared_user, shared_new);
+        }
         let before: Vec<Option<Value>> = changes
             .iter()
             .map(|(key, _, _)| self.get(key).cloned())
@@ -413,6 +491,41 @@ mod tests {
     use super::*;
     use serde_json::json;
     use std::sync::{Arc, Mutex};
+
+    #[test]
+    fn two_processes_do_not_overwrite_each_others_user_settings() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("settings.toml");
+        let open = || {
+            let mut s = Settings::new();
+            s.load_user(&path).unwrap();
+            s
+        };
+        let mut a = open();
+        let mut b = open();
+        let seen = Arc::new(Mutex::new(Vec::new()));
+        let log = seen.clone();
+        b.subscribe(move |c| log.lock().unwrap().push((c.key.clone(), c.value.clone())));
+        a.set("appearance.theme", json!("light"), SettingsScope::User)
+            .unwrap();
+        // B writes another key: A's change stays in the file, and B learns about it.
+        b.set("editor.font.size", json!(16), SettingsScope::User)
+            .unwrap();
+        assert_eq!(b.get("appearance.theme"), Some(&json!("light")));
+        let text = std::fs::read_to_string(&path).unwrap();
+        assert!(text.contains("light") && text.contains("16"), "{text}");
+        assert!(seen
+            .lock()
+            .unwrap()
+            .contains(&("appearance.theme".to_string(), json!("light"))));
+        // A picks B's change up when it reloads (the window got the focus).
+        a.reload_shared();
+        assert_eq!(a.get("editor.font.size"), Some(&json!(16)));
+        // A removed key is reported too.
+        std::fs::write(&path, "[editor.font]\nsize = 16\n").unwrap();
+        a.reload_shared();
+        assert_eq!(a.get("appearance.theme"), None);
+    }
 
     fn settings(dir: &Path) -> Settings {
         let mut s = Settings::new();
