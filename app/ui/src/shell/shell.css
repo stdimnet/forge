@@ -2,7 +2,8 @@
 .workbench {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  /* `--ide-zoom`: Zoom IDE in browser mode (CSS zoom does not scale viewport units). */
+  height: calc(100vh / var(--ide-zoom, 1));
 }
 
 .workbench-body {

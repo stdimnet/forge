@@ -49,7 +49,10 @@ registerMock("window_set_fullscreen", async ({ on }) => {
 registerMock("window_is_fullscreen", () => fullscreen || !!document.fullscreenElement);
 registerMock("window_set_zoom", ({ factor }) => {
   const f = Math.min(3, Math.max(0.5, Number(factor) || 1));
-  document.documentElement.style.setProperty("zoom", f === 1 ? "" : String(f));
+  const root = document.documentElement.style;
+  root.setProperty("zoom", f === 1 ? "" : String(f));
+  // Viewport units do not follow CSS zoom: full-height layouts divide by it (shell.css).
+  root.setProperty("--ide-zoom", f === 1 ? "" : String(f));
 });
 
 /** Browser mode has no file manager to open; the request is accepted and only logged. */

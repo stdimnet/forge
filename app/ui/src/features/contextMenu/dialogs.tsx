@@ -74,7 +74,7 @@ function ChoiceDialog(props: { req: ChoiceRequest }) {
     <div class="popup-backdrop modal">
       <div
         class="dialog"
-        style={{ width: "min(480px, calc(100vw - 32px))" }}
+        style={{ width: `min(${props.req.checkbox ? 580 : 480}px, calc(100vw - 32px))` }}
         role="alertdialog"
         tabIndex={-1}
         ref={(el) => queueMicrotask(() => el.focus())}

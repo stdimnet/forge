@@ -12,8 +12,9 @@ import { ToolWindowPanel } from "./ToolWindowPanel";
 /** Elements in the header that keep their own mouse handling. */
 const INTERACTIVE = "button, a, input, select, textarea, [role='button'], [role='tab']";
 
+/** The area floating windows live in (the editor and tool window part of the workbench). */
 function areaOf(el: HTMLElement | undefined): { width: number; height: number } {
-  const parent = el?.parentElement;
+  const parent = el?.parentElement ?? document.querySelector<HTMLElement>(".workbench-center");
   return { width: parent?.clientWidth ?? window.innerWidth, height: parent?.clientHeight ?? window.innerHeight };
 }
 

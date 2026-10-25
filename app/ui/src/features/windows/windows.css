@@ -19,7 +19,9 @@
   display: none;
 }
 :root[data-appearance-mode="distractionFree"] .cm-gutters,
-:root[data-appearance-mode="zen"] .cm-gutters {
+:root[data-appearance-mode="zen"] .cm-gutters,
+:root[data-appearance-mode="distractionFree"] .cm-breadcrumbs-panel,
+:root[data-appearance-mode="zen"] .cm-breadcrumbs-panel {
   display: none;
 }
 :root[data-appearance-mode="distractionFree"] .editor-area .cm-scroller,
