@@ -59,6 +59,7 @@ import "./dbMock";
 import "./laravelMock";
 import "./cliToolsMock";
 import "./symfonyMock";
+import "./wordpressMock";
 import "./luaMock";
 import "./doctrineMock";
 import "./forgesMock";

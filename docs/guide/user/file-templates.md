@@ -42,6 +42,8 @@ The templates:
 | PHPUnit Test | the project uses PHP | a `TestCase` subclass |
 | Laravel Controller, Laravel Model | the project uses Laravel | `make:controller` / `make:model` style classes |
 | Symfony Controller | the project uses Symfony | an `AbstractController` with a `#[Route]` action |
+| WordPress Plugin | the project uses WordPress | a plugin file with the plugin header, the `ABSPATH` guard and an `init` callback (see [WordPress](wordpress.md#file-templates)) |
+| WordPress Theme Stylesheet | the project uses WordPress | `style.css` with the theme header |
 | HTML File, CSS File, JavaScript File, TypeScript File | always | web files |
 | Vue Single File Component | the project uses Vue | `<script setup lang="ts">`, `<template>`, `<style scoped>` |
 | React Component, React TypeScript Component | the project uses React | `.jsx` / `.tsx` function components |

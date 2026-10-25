@@ -11,6 +11,8 @@ import { callWasmSync, forgeWasm, type ForgeWasm } from "@/wasm";
 import { DEMO_COMPOSE_VOLUMES } from "./phpInterpretersMock";
 import { demoProjectName } from "./demoProject";
 import { isSymfonyDemo, symfonyDemoName } from "./demoSymfonyProject";
+import { isWordPressDemo, wordpressDemoName } from "./demoWordPressProject";
+import { drupalDemoName, isDrupalDemo } from "./demoDrupalProject";
 import { webDemo } from "./demoWebProjects";
 import { isLuaDemo, luaDemoName } from "./demoLuaProject";
 import { scratchCommandLine, scratchRunSteps } from "./scratchesMock";
@@ -19,7 +21,7 @@ import { recordTestRun, TEST_TYPES, testCommandLine, testSteps } from "./testFra
 
 const ROOT = `~/Projects/${demoProjectName}`;
 export const projectRoot = () =>
-  `~/Projects/${isSymfonyDemo() ? symfonyDemoName : isLuaDemo() ? luaDemoName : (webDemo()?.name ?? demoProjectName)}`;
+  `~/Projects/${isSymfonyDemo() ? symfonyDemoName : isWordPressDemo() ? wordpressDemoName : isDrupalDemo() ? drupalDemoName : isLuaDemo() ? luaDemoName : (webDemo()?.name ?? demoProjectName)}`;
 
 /** The Lua demo (`?project=lua`): the LÖVE game and its build script. */
 const LUA_CONFIGURATIONS: RunConfigurations = {

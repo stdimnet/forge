@@ -29,6 +29,8 @@ export function App() {
     const INITIAL: Record<string, string> = {
       symfony: "src/Controller/OrderController.php",
       lua: "main.lua",
+      wordpress: "acme-events.php",
+      drupal: "acme_tools.module",
       react: "src/App.tsx",
       vue: "src/views/DashboardView.vue",
       angular: "src/app/users/user-card.component.ts",

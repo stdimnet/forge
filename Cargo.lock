@@ -1876,8 +1876,10 @@ dependencies = [
  "phpforge-cli-tools",
  "phpforge-composer",
  "phpforge-dql",
+ "phpforge-fw-cms",
  "phpforge-fw-laravel",
  "phpforge-fw-symfony",
+ "phpforge-fw-wordpress",
  "phpforge-interpreters",
  "phpforge-lang-php",
  "phpforge-orm-doctrine",
@@ -1919,8 +1921,10 @@ dependencies = [
  "forge-vcs",
  "futures-util",
  "phpforge-dql",
+ "phpforge-fw-cms",
  "phpforge-fw-laravel",
  "phpforge-fw-symfony",
+ "phpforge-fw-wordpress",
  "phpforge-lang-php",
  "phpforge-orm-doctrine",
  "rmp-serde",
@@ -2612,6 +2616,8 @@ dependencies = [
  "phpforge-cli-tools",
  "phpforge-composer",
  "phpforge-dql",
+ "phpforge-fw-cms",
+ "phpforge-fw-wordpress",
  "phpforge-interpreters",
  "phpforge-test-frameworks",
  "serde",
@@ -4943,6 +4949,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "phpforge-fw-cms"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "tempfile",
+]
+
+[[package]]
 name = "phpforge-fw-laravel"
 version = "0.1.0"
 dependencies = [
@@ -4968,6 +4983,16 @@ dependencies = [
  "tempfile",
  "walkdir",
  "yaml-rust2",
+]
+
+[[package]]
+name = "phpforge-fw-wordpress"
+version = "0.1.0"
+dependencies = [
+ "forge-codeintel",
+ "serde",
+ "serde_json",
+ "tempfile",
 ]
 
 [[package]]

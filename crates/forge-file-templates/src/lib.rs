@@ -794,6 +794,33 @@ mod tests {
     }
 
     #[test]
+    fn wordpress_plugin_and_theme_headers() {
+        let mut r = req("WordPress Plugin", "", "acme-events");
+        r.context.user = "marlon".into();
+        let f = new_file(&r, &[]).unwrap();
+        assert_eq!(f.path, "acme-events.php");
+        assert!(
+            f.text.contains(" * Plugin Name:       acme-events\n"),
+            "{}",
+            f.text
+        );
+        assert!(f.text.contains(" * Text Domain:       acme-events\n"));
+        assert!(f.text.contains(" * Author:            marlon\n"));
+        assert!(
+            f.text.contains("function acme_events_init() {"),
+            "{}",
+            f.text
+        );
+        assert!(f.text.contains("add_action( 'init', 'acme_events_init' );"));
+        let mut r = req("WordPress Theme Stylesheet", "", "style");
+        r.context.project_name = "Anvil".into();
+        let f = new_file(&r, &[]).unwrap();
+        assert_eq!(f.path, "style.css");
+        assert!(f.text.starts_with("/*\nTheme Name: Anvil\n"), "{}", f.text);
+        assert!(f.text.contains("Text Domain: anvil\n"));
+    }
+
+    #[test]
     fn web_and_lua_files() {
         let f = new_file(&req("HTML File", "public", "about"), &[]).unwrap();
         assert_eq!(f.path, "public/about.html");

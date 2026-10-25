@@ -72,10 +72,30 @@ export async function searchUsages(origin: UsagesOrigin, content?: string, scope
   return codeApi.findUsages(origin.path, origin.pos, content, dirtyBuffers(), usageOptions(), usageScope(origin.path, scope));
 }
 
+/**
+ * Framework elements a language server does not know (WordPress hooks): a provider answers
+ * Find Usages / Show Usages for the caret, or returns null to leave it to the servers.
+ */
+export type UsagesProvider = (path: string, view: EditorView, pos: number, scope?: SearchScope) => Promise<UsagesAnswer | null>;
+const usagesProviders: UsagesProvider[] = [];
+/** Answers that came from a provider: Rerun asks the provider again. */
+const providerAnswers = new WeakSet<UsagesAnswer>();
+
+export function registerUsagesProvider(provider: UsagesProvider): void {
+  usagesProviders.push(provider);
+}
+
 async function queryUsages(path: string, view: EditorView, pos: number, scope?: SearchScope): Promise<UsagesAnswer | null> {
   if (isLibraryPath(path)) {
     showHint(view, pos, "Usages are searched in project files only");
     return null;
+  }
+  for (const provider of usagesProviders) {
+    const answer = await provider(path, view, pos, scope).catch(() => null);
+    if (answer) {
+      providerAnswers.add(answer);
+      return answer;
+    }
   }
   try {
     return await searchUsages({ path, pos: toLsp(view.state.doc, pos) }, view.state.doc.toString(), scope);
@@ -252,7 +272,10 @@ export async function findUsagesAt(path: string, view: EditorView, pos: number):
     return;
   }
   const origin = { path, pos: toLsp(view.state.doc, pos) };
-  openInFindWindow(answer, { origin, rerun: () => searchUsages(origin) });
+  const rerun = providerAnswers.has(answer)
+    ? async () => (await queryUsages(path, view, pos)) ?? answer
+    : () => searchUsages(origin);
+  openInFindWindow(answer, { origin, rerun });
 }
 
 /** Find Usages in File (Ctrl+F7): the usages in the current file, in the Find tool window. */

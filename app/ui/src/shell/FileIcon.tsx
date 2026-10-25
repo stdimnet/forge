@@ -62,6 +62,9 @@ const byExt: Record<string, Spec> = {
   dockerfile: { icon: Container, color: "#4fa3e0" },
 };
 
+// PHP under other extensions (Drupal's hook files).
+for (const ext of ["inc", "phtml", "module", "install", "theme", "profile", "engine"]) byExt[ext] = byExt.php;
+
 const ignoreFile = /^\.(?:\w+)?ignore$|^\.gitignore_global$/;
 const composeFile = /^(?:docker-compose|compose)(?:\..+)?\.ya?ml$/i;
 const dockerfile = /^(?:Dockerfile|Containerfile)(?:\..+)?$/i;
