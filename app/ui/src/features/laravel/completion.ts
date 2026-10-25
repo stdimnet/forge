@@ -1,7 +1,7 @@
 /**
  * Laravel completion, added next to the language server's: route names, views, config and
  * env keys, translations, query columns and relations, model properties and scopes, Blade
- * components and directives. Items use the shared completion popup (icons via
+ * components and directives, and the values of `ide.json` completions. Items use the shared completion popup (icons via
  * `registerCompletionKind`).
  */
 import { EditorState, type Extension } from "@codemirror/state";
@@ -100,6 +100,9 @@ export function laravelCompletionSource(path: string) {
     let options = result?.items.map(toOption) ?? [];
     if (!laravelSetting("laravel.completion.columns", true)) {
       options = options.filter((o) => o.type !== "column");
+    }
+    if (!laravelSetting("laravel.completion.ideJson", true)) {
+      options = options.filter((o) => o.type !== "value");
     }
     let from = result ? Math.min(result.from, ctx.pos) : ctx.pos;
     // Blade directives: built-ins plus the project's custom directives.

@@ -3,6 +3,67 @@
  * Blade views and components, so the Laravel plugin has a realistic project in browser mode.
  */
 export const demoLaravelFiles: Record<string, string> = {
+  "ide.json": `{
+  "$schema": "https://laravel-ide.com/schema/laravel-ide-v2.json",
+  "completions": [
+    {
+      "complete": "staticStrings",
+      "options": { "strings": ["pending", "paid", "shipped", "cancelled"] },
+      "condition": [
+        { "functionNames": ["order_status"], "parameters": [1] },
+        { "classFqn": ["App\\\\Models\\\\Order"], "methodNames": ["markAs"], "parameters": [1] }
+      ]
+    },
+    {
+      "complete": "routeName",
+      "condition": [{ "methodNames": ["linkTo"], "parameters": [1] }]
+    }
+  ],
+  "codeGenerations": [
+    {
+      "id": "acme:dto",
+      "name": "Create Data Object",
+      "classSuffix": "Data",
+      "files": [
+        {
+          "appNamespace": "Data",
+          "name": "\${INPUT_CLASS|className|upperCamelCase}.php",
+          "template": { "type": "stub", "path": "/stubs/data.stub" }
+        }
+      ]
+    }
+  ]
+}
+`,
+  "stubs/data.stub": `<?php
+
+namespace \${NAMESPACE};
+
+final readonly class \${CLASS}
+{
+    public function __construct()
+    {
+    }
+}
+`,
+  "app/Console/Commands/PruneAbandonedCarts.php": `<?php
+
+namespace App\\Console\\Commands;
+
+use Illuminate\\Console\\Command;
+
+class PruneAbandonedCarts extends Command
+{
+    protected $signature = 'carts:prune {--days=7 : Keep carts newer than this}';
+
+    protected $description = 'Delete carts abandoned for more than a week';
+
+    public function handle(): int
+    {
+        return self::SUCCESS;
+    }
+}
+`,
   "routes/api.php": `<?php
 
 use App\\Http\\Controllers\\ProductController;

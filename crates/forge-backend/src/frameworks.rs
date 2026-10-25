@@ -61,6 +61,18 @@ pub enum FrameworkCall {
     },
     /// -> [`ArtisanCommands`]
     LaravelArtisanCommands { php: String },
+    /// The tool window's overview -> `phpforge_fw_laravel::dashboard::LaravelOverview`
+    LaravelOverview,
+    /// `storage/logs/<file>` (empty: the newest log), its last `max_bytes`
+    /// -> `phpforge_fw_laravel::logs::LogPage`
+    LaravelLogs { path: String, max_bytes: u64 },
+    /// An `ide.json` code generation for a class name; with `write`, the files that do not
+    /// exist yet are created -> `Vec<phpforge_fw_laravel::ide_json::GeneratedFile>`
+    LaravelGenerate {
+        id: String,
+        input: String,
+        write: bool,
+    },
     /// Related Symbol (Ctrl+Alt+Home) -> `Vec<forge_codeintel::RelatedItem>`
     Related {
         path: String,
@@ -124,6 +136,27 @@ pub enum SymfonyQuery {
     },
     /// -> `Vec<phpforge_fw_symfony::gutter::GutterMark>`
     Gutter { path: String, content: String },
+    /// Keys per domain and locale -> `phpforge_fw_symfony::translations::TranslationTable`
+    Translations,
+    /// -> `Vec<phpforge_fw_symfony::events::EventListener>`
+    Events,
+    /// Missing translations and translation folds of a buffer -> [`TranslationAnalysis`]
+    TranslationAnalysis { path: String, content: String },
+    /// Add a key to the domain's catalogues of `locales` (creating missing catalogues)
+    /// -> `Vec<phpforge_fw_symfony::Location>` of the new keys
+    CreateTranslation {
+        domain: String,
+        key: String,
+        locales: Vec<String>,
+    },
+}
+
+/// Reply to [`SymfonyQuery::TranslationAnalysis`]; offsets are UTF-16.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TranslationAnalysis {
+    pub problems: Vec<phpforge_fw_symfony::translations::TranslationProblem>,
+    pub folds: Vec<phpforge_fw_symfony::translations::TranslationFold>,
 }
 
 /// Doctrine requests on the entity mapping snapshot.
@@ -415,6 +448,21 @@ impl LocalFrameworks {
                     from_project,
                 })
             }
+            FrameworkCall::LaravelOverview => {
+                reply(self.with_laravel(|l| phpforge_fw_laravel::dashboard::overview(l))?)
+            }
+            FrameworkCall::LaravelLogs { path, max_bytes } => {
+                reply(phpforge_fw_laravel::logs::read(&root, &path, max_bytes))
+            }
+            FrameworkCall::LaravelGenerate { id, input, write } => {
+                let mut files = self.with_laravel(|l| l.generate(&id, &input))?;
+                if write {
+                    for f in files.iter_mut().filter(|f| !f.exists) {
+                        self.workspace.write_file(&f.path, &f.content)?;
+                    }
+                }
+                reply(files)
+            }
             FrameworkCall::Related { path, content } => {
                 let text = self.source(&path, content)?;
                 let files = self.workspace.list_files();
@@ -482,7 +530,7 @@ impl LocalFrameworks {
         config: &SymfonyConfig,
         query: SymfonyQuery,
     ) -> Result<Vec<u8>> {
-        use phpforge_fw_symfony::{complete, gutter};
+        use phpforge_fw_symfony::{complete, gutter, translations};
         match query {
             SymfonyQuery::Detect => {
                 if !phpforge_fw_symfony::is_symfony_project(root) {
@@ -528,6 +576,56 @@ impl LocalFrameworks {
             SymfonyQuery::Gutter { path, content } => {
                 let snap = self.symfony(config, false)?;
                 reply(gutter::marks(&snap, &path, &content))
+            }
+            SymfonyQuery::Translations => reply(self.symfony(config, false)?.translations.table()),
+            SymfonyQuery::Events => reply(&self.symfony(config, false)?.listeners),
+            SymfonyQuery::TranslationAnalysis { path, content } => {
+                let snap = self.symfony(config, false)?;
+                let u = |b: usize| byte_to_utf16(&content, b);
+                let problems = translations::problems(&snap, &path, &content)
+                    .into_iter()
+                    .map(|mut p| {
+                        (p.from, p.to) = (u(p.from), u(p.to));
+                        p
+                    })
+                    .collect();
+                let folds = translations::folds(&snap, &path, &content)
+                    .into_iter()
+                    .map(|mut f| {
+                        (f.from, f.to) = (u(f.from), u(f.to));
+                        f
+                    })
+                    .collect();
+                reply(TranslationAnalysis { problems, folds })
+            }
+            SymfonyQuery::CreateTranslation {
+                domain,
+                key,
+                locales,
+            } => {
+                let snap = self.symfony(config, false)?;
+                let read = |rel: &str| self.workspace.read_file(rel).ok();
+                let edits = translations::create_key_edits(
+                    &snap.translations,
+                    &domain,
+                    &key,
+                    &locales,
+                    &read,
+                );
+                let mut created = Vec::new();
+                for e in &edits {
+                    let current = if e.create {
+                        String::new()
+                    } else {
+                        self.workspace.read_file(&e.path)?
+                    };
+                    self.workspace
+                        .write_file(&e.path, &translations::apply_edit(&current, e))?;
+                    created.push(phpforge_fw_symfony::Location::new(&e.path, e.line, 0));
+                }
+                // The next request sees the new keys.
+                self.symfony(config, true)?;
+                reply(created)
             }
         }
     }
@@ -723,6 +821,119 @@ mod tests {
             .map(|i| i.label)
             .collect();
         assert!(labels.contains(&"orders.index".to_string()), "{labels:?}");
+    }
+
+    #[test]
+    fn laravel_logs_overview_and_code_generations() {
+        let dir = laravel_project();
+        let p = dir.path();
+        std::fs::create_dir_all(p.join("storage/logs")).unwrap();
+        std::fs::write(
+            p.join("storage/logs/laravel.log"),
+            "[2026-10-26 09:14:03] local.ERROR: Boom {\"exception\":\"[object] (RuntimeException(code: 0): Boom at /var/www/html/app/Http/Controllers/OrderController.php:4)\n[stacktrace]\n#0 {main}\n\"} []\n",
+        )
+        .unwrap();
+        std::fs::write(
+            p.join("ide.json"),
+            r#"{"codeGenerations":[{"id":"dto","name":"DTO","files":[{"name":"${INPUT_CLASS}.php","appNamespace":"Data","template":{"path":"stub.txt"}}]}]}"#,
+        )
+        .unwrap();
+        std::fs::write(
+            p.join("stub.txt"),
+            "<?php namespace ${NAMESPACE}; class ${CLASS} {}",
+        )
+        .unwrap();
+        let fw = LocalFrameworks::new(Workspace::open(p).unwrap());
+        let page: phpforge_fw_laravel::logs::LogPage = decode_value(
+            &fw.call(FrameworkCall::LaravelLogs {
+                path: String::new(),
+                max_bytes: 1 << 20,
+            })
+            .unwrap(),
+        )
+        .unwrap();
+        let e = &page.entries[0];
+        assert_eq!(e.level, "error");
+        assert_eq!(
+            e.exception.as_ref().unwrap().frame.path.as_deref(),
+            Some("app/Http/Controllers/OrderController.php")
+        );
+        let o: phpforge_fw_laravel::dashboard::LaravelOverview =
+            decode_value(&fw.call(FrameworkCall::LaravelOverview).unwrap()).unwrap();
+        assert_eq!(o.routes, 1);
+        assert_eq!(o.log_files[0].path, "storage/logs/laravel.log");
+        let files: Vec<phpforge_fw_laravel::ide_json::GeneratedFile> = decode_value(
+            &fw.call(FrameworkCall::LaravelGenerate {
+                id: "dto".into(),
+                input: "Invoice".into(),
+                write: true,
+            })
+            .unwrap(),
+        )
+        .unwrap();
+        assert_eq!(files[0].path, "app/Data/Invoice.php");
+        assert_eq!(
+            std::fs::read_to_string(p.join("app/Data/Invoice.php")).unwrap(),
+            "<?php namespace App\\Data; class Invoice {}"
+        );
+    }
+
+    #[test]
+    fn symfony_translation_keys_are_created_next_to_the_files() {
+        let dir = tempfile::tempdir().unwrap();
+        let p = dir.path();
+        std::fs::create_dir_all(p.join("config")).unwrap();
+        std::fs::create_dir_all(p.join("translations")).unwrap();
+        std::fs::write(p.join("config/bundles.php"), "<?php return [];").unwrap();
+        std::fs::write(
+            p.join("translations/messages.en.yaml"),
+            "order:\n    title: Orders\n",
+        )
+        .unwrap();
+        std::fs::write(
+            p.join("translations/messages.de.yaml"),
+            "order:\n    title: Bestellungen\n",
+        )
+        .unwrap();
+        let fw = LocalFrameworks::new(Workspace::open(p).unwrap());
+        let sf = |query| FrameworkCall::Symfony {
+            config: SymfonyConfig::default(),
+            query,
+        };
+        let content = "<?php $t->trans('order.title'); $t->trans('order.total');".to_string();
+        let analysis: TranslationAnalysis = decode_value(
+            &fw.call(sf(SymfonyQuery::TranslationAnalysis {
+                path: "src/X.php".into(),
+                content: content.clone(),
+            }))
+            .unwrap(),
+        )
+        .unwrap();
+        assert_eq!(analysis.folds[0].text, "Orders");
+        assert_eq!(analysis.problems[0].key, "order.total");
+        let created: Vec<phpforge_fw_symfony::Location> = decode_value(
+            &fw.call(sf(SymfonyQuery::CreateTranslation {
+                domain: "messages".into(),
+                key: "order.total".into(),
+                locales: analysis.problems[0].locales.clone(),
+            }))
+            .unwrap(),
+        )
+        .unwrap();
+        assert_eq!(created.len(), 2);
+        assert_eq!(
+            std::fs::read_to_string(p.join("translations/messages.de.yaml")).unwrap(),
+            "order:\n    title: Bestellungen\n    total: 'order.total'\n"
+        );
+        let analysis: TranslationAnalysis = decode_value(
+            &fw.call(sf(SymfonyQuery::TranslationAnalysis {
+                path: "src/X.php".into(),
+                content,
+            }))
+            .unwrap(),
+        )
+        .unwrap();
+        assert!(analysis.problems.is_empty());
     }
 
     #[test]

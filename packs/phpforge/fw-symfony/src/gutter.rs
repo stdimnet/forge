@@ -1,11 +1,12 @@
 //! Editor gutter marks, like the Symfony plugin's line markers: routes on controller
 //! actions, "go to template" next to `render()` calls, "rendered by" on Twig templates and
-//! a run marker on console commands.
+//! a run marker on console commands, "listens to" on event listener methods and
+//! "N listeners" on event classes, event name constants and `dispatch()` calls.
 
 use phpforge_lang_php::parser;
 use serde::{Deserialize, Serialize};
 
-use crate::{console, routes, twig, Location, PhpFile, Snapshot};
+use crate::{console, events, routes, twig, Location, PhpFile, Snapshot};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -14,6 +15,10 @@ pub enum GutterKind {
     Template,
     Controller,
     Command,
+    /// A listener method: goes to the event class.
+    Listener,
+    /// An event class, event name constant or `dispatch()`: goes to the listeners.
+    Event,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -85,6 +90,7 @@ pub fn marks(snap: &Snapshot, path: &str, content: &str) -> Vec<GutterMark> {
                 command: None,
             });
         }
+        event_marks(snap, &file, &mut out);
         for c in console::commands(files) {
             out.push(GutterMark {
                 line: c.location.as_ref().map(|l| l.line).unwrap_or(0),
@@ -124,6 +130,107 @@ pub fn marks(snap: &Snapshot, path: &str, content: &str) -> Vec<GutterMark> {
     }
     out.sort_by_key(|m| m.line);
     out
+}
+
+fn short(fqn: &str) -> &str {
+    fqn.rsplit('\\').next().unwrap_or(fqn)
+}
+
+fn listener_mark(snap: &Snapshot, line: u32, name: &str, title_name: &str) -> Option<GutterMark> {
+    let list: Vec<&events::EventListener> = events::listeners_of(snap, name).collect();
+    if list.is_empty() {
+        return None;
+    }
+    let names: Vec<String> = list
+        .iter()
+        .map(|l| format!("{}::{}", short(&l.class), l.method))
+        .collect();
+    Some(GutterMark {
+        line,
+        kind: GutterKind::Event,
+        title: format!(
+            "{} listener{} of {title_name}: {}",
+            list.len(),
+            if list.len() == 1 { "" } else { "s" },
+            names.join(", ")
+        ),
+        targets: list.iter().filter_map(|l| l.location.clone()).collect(),
+        command: None,
+    })
+}
+
+/// Listener methods, event classes, event constants and `dispatch(new XEvent())` lines.
+fn event_marks(snap: &Snapshot, file: &PhpFile, out: &mut Vec<GutterMark>) {
+    let files = std::slice::from_ref(file);
+    let mut seen_lines = std::collections::HashSet::new();
+    for l in events::php_listeners(files, &snap.php) {
+        let Some(loc) = l.location.as_ref().filter(|loc| loc.path == file.path) else {
+            continue;
+        };
+        if !seen_lines.insert((loc.line, l.event.clone())) {
+            continue;
+        }
+        let target = l
+            .event_class
+            .as_deref()
+            .and_then(|c| snap.class_location(c))
+            .or_else(|| {
+                snap.event_defs
+                    .iter()
+                    .find(|d| d.name == l.event)
+                    .map(|d| d.location.clone())
+            });
+        out.push(GutterMark {
+            line: loc.line,
+            kind: GutterKind::Listener,
+            title: format!(
+                "Listens to {}{}",
+                if l.event.contains('\\') {
+                    short(&l.event)
+                } else {
+                    &l.event
+                },
+                if l.priority != 0 {
+                    format!(" (priority {})", l.priority)
+                } else {
+                    String::new()
+                }
+            ),
+            targets: target.into_iter().collect(),
+            command: None,
+        });
+    }
+    for d in events::event_defs(files) {
+        let shown = d.class.as_deref().map(short).unwrap_or(&d.name).to_string();
+        if let Some(m) = listener_mark(snap, d.location.line, &d.name, &shown) {
+            out.push(m);
+        }
+    }
+    // `->dispatch(new OrderPlacedEvent(...))`
+    let src = &file.source;
+    let mut from = 0;
+    while let Some(p) = src[from..].find("dispatch(") {
+        let at = from + p;
+        from = at + 9;
+        let rest = src[from..].trim_start();
+        let Some(rest) = rest.strip_prefix("new ") else {
+            continue;
+        };
+        let name: String = rest
+            .trim_start()
+            .chars()
+            .take_while(|c| c.is_alphanumeric() || *c == '_' || *c == '\\')
+            .collect();
+        if name.is_empty() {
+            continue;
+        }
+        let fqn = file.index.resolve_class(&name, at);
+        let fqn = fqn.trim_start_matches('\\');
+        let (line, _) = crate::line_col(src, at);
+        if let Some(m) = listener_mark(snap, line, fqn, short(fqn)) {
+            out.push(m);
+        }
+    }
 }
 
 #[cfg(test)]

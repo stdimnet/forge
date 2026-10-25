@@ -1,8 +1,8 @@
 ---
 title: Laravel
-description: Laravel support in PHPForge - Blade, completion and navigation for routes, views, config, env, translations and Eloquent, gutter icons, the Routes tool window and artisan commands in the Command Line Tools Console.
+description: Laravel support in PHPForge - Blade, completion and navigation for routes, views, config, env, translations and Eloquent, ide.json completions and code generations, gutter icons, the Routes and Laravel tool windows (overview, logs) and artisan commands in the Command Line Tools Console.
 order: 70
-tags: [laravel, blade, eloquent, artisan, routes, phpforge]
+tags: [laravel, blade, eloquent, artisan, routes, logs, ide.json, phpforge]
 ---
 
 # Laravel
@@ -63,6 +63,35 @@ Turn completion off with **Complete routes, views, config, translations and mode
 (`laravel.completion.enabled`) and **Complete database columns in query builder calls**
 (`laravel.completion.columns`).
 
+## ide.json
+
+Packages and projects describe extra completions in an `ide.json` file (the format Laravel IDE
+plugins such as Laravel Idea document). Forge reads the project's `ide.json` and the
+`ide.json` of every installed package (`vendor/<vendor>/<package>/ide.json`):
+
+- **completions:** `staticStrings` (a fixed list), `directoryFiles` (files of a folder, without
+  `suffixToClear`) and the project's own lists `routeName`, `viewName`, `configKey`,
+  `translationKey`, `envKey` and `validationRule`, offered where a `condition` applies:
+  `functionNames` or `methodNames` (with `classFqn` / `classParentFqn`) and the 1-based
+  `parameters`. Setting: **Complete values from ide.json files**
+  (`laravel.completion.ideJson`).
+- **codeGenerations:** listed in the Overview of the Laravel tool window. **Generate…** asks for
+  a class name (`Orders/Invoice`), fills the stub templates (`${INPUT_CLASS|className|upperCamelCase}`,
+  `${NAMESPACE}`, `${CLASS}`, with the `classSuffix`) and creates the files that do not exist
+  yet below `App\<appNamespace>`.
+
+```json
+{
+  "completions": [
+    {
+      "complete": "staticStrings",
+      "options": { "strings": ["pending", "paid", "shipped"] },
+      "condition": [{ "functionNames": ["order_status"], "parameters": [1] }]
+    }
+  ]
+}
+```
+
 ## Gutter icons
 
 - **Route** icons next to controller actions that a route points to; click to go to the
@@ -95,6 +124,33 @@ Routes come from one of two sources, chosen with **Read routes from**
 | `static` | Forge reads `routes/*.php` itself: verbs, `match`, `view`, `redirect`, `resource`/`apiResource`, groups with prefix/name/middleware/controller, included files and the `api` prefix |
 
 With artisan, the source locations from static analysis are kept so navigation still works.
+
+## Laravel tool window
+
+The **Laravel** tool window (bottom; **Tools | Laravel | Show Laravel Tool Window**) has two tabs.
+
+**Overview:** the application (name, Laravel and PHP version, environment, debug, URL from
+`.env` and `composer.json`), counts of routes, models, artisan commands, views, Blade components,
+translations, config keys and log files, the Eloquent models with their tables, the
+application's artisan commands (`app/Console/Commands` and `routes/console.php`; the run button
+opens Run Command with the command typed in) and what `ide.json` contributes.
+
+![Laravel tool window](../../screenshots/laravel-tool-window-overview.png)
+
+**Logs** (**Tools | Laravel | Show Logs**): the entries of `storage/logs/*.log` (the newest file
+first; the last 2 MB of large files), parsed in Rust from Monolog's line format into level,
+time, channel, message and context. Click an entry to expand the exception and its stack trace;
+`file:line` links open the file, also for logs written in a container (`/var/www/html/app/…`
+is mapped into the project), and vendor frames are dimmed.
+
+![Laravel logs](../../screenshots/laravel-logs.png)
+
+- the level filter shows a level and the more severe ones;
+- the search field filters messages, exceptions and context;
+- **Follow** reloads the log every two seconds and scrolls to new entries (default:
+  **Follow log files**, `laravel.logs.follow`).
+
+Reading logs does not run project code, so the tool window also works in Safe Mode.
 
 ## Run Artisan Command
 
@@ -131,6 +187,8 @@ See [Database tools](database.md).
 | Read routes from | `laravel.routes.source` | `auto` |
 | Complete routes, views, config, translations and model attributes | `laravel.completion.enabled` | on |
 | Complete database columns in query builder calls | `laravel.completion.columns` | on |
+| Complete values from ide.json files | `laravel.completion.ideJson` | on |
+| Follow log files | `laravel.logs.follow` | on |
 | Show route icons for controller actions | `laravel.gutter.routes` | on |
 | Show view icons for `view()` calls and Blade includes | `laravel.gutter.views` | on |
 | Additional Blade directives | `laravel.blade.customDirectives` | empty |
