@@ -218,6 +218,32 @@ pub fn refusal(what: &str) -> String {
     )
 }
 
+/// Where the target of an SSH terminal session (Tools | Start SSH Session…) comes from.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum SshTarget {
+    /// One of the user's own SSH configurations (Settings | Tools | SSH Configurations).
+    UserConfiguration,
+    /// A deployment server, defined in the project's `.forge/deployment.toml`.
+    ProjectServer,
+}
+
+/// Whether starting an SSH session needs the user's confirmation first. Browsing a server
+/// and transferring files only copy files, but a session logs the user in on a host with
+/// their own credentials: in Safe Mode, a host chosen by an untrusted project's files is
+/// connected to only after the user confirmed it. The user's own configurations never ask.
+pub fn ssh_session_needs_confirmation(safe_mode: bool, target: SshTarget) -> bool {
+    safe_mode && target == SshTarget::ProjectServer
+}
+
+/// The error of an unconfirmed SSH session to a project's server in Safe Mode.
+pub fn ssh_confirmation_required(server: &str) -> String {
+    format!(
+        "The deployment server {server} is defined in the files of an untrusted project. \
+         Confirm the SSH session to it first, or trust the project."
+    )
+}
+
 /// The key of a project folder on a remote host.
 pub fn remote_key(user: &str, host: &str, port: u16, path: &str) -> String {
     let path = if path.starts_with('/') {
@@ -431,6 +457,27 @@ fn same(a: &str, b: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn ssh_sessions_to_project_servers_ask_in_safe_mode() {
+        assert!(ssh_session_needs_confirmation(
+            true,
+            SshTarget::ProjectServer
+        ));
+        assert!(!ssh_session_needs_confirmation(
+            false,
+            SshTarget::ProjectServer
+        ));
+        assert!(!ssh_session_needs_confirmation(
+            true,
+            SshTarget::UserConfiguration
+        ));
+        assert!(!ssh_session_needs_confirmation(
+            false,
+            SshTarget::UserConfiguration
+        ));
+        assert!(ssh_confirmation_required("shop-production").contains("shop-production"));
+    }
 
     #[test]
     fn normalizes_separators_dots_and_drives() {
