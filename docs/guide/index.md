@@ -48,6 +48,11 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 
 ## Recently added
 
+- **Deployment**: Settings | Build, Execution, Deployment | Deployment configures SFTP, FTP,
+  FTPS and local-folder servers with root path, web server URL, path mappings and excluded
+  paths; Tools | Deployment and the Project view upload, download, compare with the deployed
+  version and sync folders, files upload automatically on save, and the File Transfer tool
+  window shows every transfer ([Deployment](user/deployment.md)).
 - **Project trust and Safe Mode**: an untrusted project asks "Trust and Open Project?"
   (Trust Project, Preview in Safe Mode, Don't Open, "Trust projects in …"); in Safe Mode the
   backend refuses scripts, run configurations, tests, the debugger, build tools, project-local

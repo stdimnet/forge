@@ -3408,7 +3408,7 @@
           "type": "string",
           "default": ".svn;.cvs;.idea;.DS_Store;.git;.hg;.forge",
           "group": "build.deployment.options",
-          "project": false,
+          "project": true,
           "order": 0
         },
         {
@@ -3419,7 +3419,7 @@
           "default": false,
           "group": "build.deployment.options",
           "section": "Transfer",
-          "project": false,
+          "project": true,
           "order": 10
         },
         {
@@ -3430,7 +3430,7 @@
           "default": true,
           "group": "build.deployment.options",
           "section": "Transfer",
-          "project": false,
+          "project": true,
           "order": 20
         },
         {
@@ -3441,7 +3441,7 @@
           "default": false,
           "group": "build.deployment.options",
           "section": "Transfer",
-          "project": false,
+          "project": true,
           "order": 30
         },
         {
@@ -3451,7 +3451,7 @@
           "default": false,
           "group": "build.deployment.options",
           "section": "Transfer",
-          "project": false,
+          "project": true,
           "order": 40
         },
         {
@@ -3475,7 +3475,7 @@
           "default": "timestampAndSize",
           "group": "build.deployment.options",
           "section": "Transfer",
-          "project": false,
+          "project": true,
           "order": 50
         },
         {
@@ -3499,7 +3499,7 @@
           "default": "content",
           "group": "build.deployment.options",
           "section": "Transfer",
-          "project": false,
+          "project": true,
           "order": 60
         },
         {
@@ -3524,7 +3524,7 @@
           "default": "never",
           "group": "build.deployment.options",
           "section": "Automatic upload",
-          "project": false,
+          "project": true,
           "order": 70
         }
       ],

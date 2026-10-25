@@ -84,6 +84,7 @@ description = "Names separated by semicolons; * and ? are wildcards. These files
 type = "string"
 default = ".svn;.cvs;.idea;.DS_Store;.git;.hg;.forge"
 group = "build.deployment.options"
+project = true
 order = 0
 
 [[contributions.settings]]
@@ -93,6 +94,7 @@ description = "Off: files whose deployed copy has the same size and is not older
 type = "bool"
 default = false
 group = "build.deployment.options"
+project = true
 section = "Transfer"
 order = 10
 
@@ -103,6 +105,7 @@ description = "The copy gets the modification time of the source (FTP servers ne
 type = "bool"
 default = true
 group = "build.deployment.options"
+project = true
 section = "Transfer"
 order = 20
 
@@ -113,6 +116,7 @@ description = "When a folder is uploaded or downloaded, files that exist only on
 type = "bool"
 default = false
 group = "build.deployment.options"
+project = true
 section = "Transfer"
 order = 30
 
@@ -122,6 +126,7 @@ title = "Create empty directories"
 type = "bool"
 default = false
 group = "build.deployment.options"
+project = true
 section = "Transfer"
 order = 40
 
@@ -136,6 +141,7 @@ options = [
 ]
 default = "timestampAndSize"
 group = "build.deployment.options"
+project = true
 section = "Transfer"
 order = 50
 
@@ -150,6 +156,7 @@ options = [
 ]
 default = "content"
 group = "build.deployment.options"
+project = true
 section = "Transfer"
 order = 60
 
@@ -165,5 +172,6 @@ options = [
 ]
 default = "never"
 group = "build.deployment.options"
+project = true
 section = "Automatic upload"
 order = 70

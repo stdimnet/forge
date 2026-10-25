@@ -362,6 +362,19 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Action | Action id | Windows / Linux | macOS | In Forge |
 | --- | --- | --- | --- | --- |
 | Run Anything | `RunAnything` | `Double Ctrl` | `Double Ctrl` | yes |
+| Upload to Default Server | `PublishGroup.Upload` | — | — | yes |
+| Upload to… | `PublishGroup.UploadTo` | `Ctrl+Alt+Shift+X` | `Cmd+Alt+Shift+X` | yes |
+| Download from Default Server | `PublishGroup.Download` | — | — | yes |
+| Download from… | `PublishGroup.DownloadFrom` | — | — | yes |
+| Compare with Deployed Version | `PublishGroup.CompareLocalVsRemote` | — | — | yes |
+| Compare with Deployed Version on… | `PublishGroup.CompareLocalVsRemoteWith` | — | — | yes |
+| Sync with Deployed to Default Server | `PublishGroup.SyncLocalVsRemote` | — | — | yes |
+| Sync with Deployed to… | `PublishGroup.SyncLocalVsRemoteWith` | — | — | yes |
+| Delete on Default Server | `PublishGroup.DeleteOnServer` | — | — | yes |
+| Deployment Configuration… | `PublishGroup.Configuration` | — | — | yes |
+| Deployment Options… | `PublishGroup.Options` | — | — | yes |
+| Automatic Upload (Always) | `PublishGroup.ToggleAutoUpload` | — | — | yes |
+| Browse Remote Host | `PublishGroup.BrowseServers` | — | — | yes |
 
 Every enabled [External Tool](../user/run-debug.md#external-tools) is an action too
 (`Tool_<group>_<name>`, e.g. `Tool_Linters_PHPStan`, group "External Tools"); they have no

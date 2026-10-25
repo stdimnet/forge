@@ -948,6 +948,48 @@ or without Git, for local and remote projects.
   the editor area and the page `build.trusted-locations`. The browser mock trusts `~/Projects`
   (the demo projects) and refuses runs in Safe Mode.
 
+## Deployment (`forge-deploy`)
+
+- Servers are project data in `.forge/deployment.toml` (`forge_deploy::DeploymentConfig {
+  default_server, servers }`, read and written through the backend). A `DeployServer` has a
+  `kind` (`sftp | ftp | ftps | local`), the SSH configuration id (SFTP: the saved
+  configurations of remote development, `forge_deploy::connect::ssh_params`), FTP host / port
+  / user / anonymous / passive, `root_path`, `web_url`, `mappings` (`{ local, deployment,
+  web }`, the longest local path wins, none = root to root) and `excluded` (`{ side: local |
+  deployment, path }`). FTP passwords are in the keychain (service `forge-deploy`, account
+  `ftp://user@host:port`); SFTP uses the SSH configuration's `forge-ssh` entry.
+- Deployment | Options are settings (`deployment.*`, project-level): exclude items by name,
+  overwrite up-to-date files, preserve timestamps, delete target items, create empty
+  directories, warn over newer files, compare by, automatic upload (`always | explicit |
+  never`).
+- `forge_deploy::fs::ServerFs` is the file API of every server type (paths relative to the
+  root path); the project side is a `LocalFolder` too, so `transfer::Deployer` uploads and
+  downloads with the same code and reports a `FileResult` per file. SFTP is russh-sftp on a
+  `forge_remote::session::SshSession` (`open_subsystem("sftp")`), FTP/FTPS suppaftp with
+  rustls, local folders `std::fs`. Comparisons reuse `forge_diff::compare_listings`.
+- IPC (`src/ipc/deployment.ts`, `commands/deployment.rs`): `deploy_config() -> { defaultServer,
+  servers: ServerView[], available }`, `deploy_server_save({ server, secret? })`,
+  `deploy_server_delete({ id })`, `deploy_set_default({ id })`, `deploy_validate({ server })`,
+  `deploy_test({ server, secret? }) -> { ok, message, root? }`, `deploy_transfer({ id,
+  serverId?, direction: "upload" | "download", paths, overwriteNewer? }) -> Summary`,
+  `deploy_delete({ id, serverId?, paths })`, `deploy_cancel({ id })`, `deploy_auto_upload({
+  id, paths, explicit }) -> Summary | null`, `deploy_sync_compare({ serverId?, path }) -> {
+  local, remote, compare: DirCompare }`, `deploy_read_remote({ serverId?, path }) -> { text,
+  binary, remote, server }`. `deploy://transfer` carries `{ kind: "started", id, server,
+  operation, paths, automatic } | { kind: "file", id, file } | { kind: "finished", id,
+  summary, error }` for the File Transfer tool window. `serverId` omitted = the default
+  server. Transfers need a project on this machine (`available`).
+- Safe Mode: transfers only copy files and never run project code, so they are allowed;
+  `deploy_auto_upload` does nothing while Safe Mode is on (the project configured the
+  servers itself).
+- UI (`src/features/deployment`): the settings pages `build.deployment` and
+  `build.deployment.options`, the `PublishGroup.*` actions (Tools | Deployment, the Project
+  view's Deployment submenu), the server chooser, the `fileTransfer` tool window, Sync with
+  Deployed as a `DirDiffView` with a `DirDiffSource` (Upload / Download per row) and automatic
+  upload from `onFileSaved` (the listener gets the `SaveTrigger`). Browser mode:
+  `mock/deploymentMock.ts` keeps the demo servers' files in memory and uses
+  `crates/forge-wasm/src/deploy.rs` for validation, mappings and the comparison.
+
 ## Language servers (`forge-lsp`)
 
 - Packs contribute `LspServerConfig { id, name?, languageIds, fileExtensions, command, args,
