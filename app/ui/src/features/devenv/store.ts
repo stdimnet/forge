@@ -5,7 +5,7 @@
 import { createSignal } from "solid-js";
 import { devcontainerApi, wslApi, type BuildLogLine } from "@/ipc/devenv";
 import type { RecentProject } from "@/ipc/workspace";
-import { adoptWorkspace, workspace } from "@/state/workspace";
+import { adoptRemoteWorkspace, workspace } from "@/state/workspace";
 import { chooseRemoteFolder, setConnecting } from "@/features/remote/store";
 
 // ---- the Create Dev Container dialog --------------------------------------------------------
@@ -47,7 +47,9 @@ export function listenToBuildLog(): void {
 export async function openDevContainer(containerId: string, label: string): Promise<void> {
   setConnecting({ label, message: `Connecting to ${label}…` });
   try {
-    adoptWorkspace(await devcontainerApi.open(containerId));
+    const info = await devcontainerApi.open(containerId);
+    setConnecting(null);
+    await adoptRemoteWorkspace(info);
   } finally {
     setConnecting(null);
   }
@@ -71,8 +73,7 @@ export async function openWslProject(distro: string, path?: string): Promise<boo
     await wslApi.disconnect(connected.connectionId).catch(() => undefined);
     return false;
   }
-  adoptWorkspace(await wslApi.openProject(connected.connectionId, distro, folder));
-  return true;
+  return adoptRemoteWorkspace(await wslApi.openProject(connected.connectionId, distro, folder));
 }
 
 /** Open a `\\wsl$\<distro>\…` / `\\wsl.localhost\…` path in its distribution. */

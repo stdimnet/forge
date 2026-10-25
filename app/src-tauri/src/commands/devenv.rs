@@ -322,10 +322,7 @@ pub async fn devcontainer_action(
     let docker = docker_program(&state);
     let instance = find_instance(&docker, &container_id).await?;
     let args = match action.as_str() {
-        "start" => {
-            require_trusted_folder(&state, &instance.local_folder)?;
-            docker::start_args(&instance.container_id)
-        }
+        "start" => return start_container(&state, &docker, &instance).await,
         "stop" => docker::stop_args(&instance.container_id),
         "remove" => docker::remove_args(&instance.container_id),
         other => return Err(ForgeError::Other(format!("unknown action {other}"))),
@@ -333,29 +330,46 @@ pub async fn devcontainer_action(
     let out = SystemRunner
         .output(&docker, &args, None)
         .await
-        .map_err(crate::commands::devenv::other)?;
+        .map_err(other)?;
     if !out.success() {
         return Err(ForgeError::Other(out.message()));
     }
-    if action == "start" {
-        // postStartCommand, like a start from the build dialog.
-        let config = resolve(&instance.local_folder, &instance.config_file).ok();
-        if let Some(cmd) = config.as_ref().and_then(|c| c.post_start_command.clone()) {
-            let cfg = config.expect("config");
-            for (_, argv) in cmd.argvs() {
-                let args = docker::exec_args(
-                    &instance.container_id,
-                    cfg.remote_user.as_deref(),
-                    Some(&cfg.workspace_folder),
-                    &cfg.remote_env,
-                    false,
-                    &argv,
-                );
-                let _ = SystemRunner.output(&docker, &args, None).await;
+    Ok(())
+}
+
+/// Start a stopped dev container and run its `postStartCommand` (through [`up::up`], which
+/// finds the container by its configuration's label); a container whose configuration is
+/// gone or changed is only started.
+async fn start_container(
+    state: &AppState,
+    docker: &str,
+    instance: &DevContainerInstance,
+) -> Result<()> {
+    require_trusted_folder(state, &instance.local_folder)?;
+    match resolve(&instance.local_folder, &instance.config_file) {
+        Ok(cfg) if cfg.id == instance.id => {
+            let opts = UpOptions {
+                docker: docker.to_string(),
+                rebuild: false,
+                cache_dir: cache_dir(),
+            };
+            up::up(&SystemRunner, &cfg, &opts, &|_| {})
+                .await
+                .map(|_| ())
+                .map_err(ForgeError::Other)
+        }
+        _ => {
+            let out = SystemRunner
+                .output(docker, &docker::start_args(&instance.container_id), None)
+                .await
+                .map_err(other)?;
+            if out.success() {
+                Ok(())
+            } else {
+                Err(other(out.message()))
             }
         }
     }
-    Ok(())
 }
 
 /// Start the Forge agent in a running dev container and open its workspace folder as the
@@ -369,14 +383,7 @@ pub async fn devcontainer_open(
     let docker = docker_program(&state);
     let instance = find_instance(&docker, &container_id).await?;
     if !instance.running() {
-        require_trusted_folder(&state, &instance.local_folder)?;
-        let out = SystemRunner
-            .output(&docker, &docker::start_args(&instance.container_id), None)
-            .await
-            .map_err(other)?;
-        if !out.success() {
-            return Err(other(out.message()));
-        }
+        start_container(&state, &docker, &instance).await?;
     }
     let env: BTreeMap<String, String> = resolve(&instance.local_folder, &instance.config_file)
         .map(|c| c.remote_env)

@@ -71,6 +71,20 @@ export async function openRemoteProject(connectionId: string, path: string): Pro
   }
 }
 
+/**
+ * Show a project the backend opened in a container or a WSL distribution and ask "Trust and
+ * Open Project?" when it is untrusted (it is in Safe Mode until then). Resolves `false` for
+ * Don't Open.
+ */
+export async function adoptRemoteWorkspace(info: WorkspaceInfo): Promise<boolean> {
+  adopt(info);
+  if (trustPrompt && (await trustPrompt.afterRemoteOpen()) === "cancel") {
+    closeWorkspace();
+    return false;
+  }
+  return true;
+}
+
 /** Adopt the project the backend already has open (passed on the command line). */
 export async function restoreWorkspace(): Promise<void> {
   const current = await workspaceApi.current();
