@@ -229,7 +229,7 @@ function HostKubectl() {
       <div class="set-section-title">
         <span>kubectl from the Project Host</span>
       </div>
-      <div class="set-section-body indented">
+      <div class="svc-hosts-body">
         <p class="muted">
           In remote projects kubectl runs on the project's host with the host's kubeconfig. Hosts without an entry use kubectl from their PATH.
         </p>

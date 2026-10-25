@@ -515,3 +515,10 @@ h4.svc-section-title {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.svc-hosts-body {
+  padding: 4px 0 8px 16px;
+  max-width: 760px;
+}
+.svc-hosts-body .svc-table {
+  margin: 8px 0 10px;
+}

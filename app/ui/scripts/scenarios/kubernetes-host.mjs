@@ -54,6 +54,14 @@ export default {
     await page.waitForTimeout(300);
   }),
 
+  "services-kube-host-contexts-light": remote(async (page) => {
+    await page.evaluate(() => (document.documentElement.dataset.theme = "light"));
+    await openKube(page);
+    await page.click('.svc-row[data-node-id^="kube/k3s-shop/shop/pods/web-"]');
+    await page.focus(".svc-tree");
+    await page.waitForTimeout(300);
+  }),
+
   "services-kube-apply": remote(async (page) => {
     await openKube(page);
     await page.click('.tree-row[data-path="k8s"]');
