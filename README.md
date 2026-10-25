@@ -21,6 +21,9 @@ Settings | Languages & Frameworks | Language Servers.
 Code review is built in as well: pull and merge requests with inline threads, issues and CI
 pipelines for GitLab (also self-managed), Forgejo/Gitea and GitHub.
 
+Deployment works like PHPStorm's Tools | Deployment: SFTP, FTP/FTPS and local-folder servers with
+path mappings, upload on save, Sync with Deployed and the File Transfer tool window.
+
 The layout and keymap follow PHPStorm 1:1 so you feel at home immediately; the look is Forge's own.
 Vim users get IdeaVim-style emulation (Tools | Vim) that reads `~/.ideavimrc`.
 

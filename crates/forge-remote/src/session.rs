@@ -679,6 +679,21 @@ impl SshSession {
         Ok(channel.into_stream())
     }
 
+    /// A stream to a subsystem of the server (`sftp` for deployment servers).
+    pub async fn open_subsystem(
+        &self,
+        name: &str,
+    ) -> std::result::Result<ChannelStream<client::Msg>, ConnectError> {
+        let channel = self.handle.channel_open_session().await.map_err(other)?;
+        channel
+            .request_subsystem(true, name)
+            .await
+            .map_err(|e| ConnectError::Other {
+                message: format!("The server refused the {name} subsystem: {e}"),
+            })?;
+        Ok(channel.into_stream())
+    }
+
     /// A stream to a Unix socket on the host (`direct-streamlocal@openssh.com`, like
     /// `ssh -L local:/var/run/docker.sock`).
     pub async fn open_streamlocal(

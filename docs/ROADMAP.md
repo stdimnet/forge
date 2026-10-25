@@ -94,7 +94,7 @@ are in [research/jetbrains-gap-analysis.md](research/jetbrains-gap-analysis.md).
 - [x] Project trust (safe mode) before running a project's scripts
 
 ### Deployment and remote
-- [ ] Deployment (SFTP/FTP/local servers, mappings, upload on save, compare with server)
+- [x] Deployment (SFTP/FTP/local servers, mappings, upload on save, compare with server)
 - [ ] Remote Host tool window, SSH configurations and SSH terminal sessions in local projects
 - [ ] Dev Containers and WSL projects
 

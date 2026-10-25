@@ -28,6 +28,7 @@ mod colorscheme;
 mod compare;
 mod composer;
 mod containers;
+mod deploy;
 mod editing;
 mod emmet;
 mod filetypes;

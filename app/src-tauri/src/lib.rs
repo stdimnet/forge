@@ -98,6 +98,7 @@ pub fn run() {
         .manage(commands::library::LibraryState::default())
         .manage(commands::workspace::WatchState::default())
         .manage(commands::remote::RemoteState::default())
+        .manage(commands::deployment::DeploymentState::default())
         .manage(commands::command_line_tools::CliToolsState::default())
         .manage(commands::lua::LuaState::default())
         .manage(commands::project::CreateState::default())
@@ -713,6 +714,18 @@ pub fn run() {
             commands::services::docker_registry_login,
             commands::services::docker_registry_logout,
             commands::services::docker_registry_status,
+            commands::deployment::deploy_config,
+            commands::deployment::deploy_server_save,
+            commands::deployment::deploy_server_delete,
+            commands::deployment::deploy_set_default,
+            commands::deployment::deploy_validate,
+            commands::deployment::deploy_test,
+            commands::deployment::deploy_transfer,
+            commands::deployment::deploy_delete,
+            commands::deployment::deploy_cancel,
+            commands::deployment::deploy_auto_upload,
+            commands::deployment::deploy_sync_compare,
+            commands::deployment::deploy_read_remote,
             commands::remote::remote_ssh_configs,
             commands::remote::remote_ssh_config_save,
             commands::remote::remote_ssh_config_delete,

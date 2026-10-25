@@ -89,6 +89,7 @@ first (the time is UTC).
 | `breakpoints.json` | Xdebug breakpoints | optional |
 | `php-servers.json` | PHP servers and path mappings | yes |
 | `dataSources.toml` | project data sources (no passwords) | yes |
+| `deployment.toml` | deployment servers, mappings, excluded paths and the default server (no passwords) | yes |
 
 Add `.forge/runConfigurations.local.toml` (and `.forge/cache/` if it appears) to your
 `.gitignore`. In the project root, `http-client.env.json` and `http-client.private.env.json` are
@@ -106,6 +107,7 @@ Keychain on macOS, Credential Manager on Windows), never in files:
 | `forge-forges` | account id | GitHub/GitLab/Forgejo token |
 | `forge-ssh` | SSH configuration id | SSH password or key passphrase |
 | `forge-db` | data source id | database password |
+| `forge-deploy` | `ftp://user@host:port` | FTP/FTPS deployment password |
 | `forge-containers` | `registry:<server>` | Docker registry password |
 
 ## Remote hosts

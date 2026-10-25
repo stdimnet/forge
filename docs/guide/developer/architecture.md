@@ -41,7 +41,7 @@ client (`forge-lsp`) and server catalog (`forge-langservers`), git (`forge-vcs`)
 output (`forge-process`, `forge-output`), the debugger (`forge-debug`), databases (`forge-db`,
 `forge-sql`), containers (`forge-containers`), the keymap engine (`forge-keymap`), fuzzy search
 (`forge-fuzzy`), file types (`forge-filetypes`), remote development (`forge-backend`,
-`forge-remote`, `forge-remote-agent`) and more. Each crate has its own unit tests.
+`forge-remote`, `forge-remote-agent`), deployment (`forge-deploy`) and more. Each crate has its own unit tests.
 
 **Packs** (`packs/<pack>/<plugin>`) are language and framework crates: PHPForge (`lang-php`,
 `fw-laravel`, `fw-symfony`, `orm-doctrine`, `dql`), WebForge (`lang-web`, `fw-react`,

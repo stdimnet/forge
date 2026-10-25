@@ -53,6 +53,7 @@ import "./scratches";
 import "./lua";
 import "./services";
 import "./remote";
+import "./deployment";
 import "./webforge";
 import "./clipboard";
 import "./carets";
