@@ -23,6 +23,8 @@ phpforge-dql = { path = "../../packs/phpforge/dql" }
 phpforge-composer = { path = "../../packs/phpforge/composer" }
 phpforge-interpreters = { path = "../../packs/phpforge/interpreters" }
 phpforge-cli-tools = { path = "../../packs/phpforge/cli-tools" }
+phpforge-fw-wordpress.workspace = true
+phpforge-fw-cms.workspace = true
 phpforge-test-frameworks = { path = "../../packs/phpforge/test-frameworks" }
 luaforge-lang-lua.workspace = true
 forge-keymap.workspace = true

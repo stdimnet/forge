@@ -5081,6 +5081,251 @@
     }
   },
   {
+    "id": "forge.wordpress",
+    "name": "WordPress",
+    "version": "0.1.0",
+    "pack": "phpforge",
+    "description": "Hooks (completion, navigation between add_action and do_action, gutter icons, Find Usages), WP-CLI, the WordPress code style with Yoda condition hints, plugin and theme file templates.",
+    "vendor": "Forge",
+    "depends": [
+      "forge.php",
+      "forge.command-line-tools"
+    ],
+    "required": false,
+    "projectTypes": [
+      "wordpress"
+    ],
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "fileTypes": [],
+      "commands": [
+        {
+          "id": "WordPress.RunWpCli",
+          "title": "WP-CLI…",
+          "category": "Tools"
+        },
+        {
+          "id": "WordPress.ShowHooks",
+          "title": "WordPress Hooks",
+          "category": "View"
+        },
+        {
+          "id": "WordPress.InstallStubs",
+          "title": "Install WordPress Stubs…",
+          "category": "Tools"
+        },
+        {
+          "id": "wordpress.refresh",
+          "title": "Refresh WordPress Hook Index",
+          "category": "Tools"
+        }
+      ],
+      "keybindings": [],
+      "toolWindows": [
+        {
+          "id": "wordpress",
+          "title": "WordPress",
+          "anchor": "bottom",
+          "icon": "webhook",
+          "order": 36
+        }
+      ],
+      "settings": [
+        {
+          "key": "wordpress.hookCompletion",
+          "title": "Complete hook names",
+          "description": "Inside add_action, add_filter, do_action, apply_filters and their variants: the project's hooks first, then frequently used WordPress core hooks.",
+          "type": "bool",
+          "default": true,
+          "group": "lang.php.wordpress",
+          "section": "Hooks",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "wordpress.gutterIcons",
+          "title": "Show gutter icons for hooks",
+          "description": "A registration links to where its hook fires, an invocation to the registered callbacks.",
+          "type": "bool",
+          "default": true,
+          "group": "lang.php.wordpress",
+          "section": "Hooks",
+          "project": false,
+          "order": 1
+        },
+        {
+          "key": "wordpress.yodaConditions",
+          "title": "Suggest Yoda conditions",
+          "description": "A weak warning on comparisons like `$status === 'publish'` with the quick-fix 'Flip to Yoda condition' (WordPress Coding Standards).",
+          "type": "bool",
+          "default": true,
+          "group": "lang.php.wordpress",
+          "section": "Code Style",
+          "project": false,
+          "order": 2
+        },
+        {
+          "key": "wordpress.offerStubs",
+          "title": "Offer to install the WordPress stubs",
+          "description": "When php-stubs/wordpress-stubs is not in vendor/, a notification offers `composer require --dev php-stubs/wordpress-stubs`. Forge never ships the stubs.",
+          "type": "bool",
+          "default": true,
+          "group": "lang.php.wordpress",
+          "section": "Stubs",
+          "project": true,
+          "order": 3
+        }
+      ],
+      "lspServers": [],
+      "runConfigurationTypes": [],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": [],
+      "mainMenu": [
+        {
+          "path": "Tools",
+          "items": [
+            {
+              "type": "action",
+              "id": "WordPress.RunWpCli",
+              "label": "_WP-CLI..."
+            }
+          ],
+          "after": "CommandLineToolsAction"
+        },
+        {
+          "path": "Tools/WordPress",
+          "items": [
+            {
+              "type": "action",
+              "id": "WordPress.RunWpCli",
+              "label": "Run _WP-CLI Command..."
+            },
+            {
+              "type": "action",
+              "id": "WordPress.ShowHooks",
+              "label": "Show _Hooks"
+            },
+            {
+              "type": "separator"
+            },
+            {
+              "type": "action",
+              "id": "WordPress.InstallStubs",
+              "label": "Install WordPress _Stubs..."
+            },
+            {
+              "type": "action",
+              "id": "wordpress.refresh",
+              "label": "Re_fresh Hook Index"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "forge.cms",
+    "name": "Drupal, Joomla and Shopware",
+    "version": "0.1.0",
+    "pack": "phpforge",
+    "description": "CMS basics: detection, Drupal's .module/.install/.theme/.inc files as PHP, Drupal hook completion with Go to the hook docs, Shopware's Twig tags and Smarty templates, Joomla manifests, Drush and Shopware console runners.",
+    "vendor": "Forge",
+    "depends": [
+      "forge.php",
+      "forge.command-line-tools"
+    ],
+    "required": false,
+    "projectTypes": [
+      "drupal",
+      "joomla",
+      "shopware"
+    ],
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "fileTypes": [
+        {
+          "id": "php",
+          "name": "PHP",
+          "extensions": [
+            "php",
+            "phtml",
+            "inc",
+            "module",
+            "install",
+            "theme",
+            "profile",
+            "engine"
+          ],
+          "fileNames": []
+        }
+      ],
+      "commands": [
+        {
+          "id": "Cms.RunDrush",
+          "title": "Drush…",
+          "category": "Tools"
+        },
+        {
+          "id": "Cms.RunShopwareConsole",
+          "title": "Shopware Console…",
+          "category": "Tools"
+        }
+      ],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [
+        {
+          "key": "cms.drupal.hookCompletion",
+          "title": "Complete Drupal hook implementations",
+          "description": "After `function` in .module, .install, .theme, .profile and .inc files: `<module>_<hook>` with the hook's parameters.",
+          "type": "bool",
+          "default": true,
+          "group": "lang.php.cms",
+          "section": "Drupal",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "cms.drupal.gutterIcons",
+          "title": "Show gutter icons for hook implementations",
+          "description": "Clicking one opens the hook's documentation: its `hook_…` function in the project's *.api.php files, else api.drupal.org.",
+          "type": "bool",
+          "default": true,
+          "group": "lang.php.cms",
+          "section": "Drupal",
+          "project": false,
+          "order": 1
+        }
+      ],
+      "lspServers": [],
+      "runConfigurationTypes": [],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": [],
+      "mainMenu": [
+        {
+          "path": "Tools",
+          "items": [
+            {
+              "type": "action",
+              "id": "Cms.RunDrush",
+              "label": "_Drush..."
+            },
+            {
+              "type": "action",
+              "id": "Cms.RunShopwareConsole",
+              "label": "Shopware _Console..."
+            }
+          ],
+          "after": "CommandLineToolsAction"
+        }
+      ]
+    }
+  },
+  {
     "id": "forge.web",
     "name": "HTML, CSS & JavaScript",
     "version": "0.1.0",
