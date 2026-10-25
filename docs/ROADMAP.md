@@ -100,7 +100,7 @@ are in [research/jetbrains-gap-analysis.md](research/jetbrains-gap-analysis.md).
 
 ### Frameworks
 - [ ] WordPress (hooks, WP-CLI, code style); Drupal, Joomla, Shopware basics
-- [ ] Symfony translations, forms and events; Laravel dashboard (logs, `ide.json`)
+- [x] Symfony translations, forms and events; Laravel dashboard (logs, `ide.json`)
 - [ ] Kubernetes contexts from the project's host
 
 ## Milestone 3 — Language packs I: Java, Python, Go, Rust, C/C++
