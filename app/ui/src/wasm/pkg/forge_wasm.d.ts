@@ -378,6 +378,21 @@ export function csv_parse(request_json: string): string;
 export function csv_sort_order(request_json: string): string;
 
 /**
+ * `{ local: {path, dir, text, modified}[], remote: …, by }` → `DirCompare`.
+ */
+export function deploy_compare(request_json: string): string;
+
+/**
+ * `{ server, paths, excludeNames }` → where every project path is deployed.
+ */
+export function deploy_resolve(request_json: string): string;
+
+/**
+ * `DeployServer` → the problems shown under the form.
+ */
+export function deploy_validate(server_json: string): string;
+
+/**
  * Mirrors `doctrine_complete`: `{ path, content, offset, snapshot }` → `DqlCompletion | null`.
  */
 export function dql_complete(request_json: string): string;
@@ -1443,6 +1458,9 @@ export interface InitOutput {
     readonly csv_edit: (a: number, b: number, c: number) => void;
     readonly csv_parse: (a: number, b: number, c: number) => void;
     readonly csv_sort_order: (a: number, b: number, c: number) => void;
+    readonly deploy_compare: (a: number, b: number, c: number) => void;
+    readonly deploy_resolve: (a: number, b: number, c: number) => void;
+    readonly deploy_validate: (a: number, b: number, c: number) => void;
     readonly dql_complete: (a: number, b: number, c: number) => void;
     readonly dql_diagnostics: (a: number, b: number, c: number) => void;
     readonly dql_goto: (a: number, b: number, c: number) => void;

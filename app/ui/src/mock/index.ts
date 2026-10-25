@@ -5,6 +5,7 @@ import "./keymapMock";
 import { fileTypesReady } from "./filetypesMock";
 import "./projectMock";
 import "./remoteMock";
+import "./deploymentMock";
 import "./workspaceMock";
 import "./projectStructureMock";
 import "./textMock";
