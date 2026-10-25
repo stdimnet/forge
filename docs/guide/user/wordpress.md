@@ -48,6 +48,11 @@ becomes `manage_{$screen}_columns`.
 
 ![Find Usages of a hook](../../screenshots/wordpress-usages.png)
 
+`Ctrl+B` on the pattern `"acme_events_label_{$date}"` lands on the `add_filter(
+'acme_events_label_2026-12-24', … )` it runs:
+
+![Go to Declaration on a dynamic hook](../../screenshots/wordpress-goto-hook.png)
+
 ### Gutter icons
 
 With **Show gutter icons for hooks** (`wordpress.gutterIcons`):
