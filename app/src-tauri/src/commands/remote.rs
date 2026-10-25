@@ -179,6 +179,7 @@ fn remote_host(config: &SshConfiguration, params: &ConnectParams) -> RemoteHost 
         port: params.port,
         user: params.user.clone(),
         config_id: (!config.id.is_empty()).then(|| config.id.clone()),
+        kind: Default::default(),
     }
 }
 
@@ -258,7 +259,7 @@ struct Progress {
     message: String,
 }
 
-fn agent_binaries(app: &AppHandle) -> AgentBinaries {
+pub(crate) fn agent_binaries(app: &AppHandle) -> AgentBinaries {
     let resources = app.path().resource_dir().ok().map(|d| d.join("agents"));
     AgentBinaries::discover(resources)
 }
@@ -373,6 +374,7 @@ pub async fn remote_open_project(
     let backend = Arc::new(blocking(move || RemoteBackend::open(source, host, &path)).await?);
 
     // The previous project's connection goes away unless it is this one.
+    crate::commands::devenv::close_project(&app);
     let previous = remote.project.lock().expect("project lock").take();
     if let Some(p) = previous.filter(|p| p.id != connection_id) {
         tauri::async_runtime::spawn(async move { p.connection.close().await });
@@ -435,6 +437,7 @@ fn forward_status(app: &AppHandle, id: String, conn: Arc<RemoteConnection>) {
 
 /// Close the open project's remote connection (another project is opened).
 pub fn close_project_connection(app: &AppHandle) {
+    crate::commands::devenv::close_project(app);
     let remote = app.state::<RemoteState>();
     let previous = remote.project.lock().expect("project lock").take();
     if let Some(p) = previous {
@@ -460,20 +463,25 @@ pub async fn remote_disconnect(
     Ok(())
 }
 
-/// The open project's connection, `null` for local projects.
+/// The open project's connection (SSH, dev container or WSL), `null` for local projects.
 #[tauri::command]
-pub fn remote_status(remote: State<'_, RemoteState>) -> Option<RemoteStatusView> {
+pub fn remote_status(app: AppHandle, remote: State<'_, RemoteState>) -> Option<RemoteStatusView> {
     remote
         .project
         .lock()
         .expect("project lock")
         .as_ref()
         .map(|p| status_view(&p.id, &p.connection))
+        .or_else(|| crate::commands::devenv::project_status(&app))
 }
 
 /// Drop and re-establish the project's connection ("Reconnect" in the status popup).
 #[tauri::command]
-pub async fn remote_reconnect(remote: State<'_, RemoteState>) -> Result<()> {
+pub async fn remote_reconnect(app: AppHandle, remote: State<'_, RemoteState>) -> Result<()> {
+    if crate::commands::devenv::reconnect_project(&app) {
+        tokio::time::sleep(Duration::from_millis(50)).await;
+        return Ok(());
+    }
     let conn = remote
         .project
         .lock()

@@ -98,6 +98,7 @@ pub fn run() {
         .manage(commands::library::LibraryState::default())
         .manage(commands::workspace::WatchState::default())
         .manage(commands::remote::RemoteState::default())
+        .manage(commands::devenv::DevEnvState::default())
         .manage(commands::deployment::DeploymentState::default())
         .manage(commands::command_line_tools::CliToolsState::default())
         .manage(commands::lua::LuaState::default())
@@ -743,6 +744,20 @@ pub fn run() {
             commands::remote::remote_open_project,
             commands::remote::remote_disconnect,
             commands::remote::remote_status,
+            commands::devenv::devcontainer_configs,
+            commands::devenv::devcontainer_gutter,
+            commands::devenv::devcontainer_list,
+            commands::devenv::devcontainer_up,
+            commands::devenv::devcontainer_cancel,
+            commands::devenv::devcontainer_action,
+            commands::devenv::devcontainer_open,
+            commands::devenv::wsl_distributions,
+            commands::devenv::wsl_map_path,
+            commands::devenv::wsl_windows_path,
+            commands::devenv::wsl_connect,
+            commands::devenv::wsl_browse,
+            commands::devenv::wsl_open_project,
+            commands::devenv::wsl_disconnect,
             commands::remote::remote_reconnect,
             commands::window::window_chrome,
             commands::window::reveal_in_file_manager,

@@ -302,22 +302,20 @@ mod tests {
         }
     }
 
-    fn collect() -> (
-        Mutex<Vec<LogLine>>,
-        impl Fn(&Mutex<Vec<LogLine>>) -> Vec<String>,
-    ) {
-        (Mutex::new(Vec::new()), |m: &Mutex<Vec<LogLine>>| {
-            m.lock()
-                .unwrap()
-                .iter()
-                .map(|l| match l {
-                    LogLine::Step { text } => format!("step: {text}"),
-                    LogLine::Command { text } => format!("$ {text}"),
-                    LogLine::Output { text, .. } => format!("> {}", text.trim()),
-                    LogLine::Warning { text } => format!("warning: {text}"),
-                })
-                .collect()
-        })
+    type Lines = Mutex<Vec<LogLine>>;
+
+    fn show(lines: &Lines) -> Vec<String> {
+        lines
+            .lock()
+            .unwrap()
+            .iter()
+            .map(|l| match l {
+                LogLine::Step { text } => format!("step: {text}"),
+                LogLine::Command { text } => format!("$ {text}"),
+                LogLine::Output { text, .. } => format!("> {}", text.trim()),
+                LogLine::Warning { text } => format!("warning: {text}"),
+            })
+            .collect()
     }
 
     #[tokio::test]
@@ -333,7 +331,7 @@ mod tests {
             "postCreateCommand": "composer install", "postStartCommand": ["php", "-v"],
             "features": { "ghcr.io/devcontainers/features/node:1": {} } }"#,
         );
-        let (lines, show) = collect();
+        let lines = Lines::default();
         let out = up(runner.as_ref(), &c, &opts(dir.path(), false), &|l| {
             lines.lock().unwrap().push(l)
         })
@@ -374,7 +372,7 @@ mod tests {
         );
         let runner = FakeRunner::new("");
         runner.answer("label=forge.devcontainer.id", Output::ok("abc\texited\n"));
-        let (lines, show) = collect();
+        let lines = Lines::default();
         let out = up(runner.as_ref(), &c, &opts(dir.path(), false), &|l| {
             lines.lock().unwrap().push(l)
         })
@@ -421,7 +419,7 @@ mod tests {
         let runner = FakeRunner::new("");
         // `docker ps` finds nothing first, the service's container after `up`.
         runner.answer("compose", Output::ok(""));
-        let (lines, _show) = collect();
+        let lines = Lines::default();
         let err = up(runner.as_ref(), &c, &opts(dir.path(), false), &|l| {
             lines.lock().unwrap().push(l)
         })
@@ -441,7 +439,7 @@ mod tests {
         let c = cfg(r#"{ "build": { "dockerfile": "Dockerfile" } }"#);
         let runner = FakeRunner::new("");
         runner.answer("build", Output::failed(1, "failed to solve: COPY failed\n"));
-        let (lines, show) = collect();
+        let lines = Lines::default();
         let err = up(runner.as_ref(), &c, &opts(dir.path(), false), &|l| {
             lines.lock().unwrap().push(l)
         })

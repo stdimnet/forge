@@ -226,6 +226,14 @@ impl AppState {
 
 /// A project's trust key: the canonical local path, or `ssh://user@host:port/path`.
 pub fn trust_key(info: &BackendInfo) -> String {
+    let root = info.root.to_string_lossy();
+    if let Some(key) = info
+        .remote
+        .as_ref()
+        .and_then(|r| crate::commands::devenv::trust_key(r, &root))
+    {
+        return key;
+    }
     match &info.remote {
         Some(r) => forge_trust::remote_key(&r.user, &r.host, r.port, &info.root.to_string_lossy()),
         None => forge_trust::local_key(&info.root),

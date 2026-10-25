@@ -47,11 +47,10 @@ pub fn is_config_file(path: &str) -> bool {
         return false;
     }
     let mut parts = path.rsplit('/').skip(1);
-    match (parts.next(), parts.next()) {
-        (Some(".devcontainer"), _) => true,
-        (Some(_), Some(".devcontainer")) => true,
-        _ => false,
-    }
+    matches!(
+        (parts.next(), parts.next()),
+        (Some(".devcontainer"), _) | (Some(_), Some(".devcontainer"))
+    )
 }
 
 /// The 0-based line for the "Create Dev Container" gutter icon: the line with the opening
@@ -376,9 +375,7 @@ fn is_absolute(path: &str) -> bool {
 
 /// `rel` against the folder `base`, with `.` and `..` folded. Uses `\` when `base` does.
 pub fn join(base: &str, rel: &str) -> String {
-    let joined = if is_absolute(rel) {
-        rel.to_string()
-    } else if base.is_empty() {
+    let joined = if is_absolute(rel) || base.is_empty() {
         rel.to_string()
     } else {
         format!("{}/{}", base.trim_end_matches(['/', '\\']), rel)
