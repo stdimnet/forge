@@ -275,12 +275,12 @@ impl Backend for LocalBackend {
 
     fn set_structure(&self, config: forge_core::excludes::StructureConfig) -> Result<bool> {
         let changed = self.workspace.excludes().set(config);
+        // Refresh in place: a background refresh could finish after a later change's and
+        // leave the index on the older excludes.
         #[cfg(feature = "search")]
         if changed {
-            if let Some(search) = self.service().cloned() {
-                std::thread::spawn(move || {
-                    search.refresh();
-                });
+            if let Some(search) = self.service() {
+                search.refresh();
             }
         }
         Ok(changed)
