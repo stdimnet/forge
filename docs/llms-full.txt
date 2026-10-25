@@ -9740,6 +9740,35 @@ Turn completion off with **Complete routes, views, config, translations and mode
 (`laravel.completion.enabled`) and **Complete database columns in query builder calls**
 (`laravel.completion.columns`).
 
+## ide.json
+
+Packages and projects describe extra completions in an `ide.json` file (the format Laravel IDE
+plugins such as Laravel Idea document). Forge reads the project's `ide.json` and the
+`ide.json` of every installed package (`vendor/<vendor>/<package>/ide.json`):
+
+- **completions:** `staticStrings` (a fixed list), `directoryFiles` (files of a folder, without
+  `suffixToClear`) and the project's own lists `routeName`, `viewName`, `configKey`,
+  `translationKey`, `envKey` and `validationRule`, offered where a `condition` applies:
+  `functionNames` or `methodNames` (with `classFqn` / `classParentFqn`) and the 1-based
+  `parameters`. Setting: **Complete values from ide.json files**
+  (`laravel.completion.ideJson`).
+- **codeGenerations:** listed in the Overview of the Laravel tool window. **Generate…** asks for
+  a class name (`Orders/Invoice`), fills the stub templates (`${INPUT_CLASS|className|upperCamelCase}`,
+  `${NAMESPACE}`, `${CLASS}`, with the `classSuffix`) and creates the files that do not exist
+  yet below `App\<appNamespace>`.
+
+```json
+{
+  "completions": [
+    {
+      "complete": "staticStrings",
+      "options": { "strings": ["pending", "paid", "shipped"] },
+      "condition": [{ "functionNames": ["order_status"], "parameters": [1] }]
+    }
+  ]
+}
+```
+
 ## Gutter icons
 
 - **Route** icons next to controller actions that a route points to; click to go to the
@@ -9772,6 +9801,33 @@ Routes come from one of two sources, chosen with **Read routes from**
 | `static` | Forge reads `routes/*.php` itself: verbs, `match`, `view`, `redirect`, `resource`/`apiResource`, groups with prefix/name/middleware/controller, included files and the `api` prefix |
 
 With artisan, the source locations from static analysis are kept so navigation still works.
+
+## Laravel tool window
+
+The **Laravel** tool window (bottom; **Tools | Laravel | Show Laravel Tool Window**) has two tabs.
+
+**Overview:** the application (name, Laravel and PHP version, environment, debug, URL from
+`.env` and `composer.json`), counts of routes, models, artisan commands, views, Blade components,
+translations, config keys and log files, the Eloquent models with their tables, the
+application's artisan commands (`app/Console/Commands` and `routes/console.php`; the run button
+opens Run Command with the command typed in) and what `ide.json` contributes.
+
+![Laravel tool window](docs/screenshots/laravel-tool-window-overview.png)
+
+**Logs** (**Tools | Laravel | Show Logs**): the entries of `storage/logs/*.log` (the newest file
+first; the last 2 MB of large files), parsed in Rust from Monolog's line format into level,
+time, channel, message and context. Click an entry to expand the exception and its stack trace;
+`file:line` links open the file, also for logs written in a container (`/var/www/html/app/…`
+is mapped into the project), and vendor frames are dimmed.
+
+![Laravel logs](docs/screenshots/laravel-logs.png)
+
+- the level filter shows a level and the more severe ones;
+- the search field filters messages, exceptions and context;
+- **Follow** reloads the log every two seconds and scrolls to new entries (default:
+  **Follow log files**, `laravel.logs.follow`).
+
+Reading logs does not run project code, so the tool window also works in Safe Mode.
 
 ## Run Artisan Command
 
@@ -9808,6 +9864,8 @@ See [Database tools](docs/guide/user/database.md).
 | Read routes from | `laravel.routes.source` | `auto` |
 | Complete routes, views, config, translations and model attributes | `laravel.completion.enabled` | on |
 | Complete database columns in query builder calls | `laravel.completion.columns` | on |
+| Complete values from ide.json files | `laravel.completion.ideJson` | on |
+| Follow log files | `laravel.logs.follow` | on |
 | Show route icons for controller actions | `laravel.gutter.routes` | on |
 | Show view icons for `view()` calls and Blade includes | `laravel.gutter.views` | on |
 | Additional Blade directives | `laravel.blade.customDirectives` | empty |
@@ -9848,6 +9906,9 @@ The status bar shows **Symfony 7.2 · dev** (version and kernel environment). It
 | Templates | `templates/` (setting `symfony.templatesDirectory`), and which controller renders which template |
 | Twig tags, filters, functions and tests | Twig core, the Symfony bridge and the project's Twig extensions |
 | Console commands | the project's commands (`src/`), then framework and bundle commands |
+| Translations | `translations/<domain>.<locale>.{yaml,yml,xlf,xliff,php,json}` (also ICU files `<domain>+intl-icu.<locale>.*`); the folder, `default_locale` and `enabled_locales` come from `config/packages/{framework,translation}.yaml` |
+| Form types | the core types and their options, plus the project's types: `configureOptions()` (`setDefaults`, `setDefined`, `setRequired`, `define`), `getParent()` and `data_class` |
+| Event listeners | `getSubscribedEvents()` of event subscribers, `#[AsEventListener]` on classes and methods, `kernel.event_listener` tags in `config/services*.yaml`; the project's event classes and `*Events` constants |
 
 The index is cached for a few seconds and rebuilt when files change; **Refresh Symfony Index**
 rescans now.
@@ -9861,13 +9922,43 @@ rescans now.
 | `@service_id` in YAML, `#[Autowire(service: '…')]`, `$container->get('…')`, `service('…')` in PHP config | service ids |
 | `%parameter%` in YAML, `getParameter('…')` | parameters |
 | Twig files | tags, filters, functions, tests and variables |
+| `->trans('…')`, `t('…')`, `new TranslatableMessage('…')`, Twig `{{ '…'\|trans }}`, `{% trans %}…{% endtrans %}`, Twig `t('…')` | translation keys of the domain (with the text of the default locale); `Ctrl+B` lists the key in every locale |
+| the domain argument (`->trans('key', [], '…')`, `\|trans({}, '…')`, `{% trans from '…' %}`, `{% trans_default_domain '…' %}`) | translation domains |
+| `->add('field', TextType::class, ['…' => …])` | the options of the form type, including inherited ones (`FormType`, `ChoiceType`, …) and the project type's own options |
+| `->add('…')` in a form type with a `data_class` | the properties of the data class |
+| `#[AsEventListener(event: '…')]`, `addListener('…')`, keys of `getSubscribedEvents()`, `event:` of a listener tag in YAML | event names (`kernel.*`, `console.*`, `form.*`, security events and the project's) |
 
 ![Twig completion](docs/screenshots/symfony-twig-completion.png)
 
 ![Twig filters](docs/screenshots/symfony-twig-filters.png)
 
 `Ctrl+B` / `Ctrl+Click` on any of these opens the declaration (the controller action, the
-template, the service definition or class, the parameter).
+template, the service definition or class, the parameter, the translation, the entity
+property, the listeners of an event). `Ctrl+B` on `XType` in `createForm(XType::class)` or
+`->add('field', XType::class)` opens the form type, and on a method name in
+`getSubscribedEvents()` the listener method.
+
+![Form option completion](docs/screenshots/symfony-form-options.png)
+
+## Translations
+
+![Translation keys folded to their text](docs/screenshots/symfony-translation-folding.png)
+
+- **Folding:** translation keys show the text of the default locale in place of the key, like
+  PHPStorm (`'order.title'|trans` reads `Order #%id%`). Put the caret on the text (or click it)
+  to see and edit the key. Setting: **Show translated text in place of translation keys**
+  (`symfony.translations.folding`).
+- **Inspection:** a key that no catalogue of its domain has is a warning, a key missing in some
+  of the domain's locales a weak warning (for example "Translation 'order.back' is missing for
+  locale de"). Setting: **Report missing translation keys and locales**
+  (`symfony.translations.inspection`).
+- **Create translation key** (`Alt+Enter` on the key) adds the key to the domain's catalogues
+  of the missing locales: nested under the existing parent keys in YAML, as a `<trans-unit>` in
+  XLIFF (1.2 and 2.0), as an array entry in PHP and as a property in JSON. A locale without a
+  catalogue gets a new `translations/<domain>.<locale>.<ext>` in the format the project uses
+  most. The key is used as the text until you translate it.
+
+![Translation key completion](docs/screenshots/symfony-translation-completion.png)
 
 In `config/services*.yaml` (file type "Symfony Services"), service ids, parameters and tags are
 completed, and `@service` and `%parameter%` references are highlighted.
@@ -9879,19 +9970,30 @@ With **Show line markers for routes, templates and commands** (`symfony.gutterIc
 - a **route** marker on controller actions (click: the route);
 - **go to template** next to `render()` calls;
 - **rendered by** on Twig templates (click: the controller);
-- a **run** marker on console commands (click: run it).
+- a **run** marker on console commands (click: run it);
+- **listens to** on event listener methods (subscriber methods, `#[AsEventListener]`), with the
+  priority (click: the event class);
+- **N listeners** on the project's event classes, on event name constants and on
+  `->dispatch(new XEvent(…))` calls (click: the listener, or a chooser when there are several).
 
 ## Symfony tool window
 
-The **Symfony** tool window (bottom) has three tabs:
+The **Symfony** tool window (bottom) has five tabs:
 
 | Tab | Columns | Filter |
 | --- | --- | --- |
 | Routes | Name, Method, Path, Controller | name, path or controller |
 | Services | Service ID, Class, Tags (public/private icon) | id, class or tag |
 | Parameters | Name, Value | parameter |
+| Translations | Key, Domain, one column per locale (missing texts are marked) | key or text, domain, **Only missing** |
+| Events | Event, Listener, Priority, Registered by (subscriber, `#[AsEventListener]`, `services.yaml`) | event or listener |
 
-Clicking a row opens its definition.
+Clicking a row opens its definition (in the Translations tab: double-click a locale's cell to
+open the key in that catalogue).
+
+![Symfony translations](docs/screenshots/symfony-translations-tab.png)
+
+![Symfony events](docs/screenshots/symfony-events.png)
 
 ![Symfony routes](docs/screenshots/symfony-routes.png)
 
@@ -9922,6 +10024,8 @@ The output is shown in the Symfony tool window with **Rerun** and **Close**.
 | Container XML — empty: `var/cache/<environment>/*Container.xml` | `symfony.containerXml` | empty |
 | Show line markers for routes, templates and commands | `symfony.gutterIcons` | on |
 | Complete Twig tags, filters and functions | `symfony.twigCompletion` | on |
+| Show translated text in place of translation keys | `symfony.translations.folding` | on |
+| Report missing translation keys and locales | `symfony.translations.inspection` | on |
 
 The project settings (environment, folders, console, container) can be stored per project.
 

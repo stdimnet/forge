@@ -1,14 +1,15 @@
 /**
- * Symfony tool window: Routes, Services and Parameters tabs plus one tab per console run,
+ * Symfony tool window: Routes, Services, Parameters, Translations and Events tabs plus one
+ * tab per console run,
  * like PHPStorm's Endpoints and Run tool windows combined.
  */
 import { createEffect, createMemo, createSignal, For, Match, on, Show, Switch } from "solid-js";
-import { Globe, Lock, Play, RefreshCw, RotateCw, Search, Square, SquareTerminal, X } from "lucide-solid";
+import { CircleAlert, Globe, Languages, Lock, Play, Radio, RefreshCw, RotateCw, Search, Square, SquareTerminal, X } from "lucide-solid";
 import type { SourceLocation } from "@/ipc/symfony";
 import { revealSymbol } from "@/features/php/editorViews";
 import { activeTab, closeRun, rerun, runs, setActiveTab, stopRun, type ConsoleRun } from "./console";
 import { openConsolePopup } from "./ConsolePopup";
-import { loadSymfony, loading, parameters, routes, services, shortVersion, symfonyInfo } from "./store";
+import { listeners, loadSymfony, loading, parameters, routes, services, shortVersion, symfonyInfo, translations } from "./store";
 
 export const reveal = (loc?: SourceLocation) => {
   if (loc) void revealSymbol(loc.path, { line: loc.line });
@@ -199,6 +200,131 @@ function ParametersTab() {
   );
 }
 
+function TranslationsTab() {
+  const [filter, setFilter] = createSignal("");
+  const [domain, setDomain] = createSignal("");
+  const [missingOnly, setMissingOnly] = createSignal(false);
+  const table = () => translations();
+  const locales = () => table()?.locales ?? [];
+  const shown = createMemo(() =>
+    (table()?.rows ?? []).filter(
+      (r) =>
+        (!domain() || r.domain === domain()) &&
+        (!missingOnly() || (r.missing?.length ?? 0) > 0) &&
+        matches(filter(), r.key, ...Object.values(r.values)),
+    ),
+  );
+  return (
+    <div class="sf-tab-body">
+      <FilterBar value={filter()} onInput={setFilter} placeholder="Filter by key or text" count={`${shown().length} keys`}>
+        <select class="sf-select" value={domain()} onChange={(e) => setDomain(e.currentTarget.value)} title="Domain">
+          <option value="">All domains</option>
+          <For each={table()?.domains ?? []}>{(d) => <option value={d}>{d}</option>}</For>
+        </select>
+        <label class="sf-check">
+          <input type="checkbox" checked={missingOnly()} onChange={(e) => setMissingOnly(e.currentTarget.checked)} />
+          Only missing
+        </label>
+      </FilterBar>
+      <div class="sf-table-wrap">
+        <table class="sf-table sf-translations">
+          <thead>
+            <tr>
+              <th style={{ width: "26%" }}>Key</th>
+              <th style={{ width: "10%" }}>Domain</th>
+              <For each={locales()}>
+                {(l) => (
+                  <th>
+                    {l}
+                    <Show when={l === table()?.defaultLocale}>
+                      <span class="sf-source">default</span>
+                    </Show>
+                  </th>
+                )}
+              </For>
+            </tr>
+          </thead>
+          <tbody>
+            <For each={shown()}>
+              {(r) => (
+                <tr data-key={r.key} onDblClick={() => reveal(r.locations[table()?.defaultLocale ?? ""] ?? Object.values(r.locations)[0])}>
+                  <td class="sf-name sf-ellipsis" title={r.key}>
+                    <Languages size={13} class="sf-row-icon sf-icon-translation" />
+                    {r.key}
+                  </td>
+                  <td class="muted">{r.domain}</td>
+                  <For each={locales()}>
+                    {(l) => (
+                      <td class="sf-ellipsis" title={r.values[l] ?? ""} onDblClick={(e) => {
+                        const loc = r.locations[l];
+                        if (loc) {
+                          e.stopPropagation();
+                          reveal(loc);
+                        }
+                      }}>
+                        <Show when={r.values[l] !== undefined} fallback={
+                          <Show when={r.missing?.includes(l)}>
+                            <span class="sf-missing"><CircleAlert size={12} /> missing</span>
+                          </Show>
+                        }>
+                          {r.values[l]}
+                        </Show>
+                      </td>
+                    )}
+                  </For>
+                </tr>
+              )}
+            </For>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+const SOURCE_LABEL = { subscriber: "subscriber", attribute: "#[AsEventListener]", yaml: "services.yaml" } as const;
+
+function EventsTab() {
+  const [filter, setFilter] = createSignal("");
+  const shown = createMemo(() => listeners().filter((l) => matches(filter(), l.event, l.class, l.method, l.eventClass)));
+  return (
+    <div class="sf-tab-body">
+      <FilterBar value={filter()} onInput={setFilter} placeholder="Filter by event or listener" count={`${shown().length} listeners`} />
+      <div class="sf-table-wrap">
+        <table class="sf-table sf-events">
+          <thead>
+            <tr>
+              <th style={{ width: "30%" }}>Event</th>
+              <th style={{ width: "36%" }}>Listener</th>
+              <th style={{ width: "10%" }}>Priority</th>
+              <th>Registered by</th>
+            </tr>
+          </thead>
+          <tbody>
+            <For each={shown()}>
+              {(l) => (
+                <tr onDblClick={() => reveal(l.location)} title={l.eventClass ?? l.event}>
+                  <td class="sf-name sf-ellipsis">
+                    <Radio size={13} class="sf-row-icon sf-icon-event" />
+                    {l.event.includes("\\") ? short(l.event) : l.event}
+                  </td>
+                  <td class="sf-ellipsis">
+                    {short(l.class)}::{l.method}
+                  </td>
+                  <td class="muted">{l.priority}</td>
+                  <td class="muted sf-ellipsis">
+                    <span class="sf-source" onClick={() => reveal(l.declaredAt)}>{SOURCE_LABEL[l.source]}</span>
+                  </td>
+                </tr>
+              )}
+            </For>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 function RunTab(props: { run: ConsoleRun }) {
   let out!: HTMLDivElement;
   createEffect(
@@ -234,6 +360,8 @@ const TABS = [
   ["routes", "Routes"],
   ["services", "Services"],
   ["parameters", "Parameters"],
+  ["translations", "Translations"],
+  ["events", "Events"],
 ] as const;
 
 export function SymfonyView() {
@@ -280,6 +408,12 @@ export function SymfonyView() {
           </Match>
           <Match when={activeTab() === "parameters"}>
             <ParametersTab />
+          </Match>
+          <Match when={activeTab() === "translations"}>
+            <TranslationsTab />
+          </Match>
+          <Match when={activeTab() === "events"}>
+            <EventsTab />
           </Match>
           <Match when={run()}>{(r) => <RunTab run={r()} />}</Match>
         </Switch>

@@ -22,6 +22,11 @@ pub enum CompletionKind {
     Function,
     Test,
     Variable,
+    Translation,
+    Domain,
+    FormOption,
+    FormField,
+    Event,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -345,6 +350,13 @@ fn twig_kind(k: RefKind) -> Option<TwigSymbolKind> {
 
 /// Completion items for the reference at the cursor.
 pub fn complete(snap: &Snapshot, path: &str, text: &str, offset: usize) -> Option<CompletionList> {
+    let offset = offset.min(text.len());
+    if let Some(list) = crate::translations::complete(snap, path, text, offset)
+        .or_else(|| crate::forms::complete(snap, path, text, offset))
+        .or_else(|| crate::events::complete(snap, path, text, offset))
+    {
+        return Some(list);
+    }
     let r = reference_at(path, text, offset)?;
     let mut items: Vec<CompletionItem> = Vec::new();
     match r.kind {
@@ -492,6 +504,12 @@ fn service_target(snap: &Snapshot, id: &str) -> Option<Location> {
 /// Declarations the reference at `offset` points to.
 pub fn goto(snap: &Snapshot, path: &str, text: &str, offset: usize) -> Vec<Location> {
     let offset = offset.min(text.len());
+    if let Some(found) = crate::translations::goto(snap, path, text, offset)
+        .or_else(|| crate::forms::goto(snap, path, text, offset))
+        .or_else(|| crate::events::goto(snap, path, text, offset))
+    {
+        return found;
+    }
     if let Some(r) = reference_at(path, text, offset) {
         let found = match r.kind {
             RefKind::Route => snap.route(&r.value).and_then(|route| {

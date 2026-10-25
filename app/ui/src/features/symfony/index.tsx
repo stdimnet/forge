@@ -20,6 +20,7 @@ import { SymfonyActions, SymfonyView } from "./SymfonyView";
 import { SymfonyStatus } from "./status";
 import { loadSymfony } from "./store";
 import "./editor";
+import "./translations";
 import "./symfony.css";
 
 registerToolWindow({

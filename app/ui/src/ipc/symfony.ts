@@ -19,6 +19,9 @@ export interface SymfonyInfo {
   services: number;
   templates: number;
   commands: number;
+  translations?: number;
+  listeners?: number;
+  forms?: number;
 }
 
 export interface SymfonyRoute {
@@ -75,7 +78,12 @@ export type SymfonyCompletionKind =
   | "filter"
   | "function"
   | "test"
-  | "variable";
+  | "variable"
+  | "translation"
+  | "domain"
+  | "formOption"
+  | "formField"
+  | "event";
 
 export interface SymfonyCompletionItem {
   label: string;
@@ -93,10 +101,74 @@ export interface SymfonyCompletionList {
 
 export interface SymfonyGutterMark {
   line: number;
-  kind: "route" | "template" | "controller" | "command";
+  kind: "route" | "template" | "controller" | "command" | "listener" | "event";
   title: string;
   targets?: SourceLocation[];
   command?: string;
+}
+
+export type TranslationFormat = "yaml" | "xliff" | "php" | "json";
+
+export interface TranslationFile {
+  path: string;
+  domain: string;
+  locale: string;
+  format: TranslationFormat;
+  icu?: boolean;
+}
+
+export interface TranslationRow {
+  domain: string;
+  key: string;
+  /** Locale -> text. */
+  values: Record<string, string>;
+  locations: Record<string, SourceLocation>;
+  /** Locales of the domain without this key. */
+  missing?: string[];
+}
+
+export interface TranslationTable {
+  defaultLocale: string;
+  locales: string[];
+  domains: string[];
+  files: TranslationFile[];
+  rows: TranslationRow[];
+}
+
+export interface EventListener {
+  event: string;
+  eventClass?: string;
+  class: string;
+  method: string;
+  priority: number;
+  source: "subscriber" | "attribute" | "yaml";
+  location?: SourceLocation;
+  declaredAt?: SourceLocation;
+}
+
+/** A missing translation; `from`/`to` are UTF-16 offsets of the key. */
+export interface TranslationProblem {
+  from: number;
+  to: number;
+  severity: "warning" | "weak";
+  message: string;
+  domain: string;
+  key: string;
+  /** Locales "Create translation key" writes to. */
+  locales: string[];
+}
+
+/** A key literal (`from`..`to`, UTF-16, quotes included) shown as its translated text. */
+export interface TranslationFold {
+  from: number;
+  to: number;
+  text: string;
+  key: string;
+}
+
+export interface TranslationAnalysis {
+  problems: TranslationProblem[];
+  folds: TranslationFold[];
 }
 
 export type ConsoleEvent =
@@ -119,6 +191,12 @@ export const symfonyApi = {
   goto: (path: string, content: string, offset: number) =>
     invoke<SourceLocation[]>("symfony_goto", { path, content, offset }),
   gutter: (path: string, content: string) => invoke<SymfonyGutterMark[]>("symfony_gutter", { path, content }),
+  translations: () => invoke<TranslationTable>("symfony_translations"),
+  events: () => invoke<EventListener[]>("symfony_events"),
+  translationAnalysis: (path: string, content: string) =>
+    invoke<TranslationAnalysis>("symfony_translation_analysis", { path, content }),
+  createTranslation: (domain: string, key: string, locales: string[]) =>
+    invoke<SourceLocation[]>("symfony_create_translation", { domain, key, locales }),
   runConsole: (command: string, args: string, runId: string) =>
     invoke<void>("symfony_console_run", { command, args, runId }),
   cancelConsole: (runId: string) => invoke<void>("symfony_console_cancel", { runId }),

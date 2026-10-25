@@ -57,6 +57,7 @@ import "./scratchesMock";
 import "./debugMock";
 import "./dbMock";
 import "./laravelMock";
+import "./laravelDashboardMock";
 import "./cliToolsMock";
 import "./symfonyMock";
 import "./wordpressMock";

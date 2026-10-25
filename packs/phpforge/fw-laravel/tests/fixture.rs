@@ -576,3 +576,52 @@ fn gutter_marks() {
     assert_eq!(first.line, 12);
     assert_eq!(first.tooltip, "Navigate to OrderController::show()");
 }
+
+#[test]
+fn ide_json_completions() {
+    let l = load();
+    assert_eq!(l.ide.files, vec!["ide.json"]);
+    let (src, at) = caret("<?php\norder_status('sh|');");
+    let c = l.complete("app/x.php", &src, at).unwrap();
+    let labels: Vec<&str> = c.items.iter().map(|i| i.label.as_str()).collect();
+    assert_eq!(labels, vec!["paid", "shipped", "cancelled"]);
+    assert_eq!(c.items[0].kind, "value");
+    let (src, at) = caret("<?php\nuse App\\Models\\Order;\nOrder::linkTo('|');");
+    let c = l.complete("app/x.php", &src, at).unwrap();
+    assert!(c.items.iter().any(|i| i.label == "orders.show"));
+}
+
+#[test]
+fn dashboard_overview() {
+    let l = load();
+    let o = phpforge_fw_laravel::dashboard::overview(&l);
+    assert_eq!(o.version.as_deref(), Some("12.4.1"));
+    assert!(o
+        .models
+        .iter()
+        .any(|m| m.name == "Order" && m.table == "orders"));
+    let names: Vec<&str> = o.commands.iter().map(|c| c.name.as_str()).collect();
+    assert_eq!(names, vec!["inspire", "orders:prune"]);
+    assert_eq!(o.commands[1].description, "Delete abandoned orders");
+    assert_eq!(
+        o.commands[1].location.path,
+        "app/Console/Commands/PruneOrders.php"
+    );
+    assert_eq!(o.ide_json.code_generations[0].name, "Create DTO");
+
+    let generation = &o.ide_json.code_generations[0];
+    let root = root();
+    let read = |p: &str| std::fs::read_to_string(root.join(p)).ok();
+    let class_path = |fqn: &str| {
+        format!(
+            "app/{}.php",
+            fqn.trim_start_matches("App\\").replace('\\', "/")
+        )
+    };
+    let files = phpforge_fw_laravel::ide_json::generate(generation, "Invoice", &read, &class_path);
+    assert_eq!(files[0].path, "app/Data/InvoiceData.php");
+    assert!(files[0]
+        .content
+        .contains("final readonly class InvoiceData"));
+    assert!(!files[0].exists);
+}

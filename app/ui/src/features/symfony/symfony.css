@@ -164,6 +164,33 @@
 .sf-icon-route {
   color: var(--info);
 }
+.sf-icon-translation {
+  color: var(--syn-string);
+}
+.sf-icon-event {
+  color: var(--graph-3);
+}
+.sf-missing {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--warning);
+  font-size: 11.5px;
+}
+.sf-select {
+  height: 22px;
+  padding: 0 6px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+  color: var(--fg);
+  font: inherit;
+  font-size: 12px;
+}
+.sf-events .sf-source {
+  margin-left: 0;
+  cursor: pointer;
+}
 .sf-path {
   font-family: var(--font-mono);
   font-size: 12px;
@@ -343,6 +370,8 @@
 .cm-line-marker.marker-run { color: var(--success); }
 .cm-line-marker.marker-entity { color: var(--warning); }
 .cm-line-marker.marker-repository { color: var(--warning); }
+.cm-line-marker.marker-sf-listener { color: var(--graph-3); }
+.cm-line-marker.marker-sf-event { color: var(--graph-3); }
 
 /* Completion documentation popup */
 .sf-completion-info {

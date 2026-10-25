@@ -438,6 +438,8 @@ path = "Tools/_Laravel"
 items = [
   { type = "action", id = "Laravel.RunArtisan", label = "Run _Artisan Command..." },
   { type = "action", id = "Laravel.ShowRoutes", label = "Show _Routes" },
+  { type = "action", id = "Laravel.ShowLogs", label = "Show _Logs" },
+  { type = "action", id = "Laravel.ShowDashboard", label = "Show Laravel _Tool Window" },
 ]
 
 [[plugin.contributions.runConfigurationTypes]]
@@ -458,6 +460,13 @@ title = "Routes"
 anchor = "bottom"
 icon = "route"
 order = 35
+
+[[plugin.contributions.toolWindows]]
+id = "laravel"
+title = "Laravel"
+anchor = "bottom"
+icon = "layout-dashboard"
+order = 36
 
 [[plugin.contributions.settings]]
 key = "laravel.routes.source"
@@ -511,6 +520,26 @@ default = true
 group = "lang.php.laravel"
 section = "Gutter Icons"
 order = 21
+
+[[plugin.contributions.settings]]
+key = "laravel.completion.ideJson"
+title = "Complete values from ide.json files"
+description = "Completions of the project's ide.json and of the ide.json files of installed packages."
+type = "bool"
+default = true
+group = "lang.php.laravel"
+section = "Code Completion"
+order = 12
+
+[[plugin.contributions.settings]]
+key = "laravel.logs.follow"
+title = "Follow log files"
+description = "Reload the Logs tab while it is open and scroll to new entries."
+type = "bool"
+default = true
+group = "lang.php.laravel"
+section = "Logs"
+order = 25
 
 [[plugin.contributions.settings]]
 key = "laravel.blade.customDirectives"
@@ -635,6 +664,25 @@ default = true
 group = "lang.php.symfony"
 section = "Editor"
 order = 21
+
+[[plugin.contributions.settings]]
+key = "symfony.translations.folding"
+title = "Show translated text in place of translation keys"
+description = "Folds 'key'|trans and ->trans('key') to the text of the default locale; the key shows while the caret is on it."
+type = "bool"
+default = true
+group = "lang.php.symfony"
+section = "Translations"
+order = 30
+
+[[plugin.contributions.settings]]
+key = "symfony.translations.inspection"
+title = "Report missing translation keys and locales"
+type = "bool"
+default = true
+group = "lang.php.symfony"
+section = "Translations"
+order = 31
 
 [[plugin]]
 id = "forge.symfony-services"

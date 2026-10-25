@@ -175,6 +175,53 @@ impl Imports {
     }
 }
 
+/// Validation rules for `validationRule` completions of `ide.json`.
+const VALIDATION_RULES: &[&str] = &[
+    "accepted",
+    "active_url",
+    "after",
+    "alpha",
+    "alpha_dash",
+    "alpha_num",
+    "array",
+    "before",
+    "between",
+    "boolean",
+    "confirmed",
+    "date",
+    "decimal",
+    "different",
+    "digits",
+    "email",
+    "enum",
+    "exists",
+    "file",
+    "filled",
+    "image",
+    "in",
+    "integer",
+    "ip",
+    "json",
+    "max",
+    "mimes",
+    "min",
+    "not_in",
+    "nullable",
+    "numeric",
+    "present",
+    "regex",
+    "required",
+    "required_if",
+    "same",
+    "size",
+    "sometimes",
+    "string",
+    "timezone",
+    "unique",
+    "url",
+    "uuid",
+];
+
 const PHP_KEYWORDS: &[&str] = &[
     "as",
     "return",
@@ -390,12 +437,100 @@ impl Laravel {
     }
 
     /// Completion at a byte offset of a PHP or Blade buffer.
+    /// Values `ide.json` completions offer for a string argument.
+    fn ide_items(
+        &self,
+        s: &StringArg,
+        imports: &Imports,
+        path: &str,
+        src: &str,
+    ) -> Vec<CompletionItem> {
+        if self.ide.completions.is_empty() {
+            return Vec::new();
+        }
+        let receiver = s.receiver.as_deref().unwrap_or("");
+        let (class, parents) = if s.is_static && !receiver.contains(['(', '$']) {
+            (Some(imports.resolve(receiver)), Vec::new())
+        } else if receiver == "$this" {
+            let idx = index_source(path, src);
+            match idx.class_at(s.start) {
+                Some(c) => (
+                    Some(c.fqn.clone()),
+                    c.extends.iter().map(|e| imports.resolve(e)).collect(),
+                ),
+                None => (None, Vec::new()),
+            }
+        } else {
+            (None, Vec::new())
+        };
+        let site = crate::ide_json::CallSite {
+            function: &s.func,
+            class,
+            parents,
+            is_method: s.receiver.is_some(),
+            arg_index: s.arg_index,
+        };
+        let mut items: Vec<CompletionItem> = Vec::new();
+        for c in crate::ide_json::applicable(&self.ide, &site) {
+            let detail = Some(c.source.clone());
+            let values: Vec<(String, Option<String>)> = match c.complete.as_str() {
+                "staticStrings" => c.strings.iter().map(|v| (v.clone(), None)).collect(),
+                "directoryFiles" => crate::ide_json::directory_values(&self.root, c)
+                    .into_iter()
+                    .map(|v| (v, None))
+                    .collect(),
+                "routeName" => self
+                    .routes
+                    .iter()
+                    .filter_map(|r| r.name.clone().map(|n| (n, Some(r.uri.clone()))))
+                    .collect(),
+                "viewName" => self.views.iter().map(|v| (v.name.clone(), None)).collect(),
+                "configKey" => self
+                    .config
+                    .iter()
+                    .map(|k| (k.key.clone(), Some(k.value.clone())))
+                    .collect(),
+                "translationKey" => self
+                    .translations
+                    .iter()
+                    .map(|t| (t.key.clone(), Some(t.value.clone())))
+                    .collect(),
+                "envKey" => self
+                    .env
+                    .iter()
+                    .map(|e| (e.key.clone(), Some(e.value.clone())))
+                    .collect(),
+                "validationRule" => VALIDATION_RULES
+                    .iter()
+                    .map(|r| (r.to_string(), None))
+                    .collect(),
+                _ => Vec::new(),
+            };
+            for (label, doc) in values {
+                if items.iter().any(|i| i.label == label) {
+                    continue;
+                }
+                let mut it = item(label, "value", detail.clone());
+                it.documentation = doc;
+                items.push(it);
+            }
+        }
+        items
+    }
+
     pub fn complete(&self, path: &str, src: &str, offset: usize) -> Option<Completions> {
         let ctx = context_at(src, offset)?;
         let imports = Imports::of(path, src);
         match ctx {
             Context::String(s) => {
-                let kind = string_kind(&s)?;
+                let Some(kind) = string_kind(&s) else {
+                    let items = self.ide_items(&s, &imports, path, src);
+                    return (!items.is_empty()).then_some(Completions {
+                        from: s.start,
+                        to: s.end,
+                        items,
+                    });
+                };
                 let items: Vec<CompletionItem> = match kind {
                     StringKind::Route => self
                         .routes
