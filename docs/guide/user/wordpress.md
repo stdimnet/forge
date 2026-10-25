@@ -46,6 +46,8 @@ becomes `manage_{$screen}_columns`.
 
 ![Hook name completion](../../screenshots/wordpress-hook-completion.png)
 
+![Find Usages of a hook](../../screenshots/wordpress-usages.png)
+
 ### Gutter icons
 
 With **Show gutter icons for hooks** (`wordpress.gutterIcons`):
@@ -55,6 +57,9 @@ With **Show gutter icons for hooks** (`wordpress.gutterIcons`):
   does not contain, or "… is not fired in the project";
 - a **lightning bolt** next to each `do_action` / `apply_filters`: "3 callbacks for
   'save_post'" (click: the callbacks; several open a chooser).
+
+With Code Vision on (Settings | Editor | Inlay Hints), "fired in 2 places" and "3 callbacks"
+also appear above the line.
 
 ![Hook gutter icons](../../screenshots/wordpress-gutter.png)
 
@@ -66,6 +71,8 @@ Filter by name or file and by **All / Actions / Filters**; double-click opens wh
 fires. The toolbar shows how WP-CLI is run and whether the stubs are installed; the footer
 says what was detected (site, plugin, theme) and how many files were indexed.
 **Refresh** rescans (the index is otherwise reused for a few seconds).
+
+![WordPress tool window, light theme](../../screenshots/wordpress-hooks-light.png)
 
 ## WordPress stubs
 
@@ -83,6 +90,8 @@ typed in: commands, subcommands, options and their values complete from `wp cli 
 which Forge caches in its cache folder until `composer.lock` changes. Forge finds WP-CLI as
 `vendor/bin/wp` or `wp-cli.phar` in the project, else `wp` on `PATH`; configure another path in
 **Settings | Tools | Command Line Tool Support**.
+
+![WP-CLI in the Command Line Tools Console](../../screenshots/wordpress-wp-cli.png)
 
 WP-CLI runs project code, so it is refused while the project is in
 [Safe Mode](project-trust.md).

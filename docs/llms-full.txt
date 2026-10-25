@@ -19,7 +19,7 @@ Languages and large feature sets ship as **packs**:
 
 | Pack | Focus |
 | --- | --- |
-| **PHPForge** | PHP, Composer, PHPUnit, Xdebug, Laravel, Symfony, Doctrine (DQL) |
+| **PHPForge** | PHP, Composer, PHPUnit, Xdebug, Laravel, Symfony, Doctrine (DQL), WordPress, Drupal / Joomla / Shopware basics |
 | **WebForge** | HTML, CSS, JavaScript/TypeScript, npm/pnpm/yarn/bun, React, Vue, Angular |
 | **LuaForge** | Lua 5.1–5.4, LuaJIT, LÖVE, Neovim |
 
@@ -44,6 +44,7 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 - [Keymap reference](docs/guide/reference/keymap.md) — every shortcut on Windows/Linux and macOS
 - [Language servers](docs/guide/user/language-servers.md) — install Intelephense and friends, licence keys
 - [Laravel](docs/guide/user/laravel.md) and [Symfony](docs/guide/user/symfony.md)
+- [WordPress](docs/guide/user/wordpress.md) and [Drupal, Joomla and Shopware](docs/guide/user/cms.md)
 - [Xdebug debugging](docs/guide/user/debugging.md)
 - [Remote development](docs/guide/user/remote-development.md)
 - [AI](docs/guide/user/ai.md)
@@ -543,9 +544,11 @@ and a plain Lua project does not start PHP language servers.
 | Laravel | `laravel/framework` in `composer.json`, or an `artisan` file |
 | Symfony | `symfony/framework-bundle`, or `bin/console` together with `config/bundles.php` |
 | Doctrine | `doctrine/orm` |
-| Drupal | `drupal/core` or `drupal/core-recommended` |
+| Drupal | `drupal/core` or `drupal/core-recommended`, `core/lib/Drupal.php`, or a module / theme `<name>.info.yml` with `core_version_requirement` |
+| Joomla | `administrator/manifests/files/joomla.xml`, or an extension manifest (`<extension type="component">` and the like) in the root |
+| Shopware | `shopware/core`, `shopware/platform` or `shopware/storefront`, a `shopware-platform-plugin` composer.json, or `engine/Shopware/Kernel.php` (Shopware 5) |
 | Magento | `magento/framework`, `magento/product-community-edition`, or `app/etc/env.php` with `bin/magento` |
-| WordPress | `johnpbloch/wordpress`, `roots/wordpress`, `wp-config.php`, `wp-config-sample.php` or `wp-includes/` |
+| WordPress | `johnpbloch/wordpress`, `roots/*` packages, `wp-config.php`, `wp-config-sample.php`, `wp-includes/`, `wp-content/`, a plugin header (`Plugin Name:` in a root PHP file) or a theme header (`Theme Name:` in `style.css`) |
 | Livewire | `livewire/livewire` |
 | PHPUnit, Pest | `phpunit/phpunit`, `pestphp/pest` |
 | Next.js, Nuxt, React, Vue.js, Svelte, Solid, Vite | `next`, `nuxt`, `react`, `vue`, `svelte`, `solid-js`, `vite` in `package.json`; Vite also from a `vite.config.*` file |
@@ -568,7 +571,7 @@ Folders that are never scanned as sub-projects: `vendor`, `node_modules`, `targe
 ## Primary type
 
 The most specific framework becomes the project's **primary** type, in this order: Laravel,
-Symfony, Drupal, WordPress, Magento, Next.js, Nuxt, Angular, Svelte, Vue.js, React, Solid, LÖVE,
+Symfony, Drupal, WordPress, Shopware, Magento, Joomla, Next.js, Nuxt, Angular, Svelte, Vue.js, React, Solid, LÖVE,
 Neovim, Vite. Without a framework the primary language is used (PHP, TypeScript, JavaScript,
 Lua, Rust, Go, Python, HTML, CSS).
 
@@ -735,6 +738,8 @@ not finished, the page says so.
 | [Composer](docs/guide/user/composer.md) | composer.json toolbar (Install, Update, Validate, Show Outdated, Audit), outdated packages with Update package, package and version completion from Packagist, Manage Composer Dependencies, `composer audit` (Vulnerable Dependencies), composer.phar download |
 | [Laravel](docs/guide/user/laravel.md) | Blade, routes, views, config, Eloquent, Routes tool window, artisan commands |
 | [Symfony](docs/guide/user/symfony.md) | services, routes, Twig, console, Symfony tool window |
+| [WordPress](docs/guide/user/wordpress.md) | hook completion, navigation, gutter icons and Find Usages, the WordPress tool window, WP-CLI, stubs, the WordPress code style with Yoda hints, plugin and theme templates |
+| [Drupal, Joomla and Shopware](docs/guide/user/cms.md) | CMS detection, Drupal file types and hook completion with Go to the hook docs, Shopware Twig tags, Drush and Shopware console |
 | [Doctrine and DQL](docs/guide/user/doctrine.md) | entity mappings, Doctrine tool window, DQL in PHP strings |
 | [WebForge](docs/guide/user/webforge.md) | npm scripts and package managers, React, Vue, Angular navigation |
 | [LuaForge](docs/guide/user/luaforge.md) | Lua index, LÖVE, Neovim, lua-language-server, StyLua, Lua runs |
@@ -3403,6 +3408,8 @@ The templates:
 | PHPUnit Test | the project uses PHP | a `TestCase` subclass |
 | Laravel Controller, Laravel Model | the project uses Laravel | `make:controller` / `make:model` style classes |
 | Symfony Controller | the project uses Symfony | an `AbstractController` with a `#[Route]` action |
+| WordPress Plugin | the project uses WordPress | a plugin file with the plugin header, the `ABSPATH` guard and an `init` callback (see [WordPress](docs/guide/user/wordpress.md#file-templates)) |
+| WordPress Theme Stylesheet | the project uses WordPress | `style.css` with the theme header |
 | HTML File, CSS File, JavaScript File, TypeScript File | always | web files |
 | Vue Single File Component | the project uses Vue | `<script setup lang="ts">`, `<template>`, `<style scoped>` |
 | React Component, React TypeScript Component | the project uses React | `.jsx` / `.tsx` function components |
@@ -9638,6 +9645,220 @@ console commands run there as well.
 
 ---
 
+Source: docs/guide/user/wordpress.md
+
+# WordPress
+
+The WordPress plugin (`forge.wordpress`, PHPForge pack) activates in projects that use
+WordPress:
+
+| Project | Recognised by |
+| --- | --- |
+| A WordPress site | `wp-config.php`, `wp-config-sample.php` or `wp-includes/` (the version comes from `wp-includes/version.php`) |
+| A Composer install (Bedrock and similar) | a `composer.json` that requires `johnpbloch/wordpress…` or any `roots/*` package |
+| A content folder | `wp-content/` |
+| A plugin | a PHP file in the project root with a `Plugin Name:` header |
+| A theme | a `style.css` with a `Theme Name:` header |
+
+The status bar shows the WordPress icon. Settings live in **Settings | Languages & Frameworks |
+PHP | WordPress**.
+
+![WordPress hooks tool window](docs/screenshots/wordpress-hooks.png)
+
+## Hooks
+
+Forge indexes every `add_action`, `add_filter`, `do_action`, `apply_filters` (plus the
+`_ref_array` and `_deprecated` variants), `remove_action` / `remove_filter` /
+`remove_all_*`, `has_action` / `has_filter`, `did_action` and `doing_action` call of the
+project's PHP files (`vendor/` and `node_modules/` excluded). When the project contains
+WordPress itself, the core hooks are indexed too.
+
+Hook names built from variables are kept as patterns: `do_action( "save_post_{$post->post_type}" )`
+fires for `add_action( 'save_post_book', … )`, and `'manage_' . $screen . '_columns'`
+becomes `manage_{$screen}_columns`.
+
+| Where | What Forge does |
+| --- | --- |
+| The hook name in `add_action( '…' )`, `do_action( '…' )`, … | **Completion** of hook names: the project's hooks first (actions in action functions, filters in filter functions; for registrations the hooks that fire), then frequently used WordPress core hooks with a short summary |
+| `Ctrl+B` / `Ctrl+Click` on a registered hook name | the `do_action` / `apply_filters` calls that fire it |
+| `Ctrl+B` on a fired hook name | the registered callbacks (`add_action`, `add_filter`) |
+| `Ctrl+B` on a callback name (`'acme_boot'`, `[ $this, 'register' ]`) | the function or method |
+| `Ctrl+B` on a WordPress function (`add_action`, `get_option`) | its declaration in the WordPress stubs, when they are installed |
+| `Alt+F7` / `Ctrl+Alt+F7` on a hook name | **Find Usages**: every registration, invocation, removal and check, grouped as *Hook registration*, *Hook invocation* and *Function call* in the Find tool window |
+
+![Hook name completion](docs/screenshots/wordpress-hook-completion.png)
+
+![Find Usages of a hook](docs/screenshots/wordpress-usages.png)
+
+### Gutter icons
+
+With **Show gutter icons for hooks** (`wordpress.gutterIcons`):
+
+- an **anchor** next to each `add_action` / `add_filter`: "Action 'init' is fired in 2
+  places" (click: go there), "WordPress core action 'init': …" for core hooks the project
+  does not contain, or "… is not fired in the project";
+- a **lightning bolt** next to each `do_action` / `apply_filters`: "3 callbacks for
+  'save_post'" (click: the callbacks; several open a chooser).
+
+With Code Vision on (Settings | Editor | Inlay Hints), "fired in 2 places" and "3 callbacks"
+also appear above the line.
+
+![Hook gutter icons](docs/screenshots/wordpress-gutter.png)
+
+### WordPress tool window
+
+**View | Tool Windows | WordPress** (or **Tools | WordPress | Show Hooks**) lists the project's
+hooks with their kind, the number of registered callbacks and invocations and where they fire.
+Filter by name or file and by **All / Actions / Filters**; double-click opens where the hook
+fires. The toolbar shows how WP-CLI is run and whether the stubs are installed; the footer
+says what was detected (site, plugin, theme) and how many files were indexed.
+**Refresh** rescans (the index is otherwise reused for a few seconds).
+
+![WordPress tool window, light theme](docs/screenshots/wordpress-hooks-light.png)
+
+## WordPress stubs
+
+Go to Declaration on WordPress functions uses
+[`php-stubs/wordpress-stubs`](https://packagist.org/packages/php-stubs/wordpress-stubs) when it
+is installed in `vendor/`. Forge never ships the stubs. When they are missing, a notification
+offers **Install with Composer** (`composer require --dev php-stubs/wordpress-stubs`, run
+through the Run tool window, so you see what happens) or **Don't ask again**
+(`wordpress.offerStubs`). **Tools | WordPress | Install WordPress Stubs…** does the same later.
+
+## WP-CLI
+
+**Tools | WP-CLI…** opens the [Command Line Tools Console](docs/guide/user/command-line-tools.md) with `wp `
+typed in: commands, subcommands, options and their values complete from `wp cli cmd-dump`,
+which Forge caches in its cache folder until `composer.lock` changes. Forge finds WP-CLI as
+`vendor/bin/wp` or `wp-cli.phar` in the project, else `wp` on `PATH`; configure another path in
+**Settings | Tools | Command Line Tool Support**.
+
+![WP-CLI in the Command Line Tools Console](docs/screenshots/wordpress-wp-cli.png)
+
+WP-CLI runs project code, so it is refused while the project is in
+[Safe Mode](docs/guide/user/project-trust.md).
+
+## Code style
+
+**Settings | Editor | Code Style | PHP › Set from… › WordPress** applies the WordPress Coding
+Standards layout: tabs, spaces inside parentheses (`foo( $bar )`), long array syntax, braces
+at the end of the line and spaces around concatenation.
+
+The Yoda condition rule is an inspection: with **Suggest Yoda conditions**
+(`wordpress.yodaConditions`) a comparison like `$status === 'publish'` gets a weak warning
+"Use Yoda condition", and `Alt+Enter` › **Flip to Yoda condition** turns it into
+`'publish' === $status`. Only simple comparisons are reported: a variable (with property and
+array access) against a string, a number, `true`, `false` or `null` with `==`, `!=`, `===`
+or `!==`.
+
+![Yoda condition quick-fix](docs/screenshots/wordpress-yoda.png)
+
+## File templates
+
+**File | New** offers two WordPress templates in WordPress projects (see
+[File templates](docs/guide/user/file-templates.md)):
+
+| Template | Creates |
+| --- | --- |
+| **WordPress Plugin** | `<name>.php` with the plugin header (`Plugin Name`, `Version`, `Requires at least`, `Requires PHP`, `Author`, `License`, `Text Domain`), the `ABSPATH` guard and an `init` callback |
+| **WordPress Theme Stylesheet** | `style.css` with the theme header (`Theme Name` from the project name, `Text Domain`, …) |
+
+## Settings
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `wordpress.hookCompletion` | on | Complete hook names in hook functions |
+| `wordpress.gutterIcons` | on | Gutter icons on registrations and invocations |
+| `wordpress.yodaConditions` | on | The "Use Yoda condition" weak warning |
+| `wordpress.offerStubs` | on | Offer to install the WordPress stubs (per project) |
+
+See also: [Drupal, Joomla and Shopware](docs/guide/user/cms.md), [PHP](docs/guide/user/php.md),
+[Code style](docs/guide/user/editor.md), [Command Line Tool Support](docs/guide/user/command-line-tools.md).
+
+
+---
+
+Source: docs/guide/user/cms.md
+
+# Drupal, Joomla and Shopware
+
+One plugin, **Drupal, Joomla and Shopware** (`forge.cms`, PHPForge pack), covers the basics
+of the three CMS. It is a single plugin because each part is small and shares detection and
+the run actions; it activates only when the project uses one of them. WordPress has its own,
+larger plugin: see [WordPress](docs/guide/user/wordpress.md).
+
+## Detection
+
+| CMS | Recognised by |
+| --- | --- |
+| Drupal | `drupal/core`, `drupal/core-recommended` (composer.json or composer.lock), `core/lib/Drupal.php` (also below `web/`), or a module / theme / profile with a `<name>.info.yml` that has `core_version_requirement` |
+| Joomla | `administrator/manifests/files/joomla.xml` (with the version), or an extension's XML manifest `<extension type="component|module|plugin|template|package">` in the project root |
+| Shopware 6 | `shopware/core`, `shopware/platform` or `shopware/storefront` in composer.json (the version from composer.lock), or a plugin with `"type": "shopware-platform-plugin"` |
+| Shopware 5 | `engine/Shopware/Kernel.php` |
+
+The status bar shows the CMS with its icon and version (for example **Drupal 11**); clicking it
+opens Settings | Plugins. Settings live in **Settings | Languages & Frameworks | PHP | Drupal,
+Joomla and Shopware**.
+
+## File types and templates
+
+| Files | Opened as |
+| --- | --- |
+| Drupal `*.module`, `*.install`, `*.theme`, `*.profile`, `*.engine`, `*.inc` | PHP (while the plugin is active) |
+| Drupal `*.info.yml`, `*.routing.yml`, `*.services.yml`, `*.libraries.yml` | YAML |
+| Drupal and Shopware 6 `*.html.twig` | Twig over HTML; Shopware's `sw_extends`, `sw_include`, `sw_icon`, `sw_thumbnails` and `sw_silent_feature_call` are highlighted as tags |
+| Shopware 5 `*.tpl` | Smarty |
+| Joomla extension manifests (`*.xml`) | XML |
+
+See [File types](docs/guide/user/file-types.md) and the template data languages there.
+
+## Drupal hooks
+
+In a module's `.module`, `.install`, `.theme`, `.profile` or `.inc` file, typing a function
+name after `function` completes **hook implementations** named `<module>_<hook>`: the module
+is the nearest folder with an `.info.yml` (else the file name). Choosing one inserts the
+hook's parameters and an empty body, for example
+
+```php
+function acme_tools_form_alter(&$form, \Drupal\Core\Form\FormStateInterface $form_state, $form_id) {
+
+}
+```
+
+The list holds about 45 frequently used core hooks (`hook_form_alter`,
+`hook_form_FORM_ID_alter`, `hook_theme`, `hook_preprocess_HOOK`, `hook_entity_presave`,
+`hook_ENTITY_TYPE_insert`, `hook_cron`, `hook_install`, `hook_update_N`, …), each with a short
+summary written for Forge.
+
+![Drupal hook completion](docs/screenshots/drupal-hook-completion.png)
+
+Existing implementations, including the ones with placeholders (`acme_tools_form_user_login_form_alter`
+implements `hook_form_FORM_ID_alter`, `acme_tools_node_presave` `hook_ENTITY_TYPE_presave`), get
+a **book** icon in the gutter ("Implements hook_form_alter(): …"). Clicking it, or `Ctrl+B` on
+the function name, opens the hook's documentation: the `hook_…` function in the project's own
+`*.api.php` files (Drupal core ships them), else the hook's page on api.drupal.org.
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `cms.drupal.hookCompletion` | on | Complete hook implementations after `function` |
+| `cms.drupal.gutterIcons` | on | Gutter icons on hook implementations |
+
+## Drush and the Shopware console
+
+| Action | Opens |
+| --- | --- |
+| **Tools \| Drush…** | the [Command Line Tools Console](docs/guide/user/command-line-tools.md) with `drush ` typed in (Drush from `vendor/bin/drush`, else `drush` on `PATH`) |
+| **Tools \| Shopware Console…** | the same console with the alias of `bin/console` typed in (Symfony Console format) |
+
+Commands, options and arguments complete from the tool's own command list, cached in Forge's
+cache folder. Both run project code and are refused while the project is in
+[Safe Mode](docs/guide/user/project-trust.md).
+
+See also: [WordPress](docs/guide/user/wordpress.md), [Symfony](docs/guide/user/symfony.md), [PHP](docs/guide/user/php.md).
+
+
+---
+
 Source: docs/guide/user/doctrine.md
 
 # Doctrine and DQL
@@ -11656,8 +11877,12 @@ italics) as long as no tool of that kind or alias is configured:
 | Composer | `composer.json` | `c` | the Composer executable of Settings \| PHP \| Composer (`composer`) |
 | Laravel Artisan | `artisan` | `a` | `artisan` |
 | Symfony Console | `bin/console` | `s` | `bin/console` |
-| WP-CLI | `wp-cli.phar`, `vendor/bin/wp`, or a WordPress site (`wp-config.php`) | `wp` | `wp-cli.phar`, `vendor/bin/wp` or `wp` |
+| WP-CLI | `wp-cli.phar`, `vendor/bin/wp`, or a WordPress site (`wp-config.php`, `wp-content/`) | `wp` | `wp-cli.phar`, `vendor/bin/wp` or `wp` |
 | Drush | `vendor/bin/drush` | `drush` | `vendor/bin/drush` |
+
+**Tools | WP-CLI…** ([WordPress](docs/guide/user/wordpress.md#wp-cli)), **Tools | Drush…** and **Tools |
+Shopware Console…** ([Drupal, Joomla and Shopware](docs/guide/user/cms.md#drush-and-the-shopware-console))
+open the console with the tool's alias typed in.
 
 **+** opens **Choose Tool to Add** with these tools plus **Tool based on Symfony Console** and
 **Tool based on PHP script** (any PHP script, run as `php <script> <arguments>`). **−**
@@ -14091,6 +14316,9 @@ Terminal, Vim emulation, Run Command… and the tools of plugins (Composer, Dock
 | --- | --- | --- | --- | --- |
 | Run Anything… | `Double Ctrl` | `Double Ctrl` | yes | Runs or debugs configurations, scripts, PHP files and commands from one popup. [More](docs/guide/user/run-debug.md#run-anything) ([screenshot](docs/screenshots/run-anything.png)) |
 | Run Command… | `Ctrl+Shift+X` | `Cmd+Shift+X` | yes | Opens the Command Line Tools Console popup: run Composer, Artisan, Symfony Console, WP-CLI, Drush and custom tools with completion (plugin `forge.command-line-tools`, PHP projects). [More](docs/guide/user/command-line-tools.md#run-command) ([screenshot](docs/screenshots/docs-run-command.png)) |
+| WP-CLI… | — | — | yes | Opens the Command Line Tools Console with `wp ` typed in (plugin `forge.wordpress`, WordPress projects). [More](docs/guide/user/wordpress.md#wp-cli) |
+| Drush…, Shopware Console… | — | — | yes | Open the Command Line Tools Console with `drush ` or the Shopware `bin/console` alias typed in (plugin `forge.cms`). [More](docs/guide/user/cms.md#drush-and-the-shopware-console) |
+| WordPress › Run WP-CLI Command…, Show Hooks, Install WordPress Stubs…, Refresh Hook Index | — | — | yes | The WordPress submenu (plugin `forge.wordpress`). [More](docs/guide/user/wordpress.md) |
 | Save as Live Template… | — | — | yes | Opens Settings \| Editor \| Live Templates with a new template made from the selection. [More](docs/guide/user/live-templates.md#save-as-live-template) ([screenshot](docs/screenshots/save-as-live-template.png)) |
 | Save File as Template… | — | — | not yet | Not available yet; the entry is disabled. |
 | Open in Terminal | `Ctrl+Shift+T` | `Cmd+T` | yes | Opens a new terminal tab (Tools | Open in Terminal). [More](docs/guide/user/terminal.md#tabs) ([screenshot](docs/screenshots/docs-terminal.png)) |
@@ -14815,6 +15043,26 @@ Page id `lang.php.symfony`.
 | `symfony.containerXml` | path | `""` | user, project | Container | Container XML — Compiled container dump; leave empty to use var/cache/<environment>/*Container.xml. |
 | `symfony.gutterIcons` | bool | `true` | user | Editor | Show line markers for routes, templates and commands |
 | `symfony.twigCompletion` | bool | `true` | user | Editor | Complete Twig tags, filters and functions |
+
+### Languages & Frameworks | PHP | WordPress
+
+Page id `lang.php.wordpress`.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `wordpress.hookCompletion` | bool | `true` | user | Hooks | Complete hook names — Inside add_action, add_filter, do_action, apply_filters and their variants: the project's hooks first, then frequently used WordPress core hooks. |
+| `wordpress.gutterIcons` | bool | `true` | user | Hooks | Show gutter icons for hooks — A registration links to where its hook fires, an invocation to the registered callbacks. |
+| `wordpress.yodaConditions` | bool | `true` | user | Code Style | Suggest Yoda conditions — A weak warning on comparisons like `$status === 'publish'` with the quick-fix 'Flip to Yoda condition' (WordPress Coding Standards). |
+| `wordpress.offerStubs` | bool | `true` | user, project | Stubs | Offer to install the WordPress stubs — When php-stubs/wordpress-stubs is not in vendor/, a notification offers `composer require --dev php-stubs/wordpress-stubs`. Forge never ships the stubs. |
+
+### Languages & Frameworks | PHP | Drupal, Joomla and Shopware
+
+Page id `lang.php.cms`.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `cms.drupal.hookCompletion` | bool | `true` | user | Drupal | Complete Drupal hook implementations — After `function` in .module, .install, .theme, .profile and .inc files: `<module>_<hook>` with the hook's parameters. |
+| `cms.drupal.gutterIcons` | bool | `true` | user | Drupal | Show gutter icons for hook implementations — Clicking one opens the hook's documentation: its `hook_…` function in the project's *.api.php files, else api.drupal.org. |
 
 ### Languages & Frameworks | PHP | Doctrine
 
@@ -17612,6 +17860,8 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [phpforge-dql](docs/guide/developer/crates/phpforge-dql.md) | PHPForge: Doctrine DQL tokenizer, parser, highlighting, completion and diagnostics, and DQL sites in PHP source (pure, also built to WebAssembly) |
 | [phpforge-fw-laravel](docs/guide/developer/crates/phpforge-fw-laravel.md) | PHPForge: Laravel support (routes, views, Blade components, config/env, Eloquent, translations, artisan) |
 | [phpforge-fw-symfony](docs/guide/developer/crates/phpforge-fw-symfony.md) | PHPForge: Symfony support (service container, routes, Twig templates, console commands) |
+| [phpforge-fw-wordpress](docs/guide/developer/crates/phpforge-fw-wordpress.md) | PHPForge: WordPress support (hook index, completion, navigation, gutter marks, usages, Yoda hints, detection, WP-CLI and stubs lookup) |
+| [phpforge-fw-cms](docs/guide/developer/crates/phpforge-fw-cms.md) | PHPForge: Drupal, Joomla and Shopware basics (detection, Drupal hook completion, implementations and hook docs) |
 | [phpforge-lang-php](docs/guide/developer/crates/phpforge-lang-php.md) | PHPForge: PHP language support (tree-sitter index, docblocks, hover, code generation, language server config) |
 | [phpforge-orm-doctrine](docs/guide/developer/crates/phpforge-orm-doctrine.md) | PHPForge: Doctrine ORM support (entity mapping, repositories, DQL parsing and completion) |
 | [webforge-fw-angular](docs/guide/developer/crates/webforge-fw-angular.md) | WebForge: Angular support (components, directives, pipes, templates and styles) |
@@ -21584,6 +21834,131 @@ pub fn scan(root: &Path, config: &Config) -> Snapshot { … }
 
 ```sh
 cargo test -p phpforge-fw-symfony
+```
+
+
+---
+
+Source: docs/guide/developer/crates/phpforge-fw-wordpress.md
+
+# phpforge-fw-wordpress
+
+`packs/phpforge/fw-wordpress` — PHPForge: WordPress support (hook index, hook completion and
+navigation, gutter marks, hook usages, Yoda condition hints, plugin/theme detection, WP-CLI and
+stubs lookup). Pure Rust without system dependencies, so the browser mode runs the same code
+through WebAssembly.
+
+## Purpose
+
+What the IDE knows about a WordPress site, plugin or theme. `scan` (a folder) or `scan_files`
+(in-memory files) builds a `Snapshot`: the detection (`WordPressInfo`) and the hook index.
+`api::answer` answers the IDE's queries on it with UTF-16 offsets; the desktop app runs it
+next to the project's files (`forge_backend::frameworks`, `FrameworkCall::WordPress`), the
+browser mode through `forge-wasm` (`wordpress_query`).
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `lexer.rs` | A small, error tolerant PHP tokenizer (inline HTML, comments, strings, heredocs, operators), plus argument splitting of calls. |
+| `hooks.rs` | Hook references of a file: registrations (`add_action`, `add_filter`), invocations (`do_action`, `apply_filters`, `_ref_array`, `_deprecated`), removals and checks, with callback, priority and the source line. Dynamic names (`"save_post_{$post->post_type}"`, concatenations) become patterns; `pattern_matches` matches a static name against one. Also function and method declarations. |
+| `index.rs` | `HookIndex`: the project's hooks and functions (`vendor/`, `node_modules/`, `uploads/` skipped), the WordPress stubs' functions, `related` (registrations ↔ invocations), `usages` and the per-hook summary (`hooks`). Editor queries overlay the unsaved buffer. |
+| `editor.rs` | Hook name completion (`hook_context` is text based, so it works while typing), Go to Declaration (hook ↔ hook, callback → function, WordPress function → stubs), gutter marks and Find Usages with the tree the Find tool window renders (`forge_codeintel::usages`). |
+| `core.rs` | Frequently used WordPress core hooks with Forge's own one-line summaries, for projects without WordPress core. |
+| `yoda.rs` | "Use Yoda condition" hints of the WordPress Coding Standards with the swapped comparison as quick-fix. |
+| `detect.rs` | Site / Composer install / `wp-content` / plugin / theme detection, the plugin and theme headers, WP-CLI (`vendor/bin/wp`, `wp-cli.phar`, `wp` on PATH) and the installed stubs (`vendor/php-stubs/wordpress-stubs`). |
+| `api.rs` | `Query` (`detect`, `refresh`, `hooks`, `complete`, `goto`, `gutter`, `usages`, `inspect`) and `answer`. |
+
+## Main public items
+
+```rust
+pub struct Location { … }
+pub struct Snapshot { pub info: Option<WordPressInfo>, pub index: HookIndex }
+pub fn scan(root: &Path) -> Snapshot { … }
+pub fn scan_files(files: &HashMap<String, String>) -> Snapshot { … }
+pub fn api::answer(snap: &Snapshot, query: api::Query) -> serde_json::Value { … }
+pub fn hooks::scan(path: &str, src: &str) -> Vec<HookRef> { … }
+pub fn hooks::pattern_matches(pattern: &str, name: &str) -> bool { … }
+pub fn yoda::hints(src: &str) -> Vec<YodaHint> { … }
+pub fn detect::detect(probe: &dyn Probe, which: &dyn Fn(&str) -> Option<String>) -> Option<WordPressInfo> { … }
+```
+
+## Used by
+
+- IPC: `wordpress_detect`, `wordpress_refresh`, `wordpress_hooks`, `wordpress_complete`, `wordpress_goto`, `wordpress_gutter`, `wordpress_usages`, `wordpress_inspect` (`app/src-tauri/src/commands/wordpress.rs`)
+- Backend: `forge_backend::frameworks` (`FrameworkCall::WordPress`, cached snapshot)
+- UI: `app/ui/src/features/wordpress`
+- Browser mode: `crates/forge-wasm/src/wordpress.rs` (`wordpress_query`) over the `?project=wordpress` demo
+
+## Dependencies
+
+- Workspace crates: [`forge-codeintel`](docs/guide/developer/crates/forge-codeintel.md)
+- External: `serde`, `serde_json`
+
+## Tests
+
+8 source files; unit tests for the lexer, hook extraction and patterns, the index, completion,
+navigation, gutter marks, usages, Yoda hints, detection and the API.
+
+```sh
+cargo test -p phpforge-fw-wordpress
+```
+
+
+---
+
+Source: docs/guide/developer/crates/phpforge-fw-cms.md
+
+# phpforge-fw-cms
+
+`packs/phpforge/fw-cms` — PHPForge: Drupal, Joomla and Shopware basics (detection, Drupal hook
+completion, implementations and hook docs). Pure Rust, shared with the browser mode via
+WebAssembly.
+
+## Purpose
+
+The `forge.cms` plugin is one plugin for three CMS because each part is small: detection with
+version and console, and Drupal's hooks. File types and template languages come from the
+plugin manifest (`.module` & co. as PHP) and the editor (Shopware's `sw_*` Twig tags).
+`scan` / `scan_files` build a `Snapshot` (the detected CMS, Drupal extensions from their
+`.info.yml`, `hook_…` functions of the project's `*.api.php` files); `api::answer` answers the
+IDE's queries with UTF-16 offsets.
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `detect.rs` | Drupal (composer packages, `core/lib/Drupal.php`, a module's `.info.yml`), Joomla (`joomla.xml`, an extension manifest) and Shopware 5 / 6 (composer packages, plugin type, `engine/Shopware`) with version, kind (site or extension) and console (`vendor/bin/drush`, `drush`, `bin/console`). |
+| `drupal_hooks.rs` | The bundled list of core hooks: names and parameters from Drupal's API, summaries written for Forge; placeholders (`FORM_ID`, `ENTITY_TYPE`, `HOOK`, `N`) match implementation names. |
+| `drupal.rs` | The extension a file belongs to, completion of `<module>_<hook>` after `function`, the implementations of a file (gutter marks) and the hook docs (the `*.api.php` declaration, else api.drupal.org). |
+| `api.rs` | `Query` (`detect`, `refresh`, `complete`, `goto`, `gutter`) and `answer`. |
+
+## Main public items
+
+```rust
+pub struct Snapshot { pub cms: Vec<CmsInfo>, pub extensions: Vec<Extension>, pub api_hooks: Vec<(String, Location)> }
+pub fn scan(root: &Path) -> Snapshot { … }
+pub fn scan_files(files: &HashMap<String, String>) -> Snapshot { … }
+pub fn api::answer(snap: &Snapshot, query: api::Query) -> serde_json::Value { … }
+pub fn detect::detect(probe: &dyn Probe, which: &dyn Fn(&str) -> Option<String>) -> Vec<CmsInfo> { … }
+pub fn drupal_hooks::hook_for(suffix: &str) -> Option<&(&str, &str, &str)> { … }
+```
+
+## Used by
+
+- IPC: `cms_detect`, `cms_refresh`, `cms_complete`, `cms_goto`, `cms_gutter` (`app/src-tauri/src/commands/cms.rs`)
+- Backend: `forge_backend::frameworks` (`FrameworkCall::Cms`)
+- UI: `app/ui/src/features/cms`
+- Browser mode: `crates/forge-wasm/src/wordpress.rs` (`cms_query`) over the `?project=drupal` demo
+
+## Dependencies
+
+- External: `serde`, `serde_json`
+
+## Tests
+
+```sh
+cargo test -p phpforge-fw-cms
 ```
 
 

@@ -9,7 +9,7 @@ import { EditorState, type Extension } from "@codemirror/state";
 import { ViewPlugin, type EditorView, type ViewUpdate } from "@codemirror/view";
 import type { Completion, CompletionContext, CompletionResult } from "@codemirror/autocomplete";
 import { Anchor, Zap } from "lucide-solid";
-import { wordpressApi, type HookCompletionItem } from "@/ipc/wordpress";
+import { wordpressApi, type HookCompletionItem, type HookGutterMark } from "@/ipc/wordpress";
 import type { ContextAction } from "@/ipc/codeintel";
 import type { EditorDiagnostic } from "@/ipc/lsp";
 import { registerEditorExtension } from "@/editor/extensions";
@@ -146,6 +146,14 @@ registerUsagesProvider(async (path: string, view: EditorView, pos: number, scope
   return wordpressApi.usages(path, view.state.doc.toString(), pos);
 });
 
+/** Code Vision above the line: "fired in 2 places", "3 callbacks". */
+function visionText(m: HookGutterMark): string | undefined {
+  const n = m.targets?.length ?? 0;
+  if (!n) return undefined;
+  if (m.kind === "registration") return n === 1 ? "fired in 1 place" : `fired in ${n} places`;
+  return n === 1 ? "1 callback" : `${n} callbacks`;
+}
+
 registerLineMarkerProvider({
   appliesTo: isPhp,
   watch: wordpressActive,
@@ -158,6 +166,7 @@ registerLineMarkerProvider({
         icon: m.kind === "registration" ? Anchor : Zap,
         title: m.title,
         className: m.kind === "registration" ? "marker-wp-registration" : "marker-wp-invocation",
+        vision: visionText(m),
         onClick: (view, event) => {
           const targets = m.targets ?? [];
           if (targets.length === 1) void revealSymbol(targets[0].path, { line: targets[0].line });

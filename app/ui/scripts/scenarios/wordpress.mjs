@@ -73,6 +73,14 @@ async function showTool(page, id) {
   await page.waitForTimeout(200);
 }
 
+/** Undo horizontal scrolling caused by moving the caret. */
+async function scrollHome(page) {
+  await page.evaluate(() => {
+    const s = document.querySelector(".editor-slot:not(.hidden) .cm-scroller");
+    if (s) s.scrollLeft = 0;
+  });
+}
+
 const wp = (fn) => Object.assign(fn, { query: "?project=wordpress" });
 const drupal = (fn) => Object.assign(fn, { query: "?project=drupal" });
 
@@ -86,20 +94,33 @@ export default {
     await page.locator('.wp-table tr[data-hook="acme_events_registered"]').click();
     await page.waitForTimeout(200);
   }),
+  "wordpress-hooks-light": wp(async (page) => {
+    await page.evaluate(() => (document.documentElement.dataset.theme = "light"));
+    await ready(page);
+    await openFile(page, "includes/class-acme-events.php");
+    await showTool(page, "wordpress");
+    await page.waitForSelector(".wp-table tbody tr");
+    await page.locator(".wp-kind", { hasText: "Filters" }).click();
+    await page.waitForTimeout(200);
+  }),
   "wordpress-hook-completion": wp(async (page) => {
     await ready(page);
     await openFile(page, "includes/functions.php");
     await caretAtLineEnd(page, "add_filter( 'acme_events_label_2026-12-24'");
     await page.keyboard.press("Enter");
     await page.keyboard.type("add_action( 'acme_");
+    await page.evaluate(() => {
+      const s = document.querySelector(".editor-slot:not(.hidden) .cm-scroller");
+      if (s) s.scrollLeft = 0;
+    });
     await page.waitForSelector(".cm-tooltip-autocomplete li");
     await page.waitForTimeout(400);
   }),
   "wordpress-gutter": wp(async (page) => {
     await ready(page);
     await openFile(page, "includes/class-acme-events.php");
-    await page.waitForSelector(".cm-line-marker.marker-wp-registration");
-    const marker = page.locator(".cm-line-marker.marker-wp-invocation").first();
+    await page.waitForSelector(".editor-slot:not(.hidden) .cm-line-marker.marker-wp-registration");
+    const marker = page.locator(".editor-slot:not(.hidden) .cm-line-marker.marker-wp-invocation").nth(1);
     await marker.hover();
     await page.waitForTimeout(900);
   }),
@@ -116,6 +137,7 @@ export default {
     await caretAfter(page, "do_action( 'acme_events_registered'", "acme_events_reg");
     await page.keyboard.press("Alt+F7");
     await page.waitForSelector(".find-window, [data-tool-window-panel=\"find\"]");
+    await scrollHome(page);
     await page.waitForTimeout(600);
   }),
   "wordpress-yoda": wp(async (page) => {
@@ -123,6 +145,7 @@ export default {
     await openFile(page, "includes/functions.php");
     await caretAfter(page, "if ( $post->post_status == 'auto-draft' )", "$post->post_");
     await page.waitForTimeout(900);
+    await scrollHome(page);
     await page.keyboard.press("Alt+Enter");
     await page.waitForSelector(".intention-popup, .intentions-popup, .context-actions-popup", { timeout: 4000 }).catch(() => {});
     await page.waitForTimeout(400);
