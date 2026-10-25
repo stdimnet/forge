@@ -13,7 +13,9 @@
 use std::cell::RefCell;
 
 use forge_keymap::engine::{KeyInputKind, Resolver};
-use forge_keymap::shortcut::{format_shortcut_text, modifier_of_event, stroke_from_event};
+use forge_keymap::shortcut::{
+    format_shortcut_text, modifier_of_event, mouse_stroke, stroke_from_event, MouseInput,
+};
 use forge_keymap::{
     legacy_changes, ActionRegistration, CommandInfo, FocusContext, KeyEvent, KeyInput,
     KeymapChange, KeymapService, KeymapSettings, KeymapSnapshot, MainMenuRequest, Platform,
@@ -226,6 +228,34 @@ pub fn keymap_stroke_of_event(event_json: &str) -> String {
     }))
 }
 
+/// DOM mouse / wheel event (`button`, `clickCount`, `deltaY`, modifiers) → canonical mouse
+/// stroke ("Ctrl+Button1Click"), for "press a mouse shortcut" fields.
+#[wasm_bindgen]
+pub fn keymap_mouse_stroke(event_json: &str) -> String {
+    result_json(parse::<MouseInput>(event_json).map(|e| StrokeOfEvent {
+        stroke: mouse_stroke(&e).map(|s| s.id()),
+    }))
+}
+
+#[derive(Deserialize)]
+struct MouseActionReq {
+    #[serde(flatten)]
+    event: MouseInput,
+    #[serde(default)]
+    focus: FocusContext,
+}
+
+/// `{button, clickCount, deltaY?, …modifiers, focus}` → the action id the sync resolver binds
+/// to that mouse stroke (or null), without firing it: editor extensions that handle a click
+/// themselves (Ctrl+Click to the declaration) ask this.
+#[wasm_bindgen]
+pub fn keymap_mouse_action(json: &str) -> String {
+    result_json(
+        parse::<MouseActionReq>(json)
+            .map(|r| SYNC.with_borrow(|resolver| resolver.mouse_action(&r.event, r.focus))),
+    )
+}
+
 #[derive(Deserialize)]
 struct FormatReq {
     text: String,
@@ -282,6 +312,22 @@ mod tests {
     #[test]
     fn resolves_synchronously_from_a_snapshot() {
         let snap = keymap_actions(&format!("{{{DEFAULT}}}"));
+        keymap_load_bindings(&snap);
+        let stroke: Value = serde_json::from_str(&keymap_mouse_stroke(
+            r#"{"button":0,"clickCount":1,"ctrlKey":true}"#,
+        ))
+        .unwrap();
+        assert_eq!(stroke["stroke"], "Ctrl+Button1Click");
+        let action: Value = serde_json::from_str(&keymap_mouse_action(
+            r#"{"button":0,"clickCount":1,"ctrlKey":true,"focus":"editor"}"#,
+        ))
+        .unwrap();
+        assert_eq!(action, "GotoDeclaration");
+        let none: Value = serde_json::from_str(&keymap_mouse_action(
+            r#"{"button":0,"clickCount":1,"ctrlKey":true,"focus":"toolwindow"}"#,
+        ))
+        .unwrap();
+        assert!(none.is_null());
         let count: usize = serde_json::from_str(&keymap_load_bindings(&snap)).unwrap();
         assert!(count > 100);
         let res = keymap_handle_key(

@@ -10,6 +10,9 @@ tags: [run, debug, configurations, phpunit, tests, npm, run anything, compound, 
 A **run configuration** describes how to start something: a script, a test suite, a command.
 Forge's configurations work like PHPStorm's.
 
+> **Note:** nothing runs while the project is in Safe Mode (not trusted yet); trust it with
+> **Trust Project…** in the banner, see [Project trust and Safe Mode](project-trust.md).
+
 ## Run widget
 
 The run widget in the main toolbar shows the selected configuration with **Run** (▶) and

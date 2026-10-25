@@ -260,6 +260,26 @@ export function colors_format(request_json: string): string;
 export function colors_parse(request_json: string): string;
 
 /**
+ * `{settings, dark, change}` → `SettingWrite[]`.
+ */
+export function colorscheme_apply(json: string): string;
+
+/**
+ * `{settings, name}` → the scheme as .icls text.
+ */
+export function colorscheme_export(json: string): string;
+
+/**
+ * `{settings, text}` → `SettingWrite[]` that add the imported scheme and select it.
+ */
+export function colorscheme_import(json: string): string;
+
+/**
+ * `{settings, dark}` → `SchemesSnapshot`.
+ */
+export function colorscheme_state(json: string): string;
+
+/**
  * `{ left: {path, dir, text}[], right: … }` (paths relative to each folder) → `DirCompare`.
  */
 export function compare_dir_listings(request_json: string): string;
@@ -688,6 +708,19 @@ export function keymap_load_bindings(snapshot_json: string): string;
  * `{settings, hostPlatform, request}` → `MainMenu`.
  */
 export function keymap_main_menu(json: string): string;
+
+/**
+ * `{button, clickCount, deltaY?, …modifiers, focus}` → the action id the sync resolver binds
+ * to that mouse stroke (or null), without firing it: editor extensions that handle a click
+ * themselves (Ctrl+Click to the declaration) ask this.
+ */
+export function keymap_mouse_action(json: string): string;
+
+/**
+ * DOM mouse / wheel event (`button`, `clickCount`, `deltaY`, modifiers) → canonical mouse
+ * stroke ("Ctrl+Button1Click"), for "press a mouse shortcut" fields.
+ */
+export function keymap_mouse_stroke(event_json: string): string;
 
 /**
  * `{settings, hostPlatform, actions?, commands?}` → `KeymapSnapshot`.
@@ -1420,6 +1453,10 @@ export interface InitOutput {
     readonly colors_find: (a: number, b: number, c: number) => void;
     readonly colors_format: (a: number, b: number, c: number) => void;
     readonly colors_parse: (a: number, b: number, c: number) => void;
+    readonly colorscheme_apply: (a: number, b: number, c: number) => void;
+    readonly colorscheme_export: (a: number, b: number, c: number) => void;
+    readonly colorscheme_import: (a: number, b: number, c: number) => void;
+    readonly colorscheme_state: (a: number, b: number, c: number) => void;
     readonly compare_dir_listings: (a: number, b: number, c: number) => void;
     readonly composer_audit_problems: (a: number, b: number, c: number) => void;
     readonly composer_complete: (a: number, b: number, c: number) => void;
@@ -1506,6 +1543,8 @@ export interface InitOutput {
     readonly keymap_legacy_changes: (a: number, b: number, c: number) => void;
     readonly keymap_load_bindings: (a: number, b: number, c: number) => void;
     readonly keymap_main_menu: (a: number, b: number, c: number) => void;
+    readonly keymap_mouse_action: (a: number, b: number, c: number) => void;
+    readonly keymap_mouse_stroke: (a: number, b: number, c: number) => void;
     readonly keymap_register_actions: (a: number, b: number, c: number) => void;
     readonly keymap_resolve: (a: number, b: number, c: number) => void;
     readonly keymap_set_override: (a: number, b: number, c: number) => void;

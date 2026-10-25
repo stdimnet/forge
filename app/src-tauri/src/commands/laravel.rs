@@ -44,7 +44,11 @@ pub async fn laravel_detect(state: State<'_, AppState>) -> Result<LaravelInfo> {
 /// `php artisan route:list --json` is used and static parsing is the fallback.
 #[tauri::command]
 pub async fn laravel_routes(state: State<'_, AppState>) -> Result<LaravelRoutes> {
-    let source = setting(&state, "laravel.routes.source", "auto");
+    let mut source = setting(&state, "laravel.routes.source", "auto");
+    // `php artisan route:list` boots the application: Safe Mode parses the route files.
+    if state.safe_mode.is_on() {
+        source = "static".into();
+    }
     let php = php(&state);
     call(&state, FrameworkCall::LaravelRoutes { source, php }).await
 }

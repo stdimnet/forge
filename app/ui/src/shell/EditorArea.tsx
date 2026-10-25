@@ -25,6 +25,7 @@ import { editorViewFor, fileEditorFor } from "./editorViews";
 import { canDragTabsOut, openTabMenu, tabDraggedOut } from "./tabMenu";
 import { NavigationBar, navBarLocation } from "@/features/navBar";
 import { tabColor } from "@/features/scopes/model";
+import { SafeModeBanner } from "@/features/trust";
 
 const docOf = (id: string): EditorTab | undefined => editor.tabs.find((t) => t.path === id);
 const customOf = (id: string) => customTabs().find((t) => t.id === id);
@@ -280,6 +281,7 @@ export function EditorArea() {
   const hasTabs = () => editorGroups().some((g) => g.tabs.length > 0);
   return (
     <main class="editor-area">
+      <SafeModeBanner />
       <Show when={hasTabs()} fallback={<Welcome />}>
         <div class="editor-groups" classList={{ horizontal: splitOrientation() === "horizontal" }}>
           <For each={editorGroups()}>

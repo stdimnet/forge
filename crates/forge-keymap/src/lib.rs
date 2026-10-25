@@ -2,11 +2,12 @@
 //!
 //! - [`shortcut`]: parsing ("Ctrl+K Ctrl+C", "Shift Shift", "Cmd+,"), canonical ids, display
 //!   strings ("Ctrl+Shift+A" / "⇧⌘A") and key names of DOM keyboard events.
-//! - [`catalog`]: PHPStorm's default keymaps (Windows/Linux and macOS) and action aliases.
+//! - [`catalog`]: PHPStorm's default keymaps (Windows/Linux and macOS), the bundled keymaps
+//!   derived from them (VS Code, Eclipse, Sublime Text, Emacs) and action aliases.
 //! - [`engine`]: bindings, conflict detection and the [`Resolver`] state machine that turns
 //!   key events into actions (chords, double taps, focus contexts).
 //! - [`keymap`]: the [`KeymapService`] combining the catalog, plugin actions, registered
-//!   commands and user overrides from the settings.
+//!   commands, user overrides and user keymaps from the settings.
 //! - [`menu`]: the main menu (PHPStorm's structure, plugin contributions, resolution).
 //!
 //! The crate is pure (no file system or async runtime): the desktop app wraps it in IPC
@@ -18,7 +19,7 @@ pub mod keymap;
 pub mod menu;
 pub mod shortcut;
 
-pub use catalog::{catalog, ActionContext, ActionDef, KeymapId};
+pub use catalog::{bundled_keymaps, catalog, ActionContext, ActionDef, BundledKeymap, KeymapId};
 pub use engine::{FocusContext, KeyInput, Pending, Resolution, Resolver};
 pub use keymap::{
     legacy_changes, ActionInfo, ActionRegistration, CommandInfo, KeymapChange, KeymapService,

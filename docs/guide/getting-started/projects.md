@@ -19,6 +19,11 @@ configurations, breakpoints, data sources); see [File locations](../reference/fi
 - In the workbench, the project widget at the left of the main toolbar (the badge with the
   project name) runs **Open…** as well.
 
+A folder you have not trusted yet asks first: **Trust Project**, **Preview in Safe Mode** or
+**Don't Open**, see [Project trust and Safe Mode](../user/project-trust.md). Projects in a
+trusted location (Settings | Build, Execution, Deployment | Trusted Locations) and projects
+created with New Project open without asking.
+
 Opening a project replaces the current one in the same window and closes its editor tabs.
 Each project's tool window layout and editor tabs come back when you open it again, see
 [Layout per project](../user/workbench.md#layout-per-project).

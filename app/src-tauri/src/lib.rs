@@ -111,6 +111,12 @@ pub fn run() {
         .manage(commands::git_clone::CloneState::default())
         .invoke_handler(tauri::generate_handler![
             commands::workspace::workspace_open,
+            commands::trust::trust_check,
+            commands::trust::trust_status,
+            commands::trust::trust_project,
+            commands::trust::trust_locations,
+            commands::trust::trust_location_add,
+            commands::trust::trust_location_remove,
             commands::git_clone::forges_repositories,
             commands::git_clone::git_clone_directory_name,
             commands::git_clone::git_clone_home,
@@ -196,6 +202,10 @@ pub fn run() {
             commands::keymap::keymap_resolve,
             commands::keymap::keymap_main_menu,
             commands::keymap::keymap_import_legacy,
+            commands::color_scheme::color_scheme_state,
+            commands::color_scheme::color_scheme_change,
+            commands::color_scheme::color_scheme_import,
+            commands::color_scheme::color_scheme_export,
             commands::vim::vim_read_rc,
             commands::settings::plugin_set_enabled,
             commands::settings::settings_search,

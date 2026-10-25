@@ -1,0 +1,130 @@
+/* ---- "Trust and Open Project?" ---- */
+.trust-dialog {
+  width: 560px;
+  padding: 0;
+  color: var(--fg);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+}
+.trust-dialog::backdrop {
+  background: color-mix(in srgb, var(--bg-app) 55%, transparent);
+}
+.trust-dialog-body {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 16px;
+  padding: 20px 20px 14px;
+}
+.trust-dialog-icon {
+  color: var(--warning);
+}
+.trust-dialog-title {
+  margin: 2px 0 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--fg-strong);
+  overflow-wrap: anywhere;
+}
+.trust-dialog-text p {
+  margin: 0 0 8px;
+  line-height: 1.5;
+}
+.trust-dialog-path {
+  display: block;
+  margin: 4px 0 12px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-editor);
+  border: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  overflow-wrap: anywhere;
+}
+.trust-dialog-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.trust-dialog-check input {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  accent-color: var(--accent);
+  box-shadow: none;
+}
+.trust-dialog-mono {
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+}
+.trust-dialog-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--border);
+}
+.trust-dialog-actions > :first-child:not(:only-of-type) {
+  margin-right: auto;
+}
+.trust-dialog-spacer {
+  flex: 1;
+}
+
+/* ---- Safe Mode banner above the editors (PHPStorm's editor notification) ---- */
+.safe-mode-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+  min-height: 30px;
+  padding: 4px 12px;
+  font-size: var(--fs-small);
+  color: var(--fg);
+  background: color-mix(in srgb, var(--warning) 14%, var(--bg-panel));
+  border-bottom: 1px solid color-mix(in srgb, var(--warning) 35%, var(--border));
+}
+.safe-mode-banner-icon {
+  flex: none;
+  color: var(--warning);
+}
+.safe-mode-banner-text {
+  min-width: 0;
+}
+.safe-mode-banner-link {
+  padding: 0 4px;
+  border: none;
+  background: none;
+  color: var(--accent);
+  font-size: inherit;
+  cursor: pointer;
+  box-shadow: none;
+  white-space: nowrap;
+}
+.safe-mode-banner-link:hover {
+  text-decoration: underline;
+}
+
+/* ---- Settings | Build, Execution, Deployment | Trusted Locations ---- */
+.trust-page-desc {
+  margin: 4px 0 12px;
+}
+.trust-list .set-table td.trust-kind {
+  color: var(--fg-muted);
+}
+.trust-add-form {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 560px;
+  margin-top: 8px;
+}
+.trust-add-input {
+  flex: 1;
+}
+.trust-error {
+  margin-top: 8px;
+  color: var(--danger);
+  font-size: var(--fs-small);
+}

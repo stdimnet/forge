@@ -2,25 +2,43 @@
 //! commands, the user's overrides from the settings, and the resolver built from all of it.
 //!
 //! The selected keymap and the overrides are user settings (`keymap.active`,
-//! `keymap.overrides.default`, `keymap.overrides.macOS`, declared in `plugins/core.toml`).
-//! Overrides of one keymap are stored as a list: one entry per action, the action id
-//! followed by its shortcuts, tab separated (shortcuts may contain commas and spaces). An
-//! entry with only the id removes all shortcuts of the action.
+//! `keymap.overrides.default`, `keymap.overrides.macOS`, `keymap.overrides.bundled`,
+//! `keymap.custom`, declared in `plugins/core.toml`). Overrides of one keymap are stored as a
+//! list: one entry per action, the action id followed by its shortcuts, tab separated
+//! (shortcuts may contain commas and spaces). An entry with only the id removes all shortcuts
+//! of the action. Overrides of the derived bundled keymaps (VS Code, Eclipse, …) share one list
+//! whose entries start with the keymap id.
+//!
+//! Keymaps form a tree like in PHPStorm: the two PHPStorm keymaps are the roots, the other
+//! bundled keymaps derive from one of them, and user keymaps (`keymap.custom`, made with
+//! Duplicate or Derive in Settings | Keymap) derive from any keymap and store only the actions
+//! they change. Changes made to a bundled keymap apply to that keymap alone; a keymap derived
+//! from it starts from its bundled shortcuts.
 
 use std::collections::{BTreeMap, HashMap, HashSet};
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::catalog::{aliases_of, catalog, ActionContext, ActionDef, KeymapId, ACTION_GROUP_ORDER};
+use crate::catalog::{
+    aliases_of, bundled_keymap, bundled_keymaps, catalog, ActionContext, ActionDef, BundledKeymap,
+    KeymapId, ACTION_GROUP_ORDER,
+};
 use crate::engine::{
     build_bindings, find_conflicts, Binding, ConflictKind, KeyInput, Resolution, Resolver,
 };
 use crate::menu::{resolve_main_menu, ActionLookup, MainMenu, MainMenuRequest};
 use crate::shortcut::{canonical_shortcut, format_shortcut_text, try_parse_shortcut, Platform};
 
-/// Setting that selects the keymap: "auto", "$default" or "macOS".
+/// Setting that selects the keymap: "auto" or a keymap id ("$default", "macOS", "VSCode",
+/// a user keymap's name).
 pub const KEYMAP_SETTING: &str = "keymap.active";
+
+/// Overrides of the derived bundled keymaps: "keymap id\taction id\tshortcut…" entries.
+pub const BUNDLED_OVERRIDES_SETTING: &str = "keymap.overrides.bundled";
+
+/// User keymaps: tables with `name`, `parent` and `shortcuts` (override entries, one per line).
+pub const CUSTOM_SETTING: &str = "keymap.custom";
 
 /// Setting that holds the overrides of `km`.
 pub fn overrides_setting(km: KeymapId) -> &'static str {
@@ -31,10 +49,12 @@ pub fn overrides_setting(km: KeymapId) -> &'static str {
 }
 
 /// Every settings key the keymap reads.
-pub const SETTING_KEYS: [&str; 3] = [
+pub const SETTING_KEYS: [&str; 5] = [
     KEYMAP_SETTING,
     "keymap.overrides.default",
     "keymap.overrides.macOS",
+    BUNDLED_OVERRIDES_SETTING,
+    CUSTOM_SETTING,
 ];
 
 /// Action id → shortcut strings, keeping the order in which ids were first inserted (like a
@@ -117,11 +137,15 @@ pub fn encode_overrides(map: &ShortcutMap) -> Vec<String> {
 
 /// Read a settings list written by [`encode_overrides`]; anything else yields no overrides.
 pub fn decode_overrides(value: &Value) -> ShortcutMap {
-    let mut out = ShortcutMap::default();
     let Some(list) = value.as_array() else {
-        return out;
+        return ShortcutMap::default();
     };
-    for entry in list.iter().filter_map(Value::as_str) {
+    decode_entries(list.iter().filter_map(Value::as_str))
+}
+
+fn decode_entries<'a>(entries: impl Iterator<Item = &'a str>) -> ShortcutMap {
+    let mut out = ShortcutMap::default();
+    for entry in entries {
         let mut parts = entry.split('\t');
         let Some(id) = parts.next().filter(|id| !id.is_empty()) else {
             continue;
@@ -137,12 +161,93 @@ pub fn decode_overrides(value: &Value) -> ShortcutMap {
     out
 }
 
-/// The keymap settings: selected keymap and per-keymap overrides.
+/// The overrides of the derived bundled keymaps as one settings list, sorted by keymap.
+pub fn encode_bundled_overrides(maps: &BTreeMap<String, ShortcutMap>) -> Vec<String> {
+    maps.iter()
+        .flat_map(|(km, map)| {
+            encode_overrides(map)
+                .into_iter()
+                .map(move |entry| format!("{km}\t{entry}"))
+        })
+        .collect()
+}
+
+/// Read a list written by [`encode_bundled_overrides`]; entries of unknown keymaps are kept.
+pub fn decode_bundled_overrides(value: &Value) -> BTreeMap<String, ShortcutMap> {
+    let mut out: BTreeMap<String, ShortcutMap> = BTreeMap::new();
+    for entry in value
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_str)
+    {
+        let Some((km, rest)) = entry.split_once('\t').filter(|(km, _)| !km.is_empty()) else {
+            continue;
+        };
+        let one = decode_entries(std::iter::once(rest));
+        let map = out.entry(km.to_string()).or_default();
+        for (id, list) in one.entries() {
+            map.insert(id, list.clone());
+        }
+    }
+    out
+}
+
+/// A keymap the user made (Duplicate / Derive in Settings | Keymap).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct UserKeymap {
+    /// Shown name, also the keymap id.
+    pub name: String,
+    /// Id of the keymap it derives from.
+    pub parent: String,
+    /// The actions whose shortcuts differ from the parent.
+    pub shortcuts: ShortcutMap,
+}
+
+/// The `keymap.custom` value of `keymaps`.
+pub fn encode_custom(keymaps: &[UserKeymap]) -> Value {
+    Value::Array(
+        keymaps
+            .iter()
+            .map(|k| {
+                serde_json::json!({
+                    "name": k.name,
+                    "parent": k.parent,
+                    "shortcuts": encode_overrides(&k.shortcuts).join("\n"),
+                })
+            })
+            .collect(),
+    )
+}
+
+/// Read `keymap.custom`; entries without a name are skipped.
+pub fn decode_custom(value: &Value) -> Vec<UserKeymap> {
+    let mut out: Vec<UserKeymap> = Vec::new();
+    for entry in value.as_array().into_iter().flatten() {
+        let field = |k: &str| entry.get(k).and_then(Value::as_str).unwrap_or_default();
+        let name = field("name").trim();
+        if name.is_empty() || out.iter().any(|k| k.name == name) {
+            continue;
+        }
+        out.push(UserKeymap {
+            name: name.to_string(),
+            parent: field("parent").trim().to_string(),
+            shortcuts: decode_entries(field("shortcuts").lines()),
+        });
+    }
+    out
+}
+
+/// The keymap settings: selected keymap, per-keymap overrides and the user keymaps.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct KeymapSettings {
-    /// "auto" (platform default), "$default" or "macOS".
+    /// "auto" (platform default) or a keymap id.
     pub active: String,
+    /// Overrides of the two PHPStorm keymaps.
     pub overrides: [ShortcutMap; 2],
+    /// Overrides of the derived bundled keymaps by keymap id.
+    pub bundled: BTreeMap<String, ShortcutMap>,
+    pub custom: Vec<UserKeymap>,
 }
 
 impl Default for KeymapSettings {
@@ -150,9 +255,40 @@ impl Default for KeymapSettings {
         Self {
             active: "auto".into(),
             overrides: Default::default(),
+            bundled: BTreeMap::new(),
+            custom: Vec::new(),
         }
     }
 }
+
+/// A keymap of the tree.
+#[derive(Debug, Clone, Copy)]
+enum Node<'a> {
+    Root(KeymapId),
+    Bundled(&'static BundledKeymap),
+    Custom(&'a UserKeymap),
+}
+
+impl Node<'_> {
+    fn id(&self) -> String {
+        match self {
+            Self::Root(km) => km.as_str().to_string(),
+            Self::Bundled(b) => b.id.clone(),
+            Self::Custom(u) => u.name.clone(),
+        }
+    }
+
+    fn title(&self) -> String {
+        match self {
+            Self::Root(km) => km.title().to_string(),
+            Self::Bundled(b) => b.title.clone(),
+            Self::Custom(u) => u.name.clone(),
+        }
+    }
+}
+
+/// Deepest chain of user keymaps that is followed (cycles end there).
+const MAX_DEPTH: usize = 16;
 
 fn slot(km: KeymapId) -> usize {
     match km {
@@ -173,7 +309,99 @@ impl KeymapSettings {
         Self {
             active,
             overrides: [read(KeymapId::Default), read(KeymapId::MacOs)],
+            bundled: get(BUNDLED_OVERRIDES_SETTING)
+                .map(|v| decode_bundled_overrides(&v))
+                .unwrap_or_default(),
+            custom: get(CUSTOM_SETTING)
+                .map(|v| decode_custom(&v))
+                .unwrap_or_default(),
         }
+    }
+
+    fn node(&self, id: &str) -> Option<Node<'_>> {
+        if let Some(km) = KeymapId::parse(id) {
+            return Some(Node::Root(km));
+        }
+        if let Some(b) = bundled_keymap(id) {
+            return Some(Node::Bundled(b));
+        }
+        self.custom.iter().find(|k| k.name == id).map(Node::Custom)
+    }
+
+    /// Id of the keymap in use: the selected one, or the platform default for "auto" and
+    /// unknown ids.
+    pub fn active_id(&self, host: Platform) -> String {
+        match self.node(&self.active) {
+            Some(n) => n.id(),
+            None => KeymapId::for_platform(host).as_str().to_string(),
+        }
+    }
+
+    /// The keymaps from the root down to `id` (the root alone for unknown ids). A user keymap
+    /// with an unknown parent or a cycle derives from the platform default.
+    fn chain(&self, id: &str, host: Platform) -> (KeymapId, Vec<Node<'_>>) {
+        let mut nodes: Vec<Node<'_>> = Vec::new();
+        let mut current = self.node(id);
+        let root = loop {
+            match current {
+                Some(Node::Root(km)) => break km,
+                Some(Node::Bundled(b)) => {
+                    nodes.push(Node::Bundled(b));
+                    break b.parent;
+                }
+                Some(Node::Custom(u)) if nodes.len() < MAX_DEPTH => {
+                    nodes.push(Node::Custom(u));
+                    current = self.node(&u.parent);
+                }
+                _ => break KeymapId::for_platform(host),
+            }
+        };
+        nodes.reverse();
+        (root, nodes)
+    }
+
+    /// The overrides the user made to the keymap `id` (for a user keymap: all its changes).
+    pub fn changes_of(&self, id: &str) -> ShortcutMap {
+        match self.node(id) {
+            Some(Node::Root(km)) => self.overrides(km).clone(),
+            Some(Node::Bundled(b)) => self.bundled.get(&b.id).cloned().unwrap_or_default(),
+            Some(Node::Custom(u)) => u.shortcuts.clone(),
+            None => ShortcutMap::default(),
+        }
+    }
+
+    /// Whether `name` can name a new or renamed user keymap (`except`: its current name).
+    pub fn name_problem(&self, name: &str, except: Option<&str>) -> Option<String> {
+        let name = name.trim();
+        if name.is_empty() {
+            return Some("Enter a name".into());
+        }
+        if name.contains(['\t', '\n']) {
+            return Some("The name cannot contain tabs or line breaks".into());
+        }
+        let reserved = name == "auto"
+            || KeymapId::ALL
+                .iter()
+                .any(|k| k.as_str() == name || k.title() == name)
+            || bundled_keymaps()
+                .iter()
+                .any(|b| b.id == name || b.title == name);
+        let taken = self
+            .custom
+            .iter()
+            .any(|k| k.name == name && Some(k.name.as_str()) != except);
+        (reserved || taken).then(|| format!("A keymap named \"{name}\" already exists"))
+    }
+
+    /// `base` or "base 2", "base 3", … whichever is free.
+    pub fn free_name(&self, base: &str) -> String {
+        if self.name_problem(base, None).is_none() {
+            return base.to_string();
+        }
+        (2..)
+            .map(|n| format!("{base} {n}"))
+            .find(|n| self.name_problem(n, None).is_none())
+            .expect("a free name")
     }
 
     /// Build from a JSON object of settings values (`{ "keymap.active": "macOS", … }`).
@@ -181,9 +409,10 @@ impl KeymapSettings {
         Self::from_values(|k| values.get(k).cloned())
     }
 
-    /// The keymap in use: the selected one, or the platform default for "auto".
+    /// The PHPStorm keymap the keymap in use derives from (decides the platform of its
+    /// shortcuts and which plugin defaults apply).
     pub fn keymap(&self, host: Platform) -> KeymapId {
-        KeymapId::parse(&self.active).unwrap_or_else(|| KeymapId::for_platform(host))
+        self.chain(&self.active_id(host), host).0
     }
 
     pub fn overrides(&self, km: KeymapId) -> &ShortcutMap {
@@ -252,13 +481,37 @@ pub enum KeymapChange {
     Reset { action_id: String },
     /// Back to the defaults of the whole active keymap.
     ResetAll,
+    /// Copy the active keymap with all its shortcuts into a new user keymap and select it.
+    Duplicate {
+        #[serde(default)]
+        name: Option<String>,
+    },
+    /// Make a user keymap that derives from the active keymap (it follows the parent's
+    /// shortcuts and stores only its own changes) and select it.
+    Derive {
+        #[serde(default)]
+        name: Option<String>,
+    },
+    /// Rename a user keymap; keymaps deriving from it follow.
+    Rename { keymap: String, name: String },
+    /// Delete a user keymap; keymaps deriving from it take over its parent and changes.
+    Delete { keymap: String },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct KeymapInfo {
-    pub id: KeymapId,
+    /// "$default", "macOS", a bundled keymap id ("VSCode") or a user keymap's name.
+    pub id: String,
     pub title: String,
+    /// The keymap it derives from (none for the PHPStorm keymaps).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub parent: Option<String>,
+    /// The PHPStorm keymap at the root of its tree.
+    pub base: KeymapId,
+    /// Whether the user made it (it can be renamed and deleted).
+    #[serde(default)]
+    pub user: bool,
 }
 
 /// An action with its shortcuts in the active keymap.
@@ -283,8 +536,11 @@ pub struct ActionInfo {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct KeymapSnapshot {
-    pub keymap: KeymapId,
-    /// The setting as stored ("auto", "$default", "macOS").
+    /// Id of the keymap in use.
+    pub keymap: String,
+    /// The PHPStorm keymap it derives from.
+    pub base: KeymapId,
+    /// The setting as stored ("auto" or a keymap id).
     pub selected: String,
     pub platform: Platform,
     pub keymaps: Vec<KeymapInfo>,
@@ -433,8 +689,44 @@ impl KeymapService {
         }
     }
 
+    /// The PHPStorm keymap the active keymap derives from.
     pub fn keymap(&self) -> KeymapId {
         self.settings.keymap(self.host)
+    }
+
+    /// Id of the active keymap.
+    pub fn active_id(&self) -> String {
+        self.settings.active_id(self.host)
+    }
+
+    /// Every keymap: the PHPStorm ones, the other bundled ones and the user's, in that order.
+    pub fn keymaps(&self) -> Vec<KeymapInfo> {
+        let s = &self.settings;
+        let mut nodes: Vec<Node<'_>> = KeymapId::ALL.iter().map(|&k| Node::Root(k)).collect();
+        nodes.extend(bundled_keymaps().iter().map(Node::Bundled));
+        nodes.extend(s.custom.iter().map(Node::Custom));
+        nodes
+            .into_iter()
+            .map(|n| {
+                let id = n.id();
+                KeymapInfo {
+                    title: n.title(),
+                    parent: match n {
+                        Node::Root(_) => None,
+                        Node::Bundled(b) => Some(b.parent.as_str().to_string()),
+                        Node::Custom(u) => Some(u.parent.clone()),
+                    },
+                    base: s.chain(&id, self.host).0,
+                    user: matches!(n, Node::Custom(_)),
+                    id,
+                }
+            })
+            .collect()
+    }
+
+    /// The changes of the active keymap that the user can reset.
+    fn own_changes(&self) -> ShortcutMap {
+        self.settings.changes_of(&self.active_id())
     }
 
     pub fn platform(&self) -> Platform {
@@ -472,11 +764,26 @@ impl KeymapService {
 
     /// Action id → shortcut strings in the active keymap, overrides applied.
     pub fn effective_shortcuts(&self) -> ShortcutMap {
-        let km = self.keymap();
+        self.effective_with(&self.own_changes())
+    }
+
+    /// The active keymap's shortcuts with `own` as its own changes: the PHPStorm defaults and
+    /// plugin defaults of the root, then every derived keymap's changes down to the active
+    /// one.
+    fn effective_with(&self, own: &ShortcutMap) -> ShortcutMap {
+        let (root, nodes) = self.settings.chain(&self.active_id(), self.host);
         let mut map = ShortcutMap::default();
-        map.extend_from(catalog().defaults(km));
-        map.extend_from(self.registry.defaults[slot(km)].entries());
-        map.extend_from(self.settings.overrides(km).entries());
+        map.extend_from(catalog().defaults(root));
+        map.extend_from(self.registry.defaults[slot(root)].entries());
+        let last = nodes.len().checked_sub(1);
+        for (i, node) in nodes.iter().enumerate() {
+            match node {
+                Node::Bundled(b) => map.extend_from(&b.changes),
+                Node::Custom(u) if Some(i) != last => map.extend_from(u.shortcuts.entries()),
+                _ => {}
+            }
+        }
+        map.extend_from(own.entries());
         map
     }
 
@@ -488,7 +795,7 @@ impl KeymapService {
     }
 
     pub fn is_modified(&self, action_id: &str) -> bool {
-        self.settings.overrides(self.keymap()).contains(action_id)
+        self.own_changes().contains(action_id)
     }
 
     /// Bindings of all non-native actions in the active keymap.
@@ -516,7 +823,7 @@ impl KeymapService {
         let km = self.keymap();
         let platform = km.platform();
         let effective = self.effective_shortcuts();
-        let overrides = self.settings.overrides(km);
+        let overrides = &self.own_changes();
         let actions = self
             .all_actions()
             .into_iter()
@@ -536,16 +843,11 @@ impl KeymapService {
             })
             .collect();
         KeymapSnapshot {
-            keymap: km,
+            keymap: self.active_id(),
+            base: km,
             selected: self.settings.active.clone(),
             platform,
-            keymaps: KeymapId::ALL
-                .iter()
-                .map(|&id| KeymapInfo {
-                    id,
-                    title: id.title().into(),
-                })
-                .collect(),
+            keymaps: self.keymaps(),
             group_order: ACTION_GROUP_ORDER.iter().map(|s| s.to_string()).collect(),
             modified_count: overrides.len(),
             actions,
@@ -618,11 +920,13 @@ impl KeymapService {
             .collect()
     }
 
-    /// Settings writes that apply `change`. Only changed values are returned.
+    /// Settings writes that apply `change`. Only changed values are returned; invalid names
+    /// and unknown keymaps change nothing.
     pub fn apply(&self, change: KeymapChange) -> Vec<SettingWrite> {
         let km = self.keymap();
         let platform = km.platform();
-        let mut overrides = self.settings.overrides(km).clone();
+        let active = self.active_id();
+        let mut overrides = self.own_changes();
         let effective = self.effective_shortcuts();
         let current = |overrides: &ShortcutMap, id: &str| -> Vec<String> {
             overrides
@@ -692,16 +996,146 @@ impl KeymapService {
                 overrides.remove(&action_id);
             }
             KeymapChange::ResetAll => overrides = ShortcutMap::default(),
+            KeymapChange::Duplicate { name } => return self.duplicate(name, true),
+            KeymapChange::Derive { name } => return self.duplicate(name, false),
+            KeymapChange::Rename { keymap, name } => return self.rename(&keymap, &name),
+            KeymapChange::Delete { keymap } => return self.delete(&keymap),
         }
-        let before = encode_overrides(self.settings.overrides(km));
-        let after = encode_overrides(&overrides);
-        if before == after {
+        if encode_overrides(&self.own_changes()) == encode_overrides(&overrides) {
             return Vec::new();
         }
-        vec![SettingWrite {
-            key: overrides_setting(km).into(),
-            value: Value::from(after),
-        }]
+        self.write_changes(&active, overrides)
+    }
+
+    /// Store `changes` as the own changes of keymap `id`.
+    fn write_changes(&self, id: &str, changes: ShortcutMap) -> Vec<SettingWrite> {
+        let s = &self.settings;
+        match s.node(id) {
+            Some(Node::Root(km)) => vec![SettingWrite {
+                key: overrides_setting(km).into(),
+                value: Value::from(encode_overrides(&changes)),
+            }],
+            Some(Node::Bundled(b)) => {
+                let mut all = s.bundled.clone();
+                if changes.is_empty() {
+                    all.remove(&b.id);
+                } else {
+                    all.insert(b.id.clone(), changes);
+                }
+                vec![SettingWrite {
+                    key: BUNDLED_OVERRIDES_SETTING.into(),
+                    value: Value::from(encode_bundled_overrides(&all)),
+                }]
+            }
+            Some(Node::Custom(_)) => {
+                let mut custom = s.custom.clone();
+                if let Some(k) = custom.iter_mut().find(|k| k.name == id) {
+                    k.shortcuts = changes;
+                }
+                vec![custom_write(&custom)]
+            }
+            None => Vec::new(),
+        }
+    }
+
+    /// Duplicate (`copy`: same parent, all changes copied; a bundled keymap's shortcuts are
+    /// kept by deriving from it) or derive (a child with no changes) the active keymap.
+    fn duplicate(&self, name: Option<String>, copy: bool) -> Vec<SettingWrite> {
+        let s = &self.settings;
+        let active = self.active_id();
+        let Some(node) = s.node(&active) else {
+            return Vec::new();
+        };
+        let name = match name.map(|n| n.trim().to_string()) {
+            Some(n) if s.name_problem(&n, None).is_none() => n,
+            Some(_) => return Vec::new(),
+            None => s.free_name(&format!("{} copy", node.title())),
+        };
+        let (parent, shortcuts) = match node {
+            Node::Custom(u) if copy => (u.parent.clone(), u.shortcuts.clone()),
+            Node::Custom(_) => (active.clone(), ShortcutMap::default()),
+            // A bundled keymap's own user changes are copied in both cases: they apply to that
+            // keymap alone, so the child would not see them otherwise.
+            _ => (active.clone(), self.own_changes()),
+        };
+        let mut custom = s.custom.clone();
+        custom.push(UserKeymap {
+            name: name.clone(),
+            parent,
+            shortcuts,
+        });
+        vec![
+            custom_write(&custom),
+            SettingWrite {
+                key: KEYMAP_SETTING.into(),
+                value: Value::String(name),
+            },
+        ]
+    }
+
+    fn rename(&self, keymap: &str, name: &str) -> Vec<SettingWrite> {
+        let s = &self.settings;
+        let name = name.trim();
+        if name == keymap
+            || !s.custom.iter().any(|k| k.name == keymap)
+            || s.name_problem(name, Some(keymap)).is_some()
+        {
+            return Vec::new();
+        }
+        let custom: Vec<UserKeymap> = s
+            .custom
+            .iter()
+            .cloned()
+            .map(|mut k| {
+                if k.name == keymap {
+                    k.name = name.to_string();
+                }
+                if k.parent == keymap {
+                    k.parent = name.to_string();
+                }
+                k
+            })
+            .collect();
+        let mut out = vec![custom_write(&custom)];
+        if s.active == keymap {
+            out.push(SettingWrite {
+                key: KEYMAP_SETTING.into(),
+                value: Value::String(name.to_string()),
+            });
+        }
+        out
+    }
+
+    fn delete(&self, keymap: &str) -> Vec<SettingWrite> {
+        let s = &self.settings;
+        let Some(gone) = s.custom.iter().find(|k| k.name == keymap) else {
+            return Vec::new();
+        };
+        let custom: Vec<UserKeymap> = s
+            .custom
+            .iter()
+            .filter(|k| k.name != keymap)
+            .cloned()
+            .map(|mut k| {
+                if k.parent == keymap {
+                    // Keep its shortcuts: take over the deleted keymap's changes it did not
+                    // override itself.
+                    let mut merged = gone.shortcuts.clone();
+                    merged.extend_from(k.shortcuts.entries());
+                    k.parent = gone.parent.clone();
+                    k.shortcuts = merged;
+                }
+                k
+            })
+            .collect();
+        let mut out = vec![custom_write(&custom)];
+        if s.active == keymap {
+            out.push(SettingWrite {
+                key: KEYMAP_SETTING.into(),
+                value: Value::String(gone.parent.clone()),
+            });
+        }
+        out
     }
 
     /// The main menu with labels, shortcuts and enabled states from this keymap.
@@ -732,6 +1166,13 @@ impl KeymapService {
             self.resolver_stale = false;
         }
         self.resolver.handle(input)
+    }
+}
+
+fn custom_write(custom: &[UserKeymap]) -> SettingWrite {
+    SettingWrite {
+        key: CUSTOM_SETTING.into(),
+        value: encode_custom(custom),
     }
 }
 
@@ -823,6 +1264,8 @@ mod tests {
             KEYMAP_SETTING: s.settings().active,
             "keymap.overrides.default": encode_overrides(s.settings().overrides(KeymapId::Default)),
             "keymap.overrides.macOS": encode_overrides(s.settings().overrides(KeymapId::MacOs)),
+            BUNDLED_OVERRIDES_SETTING: encode_bundled_overrides(&s.settings().bundled),
+            CUSTOM_SETTING: encode_custom(&s.settings().custom),
         });
         for w in s.apply(c) {
             values[w.key.as_str()] = w.value;
@@ -1076,8 +1519,9 @@ mod tests {
     #[test]
     fn snapshot_carries_aliases_display_and_modified_state() {
         let snap = service().snapshot();
-        assert_eq!(snap.keymap, KeymapId::Default);
-        assert_eq!(snap.keymaps.len(), 2);
+        assert_eq!(snap.keymap, "$default");
+        assert_eq!(snap.base, KeymapId::Default);
+        assert_eq!(snap.keymaps.len(), 2 + bundled_keymaps().len());
         let run = snap.actions.iter().find(|a| a.def.id == "Run").unwrap();
         assert_eq!(run.aliases, vec!["run.run"]);
         assert_eq!(run.display, vec!["Shift+F10"]);
@@ -1149,6 +1593,254 @@ mod tests {
             },
         );
         assert_eq!(s.resolve(&down("KeyN", "n")).action, None);
+    }
+
+    fn set(s: &mut KeymapService, id: &str, shortcuts: &[&str]) {
+        change(
+            s,
+            KeymapChange::Set {
+                action_id: id.into(),
+                shortcuts: shortcuts.iter().map(|x| x.to_string()).collect(),
+            },
+        );
+    }
+
+    #[test]
+    fn derived_bundled_keymaps_start_from_their_phpstorm_parent() {
+        let mut s = service();
+        select(&mut s, "VSCode");
+        assert_eq!(s.active_id(), "VSCode");
+        assert_eq!(s.keymap(), KeymapId::Default);
+        assert_eq!(s.shortcuts_of("GotoAction"), vec!["Ctrl+Shift+P", "F1"]);
+        // Unchanged actions keep the PHPStorm shortcut.
+        assert_eq!(s.shortcuts_of("ShowSettings"), vec!["Ctrl+,"]);
+        assert_eq!(s.shortcuts_of("SearchEverywhere"), vec!["Double Shift"]);
+        select(&mut s, "VSCode OSX");
+        assert_eq!(s.keymap(), KeymapId::MacOs);
+        assert_eq!(label(&s, "GotoAction"), "⇧⌘P");
+        let snap = s.snapshot();
+        let info = snap.keymaps.iter().find(|k| k.id == "VSCode OSX").unwrap();
+        assert_eq!(info.parent.as_deref(), Some("macOS"));
+        assert_eq!(info.base, KeymapId::MacOs);
+        assert!(!info.user);
+    }
+
+    #[test]
+    fn changes_to_a_bundled_keymap_apply_to_it_alone() {
+        let mut s = service();
+        select(&mut s, "Eclipse");
+        set(&mut s, "GotoClass", &["Ctrl+Alt+Shift+K"]);
+        assert_eq!(
+            s.settings().bundled["Eclipse"].get("GotoClass"),
+            Some(&vec!["Ctrl+Alt+Shift+K".to_string()])
+        );
+        assert!(s.is_modified("GotoClass"));
+        assert_eq!(s.snapshot().modified_count, 1);
+        select(&mut s, "$default");
+        assert_eq!(s.shortcuts_of("GotoClass"), vec!["Ctrl+N"]);
+        assert!(s.settings().overrides(KeymapId::Default).is_empty());
+        select(&mut s, "Eclipse");
+        change(&mut s, KeymapChange::ResetAll);
+        assert_eq!(s.shortcuts_of("GotoClass"), vec!["Ctrl+Shift+T"]);
+        assert!(s.settings().bundled.is_empty());
+    }
+
+    #[test]
+    fn round_trips_bundled_overrides_and_user_keymaps() {
+        let mut maps = BTreeMap::new();
+        let mut m = ShortcutMap::default();
+        m.insert("GotoFile", vec!["Ctrl+P".into(), "Ctrl+K Ctrl+P".into()]);
+        m.insert("Cut", vec![]);
+        maps.insert("VSCode OSX".to_string(), m.clone());
+        let list = encode_bundled_overrides(&maps);
+        assert_eq!(
+            list,
+            vec![
+                "VSCode OSX\tCut",
+                "VSCode OSX\tGotoFile\tCtrl+P\tCtrl+K Ctrl+P"
+            ]
+        );
+        assert_eq!(
+            encode_bundled_overrides(&decode_bundled_overrides(&json!(list))),
+            list
+        );
+        let custom = vec![UserKeymap {
+            name: "Mine".into(),
+            parent: "VSCode".into(),
+            shortcuts: m,
+        }];
+        let value = encode_custom(&custom);
+        assert_eq!(
+            value[0]["shortcuts"],
+            "Cut\nGotoFile\tCtrl+P\tCtrl+K Ctrl+P"
+        );
+        assert_eq!(encode_custom(&decode_custom(&value)), value);
+        assert_eq!(decode_custom(&value)[0].parent, "VSCode");
+        assert!(decode_custom(&json!([{ "name": " " }, "x"])).is_empty());
+    }
+
+    #[test]
+    fn duplicates_a_keymap_with_its_changes_and_selects_the_copy() {
+        let mut s = service();
+        select(&mut s, "VSCode");
+        set(&mut s, "GotoClass", &["Ctrl+Alt+Shift+K"]);
+        change(&mut s, KeymapChange::Duplicate { name: None });
+        assert_eq!(s.active_id(), "VS Code copy");
+        assert_eq!(s.shortcuts_of("GotoClass"), vec!["Ctrl+Alt+Shift+K"]);
+        assert_eq!(s.shortcuts_of("GotoFile"), vec!["Ctrl+P"]);
+        let info = s
+            .keymaps()
+            .into_iter()
+            .find(|k| k.id == "VS Code copy")
+            .unwrap();
+        assert_eq!(info.parent.as_deref(), Some("VSCode"));
+        assert!(info.user);
+        // Its own changes: the copied one.
+        assert!(s.is_modified("GotoClass"));
+        // A second copy gets a free name.
+        change(&mut s, KeymapChange::Duplicate { name: None });
+        assert_eq!(s.active_id(), "VS Code copy copy");
+        select(&mut s, "VSCode");
+        change(&mut s, KeymapChange::Duplicate { name: None });
+        assert_eq!(s.active_id(), "VS Code copy 2");
+    }
+
+    #[test]
+    fn derived_user_keymaps_follow_their_parent() {
+        let mut s = service();
+        change(
+            &mut s,
+            KeymapChange::Derive {
+                name: Some("Base".into()),
+            },
+        );
+        set(&mut s, "GotoClass", &["Ctrl+Alt+Shift+K"]);
+        change(
+            &mut s,
+            KeymapChange::Derive {
+                name: Some("Child".into()),
+            },
+        );
+        assert_eq!(s.active_id(), "Child");
+        assert!(!s.is_modified("GotoClass"));
+        assert_eq!(s.shortcuts_of("GotoClass"), vec!["Ctrl+Alt+Shift+K"]);
+        set(&mut s, "GotoFile", &[]);
+        // The parent changes later: the child follows.
+        select(&mut s, "Base");
+        set(&mut s, "GotoClass", &["Ctrl+Alt+Shift+J"]);
+        select(&mut s, "Child");
+        assert_eq!(s.shortcuts_of("GotoClass"), vec!["Ctrl+Alt+Shift+J"]);
+        assert!(s.shortcuts_of("GotoFile").is_empty());
+        // Duplicating a user keymap keeps its parent.
+        change(
+            &mut s,
+            KeymapChange::Duplicate {
+                name: Some("Twin".into()),
+            },
+        );
+        let info = s.keymaps().into_iter().find(|k| k.id == "Twin").unwrap();
+        assert_eq!(info.parent.as_deref(), Some("Base"));
+        assert!(s.shortcuts_of("GotoFile").is_empty());
+    }
+
+    #[test]
+    fn renames_and_deletes_user_keymaps() {
+        let mut s = service();
+        change(
+            &mut s,
+            KeymapChange::Derive {
+                name: Some("A".into()),
+            },
+        );
+        set(&mut s, "GotoClass", &["Ctrl+Alt+Shift+K"]);
+        change(
+            &mut s,
+            KeymapChange::Derive {
+                name: Some("B".into()),
+            },
+        );
+        change(
+            &mut s,
+            KeymapChange::Rename {
+                keymap: "A".into(),
+                name: "Renamed".into(),
+            },
+        );
+        let b = s.keymaps().into_iter().find(|k| k.id == "B").unwrap();
+        assert_eq!(b.parent.as_deref(), Some("Renamed"));
+        // Names of bundled keymaps and taken names are refused.
+        for name in ["VS Code", "Renamed", "", "auto"] {
+            assert!(s
+                .apply(KeymapChange::Rename {
+                    keymap: "B".into(),
+                    name: name.into()
+                })
+                .is_empty());
+        }
+        assert!(s
+            .apply(KeymapChange::Delete {
+                keymap: "VSCode".into()
+            })
+            .is_empty());
+        // Deleting the parent keeps the child's shortcuts.
+        change(
+            &mut s,
+            KeymapChange::Delete {
+                keymap: "Renamed".into(),
+            },
+        );
+        assert_eq!(s.active_id(), "B");
+        assert_eq!(s.shortcuts_of("GotoClass"), vec!["Ctrl+Alt+Shift+K"]);
+        let b = s.keymaps().into_iter().find(|k| k.id == "B").unwrap();
+        assert_eq!(b.parent.as_deref(), Some("$default"));
+        // Deleting the active keymap selects its parent.
+        change(&mut s, KeymapChange::Delete { keymap: "B".into() });
+        assert_eq!(s.active_id(), "$default");
+        assert!(s.settings().custom.is_empty());
+    }
+
+    #[test]
+    fn unknown_keymaps_and_cycles_fall_back_to_the_platform_default() {
+        let mut s = KeymapService::new(Platform::Mac);
+        let cyclic = vec![
+            UserKeymap {
+                name: "X".into(),
+                parent: "Y".into(),
+                shortcuts: ShortcutMap::default(),
+            },
+            UserKeymap {
+                name: "Y".into(),
+                parent: "X".into(),
+                shortcuts: ShortcutMap::default(),
+            },
+        ];
+        s.update_settings(KeymapSettings {
+            active: "X".into(),
+            custom: cyclic,
+            ..Default::default()
+        });
+        assert_eq!(s.keymap(), KeymapId::MacOs);
+        assert_eq!(s.shortcuts_of("GotoClass"), vec!["Cmd+O"]);
+        s.update_settings(KeymapSettings {
+            active: "Gone".into(),
+            ..Default::default()
+        });
+        assert_eq!(s.active_id(), "macOS");
+    }
+
+    #[test]
+    fn deserializes_keymap_tree_changes() {
+        let c: KeymapChange = serde_json::from_value(json!({ "op": "duplicate" })).unwrap();
+        assert_eq!(c, KeymapChange::Duplicate { name: None });
+        let r: KeymapChange =
+            serde_json::from_value(json!({ "op": "rename", "keymap": "A", "name": "B" })).unwrap();
+        assert_eq!(
+            r,
+            KeymapChange::Rename {
+                keymap: "A".into(),
+                name: "B".into()
+            }
+        );
     }
 
     #[test]

@@ -1,6 +1,6 @@
 /**
  * Go to Declaration or Usages: Ctrl+B (keymap action `GotoDeclaration`), Ctrl+Click and
- * middle click. The answer comes from Rust (`code_goto_declaration`: language servers, the
+ * middle click (the keymap's mouse shortcuts of the action, see `editorMouseAction`). The answer comes from Rust (`code_goto_declaration`: language servers, the
  * PHP index, the PHP stubs); on a declaration the usages are shown instead, like PHPStorm.
  * Holding Ctrl over a symbol underlines it like a link and shows where it is declared.
  * Ctrl+Alt+Click goes to the implementations.
@@ -13,6 +13,7 @@ import { chooseTargetAt } from "@/features/codeintel/targets";
 import { hintField, showHint } from "./hint";
 import { syncNow } from "./sync";
 import { fromLsp, h, toLsp } from "./util";
+import { claimMouseGesture, editorMouseAction } from "@/keymap";
 
 interface Link {
   from: number;
@@ -149,32 +150,41 @@ export function lspGoto(path: string): Extension {
     return link;
   };
   let middleDown: { x: number; y: number } | null = null;
-  const navigate = (e: MouseEvent, view: EditorView) => {
+  const navigate = (e: MouseEvent, view: EditorView, implementations: boolean) => {
     const pos = view.posAtCoords({ x: e.clientX, y: e.clientY });
     if (pos == null) return false;
     e.preventDefault();
+    claimMouseGesture();
     clear(view);
     view.dispatch({ selection: { anchor: pos } });
-    if (e.altKey && implementationsAt) void implementationsAt(path, view, pos);
+    if (implementations && implementationsAt) void implementationsAt(path, view, pos);
     else void gotoDeclaration(path, view, pos);
     return true;
+  };
+  /** The keymap's mouse shortcut of `e`, when it navigates (Ctrl+Click, middle click). */
+  const navigation = (e: MouseEvent): "GotoDeclaration" | "GotoImplementation" | null => {
+    const action = editorMouseAction(e);
+    return action === "GotoDeclaration" || action === "GotoImplementation" ? action : null;
   };
   return [
     linkField,
     hintField,
     EditorView.domEventHandlers({
       mousedown(e, view) {
-        // Ctrl+Click (Cmd+Click on macOS) and middle click, like PHPStorm.
-        if (e.button === 0 && (e.ctrlKey || e.metaKey)) return navigate(e, view);
+        // The keymap's mouse shortcuts: Ctrl+Click (Cmd+Click on macOS), Ctrl+Alt+Click to the
+        // implementations and middle click, like PHPStorm.
+        const action = navigation(e);
+        if (action && e.button !== 1) return navigate(e, view, action === "GotoImplementation");
         // A middle-button drag selects a rectangle (features/carets); a click navigates on release.
-        middleDown = e.button === 1 && !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey ? { x: e.clientX, y: e.clientY } : null;
+        middleDown = e.button === 1 && action ? { x: e.clientX, y: e.clientY } : null;
+        if (middleDown) claimMouseGesture();
         return false;
       },
       mouseup(e, view) {
         const down = middleDown;
         middleDown = null;
         if (e.button !== 1 || !down || Math.max(Math.abs(e.clientX - down.x), Math.abs(e.clientY - down.y)) > 4) return false;
-        return navigate(e, view);
+        return navigate(e, view, navigation(e) === "GotoImplementation");
       },
       mousemove(e, view) {
         if (!(e.ctrlKey || e.metaKey)) return clear(view), false;

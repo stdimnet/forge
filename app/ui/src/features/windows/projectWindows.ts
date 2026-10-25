@@ -9,7 +9,7 @@
 import { projectWindowsApi } from "@/ipc/projectWindows";
 import { registerCommand } from "@/state/commands";
 import { getSetting, saveSetting } from "@/state/settings";
-import { openWorkspace, setProjectOpener, workspace } from "@/state/workspace";
+import { openWorkspace, setProjectOpener, trustBeforeOpen, workspace } from "@/state/workspace";
 import { showBalloon } from "@/keymap";
 import { askChoiceWithCheckbox } from "@/features/contextMenu/dialogs";
 import { registerMainMenuDynamic } from "@/features/mainMenu/model";
@@ -43,11 +43,13 @@ async function chooseWindow(path: string, what: string): Promise<"newWindow" | "
  */
 export async function openProject(path: string, what = "the project"): Promise<void> {
   const current = workspace();
-  if (!current) return openWorkspace(path);
+  if (!current) return void (await openWorkspace(path));
   if (current.root === path) return;
   const where = await chooseWindow(path, what);
-  if (where === "thisWindow") return openWorkspace(path);
+  if (where === "thisWindow") return void (await openWorkspace(path));
   if (where === "newWindow") {
+    // The new window opens the folder trusted or in Safe Mode, as decided here.
+    if ((await trustBeforeOpen(path)) === "cancel") return;
     try {
       await projectWindowsApi.open(path);
     } catch (e) {

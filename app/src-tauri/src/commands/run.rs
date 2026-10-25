@@ -351,6 +351,9 @@ pub(crate) async fn start_built(
     state: &AppState,
     runs: &RunState,
 ) -> Result<RunStarted> {
+    // Run configurations, test runners, debug runs, scripts, external tools and Before
+    // launch tasks all start here.
+    state.require_trusted("Running programs of the project")?;
     let Built {
         cmd,
         path_mappings,

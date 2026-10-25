@@ -11,6 +11,7 @@ rust-version = "1.80"
 
 [workspace.dependencies]
 forge-core = { path = "crates/forge-core" }
+forge-trust = { path = "crates/forge-trust" }
 forge-wasm = { path = "crates/forge-wasm" }
 forge-fuzzy = { path = "crates/forge-fuzzy" }
 forge-find = { path = "crates/forge-find" }
@@ -53,6 +54,7 @@ forge-livetemplates = { path = "crates/forge-livetemplates" }
 forge-injections = { path = "crates/forge-injections" }
 forge-emmet = { path = "crates/forge-emmet" }
 forge-colors = { path = "crates/forge-colors" }
+forge-colorscheme = { path = "crates/forge-colorscheme" }
 forge-spell = { path = "crates/forge-spell" }
 forge-jsonschema = { path = "crates/forge-jsonschema" }
 forge-scratches = { path = "crates/forge-scratches", default-features = false }

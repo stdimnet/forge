@@ -23,6 +23,7 @@ Forge uses the platform's standard folders (Rust's `dirs` crate):
 | `settings.toml` | user settings (including keymap changes and disabled plugins) |
 | `new-project-settings.toml` | [Settings for New Projects](../user/settings-and-themes.md#settings-for-new-projects): defaults of project-level settings |
 | `recent-projects.json` | the Welcome screen's recent projects |
+| `trusted-projects.toml` | [trusted projects and trusted locations](../user/project-trust.md) (`projects`, `locations`: local paths or `ssh://user@host:port/path`) |
 | `ai.toml` | AI providers and model choices (no keys) |
 | `forges.toml` | GitHub/GitLab/Forgejo accounts (no tokens) |
 | `ssh.toml` | saved SSH configurations (no passwords) |

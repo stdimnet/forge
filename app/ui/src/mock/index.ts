@@ -2,6 +2,7 @@
 import "./settingsMock";
 import "./maintenanceMock";
 import "./keymapMock";
+import "./colorSchemeMock";
 import { fileTypesReady } from "./filetypesMock";
 import "./projectMock";
 import "./remoteMock";
@@ -74,6 +75,8 @@ import "./windowMock";
 import "./projectWindowsMock";
 import "./updatesMock";
 import "./templatesMock";
+// Wraps workspace_open and the run mocks (Safe Mode).
+import "./trustMock";
 // Wraps the file mocks above, so it comes last.
 import "./localHistoryMock";
 

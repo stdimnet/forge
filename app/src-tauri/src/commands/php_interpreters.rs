@@ -263,10 +263,20 @@ fn run_php(
     backend: &dyn Backend,
     args: &[&str],
     timeout: Duration,
+    safe_mode: bool,
 ) -> Result<(Option<i32>, String, String)> {
     let mut cmd = CommandLine::new("php").args(args.iter().copied());
     cmd.cwd = PathBuf::from(&prepared.ctx.root);
     let cmd = prepared.wrap(Program::Php, &cmd)?;
+    // A PHP inside the project, or a Docker Compose service built from its files.
+    if safe_mode
+        && (cmd.args.iter().any(|a| a == "compose")
+            || forge_trust::runs_project_program(&backend.info().root, &cmd.program, &cmd.args))
+    {
+        return Err(ForgeError::Other(forge_trust::refusal(
+            "Running this interpreter",
+        )));
+    }
     let out = capture(backend, &cmd, "", timeout)
         .map_err(|e| ForgeError::Other(format!("Cannot run {}: {e}", cmd.program)))?;
     Ok((out.code, out.stdout, out.stderr))
@@ -298,11 +308,13 @@ pub async fn php_interpreter_info(
 ) -> Result<InterpreterInfo> {
     let backend = state.backend()?;
     let prepared = prepare(&state, backend.as_ref(), interpreter);
+    let safe_mode = state.safe_mode.is_on();
     blocking(move || {
         let timeout = Duration::from_secs(180);
         let mut outputs: Vec<String> = Vec::new();
         for (i, args) in probe::PROBES.iter().enumerate() {
-            let (code, stdout, stderr) = run_php(&prepared, backend.as_ref(), args, timeout)?;
+            let (code, stdout, stderr) =
+                run_php(&prepared, backend.as_ref(), args, timeout, safe_mode)?;
             if i == 0 && code != Some(0) && probe::parse_version(&stdout).is_none() {
                 let message = if stderr.trim().is_empty() {
                     stdout
@@ -335,12 +347,14 @@ pub async fn php_interpreter_phpinfo(
 pub(crate) async fn phpinfo(state: &AppState, interpreter: PhpInterpreter) -> Result<String> {
     let backend = state.backend()?;
     let prepared = prepare(state, backend.as_ref(), interpreter);
+    let safe_mode = state.safe_mode.is_on();
     blocking(move || {
         let (_, stdout, stderr) = run_php(
             &prepared,
             backend.as_ref(),
             probe::PHPINFO,
             Duration::from_secs(180),
+            safe_mode,
         )?;
         Ok(if stdout.trim().is_empty() {
             stderr

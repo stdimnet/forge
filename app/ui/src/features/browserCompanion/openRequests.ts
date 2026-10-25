@@ -66,7 +66,8 @@ export async function handleOpenEvent(event: OpenEvent): Promise<void> {
   const plan = planOpen(event, workspace()?.root);
   if (plan.kind === "switch") {
     if (plan.ask && !(await confirmSwitch(event, plan))) return;
-    await openWorkspace(plan.root);
+    // Don't Open in "Trust and Open Project?" keeps the current project.
+    if (!(await openWorkspace(plan.root))) return;
   }
   await openFileAt(plan.path, event.line, event.column);
 }
@@ -85,6 +86,6 @@ const enqueue = (job: () => Promise<void>) => {
 /** Subscribe to open requests, then fetch the ones that arrived during startup. */
 export async function listenForOpenRequests(): Promise<void> {
   await companionApi.onOpen((e) => enqueue(() => handleOpenEvent(e)));
-  await companionApi.onOpenProject((root) => enqueue(() => openWorkspace(root)));
+  await companionApi.onOpenProject((root) => enqueue(async () => void (await openWorkspace(root))));
   for (const e of await companionApi.uiReady()) enqueue(() => handlePending(e));
 }

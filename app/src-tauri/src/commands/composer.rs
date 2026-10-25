@@ -313,6 +313,8 @@ fn run_composer(backend: &Arc<dyn Backend>, opts: &Options, args: &[&str]) -> Re
 
 #[tauri::command]
 pub async fn composer_audit(state: State<'_, AppState>) -> Result<AuditResult> {
+    // Composer loads the project's plugins.
+    state.require_trusted("Composer")?;
     let opts = options(&state);
     let backend = state.backend()?;
     blocking(move || {

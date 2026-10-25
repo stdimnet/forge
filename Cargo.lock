@@ -1817,6 +1817,7 @@ dependencies = [
  "forge-bookmarks",
  "forge-codestyle",
  "forge-colors",
+ "forge-colorscheme",
  "forge-containers",
  "forge-core",
  "forge-db",
@@ -1849,6 +1850,7 @@ dependencies = [
  "forge-spell",
  "forge-ssr",
  "forge-text",
+ "forge-trust",
  "forge-update",
  "forge-vcs",
  "forge-viewers",
@@ -1951,6 +1953,15 @@ name = "forge-colors"
 version = "0.1.0"
 dependencies = [
  "serde",
+]
+
+[[package]]
+name = "forge-colorscheme"
+version = "0.1.0"
+dependencies = [
+ "quick-xml",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -2465,6 +2476,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "forge-trust"
+version = "0.1.0"
+dependencies = [
+ "dirs 6.0.0",
+ "forge-core",
+ "serde",
+ "tempfile",
+ "toml 0.8.23",
+]
+
+[[package]]
 name = "forge-update"
 version = "0.1.0"
 dependencies = [
@@ -2518,6 +2540,7 @@ dependencies = [
  "forge-codeintel",
  "forge-codestyle",
  "forge-colors",
+ "forge-colorscheme",
  "forge-containers",
  "forge-diff",
  "forge-editing",

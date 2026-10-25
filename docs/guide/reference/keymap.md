@@ -8,7 +8,9 @@ tags: [keymap, shortcuts, reference]
 # Keymap reference
 
 Forge's default keymaps are PHPStorm's (`crates/forge-keymap/data/phpstorm.json`), keyed by
-PHPStorm's action ids. This page is the complete list. To learn the shortcuts the way the
+PHPStorm's action ids. This page is the complete list. The other bundled keymaps (VS Code,
+Eclipse, Sublime Text, Emacs) change only some of these shortcuts; see
+[Keymap](../user/keymap.md#other-keymaps). To learn the shortcuts the way the
 JetBrains help teaches them, start with:
 
 - [Keymap reference card](../user/shortcuts/reference-card.md): the 62 most important shortcuts
@@ -55,8 +57,8 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Last Edit Location | `JumpToLastChange` | `Ctrl+Shift+Backspace` | `Cmd+Shift+Backspace` | yes |
 | Next Edit Location | `JumpToNextChange` |  |  | yes |
 | Select In… | `SelectIn` | `Alt+F1` | `Alt+F1` | yes |
-| Declaration or Usages | `GotoDeclaration` | `Ctrl+B` | `Cmd+B` | yes |
-| Implementation(s) | `GotoImplementation` | `Ctrl+Alt+B` | `Cmd+Alt+B` | yes |
+| Declaration or Usages | `GotoDeclaration` | `Ctrl+B`, `Ctrl+Button1 Click`, `Button2 Click` | `Cmd+B`, `Cmd+Button1 Click`, `Button2 Click` | yes |
+| Implementation(s) | `GotoImplementation` | `Ctrl+Alt+B`, `Ctrl+Alt+Button1 Click` | `Cmd+Alt+B`, `Cmd+Alt+Button1 Click` | yes |
 | Type Declaration | `GotoTypeDeclaration` | `Ctrl+Shift+B` | `Cmd+Shift+B` | yes |
 | Super Method | `GotoSuperMethod` | `Ctrl+U` | `Cmd+U` | yes |
 | Test | `GotoTest` | `Ctrl+Shift+T` | `Cmd+Shift+T` | yes |

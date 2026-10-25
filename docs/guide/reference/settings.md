@@ -127,13 +127,16 @@ version, the last check, **Check Now** and a skipped version with **Offer Again*
 
 ### Keymap
 
-Page id `keymap`. The override lists are edited through the Keymap page, not as text.
+Page id `keymap`. The override lists and user keymaps are edited through the Keymap page, not
+as text.
 
 | Key | Type | Default | Scope | Section | Title and description |
 | --- | --- | --- | --- | --- | --- |
-| `keymap.active` | enum: `auto`, `$default`, `macOS` | `auto` | user |  | Keymap |
+| `keymap.active` | string | `auto` | user |  | Keymap — auto (the PHPStorm keymap of the platform), $default, macOS, a bundled keymap (VSCode, VSCode OSX, Eclipse, Eclipse (Mac OS X), Sublime Text, Sublime Text (Mac OS X), Emacs) or the name of a user keymap. |
 | `keymap.overrides.default` | list | `[]` | user |  | Changed shortcuts (Windows / Linux) — One entry per action: the action id, then its shortcuts, separated by tabs. |
 | `keymap.overrides.macOS` | list | `[]` | user |  | Changed shortcuts (macOS) — One entry per action: the action id, then its shortcuts, separated by tabs. |
+| `keymap.overrides.bundled` | list | `[]` | user |  | Changed shortcuts (other bundled keymaps) — One entry per action: the keymap id, the action id, then its shortcuts, separated by tabs. |
+| `keymap.custom` | objects (`name`) | `[]` | user |  | User keymaps — Keymaps made with Duplicate or Derive: name, parent keymap and the changed shortcuts (one action per line: the action id, then its shortcuts, separated by tabs). |
 
 ### Find Usages
 
@@ -241,6 +244,16 @@ Page id `editor.postfix`.
 | `editor.postfix.showInCompletion` | bool | `true` | user |  | Show postfix templates in the completion autopopup |
 | `editor.postfix.expandKey` | enum: `tab`, `space`, `enter` | `tab` | user |  | Expand templates with |
 | `editor.postfix.disabled` | list | `[]` | user |  | Templates — Clear a template to stop offering it. Holds the ids of the switched-off templates (`php.echo`, `js.log`, `lua.print`). |
+
+### Editor | Color Scheme
+
+Page id `editor.color-scheme`. User schemes are edited through the Color Scheme page, not as
+text.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `editor.colorScheme.active` | string | `""` | user |  | Scheme — Color scheme of the editor: Ember, Anvil or the name of a user scheme. Empty follows the theme (Ember for dark themes, Anvil for light ones). |
+| `editor.colorScheme.schemes` | objects (`name`) | `[]` | user |  | User schemes — Schemes made with Duplicate or Import: name, parent (Ember or Anvil) and the changed attributes, one per line: the attribute key, then `fg=#rrggbb`, `bg=#rrggbb`, `bold`, `italic`, `effect=<type>` and `effectColor=#rrggbb`. |
 
 ### Editor | Font
 
@@ -783,6 +796,12 @@ Page id `build.docker.registries`.
 | Key | Type | Default | Scope | Section | Title and description |
 | --- | --- | --- | --- | --- | --- |
 | `docker.registries` | list | `[]` | user |  | Registry accounts — One entry per registry: server, a tab, the user name. Passwords are kept in the OS keychain. |
+
+### Build, Execution, Deployment | Trusted Locations
+
+Page id `build.trusted-locations`. No settings keys: trusted projects and locations are kept in
+`<config dir>/forge/trusted-projects.toml`, outside the settings files, so a project's own
+settings cannot trust it (see [Project trust and Safe Mode](../user/project-trust.md)).
 
 ### Build, Execution, Deployment | Kubernetes
 

@@ -9,7 +9,13 @@ import type { SettingValue } from "@/ipc/settings";
 import { callWasm, forgeWasm, type ForgeWasm } from "@/wasm";
 import { hasUserSetting, mockSettingValue, setSetting } from "./settingsMock";
 
-const SETTING_KEYS = ["keymap.active", "keymap.overrides.default", "keymap.overrides.macOS"];
+const SETTING_KEYS = [
+  "keymap.active",
+  "keymap.overrides.default",
+  "keymap.overrides.macOS",
+  "keymap.overrides.bundled",
+  "keymap.custom",
+];
 
 interface SettingWrite {
   key: string;

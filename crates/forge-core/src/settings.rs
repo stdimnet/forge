@@ -357,6 +357,16 @@ impl Settings {
             .and_then(|v| serde_json::from_value(v.clone()).ok())
     }
 
+    /// Typed read that ignores the project's own `.forge/settings.toml` (Safe Mode: an
+    /// untrusted project must not choose the programs Forge starts, such as the shell).
+    pub fn get_without_project_as<T: DeserializeOwned>(&self, key: &str) -> Option<T> {
+        [SettingsScope::NewProjects, SettingsScope::User]
+            .into_iter()
+            .find_map(|s| self.layer(s)?.values.get(key))
+            .or_else(|| self.defaults.get(key))
+            .and_then(|v| serde_json::from_value(v.clone()).ok())
+    }
+
     pub fn get_bool(&self, key: &str) -> Option<bool> {
         self.get(key).and_then(Value::as_bool)
     }
@@ -536,6 +546,37 @@ mod tests {
         ]);
         s.load_user(dir.join("user/settings.toml")).unwrap();
         s
+    }
+
+    #[test]
+    fn reads_without_the_project_layer() {
+        let tmp = tempfile::tempdir().unwrap();
+        let mut s = settings(tmp.path());
+        let project = tmp.path().join("project");
+        fs::create_dir_all(&project).unwrap();
+        s.load_project(&project).unwrap();
+        s.set(
+            "terminal.shellPath",
+            json!("./evil.sh"),
+            SettingsScope::Project,
+        )
+        .unwrap();
+        assert_eq!(s.get_str("terminal.shellPath"), Some("./evil.sh"));
+        assert_eq!(
+            s.get_without_project_as::<String>("terminal.shellPath"),
+            None
+        );
+        s.set("terminal.shellPath", json!("/bin/zsh"), SettingsScope::User)
+            .unwrap();
+        assert_eq!(
+            s.get_without_project_as::<String>("terminal.shellPath")
+                .as_deref(),
+            Some("/bin/zsh")
+        );
+        assert_eq!(
+            s.get_without_project_as::<i64>("editor.font.size"),
+            Some(14)
+        );
     }
 
     #[test]
