@@ -3523,7 +3523,7 @@
           ],
           "default": "never",
           "group": "build.deployment.options",
-          "section": "Upload changed files automatically",
+          "section": "Automatic upload",
           "project": false,
           "order": 70
         }

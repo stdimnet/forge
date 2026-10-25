@@ -84,9 +84,9 @@ export function visibleRows(entries: DirDiffEntry[], show: Record<DiffStatus, bo
  */
 export interface DirDiffSource {
   load: () => Promise<DirCompare>;
-  /** Shown above each side instead of the folder paths. */
-  leftTitle: string;
-  rightTitle: string;
+  /** Shown above each side instead of the folder paths (reactive: known after loading). */
+  leftTitle: () => string;
+  rightTitle: () => string;
   /** Compare Contents of a file row. */
   openDiff: (e: DirDiffEntry) => void | Promise<void>;
   /** Copy a row to the other side (Upload / Download). */
@@ -265,12 +265,12 @@ export function DirDiffView(props: { left: string; right: string; source?: DirDi
         </span>
       </div>
       <div class="dir-diff-header">
-        <div class="dir-diff-root" title={props.source?.leftTitle ?? props.left}>
-          {props.source?.leftTitle ?? (props.left || "/")}
+        <div class="dir-diff-root" title={props.source?.leftTitle() ?? props.left}>
+          {props.source?.leftTitle() ?? (props.left || "/")}
         </div>
         <div />
-        <div class="dir-diff-root" title={props.source?.rightTitle ?? props.right}>
-          {props.source?.rightTitle ?? (props.right || "/")}
+        <div class="dir-diff-root" title={props.source?.rightTitle() ?? props.right}>
+          {props.source?.rightTitle() ?? (props.right || "/")}
         </div>
       </div>
       <div class="dir-diff-columns">

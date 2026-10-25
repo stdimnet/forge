@@ -165,5 +165,5 @@ options = [
 ]
 default = "never"
 group = "build.deployment.options"
-section = "Upload changed files automatically"
+section = "Automatic upload"
 order = 70

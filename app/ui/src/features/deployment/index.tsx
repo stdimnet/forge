@@ -4,7 +4,7 @@
  * the Project view, automatic upload on save and the File Transfer tool window. Transfers
  * run in Rust (`forge-deploy`, `deploy_*` commands).
  */
-import { createEffect, createRoot, on } from "solid-js";
+import { createEffect, createRoot, createSignal, on } from "solid-js";
 import { render } from "solid-js/web";
 import { ArrowUpDown, Columns2 } from "lucide-solid";
 import { registerToolWindow } from "@/features/registry";
@@ -89,17 +89,15 @@ registerToolWindow({
 /** Sync with Deployed: the folder diff with Upload / Download per row, in an editor tab. */
 function openSyncTab(server: ServerView, path: string): void {
   const name = path.split("/").pop() || workspace()?.name || "project";
-  let remoteRoot = "";
+  const [remoteRoot, setRemoteRoot] = createSignal("");
   const source: DirDiffSource = {
     load: async () => {
       const r = await deploymentApi.syncCompare(server.id, path);
-      remoteRoot = r.remote;
+      setRemoteRoot(r.remote);
       return r.compare;
     },
-    leftTitle: `Local: ${path || "/"}`,
-    get rightTitle() {
-      return `${server.name}: ${remoteRoot || server.rootPath || "/"}`;
-    },
+    leftTitle: () => `Local: ${path || "/"}`,
+    rightTitle: () => `${server.name}: ${remoteRoot() || "…"}`,
     openDiff: (e) => compareWithDeployed(path ? `${path}/${e.path}` : e.path, server),
     copy: async (e, toRight) => {
       const full = path ? `${path}/${e.path}` : e.path;
@@ -133,14 +131,24 @@ command("PublishGroup.Upload", () => uploadToDefault());
 command("PublishGroup.UploadTo", () => uploadTo());
 command("PublishGroup.Download", () => downloadFromDefault());
 command("PublishGroup.DownloadFrom", () => downloadFrom());
-command("PublishGroup.CompareLocalVsRemote", () => {
+/** The file Compare with Deployed Version works on, or a hint when a folder is selected. */
+function compareTarget(): string | null {
   const [path] = targetPaths();
-  if (!path) return void showBalloon("Select a file to compare with its deployed version");
-  return compareWithDeployed(path);
+  const row = document.querySelector<HTMLElement>(`.project-tree .tree-row[data-path="${CSS.escape(path)}"]`);
+  if (!path || row?.dataset.dir !== undefined) {
+    showBalloon("Select a file to compare with its deployed version", "Folders are compared with Sync with Deployed to….");
+    return null;
+  }
+  return path;
+}
+
+command("PublishGroup.CompareLocalVsRemote", () => {
+  const path = compareTarget();
+  if (path) return compareWithDeployed(path);
 });
 command("PublishGroup.CompareLocalVsRemoteWith", async () => {
-  const [path] = targetPaths();
-  if (!path) return void showBalloon("Select a file to compare with its deployed version");
+  const path = compareTarget();
+  if (!path) return;
   const s = await chooseServer("Compare with Deployed Version on");
   if (s) await compareWithDeployed(path, s);
 });

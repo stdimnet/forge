@@ -17,6 +17,9 @@ import "./deployment.css";
 
 const NEW = "__new__";
 
+/** A plain copy of the form (store proxies cannot be cloned or sent as they are). */
+const plain = (s: DeployServer): DeployServer => JSON.parse(JSON.stringify(s)) as DeployServer;
+
 export const KIND_LABELS: Record<ServerKind, string> = {
   sftp: "SFTP",
   ftp: "FTP",
@@ -65,7 +68,7 @@ export function DeploymentPage() {
       () => JSON.stringify(draft),
       () => {
         if (!selected()) return;
-        void deploymentApi.validate(structuredClone({ ...draft })).then(setProblems, () => setProblems([]));
+        void deploymentApi.validate(plain(draft)).then(setProblems, () => setProblems([]));
       },
     ),
   );
@@ -99,7 +102,7 @@ export function DeploymentPage() {
   const save = async () => {
     setSaveError(undefined);
     try {
-      const saved = await deploymentApi.saveServer(structuredClone({ ...draft }), secret() || undefined);
+      const saved = await deploymentApi.saveServer(plain(draft), secret() || undefined);
       await refetch();
       void refreshConfig();
       select(servers().find((s) => s.id === saved.id) ?? saved);
@@ -138,7 +141,7 @@ export function DeploymentPage() {
   const runTest = async () => {
     setTest({ running: true });
     try {
-      setTest({ running: false, ...(await deploymentApi.test(structuredClone({ ...draft }), secret() || undefined)) });
+      setTest({ running: false, ...(await deploymentApi.test(plain(draft), secret() || undefined)) });
     } catch (e) {
       setTest({ running: false, ok: false, message: String((e as Error)?.message ?? e) });
     }
@@ -147,7 +150,7 @@ export function DeploymentPage() {
   /** "Autodetect": the login folder the server reports. */
   const autodetect = async () => {
     setTest({ running: true });
-    const result = await deploymentApi.test(structuredClone({ ...draft, rootPath: "" }), secret() || undefined).catch(
+    const result = await deploymentApi.test({ ...plain(draft), rootPath: "" }, secret() || undefined).catch(
       (e): TestResult => ({ ok: false, message: String((e as Error)?.message ?? e) }),
     );
     setTest({ running: false, ...result });
@@ -241,7 +244,13 @@ export function DeploymentPage() {
                     Type:
                   </label>
                   <select id="deploy-kind" class="ssh-input" value={draft.kind} onChange={(e) => update({ kind: e.currentTarget.value as ServerKind })}>
-                    <For each={Object.keys(KIND_LABELS) as ServerKind[]}>{(k) => <option value={k}>{KIND_LABELS[k]}</option>}</For>
+                    <For each={Object.keys(KIND_LABELS) as ServerKind[]}>
+                      {(k) => (
+                        <option value={k} selected={k === draft.kind}>
+                          {KIND_LABELS[k]}
+                        </option>
+                      )}
+                    </For>
                   </select>
                   <Switch>
                     <Match when={draft.kind === "sftp"}>
@@ -251,7 +260,13 @@ export function DeploymentPage() {
                       <div class="ssh-path">
                         <select id="deploy-ssh" class="ssh-input" value={draft.sshConfig} onChange={(e) => update({ sshConfig: e.currentTarget.value })}>
                           <option value="">Select an SSH configuration</option>
-                          <For each={sshConfigs() ?? []}>{(c) => <option value={c.id}>{c.name || c.label}</option>}</For>
+                          <For each={sshConfigs() ?? []}>
+                            {(c) => (
+                              <option value={c.id} selected={c.id === draft.sshConfig}>
+                                {c.name || c.label}
+                              </option>
+                            )}
+                          </For>
                         </select>
                         <button class="ssh-browse" title="SSH Configurations…" onClick={() => openSettings("tools.ssh")}>
                           …
