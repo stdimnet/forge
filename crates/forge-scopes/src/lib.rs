@@ -9,6 +9,9 @@
 //!   the scope plus the [`ScopeContext`] it is evaluated against; [`Scope`] is it compiled.
 //! - [`edit`]: the Include / Exclude buttons of the Scopes page, [`tree`]: its preview,
 //!   [`colors`]: file colors per scope.
+//! - [`structure`]: excluded folders, resource roots and "Exclude files" patterns
+//!   (Settings | Directories, "Mark Directory as"); [`view`]: the Project view's rows
+//!   (File Nesting, Compact Middle Packages, sorting).
 //!
 //! The crate is pure so the desktop app, the remote agent and the browser-mode WebAssembly
 //! build share it.
@@ -17,7 +20,9 @@ pub mod colors;
 pub mod context;
 pub mod edit;
 pub mod pattern;
+pub mod structure;
 pub mod tree;
+pub mod view;
 
 use serde::{Deserialize, Serialize};
 

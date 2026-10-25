@@ -79,12 +79,6 @@ export default {
     await page.waitForTimeout(300);
   },
 
-  "project-view-options": async (page) => {
-    await page.click('.tool-window-panel [aria-label="Options"], [data-tool-window-panel="project"] [aria-label="Options"]');
-    await page.waitForSelector(".context-menu, [role='menu']");
-    await page.waitForTimeout(150);
-  },
-
   "structure-autoscroll": async (page) => {
     await run(page, "ActivateStructureToolWindow");
     await page.waitForSelector(".php-structure .tree-row", { timeout: 10000 });

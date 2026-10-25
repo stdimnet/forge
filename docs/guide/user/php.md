@@ -571,7 +571,8 @@ PHPStorm derives the source roots of a PHP project from composer.json's PSR-4 ru
   their **package prefix** (the namespace of the folder). Change a prefix, unmark a
   composer.json root (it stays listed and can be marked again), reset it, or add a folder.
 - In the Project view, right-click a folder › **Mark Directory as** › **Sources Root**, **Test
-  Sources Root** or **Unmark as Sources Root**. A new root gets the namespace the folder maps
+  Sources Root** or **Unmark as Sources Root** (the same menu marks resource roots and excluded
+  folders, see [Project structure](workbench.md#project-structure-mark-directory-as)). A new root gets the namespace the folder maps
   to now as its prefix. Source roots get blue folders, test roots green ones, with the prefix
   next to the name.
 - The changes are stored in the project setting `php.sourceRoots` (shared through

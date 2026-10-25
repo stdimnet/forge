@@ -3,12 +3,9 @@ use std::path::{Component, Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
+use crate::excludes::{ExcludeSet, Excludes};
 use crate::gitignore::IgnoreRules;
 use crate::{ForgeError, Result};
-
-/// Directory names hidden from the project tree by default (like PHPStorm's "Excluded").
-pub(crate) const DEFAULT_EXCLUDES: &[&str] =
-    &[".git", "node_modules", "target", ".idea", ".DS_Store"];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -26,6 +23,11 @@ pub struct FileEntry {
     /// Matched by `.gitignore` rules; the project tree shows these grayed out.
     #[serde(default)]
     pub ignored: bool,
+    /// Excluded from the project (Settings | Directories, "Mark Directory as" › Excluded,
+    /// `node_modules`, "Exclude files" patterns) or inside an excluded folder; the Project
+    /// view shows these orange or hides them.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub excluded: bool,
 }
 
 /// An opened project root. All paths handed in from the UI are resolved against it
@@ -33,6 +35,7 @@ pub struct FileEntry {
 #[derive(Debug, Clone)]
 pub struct Workspace {
     root: PathBuf,
+    excludes: Excludes,
 }
 
 impl Workspace {
@@ -42,11 +45,19 @@ impl Workspace {
         if !root.is_dir() {
             return Err(ForgeError::NotFound(root));
         }
-        Ok(Self { root })
+        Ok(Self {
+            root,
+            excludes: Excludes::default(),
+        })
     }
 
     pub fn root(&self) -> &Path {
         &self.root
+    }
+
+    /// The excluded paths; shared by every clone of this workspace.
+    pub fn excludes(&self) -> &Excludes {
+        &self.excludes
     }
 
     pub fn name(&self) -> String {
@@ -80,14 +91,16 @@ impl Workspace {
     }
 
     /// List one directory level: folders first, then files, both alphabetical (case-insensitive).
-    /// Entries matched by `.gitignore` are flagged `ignored` but still listed.
+    /// Entries matched by `.gitignore` are flagged `ignored`, excluded ones `excluded`; both
+    /// are still listed. VCS metadata (`.git`) is never listed.
     pub fn list_dir(&self, rel: &str) -> Result<Vec<FileEntry>> {
         let dir = self.resolve(rel)?;
         let read = fs::read_dir(&dir).map_err(|e| ForgeError::io(&dir, e))?;
         let rules = IgnoreRules::for_dir(&self.root, &dir);
+        let excludes = self.excludes.get();
         let mut entries: Vec<FileEntry> = read
             .filter_map(|e| e.ok())
-            .filter(|e| !DEFAULT_EXCLUDES.contains(&e.file_name().to_string_lossy().as_ref()))
+            .filter(|e| !ExcludeSet::is_hidden_name(&e.file_name().to_string_lossy()))
             .map(|e| {
                 let kind = if e.file_type().map(|t| t.is_dir()).unwrap_or(false) {
                     FileKind::Dir
@@ -97,11 +110,14 @@ impl Workspace {
                 let ignored = rules
                     .as_ref()
                     .is_some_and(|r| r.is_ignored(&e.path(), kind == FileKind::Dir));
+                let path = self.relative(&e.path());
+                let excluded = excludes.reason(&path, kind == FileKind::Dir).is_some();
                 FileEntry {
                     name: e.file_name().to_string_lossy().into_owned(),
-                    path: self.relative(&e.path()),
+                    path,
                     kind,
                     ignored,
+                    excluded,
                 }
             })
             .collect();
@@ -225,6 +241,52 @@ mod tests {
             .map(|e| e.name)
             .collect();
         assert_eq!(names, vec!["src", "composer.json"]);
+    }
+
+    #[test]
+    fn flags_excluded_entries_and_their_content() {
+        use forge_scopes::structure::{FolderKind, FolderMark, StructureConfig};
+        let (dir, ws) = ws();
+        fs::create_dir_all(dir.path().join("node_modules/vue")).unwrap();
+        fs::create_dir_all(dir.path().join("storage/logs")).unwrap();
+        fs::write(dir.path().join("storage/logs/a.log"), "").unwrap();
+        fs::write(dir.path().join("src/app.min.js"), "").unwrap();
+        ws.excludes().set(StructureConfig {
+            folders: vec![FolderMark {
+                path: "storage/logs".into(),
+                kind: FolderKind::Excluded,
+            }],
+            exclude_patterns: "*.min.js".into(),
+        });
+        let excluded = |rel: &str| -> Vec<(String, bool)> {
+            ws.list_dir(rel)
+                .unwrap()
+                .into_iter()
+                .map(|e| (e.name, e.excluded))
+                .collect()
+        };
+        assert_eq!(
+            excluded(""),
+            vec![
+                ("node_modules".to_string(), true),
+                ("src".to_string(), false),
+                ("storage".to_string(), false),
+                ("composer.json".to_string(), false),
+            ]
+        );
+        assert_eq!(excluded("storage"), vec![("logs".to_string(), true)]);
+        assert_eq!(excluded("storage/logs"), vec![("a.log".to_string(), true)]);
+        assert_eq!(
+            excluded("src"),
+            vec![
+                ("app.min.js".to_string(), true),
+                ("User.php".to_string(), false)
+            ]
+        );
+        // Walks skip them.
+        let mut files = ws.list_files();
+        files.sort();
+        assert_eq!(files, vec!["composer.json", "src/User.php"]);
     }
 
     #[test]

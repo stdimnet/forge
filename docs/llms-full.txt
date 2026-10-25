@@ -945,19 +945,82 @@ The Project tool window (`Alt+1`) shows the project folder as a tree.
   file) are grayed out.
 - **Header buttons**: **Select Opened File** (the target icon) expands the tree to the
   active editor's file and selects it, **Collapse All** folds every folder, and **Options**
-  (⋮) holds **Always Select Opened File** (the tree follows the active editor, PHPStorm's
-  "Autoscroll from Source", setting `projectView.autoscrollFromSource`) and **Open Files with
-  Single Click**.
+  (⋮) holds the view options below.
+- **Excluded** folders and files are orange (or hidden, see **Show Excluded Files**); see
+  [Project structure](#project-structure-mark-directory-as). `.git` is never shown.
 - **Select In…** (`Alt+F1`) shows the current file in the Project view and other places, see
   [Select In](docs/guide/user/shortcuts/navigation.md#select-in).
 
 ![Project view options](docs/screenshots/project-view-options.png)
+
+### Options (⋮)
+
+Like PHPStorm's New UI, the Options menu groups the view options. They are user settings, so
+they apply to every project.
+
+| Entry | What it does | Setting |
+| --- | --- | --- |
+| Behavior › Always Select Opened File | The tree follows the active editor (PHPStorm's "Autoscroll from Source"). With **Show Members** the member at the caret is selected as the caret moves. | `projectView.autoscrollFromSource` |
+| Behavior › Open Files with Single Click | A single click opens files and expands folders | `projectView.openFilesWithSingleClick` |
+| Appearance › Show Members | PHP, JavaScript, TypeScript and Lua files get an expand arrow and list their classes, functions, methods, properties and constants (from the same providers as the [Structure tool window](docs/guide/user/code-structure.md)). A click on a member opens the file at it. | `projectView.showMembers` |
+| Appearance › Show Excluded Files | Excluded folders and files stay in the tree (orange); off hides them | `projectView.showExcludedFiles` |
+| Appearance › Compact Middle Packages | A folder that only contains one folder is shown as one row, e.g. `src/Acme/Shop` | `projectView.compactMiddlePackages` |
+| Appearance › File Nesting… | Opens the **File Nesting** dialog (below) | `projectView.fileNesting.enabled`, `projectView.fileNesting.rules` |
+| Sort › By Name / By Type | Sort files by name, or by their extension first | `projectView.sortByType` |
+| Sort › Folders Always on Top | Folders before files; off sorts folders and files together | `projectView.foldersAlwaysOnTop` |
+
+**File Nesting** shows generated and companion files below the file they belong to: with the
+rule `.ts` → `.js; .js.map; .d.ts`, `app.js` and `app.js.map` appear below `app.ts`, which
+gets an expand arrow. The dialog has **Enable file nesting** and a table of rules (**Parent
+file suffix**, **Child file suffix**, child suffixes separated by `;`) with **Add**,
+**Remove** and **Restore Defaults**. The predefined rules are PHPStorm's, for example
+`composer.json` → `composer.lock`, `package.json` → `package-lock.json; yarn.lock;
+pnpm-lock.yaml`, `.scss` → `.css; .css.map` and `.ts` → `.js; .js.map; .d.ts`. A rule whose
+parent does not start with a dot matches the whole file name. Selecting a nested file (Select
+Opened File, Always Select Opened File) expands its parent file.
+
+![File Nesting](docs/screenshots/project-view-file-nesting.png)
+
+![Show Members](docs/screenshots/project-view-show-members.png)
 - **Scratches and Consoles** appear at the bottom of the tree, see
   [Scratches, consoles and HTTP client](docs/guide/user/scratches-and-http.md).
 - **File colors** tint rows by scope (test folders green, your own scopes in their colors), see
   [Scopes and file colors](docs/guide/user/scopes-and-file-colors.md#settings--appearance--behavior--file-colors).
 
 ![Project view](docs/screenshots/project-tree-double-click.png)
+
+### Project structure (Mark Directory as)
+
+Right-click a folder › **Mark Directory as**, like PHPStorm:
+
+| Entry | What it does |
+| --- | --- |
+| Sources Root, Test Sources Root | PHP projects: PSR-4 source roots with their package prefix, see [PHP source roots](docs/guide/user/php.md) |
+| Resource Root, Test Resources Root | Marks folders with resources (purple and green folder icons) |
+| Excluded | Leaves the folder out of the project (orange) |
+| Unmark as …, Cancel Exclusion | Removes the folder's mark; for `node_modules` it keeps the folder in the project |
+
+Excluded folders and files are skipped by the PHP index, the search index, **Find in Files**,
+**Replace in Files**, **Search Everywhere** (Files, Classes, Symbols, Text), the TODO tool
+window, the inspections, the file watcher and **Local History**. Forge reindexes when the
+excluded folders change; this also works for [remote projects](docs/guide/user/remote-development.md), whose
+host skips them.
+
+- `node_modules` (and tool folders such as `.idea`, `.forge`, `target`, `.venv`,
+  `__pycache__` and `.next`) are excluded by default; **Cancel Exclusion** keeps one in the
+  project.
+- `vendor/` is **not** excluded: like in PHPStorm it is a library (indexed on demand, shown as
+  a library in scopes and file colors).
+- `.git` (and `.hg`, `.svn`, `.DS_Store`) is never shown.
+- **Settings | Directories** lists the **Resource Folders**, **Test Resource Folders** and
+  **Excluded Folders** (with the PHP source folders) and has the **Exclude files** field:
+  file and folder name patterns separated by `;`, with `*` and `?` (`*.min.js;tmp`). **Add
+  Folder** marks a folder of any kind.
+- Everything is stored in the project settings (`projectStructure.folders`,
+  `projectStructure.excludePatterns` in `.forge/settings.toml`), shared with the team like
+  PHPStorm's `.idea`.
+
+![Excluded folders](docs/screenshots/project-view-excluded.png)
 
 ### Context menu
 
@@ -8782,7 +8845,8 @@ PHPStorm derives the source roots of a PHP project from composer.json's PSR-4 ru
   their **package prefix** (the namespace of the folder). Change a prefix, unmark a
   composer.json root (it stays listed and can be marked again), reset it, or add a folder.
 - In the Project view, right-click a folder › **Mark Directory as** › **Sources Root**, **Test
-  Sources Root** or **Unmark as Sources Root**. A new root gets the namespace the folder maps
+  Sources Root** or **Unmark as Sources Root** (the same menu marks resource roots and excluded
+  folders, see [Project structure](docs/guide/user/workbench.md#project-structure-mark-directory-as)). A new root gets the namespace the folder maps
   to now as its prefix. Source roots get blue folders, test roots green ones, with the prefix
   next to the name.
 - The changes are stored in the project setting `php.sourceRoots` (shared through
@@ -13960,6 +14024,13 @@ Page id `appearance`.
 | `appearance.navigationBar.showMembers` | bool | `true` | user | Navigation Bar | Show members in the navigation bar — Add the class and function at the caret after the file name. View \| Appearance \| Members in Navigation Bar. |
 | `projectView.openFilesWithSingleClick` | bool | `true` | user | Project View | Open files with single click — In the Project tool window a single click opens files and expands folders. Turn it off to select with a single click and open with a double click, like PHPStorm. |
 | `projectView.autoscrollFromSource` | bool | `false` | user | Project View | Always select opened file — The Project tool window selects the file of the active editor whenever you switch editors (PHPStorm's Autoscroll from Source). Also in the tool window's Options menu. |
+| `projectView.showExcludedFiles` | bool | `true` | user | Project View | Show excluded files — The Project tool window lists excluded folders and files (orange) instead of hiding them. Options menu (⋮) › Show Excluded Files. |
+| `projectView.showMembers` | bool | `false` | user | Project View | Show members — PHP, JavaScript, TypeScript and Lua files expand to their classes, functions, methods and properties; a click on a member opens it. Options menu (⋮) › Show Members. |
+| `projectView.compactMiddlePackages` | bool | `false` | user | Project View | Compact middle packages — Folders that contain only one folder are shown as one row (`src/Acme/Shop`). Options menu (⋮) › Compact Middle Packages. |
+| `projectView.foldersAlwaysOnTop` | bool | `true` | user | Project View | Folders always on top — Folders come before files; turn it off to sort folders and files together. Options menu (⋮) › Folders Always on Top. |
+| `projectView.sortByType` | bool | `false` | user | Project View | Sort by type — Files are sorted by their extension, then by name. Options menu (⋮) › Sort by Type. |
+| `projectView.fileNesting.enabled` | bool | `true` | user | Project View | File nesting — Files with the same name as another file and a child suffix of a nesting rule are shown below it (`app.js` below `app.ts`). Options menu (⋮) › File Nesting… |
+| `projectView.fileNesting.rules` | objects (unique `parent`) | `[]` | user | Project View | File nesting rules — Parent file suffix and child file suffixes (separated by `;`) of File Nesting. Empty uses PHPStorm's predefined rules. Edit them in the Project tool window: Options menu (⋮) › File Nesting… |
 | `structureView.autoscrollToSource` | bool | `true` | user | Structure View | Autoscroll to source — A single click on a Structure tool window node moves the editor to it. Turn it off to select with a single click and navigate with a double click. |
 | `structureView.autoscrollFromSource` | bool | `true` | user | Structure View | Autoscroll from source — The Structure tool window selects the member at the caret as you move through the editor. |
 
@@ -14355,6 +14426,8 @@ Page id `lang.php`.
 | `php.projectInterpreters` | objects (unique `name`) | `[]` | user, project | Development Environment | CLI Interpreters of this project — Interpreters marked "Visible only for this project". |
 | `php.includePaths` | list | `[]` | user, project | Include Path | Include path — Extra directories indexed as libraries (e.g. global PEAR or framework stubs). |
 | `php.sourceRoots` | objects (unique `path`) | `[]` | user, project | Directories | Source roots — Folders marked as Sources Root or Test Sources Root with their package prefix (Settings \| Directories, Project view: Mark Directory as). They change the PSR-4 roots composer.json declares (kind `none` unmarks one); New PHP Class, Move Class and the namespace inspection use them. |
+| `projectStructure.folders` | objects (unique `path`) | `[]` | user, project | Directories | Excluded and resource folders — Folders marked as Excluded, Resource Root or Test Resources Root (Settings \| Directories, Project view: Mark Directory as), stored in the project. Kind `included` cancels the default exclusion of a folder like `node_modules`. Excluded folders are left out of the indexes, Find in Files, Search Everywhere, inspections and local history. |
+| `projectStructure.excludePatterns` | string | `""` | user, project | Directories | Exclude files — File and folder name patterns excluded from the project, separated by `;` (`*.min.js;tmp`). |
 | `php.inspections.enabled` | bool | `true` | user | Inspections | Inspections from PHPStorm metadata and attributes — Deprecated symbols, expected values, #[Immutable] writes, unused #[Pure] results, unreachable code after exit points and the PSR-0/PSR-4 namespace check. |
 | `php.stubs.path` | path | `""` | user | PHP Runtime | Default stubs path — A phpstorm-stubs checkout used for PHP's own classes, functions and constants (Go to Declaration on \Throwable, array_map). Empty: Forge downloads JetBrains' phpstorm-stubs into its cache folder on first use, or uses Intelephense's stubs. |
 | `php.lsp.server` | enum: `auto`, `intelephense`, `phpactor`, `none` | `auto` | user | Language Server | Language server — Started automatically when a PHP project opens. |
@@ -17886,6 +17959,7 @@ Forge core: the language-agnostic foundation every pack builds on.
 | Module | Summary |
 | --- | --- |
 | `error.rs` |  |
+| `excludes.rs` | The project's excluded paths (`Excludes`, a handle shared by every clone of a `Workspace`, computed by `forge_scopes::structure::ExcludeSet`): walks, `list_dir` (`FileEntry::excluded`) and the watcher follow it. |
 | `gitignore.rs` | Which project files git ignores, so the project tree can gray them out like PHPStorm. |
 | `project_files.rs` | Project-relative files that Forge itself keeps in a project (`.forge/settings.toml`, `.forge/dataSources.toml`, `.forge/breakpoints.json`, ...) and project files it reads (`.env`), wherever the project lives: `LocalFiles` for a folder on this machine, the project backend (`forge_backend::BackendFiles`) for a project on a remote host. |
 | `search.rs` | Fuzzy file search for "Go to File" / Search Everywhere, and Find in Files. |
@@ -20013,6 +20087,15 @@ Colors (see the [user guide](docs/guide/user/scopes-and-file-colors.md)).
 - `tree`: the Scopes page's preview tree with per-folder counts.
 - `colors`: file colors per scope with PHPStorm's precedence (local rows first, first match
   wins) and the theme palette.
+- `structure`: the project structure of Settings | Directories and "Mark Directory as":
+  `StructureConfig` (settings `projectStructure.folders` / `projectStructure.excludePatterns`),
+  `ExcludeSet` (the one helper every walk, index and the watcher asks: user-excluded folders,
+  default-excluded names like `node_modules` unless cancelled, "Exclude files" globs, hidden
+  `.git`), `mark` (Excluded / Cancel Exclusion / Resource Root / Test Resources Root /
+  Unmark), `state` and `describe`.
+- `view`: the Project view's rows of one folder (`arrange`): Show Excluded Files, Compact
+  Middle Packages (looks into single child folders through a callback), File Nesting
+  (`nest`, PHPStorm's `default_nesting_rules`), Folders Always on Top and Sort by Type.
 
 ## Main public items
 
@@ -20027,16 +20110,21 @@ pub struct ScopeSet { shared, local } // resolve, entries, problems
 pub mod edit;   // EditRequest, EditOp, apply, file_pattern
 pub mod tree;   // build -> ScopeTree
 pub mod colors; // ColorsRequest, FileColor, resolve, PALETTE
+pub mod structure; // StructureConfig, ExcludeSet, mark, state, describe, DEFAULT_EXCLUDED
+pub mod view;      // ViewOptions, ViewEntry, TreeRow, arrange, nest, default_nesting_rules
 ```
 
 ## Used by
 
 - `forge-find` (`FindRequest.scope`), `forge-codeintel` (`UsageScope` custom patterns),
   `forge-ssr` (`SsrRequest.scope`)
-- IPC: `scopes_files` (`Backend::list_files`, agent call `ListFiles`) and `scopes_test_roots`
+- `forge-core` (`Excludes`, shared by every clone of a `Workspace`), `forge-search` (index
+  scan), `phpforge-lang-php` (`IndexConfig::structure`)
+- IPC: `project_tree_list` (`app/src-tauri/src/commands/project_structure.rs`), `scopes_files` (`Backend::list_files`, agent call `ListFiles`) and `scopes_test_roots`
   (`app/src-tauri/src/commands/scopes.rs`)
 - UI: `app/ui/src/features/scopes` calls it synchronously through `forge-wasm` (`scopes_*`,
-  `file_colors_resolve`) in the desktop app and in browser mode
+  `file_colors_resolve`) and `app/ui/src/features/projectStructure` (`project_structure_*`,
+  `project_view_*`) in the desktop app and in browser mode
 
 ## Dependencies
 

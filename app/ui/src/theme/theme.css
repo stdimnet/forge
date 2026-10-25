@@ -36,6 +36,10 @@
   --vcs-added: #73c48a;
   --vcs-deleted: #8a8a94;
   --vcs-untracked: #e0806a;
+  /* Project view: excluded folders and resource roots (Mark Directory as) */
+  --tree-excluded: #e08a4f;
+  --tree-resource-root: #c08ae0;
+  --tree-test-resource-root: #8cc97a;
   --vcs-ignored: #80808a;
   --vcs-conflict: #ef5f5f;
 
@@ -153,6 +157,10 @@
   --vcs-added: #2f8a46;
   --vcs-deleted: #8a8a94;
   --vcs-untracked: #b5492f;
+  /* Project view: excluded folders and resource roots (Mark Directory as) */
+  --tree-excluded: #c0580e;
+  --tree-resource-root: #8a4fb5;
+  --tree-test-resource-root: #3a8a3a;
   --vcs-ignored: #9a9aa3;
 
   --blame-age-0: #e8620c;
@@ -272,6 +280,10 @@
   --vcs-added: #859900;
   --vcs-deleted: #657b83;
   --vcs-untracked: #cb4b16;
+  /* Project view: excluded folders and resource roots (Mark Directory as) */
+  --tree-excluded: #cb4b16;
+  --tree-resource-root: #6c71c4;
+  --tree-test-resource-root: #859900;
   --vcs-conflict: #dc322f;
 
   /* Git blame annotation age (newest -> oldest) and diff viewer */
@@ -347,6 +359,10 @@
   --vcs-added: #859900;
   --vcs-deleted: #93a1a1;
   --vcs-untracked: #cb4b16;
+  /* Project view: excluded folders and resource roots (Mark Directory as) */
+  --tree-excluded: #cb4b16;
+  --tree-resource-root: #6c71c4;
+  --tree-test-resource-root: #859900;
 
   --blame-age-0: #cb4b16;
   --blame-age-1: #d98a5a;

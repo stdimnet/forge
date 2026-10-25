@@ -529,6 +529,19 @@ fn state_limits(state: &AppState) -> Limits {
     if let Some(ex) = s.get_as::<Vec<String>>("localHistory.excludedFolders") {
         l.excluded = ex;
     }
+    drop(s);
+    // The project's excluded folders (Settings | Directories) are not recorded either.
+    let excludes = crate::commands::project_structure::excludes(state);
+    for folder in excludes
+        .user_folders()
+        .iter()
+        .cloned()
+        .chain(excludes.default_names())
+    {
+        if !l.excluded.contains(&folder) {
+            l.excluded.push(folder);
+        }
+    }
     l
 }
 

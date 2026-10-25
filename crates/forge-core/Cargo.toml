@@ -10,6 +10,7 @@ serde.workspace = true
 serde_json.workspace = true
 forge-fuzzy.workspace = true
 forge-find.workspace = true
+forge-scopes.workspace = true
 thiserror.workspace = true
 toml.workspace = true
 dirs.workspace = true

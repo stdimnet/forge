@@ -547,6 +547,10 @@ impl Backend for RemoteBackend {
         )
     }
 
+    fn set_structure(&self, config: forge_core::excludes::StructureConfig) -> Result<bool> {
+        self.shared.call(Call::SetStructure(config), TIMEOUT)
+    }
+
     fn search_status(&self) -> Result<crate::SearchStatus> {
         self.shared.call(Call::SearchStatus, TIMEOUT)
     }

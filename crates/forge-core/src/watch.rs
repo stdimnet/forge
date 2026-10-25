@@ -1,7 +1,7 @@
 //! Watches the open project for changes made outside the editor (git checkouts, composer,
 //! code generators, other editors) and reports them in debounced batches.
 //!
-//! Paths under the default excludes (`.git`, `node_modules`, ...), `.forge` and
+//! Excluded paths (`node_modules`, folders marked Excluded, see [`crate::Excludes`]), `.forge` and
 //! everything matched by the root `.gitignore` / `.git/info/exclude` are dropped. Changes to
 //! git's own state (`.git/index`, `HEAD`, refs) are reported as a flag so the VCS view can
 //! refresh without polling.
@@ -15,7 +15,7 @@ use ignore::gitignore::{Gitignore, GitignoreBuilder};
 use notify::{RecursiveMode, Watcher};
 use serde::{Deserialize, Serialize};
 
-use crate::workspace::DEFAULT_EXCLUDES;
+use crate::excludes::Excludes;
 use crate::{ForgeError, Result};
 
 /// One debounced batch of changes; paths are workspace-relative with `/` separators.
@@ -48,13 +48,19 @@ pub enum Classified {
 pub struct ChangeFilter {
     root: PathBuf,
     gitignore: Gitignore,
+    excludes: Excludes,
 }
 
 const GIT_STATE: &[&str] = &["index", "HEAD", "packed-refs", "MERGE_HEAD", "ORIG_HEAD"];
 
 impl ChangeFilter {
-    /// Reads `<root>/.gitignore` and `<root>/.git/info/exclude`.
+    /// Reads `<root>/.gitignore` and `<root>/.git/info/exclude`; default excludes only.
     pub fn new(root: &Path) -> Self {
+        Self::with_excludes(root, Excludes::default())
+    }
+
+    /// [`ChangeFilter::new`] that follows the project's excluded paths.
+    pub fn with_excludes(root: &Path, excludes: Excludes) -> Self {
         let mut builder = GitignoreBuilder::new(root);
         for file in [root.join(".gitignore"), root.join(".git/info/exclude")] {
             if file.is_file() {
@@ -70,6 +76,7 @@ impl ChangeFilter {
         Self {
             root: root.to_path_buf(),
             gitignore,
+            excludes,
         }
     }
 
@@ -98,7 +105,14 @@ impl ChangeFilter {
                 Classified::Ignored
             };
         }
-        if first == ".forge" || parts.iter().any(|p| DEFAULT_EXCLUDES.contains(&p.as_str())) {
+        let joined = parts.join("/");
+        // A removed path may have been a folder.
+        let maybe_dir = abs.is_dir() || !abs.exists();
+        let excludes = self.excludes.get();
+        if first == ".forge"
+            || excludes.excludes(&joined, maybe_dir)
+            || excludes.excludes(&joined, false)
+        {
             return Classified::Ignored;
         }
         if self
@@ -108,7 +122,7 @@ impl ChangeFilter {
         {
             return Classified::Ignored;
         }
-        Classified::Project(parts.join("/"))
+        Classified::Project(joined)
     }
 
     /// Whether `rel` is an ignore file whose change requires a new filter.
@@ -173,6 +187,16 @@ impl ProjectWatcher {
         root: impl Into<PathBuf>,
         on_change: impl Fn(FsChanges) + Send + 'static,
     ) -> Result<Self> {
+        Self::start_with_excludes(root, Excludes::default(), on_change)
+    }
+
+    /// [`ProjectWatcher::start`] that drops the project's excluded paths (read on every
+    /// event, so changed rules apply at once).
+    pub fn start_with_excludes(
+        root: impl Into<PathBuf>,
+        excludes: Excludes,
+        on_change: impl Fn(FsChanges) + Send + 'static,
+    ) -> Result<Self> {
         let root: PathBuf = root.into();
         let (tx, rx) = mpsc::channel::<notify::Result<notify::Event>>();
         let mut watcher = notify::recommended_watcher(tx)
@@ -183,7 +207,7 @@ impl ProjectWatcher {
         let thread_root = root.clone();
         std::thread::Builder::new()
             .name("forge-fs-watch".into())
-            .spawn(move || run(thread_root, rx, on_change))
+            .spawn(move || run(thread_root, excludes, rx, on_change))
             .map_err(|e| ForgeError::io(&root, e))?;
         Ok(Self {
             _watcher: watcher,
@@ -198,10 +222,11 @@ impl ProjectWatcher {
 
 fn run(
     root: PathBuf,
+    excludes: Excludes,
     rx: mpsc::Receiver<notify::Result<notify::Event>>,
     on_change: impl Fn(FsChanges),
 ) {
-    let mut filter = ChangeFilter::new(&root);
+    let mut filter = ChangeFilter::with_excludes(&root, excludes.clone());
     let mut batch = Batch::default();
     let mut first_at: Option<Instant> = None;
     loop {
@@ -218,7 +243,7 @@ fn run(
                     let c = filter.classify(path);
                     if let Classified::Project(rel) = &c {
                         if ChangeFilter::is_ignore_file(rel) {
-                            filter = ChangeFilter::new(&root);
+                            filter = ChangeFilter::with_excludes(&root, excludes.clone());
                         }
                     }
                     batch.add(c);
@@ -297,6 +322,25 @@ mod tests {
             Classified::Ignored
         );
         assert_eq!(f.classify(Path::new("/elsewhere/x")), Classified::Ignored);
+    }
+
+    #[test]
+    fn follows_the_excluded_folders() {
+        use forge_scopes::structure::{FolderKind, FolderMark, StructureConfig};
+        let dir = project();
+        let root = dir.path();
+        let excludes = Excludes::default();
+        let f = ChangeFilter::with_excludes(root, excludes.clone());
+        let path = root.join("src/Generated/A.php");
+        assert!(matches!(f.classify(&path), Classified::Project(_)));
+        excludes.set(StructureConfig {
+            folders: vec![FolderMark {
+                path: "src/Generated".into(),
+                kind: FolderKind::Excluded,
+            }],
+            ..StructureConfig::default()
+        });
+        assert_eq!(f.classify(&path), Classified::Ignored);
     }
 
     #[test]
