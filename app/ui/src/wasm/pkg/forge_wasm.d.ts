@@ -403,6 +403,17 @@ export function csv_sort_order(request_json: string): string;
 export function deploy_compare(request_json: string): string;
 
 /**
+ * Remote Host: `{ path, name, rename }` → `{ path }` of the new or renamed entry, or
+ * `{ error }` for an invalid name.
+ */
+export function deploy_entry_path(request_json: string): string;
+
+/**
+ * Remote Host: `{ server, entries }` → the tree nodes (mappings, exclusions, order).
+ */
+export function deploy_remote_nodes(request_json: string): string;
+
+/**
  * `{ server, paths, excludeNames }` → where every project path is deployed.
  */
 export function deploy_resolve(request_json: string): string;
@@ -1496,6 +1507,8 @@ export interface InitOutput {
     readonly csv_parse: (a: number, b: number, c: number) => void;
     readonly csv_sort_order: (a: number, b: number, c: number) => void;
     readonly deploy_compare: (a: number, b: number, c: number) => void;
+    readonly deploy_entry_path: (a: number, b: number, c: number) => void;
+    readonly deploy_remote_nodes: (a: number, b: number, c: number) => void;
     readonly deploy_resolve: (a: number, b: number, c: number) => void;
     readonly deploy_validate: (a: number, b: number, c: number) => void;
     readonly dql_complete: (a: number, b: number, c: number) => void;
