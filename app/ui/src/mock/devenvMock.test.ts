@@ -24,13 +24,13 @@ describe("browser-mode dev containers and WSL", () => {
   it("lists, builds, opens and manages containers", async () => {
     const before = await devcontainerApi.list();
     expect(before.available).toBe(true);
-    expect(before.containers.map((c) => c.name)).toEqual(["Acme Shop", "Billing API"]);
+    expect(before.containers.map((c) => c.name)).toEqual(["Storefront UI", "Billing API"]);
     expect(before.containers[1]).toMatchObject({ state: "exited", composeProject: "billing-api_devcontainer" });
 
     const lines: BuildLogLine[] = [];
     const unlisten = await devcontainerApi.onLog((l) => lines.push(l));
     const [view] = await devcontainerApi.configs();
-    const outcome = await devcontainerApi.up(view.config!.localFolder, view.path, true);
+    const outcome = await devcontainerApi.up(view.config!.localFolder, view.path);
     unlisten();
     expect(outcome.created).toBe(true);
     expect(lines.some((l) => l.kind === "command" && l.text.startsWith("docker build"))).toBe(true);

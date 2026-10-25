@@ -74,17 +74,17 @@ interface FakeContainer {
 const containers: FakeContainer[] = [
   {
     containerId: "3f9c2a1b7d4e",
-    name: "forge-acme-shop-5d1e09c3",
-    displayName: "Acme Shop",
-    image: "forge-devcontainer-5d1e09c3a7b2",
+    name: "forge-storefront-ui-5d1e09c3",
+    displayName: "Storefront UI",
+    image: "mcr.microsoft.com/devcontainers/typescript-node:22",
     state: "running",
     status: "Up 2 hours",
     created: "2026-10-26 08:12:40 +0100 CET",
     id: "5d1e09c3a7b2",
-    workspace: `/workspaces/${mockProjectName}`,
-    user: "vscode",
-    folder: DEMO_FOLDER,
-    config: `${DEMO_FOLDER}/.devcontainer/devcontainer.json`,
+    workspace: "/workspaces/storefront-ui",
+    user: "node",
+    folder: "~/Projects/storefront-ui",
+    config: "~/Projects/storefront-ui/.devcontainer/devcontainer.json",
     compose: "",
   },
   {
@@ -226,7 +226,7 @@ registerMock("devcontainer_up", async ({ folder, configPath, rebuild }): Promise
     "Generating optimized autoload files",
     "added 214 packages, and audited 215 packages in 6s",
   ])
-    await step(80, () => out(line, "stdout"));
+    await step(400, () => out(line, "stdout"));
   await step(150, () => {
     log({ kind: "step", text: "Running postStartCommand…" });
     log({ kind: "command", text: `docker exec -u ${user} -w ${cfg.workspaceFolder} ${containerId} /bin/sh -c 'php artisan migrate --force'` });

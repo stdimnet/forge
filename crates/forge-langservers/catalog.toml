@@ -69,7 +69,7 @@ extensions = ["less"]
 id = "json"
 name = "JSON"
 extensions = ["json", "jsonc:jsonc", "json5:jsonc"]
-file_names = [".babelrc:jsonc", ".eslintrc:jsonc", ".prettierrc:json"]
+file_names = [".babelrc:jsonc", ".eslintrc:jsonc", ".prettierrc:json", "devcontainer.json:jsonc", ".devcontainer.json:jsonc"]
 
 [[language]]
 id = "yaml"
