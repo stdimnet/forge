@@ -109,7 +109,10 @@ are in [research/jetbrains-gap-analysis.md](research/jetbrains-gap-analysis.md).
 - [ ] Shared test runner and coverage for every pack; run targets (Docker, WSL, SSH) for run, test and debug
 - [ ] JavaScript/TypeScript debugger (Chrome, Node.js, attach) and JS test runners (Jest, Vitest, Mocha, Playwright, Cypress)
 - [ ] JavaForge: Eclipse JDT LS (managed), JDK detection and download, Maven and Gradle, JUnit 5/TestNG, Java debugger
-- [ ] JavaForge: Spring Boot, Kotlin (kotlin-lsp), Jakarta EE basics
+- [ ] JavaForge: Gradle and Maven tool windows (tasks, dependencies, sync, offline mode), Gradle wrapper, build and run through Gradle/Maven, Gradle Kotlin and Groovy DSL editing with completion
+- [ ] KotlinForge: Kotlin (kotlin-lsp, managed), Kotlin/JVM run configurations, Kotlin scripts (`.kts`), JUnit 5/Kotest runners, Kotlin debugger (coroutines view), ktlint and detekt
+- [ ] JavaForge: Spring Boot (run dashboard, beans, endpoints, `application.yml` completion), Jakarta EE basics
+- [ ] JVM extras: Groovy and Scala basics (highlighting, run, Gradle/sbt import), Android basics (Gradle Android projects, adb devices, Logcat)
 - [ ] PyForge: basedpyright/ruff/ty/Black, interpreters (venv, uv, Poetry, conda, pipenv, Hatch; Docker/SSH/WSL), Python Packages tool window, requirements inspections
 - [ ] PyForge: pytest/unittest/tox runners, debugpy with debug console, Python console, profiler
 - [ ] PyForge: Django (manage.py, template navigation, server/tests configurations), Flask, FastAPI, Celery
